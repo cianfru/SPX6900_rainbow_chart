@@ -16,6 +16,25 @@ const MONO = "ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberat
 const LED = "'DSEG7 Classic', ui-monospace, monospace";
 const MAX_W = 1400;
 
+// Frosted-glass card style. Pass an rgb string + alpha to tint the fill.
+const glass = (rgb = "255, 255, 255", alpha = 0.05, blur = 14) => ({
+  background: `rgba(${rgb}, ${alpha})`,
+  backdropFilter: `blur(${blur}px)`,
+  WebkitBackdropFilter: `blur(${blur}px)`,
+  border: "1px solid rgba(255, 255, 255, 0.12)",
+  boxShadow: "inset 0 1px 0 rgba(255,255,255,0.10), 0 8px 30px rgba(0,0,0,0.35)",
+});
+
+// Rainbow aurora blobs that drift slowly behind the glass (matches the chart's bands).
+const AURORA = [
+  { c: "#6366f1", top: "-10%", left: "-8%",  size: "48vw", anim: "aurora-1 26s" },
+  { c: "#3b82f6", top: "8%",   left: "60%",  size: "44vw", anim: "aurora-2 30s" },
+  { c: "#06b6d4", top: "46%",  left: "-12%", size: "42vw", anim: "aurora-3 24s" },
+  { c: "#22c55e", top: "62%",  left: "58%",  size: "46vw", anim: "aurora-1 29s" },
+  { c: "#f59e0b", top: "28%",  left: "32%",  size: "34vw", anim: "aurora-2 33s" },
+  { c: "#dc2626", top: "78%",  left: "18%",  size: "38vw", anim: "aurora-3 27s" },
+];
+
 // Track viewport width so we can size things responsively for phones/tablets.
 function useViewport() {
   const [w, setW] = useState(typeof window !== "undefined" ? window.innerWidth : 1400);
@@ -254,6 +273,21 @@ export default function App() {
       fontFamily: SANS, color: "#e2e8f0",
       padding: isMobile ? "18px 12px 40px" : "32px 20px 48px",
     }}>
+      {/* Rainbow aurora mesh */}
+      <div aria-hidden="true" style={{
+        position: "fixed", inset: 0, zIndex: -2, overflow: "hidden", pointerEvents: "none",
+      }}>
+        {AURORA.map((b, i) => (
+          <div key={i} style={{
+            position: "absolute", top: b.top, left: b.left,
+            width: b.size, height: b.size, borderRadius: "50%",
+            background: `radial-gradient(circle, ${b.c} 0%, transparent 70%)`,
+            opacity: 0.32, filter: "blur(40px)", willChange: "transform",
+            animation: `${b.anim} ease-in-out infinite`,
+          }} />
+        ))}
+      </div>
+
       {/* Animated starfield backdrop */}
       <div aria-hidden="true" style={{
         position: "fixed", top: 0, left: 0, width: "100%", height: "calc(100% + 200px)",
@@ -312,7 +346,7 @@ export default function App() {
       {/* About panel — always visible */}
       <div style={{
         maxWidth: MAX_W, margin: "0 auto 20px", padding: isMobile ? "16px 16px" : "20px 26px",
-        background: "rgba(99, 102, 241, 0.06)", border: "1px solid rgba(99, 102, 241, 0.2)",
+        ...glass("99, 102, 241", 0.08),
         borderRadius: 10, fontFamily: SANS, fontSize: isMobile ? 14 : 15,
         color: "#cbd5e1", lineHeight: 1.7,
       }}>
@@ -364,9 +398,10 @@ export default function App() {
       <div style={{
         maxWidth: MAX_W, margin: "0 auto 20px", padding: isMobile ? "18px 18px" : "22px 30px",
         background: `linear-gradient(135deg, ${cb.c}26, ${cb.c}0a)`,
+        backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)",
         border: `1.5px solid ${cb.c}66`,
         borderRadius: 14,
-        boxShadow: `0 0 50px ${cb.c}24, inset 0 0 30px ${cb.c}10`,
+        boxShadow: `inset 0 1px 0 rgba(255,255,255,0.12), 0 0 50px ${cb.c}24, 0 8px 30px rgba(0,0,0,0.35)`,
         overflow: "hidden",
       }}>
         <div style={{
@@ -427,8 +462,8 @@ export default function App() {
       {/* Controls */}
       <div style={{ maxWidth: MAX_W, margin: "0 auto 14px", display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
         <div style={{
-          display: "flex", background: "rgba(255,255,255,0.03)",
-          border: "1px solid rgba(255,255,255,0.12)", borderRadius: 7, overflow: "hidden",
+          display: "flex", borderRadius: 7, overflow: "hidden",
+          ...glass("255, 255, 255", 0.04),
         }}>
           {HZ.map((h, i) => (
             <button key={i} onClick={() => setHi(i)} style={{
@@ -571,7 +606,9 @@ export default function App() {
           }}>
             {ms.map((t, i) => (
               <div key={i} style={{
-                background: `${t.c}0d`, border: `1px solid ${t.c}38`,
+                background: `${t.c}12`, border: `1px solid ${t.c}45`,
+                backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)",
+                boxShadow: "inset 0 1px 0 rgba(255,255,255,0.10), 0 8px 30px rgba(0,0,0,0.35)",
                 borderRadius: 10, padding: "16px 18px",
               }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 10 }}>
@@ -603,7 +640,7 @@ export default function App() {
       <div style={{ maxWidth: MAX_W, margin: "24px auto 0", display: "flex", gap: 10, flexWrap: "wrap" }}>
         <div style={{
           flex: "1 1 500px", padding: "16px 20px",
-          background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.1)",
+          ...glass("255, 255, 255", 0.04),
           borderRadius: 8, fontFamily: SANS, fontSize: 13, color: "#94a3b8", lineHeight: 1.7,
         }}>
           <span style={{ color: "#f1f5f9", fontWeight: 700 }}>{m.name}: </span>

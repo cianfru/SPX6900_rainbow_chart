@@ -46,6 +46,20 @@ body { margin: 0; }
   50% { transform: scale(1.25); opacity: 0.65; }
 }
 
+/* Slowly drifting aurora blobs behind the frosted glass */
+@keyframes aurora-1 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50%      { transform: translate(6vw, 5vh) scale(1.18); }
+}
+@keyframes aurora-2 {
+  0%, 100% { transform: translate(0, 0) scale(1.05); }
+  50%      { transform: translate(-7vw, 7vh) scale(1.2); }
+}
+@keyframes aurora-3 {
+  0%, 100% { transform: translate(0, 0) scale(1.1); }
+  50%      { transform: translate(5vw, -6vh) scale(0.95); }
+}
+
 /* Slowly scroll the rainbow gradient across the title text */
 @keyframes title-shimmer {
   from { background-position: 0% 50%; }
