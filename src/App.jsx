@@ -191,6 +191,9 @@ export default function App() {
   const last = priceData[priceData.length - 1];
   const ld = dayN(last.date);
   const cb = BAND_LABELS[bandIndex(m, last.price, ld)];
+  // LED price: the lit value plus an "all segments on" ghost (8.8.8) behind it
+  const priceNum = fP(last.price).replace(/^\$/, "");
+  const priceGhost = priceNum.replace(/[0-9]/g, "8");
 
   // Compute yMin/yMax from the actual band values so bands never get clipped.
   // No artificial cap: at long horizons the top band legitimately grows large,
@@ -391,11 +394,23 @@ export default function App() {
               }}>
                 $
               </span>
-              <span style={{
-                fontFamily: LED, fontSize: isMobile ? 24 : 34, color: cb.c, letterSpacing: "0.04em",
-                textShadow: `0 0 6px ${cb.c}, 0 0 18px ${cb.c}cc`,
-              }}>
-                {fP(last.price).replace(/^\$/, "")}
+              <span style={{ position: "relative", display: "inline-block" }}>
+                {/* dim "all segments on" backdrop */}
+                <span aria-hidden="true" style={{
+                  position: "absolute", left: 0, top: 0,
+                  fontFamily: LED, fontSize: isMobile ? 24 : 34, letterSpacing: "0.04em",
+                  color: cb.c, opacity: 0.16, pointerEvents: "none",
+                }}>
+                  {priceGhost}
+                </span>
+                {/* lit value */}
+                <span style={{
+                  position: "relative",
+                  fontFamily: LED, fontSize: isMobile ? 24 : 34, letterSpacing: "0.04em",
+                  color: cb.c, textShadow: `0 0 6px ${cb.c}, 0 0 18px ${cb.c}cc`,
+                }}>
+                  {priceNum}
+                </span>
               </span>
             </span>
             <span style={{ fontFamily: SANS, fontSize: isMobile ? 15 : 22, color: "#94a3b8" }}>and is a</span>
