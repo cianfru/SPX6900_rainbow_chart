@@ -1,7 +1,17 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+/* 7-segment LED display face, used for the live price readout */
+@font-face {
+  font-family: 'DSEG7 Classic';
+  src: url('/fonts/DSEG7Classic-Bold.woff2') format('woff2'),
+       url('/fonts/DSEG7Classic-Bold.ttf') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
-  --mono: 'JetBrains Mono', ui-monospace, monospace;
+  --mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
   --sans: 'Space Grotesk', system-ui, sans-serif;
   --bg: #020208;
   --surface: rgba(255,255,255,0.02);

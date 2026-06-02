@@ -12,7 +12,8 @@ import {
 import HolderscanDashboard from "./HolderscanDashboard.jsx";
 
 const SANS = "'Space Grotesk', system-ui, sans-serif";
-const MONO = "'JetBrains Mono', ui-monospace, monospace";
+const MONO = "ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace";
+const LED = "'DSEG7 Classic', ui-monospace, monospace";
 const MAX_W = 1400;
 
 // Track viewport width so we can size things responsively for phones/tablets.
@@ -384,10 +385,18 @@ export default function App() {
             textAlign: "center",
           }}>
             <span style={{ fontFamily: SANS, fontSize: isMobile ? 15 : 22, color: "#94a3b8" }}>is at</span>
-            <span style={{
-              fontFamily: MONO, fontSize: isMobile ? 26 : 38, fontWeight: 700, color: "#f8fafc",
-            }}>
-              {fP(last.price)}
+            <span style={{ display: "inline-flex", alignItems: "baseline", gap: 5 }}>
+              <span style={{
+                fontFamily: MONO, fontSize: isMobile ? 16 : 22, fontWeight: 700, color: cb.c, opacity: 0.85,
+              }}>
+                $
+              </span>
+              <span style={{
+                fontFamily: LED, fontSize: isMobile ? 24 : 34, color: cb.c, letterSpacing: "0.04em",
+                textShadow: `0 0 6px ${cb.c}, 0 0 18px ${cb.c}cc`,
+              }}>
+                {fP(last.price).replace(/^\$/, "")}
+              </span>
             </span>
             <span style={{ fontFamily: SANS, fontSize: isMobile ? 15 : 22, color: "#94a3b8" }}>and is a</span>
             <span style={{
