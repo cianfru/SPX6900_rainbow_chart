@@ -9,6 +9,7 @@ import {
   dayN, ds, bandVal, bandIndex,
   whenHitsCenter, whenHitsBand,
 } from "./models.js";
+import HolderscanDashboard from "./HolderscanDashboard.jsx";
 
 const mono = "'JetBrains Mono', monospace";
 
@@ -462,6 +463,9 @@ export default function App() {
           </div>
         </div>
       )}
+
+      {/* Holder Analytics */}
+      <HolderscanDashboard />
 
       {/* Model details footer */}
       <div style={{ maxWidth: 1200, margin: "14px auto 0", display: "flex", gap: 6, flexWrap: "wrap" }}>
