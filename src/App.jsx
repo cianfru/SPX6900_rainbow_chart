@@ -43,19 +43,6 @@ const fT = v => {
   return "$" + v.toFixed(3);
 };
 
-// Meme one-liner per band (index matches BAND_LABELS: 0 = Fire Sale ... 8 = Max Bubble)
-const BAND_MEMES = [
-  "generational bottom. back up the truck. 🫡",
-  "wagmi. load the boat. 🚀",
-  "stack quietly while they sleep. 🧊",
-  "still cheap, anon. 👀",
-  "hold the line. diamond hands. 💎🙌",
-  "getting a little frothy up here... 🫧",
-  "peak euphoria — stay frosty. 🔥",
-  "ser... maybe take some profits. 🤡",
-  "don't be the exit liquidity. 🎪",
-];
-
 const CRYPTO_MILESTONES = [
   { price: 11.71,  label: "PEPE ATH MC",     mc: "$11B",  c: "#4ade80" },
   { price: 13.84,  label: "BTC @ $1K MC",    mc: "$13B",  c: "#f59e0b" },
@@ -202,9 +189,7 @@ export default function App() {
 
   const last = priceData[priceData.length - 1];
   const ld = dayN(last.date);
-  const bIdx = bandIndex(m, last.price, ld);
-  const cb = BAND_LABELS[bIdx];
-  const meme = BAND_MEMES[bIdx];
+  const cb = BAND_LABELS[bandIndex(m, last.price, ld)];
 
   // Compute yMin/yMax from the actual band values so bands never get clipped.
   // No artificial cap: at long horizons the top band legitimately grows large,
@@ -412,12 +397,6 @@ export default function App() {
               {cb.l}
             </span>
           </div>
-        </div>
-        <div style={{
-          fontFamily: SANS, fontSize: isMobile ? 13 : 15, fontStyle: "italic",
-          color: "#94a3b8", marginTop: 10, textAlign: "center",
-        }}>
-          {meme}
         </div>
       </div>
 
