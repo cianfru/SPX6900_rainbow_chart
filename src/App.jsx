@@ -90,7 +90,6 @@ export default function App() {
   const [dataStatus, setDataStatus] = useState(null);
   const [hi, setHi] = useState(1); // default 10Y
   const [tg, setTg] = useState(new Set([0, 1, 2, 4])); // includes $6,900 by default
-  const [showAbout, setShowAbout] = useState(false);
   const [showMilestones, setShowMilestones] = useState(true);
   const HZ = [
     { l: "5Y", y: 5 },
@@ -264,13 +263,6 @@ export default function App() {
           }}>
             SPX6900 Rainbow Chart
           </h1>
-          <button onClick={() => setShowAbout(!showAbout)} style={{
-            fontFamily: SANS, fontSize: 13, fontWeight: 600, padding: "7px 14px", borderRadius: 6, cursor: "pointer",
-            border: "1px solid rgba(255,255,255,0.15)", background: "rgba(255,255,255,0.05)",
-            color: "#94a3b8",
-          }}>
-            {showAbout ? "Hide About" : "About"}
-          </button>
           <button onClick={handleFetchData} disabled={dataStatus === "loading"} style={{
             fontFamily: SANS, fontSize: 13, fontWeight: 600, padding: "7px 14px", borderRadius: 6, cursor: "pointer",
             border: "1px solid rgba(34,197,94,0.3)", background: "rgba(34,197,94,0.08)",
@@ -291,32 +283,56 @@ export default function App() {
         </div>
       </div>
 
-      {/* About panel */}
-      {showAbout && (
-        <div style={{
-          maxWidth: MAX_W, margin: "0 auto 20px", padding: "20px 26px",
-          background: "rgba(99, 102, 241, 0.06)", border: "1px solid rgba(99, 102, 241, 0.2)",
-          borderRadius: 10, fontFamily: SANS, fontSize: 15,
-          color: "#cbd5e1", lineHeight: 1.7,
-        }}>
-          <div style={{ fontWeight: 700, color: "#c4b5fd", marginBottom: 10, fontSize: 18 }}>How It Works</div>
-          <p style={{ marginBottom: 12 }}>
-            This chart fits a <strong style={{ color: "#f1f5f9" }}>weighted log-quadratic regression</strong> to
-            SPX6900 price history, similar to Bitcoin&apos;s rainbow chart. The model is{" "}
-            <span style={{ fontFamily: MONO, color: "#c4b5fd" }}>ln(P) = a×(ln t)² + b×ln t + c</span>{" "}
-            — the squared term captures the S-curve shape that early-stage memecoins follow.
-          </p>
-          <p style={{ marginBottom: 12 }}>
-            The colored bands are <strong style={{ color: "#f1f5f9" }}>asymmetric percentile bands</strong> built
-            from actual residuals (p2 to p98), so they widen during bubble phases naturally rather than assuming
-            normal distribution.
-          </p>
-          <p style={{ fontSize: 13, color: "#94a3b8" }}>
-            Data: bundled historical baseline (Aug 2023 launch onward) merged with live updates from{" "}
-            <strong>GeckoTerminal</strong> (Uniswap pool), falling back to Coinbase/Bybit. Supply: ~939M.
-          </p>
-        </div>
-      )}
+      {/* About panel — always visible */}
+      <div style={{
+        maxWidth: MAX_W, margin: "0 auto 20px", padding: "20px 26px",
+        background: "rgba(99, 102, 241, 0.06)", border: "1px solid rgba(99, 102, 241, 0.2)",
+        borderRadius: 10, fontFamily: SANS, fontSize: 15,
+        color: "#cbd5e1", lineHeight: 1.7,
+      }}>
+        <div style={{ fontWeight: 700, color: "#c4b5fd", marginBottom: 10, fontSize: 18 }}>About This Chart</div>
+        <p style={{ marginBottom: 12 }}>
+          The <strong style={{ color: "#f1f5f9" }}>SPX6900 Rainbow Chart</strong> is a fun, long-term way to
+          visualize where the price of SPX6900 sits relative to its historical trend. It plots the price on a{" "}
+          <strong style={{ color: "#f1f5f9" }}>logarithmic scale</strong> and overlays colored &ldquo;rainbow&rdquo;
+          bands that range from undervalued (cooler blues/greens) to overvalued (hotter oranges/reds). It is{" "}
+          <em>not</em> financial advice or a price prediction — just a lighthearted lens on the bigger picture.
+        </p>
+        <p style={{ marginBottom: 12 }}>
+          It&apos;s directly inspired by the famous{" "}
+          <a
+            href="https://www.blockchaincenter.net/en/bitcoin-rainbow-chart/"
+            target="_blank" rel="noopener noreferrer"
+            style={{ color: "#c4b5fd", fontWeight: 600 }}
+          >
+            Bitcoin Rainbow Chart
+          </a>. That chart was originally created in 2014 by Reddit user{" "}
+          <strong style={{ color: "#f1f5f9" }}>azop</strong>, who posted log-scale charts with rainbow color bands
+          in the /r/Bitcoin community to give people some perspective (and &ldquo;hopium&rdquo;) during the brutal
+          post-MtGox bear market. In 2019, blockchaincenter.net turned it into an always-up-to-date live version,
+          combining it with a logarithmic regression fit (originally{" "}
+          <span style={{ fontFamily: MONO, color: "#c4b5fd" }}>y = 2.9065·ln(x) − 19.493</span> from
+          Bitcointalk user <em>trolololo</em>) to give the rainbow its characteristic flattening &ldquo;bow&rdquo;
+          shape. The Bitcoin Rainbow Chart was always meant as a meme and a look at history — never a serious model —
+          and the same spirit applies here.
+        </p>
+        <div style={{ fontWeight: 700, color: "#c4b5fd", margin: "16px 0 8px", fontSize: 16 }}>How It Works</div>
+        <p style={{ marginBottom: 12 }}>
+          This chart fits a <strong style={{ color: "#f1f5f9" }}>weighted log-quadratic regression</strong> to
+          SPX6900 price history. The model is{" "}
+          <span style={{ fontFamily: MONO, color: "#c4b5fd" }}>ln(P) = a×(ln t)² + b×ln t + c</span>{" "}
+          — the squared term captures the S-curve shape that early-stage memecoins follow.
+        </p>
+        <p style={{ marginBottom: 12 }}>
+          The colored bands are <strong style={{ color: "#f1f5f9" }}>asymmetric percentile bands</strong> built
+          from actual residuals (p2 to p98), so they widen during bubble phases naturally rather than assuming
+          normal distribution.
+        </p>
+        <p style={{ fontSize: 13, color: "#94a3b8" }}>
+          Data: bundled historical baseline (Aug 2023 launch onward) merged with live updates from{" "}
+          <strong>GeckoTerminal</strong> (Uniswap pool), falling back to Coinbase/Bybit. Supply: ~939M.
+        </p>
+      </div>
 
       {/* Controls */}
       <div style={{ maxWidth: MAX_W, margin: "0 auto 14px", display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
