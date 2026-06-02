@@ -253,6 +253,15 @@ export default function App() {
       {/* Header */}
       <div style={{ maxWidth: MAX_W, margin: "0 auto 24px" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 18, flexWrap: "wrap" }}>
+          <img
+            src="/spx6900-logo.png"
+            alt="SPX6900"
+            style={{
+              height: 64, width: "auto",
+              filter: "invert(1) drop-shadow(0 0 12px rgba(255,255,255,0.15))",
+            }}
+            onError={(e) => { e.currentTarget.style.display = "none"; }}
+          />
           <h1 style={{
             fontFamily: SANS, fontSize: 44, fontWeight: 700, margin: 0,
             letterSpacing: "-0.02em", lineHeight: 1,
