@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
 import { fetchAllHolderscanData } from "./holderscan.js";
 
-const mono = "'JetBrains Mono', monospace";
-const sans = "'Inter', system-ui, sans-serif";
+const SANS = "'Space Grotesk', system-ui, sans-serif";
+const MONO = "'JetBrains Mono', ui-monospace, monospace";
+const MAX_W = 1400;
 
 const fNum = n => {
   if (n == null) return "—";
@@ -26,16 +27,19 @@ const fPct = n => n != null ? (n * 100).toFixed(1) + "%" : "—";
 function StatCard({ label, value, sub, color }) {
   return (
     <div style={{
-      padding: "10px 14px", background: "rgba(255,255,255,0.025)",
-      border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8,
+      padding: "16px 20px", background: "rgba(255,255,255,0.025)",
+      border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10,
     }}>
-      <div style={{ fontFamily: mono, fontSize: 9, color: "#64748b", textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 4 }}>
+      <div style={{
+        fontFamily: SANS, fontSize: 12, fontWeight: 600, color: "#94a3b8",
+        textTransform: "uppercase", letterSpacing: 1, marginBottom: 8,
+      }}>
         {label}
       </div>
-      <div style={{ fontFamily: mono, fontSize: 18, fontWeight: 700, color: color || "#f1f5f9" }}>
+      <div style={{ fontFamily: MONO, fontSize: 26, fontWeight: 700, color: color || "#f1f5f9", letterSpacing: "-0.02em" }}>
         {value}
       </div>
-      {sub && <div style={{ fontFamily: mono, fontSize: 9, color: "#64748b", marginTop: 2 }}>{sub}</div>}
+      {sub && <div style={{ fontFamily: SANS, fontSize: 12, color: "#64748b", marginTop: 4 }}>{sub}</div>}
     </div>
   );
 }
@@ -43,10 +47,10 @@ function StatCard({ label, value, sub, color }) {
 function DeltaBar({ label, value }) {
   const pos = value > 0;
   return (
-    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "3px 0" }}>
-      <span style={{ fontFamily: mono, fontSize: 10, color: "#94a3b8" }}>{label}</span>
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "6px 0" }}>
+      <span style={{ fontFamily: SANS, fontSize: 14, color: "#cbd5e1" }}>{label}</span>
       <span style={{
-        fontFamily: mono, fontSize: 10, fontWeight: 600,
+        fontFamily: MONO, fontSize: 14, fontWeight: 700,
         color: pos ? "#4ade80" : value < 0 ? "#f87171" : "#64748b",
       }}>
         {pos ? "+" : ""}{fNum(value)}
@@ -58,13 +62,13 @@ function DeltaBar({ label, value }) {
 function CategoryBar({ label, count, total, color }) {
   const pct = total > 0 ? (count / total) * 100 : 0;
   return (
-    <div style={{ marginBottom: 6 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 2 }}>
-        <span style={{ fontFamily: mono, fontSize: 10, color: "#cbd5e1", textTransform: "capitalize" }}>{label}</span>
-        <span style={{ fontFamily: mono, fontSize: 10, color: "#94a3b8" }}>{fNum(count)} ({pct.toFixed(1)}%)</span>
+    <div style={{ marginBottom: 10 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+        <span style={{ fontFamily: SANS, fontSize: 14, fontWeight: 600, color: "#e2e8f0", textTransform: "capitalize" }}>{label}</span>
+        <span style={{ fontFamily: MONO, fontSize: 13, color: "#94a3b8" }}>{fNum(count)} ({pct.toFixed(1)}%)</span>
       </div>
-      <div style={{ height: 4, background: "rgba(255,255,255,0.05)", borderRadius: 2, overflow: "hidden" }}>
-        <div style={{ height: "100%", width: `${pct}%`, background: color, borderRadius: 2, transition: "width 0.3s" }} />
+      <div style={{ height: 6, background: "rgba(255,255,255,0.06)", borderRadius: 3, overflow: "hidden" }}>
+        <div style={{ height: "100%", width: `${pct}%`, background: color, borderRadius: 3, transition: "width 0.3s" }} />
       </div>
     </div>
   );
@@ -72,17 +76,17 @@ function CategoryBar({ label, count, total, color }) {
 
 function TopHolderRow({ holder, index }) {
   const addr = holder.address;
-  const short = addr ? `${addr.slice(0, 6)}...${addr.slice(-4)}` : "—";
+  const short = addr ? `${addr.slice(0, 8)}...${addr.slice(-6)}` : "—";
   return (
     <div style={{
       display: "flex", justifyContent: "space-between", alignItems: "center",
-      padding: "5px 0", borderBottom: "1px solid rgba(255,255,255,0.04)",
+      padding: "9px 0", borderBottom: "1px solid rgba(255,255,255,0.05)",
     }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        <span style={{ fontFamily: mono, fontSize: 9, color: "#475569", width: 18 }}>#{holder.rank || index + 1}</span>
-        <span style={{ fontFamily: mono, fontSize: 10, color: "#94a3b8" }}>{short}</span>
+      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <span style={{ fontFamily: MONO, fontSize: 12, color: "#64748b", width: 28 }}>#{holder.rank || index + 1}</span>
+        <span style={{ fontFamily: MONO, fontSize: 13, color: "#cbd5e1" }}>{short}</span>
       </div>
-      <span style={{ fontFamily: mono, fontSize: 10, color: "#e2e8f0", fontWeight: 600 }}>
+      <span style={{ fontFamily: MONO, fontSize: 13, color: "#f1f5f9", fontWeight: 700 }}>
         {fNum(holder.amount)}
       </span>
     </div>
@@ -105,25 +109,44 @@ export default function HolderscanDashboard() {
       .catch(e => { setError(e.message); setLoading(false); });
   }, []);
 
+  const SectionHeader = () => (
+    <div style={{
+      fontFamily: SANS, fontSize: 16, fontWeight: 700, color: "#cbd5e1", marginBottom: 14,
+      letterSpacing: 1.2, textTransform: "uppercase",
+      display: "flex", alignItems: "center", gap: 12,
+    }}>
+      <span style={{
+        background: "linear-gradient(90deg, #6366f1, #3b82f6)",
+        WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
+      }}>Holder Analytics</span>
+      <span style={{ fontSize: 12, color: "#475569", fontWeight: 500, textTransform: "none", letterSpacing: 0 }}>
+        powered by Holderscan
+      </span>
+    </div>
+  );
+
   if (loading) {
     return (
-      <div style={{
-        maxWidth: 1200, margin: "20px auto 0", padding: "20px",
-        fontFamily: mono, fontSize: 11, color: "#64748b", textAlign: "center",
-      }}>
-        Loading holder data...
+      <div style={{ maxWidth: MAX_W, margin: "32px auto 0" }}>
+        <SectionHeader />
+        <div style={{ padding: "24px", fontFamily: SANS, fontSize: 14, color: "#64748b", textAlign: "center" }}>
+          Loading holder data...
+        </div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div style={{
-        maxWidth: 1200, margin: "20px auto 0", padding: "12px 16px",
-        background: "rgba(239,68,68,0.06)", border: "1px solid rgba(239,68,68,0.2)",
-        borderRadius: 8, fontFamily: mono, fontSize: 11, color: "#f87171",
-      }}>
-        Holderscan: {error}
+      <div style={{ maxWidth: MAX_W, margin: "32px auto 0" }}>
+        <SectionHeader />
+        <div style={{
+          padding: "16px 20px",
+          background: "rgba(239,68,68,0.06)", border: "1px solid rgba(239,68,68,0.2)",
+          borderRadius: 8, fontFamily: SANS, fontSize: 14, color: "#f87171",
+        }}>
+          Holderscan: {error}
+        </div>
       </div>
     );
   }
@@ -142,21 +165,11 @@ export default function HolderscanDashboard() {
   };
 
   return (
-    <div style={{ maxWidth: 1200, margin: "24px auto 0" }}>
-      <div style={{
-        fontFamily: mono, fontSize: 12, color: "#94a3b8", marginBottom: 10,
-        letterSpacing: 1, textTransform: "uppercase", fontWeight: 600,
-        display: "flex", alignItems: "center", gap: 8,
-      }}>
-        <span style={{
-          background: "linear-gradient(90deg, #6366f1, #3b82f6)",
-          WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
-        }}>Holder Analytics</span>
-        <span style={{ fontSize: 9, color: "#475569", fontWeight: 400 }}>powered by Holderscan</span>
-      </div>
+    <div style={{ maxWidth: MAX_W, margin: "40px auto 0" }}>
+      <SectionHeader />
 
       {/* Top stats row */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 8, marginBottom: 12 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))", gap: 12, marginBottom: 16 }}>
         {totalHolders != null && (
           <StatCard label="Total Holders" value={fNum(totalHolders)} />
         )}
@@ -164,7 +177,7 @@ export default function HolderscanDashboard() {
           <StatCard label="Break-Even Price" value={fUsd(pnl.break_even_price)} sub="avg holder entry" />
         )}
         {stats?.gini != null && (
-          <StatCard label="Gini Index" value={stats.gini.toFixed(3)} sub="0=equal, 1=concentrated" color={stats.gini > 0.95 ? "#f87171" : stats.gini > 0.9 ? "#f59e0b" : "#4ade80"} />
+          <StatCard label="Gini Index" value={stats.gini.toFixed(3)} sub="0 = equal · 1 = concentrated" color={stats.gini > 0.95 ? "#f87171" : stats.gini > 0.9 ? "#f59e0b" : "#4ade80"} />
         )}
         {stats?.hhi != null && (
           <StatCard label="HHI" value={fNum(Math.round(stats.hhi))} sub={stats.hhi < 100 ? "Low concentration" : stats.hhi < 1000 ? "Moderate" : "High concentration"} />
@@ -184,14 +197,17 @@ export default function HolderscanDashboard() {
       </div>
 
       {/* Detail panels */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 10 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(360px, 1fr))", gap: 14 }}>
         {/* Holder Changes */}
         {deltas && (
           <div style={{
-            padding: "14px 16px", background: "rgba(255,255,255,0.02)",
-            border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8,
+            padding: "20px 22px", background: "rgba(255,255,255,0.025)",
+            border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10,
           }}>
-            <div style={{ fontFamily: mono, fontSize: 10, color: "#64748b", textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 8 }}>
+            <div style={{
+              fontFamily: SANS, fontSize: 13, fontWeight: 700, color: "#94a3b8",
+              textTransform: "uppercase", letterSpacing: 1, marginBottom: 14,
+            }}>
               Holder Changes
             </div>
             <DeltaBar label="1 hour" value={deltas["1hour"]} />
@@ -206,18 +222,21 @@ export default function HolderscanDashboard() {
         {/* Distribution */}
         {breakdowns?.categories && (
           <div style={{
-            padding: "14px 16px", background: "rgba(255,255,255,0.02)",
-            border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8,
+            padding: "20px 22px", background: "rgba(255,255,255,0.025)",
+            border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10,
           }}>
-            <div style={{ fontFamily: mono, fontSize: 10, color: "#64748b", textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 8 }}>
+            <div style={{
+              fontFamily: SANS, fontSize: 13, fontWeight: 700, color: "#94a3b8",
+              textTransform: "uppercase", letterSpacing: 1, marginBottom: 14,
+            }}>
               Holder Distribution
             </div>
             {Object.entries(breakdowns.categories).reverse().map(([cat, count]) => (
               <CategoryBar key={cat} label={cat} count={count} total={totalHolders} color={categoryColors[cat] || "#94a3b8"} />
             ))}
-            <div style={{ borderTop: "1px solid rgba(255,255,255,0.06)", marginTop: 8, paddingTop: 8 }}>
-              <div style={{ fontFamily: mono, fontSize: 9, color: "#475569", marginBottom: 4 }}>BY VALUE HELD</div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "2px 12px" }}>
+            <div style={{ borderTop: "1px solid rgba(255,255,255,0.08)", marginTop: 14, paddingTop: 14 }}>
+              <div style={{ fontFamily: SANS, fontSize: 12, fontWeight: 700, color: "#64748b", marginBottom: 8, letterSpacing: 0.8 }}>BY VALUE HELD</div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px 20px" }}>
                 {[
                   [">$10", breakdowns.holders_over_10_usd],
                   [">$100", breakdowns.holders_over_100_usd],
@@ -226,9 +245,9 @@ export default function HolderscanDashboard() {
                   [">$100K", breakdowns.holders_over_100k_usd],
                   [">$1M", breakdowns.holders_over_1m_usd],
                 ].map(([label, val]) => (
-                  <div key={label} style={{ display: "flex", justifyContent: "space-between", fontFamily: mono, fontSize: 10 }}>
+                  <div key={label} style={{ display: "flex", justifyContent: "space-between", fontFamily: SANS, fontSize: 13 }}>
                     <span style={{ color: "#94a3b8" }}>{label}</span>
-                    <span style={{ color: "#e2e8f0", fontWeight: 600 }}>{fNum(val)}</span>
+                    <span style={{ color: "#f1f5f9", fontWeight: 700, fontFamily: MONO }}>{fNum(val)}</span>
                   </div>
                 ))}
               </div>
@@ -239,10 +258,13 @@ export default function HolderscanDashboard() {
         {/* Top Holders */}
         {topHolders && topHolders.length > 0 && (
           <div style={{
-            padding: "14px 16px", background: "rgba(255,255,255,0.02)",
-            border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8,
+            padding: "20px 22px", background: "rgba(255,255,255,0.025)",
+            border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10,
           }}>
-            <div style={{ fontFamily: mono, fontSize: 10, color: "#64748b", textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 8 }}>
+            <div style={{
+              fontFamily: SANS, fontSize: 13, fontWeight: 700, color: "#94a3b8",
+              textTransform: "uppercase", letterSpacing: 1, marginBottom: 6,
+            }}>
               Top 10 Holders
             </div>
             {topHolders.map((h, i) => (
