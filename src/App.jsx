@@ -283,6 +283,45 @@ export default function App() {
         </div>
       </div>
 
+      {/* Current verdict banner */}
+      <div style={{
+        maxWidth: MAX_W, margin: "0 auto 20px", padding: "24px 30px",
+        display: "flex", alignItems: "center", gap: 24, flexWrap: "wrap",
+        background: `linear-gradient(135deg, ${cb.c}26, ${cb.c}0a)`,
+        border: `1.5px solid ${cb.c}66`,
+        borderRadius: 14,
+        boxShadow: `0 0 50px ${cb.c}24, inset 0 0 30px ${cb.c}10`,
+      }}>
+        <span style={{
+          width: 16, height: 16, borderRadius: "50%", background: cb.c, flexShrink: 0,
+          boxShadow: `0 0 14px ${cb.c}, 0 0 28px ${cb.c}99`,
+          animation: "verdict-pulse 1.8s ease-in-out infinite",
+        }} />
+        <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+          <div style={{
+            fontFamily: MONO, fontSize: 13, letterSpacing: 1.5, textTransform: "uppercase",
+            color: "#94a3b8",
+          }}>
+            SPX6900 today is a
+          </div>
+          <div style={{
+            fontFamily: SANS, fontSize: 46, fontWeight: 800, lineHeight: 1.02,
+            letterSpacing: "-0.02em", color: cb.c,
+            textShadow: `0 0 24px ${cb.c}66`,
+          }}>
+            {cb.l}
+          </div>
+        </div>
+        <div style={{ marginLeft: "auto", textAlign: "right" }}>
+          <div style={{ fontFamily: MONO, fontSize: 12, letterSpacing: 1, color: "#94a3b8" }}>
+            CURRENT PRICE
+          </div>
+          <div style={{ fontFamily: MONO, fontSize: 30, fontWeight: 700, color: "#f1f5f9" }}>
+            {fP(last.price)}
+          </div>
+        </div>
+      </div>
+
       {/* About panel — always visible */}
       <div style={{
         maxWidth: MAX_W, margin: "0 auto 20px", padding: "20px 26px",
@@ -372,16 +411,6 @@ export default function App() {
           color: showMilestones ? "#fb923c" : "#94a3b8",
           transition: "all 0.15s ease",
         }}>Crypto Milestones</button>
-
-        <div style={{
-          fontFamily: SANS, fontSize: 14, fontWeight: 600, color: "#e2e8f0", padding: "7px 14px",
-          background: "rgba(255,255,255,0.04)", borderRadius: 6,
-          border: "1px solid rgba(255,255,255,0.12)",
-        }}>
-          <span style={{ color: cb.c, fontSize: 18, marginRight: 4 }}>●</span>
-          <span style={{ fontFamily: MONO }}>{fP(last.price)}</span>
-          <span style={{ color: cb.c, marginLeft: 8 }}>{cb.l}</span>
-        </div>
       </div>
 
       {/* Chart */}
