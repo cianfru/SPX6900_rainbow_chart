@@ -357,8 +357,26 @@ export default function App() {
             onError={(e) => { e.currentTarget.style.display = "none"; }}
           />
         </div>
-        <div style={{ fontFamily: MONO, fontSize: isMobile ? 11 : 13, color: "#94a3b8", letterSpacing: 1.4, marginTop: 10, textAlign: "center", textTransform: "uppercase" }}>
-          Logarithmic rainbow valuation bands
+        <div style={{ marginTop: 12, textAlign: "center" }}>
+          <div style={{
+            fontFamily: SANS, fontWeight: 600, fontSize: isMobile ? 18 : 26,
+            letterSpacing: "-0.01em", color: "#e2e8f0", lineHeight: 1.2,
+          }}>
+            Stop trading,{" "}
+            <span style={{
+              background: "linear-gradient(90deg,#a78bfa,#60a5fa,#22d3ee,#34d399)",
+              WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
+              fontWeight: 700,
+            }}>
+              believe in something!
+            </span>
+          </div>
+          <div style={{
+            fontFamily: MONO, fontSize: isMobile ? 10 : 11.5, color: "#64748b",
+            letterSpacing: 1.4, marginTop: 9, textTransform: "uppercase",
+          }}>
+            Logarithmic rainbow valuation bands
+          </div>
         </div>
         <div style={{ display: "flex", justifyContent: "center", gap: 10, marginTop: 16, flexWrap: "wrap" }}>
           <button onClick={() => setShowPine(true)} style={{
