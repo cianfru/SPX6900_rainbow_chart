@@ -3,9 +3,9 @@ import {
   ResponsiveContainer, ComposedChart, Area, Line, XAxis, YAxis,
   Tooltip, CartesianGrid, ReferenceLine
 } from "recharts";
-import { DEFAULT_RAW, fetchLivePrices } from "./data.js";
+import { DEFAULT_RAW, fetchLivePrices, mergePrices } from "./data.js";
 import {
-  buildModels, BAND_LABELS, TARGETS,
+  buildModel, BAND_LABELS, TARGETS,
   dayN, ds, bandVal, bandIndex,
   whenHitsCenter, whenHitsBand,
 } from "./models.js";
@@ -32,7 +32,6 @@ const fT = v => {
   return "$" + v.toFixed(3);
 };
 
-// Market cap milestones: SPX price if it matched these market caps (supply 939M)
 const CRYPTO_MILESTONES = [
   { price: 11.71,  label: "PEPE ATH MC",     mc: "$11B",  c: "#4ade80" },
   { price: 13.84,  label: "BTC @ $1K MC",    mc: "$13B",  c: "#f59e0b" },
@@ -82,29 +81,10 @@ function Tip({ active, payload, model }) {
   );
 }
 
-function ModelCard({ mod, selected, onClick }) {
-  return (
-    <button onClick={onClick} style={{
-      fontFamily: SANS, fontSize: 14, padding: "12px 16px", borderRadius: 8, cursor: "pointer",
-      border: selected ? "1px solid rgba(139,92,246,0.5)" : "1px solid rgba(255,255,255,0.12)",
-      background: selected ? "rgba(139,92,246,0.1)" : "rgba(255,255,255,0.03)",
-      color: selected ? "#c4b5fd" : "#e2e8f0", textAlign: "left",
-      transition: "all 0.15s ease",
-    }}>
-      <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 3 }}>{mod.name}</div>
-      <div style={{ opacity: 0.7, fontSize: 12, marginBottom: 4 }}>{mod.desc}</div>
-      <div style={{ opacity: 0.55, fontSize: 11, fontFamily: MONO }}>
-        R²={mod.r2.toFixed(3)} · {mod.bandType === "percentile" ? "percentile" : "σ"} bands
-      </div>
-    </button>
-  );
-}
-
 export default function App() {
   const [rawData, setRawData] = useState(DEFAULT_RAW);
   const [dataStatus, setDataStatus] = useState(null);
-  const [mk, setMk] = useState("logquad");
-  const [hi, setHi] = useState(1);
+  const [hi, setHi] = useState(0); // default 5Y
   const [tg, setTg] = useState(new Set([0, 1, 2]));
   const [showAbout, setShowAbout] = useState(false);
   const [showMilestones, setShowMilestones] = useState(true);
@@ -113,18 +93,17 @@ export default function App() {
   useEffect(() => {
     let cancelled = false;
     fetchLivePrices().then(({ prices, source }) => {
-      if (!cancelled && prices.length > 0) {
-        setRawData(prices);
-        setDataStatus(`Live · ${prices.length} points from ${source}`);
-      }
+      if (cancelled || prices.length === 0) return;
+      const merged = mergePrices(DEFAULT_RAW, prices);
+      setRawData(merged);
+      setDataStatus(`Live · merged ${prices.length} pts from ${source}`);
     }).catch(err => {
       if (!cancelled) setDataStatus(`Using bundled data (${err.message})`);
     });
     return () => { cancelled = true; };
   }, []);
 
-  const MODELS = useMemo(() => buildModels(rawData), [rawData]);
-  const m = MODELS[mk];
+  const m = useMemo(() => buildModel(rawData), [rawData]);
   const endDay = Math.round(HZ[hi].y * 365.25);
   const tt = useCallback(i => setTg(p => {
     const n = new Set(p);
@@ -136,8 +115,9 @@ export default function App() {
     setDataStatus("loading");
     try {
       const { prices, source } = await fetchLivePrices();
-      setRawData(prices);
-      setDataStatus(`Live · ${prices.length} points from ${source}`);
+      const merged = mergePrices(DEFAULT_RAW, prices);
+      setRawData(merged);
+      setDataStatus(`Live · merged ${prices.length} pts from ${source}`);
     } catch (err) {
       setDataStatus(`Failed: ${err.message}`);
     }
@@ -181,14 +161,21 @@ export default function App() {
   const ld = dayN(last.date);
   const cb = BAND_LABELS[bandIndex(m, last.price, ld)];
 
-  let yMax = 0;
-  data.forEach(d => {
-    const t = bandVal(m, dayN(d.date), 9);
-    if (t > yMax) yMax = t;
-  });
-  tg.forEach(i => { if (TARGETS[i].price > yMax) yMax = TARGETS[i].price; });
-  if (showMilestones) CRYPTO_MILESTONES.forEach(ms => { if (ms.price > yMax) yMax = ms.price; });
-  yMax *= 1.3;
+  // Compute yMax intelligently — cap the projection so the visible price doesn't get squished
+  const yMax = useMemo(() => {
+    const lastDay = dayN(last.date);
+    // Top band at the LAST ACTUAL data point sets a sensible historical reference
+    const histTop = bandVal(m, lastDay, 9);
+    // Future top band — but cap it to keep chart readable
+    const futureTop = bandVal(m, endDay, 9);
+    // Use up to 50x the historical top, or futureTop if smaller
+    let yMaxCalc = Math.min(futureTop, histTop * 50);
+    // Make sure visible price targets are included
+    tg.forEach(i => { if (TARGETS[i].price > yMaxCalc) yMaxCalc = TARGETS[i].price * 1.3; });
+    if (showMilestones) CRYPTO_MILESTONES.forEach(ms => { if (ms.price > yMaxCalc) yMaxCalc = ms.price * 1.3; });
+    return yMaxCalc * 1.3;
+  }, [m, endDay, last.date, tg, showMilestones]);
+
   const yMin = 0.0001;
   const logT = [0.0001, 0.001, 0.01, 0.1, 1, 10, 100, 1000, 10000, 100000].filter(v => v >= yMin * 0.5 && v <= yMax * 2);
 
@@ -250,8 +237,7 @@ export default function App() {
           )}
         </div>
         <div style={{ fontFamily: MONO, fontSize: 13, color: "#94a3b8", letterSpacing: 0.8, marginTop: 10 }}>
-          LOGARITHMIC REGRESSION · {m.name.toUpperCase()} · R²={m.r2.toFixed(3)}
-          {m.bandType === "percentile" ? " · ASYMMETRIC PERCENTILE BANDS" : " · SYMMETRIC σ BANDS"}
+          LOGARITHMIC REGRESSION · {m.name.toUpperCase()} · R²={m.r2.toFixed(3)} · σ={m.std.toFixed(3)}
           <span style={{ color: "#64748b" }}> · {rawData.length} data points</span>
         </div>
       </div>
@@ -266,31 +252,22 @@ export default function App() {
         }}>
           <div style={{ fontWeight: 700, color: "#c4b5fd", marginBottom: 10, fontSize: 18 }}>How It Works</div>
           <p style={{ marginBottom: 12 }}>
-            This chart fits a <strong style={{ color: "#f1f5f9" }}>logarithmic regression model</strong> to
-            SPX6900 price data, similar to Bitcoin&apos;s famous rainbow chart. The colored bands represent
-            statistical zones — from &quot;Fire Sale&quot; (historically cheap) to &quot;Max Bubble&quot; (historically expensive).
+            This chart fits a <strong style={{ color: "#f1f5f9" }}>weighted log-quadratic regression</strong> to
+            SPX6900 price history, similar to Bitcoin&apos;s rainbow chart. The model is{" "}
+            <span style={{ fontFamily: MONO, color: "#c4b5fd" }}>ln(P) = a×(ln t)² + b×ln t + c</span>{" "}
+            — the squared term captures the S-curve shape that early-stage memecoins follow.
           </p>
-          <div style={{ fontWeight: 700, color: "#e2e8f0", marginBottom: 6, fontSize: 15 }}>Model Improvements</div>
-          <ul style={{ paddingLeft: 22, marginBottom: 12, fontSize: 14 }}>
-            <li><strong style={{ color: "#c4b5fd" }}>Log-Quadratic:</strong> Adds curvature (ln²) to capture the S-shape inflection that memecoins exhibit.</li>
-            <li><strong style={{ color: "#c4b5fd" }}>Weighted Recent:</strong> Exponential weighting gives recent data ~20× more influence than early noise.</li>
-            <li><strong style={{ color: "#c4b5fd" }}>Asymmetric Bands:</strong> Uses actual percentiles (p2, p7, p16... p98) instead of symmetric σ, producing wider tops during bubble phases.</li>
-            <li><strong style={{ color: "#c4b5fd" }}>Offset Power Law:</strong> Virtual origin at ~Nov 2022 gives the best simple linear fit in log-log space.</li>
-          </ul>
+          <p style={{ marginBottom: 12 }}>
+            The colored bands are <strong style={{ color: "#f1f5f9" }}>asymmetric percentile bands</strong> built
+            from actual residuals (p2 to p98), so they widen during bubble phases naturally rather than assuming
+            normal distribution.
+          </p>
           <p style={{ fontSize: 13, color: "#94a3b8" }}>
-            All models are fit in-browser using weighted least squares — no external ML libraries.
-            Click &quot;Refresh Data&quot; to pull the latest from CoinGecko. Supply: ~939M. Data source: CoinGecko.
+            Data: bundled historical baseline (Aug 2023 launch onward) merged with live updates from{" "}
+            <strong>GeckoTerminal</strong> (Uniswap pool), falling back to Coinbase/Bybit. Supply: ~939M.
           </p>
         </div>
       )}
-
-      {/* Model selector */}
-      <div style={{ maxWidth: MAX_W, margin: "0 auto 14px", display: "grid", gap: 10,
-        gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))" }}>
-        {Object.values(MODELS).map(mod => (
-          <ModelCard key={mod.key} mod={mod} selected={mod.key === mk} onClick={() => setMk(mod.key)} />
-        ))}
-      </div>
 
       {/* Controls */}
       <div style={{ maxWidth: MAX_W, margin: "0 auto 14px", display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
@@ -356,6 +333,7 @@ export default function App() {
               scale="log" domain={[yMin, yMax]} ticks={logT} tickFormatter={fT}
               tick={{ fill: "#cbd5e1", fontSize: 13, fontFamily: MONO }}
               axisLine={{ stroke: "rgba(255,255,255,0.15)" }} tickLine={false} width={68}
+              allowDataOverflow
             />
             <Tooltip content={<Tip model={m} />} />
 
@@ -431,7 +409,7 @@ export default function App() {
             fontFamily: SANS, fontSize: 14, fontWeight: 700, color: "#cbd5e1", marginBottom: 12,
             letterSpacing: 1.2, textTransform: "uppercase",
           }}>
-            Target Timeline — {m.name}
+            Target Timeline
           </div>
           <div style={{
             display: "grid",
@@ -486,7 +464,7 @@ export default function App() {
         maxWidth: MAX_W, margin: "16px auto 0", fontFamily: SANS, fontSize: 12,
         color: "#64748b", textAlign: "center", lineHeight: 1.6,
       }}>
-        Single-cycle fit on a memecoin. Not financial advice. Supply ~939M. Data: CoinGecko.
+        Single-cycle fit on a memecoin. Not financial advice. Supply ~939M.
       </div>
     </div>
   );

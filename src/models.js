@@ -8,22 +8,6 @@ export function ds(day) {
   return new Date(D0 + (day - 1) * 86400000).toISOString().slice(0, 10);
 }
 
-function wlsFitPowerLaw(data, lambda = 0) {
-  const N = data.length;
-  let Sw = 0, Swx = 0, Swy = 0, Swxx = 0, Swxy = 0;
-  for (let i = 0; i < N; i++) {
-    const { day, lnP: y } = data[i];
-    const x = Math.log(day);
-    const w = lambda > 0 ? Math.exp(lambda * i / N) : 1;
-    Sw += w; Swx += w * x; Swy += w * y;
-    Swxx += w * x * x; Swxy += w * x * y;
-  }
-  const det = Sw * Swxx - Swx * Swx;
-  const a = (Sw * Swxy - Swx * Swy) / det;
-  const b = (Swxx * Swy - Swx * Swxy) / det;
-  return { a, b };
-}
-
 function fitLogQuadratic(data, lambda = 0) {
   const N = data.length;
   let S = new Float64Array(5);
@@ -85,79 +69,24 @@ function buildPercentileBands(residuals) {
   ];
 }
 
-function buildSymmetricBands(std) {
-  return [-2.0, -1.5, -1.0, -0.5, 0.0, 0.5, 1.0, 1.5, 2.0, 2.5].map(z => z * std);
-}
-
-export function buildModels(RAW) {
+export function buildModel(RAW) {
   const pts = RAW.map(r => ({ day: dayN(r.date), lnP: Math.log(r.price) }));
-
-  // Model 1: Offset Power Law
-  const OFFSET_T0 = 281.2;
-  const offsetPts = RAW.map(r => ({ day: dayN(r.date) + OFFSET_T0, lnP: Math.log(r.price) }));
-  const offsetFit = wlsFitPowerLaw(offsetPts);
-  const offsetPredict = day => offsetFit.a * Math.log(day + OFFSET_T0) + offsetFit.b;
-  const offsetResid = computeResiduals(pts, offsetPredict);
-  const offsetStd = Math.sqrt(offsetResid.reduce((s, r) => s + r * r, 0) / offsetResid.length);
-
-  // Model 2: Weighted Power Law
-  const wlsFit = wlsFitPowerLaw(pts, 3.0);
-  const wlsPredict = day => wlsFit.a * Math.log(day) + wlsFit.b;
-  const wlsResid = computeResiduals(pts, wlsPredict);
-  const wlsStd = Math.sqrt(wlsResid.reduce((s, r) => s + r * r, 0) / wlsResid.length);
-
-  // Model 3: Log-Quadratic
   const lqFit = fitLogQuadratic(pts, 2.0);
-  const lqPredict = day => {
+  const predict = day => {
     const x = Math.log(day);
     return lqFit.a2 * x * x + lqFit.b1 * x + lqFit.c;
   };
-  const lqResid = computeResiduals(pts, lqPredict);
-  const lqStd = Math.sqrt(lqResid.reduce((s, r) => s + r * r, 0) / lqResid.length);
-
-  // Model 4: Full dataset equal weight
-  const fullFit = wlsFitPowerLaw(pts);
-  const fullPredict = day => fullFit.a * Math.log(day) + fullFit.b;
-  const fullResid = computeResiduals(pts, fullPredict);
-  const fullStd = Math.sqrt(fullResid.reduce((s, r) => s + r * r, 0) / fullResid.length);
+  const resid = computeResiduals(pts, predict);
+  const std = Math.sqrt(resid.reduce((s, r) => s + r * r, 0) / resid.length);
 
   return {
-    logquad: {
-      key: "logquad", name: "Log-Quadratic",
-      desc: "Curved fit — captures S-shape inflection",
-      predict: lqPredict, bands: buildPercentileBands(lqResid),
-      std: lqStd, r2: computeR2(pts, lqPredict),
-      formula: `ln(P) = ${lqFit.a2.toFixed(3)}×(ln t)² + ${lqFit.b1.toFixed(3)}×ln t + ${lqFit.c.toFixed(3)}`,
-      note: "Weighted log-quadratic with asymmetric percentile bands. Captures curvature in growth trajectory.",
-      bandType: "percentile",
-    },
-    offset: {
-      key: "offset", name: "Offset Power Law",
-      desc: "Virtual origin — best linear log-log fit",
-      predict: offsetPredict, bands: buildPercentileBands(offsetResid),
-      std: offsetStd, r2: computeR2(pts, offsetPredict),
-      formula: `ln(P) = ${offsetFit.a.toFixed(3)}×ln(t+281) + ${(offsetFit.b).toFixed(3)}`,
-      note: "Virtual origin ~Nov 2022. Asymmetric percentile bands. Strong in mid-range.",
-      bandType: "percentile",
-    },
-    weighted: {
-      key: "weighted", name: "Weighted Recent",
-      desc: "Emphasizes recent price action",
-      predict: wlsPredict, bands: buildPercentileBands(wlsResid),
-      std: wlsStd, r2: computeR2(pts, wlsPredict),
-      formula: `ln(P) = ${wlsFit.a.toFixed(3)}×ln(t) + ${(wlsFit.b).toFixed(3)}`,
-      note: "Exponential weighting (λ=3) gives recent data 20× more influence. Asymmetric bands.",
-      bandType: "percentile",
-    },
-    full: {
-      key: "full", name: "Full Dataset",
-      desc: "Conservative, all data equal weight",
-      predict: fullPredict, bands: buildSymmetricBands(fullStd),
-      std: fullStd, r2: computeR2(pts, fullPredict),
-      formula: `ln(P) = ${fullFit.a.toFixed(3)}×ln(t) + ${(fullFit.b).toFixed(3)}`,
-      note: "All data points, equal weight, symmetric σ bands. Most conservative projection.",
-      bandType: "symmetric",
-    },
+    name: "Log-Quadratic",
+    predict,
+    bands: buildPercentileBands(resid),
+    std,
+    r2: computeR2(pts, predict),
+    formula: `ln(P) = ${lqFit.a2.toFixed(3)}×(ln t)² + ${lqFit.b1.toFixed(3)}×ln t + ${lqFit.c.toFixed(3)}`,
+    note: "Weighted log-quadratic regression with asymmetric percentile bands (p2 to p98). Captures the S-curve growth trajectory typical of early-stage memecoins.",
   };
 }
 

@@ -14,3 +14,16 @@ export async function fetchLivePrices() {
   if (!Array.isArray(prices) || prices.length === 0) throw new Error("No price data returned");
   return { prices, source: json.source || "unknown" };
 }
+
+// Merge live data on top of bundled. Bundled provides stable historical anchor
+// (back to Aug 2023 launch). Live data updates dates >= the first live date,
+// and appends any new dates beyond what's bundled.
+export function mergePrices(bundled, live) {
+  if (!live || live.length === 0) return bundled;
+  const liveByDate = new Map(live.map(p => [p.date, p.price]));
+  const liveStart = live[0].date;
+  // Keep bundled rows before live data starts; replace/append from live onward
+  const kept = bundled.filter(p => p.date < liveStart);
+  const liveSorted = [...live].sort((a, b) => a.date.localeCompare(b.date));
+  return [...kept, ...liveSorted];
+}
