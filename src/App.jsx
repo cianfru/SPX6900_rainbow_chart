@@ -87,11 +87,17 @@ export default function App() {
   // rainbow shape is stable and never changes when fresh data arrives.
   const [priceData, setPriceData] = useState(DEFAULT_RAW);
   const [dataStatus, setDataStatus] = useState(null);
-  const [hi, setHi] = useState(0); // default 5Y
-  const [tg, setTg] = useState(new Set([0, 1, 2]));
+  const [hi, setHi] = useState(1); // default 10Y
+  const [tg, setTg] = useState(new Set([0, 1, 2, 4])); // includes $6,900 by default
   const [showAbout, setShowAbout] = useState(false);
   const [showMilestones, setShowMilestones] = useState(true);
-  const HZ = [{ l: "5Y", y: 5 }, { l: "10Y", y: 10 }, { l: "15Y", y: 15 }];
+  const HZ = [
+    { l: "5Y", y: 5 },
+    { l: "10Y", y: 10 },
+    { l: "20Y", y: 20 },
+    { l: "30Y", y: 30 },
+    { l: "Auto", y: null }, // auto-fit to highest selected target
+  ];
 
   // Extend bundled prices with any newer live points only — do not replace history.
   const applyLive = useCallback((livePrices, source) => {
@@ -119,7 +125,20 @@ export default function App() {
   // Fit the model ON BUNDLED DATA ONLY. This is the stable historical record
   // we curated — daily live data shouldn't reshape the rainbow.
   const m = useMemo(() => buildModel(DEFAULT_RAW), []);
-  const endDay = Math.round(HZ[hi].y * 365.25);
+
+  // Auto-fit horizon: extend until the center band reaches the highest selected target.
+  const endDay = useMemo(() => {
+    const horizon = HZ[hi];
+    if (horizon.y != null) return Math.round(horizon.y * 365.25);
+    const selectedTargets = [...tg].map(i => TARGETS[i].price);
+    if (selectedTargets.length === 0) return Math.round(10 * 365.25);
+    const topTarget = Math.max(...selectedTargets);
+    const hit = whenHitsCenter(m, topTarget);
+    // Pad ~15% so the target line isn't hugging the right edge
+    const fallback = 30 * 365.25;
+    const day = hit ? hit.d * 1.15 : fallback;
+    return Math.round(Math.min(day, fallback));
+  }, [m, hi, tg, HZ]);
   const tt = useCallback(i => setTg(p => {
     const n = new Set(p);
     n.has(i) ? n.delete(i) : n.add(i);
@@ -158,7 +177,9 @@ export default function App() {
       pts.push(e);
     });
     const lastDay = dayN(priceData[priceData.length - 1].date);
-    const step = 6;
+    // Coarser step for longer horizons keeps the chart performant
+    const years = endDay / 365.25;
+    const step = years > 25 ? 30 : years > 15 ? 14 : 6;
     for (let d = lastDay + step; d <= endDay; d += step) {
       const e = { date: ds(d), price: null };
       for (let i = 0; i < 9; i++) {
@@ -199,13 +220,19 @@ export default function App() {
   const logT = [0.00001, 0.0001, 0.001, 0.01, 0.1, 1, 10, 100, 1000, 10000, 100000].filter(v => v >= yMin * 0.5 && v <= yMax * 2);
 
   const xT = useMemo(() => {
-    const t = [], s = new Set(), iv = endDay > 3000 ? 12 : 6;
+    // Pick tick interval so ~10-15 labels show regardless of horizon.
+    const years = endDay / 365.25;
+    const yearStep = years > 25 ? 4 : years > 15 ? 2 : 1;
+    const monthMod = years > 7 ? 12 : 6;
+    const t = [], s = new Set();
     data.forEach(d => {
       const dt = new Date(d.date);
-      if (dt.getMonth() % iv === 0) {
-        const k = `${dt.getFullYear()}-${Math.floor(dt.getMonth() / iv)}`;
-        if (!s.has(k)) { s.add(k); t.push(d.date); }
-      }
+      const yr = dt.getFullYear();
+      const mo = dt.getMonth();
+      if (yr % yearStep !== 0) return;
+      if (mo % monthMod !== 0) return;
+      const k = `${yr}-${Math.floor(mo / monthMod)}`;
+      if (!s.has(k)) { s.add(k); t.push(d.date); }
     });
     return t;
   }, [data, endDay]);
