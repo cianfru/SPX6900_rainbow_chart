@@ -382,54 +382,42 @@ export default function App() {
       }}>
         <div style={{
           display: "flex", alignItems: "center", justifyContent: "center",
-          gap: isMobile ? 16 : 44, flexWrap: "wrap",
+          gap: isMobile ? 14 : 28, flexWrap: "wrap",
         }}>
-          {/* verdict group */}
-          <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 12 : 16 }}>
-            <span style={{
-              width: isMobile ? 13 : 16, height: isMobile ? 13 : 16, borderRadius: "50%", background: cb.c, flexShrink: 0,
-              boxShadow: `0 0 14px ${cb.c}, 0 0 28px ${cb.c}99`,
-              animation: "verdict-pulse 1.8s ease-in-out infinite",
-            }} />
-            <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-              <div style={{
-                fontFamily: MONO, fontSize: isMobile ? 11 : 13, letterSpacing: 1.5, textTransform: "uppercase",
-                color: "#94a3b8",
-              }}>
-                SPX6900 today is a
-              </div>
-              <div style={{
-                fontFamily: SANS, fontSize: isMobile ? 32 : 46, fontWeight: 800, lineHeight: 1.02,
-                letterSpacing: "-0.02em", color: cb.c,
-                textShadow: `0 0 24px ${cb.c}66`,
-              }}>
-                {cb.l}
-              </div>
-              <div style={{
-                fontFamily: SANS, fontSize: isMobile ? 12 : 14, fontStyle: "italic",
-                color: "#94a3b8", marginTop: 4,
-              }}>
-                {meme}
-              </div>
-            </div>
-          </div>
-
-          {/* divider */}
+          <img
+            src="/spx6900logo.png"
+            alt="SPX6900"
+            style={{
+              height: isMobile ? 54 : 84, width: "auto", flexShrink: 0,
+              filter: `drop-shadow(0 0 16px ${cb.c}55)`,
+            }}
+            onError={(e) => { e.currentTarget.style.display = "none"; }}
+          />
           <div style={{
-            display: isMobile ? "none" : "block",
-            width: 1, alignSelf: "stretch", minHeight: 48,
-            background: `linear-gradient(${cb.c}00, ${cb.c}66, ${cb.c}00)`,
-          }} />
-
-          {/* price group */}
-          <div style={{ textAlign: isMobile ? "center" : "left" }}>
-            <div style={{ fontFamily: MONO, fontSize: isMobile ? 11 : 12, letterSpacing: 1, color: "#94a3b8" }}>
-              CURRENT PRICE
-            </div>
-            <div style={{ fontFamily: MONO, fontSize: isMobile ? 24 : 34, fontWeight: 700, color: "#f1f5f9" }}>
+            display: "flex", alignItems: "baseline", justifyContent: "center",
+            flexWrap: "wrap", gap: isMobile ? "0 10px" : "0 14px",
+            textAlign: "center",
+          }}>
+            <span style={{ fontFamily: SANS, fontSize: isMobile ? 15 : 22, color: "#94a3b8" }}>is at</span>
+            <span style={{
+              fontFamily: MONO, fontSize: isMobile ? 26 : 38, fontWeight: 700, color: "#f8fafc",
+            }}>
               {fP(last.price)}
-            </div>
+            </span>
+            <span style={{ fontFamily: SANS, fontSize: isMobile ? 15 : 22, color: "#94a3b8" }}>and is a</span>
+            <span style={{
+              fontFamily: SANS, fontSize: isMobile ? 32 : 48, fontWeight: 800, lineHeight: 1.02,
+              letterSpacing: "-0.02em", color: cb.c, textShadow: `0 0 24px ${cb.c}66`,
+            }}>
+              {cb.l}
+            </span>
           </div>
+        </div>
+        <div style={{
+          fontFamily: SANS, fontSize: isMobile ? 13 : 15, fontStyle: "italic",
+          color: "#94a3b8", marginTop: 10, textAlign: "center",
+        }}>
+          {meme}
         </div>
       </div>
 
