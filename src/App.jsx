@@ -3,7 +3,7 @@ import {
   ResponsiveContainer, ComposedChart, Area, Line, XAxis, YAxis,
   Tooltip, CartesianGrid, ReferenceLine
 } from "recharts";
-import { DEFAULT_RAW, fetchLivePrices, mergePrices } from "./data.js";
+import { DEFAULT_RAW, fetchLivePrices } from "./data.js";
 import {
   buildModel, BAND_LABELS, TARGETS,
   dayN, ds, bandVal, bandIndex,
@@ -82,7 +82,10 @@ function Tip({ active, payload, model }) {
 }
 
 export default function App() {
-  const [rawData, setRawData] = useState(DEFAULT_RAW);
+  // `priceData` is bundled history + any new live points beyond the last bundled date.
+  // The MODEL FIT is always computed from DEFAULT_RAW (bundled) only, so the
+  // rainbow shape is stable and never changes when fresh data arrives.
+  const [priceData, setPriceData] = useState(DEFAULT_RAW);
   const [dataStatus, setDataStatus] = useState(null);
   const [hi, setHi] = useState(0); // default 5Y
   const [tg, setTg] = useState(new Set([0, 1, 2]));
@@ -90,20 +93,32 @@ export default function App() {
   const [showMilestones, setShowMilestones] = useState(true);
   const HZ = [{ l: "5Y", y: 5 }, { l: "10Y", y: 10 }, { l: "15Y", y: 15 }];
 
+  // Extend bundled prices with any newer live points only — do not replace history.
+  const applyLive = useCallback((livePrices, source) => {
+    const bundledLast = DEFAULT_RAW[DEFAULT_RAW.length - 1].date;
+    const newer = livePrices.filter(p => p.date > bundledLast);
+    if (newer.length === 0) {
+      setDataStatus(`Up to date · bundled covers latest (${source})`);
+      return;
+    }
+    setPriceData([...DEFAULT_RAW, ...newer]);
+    setDataStatus(`Live · +${newer.length} fresh pts from ${source}`);
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
     fetchLivePrices().then(({ prices, source }) => {
       if (cancelled || prices.length === 0) return;
-      const merged = mergePrices(DEFAULT_RAW, prices);
-      setRawData(merged);
-      setDataStatus(`Live · merged ${prices.length} pts from ${source}`);
+      applyLive(prices, source);
     }).catch(err => {
       if (!cancelled) setDataStatus(`Using bundled data (${err.message})`);
     });
     return () => { cancelled = true; };
-  }, []);
+  }, [applyLive]);
 
-  const m = useMemo(() => buildModel(rawData), [rawData]);
+  // Fit the model ON BUNDLED DATA ONLY. This is the stable historical record
+  // we curated — daily live data shouldn't reshape the rainbow.
+  const m = useMemo(() => buildModel(DEFAULT_RAW), []);
   const endDay = Math.round(HZ[hi].y * 365.25);
   const tt = useCallback(i => setTg(p => {
     const n = new Set(p);
@@ -115,16 +130,14 @@ export default function App() {
     setDataStatus("loading");
     try {
       const { prices, source } = await fetchLivePrices();
-      const merged = mergePrices(DEFAULT_RAW, prices);
-      setRawData(merged);
-      setDataStatus(`Live · merged ${prices.length} pts from ${source}`);
+      applyLive(prices, source);
     } catch (err) {
       setDataStatus(`Failed: ${err.message}`);
     }
-  }, []);
+  }, [applyLive]);
 
   const data = useMemo(() => {
-    const firstDay = dayN(rawData[0].date);
+    const firstDay = dayN(priceData[0].date);
     const leadStart = Math.max(1, firstDay - 60);
     const pts = [];
     for (let d = leadStart; d < firstDay; d += 3) {
@@ -135,7 +148,7 @@ export default function App() {
       e.reg = Math.exp(m.predict(d));
       pts.push(e);
     }
-    rawData.forEach(d => {
+    priceData.forEach(d => {
       const day = dayN(d.date);
       const e = { date: d.date, price: d.price };
       for (let i = 0; i < 9; i++) {
@@ -144,7 +157,7 @@ export default function App() {
       e.reg = Math.exp(m.predict(day));
       pts.push(e);
     });
-    const lastDay = dayN(rawData[rawData.length - 1].date);
+    const lastDay = dayN(priceData[priceData.length - 1].date);
     const step = 6;
     for (let d = lastDay + step; d <= endDay; d += step) {
       const e = { date: ds(d), price: null };
@@ -155,9 +168,9 @@ export default function App() {
       pts.push(e);
     }
     return pts;
-  }, [m, endDay, rawData]);
+  }, [m, endDay, priceData]);
 
-  const last = rawData[rawData.length - 1];
+  const last = priceData[priceData.length - 1];
   const ld = dayN(last.date);
   const cb = BAND_LABELS[bandIndex(m, last.price, ld)];
 
@@ -244,7 +257,7 @@ export default function App() {
         </div>
         <div style={{ fontFamily: MONO, fontSize: 13, color: "#94a3b8", letterSpacing: 0.8, marginTop: 10 }}>
           LOGARITHMIC REGRESSION · {m.name.toUpperCase()} · R²={m.r2.toFixed(3)} · σ={m.std.toFixed(3)}
-          <span style={{ color: "#64748b" }}> · {rawData.length} data points</span>
+          <span style={{ color: "#64748b" }}> · {priceData.length} points (bundled fit)</span>
         </div>
       </div>
 
