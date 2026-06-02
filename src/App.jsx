@@ -286,45 +286,6 @@ export default function App() {
         </div>
       </div>
 
-      {/* Current verdict banner */}
-      <div style={{
-        maxWidth: MAX_W, margin: "0 auto 20px", padding: isMobile ? "16px 18px" : "24px 30px",
-        display: "flex", alignItems: "center", gap: isMobile ? 14 : 24, flexWrap: "wrap",
-        background: `linear-gradient(135deg, ${cb.c}26, ${cb.c}0a)`,
-        border: `1.5px solid ${cb.c}66`,
-        borderRadius: 14,
-        boxShadow: `0 0 50px ${cb.c}24, inset 0 0 30px ${cb.c}10`,
-      }}>
-        <span style={{
-          width: isMobile ? 13 : 16, height: isMobile ? 13 : 16, borderRadius: "50%", background: cb.c, flexShrink: 0,
-          boxShadow: `0 0 14px ${cb.c}, 0 0 28px ${cb.c}99`,
-          animation: "verdict-pulse 1.8s ease-in-out infinite",
-        }} />
-        <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-          <div style={{
-            fontFamily: MONO, fontSize: isMobile ? 11 : 13, letterSpacing: 1.5, textTransform: "uppercase",
-            color: "#94a3b8",
-          }}>
-            SPX6900 today is a
-          </div>
-          <div style={{
-            fontFamily: SANS, fontSize: isMobile ? 32 : 46, fontWeight: 800, lineHeight: 1.02,
-            letterSpacing: "-0.02em", color: cb.c,
-            textShadow: `0 0 24px ${cb.c}66`,
-          }}>
-            {cb.l}
-          </div>
-        </div>
-        <div style={{ marginLeft: "auto", textAlign: "right" }}>
-          <div style={{ fontFamily: MONO, fontSize: isMobile ? 11 : 12, letterSpacing: 1, color: "#94a3b8" }}>
-            CURRENT PRICE
-          </div>
-          <div style={{ fontFamily: MONO, fontSize: isMobile ? 24 : 30, fontWeight: 700, color: "#f1f5f9" }}>
-            {fP(last.price)}
-          </div>
-        </div>
-      </div>
-
       {/* About panel — always visible */}
       <div style={{
         maxWidth: MAX_W, margin: "0 auto 20px", padding: isMobile ? "16px 16px" : "20px 26px",
@@ -374,6 +335,62 @@ export default function App() {
           Data: bundled historical baseline (Aug 2023 launch onward) merged with live updates from{" "}
           <strong>GeckoTerminal</strong> (Uniswap pool), falling back to Coinbase/Bybit. Supply: ~939M.
         </p>
+      </div>
+
+      {/* Current verdict banner */}
+      <div style={{
+        maxWidth: MAX_W, margin: "0 auto 20px", padding: isMobile ? "18px 18px" : "22px 30px",
+        background: `linear-gradient(135deg, ${cb.c}26, ${cb.c}0a)`,
+        border: `1.5px solid ${cb.c}66`,
+        borderRadius: 14,
+        boxShadow: `0 0 50px ${cb.c}24, inset 0 0 30px ${cb.c}10`,
+        overflow: "hidden",
+      }}>
+        <div style={{
+          display: "flex", alignItems: "center", justifyContent: "center",
+          gap: isMobile ? 16 : 44, flexWrap: "wrap",
+        }}>
+          {/* verdict group */}
+          <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 12 : 16 }}>
+            <span style={{
+              width: isMobile ? 13 : 16, height: isMobile ? 13 : 16, borderRadius: "50%", background: cb.c, flexShrink: 0,
+              boxShadow: `0 0 14px ${cb.c}, 0 0 28px ${cb.c}99`,
+              animation: "verdict-pulse 1.8s ease-in-out infinite",
+            }} />
+            <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+              <div style={{
+                fontFamily: MONO, fontSize: isMobile ? 11 : 13, letterSpacing: 1.5, textTransform: "uppercase",
+                color: "#94a3b8",
+              }}>
+                SPX6900 today is a
+              </div>
+              <div style={{
+                fontFamily: SANS, fontSize: isMobile ? 32 : 46, fontWeight: 800, lineHeight: 1.02,
+                letterSpacing: "-0.02em", color: cb.c,
+                textShadow: `0 0 24px ${cb.c}66`,
+              }}>
+                {cb.l}
+              </div>
+            </div>
+          </div>
+
+          {/* divider */}
+          <div style={{
+            display: isMobile ? "none" : "block",
+            width: 1, alignSelf: "stretch", minHeight: 48,
+            background: `linear-gradient(${cb.c}00, ${cb.c}66, ${cb.c}00)`,
+          }} />
+
+          {/* price group */}
+          <div style={{ textAlign: isMobile ? "center" : "left" }}>
+            <div style={{ fontFamily: MONO, fontSize: isMobile ? 11 : 12, letterSpacing: 1, color: "#94a3b8" }}>
+              CURRENT PRICE
+            </div>
+            <div style={{ fontFamily: MONO, fontSize: isMobile ? 24 : 34, fontWeight: 700, color: "#f1f5f9" }}>
+              {fP(last.price)}
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Controls */}
