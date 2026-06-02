@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { fetchAllHolderscanData } from "./holderscan.js";
 
 const SANS = "'Space Grotesk', system-ui, sans-serif";
-const MONO = "'JetBrains Mono', ui-monospace, monospace";
+const MONO = "ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace";
 const MAX_W = 1400;
 
 const fNum = n => {
