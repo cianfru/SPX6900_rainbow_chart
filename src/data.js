@@ -4,14 +4,13 @@ export const D0 = new Date("2023-08-17").getTime();
 export const SUPPLY = 939_000_000;
 
 export async function fetchCoinGeckoData() {
-  const url = "https://api.coingecko.com/api/v3/coins/spx6900/market_chart?vs_currency=usd&days=max&interval=daily";
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`CoinGecko API returned ${res.status}`);
+  const res = await fetch("/api/coingecko");
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.hint || body.error || `Proxy returned ${res.status}`);
+  }
   const json = await res.json();
   const prices = json.prices;
   if (!Array.isArray(prices) || prices.length === 0) throw new Error("No price data returned");
-  return prices.map(([ts, price]) => ({
-    date: new Date(ts).toISOString().slice(0, 10),
-    price,
-  }));
+  return prices;
 }
