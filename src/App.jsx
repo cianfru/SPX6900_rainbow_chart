@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import {
   ResponsiveContainer, ComposedChart, Area, Line, XAxis, YAxis,
   Tooltip, CartesianGrid, ReferenceLine
@@ -95,6 +95,19 @@ export default function App() {
   const [tg, setTg] = useState(new Set([0, 1, 2]));
   const [showAbout, setShowAbout] = useState(false);
   const HZ = [{ l: "5Y", y: 5 }, { l: "10Y", y: 10 }, { l: "15Y", y: 15 }];
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchCoinGeckoData().then(data => {
+      if (!cancelled && data.length > 0) {
+        setRawData(data);
+        setDataStatus(`Live · ${data.length} points from CoinGecko`);
+      }
+    }).catch(() => {
+      if (!cancelled) setDataStatus("Using bundled data (CoinGecko unavailable)");
+    });
+    return () => { cancelled = true; };
+  }, []);
 
   const MODELS = useMemo(() => buildModels(rawData), [rawData]);
   const m = MODELS[mk];
@@ -205,7 +218,7 @@ export default function App() {
             color: dataStatus === "loading" ? "#475569" : "#4ade80",
             opacity: dataStatus === "loading" ? 0.5 : 1,
           }}>
-            {dataStatus === "loading" ? "Loading..." : "Update Data"}
+            {dataStatus === "loading" ? "Loading..." : "Refresh Data"}
           </button>
           {dataStatus && dataStatus !== "loading" && (
             <span style={{ fontFamily: mono, fontSize: 9, color: dataStatus.startsWith("Failed") ? "#f87171" : "#4ade80" }}>
