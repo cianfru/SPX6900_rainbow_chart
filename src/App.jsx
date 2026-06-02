@@ -87,7 +87,7 @@ export default function App() {
   // The MODEL FIT is always computed from DEFAULT_RAW (bundled) only, so the
   // rainbow shape is stable and never changes when fresh data arrives.
   const [priceData, setPriceData] = useState(DEFAULT_RAW);
-  const [dataStatus, setDataStatus] = useState(null);
+  const [, setDataStatus] = useState(null);
   const [hi, setHi] = useState(1); // default 10Y
   const [tg, setTg] = useState(new Set([0, 1, 2, 4])); // includes $6,900 by default
   const [showMilestones, setShowMilestones] = useState(true);
@@ -144,16 +144,6 @@ export default function App() {
     n.has(i) ? n.delete(i) : n.add(i);
     return n;
   }), []);
-
-  const handleFetchData = useCallback(async () => {
-    setDataStatus("loading");
-    try {
-      const { prices, source } = await fetchLivePrices();
-      applyLive(prices, source);
-    } catch (err) {
-      setDataStatus(`Failed: ${err.message}`);
-    }
-  }, [applyLive]);
 
   const data = useMemo(() => {
     const firstDay = dayN(priceData[0].date);
@@ -244,7 +234,7 @@ export default function App() {
     }}>
       {/* Header */}
       <div style={{ maxWidth: MAX_W, margin: "0 auto 24px" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 18, flexWrap: "wrap" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 18, flexWrap: "wrap" }}>
           <img
             src="/spx6900.gif"
             alt="SPX6900"
@@ -257,27 +247,25 @@ export default function App() {
           />
           <h1 style={{
             fontFamily: SANS, fontSize: 44, fontWeight: 700, margin: 0,
-            letterSpacing: "-0.02em", lineHeight: 1,
+            letterSpacing: "-0.02em", lineHeight: 1, textAlign: "center",
             background: "linear-gradient(90deg,#6366f1,#3b82f6,#06b6d4,#22c55e,#84cc16,#f59e0b,#ea580c,#dc2626,#8b0000)",
             WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
           }}>
             SPX6900 Rainbow Chart
           </h1>
-          <button onClick={handleFetchData} disabled={dataStatus === "loading"} style={{
-            fontFamily: SANS, fontSize: 13, fontWeight: 600, padding: "7px 14px", borderRadius: 6, cursor: "pointer",
-            border: "1px solid rgba(34,197,94,0.3)", background: "rgba(34,197,94,0.08)",
-            color: dataStatus === "loading" ? "#475569" : "#4ade80",
-            opacity: dataStatus === "loading" ? 0.5 : 1,
-          }}>
-            {dataStatus === "loading" ? "Loading..." : "Refresh Data"}
-          </button>
-          {dataStatus && dataStatus !== "loading" && (
-            <span style={{ fontFamily: MONO, fontSize: 12, color: dataStatus.startsWith("Failed") ? "#f87171" : "#4ade80" }}>
-              {dataStatus}
-            </span>
-          )}
+          <img
+            src="/spx6900.gif"
+            alt="SPX6900"
+            style={{
+              height: 84, width: "auto",
+              filter: "invert(1)",
+              mixBlendMode: "screen",
+              transform: "scaleX(-1)",
+            }}
+            onError={(e) => { e.currentTarget.style.display = "none"; }}
+          />
         </div>
-        <div style={{ fontFamily: MONO, fontSize: 13, color: "#94a3b8", letterSpacing: 0.8, marginTop: 10 }}>
+        <div style={{ fontFamily: MONO, fontSize: 13, color: "#94a3b8", letterSpacing: 0.8, marginTop: 10, textAlign: "center" }}>
           LOGARITHMIC REGRESSION · {m.name.toUpperCase()} · R²={m.r2.toFixed(3)} · σ={m.std.toFixed(3)}
           <span style={{ color: "#64748b" }}> · {priceData.length} points (bundled fit)</span>
         </div>
