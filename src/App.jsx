@@ -362,10 +362,12 @@ export default function App() {
         </div>
         <div style={{ display: "flex", justifyContent: "center", gap: 10, marginTop: 16, flexWrap: "wrap" }}>
           <button onClick={() => setShowPine(true)} style={{
+            display: "inline-flex", alignItems: "center", gap: 9,
             fontFamily: SANS, fontSize: 14, fontWeight: 600, padding: "9px 16px", borderRadius: 8, cursor: "pointer",
             color: "#e2e8f0", ...glass("59, 130, 246", 0.10),
           }}>
-            📈 Get TradingView Indicator
+            <img src="/tradingview-logo.png" alt="" style={{ height: 20, width: 20, borderRadius: "50%", display: "block" }} />
+            Get TradingView Indicator
           </button>
         </div>
       </div>
