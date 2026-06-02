@@ -257,10 +257,9 @@ export default function App() {
             src="/spx6900.gif"
             alt="SPX6900"
             style={{
-              height: 110, width: 110, objectFit: "cover",
-              transform: "scale(1.6)", transformOrigin: "center",
-              filter: "invert(1) drop-shadow(0 0 14px rgba(255,255,255,0.2))",
-              marginRight: 24, marginLeft: 4,
+              height: 84, width: "auto",
+              filter: "invert(1)",
+              mixBlendMode: "screen",
             }}
             onError={(e) => { e.currentTarget.style.display = "none"; }}
           />
