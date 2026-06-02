@@ -8,39 +8,45 @@ export function ds(day) {
   return new Date(D0 + (day - 1) * 86400000).toISOString().slice(0, 10);
 }
 
-function fitLogQuadratic(data, lambda = 0) {
+function fitOffsetPowerLaw(data, t0) {
+  // Linear regression in log-log space with virtual origin offset t0:
+  //   ln(P) = a * ln(t + t0) + b
   const N = data.length;
-  let S = new Float64Array(5);
-  let T = new Float64Array(3);
+  let Sx = 0, Sy = 0, Sxx = 0, Sxy = 0;
   for (let i = 0; i < N; i++) {
-    const { day, lnP: y } = data[i];
-    const x = Math.log(day);
-    const w = lambda > 0 ? Math.exp(lambda * i / N) : 1;
-    let xp = 1;
-    for (let j = 0; j < 5; j++) { S[j] += w * xp; xp *= x; }
-    T[0] += w * y; T[1] += w * x * y; T[2] += w * x * x * y;
+    const x = Math.log(data[i].day + t0);
+    const y = data[i].lnP;
+    Sx += x; Sy += y; Sxx += x * x; Sxy += x * y;
   }
-  const M = [
-    [S[0], S[1], S[2], T[0]],
-    [S[1], S[2], S[3], T[1]],
-    [S[2], S[3], S[4], T[2]],
-  ];
-  for (let col = 0; col < 3; col++) {
-    let maxR = col;
-    for (let r = col + 1; r < 3; r++) if (Math.abs(M[r][col]) > Math.abs(M[maxR][col])) maxR = r;
-    [M[col], M[maxR]] = [M[maxR], M[col]];
-    for (let r = col + 1; r < 3; r++) {
-      const f = M[r][col] / M[col][col];
-      for (let c = col; c < 4; c++) M[r][c] -= f * M[col][c];
-    }
+  const a = (N * Sxy - Sx * Sy) / (N * Sxx - Sx * Sx);
+  const b = (Sy - a * Sx) / N;
+  return { a, b };
+}
+
+function ssRes(data, predict) {
+  let s = 0;
+  for (const d of data) {
+    const r = d.lnP - predict(d.day);
+    s += r * r;
   }
-  const sol = [0, 0, 0];
-  for (let r = 2; r >= 0; r--) {
-    let v = M[r][3];
-    for (let c = r + 1; c < 3; c++) v -= M[r][c] * sol[c];
-    sol[r] = v / M[r][r];
+  return s;
+}
+
+// Search for the offset t0 that minimizes SS residuals (golden section ish via grid)
+function bestT0(data) {
+  let bestT0 = 0, bestSS = Infinity;
+  for (let t0 = 0; t0 <= 500; t0 += 10) {
+    const { a, b } = fitOffsetPowerLaw(data, t0);
+    const ss = ssRes(data, day => a * Math.log(day + t0) + b);
+    if (ss < bestSS) { bestSS = ss; bestT0 = t0; }
   }
-  return { c: sol[0], b1: sol[1], a2: sol[2] };
+  // Refine
+  for (let t0 = Math.max(0, bestT0 - 10); t0 <= bestT0 + 10; t0 += 1) {
+    const { a, b } = fitOffsetPowerLaw(data, t0);
+    const ss = ssRes(data, day => a * Math.log(day + t0) + b);
+    if (ss < bestSS) { bestSS = ss; bestT0 = t0; }
+  }
+  return bestT0;
 }
 
 function computeResiduals(data, predict) {
@@ -71,22 +77,21 @@ function buildPercentileBands(residuals) {
 
 export function buildModel(RAW) {
   const pts = RAW.map(r => ({ day: dayN(r.date), lnP: Math.log(r.price) }));
-  const lqFit = fitLogQuadratic(pts, 2.0);
-  const predict = day => {
-    const x = Math.log(day);
-    return lqFit.a2 * x * x + lqFit.b1 * x + lqFit.c;
-  };
+  const t0 = bestT0(pts);
+  const { a, b } = fitOffsetPowerLaw(pts, t0);
+  const predict = day => a * Math.log(day + t0) + b;
   const resid = computeResiduals(pts, predict);
   const std = Math.sqrt(resid.reduce((s, r) => s + r * r, 0) / resid.length);
 
   return {
-    name: "Log-Quadratic",
+    name: "Offset Power Law",
     predict,
     bands: buildPercentileBands(resid),
     std,
     r2: computeR2(pts, predict),
-    formula: `ln(P) = ${lqFit.a2.toFixed(3)}×(ln t)² + ${lqFit.b1.toFixed(3)}×ln t + ${lqFit.c.toFixed(3)}`,
-    note: "Weighted log-quadratic regression with asymmetric percentile bands (p2 to p98). Captures the S-curve growth trajectory typical of early-stage memecoins.",
+    t0, a, b,
+    formula: `ln(P) = ${a.toFixed(3)} × ln(t + ${t0}) ${b >= 0 ? "+" : "−"} ${Math.abs(b).toFixed(3)}`,
+    note: `Offset power law with virtual origin ${t0} days before launch. Bands are asymmetric percentiles (p2 to p98) of residuals — they widen on the upside since bubbles overshoot more than capitulations undershoot.`,
   };
 }
 

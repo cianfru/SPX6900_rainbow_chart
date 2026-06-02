@@ -161,23 +161,29 @@ export default function App() {
   const ld = dayN(last.date);
   const cb = BAND_LABELS[bandIndex(m, last.price, ld)];
 
-  // Compute yMax intelligently — cap the projection so the visible price doesn't get squished
-  const yMax = useMemo(() => {
+  // Compute yMin/yMax from the actual band values so bands never get clipped.
+  const { yMin, yMax } = useMemo(() => {
+    let minB = Infinity, maxB = 0;
+    for (const d of data) {
+      const lo = d.b0?.[0];
+      const hi = d.b8?.[1];
+      if (lo != null && lo > 0 && lo < minB) minB = lo;
+      if (hi != null && hi > maxB) maxB = hi;
+    }
+    // Cap the future projection so a runaway model can't squish the visible chart.
     const lastDay = dayN(last.date);
-    // Top band at the LAST ACTUAL data point sets a sensible historical reference
     const histTop = bandVal(m, lastDay, 9);
-    // Future top band — but cap it to keep chart readable
-    const futureTop = bandVal(m, endDay, 9);
-    // Use up to 50x the historical top, or futureTop if smaller
-    let yMaxCalc = Math.min(futureTop, histTop * 50);
-    // Make sure visible price targets are included
+    const cappedMax = Math.min(maxB, histTop * 50);
+    let yMaxCalc = cappedMax;
     tg.forEach(i => { if (TARGETS[i].price > yMaxCalc) yMaxCalc = TARGETS[i].price * 1.3; });
     if (showMilestones) CRYPTO_MILESTONES.forEach(ms => { if (ms.price > yMaxCalc) yMaxCalc = ms.price * 1.3; });
-    return yMaxCalc * 1.3;
-  }, [m, endDay, last.date, tg, showMilestones]);
+    return {
+      yMin: minB * 0.6,
+      yMax: yMaxCalc * 1.3,
+    };
+  }, [data, m, last.date, tg, showMilestones]);
 
-  const yMin = 0.0001;
-  const logT = [0.0001, 0.001, 0.01, 0.1, 1, 10, 100, 1000, 10000, 100000].filter(v => v >= yMin * 0.5 && v <= yMax * 2);
+  const logT = [0.00001, 0.0001, 0.001, 0.01, 0.1, 1, 10, 100, 1000, 10000, 100000].filter(v => v >= yMin * 0.5 && v <= yMax * 2);
 
   const xT = useMemo(() => {
     const t = [], s = new Set(), iv = endDay > 3000 ? 12 : 6;
