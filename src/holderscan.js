@@ -5,7 +5,7 @@ const KEY = import.meta.env.VITE_HOLDERSCAN_KEY || "";
 async function get(path) {
   if (!KEY) throw new Error("No API key configured");
   const res = await fetch(`${BASE}/${CONTRACT}${path}`, {
-    headers: { "Authorization": `Bearer ${KEY}`, "Accept": "application/json" },
+    headers: { "x-api-key": KEY, "Accept": "application/json" },
   });
   if (!res.ok) throw new Error(`Holderscan ${res.status}`);
   return res.json();

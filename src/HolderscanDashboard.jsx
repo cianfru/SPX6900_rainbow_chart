@@ -102,7 +102,12 @@ export default function HolderscanDashboard() {
       return;
     }
     fetchAllHolderscanData()
-      .then(d => { setData(d); setLoading(false); })
+      .then(d => {
+        const allNull = !d.deltas && !d.breakdowns && !d.stats && !d.pnl && !d.topHolders;
+        if (allNull) setError("All endpoints returned empty — check API key and CORS");
+        else setData(d);
+        setLoading(false);
+      })
       .catch(e => { setError(e.message); setLoading(false); });
   }, [hasKey]);
 
