@@ -196,6 +196,8 @@ export default function App() {
   const cb = BAND_LABELS[bandIndex(m, last.price, ld)];
 
   // Compute yMin/yMax from the actual band values so bands never get clipped.
+  // No artificial cap: at long horizons the top band legitimately grows large,
+  // and capping it makes the rainbow appear flat-topped (visual distortion).
   const { yMin, yMax } = useMemo(() => {
     let minB = Infinity, maxB = 0;
     for (const d of data) {
@@ -204,18 +206,14 @@ export default function App() {
       if (lo != null && lo > 0 && lo < minB) minB = lo;
       if (hi != null && hi > maxB) maxB = hi;
     }
-    // Cap the future projection so a runaway model can't squish the visible chart.
-    const lastDay = dayN(last.date);
-    const histTop = bandVal(m, lastDay, 9);
-    const cappedMax = Math.min(maxB, histTop * 50);
-    let yMaxCalc = cappedMax;
+    let yMaxCalc = maxB;
     tg.forEach(i => { if (TARGETS[i].price > yMaxCalc) yMaxCalc = TARGETS[i].price * 1.3; });
     if (showMilestones) CRYPTO_MILESTONES.forEach(ms => { if (ms.price > yMaxCalc) yMaxCalc = ms.price * 1.3; });
     return {
       yMin: minB * 0.6,
       yMax: yMaxCalc * 1.3,
     };
-  }, [data, m, last.date, tg, showMilestones]);
+  }, [data, tg, showMilestones]);
 
   const logT = [0.00001, 0.0001, 0.001, 0.01, 0.1, 1, 10, 100, 1000, 10000, 100000].filter(v => v >= yMin * 0.5 && v <= yMax * 2);
 
