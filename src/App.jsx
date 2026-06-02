@@ -29,6 +29,16 @@ const fT = v => {
   return "$" + v.toFixed(3);
 };
 
+// Market cap milestones: SPX price if it matched these market caps (supply 939M)
+const CRYPTO_MILESTONES = [
+  { price: 11.71,  label: "PEPE ATH MC",     mc: "$11B",  c: "#4ade80" },
+  { price: 13.84,  label: "BTC @ $1K MC",    mc: "$13B",  c: "#f59e0b" },
+  { price: 42.60,  label: "SHIB ATH MC",     mc: "$40B",  c: "#f43f5e" },
+  { price: 94.57,  label: "DOGE ATH MC",     mc: "$89B",  c: "#c2a633" },
+  { price: 197,    label: "BTC @ $10K MC",   mc: "$185B", c: "#fb923c" },
+  { price: 2130,   label: "BTC @ $100K MC",  mc: "$2T",   c: "#f97316" },
+];
+
 const fD = s => new Date(s).toLocaleDateString("en-US", { month: "short", year: "2-digit" });
 const fW = w => w ? w.dt.toLocaleDateString("en-US", { month: "short", year: "numeric" }) : ">50 yr";
 
@@ -94,6 +104,7 @@ export default function App() {
   const [hi, setHi] = useState(1);
   const [tg, setTg] = useState(new Set([0, 1, 2]));
   const [showAbout, setShowAbout] = useState(false);
+  const [showMilestones, setShowMilestones] = useState(true);
   const HZ = [{ l: "5Y", y: 5 }, { l: "10Y", y: 10 }, { l: "15Y", y: 15 }];
 
   useEffect(() => {
@@ -134,15 +145,29 @@ export default function App() {
   }, [rawData.length]);
 
   const data = useMemo(() => {
-    const pts = rawData.map(d => {
+    const firstDay = dayN(rawData[0].date);
+    const leadStart = Math.max(1, firstDay - 60);
+    const pts = [];
+    // Leading band-only points so rainbow doesn't start with a hard edge
+    for (let d = leadStart; d < firstDay; d += 3) {
+      const e = { date: ds(d), price: null };
+      for (let i = 0; i < 9; i++) {
+        e[`b${i}`] = [bandVal(m, d, i), bandVal(m, d, i + 1)];
+      }
+      e.reg = Math.exp(m.predict(d));
+      pts.push(e);
+    }
+    // Actual price data
+    rawData.forEach(d => {
       const day = dayN(d.date);
       const e = { date: d.date, price: d.price };
       for (let i = 0; i < 9; i++) {
         e[`b${i}`] = [bandVal(m, day, i), bandVal(m, day, i + 1)];
       }
       e.reg = Math.exp(m.predict(day));
-      return e;
+      pts.push(e);
     });
+    // Future projection
     const lastDay = dayN(rawData[rawData.length - 1].date);
     const step = 6;
     for (let d = lastDay + step; d <= endDay; d += step) {
@@ -166,6 +191,7 @@ export default function App() {
     if (t > yMax) yMax = t;
   });
   tg.forEach(i => { if (TARGETS[i].price > yMax) yMax = TARGETS[i].price; });
+  if (showMilestones) CRYPTO_MILESTONES.forEach(ms => { if (ms.price > yMax) yMax = ms.price; });
   yMax *= 1.3;
   const yMin = 0.0001;
   const logT = [0.0001, 0.001, 0.01, 0.1, 1, 10, 100, 1000, 10000, 100000].filter(v => v >= yMin * 0.5 && v <= yMax * 2);
@@ -298,6 +324,14 @@ export default function App() {
           ))}
         </div>
 
+        <button onClick={() => setShowMilestones(!showMilestones)} style={{
+          fontFamily: mono, fontSize: 9, padding: "4px 8px", borderRadius: 4, cursor: "pointer",
+          border: `1px solid ${showMilestones ? "rgba(251,146,60,0.4)" : "rgba(255,255,255,0.1)"}`,
+          background: showMilestones ? "rgba(251,146,60,0.08)" : "transparent",
+          color: showMilestones ? "#fb923c" : "#94a3b8",
+          transition: "all 0.15s ease",
+        }}>Crypto Milestones</button>
+
         <div style={{
           fontFamily: mono, fontSize: 10, color: "#e2e8f0", padding: "4px 10px",
           background: "rgba(255,255,255,0.04)", borderRadius: 4,
@@ -338,6 +372,18 @@ export default function App() {
                 label={{
                   value: `${t.label}  ${t.mc}`, position: "right",
                   fill: t.c, fontSize: 9, fontFamily: mono, fontWeight: 600,
+                }}
+              />
+            ) : null)}
+
+            {showMilestones && CRYPTO_MILESTONES.map((ms, i) => ms.price <= yMax ? (
+              <ReferenceLine
+                key={`ms${i}`} y={ms.price} stroke={ms.c}
+                strokeDasharray="2 4" strokeWidth={1} strokeOpacity={0.45}
+                label={{
+                  value: `${ms.label} (${ms.mc})`, position: "insideTopLeft",
+                  fill: ms.c, fontSize: 8, fontFamily: mono, fontWeight: 500,
+                  offset: 2,
                 }}
               />
             ) : null)}
