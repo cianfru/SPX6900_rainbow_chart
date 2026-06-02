@@ -94,36 +94,16 @@ export default function HolderscanDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const hasKey = !!import.meta.env.VITE_HOLDERSCAN_KEY;
-
   useEffect(() => {
-    if (!hasKey) {
-      setLoading(false);
-      return;
-    }
     fetchAllHolderscanData()
       .then(d => {
         const allNull = !d.deltas && !d.breakdowns && !d.stats && !d.pnl && !d.topHolders;
-        if (allNull) setError("All endpoints returned empty — check API key and CORS");
+        if (allNull) setError("All endpoints returned empty — check server-side API key");
         else setData(d);
         setLoading(false);
       })
       .catch(e => { setError(e.message); setLoading(false); });
-  }, [hasKey]);
-
-  if (!hasKey) {
-    return (
-      <div style={{
-        maxWidth: 1200, margin: "20px auto 0", padding: "16px 20px",
-        background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.08)",
-        borderRadius: 8, fontFamily: mono, fontSize: 11, color: "#64748b", textAlign: "center",
-      }}>
-        Set <code style={{ background: "rgba(255,255,255,0.06)", padding: "2px 6px", borderRadius: 3, color: "#94a3b8" }}>
-        VITE_HOLDERSCAN_KEY</code> in your <code style={{ background: "rgba(255,255,255,0.06)", padding: "2px 6px", borderRadius: 3, color: "#94a3b8" }}>.env</code> to
-        enable holder analytics
-      </div>
-    );
-  }
+  }, []);
 
   if (loading) {
     return (

@@ -1,19 +1,10 @@
-const BASE = "https://api.holderscan.com/v0/eth/tokens";
-const CONTRACT = "0xe0f63a424a4439cbe457d80e4f4b51ad25b2c56c";
-const KEY = import.meta.env.VITE_HOLDERSCAN_KEY || "";
-
-async function get(path) {
-  if (!KEY) throw new Error("No API key configured");
-  const res = await fetch(`${BASE}/${CONTRACT}${path}`, {
-    headers: { "x-api-key": KEY, "Accept": "application/json" },
-  });
-  if (!res.ok) throw new Error(`Holderscan ${res.status}`);
+async function get(endpoint) {
+  const res = await fetch(`/api/holderscan?endpoint=${encodeURIComponent(endpoint)}`);
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.error || `Proxy returned ${res.status}`);
+  }
   return res.json();
-}
-
-export async function fetchHolderCount() {
-  const data = await get("/holders?limit=1");
-  return data.holder_count;
 }
 
 export async function fetchHolderDeltas() {
@@ -32,8 +23,8 @@ export async function fetchTokenPnl() {
   return get("/stats/pnl");
 }
 
-export async function fetchTopHolders(limit = 10) {
-  const data = await get(`/holders?limit=${limit}`);
+export async function fetchTopHolders() {
+  const data = await get("/holders?limit=10");
   return data.holders || [];
 }
 
@@ -43,7 +34,7 @@ export async function fetchAllHolderscanData() {
     fetchHolderBreakdowns(),
     fetchTokenStats(),
     fetchTokenPnl(),
-    fetchTopHolders(10),
+    fetchTopHolders(),
   ]);
 
   return {
