@@ -42,6 +42,7 @@ const CRYPTO_MILESTONES = [
 ];
 
 const fD = s => new Date(s).toLocaleDateString("en-US", { month: "short", year: "2-digit" });
+const dateToTs = dateStr => new Date(dateStr).getTime();
 const fW = w => w ? w.dt.toLocaleDateString("en-US", { month: "short", year: "numeric" }) : ">50 yr";
 
 function Tip({ active, payload, model }) {
@@ -159,34 +160,25 @@ export default function App() {
     const firstDay = dayN(priceData[0].date);
     const leadStart = Math.max(1, firstDay - 60);
     const pts = [];
-    for (let d = leadStart; d < firstDay; d += 3) {
-      const e = { date: ds(d), price: null };
+    const pushPoint = (d, dateStr, price) => {
+      const e = { date: dateStr, ts: dateToTs(dateStr), price };
       for (let i = 0; i < 9; i++) {
         e[`b${i}`] = [bandVal(m, d, i), bandVal(m, d, i + 1)];
       }
       e.reg = Math.exp(m.predict(d));
       pts.push(e);
+    };
+    for (let d = leadStart; d < firstDay; d += 3) {
+      pushPoint(d, ds(d), null);
     }
     priceData.forEach(d => {
-      const day = dayN(d.date);
-      const e = { date: d.date, price: d.price };
-      for (let i = 0; i < 9; i++) {
-        e[`b${i}`] = [bandVal(m, day, i), bandVal(m, day, i + 1)];
-      }
-      e.reg = Math.exp(m.predict(day));
-      pts.push(e);
+      pushPoint(dayN(d.date), d.date, d.price);
     });
     const lastDay = dayN(priceData[priceData.length - 1].date);
-    // Coarser step for longer horizons keeps the chart performant
     const years = endDay / 365.25;
     const step = years > 25 ? 30 : years > 15 ? 14 : 6;
     for (let d = lastDay + step; d <= endDay; d += step) {
-      const e = { date: ds(d), price: null };
-      for (let i = 0; i < 9; i++) {
-        e[`b${i}`] = [bandVal(m, d, i), bandVal(m, d, i + 1)];
-      }
-      e.reg = Math.exp(m.predict(d));
-      pts.push(e);
+      pushPoint(d, ds(d), null);
     }
     return pts;
   }, [m, endDay, priceData]);
@@ -217,23 +209,26 @@ export default function App() {
 
   const logT = [0.00001, 0.0001, 0.001, 0.01, 0.1, 1, 10, 100, 1000, 10000, 100000].filter(v => v >= yMin * 0.5 && v <= yMax * 2);
 
-  const xT = useMemo(() => {
-    // Pick tick interval so ~10-15 labels show regardless of horizon.
-    const years = endDay / 365.25;
-    const yearStep = years > 25 ? 4 : years > 15 ? 2 : 1;
-    const monthMod = years > 7 ? 12 : 6;
-    const t = [], s = new Set();
-    data.forEach(d => {
-      const dt = new Date(d.date);
-      const yr = dt.getFullYear();
-      const mo = dt.getMonth();
-      if (yr % yearStep !== 0) return;
-      if (mo % monthMod !== 0) return;
-      const k = `${yr}-${Math.floor(mo / monthMod)}`;
-      if (!s.has(k)) { s.add(k); t.push(d.date); }
-    });
-    return t;
-  }, [data, endDay]);
+  const { xDomain, xT } = useMemo(() => {
+    if (data.length === 0) return { xDomain: ["auto", "auto"], xT: [] };
+    const startTs = data[0].ts;
+    const endTs = data[data.length - 1].ts;
+    const years = (endTs - startTs) / (365.25 * 86400 * 1000);
+    // Pick year-step that gives ~8-12 labels regardless of horizon
+    const yearStep = years > 24 ? 4 : years > 12 ? 2 : 1;
+    const monthMod = years > 6 ? 12 : 6;
+    const ticks = [];
+    const startYear = new Date(startTs).getFullYear();
+    const endYear = new Date(endTs).getFullYear();
+    for (let yr = startYear; yr <= endYear + 1; yr++) {
+      if (yr % yearStep !== 0) continue;
+      for (let mo = 0; mo < 12; mo += monthMod) {
+        const ts = new Date(yr, mo, 1).getTime();
+        if (ts >= startTs && ts <= endTs) ticks.push(ts);
+      }
+    }
+    return { xDomain: [startTs, endTs], xT: ticks };
+  }, [data]);
 
   const ms = useMemo(() => TARGETS.filter((_, i) => tg.has(i)).map(t => ({
     ...t,
@@ -379,9 +374,15 @@ export default function App() {
           <ComposedChart data={data} margin={{ top: 10, right: 130, bottom: 24, left: 12 }}>
             <CartesianGrid strokeDasharray="2 8" stroke="rgba(255,255,255,0.07)" vertical={false} />
             <XAxis
-              dataKey="date" ticks={xT} tickFormatter={fD}
+              dataKey="ts"
+              type="number"
+              scale="time"
+              domain={xDomain}
+              ticks={xT}
+              tickFormatter={ts => fD(new Date(ts).toISOString().slice(0, 10))}
               tick={{ fill: "#cbd5e1", fontSize: 13, fontFamily: MONO }}
               axisLine={{ stroke: "rgba(255,255,255,0.15)" }} tickLine={false}
+              allowDataOverflow={false}
             />
             <YAxis
               scale="log" domain={[yMin, yMax]} ticks={logT} tickFormatter={fT}
@@ -423,7 +424,7 @@ export default function App() {
             ) : null)}
 
             <ReferenceLine
-              x={last.date} stroke="rgba(255,255,255,0.3)" strokeDasharray="2 3" strokeWidth={1.2}
+              x={dateToTs(last.date)} stroke="rgba(255,255,255,0.3)" strokeDasharray="2 3" strokeWidth={1.2}
               label={{ value: "NOW", position: "top", fill: "#e2e8f0", fontSize: 12, fontFamily: SANS, fontWeight: 700 }}
             />
 
