@@ -169,7 +169,7 @@ export default function HolderscanDashboard() {
       <SectionHeader />
 
       {/* Top stats row */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))", gap: 12, marginBottom: 16 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 210px), 1fr))", gap: 12, marginBottom: 16 }}>
         {totalHolders != null && (
           <StatCard label="Total Holders" value={fNum(totalHolders)} />
         )}
@@ -197,7 +197,7 @@ export default function HolderscanDashboard() {
       </div>
 
       {/* Detail panels */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(360px, 1fr))", gap: 14 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 360px), 1fr))", gap: 14 }}>
         {/* Holder Changes */}
         {deltas && (
           <div style={{

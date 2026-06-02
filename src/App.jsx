@@ -15,6 +15,17 @@ const SANS = "'Space Grotesk', system-ui, sans-serif";
 const MONO = "'JetBrains Mono', ui-monospace, monospace";
 const MAX_W = 1400;
 
+// Track viewport width so we can size things responsively for phones/tablets.
+function useViewport() {
+  const [w, setW] = useState(typeof window !== "undefined" ? window.innerWidth : 1400);
+  useEffect(() => {
+    const onResize = () => setW(window.innerWidth);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+  return w;
+}
+
 const fP = v => {
   if (v == null) return "";
   if (v >= 10000) return "$" + (v / 1000).toFixed(0) + "k";
@@ -86,6 +97,10 @@ export default function App() {
   // `priceData` is bundled history + any new live points beyond the last bundled date.
   // The MODEL FIT is always computed from DEFAULT_RAW (bundled) only, so the
   // rainbow shape is stable and never changes when fresh data arrives.
+  const vw = useViewport();
+  const isMobile = vw < 640;
+  const isTablet = vw < 980;
+
   const [priceData, setPriceData] = useState(DEFAULT_RAW);
   const [, setDataStatus] = useState(null);
   const [hi, setHi] = useState(1); // default 10Y
@@ -230,24 +245,24 @@ export default function App() {
     <div style={{
       width: "100%", minHeight: "100vh", background: "#020208",
       fontFamily: SANS, color: "#e2e8f0",
-      padding: "32px 20px 48px",
+      padding: isMobile ? "18px 12px 40px" : "32px 20px 48px",
     }}>
       {/* Header */}
       <div style={{ maxWidth: MAX_W, margin: "0 auto 24px" }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 18, flexWrap: "wrap" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: isMobile ? 10 : 18, flexWrap: "nowrap" }}>
           <img
             src="/spx6900.gif"
             alt="SPX6900"
             style={{
-              height: 84, width: "auto",
+              height: isMobile ? 44 : 84, width: "auto", flexShrink: 0,
               filter: "invert(1)",
               mixBlendMode: "screen",
             }}
             onError={(e) => { e.currentTarget.style.display = "none"; }}
           />
           <h1 style={{
-            fontFamily: SANS, fontSize: 44, fontWeight: 700, margin: 0,
-            letterSpacing: "-0.02em", lineHeight: 1, textAlign: "center",
+            fontFamily: SANS, fontSize: isMobile ? 26 : isTablet ? 36 : 44, fontWeight: 700, margin: 0,
+            letterSpacing: "-0.02em", lineHeight: 1.05, textAlign: "center",
             background: "linear-gradient(90deg,#6366f1,#3b82f6,#06b6d4,#22c55e,#84cc16,#f59e0b,#ea580c,#dc2626,#8b0000)",
             WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
           }}>
@@ -257,7 +272,7 @@ export default function App() {
             src="/spx6900.gif"
             alt="SPX6900"
             style={{
-              height: 84, width: "auto",
+              height: isMobile ? 44 : 84, width: "auto", flexShrink: 0,
               filter: "invert(1)",
               mixBlendMode: "screen",
               transform: "scaleX(-1)",
@@ -265,7 +280,7 @@ export default function App() {
             onError={(e) => { e.currentTarget.style.display = "none"; }}
           />
         </div>
-        <div style={{ fontFamily: MONO, fontSize: 13, color: "#94a3b8", letterSpacing: 0.8, marginTop: 10, textAlign: "center" }}>
+        <div style={{ fontFamily: MONO, fontSize: isMobile ? 11 : 13, color: "#94a3b8", letterSpacing: 0.6, marginTop: 10, textAlign: "center" }}>
           LOGARITHMIC REGRESSION · {m.name.toUpperCase()} · R²={m.r2.toFixed(3)} · σ={m.std.toFixed(3)}
           <span style={{ color: "#64748b" }}> · {priceData.length} points (bundled fit)</span>
         </div>
@@ -273,27 +288,27 @@ export default function App() {
 
       {/* Current verdict banner */}
       <div style={{
-        maxWidth: MAX_W, margin: "0 auto 20px", padding: "24px 30px",
-        display: "flex", alignItems: "center", gap: 24, flexWrap: "wrap",
+        maxWidth: MAX_W, margin: "0 auto 20px", padding: isMobile ? "16px 18px" : "24px 30px",
+        display: "flex", alignItems: "center", gap: isMobile ? 14 : 24, flexWrap: "wrap",
         background: `linear-gradient(135deg, ${cb.c}26, ${cb.c}0a)`,
         border: `1.5px solid ${cb.c}66`,
         borderRadius: 14,
         boxShadow: `0 0 50px ${cb.c}24, inset 0 0 30px ${cb.c}10`,
       }}>
         <span style={{
-          width: 16, height: 16, borderRadius: "50%", background: cb.c, flexShrink: 0,
+          width: isMobile ? 13 : 16, height: isMobile ? 13 : 16, borderRadius: "50%", background: cb.c, flexShrink: 0,
           boxShadow: `0 0 14px ${cb.c}, 0 0 28px ${cb.c}99`,
           animation: "verdict-pulse 1.8s ease-in-out infinite",
         }} />
         <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
           <div style={{
-            fontFamily: MONO, fontSize: 13, letterSpacing: 1.5, textTransform: "uppercase",
+            fontFamily: MONO, fontSize: isMobile ? 11 : 13, letterSpacing: 1.5, textTransform: "uppercase",
             color: "#94a3b8",
           }}>
             SPX6900 today is a
           </div>
           <div style={{
-            fontFamily: SANS, fontSize: 46, fontWeight: 800, lineHeight: 1.02,
+            fontFamily: SANS, fontSize: isMobile ? 32 : 46, fontWeight: 800, lineHeight: 1.02,
             letterSpacing: "-0.02em", color: cb.c,
             textShadow: `0 0 24px ${cb.c}66`,
           }}>
@@ -301,10 +316,10 @@ export default function App() {
           </div>
         </div>
         <div style={{ marginLeft: "auto", textAlign: "right" }}>
-          <div style={{ fontFamily: MONO, fontSize: 12, letterSpacing: 1, color: "#94a3b8" }}>
+          <div style={{ fontFamily: MONO, fontSize: isMobile ? 11 : 12, letterSpacing: 1, color: "#94a3b8" }}>
             CURRENT PRICE
           </div>
-          <div style={{ fontFamily: MONO, fontSize: 30, fontWeight: 700, color: "#f1f5f9" }}>
+          <div style={{ fontFamily: MONO, fontSize: isMobile ? 24 : 30, fontWeight: 700, color: "#f1f5f9" }}>
             {fP(last.price)}
           </div>
         </div>
@@ -312,12 +327,12 @@ export default function App() {
 
       {/* About panel — always visible */}
       <div style={{
-        maxWidth: MAX_W, margin: "0 auto 20px", padding: "20px 26px",
+        maxWidth: MAX_W, margin: "0 auto 20px", padding: isMobile ? "16px 16px" : "20px 26px",
         background: "rgba(99, 102, 241, 0.06)", border: "1px solid rgba(99, 102, 241, 0.2)",
-        borderRadius: 10, fontFamily: SANS, fontSize: 15,
+        borderRadius: 10, fontFamily: SANS, fontSize: isMobile ? 14 : 15,
         color: "#cbd5e1", lineHeight: 1.7,
       }}>
-        <div style={{ fontWeight: 700, color: "#c4b5fd", marginBottom: 10, fontSize: 18 }}>About This Chart</div>
+        <div style={{ fontWeight: 700, color: "#c4b5fd", marginBottom: 10, fontSize: isMobile ? 16 : 18 }}>About This Chart</div>
         <p style={{ marginBottom: 12 }}>
           The <strong style={{ color: "#f1f5f9" }}>SPX6900 Rainbow Chart</strong> is a fun, long-term way to
           visualize where the price of SPX6900 sits relative to its historical trend. It plots the price on a{" "}
@@ -369,7 +384,7 @@ export default function App() {
         }}>
           {HZ.map((h, i) => (
             <button key={i} onClick={() => setHi(i)} style={{
-              fontFamily: SANS, fontSize: 14, fontWeight: 600, padding: "8px 18px", border: "none", cursor: "pointer",
+              fontFamily: SANS, fontSize: isMobile ? 13 : 14, fontWeight: 600, padding: isMobile ? "8px 12px" : "8px 18px", border: "none", cursor: "pointer",
               background: i === hi ? "rgba(59,130,246,0.18)" : "transparent",
               color: i === hi ? "#93c5fd" : "#94a3b8",
               borderRight: i < 2 ? "1px solid rgba(255,255,255,0.08)" : "none",
@@ -403,8 +418,8 @@ export default function App() {
 
       {/* Chart */}
       <div style={{ maxWidth: MAX_W, margin: "0 auto" }}>
-        <ResponsiveContainer width="100%" height={720}>
-          <ComposedChart data={data} margin={{ top: 10, right: 130, bottom: 24, left: 12 }}>
+        <ResponsiveContainer width="100%" height={isMobile ? 440 : isTablet ? 580 : 720}>
+          <ComposedChart data={data} margin={{ top: 10, right: isMobile ? 64 : 130, bottom: 24, left: isMobile ? 0 : 12 }}>
             <CartesianGrid strokeDasharray="2 8" stroke="rgba(255,255,255,0.07)" vertical={false} />
             <XAxis
               dataKey="ts"
@@ -413,14 +428,16 @@ export default function App() {
               domain={xDomain}
               ticks={xT}
               tickFormatter={ts => fD(new Date(ts).toISOString().slice(0, 10))}
-              tick={{ fill: "#cbd5e1", fontSize: 13, fontFamily: MONO }}
+              tick={{ fill: "#cbd5e1", fontSize: isMobile ? 10 : 13, fontFamily: MONO }}
               axisLine={{ stroke: "rgba(255,255,255,0.15)" }} tickLine={false}
               allowDataOverflow={false}
+              interval="preserveStartEnd"
+              minTickGap={isMobile ? 32 : 8}
             />
             <YAxis
               scale="log" domain={[yMin, yMax]} ticks={logT} tickFormatter={fT}
-              tick={{ fill: "#cbd5e1", fontSize: 13, fontFamily: MONO }}
-              axisLine={{ stroke: "rgba(255,255,255,0.15)" }} tickLine={false} width={68}
+              tick={{ fill: "#cbd5e1", fontSize: isMobile ? 10 : 13, fontFamily: MONO }}
+              axisLine={{ stroke: "rgba(255,255,255,0.15)" }} tickLine={false} width={isMobile ? 46 : 68}
               allowDataOverflow
             />
             <Tooltip content={<Tip model={m} />} />
@@ -437,8 +454,8 @@ export default function App() {
                 key={`tgt${i}`} y={t.price} stroke={t.c}
                 strokeDasharray="5 3" strokeWidth={1.2} strokeOpacity={0.75}
                 label={{
-                  value: `${t.label}  ${t.mc}`, position: "right",
-                  fill: t.c, fontSize: 12, fontFamily: MONO, fontWeight: 700,
+                  value: isMobile ? t.label : `${t.label}  ${t.mc}`, position: "right",
+                  fill: t.c, fontSize: isMobile ? 10 : 12, fontFamily: MONO, fontWeight: 700,
                   offset: 6,
                 }}
               />
@@ -449,8 +466,8 @@ export default function App() {
                 key={`ms${i}`} y={ms.price} stroke={ms.c}
                 strokeDasharray="2 4" strokeWidth={1.2} strokeOpacity={0.5}
                 label={{
-                  value: `${ms.label} (${ms.mc})`, position: "insideTopLeft",
-                  fill: ms.c, fontSize: 11, fontFamily: SANS, fontWeight: 600,
+                  value: isMobile ? ms.label : `${ms.label} (${ms.mc})`, position: "insideTopLeft",
+                  fill: ms.c, fontSize: isMobile ? 9 : 11, fontFamily: SANS, fontWeight: 600,
                   offset: 4,
                 }}
               />
@@ -501,7 +518,7 @@ export default function App() {
           </div>
           <div style={{
             display: "grid",
-            gridTemplateColumns: `repeat(${Math.min(ms.length, 5)}, 1fr)`,
+            gridTemplateColumns: `repeat(auto-fit, minmax(min(100%, ${isMobile ? 150 : 200}px), 1fr))`,
             gap: 12,
           }}>
             {ms.map((t, i) => (
@@ -510,7 +527,7 @@ export default function App() {
                 borderRadius: 10, padding: "16px 18px",
               }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 10 }}>
-                  <span style={{ fontSize: 26, fontWeight: 700, color: t.c, fontFamily: MONO }}>{t.label}</span>
+                  <span style={{ fontSize: isMobile ? 22 : 26, fontWeight: 700, color: t.c, fontFamily: MONO }}>{t.label}</span>
                   <span style={{ fontSize: 13, color: "#94a3b8", fontFamily: MONO }}>{t.mc}</span>
                 </div>
                 <div style={{ fontSize: 14, color: "#cbd5e1", lineHeight: 2.1, fontFamily: SANS }}>
