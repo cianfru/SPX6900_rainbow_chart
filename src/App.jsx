@@ -43,6 +43,19 @@ const fT = v => {
   return "$" + v.toFixed(3);
 };
 
+// Meme one-liner per band (index matches BAND_LABELS: 0 = Fire Sale ... 8 = Max Bubble)
+const BAND_MEMES = [
+  "generational bottom. back up the truck. 🫡",
+  "wagmi. load the boat. 🚀",
+  "stack quietly while they sleep. 🧊",
+  "still cheap, anon. 👀",
+  "hold the line. diamond hands. 💎🙌",
+  "getting a little frothy up here... 🫧",
+  "peak euphoria — stay frosty. 🔥",
+  "ser... maybe take some profits. 🤡",
+  "don't be the exit liquidity. 🎪",
+];
+
 const CRYPTO_MILESTONES = [
   { price: 11.71,  label: "PEPE ATH MC",     mc: "$11B",  c: "#4ade80" },
   { price: 13.84,  label: "BTC @ $1K MC",    mc: "$13B",  c: "#f59e0b" },
@@ -189,7 +202,9 @@ export default function App() {
 
   const last = priceData[priceData.length - 1];
   const ld = dayN(last.date);
-  const cb = BAND_LABELS[bandIndex(m, last.price, ld)];
+  const bIdx = bandIndex(m, last.price, ld);
+  const cb = BAND_LABELS[bIdx];
+  const meme = BAND_MEMES[bIdx];
 
   // Compute yMin/yMax from the actual band values so bands never get clipped.
   // No artificial cap: at long horizons the top band legitimately grows large,
@@ -243,10 +258,27 @@ export default function App() {
 
   return (
     <div style={{
-      width: "100%", minHeight: "100vh", background: "#020208",
+      position: "relative", isolation: "isolate",
+      width: "100%", minHeight: "100vh",
+      background: `radial-gradient(1100px 540px at 50% -8%, ${cb.c}24, transparent 60%), #020208`,
+      transition: "background 0.6s ease",
       fontFamily: SANS, color: "#e2e8f0",
       padding: isMobile ? "18px 12px 40px" : "32px 20px 48px",
     }}>
+      {/* Animated starfield backdrop */}
+      <div aria-hidden="true" style={{
+        position: "fixed", top: 0, left: 0, width: "100%", height: "calc(100% + 200px)",
+        zIndex: -1, pointerEvents: "none",
+        backgroundRepeat: "repeat", backgroundSize: "200px 200px",
+        backgroundImage: [
+          "radial-gradient(1px 1px at 24px 28px, rgba(255,255,255,0.28), transparent 100%)",
+          "radial-gradient(1px 1px at 76px 96px, rgba(255,255,255,0.18), transparent 100%)",
+          "radial-gradient(1.6px 1.6px at 142px 52px, rgba(196,181,253,0.22), transparent 100%)",
+          "radial-gradient(1.2px 1.2px at 168px 150px, rgba(255,255,255,0.14), transparent 100%)",
+        ].join(","),
+        animation: "star-drift 26s linear infinite",
+      }} />
+
       {/* Header */}
       <div style={{ maxWidth: MAX_W, margin: "0 auto 24px" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: isMobile ? 10 : 18, flexWrap: "nowrap" }}>
@@ -263,8 +295,10 @@ export default function App() {
           <h1 style={{
             fontFamily: SANS, fontSize: isMobile ? 26 : isTablet ? 36 : 44, fontWeight: 700, margin: 0,
             letterSpacing: "-0.02em", lineHeight: 1.05, textAlign: "center",
-            background: "linear-gradient(90deg,#6366f1,#3b82f6,#06b6d4,#22c55e,#84cc16,#f59e0b,#ea580c,#dc2626,#8b0000)",
+            background: "linear-gradient(90deg,#6366f1,#3b82f6,#06b6d4,#22c55e,#84cc16,#f59e0b,#ea580c,#dc2626,#8b0000,#6366f1)",
+            backgroundSize: "200% auto",
             WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
+            animation: "title-shimmer 8s ease-in-out infinite alternate",
           }}>
             SPX6900 Rainbow Chart
           </h1>
@@ -370,6 +404,12 @@ export default function App() {
                 textShadow: `0 0 24px ${cb.c}66`,
               }}>
                 {cb.l}
+              </div>
+              <div style={{
+                fontFamily: SANS, fontSize: isMobile ? 12 : 14, fontStyle: "italic",
+                color: "#94a3b8", marginTop: 4,
+              }}>
+                {meme}
               </div>
             </div>
           </div>

@@ -36,6 +36,22 @@ body { margin: 0; }
   50% { transform: scale(1.25); opacity: 0.65; }
 }
 
+/* Slowly scroll the rainbow gradient across the title text */
+@keyframes title-shimmer {
+  from { background-position: 0% 50%; }
+  to   { background-position: 100% 50%; }
+}
+
+/* Drift the starfield upward by exactly one tile (200px) for a seamless loop */
+@keyframes star-drift {
+  from { transform: translateY(0); }
+  to   { transform: translateY(-200px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; }
+}
+
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 3px; }
