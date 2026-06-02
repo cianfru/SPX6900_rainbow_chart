@@ -5,6 +5,15 @@ const SANS = "'Space Grotesk', system-ui, sans-serif";
 const MONO = "ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace";
 const MAX_W = 1400;
 
+// Frosted-glass card style, matching App.jsx.
+const glassCard = {
+  background: "rgba(255, 255, 255, 0.04)",
+  backdropFilter: "blur(14px)",
+  WebkitBackdropFilter: "blur(14px)",
+  border: "1px solid rgba(255, 255, 255, 0.12)",
+  boxShadow: "inset 0 1px 0 rgba(255,255,255,0.10), 0 8px 30px rgba(0,0,0,0.35)",
+};
+
 const fNum = n => {
   if (n == null) return "—";
   if (Math.abs(n) >= 1e9) return (n / 1e9).toFixed(2) + "B";
@@ -27,8 +36,7 @@ const fPct = n => n != null ? (n * 100).toFixed(1) + "%" : "—";
 function StatCard({ label, value, sub, color }) {
   return (
     <div style={{
-      padding: "16px 20px", background: "rgba(255,255,255,0.025)",
-      border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10,
+      padding: "16px 20px", borderRadius: 10, ...glassCard,
     }}>
       <div style={{
         fontFamily: SANS, fontSize: 12, fontWeight: 600, color: "#94a3b8",
@@ -201,8 +209,7 @@ export default function HolderscanDashboard() {
         {/* Holder Changes */}
         {deltas && (
           <div style={{
-            padding: "20px 22px", background: "rgba(255,255,255,0.025)",
-            border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10,
+            padding: "20px 22px", borderRadius: 10, ...glassCard,
           }}>
             <div style={{
               fontFamily: SANS, fontSize: 13, fontWeight: 700, color: "#94a3b8",
@@ -222,8 +229,7 @@ export default function HolderscanDashboard() {
         {/* Distribution */}
         {breakdowns?.categories && (
           <div style={{
-            padding: "20px 22px", background: "rgba(255,255,255,0.025)",
-            border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10,
+            padding: "20px 22px", borderRadius: 10, ...glassCard,
           }}>
             <div style={{
               fontFamily: SANS, fontSize: 13, fontWeight: 700, color: "#94a3b8",
@@ -258,8 +264,7 @@ export default function HolderscanDashboard() {
         {/* Top Holders */}
         {topHolders && topHolders.length > 0 && (
           <div style={{
-            padding: "20px 22px", background: "rgba(255,255,255,0.025)",
-            border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10,
+            padding: "20px 22px", borderRadius: 10, ...glassCard,
           }}>
             <div style={{
               fontFamily: SANS, fontSize: 13, fontWeight: 700, color: "#94a3b8",
