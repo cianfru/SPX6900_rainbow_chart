@@ -3,14 +3,14 @@ export const DEFAULT_RAW = [{"date":"2023-08-17","price":0.00067},{"date":"2023-
 export const D0 = new Date("2023-08-17").getTime();
 export const SUPPLY = 939_000_000;
 
-export async function fetchCoinGeckoData() {
-  const res = await fetch("/api/coingecko");
+export async function fetchLivePrices() {
+  const res = await fetch("/api/prices");
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
-    throw new Error(body.hint || body.error || `Proxy returned ${res.status}`);
+    throw new Error(body.error || `Proxy returned ${res.status}`);
   }
   const json = await res.json();
   const prices = json.prices;
   if (!Array.isArray(prices) || prices.length === 0) throw new Error("No price data returned");
-  return prices;
+  return { prices, source: json.source || "unknown" };
 }

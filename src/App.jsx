@@ -3,7 +3,7 @@ import {
   ResponsiveContainer, ComposedChart, Area, Line, XAxis, YAxis,
   Tooltip, CartesianGrid, ReferenceLine
 } from "recharts";
-import { DEFAULT_RAW, fetchCoinGeckoData } from "./data.js";
+import { DEFAULT_RAW, fetchLivePrices } from "./data.js";
 import {
   buildModels, BAND_LABELS, TARGETS,
   dayN, ds, bandVal, bandIndex,
@@ -112,13 +112,13 @@ export default function App() {
 
   useEffect(() => {
     let cancelled = false;
-    fetchCoinGeckoData().then(data => {
-      if (!cancelled && data.length > 0) {
-        setRawData(data);
-        setDataStatus(`Live · ${data.length} points from CoinGecko`);
+    fetchLivePrices().then(({ prices, source }) => {
+      if (!cancelled && prices.length > 0) {
+        setRawData(prices);
+        setDataStatus(`Live · ${prices.length} points from ${source}`);
       }
-    }).catch(() => {
-      if (!cancelled) setDataStatus("Using bundled data (CoinGecko unavailable)");
+    }).catch(err => {
+      if (!cancelled) setDataStatus(`Using bundled data (${err.message})`);
     });
     return () => { cancelled = true; };
   }, []);
@@ -135,17 +135,13 @@ export default function App() {
   const handleFetchData = useCallback(async () => {
     setDataStatus("loading");
     try {
-      const data = await fetchCoinGeckoData();
-      if (data.length > rawData.length) {
-        setRawData(data);
-        setDataStatus(`Loaded ${data.length} data points from CoinGecko`);
-      } else {
-        setDataStatus(`CoinGecko returned ${data.length} points (current: ${rawData.length})`);
-      }
+      const { prices, source } = await fetchLivePrices();
+      setRawData(prices);
+      setDataStatus(`Live · ${prices.length} points from ${source}`);
     } catch (err) {
-      setDataStatus(`Failed: ${err.message}. CoinGecko may require browser access.`);
+      setDataStatus(`Failed: ${err.message}`);
     }
-  }, [rawData.length]);
+  }, []);
 
   const data = useMemo(() => {
     const firstDay = dayN(rawData[0].date);
