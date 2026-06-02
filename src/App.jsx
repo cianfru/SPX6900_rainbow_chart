@@ -254,7 +254,7 @@ export default function App() {
       <div style={{ maxWidth: MAX_W, margin: "0 auto 24px" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 18, flexWrap: "wrap" }}>
           <img
-            src="/spx6900-logo.png"
+            src="/spx6900.gif"
             alt="SPX6900"
             style={{
               height: 64, width: "auto",
