@@ -337,9 +337,8 @@ export default function App() {
             onError={(e) => { e.currentTarget.style.display = "none"; }}
           />
         </div>
-        <div style={{ fontFamily: MONO, fontSize: isMobile ? 11 : 13, color: "#94a3b8", letterSpacing: 0.6, marginTop: 10, textAlign: "center" }}>
-          LOGARITHMIC REGRESSION · {m.name.toUpperCase()} · R²={m.r2.toFixed(3)} · σ={m.std.toFixed(3)}
-          <span style={{ color: "#64748b" }}> · {priceData.length} points (bundled fit)</span>
+        <div style={{ fontFamily: MONO, fontSize: isMobile ? 11 : 13, color: "#94a3b8", letterSpacing: 1.4, marginTop: 10, textAlign: "center", textTransform: "uppercase" }}>
+          Logarithmic rainbow valuation bands
         </div>
       </div>
 
