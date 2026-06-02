@@ -10,6 +10,7 @@ import {
   whenHitsCenter, whenHitsBand,
 } from "./models.js";
 import HolderscanDashboard from "./HolderscanDashboard.jsx";
+import { generatePine } from "./pine.js";
 
 const SANS = "'Space Grotesk', system-ui, sans-serif";
 const MONO = "ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace";
@@ -126,6 +127,8 @@ export default function App() {
   const [hi, setHi] = useState(1); // default 10Y
   const [tg, setTg] = useState(new Set([0, 1, 2, 4])); // includes $6,900 by default
   const [showMilestones, setShowMilestones] = useState(true);
+  const [showPine, setShowPine] = useState(false);
+  const [pineCopied, setPineCopied] = useState(false);
   const HZ = [
     { l: "5Y", y: 5 },
     { l: "10Y", y: 10 },
@@ -264,6 +267,23 @@ export default function App() {
     fire: whenHitsBand(m, t.price, 0),
   })), [m, tg]);
 
+  const pineCode = useMemo(() => generatePine(m), [m]);
+  const copyPine = () => {
+    navigator.clipboard?.writeText(pineCode).then(() => {
+      setPineCopied(true);
+      setTimeout(() => setPineCopied(false), 1800);
+    });
+  };
+  const downloadPine = () => {
+    const blob = new Blob([pineCode], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "spx6900_rainbow_bands.pine";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div style={{
       position: "relative", isolation: "isolate",
@@ -339,6 +359,14 @@ export default function App() {
         </div>
         <div style={{ fontFamily: MONO, fontSize: isMobile ? 11 : 13, color: "#94a3b8", letterSpacing: 1.4, marginTop: 10, textAlign: "center", textTransform: "uppercase" }}>
           Logarithmic rainbow valuation bands
+        </div>
+        <div style={{ display: "flex", justifyContent: "center", gap: 10, marginTop: 16, flexWrap: "wrap" }}>
+          <button onClick={() => setShowPine(true)} style={{
+            fontFamily: SANS, fontSize: 14, fontWeight: 600, padding: "9px 16px", borderRadius: 8, cursor: "pointer",
+            color: "#e2e8f0", ...glass("59, 130, 246", 0.10),
+          }}>
+            📈 Get TradingView Indicator
+          </button>
         </div>
       </div>
 
@@ -655,6 +683,67 @@ export default function App() {
       }}>
         Single-cycle fit on a memecoin. Not financial advice. Supply ~939M.
       </div>
+
+      {/* TradingView / Pine Script modal */}
+      {showPine && (
+        <div
+          onClick={() => setShowPine(false)}
+          style={{
+            position: "fixed", inset: 0, zIndex: 100, padding: isMobile ? 12 : 24,
+            background: "rgba(2,2,8,0.72)", backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+          }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              width: "100%", maxWidth: 780, maxHeight: "86vh", display: "flex", flexDirection: "column",
+              borderRadius: 14, overflow: "hidden", ...glass("20, 24, 40", 0.55, 20),
+            }}
+          >
+            <div style={{
+              display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12,
+              padding: "16px 20px", borderBottom: "1px solid rgba(255,255,255,0.1)",
+            }}>
+              <div>
+                <div style={{ fontFamily: SANS, fontSize: 17, fontWeight: 700, color: "#f1f5f9" }}>
+                  TradingView Indicator
+                </div>
+                <div style={{ fontFamily: SANS, fontSize: 12.5, color: "#94a3b8", marginTop: 2 }}>
+                  Pine Script® v6 · paste into Pine Editor and &ldquo;Add to chart&rdquo; (use a log price scale)
+                </div>
+              </div>
+              <button onClick={() => setShowPine(false)} style={{
+                fontFamily: SANS, fontSize: 20, lineHeight: 1, color: "#94a3b8", cursor: "pointer",
+                background: "transparent", border: "none", padding: 6,
+              }}>×</button>
+            </div>
+
+            <div style={{ display: "flex", gap: 8, padding: "12px 20px", flexWrap: "wrap" }}>
+              <button onClick={copyPine} style={{
+                fontFamily: SANS, fontSize: 13, fontWeight: 600, padding: "8px 14px", borderRadius: 7, cursor: "pointer",
+                color: pineCopied ? "#4ade80" : "#e2e8f0", ...glass("59, 130, 246", 0.12),
+              }}>
+                {pineCopied ? "✓ Copied!" : "Copy code"}
+              </button>
+              <button onClick={downloadPine} style={{
+                fontFamily: SANS, fontSize: 13, fontWeight: 600, padding: "8px 14px", borderRadius: 7, cursor: "pointer",
+                color: "#e2e8f0", ...glass("34, 197, 94", 0.12),
+              }}>
+                ↓ Download .pine
+              </button>
+            </div>
+
+            <pre style={{
+              margin: 0, padding: "0 20px 20px", overflow: "auto", flex: 1,
+              fontFamily: MONO, fontSize: 12, lineHeight: 1.55, color: "#cbd5e1",
+              whiteSpace: "pre", tabSize: 2,
+            }}>
+              {pineCode}
+            </pre>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
