@@ -95,6 +95,36 @@ export function buildModel(RAW) {
   };
 }
 
+// Risk metric (0–1): how expensive price is vs the model, min–max normalized
+// across the series' own log-deviations. 0 = cheapest seen, 1 = most expensive.
+export function buildRiskSeries(m, series) {
+  const zs = series.map(r => Math.log(r.price) - m.predict(dayN(r.date)));
+  let lo = Infinity, hi = -Infinity;
+  for (const v of zs) { if (v < lo) lo = v; if (v > hi) hi = v; }
+  const span = (hi - lo) || 1;
+  return series.map((r, i) => ({
+    date: r.date,
+    ts: new Date(r.date).getTime(),
+    price: r.price,
+    risk: Math.min(1, Math.max(0, (zs[i] - lo) / span)),
+  }));
+}
+
+// Drawdown from the running all-time high (0 = at ATH, -0.7 = 70% below peak).
+export function buildDrawdownSeries(series) {
+  let peak = -Infinity;
+  return series.map(r => {
+    if (r.price > peak) peak = r.price;
+    return {
+      date: r.date,
+      ts: new Date(r.date).getTime(),
+      price: r.price,
+      peak,
+      dd: r.price / peak - 1,
+    };
+  });
+}
+
 export const BAND_LABELS = [
   { l: "Fire Sale", c: "#6366f1" },
   { l: "BUY!", c: "#3b82f6" },

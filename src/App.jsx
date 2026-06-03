@@ -10,6 +10,8 @@ import {
   whenHitsCenter, whenHitsBand,
 } from "./models.js";
 import HolderscanDashboard from "./HolderscanDashboard.jsx";
+import RiskChart from "./RiskChart.jsx";
+import DrawdownChart from "./DrawdownChart.jsx";
 import { generatePine } from "./pine.js";
 
 const SANS = "'Space Grotesk', system-ui, sans-serif";
@@ -143,6 +145,7 @@ export default function App() {
   const [showPine, setShowPine] = useState(false);
   const [pineCopied, setPineCopied] = useState(false);
   const [showDry, setShowDry] = useState(false);
+  const [tab, setTab] = useState("rainbow");
   const HZ = [
     { l: "5Y", y: 5 },
     { l: "10Y", y: 10 },
@@ -521,6 +524,27 @@ export default function App() {
         </div>
       </div>
 
+      {/* Chart tabs */}
+      <div style={{ maxWidth: MAX_W, margin: "0 auto 18px", display: "flex", justifyContent: "center", gap: 8, flexWrap: "wrap" }}>
+        {[
+          ["rainbow", "Rainbow"],
+          ["risk", "Risk Metric"],
+          ["drawdown", "Drawdown"],
+          ["holders", "Holders"],
+        ].map(([id, label]) => (
+          <button key={id} onClick={() => setTab(id)} style={{
+            fontFamily: SANS, fontSize: 14, fontWeight: 600, padding: "9px 18px", borderRadius: 9, cursor: "pointer",
+            color: tab === id ? "#f1f5f9" : "#94a3b8",
+            ...(tab === id
+              ? glass("99, 102, 241", 0.14)
+              : { background: "transparent", border: "1px solid rgba(255,255,255,0.10)" }),
+          }}>
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {tab === "rainbow" && (<>
       {/* Controls */}
       <div style={{ maxWidth: MAX_W, margin: "0 auto 14px", display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
         <div style={{
@@ -765,9 +789,6 @@ export default function App() {
         </div>
       </div>
 
-      {/* Holder Analytics */}
-      <HolderscanDashboard />
-
       {/* Model details footer */}
       <div style={{ maxWidth: MAX_W, margin: "24px auto 0", display: "flex", gap: 10, flexWrap: "wrap" }}>
         <div style={{
@@ -781,6 +802,11 @@ export default function App() {
           <br /><span style={{ color: "#64748b" }}>{m.note}</span>
         </div>
       </div>
+      </>)}
+
+      {tab === "risk" && <RiskChart series={priceData} m={m} isMobile={isMobile} />}
+      {tab === "drawdown" && <DrawdownChart series={priceData} isMobile={isMobile} />}
+      {tab === "holders" && <HolderscanDashboard />}
 
       <div style={{
         maxWidth: MAX_W, margin: "16px auto 0", fontFamily: SANS, fontSize: 12,
