@@ -392,23 +392,11 @@ export default function App() {
         </div>
         <div style={{ marginTop: 12, textAlign: "center" }}>
           <div style={{
-            fontFamily: SANS, fontWeight: 600, fontSize: isMobile ? 18 : 26,
-            letterSpacing: "-0.01em", color: "#e2e8f0", lineHeight: 1.2,
+            fontFamily: SANS, fontWeight: 600, fontSize: isMobile ? 15 : 20,
+            color: "#cbd5e1", letterSpacing: 0.2, lineHeight: 1.35,
           }}>
-            Stop trading,{" "}
-            <span style={{
-              background: "linear-gradient(90deg,#a78bfa,#60a5fa,#22d3ee,#34d399)",
-              WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
-              fontWeight: 700,
-            }}>
-              believe in something!
-            </span>
-          </div>
-          <div style={{
-            fontFamily: MONO, fontSize: isMobile ? 10 : 11.5, color: "#64748b",
-            letterSpacing: 1.4, marginTop: 9, textTransform: "uppercase",
-          }}>
-            Logarithmic rainbow valuation bands
+            Logarithmic regression valuation bands for{" "}
+            <span style={{ color: "#93c5fd", fontWeight: 700 }}>SPX6900</span>
           </div>
         </div>
         <div style={{ display: "flex", justifyContent: "center", gap: 10, marginTop: 16, flexWrap: "wrap" }}>
