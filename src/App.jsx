@@ -64,6 +64,19 @@ const fT = v => {
   return "$" + v.toFixed(3);
 };
 
+// Example DCA / risk framework, keyed to band index (0 = Fire Sale … 8 = Max Bubble).
+const SCALE_PLAN = [
+  { side: "buy",  action: "Accumulate aggressively", note: "Deploy ~25% of dry powder" },
+  { side: "buy",  action: "Accumulate",              note: "Deploy ~20% of dry powder" },
+  { side: "buy",  action: "Keep accumulating",       note: "Deploy ~15% of dry powder" },
+  { side: "buy",  action: "Light DCA buys",          note: "Deploy ~10% of dry powder" },
+  { side: "hold", action: "Hold — fair value",       note: "Sit tight, no action" },
+  { side: "sell", action: "Start trimming",          note: "Sell ~10% of your stack" },
+  { side: "sell", action: "Take profit",             note: "Sell ~20% of your stack" },
+  { side: "sell", action: "Take profit",             note: "Sell ~35% of your stack" },
+  { side: "sell", action: "De-risk hard",            note: "Sell ~50% of your stack" },
+];
+
 const CRYPTO_MILESTONES = [
   { price: 11.71,  label: "PEPE ATH MC",     mc: "$11B",  c: "#4ade80" },
   { price: 13.84,  label: "BTC @ $1K MC",    mc: "$13B",  c: "#f59e0b" },
@@ -212,7 +225,8 @@ export default function App() {
 
   const last = priceData[priceData.length - 1];
   const ld = dayN(last.date);
-  const cb = BAND_LABELS[bandIndex(m, last.price, ld)];
+  const bIdx = bandIndex(m, last.price, ld);
+  const cb = BAND_LABELS[bIdx];
   // LED price: the lit value plus an "all segments on" ghost (8.8.8) behind it
   const priceNum = fP(last.price).replace(/^\$/, "");
   const priceGhost = priceNum.replace(/[0-9]/g, "8");
@@ -679,6 +693,62 @@ export default function App() {
           </div>
         </div>
       )}
+
+      {/* Scale-in / scale-out plan */}
+      <div style={{ maxWidth: MAX_W, margin: "32px auto 0" }}>
+        <div style={{
+          fontFamily: SANS, fontSize: 14, fontWeight: 700, color: "#cbd5e1", marginBottom: 4,
+          letterSpacing: 1.2, textTransform: "uppercase",
+        }}>
+          Scale-In / Scale-Out Plan
+        </div>
+        <div style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", marginBottom: 12 }}>
+          Example risk framework — buy more when it&apos;s historically cheap, take profit when it&apos;s hot. Not financial advice.
+        </div>
+        <div style={{ ...glass("255, 255, 255", 0.04), borderRadius: 12, padding: isMobile ? "6px 8px" : "8px 12px" }}>
+          {BAND_LABELS.map((_, i) => i).reverse().map((i, pos, arr) => {
+            const bl = BAND_LABELS[i];
+            const p = SCALE_PLAN[i];
+            const isNow = i === bIdx;
+            const sc = p.side === "buy" ? "#4ade80" : p.side === "sell" ? "#f87171" : "#94a3b8";
+            const sideLabel = p.side === "buy" ? "BUY" : p.side === "sell" ? "SELL" : "HOLD";
+            return (
+              <div key={i} style={{
+                display: "flex", alignItems: "center", gap: isMobile ? 10 : 16,
+                padding: isMobile ? "10px 8px" : "11px 12px",
+                borderRadius: 9,
+                background: isNow ? `${bl.c}24` : "transparent",
+                border: `1px solid ${isNow ? bl.c + "80" : "transparent"}`,
+                borderBottom: isNow ? `1px solid ${bl.c}80` : (pos < arr.length - 1 ? "1px solid rgba(255,255,255,0.05)" : "1px solid transparent"),
+              }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 9, minWidth: isMobile ? 92 : 150, flexShrink: 0 }}>
+                  <span style={{
+                    width: 11, height: 11, borderRadius: 3, background: bl.c, flexShrink: 0,
+                    boxShadow: isNow ? `0 0 8px ${bl.c}` : "none",
+                  }} />
+                  <span style={{ fontFamily: SANS, fontSize: isMobile ? 13 : 14, fontWeight: isNow ? 700 : 600, color: isNow ? "#f1f5f9" : "#cbd5e1" }}>
+                    {bl.l}
+                  </span>
+                </div>
+                <div style={{ flex: 1, fontFamily: SANS, fontSize: isMobile ? 12.5 : 14, color: "#cbd5e1", minWidth: 0 }}>
+                  {p.action}
+                  <span style={{ display: isMobile ? "block" : "inline", color: "#64748b", fontSize: 12.5, marginLeft: isMobile ? 0 : 8 }}>
+                    {p.note}
+                  </span>
+                </div>
+                <span style={{
+                  fontFamily: SANS, fontSize: 12, fontWeight: 700, letterSpacing: 0.6, whiteSpace: "nowrap",
+                  color: sc, background: `${sc}1f`, border: `1px solid ${sc}55`,
+                  padding: "3px 9px", borderRadius: 6, flexShrink: 0,
+                  boxShadow: isNow ? `0 0 10px ${sc}55` : "none",
+                }}>
+                  {isNow ? `${sideLabel} · NOW` : sideLabel}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
 
       {/* Holder Analytics */}
       <HolderscanDashboard />
