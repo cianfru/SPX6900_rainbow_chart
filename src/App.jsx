@@ -578,41 +578,35 @@ export default function App() {
       {/* Rainbow chart — the hero, always visible */}
       {/* Controls */}
       <div style={{ maxWidth: MAX_W, margin: "0 auto 14px", display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
-        <div style={{
-          display: "flex", borderRadius: 7, overflow: "hidden",
-          ...glass("255, 255, 255", 0.04),
-        }}>
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
           {HZ.map((h, i) => (
-            <button key={i} onClick={() => setHi(i)} style={{
-              fontFamily: SANS, fontSize: isMobile ? 13 : 14, fontWeight: 600, padding: isMobile ? "8px 12px" : "8px 18px", border: "none", cursor: "pointer",
-              background: i === hi ? "rgba(59,130,246,0.18)" : "transparent",
-              color: i === hi ? "#93c5fd" : "#94a3b8",
-              borderRight: i < 2 ? "1px solid rgba(255,255,255,0.08)" : "none",
-              transition: "all 0.15s ease",
-            }}>{h.l}</button>
+            <button key={i} onClick={() => setHi(i)}
+              className={`neon-pill${i === hi ? " active" : ""}`}
+              style={{
+                fontFamily: SANS, fontSize: isMobile ? 13 : 14, fontWeight: 600, padding: isMobile ? "7px 12px" : "8px 16px", borderRadius: 7,
+                color: i === hi ? "#f8fafc" : "#94a3b8", "--glow": "#3b82f6",
+              }}>{h.l}</button>
           ))}
         </div>
 
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
           {TARGETS.map((t, i) => (
-            <button key={i} onClick={() => tt(i)} style={{
-              fontFamily: SANS, fontSize: 13, fontWeight: 600, padding: "7px 12px", borderRadius: 6, cursor: "pointer",
-              border: `1px solid ${tg.has(i) ? t.c + "70" : "rgba(255,255,255,0.1)"}`,
-              background: tg.has(i) ? t.c + "18" : "transparent",
-              color: tg.has(i) ? t.c : "#94a3b8",
-              transition: "all 0.15s ease",
-            }}>
+            <button key={i} onClick={() => tt(i)}
+              className={`neon-pill${tg.has(i) ? " active" : ""}`}
+              style={{
+                fontFamily: SANS, fontSize: 13, fontWeight: 600, padding: "7px 12px", borderRadius: 6,
+                color: tg.has(i) ? "#f8fafc" : "#94a3b8", "--glow": t.c,
+              }}>
               <span style={{ fontFamily: MONO }}>{t.label}</span> <span style={{ opacity: 0.55, fontSize: 11 }}>{t.mc}</span>
             </button>
           ))}
         </div>
 
-        <button onClick={() => setShowMilestones(!showMilestones)} style={{
-          fontFamily: SANS, fontSize: 13, fontWeight: 600, padding: "7px 12px", borderRadius: 6, cursor: "pointer",
-          border: `1px solid ${showMilestones ? "rgba(251,146,60,0.4)" : "rgba(255,255,255,0.1)"}`,
-          background: showMilestones ? "rgba(251,146,60,0.1)" : "transparent",
-          color: showMilestones ? "#fb923c" : "#94a3b8",
-          transition: "all 0.15s ease",
+        <button onClick={() => setShowMilestones(!showMilestones)}
+          className={`neon-pill${showMilestones ? " active" : ""}`}
+          style={{
+          fontFamily: SANS, fontSize: 13, fontWeight: 600, padding: "7px 12px", borderRadius: 6,
+          color: showMilestones ? "#f8fafc" : "#94a3b8", "--glow": "#fb923c",
         }}>Crypto Milestones</button>
       </div>
 
@@ -868,13 +862,12 @@ export default function App() {
             ["relative", "Relative Value"],
             ["holders", "Holders"],
           ].map(([id, label]) => (
-            <button key={id} onClick={() => setTab(id)} style={{
-              fontFamily: SANS, fontSize: 14, fontWeight: 600, padding: "9px 18px", borderRadius: 9, cursor: "pointer",
-              color: tab === id ? "#f1f5f9" : "#94a3b8",
-              ...(tab === id
-                ? glass("99, 102, 241", 0.14)
-                : { background: "transparent", border: "1px solid rgba(255,255,255,0.10)" }),
-            }}>
+            <button key={id} onClick={() => setTab(id)}
+              className={`neon-pill${tab === id ? " active" : ""}`}
+              style={{
+                fontFamily: SANS, fontSize: 14, fontWeight: 600, padding: "9px 18px", borderRadius: 9,
+                color: tab === id ? "#f8fafc" : "#94a3b8", "--glow": "#6366f1",
+              }}>
               {label}
             </button>
           ))}
