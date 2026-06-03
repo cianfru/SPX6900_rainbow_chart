@@ -15,6 +15,18 @@ export async function fetchLivePrices() {
   return { prices, source: json.source || "unknown" };
 }
 
+export async function fetchBtcHistory() {
+  const res = await fetch("/api/btc");
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.error || `BTC proxy returned ${res.status}`);
+  }
+  const json = await res.json();
+  const prices = json.prices;
+  if (!Array.isArray(prices) || prices.length === 0) throw new Error("No BTC data returned");
+  return { prices, source: json.source || "unknown" };
+}
+
 // Merge live data on top of bundled. Bundled provides stable historical anchor
 // (back to Aug 2023 launch). Live data updates dates >= the first live date,
 // and appends any new dates beyond what's bundled.
