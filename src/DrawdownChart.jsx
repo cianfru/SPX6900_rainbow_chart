@@ -1,82 +1,123 @@
 import { useMemo } from "react";
 import {
-  ResponsiveContainer, ComposedChart, Area, XAxis, YAxis, Tooltip, CartesianGrid,
+  ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid,
 } from "recharts";
-import { buildDrawdownSeries } from "./models.js";
+import { buildDrawdownCycles } from "./models.js";
 
 const SANS = "'Space Grotesk', system-ui, sans-serif";
 const MONO = "ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace";
 const MAX_W = 1400;
-const fD = ts => new Date(ts).toLocaleDateString("en-US", { month: "short", year: "2-digit" });
-const fPct = v => (v * 100).toFixed(1) + "%";
+const fMon = d => new Date(d).toLocaleDateString("en-US", { month: "short", year: "2-digit" });
 
-function DDTip({ active, payload }) {
-  if (!active || !payload?.[0]) return null;
-  const d = payload[0].payload;
+function CycleTip({ active, payload, label }) {
+  if (!active || !payload?.length) return null;
+  const rows = payload.filter(p => p.value != null);
+  if (rows.length === 0) return null;
   return (
     <div style={{
       background: "rgba(4,4,12,0.97)", border: "1px solid rgba(255,255,255,0.18)",
-      borderRadius: 10, padding: "12px 16px", fontFamily: SANS, fontSize: 13, color: "#cbd5e1",
+      borderRadius: 10, padding: "10px 14px", fontFamily: SANS, fontSize: 13, color: "#cbd5e1",
     }}>
-      <div style={{ fontWeight: 700, color: "#f8fafc", marginBottom: 4 }}>
-        {new Date(d.date).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
-      </div>
-      <div>Drawdown: <span style={{ fontFamily: MONO, fontWeight: 700, color: "#f87171" }}>{fPct(d.dd)}</span></div>
-      <div>Price: <span style={{ fontFamily: MONO }}>${d.price < 1 ? d.price.toFixed(4) : d.price.toFixed(2)}</span></div>
+      <div style={{ fontWeight: 700, color: "#f8fafc", marginBottom: 4 }}>Day {label} after peak</div>
+      {rows.map((p, i) => (
+        <div key={i} style={{ color: p.color, fontFamily: MONO, fontSize: 12.5 }}>
+          {p.name}: {p.value.toFixed(1)}%
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function Readout({ label, value, color }) {
+  return (
+    <div style={{ textAlign: "center" }}>
+      <div style={{ fontFamily: MONO, fontSize: 12, color: "#94a3b8", letterSpacing: 1.2 }}>{label}</div>
+      <div style={{ fontFamily: MONO, fontSize: 40, fontWeight: 700, color, textShadow: `0 0 22px ${color}55` }}>{value}</div>
     </div>
   );
 }
 
 export default function DrawdownChart({ series, isMobile }) {
-  const data = useMemo(() => buildDrawdownSeries(series), [series]);
-  const cur = data[data.length - 1];
-  const maxDD = useMemo(() => data.reduce((m, d) => Math.min(m, d.dd), 0), [data]);
+  const cycles = useMemo(() => buildDrawdownCycles(series, 0.4), [series]);
+
+  const { rows, maxDay, minPct } = useMemo(() => {
+    const dayset = new Set();
+    cycles.forEach(c => c.points.forEach(p => dayset.add(p.day)));
+    const days = [...dayset].sort((a, b) => a - b);
+    const maps = cycles.map(c => {
+      const map = new Map();
+      c.points.forEach(p => map.set(p.day, p.dd));
+      return map;
+    });
+    const r = days.map(day => {
+      const row = { day };
+      cycles.forEach((c, i) => {
+        row["e" + i] = maps[i].has(day) ? maps[i].get(day) * 100 : null;
+      });
+      return row;
+    });
+    const maxD = days.length ? days[days.length - 1] : 0;
+    const minP = cycles.reduce((mn, c) => Math.min(mn, c.minDD * 100), 0);
+    return { rows: r, maxDay: maxD, minPct: minP };
+  }, [cycles]);
+
+  const colorFor = i => {
+    if (cycles[i].ongoing) return "#ffffff";
+    const n = cycles.length;
+    const hue = 265 - (n > 1 ? i / (n - 1) : 0) * 265; // oldest violet → newest red
+    return `hsl(${hue}, 75%, 62%)`;
+  };
+
+  const ongoing = cycles.find(c => c.ongoing);
 
   return (
     <div style={{ maxWidth: MAX_W, margin: "0 auto" }}>
-      <div style={{ display: "flex", gap: isMobile ? 24 : 56, justifyContent: "center", marginBottom: 16, flexWrap: "wrap" }}>
-        <div style={{ textAlign: "center" }}>
-          <div style={{ fontFamily: MONO, fontSize: 12, color: "#94a3b8", letterSpacing: 1.2 }}>FROM ATH</div>
-          <div style={{ fontFamily: MONO, fontSize: isMobile ? 34 : 46, fontWeight: 700, color: "#f87171", textShadow: "0 0 22px rgba(248,113,113,0.4)" }}>
-            {fPct(cur.dd)}
-          </div>
+      {ongoing && (
+        <div style={{ display: "flex", gap: isMobile ? 28 : 56, justifyContent: "center", marginBottom: 16, flexWrap: "wrap" }}>
+          <Readout label="CURRENT DRAWDOWN" value={(ongoing.minDD * 100).toFixed(0) + "%"} color="#f87171" />
+          <Readout label="DAYS SINCE ATH" value={ongoing.points[ongoing.points.length - 1].day + "d"} color="#fbbf24" />
         </div>
-        <div style={{ textAlign: "center" }}>
-          <div style={{ fontFamily: MONO, fontSize: 12, color: "#94a3b8", letterSpacing: 1.2 }}>MAX DRAWDOWN</div>
-          <div style={{ fontFamily: MONO, fontSize: isMobile ? 34 : 46, fontWeight: 700, color: "#fbbf24" }}>
-            {fPct(maxDD)}
-          </div>
-        </div>
-      </div>
+      )}
 
-      <ResponsiveContainer width="100%" height={isMobile ? 360 : 520}>
-        <ComposedChart data={data} margin={{ top: 10, right: isMobile ? 12 : 30, bottom: 24, left: isMobile ? 0 : 12 }}>
-          <defs>
-            <linearGradient id="ddFill" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#f87171" stopOpacity={0.05} />
-              <stop offset="100%" stopColor="#dc2626" stopOpacity={0.45} />
-            </linearGradient>
-          </defs>
-          <CartesianGrid strokeDasharray="2 8" stroke="rgba(255,255,255,0.07)" vertical={false} />
+      <ResponsiveContainer width="100%" height={isMobile ? 380 : 540}>
+        <LineChart data={rows} margin={{ top: 10, right: isMobile ? 14 : 30, bottom: 28, left: isMobile ? 0 : 12 }}>
+          <CartesianGrid strokeDasharray="2 8" stroke="rgba(255,255,255,0.07)" />
           <XAxis
-            dataKey="ts" type="number" scale="time" domain={["dataMin", "dataMax"]}
-            tickFormatter={fD} tick={{ fill: "#cbd5e1", fontSize: isMobile ? 10 : 12, fontFamily: MONO }}
+            dataKey="day" type="number" domain={[0, maxDay]}
+            tickFormatter={v => v + "d"}
+            tick={{ fill: "#cbd5e1", fontSize: isMobile ? 10 : 12, fontFamily: MONO }}
             axisLine={{ stroke: "rgba(255,255,255,0.15)" }} tickLine={false}
-            minTickGap={isMobile ? 40 : 30}
+            label={{ value: "Days since ATH peak", position: "insideBottom", offset: -14, fill: "#64748b", fontSize: 12, fontFamily: SANS }}
           />
           <YAxis
-            domain={[Math.min(-1, Math.floor(maxDD * 10) / 10), 0]}
-            tickFormatter={v => (v * 100).toFixed(0) + "%"}
+            domain={[Math.floor(minPct / 10) * 10, 0]}
+            tickFormatter={v => v + "%"}
             tick={{ fill: "#cbd5e1", fontSize: isMobile ? 10 : 12, fontFamily: MONO }}
             axisLine={{ stroke: "rgba(255,255,255,0.15)" }} tickLine={false} width={isMobile ? 40 : 52}
           />
-          <Tooltip content={<DDTip />} />
-          <Area dataKey="dd" stroke="#f87171" strokeWidth={2} fill="url(#ddFill)" isAnimationActive={false} />
-        </ComposedChart>
+          <Tooltip content={<CycleTip />} />
+          {cycles.map((c, i) => (
+            <Line
+              key={i} dataKey={"e" + i} name={fMon(c.startDate) + (c.ongoing ? " (now)" : "")}
+              stroke={colorFor(i)} strokeWidth={c.ongoing ? 3 : 1.8}
+              dot={false} connectNulls isAnimationActive={false}
+            />
+          ))}
+        </LineChart>
       </ResponsiveContainer>
 
-      <div style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 10, lineHeight: 1.6 }}>
-        How far SPX6900 sits below its running all-time high. 0% = new ATH. Big drawdowns have historically been accumulation zones — but past isn&apos;t prophecy.
+      <div style={{ display: "flex", justifyContent: "center", gap: "8px 18px", flexWrap: "wrap", marginTop: 14 }}>
+        {cycles.map((c, i) => (
+          <div key={i} style={{ display: "flex", alignItems: "center", gap: 7, fontFamily: SANS, fontSize: 12.5, color: c.ongoing ? "#f1f5f9" : "#cbd5e1", fontWeight: c.ongoing ? 700 : 500 }}>
+            <span style={{ width: 15, height: 3, background: colorFor(i), borderRadius: 2, display: "inline-block" }} />
+            {fMon(c.startDate)} ATH{c.ongoing ? " · now" : ""} · {(c.minDD * 100).toFixed(0)}%
+          </div>
+        ))}
+      </div>
+
+      <div style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.6 }}>
+        Each line traces how far price fell after an all-time high, vs. days since that peak. The thesis: as SPX6900 matures,
+        drawdowns get <em>shallower and longer</em> — flatter lines that stretch further right. Not financial advice.
       </div>
     </div>
   );
