@@ -28,11 +28,11 @@ function CycleTip({ active, payload, label }) {
   );
 }
 
-function Readout({ label, value, color }) {
+function Readout({ label, value, color, isMobile }) {
   return (
     <div style={{ textAlign: "center" }}>
-      <div style={{ fontFamily: MONO, fontSize: 12, color: "#94a3b8", letterSpacing: 1.2 }}>{label}</div>
-      <div style={{ fontFamily: MONO, fontSize: 40, fontWeight: 700, color, textShadow: `0 0 22px ${color}55` }}>{value}</div>
+      <div style={{ fontFamily: MONO, fontSize: isMobile ? 11 : 12, color: "#94a3b8", letterSpacing: 1.2 }}>{label}</div>
+      <div style={{ fontFamily: MONO, fontSize: isMobile ? 32 : 44, fontWeight: 700, color, textShadow: `0 0 22px ${color}55` }}>{value}</div>
     </div>
   );
 }
@@ -78,8 +78,8 @@ export default function DrawdownChart({ series, isMobile }) {
   return (
     <div style={{ maxWidth: MAX_W, margin: "0 auto" }}>
       <div style={{ display: "flex", gap: isMobile ? 28 : 56, justifyContent: "center", marginBottom: 16, flexWrap: "wrap" }}>
-        <Readout label="CURRENT DRAWDOWN" value={(currentDD * 100).toFixed(0) + "%"} color="#f87171" />
-        {ongoing && <Readout label="DEEPEST THIS CYCLE" value={(ongoing.minDD * 100).toFixed(0) + "%"} color="#fbbf24" />}
+        <Readout label="CURRENT DRAWDOWN" value={(currentDD * 100).toFixed(0) + "%"} color="#f87171" isMobile={isMobile} />
+        {ongoing && <Readout label="DEEPEST THIS CYCLE" value={(ongoing.minDD * 100).toFixed(0) + "%"} color="#fbbf24" isMobile={isMobile} />}
       </div>
 
       <ResponsiveContainer width="100%" height={isMobile ? 380 : 540}>

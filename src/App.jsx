@@ -879,7 +879,8 @@ export default function App() {
           }}
         >
           <div onClick={e => e.stopPropagation()} style={{
-            width: "100%", maxWidth: 520, borderRadius: 14, overflow: "hidden", ...glass("20, 24, 40", 0.55, 20),
+            width: "100%", maxWidth: 520, maxHeight: "90vh", overflowY: "auto",
+            borderRadius: 14, ...glass("20, 24, 40", 0.55, 20),
           }}>
             <div style={{
               display: "flex", alignItems: "center", justifyContent: "space-between",
@@ -972,7 +973,7 @@ export default function App() {
             </div>
 
             <pre style={{
-              margin: 0, padding: "0 20px 20px", overflow: "auto", flex: 1,
+              margin: 0, padding: "0 20px 20px", overflow: "auto", flex: 1, minWidth: 0,
               fontFamily: MONO, fontSize: 12, lineHeight: 1.55, color: "#cbd5e1",
               whiteSpace: "pre", tabSize: 2,
             }}>
