@@ -521,10 +521,10 @@ export default function App() {
           gap: isMobile ? 14 : 28, flexWrap: "wrap",
         }}>
           <img
-            src="/spx6900_logo_mobile.png"
+            src="/spx6900logo.png"
             alt="SPX6900"
             style={{
-              height: isMobile ? 54 : 84, width: "auto", flexShrink: 0, borderRadius: isMobile ? 12 : 18,
+              height: isMobile ? 54 : 84, width: "auto", flexShrink: 0,
               filter: `drop-shadow(0 0 16px ${cb.c}55)`,
             }}
             onError={(e) => { e.currentTarget.style.display = "none"; }}
