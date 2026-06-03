@@ -42,6 +42,20 @@ body { margin: 0; overflow-x: hidden; }
   background: rgba(99, 102, 241, 0.3);
 }
 
+/* Header pills: border hidden until hover, with a lift + glow on hover */
+.pill {
+  transition: border-color 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease, filter 0.18s ease;
+}
+.pill:hover {
+  border-color: rgba(255, 255, 255, 0.32) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.45) !important;
+  filter: brightness(1.18);
+}
+.pill:active {
+  transform: translateY(0);
+}
+
 @keyframes verdict-pulse {
   0%, 100% { transform: scale(1); opacity: 1; }
   50% { transform: scale(1.25); opacity: 0.65; }
