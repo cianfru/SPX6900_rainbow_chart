@@ -104,7 +104,7 @@ function Tip({ active, payload, model }) {
   const day = dayN(d.date);
   const m = model;
   const proj = d.price == null;
-  const bi = d.price != null ? bandIndex(m, d.price, day) : null;
+  const bi = proj ? null : bandIndex(m, d.price, day);
   const center = Math.exp(m.predict(day));
   const sellLine = Math.exp(m.predict(day) + m.bands[8]);
   const fireLine = Math.exp(m.predict(day) + m.bands[0]);
@@ -112,24 +112,34 @@ function Tip({ active, payload, model }) {
   return (
     <div style={{
       background: "rgba(4,4,12,0.97)", border: "1px solid rgba(255,255,255,0.18)",
-      borderRadius: 10, padding: "14px 18px", fontFamily: SANS, fontSize: 14,
-      color: "#cbd5e1", lineHeight: 1.7, maxWidth: 320, backdropFilter: "blur(8px)"
+      borderRadius: 10, padding: "13px 16px", fontFamily: SANS, fontSize: 14,
+      color: "#cbd5e1", lineHeight: 1.6, maxWidth: 300, backdropFilter: "blur(8px)"
     }}>
-      <div style={{ fontWeight: 700, color: "#f8fafc", fontSize: 15, marginBottom: 4 }}>
-        {new Date(d.date).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
-        {proj && <span style={{ color: "#64748b", fontWeight: 400, fontSize: 13 }}> · projected</span>}
+      <div style={{ fontWeight: 600, color: "#94a3b8", fontSize: 12.5, marginBottom: 6, fontFamily: MONO }}>
+        {new Date(d.date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+        {proj && <span style={{ color: "#64748b" }}> · projected</span>}
       </div>
-      {d.price != null && (
-        <>
-          <div>Price: <span style={{ color: "#f8fafc", fontWeight: 700, fontFamily: MONO }}>{fP(d.price)}</span></div>
-          <div>Band: <span style={{ color: BAND_LABELS[bi].c, fontWeight: 700 }}>{BAND_LABELS[bi].l}</span></div>
-        </>
+
+      {!proj ? (
+        <div style={{ marginBottom: 8 }}>
+          <div style={{ fontFamily: MONO, fontSize: 24, fontWeight: 700, color: "#f8fafc", lineHeight: 1.1 }}>
+            {fP(d.price)}
+          </div>
+          <div style={{ fontSize: 13, marginTop: 2 }}>
+            <span style={{ color: BAND_LABELS[bi].c, fontWeight: 700 }}>● {BAND_LABELS[bi].l}</span>
+          </div>
+        </div>
+      ) : (
+        <div style={{ fontSize: 12.5, color: "#64748b", marginBottom: 8 }}>
+          No traded price here — model projection
+        </div>
       )}
-      <div style={{ borderTop: "1px solid rgba(255,255,255,0.1)", marginTop: 6, paddingTop: 6, fontSize: 13 }}>
-        <div>Center: <span style={{ fontFamily: MONO }}>{fP(center)}</span></div>
-        <div style={{ color: "#dc2626" }}>SELL (p98): <span style={{ fontFamily: MONO }}>{fP(sellLine)}</span></div>
-        <div style={{ color: "#6366f1" }}>Fire (p2): <span style={{ fontFamily: MONO }}>{fP(fireLine)}</span></div>
-        <div style={{ color: "#64748b", fontSize: 12, marginTop: 3 }}>Day {day}</div>
+
+      <div style={{ borderTop: "1px solid rgba(255,255,255,0.1)", paddingTop: 6, fontSize: 12.5, lineHeight: 1.7 }}>
+        <div style={{ color: "#94a3b8", fontSize: 11, letterSpacing: 0.6, marginBottom: 2 }}>MODEL BANDS</div>
+        <div style={{ color: "#dc2626" }}>Sell (p98): <span style={{ fontFamily: MONO }}>{fP(sellLine)}</span></div>
+        <div style={{ color: "#cbd5e1" }}>Center: <span style={{ fontFamily: MONO }}>{fP(center)}</span></div>
+        <div style={{ color: "#6366f1" }}>Fire sale (p2): <span style={{ fontFamily: MONO }}>{fP(fireLine)}</span></div>
       </div>
     </div>
   );
@@ -626,7 +636,7 @@ export default function App() {
               axisLine={{ stroke: "rgba(255,255,255,0.15)" }} tickLine={false} width={isMobile ? 46 : 68}
               allowDataOverflow
             />
-            <Tooltip content={<Tip model={m} />} />
+            <Tooltip content={<Tip model={m} />} cursor={{ stroke: "rgba(255,255,255,0.35)", strokeWidth: 1, strokeDasharray: "4 4" }} />
 
             {Array.from({ length: 9 }).map((_, i) => (
               <Area
