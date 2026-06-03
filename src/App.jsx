@@ -404,6 +404,7 @@ export default function App() {
             display: "inline-flex", alignItems: "center", gap: 9,
             fontFamily: SANS, fontSize: 14, fontWeight: 600, padding: "9px 16px", borderRadius: 8, cursor: "pointer",
             color: "#e2e8f0", ...glass("59, 130, 246", 0.10), border: "1px solid transparent", boxShadow: "none",
+            "--glow": "rgba(59, 130, 246, 0.6)",
           }}>
             <img src="/tradingview-logo.png" alt="" style={{ height: 20, width: 20, borderRadius: "50%", display: "block" }} />
             Get TradingView Indicator
@@ -412,6 +413,7 @@ export default function App() {
             display: "inline-flex", alignItems: "center", gap: 8,
             fontFamily: SANS, fontSize: 14, fontWeight: 600, padding: "9px 16px", borderRadius: 8, cursor: "pointer",
             color: "#4ade80", ...glass("34, 197, 94", 0.10), border: "1px solid transparent", boxShadow: "none",
+            "--glow": "rgba(34, 197, 94, 0.6)",
           }}>
             ♥ Donate
           </button>
@@ -419,6 +421,7 @@ export default function App() {
             display: "inline-flex", alignItems: "center", gap: 8, textDecoration: "none", cursor: "pointer",
             fontFamily: SANS, fontSize: 14, fontWeight: 600, padding: "9px 16px", borderRadius: 8,
             color: "#e2e8f0", ...glass("255, 255, 255", 0.05), border: "1px solid transparent", boxShadow: "none",
+            "--glow": "rgba(226, 232, 240, 0.5)",
           }}>
             <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true">
               <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24h-6.66l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
