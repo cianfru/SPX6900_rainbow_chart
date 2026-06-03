@@ -125,6 +125,36 @@ export function buildDrawdownSeries(series) {
   });
 }
 
+// Drawdown cycles: each time price makes an all-time high and then declines,
+// capture the trajectory (days since that peak → % below it). Overlaying these
+// shows whether later cycles are longer/shallower as the asset matures.
+export function buildDrawdownCycles(series, minDepth = 0.3) {
+  if (series.length === 0) return [];
+  const dayOf = d => new Date(d).getTime() / 86400000;
+  let peak = -Infinity, peakDay = 0, peakDate = series[0].date;
+  let cur = null;
+  const out = [];
+  const close = ongoing => {
+    if (cur && (ongoing || cur.minDD <= -minDepth)) {
+      out.push({ startDate: cur.startDate, points: cur.points, minDD: cur.minDD, ongoing: !!ongoing });
+    }
+    cur = null;
+  };
+  for (const r of series) {
+    if (r.price >= peak) {
+      close(false);
+      peak = r.price; peakDate = r.date; peakDay = dayOf(r.date);
+    } else {
+      if (!cur) cur = { startDate: peakDate, points: [{ day: 0, dd: 0 }], minDD: 0 };
+      const dd = r.price / peak - 1;
+      cur.points.push({ day: Math.round(dayOf(r.date) - peakDay), dd });
+      if (dd < cur.minDD) cur.minDD = dd;
+    }
+  }
+  close(true); // always include the ongoing drawdown, if any
+  return out;
+}
+
 export const BAND_LABELS = [
   { l: "Fire Sale", c: "#6366f1" },
   { l: "BUY!", c: "#3b82f6" },
