@@ -47,10 +47,12 @@ body { margin: 0; overflow-x: hidden; }
   transition: border-color 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease, filter 0.18s ease;
 }
 .pill:hover {
-  border-color: rgba(255, 255, 255, 0.32) !important;
+  border-color: var(--glow, rgba(255, 255, 255, 0.5)) !important;
   transform: translateY(-2px);
-  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.45) !important;
-  filter: brightness(1.18);
+  box-shadow: 0 0 16px var(--glow, rgba(255,255,255,0.4)),
+              0 0 40px var(--glow, rgba(255,255,255,0.4)),
+              0 6px 18px rgba(0, 0, 0, 0.4) !important;
+  filter: brightness(1.15);
 }
 .pill:active {
   transform: translateY(0);
