@@ -15,6 +15,17 @@ export async function fetchLivePrices() {
   return { prices, source: json.source || "unknown" };
 }
 
+export async function fetchMajors() {
+  const res = await fetch("/api/majors");
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.error || `Majors proxy returned ${res.status}`);
+  }
+  const json = await res.json();
+  if (!json.prices || Object.keys(json.prices).length === 0) throw new Error("No majors data returned");
+  return json.prices; // { BTC: [...], ETH: [...], SOL: [...] }
+}
+
 export async function fetchBtcHistory() {
   const res = await fetch("/api/btc");
   if (!res.ok) {
