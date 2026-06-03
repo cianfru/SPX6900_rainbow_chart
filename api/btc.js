@@ -1,23 +1,43 @@
-// Daily BTC/USD history, used for the SPX6900/BTC ratio chart.
+// Daily BTC/USD history (back to SPX6900's 2023 launch), for the SPX/BTC ratio chart.
 
-async function fetchCoinGecko() {
-  // Full daily history in one call (auto-daily granularity for days > 90).
-  const url = "https://api.coingecko.com/api/v3/coins/bitcoin/market_chart?vs_currency=usd&days=1300";
+// CryptoCompare returns full daily history in one call (no key needed).
+async function fetchCryptoCompare() {
+  const url = "https://min-api.cryptocompare.com/data/v2/histoday?fsym=BTC&tsym=USD&limit=1300";
   const res = await fetch(url, { headers: { "Accept": "application/json" } });
-  if (!res.ok) throw new Error(`CoinGecko ${res.status}`);
+  if (!res.ok) throw new Error(`CryptoCompare ${res.status}`);
   const json = await res.json();
-  const list = json?.prices;
-  if (!Array.isArray(list) || list.length === 0) throw new Error("CoinGecko: empty");
-  // [[ts_ms, price], ...] — dedupe to one (last) price per calendar day
+  const list = json?.Data?.Data;
+  if (!Array.isArray(list) || list.length === 0) throw new Error("CryptoCompare: empty");
+  return list
+    .map(d => ({ date: new Date(d.time * 1000).toISOString().slice(0, 10), price: d.close }))
+    .filter(p => p.price > 0)
+    .sort((a, b) => a.date.localeCompare(b.date));
+}
+
+// Coinbase returns max 300 daily candles per call, so page from launch forward.
+async function fetchCoinbasePaged() {
+  const startSec0 = Math.floor(Date.parse("2023-08-01T00:00:00Z") / 1000);
+  const nowSec = Math.floor(Date.now() / 1000);
+  const win = 290 * 86400; // stay under the 300-candle cap
   const byDate = new Map();
-  for (const [ts, price] of list) {
-    if (price > 0) byDate.set(new Date(ts).toISOString().slice(0, 10), price);
+  for (let s = startSec0; s < nowSec; s += win) {
+    const e = Math.min(s + win, nowSec);
+    const url = `https://api.exchange.coinbase.com/products/BTC-USD/candles?granularity=86400&start=${s}&end=${e}`;
+    const res = await fetch(url, { headers: { "Accept": "application/json", "User-Agent": "spx6900-rainbow" } });
+    if (!res.ok) throw new Error(`Coinbase ${res.status}`);
+    const arr = await res.json();
+    if (!Array.isArray(arr)) throw new Error("Coinbase: bad response");
+    for (const [ts, , , , close] of arr) {
+      if (close > 0) byDate.set(new Date(ts * 1000).toISOString().slice(0, 10), close);
+    }
   }
+  if (byDate.size === 0) throw new Error("Coinbase: empty");
   return [...byDate.entries()]
     .map(([date, price]) => ({ date, price }))
     .sort((a, b) => a.date.localeCompare(b.date));
 }
 
+// Bybit: 1000 daily candles (last resort — only ~2.7y of history).
 async function fetchBybit() {
   const url = "https://api.bybit.com/v5/market/kline?category=spot&symbol=BTCUSDT&interval=D&limit=1000";
   const res = await fetch(url, { headers: { "Accept": "application/json" } });
@@ -31,26 +51,12 @@ async function fetchBybit() {
     .sort((a, b) => a.date.localeCompare(b.date));
 }
 
-async function fetchCoinbase() {
-  const end = Math.floor(Date.now() / 1000);
-  const start = end - 300 * 86400;
-  const url = `https://api.exchange.coinbase.com/products/BTC-USD/candles?granularity=86400&start=${start}&end=${end}`;
-  const res = await fetch(url, { headers: { "Accept": "application/json" } });
-  if (!res.ok) throw new Error(`Coinbase ${res.status}`);
-  const arr = await res.json();
-  if (!Array.isArray(arr) || arr.length === 0) throw new Error("Coinbase: empty");
-  return arr
-    .map(([ts, , , , close]) => ({ date: new Date(ts * 1000).toISOString().slice(0, 10), price: close }))
-    .filter(p => p.price > 0)
-    .sort((a, b) => a.date.localeCompare(b.date));
-}
-
 export default async function handler(req, res) {
   const errors = [];
   for (const [name, fn] of [
-    ["coingecko", fetchCoinGecko],
+    ["cryptocompare", fetchCryptoCompare],
+    ["coinbase", fetchCoinbasePaged],
     ["bybit", fetchBybit],
-    ["coinbase", fetchCoinbase],
   ]) {
     try {
       const prices = await fn();
