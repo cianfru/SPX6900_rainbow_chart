@@ -58,6 +58,28 @@ body { margin: 0; overflow-x: hidden; }
   transform: translateY(0);
 }
 
+/* Neon nav pills / toggles: flat at rest, backlit colored glow when hovered/active */
+.neon-pill {
+  border: 1px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  transition: color .18s ease, border-color .18s ease, box-shadow .18s ease, background-color .18s ease, transform .18s ease;
+}
+.neon-pill:hover {
+  box-shadow: 0 0 14px color-mix(in srgb, var(--glow, #6366f1) 50%, transparent);
+  transform: translateY(-1px);
+}
+.neon-pill.active {
+  color: #f8fafc;
+  border-color: color-mix(in srgb, var(--glow, #6366f1) 75%, transparent);
+  background: color-mix(in srgb, var(--glow, #6366f1) 13%, transparent);
+  box-shadow: 0 0 16px color-mix(in srgb, var(--glow, #6366f1) 48%, transparent),
+              inset 0 0 12px color-mix(in srgb, var(--glow, #6366f1) 16%, transparent);
+}
+.neon-pill:active {
+  transform: translateY(0);
+}
+
 @keyframes verdict-pulse {
   0%, 100% { transform: scale(1); opacity: 1; }
   50% { transform: scale(1.25); opacity: 0.65; }

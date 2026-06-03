@@ -124,12 +124,12 @@ export default function RelativeChart({ series, isMobile }) {
     <div style={{ maxWidth: MAX_W, margin: "0 auto" }}>
       <div style={{ display: "flex", justifyContent: "center", gap: 6, flexWrap: "wrap", marginBottom: 16 }}>
         {OPTIONS.map(([id, lbl]) => (
-          <button key={id} onClick={() => setWhich(id)} style={{
-            fontFamily: SANS, fontSize: 13, fontWeight: 600, padding: "7px 14px", borderRadius: 7, cursor: "pointer",
-            border: `1px solid ${which === id ? "rgba(99,102,241,0.5)" : "rgba(255,255,255,0.1)"}`,
-            background: which === id ? "rgba(99,102,241,0.16)" : "transparent",
-            color: which === id ? "#c7d2fe" : "#94a3b8",
-          }}>{lbl}</button>
+          <button key={id} onClick={() => setWhich(id)}
+            className={`neon-pill${which === id ? " active" : ""}`}
+            style={{
+              fontFamily: SANS, fontSize: 13, fontWeight: 600, padding: "7px 14px", borderRadius: 7,
+              color: which === id ? "#f8fafc" : "#94a3b8", "--glow": "#6366f1",
+            }}>{lbl}</button>
         ))}
       </div>
 
