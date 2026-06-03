@@ -120,7 +120,14 @@ export default function App() {
   const [copiedAddr, setCopiedAddr] = useState(null);
   const [tab, setTab] = useState("risk");
   const chartBoxRef = useRef(null);   // wrapper div, for measuring the plot area
-  const [cursor, setCursor] = useState(null);
+  // Crosshair elements updated imperatively (no React re-render while moving).
+  const vLineRef = useRef(null);
+  const hLineRef = useRef(null);
+  const dotRef = useRef(null);
+  const boxRef = useRef(null);
+  const dateRef = useRef(null);
+  const priceRef = useRef(null);
+  const bandRef = useRef(null);
   const HZ = [
     { l: "5Y", y: 5 },
     { l: "10Y", y: 10 },
@@ -260,8 +267,11 @@ export default function App() {
     fire: whenHitsBand(m, t.price, 0),
   })), [m, tg]);
 
-  // Free crosshair: map any cursor position in the plot to (date, price, band).
-  // Measures the grid's background rect from the DOM (version-agnostic).
+  // Free crosshair: map any cursor position in the plot to (date, price, band)
+  // and update the overlay DOM directly — no setState, so it tracks instantly.
+  const hideCursor = () => {
+    [vLineRef, hLineRef, dotRef, boxRef].forEach(r => { if (r.current) r.current.style.display = "none"; });
+  };
   const handleChartMove = (e) => {
     const box = chartBoxRef.current;
     if (!box) return;
@@ -272,18 +282,29 @@ export default function App() {
     const left = gr.left - cr.left, top = gr.top - cr.top, width = gr.width, height = gr.height;
     const x = e.clientX - cr.left, y = e.clientY - cr.top;
     if (width <= 0 || height <= 0 || x < left || x > left + width || y < top || y > top + height) {
-      setCursor(null);
+      hideCursor();
       return;
     }
     const fx = (x - left) / width;
     const ts = xDomain[0] + fx * (xDomain[1] - xDomain[0]);
     const fy = (y - top) / height;
     const price = Math.exp(Math.log(yMax) - fy * (Math.log(yMax) - Math.log(yMin)));
-    const day = dayN(new Date(ts));
-    setCursor({
-      chartX: x, chartY: y, ts, price, band: bandIndex(m, price, day),
-      plotTop: top, plotLeft: left, plotW: width, plotH: height,
-    });
+    const bl = BAND_LABELS[bandIndex(m, price, dayN(new Date(ts)))];
+
+    const v = vLineRef.current, h = hLineRef.current, d = dotRef.current, b = boxRef.current;
+    if (!v || !h || !d || !b) return;
+    v.style.display = "block"; v.style.left = x + "px"; v.style.top = top + "px"; v.style.height = height + "px";
+    h.style.display = "block"; h.style.left = left + "px"; h.style.top = y + "px"; h.style.width = width + "px";
+    d.style.display = "block"; d.style.left = (x - 4) + "px"; d.style.top = (y - 4) + "px";
+    d.style.background = bl.c; d.style.boxShadow = `0 0 8px ${bl.c}`;
+    b.style.display = "block";
+    b.style.left = (x > left + width * 0.62 ? x - 186 : x + 14) + "px";
+    b.style.top = Math.min(Math.max(y - 30, top), top + height - 96) + "px";
+    b.style.borderColor = bl.c + "80";
+    dateRef.current.textContent = new Date(ts).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+    priceRef.current.textContent = fP(price);
+    bandRef.current.textContent = "● " + bl.l;
+    bandRef.current.style.color = bl.c;
   };
 
   const pineCode = useMemo(() => generatePine(m), [m]);
@@ -598,7 +619,7 @@ export default function App() {
       <div
         ref={chartBoxRef}
         onMouseMove={handleChartMove}
-        onMouseLeave={() => setCursor(null)}
+        onMouseLeave={hideCursor}
         style={{ maxWidth: MAX_W, margin: "0 auto", position: "relative" }}
       >
         <ResponsiveContainer width="100%" height={isMobile ? 440 : isTablet ? 580 : 720}>
@@ -672,34 +693,19 @@ export default function App() {
           </ComposedChart>
         </ResponsiveContainer>
 
-        {/* Free crosshair overlay: date + price + band at the pointer */}
-        {cursor && (() => {
-          const off = { top: cursor.plotTop, left: cursor.plotLeft, width: cursor.plotW, height: cursor.plotH };
-          const bl = BAND_LABELS[cursor.band];
-          const flipX = cursor.chartX > off.left + off.width * 0.62;
-          const tipLeft = flipX ? cursor.chartX - 186 : cursor.chartX + 14;
-          const tipTop = Math.min(Math.max(cursor.chartY - 30, off.top), off.top + off.height - 96);
-          return (
-            <>
-              <div style={{ position: "absolute", left: cursor.chartX, top: off.top, width: 1, height: off.height, background: "rgba(255,255,255,0.4)", pointerEvents: "none" }} />
-              <div style={{ position: "absolute", left: off.left, top: cursor.chartY, width: off.width, height: 1, background: "rgba(255,255,255,0.4)", pointerEvents: "none" }} />
-              <div style={{ position: "absolute", left: cursor.chartX - 4, top: cursor.chartY - 4, width: 8, height: 8, borderRadius: "50%", background: bl.c, boxShadow: `0 0 8px ${bl.c}`, pointerEvents: "none" }} />
-              <div style={{
-                position: "absolute", left: tipLeft, top: tipTop, width: 172, pointerEvents: "none",
-                background: "rgba(4,4,12,0.97)", border: `1px solid ${bl.c}80`, borderRadius: 10,
-                padding: "10px 13px", fontFamily: SANS, backdropFilter: "blur(8px)",
-              }}>
-                <div style={{ fontFamily: MONO, fontSize: 12, color: "#94a3b8", marginBottom: 4 }}>
-                  {new Date(cursor.ts).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
-                </div>
-                <div style={{ fontFamily: MONO, fontSize: 22, fontWeight: 700, color: "#f8fafc", lineHeight: 1.1 }}>
-                  {fP(cursor.price)}
-                </div>
-                <div style={{ fontSize: 13, fontWeight: 700, color: bl.c, marginTop: 3 }}>● {bl.l}</div>
-              </div>
-            </>
-          );
-        })()}
+        {/* Free crosshair overlay — positioned imperatively in handleChartMove */}
+        <div ref={vLineRef} style={{ position: "absolute", display: "none", left: 0, top: 0, width: 1, background: "rgba(255,255,255,0.4)", pointerEvents: "none" }} />
+        <div ref={hLineRef} style={{ position: "absolute", display: "none", left: 0, top: 0, height: 1, background: "rgba(255,255,255,0.4)", pointerEvents: "none" }} />
+        <div ref={dotRef} style={{ position: "absolute", display: "none", left: 0, top: 0, width: 8, height: 8, borderRadius: "50%", pointerEvents: "none" }} />
+        <div ref={boxRef} style={{
+          position: "absolute", display: "none", left: 0, top: 0, width: 172, pointerEvents: "none",
+          background: "rgba(4,4,12,0.97)", border: "1px solid rgba(255,255,255,0.2)", borderRadius: 10,
+          padding: "10px 13px", fontFamily: SANS, backdropFilter: "blur(8px)",
+        }}>
+          <div ref={dateRef} style={{ fontFamily: MONO, fontSize: 12, color: "#94a3b8", marginBottom: 4 }} />
+          <div ref={priceRef} style={{ fontFamily: MONO, fontSize: 22, fontWeight: 700, color: "#f8fafc", lineHeight: 1.1 }} />
+          <div ref={bandRef} style={{ fontSize: 13, fontWeight: 700, marginTop: 3 }} />
+        </div>
       </div>
 
       {/* Band legend */}
