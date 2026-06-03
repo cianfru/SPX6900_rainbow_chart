@@ -142,6 +142,7 @@ export default function App() {
   const [showMilestones, setShowMilestones] = useState(true);
   const [showPine, setShowPine] = useState(false);
   const [pineCopied, setPineCopied] = useState(false);
+  const [showDry, setShowDry] = useState(false);
   const HZ = [
     { l: "5Y", y: 5 },
     { l: "10Y", y: 10 },
@@ -702,9 +703,23 @@ export default function App() {
         }}>
           Scale-In / Scale-Out Plan
         </div>
-        <div style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", marginBottom: 12 }}>
-          Example risk framework — buy more when it&apos;s historically cheap, take profit when it&apos;s hot. Not financial advice.
+        <div style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", marginBottom: 12, display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8 }}>
+          <span>Example risk framework — buy more when it&apos;s historically cheap, take profit when it&apos;s hot. Not financial advice.</span>
+          <button onClick={() => setShowDry(v => !v)} style={{
+            fontFamily: SANS, fontSize: 12, fontWeight: 600, color: "#93c5fd", cursor: "pointer",
+            background: "rgba(59,130,246,0.10)", border: "1px solid rgba(59,130,246,0.3)", borderRadius: 6, padding: "2px 9px",
+          }}>
+            {showDry ? "Hide" : "What's “dry powder”?"}
+          </button>
         </div>
+        {showDry && (
+          <div style={{
+            ...glass("59, 130, 246", 0.08), borderRadius: 10, padding: "11px 15px", marginBottom: 12,
+            fontFamily: SANS, fontSize: 13, color: "#cbd5e1", lineHeight: 1.6,
+          }}>
+            <strong style={{ color: "#f1f5f9" }}>Dry powder</strong> = the cash or stablecoins you&apos;ve set aside specifically to buy dips. So &ldquo;deploy ~25% of dry powder&rdquo; means putting a quarter of <em>that reserve</em> to work — not a quarter of everything you own.
+          </div>
+        )}
         <div style={{ ...glass("255, 255, 255", 0.04), borderRadius: 12, padding: isMobile ? "6px 8px" : "8px 12px" }}>
           {BAND_LABELS.map((_, i) => i).reverse().map((i, pos, arr) => {
             const bl = BAND_LABELS[i];
