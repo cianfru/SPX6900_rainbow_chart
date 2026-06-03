@@ -1,7 +1,7 @@
-import { useState, useMemo, useCallback, useEffect } from "react";
+import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import {
   ResponsiveContainer, ComposedChart, Area, Line, XAxis, YAxis,
-  Tooltip, CartesianGrid, ReferenceLine
+  CartesianGrid, ReferenceLine, Customized
 } from "recharts";
 import { DEFAULT_RAW, fetchLivePrices } from "./data.js";
 import {
@@ -98,51 +98,11 @@ const fD = s => new Date(s).toLocaleDateString("en-US", { month: "short", year: 
 const dateToTs = dateStr => new Date(dateStr).getTime();
 const fW = w => w ? w.dt.toLocaleDateString("en-US", { month: "short", year: "numeric" }) : ">50 yr";
 
-function Tip({ active, payload, model }) {
-  if (!active || !payload?.[0]) return null;
-  const d = payload[0].payload;
-  const day = dayN(d.date);
-  const m = model;
-  const proj = d.price == null;
-  const bi = proj ? null : bandIndex(m, d.price, day);
-  const center = Math.exp(m.predict(day));
-  const sellLine = Math.exp(m.predict(day) + m.bands[8]);
-  const fireLine = Math.exp(m.predict(day) + m.bands[0]);
-
-  return (
-    <div style={{
-      background: "rgba(4,4,12,0.97)", border: "1px solid rgba(255,255,255,0.18)",
-      borderRadius: 10, padding: "13px 16px", fontFamily: SANS, fontSize: 14,
-      color: "#cbd5e1", lineHeight: 1.6, maxWidth: 300, backdropFilter: "blur(8px)"
-    }}>
-      <div style={{ fontWeight: 600, color: "#94a3b8", fontSize: 12.5, marginBottom: 6, fontFamily: MONO }}>
-        {new Date(d.date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
-        {proj && <span style={{ color: "#64748b" }}> · projected</span>}
-      </div>
-
-      {!proj ? (
-        <div style={{ marginBottom: 8 }}>
-          <div style={{ fontFamily: MONO, fontSize: 24, fontWeight: 700, color: "#f8fafc", lineHeight: 1.1 }}>
-            {fP(d.price)}
-          </div>
-          <div style={{ fontSize: 13, marginTop: 2 }}>
-            <span style={{ color: BAND_LABELS[bi].c, fontWeight: 700 }}>● {BAND_LABELS[bi].l}</span>
-          </div>
-        </div>
-      ) : (
-        <div style={{ fontSize: 12.5, color: "#64748b", marginBottom: 8 }}>
-          No traded price here — model projection
-        </div>
-      )}
-
-      <div style={{ borderTop: "1px solid rgba(255,255,255,0.1)", paddingTop: 6, fontSize: 12.5, lineHeight: 1.7 }}>
-        <div style={{ color: "#94a3b8", fontSize: 11, letterSpacing: 0.6, marginBottom: 2 }}>MODEL BANDS</div>
-        <div style={{ color: "#dc2626" }}>Sell (p98): <span style={{ fontFamily: MONO }}>{fP(sellLine)}</span></div>
-        <div style={{ color: "#cbd5e1" }}>Center: <span style={{ fontFamily: MONO }}>{fP(center)}</span></div>
-        <div style={{ color: "#6366f1" }}>Fire sale (p2): <span style={{ fontFamily: MONO }}>{fP(fireLine)}</span></div>
-      </div>
-    </div>
-  );
+// Captures the recharts plot-area rectangle so we can map an arbitrary cursor
+// position to (date, price) for the free crosshair.
+function PlotAreaCapture({ offset, store }) {
+  if (offset) store.current = offset;
+  return null;
 }
 
 export default function App() {
@@ -165,6 +125,8 @@ export default function App() {
   const [showDonate, setShowDonate] = useState(false);
   const [copiedAddr, setCopiedAddr] = useState(null);
   const [tab, setTab] = useState("risk");
+  const plotRef = useRef(null);   // recharts plot-area rect, for the free crosshair
+  const [cursor, setCursor] = useState(null);
   const HZ = [
     { l: "5Y", y: 5 },
     { l: "10Y", y: 10 },
@@ -303,6 +265,26 @@ export default function App() {
     center: whenHitsCenter(m, t.price),
     fire: whenHitsBand(m, t.price, 0),
   })), [m, tg]);
+
+  // Free crosshair: map any cursor position in the plot to (date, price, band).
+  const handleChartMove = (state) => {
+    const off = plotRef.current;
+    if (!off || !state || state.chartX == null || state.chartY == null) return;
+    const { chartX, chartY } = state;
+    if (chartX < off.left || chartX > off.left + off.width || chartY < off.top || chartY > off.top + off.height) {
+      setCursor(null);
+      return;
+    }
+    const fx = (chartX - off.left) / off.width;
+    const ts = xDomain[0] + fx * (xDomain[1] - xDomain[0]);
+    const fy = (chartY - off.top) / off.height;
+    const price = Math.exp(Math.log(yMax) - fy * (Math.log(yMax) - Math.log(yMin)));
+    const day = dayN(new Date(ts));
+    setCursor({
+      chartX, chartY, ts, price, band: bandIndex(m, price, day),
+      plotTop: off.top, plotLeft: off.left, plotW: off.width, plotH: off.height,
+    });
+  };
 
   const pineCode = useMemo(() => generatePine(m), [m]);
   const copyPine = () => {
@@ -613,9 +595,15 @@ export default function App() {
       </div>
 
       {/* Chart */}
-      <div style={{ maxWidth: MAX_W, margin: "0 auto" }}>
+      <div style={{ maxWidth: MAX_W, margin: "0 auto", position: "relative" }}>
         <ResponsiveContainer width="100%" height={isMobile ? 440 : isTablet ? 580 : 720}>
-          <ComposedChart data={data} margin={{ top: 10, right: isMobile ? 64 : 130, bottom: 24, left: isMobile ? 0 : 12 }}>
+          <ComposedChart
+            data={data}
+            margin={{ top: 10, right: isMobile ? 64 : 130, bottom: 24, left: isMobile ? 0 : 12 }}
+            onMouseMove={handleChartMove}
+            onMouseLeave={() => setCursor(null)}
+          >
+            <Customized component={props => <PlotAreaCapture offset={props.offset} store={plotRef} />} />
             <CartesianGrid strokeDasharray="2 8" stroke="rgba(255,255,255,0.07)" vertical={false} />
             <XAxis
               dataKey="ts"
@@ -636,7 +624,6 @@ export default function App() {
               axisLine={{ stroke: "rgba(255,255,255,0.15)" }} tickLine={false} width={isMobile ? 46 : 68}
               allowDataOverflow
             />
-            <Tooltip content={<Tip model={m} />} cursor={{ stroke: "rgba(255,255,255,0.35)", strokeWidth: 1, strokeDasharray: "4 4" }} />
 
             {Array.from({ length: 9 }).map((_, i) => (
               <Area
@@ -685,6 +672,35 @@ export default function App() {
             />
           </ComposedChart>
         </ResponsiveContainer>
+
+        {/* Free crosshair overlay: date + price + band at the pointer */}
+        {cursor && (() => {
+          const off = { top: cursor.plotTop, left: cursor.plotLeft, width: cursor.plotW, height: cursor.plotH };
+          const bl = BAND_LABELS[cursor.band];
+          const flipX = cursor.chartX > off.left + off.width * 0.62;
+          const tipLeft = flipX ? cursor.chartX - 186 : cursor.chartX + 14;
+          const tipTop = Math.min(Math.max(cursor.chartY - 30, off.top), off.top + off.height - 96);
+          return (
+            <>
+              <div style={{ position: "absolute", left: cursor.chartX, top: off.top, width: 1, height: off.height, background: "rgba(255,255,255,0.4)", pointerEvents: "none" }} />
+              <div style={{ position: "absolute", left: off.left, top: cursor.chartY, width: off.width, height: 1, background: "rgba(255,255,255,0.4)", pointerEvents: "none" }} />
+              <div style={{ position: "absolute", left: cursor.chartX - 4, top: cursor.chartY - 4, width: 8, height: 8, borderRadius: "50%", background: bl.c, boxShadow: `0 0 8px ${bl.c}`, pointerEvents: "none" }} />
+              <div style={{
+                position: "absolute", left: tipLeft, top: tipTop, width: 172, pointerEvents: "none",
+                background: "rgba(4,4,12,0.97)", border: `1px solid ${bl.c}80`, borderRadius: 10,
+                padding: "10px 13px", fontFamily: SANS, backdropFilter: "blur(8px)",
+              }}>
+                <div style={{ fontFamily: MONO, fontSize: 12, color: "#94a3b8", marginBottom: 4 }}>
+                  {new Date(cursor.ts).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                </div>
+                <div style={{ fontFamily: MONO, fontSize: 22, fontWeight: 700, color: "#f8fafc", lineHeight: 1.1 }}>
+                  {fP(cursor.price)}
+                </div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: bl.c, marginTop: 3 }}>● {bl.l}</div>
+              </div>
+            </>
+          );
+        })()}
       </div>
 
       {/* Band legend */}
