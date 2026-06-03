@@ -373,10 +373,12 @@ export default function App() {
       <div style={{ maxWidth: MAX_W, margin: "0 auto 24px" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: isMobile ? 10 : 18, flexWrap: "nowrap" }}>
           <img
-            src="/spx6900_logo_mobile.png"
+            src="/spx6900.gif"
             alt="SPX6900"
             style={{
-              height: isMobile ? 48 : 88, width: "auto", flexShrink: 0, borderRadius: isMobile ? 11 : 18,
+              height: isMobile ? 44 : 84, width: "auto", flexShrink: 0,
+              filter: "invert(1)",
+              mixBlendMode: "screen",
             }}
             onError={(e) => { e.currentTarget.style.display = "none"; }}
           />
@@ -391,11 +393,14 @@ export default function App() {
             SPX6900 Rainbow Chart
           </h1>
           <img
-            src="/spx6900_logo_mobile.png"
+            src="/spx6900.gif"
             alt=""
             aria-hidden="true"
             style={{
-              height: isMobile ? 48 : 88, width: "auto", flexShrink: 0, borderRadius: isMobile ? 11 : 18,
+              height: isMobile ? 44 : 84, width: "auto", flexShrink: 0,
+              filter: "invert(1)",
+              mixBlendMode: "screen",
+              transform: "scaleX(-1)",
             }}
             onError={(e) => { e.currentTarget.style.display = "none"; }}
           />
