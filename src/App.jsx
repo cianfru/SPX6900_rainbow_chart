@@ -1,7 +1,7 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import {
   ResponsiveContainer, ComposedChart, Area, Line, XAxis, YAxis,
-  CartesianGrid, ReferenceLine, Customized
+  CartesianGrid, ReferenceLine
 } from "recharts";
 import { DEFAULT_RAW, fetchLivePrices } from "./data.js";
 import {
@@ -98,12 +98,6 @@ const fD = s => new Date(s).toLocaleDateString("en-US", { month: "short", year: 
 const dateToTs = dateStr => new Date(dateStr).getTime();
 const fW = w => w ? w.dt.toLocaleDateString("en-US", { month: "short", year: "numeric" }) : ">50 yr";
 
-// Captures the recharts plot-area rectangle so we can map an arbitrary cursor
-// position to (date, price) for the free crosshair.
-function PlotAreaCapture({ offset, store }) {
-  if (offset) store.current = offset;
-  return null;
-}
 
 export default function App() {
   // `priceData` is bundled history + any new live points beyond the last bundled date.
@@ -125,7 +119,7 @@ export default function App() {
   const [showDonate, setShowDonate] = useState(false);
   const [copiedAddr, setCopiedAddr] = useState(null);
   const [tab, setTab] = useState("risk");
-  const plotRef = useRef(null);   // recharts plot-area rect, for the free crosshair
+  const chartBoxRef = useRef(null);   // wrapper div, for measuring the plot area
   const [cursor, setCursor] = useState(null);
   const HZ = [
     { l: "5Y", y: 5 },
@@ -267,22 +261,28 @@ export default function App() {
   })), [m, tg]);
 
   // Free crosshair: map any cursor position in the plot to (date, price, band).
-  const handleChartMove = (state) => {
-    const off = plotRef.current;
-    if (!off || !state || state.chartX == null || state.chartY == null) return;
-    const { chartX, chartY } = state;
-    if (chartX < off.left || chartX > off.left + off.width || chartY < off.top || chartY > off.top + off.height) {
+  // Measures the grid's background rect from the DOM (version-agnostic).
+  const handleChartMove = (e) => {
+    const box = chartBoxRef.current;
+    if (!box) return;
+    const bg = box.querySelector(".recharts-cartesian-grid-bg") || box.querySelector(".recharts-cartesian-grid");
+    if (!bg) return;
+    const cr = box.getBoundingClientRect();
+    const gr = bg.getBoundingClientRect();
+    const left = gr.left - cr.left, top = gr.top - cr.top, width = gr.width, height = gr.height;
+    const x = e.clientX - cr.left, y = e.clientY - cr.top;
+    if (width <= 0 || height <= 0 || x < left || x > left + width || y < top || y > top + height) {
       setCursor(null);
       return;
     }
-    const fx = (chartX - off.left) / off.width;
+    const fx = (x - left) / width;
     const ts = xDomain[0] + fx * (xDomain[1] - xDomain[0]);
-    const fy = (chartY - off.top) / off.height;
+    const fy = (y - top) / height;
     const price = Math.exp(Math.log(yMax) - fy * (Math.log(yMax) - Math.log(yMin)));
     const day = dayN(new Date(ts));
     setCursor({
-      chartX, chartY, ts, price, band: bandIndex(m, price, day),
-      plotTop: off.top, plotLeft: off.left, plotW: off.width, plotH: off.height,
+      chartX: x, chartY: y, ts, price, band: bandIndex(m, price, day),
+      plotTop: top, plotLeft: left, plotW: width, plotH: height,
     });
   };
 
@@ -595,16 +595,15 @@ export default function App() {
       </div>
 
       {/* Chart */}
-      <div style={{ maxWidth: MAX_W, margin: "0 auto", position: "relative" }}>
+      <div
+        ref={chartBoxRef}
+        onMouseMove={handleChartMove}
+        onMouseLeave={() => setCursor(null)}
+        style={{ maxWidth: MAX_W, margin: "0 auto", position: "relative" }}
+      >
         <ResponsiveContainer width="100%" height={isMobile ? 440 : isTablet ? 580 : 720}>
-          <ComposedChart
-            data={data}
-            margin={{ top: 10, right: isMobile ? 64 : 130, bottom: 24, left: isMobile ? 0 : 12 }}
-            onMouseMove={handleChartMove}
-            onMouseLeave={() => setCursor(null)}
-          >
-            <Customized component={props => <PlotAreaCapture offset={props.offset} store={plotRef} />} />
-            <CartesianGrid strokeDasharray="2 8" stroke="rgba(255,255,255,0.07)" vertical={false} />
+          <ComposedChart data={data} margin={{ top: 10, right: isMobile ? 64 : 130, bottom: 24, left: isMobile ? 0 : 12 }}>
+            <CartesianGrid strokeDasharray="2 8" stroke="rgba(255,255,255,0.07)" vertical={false} fill="transparent" />
             <XAxis
               dataKey="ts"
               type="number"
