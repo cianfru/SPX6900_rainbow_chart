@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import {
-  ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid,
+  ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, ReferenceDot,
 } from "recharts";
 import { buildDrawdownCycles } from "./models.js";
 
@@ -38,7 +38,7 @@ function Readout({ label, value, color }) {
 }
 
 export default function DrawdownChart({ series, isMobile }) {
-  const cycles = useMemo(() => buildDrawdownCycles(series, 0.4), [series]);
+  const cycles = useMemo(() => buildDrawdownCycles(series, { minDepth: 0.4, minPeakPrice: 0.05 }), [series]);
 
   const { rows, maxDay, minPct } = useMemo(() => {
     const dayset = new Set();
@@ -69,15 +69,18 @@ export default function DrawdownChart({ series, isMobile }) {
   };
 
   const ongoing = cycles.find(c => c.ongoing);
+  const currentDD = useMemo(() => {
+    if (!series.length) return 0;
+    const ath = series.reduce((m, s) => Math.max(m, s.price), 0);
+    return series[series.length - 1].price / ath - 1;
+  }, [series]);
 
   return (
     <div style={{ maxWidth: MAX_W, margin: "0 auto" }}>
-      {ongoing && (
-        <div style={{ display: "flex", gap: isMobile ? 28 : 56, justifyContent: "center", marginBottom: 16, flexWrap: "wrap" }}>
-          <Readout label="CURRENT DRAWDOWN" value={(ongoing.minDD * 100).toFixed(0) + "%"} color="#f87171" />
-          <Readout label="DAYS SINCE ATH" value={ongoing.points[ongoing.points.length - 1].day + "d"} color="#fbbf24" />
-        </div>
-      )}
+      <div style={{ display: "flex", gap: isMobile ? 28 : 56, justifyContent: "center", marginBottom: 16, flexWrap: "wrap" }}>
+        <Readout label="CURRENT DRAWDOWN" value={(currentDD * 100).toFixed(0) + "%"} color="#f87171" />
+        {ongoing && <Readout label="DEEPEST THIS CYCLE" value={(ongoing.minDD * 100).toFixed(0) + "%"} color="#fbbf24" />}
+      </div>
 
       <ResponsiveContainer width="100%" height={isMobile ? 380 : 540}>
         <LineChart data={rows} margin={{ top: 10, right: isMobile ? 14 : 30, bottom: 28, left: isMobile ? 0 : 12 }}>
@@ -99,10 +102,19 @@ export default function DrawdownChart({ series, isMobile }) {
           {cycles.map((c, i) => (
             <Line
               key={i} dataKey={"e" + i} name={fMon(c.startDate) + (c.ongoing ? " (now)" : "")}
-              stroke={colorFor(i)} strokeWidth={c.ongoing ? 3 : 1.8}
+              type="monotone" stroke={colorFor(i)} strokeWidth={c.ongoing ? 3 : 2}
               dot={false} connectNulls isAnimationActive={false}
             />
           ))}
+          {cycles.map((c, i) => {
+            const t = c.points[c.points.length - 1];
+            return (
+              <ReferenceDot
+                key={"dot" + i} x={t.day} y={t.dd * 100} r={4}
+                fill={colorFor(i)} stroke="#020208" strokeWidth={1.5} ifOverflow="extendDomain"
+              />
+            );
+          })}
         </LineChart>
       </ResponsiveContainer>
 
@@ -110,7 +122,7 @@ export default function DrawdownChart({ series, isMobile }) {
         {cycles.map((c, i) => (
           <div key={i} style={{ display: "flex", alignItems: "center", gap: 7, fontFamily: SANS, fontSize: 12.5, color: c.ongoing ? "#f1f5f9" : "#cbd5e1", fontWeight: c.ongoing ? 700 : 500 }}>
             <span style={{ width: 15, height: 3, background: colorFor(i), borderRadius: 2, display: "inline-block" }} />
-            {fMon(c.startDate)} ATH{c.ongoing ? " · now" : ""} · {(c.minDD * 100).toFixed(0)}%
+            {fMon(c.startDate)} → low {fMon(c.lowDate)} · {(c.minDD * 100).toFixed(0)}%{c.ongoing ? " (ongoing)" : ""}
           </div>
         ))}
       </div>

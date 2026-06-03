@@ -126,17 +126,32 @@ export function buildDrawdownSeries(series) {
 }
 
 // Drawdown cycles: each time price makes an all-time high and then declines,
-// capture the trajectory (days since that peak → % below it). Overlaying these
-// shows whether later cycles are longer/shallower as the asset matures.
-export function buildDrawdownCycles(series, minDepth = 0.3) {
+// capture the decline from that peak DOWN TO ITS LOWEST POINT (we stop at the
+// trough — once no new low is made, the drawdown is over). Overlaying these
+// shows whether later cycles get longer/shallower as the asset matures.
+// `minPeakPrice` skips the immature, low-liquidity early ATHs.
+export function buildDrawdownCycles(series, { minDepth = 0.3, minPeakPrice = 0 } = {}) {
   if (series.length === 0) return [];
   const dayOf = d => new Date(d).getTime() / 86400000;
   let peak = -Infinity, peakDay = 0, peakDate = series[0].date;
   let cur = null;
   const out = [];
   const close = ongoing => {
-    if (cur && (ongoing || cur.minDD <= -minDepth)) {
-      out.push({ startDate: cur.startDate, points: cur.points, minDD: cur.minDD, ongoing: !!ongoing });
+    if (cur && cur.peakPrice >= minPeakPrice && (ongoing || cur.minDD <= -minDepth)) {
+      // truncate at the trough (deepest point) — peak → bottom only
+      let ti = 0;
+      for (let i = 1; i < cur.points.length; i++) {
+        if (cur.points[i].dd < cur.points[ti].dd) ti = i;
+      }
+      const trunc = cur.points.slice(0, ti + 1);
+      out.push({
+        startDate: cur.startDate,
+        peakPrice: cur.peakPrice,
+        lowDate: cur.points[ti].date,
+        minDD: cur.points[ti].dd,
+        points: trunc,
+        ongoing: !!ongoing,
+      });
     }
     cur = null;
   };
@@ -145,9 +160,9 @@ export function buildDrawdownCycles(series, minDepth = 0.3) {
       close(false);
       peak = r.price; peakDate = r.date; peakDay = dayOf(r.date);
     } else {
-      if (!cur) cur = { startDate: peakDate, points: [{ day: 0, dd: 0 }], minDD: 0 };
+      if (!cur) cur = { startDate: peakDate, peakPrice: peak, points: [{ day: 0, dd: 0, date: peakDate }], minDD: 0 };
       const dd = r.price / peak - 1;
-      cur.points.push({ day: Math.round(dayOf(r.date) - peakDay), dd });
+      cur.points.push({ day: Math.round(dayOf(r.date) - peakDay), dd, date: r.date });
       if (dd < cur.minDD) cur.minDD = dd;
     }
   }

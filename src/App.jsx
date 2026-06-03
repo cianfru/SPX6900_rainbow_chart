@@ -146,7 +146,8 @@ export default function App() {
   const [showPine, setShowPine] = useState(false);
   const [pineCopied, setPineCopied] = useState(false);
   const [showDry, setShowDry] = useState(false);
-  const [tab, setTab] = useState("rainbow");
+  const [showAbout, setShowAbout] = useState(false);
+  const [tab, setTab] = useState("risk");
   const HZ = [
     { l: "5Y", y: 5 },
     { l: "10Y", y: 10 },
@@ -409,14 +410,26 @@ export default function App() {
         </div>
       </div>
 
-      {/* About panel — always visible */}
+      {/* About (collapsible) */}
       <div style={{
-        maxWidth: MAX_W, margin: "0 auto 20px", padding: isMobile ? "16px 16px" : "20px 26px",
+        maxWidth: MAX_W, margin: "0 auto 20px",
         ...glass("99, 102, 241", 0.08),
-        borderRadius: 10, fontFamily: SANS, fontSize: isMobile ? 14 : 15,
-        color: "#cbd5e1", lineHeight: 1.7,
+        borderRadius: 10, overflow: "hidden",
       }}>
-        <div style={{ fontWeight: 700, color: "#c4b5fd", marginBottom: 10, fontSize: isMobile ? 16 : 18 }}>About This Chart</div>
+        <button onClick={() => setShowAbout(v => !v)} style={{
+          width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between",
+          padding: isMobile ? "13px 16px" : "15px 22px", cursor: "pointer",
+          background: "transparent", border: "none",
+          fontFamily: SANS, fontSize: isMobile ? 15 : 17, fontWeight: 700, color: "#c4b5fd",
+        }}>
+          <span>About this chart</span>
+          <span style={{ color: "#94a3b8", transition: "transform 0.2s", transform: showAbout ? "rotate(180deg)" : "none" }}>▾</span>
+        </button>
+        {showAbout && (
+          <div style={{
+            padding: isMobile ? "0 16px 16px" : "0 22px 20px",
+            fontFamily: SANS, fontSize: isMobile ? 14 : 15, color: "#cbd5e1", lineHeight: 1.7,
+          }}>
         <p style={{ marginBottom: 12 }}>
           The <strong style={{ color: "#f1f5f9" }}>SPX6900 Rainbow Chart</strong> is a fun, long-term way to
           visualize where the price of SPX6900 sits relative to its historical trend. It plots the price on a{" "}
@@ -458,6 +471,8 @@ export default function App() {
           Data: bundled historical baseline (Aug 2023 launch onward) merged with live updates from{" "}
           <strong>GeckoTerminal</strong> (Uniswap pool), falling back to Coinbase/Bybit. Supply: ~939M.
         </p>
+          </div>
+        )}
       </div>
 
       {/* Current verdict banner */}
@@ -525,28 +540,7 @@ export default function App() {
         </div>
       </div>
 
-      {/* Chart tabs */}
-      <div style={{ maxWidth: MAX_W, margin: "0 auto 18px", display: "flex", justifyContent: "center", gap: 8, flexWrap: "wrap" }}>
-        {[
-          ["rainbow", "Rainbow"],
-          ["risk", "Risk Metric"],
-          ["drawdown", "Drawdown"],
-          ["spxbtc", "SPX/BTC"],
-          ["holders", "Holders"],
-        ].map(([id, label]) => (
-          <button key={id} onClick={() => setTab(id)} style={{
-            fontFamily: SANS, fontSize: 14, fontWeight: 600, padding: "9px 18px", borderRadius: 9, cursor: "pointer",
-            color: tab === id ? "#f1f5f9" : "#94a3b8",
-            ...(tab === id
-              ? glass("99, 102, 241", 0.14)
-              : { background: "transparent", border: "1px solid rgba(255,255,255,0.10)" }),
-          }}>
-            {label}
-          </button>
-        ))}
-      </div>
-
-      {tab === "rainbow" && (<>
+      {/* Rainbow chart — the hero, always visible */}
       {/* Controls */}
       <div style={{ maxWidth: MAX_W, margin: "0 auto 14px", display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
         <div style={{
@@ -804,12 +798,38 @@ export default function App() {
           <br /><span style={{ color: "#64748b" }}>{m.note}</span>
         </div>
       </div>
-      </>)}
 
-      {tab === "risk" && <RiskChart series={priceData} m={m} isMobile={isMobile} />}
-      {tab === "drawdown" && <DrawdownChart series={priceData} isMobile={isMobile} />}
-      {tab === "spxbtc" && <SpxBtcChart series={priceData} isMobile={isMobile} />}
-      {tab === "holders" && <HolderscanDashboard />}
+      {/* More charts (tabbed) */}
+      <div style={{ maxWidth: MAX_W, margin: "48px auto 0" }}>
+        <div style={{
+          fontFamily: SANS, fontSize: 14, fontWeight: 700, color: "#cbd5e1", marginBottom: 14,
+          letterSpacing: 1.2, textTransform: "uppercase", textAlign: "center",
+        }}>
+          More Charts
+        </div>
+        <div style={{ display: "flex", justifyContent: "center", gap: 8, flexWrap: "wrap", marginBottom: 20 }}>
+          {[
+            ["risk", "Risk Metric"],
+            ["drawdown", "Drawdown"],
+            ["spxbtc", "SPX/BTC"],
+            ["holders", "Holders"],
+          ].map(([id, label]) => (
+            <button key={id} onClick={() => setTab(id)} style={{
+              fontFamily: SANS, fontSize: 14, fontWeight: 600, padding: "9px 18px", borderRadius: 9, cursor: "pointer",
+              color: tab === id ? "#f1f5f9" : "#94a3b8",
+              ...(tab === id
+                ? glass("99, 102, 241", 0.14)
+                : { background: "transparent", border: "1px solid rgba(255,255,255,0.10)" }),
+            }}>
+              {label}
+            </button>
+          ))}
+        </div>
+        {tab === "risk" && <RiskChart series={priceData} m={m} isMobile={isMobile} />}
+        {tab === "drawdown" && <DrawdownChart series={priceData} isMobile={isMobile} />}
+        {tab === "spxbtc" && <SpxBtcChart series={priceData} isMobile={isMobile} />}
+        {tab === "holders" && <HolderscanDashboard />}
+      </div>
 
       <div style={{
         maxWidth: MAX_W, margin: "16px auto 0", fontFamily: SANS, fontSize: 12,
