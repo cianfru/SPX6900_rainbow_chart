@@ -23,7 +23,8 @@ indicator("SPX6900 Rainbow Valuation Bands", overlay = true)
 
 // ════════════════════════════════════════════════════════════════
 //  SPX6900 Rainbow Chart — offset power-law valuation bands
-//  Generated from the live model fit at the SPX6900 Rainbow Chart site.
+//  Generated from the live model fit. More info & live chart:
+//  https://spx6900rainbow.xyz
 //
 //  TIP: set your chart's price scale to LOGARITHMIC so the bands
 //       fan out into the classic rainbow shape.
