@@ -101,6 +101,20 @@ const dateToTs = dateStr => new Date(dateStr).getTime();
 const fW = w => w ? w.dt.toLocaleDateString("en-US", { month: "short", year: "numeric" }) : ">50 yr";
 
 
+// Line icons (Lucide-style) for the chart tabs; inherit the pill's color via currentColor.
+function TabIcon({ name }) {
+  const p = { width: 15, height: 15, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 2, strokeLinecap: "round", strokeLinejoin: "round", style: { flexShrink: 0 } };
+  switch (name) {
+    case "risk": return (<svg {...p}><path d="M22 12h-4l-3 9L9 3l-3 9H2" /></svg>);
+    case "drawdown": return (<svg {...p}><polyline points="22 17 13.5 8.5 8.5 13.5 2 7" /><polyline points="16 17 22 17 22 11" /></svg>);
+    case "spxbtc": return (<svg {...p}><path d="M8 3 4 7l4 4" /><path d="M4 7h16" /><path d="M16 21l4-4-4-4" /><path d="M20 17H4" /></svg>);
+    case "relative": return (<svg {...p}><path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z" /><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z" /><path d="M7 21h10" /><path d="M12 3v18" /><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2" /></svg>);
+    case "supply": return (<svg {...p}><path d="M6 3h12l4 6-10 13L2 9Z" /><path d="M11 3 8 9l4 13 4-13-3-6" /><path d="M2 9h20" /></svg>);
+    case "holders": return (<svg {...p}><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>);
+    default: return null;
+  }
+}
+
 export default function App() {
   // `priceData` is bundled history + any new live points beyond the last bundled date.
   // The MODEL FIT is always computed from DEFAULT_RAW (bundled) only, so the
@@ -870,13 +884,13 @@ export default function App() {
             scrollbarWidth: "none",
           }}>
             {[
-              ["risk", "🌡️", "Risk Metric"],
-              ["drawdown", "📉", "Drawdown"],
-              ["spxbtc", "₿", "SPX/BTC"],
-              ["relative", "⚖️", "Relative Value"],
-              ["supply", "💎", "Supply"],
-              ["holders", "👥", "Holders"],
-            ].map(([id, icon, label]) => (
+              ["risk", "Risk Metric"],
+              ["drawdown", "Drawdown"],
+              ["spxbtc", "SPX/BTC"],
+              ["relative", "Relative Value"],
+              ["supply", "Supply"],
+              ["holders", "Holders"],
+            ].map(([id, label]) => (
               <button key={id} onClick={() => setTab(id)}
                 className={`neon-pill${tab === id ? " active" : ""}`}
                 style={{
@@ -884,7 +898,7 @@ export default function App() {
                   fontFamily: SANS, fontSize: 14, fontWeight: 600, padding: "9px 16px", borderRadius: 9,
                   color: tab === id ? "#f8fafc" : "#94a3b8", "--glow": "#6366f1",
                 }}>
-                <span style={{ fontSize: 15 }} aria-hidden="true">{icon}</span>
+                <TabIcon name={id} />
                 {label}
               </button>
             ))}
