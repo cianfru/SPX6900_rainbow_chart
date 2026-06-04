@@ -23,6 +23,10 @@ export async function fetchTokenPnl() {
   return get("/stats/pnl");
 }
 
+export async function fetchSupplyBreakdown() {
+  return get("/stats/supply-breakdown");
+}
+
 export async function fetchTopHolders() {
   const data = await get("/holders?limit=10");
   return data.holders || [];

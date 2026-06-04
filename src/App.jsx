@@ -14,6 +14,7 @@ import RiskChart from "./RiskChart.jsx";
 import DrawdownChart from "./DrawdownChart.jsx";
 import SpxBtcChart from "./SpxBtcChart.jsx";
 import RelativeChart from "./RelativeChart.jsx";
+import SupplyConviction from "./SupplyConviction.jsx";
 import { generatePine } from "./pine.js";
 
 const SANS = "'Space Grotesk', system-ui, sans-serif";
@@ -861,6 +862,7 @@ export default function App() {
             ["drawdown", "Drawdown"],
             ["spxbtc", "SPX/BTC"],
             ["relative", "Relative Value"],
+            ["supply", "Supply"],
             ["holders", "Holders"],
           ].map(([id, label]) => (
             <button key={id} onClick={() => setTab(id)}
@@ -877,6 +879,7 @@ export default function App() {
         {tab === "drawdown" && <DrawdownChart series={priceData} isMobile={isMobile} />}
         {tab === "spxbtc" && <SpxBtcChart series={priceData} isMobile={isMobile} />}
         {tab === "relative" && <RelativeChart series={priceData} isMobile={isMobile} />}
+        {tab === "supply" && <SupplyConviction price={last.price} isMobile={isMobile} />}
         {tab === "holders" && <HolderscanDashboard />}
       </div>
 
