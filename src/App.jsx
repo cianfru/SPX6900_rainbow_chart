@@ -71,8 +71,6 @@ const fT = v => {
 
 // Socials & donations
 const X_URL = "https://x.com/cianfru";
-const DONATE_EVM = "0x3B7f6a10846fFB8F38bFbFB063d75Bd4E69a39A4";
-const DONATE_SOL = "AJd6ZpGnwS3KTfxntAgpLgkWRJUXYZTLyioqh9JWSXzM";
 
 // Example DCA / risk framework, keyed to band index (0 = Fire Sale … 8 = Max Bubble).
 const SCALE_PLAN = [
@@ -144,8 +142,6 @@ export default function App() {
   const [pineCopied, setPineCopied] = useState(false);
   const [showDry, setShowDry] = useState(false);
   const [showAbout, setShowAbout] = useState(false);
-  const [showDonate, setShowDonate] = useState(false);
-  const [copiedAddr, setCopiedAddr] = useState(null);
   const [tab, setTab] = useState("risk");
   const [view, setView] = useState("rainbow"); // which nav item is highlighted
   const [relWhich, setRelWhich] = useState("BTC"); // Relative chart asset (driven by nav dropdown)
@@ -361,12 +357,6 @@ export default function App() {
       setTimeout(() => setPineCopied(false), 1800);
     });
   };
-  const copyAddr = (text, key) => {
-    navigator.clipboard?.writeText(text).then(() => {
-      setCopiedAddr(key);
-      setTimeout(() => setCopiedAddr(null), 1800);
-    });
-  };
   const downloadPine = () => {
     const blob = new Blob([pineCode], { type: "text/plain" });
     const url = URL.createObjectURL(blob);
@@ -395,9 +385,6 @@ export default function App() {
     <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
       <button className="pill" onClick={() => setShowPine(true)} title="TradingView indicator" style={navIcon("59, 130, 246", "rgba(59,130,246,0.6)")}>
         <img src="/tradingview-logo.png" alt="" style={{ height: 18, width: 18, borderRadius: "50%", display: "block" }} />
-      </button>
-      <button className="pill" onClick={() => setShowDonate(true)} title="Donate" style={navIcon("34, 197, 94", "rgba(34,197,94,0.6)", "#4ade80")}>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 21s-6.716-4.35-9.333-8.07C.9 10.3 1.6 6.9 4.3 5.6c1.9-.9 4 .2 4.9 1.7l.8 1.3.8-1.3c.9-1.5 3-2.6 4.9-1.7 2.7 1.3 3.4 4.7 1.633 7.33C18.716 16.65 12 21 12 21Z" /></svg>
       </button>
       <a className="pill" href={X_URL} target="_blank" rel="noopener noreferrer" title="@cianfru" style={navIcon("255, 255, 255", "rgba(226,232,240,0.5)")}>
         <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24h-6.66l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" /></svg>
@@ -989,60 +976,6 @@ export default function App() {
         Single-cycle fit on a memecoin. Not financial advice. Supply ~939M.
       </div>
       </div>{/* end content */}
-
-      {/* Donate modal */}
-      {showDonate && (
-        <div
-          onClick={() => setShowDonate(false)}
-          style={{
-            position: "fixed", inset: 0, zIndex: 100, padding: isMobile ? 12 : 24,
-            background: "rgba(2,2,8,0.72)", backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-          }}
-        >
-          <div onClick={e => e.stopPropagation()} style={{
-            width: "100%", maxWidth: 520, maxHeight: "90vh", overflowY: "auto",
-            borderRadius: 14, ...glass("20, 24, 40", 0.55, 20),
-          }}>
-            <div style={{
-              display: "flex", alignItems: "center", justifyContent: "space-between",
-              padding: "16px 20px", borderBottom: "1px solid rgba(255,255,255,0.1)",
-            }}>
-              <div style={{ fontFamily: SANS, fontSize: 17, fontWeight: 700, color: "#f1f5f9" }}>Support the project ♥</div>
-              <button onClick={() => setShowDonate(false)} style={{
-                fontFamily: SANS, fontSize: 20, lineHeight: 1, color: "#94a3b8", cursor: "pointer",
-                background: "transparent", border: "none", padding: 6,
-              }}>×</button>
-            </div>
-            <div style={{ padding: "16px 20px" }}>
-              <div style={{ fontFamily: SANS, fontSize: 13.5, color: "#94a3b8", marginBottom: 16, lineHeight: 1.6 }}>
-                If this chart is useful to you, a tip keeps it running and ad-free. Thank you!
-              </div>
-              {[
-                ["EVM (Ethereum · Base · Arbitrum…)", DONATE_EVM, "evm"],
-                ["Solana", DONATE_SOL, "sol"],
-              ].map(([label, addr, key]) => (
-                <div key={key} style={{ marginBottom: 14 }}>
-                  <div style={{ fontFamily: MONO, fontSize: 11.5, color: "#94a3b8", letterSpacing: 0.8, marginBottom: 6, textTransform: "uppercase" }}>{label}</div>
-                  <div style={{ display: "flex", gap: 8, alignItems: "stretch" }}>
-                    <code style={{
-                      flex: 1, minWidth: 0, fontFamily: MONO, fontSize: 12.5, color: "#e2e8f0",
-                      background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.12)",
-                      borderRadius: 8, padding: "10px 12px", wordBreak: "break-all", lineHeight: 1.5,
-                    }}>{addr}</code>
-                    <button onClick={() => copyAddr(addr, key)} style={{
-                      flexShrink: 0, fontFamily: SANS, fontSize: 13, fontWeight: 600, padding: "0 14px", borderRadius: 8, cursor: "pointer",
-                      color: copiedAddr === key ? "#4ade80" : "#e2e8f0", ...glass("34, 197, 94", 0.12),
-                    }}>
-                      {copiedAddr === key ? "✓" : "Copy"}
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* TradingView / Pine Script modal */}
       {showPine && (
