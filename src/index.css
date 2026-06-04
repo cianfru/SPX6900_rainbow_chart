@@ -80,6 +80,8 @@ body { margin: 0; overflow-x: hidden; }
   transform: translateY(0);
 }
 
+.no-scrollbar::-webkit-scrollbar { display: none; }
+
 @keyframes verdict-pulse {
   0%, 100% { transform: scale(1); opacity: 1; }
   50% { transform: scale(1.25); opacity: 0.65; }

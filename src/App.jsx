@@ -856,24 +856,39 @@ export default function App() {
         }}>
           More Charts
         </div>
-        <div style={{ display: "flex", justifyContent: "center", gap: 8, flexWrap: "wrap", marginBottom: 20 }}>
-          {[
-            ["risk", "Risk Metric"],
-            ["drawdown", "Drawdown"],
-            ["spxbtc", "SPX/BTC"],
-            ["relative", "Relative Value"],
-            ["supply", "Supply"],
-            ["holders", "Holders"],
-          ].map(([id, label]) => (
-            <button key={id} onClick={() => setTab(id)}
-              className={`neon-pill${tab === id ? " active" : ""}`}
-              style={{
-                fontFamily: SANS, fontSize: 14, fontWeight: 600, padding: "9px 18px", borderRadius: 9,
-                color: tab === id ? "#f8fafc" : "#94a3b8", "--glow": "#6366f1",
-              }}>
-              {label}
-            </button>
-          ))}
+        <div style={{
+          position: "sticky", top: 8, zIndex: 20, margin: "0 auto 20px",
+          borderRadius: 12, padding: isMobile ? "7px 8px" : "8px",
+          ...glass("12, 14, 28", 0.7, 12),
+        }}>
+          <div className="no-scrollbar" style={{
+            display: "flex", gap: 8,
+            justifyContent: isMobile ? "flex-start" : "center",
+            flexWrap: isMobile ? "nowrap" : "wrap",
+            overflowX: isMobile ? "auto" : "visible",
+            WebkitOverflowScrolling: "touch",
+            scrollbarWidth: "none",
+          }}>
+            {[
+              ["risk", "🌡️", "Risk Metric"],
+              ["drawdown", "📉", "Drawdown"],
+              ["spxbtc", "₿", "SPX/BTC"],
+              ["relative", "⚖️", "Relative Value"],
+              ["supply", "💎", "Supply"],
+              ["holders", "👥", "Holders"],
+            ].map(([id, icon, label]) => (
+              <button key={id} onClick={() => setTab(id)}
+                className={`neon-pill${tab === id ? " active" : ""}`}
+                style={{
+                  display: "inline-flex", alignItems: "center", gap: 7, whiteSpace: "nowrap", flexShrink: 0,
+                  fontFamily: SANS, fontSize: 14, fontWeight: 600, padding: "9px 16px", borderRadius: 9,
+                  color: tab === id ? "#f8fafc" : "#94a3b8", "--glow": "#6366f1",
+                }}>
+                <span style={{ fontSize: 15 }} aria-hidden="true">{icon}</span>
+                {label}
+              </button>
+            ))}
+          </div>
         </div>
         {tab === "risk" && <RiskChart series={priceData} m={m} isMobile={isMobile} />}
         {tab === "drawdown" && <DrawdownChart series={priceData} isMobile={isMobile} />}
