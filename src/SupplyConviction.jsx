@@ -21,7 +21,6 @@ const fNum = n => {
   return n.toFixed(0);
 };
 
-// holding-duration tiers, longest-held first
 const CATS = [
   { key: "diamond", label: "Diamond", c: "#22d3ee", note: "longest held" },
   { key: "gold", label: "Gold", c: "#f59e0b", note: "" },
@@ -30,7 +29,6 @@ const CATS = [
   { key: "wood", label: "Wood", c: "#7c5e48", note: "newest" },
 ];
 
-// Pull a numeric value for a category from a loosely-shaped response.
 function pick(obj, key) {
   if (!obj || typeof obj !== "object") return null;
   for (const k of Object.keys(obj)) {
@@ -40,6 +38,21 @@ function pick(obj, key) {
       const n = typeof v === "number" ? v : parseFloat(v);
       return isFinite(n) ? n : null;
     }
+  }
+  return null;
+}
+
+function extract(data) {
+  const candidates = [data, data?.supply_breakdown, data?.breakdown, data?.data, data?.categories];
+  for (const src of candidates) {
+    const out = {};
+    let found = 0;
+    for (const { key } of CATS) {
+      const v = pick(src, key);
+      out[key] = v;
+      if (v != null) found++;
+    }
+    if (found >= 3) return out;
   }
   return null;
 }
@@ -54,20 +67,45 @@ function Readout({ label, value, color, sub, isMobile }) {
   );
 }
 
-function extract(data) {
-  // categories may live at the top level or nested under a wrapper
-  const candidates = [data, data?.supply_breakdown, data?.breakdown, data?.data, data?.categories];
-  for (const src of candidates) {
-    const out = {};
-    let found = 0;
-    for (const { key } of CATS) {
-      const v = pick(src, key);
-      out[key] = v;
-      if (v != null) found++;
-    }
-    if (found >= 3) return out;
+// CSS conic-gradient donut with a transparent hole + centered label.
+function Donut({ segments, size, centerTop, centerBottom }) {
+  let acc = 0;
+  const parts = [];
+  for (let i = 0; i < segments.length; i++) {
+    const from = acc;
+    acc += segments[i].pct;
+    parts.push(`${segments[i].c} ${from}% ${acc}%`);
   }
-  return null;
+  const stops = parts.join(", ");
+  return (
+    <div style={{ position: "relative", width: size, height: size, flexShrink: 0 }}>
+      <div style={{
+        width: size, height: size, borderRadius: "50%",
+        background: `conic-gradient(${stops})`,
+        WebkitMask: "radial-gradient(circle, transparent 56%, #000 57%)",
+        mask: "radial-gradient(circle, transparent 56%, #000 57%)",
+      }} />
+      <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+        <div style={{ fontFamily: MONO, fontSize: size * 0.18, fontWeight: 700, color: "#22d3ee", lineHeight: 1 }}>{centerTop}</div>
+        <div style={{ fontFamily: SANS, fontSize: size * 0.07, color: "#94a3b8", marginTop: 4 }}>{centerBottom}</div>
+      </div>
+    </div>
+  );
+}
+
+function McBar({ label, value, max, color }) {
+  const w = max > 0 ? Math.max(2, (value / max) * 100) : 0;
+  return (
+    <div style={{ marginBottom: 12 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", fontFamily: SANS, fontSize: 13, marginBottom: 4 }}>
+        <span style={{ color: "#cbd5e1" }}>{label}</span>
+        <span style={{ fontFamily: MONO, color: "#f1f5f9", fontWeight: 700 }}>{fUsd(value)}</span>
+      </div>
+      <div style={{ height: 12, background: "rgba(255,255,255,0.06)", borderRadius: 6, overflow: "hidden" }}>
+        <div style={{ height: "100%", width: `${w}%`, background: color, borderRadius: 6, boxShadow: `0 0 12px ${color}66` }} />
+      </div>
+    </div>
+  );
 }
 
 export default function SupplyConviction({ price, isMobile }) {
@@ -89,10 +127,7 @@ export default function SupplyConviction({ price, isMobile }) {
     if (total <= 0) return null;
     const share = {};
     CATS.forEach(({ key }) => { share[key] = (vals[key] || 0) / total; });
-    const diamondShare = share.diamond;
-    const longTermShare = share.diamond + share.gold; // held a long time
-    const effFloatFrac = 1 - diamondShare;            // treat diamonds as removed
-    return { vals, total, share, diamondShare, longTermShare, effFloatFrac };
+    return { share, diamondShare: share.diamond, longTermShare: share.diamond + share.gold, effFloatFrac: 1 - share.diamond };
   }, [raw]);
 
   if (status === "loading") return <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 40 }}>Loading supply data…</div>;
@@ -109,41 +144,44 @@ export default function SupplyConviction({ price, isMobile }) {
   const effFloatTokens = SUPPLY * effFloatFrac;
   const effMc = price * effFloatTokens;
   const nominalMc = price * SUPPLY;
+  const segments = CATS.map(({ key, c }) => ({ c, pct: share[key] * 100 })).filter(s => s.pct > 0);
 
   return (
     <div style={{ maxWidth: MAX_W, margin: "0 auto" }}>
-      <div style={{ display: "flex", gap: isMobile ? 20 : 48, justifyContent: "center", flexWrap: "wrap", marginBottom: 22 }}>
+      <div style={{ display: "flex", gap: isMobile ? 20 : 48, justifyContent: "center", flexWrap: "wrap", marginBottom: 24 }}>
         <Readout label="DIAMOND SUPPLY" value={(diamondShare * 100).toFixed(1) + "%"} color="#22d3ee" sub="removed from float" isMobile={isMobile} />
         <Readout label="EFFECTIVE FLOAT" value={fNum(effFloatTokens)} color="#cbd5e1" sub={(effFloatFrac * 100).toFixed(0) + "% of supply"} isMobile={isMobile} />
         <Readout label="EFFECTIVE MARKET CAP" value={fUsd(effMc)} color="#4ade80" sub={`vs ${fUsd(nominalMc)} nominal`} isMobile={isMobile} />
       </div>
 
-      {/* Composition bar */}
-      <div style={{ maxWidth: 900, margin: "0 auto" }}>
-        <div style={{ display: "flex", height: 34, borderRadius: 9, overflow: "hidden", border: "1px solid rgba(255,255,255,0.1)" }}>
-          {CATS.map(({ key, c }) => (
-            share[key] > 0 ? <div key={key} title={key} style={{ width: `${share[key] * 100}%`, background: c, opacity: 0.85 }} /> : null
-          ))}
+      <div style={{ display: "flex", gap: isMobile ? 24 : 56, alignItems: "center", justifyContent: "center", flexWrap: "wrap" }}>
+        <Donut segments={segments} size={isMobile ? 188 : 220}
+          centerTop={(diamondShare * 100).toFixed(1) + "%"} centerBottom="diamond" />
+        <div style={{ width: isMobile ? "100%" : 360, maxWidth: 420 }}>
+          <McBar label="Effective market cap" value={effMc} max={nominalMc} color="#4ade80" />
+          <McBar label="Nominal market cap" value={nominalMc} max={nominalMc} color="#64748b" />
+          <div style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", marginTop: 6, lineHeight: 1.6 }}>
+            If diamond hands never sell, the tradeable valuation is the green bar — a {((1 - effMc / nominalMc) * 100).toFixed(0)}% &ldquo;scarcity discount&rdquo; to nominal.
+          </div>
         </div>
-        <div style={{ display: "flex", justifyContent: "center", gap: "10px 20px", flexWrap: "wrap", marginTop: 14 }}>
-          {CATS.map(({ key, label, c, note }) => (
-            <div key={key} style={{ display: "flex", alignItems: "center", gap: 7, fontFamily: SANS, fontSize: 13, color: "#cbd5e1" }}>
-              <span style={{ width: 12, height: 12, borderRadius: 3, background: c }} />
-              {label} <span style={{ fontFamily: MONO, color: "#94a3b8" }}>{(share[key] * 100).toFixed(1)}%</span>
-              {note && <span style={{ color: "#64748b", fontSize: 11.5 }}>· {note}</span>}
-            </div>
-          ))}
-        </div>
+      </div>
+
+      {/* tier legend */}
+      <div style={{ display: "flex", justifyContent: "center", gap: "10px 20px", flexWrap: "wrap", marginTop: 22 }}>
+        {CATS.map(({ key, label, c, note }) => (
+          <div key={key} style={{ display: "flex", alignItems: "center", gap: 7, fontFamily: SANS, fontSize: 13, color: "#cbd5e1" }}>
+            <span style={{ width: 12, height: 12, borderRadius: 3, background: c }} />
+            {label} <span style={{ fontFamily: MONO, color: "#94a3b8" }}>{(share[key] * 100).toFixed(1)}%</span>
+            {note && <span style={{ color: "#64748b", fontSize: 11.5 }}>· {note}</span>}
+          </div>
+        ))}
       </div>
 
       <div style={{ maxWidth: 760, margin: "22px auto 0", fontFamily: SANS, fontSize: 13, color: "#cbd5e1", lineHeight: 1.7, textAlign: "center" }}>
         Supply grouped by how long it&apos;s been held (Holderscan, FIFO over the top ~1,000 wallets).
         <strong style={{ color: "#22d3ee" }}> Diamond</strong> hands ({(diamondShare * 100).toFixed(1)}%) are treated as
-        <em> removed from circulating float</em> — the conviction-based scarcity analog to Bitcoin&apos;s halving, but driven by holders, not emission.
-        Long-term (Diamond+Gold) = {(longTermShare * 100).toFixed(1)}%.
-      </div>
-      <div style={{ maxWidth: 760, margin: "10px auto 0", fontFamily: SANS, fontSize: 12, color: "#64748b", textAlign: "center", lineHeight: 1.6 }}>
-        Effective market cap = price × (supply − diamond supply). Snapshot, not financial advice.
+        <em> removed from circulating float</em> — conviction-based scarcity, the holders-not-emission analog to Bitcoin&apos;s halving.
+        Long-term (Diamond+Gold) = {(longTermShare * 100).toFixed(1)}%. Snapshot, not financial advice.
       </div>
     </div>
   );
