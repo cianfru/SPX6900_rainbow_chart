@@ -64,10 +64,9 @@ function OscTip({ active, payload, label, metric }) {
   );
 }
 
-export default function RelativeChart({ series, isMobile }) {
+export default function RelativeChart({ series, isMobile, which, setWhich }) {
   const [majors, setMajors] = useState(null);
   const [status, setStatus] = useState("loading");
-  const [which, setWhich] = useState("BTC");
   const [metric, setMetric] = useState("z"); // "z" | "pct"
 
   useEffect(() => {

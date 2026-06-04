@@ -148,6 +148,10 @@ export default function App() {
   const [copiedAddr, setCopiedAddr] = useState(null);
   const [tab, setTab] = useState("risk");
   const [view, setView] = useState("rainbow"); // which nav item is highlighted
+  const [relWhich, setRelWhich] = useState("BTC"); // Relative chart asset (driven by nav dropdown)
+  const [relRect, setRelRect] = useState(null);    // Relative tab rect, for the hover menu
+  const relBtnRef = useRef(null);
+  const relTimer = useRef(null);
   const navRef = useRef(null);
   const chartBoxRef = useRef(null);   // wrapper div, for measuring the plot area
   // Crosshair elements updated imperatively (no React re-render while moving).
@@ -373,6 +377,15 @@ export default function App() {
     URL.revokeObjectURL(url);
   };
 
+  const openRel = () => {
+    clearTimeout(relTimer.current);
+    if (relBtnRef.current) setRelRect(relBtnRef.current.getBoundingClientRect());
+  };
+  const closeRel = () => {
+    relTimer.current = setTimeout(() => setRelRect(null), 160);
+  };
+  const pickRel = (id) => { clearTimeout(relTimer.current); setRelWhich(id); setRelRect(null); goChart("relative"); };
+
   const navIcon = (rgb, glow, color = "#e2e8f0") => ({
     display: "inline-flex", alignItems: "center", justifyContent: "center",
     width: 38, height: 38, borderRadius: 9, cursor: "pointer", textDecoration: "none",
@@ -429,46 +442,68 @@ export default function App() {
         animation: "star-drift 26s linear infinite",
       }} />
 
-      {/* Unified sticky nav */}
+      {/* Unified sticky nav — minimal */}
       <nav ref={navRef} style={{
         position: "sticky", top: 0, zIndex: 50, width: "100%",
-        background: "rgba(6, 8, 18, 0.72)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)",
-        borderBottom: "1px solid rgba(255,255,255,0.08)", boxShadow: "0 4px 24px rgba(0,0,0,0.4)",
+        background: "rgba(6, 8, 18, 0.35)", backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)",
       }}>
         <div style={{
-          maxWidth: MAX_W, margin: "0 auto", padding: isMobile ? "8px 12px" : "9px 20px",
-          display: "flex", alignItems: "center", gap: isMobile ? 8 : 14, flexDirection: isMobile ? "column" : "row",
+          maxWidth: MAX_W, margin: "0 auto", padding: isMobile ? "7px 10px" : "8px 18px",
+          display: "flex", alignItems: "center", gap: 10,
         }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: isMobile ? "100%" : "auto", gap: 10, flexShrink: 0 }}>
-            <button onClick={scrollTop} title="Back to top" style={{ display: "flex", alignItems: "center", gap: 9, background: "transparent", border: "none", cursor: "pointer", padding: 0 }}>
-              <img src="/spx6900_logo_mobile.png" alt="SPX6900" style={{ height: 32, width: 32, borderRadius: 8, display: "block" }} />
-              <span style={{ fontFamily: SANS, fontWeight: 800, fontSize: 16, color: "#e2e8f0", letterSpacing: "-0.01em" }}>SPX6900</span>
-            </button>
-            {isMobile && navActions}
-          </div>
-
           <div className="no-scrollbar" style={{
             display: "flex", gap: 7, alignItems: "center",
-            flex: isMobile ? "none" : 1, justifyContent: "center",
-            flexWrap: "nowrap", overflowX: "auto", width: isMobile ? "100%" : "auto",
+            flex: 1, justifyContent: isMobile ? "flex-start" : "center",
+            flexWrap: "nowrap", overflowX: "auto",
             WebkitOverflowScrolling: "touch", scrollbarWidth: "none",
           }}>
-            {NAV_TABS.map(([id, label]) => (
-              <button key={id} onClick={() => goChart(id)}
-                className={`neon-pill${view === id ? " active" : ""}`}
-                style={{
-                  display: "inline-flex", alignItems: "center", gap: 6, whiteSpace: "nowrap", flexShrink: 0,
-                  fontFamily: SANS, fontSize: 13.5, fontWeight: 600, padding: "8px 13px", borderRadius: 9,
-                  color: view === id ? "#f8fafc" : "#94a3b8", "--glow": "#6366f1",
-                }}>
-                <TabIcon name={id} />{label}
-              </button>
-            ))}
+            {NAV_TABS.map(([id, label]) => {
+              const active = view === id;
+              const pillStyle = {
+                display: "inline-flex", alignItems: "center", gap: 6, whiteSpace: "nowrap", flexShrink: 0,
+                fontFamily: SANS, fontSize: 13.5, fontWeight: 600, padding: "8px 13px", borderRadius: 9,
+                background: "transparent",
+                border: `1px solid ${active ? "rgba(99,102,241,0.55)" : "transparent"}`,
+                boxShadow: active ? "0 0 14px rgba(99,102,241,0.4)" : "none",
+                color: active ? "#f8fafc" : "#94a3b8", "--glow": "rgba(99,102,241,0.6)",
+              };
+              if (id === "relative") {
+                return (
+                  <button key={id} ref={relBtnRef} className="pill" onClick={() => goChart(id)}
+                    onMouseEnter={openRel} onMouseLeave={closeRel} style={pillStyle}>
+                    <TabIcon name={id} />{label}
+                    <span style={{ opacity: 0.6, fontSize: 10, marginLeft: 1 }}>▾</span>
+                  </button>
+                );
+              }
+              return (
+                <button key={id} className="pill" onClick={() => goChart(id)} style={pillStyle}>
+                  <TabIcon name={id} />{label}
+                </button>
+              );
+            })}
           </div>
-
-          {!isMobile && navActions}
+          {navActions}
         </div>
       </nav>
+
+      {/* Relative-value hover dropdown */}
+      {relRect && !isMobile && (
+        <div onMouseEnter={openRel} onMouseLeave={closeRel} style={{
+          position: "fixed", top: relRect.bottom + 6, left: relRect.left, zIndex: 60,
+          ...glass("14, 16, 30", 0.92, 14), borderRadius: 10, padding: 6, minWidth: 168,
+          display: "flex", flexDirection: "column", gap: 3,
+        }}>
+          {[["BTC", "vs Bitcoin"], ["ETH", "vs Ethereum"], ["SOL", "vs Solana"], ["BASKET", "vs Majors"]].map(([id, label]) => (
+            <button key={id} className="pill" onClick={() => pickRel(id)} style={{
+              textAlign: "left", padding: "8px 12px", borderRadius: 7, cursor: "pointer",
+              background: "transparent", border: `1px solid ${relWhich === id ? "rgba(99,102,241,0.5)" : "transparent"}`,
+              color: relWhich === id ? "#f8fafc" : "#cbd5e1", fontFamily: SANS, fontSize: 13.5, fontWeight: 600,
+              "--glow": "rgba(99,102,241,0.6)", whiteSpace: "nowrap",
+            }}>{label}</button>
+          ))}
+        </div>
+      )}
 
       {/* Content */}
       <div style={{ padding: isMobile ? "16px 12px 40px" : "26px 20px 52px" }}>
@@ -931,7 +966,7 @@ export default function App() {
         {tab === "risk" && <RiskChart series={priceData} m={m} isMobile={isMobile} />}
         {tab === "drawdown" && <DrawdownChart series={priceData} isMobile={isMobile} />}
         {tab === "spxbtc" && <SpxBtcChart series={priceData} isMobile={isMobile} />}
-        {tab === "relative" && <RelativeChart series={priceData} isMobile={isMobile} />}
+        {tab === "relative" && <RelativeChart series={priceData} isMobile={isMobile} which={relWhich} setWhich={setRelWhich} />}
         {tab === "supply" && <SupplyConviction price={last.price} isMobile={isMobile} />}
         {tab === "holders" && <HolderscanDashboard />}
       </div>
