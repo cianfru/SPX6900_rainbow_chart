@@ -468,18 +468,19 @@ export default function App() {
                 color: active ? "#f8fafc" : "#94a3b8", "--glow": c,
               };
               const iconWrap = <span style={{ color: c, display: "inline-flex" }}><TabIcon name={id} /></span>;
+              const showLabel = !isMobile || active; // mobile: only the selected tab shows its label
               if (id === "relative") {
                 return (
-                  <button key={id} ref={relBtnRef} className="pill" onClick={() => goChart(id)}
+                  <button key={id} ref={relBtnRef} className="pill" onClick={() => goChart(id)} title={label}
                     onMouseEnter={openRel} onMouseLeave={closeRel} style={pillStyle}>
-                    {iconWrap}{label}
-                    <span style={{ opacity: 0.6, fontSize: 10, marginLeft: 1 }}>▾</span>
+                    {iconWrap}{showLabel && label}
+                    {showLabel && <span style={{ opacity: 0.6, fontSize: 10, marginLeft: 1 }}>▾</span>}
                   </button>
                 );
               }
               return (
-                <button key={id} className="pill" onClick={() => goChart(id)} style={pillStyle}>
-                  {iconWrap}{label}
+                <button key={id} className="pill" onClick={() => goChart(id)} title={label} style={pillStyle}>
+                  {iconWrap}{showLabel && label}
                 </button>
               );
             })}
