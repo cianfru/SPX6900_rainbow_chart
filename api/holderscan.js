@@ -13,6 +13,7 @@ export default async function handler(req, res) {
     "/holders/breakdowns",
     "/stats",
     "/stats/pnl",
+    "/stats/supply-breakdown",
     "/holders?limit=10",
   ];
 
