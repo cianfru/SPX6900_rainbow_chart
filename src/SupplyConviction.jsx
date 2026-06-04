@@ -58,6 +58,22 @@ function extract(data) {
   return null;
 }
 
+// Convert the raw breakdown into token amounts (handles amounts / fractions / percentages),
+// expressed against TOTAL supply. The five tiers cover only the top ~1,000 wallets, so the
+// remainder is an "unclassified" tail of smaller holders.
+function parseSupply(raw) {
+  const vals = extract(raw);
+  if (!vals) return null;
+  const sum5 = CATS.reduce((s, { key }) => s + (vals[key] || 0), 0);
+  if (sum5 <= 0) return null;
+  const scale = sum5 <= 1.5 ? SUPPLY : sum5 <= 150 ? SUPPLY / 100 : 1;
+  const tokens = {};
+  CATS.forEach(({ key }) => { tokens[key] = (vals[key] || 0) * scale; });
+  const classified = CATS.reduce((s, { key }) => s + tokens[key], 0);
+  const unclassified = Math.max(0, SUPPLY - classified);
+  return { tokens, classified, unclassified, diamondTokens: tokens.diamond, diamondShareSupply: tokens.diamond / SUPPLY };
+}
+
 function Readout({ label, value, color, sub, isMobile }) {
   return (
     <div style={{ textAlign: "center" }}>
@@ -135,24 +151,30 @@ export default function SupplyConviction({ price, isMobile }) {
     if (!history) return [];
     const rows = [];
     for (const rec of history) {
-      const v = extract(rec.sup);
-      if (!v) continue;
-      const total = CATS.reduce((s, { key }) => s + (v[key] || 0), 0);
-      if (total <= 0) continue;
-      const dShare = (v.diamond || 0) / total;
-      rows.push({ ts: new Date(rec.d).getTime(), date: rec.d, diamond: dShare * 100, effMc: (rec.p || 0) * SUPPLY * (1 - dShare) });
+      const ps = parseSupply(rec.sup);
+      if (!ps) continue;
+      rows.push({
+        ts: new Date(rec.d).getTime(), date: rec.d,
+        diamond: ps.diamondShareSupply * 100,
+        effMc: (rec.p || 0) * (SUPPLY - ps.diamondTokens),
+      });
     }
     return rows;
   }, [history]);
 
   const model = useMemo(() => {
-    const vals = raw ? extract(raw) : null;
-    if (!vals) return null;
-    const total = CATS.reduce((s, { key }) => s + (vals[key] || 0), 0);
-    if (total <= 0) return null;
-    const share = {};
-    CATS.forEach(({ key }) => { share[key] = (vals[key] || 0) / total; });
-    return { share, diamondShare: share.diamond, longTermShare: share.diamond + share.gold, effFloatFrac: 1 - share.diamond };
+    const ps = raw ? parseSupply(raw) : null;
+    if (!ps) return null;
+    const shareOfSupply = {};
+    CATS.forEach(({ key }) => { shareOfSupply[key] = ps.tokens[key] / SUPPLY; });
+    return {
+      shareOfSupply,
+      unclassifiedShare: ps.unclassified / SUPPLY,
+      diamondShare: ps.diamondShareSupply,
+      longTermShare: (ps.tokens.diamond + ps.tokens.gold) / SUPPLY,
+      effFloatFrac: 1 - ps.diamondShareSupply,
+      diamondTokens: ps.diamondTokens,
+    };
   }, [raw]);
 
   if (status === "loading") return <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 40 }}>Loading supply data…</div>;
@@ -165,11 +187,15 @@ export default function SupplyConviction({ price, isMobile }) {
     );
   }
 
-  const { share, diamondShare, longTermShare, effFloatFrac } = model;
+  const { shareOfSupply, unclassifiedShare, diamondShare, longTermShare, effFloatFrac } = model;
   const effFloatTokens = SUPPLY * effFloatFrac;
   const effMc = price * effFloatTokens;
   const nominalMc = price * SUPPLY;
-  const segments = CATS.map(({ key, c }) => ({ c, pct: share[key] * 100 })).filter(s => s.pct > 0);
+  const UNCLASSIFIED = { c: "#334155" };
+  const segments = [
+    ...CATS.map(({ key, c }) => ({ c, pct: shareOfSupply[key] * 100 })),
+    { c: UNCLASSIFIED.c, pct: unclassifiedShare * 100 },
+  ].filter(s => s.pct > 0);
 
   return (
     <div style={{ maxWidth: MAX_W, margin: "0 auto" }}>
@@ -196,10 +222,15 @@ export default function SupplyConviction({ price, isMobile }) {
         {CATS.map(({ key, label, c, note }) => (
           <div key={key} style={{ display: "flex", alignItems: "center", gap: 7, fontFamily: SANS, fontSize: 13, color: "#cbd5e1" }}>
             <span style={{ width: 12, height: 12, borderRadius: 3, background: c }} />
-            {label} <span style={{ fontFamily: MONO, color: "#94a3b8" }}>{(share[key] * 100).toFixed(1)}%</span>
+            {label} <span style={{ fontFamily: MONO, color: "#94a3b8" }}>{(shareOfSupply[key] * 100).toFixed(1)}%</span>
             {note && <span style={{ color: "#64748b", fontSize: 11.5 }}>· {note}</span>}
           </div>
         ))}
+        <div style={{ display: "flex", alignItems: "center", gap: 7, fontFamily: SANS, fontSize: 13, color: "#cbd5e1" }}>
+          <span style={{ width: 12, height: 12, borderRadius: 3, background: UNCLASSIFIED.c }} />
+          Unclassified <span style={{ fontFamily: MONO, color: "#94a3b8" }}>{(unclassifiedShare * 100).toFixed(1)}%</span>
+          <span style={{ color: "#64748b", fontSize: 11.5 }}>· smaller wallets</span>
+        </div>
       </div>
 
       <div style={{ maxWidth: 760, margin: "22px auto 0", fontFamily: SANS, fontSize: 13, color: "#cbd5e1", lineHeight: 1.7, textAlign: "center" }}>
