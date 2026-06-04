@@ -15,7 +15,6 @@ import DrawdownChart from "./DrawdownChart.jsx";
 import SpxBtcChart from "./SpxBtcChart.jsx";
 import RelativeChart from "./RelativeChart.jsx";
 import SupplyConviction from "./SupplyConviction.jsx";
-import { generatePine } from "./pine.js";
 
 const SANS = "'Space Grotesk', system-ui, sans-serif";
 const MONO = "ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace";
@@ -140,8 +139,6 @@ export default function App() {
   const [hi, setHi] = useState(1); // default 10Y
   const [tg, setTg] = useState(new Set([0, 1, 2, 4])); // includes $6,900 by default
   const [showMilestones, setShowMilestones] = useState(true);
-  const [showPine, setShowPine] = useState(false);
-  const [pineCopied, setPineCopied] = useState(false);
   const [showDry, setShowDry] = useState(false);
   const [showAbout, setShowAbout] = useState(false);
   const [tab, setTab] = useState("risk");
@@ -403,23 +400,6 @@ export default function App() {
     });
   };
 
-  const pineCode = useMemo(() => generatePine(m), [m]);
-  const copyPine = () => {
-    navigator.clipboard?.writeText(pineCode).then(() => {
-      setPineCopied(true);
-      setTimeout(() => setPineCopied(false), 1800);
-    });
-  };
-  const downloadPine = () => {
-    const blob = new Blob([pineCode], { type: "text/plain" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "spx6900_rainbow_bands.pine";
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
   const openRel = () => {
     clearTimeout(relTimer.current);
     if (relBtnRef.current) setRelRect(relBtnRef.current.getBoundingClientRect());
@@ -436,9 +416,6 @@ export default function App() {
   });
   const navActions = (
     <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
-      <button className="pill" onClick={() => setShowPine(true)} title="TradingView indicator" style={navIcon("59, 130, 246", "rgba(59,130,246,0.6)")}>
-        <img src="/tradingview-logo.png" alt="" style={{ height: 18, width: 18, borderRadius: "50%", display: "block" }} />
-      </button>
       <a className="pill" href={X_URL} target="_blank" rel="noopener noreferrer" title="@cianfru" style={navIcon("255, 255, 255", "rgba(226,232,240,0.5)")}>
         <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24h-6.66l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" /></svg>
       </a>
@@ -1037,66 +1014,6 @@ export default function App() {
       </div>
       </div>{/* end content */}
 
-      {/* TradingView / Pine Script modal */}
-      {showPine && (
-        <div
-          onClick={() => setShowPine(false)}
-          style={{
-            position: "fixed", inset: 0, zIndex: 100, padding: isMobile ? 12 : 24,
-            background: "rgba(2,2,8,0.72)", backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-          }}
-        >
-          <div
-            onClick={e => e.stopPropagation()}
-            style={{
-              width: "100%", maxWidth: 780, maxHeight: "86vh", display: "flex", flexDirection: "column",
-              borderRadius: 14, overflow: "hidden", ...glass("20, 24, 40", 0.55, 20),
-            }}
-          >
-            <div style={{
-              display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12,
-              padding: "16px 20px", borderBottom: "1px solid rgba(255,255,255,0.1)",
-            }}>
-              <div>
-                <div style={{ fontFamily: SANS, fontSize: 17, fontWeight: 700, color: "#f1f5f9" }}>
-                  TradingView Indicator
-                </div>
-                <div style={{ fontFamily: SANS, fontSize: 12.5, color: "#94a3b8", marginTop: 2 }}>
-                  Pine Script® v6 · paste into Pine Editor and &ldquo;Add to chart&rdquo; (use a log price scale)
-                </div>
-              </div>
-              <button onClick={() => setShowPine(false)} style={{
-                fontFamily: SANS, fontSize: 20, lineHeight: 1, color: "#94a3b8", cursor: "pointer",
-                background: "transparent", border: "none", padding: 6,
-              }}>×</button>
-            </div>
-
-            <div style={{ display: "flex", gap: 8, padding: "12px 20px", flexWrap: "wrap" }}>
-              <button onClick={copyPine} style={{
-                fontFamily: SANS, fontSize: 13, fontWeight: 600, padding: "8px 14px", borderRadius: 7, cursor: "pointer",
-                color: pineCopied ? "#4ade80" : "#e2e8f0", ...glass("59, 130, 246", 0.12),
-              }}>
-                {pineCopied ? "✓ Copied!" : "Copy code"}
-              </button>
-              <button onClick={downloadPine} style={{
-                fontFamily: SANS, fontSize: 13, fontWeight: 600, padding: "8px 14px", borderRadius: 7, cursor: "pointer",
-                color: "#e2e8f0", ...glass("34, 197, 94", 0.12),
-              }}>
-                ↓ Download .pine
-              </button>
-            </div>
-
-            <pre style={{
-              margin: 0, padding: "0 20px 20px", overflow: "auto", flex: 1, minWidth: 0,
-              fontFamily: MONO, fontSize: 12, lineHeight: 1.55, color: "#cbd5e1",
-              whiteSpace: "pre", tabSize: 2,
-            }}>
-              {pineCode}
-            </pre>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
