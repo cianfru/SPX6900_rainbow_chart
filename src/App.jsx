@@ -3,7 +3,7 @@ import {
   ResponsiveContainer, ComposedChart, Area, Line, XAxis, YAxis,
   CartesianGrid, ReferenceLine
 } from "recharts";
-import { DEFAULT_RAW, fetchLivePrices } from "./data.js";
+import { DEFAULT_RAW, fetchLivePrices, fetchSpotPrice } from "./data.js";
 import {
   buildModel, BAND_LABELS, TARGETS,
   dayN, ds, bandVal, bandIndex,
@@ -135,6 +135,7 @@ export default function App() {
 
   const [priceData, setPriceData] = useState(DEFAULT_RAW);
   const [, setDataStatus] = useState(null);
+  const [liveAt, setLiveAt] = useState(null); // timestamp of last live spot update
   const [hi, setHi] = useState(1); // default 10Y
   const [tg, setTg] = useState(new Set([0, 1, 2, 4])); // includes $6,900 by default
   const [showMilestones, setShowMilestones] = useState(true);
@@ -188,6 +189,52 @@ export default function App() {
     });
     return () => { cancelled = true; };
   }, [applyLive]);
+
+  // Upsert the live spot price as "today"'s point so the headline LED, the NOW
+  // band and the price line all reflect the latest on-chain price in place.
+  const upsertSpot = useCallback((price) => {
+    const today = new Date().toISOString().slice(0, 10);
+    setPriceData(prev => {
+      const lastPt = prev[prev.length - 1];
+      if (lastPt.date === today) {
+        if (lastPt.price === price) return prev; // no change
+        const next = prev.slice();
+        next[next.length - 1] = { date: today, price };
+        return next;
+      }
+      if (today > lastPt.date) return [...prev, { date: today, price }];
+      // Clock skew / pre-open edge case: just refresh the latest point's price.
+      const next = prev.slice();
+      next[next.length - 1] = { ...lastPt, price };
+      return next;
+    });
+  }, []);
+
+  // Poll the live spot price so it refreshes without a full page reload.
+  useEffect(() => {
+    let cancelled = false;
+    let timer;
+    const POLL_MS = 20_000;
+    const tick = async () => {
+      try {
+        const { price, source } = await fetchSpotPrice();
+        if (!cancelled && price > 0) {
+          upsertSpot(price);
+          setLiveAt(Date.now());
+          setDataStatus(`Live · ${source} spot`);
+        }
+      } catch { /* keep last known price; try again next tick */ }
+      if (!cancelled) timer = setTimeout(tick, POLL_MS);
+    };
+    tick();
+    const onVisible = () => { if (document.visibilityState === "visible") tick(); };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [upsertSpot]);
 
   // Fit the model ON BUNDLED DATA ONLY. This is the stable historical record
   // we curated — daily live data shouldn't reshape the rainbow.
@@ -670,6 +717,21 @@ export default function App() {
                   {priceNum}
                 </span>
               </span>
+              {liveAt && (
+                <span
+                  title={`Live · updated ${new Date(liveAt).toLocaleTimeString()}`}
+                  style={{ display: "inline-flex", alignItems: "center", gap: 5, marginLeft: 2 }}
+                >
+                  <span style={{
+                    width: 7, height: 7, borderRadius: "50%", background: "#4ade80",
+                    boxShadow: "0 0 8px #4ade80", animation: "verdict-pulse 1.6s ease-in-out infinite",
+                  }} />
+                  <span style={{
+                    fontFamily: SANS, fontSize: isMobile ? 9 : 10, fontWeight: 700,
+                    letterSpacing: "0.12em", color: "#4ade80",
+                  }}>LIVE</span>
+                </span>
+              )}
             </span>
             <span style={{ fontFamily: SANS, fontSize: isMobile ? 15 : 22, color: "#94a3b8" }}>and is a</span>
             <span style={{

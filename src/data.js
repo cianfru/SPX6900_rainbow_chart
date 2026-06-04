@@ -15,6 +15,18 @@ export async function fetchLivePrices() {
   return { prices, source: json.source || "unknown" };
 }
 
+// Near-real-time spot price for the live-updating headline (not daily history).
+export async function fetchSpotPrice() {
+  const res = await fetch("/api/spot");
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.error || `Spot proxy returned ${res.status}`);
+  }
+  const json = await res.json();
+  if (!(json.price > 0)) throw new Error("No spot price returned");
+  return { price: json.price, source: json.source || "unknown" };
+}
+
 export async function fetchMajors() {
   const res = await fetch("/api/majors");
   if (!res.ok) {
