@@ -30,8 +30,9 @@ export default async function handler(req, res) {
   for (const [name, fn] of [["geckoterminal", geckoSpot], ["coinbase", coinbaseSpot]]) {
     try {
       const price = await fn();
-      // Short edge cache so many clients polling every ~20s share one upstream hit.
-      res.setHeader("Cache-Control", "s-maxage=20, stale-while-revalidate=60");
+      // Short edge cache so many clients polling every ~5s share one upstream hit
+      // (~12 upstream req/min worst case, well under GeckoTerminal's free limit).
+      res.setHeader("Cache-Control", "s-maxage=5, stale-while-revalidate=30");
       return res.status(200).json({ source: name, price, ts: Date.now() });
     } catch (err) {
       errors.push(`${name}: ${err.message}`);
