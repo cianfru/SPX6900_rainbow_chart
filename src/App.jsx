@@ -136,6 +136,8 @@ export default function App() {
   const [priceData, setPriceData] = useState(DEFAULT_RAW);
   const [, setDataStatus] = useState(null);
   const [liveAt, setLiveAt] = useState(null); // timestamp of last live spot update
+  const [tickFlash, setTickFlash] = useState({ key: 0, dir: null }); // up/down flash on price move
+  const prevPriceRef = useRef(null); // last live spot price, for tick direction
   const [hi, setHi] = useState(1); // default 10Y
   const [tg, setTg] = useState(new Set([0, 1, 2, 4])); // includes $6,900 by default
   const [showMilestones, setShowMilestones] = useState(true);
@@ -214,11 +216,17 @@ export default function App() {
   useEffect(() => {
     let cancelled = false;
     let timer;
-    const POLL_MS = 20_000;
+    const POLL_MS = 5_000;
     const tick = async () => {
       try {
         const { price, source } = await fetchSpotPrice();
         if (!cancelled && price > 0) {
+          // Flash green/red only when the price actually moves between ticks.
+          const prev = prevPriceRef.current;
+          if (prev != null && price !== prev) {
+            setTickFlash(t => ({ key: t.key + 1, dir: price > prev ? "up" : "down" }));
+          }
+          prevPriceRef.current = price;
           upsertSpot(price);
           setLiveAt(Date.now());
           setDataStatus(`Live · ${source} spot`);
@@ -708,30 +716,42 @@ export default function App() {
                 }}>
                   {priceGhost}
                 </span>
-                {/* lit value */}
-                <span style={{
-                  position: "relative",
-                  fontFamily: LED, fontSize: isMobile ? 24 : 34, letterSpacing: "0.04em",
-                  color: cb.c, textShadow: `0 0 6px ${cb.c}, 0 0 18px ${cb.c}cc`,
-                }}>
+                {/* lit value — flashes green/red on each price move, then settles to band color */}
+                <span
+                  key={tickFlash.key}
+                  style={{
+                    position: "relative", display: "inline-block",
+                    fontFamily: LED, fontSize: isMobile ? 24 : 34, letterSpacing: "0.04em",
+                    color: cb.c, textShadow: `0 0 6px ${cb.c}, 0 0 18px ${cb.c}cc`,
+                    ...(tickFlash.dir ? {
+                      "--flash": tickFlash.dir === "up" ? "#22e07a" : "#ff5247",
+                      animation: "price-tick 0.7s ease",
+                    } : null),
+                  }}
+                >
                   {priceNum}
                 </span>
               </span>
-              {liveAt && (
-                <span
-                  title={`Live · updated ${new Date(liveAt).toLocaleTimeString()}`}
-                  style={{ display: "inline-flex", alignItems: "center", gap: 5, marginLeft: 2 }}
-                >
-                  <span style={{
-                    width: 7, height: 7, borderRadius: "50%", background: "#4ade80",
-                    boxShadow: "0 0 8px #4ade80", animation: "verdict-pulse 1.6s ease-in-out infinite",
-                  }} />
-                  <span style={{
-                    fontFamily: SANS, fontSize: isMobile ? 9 : 10, fontWeight: 700,
-                    letterSpacing: "0.12em", color: "#4ade80",
-                  }}>LIVE</span>
-                </span>
-              )}
+              {liveAt && (() => {
+                const liveColor = tickFlash.dir === "down" ? "#ff5247" : tickFlash.dir === "up" ? "#22e07a" : "#4ade80";
+                const arrow = tickFlash.dir === "down" ? "▼" : tickFlash.dir === "up" ? "▲" : "";
+                return (
+                  <span
+                    title={`Live · updated ${new Date(liveAt).toLocaleTimeString()}`}
+                    style={{ display: "inline-flex", alignItems: "center", gap: 5, marginLeft: 2 }}
+                  >
+                    <span style={{
+                      width: 7, height: 7, borderRadius: "50%", background: liveColor,
+                      boxShadow: `0 0 8px ${liveColor}`, animation: "verdict-pulse 1.6s ease-in-out infinite",
+                      transition: "background 0.3s ease, box-shadow 0.3s ease",
+                    }} />
+                    <span style={{
+                      fontFamily: SANS, fontSize: isMobile ? 9 : 10, fontWeight: 700,
+                      letterSpacing: "0.12em", color: liveColor, transition: "color 0.3s ease",
+                    }}>{arrow ? `${arrow} LIVE` : "LIVE"}</span>
+                  </span>
+                );
+              })()}
             </span>
             <span style={{ fontFamily: SANS, fontSize: isMobile ? 15 : 22, color: "#94a3b8" }}>and is a</span>
             <span style={{
