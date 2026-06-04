@@ -105,6 +105,7 @@ const fW = w => w ? w.dt.toLocaleDateString("en-US", { month: "short", year: "nu
 function TabIcon({ name }) {
   const p = { width: 15, height: 15, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 2, strokeLinecap: "round", strokeLinejoin: "round", style: { flexShrink: 0 } };
   switch (name) {
+    case "rainbow": return (<svg {...p}><path d="M3 16a9 9 0 0 1 18 0" /><path d="M6 16a6 6 0 0 1 12 0" /><path d="M9 16a3 3 0 0 1 6 0" /></svg>);
     case "risk": return (<svg {...p}><path d="M22 12h-4l-3 9L9 3l-3 9H2" /></svg>);
     case "drawdown": return (<svg {...p}><polyline points="22 17 13.5 8.5 8.5 13.5 2 7" /><polyline points="16 17 22 17 22 11" /></svg>);
     case "spxbtc": return (<svg {...p}><path d="M8 3 4 7l4 4" /><path d="M4 7h16" /><path d="M16 21l4-4-4-4" /><path d="M20 17H4" /></svg>);
@@ -114,6 +115,17 @@ function TabIcon({ name }) {
     default: return null;
   }
 }
+
+// Unified nav: Rainbow (hero) + the six indicator charts.
+const NAV_TABS = [
+  ["rainbow", "Rainbow"],
+  ["risk", "Risk"],
+  ["drawdown", "Drawdown"],
+  ["spxbtc", "SPX/BTC"],
+  ["relative", "Relative"],
+  ["supply", "Supply"],
+  ["holders", "Holders"],
+];
 
 export default function App() {
   // `priceData` is bundled history + any new live points beyond the last bundled date.
@@ -135,6 +147,8 @@ export default function App() {
   const [showDonate, setShowDonate] = useState(false);
   const [copiedAddr, setCopiedAddr] = useState(null);
   const [tab, setTab] = useState("risk");
+  const [view, setView] = useState("rainbow"); // which nav item is highlighted
+  const navRef = useRef(null);
   const chartBoxRef = useRef(null);   // wrapper div, for measuring the plot area
   // Crosshair elements updated imperatively (no React re-render while moving).
   const vLineRef = useRef(null);
@@ -323,6 +337,19 @@ export default function App() {
     bandRef.current.style.color = bl.c;
   };
 
+  const scrollTop = () => { setView("rainbow"); window.scrollTo({ top: 0, behavior: "smooth" }); };
+  const goChart = (id) => {
+    if (id === "rainbow") { scrollTop(); return; }
+    setView(id); setTab(id);
+    requestAnimationFrame(() => {
+      const el = document.getElementById("more-charts");
+      if (!el) return;
+      const navH = navRef.current?.offsetHeight ?? 0;
+      const y = el.getBoundingClientRect().top + window.scrollY - navH - 8;
+      window.scrollTo({ top: Math.max(0, y), behavior: "smooth" });
+    });
+  };
+
   const pineCode = useMemo(() => generatePine(m), [m]);
   const copyPine = () => {
     navigator.clipboard?.writeText(pineCode).then(() => {
@@ -346,6 +373,25 @@ export default function App() {
     URL.revokeObjectURL(url);
   };
 
+  const navIcon = (rgb, glow, color = "#e2e8f0") => ({
+    display: "inline-flex", alignItems: "center", justifyContent: "center",
+    width: 38, height: 38, borderRadius: 9, cursor: "pointer", textDecoration: "none",
+    color, ...glass(rgb, 0.10), border: "1px solid transparent", boxShadow: "none", "--glow": glow,
+  });
+  const navActions = (
+    <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+      <button className="pill" onClick={() => setShowPine(true)} title="TradingView indicator" style={navIcon("59, 130, 246", "rgba(59,130,246,0.6)")}>
+        <img src="/tradingview-logo.png" alt="" style={{ height: 18, width: 18, borderRadius: "50%", display: "block" }} />
+      </button>
+      <button className="pill" onClick={() => setShowDonate(true)} title="Donate" style={navIcon("34, 197, 94", "rgba(34,197,94,0.6)", "#4ade80")}>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 21s-6.716-4.35-9.333-8.07C.9 10.3 1.6 6.9 4.3 5.6c1.9-.9 4 .2 4.9 1.7l.8 1.3.8-1.3c.9-1.5 3-2.6 4.9-1.7 2.7 1.3 3.4 4.7 1.633 7.33C18.716 16.65 12 21 12 21Z" /></svg>
+      </button>
+      <a className="pill" href={X_URL} target="_blank" rel="noopener noreferrer" title="@cianfru" style={navIcon("255, 255, 255", "rgba(226,232,240,0.5)")}>
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24h-6.66l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" /></svg>
+      </a>
+    </div>
+  );
+
   return (
     <div style={{
       position: "relative", isolation: "isolate",
@@ -353,7 +399,6 @@ export default function App() {
       background: `radial-gradient(1100px 540px at 50% -8%, ${cb.c}24, transparent 60%), #020208`,
       transition: "background 0.6s ease",
       fontFamily: SANS, color: "#e2e8f0",
-      padding: isMobile ? "18px 12px 40px" : "32px 20px 48px",
     }}>
       {/* Rainbow aurora mesh */}
       <div aria-hidden="true" style={{
@@ -384,6 +429,49 @@ export default function App() {
         animation: "star-drift 26s linear infinite",
       }} />
 
+      {/* Unified sticky nav */}
+      <nav ref={navRef} style={{
+        position: "sticky", top: 0, zIndex: 50, width: "100%",
+        background: "rgba(6, 8, 18, 0.72)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)",
+        borderBottom: "1px solid rgba(255,255,255,0.08)", boxShadow: "0 4px 24px rgba(0,0,0,0.4)",
+      }}>
+        <div style={{
+          maxWidth: MAX_W, margin: "0 auto", padding: isMobile ? "8px 12px" : "9px 20px",
+          display: "flex", alignItems: "center", gap: isMobile ? 8 : 14, flexDirection: isMobile ? "column" : "row",
+        }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: isMobile ? "100%" : "auto", gap: 10, flexShrink: 0 }}>
+            <button onClick={scrollTop} title="Back to top" style={{ display: "flex", alignItems: "center", gap: 9, background: "transparent", border: "none", cursor: "pointer", padding: 0 }}>
+              <img src="/spx6900_logo_mobile.png" alt="SPX6900" style={{ height: 32, width: 32, borderRadius: 8, display: "block" }} />
+              <span style={{ fontFamily: SANS, fontWeight: 800, fontSize: 16, color: "#e2e8f0", letterSpacing: "-0.01em" }}>SPX6900</span>
+            </button>
+            {isMobile && navActions}
+          </div>
+
+          <div className="no-scrollbar" style={{
+            display: "flex", gap: 7, alignItems: "center",
+            flex: isMobile ? "none" : 1, justifyContent: "center",
+            flexWrap: "nowrap", overflowX: "auto", width: isMobile ? "100%" : "auto",
+            WebkitOverflowScrolling: "touch", scrollbarWidth: "none",
+          }}>
+            {NAV_TABS.map(([id, label]) => (
+              <button key={id} onClick={() => goChart(id)}
+                className={`neon-pill${view === id ? " active" : ""}`}
+                style={{
+                  display: "inline-flex", alignItems: "center", gap: 6, whiteSpace: "nowrap", flexShrink: 0,
+                  fontFamily: SANS, fontSize: 13.5, fontWeight: 600, padding: "8px 13px", borderRadius: 9,
+                  color: view === id ? "#f8fafc" : "#94a3b8", "--glow": "#6366f1",
+                }}>
+                <TabIcon name={id} />{label}
+              </button>
+            ))}
+          </div>
+
+          {!isMobile && navActions}
+        </div>
+      </nav>
+
+      {/* Content */}
+      <div style={{ padding: isMobile ? "16px 12px 40px" : "26px 20px 52px" }}>
       {/* Header */}
       <div style={{ maxWidth: MAX_W, margin: "0 auto 24px" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: isMobile ? 10 : 18, flexWrap: "nowrap" }}>
@@ -428,36 +516,6 @@ export default function App() {
             Logarithmic regression valuation bands for{" "}
             <span style={{ color: "#93c5fd", fontWeight: 700 }}>SPX6900</span>
           </div>
-        </div>
-        <div style={{ display: "flex", justifyContent: "center", gap: 10, marginTop: 16, flexWrap: "wrap" }}>
-          <button className="pill" onClick={() => setShowPine(true)} style={{
-            display: "inline-flex", alignItems: "center", gap: 9,
-            fontFamily: SANS, fontSize: 14, fontWeight: 600, padding: "9px 16px", borderRadius: 8, cursor: "pointer",
-            color: "#e2e8f0", ...glass("59, 130, 246", 0.10), border: "1px solid transparent", boxShadow: "none",
-            "--glow": "rgba(59, 130, 246, 0.6)",
-          }}>
-            <img src="/tradingview-logo.png" alt="" style={{ height: 20, width: 20, borderRadius: "50%", display: "block" }} />
-            Get TradingView Indicator
-          </button>
-          <button className="pill" onClick={() => setShowDonate(true)} style={{
-            display: "inline-flex", alignItems: "center", gap: 8,
-            fontFamily: SANS, fontSize: 14, fontWeight: 600, padding: "9px 16px", borderRadius: 8, cursor: "pointer",
-            color: "#4ade80", ...glass("34, 197, 94", 0.10), border: "1px solid transparent", boxShadow: "none",
-            "--glow": "rgba(34, 197, 94, 0.6)",
-          }}>
-            ♥ Donate
-          </button>
-          <a className="pill" href={X_URL} target="_blank" rel="noopener noreferrer" style={{
-            display: "inline-flex", alignItems: "center", gap: 8, textDecoration: "none", cursor: "pointer",
-            fontFamily: SANS, fontSize: 14, fontWeight: 600, padding: "9px 16px", borderRadius: 8,
-            color: "#e2e8f0", ...glass("255, 255, 255", 0.05), border: "1px solid transparent", boxShadow: "none",
-            "--glow": "rgba(226, 232, 240, 0.5)",
-          }}>
-            <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true">
-              <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24h-6.66l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
-            </svg>
-            @cianfru
-          </a>
         </div>
       </div>
 
@@ -862,47 +920,13 @@ export default function App() {
         </div>
       </div>
 
-      {/* More charts (tabbed) */}
-      <div style={{ maxWidth: MAX_W, margin: "48px auto 0" }}>
+      {/* More charts — selected from the top nav */}
+      <div id="more-charts" style={{ maxWidth: MAX_W, margin: "44px auto 0", scrollMarginTop: isMobile ? 130 : 74 }}>
         <div style={{
-          fontFamily: SANS, fontSize: 14, fontWeight: 700, color: "#cbd5e1", marginBottom: 14,
-          letterSpacing: 1.2, textTransform: "uppercase", textAlign: "center",
+          fontFamily: SANS, fontSize: 13, fontWeight: 700, color: "#94a3b8", marginBottom: 16,
+          letterSpacing: 1.4, textTransform: "uppercase", textAlign: "center",
         }}>
-          More Charts
-        </div>
-        <div style={{
-          position: "sticky", top: 8, zIndex: 20, margin: "0 auto 20px",
-          borderRadius: 12, padding: isMobile ? "7px 8px" : "8px",
-          ...glass("12, 14, 28", 0.7, 12),
-        }}>
-          <div className="no-scrollbar" style={{
-            display: "flex", gap: 8,
-            justifyContent: isMobile ? "flex-start" : "center",
-            flexWrap: isMobile ? "nowrap" : "wrap",
-            overflowX: isMobile ? "auto" : "visible",
-            WebkitOverflowScrolling: "touch",
-            scrollbarWidth: "none",
-          }}>
-            {[
-              ["risk", "Risk Metric"],
-              ["drawdown", "Drawdown"],
-              ["spxbtc", "SPX/BTC"],
-              ["relative", "Relative Value"],
-              ["supply", "Supply"],
-              ["holders", "Holders"],
-            ].map(([id, label]) => (
-              <button key={id} onClick={() => setTab(id)}
-                className={`neon-pill${tab === id ? " active" : ""}`}
-                style={{
-                  display: "inline-flex", alignItems: "center", gap: 7, whiteSpace: "nowrap", flexShrink: 0,
-                  fontFamily: SANS, fontSize: 14, fontWeight: 600, padding: "9px 16px", borderRadius: 9,
-                  color: tab === id ? "#f8fafc" : "#94a3b8", "--glow": "#6366f1",
-                }}>
-                <TabIcon name={id} />
-                {label}
-              </button>
-            ))}
-          </div>
+          {(NAV_TABS.find(([id]) => id === tab) || ["", "Chart"])[1]}
         </div>
         {tab === "risk" && <RiskChart series={priceData} m={m} isMobile={isMobile} />}
         {tab === "drawdown" && <DrawdownChart series={priceData} isMobile={isMobile} />}
@@ -918,6 +942,7 @@ export default function App() {
       }}>
         Single-cycle fit on a memecoin. Not financial advice. Supply ~939M.
       </div>
+      </div>{/* end content */}
 
       {/* Donate modal */}
       {showDonate && (
