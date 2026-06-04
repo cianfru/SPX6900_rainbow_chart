@@ -135,7 +135,6 @@ export default function App() {
 
   const [priceData, setPriceData] = useState(DEFAULT_RAW);
   const [, setDataStatus] = useState(null);
-  const [liveAt, setLiveAt] = useState(null); // timestamp of last live spot update
   const [tickFlash, setTickFlash] = useState({ key: 0, dir: null }); // up/down flash on price move
   const prevPriceRef = useRef(null); // last live spot price, for tick direction
   const [hi, setHi] = useState(1); // default 10Y
@@ -228,7 +227,6 @@ export default function App() {
           }
           prevPriceRef.current = price;
           upsertSpot(price);
-          setLiveAt(Date.now());
           setDataStatus(`Live · ${source} spot`);
         }
       } catch { /* keep last known price; try again next tick */ }
@@ -732,26 +730,6 @@ export default function App() {
                   {priceNum}
                 </span>
               </span>
-              {liveAt && (() => {
-                const liveColor = tickFlash.dir === "down" ? "#ff5247" : tickFlash.dir === "up" ? "#22e07a" : "#4ade80";
-                const arrow = tickFlash.dir === "down" ? "▼" : tickFlash.dir === "up" ? "▲" : "";
-                return (
-                  <span
-                    title={`Live · updated ${new Date(liveAt).toLocaleTimeString()}`}
-                    style={{ display: "inline-flex", alignItems: "center", gap: 5, marginLeft: 2 }}
-                  >
-                    <span style={{
-                      width: 7, height: 7, borderRadius: "50%", background: liveColor,
-                      boxShadow: `0 0 8px ${liveColor}`, animation: "verdict-pulse 1.6s ease-in-out infinite",
-                      transition: "background 0.3s ease, box-shadow 0.3s ease",
-                    }} />
-                    <span style={{
-                      fontFamily: SANS, fontSize: isMobile ? 9 : 10, fontWeight: 700,
-                      letterSpacing: "0.12em", color: liveColor, transition: "color 0.3s ease",
-                    }}>{arrow ? `${arrow} LIVE` : "LIVE"}</span>
-                  </span>
-                );
-              })()}
             </span>
             <span style={{ fontFamily: SANS, fontSize: isMobile ? 15 : 22, color: "#94a3b8" }}>and is a</span>
             <span style={{
