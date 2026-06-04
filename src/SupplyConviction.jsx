@@ -71,7 +71,11 @@ function parseSupply(raw) {
   CATS.forEach(({ key }) => { tokens[key] = (vals[key] || 0) * scale; });
   const classified = CATS.reduce((s, { key }) => s + tokens[key], 0);
   const unclassified = Math.max(0, SUPPLY - classified);
-  return { tokens, classified, unclassified, diamondTokens: tokens.diamond, diamondShareSupply: tokens.diamond / SUPPLY };
+  return {
+    tokens, classified, unclassified, diamondTokens: tokens.diamond,
+    diamondShareSupply: tokens.diamond / SUPPLY,           // of total supply (~61%)
+    diamondShareClassified: tokens.diamond / classified,   // of age-classified supply (~86%, matches Holderscan)
+  };
 }
 
 function Readout({ label, value, color, sub, isMobile }) {
@@ -155,7 +159,7 @@ export default function SupplyConviction({ price, isMobile }) {
       if (!ps) continue;
       rows.push({
         ts: new Date(rec.d).getTime(), date: rec.d,
-        diamond: ps.diamondShareSupply * 100,
+        diamond: ps.diamondShareClassified * 100,
         effMc: (rec.p || 0) * (SUPPLY - ps.diamondTokens),
       });
     }
@@ -165,14 +169,14 @@ export default function SupplyConviction({ price, isMobile }) {
   const model = useMemo(() => {
     const ps = raw ? parseSupply(raw) : null;
     if (!ps) return null;
-    const shareOfSupply = {};
-    CATS.forEach(({ key }) => { shareOfSupply[key] = ps.tokens[key] / SUPPLY; });
+    const shareC = {};
+    CATS.forEach(({ key }) => { shareC[key] = ps.tokens[key] / ps.classified; });
     return {
-      shareOfSupply,
-      unclassifiedShare: ps.unclassified / SUPPLY,
-      diamondShare: ps.diamondShareSupply,
-      longTermShare: (ps.tokens.diamond + ps.tokens.gold) / SUPPLY,
-      effFloatFrac: 1 - ps.diamondShareSupply,
+      shareC,
+      diamondShare: ps.diamondShareClassified,      // matches Holderscan (86%)
+      diamondPctTotal: ps.diamondShareSupply,        // of total supply (~61%)
+      longTermShare: (ps.tokens.diamond + ps.tokens.gold) / ps.classified,
+      classifiedPctTotal: ps.classified / SUPPLY,
       diamondTokens: ps.diamondTokens,
     };
   }, [raw]);
@@ -187,21 +191,18 @@ export default function SupplyConviction({ price, isMobile }) {
     );
   }
 
-  const { shareOfSupply, unclassifiedShare, diamondShare, longTermShare, effFloatFrac } = model;
-  const effFloatTokens = SUPPLY * effFloatFrac;
+  const { shareC, diamondShare, diamondPctTotal, longTermShare, classifiedPctTotal, diamondTokens } = model;
+  const diamondValue = price * diamondTokens;
+  const effFloatTokens = SUPPLY - diamondTokens;
   const effMc = price * effFloatTokens;
   const nominalMc = price * SUPPLY;
-  const UNCLASSIFIED = { c: "#334155" };
-  const segments = [
-    ...CATS.map(({ key, c }) => ({ c, pct: shareOfSupply[key] * 100 })),
-    { c: UNCLASSIFIED.c, pct: unclassifiedShare * 100 },
-  ].filter(s => s.pct > 0);
+  const segments = CATS.map(({ key, c }) => ({ c, pct: shareC[key] * 100 })).filter(s => s.pct > 0);
 
   return (
     <div style={{ maxWidth: MAX_W, margin: "0 auto" }}>
-      <div style={{ display: "flex", gap: isMobile ? 20 : 48, justifyContent: "center", flexWrap: "wrap", marginBottom: 24 }}>
-        <Readout label="DIAMOND SUPPLY" value={(diamondShare * 100).toFixed(1) + "%"} color="#22d3ee" sub="removed from float" isMobile={isMobile} />
-        <Readout label="EFFECTIVE FLOAT" value={fNum(effFloatTokens)} color="#cbd5e1" sub={(effFloatFrac * 100).toFixed(0) + "% of supply"} isMobile={isMobile} />
+      <div style={{ display: "flex", gap: isMobile ? 18 : 40, justifyContent: "center", flexWrap: "wrap", marginBottom: 24 }}>
+        <Readout label="DIAMOND SUPPLY" value={(diamondShare * 100).toFixed(0) + "%"} color="#22d3ee" sub={`${fUsd(diamondValue)} · held longest`} isMobile={isMobile} />
+        <Readout label="EFFECTIVE FLOAT" value={fNum(effFloatTokens) + " SPX"} color="#cbd5e1" sub="supply − diamond" isMobile={isMobile} />
         <Readout label="EFFECTIVE MARKET CAP" value={fUsd(effMc)} color="#4ade80" sub={`vs ${fUsd(nominalMc)} nominal`} isMobile={isMobile} />
       </div>
 
@@ -222,22 +223,18 @@ export default function SupplyConviction({ price, isMobile }) {
         {CATS.map(({ key, label, c, note }) => (
           <div key={key} style={{ display: "flex", alignItems: "center", gap: 7, fontFamily: SANS, fontSize: 13, color: "#cbd5e1" }}>
             <span style={{ width: 12, height: 12, borderRadius: 3, background: c }} />
-            {label} <span style={{ fontFamily: MONO, color: "#94a3b8" }}>{(shareOfSupply[key] * 100).toFixed(1)}%</span>
+            {label} <span style={{ fontFamily: MONO, color: "#94a3b8" }}>{(shareC[key] * 100).toFixed(1)}%</span>
             {note && <span style={{ color: "#64748b", fontSize: 11.5 }}>· {note}</span>}
           </div>
         ))}
-        <div style={{ display: "flex", alignItems: "center", gap: 7, fontFamily: SANS, fontSize: 13, color: "#cbd5e1" }}>
-          <span style={{ width: 12, height: 12, borderRadius: 3, background: UNCLASSIFIED.c }} />
-          Unclassified <span style={{ fontFamily: MONO, color: "#94a3b8" }}>{(unclassifiedShare * 100).toFixed(1)}%</span>
-          <span style={{ color: "#64748b", fontSize: 11.5 }}>· smaller wallets</span>
-        </div>
       </div>
 
-      <div style={{ maxWidth: 760, margin: "22px auto 0", fontFamily: SANS, fontSize: 13, color: "#cbd5e1", lineHeight: 1.7, textAlign: "center" }}>
-        Supply grouped by how long it&apos;s been held (Holderscan, FIFO over the top ~1,000 wallets).
-        <strong style={{ color: "#22d3ee" }}> Diamond</strong> hands ({(diamondShare * 100).toFixed(1)}%) are treated as
-        <em> removed from circulating float</em> — conviction-based scarcity, the holders-not-emission analog to Bitcoin&apos;s halving.
-        Long-term (Diamond+Gold) = {(longTermShare * 100).toFixed(1)}%. Snapshot, not financial advice.
+      <div style={{ maxWidth: 780, margin: "22px auto 0", fontFamily: SANS, fontSize: 13, color: "#cbd5e1", lineHeight: 1.7, textAlign: "center" }}>
+        Supply grouped by holding time (Holderscan, FIFO).
+        <strong style={{ color: "#22d3ee" }}> Diamond {(diamondShare * 100).toFixed(0)}%</strong> ({fUsd(diamondValue)}) — share of the
+        age-classified supply (top ~{(classifiedPctTotal * 100).toFixed(0)}% of total), matching Holderscan. Long-term (Diamond+Gold) = {(longTermShare * 100).toFixed(0)}%.
+        Treating diamonds as <em>removed from float</em> ({(diamondPctTotal * 100).toFixed(0)}% of total supply) leaves an effective
+        float of {fNum(effFloatTokens)} SPX → {fUsd(effMc)} effective cap. Snapshot, not financial advice.
       </div>
 
       {/* Diamond-supply history (grows as daily snapshots accumulate) */}
