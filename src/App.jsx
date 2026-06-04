@@ -116,15 +116,15 @@ function TabIcon({ name }) {
   }
 }
 
-// Unified nav: Rainbow (hero) + the six indicator charts.
+// Unified nav: Rainbow (hero) + the six indicator charts, each with its own neon color.
 const NAV_TABS = [
-  ["rainbow", "Rainbow"],
-  ["risk", "Risk"],
-  ["drawdown", "Drawdown"],
-  ["spxbtc", "SPX/BTC"],
-  ["relative", "Relative"],
-  ["supply", "Supply"],
-  ["holders", "Holders"],
+  ["rainbow", "Rainbow", "#a78bfa"],
+  ["risk", "Risk", "#f59e0b"],
+  ["drawdown", "Drawdown", "#f87171"],
+  ["spxbtc", "SPX/BTC", "#f7931a"],
+  ["relative", "Relative", "#22d3ee"],
+  ["supply", "Supply", "#34d399"],
+  ["holders", "Holders", "#60a5fa"],
 ];
 
 export default function App() {
@@ -448,37 +448,38 @@ export default function App() {
         background: "rgba(6, 8, 18, 0.35)", backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)",
       }}>
         <div style={{
-          maxWidth: MAX_W, margin: "0 auto", padding: isMobile ? "7px 10px" : "8px 18px",
+          maxWidth: MAX_W, margin: "0 auto", padding: isMobile ? "0 10px" : "0 18px",
           display: "flex", alignItems: "center", gap: 10,
         }}>
           <div className="no-scrollbar" style={{
             display: "flex", gap: 7, alignItems: "center",
             flex: 1, justifyContent: isMobile ? "flex-start" : "center",
-            flexWrap: "nowrap", overflowX: "auto",
+            flexWrap: "nowrap", overflowX: isMobile ? "auto" : "visible", padding: "9px 2px",
             WebkitOverflowScrolling: "touch", scrollbarWidth: "none",
           }}>
-            {NAV_TABS.map(([id, label]) => {
+            {NAV_TABS.map(([id, label, c]) => {
               const active = view === id;
               const pillStyle = {
                 display: "inline-flex", alignItems: "center", gap: 6, whiteSpace: "nowrap", flexShrink: 0,
                 fontFamily: SANS, fontSize: 13.5, fontWeight: 600, padding: "8px 13px", borderRadius: 9,
                 background: "transparent",
-                border: `1px solid ${active ? "rgba(99,102,241,0.55)" : "transparent"}`,
-                boxShadow: active ? "0 0 14px rgba(99,102,241,0.4)" : "none",
-                color: active ? "#f8fafc" : "#94a3b8", "--glow": "rgba(99,102,241,0.6)",
+                border: `1px solid ${active ? c + "cc" : "transparent"}`,
+                boxShadow: active ? `0 0 14px ${c}55` : "none",
+                color: active ? "#f8fafc" : "#94a3b8", "--glow": c,
               };
+              const iconWrap = <span style={{ color: c, display: "inline-flex" }}><TabIcon name={id} /></span>;
               if (id === "relative") {
                 return (
                   <button key={id} ref={relBtnRef} className="pill" onClick={() => goChart(id)}
                     onMouseEnter={openRel} onMouseLeave={closeRel} style={pillStyle}>
-                    <TabIcon name={id} />{label}
+                    {iconWrap}{label}
                     <span style={{ opacity: 0.6, fontSize: 10, marginLeft: 1 }}>▾</span>
                   </button>
                 );
               }
               return (
                 <button key={id} className="pill" onClick={() => goChart(id)} style={pillStyle}>
-                  <TabIcon name={id} />{label}
+                  {iconWrap}{label}
                 </button>
               );
             })}
