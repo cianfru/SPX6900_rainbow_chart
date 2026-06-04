@@ -460,7 +460,7 @@ export default function App() {
             {NAV_TABS.map(([id, label, c]) => {
               const active = view === id;
               const pillStyle = {
-                display: "inline-flex", alignItems: "center", gap: 6, whiteSpace: "nowrap", flexShrink: 0,
+                display: "inline-flex", alignItems: "center", gap: 0, whiteSpace: "nowrap", flexShrink: 0,
                 fontFamily: SANS, fontSize: 13.5, fontWeight: 600, padding: "8px 13px", borderRadius: 9,
                 background: "transparent",
                 border: `1px solid ${active ? c + "cc" : "transparent"}`,
@@ -469,18 +469,27 @@ export default function App() {
               };
               const iconWrap = <span style={{ color: c, display: "inline-flex" }}><TabIcon name={id} /></span>;
               const showLabel = !isMobile || active; // mobile: only the selected tab shows its label
+              const labelStyle = {
+                display: "inline-block", overflow: "hidden", whiteSpace: "nowrap",
+                maxWidth: showLabel ? 160 : 0, opacity: showLabel ? 1 : 0, marginLeft: showLabel ? 6 : 0,
+                transition: "max-width .26s ease, opacity .2s ease, margin-left .26s ease",
+              };
               if (id === "relative") {
+                const caretStyle = {
+                  display: "inline-block", overflow: "hidden", fontSize: 10,
+                  maxWidth: showLabel ? 14 : 0, opacity: showLabel ? 0.6 : 0, marginLeft: showLabel ? 4 : 0,
+                  transition: "max-width .26s ease, opacity .2s ease, margin-left .26s ease",
+                };
                 return (
                   <button key={id} ref={relBtnRef} className="pill" onClick={() => goChart(id)} title={label}
                     onMouseEnter={openRel} onMouseLeave={closeRel} style={pillStyle}>
-                    {iconWrap}{showLabel && label}
-                    {showLabel && <span style={{ opacity: 0.6, fontSize: 10, marginLeft: 1 }}>▾</span>}
+                    {iconWrap}<span style={labelStyle}>{label}</span><span style={caretStyle}>▾</span>
                   </button>
                 );
               }
               return (
                 <button key={id} className="pill" onClick={() => goChart(id)} title={label} style={pillStyle}>
-                  {iconWrap}{showLabel && label}
+                  {iconWrap}<span style={labelStyle}>{label}</span>
                 </button>
               );
             })}
