@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
 import { fetchSupplyBreakdown } from "./holderscan.js";
 import { SUPPLY } from "./data.js";
 
@@ -120,6 +121,30 @@ export default function SupplyConviction({ price, isMobile }) {
     return () => { cancelled = true; };
   }, []);
 
+  const [history, setHistory] = useState(null);
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/history.json")
+      .then(r => (r.ok ? r.json() : []))
+      .then(d => { if (!cancelled) setHistory(Array.isArray(d) ? d : []); })
+      .catch(() => { if (!cancelled) setHistory([]); });
+    return () => { cancelled = true; };
+  }, []);
+
+  const hist = useMemo(() => {
+    if (!history) return [];
+    const rows = [];
+    for (const rec of history) {
+      const v = extract(rec.sup);
+      if (!v) continue;
+      const total = CATS.reduce((s, { key }) => s + (v[key] || 0), 0);
+      if (total <= 0) continue;
+      const dShare = (v.diamond || 0) / total;
+      rows.push({ ts: new Date(rec.d).getTime(), date: rec.d, diamond: dShare * 100, effMc: (rec.p || 0) * SUPPLY * (1 - dShare) });
+    }
+    return rows;
+  }, [history]);
+
   const model = useMemo(() => {
     const vals = raw ? extract(raw) : null;
     if (!vals) return null;
@@ -182,6 +207,42 @@ export default function SupplyConviction({ price, isMobile }) {
         <strong style={{ color: "#22d3ee" }}> Diamond</strong> hands ({(diamondShare * 100).toFixed(1)}%) are treated as
         <em> removed from circulating float</em> — conviction-based scarcity, the holders-not-emission analog to Bitcoin&apos;s halving.
         Long-term (Diamond+Gold) = {(longTermShare * 100).toFixed(1)}%. Snapshot, not financial advice.
+      </div>
+
+      {/* Diamond-supply history (grows as daily snapshots accumulate) */}
+      <div style={{ maxWidth: 980, margin: "34px auto 0" }}>
+        <div style={{ fontFamily: SANS, fontSize: 13, fontWeight: 700, color: "#cbd5e1", letterSpacing: 1, textTransform: "uppercase", textAlign: "center", marginBottom: 12 }}>
+          Diamond supply over time
+        </div>
+        {hist.length >= 2 ? (
+          <ResponsiveContainer width="100%" height={isMobile ? 240 : 300}>
+            <AreaChart data={hist} margin={{ top: 8, right: isMobile ? 10 : 24, bottom: 18, left: isMobile ? 0 : 8 }}>
+              <defs>
+                <linearGradient id="diaFill" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#22d3ee" stopOpacity={0.35} />
+                  <stop offset="100%" stopColor="#22d3ee" stopOpacity={0.02} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="2 8" stroke="rgba(255,255,255,0.07)" vertical={false} />
+              <XAxis dataKey="ts" type="number" scale="time" domain={["dataMin", "dataMax"]}
+                tickFormatter={ts => new Date(ts).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                tick={{ fill: "#cbd5e1", fontSize: isMobile ? 10 : 12, fontFamily: MONO }}
+                axisLine={{ stroke: "rgba(255,255,255,0.15)" }} tickLine={false} minTickGap={isMobile ? 40 : 30} />
+              <YAxis tickFormatter={v => v.toFixed(0) + "%"} tick={{ fill: "#cbd5e1", fontSize: isMobile ? 10 : 12, fontFamily: MONO }}
+                axisLine={{ stroke: "rgba(255,255,255,0.15)" }} tickLine={false} width={isMobile ? 38 : 46} domain={["auto", "auto"]} />
+              <Tooltip
+                contentStyle={{ background: "rgba(4,4,12,0.97)", border: "1px solid rgba(34,211,238,0.4)", borderRadius: 10, fontFamily: SANS }}
+                labelFormatter={ts => new Date(ts).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                formatter={v => [v.toFixed(1) + "%", "Diamond"]} />
+              <Area dataKey="diamond" stroke="#22d3ee" strokeWidth={2.2} fill="url(#diaFill)" isAnimationActive={false} />
+            </AreaChart>
+          </ResponsiveContainer>
+        ) : (
+          <div style={{ textAlign: "center", fontFamily: SANS, fontSize: 13, color: "#64748b", padding: "24px 0", lineHeight: 1.6 }}>
+            Tracking has started — a daily snapshot is recorded automatically.
+            The time-series will appear here once a couple of days have accumulated.
+          </div>
+        )}
       </div>
     </div>
   );
