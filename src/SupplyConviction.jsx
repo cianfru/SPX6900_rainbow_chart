@@ -182,6 +182,24 @@ export default function SupplyConviction({ price, isMobile }) {
     };
   }, [raw]);
 
+  // Diamond % barely moves day to day, so an "auto" domain + whole-number ticks
+  // collapses every label to "61%". Pad the domain around the real min/max and
+  // pick enough decimals that adjacent ticks read as distinct values.
+  const yAxis = useMemo(() => {
+    if (hist.length < 2) return { domain: ["auto", "auto"], fmt: v => v.toFixed(1) + "%" };
+    const vals = hist.map(h => h.diamond);
+    const lo = Math.min(...vals);
+    const hi = Math.max(...vals);
+    const range = hi - lo;
+    const pad = Math.max(range * 0.25, 0.05); // floor keeps a flat series from looking like a line on the axis
+    const span = range + pad * 2;
+    const decimals = span >= 8 ? 0 : span >= 0.8 ? 1 : 2;
+    return {
+      domain: [lo - pad, hi + pad],
+      fmt: v => v.toFixed(decimals) + "%",
+    };
+  }, [hist]);
+
   if (status === "loading") return <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 40 }}>Loading supply data…</div>;
   if (status !== "ok") return <div style={{ textAlign: "center", fontFamily: SANS, color: "#f87171", padding: 40 }}>Couldn&apos;t load supply data: {status}</div>;
   if (!model) {
@@ -266,8 +284,8 @@ export default function SupplyConviction({ price, isMobile }) {
                 tickFormatter={ts => new Date(ts).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
                 tick={{ fill: "#cbd5e1", fontSize: isMobile ? 10 : 12, fontFamily: MONO }}
                 axisLine={{ stroke: "rgba(255,255,255,0.15)" }} tickLine={false} minTickGap={isMobile ? 40 : 30} />
-              <YAxis tickFormatter={v => v.toFixed(0) + "%"} tick={{ fill: "#cbd5e1", fontSize: isMobile ? 10 : 12, fontFamily: MONO }}
-                axisLine={{ stroke: "rgba(255,255,255,0.15)" }} tickLine={false} width={isMobile ? 38 : 46} domain={["auto", "auto"]} />
+              <YAxis tickFormatter={yAxis.fmt} tick={{ fill: "#cbd5e1", fontSize: isMobile ? 10 : 12, fontFamily: MONO }}
+                axisLine={{ stroke: "rgba(255,255,255,0.15)" }} tickLine={false} width={isMobile ? 44 : 52} domain={yAxis.domain} allowDecimals />
               <Tooltip
                 contentStyle={{ background: "rgba(4,4,12,0.97)", border: "1px solid rgba(34,211,238,0.4)", borderRadius: 10, fontFamily: SANS }}
                 labelFormatter={ts => new Date(ts).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
