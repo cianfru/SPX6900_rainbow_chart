@@ -170,6 +170,51 @@ export function buildDrawdownCycles(series, { minDepth = 0.3, minPeakPrice = 0 }
   return out;
 }
 
+// Rally cycles: the mirror of drawdown cycles. Each correction's trough (found by
+// buildDrawdownCycles) is a launch pad; from there we measure the climb UP to the
+// rally's highest point before the next bottom. Overlaying these shows whether
+// later recoveries run higher/longer as the asset matures.
+export function buildRallyCycles(series, { minDepth = 0.4, minPeakPrice = 0.05, minGain = 0.3 } = {}) {
+  if (series.length === 0) return [];
+  const dayOf = d => new Date(d).getTime() / 86400000;
+  const idxByDate = new Map(series.map((r, i) => [r.date, i]));
+
+  // Reuse drawdown trough detection so bottoms are defined identically to the
+  // drawdown chart. lowPrice = peakPrice × (1 + minDD).
+  const dds = buildDrawdownCycles(series, { minDepth, minPeakPrice });
+  const bottoms = dds
+    .map(c => ({ date: c.lowDate, price: c.peakPrice * (1 + c.minDD), idx: idxByDate.get(c.lowDate) }))
+    .filter(b => b.idx != null)
+    .sort((a, b) => a.idx - b.idx);
+
+  const out = [];
+  for (let k = 0; k < bottoms.length; k++) {
+    const start = bottoms[k];
+    const end = k + 1 < bottoms.length ? bottoms[k + 1].idx : series.length; // exclusive
+    const startDay = dayOf(start.date);
+    const points = [{ day: 0, gain: 0, date: start.date }];
+    let maxGain = 0, peakDate = start.date, peakIdx = start.idx;
+    for (let i = start.idx + 1; i < end; i++) {
+      const gain = series[i].price / start.price - 1;
+      points.push({ day: Math.round(dayOf(series[i].date) - startDay), gain, date: series[i].date });
+      if (gain > maxGain) { maxGain = gain; peakDate = series[i].date; peakIdx = i; }
+    }
+    if (maxGain < minGain) continue;
+    // truncate at the rally's peak — bottom → top only (mirror of drawdown's peak → bottom)
+    const ti = points.findIndex(p => p.date === peakDate);
+    out.push({
+      startDate: start.date,
+      lowPrice: start.price,
+      peakDate,
+      maxGain,
+      points: points.slice(0, ti + 1),
+      // ongoing if this is the latest bottom and price is still at/near its rally high
+      ongoing: end === series.length && peakIdx >= series.length - 1,
+    });
+  }
+  return out;
+}
+
 export const BAND_LABELS = [
   { l: "Fire Sale", c: "#6366f1" },
   { l: "BUY!", c: "#3b82f6" },

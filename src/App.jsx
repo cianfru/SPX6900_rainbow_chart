@@ -12,6 +12,7 @@ import {
 import HolderscanDashboard from "./HolderscanDashboard.jsx";
 import RiskChart from "./RiskChart.jsx";
 import DrawdownChart from "./DrawdownChart.jsx";
+import RallyChart from "./RallyChart.jsx";
 import SpxBtcChart from "./SpxBtcChart.jsx";
 import RelativeChart from "./RelativeChart.jsx";
 import SupplyConviction from "./SupplyConviction.jsx";
@@ -105,6 +106,7 @@ function TabIcon({ name }) {
     case "rainbow": return (<svg {...p}><path d="M3 16a9 9 0 0 1 18 0" /><path d="M6 16a6 6 0 0 1 12 0" /><path d="M9 16a3 3 0 0 1 6 0" /></svg>);
     case "risk": return (<svg {...p}><path d="M22 12h-4l-3 9L9 3l-3 9H2" /></svg>);
     case "drawdown": return (<svg {...p}><polyline points="22 17 13.5 8.5 8.5 13.5 2 7" /><polyline points="16 17 22 17 22 11" /></svg>);
+    case "rally": return (<svg {...p}><polyline points="22 7 13.5 15.5 8.5 10.5 2 17" /><polyline points="16 7 22 7 22 13" /></svg>);
     case "spxbtc": return (<svg {...p}><path d="M8 3 4 7l4 4" /><path d="M4 7h16" /><path d="M16 21l4-4-4-4" /><path d="M20 17H4" /></svg>);
     case "relative": return (<svg {...p}><path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z" /><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z" /><path d="M7 21h10" /><path d="M12 3v18" /><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2" /></svg>);
     case "supply": return (<svg {...p}><path d="M6 3h12l4 6-10 13L2 9Z" /><path d="M11 3 8 9l4 13 4-13-3-6" /><path d="M2 9h20" /></svg>);
@@ -118,6 +120,7 @@ const NAV_TABS = [
   ["rainbow", "Rainbow", "#a78bfa"],
   ["risk", "Risk", "#f59e0b"],
   ["drawdown", "Drawdown", "#f87171"],
+  ["rally", "Rally", "#4ade80"],
   ["spxbtc", "SPX/BTC", "#f7931a"],
   ["relative", "Relative", "#22d3ee"],
   ["supply", "Supply", "#34d399"],
@@ -1000,6 +1003,7 @@ export default function App() {
         </div>
         {tab === "risk" && <RiskChart series={priceData} m={m} isMobile={isMobile} />}
         {tab === "drawdown" && <DrawdownChart series={priceData} isMobile={isMobile} />}
+        {tab === "rally" && <RallyChart series={priceData} isMobile={isMobile} />}
         {tab === "spxbtc" && <SpxBtcChart series={priceData} isMobile={isMobile} />}
         {tab === "relative" && <RelativeChart series={priceData} isMobile={isMobile} which={relWhich} setWhich={setRelWhich} />}
         {tab === "supply" && <SupplyConviction price={last.price} isMobile={isMobile} />}
