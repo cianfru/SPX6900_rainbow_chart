@@ -25,4 +25,4 @@ dist-ssr
 *.sw?
 
 # X bot dry-run artifact
-bot-preview.png
+bot-preview*.png

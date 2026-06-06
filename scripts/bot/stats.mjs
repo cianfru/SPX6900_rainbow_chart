@@ -1,6 +1,6 @@
 // Shared stats for the X bot: fetch the live price and derive everything the
-// posts and the rainbow card need from the model. Mirrors the logic the site and
-// api/og.js use so the bot can never disagree with the chart.
+// rotating posts and the cards need from the model. Mirrors the site / api/og.js
+// logic so the bot can never disagree with the chart.
 import { DEFAULT_RAW } from "../../src/data.js";
 import * as M from "../../src/models.js";
 
@@ -34,6 +34,26 @@ export function computeStats(price, dateStr = new Date().toISOString().slice(0, 
   const fsr = M.buildFireSaleRallies(DEFAULT_RAW, m, { minGain: 0.3 });
   const lastFs = fsr.at(-1);
 
+  // All-time high + current drawdown from it.
+  let ath = -Infinity, athDate = DEFAULT_RAW[0].date;
+  for (const r of DEFAULT_RAW) if (r.price > ath) { ath = r.price; athDate = r.date; }
+  const dd = price / Math.max(ath, price) - 1;
+  const dds = M.buildDrawdownSeries(DEFAULT_RAW);
+  const maxDd = dds.reduce((mn, r) => Math.min(mn, r.dd), 0);
+
+  // Share of history spent this cheap or cheaper (band <= current).
+  const histBands = DEFAULT_RAW.map(r => M.bandIndex(m, r.price, M.dayN(r.date)));
+  const cheaperFrac = histBands.filter(b => b <= bi).length / histBands.length;
+
+  // Hindsight strategy edge vs HODL (cycle anchor — the more conservative one).
+  const cyc = M.buildRallyCycles(DEFAULT_RAW, { minDepth: 0.4, minPeakPrice: 0.05, minGain: 0.3 });
+  const stratCyc = M.buildCycleStrategy(DEFAULT_RAW, cyc);
+  const edge = stratCyc ? (1 + stratCyc.stratRet) / (1 + stratCyc.hodlRet) : null;
+
+  // Launch / all-time return.
+  const first = DEFAULT_RAW[0];
+  const allTimeReturn = price / first.price - 1;
+
   return {
     date: dateStr, day, price, center, model: m,
     band: M.BAND_LABELS[bi], bandIndex: bi,
@@ -44,6 +64,10 @@ export function computeStats(price, dateStr = new Date().toISOString().slice(0, 
     lastFireSale: lastFs
       ? { date: lastFs.startDate, low: lastFs.lowPrice, sinceGain: price / lastFs.lowPrice - 1, peakGain: lastFs.maxGain }
       : null,
+    ath, athDate, drawdown: dd, maxDrawdown: maxDd,
+    cheaperFrac,
+    edge,
+    firstPrice: first.price, firstDate: first.date, allTimeReturn,
     targets: M.TARGETS.map(t => ({ ...t, mult: t.price / price })),
   };
 }

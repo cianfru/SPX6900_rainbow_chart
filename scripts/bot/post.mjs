@@ -1,16 +1,24 @@
-// Entry point for the X bot. Computes live stats, builds the post text + rainbow
-// card, and either posts to X or (safely) dry-runs.
+// Entry point for the X bot. Computes live stats, picks the day's rotating post,
+// renders its card, and either posts to X or (safely) dry-runs.
 //
 // Dry-run (writes bot-preview.png + prints the text, posts nothing) happens when:
 //   - DRY_RUN=1 or --dry-run is passed, OR
 //   - any X credential is missing.
+//
+// Test a specific topic with  --post=<id>  or  BOT_POST=<id>  (implies dry-run).
+// Render every topic to bot-preview-<id>.png with  --all  (implies dry-run).
 //
 // Required secrets to actually post (OAuth 1.0a user context for the bot account):
 //   X_API_KEY  X_API_SECRET  X_ACCESS_TOKEN  X_ACCESS_SECRET
 import { writeFileSync } from "node:fs";
 import { fetchLivePrice, computeStats } from "./stats.mjs";
 import { renderRainbowCard } from "./rainbow-card.mjs";
-import { buildPost } from "./templates.mjs";
+import { renderStatCard } from "./stat-card.mjs";
+import { buildPost, allIds } from "./posts.mjs";
+
+const arg = name => { const a = process.argv.find(x => x.startsWith(`--${name}=`)); return a ? a.split("=")[1] : null; };
+const overrideId = arg("post") || process.env.BOT_POST || null;
+const renderAll = process.argv.includes("--all");
 
 const creds = {
   appKey: process.env.X_API_KEY,
@@ -19,7 +27,11 @@ const creds = {
   accessSecret: process.env.X_ACCESS_SECRET,
 };
 const hasCreds = Object.values(creds).every(Boolean);
-const dryRun = process.env.DRY_RUN === "1" || process.argv.includes("--dry-run") || !hasCreds;
+const dryRun = process.env.DRY_RUN === "1" || process.argv.includes("--dry-run") || !!overrideId || renderAll || !hasCreds;
+
+function cardFor(post, stats) {
+  return post.card.type === "rainbow" ? renderRainbowCard(stats) : renderStatCard({ ...post.card.spec, date: stats.date });
+}
 
 let live = await fetchLivePrice();
 if (!live) {
@@ -27,20 +39,28 @@ if (!live) {
     console.error("No live price available (GeckoTerminal + Coinbase both failed) — skipping, no post.");
     process.exit(0);
   }
-  // Offline preview only: fall back to the last bundled price so dry-runs still render.
   const { DEFAULT_RAW } = await import("../../src/data.js");
   live = { price: DEFAULT_RAW.at(-1).price, source: "bundled-fallback" };
 }
-
 const stats = computeStats(live.price);
-const { kind, text } = buildPost(stats);
-const png = renderRainbowCard(stats);
 
-console.log(`price ${live.price} (${live.source}) · band ${stats.band.l} · ${kind} post · ${text.length} chars`);
+if (renderAll) {
+  for (const id of allIds(stats)) {
+    const post = buildPost(stats, new Date(), id);
+    writeFileSync(`bot-preview-${id}.png`, cardFor(post, stats));
+    console.log(`\n[${id}] (${post.text.length} chars)\n${post.text}`);
+  }
+  console.log(`\nRendered ${allIds(stats).length} cards (price ${live.price}, ${live.source}).`);
+  process.exit(0);
+}
+
+const post = buildPost(stats, new Date(), overrideId);
+const png = cardFor(post, stats);
+console.log(`price ${live.price} (${live.source}) · post "${post.id}" · ${post.text.length} chars`);
 
 if (dryRun) {
   writeFileSync("bot-preview.png", png);
-  console.log(`\n[DRY RUN — nothing posted]\n${"-".repeat(40)}\n${text}\n${"-".repeat(40)}\ncard -> bot-preview.png (${png.length} bytes)`);
+  console.log(`\n[DRY RUN — nothing posted]\n${"-".repeat(44)}\n${post.text}\n${"-".repeat(44)}\ncard -> bot-preview.png (${png.length} bytes)`);
   if (!hasCreds) console.log("Reason: X credentials not set. Add the four X_* secrets to post for real.");
   process.exit(0);
 }
@@ -48,5 +68,5 @@ if (dryRun) {
 const { TwitterApi } = await import("twitter-api-v2");
 const client = new TwitterApi(creds);
 const mediaId = await client.v1.uploadMedia(png, { mimeType: "image/png" });
-const res = await client.v2.tweet({ text, media: { media_ids: [mediaId] } });
-console.log(`Posted ✓ tweet id ${res?.data?.id}`);
+const res = await client.v2.tweet({ text: post.text, media: { media_ids: [mediaId] } });
+console.log(`Posted ✓ "${post.id}" tweet id ${res?.data?.id}`);
