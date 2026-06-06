@@ -87,16 +87,19 @@ export default function RallyChart({ series, m, isMobile }) {
 
   const anchorToggle = (
     <div style={{ display: "flex", justifyContent: "center", gap: 8, marginBottom: 18 }}>
-      {[["cycle", "Cycle bottoms"], ["firesale", "Fire Sale band"]].map(([id, label]) => (
-        <button key={id} onClick={() => setAnchor(id)} style={{
-          fontFamily: SANS, fontSize: isMobile ? 12 : 13, fontWeight: 600, padding: "7px 14px",
-          borderRadius: 8, cursor: "pointer", transition: "all 0.18s ease",
-          color: anchor === id ? "#020208" : "#cbd5e1",
-          background: anchor === id ? "#4ade80" : "rgba(255,255,255,0.05)",
-          border: `1px solid ${anchor === id ? "#4ade80" : "rgba(255,255,255,0.12)"}`,
-          boxShadow: anchor === id ? "0 0 16px rgba(74,222,128,0.4)" : "none",
-        }}>{label}</button>
-      ))}
+      {[["cycle", "Cycle bottoms"], ["firesale", "Fire Sale band"]].map(([id, label]) => {
+        const active = anchor === id;
+        const c = "#4ade80";
+        return (
+          <button key={id} className="pill" onClick={() => setAnchor(id)} style={{
+            fontFamily: SANS, fontSize: isMobile ? 12 : 13, fontWeight: 600, padding: "8px 14px",
+            borderRadius: 9, cursor: "pointer", background: "transparent",
+            border: `1px solid ${active ? c + "cc" : "transparent"}`,
+            boxShadow: active ? `0 0 14px ${c}55` : "none",
+            color: active ? "#f8fafc" : "#94a3b8", "--glow": c,
+          }}>{label}</button>
+        );
+      })}
     </div>
   );
 
