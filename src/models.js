@@ -241,6 +241,34 @@ export function buildFireSaleRallies(series, m, { minGain = 0.3 } = {}) {
   return ralliesFromAnchors(series, anchors, minGain);
 }
 
+// Hindsight strategy: start with 1×, buy each cycle low and sell at that cycle's
+// peak (compounding), sitting in cash between cycles. Returns an equity curve vs a
+// HODL-from-first-low baseline. Perfect timing — illustrative, not achievable live.
+export function buildCycleStrategy(series, cycles) {
+  if (!series.length || !cycles.length) return null;
+  const idxByDate = new Map(series.map((r, i) => [r.date, i]));
+  const cyc = cycles
+    .map(c => ({ low: c.lowPrice, maxGain: c.maxGain, bIdx: idxByDate.get(c.startDate), pIdx: idxByDate.get(c.peakDate) }))
+    .filter(c => c.bIdx != null && c.pIdx != null)
+    .sort((a, b) => a.bIdx - b.bIdx);
+  if (!cyc.length) return null;
+
+  const startIdx = cyc[0].bIdx;
+  const startPrice = series[startIdx].price;
+  const rows = [];
+  let realized = 1, k = 0; // realized = locked-in equity from completed sells
+  for (let i = startIdx; i < series.length; i++) {
+    const price = series[i].price;
+    // bank any cycles whose peak we've passed
+    while (k < cyc.length && i > cyc[k].pIdx) { realized *= (1 + cyc[k].maxGain); k++; }
+    const inMarket = k < cyc.length && i >= cyc[k].bIdx && i <= cyc[k].pIdx;
+    const strat = inMarket ? realized * (price / cyc[k].low) : realized;
+    rows.push({ ts: new Date(series[i].date).getTime(), date: series[i].date, strat, hodl: price / startPrice });
+  }
+  const last = rows[rows.length - 1];
+  return { rows, stratRet: last.strat - 1, hodlRet: last.hodl - 1, startDate: series[startIdx].date };
+}
+
 export const BAND_LABELS = [
   { l: "Fire Sale", c: "#6366f1" },
   { l: "BUY!", c: "#3b82f6" },
