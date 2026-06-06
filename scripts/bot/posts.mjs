@@ -11,6 +11,10 @@ const fMoney = n => (n >= 1e9 ? "$" + (n / 1e9).toFixed(2) + "B" : n >= 1e6 ? "$
 const fNum = n => Math.round(n).toLocaleString();
 const BAND_EMOJI = ["🟣", "🔵", "🟦", "🟢", "🟩", "🟡", "🟠", "🔴", "🟥"];
 const BAND_SHORT = ["Fire", "BUY", "Acc", "Cheap", "HODL", "Bub", "FOMO", "SELL", "Max"];
+const TIERS = [
+  ["diamond", "Diamond", "#22d3ee"], ["gold", "Gold", "#f59e0b"], ["silver", "Silver", "#cbd5e1"],
+  ["bronze", "Bronze", "#b45309"], ["wood", "Wood", "#78716c"],
+];
 
 const decadeTicks = (min, max) => {
   const t = [];
@@ -166,7 +170,52 @@ spx6900rainbow.xyz · NFA`,
     } },
   }),
 
-  // 10 — all-time return (price history, log)
+  // 10 — holder distribution (supply tiers bar)
+  s => s.supply && s.supply.tiers && ({
+    id: "distribution",
+    text:
+`💎 Who holds SPX6900?
+Of the age-classified supply, ~${Math.round((s.supply.tiers.diamond / s.supply.classified) * 100)}% sits in "diamond" hands (longest-held), with a Gini of ${s.supply.gini.toFixed(2)} — extreme concentration.
+High conviction, thin float.
+spx6900rainbow.xyz · NFA`,
+    card: { type: "bar", spec: {
+      title: "Supply by holder conviction tier", headline: `${Math.round((s.supply.tiers.diamond / s.supply.classified) * 100)}% diamond hands`, accent: "#22d3ee",
+      bars: TIERS.map(([k, label, c]) => ({ label, value: s.supply.tiers[k], text: Math.round((s.supply.tiers[k] / s.supply.classified) * 100) + "%", color: c })),
+    } },
+  }),
+
+  // 11 — average holder break-even / PnL (bar)
+  s => s.supply && s.supply.breakEven && ({
+    id: "breakeven",
+    text:
+`📊 The average SPX6900 holder's entry is ~${fPrice(s.supply.breakEven)}.
+At ${fPrice(s.price)} that's about ${fPct(s.supply.avgHolderPnl)} — the average holder is ${s.supply.avgHolderPnl < 0 ? "underwater" : "in profit"}.
+Price vs the crowd's cost basis.
+spx6900rainbow.xyz · NFA`,
+    card: { type: "bar", spec: {
+      title: "Price vs average holder's cost basis", headline: `${fPct(s.supply.avgHolderPnl)} avg holder`, accent: s.supply.avgHolderPnl < 0 ? "#f87171" : "#4ade80",
+      bars: [
+        { label: "Avg entry", value: s.supply.breakEven, text: fPrice(s.supply.breakEven), color: "#64748b" },
+        { label: "Price now", value: s.price, text: fPrice(s.price), color: s.supply.avgHolderPnl < 0 ? "#f87171" : "#4ade80" },
+      ],
+    } },
+  }),
+
+  // 12 — SPX vs majors (relative strength, 1yr)
+  s => s.majors && s.majors.length && ({
+    id: "majors",
+    text:
+`⚔️ SPX6900 vs the majors (1-yr relative):
+${s.majors.map(m => `${m.name}: ${fPct(m.rel365)}`).join(" · ")}
+Positive = SPX outperformed that asset over the past year.
+spx6900rainbow.xyz · NFA`,
+    card: { type: "bar", spec: {
+      title: "SPX6900 vs majors — 1-yr relative", headline: `${s.majors[0].name} ${fPct(s.majors[0].rel365)}`, accent: "#818cf8",
+      bars: s.majors.map(m => ({ label: "vs " + m.name, value: m.rel365, text: fPct(m.rel365), color: m.rel365 >= 0 ? "#4ade80" : "#f87171" })),
+    } },
+  }),
+
+  // 13 — all-time return (price history, log)
   s => ({
     id: "alltime",
     text:

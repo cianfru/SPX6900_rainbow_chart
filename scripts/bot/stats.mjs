@@ -19,10 +19,10 @@ export async function fetchLivePrice() {
   return null;
 }
 
-// Daily BTC closes (~1y) to price SPX in BTC and measure relative strength.
-export async function fetchBtcSeries() {
+// Daily closes (~1y) for a CoinGecko coin id, to price SPX against majors.
+async function fetchCoinSeries(id) {
   try {
-    const r = await fetch("https://api.coingecko.com/api/v3/coins/bitcoin/market_chart?vs_currency=usd&days=365&interval=daily", { headers: { Accept: "application/json" } });
+    const r = await fetch(`https://api.coingecko.com/api/v3/coins/${id}/market_chart?vs_currency=usd&days=365&interval=daily`, { headers: { Accept: "application/json" } });
     if (!r.ok) return null;
     const j = await r.json();
     const out = (j.prices || []).map(([ms, p]) => ({ date: new Date(ms).toISOString().slice(0, 10), price: p }));
@@ -30,13 +30,35 @@ export async function fetchBtcSeries() {
   } catch { return null; }
 }
 
-// Latest diamond-supply snapshot (bundled, written by the snapshot cron).
+// BTC/ETH/SOL daily closes (each null if unreachable).
+export async function fetchMajors() {
+  const [btc, eth, sol] = await Promise.all([
+    fetchCoinSeries("bitcoin"), fetchCoinSeries("ethereum"), fetchCoinSeries("solana"),
+  ]);
+  return { btc, eth, sol };
+}
+
+// Latest holder/supply snapshot (bundled, written by the snapshot cron).
 function loadSupplySnapshot() {
   try {
     const arr = JSON.parse(readFileSync(new URL("../../public/history.json", import.meta.url), "utf8"));
-    const last = arr.at(-1);
-    return { diamondTokens: last.sup.diamond, holders: last.holders, date: last.d };
+    return arr.at(-1);
   } catch { return null; }
+}
+
+// SPX-vs-coin ratio aligned on SPX dates, and relative-strength over a window.
+function alignedRatio(coin) {
+  const map = new Map(coin.map(r => [r.date, r.price]));
+  const getC = d => { let t = new Date(d); for (let k = 0; k < 4; k++) { const ds = t.toISOString().slice(0, 10); if (map.has(ds)) return map.get(ds); t = new Date(t.getTime() - 86400000); } return null; };
+  const aligned = [];
+  for (const r of DEFAULT_RAW) { const c = getC(r.date); if (c) aligned.push({ ts: Date.parse(r.date), ratio: r.price / c }); }
+  return aligned;
+}
+function relStrength(aligned, days) {
+  if (aligned.length < 2) return null;
+  const lastTs = aligned.at(-1).ts, rl = aligned.at(-1).ratio;
+  const before = aligned.filter(a => a.ts <= lastTs - days * 86400000);
+  return rl / (before.at(-1) || aligned[0]).ratio - 1;
 }
 
 export function computeStats(price, dateStr = new Date().toISOString().slice(0, 10), opts = {}) {
@@ -75,35 +97,39 @@ export function computeStats(price, dateStr = new Date().toISOString().slice(0, 
 
   const first = DEFAULT_RAW[0];
 
-  // Supply / diamond-adjusted market cap.
+  // Supply / diamond-adjusted market cap + holder break-even & concentration.
   let supply = null;
   const snap = loadSupplySnapshot();
   if (snap) {
+    const tiers = snap.sup;
+    const classified = Object.values(tiers).reduce((a, b) => a + b, 0);
     supply = {
-      diamondTokens: snap.diamondTokens, holders: snap.holders, snapDate: snap.date,
-      diamondShare: snap.diamondTokens / SUPPLY,
+      diamondTokens: tiers.diamond, holders: snap.holders, snapDate: snap.d,
+      diamondShare: tiers.diamond / SUPPLY,
       nominalMc: price * SUPPLY,
-      floatTokens: SUPPLY - snap.diamondTokens,
-      floatMc: price * (SUPPLY - snap.diamondTokens),
-      diamondValue: price * snap.diamondTokens,
+      floatTokens: SUPPLY - tiers.diamond,
+      floatMc: price * (SUPPLY - tiers.diamond),
+      diamondValue: price * tiers.diamond,
+      tiers, classified,
+      breakEven: snap.be, gini: snap.gini,
+      avgHolderPnl: snap.be ? price / snap.be - 1 : null,
     };
   }
 
-  // Valuation vs BTC (SPX priced in sats + relative strength).
+  // Valuation vs BTC (SPX priced in sats + relative strength), and vs majors.
+  const coins = opts.coins || (opts.btc ? { btc: opts.btc } : {});
   let btc = null;
-  if (opts.btc && opts.btc.length) {
-    const map = new Map(opts.btc.map(r => [r.date, r.price]));
-    const getBtc = d => { let t = new Date(d); for (let k = 0; k < 4; k++) { const ds = t.toISOString().slice(0, 10); if (map.has(ds)) return map.get(ds); t = new Date(t.getTime() - 86400000); } return null; };
-    const aligned = [];
-    for (const r of DEFAULT_RAW) { const b = getBtc(r.date); if (b) aligned.push({ ts: Date.parse(r.date), ratio: r.price / b }); }
-    const btcNow = opts.btc.at(-1).price;
+  if (coins.btc && coins.btc.length) {
+    const aligned = alignedRatio(coins.btc);
+    const btcNow = coins.btc.at(-1).price;
     if (aligned.length >= 2) {
-      const lastTs = aligned.at(-1).ts, ratioLast = aligned.at(-1).ratio;
-      const ratioAt = days => { const tgt = lastTs - days * 86400000; const before = aligned.filter(a => a.ts <= tgt); return (before.at(-1) || aligned[0]).ratio; };
-      const rel = days => ratioLast / ratioAt(days) - 1;
-      btc = { btcNow, sats: (price / btcNow) * 1e8, rel90: rel(90), rel365: rel(365), series: aligned.map(a => [a.ts, a.ratio * 1e8]) };
+      btc = { btcNow, sats: (price / btcNow) * 1e8, rel90: relStrength(aligned, 90), rel365: relStrength(aligned, 365), series: aligned.map(a => [a.ts, a.ratio * 1e8]) };
     }
   }
+  const majors = [["BTC", coins.btc], ["ETH", coins.eth], ["SOL", coins.sol]]
+    .filter(([, c]) => c && c.length)
+    .map(([name, c]) => ({ name, rel365: relStrength(alignedRatio(c), 365) }))
+    .filter(m => m.rel365 != null);
 
   return {
     date: dateStr, day, price, center, model: m,
@@ -119,7 +145,7 @@ export function computeStats(price, dateStr = new Date().toISOString().slice(0, 
     cheaperFrac, edge,
     firstPrice: first.price, firstDate: first.date, allTimeReturn: price / first.price - 1,
     targets: M.TARGETS.map(t => ({ ...t, mult: t.price / price })),
-    supply, btc,
+    supply, btc, majors,
     series: {
       price: DEFAULT_RAW.map(r => [Date.parse(r.date), r.price]),
       risk: riskSeries.map(r => [r.ts, r.risk]),

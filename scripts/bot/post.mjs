@@ -11,7 +11,7 @@
 // Required secrets to actually post (OAuth 1.0a user context for the bot account):
 //   X_API_KEY  X_API_SECRET  X_ACCESS_TOKEN  X_ACCESS_SECRET
 import { writeFileSync } from "node:fs";
-import { fetchLivePrice, fetchBtcSeries, computeStats } from "./stats.mjs";
+import { fetchLivePrice, fetchMajors, computeStats } from "./stats.mjs";
 import { renderRainbowCard } from "./rainbow-card.mjs";
 import { renderLineCard, renderBarCard } from "./charts.mjs";
 import { buildPost, allIds } from "./posts.mjs";
@@ -45,8 +45,8 @@ if (!live) {
   const { DEFAULT_RAW } = await import("../../src/data.js");
   live = { price: DEFAULT_RAW.at(-1).price, source: "bundled-fallback" };
 }
-const btc = await fetchBtcSeries(); // null if unreachable → BTC pill is skipped
-const stats = computeStats(live.price, undefined, { btc });
+const coins = await fetchMajors(); // each null if unreachable → those pills skip
+const stats = computeStats(live.price, undefined, { coins });
 
 if (renderAll) {
   for (const id of allIds(stats)) {
