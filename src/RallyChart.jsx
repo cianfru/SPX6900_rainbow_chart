@@ -1,8 +1,8 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import {
   ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, ReferenceDot,
 } from "recharts";
-import { buildRallyCycles } from "./models.js";
+import { buildRallyCycles, buildFireSaleRallies } from "./models.js";
 
 const SANS = "'Space Grotesk', system-ui, sans-serif";
 const MONO = "ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace";
@@ -37,8 +37,14 @@ function Readout({ label, value, color, isMobile }) {
   );
 }
 
-export default function RallyChart({ series, isMobile }) {
-  const cycles = useMemo(() => buildRallyCycles(series, { minDepth: 0.4, minPeakPrice: 0.05, minGain: 0.3 }), [series]);
+export default function RallyChart({ series, m, isMobile }) {
+  const [anchor, setAnchor] = useState("cycle"); // "cycle" = correction bottoms, "firesale" = Fire Sale band lows
+  const cycles = useMemo(
+    () => (anchor === "firesale"
+      ? buildFireSaleRallies(series, m, { minGain: 0.3 })
+      : buildRallyCycles(series, { minDepth: 0.4, minPeakPrice: 0.05, minGain: 0.3 })),
+    [series, m, anchor],
+  );
 
   const { rows, maxDay, maxPct } = useMemo(() => {
     const dayset = new Set();
@@ -76,16 +82,37 @@ export default function RallyChart({ series, isMobile }) {
     return series[series.length - 1].price / last.lowPrice - 1;
   }, [cycles, series]);
 
+  const anchorToggle = (
+    <div style={{ display: "flex", justifyContent: "center", gap: 8, marginBottom: 18 }}>
+      {[["cycle", "Cycle bottoms"], ["firesale", "Fire Sale band"]].map(([id, label]) => (
+        <button key={id} onClick={() => setAnchor(id)} style={{
+          fontFamily: SANS, fontSize: isMobile ? 12 : 13, fontWeight: 600, padding: "7px 14px",
+          borderRadius: 8, cursor: "pointer", transition: "all 0.18s ease",
+          color: anchor === id ? "#020208" : "#cbd5e1",
+          background: anchor === id ? "#4ade80" : "rgba(255,255,255,0.05)",
+          border: `1px solid ${anchor === id ? "#4ade80" : "rgba(255,255,255,0.12)"}`,
+          boxShadow: anchor === id ? "0 0 16px rgba(74,222,128,0.4)" : "none",
+        }}>{label}</button>
+      ))}
+    </div>
+  );
+
   if (cycles.length === 0) {
     return (
-      <div style={{ textAlign: "center", fontFamily: SANS, fontSize: 13, color: "#64748b", padding: "40px 0", lineHeight: 1.6 }}>
-        No completed rally cycles yet — a rally is recorded once price climbs at least 30% off a cycle bottom.
+      <div style={{ maxWidth: MAX_W, margin: "0 auto" }}>
+        {anchorToggle}
+        <div style={{ textAlign: "center", fontFamily: SANS, fontSize: 13, color: "#64748b", padding: "40px 0", lineHeight: 1.6 }}>
+          {anchor === "firesale"
+            ? "No Fire Sale rallies yet — price hasn't entered the cheapest band, or hasn't rallied 30%+ from it."
+            : "No completed rally cycles yet — a rally is recorded once price climbs at least 30% off a cycle bottom."}
+        </div>
       </div>
     );
   }
 
   return (
     <div style={{ maxWidth: MAX_W, margin: "0 auto" }}>
+      {anchorToggle}
       <div style={{ display: "flex", gap: isMobile ? 28 : 56, justifyContent: "center", marginBottom: 16, flexWrap: "wrap" }}>
         <Readout label="CURRENT RALLY" value={"+" + (currentGain * 100).toFixed(0) + "%"} color="#4ade80" isMobile={isMobile} />
         {ongoing && <Readout label="PEAK THIS CYCLE" value={"+" + (ongoing.maxGain * 100).toFixed(0) + "%"} color="#22d3ee" isMobile={isMobile} />}
@@ -99,7 +126,7 @@ export default function RallyChart({ series, isMobile }) {
             tickFormatter={v => v + "d"}
             tick={{ fill: "#cbd5e1", fontSize: isMobile ? 10 : 12, fontFamily: MONO }}
             axisLine={{ stroke: "rgba(255,255,255,0.15)" }} tickLine={false}
-            label={{ value: "Days since cycle low", position: "insideBottom", offset: -14, fill: "#64748b", fontSize: 12, fontFamily: SANS }}
+            label={{ value: anchor === "firesale" ? "Days since Fire Sale low" : "Days since cycle low", position: "insideBottom", offset: -14, fill: "#64748b", fontSize: 12, fontFamily: SANS }}
           />
           <YAxis
             domain={[0, Math.ceil(maxPct / 10) * 10]}
@@ -137,8 +164,9 @@ export default function RallyChart({ series, isMobile }) {
       </div>
 
       <div style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.6 }}>
-        The mirror of the drawdown chart: each line traces how far price climbed after a cycle bottom, vs. days since that low.
-        Use it to compare the size and pace of recoveries across cycles. Not financial advice.
+        {anchor === "firesale"
+          ? "Each line traces how far price climbed after entering the cheapest “Fire Sale” valuation band, vs. days since that low — i.e. how capitulation-band entries have paid off. Not financial advice."
+          : "The mirror of the drawdown chart: each line traces how far price climbed after a cycle bottom, vs. days since that low. Use it to compare the size and pace of recoveries across cycles. Not financial advice."}
       </div>
     </div>
   );

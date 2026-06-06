@@ -1008,7 +1008,7 @@ export default function App() {
         <Suspense fallback={<div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 40 }}>Loading chart…</div>}>
           {tab === "risk" && <RiskChart series={priceData} m={m} isMobile={isMobile} />}
           {tab === "drawdown" && <DrawdownChart series={priceData} isMobile={isMobile} />}
-          {tab === "rally" && <RallyChart series={priceData} isMobile={isMobile} />}
+          {tab === "rally" && <RallyChart series={priceData} m={m} isMobile={isMobile} />}
           {tab === "spxbtc" && <SpxBtcChart series={priceData} isMobile={isMobile} />}
           {tab === "relative" && <RelativeChart series={priceData} isMobile={isMobile} which={relWhich} setWhich={setRelWhich} />}
           {tab === "supply" && <SupplyConviction price={last.price} isMobile={isMobile} />}
