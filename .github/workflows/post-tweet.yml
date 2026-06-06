@@ -1,0 +1,50 @@
+name: Post to X
+
+# Daily SPX6900 rainbow snapshot to X (with the rainbow chart card).
+# Manual runs default to dry-run (renders the card, posts nothing).
+# Scheduled runs post for real — but only if the four X_* secrets are set;
+# otherwise post.mjs auto-falls back to dry-run.
+
+on:
+  schedule:
+    - cron: "0 13 * * *" # 13:00 UTC daily
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Render only, do not post"
+        type: boolean
+        default: true
+
+concurrency:
+  group: post-to-x
+  cancel-in-progress: false
+
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - name: Build + post
+        run: node scripts/bot/post.mjs
+        env:
+          DRY_RUN: ${{ (github.event_name == 'workflow_dispatch' && inputs.dry_run) && '1' || '' }}
+          X_API_KEY: ${{ secrets.X_API_KEY }}
+          X_API_SECRET: ${{ secrets.X_API_SECRET }}
+          X_ACCESS_TOKEN: ${{ secrets.X_ACCESS_TOKEN }}
+          X_ACCESS_SECRET: ${{ secrets.X_ACCESS_SECRET }}
+
+      - name: Upload card preview
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: card-preview
+          path: bot-preview.png
+          if-no-files-found: ignore

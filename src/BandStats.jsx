@@ -19,7 +19,7 @@ function Readout({ label, value, color, sub, isMobile }) {
     <div style={{ textAlign: "center", minWidth: 120 }}>
       <div style={{ fontFamily: MONO, fontSize: 11, color: "#94a3b8", letterSpacing: 1.1 }}>{label}</div>
       <div style={{ fontFamily: MONO, fontSize: isMobile ? 24 : 30, fontWeight: 700, color, textShadow: `0 0 18px ${color}44` }}>{value}</div>
-      {sub && <div style={{ fontFamily: SANS, fontSize: 11.5, color: "#64748b", marginTop: 2 }}>{sub}</div>}
+      {sub && <div style={{ fontFamily: SANS, fontSize: 11.5, color: "#7c8a9e", marginTop: 2 }}>{sub}</div>}
     </div>
   );
 }
@@ -116,7 +116,7 @@ export default function BandStats({ m, series, isMobile }) {
         })}
       </div>
 
-      <div style={{ fontFamily: SANS, fontSize: 11.5, color: "#64748b", textAlign: "center", marginTop: 14, lineHeight: 1.6 }}>
+      <div style={{ fontFamily: SANS, fontSize: 11.5, color: "#7c8a9e", textAlign: "center", marginTop: 14, lineHeight: 1.6 }}>
         Share of SPX6900&apos;s lifetime that price spent in each valuation band (by model classification). Not financial advice.
       </div>
     </div>

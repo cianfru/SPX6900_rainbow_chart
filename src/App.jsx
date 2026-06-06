@@ -439,12 +439,14 @@ export default function App() {
       <div aria-hidden="true" style={{
         position: "fixed", inset: 0, zIndex: -2, overflow: "hidden", pointerEvents: "none",
       }}>
-        {AURORA.map((b, i) => (
+        {/* Fewer, lighter-blurred blobs on phones — 6 large blur(40px) layers are the
+            main GPU cost of this backdrop and tank scroll perf on weaker devices. */}
+        {(isMobile ? AURORA.slice(0, 3) : AURORA).map((b, i) => (
           <div key={i} style={{
             position: "absolute", top: b.top, left: b.left,
             width: b.size, height: b.size, borderRadius: "50%",
             background: `radial-gradient(circle, ${b.c} 0%, transparent 70%)`,
-            opacity: 0.32, filter: "blur(40px)", willChange: "transform",
+            opacity: 0.32, filter: isMobile ? "blur(28px)" : "blur(40px)", willChange: "transform",
             animation: `${b.anim} ease-in-out infinite`,
           }} />
         ))}
@@ -921,7 +923,7 @@ export default function App() {
         }}>
           Scale-In / Scale-Out Plan
         </div>
-        <div style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", marginBottom: 12, display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8 }}>
+        <div style={{ fontFamily: SANS, fontSize: 12.5, color: "#7c8a9e", marginBottom: 12, display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8 }}>
           <span>Example risk framework — buy more when it&apos;s historically cheap, take profit when it&apos;s hot. Not financial advice.</span>
           <button onClick={() => setShowDry(v => !v)} style={{
             fontFamily: SANS, fontSize: 12, fontWeight: 600, color: "#93c5fd", cursor: "pointer",
@@ -965,7 +967,7 @@ export default function App() {
                 </div>
                 <div style={{ flex: 1, fontFamily: SANS, fontSize: isMobile ? 12.5 : 14, color: "#cbd5e1", minWidth: 0 }}>
                   {p.action}
-                  <span style={{ display: isMobile ? "block" : "inline", color: "#64748b", fontSize: 12.5, marginLeft: isMobile ? 0 : 8 }}>
+                  <span style={{ display: isMobile ? "block" : "inline", color: "#7c8a9e", fontSize: 12.5, marginLeft: isMobile ? 0 : 8 }}>
                     {p.note}
                   </span>
                 </div>
@@ -993,7 +995,7 @@ export default function App() {
           <span style={{ color: "#f1f5f9", fontWeight: 700 }}>{m.name}: </span>
           <span style={{ fontFamily: MONO }}>{m.formula}</span>
           <span style={{ fontFamily: MONO }}> · R²={m.r2.toFixed(4)} · σ={m.std.toFixed(4)}</span>
-          <br /><span style={{ color: "#64748b" }}>{m.note}</span>
+          <br /><span style={{ color: "#7c8a9e" }}>{m.note}</span>
         </div>
       </div>
 
@@ -1018,7 +1020,7 @@ export default function App() {
 
       <div style={{
         maxWidth: MAX_W, margin: "16px auto 0", fontFamily: SANS, fontSize: 12,
-        color: "#64748b", textAlign: "center", lineHeight: 1.6,
+        color: "#7c8a9e", textAlign: "center", lineHeight: 1.6,
       }}>
         Single-cycle fit on a memecoin. Not financial advice. Supply ~939M.
       </div>
