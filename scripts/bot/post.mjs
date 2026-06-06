@@ -13,7 +13,7 @@
 import { writeFileSync } from "node:fs";
 import { fetchLivePrice, fetchBtcSeries, computeStats } from "./stats.mjs";
 import { renderRainbowCard } from "./rainbow-card.mjs";
-import { renderStatCard } from "./stat-card.mjs";
+import { renderLineCard, renderBarCard } from "./charts.mjs";
 import { buildPost, allIds } from "./posts.mjs";
 
 const arg = name => { const a = process.argv.find(x => x.startsWith(`--${name}=`)); return a ? a.split("=")[1] : null; };
@@ -30,7 +30,10 @@ const hasCreds = Object.values(creds).every(Boolean);
 const dryRun = process.env.DRY_RUN === "1" || process.argv.includes("--dry-run") || !!overrideId || renderAll || !hasCreds;
 
 function cardFor(post, stats) {
-  return post.card.type === "rainbow" ? renderRainbowCard(stats) : renderStatCard({ ...post.card.spec, date: stats.date });
+  const { type, spec } = post.card;
+  if (type === "rainbow") return renderRainbowCard(stats);
+  if (type === "bar") return renderBarCard({ ...spec, date: stats.date });
+  return renderLineCard({ ...spec, date: stats.date });
 }
 
 let live = await fetchLivePrice();

@@ -50,6 +50,7 @@ export function computeStats(price, dateStr = new Date().toISOString().slice(0, 
   let lo = Infinity, hi = -Infinity;
   for (const r of DEFAULT_RAW) { const v = Math.log(r.price) - m.predict(M.dayN(r.date)); if (v < lo) lo = v; if (v > hi) hi = v; }
   const risk = Math.min(1, Math.max(0, (z - lo) / ((hi - lo) || 1)));
+  const riskSeries = M.buildRiskSeries(m, DEFAULT_RAW);
 
   const nextUpIdx = Math.min(bi + 1, M.BAND_LABELS.length - 1);
   const fsr = M.buildFireSaleRallies(DEFAULT_RAW, m, { minGain: 0.3 });
@@ -58,12 +59,15 @@ export function computeStats(price, dateStr = new Date().toISOString().slice(0, 
   // All-time high + current drawdown from it.
   let ath = -Infinity, athDate = DEFAULT_RAW[0].date;
   for (const r of DEFAULT_RAW) if (r.price > ath) { ath = r.price; athDate = r.date; }
+  const ddSeries = M.buildDrawdownSeries(DEFAULT_RAW);
   const dd = price / Math.max(ath, price) - 1;
-  const maxDd = M.buildDrawdownSeries(DEFAULT_RAW).reduce((mn, r) => Math.min(mn, r.dd), 0);
+  const maxDd = ddSeries.reduce((mn, r) => Math.min(mn, r.dd), 0);
 
   // Share of history spent this cheap or cheaper (band <= current).
   const histBands = DEFAULT_RAW.map(r => M.bandIndex(m, r.price, M.dayN(r.date)));
   const cheaperFrac = histBands.filter(b => b <= bi).length / histBands.length;
+  const bandCounts = Array(M.BAND_LABELS.length).fill(0);
+  histBands.forEach(b => bandCounts[b]++);
 
   // Hindsight strategy edge vs HODL (cycle anchor — the more conservative one).
   const stratCyc = M.buildCycleStrategy(DEFAULT_RAW, M.buildRallyCycles(DEFAULT_RAW, { minDepth: 0.4, minPeakPrice: 0.05, minGain: 0.3 }));
@@ -97,7 +101,7 @@ export function computeStats(price, dateStr = new Date().toISOString().slice(0, 
       const lastTs = aligned.at(-1).ts, ratioLast = aligned.at(-1).ratio;
       const ratioAt = days => { const tgt = lastTs - days * 86400000; const before = aligned.filter(a => a.ts <= tgt); return (before.at(-1) || aligned[0]).ratio; };
       const rel = days => ratioLast / ratioAt(days) - 1;
-      btc = { btcNow, sats: (price / btcNow) * 1e8, rel90: rel(90), rel365: rel(365) };
+      btc = { btcNow, sats: (price / btcNow) * 1e8, rel90: rel(90), rel365: rel(365), series: aligned.map(a => [a.ts, a.ratio * 1e8]) };
     }
   }
 
@@ -116,5 +120,12 @@ export function computeStats(price, dateStr = new Date().toISOString().slice(0, 
     firstPrice: first.price, firstDate: first.date, allTimeReturn: price / first.price - 1,
     targets: M.TARGETS.map(t => ({ ...t, mult: t.price / price })),
     supply, btc,
+    series: {
+      price: DEFAULT_RAW.map(r => [Date.parse(r.date), r.price]),
+      risk: riskSeries.map(r => [r.ts, r.risk]),
+      drawdown: ddSeries.map(r => [r.ts, r.dd]),
+      strategy: stratCyc ? stratCyc.rows.map(r => [r.ts, r.strat, r.hodl]) : null,
+      bandCounts,
+    },
   };
 }
