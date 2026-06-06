@@ -1,7 +1,8 @@
 // Shared stats for the X bot: fetch the live price and derive everything the
-// rotating posts and the cards need from the model. Mirrors the site / api/og.js
-// logic so the bot can never disagree with the chart.
-import { DEFAULT_RAW } from "../../src/data.js";
+// rotating posts and the cards need from the model + snapshot data. Mirrors the
+// site / api/og.js logic so the bot can never disagree with the chart.
+import { readFileSync } from "node:fs";
+import { DEFAULT_RAW, SUPPLY } from "../../src/data.js";
 import * as M from "../../src/models.js";
 
 const POOL = "0x52c77b0cb827afbad022e6d6caf2c44452edbc39";
@@ -18,7 +19,27 @@ export async function fetchLivePrice() {
   return null;
 }
 
-export function computeStats(price, dateStr = new Date().toISOString().slice(0, 10)) {
+// Daily BTC closes (~1y) to price SPX in BTC and measure relative strength.
+export async function fetchBtcSeries() {
+  try {
+    const r = await fetch("https://api.coingecko.com/api/v3/coins/bitcoin/market_chart?vs_currency=usd&days=365&interval=daily", { headers: { Accept: "application/json" } });
+    if (!r.ok) return null;
+    const j = await r.json();
+    const out = (j.prices || []).map(([ms, p]) => ({ date: new Date(ms).toISOString().slice(0, 10), price: p }));
+    return out.length ? out : null;
+  } catch { return null; }
+}
+
+// Latest diamond-supply snapshot (bundled, written by the snapshot cron).
+function loadSupplySnapshot() {
+  try {
+    const arr = JSON.parse(readFileSync(new URL("../../public/history.json", import.meta.url), "utf8"));
+    const last = arr.at(-1);
+    return { diamondTokens: last.sup.diamond, holders: last.holders, date: last.d };
+  } catch { return null; }
+}
+
+export function computeStats(price, dateStr = new Date().toISOString().slice(0, 10), opts = {}) {
   const m = M.buildModel(DEFAULT_RAW);
   const day = M.dayN(dateStr);
   const center = Math.exp(m.predict(day));
@@ -38,21 +59,47 @@ export function computeStats(price, dateStr = new Date().toISOString().slice(0, 
   let ath = -Infinity, athDate = DEFAULT_RAW[0].date;
   for (const r of DEFAULT_RAW) if (r.price > ath) { ath = r.price; athDate = r.date; }
   const dd = price / Math.max(ath, price) - 1;
-  const dds = M.buildDrawdownSeries(DEFAULT_RAW);
-  const maxDd = dds.reduce((mn, r) => Math.min(mn, r.dd), 0);
+  const maxDd = M.buildDrawdownSeries(DEFAULT_RAW).reduce((mn, r) => Math.min(mn, r.dd), 0);
 
   // Share of history spent this cheap or cheaper (band <= current).
   const histBands = DEFAULT_RAW.map(r => M.bandIndex(m, r.price, M.dayN(r.date)));
   const cheaperFrac = histBands.filter(b => b <= bi).length / histBands.length;
 
   // Hindsight strategy edge vs HODL (cycle anchor — the more conservative one).
-  const cyc = M.buildRallyCycles(DEFAULT_RAW, { minDepth: 0.4, minPeakPrice: 0.05, minGain: 0.3 });
-  const stratCyc = M.buildCycleStrategy(DEFAULT_RAW, cyc);
+  const stratCyc = M.buildCycleStrategy(DEFAULT_RAW, M.buildRallyCycles(DEFAULT_RAW, { minDepth: 0.4, minPeakPrice: 0.05, minGain: 0.3 }));
   const edge = stratCyc ? (1 + stratCyc.stratRet) / (1 + stratCyc.hodlRet) : null;
 
-  // Launch / all-time return.
   const first = DEFAULT_RAW[0];
-  const allTimeReturn = price / first.price - 1;
+
+  // Supply / diamond-adjusted market cap.
+  let supply = null;
+  const snap = loadSupplySnapshot();
+  if (snap) {
+    supply = {
+      diamondTokens: snap.diamondTokens, holders: snap.holders, snapDate: snap.date,
+      diamondShare: snap.diamondTokens / SUPPLY,
+      nominalMc: price * SUPPLY,
+      floatTokens: SUPPLY - snap.diamondTokens,
+      floatMc: price * (SUPPLY - snap.diamondTokens),
+      diamondValue: price * snap.diamondTokens,
+    };
+  }
+
+  // Valuation vs BTC (SPX priced in sats + relative strength).
+  let btc = null;
+  if (opts.btc && opts.btc.length) {
+    const map = new Map(opts.btc.map(r => [r.date, r.price]));
+    const getBtc = d => { let t = new Date(d); for (let k = 0; k < 4; k++) { const ds = t.toISOString().slice(0, 10); if (map.has(ds)) return map.get(ds); t = new Date(t.getTime() - 86400000); } return null; };
+    const aligned = [];
+    for (const r of DEFAULT_RAW) { const b = getBtc(r.date); if (b) aligned.push({ ts: Date.parse(r.date), ratio: r.price / b }); }
+    const btcNow = opts.btc.at(-1).price;
+    if (aligned.length >= 2) {
+      const lastTs = aligned.at(-1).ts, ratioLast = aligned.at(-1).ratio;
+      const ratioAt = days => { const tgt = lastTs - days * 86400000; const before = aligned.filter(a => a.ts <= tgt); return (before.at(-1) || aligned[0]).ratio; };
+      const rel = days => ratioLast / ratioAt(days) - 1;
+      btc = { btcNow, sats: (price / btcNow) * 1e8, rel90: rel(90), rel365: rel(365) };
+    }
+  }
 
   return {
     date: dateStr, day, price, center, model: m,
@@ -65,9 +112,9 @@ export function computeStats(price, dateStr = new Date().toISOString().slice(0, 
       ? { date: lastFs.startDate, low: lastFs.lowPrice, sinceGain: price / lastFs.lowPrice - 1, peakGain: lastFs.maxGain }
       : null,
     ath, athDate, drawdown: dd, maxDrawdown: maxDd,
-    cheaperFrac,
-    edge,
-    firstPrice: first.price, firstDate: first.date, allTimeReturn,
+    cheaperFrac, edge,
+    firstPrice: first.price, firstDate: first.date, allTimeReturn: price / first.price - 1,
     targets: M.TARGETS.map(t => ({ ...t, mult: t.price / price })),
+    supply, btc,
   };
 }

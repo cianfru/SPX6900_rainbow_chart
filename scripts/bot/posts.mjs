@@ -6,6 +6,8 @@ const fPrice = p => (p >= 1 ? "$" + p.toFixed(2) : "$" + p.toFixed(4));
 const fPct = x => (x >= 0 ? "+" : "") + Math.round(x * 100).toLocaleString() + "%";
 const fMult = x => (x >= 100 ? Math.round(x).toLocaleString() : x.toFixed(1)) + "×";
 const fMon = d => { const t = new Date(d); return t.toLocaleString("en-US", { month: "short" }) + " '" + String(t.getFullYear()).slice(2); };
+const fMoney = n => (n >= 1e9 ? "$" + (n / 1e9).toFixed(2) + "B" : n >= 1e6 ? "$" + (n / 1e6).toFixed(0) + "M" : "$" + (n / 1e3).toFixed(0) + "K");
+const fNum = n => Math.round(n).toLocaleString();
 const BAND_EMOJI = ["🟣", "🔵", "🟦", "🟢", "🟩", "🟡", "🟠", "🔴", "🟥"];
 
 // Each builder returns { id, text, card }. card is { type:"rainbow" } or
@@ -133,7 +135,44 @@ spx6900rainbow.xyz · NFA`,
     } },
   }),
 
-  // 8 — all-time return
+  // 8 — diamond-adjusted "real" market cap
+  s => s.supply && ({
+    id: "marketcap",
+    text:
+`💰 SPX6900's "real" market cap
+Headline MC ${fMoney(s.supply.nominalMc)} (price × 939M supply). But diamond hands hold ~${Math.round(s.supply.diamondShare * 100)}% of supply and rarely sell — so the effective free-float MC is just ${fMoney(s.supply.floatMc)}.
+spx6900rainbow.xyz · NFA`,
+    card: { type: "stat", spec: {
+      title: "Free-float market cap (ex-diamond)", big: fMoney(s.supply.floatMc), accent: "#22d3ee",
+      sub: `Diamond hands lock ~${Math.round(s.supply.diamondShare * 100)}% of supply and rarely sell`,
+      rows: [
+        { label: "HEADLINE MC", value: fMoney(s.supply.nominalMc) },
+        { label: "DIAMOND LOCKED", value: Math.round(s.supply.diamondShare * 100) + "%", color: "#22d3ee" },
+        { label: "HOLDERS", value: fNum(s.supply.holders) },
+      ],
+    } },
+  }),
+
+  // 9 — valuation vs BTC
+  s => s.btc && ({
+    id: "btc",
+    text:
+`₿ SPX6900 priced in Bitcoin: 1 SPX = ${fNum(s.btc.sats)} sats.
+vs BTC: ${fPct(s.btc.rel90)} (90d), ${fPct(s.btc.rel365)} (1yr).
+Memecoins live or die against BTC — this is the real benchmark.
+spx6900rainbow.xyz · NFA`,
+    card: { type: "stat", spec: {
+      title: "SPX6900 priced in Bitcoin", big: fNum(s.btc.sats) + " sats", accent: "#f7931a",
+      sub: `1 SPX = ${fNum(s.btc.sats)} sats · BTC ${fMoney(s.btc.btcNow)}`,
+      rows: [
+        { label: "VS BTC 90D", value: fPct(s.btc.rel90), color: s.btc.rel90 >= 0 ? "#4ade80" : "#f87171" },
+        { label: "VS BTC 1YR", value: fPct(s.btc.rel365), color: s.btc.rel365 >= 0 ? "#4ade80" : "#f87171" },
+        { label: "BTC PRICE", value: fMoney(s.btc.btcNow) },
+      ],
+    } },
+  }),
+
+  // 10 — all-time return
   s => ({
     id: "alltime",
     text:
