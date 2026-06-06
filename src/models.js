@@ -170,27 +170,14 @@ export function buildDrawdownCycles(series, { minDepth = 0.3, minPeakPrice = 0 }
   return out;
 }
 
-// Rally cycles: the mirror of drawdown cycles. Each correction's trough (found by
-// buildDrawdownCycles) is a launch pad; from there we measure the climb UP to the
-// rally's highest point before the next bottom. Overlaying these shows whether
-// later recoveries run higher/longer as the asset matures.
-export function buildRallyCycles(series, { minDepth = 0.4, minPeakPrice = 0.05, minGain = 0.3 } = {}) {
-  if (series.length === 0) return [];
+// Shared core: given launch-pad anchors (sorted by index), measure the climb from
+// each anchor to its highest point before the next anchor, truncating at that peak.
+function ralliesFromAnchors(series, anchors, minGain) {
   const dayOf = d => new Date(d).getTime() / 86400000;
-  const idxByDate = new Map(series.map((r, i) => [r.date, i]));
-
-  // Reuse drawdown trough detection so bottoms are defined identically to the
-  // drawdown chart. lowPrice = peakPrice × (1 + minDD).
-  const dds = buildDrawdownCycles(series, { minDepth, minPeakPrice });
-  const bottoms = dds
-    .map(c => ({ date: c.lowDate, price: c.peakPrice * (1 + c.minDD), idx: idxByDate.get(c.lowDate) }))
-    .filter(b => b.idx != null)
-    .sort((a, b) => a.idx - b.idx);
-
   const out = [];
-  for (let k = 0; k < bottoms.length; k++) {
-    const start = bottoms[k];
-    const end = k + 1 < bottoms.length ? bottoms[k + 1].idx : series.length; // exclusive
+  for (let k = 0; k < anchors.length; k++) {
+    const start = anchors[k];
+    const end = k + 1 < anchors.length ? anchors[k + 1].idx : series.length; // exclusive
     const startDay = dayOf(start.date);
     const points = [{ day: 0, gain: 0, date: start.date }];
     let maxGain = 0, peakDate = start.date, peakIdx = start.idx;
@@ -200,7 +187,6 @@ export function buildRallyCycles(series, { minDepth = 0.4, minPeakPrice = 0.05, 
       if (gain > maxGain) { maxGain = gain; peakDate = series[i].date; peakIdx = i; }
     }
     if (maxGain < minGain) continue;
-    // truncate at the rally's peak — bottom → top only (mirror of drawdown's peak → bottom)
     const ti = points.findIndex(p => p.date === peakDate);
     out.push({
       startDate: start.date,
@@ -208,11 +194,51 @@ export function buildRallyCycles(series, { minDepth = 0.4, minPeakPrice = 0.05, 
       peakDate,
       maxGain,
       points: points.slice(0, ti + 1),
-      // ongoing if this is the latest bottom and price is still at/near its rally high
       ongoing: end === series.length && peakIdx >= series.length - 1,
     });
   }
   return out;
+}
+
+// Rally cycles: the mirror of drawdown cycles. Each correction's trough (found by
+// buildDrawdownCycles) is a launch pad; from there we measure the climb UP to the
+// rally's highest point before the next bottom. Overlaying these shows whether
+// later recoveries run higher/longer as the asset matures.
+export function buildRallyCycles(series, { minDepth = 0.4, minPeakPrice = 0.05, minGain = 0.3 } = {}) {
+  if (series.length === 0) return [];
+  const idxByDate = new Map(series.map((r, i) => [r.date, i]));
+  // Reuse drawdown trough detection so bottoms are defined identically to the
+  // drawdown chart. lowPrice = peakPrice × (1 + minDD).
+  const dds = buildDrawdownCycles(series, { minDepth, minPeakPrice });
+  const anchors = dds
+    .map(c => ({ date: c.lowDate, price: c.peakPrice * (1 + c.minDD), idx: idxByDate.get(c.lowDate) }))
+    .filter(b => b.idx != null)
+    .sort((a, b) => a.idx - b.idx);
+  return ralliesFromAnchors(series, anchors, minGain);
+}
+
+// Fire-sale rallies: anchor each rally at the lowest price of a contiguous
+// "Fire Sale" (cheapest band) episode, then ride to the next local peak. Answers
+// "if you bought every time price hit the capitulation band, how did it run?"
+export function buildFireSaleRallies(series, m, { minGain = 0.3 } = {}) {
+  if (!m || series.length === 0) return [];
+  const anchors = [];
+  let inEpisode = false, epLowIdx = -1, epLowPrice = Infinity;
+  const flush = () => {
+    if (epLowIdx >= 0) anchors.push({ date: series[epLowIdx].date, price: series[epLowIdx].price, idx: epLowIdx });
+    inEpisode = false; epLowIdx = -1; epLowPrice = Infinity;
+  };
+  for (let i = 0; i < series.length; i++) {
+    const inFireSale = bandIndex(m, series[i].price, dayN(series[i].date)) === 0;
+    if (inFireSale) {
+      inEpisode = true;
+      if (series[i].price < epLowPrice) { epLowPrice = series[i].price; epLowIdx = i; }
+    } else if (inEpisode) {
+      flush();
+    }
+  }
+  if (inEpisode) flush();
+  return ralliesFromAnchors(series, anchors, minGain);
 }
 
 export const BAND_LABELS = [
