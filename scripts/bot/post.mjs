@@ -21,13 +21,31 @@ const overrideId = arg("post") || process.env.BOT_POST || null;
 const renderAll = process.argv.includes("--all");
 
 const creds = {
-  appKey: process.env.X_API_KEY,
-  appSecret: process.env.X_API_SECRET,
-  accessToken: process.env.X_ACCESS_TOKEN,
-  accessSecret: process.env.X_ACCESS_SECRET,
+  appKey: (process.env.X_API_KEY || "").trim(),
+  appSecret: (process.env.X_API_SECRET || "").trim(),
+  accessToken: (process.env.X_ACCESS_TOKEN || "").trim(),
+  accessSecret: (process.env.X_ACCESS_SECRET || "").trim(),
 };
 const hasCreds = Object.values(creds).every(Boolean);
+const checkOnly = process.argv.includes("--check") || process.env.BOT_CHECK === "1";
 const dryRun = process.env.DRY_RUN === "1" || process.argv.includes("--dry-run") || !!overrideId || renderAll || !hasCreds;
+
+// Auth check: verify the credentials and report which account they post as. No posting.
+if (checkOnly) {
+  const lens = Object.fromEntries(Object.entries(creds).map(([k, v]) => [k, v.length]));
+  console.log("cred lengths (expect non-zero, no surprises):", JSON.stringify(lens));
+  if (!hasCreds) { console.error("✗ One or more X_* secrets are empty."); process.exit(1); }
+  const { TwitterApi } = await import("twitter-api-v2");
+  try {
+    const me = await new TwitterApi(creds).v1.verifyCredentials();
+    console.log(`AUTH OK ✓ — credentials post as @${me.screen_name} (id ${me.id_str})`);
+    process.exit(0);
+  } catch (e) {
+    console.error(`AUTH FAILED ✗ code ${e.code ?? "?"} — ${JSON.stringify(e.data?.errors ?? e.data ?? e.message)}`);
+    console.error("Likely: API Key/Secret and Access Token/Secret are not from the SAME app, or app permission isn't Read+Write, or tokens weren't regenerated AFTER setting Read+Write, or OAuth 1.0a isn't enabled in User authentication settings.");
+    process.exit(1);
+  }
+}
 
 function cardFor(post, stats) {
   const { type, spec } = post.card;
@@ -71,6 +89,11 @@ if (dryRun) {
 
 const { TwitterApi } = await import("twitter-api-v2");
 const client = new TwitterApi(creds);
-const mediaId = await client.v1.uploadMedia(png, { mimeType: "image/png" });
-const res = await client.v2.tweet({ text: post.text, media: { media_ids: [mediaId] } });
-console.log(`Posted ✓ "${post.id}" tweet id ${res?.data?.id}`);
+try {
+  const mediaId = await client.v1.uploadMedia(png, { mimeType: "image/png" });
+  const res = await client.v2.tweet({ text: post.text, media: { media_ids: [mediaId] } });
+  console.log(`Posted ✓ "${post.id}" tweet id ${res?.data?.id}`);
+} catch (e) {
+  console.error(`POST FAILED ✗ at ${e.request?.path?.includes("media") ? "media upload" : "tweet"} — code ${e.code ?? "?"}: ${JSON.stringify(e.data?.errors ?? e.data ?? e.message)}`);
+  process.exit(1);
+}
