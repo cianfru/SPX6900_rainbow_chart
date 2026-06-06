@@ -13,6 +13,7 @@ import HolderscanDashboard from "./HolderscanDashboard.jsx";
 import RiskChart from "./RiskChart.jsx";
 import DrawdownChart from "./DrawdownChart.jsx";
 import RallyChart from "./RallyChart.jsx";
+import BandStats from "./BandStats.jsx";
 import SpxBtcChart from "./SpxBtcChart.jsx";
 import RelativeChart from "./RelativeChart.jsx";
 import SupplyConviction from "./SupplyConviction.jsx";
@@ -721,6 +722,8 @@ export default function App() {
           </div>
         </div>
       </div>
+
+      <BandStats m={m} series={priceData} isMobile={isMobile} />
 
       {/* Rainbow chart — the hero, always visible */}
       {/* Controls */}
