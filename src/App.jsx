@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect, useRef } from "react";
+import { useState, useMemo, useCallback, useEffect, useRef, lazy, Suspense } from "react";
 import {
   ResponsiveContainer, ComposedChart, Area, Line, XAxis, YAxis,
   CartesianGrid, ReferenceLine
@@ -9,14 +9,15 @@ import {
   dayN, ds, bandVal, bandIndex,
   whenHitsCenter, whenHitsBand,
 } from "./models.js";
-import HolderscanDashboard from "./HolderscanDashboard.jsx";
-import RiskChart from "./RiskChart.jsx";
-import DrawdownChart from "./DrawdownChart.jsx";
-import RallyChart from "./RallyChart.jsx";
 import BandStats from "./BandStats.jsx";
-import SpxBtcChart from "./SpxBtcChart.jsx";
-import RelativeChart from "./RelativeChart.jsx";
-import SupplyConviction from "./SupplyConviction.jsx";
+// Secondary tab charts are lazy-loaded so their code only ships when the tab is opened.
+const HolderscanDashboard = lazy(() => import("./HolderscanDashboard.jsx"));
+const RiskChart = lazy(() => import("./RiskChart.jsx"));
+const DrawdownChart = lazy(() => import("./DrawdownChart.jsx"));
+const RallyChart = lazy(() => import("./RallyChart.jsx"));
+const SpxBtcChart = lazy(() => import("./SpxBtcChart.jsx"));
+const RelativeChart = lazy(() => import("./RelativeChart.jsx"));
+const SupplyConviction = lazy(() => import("./SupplyConviction.jsx"));
 
 const SANS = "'Space Grotesk', system-ui, sans-serif";
 const MONO = "ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace";
@@ -1004,13 +1005,15 @@ export default function App() {
         }}>
           {(NAV_TABS.find(([id]) => id === tab) || ["", "Chart"])[1]}
         </div>
-        {tab === "risk" && <RiskChart series={priceData} m={m} isMobile={isMobile} />}
-        {tab === "drawdown" && <DrawdownChart series={priceData} isMobile={isMobile} />}
-        {tab === "rally" && <RallyChart series={priceData} isMobile={isMobile} />}
-        {tab === "spxbtc" && <SpxBtcChart series={priceData} isMobile={isMobile} />}
-        {tab === "relative" && <RelativeChart series={priceData} isMobile={isMobile} which={relWhich} setWhich={setRelWhich} />}
-        {tab === "supply" && <SupplyConviction price={last.price} isMobile={isMobile} />}
-        {tab === "holders" && <HolderscanDashboard />}
+        <Suspense fallback={<div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 40 }}>Loading chart…</div>}>
+          {tab === "risk" && <RiskChart series={priceData} m={m} isMobile={isMobile} />}
+          {tab === "drawdown" && <DrawdownChart series={priceData} isMobile={isMobile} />}
+          {tab === "rally" && <RallyChart series={priceData} isMobile={isMobile} />}
+          {tab === "spxbtc" && <SpxBtcChart series={priceData} isMobile={isMobile} />}
+          {tab === "relative" && <RelativeChart series={priceData} isMobile={isMobile} which={relWhich} setWhich={setRelWhich} />}
+          {tab === "supply" && <SupplyConviction price={last.price} isMobile={isMobile} />}
+          {tab === "holders" && <HolderscanDashboard />}
+        </Suspense>
       </div>
 
       <div style={{
