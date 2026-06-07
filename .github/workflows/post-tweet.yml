@@ -18,6 +18,10 @@ on:
         description: "Auth check only (verify credentials, no post)"
         type: boolean
         default: false
+      no_media:
+        description: "Post text only, no image (cost A/B test)"
+        type: boolean
+        default: false
 
 concurrency:
   group: post-to-x
@@ -41,6 +45,7 @@ jobs:
         env:
           DRY_RUN: ${{ (github.event_name == 'workflow_dispatch' && inputs.dry_run) && '1' || '' }}
           BOT_CHECK: ${{ (github.event_name == 'workflow_dispatch' && inputs.check) && '1' || '' }}
+          BOT_NO_MEDIA: ${{ (github.event_name == 'workflow_dispatch' && inputs.no_media) && '1' || '' }}
           X_API_KEY: ${{ secrets.X_API_KEY }}
           X_API_SECRET: ${{ secrets.X_API_SECRET }}
           X_ACCESS_TOKEN: ${{ secrets.X_ACCESS_TOKEN }}

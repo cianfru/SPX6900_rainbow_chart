@@ -19,6 +19,8 @@ import { buildPost, allIds } from "./posts.mjs";
 const arg = name => { const a = process.argv.find(x => x.startsWith(`--${name}=`)); return a ? a.split("=")[1] : null; };
 const overrideId = arg("post") || process.env.BOT_POST || null;
 const renderAll = process.argv.includes("--all");
+// Post text only, no image — used to A/B the per-post cost of attaching media.
+const noMedia = process.argv.includes("--no-media") || process.env.BOT_NO_MEDIA === "1";
 
 const creds = {
   appKey: (process.env.X_API_KEY || "").trim(),
@@ -100,11 +102,17 @@ if (dryRun) {
 const { TwitterApi } = await import("twitter-api-v2");
 const client = new TwitterApi(creds);
 try {
-  // Use the v2 chunked media endpoint (/2/media/upload). The legacy v1.1
-  // media/upload endpoint now returns 403 on the current X API access tier.
-  const mediaId = await client.v2.uploadMedia(png, { media_type: "image/png" });
-  const res = await client.v2.tweet({ text: post.text, media: { media_ids: [mediaId] } });
-  console.log(`Posted ✓ "${post.id}" tweet id ${res?.data?.id}`);
+  let res;
+  if (noMedia) {
+    res = await client.v2.tweet({ text: post.text });
+    console.log(`Posted ✓ (text only, no media) "${post.id}" tweet id ${res?.data?.id}`);
+  } else {
+    // Use the v2 chunked media endpoint (/2/media/upload). The legacy v1.1
+    // media/upload endpoint now returns 403 on the current X API access tier.
+    const mediaId = await client.v2.uploadMedia(png, { media_type: "image/png" });
+    res = await client.v2.tweet({ text: post.text, media: { media_ids: [mediaId] } });
+    console.log(`Posted ✓ "${post.id}" tweet id ${res?.data?.id}`);
+  }
 } catch (e) {
   console.error(`POST FAILED ✗ at ${e.request?.path?.includes("media") ? "media upload" : "tweet"} — code ${e.code ?? "?"}: ${JSON.stringify(e.data?.errors ?? e.data ?? e.message)}`);
   process.exit(1);

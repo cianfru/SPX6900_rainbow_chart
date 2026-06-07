@@ -32,7 +32,7 @@ const POSTS = [
 `📊 Where is SPX6900 vs its long-run trend?
 ${BAND_EMOJI[s.bandIndex]} ${s.band.l} band — ${fPct(s.vsCenter)} vs the model's center line (${fPrice(s.center)}).
 The rainbow bands show how stretched price is from its log-regression trend.
-🌈 spx6900rainbow.xyz · NFA`,
+🌈 NFA`,
     card: { type: "rainbow" },
   }),
 
@@ -43,7 +43,7 @@ The rainbow bands show how stretched price is from its log-regression trend.
 `🌡️ SPX6900 valuation risk: ${s.risk.toFixed(2)} / 1.00
 0 = cheapest vs trend ever seen, 1 = the most expensive. Today reads ${s.risk < 0.34 ? "historically cheap" : s.risk < 0.66 ? "fair" : "rich"}.
 It's how far price has stretched from its log trend, normalized over all history.
-spx6900rainbow.xyz · NFA`,
+NFA`,
     card: { type: "line", spec: {
       title: "Valuation risk over time", headline: s.risk.toFixed(2) + " / 1", accent: "#22d3ee",
       yMin: 0, yMax: 1, yTicks: [0, 0.25, 0.5, 0.75, 1].map(v => ({ v, label: v.toFixed(2) })),
@@ -59,7 +59,7 @@ spx6900rainbow.xyz · NFA`,
 `📉 SPX6900 is ${fPct(s.drawdown)} from its all-time high (${fPrice(s.ath)}, ${fMon(s.athDate)}).
 Drawdowns map the pain from each peak — the worst on record was ${fPct(s.maxDrawdown)}.
 Zoom out before you panic (or FOMO).
-spx6900rainbow.xyz · NFA`,
+NFA`,
     card: { type: "line", spec: {
       title: "Drawdown from all-time high", headline: fPct(s.drawdown), accent: "#f87171",
       yMin: s.maxDrawdown * 1.05, yMax: 0, fillBase: s.maxDrawdown * 1.05,
@@ -79,7 +79,7 @@ spx6900rainbow.xyz · NFA`,
       text:
 `🚀 Since the last "Fire Sale" capitulation low (${fMon(s.lastFireSale.date)}, ${fPrice(s.lastFireSale.low)}), SPX6900 is ${fPct(s.lastFireSale.sinceGain)} — and peaked ${fPct(s.lastFireSale.peakGain)} along the way.
 The rally chart tracks every recovery from the cheapest band.
-spx6900rainbow.xyz · NFA`,
+NFA`,
       card: { type: "line", spec: {
         title: `Since the last Fire Sale (${fMon(s.lastFireSale.date)})`, headline: fPct(s.lastFireSale.sinceGain), accent: "#4ade80",
         yLog: true, yTicks: decadeTicks(lo, hi),
@@ -95,7 +95,7 @@ spx6900rainbow.xyz · NFA`,
     text:
 `🧪 Hindsight check: buying every cycle dip and selling its peak would've beaten HODL ~${fMult(s.edge)} in this model.
 Perfect timing isn't real — but it shows how much SPX6900's cycles matter.
-spx6900rainbow.xyz · NFA`,
+NFA`,
     card: { type: "line", spec: {
       title: "Timing the dips vs HODL (hindsight)", headline: fMult(s.edge) + " vs HODL", accent: "#a78bfa",
       yLog: true,
@@ -117,7 +117,7 @@ spx6900rainbow.xyz · NFA`,
 `🎯 SPX6900 from ${fPrice(s.price)} to the targets:
 ${s.targets.slice(0, 3).map(t => `${t.label} → ${fMult(t.mult)}`).join("\n")}
 A log-trend extrapolation, not a promise.
-spx6900rainbow.xyz · NFA`,
+NFA`,
       card: { type: "bar", spec: {
         title: "How far to the targets (×)", headline: `${t3[0].label} = ${fMult(t3[0].mult)}`, accent: "#f59e0b", logBars: true,
         bars: t3.map(t => ({ label: t.label, value: t.mult, text: fMult(t.mult), color: t.c })),
@@ -131,7 +131,7 @@ spx6900rainbow.xyz · NFA`,
     text:
 `⏳ SPX6900 has closed in the ${s.band.l} band or cheaper on ~${Math.round(s.cheaperFrac * 100)}% of all days in its history.
 Extremes are rare; most of life is spent mid-bands. Today: ${BAND_EMOJI[s.bandIndex]} ${s.band.l}.
-spx6900rainbow.xyz · NFA`,
+NFA`,
     card: { type: "bar", spec: {
       title: "Days spent in each valuation band", headline: `${Math.round(s.cheaperFrac * 100)}% this cheap or below`, accent: s.band.c,
       bars: s.series.bandCounts.map((c, i) => ({ label: BAND_SHORT[i], value: c, text: String(c), color: M.BAND_LABELS[i].c, outline: i === s.bandIndex, dim: c === 0 })),
@@ -144,7 +144,7 @@ spx6900rainbow.xyz · NFA`,
     text:
 `💰 SPX6900's "real" market cap
 Headline MC ${fMoney(s.supply.nominalMc)} (price × 939M supply). But diamond hands hold ~${Math.round(s.supply.diamondShare * 100)}% of supply and rarely sell — so the effective free-float MC is just ${fMoney(s.supply.floatMc)}.
-spx6900rainbow.xyz · NFA`,
+NFA`,
     card: { type: "bar", spec: {
       title: "Market cap: headline vs real free-float", headline: fMoney(s.supply.floatMc) + " free float", accent: "#22d3ee",
       bars: [
@@ -162,7 +162,7 @@ spx6900rainbow.xyz · NFA`,
 `₿ SPX6900 priced in Bitcoin: 1 SPX = ${fNum(s.btc.sats)} sats.
 vs BTC: ${fPct(s.btc.rel90)} (90d), ${fPct(s.btc.rel365)} (1yr).
 Memecoins live or die against BTC — this is the real benchmark.
-spx6900rainbow.xyz · NFA`,
+NFA`,
     card: { type: "line", spec: {
       title: "SPX6900 priced in Bitcoin (sats)", headline: fNum(s.btc.sats) + " sats", accent: "#f7931a",
       series: [{ pts: s.btc.series, color: "#f7931a", width: 3, fill: 0.16 }],
@@ -177,7 +177,7 @@ spx6900rainbow.xyz · NFA`,
 `💎 Who holds SPX6900?
 Of the age-classified supply, ~${Math.round((s.supply.tiers.diamond / s.supply.classified) * 100)}% sits in "diamond" hands (longest-held), with a Gini of ${s.supply.gini.toFixed(2)} — extreme concentration.
 High conviction, thin float.
-spx6900rainbow.xyz · NFA`,
+NFA`,
     card: { type: "bar", spec: {
       title: "Supply by holder conviction tier", headline: `${Math.round((s.supply.tiers.diamond / s.supply.classified) * 100)}% diamond hands`, accent: "#22d3ee",
       bars: TIERS.map(([k, label, c]) => ({ label, value: s.supply.tiers[k], text: Math.round((s.supply.tiers[k] / s.supply.classified) * 100) + "%", color: c })),
@@ -191,7 +191,7 @@ spx6900rainbow.xyz · NFA`,
 `📊 The average SPX6900 holder's entry is ~${fPrice(s.supply.breakEven)}.
 At ${fPrice(s.price)} that's about ${fPct(s.supply.avgHolderPnl)} — the average holder is ${s.supply.avgHolderPnl < 0 ? "underwater" : "in profit"}.
 Price vs the crowd's cost basis.
-spx6900rainbow.xyz · NFA`,
+NFA`,
     card: { type: "bar", spec: {
       title: "Price vs average holder's cost basis", headline: `${fPct(s.supply.avgHolderPnl)} avg holder`, accent: s.supply.avgHolderPnl < 0 ? "#f87171" : "#4ade80",
       bars: [
@@ -208,7 +208,7 @@ spx6900rainbow.xyz · NFA`,
 `⚔️ SPX6900 vs the majors (1-yr relative):
 ${s.majors.map(m => `${m.name}: ${fPct(m.rel365)}`).join(" · ")}
 Positive = SPX outperformed that asset over the past year.
-spx6900rainbow.xyz · NFA`,
+NFA`,
     card: { type: "bar", spec: {
       title: "SPX6900 vs majors — 1-yr relative", headline: `${s.majors[0].name} ${fPct(s.majors[0].rel365)}`, accent: "#818cf8",
       bars: s.majors.map(m => ({ label: "vs " + m.name, value: m.rel365, text: fPct(m.rel365), color: m.rel365 >= 0 ? "#4ade80" : "#f87171" })),
@@ -221,7 +221,7 @@ spx6900rainbow.xyz · NFA`,
     text:
 `📈 From its first print (${fPrice(s.firstPrice)}, ${fMon(s.firstDate)}) SPX6900 is up ${fMult(1 + s.allTimeReturn)}.
 Zoom out: the log-regression trend still points up at a power-law pace.
-spx6900rainbow.xyz · NFA`,
+NFA`,
     card: { type: "line", spec: {
       title: "Price since launch (log scale)", headline: fMult(1 + s.allTimeReturn) + " since launch", accent: "#34d399",
       yLog: true, yTicks: decadeTicks(s.firstPrice, s.ath),
