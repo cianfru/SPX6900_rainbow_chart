@@ -90,7 +90,9 @@ if (dryRun) {
 const { TwitterApi } = await import("twitter-api-v2");
 const client = new TwitterApi(creds);
 try {
-  const mediaId = await client.v1.uploadMedia(png, { mimeType: "image/png" });
+  // Use the v2 chunked media endpoint (/2/media/upload). The legacy v1.1
+  // media/upload endpoint now returns 403 on the current X API access tier.
+  const mediaId = await client.v2.uploadMedia(png, { media_type: "image/png" });
   const res = await client.v2.tweet({ text: post.text, media: { media_ids: [mediaId] } });
   console.log(`Posted ✓ "${post.id}" tweet id ${res?.data?.id}`);
 } catch (e) {
