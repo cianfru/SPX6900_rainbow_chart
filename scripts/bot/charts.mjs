@@ -85,9 +85,13 @@ export function renderBarCard(spec) {
   const bars = spec.bars;
   const vals = bars.map(b => Math.abs(b.value));
   const max = Math.max(...vals, 1);
+  // Reserve headroom at the top of the plot for the value label that sits above
+  // each bar, so the tallest bar's label can't ride up into the headline.
+  const labelPad = 44;
+  const usableH = pH - labelPad;
   const h = spec.logBars
-    ? v => (Math.log10(Math.abs(v) + 1) / (Math.log10(max + 1) || 1)) * pH
-    : v => (Math.abs(v) / max) * pH;
+    ? v => (Math.log10(Math.abs(v) + 1) / (Math.log10(max + 1) || 1)) * usableH
+    : v => (Math.abs(v) / max) * usableH;
   const n = bars.length, gap = pW / n, bw = Math.min(gap * 0.6, 150);
   let svg = "";
   bars.forEach((b, i) => {
