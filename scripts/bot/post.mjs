@@ -5,7 +5,8 @@
 //   - DRY_RUN=1 or --dry-run is passed, OR
 //   - any X credential is missing.
 //
-// Test a specific topic with  --post=<id>  or  BOT_POST=<id>  (implies dry-run).
+// Pick a specific topic with  --post=<id>  (local, implies dry-run for safe testing)
+// or  BOT_POST=<id>  (used by the workflow to publish a chosen topic for real).
 // Render every topic to bot-preview-<id>.png with  --all  (implies dry-run).
 //
 // Required secrets to actually post (OAuth 1.0a user context for the bot account):
@@ -17,7 +18,8 @@ import { renderLineCard, renderBarCard } from "./charts.mjs";
 import { buildPost, allIds } from "./posts.mjs";
 
 const arg = name => { const a = process.argv.find(x => x.startsWith(`--${name}=`)); return a ? a.split("=")[1] : null; };
-const overrideId = arg("post") || process.env.BOT_POST || null;
+const cliPostId = arg("post");                          // local --post=<id>: select + force dry-run (safe)
+const overrideId = cliPostId || process.env.BOT_POST || null; // BOT_POST selects topic without forcing dry-run
 const renderAll = process.argv.includes("--all");
 // Post text only, no image — used to A/B the per-post cost of attaching media.
 const noMedia = process.argv.includes("--no-media") || process.env.BOT_NO_MEDIA === "1";
@@ -30,7 +32,7 @@ const creds = {
 };
 const hasCreds = Object.values(creds).every(Boolean);
 const checkOnly = process.argv.includes("--check") || process.env.BOT_CHECK === "1";
-const dryRun = process.env.DRY_RUN === "1" || process.argv.includes("--dry-run") || !!overrideId || renderAll || !hasCreds;
+const dryRun = process.env.DRY_RUN === "1" || process.argv.includes("--dry-run") || !!cliPostId || renderAll || !hasCreds;
 
 // Auth check: verify the credentials and report which account they post as. No posting.
 if (checkOnly) {
