@@ -37,8 +37,18 @@ if (checkOnly) {
   if (!hasCreds) { console.error("✗ One or more X_* secrets are empty."); process.exit(1); }
   const { TwitterApi } = await import("twitter-api-v2");
   try {
-    const me = await new TwitterApi(creds).v1.verifyCredentials();
-    console.log(`AUTH OK ✓ — credentials post as @${me.screen_name} (id ${me.id_str})`);
+    // Full response so we can read the x-access-level header, which tells us
+    // whether the token actually carries write permission (read / read-write /
+    // read-write-directmessages). A "read"-only token is the usual reason media
+    // upload 403s with "oauth1 app permissions for this endpoint".
+    const resp = await new TwitterApi(creds).v1.get("account/verify_credentials.json", {}, { fullResponse: true });
+    const me = resp.data;
+    const accessLevel = resp.headers?.["x-access-level"] ?? "unknown";
+    console.log(`AUTH OK ✓ — credentials post as @${me.screen_name} (id ${me.id_str}) · access level: ${accessLevel}`);
+    if (!String(accessLevel).includes("write")) {
+      console.error("✗ Token is READ-ONLY — it cannot post or upload media. Set the app to Read+Write AND regenerate the access token/secret, then update the secrets.");
+      process.exit(1);
+    }
     process.exit(0);
   } catch (e) {
     console.error(`AUTH FAILED ✗ code ${e.code ?? "?"} — ${JSON.stringify(e.data?.errors ?? e.data ?? e.message)}`);
