@@ -3,13 +3,10 @@
 // them by day so followers get a different, visual angle each day.
 import * as M from "../../src/models.js";
 
-// $SPX cashtag for X's in-timeline price-chart card. X resolves a cashtag to a
-// single asset; for crypto the token contract address disambiguates it from the
-// same-symbol stock/index (the S&P 500). Set BOT_CA=1 to append the contract
-// address so $SPX binds to SPX6900 rather than the index.
+// X discovery tags appended to each post's footer: the $SPX cashtag (X resolves
+// it to SPX6900) for the in-timeline price-chart card, plus the #spx6900 hashtag.
 const CASHTAG = process.env.BOT_CASHTAG || "$SPX";
-const CONTRACT = "0xE0f63A424a4439cBE457D80E4f4b51aD25b2c56C";
-const APPEND_CA = process.env.BOT_CA === "1";
+const HASHTAG = "#spx6900";
 
 const fPrice = p => (p >= 1 ? "$" + p.toFixed(2) : "$" + p.toFixed(4));
 const fPct = x => (x >= 0 ? "+" : "") + Math.round(x * 100).toLocaleString() + "%";
@@ -243,12 +240,11 @@ export function allIds(stats) { return POSTS.map(p => p(stats)?.id).filter(Boole
 
 // Pick the post. Override with id (env BOT_POST / --post=id) for testing,
 // otherwise rotate by day so the topic changes daily. The chosen text gets the
-// $SPX cashtag (and optionally the contract address) appended to its footer.
+// $SPX cashtag and #spx6900 hashtag appended to its footer.
 export function buildPost(stats, now = new Date(), overrideId = null) {
   const built = POSTS.map(p => p(stats)).filter(Boolean);
   const epochDay = Math.floor(now.getTime() / 86400000);
   const chosen = (overrideId && built.find(p => p.id === overrideId)) || built[epochDay % built.length];
-  let text = chosen.text.replace(/NFA\s*$/, `${CASHTAG} · NFA`);
-  if (APPEND_CA) text += `\n${CONTRACT}`;
+  const text = chosen.text.replace(/NFA\s*$/, `${CASHTAG} ${HASHTAG} · NFA`);
   return { ...chosen, text };
 }
