@@ -10,6 +10,11 @@ import { DEFAULT_RAW } from "../../src/data.js";
 const KAG = process.env.BTC_KAGGLE;     // bitcoin_*.csv : Start,End,Open,High,Low,Close,...
 const CG = process.env.BTC_COINGECKO;   // btcusdmax.csv : snapped_at,price,...
 const SHIFT = +(process.env.SHIFT || 0); // days to lead SPX into BTC timeline (e.g. 125)
+// Cycle-anchored time-warp: map BTC time onto SPX time so two shared events
+// (default: the two major cycle tops) coincide. Ages in YEARS from first price.
+const WARP = process.env.WARP === "1";
+const A_BTC1 = +(process.env.A_BTC1 || 0.89), A_SPX1 = +(process.env.A_SPX1 || 1.43); // first major top
+const A_BTC2 = +(process.env.A_BTC2 || 3.37), A_SPX2 = +(process.env.A_SPX2 || 1.95); // second major top
 
 // ---- load + stitch real BTC daily history ----
 const kag = readFileSync(KAG, "utf8").trim().split("\n").slice(1)
@@ -26,7 +31,7 @@ const btc = btcRows.map(r => ({ age: Math.round((new Date(r.date).getTime() - BT
 const btcByAge = new Map(btc.map(b => [b.age, b.price]));
 const btcMaxAge = btc.at(-1).age;
 const btcLnAt = age => {
-  let lo = age, hi = age;
+  let lo = Math.floor(age), hi = Math.ceil(age);
   while (lo > 0 && !btcByAge.has(lo)) lo--;
   while (hi < btcMaxAge && !btcByAge.has(hi)) hi++;
   const a = btcByAge.get(lo), b = btcByAge.get(hi);
@@ -40,14 +45,23 @@ const SPX0 = new Date(DEFAULT_RAW[0].date).getTime();
 const spx = DEFAULT_RAW.map(r => ({ age: Math.round((new Date(r.date).getTime() - SPX0) / 86400000), price: r.price }));
 const spxMaxAge = spx.at(-1).age;
 
+// ---- time mapping: BTC-day -> SPX-age x position, and its inverse ----
+// SHIFT mode: 1:1 tempo, offset by SHIFT days. WARP mode: linear time-warp that
+// makes two shared cycle tops coincide (stretches BTC time to SPX's faster tempo).
+const YR = 365.25;
+const Bw = WARP ? (A_SPX2 - A_SPX1) / (A_BTC2 - A_BTC1) : 1;     // SPX years per BTC year
+const Aw = WARP ? (A_SPX1 - Bw * A_BTC1) * YR : 0;              // intercept in days
+const btcDayForSpxAge = s => WARP ? (s - Aw) / Bw : s + SHIFT;  // sample BTC for a given SPX age
+const spxAgeForBtcDay = d => WARP ? Aw + Bw * d : d - SHIFT;    // where a BTC day plots on SPX axis
+
 // ---- best-fit vertical scale (bring BTC down to SPX tier over the shared window) ----
 let sLn = 0, bLn = 0, n = 0;
-for (const s of spx) { const a = s.age + SHIFT; if (a < 0 || a > btcMaxAge) continue; sLn += Math.log(s.price); bLn += btcLnAt(a); n++; }
+for (const s of spx) { const a = btcDayForSpxAge(s.age); if (a < 0 || a > btcMaxAge) continue; sLn += Math.log(s.price); bLn += btcLnAt(a); n++; }
 const scale = Math.exp(sLn / n - bLn / n); // multiply BTC price by this
 
-// BTC series over SPX's lived age window (age-aligned), scaled
+// BTC series placed on the SPX age axis via the mapping, scaled to SPX tier
 const btcPlot = [];
-for (let age = 0; age <= spxMaxAge; age++) btcPlot.push({ age, price: Math.exp(btcLnAt(age + SHIFT)) * scale });
+for (const b of btc) { const ax = spxAgeForBtcDay(b.age); if (ax < 0 || ax > spxMaxAge) continue; btcPlot.push({ age: ax, price: b.price * scale }); }
 
 // ---- render ----
 const W = 1200, H = 675, mL = 96, mR = 40, mT = 150, mB = 84;
@@ -76,7 +90,7 @@ const svg = `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http
 <rect width="${W}" height="${H}" fill="#05050e"/>
 <text x="64" y="56" fill="#94a3b8" font-size="30" font-weight="700" letter-spacing="3" font-family="sans-serif">SPX6900</text>
 <text x="64" y="104" fill="#e2e8f0" font-size="36" font-weight="700" font-family="sans-serif">SPX6900 vs Bitcoin's early curve — age-aligned (log)</text>
-<text x="64" y="138" fill="#64748b" font-size="22" font-family="sans-serif">Days since each asset's first price · BTC scaled ${(1 / scale).toFixed(0)}x to SPX's tier${SHIFT ? ` · SPX led ${SHIFT}d` : ""}</text>
+<text x="64" y="138" fill="#64748b" font-size="22" font-family="sans-serif">${WARP ? `x = SPX age · BTC time-warped ${(1 / Bw).toFixed(1)}x (cycle tops anchored) · scaled ${(1 / scale).toFixed(0)}x to SPX tier` : `Days since each asset's first price · BTC scaled ${(1 / scale).toFixed(0)}x to SPX tier${SHIFT ? ` · SPX lags ${Math.abs(SHIFT)}d` : ""}`}</text>
 ${grid}
 <polyline points="${poly(btcPlot)}" fill="none" stroke="#f7931a" stroke-width="3" stroke-opacity="0.85"/>
 <polyline points="${poly(spx)}" fill="none" stroke="#4ade80" stroke-width="3.4"/>
@@ -84,9 +98,9 @@ ${grid}
 <text x="${W - mR - 258}" y="${mT + 24}" fill="#cbd5e1" font-size="22" font-family="sans-serif">SPX6900 (actual)</text>
 <rect x="${W - mR - 290}" y="${mT + 44}" width="22" height="6" rx="3" fill="#f7931a"/>
 <text x="${W - mR - 258}" y="${mT + 54}" fill="#cbd5e1" font-size="22" font-family="sans-serif">BTC 2010–13 (scaled)</text>
-<text x="64" y="${H - 14}" fill="#475569" font-size="20" font-family="sans-serif">spx6900rainbow.xyz · exploratory overlay, not a forecast · r=${(() => { const xs = [], ys = []; for (const s of spx) { const a = s.age + SHIFT; if (a < 0 || a > btcMaxAge) continue; xs.push(Math.log(s.price)); ys.push(btcLnAt(a)); } const N = xs.length, mx = xs.reduce((p, c) => p + c) / N, my = ys.reduce((p, c) => p + c) / N; let sxy = 0, sxx = 0, syy = 0; for (let i = 0; i < N; i++) { const dx = xs[i] - mx, dy = ys[i] - my; sxy += dx * dy; sxx += dx * dx; syy += dy * dy; } return (sxy / Math.sqrt(sxx * syy)).toFixed(2); })()}</text>
+<text x="64" y="${H - 14}" fill="#475569" font-size="20" font-family="sans-serif">spx6900rainbow.xyz · exploratory overlay, not a forecast · r=${(() => { const xs = [], ys = []; for (const s of spx) { const a = btcDayForSpxAge(s.age); if (a < 0 || a > btcMaxAge) continue; xs.push(Math.log(s.price)); ys.push(btcLnAt(a)); } const N = xs.length, mx = xs.reduce((p, c) => p + c) / N, my = ys.reduce((p, c) => p + c) / N; let sxy = 0, sxx = 0, syy = 0; for (let i = 0; i < N; i++) { const dx = xs[i] - mx, dy = ys[i] - my; sxy += dx * dy; sxx += dx * dx; syy += dy * dy; } return (sxy / Math.sqrt(sxx * syy)).toFixed(2); })()}</text>
 </svg>`;
 
-const out = `bot-preview-btcoverlay${SHIFT ? "-shift" : ""}.png`;
+const out = `bot-preview-btcoverlay${WARP ? "-warp" : SHIFT ? "-shift" : ""}.png`;
 writeFileSync(out, new Resvg(svg, { fitTo: { mode: "width", value: W } }).render().asPng());
 console.log(`stitched BTC ${btcRows.length}d (${btcRows[0].date}→${btcRows.at(-1).date}) · scale 1/${(1 / scale).toFixed(1)} · -> ${out}`);
