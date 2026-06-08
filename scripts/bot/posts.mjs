@@ -7,6 +7,7 @@ import * as M from "../../src/models.js";
 // it to SPX6900) for the in-timeline price-chart card, plus the #spx6900 hashtag.
 const CASHTAG = process.env.BOT_CASHTAG || "$SPX";
 const HASHTAG = "#spx6900";
+const TIGHT = ""; // a line break that stays single (not spaced out) — for tight lists
 
 const fPrice = p => (p >= 1 ? "$" + p.toFixed(2) : "$" + p.toFixed(4));
 const fPct = x => (x >= 0 ? "+" : "") + Math.round(x * 100).toLocaleString() + "%";
@@ -120,7 +121,7 @@ NFA`,
       id: "targets",
       text:
 `🎯 SPX6900 from ${fPrice(s.price)} to the targets:
-${s.targets.slice(0, 3).map(t => `${t.label} → ${fMult(t.mult)}`).join("\n")}
+${s.targets.slice(0, 3).map(t => `${t.label} → ${fMult(t.mult)}`).join(TIGHT)}
 A log-trend extrapolation, not a promise.
 NFA`,
       card: { type: "bar", spec: {
@@ -239,12 +240,17 @@ NFA`,
 export function allIds(stats) { return POSTS.map(p => p(stats)?.id).filter(Boolean); }
 
 // Pick the post. Override with id (env BOT_POST / --post=id) for testing,
-// otherwise rotate by day so the topic changes daily. The chosen text gets the
-// $SPX cashtag and #spx6900 hashtag appended to its footer.
+// otherwise rotate by day so the topic changes daily. The chosen text gets its
+// old NFA footer dropped (the chart image already shows "not financial advice"),
+// the body spaced into airy paragraphs, then the branded $SPX / #spx6900 footer.
 export function buildPost(stats, now = new Date(), overrideId = null) {
   const built = POSTS.map(p => p(stats)).filter(Boolean);
   const epochDay = Math.floor(now.getTime() / 86400000);
   const chosen = (overrideId && built.find(p => p.id === overrideId)) || built[epochDay % built.length];
-  const text = chosen.text.replace(/NFA\s*$/, `${CASHTAG} ${HASHTAG} · NFA`);
+  const body = chosen.text
+    .replace(/\n?(?:🌈 )?NFA\s*$/u, "") // drop the old NFA footer line
+    .replace(/\n/g, "\n\n")            // blank line between thoughts for "air"
+    .replace(new RegExp(TIGHT, "g"), "\n"); // tight-list breaks stay single
+  const text = `${body}\n\n🌈 ${CASHTAG} ${HASHTAG}`;
   return { ...chosen, text };
 }
