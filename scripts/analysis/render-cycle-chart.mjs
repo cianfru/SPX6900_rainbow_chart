@@ -35,8 +35,19 @@ const uSpxNow = (anchorLn - m.predict(anchorAge + 1) - m.bands[0]) / span;
 const uBtcNow = uBtc(SHIFT + anchorAge);
 let uBtcBot = 9; for (let a = anchorAge; a <= anchorAge + 1100; a += 2) { const v = uBtc(SHIFT + a); if (v < uBtcBot) uBtcBot = v; }
 let uBtcPeak = -9; for (let a = anchorAge; a <= FUT_YEARS * YR; a += 2) { const bd = SHIFT + a; if (bd > btcMaxAge) break; const v = uBtc(bd); if (v > uBtcPeak) uBtcPeak = v; }
-const mapU = (v, d) => { const t = SPX_C1_PEAK_U * d; return v >= uBtcNow ? uSpxNow + (v - uBtcNow) * (t - uSpxNow) / (uBtcPeak - uBtcNow) : U_BOT + (v - uBtcBot) * (uSpxNow - U_BOT) / (uBtcNow - uBtcBot); };
-const proj = (a, d) => Math.exp(m.predict(a + 1) + m.bands[0] + mapU(uBtc(SHIFT + a), d) * span);
+const makeMapU = d => {
+  const x0 = uBtcBot, x1 = uBtcNow, x2 = uBtcPeak, y0 = U_BOT, y1 = uSpxNow, y2 = SPX_C1_PEAK_U * d;
+  const s1 = (y1 - y0) / (x1 - x0), s2 = (y2 - y1) / (x2 - x1);
+  const m0 = s1, m2 = s2, m1 = s1 * s2 <= 0 ? 0 : 2 * s1 * s2 / (s1 + s2);
+  return v => {
+    if (v <= x0) return y0; if (v >= x2) return y2;
+    const [xa, xb, ya, yb, ma, mb] = v < x1 ? [x0, x1, y0, y1, m0, m1] : [x1, x2, y1, y2, m1, m2];
+    const h = xb - xa, t = (v - xa) / h, t2 = t * t, t3 = t2 * t;
+    return ya * (2 * t3 - 3 * t2 + 1) + ma * h * (t3 - 2 * t2 + t) + yb * (-2 * t3 + 3 * t2) + mb * h * (t3 - t2);
+  };
+};
+const maps = { [DECAY_LO]: makeMapU(DECAY_LO), [DECAY_MID]: makeMapU(DECAY_MID), [DECAY_HI]: makeMapU(DECAY_HI) };
+const proj = (a, d) => Math.exp(m.predict(a + 1) + m.bands[0] + maps[d](uBtc(SHIFT + a)) * span);
 const bubbleAt = a => Math.exp(m.predict(a + 1) + m.bands[8]);
 const fireAt = a => Math.exp(m.predict(a + 1) + m.bands[0]);
 
