@@ -14,11 +14,11 @@ import { BTC_HISTORY, BTC_FIRST_DATE } from "./btc-history.js";
 const SANS = "'Space Grotesk', system-ui, sans-serif";
 const MONO = "ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace";
 const MAX_W = 1400, DAY = 86400000;
-// Calibrated so BTC's next cycle top (Oct-2025 ATH) lands on SPX's own rainbow
-// BUBBLE band around Nov-2028 (>$100): two anchors — today→BTC's Aug-2022 bear,
-// next peak→Nov-2028 — give SCALE 1.28 (SPX ~28% faster) and a youth-premium
-// BETA 3.6 that reaches the bubble band. A for-fun what-if, not a forecast.
-const SHIFT = 3114, SCALE = 1.276, BETA = 3.6, SPREAD = 0.3, FUT_YEARS = 6.5;
+// Calibrated so BTC's next cycle (Oct-2025 ATH) carries SPX up toward its upper
+// rainbow bands around Nov-2028. Asymmetric youth premium: limited DOWNSIDE
+// (SPX is already pinned near its fire-sale floor) but a big UPSIDE (younger,
+// smaller). Like real rainbows, it stops short of the extreme band — no clamp.
+const SHIFT = 3114, SCALE = 1.276, BETA_UP = 3.5, BETA_DOWN = 0.6, SPREAD = 0.3, FUT_YEARS = 6.5;
 const RBW = buildModel(DEFAULT_RAW);             // SPX rainbow model (for the bubble band)
 const bubbleAt = age => Math.exp(RBW.predict(age + 1) + RBW.bands[8]); // top band
 const fireAt = age => Math.exp(RBW.predict(age + 1) + RBW.bands[0]);   // fire-sale (bottom) band
@@ -74,8 +74,10 @@ export default function BtcCycleChart({ series, isMobile }) {
     };
     const btcDay = age => SHIFT + age * SCALE;
     const lnBtcNow = btcLnAt(btcDay(spxMaxAge)), lnSpxNow = Math.log(spxNow);
-    const projB = (age, b) => Math.exp(lnSpxNow + b * (btcLnAt(btcDay(age)) - lnBtcNow));
-    const betaLo = Math.max(0.3, BETA - SPREAD), betaHi = BETA + SPREAD;
+    // Asymmetric: amplify BTC's deviation from today's level by BETA_UP when BTC
+    // is above today (upside) and the gentler BETA_DOWN when below (SPX is already
+    // near its floor). Continuous at today, where the deviation is 0.
+    const proj = (age, bUp) => { const z = btcLnAt(btcDay(age)) - lnBtcNow; return Math.exp(lnSpxNow + (z >= 0 ? bUp : BETA_DOWN) * z); };
 
     // correlation (shape)
     const xs = [], ys = [];
@@ -85,10 +87,6 @@ export default function BtcCycleChart({ series, isMobile }) {
     const r = sxy / Math.sqrt(sxx * syy);
 
     const futCap = FUT_YEARS * 365.25, data = [];
-    // The projection rides within SPX's own rainbow: clamp it between the
-    // fire-sale floor and the bubble ceiling, so it capitulates to the floor
-    // (not through it) and kisses the bubble band at the top.
-    const clampBand = (age, v) => Math.min(bubbleAt(age), Math.max(fireAt(age), v));
     for (let age = 0; age <= futCap; age += 7) {
       const bd = btcDay(age), valid = bd >= 0 && bd <= btcMaxAge, ahead = age >= spxMaxAge;
       data.push({
@@ -97,15 +95,15 @@ export default function BtcCycleChart({ series, isMobile }) {
         bubble: bubbleAt(age),
         floor: fireAt(age),
         center: centerAt(age),
-        btcFut: valid && ahead ? clampBand(age, projB(age, BETA)) : null,
-        cone: valid && ahead ? [clampBand(age, projB(age, betaLo)), clampBand(age, projB(age, betaHi))] : null,
+        btcFut: valid && ahead ? proj(age, BETA_UP) : null,
+        cone: valid && ahead ? [proj(age, BETA_UP - SPREAD), proj(age, BETA_UP + SPREAD)] : null,
       });
     }
     let peak = { p: 0, age: 0 };
-    for (let age = spxMaxAge; age <= futCap; age += 7) { const bd = btcDay(age); if (bd < 0 || bd > btcMaxAge) continue; const pv = clampBand(age, projB(age, BETA)); if (pv > peak.p) peak = { p: pv, age }; }
+    for (let age = spxMaxAge; age <= futCap; age += 7) { const bd = btcDay(age); if (bd < 0 || bd > btcMaxAge) continue; const pv = proj(age, BETA_UP); if (pv > peak.p) peak = { p: pv, age }; }
     let low = { p: Infinity, age: 0 };
-    for (let age = spxMaxAge; age <= spxMaxAge + 1000; age += 7) { const bd = btcDay(age); if (bd < 0 || bd > btcMaxAge) continue; const pv = clampBand(age, projB(age, BETA)); if (pv < low.p) low = { p: pv, age }; }
-    const peakLo = clampBand(peak.age, projB(peak.age, betaLo)), peakHi = clampBand(peak.age, projB(peak.age, betaHi));
+    for (let age = spxMaxAge; age <= spxMaxAge + 1000; age += 7) { const bd = btcDay(age); if (bd < 0 || bd > btcMaxAge) continue; const pv = proj(age, BETA_UP); if (pv < low.p) low = { p: pv, age }; }
+    const peakLo = proj(peak.age, BETA_UP - SPREAD), peakHi = proj(peak.age, BETA_UP + SPREAD);
     const todayBtc = new Date(BTC0 + btcDay(spxMaxAge) * DAY);
     const peakDate = new Date(SPX0 + peak.age * DAY), lowDate = new Date(SPX0 + low.age * DAY);
     return { data, stats: { r, spxNow, peak, peakLo, peakHi, peakDate, low, lowDate, todayTs: SPX0 + spxMaxAge * DAY, todayBtc } };
@@ -116,7 +114,7 @@ export default function BtcCycleChart({ series, isMobile }) {
       <div style={{ display: "flex", gap: isMobile ? 22 : 48, justifyContent: "center", marginBottom: 16, flexWrap: "wrap" }}>
         <Stat k="PROJECTED LOW" v={`${fP(stats.low.p)}`} c="#38bdf8" isMobile={isMobile} />
         <Stat k="CYCLE PEAK" v={stats.peakDate.toLocaleDateString("en-US", { month: "short", year: "numeric" })} c="#a78bfa" isMobile={isMobile} />
-        <Stat k="AT BUBBLE BAND" v={fP(stats.peak.p)} c="#fbbf24" isMobile={isMobile} />
+        <Stat k="PROJECTED PEAK" v={fP(stats.peak.p)} c="#fbbf24" isMobile={isMobile} />
       </div>
 
       <ResponsiveContainer width="100%" height={isMobile ? 380 : 540}>
@@ -139,7 +137,7 @@ export default function BtcCycleChart({ series, isMobile }) {
 
       <div style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.6 }}>
         <span style={{ color: "#4ade80" }}>■</span> SPX6900 actual &nbsp;·&nbsp; <span style={{ color: "#f7931a" }}>┄</span> Bitcoin 2019–22 cycle projected (shaded = scenario range) &nbsp;·&nbsp; <span style={{ color: "#a78bfa" }}>┄</span> bubble band / <span style={{ color: "#38bdf8" }}>┄</span> fire-sale band.
-        <br />The projection rides SPX's own rainbow: a final capitulation toward the <span style={{ color: "#38bdf8" }}>fire-sale floor</span> ({fP(stats.low.p)}), then Bitcoin's next cycle carrying it up to <span style={{ color: "#a78bfa" }}>bubble territory</span> (~{stats.peakDate.toLocaleDateString("en-US", { month: "short", year: "numeric" })}, {fP(stats.peak.p)}). A for-fun <i>what-if</i>, NOT a forecast or financial advice.
+        <br />The projection floats through SPX's rainbow: a last dip toward the <span style={{ color: "#38bdf8" }}>fire-sale floor</span> (~{fP(stats.low.p)}), then Bitcoin's next cycle lifting it into the <span style={{ color: "#a78bfa" }}>upper bands</span> (~{stats.peakDate.toLocaleDateString("en-US", { month: "short", year: "numeric" })}, ~{fP(stats.peak.p)}) — stopping short of the extreme, like real cycles do. A for-fun <i>what-if</i>, NOT a forecast or financial advice.
       </div>
     </div>
   );
