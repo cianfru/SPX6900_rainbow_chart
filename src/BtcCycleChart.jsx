@@ -14,12 +14,12 @@ import { BTC_HISTORY, BTC_FIRST_DATE } from "./btc-history.js";
 const SANS = "'Space Grotesk', system-ui, sans-serif";
 const MONO = "ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace";
 const MAX_W = 1400, DAY = 86400000;
-// Natural best-fit overlay (no date-forcing): SPX ≈ BTC's 2019–22 cycle at 1:1
-// tempo (r≈0.95 — the best match across 16 years of BTC). The forward path just
-// extends BTC's actual cycle. β_up 3.0 is the *measured* regression slope (SPX's
-// real amplitude vs that BTC cycle), not a hand-tuned premium; β_down is gentle
-// since SPX already sits near its fire-sale floor. A for-fun what-if, no clamp.
-const SHIFT = 3395, SCALE = 1.0, BETA_UP = 3.0, BETA_DOWN = 0.6, SPREAD = 0.4, FUT_YEARS = 6.5;
+// Apples-to-apples by cycle, not by shape: SPX's FIRST cycle (launch → 2025 top)
+// mapped onto Bitcoin's FIRST cycle (2010 first price → 2011 top). Two anchors —
+// birth=birth, first-top=first-top — give SCALE ~0.46 (SPX ~2.2× slower than
+// baby-BTC). The forward path then follows BTC's 2012-13 second cycle. β≈1.1 is
+// the measured slope (no youth-premium hack — SPX ~1:1 with baby-BTC in logs).
+const SHIFT = 0, SCALE = 0.456, BETA_UP = 1.1, BETA_DOWN = 0.9, SPREAD = 0.25, FUT_YEARS = 7.5;
 const RBW = buildModel(DEFAULT_RAW);             // SPX rainbow model (for the bubble band)
 const bubbleAt = age => Math.exp(RBW.predict(age + 1) + RBW.bands[8]); // top band
 const fireAt = age => Math.exp(RBW.predict(age + 1) + RBW.bands[0]);   // fire-sale (bottom) band
@@ -138,8 +138,8 @@ export default function BtcCycleChart({ series, isMobile }) {
       </ResponsiveContainer>
 
       <div style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.6 }}>
-        <span style={{ color: "#4ade80" }}>■</span> SPX6900 actual &nbsp;·&nbsp; <span style={{ color: "#f7931a" }}>┄</span> Bitcoin 2019–22 cycle projected (shaded = scenario range) &nbsp;·&nbsp; <span style={{ color: "#a78bfa" }}>┄</span> bubble band / <span style={{ color: "#38bdf8" }}>┄</span> fire-sale band.
-        <br />The projection floats through SPX's rainbow: a last dip toward the <span style={{ color: "#38bdf8" }}>fire-sale floor</span> (~{fP(stats.low.p)}), then Bitcoin's next cycle lifting it into the <span style={{ color: "#a78bfa" }}>upper bands</span> (~{stats.peakDate.toLocaleDateString("en-US", { month: "short", year: "numeric" })}, ~{fP(stats.peak.p)}) — stopping short of the extreme, like real cycles do. A for-fun <i>what-if</i>, NOT a forecast or financial advice.
+        <span style={{ color: "#4ade80" }}>■</span> SPX6900 actual &nbsp;·&nbsp; <span style={{ color: "#f7931a" }}>┄</span> Bitcoin first-cycle analog projected (shaded = scenario range) &nbsp;·&nbsp; <span style={{ color: "#a78bfa" }}>┄</span> bubble band / <span style={{ color: "#38bdf8" }}>┄</span> fire-sale band.
+        <br />Apples-to-apples: SPX's <b>first cycle</b> (launch → 2025 top) mapped onto Bitcoin's <b>first cycle</b> (2010 → 2011 top). If it keeps rhyming, BTC's 2012-13 second cycle carries SPX toward <span style={{ color: "#a78bfa" }}>~{fP(stats.peak.p)}</span> by ~{stats.peakDate.toLocaleDateString("en-US", { month: "short", year: "numeric" })}, after a dip toward the <span style={{ color: "#38bdf8" }}>fire-sale floor</span> (~{fP(stats.low.p)}). A for-fun <i>what-if</i>, NOT a forecast or financial advice.
       </div>
     </div>
   );
