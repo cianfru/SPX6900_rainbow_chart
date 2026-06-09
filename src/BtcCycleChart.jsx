@@ -21,6 +21,7 @@ const MAX_W = 1400, DAY = 86400000;
 const SHIFT = 3114, SCALE = 1.276, BETA = 3.6, SPREAD = 0.3, FUT_YEARS = 6.5;
 const RBW = buildModel(DEFAULT_RAW);             // SPX rainbow model (for the bubble band)
 const bubbleAt = age => Math.exp(RBW.predict(age + 1) + RBW.bands[8]); // top band
+const fireAt = age => Math.exp(RBW.predict(age + 1) + RBW.bands[0]);   // fire-sale (bottom) band
 const centerAt = age => Math.exp(RBW.predict(age + 1));
 
 const BTC0 = new Date(BTC_FIRST_DATE).getTime();
@@ -84,29 +85,36 @@ export default function BtcCycleChart({ series, isMobile }) {
     const r = sxy / Math.sqrt(sxx * syy);
 
     const futCap = FUT_YEARS * 365.25, data = [];
+    // The projection rides within SPX's own rainbow: clamp it between the
+    // fire-sale floor and the bubble ceiling, so it capitulates to the floor
+    // (not through it) and kisses the bubble band at the top.
+    const clampBand = (age, v) => Math.min(bubbleAt(age), Math.max(fireAt(age), v));
     for (let age = 0; age <= futCap; age += 7) {
       const bd = btcDay(age), valid = bd >= 0 && bd <= btcMaxAge, ahead = age >= spxMaxAge;
       data.push({
         ts: SPX0 + age * DAY,
         spx: age <= spxMaxAge ? Math.exp(spxLnAt(age)) : null,
         bubble: bubbleAt(age),
+        floor: fireAt(age),
         center: centerAt(age),
-        btcFut: valid && ahead ? projB(age, BETA) : null,
-        cone: valid && ahead ? [projB(age, betaLo), projB(age, betaHi)] : null,
+        btcFut: valid && ahead ? clampBand(age, projB(age, BETA)) : null,
+        cone: valid && ahead ? [clampBand(age, projB(age, betaLo)), clampBand(age, projB(age, betaHi))] : null,
       });
     }
     let peak = { p: 0, age: 0 };
-    for (let age = spxMaxAge; age <= futCap; age += 7) { const bd = btcDay(age); if (bd < 0 || bd > btcMaxAge) continue; const pv = projB(age, BETA); if (pv > peak.p) peak = { p: pv, age }; }
-    const peakLo = projB(peak.age, betaLo), peakHi = projB(peak.age, betaHi);
+    for (let age = spxMaxAge; age <= futCap; age += 7) { const bd = btcDay(age); if (bd < 0 || bd > btcMaxAge) continue; const pv = clampBand(age, projB(age, BETA)); if (pv > peak.p) peak = { p: pv, age }; }
+    let low = { p: Infinity, age: 0 };
+    for (let age = spxMaxAge; age <= spxMaxAge + 1000; age += 7) { const bd = btcDay(age); if (bd < 0 || bd > btcMaxAge) continue; const pv = clampBand(age, projB(age, BETA)); if (pv < low.p) low = { p: pv, age }; }
+    const peakLo = clampBand(peak.age, projB(peak.age, betaLo)), peakHi = clampBand(peak.age, projB(peak.age, betaHi));
     const todayBtc = new Date(BTC0 + btcDay(spxMaxAge) * DAY);
-    const peakDate = new Date(SPX0 + peak.age * DAY);
-    return { data, stats: { r, spxNow, peak, peakLo, peakHi, peakDate, todayTs: SPX0 + spxMaxAge * DAY, todayBtc } };
+    const peakDate = new Date(SPX0 + peak.age * DAY), lowDate = new Date(SPX0 + low.age * DAY);
+    return { data, stats: { r, spxNow, peak, peakLo, peakHi, peakDate, low, lowDate, todayTs: SPX0 + spxMaxAge * DAY, todayBtc } };
   }, [series]);
 
   return (
     <div style={{ maxWidth: MAX_W, margin: "0 auto" }}>
       <div style={{ display: "flex", gap: isMobile ? 22 : 48, justifyContent: "center", marginBottom: 16, flexWrap: "wrap" }}>
-        <Stat k="SHAPE MATCH (r)" v={stats.r.toFixed(2)} c="#4ade80" isMobile={isMobile} />
+        <Stat k="PROJECTED LOW" v={`${fP(stats.low.p)}`} c="#38bdf8" isMobile={isMobile} />
         <Stat k="CYCLE PEAK" v={stats.peakDate.toLocaleDateString("en-US", { month: "short", year: "numeric" })} c="#a78bfa" isMobile={isMobile} />
         <Stat k="AT BUBBLE BAND" v={fP(stats.peak.p)} c="#fbbf24" isMobile={isMobile} />
       </div>
@@ -121,6 +129,7 @@ export default function BtcCycleChart({ series, isMobile }) {
           <Tooltip content={<Tip />} />
           <ReferenceLine x={stats.todayTs} stroke="#64748b" strokeDasharray="4 5" label={{ value: "TODAY", fill: "#94a3b8", fontSize: 12, position: "insideTopRight" }} />
           <Line dataKey="bubble" stroke="#a78bfa" strokeWidth={1.6} strokeDasharray="3 4" strokeOpacity={0.85} dot={false} isAnimationActive={false} name="SPX bubble band" connectNulls />
+          <Line dataKey="floor" stroke="#38bdf8" strokeWidth={1.4} strokeDasharray="3 4" strokeOpacity={0.7} dot={false} isAnimationActive={false} name="SPX fire-sale band" connectNulls />
           <Line dataKey="center" stroke="#a78bfa" strokeWidth={1} strokeDasharray="1 6" strokeOpacity={0.3} dot={false} isAnimationActive={false} connectNulls />
           <Area dataKey="cone" stroke="none" fill="#f7931a" fillOpacity={0.13} isAnimationActive={false} connectNulls />
           <Line dataKey="btcFut" stroke="#f7931a" strokeWidth={2.4} strokeDasharray="7 6" dot={false} isAnimationActive={false} connectNulls />
@@ -129,8 +138,8 @@ export default function BtcCycleChart({ series, isMobile }) {
       </ResponsiveContainer>
 
       <div style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.6 }}>
-        <span style={{ color: "#4ade80" }}>■</span> SPX6900 actual &nbsp;·&nbsp; <span style={{ color: "#f7931a" }}>┄</span> Bitcoin 2019–22 cycle projected (shaded = scenario range) &nbsp;·&nbsp; <span style={{ color: "#a78bfa" }}>┄</span> SPX rainbow bubble band.
-        <br />Calibrated so Bitcoin's next cycle top lands on SPX's own bubble band (~{stats.peakDate.toLocaleDateString("en-US", { month: "short", year: "numeric" })}, {fP(stats.peak.p)}), with a ×{BETA} youth premium for SPX's smaller size. A for-fun <i>what-if</i>, NOT a forecast or financial advice.
+        <span style={{ color: "#4ade80" }}>■</span> SPX6900 actual &nbsp;·&nbsp; <span style={{ color: "#f7931a" }}>┄</span> Bitcoin 2019–22 cycle projected (shaded = scenario range) &nbsp;·&nbsp; <span style={{ color: "#a78bfa" }}>┄</span> bubble band / <span style={{ color: "#38bdf8" }}>┄</span> fire-sale band.
+        <br />The projection rides SPX's own rainbow: a final capitulation toward the <span style={{ color: "#38bdf8" }}>fire-sale floor</span> ({fP(stats.low.p)}), then Bitcoin's next cycle carrying it up to <span style={{ color: "#a78bfa" }}>bubble territory</span> (~{stats.peakDate.toLocaleDateString("en-US", { month: "short", year: "numeric" })}, {fP(stats.peak.p)}). A for-fun <i>what-if</i>, NOT a forecast or financial advice.
       </div>
     </div>
   );
