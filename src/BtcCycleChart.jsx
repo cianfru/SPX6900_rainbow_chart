@@ -20,10 +20,12 @@ const MAX_W = 1400, DAY = 86400000;
 // β_up 3.5 amplifies the upside (younger/smaller bulls harder than mature BTC),
 // β_down 0.6 is gentle (SPX is already near its fire-sale floor). For-fun what-if.
 const SHIFT = 3395, SCALE = 1.0, BETA_UP = 3.5, BETA_DOWN = 0.6, SPREAD = 0.3, FUT_YEARS = 6.5;
-const RBW = buildModel(DEFAULT_RAW);             // SPX rainbow model (for the bubble band)
-const bubbleAt = age => Math.exp(RBW.predict(age + 1) + RBW.bands[8]); // top band
-const fireAt = age => Math.exp(RBW.predict(age + 1) + RBW.bands[0]);   // fire-sale (bottom) band
-const centerAt = age => Math.exp(RBW.predict(age + 1));
+const RBW = buildModel(DEFAULT_RAW);             // SPX rainbow model
+const edgesAt = age => RBW.bands.map(b => Math.exp(RBW.predict(age + 1) + b)); // 10 band edges
+// rainbow fill colours, cheap (blue) → expensive (red), for the 9 bands between edges
+const BAND_COLORS = ["#3b82f6", "#38bdf8", "#22d3ee", "#4ade80", "#a3e635", "#facc15", "#fb923c", "#f97316", "#ef4444"];
+// approximate Bitcoin halving dates (cycle clock the projection is pinned to)
+const HALVINGS = ["2024-04-20", "2028-04-15"].map(d => new Date(d).getTime());
 
 const BTC0 = new Date(BTC_FIRST_DATE).getTime();
 const btcMaxAge = BTC_HISTORY.at(-1)[0];
@@ -90,15 +92,14 @@ export default function BtcCycleChart({ series, isMobile }) {
     const futCap = FUT_YEARS * 365.25, data = [];
     for (let age = 0; age <= futCap; age += 7) {
       const bd = btcDay(age), valid = bd >= 0 && bd <= btcMaxAge, ahead = age >= spxMaxAge;
-      data.push({
+      const e = edgesAt(age);
+      const row = {
         ts: SPX0 + age * DAY,
         spx: age <= spxMaxAge ? Math.exp(spxLnAt(age)) : null,
-        bubble: bubbleAt(age),
-        floor: fireAt(age),
-        center: centerAt(age),
         btcFut: valid && ahead ? proj(age, BETA_UP) : null,
-        cone: valid && ahead ? [proj(age, BETA_UP - SPREAD), proj(age, BETA_UP + SPREAD)] : null,
-      });
+      };
+      for (let i = 0; i < 9; i++) row["rb" + i] = [e[i], e[i + 1]]; // rainbow band fills
+      data.push(row);
     }
     let peak = { p: 0, age: 0 };
     for (let age = spxMaxAge; age <= futCap; age += 7) { const bd = btcDay(age); if (bd < 0 || bd > btcMaxAge) continue; const pv = proj(age, BETA_UP); if (pv > peak.p) peak = { p: pv, age }; }
@@ -127,19 +128,22 @@ export default function BtcCycleChart({ series, isMobile }) {
           <YAxis scale="log" domain={["auto", "auto"]} tickFormatter={fP}
             tick={{ fill: "#cbd5e1", fontSize: isMobile ? 10 : 12, fontFamily: MONO }} axisLine={{ stroke: "rgba(255,255,255,0.15)" }} tickLine={false} width={isMobile ? 46 : 60} />
           <Tooltip content={<Tip />} />
-          <ReferenceLine x={stats.todayTs} stroke="#64748b" strokeDasharray="4 5" label={{ value: "TODAY", fill: "#94a3b8", fontSize: 12, position: "insideTopRight" }} />
-          <Line dataKey="bubble" stroke="#a78bfa" strokeWidth={1.6} strokeDasharray="3 4" strokeOpacity={0.85} dot={false} isAnimationActive={false} name="SPX bubble band" connectNulls />
-          <Line dataKey="floor" stroke="#38bdf8" strokeWidth={1.4} strokeDasharray="3 4" strokeOpacity={0.7} dot={false} isAnimationActive={false} name="SPX fire-sale band" connectNulls />
-          <Line dataKey="center" stroke="#a78bfa" strokeWidth={1} strokeDasharray="1 6" strokeOpacity={0.3} dot={false} isAnimationActive={false} connectNulls />
-          <Area dataKey="cone" stroke="none" fill="#f7931a" fillOpacity={0.13} isAnimationActive={false} connectNulls />
-          <Line dataKey="btcFut" stroke="#f7931a" strokeWidth={2.4} strokeDasharray="7 6" dot={false} isAnimationActive={false} connectNulls />
-          <Line dataKey="spx" stroke="#4ade80" strokeWidth={2.6} dot={false} isAnimationActive={false} connectNulls />
+          {BAND_COLORS.map((c, i) => (
+            <Area key={i} dataKey={"rb" + i} stroke="none" fill={c} fillOpacity={0.22} isAnimationActive={false} connectNulls />
+          ))}
+          {HALVINGS.map((h, i) => (
+            <ReferenceLine key={i} x={h} stroke="rgba(255,255,255,0.22)" label={{ value: "Halving", fill: "#94a3b8", fontSize: 11, position: "insideBottomLeft", angle: -90, offset: 8 }} />
+          ))}
+          <ReferenceLine x={stats.todayTs} stroke="#e2e8f0" strokeDasharray="4 5" strokeOpacity={0.6} label={{ value: "TODAY", fill: "#e2e8f0", fontSize: 12, position: "insideTopRight" }} />
+          <Line dataKey="btcFut" stroke="#f8fafc" strokeWidth={2.2} strokeDasharray="7 6" dot={false} isAnimationActive={false} connectNulls />
+          <Line dataKey="spx" stroke="#0b0b14" strokeWidth={4.2} dot={false} isAnimationActive={false} connectNulls />
+          <Line dataKey="spx" stroke="#f8fafc" strokeWidth={2.4} dot={false} isAnimationActive={false} connectNulls />
         </ComposedChart>
       </ResponsiveContainer>
 
       <div style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.6 }}>
-        <span style={{ color: "#4ade80" }}>■</span> SPX6900 actual &nbsp;·&nbsp; <span style={{ color: "#f7931a" }}>┄</span> projected on BTC's 4-year cycle (shaded = scenario range) &nbsp;·&nbsp; <span style={{ color: "#a78bfa" }}>┄</span> bubble band / <span style={{ color: "#38bdf8" }}>┄</span> fire-sale band.
-        <br />Timing follows Bitcoin's halving cycle (bottom <span style={{ color: "#38bdf8" }}>~{stats.lowDate.toLocaleDateString("en-US", { month: "short", year: "numeric" })}, ~{fP(stats.low.p)}</span>, then a 2027-28 bull); the size reflects SPX's youth (it bulls harder than mature BTC) → a possible top near <span style={{ color: "#a78bfa" }}>~{fP(stats.peak.p)}</span> around {stats.peakDate.toLocaleDateString("en-US", { month: "short", year: "numeric" })}. A for-fun <i>what-if</i>, NOT a forecast or financial advice.
+        <b style={{ color: "#f8fafc" }}>━</b> SPX6900 actual &nbsp;·&nbsp; <b style={{ color: "#f8fafc" }}>┄</b> projected on Bitcoin's 4-year cycle &nbsp;·&nbsp; the rainbow is SPX's own valuation bands (<span style={{ color: "#3b82f6" }}>fire-sale</span> → <span style={{ color: "#ef4444" }}>bubble</span>).
+        <br />Timing tracks BTC's halving cycle — a bottom around <b style={{ color: "#cbd5e1" }}>{stats.lowDate.toLocaleDateString("en-US", { month: "short", year: "numeric" })} (~{fP(stats.low.p)})</b>, a 2027-28 bull, then a possible top near <b style={{ color: "#cbd5e1" }}>{fP(stats.peak.p)}</b> around {stats.peakDate.toLocaleDateString("en-US", { month: "short", year: "numeric" })}. Size reflects SPX's youth (it bulls harder than mature BTC). A for-fun <i>what-if</i>, NOT a forecast or financial advice.
       </div>
     </div>
   );
