@@ -8,15 +8,20 @@ import {
   ResponsiveContainer, ComposedChart, Area, Line, XAxis, YAxis, Tooltip, CartesianGrid, ReferenceLine,
 } from "recharts";
 import { DEFAULT_RAW } from "./data.js";
+import { buildModel } from "./models.js";
 import { BTC_HISTORY, BTC_FIRST_DATE } from "./btc-history.js";
 
 const SANS = "'Space Grotesk', system-ui, sans-serif";
 const MONO = "ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace";
 const MAX_W = 1400, DAY = 86400000;
-// Locked best-fit (from the exhaustive search): SPX ≈ BTC's 2019–22 cycle, 1:1 tempo.
-// BETA = SPX's "youth premium" amplitude vs BTC (younger/smaller-cap → bigger % moves);
-// applied to the forward projection. A bull what-if assumption, not a fit output.
-const SHIFT = 3395, SCALE = 1, BETA = 3.0, SPREAD = 0.5, FUT_YEARS = 6.5;
+// Calibrated so BTC's next cycle top (Oct-2025 ATH) lands on SPX's own rainbow
+// BUBBLE band around Nov-2028 (>$100): two anchors — today→BTC's Aug-2022 bear,
+// next peak→Nov-2028 — give SCALE 1.28 (SPX ~28% faster) and a youth-premium
+// BETA 3.6 that reaches the bubble band. A for-fun what-if, not a forecast.
+const SHIFT = 3114, SCALE = 1.276, BETA = 3.6, SPREAD = 0.3, FUT_YEARS = 6.5;
+const RBW = buildModel(DEFAULT_RAW);             // SPX rainbow model (for the bubble band)
+const bubbleAt = age => Math.exp(RBW.predict(age + 1) + RBW.bands[8]); // top band
+const centerAt = age => Math.exp(RBW.predict(age + 1));
 
 const BTC0 = new Date(BTC_FIRST_DATE).getTime();
 const btcMaxAge = BTC_HISTORY.at(-1)[0];
@@ -84,6 +89,8 @@ export default function BtcCycleChart({ series, isMobile }) {
       data.push({
         ts: SPX0 + age * DAY,
         spx: age <= spxMaxAge ? Math.exp(spxLnAt(age)) : null,
+        bubble: bubbleAt(age),
+        center: centerAt(age),
         btcFut: valid && ahead ? projB(age, BETA) : null,
         cone: valid && ahead ? [projB(age, betaLo), projB(age, betaHi)] : null,
       });
@@ -92,15 +99,16 @@ export default function BtcCycleChart({ series, isMobile }) {
     for (let age = spxMaxAge; age <= futCap; age += 7) { const bd = btcDay(age); if (bd < 0 || bd > btcMaxAge) continue; const pv = projB(age, BETA); if (pv > peak.p) peak = { p: pv, age }; }
     const peakLo = projB(peak.age, betaLo), peakHi = projB(peak.age, betaHi);
     const todayBtc = new Date(BTC0 + btcDay(spxMaxAge) * DAY);
-    return { data, stats: { r, spxNow, peak, peakLo, peakHi, todayTs: SPX0 + spxMaxAge * DAY, todayBtc } };
+    const peakDate = new Date(SPX0 + peak.age * DAY);
+    return { data, stats: { r, spxNow, peak, peakLo, peakHi, peakDate, todayTs: SPX0 + spxMaxAge * DAY, todayBtc } };
   }, [series]);
 
   return (
     <div style={{ maxWidth: MAX_W, margin: "0 auto" }}>
       <div style={{ display: "flex", gap: isMobile ? 22 : 48, justifyContent: "center", marginBottom: 16, flexWrap: "wrap" }}>
         <Stat k="SHAPE MATCH (r)" v={stats.r.toFixed(2)} c="#4ade80" isMobile={isMobile} />
-        <Stat k="TODAY ≈ BTC" v={stats.todayBtc.toLocaleDateString("en-US", { month: "short", year: "numeric" })} c="#f7931a" isMobile={isMobile} />
-        <Stat k="WHAT-IF PEAK" v={`${fP(stats.peakLo)}–${fP(stats.peakHi)}`} c="#fbbf24" isMobile={isMobile} />
+        <Stat k="CYCLE PEAK" v={stats.peakDate.toLocaleDateString("en-US", { month: "short", year: "numeric" })} c="#a78bfa" isMobile={isMobile} />
+        <Stat k="AT BUBBLE BAND" v={fP(stats.peak.p)} c="#fbbf24" isMobile={isMobile} />
       </div>
 
       <ResponsiveContainer width="100%" height={isMobile ? 380 : 540}>
@@ -112,6 +120,8 @@ export default function BtcCycleChart({ series, isMobile }) {
             tick={{ fill: "#cbd5e1", fontSize: isMobile ? 10 : 12, fontFamily: MONO }} axisLine={{ stroke: "rgba(255,255,255,0.15)" }} tickLine={false} width={isMobile ? 46 : 60} />
           <Tooltip content={<Tip />} />
           <ReferenceLine x={stats.todayTs} stroke="#64748b" strokeDasharray="4 5" label={{ value: "TODAY", fill: "#94a3b8", fontSize: 12, position: "insideTopRight" }} />
+          <Line dataKey="bubble" stroke="#a78bfa" strokeWidth={1.6} strokeDasharray="3 4" strokeOpacity={0.85} dot={false} isAnimationActive={false} name="SPX bubble band" connectNulls />
+          <Line dataKey="center" stroke="#a78bfa" strokeWidth={1} strokeDasharray="1 6" strokeOpacity={0.3} dot={false} isAnimationActive={false} connectNulls />
           <Area dataKey="cone" stroke="none" fill="#f7931a" fillOpacity={0.13} isAnimationActive={false} connectNulls />
           <Line dataKey="btcFut" stroke="#f7931a" strokeWidth={2.4} strokeDasharray="7 6" dot={false} isAnimationActive={false} connectNulls />
           <Line dataKey="spx" stroke="#4ade80" strokeWidth={2.6} dot={false} isAnimationActive={false} connectNulls />
@@ -119,8 +129,8 @@ export default function BtcCycleChart({ series, isMobile }) {
       </ResponsiveContainer>
 
       <div style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.6 }}>
-        <span style={{ color: "#4ade80" }}>■</span> SPX6900 actual &nbsp;·&nbsp; <span style={{ color: "#f7931a" }}>┄</span> Bitcoin 2019–22 analog, projected ahead with a <b>×{BETA} youth premium</b> (shaded = scenario range).
-        <br />SPX is tracing Bitcoin's 2019–22 cycle (r≈0.95) — late-bear today. Being far younger &amp; smaller, the projection amplifies BTC's next run ~{BETA}× in % terms. A bullish <i>what-if</i>, NOT a forecast or financial advice.
+        <span style={{ color: "#4ade80" }}>■</span> SPX6900 actual &nbsp;·&nbsp; <span style={{ color: "#f7931a" }}>┄</span> Bitcoin 2019–22 cycle projected (shaded = scenario range) &nbsp;·&nbsp; <span style={{ color: "#a78bfa" }}>┄</span> SPX rainbow bubble band.
+        <br />Calibrated so Bitcoin's next cycle top lands on SPX's own bubble band (~{stats.peakDate.toLocaleDateString("en-US", { month: "short", year: "numeric" })}, {fP(stats.peak.p)}), with a ×{BETA} youth premium for SPX's smaller size. A for-fun <i>what-if</i>, NOT a forecast or financial advice.
       </div>
     </div>
   );
