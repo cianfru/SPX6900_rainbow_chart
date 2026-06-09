@@ -14,11 +14,12 @@ import { BTC_HISTORY, BTC_FIRST_DATE } from "./btc-history.js";
 const SANS = "'Space Grotesk', system-ui, sans-serif";
 const MONO = "ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace";
 const MAX_W = 1400, DAY = 86400000;
-// Calibrated so BTC's next cycle (Oct-2025 ATH) carries SPX up toward its upper
-// rainbow bands around Nov-2028. Asymmetric youth premium: limited DOWNSIDE
-// (SPX is already pinned near its fire-sale floor) but a big UPSIDE (younger,
-// smaller). Like real rainbows, it stops short of the extreme band — no clamp.
-const SHIFT = 3114, SCALE = 1.276, BETA_UP = 3.5, BETA_DOWN = 0.6, SPREAD = 0.3, FUT_YEARS = 6.5;
+// Natural best-fit overlay (no date-forcing): SPX ≈ BTC's 2019–22 cycle at 1:1
+// tempo (r≈0.95 — the best match across 16 years of BTC). The forward path just
+// extends BTC's actual cycle. β_up 3.0 is the *measured* regression slope (SPX's
+// real amplitude vs that BTC cycle), not a hand-tuned premium; β_down is gentle
+// since SPX already sits near its fire-sale floor. A for-fun what-if, no clamp.
+const SHIFT = 3395, SCALE = 1.0, BETA_UP = 3.0, BETA_DOWN = 0.6, SPREAD = 0.4, FUT_YEARS = 6.5;
 const RBW = buildModel(DEFAULT_RAW);             // SPX rainbow model (for the bubble band)
 const bubbleAt = age => Math.exp(RBW.predict(age + 1) + RBW.bands[8]); // top band
 const fireAt = age => Math.exp(RBW.predict(age + 1) + RBW.bands[0]);   // fire-sale (bottom) band
