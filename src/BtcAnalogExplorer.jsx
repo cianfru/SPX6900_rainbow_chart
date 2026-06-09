@@ -4,7 +4,7 @@
 // forward projection update. Anchored at SPX's price today. Illustrative only.
 import { useState, useMemo } from "react";
 import {
-  ResponsiveContainer, ComposedChart, Line, XAxis, YAxis, CartesianGrid, ReferenceLine, Tooltip,
+  ResponsiveContainer, ComposedChart, Area, Line, XAxis, YAxis, CartesianGrid, ReferenceLine, Tooltip,
 } from "recharts";
 import { DEFAULT_RAW } from "./data.js";
 import { BTC_HISTORY, BTC_FIRST_DATE } from "./btc-history.js";
@@ -52,7 +52,8 @@ function Slider({ label, value, set, min, max, step, fmt }) {
 export default function BtcAnalogExplorer() {
   const [shift, setShift] = useState(3395);
   const [scale, setScale] = useState(1.0);
-  const [beta, setBeta] = useState(3.0);
+  const [beta, setBeta] = useState(2.2);
+  const [spread, setSpread] = useState(0.8);
   const [fut, setFut] = useState(6.5);
 
   const { data, stats } = useMemo(() => {
@@ -60,9 +61,10 @@ export default function BtcAnalogExplorer() {
     const btcNowDay = btcDay(spxMaxAge);
     const lnBtcNow = btcLnAt(btcNowDay);
     const lnSpxNow = Math.log(spxNow);
-    const proj = age => Math.exp(lnSpxNow + beta * (btcLnAt(btcDay(age)) - lnBtcNow));
+    const projB = (age, b) => Math.exp(lnSpxNow + b * (btcLnAt(btcDay(age)) - lnBtcNow));
+    const betaLo = Math.max(0.3, beta - spread), betaHi = beta + spread;
 
-    // correlation over SPX's actual points
+    // correlation over SPX's actual points (shape only — beta-invariant)
     const xs = [], ys = [];
     for (const p of spxPts) { const bd = btcDay(p.age); if (bd >= 0 && bd <= btcMaxAge) { xs.push(p.ln); ys.push(btcLnAt(bd)); } }
     let r = NaN;
@@ -74,26 +76,28 @@ export default function BtcAnalogExplorer() {
     if (!ages.includes(spxMaxAge)) { ages.push(spxMaxAge); ages.sort((p, q) => p - q); }
     const data = ages.map(age => {
       const bd = btcDay(age);
-      const validBtc = bd >= 0 && bd <= btcMaxAge;
-      const pv = validBtc ? proj(age) : null;
+      const valid = bd >= 0 && bd <= btcMaxAge;
+      const ahead = age >= spxMaxAge;
       return {
         x: +(age / YR).toFixed(3),
         spx: age <= spxMaxAge ? Math.exp(spxLnAt(age)) : null,
-        btcPast: validBtc && age <= spxMaxAge ? pv : null,
-        btcFut: validBtc && age >= spxMaxAge ? pv : null,
+        btcPast: valid && age <= spxMaxAge ? projB(age, beta) : null,
+        btcFut: valid && ahead ? projB(age, beta) : null,
+        cone: valid && ahead ? [projB(age, betaLo), projB(age, betaHi)] : null,
       };
     });
 
-    // projection peak/bottom in the future leg
+    // projection peak (central) + its range across the beta cone
     let peak = { p: 0, age: 0 };
-    for (const age of ages) { if (age <= spxMaxAge) continue; const bd = btcDay(age); if (bd < 0 || bd > btcMaxAge) continue; const pv = proj(age); if (pv > peak.p) peak = { p: pv, age }; }
+    for (const age of ages) { if (age <= spxMaxAge) continue; const bd = btcDay(age); if (bd < 0 || bd > btcMaxAge) continue; const pv = projB(age, beta); if (pv > peak.p) peak = { p: pv, age }; }
+    const peakLo = peak.age ? projB(peak.age, betaLo) : 0, peakHi = peak.age ? projB(peak.age, betaHi) : 0;
     let bottom = { p: Infinity, age: 0 };
-    for (const age of ages) { if (age <= spxMaxAge || age >= peak.age) continue; const bd = btcDay(age); if (bd < 0 || bd > btcMaxAge) continue; const pv = proj(age); if (pv < bottom.p) bottom = { p: pv, age }; }
+    for (const age of ages) { if (age <= spxMaxAge || age >= peak.age) continue; const bd = btcDay(age); if (bd < 0 || bd > btcMaxAge) continue; const pv = projB(age, beta); if (pv < bottom.p) bottom = { p: pv, age }; }
 
-    return { data, stats: { r, btcNowDay, peak, bottom, lnBtcNow } };
-  }, [shift, scale, beta, fut]);
+    return { data, stats: { r, btcNowDay, peak, peakLo, peakHi, bottom, lnBtcNow, betaLo, betaHi } };
+  }, [shift, scale, beta, spread, fut]);
 
-  const vals = data.flatMap(d => [d.spx, d.btcPast, d.btcFut].filter(v => v != null));
+  const vals = data.flatMap(d => [d.spx, d.btcPast, d.btcFut, ...(d.cone || [])].filter(v => v != null));
   const yMin = Math.min(...vals) * 0.8, yMax = Math.max(...vals) * 1.3;
   const todayX = +(spxMaxAge / YR).toFixed(3);
   const moFromNow = age => Math.round((age - spxMaxAge) / 30.44);
@@ -113,8 +117,10 @@ export default function BtcAnalogExplorer() {
               fmt={v => `${v}d (${fmtDate(v)})`} />
             <Slider label="Time-scale (BTC days per SPX day)" value={scale} set={setScale} min={0.5} max={2.5} step={0.05}
               fmt={v => `${v.toFixed(2)}×`} />
-            <Slider label="Beta — SPX amplitude vs BTC (maturity)" value={beta} set={setBeta} min={0.5} max={3.5} step={0.1}
+            <Slider label="Beta (central) — SPX amplitude vs BTC" value={beta} set={setBeta} min={0.5} max={3.5} step={0.1}
               fmt={v => `${v.toFixed(1)}×`} />
+            <Slider label="Cone spread (beta ±)" value={spread} set={setSpread} min={0} max={1.5} step={0.1}
+              fmt={v => `±${v.toFixed(1)} → ${stats.betaLo.toFixed(1)}–${stats.betaHi.toFixed(1)}×`} />
             <Slider label="Show ahead" value={fut} set={setFut} min={3} max={7} step={0.5} fmt={v => `${v}y`} />
 
             <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 8 }}>
@@ -131,6 +137,7 @@ export default function BtcAnalogExplorer() {
               <div style={{ color: "#94a3b8" }}>today ≈ BTC <b style={{ color: "#e2e8f0" }}>{fmtDate(stats.btcNowDay)}</b> ({fmtP(Math.exp(stats.lnBtcNow))})</div>
               {stats.bottom.p < Infinity && <div style={{ color: "#94a3b8" }}>↓ projected bottom <b style={{ color: "#f87171" }}>{fmtP(stats.bottom.p)}</b> (+{moFromNow(stats.bottom.age)}mo)</div>}
               {stats.peak.p > 0 && <div style={{ color: "#94a3b8" }}>↑ projected peak <b style={{ color: "#4ade80" }}>{fmtP(stats.peak.p)}</b> ({(stats.peak.p / spxNow).toFixed(0)}×, +{moFromNow(stats.peak.age)}mo)</div>}
+              {stats.peak.p > 0 && spread > 0 && <div style={{ color: "#475569", fontSize: 12.5 }}>&nbsp;&nbsp;cone {fmtP(stats.peakLo)} – {fmtP(stats.peakHi)} ({(stats.peakLo / spxNow).toFixed(0)}–{(stats.peakHi / spxNow).toFixed(0)}×)</div>}
             </div>
           </div>
 
@@ -143,6 +150,7 @@ export default function BtcAnalogExplorer() {
                 <Tooltip contentStyle={{ background: "#0a0a14", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, fontSize: 12 }}
                   formatter={(v, n) => [v == null ? "—" : fmtP(v), n]} labelFormatter={l => `${l}y`} />
                 <ReferenceLine x={todayX} stroke="#64748b" strokeDasharray="4 5" label={{ value: "TODAY", fill: "#94a3b8", fontSize: 12, position: "top" }} />
+                <Area dataKey="cone" stroke="none" fill="#f7931a" fillOpacity={0.13} isAnimationActive={false} name="projection cone" connectNulls />
                 <Line dataKey="btcPast" stroke="#f7931a" strokeOpacity={0.4} strokeWidth={2} dot={false} isAnimationActive={false} name="BTC analog (fit)" connectNulls />
                 <Line dataKey="btcFut" stroke="#f7931a" strokeWidth={2.5} strokeDasharray="7 6" dot={false} isAnimationActive={false} name="BTC analog (ahead)" connectNulls />
                 <Line dataKey="spx" stroke="#4ade80" strokeWidth={2.6} dot={false} isAnimationActive={false} name="SPX6900 (actual)" connectNulls />
