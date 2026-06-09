@@ -14,7 +14,9 @@ const SANS = "'Space Grotesk', system-ui, sans-serif";
 const MONO = "ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace";
 const MAX_W = 1400, DAY = 86400000;
 // Locked best-fit (from the exhaustive search): SPX ≈ BTC's 2019–22 cycle, 1:1 tempo.
-const SHIFT = 3395, SCALE = 1, BETA = 2.2, SPREAD = 0.8, FUT_YEARS = 6.5;
+// BETA = SPX's "youth premium" amplitude vs BTC (younger/smaller-cap → bigger % moves);
+// applied to the forward projection. A bull what-if assumption, not a fit output.
+const SHIFT = 3395, SCALE = 1, BETA = 3.0, SPREAD = 0.5, FUT_YEARS = 6.5;
 
 const BTC0 = new Date(BTC_FIRST_DATE).getTime();
 const btcMaxAge = BTC_HISTORY.at(-1)[0];
@@ -82,7 +84,6 @@ export default function BtcCycleChart({ series, isMobile }) {
       data.push({
         ts: SPX0 + age * DAY,
         spx: age <= spxMaxAge ? Math.exp(spxLnAt(age)) : null,
-        btcPast: valid && age <= spxMaxAge ? projB(age, BETA) : null,
         btcFut: valid && ahead ? projB(age, BETA) : null,
         cone: valid && ahead ? [projB(age, betaLo), projB(age, betaHi)] : null,
       });
@@ -112,15 +113,14 @@ export default function BtcCycleChart({ series, isMobile }) {
           <Tooltip content={<Tip />} />
           <ReferenceLine x={stats.todayTs} stroke="#64748b" strokeDasharray="4 5" label={{ value: "TODAY", fill: "#94a3b8", fontSize: 12, position: "insideTopRight" }} />
           <Area dataKey="cone" stroke="none" fill="#f7931a" fillOpacity={0.13} isAnimationActive={false} connectNulls />
-          <Line dataKey="btcPast" stroke="#f7931a" strokeOpacity={0.4} strokeWidth={2} dot={false} isAnimationActive={false} connectNulls />
           <Line dataKey="btcFut" stroke="#f7931a" strokeWidth={2.4} strokeDasharray="7 6" dot={false} isAnimationActive={false} connectNulls />
           <Line dataKey="spx" stroke="#4ade80" strokeWidth={2.6} dot={false} isAnimationActive={false} connectNulls />
         </ComposedChart>
       </ResponsiveContainer>
 
       <div style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.6 }}>
-        <span style={{ color: "#4ade80" }}>■</span> SPX6900 actual &nbsp;·&nbsp; <span style={{ color: "#f7931a" }}>■</span> Bitcoin 2019–22 analog (dashed = projected ahead, shaded = scenario range).
-        <br />SPX is tracing Bitcoin's 2019–22 cycle (r≈0.95) — late-bear today, with one more flush before the next leg, <i>if the rhyme holds.</i> Just for fun, NOT a forecast or financial advice.
+        <span style={{ color: "#4ade80" }}>■</span> SPX6900 actual &nbsp;·&nbsp; <span style={{ color: "#f7931a" }}>┄</span> Bitcoin 2019–22 analog, projected ahead with a <b>×{BETA} youth premium</b> (shaded = scenario range).
+        <br />SPX is tracing Bitcoin's 2019–22 cycle (r≈0.95) — late-bear today. Being far younger &amp; smaller, the projection amplifies BTC's next run ~{BETA}× in % terms. A bullish <i>what-if</i>, NOT a forecast or financial advice.
       </div>
     </div>
   );
