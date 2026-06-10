@@ -1,65 +1,41 @@
-// "What if SPX keeps rhyming with Bitcoin?" — projects SPX along Bitcoin's
-// 4-year halving cycle using a BAND-POSITION map: we fit Bitcoin its own rainbow
-// (same offset-power-law + percentile-band method as SPX's, R²≈0.96; see
-// scripts/analysis/band-map.mjs) and translate BTC's position inside its rainbow
-// onto SPX's rainbow. All parameters are data-derived:
-//   · timing    — BTC's live halving clock (shift 3395; the band-position scan
-//                 independently optimizes to ~3400)
-//   · bottom    — bear bottoms are universal in band-space (u≈0.04–0.13 in every
-//                 BTC cycle; SPX sits at u≈0.10 today)
-//   · peak      — SPX's measured first-cycle amplitude (u=0.84) × BTC's empirical
-//                 per-cycle amplitude decay (×0.83) → u≈0.70 next cycle
-//   · cone      — decay range: ×0.61 (BTC's worst) … ×1.0 (no decay, first-cycle
-//                 amplitude repeats)
-// The path is painted ONCE from the fixed anchor date; live price runs freely
-// against it. A for-fun what-if, not a forecast.
+// "What if SPX keeps rhyming with Bitcoin?" — a for-fun overlay that aligns
+// SPX6900 to its best-matching Bitcoin cycle (2019–22, r≈0.95) and projects BTC's
+// actual path forward as a scenario cone. Locked to the best-fit narrative; the
+// BTC rainbow itself is a recalibrated vibes model — we're in that tradition.
+// Not a forecast. Just playing with numbers.
 import { useMemo } from "react";
 import {
   ResponsiveContainer, ComposedChart, Area, Line, XAxis, YAxis, Tooltip, CartesianGrid, ReferenceLine,
 } from "recharts";
 import { DEFAULT_RAW } from "./data.js";
 import { buildModel } from "./models.js";
-import { BTC_HISTORY } from "./btc-history.js";
+import { BTC_HISTORY, BTC_FIRST_DATE } from "./btc-history.js";
 
 const SANS = "'Space Grotesk', system-ui, sans-serif";
 const MONO = "ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace";
 const MAX_W = 1400, DAY = 86400000;
-const SHIFT = 3395, SCALE = 1.0, FUT_YEARS = 6.5;
-// Amplitude calibration (band coordinate u: 0 = fire-sale edge, 1 = p98 bubble edge)
-const U_BOT = 0.08;                  // universal bear-bottom zone (BTC: 0.04–0.13 every cycle)
-const SPX_C1_PEAK_U = 0.84;          // SPX's measured first-cycle top (Jul 2025 ATH)
-const DECAY_MID = 0.83, DECAY_LO = 0.61, DECAY_HI = 1.0; // BTC's per-cycle amplitude decay range
-
-// ---- BTC rainbow, fitted offline with the same methodology as the SPX model
-// (scripts/analysis/band-map.mjs): ln P = 5.03 · ln(t + 345) − 32.24, R² = 0.963.
-const BTC_T0 = 345, BTC_A = 5.03, BTC_B = -32.24;
-const btcPredict = d => BTC_A * Math.log(Math.max(1, d) + BTC_T0) + BTC_B;
-const btcMaxAge = BTC_HISTORY.at(-1)[0];
-const btcLnAt = (() => {
-  const m = new Map(BTC_HISTORY.map(([a, p]) => [a, Math.log(p)]));
-  return a => {
-    let lo = Math.floor(a), hi = Math.ceil(a);
-    while (lo > 0 && !m.has(lo)) lo--; while (hi < btcMaxAge && !m.has(hi)) hi++;
-    const x = m.get(lo), y = m.get(hi); if (x == null) return y; if (y == null) return x;
-    return x + (y - x) * ((a - lo) / ((hi - lo) || 1));
-  };
-})();
-// BTC percentile band edges (p2 / p98 of log residuals), computed from the data
-const [BTC_BAND_LO, BTC_BAND_HI] = (() => {
-  const res = BTC_HISTORY.map(([a, p]) => Math.log(p) - btcPredict(a)).sort((x, y) => x - y);
-  const pct = q => { const i = q * (res.length - 1), lo = Math.floor(i), hi = Math.ceil(i); return res[lo] + (res[hi] - res[lo]) * (i - lo); };
-  return [pct(0.02), pct(0.98)];
-})();
-const uBtc = age => (btcLnAt(age) - btcPredict(age) - BTC_BAND_LO) / (BTC_BAND_HI - BTC_BAND_LO);
-
-// ---- SPX rainbow
-const RBW = buildModel(DEFAULT_RAW);
-const SPX_SPAN = RBW.bands[8] - RBW.bands[0];
-const bubbleAt = age => Math.exp(RBW.predict(age + 1) + RBW.bands[8]);
-const fireAt = age => Math.exp(RBW.predict(age + 1) + RBW.bands[0]);
+// TIMING from BTC's current 4-year halving cycle: SPX maps to BTC's 2019-22 cycle
+// (the structurally-matching post-halving cycle) → bottom ~Oct 2026, bull 2027-28,
+// next top ~mid-2029, in step with the live market. MAGNITUDE from SPX's youth:
+// β_up 3.5 amplifies the upside (younger/smaller bulls harder than mature BTC),
+// β_down 0.6 is gentle (SPX is already near its fire-sale floor). For-fun what-if.
+const SHIFT = 3395, SCALE = 1.0, BETA_UP = 3.5, BETA_DOWN = 0.6, SPREAD = 0.3, FUT_YEARS = 6.5;
+const RBW = buildModel(DEFAULT_RAW);             // SPX rainbow model (for the bubble band)
+const bubbleAt = age => Math.exp(RBW.predict(age + 1) + RBW.bands[8]); // top band
+const fireAt = age => Math.exp(RBW.predict(age + 1) + RBW.bands[0]);   // fire-sale (bottom) band
 const centerAt = age => Math.exp(RBW.predict(age + 1));
 const HALVINGS = ["2024-04-20", "2028-04-15"].map(d => new Date(d).getTime());
 
+const BTC0 = new Date(BTC_FIRST_DATE).getTime();
+const btcMaxAge = BTC_HISTORY.at(-1)[0];
+const btcLnAt = a => {
+  if (a <= BTC_HISTORY[0][0]) return Math.log(BTC_HISTORY[0][1]);
+  if (a >= btcMaxAge) return Math.log(BTC_HISTORY.at(-1)[1]);
+  let lo = 0, hi = BTC_HISTORY.length - 1;
+  while (hi - lo > 1) { const m = (lo + hi) >> 1; if (BTC_HISTORY[m][0] <= a) lo = m; else hi = m; }
+  const f = (a - BTC_HISTORY[lo][0]) / (BTC_HISTORY[hi][0] - BTC_HISTORY[lo][0] || 1);
+  return Math.log(BTC_HISTORY[lo][1]) + (Math.log(BTC_HISTORY[hi][1]) - Math.log(BTC_HISTORY[lo][1])) * f;
+};
 const fMon = ts => new Date(ts).toLocaleDateString("en-US", { month: "short", year: "2-digit" });
 const fP = p => p >= 1 ? "$" + p.toFixed(2) : "$" + p.toFixed(4);
 
@@ -71,7 +47,7 @@ function Tip({ active, payload, label }) {
     <div style={{ background: "rgba(4,4,12,0.97)", border: "1px solid rgba(255,255,255,0.18)", borderRadius: 10, padding: "10px 14px", fontFamily: SANS, fontSize: 13, color: "#cbd5e1" }}>
       <div style={{ fontWeight: 700, color: "#f8fafc", marginBottom: 4 }}>{new Date(label).toLocaleDateString("en-US", { month: "long", year: "numeric" })}</div>
       {spx != null && <div>SPX6900: <b style={{ fontFamily: MONO, color: "#4ade80" }}>{fP(spx)}</b></div>}
-      {fut != null && <div>BTC-cycle path: <b style={{ fontFamily: MONO, color: "#f7931a" }}>{fP(fut)}</b></div>}
+      {fut != null && <div>BTC analog: <b style={{ fontFamily: MONO, color: "#f7931a" }}>{fP(fut)}</b></div>}
       {cone && <div style={{ color: "#94a3b8" }}>scenario: {fP(cone[0])} – {fP(cone[1])}</div>}
     </div>
   );
@@ -89,9 +65,9 @@ function Stat({ k, v, c, isMobile }) {
 export default function BtcCycleChart({ series, isMobile }) {
   const { data, stats } = useMemo(() => {
     const src = series?.length ? series : DEFAULT_RAW;
-    const SPX0 = new Date(DEFAULT_RAW[0].date).getTime();
+    const SPX0 = new Date(src[0].date).getTime();
     const spxPts = src.map(r => ({ age: Math.round((new Date(r.date).getTime() - SPX0) / DAY), ln: Math.log(r.price) }));
-    const spxMaxAge = spxPts.at(-1).age;
+    const spxMaxAge = spxPts.at(-1).age, spxNow = src.at(-1).price;
     const spxLnAt = a => {
       if (a <= spxPts[0].age) return spxPts[0].ln; if (a >= spxMaxAge) return spxPts.at(-1).ln;
       let lo = 0, hi = spxPts.length - 1; while (hi - lo > 1) { const m = (lo + hi) >> 1; if (spxPts[m].age <= a) lo = m; else hi = m; }
@@ -99,38 +75,16 @@ export default function BtcCycleChart({ series, isMobile }) {
       return spxPts[lo].ln + (spxPts[hi].ln - spxPts[lo].ln) * f;
     };
     const btcDay = age => SHIFT + age * SCALE;
-
-    // FIXED anchor at the last bundled point — painted once, never re-fit.
+    // FIXED anchor at the last bundled point — the path is painted here once and
+    // stays put; live prints run beyond it so the price walks freely against it.
     const anchorAge = Math.round((new Date(DEFAULT_RAW.at(-1).date).getTime() - SPX0) / DAY);
     const anchorLn = Math.log(DEFAULT_RAW.at(-1).price);
-    const uSpxNow = (anchorLn - RBW.predict(anchorAge + 1) - RBW.bands[0]) / SPX_SPAN;
-    const uBtcNow = uBtc(btcDay(anchorAge));
-    // BTC's analog landmarks ahead: the bear bottom and the cycle top in band-space
-    let uBtcBot = 9;
-    for (let a = anchorAge; a <= anchorAge + 1100; a += 2) { const v = uBtc(btcDay(a)); if (v < uBtcBot) uBtcBot = v; }
-    let uBtcPeak = -9;
-    for (let a = anchorAge; a <= FUT_YEARS * 365.25; a += 2) { const bd = btcDay(a); if (bd > btcMaxAge) break; const v = uBtc(bd); if (v > uBtcPeak) uBtcPeak = v; }
-    // Smooth monotone band-position map through three data-derived anchors —
-    // (BTC bottom → universal bottom zone), (BTC now → SPX now, continuity),
-    // (BTC peak → decay-derived next-cycle peak). Monotone cubic Hermite with
-    // harmonic-mean tangents (Steffen): no overshoot, and no slope kink at the
-    // anchor (a piecewise-linear map irons BTC's 2023 grind artificially flat).
-    const makeMapU = decay => {
-      const x0 = uBtcBot, x1 = uBtcNow, x2 = uBtcPeak;
-      const y0 = U_BOT, y1 = uSpxNow, y2 = SPX_C1_PEAK_U * decay;
-      const s1 = (y1 - y0) / (x1 - x0), s2 = (y2 - y1) / (x2 - x1);
-      const m0 = s1, m2 = s2, m1 = s1 * s2 <= 0 ? 0 : 2 * s1 * s2 / (s1 + s2);
-      return v => {
-        if (v <= x0) return y0; if (v >= x2) return y2;
-        const [xa, xb, ya, yb, ma, mb] = v < x1 ? [x0, x1, y0, y1, m0, m1] : [x1, x2, y1, y2, m1, m2];
-        const h = xb - xa, t = (v - xa) / h, t2 = t * t, t3 = t2 * t;
-        return ya * (2 * t3 - 3 * t2 + 1) + ma * h * (t3 - 2 * t2 + t) + yb * (-2 * t3 + 3 * t2) + mb * h * (t3 - t2);
-      };
-    };
-    const maps = { [DECAY_LO]: makeMapU(DECAY_LO), [DECAY_MID]: makeMapU(DECAY_MID), [DECAY_HI]: makeMapU(DECAY_HI) };
-    const proj = (age, decay) => Math.exp(RBW.predict(age + 1) + RBW.bands[0] + maps[decay](uBtc(btcDay(age))) * SPX_SPAN);
+    const lnBtcAnchor = btcLnAt(btcDay(anchorAge));
+    // Asymmetric: amplify BTC's deviation from the anchor by BETA_UP on the upside,
+    // the gentler BETA_DOWN on the downside (SPX is already near its floor).
+    const proj = (age, bUp) => { const z = btcLnAt(btcDay(age)) - lnBtcAnchor; return Math.exp(anchorLn + (z >= 0 ? bUp : BETA_DOWN) * z); };
 
-    // price-shape correlation (overlay fit across SPX's full history)
+    // correlation (shape)
     const xs = [], ys = [];
     for (const p of spxPts) { const bd = btcDay(p.age); if (bd >= 0 && bd <= btcMaxAge) { xs.push(p.ln); ys.push(btcLnAt(bd)); } }
     const n = xs.length, mx = xs.reduce((a, b) => a + b) / n, my = ys.reduce((a, b) => a + b) / n;
@@ -146,17 +100,18 @@ export default function BtcCycleChart({ series, isMobile }) {
         bubble: bubbleAt(age),
         floor: fireAt(age),
         center: centerAt(age),
-        btcFut: valid && ahead ? proj(age, DECAY_MID) : null,
-        cone: valid && ahead ? [proj(age, DECAY_LO), proj(age, DECAY_HI)] : null,
+        btcFut: valid && ahead ? proj(age, BETA_UP) : null,
+        cone: valid && ahead ? [proj(age, BETA_UP - SPREAD), proj(age, BETA_UP + SPREAD)] : null,
       });
     }
     let peak = { p: 0, age: 0 };
-    for (let age = anchorAge; age <= futCap; age += 7) { const bd = btcDay(age); if (bd < 0 || bd > btcMaxAge) continue; const pv = proj(age, DECAY_MID); if (pv > peak.p) peak = { p: pv, age }; }
+    for (let age = anchorAge; age <= futCap; age += 7) { const bd = btcDay(age); if (bd < 0 || bd > btcMaxAge) continue; const pv = proj(age, BETA_UP); if (pv > peak.p) peak = { p: pv, age }; }
     let low = { p: Infinity, age: 0 };
-    for (let age = anchorAge; age <= anchorAge + 1000; age += 7) { const bd = btcDay(age); if (bd < 0 || bd > btcMaxAge) continue; const pv = proj(age, DECAY_MID); if (pv < low.p) low = { p: pv, age }; }
-    const peakLo = proj(peak.age, DECAY_LO), peakHi = proj(peak.age, DECAY_HI);
+    for (let age = anchorAge; age <= anchorAge + 1000; age += 7) { const bd = btcDay(age); if (bd < 0 || bd > btcMaxAge) continue; const pv = proj(age, BETA_UP); if (pv < low.p) low = { p: pv, age }; }
+    const peakLo = proj(peak.age, BETA_UP - SPREAD), peakHi = proj(peak.age, BETA_UP + SPREAD);
+    const todayBtc = new Date(BTC0 + btcDay(anchorAge) * DAY);
     const peakDate = new Date(SPX0 + peak.age * DAY), lowDate = new Date(SPX0 + low.age * DAY);
-    return { data, stats: { r, peak, peakLo, peakHi, peakDate, low, lowDate, todayTs: SPX0 + anchorAge * DAY } };
+    return { data, stats: { r, spxNow, peak, peakLo, peakHi, peakDate, low, lowDate, todayTs: SPX0 + anchorAge * DAY, todayBtc } };
   }, [series]);
 
   return (
@@ -180,18 +135,18 @@ export default function BtcCycleChart({ series, isMobile }) {
             <ReferenceLine key={i} x={h} stroke="rgba(255,255,255,0.2)" label={{ value: "BTC Halving", fill: "#94a3b8", fontSize: 11, position: "insideBottomLeft", angle: -90, offset: 8 }} />
           ))}
           <ReferenceLine x={stats.todayTs} stroke="#64748b" strokeDasharray="4 5" label={{ value: "NOW", fill: "#94a3b8", fontSize: 12, position: "insideTopRight" }} />
-          <Line dataKey="bubble" stroke="#a78bfa" strokeWidth={1.6} strokeDasharray="3 4" strokeOpacity={0.85} dot={false} activeDot={false} isAnimationActive={false} name="SPX bubble band" connectNulls />
-          <Line dataKey="floor" stroke="#38bdf8" strokeWidth={1.4} strokeDasharray="3 4" strokeOpacity={0.7} dot={false} activeDot={false} isAnimationActive={false} name="SPX fire-sale band" connectNulls />
-          <Line dataKey="center" stroke="#a78bfa" strokeWidth={1} strokeDasharray="1 6" strokeOpacity={0.3} dot={false} activeDot={false} isAnimationActive={false} connectNulls />
+          <Line dataKey="bubble" stroke="#a78bfa" strokeWidth={1.6} strokeDasharray="3 4" strokeOpacity={0.85} dot={false} isAnimationActive={false} name="SPX bubble band" connectNulls />
+          <Line dataKey="floor" stroke="#38bdf8" strokeWidth={1.4} strokeDasharray="3 4" strokeOpacity={0.7} dot={false} isAnimationActive={false} name="SPX fire-sale band" connectNulls />
+          <Line dataKey="center" stroke="#a78bfa" strokeWidth={1} strokeDasharray="1 6" strokeOpacity={0.3} dot={false} isAnimationActive={false} connectNulls />
           <Area dataKey="cone" stroke="none" fill="#f7931a" fillOpacity={0.13} isAnimationActive={false} connectNulls />
-          <Line dataKey="btcFut" stroke="#f7931a" strokeWidth={2.4} strokeDasharray="7 6" dot={false} activeDot={false} isAnimationActive={false} connectNulls />
-          <Line dataKey="spx" stroke="#4ade80" strokeWidth={2.6} dot={false} activeDot={false} isAnimationActive={false} connectNulls />
+          <Line dataKey="btcFut" stroke="#f7931a" strokeWidth={2.4} strokeDasharray="7 6" dot={false} isAnimationActive={false} connectNulls />
+          <Line dataKey="spx" stroke="#4ade80" strokeWidth={2.6} dot={false} isAnimationActive={false} connectNulls />
         </ComposedChart>
       </ResponsiveContainer>
 
       <div style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.6 }}>
         <span style={{ color: "#4ade80" }}>■</span> SPX6900 actual &nbsp;·&nbsp; <span style={{ color: "#f7931a" }}>┄</span> projected on BTC's 4-year cycle (shaded = scenario range) &nbsp;·&nbsp; <span style={{ color: "#a78bfa" }}>┄</span> bubble band / <span style={{ color: "#38bdf8" }}>┄</span> fire-sale band.
-        <br />Built by fitting Bitcoin its own rainbow (R²≈0.96) and mapping BTC's position inside its bands onto SPX's bands. The model reads SPX as <span style={{ color: "#38bdf8" }}>already in its bottom zone (~{fP(stats.low.p)})</span>, grinding sideways into the late-2026 cycle low, then the 2027-28 bull lifting it toward <span style={{ color: "#a78bfa" }}>~{fP(stats.peak.p)}</span> by {stats.peakDate.toLocaleDateString("en-US", { month: "short", year: "numeric" })} (scenario range {fP(stats.peakLo)}–{fP(stats.peakHi)}, depending on how much cycle amplitude decays). A for-fun <i>what-if</i>, NOT a forecast or financial advice.
+        <br />Timing follows Bitcoin's halving cycle (bottom <span style={{ color: "#38bdf8" }}>~{stats.lowDate.toLocaleDateString("en-US", { month: "short", year: "numeric" })}, ~{fP(stats.low.p)}</span>, then a 2027-28 bull); the size reflects SPX's youth (it bulls harder than mature BTC) → a possible top near <span style={{ color: "#a78bfa" }}>~{fP(stats.peak.p)}</span> around {stats.peakDate.toLocaleDateString("en-US", { month: "short", year: "numeric" })}. A for-fun <i>what-if</i>, NOT a forecast or financial advice.
         <br /><span style={{ color: "#475569" }}>Experiment created Jun 9, 2026 — the dashed path is fixed from that day; we're watching how closely SPX's future price action follows Bitcoin's past cycle.</span>
       </div>
     </div>

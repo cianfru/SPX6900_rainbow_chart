@@ -1,5 +1,5 @@
-// Renders the BTC Cycle tab (band-map projection engine) as a PNG so it can be
-// previewed without running the app. Mirrors src/BtcCycleChart.jsx exactly.
+// Renders the BTC Cycle tab (deploy #8 price-overlay engine) as a PNG preview.
+// Mirrors src/BtcCycleChart.jsx exactly.
 import { writeFileSync } from "node:fs";
 import { Resvg } from "@resvg/resvg-js";
 import { DEFAULT_RAW } from "../../src/data.js";
@@ -7,12 +7,8 @@ import { buildModel } from "../../src/models.js";
 import { BTC_HISTORY } from "../../src/btc-history.js";
 
 const DAY = 86400000, YR = 365.25;
-const SHIFT = 3395, FUT_YEARS = 6.5;
-const U_BOT = 0.08, SPX_C1_PEAK_U = 0.84, DECAY_MID = 0.83, DECAY_LO = 0.61, DECAY_HI = 1.0;
+const SHIFT = 3395, BETA_UP = 3.5, BETA_DOWN = 0.6, SPREAD = 0.3, FUT_YEARS = 6.5;
 
-// BTC rainbow (fitted constants, see band-map.mjs)
-const BTC_T0 = 345, BTC_A = 5.03, BTC_B = -32.24;
-const btcPredict = d => BTC_A * Math.log(Math.max(1, d) + BTC_T0) + BTC_B;
 const btcMaxAge = BTC_HISTORY.at(-1)[0];
 const bmap = new Map(BTC_HISTORY.map(([a, p]) => [a, Math.log(p)]));
 const btcLnAt = a => {
@@ -21,55 +17,32 @@ const btcLnAt = a => {
   const x = bmap.get(lo), y = bmap.get(hi); if (x == null) return y; if (y == null) return x;
   return x + (y - x) * ((a - lo) / ((hi - lo) || 1));
 };
-const res = BTC_HISTORY.map(([a, p]) => Math.log(p) - btcPredict(a)).sort((x, y) => x - y);
-const pct = q => { const i = q * (res.length - 1), lo = Math.floor(i), hi = Math.ceil(i); return res[lo] + (res[hi] - res[lo]) * (i - lo); };
-const BL = pct(0.02), BH = pct(0.98);
-const uBtc = age => (btcLnAt(age) - btcPredict(age) - BL) / (BH - BL);
 
 const m = buildModel(DEFAULT_RAW);
-const span = m.bands[8] - m.bands[0];
 const SPX0 = new Date(DEFAULT_RAW[0].date).getTime();
 const anchorAge = Math.round((new Date(DEFAULT_RAW.at(-1).date).getTime() - SPX0) / DAY);
 const anchorLn = Math.log(DEFAULT_RAW.at(-1).price);
-const uSpxNow = (anchorLn - m.predict(anchorAge + 1) - m.bands[0]) / span;
-const uBtcNow = uBtc(SHIFT + anchorAge);
-let uBtcBot = 9; for (let a = anchorAge; a <= anchorAge + 1100; a += 2) { const v = uBtc(SHIFT + a); if (v < uBtcBot) uBtcBot = v; }
-let uBtcPeak = -9; for (let a = anchorAge; a <= FUT_YEARS * YR; a += 2) { const bd = SHIFT + a; if (bd > btcMaxAge) break; const v = uBtc(bd); if (v > uBtcPeak) uBtcPeak = v; }
-const makeMapU = d => {
-  const x0 = uBtcBot, x1 = uBtcNow, x2 = uBtcPeak, y0 = U_BOT, y1 = uSpxNow, y2 = SPX_C1_PEAK_U * d;
-  const s1 = (y1 - y0) / (x1 - x0), s2 = (y2 - y1) / (x2 - x1);
-  const m0 = s1, m2 = s2, m1 = s1 * s2 <= 0 ? 0 : 2 * s1 * s2 / (s1 + s2);
-  return v => {
-    if (v <= x0) return y0; if (v >= x2) return y2;
-    const [xa, xb, ya, yb, ma, mb] = v < x1 ? [x0, x1, y0, y1, m0, m1] : [x1, x2, y1, y2, m1, m2];
-    const h = xb - xa, t = (v - xa) / h, t2 = t * t, t3 = t2 * t;
-    return ya * (2 * t3 - 3 * t2 + 1) + ma * h * (t3 - 2 * t2 + t) + yb * (-2 * t3 + 3 * t2) + mb * h * (t3 - t2);
-  };
-};
-const maps = { [DECAY_LO]: makeMapU(DECAY_LO), [DECAY_MID]: makeMapU(DECAY_MID), [DECAY_HI]: makeMapU(DECAY_HI) };
-const proj = (a, d) => Math.exp(m.predict(a + 1) + m.bands[0] + maps[d](uBtc(SHIFT + a)) * span);
+const lnBtcAnchor = btcLnAt(SHIFT + anchorAge);
+const proj = (a, b) => { const z = btcLnAt(SHIFT + a) - lnBtcAnchor; return Math.exp(anchorLn + (z >= 0 ? b : BETA_DOWN) * z); };
 const bubbleAt = a => Math.exp(m.predict(a + 1) + m.bands[8]);
 const fireAt = a => Math.exp(m.predict(a + 1) + m.bands[0]);
 
-// series
 const spxPts = DEFAULT_RAW.map(r => ({ age: Math.round((new Date(r.date).getTime() - SPX0) / DAY), p: r.price }));
 const futCap = FUT_YEARS * YR;
 const projPts = [], coneLo = [], coneHi = [], bub = [], fire = [];
 for (let a = 0; a <= futCap; a += 5) {
   bub.push({ age: a, p: bubbleAt(a) }); fire.push({ age: a, p: fireAt(a) });
   const bd = SHIFT + a;
-  if (a >= anchorAge && bd <= btcMaxAge) { projPts.push({ age: a, p: proj(a, DECAY_MID) }); coneLo.push({ age: a, p: proj(a, DECAY_LO) }); coneHi.push({ age: a, p: proj(a, DECAY_HI) }); }
+  if (a >= anchorAge && bd <= btcMaxAge) { projPts.push({ age: a, p: proj(a, BETA_UP) }); coneLo.push({ age: a, p: proj(a, BETA_UP - SPREAD) }); coneHi.push({ age: a, p: proj(a, BETA_UP + SPREAD) }); }
 }
-let peak = projPts.reduce((mm, q) => q.p > mm.p ? q : mm, { p: 0 });
-const peakLoP = proj(peak.age, DECAY_LO), peakHiP = proj(peak.age, DECAY_HI);
+const peak = projPts.reduce((mm, q) => q.p > mm.p ? q : mm, { p: 0 });
+const peakLoP = proj(peak.age, BETA_UP - SPREAD), peakHiP = proj(peak.age, BETA_UP + SPREAD);
 
-// shape r (price overlay)
 { const xs = [], ys = []; for (const q of spxPts) { const bd = SHIFT + q.age; if (bd <= btcMaxAge) { xs.push(Math.log(q.p)); ys.push(btcLnAt(bd)); } }
   const n = xs.length, mx = xs.reduce((a, b) => a + b) / n, my = ys.reduce((a, b) => a + b) / n;
   let sxy = 0, sxx = 0, syy = 0; for (let i = 0; i < n; i++) { const dx = xs[i] - mx, dy = ys[i] - my; sxy += dx * dy; sxx += dx * dx; syy += dy * dy; }
   globalThis.R = sxy / Math.sqrt(sxx * syy); }
 
-// ---- SVG
 const W = 1200, H = 700, mL = 86, mR = 36, mT = 132, mB = 64;
 const pW = W - mL - mR, pH = H - mT - mB;
 const allP = [...spxPts.map(q => q.p), ...coneHi.map(q => q.p), ...fire.map(q => q.p), ...bub.map(q => q.p)];
@@ -89,7 +62,6 @@ for (let yr = 2024; yr <= 2030; yr++) {
   const age = (Date.UTC(yr, 0, 1) - SPX0) / DAY; if (age < 0 || age > futCap) continue;
   grid += `<text x="${X(age).toFixed(1)}" y="${H - 36}" fill="#64748b" font-size="19" text-anchor="middle" font-family="monospace">${yr}</text>`;
 }
-// halvings + NOW
 let marks = "";
 for (const d of ["2024-04-20", "2028-04-15"]) {
   const age = (new Date(d).getTime() - SPX0) / DAY; if (age < 0 || age > futCap) continue;
