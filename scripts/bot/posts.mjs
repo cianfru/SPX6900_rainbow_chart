@@ -2,6 +2,7 @@
 // informative blurb + a chart card (line/bar/rainbow). The bot rotates through
 // them by day so followers get a different, visual angle each day.
 import * as M from "../../src/models.js";
+import { DEFAULT_RAW } from "../../src/data.js";
 
 // X discovery tags appended to each post's footer: the $SPX cashtag (X resolves
 // it to SPX6900) for the in-timeline price-chart card, plus the #spx6900 hashtag.
@@ -15,6 +16,8 @@ const fMult = x => (x >= 100 ? Math.round(x).toLocaleString() : x.toFixed(1)) + 
 const fMon = d => { const t = new Date(d); return t.toLocaleString("en-US", { month: "short" }) + " '" + String(t.getFullYear()).slice(2); };
 const fMoney = n => (n >= 1e9 ? "$" + (n / 1e9).toFixed(2) + "B" : n >= 1e6 ? "$" + (n / 1e6).toFixed(0) + "M" : "$" + (n / 1e3).toFixed(0) + "K");
 const fNum = n => Math.round(n).toLocaleString();
+const fUsd0 = n => "$" + Math.round(n).toLocaleString();
+const fPx = p => (p >= 10 ? fUsd0(p) : fPrice(p)); // whole dollars for big cycle prices, cents below $10
 const BAND_EMOJI = ["🟣", "🔵", "🟦", "🟢", "🟩", "🟡", "🟠", "🔴", "🟥"];
 const BAND_SHORT = ["Fire", "BUY", "Acc", "Cheap", "HODL", "Bub", "FOMO", "SELL", "Max"];
 const TIERS = [
@@ -28,6 +31,37 @@ const decadeTicks = (min, max) => {
   return t;
 };
 const lastTs = s => s.series.price.at(-1)[0];
+
+// "What if SPX6900 ran Bitcoin's 4-year cycle?" — the same idealized cycle the
+// BTC Cycle tab draws: one clean archetype (rounded bottom → accelerating bull →
+// blow-off top → bear) placed on BTC's halving clock and scaled to SPX6900's own
+// rainbow bands. Painted from a fixed anchor (the last bundled point); the
+// scenario cone widens forward. A for-fun what-if, not a forecast.
+const CYC = { BOTTOM: "2026-10-15", TOP: "2029-09-15", END: "2030-06-15", U_BOTTOM: -0.03, U_TOP: 0.72, U_END: 0.46, BULL: 1.8, BEAR: 0.7, AMP_LO: 0.78, AMP_HI: 1.25 };
+function cycleProj(m) {
+  const DAY = 86400000, SPX0 = Date.parse(DEFAULT_RAW[0].date), SPAN = m.bands[8] - m.bands[0];
+  const ageOf = d => Math.round((Date.parse(d) - SPX0) / DAY);
+  const anchorAge = ageOf(DEFAULT_RAW.at(-1).date);
+  const uNow = (Math.log(DEFAULT_RAW.at(-1).price) - m.predict(anchorAge + 1) - m.bands[0]) / SPAN;
+  const bottomAge = ageOf(CYC.BOTTOM), topAge = ageOf(CYC.TOP), endAge = ageOf(CYC.END);
+  const uCurve = (age, amp) => {
+    let u;
+    if (age <= bottomAge) { const q = (age - anchorAge) / (bottomAge - anchorAge); u = uNow + (CYC.U_BOTTOM - uNow) * (0.5 - 0.5 * Math.cos(Math.PI * q)); }
+    else if (age <= topAge) { const p = (age - bottomAge) / (topAge - bottomAge); u = CYC.U_BOTTOM + (CYC.U_TOP - CYC.U_BOTTOM) * Math.pow(p, CYC.BULL); }
+    else { const q = Math.min(1, (age - topAge) / (endAge - topAge)); u = CYC.U_TOP - (CYC.U_TOP - CYC.U_END) * Math.pow(q, CYC.BEAR); }
+    return uNow + (u - uNow) * amp; // cone pinches at the anchor, widens forward
+  };
+  const proj = (age, amp) => Math.exp(m.predict(age + 1) + m.bands[0] + uCurve(age, amp) * SPAN);
+  const projPts = [];
+  for (let age = anchorAge; age <= endAge; age += 7) projPts.push([SPX0 + age * DAY, proj(age, 1)]);
+  let peak = { p: 0, age: anchorAge }, low = { p: Infinity, age: anchorAge };
+  for (let age = anchorAge; age <= endAge; age += 2) { const p = proj(age, 1); if (p > peak.p) peak = { p, age }; if (age <= bottomAge + 120 && p < low.p) low = { p, age }; }
+  return {
+    projPts, peak: peak.p, peakTs: SPX0 + peak.age * DAY,
+    low: low.p, lowTs: SPX0 + low.age * DAY,
+    peakLo: proj(peak.age, CYC.AMP_LO), peakHi: proj(peak.age, CYC.AMP_HI),
+  };
+}
 
 // Each builder returns { id, text, card }. card is { type, spec }.
 const POSTS = [
@@ -235,6 +269,74 @@ NFA`,
       marker: { x: lastTs(s), y: s.price, color: "#34d399" },
     } },
   }),
+
+  // 14 — "what if SPX runs Bitcoin's cycle" — the projected path (line, log)
+  s => s.model && (() => {
+    const c = cycleProj(s.model);
+    return {
+      id: "cycle",
+      text:
+`🔮 What if SPX6900 ran Bitcoin's 4-year cycle?
+Mapped onto BTC's halving clock and scaled to SPX6900's OWN rainbow bands, the archetype — rounded bottom, accelerating bull, blow-off top — points to a peak near ${fPx(c.peak)} around ${fMon(c.peakTs)} (range ${fPx(c.peakLo)}–${fPx(c.peakHi)}).
+A for-fun what-if, not a forecast.
+NFA`,
+      card: { type: "line", spec: {
+        title: "What if SPX ran Bitcoin's 4-year cycle?", headline: `~${fPx(c.peak)} by ${fMon(c.peakTs)}`, accent: "#f7931a",
+        yLog: true, yTicks: decadeTicks(s.firstPrice, c.peakHi),
+        series: [
+          { pts: s.series.price, color: "#4ade80", width: 3, fill: 0.1 },
+          { pts: c.projPts, color: "#f7931a", width: 3, dash: true },
+        ],
+        legend: [{ label: "SPX actual", color: "#4ade80" }, { label: "Idealized cycle", color: "#f7931a" }],
+        marker: { x: c.peakTs, y: c.peak, color: "#f7931a" },
+      } },
+    };
+  })(),
+
+  // 15 — projected cycle top, three scenarios (bar, target prices)
+  s => s.model && (() => {
+    const c = cycleProj(s.model);
+    const mult = p => p / s.price;
+    return {
+      id: "cyclepeak",
+      text:
+`🎯 If SPX6900 follows Bitcoin's cycle, the projected ${fMon(c.peakTs)} top from ${fPrice(s.price)}:
+${[
+  `🐻 Bear  ${fPx(c.peakLo)}  →  ${fMult(mult(c.peakLo))}`,
+  `🟧 Base  ${fPx(c.peak)}  →  ${fMult(mult(c.peak))}`,
+  `🚀 Bull  ${fPx(c.peakHi)}  →  ${fMult(mult(c.peakHi))}`,
+].join(TIGHT)}
+Scaled to SPX6900's rainbow bands on BTC's halving clock.
+NFA`,
+      card: { type: "bar", spec: {
+        title: `Projected cycle top (${fMon(c.peakTs)})`, headline: `Base ${fPx(c.peak)} · ${fMult(mult(c.peak))}`, accent: "#f7931a", logBars: true,
+        bars: [
+          { label: "Bear", value: c.peakLo, text: fPx(c.peakLo), color: "#60a5fa" },
+          { label: "Base", value: c.peak, text: fPx(c.peak), color: "#f7931a" },
+          { label: "Bull", value: c.peakHi, text: fPx(c.peakHi), color: "#a78bfa" },
+        ],
+      } },
+    };
+  })(),
+
+  // 16 — the cycle by the halving clock — future-only path (line, log)
+  s => s.model && (() => {
+    const c = cycleProj(s.model);
+    return {
+      id: "cycleclock",
+      text:
+`⏳ SPX6900 on Bitcoin's halving clock:
+A cycle low near ${fPrice(c.low)} (${fMon(c.lowTs)}), an accelerating 2027–28 bull, then a projected top near ${fPx(c.peak)} (${fMon(c.peakTs)}).
+If the pattern holds, we're sitting at the launchpad.
+NFA`,
+      card: { type: "line", spec: {
+        title: "The projected cycle, by the halving clock", headline: `Top ~${fMon(c.peakTs)}`, accent: "#f7931a",
+        yLog: true, yTicks: decadeTicks(c.low, c.peakHi),
+        series: [{ pts: c.projPts, color: "#f7931a", width: 3.2, fill: 0.14 }],
+        marker: { x: c.peakTs, y: c.peak, color: "#f7931a" },
+      } },
+    };
+  })(),
 ];
 
 export function allIds(stats) { return POSTS.map(p => p(stats)?.id).filter(Boolean); }
