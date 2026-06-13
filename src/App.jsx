@@ -11,6 +11,7 @@ import {
 } from "./models.js";
 import BandStats from "./BandStats.jsx";
 // Secondary tab charts are lazy-loaded so their code only ships when the tab is opened.
+import ErrorBoundary from "./ErrorBoundary.jsx";
 const HolderscanDashboard = lazy(() => import("./HolderscanDashboard.jsx"));
 const RiskChart = lazy(() => import("./RiskChart.jsx"));
 const DrawdownChart = lazy(() => import("./DrawdownChart.jsx"));
@@ -19,6 +20,7 @@ const SpxBtcChart = lazy(() => import("./SpxBtcChart.jsx"));
 const BtcCycleChart = lazy(() => import("./BtcCycleChart.jsx"));
 const RelativeChart = lazy(() => import("./RelativeChart.jsx"));
 const SupplyConviction = lazy(() => import("./SupplyConviction.jsx"));
+const ModelChart = lazy(() => import("./ModelChart.jsx"));
 
 const SANS = "'Space Grotesk', system-ui, sans-serif";
 const MONO = "ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace";
@@ -115,6 +117,7 @@ function TabIcon({ name }) {
     case "relative": return (<svg {...p}><path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z" /><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z" /><path d="M7 21h10" /><path d="M12 3v18" /><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2" /></svg>);
     case "supply": return (<svg {...p}><path d="M6 3h12l4 6-10 13L2 9Z" /><path d="M11 3 8 9l4 13 4-13-3-6" /><path d="M2 9h20" /></svg>);
     case "holders": return (<svg {...p}><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>);
+    case "model": return (<svg {...p}><path d="M3 3v18h18" /><circle cx="8" cy="15" r="1.4" /><circle cx="13" cy="10" r="1.4" /><circle cx="18" cy="6" r="1.4" /><path d="M3 17 21 5" strokeDasharray="3 3" /></svg>);
     default: return null;
   }
 }
@@ -130,7 +133,13 @@ const NAV_TABS = [
   ["relative", "Relative", "#22d3ee"],
   ["supply", "Supply", "#34d399"],
   ["holders", "Holders", "#60a5fa"],
+  ["model", "Model", "#c084fc"],
 ];
+
+// Valid ids for deep-linking via the URL (?tab=…&rel=…). "rainbow" is the hero
+// (the default view) and carries no query param.
+const TAB_IDS = new Set(NAV_TABS.map(([id]) => id));
+const REL_IDS = new Set(["BTC", "ETH", "SOL", "BASKET"]);
 
 export default function App() {
   // `priceData` is bundled history + any new live points beyond the last bundled date.
@@ -151,6 +160,7 @@ export default function App() {
   const [showAbout, setShowAbout] = useState(false);
   const [tab, setTab] = useState("risk");
   const [view, setView] = useState("rainbow"); // which nav item is highlighted
+  const [copied, setCopied] = useState(false);  // "Share" → link copied confirmation
   const [relWhich, setRelWhich] = useState("BTC"); // Relative chart asset (driven by nav dropdown)
   const [relRect, setRelRect] = useState(null);    // Relative tab rect, for the hover menu
   const relBtnRef = useRef(null);
@@ -395,17 +405,31 @@ export default function App() {
     bandRef.current.style.color = bl.c;
   };
 
-  const scrollTop = () => { setView("rainbow"); window.scrollTo({ top: 0, behavior: "smooth" }); };
-  const goChart = (id) => {
+  // Reflect the selected chart in the URL so any tab is shareable and browser
+  // back/forward steps through charts. tab=rainbow (the hero) clears the param.
+  const syncUrl = (id, rel) => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    if (!id || id === "rainbow") params.delete("tab"); else params.set("tab", id);
+    if (id === "relative" && rel) params.set("rel", rel); else params.delete("rel");
+    const qs = params.toString();
+    const next = window.location.pathname + (qs ? "?" + qs : "") + window.location.hash;
+    const cur = window.location.pathname + window.location.search + window.location.hash;
+    if (next !== cur) window.history.pushState(null, "", next);
+  };
+  const scrollToCharts = () => {
+    const el = document.getElementById("more-charts");
+    if (!el) return;
+    const navH = navRef.current?.offsetHeight ?? 0;
+    const y = el.getBoundingClientRect().top + window.scrollY - navH - 8;
+    window.scrollTo({ top: Math.max(0, y), behavior: "smooth" });
+  };
+  const scrollTop = () => { setView("rainbow"); syncUrl("rainbow"); window.scrollTo({ top: 0, behavior: "smooth" }); };
+  const goChart = (id, relOverride) => {
     if (id === "rainbow") { scrollTop(); return; }
     setView(id); setTab(id);
-    requestAnimationFrame(() => {
-      const el = document.getElementById("more-charts");
-      if (!el) return;
-      const navH = navRef.current?.offsetHeight ?? 0;
-      const y = el.getBoundingClientRect().top + window.scrollY - navH - 8;
-      window.scrollTo({ top: Math.max(0, y), behavior: "smooth" });
-    });
+    syncUrl(id, id === "relative" ? (relOverride || relWhich) : null);
+    requestAnimationFrame(scrollToCharts);
   };
 
   const openRel = () => {
@@ -415,7 +439,38 @@ export default function App() {
   const closeRel = () => {
     relTimer.current = setTimeout(() => setRelRect(null), 160);
   };
-  const pickRel = (id) => { clearTimeout(relTimer.current); setRelWhich(id); setRelRect(null); goChart("relative"); };
+  const pickRel = (id) => { clearTimeout(relTimer.current); setRelWhich(id); setRelRect(null); goChart("relative", id); };
+
+  // Share the current chart. The /share?tab=… route serves per-tab Open Graph
+  // meta (so the preview card matches) and bounces to the app. Use the native
+  // share sheet on mobile, else copy the link with a "Copied!" confirmation.
+  const shareChart = async () => {
+    const q = tab === "relative" && relWhich !== "BTC" ? `?tab=relative&rel=${relWhich}` : `?tab=${tab}`;
+    const url = `${window.location.origin}/share${q}`;
+    const title = "SPX6900 — " + (NAV_TABS.find(([id]) => id === tab) || ["", "Chart"])[1];
+    if (navigator.share) { try { await navigator.share({ title, url }); return; } catch { /* cancelled */ } }
+    try { await navigator.clipboard.writeText(url); setCopied(true); setTimeout(() => setCopied(false), 1600); } catch { /* blocked */ }
+  };
+
+  // On load, honor a deep-linked ?tab=…(&rel=…); keep state synced with browser
+  // back/forward via popstate. Tab changes write the URL in syncUrl (pushState).
+  useEffect(() => {
+    const apply = (scroll) => {
+      const p = new URLSearchParams(window.location.search);
+      const t = p.get("tab"), rel = p.get("rel");
+      if (rel && REL_IDS.has(rel)) setRelWhich(rel);
+      if (t && TAB_IDS.has(t) && t !== "rainbow") {
+        setView(t); setTab(t);
+        if (scroll) setTimeout(scrollToCharts, 80);
+      } else {
+        setView("rainbow");
+      }
+    };
+    apply(true);
+    const onPop = () => apply(false);
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, []);
 
   const navIcon = (rgb, glow, color = "#e2e8f0") => ({
     display: "inline-flex", alignItems: "center", justifyContent: "center",
@@ -1004,12 +1059,28 @@ export default function App() {
 
       {/* More charts — selected from the top nav */}
       <div id="more-charts" style={{ maxWidth: MAX_W, margin: "44px auto 0", scrollMarginTop: isMobile ? 130 : 74 }}>
-        <div style={{
-          fontFamily: SANS, fontSize: 13, fontWeight: 700, color: "#94a3b8", marginBottom: 16,
-          letterSpacing: 1.4, textTransform: "uppercase", textAlign: "center",
-        }}>
-          {(NAV_TABS.find(([id]) => id === tab) || ["", "Chart"])[1]}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12, marginBottom: 16 }}>
+          <span style={{
+            fontFamily: SANS, fontSize: 13, fontWeight: 700, color: "#94a3b8",
+            letterSpacing: 1.4, textTransform: "uppercase",
+          }}>
+            {(NAV_TABS.find(([id]) => id === tab) || ["", "Chart"])[1]}
+          </span>
+          <button className="pill" onClick={shareChart} title="Share this chart"
+            style={{
+              display: "inline-flex", alignItems: "center", gap: 6, padding: "5px 11px", borderRadius: 8,
+              background: "transparent", border: `1px solid ${copied ? "rgba(74,222,128,0.5)" : "rgba(148,163,184,0.3)"}`,
+              cursor: "pointer", color: copied ? "#4ade80" : "#94a3b8",
+              fontFamily: SANS, fontSize: 12, fontWeight: 600, "--glow": "rgba(148,163,184,0.5)",
+            }}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" />
+              <line x1="8.6" y1="13.5" x2="15.4" y2="17.5" /><line x1="15.4" y1="6.5" x2="8.6" y2="10.5" />
+            </svg>
+            {copied ? "Copied!" : "Share"}
+          </button>
         </div>
+        <ErrorBoundary key={tab}>
         <Suspense fallback={<div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 40 }}>Loading chart…</div>}>
           {tab === "risk" && <RiskChart series={priceData} m={m} isMobile={isMobile} />}
           {tab === "drawdown" && <DrawdownChart series={priceData} isMobile={isMobile} />}
@@ -1019,7 +1090,9 @@ export default function App() {
           {tab === "relative" && <RelativeChart series={priceData} isMobile={isMobile} which={relWhich} setWhich={setRelWhich} />}
           {tab === "supply" && <SupplyConviction price={last.price} isMobile={isMobile} />}
           {tab === "holders" && <HolderscanDashboard />}
+          {tab === "model" && <ModelChart series={priceData} m={m} isMobile={isMobile} />}
         </Suspense>
+        </ErrorBoundary>
       </div>
 
       <div style={{

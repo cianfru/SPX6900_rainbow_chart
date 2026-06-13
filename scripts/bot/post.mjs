@@ -13,8 +13,7 @@
 //   X_API_KEY  X_API_SECRET  X_ACCESS_TOKEN  X_ACCESS_SECRET
 import { writeFileSync } from "node:fs";
 import { fetchLivePrice, fetchMajors, computeStats } from "./stats.mjs";
-import { renderRainbowCard } from "./rainbow-card.mjs";
-import { renderLineCard, renderBarCard } from "./charts.mjs";
+import { renderPostCard } from "./charts.mjs";
 import { buildPost, allIds } from "./posts.mjs";
 
 const arg = name => { const a = process.argv.find(x => x.startsWith(`--${name}=`)); return a ? a.split("=")[1] : null; };
@@ -61,13 +60,6 @@ if (checkOnly) {
   }
 }
 
-function cardFor(post, stats) {
-  const { type, spec } = post.card;
-  if (type === "rainbow") return renderRainbowCard(stats);
-  if (type === "bar") return renderBarCard({ ...spec, date: stats.date });
-  return renderLineCard({ ...spec, date: stats.date });
-}
-
 let live = await fetchLivePrice();
 if (!live) {
   if (!dryRun) {
@@ -83,7 +75,7 @@ const stats = computeStats(live.price, undefined, { coins });
 if (renderAll) {
   for (const id of allIds(stats)) {
     const post = buildPost(stats, new Date(), id);
-    writeFileSync(`bot-preview-${id}.png`, cardFor(post, stats));
+    writeFileSync(`bot-preview-${id}.png`, renderPostCard(post, stats));
     console.log(`\n[${id}] (${post.text.length} chars)\n${post.text}`);
   }
   console.log(`\nRendered ${allIds(stats).length} cards (price ${live.price}, ${live.source}).`);
@@ -91,7 +83,7 @@ if (renderAll) {
 }
 
 const post = buildPost(stats, new Date(), overrideId);
-const png = cardFor(post, stats);
+const png = renderPostCard(post, stats);
 console.log(`price ${live.price} (${live.source}) · post "${post.id}" · ${post.text.length} chars`);
 
 if (dryRun) {

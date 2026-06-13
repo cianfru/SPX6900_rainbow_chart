@@ -1,28 +1,48 @@
-// Dynamic social share image: the live SPX6900 rainbow chart as a 1200x630 PNG.
-// Node serverless function — builds the chart SVG (shared with the bot) and
-// rasterizes it with resvg. Falls back to the last bundled price if the live
-// fetch fails, so the card always renders.
+// Dynamic social share image: a 1200x630 PNG of the SPX6900 chart. Defaults to
+// the rainbow card; with ?tab=<id> it renders that tab's card using the SAME
+// pipeline as the X bot (stats → post spec → resvg), so a shared deep link gets
+// a matching preview. Always falls back to the rainbow card on any error.
 import { Resvg } from "@resvg/resvg-js";
 import { DEFAULT_RAW } from "../src/data.js";
 import { rainbowSvg } from "../src/rainbow-svg.js";
+import { fetchLivePrice, fetchMajors, computeStats } from "../scripts/bot/stats.mjs";
+import { buildPost } from "../scripts/bot/posts.mjs";
+import { renderPostCard } from "../scripts/bot/charts.mjs";
 
-const POOL = "0x52c77b0cb827afbad022e6d6caf2c44452edbc39";
+// Nav tab id -> the rotating post whose card best represents that tab.
+const TAB_POST = {
+  rainbow: "valuation", risk: "risk", drawdown: "drawdown", rally: "rally",
+  spxbtc: "btc", btccycle: "cycle", relative: "majors",
+  supply: "distribution", holders: "marketcap",
+};
+// Posts that need the major-coin series fetched before computeStats.
+const NEEDS_COINS = new Set(["btc", "majors"]);
 
-async function getPrice() {
-  try {
-    const r = await fetch(`https://api.geckoterminal.com/api/v2/networks/eth/pools/${POOL}`, { headers: { Accept: "application/json" } });
-    if (r.ok) { const j = await r.json(); const p = parseFloat(j?.data?.attributes?.base_token_price_usd); if (p > 0) return p; }
-  } catch { /* fall through */ }
-  try {
-    const r = await fetch("https://api.exchange.coinbase.com/products/SPX-USD/ticker", { headers: { Accept: "application/json" } });
-    if (r.ok) { const j = await r.json(); const p = parseFloat(j?.price); if (p > 0) return p; }
-  } catch { /* fall through */ }
-  return null;
-}
+const rainbowPng = price =>
+  new Resvg(rainbowSvg(price), { fitTo: { mode: "width", value: 1200 } }).render().asPng();
 
 export default async function handler(req, res) {
-  const price = (await getPrice()) ?? DEFAULT_RAW.at(-1).price;
-  const png = new Resvg(rainbowSvg(price), { fitTo: { mode: "width", value: 1200 } }).render().asPng();
+  const tab = new URL(req.url, "http://x").searchParams.get("tab");
+  const price = (await fetchLivePrice())?.price ?? DEFAULT_RAW.at(-1).price;
+
+  let png;
+  try {
+    const postId = TAB_POST[tab];
+    if (!postId || postId === "valuation") {
+      png = rainbowPng(price); // rainbow / default / unknown tab
+    } else {
+      const opts = {};
+      if (NEEDS_COINS.has(postId)) { try { opts.coins = await fetchMajors(); } catch { /* skip */ } }
+      const stats = computeStats(price, undefined, opts);
+      const post = buildPost(stats, new Date(), postId);
+      // buildPost falls back to rotation if the requested post lacks data; if so,
+      // fall back to the rainbow card rather than show an unrelated chart.
+      png = post.id === postId ? renderPostCard(post, stats) : rainbowPng(price);
+    }
+  } catch {
+    png = rainbowPng(price);
+  }
+
   res.setHeader("Content-Type", "image/png");
   res.setHeader("Cache-Control", "s-maxage=60, stale-while-revalidate=300");
   res.status(200).end(png);
