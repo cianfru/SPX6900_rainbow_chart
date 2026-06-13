@@ -132,6 +132,11 @@ const NAV_TABS = [
   ["holders", "Holders", "#60a5fa"],
 ];
 
+// Valid ids for deep-linking via the URL (?tab=…&rel=…). "rainbow" is the hero
+// (the default view) and carries no query param.
+const TAB_IDS = new Set(NAV_TABS.map(([id]) => id));
+const REL_IDS = new Set(["BTC", "ETH", "SOL", "BASKET"]);
+
 export default function App() {
   // `priceData` is bundled history + any new live points beyond the last bundled date.
   // The MODEL FIT is always computed from DEFAULT_RAW (bundled) only, so the
@@ -395,17 +400,31 @@ export default function App() {
     bandRef.current.style.color = bl.c;
   };
 
-  const scrollTop = () => { setView("rainbow"); window.scrollTo({ top: 0, behavior: "smooth" }); };
-  const goChart = (id) => {
+  // Reflect the selected chart in the URL so any tab is shareable and browser
+  // back/forward steps through charts. tab=rainbow (the hero) clears the param.
+  const syncUrl = (id, rel) => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    if (!id || id === "rainbow") params.delete("tab"); else params.set("tab", id);
+    if (id === "relative" && rel) params.set("rel", rel); else params.delete("rel");
+    const qs = params.toString();
+    const next = window.location.pathname + (qs ? "?" + qs : "") + window.location.hash;
+    const cur = window.location.pathname + window.location.search + window.location.hash;
+    if (next !== cur) window.history.pushState(null, "", next);
+  };
+  const scrollToCharts = () => {
+    const el = document.getElementById("more-charts");
+    if (!el) return;
+    const navH = navRef.current?.offsetHeight ?? 0;
+    const y = el.getBoundingClientRect().top + window.scrollY - navH - 8;
+    window.scrollTo({ top: Math.max(0, y), behavior: "smooth" });
+  };
+  const scrollTop = () => { setView("rainbow"); syncUrl("rainbow"); window.scrollTo({ top: 0, behavior: "smooth" }); };
+  const goChart = (id, relOverride) => {
     if (id === "rainbow") { scrollTop(); return; }
     setView(id); setTab(id);
-    requestAnimationFrame(() => {
-      const el = document.getElementById("more-charts");
-      if (!el) return;
-      const navH = navRef.current?.offsetHeight ?? 0;
-      const y = el.getBoundingClientRect().top + window.scrollY - navH - 8;
-      window.scrollTo({ top: Math.max(0, y), behavior: "smooth" });
-    });
+    syncUrl(id, id === "relative" ? (relOverride || relWhich) : null);
+    requestAnimationFrame(scrollToCharts);
   };
 
   const openRel = () => {
@@ -415,7 +434,27 @@ export default function App() {
   const closeRel = () => {
     relTimer.current = setTimeout(() => setRelRect(null), 160);
   };
-  const pickRel = (id) => { clearTimeout(relTimer.current); setRelWhich(id); setRelRect(null); goChart("relative"); };
+  const pickRel = (id) => { clearTimeout(relTimer.current); setRelWhich(id); setRelRect(null); goChart("relative", id); };
+
+  // On load, honor a deep-linked ?tab=…(&rel=…); keep state synced with browser
+  // back/forward via popstate. Tab changes write the URL in syncUrl (pushState).
+  useEffect(() => {
+    const apply = (scroll) => {
+      const p = new URLSearchParams(window.location.search);
+      const t = p.get("tab"), rel = p.get("rel");
+      if (rel && REL_IDS.has(rel)) setRelWhich(rel);
+      if (t && TAB_IDS.has(t) && t !== "rainbow") {
+        setView(t); setTab(t);
+        if (scroll) setTimeout(scrollToCharts, 80);
+      } else {
+        setView("rainbow");
+      }
+    };
+    apply(true);
+    const onPop = () => apply(false);
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, []);
 
   const navIcon = (rgb, glow, color = "#e2e8f0") => ({
     display: "inline-flex", alignItems: "center", justifyContent: "center",
