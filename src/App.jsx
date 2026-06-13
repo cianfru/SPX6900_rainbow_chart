@@ -11,6 +11,7 @@ import {
 } from "./models.js";
 import BandStats from "./BandStats.jsx";
 // Secondary tab charts are lazy-loaded so their code only ships when the tab is opened.
+import ErrorBoundary from "./ErrorBoundary.jsx";
 const HolderscanDashboard = lazy(() => import("./HolderscanDashboard.jsx"));
 const RiskChart = lazy(() => import("./RiskChart.jsx"));
 const DrawdownChart = lazy(() => import("./DrawdownChart.jsx"));
@@ -1049,6 +1050,7 @@ export default function App() {
         }}>
           {(NAV_TABS.find(([id]) => id === tab) || ["", "Chart"])[1]}
         </div>
+        <ErrorBoundary key={tab}>
         <Suspense fallback={<div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 40 }}>Loading chart…</div>}>
           {tab === "risk" && <RiskChart series={priceData} m={m} isMobile={isMobile} />}
           {tab === "drawdown" && <DrawdownChart series={priceData} isMobile={isMobile} />}
@@ -1059,6 +1061,7 @@ export default function App() {
           {tab === "supply" && <SupplyConviction price={last.price} isMobile={isMobile} />}
           {tab === "holders" && <HolderscanDashboard />}
         </Suspense>
+        </ErrorBoundary>
       </div>
 
       <div style={{
