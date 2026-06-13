@@ -3,6 +3,7 @@
 // big headline number; the plot below gives the visual punch. Keep text
 // emoji-free (resvg has no emoji font).
 import { Resvg } from "@resvg/resvg-js";
+import { renderRainbowCard } from "./rainbow-card.mjs";
 
 const W = 1200, H = 630, mL = 88, mR = 48, mT = 188, mB = 76;
 const pW = W - mL - mR, pH = H - mT - mB;
@@ -103,4 +104,13 @@ export function renderBarCard(spec) {
     svg += `<text x="${cx.toFixed(1)}" y="${(mT + pH + 32).toFixed(1)}" fill="#94a3b8" font-size="22" text-anchor="middle" font-family="sans-serif">${esc(b.label)}</text>`;
   });
   return chrome(spec, svg);
+}
+
+// Render a built post's card to a 1200x630 PNG. Shared by the X bot (post.mjs)
+// and the per-tab social image endpoint (api/og.js) so both render identically.
+export function renderPostCard(post, stats) {
+  const { type, spec } = post.card;
+  if (type === "rainbow") return renderRainbowCard(stats);
+  if (type === "bar") return renderBarCard({ ...spec, date: stats.date });
+  return renderLineCard({ ...spec, date: stats.date });
 }

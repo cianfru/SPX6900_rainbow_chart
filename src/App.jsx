@@ -157,6 +157,7 @@ export default function App() {
   const [showAbout, setShowAbout] = useState(false);
   const [tab, setTab] = useState("risk");
   const [view, setView] = useState("rainbow"); // which nav item is highlighted
+  const [copied, setCopied] = useState(false);  // "Share" → link copied confirmation
   const [relWhich, setRelWhich] = useState("BTC"); // Relative chart asset (driven by nav dropdown)
   const [relRect, setRelRect] = useState(null);    // Relative tab rect, for the hover menu
   const relBtnRef = useRef(null);
@@ -436,6 +437,17 @@ export default function App() {
     relTimer.current = setTimeout(() => setRelRect(null), 160);
   };
   const pickRel = (id) => { clearTimeout(relTimer.current); setRelWhich(id); setRelRect(null); goChart("relative", id); };
+
+  // Share the current chart. The /share?tab=… route serves per-tab Open Graph
+  // meta (so the preview card matches) and bounces to the app. Use the native
+  // share sheet on mobile, else copy the link with a "Copied!" confirmation.
+  const shareChart = async () => {
+    const q = tab === "relative" && relWhich !== "BTC" ? `?tab=relative&rel=${relWhich}` : `?tab=${tab}`;
+    const url = `${window.location.origin}/share${q}`;
+    const title = "SPX6900 — " + (NAV_TABS.find(([id]) => id === tab) || ["", "Chart"])[1];
+    if (navigator.share) { try { await navigator.share({ title, url }); return; } catch { /* cancelled */ } }
+    try { await navigator.clipboard.writeText(url); setCopied(true); setTimeout(() => setCopied(false), 1600); } catch { /* blocked */ }
+  };
 
   // On load, honor a deep-linked ?tab=…(&rel=…); keep state synced with browser
   // back/forward via popstate. Tab changes write the URL in syncUrl (pushState).
@@ -1044,11 +1056,26 @@ export default function App() {
 
       {/* More charts — selected from the top nav */}
       <div id="more-charts" style={{ maxWidth: MAX_W, margin: "44px auto 0", scrollMarginTop: isMobile ? 130 : 74 }}>
-        <div style={{
-          fontFamily: SANS, fontSize: 13, fontWeight: 700, color: "#94a3b8", marginBottom: 16,
-          letterSpacing: 1.4, textTransform: "uppercase", textAlign: "center",
-        }}>
-          {(NAV_TABS.find(([id]) => id === tab) || ["", "Chart"])[1]}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12, marginBottom: 16 }}>
+          <span style={{
+            fontFamily: SANS, fontSize: 13, fontWeight: 700, color: "#94a3b8",
+            letterSpacing: 1.4, textTransform: "uppercase",
+          }}>
+            {(NAV_TABS.find(([id]) => id === tab) || ["", "Chart"])[1]}
+          </span>
+          <button className="pill" onClick={shareChart} title="Share this chart"
+            style={{
+              display: "inline-flex", alignItems: "center", gap: 6, padding: "5px 11px", borderRadius: 8,
+              background: "transparent", border: `1px solid ${copied ? "rgba(74,222,128,0.5)" : "rgba(148,163,184,0.3)"}`,
+              cursor: "pointer", color: copied ? "#4ade80" : "#94a3b8",
+              fontFamily: SANS, fontSize: 12, fontWeight: 600, "--glow": "rgba(148,163,184,0.5)",
+            }}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" />
+              <line x1="8.6" y1="13.5" x2="15.4" y2="17.5" /><line x1="15.4" y1="6.5" x2="8.6" y2="10.5" />
+            </svg>
+            {copied ? "Copied!" : "Share"}
+          </button>
         </div>
         <ErrorBoundary key={tab}>
         <Suspense fallback={<div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 40 }}>Loading chart…</div>}>
