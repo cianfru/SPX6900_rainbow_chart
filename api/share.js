@@ -15,6 +15,7 @@ const TABS = {
   relative: { t: "SPX6900 vs the majors", d: "SPX6900's relative strength against BTC, ETH and SOL." },
   supply: { t: "SPX6900 Holder Supply", d: "SPX6900 supply by holder conviction tier — diamond to wood." },
   holders: { t: "SPX6900 Holders", d: "On-chain holder flow, cost basis and concentration for SPX6900." },
+  model: { t: "SPX6900 Model Fit", d: "How well the log-regression fits SPX6900: residuals, R² and the percentile bands behind the rainbow." },
 };
 
 const esc = s => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");

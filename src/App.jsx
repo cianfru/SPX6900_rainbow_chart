@@ -20,6 +20,7 @@ const SpxBtcChart = lazy(() => import("./SpxBtcChart.jsx"));
 const BtcCycleChart = lazy(() => import("./BtcCycleChart.jsx"));
 const RelativeChart = lazy(() => import("./RelativeChart.jsx"));
 const SupplyConviction = lazy(() => import("./SupplyConviction.jsx"));
+const ModelChart = lazy(() => import("./ModelChart.jsx"));
 
 const SANS = "'Space Grotesk', system-ui, sans-serif";
 const MONO = "ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace";
@@ -116,6 +117,7 @@ function TabIcon({ name }) {
     case "relative": return (<svg {...p}><path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z" /><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z" /><path d="M7 21h10" /><path d="M12 3v18" /><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2" /></svg>);
     case "supply": return (<svg {...p}><path d="M6 3h12l4 6-10 13L2 9Z" /><path d="M11 3 8 9l4 13 4-13-3-6" /><path d="M2 9h20" /></svg>);
     case "holders": return (<svg {...p}><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>);
+    case "model": return (<svg {...p}><path d="M3 3v18h18" /><circle cx="8" cy="15" r="1.4" /><circle cx="13" cy="10" r="1.4" /><circle cx="18" cy="6" r="1.4" /><path d="M3 17 21 5" strokeDasharray="3 3" /></svg>);
     default: return null;
   }
 }
@@ -131,6 +133,7 @@ const NAV_TABS = [
   ["relative", "Relative", "#22d3ee"],
   ["supply", "Supply", "#34d399"],
   ["holders", "Holders", "#60a5fa"],
+  ["model", "Model", "#c084fc"],
 ];
 
 // Valid ids for deep-linking via the URL (?tab=…&rel=…). "rainbow" is the hero
@@ -1087,6 +1090,7 @@ export default function App() {
           {tab === "relative" && <RelativeChart series={priceData} isMobile={isMobile} which={relWhich} setWhich={setRelWhich} />}
           {tab === "supply" && <SupplyConviction price={last.price} isMobile={isMobile} />}
           {tab === "holders" && <HolderscanDashboard />}
+          {tab === "model" && <ModelChart series={priceData} m={m} isMobile={isMobile} />}
         </Suspense>
         </ErrorBoundary>
       </div>
