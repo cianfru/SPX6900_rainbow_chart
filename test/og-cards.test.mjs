@@ -10,7 +10,7 @@ import { renderPostCard } from "../scripts/bot/charts.mjs";
 
 const stats = computeStats(DEFAULT_RAW.at(-1).price, undefined, {});
 // Same tab→post map the OG endpoint uses, minus the network-dependent ones.
-const OFFLINE_TABS = { rainbow: "valuation", risk: "risk", drawdown: "drawdown", rally: "rally", btccycle: "cycle" };
+const OFFLINE_TABS = { rainbow: "valuation", risk: "risk", drawdown: "drawdown", rally: "rally", btccycle: "cycle", model: "model" };
 
 for (const [tab, postId] of Object.entries(OFFLINE_TABS)) {
   test(`og card for tab "${tab}" renders a valid PNG`, () => {

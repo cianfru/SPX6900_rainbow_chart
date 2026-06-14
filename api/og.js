@@ -13,7 +13,7 @@ import { renderPostCard } from "../scripts/bot/charts.mjs";
 const TAB_POST = {
   rainbow: "valuation", risk: "risk", drawdown: "drawdown", rally: "rally",
   spxbtc: "btc", btccycle: "cycle", relative: "majors",
-  supply: "distribution", holders: "marketcap",
+  supply: "distribution", holders: "marketcap", model: "model",
 };
 // Posts that need the major-coin series fetched before computeStats.
 const NEEDS_COINS = new Set(["btc", "majors"]);

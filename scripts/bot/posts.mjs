@@ -382,9 +382,90 @@ NFA`,
       } },
     };
   },
+
+  // 18 — memecoin kings only (focused milestone angle)
+  s => (() => {
+    const ms = CRYPTO_MILESTONES.filter(m => ["PEPE ATH MC", "SHIB ATH MC", "DOGE ATH MC"].includes(m.label) && m.price > s.price)
+      .map(m => ({ ...m, mult: m.price / s.price }));
+    if (ms.length < 2) return null;
+    const doge = ms.find(m => m.label.startsWith("DOGE")) || ms.at(-1), top = ms.at(-1);
+    return {
+      id: "memecoins",
+      text:
+`👑 Flip the memecoin kings? From ${fPrice(s.price)}:
+${ms.map(m => `${m.short} (${m.mc}) → ${fMult(m.mult)}`).join(TIGHT)}
+Same market cap, a fraction of the price. SPX6900 is coming for the throne.
+NFA`,
+      card: { type: "line", spec: {
+        title: "Flip the memecoin kings", headline: `DOGE-size = ${fMult(doge.mult)}`, accent: "#c2a633",
+        yLog: true, yTicks: decadeTicks(s.firstPrice, top.price),
+        hlines: ms.map(m => ({ y: m.price, label: `${m.short} · ${fMult(m.mult)}`, color: m.c })),
+        series: [{ pts: s.series.price, color: "#34d399", width: 3, fill: 0.12 }],
+        marker: { x: lastTs(s), y: s.price, color: "#34d399" },
+      } },
+    };
+  })(),
+
+  // 19 — Bitcoin market-cap ladder (BTC ATH milestone angle)
+  s => (() => {
+    const ms = CRYPTO_MILESTONES.filter(m => ["BTC @ $1K MC", "BTC @ $10K MC", "BTC @ $100K MC"].includes(m.label) && m.price > s.price)
+      .map(m => ({ ...m, mult: m.price / s.price }));
+    if (ms.length < 2) return null;
+    const top = ms.at(-1);
+    return {
+      id: "btcgrade",
+      text:
+`₿ SPX6900 on Bitcoin's market-cap ladder. From ${fPrice(s.price)} to the cap BTC had at:
+${ms.map(m => `${m.short} (${m.mc}) → ${fMult(m.mult)}`).join(TIGHT)}
+The same market cap Bitcoin printed on its way up.
+NFA`,
+      card: { type: "line", spec: {
+        title: "SPX6900 on Bitcoin's MC ladder", headline: `BTC @ $100K = ${fMult(top.mult)}`, accent: "#f7931a",
+        yLog: true, yTicks: decadeTicks(s.firstPrice, top.price),
+        hlines: ms.map(m => ({ y: m.price, label: `${m.short} · ${fMult(m.mult)}`, color: m.c })),
+        series: [{ pts: s.series.price, color: "#34d399", width: 3, fill: 0.12 }],
+        marker: { x: lastTs(s), y: s.price, color: "#34d399" },
+      } },
+    };
+  })(),
+
+  // 20 — how the model works (residual scatter + flattened bands; trust/explainer)
+  s => s.model && (() => {
+    const m = s.model;
+    const pts = DEFAULT_RAW.map(r => [Date.parse(r.date), Math.log(r.price) - m.predict(M.dayN(r.date))]);
+    return {
+      id: "model",
+      text:
+`📐 How the SPX6900 rainbow is actually built
+We fit a power-law trend to price (R² ${m.r2.toFixed(2)}) and color the distance from that trend into percentile bands.
+Each dot is one day — low/blue = cheap vs trend, high/red = stretched. Today: ${BAND_EMOJI[s.bandIndex]} ${s.band.l}, ${fPct(s.vsCenter)} vs trend.
+Descriptive of history, not a prediction.
+NFA`,
+      card: { type: "model", spec: {
+        title: "How the SPX6900 rainbow is built", headline: `R² ${m.r2.toFixed(2)} fit · ${fPct(s.vsCenter)} vs trend`, accent: "#a78bfa",
+        bands: m.bands, bandColors: M.BAND_LABELS.map(b => b.c), points: pts, markerColor: s.band.c,
+      } },
+    };
+  })(),
 ];
 
 export function allIds(stats) { return POSTS.map(p => p(stats)?.id).filter(Boolean); }
+
+// Upside-forward posts get extra weight in the daily rotation so the feed skews
+// bullish (they show up ~twice as often as the analytical/neutral ones).
+const BULLISH = new Set([
+  "milestones", "memecoins", "btcgrade", "cycle", "cyclepeak", "cycleclock",
+  "targets", "rally", "alltime",
+]);
+
+// Build the weighted rotation order: pass 0 includes every available post (in
+// order), pass 1 appends the bullish ones again. So bullish topics appear twice
+// per cycle and neutral ones once — without ever landing on consecutive days.
+function rotation(built) {
+  const rota = [];
+  for (let pass = 0; pass < 2; pass++) for (const p of built) if (pass === 0 || BULLISH.has(p.id)) rota.push(p);
+  return rota;
+}
 
 // Pick the post. Override with id (env BOT_POST / --post=id) for testing,
 // otherwise rotate by day so the topic changes daily. The chosen text gets its
@@ -392,8 +473,9 @@ export function allIds(stats) { return POSTS.map(p => p(stats)?.id).filter(Boole
 // the body spaced into airy paragraphs, then the branded $SPX / #spx6900 footer.
 export function buildPost(stats, now = new Date(), overrideId = null) {
   const built = POSTS.map(p => p(stats)).filter(Boolean);
+  const rota = rotation(built);
   const epochDay = Math.floor(now.getTime() / 86400000);
-  const chosen = (overrideId && built.find(p => p.id === overrideId)) || built[epochDay % built.length];
+  const chosen = (overrideId && built.find(p => p.id === overrideId)) || rota[epochDay % rota.length];
   const body = chosen.text
     .replace(/\n?(?:🌈 )?NFA\s*$/u, "") // drop the old NFA footer line
     .replace(/\n/g, "\n\n")            // blank line between thoughts for "air"
