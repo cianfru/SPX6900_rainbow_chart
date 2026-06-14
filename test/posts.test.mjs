@@ -17,6 +17,10 @@ test("the BTC-cycle post series is wired into the rotation", () => {
   }
 });
 
+test("the bullish milestones card is wired into the rotation", () => {
+  assert.ok(ids.includes("milestones"), "missing post: milestones");
+});
+
 test("every available post builds non-empty text + a renderable card", () => {
   assert.ok(ids.length >= 8, `expected a healthy rotation, got ${ids.length}`);
   for (const id of ids) {

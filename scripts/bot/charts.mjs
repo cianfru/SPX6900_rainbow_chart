@@ -96,12 +96,18 @@ export function renderLineCard(spec) {
     plot += `<polyline points="${path(pts)}" fill="none" stroke="${s.color}" stroke-width="${s.width || 3}" stroke-linejoin="round" stroke-linecap="round"${s.dash ? ` stroke-dasharray="7 7"` : ""}/>`;
   }
 
-  // horizontal reference lines (e.g. price targets, cost basis) with right-aligned labels
+  // horizontal reference lines (e.g. price targets, milestones, cost basis) with
+  // right-aligned labels. Labels are nudged apart so stacked lines never collide.
   let hl = "";
-  for (const h of (spec.hlines || [])) {
-    const yy = Y(h.y).toFixed(1);
+  const hlSorted = (spec.hlines || []).map(h => ({ ...h, py: Y(h.y) })).sort((a, b) => a.py - b.py);
+  let lastLabelY = -1e9;
+  for (const h of hlSorted) {
+    const yy = h.py.toFixed(1);
     hl += `<line x1="${mL}" y1="${yy}" x2="${W - mR}" y2="${yy}" stroke="${h.color}" stroke-opacity="0.8" stroke-width="2"${h.dash === false ? "" : ` stroke-dasharray="6 6"`}/>`;
-    hl += `<text x="${W - mR - 6}" y="${(+yy - 9).toFixed(1)}" fill="${h.color}" font-size="21" font-weight="700" text-anchor="end" font-family="sans-serif">${esc(h.label)}</text>`;
+    let ly = h.py - 9;
+    if (ly < lastLabelY + 27) ly = lastLabelY + 27; // keep labels from overlapping
+    lastLabelY = ly;
+    hl += `<text x="${W - mR - 6}" y="${ly.toFixed(1)}" fill="${h.color}" font-size="21" font-weight="700" text-anchor="end" font-family="sans-serif">${esc(h.label)}</text>`;
   }
 
   let marker = "";

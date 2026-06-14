@@ -3,6 +3,7 @@
 // them by day so followers get a different, visual angle each day.
 import * as M from "../../src/models.js";
 import { DEFAULT_RAW } from "../../src/data.js";
+import { CRYPTO_MILESTONES } from "../../src/milestones.js";
 
 // X discovery tags appended to each post's footer: the $SPX cashtag (X resolves
 // it to SPX6900) for the in-timeline price-chart card, plus the #spx6900 hashtag.
@@ -355,6 +356,32 @@ NFA`,
       } },
     };
   })(),
+
+  // 17 — milestones: what flipping the giants would mean (bullish ladder, log)
+  s => {
+    // Well-spaced landmarks so the labels don't collide on a log axis.
+    const picks = ["PEPE ATH MC", "SHIB ATH MC", "DOGE ATH MC", "BTC @ $100K MC"];
+    const ms = CRYPTO_MILESTONES.filter(m => picks.includes(m.label) && m.price > s.price)
+      .map(m => ({ ...m, mult: m.price / s.price }));
+    if (ms.length < 2) return null;
+    const doge = ms.find(m => m.label.startsWith("DOGE")) || ms[Math.floor(ms.length / 2)];
+    const top = ms.at(-1);
+    return {
+      id: "milestones",
+      text:
+`🚀 What if SPX6900 flips the giants? From ${fPrice(s.price)}:
+${ms.map(m => `${m.short} (${m.mc}) → ${fMult(m.mult)}`).join(TIGHT)}
+Same market cap, a fraction of the price. Room to run.
+NFA`,
+      card: { type: "line", spec: {
+        title: "What if SPX6900 flips the giants?", headline: `${doge.short} = ${fMult(doge.mult)}`, accent: "#fb923c",
+        yLog: true, yTicks: decadeTicks(s.firstPrice, top.price),
+        hlines: ms.map(m => ({ y: m.price, label: `${m.short} · ${fMult(m.mult)}`, color: m.c })),
+        series: [{ pts: s.series.price, color: "#34d399", width: 3, fill: 0.12 }],
+        marker: { x: lastTs(s), y: s.price, color: "#34d399" },
+      } },
+    };
+  },
 ];
 
 export function allIds(stats) { return POSTS.map(p => p(stats)?.id).filter(Boolean); }
