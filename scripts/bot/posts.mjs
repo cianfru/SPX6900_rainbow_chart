@@ -52,12 +52,17 @@ function cycleProj(m) {
     return uNow + (u - uNow) * amp; // cone pinches at the anchor, widens forward
   };
   const proj = (age, amp) => Math.exp(m.predict(age + 1) + m.bands[0] + uCurve(age, amp) * SPAN);
-  const projPts = [];
-  for (let age = anchorAge; age <= endAge; age += 7) projPts.push([SPX0 + age * DAY, proj(age, 1)]);
+  const projPts = [], projLo = [], projHi = [];
+  for (let age = anchorAge; age <= endAge; age += 7) {
+    const ts = SPX0 + age * DAY;
+    projPts.push([ts, proj(age, 1)]);
+    projLo.push([ts, proj(age, CYC.AMP_LO)]);
+    projHi.push([ts, proj(age, CYC.AMP_HI)]);
+  }
   let peak = { p: 0, age: anchorAge }, low = { p: Infinity, age: anchorAge };
   for (let age = anchorAge; age <= endAge; age += 2) { const p = proj(age, 1); if (p > peak.p) peak = { p, age }; if (age <= bottomAge + 120 && p < low.p) low = { p, age }; }
   return {
-    projPts, peak: peak.p, peakTs: SPX0 + peak.age * DAY,
+    projPts, projLo, projHi, peak: peak.p, peakTs: SPX0 + peak.age * DAY,
     low: low.p, lowTs: SPX0 + low.age * DAY,
     peakLo: proj(peak.age, CYC.AMP_LO), peakHi: proj(peak.age, CYC.AMP_HI),
   };
@@ -148,19 +153,23 @@ NFA`,
     } },
   }),
 
-  // 6 — targets (bar, log heights)
+  // 6 — targets (price line climbing toward the next target levels)
   s => {
-    const t3 = s.targets.slice(0, 4);
+    const next = s.targets.filter(t => t.price > s.price).slice(0, 3); // the next rungs above
+    const top = next.at(-1) || s.targets.at(-1);
     return {
       id: "targets",
       text:
 `🎯 SPX6900 from ${fPrice(s.price)} to the targets:
-${s.targets.slice(0, 3).map(t => `${t.label} → ${fMult(t.mult)}`).join(TIGHT)}
+${next.map(t => `${t.label} → ${fMult(t.price / s.price)}`).join(TIGHT)}
 A log-trend extrapolation, not a promise.
 NFA`,
-      card: { type: "bar", spec: {
-        title: "How far to the targets (×)", headline: `${t3[0].label} = ${fMult(t3[0].mult)}`, accent: "#f59e0b", logBars: true,
-        bars: t3.map(t => ({ label: t.label, value: t.mult, text: fMult(t.mult), color: t.c })),
+      card: { type: "line", spec: {
+        title: "Climbing the target ladder", headline: `${next[0].label} = ${fMult(next[0].price / s.price)}`, accent: "#f59e0b",
+        yLog: true, yTicks: decadeTicks(s.firstPrice, top.price),
+        hlines: next.map(t => ({ y: t.price, label: `${t.label} · ${fMult(t.price / s.price)}`, color: t.c })),
+        series: [{ pts: s.series.price, color: "#34d399", width: 3, fill: 0.12 }],
+        marker: { x: lastTs(s), y: s.price, color: "#34d399" },
       } },
     };
   },
@@ -178,17 +187,17 @@ NFA`,
     } },
   }),
 
-  // 8 — diamond-adjusted "real" market cap (bar)
+  // 8 — diamond-adjusted "real" market cap (locked vs float, stacked)
   s => s.supply && ({
     id: "marketcap",
     text:
 `💰 SPX6900's "real" market cap
 Headline MC ${fMoney(s.supply.nominalMc)} (price × 939M supply). But diamond hands hold ~${Math.round(s.supply.diamondShare * 100)}% of supply and rarely sell — so the effective free-float MC is just ${fMoney(s.supply.floatMc)}.
 NFA`,
-    card: { type: "bar", spec: {
-      title: "Market cap: headline vs real free-float", headline: fMoney(s.supply.floatMc) + " free float", accent: "#22d3ee",
-      bars: [
-        { label: "Headline MC", value: s.supply.nominalMc, text: fMoney(s.supply.nominalMc), color: "#64748b" },
+    card: { type: "stack", spec: {
+      title: "Headline cap vs real free float", headline: fMoney(s.supply.floatMc) + " free float", accent: "#22d3ee",
+      total: s.supply.nominalMc,
+      segments: [
         { label: "Diamond-locked", value: s.supply.diamondValue, text: fMoney(s.supply.diamondValue), color: "#818cf8" },
         { label: "Free float", value: s.supply.floatMc, text: fMoney(s.supply.floatMc), color: "#22d3ee" },
       ],
@@ -218,28 +227,34 @@ NFA`,
 Of the age-classified supply, ~${Math.round((s.supply.tiers.diamond / s.supply.classified) * 100)}% sits in "diamond" hands (longest-held), with a Gini of ${s.supply.gini.toFixed(2)} — extreme concentration.
 High conviction, thin float.
 NFA`,
-    card: { type: "bar", spec: {
-      title: "Supply by holder conviction tier", headline: `${Math.round((s.supply.tiers.diamond / s.supply.classified) * 100)}% diamond hands`, accent: "#22d3ee",
-      bars: TIERS.map(([k, label, c]) => ({ label, value: s.supply.tiers[k], text: Math.round((s.supply.tiers[k] / s.supply.classified) * 100) + "%", color: c })),
+    card: { type: "donut", spec: {
+      title: "Supply by holder conviction", headline: `${Math.round((s.supply.tiers.diamond / s.supply.classified) * 100)}% diamond hands`, accent: "#22d3ee",
+      center: { big: `${Math.round((s.supply.tiers.diamond / s.supply.classified) * 100)}%`, small: "Diamond" },
+      segments: TIERS.map(([k, label, c]) => ({ label, value: s.supply.tiers[k], color: c })),
     } },
   }),
 
-  // 11 — average holder break-even / PnL (bar)
-  s => s.supply && s.supply.breakEven && ({
-    id: "breakeven",
-    text:
+  // 11 — average holder break-even / PnL (price line vs cost-basis line)
+  s => s.supply && s.supply.breakEven && (() => {
+    const up = s.supply.avgHolderPnl >= 0, accent = up ? "#4ade80" : "#f87171";
+    const lo = Math.min(s.supply.breakEven, ...s.series.price.map(p => p[1]));
+    const hi = Math.max(s.supply.breakEven, ...s.series.price.map(p => p[1]));
+    return {
+      id: "breakeven",
+      text:
 `📊 The average SPX6900 holder's entry is ~${fPrice(s.supply.breakEven)}.
-At ${fPrice(s.price)} that's about ${fPct(s.supply.avgHolderPnl)} — the average holder is ${s.supply.avgHolderPnl < 0 ? "underwater" : "in profit"}.
+At ${fPrice(s.price)} that's about ${fPct(s.supply.avgHolderPnl)} — the average holder is ${up ? "in profit" : "underwater"}.
 Price vs the crowd's cost basis.
 NFA`,
-    card: { type: "bar", spec: {
-      title: "Price vs average holder's cost basis", headline: `${fPct(s.supply.avgHolderPnl)} avg holder`, accent: s.supply.avgHolderPnl < 0 ? "#f87171" : "#4ade80",
-      bars: [
-        { label: "Avg entry", value: s.supply.breakEven, text: fPrice(s.supply.breakEven), color: "#64748b" },
-        { label: "Price now", value: s.price, text: fPrice(s.price), color: s.supply.avgHolderPnl < 0 ? "#f87171" : "#4ade80" },
-      ],
-    } },
-  }),
+      card: { type: "line", spec: {
+        title: "Price vs the crowd's cost basis", headline: `${fPct(s.supply.avgHolderPnl)} avg holder`, accent,
+        yLog: true, yTicks: decadeTicks(lo, hi),
+        hlines: [{ y: s.supply.breakEven, label: `avg entry ${fPrice(s.supply.breakEven)}`, color: "#cbd5e1" }],
+        series: [{ pts: s.series.price, color: accent, width: 3, fill: 0.14 }],
+        marker: { x: lastTs(s), y: s.price, color: accent },
+      } },
+    };
+  })(),
 
   // 12 — SPX vs majors (relative strength, 1yr)
   s => s.majors && s.majors.length && ({
@@ -308,13 +323,16 @@ ${[
 ].join(TIGHT)}
 Scaled to SPX6900's rainbow bands on BTC's halving clock.
 NFA`,
-      card: { type: "bar", spec: {
-        title: `Projected cycle top (${fMon(c.peakTs)})`, headline: `Base ${fPx(c.peak)} · ${fMult(mult(c.peak))}`, accent: "#f7931a", logBars: true,
-        bars: [
-          { label: "Bear", value: c.peakLo, text: fPx(c.peakLo), color: "#60a5fa" },
-          { label: "Base", value: c.peak, text: fPx(c.peak), color: "#f7931a" },
-          { label: "Bull", value: c.peakHi, text: fPx(c.peakHi), color: "#a78bfa" },
+      card: { type: "line", spec: {
+        title: `Projected cycle top (${fMon(c.peakTs)})`, headline: `Base ${fPx(c.peak)} · ${fMult(mult(c.peak))}`, accent: "#f7931a",
+        yLog: true, yTicks: decadeTicks(s.firstPrice, c.peakHi),
+        cone: { lo: c.projLo, hi: c.projHi, color: "#f7931a", opacity: 0.16 },
+        series: [
+          { pts: s.series.price, color: "#4ade80", width: 3, fill: 0.1 },
+          { pts: c.projPts, color: "#f7931a", width: 3, dash: true },
         ],
+        legend: [{ label: "SPX actual", color: "#4ade80" }, { label: "Bear–Bull range", color: "#f7931a" }],
+        marker: { x: c.peakTs, y: c.peak, color: "#f7931a" },
       } },
     };
   })(),

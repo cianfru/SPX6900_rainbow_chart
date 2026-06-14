@@ -1,23 +1,27 @@
-// Reusable chart cards (1200x630 PNG) for the bot — line/area and bar — rendered
-// as SVG then rasterized with resvg (no browser). Header carries the title + a
-// big headline number; the plot below gives the visual punch. Keep text
-// emoji-free (resvg has no emoji font).
+// Reusable chart cards (1200x630 PNG) for the bot + the per-tab social images —
+// rendered as SVG then rasterized with resvg (no browser). Header carries the
+// title + a big headline number; the plot below gives the visual punch. Keep
+// text emoji-free (resvg has no emoji font).
 import { Resvg } from "@resvg/resvg-js";
 import { renderRainbowCard } from "./rainbow-card.mjs";
 
 const W = 1200, H = 630, mL = 88, mR = 48, mT = 188, mB = 76;
 const pW = W - mL - mR, pH = H - mT - mB;
 const esc = s => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+const png = svg => new Resvg(svg, { fitTo: { mode: "width", value: W } }).render().asPng();
 
-function chrome(spec, inner) {
+function chrome(spec, inner, extraDefs = "") {
   const accent = spec.accent || "#4ade80";
   const footer = spec.footer || "spx6900rainbow.xyz · not financial advice";
   const svg = `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
+<defs>
+  <radialGradient id="g" cx="50%" cy="0%" r="80%">
+    <stop offset="0%" stop-color="${accent}" stop-opacity="0.18"/><stop offset="55%" stop-color="${accent}" stop-opacity="0"/>
+  </radialGradient>
+  ${extraDefs}
+</defs>
 <rect width="${W}" height="${H}" fill="#05050e"/>
 <rect width="${W}" height="${H}" fill="url(#g)"/>
-<defs><radialGradient id="g" cx="50%" cy="0%" r="80%">
-  <stop offset="0%" stop-color="${accent}" stop-opacity="0.18"/><stop offset="55%" stop-color="${accent}" stop-opacity="0"/>
-</radialGradient></defs>
 <text x="64" y="52" fill="#94a3b8" font-size="30" font-weight="700" letter-spacing="3" font-family="sans-serif">SPX6900</text>
 <text x="${W - 64}" y="52" fill="#475569" font-size="24" text-anchor="end" font-family="sans-serif">${esc(spec.date || "")}</text>
 <text x="64" y="112" fill="#e2e8f0" font-size="38" font-weight="700" font-family="sans-serif">${esc(spec.title)}</text>
@@ -25,7 +29,7 @@ ${spec.headline ? `<text x="64" y="166" fill="${accent}" font-size="58" font-wei
 ${inner}
 <text x="64" y="${H - 22}" fill="#475569" font-size="22" font-family="sans-serif">${esc(footer)}</text>
 </svg>`;
-  return new Resvg(svg, { fitTo: { mode: "width", value: W } }).render().asPng();
+  return png(svg);
 }
 
 function yearTicks(xMin, xMax) {
@@ -41,6 +45,9 @@ export function renderLineCard(spec) {
   const series = spec.series;
   const xs = [], ys = [];
   for (const s of series) for (const [x, y] of s.pts) { xs.push(x); if (!spec.yLog || y > 0) ys.push(y); }
+  // Reference lines and the cone widen the value range too, so axes fit them.
+  for (const h of (spec.hlines || [])) ys.push(h.y);
+  if (spec.cone) for (const [, y] of [...spec.cone.lo, ...spec.cone.hi]) if (!spec.yLog || y > 0) ys.push(y);
   const xMin = Math.min(...xs), xMax = Math.max(...xs);
   let yMin = spec.yMin ?? Math.min(...ys), yMax = spec.yMax ?? Math.max(...ys);
   if (yMin === yMax) { yMax = yMin + 1; }
@@ -48,6 +55,15 @@ export function renderLineCard(spec) {
   const Y = y => spec.yLog
     ? mT + ((Math.log(yMax) - Math.log(Math.max(y, 1e-9))) / ((Math.log(yMax) - Math.log(yMin)) || 1)) * pH
     : mT + ((yMax - y) / ((yMax - yMin) || 1)) * pH;
+  const path = pts => pts.map(([x, y]) => `${X(x).toFixed(1)},${Y(y).toFixed(1)}`).join(" ");
+
+  // Soft vertical gradients for area fills + a glow blur for the marker.
+  let defs = `<filter id="glow" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="6"/></filter>`;
+  series.forEach((s, i) => {
+    if (s.fill) defs += `<linearGradient id="fill${i}" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="${s.color}" stop-opacity="${Math.min(0.5, s.fill * 2.4)}"/>
+      <stop offset="100%" stop-color="${s.color}" stop-opacity="0"/></linearGradient>`;
+  });
 
   // gridlines + y labels
   let grid = "";
@@ -61,25 +77,55 @@ export function renderLineCard(spec) {
     grid += `<text x="${X(t.ts).toFixed(1)}" y="${H - 50}" fill="#64748b" font-size="20" text-anchor="middle" font-family="sans-serif">${t.label}</text>`;
   }
 
+  // bear–bull cone (drawn behind the lines)
+  let cone = "";
+  if (spec.cone) {
+    const top = spec.cone.hi.map(([x, y]) => `${X(x).toFixed(1)},${Y(y).toFixed(1)}`);
+    const bot = spec.cone.lo.map(([x, y]) => `${X(x).toFixed(1)},${Y(y).toFixed(1)}`).reverse();
+    cone = `<polygon points="${top.join(" ")} ${bot.join(" ")}" fill="${spec.cone.color}" fill-opacity="${spec.cone.opacity ?? 0.15}"/>`;
+  }
+
   let plot = "";
-  for (const s of series) {
-    const pts = s.pts.filter(([, y]) => !spec.yLog || y > 0).map(([x, y]) => `${X(x).toFixed(1)},${Y(y).toFixed(1)}`);
+  for (let i = 0; i < series.length; i++) {
+    const s = series[i];
+    const pts = s.pts.filter(([, y]) => !spec.yLog || y > 0);
     if (s.fill) {
       const base = Y(spec.fillBase ?? yMin).toFixed(1);
-      plot += `<polygon points="${X(s.pts[0][0]).toFixed(1)},${base} ${pts.join(" ")} ${X(s.pts.at(-1)[0]).toFixed(1)},${base}" fill="${s.color}" fill-opacity="${s.fill}"/>`;
+      plot += `<polygon points="${X(pts[0][0]).toFixed(1)},${base} ${path(pts)} ${X(pts.at(-1)[0]).toFixed(1)},${base}" fill="url(#fill${i})"/>`;
     }
-    plot += `<polyline points="${pts.join(" ")}" fill="none" stroke="${s.color}" stroke-width="${s.width || 3}"${s.dash ? ` stroke-dasharray="6 6"` : ""}/>`;
+    plot += `<polyline points="${path(pts)}" fill="none" stroke="${s.color}" stroke-width="${s.width || 3}" stroke-linejoin="round" stroke-linecap="round"${s.dash ? ` stroke-dasharray="7 7"` : ""}/>`;
   }
+
+  // horizontal reference lines (e.g. price targets, cost basis) with right-aligned labels
+  let hl = "";
+  for (const h of (spec.hlines || [])) {
+    const yy = Y(h.y).toFixed(1);
+    hl += `<line x1="${mL}" y1="${yy}" x2="${W - mR}" y2="${yy}" stroke="${h.color}" stroke-opacity="0.8" stroke-width="2"${h.dash === false ? "" : ` stroke-dasharray="6 6"`}/>`;
+    hl += `<text x="${W - mR - 6}" y="${(+yy - 9).toFixed(1)}" fill="${h.color}" font-size="21" font-weight="700" text-anchor="end" font-family="sans-serif">${esc(h.label)}</text>`;
+  }
+
+  let marker = "";
   if (spec.marker) {
-    plot += `<circle cx="${X(spec.marker.x).toFixed(1)}" cy="${Y(spec.marker.y).toFixed(1)}" r="7" fill="#fff" stroke="${spec.marker.color || spec.accent}" stroke-width="3"/>`;
+    const mx = X(spec.marker.x).toFixed(1), my = Y(spec.marker.y).toFixed(1), mc = spec.marker.color || spec.accent;
+    marker = `<circle cx="${mx}" cy="${my}" r="11" fill="${mc}" fill-opacity="0.9" filter="url(#glow)"/><circle cx="${mx}" cy="${my}" r="7" fill="#fff" stroke="${mc}" stroke-width="3"/>`;
   }
+
+  // legend with a backing chip, parked top-left of the plot (clear of the data)
   let legend = "";
-  (spec.legend || []).forEach((l, i) => {
-    const lx = W - mR - 220, ly = mT + 24 + i * 30;
-    legend += `<rect x="${lx}" y="${ly - 12}" width="22" height="6" rx="3" fill="${l.color}"/>`;
-    legend += `<text x="${lx + 30}" y="${ly - 4}" fill="#cbd5e1" font-size="22" font-family="sans-serif">${esc(l.label)}</text>`;
-  });
-  return chrome(spec, grid + plot + legend);
+  const items = spec.legend || [];
+  if (items.length) {
+    const lw = 30 + Math.max(...items.map(l => l.label.length)) * 11.5;
+    const lh = items.length * 30 + 16;
+    const lx = mL + 16, ly = mT + 14;
+    legend += `<rect x="${lx}" y="${ly}" width="${lw.toFixed(0)}" height="${lh}" rx="9" fill="rgba(5,5,14,0.62)" stroke="rgba(255,255,255,0.10)"/>`;
+    items.forEach((l, i) => {
+      const ey = ly + 24 + i * 30;
+      legend += `<rect x="${lx + 14}" y="${ey - 11}" width="24" height="7" rx="3.5" fill="${l.color}"/>`;
+      legend += `<text x="${lx + 48}" y="${ey - 3}" fill="#cbd5e1" font-size="22" font-family="sans-serif">${esc(l.label)}</text>`;
+    });
+  }
+
+  return chrome(spec, grid + cone + plot + hl + marker + legend, defs);
 }
 
 export function renderBarCard(spec) {
@@ -94,16 +140,74 @@ export function renderBarCard(spec) {
     ? v => (Math.log10(Math.abs(v) + 1) / (Math.log10(max + 1) || 1)) * usableH
     : v => (Math.abs(v) / max) * usableH;
   const n = bars.length, gap = pW / n, bw = Math.min(gap * 0.6, 150);
+  let defs = "";
+  bars.forEach((b, i) => {
+    defs += `<linearGradient id="bar${i}" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="${b.color}" stop-opacity="${b.dim ? 0.5 : 1}"/>
+      <stop offset="100%" stop-color="${b.color}" stop-opacity="${b.dim ? 0.25 : 0.55}"/></linearGradient>`;
+  });
   let svg = "";
   bars.forEach((b, i) => {
     const bh = Math.max(2, h(b.value));
     const cx = mL + gap * i + gap / 2;
     const yTop = mT + pH - bh;
-    svg += `<rect x="${(cx - bw / 2).toFixed(1)}" y="${yTop.toFixed(1)}" width="${bw.toFixed(1)}" height="${bh.toFixed(1)}" rx="7" fill="${b.color}" fill-opacity="${b.dim ? 0.4 : 0.9}"${b.outline ? ` stroke="#fff" stroke-width="2"` : ""}/>`;
+    svg += `<rect x="${(cx - bw / 2).toFixed(1)}" y="${yTop.toFixed(1)}" width="${bw.toFixed(1)}" height="${bh.toFixed(1)}" rx="9" fill="url(#bar${i})"${b.outline ? ` stroke="#fff" stroke-width="2"` : ""}/>`;
     svg += `<text x="${cx.toFixed(1)}" y="${(yTop - 14).toFixed(1)}" fill="#e2e8f0" font-size="26" font-weight="700" text-anchor="middle" font-family="sans-serif">${esc(b.text ?? b.value)}</text>`;
     svg += `<text x="${cx.toFixed(1)}" y="${(mT + pH + 32).toFixed(1)}" fill="#94a3b8" font-size="22" text-anchor="middle" font-family="sans-serif">${esc(b.label)}</text>`;
   });
-  return chrome(spec, svg);
+  return chrome(spec, svg, defs);
+}
+
+// Donut for composition (e.g. supply by holder tier). segments: [{label,value,color}].
+export function renderDonut(spec) {
+  const segs = spec.segments.filter(s => s.value > 0);
+  const total = segs.reduce((a, s) => a + s.value, 0) || 1;
+  const cx = mL + 150, cy = mT + pH / 2, r = 132, sw = 58;
+  const C = 2 * Math.PI * r;
+  let ring = "", acc = 0;
+  for (const s of segs) {
+    const frac = s.value / total, len = frac * C;
+    ring += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${s.color}" stroke-width="${sw}" stroke-opacity="0.92"
+      stroke-dasharray="${len.toFixed(2)} ${(C - len).toFixed(2)}" stroke-dashoffset="${(-acc).toFixed(2)}"
+      transform="rotate(-90 ${cx} ${cy})"/>`;
+    acc += len;
+  }
+  const c = spec.center || {};
+  let center = "";
+  if (c.big) center += `<text x="${cx}" y="${cy + 4}" fill="#f8fafc" font-size="62" font-weight="800" text-anchor="middle" font-family="sans-serif">${esc(c.big)}</text>`;
+  if (c.small) center += `<text x="${cx}" y="${cy + 40}" fill="#94a3b8" font-size="24" text-anchor="middle" font-family="sans-serif">${esc(c.small)}</text>`;
+
+  // legend on the right, value as % of total
+  const lx = cx + r + 70;
+  let legend = "";
+  segs.forEach((s, i) => {
+    const ly = mT + 34 + i * 64;
+    const pct = Math.round((s.value / total) * 100);
+    legend += `<rect x="${lx}" y="${ly - 22}" width="30" height="30" rx="7" fill="${s.color}"/>`;
+    legend += `<text x="${lx + 44}" y="${ly}" fill="#e2e8f0" font-size="28" font-weight="700" font-family="sans-serif">${esc(s.label)}</text>`;
+    legend += `<text x="${lx + 44}" y="${ly + 28}" fill="#94a3b8" font-size="23" font-family="sans-serif">${pct}% of supply</text>`;
+  });
+  return chrome(spec, ring + center + legend);
+}
+
+// Single horizontal 100%-stacked bar for proportions (e.g. locked vs free float).
+export function renderStackBar(spec) {
+  const segs = spec.segments.filter(s => s.value > 0);
+  const total = spec.total || segs.reduce((a, s) => a + s.value, 0) || 1;
+  const barY = mT + pH / 2 - 46, barH = 96;
+  let defs = "", body = "", x = mL;
+  segs.forEach((s, i) => {
+    defs += `<linearGradient id="seg${i}" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="${s.color}" stop-opacity="1"/><stop offset="100%" stop-color="${s.color}" stop-opacity="0.6"/></linearGradient>`;
+    const w = (s.value / total) * pW;
+    const pct = Math.round((s.value / total) * 100);
+    body += `<rect x="${(x + 2).toFixed(1)}" y="${barY}" width="${Math.max(0, w - 4).toFixed(1)}" height="${barH}" rx="8" fill="url(#seg${i})"/>`;
+    if (w > 120) body += `<text x="${(x + w / 2).toFixed(1)}" y="${barY + barH / 2 + 10}" fill="#05050e" font-size="30" font-weight="800" text-anchor="middle" font-family="sans-serif">${pct}%</text>`;
+    body += `<text x="${(x + w / 2).toFixed(1)}" y="${barY - 18}" fill="#e2e8f0" font-size="26" font-weight="700" text-anchor="middle" font-family="sans-serif">${esc(s.text ?? "")}</text>`;
+    body += `<text x="${(x + w / 2).toFixed(1)}" y="${barY + barH + 38}" fill="#94a3b8" font-size="23" text-anchor="middle" font-family="sans-serif">${esc(s.label)}</text>`;
+    x += w;
+  });
+  return chrome(spec, body, defs);
 }
 
 // Render a built post's card to a 1200x630 PNG. Shared by the X bot (post.mjs)
@@ -112,5 +216,7 @@ export function renderPostCard(post, stats) {
   const { type, spec } = post.card;
   if (type === "rainbow") return renderRainbowCard(stats);
   if (type === "bar") return renderBarCard({ ...spec, date: stats.date });
+  if (type === "donut") return renderDonut({ ...spec, date: stats.date });
+  if (type === "stack") return renderStackBar({ ...spec, date: stats.date });
   return renderLineCard({ ...spec, date: stats.date });
 }
