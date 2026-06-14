@@ -12,7 +12,7 @@
 // Required secrets to actually post (OAuth 1.0a user context for the bot account):
 //   X_API_KEY  X_API_SECRET  X_ACCESS_TOKEN  X_ACCESS_SECRET
 import { writeFileSync } from "node:fs";
-import { fetchLivePrice, fetchMajors, computeStats } from "./stats.mjs";
+import { fetchLivePrice, fetchMajors, fetchHistory, computeStats } from "./stats.mjs";
 import { renderPostCard } from "./charts.mjs";
 import { buildPost, allIds } from "./posts.mjs";
 
@@ -70,7 +70,8 @@ if (!live) {
   live = { price: DEFAULT_RAW.at(-1).price, source: "bundled-fallback" };
 }
 const coins = await fetchMajors(); // each null if unreachable → those pills skip
-const stats = computeStats(live.price, undefined, { coins });
+const history = await fetchHistory(); // bundled + live daily closes (frozen model)
+const stats = computeStats(live.price, undefined, { coins, history });
 
 if (renderAll) {
   for (const id of allIds(stats)) {

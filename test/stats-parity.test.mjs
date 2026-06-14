@@ -45,3 +45,20 @@ test("all-time return matches first→last price ratio", () => {
   approx(s.allTimeReturn, last.price / DEFAULT_RAW[0].price - 1);
   approx(s.firstPrice, DEFAULT_RAW[0].price);
 });
+
+test("merged live history extends the drawn series but leaves the fit frozen", () => {
+  // append two synthetic days beyond the bundled baseline
+  const extra = [
+    { date: "2026-06-07", price: 0.36 },
+    { date: "2026-06-14", price: 0.40 },
+  ];
+  const merged = computeStats(0.40, "2026-06-14", { history: [...DEFAULT_RAW, ...extra] });
+  // drawn series + residuals grow by exactly the appended points
+  assert.equal(merged.series.price.length, DEFAULT_RAW.length + extra.length);
+  assert.equal(merged.series.resid.length, DEFAULT_RAW.length + extra.length);
+  assert.equal(merged.series.price.at(-1)[1], 0.40);
+  // the model fit is unchanged — still the frozen bundled fit
+  approx(merged.model.r2, m.r2);
+  approx(merged.model.a, m.a);
+  approx(merged.center, Math.exp(m.predict(M.dayN("2026-06-14"))));
+});
