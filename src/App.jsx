@@ -9,6 +9,7 @@ import {
   dayN, ds, bandVal, bandIndex,
   whenHitsCenter, whenHitsBand,
 } from "./models.js";
+import { CRYPTO_MILESTONES } from "./milestones.js";
 import BandStats from "./BandStats.jsx";
 // Secondary tab charts are lazy-loaded so their code only ships when the tab is opened.
 import ErrorBoundary from "./ErrorBoundary.jsx";
@@ -88,15 +89,6 @@ const SCALE_PLAN = [
   { side: "sell", action: "Take profit",             note: "Sell ~20% of your stack" },
   { side: "sell", action: "Take profit",             note: "Sell ~35% of your stack" },
   { side: "sell", action: "De-risk hard",            note: "Sell ~50% of your stack" },
-];
-
-const CRYPTO_MILESTONES = [
-  { price: 11.71,  label: "PEPE ATH MC",     mc: "$11B",  c: "#4ade80" },
-  { price: 13.84,  label: "BTC @ $1K MC",    mc: "$13B",  c: "#f59e0b" },
-  { price: 42.60,  label: "SHIB ATH MC",     mc: "$40B",  c: "#f43f5e" },
-  { price: 94.57,  label: "DOGE ATH MC",     mc: "$89B",  c: "#c2a633" },
-  { price: 197,    label: "BTC @ $10K MC",   mc: "$185B", c: "#fb923c" },
-  { price: 2130,   label: "BTC @ $100K MC",  mc: "$2T",   c: "#f97316" },
 ];
 
 const fD = s => new Date(s).toLocaleDateString("en-US", { month: "short", year: "2-digit" });
