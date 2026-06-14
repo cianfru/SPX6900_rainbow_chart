@@ -5,7 +5,7 @@
 import { Resvg } from "@resvg/resvg-js";
 import { DEFAULT_RAW } from "../src/data.js";
 import { rainbowSvg } from "../src/rainbow-svg.js";
-import { fetchLivePrice, fetchMajors, computeStats } from "../scripts/bot/stats.mjs";
+import { fetchLivePrice, fetchMajors, fetchHistory, computeStats } from "../scripts/bot/stats.mjs";
 import { buildPost } from "../scripts/bot/posts.mjs";
 import { renderPostCard } from "../scripts/bot/charts.mjs";
 
@@ -32,6 +32,7 @@ export default async function handler(req, res) {
       png = rainbowPng(price); // rainbow / default / unknown tab
     } else {
       const opts = {};
+      try { opts.history = await fetchHistory(); } catch { /* fall back to bundled */ }
       if (NEEDS_COINS.has(postId)) { try { opts.coins = await fetchMajors(); } catch { /* skip */ } }
       const stats = computeStats(price, undefined, opts);
       const post = buildPost(stats, new Date(), postId);

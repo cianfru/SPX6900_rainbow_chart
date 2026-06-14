@@ -19,6 +19,39 @@ export async function fetchLivePrice() {
   return null;
 }
 
+// Daily SPX6900 closes — same sources the site's /api/prices uses (GeckoTerminal
+// covers full history; Coinbase as fallback). Returns {date,price}[] or null.
+async function ohlcvGecko() {
+  const r = await fetch(`https://api.geckoterminal.com/api/v2/networks/eth/pools/${POOL}/ohlcv/day?aggregate=1&limit=1000&currency=usd&token=base`, { headers: { Accept: "application/json" } });
+  if (!r.ok) throw new Error(`gecko ${r.status}`);
+  const list = (await r.json())?.data?.attributes?.ohlcv_list;
+  if (!Array.isArray(list) || !list.length) throw new Error("gecko empty");
+  return list.map(([ts, , , , c]) => ({ date: new Date(ts * 1000).toISOString().slice(0, 10), price: c })).filter(p => p.price > 0).sort((a, b) => a.date.localeCompare(b.date));
+}
+async function ohlcvCoinbase() {
+  const end = Math.floor(Date.now() / 1000), start = end - 300 * 86400;
+  const r = await fetch(`https://api.exchange.coinbase.com/products/SPX-USD/candles?granularity=86400&start=${start}&end=${end}`, { headers: { Accept: "application/json" } });
+  if (!r.ok) throw new Error(`coinbase ${r.status}`);
+  const arr = await r.json();
+  if (!Array.isArray(arr) || !arr.length) throw new Error("coinbase empty");
+  return arr.map(([ts, , , , c]) => ({ date: new Date(ts * 1000).toISOString().slice(0, 10), price: c })).filter(p => p.price > 0).sort((a, b) => a.date.localeCompare(b.date));
+}
+export async function fetchPriceHistory() {
+  for (const fn of [ohlcvGecko, ohlcvCoinbase]) { try { const p = await fn(); if (p.length) return p; } catch { /* try next */ } }
+  return null;
+}
+
+// Bundled baseline with any newer live daily closes appended. Never rewrites the
+// bundled history (the model is fit on it); only extends the drawn series so the
+// cards/charts run to today. Falls back to the bundled set if live is unreachable.
+export async function fetchHistory() {
+  const live = await fetchPriceHistory();
+  if (!live) return DEFAULT_RAW;
+  const lastBundled = DEFAULT_RAW.at(-1).date;
+  const newer = live.filter(p => p.date > lastBundled && p.price > 0);
+  return newer.length ? [...DEFAULT_RAW, ...newer] : DEFAULT_RAW;
+}
+
 // Daily closes (~1y) for a CoinGecko coin id, to price SPX against majors.
 async function fetchCoinSeries(id) {
   try {
@@ -47,11 +80,11 @@ function loadSupplySnapshot() {
 }
 
 // SPX-vs-coin ratio aligned on SPX dates, and relative-strength over a window.
-function alignedRatio(coin) {
+function alignedRatio(coin, raw) {
   const map = new Map(coin.map(r => [r.date, r.price]));
   const getC = d => { let t = new Date(d); for (let k = 0; k < 4; k++) { const ds = t.toISOString().slice(0, 10); if (map.has(ds)) return map.get(ds); t = new Date(t.getTime() - 86400000); } return null; };
   const aligned = [];
-  for (const r of DEFAULT_RAW) { const c = getC(r.date); if (c) aligned.push({ ts: Date.parse(r.date), ratio: r.price / c }); }
+  for (const r of raw) { const c = getC(r.date); if (c) aligned.push({ ts: Date.parse(r.date), ratio: r.price / c }); }
   return aligned;
 }
 function relStrength(aligned, days) {
@@ -62,6 +95,10 @@ function relStrength(aligned, days) {
 }
 
 export function computeStats(price, dateStr = new Date().toISOString().slice(0, 10), opts = {}) {
+  // Drawn history + series-derived stats use the merged history when provided
+  // (bundled baseline + live daily closes). The MODEL FIT stays frozen on the
+  // bundled DEFAULT_RAW, so the bands never move under live data.
+  const RAW = (opts.history && opts.history.length) ? opts.history : DEFAULT_RAW;
   const m = M.buildModel(DEFAULT_RAW);
   const day = M.dayN(dateStr);
   const center = Math.exp(m.predict(day));
@@ -70,32 +107,32 @@ export function computeStats(price, dateStr = new Date().toISOString().slice(0, 
 
   // Risk: log-deviation normalized to the historical range (matches buildRiskSeries).
   let lo = Infinity, hi = -Infinity;
-  for (const r of DEFAULT_RAW) { const v = Math.log(r.price) - m.predict(M.dayN(r.date)); if (v < lo) lo = v; if (v > hi) hi = v; }
+  for (const r of RAW) { const v = Math.log(r.price) - m.predict(M.dayN(r.date)); if (v < lo) lo = v; if (v > hi) hi = v; }
   const risk = Math.min(1, Math.max(0, (z - lo) / ((hi - lo) || 1)));
-  const riskSeries = M.buildRiskSeries(m, DEFAULT_RAW);
+  const riskSeries = M.buildRiskSeries(m, RAW);
 
   const nextUpIdx = Math.min(bi + 1, M.BAND_LABELS.length - 1);
-  const fsr = M.buildFireSaleRallies(DEFAULT_RAW, m, { minGain: 0.3 });
+  const fsr = M.buildFireSaleRallies(RAW, m, { minGain: 0.3 });
   const lastFs = fsr.at(-1);
 
   // All-time high + current drawdown from it.
-  let ath = -Infinity, athDate = DEFAULT_RAW[0].date;
-  for (const r of DEFAULT_RAW) if (r.price > ath) { ath = r.price; athDate = r.date; }
-  const ddSeries = M.buildDrawdownSeries(DEFAULT_RAW);
+  let ath = -Infinity, athDate = RAW[0].date;
+  for (const r of RAW) if (r.price > ath) { ath = r.price; athDate = r.date; }
+  const ddSeries = M.buildDrawdownSeries(RAW);
   const dd = price / Math.max(ath, price) - 1;
   const maxDd = ddSeries.reduce((mn, r) => Math.min(mn, r.dd), 0);
 
   // Share of history spent this cheap or cheaper (band <= current).
-  const histBands = DEFAULT_RAW.map(r => M.bandIndex(m, r.price, M.dayN(r.date)));
+  const histBands = RAW.map(r => M.bandIndex(m, r.price, M.dayN(r.date)));
   const cheaperFrac = histBands.filter(b => b <= bi).length / histBands.length;
   const bandCounts = Array(M.BAND_LABELS.length).fill(0);
   histBands.forEach(b => bandCounts[b]++);
 
   // Hindsight strategy edge vs HODL (cycle anchor — the more conservative one).
-  const stratCyc = M.buildCycleStrategy(DEFAULT_RAW, M.buildRallyCycles(DEFAULT_RAW, { minDepth: 0.4, minPeakPrice: 0.05, minGain: 0.3 }));
+  const stratCyc = M.buildCycleStrategy(RAW, M.buildRallyCycles(RAW, { minDepth: 0.4, minPeakPrice: 0.05, minGain: 0.3 }));
   const edge = stratCyc ? (1 + stratCyc.stratRet) / (1 + stratCyc.hodlRet) : null;
 
-  const first = DEFAULT_RAW[0];
+  const first = RAW[0];
 
   // Supply / diamond-adjusted market cap + holder break-even & concentration.
   let supply = null;
@@ -120,7 +157,7 @@ export function computeStats(price, dateStr = new Date().toISOString().slice(0, 
   const coins = opts.coins || (opts.btc ? { btc: opts.btc } : {});
   let btc = null;
   if (coins.btc && coins.btc.length) {
-    const aligned = alignedRatio(coins.btc);
+    const aligned = alignedRatio(coins.btc, RAW);
     const btcNow = coins.btc.at(-1).price;
     if (aligned.length >= 2) {
       btc = { btcNow, sats: (price / btcNow) * 1e8, rel90: relStrength(aligned, 90), rel365: relStrength(aligned, 365), series: aligned.map(a => [a.ts, a.ratio * 1e8]) };
@@ -128,7 +165,7 @@ export function computeStats(price, dateStr = new Date().toISOString().slice(0, 
   }
   const majors = [["BTC", coins.btc], ["ETH", coins.eth], ["SOL", coins.sol]]
     .filter(([, c]) => c && c.length)
-    .map(([name, c]) => ({ name, rel365: relStrength(alignedRatio(c), 365) }))
+    .map(([name, c]) => ({ name, rel365: relStrength(alignedRatio(c, RAW), 365) }))
     .filter(m => m.rel365 != null);
 
   return {
@@ -147,7 +184,8 @@ export function computeStats(price, dateStr = new Date().toISOString().slice(0, 
     targets: M.TARGETS.map(t => ({ ...t, mult: t.price / price })),
     supply, btc, majors,
     series: {
-      price: DEFAULT_RAW.map(r => [Date.parse(r.date), r.price]),
+      price: RAW.map(r => [Date.parse(r.date), r.price]),
+      resid: RAW.map(r => [Date.parse(r.date), Math.log(r.price) - m.predict(M.dayN(r.date))]),
       risk: riskSeries.map(r => [r.ts, r.risk]),
       drawdown: ddSeries.map(r => [r.ts, r.dd]),
       strategy: stratCyc ? stratCyc.rows.map(r => [r.ts, r.strat, r.hodl]) : null,

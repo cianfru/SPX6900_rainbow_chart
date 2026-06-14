@@ -432,7 +432,7 @@ NFA`,
   // 20 — how the model works (residual scatter + flattened bands; trust/explainer)
   s => s.model && (() => {
     const m = s.model;
-    const pts = DEFAULT_RAW.map(r => [Date.parse(r.date), Math.log(r.price) - m.predict(M.dayN(r.date))]);
+    const pts = s.series.resid;
     return {
       id: "model",
       text:
