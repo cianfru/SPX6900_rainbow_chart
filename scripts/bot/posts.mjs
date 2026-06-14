@@ -451,14 +451,31 @@ NFA`,
 
 export function allIds(stats) { return POSTS.map(p => p(stats)?.id).filter(Boolean); }
 
+// Upside-forward posts get extra weight in the daily rotation so the feed skews
+// bullish (they show up ~twice as often as the analytical/neutral ones).
+const BULLISH = new Set([
+  "milestones", "memecoins", "btcgrade", "cycle", "cyclepeak", "cycleclock",
+  "targets", "rally", "alltime",
+]);
+
+// Build the weighted rotation order: pass 0 includes every available post (in
+// order), pass 1 appends the bullish ones again. So bullish topics appear twice
+// per cycle and neutral ones once — without ever landing on consecutive days.
+function rotation(built) {
+  const rota = [];
+  for (let pass = 0; pass < 2; pass++) for (const p of built) if (pass === 0 || BULLISH.has(p.id)) rota.push(p);
+  return rota;
+}
+
 // Pick the post. Override with id (env BOT_POST / --post=id) for testing,
 // otherwise rotate by day so the topic changes daily. The chosen text gets its
 // old NFA footer dropped (the chart image already shows "not financial advice"),
 // the body spaced into airy paragraphs, then the branded $SPX / #spx6900 footer.
 export function buildPost(stats, now = new Date(), overrideId = null) {
   const built = POSTS.map(p => p(stats)).filter(Boolean);
+  const rota = rotation(built);
   const epochDay = Math.floor(now.getTime() / 86400000);
-  const chosen = (overrideId && built.find(p => p.id === overrideId)) || built[epochDay % built.length];
+  const chosen = (overrideId && built.find(p => p.id === overrideId)) || rota[epochDay % rota.length];
   const body = chosen.text
     .replace(/\n?(?:🌈 )?NFA\s*$/u, "") // drop the old NFA footer line
     .replace(/\n/g, "\n\n")            // blank line between thoughts for "air"

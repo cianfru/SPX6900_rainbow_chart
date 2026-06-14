@@ -42,3 +42,16 @@ test("the daily rotation actually rotates through topics", () => {
   }
   assert.ok(seen.size > 1, `rotation should surface multiple posts, saw ${seen.size}`);
 });
+
+test("bullish cards are weighted to appear more often than neutral ones", () => {
+  const count = {};
+  for (let d = 0; d < 400; d++) {
+    const id = buildPost(stats, new Date(d * 86400000)).id;
+    count[id] = (count[id] || 0) + 1;
+  }
+  // a representative bullish card should out-appear a representative neutral one
+  assert.ok((count.milestones || 0) > (count.risk || 0),
+    `milestones (${count.milestones}) should beat risk (${count.risk})`);
+  assert.ok((count.cycle || 0) > (count.drawdown || 0),
+    `cycle (${count.cycle}) should beat drawdown (${count.drawdown})`);
+});
