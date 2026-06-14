@@ -17,8 +17,10 @@ test("the BTC-cycle post series is wired into the rotation", () => {
   }
 });
 
-test("the bullish milestones card is wired into the rotation", () => {
-  assert.ok(ids.includes("milestones"), "missing post: milestones");
+test("the milestone + model cards are wired into the rotation", () => {
+  for (const id of ["milestones", "memecoins", "btcgrade", "model"]) {
+    assert.ok(ids.includes(id), `missing post: ${id}`);
+  }
 });
 
 test("every available post builds non-empty text + a renderable card", () => {
@@ -29,7 +31,7 @@ test("every available post builds non-empty text + a renderable card", () => {
     assert.equal(typeof p.text, "string");
     assert.ok(p.text.trim().length > 0 && p.text.length < 4000, `text length sane for ${id}`);
     assert.ok(p.text.includes("#spx6900"), `branded footer present for ${id}`);
-    assert.ok(p.card && ["rainbow", "line", "bar", "donut", "stack"].includes(p.card.type), `valid card type for ${id}`);
+    assert.ok(p.card && ["rainbow", "line", "bar", "donut", "stack", "model"].includes(p.card.type), `valid card type for ${id}`);
   }
 });
 

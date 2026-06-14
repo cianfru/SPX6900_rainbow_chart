@@ -382,6 +382,71 @@ NFA`,
       } },
     };
   },
+
+  // 18 — memecoin kings only (focused milestone angle)
+  s => (() => {
+    const ms = CRYPTO_MILESTONES.filter(m => ["PEPE ATH MC", "SHIB ATH MC", "DOGE ATH MC"].includes(m.label) && m.price > s.price)
+      .map(m => ({ ...m, mult: m.price / s.price }));
+    if (ms.length < 2) return null;
+    const doge = ms.find(m => m.label.startsWith("DOGE")) || ms.at(-1), top = ms.at(-1);
+    return {
+      id: "memecoins",
+      text:
+`👑 Flip the memecoin kings? From ${fPrice(s.price)}:
+${ms.map(m => `${m.short} (${m.mc}) → ${fMult(m.mult)}`).join(TIGHT)}
+Same market cap, a fraction of the price. SPX6900 is coming for the throne.
+NFA`,
+      card: { type: "line", spec: {
+        title: "Flip the memecoin kings", headline: `DOGE-size = ${fMult(doge.mult)}`, accent: "#c2a633",
+        yLog: true, yTicks: decadeTicks(s.firstPrice, top.price),
+        hlines: ms.map(m => ({ y: m.price, label: `${m.short} · ${fMult(m.mult)}`, color: m.c })),
+        series: [{ pts: s.series.price, color: "#34d399", width: 3, fill: 0.12 }],
+        marker: { x: lastTs(s), y: s.price, color: "#34d399" },
+      } },
+    };
+  })(),
+
+  // 19 — Bitcoin market-cap ladder (BTC ATH milestone angle)
+  s => (() => {
+    const ms = CRYPTO_MILESTONES.filter(m => ["BTC @ $1K MC", "BTC @ $10K MC", "BTC @ $100K MC"].includes(m.label) && m.price > s.price)
+      .map(m => ({ ...m, mult: m.price / s.price }));
+    if (ms.length < 2) return null;
+    const top = ms.at(-1);
+    return {
+      id: "btcgrade",
+      text:
+`₿ SPX6900 on Bitcoin's market-cap ladder. From ${fPrice(s.price)} to the cap BTC had at:
+${ms.map(m => `${m.short} (${m.mc}) → ${fMult(m.mult)}`).join(TIGHT)}
+The same market cap Bitcoin printed on its way up.
+NFA`,
+      card: { type: "line", spec: {
+        title: "SPX6900 on Bitcoin's MC ladder", headline: `BTC @ $100K = ${fMult(top.mult)}`, accent: "#f7931a",
+        yLog: true, yTicks: decadeTicks(s.firstPrice, top.price),
+        hlines: ms.map(m => ({ y: m.price, label: `${m.short} · ${fMult(m.mult)}`, color: m.c })),
+        series: [{ pts: s.series.price, color: "#34d399", width: 3, fill: 0.12 }],
+        marker: { x: lastTs(s), y: s.price, color: "#34d399" },
+      } },
+    };
+  })(),
+
+  // 20 — how the model works (residual scatter + flattened bands; trust/explainer)
+  s => s.model && (() => {
+    const m = s.model;
+    const pts = DEFAULT_RAW.map(r => [Date.parse(r.date), Math.log(r.price) - m.predict(M.dayN(r.date))]);
+    return {
+      id: "model",
+      text:
+`📐 How the SPX6900 rainbow is actually built
+We fit a power-law trend to price (R² ${m.r2.toFixed(2)}) and color the distance from that trend into percentile bands.
+Each dot is one day — low/blue = cheap vs trend, high/red = stretched. Today: ${BAND_EMOJI[s.bandIndex]} ${s.band.l}, ${fPct(s.vsCenter)} vs trend.
+Descriptive of history, not a prediction.
+NFA`,
+      card: { type: "model", spec: {
+        title: "How the SPX6900 rainbow is built", headline: `R² ${m.r2.toFixed(2)} fit · ${fPct(s.vsCenter)} vs trend`, accent: "#a78bfa",
+        bands: m.bands, bandColors: M.BAND_LABELS.map(b => b.c), points: pts, markerColor: s.band.c,
+      } },
+    };
+  })(),
 ];
 
 export function allIds(stats) { return POSTS.map(p => p(stats)?.id).filter(Boolean); }
