@@ -77,7 +77,7 @@ const POSTS = [
     text:
 `📊 Where is SPX6900 vs its long-run trend?
 ${BAND_EMOJI[s.bandIndex]} ${s.band.l} band — ${fPct(s.vsCenter)} vs the model's center line (${fPrice(s.center)}).
-The rainbow bands show how stretched price is from its log-regression trend.
+Blue bands = cheap vs trend, red = stretched. This is where it sits today.
 🌈 NFA`,
     card: { type: "rainbow" },
   }),
@@ -88,7 +88,7 @@ The rainbow bands show how stretched price is from its log-regression trend.
     text:
 `🌡️ SPX6900 valuation risk: ${s.risk.toFixed(2)} / 1.00
 0 = cheapest vs trend ever seen, 1 = the most expensive. Today reads ${s.risk < 0.34 ? "historically cheap" : s.risk < 0.66 ? "fair" : "rich"}.
-It's how far price has stretched from its log trend, normalized over all history.
+0 = max fear, 1 = max greed. Mean reversion does the rest.
 NFA`,
     card: { type: "line", spec: {
       title: "Valuation risk over time", headline: s.risk.toFixed(2) + " / 1", accent: "#22d3ee",
@@ -104,7 +104,7 @@ NFA`,
     text:
 `📉 SPX6900 is ${fPct(s.drawdown)} from its all-time high (${fPrice(s.ath)}, ${fMon(s.athDate)}).
 Drawdowns map the pain from each peak — the worst on record was ${fPct(s.maxDrawdown)}.
-Zoom out before you panic (or FOMO).
+Every cycle looked like the end. None were.
 NFA`,
     card: { type: "line", spec: {
       title: "Drawdown from all-time high", headline: fPct(s.drawdown), accent: "#f87171",
@@ -124,7 +124,7 @@ NFA`,
       id: "rally",
       text:
 `🚀 Since the last "Fire Sale" capitulation low (${fMon(s.lastFireSale.date)}, ${fPrice(s.lastFireSale.low)}), SPX6900 is ${fPct(s.lastFireSale.sinceGain)} — and peaked ${fPct(s.lastFireSale.peakGain)} along the way.
-The rally chart tracks every recovery from the cheapest band.
+The deepest red is where every run has started.
 NFA`,
       card: { type: "line", spec: {
         title: `Since the last Fire Sale (${fMon(s.lastFireSale.date)})`, headline: fPct(s.lastFireSale.sinceGain), accent: "#4ade80",
@@ -140,7 +140,7 @@ NFA`,
     id: "strategy",
     text:
 `🧪 Hindsight check: buying every cycle dip and selling its peak would've beaten HODL ~${fMult(s.edge)} in this model.
-Perfect timing isn't real — but it shows how much SPX6900's cycles matter.
+Perfect timing isn't real — the cycles are.
 NFA`,
     card: { type: "line", spec: {
       title: "Timing the dips vs HODL (hindsight)", headline: fMult(s.edge) + " vs HODL", accent: "#a78bfa",
@@ -211,7 +211,7 @@ NFA`,
     text:
 `₿ SPX6900 priced in Bitcoin: 1 SPX = ${fNum(s.btc.sats)} sats.
 vs BTC: ${fPct(s.btc.rel90)} (90d), ${fPct(s.btc.rel365)} (1yr).
-Memecoins live or die against BTC — this is the real benchmark.
+Priced in BTC is the only scoreboard that counts.
 NFA`,
     card: { type: "line", spec: {
       title: "SPX6900 priced in Bitcoin (sats)", headline: fNum(s.btc.sats) + " sats", accent: "#f7931a",
@@ -245,7 +245,7 @@ NFA`,
       text:
 `📊 The average SPX6900 holder's entry is ~${fPrice(s.supply.breakEven)}.
 At ${fPrice(s.price)} that's about ${fPct(s.supply.avgHolderPnl)} — the average holder is ${up ? "in profit" : "underwater"}.
-Price vs the crowd's cost basis.
+${up ? "Most of the float is green and still holding." : "The crowd's underwater — and still hasn't sold."}
 NFA`,
       card: { type: "line", spec: {
         title: "Price vs the crowd's cost basis", headline: `${fPct(s.supply.avgHolderPnl)} avg holder`, accent,
@@ -282,7 +282,7 @@ NFA`,
     id: "alltime",
     text:
 `📈 From its first print (${fPrice(s.firstPrice)}, ${fMon(s.firstDate)}) SPX6900 is up ${fMult(1 + s.allTimeReturn)}.
-Zoom out: the log-regression trend still points up at a power-law pace.
+Up only, on a power-law clock. 📈
 NFA`,
     card: { type: "line", spec: {
       title: "Price since launch (log scale)", headline: fMult(1 + s.allTimeReturn) + " since launch", accent: "#34d399",
