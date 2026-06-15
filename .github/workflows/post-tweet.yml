@@ -41,6 +41,13 @@ on:
           - btc
           - majors
           - alltime
+          - cycle
+          - cyclepeak
+          - cycleclock
+          - milestones
+          - memecoins
+          - btcgrade
+          - model
 
 concurrency:
   group: post-to-x
