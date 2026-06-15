@@ -218,11 +218,19 @@ export default function App() {
     });
   }, []);
 
-  // Poll the live spot price so it refreshes without a full page reload.
+  // Poll the live spot price so it refreshes without a full page reload. Polling
+  // pauses while the tab is hidden and resumes (with an immediate refresh) on
+  // focus — background tabs shouldn't burn edge requests on a price nobody's
+  // looking at. This is ~99% of our Vercel edge traffic, so the interval is kept
+  // modest; SPX6900 doesn't move enough in a few seconds for it to matter.
   useEffect(() => {
     let cancelled = false;
     let timer;
-    const POLL_MS = 5_000;
+    const POLL_MS = 15_000;
+    const schedule = () => {
+      clearTimeout(timer);
+      if (!cancelled && !document.hidden) timer = setTimeout(tick, POLL_MS);
+    };
     const tick = async () => {
       try {
         const { price, source } = await fetchSpotPrice();
@@ -237,10 +245,13 @@ export default function App() {
           setDataStatus(`Live · ${source} spot`);
         }
       } catch { /* keep last known price; try again next tick */ }
-      if (!cancelled) timer = setTimeout(tick, POLL_MS);
+      schedule();
     };
-    tick();
-    const onVisible = () => { if (document.visibilityState === "visible") tick(); };
+    const onVisible = () => {
+      if (document.visibilityState === "visible") { clearTimeout(timer); tick(); } // refresh + resume
+      else clearTimeout(timer); // pause while hidden
+    };
+    if (!document.hidden) tick();
     document.addEventListener("visibilitychange", onVisible);
     return () => {
       cancelled = true;
