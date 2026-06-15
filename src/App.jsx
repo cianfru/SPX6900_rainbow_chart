@@ -628,7 +628,7 @@ export default function App() {
             onError={(e) => { e.currentTarget.style.display = "none"; }}
           />
           <h1 style={{
-            fontFamily: SANS, fontSize: isMobile ? 26 : isTablet ? 36 : 44, fontWeight: 700, margin: 0,
+            fontFamily: SANS, fontSize: isMobile ? 27 : isTablet ? 38 : 48, fontWeight: 800, margin: 0,
             letterSpacing: "-0.02em", lineHeight: 1.05, textAlign: "center",
             background: "linear-gradient(90deg,#6366f1,#3b82f6,#06b6d4,#22c55e,#84cc16,#f59e0b,#ea580c,#dc2626,#8b0000,#6366f1)",
             backgroundSize: "200% auto",
@@ -790,7 +790,7 @@ export default function App() {
             </span>
             <span style={{ fontFamily: SANS, fontSize: isMobile ? 15 : 22, color: "#94a3b8" }}>and is a</span>
             <span className="chrome-text" style={{
-              fontFamily: SANS, fontSize: isMobile ? 34 : 52, fontWeight: 900, lineHeight: 1.02,
+              fontFamily: SANS, fontSize: isMobile ? 30 : 44, fontWeight: 800, lineHeight: 1.02,
               letterSpacing: "-0.02em", "--c1": cb.c,
             }}>
               {cb.l}
