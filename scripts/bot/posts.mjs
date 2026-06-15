@@ -257,19 +257,25 @@ NFA`,
     };
   })(),
 
-  // 12 — SPX vs majors (relative strength, 1yr)
-  s => s.majors && s.majors.length && ({
-    id: "majors",
-    text:
-`⚔️ SPX6900 vs the majors (1-yr relative):
-${s.majors.map(m => `${m.name}: ${fPct(m.rel365)}`).join(" · ")}
-Positive = SPX outperformed that asset over the past year.
+  // 12 — SPX vs majors (relative strength, 1yr). Gated: only post when SPX is
+  // actually outperforming at least one major — never lead with a pure self-own.
+  // Sorted best-first so the headline always shows a win.
+  s => s.majors && s.majors.some(m => m.rel365 > 0) && (() => {
+    const sorted = [...s.majors].sort((a, b) => b.rel365 - a.rel365);
+    const wins = sorted.filter(m => m.rel365 > 0).map(m => m.name).join(" & ");
+    return {
+      id: "majors",
+      text:
+`⚔️ SPX6900 is outperforming ${wins} over the past year:
+${sorted.map(m => `${m.name}: ${fPct(m.rel365)}`).join(" · ")}
+Positive = SPX beat that asset (relative) over the past year.
 NFA`,
-    card: { type: "bar", spec: {
-      title: "SPX6900 vs majors — 1-yr relative", headline: `${s.majors[0].name} ${fPct(s.majors[0].rel365)}`, accent: "#818cf8",
-      bars: s.majors.map(m => ({ label: "vs " + m.name, value: m.rel365, text: fPct(m.rel365), color: m.rel365 >= 0 ? "#4ade80" : "#f87171" })),
-    } },
-  }),
+      card: { type: "bar", spec: {
+        title: "SPX6900 vs majors — 1-yr relative", headline: `${sorted[0].name} ${fPct(sorted[0].rel365)}`, accent: "#818cf8",
+        bars: sorted.map(m => ({ label: "vs " + m.name, value: m.rel365, text: fPct(m.rel365), color: m.rel365 >= 0 ? "#4ade80" : "#f87171" })),
+      } },
+    };
+  })(),
 
   // 13 — all-time return (price history, log)
   s => ({
