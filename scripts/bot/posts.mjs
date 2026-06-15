@@ -377,7 +377,7 @@ NFA`,
       text:
 `🚀 What if SPX6900 flips the giants? From ${fPrice(s.price)}:
 ${ms.map(m => `${m.short} (${m.mc}) → ${fMult(m.mult)}`).join(TIGHT)}
-Same market cap, a fraction of the price. Room to run.
+Each × is the move it takes to match that market cap. Long way up. 🚀
 NFA`,
       card: { type: "line", spec: {
         title: "What if SPX6900 flips the giants?", headline: `${doge.short} = ${fMult(doge.mult)}`, accent: "#fb923c",
@@ -400,7 +400,7 @@ NFA`,
       text:
 `👑 Flip the memecoin kings? From ${fPrice(s.price)}:
 ${ms.map(m => `${m.short} (${m.mc}) → ${fMult(m.mult)}`).join(TIGHT)}
-Same market cap, a fraction of the price. SPX6900 is coming for the throne.
+Each × is the move to match their market cap. Coming for the throne. 👑
 NFA`,
       card: { type: "line", spec: {
         title: "Flip the memecoin kings", headline: `DOGE-size = ${fMult(doge.mult)}`, accent: "#c2a633",
