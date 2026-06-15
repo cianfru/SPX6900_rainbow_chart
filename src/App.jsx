@@ -314,6 +314,17 @@ export default function App() {
   const ld = dayN(last.date);
   const bIdx = bandIndex(m, last.price, ld);
   const cb = BAND_LABELS[bIdx];
+  // Distance from the live price to the next band boundary, upside and downside.
+  // The upper boundary is the top of the current band; the lower is its floor.
+  const upTarget = bandVal(m, ld, Math.min(bIdx + 1, m.bands.length - 1));
+  const dnTarget = bandVal(m, ld, bIdx);
+  const upBand = bIdx + 1 <= BAND_LABELS.length - 1 ? BAND_LABELS[bIdx + 1] : null;
+  const dnBand = bIdx - 1 >= 0 ? BAND_LABELS[bIdx - 1] : null;
+  const bandHops = [
+    { dir: "up", arrow: "▲", pct: upTarget / last.price - 1, target: upTarget, band: upBand, fallback: "ceiling", c: upBand ? upBand.c : "#dc2626" },
+    { dir: "down", arrow: "▼", pct: dnTarget / last.price - 1, target: dnTarget, band: dnBand, fallback: "floor", c: dnBand ? dnBand.c : "#6366f1" },
+  ];
+  const fPctAbs = x => { const v = Math.abs(x) * 100; return (v < 10 ? v.toFixed(1) : Math.round(v).toString()) + "%"; };
   // LED price: the lit value plus an "all segments on" ghost (8.8.8) behind it
   const priceNum = fP(last.price).replace(/^\$/, "");
   const priceGhost = priceNum.replace(/[0-9]/g, "8");
@@ -784,6 +795,24 @@ export default function App() {
               {cb.l}
             </span>
           </div>
+        </div>
+        {/* How far to the next band, up and down */}
+        <div style={{ display: "flex", gap: isMobile ? 8 : 12, justifyContent: "center", flexWrap: "wrap", marginTop: isMobile ? 12 : 16 }}>
+          {bandHops.map(({ dir, arrow, pct, target, band, fallback, c }) => (
+            <div key={dir} style={{
+              display: "inline-flex", alignItems: "center", gap: 8,
+              background: `${c}1a`, border: `1px solid ${c}55`, borderRadius: 10,
+              padding: isMobile ? "7px 11px" : "8px 14px", fontFamily: SANS,
+            }}>
+              <span style={{ color: c, fontSize: 12 }}>{arrow}</span>
+              <span style={{ fontFamily: MONO, fontWeight: 700, color: "#f1f5f9", fontSize: isMobile ? 14 : 16 }}>
+                {pct >= 0 ? "+" : "−"}{fPctAbs(pct)}
+              </span>
+              <span style={{ color: "#94a3b8", fontSize: isMobile ? 12 : 13 }}>to</span>
+              <span style={{ fontWeight: 700, color: c, fontSize: isMobile ? 13 : 15 }}>{band ? band.l : fallback}</span>
+              <span style={{ fontFamily: MONO, color: "#64748b", fontSize: 12 }}>{fP(target)}</span>
+            </div>
+          ))}
         </div>
       </div>
 
