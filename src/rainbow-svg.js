@@ -7,7 +7,18 @@ import * as M from "./models.js";
 export function rainbowSvg(price, dateStr = new Date().toISOString().slice(0, 10)) {
   const m = M.buildModel(DEFAULT_RAW);
   const day = M.dayN(dateStr);
-  const band = M.BAND_LABELS[M.bandIndex(m, price, day)];
+  const bi = M.bandIndex(m, price, day);
+  const band = M.BAND_LABELS[bi];
+  // Distance to the next band boundary, up (top of current band) and down (floor).
+  const upT = M.bandVal(m, day, Math.min(bi + 1, m.bands.length - 1));
+  const dnT = M.bandVal(m, day, bi);
+  const upName = bi + 1 <= M.BAND_LABELS.length - 1 ? M.BAND_LABELS[bi + 1].l : "ceiling";
+  const dnName = bi - 1 >= 0 ? M.BAND_LABELS[bi - 1].l : "floor";
+  const upC = bi + 1 <= M.BAND_LABELS.length - 1 ? M.BAND_LABELS[bi + 1].c : "#dc2626";
+  const dnC = bi - 1 >= 0 ? M.BAND_LABELS[bi - 1].c : "#6366f1";
+  const fpct = v => (v >= 0 ? "+" : "-") + (Math.abs(v * 100) < 10 ? Math.abs(v * 100).toFixed(1) : Math.round(Math.abs(v * 100))) + "%";
+  const upTxt = `${fpct(upT / price - 1)} ${upName}`;
+  const dnTxt = `${fpct(dnT / price - 1)} ${dnName}`;
 
   const W = 1200, H = 630, mL = 78, mR = 28, mT = 76, mB = 52;
   const pW = W - mL - mR, pH = H - mT - mB;
@@ -62,5 +73,6 @@ ${bands}
 <circle cx="${px.toFixed(1)}" cy="${py.toFixed(1)}" r="7" fill="#fff" stroke="${band.c}" stroke-width="3"/>
 <text x="${mL}" y="42" fill="#e2e8f0" font-size="30" font-weight="700" font-family="sans-serif" letter-spacing="2">SPX6900 RAINBOW CHART</text>
 <text x="${W - mR}" y="42" fill="${band.c}" font-size="30" font-weight="800" font-family="sans-serif" text-anchor="end">${priceText} · ${band.l}</text>
+<text x="${W - mR}" y="68" font-size="21" font-family="sans-serif" text-anchor="end" fill="#94a3b8">next: <tspan fill="${upC}" font-weight="700">${upTxt}</tspan>  ·  <tspan fill="${dnC}" font-weight="700">${dnTxt}</tspan></text>
 </svg>`;
 }
