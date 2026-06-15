@@ -628,7 +628,7 @@ export default function App() {
             onError={(e) => { e.currentTarget.style.display = "none"; }}
           />
           <h1 style={{
-            fontFamily: SANS, fontSize: isMobile ? 26 : isTablet ? 36 : 44, fontWeight: 700, margin: 0,
+            fontFamily: SANS, fontSize: isMobile ? 27 : isTablet ? 38 : 48, fontWeight: 800, margin: 0,
             letterSpacing: "-0.02em", lineHeight: 1.05, textAlign: "center",
             background: "linear-gradient(90deg,#6366f1,#3b82f6,#06b6d4,#22c55e,#84cc16,#f59e0b,#ea580c,#dc2626,#8b0000,#6366f1)",
             backgroundSize: "200% auto",
@@ -727,7 +727,7 @@ export default function App() {
       </div>
 
       {/* Current verdict banner */}
-      <div style={{
+      <div className="verdict-breathe" style={{
         maxWidth: MAX_W, margin: "0 auto 20px", padding: isMobile ? "18px 18px" : "22px 30px",
         background: `linear-gradient(135deg, ${cb.c}26, ${cb.c}0a)`,
         backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)",
@@ -735,6 +735,7 @@ export default function App() {
         borderRadius: 14,
         boxShadow: `inset 0 1px 0 rgba(255,255,255,0.12), 0 0 50px ${cb.c}24, 0 8px 30px rgba(0,0,0,0.35)`,
         overflow: "hidden",
+        "--g1": `${cb.c}30`, "--g2": `${cb.c}80`,
       }}>
         <div style={{
           display: "flex", alignItems: "center", justifyContent: "center",
@@ -788,30 +789,27 @@ export default function App() {
               </span>
             </span>
             <span style={{ fontFamily: SANS, fontSize: isMobile ? 15 : 22, color: "#94a3b8" }}>and is a</span>
-            <span style={{
-              fontFamily: SANS, fontSize: isMobile ? 32 : 48, fontWeight: 800, lineHeight: 1.02,
-              letterSpacing: "-0.02em", color: cb.c, textShadow: `0 0 24px ${cb.c}66`,
+            <span className="chrome-text" style={{
+              fontFamily: SANS, fontSize: isMobile ? 30 : 44, fontWeight: 800, lineHeight: 1.02,
+              letterSpacing: "-0.02em", "--c1": cb.c,
             }}>
               {cb.l}
             </span>
           </div>
         </div>
-        {/* How far to the next band, up and down */}
-        <div style={{ display: "flex", gap: isMobile ? 8 : 12, justifyContent: "center", flexWrap: "wrap", marginTop: isMobile ? 12 : 16 }}>
-          {bandHops.map(({ dir, arrow, pct, target, band, fallback, c }) => (
-            <div key={dir} style={{
-              display: "inline-flex", alignItems: "center", gap: 8,
-              background: `${c}1a`, border: `1px solid ${c}55`, borderRadius: 10,
-              padding: isMobile ? "7px 11px" : "8px 14px", fontFamily: SANS,
-            }}>
-              <span style={{ color: c, fontSize: 12 }}>{arrow}</span>
-              <span style={{ fontFamily: MONO, fontWeight: 700, color: "#f1f5f9", fontSize: isMobile ? 14 : 16 }}>
+        {/* How far to the next band — trading-HUD readout: down | up */}
+        <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", alignItems: "center", justifyContent: "center", gap: isMobile ? 7 : 24, marginTop: isMobile ? 12 : 18 }}>
+          {[bandHops[1], bandHops[0]].map(({ dir, arrow, pct, band, fallback, c }, i) => (
+            <span key={dir} style={{ display: "inline-flex", alignItems: "center", gap: isMobile ? 7 : 9 }}>
+              {i === 1 && !isMobile && <span aria-hidden style={{ width: 1, height: 26, marginRight: 15, background: `linear-gradient(to bottom, transparent, ${cb.c}99, transparent)` }} />}
+              <span style={{ color: c, fontSize: isMobile ? 12 : 15, filter: `drop-shadow(0 0 6px ${c})`, transform: "translateY(-1px)" }}>{arrow}</span>
+              <span style={{ fontFamily: MONO, fontWeight: 700, fontSize: isMobile ? 17 : 22, color: "#f8fafc", textShadow: "0 0 12px rgba(255,255,255,0.22)" }}>
                 {pct >= 0 ? "+" : "−"}{fPctAbs(pct)}
               </span>
-              <span style={{ color: "#94a3b8", fontSize: isMobile ? 12 : 13 }}>to</span>
-              <span style={{ fontWeight: 700, color: c, fontSize: isMobile ? 13 : 15 }}>{band ? band.l : fallback}</span>
-              <span style={{ fontFamily: MONO, color: "#64748b", fontSize: 12 }}>{fP(target)}</span>
-            </div>
+              <span style={{ fontFamily: SANS, fontWeight: 800, letterSpacing: 1.6, fontSize: isMobile ? 11 : 13, textTransform: "uppercase", color: c, textShadow: `0 0 14px ${c}aa` }}>
+                {band ? band.l : fallback}
+              </span>
+            </span>
           ))}
         </div>
       </div>
