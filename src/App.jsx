@@ -798,10 +798,10 @@ export default function App() {
           </div>
         </div>
         {/* How far to the next band — trading-HUD readout: down | up */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: isMobile ? 14 : 24, marginTop: isMobile ? 13 : 18, flexWrap: "wrap" }}>
+        <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", alignItems: "center", justifyContent: "center", gap: isMobile ? 7 : 24, marginTop: isMobile ? 12 : 18 }}>
           {[bandHops[1], bandHops[0]].map(({ dir, arrow, pct, band, fallback, c }, i) => (
             <span key={dir} style={{ display: "inline-flex", alignItems: "center", gap: isMobile ? 7 : 9 }}>
-              {i === 1 && <span aria-hidden style={{ width: 1, height: isMobile ? 20 : 26, marginRight: isMobile ? 7 : 15, background: `linear-gradient(to bottom, transparent, ${cb.c}99, transparent)` }} />}
+              {i === 1 && !isMobile && <span aria-hidden style={{ width: 1, height: 26, marginRight: 15, background: `linear-gradient(to bottom, transparent, ${cb.c}99, transparent)` }} />}
               <span style={{ color: c, fontSize: isMobile ? 12 : 15, filter: `drop-shadow(0 0 6px ${c})`, transform: "translateY(-1px)" }}>{arrow}</span>
               <span style={{ fontFamily: MONO, fontWeight: 700, fontSize: isMobile ? 17 : 22, color: "#f8fafc", textShadow: "0 0 12px rgba(255,255,255,0.22)" }}>
                 {pct >= 0 ? "+" : "−"}{fPctAbs(pct)}
