@@ -473,19 +473,44 @@ function rotation(built) {
   return rota;
 }
 
+// Final formatting shared by every post: drop the inline NFA line (the card
+// already says "not financial advice"), space the body into airy paragraphs,
+// keep tight-list breaks single, then append the branded $SPX / #spx6900 footer.
+export function withFooter(text) {
+  const body = text
+    .replace(/\n?(?:🌈 )?NFA\s*$/u, "")
+    .replace(/\n/g, "\n\n")
+    .replace(new RegExp(TIGHT, "g"), "\n");
+  return `${body}\n\n🌈 ${CASHTAG} ${HASHTAG}`;
+}
+
 // Pick the post. Override with id (env BOT_POST / --post=id) for testing,
-// otherwise rotate by day so the topic changes daily. The chosen text gets its
-// old NFA footer dropped (the chart image already shows "not financial advice"),
-// the body spaced into airy paragraphs, then the branded $SPX / #spx6900 footer.
+// otherwise rotate by day so the topic changes daily.
 export function buildPost(stats, now = new Date(), overrideId = null) {
   const built = POSTS.map(p => p(stats)).filter(Boolean);
   const rota = rotation(built);
   const epochDay = Math.floor(now.getTime() / 86400000);
   const chosen = (overrideId && built.find(p => p.id === overrideId)) || rota[epochDay % rota.length];
-  const body = chosen.text
-    .replace(/\n?(?:🌈 )?NFA\s*$/u, "") // drop the old NFA footer line
-    .replace(/\n/g, "\n\n")            // blank line between thoughts for "air"
-    .replace(new RegExp(TIGHT, "g"), "\n"); // tight-list breaks stay single
-  const text = `${body}\n\n🌈 ${CASHTAG} ${HASHTAG}`;
-  return { ...chosen, text };
+  return { ...chosen, text: withFooter(chosen.text) };
+}
+
+// Marquee bands worth interrupting the feed for (the rare extremes). Used by the
+// hourly band watcher — it only posts when price crosses INTO one of these.
+export const MARQUEE_BANDS = new Set([0, 1, 7, 8]); // Fire Sale, BUY, SELL, Max Bubble
+
+// Event post for a band crossing (fired by band-watch.mjs, not the rotation).
+export function buildBandChangePost(s, fromIdx) {
+  const to = s.bandIndex, down = to < fromIdx;
+  const punch = {
+    0: "The cheapest zone in the entire model — a rare, deep-discount print. 🟣",
+    1: down ? "Back in accumulation territory — cheaper than most of its history." : "Reclaimed accumulation territory, climbing out of the lows. 🟦",
+    7: "The hottest zone before the top — stretched well above trend. 🔥",
+    8: "Top zone of the model — peak euphoria. Enjoy the ride, manage risk. 🎢",
+  }[to] || "The model just reclassified where price sits.";
+  const text =
+`${BAND_EMOJI[to]} SPX6900 just ${down ? "dropped into" : "climbed into"} the ${s.band.l} band.
+${punch}
+Now ${fPct(s.vsCenter)} vs the model's center line (${fPrice(s.center)}).
+NFA`;
+  return { id: "bandchange", text: withFooter(text), card: { type: "rainbow" } };
 }
