@@ -4,7 +4,8 @@
 import { DEFAULT_RAW } from "./data.js";
 import * as M from "./models.js";
 
-export function rainbowSvg(price, dateStr = new Date().toISOString().slice(0, 10)) {
+export function rainbowSvg(price, dateStr = new Date().toISOString().slice(0, 10), opts = {}) {
+  const reveal = opts.reveal; // 0..1 progressive price-line draw (for video); undefined = full
   const m = M.buildModel(DEFAULT_RAW);
   const day = M.dayN(dateStr);
   const bi = M.bandIndex(m, price, day);
@@ -46,7 +47,9 @@ export function rainbowSvg(price, dateStr = new Date().toISOString().slice(0, 10
     bands += `<polygon points="${[...top, ...bot].join(" ")}" fill="${M.BAND_LABELS[i].c}" fill-opacity="0.62"/>`;
   }
   const center = days.map(d => `${x(d).toFixed(1)},${y(Math.exp(m.predict(d))).toFixed(1)}`).join(" ");
-  const priceLine = DEFAULT_RAW.map(r => `${x(M.dayN(r.date)).toFixed(1)},${y(r.price).toFixed(1)}`).join(" ");
+  // Progressive reveal for video: draw only the first `reveal` fraction of points.
+  const shown = reveal == null ? DEFAULT_RAW : DEFAULT_RAW.slice(0, Math.max(2, Math.ceil(DEFAULT_RAW.length * reveal)));
+  const priceLine = shown.map(r => `${x(M.dayN(r.date)).toFixed(1)},${y(r.price).toFixed(1)}`).join(" ");
 
   let grid = "";
   for (const t of [0.0001, 0.001, 0.01, 0.1, 1, 10, 100].filter(v => v >= yMin && v <= yMax)) {
@@ -61,7 +64,10 @@ export function rainbowSvg(price, dateStr = new Date().toISOString().slice(0, 10
     xlab += `<text x="${x(d).toFixed(1)}" y="${H - 18}" fill="#64748b" font-size="20" text-anchor="middle" font-family="sans-serif">${yr}</text>`;
   }
 
-  const px = x(nowDay), py = y(price);
+  // The "now" dot rides the leading edge of the revealed line during a draw-in.
+  const lead = reveal == null ? null : shown.at(-1);
+  const px = lead ? x(M.dayN(lead.date)) : x(nowDay);
+  const py = lead ? y(lead.price) : y(price);
   const priceText = price >= 1 ? "$" + price.toFixed(2) : "$" + price.toFixed(4);
 
   return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
