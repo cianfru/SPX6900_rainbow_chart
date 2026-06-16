@@ -41,18 +41,25 @@ export default async function handler(req, res) {
   try {
     if (action === "queue" || action === "clear") {
       const newId = action === "clear" ? null : (id || null);
-      let sha;
-      const cur = await gh(`/repos/${OWNER}/${REPO}/contents/${QUEUE_PATH}?ref=${BRANCH}`);
-      if (cur.ok) sha = (await cur.json()).sha;
       const content = Buffer.from(JSON.stringify({ id: newId }, null, 2) + "\n").toString("base64");
-      const put = await gh(`/repos/${OWNER}/${REPO}/contents/${QUEUE_PATH}`, {
-        method: "PUT",
-        body: JSON.stringify({
-          message: newId ? `control: queue ${newId}` : "control: clear queue (auto)",
-          content, branch: BRANCH, ...(sha ? { sha } : {}),
-        }),
-      });
-      if (!put.ok) throw new Error("queue write failed (" + put.status + ") " + (await put.text()));
+      const message = newId ? `control: queue ${newId}` : "control: clear queue (auto)";
+      // The contents API can return a stale sha (CDN cache) right after a write,
+      // which makes the next PUT 409. Re-fetch the sha and retry a couple times.
+      let put, body;
+      for (let i = 0; i < 3; i++) {
+        let sha;
+        const cur = await gh(`/repos/${OWNER}/${REPO}/contents/${QUEUE_PATH}?ref=${BRANCH}`);
+        if (cur.ok) sha = (await cur.json()).sha;
+        put = await gh(`/repos/${OWNER}/${REPO}/contents/${QUEUE_PATH}`, {
+          method: "PUT",
+          body: JSON.stringify({ message, content, branch: BRANCH, ...(sha ? { sha } : {}) }),
+        });
+        if (put.ok) break;
+        body = await put.text();
+        if (put.status !== 409) break; // only sha conflicts are worth retrying
+        await new Promise(r => setTimeout(r, 400 * (i + 1)));
+      }
+      if (!put.ok) throw new Error("queue write failed (" + put.status + ") " + body);
       res.status(200).json({ ok: true, queued: newId });
       return;
     }
