@@ -10,10 +10,10 @@ const pW = W - mL - mR, pH = H - mT - mB;
 const esc = s => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 const png = svg => new Resvg(svg, { fitTo: { mode: "width", value: W } }).render().asPng();
 
-function chrome(spec, inner, extraDefs = "") {
+function chromeSvg(spec, inner, extraDefs = "") {
   const accent = spec.accent || "#4ade80";
   const footer = spec.footer || "spx6900rainbow.xyz · not financial advice";
-  const svg = `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
+  return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
 <defs>
   <radialGradient id="g" cx="50%" cy="0%" r="80%">
     <stop offset="0%" stop-color="${accent}" stop-opacity="0.18"/><stop offset="55%" stop-color="${accent}" stop-opacity="0"/>
@@ -29,8 +29,8 @@ ${spec.headline ? `<text x="64" y="166" fill="${accent}" font-size="58" font-wei
 ${inner}
 <text x="64" y="${H - 22}" fill="#475569" font-size="22" font-family="sans-serif">${esc(footer)}</text>
 </svg>`;
-  return png(svg);
 }
+const chrome = (spec, inner, extraDefs = "") => png(chromeSvg(spec, inner, extraDefs));
 
 function yearTicks(xMin, xMax) {
   const out = [];
@@ -41,7 +41,14 @@ function yearTicks(xMin, xMax) {
   return out;
 }
 
-export function renderLineCard(spec) {
+export const renderLineCard = spec => png(lineCardSvg(spec));
+
+// Line/area card as an SVG string. opts.reveal (0..1) draws the series in
+// progressively for video (marker rides the leading edge); opts.pulse (0..1)
+// adds an expanding glow ring on the marker for the hold. Defaults render the
+// full static card unchanged.
+export function lineCardSvg(spec, opts = {}) {
+  const reveal = opts.reveal ?? 1;
   const series = spec.series;
   const xs = [], ys = [];
   for (const s of series) for (const [x, y] of s.pts) { xs.push(x); if (!spec.yLog || y > 0) ys.push(y); }
@@ -88,7 +95,8 @@ export function renderLineCard(spec) {
   let plot = "";
   for (let i = 0; i < series.length; i++) {
     const s = series[i];
-    const pts = s.pts.filter(([, y]) => !spec.yLog || y > 0);
+    let pts = s.pts.filter(([, y]) => !spec.yLog || y > 0);
+    if (reveal < 1) pts = pts.slice(0, Math.max(2, Math.ceil(pts.length * reveal)));
     if (s.fill) {
       const base = Y(spec.fillBase ?? yMin).toFixed(1);
       plot += `<polygon points="${X(pts[0][0]).toFixed(1)},${base} ${path(pts)} ${X(pts.at(-1)[0]).toFixed(1)},${base}" fill="url(#fill${i})"/>`;
@@ -111,9 +119,20 @@ export function renderLineCard(spec) {
   }
 
   let marker = "";
-  if (spec.marker) {
-    const mx = X(spec.marker.x).toFixed(1), my = Y(spec.marker.y).toFixed(1), mc = spec.marker.color || spec.accent;
-    marker = `<circle cx="${mx}" cy="${my}" r="11" fill="${mc}" fill-opacity="0.9" filter="url(#glow)"/><circle cx="${mx}" cy="${my}" r="7" fill="#fff" stroke="${mc}" stroke-width="3"/>`;
+  let mx, my, mc = spec.marker?.color || spec.accent;
+  if (reveal < 1 && series[0]) {
+    // ride the leading edge of the primary series during a draw-in
+    const p0 = series[0].pts.filter(([, y]) => !spec.yLog || y > 0);
+    const lead = p0.slice(0, Math.max(2, Math.ceil(p0.length * reveal))).at(-1);
+    mx = X(lead[0]); my = Y(lead[1]); mc = series[0].color || mc;
+  } else if (spec.marker) {
+    mx = X(spec.marker.x); my = Y(spec.marker.y);
+  }
+  if (mx != null) {
+    const ring = opts.pulse != null
+      ? `<circle cx="${mx.toFixed(1)}" cy="${my.toFixed(1)}" r="${(11 + opts.pulse * 18).toFixed(1)}" fill="none" stroke="${mc}" stroke-width="2.5" stroke-opacity="${(0.55 * (1 - opts.pulse)).toFixed(2)}"/>`
+      : `<circle cx="${mx.toFixed(1)}" cy="${my.toFixed(1)}" r="11" fill="${mc}" fill-opacity="0.9" filter="url(#glow)"/>`;
+    marker = `${ring}<circle cx="${mx.toFixed(1)}" cy="${my.toFixed(1)}" r="7" fill="#fff" stroke="${mc}" stroke-width="3"/>`;
   }
 
   // legend with a backing chip, parked top-left of the plot (clear of the data)
@@ -131,7 +150,7 @@ export function renderLineCard(spec) {
     });
   }
 
-  return chrome(spec, grid + cone + plot + hl + marker + legend, defs);
+  return chromeSvg(spec, grid + cone + plot + hl + marker + legend, defs);
 }
 
 export function renderBarCard(spec) {
