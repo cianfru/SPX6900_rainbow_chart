@@ -25,11 +25,11 @@
   }
   input[type=password] {
     background: #05050e; border: 1px solid rgba(255,255,255,.14); color: #e2e8f0;
-    border-radius: 8px; padding: 8px 10px; font-size: 13px; min-width: 220px;
+    border-radius: 8px; padding: 10px 12px; font-size: 14px; min-width: 240px;
   }
   button {
     background: #1e293b; color: #e2e8f0; border: 1px solid rgba(255,255,255,.14);
-    border-radius: 8px; padding: 8px 12px; font-size: 13px; cursor: pointer;
+    border-radius: 8px; padding: 9px 14px; font-size: 13px; cursor: pointer;
     transition: background .12s, border-color .12s;
   }
   button:hover { background: #334155; }
@@ -62,26 +62,53 @@
   .badge.queued { background: rgba(245,158,11,.18); color: #fcd34d; }
   .card .actions { margin-left: auto; display: flex; gap: 6px; }
   a.home { color: #64748b; font-size: 12px; text-decoration: none; }
+
+  /* Gate */
+  #gate {
+    position: fixed; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center;
+    background: radial-gradient(80% 60% at 50% 0%, rgba(37,99,235,.12), #05050e 60%);
+  }
+  #gate .box {
+    width: min(380px, 92vw); background: #0b0b18; border: 1px solid rgba(255,255,255,.10);
+    border-radius: 16px; padding: 28px 26px; text-align: center;
+  }
+  #gate h2 { margin: 0 0 4px; font-size: 19px; }
+  #gate p { margin: 0 0 18px; color: #64748b; font-size: 13px; }
+  #gate form { display: flex; flex-direction: column; gap: 12px; }
+  #app { display: none; }
 </style>
 </head>
 <body>
-<header>
-  <h1>SPX6900 · post control <span style="color:#475569;font-size:13px">(hidden)</span></h1>
-  <div class="sub">Preview every card and pick what posts next. Queue one for the scheduled run, or post it now. Pick nothing and the daily auto-rotation runs as normal.</div>
-</header>
-<div class="wrap">
-  <div class="bar">
-    <input id="pw" type="password" placeholder="Password" autocomplete="current-password" />
-    <button id="save">Save</button>
-    <button id="forget">Forget</button>
-    <span style="margin-left:auto"></span>
-    <button id="refresh">↻ Refresh</button>
-    <button id="clear" class="danger">Clear queue → auto</button>
+
+<div id="gate">
+  <div class="box">
+    <h2>SPX6900 · post control</h2>
+    <p>Enter the password to continue.</p>
+    <form id="gateForm">
+      <input id="gpw" type="password" placeholder="Password" autocomplete="current-password" autofocus />
+      <button class="primary" type="submit">Unlock</button>
+    </form>
+    <div class="status" id="gateStatus"></div>
   </div>
-  <div class="status" id="status">Loading…</div>
-  <div class="sched" id="sched"></div>
-  <div class="grid" id="grid"></div>
-  <p><a class="home" href="/">← back to site</a></p>
+</div>
+
+<div id="app">
+  <header>
+    <h1>SPX6900 · post control <span style="color:#475569;font-size:13px">(hidden)</span></h1>
+    <div class="sub">Preview every card and pick what posts next. Queue one for the scheduled run, or post it now. Pick nothing and the daily auto-rotation runs as normal.</div>
+  </header>
+  <div class="wrap">
+    <div class="bar">
+      <button id="refresh">↻ Refresh</button>
+      <button id="clear" class="danger">Clear queue → auto</button>
+      <span style="margin-left:auto"></span>
+      <button id="lock">Lock</button>
+    </div>
+    <div class="status" id="status">Loading…</div>
+    <div class="sched" id="sched"></div>
+    <div class="grid" id="grid"></div>
+    <p><a class="home" href="/">← back to site</a></p>
+  </div>
 </div>
 
 <script>
@@ -90,10 +117,8 @@ const QUEUE_PATH = "public/next-post.json", STATE_PATH = "public/post-state.json
 const $ = s => document.querySelector(s);
 const status = (msg, cls = "") => { const e = $("#status"); e.textContent = msg; e.className = "status " + cls; };
 const pwKey = "spx_control_pw";
-let PW = localStorage.getItem(pwKey) || "";
+let PW = "";
 let QUEUED = null, NEXT = null, IDS = [], UPCOMING = [];
-
-if (PW) $("#pw").value = PW;
 
 // All privileged actions go through the password-gated serverless function.
 async function action(body) {
@@ -102,12 +127,37 @@ async function action(body) {
     body: JSON.stringify({ password: PW, ...body }),
   });
   const j = await r.json().catch(() => ({}));
-  if (!r.ok) throw new Error(j.error || ("request failed (" + r.status + ")"));
+  if (!r.ok) { const e = new Error(j.error || ("request failed (" + r.status + ")")); e.status = r.status; throw e; }
   return j;
 }
 
+// ---- Gate ----
+async function unlock(pw, silent) {
+  $("#gateStatus").textContent = silent ? "" : "Checking…";
+  try {
+    PW = pw;
+    await action({ action: "verify" });
+    localStorage.setItem(pwKey, pw);
+    $("#gate").style.display = "none";
+    $("#app").style.display = "block";
+    refresh();
+  } catch (e) {
+    PW = "";
+    if (!silent) $("#gateStatus").innerHTML = `<span style="color:#f87171">${e.message}</span>`;
+    $("#gate").style.display = "flex";
+    $("#app").style.display = "none";
+  }
+}
+function lock() {
+  PW = ""; localStorage.removeItem(pwKey);
+  $("#app").style.display = "none"; $("#gate").style.display = "flex";
+  $("#gpw").value = ""; $("#gateStatus").textContent = ""; $("#gpw").focus();
+}
+$("#gateForm").addEventListener("submit", e => { e.preventDefault(); unlock($("#gpw").value, false); });
+$("#lock").onclick = lock;
+
+// ---- Dashboard ----
 async function loadState() {
-  // Live queue + last-posted state, read straight from the repo (cache-busted).
   const raw = p => fetch(`https://raw.githubusercontent.com/${OWNER}/${REPO}/${BRANCH}/${p}?t=${Date.now()}`)
     .then(r => r.ok ? r.json() : null).catch(() => null);
   const [q, st] = await Promise.all([raw(QUEUE_PATH), raw(STATE_PATH)]);
@@ -159,23 +209,26 @@ function renderGrid() {
 }
 
 async function queue(id) {
-  if (!PW) return status("Enter the password first.", "err");
   status(id ? `Queuing "${id}"…` : "Clearing queue…");
   try {
     await action(id ? { action: "queue", id } : { action: "clear" });
     status(id ? `Queued "${id}" for the next scheduled run.` : "Queue cleared — back to auto.", "ok");
-    setTimeout(refresh, 1200); // give the commit a moment to land
-  } catch (e) { status(e.message, "err"); }
+    setTimeout(refresh, 1200);
+  } catch (e) { handleErr(e); }
 }
 
 async function postNow(id) {
-  if (!PW) return status("Enter the password first.", "err");
   if (!confirm(`Post "${id}" to X right now? (real post)`)) return;
   status(`Dispatching "${id}"…`);
   try {
     await action({ action: "postnow", id });
     status(`Posting "${id}" now — check the Actions tab / X in ~1 min. The scheduled run will skip today.`, "ok");
-  } catch (e) { status(e.message, "err"); }
+  } catch (e) { handleErr(e); }
+}
+
+function handleErr(e) {
+  status(e.message, "err");
+  if (e.status === 401) lock(); // password changed / invalid → re-gate
 }
 
 async function refresh() {
@@ -193,12 +246,12 @@ $("#grid").addEventListener("click", e => {
   if (q) queue(q.dataset.q);
   if (n) postNow(n.dataset.now);
 });
-$("#save").onclick = () => { PW = $("#pw").value; localStorage.setItem(pwKey, PW); status("Password saved (browser only).", "ok"); };
-$("#forget").onclick = () => { PW = ""; localStorage.removeItem(pwKey); $("#pw").value = ""; status("Password forgotten.", ""); };
 $("#refresh").onclick = refresh;
 $("#clear").onclick = () => queue(null);
 
-refresh();
+// On load: if a saved password verifies, skip the gate; otherwise show it.
+const saved = localStorage.getItem(pwKey);
+if (saved) unlock(saved, true);
 </script>
 </body>
 </html>
