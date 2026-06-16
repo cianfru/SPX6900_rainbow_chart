@@ -23,9 +23,9 @@
     background: #0b0b18; border: 1px solid rgba(255,255,255,.08);
     border-radius: 12px; padding: 12px 14px; margin: 16px 0 8px;
   }
-  input[type=password], input[type=text] {
+  input[type=password] {
     background: #05050e; border: 1px solid rgba(255,255,255,.14); color: #e2e8f0;
-    border-radius: 8px; padding: 8px 10px; font-size: 13px; min-width: 280px;
+    border-radius: 8px; padding: 8px 10px; font-size: 13px; min-width: 220px;
   }
   button {
     background: #1e293b; color: #e2e8f0; border: 1px solid rgba(255,255,255,.14);
@@ -71,10 +71,9 @@
 </header>
 <div class="wrap">
   <div class="bar">
-    <input id="tok" type="password" placeholder="GitHub fine-grained token (Contents + Actions: read/write)" autocomplete="off" />
-    <button id="save">Save token</button>
+    <input id="pw" type="password" placeholder="Password" autocomplete="current-password" />
+    <button id="save">Save</button>
     <button id="forget">Forget</button>
-    <span class="mono" id="who" style="color:#64748b;font-size:12px"></span>
     <span style="margin-left:auto"></span>
     <button id="refresh">↻ Refresh</button>
     <button id="clear" class="danger">Clear queue → auto</button>
@@ -88,33 +87,23 @@
 <script>
 const OWNER = "cianfru", REPO = "SPX6900_rainbow_chart", BRANCH = "main";
 const QUEUE_PATH = "public/next-post.json", STATE_PATH = "public/post-state.json";
-const WORKFLOW = "post-tweet.yml";
 const $ = s => document.querySelector(s);
 const status = (msg, cls = "") => { const e = $("#status"); e.textContent = msg; e.className = "status " + cls; };
-const tokenKey = "spx_control_token";
-let TOKEN = localStorage.getItem(tokenKey) || "";
+const pwKey = "spx_control_pw";
+let PW = localStorage.getItem(pwKey) || "";
 let QUEUED = null, NEXT = null, IDS = [], UPCOMING = [];
 
-if (TOKEN) $("#tok").value = TOKEN;
+if (PW) $("#pw").value = PW;
 
-const gh = (path, opts = {}) => fetch("https://api.github.com" + path, {
-  ...opts,
-  headers: {
-    "Accept": "application/vnd.github+json",
-    ...(TOKEN ? { "Authorization": "Bearer " + TOKEN } : {}),
-    ...(opts.body ? { "Content-Type": "application/json" } : {}),
-  },
-});
-const b64 = s => btoa(unescape(encodeURIComponent(s)));
-
-async function whoami() {
-  $("#who").textContent = "";
-  if (!TOKEN) return;
-  try {
-    const r = await gh("/user");
-    if (r.ok) { const u = await r.json(); $("#who").textContent = "✓ " + u.login; }
-    else $("#who").textContent = "✗ token rejected";
-  } catch { $("#who").textContent = "✗ token error"; }
+// All privileged actions go through the password-gated serverless function.
+async function action(body) {
+  const r = await fetch("/api/control", {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ password: PW, ...body }),
+  });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j.error || ("request failed (" + r.status + ")"));
+  return j;
 }
 
 async function loadState() {
@@ -125,9 +114,8 @@ async function loadState() {
   QUEUED = q && q.id ? q.id : null;
   const today = new Date().toISOString().slice(0, 10);
   const postedToday = st && st.lastPostedDate === today;
-  // The effective "next scheduled" pick: first upcoming day not already posted.
   NEXT = UPCOMING.length ? (postedToday ? (UPCOMING[1]?.id ?? UPCOMING[0].id) : UPCOMING[0].id) : null;
-  return { postedToday, lastId: st?.lastId, today };
+  return { postedToday, lastId: st?.lastId };
 }
 
 async function loadSchedule() {
@@ -170,40 +158,22 @@ function renderGrid() {
   IDS.forEach(id => g.appendChild(card(id)));
 }
 
-async function getSha(path) {
-  const r = await gh(`/repos/${OWNER}/${REPO}/contents/${path}?ref=${BRANCH}`);
-  if (r.status === 404) return null;
-  if (!r.ok) throw new Error("read " + path + " failed (" + r.status + ")");
-  return (await r.json()).sha;
-}
-
-async function writeQueue(id) {
-  if (!TOKEN) return status("Paste a GitHub token first.", "err");
+async function queue(id) {
+  if (!PW) return status("Enter the password first.", "err");
   status(id ? `Queuing "${id}"…` : "Clearing queue…");
   try {
-    const sha = await getSha(QUEUE_PATH);
-    const body = {
-      message: id ? `control: queue ${id}` : "control: clear queue (auto)",
-      content: b64(JSON.stringify({ id: id || null }, null, 2) + "\n"),
-      branch: BRANCH, ...(sha ? { sha } : {}),
-    };
-    const r = await gh(`/repos/${OWNER}/${REPO}/contents/${QUEUE_PATH}`, { method: "PUT", body: JSON.stringify(body) });
-    if (!r.ok) throw new Error("write failed (" + r.status + ") " + (await r.text()));
+    await action(id ? { action: "queue", id } : { action: "clear" });
     status(id ? `Queued "${id}" for the next scheduled run.` : "Queue cleared — back to auto.", "ok");
-    await refresh();
+    setTimeout(refresh, 1200); // give the commit a moment to land
   } catch (e) { status(e.message, "err"); }
 }
 
 async function postNow(id) {
-  if (!TOKEN) return status("Paste a GitHub token first.", "err");
+  if (!PW) return status("Enter the password first.", "err");
   if (!confirm(`Post "${id}" to X right now? (real post)`)) return;
   status(`Dispatching "${id}"…`);
   try {
-    const r = await gh(`/repos/${OWNER}/${REPO}/actions/workflows/${WORKFLOW}/dispatches`, {
-      method: "POST",
-      body: JSON.stringify({ ref: BRANCH, inputs: { post_id: id, dry_run: false } }),
-    });
-    if (r.status !== 204) throw new Error("dispatch failed (" + r.status + ") " + (await r.text()));
+    await action({ action: "postnow", id });
     status(`Posting "${id}" now — check the Actions tab / X in ~1 min. The scheduled run will skip today.`, "ok");
   } catch (e) { status(e.message, "err"); }
 }
@@ -220,15 +190,14 @@ async function refresh() {
 
 $("#grid").addEventListener("click", e => {
   const q = e.target.closest("[data-q]"), n = e.target.closest("[data-now]");
-  if (q) writeQueue(q.dataset.q);
+  if (q) queue(q.dataset.q);
   if (n) postNow(n.dataset.now);
 });
-$("#save").onclick = () => { TOKEN = $("#tok").value.trim(); localStorage.setItem(tokenKey, TOKEN); whoami(); status("Token saved (browser only).", "ok"); };
-$("#forget").onclick = () => { TOKEN = ""; localStorage.removeItem(tokenKey); $("#tok").value = ""; $("#who").textContent = ""; status("Token forgotten.", ""); };
+$("#save").onclick = () => { PW = $("#pw").value; localStorage.setItem(pwKey, PW); status("Password saved (browser only).", "ok"); };
+$("#forget").onclick = () => { PW = ""; localStorage.removeItem(pwKey); $("#pw").value = ""; status("Password forgotten.", ""); };
 $("#refresh").onclick = refresh;
-$("#clear").onclick = () => writeQueue(null);
+$("#clear").onclick = () => queue(null);
 
-whoami();
 refresh();
 </script>
 </body>
