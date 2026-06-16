@@ -125,7 +125,7 @@ const $ = s => document.querySelector(s);
 const status = (msg, cls = "") => { const e = $("#status"); e.textContent = msg; e.className = "status " + cls; };
 const pwKey = "spx_control_pw";
 let PW = "";
-let QUEUED = null, NEXT = null, IDS = [], UPCOMING = [], TEXTS = {}, MEDIA = {};
+let QUEUED = null, NEXT = null, IDS = [], UPCOMING = [], TEXTS = {}, MEDIA = {}, META = { postedToday: false };
 const esc = s => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
 // All privileged actions go through the password-gated serverless function.
@@ -166,7 +166,7 @@ $("#lock").onclick = lock;
 
 // ---- Dashboard ----
 async function loadState() {
-  const raw = p => fetch(`https://raw.githubusercontent.com/${OWNER}/${REPO}/${BRANCH}/${p}?t=${Date.now()}`)
+  const raw = p => fetch(`https://raw.githubusercontent.com/${OWNER}/${REPO}/${BRANCH}/${p}?t=${Date.now()}`, { cache: "no-store" })
     .then(r => r.ok ? r.json() : null).catch(() => null);
   const [q, st] = await Promise.all([raw(QUEUE_PATH), raw(STATE_PATH)]);
   QUEUED = q && q.id ? q.id : null;
@@ -223,9 +223,12 @@ function renderGrid() {
 async function queue(id) {
   status(id ? `Queuing "${id}"…` : "Clearing queue…");
   try {
-    await action(id ? { action: "queue", id } : { action: "clear" });
-    status(id ? `Queued "${id}" for the next scheduled run.` : "Queue cleared — back to auto.", "ok");
-    setTimeout(refresh, 1200);
+    const r = await action(id ? { action: "queue", id } : { action: "clear" });
+    // Reflect the server's authoritative state immediately — don't wait on the
+    // CDN-cached raw read, which lags by minutes and made selections look stuck.
+    QUEUED = r.queued || null;
+    renderSchedule(META); renderGrid();
+    status(QUEUED ? `Queued "${QUEUED}" for the next scheduled run.` : "Queue cleared — back to auto.", "ok");
   } catch (e) { handleErr(e); }
 }
 
@@ -246,8 +249,8 @@ function handleErr(e) {
 async function refresh() {
   try {
     await loadSchedule();
-    const meta = await loadState();
-    renderSchedule(meta);
+    META = await loadState();
+    renderSchedule(META);
     renderGrid();
     status(`${IDS.length} cards. ${QUEUED ? `Queued: ${QUEUED}.` : "No override — auto rotation."}`, "ok");
   } catch (e) { status(e.message, "err"); }
