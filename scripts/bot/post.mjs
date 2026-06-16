@@ -11,15 +11,29 @@
 //
 // Required secrets to actually post (OAuth 1.0a user context for the bot account):
 //   X_API_KEY  X_API_SECRET  X_ACCESS_TOKEN  X_ACCESS_SECRET
-import { writeFileSync } from "node:fs";
+import { writeFileSync, readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { dirname, join } from "node:path";
 import { fetchLivePrice, fetchMajors, fetchHistory, computeStats } from "./stats.mjs";
 import { renderPostCard } from "./charts.mjs";
 import { buildMedia, postWithMedia } from "./media.mjs";
 import { buildPost, allIds } from "./posts.mjs";
 
+// Control-page state lives in public/ so it deploys with the site and the daily
+// workflow can commit it back. next-post.json = an optional queued override the
+// hidden control page sets; post-state.json = the last calendar day we posted
+// (a once-per-day guard so a queued/manual post and the cron can't double-fire).
+const ROOT = join(dirname(fileURLToPath(import.meta.url)), "../..");
+const QUEUE_FILE = join(ROOT, "public/next-post.json");
+const STATE_FILE = join(ROOT, "public/post-state.json");
+const readJson = (p, d) => { try { return JSON.parse(readFileSync(p, "utf8")); } catch { return d; } };
+
 const arg = name => { const a = process.argv.find(x => x.startsWith(`--${name}=`)); return a ? a.split("=")[1] : null; };
 const cliPostId = arg("post");                          // local --post=<id>: select + force dry-run (safe)
-const overrideId = cliPostId || process.env.BOT_POST || null; // BOT_POST selects topic without forcing dry-run
+const queuedId = readJson(QUEUE_FILE, {}).id || null;   // override queued by the control page
+const explicitId = cliPostId || process.env.BOT_POST || null; // CLI/env wins over the queue
+const overrideId = explicitId || queuedId;
+const fromQueue = !explicitId && !!queuedId;            // did we end up using the queued pick?
 const renderAll = process.argv.includes("--all");
 // Post text only, no image — used to A/B the per-post cost of attaching media.
 const noMedia = process.argv.includes("--no-media") || process.env.BOT_NO_MEDIA === "1";
@@ -101,6 +115,15 @@ if (dryRun) {
   process.exit(0);
 }
 
+// Once-per-day guard: if a real post already went out today (cron or control
+// page), don't post again. Only applies to real runs (dry-runs never reach here).
+const today = new Date().toISOString().slice(0, 10);
+const state = readJson(STATE_FILE, {});
+if (state.lastPostedDate === today) {
+  console.log(`Already posted today (${state.lastId ?? "?"} on ${today}) — skipping to avoid a duplicate.`);
+  process.exit(0);
+}
+
 const { TwitterApi } = await import("twitter-api-v2");
 const client = new TwitterApi(creds);
 try {
@@ -115,3 +138,8 @@ try {
   console.error(`POST FAILED ✗ — code ${e.code ?? "?"}: ${JSON.stringify(e.data?.errors ?? e.data ?? e.message)}`);
   process.exit(1);
 }
+
+// Record the day (guard) and consume the queue if we used it, so tomorrow is auto
+// again. The workflow commits these back to the repo after the run.
+writeFileSync(STATE_FILE, JSON.stringify({ lastPostedDate: today, lastId: post.id }, null, 2) + "\n");
+if (fromQueue) writeFileSync(QUEUE_FILE, JSON.stringify({ id: null }, null, 2) + "\n");

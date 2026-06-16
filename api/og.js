@@ -22,12 +22,16 @@ const rainbowPng = price =>
   new Resvg(rainbowSvg(price), { fitTo: { mode: "width", value: 1200 } }).render().asPng();
 
 export default async function handler(req, res) {
-  const tab = new URL(req.url, "http://x").searchParams.get("tab");
+  const params = new URL(req.url, "http://x").searchParams;
+  const tab = params.get("tab");
+  // ?post=<id> renders that rotation card directly (used by the control gallery);
+  // ?tab=<id> maps a site tab to its representative card (used by share links).
+  const directPost = params.get("post");
   const price = (await fetchLivePrice())?.price ?? DEFAULT_RAW.at(-1).price;
 
   let png;
   try {
-    const postId = TAB_POST[tab];
+    const postId = directPost || TAB_POST[tab];
     if (!postId || postId === "valuation") {
       png = rainbowPng(price); // rainbow / default / unknown tab
     } else {
