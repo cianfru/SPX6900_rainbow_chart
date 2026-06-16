@@ -9,13 +9,14 @@ import { rainbowSvg } from "../../src/rainbow-svg.js";
 import { fetchLivePrice } from "./stats.mjs";
 import { DEFAULT_RAW } from "../../src/data.js";
 
-const FPS = 30, DRAW_SEC = 3.2, HOLD_SEC = 1.6, W = 1200;
+const arg = (n, d) => { const a = process.argv.find(x => x.startsWith(`--${n}=`)); return a ? Number(a.split("=")[1]) : d; };
+const FPS = 30, DRAW_SEC = arg("draw", 6), HOLD_SEC = arg("hold", 2.5), W = 1200;
 const DIR = "frames", OUT = process.argv.find(a => a.startsWith("--out="))?.split("=")[1] || "rainbow.mp4";
 const ffmpeg = process.env.FFMPEG_PATH || ffmpegStatic; // CI can point at system ffmpeg
 
 const price = (await fetchLivePrice())?.price ?? DEFAULT_RAW.at(-1).price;
 const render = svg => new Resvg(svg, { fitTo: { mode: "width", value: W } }).render().asPng();
-const easeOut = t => 1 - Math.pow(1 - t, 3); // fast then settle
+const ease = t => (t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2); // ease-in-out, even pace
 
 rmSync(DIR, { recursive: true, force: true });
 mkdirSync(DIR);
@@ -23,7 +24,7 @@ let f = 0;
 const save = png => writeFileSync(`${DIR}/f${String(f++).padStart(4, "0")}.png`, png);
 
 const drawN = Math.round(FPS * DRAW_SEC);
-for (let i = 1; i <= drawN; i++) save(render(rainbowSvg(price, undefined, { reveal: Math.max(0.02, easeOut(i / drawN)) })));
+for (let i = 1; i <= drawN; i++) save(render(rainbowSvg(price, undefined, { reveal: Math.max(0.02, ease(i / drawN)) })));
 const finalPng = render(rainbowSvg(price)); // full card (default behaviour) for the hold
 for (let i = 0; i < Math.round(FPS * HOLD_SEC); i++) save(finalPng);
 
