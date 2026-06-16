@@ -6,7 +6,7 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { fetchLivePrice, fetchHistory, computeStats } from "./stats.mjs";
 import { buildBandChangePost, MARQUEE_BANDS } from "./posts.mjs";
-import { renderPostCard } from "./charts.mjs";
+import { buildMedia, postWithMedia } from "./media.mjs";
 import { DEFAULT_RAW } from "../../src/data.js";
 
 const STATE = new URL("../../public/band-state.json", import.meta.url);
@@ -48,11 +48,11 @@ const shouldPost = marquee && cooled;
 console.log(`Band change ${from} -> ${bi} | marquee=${marquee} cooled=${cooled} => ${shouldPost ? "POST" : "skip"}`);
 
 const post = buildBandChangePost(stats, from);
-const png = renderPostCard(post, stats);
 
 if (dryRun) {
-  writeFileSync("bandchange-preview.png", png);
-  console.log(`[DRY RUN — nothing posted, state untouched]\n${"-".repeat(44)}\n${post.text}\n${"-".repeat(44)}\n-> bandchange-preview.png (${png.length} bytes)`);
+  const media = await buildMedia(post, stats, { video: true, out: "bandchange-preview.mp4" });
+  const where = media.kind === "video" ? media.path : (writeFileSync("bandchange-preview.png", media.data), "bandchange-preview.png");
+  console.log(`[DRY RUN — nothing posted, state untouched]\n${"-".repeat(44)}\n${post.text}\n${"-".repeat(44)}\n-> ${where}`);
   process.exit(0);
 }
 
@@ -63,13 +63,13 @@ writeState({ band: bi, ts: nowIso(), lastPostTs: state.lastPostTs || null });
 if (!shouldPost) { console.log("State updated, no post (non-marquee band or within cooldown)."); process.exit(0); }
 if (!hasCreds) { console.log("Marquee crossing, but X creds missing — state updated, no post."); process.exit(0); }
 
+const media = await buildMedia(post, stats, { video: true, out: "bandchange.mp4" });
 const { TwitterApi } = await import("twitter-api-v2");
 const client = new TwitterApi(creds);
 try {
-  const mediaId = await client.v2.uploadMedia(png, { media_type: "image/png" });
-  const res = await client.v2.tweet({ text: post.text, media: { media_ids: [mediaId] } });
+  const id = await postWithMedia(client, post, stats, media);
   writeState({ band: bi, ts: nowIso(), lastPostTs: nowIso() }); // advance cooldown only on a real post
-  console.log(`Posted band-change ✓ (${from} -> ${bi}) tweet ${res?.data?.id}`);
+  console.log(`Posted band-change ✓ (${from} -> ${bi}, ${media.kind}) tweet ${id}`);
 } catch (e) {
   console.error(`POST FAILED ✗ — ${JSON.stringify(e.data?.errors ?? e.data ?? e.message)}`);
   process.exit(1);

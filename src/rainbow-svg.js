@@ -4,21 +4,10 @@
 import { DEFAULT_RAW } from "./data.js";
 import * as M from "./models.js";
 
-export function rainbowSvg(price, dateStr = new Date().toISOString().slice(0, 10)) {
+export function rainbowSvg(price, dateStr = new Date().toISOString().slice(0, 10), opts = {}) {
+  const reveal = opts.reveal; // 0..1 progressive price-line draw (for video); undefined = full
   const m = M.buildModel(DEFAULT_RAW);
   const day = M.dayN(dateStr);
-  const bi = M.bandIndex(m, price, day);
-  const band = M.BAND_LABELS[bi];
-  // Distance to the next band boundary, up (top of current band) and down (floor).
-  const upT = M.bandVal(m, day, Math.min(bi + 1, m.bands.length - 1));
-  const dnT = M.bandVal(m, day, bi);
-  const upName = bi + 1 <= M.BAND_LABELS.length - 1 ? M.BAND_LABELS[bi + 1].l : "ceiling";
-  const dnName = bi - 1 >= 0 ? M.BAND_LABELS[bi - 1].l : "floor";
-  const upC = bi + 1 <= M.BAND_LABELS.length - 1 ? M.BAND_LABELS[bi + 1].c : "#dc2626";
-  const dnC = bi - 1 >= 0 ? M.BAND_LABELS[bi - 1].c : "#6366f1";
-  const fpct = v => (v >= 0 ? "+" : "-") + (Math.abs(v * 100) < 10 ? Math.abs(v * 100).toFixed(1) : Math.round(Math.abs(v * 100))) + "%";
-  const upTxt = `${fpct(upT / price - 1)} ${upName}`;
-  const dnTxt = `${fpct(dnT / price - 1)} ${dnName}`;
 
   const W = 1200, H = 630, mL = 78, mR = 28, mT = 76, mB = 52;
   const pW = W - mL - mR, pH = H - mT - mB;
@@ -46,7 +35,9 @@ export function rainbowSvg(price, dateStr = new Date().toISOString().slice(0, 10
     bands += `<polygon points="${[...top, ...bot].join(" ")}" fill="${M.BAND_LABELS[i].c}" fill-opacity="0.62"/>`;
   }
   const center = days.map(d => `${x(d).toFixed(1)},${y(Math.exp(m.predict(d))).toFixed(1)}`).join(" ");
-  const priceLine = DEFAULT_RAW.map(r => `${x(M.dayN(r.date)).toFixed(1)},${y(r.price).toFixed(1)}`).join(" ");
+  // Progressive reveal for video: draw only the first `reveal` fraction of points.
+  const shown = reveal == null ? DEFAULT_RAW : DEFAULT_RAW.slice(0, Math.max(2, Math.ceil(DEFAULT_RAW.length * reveal)));
+  const priceLine = shown.map(r => `${x(M.dayN(r.date)).toFixed(1)},${y(r.price).toFixed(1)}`).join(" ");
 
   let grid = "";
   for (const t of [0.0001, 0.001, 0.01, 0.1, 1, 10, 100].filter(v => v >= yMin && v <= yMax)) {
@@ -61,8 +52,31 @@ export function rainbowSvg(price, dateStr = new Date().toISOString().slice(0, 10
     xlab += `<text x="${x(d).toFixed(1)}" y="${H - 18}" fill="#64748b" font-size="20" text-anchor="middle" font-family="sans-serif">${yr}</text>`;
   }
 
-  const px = x(nowDay), py = y(price);
-  const priceText = price >= 1 ? "$" + price.toFixed(2) : "$" + price.toFixed(4);
+  // The "now" dot rides the leading edge of the revealed line during a draw-in,
+  // and the whole readout (price · band · next) follows that point through
+  // history — so a draw-in video replays the journey and lands on today.
+  const lead = reveal == null ? null : shown.at(-1);
+  const curPrice = lead ? lead.price : price;
+  const curDay = lead ? M.dayN(lead.date) : day;
+  const px = lead ? x(M.dayN(lead.date)) : x(nowDay);
+  const py = lead ? y(lead.price) : y(price);
+
+  const bi = M.bandIndex(m, curPrice, curDay);
+  const band = M.BAND_LABELS[bi];
+  const upT = M.bandVal(m, curDay, Math.min(bi + 1, m.bands.length - 1));
+  const dnT = M.bandVal(m, curDay, bi);
+  const upName = bi + 1 <= M.BAND_LABELS.length - 1 ? M.BAND_LABELS[bi + 1].l : "ceiling";
+  const dnName = bi - 1 >= 0 ? M.BAND_LABELS[bi - 1].l : "floor";
+  const upC = bi + 1 <= M.BAND_LABELS.length - 1 ? M.BAND_LABELS[bi + 1].c : "#dc2626";
+  const dnC = bi - 1 >= 0 ? M.BAND_LABELS[bi - 1].c : "#6366f1";
+  const fpct = v => (v >= 0 ? "+" : "-") + (Math.abs(v * 100) < 10 ? Math.abs(v * 100).toFixed(1) : Math.round(Math.abs(v * 100))) + "%";
+  const upTxt = `${fpct(upT / curPrice - 1)} ${upName}`;
+  const dnTxt = `${fpct(dnT / curPrice - 1)} ${dnName}`;
+  const priceText = curPrice >= 1 ? "$" + curPrice.toFixed(2) : "$" + curPrice.toFixed(4);
+  // Optional expanding glow ring on the "now" dot (video hold). pulse: 0..1.
+  const pulseRing = opts.pulse != null
+    ? `<circle cx="${px.toFixed(1)}" cy="${py.toFixed(1)}" r="${(7 + opts.pulse * 18).toFixed(1)}" fill="none" stroke="${band.c}" stroke-width="2.5" stroke-opacity="${(0.55 * (1 - opts.pulse)).toFixed(2)}"/>`
+    : "";
 
   return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
 <rect width="${W}" height="${H}" fill="#05050e"/>
@@ -70,7 +84,7 @@ ${grid}${xlab}
 ${bands}
 <polyline points="${center}" fill="none" stroke="rgba(255,255,255,0.55)" stroke-width="2" stroke-dasharray="6 6"/>
 <polyline points="${priceLine}" fill="none" stroke="#ffffff" stroke-width="3.5"/>
-<circle cx="${px.toFixed(1)}" cy="${py.toFixed(1)}" r="7" fill="#fff" stroke="${band.c}" stroke-width="3"/>
+${pulseRing}<circle cx="${px.toFixed(1)}" cy="${py.toFixed(1)}" r="7" fill="#fff" stroke="${band.c}" stroke-width="3"/>
 <text x="${mL}" y="42" fill="#e2e8f0" font-size="30" font-weight="700" font-family="sans-serif" letter-spacing="2">SPX6900 RAINBOW CHART</text>
 <text x="${W - mR}" y="42" fill="${band.c}" font-size="30" font-weight="800" font-family="sans-serif" text-anchor="end">${priceText} · ${band.l}</text>
 <text x="${W - mR}" y="68" font-size="21" font-family="sans-serif" text-anchor="end" fill="#94a3b8">next: <tspan fill="${upC}" font-weight="700">${upTxt}</tspan>  ·  <tspan fill="${dnC}" font-weight="700">${dnTxt}</tspan></text>
