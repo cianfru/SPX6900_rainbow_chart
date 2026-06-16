@@ -23,10 +23,16 @@ mkdirSync(DIR);
 let f = 0;
 const save = png => writeFileSync(`${DIR}/f${String(f++).padStart(4, "0")}.png`, png);
 
-const drawN = Math.round(FPS * DRAW_SEC);
-for (let i = 1; i <= drawN; i++) save(render(rainbowSvg(price, undefined, { reveal: Math.max(0.02, ease(i / drawN)) })));
-const finalPng = render(rainbowSvg(price)); // full card (default behaviour) for the hold
-for (let i = 0; i < Math.round(FPS * HOLD_SEC); i++) save(finalPng);
+const drawN = Math.round(FPS * DRAW_SEC), holdN = Math.round(FPS * HOLD_SEC);
+// Draw-in: line reveals + the headline price counts up, both eased together.
+for (let i = 1; i <= drawN; i++) {
+  save(render(rainbowSvg(price, undefined, { reveal: Math.max(0.02, ease(i / drawN)) })));
+}
+// Hold: full line, real price, with the "now" dot pulsing (~1 pulse/sec).
+const pulsePeriod = Math.round(FPS * 1.1);
+for (let i = 0; i < holdN; i++) {
+  save(render(rainbowSvg(price, undefined, { reveal: 1, pulse: (i % pulsePeriod) / pulsePeriod })));
+}
 
 execFileSync(ffmpeg, [
   "-y", "-framerate", String(FPS), "-i", `${DIR}/f%04d.png`,
