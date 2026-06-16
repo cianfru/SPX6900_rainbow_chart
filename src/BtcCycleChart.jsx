@@ -101,7 +101,7 @@ export default function BtcCycleChart({ series, isMobile }) {
   return (
     <div style={{ maxWidth: MAX_W, margin: "0 auto" }}>
       <div style={{ display: "flex", gap: isMobile ? 22 : 48, justifyContent: "center", marginBottom: 16, flexWrap: "wrap" }}>
-        <Stat k="CYCLE DIP" v={fP(stats.low.p)} c="#38bdf8" isMobile={isMobile} />
+        <Stat k="CYCLE DIP" v={fP(stats.low)} c="#38bdf8" isMobile={isMobile} />
         <Stat k="PROJECTED PEAK" v={stats.peakDate.toLocaleDateString("en-US", { month: "short", year: "numeric" })} c="#a78bfa" isMobile={isMobile} />
         <Stat k="PEAK PRICE" v={fP(stats.peak)} c="#fbbf24" isMobile={isMobile} />
         <Stat k="PEAK RANGE" v={`${fP(stats.peakLo)}–${fP(stats.peakHi)}`} c="#f7931a" isMobile={isMobile} />
@@ -130,7 +130,7 @@ export default function BtcCycleChart({ series, isMobile }) {
 
       <div style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.6 }}>
         <span style={{ color: "#4ade80" }}>■</span> SPX6900 actual &nbsp;·&nbsp; <span style={{ color: "#f7931a" }}>┄</span> Bitcoin's real last cycle, overlaid (shaded = scenario range) &nbsp;·&nbsp; <span style={{ color: "#a78bfa" }}>┄</span> bubble / <span style={{ color: "#38bdf8" }}>┄</span> fire-sale band.
-        <br />Bitcoin's actual price path from <span style={{ color: "#f7931a" }}>{fMonY(stats.btcFrom.getTime())}</span> onward, anchored at SPX's price today and scaled to its higher amplitude: a dip near <span style={{ color: "#38bdf8" }}>{fP(stats.low.p)}, {stats.lowDate.toLocaleDateString("en-US", { month: "short", year: "numeric" })}</span>, then BTC's real run to a top near <span style={{ color: "#a78bfa" }}>{fP(stats.peak)}</span> ({fP(stats.peakLo)}–{fP(stats.peakHi)}) around {stats.peakDate.toLocaleDateString("en-US", { month: "short", year: "numeric" })}. A for-fun <i>what-if</i>, NOT a forecast or financial advice.
+        <br />Bitcoin's actual price path from <span style={{ color: "#f7931a" }}>{fMonY(stats.btcFrom.getTime())}</span> onward, anchored at SPX's price today and scaled to its higher amplitude: a dip near <span style={{ color: "#38bdf8" }}>{fP(stats.low)}, {stats.lowDate.toLocaleDateString("en-US", { month: "short", year: "numeric" })}</span>, then BTC's real run to a top near <span style={{ color: "#a78bfa" }}>{fP(stats.peak)}</span> ({fP(stats.peakLo)}–{fP(stats.peakHi)}) around {stats.peakDate.toLocaleDateString("en-US", { month: "short", year: "numeric" })}. A for-fun <i>what-if</i>, NOT a forecast or financial advice.
       </div>
     </div>
   );
