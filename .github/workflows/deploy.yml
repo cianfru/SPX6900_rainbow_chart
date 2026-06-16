@@ -7,6 +7,11 @@ name: Deploy to Vercel
 on:
   push:
     branches: [main]
+    # Bot state commits (queue + once-per-day guard) shouldn't trigger a redeploy;
+    # they're read at workflow runtime, not from the deployed site.
+    paths-ignore:
+      - "public/next-post.json"
+      - "public/post-state.json"
   workflow_dispatch: {}
 
 # Cancel an in-flight deploy if a newer commit lands, so the queue can never pile up.

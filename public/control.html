@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="robots" content="noindex, nofollow" />
+<title>SPX6900 · post control</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: #05050e; color: #e2e8f0;
+    font-family: 'Space Grotesk', system-ui, -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+  header { padding: 22px 24px 8px; border-bottom: 1px solid rgba(255,255,255,.08); }
+  h1 { margin: 0; font-size: 22px; letter-spacing: .5px; }
+  .sub { color: #64748b; font-size: 13px; margin-top: 4px; }
+  .wrap { max-width: 1320px; margin: 0 auto; padding: 18px 24px 80px; }
+  .bar {
+    display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
+    background: #0b0b18; border: 1px solid rgba(255,255,255,.08);
+    border-radius: 12px; padding: 12px 14px; margin: 16px 0 8px;
+  }
+  input[type=password], input[type=text] {
+    background: #05050e; border: 1px solid rgba(255,255,255,.14); color: #e2e8f0;
+    border-radius: 8px; padding: 8px 10px; font-size: 13px; min-width: 280px;
+  }
+  button {
+    background: #1e293b; color: #e2e8f0; border: 1px solid rgba(255,255,255,.14);
+    border-radius: 8px; padding: 8px 12px; font-size: 13px; cursor: pointer;
+    transition: background .12s, border-color .12s;
+  }
+  button:hover { background: #334155; }
+  button:disabled { opacity: .4; cursor: not-allowed; }
+  button.primary { background: #2563eb; border-color: #3b82f6; }
+  button.primary:hover { background: #3b82f6; }
+  button.danger { background: #7f1d1d; border-color: #b91c1c; }
+  button.danger:hover { background: #991b1b; }
+  .status { font-size: 13px; color: #94a3b8; margin: 8px 2px; min-height: 18px; }
+  .status.err { color: #f87171; }
+  .status.ok { color: #4ade80; }
+  .sched { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 4px; font-size: 12px; }
+  .chip { background: #0b0b18; border: 1px solid rgba(255,255,255,.10); border-radius: 999px; padding: 4px 10px; color: #94a3b8; }
+  .chip b { color: #e2e8f0; }
+  .grid {
+    display: grid; gap: 16px; margin-top: 14px;
+    grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+  }
+  .card {
+    background: #0b0b18; border: 1px solid rgba(255,255,255,.08);
+    border-radius: 14px; overflow: hidden; display: flex; flex-direction: column;
+  }
+  .card.next { border-color: #3b82f6; box-shadow: 0 0 0 1px #3b82f6 inset; }
+  .card.queued { border-color: #f59e0b; box-shadow: 0 0 0 1px #f59e0b inset; }
+  .card img { width: 100%; display: block; background: #05050e; aspect-ratio: 1200/630; }
+  .card .meta { display: flex; align-items: center; gap: 8px; padding: 10px 12px; }
+  .card .id { font-size: 14px; font-weight: 700; }
+  .badge { font-size: 10.5px; letter-spacing: .6px; text-transform: uppercase; padding: 2px 8px; border-radius: 999px; }
+  .badge.next { background: rgba(59,130,246,.18); color: #93c5fd; }
+  .badge.queued { background: rgba(245,158,11,.18); color: #fcd34d; }
+  .card .actions { margin-left: auto; display: flex; gap: 6px; }
+  a.home { color: #64748b; font-size: 12px; text-decoration: none; }
+</style>
+</head>
+<body>
+<header>
+  <h1>SPX6900 · post control <span style="color:#475569;font-size:13px">(hidden)</span></h1>
+  <div class="sub">Preview every card and pick what posts next. Queue one for the scheduled run, or post it now. Pick nothing and the daily auto-rotation runs as normal.</div>
+</header>
+<div class="wrap">
+  <div class="bar">
+    <input id="tok" type="password" placeholder="GitHub fine-grained token (Contents + Actions: read/write)" autocomplete="off" />
+    <button id="save">Save token</button>
+    <button id="forget">Forget</button>
+    <span class="mono" id="who" style="color:#64748b;font-size:12px"></span>
+    <span style="margin-left:auto"></span>
+    <button id="refresh">↻ Refresh</button>
+    <button id="clear" class="danger">Clear queue → auto</button>
+  </div>
+  <div class="status" id="status">Loading…</div>
+  <div class="sched" id="sched"></div>
+  <div class="grid" id="grid"></div>
+  <p><a class="home" href="/">← back to site</a></p>
+</div>
+
+<script>
+const OWNER = "cianfru", REPO = "SPX6900_rainbow_chart", BRANCH = "main";
+const QUEUE_PATH = "public/next-post.json", STATE_PATH = "public/post-state.json";
+const WORKFLOW = "post-tweet.yml";
+const $ = s => document.querySelector(s);
+const status = (msg, cls = "") => { const e = $("#status"); e.textContent = msg; e.className = "status " + cls; };
+const tokenKey = "spx_control_token";
+let TOKEN = localStorage.getItem(tokenKey) || "";
+let QUEUED = null, NEXT = null, IDS = [], UPCOMING = [];
+
+if (TOKEN) $("#tok").value = TOKEN;
+
+const gh = (path, opts = {}) => fetch("https://api.github.com" + path, {
+  ...opts,
+  headers: {
+    "Accept": "application/vnd.github+json",
+    ...(TOKEN ? { "Authorization": "Bearer " + TOKEN } : {}),
+    ...(opts.body ? { "Content-Type": "application/json" } : {}),
+  },
+});
+const b64 = s => btoa(unescape(encodeURIComponent(s)));
+
+async function whoami() {
+  $("#who").textContent = "";
+  if (!TOKEN) return;
+  try {
+    const r = await gh("/user");
+    if (r.ok) { const u = await r.json(); $("#who").textContent = "✓ " + u.login; }
+    else $("#who").textContent = "✗ token rejected";
+  } catch { $("#who").textContent = "✗ token error"; }
+}
+
+async function loadState() {
+  // Live queue + last-posted state, read straight from the repo (cache-busted).
+  const raw = p => fetch(`https://raw.githubusercontent.com/${OWNER}/${REPO}/${BRANCH}/${p}?t=${Date.now()}`)
+    .then(r => r.ok ? r.json() : null).catch(() => null);
+  const [q, st] = await Promise.all([raw(QUEUE_PATH), raw(STATE_PATH)]);
+  QUEUED = q && q.id ? q.id : null;
+  const today = new Date().toISOString().slice(0, 10);
+  const postedToday = st && st.lastPostedDate === today;
+  // The effective "next scheduled" pick: first upcoming day not already posted.
+  NEXT = UPCOMING.length ? (postedToday ? (UPCOMING[1]?.id ?? UPCOMING[0].id) : UPCOMING[0].id) : null;
+  return { postedToday, lastId: st?.lastId, today };
+}
+
+async function loadSchedule() {
+  const r = await fetch("/api/schedule?days=8");
+  if (!r.ok) throw new Error("schedule endpoint failed (" + r.status + ")");
+  const j = await r.json();
+  IDS = j.ids || []; UPCOMING = j.upcoming || [];
+}
+
+function renderSchedule(meta) {
+  const chips = [];
+  if (QUEUED) chips.push(`<span class="chip" style="border-color:#f59e0b"><b style="color:#fcd34d">queued:</b> ${QUEUED}</span>`);
+  if (meta.postedToday) chips.push(`<span class="chip"><b>today:</b> already posted (${meta.lastId ?? "?"})</span>`);
+  UPCOMING.slice(0, 6).forEach((u, i) => {
+    const isNext = u.id === NEXT && !(meta.postedToday && i === 0);
+    chips.push(`<span class="chip">${u.date.slice(5)} → <b>${u.id}</b>${isNext ? " ·next" : ""}</span>`);
+  });
+  $("#sched").innerHTML = chips.join("");
+}
+
+function card(id) {
+  const isNext = id === NEXT, isQ = id === QUEUED;
+  const el = document.createElement("div");
+  el.className = "card" + (isQ ? " queued" : isNext ? " next" : "");
+  el.innerHTML = `
+    <img loading="lazy" src="/api/og?post=${encodeURIComponent(id)}" alt="${id}" />
+    <div class="meta">
+      <span class="id">${id}</span>
+      ${isQ ? '<span class="badge queued">queued</span>' : isNext ? '<span class="badge next">next auto</span>' : ""}
+      <span class="actions">
+        <button data-q="${id}">Queue</button>
+        <button class="primary" data-now="${id}">Post now</button>
+      </span>
+    </div>`;
+  return el;
+}
+
+function renderGrid() {
+  const g = $("#grid"); g.innerHTML = "";
+  IDS.forEach(id => g.appendChild(card(id)));
+}
+
+async function getSha(path) {
+  const r = await gh(`/repos/${OWNER}/${REPO}/contents/${path}?ref=${BRANCH}`);
+  if (r.status === 404) return null;
+  if (!r.ok) throw new Error("read " + path + " failed (" + r.status + ")");
+  return (await r.json()).sha;
+}
+
+async function writeQueue(id) {
+  if (!TOKEN) return status("Paste a GitHub token first.", "err");
+  status(id ? `Queuing "${id}"…` : "Clearing queue…");
+  try {
+    const sha = await getSha(QUEUE_PATH);
+    const body = {
+      message: id ? `control: queue ${id}` : "control: clear queue (auto)",
+      content: b64(JSON.stringify({ id: id || null }, null, 2) + "\n"),
+      branch: BRANCH, ...(sha ? { sha } : {}),
+    };
+    const r = await gh(`/repos/${OWNER}/${REPO}/contents/${QUEUE_PATH}`, { method: "PUT", body: JSON.stringify(body) });
+    if (!r.ok) throw new Error("write failed (" + r.status + ") " + (await r.text()));
+    status(id ? `Queued "${id}" for the next scheduled run.` : "Queue cleared — back to auto.", "ok");
+    await refresh();
+  } catch (e) { status(e.message, "err"); }
+}
+
+async function postNow(id) {
+  if (!TOKEN) return status("Paste a GitHub token first.", "err");
+  if (!confirm(`Post "${id}" to X right now? (real post)`)) return;
+  status(`Dispatching "${id}"…`);
+  try {
+    const r = await gh(`/repos/${OWNER}/${REPO}/actions/workflows/${WORKFLOW}/dispatches`, {
+      method: "POST",
+      body: JSON.stringify({ ref: BRANCH, inputs: { post_id: id, dry_run: false } }),
+    });
+    if (r.status !== 204) throw new Error("dispatch failed (" + r.status + ") " + (await r.text()));
+    status(`Posting "${id}" now — check the Actions tab / X in ~1 min. The scheduled run will skip today.`, "ok");
+  } catch (e) { status(e.message, "err"); }
+}
+
+async function refresh() {
+  try {
+    await loadSchedule();
+    const meta = await loadState();
+    renderSchedule(meta);
+    renderGrid();
+    status(`${IDS.length} cards. ${QUEUED ? `Queued: ${QUEUED}.` : "No override — auto rotation."}`, "ok");
+  } catch (e) { status(e.message, "err"); }
+}
+
+$("#grid").addEventListener("click", e => {
+  const q = e.target.closest("[data-q]"), n = e.target.closest("[data-now]");
+  if (q) writeQueue(q.dataset.q);
+  if (n) postNow(n.dataset.now);
+});
+$("#save").onclick = () => { TOKEN = $("#tok").value.trim(); localStorage.setItem(tokenKey, TOKEN); whoami(); status("Token saved (browser only).", "ok"); };
+$("#forget").onclick = () => { TOKEN = ""; localStorage.removeItem(tokenKey); $("#tok").value = ""; $("#who").textContent = ""; status("Token forgotten.", ""); };
+$("#refresh").onclick = refresh;
+$("#clear").onclick = () => writeQueue(null);
+
+whoami();
+refresh();
+</script>
+</body>
+</html>

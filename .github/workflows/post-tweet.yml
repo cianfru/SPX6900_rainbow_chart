@@ -49,6 +49,9 @@ on:
           - btcgrade
           - model
 
+permissions:
+  contents: write
+
 concurrency:
   group: post-to-x
   cancel-in-progress: false
@@ -77,6 +80,19 @@ jobs:
           X_API_SECRET: ${{ secrets.X_API_SECRET }}
           X_ACCESS_TOKEN: ${{ secrets.X_ACCESS_TOKEN }}
           X_ACCESS_SECRET: ${{ secrets.X_ACCESS_SECRET }}
+
+      - name: Commit post state (queue consume + once-per-day guard)
+        if: always()
+        run: |
+          if [[ -n "$(git status --porcelain public/next-post.json public/post-state.json)" ]]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add public/next-post.json public/post-state.json
+            git commit -m "chore: post state $(date -u +%F)"
+            git push
+          else
+            echo "No post-state change to commit"
+          fi
 
       - name: Upload card preview
         if: always()
