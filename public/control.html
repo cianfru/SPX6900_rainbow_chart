@@ -60,6 +60,8 @@
   .badge { font-size: 10.5px; letter-spacing: .6px; text-transform: uppercase; padding: 2px 8px; border-radius: 999px; }
   .badge.next { background: rgba(59,130,246,.18); color: #93c5fd; }
   .badge.queued { background: rgba(245,158,11,.18); color: #fcd34d; }
+  .badge.video { background: rgba(168,85,247,.18); color: #d8b4fe; }
+  .badge.image { background: rgba(148,163,184,.16); color: #cbd5e1; }
   .card .actions { margin-left: auto; display: flex; gap: 6px; }
   .card .ptext {
     white-space: pre-wrap; word-break: break-word; font-size: 13px; line-height: 1.5;
@@ -123,7 +125,7 @@ const $ = s => document.querySelector(s);
 const status = (msg, cls = "") => { const e = $("#status"); e.textContent = msg; e.className = "status " + cls; };
 const pwKey = "spx_control_pw";
 let PW = "";
-let QUEUED = null, NEXT = null, IDS = [], UPCOMING = [], TEXTS = {};
+let QUEUED = null, NEXT = null, IDS = [], UPCOMING = [], TEXTS = {}, MEDIA = {};
 const esc = s => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
 // All privileged actions go through the password-gated serverless function.
@@ -178,7 +180,7 @@ async function loadSchedule() {
   const r = await fetch("/api/schedule?days=8");
   if (!r.ok) throw new Error("schedule endpoint failed (" + r.status + ")");
   const j = await r.json();
-  IDS = j.ids || []; UPCOMING = j.upcoming || []; TEXTS = j.texts || {};
+  IDS = j.ids || []; UPCOMING = j.upcoming || []; TEXTS = j.texts || {}; MEDIA = j.media || {};
 }
 
 function renderSchedule(meta) {
@@ -193,20 +195,23 @@ function renderSchedule(meta) {
 }
 
 function card(id) {
-  const isNext = id === NEXT, isQ = id === QUEUED;
+  const isNext = id === NEXT, isQ = id === QUEUED, isVid = MEDIA[id] === "video";
   const el = document.createElement("div");
   el.className = "card" + (isQ ? " queued" : isNext ? " next" : "");
+  const mediaBadge = isVid ? '<span class="badge video">🎥 video</span>' : '<span class="badge image">🖼 image</span>';
+  const cc = isVid ? "still preview · posts as a ~10s video" : "posts as this static image";
   el.innerHTML = `
     <img loading="lazy" src="/api/og?post=${encodeURIComponent(id)}" alt="${id}" />
     <div class="meta">
       <span class="id">${id}</span>
+      ${mediaBadge}
       ${isQ ? '<span class="badge queued">queued</span>' : isNext ? '<span class="badge next">next auto</span>' : ""}
       <span class="actions">
         <button data-q="${id}">Queue</button>
         <button class="primary" data-now="${id}">Post now</button>
       </span>
     </div>
-    <div class="ptext">${esc(TEXTS[id] || "")}<span class="cc">+ this card image · video for animated cards</span></div>`;
+    <div class="ptext">${esc(TEXTS[id] || "")}<span class="cc">${cc}</span></div>`;
   return el;
 }
 

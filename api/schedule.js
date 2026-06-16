@@ -9,7 +9,7 @@ const DAY = 86400000;
 
 export default async function handler(req, res) {
   const days = Math.min(30, Math.max(1, parseInt(new URL(req.url, "http://x").searchParams.get("days") || "10", 10)));
-  let ids = [], upcoming = [], texts = {};
+  let ids = [], upcoming = [], texts = {}, media = {};
   try {
     const price = (await fetchLivePrice())?.price ?? DEFAULT_RAW.at(-1).price;
     const opts = {};
@@ -17,8 +17,15 @@ export default async function handler(req, res) {
     try { opts.coins = await fetchMajors(); } catch { /* skip gated coin posts */ }
     const stats = computeStats(price, undefined, opts);
     ids = allIds(stats);
-    // The exact tweet copy each card posts with (same builder the bot uses).
-    texts = Object.fromEntries(ids.map(id => [id, buildPost(stats, new Date(), id).text]));
+    // The exact tweet copy each card posts with (same builder the bot uses), plus
+    // whether it posts as a video (rainbow + line cards) or a static image — same
+    // rule as scripts/bot/media.mjs.
+    const VIDEO = new Set(["rainbow", "line"]);
+    for (const id of ids) {
+      const p = buildPost(stats, new Date(), id);
+      texts[id] = p.text;
+      media[id] = VIDEO.has(p.card?.type) ? "video" : "image";
+    }
     const base = new Date(); base.setUTCHours(13, 0, 0, 0); // the daily cron slot
     for (let i = 0; i < days; i++) {
       const d = new Date(base.getTime() + i * DAY);
@@ -30,5 +37,5 @@ export default async function handler(req, res) {
   }
   res.setHeader("Content-Type", "application/json");
   res.setHeader("Cache-Control", "s-maxage=300, stale-while-revalidate=600");
-  res.status(200).json({ ids, upcoming, texts, generatedAt: new Date().toISOString() });
+  res.status(200).json({ ids, upcoming, texts, media, generatedAt: new Date().toISOString() });
 }
