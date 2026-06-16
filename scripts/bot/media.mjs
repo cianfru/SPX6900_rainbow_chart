@@ -21,18 +21,44 @@ export async function buildMedia(post, stats, { video = false, out = "bot-previe
   return { data: renderPostCard(post, stats), mediaType: "image/png", kind: "image" };
 }
 
-// Upload media + tweet. If a video upload fails, fall back to the PNG card so a
-// post still goes out. Returns the tweet id.
-export async function postWithMedia(client, post, stats, media) {
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+// X's media endpoint throws transient 5xx/429s (we've seen 503s on video upload);
+// those are worth retrying rather than letting them downgrade the post to a PNG.
+export const isTransient = e => {
+  const c = Number(e?.code ?? e?.status);
+  return c === 429 || (c >= 500 && c < 600);
+};
+
+// Upload media, retrying on transient errors with exponential backoff.
+export async function uploadWithRetry(client, data, mediaType, { tries = 4, baseMs = 2000 } = {}) {
+  let last;
+  for (let i = 0; i < tries; i++) {
+    try {
+      return await client.v2.uploadMedia(data, { media_type: mediaType });
+    } catch (e) {
+      last = e;
+      if (!isTransient(e) || i === tries - 1) throw e;
+      const wait = baseMs * 2 ** i;
+      console.error(`media upload attempt ${i + 1}/${tries} failed (code ${e.code ?? e.status ?? "?"}) — retrying in ${wait}ms`);
+      await sleep(wait);
+    }
+  }
+  throw last;
+}
+
+// Upload media + tweet. Retries the (video) upload on transient X errors; only if
+// it still fails does it fall back to the PNG card so a post always goes out.
+export async function postWithMedia(client, post, stats, media, opts = {}) {
   try {
-    const id = await client.v2.uploadMedia(media.path ?? media.data, { media_type: media.mediaType });
+    const id = await uploadWithRetry(client, media.path ?? media.data, media.mediaType,
+      { tries: media.kind === "video" ? 4 : 2, ...opts });
     const res = await client.v2.tweet({ text: post.text, media: { media_ids: [id] } });
     return res?.data?.id;
   } catch (e) {
     if (media.kind !== "video") throw e;
-    console.error("video upload failed → posting PNG instead:", e.message);
+    console.error("video upload failed after retries → posting PNG instead:", e.message);
     const png = renderPostCard(post, stats);
-    const id = await client.v2.uploadMedia(png, { media_type: "image/png" });
+    const id = await uploadWithRetry(client, png, "image/png", { tries: 3, ...opts });
     const res = await client.v2.tweet({ text: post.text, media: { media_ids: [id] } });
     return res?.data?.id;
   }
