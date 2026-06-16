@@ -145,18 +145,22 @@ NFA`,
     };
   },
 
-  // 7 — time spent this cheap (band histogram)
-  s => ({
-    id: "timeinband",
-    text:
-`⏳ SPX6900 has closed in the ${s.band.l} band or cheaper on ~${Math.round(s.cheaperFrac * 100)}% of all days in its history.
-Extremes are rare; most of life is spent mid-bands. Today: ${BAND_EMOJI[s.bandIndex]} ${s.band.l}.
+  // 7 — time spent this cheap (band histogram). Bars are the share of history
+  // in each band (the bundled series is ~weekly, so "% of history", not "days").
+  s => {
+    const total = s.series.bandCounts.reduce((a, b) => a + b, 0) || 1;
+    return {
+      id: "timeinband",
+      text:
+`⏳ SPX6900 has traded in the ${s.band.l} band or cheaper for ~${Math.round(s.cheaperFrac * 100)}% of its history.
+Extremes are rare; most of its life sits in the middle bands. Today: ${BAND_EMOJI[s.bandIndex]} ${s.band.l}.
 NFA`,
-    card: { type: "bar", spec: {
-      title: "Days spent in each valuation band", headline: `${Math.round(s.cheaperFrac * 100)}% this cheap or below`, accent: s.band.c,
-      bars: s.series.bandCounts.map((c, i) => ({ label: BAND_SHORT[i], value: c, text: String(c), color: M.BAND_LABELS[i].c, outline: i === s.bandIndex, dim: c === 0 })),
-    } },
-  }),
+      card: { type: "bar", spec: {
+        title: "Time spent in each valuation band", headline: `${Math.round(s.cheaperFrac * 100)}% this cheap or below`, accent: s.band.c,
+        bars: s.series.bandCounts.map((c, i) => ({ label: BAND_SHORT[i], value: c, text: `${Math.round(c / total * 100)}%`, color: M.BAND_LABELS[i].c, outline: i === s.bandIndex, dim: c === 0 })),
+      } },
+    };
+  },
 
   // 8 — diamond-adjusted "real" market cap (locked vs float, stacked)
   s => s.supply && ({
