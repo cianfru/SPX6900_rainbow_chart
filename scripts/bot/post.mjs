@@ -14,6 +14,7 @@
 import { writeFileSync } from "node:fs";
 import { fetchLivePrice, fetchMajors, fetchHistory, computeStats } from "./stats.mjs";
 import { renderPostCard } from "./charts.mjs";
+import { buildMedia, postWithMedia } from "./media.mjs";
 import { buildPost, allIds } from "./posts.mjs";
 
 const arg = name => { const a = process.argv.find(x => x.startsWith(`--${name}=`)); return a ? a.split("=")[1] : null; };
@@ -22,6 +23,8 @@ const overrideId = cliPostId || process.env.BOT_POST || null; // BOT_POST select
 const renderAll = process.argv.includes("--all");
 // Post text only, no image — used to A/B the per-post cost of attaching media.
 const noMedia = process.argv.includes("--no-media") || process.env.BOT_NO_MEDIA === "1";
+// Rainbow cards post as an animated mp4 unless disabled (BOT_NO_VIDEO=1).
+const useVideo = !noMedia && process.env.BOT_NO_VIDEO !== "1";
 
 const creds = {
   appKey: (process.env.X_API_KEY || "").trim(),
@@ -84,12 +87,16 @@ if (renderAll) {
 }
 
 const post = buildPost(stats, new Date(), overrideId);
-const png = renderPostCard(post, stats);
 console.log(`price ${live.price} (${live.source}) · post "${post.id}" · ${post.text.length} chars`);
 
+// Animated mp4 for rainbow cards (hero valuation), static PNG otherwise; null = text only.
+const media = noMedia ? null : await buildMedia(post, stats, { video: useVideo });
+
 if (dryRun) {
-  writeFileSync("bot-preview.png", png);
-  console.log(`\n[DRY RUN — nothing posted]\n${"-".repeat(44)}\n${post.text}\n${"-".repeat(44)}\ncard -> bot-preview.png (${png.length} bytes)`);
+  let note = "text only, no media";
+  if (media?.kind === "video") note = `card -> ${media.path}`;
+  else if (media) { writeFileSync("bot-preview.png", media.data); note = `card -> bot-preview.png (${media.data.length} bytes)`; }
+  console.log(`\n[DRY RUN — nothing posted]\n${"-".repeat(44)}\n${post.text}\n${"-".repeat(44)}\n${note}`);
   if (!hasCreds) console.log("Reason: X credentials not set. Add the four X_* secrets to post for real.");
   process.exit(0);
 }
@@ -97,18 +104,14 @@ if (dryRun) {
 const { TwitterApi } = await import("twitter-api-v2");
 const client = new TwitterApi(creds);
 try {
-  let res;
   if (noMedia) {
-    res = await client.v2.tweet({ text: post.text });
-    console.log(`Posted ✓ (text only, no media) "${post.id}" tweet id ${res?.data?.id}`);
+    const res = await client.v2.tweet({ text: post.text });
+    console.log(`Posted ✓ (text only) "${post.id}" tweet id ${res?.data?.id}`);
   } else {
-    // Use the v2 chunked media endpoint (/2/media/upload). The legacy v1.1
-    // media/upload endpoint now returns 403 on the current X API access tier.
-    const mediaId = await client.v2.uploadMedia(png, { media_type: "image/png" });
-    res = await client.v2.tweet({ text: post.text, media: { media_ids: [mediaId] } });
-    console.log(`Posted ✓ "${post.id}" tweet id ${res?.data?.id}`);
+    const id = await postWithMedia(client, post, stats, media);
+    console.log(`Posted ✓ "${post.id}" (${media.kind}) tweet id ${id}`);
   }
 } catch (e) {
-  console.error(`POST FAILED ✗ at ${e.request?.path?.includes("media") ? "media upload" : "tweet"} — code ${e.code ?? "?"}: ${JSON.stringify(e.data?.errors ?? e.data ?? e.message)}`);
+  console.error(`POST FAILED ✗ — code ${e.code ?? "?"}: ${JSON.stringify(e.data?.errors ?? e.data ?? e.message)}`);
   process.exit(1);
 }
