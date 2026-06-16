@@ -61,6 +61,11 @@
   .badge.next { background: rgba(59,130,246,.18); color: #93c5fd; }
   .badge.queued { background: rgba(245,158,11,.18); color: #fcd34d; }
   .card .actions { margin-left: auto; display: flex; gap: 6px; }
+  .card .ptext {
+    white-space: pre-wrap; word-break: break-word; font-size: 13px; line-height: 1.5;
+    color: #cbd5e1; padding: 10px 12px 14px; border-top: 1px solid rgba(255,255,255,.07);
+  }
+  .card .ptext .cc { display: block; margin-top: 6px; font-size: 11px; color: #475569; }
   a.home { color: #64748b; font-size: 12px; text-decoration: none; }
 
   /* Gate */
@@ -118,7 +123,8 @@ const $ = s => document.querySelector(s);
 const status = (msg, cls = "") => { const e = $("#status"); e.textContent = msg; e.className = "status " + cls; };
 const pwKey = "spx_control_pw";
 let PW = "";
-let QUEUED = null, NEXT = null, IDS = [], UPCOMING = [];
+let QUEUED = null, NEXT = null, IDS = [], UPCOMING = [], TEXTS = {};
+const esc = s => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
 // All privileged actions go through the password-gated serverless function.
 async function action(body) {
@@ -172,7 +178,7 @@ async function loadSchedule() {
   const r = await fetch("/api/schedule?days=8");
   if (!r.ok) throw new Error("schedule endpoint failed (" + r.status + ")");
   const j = await r.json();
-  IDS = j.ids || []; UPCOMING = j.upcoming || [];
+  IDS = j.ids || []; UPCOMING = j.upcoming || []; TEXTS = j.texts || {};
 }
 
 function renderSchedule(meta) {
@@ -199,7 +205,8 @@ function card(id) {
         <button data-q="${id}">Queue</button>
         <button class="primary" data-now="${id}">Post now</button>
       </span>
-    </div>`;
+    </div>
+    <div class="ptext">${esc(TEXTS[id] || "")}<span class="cc">+ this card image · video for animated cards</span></div>`;
   return el;
 }
 
