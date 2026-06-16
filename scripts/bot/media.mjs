@@ -2,12 +2,17 @@
 // on), else the static PNG. Falls back to PNG if the video render fails. Kept
 // separate from charts.mjs so the Vercel OG function never pulls in ffmpeg.
 import { renderPostCard } from "./charts.mjs";
-import { renderRainbowVideo } from "./video.mjs";
+import { renderRainbowVideo, renderLineVideo } from "./video.mjs";
 
+// Card types we can animate today: the rainbow hero + any line/area card.
+// bar/donut/stack/model stay static PNG (no animator yet).
 export async function buildMedia(post, stats, { video = false, out = "bot-preview.mp4" } = {}) {
-  if (video && post.card?.type === "rainbow") {
+  const type = post.card?.type;
+  if (video && (type === "rainbow" || type === "line")) {
     try {
-      const path = await renderRainbowVideo({ price: stats.price, out });
+      const path = type === "rainbow"
+        ? await renderRainbowVideo({ price: stats.price, out })
+        : await renderLineVideo({ spec: { ...post.card.spec, date: stats.date }, out });
       return { path, mediaType: "video/mp4", kind: "video" };
     } catch (e) {
       console.error("video render failed → PNG fallback:", e.message);

@@ -463,13 +463,18 @@ const BULLISH = new Set([
   "milestones", "memecoins", "btcgrade", "cycle", "cyclepeak", "cycleclock",
   "targets", "rally", "alltime",
 ]);
+// Per-post rotation weight (copies per cycle). The flagship rainbow is weighted
+// up so the site's main chart surfaces ~weekly (≈3×/month); bullish posts 2×.
+const WEIGHT = { valuation: 3 };
+const weightOf = id => WEIGHT[id] ?? (BULLISH.has(id) ? 2 : 1);
 
-// Build the weighted rotation order: pass 0 includes every available post (in
-// order), pass 1 appends the bullish ones again. So bullish topics appear twice
-// per cycle and neutral ones once — without ever landing on consecutive days.
+// Build the weighted rotation order in round-robin passes (pass k includes posts
+// whose weight > k). So higher-weight topics recur more often across the cycle
+// without ever landing on consecutive days.
 function rotation(built) {
+  const maxW = Math.max(1, ...built.map(p => weightOf(p.id)));
   const rota = [];
-  for (let pass = 0; pass < 2; pass++) for (const p of built) if (pass === 0 || BULLISH.has(p.id)) rota.push(p);
+  for (let pass = 0; pass < maxW; pass++) for (const p of built) if (weightOf(p.id) > pass) rota.push(p);
   return rota;
 }
 
