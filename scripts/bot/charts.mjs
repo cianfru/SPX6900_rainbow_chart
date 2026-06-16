@@ -63,6 +63,9 @@ export function lineCardSvg(spec, opts = {}) {
     ? mT + ((Math.log(yMax) - Math.log(Math.max(y, 1e-9))) / ((Math.log(yMax) - Math.log(yMin)) || 1)) * pH
     : mT + ((yMax - y) / ((yMax - yMin) || 1)) * pH;
   const path = pts => pts.map(([x, y]) => `${X(x).toFixed(1)},${Y(y).toFixed(1)}`).join(" ");
+  // Reveal as a single left→right sweep by x (timestamp), so earlier series (e.g.
+  // actual history) finish before later ones (e.g. the forward projection) start.
+  const xCut = reveal >= 1 ? Infinity : xMin + reveal * (xMax - xMin);
 
   // Soft vertical gradients for area fills + a glow blur for the marker.
   let defs = `<filter id="glow" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="6"/></filter>`;
@@ -84,19 +87,23 @@ export function lineCardSvg(spec, opts = {}) {
     grid += `<text x="${X(t.ts).toFixed(1)}" y="${H - 50}" fill="#64748b" font-size="20" text-anchor="middle" font-family="sans-serif">${t.label}</text>`;
   }
 
-  // bear–bull cone (drawn behind the lines)
+  // bear–bull cone (drawn behind the lines), clipped to the reveal sweep
   let cone = "";
   if (spec.cone) {
-    const top = spec.cone.hi.map(([x, y]) => `${X(x).toFixed(1)},${Y(y).toFixed(1)}`);
-    const bot = spec.cone.lo.map(([x, y]) => `${X(x).toFixed(1)},${Y(y).toFixed(1)}`).reverse();
-    cone = `<polygon points="${top.join(" ")} ${bot.join(" ")}" fill="${spec.cone.color}" fill-opacity="${spec.cone.opacity ?? 0.15}"/>`;
+    const hi = spec.cone.hi.filter(([x]) => x <= xCut), lo = spec.cone.lo.filter(([x]) => x <= xCut);
+    if (hi.length >= 2 && lo.length >= 2) {
+      const top = hi.map(([x, y]) => `${X(x).toFixed(1)},${Y(y).toFixed(1)}`);
+      const bot = lo.map(([x, y]) => `${X(x).toFixed(1)},${Y(y).toFixed(1)}`).reverse();
+      cone = `<polygon points="${top.join(" ")} ${bot.join(" ")}" fill="${spec.cone.color}" fill-opacity="${spec.cone.opacity ?? 0.15}"/>`;
+    }
   }
 
   let plot = "";
   for (let i = 0; i < series.length; i++) {
     const s = series[i];
     let pts = s.pts.filter(([, y]) => !spec.yLog || y > 0);
-    if (reveal < 1) pts = pts.slice(0, Math.max(2, Math.ceil(pts.length * reveal)));
+    if (reveal < 1) pts = pts.filter(([x]) => x <= xCut);
+    if (pts.length < 2) continue; // this series hasn't been reached by the sweep yet
     if (s.fill) {
       const base = Y(spec.fillBase ?? yMin).toFixed(1);
       plot += `<polygon points="${X(pts[0][0]).toFixed(1)},${base} ${path(pts)} ${X(pts.at(-1)[0]).toFixed(1)},${base}" fill="url(#fill${i})"/>`;
@@ -120,11 +127,15 @@ export function lineCardSvg(spec, opts = {}) {
 
   let marker = "";
   let mx, my, mc = spec.marker?.color || spec.accent;
-  if (reveal < 1 && series[0]) {
-    // ride the leading edge of the primary series during a draw-in
-    const p0 = series[0].pts.filter(([, y]) => !spec.yLog || y > 0);
-    const lead = p0.slice(0, Math.max(2, Math.ceil(p0.length * reveal))).at(-1);
-    mx = X(lead[0]); my = Y(lead[1]); mc = series[0].color || mc;
+  if (reveal < 1) {
+    // ride the global leading edge of the sweep — the revealed point with the
+    // largest x across all series (e.g. green history first, then orange proj)
+    let lead = null;
+    for (const s of series) {
+      const last = s.pts.filter(([x, y]) => (!spec.yLog || y > 0) && x <= xCut).at(-1);
+      if (last && (!lead || last[0] > lead[0])) { lead = last; mc = s.color || mc; }
+    }
+    if (lead) { mx = X(lead[0]); my = Y(lead[1]); }
   } else if (spec.marker) {
     mx = X(spec.marker.x); my = Y(spec.marker.y);
   }
