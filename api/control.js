@@ -35,6 +35,9 @@ export default async function handler(req, res) {
   const { password, action, id } = await readBody(req);
   if (password !== process.env.CONTROL_PASSWORD) { res.status(401).json({ error: "Wrong password." }); return; }
 
+  // Gate unlock: password already validated above, so just acknowledge.
+  if (action === "verify") { res.status(200).json({ ok: true }); return; }
+
   try {
     if (action === "queue" || action === "clear") {
       const newId = action === "clear" ? null : (id || null);
