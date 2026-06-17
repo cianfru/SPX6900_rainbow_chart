@@ -8,6 +8,8 @@
 // Pick a specific topic with  --post=<id>  (local, implies dry-run for safe testing)
 // or  BOT_POST=<id>  (used by the workflow to publish a chosen topic for real).
 // Render every topic to bot-preview-<id>.png with  --all  (implies dry-run).
+// Verify the media upload reaches X without posting:  --verify-media  (needs the
+// secrets; uploads the card, prints the media_id, never tweets).
 //
 // Required secrets to actually post (OAuth 1.0a user context for the bot account):
 //   X_API_KEY  X_API_SECRET  X_ACCESS_TOKEN  X_ACCESS_SECRET
@@ -16,7 +18,7 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { fetchLivePrice, fetchMajors, fetchHistory, computeStats } from "./stats.mjs";
 import { renderPostCard } from "./charts.mjs";
-import { buildMedia, postWithMedia } from "./media.mjs";
+import { buildMedia, postWithMedia, uploadWithRetry } from "./media.mjs";
 import { buildPost, allIds } from "./posts.mjs";
 
 // Control-page state lives in public/ so it deploys with the site and the daily
@@ -48,6 +50,10 @@ const creds = {
 };
 const hasCreds = Object.values(creds).every(Boolean);
 const checkOnly = process.argv.includes("--check") || process.env.BOT_CHECK === "1";
+// Verify the media UPLOAD works against X without posting: builds the card,
+// uploads it (real v1.1 chunked path for video), prints the media_id, then exits
+// WITHOUT tweeting. Nothing shows on the timeline; the media expires unused (~24h).
+const verifyMedia = process.argv.includes("--verify-media") || process.env.BOT_VERIFY_MEDIA === "1";
 const dryRun = process.env.DRY_RUN === "1" || process.argv.includes("--dry-run") || !!cliPostId || renderAll || !hasCreds;
 
 // Auth check: verify the credentials and report which account they post as. No posting.
@@ -105,6 +111,27 @@ console.log(`price ${live.price} (${live.source}) · post "${post.id}" · ${post
 
 // Animated mp4 for rainbow cards (hero valuation), static PNG otherwise; null = text only.
 const media = noMedia ? null : await buildMedia(post, stats, { video: useVideo, portrait: true });
+
+// Upload-only verification: prove the media reaches X (the v1.1 chunked video
+// path we fixed) without creating a post. Hits X but never tweets.
+if (verifyMedia) {
+  if (!hasCreds) { console.error("✗ --verify-media needs the four X_* secrets set."); process.exit(1); }
+  if (!media) { console.error("✗ Nothing to verify — media is off (--no-media)."); process.exit(1); }
+  const { TwitterApi } = await import("twitter-api-v2");
+  const client = new TwitterApi(creds);
+  try {
+    const t0 = Date.now();
+    const mediaId = await uploadWithRetry(client, media.path ?? media.data, media.mediaType,
+      { tries: media.kind === "video" ? 4 : 2 });
+    const secs = ((Date.now() - t0) / 1000).toFixed(1);
+    console.log(`VERIFY OK ✓ — uploaded "${post.id}" ${media.kind} (${media.mediaType}) to X in ${secs}s · media_id ${mediaId}`);
+    console.log("No tweet was posted. The upload proves the media path works; the unattached media expires in ~24h.");
+    process.exit(0);
+  } catch (e) {
+    console.error(`VERIFY FAILED ✗ — code ${e.code ?? "?"}: ${JSON.stringify(e.data?.errors ?? e.data ?? e.message)}`);
+    process.exit(1);
+  }
+}
 
 if (dryRun) {
   let note = "text only, no media";

@@ -18,6 +18,10 @@ on:
         description: "Auth check only (verify credentials, no post)"
         type: boolean
         default: false
+      verify_media:
+        description: "Upload-only test: send the card to X, print media_id, never tweet (pick a post_id below)"
+        type: boolean
+        default: false
       no_media:
         description: "Post text only, no image (cost A/B test)"
         type: boolean
@@ -48,6 +52,7 @@ on:
           - memecoins
           - btcgrade
           - model
+          - sp500
 
 permissions:
   contents: write
@@ -74,6 +79,7 @@ jobs:
         env:
           DRY_RUN: ${{ (github.event_name == 'workflow_dispatch' && inputs.dry_run) && '1' || '' }}
           BOT_CHECK: ${{ (github.event_name == 'workflow_dispatch' && inputs.check) && '1' || '' }}
+          BOT_VERIFY_MEDIA: ${{ (github.event_name == 'workflow_dispatch' && inputs.verify_media) && '1' || '' }}
           BOT_NO_MEDIA: ${{ (github.event_name == 'workflow_dispatch' && inputs.no_media) && '1' || '' }}
           BOT_POST: ${{ (github.event_name == 'workflow_dispatch' && inputs.post_id != 'auto') && inputs.post_id || '' }}
           X_API_KEY: ${{ secrets.X_API_KEY }}
