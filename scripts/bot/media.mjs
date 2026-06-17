@@ -35,11 +35,18 @@ export const isTransient = e => {
 };
 
 // Upload media, retrying on transient errors with exponential backoff.
+// Video goes through the v1.1 chunked upload endpoint: X's v2 media endpoint
+// reliably 503s on video for our app tier (images upload fine on v2), and the
+// v1.1 chunked path is the battle-tested one. The resulting media_id attaches to
+// a v2 tweet either way. Images stay on v2 since that already works.
 export async function uploadWithRetry(client, data, mediaType, { tries = 4, baseMs = 2000 } = {}) {
+  const upload = () => mediaType === "video/mp4"
+    ? client.v1.uploadMedia(data, { mimeType: mediaType })
+    : client.v2.uploadMedia(data, { media_type: mediaType });
   let last;
   for (let i = 0; i < tries; i++) {
     try {
-      return await client.v2.uploadMedia(data, { media_type: mediaType });
+      return await upload();
     } catch (e) {
       last = e;
       if (!isTransient(e) || i === tries - 1) throw e;
