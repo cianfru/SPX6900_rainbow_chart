@@ -17,12 +17,12 @@ const ease = t => (t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2); // ea
 
 // Generic encoder: svgAt(reveal, pulse) -> svg string. Draw phase passes
 // reveal 0..1 (pulse null); hold phase passes reveal 1 + pulse 0..1.
-async function renderVideo({ svgAt, draw = 7, hold = 3, fps = 30, out = "bot-video.mp4" }) {
+async function renderVideo({ svgAt, draw = 7, hold = 3, fps = 30, out = "bot-video.mp4", width = 1200 }) {
   const dir = `frames-${process.pid}-${Date.now()}`;
   rmSync(dir, { recursive: true, force: true });
   mkdirSync(dir);
   try {
-    const render = svg => new Resvg(svg, { fitTo: { mode: "width", value: 1200 } }).render().asPng();
+    const render = svg => new Resvg(svg, { fitTo: { mode: "width", value: width } }).render().asPng();
     let f = 0;
     const save = b => writeFileSync(`${dir}/f${String(f++).padStart(4, "0")}.png`, b);
     const drawN = Math.round(fps * draw), holdN = Math.round(fps * hold);
@@ -41,11 +41,11 @@ async function renderVideo({ svgAt, draw = 7, hold = 3, fps = 30, out = "bot-vid
 
 // ~10s by default (7s draw-in + 3s hold). Both throw if ffmpeg/resvg fail so
 // callers can fall back to a PNG.
-export function renderRainbowVideo({ price, draw = 7, hold = 3, fps = 30, out = "bot-video.mp4" }) {
-  return renderVideo({ draw, hold, fps, out, svgAt: (r, p) => rainbowSvg(price, undefined, p == null ? { reveal: r } : { reveal: 1, pulse: p }) });
+export function renderRainbowVideo({ price, draw = 7, hold = 3, fps = 30, out = "bot-video.mp4", dims = {} }) {
+  return renderVideo({ draw, hold, fps, out, width: dims.W ?? 1200, svgAt: (r, p) => rainbowSvg(price, undefined, p == null ? { reveal: r, ...dims } : { reveal: 1, pulse: p, ...dims }) });
 }
-export function renderLineVideo({ spec, draw = 7, hold = 3, fps = 30, out = "bot-video.mp4" }) {
-  return renderVideo({ draw, hold, fps, out, svgAt: (r, p) => lineCardSvg(spec, p == null ? { reveal: r } : { reveal: 1, pulse: p }) });
+export function renderLineVideo({ spec, draw = 7, hold = 3, fps = 30, out = "bot-video.mp4", dims = {} }) {
+  return renderVideo({ draw, hold, fps, out, width: dims.W ?? 1200, svgAt: (r, p) => lineCardSvg(spec, p == null ? { reveal: r, ...dims } : { reveal: 1, pulse: p, ...dims }) });
 }
 // Cube card: piles stack up + the ×label rolls (draw), then the faces shimmer (hold).
 export function renderCubeVideo({ spec, draw = 7, hold = 3, fps = 30, out = "bot-video.mp4" }) {
@@ -53,8 +53,8 @@ export function renderCubeVideo({ spec, draw = 7, hold = 3, fps = 30, out = "bot
 }
 // Scale card: camera zooms out from the origin cube to the full field, ×label
 // rolling 1→huge (draw), then the origin ring pulses (hold).
-export function renderScaleVideo({ spec, draw = 8, hold = 2, fps = 30, out = "bot-video.mp4" }) {
-  return renderVideo({ draw, hold, fps, out, svgAt: (r, p) => scaleCardSvg(spec, p == null ? { reveal: r } : { reveal: 1, pulse: p }) });
+export function renderScaleVideo({ spec, draw = 8, hold = 2, fps = 30, out = "bot-video.mp4", dims = {} }) {
+  return renderVideo({ draw, hold, fps, out, width: dims.W ?? 1200, svgAt: (r, p) => scaleCardSvg(spec, p == null ? { reveal: r, ...dims } : { reveal: 1, pulse: p, ...dims }) });
 }
 
 // CLI: node scripts/bot/video.mjs [--draw=7 --hold=3 --out=rainbow.mp4]

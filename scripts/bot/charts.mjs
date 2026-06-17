@@ -8,7 +8,7 @@ import { renderRainbowCard } from "./rainbow-card.mjs";
 const W = 1200, H = 630, mL = 88, mR = 48, mT = 188, mB = 76;
 const pW = W - mL - mR, pH = H - mT - mB;
 const esc = s => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-const png = svg => new Resvg(svg, { fitTo: { mode: "width", value: W } }).render().asPng();
+const png = (svg, w = W) => new Resvg(svg, { fitTo: { mode: "width", value: w } }).render().asPng();
 
 function chromeSvg(spec, inner, extraDefs = "", dims) {
   const DW = dims?.W ?? W, DH = dims?.H ?? H;     // default = landscape card
@@ -42,7 +42,11 @@ function yearTicks(xMin, xMax) {
   return out;
 }
 
-export const renderLineCard = spec => png(lineCardSvg(spec));
+export const renderLineCard = (spec, opts = {}) => png(lineCardSvg(spec, opts), opts.W ?? W);
+
+// Posted-media portrait canvas (4:5) for mobile feeds. OG/link images stay landscape.
+export const PORTRAIT = { W: 1080, H: 1350 };
+const PORTRAIT_TYPES = new Set(["rainbow", "line", "scale", "model"]);
 
 // Line/area card as an SVG string. opts.reveal (0..1) draws the series in
 // progressively for video (marker rides the leading edge); opts.pulse (0..1)
@@ -50,6 +54,7 @@ export const renderLineCard = spec => png(lineCardSvg(spec));
 // full static card unchanged.
 export function lineCardSvg(spec, opts = {}) {
   const reveal = opts.reveal ?? 1;
+  const DW = opts.W ?? W, DH = opts.H ?? H, PW = DW - mL - mR, PH = DH - mT - mB; // canvas (default landscape)
   const series = spec.series;
   const xs = [], ys = [];
   for (const s of series) for (const [x, y] of s.pts) { xs.push(x); if (!spec.yLog || y > 0) ys.push(y); }
@@ -59,10 +64,10 @@ export function lineCardSvg(spec, opts = {}) {
   const xMin = Math.min(...xs), xMax = Math.max(...xs);
   let yMin = spec.yMin ?? Math.min(...ys), yMax = spec.yMax ?? Math.max(...ys);
   if (yMin === yMax) { yMax = yMin + 1; }
-  const X = x => mL + ((x - xMin) / ((xMax - xMin) || 1)) * pW;
+  const X = x => mL + ((x - xMin) / ((xMax - xMin) || 1)) * PW;
   const Y = y => spec.yLog
-    ? mT + ((Math.log(yMax) - Math.log(Math.max(y, 1e-9))) / ((Math.log(yMax) - Math.log(yMin)) || 1)) * pH
-    : mT + ((yMax - y) / ((yMax - yMin) || 1)) * pH;
+    ? mT + ((Math.log(yMax) - Math.log(Math.max(y, 1e-9))) / ((Math.log(yMax) - Math.log(yMin)) || 1)) * PH
+    : mT + ((yMax - y) / ((yMax - yMin) || 1)) * PH;
   const path = pts => pts.map(([x, y]) => `${X(x).toFixed(1)},${Y(y).toFixed(1)}`).join(" ");
   // Reveal as a single left→right sweep by x (timestamp), so earlier series (e.g.
   // actual history) finish before later ones (e.g. the forward projection) start.
@@ -81,11 +86,11 @@ export function lineCardSvg(spec, opts = {}) {
   for (const t of (spec.yTicks || [])) {
     if (t.v < Math.min(yMin, yMax) || t.v > Math.max(yMin, yMax)) continue;
     const yy = Y(t.v).toFixed(1);
-    grid += `<line x1="${mL}" y1="${yy}" x2="${W - mR}" y2="${yy}" stroke="rgba(255,255,255,0.07)"/>`;
+    grid += `<line x1="${mL}" y1="${yy}" x2="${DW - mR}" y2="${yy}" stroke="rgba(255,255,255,0.07)"/>`;
     grid += `<text x="${mL - 12}" y="${(+yy + 6).toFixed(1)}" fill="#64748b" font-size="20" text-anchor="end" font-family="sans-serif">${esc(t.label)}</text>`;
   }
   for (const t of yearTicks(xMin, xMax)) {
-    grid += `<text x="${X(t.ts).toFixed(1)}" y="${H - 50}" fill="#64748b" font-size="20" text-anchor="middle" font-family="sans-serif">${t.label}</text>`;
+    grid += `<text x="${X(t.ts).toFixed(1)}" y="${DH - 50}" fill="#64748b" font-size="20" text-anchor="middle" font-family="sans-serif">${t.label}</text>`;
   }
 
   // bear–bull cone (drawn behind the lines), clipped to the reveal sweep
@@ -119,11 +124,11 @@ export function lineCardSvg(spec, opts = {}) {
   let lastLabelY = -1e9;
   for (const h of hlSorted) {
     const yy = h.py.toFixed(1);
-    hl += `<line x1="${mL}" y1="${yy}" x2="${W - mR}" y2="${yy}" stroke="${h.color}" stroke-opacity="0.8" stroke-width="2"${h.dash === false ? "" : ` stroke-dasharray="6 6"`}/>`;
+    hl += `<line x1="${mL}" y1="${yy}" x2="${DW - mR}" y2="${yy}" stroke="${h.color}" stroke-opacity="0.8" stroke-width="2"${h.dash === false ? "" : ` stroke-dasharray="6 6"`}/>`;
     let ly = h.py - 9;
     if (ly < lastLabelY + 27) ly = lastLabelY + 27; // keep labels from overlapping
     lastLabelY = ly;
-    hl += `<text x="${W - mR - 6}" y="${ly.toFixed(1)}" fill="${h.color}" font-size="21" font-weight="700" text-anchor="end" font-family="sans-serif">${esc(h.label)}</text>`;
+    hl += `<text x="${DW - mR - 6}" y="${ly.toFixed(1)}" fill="${h.color}" font-size="21" font-weight="700" text-anchor="end" font-family="sans-serif">${esc(h.label)}</text>`;
   }
 
   let marker = "";
@@ -162,7 +167,7 @@ export function lineCardSvg(spec, opts = {}) {
     });
   }
 
-  return chromeSvg(spec, grid + cone + plot + hl + marker + legend, defs);
+  return chromeSvg(spec, grid + cone + plot + hl + marker + legend, defs, { W: DW, H: DH });
 }
 
 export function renderBarCard(spec) {
@@ -247,52 +252,55 @@ export function renderStackBar(spec) {
   return chrome(spec, body, defs);
 }
 
-// Render a built post's card to a 1200x630 PNG. Shared by the X bot (post.mjs)
-// and the per-tab social image endpoint (api/og.js) so both render identically.
-export function renderPostCard(post, stats) {
+// Render a built post's card to a PNG. Shared by the X bot (post.mjs) and the
+// per-tab social image endpoint (api/og.js). opts.portrait renders the supported
+// cards at 4:5 for the bot's posted media; the OG endpoint omits it (landscape).
+export function renderPostCard(post, stats, opts = {}) {
   const { type, spec } = post.card;
-  if (type === "rainbow") return renderRainbowCard(stats);
+  const dims = opts.portrait && PORTRAIT_TYPES.has(type) ? PORTRAIT : {};
+  if (type === "rainbow") return renderRainbowCard(stats, dims);
   if (type === "bar") return renderBarCard({ ...spec, date: stats.date });
   if (type === "donut") return renderDonut({ ...spec, date: stats.date });
   if (type === "stack") return renderStackBar({ ...spec, date: stats.date });
-  if (type === "model") return renderModelCard({ ...spec, date: stats.date });
+  if (type === "model") return renderModelCard({ ...spec, date: stats.date }, dims);
   if (type === "cube") return renderCubeCard({ ...spec, date: stats.date });
-  if (type === "scale") return renderScaleCard({ ...spec, date: stats.date });
-  return renderLineCard({ ...spec, date: stats.date });
+  if (type === "scale") return renderScaleCard({ ...spec, date: stats.date }, dims);
+  return renderLineCard({ ...spec, date: stats.date }, dims);
 }
 
 // Model-fit explainer: each day's residual (distance from the power-law trend)
 // scattered over time, with the rainbow bands flattened into residual space —
 // literally how the bands are derived. points: [[ts, residual]], bands: offsets,
 // bandColors: the 9 colors between them.
-export function renderModelCard(spec) {
+export function renderModelCard(spec, opts = {}) {
+  const DW = opts.W ?? W, DH = opts.H ?? H, PW = DW - mL - mR, PH = DH - mT - mB; // canvas (default landscape)
   const pts = spec.points, bands = spec.bands, colors = spec.bandColors;
   const xs = pts.map(p => p[0]), rs = pts.map(p => p[1]);
   const xMin = Math.min(...xs), xMax = Math.max(...xs);
   let yMin = Math.min(bands[0], ...rs), yMax = Math.max(bands[bands.length - 1], ...rs);
   const pad = (yMax - yMin) * 0.04; yMin -= pad; yMax += pad;
-  const X = x => mL + ((x - xMin) / ((xMax - xMin) || 1)) * pW;
-  const Y = y => mT + ((yMax - y) / ((yMax - yMin) || 1)) * pH;
+  const X = x => mL + ((x - xMin) / ((xMax - xMin) || 1)) * PW;
+  const Y = y => mT + ((yMax - y) / ((yMax - yMin) || 1)) * PH;
   const pct = r => `${r >= 0 ? "+" : ""}${Math.round((Math.exp(r) - 1) * 100)}%`;
 
   // rainbow bands, flattened: a colored zone between each pair of offsets
   let zones = "";
   for (let i = 0; i < colors.length; i++) {
     const yTop = Y(bands[i + 1]), h = Y(bands[i]) - yTop;
-    zones += `<rect x="${mL}" y="${yTop.toFixed(1)}" width="${pW}" height="${h.toFixed(1)}" fill="${colors[i]}" fill-opacity="0.20"/>`;
+    zones += `<rect x="${mL}" y="${yTop.toFixed(1)}" width="${PW}" height="${h.toFixed(1)}" fill="${colors[i]}" fill-opacity="0.20"/>`;
   }
   // % gridlines at a few band edges + year ticks
   let grid = "";
   for (const i of [0, 2, 4, 6, 8]) {
     const v = bands[i]; if (v < yMin || v > yMax) continue;
     const yy = Y(v).toFixed(1);
-    grid += `<line x1="${mL}" y1="${yy}" x2="${W - mR}" y2="${yy}" stroke="rgba(255,255,255,0.06)"/>`;
+    grid += `<line x1="${mL}" y1="${yy}" x2="${DW - mR}" y2="${yy}" stroke="rgba(255,255,255,0.06)"/>`;
     grid += `<text x="${mL - 12}" y="${(+yy + 6).toFixed(1)}" fill="#94a3b8" font-size="20" text-anchor="end" font-family="sans-serif">${pct(v)}</text>`;
   }
-  for (const t of yearTicks(xMin, xMax)) grid += `<text x="${X(t.ts).toFixed(1)}" y="${H - 50}" fill="#64748b" font-size="20" text-anchor="middle" font-family="sans-serif">${t.label}</text>`;
+  for (const t of yearTicks(xMin, xMax)) grid += `<text x="${X(t.ts).toFixed(1)}" y="${DH - 50}" fill="#64748b" font-size="20" text-anchor="middle" font-family="sans-serif">${t.label}</text>`;
 
   const zy = Y(0).toFixed(1);
-  const zero = `<line x1="${mL}" y1="${zy}" x2="${W - mR}" y2="${zy}" stroke="rgba(255,255,255,0.75)" stroke-width="2" stroke-dasharray="6 5"/><text x="${mL + 8}" y="${(+zy - 9).toFixed(1)}" fill="#f1f5f9" font-size="20" font-weight="700" font-family="sans-serif">trend line</text>`;
+  const zero = `<line x1="${mL}" y1="${zy}" x2="${DW - mR}" y2="${zy}" stroke="rgba(255,255,255,0.75)" stroke-width="2" stroke-dasharray="6 5"/><text x="${mL + 8}" y="${(+zy - 9).toFixed(1)}" fill="#f1f5f9" font-size="20" font-weight="700" font-family="sans-serif">trend line</text>`;
 
   let dots = "";
   for (const [x, r] of pts) dots += `<circle cx="${X(x).toFixed(1)}" cy="${Y(r).toFixed(1)}" r="2.6" fill="#f8fafc" fill-opacity="0.78"/>`;
@@ -300,7 +308,7 @@ export function renderModelCard(spec) {
   const mk = `<circle cx="${X(last[0]).toFixed(1)}" cy="${Y(last[1]).toFixed(1)}" r="10" fill="${mc}" filter="url(#glow)"/><circle cx="${X(last[0]).toFixed(1)}" cy="${Y(last[1]).toFixed(1)}" r="6.5" fill="#fff" stroke="${mc}" stroke-width="3"/>`;
   const defs = `<filter id="glow" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="6"/></filter>`;
 
-  return chrome(spec, zones + grid + zero + dots + mk, defs);
+  return png(chromeSvg(spec, zones + grid + zero + dots + mk, defs, { W: DW, H: DH }), DW);
 }
 
 // Money-scale "cube" card (Visual Capitalist style): each milestone is a pile of
@@ -448,4 +456,4 @@ export function scaleCardSvg(spec, opts = {}) {
   return chromeSvg({ ...spec, title: "", headline: "" }, inner, "", { W: DW, H: DH });
 }
 
-export const renderScaleCard = spec => png(scaleCardSvg(spec));
+export const renderScaleCard = (spec, opts = {}) => png(scaleCardSvg(spec, opts), opts.W ?? W);

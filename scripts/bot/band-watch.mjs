@@ -50,7 +50,7 @@ console.log(`Band change ${from} -> ${bi} | marquee=${marquee} cooled=${cooled} 
 const post = buildBandChangePost(stats, from);
 
 if (dryRun) {
-  const media = await buildMedia(post, stats, { video: true, out: "bandchange-preview.mp4" });
+  const media = await buildMedia(post, stats, { video: true, out: "bandchange-preview.mp4", portrait: true });
   const where = media.kind === "video" ? media.path : (writeFileSync("bandchange-preview.png", media.data), "bandchange-preview.png");
   console.log(`[DRY RUN — nothing posted, state untouched]\n${"-".repeat(44)}\n${post.text}\n${"-".repeat(44)}\n-> ${where}`);
   process.exit(0);
@@ -63,7 +63,7 @@ writeState({ band: bi, ts: nowIso(), lastPostTs: state.lastPostTs || null });
 if (!shouldPost) { console.log("State updated, no post (non-marquee band or within cooldown)."); process.exit(0); }
 if (!hasCreds) { console.log("Marquee crossing, but X creds missing — state updated, no post."); process.exit(0); }
 
-const media = await buildMedia(post, stats, { video: true, out: "bandchange.mp4" });
+const media = await buildMedia(post, stats, { video: true, out: "bandchange.mp4", portrait: true });
 const { TwitterApi } = await import("twitter-api-v2");
 const client = new TwitterApi(creds);
 try {
