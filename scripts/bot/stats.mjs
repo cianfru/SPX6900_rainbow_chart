@@ -94,6 +94,18 @@ function relStrength(aligned, days) {
   return rl / (before.at(-1) || aligned[0]).ratio - 1;
 }
 
+// The bundled history is ~weekly but recent snapshots are daily, so a raw scatter
+// (the model card) bunches up at the right edge. Thin a chronological [ts, …]
+// series to a uniform minimum spacing, always keeping the latest point.
+const WEEK_MS = 6 * 86400000;
+export function thinSeries(points, gap = WEEK_MS) {
+  const out = [];
+  for (const p of points) if (!out.length || p[0] - out.at(-1)[0] >= gap) out.push(p);
+  const last = points.at(-1);
+  if (last && out.at(-1) !== last) out.push(last);
+  return out;
+}
+
 export function computeStats(price, dateStr = new Date().toISOString().slice(0, 10), opts = {}) {
   // Drawn history + series-derived stats use the merged history when provided
   // (bundled baseline + live daily closes). The MODEL FIT stays frozen on the
@@ -185,7 +197,7 @@ export function computeStats(price, dateStr = new Date().toISOString().slice(0, 
     supply, btc, majors,
     series: {
       price: RAW.map(r => [Date.parse(r.date), r.price]),
-      resid: RAW.map(r => [Date.parse(r.date), Math.log(r.price) - m.predict(M.dayN(r.date))]),
+      resid: thinSeries(RAW.map(r => [Date.parse(r.date), Math.log(r.price) - m.predict(M.dayN(r.date))])),
       risk: riskSeries.map(r => [r.ts, r.risk]),
       drawdown: ddSeries.map(r => [r.ts, r.dd]),
       strategy: stratCyc ? stratCyc.rows.map(r => [r.ts, r.strat, r.hodl]) : null,
