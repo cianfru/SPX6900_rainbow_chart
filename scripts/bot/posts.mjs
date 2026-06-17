@@ -275,19 +275,19 @@ NFA`,
     return {
       id: "cycle",
       text:
-`🔮 What if SPX6900 traces Bitcoin's last cycle?
-Overlay Bitcoin's real run from here and the path points to a peak near ${fPx(c.peak)} around ${fMon(c.peakTs)} (range ${fPx(c.peakLo)}–${fPx(c.peakHi)}).
-Same shape that minted BTC's cycles — a for-fun what-if, not a forecast.
+`🔮 Where is SPX6900 on Bitcoin's cycle clock?
+If it's tracing BTC's last run, today lines up with Bitcoin around ${fMon(c.btcFrom)} — just off the bottom, early in the climb.
+A for-fun what-if, not a forecast.
 NFA`,
       card: { type: "line", spec: {
-        title: "What if SPX traces Bitcoin's last cycle?", headline: `~${fPx(c.peak)} by ${fMon(c.peakTs)}`, accent: "#f7931a",
+        title: "Where are we on Bitcoin's cycle?", headline: `We're at ≈ BTC ${fMon(c.btcFrom)}`, accent: "#f7931a",
         yLog: true, yTicks: decadeTicks(s.firstPrice, c.peakHi),
         series: [
           { pts: s.series.price, color: "#4ade80", width: 3, fill: 0.1 },
           { pts: c.projPts, color: "#f7931a", width: 3, dash: true },
         ],
         legend: [{ label: "SPX actual", color: "#4ade80" }, { label: "BTC cycle (real)", color: "#f7931a" }],
-        marker: { x: c.peakTs, y: c.peak, color: "#f7931a" },
+        marker: { x: c.anchorTs, y: c.anchorPrice, color: "#4ade80" },
       } },
     };
   })(),
@@ -305,18 +305,15 @@ ${[
   `🟧 Base  ${fPx(c.peak)}  →  ${fMult(mult(c.peak))}`,
   `🚀 Bull  ${fPx(c.peakHi)}  →  ${fMult(mult(c.peakHi))}`,
 ].join(TIGHT)}
-Bitcoin's real run, overlaid on SPX from today.
+Bitcoin's real cycle, scaled to SPX's amplitude.
 NFA`,
-      card: { type: "line", spec: {
-        title: `Projected cycle top (${fMon(c.peakTs)})`, headline: `Base ${fPx(c.peak)} · ${fMult(mult(c.peak))}`, accent: "#f7931a",
-        yLog: true, yTicks: decadeTicks(s.firstPrice, c.peakHi),
-        cone: { lo: c.projLo, hi: c.projHi, color: "#f7931a", opacity: 0.16 },
-        series: [
-          { pts: s.series.price, color: "#4ade80", width: 3, fill: 0.1 },
-          { pts: c.projPts, color: "#f7931a", width: 3, dash: true },
+      card: { type: "bar", spec: {
+        title: `If SPX traces BTC's cycle — ${fMon(c.peakTs)} top`, headline: `Base ${fPx(c.peak)} · ${fMult(mult(c.peak))}`, accent: "#f7931a",
+        bars: [
+          { label: `Bear ${fPx(c.peakLo)}`, value: mult(c.peakLo), text: fMult(mult(c.peakLo)), color: "#ef4444" },
+          { label: `Base ${fPx(c.peak)}`, value: mult(c.peak), text: fMult(mult(c.peak)), color: "#f7931a", outline: true },
+          { label: `Bull ${fPx(c.peakHi)}`, value: mult(c.peakHi), text: fMult(mult(c.peakHi)), color: "#4ade80" },
         ],
-        legend: [{ label: "SPX actual", color: "#4ade80" }, { label: "Bear–Bull range", color: "#f7931a" }],
-        marker: { x: c.peakTs, y: c.peak, color: "#f7931a" },
       } },
     };
   })(),
