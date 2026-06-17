@@ -6,7 +6,7 @@ import { writeFileSync, mkdirSync, rmSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import { Resvg } from "@resvg/resvg-js";
 import { rainbowSvg } from "../../src/rainbow-svg.js";
-import { lineCardSvg, cubeCardSvg } from "./charts.mjs";
+import { lineCardSvg, cubeCardSvg, scaleCardSvg } from "./charts.mjs";
 
 // Prefer an explicit FFMPEG_PATH (e.g. the runner's system ffmpeg), then the
 // bundled static binary, then plain "ffmpeg" on PATH — so it works everywhere.
@@ -50,6 +50,11 @@ export function renderLineVideo({ spec, draw = 7, hold = 3, fps = 30, out = "bot
 // Cube card: piles stack up + the ×label rolls (draw), then the faces shimmer (hold).
 export function renderCubeVideo({ spec, draw = 7, hold = 3, fps = 30, out = "bot-video.mp4" }) {
   return renderVideo({ draw, hold, fps, out, svgAt: (r, p) => cubeCardSvg(spec, p == null ? { reveal: r } : { reveal: 1, spin: p }) });
+}
+// Scale card: camera zooms out from the origin cube to the full field, ×label
+// rolling 1→huge (draw), then the origin ring pulses (hold).
+export function renderScaleVideo({ spec, draw = 8, hold = 2, fps = 30, out = "bot-video.mp4" }) {
+  return renderVideo({ draw, hold, fps, out, svgAt: (r, p) => scaleCardSvg(spec, p == null ? { reveal: r } : { reveal: 1, pulse: p }) });
 }
 
 // CLI: node scripts/bot/video.mjs [--draw=7 --hold=3 --out=rainbow.mp4]
