@@ -22,6 +22,10 @@ const fUsd0 = n => "$" + Math.round(n).toLocaleString();
 const fPx = p => (p >= 10 ? fUsd0(p) : fPrice(p)); // whole dollars for big cycle prices, cents below $10
 const BAND_EMOJI = ["🟣", "🔵", "🟦", "🟢", "🟩", "🟡", "🟠", "🔴", "🟥"];
 const BAND_SHORT = ["Fire", "BUY", "Acc", "Cheap", "HODL", "Bub", "FOMO", "SELL", "Max"];
+// Cube card (milestones) colors — easy to tweak. SPX is yellow ("you are here");
+// DOGE gets a distinct violet so it doesn't clash with the yellow reference.
+const SPX_CUBE = "#facc15";
+const CUBE_COLORS = { "PEPE ATH MC": "#22c55e", "SHIB ATH MC": "#f43f5e", "DOGE ATH MC": "#a78bfa" };
 const TIERS = [
   ["diamond", "Diamond", "#22d3ee"], ["gold", "Gold", "#f59e0b"], ["silver", "Silver", "#cbd5e1"],
   ["bronze", "Bronze", "#b45309"], ["wood", "Wood", "#78716c"],
@@ -337,28 +341,28 @@ NFA`,
     };
   })(),
 
-  // 17 — milestones: what flipping the giants would mean (bullish ladder, log)
+  // 17 — milestones: how many SPX6900s to flip the memecoin kings (cube card).
+  // Each cube = 1× today's market cap; pile size = how far the ATH is. BTC is
+  // off-the-chart (~5,000×) so it lives on the btcgrade card, not here.
   s => {
-    // Well-spaced landmarks so the labels don't collide on a log axis.
-    const picks = ["PEPE ATH MC", "SHIB ATH MC", "DOGE ATH MC", "BTC @ $100K MC"];
-    const ms = CRYPTO_MILESTONES.filter(m => picks.includes(m.label) && m.price > s.price)
-      .map(m => ({ ...m, mult: m.price / s.price }));
+    const order = ["PEPE ATH MC", "SHIB ATH MC", "DOGE ATH MC"];
+    const ms = order.map(l => CRYPTO_MILESTONES.find(m => m.label === l))
+      .filter(m => m && m.price > s.price).map(m => ({ ...m, mult: m.price / s.price }));
     if (ms.length < 2) return null;
-    const doge = ms.find(m => m.label.startsWith("DOGE")) || ms[Math.floor(ms.length / 2)];
-    const top = ms.at(-1);
+    const doge = ms.find(m => m.label.startsWith("DOGE")) || ms.at(-1);
     return {
       id: "milestones",
       text:
-`🚀 What if SPX6900 flips the giants? From ${fPrice(s.price)}:
+`🧊 How many SPX6900s would it take to flip the memecoin kings? From ${fPrice(s.price)}:
 ${ms.map(m => `${m.short} (${m.mc}) → ${fMult(m.mult)}`).join(TIGHT)}
-Each × is the move it takes to match that market cap. Long way up. 🚀
+Each cube = today's market cap. Long way up. 🚀
 NFA`,
-      card: { type: "line", spec: {
-        title: "What if SPX6900 flips the giants?", headline: `${doge.short} = ${fMult(doge.mult)}`, accent: "#fb923c",
-        yLog: true, yTicks: decadeTicks(s.firstPrice, top.price),
-        hlines: ms.map(m => ({ y: m.price, label: `${m.short} · ${fMult(m.mult)}`, color: m.c })),
-        series: [{ pts: s.series.price, color: "#34d399", width: 3, fill: 0.12 }],
-        marker: { x: lastTs(s), y: s.price, color: "#34d399" },
+      card: { type: "cube", spec: {
+        title: "How many SPX6900s to flip the giants?", headline: `${doge.short} = ${fMult(doge.mult)}`, accent: SPX_CUBE,
+        items: [
+          { label: "SPX6900 today", sub: "you are here", count: 1, color: SPX_CUBE, highlight: true },
+          ...ms.map(m => ({ label: m.short, sub: m.mc, count: Math.round(m.mult), color: CUBE_COLORS[m.label] || m.c })),
+        ],
       } },
     };
   },

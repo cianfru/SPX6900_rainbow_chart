@@ -255,6 +255,7 @@ export function renderPostCard(post, stats) {
   if (type === "donut") return renderDonut({ ...spec, date: stats.date });
   if (type === "stack") return renderStackBar({ ...spec, date: stats.date });
   if (type === "model") return renderModelCard({ ...spec, date: stats.date });
+  if (type === "cube") return renderCubeCard({ ...spec, date: stats.date });
   return renderLineCard({ ...spec, date: stats.date });
 }
 
@@ -299,3 +300,82 @@ export function renderModelCard(spec) {
 
   return chrome(spec, zones + grid + zero + dots + mk, defs);
 }
+
+// Money-scale "cube" card (Visual Capitalist style): each milestone is a pile of
+// little isometric cubes — one cube = 1× today's market cap — so the pile size
+// shows how far the next ATH is. items: [{label, sub, count, color, highlight}].
+// opts.spin (0..1) rotates the per-cube shading highlight for the video.
+const shade = (hex, f) => {
+  const n = parseInt(hex.slice(1), 16);
+  const c = v => Math.max(0, Math.min(255, Math.round(v * f)));
+  return `rgb(${c((n >> 16) & 255)},${c((n >> 8) & 255)},${c(n & 255)})`;
+};
+
+const fMultLbl = x => (x >= 100 ? Math.round(x).toLocaleString() : String(Math.round(x))) + "×";
+
+export function cubeCardSvg(spec, opts = {}) {
+  const items = spec.items;
+  const spin = opts.spin ?? null;
+  const reveal = opts.reveal ?? 1;     // <1: cubes stack up and the ×label rolls
+  const n = items.length;
+  const baseY = mT + pH - 92;          // piles sit on this baseline; labels go below
+  const availH = baseY - mT - 12;      // vertical room for the tallest pile
+  const slot = pW / n;
+  const colsOf = c => Math.max(1, Math.round(Math.sqrt(c) * 0.92)); // taller piles → bigger cubes
+
+  // One cube cell size for all piles: the tallest must fit availH, widest the slot.
+  let cell = 34;
+  for (const it of items) {
+    const cols = colsOf(it.count), rows = Math.ceil(it.count / cols);
+    cell = Math.min(cell, availH / (rows + 0.3), (slot * 0.86) / (cols + 0.3));
+  }
+  cell = Math.max(4, cell);
+  const a = cell * 0.48;               // iso half-edge; a cube spans 2a × 2a
+
+  // Slightly animate the light direction so faces "breathe"/spin for video.
+  const wob = spin == null ? 0 : Math.sin(spin * Math.PI * 2);
+  const topF = 1.35 + wob * 0.14, leftF = 0.72 - wob * 0.14, rightF = 0.46 + wob * 0.12;
+
+  const cube = (cx, cyTop, col) => {
+    const top = `${cx},${cyTop} ${cx + a},${cyTop + a / 2} ${cx},${cyTop + a} ${cx - a},${cyTop + a / 2}`;
+    const left = `${cx - a},${cyTop + a / 2} ${cx},${cyTop + a} ${cx},${cyTop + 2 * a} ${cx - a},${cyTop + a / 2 + a}`;
+    const right = `${cx},${cyTop + a} ${cx + a},${cyTop + a / 2} ${cx + a},${cyTop + a / 2 + a} ${cx},${cyTop + 2 * a}`;
+    return `<polygon points="${top}" fill="${shade(col, topF)}"/>`
+      + `<polygon points="${left}" fill="${shade(col, leftF)}"/>`
+      + `<polygon points="${right}" fill="${shade(col, rightF)}"/>`;
+  };
+
+  let body = "";
+  items.forEach((it, i) => {
+    const cx0 = mL + slot * i + slot / 2;
+    const cols = colsOf(it.count), rows = Math.ceil(it.count / cols);
+    const pileW = cols * cell;
+    const startX = cx0 - pileW / 2;
+    // soft grounding shadow
+    body += `<ellipse cx="${cx0.toFixed(1)}" cy="${(baseY + 6).toFixed(1)}" rx="${(pileW / 2 + 6).toFixed(1)}" ry="9" fill="rgba(0,0,0,0.45)"/>`;
+    // cubes, filled bottom row first, left→right; reveal grows the pile + count
+    const shown = Math.min(it.count, Math.ceil(it.count * reveal));
+    for (let k = 0; k < shown; k++) {
+      const r = Math.floor(k / cols), c = k % cols;
+      const cx = startX + c * cell + cell / 2;
+      const cyTop = baseY - (r + 1) * cell;
+      body += cube(cx, cyTop, it.color);
+    }
+    if (it.highlight) {
+      // ring the single reference cube so "you are here" pops
+      const cx = startX + cell / 2, cyTop = baseY - cell;
+      body += `<circle cx="${cx.toFixed(1)}" cy="${(cyTop + a).toFixed(1)}" r="${(a * 2.1).toFixed(1)}" fill="none" stroke="${it.color}" stroke-width="2.5" opacity="0.9"/>`;
+    }
+    // labels under the baseline (the × number rolls up with the reveal)
+    const ly = baseY + 38;
+    body += `<text x="${cx0.toFixed(1)}" y="${ly}" fill="#f8fafc" font-size="30" font-weight="800" text-anchor="middle" font-family="sans-serif">${esc(fMultLbl(shown))}</text>`;
+    body += `<text x="${cx0.toFixed(1)}" y="${ly + 28}" fill="${it.color}" font-size="22" font-weight="700" text-anchor="middle" font-family="sans-serif">${esc(it.label)}</text>`;
+    if (it.sub) body += `<text x="${cx0.toFixed(1)}" y="${ly + 52}" fill="#94a3b8" font-size="19" text-anchor="middle" font-family="sans-serif">${esc(it.sub)}</text>`;
+  });
+
+  if (spec.note) body += `<text x="${(W / 2).toFixed(1)}" y="${mT + 30}" fill="#94a3b8" font-size="21" text-anchor="middle" font-family="sans-serif">${esc(spec.note)}</text>`;
+
+  return chromeSvg(spec, body);
+}
+
+export const renderCubeCard = spec => png(cubeCardSvg(spec));
