@@ -90,11 +90,14 @@ NFA`,
     const lowTs = Date.parse(s.lastFireSale.date);
     const pts = s.series.price.filter(([t]) => t >= lowTs);
     const lo = Math.min(...pts.map(p => p[1])), hi = Math.max(...pts.map(p => p[1]));
+    // Only call out the peak when it ran meaningfully above where we sit now
+    // (otherwise "is +37% and peaked +37%" reads as a redundant double-stat).
+    const ranHigher = s.lastFireSale.peakGain - s.lastFireSale.sinceGain > 0.03;
     return {
       id: "rally",
       text:
-`🚀 Since the last "Fire Sale" capitulation low (${fMon(s.lastFireSale.date)}, ${fPrice(s.lastFireSale.low)}), SPX6900 is ${fPct(s.lastFireSale.sinceGain)} — and peaked ${fPct(s.lastFireSale.peakGain)} along the way.
-The deepest red is where every run has started.
+`🚀 Since the last "Fire Sale" low (${fMon(s.lastFireSale.date)}, ${fPrice(s.lastFireSale.low)}), SPX6900 is ${fPct(s.lastFireSale.sinceGain)}.${ranHigher ? ` Ran as high as ${fPct(s.lastFireSale.peakGain)}.` : ""}
+"Fire Sales" are rare — historically some of the best windows to DCA in. The deepest red is where every run has started.
 NFA`,
       card: { type: "line", spec: {
         title: `Since the last Fire Sale (${fMon(s.lastFireSale.date)})`, headline: fPct(s.lastFireSale.sinceGain), accent: "#4ade80",
@@ -416,10 +419,9 @@ NFA`,
     return {
       id: "model",
       text:
-`📐 How the SPX6900 rainbow is actually built
-We fit a power-law trend to price (R² ${m.r2.toFixed(2)}) and color the distance from that trend into percentile bands.
-Each dot is one day — low/blue = cheap vs trend, high/red = stretched. Today: ${BAND_EMOJI[s.bandIndex]} ${s.band.l}, ${fPct(s.vsCenter)} vs trend.
-Descriptive of history, not a prediction.
+`📐 How the SPX6900 rainbow is built
+A power-law trend fit to price (R² ${m.r2.toFixed(2)}), with the distance from trend colored into percentile bands — blue = cheap, red = stretched.
+Today: ${BAND_EMOJI[s.bandIndex]} ${s.band.l}, ${fPct(s.vsCenter)} vs trend. Descriptive, not a prediction.
 NFA`,
       card: { type: "model", spec: {
         title: "How the SPX6900 rainbow is built", headline: `R² ${m.r2.toFixed(2)} fit · ${fPct(s.vsCenter)} vs trend`, accent: "#a78bfa",
