@@ -10,24 +10,25 @@ const pW = W - mL - mR, pH = H - mT - mB;
 const esc = s => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 const png = svg => new Resvg(svg, { fitTo: { mode: "width", value: W } }).render().asPng();
 
-function chromeSvg(spec, inner, extraDefs = "") {
+function chromeSvg(spec, inner, extraDefs = "", dims) {
+  const DW = dims?.W ?? W, DH = dims?.H ?? H;     // default = landscape card
   const accent = spec.accent || "#4ade80";
   const footer = spec.footer || "spx6900rainbow.xyz · not financial advice";
-  return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
+  return `<svg width="${DW}" height="${DH}" viewBox="0 0 ${DW} ${DH}" xmlns="http://www.w3.org/2000/svg">
 <defs>
   <radialGradient id="g" cx="50%" cy="0%" r="80%">
     <stop offset="0%" stop-color="${accent}" stop-opacity="0.18"/><stop offset="55%" stop-color="${accent}" stop-opacity="0"/>
   </radialGradient>
   ${extraDefs}
 </defs>
-<rect width="${W}" height="${H}" fill="#05050e"/>
-<rect width="${W}" height="${H}" fill="url(#g)"/>
+<rect width="${DW}" height="${DH}" fill="#05050e"/>
+<rect width="${DW}" height="${DH}" fill="url(#g)"/>
 <text x="64" y="52" fill="#94a3b8" font-size="30" font-weight="700" letter-spacing="3" font-family="sans-serif">SPX6900</text>
-<text x="${W - 64}" y="52" fill="#475569" font-size="24" text-anchor="end" font-family="sans-serif">${esc(spec.date || "")}</text>
+<text x="${DW - 64}" y="52" fill="#475569" font-size="24" text-anchor="end" font-family="sans-serif">${esc(spec.date || "")}</text>
 <text x="64" y="112" fill="#e2e8f0" font-size="38" font-weight="700" font-family="sans-serif">${esc(spec.title)}</text>
 ${spec.headline ? `<text x="64" y="166" fill="${accent}" font-size="58" font-weight="800" font-family="sans-serif">${esc(spec.headline)}</text>` : ""}
 ${inner}
-<text x="64" y="${H - 22}" fill="#475569" font-size="22" font-family="sans-serif">${esc(footer)}</text>
+<text x="64" y="${DH - 22}" fill="#475569" font-size="22" font-family="sans-serif">${esc(footer)}</text>
 </svg>`;
 }
 const chrome = (spec, inner, extraDefs = "") => png(chromeSvg(spec, inner, extraDefs));
@@ -391,9 +392,10 @@ export function scaleCardSvg(spec, opts = {}) {
   const col = spec.fieldColor || "#3b82f6";
   const oc = spec.originColor || "#facc15";
   const mult = spec.mult;                       // true multiple (e.g. ~160000)
+  const DW = opts.W ?? W, DH = opts.H ?? H;      // canvas (default landscape)
 
   // Field grid fills the plot. Cube count is illustrative, not literal.
-  const x0 = mL, y0 = mT + 8, fw = W - mL - mR, fh = H - mB - y0 - 8;
+  const x0 = mL, y0 = mT + 8, fw = DW - mL - mR, fh = DH - mB - y0 - 8;
   const cell = 11, a = cell * 0.46;
   const cols = Math.floor(fw / cell), rows = Math.floor(fh / cell);
 
@@ -412,8 +414,8 @@ export function scaleCardSvg(spec, opts = {}) {
   // in, reveal 0) to its natural spot (full field, reveal 1).
   const zMax = 11;
   const z = zMax - (zMax - 1) * reveal;
-  const midY = (mT + (H - mB)) / 2;
-  const sx = (W / 2) + (fx - W / 2) * reveal, sy = midY + (fy - midY) * reveal;
+  const midY = (mT + (DH - mB)) / 2;
+  const sx = (DW / 2) + (fx - DW / 2) * reveal, sy = midY + (fy - midY) * reveal;
   const cam = `translate(${sx.toFixed(2)},${sy.toFixed(2)}) scale(${z.toFixed(3)}) translate(${(-fx).toFixed(2)},${(-fy).toFixed(2)})`;
 
   let field = "";
@@ -438,12 +440,12 @@ export function scaleCardSvg(spec, opts = {}) {
   const inner =
     `<g transform="${cam}">${field}</g>`
     + overlay
-    + `<text x="64" y="${H - 50}" fill="${oc}" font-size="24" font-weight="800" font-family="sans-serif">${esc(spec.originLabel || "SPX6900")} = 1 cube</text>`
-    + `<text x="${W - 64}" y="${H - 50}" fill="#cbd5e1" font-size="24" font-weight="700" text-anchor="end" font-family="sans-serif">${esc(spec.fieldLabel || "")}${spec.fieldSub ? `  ·  ${esc(spec.fieldSub)}` : ""}</text>`;
+    + `<text x="64" y="${DH - 50}" fill="${oc}" font-size="24" font-weight="800" font-family="sans-serif">${esc(spec.originLabel || "SPX6900")} = 1 cube</text>`
+    + `<text x="${DW - 64}" y="${DH - 50}" fill="#cbd5e1" font-size="24" font-weight="700" text-anchor="end" font-family="sans-serif">${esc(spec.fieldLabel || "")}${spec.fieldSub ? `  ·  ${esc(spec.fieldSub)}` : ""}</text>`;
 
   // Title/headline are drawn in the overlay (layered over the field), so suppress
   // the chrome's own title/headline.
-  return chromeSvg({ ...spec, title: "", headline: "" }, inner);
+  return chromeSvg({ ...spec, title: "", headline: "" }, inner, "", { W: DW, H: DH });
 }
 
 export const renderScaleCard = spec => png(scaleCardSvg(spec));
