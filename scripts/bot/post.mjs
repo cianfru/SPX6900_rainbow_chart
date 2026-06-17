@@ -54,6 +54,8 @@ const checkOnly = process.argv.includes("--check") || process.env.BOT_CHECK === 
 // uploads it (real v1.1 chunked path for video), prints the media_id, then exits
 // WITHOUT tweeting. Nothing shows on the timeline; the media expires unused (~24h).
 const verifyMedia = process.argv.includes("--verify-media") || process.env.BOT_VERIFY_MEDIA === "1";
+// Bypass the once-per-day guard for an intentional manual post (e.g. testing).
+const force = process.argv.includes("--force") || process.env.BOT_FORCE === "1";
 const dryRun = process.env.DRY_RUN === "1" || process.argv.includes("--dry-run") || !!cliPostId || renderAll || !hasCreds;
 
 // Auth check: verify the credentials and report which account they post as. No posting.
@@ -144,11 +146,15 @@ if (dryRun) {
 
 // Once-per-day guard: if a real post already went out today (cron or control
 // page), don't post again. Only applies to real runs (dry-runs never reach here).
+// --force (BOT_FORCE=1) overrides it for an intentional manual post.
 const today = new Date().toISOString().slice(0, 10);
 const state = readJson(STATE_FILE, {});
-if (state.lastPostedDate === today) {
-  console.log(`Already posted today (${state.lastId ?? "?"} on ${today}) — skipping to avoid a duplicate.`);
+if (state.lastPostedDate === today && !force) {
+  console.log(`Already posted today (${state.lastId ?? "?"} on ${today}) — skipping to avoid a duplicate. Use --force / the workflow's "force" option to post anyway.`);
   process.exit(0);
+}
+if (state.lastPostedDate === today && force) {
+  console.log(`Already posted today (${state.lastId ?? "?"} on ${today}) — posting anyway (force).`);
 }
 
 const { TwitterApi } = await import("twitter-api-v2");
