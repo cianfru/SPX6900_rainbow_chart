@@ -20,7 +20,7 @@ export default async function handler(req, res) {
     // The exact tweet copy each card posts with (same builder the bot uses), plus
     // whether it posts as a video (rainbow + line cards) or a static image — same
     // rule as scripts/bot/media.mjs.
-    const VIDEO = new Set(["rainbow", "line"]);
+    const VIDEO = new Set(["rainbow", "line", "cube"]);
     for (const id of ids) {
       const p = buildPost(stats, new Date(), id);
       texts[id] = p.text;

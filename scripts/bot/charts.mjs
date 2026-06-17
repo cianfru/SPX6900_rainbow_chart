@@ -255,6 +255,7 @@ export function renderPostCard(post, stats) {
   if (type === "donut") return renderDonut({ ...spec, date: stats.date });
   if (type === "stack") return renderStackBar({ ...spec, date: stats.date });
   if (type === "model") return renderModelCard({ ...spec, date: stats.date });
+  if (type === "cube") return renderCubeCard({ ...spec, date: stats.date });
   return renderLineCard({ ...spec, date: stats.date });
 }
 
