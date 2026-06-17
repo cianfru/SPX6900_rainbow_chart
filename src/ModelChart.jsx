@@ -13,6 +13,18 @@ const fPrice = p => (p < 1 ? "$" + p.toFixed(4) : "$" + p.toFixed(2));
 // A residual expressed as a ± percentage from the model's center line.
 const asPct = r => (Math.exp(r) - 1) * 100;
 
+// Recent history is recorded daily but the older baseline is ~weekly, so the raw
+// scatter bunches up at the right edge. Thin the plotted dots to a uniform
+// ~weekly cadence (keeping the latest point); the stats still use every point.
+const WEEK = 6 * 86400000;
+const thinByTs = (arr, gap = WEEK) => {
+  const out = [];
+  for (const p of arr) if (!out.length || p.ts - out[out.length - 1].ts >= gap) out.push(p);
+  const last = arr[arr.length - 1];
+  if (last && out[out.length - 1] !== last) out.push(last);
+  return out;
+};
+
 function Tip({ active, payload }) {
   if (!active || !payload?.[0]) return null;
   const d = payload[0].payload;
@@ -53,12 +65,15 @@ export default function ModelChart({ series, m, isMobile }) {
     const n = pts.length;
     const within1 = pts.filter(p => Math.abs(p.resid) <= m.std).length / n;
     const within2 = pts.filter(p => Math.abs(p.resid) <= 2 * m.std).length / n;
-    return { data: pts, stat: { n, within1, within2, cur: pts[n - 1], first: series[0].date, last: series[n - 1].date } };
+    // Stats use every point; the plotted scatter is thinned to ~weekly so the
+    // daily tail doesn't bunch up. Domain spans the full set so no dot is clipped.
+    const residLo = Math.min(...pts.map(p => p.resid)), residHi = Math.max(...pts.map(p => p.resid));
+    return { data: thinByTs(pts), stat: { n, within1, within2, cur: pts[n - 1], first: series[0].date, last: series[n - 1].date, residLo, residHi } };
   }, [series, m]);
 
   // Pad the y-domain so the outermost band and any stray residual stay visible.
-  const lo = Math.min(m.bands[0], ...data.map(d => d.resid));
-  const hi = Math.max(m.bands[m.bands.length - 1], ...data.map(d => d.resid));
+  const lo = Math.min(m.bands[0], stat.residLo);
+  const hi = Math.max(m.bands[m.bands.length - 1], stat.residHi);
   const pad = (hi - lo) * 0.04;
   const cur = stat.cur;
 
@@ -103,7 +118,7 @@ export default function ModelChart({ series, m, isMobile }) {
       </ResponsiveContainer>
 
       <div style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.65, maxWidth: 880, marginInline: "auto" }}>
-        Each dot is one day&apos;s close, plotted as its <strong style={{ color: "#cbd5e1" }}>residual</strong> — how far above (red zone)
+        Each dot is a sampled close (~weekly), plotted as its <strong style={{ color: "#cbd5e1" }}>residual</strong> — how far above (red zone)
         or below (blue zone) the log-regression fit (dashed line) it sat. The colored bands are percentile slices of exactly these
         residuals, so the rainbow is descriptive of history, not a prediction. R² {m.r2.toFixed(3)} means the trend explains{" "}
         {Math.round(m.r2 * 100)}% of the variation in log-price; the rest is the spread you see here. Not financial advice.
