@@ -256,6 +256,7 @@ export function renderPostCard(post, stats) {
   if (type === "stack") return renderStackBar({ ...spec, date: stats.date });
   if (type === "model") return renderModelCard({ ...spec, date: stats.date });
   if (type === "cube") return renderCubeCard({ ...spec, date: stats.date });
+  if (type === "scale") return renderScaleCard({ ...spec, date: stats.date });
   return renderLineCard({ ...spec, date: stats.date });
 }
 
@@ -379,3 +380,70 @@ export function cubeCardSvg(spec, opts = {}) {
 }
 
 export const renderCubeCard = spec => png(cubeCardSvg(spec));
+
+// Scale card: SPX6900 = one glowing origin cube vs a vast field (e.g. the S&P
+// 500). The field is a big cube grid (illustrative — the exact ratio is in the
+// headline number, which rolls up as you zoom out). opts.reveal (0..1) zooms the
+// camera from the origin cube out to the full field and rolls the ×label.
+export function scaleCardSvg(spec, opts = {}) {
+  const reveal = opts.reveal ?? 1;
+  const pulse = opts.pulse ?? null;
+  const col = spec.fieldColor || "#3b82f6";
+  const oc = spec.originColor || "#facc15";
+  const mult = spec.mult;                       // true multiple (e.g. ~160000)
+
+  // Field grid fills the plot. Cube count is illustrative, not literal.
+  const x0 = mL, y0 = mT + 8, fw = W - mL - mR, fh = H - mB - y0 - 8;
+  const cell = 11, a = cell * 0.46;
+  const cols = Math.floor(fw / cell), rows = Math.floor(fh / cell);
+
+  const cube = (cx, cyTop, c, f = 1) => {
+    const top = `${cx},${cyTop} ${cx + a},${cyTop + a / 2} ${cx},${cyTop + a} ${cx - a},${cyTop + a / 2}`;
+    const left = `${cx - a},${cyTop + a / 2} ${cx},${cyTop + a} ${cx},${cyTop + 2 * a} ${cx - a},${cyTop + a / 2 + a}`;
+    const right = `${cx},${cyTop + a} ${cx + a},${cyTop + a / 2} ${cx + a},${cyTop + a / 2 + a} ${cx},${cyTop + 2 * a}`;
+    return `<polygon points="${top}" fill="${shade(c, 1.3 * f)}"/><polygon points="${left}" fill="${shade(c, 0.72 * f)}"/><polygon points="${right}" fill="${shade(c, 0.48 * f)}"/>`;
+  };
+
+  // Origin cube sits bottom-left of the field.
+  const oCx = x0 + cell / 2, oCyTop = y0 + (rows - 1) * cell;
+  const fx = oCx, fy = oCyTop + a;                // focus point (origin centre)
+
+  // Camera: scale around the origin and glide the focus from screen-centre (zoomed
+  // in, reveal 0) to its natural spot (full field, reveal 1).
+  const zMax = 11;
+  const z = zMax - (zMax - 1) * reveal;
+  const midY = (mT + (H - mB)) / 2;
+  const sx = (W / 2) + (fx - W / 2) * reveal, sy = midY + (fy - midY) * reveal;
+  const cam = `translate(${sx.toFixed(2)},${sy.toFixed(2)}) scale(${z.toFixed(3)}) translate(${(-fx).toFixed(2)},${(-fy).toFixed(2)})`;
+
+  let field = "";
+  for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
+    const isO = r === rows - 1 && c === 0;
+    field += cube(x0 + c * cell + cell / 2, y0 + r * cell, isO ? oc : col, isO ? 1.0 : 0.92);
+  }
+  // glow ring on the origin so it's findable even when tiny
+  const ringR = (pulse == null ? 1 : 1 + pulse * 0.8) * a * 3.4;
+  field += `<circle cx="${fx.toFixed(1)}" cy="${fy.toFixed(1)}" r="${ringR.toFixed(1)}" fill="none" stroke="${oc}" stroke-width="${(2.4 / z).toFixed(2)}" opacity="${pulse == null ? 0.95 : (0.8 * (1 - pulse) + 0.2).toFixed(2)}"/>`;
+
+  const shown = Math.max(1, Math.round(Math.exp(Math.log(mult) * reveal))); // 1 → mult, log-paced
+  const fM = x => x >= 1000 ? Math.round(x).toLocaleString() : String(Math.round(x));
+
+  // Title + rolling number drawn ON TOP of the field (with a backing chip) so they
+  // stay legible while the camera is zoomed in over the cubes.
+  const overlay =
+    `<rect x="48" y="74" width="560" height="116" rx="14" fill="rgba(5,5,14,0.62)" stroke="rgba(255,255,255,0.08)"/>`
+    + `<text x="68" y="116" fill="#e2e8f0" font-size="34" font-weight="700" font-family="sans-serif">${esc(spec.title || "")}</text>`
+    + `<text x="68" y="172" fill="${spec.accent || oc}" font-size="56" font-weight="800" font-family="sans-serif">${esc(fM(shown))}×</text>`;
+
+  const inner =
+    `<g transform="${cam}">${field}</g>`
+    + overlay
+    + `<text x="64" y="${H - 50}" fill="${oc}" font-size="24" font-weight="800" font-family="sans-serif">${esc(spec.originLabel || "SPX6900")} = 1 cube</text>`
+    + `<text x="${W - 64}" y="${H - 50}" fill="#cbd5e1" font-size="24" font-weight="700" text-anchor="end" font-family="sans-serif">${esc(spec.fieldLabel || "")}${spec.fieldSub ? `  ·  ${esc(spec.fieldSub)}` : ""}</text>`;
+
+  // Title/headline are drawn in the overlay (layered over the field), so suppress
+  // the chrome's own title/headline.
+  return chromeSvg({ ...spec, title: "", headline: "" }, inner);
+}
+
+export const renderScaleCard = spec => png(scaleCardSvg(spec));

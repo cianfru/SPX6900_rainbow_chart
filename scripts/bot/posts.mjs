@@ -26,6 +26,8 @@ const BAND_SHORT = ["Fire", "BUY", "Acc", "Cheap", "HODL", "Bub", "FOMO", "SELL"
 // DOGE gets a distinct violet so it doesn't clash with the yellow reference.
 const SPX_CUBE = "#facc15";
 const CUBE_COLORS = { "PEPE ATH MC": "#22c55e", "SHIB ATH MC": "#f43f5e", "DOGE ATH MC": "#a78bfa" };
+// S&P 500 total market cap (drifts over time; bump as needed). Used by the sp500 card.
+const SP500_CAP = 50e12;
 const TIERS = [
   ["diamond", "Diamond", "#22d3ee"], ["gold", "Gold", "#f59e0b"], ["silver", "Silver", "#cbd5e1"],
   ["bronze", "Bronze", "#b45309"], ["wood", "Wood", "#78716c"],
@@ -427,6 +429,25 @@ NFA`,
       card: { type: "model", spec: {
         title: "How the SPX6900 rainbow is built", headline: `R² ${m.r2.toFixed(2)} fit · ${fPct(s.vsCenter)} vs trend`, accent: "#a78bfa",
         bands: m.bands, bandColors: M.BAND_LABELS.map(b => b.c), points: pts, markerColor: s.band.c,
+      } },
+    };
+  })(),
+
+  // 21 — SPX6900 vs the S&P 500: zoom out from one cube to the whole index.
+  s => (() => {
+    const cap = s.supply?.nominalMc || s.price * 1e9; // fully-diluted-ish market cap
+    const mult = SP500_CAP / cap;
+    if (!(mult > 1)) return null;
+    return {
+      id: "sp500",
+      text:
+`🧊 If SPX6900 is one cube, the whole S&P 500 is ~${fNum(mult)} of them.
+SPX6900 ≈ ${fMoney(cap)} vs the S&P 500 ≈ $50T — the gap it's memeing to close.
+NFA`,
+      card: { type: "scale", spec: {
+        title: "SPX6900 vs the S&P 500", accent: "#38bdf8", mult,
+        fieldColor: "#3b82f6", originColor: SPX_CUBE,
+        originLabel: `SPX6900 (${fMoney(cap)})`, fieldLabel: "S&P 500", fieldSub: "~$50T",
       } },
     };
   })(),
