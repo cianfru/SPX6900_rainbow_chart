@@ -150,7 +150,7 @@ if (dryRun) {
 const today = new Date().toISOString().slice(0, 10);
 const state = readJson(STATE_FILE, {});
 if (state.lastPostedDate === today && !force) {
-  console.log(`Already posted today (${state.lastId ?? "?"} on ${today}) — skipping to avoid a duplicate. Use --force / the workflow's "force" option to post anyway.`);
+  console.log(`Already posted today (${state.lastId ?? "?"} on ${today}) — skipping to avoid a duplicate. (Manual workflow runs bypass this; use --force locally.)`);
   process.exit(0);
 }
 if (state.lastPostedDate === today && force) {
