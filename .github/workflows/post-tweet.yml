@@ -26,10 +26,6 @@ on:
         description: "Post text only, no image (cost A/B test)"
         type: boolean
         default: false
-      force:
-        description: "Post even if something already posted today (bypass the once-per-day guard)"
-        type: boolean
-        default: false
       post_id:
         description: "Which topic to publish (auto = daily rotation)"
         type: choice
@@ -85,7 +81,9 @@ jobs:
           BOT_CHECK: ${{ (github.event_name == 'workflow_dispatch' && inputs.check) && '1' || '' }}
           BOT_VERIFY_MEDIA: ${{ (github.event_name == 'workflow_dispatch' && inputs.verify_media) && '1' || '' }}
           BOT_NO_MEDIA: ${{ (github.event_name == 'workflow_dispatch' && inputs.no_media) && '1' || '' }}
-          BOT_FORCE: ${{ (github.event_name == 'workflow_dispatch' && inputs.force) && '1' || '' }}
+          # Manual runs are intentional, so they bypass the once-per-day guard
+          # (the guard exists to stop the scheduled cron from double-posting).
+          BOT_FORCE: ${{ github.event_name == 'workflow_dispatch' && '1' || '' }}
           BOT_POST: ${{ (github.event_name == 'workflow_dispatch' && inputs.post_id != 'auto') && inputs.post_id || '' }}
           X_API_KEY: ${{ secrets.X_API_KEY }}
           X_API_SECRET: ${{ secrets.X_API_SECRET }}
