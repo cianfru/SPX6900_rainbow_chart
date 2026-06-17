@@ -9,7 +9,9 @@ export function rainbowSvg(price, dateStr = new Date().toISOString().slice(0, 10
   const m = M.buildModel(DEFAULT_RAW);
   const day = M.dayN(dateStr);
 
-  const W = 1200, H = 630, mL = 78, mR = 28, mT = 76, mB = 52;
+  // Canvas defaults to the 1200×630 landscape card; opts.W/opts.H allow a
+  // portrait (e.g. 4:5) render for mobile feeds.
+  const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 78, mR = 28, mT = 76, mB = 52;
   const pW = W - mL - mR, pH = H - mT - mB;
 
   const firstDay = M.dayN(DEFAULT_RAW[0].date);

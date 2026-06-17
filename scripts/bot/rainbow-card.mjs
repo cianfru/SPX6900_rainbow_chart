@@ -3,6 +3,7 @@
 import { Resvg } from "@resvg/resvg-js";
 import { rainbowSvg } from "../../src/rainbow-svg.js";
 
-export function renderRainbowCard(stats) {
-  return new Resvg(rainbowSvg(stats.price, stats.date), { fitTo: { mode: "width", value: 1200 } }).render().asPng();
+export function renderRainbowCard(stats, opts = {}) {
+  const w = opts.W ?? 1200;
+  return new Resvg(rainbowSvg(stats.price, stats.date, { W: opts.W, H: opts.H }), { fitTo: { mode: "width", value: w } }).render().asPng();
 }

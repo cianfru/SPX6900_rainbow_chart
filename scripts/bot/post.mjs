@@ -104,7 +104,7 @@ const post = buildPost(stats, new Date(), overrideId);
 console.log(`price ${live.price} (${live.source}) · post "${post.id}" · ${post.text.length} chars`);
 
 // Animated mp4 for rainbow cards (hero valuation), static PNG otherwise; null = text only.
-const media = noMedia ? null : await buildMedia(post, stats, { video: useVideo });
+const media = noMedia ? null : await buildMedia(post, stats, { video: useVideo, portrait: true });
 
 if (dryRun) {
   let note = "text only, no media";
