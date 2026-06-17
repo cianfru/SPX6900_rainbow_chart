@@ -47,6 +47,8 @@ export const renderLineCard = (spec, opts = {}) => png(lineCardSvg(spec, opts), 
 // Posted-media portrait canvas (4:5) for mobile feeds. OG/link images stay landscape.
 export const PORTRAIT = { W: 1080, H: 1350 };
 const PORTRAIT_TYPES = new Set(["rainbow", "line", "scale", "model"]);
+// Single source of truth for which cards post at 4:5 portrait vs landscape.
+export const isPortraitCard = type => PORTRAIT_TYPES.has(type);
 
 // Line/area card as an SVG string. opts.reveal (0..1) draws the series in
 // progressively for video (marker rides the leading edge); opts.pulse (0..1)

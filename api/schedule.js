@@ -9,7 +9,7 @@ const DAY = 86400000;
 
 export default async function handler(req, res) {
   const days = Math.min(30, Math.max(1, parseInt(new URL(req.url, "http://x").searchParams.get("days") || "10", 10)));
-  let ids = [], upcoming = [], texts = {}, media = {};
+  let ids = [], upcoming = [], texts = {}, media = {}, orient = {};
   try {
     const price = (await fetchLivePrice())?.price ?? DEFAULT_RAW.at(-1).price;
     const opts = {};
@@ -18,13 +18,16 @@ export default async function handler(req, res) {
     const stats = computeStats(price, undefined, opts);
     ids = allIds(stats);
     // The exact tweet copy each card posts with (same builder the bot uses), plus
-    // whether it posts as a video (rainbow + line cards) or a static image — same
-    // rule as scripts/bot/media.mjs.
+    // whether it posts as a video or a static image, and at 4:5 portrait or
+    // landscape. Both sets mirror scripts/bot/{media,charts}.mjs.
     const VIDEO = new Set(["rainbow", "line", "cube", "scale"]);
+    const PORTRAIT = new Set(["rainbow", "line", "scale", "model"]); // mirror of PORTRAIT_TYPES in charts.mjs
     for (const id of ids) {
       const p = buildPost(stats, new Date(), id);
+      const type = p.card?.type;
       texts[id] = p.text;
-      media[id] = VIDEO.has(p.card?.type) ? "video" : "image";
+      media[id] = VIDEO.has(type) ? "video" : "image";
+      orient[id] = PORTRAIT.has(type) ? "portrait" : "landscape";
     }
     const base = new Date(); base.setUTCHours(13, 0, 0, 0); // the daily cron slot
     for (let i = 0; i < days; i++) {
@@ -37,5 +40,5 @@ export default async function handler(req, res) {
   }
   res.setHeader("Content-Type", "application/json");
   res.setHeader("Cache-Control", "s-maxage=300, stale-while-revalidate=600");
-  res.status(200).json({ ids, upcoming, texts, media, generatedAt: new Date().toISOString() });
+  res.status(200).json({ ids, upcoming, texts, media, orient, generatedAt: new Date().toISOString() });
 }
