@@ -53,10 +53,12 @@ test("merged live history extends the drawn series but leaves the fit frozen", (
     { date: "2026-06-14", price: 0.40 },
   ];
   const merged = computeStats(0.40, "2026-06-14", { history: [...DEFAULT_RAW, ...extra] });
-  // drawn series + residuals grow by exactly the appended points
+  // the drawn price line grows by exactly the appended points
   assert.equal(merged.series.price.length, DEFAULT_RAW.length + extra.length);
-  assert.equal(merged.series.resid.length, DEFAULT_RAW.length + extra.length);
   assert.equal(merged.series.price.at(-1)[1], 0.40);
+  // the residual scatter is thinned to ~weekly but still runs to the latest point
+  assert.ok(merged.series.resid.length <= merged.series.price.length);
+  assert.equal(merged.series.resid.at(-1)[0], Date.parse("2026-06-14"));
   // the model fit is unchanged — still the frozen bundled fit
   approx(merged.model.r2, m.r2);
   approx(merged.model.a, m.a);
