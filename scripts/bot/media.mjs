@@ -1,7 +1,7 @@
 // Choose the media for a post: an animated mp4 for rainbow cards (when video is
 // on), else the static PNG. Falls back to PNG if the video render fails. Kept
 // separate from charts.mjs so the Vercel OG function never pulls in ffmpeg.
-import { renderPostCard, PORTRAIT } from "./charts.mjs";
+import { renderPostCard, PORTRAIT, isPortraitCard } from "./charts.mjs";
 import { renderRainbowVideo, renderLineVideo, renderCubeVideo, renderScaleVideo } from "./video.mjs";
 
 // Card types we can animate today: the rainbow hero, any line/area card, the
@@ -13,7 +13,7 @@ export async function buildMedia(post, stats, { video = false, out = "bot-previe
   if (video && (type === "rainbow" || type === "line" || type === "cube" || type === "scale")) {
     try {
       const spec = { ...post.card.spec, date: stats.date };
-      const dims = portrait && type !== "cube" ? PORTRAIT : {}; // cube layout isn't portrait-ready yet
+      const dims = portrait && isPortraitCard(type) ? PORTRAIT : {}; // cube/etc aren't portrait-ready yet
       const path = type === "rainbow" ? await renderRainbowVideo({ price: stats.price, out, dims })
         : type === "cube" ? await renderCubeVideo({ spec, out })
         : type === "scale" ? await renderScaleVideo({ spec, out, dims })
