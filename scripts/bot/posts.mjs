@@ -327,7 +327,7 @@ ${[
 Bitcoin's real cycle, scaled to SPX's amplitude.
 NFA`,
       card: { type: "bar", spec: {
-        title: `If SPX traces BTC's cycle — ${fMon(c.peakTs)} top`, headline: `Base ${fPx(c.peak)} · ${fMult(mult(c.peak))}`, accent: "#f7931a",
+        title: `If SPX traces BTC's cycle — ${fMon(c.peakTs)} top`, headline: `${fPrice(s.price)} → ${fPx(c.peak)} base · ${fMult(mult(c.peak))}`, accent: "#f7931a",
         bars: [
           { label: `Bear ${fPx(c.peakLo)}`, value: mult(c.peakLo), text: fMult(mult(c.peakLo)), color: "#ef4444" },
           { label: `Base ${fPx(c.peak)}`, value: mult(c.peak), text: fMult(mult(c.peak)), color: "#f7931a", outline: true },
