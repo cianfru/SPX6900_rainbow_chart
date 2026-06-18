@@ -55,6 +55,7 @@
   .card.next { border-color: #3b82f6; box-shadow: 0 0 0 1px #3b82f6 inset; }
   .card.queued { border-color: #f59e0b; box-shadow: 0 0 0 1px #f59e0b inset; }
   .card img { width: 100%; display: block; background: #05050e; aspect-ratio: 1200/630; }
+  .card img.portrait { aspect-ratio: 1080/1350; }
   .card .meta { display: flex; align-items: center; gap: 8px; padding: 10px 12px; }
   .card .id { font-size: 14px; font-weight: 700; }
   .badge { font-size: 10.5px; letter-spacing: .6px; text-transform: uppercase; padding: 2px 8px; border-radius: 999px; }
@@ -208,7 +209,7 @@ function card(id) {
   const shape = isPortrait ? "4:5 portrait" : "landscape";
   const cc = isVid ? `still preview · posts as a ~10s ${shape} video` : `posts as this static ${shape} image`;
   el.innerHTML = `
-    <img loading="lazy" src="/api/og?post=${encodeURIComponent(id)}" alt="${id}" />
+    <img loading="lazy" class="${isPortrait ? "portrait" : ""}" src="/api/og?post=${encodeURIComponent(id)}${isPortrait ? "&portrait=1" : ""}" alt="${id}" />
     <div class="meta">
       <span class="id">${id}</span>
       ${mediaBadge}

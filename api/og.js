@@ -27,13 +27,16 @@ export default async function handler(req, res) {
   // ?post=<id> renders that rotation card directly (used by the control gallery);
   // ?tab=<id> maps a site tab to its representative card (used by share links).
   const directPost = params.get("post");
+  // ?portrait=1 renders the card in its true posted shape (4:5) — used by the
+  // control gallery. Link-unfurl previews (?tab=) omit it and stay landscape.
+  const portrait = params.get("portrait") === "1";
   const price = (await fetchLivePrice())?.price ?? DEFAULT_RAW.at(-1).price;
 
   let png;
   try {
     const postId = directPost || TAB_POST[tab];
-    if (!postId || postId === "valuation") {
-      png = rainbowPng(price); // rainbow / default / unknown tab
+    if (!postId) {
+      png = rainbowPng(price); // default share image (landscape)
     } else {
       const opts = {};
       try { opts.history = await fetchHistory(); } catch { /* fall back to bundled */ }
@@ -42,7 +45,7 @@ export default async function handler(req, res) {
       const post = buildPost(stats, new Date(), postId);
       // buildPost falls back to rotation if the requested post lacks data; if so,
       // fall back to the rainbow card rather than show an unrelated chart.
-      png = post.id === postId ? renderPostCard(post, stats) : rainbowPng(price);
+      png = post.id === postId ? renderPostCard(post, stats, { portrait }) : rainbowPng(price);
     }
   } catch {
     png = rainbowPng(price);
