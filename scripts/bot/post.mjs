@@ -111,7 +111,8 @@ if (renderAll) {
 const post = buildPost(stats, new Date(), overrideId);
 console.log(`price ${live.price} (${live.source}) · post "${post.id}" · ${post.text.length} chars`);
 
-// Animated mp4 for rainbow cards (hero valuation), static PNG otherwise; null = text only.
+// Animated mp4 only where motion is the message (scale/cube zoom-outs); charts
+// post as static images. null = text only.
 const media = noMedia ? null : await buildMedia(post, stats, { video: useVideo, portrait: true });
 
 // Upload-only verification: prove the media reaches X (the v1.1 chunked video
