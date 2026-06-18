@@ -84,9 +84,16 @@ Every cycle looked like the end. None were.
 NFA`,
     card: { type: "line", spec: {
       title: "Drawdown from all-time high", headline: fPct(s.drawdown), accent: "#f87171",
-      yMin: s.maxDrawdown * 1.05, yMax: 0, fillBase: s.maxDrawdown * 1.05,
-      yTicks: [0, -0.2, -0.4, -0.6, -0.8].filter(v => v >= s.maxDrawdown * 1.05).map(v => ({ v, label: Math.round(v * 100) + "%" })),
+      // Headroom ABOVE 0 so the at-ATH plateaus (drawdown = 0) sit just below the
+      // top frame instead of being guillotined flush against it. The 0 line is
+      // labeled as the ATH baseline, and the worst-ever level gets a reference line.
+      yMin: s.maxDrawdown * 1.08, yMax: Math.abs(s.maxDrawdown) * 0.08, fillBase: s.maxDrawdown * 1.08,
+      yTicks: [0, -0.2, -0.4, -0.6, -0.8].filter(v => v >= s.maxDrawdown * 1.08).map(v => ({ v, label: Math.round(v * 100) + "%" })),
       series: [{ pts: s.series.drawdown, color: "#f87171", width: 3, fill: 0.18 }],
+      hlines: [
+        { y: 0, label: "ATH (0%)", color: "#94a3b8" },
+        { y: s.maxDrawdown, label: `worst ever ${fPct(s.maxDrawdown)}`, color: "#fca5a5" },
+      ],
       marker: { x: lastTs(s), y: s.drawdown, color: "#f87171" },
     } },
   }),
