@@ -109,6 +109,12 @@ NFA`,
         title: `Since the last Fire Sale (${fMon(s.lastFireSale.date)})`, headline: fPct(s.lastFireSale.sinceGain), accent: "#4ade80",
         yLog: true, yTicks: decadeTicks(lo, hi),
         series: [{ pts, color: "#4ade80", width: 3.5, fill: 0.14 }],
+        // Frame the move: the Fire Sale low (entry) and, if it ran meaningfully
+        // higher than now, the peak.
+        hlines: [
+          { y: s.lastFireSale.low, color: "#64748b", label: `Fire Sale low ${fPrice(s.lastFireSale.low)}` },
+          ...(ranHigher ? [{ y: s.lastFireSale.low * (1 + s.lastFireSale.peakGain), color: "#86efac", label: `peak ${fPct(s.lastFireSale.peakGain)}` }] : []),
+        ],
         marker: { x: lastTs(s), y: s.price, color: "#4ade80" },
       } },
     };

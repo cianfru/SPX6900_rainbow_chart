@@ -42,6 +42,58 @@ function yearTicks(xMin, xMax) {
   return out;
 }
 
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+// Time axis that adapts to the span: years for long ranges, month starts for
+// mid ranges, and a few evenly-spaced day labels for short ones (so a recent
+// rally still gets x-axis context instead of a bare baseline).
+function timeTicks(xMin, xMax) {
+  const days = (xMax - xMin) / 86400000;
+  if (days > 540) return yearTicks(xMin, xMax);          // long span → years (as before)
+  const out = [];
+  if (days > 45) {                                        // medium → quarters or months
+    const everyQuarter = days > 150;
+    let d = new Date(xMin);
+    d = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + (d.getUTCDate() > 1 ? 1 : 0), 1));
+    for (; d.getTime() <= xMax; d = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 1))) {
+      const m = d.getUTCMonth();
+      if (everyQuarter && m % 3 !== 0) continue;
+      out.push({ ts: d.getTime(), label: m === 0 ? String(d.getUTCFullYear()) : MONTHS[m] });
+    }
+    return out;
+  }
+  const n = Math.min(4, Math.max(2, Math.round(days / 4)));  // short → a few day labels
+  for (let i = 0; i <= n; i++) {
+    const ts = xMin + (xMax - xMin) * (i / n);
+    const dt = new Date(ts);
+    out.push({ ts, label: `${MONTHS[dt.getUTCMonth()]} ${dt.getUTCDate()}`, anchor: i === 0 ? "start" : i === n ? "end" : "middle" });
+  }
+  return out;
+}
+
+// Gridline levels when a card doesn't supply usable ones (e.g. a sub-decade price
+// range where decade ticks come up empty). Powers of ten for wide log ranges,
+// else ~5 "nice" round levels spread across the range.
+function niceTicks(min, max, yLog) {
+  if (!(max > min)) return [];
+  if (yLog && Math.log10(max) - Math.log10(min) >= 1.2) {
+    const t = [];
+    for (let e = -8; e <= 9; e++) { const v = 10 ** e; if (v >= min * 0.9 && v <= max * 1.1) t.push({ v, label: v >= 1 ? "$" + v.toLocaleString() : "$" + v }); }
+    if (t.length >= 2) return t;
+  }
+  const raw = (max - min) / 5;
+  const mag = 10 ** Math.floor(Math.log10(raw));
+  const n = raw / mag;
+  const step = (n < 1.5 ? 1 : n < 3 ? 2 : n < 7 ? 5 : 10) * mag;
+  const dec = Math.max(0, -Math.floor(Math.log10(step)));
+  const out = [];
+  for (let v = Math.ceil(min / step) * step; v <= max + step * 1e-6; v += step) {
+    const val = +v.toFixed(dec + 2);
+    out.push({ v: val, label: val >= 1 ? "$" + val.toLocaleString(undefined, { maximumFractionDigits: 2 }) : "$" + val.toFixed(dec) });
+  }
+  return out;
+}
+
 export const renderLineCard = (spec, opts = {}) => png(lineCardSvg(spec, opts), opts.W ?? W);
 
 // Posted-media portrait canvas (4:5) for mobile feeds. OG/link images stay landscape.
@@ -90,16 +142,18 @@ export function lineCardSvg(spec, opts = {}) {
       <stop offset="100%" stop-color="${s.color}" stop-opacity="0"/></linearGradient>`;
   });
 
-  // gridlines + y labels
+  // gridlines + y labels. Fall back to auto levels when the card didn't supply
+  // usable ticks (e.g. decade ticks came up empty for a sub-decade range).
   let grid = "";
-  for (const t of (spec.yTicks || [])) {
+  const yTicks = (spec.yTicks && spec.yTicks.length >= 2) ? spec.yTicks : niceTicks(yMin, yMax, spec.yLog);
+  for (const t of yTicks) {
     if (t.v < Math.min(yMin, yMax) || t.v > Math.max(yMin, yMax)) continue;
     const yy = Y(t.v).toFixed(1);
     grid += `<line x1="${mL}" y1="${yy}" x2="${DW - mR}" y2="${yy}" stroke="rgba(255,255,255,0.07)"/>`;
     grid += `<text x="${mL - 12}" y="${(+yy + 6).toFixed(1)}" fill="#64748b" font-size="20" text-anchor="end" font-family="sans-serif">${esc(t.label)}</text>`;
   }
-  for (const t of yearTicks(xMin, xMax)) {
-    grid += `<text x="${X(t.ts).toFixed(1)}" y="${DH - 50}" fill="#64748b" font-size="20" text-anchor="middle" font-family="sans-serif">${t.label}</text>`;
+  for (const t of timeTicks(xMin, xMax)) {
+    grid += `<text x="${X(t.ts).toFixed(1)}" y="${DH - 50}" fill="#64748b" font-size="20" text-anchor="${t.anchor || "middle"}" font-family="sans-serif">${esc(t.label)}</text>`;
   }
 
   // bear–bull cone (drawn behind the lines), clipped to the reveal sweep
