@@ -851,13 +851,34 @@ export default function App() {
         }}>Crypto Milestones</button>
       </div>
 
-      {/* Chart */}
-      <div
-        ref={chartBoxRef}
-        onMouseMove={handleChartMove}
-        onMouseLeave={hideCursor}
-        style={{ maxWidth: MAX_W, margin: "0 auto", position: "relative" }}
-      >
+      {/* Chart — framed in a glass panel with a band-tinted glow + corner brand
+          watermark. The inner chartBoxRef stays unpadded so the imperatively
+          positioned crosshair/tooltip math (handleChartMove) is unaffected. */}
+      <div style={{
+        maxWidth: MAX_W, margin: "0 auto", position: "relative", overflow: "hidden",
+        borderRadius: 18,
+        padding: isMobile ? "10px 6px 4px" : "16px 20px 8px",
+        border: `1px solid ${cb.c}33`,
+        background: `radial-gradient(130% 100% at 82% -10%, ${cb.c}26, transparent 55%), linear-gradient(180deg, rgba(13,15,28,0.55) 0%, rgba(4,5,12,0.30) 100%)`,
+        boxShadow: `inset 0 1px 0 rgba(255,255,255,0.05), 0 18px 50px -20px ${cb.c}44`,
+        backdropFilter: "blur(7px)", WebkitBackdropFilter: "blur(7px)",
+        transition: "background 0.6s ease, border-color 0.6s ease, box-shadow 0.6s ease",
+      }}>
+        {/* Brand watermark — low-opacity coin logo tucked in the empty top-left corner */}
+        <img
+          src="/spx6900logo.png" alt="" aria-hidden="true" draggable="false"
+          style={{
+            position: "absolute", top: isMobile ? 12 : 20, left: isMobile ? 8 : 22,
+            width: isMobile ? 90 : 150, opacity: 0.08, zIndex: 0,
+            pointerEvents: "none", userSelect: "none",
+          }}
+        />
+        <div
+          ref={chartBoxRef}
+          onMouseMove={handleChartMove}
+          onMouseLeave={hideCursor}
+          style={{ position: "relative", zIndex: 1 }}
+        >
         <ResponsiveContainer width="100%" height={isMobile ? 440 : isTablet ? 580 : 720}>
           <ComposedChart data={data} margin={{ top: 10, right: isMobile ? 64 : 130, bottom: 24, left: isMobile ? 0 : 12 }}>
             <CartesianGrid strokeDasharray="2 8" stroke="rgba(255,255,255,0.07)" vertical={false} fill="transparent" />
@@ -941,6 +962,7 @@ export default function App() {
           <div ref={dateRef} style={{ fontFamily: MONO, fontSize: 12, color: "#94a3b8", marginBottom: 4 }} />
           <div ref={priceRef} style={{ fontFamily: MONO, fontSize: 22, fontWeight: 700, color: "#f8fafc", lineHeight: 1.1 }} />
           <div ref={bandRef} style={{ fontSize: 13, fontWeight: 700, marginTop: 3 }} />
+        </div>
         </div>
       </div>
 
