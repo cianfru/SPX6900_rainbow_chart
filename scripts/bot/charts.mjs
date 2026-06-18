@@ -98,7 +98,7 @@ export const renderLineCard = (spec, opts = {}) => png(lineCardSvg(spec, opts), 
 
 // Posted-media portrait canvas (4:5) for mobile feeds. OG/link images stay landscape.
 export const PORTRAIT = { W: 1080, H: 1350 };
-const PORTRAIT_TYPES = new Set(["rainbow", "line", "scale", "model", "kraken"]);
+const PORTRAIT_TYPES = new Set(["rainbow", "line", "scale", "model"]);
 // Single source of truth for which cards post at 4:5 portrait vs landscape.
 export const isPortraitCard = type => PORTRAIT_TYPES.has(type);
 
@@ -328,7 +328,6 @@ export function renderPostCard(post, stats, opts = {}) {
   if (type === "model") return renderModelCard({ ...spec, date: stats.date }, dims);
   if (type === "cube") return renderCubeCard({ ...spec, date: stats.date });
   if (type === "scale") return renderScaleCard({ ...spec, date: stats.date }, dims);
-  if (type === "kraken") return renderKrakenCard({ ...spec, date: stats.date }, dims);
   return renderLineCard({ ...spec, date: stats.date }, dims);
 }
 
@@ -521,35 +520,3 @@ export function scaleCardSvg(spec, opts = {}) {
 }
 
 export const renderScaleCard = (spec, opts = {}) => png(scaleCardSvg(spec, opts), opts.W ?? W);
-
-// Kraken affiliate CTA — a "you can buy it here" promo poster (not a data chart),
-// portrait-aware so the bot can post it 4:5 in-feed. Centered SPX×Kraken lockup, a
-// trust tagline, and a filled call-to-action button. The referral link lives in
-// the post text; the card just shows the kraken.com domain. spec.cta / spec.tag
-// override the button + tagline copy (so wording can adapt to whether SPX6900 is
-// actually listed vs a pure sign-up referral).
-export function renderKrakenCard(spec, opts = {}) {
-  const DW = opts.W ?? W, DH = opts.H ?? H, portrait = DH > DW;
-  const KP = spec.accent || "#7c3aed";        // Kraken purple
-  const cx = DW / 2;
-  const top = 210, bot = DH - 70, vc = (top + bot) / 2;
-  const lockY = vc - (portrait ? 90 : 60);
-  const tagY = lockY + (portrait ? 74 : 52);
-  const btnH = portrait ? 96 : 78, btnW = portrait ? 620 : 500;
-  const btnTop = tagY + (portrait ? 70 : 40);
-  const domY = btnTop + btnH + (portrait ? 64 : 48);
-  const lockFs = portrait ? 74 : 60, btnFs = portrait ? 40 : 34;
-  const defs = `<filter id="kglow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="12"/></filter>`;
-  const lock =
-    `<text x="${cx}" y="${lockY}" text-anchor="middle" font-family="sans-serif" font-weight="800" font-size="${lockFs}">`
-    + `<tspan fill="#f1f5f9">SPX6900</tspan>`
-    + `<tspan fill="#475569" font-weight="500" dx="20">×</tspan>`
-    + `<tspan fill="${KP}" dx="20">kraken</tspan></text>`;
-  const tag = `<text x="${cx}" y="${tagY}" text-anchor="middle" fill="#94a3b8" font-size="${portrait ? 30 : 26}" font-family="sans-serif">${esc(spec.tag || "Deep liquidity · low fees · a trusted exchange")}</text>`;
-  const btn =
-    `<rect x="${cx - btnW / 2}" y="${btnTop}" width="${btnW}" height="${btnH}" rx="${btnH / 2}" fill="${KP}" filter="url(#kglow)" opacity="0.5"/>`
-    + `<rect x="${cx - btnW / 2}" y="${btnTop}" width="${btnW}" height="${btnH}" rx="${btnH / 2}" fill="${KP}"/>`
-    + `<text x="${cx}" y="${btnTop + btnH / 2 + btnFs * 0.36}" text-anchor="middle" fill="#fff" font-weight="800" font-size="${btnFs}" font-family="sans-serif">${esc(spec.cta || "Sign up on Kraken")}  →</text>`;
-  const dom = `<text x="${cx}" y="${domY}" text-anchor="middle" fill="#64748b" font-size="${portrait ? 26 : 22}" font-family="sans-serif">proinvite.kraken.com</text>`;
-  return png(chromeSvg({ ...spec, headline: "" }, lock + tag + btn + dom, defs, { W: DW, H: DH }), DW);
-}

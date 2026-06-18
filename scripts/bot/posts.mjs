@@ -10,9 +10,6 @@ import { btcCycleProjection } from "../../src/btc-cycle.js";
 // it to SPX6900) for the in-timeline price-chart card, plus the #spx6900 hashtag.
 const CASHTAG = process.env.BOT_CASHTAG || "$SPX";
 const HASHTAG = "#spx6900";
-// Kraken affiliate referral link (single source of truth — used by the Kraken
-// CTA post and reusable by the site). Override per-run with KRAKEN_REF.
-export const KRAKEN_REF = process.env.KRAKEN_REF || "https://proinvite.kraken.com/9f1e/8985jw0l";
 const TIGHT = ""; // a line break that stays single (not spaced out) — for tight lists
 
 const fPrice = p => (p >= 1 ? "$" + p.toFixed(2) : "$" + p.toFixed(4));
@@ -467,18 +464,6 @@ NFA`,
       } },
     };
   })(),
-
-  // 22 — Kraken CTA: "you can buy it here". A promo poster card (not a data
-  // chart), always available — no data gating. Link is the affiliate referral.
-  s => ({
-    id: "kraken",
-    text:
-`🐙 SPX6900 is now trading on Kraken.
-Deep liquidity, low fees, and one of the most trusted names in crypto — the easy on-ramp is finally here.
-Trade SPX6900 → ${KRAKEN_REF}
-NFA`,
-    card: { type: "kraken", spec: { title: "Now trading on Kraken", accent: "#7c3aed", cta: "Trade SPX6900" } },
-  }),
 ];
 
 export function allIds(stats) { return POSTS.map(p => p(stats)?.id).filter(Boolean); }
