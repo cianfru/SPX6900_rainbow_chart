@@ -464,6 +464,62 @@ NFA`,
       } },
     };
   })(),
+
+  // 22 — what an early $100 became (price history scaled to a $100 stake, log).
+  // Relatable + screenshot-able; reuses the line card.
+  s => (() => {
+    const grew = p => p * 100 / s.firstPrice; // value of a $100 stake at price p
+    return {
+      id: "hundred",
+      text:
+`💸 $100 in SPX6900 at its first print (${fMon(s.firstDate)}, ${fPrice(s.firstPrice)}) is worth ${fMoney(grew(s.price))} today.
+Up only, on a power-law clock — the earliest believers are sitting on absurd multiples.
+NFA`,
+      card: { type: "line", spec: {
+        title: "What an early $100 turned into", headline: fMoney(grew(s.price)), accent: "#34d399",
+        yLog: true, yTicks: decadeTicks(100, grew(s.ath)),
+        series: [{ pts: s.series.price.map(([t, p]) => [t, grew(p)]), color: "#34d399", width: 3, fill: 0.14 }],
+        marker: { x: lastTs(s), y: grew(s.price), color: "#34d399" },
+      } },
+    };
+  })(),
+
+  // 23 — distribution of monthly returns (histogram). Buckets the bundled series
+  // into month-over-month returns and shows how the months spread out — backs the
+  // "up only" meme with the real (volatile) shape of the path.
+  s => (() => {
+    const byMonth = new Map();
+    for (const [ts, p] of s.series.price) {
+      const d = new Date(ts);
+      byMonth.set(d.getUTCFullYear() * 12 + d.getUTCMonth(), p); // last close wins
+    }
+    const keys = [...byMonth.keys()].sort((a, b) => a - b);
+    const rets = [];
+    for (let i = 1; i < keys.length; i++) rets.push(byMonth.get(keys[i]) / byMonth.get(keys[i - 1]) - 1);
+    if (rets.length < 8) return null;
+    const buckets = [
+      { label: "≤-25%", lo: -Infinity, hi: -0.25, color: "#dc2626" },
+      { label: "-25–0%", lo: -0.25, hi: 0, color: "#f87171" },
+      { label: "0–25%", lo: 0, hi: 0.25, color: "#4ade80" },
+      { label: "25–50%", lo: 0.25, hi: 0.5, color: "#22c55e" },
+      { label: "50–100%", lo: 0.5, hi: 1, color: "#16a34a" },
+      { label: "100%+", lo: 1, hi: Infinity, color: "#15803d" },
+    ];
+    const counts = buckets.map(b => rets.filter(r => r >= b.lo && r < b.hi).length);
+    const green = rets.filter(r => r >= 0).length;
+    const pctGreen = Math.round(green / rets.length * 100);
+    return {
+      id: "monthlyreturns",
+      text:
+`📅 SPX6900 monthly returns, ${rets.length} months on record: ${pctGreen}% closed green.
+Up only is a meme — the path is volatile. But the green months (and the fat right tail) have done the heavy lifting.
+NFA`,
+      card: { type: "bar", spec: {
+        title: "Distribution of monthly returns", headline: `${pctGreen}% of months green`, accent: "#4ade80",
+        bars: buckets.map((b, i) => ({ label: b.label, value: counts[i], text: String(counts[i]), color: b.color, dim: counts[i] === 0 })),
+      } },
+    };
+  })(),
 ];
 
 export function allIds(stats) { return POSTS.map(p => p(stats)?.id).filter(Boolean); }
