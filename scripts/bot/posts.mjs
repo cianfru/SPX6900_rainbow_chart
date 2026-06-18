@@ -633,3 +633,29 @@ Now ${fPct(s.vsCenter)} vs the model's center line (${fPrice(s.center)}).
 NFA`;
   return { id: "bandchange", text: withFooter(text), card: { type: "rainbow" } };
 }
+
+// Event post for crossing a market-cap GIANT (fired by milestone-watch.mjs when
+// SPX6900's cap first passes a CRYPTO_MILESTONES landmark — flipping PEPE, SHIB,
+// DOGE, a BTC market-cap level, …). `crossedIdx` indexes CRYPTO_MILESTONES.
+export function buildMilestonePost(s, crossedIdx) {
+  const m = CRYPTO_MILESTONES[crossedIdx];
+  const next = CRYPTO_MILESTONES[crossedIdx + 1];
+  const nextLine = next
+    ? `Next rung: ${next.short} (${next.mc}) → ${fMult(next.price / s.price)}.`
+    : `That was the top rung on the board — uncharted from here. 🚀`;
+  const top = next || m;
+  const text =
+`🏆 Milestone: SPX6900 just passed ${m.label} (${m.mc}).
+At ${fPrice(s.price)}, its market cap is now bigger than that landmark ever printed. ${nextLine}
+NFA`;
+  return { id: "milestonecross", text: withFooter(text), card: { type: "line", spec: {
+    title: `Milestone flipped: ${m.short}`, headline: `SPX6900 > ${m.label}`, accent: m.c,
+    yLog: true, yTicks: decadeTicks(s.firstPrice, top.price * 1.1),
+    hlines: [
+      { y: m.price, label: `${m.short} · FLIPPED`, color: m.c },
+      ...(next ? [{ y: next.price, label: `${next.short} · ${fMult(next.price / s.price)}`, color: next.c }] : []),
+    ],
+    series: [{ pts: s.series.price, color: "#34d399", width: 3, fill: 0.12 }],
+    marker: { x: lastTs(s), y: s.price, color: "#34d399" },
+  } } };
+}
