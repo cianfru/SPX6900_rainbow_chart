@@ -864,12 +864,13 @@ export default function App() {
         backdropFilter: "blur(7px)", WebkitBackdropFilter: "blur(7px)",
         transition: "background 0.6s ease, border-color 0.6s ease, box-shadow 0.6s ease",
       }}>
-        {/* Brand watermark — low-opacity coin logo tucked in the empty top-left corner */}
+        {/* Brand watermark — large, faint coin logo bleeding off the empty top-left
+            corner (panel's overflow:hidden clips it to the rounded edge). */}
         <img
           src="/spx6900logo.png" alt="" aria-hidden="true" draggable="false"
           style={{
-            position: "absolute", top: isMobile ? 12 : 20, left: isMobile ? 8 : 22,
-            width: isMobile ? 90 : 150, opacity: 0.08, zIndex: 0,
+            position: "absolute", top: isMobile ? 26 : 44, left: isMobile ? "-10%" : -64,
+            width: isMobile ? "58%" : "42%", maxWidth: 440, opacity: 0.07, zIndex: 0,
             pointerEvents: "none", userSelect: "none",
           }}
         />
