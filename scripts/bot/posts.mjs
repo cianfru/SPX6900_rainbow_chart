@@ -520,6 +520,53 @@ NFA`,
       } },
     };
   })(),
+
+  // 24 — risk dial: the rainbow valuation as a needle on a colored dial. Reads
+  // risk straight off the band model; the arc IS the rainbow, band by band.
+  s => (() => {
+    const v = s.risk, pct = Math.round(v * 100);
+    const verdict = v < 0.2 ? "Deep value" : v < 0.4 ? "Cheap" : v < 0.6 ? "Fair value" : v < 0.8 ? "Heating up" : "Euphoric";
+    const N = M.BAND_LABELS.length;
+    return {
+      id: "riskdial",
+      text:
+`🌡️ SPX6900 risk dial: ${s.band.l} zone — ${pct}/100 on the rainbow model.
+It's only been this cheap or cheaper ${Math.round(s.cheaperFrac * 100)}% of its life. The needle reads risk straight off the bands.
+NFA`,
+      card: { type: "gauge", spec: {
+        title: "SPX6900 risk dial", headline: `${s.band.l} · ${pct}/100`, accent: s.band.c,
+        value: v,
+        segments: M.BAND_LABELS.map((b, i) => ({ from: i / N, to: (i + 1) / N, color: b.c })),
+        ticks: [{ at: 0, label: "Fire Sale", anchor: "start" }, { at: 1, label: "Max Bubble", anchor: "end" }],
+        centerBig: verdict, centerSmall: `risk ${pct} / 100`,
+      } },
+    };
+  })(),
+
+  // 25 — "how far to DOGE-size?" — cycle-progress arc. If SPX keeps tracing
+  // Bitcoin's 4-year cycle, the projected top lands near DOGE's old cap; the arc
+  // shows how far we are through the cycle, in time, toward that date.
+  s => (() => {
+    const c = btcCycleProjection();
+    const now = Date.now();
+    const HALVING = Date.UTC(2024, 3, 20); // 2024-04-20 BTC halving = this cycle's anchor
+    const prog = Math.min(1, Math.max(0, (now - HALVING) / (c.peakTs - HALVING)));
+    const months = Math.max(0, Math.round((c.peakTs - now) / (86400000 * 30.44)));
+    const doge = CRYPTO_MILESTONES.find(m => m.label === "DOGE ATH MC");
+    return {
+      id: "dogeclock",
+      text:
+`🐕 If SPX6900 keeps tracing Bitcoin's 4-year cycle, the projected top (~${fMon(c.peakTs)}) lands near DOGE's old ${doge.mc} cap — about ${months} months out.
+We're ~${Math.round(prog * 100)}% through this cycle. ${fPx(c.peak)} base, ${fPx(c.peakHi)} bull.
+NFA`,
+      card: { type: "gauge", spec: {
+        title: "How far to DOGE-size?", headline: `≈ ${fMon(c.peakTs)} · ~${months} mo out`, accent: doge.c,
+        value: prog,
+        ticks: [{ at: 0, label: "2024 halving", anchor: "start" }, { at: 1, label: `${doge.mc} · ${fMon(c.peakTs)}`, anchor: "end" }],
+        centerBig: `~${months} months`, centerSmall: `to SPX ≈ DOGE's ${doge.mc} cap`,
+      } },
+    };
+  })(),
 ];
 
 export function allIds(stats) { return POSTS.map(p => p(stats)?.id).filter(Boolean); }
@@ -528,7 +575,7 @@ export function allIds(stats) { return POSTS.map(p => p(stats)?.id).filter(Boole
 // bullish (they show up ~twice as often as the analytical/neutral ones).
 const BULLISH = new Set([
   "milestones", "memecoins", "btcgrade", "cycle", "cyclepeak", "cycleclock",
-  "targets", "rally", "alltime",
+  "targets", "rally", "alltime", "hundred", "dogeclock",
 ]);
 // Per-post rotation weight (copies per cycle). The flagship rainbow is weighted
 // up so the site's main chart surfaces ~weekly (≈3×/month); bullish posts 2×.

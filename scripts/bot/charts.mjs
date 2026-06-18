@@ -318,10 +318,56 @@ export function renderStackBar(spec) {
 // Render a built post's card to a PNG. Shared by the X bot (post.mjs) and the
 // per-tab social image endpoint (api/og.js). opts.portrait renders the supported
 // cards at 4:5 for the bot's posted media; the OG endpoint omits it (landscape).
+// Semicircle gauge / dial. Two modes: pass `segments` ([{from,to,color}], 0..1)
+// to paint colored zones around the arc — e.g. the rainbow risk bands — or omit
+// them and the accent simply fills 0→value. A needle points at `value` (0..1);
+// the big readout and the endpoint tick labels sit below the baseline. Shared by
+// the risk dial and the "how far to DOGE-size" cycle-progress arc.
+export function renderGauge(spec) {
+  const cx = W / 2, cy = mT + 232, R = 205, sw = 44;
+  const pt = (v, rad) => { const th = Math.PI * (1 - v); return [cx + rad * Math.cos(th), cy - rad * Math.sin(th)]; };
+  // Sample the arc as a polyline — an SVG `A` command's sweep flag is ambiguous
+  // across orientations (a single 180° arc would wind the long way), so we trace
+  // the parametric curve directly. Round joins keep it smooth.
+  const arc = (v0, v1, rad) => {
+    const steps = Math.max(2, Math.ceil(Math.abs(v1 - v0) * 48));
+    let d = "";
+    for (let i = 0; i <= steps; i++) {
+      const [x, y] = pt(v0 + (v1 - v0) * (i / steps), rad);
+      d += `${i === 0 ? "M" : "L"} ${x.toFixed(1)} ${y.toFixed(1)} `;
+    }
+    return d.trim();
+  };
+  const stroke = `stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round"`;
+  const accent = spec.accent || "#4ade80";
+  const v = Math.min(1, Math.max(0, spec.value ?? 0));
+  let svg = `<path d="${arc(0, 1, R)}" fill="none" stroke="${spec.trackColor || "#1e2433"}" ${stroke}/>`;
+  if (spec.segments) {
+    for (const s of spec.segments) svg += `<path d="${arc(s.from, s.to, R)}" fill="none" stroke="${s.color}" stroke-width="${sw}" stroke-linejoin="round" stroke-opacity="0.95"/>`;
+  } else {
+    svg += `<path d="${arc(0, v, R)}" fill="none" stroke="${accent}" ${stroke}/>`;
+  }
+  for (const t of (spec.ticks || [])) {
+    const [ix, iy] = pt(t.at, R - sw / 2 - 6), [ox, oy] = pt(t.at, R + sw / 2 + 6);
+    svg += `<line x1="${ix.toFixed(1)}" y1="${iy.toFixed(1)}" x2="${ox.toFixed(1)}" y2="${oy.toFixed(1)}" stroke="#64748b" stroke-width="3"/>`;
+    const anchor = t.anchor || (t.at < 0.5 ? "start" : t.at > 0.5 ? "end" : "middle");
+    const lx = t.at < 0.5 ? cx - R - 6 : t.at > 0.5 ? cx + R + 6 : cx;
+    svg += `<text x="${lx.toFixed(1)}" y="${(cy + 34).toFixed(1)}" fill="#94a3b8" font-size="24" text-anchor="${anchor}" font-family="sans-serif">${esc(t.label)}</text>`;
+  }
+  const [nx, ny] = pt(v, R - 30), [dx, dy] = pt(v, R);
+  svg += `<line x1="${cx}" y1="${cy}" x2="${nx.toFixed(1)}" y2="${ny.toFixed(1)}" stroke="#f8fafc" stroke-width="7" stroke-linecap="round"/>`;
+  svg += `<circle cx="${dx.toFixed(1)}" cy="${dy.toFixed(1)}" r="11" fill="${accent}" stroke="#05050e" stroke-width="3"/>`;
+  svg += `<circle cx="${cx}" cy="${cy}" r="17" fill="#0b0f1c" stroke="${accent}" stroke-width="4"/>`;
+  if (spec.centerBig) svg += `<text x="${cx}" y="${(cy + 96).toFixed(1)}" fill="#f8fafc" font-size="52" font-weight="800" text-anchor="middle" font-family="sans-serif">${esc(spec.centerBig)}</text>`;
+  if (spec.centerSmall) svg += `<text x="${cx}" y="${(cy + 134).toFixed(1)}" fill="#94a3b8" font-size="26" text-anchor="middle" font-family="sans-serif">${esc(spec.centerSmall)}</text>`;
+  return chrome(spec, svg);
+}
+
 export function renderPostCard(post, stats, opts = {}) {
   const { type, spec } = post.card;
   const dims = opts.portrait && PORTRAIT_TYPES.has(type) ? PORTRAIT : {};
   if (type === "rainbow") return renderRainbowCard(stats, dims);
+  if (type === "gauge") return renderGauge({ ...spec, date: stats.date });
   if (type === "bar") return renderBarCard({ ...spec, date: stats.date });
   if (type === "donut") return renderDonut({ ...spec, date: stats.date });
   if (type === "stack") return renderStackBar({ ...spec, date: stats.date });
