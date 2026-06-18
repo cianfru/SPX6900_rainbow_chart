@@ -20,7 +20,7 @@ export default async function handler(req, res) {
     // The exact tweet copy each card posts with (same builder the bot uses), plus
     // whether it posts as a video or a static image, and at 4:5 portrait or
     // landscape. Both sets mirror scripts/bot/{media,charts}.mjs.
-    const VIDEO = new Set(["rainbow", "line", "cube", "scale"]);
+    const VIDEO = new Set(["scale", "cube"]); // mirror of VIDEO_TYPES in charts.mjs — animate only where motion is the message
     const PORTRAIT = new Set(["rainbow", "line", "scale", "model"]); // mirror of PORTRAIT_TYPES in charts.mjs
     for (const id of ids) {
       const p = buildPost(stats, new Date(), id);

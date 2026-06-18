@@ -1,16 +1,15 @@
 // Choose the media for a post: an animated mp4 for rainbow cards (when video is
 // on), else the static PNG. Falls back to PNG if the video render fails. Kept
 // separate from charts.mjs so the Vercel OG function never pulls in ffmpeg.
-import { renderPostCard, PORTRAIT, isPortraitCard } from "./charts.mjs";
+import { renderPostCard, PORTRAIT, isPortraitCard, isVideoCard } from "./charts.mjs";
 import { renderRainbowVideo, renderLineVideo, renderCubeVideo, renderScaleVideo } from "./video.mjs";
 
-// Card types we can animate today: the rainbow hero, any line/area card, the
-// money-cube card, and the S&P scale card. bar/donut/stack/model stay static PNG.
-// opts.portrait renders the supported cards at 4:5 for mobile feeds (cube/bar/etc
-// aren't portrait-ready yet, so they stay landscape).
+// We animate only where motion is the message — the S&P scale zoom-out and the
+// cube stack (isVideoCard). Charts post as static images. opts.portrait renders
+// the supported cards at 4:5 for mobile feeds (cube isn't portrait-ready yet).
 export async function buildMedia(post, stats, { video = false, out = "bot-preview.mp4", portrait = false } = {}) {
   const type = post.card?.type;
-  if (video && (type === "rainbow" || type === "line" || type === "cube" || type === "scale")) {
+  if (video && isVideoCard(type)) {
     try {
       const spec = { ...post.card.spec, date: stats.date };
       const dims = portrait && isPortraitCard(type) ? PORTRAIT : {}; // cube/etc aren't portrait-ready yet
