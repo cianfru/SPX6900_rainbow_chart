@@ -16,7 +16,11 @@ const fPrice = p => (p >= 1 ? "$" + p.toFixed(2) : "$" + p.toFixed(4));
 const fPct = x => (x >= 0 ? "+" : "") + Math.round(x * 100).toLocaleString() + "%";
 const fMult = x => (x >= 100 ? Math.round(x).toLocaleString() : x.toFixed(1)) + "×";
 const fMon = d => { const t = new Date(d); return t.toLocaleString("en-US", { month: "short" }) + " '" + String(t.getFullYear()).slice(2); };
-const fMoney = n => (n >= 1e9 ? "$" + (n / 1e9).toFixed(2) + "B" : n >= 1e6 ? "$" + (n / 1e6).toFixed(0) + "M" : "$" + (n / 1e3).toFixed(0) + "K");
+const fMoney = n =>
+  n >= 1e12 ? "$" + (n / 1e12).toFixed(n >= 1e13 ? 0 : 1) + "T"
+  : n >= 1e9 ? "$" + (n / 1e9).toFixed(n >= 1e11 ? 0 : 1) + "B"
+  : n >= 1e6 ? "$" + (n / 1e6).toFixed(0) + "M"
+  : "$" + (n / 1e3).toFixed(0) + "K";
 const fNum = n => Math.round(n).toLocaleString();
 const fUsd0 = n => "$" + Math.round(n).toLocaleString();
 const fPx = p => (p >= 10 ? fUsd0(p) : fPrice(p)); // whole dollars for big cycle prices, cents below $10
@@ -585,6 +589,35 @@ NFA`,
       } },
     };
   })(),
+
+  // 26 — "SPX6900 at the majors' caps" — the winning target-ladder style (line +
+  // dashed target lines) applied to the coins people actually hold. Each rung is
+  // the SPX price at which its market cap would equal BTC/ETH/SOL's today.
+  // Gated on live majors data (skips silently when CoinGecko is unreachable).
+  s => s.majors && s.majors.length && (() => {
+    const COLOR = { BTC: "#f7931a", ETH: "#818cf8", SOL: "#9945ff" };
+    const rungs = s.majors
+      .filter(m => m.spxAtCap > s.price)                       // only caps above us (upside)
+      .map(m => ({ ...m, mult: m.spxAtCap / s.price, color: COLOR[m.name] || "#94a3b8" }))
+      .sort((a, b) => a.spxAtCap - b.spxAtCap);
+    if (rungs.length < 2) return null;
+    const nearest = rungs[0], top = rungs.at(-1);
+    return {
+      id: "majorcaps",
+      text:
+`🧮 What would $1 of SPX6900 be worth at the majors' market caps?
+${rungs.map(m => `${m.name}-size (${fMoney(m.mc)}) → ${fPx(m.spxAtCap)} · ${fMult(m.mult)}`).join(TIGHT)}
+Same coins you already hold — just SPX6900 at their cap. A long way up.
+NFA`,
+      card: { type: "line", spec: {
+        title: "SPX6900 at the majors' market caps", headline: `${nearest.name}-size = ${fMult(nearest.mult)}`, accent: nearest.color,
+        yLog: true, yTicks: decadeTicks(s.firstPrice, top.spxAtCap),
+        hlines: rungs.map(m => ({ y: m.spxAtCap, label: `${m.name} · ${fMult(m.mult)}`, color: m.color })),
+        series: [{ pts: s.series.price, color: "#34d399", width: 3, fill: 0.12 }],
+        marker: { x: lastTs(s), y: s.price, color: "#34d399" },
+      } },
+    };
+  })(),
 ];
 
 export function allIds(stats) { return POSTS.map(p => p(stats)?.id).filter(Boolean); }
@@ -593,7 +626,7 @@ export function allIds(stats) { return POSTS.map(p => p(stats)?.id).filter(Boole
 // bullish (they show up ~twice as often as the analytical/neutral ones).
 const BULLISH = new Set([
   "milestones", "memecoins", "btcgrade", "cycle", "cyclepeak", "cycleclock",
-  "targets", "rally", "alltime", "hundred", "dogeclock",
+  "targets", "rally", "alltime", "hundred", "dogeclock", "majorcaps",
 ]);
 // Per-post rotation weight (copies per cycle). The flagship rainbow is weighted
 // up so the site's main chart surfaces ~weekly (≈3×/month); bullish posts 2×.

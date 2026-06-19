@@ -175,9 +175,17 @@ export function computeStats(price, dateStr = new Date().toISOString().slice(0, 
       btc = { btcNow, sats: (price / btcNow) * 1e8, rel90: relStrength(aligned, 90), rel365: relStrength(aligned, 365), series: aligned.map(a => [a.ts, a.ratio * 1e8]) };
     }
   }
+  // Each major's market cap (live price × an approximate circulating supply) lets
+  // us price SPX6900 *at that coin's cap* (the "majorcaps" card). spxAtCap = the
+  // SPX price whose nominal MC equals that major's. Supplies drift slowly; refresh
+  // occasionally.
+  const MAJOR_SUPPLY = { BTC: 19_900_000, ETH: 120_500_000, SOL: 560_000_000 };
   const majors = [["BTC", coins.btc], ["ETH", coins.eth], ["SOL", coins.sol]]
     .filter(([, c]) => c && c.length)
-    .map(([name, c]) => ({ name, rel365: relStrength(alignedRatio(c, RAW), 365) }))
+    .map(([name, c]) => {
+      const priceNow = c.at(-1).price, mc = priceNow * (MAJOR_SUPPLY[name] || 0);
+      return { name, rel365: relStrength(alignedRatio(c, RAW), 365), priceNow, mc, spxAtCap: mc / SUPPLY };
+    })
     .filter(m => m.rel365 != null);
 
   return {
