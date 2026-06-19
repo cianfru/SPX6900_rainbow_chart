@@ -4,6 +4,7 @@
 import { DEFAULT_RAW } from "../src/data.js";
 import { fetchLivePrice, fetchMajors, fetchHistory, computeStats } from "../scripts/bot/stats.mjs";
 import { buildPost, allIds } from "../scripts/bot/posts.mjs";
+import { isPortraitCard, isVideoCard } from "../scripts/bot/card-format.mjs";
 
 const DAY = 86400000;
 
@@ -19,15 +20,13 @@ export default async function handler(req, res) {
     ids = allIds(stats);
     // The exact tweet copy each card posts with (same builder the bot uses), plus
     // whether it posts as a video or a static image, and at 4:5 portrait or
-    // landscape. Both sets mirror scripts/bot/{media,charts}.mjs.
-    const VIDEO = new Set(["scale", "cube"]); // mirror of VIDEO_TYPES in charts.mjs — animate only where motion is the message
-    const PORTRAIT = new Set(["rainbow", "line", "scale", "model"]); // mirror of PORTRAIT_TYPES in charts.mjs
+    // landscape — read from the shared card-format source of truth.
     for (const id of ids) {
       const p = buildPost(stats, new Date(), id);
       const type = p.card?.type;
       texts[id] = p.text;
-      media[id] = VIDEO.has(type) ? "video" : "image";
-      orient[id] = PORTRAIT.has(type) ? "portrait" : "landscape";
+      media[id] = isVideoCard(type) ? "video" : "image";
+      orient[id] = isPortraitCard(type) ? "portrait" : "landscape";
     }
     const base = new Date(); base.setUTCHours(13, 0, 0, 0); // the daily cron slot
     for (let i = 0; i < days; i++) {
