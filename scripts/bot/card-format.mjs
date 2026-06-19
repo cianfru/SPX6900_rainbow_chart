@@ -6,11 +6,10 @@
 // Posted-media portrait canvas (4:5) for mobile feeds. OG/link images stay landscape.
 export const PORTRAIT = { W: 1080, H: 1350 };
 
-// Which cards post at 4:5 portrait vs landscape. The static chart cards read
-// better landscape (the 4:5 crop shrank the type and stretched charts too tall),
-// so only the animated `scale` zoom-out stays portrait — it was built for the 4:5
-// video. (Re-add card types here to opt them back into portrait.)
-const PORTRAIT_TYPES = new Set(["scale"]);
+// Which cards post at 4:5 portrait vs landscape. The rainbow fills mobile feeds
+// nicely at 4:5, and the animated `scale` zoom-out was built for the 4:5 video.
+// The other static chart cards are landscape (their AR is being tuned).
+const PORTRAIT_TYPES = new Set(["scale", "rainbow"]);
 export const isPortraitCard = type => PORTRAIT_TYPES.has(type);
 
 // Which cards post as an animated video vs a static image. We animate only where
