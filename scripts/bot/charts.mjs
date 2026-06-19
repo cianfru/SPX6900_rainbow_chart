@@ -98,7 +98,11 @@ export const renderLineCard = (spec, opts = {}) => png(lineCardSvg(spec, opts), 
 
 // Posted-media portrait canvas (4:5) for mobile feeds. OG/link images stay landscape.
 export const PORTRAIT = { W: 1080, H: 1350 };
-const PORTRAIT_TYPES = new Set(["rainbow", "line", "scale", "model"]);
+// Which cards post at 4:5 portrait vs landscape. Currently EMPTY → everything
+// posts landscape: the 4:5 crop shrank the type and stretched charts too tall.
+// (Re-add card types here to opt them back into portrait; the `portrait` flag
+// plumbing in media.mjs / renderPostCard is kept intact.)
+const PORTRAIT_TYPES = new Set();
 // Single source of truth for which cards post at 4:5 portrait vs landscape.
 export const isPortraitCard = type => PORTRAIT_TYPES.has(type);
 
