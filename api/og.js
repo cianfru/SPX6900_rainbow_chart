@@ -16,7 +16,7 @@ const TAB_POST = {
   supply: "distribution", holders: "marketcap", model: "model",
 };
 // Posts that need the major-coin series fetched before computeStats.
-const NEEDS_COINS = new Set(["btc", "majors", "majorcaps"]);
+const NEEDS_COINS = new Set(["btc", "majors", "majorcaps", "ytd"]);
 
 const rainbowPng = price =>
   new Resvg(rainbowSvg(price), { fitTo: { mode: "width", value: 1200 } }).render().asPng();

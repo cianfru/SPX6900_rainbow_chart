@@ -184,7 +184,7 @@ export function computeStats(price, dateStr = new Date().toISOString().slice(0, 
     .filter(([, c]) => c && c.length)
     .map(([name, c]) => {
       const priceNow = c.at(-1).price, mc = priceNow * (MAJOR_SUPPLY[name] || 0);
-      return { name, rel365: relStrength(alignedRatio(c, RAW), 365), priceNow, mc, spxAtCap: mc / SUPPLY };
+      return { name, rel365: relStrength(alignedRatio(c, RAW), 365), priceNow, mc, spxAtCap: mc / SUPPLY, series: c.map(d => [Date.parse(d.date), d.price]) };
     })
     .filter(m => m.rel365 != null);
 
