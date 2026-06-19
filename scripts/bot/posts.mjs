@@ -649,6 +649,55 @@ NFA`,
       } },
     };
   })(),
+
+  // 28 — SPX6900 vs the majors, year-to-date (rebased to 0% on Jan 1). An honest
+  // side-by-side — shown even when SPX trails, because the comparison itself is
+  // the value. Uses the live 1-yr major series (no bundled history needed).
+  s => s.majors && s.majors.length && (() => {
+    const YEAR = Date.UTC(new Date(Date.parse(s.date)).getUTCFullYear(), 0, 1);
+    const rebase = pts => {
+      const yr = pts.filter(([t]) => t >= YEAR);
+      if (yr.length < 2) return null;
+      const base = yr[0][1];
+      return yr.map(([t, p]) => [t, (p / base - 1) * 100]);
+    };
+    const COLOR = { BTC: "#f7931a", ETH: "#818cf8", SOL: "#9945ff" };
+    const spx = rebase(s.series.price);
+    if (!spx) return null;
+    const lines = s.majors.map(m => ({ name: m.name, color: COLOR[m.name] || "#94a3b8", pts: rebase(m.series) })).filter(m => m.pts);
+    if (!lines.length) return null;
+    const spxYtd = spx.at(-1)[1] / 100; // back to fraction for fPct
+    const ranked = [{ name: "SPX6900", ret: spxYtd }, ...lines.map(m => ({ name: m.name, ret: m.pts.at(-1)[1] / 100 }))].sort((a, b) => b.ret - a.ret);
+    const allY = [...spx, ...lines.flatMap(m => m.pts)].map(p => p[1]);
+    const lo = Math.min(0, ...allY), hi = Math.max(0, ...allY), step = 20;
+    const yTicks = [];
+    for (let v = Math.floor(lo / step) * step; v <= Math.ceil(hi / step) * step + 1e-6; v += step) yTicks.push({ v, label: (v > 0 ? "+" : "") + v + "%" });
+    const winning = ranked[0].name === "SPX6900";
+    const closer = winning
+      ? "SPX6900 out in front — the meme keeps outrunning the majors."
+      : spxYtd >= 0
+        ? "Green on the year, just not the leader yet. The rainbow says the patient zone pays."
+        : "A rough start, no spin — but every prior dip on the rainbow has been a refuel stop.";
+    return {
+      id: "ytd",
+      text:
+`📊 SPX6900 vs the majors, year to date — no spin:
+${ranked.map(r => `${r.name}: ${fPct(r.ret)}`).join(TIGHT)}
+${closer}
+NFA`,
+      card: { type: "line", spec: {
+        title: "SPX6900 vs majors — year to date", headline: `SPX6900 ${fPct(spxYtd)} YTD`, accent: spxYtd >= 0 ? "#4ade80" : "#f87171",
+        yMin: Math.floor(lo / step) * step, yMax: Math.ceil(hi / step) * step, yTicks,
+        hlines: [{ y: 0, label: "0%", color: "#475569" }],
+        series: [
+          ...lines.map(m => ({ pts: m.pts, color: m.color, width: 2.5 })),
+          { pts: spx, color: "#4ade80", width: 4 },
+        ],
+        legend: [{ label: "SPX6900", color: "#4ade80" }, ...lines.map(m => ({ label: m.name, color: m.color }))],
+        marker: { x: spx.at(-1)[0], y: spx.at(-1)[1], color: "#4ade80" },
+      } },
+    };
+  })(),
 ];
 
 export function allIds(stats) { return POSTS.map(p => p(stats)?.id).filter(Boolean); }
