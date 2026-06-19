@@ -1,0 +1,42 @@
+name: Coin history
+
+# Fetches ETH/SOL daily history from Coinbase and commits src/{eth,sol}-history.js
+# for the "SPX vs majors since launch" card. Run manually once to seed it; the
+# monthly cron keeps it fresh. (The agent sandbox can't reach these hosts, but
+# GitHub runners can — same as the bot's other price fetches.)
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 6 1 * *" # 1st of each month, 06:00 UTC
+
+permissions:
+  contents: write
+
+concurrency:
+  group: coin-history
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Fetch + write ETH/SOL history
+        run: node scripts/data/build-coin-history.mjs
+
+      - name: Commit if changed
+        run: |
+          if [[ -n "$(git status --porcelain src/eth-history.js src/sol-history.js)" ]]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add src/eth-history.js src/sol-history.js
+            git commit -m "chore: refresh ETH/SOL history $(date -u +%F)"
+            git push
+          else
+            echo "No coin-history change to commit"
+          fi
