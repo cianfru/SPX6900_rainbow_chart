@@ -96,22 +96,10 @@ function niceTicks(min, max, yLog) {
 
 export const renderLineCard = (spec, opts = {}) => png(lineCardSvg(spec, opts), opts.W ?? W);
 
-// Posted-media portrait canvas (4:5) for mobile feeds. OG/link images stay landscape.
-export const PORTRAIT = { W: 1080, H: 1350 };
-// Which cards post at 4:5 portrait vs landscape. The static chart cards read
-// better landscape (the 4:5 crop shrank the type and stretched charts too tall),
-// so only the animated `scale` zoom-out stays portrait — it was designed for the
-// 4:5 video. (Re-add types here to opt them back into portrait.)
-const PORTRAIT_TYPES = new Set(["scale"]);
-// Single source of truth for which cards post at 4:5 portrait vs landscape.
-export const isPortraitCard = type => PORTRAIT_TYPES.has(type);
-
-// Which cards post as an animated video vs a static image. We animate only where
-// motion IS the message — the S&P scale zoom-out and the cube stack. Charts
-// (rainbow/line) read fully at a glance, so they post as static images (a video's
-// near-blank draw-in first frame makes a weak autoplay thumbnail in-feed).
-const VIDEO_TYPES = new Set(["scale", "cube"]);
-export const isVideoCard = type => VIDEO_TYPES.has(type);
+// Portrait/video format decisions live in card-format.mjs (dependency-free so the
+// schedule endpoint can share them). Re-exported here for existing importers.
+import { PORTRAIT, isPortraitCard, isVideoCard } from "./card-format.mjs";
+export { PORTRAIT, isPortraitCard, isVideoCard };
 
 // Line/area card as an SVG string. opts.reveal (0..1) draws the series in
 // progressively for video (marker rides the leading edge); opts.pulse (0..1)
@@ -431,7 +419,7 @@ export function renderGauge(spec) {
 
 export function renderPostCard(post, stats, opts = {}) {
   const { type, spec } = post.card;
-  const dims = opts.portrait && PORTRAIT_TYPES.has(type) ? PORTRAIT : {};
+  const dims = opts.portrait && isPortraitCard(type) ? PORTRAIT : {};
   if (type === "rainbow") return renderRainbowCard(stats, dims);
   if (type === "gauge") return renderGauge({ ...spec, date: stats.date });
   if (type === "heatmap") return renderHeatmap({ ...spec, date: stats.date });
