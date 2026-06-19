@@ -263,6 +263,58 @@ export function renderBarCard(spec) {
   return chrome(spec, svg, defs);
 }
 
+// Seasonality heatmap card — the website's Monthly grid, condensed. rows:
+// [{label, cells:[12 returns|null], year}]. Green up / red down, opacity scaled
+// by size; a right-hand "Year" column compounds each row. Mirrors SeasonalityGrid.
+const HM_MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const hmFmt = r => {
+  if (r == null || !isFinite(r)) return "";
+  const p = r * 100;
+  if (Math.abs(p) >= 1000) { const k = p / 1000; return (p >= 0 ? "+" : "") + (Math.abs(k) >= 10 ? k.toFixed(0) : k.toFixed(1)) + "k%"; }
+  return (p >= 0 ? "+" : "") + Math.round(p) + "%";
+};
+const hmCell = r => {
+  if (r == null || !isFinite(r)) return { fill: "#11151f", op: 1 };
+  const mag = Math.min(1, Math.log1p(Math.abs(r)) / Math.log(3.2));
+  return { fill: r >= 0 ? "#22c55e" : "#ef4444", op: 0.12 + mag * 0.62 };
+};
+export function renderHeatmap(spec) {
+  const rows = spec.rows, hasYear = spec.yearCol !== false;
+  const dataCols = 12 + (hasYear ? 1 : 0);
+  const labW = 58, gap = 6;
+  const cw = (pW - labW - gap * dataCols) / dataCols;
+  const nR = rows.length + 1;                       // header row + one per year
+  const ch = (pH - gap * (nR - 1)) / nR;
+  const x0 = mL + labW;
+  const colX = j => x0 + j * (cw + gap);
+  const rowY = i => mT + i * (ch + gap);
+  const cFs = Math.min(20, Math.round(cw * 0.27));
+  const labFs = Math.min(20, Math.round(ch * 0.34));
+  let svg = "";
+  const mid = (cx, cy, t, fill, fs, w = 600) =>
+    `<text x="${cx.toFixed(1)}" y="${(cy + fs * 0.35).toFixed(1)}" fill="${fill}" font-size="${fs}" font-weight="${w}" text-anchor="middle" font-family="sans-serif">${esc(t)}</text>`;
+
+  // header: month labels + Year
+  HM_MONTHS.forEach((m, j) => { svg += mid(colX(j) + cw / 2, rowY(0) + ch / 2, m, "#94a3b8", Math.min(20, cFs + 2), 700); });
+  if (hasYear) svg += mid(colX(12) + cw / 2, rowY(0) + ch / 2, "Year", "#cbd5e1", Math.min(20, cFs + 2), 700);
+
+  rows.forEach((row, ri) => {
+    const i = ri + 1;
+    svg += mid(mL + labW / 2, rowY(i) + ch / 2, row.label, "#cbd5e1", labFs, 700);
+    const draw = (j, r, bold) => {
+      const { fill, op } = hmCell(r);
+      svg += `<rect x="${colX(j).toFixed(1)}" y="${rowY(i).toFixed(1)}" width="${cw.toFixed(1)}" height="${ch.toFixed(1)}" rx="7" fill="${fill}" fill-opacity="${op.toFixed(3)}" stroke="rgba(255,255,255,0.05)"/>`;
+      const t = hmFmt(r);
+      if (t) svg += mid(colX(j) + cw / 2, rowY(i) + ch / 2, t, "#f1f5f9", cFs, bold ? 700 : 600);
+    };
+    row.cells.forEach((r, j) => draw(j, r));
+    if (hasYear) draw(12, row.year, true);
+  });
+
+  svg += `<text x="64" y="${(H - 48).toFixed(1)}" fill="#64748b" font-size="20" font-family="sans-serif">Each cell = that month's return · green up, red down</text>`;
+  return chrome(spec, svg);
+}
+
 // Donut for composition (e.g. supply by holder tier). segments: [{label,value,color}].
 export function renderDonut(spec) {
   const segs = spec.segments.filter(s => s.value > 0);
@@ -368,6 +420,7 @@ export function renderPostCard(post, stats, opts = {}) {
   const dims = opts.portrait && PORTRAIT_TYPES.has(type) ? PORTRAIT : {};
   if (type === "rainbow") return renderRainbowCard(stats, dims);
   if (type === "gauge") return renderGauge({ ...spec, date: stats.date });
+  if (type === "heatmap") return renderHeatmap({ ...spec, date: stats.date });
   if (type === "bar") return renderBarCard({ ...spec, date: stats.date });
   if (type === "donut") return renderDonut({ ...spec, date: stats.date });
   if (type === "stack") return renderStackBar({ ...spec, date: stats.date });
