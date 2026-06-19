@@ -215,6 +215,16 @@ export function lineCardSvg(spec, opts = {}) {
     marker = `${ring}<circle cx="${mx.toFixed(1)}" cy="${my.toFixed(1)}" r="7" fill="#fff" stroke="${mc}" stroke-width="3"/>`;
   }
 
+  // Extra fixed markers (e.g. where a projection crosses each milestone line).
+  // Drawn only on the finished card, not during a video reveal sweep.
+  if (spec.markers && reveal >= 1) {
+    for (const m of spec.markers) {
+      const px = X(m.x).toFixed(1), py = Y(m.y).toFixed(1);
+      marker += `<circle cx="${px}" cy="${py}" r="9" fill="${m.color}" fill-opacity="0.9" filter="url(#glow)"/>`
+        + `<circle cx="${px}" cy="${py}" r="6" fill="#fff" stroke="${m.color}" stroke-width="2.5"/>`;
+    }
+  }
+
   // legend with a backing chip, parked top-left of the plot (clear of the data)
   let legend = "";
   const items = spec.legend || [];

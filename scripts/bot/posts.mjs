@@ -545,27 +545,43 @@ NFA`,
     };
   })(),
 
-  // 25 — "how far to DOGE-size?" — cycle-progress arc. If SPX keeps tracing
-  // Bitcoin's 4-year cycle, the projected top lands near DOGE's old cap; the arc
-  // shows how far we are through the cycle, in time, toward that date.
+  // 25 — "when does SPX flip the kings?" — the BTC-cycle projection climbing past
+  // each memecoin king's ATH cap, each rung marked with the date it's reached. The
+  // base case tops out ≈ DOGE's cap (~$91 vs $94.57), so DOGE reads as ≈ the top.
   s => (() => {
     const c = btcCycleProjection();
-    const now = Date.now();
-    const HALVING = Date.UTC(2024, 3, 20); // 2024-04-20 BTC halving = this cycle's anchor
-    const prog = Math.min(1, Math.max(0, (now - HALVING) / (c.peakTs - HALVING)));
-    const months = Math.max(0, Math.round((c.peakTs - now) / (86400000 * 30.44)));
-    const doge = CRYPTO_MILESTONES.find(m => m.label === "DOGE ATH MC");
+    const KINGS = [
+      { label: "PEPE ATH MC", short: "PEPE", color: "#38bdf8" },
+      { label: "SHIB ATH MC", short: "SHIB", color: "#f43f5e" },
+      { label: "DOGE ATH MC", short: "DOGE", color: "#c2a633" },
+    ].map(k => ({ ...CRYPTO_MILESTONES.find(m => m.label === k.label), ...k }));
+    const firstCross = price => { for (const [ts, p] of c.projPts) if (p >= price) return ts; return null; };
+    // Each king: the date the projection first reaches its cap, or ≈ the cycle top.
+    const rungs = KINGS.map(k => {
+      const cross = firstCross(k.price);
+      return cross
+        ? { ...k, ts: cross, y: k.price, when: fMon(cross), top: false }
+        : { ...k, ts: c.peakTs, y: c.peak, when: `≈ top ${fMon(c.peakTs)}`, top: true };
+    });
+    const doge = rungs.find(r => r.short === "DOGE");
     return {
       id: "dogeclock",
       text:
-`🐕 If SPX6900 keeps tracing Bitcoin's 4-year cycle, the projected top (~${fMon(c.peakTs)}) lands near DOGE's old ${doge.mc} cap — about ${months} months out.
-We're ~${Math.round(prog * 100)}% through this cycle. ${fPx(c.peak)} base, ${fPx(c.peakHi)} bull.
+`🐕 If SPX6900 keeps tracing Bitcoin's 4-year cycle, here's when it flips the memecoin kings:
+${rungs.map(r => `${r.short} (${r.mc}) → ${r.top ? `≈ the cycle top, ${fMon(c.peakTs)}` : `~${r.when}`}`).join(TIGHT)}
+DOGE-size lands right at the projected top. A for-fun what-if, not a forecast.
 NFA`,
-      card: { type: "gauge", spec: {
-        title: "How far to DOGE-size?", headline: `≈ ${fMon(c.peakTs)} · ~${months} mo out`, accent: doge.c,
-        value: prog,
-        ticks: [{ at: 0, label: "2024 halving", anchor: "start" }, { at: 1, label: `${doge.mc} · ${fMon(c.peakTs)}`, anchor: "end" }],
-        centerBig: `~${months} months`, centerSmall: `to SPX ≈ DOGE's ${doge.mc} cap`,
+      card: { type: "line", spec: {
+        title: "When does SPX6900 flip the kings?", headline: `DOGE-size ≈ ${fMon(c.peakTs)}`, accent: doge.color,
+        yLog: true, yTicks: decadeTicks(s.firstPrice, c.peakHi),
+        series: [
+          { pts: s.series.price, color: "#4ade80", width: 3, fill: 0.1 },
+          { pts: c.projPts, color: "#f7931a", width: 3, dash: true },
+        ],
+        hlines: rungs.map(r => ({ y: r.price, label: `${r.short} · ${r.when}`, color: r.color })),
+        markers: rungs.map(r => ({ x: r.ts, y: r.y, color: r.color })),
+        legend: [{ label: "SPX actual", color: "#4ade80" }, { label: "BTC cycle (real)", color: "#f7931a" }],
+        marker: { x: c.anchorTs, y: c.anchorPrice, color: "#4ade80" },
       } },
     };
   })(),
