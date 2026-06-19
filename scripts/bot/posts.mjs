@@ -484,9 +484,9 @@ NFA`,
     };
   })(),
 
-  // 23 — distribution of monthly returns (histogram). Buckets the bundled series
-  // into month-over-month returns and shows how the months spread out — backs the
-  // "up only" meme with the real (volatile) shape of the path.
+  // 23 — monthly returns as a seasonality heatmap (the website's Monthly grid,
+  // condensed): years × months, green up / red down, plus a compounded Year
+  // column. Same month-over-month definition the site uses, so they agree.
   s => (() => {
     const byMonth = new Map();
     for (const [ts, p] of s.series.price) {
@@ -494,29 +494,31 @@ NFA`,
       byMonth.set(d.getUTCFullYear() * 12 + d.getUTCMonth(), p); // last close wins
     }
     const keys = [...byMonth.keys()].sort((a, b) => a - b);
-    const rets = [];
-    for (let i = 1; i < keys.length; i++) rets.push(byMonth.get(keys[i]) / byMonth.get(keys[i - 1]) - 1);
-    if (rets.length < 8) return null;
-    const buckets = [
-      { label: "≤-25%", lo: -Infinity, hi: -0.25, color: "#dc2626" },
-      { label: "-25–0%", lo: -0.25, hi: 0, color: "#f87171" },
-      { label: "0–25%", lo: 0, hi: 0.25, color: "#4ade80" },
-      { label: "25–50%", lo: 0.25, hi: 0.5, color: "#22c55e" },
-      { label: "50–100%", lo: 0.5, hi: 1, color: "#16a34a" },
-      { label: "100%+", lo: 1, hi: Infinity, color: "#15803d" },
-    ];
-    const counts = buckets.map(b => rets.filter(r => r >= b.lo && r < b.hi).length);
-    const green = rets.filter(r => r >= 0).length;
-    const pctGreen = Math.round(green / rets.length * 100);
+    const ret = new Map();
+    for (let i = 1; i < keys.length; i++) ret.set(keys[i], byMonth.get(keys[i]) / byMonth.get(keys[i - 1]) - 1);
+    if (ret.size < 8) return null;
+    const y0 = Math.floor(keys[0] / 12), y1 = Math.floor(keys[keys.length - 1] / 12);
+    const rows = [];
+    for (let y = y0; y <= y1; y++) {
+      let mult = 1, any = false;
+      const cells = Array.from({ length: 12 }, (_, m) => {
+        const r = ret.has(y * 12 + m) ? ret.get(y * 12 + m) : null;
+        if (r != null) { mult *= 1 + r; any = true; }
+        return r;
+      });
+      rows.push({ label: String(y), cells, year: any ? mult - 1 : null });
+    }
+    const all = [...ret.values()];
+    const pctGreen = Math.round(all.filter(r => r >= 0).length / all.length * 100);
     return {
       id: "monthlyreturns",
       text:
-`📅 SPX6900 monthly returns, ${rets.length} months on record: ${pctGreen}% closed green.
-Up only is a meme — the path is volatile. But the green months (and the fat right tail) have done the heavy lifting.
+`📅 SPX6900 monthly returns, year by year — ${pctGreen}% of ${all.length} months closed green.
+Up only is a meme; the path is volatile. But the green months (and the fat green tail) have done the heavy lifting. Full grid on the site.
 NFA`,
-      card: { type: "bar", spec: {
-        title: "Distribution of monthly returns", headline: `${pctGreen}% of months green`, accent: "#4ade80",
-        bars: buckets.map((b, i) => ({ label: b.label, value: counts[i], text: String(counts[i]), color: b.color, dim: counts[i] === 0 })),
+      card: { type: "heatmap", spec: {
+        title: "SPX6900 monthly returns", headline: `${pctGreen}% of months green`, accent: "#4ade80",
+        rows, yearCol: true,
       } },
     };
   })(),

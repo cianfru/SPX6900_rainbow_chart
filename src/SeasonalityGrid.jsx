@@ -10,11 +10,13 @@ const MONO = "ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberat
 const MAX_W = 1400;
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
-// One shared label format: big gains read as a multiple (12x), the rest as %.
+// One shared label format: always a % return, with a compact "k%" for the rare
+// tail months/years that run into the thousands of percent (keeps cells tight).
 const fmt = r => {
   if (r == null || !isFinite(r)) return "";
-  if (r >= 1) { const m = 1 + r; return (m >= 10 ? m.toFixed(0) : m.toFixed(1)) + "x"; }
-  return (r >= 0 ? "+" : "") + Math.round(r * 100) + "%";
+  const p = r * 100;
+  if (Math.abs(p) >= 1000) { const k = p / 1000; return (p >= 0 ? "+" : "") + (Math.abs(k) >= 10 ? k.toFixed(0) : k.toFixed(1)) + "k%"; }
+  return (p >= 0 ? "+" : "") + Math.round(p) + "%";
 };
 
 // Cell background: green up / red down, opacity grows with magnitude (log-ish so a
@@ -95,7 +97,7 @@ export default function SeasonalityGrid({ series, isMobile }) {
       </div>
 
       <div style={{ overflowX: "auto" }}>
-        <div style={{ minWidth: isMobile ? 560 : 720 }}>
+        <div style={{ minWidth: isMobile ? 620 : 760 }}>
           {/* header */}
           <div style={{ display: "grid", gridTemplateColumns: cols, gap: 4 }}>
             {hdr("", "h-")}
@@ -128,7 +130,7 @@ export default function SeasonalityGrid({ series, isMobile }) {
       <div style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.6 }}>
         Each cell is that month's return (last close vs. the prior month's). The <strong style={{ color: "#cbd5e1" }}>Year</strong> column
         compounds the months into an annual figure; <strong style={{ color: "#cbd5e1" }}>Avg</strong> is the typical return for that calendar
-        month across all years — the seasonality. Big gains show as a multiple (e.g. 12x). Not financial advice.
+        month across all years — the seasonality. Tail months can run into the thousands of percent (shown compactly, e.g. +8.9k%). Not financial advice.
       </div>
     </div>
   );
