@@ -43,9 +43,13 @@ export default async function handler(req, res) {
       if (NEEDS_COINS.has(postId)) { try { opts.coins = await fetchMajors(); } catch { /* skip */ } }
       const stats = computeStats(price, undefined, opts);
       const post = buildPost(stats, new Date(), postId);
+      // The control gallery (?post=) previews cards at their true posted size (3:2
+      // landscape / 4:5 portrait). Share-link unfurls (?tab=) instead render 1.91:1
+      // so X's link card doesn't crop the chart's axes off.
+      const cardOpts = directPost ? { portrait } : { landscape: { W: 1200, H: 630 } };
       // buildPost falls back to rotation if the requested post lacks data; if so,
       // fall back to the rainbow card rather than show an unrelated chart.
-      png = post.id === postId ? renderPostCard(post, stats, { portrait }) : rainbowPng(price);
+      png = post.id === postId ? renderPostCard(post, stats, cardOpts) : rainbowPng(price);
     }
   } catch {
     png = rainbowPng(price);

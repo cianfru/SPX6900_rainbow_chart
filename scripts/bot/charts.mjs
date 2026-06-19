@@ -5,8 +5,11 @@
 import { Resvg } from "@resvg/resvg-js";
 import { renderRainbowCard } from "./rainbow-card.mjs";
 
-const W = 1200, H = 630, mL = 88, mR = 48, mT = 188, mB = 76;
+const W = 1200, H = 800, mL = 88, mR = 48, mT = 188, mB = 76; // landscape card is 3:2
 const pW = W - mL - mR, pH = H - mT - mB;
+// Per-card canvas geometry. Defaults to the 3:2 landscape; callers (e.g. the OG
+// link-unfurl endpoint) can pass {W,H} to render the same card at another size.
+const geom = (o = {}) => { const DW = o.W ?? W, DH = o.H ?? H; return { DW, DH, PW: DW - mL - mR, PH: DH - mT - mB }; };
 const esc = s => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 const png = (svg, w = W) => new Resvg(svg, { fitTo: { mode: "width", value: w } }).render().asPng();
 
@@ -31,7 +34,7 @@ ${inner}
 <text x="64" y="${DH - 22}" fill="#475569" font-size="22" font-family="sans-serif">${esc(footer)}</text>
 </svg>`;
 }
-const chrome = (spec, inner, extraDefs = "") => png(chromeSvg(spec, inner, extraDefs));
+const chrome = (spec, inner, extraDefs = "", dims) => png(chromeSvg(spec, inner, extraDefs, dims), dims?.W ?? W);
 
 function yearTicks(xMin, xMax) {
   const out = [];
@@ -235,18 +238,19 @@ export function lineCardSvg(spec, opts = {}) {
   return chromeSvg(spec, grid + cone + plot + hl + marker + legend, defs, { W: DW, H: DH });
 }
 
-export function renderBarCard(spec) {
+export function renderBarCard(spec, opts = {}) {
+  const { DW, DH, PW, PH } = geom(opts);
   const bars = spec.bars;
   const vals = bars.map(b => Math.abs(b.value));
   const max = Math.max(...vals, 1);
   // Reserve headroom at the top of the plot for the value label that sits above
   // each bar, so the tallest bar's label can't ride up into the headline.
   const labelPad = 44;
-  const usableH = pH - labelPad;
+  const usableH = PH - labelPad;
   const h = spec.logBars
     ? v => (Math.log10(Math.abs(v) + 1) / (Math.log10(max + 1) || 1)) * usableH
     : v => (Math.abs(v) / max) * usableH;
-  const n = bars.length, gap = pW / n, bw = Math.min(gap * 0.6, 150);
+  const n = bars.length, gap = PW / n, bw = Math.min(gap * 0.6, 150);
   let defs = "";
   bars.forEach((b, i) => {
     defs += `<linearGradient id="bar${i}" x1="0" y1="0" x2="0" y2="1">
@@ -257,12 +261,12 @@ export function renderBarCard(spec) {
   bars.forEach((b, i) => {
     const bh = Math.max(2, h(b.value));
     const cx = mL + gap * i + gap / 2;
-    const yTop = mT + pH - bh;
+    const yTop = mT + PH - bh;
     svg += `<rect x="${(cx - bw / 2).toFixed(1)}" y="${yTop.toFixed(1)}" width="${bw.toFixed(1)}" height="${bh.toFixed(1)}" rx="9" fill="url(#bar${i})"${b.outline ? ` stroke="#fff" stroke-width="2"` : ""}/>`;
     svg += `<text x="${cx.toFixed(1)}" y="${(yTop - 14).toFixed(1)}" fill="#e2e8f0" font-size="26" font-weight="700" text-anchor="middle" font-family="sans-serif">${esc(b.text ?? b.value)}</text>`;
-    svg += `<text x="${cx.toFixed(1)}" y="${(mT + pH + 32).toFixed(1)}" fill="#94a3b8" font-size="22" text-anchor="middle" font-family="sans-serif">${esc(b.label)}</text>`;
+    svg += `<text x="${cx.toFixed(1)}" y="${(mT + PH + 32).toFixed(1)}" fill="#94a3b8" font-size="22" text-anchor="middle" font-family="sans-serif">${esc(b.label)}</text>`;
   });
-  return chrome(spec, svg, defs);
+  return chrome(spec, svg, defs, { W: DW, H: DH });
 }
 
 // Seasonality heatmap card — the website's Monthly grid, condensed. rows:
@@ -280,13 +284,14 @@ const hmCell = r => {
   const mag = Math.min(1, Math.log1p(Math.abs(r)) / Math.log(3.2));
   return { fill: r >= 0 ? "#22c55e" : "#ef4444", op: 0.12 + mag * 0.62 };
 };
-export function renderHeatmap(spec) {
+export function renderHeatmap(spec, opts = {}) {
+  const { DW, DH, PW, PH } = geom(opts);
   const rows = spec.rows, hasYear = spec.yearCol !== false;
   const dataCols = 12 + (hasYear ? 1 : 0);
   const labW = 58, gap = 6;
-  const cw = (pW - labW - gap * dataCols) / dataCols;
+  const cw = (PW - labW - gap * dataCols) / dataCols;
   const nR = rows.length + 1;                       // header row + one per year
-  const ch = (pH - gap * (nR - 1)) / nR;
+  const ch = (PH - gap * (nR - 1)) / nR;
   const x0 = mL + labW;
   const colX = j => x0 + j * (cw + gap);
   const rowY = i => mT + i * (ch + gap);
@@ -313,24 +318,25 @@ export function renderHeatmap(spec) {
     if (hasYear) draw(12, row.year, true);
   });
 
-  svg += `<text x="64" y="${(H - 48).toFixed(1)}" fill="#64748b" font-size="20" font-family="sans-serif">Each cell = that month's return · green up, red down</text>`;
-  return chrome(spec, svg);
+  svg += `<text x="64" y="${(DH - 48).toFixed(1)}" fill="#64748b" font-size="20" font-family="sans-serif">Each cell = that month's return · green up, red down</text>`;
+  return chrome(spec, svg, "", { W: DW, H: DH });
 }
 
 // Dollar-cost-averaging card. Two series over time (log $): `invested` (the flat
 // staircase of contributions) and `value` (the stack's worth). The band BETWEEN
 // them is filled green — that gap IS the profit — over a muted amber "what you
 // put in" base. Built for the "$100/mo since launch" story.
-export function renderDca(spec) {
+export function renderDca(spec, opts = {}) {
+  const { DW, DH, PW, PH } = geom(opts);
   const inv = spec.invested, val = spec.value;            // [[ts, $], …]
   const xs = val.map(p => p[0]);
   const xMin = Math.min(...xs), xMax = Math.max(...xs);
   const ys = [...val, ...inv].map(p => p[1]).filter(y => y > 0);
   const yMin = Math.max(50, Math.min(...ys) * 0.85), yMax = Math.max(...ys) * 1.18;
-  const X = x => mL + ((x - xMin) / ((xMax - xMin) || 1)) * pW;
-  const Y = y => mT + ((Math.log(yMax) - Math.log(Math.max(y, 1e-9))) / ((Math.log(yMax) - Math.log(yMin)) || 1)) * pH;
+  const X = x => mL + ((x - xMin) / ((xMax - xMin) || 1)) * PW;
+  const Y = y => mT + ((Math.log(yMax) - Math.log(Math.max(y, 1e-9))) / ((Math.log(yMax) - Math.log(yMin)) || 1)) * PH;
   const pl = pts => pts.map(([x, y]) => `${X(x).toFixed(1)},${Y(y).toFixed(1)}`).join(" ");
-  const baseY = (mT + pH).toFixed(1);
+  const baseY = (mT + PH).toFixed(1);
   const green = "#34d399", amber = "#fbbf24";
 
   const defs = `
@@ -346,11 +352,11 @@ export function renderDca(spec) {
   for (let e = 1; e <= 8; e++) {
     const v = 10 ** e; if (v < yMin || v > yMax) continue;
     const yy = Y(v).toFixed(1);
-    grid += `<line x1="${mL}" y1="${yy}" x2="${W - mR}" y2="${yy}" stroke="rgba(255,255,255,0.07)"/>`;
+    grid += `<line x1="${mL}" y1="${yy}" x2="${DW - mR}" y2="${yy}" stroke="rgba(255,255,255,0.07)"/>`;
     grid += `<text x="${mL - 12}" y="${(+yy + 6).toFixed(1)}" fill="#64748b" font-size="20" text-anchor="end" font-family="sans-serif">${fK(v)}</text>`;
   }
   for (const t of timeTicks(xMin, xMax)) {
-    grid += `<text x="${X(t.ts).toFixed(1)}" y="${H - 50}" fill="#64748b" font-size="20" text-anchor="${t.anchor || "middle"}" font-family="sans-serif">${esc(t.label)}</text>`;
+    grid += `<text x="${X(t.ts).toFixed(1)}" y="${DH - 50}" fill="#64748b" font-size="20" text-anchor="${t.anchor || "middle"}" font-family="sans-serif">${esc(t.label)}</text>`;
   }
 
   // invested area (amber, to baseline) — the "what you put in" floor
@@ -368,14 +374,15 @@ export function renderDca(spec) {
     + `<rect x="${lx + 14}" y="${ly + 18}" width="24" height="8" rx="4" fill="${green}"/><text x="${lx + 48}" y="${ly + 27}" fill="#cbd5e1" font-size="22" font-family="sans-serif">Stack value</text>`
     + `<rect x="${lx + 14}" y="${ly + 48}" width="24" height="8" rx="4" fill="${amber}"/><text x="${lx + 48}" y="${ly + 57}" fill="#cbd5e1" font-size="22" font-family="sans-serif">Invested</text>`;
 
-  return chrome(spec, grid + invArea + profit + invLine + valLine + marker + legend, defs);
+  return chrome(spec, grid + invArea + profit + invLine + valLine + marker + legend, defs, { W: DW, H: DH });
 }
 
 // Donut for composition (e.g. supply by holder tier). segments: [{label,value,color}].
-export function renderDonut(spec) {
+export function renderDonut(spec, opts = {}) {
+  const { DW, DH, PH } = geom(opts);
   const segs = spec.segments.filter(s => s.value > 0);
   const total = segs.reduce((a, s) => a + s.value, 0) || 1;
-  const cx = mL + 150, cy = mT + pH / 2, r = 132, sw = 58;
+  const cx = mL + 150, cy = mT + PH / 2, r = 132, sw = 58;
   const C = 2 * Math.PI * r;
   let ring = "", acc = 0;
   for (const s of segs) {
@@ -400,19 +407,20 @@ export function renderDonut(spec) {
     legend += `<text x="${lx + 44}" y="${ly}" fill="#e2e8f0" font-size="28" font-weight="700" font-family="sans-serif">${esc(s.label)}</text>`;
     legend += `<text x="${lx + 44}" y="${ly + 28}" fill="#94a3b8" font-size="23" font-family="sans-serif">${pct}% of supply</text>`;
   });
-  return chrome(spec, ring + center + legend);
+  return chrome(spec, ring + center + legend, "", { W: DW, H: DH });
 }
 
 // Single horizontal 100%-stacked bar for proportions (e.g. locked vs free float).
-export function renderStackBar(spec) {
+export function renderStackBar(spec, opts = {}) {
+  const { DW, DH, PW, PH } = geom(opts);
   const segs = spec.segments.filter(s => s.value > 0);
   const total = spec.total || segs.reduce((a, s) => a + s.value, 0) || 1;
-  const barY = mT + pH / 2 - 46, barH = 96;
+  const barY = mT + PH / 2 - 46, barH = 96;
   let defs = "", body = "", x = mL;
   segs.forEach((s, i) => {
     defs += `<linearGradient id="seg${i}" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0%" stop-color="${s.color}" stop-opacity="1"/><stop offset="100%" stop-color="${s.color}" stop-opacity="0.6"/></linearGradient>`;
-    const w = (s.value / total) * pW;
+    const w = (s.value / total) * PW;
     const pct = Math.round((s.value / total) * 100);
     body += `<rect x="${(x + 2).toFixed(1)}" y="${barY}" width="${Math.max(0, w - 4).toFixed(1)}" height="${barH}" rx="8" fill="url(#seg${i})"/>`;
     if (w > 120) body += `<text x="${(x + w / 2).toFixed(1)}" y="${barY + barH / 2 + 10}" fill="#05050e" font-size="30" font-weight="800" text-anchor="middle" font-family="sans-serif">${pct}%</text>`;
@@ -420,7 +428,7 @@ export function renderStackBar(spec) {
     body += `<text x="${(x + w / 2).toFixed(1)}" y="${barY + barH + 38}" fill="#94a3b8" font-size="23" text-anchor="middle" font-family="sans-serif">${esc(s.label)}</text>`;
     x += w;
   });
-  return chrome(spec, body, defs);
+  return chrome(spec, body, defs, { W: DW, H: DH });
 }
 
 // Render a built post's card to a PNG. Shared by the X bot (post.mjs) and the
@@ -431,8 +439,9 @@ export function renderStackBar(spec) {
 // them and the accent simply fills 0→value. A needle points at `value` (0..1);
 // the big readout and the endpoint tick labels sit below the baseline. Shared by
 // the risk dial and the "how far to DOGE-size" cycle-progress arc.
-export function renderGauge(spec) {
-  const cx = W / 2, cy = mT + 232, R = 205, sw = 44;
+export function renderGauge(spec, opts = {}) {
+  const { DW, DH, PH } = geom(opts);
+  const cx = DW / 2, cy = mT + Math.round(PH * 0.57), R = 205, sw = 44; // dial centred in the plot
   const pt = (v, rad) => { const th = Math.PI * (1 - v); return [cx + rad * Math.cos(th), cy - rad * Math.sin(th)]; };
   // Sample the arc as a polyline — an SVG `A` command's sweep flag is ambiguous
   // across orientations (a single 180° arc would wind the long way), so we trace
@@ -468,23 +477,27 @@ export function renderGauge(spec) {
   svg += `<circle cx="${cx}" cy="${cy}" r="17" fill="#0b0f1c" stroke="${accent}" stroke-width="4"/>`;
   if (spec.centerBig) svg += `<text x="${cx}" y="${(cy + 96).toFixed(1)}" fill="#f8fafc" font-size="52" font-weight="800" text-anchor="middle" font-family="sans-serif">${esc(spec.centerBig)}</text>`;
   if (spec.centerSmall) svg += `<text x="${cx}" y="${(cy + 134).toFixed(1)}" fill="#94a3b8" font-size="26" text-anchor="middle" font-family="sans-serif">${esc(spec.centerSmall)}</text>`;
-  return chrome(spec, svg);
+  return chrome(spec, svg, "", { W: DW, H: DH });
 }
 
 export function renderPostCard(post, stats, opts = {}) {
   const { type, spec } = post.card;
-  const dims = opts.portrait && isPortraitCard(type) ? PORTRAIT : {};
+  // Portrait for the supported cards; otherwise landscape — 3:2 by default, but a
+  // caller (the OG link-unfurl endpoint) can pass opts.landscape={W,H} to render
+  // the same card at another size (e.g. 1.91:1 so X doesn't crop shared links).
+  const dims = opts.portrait && isPortraitCard(type) ? PORTRAIT : (opts.landscape ?? {});
+  const s = { ...spec, date: stats.date };
   if (type === "rainbow") return renderRainbowCard(stats, dims);
-  if (type === "gauge") return renderGauge({ ...spec, date: stats.date });
-  if (type === "heatmap") return renderHeatmap({ ...spec, date: stats.date });
-  if (type === "dca") return renderDca({ ...spec, date: stats.date });
-  if (type === "bar") return renderBarCard({ ...spec, date: stats.date });
-  if (type === "donut") return renderDonut({ ...spec, date: stats.date });
-  if (type === "stack") return renderStackBar({ ...spec, date: stats.date });
-  if (type === "model") return renderModelCard({ ...spec, date: stats.date }, dims);
-  if (type === "cube") return renderCubeCard({ ...spec, date: stats.date });
-  if (type === "scale") return renderScaleCard({ ...spec, date: stats.date }, dims);
-  return renderLineCard({ ...spec, date: stats.date }, dims);
+  if (type === "gauge") return renderGauge(s, dims);
+  if (type === "heatmap") return renderHeatmap(s, dims);
+  if (type === "dca") return renderDca(s, dims);
+  if (type === "bar") return renderBarCard(s, dims);
+  if (type === "donut") return renderDonut(s, dims);
+  if (type === "stack") return renderStackBar(s, dims);
+  if (type === "model") return renderModelCard(s, dims);
+  if (type === "cube") return renderCubeCard(s);
+  if (type === "scale") return renderScaleCard(s, dims);
+  return renderLineCard(s, dims);
 }
 
 // Model-fit explainer: each day's residual (distance from the power-law trend)
