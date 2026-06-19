@@ -327,7 +327,7 @@ ${[
 Bitcoin's real cycle, scaled to SPX's amplitude.
 NFA`,
       card: { type: "bar", spec: {
-        title: `If SPX traces BTC's cycle — ${fMon(c.peakTs)} top`, headline: `Base ${fPx(c.peak)} · ${fMult(mult(c.peak))}`, accent: "#f7931a",
+        title: `If SPX traces BTC's cycle — ${fMon(c.peakTs)} top`, headline: `${fPrice(s.price)} → ${fPx(c.peak)} base · ${fMult(mult(c.peak))}`, accent: "#f7931a",
         bars: [
           { label: `Bear ${fPx(c.peakLo)}`, value: mult(c.peakLo), text: fMult(mult(c.peakLo)), color: "#ef4444" },
           { label: `Base ${fPx(c.peak)}`, value: mult(c.peak), text: fMult(mult(c.peak)), color: "#f7931a", outline: true },
@@ -464,6 +464,109 @@ NFA`,
       } },
     };
   })(),
+
+  // 22 — what an early $100 became (price history scaled to a $100 stake, log).
+  // Relatable + screenshot-able; reuses the line card.
+  s => (() => {
+    const grew = p => p * 100 / s.firstPrice; // value of a $100 stake at price p
+    return {
+      id: "hundred",
+      text:
+`💸 $100 in SPX6900 at its first print (${fMon(s.firstDate)}, ${fPrice(s.firstPrice)}) is worth ${fMoney(grew(s.price))} today.
+Up only, on a power-law clock — the earliest believers are sitting on absurd multiples.
+NFA`,
+      card: { type: "line", spec: {
+        title: "What an early $100 turned into", headline: fMoney(grew(s.price)), accent: "#34d399",
+        yLog: true, yTicks: decadeTicks(100, grew(s.ath)),
+        series: [{ pts: s.series.price.map(([t, p]) => [t, grew(p)]), color: "#34d399", width: 3, fill: 0.14 }],
+        marker: { x: lastTs(s), y: grew(s.price), color: "#34d399" },
+      } },
+    };
+  })(),
+
+  // 23 — distribution of monthly returns (histogram). Buckets the bundled series
+  // into month-over-month returns and shows how the months spread out — backs the
+  // "up only" meme with the real (volatile) shape of the path.
+  s => (() => {
+    const byMonth = new Map();
+    for (const [ts, p] of s.series.price) {
+      const d = new Date(ts);
+      byMonth.set(d.getUTCFullYear() * 12 + d.getUTCMonth(), p); // last close wins
+    }
+    const keys = [...byMonth.keys()].sort((a, b) => a - b);
+    const rets = [];
+    for (let i = 1; i < keys.length; i++) rets.push(byMonth.get(keys[i]) / byMonth.get(keys[i - 1]) - 1);
+    if (rets.length < 8) return null;
+    const buckets = [
+      { label: "≤-25%", lo: -Infinity, hi: -0.25, color: "#dc2626" },
+      { label: "-25–0%", lo: -0.25, hi: 0, color: "#f87171" },
+      { label: "0–25%", lo: 0, hi: 0.25, color: "#4ade80" },
+      { label: "25–50%", lo: 0.25, hi: 0.5, color: "#22c55e" },
+      { label: "50–100%", lo: 0.5, hi: 1, color: "#16a34a" },
+      { label: "100%+", lo: 1, hi: Infinity, color: "#15803d" },
+    ];
+    const counts = buckets.map(b => rets.filter(r => r >= b.lo && r < b.hi).length);
+    const green = rets.filter(r => r >= 0).length;
+    const pctGreen = Math.round(green / rets.length * 100);
+    return {
+      id: "monthlyreturns",
+      text:
+`📅 SPX6900 monthly returns, ${rets.length} months on record: ${pctGreen}% closed green.
+Up only is a meme — the path is volatile. But the green months (and the fat right tail) have done the heavy lifting.
+NFA`,
+      card: { type: "bar", spec: {
+        title: "Distribution of monthly returns", headline: `${pctGreen}% of months green`, accent: "#4ade80",
+        bars: buckets.map((b, i) => ({ label: b.label, value: counts[i], text: String(counts[i]), color: b.color, dim: counts[i] === 0 })),
+      } },
+    };
+  })(),
+
+  // 24 — risk dial: the rainbow valuation as a needle on a colored dial. Reads
+  // risk straight off the band model; the arc IS the rainbow, band by band.
+  s => (() => {
+    const v = s.risk, pct = Math.round(v * 100);
+    const verdict = v < 0.2 ? "Deep value" : v < 0.4 ? "Cheap" : v < 0.6 ? "Fair value" : v < 0.8 ? "Heating up" : "Euphoric";
+    const N = M.BAND_LABELS.length;
+    return {
+      id: "riskdial",
+      text:
+`🌡️ SPX6900 risk dial: ${s.band.l} zone — ${pct}/100 on the rainbow model.
+It's only been this cheap or cheaper ${Math.round(s.cheaperFrac * 100)}% of its life. The needle reads risk straight off the bands.
+NFA`,
+      card: { type: "gauge", spec: {
+        title: "SPX6900 risk dial", headline: `${s.band.l} · ${pct}/100`, accent: s.band.c,
+        value: v,
+        segments: M.BAND_LABELS.map((b, i) => ({ from: i / N, to: (i + 1) / N, color: b.c })),
+        ticks: [{ at: 0, label: "Fire Sale", anchor: "start" }, { at: 1, label: "Max Bubble", anchor: "end" }],
+        centerBig: verdict, centerSmall: `risk ${pct} / 100`,
+      } },
+    };
+  })(),
+
+  // 25 — "how far to DOGE-size?" — cycle-progress arc. If SPX keeps tracing
+  // Bitcoin's 4-year cycle, the projected top lands near DOGE's old cap; the arc
+  // shows how far we are through the cycle, in time, toward that date.
+  s => (() => {
+    const c = btcCycleProjection();
+    const now = Date.now();
+    const HALVING = Date.UTC(2024, 3, 20); // 2024-04-20 BTC halving = this cycle's anchor
+    const prog = Math.min(1, Math.max(0, (now - HALVING) / (c.peakTs - HALVING)));
+    const months = Math.max(0, Math.round((c.peakTs - now) / (86400000 * 30.44)));
+    const doge = CRYPTO_MILESTONES.find(m => m.label === "DOGE ATH MC");
+    return {
+      id: "dogeclock",
+      text:
+`🐕 If SPX6900 keeps tracing Bitcoin's 4-year cycle, the projected top (~${fMon(c.peakTs)}) lands near DOGE's old ${doge.mc} cap — about ${months} months out.
+We're ~${Math.round(prog * 100)}% through this cycle. ${fPx(c.peak)} base, ${fPx(c.peakHi)} bull.
+NFA`,
+      card: { type: "gauge", spec: {
+        title: "How far to DOGE-size?", headline: `≈ ${fMon(c.peakTs)} · ~${months} mo out`, accent: doge.c,
+        value: prog,
+        ticks: [{ at: 0, label: "2024 halving", anchor: "start" }, { at: 1, label: `${doge.mc} · ${fMon(c.peakTs)}`, anchor: "end" }],
+        centerBig: `~${months} months`, centerSmall: `to SPX ≈ DOGE's ${doge.mc} cap`,
+      } },
+    };
+  })(),
 ];
 
 export function allIds(stats) { return POSTS.map(p => p(stats)?.id).filter(Boolean); }
@@ -472,7 +575,7 @@ export function allIds(stats) { return POSTS.map(p => p(stats)?.id).filter(Boole
 // bullish (they show up ~twice as often as the analytical/neutral ones).
 const BULLISH = new Set([
   "milestones", "memecoins", "btcgrade", "cycle", "cyclepeak", "cycleclock",
-  "targets", "rally", "alltime",
+  "targets", "rally", "alltime", "hundred", "dogeclock",
 ]);
 // Per-post rotation weight (copies per cycle). The flagship rainbow is weighted
 // up so the site's main chart surfaces ~weekly (≈3×/month); bullish posts 2×.
@@ -529,4 +632,30 @@ ${punch}
 Now ${fPct(s.vsCenter)} vs the model's center line (${fPrice(s.center)}).
 NFA`;
   return { id: "bandchange", text: withFooter(text), card: { type: "rainbow" } };
+}
+
+// Event post for crossing a market-cap GIANT (fired by milestone-watch.mjs when
+// SPX6900's cap first passes a CRYPTO_MILESTONES landmark — flipping PEPE, SHIB,
+// DOGE, a BTC market-cap level, …). `crossedIdx` indexes CRYPTO_MILESTONES.
+export function buildMilestonePost(s, crossedIdx) {
+  const m = CRYPTO_MILESTONES[crossedIdx];
+  const next = CRYPTO_MILESTONES[crossedIdx + 1];
+  const nextLine = next
+    ? `Next rung: ${next.short} (${next.mc}) → ${fMult(next.price / s.price)}.`
+    : `That was the top rung on the board — uncharted from here. 🚀`;
+  const top = next || m;
+  const text =
+`🏆 Milestone: SPX6900 just passed ${m.label} (${m.mc}).
+At ${fPrice(s.price)}, its market cap is now bigger than that landmark ever printed. ${nextLine}
+NFA`;
+  return { id: "milestonecross", text: withFooter(text), card: { type: "line", spec: {
+    title: `Milestone flipped: ${m.short}`, headline: `SPX6900 > ${m.label}`, accent: m.c,
+    yLog: true, yTicks: decadeTicks(s.firstPrice, top.price * 1.1),
+    hlines: [
+      { y: m.price, label: `${m.short} · FLIPPED`, color: m.c },
+      ...(next ? [{ y: next.price, label: `${next.short} · ${fMult(next.price / s.price)}`, color: next.c }] : []),
+    ],
+    series: [{ pts: s.series.price, color: "#34d399", width: 3, fill: 0.12 }],
+    marker: { x: lastTs(s), y: s.price, color: "#34d399" },
+  } } };
 }

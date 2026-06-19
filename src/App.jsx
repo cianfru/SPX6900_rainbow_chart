@@ -22,6 +22,7 @@ const BtcCycleChart = lazy(() => import("./BtcCycleChart.jsx"));
 const RelativeChart = lazy(() => import("./RelativeChart.jsx"));
 const SupplyConviction = lazy(() => import("./SupplyConviction.jsx"));
 const ModelChart = lazy(() => import("./ModelChart.jsx"));
+const SeasonalityGrid = lazy(() => import("./SeasonalityGrid.jsx"));
 
 const SANS = "'Space Grotesk', system-ui, sans-serif";
 const MONO = "ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace";
@@ -119,6 +120,7 @@ const NAV_TABS = [
   ["rainbow", "Rainbow", "#a78bfa"],
   ["risk", "Risk", "#f59e0b"],
   ["drawdown", "Drawdown", "#f87171"],
+  ["monthly", "Monthly", "#2dd4bf"],
   ["rally", "Rally", "#4ade80"],
   ["spxbtc", "SPX/BTC", "#f7931a"],
   ["btccycle", "BTC Cycle", "#fbbf24"],
@@ -1137,6 +1139,7 @@ export default function App() {
         <Suspense fallback={<div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 40 }}>Loading chart…</div>}>
           {tab === "risk" && <RiskChart series={priceData} m={m} isMobile={isMobile} />}
           {tab === "drawdown" && <DrawdownChart series={priceData} isMobile={isMobile} />}
+          {tab === "monthly" && <SeasonalityGrid series={priceData} isMobile={isMobile} />}
           {tab === "rally" && <RallyChart series={priceData} m={m} isMobile={isMobile} />}
           {tab === "spxbtc" && <SpxBtcChart series={priceData} isMobile={isMobile} />}
           {tab === "btccycle" && <BtcCycleChart series={priceData} isMobile={isMobile} />}

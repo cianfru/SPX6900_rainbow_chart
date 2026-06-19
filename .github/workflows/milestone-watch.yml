@@ -1,0 +1,65 @@
+name: Milestone watcher
+
+# Hourly: post to X only when SPX6900's market cap first passes a GIANT on the
+# board (PEPE / SHIB / DOGE ATH caps, BTC market-cap levels…). Each rung fires
+# once, ever. State persists in public/milestone-state.json.
+# Manual runs default to dry-run (detect + render preview, post nothing).
+
+on:
+  schedule:
+    - cron: "30 * * * *" # hourly, offset 30m from the band watcher (UTC)
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Detect only, do not post or write state"
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: milestone-watch
+  cancel-in-progress: false
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - name: Watch milestones + maybe post
+        run: node scripts/bot/milestone-watch.mjs
+        env:
+          DRY_RUN: ${{ (github.event_name == 'workflow_dispatch' && inputs.dry_run) && '1' || '' }}
+          X_API_KEY: ${{ secrets.X_API_KEY }}
+          X_API_SECRET: ${{ secrets.X_API_SECRET }}
+          X_ACCESS_TOKEN: ${{ secrets.X_ACCESS_TOKEN }}
+          X_ACCESS_SECRET: ${{ secrets.X_ACCESS_SECRET }}
+
+      - name: Commit milestone state if changed
+        run: |
+          if [[ -n "$(git status --porcelain public/milestone-state.json)" ]]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add public/milestone-state.json
+            git commit -m "chore: milestone state $(date -u +%FT%TZ)"
+            git push
+          else
+            echo "No milestone-state change to commit"
+          fi
+
+      - name: Upload card preview (dry-run)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: milestone-preview
+          path: milestone-preview.png
+          if-no-files-found: ignore
