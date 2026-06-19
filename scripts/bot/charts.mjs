@@ -317,6 +317,60 @@ export function renderHeatmap(spec) {
   return chrome(spec, svg);
 }
 
+// Dollar-cost-averaging card. Two series over time (log $): `invested` (the flat
+// staircase of contributions) and `value` (the stack's worth). The band BETWEEN
+// them is filled green — that gap IS the profit — over a muted amber "what you
+// put in" base. Built for the "$100/mo since launch" story.
+export function renderDca(spec) {
+  const inv = spec.invested, val = spec.value;            // [[ts, $], …]
+  const xs = val.map(p => p[0]);
+  const xMin = Math.min(...xs), xMax = Math.max(...xs);
+  const ys = [...val, ...inv].map(p => p[1]).filter(y => y > 0);
+  const yMin = Math.max(50, Math.min(...ys) * 0.85), yMax = Math.max(...ys) * 1.18;
+  const X = x => mL + ((x - xMin) / ((xMax - xMin) || 1)) * pW;
+  const Y = y => mT + ((Math.log(yMax) - Math.log(Math.max(y, 1e-9))) / ((Math.log(yMax) - Math.log(yMin)) || 1)) * pH;
+  const pl = pts => pts.map(([x, y]) => `${X(x).toFixed(1)},${Y(y).toFixed(1)}`).join(" ");
+  const baseY = (mT + pH).toFixed(1);
+  const green = "#34d399", amber = "#fbbf24";
+
+  const defs = `
+    <linearGradient id="dcaProfit" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="${green}" stop-opacity="0.55"/><stop offset="100%" stop-color="${green}" stop-opacity="0.10"/></linearGradient>
+    <linearGradient id="dcaInv" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="${amber}" stop-opacity="0.34"/><stop offset="100%" stop-color="${amber}" stop-opacity="0.04"/></linearGradient>
+    <filter id="dcaGlow" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="6"/></filter>`;
+
+  // gridlines: powers of ten within range
+  const fK = v => v >= 1e6 ? "$" + (v / 1e6) + "M" : v >= 1e3 ? "$" + (v / 1e3).toLocaleString() + "K" : "$" + Math.round(v);
+  let grid = "";
+  for (let e = 1; e <= 8; e++) {
+    const v = 10 ** e; if (v < yMin || v > yMax) continue;
+    const yy = Y(v).toFixed(1);
+    grid += `<line x1="${mL}" y1="${yy}" x2="${W - mR}" y2="${yy}" stroke="rgba(255,255,255,0.07)"/>`;
+    grid += `<text x="${mL - 12}" y="${(+yy + 6).toFixed(1)}" fill="#64748b" font-size="20" text-anchor="end" font-family="sans-serif">${fK(v)}</text>`;
+  }
+  for (const t of timeTicks(xMin, xMax)) {
+    grid += `<text x="${X(t.ts).toFixed(1)}" y="${H - 50}" fill="#64748b" font-size="20" text-anchor="${t.anchor || "middle"}" font-family="sans-serif">${esc(t.label)}</text>`;
+  }
+
+  // invested area (amber, to baseline) — the "what you put in" floor
+  const invArea = `<polygon points="${X(xMin).toFixed(1)},${baseY} ${pl(inv)} ${X(xMax).toFixed(1)},${baseY}" fill="url(#dcaInv)"/>`;
+  // profit band: value on top (l→r) → invested on bottom (r→l)
+  const profit = `<polygon points="${pl(val)} ${[...inv].reverse().map(([x, y]) => `${X(x).toFixed(1)},${Y(y).toFixed(1)}`).join(" ")}" fill="url(#dcaProfit)"/>`;
+  const invLine = `<polyline points="${pl(inv)}" fill="none" stroke="${amber}" stroke-width="2.5" stroke-dasharray="7 6" stroke-linejoin="round"/>`;
+  const valLine = `<polyline points="${pl(val)}" fill="none" stroke="${green}" stroke-width="3.5" stroke-linejoin="round" stroke-linecap="round"/>`;
+  const ex = X(val.at(-1)[0]).toFixed(1), ey = Y(val.at(-1)[1]).toFixed(1);
+  const marker = `<circle cx="${ex}" cy="${ey}" r="11" fill="${green}" fill-opacity="0.9" filter="url(#dcaGlow)"/><circle cx="${ex}" cy="${ey}" r="7" fill="#fff" stroke="${green}" stroke-width="3"/>`;
+
+  // legend chip top-left of plot
+  const lx = mL + 16, ly = mT + 14;
+  const legend = `<rect x="${lx}" y="${ly}" width="208" height="76" rx="9" fill="rgba(5,5,14,0.62)" stroke="rgba(255,255,255,0.10)"/>`
+    + `<rect x="${lx + 14}" y="${ly + 18}" width="24" height="8" rx="4" fill="${green}"/><text x="${lx + 48}" y="${ly + 27}" fill="#cbd5e1" font-size="22" font-family="sans-serif">Stack value</text>`
+    + `<rect x="${lx + 14}" y="${ly + 48}" width="24" height="8" rx="4" fill="${amber}"/><text x="${lx + 48}" y="${ly + 57}" fill="#cbd5e1" font-size="22" font-family="sans-serif">Invested</text>`;
+
+  return chrome(spec, grid + invArea + profit + invLine + valLine + marker + legend, defs);
+}
+
 // Donut for composition (e.g. supply by holder tier). segments: [{label,value,color}].
 export function renderDonut(spec) {
   const segs = spec.segments.filter(s => s.value > 0);
@@ -423,6 +477,7 @@ export function renderPostCard(post, stats, opts = {}) {
   if (type === "rainbow") return renderRainbowCard(stats, dims);
   if (type === "gauge") return renderGauge({ ...spec, date: stats.date });
   if (type === "heatmap") return renderHeatmap({ ...spec, date: stats.date });
+  if (type === "dca") return renderDca({ ...spec, date: stats.date });
   if (type === "bar") return renderBarCard({ ...spec, date: stats.date });
   if (type === "donut") return renderDonut({ ...spec, date: stats.date });
   if (type === "stack") return renderStackBar({ ...spec, date: stats.date });

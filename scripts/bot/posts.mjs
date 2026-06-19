@@ -618,6 +618,37 @@ NFA`,
       } },
     };
   })(),
+
+  // 27 — "$100/mo DCA since launch" — the viral dollar-cost-averaging chart.
+  // Buys $100 at the first close of each month; the green band between the value
+  // line and the flat "invested" staircase is the profit. Softens "I missed it".
+  s => (() => {
+    const M = 100; // monthly buy
+    let tokens = 0, contributed = 0, lastM = null, peak = 0;
+    const value = [], invested = [];
+    for (const [ts, price] of s.series.price) {
+      if (!(price > 0)) continue;
+      const d = new Date(ts), mk = d.getUTCFullYear() * 12 + d.getUTCMonth();
+      if (mk !== lastM) { tokens += M / price; contributed += M; lastM = mk; }
+      const v = tokens * price;
+      value.push([ts, v]); invested.push([ts, contributed]);
+      if (v > peak) peak = v;
+    }
+    if (invested.length < 8 || contributed <= 0) return null;
+    const cur = value.at(-1)[1], months = contributed / M, mult = cur / contributed;
+    return {
+      id: "dca",
+      text:
+`💵 What if you'd just DCA'd $100/month into SPX6900 since launch?
+${fUsd0(contributed)} in over ${months} months → ${fUsd0(cur)} today — a ${fMult(mult)} on money you'd never miss. Your stack even crossed ${fUsd0(peak)} at the 2025 top.
+The best time to start was launch. The second best is $100 on repeat.
+NFA`,
+      card: { type: "dca", spec: {
+        title: "Stacking $100/mo since launch", headline: `${fUsd0(contributed)} → ${fUsd0(cur)}`, accent: "#34d399",
+        invested, value,
+      } },
+    };
+  })(),
 ];
 
 export function allIds(stats) { return POSTS.map(p => p(stats)?.id).filter(Boolean); }
@@ -626,7 +657,7 @@ export function allIds(stats) { return POSTS.map(p => p(stats)?.id).filter(Boole
 // bullish (they show up ~twice as often as the analytical/neutral ones).
 const BULLISH = new Set([
   "milestones", "memecoins", "btcgrade", "cycle", "cyclepeak", "cycleclock",
-  "targets", "rally", "alltime", "hundred", "dogeclock", "majorcaps",
+  "targets", "rally", "alltime", "hundred", "dogeclock", "majorcaps", "dca",
 ]);
 // Per-post rotation weight (copies per cycle). The flagship rainbow is weighted
 // up so the site's main chart surfaces ~weekly (≈3×/month); bullish posts 2×.
