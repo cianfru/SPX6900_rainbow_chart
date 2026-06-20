@@ -744,7 +744,7 @@ NFA`,
   () => ({
     id: "kraken",
     text:
-`🐙 SPX6900 × Kraken — the affiliate program is live.
+`🐙 SPX6900 × 🌈 Kraken — the affiliate program is live.
 Trade $SPX on one of crypto's deepest, longest-running exchanges, and back the rainbow while you do.
 Sign up with our link (referral code ${KRAKEN_CODE}) 👇
 ${KRAKEN_REF}
