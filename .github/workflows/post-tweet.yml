@@ -34,7 +34,6 @@ on:
           - auto
           - valuation
           - risk
-          - drawdown
           - rally
           - strategy
           - targets
