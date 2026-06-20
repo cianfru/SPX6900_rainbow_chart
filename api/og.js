@@ -67,6 +67,11 @@ export default async function handler(req, res) {
   }
 
   res.setHeader("Content-Type", "image/png");
-  res.setHeader("Cache-Control", "s-maxage=60, stale-while-revalidate=300");
+  // Console previews (?post=) stay fresh for card dev; share images (default /
+  // ?tab=) cache hard so crawler/unfurl re-fetches are served from the CDN
+  // instead of re-rendering the PNG — a social preview being an hour stale is fine.
+  res.setHeader("Cache-Control", directPost
+    ? "s-maxage=60, stale-while-revalidate=300"
+    : "s-maxage=3600, stale-while-revalidate=86400");
   res.status(200).end(png);
 }

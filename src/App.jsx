@@ -221,18 +221,22 @@ export default function App() {
     });
   }, []);
 
-  // Poll the live spot price so it refreshes without a full page reload. Polling
-  // pauses while the tab is hidden and resumes (with an immediate refresh) on
-  // focus — background tabs shouldn't burn edge requests on a price nobody's
-  // looking at. This is ~99% of our Vercel edge traffic, so the interval is kept
-  // modest; SPX6900 doesn't move enough in a few seconds for it to matter.
+  // Poll the live spot price so it refreshes without a full page reload. This is
+  // ~99% of our Vercel edge traffic, so it's kept lean: a 60s interval (SPX6900
+  // doesn't move enough in a minute to matter for a rainbow chart), and polling
+  // PAUSES both while the tab is hidden AND after a few minutes with no
+  // interaction — an open-but-abandoned tab was what burned most of the quota. It
+  // resumes (with an immediate refresh) when the user switches back or interacts.
   useEffect(() => {
     let cancelled = false;
     let timer;
-    const POLL_MS = 15_000;
+    const POLL_MS = 60_000;             // a rainbow chart doesn't need sub-minute ticks
+    const IDLE_MS = 5 * 60_000;         // stop polling after 5 min with no interaction
+    let lastActivity = Date.now();
+    const awake = () => !document.hidden && Date.now() - lastActivity < IDLE_MS;
     const schedule = () => {
       clearTimeout(timer);
-      if (!cancelled && !document.hidden) timer = setTimeout(tick, POLL_MS);
+      if (!cancelled && awake()) timer = setTimeout(tick, POLL_MS);
     };
     const tick = async () => {
       try {
@@ -250,16 +254,23 @@ export default function App() {
       } catch { /* keep last known price; try again next tick */ }
       schedule();
     };
-    const onVisible = () => {
-      if (document.visibilityState === "visible") { clearTimeout(timer); tick(); } // refresh + resume
-      else clearTimeout(timer); // pause while hidden
+    // Wake on real activity (or tab focus): note the time and, if we'd gone idle,
+    // refresh + resume the loop. Listeners are passive so they never block input.
+    const wake = () => {
+      const wasAsleep = !awake();
+      lastActivity = Date.now();
+      if (wasAsleep && !cancelled) { clearTimeout(timer); tick(); }
     };
+    const onVisible = () => { if (document.visibilityState === "visible") wake(); else clearTimeout(timer); };
+    const ACTIVITY = ["pointermove", "pointerdown", "keydown", "scroll", "touchstart"];
     if (!document.hidden) tick();
     document.addEventListener("visibilitychange", onVisible);
+    ACTIVITY.forEach(e => window.addEventListener(e, wake, { passive: true }));
     return () => {
       cancelled = true;
       clearTimeout(timer);
       document.removeEventListener("visibilitychange", onVisible);
+      ACTIVITY.forEach(e => window.removeEventListener(e, wake));
     };
   }, [upsertSpot]);
 
