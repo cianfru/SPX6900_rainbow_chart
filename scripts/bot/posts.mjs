@@ -527,7 +527,39 @@ NFA`,
     };
   })(),
 
-  // 24 — risk dial: the rainbow valuation as a needle on a colored dial. Reads
+  // 24b — monthly returns as a diverging column chart (a different cut of the
+  // seasonality heatmap): one bar per month from a floating 0% axis, green up for
+  // gains / red down for losses. Same month-over-month definition as the site.
+  s => (() => {
+    const byMonth = new Map();
+    for (const [ts, p] of s.series.price) {
+      const d = new Date(ts);
+      if (p > 0) byMonth.set(d.getUTCFullYear() * 12 + d.getUTCMonth(), p); // last close wins
+    }
+    const keys = [...byMonth.keys()].sort((a, b) => a - b);
+    const bars = [];
+    for (let i = 1; i < keys.length; i++) {
+      const k = keys[i];
+      bars.push({ ts: Date.UTC(Math.floor(k / 12), k % 12, 1), value: byMonth.get(k) / byMonth.get(keys[i - 1]) - 1, year: Math.floor(k / 12) });
+    }
+    if (bars.length < 8) return null;
+    const greens = bars.filter(b => b.value >= 0).length;
+    const pctGreen = Math.round(greens / bars.length * 100);
+    const best = Math.max(...bars.map(b => b.value)), worst = Math.min(...bars.map(b => b.value));
+    return {
+      id: "monthlybars",
+      text:
+`📊 SPX6900 month by month: ${greens} of ${bars.length} months closed green (${pctGreen}%).
+Best month ${fPct(best)}, worst ${fPct(worst)} — the green bars tower over the red. That lopsided picture IS the up-only skew.
+NFA`,
+      card: { type: "mbars", spec: {
+        title: "SPX6900 monthly returns", headline: `${pctGreen}% of months green`, accent: "#4ade80",
+        bars,
+      } },
+    };
+  })(),
+
+  // 25 — risk dial: the rainbow valuation as a needle on a colored dial. Reads
   // risk straight off the band model; the arc IS the rainbow, band by band.
   s => (() => {
     const v = s.risk, pct = Math.round(v * 100);
@@ -713,13 +745,20 @@ const BULLISH = new Set([
 const WEIGHT = { valuation: 3 };
 const weightOf = id => WEIGHT[id] ?? (BULLISH.has(id) ? 2 : 1);
 
+// Posts that stay BUILDABLE (so the website tabs / OG share images still render
+// them on demand) but never enter the daily auto-rotation. The drawdown chart is
+// here because "down X% from the high" is too much of a downer to tweet daily —
+// the monthly-returns card covers the same honesty without the gloom.
+const NO_ROTATE = new Set(["drawdown"]);
+
 // Build the weighted rotation order in round-robin passes (pass k includes posts
 // whose weight > k). So higher-weight topics recur more often across the cycle
 // without ever landing on consecutive days.
 function rotation(built) {
-  const maxW = Math.max(1, ...built.map(p => weightOf(p.id)));
+  const pool = built.filter(p => !NO_ROTATE.has(p.id));
+  const maxW = Math.max(1, ...pool.map(p => weightOf(p.id)));
   const rota = [];
-  for (let pass = 0; pass < maxW; pass++) for (const p of built) if (weightOf(p.id) > pass) rota.push(p);
+  for (let pass = 0; pass < maxW; pass++) for (const p of pool) if (weightOf(p.id) > pass) rota.push(p);
   return rota;
 }
 

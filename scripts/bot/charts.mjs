@@ -269,6 +269,74 @@ export function renderBarCard(spec, opts = {}) {
   return chrome(spec, svg, defs, { W: DW, H: DH });
 }
 
+// Monthly-returns column chart: each month is a bar growing from a floating 0%
+// axis — green up for gains, red down for losses. The zero line floats so the
+// biggest gain AND the worst loss both reach the frame; with SPX6900's fat green
+// tail the axis sits low and the green months tower over the red. A different cut
+// of the same month-over-month data as the seasonality heatmap.
+export function renderMonthBars(spec, opts = {}) {
+  const { DW, DH, PW, PH } = geom(opts);
+  const bars = spec.bars;
+  const vals = bars.map(b => b.value);
+  const posMax = Math.max(1e-6, ...vals.filter(v => v > 0));
+  const negMax = Math.max(1e-6, ...vals.filter(v => v < 0).map(v => -v));
+  const span = posMax + negMax;
+  const padT = 0.13, padB = 0.10;                  // headroom for the top label / x-axis ticks
+  const usable = PH * (1 - padT - padB);
+  const zeroY = mT + PH * padT + (posMax / span) * usable; // 0% axis floats by the up/down ratio
+  const k = usable / span;                          // px per unit of return
+  const n = bars.length, slot = PW / n, bw = Math.min(slot * 0.72, 26);
+
+  const defs = `
+    <linearGradient id="mbUp" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#22c55e" stop-opacity="1"/><stop offset="100%" stop-color="#22c55e" stop-opacity="0.5"/></linearGradient>
+    <linearGradient id="mbDn" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#ef4444" stop-opacity="0.75"/><stop offset="100%" stop-color="#ef4444" stop-opacity="0.95"/></linearGradient>`;
+
+  // Faint % gridlines above zero — monthly returns can be huge, so a few "nice"
+  // steps give the eye a scale without crowding.
+  const niceStep = m => { const raw = m / 4, mag = 10 ** Math.floor(Math.log10(raw)), nn = raw / mag; return (nn < 1.5 ? 1 : nn < 3 ? 2 : nn < 7 ? 5 : 10) * mag; };
+  const step = niceStep(posMax);
+  let grid = "";
+  for (let v = step; v <= posMax + 1e-9; v += step) {
+    const yy = (zeroY - v * k).toFixed(1);
+    grid += `<line x1="${mL}" y1="${yy}" x2="${DW - mR}" y2="${yy}" stroke="rgba(255,255,255,0.06)"/>`;
+    grid += `<text x="${mL - 12}" y="${(+yy + 6).toFixed(1)}" fill="#64748b" font-size="20" text-anchor="end" font-family="sans-serif">+${Math.round(v * 100)}%</text>`;
+  }
+
+  let body = "";
+  bars.forEach((b, i) => {
+    const cx = mL + slot * i + slot / 2;
+    const up = b.value >= 0;
+    const bh = Math.max(1, Math.abs(b.value) * k);
+    const y = up ? zeroY - bh : zeroY;
+    body += `<rect x="${(cx - bw / 2).toFixed(1)}" y="${y.toFixed(1)}" width="${bw.toFixed(1)}" height="${bh.toFixed(1)}" rx="3" fill="url(#${up ? "mbUp" : "mbDn"})"/>`;
+  });
+
+  // Call out the standout months (biggest gain above its bar, worst loss below).
+  const best = bars.reduce((a, b) => b.value > a.value ? b : a, bars[0]);
+  const worst = bars.reduce((a, b) => b.value < a.value ? b : a, bars[0]);
+  const tag = (b, above) => {
+    const cx = mL + slot * bars.indexOf(b) + slot / 2, bh = Math.abs(b.value) * k;
+    const y = above ? zeroY - bh - 12 : zeroY + bh + 26;
+    return `<text x="${cx.toFixed(1)}" y="${y.toFixed(1)}" fill="${above ? "#86efac" : "#fca5a5"}" font-size="22" font-weight="700" text-anchor="middle" font-family="sans-serif">${b.value >= 0 ? "+" : ""}${Math.round(b.value * 100)}%</text>`;
+  };
+  let labels = tag(best, true);
+  if (worst.value < 0) labels += tag(worst, false);
+
+  // The 0% axis, drawn brighter than the gridlines and labeled at the left.
+  const axis = `<line x1="${mL}" y1="${zeroY.toFixed(1)}" x2="${DW - mR}" y2="${zeroY.toFixed(1)}" stroke="rgba(255,255,255,0.55)" stroke-width="2"/>`
+    + `<text x="${mL - 12}" y="${(zeroY + 6).toFixed(1)}" fill="#cbd5e1" font-size="20" text-anchor="end" font-family="sans-serif">0%</text>`;
+
+  // Year labels under the first bar of each calendar year.
+  let years = "", seen = -1;
+  bars.forEach((b, i) => {
+    if (b.year === seen) return;
+    seen = b.year;
+    years += `<text x="${(mL + slot * i + slot / 2).toFixed(1)}" y="${(mT + PH + 30).toFixed(1)}" fill="#64748b" font-size="22" text-anchor="middle" font-family="sans-serif">${b.year}</text>`;
+  });
+
+  return chrome(spec, grid + axis + body + labels + years, defs, { W: DW, H: DH });
+}
+
 // Seasonality heatmap card — the website's Monthly grid, condensed. rows:
 // [{label, cells:[12 returns|null], year}]. Green up / red down, opacity scaled
 // by size; a right-hand "Year" column compounds each row. Mirrors SeasonalityGrid.
@@ -492,6 +560,7 @@ export function renderPostCard(post, stats, opts = {}) {
   if (type === "heatmap") return renderHeatmap(s, dims);
   if (type === "dca") return renderDca(s, dims);
   if (type === "bar") return renderBarCard(s, dims);
+  if (type === "mbars") return renderMonthBars(s, dims);
   if (type === "donut") return renderDonut(s, dims);
   if (type === "stack") return renderStackBar(s, dims);
   if (type === "model") return renderModelCard(s, dims);

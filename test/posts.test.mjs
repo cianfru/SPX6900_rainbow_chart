@@ -31,7 +31,7 @@ test("every available post builds non-empty text + a renderable card", () => {
     assert.equal(typeof p.text, "string");
     assert.ok(p.text.trim().length > 0 && p.text.length < 4000, `text length sane for ${id}`);
     assert.ok(p.text.includes("#spx6900"), `branded footer present for ${id}`);
-    assert.ok(p.card && ["rainbow", "line", "bar", "donut", "stack", "model", "cube", "scale", "gauge", "heatmap", "dca", "kraken"].includes(p.card.type), `valid card type for ${id}`);
+    assert.ok(p.card && ["rainbow", "line", "bar", "mbars", "donut", "stack", "model", "cube", "scale", "gauge", "heatmap", "dca", "kraken"].includes(p.card.type), `valid card type for ${id}`);
   }
 });
 
@@ -52,6 +52,8 @@ test("bullish cards are weighted to appear more often than neutral ones", () => 
   // a representative bullish card should out-appear a representative neutral one
   assert.ok((count.milestones || 0) > (count.risk || 0),
     `milestones (${count.milestones}) should beat risk (${count.risk})`);
-  assert.ok((count.cycle || 0) > (count.drawdown || 0),
-    `cycle (${count.cycle}) should beat drawdown (${count.drawdown})`);
+  assert.ok((count.cycle || 0) > (count.monthlybars || 0),
+    `cycle (${count.cycle}) should beat monthlybars (${count.monthlybars})`);
+  // the de-rotated drawdown card must never auto-post (still buildable via override)
+  assert.equal(count.drawdown || 0, 0, "drawdown is excluded from the daily rotation");
 });
