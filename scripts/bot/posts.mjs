@@ -10,6 +10,11 @@ import { btcCycleProjection } from "../../src/btc-cycle.js";
 // it to SPX6900) for the in-timeline price-chart card, plus the #spx6900 hashtag.
 const CASHTAG = process.env.BOT_CASHTAG || "$SPX";
 const HASHTAG = "#spx6900";
+// Kraken affiliate referral link (env-overridable). TODO: replace the placeholder
+// with the real referral URL before this card goes live.
+const KRAKEN_REF = process.env.BOT_KRAKEN_REF || "https://www.kraken.com";
+// Fixed cadence (in days) for the Kraken promo slot — see buildPost. ~Monthly.
+const KRAKEN_EVERY = 30;
 const TIGHT = ""; // a line break that stays single (not spaced out) — for tight lists
 
 const fPrice = p => (p >= 1 ? "$" + p.toFixed(2) : "$" + p.toFixed(4));
@@ -730,6 +735,21 @@ NFA`,
       } },
     };
   })(),
+
+  // 29 — Kraken affiliate promo. A finished marketing graphic (public/rainbow-
+  // kraken.png) posted as-is + a referral CTA. Kept OUT of the organic rotation
+  // (NO_ROTATE) and surfaced on a fixed ~monthly cadence by buildPost instead, so
+  // it shows up predictably without crowding the charts.
+  () => ({
+    id: "kraken",
+    text:
+`🐙 SPX6900 × Kraken — the affiliate program is live.
+Trade $SPX on one of crypto's deepest, longest-running exchanges, and back the rainbow while you do.
+Join with our link 👇
+${KRAKEN_REF}
+NFA`,
+    card: { type: "kraken" },
+  }),
 ];
 
 export function allIds(stats) { return POSTS.map(p => p(stats)?.id).filter(Boolean); }
@@ -749,7 +769,7 @@ const weightOf = id => WEIGHT[id] ?? (BULLISH.has(id) ? 2 : 1);
 // them on demand) but never enter the daily auto-rotation. The drawdown chart is
 // here because "down X% from the high" is too much of a downer to tweet daily —
 // the monthly-returns card covers the same honesty without the gloom.
-const NO_ROTATE = new Set(["drawdown"]);
+const NO_ROTATE = new Set(["drawdown", "kraken"]);
 
 // Build the weighted rotation order in round-robin passes (pass k includes posts
 // whose weight > k). So higher-weight topics recur more often across the cycle
@@ -777,9 +797,14 @@ export function withFooter(text) {
 // otherwise rotate by day so the topic changes daily.
 export function buildPost(stats, now = new Date(), overrideId = null) {
   const built = POSTS.map(p => p(stats)).filter(Boolean);
-  const rota = rotation(built);
   const epochDay = Math.floor(now.getTime() / 86400000);
-  const chosen = (overrideId && built.find(p => p.id === overrideId)) || rota[epochDay % rota.length];
+  // An explicit override (env BOT_POST / --post= / the OG endpoint) wins. Else a
+  // fixed-cadence promo (Kraken) claims its day; otherwise the organic rotation.
+  const promo = built.find(p => p.id === "kraken");
+  const rota = rotation(built);
+  const chosen = (overrideId && built.find(p => p.id === overrideId))
+    || (promo && epochDay % KRAKEN_EVERY === 0 && promo)
+    || rota[epochDay % rota.length];
   return { ...chosen, text: withFooter(chosen.text) };
 }
 
