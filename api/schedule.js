@@ -3,7 +3,7 @@
 // label "next up" and show the upcoming schedule). Read-only; no secrets.
 import { DEFAULT_RAW } from "../src/data.js";
 import { fetchLivePrice, fetchMajors, fetchHistory, computeStats } from "../scripts/bot/stats.mjs";
-import { buildPost, allIds } from "../scripts/bot/posts.mjs";
+import { buildPost, allIds, OG_ONLY } from "../scripts/bot/posts.mjs";
 import { isPortraitCard, isVideoCard } from "../scripts/bot/card-format.mjs";
 
 const DAY = 86400000;
@@ -17,7 +17,7 @@ export default async function handler(req, res) {
     try { opts.history = await fetchHistory(); } catch { /* bundled */ }
     try { opts.coins = await fetchMajors(); } catch { /* skip gated coin posts */ }
     const stats = computeStats(price, undefined, opts);
-    ids = allIds(stats);
+    ids = allIds(stats).filter(id => !OG_ONLY.has(id)); // hide og-only cards (drawdown) from the console
     // The exact tweet copy each card posts with (same builder the bot uses), plus
     // whether it posts as a video or a static image, and at 4:5 portrait or
     // landscape — read from the shared card-format source of truth.

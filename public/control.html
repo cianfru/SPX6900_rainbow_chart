@@ -54,7 +54,9 @@
   }
   .card.next { border-color: #3b82f6; box-shadow: 0 0 0 1px #3b82f6 inset; }
   .card.queued { border-color: #f59e0b; box-shadow: 0 0 0 1px #f59e0b inset; }
-  .card img { width: 100%; display: block; background: #05050e; aspect-ratio: 1200/630; }
+  /* object-fit: contain so a card whose true AR differs (e.g. the static Kraken
+     promo) is letterboxed, never stretched. Landscape cards render at 3:2. */
+  .card img { width: 100%; display: block; background: #05050e; aspect-ratio: 1200/800; object-fit: contain; }
   .card img.portrait { aspect-ratio: 1080/1350; }
   .card .meta { display: flex; align-items: center; gap: 8px; padding: 10px 12px; }
   .card .id { font-size: 14px; font-weight: 700; }

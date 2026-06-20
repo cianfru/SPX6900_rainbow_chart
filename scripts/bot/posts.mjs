@@ -772,6 +772,13 @@ const weightOf = id => WEIGHT[id] ?? (BULLISH.has(id) ? 2 : 1);
 // the monthly-returns card covers the same honesty without the gloom.
 const NO_ROTATE = new Set(["drawdown", "kraken"]);
 
+// Cards kept buildable ONLY to back website OG share images — never auto-posted
+// AND hidden from the control console (so they can't be fired by hand). Drawdown
+// lives here: the site's drawdown tab needs its share image, but the card itself
+// shouldn't surface anywhere in the bot. (Kraken is NOT here — it's a real promo
+// you fire from the console.)
+export const OG_ONLY = new Set(["drawdown"]);
+
 // Build the weighted rotation order in round-robin passes (pass k includes posts
 // whose weight > k). So higher-weight topics recur more often across the cycle
 // without ever landing on consecutive days.

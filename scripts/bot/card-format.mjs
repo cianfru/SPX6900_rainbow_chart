@@ -18,3 +18,10 @@ export const isPortraitCard = type => PORTRAIT_TYPES.has(type);
 // near-blank draw-in first frame makes a weak autoplay thumbnail in-feed).
 const VIDEO_TYPES = new Set(["scale", "cube"]);
 export const isVideoCard = type => VIDEO_TYPES.has(type);
+
+// Cards that ARE a finished static image (posted as-is, no chart render). Maps the
+// card type to its public asset path, so the web layer (OG endpoint / control
+// console) can serve the file directly at its native aspect ratio instead of
+// rasterizing it in a serverless function. The bot still reads the bytes itself.
+const STATIC_IMAGE = { kraken: "/rainbow-kraken.png" };
+export const staticImageFor = type => STATIC_IMAGE[type] || null;
