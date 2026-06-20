@@ -1,6 +1,17 @@
 # SPX6900 Rainbow Chart — project notes
 
 ## Backlog / decisions
+- **"Uptober" seasonal card — parked; fire it in September, NOT in the daily rotation.**
+  Idea (2026-06-20): a card leaning on the crypto-wide "Uptober" / Q4-strength meme —
+  "autumn has historically been SPX6900's hot streak." Descriptive curiosity only,
+  framed like the cycle what-ifs. **MUST NOT** be framed as a "Sep/Oct-only strategy
+  beats HODL by X×" backtest — that number is an overfit artifact of a single year.
+  Data caveat: excluding 2023 (launch), the Sep/Oct strength is driven ~entirely by
+  **2024** (Sep +685% / Oct +889%); **2025 was flat-to-negative** (Sep −8%, Oct +1%).
+  So n≈2 with one dominating outlier — an *event*, not a repeatable *edge* (drop 2024
+  and the effect vanishes). Delivery: a **time-gated seasonal post around September**
+  (like the band-change / milestone event posts), not a year-round rotation card.
+  Revisit once there are a few more autumns to judge. (Noted 2026-06-20.)
 - **LLM-written copy + auto-replies — split by cost; only the free half is worth doing.**
   Explored 2026-06-20 (making the bot more "AIXBT-like"). The two halves sit on
   opposite sides of X's API paywall, and the cost is the *read* access, not the LLM:
