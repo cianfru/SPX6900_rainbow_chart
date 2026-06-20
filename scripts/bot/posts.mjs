@@ -61,9 +61,9 @@ const POSTS = [
   s => ({
     id: "valuation",
     text:
-`📊 Where is SPX6900 vs its long-run trend?
-${BAND_EMOJI[s.bandIndex]} ${s.band.l} band — ${fPct(s.vsCenter)} vs the model's center line (${fPrice(s.center)}).
-Blue bands = cheap vs trend, red = stretched. This is where it sits today.
+`📊 SPX6900 is trading ${Math.abs(Math.round(s.vsCenter * 100))}% ${s.vsCenter < 0 ? "below" : "above"} its long-run trend — ${BAND_EMOJI[s.bandIndex]} ${s.band.l} band.
+Fair value (the model's center line) sits at ${fPrice(s.center)}. Blue bands = cheap vs trend, red = stretched.
+This is where it sits today.
 🌈 NFA`,
     card: { type: "rainbow" },
   }),
@@ -119,7 +119,7 @@ NFA`,
     return {
       id: "rally",
       text:
-`🚀 Since the last "Fire Sale" low (${fMon(s.lastFireSale.date)}, ${fPrice(s.lastFireSale.low)}), SPX6900 is ${fPct(s.lastFireSale.sinceGain)}.${ranHigher ? ` Ran as high as ${fPct(s.lastFireSale.peakGain)}.` : ""}
+`🚀 SPX6900 is ${fPct(s.lastFireSale.sinceGain)} since the last "Fire Sale" low (${fMon(s.lastFireSale.date)}, ${fPrice(s.lastFireSale.low)}).${ranHigher ? ` Ran as high as ${fPct(s.lastFireSale.peakGain)}.` : ""}
 "Fire Sales" are rare — historically some of the best windows to DCA in. The deepest red is where every run has started.
 NFA`,
       card: { type: "line", spec: {
@@ -141,7 +141,7 @@ NFA`,
   s => s.series.strategy && ({
     id: "strategy",
     text:
-`🧪 Hindsight check: buying every cycle dip and selling its peak would've beaten HODL ~${fMult(s.edge)} in this model.
+`🧪 ~${fMult(s.edge)} vs HODL — buying every cycle dip and selling the peak (hindsight, in this model).
 Perfect timing isn't real — the cycles are.
 NFA`,
     card: { type: "line", spec: {
@@ -163,7 +163,7 @@ NFA`,
     return {
       id: "targets",
       text:
-`🎯 SPX6900 from ${fPrice(s.price)} to the targets:
+`🎯 Next target ${next[0].label} = ${fMult(next[0].price / s.price)} from ${fPrice(s.price)}:
 ${next.map(t => `${t.label} → ${fMult(t.price / s.price)}`).join(TIGHT)}
 A log-trend extrapolation, not a promise.
 NFA`,
@@ -184,7 +184,7 @@ NFA`,
     return {
       id: "timeinband",
       text:
-`⏳ SPX6900 has traded in the ${s.band.l} band or cheaper for ~${Math.round(s.cheaperFrac * 100)}% of its history.
+`⏳ SPX6900 has spent ~${Math.round(s.cheaperFrac * 100)}% of its life this cheap or cheaper (${s.band.l} band today).
 Extremes are rare; most of its life sits in the middle bands. Today: ${BAND_EMOJI[s.bandIndex]} ${s.band.l}.
 NFA`,
       card: { type: "bar", spec: {
@@ -198,8 +198,8 @@ NFA`,
   s => s.supply && ({
     id: "marketcap",
     text:
-`💰 SPX6900's "real" market cap
-Headline MC ${fMoney(s.supply.nominalMc)} (price × 939M supply). But diamond hands hold ~${Math.round(s.supply.diamondShare * 100)}% of supply and rarely sell — so the effective free-float MC is just ${fMoney(s.supply.floatMc)}.
+`💰 SPX6900's real free-float market cap is just ${fMoney(s.supply.floatMc)} — vs the ${fMoney(s.supply.nominalMc)} headline.
+Diamond hands hold ~${Math.round(s.supply.diamondShare * 100)}% of supply and rarely sell, so the effective float is a fraction of the sticker MC (price × 939M).
 NFA`,
     card: { type: "stack", spec: {
       title: "Headline cap vs real free float", headline: fMoney(s.supply.floatMc) + " free float", accent: "#22d3ee",
@@ -230,9 +230,8 @@ NFA`,
   s => s.supply && s.supply.tiers && ({
     id: "distribution",
     text:
-`💎 Who holds SPX6900?
-Of the age-classified supply, ~${Math.round((s.supply.tiers.diamond / s.supply.classified) * 100)}% sits in "diamond" hands (longest-held), with a Gini of ${s.supply.gini.toFixed(2)} — extreme concentration.
-High conviction, thin float.
+`💎 ~${Math.round((s.supply.tiers.diamond / s.supply.classified) * 100)}% of classified SPX6900 supply sits in "diamond" hands (longest-held).
+A Gini of ${s.supply.gini.toFixed(2)} — extreme concentration. High conviction, thin float.
 NFA`,
     card: { type: "donut", spec: {
       title: "Supply by holder conviction", headline: `${Math.round((s.supply.tiers.diamond / s.supply.classified) * 100)}% diamond hands`, accent: "#22d3ee",
@@ -272,7 +271,7 @@ NFA`,
     return {
       id: "majors",
       text:
-`⚔️ SPX6900 is outperforming ${wins} over the past year:
+`⚔️ SPX6900 is ${fPct(sorted[0].rel365)} vs ${sorted[0].name} over the past year — and outpacing ${wins}:
 ${sorted.map(m => `${m.name}: ${fPct(m.rel365)}`).join(" · ")}
 Positive = SPX beat that asset (relative) over the past year.
 NFA`,
@@ -287,7 +286,7 @@ NFA`,
   s => ({
     id: "alltime",
     text:
-`📈 From its first print (${fPrice(s.firstPrice)}, ${fMon(s.firstDate)}) SPX6900 is up ${fMult(1 + s.allTimeReturn)}.
+`📈 SPX6900 is up ${fMult(1 + s.allTimeReturn)} since its first print (${fPrice(s.firstPrice)}, ${fMon(s.firstDate)}).
 Up only, on a power-law clock. 📈
 NFA`,
     card: { type: "line", spec: {
@@ -304,8 +303,7 @@ NFA`,
     return {
       id: "cycle",
       text:
-`🔮 Where is SPX6900 on Bitcoin's cycle clock?
-If it's tracing BTC's last run, today lines up with Bitcoin around ${fMon(c.btcFrom)} — just off the bottom, early in the climb.
+`🔮 If SPX6900 is tracing Bitcoin's last cycle, today ≈ BTC ${fMon(c.btcFrom)} — just off the bottom, early in the climb.
 A for-fun what-if, not a forecast.
 NFA`,
       card: { type: "line", spec: {
@@ -328,7 +326,7 @@ NFA`,
     return {
       id: "cyclepeak",
       text:
-`🎯 If SPX6900 traces Bitcoin's last cycle, the projected ${fMon(c.peakTs)} top from ${fPrice(s.price)}:
+`🎯 If SPX6900 traces BTC's last cycle, base case = ${fMult(mult(c.peak))} (${fPx(c.peak)}) by ${fMon(c.peakTs)}, from ${fPrice(s.price)}:
 ${[
   `🐻 Bear  ${fPx(c.peakLo)}  →  ${fMult(mult(c.peakLo))}`,
   `🟧 Base  ${fPx(c.peak)}  →  ${fMult(mult(c.peak))}`,
@@ -353,8 +351,8 @@ NFA`,
     return {
       id: "cycleclock",
       text:
-`⏳ SPX6900 riding Bitcoin's last cycle:
-A dip near ${fPrice(c.low)} (${fMon(c.lowTs)}), then BTC's real run to a projected top near ${fPx(c.peak)} (${fMon(c.peakTs)}).
+`⏳ If SPX6900 rides Bitcoin's last cycle, a projected top near ${fPx(c.peak)} by ${fMon(c.peakTs)}.
+First a dip near ${fPrice(c.low)} (${fMon(c.lowTs)}), then BTC's real run up.
 If the pattern holds, we're sitting at the launchpad.
 NFA`,
       card: { type: "line", spec: {
@@ -378,7 +376,7 @@ NFA`,
     return {
       id: "milestones",
       text:
-`🧊 How many SPX6900s would it take to flip the memecoin kings? From ${fPrice(s.price)}:
+`🧊 SPX6900 is ${fMult(doge.mult)} from DOGE's ATH market cap. Flipping the memecoin kings from ${fPrice(s.price)}:
 ${ms.map(m => `${m.short} (${m.mc}) → ${fMult(m.mult)}`).join(TIGHT)}
 Each cube = today's market cap. Long way up. 🚀
 NFA`,
@@ -401,7 +399,7 @@ NFA`,
     return {
       id: "memecoins",
       text:
-`👑 Flip the memecoin kings? From ${fPrice(s.price)}:
+`👑 DOGE-size = ${fMult(doge.mult)} for SPX6900. Flipping the memecoin kings from ${fPrice(s.price)}:
 ${ms.map(m => `${m.short} (${m.mc}) → ${fMult(m.mult)}`).join(TIGHT)}
 Each × is the move to match their market cap. Coming for the throne. 👑
 NFA`,
@@ -424,7 +422,7 @@ NFA`,
     return {
       id: "btcgrade",
       text:
-`₿ SPX6900 on Bitcoin's market-cap ladder. From ${fPrice(s.price)} to the cap BTC had at:
+`₿ ${top.short} = ${fMult(top.mult)} for SPX6900. Climbing Bitcoin's market-cap ladder from ${fPrice(s.price)}:
 ${ms.map(m => `${m.short} (${m.mc}) → ${fMult(m.mult)}`).join(TIGHT)}
 The same market cap Bitcoin printed on its way up.
 NFA`,
@@ -445,9 +443,9 @@ NFA`,
     return {
       id: "model",
       text:
-`📐 How the SPX6900 rainbow is built
-A power-law trend fit to price (R² ${m.r2.toFixed(2)}), with the distance from trend colored into percentile bands — blue = cheap, red = stretched.
-Today: ${BAND_EMOJI[s.bandIndex]} ${s.band.l}, ${fPct(s.vsCenter)} vs trend. Descriptive, not a prediction.
+`📐 The SPX6900 rainbow = a power-law trend fit to price, R² ${m.r2.toFixed(2)}.
+Distance from trend → percentile bands (blue = cheap, red = stretched). Today: ${BAND_EMOJI[s.bandIndex]} ${s.band.l}, ${fPct(s.vsCenter)} vs trend.
+Descriptive, not a prediction.
 NFA`,
       card: { type: "model", spec: {
         title: "How the SPX6900 rainbow is built", headline: `R² ${m.r2.toFixed(2)} fit · ${fPct(s.vsCenter)} vs trend`, accent: "#a78bfa",
@@ -523,7 +521,7 @@ NFA`,
     return {
       id: "monthlyreturns",
       text:
-`📅 SPX6900 monthly returns, year by year — ${pctGreen}% of ${all.length} months closed green.
+`📅 ${pctGreen}% of SPX6900's ${all.length} months have closed green.
 Up only is a meme; the path is volatile. But the green months (and the fat green tail) have done the heavy lifting. Full grid on the site.
 NFA`,
       card: { type: "heatmap", spec: {
@@ -609,7 +607,7 @@ NFA`,
     return {
       id: "dogeclock",
       text:
-`🐕 If SPX6900 keeps tracing Bitcoin's 4-year cycle, here's when it flips the memecoin kings:
+`🐕 If SPX6900 tracks Bitcoin's 4-yr cycle, DOGE-size lands ≈ ${fMon(c.peakTs)}. When it flips each king:
 ${rungs.map(r => `${r.short} (${r.mc}) → ${r.top ? `≈ the cycle top, ${fMon(c.peakTs)}` : `~${r.when}`}`).join(TIGHT)}
 DOGE-size lands right at the projected top. A for-fun what-if, not a forecast.
 NFA`,
@@ -643,7 +641,7 @@ NFA`,
     return {
       id: "majorcaps",
       text:
-`🧮 What would $1 of SPX6900 be worth at the majors' market caps?
+`🧮 At ${nearest.name}'s market cap, SPX6900 = ${fMult(nearest.mult)} (${fPx(nearest.spxAtCap)}). At each major's cap:
 ${rungs.map(m => `${m.name}-size (${fMoney(m.mc)}) → ${fPx(m.spxAtCap)} · ${fMult(m.mult)}`).join(TIGHT)}
 Same coins you already hold — just SPX6900 at their cap. A long way up.
 NFA`,
@@ -677,8 +675,8 @@ NFA`,
     return {
       id: "dca",
       text:
-`💵 What if you'd just DCA'd $100/month into SPX6900 since launch?
-${fUsd0(contributed)} in over ${months} months → ${fUsd0(cur)} today — a ${fMult(mult)} on money you'd never miss. Your stack even crossed ${fUsd0(peak)} at the 2025 top.
+`💵 $100/mo into SPX6900 since launch = ${fUsd0(contributed)} in → ${fUsd0(cur)} today.
+A ${fMult(mult)} on money you'd never miss — over ${months} months, your stack even crossed ${fUsd0(peak)} at the 2025 top.
 The best time to start was launch. The second best is $100 on repeat.
 NFA`,
       card: { type: "dca", spec: {
@@ -719,7 +717,7 @@ NFA`,
     return {
       id: "ytd",
       text:
-`📊 SPX6900 vs the majors, year to date — no spin:
+`📊 SPX6900 is ${fPct(spxYtd)} YTD — vs the majors, no spin:
 ${ranked.map(r => `${r.name}: ${fPct(r.ret)}`).join(TIGHT)}
 ${closer}
 NFA`,
