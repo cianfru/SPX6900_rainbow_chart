@@ -84,29 +84,9 @@ NFA`,
     } },
   }),
 
-  // 3 — drawdown from ATH (area)
-  s => ({
-    id: "drawdown",
-    text:
-`📉 SPX6900 is ${fPct(s.drawdown)} from its all-time high (${fPrice(s.ath)}, ${fMon(s.athDate)}).
-Drawdowns map the pain from each peak — the worst on record was ${fPct(s.maxDrawdown)}.
-Every cycle looked like the end. None were.
-NFA`,
-    card: { type: "line", spec: {
-      title: "Drawdown from all-time high", headline: fPct(s.drawdown), accent: "#f87171",
-      // Headroom ABOVE 0 so the at-ATH plateaus (drawdown = 0) sit just below the
-      // top frame instead of being guillotined flush against it. The 0 line is
-      // labeled as the ATH baseline, and the worst-ever level gets a reference line.
-      yMin: s.maxDrawdown * 1.08, yMax: Math.abs(s.maxDrawdown) * 0.08, fillBase: s.maxDrawdown * 1.08,
-      yTicks: [0, -0.2, -0.4, -0.6, -0.8].filter(v => v >= s.maxDrawdown * 1.08).map(v => ({ v, label: Math.round(v * 100) + "%" })),
-      series: [{ pts: s.series.drawdown, color: "#f87171", width: 3, fill: 0.18 }],
-      hlines: [
-        { y: 0, label: "ATH (0%)", color: "#94a3b8" },
-        { y: s.maxDrawdown, label: `worst ever ${fPct(s.maxDrawdown)}`, color: "#fca5a5" },
-      ],
-      marker: { x: lastTs(s), y: s.drawdown, color: "#f87171" },
-    } },
-  }),
+  // (The drawdown-from-ATH card was retired — too much of a downer to tweet. The
+  // website still has its own drawdown tab; the monthly-returns card covers the
+  // honest-stat angle for the feed.)
 
   // 4 — rally since last fire sale (price line, log)
   s => s.lastFireSale && (() => {
@@ -766,11 +746,9 @@ const BULLISH = new Set([
 const WEIGHT = { valuation: 3 };
 const weightOf = id => WEIGHT[id] ?? (BULLISH.has(id) ? 2 : 1);
 
-// Posts that stay BUILDABLE (so the website tabs / OG share images still render
-// them on demand) but never enter the daily auto-rotation. The drawdown chart is
-// here because "down X% from the high" is too much of a downer to tweet daily —
-// the monthly-returns card covers the same honesty without the gloom.
-const NO_ROTATE = new Set(["drawdown", "kraken"]);
+// Posts that stay BUILDABLE but never enter the organic daily rotation — the
+// Kraken promo is surfaced on its own fixed cadence (see buildPost) instead.
+const NO_ROTATE = new Set(["kraken"]);
 
 // Build the weighted rotation order in round-robin passes (pass k includes posts
 // whose weight > k). So higher-weight topics recur more often across the cycle

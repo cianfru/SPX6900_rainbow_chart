@@ -54,6 +54,4 @@ test("bullish cards are weighted to appear more often than neutral ones", () => 
     `milestones (${count.milestones}) should beat risk (${count.risk})`);
   assert.ok((count.cycle || 0) > (count.monthlybars || 0),
     `cycle (${count.cycle}) should beat monthlybars (${count.monthlybars})`);
-  // the de-rotated drawdown card must never auto-post (still buildable via override)
-  assert.equal(count.drawdown || 0, 0, "drawdown is excluded from the daily rotation");
 });

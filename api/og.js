@@ -11,7 +11,7 @@ import { renderPostCard } from "../scripts/bot/charts.mjs";
 
 // Nav tab id -> the rotating post whose card best represents that tab.
 const TAB_POST = {
-  rainbow: "valuation", risk: "risk", drawdown: "drawdown", rally: "rally",
+  rainbow: "valuation", risk: "risk", rally: "rally",
   spxbtc: "btc", btccycle: "cycle", relative: "majors",
   supply: "distribution", holders: "marketcap", model: "model",
 };
