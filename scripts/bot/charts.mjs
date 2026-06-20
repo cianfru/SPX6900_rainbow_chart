@@ -468,13 +468,14 @@ export function renderDonut(spec, opts = {}) {
 
   // legend on the right, value as % of total
   const lx = cx + r + 70;
+  const unit = spec.legendUnit || "of supply";   // e.g. "of classified" when the pie isn't the full supply
   let legend = "";
   segs.forEach((s, i) => {
     const ly = mT + 34 + i * 64;
     const pct = Math.round((s.value / total) * 100);
     legend += `<rect x="${lx}" y="${ly - 22}" width="30" height="30" rx="7" fill="${s.color}"/>`;
     legend += `<text x="${lx + 44}" y="${ly}" fill="#e2e8f0" font-size="28" font-weight="700" font-family="sans-serif">${esc(s.label)}</text>`;
-    legend += `<text x="${lx + 44}" y="${ly + 28}" fill="#94a3b8" font-size="23" font-family="sans-serif">${pct}% of supply</text>`;
+    legend += `<text x="${lx + 44}" y="${ly + 28}" fill="#94a3b8" font-size="23" font-family="sans-serif">${pct}% ${esc(unit)}</text>`;
   });
   return chrome(spec, ring + center + legend, "", { W: DW, H: DH });
 }

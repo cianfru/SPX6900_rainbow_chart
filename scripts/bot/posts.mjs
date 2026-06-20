@@ -226,19 +226,28 @@ NFA`,
     } },
   }),
 
-  // 10 — holder distribution (supply tiers bar)
-  s => s.supply && s.supply.tiers && ({
+  // 10 — holder distribution (supply tiers donut). NB: HolderScan's conviction
+  // tiers (diamond…wood) only cover *classified holder* supply (~71% of total);
+  // the rest is exchanges, LPs & contracts. So "84% diamond" is a share of the
+  // CLASSIFIED supply, NOT of the full 939M (the marketcap card carries the
+  // 60%-of-total figure). Label it clearly so the two never read as contradictory.
+  s => s.supply && s.supply.tiers && (() => {
+    const diamondPct = Math.round((s.supply.tiers.diamond / s.supply.classified) * 100);
+    return {
     id: "distribution",
     text:
-`💎 ~${Math.round((s.supply.tiers.diamond / s.supply.classified) * 100)}% of classified SPX6900 supply sits in "diamond" hands (longest-held).
-A Gini of ${s.supply.gini.toFixed(2)} — extreme concentration. High conviction, thin float.
+`💎 ~${diamondPct}% of SPX6900's classified holder supply sits in "diamond" hands (longest-held, never sold).
+"Classified" excludes exchanges, LPs & contracts (~29% of supply) — Gini ${s.supply.gini.toFixed(2)}, extreme concentration.
 NFA`,
     card: { type: "donut", spec: {
-      title: "Supply by holder conviction", headline: `${Math.round((s.supply.tiers.diamond / s.supply.classified) * 100)}% diamond hands`, accent: "#22d3ee",
-      center: { big: `${Math.round((s.supply.tiers.diamond / s.supply.classified) * 100)}%`, small: "Diamond" },
+      title: "Conviction of classified holder supply", headline: `${diamondPct}% diamond hands`, accent: "#22d3ee",
+      footer: "Classified holder supply only — excludes exchanges, LPs & contracts",
+      legendUnit: "of classified",
+      center: { big: `${diamondPct}%`, small: "of classified" },
       segments: TIERS.map(([k, label, c]) => ({ label, value: s.supply.tiers[k], color: c })),
     } },
-  }),
+    };
+  })(),
 
   // 11 — average holder break-even / PnL (price line vs cost-basis line)
   s => s.supply && s.supply.breakEven && (() => {
