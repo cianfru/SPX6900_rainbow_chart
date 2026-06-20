@@ -10,9 +10,10 @@ import { btcCycleProjection } from "../../src/btc-cycle.js";
 // it to SPX6900) for the in-timeline price-chart card, plus the #spx6900 hashtag.
 const CASHTAG = process.env.BOT_CASHTAG || "$SPX";
 const HASHTAG = "#spx6900";
-// Kraken affiliate referral link (env-overridable). TODO: replace the placeholder
-// with the real referral URL before this card goes live.
-const KRAKEN_REF = process.env.BOT_KRAKEN_REF || "https://www.kraken.com";
+// Kraken affiliate referral link + code (env-overridable). The link applies the
+// referral on its own; the code is an inline backup for manual / screenshot signups.
+const KRAKEN_REF = process.env.BOT_KRAKEN_REF || "https://proinvite.kraken.com/9f1e/8985jw0l";
+const KRAKEN_CODE = process.env.BOT_KRAKEN_CODE || "k4tg7p3p";
 // Fixed cadence (in days) for the Kraken promo slot — see buildPost. ~Monthly.
 const KRAKEN_EVERY = 30;
 const TIGHT = ""; // a line break that stays single (not spaced out) — for tight lists
@@ -745,7 +746,7 @@ NFA`,
     text:
 `🐙 SPX6900 × Kraken — the affiliate program is live.
 Trade $SPX on one of crypto's deepest, longest-running exchanges, and back the rainbow while you do.
-Join with our link 👇
+Sign up with our link (referral code ${KRAKEN_CODE}) 👇
 ${KRAKEN_REF}
 NFA`,
     card: { type: "kraken" },
