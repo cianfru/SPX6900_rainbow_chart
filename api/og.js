@@ -8,6 +8,7 @@ import { rainbowSvg } from "../src/rainbow-svg.js";
 import { fetchLivePrice, fetchMajors, fetchHistory, computeStats } from "../scripts/bot/stats.mjs";
 import { buildPost } from "../scripts/bot/posts.mjs";
 import { renderPostCard } from "../scripts/bot/charts.mjs";
+import { staticImageFor } from "../scripts/bot/card-format.mjs";
 
 // Nav tab id -> the rotating post whose card best represents that tab.
 const TAB_POST = {
@@ -43,6 +44,16 @@ export default async function handler(req, res) {
       if (NEEDS_COINS.has(postId)) { try { opts.coins = await fetchMajors(); } catch { /* skip */ } }
       const stats = computeStats(price, undefined, opts);
       const post = buildPost(stats, new Date(), postId);
+      // Static-image cards (e.g. the Kraken promo) ARE a finished graphic — serve
+      // the file directly at its native AR rather than rasterizing it here (which
+      // would also risk a serverless fs miss). 302 → the public asset.
+      const asset = post.id === postId && staticImageFor(post.card?.type);
+      if (asset) {
+        res.setHeader("Cache-Control", "s-maxage=300, stale-while-revalidate=600");
+        res.writeHead(302, { Location: asset });
+        res.end();
+        return;
+      }
       // The control gallery (?post=) previews cards at their true posted size (3:2
       // landscape / 4:5 portrait). Share-link unfurls (?tab=) instead render 1.91:1
       // so X's link card doesn't crop the chart's axes off.
