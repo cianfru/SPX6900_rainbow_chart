@@ -2,6 +2,7 @@
 // rendered as SVG then rasterized with resvg (no browser). Header carries the
 // title + a big headline number; the plot below gives the visual punch. Keep
 // text emoji-free (resvg has no emoji font).
+import { readFileSync } from "node:fs";
 import { Resvg } from "@resvg/resvg-js";
 import { renderRainbowCard } from "./rainbow-card.mjs";
 
@@ -548,6 +549,14 @@ export function renderGauge(spec, opts = {}) {
   return chrome(spec, svg, "", { W: DW, H: DH });
 }
 
+// Static promo card: a finished marketing graphic posted as-is (no chart). The
+// Kraken affiliate post uses this — the image ships in public/ with the repo, so
+// the bot just hands X the raw PNG bytes. Falls outside the chrome/dims system.
+const KRAKEN_IMG = new URL("../../public/rainbow-kraken.png", import.meta.url);
+export function renderKrakenCard() {
+  return readFileSync(KRAKEN_IMG);
+}
+
 export function renderPostCard(post, stats, opts = {}) {
   const { type, spec } = post.card;
   // Portrait for the supported cards; otherwise landscape — 3:2 by default, but a
@@ -556,6 +565,7 @@ export function renderPostCard(post, stats, opts = {}) {
   const dims = opts.portrait && isPortraitCard(type) ? PORTRAIT : (opts.landscape ?? {});
   const s = { ...spec, date: stats.date };
   if (type === "rainbow") return renderRainbowCard(stats, dims);
+  if (type === "kraken") return renderKrakenCard();
   if (type === "gauge") return renderGauge(s, dims);
   if (type === "heatmap") return renderHeatmap(s, dims);
   if (type === "dca") return renderDca(s, dims);
