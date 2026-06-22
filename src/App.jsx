@@ -448,9 +448,23 @@ export default function App() {
   const scrollToCharts = () => {
     const el = document.getElementById("more-charts");
     if (!el) return;
-    const navH = navRef.current?.offsetHeight ?? 0;
-    const y = el.getBoundingClientRect().top + window.scrollY - navH - 8;
-    window.scrollTo({ top: Math.max(0, y), behavior: "smooth" });
+    const target = () => {
+      const navH = navRef.current?.offsetHeight ?? 0;
+      return Math.max(0, el.getBoundingClientRect().top + window.scrollY - navH - 8);
+    };
+    window.scrollTo({ top: target(), behavior: "smooth" });
+    // The charts are lazy-loaded: the section first renders a short "Loading…"
+    // fallback, then reflows taller when the chart mounts — which can interrupt
+    // the smooth scroll above and leave us parked too high (only half the chart
+    // visible). Re-assert the position while the section settles, then stop.
+    if (typeof ResizeObserver === "function") {
+      const ro = new ResizeObserver(() => {
+        const want = target();
+        if (Math.abs(window.scrollY - want) > 4) window.scrollTo({ top: want, behavior: "smooth" });
+      });
+      ro.observe(el);
+      setTimeout(() => ro.disconnect(), 1000);
+    }
   };
   const scrollTop = () => { setView("rainbow"); syncUrl("rainbow"); window.scrollTo({ top: 0, behavior: "smooth" }); };
   const goChart = (id, relOverride) => {
