@@ -31,7 +31,7 @@ test("every available post builds non-empty text + a renderable card", () => {
     assert.equal(typeof p.text, "string");
     assert.ok(p.text.trim().length > 0 && p.text.length < 4000, `text length sane for ${id}`);
     assert.ok(p.text.includes("#spx6900"), `branded footer present for ${id}`);
-    assert.ok(p.card && ["rainbow", "line", "bar", "mbars", "donut", "stack", "model", "cube", "scale", "gauge", "heatmap", "dca", "kraken"].includes(p.card.type), `valid card type for ${id}`);
+    assert.ok(p.card && ["rainbow", "line", "bar", "mbars", "donut", "stack", "model", "cube", "scale", "gauge", "fngdial", "heatmap", "dca", "kraken"].includes(p.card.type), `valid card type for ${id}`);
   }
 });
 

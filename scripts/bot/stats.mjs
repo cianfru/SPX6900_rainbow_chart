@@ -200,6 +200,7 @@ export function computeStats(price, dateStr = new Date().toISOString().slice(0, 
       : null,
     ath, athDate, drawdown: dd, maxDrawdown: maxDd,
     cheaperFrac, edge,
+    fng: snap?.fng ?? null, // crypto Fear & Greed (0..100) from the daily snapshot
     firstPrice: first.price, firstDate: first.date, allTimeReturn: price / first.price - 1,
     targets: M.TARGETS.map(t => ({ ...t, mult: t.price / price })),
     supply, btc, majors,

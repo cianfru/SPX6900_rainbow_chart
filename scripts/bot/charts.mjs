@@ -558,6 +558,36 @@ export function renderGauge(spec, opts = {}) {
   return chrome(spec, svg, "", { W: DW, H: DH });
 }
 
+// Two semicircle dials side by side, each in its own native colour scale, so you
+// compare needle positions (e.g. crypto Fear & Greed vs SPX6900's own valuation
+// dial). spec.left / spec.right: { title, value 0..1, big, verdict, color, segments }.
+export function renderFngDial(spec, opts = {}) {
+  const { DW, DH, PH } = geom(opts);
+  const cy = mT + Math.round(PH * 0.5), R = 150, sw = 34;
+  const dial = (cx, d) => {
+    const pt = (v, rad) => { const th = Math.PI * (1 - v); return [cx + rad * Math.cos(th), cy - rad * Math.sin(th)]; };
+    const arc = (v0, v1, rad) => {
+      const steps = Math.max(2, Math.ceil(Math.abs(v1 - v0) * 40));
+      let s = "";
+      for (let i = 0; i <= steps; i++) { const [x, y] = pt(v0 + (v1 - v0) * (i / steps), rad); s += `${i ? "L" : "M"} ${x.toFixed(1)} ${y.toFixed(1)} `; }
+      return s.trim();
+    };
+    const v = Math.min(1, Math.max(0, d.value));
+    let g = `<text x="${cx}" y="${(cy - R - 26).toFixed(1)}" fill="#cbd5e1" font-size="27" font-weight="700" text-anchor="middle" font-family="sans-serif">${esc(d.title)}</text>`;
+    g += `<path d="${arc(0, 1, R)}" fill="none" stroke="#1e2433" stroke-width="${sw}" stroke-linecap="round"/>`;
+    for (const seg of d.segments) g += `<path d="${arc(seg.from, seg.to, R)}" fill="none" stroke="${seg.color}" stroke-width="${sw}" stroke-linejoin="round" stroke-opacity="0.95"/>`;
+    const [nx, ny] = pt(v, R - 28), [dx, dy] = pt(v, R);
+    g += `<line x1="${cx}" y1="${cy}" x2="${nx.toFixed(1)}" y2="${ny.toFixed(1)}" stroke="#f8fafc" stroke-width="6" stroke-linecap="round"/>`;
+    g += `<circle cx="${dx.toFixed(1)}" cy="${dy.toFixed(1)}" r="10" fill="${d.color}" stroke="#05050e" stroke-width="3"/>`;
+    g += `<circle cx="${cx}" cy="${cy}" r="15" fill="#0b0f1c" stroke="${d.color}" stroke-width="4"/>`;
+    g += `<text x="${cx}" y="${(cy + 66).toFixed(1)}" fill="#f8fafc" font-size="58" font-weight="800" text-anchor="middle" font-family="sans-serif">${esc(d.big)}</text>`;
+    g += `<text x="${cx}" y="${(cy + 104).toFixed(1)}" fill="${d.color}" font-size="27" font-weight="700" text-anchor="middle" font-family="sans-serif">${esc(d.verdict)}</text>`;
+    return g;
+  };
+  const body = dial(mL + (DW - mL - mR) * 0.27, spec.left) + dial(mL + (DW - mL - mR) * 0.73, spec.right);
+  return chrome(spec, body, "", { W: DW, H: DH });
+}
+
 // Static promo card: a finished marketing graphic posted as-is (no chart). The
 // Kraken affiliate post uses this — the image ships in public/ with the repo, so
 // the bot just hands X the raw PNG bytes. Falls outside the chrome/dims system.
@@ -576,6 +606,7 @@ export function renderPostCard(post, stats, opts = {}) {
   if (type === "rainbow") return renderRainbowCard(stats, dims);
   if (type === "kraken") return renderKrakenCard();
   if (type === "gauge") return renderGauge(s, dims);
+  if (type === "fngdial") return renderFngDial(s, dims);
   if (type === "heatmap") return renderHeatmap(s, dims);
   if (type === "dca") return renderDca(s, dims);
   if (type === "bar") return renderBarCard(s, dims);
