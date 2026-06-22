@@ -50,10 +50,12 @@ test("bullish cards are weighted to appear more often than neutral ones", () => 
     count[id] = (count[id] || 0) + 1;
   }
   // a representative bullish card should out-appear a representative neutral one
-  assert.ok((count.milestones || 0) > (count.risk || 0),
-    `milestones (${count.milestones}) should beat risk (${count.risk})`);
+  assert.ok((count.milestones || 0) > (count.timeinband || 0),
+    `milestones (${count.milestones}) should beat timeinband (${count.timeinband})`);
   assert.ok((count.cycle || 0) > (count.monthlybars || 0),
     `cycle (${count.cycle}) should beat monthlybars (${count.monthlybars})`);
-  // the de-rotated drawdown card must never auto-post (still buildable via override)
+  // the de-rotated cards must never auto-post (still buildable via override)
   assert.equal(count.drawdown || 0, 0, "drawdown is excluded from the daily rotation");
+  assert.equal(count.risk || 0, 0, "risk is excluded from the daily rotation");
+  assert.equal(count.riskdial || 0, 0, "riskdial is removed entirely");
 });

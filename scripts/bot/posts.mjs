@@ -120,7 +120,10 @@ It doesn't predict anything. It just shows where today sits in that long-run con
     card: { type: "rainbow" },
   }),
 
-  // 2 — risk gauge (line, 0..1)
+  // 2 — risk gauge (line, 0..1). De-rotated + console-hidden (OG_ONLY): the
+  // fngtrend card now plots this exact valuation-risk line alongside crypto Fear
+  // & Greed, so the standalone is redundant in the feed. Kept buildable only to
+  // back the website's Risk tab share image (api/og.js ?tab=risk).
   s => ({
     id: "risk",
     text:
@@ -644,29 +647,6 @@ NFA`,
     };
   })(),
 
-  // 25 — risk dial: the rainbow valuation as a needle on a colored dial. Reads
-  // risk straight off the band model; the arc IS the rainbow, band by band.
-  s => (() => {
-    const v = s.risk, pct = Math.round(v * 100);
-    const verdict = v < 0.2 ? "Deep value" : v < 0.4 ? "Cheap" : v < 0.6 ? "Fair value" : v < 0.8 ? "Heating up" : "Euphoric";
-    const N = M.BAND_LABELS.length;
-    return {
-      id: "riskdial",
-      text:
-`🌡️ SPX6900 risk dial: ${s.band.l} zone — ${pct}/100 on the rainbow model.
-Same idea as the valuation-risk read, as one needle: it sits straight on the rainbow bands, 0 = the cheapest vs trend SPX has ever been, 100 = the most stretched. Today reads ${pct} — it's only been this cheap or cheaper ${Math.round(s.cheaperFrac * 100)}% of its life.
-Low has historically been the patient zone, high the euphoric one. A gauge of position, not a prediction.
-NFA`,
-      card: { type: "gauge", spec: {
-        title: "SPX6900 risk dial", headline: `${s.band.l} · ${pct}/100`, accent: s.band.c,
-        value: v,
-        segments: M.BAND_LABELS.map((b, i) => ({ from: i / N, to: (i + 1) / N, color: b.c })),
-        ticks: [{ at: 0, label: "Fire Sale", anchor: "start" }, { at: 1, label: "Max Bubble", anchor: "end" }],
-        centerBig: verdict, centerSmall: `risk ${pct} / 100`,
-      } },
-    };
-  })(),
-
   // 24c — crypto Fear & Greed vs SPX6900's own valuation dial (two dials). Gated
   // on the daily snapshot carrying an fng value (fetched in CI from alternative.me).
   s => s.fng != null && (() => {
@@ -910,15 +890,17 @@ const weightOf = id => WEIGHT[id] ?? (BULLISH.has(id) ? 2 : 1);
 // Posts that stay BUILDABLE (so the website tabs / OG share images still render
 // them on demand) but never enter the daily auto-rotation. The drawdown chart is
 // here because "down X% from the high" is too much of a downer to tweet daily —
-// the monthly-returns card covers the same honesty without the gloom.
-const NO_ROTATE = new Set(["drawdown", "kraken"]);
+// the monthly-returns card covers the same honesty without the gloom. The risk
+// line is here because the fngtrend card now plots it next to crypto Fear &
+// Greed, so the standalone is redundant in the feed.
+const NO_ROTATE = new Set(["drawdown", "risk", "kraken"]);
 
 // Cards kept buildable ONLY to back website OG share images — never auto-posted
 // AND hidden from the control console (so they can't be fired by hand). Drawdown
-// lives here: the site's drawdown tab needs its share image, but the card itself
-// shouldn't surface anywhere in the bot. (Kraken is NOT here — it's a real promo
-// you fire from the console.)
-export const OG_ONLY = new Set(["drawdown"]);
+// and risk live here: the site's drawdown/risk tabs need their share images, but
+// the cards themselves shouldn't surface anywhere in the bot. (Kraken is NOT here
+// — it's a real promo you fire from the console.)
+export const OG_ONLY = new Set(["drawdown", "risk"]);
 
 // Build the weighted rotation order in round-robin passes (pass k includes posts
 // whose weight > k). So higher-weight topics recur more often across the cycle
