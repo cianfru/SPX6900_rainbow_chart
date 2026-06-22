@@ -361,8 +361,9 @@ NFA`,
     return {
       id: "cycle",
       text:
-`🔮 If SPX6900 is tracing Bitcoin's last cycle, today ≈ BTC ${fMon(c.btcFrom)} — just off the bottom, early in the climb.
-A for-fun what-if, not a forecast.
+`🔮 If SPX6900 is tracing Bitcoin's last cycle, today lines up with BTC around ${fMon(c.btcFrom)} — just off the bottom, early in the climb.
+The idea: take Bitcoin's REAL price path through its most recent 4-year cycle and lay it over SPX6900's chart, anchored to where SPX trades now and scaled to its (much larger) swings. The orange line isn't an invented curve — it's BTC's actual history used as a template.
+Crypto has rhymed to this ~4-year, halving-driven rhythm for over a decade. Whether SPX keeps following it, nobody knows — so treat it as a for-fun what-if, not a forecast.
 NFA`,
       card: { type: "line", spec: {
         title: "Where are we on Bitcoin's cycle?", headline: `We're at ≈ BTC ${fMon(c.btcFrom)}`, accent: "#f7931a",
@@ -390,7 +391,8 @@ ${[
   `🟧 Base  ${fPx(c.peak)}  →  ${fMult(mult(c.peak))}`,
   `🚀 Bull  ${fPx(c.peakHi)}  →  ${fMult(mult(c.peakHi))}`,
 ].join(TIGHT)}
-Bitcoin's real cycle, scaled to SPX's amplitude.
+These three aren't price targets. They're what SPX would print IF it scaled Bitcoin's real last-cycle move at low / mid / high amplitude. Bitcoin set the shape and the timing (the ~4-year halving rhythm); the multiplier is just how hard SPX has tended to swing vs BTC.
+A model of a pattern, not a promise.
 NFA`,
       card: { type: "bar", spec: {
         title: `If SPX traces BTC's cycle — ${fMon(c.peakTs)} top`, headline: `${fPrice(s.price)} → ${fPx(c.peak)} base · ${fMult(mult(c.peak))}`, accent: "#f7931a",
@@ -409,9 +411,9 @@ NFA`,
     return {
       id: "cycleclock",
       text:
-`⏳ If SPX6900 rides Bitcoin's last cycle, a projected top near ${fPx(c.peak)} by ${fMon(c.peakTs)}.
-First a dip near ${fPrice(c.low)} (${fMon(c.lowTs)}), then BTC's real run up.
-If the pattern holds, we're sitting at the launchpad.
+`⏳ If SPX6900 rides Bitcoin's last cycle, a projected top near ${fPx(c.peak)} by ${fMon(c.peakTs)} — after a dip near ${fPrice(c.low)} (${fMon(c.lowTs)}).
+This plots Bitcoin's actual last-cycle path, scaled to SPX6900 and pinned to the halving clock — the same ~4-year rhythm that has driven every crypto cycle so far. Read it as "where we'd be on that clock," not a date stamp: if SPX keeps rhyming with BTC, we're nearer the launchpad than the top.
+The pattern has held for a decade, but past cycles guarantee nothing.
 NFA`,
       card: { type: "line", spec: {
         title: "The projected cycle, by the halving clock", headline: `Top ~${fMon(c.peakTs)}`, accent: "#f7931a",
@@ -501,8 +503,9 @@ NFA`,
     return {
       id: "model",
       text:
-`📐 The SPX6900 rainbow = a power-law trend fit to price, R² ${m.r2.toFixed(2)}.
-Distance from trend → percentile bands (blue = cheap, red = stretched). Today: ${BAND_EMOJI[s.bandIndex]} ${s.band.l}, ${fPct(s.vsCenter)} vs trend.
+`📐 How the SPX6900 rainbow is built — a power-law trend fit to price, R² ${m.r2.toFixed(2)}.
+Step 1: fit a straight line to SPX6900's price on a log-log scale (price vs age). That line is "fair value" — the rainbow's center. Step 2: measure how far each day closed above or below it (the residual), then sort those distances into percentile bands — deepest blue = the cheapest SPX has ever been vs trend, deepest red = the most stretched.
+So the bands aren't drawn by hand or vibes; they're literally SPX6900's own history sorted by how cheap or rich it was. Today: ${BAND_EMOJI[s.bandIndex]} ${s.band.l}, ${fPct(s.vsCenter)} vs trend. (R² ${m.r2.toFixed(2)} just means the trend captures most of the long-run move.)
 Descriptive, not a prediction.
 NFA`,
       card: { type: "model", spec: {
@@ -665,9 +668,10 @@ NFA`,
     return {
       id: "dogeclock",
       text:
-`🐕 If SPX6900 tracks Bitcoin's 4-yr cycle, DOGE-size lands ≈ ${fMon(c.peakTs)}. When it flips each king:
+`🐕 If SPX6900 tracks Bitcoin's 4-yr cycle, DOGE-size lands ≈ ${fMon(c.peakTs)}. When it would flip each memecoin king:
 ${rungs.map(r => `${r.short} (${r.mc}) → ${r.top ? `≈ the cycle top, ${fMon(c.peakTs)}` : `~${r.when}`}`).join(TIGHT)}
-DOGE-size lands right at the projected top. A for-fun what-if, not a forecast.
+These dates aren't guesses — they're where SPX6900 crosses each king's all-time-high market cap as it rides Bitcoin's real last-cycle path (scaled to SPX). So they move with the halving clock, not a calendar I picked. DOGE-size lands right around the projected top.
+A for-fun what-if, not a forecast.
 NFA`,
       card: { type: "line", spec: {
         title: "When does SPX6900 flip the kings?", headline: `DOGE-size ≈ ${fMon(c.peakTs)}`, accent: doge.color,
