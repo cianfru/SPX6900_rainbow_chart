@@ -25,7 +25,7 @@ export default async function handler(req, res) {
       const p = buildPost(stats, new Date(), id);
       const type = p.card?.type;
       texts[id] = p.text;
-      media[id] = isVideoCard(type) ? "video" : "image";
+      media[id] = (isVideoCard(type) || p.card?.animate) ? "video" : "image";
       orient[id] = isPortraitCard(type) ? "portrait" : "landscape";
     }
     const base = new Date(); base.setUTCHours(13, 0, 0, 0); // the daily cron slot

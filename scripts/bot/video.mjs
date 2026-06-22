@@ -44,8 +44,8 @@ async function renderVideo({ svgAt, draw = 7, hold = 3, fps = 30, out = "bot-vid
 export function renderRainbowVideo({ price, draw = 7, hold = 3, fps = 30, out = "bot-video.mp4", dims = {} }) {
   return renderVideo({ draw, hold, fps, out, width: dims.W ?? 1200, svgAt: (r, p) => rainbowSvg(price, undefined, p == null ? { reveal: r, ...dims } : { reveal: 1, pulse: p, ...dims }) });
 }
-export function renderLineVideo({ spec, draw = 7, hold = 3, fps = 30, out = "bot-video.mp4", dims = {} }) {
-  return renderVideo({ draw, hold, fps, out, width: dims.W ?? 1200, svgAt: (r, p) => lineCardSvg(spec, p == null ? { reveal: r, ...dims } : { reveal: 1, pulse: p, ...dims }) });
+export function renderLineVideo({ spec, draw = 7, hold = 3, fps = 30, out = "bot-video.mp4", dims = {}, revealFromX } = {}) {
+  return renderVideo({ draw, hold, fps, out, width: dims.W ?? 1200, svgAt: (r, p) => lineCardSvg(spec, p == null ? { reveal: r, revealFromX, ...dims } : { reveal: 1, pulse: p, ...dims }) });
 }
 // Cube card: piles stack up + the ×label rolls (draw), then the faces shimmer (hold).
 export function renderCubeVideo({ spec, draw = 7, hold = 3, fps = 30, out = "bot-video.mp4" }) {
