@@ -91,7 +91,7 @@ const ageCard = peer => s => (() => {
     text:
 `${peer.emoji} SPX6900 vs ${peer.name}, at the same age since launch.
 ${peer.story}
-The chart lines up both by days-since-launch, each as a multiple of its first print — so it's SPX6900 today vs ${peer.name} back around ${peerYear}, not today's ${peer.name} (which is why it keeps working: it just slides through ${peer.name}'s history as SPX ages). At this age: SPX6900 ${fMult(spxMult)} vs ${peer.name} ${fMult(peerMult)} — ${ahead ? "SPX is out front" : `${peer.name} ahead, for now`}, and the curves cross more than once.
+The chart lines up both by days-since-launch, each as a multiple of its first print — so it's SPX6900 today vs ${peer.name} at the same point in its own life, back around ${peerYear}, not today's ${peer.name}. At this age: SPX6900 ${fMult(spxMult)} vs ${peer.name} ${fMult(peerMult)} — ${ahead ? "SPX is out front" : `${peer.name} ahead, for now`}, and the curves cross more than once.
 A resemblance, not a forecast. Still early in the story.
 NFA`,
     card: { type: "line", spec: {
