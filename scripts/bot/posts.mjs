@@ -5,6 +5,7 @@ import * as M from "../../src/models.js";
 import { DEFAULT_RAW } from "../../src/data.js";
 import { CRYPTO_MILESTONES } from "../../src/milestones.js";
 import { btcCycleProjection } from "../../src/btc-cycle.js";
+import { BTC_HISTORY } from "../../src/btc-history.js";
 
 // X discovery tags appended to each post's footer: the $SPX cashtag (X resolves
 // it to SPX6900) for the in-timeline price-chart card, plus the #spx6900 hashtag.
@@ -739,6 +740,68 @@ NFA`,
           { pts: spx, color: "#4ade80", width: 4 },
         ],
         legend: [{ label: "SPX6900", color: "#4ade80" }, ...lines.map(m => ({ label: m.name, color: m.color }))],
+        marker: { x: spx.at(-1)[0], y: spx.at(-1)[1], color: "#4ade80" },
+      } },
+    };
+  })(),
+
+  // 30 — fair launch: 100% circulating, no VC/team allocation, no inflation —
+  // vs a typical VC token's locked/low-float make-up. Static fundamentals card
+  // (the VC split is illustrative, clearly labelled). Reinforces the thesis.
+  s => ({
+    id: "fairlaunch",
+    text:
+`🟢 SPX6900 is a fair launch — 100% of supply circulating since day one. No team allocation, no VC unlocks, no inflation.
+A typical VC token launches with a thin float and most of the supply locked, dripping onto the market for years. With SPX there's no overhang: what's trading is the whole thing.
+NFA`,
+    card: { type: "compare", spec: {
+      title: "Fair launch — no VC, no unlocks", headline: "100% circulating, community-owned", accent: "#22c55e",
+      footer: "SPX6900 is fully circulating with no team/VC allocation · the VC split shown is illustrative",
+      rows: [
+        { label: "SPX6900", segments: [{ text: "circulating & community-owned", value: 100, color: "#22c55e" }] },
+        { label: "Typical VC token (illustrative)", segments: [
+          { text: "public float", value: 18, color: "#38bdf8" },
+          { text: "team / VCs / locked", value: 82, color: "#64748b" },
+        ] },
+      ],
+    } },
+  }),
+
+  // 31 — SPX6900 vs Bitcoin at the SAME AGE since launch (price as a multiple of
+  // each asset's first print, log scale, x = years-since-launch). Visualises the
+  // "early Bitcoin" thesis. Honest framing: the curves cross — SPX outran early
+  // BTC around year 2, BTC's run has since pulled ahead — both wildly volatile.
+  s => (() => {
+    const DAY = 86400000;
+    const px = s.series.price;
+    const t0 = px[0][0], p0 = px[0][1];
+    if (!(p0 > 0)) return null;
+    const ageNow = (px.at(-1)[0] - t0) / DAY;
+    const spx = px.filter(([, p]) => p > 0).map(([ts, p]) => [(ts - t0) / DAY, p / p0]);
+    const btc0 = BTC_HISTORY[0][1];
+    const btc = BTC_HISTORY.filter(([a]) => a <= ageNow + 20).map(([a, p]) => [a, p / btc0]);
+    if (btc.length < 10 || spx.length < 10) return null;
+    const spxMult = spx.at(-1)[1], btcMult = btc.at(-1)[1];
+    const xTicks = [];
+    for (let y = 1; y * 365 <= ageNow + 20; y++) xTicks.push({ x: y * 365, label: `Yr ${y}` });
+    const allY = [...spx, ...btc].map(p => p[1]);
+    const yMax = Math.max(...allY), yMin = Math.min(...allY, 1);
+    const yTicks = [1, 10, 100, 1000, 10000].filter(v => v >= yMin * 0.6 && v <= yMax * 1.6).map(v => ({ v, label: fMult(v) }));
+    return {
+      id: "btcage",
+      text:
+`🍼 SPX6900 vs Bitcoin — mapped to the same age since launch (price as a multiple of each one's first print).
+Both went near-vertical, then got cut in half — repeatedly. Around year 2, SPX had actually outrun early Bitcoin; BTC's legendary run has since pulled ahead, ${fMult(btcMult)} vs SPX's ${fMult(spxMult)} at the same age.
+Two of the most volatile early-stage assets ever. SPX is still early in the story.
+NFA`,
+      card: { type: "line", spec: {
+        title: "SPX6900 vs Bitcoin, at the same age", headline: "Same age as early Bitcoin", accent: "#f7931a",
+        yLog: true, yMin: yMin * 0.7, yMax: yMax * 1.4, yTicks, xTicks,
+        series: [
+          { pts: btc, color: "#f7931a", width: 3, dash: true },
+          { pts: spx, color: "#4ade80", width: 3.4, fill: 0.12 },
+        ],
+        legend: [{ label: "SPX6900", color: "#4ade80" }, { label: "Bitcoin (same age)", color: "#f7931a" }],
         marker: { x: spx.at(-1)[0], y: spx.at(-1)[1], color: "#4ade80" },
       } },
     };
