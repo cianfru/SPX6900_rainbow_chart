@@ -219,7 +219,8 @@ NFA`,
       text:
 `🎯 Next target ${next[0].label} = ${fMult(next[0].price / s.price)} from ${fPrice(s.price)}:
 ${next.map(t => `${t.label} → ${fMult(t.price / s.price)}`).join(TIGHT)}
-A log-trend extrapolation, not a promise.
+These rungs are round-number milestones — $1, $6.90 (the cult number), $69 and up — each showing the multiple from here. It's a log-trend extrapolation of where the rainbow's center could carry price over time, not a price prediction and not a timeline.
+The point is scale: on a power-law clock, the gap between here and "obvious" levels is just a handful of doublings.
 NFA`,
       card: { type: "line", spec: {
         title: "Climbing the target ladder", headline: `${next[0].label} = ${fMult(next[0].price / s.price)}`, accent: "#f59e0b",
@@ -272,8 +273,8 @@ NFA`,
     id: "btc",
     text:
 `₿ SPX6900 priced in Bitcoin: 1 SPX = ${fNum(s.btc.sats)} sats.
-vs BTC: ${fPct(s.btc.rel90)} (90d), ${fPct(s.btc.rel365)} (1yr).
-Priced in BTC is the only scoreboard that counts.
+Dollars hide how an asset does against the thing crypto really competes with: Bitcoin. In sats (1 BTC = 100M sats), SPX6900 is ${fPct(s.btc.rel90)} vs BTC over 90 days and ${fPct(s.btc.rel365)} over a year. Up in sats = genuinely outrunning the benchmark, not just riding a market-wide tide.
+"Number go up" in dollars is easy in a bull market; up in BTC terms is the harder, truer scoreboard.
 NFA`,
     card: { type: "line", spec: {
       title: "SPX6900 priced in Bitcoin (sats)", headline: fNum(s.btc.sats) + " sats", accent: "#f7931a",
@@ -339,7 +340,8 @@ NFA`,
       text:
 `⚔️ SPX6900 is ${fPct(sorted[0].rel365)} vs ${sorted[0].name} over the past year — and outpacing ${wins}:
 ${sorted.map(m => `${m.name}: ${fPct(m.rel365)}`).join(" · ")}
-Positive = SPX beat that asset (relative) over the past year.
+Relative strength: each figure is how SPX6900 did against that asset over the year, not in dollars. Positive = SPX beat it (grew faster or fell less) — the honest way to see whether it's actually gaining ground on the majors or just moving with the market.
+One year is a short window and these flip fast — a snapshot, not a trend.
 NFA`,
       card: { type: "bar", spec: {
         title: "SPX6900 vs majors — 1-yr relative", headline: `${sorted[0].name} ${fPct(sorted[0].rel365)}`, accent: "#818cf8",
@@ -353,7 +355,8 @@ NFA`,
     id: "alltime",
     text:
 `📈 SPX6900 is up ${fMult(1 + s.allTimeReturn)} since its first print (${fPrice(s.firstPrice)}, ${fMon(s.firstDate)}).
-Up only, on a power-law clock. 📈
+That's the whole journey on one log axis — and the shape is the story: relentless higher highs punctuated by brutal drawdowns, the signature of a power-law asset early in its life. The same curve Bitcoin drew in its first years.
+"Up only" is a meme, not a guarantee, and the path has been violent — but the long-run direction has been one way so far. 📈
 NFA`,
     card: { type: "line", spec: {
       title: "Price since launch (log scale)", headline: fMult(1 + s.allTimeReturn) + " since launch", accent: "#34d399",
@@ -446,7 +449,8 @@ NFA`,
       text:
 `🧊 SPX6900 is ${fMult(doge.mult)} from DOGE's ATH market cap. Flipping the memecoin kings from ${fPrice(s.price)}:
 ${ms.map(m => `${m.short} (${m.mc}) → ${fMult(m.mult)}`).join(TIGHT)}
-Each cube = today's market cap. Long way up. 🚀
+Each cube = one of today's SPX6900 market caps; the pile is how many it would take to match each memecoin king's all-time-high cap — PEPE, SHIB, then DOGE on the throne. The bar SPX6900 is memeing to clear.
+A market-cap comparison, not a price target: "what cap, and how far," not "when." Long way up. 🚀
 NFA`,
       card: { type: "cube", spec: {
         title: "How many SPX6900s to flip the giants?", headline: `${doge.short} = ${fMult(doge.mult)}`, accent: SPX_CUBE,
@@ -469,7 +473,8 @@ NFA`,
       text:
 `👑 DOGE-size = ${fMult(doge.mult)} for SPX6900. Flipping the memecoin kings from ${fPrice(s.price)}:
 ${ms.map(m => `${m.short} (${m.mc}) → ${fMult(m.mult)}`).join(TIGHT)}
-Each × is the move to match their market cap. Coming for the throne. 👑
+Each × is the move it would take for SPX6900's market cap to match that king's all-time high — PEPE, SHIB, then DOGE at the top. SPX runs the same fair-launch, community-over-VC playbook that built them, just earlier in the story.
+Market-cap math, not a forecast. Coming for the throne. 👑
 NFA`,
       card: { type: "line", spec: {
         title: "Flip the memecoin kings", headline: `DOGE-size = ${fMult(doge.mult)}`, accent: "#c2a633",
@@ -492,7 +497,8 @@ NFA`,
       text:
 `₿ ${top.short} = ${fMult(top.mult)} for SPX6900. Climbing Bitcoin's market-cap ladder from ${fPrice(s.price)}:
 ${ms.map(m => `${m.short} (${m.mc}) → ${fMult(m.mult)}`).join(TIGHT)}
-The same market cap Bitcoin printed on its way up.
+Each rung is the SPX6900 price at which its market cap would equal the cap Bitcoin itself had at that level — $1K, $10K, $100K BTC. It reframes "how high can it go" into "which caps have already been printed," by the asset this whole project is modelled on.
+Bitcoin cleared every one of these; whether SPX does is the open question.
 NFA`,
       card: { type: "line", spec: {
         title: "SPX6900 on Bitcoin's MC ladder", headline: `BTC @ $100K = ${fMult(top.mult)}`, accent: "#f7931a",
@@ -532,7 +538,8 @@ NFA`,
       id: "sp500",
       text:
 `🧊 If SPX6900 is one cube, the whole S&P 500 is ~${fNum(mult)} of them.
-SPX6900 ≈ ${fMoney(cap)} vs the S&P 500 ≈ $50T — the gap it's memeing to close.
+SPX6900 ≈ ${fMoney(cap)} vs the S&P 500's ~$50T — the gap baked into the joke. The name is the whole bit: a memecoin "flippening" the index it's named after would be a ~${fNum(mult)}× move, which is why this card is a telescope, not a target.
+A sense-of-scale gag, not a prediction — but every giant was once a rounding error.
 NFA`,
       card: { type: "scale", spec: {
         title: "SPX6900 vs the S&P 500", accent: "#38bdf8", mult,
@@ -550,7 +557,8 @@ NFA`,
       id: "hundred",
       text:
 `💸 $100 in SPX6900 at its first print (${fMon(s.firstDate)}, ${fPrice(s.firstPrice)}) is worth ${fMoney(grew(s.price))} today.
-Up only, on a power-law clock — the earliest believers are sitting on absurd multiples.
+Same power-law curve as the all-time chart, just rebased to a single $100 buy — the most relatable cut of "what early looked like." The earliest holders are sitting on absurd multiples because they were early to a fair-launch asset, not because they timed anything.
+Returns like this aren't repeatable on command and the ride was brutal — the lesson is about being early, not a promise.
 NFA`,
       card: { type: "line", spec: {
         title: "What an early $100 turned into", headline: fMoney(grew(s.price)), accent: "#34d399",
@@ -716,7 +724,8 @@ NFA`,
       text:
 `🧮 At ${nearest.name}'s market cap, SPX6900 = ${fMult(nearest.mult)} (${fPx(nearest.spxAtCap)}). At each major's cap:
 ${rungs.map(m => `${m.name}-size (${fMoney(m.mc)}) → ${fPx(m.spxAtCap)} · ${fMult(m.mult)}`).join(TIGHT)}
-Same coins you already hold — just SPX6900 at their cap. A long way up.
+Each line is the SPX6900 price at which its market cap would equal that major's today — BTC, ETH, SOL. It turns "how high" into "which coins, at what cap," using the assets people already hold as yardsticks.
+Pure market-cap math (their cap ÷ SPX's 939M supply), not a forecast or a timeline. A long way up.
 NFA`,
       card: { type: "line", spec: {
         title: "SPX6900 at the majors' market caps", headline: `${nearest.name}-size = ${fMult(nearest.mult)}`, accent: nearest.color,
@@ -792,6 +801,7 @@ NFA`,
       text:
 `📊 SPX6900 is ${fPct(spxYtd)} YTD — vs the majors, no spin:
 ${ranked.map(r => `${r.name}: ${fPct(r.ret)}`).join(TIGHT)}
+Everything's rebased to 0% on Jan 1, so it's a clean same-start race for the year against BTC, ETH and SOL — shown whether SPX is winning or losing, because the honest comparison is the point, not a cherry-picked window.
 ${closer}
 NFA`,
       card: { type: "line", spec: {
