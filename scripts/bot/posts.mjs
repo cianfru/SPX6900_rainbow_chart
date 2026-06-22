@@ -62,9 +62,9 @@ const lastTs = s => s.series.price.at(-1)[0];
 // x = years since launch. Honest framing: the curves cross and it's baseline-
 // sensitive, so the headline stays qualitative. ETH/SOL early prices are approx.
 const AGE_PEERS = [
-  { id: "btcage", name: "Bitcoin", color: "#f7931a", series: BTC_HISTORY, approx: false },
-  { id: "ethage", name: "Ethereum", color: "#8b9bff", series: ETH_HISTORY, approx: true },
-  { id: "solage", name: "Solana", color: "#9945ff", series: SOL_HISTORY, approx: true },
+  { id: "btcage", name: "Bitcoin", color: "#f7931a", series: BTC_HISTORY },
+  { id: "ethage", name: "Ethereum", color: "#8b9bff", series: ETH_HISTORY },
+  { id: "solage", name: "Solana", color: "#9945ff", series: SOL_HISTORY },
 ];
 const ageCard = peer => s => (() => {
   const DAY = 86400000;
@@ -91,7 +91,6 @@ Two of crypto's wildest early runs. SPX is still early in the story.
 NFA`,
     card: { type: "line", spec: {
       title: `SPX6900 vs ${peer.name}, at the same age`, headline: `Same age as early ${peer.name}`, accent: peer.color,
-      footer: peer.approx ? `spx6900rainbow.xyz · early ${peer.name} prices approximate (monthly)` : undefined,
       yLog: true, yMin: yMin * 0.7, yMax: yMax * 1.4, yTicks, xTicks,
       series: [
         { pts: peerPts, color: peer.color, width: 3, dash: true },
