@@ -62,9 +62,12 @@ const lastTs = s => s.series.price.at(-1)[0];
 // x = years since launch. Honest framing: the curves cross and it's baseline-
 // sensitive, so the headline stays qualitative. ETH/SOL early prices are approx.
 const AGE_PEERS = [
-  { id: "btcage", name: "Bitcoin", color: "#f7931a", series: BTC_HISTORY, launch: "2010-07-17" },
-  { id: "ethage", name: "Ethereum", color: "#8b9bff", series: ETH_HISTORY, launch: "2015-08-07" },
-  { id: "solage", name: "Solana", color: "#9945ff", series: SOL_HISTORY, launch: "2020-04-11" },
+  { id: "btcage", name: "Bitcoin", color: "#f7931a", series: BTC_HISTORY, launch: "2010-07-17", emoji: "₿",
+    story: "Bitcoin is the blueprint — it dragged “internet money” from a punchline to a trillion-dollar asset, and its power-law trend, 4-year cycle and rainbow chart are the three tools this whole project is built on. Its early years were a gauntlet of 80%+ crashes that each looked terminal." },
+  { id: "ethage", name: "Ethereum", color: "#8b9bff", series: ETH_HISTORY, launch: "2015-08-07", emoji: "Ξ",
+    story: "Ethereum nearly died in the cradle — the 2016 DAO hack drained a third of all ETH and split the chain in two — then ran from under a dollar to four figures. Proof an early asset can take an existential hit and still become a giant." },
+  { id: "solage", name: "Solana", color: "#9945ff", series: SOL_HISTORY, launch: "2020-04-11", emoji: "◎",
+    story: "Solana tore from under a dollar to ~$260, then almost vanished: the FTX collapse it was tied to cut it ~96% to single digits and most pronounced it dead. It came back. The early road is rarely a straight line up." },
 ];
 const ageCard = peer => s => (() => {
   const DAY = 86400000;
@@ -86,10 +89,10 @@ const ageCard = peer => s => (() => {
   return {
     id: peer.id,
     text:
-`🍼 SPX6900 vs ${peer.name}, mapped to the same age since launch.
-Both lines plot price as a multiple of each coin's very first print, lined up by days-since-launch. So you're comparing SPX6900 today against where ${peer.name} stood at the exact same age — back around ${peerYear} — not its price now. (That's why the comparison keeps working: it slides through ${peer.name}'s history as SPX ages.)
-At this age: SPX6900 ${fMult(spxMult)} vs ${peer.name} ${fMult(peerMult)}. ${ahead ? "SPX is out in front" : `${peer.name}'s early run is ahead — for now`} — and the curves cross more than once. Both took the same violent, near-vertical-then-cut-in-half path that marks a real early-stage asset.
-It's a resemblance, not a forecast — early ${peer.name} is just the closest map we have for the road SPX6900 is walking. Still early in the story.
+`${peer.emoji} SPX6900 vs ${peer.name}, at the same age since launch.
+${peer.story}
+The chart lines up both by days-since-launch, each as a multiple of its first print — so it's SPX6900 today vs ${peer.name} back around ${peerYear}, not today's ${peer.name} (which is why it keeps working: it just slides through ${peer.name}'s history as SPX ages). At this age: SPX6900 ${fMult(spxMult)} vs ${peer.name} ${fMult(peerMult)} — ${ahead ? "SPX is out front" : `${peer.name} ahead, for now`}, and the curves cross more than once.
+A resemblance, not a forecast. Still early in the story.
 NFA`,
     card: { type: "line", spec: {
       title: `SPX6900 vs ${peer.name}, at the same age`, headline: `Same age as early ${peer.name}`, accent: peer.color,
@@ -169,7 +172,8 @@ NFA`,
       id: "rally",
       text:
 `🚀 SPX6900 is ${fPct(s.lastFireSale.sinceGain)} since the last "Fire Sale" low (${fMon(s.lastFireSale.date)}, ${fPrice(s.lastFireSale.low)}).${ranHigher ? ` Ran as high as ${fPct(s.lastFireSale.peakGain)}.` : ""}
-"Fire Sales" are rare — historically some of the best windows to DCA in. The deepest red is where every run has started.
+A "Fire Sale" is the rainbow's deepest, coldest band — the rare stretch where price sits furthest below its long-run trend. Historically those prints have been the launchpads: every major SPX6900 run so far has started from the bottom bands, not the top.
+They don't ring a bell at the low, and cheap can always get cheaper — but the deepest discounts have been where the patient got paid.
 NFA`,
       card: { type: "line", spec: {
         title: `Since the last Fire Sale (${fMon(s.lastFireSale.date)})`, headline: fPct(s.lastFireSale.sinceGain), accent: "#4ade80",
@@ -191,7 +195,8 @@ NFA`,
     id: "strategy",
     text:
 `🧪 ~${fMult(s.edge)} vs HODL — buying every cycle dip and selling the peak (hindsight, in this model).
-Perfect timing isn't real — the cycles are.
+The rule: accumulate when SPX6900 is deep in the blue (cheap vs trend), trim when it's deep in the red (stretched), sit in cash otherwise. Run with perfect hindsight, that timing beats simply holding by ~${fMult(s.edge)}.
+The catch: nobody nails tops and bottoms live, and over-trading usually underperforms. The takeaway isn't "time it" — it's how violent SPX's swings around the trend have been. Perfect timing isn't real; the cycles are.
 NFA`,
     card: { type: "line", spec: {
       title: "Timing the dips vs HODL (hindsight)", headline: fMult(s.edge) + " vs HODL", accent: "#a78bfa",
@@ -234,7 +239,8 @@ NFA`,
       id: "timeinband",
       text:
 `⏳ SPX6900 has spent ~${Math.round(s.cheaperFrac * 100)}% of its life this cheap or cheaper (${s.band.l} band today).
-Extremes are rare; most of its life sits in the middle bands. Today: ${BAND_EMOJI[s.bandIndex]} ${s.band.l}.
+The bars show how much of SPX6900's history sits in each rainbow band. Today it's ${BAND_EMOJI[s.bandIndex]} ${s.band.l} — a zone it's only matched or undercut ~${Math.round(s.cheaperFrac * 100)}% of the time. Extremes (deep blue, deep red) are rare by design; most of any asset's life is spent in the middle.
+So "rare" cuts both ways: cheap like this is uncommon, but so is euphoric. Descriptive, not a signal.
 NFA`,
       card: { type: "bar", spec: {
         title: "Time spent in each valuation band", headline: `${Math.round(s.cheaperFrac * 100)}% this cheap or below`, accent: s.band.c,
@@ -248,7 +254,8 @@ NFA`,
     id: "marketcap",
     text:
 `💰 SPX6900's real free-float market cap is just ${fMoney(s.supply.floatMc)} — vs the ${fMoney(s.supply.nominalMc)} headline.
-Diamond hands hold ~${Math.round(s.supply.diamondShare * 100)}% of supply and rarely sell, so the effective float is a fraction of the sticker MC (price × 939M).
+The sticker cap (price × 939M supply) assumes every coin could hit the market. But ~${Math.round(s.supply.diamondShare * 100)}% sits in "diamond" hands — wallets that have held longest and rarely sell. Strip those out and the supply actually available to trade is far smaller, so the effective free-float cap is a fraction of the headline.
+Thin float + high conviction cuts both ways: it can amplify moves in either direction.
 NFA`,
     card: { type: "stack", spec: {
       title: "Headline cap vs real free float", headline: fMoney(s.supply.floatMc) + " free float", accent: "#22d3ee",
@@ -286,7 +293,8 @@ NFA`,
     id: "distribution",
     text:
 `💎 ~${diamondPct}% of SPX6900's classified holder supply sits in "diamond" hands (longest-held, never sold).
-"Classified" excludes exchanges, LPs & contracts (~29% of supply) — Gini ${s.supply.gini.toFixed(2)}, extreme concentration.
+HolderScan sorts holder wallets into conviction tiers by how long they've held — diamond (longest) down to wood. "Classified" is the supply it can age this way; it leaves out exchanges, LPs and contracts (~29% of total). Of what's left, diamonds dominate, and a Gini of ${s.supply.gini.toFixed(2)} means extreme concentration.
+High conviction, thin float — the market-cap card shows what that does to the effective cap.
 NFA`,
     card: { type: "donut", spec: {
       title: "Conviction of classified holder supply", headline: `${diamondPct}% diamond hands`, accent: "#22d3ee",
@@ -307,8 +315,8 @@ NFA`,
       id: "breakeven",
       text:
 `📊 The average SPX6900 holder's entry is ~${fPrice(s.supply.breakEven)}.
-At ${fPrice(s.price)} that's about ${fPct(s.supply.avgHolderPnl)} — the average holder is ${up ? "in profit" : "underwater"}.
-${up ? "Most of the float is green and still holding." : "The crowd's underwater — and still hasn't sold."}
+At ${fPrice(s.price)} that's about ${fPct(s.supply.avgHolderPnl)} — the average holder is ${up ? "in profit" : "underwater"}. This "cost basis" is the on-chain average price the current supply last moved at (its realized price): below it the crowd is collectively red, above it green.
+${up ? "Most of the float is in profit and still holding — conviction that's survived the gains." : "The crowd's underwater and still hasn't sold — historically that's looked more like accumulation than capitulation."}
 NFA`,
       card: { type: "line", spec: {
         title: "Price vs the crowd's cost basis", headline: `${fPct(s.supply.avgHolderPnl)} avg holder`, accent,
@@ -583,7 +591,8 @@ NFA`,
       id: "monthlyreturns",
       text:
 `📅 ${pctGreen}% of SPX6900's ${all.length} months have closed green.
-Up only is a meme; the path is volatile. But the green months (and the fat green tail) have done the heavy lifting. Full grid on the site.
+The heatmap turns every month of SPX6900's life into a return — green up, red down — with a compounded column per year. "Up only" is a meme; the real path is violent, with plenty of red. But the green months, especially the fat green tail of a few monsters, have done almost all the heavy lifting.
+That's how power-law assets compound: a handful of explosive months, not steady gains. Full grid on the site.
 NFA`,
       card: { type: "heatmap", spec: {
         title: "SPX6900 monthly returns", headline: `${pctGreen}% of months green`, accent: "#4ade80",
@@ -615,7 +624,8 @@ NFA`,
       id: "monthlybars",
       text:
 `📊 SPX6900 month by month: ${greens} of ${bars.length} months closed green (${pctGreen}%).
-Best month ${fPct(best)}, worst ${fPct(worst)} — the green bars tower over the red. That lopsided picture IS the up-only skew.
+Each bar is one month's return from a 0% line — green up, red down. The axis floats low because the green months tower: best ${fPct(best)}, worst ${fPct(worst)}. That lopsided shape IS the up-only skew — the up months have been multiples bigger than the down ones.
+Volatile, not a smooth climb, but the asymmetry has run in holders' favour so far.
 NFA`,
       card: { type: "mbars", spec: {
         title: "SPX6900 monthly returns", headline: `${pctGreen}% of months green`, accent: "#4ade80",
@@ -634,7 +644,8 @@ NFA`,
       id: "riskdial",
       text:
 `🌡️ SPX6900 risk dial: ${s.band.l} zone — ${pct}/100 on the rainbow model.
-It's only been this cheap or cheaper ${Math.round(s.cheaperFrac * 100)}% of its life. The needle reads risk straight off the bands.
+Same idea as the valuation-risk read, as one needle: it sits straight on the rainbow bands, 0 = the cheapest vs trend SPX has ever been, 100 = the most stretched. Today reads ${pct} — it's only been this cheap or cheaper ${Math.round(s.cheaperFrac * 100)}% of its life.
+Low has historically been the patient zone, high the euphoric one. A gauge of position, not a prediction.
 NFA`,
       card: { type: "gauge", spec: {
         title: "SPX6900 risk dial", headline: `${s.band.l} · ${pct}/100`, accent: s.band.c,
@@ -738,8 +749,8 @@ NFA`,
       id: "dca",
       text:
 `💵 $100/mo into SPX6900 since launch = ${fUsd0(contributed)} in → ${fUsd0(cur)} today.
-A ${fMult(mult)} on money you'd never miss — over ${months} months, your stack even crossed ${fUsd0(peak)} at the 2025 top.
-The best time to start was launch. The second best is $100 on repeat.
+The classic dollar-cost-average: buy $100 on the first of every month, no timing, straight through every crash. ${fUsd0(contributed)} in over ${months} months is now worth ${fUsd0(cur)} — a ${fMult(mult)}, and the stack even crossed ${fUsd0(peak)} at the 2025 top. The green band is profit; the flat line is what you put in.
+It softens "I missed it" — you never needed the bottom, just consistency. Past results, not a promise.
 NFA`,
       card: { type: "dca", spec: {
         title: "Stacking $100/mo since launch", headline: `${fUsd0(contributed)} → ${fUsd0(cur)}`, accent: "#34d399",
