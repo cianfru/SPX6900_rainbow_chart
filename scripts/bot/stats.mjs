@@ -4,6 +4,7 @@
 import { readFileSync } from "node:fs";
 import { DEFAULT_RAW, SUPPLY } from "../../src/data.js";
 import * as M from "../../src/models.js";
+import { FNG_HISTORY } from "../../src/fng-history.js";
 
 const POOL = "0x52c77b0cb827afbad022e6d6caf2c44452edbc39";
 
@@ -200,7 +201,7 @@ export function computeStats(price, dateStr = new Date().toISOString().slice(0, 
       : null,
     ath, athDate, drawdown: dd, maxDrawdown: maxDd,
     cheaperFrac, edge,
-    fng: snap?.fng ?? null, // crypto Fear & Greed (0..100) from the daily snapshot
+    fng: snap?.fng ?? (FNG_HISTORY.at(-1)?.[1] ?? null), // live snapshot value, else the bundled history's latest
     firstPrice: first.price, firstDate: first.date, allTimeReturn: price / first.price - 1,
     targets: M.TARGETS.map(t => ({ ...t, mult: t.price / price })),
     supply, btc, majors,
@@ -208,6 +209,7 @@ export function computeStats(price, dateStr = new Date().toISOString().slice(0, 
       price: RAW.map(r => [Date.parse(r.date), r.price]),
       resid: thinSeries(RAW.map(r => [Date.parse(r.date), Math.log(r.price) - m.predict(M.dayN(r.date))])),
       risk: riskSeries.map(r => [r.ts, r.risk]),
+      fng: FNG_HISTORY,
       drawdown: ddSeries.map(r => [r.ts, r.dd]),
       strategy: stratCyc ? stratCyc.rows.map(r => [r.ts, r.strat, r.hodl]) : null,
       bandCounts,

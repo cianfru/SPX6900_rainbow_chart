@@ -695,6 +695,33 @@ NFA`,
     };
   })(),
 
+  // 24d — crypto Fear & Greed vs SPX6900's valuation risk, over SPX's whole life
+  // (both 0..100). Shows where the crowd's mood and SPX's own valuation rhyme or
+  // diverge. Gated on the bundled F&G history.
+  s => s.series.fng && s.series.fng.length > 10 && (() => {
+    const risk = s.series.risk.map(([ts, r]) => [ts, r * 100]);
+    const fngNow = s.fng, riskNow = Math.round(s.risk * 100);
+    return {
+      id: "fngtrend",
+      text:
+`🌡️ Crypto Fear & Greed vs SPX6900's valuation risk — over SPX6900's whole life, both on a 0–100 scale.
+One line is the market's mood (mostly BTC sentiment); the other is where SPX sits in its own rainbow, cheap-to-expensive. They rhyme through the big swings but pull apart plenty — when SPX's line sits below the crowd's, it's cheaper than the mood suggests.
+Today: market ${fngNow} vs SPX ${riskNow}. A comparison of two different lenses, not a signal.
+NFA`,
+      card: { type: "line", spec: {
+        title: "Market mood vs SPX6900 risk, over time", headline: `Market ${fngNow} · SPX ${riskNow}`, accent: "#22d3ee",
+        yMin: 0, yMax: 100, yTicks: [0, 25, 50, 75, 100].map(v => ({ v, label: String(v) })),
+        hlines: [{ y: 50, label: "neutral", color: "#475569" }],
+        series: [
+          { pts: s.series.fng, color: "#f59e0b", width: 2.5 },
+          { pts: risk, color: "#22d3ee", width: 3, fill: 0.12 },
+        ],
+        legend: [{ label: "SPX6900 risk", color: "#22d3ee" }, { label: "Crypto Fear & Greed", color: "#f59e0b" }],
+        marker: { x: risk.at(-1)[0], y: risk.at(-1)[1], color: "#22d3ee" },
+      } },
+    };
+  })(),
+
   // 25 — "when does SPX flip the kings?" — the BTC-cycle projection climbing past
   // each memecoin king's ATH cap, each rung marked with the date it's reached. The
   // base case tops out ≈ DOGE's cap (~$91 vs $94.57), so DOGE reads as ≈ the top.
