@@ -506,33 +506,6 @@ export function renderStackBar(spec, opts = {}) {
   return chrome(spec, body, defs, { W: DW, H: DH });
 }
 
-// Side-by-side 100%-stacked bars for comparing make-ups (e.g. SPX's fully-
-// circulating supply vs a typical VC token's locked/float split). rows:
-// [{ label, segments:[{text, value, color}] }] — each row normalises to 100%.
-export function renderCompareBars(spec, opts = {}) {
-  const { DW, DH, PW, PH } = geom(opts);
-  const rows = spec.rows;
-  const barH = 104, labelGap = 46, rowGap = 54;
-  const blockH = rows.length * (barH + labelGap) + (rows.length - 1) * rowGap;
-  let y = mT + Math.max(0, (PH - blockH) / 2) + labelGap;
-  let defs = "", body = "";
-  rows.forEach((row, ri) => {
-    body += `<text x="${mL}" y="${(y - 16).toFixed(1)}" fill="#e2e8f0" font-size="34" font-weight="700" font-family="sans-serif">${esc(row.label)}</text>`;
-    const total = row.segments.reduce((a, s) => a + s.value, 0) || 1;
-    let x = mL;
-    row.segments.forEach((s, si) => {
-      const w = (s.value / total) * PW, pct = Math.round((s.value / total) * 100), id = `cb${ri}${si}`;
-      defs += `<linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="${s.color}" stop-opacity="1"/><stop offset="100%" stop-color="${s.color}" stop-opacity="0.62"/></linearGradient>`;
-      body += `<rect x="${(x + 2).toFixed(1)}" y="${y.toFixed(1)}" width="${Math.max(0, w - 4).toFixed(1)}" height="${barH}" rx="9" fill="url(#${id})"/>`;
-      if (w > 78) body += `<text x="${(x + w / 2).toFixed(1)}" y="${(y + barH / 2 - 6).toFixed(1)}" fill="#05050e" font-size="32" font-weight="800" text-anchor="middle" font-family="sans-serif">${pct}%</text>`;
-      if (s.text && w > 150) body += `<text x="${(x + w / 2).toFixed(1)}" y="${(y + barH / 2 + 28).toFixed(1)}" fill="rgba(5,5,14,0.82)" font-size="22" font-weight="600" text-anchor="middle" font-family="sans-serif">${esc(s.text)}</text>`;
-      x += w;
-    });
-    y += barH + rowGap + labelGap;
-  });
-  return chrome(spec, body, defs, { W: DW, H: DH });
-}
-
 // Render a built post's card to a PNG. Shared by the X bot (post.mjs) and the
 // per-tab social image endpoint (api/og.js). opts.portrait renders the supported
 // cards at 4:5 for the bot's posted media; the OG endpoint omits it (landscape).
@@ -606,7 +579,6 @@ export function renderPostCard(post, stats, opts = {}) {
   if (type === "mbars") return renderMonthBars(s, dims);
   if (type === "donut") return renderDonut(s, dims);
   if (type === "stack") return renderStackBar(s, dims);
-  if (type === "compare") return renderCompareBars(s, dims);
   if (type === "model") return renderModelCard(s, dims);
   if (type === "cube") return renderCubeCard(s);
   if (type === "scale") return renderScaleCard(s, dims);
