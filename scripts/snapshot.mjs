@@ -29,12 +29,24 @@ async function price() {
   return null;
 }
 
+// Crypto Fear & Greed Index (alternative.me, free/no-key). Reachable from CI even
+// though it's blocked in some sandboxes. limit=1 = today's value (0..100).
+async function fng() {
+  try {
+    const r = await fetch("https://api.alternative.me/fng/?limit=1", { headers: { Accept: "application/json" } });
+    if (!r.ok) return null;
+    const j = await r.json();
+    const v = parseInt(j?.data?.[0]?.value, 10);
+    return Number.isFinite(v) ? v : null;
+  } catch (e) { console.warn("fng:", e.message); return null; }
+}
+
 async function main() {
   if (!KEY) throw new Error("Missing HOLDERSCAN_KEY env (set it as a repo secret)");
 
   const sup = await hs("/stats/supply-breakdown"); // required
-  const [p, stats, pnl, breakdowns] = await Promise.all([
-    price(), softHs("/stats"), softHs("/stats/pnl"), softHs("/holders/breakdowns"),
+  const [p, stats, pnl, breakdowns, fearGreed] = await Promise.all([
+    price(), softHs("/stats"), softHs("/stats/pnl"), softHs("/holders/breakdowns"), fng(),
   ]);
 
   const rec = {
@@ -43,6 +55,7 @@ async function main() {
     holders: breakdowns?.total_holders ?? null,
     be: pnl?.break_even_price ?? null,
     gini: stats?.gini ?? null,
+    fng: fearGreed,
     sup,
   };
 

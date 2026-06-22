@@ -667,6 +667,61 @@ NFA`,
     };
   })(),
 
+  // 24c — crypto Fear & Greed vs SPX6900's own valuation dial (two dials). Gated
+  // on the daily snapshot carrying an fng value (fetched in CI from alternative.me).
+  s => s.fng != null && (() => {
+    const fng = s.fng, fngV = fng / 100;
+    const fngVerdict = fng < 25 ? "Extreme Fear" : fng < 45 ? "Fear" : fng < 55 ? "Neutral" : fng < 75 ? "Greed" : "Extreme Greed";
+    const fngColor = fng < 25 ? "#ef4444" : fng < 45 ? "#f59e0b" : fng < 55 ? "#eab308" : fng < 75 ? "#84cc16" : "#22c55e";
+    const FG_SEG = [["#ef4444", 0, .25], ["#f59e0b", .25, .45], ["#eab308", .45, .55], ["#84cc16", .55, .75], ["#22c55e", .75, 1]];
+    const risk = s.risk, pct = Math.round(risk * 100), N = M.BAND_LABELS.length;
+    const bothLow = fngV < 0.45 && risk < 0.45, bothHigh = fngV > 0.6 && risk > 0.6;
+    const take = bothLow ? "Both at rock bottom: the market's fearful AND SPX is cheap on its own model — the kind of alignment that's historically rewarded patience."
+      : bothHigh ? "Both hot: market euphoria meeting a stretched SPX valuation — time to manage risk, not chase."
+      : risk < fngV ? "They diverge: the crowd's mood sits higher than SPX's own valuation — SPX looks cheaper than the market feels."
+      : "They diverge: SPX is more stretched than the market's mood — the crowd's calmer than SPX's own dial.";
+    return {
+      id: "fngdial",
+      text:
+`🌡️ Market mood vs SPX6900's own valuation dial.
+Left: crypto Fear & Greed — ${fng}/100 (${fngVerdict}), the whole market's emotion (mostly BTC-driven). Right: SPX6900's rainbow risk — ${pct}/100 (${s.band.l}), where SPX sits in its own cheap-to-expensive range. Two different lenses on the same 0–100 scale.
+${take}
+NFA`,
+      card: { type: "fngdial", spec: {
+        title: "Market mood vs SPX6900's dial", headline: `${fngVerdict} · ${s.band.l}`, accent: "#22d3ee",
+        left: { title: "Crypto Fear & Greed", value: fngV, big: String(fng), verdict: fngVerdict, color: fngColor, segments: FG_SEG.map(([c, a, b]) => ({ from: a, to: b, color: c })) },
+        right: { title: "SPX6900 valuation", value: risk, big: String(pct), verdict: s.band.l, color: s.band.c, segments: M.BAND_LABELS.map((b, i) => ({ from: i / N, to: (i + 1) / N, color: b.c })) },
+      } },
+    };
+  })(),
+
+  // 24d — crypto Fear & Greed vs SPX6900's valuation risk, over SPX's whole life
+  // (both 0..100). Shows where the crowd's mood and SPX's own valuation rhyme or
+  // diverge. Gated on the bundled F&G history.
+  s => s.series.fng && s.series.fng.length > 10 && (() => {
+    const risk = s.series.risk.map(([ts, r]) => [ts, r * 100]);
+    const fngNow = s.fng, riskNow = Math.round(s.risk * 100);
+    return {
+      id: "fngtrend",
+      text:
+`🌡️ Crypto Fear & Greed vs SPX6900's valuation risk — over SPX6900's whole life, both on a 0–100 scale.
+One line is the market's mood (mostly BTC sentiment); the other is where SPX sits in its own rainbow, cheap-to-expensive. They rhyme through the big swings but pull apart plenty — when SPX's line sits below the crowd's, it's cheaper than the mood suggests.
+Today: market ${fngNow} vs SPX ${riskNow}. A comparison of two different lenses, not a signal.
+NFA`,
+      card: { type: "line", spec: {
+        title: "Market mood vs SPX6900 risk, over time", headline: `Market ${fngNow} · SPX ${riskNow}`, accent: "#22d3ee",
+        yMin: 0, yMax: 100, yTicks: [0, 25, 50, 75, 100].map(v => ({ v, label: String(v) })),
+        hlines: [{ y: 50, label: "neutral", color: "#475569" }],
+        series: [
+          { pts: s.series.fng, color: "#f59e0b", width: 2.5 },
+          { pts: risk, color: "#22d3ee", width: 3, fill: 0.12 },
+        ],
+        legend: [{ label: "SPX6900 risk", color: "#22d3ee" }, { label: "Crypto Fear & Greed", color: "#f59e0b" }],
+        marker: { x: risk.at(-1)[0], y: risk.at(-1)[1], color: "#22d3ee" },
+      } },
+    };
+  })(),
+
   // 25 — "when does SPX flip the kings?" — the BTC-cycle projection climbing past
   // each memecoin king's ATH cap, each rung marked with the date it's reached. The
   // base case tops out ≈ DOGE's cap (~$91 vs $94.57), so DOGE reads as ≈ the top.
