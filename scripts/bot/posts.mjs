@@ -62,9 +62,9 @@ const lastTs = s => s.series.price.at(-1)[0];
 // x = years since launch. Honest framing: the curves cross and it's baseline-
 // sensitive, so the headline stays qualitative. ETH/SOL early prices are approx.
 const AGE_PEERS = [
-  { id: "btcage", name: "Bitcoin", color: "#f7931a", series: BTC_HISTORY },
-  { id: "ethage", name: "Ethereum", color: "#8b9bff", series: ETH_HISTORY },
-  { id: "solage", name: "Solana", color: "#9945ff", series: SOL_HISTORY },
+  { id: "btcage", name: "Bitcoin", color: "#f7931a", series: BTC_HISTORY, launch: "2010-07-17" },
+  { id: "ethage", name: "Ethereum", color: "#8b9bff", series: ETH_HISTORY, launch: "2015-08-07" },
+  { id: "solage", name: "Solana", color: "#9945ff", series: SOL_HISTORY, launch: "2020-04-11" },
 ];
 const ageCard = peer => s => (() => {
   const DAY = 86400000;
@@ -77,6 +77,7 @@ const ageCard = peer => s => (() => {
   const peerPts = peer.series.filter(([a]) => a <= ageNow + 25).map(([a, p]) => [a, p / base]);
   if (peerPts.length < 8 || spx.length < 10) return null;
   const spxMult = spx.at(-1)[1], peerMult = peerPts.at(-1)[1], ahead = spxMult >= peerMult;
+  const peerYear = new Date(Date.parse(peer.launch) + ageNow * DAY).getUTCFullYear(); // when the peer was THIS age
   const xTicks = [];
   for (let y = 1; y * 365 <= ageNow + 25; y++) xTicks.push({ x: y * 365, label: `Yr ${y}` });
   const allY = [...spx, ...peerPts].map(p => p[1]);
@@ -85,9 +86,10 @@ const ageCard = peer => s => (() => {
   return {
     id: peer.id,
     text:
-`🍼 SPX6900 vs ${peer.name} — mapped to the same age since launch (price as a multiple of each one's first print).
-At the same age: SPX ${fMult(spxMult)} vs ${peer.name} ${fMult(peerMult)}. ${ahead ? "SPX is out in front" : `${peer.name}'s early run is ahead — for now`}, and both walked the same violent, near-vertical-then-halved path.
-Two of crypto's wildest early runs. SPX is still early in the story.
+`🍼 SPX6900 vs ${peer.name}, mapped to the same age since launch.
+Both lines plot price as a multiple of each coin's very first print, lined up by days-since-launch. So you're comparing SPX6900 today against where ${peer.name} stood at the exact same age — back around ${peerYear} — not its price now. (That's why the comparison keeps working: it slides through ${peer.name}'s history as SPX ages.)
+At this age: SPX6900 ${fMult(spxMult)} vs ${peer.name} ${fMult(peerMult)}. ${ahead ? "SPX is out in front" : `${peer.name}'s early run is ahead — for now`} — and the curves cross more than once. Both took the same violent, near-vertical-then-cut-in-half path that marks a real early-stage asset.
+It's a resemblance, not a forecast — early ${peer.name} is just the closest map we have for the road SPX6900 is walking. Still early in the story.
 NFA`,
     card: { type: "line", spec: {
       title: `SPX6900 vs ${peer.name}, at the same age`, headline: `Same age as early ${peer.name}`, accent: peer.color,
@@ -109,8 +111,8 @@ const POSTS = [
     id: "valuation",
     text:
 `📊 SPX6900 is trading ${Math.abs(Math.round(s.vsCenter * 100))}% ${s.vsCenter < 0 ? "below" : "above"} its long-run trend — ${BAND_EMOJI[s.bandIndex]} ${s.band.l} band.
-Fair value (the model's center line) sits at ${fPrice(s.center)}. Blue bands = cheap vs trend, red = stretched.
-This is where it sits today.
+The rainbow is a power-law model fit to SPX6900's entire price history. The center line is "fair value" for its age (${fPrice(s.center)} today); the colored bands mark how far above or below that price has historically strayed — blue = cheap vs trend, red = stretched/euphoric.
+It doesn't predict anything. It just shows where today sits in that long-run context — and over a volatile asset's life, mean reversion toward the trend has done a lot of the work.
 🌈 NFA`,
     card: { type: "rainbow" },
   }),
@@ -119,9 +121,9 @@ This is where it sits today.
   s => ({
     id: "risk",
     text:
-`🌡️ SPX6900 valuation risk: ${s.risk.toFixed(2)} / 1.00
-0 = cheapest vs trend ever seen, 1 = the most expensive. Today reads ${s.risk < 0.34 ? "historically cheap" : s.risk < 0.66 ? "fair" : "rich"}.
-0 = max fear, 1 = max greed. Mean reversion does the rest.
+`🌡️ SPX6900 valuation risk: ${s.risk.toFixed(2)} / 1.00 — today reads ${s.risk < 0.34 ? "historically cheap" : s.risk < 0.66 ? "fair" : "rich"}.
+This isn't price, it's POSITION: where SPX6900 sits inside its own historical rainbow, squeezed onto a 0–1 scale. 0 = the cheapest vs its long-run trend it has ever been (deepest blue); 1 = the most stretched it's ever been (deepest red). Same band model as the rainbow, read as a single dial.
+Historically, the low readings have been the patient-accumulation zones and the high ones the euphoria. Descriptive, not advice — 0 = max fear, 1 = max greed.
 NFA`,
     card: { type: "line", spec: {
       title: "Valuation risk over time", headline: s.risk.toFixed(2) + " / 1", accent: "#22d3ee",
