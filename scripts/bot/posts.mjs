@@ -63,11 +63,11 @@ const lastTs = s => s.series.price.at(-1)[0];
 // sensitive, so the headline stays qualitative. ETH/SOL early prices are approx.
 const AGE_PEERS = [
   { id: "btcage", name: "Bitcoin", color: "#f7931a", series: BTC_HISTORY, launch: "2010-07-17", emoji: "₿",
-    story: "The blueprint: its power-law trend, 4-yr cycle and rainbow are what this project runs on." },
+    story: "Bitcoin is the blueprint — it dragged “internet money” from a punchline to a trillion-dollar asset, and its power-law trend, 4-year cycle and rainbow chart are the three tools this whole project is built on. Its early years were a gauntlet of 80%+ crashes that each looked terminal." },
   { id: "ethage", name: "Ethereum", color: "#8b9bff", series: ETH_HISTORY, launch: "2015-08-07", emoji: "Ξ",
-    story: "Nearly died in the cradle — the 2016 DAO hack — then ran from under a dollar to four figures." },
+    story: "Ethereum nearly died in the cradle — the 2016 DAO hack drained a third of all ETH and split the chain in two — then ran from under a dollar to four figures. Proof an early asset can take an existential hit and still become a giant." },
   { id: "solage", name: "Solana", color: "#9945ff", series: SOL_HISTORY, launch: "2020-04-11", emoji: "◎",
-    story: "Tore to ~$260, got cut ~96% by the FTX blowup and was called dead. It came back." },
+    story: "Solana tore from under a dollar to ~$260, then almost vanished: the FTX collapse it was tied to cut it ~96% to single digits and most pronounced it dead. It came back. The early road is rarely a straight line up." },
 ];
 const ageCard = peer => s => (() => {
   const DAY = 86400000;
@@ -80,6 +80,7 @@ const ageCard = peer => s => (() => {
   const peerPts = peer.series.filter(([a]) => a <= ageNow + 25).map(([a, p]) => [a, p / base]);
   if (peerPts.length < 8 || spx.length < 10) return null;
   const spxMult = spx.at(-1)[1], peerMult = peerPts.at(-1)[1], ahead = spxMult >= peerMult;
+  const peerYear = new Date(Date.parse(peer.launch) + ageNow * DAY).getUTCFullYear(); // when the peer was THIS age
   const xTicks = [];
   for (let y = 1; y * 365 <= ageNow + 25; y++) xTicks.push({ x: y * 365, label: `Yr ${y}` });
   const allY = [...spx, ...peerPts].map(p => p[1]);
@@ -88,9 +89,11 @@ const ageCard = peer => s => (() => {
   return {
     id: peer.id,
     text:
-`${peer.emoji} SPX6900 vs ${peer.name} at the same age since launch.
+`${peer.emoji} SPX6900 vs ${peer.name}, at the same age since launch.
 ${peer.story}
-At this age: SPX6900 ${fMult(spxMult)} vs ${peer.name} ${fMult(peerMult)} — ${ahead ? "SPX is out front" : `${peer.name} ahead, for now`}. A resemblance, not a forecast.`,
+The chart lines up both by days-since-launch, each as a multiple of its first print — so it's SPX6900 today vs ${peer.name} at the same point in its own life, back around ${peerYear}, not today's ${peer.name}. At this age: SPX6900 ${fMult(spxMult)} vs ${peer.name} ${fMult(peerMult)} — ${ahead ? "SPX is out front" : `${peer.name} ahead, for now`}, and the curves cross more than once.
+A resemblance, not a forecast. Still early in the story.
+NFA`,
     card: { type: "line", spec: {
       title: `SPX6900 vs ${peer.name}, at the same age`, headline: `Same age as early ${peer.name}`, accent: peer.color,
       yLog: true, yMin: yMin * 0.7, yMax: yMax * 1.4, yTicks, xTicks,
@@ -111,7 +114,9 @@ const POSTS = [
     id: "valuation",
     text:
 `📊 SPX6900 is trading ${Math.abs(Math.round(s.vsCenter * 100))}% ${s.vsCenter < 0 ? "below" : "above"} its long-run trend — ${BAND_EMOJI[s.bandIndex]} ${s.band.l} band.
-A power-law fit to its whole history: blue = cheap vs trend, red = stretched. Fair value today ${fPrice(s.center)}.`,
+The rainbow is a power-law model fit to SPX6900's entire price history. The center line is "fair value" for its age (${fPrice(s.center)} today); the colored bands mark how far above or below that price has historically strayed — blue = cheap vs trend, red = stretched/euphoric.
+It doesn't predict anything. It just shows where today sits in that long-run context — and over a volatile asset's life, mean reversion toward the trend has done a lot of the work.
+🌈 NFA`,
     card: { type: "rainbow" },
   }),
 
@@ -123,7 +128,9 @@ A power-law fit to its whole history: blue = cheap vs trend, red = stretched. Fa
     id: "risk",
     text:
 `🌡️ SPX6900 valuation risk: ${s.risk.toFixed(2)} / 1.00 — today reads ${s.risk < 0.34 ? "historically cheap" : s.risk < 0.66 ? "fair" : "rich"}.
-Where price sits in its own rainbow on a 0–1 dial: 0 = the cheapest it's ever been vs trend, 1 = the most stretched.`,
+This isn't price, it's POSITION: where SPX6900 sits inside its own historical rainbow, squeezed onto a 0–1 scale. 0 = the cheapest vs its long-run trend it has ever been (deepest blue); 1 = the most stretched it's ever been (deepest red). Same band model as the rainbow, read as a single dial.
+Historically, the low readings have been the patient-accumulation zones and the high ones the euphoria. Descriptive, not advice — 0 = max fear, 1 = max greed.
+NFA`,
     card: { type: "line", spec: {
       title: "Valuation risk over time", headline: s.risk.toFixed(2) + " / 1", accent: "#22d3ee",
       yMin: 0, yMax: 1, yTicks: [0, 0.25, 0.5, 0.75, 1].map(v => ({ v, label: v.toFixed(2) })),
@@ -137,7 +144,9 @@ Where price sits in its own rainbow on a 0–1 dial: 0 = the cheapest it's ever 
     id: "drawdown",
     text:
 `📉 SPX6900 is ${fPct(s.drawdown)} from its all-time high (${fPrice(s.ath)}, ${fMon(s.athDate)}).
-The worst drawdown on record was ${fPct(s.maxDrawdown)}. Every cycle looked like the end. None were.`,
+Drawdowns map the pain from each peak — the worst on record was ${fPct(s.maxDrawdown)}.
+Every cycle looked like the end. None were.
+NFA`,
     card: { type: "line", spec: {
       title: "Drawdown from all-time high", headline: fPct(s.drawdown), accent: "#f87171",
       // Headroom ABOVE 0 so the at-ATH plateaus (drawdown = 0) sit just below the
@@ -166,7 +175,9 @@ The worst drawdown on record was ${fPct(s.maxDrawdown)}. Every cycle looked like
       id: "rally",
       text:
 `🚀 SPX6900 is ${fPct(s.lastFireSale.sinceGain)} since the last "Fire Sale" low (${fMon(s.lastFireSale.date)}, ${fPrice(s.lastFireSale.low)}).${ranHigher ? ` Ran as high as ${fPct(s.lastFireSale.peakGain)}.` : ""}
-Fire Sale = the rainbow's deepest band. Every major SPX6900 run so far has launched from the bottom, not the top.`,
+A "Fire Sale" is the rainbow's deepest, coldest band — the rare stretch where price sits furthest below its long-run trend. Historically those prints have been the launchpads: every major SPX6900 run so far has started from the bottom bands, not the top.
+They don't ring a bell at the low, and cheap can always get cheaper — but the deepest discounts have been where the patient got paid.
+NFA`,
       card: { type: "line", spec: {
         title: `Since the last Fire Sale (${fMon(s.lastFireSale.date)})`, headline: fPct(s.lastFireSale.sinceGain), accent: "#4ade80",
         yLog: true, yTicks: decadeTicks(lo, hi),
@@ -186,8 +197,10 @@ Fire Sale = the rainbow's deepest band. Every major SPX6900 run so far has launc
   s => s.series.strategy && ({
     id: "strategy",
     text:
-`🧪 ~${fMult(s.edge)} vs HODL — buying every cycle dip and selling the peak, with perfect hindsight.
-Buy deep blue, trim deep red, cash otherwise. Nobody nails it live — the point is how violent SPX's swings have been.`,
+`🧪 ~${fMult(s.edge)} vs HODL — buying every cycle dip and selling the peak (hindsight, in this model).
+The rule: accumulate when SPX6900 is deep in the blue (cheap vs trend), trim when it's deep in the red (stretched), sit in cash otherwise. Run with perfect hindsight, that timing beats simply holding by ~${fMult(s.edge)}.
+The catch: nobody nails tops and bottoms live, and over-trading usually underperforms. The takeaway isn't "time it" — it's how violent SPX's swings around the trend have been. Perfect timing isn't real; the cycles are.
+NFA`,
     card: { type: "line", spec: {
       title: "Timing the dips vs HODL (hindsight)", headline: fMult(s.edge) + " vs HODL", accent: "#a78bfa",
       yLog: true,
@@ -209,7 +222,9 @@ Buy deep blue, trim deep red, cash otherwise. Nobody nails it live — the point
       text:
 `🎯 Next target ${next[0].label} = ${fMult(next[0].price / s.price)} from ${fPrice(s.price)}:
 ${next.map(t => `${t.label} → ${fMult(t.price / s.price)}`).join(TIGHT)}
-Round-number rungs on a log trend. A handful of doublings, not a timeline.`,
+These rungs are round-number milestones — $1, $6.90 (the cult number), $69 and up — each showing the multiple from here. It's a log-trend extrapolation of where the rainbow's center could carry price over time, not a price prediction and not a timeline.
+The point is scale: on a power-law clock, the gap between here and "obvious" levels is just a handful of doublings.
+NFA`,
       card: { type: "line", spec: {
         title: "Climbing the target ladder", headline: `${next[0].label} = ${fMult(next[0].price / s.price)}`, accent: "#f59e0b",
         yLog: true, yTicks: decadeTicks(s.firstPrice, top.price),
@@ -228,7 +243,9 @@ Round-number rungs on a log trend. A handful of doublings, not a timeline.`,
       id: "timeinband",
       text:
 `⏳ SPX6900 has spent ~${Math.round(s.cheaperFrac * 100)}% of its life this cheap or cheaper (${s.band.l} band today).
-Each bar is the share of history in a rainbow band. Extremes are rare by design — cheap like this is uncommon, but so is euphoric.`,
+The bars show how much of SPX6900's history sits in each rainbow band. Today it's ${BAND_EMOJI[s.bandIndex]} ${s.band.l} — a zone it's only matched or undercut ~${Math.round(s.cheaperFrac * 100)}% of the time. Extremes (deep blue, deep red) are rare by design; most of any asset's life is spent in the middle.
+So "rare" cuts both ways: cheap like this is uncommon, but so is euphoric. Descriptive, not a signal.
+NFA`,
       card: { type: "bar", spec: {
         title: "Time spent in each valuation band", headline: `${Math.round(s.cheaperFrac * 100)}% this cheap or below`, accent: s.band.c,
         bars: s.series.bandCounts.map((c, i) => ({ label: BAND_SHORT[i], value: c, text: `${Math.round(c / total * 100)}%`, color: M.BAND_LABELS[i].c, outline: i === s.bandIndex, dim: c === 0 })),
@@ -241,7 +258,9 @@ Each bar is the share of history in a rainbow band. Extremes are rare by design 
     id: "marketcap",
     text:
 `💰 SPX6900's real free-float market cap is just ${fMoney(s.supply.floatMc)} — vs the ${fMoney(s.supply.nominalMc)} headline.
-~${Math.round(s.supply.diamondShare * 100)}% sits in diamond hands that rarely sell. Thin float + high conviction amplifies moves both ways.`,
+The sticker cap (price × 939M supply) assumes every coin could hit the market. But ~${Math.round(s.supply.diamondShare * 100)}% sits in "diamond" hands — wallets that have held longest and rarely sell. Strip those out and the supply actually available to trade is far smaller, so the effective free-float cap is a fraction of the headline.
+Thin float + high conviction cuts both ways: it can amplify moves in either direction.
+NFA`,
     card: { type: "stack", spec: {
       title: "Headline cap vs real free float", headline: fMoney(s.supply.floatMc) + " free float", accent: "#22d3ee",
       total: s.supply.nominalMc,
@@ -257,7 +276,9 @@ Each bar is the share of history in a rainbow band. Extremes are rare by design 
     id: "btc",
     text:
 `₿ SPX6900 priced in Bitcoin: 1 SPX = ${fNum(s.btc.sats)} sats.
-${fPct(s.btc.rel90)} vs BTC over 90d, ${fPct(s.btc.rel365)} over a year. Up in sats = outrunning the benchmark, not just riding the tide.`,
+Dollars hide how an asset does against the thing crypto really competes with: Bitcoin. In sats (1 BTC = 100M sats), SPX6900 is ${fPct(s.btc.rel90)} vs BTC over 90 days and ${fPct(s.btc.rel365)} over a year. Up in sats = genuinely outrunning the benchmark, not just riding a market-wide tide.
+"Number go up" in dollars is easy in a bull market; up in BTC terms is the harder, truer scoreboard.
+NFA`,
     card: { type: "line", spec: {
       title: "SPX6900 priced in Bitcoin (sats)", headline: fNum(s.btc.sats) + " sats", accent: "#f7931a",
       series: [{ pts: s.btc.series, color: "#f7931a", width: 3, fill: 0.16 }],
@@ -276,7 +297,9 @@ ${fPct(s.btc.rel90)} vs BTC over 90d, ${fPct(s.btc.rel365)} over a year. Up in s
     id: "distribution",
     text:
 `💎 ~${diamondPct}% of SPX6900's classified holder supply sits in "diamond" hands (longest-held, never sold).
-Conviction tiers by how long wallets hold, excluding exchanges/LPs. Gini ${s.supply.gini.toFixed(2)} = extreme concentration.`,
+HolderScan sorts holder wallets into conviction tiers by how long they've held — diamond (longest) down to wood. "Classified" is the supply it can age this way; it leaves out exchanges, LPs and contracts (~29% of total). Of what's left, diamonds dominate, and a Gini of ${s.supply.gini.toFixed(2)} means extreme concentration.
+High conviction, thin float — the market-cap card shows what that does to the effective cap.
+NFA`,
     card: { type: "donut", spec: {
       title: "Conviction of classified holder supply", headline: `${diamondPct}% diamond hands`, accent: "#22d3ee",
       footer: "Classified holder supply only — excludes exchanges, LPs & contracts",
@@ -296,7 +319,9 @@ Conviction tiers by how long wallets hold, excluding exchanges/LPs. Gini ${s.sup
       id: "breakeven",
       text:
 `📊 The average SPX6900 holder's entry is ~${fPrice(s.supply.breakEven)}.
-At ${fPrice(s.price)} that's ${fPct(s.supply.avgHolderPnl)} — the average holder is ${up ? "in profit and still holding" : "underwater and still hasn't sold"}.`,
+At ${fPrice(s.price)} that's about ${fPct(s.supply.avgHolderPnl)} — the average holder is ${up ? "in profit" : "underwater"}. This "cost basis" is the on-chain average price the current supply last moved at (its realized price): below it the crowd is collectively red, above it green.
+${up ? "Most of the float is in profit and still holding — conviction that's survived the gains." : "The crowd's underwater and still hasn't sold — historically that's looked more like accumulation than capitulation."}
+NFA`,
       card: { type: "line", spec: {
         title: "Price vs the crowd's cost basis", headline: `${fPct(s.supply.avgHolderPnl)} avg holder`, accent,
         yLog: true, yTicks: decadeTicks(lo, hi),
@@ -318,7 +343,9 @@ At ${fPrice(s.price)} that's ${fPct(s.supply.avgHolderPnl)} — the average hold
       text:
 `⚔️ SPX6900 is ${fPct(sorted[0].rel365)} vs ${sorted[0].name} over the past year — and outpacing ${wins}:
 ${sorted.map(m => `${m.name}: ${fPct(m.rel365)}`).join(" · ")}
-Relative strength, not dollars: positive = SPX beat it. One year flips fast — a snapshot, not a trend.`,
+Relative strength: each figure is how SPX6900 did against that asset over the year, not in dollars. Positive = SPX beat it (grew faster or fell less) — the honest way to see whether it's actually gaining ground on the majors or just moving with the market.
+One year is a short window and these flip fast — a snapshot, not a trend.
+NFA`,
       card: { type: "bar", spec: {
         title: "SPX6900 vs majors — 1-yr relative", headline: `${sorted[0].name} ${fPct(sorted[0].rel365)}`, accent: "#818cf8",
         bars: sorted.map(m => ({ label: "vs " + m.name, value: m.rel365, text: fPct(m.rel365), color: m.rel365 >= 0 ? "#4ade80" : "#f87171" })),
@@ -331,7 +358,9 @@ Relative strength, not dollars: positive = SPX beat it. One year flips fast — 
     id: "alltime",
     text:
 `📈 SPX6900 is up ${fMult(1 + s.allTimeReturn)} since its first print (${fPrice(s.firstPrice)}, ${fMon(s.firstDate)}).
-Higher highs through brutal drawdowns — the signature of a power-law asset early in its life, the same curve Bitcoin drew.`,
+That's the whole journey on one log axis — and the shape is the story: relentless higher highs punctuated by brutal drawdowns, the signature of a power-law asset early in its life. The same curve Bitcoin drew in its first years.
+"Up only" is a meme, not a guarantee, and the path has been violent — but the long-run direction has been one way so far. 📈
+NFA`,
     card: { type: "line", spec: {
       title: "Price since launch (log scale)", headline: fMult(1 + s.allTimeReturn) + " since launch", accent: "#34d399",
       yLog: true, yTicks: decadeTicks(s.firstPrice, s.ath),
@@ -347,7 +376,9 @@ Higher highs through brutal drawdowns — the signature of a power-law asset ear
       id: "cycle",
       text:
 `🔮 If SPX6900 is tracing Bitcoin's last cycle, today lines up with BTC around ${fMon(c.btcFrom)} — just off the bottom, early in the climb.
-The orange line is BTC's real last cycle, scaled to SPX. A what-if on a ~4-yr rhythm, not a forecast.`,
+The idea: take Bitcoin's REAL price path through its most recent 4-year cycle and lay it over SPX6900's chart, anchored to where SPX trades now and scaled to its (much larger) swings. The orange line isn't an invented curve — it's BTC's actual history used as a template.
+Crypto has rhymed to this ~4-year, halving-driven rhythm for over a decade. Whether SPX keeps following it, nobody knows — so treat it as a for-fun what-if, not a forecast.
+NFA`,
       // animate: history is fully drawn on frame 0 (revealFromX = now), then the
       // orange projection unfurls into the future — never a blank opening frame.
       card: { type: "line", animate: { revealFromX: lastTs(s) }, spec: {
@@ -376,7 +407,9 @@ ${[
   `🟧 Base  ${fPx(c.peak)}  →  ${fMult(mult(c.peak))}`,
   `🚀 Bull  ${fPx(c.peakHi)}  →  ${fMult(mult(c.peakHi))}`,
 ].join(TIGHT)}
-BTC's real last-cycle move scaled to SPX at low/mid/high amplitude. A pattern, not a promise.`,
+These three aren't price targets. They're what SPX would print IF it scaled Bitcoin's real last-cycle move at low / mid / high amplitude. Bitcoin set the shape and the timing (the ~4-year halving rhythm); the multiplier is just how hard SPX has tended to swing vs BTC.
+A model of a pattern, not a promise.
+NFA`,
       card: { type: "bar", spec: {
         title: `If SPX traces BTC's cycle — ${fMon(c.peakTs)} top`, headline: `${fPrice(s.price)} → ${fPx(c.peak)} base · ${fMult(mult(c.peak))}`, accent: "#f7931a",
         bars: [
@@ -395,7 +428,9 @@ BTC's real last-cycle move scaled to SPX at low/mid/high amplitude. A pattern, n
       id: "cycleclock",
       text:
 `⏳ If SPX6900 rides Bitcoin's last cycle, a projected top near ${fPx(c.peak)} by ${fMon(c.peakTs)} — after a dip near ${fPrice(c.low)} (${fMon(c.lowTs)}).
-BTC's path on the halving clock. If SPX keeps rhyming, we're nearer the launchpad than the top.`,
+This plots Bitcoin's actual last-cycle path, scaled to SPX6900 and pinned to the halving clock — the same ~4-year rhythm that has driven every crypto cycle so far. Read it as "where we'd be on that clock," not a date stamp: if SPX keeps rhyming with BTC, we're nearer the launchpad than the top.
+The pattern has held for a decade, but past cycles guarantee nothing.
+NFA`,
       card: { type: "line", spec: {
         title: "The projected cycle, by the halving clock", headline: `Top ~${fMon(c.peakTs)}`, accent: "#f7931a",
         yLog: true, yTicks: decadeTicks(c.low, c.peakHi),
@@ -419,7 +454,9 @@ BTC's path on the halving clock. If SPX keeps rhyming, we're nearer the launchpa
       text:
 `🧊 SPX6900 is ${fMult(doge.mult)} from DOGE's ATH market cap. Flipping the memecoin kings from ${fPrice(s.price)}:
 ${ms.map(m => `${m.short} (${m.mc}) → ${fMult(m.mult)}`).join(TIGHT)}
-Each × is the move to match that king's ATH cap. Long way up. 🚀`,
+Each cube = one of today's SPX6900 market caps; the pile is how many it would take to match each memecoin king's all-time-high cap — PEPE, SHIB, then DOGE on the throne. The bar SPX6900 is memeing to clear.
+A market-cap comparison, not a price target: "what cap, and how far," not "when." Long way up. 🚀
+NFA`,
       card: { type: "cube", spec: {
         title: "How many SPX6900s to flip the giants?", headline: `${doge.short} = ${fMult(doge.mult)}`, accent: SPX_CUBE,
         items: [
@@ -441,7 +478,9 @@ Each × is the move to match that king's ATH cap. Long way up. 🚀`,
       text:
 `👑 DOGE-size = ${fMult(doge.mult)} for SPX6900. Flipping the memecoin kings from ${fPrice(s.price)}:
 ${ms.map(m => `${m.short} (${m.mc}) → ${fMult(m.mult)}`).join(TIGHT)}
-Same fair-launch playbook that built them, just earlier. Coming for the throne. 👑`,
+Each × is the move it would take for SPX6900's market cap to match that king's all-time high — PEPE, SHIB, then DOGE at the top. SPX runs the same fair-launch, community-over-VC playbook that built them, just earlier in the story.
+Market-cap math, not a forecast. Coming for the throne. 👑
+NFA`,
       card: { type: "line", spec: {
         title: "Flip the memecoin kings", headline: `DOGE-size = ${fMult(doge.mult)}`, accent: "#c2a633",
         yLog: true, yTicks: decadeTicks(s.firstPrice, top.price),
@@ -463,7 +502,9 @@ Same fair-launch playbook that built them, just earlier. Coming for the throne. 
       text:
 `₿ ${top.short} = ${fMult(top.mult)} for SPX6900. Climbing Bitcoin's market-cap ladder from ${fPrice(s.price)}:
 ${ms.map(m => `${m.short} (${m.mc}) → ${fMult(m.mult)}`).join(TIGHT)}
-Each rung = SPX at the cap BTC had at $1K, $10K, $100K. BTC cleared them all.`,
+Each rung is the SPX6900 price at which its market cap would equal the cap Bitcoin itself had at that level — $1K, $10K, $100K BTC. It reframes "how high can it go" into "which caps have already been printed," by the asset this whole project is modelled on.
+Bitcoin cleared every one of these; whether SPX does is the open question.
+NFA`,
       card: { type: "line", spec: {
         title: "SPX6900 on Bitcoin's MC ladder", headline: `BTC @ $100K = ${fMult(top.mult)}`, accent: "#f7931a",
         yLog: true, yTicks: decadeTicks(s.firstPrice, top.price),
@@ -482,7 +523,10 @@ Each rung = SPX at the cap BTC had at $1K, $10K, $100K. BTC cleared them all.`,
       id: "model",
       text:
 `📐 How the SPX6900 rainbow is built — a power-law trend fit to price, R² ${m.r2.toFixed(2)}.
-Fit a log-log trend (fair value), then sort each day's distance from it into bands: blue = cheapest ever vs trend, red = most stretched. Today ${BAND_EMOJI[s.bandIndex]} ${s.band.l}.`,
+Step 1: fit a straight line to SPX6900's price on a log-log scale (price vs age). That line is "fair value" — the rainbow's center. Step 2: measure how far each day closed above or below it (the residual), then sort those distances into percentile bands — deepest blue = the cheapest SPX has ever been vs trend, deepest red = the most stretched.
+So the bands aren't drawn by hand or vibes; they're literally SPX6900's own history sorted by how cheap or rich it was. Today: ${BAND_EMOJI[s.bandIndex]} ${s.band.l}, ${fPct(s.vsCenter)} vs trend. (R² ${m.r2.toFixed(2)} just means the trend captures most of the long-run move.)
+Descriptive, not a prediction.
+NFA`,
       card: { type: "model", spec: {
         title: "How the SPX6900 rainbow is built", headline: `R² ${m.r2.toFixed(2)} fit · ${fPct(s.vsCenter)} vs trend`, accent: "#a78bfa",
         bands: m.bands, bandColors: M.BAND_LABELS.map(b => b.c), points: pts, markerColor: s.band.c,
@@ -499,7 +543,9 @@ Fit a log-log trend (fair value), then sort each day's distance from it into ban
       id: "sp500",
       text:
 `🧊 If SPX6900 is one cube, the whole S&P 500 is ~${fNum(mult)} of them.
-${fMoney(cap)} vs ~$50T — the gap baked into the joke. A telescope, not a target. Every giant was once a rounding error.`,
+SPX6900 ≈ ${fMoney(cap)} vs the S&P 500's ~$50T — the gap baked into the joke. The name is the whole bit: a memecoin "flippening" the index it's named after would be a ~${fNum(mult)}× move, which is why this card is a telescope, not a target.
+A sense-of-scale gag, not a prediction — but every giant was once a rounding error.
+NFA`,
       card: { type: "scale", spec: {
         title: "SPX6900 vs the S&P 500", accent: "#38bdf8", mult,
         fieldColor: "#3b82f6", originColor: SPX_CUBE,
@@ -516,7 +562,9 @@ ${fMoney(cap)} vs ~$50T — the gap baked into the joke. A telescope, not a targ
       id: "hundred",
       text:
 `💸 $100 in SPX6900 at its first print (${fMon(s.firstDate)}, ${fPrice(s.firstPrice)}) is worth ${fMoney(grew(s.price))} today.
-What "early" looked like — not timing, just being early to a fair-launch asset. The ride was brutal; not repeatable on command.`,
+Same power-law curve as the all-time chart, just rebased to a single $100 buy — the most relatable cut of "what early looked like." The earliest holders are sitting on absurd multiples because they were early to a fair-launch asset, not because they timed anything.
+Returns like this aren't repeatable on command and the ride was brutal — the lesson is about being early, not a promise.
+NFA`,
       card: { type: "line", spec: {
         title: "What an early $100 turned into", headline: fMoney(grew(s.price)), accent: "#34d399",
         yLog: true, yTicks: decadeTicks(100, grew(s.ath)),
@@ -556,7 +604,9 @@ What "early" looked like — not timing, just being early to a fair-launch asset
       id: "monthlyreturns",
       text:
 `📅 ${pctGreen}% of SPX6900's ${all.length} months have closed green.
-Every month as a return, green up / red down. A handful of monster months have done almost all the lifting — that's how power-law assets compound.`,
+The heatmap turns every month of SPX6900's life into a return — green up, red down — with a compounded column per year. "Up only" is a meme; the real path is violent, with plenty of red. But the green months, especially the fat green tail of a few monsters, have done almost all the heavy lifting.
+That's how power-law assets compound: a handful of explosive months, not steady gains. Full grid on the site.
+NFA`,
       card: { type: "heatmap", spec: {
         title: "SPX6900 monthly returns", headline: `${pctGreen}% of months green`, accent: "#4ade80",
         rows, yearCol: true,
@@ -587,7 +637,9 @@ Every month as a return, green up / red down. A handful of monster months have d
       id: "monthlybars",
       text:
 `📊 SPX6900 month by month: ${greens} of ${bars.length} months closed green (${pctGreen}%).
-Each bar is a month's return from 0%. Best ${fPct(best)}, worst ${fPct(worst)} — the up months tower over the down ones.`,
+Each bar is one month's return from a 0% line — green up, red down. The axis floats low because the green months tower: best ${fPct(best)}, worst ${fPct(worst)}. That lopsided shape IS the up-only skew — the up months have been multiples bigger than the down ones.
+Volatile, not a smooth climb, but the asymmetry has run in holders' favour so far.
+NFA`,
       card: { type: "mbars", spec: {
         title: "SPX6900 monthly returns", headline: `${pctGreen}% of months green`, accent: "#4ade80",
         bars,
@@ -604,15 +656,17 @@ Each bar is a month's return from 0%. Best ${fPct(best)}, worst ${fPct(worst)} �
     const FG_SEG = [["#ef4444", 0, .25], ["#f59e0b", .25, .45], ["#eab308", .45, .55], ["#84cc16", .55, .75], ["#22c55e", .75, 1]];
     const risk = s.risk, pct = Math.round(risk * 100), N = M.BAND_LABELS.length;
     const bothLow = fngV < 0.45 && risk < 0.45, bothHigh = fngV > 0.6 && risk > 0.6;
-    const take = bothLow ? "Both low: market fearful AND SPX cheap on its own model — historically the patient zone."
-      : bothHigh ? "Both hot: market euphoria meeting a stretched SPX — manage risk, don't chase."
-      : risk < fngV ? "Diverging: the crowd's mood sits above SPX's valuation — SPX looks cheaper than it feels."
-      : "Diverging: SPX is more stretched than the market's mood — the crowd's calmer than SPX's dial.";
+    const take = bothLow ? "Both at rock bottom: the market's fearful AND SPX is cheap on its own model — the kind of alignment that's historically rewarded patience."
+      : bothHigh ? "Both hot: market euphoria meeting a stretched SPX valuation — time to manage risk, not chase."
+      : risk < fngV ? "They diverge: the crowd's mood sits higher than SPX's own valuation — SPX looks cheaper than the market feels."
+      : "They diverge: SPX is more stretched than the market's mood — the crowd's calmer than SPX's own dial.";
     return {
       id: "fngdial",
       text:
-`🌡️ Market mood vs SPX6900's own dial: crypto Fear & Greed ${fng}/100 (${fngVerdict}) vs SPX risk ${pct}/100 (${s.band.l}).
-${take}`,
+`🌡️ Market mood vs SPX6900's own valuation dial.
+Left: crypto Fear & Greed — ${fng}/100 (${fngVerdict}), the whole market's emotion (mostly BTC-driven). Right: SPX6900's rainbow risk — ${pct}/100 (${s.band.l}), where SPX sits in its own cheap-to-expensive range. Two different lenses on the same 0–100 scale.
+${take}
+NFA`,
       card: { type: "fngdial", spec: {
         title: "Market mood vs SPX6900's dial", headline: `${fngVerdict} · ${s.band.l}`, accent: "#22d3ee",
         left: { title: "Crypto Fear & Greed", value: fngV, big: String(fng), verdict: fngVerdict, color: fngColor, segments: FG_SEG.map(([c, a, b]) => ({ from: a, to: b, color: c })) },
@@ -630,8 +684,10 @@ ${take}`,
     return {
       id: "fngtrend",
       text:
-`🌡️ Crypto Fear & Greed vs SPX6900's valuation risk, over its whole life — both 0–100. Today: market ${fngNow} vs SPX ${riskNow}.
-When SPX's line sits below the crowd's, it's cheaper than the mood suggests.`,
+`🌡️ Crypto Fear & Greed vs SPX6900's valuation risk — over SPX6900's whole life, both on a 0–100 scale.
+One line is the market's mood (mostly BTC sentiment); the other is where SPX sits in its own rainbow, cheap-to-expensive. They rhyme through the big swings but pull apart plenty — when SPX's line sits below the crowd's, it's cheaper than the mood suggests.
+Today: market ${fngNow} vs SPX ${riskNow}. A comparison of two different lenses, not a signal.
+NFA`,
       card: { type: "line", spec: {
         title: "Market mood vs SPX6900 risk, over time", headline: `Market ${fngNow} · SPX ${riskNow}`, accent: "#22d3ee",
         yMin: 0, yMax: 100, yTicks: [0, 25, 50, 75, 100].map(v => ({ v, label: String(v) })),
@@ -668,9 +724,11 @@ When SPX's line sits below the crowd's, it's cheaper than the mood suggests.`,
     return {
       id: "dogeclock",
       text:
-`🐕 If SPX6900 tracks BTC's 4-yr cycle, DOGE-size lands ≈ ${fMon(c.peakTs)}. When it flips each king:
-${rungs.map(r => `${r.short} (${r.mc}) → ${r.top ? `≈ top ${fMon(c.peakTs)}` : `~${r.when}`}`).join(TIGHT)}
-Where SPX crosses each king's ATH cap on BTC's clock. A what-if, not a forecast.`,
+`🐕 If SPX6900 tracks Bitcoin's 4-yr cycle, DOGE-size lands ≈ ${fMon(c.peakTs)}. When it would flip each memecoin king:
+${rungs.map(r => `${r.short} (${r.mc}) → ${r.top ? `≈ the cycle top, ${fMon(c.peakTs)}` : `~${r.when}`}`).join(TIGHT)}
+These dates aren't guesses — they're where SPX6900 crosses each king's all-time-high market cap as it rides Bitcoin's real last-cycle path (scaled to SPX). So they move with the halving clock, not a calendar I picked. DOGE-size lands right around the projected top.
+A for-fun what-if, not a forecast.
+NFA`,
       card: { type: "line", spec: {
         title: "When does SPX6900 flip the kings?", headline: `DOGE-size ≈ ${fMon(c.peakTs)}`, accent: doge.color,
         yLog: true, yTicks: decadeTicks(s.firstPrice, c.peakHi),
@@ -703,7 +761,9 @@ Where SPX crosses each king's ATH cap on BTC's clock. A what-if, not a forecast.
       text:
 `🧮 At ${nearest.name}'s market cap, SPX6900 = ${fMult(nearest.mult)} (${fPx(nearest.spxAtCap)}). At each major's cap:
 ${rungs.map(m => `${m.name}-size (${fMoney(m.mc)}) → ${fPx(m.spxAtCap)} · ${fMult(m.mult)}`).join(TIGHT)}
-SPX's price if its cap equaled each major's today. Pure cap math, a long way up.`,
+Each line is the SPX6900 price at which its market cap would equal that major's today — BTC, ETH, SOL. It turns "how high" into "which coins, at what cap," using the assets people already hold as yardsticks.
+Pure market-cap math (their cap ÷ SPX's 939M supply), not a forecast or a timeline. A long way up.
+NFA`,
       card: { type: "line", spec: {
         title: "SPX6900 at the majors' market caps", headline: `${nearest.name}-size = ${fMult(nearest.mult)}`, accent: nearest.color,
         yLog: true, yTicks: decadeTicks(s.firstPrice, top.spxAtCap),
@@ -735,7 +795,9 @@ SPX's price if its cap equaled each major's today. Pure cap math, a long way up.
       id: "dca",
       text:
 `💵 $100/mo into SPX6900 since launch = ${fUsd0(contributed)} in → ${fUsd0(cur)} today.
-No timing, straight through every crash — ${months} months, a ${fMult(mult)}. You never needed the bottom, just consistency.`,
+The classic dollar-cost-average: buy $100 on the first of every month, no timing, straight through every crash. ${fUsd0(contributed)} in over ${months} months is now worth ${fUsd0(cur)} — a ${fMult(mult)}, and the stack even crossed ${fUsd0(peak)} at the 2025 top. The green band is profit; the flat line is what you put in.
+It softens "I missed it" — you never needed the bottom, just consistency. Past results, not a promise.
+NFA`,
       card: { type: "dca", spec: {
         title: "Stacking $100/mo since launch", headline: `${fUsd0(contributed)} → ${fUsd0(cur)}`, accent: "#34d399",
         invested, value,
@@ -767,16 +829,18 @@ No timing, straight through every crash — ${months} months, a ${fMult(mult)}. 
     for (let v = Math.floor(lo / step) * step; v <= Math.ceil(hi / step) * step + 1e-6; v += step) yTicks.push({ v, label: (v > 0 ? "+" : "") + v + "%" });
     const winning = ranked[0].name === "SPX6900";
     const closer = winning
-      ? "SPX out front — the meme keeps outrunning the majors."
+      ? "SPX6900 out in front — the meme keeps outrunning the majors."
       : spxYtd >= 0
-        ? "Green on the year, not the leader yet — the patient zone pays."
-        : "Rough start, no spin — but every dip here has been a refuel stop.";
+        ? "Green on the year, just not the leader yet. The rainbow says the patient zone pays."
+        : "A rough start, no spin — but every prior dip on the rainbow has been a refuel stop.";
     return {
       id: "ytd",
       text:
 `📊 SPX6900 is ${fPct(spxYtd)} YTD — vs the majors, no spin:
 ${ranked.map(r => `${r.name}: ${fPct(r.ret)}`).join(TIGHT)}
-Rebased to 0% on Jan 1 — a clean same-start race. ${closer}`,
+Everything's rebased to 0% on Jan 1, so it's a clean same-start race for the year against BTC, ETH and SOL — shown whether SPX is winning or losing, because the honest comparison is the point, not a cherry-picked window.
+${closer}
+NFA`,
       card: { type: "line", spec: {
         title: "SPX6900 vs majors — year to date", headline: `SPX6900 ${fPct(spxYtd)} YTD`, accent: spxYtd >= 0 ? "#4ade80" : "#f87171",
         yMin: Math.floor(lo / step) * step, yMax: Math.ceil(hi / step) * step, yTicks,
@@ -850,12 +914,12 @@ function rotation(built) {
 }
 
 // Final formatting shared by every post: drop the inline NFA line (the card
-// already says "not financial advice"), collapse tight-list sentinels to single
-// breaks, then append the branded $SPX / #spx6900 footer. Kept single-spaced and
-// short so the whole post fits X's visible preview — no "See more" barrier.
+// already says "not financial advice"), space the body into airy paragraphs,
+// keep tight-list breaks single, then append the branded $SPX / #spx6900 footer.
 export function withFooter(text) {
   const body = text
     .replace(/\n?(?:🌈 )?NFA\s*$/u, "")
+    .replace(/\n/g, "\n\n")
     .replace(new RegExp(TIGHT, "g"), "\n");
   return `${body}\n\n🌈 ${CASHTAG} ${HASHTAG}`;
 }

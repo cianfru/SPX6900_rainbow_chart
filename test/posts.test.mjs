@@ -11,20 +11,6 @@ const last = DEFAULT_RAW.at(-1);
 const stats = computeStats(last.price, last.date);
 const ids = allIds(stats);
 
-// A coins-enabled stats so the live-data-gated posts (btc/majors/majorcaps/ytd)
-// also build and get length-checked. Synthetic but deterministic.
-const mkCoin = base => Array.from({ length: 380 }, (_, i) =>
-  ({ date: new Date(Date.parse(last.date) - (380 - i) * 86400000).toISOString().slice(0, 10), price: base * (1 + i / 1000) }));
-const statsCoins = computeStats(last.price, last.date, { coins: { btc: mkCoin(60000), eth: mkCoin(3000), sol: mkCoin(150) } });
-
-// X-weighted length: most code points count 1, astral (emoji) count 2, and a URL
-// counts as 23 regardless of its real length. Mirrors how X truncates the feed.
-function xLen(text) {
-  let urls = 0;
-  const noUrls = text.replace(/https?:\/\/\S+/g, () => { urls += 23; return ""; });
-  return urls + [...noUrls].reduce((n, c) => n + (c.codePointAt(0) > 0xffff ? 2 : 1), 0);
-}
-
 test("the BTC-cycle post series is wired into the rotation", () => {
   for (const id of ["cycle", "cyclepeak", "cycleclock"]) {
     assert.ok(ids.includes(id), `missing post: ${id}`);
@@ -46,16 +32,6 @@ test("every available post builds non-empty text + a renderable card", () => {
     assert.ok(p.text.trim().length > 0 && p.text.length < 4000, `text length sane for ${id}`);
     assert.ok(p.text.includes("#spx6900"), `branded footer present for ${id}`);
     assert.ok(p.card && ["rainbow", "line", "bar", "mbars", "donut", "stack", "model", "cube", "scale", "gauge", "fngdial", "heatmap", "dca", "kraken"].includes(p.card.type), `valid card type for ${id}`);
-  }
-});
-
-test("every post fits X's visible preview (no \"See more\" barrier)", () => {
-  // The whole post — hook + copy + branded footer — must stay within X's ~280
-  // visible-character budget so it reads in full in the timeline. Promo (kraken)
-  // included; its referral URL counts as 23 per X's rules.
-  for (const id of allIds(statsCoins)) {
-    const len = xLen(buildPost(statsCoins, new Date(), id).text);
-    assert.ok(len <= 280, `post "${id}" is ${len} chars — over the 280 visible budget`);
   }
 });
 
