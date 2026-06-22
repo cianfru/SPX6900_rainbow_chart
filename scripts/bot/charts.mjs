@@ -128,7 +128,10 @@ export function lineCardSvg(spec, opts = {}) {
   const path = pts => pts.map(([x, y]) => `${X(x).toFixed(1)},${Y(y).toFixed(1)}`).join(" ");
   // Reveal as a single left→right sweep by x (timestamp), so earlier series (e.g.
   // actual history) finish before later ones (e.g. the forward projection) start.
-  const xCut = reveal >= 1 ? Infinity : xMin + reveal * (xMax - xMin);
+  // opts.revealFromX starts the sweep partway in (e.g. at "now"), so the history
+  // is fully drawn on frame 0 and only the projection animates — no blank opener.
+  const rFrom = opts.revealFromX ?? xMin;
+  const xCut = reveal >= 1 ? Infinity : rFrom + reveal * (xMax - rFrom);
 
   // Soft vertical gradients for area fills + a glow blur for the marker.
   let defs = `<filter id="glow" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="6"/></filter>`;

@@ -9,14 +9,15 @@ import { renderRainbowVideo, renderLineVideo, renderCubeVideo, renderScaleVideo 
 // the supported cards at 4:5 for mobile feeds (cube isn't portrait-ready yet).
 export async function buildMedia(post, stats, { video = false, out = "bot-preview.mp4", portrait = false } = {}) {
   const type = post.card?.type;
-  if (video && isVideoCard(type)) {
+  const anim = post.card?.animate; // per-post opt-in for non-video-type cards (e.g. the cycle line card)
+  if (video && (isVideoCard(type) || anim)) {
     try {
       const spec = { ...post.card.spec, date: stats.date };
       const dims = portrait && isPortraitCard(type) ? PORTRAIT : {}; // cube/etc aren't portrait-ready yet
       const path = type === "rainbow" ? await renderRainbowVideo({ price: stats.price, out, dims })
         : type === "cube" ? await renderCubeVideo({ spec, out })
         : type === "scale" ? await renderScaleVideo({ spec, out, dims })
-        : await renderLineVideo({ spec, out, dims });
+        : await renderLineVideo({ spec, out, dims, revealFromX: anim?.revealFromX });
       return { path, mediaType: "video/mp4", kind: "video", portrait };
     } catch (e) {
       console.error("video render failed → PNG fallback:", e.message);

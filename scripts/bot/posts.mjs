@@ -376,7 +376,9 @@ NFA`,
 The idea: take Bitcoin's REAL price path through its most recent 4-year cycle and lay it over SPX6900's chart, anchored to where SPX trades now and scaled to its (much larger) swings. The orange line isn't an invented curve — it's BTC's actual history used as a template.
 Crypto has rhymed to this ~4-year, halving-driven rhythm for over a decade. Whether SPX keeps following it, nobody knows — so treat it as a for-fun what-if, not a forecast.
 NFA`,
-      card: { type: "line", spec: {
+      // animate: history is fully drawn on frame 0 (revealFromX = now), then the
+      // orange projection unfurls into the future — never a blank opening frame.
+      card: { type: "line", animate: { revealFromX: lastTs(s) }, spec: {
         title: "Where are we on Bitcoin's cycle?", headline: `We're at ≈ BTC ${fMon(c.btcFrom)}`, accent: "#f7931a",
         yLog: true, yTicks: decadeTicks(s.firstPrice, c.peakHi),
         series: [
