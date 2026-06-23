@@ -482,7 +482,13 @@ export function renderDonut(spec, opts = {}) {
   const { DW, DH, PH } = geom(opts);
   const segs = spec.segments.filter(s => s.value > 0);
   const total = segs.reduce((a, s) => a + s.value, 0) || 1;
-  const cx = mL + 150, cy = mT + PH / 2, r = 132, sw = 58;
+  const r = 132, sw = 58, outerR = r + sw / 2;
+  // Center the donut + legend as one group (so the card isn't left-weighted) and
+  // hang both off the same vertical midline (so the legend doesn't float above
+  // the donut). legendW is a rough reservation for the swatch + widest label.
+  const legendW = 250, gap = 56;
+  const groupLeft = Math.max(mL, (DW - (outerR * 2 + gap + legendW)) / 2);
+  const cx = groupLeft + outerR, cy = mT + PH / 2;
   const C = 2 * Math.PI * r;
   let ring = "", acc = 0;
   for (const s of segs) {
@@ -497,16 +503,18 @@ export function renderDonut(spec, opts = {}) {
   if (c.big) center += `<text x="${cx}" y="${cy + 4}" fill="#f8fafc" font-size="62" font-weight="800" text-anchor="middle" font-family="sans-serif">${esc(c.big)}</text>`;
   if (c.small) center += `<text x="${cx}" y="${cy + 40}" fill="#94a3b8" font-size="24" text-anchor="middle" font-family="sans-serif">${esc(c.small)}</text>`;
 
-  // legend on the right, value as % of total
-  const lx = cx + r + 70;
+  // legend to the right, value as % of total, vertically centered on the midline
+  const lx = cx + outerR + gap;
   const unit = spec.legendUnit || "of supply";   // e.g. "of classified" when the pie isn't the full supply
+  const itemGap = 64, blockH = (segs.length - 1) * itemGap + 50;
+  const ly0 = cy - blockH / 2 + 22;
   let legend = "";
   segs.forEach((s, i) => {
-    const ly = mT + 34 + i * 64;
+    const ly = ly0 + i * itemGap;
     const pct = Math.round((s.value / total) * 100);
-    legend += `<rect x="${lx}" y="${ly - 22}" width="30" height="30" rx="7" fill="${s.color}"/>`;
-    legend += `<text x="${lx + 44}" y="${ly}" fill="#e2e8f0" font-size="28" font-weight="700" font-family="sans-serif">${esc(s.label)}</text>`;
-    legend += `<text x="${lx + 44}" y="${ly + 28}" fill="#94a3b8" font-size="23" font-family="sans-serif">${pct}% ${esc(unit)}</text>`;
+    legend += `<rect x="${lx}" y="${(ly - 22).toFixed(1)}" width="30" height="30" rx="7" fill="${s.color}"/>`;
+    legend += `<text x="${lx + 44}" y="${ly.toFixed(1)}" fill="#e2e8f0" font-size="28" font-weight="700" font-family="sans-serif">${esc(s.label)}</text>`;
+    legend += `<text x="${lx + 44}" y="${(ly + 28).toFixed(1)}" fill="#94a3b8" font-size="23" font-family="sans-serif">${pct}% ${esc(unit)}</text>`;
   });
   return chrome(spec, ring + center + legend, "", { W: DW, H: DH });
 }
