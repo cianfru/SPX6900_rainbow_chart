@@ -771,16 +771,16 @@ You never needed the bottom, just consistency.`,
   // buy-only spin keeps it on-brand for a hold-forever community.
   s => (() => {
     const LADDER = [
-      { mult: 5, action: "deploy 25%" }, { mult: 4, action: "deploy 20%" }, { mult: 3, action: "deploy 15%" },
-      { mult: 2, action: "deploy 10%" }, { action: "hold, fair value" },
-      { sell: 1, action: "trim 10%" }, { sell: 2, action: "take 20%" }, { sell: 3.5, action: "take 35%" }, { sell: 5, action: "de-risk 50%" },
+      { mult: 5, action: "buy 5×" }, { mult: 3, action: "buy 3×" }, { mult: 2, action: "buy 2×" },
+      { mult: 1.5, action: "buy 1.5×" }, { mult: 1, action: "hold 1×" },
+      { sell: 1, action: "trim" }, { sell: 2, action: "sell 2×" }, { sell: 3, action: "sell 3×" }, { sell: 5, action: "sell 5×" },
     ];
     const bands = M.BAND_LABELS.map((b, i) => ({ label: b.l, color: b.c, mult: LADDER[i].mult, sell: LADDER[i].sell, action: LADDER[i].action }));
     return {
       id: "dcaladder",
       text:
 `🌈 Ben Cowen's BTC risk strategy, mapped onto SPX6900.
-His risk-based DCA: buy heavier when risk is low, scale out as it climbs. On SPX's rainbow that's deploy 25% in the Fire Sale, easing to de-risk in the red.
+His risk-based DCA: buy heavier when risk is low, scale out as it climbs. On SPX's rainbow that's buy 5× in the Fire Sale, easing to sell 5× in the red.
 His Bitcoin method, on our chart. A model, not advice.`,
       card: { type: "dcaladder", spec: {
         title: "Ben Cowen's risk DCA, applied to SPX", headline: `${s.band.l} → ${LADDER[s.bandIndex].action}`, accent: s.band.c,
