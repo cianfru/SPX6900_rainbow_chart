@@ -740,13 +740,15 @@ Each line is the SPX price whose cap equals that major's today. Pure cap math, a
   s => (() => {
     const M = 100; // monthly buy
     let tokens = 0, contributed = 0, lastM = null, peak = 0;
-    const value = [], invested = [];
+    const value = [], invested = [], buys = [];
     for (const [ts, price] of s.series.price) {
       if (!(price > 0)) continue;
       const d = new Date(ts), mk = d.getUTCFullYear() * 12 + d.getUTCMonth();
-      if (mk !== lastM) { tokens += M / price; contributed += M; lastM = mk; }
+      const bought = mk !== lastM;
+      if (bought) { tokens += M / price; contributed += M; lastM = mk; }
       const v = tokens * price;
       value.push([ts, v]); invested.push([ts, contributed]);
+      if (bought) buys.push([ts, v]); // a sparkle on the value line for each buy
       if (v > peak) peak = v;
     }
     if (invested.length < 8 || contributed <= 0) return null;
@@ -759,7 +761,7 @@ Buy $100 on the 1st of every month, no timing, through every crash. ${fUsd0(cont
 You never needed the bottom, just consistency.`,
       card: { type: "dca", spec: {
         title: "Stacking $100/mo since launch", headline: `${fUsd0(contributed)} → ${fUsd0(cur)}`, accent: "#34d399",
-        invested, value,
+        linear: true, invested, value, buys,
       } },
     };
   })(),
