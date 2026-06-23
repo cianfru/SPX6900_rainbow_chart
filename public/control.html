@@ -141,6 +141,10 @@
 <script>
 const OWNER = "cianfru", REPO = "SPX6900_rainbow_chart", BRANCH = "main";
 const QUEUE_PATH = "public/next-post.json", STATE_PATH = "public/post-state.json";
+// Cache-bust the card preview images: the /api/og PNGs are CDN-cached, so without
+// this a fresh /control load could show a stale (e.g. pre-deploy) render. Owner-only
+// page, so re-rendering each visit is fine.
+const CB = Date.now();
 const $ = s => document.querySelector(s);
 const status = (msg, cls = "") => { const e = $("#status"); e.textContent = msg; e.className = "status " + cls; };
 const pwKey = "spx_control_pw";
@@ -226,7 +230,7 @@ function card(id) {
   const shape = isPortrait ? "4:5 portrait" : "landscape";
   const cc = isVid ? `still preview · posts as a ~10s ${shape} video` : `posts as this static ${shape} image`;
   el.innerHTML = `
-    <img loading="lazy" class="${isPortrait ? "portrait" : ""}" src="/api/og?post=${encodeURIComponent(id)}${isPortrait ? "&portrait=1" : ""}" alt="${id}" />
+    <img loading="lazy" class="${isPortrait ? "portrait" : ""}" src="/api/og?post=${encodeURIComponent(id)}${isPortrait ? "&portrait=1" : ""}&cb=${CB}" alt="${id}" />
     <div class="meta">
       <span class="id">${id}</span>
       ${mediaBadge}

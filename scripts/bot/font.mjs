@@ -3,13 +3,23 @@
 // so the SVG→PNG cards keep their text on runtimes that ship NO system fonts —
 // notably the Vercel serverless /api/og endpoint, where every <text> was coming
 // out blank (charts drew, words didn't). Passing the font as buffers means we
-// don't depend on the host having any fonts installed; if the buffers somehow
-// fail to load we fall back to scanning system fonts (local/CI still work).
+// don't depend on the host having any fonts installed.
 import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { join, dirname } from "node:path";
 
+// Resolve the bundled .ttf two ways, because Vercel may bundle this module and
+// move it: (1) next to this file (local + CI, unbundled), and (2) under the
+// deployment root via vercel.json includeFiles (where process.cwd() points).
+let here = "";
+try { here = dirname(fileURLToPath(import.meta.url)); } catch { /* bundled */ }
+const candidates = name => [
+  here && join(here, "fonts", name),
+  join(process.cwd(), "scripts/bot/fonts", name),
+].filter(Boolean);
 const load = name => {
-  try { return readFileSync(new URL(`./fonts/${name}`, import.meta.url)); }
-  catch { return null; }
+  for (const p of candidates(name)) { try { return readFileSync(p); } catch { /* next */ } }
+  return null;
 };
 const fontBuffers = [load("DejaVuSans.ttf"), load("DejaVuSans-Bold.ttf")].filter(Boolean);
 
