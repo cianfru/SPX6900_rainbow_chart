@@ -37,6 +37,25 @@
   has a few days of data. Wait until there are **at least 30 days** of holder
   snapshots before building a "holders over time / holders up X%" card, so it's
   actually informative. (Noted 2026-06-16.)
+- **Future card ideas — greenlit, build when ready (noted 2026-06-23):**
+  - **SPX6900 vs the real S&P 500** ⭐ (highest impact). The memecoin raced against
+    the actual index it's named after, since launch: "SPX6900 +X× vs S&P 500 +Y%".
+    Perfect on-brand flex, fully honest (two returns). Needs S&P 500 daily closes
+    bundled as immutable history (like `src/btc-history.js` / `alt-age-history.js`) —
+    owner provides a CSV or fetch in CI. A returns race, NOT the existing cap-scale
+    cube card.
+  - **Power-law price roadmap.** Project the model's center (fair-value) line forward
+    and stamp the dates it crosses round numbers ($1, $10, $100). Forward-looking but
+    grounded in the fitted trend, not a vibes target. Frame as "the trend, extrapolated".
+  - **Decoupling from Bitcoin.** Rolling 90-day correlation of SPX vs BTC over time;
+    story = "SPX finding its own legs" IF the data is flattering (check first — if it's
+    still glued to BTC, shelve it).
+  - **% of supply in profit / MVRV.** price ÷ holders' realized cost (we already compute
+    break-even, so current value is free). A respected, crypto-native on-chain metric.
+    Full over-time chart needs ~30 days of snapshot history (same wait as holder-growth).
+  - **Day-of-week "best day to buy" — rejected.** Same overfit trap as Uptober (~150
+    samples/weekday, crypto is 24/7). At best a low-impact myth-buster ("weekday barely
+    matters"); don't present it as a buy signal.
 
 ## How the bot picks a post
 - Daily rotation is deterministic: `rota[epochDay % rota.length]` in

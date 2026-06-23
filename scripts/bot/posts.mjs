@@ -55,6 +55,58 @@ const decadeTicks = (min, max) => {
 };
 const lastTs = s => s.series.price.at(-1)[0];
 
+// Month-over-month returns → seasonality heatmap rows from a [ts, price] series.
+// Shared by the USD and BTC monthly-returns cards (same definition as the site's
+// Monthly grid). Returns { rows, pctGreen, months } or null if too short.
+function monthlyHeatmap(priceSeries) {
+  const byMonth = new Map();
+  for (const [ts, p] of priceSeries) {
+    if (!(p > 0)) continue;
+    const d = new Date(ts);
+    byMonth.set(d.getUTCFullYear() * 12 + d.getUTCMonth(), p); // last close of the month wins
+  }
+  const keys = [...byMonth.keys()].sort((a, b) => a - b);
+  const ret = new Map();
+  for (let i = 1; i < keys.length; i++) ret.set(keys[i], byMonth.get(keys[i]) / byMonth.get(keys[i - 1]) - 1);
+  if (ret.size < 8) return null;
+  const y0 = Math.floor(keys[0] / 12), y1 = Math.floor(keys[keys.length - 1] / 12);
+  const rows = [];
+  for (let y = y0; y <= y1; y++) {
+    let mult = 1, any = false;
+    const cells = Array.from({ length: 12 }, (_, m) => {
+      const r = ret.has(y * 12 + m) ? ret.get(y * 12 + m) : null;
+      if (r != null) { mult *= 1 + r; any = true; }
+      return r;
+    });
+    rows.push({ label: String(y), cells, year: any ? mult - 1 : null });
+  }
+  const all = [...ret.values()];
+  return { rows, pctGreen: Math.round(all.filter(r => r >= 0).length / all.length * 100), months: all.length };
+}
+
+// SPX6900 priced in BTC over its whole life: align the bundled BTC_HISTORY
+// ([ageDays, usd], from 2010) to each SPX timestamp (largest BTC date ≤ it) and
+// divide. Lets the BTC monthly card build from bundled data alone. Skips SPX
+// points more than a week past the BTC data so a stale tail can't distort the
+// latest month. Returns [ts, spx/btc].
+const BTC_LAUNCH = Date.parse("2010-07-17T00:00:00Z");
+function spxInBtcSeries(priceSeries) {
+  const btc = BTC_HISTORY.map(([age, usd]) => [BTC_LAUNCH + age * 86400000, usd]); // ascending by ts
+  const lastBtcTs = btc.at(-1)[0];
+  const btcAt = ts => {
+    let lo = 0, hi = btc.length - 1, ans = -1;
+    while (lo <= hi) { const mid = (lo + hi) >> 1; if (btc[mid][0] <= ts) { ans = mid; lo = mid + 1; } else hi = mid - 1; }
+    return ans >= 0 ? btc[ans][1] : null;
+  };
+  const out = [];
+  for (const [ts, usd] of priceSeries) {
+    if (!(usd > 0) || ts > lastBtcTs + 7 * 86400000) continue;
+    const b = btcAt(ts);
+    if (b > 0) out.push([ts, usd / b]);
+  }
+  return out;
+}
+
 // "What if SPX6900 traces Bitcoin's last cycle?" — the projection now overlays
 // the REAL BTC price path (btcCycleProjection in src/btc-cycle.js), shared with
 // the website BTC Cycle tab so site and cards always agree. A what-if, not a
@@ -549,37 +601,36 @@ Not repeatable. The lesson is being early.`,
   // condensed): years × months, green up / red down, plus a compounded Year
   // column. Same month-over-month definition the site uses, so they agree.
   s => (() => {
-    const byMonth = new Map();
-    for (const [ts, p] of s.series.price) {
-      const d = new Date(ts);
-      byMonth.set(d.getUTCFullYear() * 12 + d.getUTCMonth(), p); // last close wins
-    }
-    const keys = [...byMonth.keys()].sort((a, b) => a - b);
-    const ret = new Map();
-    for (let i = 1; i < keys.length; i++) ret.set(keys[i], byMonth.get(keys[i]) / byMonth.get(keys[i - 1]) - 1);
-    if (ret.size < 8) return null;
-    const y0 = Math.floor(keys[0] / 12), y1 = Math.floor(keys[keys.length - 1] / 12);
-    const rows = [];
-    for (let y = y0; y <= y1; y++) {
-      let mult = 1, any = false;
-      const cells = Array.from({ length: 12 }, (_, m) => {
-        const r = ret.has(y * 12 + m) ? ret.get(y * 12 + m) : null;
-        if (r != null) { mult *= 1 + r; any = true; }
-        return r;
-      });
-      rows.push({ label: String(y), cells, year: any ? mult - 1 : null });
-    }
-    const all = [...ret.values()];
-    const pctGreen = Math.round(all.filter(r => r >= 0).length / all.length * 100);
+    const mh = monthlyHeatmap(s.series.price);
+    if (!mh) return null;
     return {
       id: "monthlyreturns",
       text:
-`📅 ${pctGreen}% of SPX6900's ${all.length} months have closed green.
+`📅 ${mh.pctGreen}% of SPX6900's ${mh.months} months have closed green.
 Every month as a return, green up, red down. A handful of monster green months have done almost all the lifting.
 That's how power-law assets compound: a few explosive months, not steady gains.`,
       card: { type: "heatmap", spec: {
-        title: "SPX6900 monthly returns", headline: `${pctGreen}% of months green`, accent: "#4ade80",
-        rows, yearCol: true,
+        title: "SPX6900 monthly returns", headline: `${mh.pctGreen}% of months green`, accent: "#4ade80",
+        rows: mh.rows, yearCol: true,
+      } },
+    };
+  })(),
+
+  // 23b — the same monthly heatmap, but priced in BTC: each month is SPX6900's
+  // return measured against Bitcoin, not USD. Green = beat BTC that month. The
+  // honest scoreboard for "are we actually outrunning crypto's benchmark?".
+  s => (() => {
+    const mh = monthlyHeatmap(spxInBtcSeries(s.series.price));
+    if (!mh) return null;
+    return {
+      id: "monthlyreturnsbtc",
+      text:
+`₿ Priced in Bitcoin, ${mh.pctGreen}% of SPX6900's ${mh.months} months have beaten BTC.
+Same heatmap, but each month is SPX6900's return measured in BTC, not USD. Green months beat Bitcoin, red months lost to it.
+Up in dollars is easy in a bull market. Up in BTC is the real scoreboard.`,
+      card: { type: "heatmap", spec: {
+        title: "SPX6900 monthly returns vs BTC", headline: `${mh.pctGreen}% of months beat BTC`, accent: "#f7931a",
+        rows: mh.rows, yearCol: true,
       } },
     };
   })(),
