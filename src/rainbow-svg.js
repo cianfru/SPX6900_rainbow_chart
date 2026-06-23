@@ -81,7 +81,21 @@ export function rainbowSvg(price, dateStr = new Date().toISOString().slice(0, 10
     : "";
 
   return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
+<defs>
+  <radialGradient id="rbTop" cx="50%" cy="0%" r="80%">
+    <stop offset="0%" stop-color="${band.c}" stop-opacity="0.22"/><stop offset="58%" stop-color="${band.c}" stop-opacity="0"/>
+  </radialGradient>
+  <radialGradient id="rbWarm" cx="6%" cy="10%" r="62%">
+    <stop offset="0%" stop-color="#f43f5e" stop-opacity="0.24"/><stop offset="70%" stop-color="#f43f5e" stop-opacity="0"/>
+  </radialGradient>
+  <radialGradient id="rbViolet" cx="95%" cy="93%" r="62%">
+    <stop offset="0%" stop-color="#7c3aed" stop-opacity="0.26"/><stop offset="70%" stop-color="#7c3aed" stop-opacity="0"/>
+  </radialGradient>
+</defs>
 <rect width="${W}" height="${H}" fill="#05050e"/>
+<rect width="${W}" height="${H}" fill="url(#rbViolet)"/>
+<rect width="${W}" height="${H}" fill="url(#rbWarm)"/>
+<rect width="${W}" height="${H}" fill="url(#rbTop)"/>
 ${grid}${xlab}
 ${bands}
 <polyline points="${center}" fill="none" stroke="rgba(255,255,255,0.55)" stroke-width="2" stroke-dasharray="6 6"/>
