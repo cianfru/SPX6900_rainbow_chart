@@ -649,9 +649,8 @@ export function renderDcaLadder(spec, opts = {}) {
       svg += `<text x="${barX}" y="${(cy + 9).toFixed(1)}" fill="#94a3b8" font-size="24" font-style="italic" font-family="sans-serif">${esc(b.action)}</text>`;
     }
     if (isCur) {
-      const tagW = 188, tx = mL + PW - tagW - 14, ty = y + (rowH - 34) / 2;
-      svg += `<rect x="${tx.toFixed(1)}" y="${ty.toFixed(1)}" width="${tagW}" height="34" rx="17" fill="#fff"/>`;
-      svg += `<text x="${(tx + tagW / 2).toFixed(1)}" y="${(ty + 24).toFixed(1)}" fill="#05050e" font-size="20" font-weight="800" text-anchor="middle" letter-spacing="1" font-family="sans-serif">YOU ARE HERE</text>`;
+      // left-margin arrow points at the current row (no overlap with the bar/text)
+      svg += `<path d="M ${mL - 36} ${(cy - 13).toFixed(1)} L ${mL - 13} ${cy.toFixed(1)} L ${mL - 36} ${(cy + 13).toFixed(1)} Z" fill="#fff"/>`;
     }
   });
   return chrome(spec, svg, defs, { W: DW, H: DH });

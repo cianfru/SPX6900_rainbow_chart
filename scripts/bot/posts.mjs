@@ -771,19 +771,19 @@ You never needed the bottom, just consistency.`,
   // buy-only spin keeps it on-brand for a hold-forever community.
   s => (() => {
     const LADDER = [
-      { mult: 5, action: "buy 5×" }, { mult: 3, action: "buy 3×" }, { mult: 2, action: "buy 2×" },
-      { mult: 1.5, action: "buy 1.5×" }, { mult: 1, action: "stack 1×" },
-      { action: "hold, don't chase" }, { action: "hold, don't chase" }, { action: "hold, don't chase" }, { action: "hold, don't chase" },
+      { mult: 5, action: "deploy 25%" }, { mult: 4, action: "deploy 20%" }, { mult: 3, action: "deploy 15%" },
+      { mult: 2, action: "deploy 10%" }, { action: "hold, fair value" },
+      { sell: 1, action: "trim 10%" }, { sell: 2, action: "take 20%" }, { sell: 3.5, action: "take 35%" }, { sell: 5, action: "de-risk 50%" },
     ];
-    const bands = M.BAND_LABELS.map((b, i) => ({ label: b.l, color: b.c, mult: LADDER[i].mult, action: LADDER[i].action }));
+    const bands = M.BAND_LABELS.map((b, i) => ({ label: b.l, color: b.c, mult: LADDER[i].mult, sell: LADDER[i].sell, action: LADDER[i].action }));
     return {
       id: "dcaladder",
       text:
-`🌈 Let the rainbow size your buys.
-Flat DCA buys the same every month. The rainbow way buys heavier the cheaper it gets: 5× in the Fire Sale, down to 1× at fair value. In the red, you let it ride.
-We never sell the top, we just buy the bottom harder. Today: ${s.band.l}.`,
+`🌈 Ben Cowen's BTC risk strategy, mapped onto SPX6900.
+His risk-based DCA: buy heavier when risk is low, scale out as it climbs. On SPX's rainbow that's deploy 25% in the Fire Sale, easing to de-risk in the red.
+His Bitcoin method, on our chart. A model, not advice.`,
       card: { type: "dcaladder", spec: {
-        title: "Let the rainbow size your buys", headline: `${s.band.l} → ${LADDER[s.bandIndex].action}`, accent: s.band.c,
+        title: "Ben Cowen's risk DCA, applied to SPX", headline: `${s.band.l} → ${LADDER[s.bandIndex].action}`, accent: s.band.c,
         bands, current: s.bandIndex,
       } },
     };
@@ -873,7 +873,7 @@ const weightOf = id => WEIGHT[id] ?? (BULLISH.has(id) ? 2 : 1);
 // the monthly-returns card covers the same honesty without the gloom. The risk
 // line is here because the fngtrend card now plots it next to crypto Fear &
 // Greed, so the standalone is redundant in the feed.
-const NO_ROTATE = new Set(["drawdown", "risk", "kraken"]);
+const NO_ROTATE = new Set(["drawdown", "risk", "kraken", "dcaladder"]);
 
 // Cards kept buildable ONLY to back website OG share images — never auto-posted
 // AND hidden from the control console (so they can't be fired by hand). Drawdown
