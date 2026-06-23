@@ -53,6 +53,14 @@
   - **% of supply in profit / MVRV.** price ÷ holders' realized cost (we already compute
     break-even, so current value is free). A respected, crypto-native on-chain metric.
     Full over-time chart needs ~30 days of snapshot history (same wait as holder-growth).
+    **Status (2026-06-23):** now banking `upnl` (unrealized) + `rpnl` (realized) $ PnL
+    daily in `history.json` alongside `be`. HolderScan's `/stats/pnl` only gives
+    break-even + aggregate realized/unrealized totals — NO cost-basis distribution, so
+    the *exact* "% supply in profit" isn't computable from it; **MVRV = price ÷ be** is
+    the buildable proxy. **TODO before building:** (1) read the `pnl fields:` line in the
+    snapshot CI log to check if HolderScan secretly returns a percent-in-profit / cost-
+    basis field (then remove that debug log); (2) **revisit ~2026-07-23** once ~30 days
+    of `be`/`upnl`/`rpnl` are banked, to build the MVRV-over-time card (line + zones).
   - **Day-of-week "best day to buy" — rejected.** Same overfit trap as Uptober (~150
     samples/weekday, crypto is 24/7). At best a low-impact myth-buster ("weekday barely
     matters"); don't present it as a buy signal.
