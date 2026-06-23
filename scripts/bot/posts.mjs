@@ -18,6 +18,9 @@ const KRAKEN_REF = process.env.BOT_KRAKEN_REF || "https://proinvite.kraken.com/9
 const KRAKEN_CODE = process.env.BOT_KRAKEN_CODE || "k4tg7p3p";
 // Fixed cadence (in days) for the Kraken promo slot — see buildPost. ~Monthly.
 const KRAKEN_EVERY = 30;
+// Ben Cowen's X handle, tagged on the dca-ladder card (env-overridable in case
+// it changes). The card image keeps the readable name; the tweet does the @-tag.
+const COWEN = process.env.BOT_COWEN || "@intocryptoverse";
 const TIGHT = ""; // a line break that stays single (not spaced out) — for tight lists
 
 const fPrice = p => (p >= 1 ? "$" + p.toFixed(2) : "$" + p.toFixed(4));
@@ -779,9 +782,9 @@ You never needed the bottom, just consistency.`,
     return {
       id: "dcaladder",
       text:
-`🌈 Ben Cowen's BTC risk strategy, mapped onto SPX6900.
+`🌈 ${COWEN}'s BTC risk strategy, on SPX6900.
 His risk-based DCA: buy more units of x the cheaper it gets, sell more units of y the hotter. x and y are your own base buy and sell sizes, not fixed amounts.
-His Bitcoin method, on our chart. A model, not advice.`,
+Ben Cowen's method, on our chart. A model, not advice.`,
       card: { type: "dcaladder", spec: {
         title: "Ben Cowen's risk DCA, applied to SPX", headline: `${s.band.l} → ${LADDER[s.bandIndex].action}`, accent: s.band.c,
         footer: "x = your base buy  ·  y = your base sell  ·  not financial advice",
