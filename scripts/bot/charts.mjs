@@ -630,7 +630,8 @@ export function renderDcaLadder(spec, opts = {}) {
   const gap = 9, rowH = (PH - gap * (n - 1)) / n;
   const barX = mL + 320, maxBar = PW - 320 - 150;
   const maxMult = Math.max(...bands.filter(b => b.mult).map(b => b.mult), 1);
-  const buy = "#34d399";
+  const maxSell = Math.max(...bands.filter(b => b.sell).map(b => b.sell), 1);
+  const buy = "#34d399", sell = "#f87171";
   let svg = "", defs = "";
   bands.forEach((b, i) => {
     const rowIndex = n - 1 - i;                  // band 0 (cheapest) → bottom row
@@ -638,9 +639,10 @@ export function renderDcaLadder(spec, opts = {}) {
     const cy = y + rowH / 2, isCur = i === cur;
     svg += `<rect x="${mL}" y="${y.toFixed(1)}" width="${PW}" height="${rowH.toFixed(1)}" rx="12" fill="${b.color}" fill-opacity="${isCur ? 0.34 : 0.13}"${isCur ? ` stroke="#fff" stroke-width="3"` : ""}/>`;
     svg += `<text x="${mL + 24}" y="${(cy + 9).toFixed(1)}" fill="#f1f5f9" font-size="27" font-weight="700" font-family="sans-serif">${esc(b.label)}</text>`;
-    if (b.mult) {
-      const bw = Math.max(16, (b.mult / maxMult) * maxBar), id = `lad${i}`;
-      defs += `<linearGradient id="${id}" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="${buy}" stop-opacity="0.9"/><stop offset="100%" stop-color="${buy}" stop-opacity="0.4"/></linearGradient>`;
+    if (b.mult || b.sell) {
+      const isSell = !!b.sell, col = isSell ? sell : buy;
+      const bw = Math.max(16, ((isSell ? b.sell / maxSell : b.mult / maxMult)) * maxBar), id = `lad${i}`;
+      defs += `<linearGradient id="${id}" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="${col}" stop-opacity="0.9"/><stop offset="100%" stop-color="${col}" stop-opacity="0.4"/></linearGradient>`;
       svg += `<rect x="${barX}" y="${(cy - 14).toFixed(1)}" width="${bw.toFixed(1)}" height="28" rx="14" fill="url(#${id})"/>`;
       svg += `<text x="${(barX + bw + 16).toFixed(1)}" y="${(cy + 9).toFixed(1)}" fill="#f8fafc" font-size="26" font-weight="800" font-family="sans-serif">${esc(b.action)}</text>`;
     } else {

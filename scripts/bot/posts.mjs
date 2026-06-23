@@ -773,7 +773,7 @@ You never needed the bottom, just consistency.`,
     const LADDER = [
       { mult: 5, action: "buy 5×" }, { mult: 3, action: "buy 3×" }, { mult: 2, action: "buy 2×" },
       { mult: 1.5, action: "buy 1.5×" }, { mult: 1, action: "stack 1×" },
-      { action: "let it ride" }, { action: "let it ride" }, { action: "let it ride" }, { action: "let it ride" },
+      { action: "hold, don't chase" }, { action: "hold, don't chase" }, { action: "hold, don't chase" }, { action: "hold, don't chase" },
     ];
     const bands = M.BAND_LABELS.map((b, i) => ({ label: b.l, color: b.c, mult: LADDER[i].mult, action: LADDER[i].action }));
     return {
