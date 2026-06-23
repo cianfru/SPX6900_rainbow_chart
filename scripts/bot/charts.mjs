@@ -409,9 +409,16 @@ export function renderDca(spec, opts = {}) {
   const xs = val.map(p => p[0]);
   const xMin = Math.min(...xs), xMax = Math.max(...xs);
   const ys = [...val, ...inv].map(p => p[1]).filter(y => y > 0);
-  const yMin = Math.max(50, Math.min(...ys) * 0.85), yMax = Math.max(...ys) * 1.18;
+  // Linear axis (spec.linear) reads dollars the way people actually feel them —
+  // a flat run, then the payoff exploding at the end (the classic DCA hockey
+  // stick). Log is the default and keeps the early-years texture visible.
+  const linear = !!spec.linear;
+  const yMin = linear ? 0 : Math.max(50, Math.min(...ys) * 0.85);
+  const yMax = Math.max(...ys) * (linear ? 1.08 : 1.18);
   const X = x => mL + ((x - xMin) / ((xMax - xMin) || 1)) * PW;
-  const Y = y => mT + ((Math.log(yMax) - Math.log(Math.max(y, 1e-9))) / ((Math.log(yMax) - Math.log(yMin)) || 1)) * PH;
+  const Y = linear
+    ? y => mT + (1 - (Math.max(y, 0) - yMin) / ((yMax - yMin) || 1)) * PH
+    : y => mT + ((Math.log(yMax) - Math.log(Math.max(y, 1e-9))) / ((Math.log(yMax) - Math.log(yMin)) || 1)) * PH;
   const pl = pts => pts.map(([x, y]) => `${X(x).toFixed(1)},${Y(y).toFixed(1)}`).join(" ");
   const baseY = (mT + PH).toFixed(1);
   const green = "#34d399", amber = "#fbbf24";
@@ -423,11 +430,18 @@ export function renderDca(spec, opts = {}) {
       <stop offset="0%" stop-color="${amber}" stop-opacity="0.34"/><stop offset="100%" stop-color="${amber}" stop-opacity="0.04"/></linearGradient>
     <filter id="dcaGlow" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="6"/></filter>`;
 
-  // gridlines: powers of ten within range
+  // gridlines: powers of ten on log, ~5 nice round steps on linear
   const fK = v => v >= 1e6 ? "$" + (v / 1e6) + "M" : v >= 1e3 ? "$" + (v / 1e3).toLocaleString() + "K" : "$" + Math.round(v);
+  let gridVals = [];
+  if (linear) {
+    const raw = yMax / 4, mag = 10 ** Math.floor(Math.log10(raw));
+    const step = ([1, 2, 2.5, 5, 10].map(m => m * mag).find(s => s >= raw)) || mag;
+    for (let v = step; v <= yMax; v += step) gridVals.push(v);
+  } else {
+    for (let e = 1; e <= 8; e++) { const v = 10 ** e; if (v >= yMin && v <= yMax) gridVals.push(v); }
+  }
   let grid = "";
-  for (let e = 1; e <= 8; e++) {
-    const v = 10 ** e; if (v < yMin || v > yMax) continue;
+  for (const v of gridVals) {
     const yy = Y(v).toFixed(1);
     grid += `<line x1="${mL}" y1="${yy}" x2="${DW - mR}" y2="${yy}" stroke="rgba(255,255,255,0.07)"/>`;
     grid += `<text x="${mL - 12}" y="${(+yy + 6).toFixed(1)}" fill="#64748b" font-size="20" text-anchor="end" font-family="sans-serif">${fK(v)}</text>`;
