@@ -54,10 +54,18 @@ async function main() {
     p,
     holders: breakdowns?.total_holders ?? null,
     be: pnl?.break_even_price ?? null,
+    upnl: pnl?.unrealized_pnl_total ?? null, // aggregate unrealized $ PnL of all holders
+    rpnl: pnl?.realized_pnl_total ?? null,   // aggregate realized $ PnL (booked)
     gini: stats?.gini ?? null,
     fng: fearGreed,
     sup,
   };
+
+  // Discovery aid (remove once read from the CI logs): dump every field the pnl
+  // endpoint returns, to see whether it carries a "percent in profit" / cost-basis
+  // distribution we're not yet capturing — drives the future MVRV / supply-in-
+  // profit card.
+  if (pnl) console.log("pnl fields:", JSON.stringify(pnl));
 
   let arr = [];
   try { const txt = await readFile(FILE, "utf8"); const parsed = JSON.parse(txt); if (Array.isArray(parsed)) arr = parsed; } catch { /* first run */ }
@@ -66,7 +74,7 @@ async function main() {
   arr.sort((a, b) => a.d.localeCompare(b.d));
 
   await writeFile(FILE, JSON.stringify(arr));
-  console.log(`snapshot ${rec.d} · price ${p} · holders ${rec.holders} · ${arr.length} records total`);
+  console.log(`snapshot ${rec.d} · price ${p} · holders ${rec.holders} · upnl ${rec.upnl} · rpnl ${rec.rpnl} · ${arr.length} records total`);
 }
 
 main().catch(e => { console.error(e); process.exit(1); });
