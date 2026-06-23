@@ -619,6 +619,42 @@ export function renderKrakenCard() {
   return readFileSync(KRAKEN_IMG);
 }
 
+// Dynamic-DCA ladder: the rainbow bands stacked richest-on-top (red) to
+// cheapest-on-bottom (green/blue), each row showing how hard to buy. Cool bands
+// carry a green intensity bar (buy heavier the cheaper it gets); hot bands just
+// say "let it ride" (never a sell call — on-brand for a hold-forever community).
+// bands: [{label,color,mult?,action}] index 0=cheapest…8=richest. current=band idx.
+export function renderDcaLadder(spec, opts = {}) {
+  const { DW, DH, PW, PH } = geom(opts);
+  const bands = spec.bands, cur = spec.current, n = bands.length;
+  const gap = 9, rowH = (PH - gap * (n - 1)) / n;
+  const barX = mL + 320, maxBar = PW - 320 - 150;
+  const maxMult = Math.max(...bands.filter(b => b.mult).map(b => b.mult), 1);
+  const buy = "#34d399";
+  let svg = "", defs = "";
+  bands.forEach((b, i) => {
+    const rowIndex = n - 1 - i;                  // band 0 (cheapest) → bottom row
+    const y = mT + rowIndex * (rowH + gap);
+    const cy = y + rowH / 2, isCur = i === cur;
+    svg += `<rect x="${mL}" y="${y.toFixed(1)}" width="${PW}" height="${rowH.toFixed(1)}" rx="12" fill="${b.color}" fill-opacity="${isCur ? 0.34 : 0.13}"${isCur ? ` stroke="#fff" stroke-width="3"` : ""}/>`;
+    svg += `<text x="${mL + 24}" y="${(cy + 9).toFixed(1)}" fill="#f1f5f9" font-size="27" font-weight="700" font-family="sans-serif">${esc(b.label)}</text>`;
+    if (b.mult) {
+      const bw = Math.max(16, (b.mult / maxMult) * maxBar), id = `lad${i}`;
+      defs += `<linearGradient id="${id}" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="${buy}" stop-opacity="0.9"/><stop offset="100%" stop-color="${buy}" stop-opacity="0.4"/></linearGradient>`;
+      svg += `<rect x="${barX}" y="${(cy - 14).toFixed(1)}" width="${bw.toFixed(1)}" height="28" rx="14" fill="url(#${id})"/>`;
+      svg += `<text x="${(barX + bw + 16).toFixed(1)}" y="${(cy + 9).toFixed(1)}" fill="#f8fafc" font-size="26" font-weight="800" font-family="sans-serif">${esc(b.action)}</text>`;
+    } else {
+      svg += `<text x="${barX}" y="${(cy + 9).toFixed(1)}" fill="#94a3b8" font-size="24" font-style="italic" font-family="sans-serif">${esc(b.action)}</text>`;
+    }
+    if (isCur) {
+      const tagW = 188, tx = mL + PW - tagW - 14, ty = y + (rowH - 34) / 2;
+      svg += `<rect x="${tx.toFixed(1)}" y="${ty.toFixed(1)}" width="${tagW}" height="34" rx="17" fill="#fff"/>`;
+      svg += `<text x="${(tx + tagW / 2).toFixed(1)}" y="${(ty + 24).toFixed(1)}" fill="#05050e" font-size="20" font-weight="800" text-anchor="middle" letter-spacing="1" font-family="sans-serif">YOU ARE HERE</text>`;
+    }
+  });
+  return chrome(spec, svg, defs, { W: DW, H: DH });
+}
+
 export function renderPostCard(post, stats, opts = {}) {
   const { type, spec } = post.card;
   // Portrait for the supported cards; otherwise landscape — 3:2 by default, but a
@@ -632,6 +668,7 @@ export function renderPostCard(post, stats, opts = {}) {
   if (type === "fngdial") return renderFngDial(s, dims);
   if (type === "heatmap") return renderHeatmap(s, dims);
   if (type === "dca") return renderDca(s, dims);
+  if (type === "dcaladder") return renderDcaLadder(s, dims);
   if (type === "bar") return renderBarCard(s, dims);
   if (type === "mbars") return renderMonthBars(s, dims);
   if (type === "donut") return renderDonut(s, dims);

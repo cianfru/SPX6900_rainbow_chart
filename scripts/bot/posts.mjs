@@ -766,6 +766,29 @@ You never needed the bottom, just consistency.`,
     };
   })(),
 
+  // dynamic-DCA ladder: rainbow-weighted accumulation. Buy heavier the cheaper
+  // SPX is (cool bands); the hot bands never say "sell", just "let it ride" — the
+  // buy-only spin keeps it on-brand for a hold-forever community.
+  s => (() => {
+    const LADDER = [
+      { mult: 5, action: "buy 5×" }, { mult: 3, action: "buy 3×" }, { mult: 2, action: "buy 2×" },
+      { mult: 1.5, action: "buy 1.5×" }, { mult: 1, action: "stack 1×" },
+      { action: "let it ride" }, { action: "let it ride" }, { action: "let it ride" }, { action: "let it ride" },
+    ];
+    const bands = M.BAND_LABELS.map((b, i) => ({ label: b.l, color: b.c, mult: LADDER[i].mult, action: LADDER[i].action }));
+    return {
+      id: "dcaladder",
+      text:
+`🌈 Let the rainbow size your buys.
+Flat DCA buys the same every month. The rainbow way buys heavier the cheaper it gets: 5× in the Fire Sale, down to 1× at fair value. In the red, you let it ride.
+We never sell the top, we just buy the bottom harder. Today: ${s.band.l}.`,
+      card: { type: "dcaladder", spec: {
+        title: "Let the rainbow size your buys", headline: `${s.band.l} → ${LADDER[s.bandIndex].action}`, accent: s.band.c,
+        bands, current: s.bandIndex,
+      } },
+    };
+  })(),
+
   // 28 — SPX6900 vs the majors, year-to-date (rebased to 0% on Jan 1). An honest
   // side-by-side — shown even when SPX trails, because the comparison itself is
   // the value. Uses the live 1-yr major series (no bundled history needed).
