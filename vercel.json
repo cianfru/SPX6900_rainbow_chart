@@ -1,4 +1,7 @@
 {
+  "functions": {
+    "api/og.js": { "includeFiles": "scripts/bot/fonts/**" }
+  },
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api/$1" },
     { "source": "/share", "destination": "/api/share" },

@@ -7,6 +7,7 @@ import { execFileSync } from "node:child_process";
 import { Resvg } from "@resvg/resvg-js";
 import { rainbowSvg } from "../../src/rainbow-svg.js";
 import { lineCardSvg, cubeCardSvg, scaleCardSvg } from "./charts.mjs";
+import { FONT } from "./font.mjs";
 
 // Prefer an explicit FFMPEG_PATH (e.g. the runner's system ffmpeg), then the
 // bundled static binary, then plain "ffmpeg" on PATH — so it works everywhere.
@@ -22,7 +23,7 @@ async function renderVideo({ svgAt, draw = 7, hold = 3, fps = 30, out = "bot-vid
   rmSync(dir, { recursive: true, force: true });
   mkdirSync(dir);
   try {
-    const render = svg => new Resvg(svg, { fitTo: { mode: "width", value: width } }).render().asPng();
+    const render = svg => new Resvg(svg, { fitTo: { mode: "width", value: width }, font: FONT }).render().asPng();
     let f = 0;
     const save = b => writeFileSync(`${dir}/f${String(f++).padStart(4, "0")}.png`, b);
     const drawN = Math.round(fps * draw), holdN = Math.round(fps * hold);

@@ -9,6 +9,7 @@ import { fetchLivePrice, fetchMajors, fetchHistory, computeStats } from "../scri
 import { buildPost } from "../scripts/bot/posts.mjs";
 import { renderPostCard } from "../scripts/bot/charts.mjs";
 import { staticImageFor } from "../scripts/bot/card-format.mjs";
+import { FONT } from "../scripts/bot/font.mjs";
 
 // Nav tab id -> the rotating post whose card best represents that tab.
 const TAB_POST = {
@@ -20,7 +21,7 @@ const TAB_POST = {
 const NEEDS_COINS = new Set(["btc", "majors", "majorcaps", "ytd"]);
 
 const rainbowPng = price =>
-  new Resvg(rainbowSvg(price), { fitTo: { mode: "width", value: 1200 } }).render().asPng();
+  new Resvg(rainbowSvg(price), { fitTo: { mode: "width", value: 1200 }, font: FONT }).render().asPng();
 
 export default async function handler(req, res) {
   const params = new URL(req.url, "http://x").searchParams;

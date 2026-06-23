@@ -2,8 +2,9 @@
 // browser). Shares the SVG generator with the social share image (api/og.js).
 import { Resvg } from "@resvg/resvg-js";
 import { rainbowSvg } from "../../src/rainbow-svg.js";
+import { FONT } from "./font.mjs";
 
 export function renderRainbowCard(stats, opts = {}) {
   const w = opts.W ?? 1200;
-  return new Resvg(rainbowSvg(stats.price, stats.date, { W: opts.W, H: opts.H }), { fitTo: { mode: "width", value: w } }).render().asPng();
+  return new Resvg(rainbowSvg(stats.price, stats.date, { W: opts.W, H: opts.H }), { fitTo: { mode: "width", value: w }, font: FONT }).render().asPng();
 }

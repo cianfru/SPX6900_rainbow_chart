@@ -5,6 +5,7 @@
 import { readFileSync } from "node:fs";
 import { Resvg } from "@resvg/resvg-js";
 import { renderRainbowCard } from "./rainbow-card.mjs";
+import { FONT } from "./font.mjs";
 
 const W = 1200, H = 800, mL = 88, mR = 48, mT = 188, mB = 76; // landscape card is 3:2
 const pW = W - mL - mR, pH = H - mT - mB;
@@ -12,7 +13,7 @@ const pW = W - mL - mR, pH = H - mT - mB;
 // link-unfurl endpoint) can pass {W,H} to render the same card at another size.
 const geom = (o = {}) => { const DW = o.W ?? W, DH = o.H ?? H; return { DW, DH, PW: DW - mL - mR, PH: DH - mT - mB }; };
 const esc = s => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-const png = (svg, w = W) => new Resvg(svg, { fitTo: { mode: "width", value: w } }).render().asPng();
+const png = (svg, w = W) => new Resvg(svg, { fitTo: { mode: "width", value: w }, font: FONT }).render().asPng();
 
 function chromeSvg(spec, inner, extraDefs = "", dims) {
   const DW = dims?.W ?? W, DH = dims?.H ?? H;     // default = landscape card
