@@ -20,7 +20,7 @@ const KRAKEN_CODE = process.env.BOT_KRAKEN_CODE || "k4tg7p3p";
 const KRAKEN_EVERY = 30;
 // Ben Cowen's X handle, tagged on the dca-ladder card (env-overridable in case
 // it changes). The card image keeps the readable name; the tweet does the @-tag.
-const COWEN = process.env.BOT_COWEN || "@intocryptoverse";
+const COWEN = process.env.BOT_COWEN || "@benjamincowen";
 const TIGHT = ""; // a line break that stays single (not spaced out) — for tight lists
 
 const fPrice = p => (p >= 1 ? "$" + p.toFixed(2) : "$" + p.toFixed(4));
