@@ -339,7 +339,7 @@ Up in dollars is easy in a bull market. Up in BTC is the truer scoreboard.`,
     id: "distribution",
     text:
 `💎 ~${diamondPct}% of SPX6900's classified holder supply sits in diamond hands (longest-held, never sold).
-HolderScan tiers wallets by how long they've held, excluding exchanges and LPs. Of what's left, diamonds dominate, Gini ${s.supply.gini.toFixed(2)}.
+HolderScan tiers wallets by how long they've held, excluding exchanges and LPs. Of that classified supply, diamond hands dominate.
 High conviction, thin float.`,
     card: { type: "donut", spec: {
       title: "Conviction of classified holder supply", headline: `${diamondPct}% diamond hands`, accent: "#22d3ee",
