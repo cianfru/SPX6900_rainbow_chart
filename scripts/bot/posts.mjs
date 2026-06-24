@@ -158,6 +158,47 @@ function spVsSpec(title, r, tag) {
   } };
 }
 
+// Shared builder for the majors race cards (YTD + trailing-12mo): rebase SPX and
+// each major to 0% at startTs, rank the field, and assemble the multi-line spec
+// with a coin logo riding each line's right endpoint. Returns null without data.
+const MAJ_COLOR = { BTC: "#f7931a", ETH: "#818cf8", SOL: "#9945ff" };
+const MAJ_LOGO = { BTC: "btc", ETH: "eth", SOL: "sol" };
+function majorsRace(s, startTs) {
+  const rebase = pts => {
+    const win = pts.filter(([t]) => t >= startTs);
+    if (win.length < 2) return null;
+    const base = win[0][1];
+    return win.map(([t, p]) => [t, (p / base - 1) * 100]);
+  };
+  const spx = rebase(s.series.price);
+  if (!spx) return null;
+  const lines = s.majors.map(m => ({ name: m.name, color: MAJ_COLOR[m.name] || "#94a3b8", logo: MAJ_LOGO[m.name], pts: rebase(m.series) })).filter(m => m.pts);
+  if (!lines.length) return null;
+  const spxRet = spx.at(-1)[1] / 100;
+  const ranked = [{ name: "SPX6900", ret: spxRet }, ...lines.map(m => ({ name: m.name, ret: m.pts.at(-1)[1] / 100 }))].sort((a, b) => b.ret - a.ret);
+  const allY = [...spx, ...lines.flatMap(m => m.pts)].map(p => p[1]);
+  const lo = Math.min(0, ...allY), hi = Math.max(0, ...allY), step = 20;
+  const yTicks = [];
+  for (let v = Math.floor(lo / step) * step; v <= Math.ceil(hi / step) * step + 1e-6; v += step) yTicks.push({ v, label: (v > 0 ? "+" : "") + v + "%" });
+  const order = ranked.map(r => r.name);
+  const spxRank = order.indexOf("SPX6900");
+  const ahead = ranked.slice(0, spxRank).map(r => r.name);   // majors beating SPX
+  const behind = ranked.slice(spxRank + 1).map(r => r.name); // majors SPX is beating
+  const standings = ranked.map(r => `${r.name}: ${fPct(r.ret)}`).join(TIGHT);
+  return {
+    spxRet, ranked, spxRank, ahead, behind, standings,
+    spec: {
+      accent: spxRet >= 0 ? "#4ade80" : "#f87171",
+      yMin: Math.floor(lo / step) * step, yMax: Math.ceil(hi / step) * step, yTicks,
+      hlines: [{ y: 0, label: "0%", color: "#475569" }],
+      series: [
+        ...lines.map(m => ({ pts: m.pts, color: m.color, width: 2.5, logo: m.logo })),
+        { pts: spx, color: "#4ade80", width: 4, logo: "spx" },
+      ],
+    },
+  };
+}
+
 // SPX6900 priced in BTC over its whole life: align the bundled BTC_HISTORY
 // ([ageDays, usd], from 2010) to each SPX timestamp (largest BTC date ≤ it) and
 // divide. Lets the BTC monthly card build from bundled data alone. Skips SPX
@@ -448,21 +489,26 @@ ${up ? "Most of the float is green and still holding." : "The crowd's red and st
     };
   })(),
 
-  // 12 — SPX vs majors (relative strength, 1yr). Gated: only post when SPX is
-  // actually outperforming at least one major — never lead with a pure self-own.
-  // Sorted best-first so the headline always shows a win.
-  s => s.majors && s.majors.some(m => m.rel365 > 0) && (() => {
-    const sorted = [...s.majors].sort((a, b) => b.rel365 - a.rel365);
-    const wins = sorted.filter(m => m.rel365 > 0).map(m => m.name).join(" & ");
+  // 12 — SPX vs the majors over the trailing 12 months (rebased to 0% a year back).
+  // Four overlaying price-action lines, each ending in its coin logo — the rolling
+  // sibling of the YTD race. Shown even when SPX trails; the closer reflects rank.
+  s => s.majors && s.majors.length && (() => {
+    const r = majorsRace(s, s.series.price.at(-1)[0] - 365 * 86400000);
+    if (!r) return null;
+    const closer = r.spxRank === 0
+      ? "SPX6900 out front — leading the majors over the year."
+      : r.behind.length === 0
+        ? (r.spxRet >= 0 ? "Green over the year, just not the leader yet." : "A year in the cold — exactly where the rainbow says the next run is built.")
+        : `${r.spxRet >= 0 ? "Green over the year and" : "Red over the year but"} already ahead of ${r.behind.join(" & ")} — only ${r.ahead.join(" & ")} in front.`;
     return {
       id: "majors",
       text:
-`⚔️ SPX6900 is ${fPct(sorted[0].rel365)} vs ${sorted[0].name} over the past year, outpacing ${wins}:
-${sorted.map(m => `${m.name}: ${fPct(m.rel365)}`).join(" · ")}
-Relative strength, not dollars: positive means SPX beat it. One year flips fast, so a snapshot, not a trend.`,
-      card: { type: "bar", spec: {
-        title: "SPX6900 vs majors — 1-yr relative", headline: `${sorted[0].name} ${fPct(sorted[0].rel365)}`, accent: "#818cf8",
-        bars: sorted.map(m => ({ label: "vs " + m.name, logo: m.name.toLowerCase(), value: m.rel365, text: fPct(m.rel365), color: m.rel365 >= 0 ? "#4ade80" : "#f87171" })),
+`📊 Last 12 months: SPX6900 ${fPct(r.spxRet)} vs the majors, no spin:
+${r.standings}
+All rebased to 0% a year back, a clean same-start race vs BTC, ETH and SOL. ${closer}`,
+      card: { type: "line", spec: {
+        ...r.spec,
+        title: "The 12-month race: SPX6900 vs the majors", headline: `SPX6900 ${fPct(r.spxRet)} · 12mo`,
       } },
     };
   })(),
@@ -984,51 +1030,25 @@ Ben Cowen's method, on our chart. A model, not advice.`,
   // the value. Uses the live 1-yr major series (no bundled history needed).
   s => s.majors && s.majors.length && (() => {
     const YEAR = Date.UTC(new Date(Date.parse(s.date)).getUTCFullYear(), 0, 1);
-    const rebase = pts => {
-      const yr = pts.filter(([t]) => t >= YEAR);
-      if (yr.length < 2) return null;
-      const base = yr[0][1];
-      return yr.map(([t, p]) => [t, (p / base - 1) * 100]);
-    };
-    const COLOR = { BTC: "#f7931a", ETH: "#818cf8", SOL: "#9945ff" };
-    const LOGO = { BTC: "btc", ETH: "eth", SOL: "sol" };
-    const spx = rebase(s.series.price);
-    if (!spx) return null;
-    const lines = s.majors.map(m => ({ name: m.name, color: COLOR[m.name] || "#94a3b8", logo: LOGO[m.name], pts: rebase(m.series) })).filter(m => m.pts);
-    if (!lines.length) return null;
-    const spxYtd = spx.at(-1)[1] / 100; // back to fraction for fPct
-    const ranked = [{ name: "SPX6900", ret: spxYtd }, ...lines.map(m => ({ name: m.name, ret: m.pts.at(-1)[1] / 100 }))].sort((a, b) => b.ret - a.ret);
-    const allY = [...spx, ...lines.flatMap(m => m.pts)].map(p => p[1]);
-    const lo = Math.min(0, ...allY), hi = Math.max(0, ...allY), step = 20;
-    const yTicks = [];
-    for (let v = Math.floor(lo / step) * step; v <= Math.ceil(hi / step) * step + 1e-6; v += step) yTicks.push({ v, label: (v > 0 ? "+" : "") + v + "%" });
+    const r = majorsRace(s, YEAR);
+    if (!r) return null;
     // Closer reflects SPX's RANK among the majors, not just green/red — being down
     // on the year while still beating most of the field is a different story than
     // dead last, and the copy should say so.
-    const order = ranked.map(r => r.name);
-    const spxRank = order.indexOf("SPX6900");
-    const ahead = ranked.slice(0, spxRank).map(r => r.name);   // majors beating SPX
-    const behind = ranked.slice(spxRank + 1).map(r => r.name); // majors SPX is beating
-    const closer = spxRank === 0
+    const closer = r.spxRank === 0
       ? "SPX6900 out front, the meme keeps outrunning the majors."
-      : behind.length === 0
-        ? (spxYtd >= 0 ? "Green on the year, just not the leader yet." : "A rough start, no spin. Every prior dip here has been a refuel stop.")
-        : `${spxYtd >= 0 ? "Green on the year and" : "Red on the year but"} already ahead of ${behind.join(" & ")} — only ${ahead.join(" & ")} in front.`;
+      : r.behind.length === 0
+        ? (r.spxRet >= 0 ? "Green on the year, just not the leader yet." : "A rough start, no spin. Every prior dip here has been a refuel stop.")
+        : `${r.spxRet >= 0 ? "Green on the year and" : "Red on the year but"} already ahead of ${r.behind.join(" & ")} — only ${r.ahead.join(" & ")} in front.`;
     return {
       id: "ytd",
       text:
-`📊 SPX6900 is ${fPct(spxYtd)} YTD vs the majors, no spin:
-${ranked.map(r => `${r.name}: ${fPct(r.ret)}`).join(TIGHT)}
+`📊 SPX6900 is ${fPct(r.spxRet)} YTD vs the majors, no spin:
+${r.standings}
 Everything rebased to 0% on Jan 1, a clean same-start race against BTC, ETH and SOL. ${closer}`,
       card: { type: "line", spec: {
-        title: "The YTD race: SPX6900 vs the majors", headline: `SPX6900 ${fPct(spxYtd)} YTD`, accent: spxYtd >= 0 ? "#4ade80" : "#f87171",
-        yMin: Math.floor(lo / step) * step, yMax: Math.ceil(hi / step) * step, yTicks,
-        hlines: [{ y: 0, label: "0%", color: "#475569" }],
-        // Each line carries its coin logo, parked at the line's right endpoint.
-        series: [
-          ...lines.map(m => ({ pts: m.pts, color: m.color, width: 2.5, logo: m.logo })),
-          { pts: spx, color: "#4ade80", width: 4, logo: "spx" },
-        ],
+        ...r.spec,
+        title: "The YTD race: SPX6900 vs the majors", headline: `SPX6900 ${fPct(r.spxRet)} YTD`,
       } },
     };
   })(),
