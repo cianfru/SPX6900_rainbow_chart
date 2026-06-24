@@ -3,6 +3,8 @@
 // title + a big headline number; the plot below gives the visual punch. Keep
 // text emoji-free (resvg has no emoji font).
 import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { join, dirname } from "node:path";
 import { Resvg } from "@resvg/resvg-js";
 import { renderRainbowCard } from "./rainbow-card.mjs";
 import { FONT } from "./font.mjs";
@@ -15,10 +17,53 @@ const geom = (o = {}) => { const DW = o.W ?? W, DH = o.H ?? H; return { DW, DH, 
 const esc = s => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 const png = (svg, w = W) => new Resvg(svg, { fitTo: { mode: "width", value: w }, font: FONT }).render().asPng();
 
+// SPX6900 circular icon, embedded as base64 so the logo header renders with no
+// external dependency. Resolved two ways so it bundles on Vercel too (next to
+// this module, and under process.cwd() via vercel.json includeFiles) — same
+// lesson as the bundled font.
+const SPX_ICON_B64 = (() => {
+  let here = "";
+  try { here = dirname(fileURLToPath(import.meta.url)); } catch { /* bundled */ }
+  for (const p of [here && join(here, "spx-icon.png"), join(process.cwd(), "scripts/bot/spx-icon.png")].filter(Boolean)) {
+    try { return readFileSync(p).toString("base64"); } catch { /* next */ }
+  }
+  return null;
+})();
+// A logo "mark" for the header: the SPX icon (image), or a drawn coin/index badge
+// for assets with no bundleable/usable logo (BTC ₿, ETH Ξ, SOL ◎, S&P, USD $).
+function logoMark(kind, x, y, size) {
+  const cx = x + size / 2, cy = y + size / 2, r = size / 2, fs = n => (size * n).toFixed(0);
+  if (kind === "spx" && SPX_ICON_B64) return `<image href="data:image/png;base64,${SPX_ICON_B64}" x="${x}" y="${y}" width="${size}" height="${size}" preserveAspectRatio="xMidYMid meet"/>`;
+  const coin = (fill, glyph, gs = 0.66) => `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${fill}"/><text x="${cx}" y="${(cy + size * 0.34).toFixed(1)}" fill="#fff" font-size="${fs(gs)}" font-weight="800" text-anchor="middle" font-family="sans-serif">${glyph}</text>`;
+  if (kind === "btc") return coin("#f7931a", "₿");
+  if (kind === "eth") return coin("#627eea", "Ξ", 0.6);
+  if (kind === "sol") return coin("#9945ff", "◎", 0.6);
+  if (kind === "usd") return coin("#16a34a", "$");
+  if (kind === "sp500") return `<rect x="${x}" y="${y}" width="${size}" height="${size}" rx="${fs(0.2)}" fill="#1d4ed8"/><text x="${cx}" y="${(cy + size * 0.12).toFixed(1)}" fill="#fff" font-size="${fs(0.3)}" font-weight="800" text-anchor="middle" font-family="sans-serif">S&amp;P</text>`;
+  return coin("#475569", "?");
+}
+// "[logo] vs [logo] = result" header — sharp + colorful, replaces the wordy title.
+function logoHeaderSvg(lh, accent) {
+  const size = 76, y = 72;
+  let x = 64, out = logoMark(lh.left, x, y, size);
+  x += size + 22;
+  out += `<text x="${x}" y="${(y + size * 0.7).toFixed(1)}" fill="#94a3b8" font-size="34" font-weight="700" font-family="sans-serif">vs</text>`;
+  x += 64;
+  out += logoMark(lh.right, x, y, size);
+  x += size + 26;
+  out += `<text x="${x}" y="${(y + size * 0.68).toFixed(1)}" fill="${accent}" font-size="46" font-weight="800" font-family="sans-serif">= ${esc(lh.result)}</text>`;
+  return out;
+}
+
 function chromeSvg(spec, inner, extraDefs = "", dims) {
   const DW = dims?.W ?? W, DH = dims?.H ?? H;     // default = landscape card
   const accent = spec.accent || "#4ade80";
   const footer = spec.footer || "spx6900rainbow.xyz · not financial advice";
+  // Logo header ("[logo] vs [logo] = result") replaces the text title+headline.
+  const header = spec.logoHeader
+    ? logoHeaderSvg(spec.logoHeader, accent)
+    : `<text x="64" y="112" fill="#e2e8f0" font-size="38" font-weight="700" font-family="sans-serif">${esc(spec.title)}</text>`
+      + (spec.headline ? `<text x="64" y="166" fill="${accent}" font-size="58" font-weight="800" font-family="sans-serif">${esc(spec.headline)}</text>` : "");
   return `<svg width="${DW}" height="${DH}" viewBox="0 0 ${DW} ${DH}" xmlns="http://www.w3.org/2000/svg">
 <defs>
   <radialGradient id="g" cx="50%" cy="0%" r="80%">
@@ -30,8 +75,7 @@ function chromeSvg(spec, inner, extraDefs = "", dims) {
 <rect width="${DW}" height="${DH}" fill="url(#g)"/>
 <text x="64" y="52" fill="#94a3b8" font-size="30" font-weight="700" letter-spacing="3" font-family="sans-serif">SPX6900</text>
 <text x="${DW - 64}" y="52" fill="#475569" font-size="24" text-anchor="end" font-family="sans-serif">${esc(spec.date || "")}</text>
-<text x="64" y="112" fill="#e2e8f0" font-size="38" font-weight="700" font-family="sans-serif">${esc(spec.title)}</text>
-${spec.headline ? `<text x="64" y="166" fill="${accent}" font-size="58" font-weight="800" font-family="sans-serif">${esc(spec.headline)}</text>` : ""}
+${header}
 ${inner}
 <text x="64" y="${DH - 22}" fill="#475569" font-size="22" font-family="sans-serif">${esc(footer)}</text>
 </svg>`;
