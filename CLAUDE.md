@@ -30,6 +30,17 @@
   - **Buildable mechanism:** a price-momentum check (today green / up X% over 24h) biases the
     daily rotation toward a manually-tagged high-tier card that day; normal weighted rotation
     otherwise. One post/day cadence unchanged.
+  - **Measurement solved via Grok (2026-06-24):** Grok (inside X) has the read access the free
+    API lacks, so it can classify posts by likes/views — it's the metrics source + classifier.
+    Plan: wait ~2 weeks for more data, then have Grok tier the posts and overlay vs price.
+  - **Early Grok read (Jun 16–24, ~25 posts, directional only — n thin, one pump cycle):**
+    engine is the CARD TYPE, not the day's color. High tier = rainbow band-signal + valuation
+    charts (BUY!, Fire Sale, diamond hands, green-months); text/replies = low. Crucially the
+    TOP TWO posts (Jun 18: 79 likes; Jun 24: 51 likes) landed on RED days with "it's cheap /
+    BUY band" framing — the pump day (Jun 17) only produced Medium posts. So the hypothesis to
+    TEST is "band-signal chart cards win regardless of day (dip framing over-performs on red
+    days)", NOT "bullish cards on green days". Reinforces relaxing band-watch daily-suppression:
+    the band event cards ARE the top-engagement format, so suppressing them costs the most.
 - **First follower-milestone post = 690, NOT 100 (decided 2026-06-24).** Hit 100
   followers in 17 days; owner wants to hold for **690** as the first milestone post
   because it's the on-brand memeable number (69 / 6900). Build it like the other
