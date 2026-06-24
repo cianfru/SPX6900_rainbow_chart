@@ -9,7 +9,7 @@ import { fetchLivePrice, fetchMajors, fetchHistory, computeStats } from "../scri
 import { buildPost } from "../scripts/bot/posts.mjs";
 import { renderPostCard } from "../scripts/bot/charts.mjs";
 import { staticImageFor } from "../scripts/bot/card-format.mjs";
-import { FONT } from "../scripts/bot/font.mjs";
+import { FONT, FONT_DIAG } from "../scripts/bot/font.mjs";
 
 // Nav tab id -> the rotating post whose card best represents that tab.
 const TAB_POST = {
@@ -25,6 +25,42 @@ const rainbowPng = price =>
 
 export default async function handler(req, res) {
   const params = new URL(req.url, "http://x").searchParams;
+
+  // Font diagnostics: hit /api/og?debug=font to see what the live function has.
+  // Renders a tiny "ABC123" three ways and counts lit pixels so we can tell
+  // whether text draws at all on Vercel and via which font path.
+  if (params.get("debug") === "font") {
+    const testSvg = `<svg width="160" height="48" xmlns="http://www.w3.org/2000/svg"><rect width="160" height="48" fill="#000"/><text x="6" y="34" font-size="30" font-family="sans-serif" fill="#fff">ABC123</text></svg>`;
+    const litOf = fontOpt => {
+      try {
+        const px = new Resvg(testSvg, { font: fontOpt }).render().pixels;
+        let lit = 0;
+        for (let i = 0; i < px.length; i += 4) if (px[i] > 40 || px[i + 1] > 40 || px[i + 2] > 40) lit++;
+        return lit;
+      } catch (e) { return `ERR ${e.message}`; }
+    };
+    let fontFilesTmp = "n/a";
+    try {
+      const { writeFileSync } = await import("node:fs");
+      const { tmpdir } = await import("node:os");
+      const { join } = await import("node:path");
+      const p = join(tmpdir(), "dejavu.ttf");
+      if (FONT.fontBuffers[0]) {
+        writeFileSync(p, FONT.fontBuffers[0]);
+        fontFilesTmp = litOf({ loadSystemFonts: false, fontFiles: [p], defaultFontFamily: "DejaVu Sans", sansSerifFamily: "DejaVu Sans" });
+      }
+    } catch (e) { fontFilesTmp = `ERR ${e.message}`; }
+    const out = {
+      ...FONT_DIAG, cwd: process.cwd(), node: process.version,
+      test_fontBuffers_litPixels: litOf(FONT),                 // our current approach
+      test_fontFiles_tmp_litPixels: fontFilesTmp,              // write to /tmp + fontFiles
+      test_systemFonts_litPixels: litOf({ loadSystemFonts: true }), // any system font present?
+    };
+    res.setHeader("Content-Type", "application/json");
+    res.status(200).end(JSON.stringify(out, null, 2));
+    return;
+  }
+
   const tab = params.get("tab");
   // ?post=<id> renders that rotation card directly (used by the control gallery);
   // ?tab=<id> maps a site tab to its representative card (used by share links).

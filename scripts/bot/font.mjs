@@ -32,3 +32,13 @@ export const FONT = {
   defaultFontFamily: "DejaVu Sans",
   sansSerifFamily: "DejaVu Sans", // the cards all use font-family="sans-serif"
 };
+
+// Diagnostics surfaced by /api/og?debug=font, so we can see what the Vercel
+// function actually has (the embedded base64 was lost / empty? buffers decoded?).
+export const FONT_DIAG = {
+  regularB64Len: REGULAR_B64?.length ?? 0,
+  boldB64Len: BOLD_B64?.length ?? 0,
+  fontBuffers: fontBuffers.length,
+  buffer0Bytes: fontBuffers[0]?.length ?? 0,
+  loadSystemFonts: FONT.loadSystemFonts,
+};
