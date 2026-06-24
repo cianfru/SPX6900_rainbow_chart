@@ -32,6 +32,8 @@ const bundledB64 = name => {
 const SPX_ICON_B64 = bundledB64("spx-logo.png");
 const USDC_B64 = bundledB64("usdc-logo.png");
 const SPX500_B64 = bundledB64("spx500-logo.png");
+const ETH_B64 = bundledB64("eth-logo.png");
+const SOL_B64 = bundledB64("sol-logo.png");
 // Official Bitcoin "₿" mark drawn as paths (white symbol on the orange coin), so
 // it's properly centered — a text glyph sits off-centre and lacks the real logo's
 // shape. Path is the Bitcoin brand symbol in a 24×24 box (minus the outer disc,
@@ -51,6 +53,14 @@ function logoMark(kind, x, y, size) {
     return `<clipPath id="${id}"><circle cx="${cx}" cy="${cy}" r="${r}"/></clipPath><image href="data:image/png;base64,${SPX500_B64}" x="${x}" y="${y}" width="${size}" height="${size}" preserveAspectRatio="xMidYMid slice" clip-path="url(#${id})"/>`;
   }
   if (kind === "sp500") return `<circle cx="${cx}" cy="${cy}" r="${r}" fill="#d61f26"/><text x="${cx}" y="${(cy + size * 0.13).toFixed(1)}" fill="#fff" font-size="${fs(0.34)}" font-weight="800" text-anchor="middle" font-family="sans-serif" letter-spacing="-1">500</text>`;
+  // ETH = owner-provided round coin (already a disc, fills its square).
+  if (kind === "eth" && ETH_B64) return `<image href="data:image/png;base64,${ETH_B64}" x="${x}" y="${y}" width="${size}" height="${size}" preserveAspectRatio="xMidYMid meet"/>`;
+  // SOL = owner-provided black-disc logo on a wide frame: crop to the centred coin
+  // and add a faint ring so the dark disc reads against the dark card.
+  if (kind === "sol" && SOL_B64) {
+    const id = `solc${Math.round(x)}_${Math.round(y)}`;
+    return `<clipPath id="${id}"><circle cx="${cx}" cy="${cy}" r="${r}"/></clipPath><image href="data:image/png;base64,${SOL_B64}" x="${x}" y="${y}" width="${size}" height="${size}" preserveAspectRatio="xMidYMid slice" clip-path="url(#${id})"/><circle cx="${cx}" cy="${cy}" r="${(r - 0.5).toFixed(1)}" fill="none" stroke="rgba(148,163,184,0.45)" stroke-width="${(size * 0.025).toFixed(1)}"/>`;
+  }
   const coin = (fill, glyph, gs = 0.66, rot = 0) => `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${fill}"/><text x="${cx}" y="${(cy + size * 0.34).toFixed(1)}" fill="#fff" font-size="${fs(gs)}" font-weight="800" text-anchor="middle" font-family="sans-serif"${rot ? ` transform="rotate(${rot} ${cx} ${cy})"` : ""}>${glyph}</text>`;
   if (kind === "eth") return coin("#627eea", "Ξ", 0.6);
   if (kind === "sol") return coin("#9945ff", "◎", 0.6);

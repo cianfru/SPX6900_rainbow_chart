@@ -1,6 +1,6 @@
 {
   "functions": {
-    "api/og.js": { "includeFiles": "scripts/bot/{fonts/**,spx-logo.png,usdc-logo.png,spx500-logo.png}" }
+    "api/og.js": { "includeFiles": "scripts/bot/{fonts/**,spx-logo.png,usdc-logo.png,spx500-logo.png,eth-logo.png,sol-logo.png}" }
   },
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api/$1" },
