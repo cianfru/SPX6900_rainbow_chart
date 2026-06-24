@@ -1001,12 +1001,18 @@ Ben Cowen's method, on our chart. A model, not advice.`,
     const lo = Math.min(0, ...allY), hi = Math.max(0, ...allY), step = 20;
     const yTicks = [];
     for (let v = Math.floor(lo / step) * step; v <= Math.ceil(hi / step) * step + 1e-6; v += step) yTicks.push({ v, label: (v > 0 ? "+" : "") + v + "%" });
-    const winning = ranked[0].name === "SPX6900";
-    const closer = winning
+    // Closer reflects SPX's RANK among the majors, not just green/red — being down
+    // on the year while still beating most of the field is a different story than
+    // dead last, and the copy should say so.
+    const order = ranked.map(r => r.name);
+    const spxRank = order.indexOf("SPX6900");
+    const ahead = ranked.slice(0, spxRank).map(r => r.name);   // majors beating SPX
+    const behind = ranked.slice(spxRank + 1).map(r => r.name); // majors SPX is beating
+    const closer = spxRank === 0
       ? "SPX6900 out front, the meme keeps outrunning the majors."
-      : spxYtd >= 0
-        ? "Green on the year, just not the leader yet."
-        : "A rough start, no spin. Every prior dip here has been a refuel stop.";
+      : behind.length === 0
+        ? (spxYtd >= 0 ? "Green on the year, just not the leader yet." : "A rough start, no spin. Every prior dip here has been a refuel stop.")
+        : `${spxYtd >= 0 ? "Green on the year and" : "Red on the year but"} already ahead of ${behind.join(" & ")} — only ${ahead.join(" & ")} in front.`;
     return {
       id: "ytd",
       text:
