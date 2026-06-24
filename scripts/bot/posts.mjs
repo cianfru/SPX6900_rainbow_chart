@@ -191,11 +191,11 @@ function spxInBtcSeries(priceSeries) {
 // x = years since launch. Honest framing: the curves cross and it's baseline-
 // sensitive, so the headline stays qualitative. ETH/SOL early prices are approx.
 const AGE_PEERS = [
-  { id: "btcage", name: "Bitcoin", color: "#f7931a", series: BTC_HISTORY, launch: "2010-07-17", emoji: "₿",
+  { id: "btcage", name: "Bitcoin", color: "#f7931a", series: BTC_HISTORY, launch: "2010-07-17", emoji: "₿", kind: "btc",
     story: "Bitcoin is the blueprint. Its power-law trend, 4-year cycle and rainbow chart underpin this whole project." },
-  { id: "ethage", name: "Ethereum", color: "#8b9bff", series: ETH_HISTORY, launch: "2015-08-07", emoji: "Ξ",
+  { id: "ethage", name: "Ethereum", color: "#8b9bff", series: ETH_HISTORY, launch: "2015-08-07", emoji: "Ξ", kind: "eth",
     story: "Ethereum nearly died in the cradle (the 2016 DAO hack), then ran from under a dollar to four figures." },
-  { id: "solage", name: "Solana", color: "#9945ff", series: SOL_HISTORY, launch: "2020-04-11", emoji: "◎",
+  { id: "solage", name: "Solana", color: "#9945ff", series: SOL_HISTORY, launch: "2020-04-11", emoji: "◎", kind: "sol",
     story: "Solana tore from under a dollar to ~$260, then the FTX collapse cut it ~96% and many called it dead. It came back." },
 ];
 const ageCard = peer => s => (() => {
@@ -222,13 +222,13 @@ ${peer.story}
 At this age: SPX6900 ${fMult(spxMult)} vs ${peer.name} ${fMult(peerMult)}. ${ahead ? "SPX is out front" : `${peer.name} ahead, for now`}. A resemblance, not a forecast.`,
     card: { type: "line", spec: {
       title: `SPX6900 vs ${peer.name}, at the same age`, headline: `Same age as early ${peer.name}`, accent: peer.color,
+      logoHeader: { left: "spx", right: peer.kind, result: "same age" },
       yLog: true, yMin: yMin * 0.7, yMax: yMax * 1.4, yTicks, xTicks,
+      // logos ride each line's endpoint (SPX vs the peer at the same age = the legend).
       series: [
-        { pts: peerPts, color: peer.color, width: 3, dash: true },
-        { pts: spx, color: "#4ade80", width: 3.4, fill: 0.12 },
+        { pts: peerPts, color: peer.color, width: 3, dash: true, logo: peer.kind },
+        { pts: spx, color: "#4ade80", width: 3.4, fill: 0.12, logo: "spx" },
       ],
-      legend: [{ label: "SPX6900", color: "#4ade80" }, { label: `${peer.name} (same age)`, color: peer.color }],
-      marker: { x: spx.at(-1)[0], y: spx.at(-1)[1], color: "#4ade80" },
     } },
   };
 })();
