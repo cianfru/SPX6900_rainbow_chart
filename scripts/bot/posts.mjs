@@ -397,6 +397,7 @@ Up in dollars is easy in a bull market. Up in BTC is the truer scoreboard.`,
     card: { type: "line", spec: {
       title: "SPX6900 priced in Bitcoin (sats)", headline: fNum(s.btc.sats) + " sats", accent: "#f7931a",
       logoHeader: { left: "spx", right: "btc", result: `${fNum(s.btc.sats)} sats` },
+      yFmt: v => fNum(v), // sats, not dollars
       series: [{ pts: s.btc.series, color: "#f7931a", width: 3, fill: 0.16 }],
       marker: { x: s.btc.series.at(-1)[0], y: s.btc.series.at(-1)[1], color: "#f7931a" },
     } },

@@ -34,8 +34,8 @@ const SPX_ICON_B64 = (() => {
 function logoMark(kind, x, y, size) {
   const cx = x + size / 2, cy = y + size / 2, r = size / 2, fs = n => (size * n).toFixed(0);
   if (kind === "spx" && SPX_ICON_B64) return `<image href="data:image/png;base64,${SPX_ICON_B64}" x="${x}" y="${y}" width="${size}" height="${size}" preserveAspectRatio="xMidYMid meet"/>`;
-  const coin = (fill, glyph, gs = 0.66) => `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${fill}"/><text x="${cx}" y="${(cy + size * 0.34).toFixed(1)}" fill="#fff" font-size="${fs(gs)}" font-weight="800" text-anchor="middle" font-family="sans-serif">${glyph}</text>`;
-  if (kind === "btc") return coin("#f7931a", "₿");
+  const coin = (fill, glyph, gs = 0.66, rot = 0) => `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${fill}"/><text x="${cx}" y="${(cy + size * 0.34).toFixed(1)}" fill="#fff" font-size="${fs(gs)}" font-weight="800" text-anchor="middle" font-family="sans-serif"${rot ? ` transform="rotate(${rot} ${cx} ${cy})"` : ""}>${glyph}</text>`;
+  if (kind === "btc") return coin("#f7931a", "₿", 0.64, 13); // tilted ₿ = the Bitcoin logo
   if (kind === "eth") return coin("#627eea", "Ξ", 0.6);
   if (kind === "sol") return coin("#9945ff", "◎", 0.6);
   if (kind === "usd") return coin("#16a34a", "$");
@@ -123,11 +123,13 @@ function timeTicks(xMin, xMax) {
 // Gridline levels when a card doesn't supply usable ones (e.g. a sub-decade price
 // range where decade ticks come up empty). Powers of ten for wide log ranges,
 // else ~5 "nice" round levels spread across the range.
-function niceTicks(min, max, yLog) {
+function niceTicks(min, max, yLog, fmt) {
   if (!(max > min)) return [];
+  const dollar = v => v >= 1 ? "$" + v.toLocaleString(undefined, { maximumFractionDigits: 2 }) : "$" + v;
+  const lab = fmt || dollar; // spec.yFmt lets non-dollar axes (e.g. sats) relabel
   if (yLog && Math.log10(max) - Math.log10(min) >= 1.2) {
     const t = [];
-    for (let e = -8; e <= 9; e++) { const v = 10 ** e; if (v >= min * 0.9 && v <= max * 1.1) t.push({ v, label: v >= 1 ? "$" + v.toLocaleString() : "$" + v }); }
+    for (let e = -8; e <= 9; e++) { const v = 10 ** e; if (v >= min * 0.9 && v <= max * 1.1) t.push({ v, label: lab(v) }); }
     if (t.length >= 2) return t;
   }
   const raw = (max - min) / 5;
@@ -138,7 +140,7 @@ function niceTicks(min, max, yLog) {
   const out = [];
   for (let v = Math.ceil(min / step) * step; v <= max + step * 1e-6; v += step) {
     const val = +v.toFixed(dec + 2);
-    out.push({ v: val, label: val >= 1 ? "$" + val.toLocaleString(undefined, { maximumFractionDigits: 2 }) : "$" + val.toFixed(dec) });
+    out.push({ v: val, label: fmt ? fmt(val) : (val >= 1 ? "$" + val.toLocaleString(undefined, { maximumFractionDigits: 2 }) : "$" + val.toFixed(dec)) });
   }
   return out;
 }
@@ -189,7 +191,7 @@ export function lineCardSvg(spec, opts = {}) {
   // gridlines + y labels. Fall back to auto levels when the card didn't supply
   // usable ticks (e.g. decade ticks came up empty for a sub-decade range).
   let grid = "";
-  const yTicks = (spec.yTicks && spec.yTicks.length >= 2) ? spec.yTicks : niceTicks(yMin, yMax, spec.yLog);
+  const yTicks = (spec.yTicks && spec.yTicks.length >= 2) ? spec.yTicks : niceTicks(yMin, yMax, spec.yLog, spec.yFmt);
   for (const t of yTicks) {
     if (t.v < Math.min(yMin, yMax) || t.v > Math.max(yMin, yMax)) continue;
     const yy = Y(t.v).toFixed(1);
