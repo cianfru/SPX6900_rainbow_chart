@@ -17,25 +17,30 @@ const geom = (o = {}) => { const DW = o.W ?? W, DH = o.H ?? H; return { DW, DH, 
 const esc = s => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 const png = (svg, w = W) => new Resvg(svg, { fitTo: { mode: "width", value: w }, font: FONT }).render().asPng();
 
-// SPX6900 circular icon, embedded as base64 so the logo header renders with no
+// SPX6900 gold-coin logo, embedded as base64 so the logo header renders with no
 // external dependency. Resolved two ways so it bundles on Vercel too (next to
 // this module, and under process.cwd() via vercel.json includeFiles) — same
 // lesson as the bundled font.
 const SPX_ICON_B64 = (() => {
   let here = "";
   try { here = dirname(fileURLToPath(import.meta.url)); } catch { /* bundled */ }
-  for (const p of [here && join(here, "spx-icon.png"), join(process.cwd(), "scripts/bot/spx-icon.png")].filter(Boolean)) {
+  for (const p of [here && join(here, "spx-logo.png"), join(process.cwd(), "scripts/bot/spx-logo.png")].filter(Boolean)) {
     try { return readFileSync(p).toString("base64"); } catch { /* next */ }
   }
   return null;
 })();
-// A logo "mark" for the header: the SPX icon (image), or a drawn coin/index badge
-// for assets with no bundleable/usable logo (BTC ₿, ETH Ξ, SOL ◎, S&P, USD $).
+// Official Bitcoin "₿" mark drawn as paths (white symbol on the orange coin), so
+// it's properly centered — a text glyph sits off-centre and lacks the real logo's
+// shape. Path is the Bitcoin brand symbol in a 24×24 box (minus the outer disc,
+// which we draw as the circle below).
+const BTC_SYMBOL = "M17.288 10.291c.24-1.59-.974-2.45-2.64-3.03l.54-2.153-1.315-.328-.525 2.107c-.345-.087-.705-.167-1.064-.25l.526-2.127-1.32-.33-.54 2.165c-.285-.067-.565-.132-.84-.2l-1.815-.45-.35 1.407s.974.225.955.236c.535.136.63.486.615.766l-1.477 5.92c-.075.18-.24.45-.614.35.015.02-.96-.24-.96-.24l-.66 1.51 1.71.426.93.242-.54 2.19 1.32.327.54-2.17c.36.1.705.19 1.05.273l-.51 2.154 1.32.33.545-2.19c2.24.427 3.93.257 4.64-1.774.57-1.637-.03-2.58-1.217-3.196.854-.193 1.5-.76 1.68-1.93zm-3.01 4.22c-.404 1.64-3.157.75-4.05.53l.72-2.9c.896.23 3.757.67 3.33 2.37zm.41-4.24c-.37 1.49-2.662.735-3.405.55l.654-2.62c.744.18 3.137.524 2.75 2.07z";
+// A logo "mark" for the header: the SPX coin (image), the Bitcoin symbol (paths),
+// or a drawn coin/index badge for assets with no usable logo (ETH Ξ, SOL ◎, S&P, USD $).
 function logoMark(kind, x, y, size) {
   const cx = x + size / 2, cy = y + size / 2, r = size / 2, fs = n => (size * n).toFixed(0);
-  if (kind === "spx" && SPX_ICON_B64) return `<image href="data:image/png;base64,${SPX_ICON_B64}" x="${x}" y="${y}" width="${size}" height="${size}" preserveAspectRatio="xMidYMid meet"/>`;
+  if (kind === "spx" && SPX_ICON_B64) return `<image href="data:image/png;base64,${SPX_ICON_B64}" x="${x}" y="${y}" width="${size}" height="${size}" preserveAspectRatio="xMidYMid slice"/>`;
+  if (kind === "btc") return `<circle cx="${cx}" cy="${cy}" r="${r}" fill="#f7931a"/><path transform="translate(${x.toFixed(2)},${y.toFixed(2)}) scale(${(size / 24).toFixed(4)})" fill="#fff" d="${BTC_SYMBOL}"/>`;
   const coin = (fill, glyph, gs = 0.66, rot = 0) => `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${fill}"/><text x="${cx}" y="${(cy + size * 0.34).toFixed(1)}" fill="#fff" font-size="${fs(gs)}" font-weight="800" text-anchor="middle" font-family="sans-serif"${rot ? ` transform="rotate(${rot} ${cx} ${cy})"` : ""}>${glyph}</text>`;
-  if (kind === "btc") return coin("#f7931a", "₿", 0.64, 13); // tilted ₿ = the Bitcoin logo
   if (kind === "eth") return coin("#627eea", "Ξ", 0.6);
   if (kind === "sol") return coin("#9945ff", "◎", 0.6);
   if (kind === "usd") return coin("#16a34a", "$");
