@@ -34,6 +34,9 @@ const USDC_B64 = bundledB64("usdc-logo.png");
 const SPX500_B64 = bundledB64("spx500-logo.png");
 const ETH_B64 = bundledB64("eth-logo.png");
 const SOL_B64 = bundledB64("sol-logo.png");
+// Memecoin coins (owner-provided): round logos with transparent frames, cropped
+// to the centred coin. Keyed so the milestone cards can mark each king.
+const COIN_IMG = { pepe: bundledB64("pepe-logo.png"), shib: bundledB64("shib-logo.png"), doge: bundledB64("doge-logo.png") };
 // Official Bitcoin "₿" mark drawn as paths (white symbol on the orange coin), so
 // it's properly centered — a text glyph sits off-centre and lacks the real logo's
 // shape. Path is the Bitcoin brand symbol in a 24×24 box (minus the outer disc,
@@ -45,6 +48,8 @@ function logoMark(kind, x, y, size) {
   const cx = x + size / 2, cy = y + size / 2, r = size / 2, fs = n => (size * n).toFixed(0);
   if (kind === "spx" && SPX_ICON_B64) return `<image href="data:image/png;base64,${SPX_ICON_B64}" x="${x}" y="${y}" width="${size}" height="${size}" preserveAspectRatio="xMidYMid slice"/>`;
   if (kind === "btc") return `<circle cx="${cx}" cy="${cy}" r="${r}" fill="#f7931a"/><path transform="translate(${x.toFixed(2)},${y.toFixed(2)}) scale(${(size / 24).toFixed(4)})" fill="#fff" d="${BTC_SYMBOL}"/>`;
+  // Memecoin coins (PEPE/SHIB/DOGE): round logos cropped to the centred coin.
+  if (COIN_IMG[kind]) return `<image href="data:image/png;base64,${COIN_IMG[kind]}" x="${x}" y="${y}" width="${size}" height="${size}" preserveAspectRatio="xMidYMid slice"/>`;
   // USD = the real USDC coin logo (owner-provided image).
   if (kind === "usd" && USDC_B64) return `<image href="data:image/png;base64,${USDC_B64}" x="${x}" y="${y}" width="${size}" height="${size}" preserveAspectRatio="xMidYMid meet"/>`;
   // S&P 500 = owner-provided red "500" tile, clipped to a round coin.
@@ -916,11 +921,18 @@ export function cubeCardSvg(spec, opts = {}) {
       const cx = startX + cell / 2, cyTop = baseY - cell;
       body += `<circle cx="${cx.toFixed(1)}" cy="${(cyTop + a).toFixed(1)}" r="${(a * 2.1).toFixed(1)}" fill="none" stroke="${it.color}" stroke-width="2.5" opacity="0.9"/>`;
     }
-    // labels under the baseline (the × number rolls up with the reveal)
+    // labels under the baseline (the × number rolls up with the reveal). A coin
+    // logo, when supplied, stands in for the text name and reads faster.
     const ly = baseY + 38;
     body += `<text x="${cx0.toFixed(1)}" y="${ly}" fill="#f8fafc" font-size="30" font-weight="800" text-anchor="middle" font-family="sans-serif">${esc(fMultLbl(shown))}</text>`;
-    body += `<text x="${cx0.toFixed(1)}" y="${ly + 28}" fill="${it.color}" font-size="22" font-weight="700" text-anchor="middle" font-family="sans-serif">${esc(it.label)}</text>`;
-    if (it.sub) body += `<text x="${cx0.toFixed(1)}" y="${ly + 52}" fill="#94a3b8" font-size="19" text-anchor="middle" font-family="sans-serif">${esc(it.sub)}</text>`;
+    if (it.logo) {
+      const ls = 34;
+      body += logoMark(it.logo, cx0 - ls / 2, ly + 12, ls);
+      if (it.sub) body += `<text x="${cx0.toFixed(1)}" y="${ly + 70}" fill="#94a3b8" font-size="19" text-anchor="middle" font-family="sans-serif">${esc(it.sub)}</text>`;
+    } else {
+      body += `<text x="${cx0.toFixed(1)}" y="${ly + 28}" fill="${it.color}" font-size="22" font-weight="700" text-anchor="middle" font-family="sans-serif">${esc(it.label)}</text>`;
+      if (it.sub) body += `<text x="${cx0.toFixed(1)}" y="${ly + 52}" fill="#94a3b8" font-size="19" text-anchor="middle" font-family="sans-serif">${esc(it.sub)}</text>`;
+    }
   });
 
   if (spec.note) body += `<text x="${(W / 2).toFixed(1)}" y="${mT + 30}" fill="#94a3b8" font-size="21" text-anchor="middle" font-family="sans-serif">${esc(spec.note)}</text>`;

@@ -613,8 +613,8 @@ Each cube is one of today's caps; the pile is how many to match each king's ATH 
       card: { type: "cube", spec: {
         title: "How many SPX6900s to flip the giants?", headline: `${doge.short} = ${fMult(doge.mult)}`, accent: SPX_CUBE,
         items: [
-          { label: "SPX6900 today", sub: "you are here", count: 1, color: SPX_CUBE, highlight: true },
-          ...ms.map(m => ({ label: m.short, sub: m.mc, count: Math.round(m.mult), color: CUBE_COLORS[m.label] || m.c })),
+          { label: "SPX6900 today", logo: "spx", sub: "you are here", count: 1, color: SPX_CUBE, highlight: true },
+          ...ms.map(m => ({ label: m.short, logo: m.label.split(" ")[0].toLowerCase(), sub: m.mc, count: Math.round(m.mult), color: CUBE_COLORS[m.label] || m.c })),
         ],
       } },
     };
@@ -635,7 +635,7 @@ Each × is the move to match that king's ATH. Same fair-launch playbook, just ea
       card: { type: "line", spec: {
         title: "Flip the memecoin kings", headline: `DOGE-size = ${fMult(doge.mult)}`, accent: "#c2a633",
         yLog: true, yTicks: decadeTicks(s.firstPrice, top.price),
-        hlines: ms.map(m => ({ y: m.price, label: `${m.short} · ${fMult(m.mult)}`, color: m.c })),
+        hlines: ms.map(m => ({ y: m.price, label: fMult(m.mult), logo: m.label.split(" ")[0].toLowerCase(), color: m.c })),
         series: [{ pts: s.series.price, color: "#34d399", width: 3, fill: 0.12 }],
         marker: { x: lastTs(s), y: s.price, color: "#34d399" },
       } },
@@ -932,7 +932,7 @@ Where SPX meets each king's ATH cap on Bitcoin's path. A what-if, not a forecast
           { pts: s.series.price, color: "#4ade80", width: 3, fill: 0.1 },
           { pts: c.projPts, color: "#f7931a", width: 3, dash: true },
         ],
-        hlines: rungs.map(r => ({ y: r.price, label: `${r.short} · ${r.when}`, color: r.color })),
+        hlines: rungs.map(r => ({ y: r.price, label: r.when, logo: r.short.toLowerCase(), color: r.color })),
         markers: rungs.map(r => ({ x: r.ts, y: r.y, color: r.color })),
         legend: [{ label: "SPX actual", color: "#4ade80" }, { label: "BTC cycle (real)", color: "#f7931a" }],
         marker: { x: c.anchorTs, y: c.anchorPrice, color: "#4ade80" },
