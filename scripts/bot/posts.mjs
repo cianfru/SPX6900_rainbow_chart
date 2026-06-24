@@ -1139,6 +1139,27 @@ export function buildPost(stats, now = new Date(), overrideId = null) {
 // hourly band watcher — it only posts when price crosses INTO one of these.
 export const MARQUEE_BANDS = new Set([0, 1, 7, 8]); // Fire Sale, BUY, SELL, Max Bubble
 
+export const BAND_COOLDOWN_MS = 6 * 3600 * 1000; // min gap between band-change posts
+
+// Pure decision for the hourly band watcher, factored out so the guardrails are
+// testable. Three things gate a band-change post on top of "crossed into a
+// marquee band":
+//   • hysteresis (`armed`): fire only once per EXCURSION into an extreme zone —
+//     price must return to a calm (non-marquee) band to re-arm, so oscillating
+//     between two marquee bands (BUY <-> Fire Sale) can't keep firing;
+//   • cooldown: a minimum gap since the last real post;
+//   • daily suppression: if the daily rotation already posted today, stay quiet.
+// Returns the derived flags plus the `armed` value to carry into the next state.
+export function bandPostDecision({ bi, state, dailyPostedToday = false, now = Date.now(), cooldownMs = BAND_COOLDOWN_MS }) {
+  const calm = !MARQUEE_BANDS.has(bi);
+  const armed = calm ? true : (state?.armed ?? true);     // calm re-arms; default armed for legacy state
+  const marquee = MARQUEE_BANDS.has(bi);
+  const changed = !state || bi !== state.band;
+  const cooled = !state?.lastPostTs || now - Date.parse(state.lastPostTs) >= cooldownMs;
+  const shouldPost = changed && marquee && armed && cooled && !dailyPostedToday;
+  return { calm, armed, marquee, changed, cooled, shouldPost };
+}
+
 // Event post for a band crossing (fired by band-watch.mjs, not the rotation).
 export function buildBandChangePost(s, fromIdx) {
   const to = s.bandIndex, down = to < fromIdx;
