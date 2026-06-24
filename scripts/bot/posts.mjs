@@ -413,12 +413,15 @@ Rare cuts both ways: cheap is uncommon, but so is euphoria.`,
   },
 
   // 8 — diamond-adjusted "real" market cap (locked vs float, stacked)
-  s => s.supply && ({
+  s => s.supply && (() => {
+    const ofAll = Math.round(s.supply.diamondShare * 100); // diamond ÷ TOTAL supply
+    const ofClassified = s.supply.classified ? Math.round(s.supply.tiers.diamond / s.supply.classified * 100) : null; // ÷ identified holders only
+    return {
     id: "marketcap",
     text:
-`💰 SPX6900's real free-float cap is just ${fMoney(s.supply.floatMc)}, vs the ${fMoney(s.supply.nominalMc)} headline.
-The sticker cap assumes every coin can trade. But ~${Math.round(s.supply.diamondShare * 100)}% sits in diamond hands that rarely sell, so the tradable supply is far smaller.
-Thin float, high conviction: moves amplify both ways.`,
+`💰 Real free-float cap is just ${fMoney(s.supply.floatMc)}, vs the ${fMoney(s.supply.nominalMc)} headline.
+The sticker cap assumes every coin trades. But ~${ofAll}% of all SPX sits in diamond hands that rarely sell${ofClassified ? ` (≈${ofClassified}% of identified holders)` : ""}, so tradable float is far smaller.
+Thin float amplifies moves both ways.`,
     card: { type: "stack", spec: {
       title: "Headline cap vs real free float", headline: fMoney(s.supply.floatMc) + " free float", accent: "#22d3ee",
       total: s.supply.nominalMc,
@@ -427,7 +430,8 @@ Thin float, high conviction: moves amplify both ways.`,
         { label: "Free float", value: s.supply.floatMc, text: fMoney(s.supply.floatMc), color: "#22d3ee" },
       ],
     } },
-  }),
+    };
+  })(),
 
   // 9 — valuation vs BTC (sats line)
   s => s.btc && s.btc.series && ({
@@ -452,15 +456,16 @@ Up in dollars is easy in a bull market. Up in BTC is the truer scoreboard.`,
   // 60%-of-total figure). Label it clearly so the two never read as contradictory.
   s => s.supply && s.supply.tiers && (() => {
     const diamondPct = Math.round((s.supply.tiers.diamond / s.supply.classified) * 100);
+    const ofAll = Math.round(s.supply.diamondShare * 100); // same diamond tokens, but ÷ TOTAL supply
     return {
     id: "distribution",
     text:
-`💎 ~${diamondPct}% of SPX6900's classified holder supply sits in diamond hands (longest-held, never sold).
-HolderScan tiers wallets by how long they've held, excluding exchanges and LPs. Of that classified supply, diamond hands dominate.
+`💎 ~${diamondPct}% of SPX6900's classified holder supply is diamond hands — about ~${ofAll}% of all coins in circulation.
+Same coins, two denominators: HolderScan only tiers identified wallets, so exchanges, LPs and contracts sit outside this slice.
 High conviction, thin float.`,
     card: { type: "donut", spec: {
       title: "Conviction of classified holder supply", headline: `${diamondPct}% diamond hands`, accent: "#22d3ee",
-      footer: "Classified holder supply only — excludes exchanges, LPs & contracts",
+      footer: `${diamondPct}% of classified ≈ ${ofAll}% of all supply · excludes exchanges, LPs & contracts`,
       legendUnit: "of classified",
       center: { big: `${diamondPct}%`, small: "of classified" },
       segments: TIERS.map(([k, label, c]) => ({ label, value: s.supply.tiers[k], color: c })),
