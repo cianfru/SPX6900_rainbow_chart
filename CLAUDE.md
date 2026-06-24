@@ -1,6 +1,35 @@
 # SPX6900 Rainbow Chart — project notes
 
 ## Backlog / decisions
+- **Revisit band-watch daily-suppression — likely too restrictive (flagged 2026-06-24).**
+  The anti-flap **hysteresis** (fire once per excursion into a marquee/extreme zone,
+  re-arm only on return to a calm band) is the right guard and is NOT over-restrictive —
+  a genuine new crossing still fires every time. But the SECOND layer (suppress ANY band
+  post if the daily rotation already posted today) can kill the highest-value moment: a
+  marquee crossing on a green PUMP day (exactly when engagement peaks — see the Jun 17
+  data). Since hysteresis already blocks flapping, daily-suppression is probably redundant
+  and costs pump-day reach. **TODO:** relax it — e.g. let a genuine FIRST-excursion marquee
+  crossing post even after the daily (esp. bullish BUY / big up-moves), keeping hysteresis
+  + cooldown as the flap guards. Tie to the engagement-scheduling idea below. (Owner asked
+  to be reminded.)
+- **Engagement-tiered, price-aware card scheduling — explore, needs data first (2026-06-24).**
+  Idea: tier cards by observed engagement (high ~100 likes / med ~40 / low ~20) and fire
+  the high-engagement bullish chart cards on GREEN / up-momentum days to amplify reach
+  (pump day = peak attention); alternate lower-tier cards on flat/down days. **Caveats
+  before building:**
+  - **Confound — day vs card.** The ~100-like cards so far almost certainly coincided with
+    the Jun 16–17 pump (everything got reach that day), so we can't yet tell if engagement
+    came from the CARD or the high-attention DAY. Need the same card type on a FLAT day to
+    attribute it — that's the data to gather.
+  - **Measurement constraint.** Free X API is effectively write-only — the bot CAN'T read
+    its own per-tweet likes/impressions. So tiering is a MANUAL owner-maintained map
+    (`card id → tier`), a human-in-the-loop config, not an auto-optimizer (unless paid API).
+  - **Brand risk.** Always firing "extremely bullish" cards on green days reads as buy-the-
+    top hype — the opposite of the honest-analysis trust that retained followers through the
+    ~28% drawdown. Honesty is the moat; lean gentle on hype-timing.
+  - **Buildable mechanism:** a price-momentum check (today green / up X% over 24h) biases the
+    daily rotation toward a manually-tagged high-tier card that day; normal weighted rotation
+    otherwise. One post/day cadence unchanged.
 - **First follower-milestone post = 690, NOT 100 (decided 2026-06-24).** Hit 100
   followers in 17 days; owner wants to hold for **690** as the first milestone post
   because it's the on-brand memeable number (69 / 6900). Build it like the other
