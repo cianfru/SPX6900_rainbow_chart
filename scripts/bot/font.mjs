@@ -2,29 +2,29 @@
 // already render with locally and in CI — `fc-match sans-serif` resolves to it)
 // so the SVG→PNG cards keep their text on runtimes that ship NO system fonts —
 // notably the Vercel serverless /api/og endpoint, where every <text> was coming
-// out blank (charts drew, words didn't). Passing the font as buffers means we
-// don't depend on the host having any fonts installed.
+// out blank (charts drew, words didn't).
+//
+// The font is loaded from base64 EMBEDDED in font-data.js (a normal JS import,
+// which Vercel's bundler traces into the function) rather than read off disk —
+// a filesystem .ttf was being silently dropped by the includeFiles glob, leaving
+// resvg with no font at all. The on-disk .ttf are still read as a fallback for
+// any context where the generated module might be stale.
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { join, dirname } from "node:path";
+import { REGULAR_B64, BOLD_B64 } from "./font-data.js";
 
-// Resolve the bundled .ttf two ways, because Vercel may bundle this module and
-// move it: (1) next to this file (local + CI, unbundled), and (2) under the
-// deployment root via vercel.json includeFiles (where process.cwd() points).
-// The fonts live FLAT in scripts/bot/ (next to the logo PNGs) — a nested
-// scripts/bot/fonts/ subdir was silently dropped by Vercel's includeFiles while
-// the flat logo files bundled fine, so every <text> rendered blank on /api/og.
 let here = "";
 try { here = dirname(fileURLToPath(import.meta.url)); } catch { /* bundled */ }
-const candidates = name => [
-  here && join(here, name),
-  join(process.cwd(), "scripts/bot", name),
-].filter(Boolean);
-const load = name => {
-  for (const p of candidates(name)) { try { return readFileSync(p); } catch { /* next */ } }
+const fromDisk = name => {
+  for (const p of [here && join(here, name), join(process.cwd(), "scripts/bot", name)].filter(Boolean)) {
+    try { return readFileSync(p); } catch { /* next */ }
+  }
   return null;
 };
-const fontBuffers = [load("DejaVuSans.ttf"), load("DejaVuSans-Bold.ttf")].filter(Boolean);
+// Prefer the embedded base64 (always bundled); fall back to the on-disk .ttf.
+const decode = (b64, file) => (b64 ? Buffer.from(b64, "base64") : fromDisk(file));
+const fontBuffers = [decode(REGULAR_B64, "DejaVuSans.ttf"), decode(BOLD_B64, "DejaVuSans-Bold.ttf")].filter(Boolean);
 
 export const FONT = {
   loadSystemFonts: fontBuffers.length === 0, // bundled buffers are enough → skip the system scan
