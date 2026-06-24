@@ -44,10 +44,26 @@
     green up-days" instinct DOES hold; the dip-signal band cards (BUY!/Fire Sale) carry the red
     days. Card quality is the floor, day-color amplifies. (Corrects an earlier note that over-
     weighted red days — that was Grok's incomplete first pull omitting the green-day winners.)
-  - **TODO build: authoritative post log.** The bot gets a tweet id back on every post but
-    discards it. Append {date, card id, tweet id, kind, text} to public/post-log.json on each
-    daily/band/milestone post → a complete, ID-keyed roster so Grok (or anything) tiers the FULL
-    set with zero misses, and the engagement×price overlay maps straight onto card ids.
+  - **FULL CSV analysis supersedes the above (2026-06-24, X analytics export Jun 7–24, ~50
+    posts incl. all metrics — the authoritative dataset).** Findings:
+    1. **Likes are a REACH game**: likes↔impressions corr = **0.94**; every chart card converts
+       at ~4–5% like-rate, so the 25× like spread is a 25× *reach* spread, not card quality.
+    2. **Reach is NOT green-day driven**: impressions vs daily price return = **0.01**. Reach
+       tracks follower count + the post-pump attention regime + occasional algorithm pickup
+       (targets/alltime hit 2.7–3.5K impr via reposts/expands, not green-ness).
+    3. **Growth confound**: Jun 7 cards got 2–5 likes, Jun 16–24 got 50–96 — mostly the account
+       maturing to ~100 followers + pump bump. Same breakeven card: 4→17→61 likes but like-RATE
+       held ~4.5–5.3%. The audience grew, the card didn't change.
+    4. **Reach-controlled (like-rate), VALUE/dip/fear cards resonate best per viewer** (Fire Sale
+       5.5%, F&G dial 8.3%, monthly-returns 5.5%, diamond/underwater ~4.6–5%); aspirational
+       targets (2.7%) / alltime (3.2%) UNDER-resonate — they won absolute likes purely on reach.
+    **Verdict:** "fire bullish cards on green days" is NOT supported — day-color barely moves
+    reach. Real levers: chart cards >> text; honest value cards convert best per-viewer; virality
+    is algorithm luck (unschedulable); the reliable engine is follower growth + consistency.
+    So: protect the band cards (don't over-suppress), keep chart quality high, post daily.
+  - **Post log now OPTIONAL** (the CSV export already carries post id + text + all metrics, and
+    classifies cleanly by text). A {date, card id, tweet id} append-only log would still auto-tag
+    card ids for future exports, but it's a convenience, not a blocker.
 - **First follower-milestone post = 690, NOT 100 (decided 2026-06-24).** Hit 100
   followers in 17 days; owner wants to hold for **690** as the first milestone post
   because it's the on-brand memeable number (69 / 6900). Build it like the other
