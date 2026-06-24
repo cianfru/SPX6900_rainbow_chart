@@ -31,6 +31,7 @@ const bundledB64 = name => {
 };
 const SPX_ICON_B64 = bundledB64("spx-logo.png");
 const USDC_B64 = bundledB64("usdc-logo.png");
+const SPX500_B64 = bundledB64("spx500-logo.png");
 // Official Bitcoin "₿" mark drawn as paths (white symbol on the orange coin), so
 // it's properly centered — a text glyph sits off-centre and lacks the real logo's
 // shape. Path is the Bitcoin brand symbol in a 24×24 box (minus the outer disc,
@@ -44,7 +45,11 @@ function logoMark(kind, x, y, size) {
   if (kind === "btc") return `<circle cx="${cx}" cy="${cy}" r="${r}" fill="#f7931a"/><path transform="translate(${x.toFixed(2)},${y.toFixed(2)}) scale(${(size / 24).toFixed(4)})" fill="#fff" d="${BTC_SYMBOL}"/>`;
   // USD = the real USDC coin logo (owner-provided image).
   if (kind === "usd" && USDC_B64) return `<image href="data:image/png;base64,${USDC_B64}" x="${x}" y="${y}" width="${size}" height="${size}" preserveAspectRatio="xMidYMid meet"/>`;
-  // S&P 500 = a red coin with "500" in white.
+  // S&P 500 = owner-provided red "500" tile, clipped to a round coin.
+  if (kind === "sp500" && SPX500_B64) {
+    const id = `spc${Math.round(x)}_${Math.round(y)}`;
+    return `<clipPath id="${id}"><circle cx="${cx}" cy="${cy}" r="${r}"/></clipPath><image href="data:image/png;base64,${SPX500_B64}" x="${x}" y="${y}" width="${size}" height="${size}" preserveAspectRatio="xMidYMid slice" clip-path="url(#${id})"/>`;
+  }
   if (kind === "sp500") return `<circle cx="${cx}" cy="${cy}" r="${r}" fill="#d61f26"/><text x="${cx}" y="${(cy + size * 0.13).toFixed(1)}" fill="#fff" font-size="${fs(0.34)}" font-weight="800" text-anchor="middle" font-family="sans-serif" letter-spacing="-1">500</text>`;
   const coin = (fill, glyph, gs = 0.66, rot = 0) => `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${fill}"/><text x="${cx}" y="${(cy + size * 0.34).toFixed(1)}" fill="#fff" font-size="${fs(gs)}" font-weight="800" text-anchor="middle" font-family="sans-serif"${rot ? ` transform="rotate(${rot} ${cx} ${cy})"` : ""}>${glyph}</text>`;
   if (kind === "eth") return coin("#627eea", "Ξ", 0.6);
