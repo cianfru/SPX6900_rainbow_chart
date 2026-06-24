@@ -107,6 +107,20 @@ const spCloseAt = ts => {
   return ans >= 0 ? SP500[ans][1] : null;
 };
 
+// SPX6900 priced in S&P 500 units over its life: divide each SPX close by the
+// nearest-prior S&P close. Feeds the SPX-vs-S&P monthly heatmap. Returns of the
+// ratio == SPX's return relative to the index. [ts, spx/sp].
+function spxInSpSeries(priceSeries) {
+  const lastSpTs = SP500.at(-1)[0];
+  const out = [];
+  for (const [ts, usd] of priceSeries) {
+    if (!(usd > 0) || ts > lastSpTs + 7 * 86400000) continue;
+    const c = spCloseAt(ts);
+    if (c > 0) out.push([ts, usd / c]);
+  }
+  return out;
+}
+
 // SPX6900 priced in BTC over its whole life: align the bundled BTC_HISTORY
 // ([ageDays, usd], from 2010) to each SPX timestamp (largest BTC date ≤ it) and
 // divide. Lets the BTC monthly card build from bundled data alone. Skips SPX
@@ -601,63 +615,23 @@ A telescope, not a target. Every giant was once a rounding error.`,
     };
   })(),
 
-  // 21b — SPX6900 vs the REAL S&P 500: a returns race since launch, both rebased
-  // to 1×. Compares RETURNS (the only fair fight), not prices, and shows the whole
-  // journey — deliberately the opposite of accounts that post the daily price
-  // snapshot. The flex: a memecoin out-returning the index it's named after.
+  // 21b — SPX6900 monthly returns vs the REAL S&P 500: the seasonality heatmap
+  // (the design people love) but priced in S&P units. Green = SPX beat the index
+  // it's named after that month, red = the S&P won. Shows 2024's domination AND
+  // the recent give-back honestly, with no single damning headline — and a fresh
+  // rendering vs another log line chart.
   s => (() => {
-    const px = s.series.price;
-    const t0 = px[0][0], p0 = px[0][1];
-    if (!(p0 > 0)) return null;
-    const spLaunch = spCloseAt(t0);
-    if (!spLaunch) return null;
-    const spx = px.filter(([, p]) => p > 0).map(([ts, p]) => [ts, p / p0]);
-    const sp = px.map(([ts]) => { const c = spCloseAt(ts); return c ? [ts, c / spLaunch] : null; }).filter(Boolean);
-    if (spx.length < 10 || sp.length < 10) return null;
-    const spxMult = spx.at(-1)[1], spMult = sp.at(-1)[1], spPct = spMult - 1, lap = spxMult / spMult;
-    const allY = [...spx, ...sp].map(p => p[1]);
-    const yMax = Math.max(...allY), yMin = Math.min(...allY, 0.9);
-    const yTicks = [1, 10, 100, 1000].filter(v => v >= yMin * 0.6 && v <= yMax * 1.6).map(v => ({ v, label: fMult(v) }));
+    const mh = monthlyHeatmap(spxInSpSeries(s.series.price));
+    if (!mh) return null;
     return {
-      id: "sp500race",
+      id: "monthlyreturnssp",
       text:
-`🏆 SPX6900 vs the index it's named after, since launch: ${fMult(spxMult)} vs the S&P 500's ${fPct(spPct)}.
-$1,000 in each at launch is ${fMoney(1000 * spxMult)} vs ${fUsd0(1000 * spMult)} today. A race of returns, the only fair way to compare two assets.
-The memecoin is lapping the S&P 500 by ${fMult(lap)}.`,
-      card: { type: "line", spec: {
-        title: "SPX6900 vs the real S&P 500", headline: `${fMult(spxMult)} vs S&P 500 ${fPct(spPct)}`, accent: "#4ade80",
-        yLog: true, yMin: yMin * 0.7, yMax: yMax * 1.4, yTicks,
-        series: [
-          { pts: sp, color: "#94a3b8", width: 3, dash: true },
-          { pts: spx, color: "#4ade80", width: 3.4, fill: 0.12 },
-        ],
-        legend: [{ label: "SPX6900", color: "#4ade80" }, { label: "S&P 500", color: "#94a3b8" }],
-        marker: { x: spx.at(-1)[0], y: spx.at(-1)[1], color: "#4ade80" },
-      } },
-    };
-  })(),
-
-  // 21c — "$1,000 in each at launch" — the relatable cut of the S&P race, as two
-  // log bars (end values). Punchier for a screenshot than the journey chart.
-  s => (() => {
-    const px = s.series.price, t0 = px[0][0], p0 = px[0][1];
-    if (!(p0 > 0)) return null;
-    const spLaunch = spCloseAt(t0), spNow = spCloseAt(px.at(-1)[0]);
-    if (!spLaunch || !spNow) return null;
-    const spxVal = 1000 * (px.at(-1)[1] / p0), spVal = 1000 * (spNow / spLaunch);
-    return {
-      id: "sp500grand",
-      text:
-`💸 $1,000 into SPX6900 at launch is ${fMoney(spxVal)} today. The same $1,000 into the S&P 500: ${fUsd0(spVal)}.
-Same money, same day, the index it's named after. Returns are the honest comparison, not sticker prices.
-Being early to a fair launch beats the benchmark by a mile.`,
-      card: { type: "bar", spec: {
-        title: "$1,000 in each, since SPX6900's launch", headline: `${fMoney(spxVal)} vs ${fUsd0(spVal)}`, accent: "#4ade80",
-        logBars: true,
-        bars: [
-          { label: "SPX6900", value: spxVal, text: fMoney(spxVal), color: "#4ade80" },
-          { label: "S&P 500", value: spVal, text: fUsd0(spVal), color: "#94a3b8" },
-        ],
+`🏆 Priced in the S&P 500, ${mh.pctGreen}% of SPX6900's ${mh.months} months have beaten the index it's named after.
+Each cell is SPX6900's monthly return in S&P units, not dollars. Green = SPX beat the S&P that month, red = the S&P won.
+The benchmark it parodies, month by month.`,
+      card: { type: "heatmap", spec: {
+        title: "SPX6900 monthly returns vs the S&P 500", headline: `${mh.pctGreen}% of months beat the S&P`, accent: "#38bdf8",
+        rows: mh.rows, yearCol: true,
       } },
     };
   })(),
