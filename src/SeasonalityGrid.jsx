@@ -145,17 +145,23 @@ export default function SeasonalityGrid({ series, isMobile }) {
 
   const { years, retOf, yearTotal, monthAvg, stats } = monthly;
 
-  const cols = `${isMobile ? 40 : 52}px repeat(12, 1fr) ${isMobile ? 52 : 64}px`;
+  // a thin spacer column sits between Dec and the Year (totals) column so the
+  // summary doesn't blur into the months.
+  const SP = isMobile ? 8 : 12;
+  const cols = `${isMobile ? 40 : 52}px repeat(12, 1fr) ${SP}px ${isMobile ? 52 : 64}px`;
   const cellH = isMobile ? 34 : 44;
   const fs = isMobile ? 10 : 13;
   const hdr = (t, key) => (
     <div key={key} style={{ fontFamily: MONO, fontSize: isMobile ? 10 : 12, color: "#94a3b8", textAlign: "center", padding: "4px 0" }}>{t}</div>
   );
-  const cell = (r, key, big) => (
+  // summary = the Year column / Avg row totals: brighter frame so they read as
+  // summaries, not as another month.
+  const cell = (r, key, big, summary) => (
     <div key={key} style={{
       height: cellH, background: cellBg(r), borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center",
-      fontFamily: MONO, fontSize: fs, fontWeight: big ? 700 : 500, color: r == null ? "#334155" : "#f1f5f9",
-      border: "1px solid rgba(255,255,255,0.04)",
+      fontFamily: MONO, fontSize: fs, fontWeight: (big || summary) ? 700 : 500, color: r == null ? "#334155" : "#f8fafc",
+      border: summary ? "1px solid rgba(255,255,255,0.30)" : "1px solid rgba(255,255,255,0.04)",
+      boxShadow: summary ? "inset 0 0 0 1px rgba(255,255,255,0.06)" : "none",
     }}>{fmt(r)}</div>
   );
 
@@ -174,20 +180,23 @@ export default function SeasonalityGrid({ series, isMobile }) {
           <div style={{ display: "grid", gridTemplateColumns: cols, gap: 4 }}>
             {hdr("", "h-")}
             {MONTHS.map(m => hdr(m, "h" + m))}
-            {hdr("Year", "h-yr")}
+            <div key="h-sp" />
+            <div key="h-yr" style={{ fontFamily: MONO, fontSize: isMobile ? 10 : 12, color: "#e2e8f0", fontWeight: 700, textAlign: "center", padding: "4px 0" }}>Year</div>
           </div>
           {/* year rows */}
           {years.map(y => (
             <div key={y} style={{ display: "grid", gridTemplateColumns: cols, gap: 4, marginTop: 4 }}>
               <div style={{ fontFamily: MONO, fontSize: isMobile ? 11 : 13, color: "#cbd5e1", display: "flex", alignItems: "center", justifyContent: "flex-end", paddingRight: 6 }}>{y}</div>
               {MONTHS.map((_, m) => cell(retOf.get(y * 12 + m), y + "-" + m))}
-              {cell(yearTotal.get(y), y + "-yr", true)}
+              <div key={y + "-sp"} />
+              {cell(yearTotal.get(y), y + "-yr", true, true)}
             </div>
           ))}
-          {/* seasonality average */}
-          <div style={{ display: "grid", gridTemplateColumns: cols, gap: 4, marginTop: 10 }}>
-            <div style={{ fontFamily: MONO, fontSize: isMobile ? 10 : 12, color: "#94a3b8", display: "flex", alignItems: "center", justifyContent: "flex-end", paddingRight: 6 }}>Avg</div>
-            {monthAvg.map((r, m) => cell(r, "avg-" + m))}
+          {/* seasonality average — separated by a rule + brighter framed cells */}
+          <div style={{ display: "grid", gridTemplateColumns: cols, gap: 4, marginTop: 12, borderTop: "1px solid rgba(255,255,255,0.12)", paddingTop: 10 }}>
+            <div style={{ fontFamily: MONO, fontSize: isMobile ? 10 : 12, color: "#cbd5e1", fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "flex-end", paddingRight: 6 }}>Avg</div>
+            {monthAvg.map((r, m) => cell(r, "avg-" + m, false, true))}
+            <div key="avg-sp" />
             <div />
           </div>
         </div>

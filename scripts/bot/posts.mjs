@@ -55,6 +55,19 @@ const decadeTicks = (min, max) => {
 };
 const lastTs = s => s.series.price.at(-1)[0];
 
+// Centered moving average over a [ts, value] series (window = w points), to
+// de-noise a jumpy daily series on a card (e.g. the Fear & Greed line, which
+// reads daily and whips around). Window shrinks at the edges so the endpoints
+// stay anchored to the real latest value.
+const smoothMA = (pts, w = 9) => {
+  const half = Math.floor(w / 2);
+  return pts.map(([ts], i) => {
+    let sum = 0, n = 0;
+    for (let j = Math.max(0, i - half); j <= Math.min(pts.length - 1, i + half); j++) { sum += pts[j][1]; n++; }
+    return [ts, sum / n];
+  });
+};
+
 // Month-over-month returns → seasonality heatmap rows from a [ts, price] series.
 // Shared by the USD and BTC monthly-returns cards (same definition as the site's
 // Monthly grid). Returns { rows, pctGreen, months } or null if too short.
@@ -711,10 +724,12 @@ Today: market ${fngNow} vs SPX ${riskNow}.`,
         yMin: 0, yMax: 100, yTicks: [0, 25, 50, 75, 100].map(v => ({ v, label: String(v) })),
         hlines: [{ y: 50, label: "neutral", color: "#475569" }],
         series: [
-          { pts: s.series.fng, color: "#f59e0b", width: 2.5 },
+          // F&G reads daily and is jumpy; smooth it so the card shows the mood
+          // trend, not the noise (the risk line is already ~weekly, so leave it).
+          { pts: smoothMA(s.series.fng, 9), color: "#f59e0b", width: 2.5 },
           { pts: risk, color: "#22d3ee", width: 3, fill: 0.12 },
         ],
-        legend: [{ label: "SPX6900 risk", color: "#22d3ee" }, { label: "Crypto Fear & Greed", color: "#f59e0b" }],
+        legend: [{ label: "SPX6900 risk", color: "#22d3ee" }, { label: "Crypto Fear & Greed (smoothed)", color: "#f59e0b" }],
         marker: { x: risk.at(-1)[0], y: risk.at(-1)[1], color: "#22d3ee" },
       } },
     };

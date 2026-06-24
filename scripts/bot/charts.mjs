@@ -379,21 +379,28 @@ export function renderHeatmap(spec, opts = {}) {
   const mid = (cx, cy, t, fill, fs, w = 600) =>
     `<text x="${cx.toFixed(1)}" y="${(cy + fs * 0.35).toFixed(1)}" fill="${fill}" font-size="${fs}" font-weight="${w}" text-anchor="middle" font-family="sans-serif">${esc(t)}</text>`;
 
+  // Distinct backdrop "lane" behind the Year (totals) column so it doesn't read
+  // as just another month. Drawn first, cells sit on top.
+  if (hasYear) {
+    const yx = colX(12), ytop = rowY(0), ybot = rowY(rows.length) + ch;
+    svg += `<rect x="${(yx - 6).toFixed(1)}" y="${(ytop - 6).toFixed(1)}" width="${(cw + 12).toFixed(1)}" height="${(ybot - ytop + 12).toFixed(1)}" rx="11" fill="rgba(148,163,184,0.10)" stroke="rgba(255,255,255,0.16)"/>`;
+  }
+
   // header: month labels + Year
   HM_MONTHS.forEach((m, j) => { svg += mid(colX(j) + cw / 2, rowY(0) + ch / 2, m, "#94a3b8", Math.min(20, cFs + 2), 700); });
-  if (hasYear) svg += mid(colX(12) + cw / 2, rowY(0) + ch / 2, "Year", "#cbd5e1", Math.min(20, cFs + 2), 700);
+  if (hasYear) svg += mid(colX(12) + cw / 2, rowY(0) + ch / 2, "Year", "#e2e8f0", Math.min(20, cFs + 2), 800);
 
   rows.forEach((row, ri) => {
     const i = ri + 1;
     svg += mid(mL + labW / 2, rowY(i) + ch / 2, row.label, "#cbd5e1", labFs, 700);
-    const draw = (j, r, bold) => {
+    const draw = (j, r, bold, summary) => {
       const { fill, op } = hmCell(r);
-      svg += `<rect x="${colX(j).toFixed(1)}" y="${rowY(i).toFixed(1)}" width="${cw.toFixed(1)}" height="${ch.toFixed(1)}" rx="7" fill="${fill}" fill-opacity="${op.toFixed(3)}" stroke="rgba(255,255,255,0.05)"/>`;
+      svg += `<rect x="${colX(j).toFixed(1)}" y="${rowY(i).toFixed(1)}" width="${cw.toFixed(1)}" height="${ch.toFixed(1)}" rx="7" fill="${fill}" fill-opacity="${op.toFixed(3)}" stroke="${summary ? "rgba(255,255,255,0.30)" : "rgba(255,255,255,0.05)"}"/>`;
       const t = hmFmt(r);
-      if (t) svg += mid(colX(j) + cw / 2, rowY(i) + ch / 2, t, "#f1f5f9", cFs, bold ? 700 : 600);
+      if (t) svg += mid(colX(j) + cw / 2, rowY(i) + ch / 2, t, "#f8fafc", cFs, bold ? 800 : 600);
     };
     row.cells.forEach((r, j) => draw(j, r));
-    if (hasYear) draw(12, row.year, true);
+    if (hasYear) draw(12, row.year, true, true);
   });
 
   svg += `<text x="64" y="${(DH - 48).toFixed(1)}" fill="#64748b" font-size="20" font-family="sans-serif">Each cell = that month's return · green up, red down</text>`;
