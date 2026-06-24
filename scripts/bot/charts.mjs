@@ -266,6 +266,15 @@ export function lineCardSvg(spec, opts = {}) {
   let lastLabelY = -1e9;
   for (const h of hlSorted) {
     const yy = h.py.toFixed(1);
+    // A coin logo can cap the line at its right end (e.g. each major's market cap);
+    // the line is pulled in to make room and the label sits just left of the coin.
+    if (h.logo) {
+      const SZ = 42, lgx = DW - mR - SZ;
+      hl += `<line x1="${mL}" y1="${yy}" x2="${(lgx - 6).toFixed(1)}" y2="${yy}" stroke="${h.color}" stroke-opacity="0.8" stroke-width="2"${h.dash === false ? "" : ` stroke-dasharray="6 6"`}/>`;
+      hl += logoMark(h.logo, lgx, h.py - SZ / 2, SZ);
+      hl += `<text x="${(lgx - 12).toFixed(1)}" y="${(h.py + 7).toFixed(1)}" fill="${h.color}" font-size="22" font-weight="800" text-anchor="end" font-family="sans-serif">${esc(h.label)}</text>`;
+      continue;
+    }
     hl += `<line x1="${mL}" y1="${yy}" x2="${DW - mR}" y2="${yy}" stroke="${h.color}" stroke-opacity="0.8" stroke-width="2"${h.dash === false ? "" : ` stroke-dasharray="6 6"`}/>`;
     let ly = h.py - 9;
     if (ly < lastLabelY + 27) ly = lastLabelY + 27; // keep labels from overlapping
@@ -371,7 +380,13 @@ export function renderBarCard(spec, opts = {}) {
     const yTop = mT + PH - bh;
     svg += `<rect x="${(cx - bw / 2).toFixed(1)}" y="${yTop.toFixed(1)}" width="${bw.toFixed(1)}" height="${bh.toFixed(1)}" rx="9" fill="url(#bar${i})"${b.outline ? ` stroke="#fff" stroke-width="2"` : ""}/>`;
     svg += `<text x="${cx.toFixed(1)}" y="${(yTop - 14).toFixed(1)}" fill="#e2e8f0" font-size="26" font-weight="700" text-anchor="middle" font-family="sans-serif">${esc(b.text ?? b.value)}</text>`;
-    svg += `<text x="${cx.toFixed(1)}" y="${(mT + PH + 32).toFixed(1)}" fill="#94a3b8" font-size="22" text-anchor="middle" font-family="sans-serif">${esc(b.label)}</text>`;
+    // Under-bar identity: a coin logo when supplied, else the text label.
+    if (b.logo) {
+      const ls = 32;
+      svg += logoMark(b.logo, cx - ls / 2, mT + PH + 2, ls);
+    } else {
+      svg += `<text x="${cx.toFixed(1)}" y="${(mT + PH + 32).toFixed(1)}" fill="#94a3b8" font-size="22" text-anchor="middle" font-family="sans-serif">${esc(b.label)}</text>`;
+    }
   });
   return chrome(spec, svg, defs, { W: DW, H: DH });
 }

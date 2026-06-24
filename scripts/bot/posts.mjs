@@ -462,7 +462,7 @@ ${sorted.map(m => `${m.name}: ${fPct(m.rel365)}`).join(" · ")}
 Relative strength, not dollars: positive means SPX beat it. One year flips fast, so a snapshot, not a trend.`,
       card: { type: "bar", spec: {
         title: "SPX6900 vs majors — 1-yr relative", headline: `${sorted[0].name} ${fPct(sorted[0].rel365)}`, accent: "#818cf8",
-        bars: sorted.map(m => ({ label: "vs " + m.name, value: m.rel365, text: fPct(m.rel365), color: m.rel365 >= 0 ? "#4ade80" : "#f87171" })),
+        bars: sorted.map(m => ({ label: "vs " + m.name, logo: m.name.toLowerCase(), value: m.rel365, text: fPct(m.rel365), color: m.rel365 >= 0 ? "#4ade80" : "#f87171" })),
       } },
     };
   })(),
@@ -915,7 +915,8 @@ Each line is the SPX price whose cap equals that major's today. Pure cap math, a
       card: { type: "line", spec: {
         title: "SPX6900 at the majors' market caps", headline: `${nearest.name}-size = ${fMult(nearest.mult)}`, accent: nearest.color,
         yLog: true, yTicks: decadeTicks(s.firstPrice, top.spxAtCap),
-        hlines: rungs.map(m => ({ y: m.spxAtCap, label: `${m.name} · ${fMult(m.mult)}`, color: m.color })),
+        // each cap-line is tagged with its coin logo at the right end (label = the multiple)
+        hlines: rungs.map(m => ({ y: m.spxAtCap, label: fMult(m.mult), logo: m.name.toLowerCase(), color: m.color })),
         series: [{ pts: s.series.price, color: "#34d399", width: 3, fill: 0.12 }],
         marker: { x: lastTs(s), y: s.price, color: "#34d399" },
       } },
