@@ -814,7 +814,27 @@ export function renderPostCard(post, stats, opts = {}) {
   if (type === "model") return renderModelCard(s, dims);
   if (type === "cube") return renderCubeCard(s);
   if (type === "scale") return renderScaleCard(s, dims);
+  if (type === "statgrid") return renderStatGrid(s, dims);
   return renderLineCard(s, dims);
+}
+
+// Stat-grid card: a tile per headline number (big value + label). Used by the
+// monthly-recap hero card. tiles: [{ big, label, color? }], cols default 3.
+export function renderStatGrid(spec, opts = {}) {
+  const { DW, DH, PW, PH } = geom(opts);
+  const tiles = spec.tiles, cols = spec.cols || 3, gap = 20;
+  const rows = Math.ceil(tiles.length / cols);
+  const tw = (PW - gap * (cols - 1)) / cols, th = (PH - gap * (rows - 1)) / rows;
+  let svg = "";
+  tiles.forEach((t, i) => {
+    const r = Math.floor(i / cols), c = i % cols;
+    const x = mL + c * (tw + gap), y = mT + r * (th + gap), cx = x + tw / 2;
+    svg += `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${tw.toFixed(1)}" height="${th.toFixed(1)}" rx="16" fill="rgba(255,255,255,0.04)" stroke="rgba(255,255,255,0.09)"/>`;
+    const big = String(t.big), fs = big.length > 9 ? 44 : big.length > 6 ? 56 : 70;
+    svg += `<text x="${cx.toFixed(1)}" y="${(y + th * 0.5).toFixed(1)}" fill="${t.color || spec.accent}" font-size="${fs}" font-weight="800" text-anchor="middle" font-family="sans-serif">${esc(big)}</text>`;
+    svg += `<text x="${cx.toFixed(1)}" y="${(y + th * 0.78).toFixed(1)}" fill="#94a3b8" font-size="23" text-anchor="middle" font-family="sans-serif">${esc(t.label)}</text>`;
+  });
+  return chrome(spec, svg, "", { W: DW, H: DH });
 }
 
 // Model-fit explainer: each day's residual (distance from the power-law trend)

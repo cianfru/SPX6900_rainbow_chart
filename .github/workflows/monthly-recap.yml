@@ -1,0 +1,66 @@
+name: Monthly recap
+
+# On the 1st of each month, auto-GENERATE last month's recap thread (images +
+# text) and commit it as a queued preview — it posts NOTHING. Review the preview
+# (public/recap/<month>/*.png + recap-pending.json), then run this workflow
+# manually with post=true to publish the thread. 1-tap approval, zero writing.
+
+on:
+  schedule:
+    - cron: "0 14 1 * *" # 14:00 UTC on the 1st
+  workflow_dispatch:
+    inputs:
+      post:
+        description: "Publish the queued recap thread for real (otherwise just regenerate the preview)"
+        type: boolean
+        default: false
+      month:
+        description: "Month to recap as YYYY-MM (blank = the month that just ended)"
+        type: string
+        default: ""
+
+permissions:
+  contents: write
+
+concurrency:
+  group: monthly-recap
+  cancel-in-progress: false
+
+jobs:
+  recap:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+
+      - name: Generate preview (or post)
+        run: |
+          MONTH_ARG=""
+          if [ -n "${{ inputs.month }}" ]; then MONTH_ARG="--month=${{ inputs.month }}"; fi
+          if [ "${{ github.event_name == 'workflow_dispatch' && inputs.post }}" = "true" ]; then
+            node scripts/bot/recap-run.mjs --post $MONTH_ARG
+          else
+            node scripts/bot/recap-run.mjs --preview $MONTH_ARG
+          fi
+        env:
+          X_API_KEY: ${{ secrets.X_API_KEY }}
+          X_API_SECRET: ${{ secrets.X_API_SECRET }}
+          X_ACCESS_TOKEN: ${{ secrets.X_ACCESS_TOKEN }}
+          X_ACCESS_SECRET: ${{ secrets.X_ACCESS_SECRET }}
+
+      - name: Commit recap preview / posted state
+        if: always()
+        run: |
+          if [[ -n "$(git status --porcelain public/recap public/recap-pending.json)" ]]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add public/recap public/recap-pending.json
+            git commit -m "chore: monthly recap $(date -u +%F)"
+            git push
+          else
+            echo "No recap change to commit"
+          fi
