@@ -4,6 +4,7 @@
 import { readFileSync } from "node:fs";
 import { DEFAULT_RAW, SUPPLY } from "../../src/data.js";
 import * as M from "../../src/models.js";
+import { SP500_HISTORY } from "../../src/sp500-history.js";
 import { FNG_HISTORY } from "../../src/fng-history.js";
 
 const POOL = "0x52c77b0cb827afbad022e6d6caf2c44452edbc39";
@@ -202,6 +203,7 @@ export function computeStats(price, dateStr = new Date().toISOString().slice(0, 
     ath, athDate, drawdown: dd, maxDrawdown: maxDd,
     cheaperFrac, edge,
     fng: snap?.fng ?? (FNG_HISTORY.at(-1)?.[1] ?? null), // live snapshot value, else the bundled history's latest
+    sp: snap?.sp ?? (SP500_HISTORY.at(-1)?.[1] ?? null), // latest S&P 500 close (snapshot), else bundled latest
     firstPrice: first.price, firstDate: first.date, allTimeReturn: price / first.price - 1,
     targets: M.TARGETS.map(t => ({ ...t, mult: t.price / price })),
     supply, btc, majors,

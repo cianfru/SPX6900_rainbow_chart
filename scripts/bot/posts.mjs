@@ -121,6 +121,42 @@ function spxInSpSeries(priceSeries) {
   return out;
 }
 
+// SPX6900 vs the S&P 500 over a window starting at startTs, both rebased to 0% at
+// the start (linear % lines, a fresh look vs the log charts). Uses the bundled
+// S&P path plus s.sp as the live current endpoint so it stays fresh. Returns
+// { spxPts, spPts, spxRet, spRet } or null.
+function spVsWindow(s, startTs) {
+  const spStart = spCloseAt(startTs);
+  if (!spStart) return null;
+  const nowTs = s.series.price.at(-1)[0];
+  const spNow = s.sp ?? SP500.at(-1)[1];
+  const spPts = SP500.filter(([ts]) => ts >= startTs && ts <= nowTs).map(([ts, c]) => [ts, (c / spStart - 1) * 100]);
+  if (spNow) spPts.push([nowTs, (spNow / spStart - 1) * 100]);
+  const spxIn = s.series.price.filter(([ts, p]) => ts >= startTs && p > 0);
+  if (spxIn.length < 2 || spPts.length < 2) return null;
+  const spxStart = spxIn[0][1];
+  const spxPts = spxIn.map(([ts, p]) => [ts, (p / spxStart - 1) * 100]);
+  return { spxPts, spPts, spxRet: spxPts.at(-1)[1] / 100, spRet: spPts.at(-1)[1] / 100 };
+}
+
+// Linear %-return line spec shared by the YTD and trailing-12mo SPX-vs-S&P cards.
+function spVsSpec(title, r) {
+  const { spxPts, spPts, spxRet } = r;
+  const allY = [...spxPts, ...spPts].map(p => p[1]);
+  const lo = Math.min(0, ...allY), hi = Math.max(0, ...allY), step = 20;
+  const yTicks = [];
+  for (let v = Math.floor(lo / step) * step; v <= Math.ceil(hi / step) * step + 1e-6; v += step) yTicks.push({ v, label: (v > 0 ? "+" : "") + v + "%" });
+  const accent = spxRet >= 0 ? "#4ade80" : "#f87171";
+  return { type: "line", spec: {
+    title, headline: `SPX6900 ${fPct(spxRet)} · S&P ${fPct(r.spRet)}`, accent,
+    yMin: Math.floor(lo / step) * step, yMax: Math.ceil(hi / step) * step, yTicks,
+    hlines: [{ y: 0, label: "0%", color: "#475569" }],
+    series: [{ pts: spPts, color: "#94a3b8", width: 2.5 }, { pts: spxPts, color: accent, width: 3.5 }],
+    legend: [{ label: "SPX6900", color: accent }, { label: "S&P 500", color: "#94a3b8" }],
+    marker: { x: spxPts.at(-1)[0], y: spxPts.at(-1)[1], color: accent },
+  } };
+}
+
 // SPX6900 priced in BTC over its whole life: align the bundled BTC_HISTORY
 // ([ageDays, usd], from 2010) to each SPX timestamp (largest BTC date ≤ it) and
 // divide. Lets the BTC monthly card build from bundled data alone. Skips SPX
@@ -633,6 +669,39 @@ The benchmark it parodies, month by month.`,
         title: "SPX6900 monthly returns vs the S&P 500", headline: `${mh.pctGreen}% of months beat the S&P`, accent: "#38bdf8",
         rows: mh.rows, yearCol: true,
       } },
+    };
+  })(),
+
+  // 21c — SPX6900 vs the S&P 500, year to date (rebased to 0% on Jan 1). Linear %,
+  // a fresh rendering vs the log charts. Honest: SPX often trails YTD when it's in
+  // a drawdown — framed through the rainbow's "cold zones launch the next run".
+  s => (() => {
+    const yr = new Date(Date.parse(s.date)).getUTCFullYear();
+    const r = spVsWindow(s, Date.UTC(yr, 0, 1));
+    if (!r) return null;
+    const win = r.spxRet >= r.spRet;
+    return {
+      id: "sp500ytd",
+      text:
+`📊 SPX6900 is ${fPct(r.spxRet)} YTD vs the S&P 500's ${fPct(r.spRet)}.
+Both rebased to 0% on Jan 1, a clean same-start race against the index it's named after. ${win ? "Out in front this year." : "Behind for now, but every cold stretch on the rainbow has launched the next run."}
+A snapshot of one year, not the whole war.`,
+      card: spVsSpec("SPX6900 vs the S&P 500, year to date", r),
+    };
+  })(),
+
+  // 21d — SPX6900 vs the S&P 500 over the trailing 12 months (rebased to 0%).
+  s => (() => {
+    const r = spVsWindow(s, s.series.price.at(-1)[0] - 365 * 86400000);
+    if (!r) return null;
+    const win = r.spxRet >= r.spRet;
+    return {
+      id: "sp500roll12",
+      text:
+`📊 Last 12 months: SPX6900 ${fPct(r.spxRet)} vs the S&P 500's ${fPct(r.spRet)}.
+A rolling one-year race against its namesake, both rebased to 0%. ${win ? "The meme is winning the year." : "A year in the cold, but that is exactly where the rainbow says the next run is built."}
+One year is a blink for a power-law asset.`,
+      card: spVsSpec("SPX6900 vs the S&P 500, last 12 months", r),
     };
   })(),
 

@@ -41,12 +41,24 @@ async function fng() {
   } catch (e) { console.warn("fng:", e.message); return null; }
 }
 
+// S&P 500 latest close (Yahoo, no key). Reachable from CI even where it's blocked
+// in sandboxes. Keeps the SPX-vs-S&P cards current without bundling a fresh CSV.
+async function sp500() {
+  try {
+    const r = await fetch("https://query1.finance.yahoo.com/v8/finance/chart/%5EGSPC?interval=1d&range=1d", { headers: { Accept: "application/json", "User-Agent": "spx6900-rainbow" } });
+    if (!r.ok) return null;
+    const j = await r.json();
+    const v = j?.chart?.result?.[0]?.meta?.regularMarketPrice;
+    return (typeof v === "number" && v > 0) ? v : null;
+  } catch (e) { console.warn("sp500:", e.message); return null; }
+}
+
 async function main() {
   if (!KEY) throw new Error("Missing HOLDERSCAN_KEY env (set it as a repo secret)");
 
   const sup = await hs("/stats/supply-breakdown"); // required
-  const [p, stats, pnl, breakdowns, fearGreed] = await Promise.all([
-    price(), softHs("/stats"), softHs("/stats/pnl"), softHs("/holders/breakdowns"), fng(),
+  const [p, stats, pnl, breakdowns, fearGreed, spx500] = await Promise.all([
+    price(), softHs("/stats"), softHs("/stats/pnl"), softHs("/holders/breakdowns"), fng(), sp500(),
   ]);
 
   const rec = {
@@ -58,6 +70,7 @@ async function main() {
     rpnl: pnl?.realized_pnl_total ?? null,   // aggregate realized $ PnL (booked)
     gini: stats?.gini ?? null,
     fng: fearGreed,
+    sp: spx500, // latest S&P 500 close, for the SPX-vs-S&P cards
     sup,
   };
 
