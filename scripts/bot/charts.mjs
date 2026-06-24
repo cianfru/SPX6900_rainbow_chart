@@ -40,11 +40,20 @@ function logoMark(kind, x, y, size) {
   const cx = x + size / 2, cy = y + size / 2, r = size / 2, fs = n => (size * n).toFixed(0);
   if (kind === "spx" && SPX_ICON_B64) return `<image href="data:image/png;base64,${SPX_ICON_B64}" x="${x}" y="${y}" width="${size}" height="${size}" preserveAspectRatio="xMidYMid slice"/>`;
   if (kind === "btc") return `<circle cx="${cx}" cy="${cy}" r="${r}" fill="#f7931a"/><path transform="translate(${x.toFixed(2)},${y.toFixed(2)}) scale(${(size / 24).toFixed(4)})" fill="#fff" d="${BTC_SYMBOL}"/>`;
+  // USD = the USDC coin look: blue disc, two white arcs, a white $ in the middle.
+  if (kind === "usd") {
+    const rr = r * 0.66, dx = (rr * 0.4226).toFixed(2), dy = (rr * 0.9063).toFixed(2), sw = (size * 0.12).toFixed(1);
+    const arc = (sx, sy, ex, ey) => `<path d="M${sx} ${sy} A${rr.toFixed(2)} ${rr.toFixed(2)} 0 0 1 ${ex} ${ey}" fill="none" stroke="#fff" stroke-width="${sw}" stroke-linecap="round"/>`;
+    return `<circle cx="${cx}" cy="${cy}" r="${r}" fill="#2775ca"/>`
+      + arc(`${(cx + +dx).toFixed(2)}`, `${(cy - +dy).toFixed(2)}`, `${(cx + +dx).toFixed(2)}`, `${(cy + +dy).toFixed(2)}`)   // right
+      + arc(`${(cx - +dx).toFixed(2)}`, `${(cy + +dy).toFixed(2)}`, `${(cx - +dx).toFixed(2)}`, `${(cy - +dy).toFixed(2)}`)   // left
+      + `<text x="${cx}" y="${(cy + size * 0.185).toFixed(1)}" fill="#fff" font-size="${fs(0.52)}" font-weight="800" text-anchor="middle" font-family="sans-serif">$</text>`;
+  }
+  // S&P 500 = a red coin with "500" in white.
+  if (kind === "sp500") return `<circle cx="${cx}" cy="${cy}" r="${r}" fill="#d61f26"/><text x="${cx}" y="${(cy + size * 0.13).toFixed(1)}" fill="#fff" font-size="${fs(0.34)}" font-weight="800" text-anchor="middle" font-family="sans-serif" letter-spacing="-1">500</text>`;
   const coin = (fill, glyph, gs = 0.66, rot = 0) => `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${fill}"/><text x="${cx}" y="${(cy + size * 0.34).toFixed(1)}" fill="#fff" font-size="${fs(gs)}" font-weight="800" text-anchor="middle" font-family="sans-serif"${rot ? ` transform="rotate(${rot} ${cx} ${cy})"` : ""}>${glyph}</text>`;
   if (kind === "eth") return coin("#627eea", "Ξ", 0.6);
   if (kind === "sol") return coin("#9945ff", "◎", 0.6);
-  if (kind === "usd") return coin("#16a34a", "$");
-  if (kind === "sp500") return `<rect x="${x}" y="${y}" width="${size}" height="${size}" rx="${fs(0.2)}" fill="#1d4ed8"/><text x="${cx}" y="${(cy + size * 0.12).toFixed(1)}" fill="#fff" font-size="${fs(0.3)}" font-weight="800" text-anchor="middle" font-family="sans-serif">S&amp;P</text>`;
   return coin("#475569", "?");
 }
 // "[logo] vs [logo] = result" header — sharp + colorful, replaces the wordy title.
