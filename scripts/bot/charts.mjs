@@ -383,7 +383,7 @@ export function renderHeatmap(spec, opts = {}) {
   // as just another month. Drawn first, cells sit on top.
   if (hasYear) {
     const yx = colX(12), ytop = rowY(0), ybot = rowY(rows.length) + ch;
-    svg += `<rect x="${(yx - 6).toFixed(1)}" y="${(ytop - 6).toFixed(1)}" width="${(cw + 12).toFixed(1)}" height="${(ybot - ytop + 12).toFixed(1)}" rx="11" fill="rgba(148,163,184,0.10)" stroke="rgba(255,255,255,0.16)"/>`;
+    svg += `<rect x="${(yx - 8).toFixed(1)}" y="${(ytop - 8).toFixed(1)}" width="${(cw + 16).toFixed(1)}" height="${(ybot - ytop + 16).toFixed(1)}" rx="13" fill="rgba(148,163,184,0.26)" stroke="rgba(255,255,255,0.34)"/>`;
   }
 
   // header: month labels + Year
