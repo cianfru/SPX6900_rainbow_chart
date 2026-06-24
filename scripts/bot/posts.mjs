@@ -7,6 +7,7 @@ import { CRYPTO_MILESTONES } from "../../src/milestones.js";
 import { btcCycleProjection } from "../../src/btc-cycle.js";
 import { BTC_HISTORY } from "../../src/btc-history.js";
 import { ETH_HISTORY, SOL_HISTORY } from "../../src/alt-age-history.js";
+import { SP500_HISTORY } from "../../src/sp500-history.js";
 
 // X discovery tags appended to each post's footer: the $SPX cashtag (X resolves
 // it to SPX6900) for the in-timeline price-chart card, plus the #spx6900 hashtag.
@@ -96,6 +97,15 @@ function monthlyHeatmap(priceSeries) {
   const all = [...ret.values()];
   return { rows, pctGreen: Math.round(all.filter(r => r >= 0).length / all.length * 100), months: all.length };
 }
+
+// S&P 500 close at or before a timestamp (nearest prior trading day), from the
+// bundled SP500_HISTORY. Used by the "SPX6900 vs the real S&P 500" race card.
+const SP500 = SP500_HISTORY.map(([d, c]) => [Date.parse(d + "T00:00:00Z"), c]); // ascending
+const spCloseAt = ts => {
+  let lo = 0, hi = SP500.length - 1, ans = -1;
+  while (lo <= hi) { const m = (lo + hi) >> 1; if (SP500[m][0] <= ts) { ans = m; lo = m + 1; } else hi = m - 1; }
+  return ans >= 0 ? SP500[ans][1] : null;
+};
 
 // SPX6900 priced in BTC over its whole life: align the bundled BTC_HISTORY
 // ([ageDays, usd], from 2010) to each SPX timestamp (largest BTC date ≤ it) and
@@ -587,6 +597,67 @@ A telescope, not a target. Every giant was once a rounding error.`,
         title: "SPX6900 vs the S&P 500", accent: "#38bdf8", mult,
         fieldColor: "#3b82f6", originColor: SPX_CUBE,
         originLabel: `SPX6900 (${fMoney(cap)})`, fieldLabel: "S&P 500", fieldSub: "~$50T",
+      } },
+    };
+  })(),
+
+  // 21b — SPX6900 vs the REAL S&P 500: a returns race since launch, both rebased
+  // to 1×. Compares RETURNS (the only fair fight), not prices, and shows the whole
+  // journey — deliberately the opposite of accounts that post the daily price
+  // snapshot. The flex: a memecoin out-returning the index it's named after.
+  s => (() => {
+    const px = s.series.price;
+    const t0 = px[0][0], p0 = px[0][1];
+    if (!(p0 > 0)) return null;
+    const spLaunch = spCloseAt(t0);
+    if (!spLaunch) return null;
+    const spx = px.filter(([, p]) => p > 0).map(([ts, p]) => [ts, p / p0]);
+    const sp = px.map(([ts]) => { const c = spCloseAt(ts); return c ? [ts, c / spLaunch] : null; }).filter(Boolean);
+    if (spx.length < 10 || sp.length < 10) return null;
+    const spxMult = spx.at(-1)[1], spMult = sp.at(-1)[1], spPct = spMult - 1, lap = spxMult / spMult;
+    const allY = [...spx, ...sp].map(p => p[1]);
+    const yMax = Math.max(...allY), yMin = Math.min(...allY, 0.9);
+    const yTicks = [1, 10, 100, 1000].filter(v => v >= yMin * 0.6 && v <= yMax * 1.6).map(v => ({ v, label: fMult(v) }));
+    return {
+      id: "sp500race",
+      text:
+`🏆 SPX6900 vs the index it's named after, since launch: ${fMult(spxMult)} vs the S&P 500's ${fPct(spPct)}.
+$1,000 in each at launch is ${fMoney(1000 * spxMult)} vs ${fUsd0(1000 * spMult)} today. A race of returns, the only fair way to compare two assets.
+The memecoin is lapping the S&P 500 by ${fMult(lap)}.`,
+      card: { type: "line", spec: {
+        title: "SPX6900 vs the real S&P 500", headline: `${fMult(spxMult)} vs S&P 500 ${fPct(spPct)}`, accent: "#4ade80",
+        yLog: true, yMin: yMin * 0.7, yMax: yMax * 1.4, yTicks,
+        series: [
+          { pts: sp, color: "#94a3b8", width: 3, dash: true },
+          { pts: spx, color: "#4ade80", width: 3.4, fill: 0.12 },
+        ],
+        legend: [{ label: "SPX6900", color: "#4ade80" }, { label: "S&P 500", color: "#94a3b8" }],
+        marker: { x: spx.at(-1)[0], y: spx.at(-1)[1], color: "#4ade80" },
+      } },
+    };
+  })(),
+
+  // 21c — "$1,000 in each at launch" — the relatable cut of the S&P race, as two
+  // log bars (end values). Punchier for a screenshot than the journey chart.
+  s => (() => {
+    const px = s.series.price, t0 = px[0][0], p0 = px[0][1];
+    if (!(p0 > 0)) return null;
+    const spLaunch = spCloseAt(t0), spNow = spCloseAt(px.at(-1)[0]);
+    if (!spLaunch || !spNow) return null;
+    const spxVal = 1000 * (px.at(-1)[1] / p0), spVal = 1000 * (spNow / spLaunch);
+    return {
+      id: "sp500grand",
+      text:
+`💸 $1,000 into SPX6900 at launch is ${fMoney(spxVal)} today. The same $1,000 into the S&P 500: ${fUsd0(spVal)}.
+Same money, same day, the index it's named after. Returns are the honest comparison, not sticker prices.
+Being early to a fair launch beats the benchmark by a mile.`,
+      card: { type: "bar", spec: {
+        title: "$1,000 in each, since SPX6900's launch", headline: `${fMoney(spxVal)} vs ${fUsd0(spVal)}`, accent: "#4ade80",
+        logBars: true,
+        bars: [
+          { label: "SPX6900", value: spxVal, text: fMoney(spxVal), color: "#4ade80" },
+          { label: "S&P 500", value: spVal, text: fUsd0(spVal), color: "#94a3b8" },
+        ],
       } },
     };
   })(),
