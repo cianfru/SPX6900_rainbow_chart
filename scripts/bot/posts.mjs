@@ -140,7 +140,8 @@ function spVsWindow(s, startTs) {
 }
 
 // Linear %-return line spec shared by the YTD and trailing-12mo SPX-vs-S&P cards.
-function spVsSpec(title, r) {
+// `tag` ("YTD" / "12mo") rides in the [logo] vs [logo] = result header.
+function spVsSpec(title, r, tag) {
   const { spxPts, spPts, spxRet } = r;
   const allY = [...spxPts, ...spPts].map(p => p[1]);
   const lo = Math.min(0, ...allY), hi = Math.max(0, ...allY), step = 20;
@@ -149,11 +150,11 @@ function spVsSpec(title, r) {
   const accent = spxRet >= 0 ? "#4ade80" : "#f87171";
   return { type: "line", spec: {
     title, headline: `SPX6900 ${fPct(spxRet)} · S&P ${fPct(r.spRet)}`, accent,
+    logoHeader: { left: "spx", right: "sp500", result: `${fPct(spxRet)}${tag ? " " + tag : ""}` },
     yMin: Math.floor(lo / step) * step, yMax: Math.ceil(hi / step) * step, yTicks,
     hlines: [{ y: 0, label: "0%", color: "#475569" }],
-    series: [{ pts: spPts, color: "#94a3b8", width: 2.5 }, { pts: spxPts, color: accent, width: 3.5 }],
-    legend: [{ label: "SPX6900", color: accent }, { label: "S&P 500", color: "#94a3b8" }],
-    marker: { x: spxPts.at(-1)[0], y: spxPts.at(-1)[1], color: accent },
+    // SPX gold coin + red 500 coin sit at each line's endpoint (logos = the legend).
+    series: [{ pts: spPts, color: "#94a3b8", width: 2.5, logo: "sp500" }, { pts: spxPts, color: accent, width: 3.5, logo: "spx" }],
   } };
 }
 
@@ -669,6 +670,7 @@ Each cell is SPX6900's monthly return in S&P units, not dollars. Green = SPX bea
 The benchmark it parodies, month by month.`,
       card: { type: "heatmap", spec: {
         title: "SPX6900 monthly returns vs the S&P 500", headline: `${mh.pctGreen}% of months beat the S&P`, accent: "#38bdf8",
+        logoHeader: { left: "spx", right: "sp500", result: `${mh.pctGreen}% of months` },
         rows: mh.rows, yearCol: true,
       } },
     };
@@ -688,7 +690,7 @@ The benchmark it parodies, month by month.`,
 `📊 SPX6900 is ${fPct(r.spxRet)} YTD vs the S&P 500's ${fPct(r.spRet)}.
 Both rebased to 0% on Jan 1, a clean same-start race against the index it's named after. ${win ? "Out in front this year." : "Behind for now, but every cold stretch on the rainbow has launched the next run."}
 A snapshot of one year, not the whole war.`,
-      card: spVsSpec("SPX6900 vs the S&P 500, year to date", r),
+      card: spVsSpec("SPX6900 vs the S&P 500, year to date", r, "YTD"),
     };
   })(),
 
@@ -703,7 +705,7 @@ A snapshot of one year, not the whole war.`,
 `📊 Last 12 months: SPX6900 ${fPct(r.spxRet)} vs the S&P 500's ${fPct(r.spRet)}.
 A rolling one-year race against its namesake, both rebased to 0%. ${win ? "The meme is winning the year." : "A year in the cold, but that is exactly where the rainbow says the next run is built."}
 One year is a blink for a power-law asset.`,
-      card: spVsSpec("SPX6900 vs the S&P 500, last 12 months", r),
+      card: spVsSpec("SPX6900 vs the S&P 500, last 12 months", r, "12mo"),
     };
   })(),
 
@@ -759,6 +761,7 @@ Same heatmap, but each month is SPX6900's return measured in BTC, not USD. Green
 Up in dollars is easy in a bull market. Up in BTC is the real scoreboard.`,
       card: { type: "heatmap", spec: {
         title: "SPX6900 monthly returns vs BTC", headline: `${mh.pctGreen}% of months beat BTC`, accent: "#f7931a",
+        logoHeader: { left: "spx", right: "btc", result: `${mh.pctGreen}% of months` },
         rows: mh.rows, yearCol: true,
       } },
     };
@@ -987,9 +990,10 @@ Ben Cowen's method, on our chart. A model, not advice.`,
       return yr.map(([t, p]) => [t, (p / base - 1) * 100]);
     };
     const COLOR = { BTC: "#f7931a", ETH: "#818cf8", SOL: "#9945ff" };
+    const LOGO = { BTC: "btc", ETH: "eth", SOL: "sol" };
     const spx = rebase(s.series.price);
     if (!spx) return null;
-    const lines = s.majors.map(m => ({ name: m.name, color: COLOR[m.name] || "#94a3b8", pts: rebase(m.series) })).filter(m => m.pts);
+    const lines = s.majors.map(m => ({ name: m.name, color: COLOR[m.name] || "#94a3b8", logo: LOGO[m.name], pts: rebase(m.series) })).filter(m => m.pts);
     if (!lines.length) return null;
     const spxYtd = spx.at(-1)[1] / 100; // back to fraction for fPct
     const ranked = [{ name: "SPX6900", ret: spxYtd }, ...lines.map(m => ({ name: m.name, ret: m.pts.at(-1)[1] / 100 }))].sort((a, b) => b.ret - a.ret);
@@ -1010,15 +1014,14 @@ Ben Cowen's method, on our chart. A model, not advice.`,
 ${ranked.map(r => `${r.name}: ${fPct(r.ret)}`).join(TIGHT)}
 Everything rebased to 0% on Jan 1, a clean same-start race against BTC, ETH and SOL. ${closer}`,
       card: { type: "line", spec: {
-        title: "SPX6900 vs majors — year to date", headline: `SPX6900 ${fPct(spxYtd)} YTD`, accent: spxYtd >= 0 ? "#4ade80" : "#f87171",
+        title: "The YTD race: SPX6900 vs the majors", headline: `SPX6900 ${fPct(spxYtd)} YTD`, accent: spxYtd >= 0 ? "#4ade80" : "#f87171",
         yMin: Math.floor(lo / step) * step, yMax: Math.ceil(hi / step) * step, yTicks,
         hlines: [{ y: 0, label: "0%", color: "#475569" }],
+        // Each line carries its coin logo, parked at the line's right endpoint.
         series: [
-          ...lines.map(m => ({ pts: m.pts, color: m.color, width: 2.5 })),
-          { pts: spx, color: "#4ade80", width: 4 },
+          ...lines.map(m => ({ pts: m.pts, color: m.color, width: 2.5, logo: m.logo })),
+          { pts: spx, color: "#4ade80", width: 4, logo: "spx" },
         ],
-        legend: [{ label: "SPX6900", color: "#4ade80" }, ...lines.map(m => ({ label: m.name, color: m.color }))],
-        marker: { x: spx.at(-1)[0], y: spx.at(-1)[1], color: "#4ade80" },
       } },
     };
   })(),

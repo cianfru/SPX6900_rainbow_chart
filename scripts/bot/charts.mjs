@@ -75,7 +75,7 @@ function logoHeaderSvg(lh, accent) {
   x += 64;
   out += logoMark(lh.right, x, y, size);
   x += size + 26;
-  out += `<text x="${x}" y="${(y + size * 0.68).toFixed(1)}" fill="${accent}" font-size="46" font-weight="800" font-family="sans-serif">= ${esc(lh.result)}</text>`;
+  if (lh.result) out += `<text x="${x}" y="${(y + size * 0.68).toFixed(1)}" fill="${accent}" font-size="46" font-weight="800" font-family="sans-serif">= ${esc(lh.result)}</text>`;
   return out;
 }
 
@@ -182,7 +182,11 @@ export { PORTRAIT, isPortraitCard, isVideoCard };
 // full static card unchanged.
 export function lineCardSvg(spec, opts = {}) {
   const reveal = opts.reveal ?? 1;
-  const DW = opts.W ?? W, DH = opts.H ?? H, PW = DW - mL - mR, PH = DH - mT - mB; // canvas (default landscape)
+  // End-of-line logos (e.g. the majors race) need a right gutter so the marks sit
+  // clear of the plot — narrow the plot width when any series carries a logo.
+  const hasEndLogos = (spec.series || []).some(s => s.logo);
+  const gutter = hasEndLogos ? 64 : 0;
+  const DW = opts.W ?? W, DH = opts.H ?? H, PW = DW - mL - mR - gutter, PH = DH - mT - mB; // canvas (default landscape)
   const series = spec.series;
   const xs = [], ys = [];
   for (const s of series) for (const [x, y] of s.pts) { xs.push(x); if (!spec.yLog || y > 0) ys.push(y); }
@@ -315,7 +319,30 @@ export function lineCardSvg(spec, opts = {}) {
     });
   }
 
-  return chromeSvg(spec, grid + cone + plot + hl + marker + legend, defs, { W: DW, H: DH });
+  // End-of-line logos: a coin mark parked at each series' right endpoint, in the
+  // reserved gutter. Endpoints that land too close are nudged apart vertically and
+  // a thin connector ties each mark back to its true endpoint (the majors race).
+  let endLogos = "";
+  if (hasEndLogos && reveal >= 1) {
+    const SZ = 46, GAP = 8;
+    let ends = series
+      .map(s => ({ s, last: s.pts.filter(([, y]) => !spec.yLog || y > 0).at(-1) }))
+      .filter(o => o.s.logo && o.last)
+      .map(o => ({ kind: o.s.logo, color: o.s.color, ex: X(o.last[0]), ey: Y(o.last[1]) }))
+      .sort((a, b) => a.ey - b.ey);
+    // greedy de-collision downward, then lift the whole stack if it overran the plot
+    const top = mT + SZ / 2, bot = mT + PH - SZ / 2;
+    ends.forEach((e, i) => { e.ly = i === 0 ? Math.max(e.ey, top) : Math.max(e.ey, ends[i - 1].ly + SZ + GAP); });
+    const overflow = ends.length ? ends.at(-1).ly - bot : 0;
+    if (overflow > 0) ends.forEach(e => { e.ly = Math.max(top, e.ly - overflow); });
+    const lx = mL + PW + 10;
+    for (const e of ends) {
+      endLogos += `<line x1="${e.ex.toFixed(1)}" y1="${e.ey.toFixed(1)}" x2="${lx.toFixed(1)}" y2="${e.ly.toFixed(1)}" stroke="${e.color}" stroke-width="2" stroke-opacity="0.55"/>`;
+      endLogos += logoMark(e.kind, lx, e.ly - SZ / 2, SZ);
+    }
+  }
+
+  return chromeSvg(spec, grid + cone + plot + hl + marker + legend + endLogos, defs, { W: DW, H: DH });
 }
 
 export function renderBarCard(spec, opts = {}) {
