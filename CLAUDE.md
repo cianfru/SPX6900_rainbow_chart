@@ -33,14 +33,21 @@
   - **Measurement solved via Grok (2026-06-24):** Grok (inside X) has the read access the free
     API lacks, so it can classify posts by likes/views — it's the metrics source + classifier.
     Plan: wait ~2 weeks for more data, then have Grok tier the posts and overlay vs price.
-  - **Early Grok read (Jun 16–24, ~25 posts, directional only — n thin, one pump cycle):**
-    engine is the CARD TYPE, not the day's color. High tier = rainbow band-signal + valuation
-    charts (BUY!, Fire Sale, diamond hands, green-months); text/replies = low. Crucially the
-    TOP TWO posts (Jun 18: 79 likes; Jun 24: 51 likes) landed on RED days with "it's cheap /
-    BUY band" framing — the pump day (Jun 17) only produced Medium posts. So the hypothesis to
-    TEST is "band-signal chart cards win regardless of day (dip framing over-performs on red
-    days)", NOT "bullish cards on green days". Reinforces relaxing band-watch daily-suppression:
-    the band event cards ARE the top-engagement format, so suppressing them costs the most.
+  - **Early Grok read (Jun 15–24, directional only — n thin, one pump cycle, AND Grok's
+    retrieval is unreliable: a 2nd pass surfaced top cards the 1st had MISSED, incl. the #1).**
+    Authoritative roster lives in git (post-state.json / band-state.json history), not Grok's
+    scrape. Engine is visual CHART cards with a big-number narrative; text/replies = low.
+    Fuller top-7 by likes: targets $1/$6.90/$69 (93, Jun 16), 517×-since-launch (83, Jun 15),
+    BUY! band (79, Jun 18), holder-underwater (60, Jun 16), Fire Sale (51, Jun 24), BUY! (50,
+    Jun 16), diamond-hands (48, Jun 23). **5 of 7 on GREEN/up days; Jun 16 (+13%) alone made 3,
+    incl. the aspirational targets card** — so the owner's "bullish/aspirational cards amplify on
+    green up-days" instinct DOES hold; the dip-signal band cards (BUY!/Fire Sale) carry the red
+    days. Card quality is the floor, day-color amplifies. (Corrects an earlier note that over-
+    weighted red days — that was Grok's incomplete first pull omitting the green-day winners.)
+  - **TODO build: authoritative post log.** The bot gets a tweet id back on every post but
+    discards it. Append {date, card id, tweet id, kind, text} to public/post-log.json on each
+    daily/band/milestone post → a complete, ID-keyed roster so Grok (or anything) tiers the FULL
+    set with zero misses, and the engagement×price overlay maps straight onto card ids.
 - **First follower-milestone post = 690, NOT 100 (decided 2026-06-24).** Hit 100
   followers in 17 days; owner wants to hold for **690** as the first milestone post
   because it's the on-brand memeable number (69 / 6900). Build it like the other
