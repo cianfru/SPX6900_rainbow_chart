@@ -1,6 +1,19 @@
 # SPX6900 Rainbow Chart — project notes
 
 ## Backlog / decisions
+- **First follower-milestone post = 690, NOT 100 (decided 2026-06-24).** Hit 100
+  followers in 17 days; owner wants to hold for **690** as the first milestone post
+  because it's the on-brand memeable number (69 / 6900). Build it like the other
+  event posts: a one-off celebratory card, fired manually (`BOT_POST=`) / time-gated,
+  **suppressed around the daily** (same fatigue logic as band posts — see band-watch).
+  Tone: humble community thanks ("690 of you, early"), NOT a flex or follow-for-more.
+  - **Analytics aside (2026-06-24, for context, do NOT turn into a post claim):**
+    overlaid SPX price vs X impressions/follows for Jun 11–24. Price peaked $0.473 on
+    Jun 17 alongside an 8K-impression spike (discovery via the pump), then price fell
+    ~28% while followers KEPT growing (Jun 22 was the biggest follow day, no price
+    catalyst). Read = "volatility drives discovery, content drives retention." The
+    level-correlation (0.90) is a one-day artifact; daily-return corr is only ~0.36.
+    So there is NO strict price↔followers relationship — never post it as one.
 - **"Uptober" seasonal card — parked; fire it in September, NOT in the daily rotation.**
   Idea (2026-06-20): a card leaning on the crypto-wide "Uptober" / Q4-strength meme —
   "autumn has historically been SPX6900's hot streak." Descriptive curiosity only,
