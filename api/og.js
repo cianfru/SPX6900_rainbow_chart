@@ -40,22 +40,10 @@ export default async function handler(req, res) {
         return lit;
       } catch (e) { return `ERR ${e.message}`; }
     };
-    let fontFilesTmp = "n/a";
-    try {
-      const { writeFileSync } = await import("node:fs");
-      const { tmpdir } = await import("node:os");
-      const { join } = await import("node:path");
-      const p = join(tmpdir(), "dejavu.ttf");
-      if (FONT.fontBuffers[0]) {
-        writeFileSync(p, FONT.fontBuffers[0]);
-        fontFilesTmp = litOf({ loadSystemFonts: false, fontFiles: [p], defaultFontFamily: "DejaVu Sans", sansSerifFamily: "DejaVu Sans" });
-      }
-    } catch (e) { fontFilesTmp = `ERR ${e.message}`; }
     const out = {
       ...FONT_DIAG, cwd: process.cwd(), node: process.version,
-      test_fontBuffers_litPixels: litOf(FONT),                 // our current approach
-      test_fontFiles_tmp_litPixels: fontFilesTmp,              // write to /tmp + fontFiles
-      test_systemFonts_litPixels: litOf({ loadSystemFonts: true }), // any system font present?
+      test_activeFONT_litPixels: litOf(FONT),                       // the config the cards use (>0 = text draws)
+      test_systemFonts_litPixels: litOf({ loadSystemFonts: true }), // any system font present? (0 on Vercel)
     };
     res.setHeader("Content-Type", "application/json");
     res.status(200).end(JSON.stringify(out, null, 2));
