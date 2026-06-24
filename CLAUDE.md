@@ -72,22 +72,24 @@
   ~0.5–1¢/day even if price is flat** — price then drifts down through the bands and
   can fall **off the Fire Sale floor** (the p2 residual). The rainbow is the project's
   main attraction, so we must not let price escape the bands.
-- **Fix = re-bundle + re-fit on a regular cadence** (NOT only when convenient — that
-  would be goal-seeking; monthly regardless of direction is honest). Adding recent
-  below-trend data both lowers the exponent/center AND deepens the floor band, so
-  price rides the band down instead of exiting.
-- **How:** `node scripts/rebundle-model.mjs` — pulls recent closes from
-  `public/history.json` (the snapshot cron keeps it current), thins to ~weekly,
-  rewrites the `DEFAULT_RAW` literal in `src/data.js`, prints before/after a/R²/center/
-  band. Then `npm run build && node --test 'test/**/*.test.mjs'` and commit `src/data.js`.
-  Heads-up: a re-fit moves EVERY band on the live chart + cards (e.g. the band label can
-  lengthen and tip a post over the 290-char guard — check the length test).
-- **First re-bundle done 2026-06-23:** added real Jun snapshots (n 176→181); exponent
-  4.60→4.16, center $1.69→$1.44, price moved BUY!→Accumulate, floor $0.244→$0.201,
-  flat-price headroom ~127→~195 days. R² ~unchanged (0.742→0.734).
-- **Revisit ~2026-07-23** and roughly monthly after. (Could later wire `rebundle-model.mjs`
-  to a monthly CI cron, but keep it review-then-commit, not auto-commit, since it shifts
-  the live model.)
+- **Policy = monitor monthly, act rarely (decouple the two).** Run
+  `node scripts/rebundle-model.mjs --check` ~monthly: it pulls recent closes from
+  `public/history.json` (kept current by the snapshot cron), thins to ~weekly, and
+  prints where a re-fit WOULD move exponent/center/band — **without touching
+  `src/data.js`**. Watching the drift ≠ changing the model.
+- **Only APPLY** (run without `--check`, then `npm run build && node --test
+  'test/**/*.test.mjs'`, commit `src/data.js`) **when price has UNDERSHOT the lower
+  band for a sustained stretch** — i.e. the model is genuinely failing to contain
+  price. Do NOT re-fit reactively the moment Fire Sale fires: that's a rare, valuable
+  signal (good content), and re-fitting it away is goal-seeking and erodes credibility.
+  Also note the dataset is still small, so each re-fit is noisy — another reason to
+  wait. Heads-up: a re-fit moves EVERY band + can lengthen a band label enough to tip a
+  post over the 290-char guard (check the length test).
+- **2026-06-23: trialed a re-fit, then REVERTED it.** Adding real Jun snapshots moved
+  exponent 4.60→4.16, center $1.69→$1.44, price BUY!→Accumulate, headroom ~127→~195d
+  (R² 0.742→0.734). But Fire Sale had just fired ~1h earlier, so per the policy above we
+  kept the original curve and the owner is monitoring price behaviour instead.
+- **Revisit ~2026-07-23** (monitor with `--check`), roughly monthly after.
 
 ## How the bot picks a post
 - Daily rotation is deterministic: `rota[epochDay % rota.length]` in

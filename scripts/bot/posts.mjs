@@ -550,7 +550,7 @@ Each rung is the SPX price whose cap equals BTC's at $1K, $10K, $100K. Bitcoin c
       id: "model",
       text:
 `📐 How the SPX6900 rainbow is built: a power-law trend fit to price, R² ${m.r2.toFixed(2)}.
-Fit a log-log trend (fair value), then sort each day's distance into bands: deep blue cheapest ever, deep red most stretched.
+Fit a log-log trend line (fair value), then sort each day's distance into bands: deep blue cheapest ever vs trend, deep red most stretched.
 Its own history sorted, not vibes. Today ${BAND_EMOJI[s.bandIndex]} ${s.band.l}.`,
       card: { type: "model", spec: {
         title: "How the SPX6900 rainbow is built", headline: `R² ${m.r2.toFixed(2)} fit · ${fPct(s.vsCenter)} vs trend`, accent: "#a78bfa",

@@ -6,11 +6,20 @@
 // This appends recent daily closes from public/history.json (the snapshot cron
 // keeps it current) to DEFAULT_RAW — thinned to ~weekly to match the bundled
 // cadence — and rewrites src/data.js so buildModel re-fits on maturing data.
-// Run ~monthly:  node scripts/rebundle-model.mjs   (review the band shift, commit)
+//
+//   node scripts/rebundle-model.mjs --check   → MONITOR only: print where a
+//       re-fit would move the exponent/center/band; does NOT touch src/data.js.
+//   node scripts/rebundle-model.mjs           → APPLY: rewrite DEFAULT_RAW.
+//
+// Policy (see CLAUDE.md): run --check ~monthly to watch the drift, but only
+// APPLY when price has UNDERSHOT the lower band for a sustained stretch (the
+// model genuinely failing to contain price) — not reactively the moment Fire
+// Sale fires (that's a rare, valuable signal; re-fitting it away is goal-seeking).
 import { readFileSync, writeFileSync } from "node:fs";
 import * as M from "../src/models.js";
 import { DEFAULT_RAW } from "../src/data.js";
 
+const CHECK = process.argv.includes("--check");
 const WEEK = 6; // min day-gap between kept points
 const snaps = JSON.parse(readFileSync(new URL("../public/history.json", import.meta.url), "utf8"))
   .filter(x => x.p > 0).map(x => ({ date: x.d, price: x.p }));
@@ -33,6 +42,11 @@ const report = (label, RAW) => {
 console.log(`Re-bundle: appending ${thinned.length} point(s) (${thinned[0].date} → ${thinned.at(-1).date}), ${DEFAULT_RAW.length} → ${merged.length} points`);
 report("before", DEFAULT_RAW);
 report("after ", merged);
+
+if (CHECK) {
+  console.log(`\n(--check) src/data.js left UNCHANGED. Re-run without --check to apply, but only on a sustained undershoot (see CLAUDE.md).`);
+  process.exit(0);
+}
 
 const url = new URL("../src/data.js", import.meta.url);
 const text = readFileSync(url, "utf8");
