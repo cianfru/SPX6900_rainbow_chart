@@ -8,5 +8,6 @@
   "btc": "square",
   "distribution": "landscape",
   "breakeven": "square",
-  "diamondtrend": "square"
+  "diamondtrend": "square",
+  "majors": "square"
 }
