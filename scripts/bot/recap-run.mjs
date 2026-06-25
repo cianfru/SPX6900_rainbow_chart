@@ -3,12 +3,12 @@
 //   node scripts/bot/recap-run.mjs --preview                   → write public/recap/<month>/*.png + recap-pending.json (cron)
 //   node scripts/bot/recap-run.mjs --post                      → post the queued thread (needs X creds)
 // Default month = the one that just ended, so a 1st-of-month cron recaps last month.
+// The thread itself (text + card specs) is built in recap-thread.mjs, shared with
+// the control-panel preview API so both show exactly the same thread.
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
-import { computeMonthlyRecap, monthName } from "./recap.mjs";
+import { buildRecapThread } from "./recap-thread.mjs";
 import { renderPostCard } from "./charts.mjs";
-import { computeStats } from "./stats.mjs";
 import { uploadWithRetry } from "./media.mjs";
-import { DEFAULT_RAW } from "../../src/data.js";
 
 const arg = n => { const a = process.argv.find(x => x.startsWith(`--${n}=`)); return a ? a.split("=")[1] : null; };
 const dryRun = process.argv.includes("--dry-run");
@@ -18,72 +18,10 @@ const postMode = process.argv.includes("--post");
 const lastMonth = () => { const d = new Date(); d.setUTCDate(1); d.setUTCMonth(d.getUTCMonth() - 1); return d.toISOString().slice(0, 7); };
 const month = arg("month") || lastMonth();
 
-// --- tiny formatters (recap is standalone of posts.mjs) ---
-const MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-const fMon = d => { const [, m, day] = d.split("-"); return `${MON[+m - 1]} ${+day}`; };
-const fPct = x => `${x >= 0 ? "+" : ""}${(x * 100).toFixed(Math.abs(x) < 0.1 ? 1 : 0)}%`;
-const fPrice = p => p >= 1 ? "$" + p.toFixed(2) : "$" + p.toFixed(p < 0.001 ? 5 : p < 0.01 ? 4 : p < 0.1 ? 3 : 2);
-const fMult = x => Math.round(x) + "×";
-const fNum = n => Math.round(n).toLocaleString("en-US");
-
 const history = JSON.parse(readFileSync(new URL("../../public/history.json", import.meta.url), "utf8"));
-const R = computeMonthlyRecap(month, history);
-if (!R) { console.error(`No recap data for ${month} (need ≥2 daily snapshots).`); process.exit(0); }
-
-// Full drawn series = bundled history + this period's daily closes (so the rainbow runs to month end).
-const lastBundled = DEFAULT_RAW.at(-1).date;
-const merged = [...DEFAULT_RAW, ...history.map(r => ({ date: r.d, price: r.p })).filter(p => p.date > lastBundled && p.price > 0)];
-const endStats = computeStats(R.close, R.month + "-28", { history: merged });
-
-const green = R.change >= 0 ? "#4ade80" : "#f87171";
-const heroTiles = [
-  { big: fPct(R.change), label: "price · this month", color: green },
-  { big: fPrice(R.high), label: "high · " + fMon(R.highDate) },
-  { big: fPrice(R.low), label: "low · " + fMon(R.lowDate) },
-  { big: (R.holders ? (R.holders.delta >= 0 ? "+" : "") + fNum(R.holders.delta) : "—"), label: "new holders" },
-  { big: R.diamondOfTotal != null ? Math.round(R.diamondOfTotal * 100) + "%" : "—", label: "diamond hands" },
-  { big: fMult(R.allTimeReturn), label: "since launch" },
-];
-
-// --- the thread: [{ text, card|null }] ---
-const thread = [
-  {
-    text:
-`📊 SPX6900 — ${R.label} in review.
-
-${fPct(R.change)} on the month, closed in the ${R.endBand.l} band. The month in one card 👇
-
-🌈 $SPX #spx6900`,
-    card: { type: "statgrid", spec: { title: `SPX6900 — ${R.label} in review`, headline: `${fPct(R.change)} · ${R.endBand.l}`, accent: "#38bdf8", tiles: heroTiles } },
-  },
-  {
-    text:
-`🌈 Where ${R.label} left SPX6900 on the rainbow: ${R.endBand.l} — ${fPct(R.vsCenter)} vs the model's fair value (${fPrice(R.center)}).
-
-$SPX #spx6900`,
-    card: { type: "rainbow" },
-  },
-  {
-    text:
-`📈 ${R.label}'s path: opened ${fPrice(R.open)}, ran to ${fPrice(R.high)} (${fMon(R.highDate)}), closed ${fPrice(R.close)}.
-
-Best day ${fPct(R.bestDay.ret)}, worst ${fPct(R.worstDay.ret)}.`,
-    card: { type: "line", spec: {
-      title: `SPX6900 — ${R.label} price path`, headline: `${fPct(R.change)} on the month`, accent: green,
-      series: [{ pts: R.priceSeries, color: green, width: 3.5, fill: 0.14 }],
-      marker: { x: R.priceSeries.at(-1)[0], y: R.priceSeries.at(-1)[1], color: green },
-    } },
-  },
-  {
-    text:
-`That's ${R.label}.${R.holders ? ` Holders ${fNum(R.holders.start)} → ${fNum(R.holders.end)} (${R.holders.delta >= 0 ? "+" : ""}${fNum(R.holders.delta)}),` : ""} avg holder ${R.avgHolderPnl != null ? fPct(R.avgHolderPnl) : "—"}.
-
-Live rainbow + tools: spx6900rainbow.xyz
-
-🌈 $SPX #spx6900 · NFA`,
-    card: null,
-  },
-];
+const built = await buildRecapThread(month, history);
+if (!built) { console.error(`No recap data for ${month} (need ≥2 daily snapshots).`); process.exit(0); }
+const { R, endStats, thread } = built;
 
 // length guard (X visible-weight is ~1/char here; emoji count 2 but we stay well under)
 thread.forEach((t, i) => { if (t.text.length > 280) console.warn(`⚠ tweet ${i + 1} is ${t.text.length} chars (>280)`); });

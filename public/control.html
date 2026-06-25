@@ -27,6 +27,19 @@
     background: #05050e; border: 1px solid rgba(255,255,255,.14); color: #e2e8f0;
     border-radius: 8px; padding: 10px 12px; font-size: 14px; min-width: 240px;
   }
+  input[type=text].minput {
+    background: #05050e; border: 1px solid rgba(255,255,255,.14); color: #e2e8f0;
+    border-radius: 8px; padding: 8px 10px; font-size: 13px; width: 110px; margin-left: 6px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  .tabs { display: flex; gap: 4px; margin-top: 14px; }
+  .tab {
+    background: transparent; border: 1px solid rgba(255,255,255,.10); border-bottom: none;
+    border-radius: 10px 10px 0 0; padding: 9px 18px; font-size: 13.5px; color: #94a3b8;
+  }
+  .tab:hover { background: #0b0b18; }
+  .tab.active { background: #0b0b18; color: #e2e8f0; border-color: #3b82f6; }
+  .tab .dot { display: inline-block; width: 7px; height: 7px; border-radius: 999px; background: #f59e0b; margin-left: 6px; vertical-align: middle; }
   button {
     background: #1e293b; color: #e2e8f0; border: 1px solid rgba(255,255,255,.14);
     border-radius: 8px; padding: 9px 14px; font-size: 13px; cursor: pointer;
@@ -123,17 +136,39 @@
   <header>
     <h1>SPX6900 · post control <span style="color:#475569;font-size:13px">(hidden)</span></h1>
     <div class="sub">Preview every card and pick what posts next. Queue one for the scheduled run, or post it now. Pick nothing and the daily auto-rotation runs as normal.</div>
+    <div class="tabs">
+      <button id="tabDaily" class="tab active">🗓 Daily posts</button>
+      <button id="tabRecap" class="tab">📅 Monthly recap</button>
+    </div>
   </header>
   <div class="wrap">
-    <div class="bar">
-      <button id="refresh">↻ Refresh</button>
-      <button id="clear" class="danger">Clear queue → auto</button>
-      <span style="margin-left:auto"></span>
-      <button id="lock">Lock</button>
+
+    <!-- Daily posts tab -->
+    <div id="dailyView">
+      <div class="bar">
+        <button id="refresh">↻ Refresh</button>
+        <button id="clear" class="danger">Clear queue → auto</button>
+        <span style="margin-left:auto"></span>
+        <button id="lock">Lock</button>
+      </div>
+      <div class="status" id="status">Loading…</div>
+      <div class="sched" id="sched"></div>
+      <div class="grid" id="grid"></div>
     </div>
-    <div class="status" id="status">Loading…</div>
-    <div class="sched" id="sched"></div>
-    <div class="grid" id="grid"></div>
+
+    <!-- Monthly recap tab -->
+    <div id="recapView" style="display:none">
+      <div class="bar">
+        <label style="font-size:13px;color:#94a3b8">Month<input id="recapMonth" class="minput" type="text" placeholder="YYYY-MM" /></label>
+        <button id="recapReload">↻ Reload preview</button>
+        <button id="recapRegen">⟳ Regenerate in CI</button>
+        <span style="margin-left:auto"></span>
+        <button id="recapPost" class="primary">Post recap thread →</button>
+      </div>
+      <div class="status" id="recapStatus">Open this tab to render the recap preview.</div>
+      <div class="grid" id="recapGrid"></div>
+    </div>
+
     <p><a class="home" href="/">← back to site</a></p>
   </div>
 </div>
@@ -293,6 +328,71 @@ $("#grid").addEventListener("click", e => {
 });
 $("#refresh").onclick = refresh;
 $("#clear").onclick = () => queue(null);
+
+// ---- Monthly recap tab ----
+// Renders the exact thread the bot would post (text + cards), live, so it can be
+// verified before the 1st-of-month cron. Preview only — posting/regenerating go
+// through the password-gated /api/control workflow dispatch.
+let recapLoaded = false;
+const recapStatus = (msg, cls = "") => { const e = $("#recapStatus"); e.textContent = msg; e.className = "status " + cls; };
+function recapErr(e) { recapStatus(e.message, "err"); if (e.status === 401) lock(); }
+
+function showTab(which) {
+  const daily = which === "daily";
+  $("#dailyView").style.display = daily ? "block" : "none";
+  $("#recapView").style.display = daily ? "none" : "block";
+  $("#tabDaily").classList.toggle("active", daily);
+  $("#tabRecap").classList.toggle("active", !daily);
+  if (!daily && !recapLoaded) loadRecap();
+}
+
+async function loadRecap() {
+  const month = $("#recapMonth").value.trim();
+  recapStatus("Rendering preview… (pulling live prices + Fear & Greed, ~a few seconds)");
+  $("#recapGrid").innerHTML = "";
+  try {
+    const r = await fetch("/api/recap" + (month ? "?month=" + encodeURIComponent(month) : ""), { cache: "no-store" });
+    const j = await r.json();
+    if (!r.ok) { const e = new Error(j.error || ("preview failed (" + r.status + ")")); throw e; }
+    if (j.error) { recapStatus(j.error, "err"); return; }
+    $("#recapMonth").value = j.month;
+    const g = $("#recapGrid"); g.innerHTML = "";
+    j.tweets.forEach((t, i) => {
+      const el = document.createElement("div");
+      el.className = "card";
+      const badge = t.img ? '<span class="badge image">🖼 card</span>' : '<span class="badge landscape">text only</span>';
+      el.innerHTML =
+        (t.img ? `<img loading="lazy" src="${t.img}" alt="recap tweet ${i + 1}" />` : "") +
+        `<div class="meta"><span class="id">${i + 1} / ${j.tweets.length}</span>${badge}</div>` +
+        `<div class="ptext">${esc(t.text)}<span class="cc">posts as tweet ${i + 1} in the thread</span></div>`;
+      g.appendChild(el);
+    });
+    recapLoaded = true;
+    recapStatus(`${j.label}: ${j.tweets.length}-tweet thread (preview only — nothing posted).`, "ok");
+  } catch (e) { recapErr(e); }
+}
+
+$("#tabDaily").onclick = () => showTab("daily");
+$("#tabRecap").onclick = () => showTab("recap");
+$("#recapReload").onclick = () => { recapLoaded = false; loadRecap(); };
+$("#recapRegen").onclick = async () => {
+  const month = $("#recapMonth").value.trim();
+  if (!confirm(`Regenerate the committed recap preview${month ? " for " + month : ""} in CI?\n\nThis commits the card images to the repo and posts NOTHING.`)) return;
+  recapStatus("Dispatching regenerate…");
+  try {
+    await action({ action: "recap-preview", month: month || undefined });
+    recapStatus("Regenerating in CI — watch the Actions tab (~1 min), then ↻ Reload preview.", "ok");
+  } catch (e) { recapErr(e); }
+};
+$("#recapPost").onclick = async () => {
+  const month = $("#recapMonth").value.trim();
+  if (!confirm(`Post the ${month || "last-month"} recap THREAD to X for real?\n\nThis publishes the whole multi-tweet thread. Make sure the month is complete and the preview looks right.`)) return;
+  recapStatus("Dispatching post…");
+  try {
+    await action({ action: "recap-post", month: month || undefined });
+    recapStatus("Posting the recap thread now — check the Actions tab / X in ~1 min.", "ok");
+  } catch (e) { recapErr(e); }
+};
 
 // On load: if a saved password verifies, skip the gate; otherwise show it.
 const saved = localStorage.getItem(pwKey);
