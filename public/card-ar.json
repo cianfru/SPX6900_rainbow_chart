@@ -10,5 +10,6 @@
   "breakeven": "square",
   "diamondtrend": "square",
   "majors": "portrait",
-  "alltime": "square"
+  "alltime": "square",
+  "cycleclock": "square"
 }
