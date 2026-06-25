@@ -6,6 +6,17 @@
 // Posted-media portrait canvas (4:5) for mobile feeds. OG/link images stay landscape.
 export const PORTRAIT = { W: 1080, H: 1350 };
 
+// Owner-pickable aspect-ratio presets (control panel → AR override per card). The
+// renderers scale to any {W,H}; these are the tested ratios. Static image cards
+// only — video/portrait-native cards keep their own format.
+export const AR_PRESETS = {
+  landscape: { label: "Landscape 3:2", W: 1200, H: 800 },
+  wide: { label: "Wide 1.91:1", W: 1200, H: 628 },
+  square: { label: "Square 1:1", W: 1200, H: 1200 },
+  portrait: { label: "Portrait 4:5", W: 1080, H: 1350 },
+};
+export const dimsForAR = key => (AR_PRESETS[key] ? { W: AR_PRESETS[key].W, H: AR_PRESETS[key].H } : null);
+
 // Which cards post at 4:5 portrait vs landscape. The rainbow fills mobile feeds
 // nicely at 4:5, and the animated `scale` zoom-out was built for the 4:5 video.
 // The other static chart cards are landscape (their AR is being tuned).

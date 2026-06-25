@@ -33,6 +33,7 @@ const STATE_FILE = join(ROOT, "public/post-state.json");
 // daily close (see dailyBandEvent). { band, armed } — its own hysteresis state.
 const DAILY_BAND_FILE = join(ROOT, "public/daily-band-state.json");
 const HISTORY_FILE = join(ROOT, "public/history.json");
+const CARD_AR_FILE = join(ROOT, "public/card-ar.json"); // owner-picked aspect ratios per card
 const readJson = (p, d) => { try { return JSON.parse(readFileSync(p, "utf8")); } catch { return d; } };
 
 const arg = name => { const a = process.argv.find(x => x.startsWith(`--${name}=`)); return a ? a.split("=")[1] : null; };
@@ -135,7 +136,8 @@ console.log(`price ${live.price} (${live.source}) · close band ${closeBand} · 
 
 // Animated mp4 only where motion is the message (scale/cube zoom-outs); charts
 // post as static images. null = text only.
-const media = noMedia ? null : await buildMedia(post, stats, { video: useVideo, portrait: true });
+const cardAr = readJson(CARD_AR_FILE, {})[post.id] || null; // owner AR override (static cards)
+const media = noMedia ? null : await buildMedia(post, stats, { video: useVideo, portrait: true, ar: cardAr });
 
 // Upload-only verification: prove the media reaches X (the v1.1 chunked video
 // path we fixed) without creating a post. Hits X but never tweets.

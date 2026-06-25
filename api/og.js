@@ -9,7 +9,7 @@ import { rainbowSvg } from "../src/rainbow-svg.js";
 import { fetchLivePrice, fetchMajors, fetchHistory, computeStats } from "../scripts/bot/stats.mjs";
 import { buildPost } from "../scripts/bot/posts.mjs";
 import { renderPostCard } from "../scripts/bot/charts.mjs";
-import { staticImageFor } from "../scripts/bot/card-format.mjs";
+import { staticImageFor, dimsForAR } from "../scripts/bot/card-format.mjs";
 import { FONT, FONT_DIAG } from "../scripts/bot/font.mjs";
 
 // Nav tab id -> the rotating post whose card best represents that tab.
@@ -81,9 +81,11 @@ export default async function handler(req, res) {
         return;
       }
       // The control gallery (?post=) previews cards at their true posted size (3:2
-      // landscape / 4:5 portrait). Share-link unfurls (?tab=) instead render 1.91:1
-      // so X's link card doesn't crop the chart's axes off.
-      const cardOpts = directPost ? { portrait } : { landscape: { W: 1200, H: 630 } };
+      // landscape / 4:5 portrait). ?ar=<preset> overrides it so the panel can preview
+      // an aspect-ratio choice. Share-link unfurls (?tab=) render 1.91:1 so X's link
+      // card doesn't crop the chart's axes off.
+      const arDims = dimsForAR(params.get("ar"));
+      const cardOpts = directPost ? (arDims ? { dims: arDims } : { portrait }) : { landscape: { W: 1200, H: 630 } };
       // buildPost falls back to rotation if the requested post lacks data; if so,
       // fall back to the rainbow card rather than show an unrelated chart.
       png = post.id === postId ? renderPostCard(post, stats, cardOpts) : rainbowPng(price);

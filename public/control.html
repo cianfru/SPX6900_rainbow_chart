@@ -97,6 +97,12 @@
   .editor .ebar { display: flex; align-items: center; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
   .editor .elen { font-size: 12px; color: #64748b; }
   .badge.edit { font-size: 10.5px; letter-spacing: .6px; text-transform: uppercase; padding: 2px 8px; border-radius: 999px; }
+  /* per-card aspect-ratio selector */
+  .arrow { display: flex; gap: 5px; flex-wrap: wrap; padding: 8px 12px 0; }
+  .arbtn { background: #0b0b18; border: 1px solid rgba(255,255,255,.14); color: #94a3b8; border-radius: 7px; padding: 4px 10px; font-size: 12px; cursor: pointer; }
+  .arbtn:hover { background: #1e293b; }
+  .arbtn.on { background: rgba(56,189,248,.18); border-color: #38bdf8; color: #7dd3fc; }
+  .arbtn.reset { color: #64748b; margin-left: auto; }
   a.home { color: #64748b; font-size: 12px; text-decoration: none; }
 
   /* Gate */
@@ -195,6 +201,10 @@ const pwKey = "spx_control_pw";
 let PW = "";
 let QUEUED = null, NEXT = null, IDS = [], UPCOMING = [], TEXTS = {}, MEDIA = {}, ORIENT = {}, META = { postedToday: false };
 let EDITABLE = {}, OVERRIDES = {}; // editable card copy: {id:{default,tokens}} + saved overrides {id:template}
+let AR_OVERRIDES = {};             // owner-picked aspect ratio per card: {id: presetKey}
+// AR presets (must mirror scripts/bot/card-format.mjs AR_PRESETS)
+const AR_PRESETS = { landscape: [1200, 800], wide: [1200, 628], square: [1200, 1200], portrait: [1080, 1350] };
+const AR_LABEL = { landscape: "3:2", wide: "1.91:1", square: "1:1", portrait: "4:5" };
 const esc = s => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
 // All privileged actions go through the password-gated serverless function.
@@ -237,8 +247,9 @@ $("#lock").onclick = lock;
 async function loadState() {
   const raw = p => fetch(`https://raw.githubusercontent.com/${OWNER}/${REPO}/${BRANCH}/${p}?t=${Date.now()}`, { cache: "no-store" })
     .then(r => r.ok ? r.json() : null).catch(() => null);
-  const [q, st, ov] = await Promise.all([raw(QUEUE_PATH), raw(STATE_PATH), raw("public/post-copy.json")]);
+  const [q, st, ov, arov] = await Promise.all([raw(QUEUE_PATH), raw(STATE_PATH), raw("public/post-copy.json"), raw("public/card-ar.json")]);
   OVERRIDES = ov && typeof ov === "object" ? ov : {};
+  AR_OVERRIDES = arov && typeof arov === "object" ? arov : {};
   QUEUED = q && q.id ? q.id : null;
   const today = new Date().toISOString().slice(0, 10);
   const postedToday = st && st.lastPostedDate === today;
@@ -273,14 +284,25 @@ function card(id) {
   const orientBadge = isPortrait
     ? '<span class="badge portrait">📱 4:5</span>'
     : '<span class="badge landscape">🖥 landscape</span>';
-  const shape = isPortrait ? "4:5 portrait" : "landscape";
+  // Aspect ratio: video cards keep their native format; static cards can be
+  // overridden to a preset. Current = override, else the card's default orient.
+  const canAR = !isVid;
+  const curAR = (canAR && AR_OVERRIDES[id]) || (isPortrait ? "portrait" : "landscape");
+  const [aw, ah] = AR_PRESETS[curAR] || AR_PRESETS.landscape;
+  const imgSrc = `/api/og?post=${encodeURIComponent(id)}${canAR ? `&ar=${curAR}` : isPortrait ? "&portrait=1" : ""}&cb=${CB}`;
+  const arRow = canAR
+    ? `<div class="arrow">${["landscape", "wide", "square", "portrait"].map(k =>
+        `<button class="arbtn${curAR === k ? " on" : ""}" data-ar="${id}:${k}">${AR_LABEL[k]}</button>`).join("")}` +
+      `${AR_OVERRIDES[id] ? `<button class="arbtn reset" data-ar="${id}:default">↩ default</button>` : ""}</div>`
+    : "";
+  const shape = isVid ? "4:5 portrait" : AR_LABEL[curAR];
   const cc = isVid ? `still preview · posts as a ~10s ${shape} video` : `posts as this static ${shape} image`;
   el.innerHTML = `
-    <img loading="lazy" class="${isPortrait ? "portrait" : ""}" src="/api/og?post=${encodeURIComponent(id)}${isPortrait ? "&portrait=1" : ""}&cb=${CB}" alt="${id}" />
+    <img loading="lazy" style="aspect-ratio:${aw}/${ah}" src="${imgSrc}" alt="${id}" />
     <div class="meta">
       <span class="id">${id}</span>
       ${mediaBadge}
-      ${orientBadge}
+      ${canAR ? `<span class="badge landscape">📐 ${AR_LABEL[curAR]}${AR_OVERRIDES[id] ? "" : " ·default"}</span>` : orientBadge}
       ${isQ ? '<span class="badge queued">queued</span>' : isNext ? '<span class="badge next">next auto</span>' : ""}
       ${EDITABLE[id] ? `<span class="badge edit" style="background:rgba(190,242,100,.16);color:#bef264">${OVERRIDES[id] ? "edited" : "editable"}</span>` : ""}
       <span class="actions">
@@ -289,6 +311,7 @@ function card(id) {
         <button class="primary" data-now="${id}">Post now</button>
       </span>
     </div>
+    ${arRow}
     <div class="ptext">${esc(TEXTS[id] || "")}<span class="cc">${cc}</span></div>
     ${EDITABLE[id] ? `<div class="editor" id="editor-${id}" style="display:none"></div>` : ""}`;
   return el;
@@ -383,8 +406,24 @@ async function saveCopy(id, template) {
   } catch (e) { handleErr(e); }
 }
 
+// ---- Per-card aspect ratio (preset + live preview, saved permanently) ----
+async function setAR(id, key) {
+  const prev = AR_OVERRIDES[id];
+  if (key === "default") delete AR_OVERRIDES[id]; else AR_OVERRIDES[id] = key;
+  renderGrid(); // optimistic: the card re-renders its preview at the new ratio now
+  status(key === "default" ? `Resetting "${id}" ratio…` : `Setting "${id}" to ${AR_LABEL[key]}…`);
+  try {
+    await action({ action: "ar-save", id, ar: key });
+    status(key === "default" ? `"${id}" back to default ratio.` : `"${id}" set to ${AR_LABEL[key]} — live on its next post.`, "ok");
+  } catch (e) {
+    if (prev) AR_OVERRIDES[id] = prev; else delete AR_OVERRIDES[id]; // revert on failure
+    renderGrid(); handleErr(e);
+  }
+}
+
 $("#grid").addEventListener("click", e => {
-  const q = e.target.closest("[data-q]"), n = e.target.closest("[data-now]"), ed = e.target.closest("[data-edit]");
+  const q = e.target.closest("[data-q]"), n = e.target.closest("[data-now]"), ed = e.target.closest("[data-edit]"), a = e.target.closest("[data-ar]");
+  if (a) { const [id, key] = a.dataset.ar.split(":"); setAR(id, key); return; }
   if (ed) { openEditor(ed.dataset.edit); return; }
   if (q) queue(q.dataset.q);
   if (n) postNow(n.dataset.now);

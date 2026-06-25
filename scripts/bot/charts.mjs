@@ -799,7 +799,8 @@ export function renderPostCard(post, stats, opts = {}) {
   // Portrait for the supported cards; otherwise landscape — 3:2 by default, but a
   // caller (the OG link-unfurl endpoint) can pass opts.landscape={W,H} to render
   // the same card at another size (e.g. 1.91:1 so X doesn't crop shared links).
-  const dims = opts.portrait && isPortraitCard(type) ? PORTRAIT : (opts.landscape ?? {});
+  // opts.dims = an explicit {W,H} (AR preset override) wins over portrait/landscape.
+  const dims = opts.dims ?? (opts.portrait && isPortraitCard(type) ? PORTRAIT : (opts.landscape ?? {}));
   const s = { ...spec, date: stats.date };
   if (type === "rainbow") return renderRainbowCard(stats, dims);
   if (type === "channel") return renderChannelCard(stats, dims);

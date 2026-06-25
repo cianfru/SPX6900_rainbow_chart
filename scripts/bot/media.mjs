@@ -2,12 +2,15 @@
 // on), else the static PNG. Falls back to PNG if the video render fails. Kept
 // separate from charts.mjs so the Vercel OG function never pulls in ffmpeg.
 import { renderPostCard, PORTRAIT, isPortraitCard, isVideoCard } from "./charts.mjs";
+import { dimsForAR } from "./card-format.mjs";
 import { renderRainbowVideo, renderLineVideo, renderCubeVideo, renderScaleVideo } from "./video.mjs";
 
 // We animate only where motion is the message — the S&P scale zoom-out and the
 // cube stack (isVideoCard). Charts post as static images. opts.portrait renders
 // the supported cards at 4:5 for mobile feeds (cube isn't portrait-ready yet).
-export async function buildMedia(post, stats, { video = false, out = "bot-preview.mp4", portrait = false } = {}) {
+// opts.ar = an owner-picked aspect-ratio preset key (control panel) for STATIC
+// image cards; it wins over portrait and renders the card at that ratio.
+export async function buildMedia(post, stats, { video = false, out = "bot-preview.mp4", portrait = false, ar = null } = {}) {
   const type = post.card?.type;
   const anim = post.card?.animate; // per-post opt-in for non-video-type cards (e.g. the cycle line card)
   if (video && (isVideoCard(type) || anim)) {
@@ -23,7 +26,9 @@ export async function buildMedia(post, stats, { video = false, out = "bot-previe
       console.error("video render failed → PNG fallback:", e.message);
     }
   }
-  return { data: renderPostCard(post, stats, { portrait }), mediaType: "image/png", kind: "image", portrait };
+  const arDims = ar ? dimsForAR(ar) : null;
+  const imgOpts = arDims ? { dims: arDims } : { portrait };
+  return { data: renderPostCard(post, stats, imgOpts), mediaType: "image/png", kind: "image", portrait };
 }
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
