@@ -4,5 +4,6 @@
   "rally": "square",
   "targets": "square",
   "timeinband": "square",
-  "marketcap": "landscape"
+  "marketcap": "landscape",
+  "btc": "square"
 }
