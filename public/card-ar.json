@@ -20,5 +20,6 @@
   "sp500roll12": "square",
   "hundred": "square",
   "monthlybars": "square",
-  "fngdial": "landscape"
+  "fngdial": "landscape",
+  "fngtrend": "square"
 }
