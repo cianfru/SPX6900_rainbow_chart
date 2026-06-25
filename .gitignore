@@ -27,3 +27,6 @@ dist-ssr
 # X bot dry-run artifact
 bot-preview*.png
 bot-preview*.mp4
+
+# Throwaway artifacts from recap-run.mjs --dry-run (real previews go to public/recap/)
+recap-preview-*.png
