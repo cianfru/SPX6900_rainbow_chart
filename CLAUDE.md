@@ -114,15 +114,15 @@
   snapshots before building a "holders over time / holders up X%" card, so it's
   actually informative. (Noted 2026-06-16.)
 - **Future card ideas — greenlit, build when ready (noted 2026-06-23):**
-  - **SPX6900 vs the real S&P 500** ⭐ (highest impact). The memecoin raced against
-    the actual index it's named after, since launch: "SPX6900 +X× vs S&P 500 +Y%".
-    Perfect on-brand flex, fully honest (two returns). Needs S&P 500 daily closes
-    bundled as immutable history (like `src/btc-history.js` / `alt-age-history.js`) —
-    owner provides a CSV or fetch in CI. A returns race, NOT the existing cap-scale
-    cube card.
-  - **Power-law price roadmap.** Project the model's center (fair-value) line forward
-    and stamp the dates it crosses round numbers ($1, $10, $100). Forward-looking but
-    grounded in the fitted trend, not a vibes target. Frame as "the trend, extrapolated".
+  - ✅ **SPX6900 vs the real S&P 500 — BUILT 2026-06-25** (card id `spxvssp`). Growth-
+    multiple returns race on a log axis: SPX ~497× vs the S&P ~+68% since launch, two
+    honest returns from day one (S&P closes already bundled in `src/sp500-history.js`).
+    Distinct from the cap-scale `sp500` cube and the `monthlyreturnssp` heatmap.
+  - ✅ **Power-law price roadmap — BUILT 2026-06-25** (card id `roadmap`). Projects the
+    fitted fair-value (center) line forward and stamps the dates it crosses the meme
+    targets (currently $6.90 Oct '27 / $69 Dec '30 / $690 Mar '36 — auto-computed via the
+    inverse of `predict()`, so the dates shift if the model is ever re-fit). Framed as
+    "the trend, extrapolated"; companion to the `channel` card.
   - **Decoupling from Bitcoin.** Rolling 90-day correlation of SPX vs BTC over time;
     story = "SPX finding its own legs" IF the data is flattering (check first — if it's
     still glued to BTC, shelve it).

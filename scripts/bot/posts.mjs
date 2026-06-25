@@ -345,6 +345,64 @@ A cleaner read on how far price is from the middle.`,
     card: { type: "channel" },
   }),
 
+  // 1c — SPX6900 vs the REAL S&P 500, total return since launch: a growth-multiple
+  // race on a log axis. The on-brand flex — the memecoin vs the index it's named
+  // after — two honest returns from day one. S&P closes are bundled (SP500_HISTORY).
+  s => (() => {
+    const spBy = new Map(SP500_HISTORY.map(([d, c]) => [d, c]));
+    const spNear = d => { let t = new Date(d); for (let k = 0; k < 8; k++) { const ds = t.toISOString().slice(0, 10); if (spBy.has(ds)) return spBy.get(ds); t = new Date(t - 86400000); } return null; };
+    const spFirst = spNear(s.firstDate);
+    if (!spFirst) return null;
+    const spNow = s.sp ?? SP500_HISTORY.at(-1)[1];
+    const spxMult = s.price / s.firstPrice, spMult = spNow / spFirst;
+    const spxPts = s.series.price.map(([ts, p]) => [ts, p / s.firstPrice]);
+    const spPts = s.series.price.map(([ts]) => { const c = spNear(new Date(ts).toISOString().slice(0, 10)); return c ? [ts, c / spFirst] : null; }).filter(Boolean);
+    return {
+      id: "spxvssp",
+      text: ct`🏆 Since launch, SPX6900 is up ${fMult(spxMult)} while the S&P 500 — the index it's literally named after — is up ${fPct(spMult - 1)}.
+Two honest total returns from day one, same clock. The memecoin vs its namesake.
+A telescope on how far it has run, not a forecast of the next leg.`,
+      card: { type: "line", spec: {
+        title: "SPX6900 vs the S&P 500 — since launch", headline: `${fMult(spxMult)} vs ${fPct(spMult - 1)}`, accent: "#4ade80",
+        yLog: true, yFmt: v => `${v >= 1 ? Math.round(v) : v}×`,
+        series: [
+          { pts: spxPts, color: "#4ade80", width: 3.5, logo: "spx" },
+          { pts: spPts, color: "#3b82f6", width: 3, logo: "sp500" },
+        ],
+      } },
+    };
+  })(),
+
+  // 1d — power-law roadmap: run the fitted fair-value (center) line forward and
+  // stamp the dates it crosses the meme targets. Forward-looking but grounded in
+  // the trend, not a vibes target.
+  s => (() => {
+    const m = s.model;
+    const dayForPrice = T => Math.exp((Math.log(T) - m.b) / m.a) - m.t0; // inverse of predict()
+    const fairAt = d => Math.exp(m.predict(d));
+    const t = M.TARGETS.map(x => ({ ...x, day: dayForPrice(x.price) })).filter(x => x.day > s.day).slice(0, 3);
+    if (t.length < 2) return null;
+    const fMonY = day => fMon(M.ds(Math.round(day)));
+    const fairPts = [];
+    for (let d = M.dayN(s.firstDate); d <= t.at(-1).day; d = Math.max(d + 1, Math.round(d * 1.02))) fairPts.push([Date.parse(M.ds(Math.round(d))), fairAt(d)]);
+    return {
+      id: "roadmap",
+      text: ct`📈 The trend, extrapolated. If SPX6900 holds its power-law fair value, the center line reaches ${t[0].label} by ${fMonY(t[0].day)}, ${t[1].label} by ${fMonY(t[1].day)}${t[2] ? `, ${t[2].label} by ${fMonY(t[2].day)}` : ""}.
+The rainbow's fair-value line run forward — grounded in the fit, not a vibes target.`,
+      card: { type: "line", spec: {
+        title: "Power-law roadmap — the trend, extrapolated", headline: `next: ${t[0].label} by ${fMonY(t[0].day)}`, accent: "#a78bfa",
+        yLog: true, yTicks: decadeTicks(s.firstPrice, t.at(-1).price * 1.2),
+        series: [
+          { pts: s.series.price, color: "#ffffff", width: 2.4 },
+          { pts: fairPts, color: "#84cc16", width: 3, dash: true },
+        ],
+        hlines: t.map(x => ({ y: x.price, label: `${x.label} · ${fMonY(x.day)}`, color: x.c })),
+        markers: t.map(x => ({ x: Date.parse(M.ds(Math.round(x.day))), y: x.price, color: x.c })),
+        marker: { x: lastTs(s), y: s.price, color: "#ffffff" },
+      } },
+    };
+  })(),
+
   // 2 — risk gauge (line, 0..1). De-rotated + console-hidden (OG_ONLY): the
   // fngtrend card now plots this exact valuation-risk line alongside crypto Fear
   // & Greed, so the standalone is redundant in the feed. Kept buildable only to
