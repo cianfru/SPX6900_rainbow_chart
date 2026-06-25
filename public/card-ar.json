@@ -2,5 +2,6 @@
   "valuation": "square",
   "channel": "square",
   "rally": "square",
-  "targets": "square"
+  "targets": "square",
+  "timeinband": "square"
 }
