@@ -6,5 +6,6 @@
   "timeinband": "square",
   "marketcap": "landscape",
   "btc": "square",
-  "distribution": "landscape"
+  "distribution": "landscape",
+  "breakeven": "square"
 }
