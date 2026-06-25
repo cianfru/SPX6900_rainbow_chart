@@ -7,6 +7,7 @@ import { fileURLToPath } from "node:url";
 import { join, dirname } from "node:path";
 import { Resvg } from "@resvg/resvg-js";
 import { renderRainbowCard } from "./rainbow-card.mjs";
+import { renderChannelCard } from "./channel-card.mjs";
 import { FONT } from "./font.mjs";
 
 const W = 1200, H = 800, mL = 88, mR = 48, mT = 188, mB = 76; // landscape card is 3:2
@@ -801,6 +802,7 @@ export function renderPostCard(post, stats, opts = {}) {
   const dims = opts.portrait && isPortraitCard(type) ? PORTRAIT : (opts.landscape ?? {});
   const s = { ...spec, date: stats.date };
   if (type === "rainbow") return renderRainbowCard(stats, dims);
+  if (type === "channel") return renderChannelCard(stats, dims);
   if (type === "kraken") return renderKrakenCard();
   if (type === "gauge") return renderGauge(s, dims);
   if (type === "fngdial") return renderFngDial(s, dims);

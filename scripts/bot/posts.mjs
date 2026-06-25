@@ -286,6 +286,17 @@ Not a prediction. Just where today sits in the long arc.`,
     card: { type: "rainbow" },
   }),
 
+  // 1b — power-law channel: the same model on LOG–LOG axes, where the fair-value
+  // power law is a straight diagonal and the limits are parallel rails.
+  s => ({
+    id: "channel",
+    text:
+`📐 The rainbow, straightened. On log price vs log age, SPX6900's power-law fair value is a straight diagonal, the limits parallel rails.
+Price sits ${Math.abs(Math.round(s.vsCenter * 100))}% ${s.vsCenter < 0 ? "below" : "above"} fair value — ${s.band.l} zone.
+A cleaner read on how far price is from the middle.`,
+    card: { type: "channel" },
+  }),
+
   // 2 — risk gauge (line, 0..1). De-rotated + console-hidden (OG_ONLY): the
   // fngtrend card now plots this exact valuation-risk line alongside crypto Fear
   // & Greed, so the standalone is redundant in the feed. Kept buildable only to
