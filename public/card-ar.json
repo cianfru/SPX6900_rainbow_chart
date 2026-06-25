@@ -19,5 +19,6 @@
   "sp500ytd": "square",
   "sp500roll12": "square",
   "hundred": "square",
-  "monthlybars": "square"
+  "monthlybars": "square",
+  "fngdial": "square"
 }
