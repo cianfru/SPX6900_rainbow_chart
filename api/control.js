@@ -1,3 +1,4 @@
+/* global process, Buffer */
 // Password-gated control actions for the hidden /control page. The browser only
 // ever sends a password (checked against CONTROL_PASSWORD); all GitHub work runs
 // here server-side with GH_PAT, so no token ever touches the client.
@@ -8,6 +9,7 @@
 //                     Contents: read/write + Actions: read/write
 const OWNER = "cianfru", REPO = "SPX6900_rainbow_chart", BRANCH = "main";
 const QUEUE_PATH = "public/next-post.json", WORKFLOW = "post-tweet.yml";
+const WORKFLOW_RECAP = "monthly-recap.yml";
 
 const gh = (path, init = {}) => fetch("https://api.github.com" + path, {
   ...init,
@@ -32,7 +34,7 @@ export default async function handler(req, res) {
     res.status(500).json({ error: "Server not configured: set CONTROL_PASSWORD and GH_PAT in Vercel." });
     return;
   }
-  const { password, action, id } = await readBody(req);
+  const { password, action, id, month } = await readBody(req);
   if (password !== process.env.CONTROL_PASSWORD) { res.status(401).json({ error: "Wrong password." }); return; }
 
   // Gate unlock: password already validated above, so just acknowledge.
@@ -71,6 +73,19 @@ export default async function handler(req, res) {
       });
       if (d.status !== 204) throw new Error("dispatch failed (" + d.status + ") " + (await d.text()));
       res.status(200).json({ ok: true, posting: id });
+      return;
+    }
+    // Monthly recap: regenerate the committed preview (post:false) or publish the
+    // thread for real (post:true). month optional (blank = the month that ended).
+    if (action === "recap-preview" || action === "recap-post") {
+      const inputs = { post: action === "recap-post" };
+      if (month) inputs.month = month;
+      const d = await gh(`/repos/${OWNER}/${REPO}/actions/workflows/${WORKFLOW_RECAP}/dispatches`, {
+        method: "POST",
+        body: JSON.stringify({ ref: BRANCH, inputs }),
+      });
+      if (d.status !== 204) throw new Error("recap dispatch failed (" + d.status + ") " + (await d.text()));
+      res.status(200).json({ ok: true, recap: action === "recap-post" ? "posting" : "previewing", month: month || "(last month)" });
       return;
     }
     res.status(400).json({ error: "unknown action" });
