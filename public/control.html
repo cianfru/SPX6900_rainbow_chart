@@ -87,6 +87,16 @@
     color: #cbd5e1; padding: 10px 12px 14px; border-top: 1px solid rgba(255,255,255,.07);
   }
   .card .ptext .cc { display: block; margin-top: 6px; font-size: 11px; color: #475569; }
+  /* inline copy editor */
+  .editor { border-top: 1px solid rgba(255,255,255,.08); padding: 12px; }
+  .editor .ehead { font-size: 12px; color: #94a3b8; margin-bottom: 8px; }
+  .editor textarea.ecopy { width: 100%; min-height: 110px; background: #05050e; border: 1px solid rgba(255,255,255,.14); color: #e2e8f0; border-radius: 8px; padding: 10px; font-size: 13px; line-height: 1.5; font-family: inherit; resize: vertical; box-sizing: border-box; }
+  .editor .etoks { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+  .editor .tok { background: rgba(190,242,100,.10); border: 1px solid rgba(190,242,100,.3); color: #bef264; border-radius: 6px; padding: 3px 8px; font-size: 12px; cursor: pointer; font-family: ui-monospace, monospace; }
+  .editor .epreview { white-space: pre-wrap; word-break: break-word; font-size: 13px; line-height: 1.5; color: #cbd5e1; background: rgba(255,255,255,.03); border: 1px dashed rgba(255,255,255,.12); border-radius: 8px; padding: 10px; min-height: 40px; }
+  .editor .ebar { display: flex; align-items: center; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+  .editor .elen { font-size: 12px; color: #64748b; }
+  .badge.edit { font-size: 10.5px; letter-spacing: .6px; text-transform: uppercase; padding: 2px 8px; border-radius: 999px; }
   a.home { color: #64748b; font-size: 12px; text-decoration: none; }
 
   /* Gate */
@@ -184,6 +194,7 @@ const status = (msg, cls = "") => { const e = $("#status"); e.textContent = msg;
 const pwKey = "spx_control_pw";
 let PW = "";
 let QUEUED = null, NEXT = null, IDS = [], UPCOMING = [], TEXTS = {}, MEDIA = {}, ORIENT = {}, META = { postedToday: false };
+let EDITABLE = {}, OVERRIDES = {}; // editable card copy: {id:{default,tokens}} + saved overrides {id:template}
 const esc = s => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
 // All privileged actions go through the password-gated serverless function.
@@ -226,7 +237,8 @@ $("#lock").onclick = lock;
 async function loadState() {
   const raw = p => fetch(`https://raw.githubusercontent.com/${OWNER}/${REPO}/${BRANCH}/${p}?t=${Date.now()}`, { cache: "no-store" })
     .then(r => r.ok ? r.json() : null).catch(() => null);
-  const [q, st] = await Promise.all([raw(QUEUE_PATH), raw(STATE_PATH)]);
+  const [q, st, ov] = await Promise.all([raw(QUEUE_PATH), raw(STATE_PATH), raw("public/post-copy.json")]);
+  OVERRIDES = ov && typeof ov === "object" ? ov : {};
   QUEUED = q && q.id ? q.id : null;
   const today = new Date().toISOString().slice(0, 10);
   const postedToday = st && st.lastPostedDate === today;
@@ -238,7 +250,7 @@ async function loadSchedule() {
   const r = await fetch("/api/schedule?days=8");
   if (!r.ok) throw new Error("schedule endpoint failed (" + r.status + ")");
   const j = await r.json();
-  IDS = j.ids || []; UPCOMING = j.upcoming || []; TEXTS = j.texts || {}; MEDIA = j.media || {}; ORIENT = j.orient || {};
+  IDS = j.ids || []; UPCOMING = j.upcoming || []; TEXTS = j.texts || {}; MEDIA = j.media || {}; ORIENT = j.orient || {}; EDITABLE = j.editable || {};
 }
 
 function renderSchedule(meta) {
@@ -270,12 +282,15 @@ function card(id) {
       ${mediaBadge}
       ${orientBadge}
       ${isQ ? '<span class="badge queued">queued</span>' : isNext ? '<span class="badge next">next auto</span>' : ""}
+      ${EDITABLE[id] ? `<span class="badge edit" style="background:rgba(190,242,100,.16);color:#bef264">${OVERRIDES[id] ? "edited" : "editable"}</span>` : ""}
       <span class="actions">
+        ${EDITABLE[id] ? `<button data-edit="${id}">✎ Edit text</button>` : ""}
         <button data-q="${id}">Queue</button>
         <button class="primary" data-now="${id}">Post now</button>
       </span>
     </div>
-    <div class="ptext">${esc(TEXTS[id] || "")}<span class="cc">${cc}</span></div>`;
+    <div class="ptext">${esc(TEXTS[id] || "")}<span class="cc">${cc}</span></div>
+    ${EDITABLE[id] ? `<div class="editor" id="editor-${id}" style="display:none"></div>` : ""}`;
   return el;
 }
 
@@ -320,8 +335,57 @@ async function refresh() {
   } catch (e) { status(e.message, "err"); }
 }
 
+// ---- Inline copy editor (owner-editable tweet text, saved permanently) ----
+const fillTokens = (tpl, tokens) => tpl.replace(/\{(\w+)\}/g, (_, k) => (k in tokens ? String(tokens[k]) : "{" + k + "}"));
+
+function openEditor(id) {
+  const box = $("#editor-" + id);
+  if (!box) return;
+  if (box.style.display !== "none") { box.style.display = "none"; box.innerHTML = ""; return; } // toggle closed
+  const meta = EDITABLE[id] || {}, tokens = meta.tokens || {};
+  const effective = (typeof OVERRIDES[id] === "string" && OVERRIDES[id].trim()) ? OVERRIDES[id] : (meta.default || "");
+  const chips = Object.keys(tokens).map(k => `<button class="tok" data-tok="{${k}}" title="now: ${esc(String(tokens[k]))}">{${k}}</button>`).join(" ");
+  box.innerHTML =
+    `<div class="ehead">Edit tweet copy — <span style="color:#475569">{tokens} stay live · the 🌈 $SPX #spx6900 footer is added automatically</span></div>` +
+    `<textarea class="ecopy" spellcheck="true">${esc(effective)}</textarea>` +
+    `<div class="etoks">${chips || '<span style="color:#475569">no tokens in this card</span>'}</div>` +
+    `<div style="font-size:11px;color:#475569;margin-bottom:6px">live preview:</div><div class="epreview"></div>` +
+    `<div class="ebar"><span class="elen"></span><span style="margin-left:auto"></span>` +
+    (OVERRIDES[id] ? `<button class="ereset danger">↩ Reset to default</button>` : "") +
+    `<button class="ecancel">Cancel</button><button class="primary esave">Save</button></div>`;
+  box.style.display = "block";
+  const ta = box.querySelector(".ecopy"), prev = box.querySelector(".epreview"), len = box.querySelector(".elen");
+  const render = () => {
+    const out = fillTokens(ta.value, tokens);
+    prev.textContent = out;
+    len.textContent = out.length + " chars" + (out.length > 280 ? " · over 280 (will need a long post)" : "");
+    len.style.color = out.length > 280 ? "#fbbf24" : "#64748b";
+  };
+  ta.addEventListener("input", render); render();
+  box.querySelector(".esave").onclick = () => saveCopy(id, ta.value);
+  box.querySelector(".ecancel").onclick = () => { box.style.display = "none"; box.innerHTML = ""; };
+  const rb = box.querySelector(".ereset"); if (rb) rb.onclick = () => { if (confirm(`Reset "${id}" copy to the built-in default?`)) saveCopy(id, null); };
+  box.querySelectorAll(".tok").forEach(b => b.onclick = () => {
+    const t = b.dataset.tok, p = ta.selectionStart ?? ta.value.length;
+    ta.value = ta.value.slice(0, p) + t + ta.value.slice(ta.selectionEnd ?? p);
+    ta.focus(); ta.selectionStart = ta.selectionEnd = p + t.length; render();
+  });
+}
+
+async function saveCopy(id, template) {
+  status(template == null ? `Resetting "${id}" copy…` : `Saving "${id}" copy…`);
+  try {
+    await action({ action: "copy-save", id, template });
+    if (template == null) delete OVERRIDES[id]; else OVERRIDES[id] = template;
+    const box = $("#editor-" + id); if (box) { box.style.display = "none"; box.innerHTML = ""; }
+    renderGrid();
+    status(template == null ? `Reset "${id}" to default.` : `Saved "${id}" copy — live on its next post.`, "ok");
+  } catch (e) { handleErr(e); }
+}
+
 $("#grid").addEventListener("click", e => {
-  const q = e.target.closest("[data-q]"), n = e.target.closest("[data-now]");
+  const q = e.target.closest("[data-q]"), n = e.target.closest("[data-now]"), ed = e.target.closest("[data-edit]");
+  if (ed) { openEditor(ed.dataset.edit); return; }
   if (q) queue(q.dataset.q);
   if (n) postNow(n.dataset.now);
 });

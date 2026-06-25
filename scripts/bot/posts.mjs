@@ -1,6 +1,7 @@
 // Rotating "daily pill" posts. Each entry turns the live stats into an
 // informative blurb + a chart card (line/bar/rainbow). The bot rotates through
 // them by day so followers get a different, visual angle each day.
+import { readFileSync } from "node:fs";
 import * as M from "../../src/models.js";
 import { DEFAULT_RAW } from "../../src/data.js";
 import { CRYPTO_MILESTONES } from "../../src/milestones.js";
@@ -8,6 +9,37 @@ import { btcCycleProjection } from "../../src/btc-cycle.js";
 import { BTC_HISTORY } from "../../src/btc-history.js";
 import { ETH_HISTORY, SOL_HISTORY } from "../../src/alt-age-history.js";
 import { SP500_HISTORY } from "../../src/sp500-history.js";
+
+// --- owner-editable post copy ---------------------------------------------
+// A handful of cards route their tweet text through copy(id, defaultTemplate,
+// vars): the template can contain {token} placeholders that the bot fills with
+// the live values in `vars`, so the OWNER can edit the wording from the control
+// panel (saved permanently to public/post-copy.json) WITHOUT freezing the live
+// numbers. Unknown/empty edits fall back to the built-in default.
+const COPY_FILE = new URL("../../public/post-copy.json", import.meta.url);
+let _overrides;
+const loadOverrides = () => {
+  if (_overrides) return _overrides;
+  try { _overrides = JSON.parse(readFileSync(COPY_FILE, "utf8")) || {}; } catch { _overrides = {}; }
+  return _overrides;
+};
+const fillTokens = (tpl, vars) => tpl.replace(/\{(\w+)\}/g, (_, k) => (k in vars ? String(vars[k]) : `{${k}}`));
+// Records each editable card's DEFAULT template + sample vars (for the control
+// panel's editor/preview), and returns the EFFECTIVE text (owner override or
+// default) with tokens filled.
+export const COPY_REGISTRY = {};
+export function copy(id, template, vars) {
+  COPY_REGISTRY[id] = { template, vars };
+  const ov = loadOverrides()[id];
+  return fillTokens(typeof ov === "string" && ov.trim() ? ov : template, vars);
+}
+// What the editor needs: { id: { default, tokens: {name: value} } } for every
+// card that has routed through copy() in the current build.
+export function editableCopy() {
+  const out = {};
+  for (const [id, { template, vars }] of Object.entries(COPY_REGISTRY)) out[id] = { default: template, tokens: vars };
+  return out;
+}
 
 // X discovery tags appended to each post's footer: the $SPX cashtag (X resolves
 // it to SPX6900) for the in-timeline price-chart card, plus the #spx6900 hashtag.
@@ -279,10 +311,11 @@ const POSTS = [
   // 1 — valuation / rainbow
   s => ({
     id: "valuation",
-    text:
-`📊 SPX6900 is trading ${Math.abs(Math.round(s.vsCenter * 100))}% ${s.vsCenter < 0 ? "below" : "above"} its long-run trend. ${BAND_EMOJI[s.bandIndex]} ${s.band.l} band.
-The rainbow fits a power-law trend to SPX6900's history. Fair value for its age is ${fPrice(s.center)}; blue means cheap, red means stretched.
+    text: copy("valuation",
+`📊 SPX6900 is trading {pct}% {dir} its long-run trend. {emoji} {band} band.
+The rainbow fits a power-law trend to SPX6900's history. Fair value for its age is {fair}; blue means cheap, red means stretched.
 Not a prediction. Just where today sits in the long arc.`,
+      { pct: Math.abs(Math.round(s.vsCenter * 100)), dir: s.vsCenter < 0 ? "below" : "above", emoji: BAND_EMOJI[s.bandIndex], band: s.band.l, fair: fPrice(s.center) }),
     card: { type: "rainbow" },
   }),
 
@@ -290,10 +323,11 @@ Not a prediction. Just where today sits in the long arc.`,
   // power law is a straight diagonal and the limits are parallel rails.
   s => ({
     id: "channel",
-    text:
+    text: copy("channel",
 `📐 The rainbow, straightened. On log price vs log age, SPX6900's power-law fair value is a straight diagonal, the limits parallel rails.
-Price sits ${Math.abs(Math.round(s.vsCenter * 100))}% ${s.vsCenter < 0 ? "below" : "above"} fair value — ${s.band.l} zone.
+Price sits {pct}% {dir} fair value — {band} zone.
 A cleaner read on how far price is from the middle.`,
+      { pct: Math.abs(Math.round(s.vsCenter * 100)), dir: s.vsCenter < 0 ? "below" : "above", band: s.band.l }),
     card: { type: "channel" },
   }),
 
@@ -520,9 +554,10 @@ ${up ? "Most of the float is green and still holding." : "The crowd's red and st
       : `${delta > 0 ? "Up" : "Down"} from ${startPct.toFixed(decimals)}% to ${nowPct.toFixed(decimals)}% since we started tracking`;
     return {
       id: "diamondtrend",
-      text:
-`💎 Diamond hands hold ~${Math.round(nowPct)}% of all SPX6900 supply (${fMoney(s.supply.diamondValue)}) — the longest-held coins on-chain, the float that rarely moves.
-${trend} — the conviction base sitting under the price.`,
+      text: copy("diamondtrend",
+`💎 Diamond hands hold ~{pct}% of all SPX6900 supply ({value}) — the longest-held coins on-chain, the float that rarely moves.
+{trend} — the conviction base sitting under the price.`,
+        { pct: Math.round(nowPct), value: fMoney(s.supply.diamondValue), trend }),
       card: { type: "line", spec: {
         title: "Diamond hands — share of supply over time", headline: `${Math.round(nowPct)}% diamond supply`, accent: "#22d3ee",
         yMin: lo - pad, yMax: hi + pad, yFmt: v => v.toFixed(decimals) + "%",

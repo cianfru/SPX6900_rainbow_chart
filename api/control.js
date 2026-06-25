@@ -10,6 +10,7 @@
 const OWNER = "cianfru", REPO = "SPX6900_rainbow_chart", BRANCH = "main";
 const QUEUE_PATH = "public/next-post.json", WORKFLOW = "post-tweet.yml";
 const WORKFLOW_RECAP = "monthly-recap.yml";
+const COPY_PATH = "public/post-copy.json"; // owner-edited card-copy overrides
 
 const gh = (path, init = {}) => fetch("https://api.github.com" + path, {
   ...init,
@@ -34,7 +35,7 @@ export default async function handler(req, res) {
     res.status(500).json({ error: "Server not configured: set CONTROL_PASSWORD and GH_PAT in Vercel." });
     return;
   }
-  const { password, action, id, month } = await readBody(req);
+  const { password, action, id, month, template } = await readBody(req);
   if (password !== process.env.CONTROL_PASSWORD) { res.status(401).json({ error: "Wrong password." }); return; }
 
   // Gate unlock: password already validated above, so just acknowledge.
@@ -86,6 +87,31 @@ export default async function handler(req, res) {
       });
       if (d.status !== 204) throw new Error("recap dispatch failed (" + d.status + ") " + (await d.text()));
       res.status(200).json({ ok: true, recap: action === "recap-post" ? "posting" : "previewing", month: month || "(last month)" });
+      return;
+    }
+    // Save (or clear) an owner edit of a card's tweet copy. Persists permanently
+    // to public/post-copy.json; the bot prefers it over the built-in default.
+    // template null/empty → remove the override (reset to default).
+    if (action === "copy-save") {
+      if (!id) { res.status(400).json({ error: "missing id" }); return; }
+      let put, body;
+      for (let i = 0; i < 3; i++) {
+        let sha, obj = {};
+        const cur = await gh(`/repos/${OWNER}/${REPO}/contents/${COPY_PATH}?ref=${BRANCH}`);
+        if (cur.ok) { const j = await cur.json(); sha = j.sha; try { obj = JSON.parse(Buffer.from(j.content, "base64").toString("utf8")) || {}; } catch { obj = {}; } }
+        if (typeof template === "string" && template.trim()) obj[id] = template; else delete obj[id];
+        const content = Buffer.from(JSON.stringify(obj, null, 2) + "\n").toString("base64");
+        put = await gh(`/repos/${OWNER}/${REPO}/contents/${COPY_PATH}`, {
+          method: "PUT",
+          body: JSON.stringify({ message: `control: copy ${template && template.trim() ? "edit" : "reset"} ${id}`, content, branch: BRANCH, ...(sha ? { sha } : {}) }),
+        });
+        if (put.ok) break;
+        body = await put.text();
+        if (put.status !== 409) break;
+        await new Promise(r => setTimeout(r, 400 * (i + 1)));
+      }
+      if (!put.ok) throw new Error("copy write failed (" + put.status + ") " + body);
+      res.status(200).json({ ok: true, id, saved: !!(template && template.trim()) });
       return;
     }
     res.status(400).json({ error: "unknown action" });
