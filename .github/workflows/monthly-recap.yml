@@ -1,11 +1,11 @@
 name: Monthly recap
 
 # Review the recap LIVE on the hidden control panel (/control → Monthly recap),
-# which renders the cards on demand — nothing is committed to the repo for
+# which renders the post + cards on demand — nothing is committed to the repo for
 # previews. This workflow only PUBLISHES: run it manually with post=true (or via
-# the panel's "Post recap thread" button) to ship the thread. The scheduled run
-# and any post=false run just render the thread to the job log as a sanity check
-# and commit nothing. 1-tap approval, zero writing.
+# the panel's "Post recap" button) to ship the single post + images. The
+# scheduled run and any post=false run just render it to the job log as a sanity
+# check and commit nothing. 1-tap approval, zero writing.
 
 on:
   schedule:
@@ -13,7 +13,7 @@ on:
   workflow_dispatch:
     inputs:
       post:
-        description: "Publish the recap thread for real (otherwise just render it to the job log as a check)"
+        description: "Publish the recap post for real (otherwise just render it to the job log as a check)"
         type: boolean
         default: false
       month:

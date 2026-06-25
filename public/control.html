@@ -162,7 +162,7 @@
         <label style="font-size:13px;color:#94a3b8">Month<input id="recapMonth" class="minput" type="text" placeholder="YYYY-MM" /></label>
         <button id="recapReload">↻ Reload preview</button>
         <span style="margin-left:auto"></span>
-        <button id="recapPost" class="primary">Post recap thread →</button>
+        <button id="recapPost" class="primary">Post recap →</button>
       </div>
       <div class="status" id="recapStatus">Open this tab to render the recap preview.</div>
       <div class="grid" id="recapGrid"></div>
@@ -356,18 +356,24 @@ async function loadRecap() {
     if (j.error) { recapStatus(j.error, "err"); return; }
     $("#recapMonth").value = j.month;
     const g = $("#recapGrid"); g.innerHTML = "";
-    j.tweets.forEach((t, i) => {
+    // The single long-form post's text (no link in body).
+    const txt = document.createElement("div");
+    txt.className = "card";
+    txt.innerHTML =
+      `<div class="meta"><span class="id">post text</span><span class="badge image">${j.images.length} image${j.images.length === 1 ? "" : "s"}</span></div>` +
+      `<div class="ptext">${esc(j.text)}<span class="cc">one long-form post · ${j.text.length} chars · no link in body</span></div>`;
+    g.appendChild(txt);
+    // The ≤4 image cards attached to the post.
+    j.images.forEach((src, i) => {
       const el = document.createElement("div");
       el.className = "card";
-      const badge = t.img ? '<span class="badge image">🖼 card</span>' : '<span class="badge landscape">text only</span>';
       el.innerHTML =
-        (t.img ? `<img loading="lazy" src="${t.img}" alt="recap tweet ${i + 1}" />` : "") +
-        `<div class="meta"><span class="id">${i + 1} / ${j.tweets.length}</span>${badge}</div>` +
-        `<div class="ptext">${esc(t.text)}<span class="cc">posts as tweet ${i + 1} in the thread</span></div>`;
+        `<img loading="lazy" src="${src}" alt="recap image ${i + 1}" />` +
+        `<div class="meta"><span class="id">image ${i + 1} / ${j.images.length}</span><span class="badge image">🖼 card</span></div>`;
       g.appendChild(el);
     });
     recapLoaded = true;
-    recapStatus(`${j.label}: ${j.tweets.length}-tweet thread (preview only — nothing posted).`, "ok");
+    recapStatus(`${j.label}: 1 post + ${j.images.length} images (preview only — nothing posted).`, "ok");
   } catch (e) { recapErr(e); }
 }
 
@@ -376,7 +382,7 @@ $("#tabRecap").onclick = () => showTab("recap");
 $("#recapReload").onclick = () => { recapLoaded = false; loadRecap(); };
 $("#recapPost").onclick = async () => {
   const month = $("#recapMonth").value.trim();
-  if (!confirm(`Post the ${month || "last-month"} recap THREAD to X for real?\n\nThis publishes the whole multi-tweet thread. Make sure the month is complete and the preview looks right.`)) return;
+  if (!confirm(`Post the ${month || "last-month"} recap to X for real?\n\nThis publishes ONE post + up to 4 images. Make sure the month is complete and the preview looks right.`)) return;
   recapStatus("Dispatching post…");
   try {
     await action({ action: "recap-post", month: month || undefined });
