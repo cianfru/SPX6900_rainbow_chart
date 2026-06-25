@@ -22,6 +22,7 @@ const BtcCycleChart = lazy(() => import("./BtcCycleChart.jsx"));
 const RelativeChart = lazy(() => import("./RelativeChart.jsx"));
 const SupplyConviction = lazy(() => import("./SupplyConviction.jsx"));
 const ModelChart = lazy(() => import("./ModelChart.jsx"));
+const ChannelChart = lazy(() => import("./ChannelChart.jsx"));
 const SeasonalityGrid = lazy(() => import("./SeasonalityGrid.jsx"));
 
 const SANS = "'Space Grotesk', system-ui, sans-serif";
@@ -102,6 +103,7 @@ function TabIcon({ name }) {
   const p = { width: 15, height: 15, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 2, strokeLinecap: "round", strokeLinejoin: "round", style: { flexShrink: 0 } };
   switch (name) {
     case "rainbow": return (<svg {...p}><path d="M3 16a9 9 0 0 1 18 0" /><path d="M6 16a6 6 0 0 1 12 0" /><path d="M9 16a3 3 0 0 1 6 0" /></svg>);
+    case "channel": return (<svg {...p}><path d="M3 21 21 3" /><path d="M3 14 14 3" /><path d="M10 21 21 10" /></svg>);
     case "risk": return (<svg {...p}><path d="M22 12h-4l-3 9L9 3l-3 9H2" /></svg>);
     case "drawdown": return (<svg {...p}><polyline points="22 17 13.5 8.5 8.5 13.5 2 7" /><polyline points="16 17 22 17 22 11" /></svg>);
     case "monthly": return (<svg {...p}><rect x="3" y="4" width="18" height="18" rx="2" /><path d="M8 2v4" /><path d="M16 2v4" /><path d="M3 10h18" /><path d="M8 14h.01" /><path d="M12 14h.01" /><path d="M16 14h.01" /><path d="M8 18h.01" /><path d="M12 18h.01" /></svg>);
@@ -119,6 +121,7 @@ function TabIcon({ name }) {
 // Unified nav: Rainbow (hero) + the six indicator charts, each with its own neon color.
 const NAV_TABS = [
   ["rainbow", "Rainbow", "#a78bfa"],
+  ["channel", "Channel", "#bef264"],
   ["risk", "Risk", "#f59e0b"],
   ["drawdown", "Drawdown", "#f87171"],
   ["monthly", "Monthly", "#2dd4bf"],
@@ -1163,6 +1166,7 @@ export default function App() {
         </div>
         <ErrorBoundary key={tab}>
         <Suspense fallback={<div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 40 }}>Loading chart…</div>}>
+          {tab === "channel" && <ChannelChart series={priceData} m={m} isMobile={isMobile} />}
           {tab === "risk" && <RiskChart series={priceData} m={m} isMobile={isMobile} />}
           {tab === "drawdown" && <DrawdownChart series={priceData} isMobile={isMobile} />}
           {tab === "monthly" && <SeasonalityGrid series={priceData} isMobile={isMobile} />}
