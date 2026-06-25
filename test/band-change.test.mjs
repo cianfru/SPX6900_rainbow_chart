@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import * as M from "../src/models.js";
 import { DEFAULT_RAW } from "../src/data.js";
 import { computeStats } from "../scripts/bot/stats.mjs";
-import { buildBandChangePost, MARQUEE_BANDS, bandPostDecision, BAND_COOLDOWN_MS, confirmBandCrossing, BAND_CONFIRM_READINGS } from "../scripts/bot/posts.mjs";
+import { buildBandChangePost, MARQUEE_BANDS, bandPostDecision, dailyBandEvent, BAND_COOLDOWN_MS, confirmBandCrossing, BAND_CONFIRM_READINGS } from "../scripts/bot/posts.mjs";
 import { renderPostCard } from "../scripts/bot/charts.mjs";
 
 const base = computeStats(DEFAULT_RAW.at(-1).price, DEFAULT_RAW.at(-1).date, {});
@@ -33,51 +33,77 @@ test("direction wording flips with the crossing", () => {
   assert.match(buildBandChangePost(s, 0).text, /climbed into/);  // 0 -> 1 = up
 });
 
-// --- band-watcher guardrails (bandPostDecision) ---
+// --- hourly EXTREME watcher (bandPostDecision: Fire Sale / Max Bubble only) ---
 const T0 = Date.UTC(2026, 0, 1, 0, 0, 0);
 const after = h => T0 + h * 3600 * 1000;
 
-test("a fresh excursion into a marquee band posts", () => {
-  const d = bandPostDecision({ bi: 1, state: { band: 3, armed: true }, now: T0 });
+test("a fresh excursion into an extreme band posts", () => {
+  const d = bandPostDecision({ bi: 0, state: { band: 3, armed: true }, now: T0 });
   assert.equal(d.shouldPost, true);
 });
 
-test("BUY<->Fire Sale oscillation only fires once (hysteresis)", () => {
-  // 3(calm) -> 1: posts, then disarm. Each subsequent flap between two marquee
-  // bands must NOT re-fire until price returns to a calm band.
+test("BUY / SELL never fire the hourly watcher (the daily slot owns them)", () => {
+  assert.equal(bandPostDecision({ bi: 1, state: { band: 3, armed: true }, now: T0 }).shouldPost, false);
+  assert.equal(bandPostDecision({ bi: 7, state: { band: 3, armed: true }, now: T0 }).shouldPost, false);
+});
+
+test("extreme oscillation only fires once until a calm-middle re-arm", () => {
+  // 3(calm) -> 0: posts, disarm. Flapping 0<->1 must NOT re-fire until price
+  // returns to the calm middle (a non-marquee band).
   let state = { band: 3, armed: true, lastPostTs: null };
-  const seq = [1, 0, 1, 0]; // BUY, Fire Sale, BUY, Fire Sale
+  const seq = [0, 1, 0]; // Fire Sale, BUY, Fire Sale
   const fired = [];
   for (let i = 0; i < seq.length; i++) {
-    const d = bandPostDecision({ bi: seq[i], state, dailyPostedToday: false, now: after(7 * (i + 1)) });
+    const d = bandPostDecision({ bi: seq[i], state, now: after(7 * (i + 1)) });
     fired.push(d.shouldPost);
-    // mirror band-watch's state writes: disarm on a post, else carry armed forward
     state = d.shouldPost
       ? { band: seq[i], armed: false, lastPostTs: new Date(after(7 * (i + 1))).toISOString() }
       : { band: seq[i], armed: d.armed, lastPostTs: state.lastPostTs };
   }
-  assert.deepEqual(fired, [true, false, false, false], "only the first crossing fires");
+  assert.deepEqual(fired, [true, false, false], "only the first extreme crossing fires");
 });
 
-test("returning to a calm band re-arms a future marquee post", () => {
+test("returning to a calm middle re-arms a future extreme post", () => {
   const posted = { band: 0, armed: false, lastPostTs: new Date(T0).toISOString() };
-  // climb to a calm band (3): re-arms
   const calm = bandPostDecision({ bi: 3, state: posted, now: after(30) });
   assert.equal(calm.armed, true);
-  // a later drop back into a marquee band fires again
-  const reEntry = bandPostDecision({ bi: 1, state: { band: 3, armed: true }, now: after(40) });
+  const reEntry = bandPostDecision({ bi: 8, state: { band: 3, armed: true }, now: after(40) });
   assert.equal(reEntry.shouldPost, true);
 });
 
-test("daily post already out today suppresses band alerts", () => {
+test("any post already out today suppresses extreme alerts", () => {
   const d = bandPostDecision({ bi: 0, state: { band: 3, armed: true }, dailyPostedToday: true, now: T0 });
   assert.equal(d.shouldPost, false);
 });
 
-test("cooldown blocks a second post inside the window", () => {
+test("cooldown blocks a second extreme post inside the window", () => {
   const recent = { band: 3, armed: true, lastPostTs: new Date(T0).toISOString() };
-  assert.equal(bandPostDecision({ bi: 1, state: recent, now: T0 + BAND_COOLDOWN_MS - 1 }).shouldPost, false);
-  assert.equal(bandPostDecision({ bi: 1, state: recent, now: T0 + BAND_COOLDOWN_MS }).shouldPost, true);
+  assert.equal(bandPostDecision({ bi: 0, state: recent, now: T0 + BAND_COOLDOWN_MS - 1 }).shouldPost, false);
+  assert.equal(bandPostDecision({ bi: 0, state: recent, now: T0 + BAND_COOLDOWN_MS }).shouldPost, true);
+});
+
+// --- daily-slot BUY/SELL announcement (dailyBandEvent) ---
+test("a daily close in BUY with price still there announces", () => {
+  assert.equal(dailyBandEvent({ closeBand: 1, liveBand: 1, state: { band: 3, armed: true } }).announce, true);
+});
+
+test("a daily close in BUY that has since reverted does NOT announce", () => {
+  assert.equal(dailyBandEvent({ closeBand: 1, liveBand: 3, state: { band: 3, armed: true } }).announce, false);
+});
+
+test("extreme bands are not announced via the daily slot (hourly owns them)", () => {
+  assert.equal(dailyBandEvent({ closeBand: 0, liveBand: 0, state: { band: 3, armed: true } }).announce, false);
+});
+
+test("daily BUY/SELL fires once per excursion, re-arms on the calm middle", () => {
+  const buy = dailyBandEvent({ closeBand: 1, liveBand: 1, state: { band: 3, armed: true } });
+  assert.equal(buy.announce, true);                               // close in BUY → announce + disarm
+  const stay = dailyBandEvent({ closeBand: 1, liveBand: 1, state: { band: 1, armed: false } });
+  assert.equal(stay.announce, false);                            // still BUY → no re-announce
+  const calmClose = dailyBandEvent({ closeBand: 4, liveBand: 4, state: { band: 1, armed: false } });
+  assert.equal(calmClose.armed, true);                           // calm middle re-arms
+  const sell = dailyBandEvent({ closeBand: 7, liveBand: 7, state: { band: 4, armed: true } });
+  assert.equal(sell.announce, true);                             // SELL now fires
 });
 
 // --- anti-spike confirmation (confirmBandCrossing) ---

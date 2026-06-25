@@ -19,7 +19,8 @@ import { dirname, join } from "node:path";
 import { fetchLivePrice, fetchMajors, fetchHistory, computeStats } from "./stats.mjs";
 import { renderPostCard } from "./charts.mjs";
 import { buildMedia, postWithMedia, uploadWithRetry } from "./media.mjs";
-import { buildPost, allIds } from "./posts.mjs";
+import { buildPost, allIds, buildBandChangePost, dailyBandEvent } from "./posts.mjs";
+import * as M from "../../src/models.js";
 
 // Control-page state lives in public/ so it deploys with the site and the daily
 // workflow can commit it back. next-post.json = an optional queued override the
@@ -28,6 +29,10 @@ import { buildPost, allIds } from "./posts.mjs";
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "../..");
 const QUEUE_FILE = join(ROOT, "public/next-post.json");
 const STATE_FILE = join(ROOT, "public/post-state.json");
+// Tier-A band tracker: the daily post announces a BUY/SELL band on a settled
+// daily close (see dailyBandEvent). { band, armed } — its own hysteresis state.
+const DAILY_BAND_FILE = join(ROOT, "public/daily-band-state.json");
+const HISTORY_FILE = join(ROOT, "public/history.json");
 const readJson = (p, d) => { try { return JSON.parse(readFileSync(p, "utf8")); } catch { return d; } };
 
 const arg = name => { const a = process.argv.find(x => x.startsWith(`--${name}=`)); return a ? a.split("=")[1] : null; };
@@ -108,8 +113,25 @@ if (renderAll) {
   process.exit(0);
 }
 
-const post = buildPost(stats, new Date(), overrideId);
-console.log(`price ${live.price} (${live.source}) · post "${post.id}" · ${post.text.length} chars`);
+// Tier-A band announcement: if the latest SETTLED daily close (public/history.json,
+// written ~00:17 by the snapshot cron) sits in a BUY/SELL band AND the live price
+// still agrees, this slot announces the rainbow instead of a rotation card. The
+// hourly watcher owns the extremes (Fire Sale / Max Bubble); this owns BUY/SELL.
+const snapHist = readJson(HISTORY_FILE, []);
+const lastSnap = Array.isArray(snapHist) ? snapHist.at(-1) : null;
+const closePrice = lastSnap?.p ?? live.price;
+const closeDate = lastSnap?.d ?? new Date().toISOString().slice(0, 10);
+const closeBand = M.bandIndex(stats.model, closePrice, M.dayN(closeDate));
+const dailyBandState = readJson(DAILY_BAND_FILE, null);
+const bandEv = dailyBandEvent({ closeBand, liveBand: stats.bandIndex, state: dailyBandState });
+// Don't fire on the very first run (no state yet) or when the owner queued/forced a
+// specific post — those win, and we seed/track silently.
+const announceBand = !overrideId && !!dailyBandState && bandEv.announce;
+
+const post = announceBand
+  ? buildBandChangePost(stats, dailyBandState.band)
+  : buildPost(stats, new Date(), overrideId);
+console.log(`price ${live.price} (${live.source}) · close band ${closeBand} · live band ${stats.bandIndex} · post "${post.id}"${announceBand ? " (band announce)" : ""} · ${post.text.length} chars`);
 
 // Animated mp4 only where motion is the message (scale/cube zoom-outs); charts
 // post as static images. null = text only.
@@ -177,3 +199,12 @@ try {
 // again. The workflow commits these back to the repo after the run.
 writeFileSync(STATE_FILE, JSON.stringify({ lastPostedDate: today, lastId: post.id }, null, 2) + "\n");
 if (fromQueue) writeFileSync(QUEUE_FILE, JSON.stringify({ id: null }, null, 2) + "\n");
+
+// Advance the tier-A band tracker off this run's settled close (skip when an owner
+// override ran — its pick shouldn't disarm a pending BUY/SELL). Announce disarms;
+// a calm-middle close re-arms; an unannounced marquee close holds the prior state.
+if (!overrideId) {
+  const nb = announceBand ? closeBand : bandEv.calm ? closeBand : (dailyBandState?.band ?? closeBand);
+  const na = announceBand ? false : bandEv.calm ? true : (dailyBandState?.armed ?? true);
+  writeFileSync(DAILY_BAND_FILE, JSON.stringify({ band: nb, armed: na, ts: new Date().toISOString() }, null, 2) + "\n");
+}

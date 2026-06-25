@@ -1142,9 +1142,19 @@ export function buildPost(stats, now = new Date(), overrideId = null) {
   return { ...chosen, text: withFooter(chosen.text) };
 }
 
-// Marquee bands worth interrupting the feed for (the rare extremes). Used by the
-// hourly band watcher — it only posts when price crosses INTO one of these.
-export const MARQUEE_BANDS = new Set([0, 1, 7, 8]); // Fire Sale, BUY, SELL, Max Bubble
+// The marquee bands worth interrupting the feed for, split into two tiers by how
+// they're delivered:
+//   • EXTREME (Fire Sale / Max Bubble): historic, once-in-a-cycle prints — fired
+//     promptly by the hourly watcher (with anti-spike confirmation) so a genuine
+//     extreme isn't delayed a day.
+//   • DAILY (BUY / SELL): meaningful but less urgent — announced from the next
+//     DAILY post slot when the daily CLOSE settles in the band (close-confirmed,
+//     no intraday-wick fires, no extra post → no rainbow fatigue).
+// MARQUEE_BANDS (the union) is the calm/re-arm boundary for both tiers: price
+// must return to the calm middle (a non-marquee band) to re-arm either tier.
+export const EXTREME_BANDS = new Set([0, 8]);       // Fire Sale, Max Bubble
+export const DAILY_BANDS = new Set([1, 7]);         // BUY, SELL
+export const MARQUEE_BANDS = new Set([0, 1, 7, 8]); // union — the calm boundary
 
 export const BAND_COOLDOWN_MS = 6 * 3600 * 1000; // min gap between band-change posts
 
@@ -1166,23 +1176,36 @@ export function confirmBandCrossing({ bi, state, readings = BAND_CONFIRM_READING
   return { pendingBand: bi, pendingCount, confirmed: pendingCount >= readings };
 }
 
-// Pure decision for the hourly band watcher, factored out so the guardrails are
-// testable. Three things gate a band-change post on top of "crossed into a
-// marquee band":
-//   • hysteresis (`armed`): fire only once per EXCURSION into an extreme zone —
+// Pure decision for the hourly EXTREME watcher (Fire Sale / Max Bubble only),
+// factored out so the guardrails are testable. Gates on top of "confirmed
+// crossing into an extreme band":
+//   • hysteresis (`armed`): fire only once per EXCURSION out of the calm middle —
 //     price must return to a calm (non-marquee) band to re-arm, so oscillating
-//     between two marquee bands (BUY <-> Fire Sale) can't keep firing;
+//     between marquee bands can't keep firing;
 //   • cooldown: a minimum gap since the last real post;
-//   • daily suppression: if the daily rotation already posted today, stay quiet.
+//   • daily suppression: if anything already posted today, stay quiet.
 // Returns the derived flags plus the `armed` value to carry into the next state.
 export function bandPostDecision({ bi, state, dailyPostedToday = false, now = Date.now(), cooldownMs = BAND_COOLDOWN_MS }) {
-  const calm = !MARQUEE_BANDS.has(bi);
-  const armed = calm ? true : (state?.armed ?? true);     // calm re-arms; default armed for legacy state
-  const marquee = MARQUEE_BANDS.has(bi);
+  const calm = !MARQUEE_BANDS.has(bi);                    // calm middle re-arms both tiers
+  const armed = calm ? true : (state?.armed ?? true);     // default armed for legacy state
+  const extreme = EXTREME_BANDS.has(bi);                  // hourly only fires the extremes
   const changed = !state || bi !== state.band;
   const cooled = !state?.lastPostTs || now - Date.parse(state.lastPostTs) >= cooldownMs;
-  const shouldPost = changed && marquee && armed && cooled && !dailyPostedToday;
-  return { calm, armed, marquee, changed, cooled, shouldPost };
+  const shouldPost = changed && extreme && armed && cooled && !dailyPostedToday;
+  return { calm, armed, extreme, changed, cooled, shouldPost };
+}
+
+// Pure decision for the DAILY-slot band announcement (BUY / SELL). Confirmation
+// is a settled daily CLOSE in the band (`closeBand`), AND the live price still
+// sitting there at post time (`liveBand`) — so a wick that closed in the band but
+// has since reverted doesn't fire. Same calm-middle re-arm hysteresis as the
+// extreme tier. `state` = { band, armed } from daily-band-state.json.
+export function dailyBandEvent({ closeBand, liveBand, state }) {
+  const calm = !MARQUEE_BANDS.has(closeBand);
+  const armed = calm ? true : (state?.armed ?? true);
+  const changed = !state || closeBand !== state.band;
+  const announce = changed && DAILY_BANDS.has(closeBand) && armed && liveBand === closeBand;
+  return { announce, calm, changed, armed };
 }
 
 // Event post for a band crossing (fired by band-watch.mjs, not the rotation).

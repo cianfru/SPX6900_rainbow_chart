@@ -1,7 +1,9 @@
-// Band watcher — runs hourly. Posts to X only when SPX6900 crosses INTO a
-// marquee band (Fire Sale / BUY / SELL / Max Bubble) AND the crossing is
-// CONFIRMED (held for a few consecutive checks, so a transient wick can't fire),
-// at most once per cooldown, and never more than one post per day across the bot.
+// Band watcher — runs hourly. Posts to X only when SPX6900 crosses INTO an
+// EXTREME band (Fire Sale / Max Bubble) AND the crossing is CONFIRMED (held for a
+// few consecutive checks, so a transient wick can't fire), at most once per
+// cooldown, and never more than one post per day across the bot. The milder
+// BUY / SELL marquee bands are announced from the daily post slot instead (on a
+// settled daily close — see dailyBandEvent in posts.mjs), to avoid fatigue.
 // State lives in public/band-state.json (committed by the workflow). The first
 // run with no state seeds silently. Dry-run does detection only: no state writes,
 // no post (writes bandchange-preview.png so you can eyeball the card).
@@ -65,8 +67,8 @@ if (!confirmed) {
 
 // --- a CONFIRMED crossing: state.band -> bi ---
 const from = state.band;
-const { marquee, armed, cooled, shouldPost } = bandPostDecision({ bi, state, dailyPostedToday });
-console.log(`Confirmed band change ${from} -> ${bi} | marquee=${marquee} armed=${armed} cooled=${cooled} dailyPostedToday=${dailyPostedToday} => ${shouldPost ? "POST" : "skip"}`);
+const { extreme, armed, cooled, shouldPost } = bandPostDecision({ bi, state, dailyPostedToday });
+console.log(`Confirmed band change ${from} -> ${bi} | extreme=${extreme} armed=${armed} cooled=${cooled} dailyPostedToday=${dailyPostedToday} => ${shouldPost ? "POST" : "skip"}`);
 
 const post = buildBandChangePost(stats, from);
 
@@ -82,7 +84,7 @@ if (dryRun) {
 // the hysteresis state forward (calm re-arms; an extreme band keeps prior arming).
 writeState({ band: bi, ts: nowIso(), lastPostTs: state.lastPostTs || null, armed, pendingBand: null, pendingCount: 0 });
 
-if (!shouldPost) { console.log("State updated, no post (non-marquee, disarmed, within cooldown, or already posted today)."); process.exit(0); }
+if (!shouldPost) { console.log("State updated, no post (not an extreme band, disarmed, within cooldown, or already posted today)."); process.exit(0); }
 if (!hasCreds) { console.log("Marquee crossing, but X creds missing — state updated, no post."); process.exit(0); }
 
 const media = await buildMedia(post, stats, { video: true, out: "bandchange.mp4", portrait: true });
