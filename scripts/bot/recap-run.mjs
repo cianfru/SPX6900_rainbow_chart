@@ -33,7 +33,7 @@ if (!R) { console.error(`No recap data for ${month} (need ≥2 daily snapshots).
 // Full drawn series = bundled history + this period's daily closes (so the rainbow runs to month end).
 const lastBundled = DEFAULT_RAW.at(-1).date;
 const merged = [...DEFAULT_RAW, ...history.map(r => ({ date: r.d, price: r.p })).filter(p => p.date > lastBundled && p.price > 0)];
-const endStats = computeStats(R.close, R.month + "-28", { history: merged });
+const endStats = computeStats(R.close, R.endDate, { history: merged });
 
 const green = R.change >= 0 ? "#4ade80" : "#f87171";
 const heroTiles = [

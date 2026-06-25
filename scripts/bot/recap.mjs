@@ -46,6 +46,7 @@ export function computeMonthlyRecap(month, history) {
 
   return {
     month, label: monthName(month), days: days.length,
+    endDate: last.d,
     open, close, change: close / open - 1,
     high: hi, highDate: hiD, low: lo, lowDate: loD,
     endBand: M.BAND_LABELS[endBandIdx], endBandIdx, vsCenter: close / endCenter - 1, center: endCenter,
