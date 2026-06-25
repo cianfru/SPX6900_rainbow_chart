@@ -81,6 +81,15 @@ function loadSupplySnapshot() {
   } catch { return null; }
 }
 
+// Diamond-tier share of TOTAL supply over time (%), for the diamond-supply trend
+// card — grows as daily snapshots accumulate. Same basis as diamondShare above.
+function loadSupplyHistory() {
+  try {
+    const arr = JSON.parse(readFileSync(new URL("../../public/history.json", import.meta.url), "utf8"));
+    return arr.filter(r => r.sup && r.sup.diamond != null).map(r => [Date.parse(r.d), (r.sup.diamond / SUPPLY) * 100]);
+  } catch { return []; }
+}
+
 // SPX-vs-coin ratio aligned on SPX dates, and relative-strength over a window.
 function alignedRatio(coin, raw) {
   const map = new Map(coin.map(r => [r.date, r.price]));
@@ -164,6 +173,7 @@ export function computeStats(price, dateStr = new Date().toISOString().slice(0, 
       tiers, classified,
       breakEven: snap.be, gini: snap.gini,
       avgHolderPnl: snap.be ? price / snap.be - 1 : null,
+      diamondSeries: loadSupplyHistory(),
     };
   }
 

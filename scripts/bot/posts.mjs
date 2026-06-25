@@ -494,6 +494,30 @@ ${up ? "Most of the float is green and still holding." : "The crowd's red and st
     };
   })(),
 
+  // 11b — diamond-supply trend: share of TOTAL supply held by the longest-held
+  // "diamond" tier, over time (grows as daily snapshots accumulate). The bot
+  // companion to the website's "Diamond supply over time" chart.
+  s => s.supply && s.supply.diamondSeries && s.supply.diamondSeries.length >= 2 && (() => {
+    const ds = s.supply.diamondSeries;
+    const nowPct = ds.at(-1)[1], startPct = ds[0][1], delta = nowPct - startPct;
+    const dv = ds.map(p => p[1]);
+    const lo = Math.min(...dv), hi = Math.max(...dv);
+    const range = hi - lo, pad = Math.max(range * 0.3, 0.3);
+    const decimals = (range + 2 * pad) >= 8 ? 0 : 1;
+    return {
+      id: "diamondtrend",
+      text:
+`💎 Diamond hands now hold ~${Math.round(nowPct)}% of all SPX6900 supply (${fMoney(s.supply.diamondValue)}) — the longest-held coins on-chain, the float that rarely moves.
+Tracked daily since snapshots began: ${delta >= 0 ? "+" : ""}${delta.toFixed(1)} pts over the window.`,
+      card: { type: "line", spec: {
+        title: "Diamond hands — share of supply over time", headline: `${Math.round(nowPct)}% diamond supply`, accent: "#22d3ee",
+        yMin: lo - pad, yMax: hi + pad, yFmt: v => v.toFixed(decimals) + "%",
+        series: [{ pts: ds, color: "#22d3ee", width: 3.5, fill: 0.18 }],
+        marker: { x: ds.at(-1)[0], y: ds.at(-1)[1], color: "#22d3ee" },
+      } },
+    };
+  })(),
+
   // 12 — SPX vs the majors over the trailing 12 months (rebased to 0% a year back).
   // Four overlaying price-action lines, each ending in its coin logo — the rolling
   // sibling of the YTD race. Shown even when SPX trails; the closer reflects rank.

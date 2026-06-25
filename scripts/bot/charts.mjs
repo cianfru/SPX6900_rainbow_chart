@@ -468,53 +468,6 @@ export function renderMonthBars(spec, opts = {}) {
   return chrome(spec, grid + axis + body + labels + years, defs, { W: DW, H: DH });
 }
 
-// "SPX vs the field" returns card: one signed column per asset growing from a
-// floating 0% axis (green up / red down), each capped UNDER the bar with the
-// asset's coin logo instead of a text label. Powers the recap's "how SPX6900's
-// month stacked up vs majors + memecoins" card. bars: [{value, logo, outline?}].
-export function renderVsField(spec, opts = {}) {
-  const { DW, DH, PW, PH } = geom(opts);
-  const bars = spec.bars;
-  const vals = bars.map(b => b.value);
-  const posMax = Math.max(1e-6, ...vals.filter(v => v > 0));
-  const negMax = Math.max(1e-6, ...vals.filter(v => v < 0).map(v => -v));
-  const span = posMax + negMax;
-  const padT = 0.16, padB = 0.16;                  // headroom for top label / under-bar logos
-  const usable = PH * (1 - padT - padB);
-  const zeroY = mT + PH * padT + (posMax / span) * usable; // 0% axis floats by the up/down ratio
-  const k = usable / span;                          // px per unit of return
-  const n = bars.length, slot = PW / n, bw = Math.min(slot * 0.58, 120);
-
-  let defs = "";
-  bars.forEach((b, i) => {
-    const col = b.value >= 0 ? "#22c55e" : "#ef4444";
-    defs += `<linearGradient id="vf${i}" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="${col}" stop-opacity="${b.value >= 0 ? 1 : 0.7}"/>
-      <stop offset="100%" stop-color="${col}" stop-opacity="${b.value >= 0 ? 0.5 : 0.95}"/></linearGradient>`;
-  });
-
-  let body = "";
-  bars.forEach((b, i) => {
-    const cx = mL + slot * i + slot / 2;
-    const up = b.value >= 0;
-    const bh = Math.max(2, Math.abs(b.value) * k);
-    const y = up ? zeroY - bh : zeroY;
-    body += `<rect x="${(cx - bw / 2).toFixed(1)}" y="${y.toFixed(1)}" width="${bw.toFixed(1)}" height="${bh.toFixed(1)}" rx="7" fill="url(#vf${i})"${b.outline ? ` stroke="#fff" stroke-width="3"` : ""}/>`;
-    // signed % label (above an up bar, below a down bar)
-    const lblY = up ? y - 14 : y + bh + 30;
-    body += `<text x="${cx.toFixed(1)}" y="${lblY.toFixed(1)}" fill="${up ? "#86efac" : "#fca5a5"}" font-size="27" font-weight="800" text-anchor="middle" font-family="sans-serif">${b.value >= 0 ? "+" : ""}${Math.round(b.value * 100)}%</text>`;
-    // under-bar coin logo (parked just below the plot, like the bar card)
-    const ls = 42;
-    body += logoMark(b.logo, cx - ls / 2, mT + PH + 6, ls);
-  });
-
-  // floating 0% axis, brighter than any gridline
-  const axis = `<line x1="${mL}" y1="${zeroY.toFixed(1)}" x2="${DW - mR}" y2="${zeroY.toFixed(1)}" stroke="rgba(255,255,255,0.5)" stroke-width="2"/>`
-    + `<text x="${mL - 12}" y="${(zeroY + 6).toFixed(1)}" fill="#cbd5e1" font-size="20" text-anchor="end" font-family="sans-serif">0%</text>`;
-
-  return chrome(spec, axis + body, defs, { W: DW, H: DH });
-}
-
 // Seasonality heatmap card — the website's Monthly grid, condensed. rows:
 // [{label, cells:[12 returns|null], year}]. Green up / red down, opacity scaled
 // by size; a right-hand "Year" column compounds each row. Mirrors SeasonalityGrid.
@@ -856,7 +809,6 @@ export function renderPostCard(post, stats, opts = {}) {
   if (type === "dcaladder") return renderDcaLadder(s, dims);
   if (type === "bar") return renderBarCard(s, dims);
   if (type === "mbars") return renderMonthBars(s, dims);
-  if (type === "vsfield") return renderVsField(s, dims);
   if (type === "donut") return renderDonut(s, dims);
   if (type === "stack") return renderStackBar(s, dims);
   if (type === "model") return renderModelCard(s, dims);

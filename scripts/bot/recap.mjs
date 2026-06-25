@@ -71,5 +71,6 @@ export function computeMonthlyRecap(month, history) {
     holderSeries: withHolders.map(r => [Date.parse(r.d), r.holders]),
     riskSeries: days.map(r => [Date.parse(r.d), riskAt(r.p, r.d)]),
     fngSeries: days.filter(r => r.fng != null).map(r => [Date.parse(r.d), r.fng]),
+    diamondSeries: days.filter(r => r.sup && r.sup.diamond != null).map(r => [Date.parse(r.d), (r.sup.diamond / SUPPLY) * 100]),
   };
 }

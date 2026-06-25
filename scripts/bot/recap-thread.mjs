@@ -16,25 +16,6 @@ const fPrice = p => p >= 1 ? "$" + p.toFixed(2) : "$" + p.toFixed(p < 0.001 ? 5 
 const fMult = x => Math.round(x) + "×";
 const fNum = n => Math.round(n).toLocaleString("en-US");
 
-// Monthly return of a [ [ms, price], … ] series over [startDate, endDate], using
-// the close nearest each boundary (walks a few days inward if the exact day is
-// missing). Apples-to-apples with how SPX's own open→close return is computed.
-const seriesReturn = (series, startDate, endDate) => {
-  if (!series || !series.length) return null;
-  const byDate = new Map();
-  for (const [ms, p] of series) byDate.set(new Date(ms).toISOString().slice(0, 10), p);
-  const near = (t, dir) => {
-    for (let i = 0; i < 7; i++) {
-      const d = new Date(t + "T00:00:00Z"); d.setUTCDate(d.getUTCDate() + dir * i);
-      const k = d.toISOString().slice(0, 10);
-      if (byDate.has(k)) return byDate.get(k);
-    }
-    return null;
-  };
-  const a = near(startDate, +1), b = near(endDate, -1);
-  return a && b ? b / a - 1 : null;
-};
-
 async function coinGeckoSeries(id) {
   try {
     const r = await fetch(`https://api.coingecko.com/api/v3/coins/${id}/market_chart?vs_currency=usd&days=60&interval=daily`, { headers: { Accept: "application/json" } });
@@ -82,19 +63,42 @@ export async function buildRecapThread(month, history) {
   ];
 
   // --- monthly performance vs the field (majors + meme kings) ---------------
-  // All six fetched uniformly from CoinGecko, measured over SPX's own window.
+  // All six fetched uniformly from CoinGecko. Each asset's CUMULATIVE return
+  // through the month, normalized to start at 0%, so the lines race each other.
   const ids = { btc: "bitcoin", eth: "ethereum", sol: "solana", doge: "dogecoin", shib: "shiba-inu", pepe: "pepe" };
   const fetched = await Promise.all(Object.values(ids).map(coinGeckoSeries));
   const series = {}; Object.keys(ids).forEach((k, i) => { series[k] = fetched[i]; });
-  const fieldBars = [
-    { logo: "spx", ret: R.change, outline: true },
-    { logo: "btc", ret: seriesReturn(series.btc, R.startDate, R.endDate) },
-    { logo: "eth", ret: seriesReturn(series.eth, R.startDate, R.endDate) },
-    { logo: "sol", ret: seriesReturn(series.sol, R.startDate, R.endDate) },
-    { logo: "doge", ret: seriesReturn(series.doge, R.startDate, R.endDate) },
-    { logo: "shib", ret: seriesReturn(series.shib, R.startDate, R.endDate) },
-    { logo: "pepe", ret: seriesReturn(series.pepe, R.startDate, R.endDate) },
-  ].filter(b => b.ret != null).map(b => ({ value: b.ret, logo: b.logo, outline: b.outline }));
+  const retSeries = srs => {
+    if (!srs || !srs.length) return null;
+    const byDate = new Map();
+    for (const [ms, p] of srs) byDate.set(new Date(ms).toISOString().slice(0, 10), p);
+    const near = (t, dir) => {
+      for (let i = 0; i < 7; i++) {
+        const d = new Date(t + "T00:00:00Z"); d.setUTCDate(d.getUTCDate() + dir * i);
+        const k = d.toISOString().slice(0, 10);
+        if (byDate.has(k)) return byDate.get(k);
+      }
+      return null;
+    };
+    const base = near(R.startDate, +1);
+    if (!base) return null;
+    const pts = [];
+    for (const [ms, p] of srs) {
+      const ds = new Date(ms).toISOString().slice(0, 10);
+      if (ds >= R.startDate && ds <= R.endDate) pts.push([ms, p / base - 1]);
+    }
+    return pts.length >= 2 ? pts : null;
+  };
+  const spxBase = R.priceSeries[0][1];
+  const fieldLines = [
+    { logo: "spx", color: "#38bdf8", width: 4, pts: R.priceSeries.map(([ms, p]) => [ms, p / spxBase - 1]) },
+    { logo: "btc", color: "#f7931a", width: 2.5, pts: retSeries(series.btc) },
+    { logo: "eth", color: "#8b9bff", width: 2.5, pts: retSeries(series.eth) },
+    { logo: "sol", color: "#9945ff", width: 2.5, pts: retSeries(series.sol) },
+    { logo: "doge", color: "#c2a633", width: 2.5, pts: retSeries(series.doge) },
+    { logo: "shib", color: "#f43f5e", width: 2.5, pts: retSeries(series.shib) },
+    { logo: "pepe", color: "#4ade80", width: 2.5, pts: retSeries(series.pepe) },
+  ].filter(f => f.pts);
 
   // --- sentiment vs valuation: crypto Fear&Greed (backfilled) + SPX risk ----
   const fngMap = await fngHistory();
@@ -104,6 +108,10 @@ export async function buildRecapThread(month, history) {
   const fngPts = fngBackfilled.length >= 2 ? fngBackfilled : R.fngSeries;
   const riskNow = Math.round(R.riskSeries.at(-1)[1]);
   const riskLabel = riskNow < 33 ? "low / value zone" : riskNow < 66 ? "mid-band" : "stretched";
+  // Auto-fit the y-axis to the data (both lines can sit well under 100) so the
+  // card fills the frame instead of wasting two-thirds of a fixed 0–100 scale.
+  const moodMax = Math.max(...fngPts.map(p => p[1]), ...R.riskSeries.map(p => p[1]));
+  const moodYMax = Math.max(10, Math.ceil((moodMax * 1.15) / 5) * 5);
 
   // --- the thread (combined to stay tight): hero, rainbow, path, field, mood, wrap
   const thread = [
@@ -136,15 +144,20 @@ Best day ${fPct(R.bestDay.ret)}, worst ${fPct(R.worstDay.ret)}.`,
     },
   ];
 
-  // vs-the-field: majors + meme kings in one card (only if we got ≥2 returns)
-  if (fieldBars.length >= 2) thread.push({
+  // vs-the-field: cumulative-return race lines (only if we got ≥2 assets)
+  if (fieldLines.length >= 2) thread.push({
     text:
 `🏁 ${R.label}: SPX6900 vs the field.
 
-SPX ${fPct(R.change)} on the month — raced against BTC/ETH/SOL and the meme kings 🐕🐸 (DOGE/SHIB/PEPE) 👇
+Cumulative return through the month — SPX ${fPct(R.change)} raced against BTC/ETH/SOL and the meme kings 🐕🐸 (DOGE/SHIB/PEPE), all starting at 0% 👇
 
 $SPX #spx6900`,
-    card: { type: "vsfield", spec: { title: `SPX6900 vs the field — ${R.label}`, headline: `${fPct(R.change)} on the month`, accent: "#38bdf8", bars: fieldBars } },
+    card: { type: "line", spec: {
+      title: `SPX6900 vs the field — ${R.label}`, headline: `${fPct(R.change)} on the month`, accent: "#38bdf8",
+      yFmt: v => `${v >= 0 ? "+" : ""}${Math.round(v * 100)}%`,
+      hlines: [{ y: 0, label: "0%", color: "#475569" }],
+      series: fieldLines.map(f => ({ pts: f.pts, color: f.color, width: f.width, logo: f.logo })),
+    } },
   });
 
   // sentiment vs valuation: Fear&Greed + SPX risk level (only if F&G available)
@@ -157,7 +170,7 @@ Crypto Fear & Greed closed ${fngPts.at(-1)[1]} (${fngLabel(fngPts.at(-1)[1])}) w
 $SPX #spx6900`,
     card: { type: "line", spec: {
       title: `Sentiment vs valuation — ${R.label}`, headline: `Fear & Greed vs SPX risk level`, accent: "#38bdf8",
-      yMin: 0, yMax: 100, yTicks: [0, 25, 50, 75, 100].map(v => ({ v, label: String(v) })),
+      yMin: 0, yMax: moodYMax, yFmt: v => String(Math.round(v)),
       series: [
         { pts: fngPts, color: "#f59e0b", width: 3.5 },
         { pts: R.riskSeries, color: "#38bdf8", width: 3.5 },
@@ -166,15 +179,31 @@ $SPX #spx6900`,
     } },
   });
 
-  // closing wrap
+  // closing card: diamond-hands supply over the month (replaces the dry text-only
+  // wrap). Padded y-axis like the website's chart — diamond % barely moves daily.
+  const dser = R.diamondSeries;
+  let diamondCard = null, diamondLine = "";
+  if (dser && dser.length >= 2) {
+    const dv = dser.map(p => p[1]);
+    const dlo = Math.min(...dv), dhi = Math.max(...dv);
+    const drange = dhi - dlo, dpad = Math.max(drange * 0.3, 0.3);
+    const ddec = (drange + 2 * dpad) >= 8 ? 0 : 1;
+    diamondLine = ` Diamond hands ${dser[0][1].toFixed(ddec)}% → ${dser.at(-1)[1].toFixed(ddec)}% of supply.`;
+    diamondCard = { type: "line", spec: {
+      title: `Diamond hands — ${R.label}`, headline: `${Math.round(dser.at(-1)[1])}% of supply held by diamonds`, accent: "#22d3ee",
+      yMin: dlo - dpad, yMax: dhi + dpad, yFmt: v => v.toFixed(ddec) + "%",
+      series: [{ pts: dser, color: "#22d3ee", width: 3.5, fill: 0.18 }],
+      marker: { x: dser.at(-1)[0], y: dser.at(-1)[1], color: "#22d3ee" },
+    } };
+  }
   thread.push({
     text:
-`That's ${R.label}.${R.holders ? ` Holders ${fNum(R.holders.start)} → ${fNum(R.holders.end)} (${R.holders.delta >= 0 ? "+" : ""}${fNum(R.holders.delta)}),` : ""} avg holder ${R.avgHolderPnl != null ? fPct(R.avgHolderPnl) : "—"}.
+`That's ${R.label}.${R.holders ? ` Holders ${fNum(R.holders.start)} → ${fNum(R.holders.end)} (${R.holders.delta >= 0 ? "+" : ""}${fNum(R.holders.delta)}).` : ""}${diamondLine}
 
 Live rainbow + tools: spx6900rainbow.xyz
 
 🌈 $SPX #spx6900 · NFA`,
-    card: null,
+    card: diamondCard,
   });
 
   return { R, endStats, thread };
