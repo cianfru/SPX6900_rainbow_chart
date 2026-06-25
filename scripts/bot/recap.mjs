@@ -33,6 +33,16 @@ export function computeMonthlyRecap(month, history) {
   const endBandIdx = M.bandIndex(m, close, M.dayN(last.d));
   const endCenter = Math.exp(m.predict(M.dayN(last.d)));
 
+  // SPX "risk level" 0..100: where price sits in the rainbow's log-residual range
+  // (the same lo/hi spread the bands are built from). 0 ≈ deep-value / Fire Sale
+  // floor, 100 ≈ stretched / euphoria top. Pairs with crypto Fear & Greed.
+  let rLo = Infinity, rHi = -Infinity;
+  for (const r of DEFAULT_RAW) { const v = Math.log(r.price) - m.predict(M.dayN(r.date)); if (v < rLo) rLo = v; if (v > rHi) rHi = v; }
+  const riskAt = (p, d) => {
+    const resid = Math.log(p) - m.predict(M.dayN(d));
+    return Math.max(0, Math.min(100, ((resid - rLo) / ((rHi - rLo) || 1)) * 100));
+  };
+
   const withHolders = days.filter(r => r.holders != null);
   const holders = withHolders.length >= 2
     ? { start: withHolders[0].holders, end: withHolders.at(-1).holders, delta: withHolders.at(-1).holders - withHolders[0].holders }
@@ -46,7 +56,7 @@ export function computeMonthlyRecap(month, history) {
 
   return {
     month, label: monthName(month), days: days.length,
-    endDate: last.d,
+    startDate: first.d, endDate: last.d,
     open, close, change: close / open - 1,
     high: hi, highDate: hiD, low: lo, lowDate: loD,
     endBand: M.BAND_LABELS[endBandIdx], endBandIdx, vsCenter: close / endCenter - 1, center: endCenter,
@@ -59,5 +69,7 @@ export function computeMonthlyRecap(month, history) {
     allTimeReturn: close / firstEver.price - 1,
     priceSeries: days.map(r => [Date.parse(r.d), r.p]),
     holderSeries: withHolders.map(r => [Date.parse(r.d), r.holders]),
+    riskSeries: days.map(r => [Date.parse(r.d), riskAt(r.p, r.d)]),
+    fngSeries: days.filter(r => r.fng != null).map(r => [Date.parse(r.d), r.fng]),
   };
 }

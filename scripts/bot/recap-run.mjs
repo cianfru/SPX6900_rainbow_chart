@@ -45,7 +45,71 @@ const heroTiles = [
   { big: fMult(R.allTimeReturn), label: "since launch" },
 ];
 
-// --- the thread: [{ text, card|null }] ---
+// --- monthly performance vs the field (majors + meme kings) -----------------
+// SPX from our own history; BTC/ETH/SOL reuse the series computeStats already
+// fetched; DOGE/SHIB/PEPE fetched fresh (CoinGecko). All measured over the SAME
+// window as SPX (first→last snapshot of the month) so it's apples-to-apples.
+const seriesReturn = (series, startDate, endDate) => {
+  if (!series || !series.length) return null;
+  const byDate = new Map();
+  for (const [ms, p] of series) byDate.set(new Date(ms).toISOString().slice(0, 10), p);
+  const near = (t, dir) => {
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(t + "T00:00:00Z"); d.setUTCDate(d.getUTCDate() + dir * i);
+      const k = d.toISOString().slice(0, 10);
+      if (byDate.has(k)) return byDate.get(k);
+    }
+    return null;
+  };
+  const a = near(startDate, +1), b = near(endDate, -1);
+  return a && b ? b / a - 1 : null;
+};
+async function coinGeckoSeries(id) {
+  try {
+    const r = await fetch(`https://api.coingecko.com/api/v3/coins/${id}/market_chart?vs_currency=usd&days=60&interval=daily`, { headers: { Accept: "application/json" } });
+    if (!r.ok) return null;
+    const j = await r.json();
+    return (j.prices || []).map(([ms, p]) => [ms, p]);
+  } catch (e) { console.warn(`coingecko ${id}:`, e.message); return null; }
+}
+async function fngHistory() {
+  try {
+    const r = await fetch("https://api.alternative.me/fng/?limit=0&format=json", { headers: { Accept: "application/json" } });
+    if (!r.ok) return new Map();
+    const j = await r.json();
+    const m = new Map();
+    for (const e of (j.data || [])) m.set(new Date(+e.timestamp * 1000).toISOString().slice(0, 10), +e.value);
+    return m;
+  } catch (e) { console.warn("fng history:", e.message); return new Map(); }
+}
+const majorRet = name => {
+  const mj = (endStats.majors || []).find(x => x.name === name);
+  return mj ? seriesReturn(mj.series, R.startDate, R.endDate) : null;
+};
+const [dogeS, shibS, pepeS] = await Promise.all([coinGeckoSeries("dogecoin"), coinGeckoSeries("shiba-inu"), coinGeckoSeries("pepe")]);
+const fieldBars = [
+  { logo: "spx", ret: R.change, outline: true },
+  { logo: "btc", ret: majorRet("BTC") },
+  { logo: "eth", ret: majorRet("ETH") },
+  { logo: "sol", ret: majorRet("SOL") },
+  { logo: "doge", ret: seriesReturn(dogeS, R.startDate, R.endDate) },
+  { logo: "shib", ret: seriesReturn(shibS, R.startDate, R.endDate) },
+  { logo: "pepe", ret: seriesReturn(pepeS, R.startDate, R.endDate) },
+].filter(b => b.ret != null).map(b => ({ value: b.ret, logo: b.logo, outline: b.outline }));
+
+// --- sentiment vs valuation: crypto Fear & Greed (backfilled) + SPX risk -----
+// Our own history only banks F&G for the last few days, so backfill the month
+// from alternative.me's historical endpoint; fall back to our own points.
+const fngMap = await fngHistory();
+const fngBackfilled = R.priceSeries
+  .map(([ms]) => { const d = new Date(ms).toISOString().slice(0, 10); return fngMap.has(d) ? [ms, fngMap.get(d)] : null; })
+  .filter(Boolean);
+const fngPts = fngBackfilled.length >= 2 ? fngBackfilled : R.fngSeries;
+const fngLabel = v => v < 25 ? "extreme fear" : v < 45 ? "fear" : v < 55 ? "neutral" : v < 75 ? "greed" : "extreme greed";
+const riskNow = Math.round(R.riskSeries.at(-1)[1]);
+const riskLabel = riskNow < 33 ? "low / value zone" : riskNow < 66 ? "mid-band" : "stretched";
+
+// --- the thread (combined to stay tight): hero, rainbow, path, field, mood, wrap
 const thread = [
   {
     text:
@@ -74,16 +138,48 @@ Best day ${fPct(R.bestDay.ret)}, worst ${fPct(R.worstDay.ret)}.`,
       marker: { x: R.priceSeries.at(-1)[0], y: R.priceSeries.at(-1)[1], color: green },
     } },
   },
-  {
-    text:
+];
+
+// vs-the-field: majors + meme kings in one card (only if we got ≥2 returns)
+if (fieldBars.length >= 2) thread.push({
+  text:
+`🏁 ${R.label}: SPX6900 vs the field.
+
+SPX ${fPct(R.change)} on the month — raced against BTC/ETH/SOL and the meme kings 🐕🐸 (DOGE/SHIB/PEPE) 👇
+
+$SPX #spx6900`,
+  card: { type: "vsfield", spec: { title: `SPX6900 vs the field — ${R.label}`, headline: `${fPct(R.change)} on the month`, accent: "#38bdf8", bars: fieldBars } },
+});
+
+// sentiment vs valuation: Fear & Greed + SPX risk level (only if F&G available)
+if (fngPts.length >= 2) thread.push({
+  text:
+`🧭 ${R.label}: sentiment vs valuation.
+
+Crypto Fear & Greed closed ${fngPts.at(-1)[1]} (${fngLabel(fngPts.at(-1)[1])}) while SPX's model risk sat ${riskNow}/100 (${riskLabel}).
+
+$SPX #spx6900`,
+  card: { type: "line", spec: {
+    title: `Sentiment vs valuation — ${R.label}`, headline: `Fear & Greed vs SPX risk level`, accent: "#38bdf8",
+    yMin: 0, yMax: 100, yTicks: [0, 25, 50, 75, 100].map(v => ({ v, label: String(v) })),
+    series: [
+      { pts: fngPts, color: "#f59e0b", width: 3.5 },
+      { pts: R.riskSeries, color: "#38bdf8", width: 3.5 },
+    ],
+    legend: [{ label: "Crypto Fear & Greed", color: "#f59e0b" }, { label: "SPX risk (bands)", color: "#38bdf8" }],
+  } },
+});
+
+// closing wrap
+thread.push({
+  text:
 `That's ${R.label}.${R.holders ? ` Holders ${fNum(R.holders.start)} → ${fNum(R.holders.end)} (${R.holders.delta >= 0 ? "+" : ""}${fNum(R.holders.delta)}),` : ""} avg holder ${R.avgHolderPnl != null ? fPct(R.avgHolderPnl) : "—"}.
 
 Live rainbow + tools: spx6900rainbow.xyz
 
 🌈 $SPX #spx6900 · NFA`,
-    card: null,
-  },
-];
+  card: null,
+});
 
 // length guard (X visible-weight is ~1/char here; emoji count 2 but we stay well under)
 thread.forEach((t, i) => { if (t.text.length > 280) console.warn(`⚠ tweet ${i + 1} is ${t.text.length} chars (>280)`); });
