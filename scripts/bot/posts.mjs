@@ -11,11 +11,11 @@ import { ETH_HISTORY, SOL_HISTORY } from "../../src/alt-age-history.js";
 import { SP500_HISTORY } from "../../src/sp500-history.js";
 
 // --- owner-editable post copy ---------------------------------------------
-// A handful of cards route their tweet text through copy(id, defaultTemplate,
-// vars): the template can contain {token} placeholders that the bot fills with
-// the live values in `vars`, so the OWNER can edit the wording from the control
-// panel (saved permanently to public/post-copy.json) WITHOUT freezing the live
-// numbers. Unknown/empty edits fall back to the built-in default.
+// EVERY card's tweet text is owner-editable from the control panel. Cards wrap
+// their text with the ct`…` tagged template (or copy(id, tpl, {named}) for a few
+// with friendly names); the live interpolated values become {token} placeholders,
+// so the owner can reword the copy (saved permanently to public/post-copy.json)
+// WITHOUT freezing the live numbers. Empty/unknown edits fall back to the default.
 const COPY_FILE = new URL("../../public/post-copy.json", import.meta.url);
 let _overrides;
 const loadOverrides = () => {
@@ -24,17 +24,32 @@ const loadOverrides = () => {
   return _overrides;
 };
 const fillTokens = (tpl, vars) => tpl.replace(/\{(\w+)\}/g, (_, k) => (k in vars ? String(vars[k]) : `{${k}}`));
-// Records each editable card's DEFAULT template + sample vars (for the control
-// panel's editor/preview), and returns the EFFECTIVE text (owner override or
-// default) with tokens filled.
+// Records an editable card's DEFAULT template + live vars (for the editor) and
+// returns the EFFECTIVE text (owner override or default) with tokens filled.
 export const COPY_REGISTRY = {};
-export function copy(id, template, vars) {
+function applyCopy(id, template, vars) {
   COPY_REGISTRY[id] = { template, vars };
   const ov = loadOverrides()[id];
   return fillTokens(typeof ov === "string" && ov.trim() ? ov : template, vars);
 }
+// Named-token form: a few cards opt in with explicit {name} tokens (nicer to edit).
+export function copy(id, template, vars) { return applyCopy(id, template, vars); }
+// Tagged-template form: wrap ANY card's text — each interpolation becomes an
+// auto-numbered {0},{1},… token holding its live value. Returns a marker; the id
+// is bound later (buildPost), since the literal site doesn't know its own id.
+export function ct(strings, ...values) {
+  let template = ""; const vars = {};
+  strings.forEach((s, i) => { template += s; if (i < values.length) { template += `{${i}}`; vars[i] = values[i]; } });
+  return { __tpl: template, __vars: vars };
+}
+const isCopyMarker = t => t && typeof t === "object" && typeof t.__tpl === "string";
+export function bindCopy(id, marker) { return applyCopy(id, marker.__tpl, marker.__vars); }
+// Register a ct() marker without rendering (so the editor lists every card even
+// when it isn't the one being posted).
+export function registerCopy(id, marker) { if (isCopyMarker(marker)) COPY_REGISTRY[id] = { template: marker.__tpl, vars: marker.__vars }; }
+export { isCopyMarker };
 // What the editor needs: { id: { default, tokens: {name: value} } } for every
-// card that has routed through copy() in the current build.
+// editable card seen in the current build.
 export function editableCopy() {
   const out = {};
   for (const [id, { template, vars }] of Object.entries(COPY_REGISTRY)) out[id] = { default: template, tokens: vars };
@@ -289,8 +304,7 @@ const ageCard = peer => s => (() => {
   const yTicks = [1, 10, 100, 1000, 10000].filter(v => v >= yMin * 0.6 && v <= yMax * 1.6).map(v => ({ v, label: fMult(v) }));
   return {
     id: peer.id,
-    text:
-`${peer.emoji} SPX6900 vs ${peer.name}, at the same age since launch.
+    text: ct`${peer.emoji} SPX6900 vs ${peer.name}, at the same age since launch.
 ${peer.story}
 At this age: SPX6900 ${fMult(spxMult)} vs ${peer.name} ${fMult(peerMult)}. ${ahead ? "SPX is out front" : `${peer.name} ahead, for now`}. A resemblance, not a forecast.`,
     card: { type: "line", spec: {
@@ -337,8 +351,7 @@ A cleaner read on how far price is from the middle.`,
   // back the website's Risk tab share image (api/og.js ?tab=risk).
   s => ({
     id: "risk",
-    text:
-`🌡️ SPX6900 valuation risk: ${s.risk.toFixed(2)} / 1.00. Today reads ${s.risk < 0.34 ? "historically cheap" : s.risk < 0.66 ? "fair" : "rich"}.
+    text: ct`🌡️ SPX6900 valuation risk: ${s.risk.toFixed(2)} / 1.00. Today reads ${s.risk < 0.34 ? "historically cheap" : s.risk < 0.66 ? "fair" : "rich"}.
 Position, not price: where SPX sits inside its own rainbow on a 0–1 scale. 0 is the cheapest vs trend ever, 1 the most stretched.
 Low has been the patient zone, high the euphoria.`,
     card: { type: "line", spec: {
@@ -352,8 +365,7 @@ Low has been the patient zone, high the euphoria.`,
   // 3 — drawdown from ATH (area)
   s => ({
     id: "drawdown",
-    text:
-`📉 SPX6900 is ${fPct(s.drawdown)} from its all-time high (${fPrice(s.ath)}, ${fMon(s.athDate)}).
+    text: ct`📉 SPX6900 is ${fPct(s.drawdown)} from its all-time high (${fPrice(s.ath)}, ${fMon(s.athDate)}).
 Drawdowns map the pain from each peak. The worst on record was ${fPct(s.maxDrawdown)}.
 Every cycle looked like the end. None were.`,
     card: { type: "line", spec: {
@@ -382,8 +394,7 @@ Every cycle looked like the end. None were.`,
     const ranHigher = s.lastFireSale.peakGain - s.lastFireSale.sinceGain > 0.03;
     return {
       id: "rally",
-      text:
-`🚀 SPX6900 is ${fPct(s.lastFireSale.sinceGain)} since the last Fire Sale low (${fMon(s.lastFireSale.date)}, ${fPrice(s.lastFireSale.low)}).${ranHigher ? ` Ran as high as ${fPct(s.lastFireSale.peakGain)}.` : ""}
+      text: ct`🚀 SPX6900 is ${fPct(s.lastFireSale.sinceGain)} since the last Fire Sale low (${fMon(s.lastFireSale.date)}, ${fPrice(s.lastFireSale.low)}).${ranHigher ? ` Ran as high as ${fPct(s.lastFireSale.peakGain)}.` : ""}
 A Fire Sale is the rainbow's deepest band. Every major SPX run so far has launched from there.
 Cheap can get cheaper, but the deepest discounts paid the patient.`,
       card: { type: "line", spec: {
@@ -404,8 +415,7 @@ Cheap can get cheaper, but the deepest discounts paid the patient.`,
   // 5 — strategy vs HODL (two-line equity curve, log)
   s => s.series.strategy && ({
     id: "strategy",
-    text:
-`🧪 ~${fMult(s.edge)} vs HODL: buying every cycle dip and selling the peak, with perfect hindsight.
+    text: ct`🧪 ~${fMult(s.edge)} vs HODL: buying every cycle dip and selling the peak, with perfect hindsight.
 Accumulate deep blue, trim deep red, cash otherwise. With flawless timing that beats holding by ~${fMult(s.edge)}.
 Nobody nails it live. The lesson is the size of the swings.`,
     card: { type: "line", spec: {
@@ -426,8 +436,7 @@ Nobody nails it live. The lesson is the size of the swings.`,
     const top = next.at(-1) || s.targets.at(-1);
     return {
       id: "targets",
-      text:
-`🎯 Next target ${next[0].label} = ${fMult(next[0].price / s.price)} from ${fPrice(s.price)}:
+      text: ct`🎯 Next target ${next[0].label} = ${fMult(next[0].price / s.price)} from ${fPrice(s.price)}:
 ${next.map(t => `${t.label} → ${fMult(t.price / s.price)}`).join(TIGHT)}
 Round-number rungs on a log trend, each the multiple from here. Not a timeline, just scale: a few doublings to the obvious levels.`,
       card: { type: "line", spec: {
@@ -446,8 +455,7 @@ Round-number rungs on a log trend, each the multiple from here. Not a timeline, 
     const total = s.series.bandCounts.reduce((a, b) => a + b, 0) || 1;
     return {
       id: "timeinband",
-      text:
-`⏳ SPX6900 has spent ~${Math.round(s.cheaperFrac * 100)}% of its life this cheap or cheaper (${s.band.l} band today).
+      text: ct`⏳ SPX6900 has spent ~${Math.round(s.cheaperFrac * 100)}% of its life this cheap or cheaper (${s.band.l} band today).
 Each bar is the share of history in a rainbow band. Extremes are rare by design; most of any life is spent in the middle.
 Rare cuts both ways: cheap is uncommon, but so is euphoria.`,
       card: { type: "bar", spec: {
@@ -463,8 +471,7 @@ Rare cuts both ways: cheap is uncommon, but so is euphoria.`,
     const ofClassified = s.supply.classified ? Math.round(s.supply.tiers.diamond / s.supply.classified * 100) : null; // ÷ identified holders only
     return {
     id: "marketcap",
-    text:
-`💰 Real free-float cap is just ${fMoney(s.supply.floatMc)}, vs the ${fMoney(s.supply.nominalMc)} headline.
+    text: ct`💰 Real free-float cap is just ${fMoney(s.supply.floatMc)}, vs the ${fMoney(s.supply.nominalMc)} headline.
 The sticker cap assumes every coin trades. But ~${ofAll}% of all SPX sits in diamond hands that rarely sell${ofClassified ? ` (≈${ofClassified}% of identified holders)` : ""}, so tradable float is far smaller.
 Thin float amplifies moves both ways.`,
     card: { type: "stack", spec: {
@@ -481,8 +488,7 @@ Thin float amplifies moves both ways.`,
   // 9 — valuation vs BTC (sats line)
   s => s.btc && s.btc.series && ({
     id: "btc",
-    text:
-`₿ SPX6900 priced in Bitcoin: 1 SPX = ${fNum(s.btc.sats)} sats.
+    text: ct`₿ SPX6900 priced in Bitcoin: 1 SPX = ${fNum(s.btc.sats)} sats.
 Dollars hide how an asset does against the benchmark crypto really competes with. In sats, SPX is ${fPct(s.btc.rel90)} vs BTC over 90 days and ${fPct(s.btc.rel365)} over a year.
 Up in dollars is easy in a bull market. Up in BTC is the truer scoreboard.`,
     card: { type: "line", spec: {
@@ -504,8 +510,7 @@ Up in dollars is easy in a bull market. Up in BTC is the truer scoreboard.`,
     const ofAll = Math.round(s.supply.diamondShare * 100); // same diamond tokens, but ÷ TOTAL supply
     return {
     id: "distribution",
-    text:
-`💎 ~${diamondPct}% of SPX6900's classified holder supply is diamond hands — about ~${ofAll}% of all coins in circulation.
+    text: ct`💎 ~${diamondPct}% of SPX6900's classified holder supply is diamond hands — about ~${ofAll}% of all coins in circulation.
 Same coins, two denominators: HolderScan only tiers identified wallets, so exchanges, LPs and contracts sit outside this slice.
 High conviction, thin float.`,
     card: { type: "donut", spec: {
@@ -525,8 +530,7 @@ High conviction, thin float.`,
     const hi = Math.max(s.supply.breakEven, ...s.series.price.map(p => p[1]));
     return {
       id: "breakeven",
-      text:
-`📊 The average SPX6900 holder's entry is ~${fPrice(s.supply.breakEven)}.
+      text: ct`📊 The average SPX6900 holder's entry is ~${fPrice(s.supply.breakEven)}.
 At ${fPrice(s.price)} that's about ${fPct(s.supply.avgHolderPnl)}, so the average holder is ${up ? "in profit" : "underwater"}. This cost basis is the on-chain price the supply last moved at.
 ${up ? "Most of the float is green and still holding." : "The crowd's red and still hasn't sold. That's looked like accumulation."}`,
       card: { type: "line", spec: {
@@ -580,8 +584,7 @@ ${up ? "Most of the float is green and still holding." : "The crowd's red and st
         : `${r.spxRet >= 0 ? "Green over the year and" : "Red over the year but"} already ahead of ${r.behind.join(" & ")} — only ${r.ahead.join(" & ")} in front.`;
     return {
       id: "majors",
-      text:
-`📊 Last 12 months: SPX6900 ${fPct(r.spxRet)} vs the majors, no spin:
+      text: ct`📊 Last 12 months: SPX6900 ${fPct(r.spxRet)} vs the majors, no spin:
 ${r.standings}
 All rebased to 0% a year back, a clean same-start race vs BTC, ETH and SOL. ${closer}`,
       card: { type: "line", spec: {
@@ -594,8 +597,7 @@ All rebased to 0% a year back, a clean same-start race vs BTC, ETH and SOL. ${cl
   // 13 — all-time return (price history, log)
   s => ({
     id: "alltime",
-    text:
-`📈 SPX6900 is up ${fMult(1 + s.allTimeReturn)} since its first print (${fPrice(s.firstPrice)}, ${fMon(s.firstDate)}).
+    text: ct`📈 SPX6900 is up ${fMult(1 + s.allTimeReturn)} since its first print (${fPrice(s.firstPrice)}, ${fMon(s.firstDate)}).
 The whole journey on one log axis: higher highs through brutal drawdowns, the signature of a young power-law asset. The same curve Bitcoin drew.
 Up only is a meme, but the direction has been one way.`,
     card: { type: "line", spec: {
@@ -611,8 +613,7 @@ Up only is a meme, but the direction has been one way.`,
     const c = btcCycleProjection();
     return {
       id: "cycle",
-      text:
-`🔮 If SPX6900 traces Bitcoin's last cycle, today ≈ BTC ${fMon(c.btcFrom)}, just off the bottom.
+      text: ct`🔮 If SPX6900 traces Bitcoin's last cycle, today ≈ BTC ${fMon(c.btcFrom)}, just off the bottom.
 The orange line is Bitcoin's real 4-year cycle, anchored where SPX trades now and scaled to its swings.
 Crypto's rhymed to this halving rhythm for a decade. A what-if, not a forecast.`,
       // animate: history is fully drawn on frame 0 (revealFromX = now), then the
@@ -635,8 +636,7 @@ Crypto's rhymed to this halving rhythm for a decade. A what-if, not a forecast.`
     const c = btcCycleProjection();
     return {
       id: "cycleclock",
-      text:
-`⏳ If SPX6900 rides Bitcoin's last cycle, a projected top near ${fPx(c.peak)} by ${fMon(c.peakTs)}, after a dip near ${fPrice(c.low)} (${fMon(c.lowTs)}).
+      text: ct`⏳ If SPX6900 rides Bitcoin's last cycle, a projected top near ${fPx(c.peak)} by ${fMon(c.peakTs)}, after a dip near ${fPrice(c.low)} (${fMon(c.lowTs)}).
 Bitcoin's real path on the halving clock. Read it as where we'd be on that clock, not a date.
 If SPX keeps rhyming, nearer the launchpad than the top.`,
       card: { type: "line", spec: {
@@ -659,8 +659,7 @@ If SPX keeps rhyming, nearer the launchpad than the top.`,
     const doge = ms.find(m => m.label.startsWith("DOGE")) || ms.at(-1);
     return {
       id: "milestones",
-      text:
-`🧊 SPX6900 is ${fMult(doge.mult)} from DOGE's ATH market cap. Flipping the memecoin kings from ${fPrice(s.price)}:
+      text: ct`🧊 SPX6900 is ${fMult(doge.mult)} from DOGE's ATH market cap. Flipping the memecoin kings from ${fPrice(s.price)}:
 ${ms.map(m => `${m.short} (${m.mc}) → ${fMult(m.mult)}`).join(TIGHT)}
 Each cube is one of today's caps; the pile is how many to match each king's ATH cap. Long way up. 🚀`,
       card: { type: "cube", spec: {
@@ -681,8 +680,7 @@ Each cube is one of today's caps; the pile is how many to match each king's ATH 
     const doge = ms.find(m => m.label.startsWith("DOGE")) || ms.at(-1), top = ms.at(-1);
     return {
       id: "memecoins",
-      text:
-`👑 DOGE-size = ${fMult(doge.mult)} for SPX6900. Flipping the memecoin kings from ${fPrice(s.price)}:
+      text: ct`👑 DOGE-size = ${fMult(doge.mult)} for SPX6900. Flipping the memecoin kings from ${fPrice(s.price)}:
 ${ms.map(m => `${m.short} (${m.mc}) → ${fMult(m.mult)}`).join(TIGHT)}
 Each × is the move to match that king's ATH. Same fair-launch playbook, just earlier. Coming for the throne. 👑`,
       card: { type: "line", spec: {
@@ -703,8 +701,7 @@ Each × is the move to match that king's ATH. Same fair-launch playbook, just ea
     const top = ms.at(-1);
     return {
       id: "btcgrade",
-      text:
-`₿ ${top.short} = ${fMult(top.mult)} for SPX6900. Climbing Bitcoin's market-cap ladder from ${fPrice(s.price)}:
+      text: ct`₿ ${top.short} = ${fMult(top.mult)} for SPX6900. Climbing Bitcoin's market-cap ladder from ${fPrice(s.price)}:
 ${ms.map(m => `${m.short} (${m.mc}) → ${fMult(m.mult)}`).join(TIGHT)}
 Each rung is the SPX price whose cap equals BTC's at $1K, $10K, $100K. Bitcoin cleared them all.`,
       card: { type: "line", spec: {
@@ -723,8 +720,7 @@ Each rung is the SPX price whose cap equals BTC's at $1K, $10K, $100K. Bitcoin c
     const pts = s.series.resid;
     return {
       id: "model",
-      text:
-`📐 How the SPX6900 rainbow is built: a power-law trend fit to price, R² ${m.r2.toFixed(2)}.
+      text: ct`📐 How the SPX6900 rainbow is built: a power-law trend fit to price, R² ${m.r2.toFixed(2)}.
 Fit a log-log trend line (fair value), then sort each day's distance into bands: deep blue cheapest ever vs trend, deep red most stretched.
 Its own history sorted, not vibes. Today ${BAND_EMOJI[s.bandIndex]} ${s.band.l}.`,
       card: { type: "model", spec: {
@@ -741,8 +737,7 @@ Its own history sorted, not vibes. Today ${BAND_EMOJI[s.bandIndex]} ${s.band.l}.
     if (!(mult > 1)) return null;
     return {
       id: "sp500",
-      text:
-`🧊 If SPX6900 is one cube, the whole S&P 500 is ~${fNum(mult)} of them.
+      text: ct`🧊 If SPX6900 is one cube, the whole S&P 500 is ~${fNum(mult)} of them.
 SPX is ≈ ${fMoney(cap)} vs the index's ~$50T, the gap baked into the joke. A memecoin flippening its namesake would be a ~${fNum(mult)}× move.
 A telescope, not a target. Every giant was once a rounding error.`,
       card: { type: "scale", spec: {
@@ -763,8 +758,7 @@ A telescope, not a target. Every giant was once a rounding error.`,
     if (!mh) return null;
     return {
       id: "monthlyreturnssp",
-      text:
-`🏆 Priced in the S&P 500, ${mh.pctGreen}% of SPX6900's ${mh.months} months have beaten the index it's named after.
+      text: ct`🏆 Priced in the S&P 500, ${mh.pctGreen}% of SPX6900's ${mh.months} months have beaten the index it's named after.
 Each cell is SPX6900's monthly return in S&P units, not dollars. Green = SPX beat the S&P that month, red = the S&P won.
 The benchmark it parodies, month by month.`,
       card: { type: "heatmap", spec: {
@@ -785,8 +779,7 @@ The benchmark it parodies, month by month.`,
     const win = r.spxRet >= r.spRet;
     return {
       id: "sp500ytd",
-      text:
-`📊 SPX6900 is ${fPct(r.spxRet)} YTD vs the S&P 500's ${fPct(r.spRet)}.
+      text: ct`📊 SPX6900 is ${fPct(r.spxRet)} YTD vs the S&P 500's ${fPct(r.spRet)}.
 Both rebased to 0% on Jan 1, a clean same-start race against the index it's named after. ${win ? "Out in front this year." : "Behind for now, but every cold stretch on the rainbow has launched the next run."}
 A snapshot of one year, not the whole war.`,
       card: spVsSpec("SPX6900 vs the S&P 500, year to date", r, "YTD"),
@@ -800,8 +793,7 @@ A snapshot of one year, not the whole war.`,
     const win = r.spxRet >= r.spRet;
     return {
       id: "sp500roll12",
-      text:
-`📊 Last 12 months: SPX6900 ${fPct(r.spxRet)} vs the S&P 500's ${fPct(r.spRet)}.
+      text: ct`📊 Last 12 months: SPX6900 ${fPct(r.spxRet)} vs the S&P 500's ${fPct(r.spRet)}.
 A rolling one-year race against its namesake, both rebased to 0%. ${win ? "The meme is winning the year." : "A year in the cold, but that is exactly where the rainbow says the next run is built."}
 One year is a blink for a power-law asset.`,
       card: spVsSpec("SPX6900 vs the S&P 500, last 12 months", r, "12mo"),
@@ -814,8 +806,7 @@ One year is a blink for a power-law asset.`,
     const grew = p => p * 100 / s.firstPrice; // value of a $100 stake at price p
     return {
       id: "hundred",
-      text:
-`💸 $100 in SPX6900 at its first print (${fMon(s.firstDate)}, ${fPrice(s.firstPrice)}) is worth ${fMoney(grew(s.price))} today.
+      text: ct`💸 $100 in SPX6900 at its first print (${fMon(s.firstDate)}, ${fPrice(s.firstPrice)}) is worth ${fMoney(grew(s.price))} today.
 The all-time curve rebased to a single $100 buy. The earliest holders sit on absurd multiples because they were early, not because they timed it.
 Not repeatable. The lesson is being early.`,
       card: { type: "line", spec: {
@@ -835,8 +826,7 @@ Not repeatable. The lesson is being early.`,
     if (!mh) return null;
     return {
       id: "monthlyreturns",
-      text:
-`📅 ${mh.pctGreen}% of SPX6900's ${mh.months} months have closed green.
+      text: ct`📅 ${mh.pctGreen}% of SPX6900's ${mh.months} months have closed green.
 Every month as a return, green up, red down. A handful of monster green months have done almost all the lifting.
 That's how power-law assets compound: a few explosive months, not steady gains.`,
       card: { type: "heatmap", spec: {
@@ -854,8 +844,7 @@ That's how power-law assets compound: a few explosive months, not steady gains.`
     if (!mh) return null;
     return {
       id: "monthlyreturnsbtc",
-      text:
-`₿ Priced in Bitcoin, ${mh.pctGreen}% of SPX6900's ${mh.months} months have beaten BTC.
+      text: ct`₿ Priced in Bitcoin, ${mh.pctGreen}% of SPX6900's ${mh.months} months have beaten BTC.
 Same heatmap, but each month is SPX6900's return measured in BTC, not USD. Green months beat Bitcoin, red months lost to it.
 Up in dollars is easy in a bull market. Up in BTC is the real scoreboard.`,
       card: { type: "heatmap", spec: {
@@ -887,8 +876,7 @@ Up in dollars is easy in a bull market. Up in BTC is the real scoreboard.`,
     const best = Math.max(...bars.map(b => b.value)), worst = Math.min(...bars.map(b => b.value));
     return {
       id: "monthlybars",
-      text:
-`📊 SPX6900 month by month: ${greens} of ${bars.length} months closed green (${pctGreen}%).
+      text: ct`📊 SPX6900 month by month: ${greens} of ${bars.length} months closed green (${pctGreen}%).
 Each bar is one month's return from a 0% line. The axis floats low because the green months tower: best ${fPct(best)}, worst ${fPct(worst)}.
 That lopsided shape is the up-only skew. Up months dwarf the down ones.`,
       card: { type: "mbars", spec: {
@@ -913,8 +901,7 @@ That lopsided shape is the up-only skew. Up months dwarf the down ones.`,
       : "They diverge: SPX is more stretched than the mood. The crowd's calmer than SPX's dial.";
     return {
       id: "fngdial",
-      text:
-`🌡️ Market mood vs SPX6900's own valuation dial.
+      text: ct`🌡️ Market mood vs SPX6900's own valuation dial.
 Crypto Fear & Greed reads ${fng}/100 (${fngVerdict}); SPX's own rainbow risk reads ${pct}/100 (${s.band.l}).
 ${take}`,
       card: { type: "fngdial", spec: {
@@ -933,8 +920,7 @@ ${take}`,
     const fngNow = s.fng, riskNow = Math.round(s.risk * 100);
     return {
       id: "fngtrend",
-      text:
-`🌡️ Crypto Fear & Greed vs SPX6900's valuation risk, over its whole life. Both on a 0–100 scale.
+      text: ct`🌡️ Crypto Fear & Greed vs SPX6900's valuation risk, over its whole life. Both on a 0–100 scale.
 One line is market mood (mostly BTC), the other SPX in its own rainbow. Below the crowd's line, SPX is cheaper than the mood.
 Today: market ${fngNow} vs SPX ${riskNow}.`,
       card: { type: "line", spec: {
@@ -974,8 +960,7 @@ Today: market ${fngNow} vs SPX ${riskNow}.`,
     const doge = rungs.find(r => r.short === "DOGE");
     return {
       id: "dogeclock",
-      text:
-`🐕 If SPX6900 tracks Bitcoin's 4-year cycle, DOGE-size lands ≈ ${fMon(c.peakTs)}. When it flips each king:
+      text: ct`🐕 If SPX6900 tracks Bitcoin's 4-year cycle, DOGE-size lands ≈ ${fMon(c.peakTs)}. When it flips each king:
 ${rungs.map(r => `${r.short} (${r.mc}) → ${r.top ? `≈ top ${fMon(c.peakTs)}` : `~${r.when}`}`).join(TIGHT)}
 Where SPX meets each king's ATH cap on Bitcoin's path. A what-if, not a forecast.`,
       card: { type: "line", spec: {
@@ -1007,8 +992,7 @@ Where SPX meets each king's ATH cap on Bitcoin's path. A what-if, not a forecast
     const nearest = rungs[0], top = rungs.at(-1);
     return {
       id: "majorcaps",
-      text:
-`🧮 At ${nearest.name}'s market cap, SPX6900 = ${fMult(nearest.mult)} (${fPx(nearest.spxAtCap)}). At each major's cap:
+      text: ct`🧮 At ${nearest.name}'s market cap, SPX6900 = ${fMult(nearest.mult)} (${fPx(nearest.spxAtCap)}). At each major's cap:
 ${rungs.map(m => `${m.name}-size (${fMoney(m.mc)}) → ${fPx(m.spxAtCap)} · ${fMult(m.mult)}`).join(TIGHT)}
 Each line is the SPX price whose cap equals that major's today. Pure cap math, a long way up.`,
       card: { type: "line", spec: {
@@ -1043,8 +1027,7 @@ Each line is the SPX price whose cap equals that major's today. Pure cap math, a
     const cur = value.at(-1)[1], months = contributed / M, mult = cur / contributed;
     return {
       id: "dca",
-      text:
-`💵 $100/mo into SPX6900 since launch = ${fUsd0(contributed)} in → ${fUsd0(cur)} today.
+      text: ct`💵 $100/mo into SPX6900 since launch = ${fUsd0(contributed)} in → ${fUsd0(cur)} today.
 Buy $100 on the 1st of every month, no timing, through every crash. ${fUsd0(contributed)} in over ${months} months is now worth ${fUsd0(cur)}, a ${fMult(mult)}.
 You never needed the bottom, just consistency.`,
       card: { type: "dca", spec: {
@@ -1066,8 +1049,7 @@ You never needed the bottom, just consistency.`,
     const bands = M.BAND_LABELS.map((b, i) => ({ label: b.l, color: b.c, mult: LADDER[i].mult, sell: LADDER[i].sell, action: LADDER[i].action }));
     return {
       id: "dcaladder",
-      text:
-`🌈 ${COWEN}'s BTC risk strategy, on SPX6900.
+      text: ct`🌈 ${COWEN}'s BTC risk strategy, on SPX6900.
 His risk-based DCA: buy more units of x the cheaper it gets, sell more units of y the hotter. x and y are your own base buy and sell sizes, not fixed amounts.
 Ben Cowen's method, on our chart. A model, not advice.`,
       card: { type: "dcaladder", spec: {
@@ -1095,8 +1077,7 @@ Ben Cowen's method, on our chart. A model, not advice.`,
         : `${r.spxRet >= 0 ? "Green on the year and" : "Red on the year but"} already ahead of ${r.behind.join(" & ")} — only ${r.ahead.join(" & ")} in front.`;
     return {
       id: "ytd",
-      text:
-`📊 SPX6900 is ${fPct(r.spxRet)} YTD vs the majors, no spin:
+      text: ct`📊 SPX6900 is ${fPct(r.spxRet)} YTD vs the majors, no spin:
 ${r.standings}
 Everything rebased to 0% on Jan 1, a clean same-start race against BTC, ETH and SOL. ${closer}`,
       card: { type: "line", spec: {
@@ -1115,8 +1096,7 @@ Everything rebased to 0% on Jan 1, a clean same-start race against BTC, ETH and 
   // it shows up predictably without crowding the charts.
   () => ({
     id: "kraken",
-    text:
-`🌈 SPX6900 × 🐙 Kraken: the affiliate program is live.
+    text: ct`🌈 SPX6900 × 🐙 Kraken: the affiliate program is live.
 Trade $SPX on one of crypto's deepest, longest-running exchanges, and back the rainbow while you do.
 Sign up with our link (referral code ${KRAKEN_CODE}) 👇${TIGHT}${KRAKEN_REF}`,
     card: { type: "kraken" },
@@ -1177,6 +1157,9 @@ export function withFooter(text) {
 // otherwise rotate by day so the topic changes daily.
 export function buildPost(stats, now = new Date(), overrideId = null) {
   const built = POSTS.map(p => p(stats)).filter(Boolean);
+  // Register every editable (ct``) card so the control panel lists them all, even
+  // the ones not posting today. (copy() cards self-register when their fn runs.)
+  for (const b of built) if (isCopyMarker(b.text)) registerCopy(b.id, b.text);
   const epochDay = Math.floor(now.getTime() / 86400000);
   // An explicit override (env BOT_POST / --post= / the OG endpoint) wins. Else a
   // fixed-cadence promo (Kraken) claims its day; otherwise the organic rotation.
@@ -1185,7 +1168,9 @@ export function buildPost(stats, now = new Date(), overrideId = null) {
   const chosen = (overrideId && built.find(p => p.id === overrideId))
     || (promo && epochDay % KRAKEN_EVERY === 0 && promo)
     || rota[epochDay % rota.length];
-  return { ...chosen, text: withFooter(chosen.text) };
+  // Resolve a ct`` marker (apply owner override) just for the chosen post.
+  const text = isCopyMarker(chosen.text) ? bindCopy(chosen.id, chosen.text) : chosen.text;
+  return { ...chosen, text: withFooter(text) };
 }
 
 // The marquee bands worth interrupting the feed for, split into two tiers by how
