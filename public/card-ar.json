@@ -16,5 +16,6 @@
   "btcgrade": "square",
   "model": "square",
   "monthlyreturnssp": "landscape",
-  "sp500ytd": "square"
+  "sp500ytd": "square",
+  "sp500roll12": "square"
 }
