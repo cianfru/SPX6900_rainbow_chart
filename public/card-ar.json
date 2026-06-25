@@ -17,5 +17,6 @@
   "model": "square",
   "monthlyreturnssp": "landscape",
   "sp500ytd": "square",
-  "sp500roll12": "square"
+  "sp500roll12": "square",
+  "hundred": "square"
 }
