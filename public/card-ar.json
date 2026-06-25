@@ -9,5 +9,6 @@
   "distribution": "landscape",
   "breakeven": "square",
   "diamondtrend": "square",
-  "majors": "portrait"
+  "majors": "portrait",
+  "alltime": "square"
 }
