@@ -5,5 +5,6 @@
   "targets": "square",
   "timeinband": "square",
   "marketcap": "landscape",
-  "btc": "square"
+  "btc": "square",
+  "distribution": "square"
 }
