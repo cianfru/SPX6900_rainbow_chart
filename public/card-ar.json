@@ -3,5 +3,6 @@
   "channel": "square",
   "rally": "square",
   "targets": "square",
-  "timeinband": "square"
+  "timeinband": "square",
+  "marketcap": "square"
 }
