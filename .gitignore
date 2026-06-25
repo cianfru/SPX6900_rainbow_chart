@@ -28,5 +28,7 @@ dist-ssr
 bot-preview*.png
 bot-preview*.mp4
 
-# Throwaway artifacts from recap-run.mjs --dry-run (real previews go to public/recap/)
+# Recap previews are reviewed live on the control panel (/control → Monthly
+# recap), never committed. --dry-run writes these throwaway PNGs locally.
 recap-preview-*.png
+public/recap/

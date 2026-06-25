@@ -161,7 +161,6 @@
       <div class="bar">
         <label style="font-size:13px;color:#94a3b8">Month<input id="recapMonth" class="minput" type="text" placeholder="YYYY-MM" /></label>
         <button id="recapReload">↻ Reload preview</button>
-        <button id="recapRegen">⟳ Regenerate in CI</button>
         <span style="margin-left:auto"></span>
         <button id="recapPost" class="primary">Post recap thread →</button>
       </div>
@@ -375,15 +374,6 @@ async function loadRecap() {
 $("#tabDaily").onclick = () => showTab("daily");
 $("#tabRecap").onclick = () => showTab("recap");
 $("#recapReload").onclick = () => { recapLoaded = false; loadRecap(); };
-$("#recapRegen").onclick = async () => {
-  const month = $("#recapMonth").value.trim();
-  if (!confirm(`Regenerate the committed recap preview${month ? " for " + month : ""} in CI?\n\nThis commits the card images to the repo and posts NOTHING.`)) return;
-  recapStatus("Dispatching regenerate…");
-  try {
-    await action({ action: "recap-preview", month: month || undefined });
-    recapStatus("Regenerating in CI — watch the Actions tab (~1 min), then ↻ Reload preview.", "ok");
-  } catch (e) { recapErr(e); }
-};
 $("#recapPost").onclick = async () => {
   const month = $("#recapMonth").value.trim();
   if (!confirm(`Post the ${month || "last-month"} recap THREAD to X for real?\n\nThis publishes the whole multi-tweet thread. Make sure the month is complete and the preview looks right.`)) return;
