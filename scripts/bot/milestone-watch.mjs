@@ -13,6 +13,7 @@ import { CRYPTO_MILESTONES } from "../../src/milestones.js";
 import { DEFAULT_RAW } from "../../src/data.js";
 
 const STATE = new URL("../../public/milestone-state.json", import.meta.url);
+const POST_STATE = new URL("../../public/post-state.json", import.meta.url); // shared one-per-day guard
 const COOLDOWN_MS = 6 * 3600 * 1000; // min gap between milestone posts (safety vs. state-commit races)
 const dryRun = process.env.DRY_RUN === "1" || process.argv.includes("--dry-run");
 
@@ -26,7 +27,11 @@ const hasCreds = Object.values(creds).every(Boolean);
 
 const readState = () => { try { return JSON.parse(readFileSync(STATE, "utf8")); } catch { return null; } };
 const writeState = o => writeFileSync(STATE, JSON.stringify(o, null, 2) + "\n");
+const readPostState = () => { try { return JSON.parse(readFileSync(POST_STATE, "utf8")); } catch { return {}; } };
 const nowIso = () => new Date().toISOString();
+const today = () => new Date().toISOString().slice(0, 10); // UTC calendar day
+// One post per day across the whole bot: if anything posted today, stay quiet.
+const dailyPostedToday = () => readPostState().lastPostedDate === today();
 
 // Index of the highest milestone whose price SPX has reached (-1 = none yet).
 const highestCrossed = price => {
@@ -55,7 +60,9 @@ if (cur <= state.highest) { console.log(`No new milestone (still at ${state.high
 // SPX flipped one or more new giants since last seen — celebrate the highest one.
 const from = state.highest;
 const cooled = !state.lastPostTs || Date.now() - Date.parse(state.lastPostTs) >= COOLDOWN_MS;
-console.log(`New milestone ${from} -> ${cur} (${curLabel}) | cooled=${cooled} => ${cooled ? "POST" : "skip"}`);
+const postedToday = dailyPostedToday();
+const shouldPost = cooled && !postedToday;
+console.log(`New milestone ${from} -> ${cur} (${curLabel}) | cooled=${cooled} dailyPostedToday=${postedToday} => ${shouldPost ? "POST" : "skip"}`);
 
 const post = buildMilestonePost(stats, cur);
 
@@ -70,7 +77,7 @@ if (dryRun) {
 // even if the post itself is skipped or fails.
 writeState({ highest: cur, label: curLabel, ts: nowIso(), lastPostTs: state.lastPostTs || null });
 
-if (!cooled) { console.log("Within cooldown — state updated, no post."); process.exit(0); }
+if (!shouldPost) { console.log("Within cooldown or already posted today — state updated, no post."); process.exit(0); }
 if (!hasCreds) { console.log("Milestone crossing, but X creds missing — state updated, no post."); process.exit(0); }
 
 const media = await buildMedia(post, stats, { video: false, portrait: true });
@@ -79,6 +86,8 @@ const client = new TwitterApi(creds);
 try {
   const id = await postWithMedia(client, post, stats, media);
   writeState({ highest: cur, label: curLabel, ts: nowIso(), lastPostTs: nowIso() }); // advance cooldown only on a real post
+  // Claim the day's single post slot so the daily rotation skips today.
+  writeFileSync(POST_STATE, JSON.stringify({ lastPostedDate: today(), lastId: "milestonecross" }, null, 2) + "\n");
   console.log(`Posted milestone ✓ (${from} -> ${cur}, ${curLabel}) tweet ${id}`);
 } catch (e) {
   console.error(`POST FAILED ✗ — ${JSON.stringify(e.data?.errors ?? e.data ?? e.message)}`);

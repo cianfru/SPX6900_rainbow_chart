@@ -26,7 +26,7 @@ function xLen(text) {
 }
 
 test("the BTC-cycle post series is wired into the rotation", () => {
-  for (const id of ["cycle", "cyclepeak", "cycleclock"]) {
+  for (const id of ["cycle", "cycleclock"]) {
     assert.ok(ids.includes(id), `missing post: ${id}`);
   }
 });

@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import * as M from "../src/models.js";
 import { DEFAULT_RAW } from "../src/data.js";
 import { computeStats } from "../scripts/bot/stats.mjs";
-import { buildBandChangePost, MARQUEE_BANDS, bandPostDecision, BAND_COOLDOWN_MS } from "../scripts/bot/posts.mjs";
+import { buildBandChangePost, MARQUEE_BANDS, bandPostDecision, BAND_COOLDOWN_MS, confirmBandCrossing, BAND_CONFIRM_READINGS } from "../scripts/bot/posts.mjs";
 import { renderPostCard } from "../scripts/bot/charts.mjs";
 
 const base = computeStats(DEFAULT_RAW.at(-1).price, DEFAULT_RAW.at(-1).date, {});
@@ -78,4 +78,33 @@ test("cooldown blocks a second post inside the window", () => {
   const recent = { band: 3, armed: true, lastPostTs: new Date(T0).toISOString() };
   assert.equal(bandPostDecision({ bi: 1, state: recent, now: T0 + BAND_COOLDOWN_MS - 1 }).shouldPost, false);
   assert.equal(bandPostDecision({ bi: 1, state: recent, now: T0 + BAND_COOLDOWN_MS }).shouldPost, true);
+});
+
+// --- anti-spike confirmation (confirmBandCrossing) ---
+test("a transient one-check spike across a band never confirms", () => {
+  // confirmed band 0; price spikes to band 1 for a single check, then reverts.
+  const spike = confirmBandCrossing({ bi: 1, state: { band: 0, pendingBand: null, pendingCount: 0 } });
+  assert.equal(spike.confirmed, false);
+  assert.equal(spike.pendingCount, 1);
+  // next check back in band 0 → pending cleared, no crossing
+  const revert = confirmBandCrossing({ bi: 0, state: { band: 0, pendingBand: spike.pendingBand, pendingCount: spike.pendingCount } });
+  assert.equal(revert.confirmed, false);
+  assert.equal(revert.pendingCount, 0);
+});
+
+test("a band held for BAND_CONFIRM_READINGS checks confirms", () => {
+  let state = { band: 0, pendingBand: null, pendingCount: 0 }, res;
+  for (let i = 1; i <= BAND_CONFIRM_READINGS; i++) {
+    res = confirmBandCrossing({ bi: 1, state });
+    assert.equal(res.pendingCount, i);
+    assert.equal(res.confirmed, i >= BAND_CONFIRM_READINGS);
+    state = { ...state, pendingBand: res.pendingBand, pendingCount: res.pendingCount };
+  }
+  assert.equal(res.confirmed, true);
+});
+
+test("a new pending band resets the count", () => {
+  const res = confirmBandCrossing({ bi: 7, state: { band: 0, pendingBand: 1, pendingCount: 2 } });
+  assert.equal(res.pendingBand, 7);
+  assert.equal(res.pendingCount, 1);
 });

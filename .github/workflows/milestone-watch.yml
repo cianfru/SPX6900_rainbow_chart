@@ -44,16 +44,18 @@ jobs:
           X_ACCESS_TOKEN: ${{ secrets.X_ACCESS_TOKEN }}
           X_ACCESS_SECRET: ${{ secrets.X_ACCESS_SECRET }}
 
-      - name: Commit milestone state if changed
+      - name: Commit milestone + post state if changed
         run: |
-          if [[ -n "$(git status --porcelain public/milestone-state.json)" ]]; then
+          # post-state.json is also written when a milestone posts, so the daily
+          # rotation sees the day's slot is taken (one post per day across the bot).
+          if [[ -n "$(git status --porcelain public/milestone-state.json public/post-state.json)" ]]; then
             git config user.name "github-actions[bot]"
             git config user.email "github-actions[bot]@users.noreply.github.com"
-            git add public/milestone-state.json
+            git add public/milestone-state.json public/post-state.json
             git commit -m "chore: milestone state $(date -u +%FT%TZ)"
             git push
           else
-            echo "No milestone-state change to commit"
+            echo "No milestone/post-state change to commit"
           fi
 
       - name: Upload card preview (dry-run)

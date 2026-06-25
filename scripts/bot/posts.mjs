@@ -504,11 +504,14 @@ ${up ? "Most of the float is green and still holding." : "The crowd's red and st
     const lo = Math.min(...dv), hi = Math.max(...dv);
     const range = hi - lo, pad = Math.max(range * 0.3, 0.3);
     const decimals = (range + 2 * pad) >= 8 ? 0 : 1;
+    const trend = Math.abs(delta) < 0.2
+      ? `Rock steady near ${nowPct.toFixed(decimals)}% across every snapshot we've taken`
+      : `${delta > 0 ? "Up" : "Down"} from ${startPct.toFixed(decimals)}% to ${nowPct.toFixed(decimals)}% since we started tracking`;
     return {
       id: "diamondtrend",
       text:
-`💎 Diamond hands now hold ~${Math.round(nowPct)}% of all SPX6900 supply (${fMoney(s.supply.diamondValue)}) — the longest-held coins on-chain, the float that rarely moves.
-Tracked daily since snapshots began: ${delta >= 0 ? "+" : ""}${delta.toFixed(1)} pts over the window.`,
+`💎 Diamond hands hold ~${Math.round(nowPct)}% of all SPX6900 supply (${fMoney(s.supply.diamondValue)}) — the longest-held coins on-chain, the float that rarely moves.
+${trend} — the conviction base sitting under the price.`,
       card: { type: "line", spec: {
         title: "Diamond hands — share of supply over time", headline: `${Math.round(nowPct)}% diamond supply`, accent: "#22d3ee",
         yMin: lo - pad, yMax: hi + pad, yFmt: v => v.toFixed(decimals) + "%",
@@ -577,31 +580,6 @@ Crypto's rhymed to this halving rhythm for a decade. A what-if, not a forecast.`
         ],
         legend: [{ label: "SPX actual", color: "#4ade80" }, { label: "BTC cycle (real)", color: "#f7931a" }],
         marker: { x: c.anchorTs, y: c.anchorPrice, color: "#4ade80" },
-      } },
-    };
-  })(),
-
-  // 15 — projected cycle top, three scenarios (cone + projection line)
-  s => (() => {
-    const c = btcCycleProjection();
-    const mult = p => p / s.price;
-    return {
-      id: "cyclepeak",
-      text:
-`🎯 If SPX6900 traces BTC's last cycle, base case = ${fMult(mult(c.peak))} (${fPx(c.peak)}) by ${fMon(c.peakTs)}, from ${fPrice(s.price)}:
-${[
-  `🐻 Bear  ${fPx(c.peakLo)}  →  ${fMult(mult(c.peakLo))}`,
-  `🟧 Base  ${fPx(c.peak)}  →  ${fMult(mult(c.peak))}`,
-  `🚀 Bull  ${fPx(c.peakHi)}  →  ${fMult(mult(c.peakHi))}`,
-].join(TIGHT)}
-Bitcoin set the shape and timing; the multiplier is how hard SPX swings vs BTC. A pattern, not a promise.`,
-      card: { type: "bar", spec: {
-        title: `If SPX traces BTC's cycle — ${fMon(c.peakTs)} top`, headline: `${fPrice(s.price)} → ${fPx(c.peak)} base · ${fMult(mult(c.peak))}`, accent: "#f7931a",
-        bars: [
-          { label: `Bear ${fPx(c.peakLo)}`, value: mult(c.peakLo), text: fMult(mult(c.peakLo)), color: "#ef4444" },
-          { label: `Base ${fPx(c.peak)}`, value: mult(c.peak), text: fMult(mult(c.peak)), color: "#f7931a", outline: true },
-          { label: `Bull ${fPx(c.peakHi)}`, value: mult(c.peakHi), text: fMult(mult(c.peakHi)), color: "#4ade80" },
-        ],
       } },
     };
   })(),
@@ -1104,7 +1082,7 @@ export function allIds(stats) { return POSTS.map(p => p(stats)?.id).filter(Boole
 // Upside-forward posts get extra weight in the daily rotation so the feed skews
 // bullish (they show up ~twice as often as the analytical/neutral ones).
 const BULLISH = new Set([
-  "milestones", "memecoins", "btcgrade", "cycle", "cyclepeak", "cycleclock",
+  "milestones", "memecoins", "btcgrade", "cycle", "cycleclock",
   "targets", "rally", "alltime", "hundred", "dogeclock", "majorcaps", "dca",
 ]);
 // Per-post rotation weight (copies per cycle). The flagship rainbow is weighted
@@ -1169,6 +1147,24 @@ export function buildPost(stats, now = new Date(), overrideId = null) {
 export const MARQUEE_BANDS = new Set([0, 1, 7, 8]); // Fire Sale, BUY, SELL, Max Bubble
 
 export const BAND_COOLDOWN_MS = 6 * 3600 * 1000; // min gap between band-change posts
+
+// Anti-spike confirmation: a band different from the last CONFIRMED one must be
+// observed this many hourly checks IN A ROW before it counts as a real crossing.
+// A transient wick that spikes across a boundary for one check then reverts never
+// reaches the count, so it can't fire. Trade-off: a genuine crossing posts a few
+// hours late, which is fine for these rare events.
+export const BAND_CONFIRM_READINGS = 3;
+
+// Pure confirmation step for the band watcher (testable). Given the current band
+// `bi` and the persisted `state` (with the last confirmed `band` + a running
+// `pendingBand`/`pendingCount`), returns the updated pending counters and whether
+// the crossing is now confirmed. Parking back on the confirmed band clears the
+// excursion. Used by band-watch.mjs ahead of bandPostDecision.
+export function confirmBandCrossing({ bi, state, readings = BAND_CONFIRM_READINGS }) {
+  if (!state || bi === state.band) return { pendingBand: null, pendingCount: 0, confirmed: false };
+  const pendingCount = (state.pendingBand === bi ? (state.pendingCount || 0) : 0) + 1;
+  return { pendingBand: bi, pendingCount, confirmed: pendingCount >= readings };
+}
 
 // Pure decision for the hourly band watcher, factored out so the guardrails are
 // testable. Three things gate a band-change post on top of "crossed into a
