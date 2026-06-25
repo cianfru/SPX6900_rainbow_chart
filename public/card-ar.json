@@ -27,5 +27,6 @@
   "dca": "square",
   "dcaladder": "square",
   "ytd": "square",
-  "btcage": "square"
+  "btcage": "square",
+  "ethage": "square"
 }
