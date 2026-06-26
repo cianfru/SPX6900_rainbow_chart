@@ -156,6 +156,16 @@
       is data-gated (revisit ~mid-July once ~30d banked — THEN we can add the realized line
       and it'll be an even closer match). The geometric MA is the closest computable analog
       now and looks much more like his than the fair-value line did.
+  - ✅ **Monthly returns, year-vs-year grouped bars — BUILT 2026-06-26** (card id
+    `monthcompare`, `scripts/bot/monthly-compare-card.mjs`). Owner asked for monthly
+    returns where the same calendar month from each year sits side by side (Jan '25 next
+    to Jan '26, Feb next to Feb…). Grouped column chart diverging from a 0% line, the
+    **two most recent years** per month (older = sky blue, current = gold). Deliberately
+    only 2 years: including 2024 would drag in the launch-pump outliers (Sep '24 +685%,
+    Oct '24 +889%) which flatten everything. Self-contained from DEFAULT_RAW (live price
+    overrides the current month so the latest bar is month-to-date); generalises to the
+    two newest years automatically. Distinct from `monthlybars` (one bar/month, all
+    history) and the `monthlyreturns` heatmap.
   - **Card visual-impact pass (owner, 2026-06-26): thin price-only lines read as weak.**
     Fix applied to the recent custom-SVG cards (`riskcolor`, `risklevels`, `riskheat`,
     `runningroi`, `cyclesync`): thicker primary line + a blurred same-colour **glow underlay**

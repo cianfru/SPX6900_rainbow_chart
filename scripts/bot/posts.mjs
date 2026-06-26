@@ -1024,6 +1024,31 @@ That lopsided shape is the up-only skew. Up months dwarf the down ones.`,
     };
   })(),
 
+  // 24b2 — monthly returns, two most recent years grouped by calendar month
+  // (Jan '25 next to Jan '26, etc.) — a year-vs-year seasonality comparison.
+  s => (() => {
+    const byMonth = new Map();
+    for (const [ts, p] of s.series.price) { const d = new Date(ts); if (p > 0) byMonth.set(d.getUTCFullYear() * 12 + d.getUTCMonth(), p); }
+    { const d = new Date(s.date); byMonth.set(d.getUTCFullYear() * 12 + d.getUTCMonth(), s.price); } // live current month
+    const keys = [...byMonth.keys()].sort((a, b) => a - b);
+    const ret = new Map();
+    for (let i = 1; i < keys.length; i++) ret.set(keys[i], byMonth.get(keys[i]) / byMonth.get(keys[i - 1]) - 1);
+    const years = [...new Set([...ret.keys()].map(k => Math.floor(k / 12)))].sort((a, b) => a - b);
+    if (years.length < 2) return null;
+    const yOld = years.at(-2), yNew = years.at(-1);
+    const MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const both = [];
+    for (let m = 0; m < 12; m++) { const a = ret.get(yOld * 12 + m), b = ret.get(yNew * 12 + m); if (a != null && b != null) both.push({ m, a, b }); }
+    const ahead = both.filter(o => o.b >= o.a).length;
+    return {
+      id: "monthcompare",
+      text: ct`📊 SPX6900 month by month — ${yNew} vs ${yOld}, the same calendar month side by side, so you can see how this year stacks up against last.
+Through ${both.length ? MON[both.at(-1).m] : "now"}, ${yNew} has beaten ${yOld} in ${ahead} of ${both.length}.
+Seasonality, not a forecast.`,
+      card: { type: "monthcompare" },
+    };
+  })(),
+
   // 24c — crypto Fear & Greed vs SPX6900's own valuation dial (two dials). Gated
   // on the daily snapshot carrying an fng value (fetched in CI from alternative.me).
   s => s.fng != null && (() => {
