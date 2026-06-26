@@ -200,8 +200,9 @@ function spVsSpec(title, r, tag) {
     logoHeader: { left: "spx", right: "sp500", result: `${fPct(spxRet)}${tag ? " " + tag : ""}` },
     yMin: Math.floor(lo / step) * step, yMax: Math.ceil(hi / step) * step, yTicks,
     hlines: [{ y: 0, label: "0%", color: "#475569" }],
+    fillBase: 0, // shade the SPX line's out/under-performance vs the 0% start
     // SPX gold coin + red 500 coin sit at each line's endpoint (logos = the legend).
-    series: [{ pts: spPts, color: "#94a3b8", width: 2.5, logo: "sp500" }, { pts: spxPts, color: accent, width: 3.5, logo: "spx" }],
+    series: [{ pts: spPts, color: "#94a3b8", width: 2.8, logo: "sp500" }, { pts: spxPts, color: accent, width: 4, logo: "spx", fill: 0.16, glow: true }],
   } };
 }
 
@@ -452,8 +453,8 @@ A telescope on how far it has run, not a forecast of the next leg.`,
         title: "SPX6900 vs the S&P 500 — since launch", headline: `${fMult(spxMult)} vs ${fPct(spMult - 1)}`, accent: "#4ade80",
         yLog: true, yFmt: v => `${v >= 1 ? Math.round(v) : v}×`,
         series: [
-          { pts: spxPts, color: "#4ade80", width: 3.5, logo: "spx" },
-          { pts: spPts, color: "#3b82f6", width: 3, logo: "sp500" },
+          { pts: spPts, color: "#3b82f6", width: 3.2, logo: "sp500", fill: 0.12, glow: true },
+          { pts: spxPts, color: "#4ade80", width: 4, logo: "spx", fill: 0.18, glow: true },
         ],
       } },
     };

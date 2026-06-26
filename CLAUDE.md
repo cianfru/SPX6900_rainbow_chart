@@ -158,6 +158,12 @@
     hero line. Big legibility/impact win for ~free. Principle: any new line-only card should
     ship with glow + fading fill, not a bare 2px polyline. (The `line`-type cards already
     support `fill` via `lineCardSvg`.)
+    - **`lineCardSvg` now also supports a per-series `glow: true` flag** (blurred underlay,
+      filter `lglow`) — opt-in so existing line cards are untouched. The **S&P-500 race
+      cards** got the treatment (2026-06-26): `spxvssp` (since-launch, log) + `sp500ytd` /
+      `sp500roll12` (% race via `spVsSpec`) now set `fill` + `glow` on the SPX hero line
+      (and `fillBase: 0` on the % cards so the fill shades out/under-performance vs the 0%
+      start). To punch up any other `line` card: add `fill: 0.15` + `glow: true` to its hero series.
   - **Price color-coded by risk — greenlit (2026-06-25, owner ref: Into the Cryptoverse).**
     The actual SPX price line (log y vs time) with each SEGMENT recolored by the risk/
     band value at that point: deep blue/purple = cheap/low-risk, through cyan→green→

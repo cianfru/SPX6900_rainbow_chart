@@ -163,8 +163,10 @@ export function lineCardSvg(spec, opts = {}) {
   const rFrom = opts.revealFromX ?? xMin;
   const xCut = reveal >= 1 ? Infinity : rFrom + reveal * (xMax - rFrom);
 
-  // Soft vertical gradients for area fills + a glow blur for the marker.
-  let defs = `<filter id="glow" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="6"/></filter>`;
+  // Soft vertical gradients for area fills + a glow blur for the marker, plus a
+  // tighter blur for the optional per-series line glow (s.glow).
+  let defs = `<filter id="glow" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="6"/></filter>`
+    + `<filter id="lglow" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="5"/></filter>`;
   series.forEach((s, i) => {
     if (s.fill) defs += `<linearGradient id="fill${i}" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0%" stop-color="${s.color}" stop-opacity="${Math.min(0.5, s.fill * 2.4)}"/>
@@ -211,6 +213,8 @@ export function lineCardSvg(spec, opts = {}) {
       const base = Y(spec.fillBase ?? yMin).toFixed(1);
       plot += `<polygon points="${X(pts[0][0]).toFixed(1)},${base} ${path(pts)} ${X(pts.at(-1)[0]).toFixed(1)},${base}" fill="url(#fill${i})"/>`;
     }
+    // optional soft glow underlay (s.glow) so a hero line reads with weight
+    if (s.glow) plot += `<polyline points="${path(pts)}" fill="none" stroke="${s.color}" stroke-width="${(s.width || 3) * 3}" stroke-opacity="0.22" stroke-linejoin="round" stroke-linecap="round" filter="url(#lglow)"/>`;
     plot += `<polyline points="${path(pts)}" fill="none" stroke="${s.color}" stroke-width="${s.width || 3}" stroke-linejoin="round" stroke-linecap="round"${s.dash ? ` stroke-dasharray="7 7"` : ""}/>`;
   }
 
