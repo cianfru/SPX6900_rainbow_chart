@@ -138,7 +138,26 @@
     - **Horizon note (still true):** this is the LONG-TERM power-law deviation (vs the
       whole fitted trend). The SHORT-TERM "heat vs its average" (Cowen's BMSB / 20W-MA
       idea) is a DIFFERENT horizon and is the `riskheat` card (20W extension). Complementary
-      (long-term vs short-term), not redundant — don't conflate them. Original greenlit note:
+      (long-term vs short-term), not redundant — don't conflate them.
+    - **+ power-law fair-value line (added 2026-06-26, owner request):** the z-score card
+      now also draws the dashed fair-value (center) line for reference — derived as
+      `price / exp(z)` so it agrees exactly with the colouring. Original greenlit note:
+  - ✅ **PlanB-style RSI dots — BUILT 2026-06-26** (card id `rsidots`, `scripts/bot/rsi-card.mjs`).
+    An explicit homage to @100trillionUSD's Bitcoin "Realized Price & Geometric MA" chart:
+    SPX6900 price plotted as DOTS coloured by Wilder's RSI(14) (blue cold/oversold → red
+    hot/overbought, jet colormap via the shared `riskColor`), riding the power-law
+    fair-value line (our analog of his 200-week MA — we can't do a 200w MA with <3yr of
+    data, and realized price/`be` is data-gated, so fair value is the trend reference).
+    Left-side RSI colour legend like his. The post copy **@-mentions PlanB directly** and
+    computes the same RSI(14) inline so headline matches the card. (RSI colour domain fixed
+    35..85.)
+  - **Card visual-impact pass (owner, 2026-06-26): thin price-only lines read as weak.**
+    Fix applied to the recent custom-SVG cards (`riskcolor`, `risklevels`, `riskheat`,
+    `runningroi`, `cyclesync`): thicker primary line + a blurred same-colour **glow underlay**
+    (`feGaussianBlur`) + a **fading area fill** (vertical gradient → transparent) under the
+    hero line. Big legibility/impact win for ~free. Principle: any new line-only card should
+    ship with glow + fading fill, not a bare 2px polyline. (The `line`-type cards already
+    support `fill` via `lineCardSvg`.)
   - **Price color-coded by risk — greenlit (2026-06-25, owner ref: Into the Cryptoverse).**
     The actual SPX price line (log y vs time) with each SEGMENT recolored by the risk/
     band value at that point: deep blue/purple = cheap/low-risk, through cyan→green→

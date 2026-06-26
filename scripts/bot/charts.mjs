@@ -9,6 +9,7 @@ import { renderChannelCard } from "./channel-card.mjs";
 import { renderRiskColorCard, renderRiskLevelsCard, renderRiskHeatCard } from "./risk-cards.mjs";
 import { renderRunningRoiCard } from "./roi-card.mjs";
 import { renderCycleSyncCard } from "./cycle-card.mjs";
+import { renderRsiDotsCard } from "./rsi-card.mjs";
 import { logoMark } from "./logos.mjs";
 import { FONT } from "./font.mjs";
 
@@ -757,6 +758,7 @@ export function renderPostCard(post, stats, opts = {}) {
   if (type === "riskheat") return renderRiskHeatCard(stats, dims);
   if (type === "runningroi") return renderRunningRoiCard(stats, dims);
   if (type === "cyclesync") return renderCycleSyncCard(stats, dims);
+  if (type === "rsidots") return renderRsiDotsCard(stats, dims);
   if (type === "kraken") return renderKrakenCard();
   if (type === "gauge") return renderGauge(s, dims);
   if (type === "fngdial") return renderFngDial(s, dims);

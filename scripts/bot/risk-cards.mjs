@@ -16,7 +16,7 @@ const png = (svg, w) => new Resvg(svg, { fitTo: { mode: "width", value: w }, fon
 // continuous risk (0..1) → colour: blue → cyan → green → yellow → orange → red
 const toRGB = h => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
 const STOPS = [[0, "#2563eb"], [0.25, "#06b6d4"], [0.5, "#22c55e"], [0.7, "#eab308"], [0.85, "#f97316"], [1, "#ef4444"]].map(([p, h]) => [p, toRGB(h)]);
-function riskColor(r) {
+export function riskColor(r) {
   r = Math.max(0, Math.min(1, r));
   let a = STOPS[0], b = STOPS[STOPS.length - 1];
   for (let i = 0; i < STOPS.length - 1; i++) if (r >= STOPS[i][0] && r <= STOPS[i + 1][0]) { a = STOPS[i]; b = STOPS[i + 1]; break; }
@@ -88,19 +88,35 @@ export function riskColorSvg(price, dateStr = new Date().toISOString().slice(0, 
     const d = Date.parse(`${yr}-01-01`); if (d < xMin || d > xMax) continue;
     xlab += `<text x="${x(d).toFixed(1)}" y="${H - 42}" fill="#64748b" font-size="20" text-anchor="middle" font-family="sans-serif">${yr}</text>`;
   }
+  // power-law fair-value (center) line, derived straight from the residual:
+  // fair = price / exp(z), so it agrees exactly with the colouring.
+  const fairLine = pts.map(p => `${x(p.ts).toFixed(1)},${y(p.price / Math.exp(p.z)).toFixed(1)}`).join(" ");
+  // price path as one polyline (for the glow underlay + fading area fill) and the
+  // colour-by-z segments on top.
+  const pricePoly = pts.map(p => `${x(p.ts).toFixed(1)},${y(p.price).toFixed(1)}`).join(" ");
+  const base = y(yMin).toFixed(1);
   let seg = "";
   for (let i = 0; i < pts.length - 1; i++) {
-    seg += `<line x1="${x(pts[i].ts).toFixed(1)}" y1="${y(pts[i].price).toFixed(1)}" x2="${x(pts[i + 1].ts).toFixed(1)}" y2="${y(pts[i + 1].price).toFixed(1)}" stroke="${colorOf((pts[i].z + pts[i + 1].z) / 2)}" stroke-width="4.5" stroke-linecap="round"/>`;
+    seg += `<line x1="${x(pts[i].ts).toFixed(1)}" y1="${y(pts[i].price).toFixed(1)}" x2="${x(pts[i + 1].ts).toFixed(1)}" y2="${y(pts[i + 1].price).toFixed(1)}" stroke="${colorOf((pts[i].z + pts[i + 1].z) / 2)}" stroke-width="5.5" stroke-linecap="round"/>`;
   }
   const px = x(xMax), py = y(price);
   const zTxt = `${curZ >= 0 ? "+" : ""}${curZ.toFixed(1)}σ`;
   return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
+<defs>
+  <linearGradient id="zFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="${dc}" stop-opacity="0.30"/><stop offset="100%" stop-color="${dc}" stop-opacity="0"/></linearGradient>
+  <filter id="zGlow" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="6"/></filter>
+</defs>
 <rect width="${W}" height="${H}" fill="#05050e"/>
 ${auroraBg(W, H, dc)}
-${grid}${xlab}${seg}
-<circle cx="${px.toFixed(1)}" cy="${py.toFixed(1)}" r="7" fill="#fff" stroke="${dc}" stroke-width="3"/>
+${grid}${xlab}
+<polygon points="${x(xMin).toFixed(1)},${base} ${pricePoly} ${x(xMax).toFixed(1)},${base}" fill="url(#zFill)"/>
+<polyline points="${fairLine}" fill="none" stroke="#cbd5e1" stroke-width="2.4" stroke-opacity="0.85" stroke-dasharray="2 8" stroke-linecap="round"/>
+<polyline points="${pricePoly}" fill="none" stroke="${dc}" stroke-width="11" stroke-opacity="0.22" filter="url(#zGlow)"/>
+${seg}
+<circle cx="${px.toFixed(1)}" cy="${py.toFixed(1)}" r="7.5" fill="#fff" stroke="${dc}" stroke-width="3"/>
 <text x="64" y="42" fill="#e2e8f0" font-size="29" font-weight="700" font-family="sans-serif" letter-spacing="1.5">SPX6900 — VALUATION Z-SCORE</text>
 <text x="${W - mR}" y="42" fill="${dc}" font-size="27" font-weight="800" font-family="sans-serif" text-anchor="end">${zTxt} vs trend</text>
+<text x="64" y="70" font-size="16" font-family="sans-serif"><tspan fill="#cbd5e1" font-weight="700">┄ power-law fair value</tspan><tspan fill="#64748b">     </tspan><tspan fill="#94a3b8">line colour = σ from fair value (blue cheap → red stretched)</tspan></text>
 <text x="64" y="${H - 14}" fill="#475569" font-size="15" font-family="sans-serif">spx6900rainbow.xyz · not financial advice · σ from power-law fair value</text>
 </svg>`;
 }
@@ -142,11 +158,13 @@ export function riskLevelsSvg(price, dateStr = new Date().toISOString().slice(0,
   }
   const px = x(xMax), py = y(price);
   return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
+<defs><filter id="rlGlow" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="5"/></filter></defs>
 <rect width="${W}" height="${H}" fill="#05050e"/>
 ${auroraBg(W, H, dc)}
 ${lines}
-<polyline points="${priceLine}" fill="none" stroke="#ffffff" stroke-width="2.6"/>
-<circle cx="${px.toFixed(1)}" cy="${py.toFixed(1)}" r="7" fill="#fff" stroke="${dc}" stroke-width="3"/>
+<polyline points="${priceLine}" fill="none" stroke="${dc}" stroke-width="10" stroke-opacity="0.25" filter="url(#rlGlow)"/>
+<polyline points="${priceLine}" fill="none" stroke="#ffffff" stroke-width="3.6" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="${px.toFixed(1)}" cy="${py.toFixed(1)}" r="7.5" fill="#fff" stroke="${dc}" stroke-width="3"/>
 ${xlab}
 <text x="64" y="42" fill="#e2e8f0" font-size="29" font-weight="700" font-family="sans-serif" letter-spacing="1.5">CURRENT RISK LEVELS</text>
 <text x="${W - mR}" y="42" fill="${dc}" font-size="27" font-weight="800" font-family="sans-serif" text-anchor="end">${fP(price)} · risk ${curRisk.toFixed(2)}</text>
@@ -211,17 +229,24 @@ export function riskHeatSvg(price, dateStr = new Date().toISOString().slice(0, 1
     + `<text x="${W - mR}" y="${(riskTop - 6).toFixed(1)}" fill="#94a3b8" font-size="15" text-anchor="end" font-family="sans-serif">extension vs 20W MA — hot above, cold below</text>`;
   const maLine = pts.map((p, i) => `${x(p.ts).toFixed(1)},${yP(ma[i]).toFixed(1)}`).join(" ");
   const priceLine = pts.map(p => `${x(p.ts).toFixed(1)},${yP(p.price).toFixed(1)}`).join(" ");
+  const priceArea = `${x(xMin).toFixed(1)},${priceBot.toFixed(1)} ${priceLine} ${x(xMax).toFixed(1)},${priceBot.toFixed(1)}`;
   let xlab = "";
   for (let yr = new Date(xMin).getFullYear(); yr <= new Date(xMax).getFullYear(); yr++) {
     const d = Date.parse(`${yr}-01-01`); if (d < xMin || d > xMax) continue;
     xlab += `<text x="${x(d).toFixed(1)}" y="${H - 42}" fill="#64748b" font-size="20" text-anchor="middle" font-family="sans-serif">${yr}</text>`;
   }
   return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
+<defs>
+  <linearGradient id="rhFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#cbd5e1" stop-opacity="0.20"/><stop offset="100%" stop-color="#cbd5e1" stop-opacity="0"/></linearGradient>
+  <filter id="rhGlow" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="5"/></filter>
+</defs>
 <rect width="${W}" height="${H}" fill="#05050e"/>
 ${auroraBg(W, H, dc)}
 ${grid}
-<polyline points="${maLine}" fill="none" stroke="#f59e0b" stroke-width="2" stroke-opacity="0.85"/>
-<polyline points="${priceLine}" fill="none" stroke="#ffffff" stroke-width="3"/>
+<polygon points="${priceArea}" fill="url(#rhFill)"/>
+<polyline points="${maLine}" fill="none" stroke="#f59e0b" stroke-width="2.4" stroke-opacity="0.9"/>
+<polyline points="${priceLine}" fill="none" stroke="#ffffff" stroke-width="9" stroke-opacity="0.2" filter="url(#rhGlow)"/>
+<polyline points="${priceLine}" fill="none" stroke="#ffffff" stroke-width="3.6" stroke-linejoin="round" stroke-linecap="round"/>
 ${heat}${axis}${xlab}
 <text x="64" y="42" fill="#e2e8f0" font-size="29" font-weight="700" font-family="sans-serif" letter-spacing="1.5">SPX6900 — 20-WEEK EXTENSION</text>
 <text x="${W - mR}" y="42" fill="${dc}" font-size="27" font-weight="800" font-family="sans-serif" text-anchor="end">${curPct >= 0 ? "+" : ""}${curPct}% vs 20W MA</text>

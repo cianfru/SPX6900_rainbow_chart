@@ -68,6 +68,7 @@ export function cycleSyncSvg(price, dateStr = new Date().toISOString().slice(0, 
   const btcSolid = c.histPts.map(([t, v]) => `${x(t).toFixed(1)},${yR(v).toFixed(1)}`).join(" ");
   const btcDash = c.histFwd.map(([t, v]) => `${x(t).toFixed(1)},${yR(v).toFixed(1)}`).join(" ");
   const spxLine = spx.map(p => `${x(p.ts).toFixed(1)},${yL(p.price).toFixed(1)}`).join(" ");
+  const spxArea = `${x(spx[0].ts).toFixed(1)},${(mT + pH).toFixed(1)} ${spxLine} ${x(spx.at(-1).ts).toFixed(1)},${(mT + pH).toFixed(1)}`;
   // BTC peak dots (on the BTC scale)
   let dots = "";
   for (const pk of c.peaks) dots += `<circle cx="${x(pk.ts).toFixed(1)}" cy="${yR(pk.btc).toFixed(1)}" r="5" fill="#f7931a"/>`;
@@ -90,15 +91,20 @@ export function cycleSyncSvg(price, dateStr = new Date().toISOString().slice(0, 
 <defs>
   <radialGradient id="cyTop" cx="50%" cy="0%" r="85%"><stop offset="0%" stop-color="#f7931a" stop-opacity="0.14"/><stop offset="60%" stop-color="#f7931a" stop-opacity="0"/></radialGradient>
   <radialGradient id="cyG" cx="6%" cy="92%" r="60%"><stop offset="0%" stop-color="#22c55e" stop-opacity="0.16"/><stop offset="70%" stop-color="#22c55e" stop-opacity="0"/></radialGradient>
+  <linearGradient id="cySpxFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#4ade80" stop-opacity="0.24"/><stop offset="100%" stop-color="#4ade80" stop-opacity="0"/></linearGradient>
+  <filter id="cyGlow" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="5"/></filter>
 </defs>
 <rect width="${W}" height="${H}" fill="#05050e"/>
 <rect width="${W}" height="${H}" fill="url(#cyG)"/>
 <rect width="${W}" height="${H}" fill="url(#cyTop)"/>
 ${grid}${guides}
-<polyline points="${btcSolid}" fill="none" stroke="#f7931a" stroke-width="2.6" stroke-opacity="0.95"/>
-<polyline points="${btcDash}" fill="none" stroke="#f7931a" stroke-width="2.6" stroke-opacity="0.85" stroke-dasharray="7 6"/>
+<polygon points="${spxArea}" fill="url(#cySpxFill)"/>
+<polyline points="${btcSolid}" fill="none" stroke="#f7931a" stroke-width="9" stroke-opacity="0.18" filter="url(#cyGlow)"/>
+<polyline points="${btcSolid}" fill="none" stroke="#f7931a" stroke-width="3" stroke-opacity="0.95"/>
+<polyline points="${btcDash}" fill="none" stroke="#f7931a" stroke-width="3" stroke-opacity="0.85" stroke-dasharray="7 6"/>
 ${dots}
-<polyline points="${spxLine}" fill="none" stroke="#4ade80" stroke-width="3.4"/>
+<polyline points="${spxLine}" fill="none" stroke="#4ade80" stroke-width="10" stroke-opacity="0.2" filter="url(#cyGlow)"/>
+<polyline points="${spxLine}" fill="none" stroke="#4ade80" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"/>
 ${endCoin("btc", bx, by, "#f7931a")}
 ${endCoin("spx", sx, sy, "#4ade80")}
 ${xlab}

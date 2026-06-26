@@ -408,6 +408,29 @@ The 1-year holder's return — rolling, not cumulative since launch.`,
     };
   })(),
 
+  // 1b6 — PlanB-style RSI dots: price coloured by RSI over the power-law fair
+  // value — an homage to @100trillionUSD's Bitcoin "Realized Price & MA" chart.
+  s => (() => {
+    // Wilder's RSI(14) on the bundled closes, computed inline so the headline
+    // matches the card (same series + period).
+    const P = DEFAULT_RAW.map(r => r.price);
+    let ag = 0, al = 0, rsi = 50;
+    for (let i = 1; i < P.length; i++) {
+      const ch = P[i] - P[i - 1], g = Math.max(0, ch), l = Math.max(0, -ch);
+      if (i <= 14) { ag += g; al += l; if (i === 14) { ag /= 14; al /= 14; } }
+      else { ag = (ag * 13 + g) / 14; al = (al * 13 + l) / 14; }
+      if (i >= 14) rsi = 100 - 100 / (1 + ag / (al || 1e-9));
+    }
+    const r = Math.round(rsi);
+    const tag = r < 40 ? "cold / oversold" : r < 55 ? "neutral" : r < 70 ? "warming up" : "hot / overbought";
+    return {
+      id: "rsidots",
+      text: ct`📊 SPX6900's price, every point coloured by its 14-period RSI — blue = cold/oversold, red = hot/overbought — riding the power-law fair-value line below. An homage to @100trillionUSD's Bitcoin RSI chart, built for SPX.
+RSI today: ${r} — ${tag}.`,
+      card: { type: "rsidots" },
+    };
+  })(),
+
   // 1c — SPX6900 vs the REAL S&P 500, total return since launch: a growth-multiple
   // race on a log axis. The on-brand flex — the memecoin vs the index it's named
   // after — two honest returns from day one. S&P closes are bundled (SP500_HISTORY).
