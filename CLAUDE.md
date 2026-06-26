@@ -255,6 +255,22 @@
   kept the original curve and the owner is monitoring price behaviour instead.
 - **Revisit ~2026-07-23** (monitor with `--check`), roughly monthly after.
 
+## Deploy hygiene — Vercel free tier = 100 deploys/day (learned 2026-06-26)
+- Production deploy (`.github/workflows/deploy.yml`) fires on every push to `main`
+  and ships via the Vercel CLI. The free plan caps **100 deployments/day**; over it,
+  `vercel deploy` fails with `api-deployments-free-per-day` (rolling ~24h window).
+- **Root cause hit on 2026-06-26:** the hourly band-watch rewrote `band-state.json`
+  every run (just the timestamp) → ~24 deploys/day, plus a push-heavy build session +
+  control-panel state saves + crons → over 100. Fixed: (1) `deploy.yml` `paths-ignore`
+  ALL runtime-state files (next-post/post-state/band-state/daily-band-state/
+  milestone-state/post-copy/card-ar/recap-pending) — read at runtime / via raw, never
+  from the deployed site; (2) band-watch only writes state on a real change, not the ts.
+- **Keep it under control:** batch commits where practical (each code push = 1 deploy);
+  only files the DEPLOYED SITE serves (src, api, scripts/bot via includeFiles, public
+  assets, `history.json` which the site fetches client-side) need to trigger a deploy.
+- The MCP GitHub integration is READ-ONLY for Actions (can't dispatch/rerun) — to force
+  a deploy, push a commit touching a non-ignored file (or hit "Run workflow" in the UI).
+
 ## How the bot picks a post
 - Daily rotation is deterministic: `rota[epochDay % rota.length]` in
   `scripts/bot/posts.mjs` (`buildPost`). Weighted round-robin — `valuation` 3×,
