@@ -36,5 +36,6 @@
   "risklevels": "square",
   "spxvssp": "landscape",
   "strategy": "square",
-  "riskheat": "square"
+  "riskheat": "square",
+  "runningroi": "square"
 }
