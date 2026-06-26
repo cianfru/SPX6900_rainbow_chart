@@ -7,7 +7,13 @@ name: Post to X
 
 on:
   schedule:
-    - cron: "0 13 * * *" # 13:00 UTC daily
+    # Target 08:00 America/New_York (Eastern — the bulk of the audience) year-round.
+    # GitHub cron is UTC-only and has NO daylight-saving handling, so register BOTH
+    # offsets and let the "Gate to 08:00 ET" step below post on only the one that
+    # matches the current EDT/EST state (the other is skipped). The once-per-day
+    # guard in post.mjs is a second backstop against a double-post.
+    - cron: "0 12 * * *" # 08:00 ET while EDT (Mar–Nov) — 12:00 UTC
+    - cron: "0 13 * * *" # 08:00 ET while EST (Nov–Mar) — 13:00 UTC
   workflow_dispatch:
     inputs:
       dry_run:
@@ -65,16 +71,37 @@ jobs:
   post:
     runs-on: ubuntu-latest
     steps:
+      # DST gate: a scheduled run proceeds only if its cron is the right one for the
+      # CURRENT Eastern offset (12:00 UTC during EDT, 13:00 UTC during EST) — so the
+      # post always lands at ~08:00 ET. Manual (workflow_dispatch) runs always proceed.
+      - name: Gate to 08:00 ET (DST-aware)
+        id: gate
+        env:
+          EVT: ${{ github.event_name }}
+          SCHED: ${{ github.event.schedule }}
+        run: |
+          node -e '
+            if (process.env.EVT !== "schedule") { console.log("proceed=true"); process.exit(0); }
+            const edt = new Date().toLocaleString("en-US", { timeZone: "America/New_York", timeZoneName: "short" }).includes("EDT");
+            const want = edt ? "0 12 * * *" : "0 13 * * *";
+            console.log("proceed=" + (process.env.SCHED === want ? "true" : "false"));
+          ' >> "$GITHUB_OUTPUT"
+          echo "event=$EVT schedule='$SCHED' -> $(tail -1 "$GITHUB_OUTPUT")"
+
       - uses: actions/checkout@v4
+        if: steps.gate.outputs.proceed == 'true'
 
       - uses: actions/setup-node@v4
+        if: steps.gate.outputs.proceed == 'true'
         with:
           node-version: 20
           cache: npm
 
       - run: npm ci
+        if: steps.gate.outputs.proceed == 'true'
 
       - name: Build + post
+        if: steps.gate.outputs.proceed == 'true'
         run: node scripts/bot/post.mjs
         env:
           DRY_RUN: ${{ (github.event_name == 'workflow_dispatch' && inputs.dry_run) && '1' || '' }}
@@ -91,7 +118,7 @@ jobs:
           X_ACCESS_SECRET: ${{ secrets.X_ACCESS_SECRET }}
 
       - name: Commit post state (queue consume + once-per-day guard)
-        if: always()
+        if: always() && steps.gate.outputs.proceed == 'true'
         run: |
           if [[ -n "$(git status --porcelain public/next-post.json public/post-state.json public/daily-band-state.json)" ]]; then
             git config user.name "github-actions[bot]"
@@ -104,7 +131,7 @@ jobs:
           fi
 
       - name: Upload card preview
-        if: always()
+        if: always() && steps.gate.outputs.proceed == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: card-preview

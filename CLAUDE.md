@@ -335,6 +335,12 @@
   `scripts/bot/posts.mjs` (`buildPost`). Weighted round-robin — `valuation` 3×,
   bullish posts 2×, rest 1×. So the post for any date can be computed ahead of time.
 - Override a single run with `BOT_POST=<id>` (real) or `--post=<id>` (forces dry-run).
-- Scheduled post: `.github/workflows/post-tweet.yml`, cron `0 13 * * *` (GitHub
-  best-effort; actually fires late/drifts — known limitation, left as-is per owner).
+- Scheduled post: `.github/workflows/post-tweet.yml`, targets **08:00 America/New_York
+  (Eastern — most of the audience)** year-round (changed 2026-06-26). GitHub cron is
+  UTC-only with no DST, so TWO crons are registered (`0 12` = 08:00 EDT, `0 13` = 08:00
+  EST) and a "Gate to 08:00 ET (DST-aware)" step lets only the offset matching the
+  current EDT/EST state proceed (the other run no-ops; the once-per-day guard in
+  post.mjs is a second backstop). GitHub schedules are still best-effort and fire
+  late/drift by minutes — known limitation, left as-is per owner. To change the target
+  timezone, swap the two UTC hours + the `want` offsets in the gate step.
 - Cards render via `renderPostCard` (shared by the bot and `api/og.js`).
