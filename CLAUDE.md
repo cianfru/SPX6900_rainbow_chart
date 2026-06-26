@@ -135,6 +135,15 @@
     gradient for the smoother ITC look). Card + optional website tab. NOTE the right-
     hand "Time In Risk Bands" histogram in the owner's ref screenshot ≈ our existing
     `timeinband` card, so no need to rebuild that.
+  - **Current risk levels projected onto price — greenlit, buildable now (2026-06-25,
+    ITC ref).** A zoomed RECENT-price chart with a horizontal line at each rainbow
+    band's price *today*, each labeled `risk-value : price` (e.g. "0.45 : $X") — i.e.
+    "what price = what risk level right now." All inputs exist: `M.bandVal(m, day, i)`
+    for every band edge + a risk value per band. Near-term cousin of the rainbow (price
+    targets by risk). Card + optional tab. (Several other ITC charts the owner shared
+    are already covered: Time-in-Risk-Bands = `timeinband`; Historical Risk Levels =
+    `risk`/`fngtrend`; Market-Cap Hypotheticals = `majorcaps`/`sp500`. The whole-market
+    cap TREEMAP is not SPX-specific — skip.)
   - **Decoupling from Bitcoin.** Rolling 90-day correlation of SPX vs BTC over time;
     story = "SPX finding its own legs" IF the data is flattering (check first — if it's
     still glued to BTC, shelve it).
