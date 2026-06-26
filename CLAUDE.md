@@ -123,6 +123,18 @@
     targets (currently $6.90 Oct '27 / $69 Dec '30 / $690 Mar '36 — auto-computed via the
     inverse of `predict()`, so the dates shift if the model is ever re-fit). Framed as
     "the trend, extrapolated"; companion to the `channel` card.
+  - **Price color-coded by risk — greenlit (2026-06-25, owner ref: Into the Cryptoverse).**
+    The actual SPX price line (log y vs time) with each SEGMENT recolored by the risk/
+    band value at that point: deep blue/purple = cheap/low-risk, through cyan→green→
+    yellow, up to red at stretched/high-risk tops. Same rainbow data as the `rainbow`/
+    `channel` cards, but rendered as ONE color-shifting line (no banded background) —
+    a fresh, eye-catching visual. **We already have all the inputs:** risk per point
+    (`M.buildRiskSeries` / `bandIndex` → 0–1), and the band palette (`M.BAND_LABELS[i].c`).
+    Build = draw the price polyline as many short segments, each colored by its point's
+    risk (use `BAND_LABELS[bandIndex].c`, or interpolate a continuous 0–1 → blue→red
+    gradient for the smoother ITC look). Card + optional website tab. NOTE the right-
+    hand "Time In Risk Bands" histogram in the owner's ref screenshot ≈ our existing
+    `timeinband` card, so no need to rebuild that.
   - **Decoupling from Bitcoin.** Rolling 90-day correlation of SPX vs BTC over time;
     story = "SPX finding its own legs" IF the data is flattering (check first — if it's
     still glued to BTC, shelve it).
