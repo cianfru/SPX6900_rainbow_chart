@@ -144,6 +144,18 @@
     are already covered: Time-in-Risk-Bands = `timeinband`; Historical Risk Levels =
     `risk`/`fngtrend`; Market-Cap Hypotheticals = `majorcaps`/`sp500`. The whole-market
     cap TREEMAP is not SPX-specific — skip.)
+  - **ITC batch 2 verdicts (2026-06-25, owner shared 5 more ITC charts):**
+    - **Running ROI** (rolling fixed-window return over time) — buildable & on-brand
+      (honest, no signal), mild add vs existing `rally`/`alltime`/`drawdown`. OK to build.
+    - **Quarterly Returns** (buy Q-start / sell Q-end seasonality table) — buildable,
+      minor; the monthly heatmap (`monthlyreturns`) already tells the story.
+    - **Historical Monthly Average ROI** — already covered by `monthlyreturns`/`monthlybars`.
+    - **SKIP — Average Daily Returns** (avg ROI per day-of-month): same overfit trap as
+      the already-rejected day-of-week idea (thin samples, 24/7 asset). Don't build.
+    - **SKIP — Supertrend** (ATR trend indicator w/ buy/sell arrows): off-brand — the
+      moat is honest VALUATION, not trade signals; "buy/sell" arrows invite blowback.
+    - **SKIP — Pi Cycle Bottom/Top** (111D vs 2×350D SMA): a BTC-halving-cycle top caller;
+      borrowed/overfit for a ~2yr memecoin (same reasoning as Uptober). Not meaningful.
   - **Decoupling from Bitcoin.** Rolling 90-day correlation of SPX vs BTC over time;
     story = "SPX finding its own legs" IF the data is flattering (check first — if it's
     still glued to BTC, shelve it).
