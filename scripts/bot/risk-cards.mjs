@@ -139,5 +139,67 @@ ${xlab}
 </svg>`;
 }
 
+// --- card 3: price (top) + risk HEAT oscillator (bottom) -------------------
+// Risk drawn as bars from a neutral 0.5 midline — red/hot above, blue/cold below —
+// aligned under the price. Same data as the rainbow, a fresh "valuation oscillator".
+export function riskHeatSvg(price, dateStr = new Date().toISOString().slice(0, 10), opts = {}) {
+  const m = M.buildModel(DEFAULT_RAW);
+  const rs = M.buildRiskSeries(m, DEFAULT_RAW); // [{ ts, price, risk }]
+  const { lo, hi } = residRange(m);
+  const curRisk = Math.max(0, Math.min(1, (Math.log(price) - m.predict(M.dayN(dateStr)) - lo) / ((hi - lo) || 1)));
+  const dc = riskColor(curRisk);
+
+  const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 84, mR = 40, mT = 76, mB = 64;
+  const innerTop = mT, innerBot = H - mB, innerH = innerBot - innerTop;
+  const priceTop = innerTop, priceBot = innerTop + innerH * 0.58;
+  const riskTop = innerTop + innerH * 0.70, riskBot = innerBot;
+  const xMin = rs[0].ts, xMax = rs.at(-1).ts;
+  const x = t => mL + ((t - xMin) / ((xMax - xMin) || 1)) * (W - mL - mR);
+  let yMin = Infinity, yMax = -Infinity;
+  for (const r of rs) { if (r.price < yMin) yMin = r.price; if (r.price > yMax) yMax = r.price; }
+  yMin *= 0.8; yMax *= 1.25;
+  const yP = p => priceTop + ((Math.log(yMax) - Math.log(p)) / ((Math.log(yMax) - Math.log(yMin)) || 1)) * (priceBot - priceTop);
+  const yR = r => riskBot - r * (riskBot - riskTop);
+
+  // price-panel $ gridlines
+  let grid = "";
+  for (const t of yDollarTicks(yMin, yMax)) {
+    const yy = yP(t).toFixed(1);
+    grid += `<line x1="${mL}" y1="${yy}" x2="${W - mR}" y2="${yy}" stroke="rgba(255,255,255,0.06)"/>`;
+    grid += `<text x="${mL - 10}" y="${(+yy + 5).toFixed(1)}" fill="#64748b" font-size="19" text-anchor="end" font-family="sans-serif">$${t < 1 ? t : t.toLocaleString()}</text>`;
+  }
+  // risk heat: a bar per point from the 0.5 midline to its risk value
+  const cy = yR(0.5).toFixed(1);
+  const bw = Math.max(1.4, (W - mL - mR) / (rs.length - 1) + 0.6);
+  let heat = "";
+  for (const r of rs) {
+    const yy = yR(r.risk), top = Math.min(yy, +cy), h = Math.abs(yy - +cy);
+    heat += `<rect x="${(x(r.ts) - bw / 2).toFixed(1)}" y="${top.toFixed(1)}" width="${bw.toFixed(1)}" height="${Math.max(0.5, h).toFixed(1)}" fill="${riskColor(r.risk)}" fill-opacity="0.9"/>`;
+  }
+  // risk axis: neutral midline + 0 / 0.5 / 1 marks
+  const axis = `<line x1="${mL}" y1="${cy}" x2="${W - mR}" y2="${cy}" stroke="rgba(255,255,255,0.5)" stroke-dasharray="6 6"/>`
+    + `<text x="${mL - 10}" y="${(yR(1) + 6).toFixed(1)}" fill="#94a3b8" font-size="16" text-anchor="end" font-family="sans-serif">1.0</text>`
+    + `<text x="${mL - 10}" y="${(+cy + 5).toFixed(1)}" fill="#94a3b8" font-size="16" text-anchor="end" font-family="sans-serif">0.5</text>`
+    + `<text x="${mL - 10}" y="${(yR(0) + 2).toFixed(1)}" fill="#94a3b8" font-size="16" text-anchor="end" font-family="sans-serif">0</text>`
+    + `<text x="${W - mR}" y="${(riskTop - 6).toFixed(1)}" fill="#94a3b8" font-size="15" text-anchor="end" font-family="sans-serif">RISK — hot above, cold below</text>`;
+  const priceLine = rs.map(r => `${x(r.ts).toFixed(1)},${yP(r.price).toFixed(1)}`).join(" ");
+  let xlab = "";
+  for (let yr = new Date(xMin).getFullYear(); yr <= new Date(xMax).getFullYear(); yr++) {
+    const d = Date.parse(`${yr}-01-01`); if (d < xMin || d > xMax) continue;
+    xlab += `<text x="${x(d).toFixed(1)}" y="${H - 42}" fill="#64748b" font-size="20" text-anchor="middle" font-family="sans-serif">${yr}</text>`;
+  }
+  return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
+<rect width="${W}" height="${H}" fill="#05050e"/>
+${auroraBg(W, H, dc)}
+${grid}
+<polyline points="${priceLine}" fill="none" stroke="#ffffff" stroke-width="3"/>
+${heat}${axis}${xlab}
+<text x="64" y="42" fill="#e2e8f0" font-size="29" font-weight="700" font-family="sans-serif" letter-spacing="1.5">SPX6900 — PRICE &amp; RISK HEAT</text>
+<text x="${W - mR}" y="42" fill="${dc}" font-size="27" font-weight="800" font-family="sans-serif" text-anchor="end">risk ${curRisk.toFixed(2)} / 1.00</text>
+<text x="64" y="${H - 14}" fill="#475569" font-size="15" font-family="sans-serif">spx6900rainbow.xyz · not financial advice</text>
+</svg>`;
+}
+
 export function renderRiskColorCard(stats, opts = {}) { return png(riskColorSvg(stats.price, stats.date, { W: opts.W, H: opts.H }), opts.W ?? 1200); }
 export function renderRiskLevelsCard(stats, opts = {}) { return png(riskLevelsSvg(stats.price, stats.date, { W: opts.W, H: opts.H }), opts.W ?? 1200); }
+export function renderRiskHeatCard(stats, opts = {}) { return png(riskHeatSvg(stats.price, stats.date, { W: opts.W, H: opts.H }), opts.W ?? 1200); }

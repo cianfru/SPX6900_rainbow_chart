@@ -364,6 +364,16 @@ A near-term map of price by risk level.`,
     card: { type: "risklevels" },
   }),
 
+  // 1b4 — price + risk HEAT oscillator: risk drawn hot/cold around a neutral line
+  // under the price. Same data as the rainbow, a different read.
+  s => ({
+    id: "riskheat",
+    text: ct`🌡️ SPX6900's price, with its risk as a heat oscillator below — red bars above the neutral line mean price is hot/stretched, blue below means cold/cheap.
+Risk today: ${s.risk.toFixed(2)} / 1.00 — ${s.risk < 0.34 ? "deep in the cold" : s.risk < 0.66 ? "around neutral" : "running hot"}.
+The rainbow, read against price as one oscillator.`,
+    card: { type: "riskheat" },
+  }),
+
   // 1c — SPX6900 vs the REAL S&P 500, total return since launch: a growth-multiple
   // race on a log axis. The on-brand flex — the memecoin vs the index it's named
   // after — two honest returns from day one. S&P closes are bundled (SP500_HISTORY).

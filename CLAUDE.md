@@ -141,6 +141,10 @@
   - ✅ **Current risk levels projected onto price — BUILT 2026-06-25** (card id
     `risklevels`, `scripts/bot/risk-cards.mjs`). Recent price + a dashed line per risk
     level (0.1–0.7) labeled `risk : price`. Original greenlit note:
+  - ✅ **Price + risk HEAT oscillator — BUILT 2026-06-25** (card id `riskheat`,
+    `scripts/bot/risk-cards.mjs`). Two-panel: price on top, risk as a hot/cold bar
+    oscillator around a neutral 0.5 line below (red = stretched, blue = cheap). The
+    owner's "Historical Risk Levels" idea (risk vs price), as a fresh distinct visual.
   - **Current risk levels projected onto price — greenlit, buildable now (2026-06-25,
     ITC ref).** A zoomed RECENT-price chart with a horizontal line at each rainbow
     band's price *today*, each labeled `risk-value : price` (e.g. "0.45 : $X") — i.e.
