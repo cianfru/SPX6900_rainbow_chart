@@ -12,6 +12,7 @@ on:
     # NOT from the deployed site. Without this the hourly band-watch state commit
     # would deploy every hour and blow Vercel's free 100-deploys/day limit.
     paths-ignore:
+      - "CLAUDE.md"
       - "public/next-post.json"
       - "public/post-state.json"
       - "public/band-state.json"

@@ -345,15 +345,24 @@ A cleaner read on how far price is from the middle.`,
     card: { type: "channel" },
   }),
 
-  // 1b2 — price coloured by risk: the price line recoloured by where it sat in the
-  // rainbow at each point (blue = cheap/low-risk → red = stretched). Fresh visual.
-  s => ({
-    id: "riskcolor",
-    text: ct`🌈 SPX6900's price history, coloured by risk — each point shaded by where it sat in the rainbow: deep blue when cheap, red when stretched near the top.
-Risk today: ${s.risk.toFixed(2)} / 1.00 — ${s.risk < 0.34 ? "historically cheap" : s.risk < 0.66 ? "the middle" : "getting rich"}.
-The rainbow as one colour-shifting line.`,
-    card: { type: "riskcolor" },
-  }),
+  // 1b2 — price coloured by the valuation z-score: the price line recoloured by how
+  // many σ it sits from the power-law fair value (blue = cheap, red = stretched).
+  s => (() => {
+    // log-residual z-score vs the model's fair value, same model as the card so the
+    // headline number matches. Population mean/std over the full history.
+    const m = s.model, zs = DEFAULT_RAW.map(r => Math.log(r.price) - m.predict(M.dayN(r.date)));
+    const mean = zs.reduce((a, z) => a + z, 0) / zs.length;
+    const std = Math.sqrt(zs.reduce((a, z) => a + (z - mean) ** 2, 0) / zs.length) || 1;
+    const z = (Math.log(s.price) - m.predict(s.day) - mean) / std;
+    const label = z < -1.5 ? "deep value" : z < -0.5 ? "cheap" : z < 0.5 ? "around fair value" : z < 1.5 ? "stretched" : "frothy";
+    return {
+      id: "riskcolor",
+      text: ct`🌈 SPX6900's price, coloured by its valuation z-score — how many standard deviations it sits from its long-run power-law fair value. Blue = cheap (below trend), red = stretched (above).
+Today: ${(z >= 0 ? "+" : "") + z.toFixed(1)}σ — ${label}.
+A statistical read on cheap vs heated.`,
+      card: { type: "riskcolor" },
+    };
+  })(),
 
   // 1b3 — current risk levels projected onto price: "what price = what risk, today".
   s => ({

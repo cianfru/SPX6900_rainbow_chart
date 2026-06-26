@@ -123,17 +123,22 @@
     targets (currently $6.90 Oct '27 / $69 Dec '30 / $690 Mar '36 — auto-computed via the
     inverse of `predict()`, so the dates shift if the model is ever re-fit). Framed as
     "the trend, extrapolated"; companion to the `channel` card.
-  - ✅ **Price color-coded by risk — BUILT 2026-06-25** (card id `riskcolor`,
-    `scripts/bot/risk-cards.mjs`). Price line recolored segment-by-segment by a
-    continuous risk→color gradient (blue→cyan→green→yellow→red).
-    - **Which "risk"? (clarified 2026-06-26, owner asked.)** `riskcolor` colors by the
-      LONG-TERM rainbow risk = power-law residual (log price − fair value), min-max
-      normalized 0–1 — the analog to Cowen's proprietary log-regression "Risk" metric,
-      NOT a BMSB / 20-week z-score. The SHORT-TERM "heat vs its average" (Cowen's BMSB /
-      20W-MA idea) is a DIFFERENT horizon and is already the `riskheat` card (20W
-      extension). So the two are complementary (long-term vs short-term), not redundant —
-      don't conflate them. (Cowen's exact Risk formula is proprietary/evolving; ours is a
-      faithful long-term analog, not a claim of identity.) Original greenlit note:
+  - ✅ **Price color-coded by valuation z-score — BUILT 2026-06-25, RETOOLED to a
+    z-score 2026-06-26** (card id `riskcolor`, `scripts/bot/risk-cards.mjs`). Price line
+    recolored segment-by-segment by a continuous color gradient (blue→cyan→green→yellow→red).
+    - **Now a z-SCORE, not min-max risk (changed 2026-06-26, owner asked for "a slightly
+      different flavour" so it differs visibly from the rainbow cards).** Each segment is
+      shaded by the **valuation z-score** = how many standard deviations the log-residual
+      (log price − power-law fair value) sits from its full-history mean, mapped ±2.5σ →
+      blue..red (`zScoreSeries(m)` + `zToUnit`). The tweet now explains exactly this
+      ("how many σ from fair value; blue = cheap below trend, red = stretched above";
+      headline e.g. "-1.3σ — cheap"). The post computes the SAME z inline from `s.model`
+      so card readout and tweet agree. This is distinct from the OTHER cards' rainbow-band
+      risk (0–1 min-max) — a fresh statistical "cheap vs heated" read on the same data.
+    - **Horizon note (still true):** this is the LONG-TERM power-law deviation (vs the
+      whole fitted trend). The SHORT-TERM "heat vs its average" (Cowen's BMSB / 20W-MA
+      idea) is a DIFFERENT horizon and is the `riskheat` card (20W extension). Complementary
+      (long-term vs short-term), not redundant — don't conflate them. Original greenlit note:
   - **Price color-coded by risk — greenlit (2026-06-25, owner ref: Into the Cryptoverse).**
     The actual SPX price line (log y vs time) with each SEGMENT recolored by the risk/
     band value at that point: deep blue/purple = cheap/low-risk, through cyan→green→

@@ -47,18 +47,32 @@ function residRange(m) {
 }
 const yDollarTicks = (yMin, yMax) => [0.0001, 0.001, 0.01, 0.1, 1, 10, 100].filter(v => v >= yMin && v <= yMax);
 
-// --- card 1: price coloured by risk ----------------------------------------
+// --- card 1: price coloured by the valuation z-score -----------------------
+// Each segment is shaded by how many standard deviations the price sits from the
+// power-law fair value at that point (its log-residual z-score). Blue = below
+// trend (cheap), red = stretched above. A statistical "cheap vs heated" read
+// distinct from the rainbow-band risk used by the other cards.
+export function zScoreSeries(m) {
+  const pts = DEFAULT_RAW.map(r => ({ ts: new Date(r.date).getTime(), price: r.price, z: Math.log(r.price) - m.predict(M.dayN(r.date)) }));
+  const mean = pts.reduce((a, p) => a + p.z, 0) / pts.length;
+  const std = Math.sqrt(pts.reduce((a, p) => a + (p.z - mean) ** 2, 0) / pts.length) || 1;
+  return { pts, mean, std };
+}
+// raw log-residual z → 0..1 colour position: ±2.5σ spans the full blue→red ramp.
+const zToUnit = (z, mean, std) => Math.max(0, Math.min(1, 0.5 + (z - mean) / (std * 5)));
+
 export function riskColorSvg(price, dateStr = new Date().toISOString().slice(0, 10), opts = {}) {
   const m = M.buildModel(DEFAULT_RAW);
-  const rs = M.buildRiskSeries(m, DEFAULT_RAW); // [{ ts, price, risk }]
-  const { lo, hi } = residRange(m);
-  const curRisk = Math.max(0, Math.min(1, (Math.log(price) - m.predict(M.dayN(dateStr)) - lo) / ((hi - lo) || 1)));
-  const dc = riskColor(curRisk);
+  const { pts, mean, std } = zScoreSeries(m);
+  const colorOf = z => riskColor(zToUnit(z, mean, std));
+  const curRawZ = Math.log(price) - m.predict(M.dayN(dateStr));
+  const curZ = (curRawZ - mean) / std;
+  const dc = colorOf(curRawZ);
 
   const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 84, mR = 40, mT = 76, mB = 64, pW = W - mL - mR, pH = H - mT - mB;
-  const xMin = rs[0].ts, xMax = rs.at(-1).ts;
+  const xMin = pts[0].ts, xMax = pts.at(-1).ts;
   let yMin = Infinity, yMax = -Infinity;
-  for (const r of rs) { if (r.price < yMin) yMin = r.price; if (r.price > yMax) yMax = r.price; }
+  for (const r of pts) { if (r.price < yMin) yMin = r.price; if (r.price > yMax) yMax = r.price; }
   yMin *= 0.75; yMax *= 1.3;
   const x = t => mL + ((t - xMin) / ((xMax - xMin) || 1)) * pW;
   const y = p => mT + ((Math.log(yMax) - Math.log(p)) / ((Math.log(yMax) - Math.log(yMin)) || 1)) * pH;
@@ -75,18 +89,19 @@ export function riskColorSvg(price, dateStr = new Date().toISOString().slice(0, 
     xlab += `<text x="${x(d).toFixed(1)}" y="${H - 42}" fill="#64748b" font-size="20" text-anchor="middle" font-family="sans-serif">${yr}</text>`;
   }
   let seg = "";
-  for (let i = 0; i < rs.length - 1; i++) {
-    seg += `<line x1="${x(rs[i].ts).toFixed(1)}" y1="${y(rs[i].price).toFixed(1)}" x2="${x(rs[i + 1].ts).toFixed(1)}" y2="${y(rs[i + 1].price).toFixed(1)}" stroke="${riskColor((rs[i].risk + rs[i + 1].risk) / 2)}" stroke-width="4.5" stroke-linecap="round"/>`;
+  for (let i = 0; i < pts.length - 1; i++) {
+    seg += `<line x1="${x(pts[i].ts).toFixed(1)}" y1="${y(pts[i].price).toFixed(1)}" x2="${x(pts[i + 1].ts).toFixed(1)}" y2="${y(pts[i + 1].price).toFixed(1)}" stroke="${colorOf((pts[i].z + pts[i + 1].z) / 2)}" stroke-width="4.5" stroke-linecap="round"/>`;
   }
   const px = x(xMax), py = y(price);
+  const zTxt = `${curZ >= 0 ? "+" : ""}${curZ.toFixed(1)}σ`;
   return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
 <rect width="${W}" height="${H}" fill="#05050e"/>
 ${auroraBg(W, H, dc)}
 ${grid}${xlab}${seg}
 <circle cx="${px.toFixed(1)}" cy="${py.toFixed(1)}" r="7" fill="#fff" stroke="${dc}" stroke-width="3"/>
-<text x="64" y="42" fill="#e2e8f0" font-size="29" font-weight="700" font-family="sans-serif" letter-spacing="1.5">SPX6900 — PRICE BY RISK</text>
-<text x="${W - mR}" y="42" fill="${dc}" font-size="27" font-weight="800" font-family="sans-serif" text-anchor="end">risk ${curRisk.toFixed(2)} / 1.00</text>
-<text x="64" y="${H - 14}" fill="#475569" font-size="15" font-family="sans-serif">spx6900rainbow.xyz · not financial advice</text>
+<text x="64" y="42" fill="#e2e8f0" font-size="29" font-weight="700" font-family="sans-serif" letter-spacing="1.5">SPX6900 — VALUATION Z-SCORE</text>
+<text x="${W - mR}" y="42" fill="${dc}" font-size="27" font-weight="800" font-family="sans-serif" text-anchor="end">${zTxt} vs trend</text>
+<text x="64" y="${H - 14}" fill="#475569" font-size="15" font-family="sans-serif">spx6900rainbow.xyz · not financial advice · σ from power-law fair value</text>
 </svg>`;
 }
 
