@@ -149,6 +149,15 @@
     snapshot CI log to check if HolderScan secretly returns a percent-in-profit / cost-
     basis field (then remove that debug log); (2) **revisit ~2026-07-23** once ~30 days
     of `be`/`upnl`/`rpnl` are banked, to build the MVRV-over-time card (line + zones).
+    - **= the BTC "Realized Price" analog the owner asked for (2026-06-25, ref ITC
+      Bitcoin Terminal Price chart).** SPX6900's realized price IS the break-even (`be`)
+      = avg on-chain cost basis; the buildable card is the ITC-style **price line + the
+      realized/break-even line tracking beneath it over time** (same data-gate: ~30 days
+      of `be`, ~mid-July). The snapshot version already ships as the `breakeven` card
+      (price vs current cost basis). **NOT buildable: Terminal Price (21× transferred
+      price) and Balanced Price (transferred − realized)** — they need Value-Days-
+      Destroyed / coin-days-destroyed on-chain spending data HolderScan doesn't provide;
+      only realized price (= `be`) is available, so don't try to fake terminal/balanced.
   - **Day-of-week "best day to buy" — rejected.** Same overfit trap as Uptober (~150
     samples/weekday, crypto is 24/7). At best a low-impact myth-buster ("weekday barely
     matters"); don't present it as a buy signal.
