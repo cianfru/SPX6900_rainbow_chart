@@ -35,5 +35,6 @@
   "riskcolor": "square",
   "risklevels": "square",
   "spxvssp": "square",
-  "strategy": "square"
+  "strategy": "square",
+  "riskheat": "square"
 }
