@@ -14,7 +14,8 @@ import { FONT, FONT_DIAG } from "../scripts/bot/font.mjs";
 
 // Nav tab id -> the rotating post whose card best represents that tab.
 const TAB_POST = {
-  rainbow: "valuation", channel: "channel", risk: "risk", drawdown: "drawdown", rally: "rally",
+  rainbow: "valuation", channel: "channel", riskcolor: "riskcolor", risklevels: "risklevels",
+  risk: "risk", drawdown: "drawdown", rally: "rally",
   spxbtc: "btc", btccycle: "cycle", relative: "majors",
   supply: "distribution", holders: "marketcap", model: "model",
 };

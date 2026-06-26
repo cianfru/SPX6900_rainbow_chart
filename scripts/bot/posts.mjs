@@ -345,6 +345,25 @@ A cleaner read on how far price is from the middle.`,
     card: { type: "channel" },
   }),
 
+  // 1b2 — price coloured by risk: the price line recoloured by where it sat in the
+  // rainbow at each point (blue = cheap/low-risk → red = stretched). Fresh visual.
+  s => ({
+    id: "riskcolor",
+    text: ct`🌈 SPX6900's price history, coloured by risk — each point shaded by where it sat in the rainbow: deep blue when cheap, red when stretched near the top.
+Risk today: ${s.risk.toFixed(2)} / 1.00 — ${s.risk < 0.34 ? "historically cheap" : s.risk < 0.66 ? "the middle" : "getting rich"}.
+The rainbow as one colour-shifting line.`,
+    card: { type: "riskcolor" },
+  }),
+
+  // 1b3 — current risk levels projected onto price: "what price = what risk, today".
+  s => ({
+    id: "risklevels",
+    text: ct`🎯 What price = what risk, right now. Each dashed line is a risk level mapped to today's price on the rainbow model — from cheap at the bottom up to stretched at the top.
+At ${fPrice(s.price)}, SPX6900 sits at risk ${s.risk.toFixed(2)} / 1.00.
+A near-term map of price by risk level.`,
+    card: { type: "risklevels" },
+  }),
+
   // 1c — SPX6900 vs the REAL S&P 500, total return since launch: a growth-multiple
   // race on a log axis. The on-brand flex — the memecoin vs the index it's named
   // after — two honest returns from day one. S&P closes are bundled (SP500_HISTORY).

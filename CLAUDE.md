@@ -123,6 +123,9 @@
     targets (currently $6.90 Oct '27 / $69 Dec '30 / $690 Mar '36 — auto-computed via the
     inverse of `predict()`, so the dates shift if the model is ever re-fit). Framed as
     "the trend, extrapolated"; companion to the `channel` card.
+  - ✅ **Price color-coded by risk — BUILT 2026-06-25** (card id `riskcolor`,
+    `scripts/bot/risk-cards.mjs`). Price line recolored segment-by-segment by a
+    continuous risk→color gradient (blue→cyan→green→yellow→red). Original greenlit note:
   - **Price color-coded by risk — greenlit (2026-06-25, owner ref: Into the Cryptoverse).**
     The actual SPX price line (log y vs time) with each SEGMENT recolored by the risk/
     band value at that point: deep blue/purple = cheap/low-risk, through cyan→green→
@@ -135,6 +138,9 @@
     gradient for the smoother ITC look). Card + optional website tab. NOTE the right-
     hand "Time In Risk Bands" histogram in the owner's ref screenshot ≈ our existing
     `timeinband` card, so no need to rebuild that.
+  - ✅ **Current risk levels projected onto price — BUILT 2026-06-25** (card id
+    `risklevels`, `scripts/bot/risk-cards.mjs`). Recent price + a dashed line per risk
+    level (0.1–0.7) labeled `risk : price`. Original greenlit note:
   - **Current risk levels projected onto price — greenlit, buildable now (2026-06-25,
     ITC ref).** A zoomed RECENT-price chart with a horizontal line at each rainbow
     band's price *today*, each labeled `risk-value : price` (e.g. "0.45 : $X") — i.e.
