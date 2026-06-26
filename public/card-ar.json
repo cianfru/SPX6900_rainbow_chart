@@ -32,5 +32,6 @@
   "solage": "square",
   "kraken": "landscape",
   "roadmap": "square",
-  "riskcolor": "landscape"
+  "riskcolor": "landscape",
+  "risklevels": "square"
 }
