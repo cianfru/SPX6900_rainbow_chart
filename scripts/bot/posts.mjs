@@ -366,13 +366,21 @@ A near-term map of price by risk level.`,
 
   // 1b4 — price + risk HEAT oscillator: risk drawn hot/cold around a neutral line
   // under the price. Same data as the rainbow, a different read.
-  s => ({
-    id: "riskheat",
-    text: ct`🌡️ SPX6900's price, with its risk as a heat oscillator below — red bars above the neutral line mean price is hot/stretched, blue below means cold/cheap.
-Risk today: ${s.risk.toFixed(2)} / 1.00 — ${s.risk < 0.34 ? "deep in the cold" : s.risk < 0.66 ? "around neutral" : "running hot"}.
-The rainbow, read against price as one oscillator.`,
-    card: { type: "riskheat" },
-  }),
+  s => (() => {
+    // short-term extension vs the 20-week MA (trailing 140d avg), computed inline so
+    // this stays out of the renderer's dependency graph.
+    const last = new Date(DEFAULT_RAW.at(-1).date).getTime(), WK = 140 * 86400000;
+    let sum = 0, n = 0;
+    for (const r of DEFAULT_RAW) { const t = new Date(r.date).getTime(); if (t > last - WK && t <= last) { sum += r.price; n++; } }
+    const ext = Math.round((s.price / (n ? sum / n : DEFAULT_RAW[0].price) - 1) * 100);
+    return {
+      id: "riskheat",
+      text: ct`🌡️ Short-term risk: how far SPX6900 is stretched from its 20-week moving average — the line it tends to revert toward. Red bars above = hot/extended, blue below = cold/discounted.
+Today: ${ext >= 0 ? "+" : ""}${ext}% vs the 20W MA.
+A faster, mean-reversion read than the long-run rainbow.`,
+      card: { type: "riskheat" },
+    };
+  })(),
 
   // 1c — SPX6900 vs the REAL S&P 500, total return since launch: a growth-multiple
   // race on a log axis. The on-brand flex — the memecoin vs the index it's named
