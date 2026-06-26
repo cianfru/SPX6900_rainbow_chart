@@ -156,6 +156,18 @@
       moat is honest VALUATION, not trade signals; "buy/sell" arrows invite blowback.
     - **SKIP — Pi Cycle Bottom/Top** (111D vs 2×350D SMA): a BTC-halving-cycle top caller;
       borrowed/overfit for a ~2yr memecoin (same reasoning as Uptober). Not meaningful.
+  - **ITC batch 3 verdicts (2026-06-25, MA-based TA charts) — different lane from our
+    valuation moat; cherry-pick at most one:**
+    - **Bull Market Support Band (BMSB)** (20W SMA / 21W EMA band) — the pick if any:
+      recognizable crypto macro-support zone, descriptive (no buy/sell arrows), enough
+      history. Mild OK.
+    - **Color-Coded MA Strength** (price recolored by above/below key MAs) — buildable,
+      nice colored-line visual, but TA momentum. Optional/low.
+    - **SKIP — Cowen Corridor** (corridor of 20WMA multiples): redundant — we already
+      have two better-grounded corridors (`rainbow` power-law + `channel`).
+    - **Meta:** ITC's library is large and much of it (these + supertrend + pi-cycle) is
+      generic price-derived TA. Off the SPX6900 moat (honest VALUATION: rainbow, realized
+      price, risk, S&P flex). Don't rebuild their whole TA suite; favor valuation/on-chain.
   - **Decoupling from Bitcoin.** Rolling 90-day correlation of SPX vs BTC over time;
     story = "SPX finding its own legs" IF the data is flattering (check first — if it's
     still glued to BTC, shelve it).
