@@ -182,7 +182,16 @@
     is the value prop for a chart-heavy site). Candidates: grouped "Charts ▾" dropdown by
     category (Valuation / Risk / Returns / On-chain / Macro) = quick & clean; OR a side
     list / drawer (matches ITC, collapses on mobile); OR a charts GALLERY grid of preview
-    tiles (best to showcase the growing library, like ITC's own Charts page). Decision TBD.
+    tiles.
+  - **⭐ Charts GALLERY grid — owner LIKES this direction (2026-06-25, "would look very
+    cool").** A browsable grid of chart preview tiles, one per chart (image/thumb + title
+    + one-line desc), click to open — exactly the Into the Cryptoverse "Charts" page
+    layout the owner has been screenshotting. Best way to showcase the growing library
+    (makes "lots of charts" a feature, not clutter). Each tile thumb can reuse the
+    existing OG render (`/api/og?tab=<id>` / `?post=<id>`), so previews are ~free. Plan:
+    keep the hero rainbow on the homepage; add a `/charts` gallery as the browse-all view;
+    a quick grouped "Charts ▾" dropdown can land first as the interim de-clutter. Build
+    the gallery once a few more variety cards exist so it launches looking abundant.
   - **Decoupling from Bitcoin.** Rolling 90-day correlation of SPX vs BTC over time;
     story = "SPX finding its own legs" IF the data is flattering (check first — if it's
     still glued to BTC, shelve it).
