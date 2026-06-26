@@ -37,5 +37,6 @@
   "spxvssp": "landscape",
   "strategy": "square",
   "riskheat": "square",
-  "runningroi": "square"
+  "runningroi": "square",
+  "cycle": "square"
 }
