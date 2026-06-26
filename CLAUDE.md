@@ -205,6 +205,12 @@
     keep the hero rainbow on the homepage; add a `/charts` gallery as the browse-all view;
     a quick grouped "Charts ▾" dropdown can land first as the interim de-clutter. Build
     the gallery once a few more variety cards exist so it launches looking abundant.
+    - **Cards to PROMOTE to website tabs in the suite/gallery (owner, 2026-06-26):** the
+      newer cards are currently BOT-CARD-ONLY (only `channel` has a native React tab so
+      far). Candidates to add as site tabs: `riskheat` (20W extension), `riskcolor`,
+      `risklevels`, `spxvssp` (vs S&P), `roadmap`. They already render as OG images
+      (`/api/og?post=<id>`), so a gallery tile is ~free; a native interactive tab is a
+      separate per-card React build (like `ChannelChart.jsx`).
   - **Decoupling from Bitcoin.** Rolling 90-day correlation of SPX vs BTC over time;
     story = "SPX finding its own legs" IF the data is flattering (check first — if it's
     still glued to BTC, shelve it).
@@ -228,6 +234,13 @@
       price) and Balanced Price (transferred − realized)** — they need Value-Days-
       Destroyed / coin-days-destroyed on-chain spending data HolderScan doesn't provide;
       only realized price (= `be`) is available, so don't try to fake terminal/balanced.
+    - **MVRV Z-Score (owner shared ITC's BTC MVRV Z-Score, 2026-06-26) = the SAME item,
+      a normalization of MVRV: (MarketCap − RealizedCap) / std(MarketCap).** For us
+      MarketCap = price × supply, RealizedCap = `be` × supply, so it's computable from
+      `be` — but it's MORE data-gated than the plain MVRV ratio: the `std()` over history
+      needs a meaningful run of daily `be` to be stable (the plain MVRV-over-time line
+      unlocks ~mid-July at ~30 days; the Z-score wants more history before it's
+      trustworthy). So: nothing to build yet — revisit with the rest of the MVRV work.
   - **Day-of-week "best day to buy" — rejected.** Same overfit trap as Uptober (~150
     samples/weekday, crypto is 24/7). At best a low-impact myth-buster ("weekday barely
     matters"); don't present it as a buy signal.
