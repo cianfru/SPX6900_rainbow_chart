@@ -17,9 +17,12 @@ export function runningRoiSvg(price, dateStr = new Date().toISOString().slice(0,
   const curRoi = curPrev ? price / curPrev : (roi.at(-1)?.v ?? 1);
 
   const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 84, mR = 78, mT = 92, mB = 70, pW = W - mL - mR, pH = H - mT - mB;
-  const xMin = pts[0].ts, xMax = pts.at(-1).ts;
+  // Start the chart where the ROI line begins (needs 1y of prior data) — the
+  // pre-ROI price-only stretch is just dead space. Price + ROI share the window.
+  const xMin = roi.length ? roi[0].ts : pts[0].ts, xMax = pts.at(-1).ts;
+  const shown = pts.filter(p => p.ts >= xMin);
   const x = t => mL + ((t - xMin) / ((xMax - xMin) || 1)) * pW;
-  let pMin = Infinity, pMax = -Infinity; for (const p of pts) { if (p.price < pMin) pMin = p.price; if (p.price > pMax) pMax = p.price; } pMin *= 0.7; pMax *= 1.35;
+  let pMin = Infinity, pMax = -Infinity; for (const p of shown) { if (p.price < pMin) pMin = p.price; if (p.price > pMax) pMax = p.price; } pMin *= 0.7; pMax *= 1.35;
   const yP = v => mT + ((Math.log(pMax) - Math.log(v)) / ((Math.log(pMax) - Math.log(pMin)) || 1)) * pH;
   let rMin = 1, rMax = 1; for (const r of roi) { if (r.v < rMin) rMin = r.v; if (r.v > rMax) rMax = r.v; } rMin *= 0.7; rMax *= 1.35;
   const yR = v => mT + ((Math.log(rMax) - Math.log(v)) / ((Math.log(rMax) - Math.log(rMin)) || 1)) * pH;
@@ -36,7 +39,7 @@ export function runningRoiSvg(price, dateStr = new Date().toISOString().slice(0,
   }
   const oneY = yR(1).toFixed(1);
   const beLine = `<line x1="${mL}" y1="${oneY}" x2="${mL + pW}" y2="${oneY}" stroke="#4ade80" stroke-width="2" stroke-opacity="0.85"/>`;
-  const priceLine = pts.map(p => `${x(p.ts).toFixed(1)},${yP(p.price).toFixed(1)}`).join(" ");
+  const priceLine = shown.map(p => `${x(p.ts).toFixed(1)},${yP(p.price).toFixed(1)}`).join(" ");
   const roiLine = roi.map(r => `${x(r.ts).toFixed(1)},${yR(r.v).toFixed(1)}`).join(" ");
   let xlab = "";
   for (let yr = new Date(xMin).getFullYear(); yr <= new Date(xMax).getFullYear(); yr++) {

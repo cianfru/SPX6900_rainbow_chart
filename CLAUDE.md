@@ -209,7 +209,7 @@
     - **Cards to PROMOTE to website tabs in the suite/gallery (owner, 2026-06-26):** the
       newer cards are currently BOT-CARD-ONLY (only `channel` has a native React tab so
       far). Candidates to add as site tabs: `riskheat` (20W extension), `riskcolor`,
-      `risklevels`, `spxvssp` (vs S&P), `roadmap`. They already render as OG images
+      `risklevels`, `runningroi` (365D ROI), `spxvssp` (vs S&P), `roadmap`. They already render as OG images
       (`/api/og?post=<id>`), so a gallery tile is ~free; a native interactive tab is a
       separate per-card React build (like `ChannelChart.jsx`).
   - **Decoupling from Bitcoin.** Rolling 90-day correlation of SPX vs BTC over time;
