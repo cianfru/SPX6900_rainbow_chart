@@ -5,7 +5,6 @@
 // we can reference him directly. Self-contained from DEFAULT_RAW + the model.
 import { Resvg } from "@resvg/resvg-js";
 import { DEFAULT_RAW } from "../../src/data.js";
-import * as M from "../../src/models.js";
 import { riskColor } from "./risk-cards.mjs";
 import { FONT } from "./font.mjs";
 
@@ -29,8 +28,7 @@ const rsiColor = v => riskColor((v - RSI_LO) / (RSI_HI - RSI_LO));
 const fP = p => (p >= 1 ? "$" + p.toFixed(2) : "$" + p.toFixed(p < 0.001 ? 5 : p < 0.01 ? 4 : p < 0.1 ? 3 : 2));
 
 export function rsiDotsSvg(price, dateStr = new Date().toISOString().slice(0, 10), opts = {}) {
-  const m = M.buildModel(DEFAULT_RAW);
-  const raw = DEFAULT_RAW.map(r => ({ ts: new Date(r.date).getTime(), day: M.dayN(r.date), price: r.price })).sort((a, b) => a.ts - b.ts);
+  const raw = DEFAULT_RAW.map(r => ({ ts: new Date(r.date).getTime(), price: r.price })).sort((a, b) => a.ts - b.ts);
   const rsis = rsiSeries(raw.map(p => p.price), 14);
   const dots = raw.map((p, i) => ({ ...p, rsi: rsis[i] })).filter(p => p.rsi != null);
   const curRsi = rsis.at(-1) ?? dots.at(-1).rsi;
@@ -38,12 +36,19 @@ export function rsiDotsSvg(price, dateStr = new Date().toISOString().slice(0, 10
 
   const W = opts.W ?? 1200, H = opts.H ?? 630, legW = 58, mL = 96 + legW, mR = 44, mT = 92, mB = 66, pW = W - mL - mR, pH = H - mT - mB;
   const xMin = raw[0].ts, xMax = raw.at(-1).ts;
-  // fair-value (power-law center) sampled densely for a smooth reference line
-  const fair = [];
-  for (let t = xMin; t <= xMax; t += 5 * 86400000) fair.push([t, Math.exp(m.predict(M.dayN(new Date(t).toISOString().slice(0, 10))))]);
+  // Geometric moving average — PlanB's reference line. Trailing window of closes
+  // (the asset is too young for a true 200-week MA), only drawn once primed, so the
+  // line begins partway in just like his does. (Realized-price line not buildable
+  // yet — needs ~30d of banked break-even; revisit ~mid-July, see CLAUDE.md.)
+  const GMA_N = 30;
+  const gma = raw.map((p, i) => {
+    const lo = Math.max(0, i - GMA_N + 1); let acc = 0;
+    for (let j = lo; j <= i; j++) acc += Math.log(raw[j].price);
+    return { ts: p.ts, v: Math.exp(acc / (i - lo + 1)), primed: i >= GMA_N - 1 };
+  }).filter(g => g.primed);
   let yMin = Infinity, yMax = -Infinity;
   for (const p of raw) { if (p.price < yMin) yMin = p.price; if (p.price > yMax) yMax = p.price; }
-  for (const [, v] of fair) { if (v < yMin) yMin = v; if (v > yMax) yMax = v; }
+  for (const g of gma) { if (g.v < yMin) yMin = g.v; if (g.v > yMax) yMax = g.v; }
   yMin *= 0.7; yMax *= 1.4;
   const x = t => mL + ((t - xMin) / ((xMax - xMin) || 1)) * pW;
   const y = p => mT + ((Math.log(yMax) - Math.log(p)) / ((Math.log(yMax) - Math.log(yMin)) || 1)) * pH;
@@ -77,8 +82,8 @@ export function rsiDotsSvg(price, dateStr = new Date().toISOString().slice(0, 10
 
   // smooth faint connector under the dots so the eye follows the path
   const connector = raw.map(p => `${x(p.ts).toFixed(1)},${y(p.price).toFixed(1)}`).join(" ");
-  // fair-value reference line (our 200w-MA analog)
-  const fairLine = fair.map(([t, v]) => `${x(t).toFixed(1)},${y(v).toFixed(1)}`).join(" ");
+  // geometric MA reference line (PlanB's "Geometric MA" analog)
+  const gmaLine = gma.map(g => `${x(g.ts).toFixed(1)},${y(g.v).toFixed(1)}`).join(" ");
   // RSI dots (glow underlay + sharp core)
   let glowDots = "", coreDots = "";
   for (const p of dots) {
@@ -98,13 +103,13 @@ export function rsiDotsSvg(price, dateStr = new Date().toISOString().slice(0, 10
 <rect width="${W}" height="${H}" fill="url(#rsiTop)"/>
 ${grid}${xlab}${legend}
 <polyline points="${connector}" fill="none" stroke="rgba(148,163,184,0.35)" stroke-width="1.6"/>
-<polyline points="${fairLine}" fill="none" stroke="#e2e8f0" stroke-width="3" stroke-opacity="0.92" stroke-dasharray="2 7" stroke-linecap="round"/>
+<polyline points="${gmaLine}" fill="none" stroke="#e2e8f0" stroke-width="3.6" stroke-opacity="0.95" stroke-linejoin="round" stroke-linecap="round"/>
 <g filter="url(#rsiGlow)">${glowDots}</g>
 ${coreDots}
 <circle cx="${lx}" cy="${ly}" r="9" fill="#fff" stroke="${dc}" stroke-width="3.5"/>
 <text x="${mL - legW - 32}" y="42" fill="#e2e8f0" font-size="29" font-weight="700" font-family="sans-serif" letter-spacing="1">SPX6900 — PRICE × RSI</text>
 <text x="${W - mR}" y="42" fill="${dc}" font-size="27" font-weight="800" font-family="sans-serif" text-anchor="end">RSI ${Math.round(curRsi)} · ${fP(price)}</text>
-<text x="${mL - legW - 32}" y="70" font-size="17" font-family="sans-serif"><tspan fill="#e2e8f0" font-weight="700">┄ power-law fair value</tspan><tspan fill="#64748b">     </tspan><tspan fill="#94a3b8">● price (colour = RSI, blue cold → red hot)</tspan></text>
+<text x="${mL - legW - 32}" y="70" font-size="17" font-family="sans-serif"><tspan fill="#e2e8f0" font-weight="700">— geometric MA</tspan><tspan fill="#64748b">     </tspan><tspan fill="#94a3b8">● price (colour = RSI, blue cold → red hot)</tspan></text>
 <text x="${mL - legW - 32}" y="${H - 14}" fill="#475569" font-size="15" font-family="sans-serif">spx6900rainbow.xyz · not financial advice · RSI overlay — homage to @100trillionUSD (PlanB)</text>
 </svg>`;
 }

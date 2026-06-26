@@ -202,7 +202,7 @@ function spVsSpec(title, r, tag) {
     hlines: [{ y: 0, label: "0%", color: "#475569" }],
     fillBase: 0, // shade the SPX line's out/under-performance vs the 0% start
     // SPX gold coin + red 500 coin sit at each line's endpoint (logos = the legend).
-    series: [{ pts: spPts, color: "#94a3b8", width: 2.8, logo: "sp500" }, { pts: spxPts, color: accent, width: 4, logo: "spx", fill: 0.16, glow: true }],
+    series: [{ pts: spPts, color: "#94a3b8", width: 3.8, logo: "sp500" }, { pts: spxPts, color: accent, width: 4.5, logo: "spx", fill: 0.16, glow: true }],
   } };
 }
 
@@ -426,7 +426,7 @@ The 1-year holder's return — rolling, not cumulative since launch.`,
     const tag = r < 40 ? "cold / oversold" : r < 55 ? "neutral" : r < 70 ? "warming up" : "hot / overbought";
     return {
       id: "rsidots",
-      text: ct`📊 SPX6900's price, every point coloured by its 14-period RSI — blue = cold/oversold, red = hot/overbought — riding the power-law fair-value line below. An homage to @100trillionUSD's Bitcoin RSI chart, built for SPX.
+      text: ct`📊 SPX6900's price, every point coloured by its 14-period RSI — blue = cold/oversold, red = hot/overbought — riding its geometric moving average. A homage to @100trillionUSD's Bitcoin RSI chart, built for SPX.
 RSI today: ${r} — ${tag}.`,
       card: { type: "rsidots" },
     };
@@ -453,8 +453,8 @@ A telescope on how far it has run, not a forecast of the next leg.`,
         title: "SPX6900 vs the S&P 500 — since launch", headline: `${fMult(spxMult)} vs ${fPct(spMult - 1)}`, accent: "#4ade80",
         yLog: true, yFmt: v => `${v >= 1 ? Math.round(v) : v}×`,
         series: [
-          { pts: spPts, color: "#3b82f6", width: 3.2, logo: "sp500", fill: 0.12, glow: true },
-          { pts: spxPts, color: "#4ade80", width: 4, logo: "spx", fill: 0.18, glow: true },
+          { pts: spPts, color: "#3b82f6", width: 4.2, logo: "sp500", fill: 0.14, glow: true },
+          { pts: spxPts, color: "#4ade80", width: 4.5, logo: "spx", fill: 0.18, glow: true },
         ],
       } },
     };
@@ -668,22 +668,26 @@ High conviction, thin float.`,
     };
   })(),
 
-  // 11 — average holder break-even / PnL (price line vs cost-basis line)
+  // 11 — average holder break-even / PnL (price line vs cost-basis line). Zoomed to
+  // the last 365d so the launch run-up doesn't flatten the recent price-vs-entry read.
   s => s.supply && s.supply.breakEven && (() => {
     const up = s.supply.avgHolderPnl >= 0, accent = up ? "#4ade80" : "#f87171";
-    const lo = Math.min(s.supply.breakEven, ...s.series.price.map(p => p[1]));
-    const hi = Math.max(s.supply.breakEven, ...s.series.price.map(p => p[1]));
+    const cutoff = lastTs(s) - 365 * 86400000;
+    const recent = s.series.price.filter(p => p[0] >= cutoff);
+    const pts = recent.length >= 2 ? recent : s.series.price;
+    const lo = Math.min(s.supply.breakEven, ...pts.map(p => p[1]));
+    const hi = Math.max(s.supply.breakEven, ...pts.map(p => p[1]));
     return {
       id: "breakeven",
       text: ct`📊 The average SPX6900 holder's entry is ~${fPrice(s.supply.breakEven)}.
 At ${fPrice(s.price)} that's about ${fPct(s.supply.avgHolderPnl)}, so the average holder is ${up ? "in profit" : "underwater"}. This cost basis is the on-chain price the supply last moved at.
 ${up ? "Most of the float is green and still holding." : "The crowd's red and still hasn't sold. That's looked like accumulation."}`,
       card: { type: "line", spec: {
-        title: "Price vs the crowd's cost basis", headline: `${fPct(s.supply.avgHolderPnl)} avg holder`, accent,
+        title: "Price vs the crowd's cost basis — last 12 months", headline: `${fPct(s.supply.avgHolderPnl)} avg holder`, accent,
         yLog: true, yTicks: decadeTicks(lo, hi),
         hlines: [{ y: s.supply.breakEven, label: `avg entry ${fPrice(s.supply.breakEven)}`, color: "#cbd5e1" }],
-        series: [{ pts: s.series.price, color: accent, width: 3, fill: 0.14 }],
-        marker: { x: lastTs(s), y: s.price, color: accent },
+        series: [{ pts, color: accent, width: 4, fill: 0.2, glow: true }],
+        marker: { x: pts.at(-1)[0], y: s.price, color: accent },
       } },
     };
   })(),

@@ -145,12 +145,17 @@
   - ✅ **PlanB-style RSI dots — BUILT 2026-06-26** (card id `rsidots`, `scripts/bot/rsi-card.mjs`).
     An explicit homage to @100trillionUSD's Bitcoin "Realized Price & Geometric MA" chart:
     SPX6900 price plotted as DOTS coloured by Wilder's RSI(14) (blue cold/oversold → red
-    hot/overbought, jet colormap via the shared `riskColor`), riding the power-law
-    fair-value line (our analog of his 200-week MA — we can't do a 200w MA with <3yr of
-    data, and realized price/`be` is data-gated, so fair value is the trend reference).
-    Left-side RSI colour legend like his. The post copy **@-mentions PlanB directly** and
-    computes the same RSI(14) inline so headline matches the card. (RSI colour domain fixed
-    35..85.)
+    hot/overbought, jet colormap via the shared `riskColor`). Left-side RSI colour legend
+    like his. The post copy **@-mentions PlanB directly** and computes the same RSI(14)
+    inline so headline matches the card. (RSI colour domain fixed 35..85.)
+    - **Reference line = GEOMETRIC MA, not our power-law fair value (changed 2026-06-26,
+      owner: "PlanB associates RSI with realized price, not our fair value").** Now draws a
+      trailing geometric moving average (`GMA_N=30` closes, only once primed — begins
+      partway in, like his 200-week MA does). We CAN'T match him exactly: a true 200-week
+      MA needs >3yr (we have <3), and his REALIZED PRICE line is the `be`/break-even, which
+      is data-gated (revisit ~mid-July once ~30d banked — THEN we can add the realized line
+      and it'll be an even closer match). The geometric MA is the closest computable analog
+      now and looks much more like his than the fair-value line did.
   - **Card visual-impact pass (owner, 2026-06-26): thin price-only lines read as weak.**
     Fix applied to the recent custom-SVG cards (`riskcolor`, `risklevels`, `riskheat`,
     `runningroi`, `cyclesync`): thicker primary line + a blurred same-colour **glow underlay**
@@ -164,6 +169,16 @@
       `sp500roll12` (% race via `spVsSpec`) now set `fill` + `glow` on the SPX hero line
       (and `fillBase: 0` on the % cards so the fill shades out/under-performance vs the 0%
       start). To punch up any other `line` card: add `fill: 0.15` + `glow: true` to its hero series.
+    - **Round 2 retouches (2026-06-26, owner):** S&P race lines made THICKER (the grey/blue
+      S&P benchmark line was too thin). `breakeven` zoomed to the **last 365d** (the launch
+      run-up flattened the recent cost-basis read) + fill/glow. `runningroi` deeper fills
+      (price + ROI) + thicker. `risklevels` y-axis now **anchored to the levels** so all
+      bands fill the FULL card height (were bunched at the top), recent window cut to ~1yr,
+      price gets a fading fill. **`riskheat` reworked** (Cowen-style): bigger price panel
+      with a colour BAND filling the gap between price and the 20W MA (red stretched-above /
+      blue below — the extension drawn onto price, the prominent read), THICKER amber MA,
+      and the bottom oscillator is now **tanh-scaled** (`yE = cyc − tanh(e/maxAbs)·half`) so
+      big extensions compress toward the edge instead of hard-clipping flat ("cut off" fix).
   - **Price color-coded by risk — greenlit (2026-06-25, owner ref: Into the Cryptoverse).**
     The actual SPX price line (log y vs time) with each SEGMENT recolored by the risk/
     band value at that point: deep blue/purple = cheap/low-risk, through cyan→green→

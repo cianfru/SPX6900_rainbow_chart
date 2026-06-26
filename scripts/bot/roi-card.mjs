@@ -40,6 +40,7 @@ export function runningRoiSvg(price, dateStr = new Date().toISOString().slice(0,
   const oneY = yR(1).toFixed(1);
   const beLine = `<line x1="${mL}" y1="${oneY}" x2="${mL + pW}" y2="${oneY}" stroke="#4ade80" stroke-width="2" stroke-opacity="0.85"/>`;
   const priceLine = shown.map(p => `${x(p.ts).toFixed(1)},${yP(p.price).toFixed(1)}`).join(" ");
+  const priceArea = shown.length ? `${x(shown[0].ts).toFixed(1)},${(mT + pH).toFixed(1)} ${priceLine} ${x(shown.at(-1).ts).toFixed(1)},${(mT + pH).toFixed(1)}` : "";
   const roiLine = roi.map(r => `${x(r.ts).toFixed(1)},${yR(r.v).toFixed(1)}`).join(" ");
   const roiArea = roi.length ? `${x(roi[0].ts).toFixed(1)},${(mT + pH).toFixed(1)} ${roiLine} ${x(roi.at(-1).ts).toFixed(1)},${(mT + pH).toFixed(1)}` : "";
   let xlab = "";
@@ -54,17 +55,20 @@ export function runningRoiSvg(price, dateStr = new Date().toISOString().slice(0,
 <defs>
   <radialGradient id="roiTop" cx="50%" cy="0%" r="85%"><stop offset="0%" stop-color="${dc}" stop-opacity="0.18"/><stop offset="60%" stop-color="${dc}" stop-opacity="0"/></radialGradient>
   <radialGradient id="roiV" cx="96%" cy="94%" r="62%"><stop offset="0%" stop-color="#7c3aed" stop-opacity="0.20"/><stop offset="70%" stop-color="#7c3aed" stop-opacity="0"/></radialGradient>
-  <linearGradient id="roiFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#f87171" stop-opacity="0.28"/><stop offset="100%" stop-color="#f87171" stop-opacity="0"/></linearGradient>
+  <linearGradient id="roiFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#f87171" stop-opacity="0.36"/><stop offset="100%" stop-color="#f87171" stop-opacity="0"/></linearGradient>
+  <linearGradient id="roiPxFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#38bdf8" stop-opacity="0.20"/><stop offset="100%" stop-color="#38bdf8" stop-opacity="0"/></linearGradient>
   <filter id="roiGlow" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="5"/></filter>
 </defs>
 <rect width="${W}" height="${H}" fill="#05050e"/>
 <rect width="${W}" height="${H}" fill="url(#roiV)"/>
 <rect width="${W}" height="${H}" fill="url(#roiTop)"/>
 ${grid}${rtick}${beLine}
+<polygon points="${priceArea}" fill="url(#roiPxFill)"/>
 <polygon points="${roiArea}" fill="url(#roiFill)"/>
-<polyline points="${priceLine}" fill="none" stroke="#38bdf8" stroke-width="2.8" stroke-opacity="0.95" stroke-linejoin="round"/>
-<polyline points="${roiLine}" fill="none" stroke="#f87171" stroke-width="9" stroke-opacity="0.22" filter="url(#roiGlow)"/>
-<polyline points="${roiLine}" fill="none" stroke="#f87171" stroke-width="3.6" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="${priceLine}" fill="none" stroke="#38bdf8" stroke-width="9" stroke-opacity="0.18" filter="url(#roiGlow)"/>
+<polyline points="${priceLine}" fill="none" stroke="#38bdf8" stroke-width="3.4" stroke-opacity="0.95" stroke-linejoin="round"/>
+<polyline points="${roiLine}" fill="none" stroke="#f87171" stroke-width="10" stroke-opacity="0.24" filter="url(#roiGlow)"/>
+<polyline points="${roiLine}" fill="none" stroke="#f87171" stroke-width="4.2" stroke-linejoin="round" stroke-linecap="round"/>
 ${xlab}
 <text x="64" y="42" fill="#e2e8f0" font-size="29" font-weight="700" font-family="sans-serif" letter-spacing="1.5">SPX6900 — 365D RUNNING ROI</text>
 <text x="${W - mR}" y="42" fill="${dc}" font-size="27" font-weight="800" font-family="sans-serif" text-anchor="end">${curRoi.toFixed(2)}× · ${pct >= 0 ? "+" : ""}${pct}% (1yr)</text>

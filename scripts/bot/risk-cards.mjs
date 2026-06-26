@@ -130,14 +130,16 @@ export function riskLevelsSvg(price, dateStr = new Date().toISOString().slice(0,
   const curRisk = Math.max(0, Math.min(1, (Math.log(price) - m.predict(curDay) - lo) / ((hi - lo) || 1)));
   const dc = riskColor(curRisk);
   const LEVELS = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7].map(r => ({ risk: r, price: priceAtRisk(r) }));
-  const recent = DEFAULT_RAW.slice(-130).map(r => ({ ts: new Date(r.date).getTime(), price: r.price }));
+  const recent = DEFAULT_RAW.slice(-60).map(r => ({ ts: new Date(r.date).getTime(), price: r.price }));
 
   const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 84, mR = 168, mT = 76, mB = 68, pW = W - mL - mR, pH = H - mT - mB;
   const xMin = recent[0].ts, xMax = recent.at(-1).ts;
-  let yMin = Infinity, yMax = -Infinity;
-  for (const l of LEVELS) { if (l.price < yMin) yMin = l.price; if (l.price > yMax) yMax = l.price; }
+  // Anchor the y-axis to the LEVELS so all the risk bands fill the FULL card height
+  // (the point of the card) instead of bunching at the top; expand only if the
+  // recent price pokes outside them.
+  let yMin = LEVELS[0].price, yMax = LEVELS.at(-1).price;
   for (const r of recent) { if (r.price < yMin) yMin = r.price; if (r.price > yMax) yMax = r.price; }
-  yMin *= 0.9; yMax *= 1.1;
+  yMin *= 0.92; yMax *= 1.06;
   const x = t => mL + ((t - xMin) / ((xMax - xMin) || 1)) * pW;
   const y = p => mT + ((Math.log(yMax) - Math.log(p)) / ((Math.log(yMax) - Math.log(yMin)) || 1)) * pH;
 
@@ -148,8 +150,9 @@ export function riskLevelsSvg(price, dateStr = new Date().toISOString().slice(0,
     lines += `<line x1="${mL}" y1="${yy}" x2="${mL + pW}" y2="${yy}" stroke="${c}" stroke-opacity="0.85" stroke-width="2" stroke-dasharray="6 6"/>`;
     lines += `<text x="${mL + pW + 10}" y="${(+yy + 5).toFixed(1)}" fill="${c}" font-size="18" font-weight="700" font-family="sans-serif">${l.risk.toFixed(2)} · ${fP(l.price)}</text>`;
   }
-  // recent price (white)
+  // recent price (white) + a fading area fill down to the floor
   const priceLine = recent.map(r => `${x(r.ts).toFixed(1)},${y(r.price).toFixed(1)}`).join(" ");
+  const priceArea = `${x(recent[0].ts).toFixed(1)},${y(yMin).toFixed(1)} ${priceLine} ${x(recent.at(-1).ts).toFixed(1)},${y(yMin).toFixed(1)}`;
   // x labels: month/year a few across
   let xlab = "";
   const monMs = 30 * 86400000;
@@ -158,12 +161,16 @@ export function riskLevelsSvg(price, dateStr = new Date().toISOString().slice(0,
   }
   const px = x(xMax), py = y(price);
   return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
-<defs><filter id="rlGlow" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="5"/></filter></defs>
+<defs>
+  <filter id="rlGlow" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="5"/></filter>
+  <linearGradient id="rlFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="${dc}" stop-opacity="0.28"/><stop offset="100%" stop-color="${dc}" stop-opacity="0"/></linearGradient>
+</defs>
 <rect width="${W}" height="${H}" fill="#05050e"/>
 ${auroraBg(W, H, dc)}
 ${lines}
+<polygon points="${priceArea}" fill="url(#rlFill)"/>
 <polyline points="${priceLine}" fill="none" stroke="${dc}" stroke-width="10" stroke-opacity="0.25" filter="url(#rlGlow)"/>
-<polyline points="${priceLine}" fill="none" stroke="#ffffff" stroke-width="3.6" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="${priceLine}" fill="none" stroke="#ffffff" stroke-width="3.8" stroke-linejoin="round" stroke-linecap="round"/>
 <circle cx="${px.toFixed(1)}" cy="${py.toFixed(1)}" r="7.5" fill="#fff" stroke="${dc}" stroke-width="3"/>
 ${xlab}
 <text x="64" y="42" fill="#e2e8f0" font-size="29" font-weight="700" font-family="sans-serif" letter-spacing="1.5">CURRENT RISK LEVELS</text>
@@ -196,15 +203,20 @@ export function riskHeatSvg(price, dateStr = new Date().toISOString().slice(0, 1
 
   const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 84, mR = 40, mT = 76, mB = 64;
   const innerTop = mT, innerBot = H - mB, innerH = innerBot - innerTop;
-  const priceTop = innerTop, priceBot = innerTop + innerH * 0.58;
-  const riskTop = innerTop + innerH * 0.70, riskBot = innerBot, cyc = (riskTop + riskBot) / 2, half = (riskBot - riskTop) / 2;
+  // Bigger price panel (carries the prominent overlay), a slim oscillator below.
+  const priceTop = innerTop, priceBot = innerTop + innerH * 0.66;
+  const riskTop = innerTop + innerH * 0.76, riskBot = innerBot, cyc = (riskTop + riskBot) / 2, half = (riskBot - riskTop) / 2;
   const xMin = pts[0].ts, xMax = pts.at(-1).ts;
   const x = t => mL + ((t - xMin) / ((xMax - xMin) || 1)) * (W - mL - mR);
   let yMin = Infinity, yMax = -Infinity;
   for (const p of pts) { if (p.price < yMin) yMin = p.price; if (p.price > yMax) yMax = p.price; }
   yMin *= 0.8; yMax *= 1.25;
   const yP = p => priceTop + ((Math.log(yMax) - Math.log(p)) / ((Math.log(yMax) - Math.log(yMin)) || 1)) * (priceBot - priceTop);
-  const yE = e => cyc - (Math.max(-1, Math.min(1, e / maxAbs))) * half; // extension → y in the osc panel
+  // SOFT (tanh) squash so big extensions compress smoothly toward the edge instead
+  // of being hard-clipped flat — fixes the "cut off at the top" look. maxAbs sets
+  // the knee (tanh(1)≈0.76), so a 90th-pctl extension reaches ~3/4 of the panel.
+  const yE = e => cyc - Math.tanh(e / maxAbs) * half;
+  const colN = i => 0.5 + 0.5 * Math.max(-1, Math.min(1, ext[i] / maxAbs)); // ext → 0..1 colour
 
   // price-panel $ gridlines
   let grid = "";
@@ -213,23 +225,31 @@ export function riskHeatSvg(price, dateStr = new Date().toISOString().slice(0, 1
     grid += `<line x1="${mL}" y1="${yy}" x2="${W - mR}" y2="${yy}" stroke="rgba(255,255,255,0.06)"/>`;
     grid += `<text x="${mL - 10}" y="${(+yy + 5).toFixed(1)}" fill="#64748b" font-size="19" text-anchor="end" font-family="sans-serif">$${t < 1 ? t : t.toLocaleString()}</text>`;
   }
-  // oscillator: a bar per point from the MA midline (extension 0) to its extension
+  const bw = Math.max(1.4, (W - mL - mR) / (pts.length - 1) + 0.8);
+  // OVERLAY (Cowen-style): fill the gap between price and its 20W MA — red where
+  // price is stretched ABOVE the MA, blue where it sits below. The extension drawn
+  // straight onto the price, which is the prominent read.
+  let band = "";
+  pts.forEach((p, i) => {
+    const a = yP(p.price), b = yP(ma[i]), top = Math.min(a, b), h = Math.abs(a - b);
+    band += `<rect x="${(x(p.ts) - bw / 2).toFixed(1)}" y="${top.toFixed(1)}" width="${bw.toFixed(1)}" height="${Math.max(0.4, h).toFixed(1)}" fill="${riskColor(colN(i))}" fill-opacity="0.5"/>`;
+  });
+  // oscillator strip below: same signal, centred on the MA zero line, tanh-scaled
   const cy = cyc.toFixed(1);
-  const bw = Math.max(1.4, (W - mL - mR) / (pts.length - 1) + 0.6);
   let heat = "";
   pts.forEach((p, i) => {
     const yy = yE(ext[i]), top = Math.min(yy, +cy), h = Math.abs(yy - +cy);
-    heat += `<rect x="${(x(p.ts) - bw / 2).toFixed(1)}" y="${top.toFixed(1)}" width="${bw.toFixed(1)}" height="${Math.max(0.5, h).toFixed(1)}" fill="${riskColor(0.5 + 0.5 * ext[i] / maxAbs)}" fill-opacity="0.9"/>`;
+    heat += `<rect x="${(x(p.ts) - bw / 2).toFixed(1)}" y="${top.toFixed(1)}" width="${bw.toFixed(1)}" height="${Math.max(0.4, h).toFixed(1)}" fill="${riskColor(colN(i))}" fill-opacity="0.95"/>`;
   });
+  // edge marks the ~maxAbs knee (tanh saturates beyond it, so label with a "+")
   const pctTop = Math.round((Math.exp(maxAbs) - 1) * 100), pctBot = Math.round((1 - Math.exp(-maxAbs)) * 100);
   const axis = `<line x1="${mL}" y1="${cy}" x2="${W - mR}" y2="${cy}" stroke="rgba(255,255,255,0.55)" stroke-dasharray="6 6"/>`
-    + `<text x="${mL - 10}" y="${(riskTop + 6).toFixed(1)}" fill="#94a3b8" font-size="15" text-anchor="end" font-family="sans-serif">+${pctTop}%</text>`
-    + `<text x="${mL - 10}" y="${(+cy + 5).toFixed(1)}" fill="#94a3b8" font-size="15" text-anchor="end" font-family="sans-serif">20W MA</text>`
-    + `<text x="${mL - 10}" y="${riskBot.toFixed(1)}" fill="#94a3b8" font-size="15" text-anchor="end" font-family="sans-serif">−${pctBot}%</text>`
+    + `<text x="${mL - 10}" y="${(riskTop + 12).toFixed(1)}" fill="#94a3b8" font-size="14" text-anchor="end" font-family="sans-serif">+${pctTop}%+</text>`
+    + `<text x="${mL - 10}" y="${(+cy + 5).toFixed(1)}" fill="#94a3b8" font-size="14" text-anchor="end" font-family="sans-serif">MA</text>`
+    + `<text x="${mL - 10}" y="${(riskBot - 2).toFixed(1)}" fill="#94a3b8" font-size="14" text-anchor="end" font-family="sans-serif">−${pctBot}%+</text>`
     + `<text x="${W - mR}" y="${(riskTop - 6).toFixed(1)}" fill="#94a3b8" font-size="15" text-anchor="end" font-family="sans-serif">extension vs 20W MA — hot above, cold below</text>`;
   const maLine = pts.map((p, i) => `${x(p.ts).toFixed(1)},${yP(ma[i]).toFixed(1)}`).join(" ");
   const priceLine = pts.map(p => `${x(p.ts).toFixed(1)},${yP(p.price).toFixed(1)}`).join(" ");
-  const priceArea = `${x(xMin).toFixed(1)},${priceBot.toFixed(1)} ${priceLine} ${x(xMax).toFixed(1)},${priceBot.toFixed(1)}`;
   let xlab = "";
   for (let yr = new Date(xMin).getFullYear(); yr <= new Date(xMax).getFullYear(); yr++) {
     const d = Date.parse(`${yr}-01-01`); if (d < xMin || d > xMax) continue;
@@ -237,16 +257,15 @@ export function riskHeatSvg(price, dateStr = new Date().toISOString().slice(0, 1
   }
   return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
 <defs>
-  <linearGradient id="rhFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#cbd5e1" stop-opacity="0.20"/><stop offset="100%" stop-color="#cbd5e1" stop-opacity="0"/></linearGradient>
   <filter id="rhGlow" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="5"/></filter>
 </defs>
 <rect width="${W}" height="${H}" fill="#05050e"/>
 ${auroraBg(W, H, dc)}
 ${grid}
-<polygon points="${priceArea}" fill="url(#rhFill)"/>
-<polyline points="${maLine}" fill="none" stroke="#f59e0b" stroke-width="2.4" stroke-opacity="0.9"/>
+${band}
+<polyline points="${maLine}" fill="none" stroke="#f59e0b" stroke-width="4" stroke-opacity="0.95"/>
 <polyline points="${priceLine}" fill="none" stroke="#ffffff" stroke-width="9" stroke-opacity="0.2" filter="url(#rhGlow)"/>
-<polyline points="${priceLine}" fill="none" stroke="#ffffff" stroke-width="3.6" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="${priceLine}" fill="none" stroke="#ffffff" stroke-width="3.8" stroke-linejoin="round" stroke-linecap="round"/>
 ${heat}${axis}${xlab}
 <text x="64" y="42" fill="#e2e8f0" font-size="29" font-weight="700" font-family="sans-serif" letter-spacing="1.5">SPX6900 — 20-WEEK EXTENSION</text>
 <text x="${W - mR}" y="42" fill="${dc}" font-size="27" font-weight="800" font-family="sans-serif" text-anchor="end">${curPct >= 0 ? "+" : ""}${curPct}% vs 20W MA</text>
