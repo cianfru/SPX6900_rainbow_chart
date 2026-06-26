@@ -10,6 +10,7 @@ import { renderRainbowCard } from "./rainbow-card.mjs";
 import { renderChannelCard } from "./channel-card.mjs";
 import { renderRiskColorCard, renderRiskLevelsCard, renderRiskHeatCard } from "./risk-cards.mjs";
 import { renderRunningRoiCard } from "./roi-card.mjs";
+import { renderCycleSyncCard } from "./cycle-card.mjs";
 import { FONT } from "./font.mjs";
 
 const W = 1200, H = 800, mL = 88, mR = 48, mT = 188, mB = 76; // landscape card is 3:2
@@ -810,6 +811,7 @@ export function renderPostCard(post, stats, opts = {}) {
   if (type === "risklevels") return renderRiskLevelsCard(stats, dims);
   if (type === "riskheat") return renderRiskHeatCard(stats, dims);
   if (type === "runningroi") return renderRunningRoiCard(stats, dims);
+  if (type === "cyclesync") return renderCycleSyncCard(stats, dims);
   if (type === "kraken") return renderKrakenCard();
   if (type === "gauge") return renderGauge(s, dims);
   if (type === "fngdial") return renderFngDial(s, dims);

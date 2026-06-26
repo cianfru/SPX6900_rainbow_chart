@@ -23,6 +23,7 @@ const HALVINGS = ["2024-04-20", "2028-04-15"].map(d => new Date(d).getTime());
 const fMon = ts => new Date(ts).toLocaleDateString("en-US", { month: "short", year: "2-digit" });
 const fMonY = ts => new Date(ts).toLocaleDateString("en-US", { month: "short", year: "numeric" });
 const fP = p => p >= 1 ? "$" + p.toFixed(2) : "$" + p.toFixed(4);
+const fBtc = v => v >= 1000 ? "$" + Math.round(v / 1000) + "k" : "$" + Math.round(v);
 
 // interpolate a [ts, value][] series at an arbitrary ts (null if out of range)
 const interpTs = (arr, ts) => {
@@ -36,11 +37,12 @@ const interpTs = (arr, ts) => {
 function Tip({ active, payload, label }) {
   if (!active || !payload?.length) return null;
   const get = k => payload.find(p => p.dataKey === k)?.value;
-  const spx = get("spx"), fut = get("proj"), cone = get("cone");
+  const spx = get("spx"), btc = get("btc"), fut = get("proj"), cone = get("cone");
   return (
     <div style={{ background: "rgba(4,4,12,0.97)", border: "1px solid rgba(255,255,255,0.18)", borderRadius: 10, padding: "10px 14px", fontFamily: SANS, fontSize: 13, color: "#cbd5e1" }}>
       <div style={{ fontWeight: 700, color: "#f8fafc", marginBottom: 4 }}>{fMonY(label)}</div>
       {spx != null && <div>SPX6900: <b style={{ fontFamily: MONO, color: "#4ade80" }}>{fP(spx)}</b></div>}
+      {btc != null && <div>Bitcoin (aligned): <b style={{ fontFamily: MONO, color: "#f7931a" }}>{fBtc(btc)}</b></div>}
       {fut != null && <div>BTC-cycle path: <b style={{ fontFamily: MONO, color: "#f7931a" }}>{fP(fut)}</b></div>}
       {cone && <div style={{ color: "#94a3b8" }}>scenario: {fP(cone[0])} – {fP(cone[1])}</div>}
     </div>
@@ -73,6 +75,9 @@ export default function BtcCycleChart({ series, isMobile }) {
     const c = btcCycleProjection();
     const endTs = c.projPts.at(-1)[0];
     const endAge = Math.round((endTs - SPX0) / DAY);
+    // BTC's REAL price, time-aligned (its own right axis) — the RHYME that
+    // justifies "≈ BTC Aug '22": SPX retraced BTC's 2021 double top → 2022 bottom.
+    const btcReal = [...c.histPts, ...c.histFwd];
 
     const data = [];
     for (let age = 0; age <= endAge; age += 6) {
@@ -81,6 +86,7 @@ export default function BtcCycleChart({ series, isMobile }) {
       data.push({
         ts,
         spx: age <= spxMaxAge ? Math.exp(spxLnAt(age)) : null,
+        btc: interpTs(btcReal, ts),
         bubble: bubbleAt(age),
         floor: fireAt(age),
         center: centerAt(age),
@@ -93,7 +99,7 @@ export default function BtcCycleChart({ series, isMobile }) {
       stats: {
         peak: c.peak, low: c.low, peakLo: c.peakLo, peakHi: c.peakHi,
         peakDate: new Date(c.peakTs), lowDate: new Date(c.lowTs), nowTs: c.anchorTs,
-        btcFrom: c.btcFrom,
+        btcFrom: c.btcFrom, peaks: c.peaks,
       },
     };
   }, [series]);
@@ -112,25 +118,31 @@ export default function BtcCycleChart({ series, isMobile }) {
           <CartesianGrid strokeDasharray="2 8" stroke="rgba(255,255,255,0.07)" vertical={false} />
           <XAxis dataKey="ts" type="number" scale="time" domain={["dataMin", "dataMax"]} tickFormatter={fMon}
             tick={{ fill: "#cbd5e1", fontSize: isMobile ? 10 : 12, fontFamily: MONO }} axisLine={{ stroke: "rgba(255,255,255,0.15)" }} tickLine={false} minTickGap={isMobile ? 50 : 36} />
-          <YAxis scale="log" domain={["auto", "auto"]} tickFormatter={fP}
-            tick={{ fill: "#cbd5e1", fontSize: isMobile ? 10 : 12, fontFamily: MONO }} axisLine={{ stroke: "rgba(255,255,255,0.15)" }} tickLine={false} width={isMobile ? 46 : 60} />
+          <YAxis yAxisId="spx" scale="log" domain={["auto", "auto"]} tickFormatter={fP}
+            tick={{ fill: "#4ade80", fontSize: isMobile ? 10 : 12, fontFamily: MONO }} axisLine={{ stroke: "rgba(255,255,255,0.15)" }} tickLine={false} width={isMobile ? 46 : 60} />
+          <YAxis yAxisId="btc" orientation="right" scale="log" domain={["auto", "auto"]} tickFormatter={fBtc}
+            tick={{ fill: "#f7931a", fontSize: isMobile ? 10 : 12, fontFamily: MONO }} axisLine={{ stroke: "rgba(255,255,255,0.15)" }} tickLine={false} width={isMobile ? 40 : 52} />
           <Tooltip content={<Tip />} />
           {HALVINGS.map((h, i) => (
-            <ReferenceLine key={i} x={h} stroke="rgba(255,255,255,0.2)" label={{ value: "BTC Halving", fill: "#94a3b8", fontSize: 11, position: "insideBottomLeft", angle: -90, offset: 8 }} />
+            <ReferenceLine yAxisId="spx" key={i} x={h} stroke="rgba(255,255,255,0.2)" label={{ value: "BTC Halving", fill: "#94a3b8", fontSize: 11, position: "insideBottomLeft", angle: -90, offset: 8 }} />
           ))}
-          <ReferenceLine x={stats.nowTs} stroke="#64748b" strokeDasharray="4 5" label={{ value: "NOW", fill: "#94a3b8", fontSize: 12, position: "insideTopRight" }} />
-          <Line dataKey="bubble" stroke="#a78bfa" strokeWidth={1.5} strokeDasharray="3 4" strokeOpacity={0.8} dot={false} activeDot={false} isAnimationActive={false} connectNulls />
-          <Line dataKey="center" stroke="#a78bfa" strokeWidth={1} strokeDasharray="1 6" strokeOpacity={0.25} dot={false} activeDot={false} isAnimationActive={false} connectNulls />
-          <Line dataKey="floor" stroke="#38bdf8" strokeWidth={1.5} strokeDasharray="3 4" strokeOpacity={0.7} dot={false} activeDot={false} isAnimationActive={false} connectNulls />
-          <Area dataKey="cone" stroke="none" fill="#f7931a" fillOpacity={0.13} isAnimationActive={false} activeDot={false} connectNulls />
-          <Line dataKey="proj" stroke="#f7931a" strokeWidth={2.6} strokeDasharray="7 6" dot={false} activeDot={false} isAnimationActive={false} connectNulls />
-          <Line dataKey="spx" stroke="#4ade80" strokeWidth={2.6} dot={false} activeDot={false} isAnimationActive={false} connectNulls />
+          {(stats.peaks || []).map((pk, i) => (
+            <ReferenceLine yAxisId="spx" key={`pk${i}`} x={pk.ts} stroke="rgba(247,147,26,0.35)" strokeDasharray="2 6" label={{ value: `BTC ${pk.label}`, fill: "#f7931a", fontSize: 11, position: "insideTopRight" }} />
+          ))}
+          <ReferenceLine yAxisId="spx" x={stats.nowTs} stroke="#64748b" strokeDasharray="4 5" label={{ value: "NOW", fill: "#94a3b8", fontSize: 12, position: "insideTopRight" }} />
+          <Line yAxisId="spx" dataKey="bubble" stroke="#a78bfa" strokeWidth={1.5} strokeDasharray="3 4" strokeOpacity={0.8} dot={false} activeDot={false} isAnimationActive={false} connectNulls />
+          <Line yAxisId="spx" dataKey="center" stroke="#a78bfa" strokeWidth={1} strokeDasharray="1 6" strokeOpacity={0.25} dot={false} activeDot={false} isAnimationActive={false} connectNulls />
+          <Line yAxisId="spx" dataKey="floor" stroke="#38bdf8" strokeWidth={1.5} strokeDasharray="3 4" strokeOpacity={0.7} dot={false} activeDot={false} isAnimationActive={false} connectNulls />
+          <Area yAxisId="spx" dataKey="cone" stroke="none" fill="#f7931a" fillOpacity={0.1} isAnimationActive={false} activeDot={false} connectNulls />
+          <Line yAxisId="spx" dataKey="proj" stroke="#f7931a" strokeWidth={2.2} strokeDasharray="7 6" strokeOpacity={0.55} dot={false} activeDot={false} isAnimationActive={false} connectNulls />
+          <Line yAxisId="btc" dataKey="btc" stroke="#f7931a" strokeWidth={2.4} dot={false} activeDot={false} isAnimationActive={false} connectNulls />
+          <Line yAxisId="spx" dataKey="spx" stroke="#4ade80" strokeWidth={2.8} dot={false} activeDot={false} isAnimationActive={false} connectNulls />
         </ComposedChart>
       </ResponsiveContainer>
 
       <div style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.6 }}>
-        <span style={{ color: "#4ade80" }}>■</span> SPX6900 actual &nbsp;·&nbsp; <span style={{ color: "#f7931a" }}>┄</span> Bitcoin's real last cycle, overlaid (shaded = scenario range) &nbsp;·&nbsp; <span style={{ color: "#a78bfa" }}>┄</span> bubble / <span style={{ color: "#38bdf8" }}>┄</span> fire-sale band.
-        <br />Bitcoin's actual price path from <span style={{ color: "#f7931a" }}>{fMonY(stats.btcFrom.getTime())}</span> onward, anchored at SPX's price today and scaled to its higher amplitude: a dip near <span style={{ color: "#38bdf8" }}>{fP(stats.low)}, {stats.lowDate.toLocaleDateString("en-US", { month: "short", year: "numeric" })}</span>, then BTC's real run to a top near <span style={{ color: "#a78bfa" }}>{fP(stats.peak)}</span> ({fP(stats.peakLo)}–{fP(stats.peakHi)}) around {stats.peakDate.toLocaleDateString("en-US", { month: "short", year: "numeric" })}. A for-fun <i>what-if</i>, NOT a forecast or financial advice.
+        <span style={{ color: "#4ade80" }}>■</span> SPX6900 (left axis) &nbsp;·&nbsp; <span style={{ color: "#f7931a" }}>■</span> Bitcoin's real last cycle, time-aligned (right axis) &nbsp;·&nbsp; <span style={{ color: "#f7931a" }}>┄</span> beta-scaled projection (shaded = range) &nbsp;·&nbsp; <span style={{ color: "#a78bfa" }}>┄</span> bubble / <span style={{ color: "#38bdf8" }}>┄</span> fire-sale band.
+        <br /><b style={{ color: "#cbd5e1" }}>Why "≈ BTC {fMonY(stats.btcFrom.getTime())}"?</b> Line the two charts up on their own scales and SPX has retraced Bitcoin's <b>2021 double top</b> (Apr &amp; Nov) → 2022 bottom — the peaks landing within weeks on the aligned clock, which is why today maps to BTC's post-top low. The timing rhymes; the amplitude is each asset's own (BTC's 2021 spike was a bigger relative move). From that low, BTC went on to a new ATH — the dashed line beta-scales that path to a top near <span style={{ color: "#a78bfa" }}>{fP(stats.peak)}</span> ({fP(stats.peakLo)}–{fP(stats.peakHi)}) around {stats.peakDate.toLocaleDateString("en-US", { month: "short", year: "numeric" })}. A for-fun <i>what-if</i>, NOT a forecast or financial advice.
       </div>
     </div>
   );

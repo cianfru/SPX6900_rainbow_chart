@@ -729,26 +729,16 @@ Up only is a meme, but the direction has been one way.`,
     } },
   }),
 
-  // 14 — "what if SPX traces Bitcoin's last cycle" — real BTC overlay (line, log)
+  // 14 — the RHYME: WHY we say "≈ BTC Aug '22". A dual-axis, time-aligned overlay
+  // of SPX vs Bitcoin's REAL last cycle (each on its own scale) — SPX retraced
+  // BTC's 2021 double top → 2022 bottom, the peaks landing weeks apart aligned.
   s => (() => {
     const c = btcCycleProjection();
     return {
       id: "cycle",
-      text: ct`🔮 If SPX6900 traces Bitcoin's last cycle, today ≈ BTC ${fMon(c.btcFrom)}, just off the bottom.
-The orange line is Bitcoin's real 4-year cycle, anchored where SPX trades now and scaled to its swings.
-Crypto's rhymed to this halving rhythm for a decade. A what-if, not a forecast.`,
-      // animate: history is fully drawn on frame 0 (revealFromX = now), then the
-      // orange projection unfurls into the future — never a blank opening frame.
-      card: { type: "line", animate: { revealFromX: lastTs(s) }, spec: {
-        title: "Where are we on Bitcoin's cycle?", headline: `We're at ≈ BTC ${fMon(c.btcFrom)}`, accent: "#f7931a",
-        yLog: true, yTicks: decadeTicks(s.firstPrice, c.peakHi),
-        series: [
-          { pts: s.series.price, color: "#4ade80", width: 3, fill: 0.1 },
-          { pts: c.projPts, color: "#f7931a", width: 3, dash: true },
-        ],
-        legend: [{ label: "SPX actual", color: "#4ade80" }, { label: "BTC cycle (real)", color: "#f7931a" }],
-        marker: { x: c.anchorTs, y: c.anchorPrice, color: "#4ade80" },
-      } },
+      text: ct`🔮 Why "≈ BTC ${fMon(c.btcFrom)}"? Line the charts up: SPX retraced Bitcoin's 2021 DOUBLE TOP — Apr & Nov — then the slide into the 2022 bottom, the peaks landing weeks apart on the aligned clock.
+Today ≈ that low; BTC ran from here. A rhyme, not a forecast.`,
+      card: { type: "cyclesync" },
     };
   })(),
 
@@ -757,9 +747,8 @@ Crypto's rhymed to this halving rhythm for a decade. A what-if, not a forecast.`
     const c = btcCycleProjection();
     return {
       id: "cycleclock",
-      text: ct`⏳ If SPX6900 rides Bitcoin's last cycle, a projected top near ${fPx(c.peak)} by ${fMon(c.peakTs)}, after a dip near ${fPrice(c.low)} (${fMon(c.lowTs)}).
-Bitcoin's real path on the halving clock. Read it as where we'd be on that clock, not a date.
-If SPX keeps rhyming, nearer the launchpad than the top.`,
+      text: ct`⏳ Same cycle, forward. SPX already retraced Bitcoin's 2021 double top → 2022 bottom, so today ≈ BTC ${fMon(c.btcFrom)}. If the rhyme holds: a top near ${fPx(c.peak)} by ${fMon(c.peakTs)}, after a dip near ${fPrice(c.low)}.
+Where on the halving clock, not a hard date.`,
       card: { type: "line", spec: {
         title: "The projected cycle, by the halving clock", headline: `Top ~${fMon(c.peakTs)}`, accent: "#f7931a",
         yLog: true, yTicks: decadeTicks(c.low, c.peakHi),

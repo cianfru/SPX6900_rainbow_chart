@@ -54,12 +54,33 @@ export function btcCycleProjection(opts = {}) {
   let low = { p: Infinity, age: anchorAge };
   for (let age = anchorAge; age < peak.age; age += 2) { const pv = projB(age, beta); if (pv < low.p) low = { p: pv, age }; }
 
+  // --- the RHYME ("why ≈ BTC Aug '22"): Bitcoin's REAL price, time-aligned to
+  // SPX (BTC's launch-equiv ≈ SPX launch, so BTC's Aug '22 ≈ SPX today), drawn on
+  // its OWN scale. Shows SPX has retraced BTC's 2021 double-top → 2022 bottom.
+  // NOT amplitude-scaled by beta — a pure shape/timing overlay, so peaks line up
+  // in TIME even though BTC's 2021 spike was a bigger relative move than SPX's.
+  const btcF = new Date(BTC_FIRST_DATE).getTime();
+  const btcRealAt = age => Math.exp(btcLnAt(btcDay(age)));
+  const histPts = [], histFwd = [];
+  for (let age = 0; age <= anchorAge; age += 5) histPts.push([SPX0 + age * DAY, btcRealAt(age)]);
+  // a short stub of BTC's ACTUAL path past "now" (its 2022→23 recovery), so the
+  // card can show price turning up out of the bottom we're aligned to.
+  const fwdEndAge = Math.min(endAge, anchorAge + 300);
+  for (let age = anchorAge; age <= fwdEndAge; age += 5) histFwd.push([SPX0 + age * DAY, btcRealAt(age)]);
+  // BTC's twin 2021 tops mapped onto SPX's timeline (the visual anchor for the rhyme).
+  const peaks = ["2021-04-14", "2021-11-08"].map(d => {
+    const btcAge = (new Date(d).getTime() - btcF) / DAY, age = (btcAge - shift) / scale;
+    return { ts: SPX0 + age * DAY, btc: Math.exp(btcLnAt(btcAge)),
+      label: new Date(d).toLocaleDateString("en-US", { month: "short", year: "2-digit" }) };
+  }).filter(p => p.ts >= SPX0 && p.ts <= SPX0 + anchorAge * DAY);
+
   return {
     projPts, projLo, projHi,
+    histPts, histFwd, peaks,
     peak: peak.p, peakTs: SPX0 + peak.age * DAY,
     peakLo: projB(peak.age, bLo), peakHi: projB(peak.age, bHi),
     low: low.p, lowTs: SPX0 + low.age * DAY,
     anchorTs: SPX0 + anchorAge * DAY, anchorPrice: anchor.price,
-    btcFrom: new Date((new Date(BTC_FIRST_DATE).getTime()) + btcDay(anchorAge) * DAY),
+    btcFrom: new Date(btcF + btcDay(anchorAge) * DAY),
   };
 }

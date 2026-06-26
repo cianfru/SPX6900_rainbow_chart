@@ -259,6 +259,35 @@
     samples/weekday, crypto is 24/7). At best a low-impact myth-buster ("weekday barely
     matters"); don't present it as a buy signal.
 
+## BTC-cycle "rhyme" cards — the "why ≈ BTC Aug '22" representation (2026-06-26)
+- **Problem the owner raised:** the cycle cards asserted "today ≈ BTC Aug '22" but
+  never SHOWED the relationship, so people asked why. The alignment maps SPX's launch
+  to BTC's 2019-10 (`shift=3395` in `src/btc-cycle.js`), which makes SPX's recent
+  **double top (Jan '25 + Jul '25)** line up — within WEEKS — with BTC's **2021 double
+  top (Apr & Nov)**, and today land on BTC's post-top **Aug '22** low. Verified: SPX
+  peaks at age 522/714 vs BTC tops mapped to age 529/737. Strong TIMING rhyme.
+- **Key honesty constraint — timing rhymes, amplitude does NOT.** BTC's 2021 spike was
+  a far bigger *relative* move than SPX's (BTC ~3.4× over its now-price into the top;
+  SPX only ~5.5× but from a tiny base). Any single-axis **beta-scaled** overlay
+  overshoots SPX's real peaks ~7× — looks wrong, overclaims. So the rhyme card uses a
+  **dual-axis, time-aligned** overlay: SPX on the LEFT log axis, Bitcoin's REAL price on
+  the RIGHT log axis, each on its own scale, lined up in time. No fake amplitude scaling.
+- **BUILT — `cyclesync` card** (`scripts/bot/cycle-card.mjs`, render `renderCycleSyncCard`,
+  wired in `charts.mjs`). SPX green (left) + BTC orange real (right), vertical guides at
+  the two mapped BTC tops + a "today ≈ BTC Aug '22" NOW line, plus a dashed stub of BTC's
+  ACTUAL 2022→23 recovery past NOW (honest "BTC ran from here", not a projection). Data
+  comes from `btcCycleProjection()` which now also returns `histPts` (BTC real aligned,
+  launch→now), `histFwd` (the post-now real stub) and `peaks` (the two mapped tops).
+- **The `cycle` post now uses `cyclesync`** (was the forward-projection `line` card) and
+  its copy explains the double-top reasoning; **`cycleclock`** (still the forward
+  beta-scaled projection) copy now also leads with "SPX already retraced BTC's 2021
+  double top → 2022 bottom, so today ≈ BTC Aug '22". Website **BtcCycleChart.jsx** mirrors
+  it: added a right BTC axis + the aligned real-cycle line + the two peak guides, and the
+  caption now opens with the "why ≈ BTC Aug '22" explanation. The forward beta-scaled
+  projection (the aggressive ~$85–90 top) is UNCHANGED and kept as the dashed path — note
+  it's deliberately more aggressive than realized history (effective beta ~1.4 vs the
+  3.4 used forward); left as owner-tuned, not re-calibrated here.
+
 ## Model re-fit hygiene — IMPORTANT, recurring (noted 2026-06-23)
 - The rainbow's power-law fit is **frozen on the bundled `DEFAULT_RAW`** (`buildModel`
   in `src/models.js`); live price only extends the drawn line, it does NOT re-fit.
