@@ -48,14 +48,14 @@ function residRange(m) {
 const yDollarTicks = (yMin, yMax) => [0.0001, 0.001, 0.01, 0.1, 1, 10, 100].filter(v => v >= yMin && v <= yMax);
 
 // --- card 1: price coloured by risk ----------------------------------------
-export function riskColorSvg(price, dateStr = new Date().toISOString().slice(0, 10)) {
+export function riskColorSvg(price, dateStr = new Date().toISOString().slice(0, 10), opts = {}) {
   const m = M.buildModel(DEFAULT_RAW);
   const rs = M.buildRiskSeries(m, DEFAULT_RAW); // [{ ts, price, risk }]
   const { lo, hi } = residRange(m);
   const curRisk = Math.max(0, Math.min(1, (Math.log(price) - m.predict(M.dayN(dateStr)) - lo) / ((hi - lo) || 1)));
   const dc = riskColor(curRisk);
 
-  const W = 1200, H = 630, mL = 84, mR = 40, mT = 76, mB = 64, pW = W - mL - mR, pH = H - mT - mB;
+  const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 84, mR = 40, mT = 76, mB = 64, pW = W - mL - mR, pH = H - mT - mB;
   const xMin = rs[0].ts, xMax = rs.at(-1).ts;
   let yMin = Infinity, yMax = -Infinity;
   for (const r of rs) { if (r.price < yMin) yMin = r.price; if (r.price > yMax) yMax = r.price; }
@@ -91,7 +91,7 @@ ${grid}${xlab}${seg}
 }
 
 // --- card 2: current risk levels projected onto price ----------------------
-export function riskLevelsSvg(price, dateStr = new Date().toISOString().slice(0, 10)) {
+export function riskLevelsSvg(price, dateStr = new Date().toISOString().slice(0, 10), opts = {}) {
   const m = M.buildModel(DEFAULT_RAW);
   const { lo, hi } = residRange(m);
   const curDay = M.dayN(dateStr);
@@ -101,7 +101,7 @@ export function riskLevelsSvg(price, dateStr = new Date().toISOString().slice(0,
   const LEVELS = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7].map(r => ({ risk: r, price: priceAtRisk(r) }));
   const recent = DEFAULT_RAW.slice(-130).map(r => ({ ts: new Date(r.date).getTime(), price: r.price }));
 
-  const W = 1200, H = 630, mL = 84, mR = 168, mT = 76, mB = 68, pW = W - mL - mR, pH = H - mT - mB;
+  const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 84, mR = 168, mT = 76, mB = 68, pW = W - mL - mR, pH = H - mT - mB;
   const xMin = recent[0].ts, xMax = recent.at(-1).ts;
   let yMin = Infinity, yMax = -Infinity;
   for (const l of LEVELS) { if (l.price < yMin) yMin = l.price; if (l.price > yMax) yMax = l.price; }
@@ -139,5 +139,5 @@ ${xlab}
 </svg>`;
 }
 
-export function renderRiskColorCard(stats, opts = {}) { return png(riskColorSvg(stats.price, stats.date), opts.W ?? 1200); }
-export function renderRiskLevelsCard(stats, opts = {}) { return png(riskLevelsSvg(stats.price, stats.date), opts.W ?? 1200); }
+export function renderRiskColorCard(stats, opts = {}) { return png(riskColorSvg(stats.price, stats.date, { W: opts.W, H: opts.H }), opts.W ?? 1200); }
+export function renderRiskLevelsCard(stats, opts = {}) { return png(riskLevelsSvg(stats.price, stats.date, { W: opts.W, H: opts.H }), opts.W ?? 1200); }
