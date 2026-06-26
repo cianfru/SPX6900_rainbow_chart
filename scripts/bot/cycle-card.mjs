@@ -8,6 +8,7 @@
 import { Resvg } from "@resvg/resvg-js";
 import { DEFAULT_RAW } from "../../src/data.js";
 import { btcCycleProjection } from "../../src/btc-cycle.js";
+import { logoMark } from "./logos.mjs";
 import { FONT } from "./font.mjs";
 
 const png = (svg, w) => new Resvg(svg, { fitTo: { mode: "width", value: w }, font: FONT }).render().asPng();
@@ -70,7 +71,14 @@ export function cycleSyncSvg(price, dateStr = new Date().toISOString().slice(0, 
   // BTC peak dots (on the BTC scale)
   let dots = "";
   for (const pk of c.peaks) dots += `<circle cx="${x(pk.ts).toFixed(1)}" cy="${yR(pk.btc).toFixed(1)}" r="5" fill="#f7931a"/>`;
+  // end-of-line coin tags (same as the other cards): the SPX coin at the green
+  // line's end (today), the BTC coin at the orange line's end (its real recovery).
   const sx = x(anchorTs), sy = yL(price);
+  const be = c.histFwd.at(-1) ?? c.histPts.at(-1);
+  const bx = x(be[0]), by = yR(be[1]), CO = 38;
+  const endCoin = (kind, cx, cy, stroke) =>
+    `<circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="${(CO / 2 + 3).toFixed(1)}" fill="#05050e" stroke="${stroke}" stroke-width="2"/>`
+    + logoMark(kind, cx - CO / 2, cy - CO / 2, CO);
 
   // legend chip (top-left, clear of the launch run)
   const lx = mL + 16, ly = mT + 14;
@@ -91,9 +99,11 @@ ${grid}${guides}
 <polyline points="${btcDash}" fill="none" stroke="#f7931a" stroke-width="2.6" stroke-opacity="0.85" stroke-dasharray="7 6"/>
 ${dots}
 <polyline points="${spxLine}" fill="none" stroke="#4ade80" stroke-width="3.4"/>
-<circle cx="${sx.toFixed(1)}" cy="${sy.toFixed(1)}" r="7" fill="#fff" stroke="#4ade80" stroke-width="3"/>
+${endCoin("btc", bx, by, "#f7931a")}
+${endCoin("spx", sx, sy, "#4ade80")}
 ${xlab}
-<text x="64" y="42" fill="#e2e8f0" font-size="27" font-weight="700" font-family="sans-serif" letter-spacing="1">SPX6900 vs BITCOIN'S LAST CYCLE</text>
+${logoMark("spx", 64, 18, 34)}${logoMark("btc", 104, 18, 34)}
+<text x="150" y="42" fill="#e2e8f0" font-size="27" font-weight="700" font-family="sans-serif" letter-spacing="1">SPX6900 vs BITCOIN'S LAST CYCLE</text>
 <text x="${W - mR}" y="42" fill="#f7931a" font-size="24" font-weight="800" font-family="sans-serif" text-anchor="end">now ≈ BTC ${fMon(c.btcFrom.getTime())}</text>
 <text x="64" y="70" fill="#94a3b8" font-size="17" font-family="sans-serif">SPX retraced BTC's 2021 double top (Apr &amp; Nov) → 2022 bottom — weeks apart, aligned</text>
 <text x="64" y="${H - 14}" fill="#475569" font-size="15" font-family="sans-serif">spx6900rainbow.xyz · not financial advice · each on its own scale, aligned in time</text>
