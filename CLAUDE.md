@@ -168,6 +168,21 @@
     - **Meta:** ITC's library is large and much of it (these + supertrend + pi-cycle) is
       generic price-derived TA. Off the SPX6900 moat (honest VALUATION: rainbow, realized
       price, risk, S&P flex). Don't rebuild their whole TA suite; favor valuation/on-chain.
+  - **Card-variety principle (owner, 2026-06-25) — IMPORTANT framing correction.**
+    The daily FEED has a LOWER bar than a site tab: a visually-fresh card keeps the
+    rotation from going stale even if its data overlaps an existing one. Bot cards are
+    DECOUPLED from site tabs (a card can be rotation-only — just a `posts.mjs` entry,
+    cheap) so: ADD visually-distinct cards to the rotation liberally; promote only the
+    standouts to permanent site tabs. So the "redundant/skip" verdicts above were about
+    SITE-TAB / info value — several of them (e.g. MA-strength line, BMSB, even a fresh
+    corridor) are still fine as ROTATION-variety cards. Still skip the genuinely
+    off-brand/overfit ones (supertrend buy/sell signals, pi-cycle, day-of-month returns).
+  - **Site nav getting crowded (owner, 2026-06-25).** ~12 top-bar tabs now and growing;
+    time to redesign nav SOON. Lean AWAY from a pure hamburger (hides the breadth, which
+    is the value prop for a chart-heavy site). Candidates: grouped "Charts ▾" dropdown by
+    category (Valuation / Risk / Returns / On-chain / Macro) = quick & clean; OR a side
+    list / drawer (matches ITC, collapses on mobile); OR a charts GALLERY grid of preview
+    tiles (best to showcase the growing library, like ITC's own Charts page). Decision TBD.
   - **Decoupling from Bitcoin.** Rolling 90-day correlation of SPX vs BTC over time;
     story = "SPX finding its own legs" IF the data is flattering (check first — if it's
     still glued to BTC, shelve it).
