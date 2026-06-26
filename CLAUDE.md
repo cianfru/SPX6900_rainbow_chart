@@ -125,7 +125,15 @@
     "the trend, extrapolated"; companion to the `channel` card.
   - ✅ **Price color-coded by risk — BUILT 2026-06-25** (card id `riskcolor`,
     `scripts/bot/risk-cards.mjs`). Price line recolored segment-by-segment by a
-    continuous risk→color gradient (blue→cyan→green→yellow→red). Original greenlit note:
+    continuous risk→color gradient (blue→cyan→green→yellow→red).
+    - **Which "risk"? (clarified 2026-06-26, owner asked.)** `riskcolor` colors by the
+      LONG-TERM rainbow risk = power-law residual (log price − fair value), min-max
+      normalized 0–1 — the analog to Cowen's proprietary log-regression "Risk" metric,
+      NOT a BMSB / 20-week z-score. The SHORT-TERM "heat vs its average" (Cowen's BMSB /
+      20W-MA idea) is a DIFFERENT horizon and is already the `riskheat` card (20W
+      extension). So the two are complementary (long-term vs short-term), not redundant —
+      don't conflate them. (Cowen's exact Risk formula is proprietary/evolving; ours is a
+      faithful long-term analog, not a claim of identity.) Original greenlit note:
   - **Price color-coded by risk — greenlit (2026-06-25, owner ref: Into the Cryptoverse).**
     The actual SPX price line (log y vs time) with each SEGMENT recolored by the risk/
     band value at that point: deep blue/purple = cheap/low-risk, through cyan→green→
