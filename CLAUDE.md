@@ -158,8 +158,9 @@
     `risk`/`fngtrend`; Market-Cap Hypotheticals = `majorcaps`/`sp500`. The whole-market
     cap TREEMAP is not SPX-specific — skip.)
   - **ITC batch 2 verdicts (2026-06-25, owner shared 5 more ITC charts):**
-    - **Running ROI** (rolling fixed-window return over time) — buildable & on-brand
-      (honest, no signal), mild add vs existing `rally`/`alltime`/`drawdown`. OK to build.
+    - ✅ **Running ROI — BUILT 2026-06-26** (card id `runningroi`, `scripts/bot/roi-card.mjs`).
+      365D running ROI = price ÷ price 365d ago, over time; dual log axes (price blue
+      left / ROI red right) + a green 1× break-even line, ITC-style. Card + og share.
     - **Quarterly Returns** (buy Q-start / sell Q-end seasonality table) — buildable,
       minor; the monthly heatmap (`monthlyreturns`) already tells the story.
     - **Historical Monthly Average ROI** — already covered by `monthlyreturns`/`monthlybars`.

@@ -382,6 +382,23 @@ A faster, mean-reversion read than the long-run rainbow.`,
     };
   })(),
 
+  // 1b5 — 365D running ROI: price ÷ price 365 days ago, over time. A rolling
+  // one-year holder's return; above the 1× line = a profitable year, below = under.
+  s => (() => {
+    const last = new Date(s.date).getTime(), YEAR = 365 * 86400000, target = last - YEAR; // same "now" as the card
+    let best = null, bd = Infinity;
+    for (const r of DEFAULT_RAW) { const t = new Date(r.date).getTime(), d = Math.abs(t - target); if (d < bd) { bd = d; best = r; } }
+    if (!best || bd > 18 * 86400000) return null; // not enough history yet
+    const roi = s.price / best.price, pct = Math.round((roi - 1) * 100);
+    return {
+      id: "runningroi",
+      text: ct`📈 Rolling 1-year ROI: your return if you'd bought SPX6900 exactly a year earlier, at each date. Above the green 1× line = a profitable year, below = underwater.
+Today: ${roi.toFixed(2)}× over the past year (${pct >= 0 ? "+" : ""}${pct}%).
+The 1-year holder's return — rolling, not cumulative since launch.`,
+      card: { type: "runningroi" },
+    };
+  })(),
+
   // 1c — SPX6900 vs the REAL S&P 500, total return since launch: a growth-multiple
   // race on a log axis. The on-brand flex — the memecoin vs the index it's named
   // after — two honest returns from day one. S&P closes are bundled (SP500_HISTORY).
