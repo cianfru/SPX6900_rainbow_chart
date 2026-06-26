@@ -58,10 +58,14 @@ if (!confirmed) {
   // Parked, reverted, or still pending — update bookkeeping only, never post.
   // Re-arm only when genuinely parked back in a calm (non-marquee) confirmed band.
   const reArm = bi === state.band && !MARQUEE_BANDS.has(state.band) && state.armed === false;
+  const nextArmed = reArm ? true : state.armed;
   console.log(bi === state.band
     ? `No change (still ${stats.band.l}).`
     : `Pending band ${bi} (${pendingCount}/${BAND_CONFIRM_READINGS}) — unconfirmed, no post.`);
-  if (!dryRun) writeState({ ...state, ts: nowIso(), pendingBand, pendingCount, armed: reArm ? true : state.armed });
+  // Only WRITE (and so commit) when something real changed — not just the timestamp.
+  // Otherwise the hourly run would commit every hour and trigger needless deploys.
+  const changed = pendingBand !== (state.pendingBand ?? null) || pendingCount !== (state.pendingCount || 0) || nextArmed !== state.armed;
+  if (!dryRun && changed) writeState({ ...state, ts: nowIso(), pendingBand, pendingCount, armed: nextArmed });
   process.exit(0);
 }
 

@@ -72,8 +72,14 @@ export function channelSvg(price, dateStr = new Date().toISOString().slice(0, 10
     <stop offset="50%" stop-color="#22c55e" stop-opacity="0.06"/>
     <stop offset="100%" stop-color="#3b82f6" stop-opacity="0.16"/>
   </linearGradient>
+  <radialGradient id="chTop" cx="50%" cy="0%" r="85%"><stop offset="0%" stop-color="${band.c}" stop-opacity="0.20"/><stop offset="60%" stop-color="${band.c}" stop-opacity="0"/></radialGradient>
+  <radialGradient id="chWarm" cx="4%" cy="8%" r="62%"><stop offset="0%" stop-color="#f43f5e" stop-opacity="0.18"/><stop offset="70%" stop-color="#f43f5e" stop-opacity="0"/></radialGradient>
+  <radialGradient id="chViolet" cx="96%" cy="94%" r="62%"><stop offset="0%" stop-color="#7c3aed" stop-opacity="0.22"/><stop offset="70%" stop-color="#7c3aed" stop-opacity="0"/></radialGradient>
 </defs>
 <rect width="${W}" height="${H}" fill="#05050e"/>
+<rect width="${W}" height="${H}" fill="url(#chViolet)"/>
+<rect width="${W}" height="${H}" fill="url(#chWarm)"/>
+<rect width="${W}" height="${H}" fill="url(#chTop)"/>
 ${grid}${xlab}
 <polygon points="${channelFill}" fill="url(#chFill)"/>
 <polyline points="${path(upper)}" fill="none" stroke="#dc2626" stroke-width="2.5"/>

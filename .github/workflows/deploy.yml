@@ -7,11 +7,19 @@ name: Deploy to Vercel
 on:
   push:
     branches: [main]
-    # Bot state commits (queue + once-per-day guard) shouldn't trigger a redeploy;
-    # they're read at workflow runtime, not from the deployed site.
+    # Bot runtime-state commits shouldn't trigger a redeploy — they're read at
+    # workflow runtime (the bot) or via raw.githubusercontent (the control panel),
+    # NOT from the deployed site. Without this the hourly band-watch state commit
+    # would deploy every hour and blow Vercel's free 100-deploys/day limit.
     paths-ignore:
       - "public/next-post.json"
       - "public/post-state.json"
+      - "public/band-state.json"
+      - "public/daily-band-state.json"
+      - "public/milestone-state.json"
+      - "public/post-copy.json"
+      - "public/card-ar.json"
+      - "public/recap-pending.json"
   workflow_dispatch: {}
 
 # Cancel an in-flight deploy if a newer commit lands, so the queue can never pile up.
