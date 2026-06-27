@@ -380,6 +380,31 @@
 - The MCP GitHub integration is READ-ONLY for Actions (can't dispatch/rerun) — to force
   a deploy, push a commit touching a non-ignored file (or hit "Run workflow" in the UI).
 
+## Card copy style — write tweet text like this (owner rules, 2026-06-27)
+- **Structure: hero / (blank) / description / (blank) / closing.** Each card's `ct``…```
+  template is **exactly 3 short lines** (single `\n` between them). `withFooter`
+  doubles every `\n` into a blank line, so 3 template lines render as 3 airy
+  paragraphs + the branded footer. Don't write 2-line or 4-line cards.
+- **Hero leads with the current number/state**, not the explanation. e.g.
+  "🌡️ SPX6900 is -4% from its 20-week moving average." NOT "Short-term risk: how
+  far SPX is stretched from its 20-week MA, the line it reverts toward, red=hot…".
+  The long-explanation-as-hero is the #1 mistake on new cards.
+- **Concise. No wall text.** Owner: "wall text don't land well with users." Aim
+  ~180–230 chars (the `xLen` test ceiling is 290 but that's a hard cap, not a target).
+  Hero = the hook + number; description = one tight sentence; closing = a short
+  takeaway ("A rhyme, not a forecast." / "Seasonality, not a forecast.").
+- **@mentions: NEVER attach a possessive `'s` or any apostrophe/punctuation directly
+  to an @handle.** X fails to parse `@100trillionUSD's` as a tag — the link breaks.
+  Keep the handle followed by a SPACE or end-of-clause punctuation; prefer putting it
+  at the end: "A homage to the Bitcoin RSI chart by @100trillionUSD." (✅) not
+  "@100trillionUSD's Bitcoin RSI chart" (❌). Same for `@benjamincowen` (the `dcaladder`
+  COWEN mention — say "@benjamincowen BTC risk strategy", not "@benjamincowen's").
+- **Owner overrides win:** `public/post-copy.json` (control-panel edits) take
+  precedence over the `ct``` template via `applyCopy`. If you reword a card, update
+  BOTH the template AND any matching override key, and keep them in sync. Overrides
+  must use **single `\n`** (withFooter doubles them — `\n\n` in an override → triple
+  spacing). Token form: `{0}`,`{1}`… map to the template's interpolation order.
+
 ## How the bot picks a post
 - Daily rotation is deterministic: `rota[epochDay % rota.length]` in
   `scripts/bot/posts.mjs` (`buildPost`). Weighted round-robin — `valuation` 3×,

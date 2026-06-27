@@ -1,5 +1,5 @@
 {
   "diamondtrend": "💎 Diamond hands hold ~{pct}% of all SPX6900 supply ({value}) — the longest-held coins on-chain, the float that rarely moves.\n\n{trend}. This is the conviction base sitting under the price.",
   "dcaladder": "🌈 {0} BTC risk strategy, on SPX6900.\nHis risk-based DCA: buy more units of x the cheaper it gets, sell more units of y the hotter. x and y are your own base buy and sell sizes, not fixed amounts.\nBen Cowen's method, on our chart. A model, not advice.",
-  "rsidots": "📊 SPX6900 RSI today: {0} — {1}.\nPrice as dots coloured by RSI — blue cold/oversold, red hot/overbought — over its geometric MA.\nA homage to @100trillionUSD's Bitcoin RSI chart."
+  "rsidots": "📊 SPX6900 RSI today: {0} — {1}.\nPrice as dots coloured by RSI — blue cold/oversold, red hot/overbought — over its geometric MA.\nA homage to the Bitcoin RSI chart by @100trillionUSD."
 }

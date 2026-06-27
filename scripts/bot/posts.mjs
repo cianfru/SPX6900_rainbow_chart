@@ -428,7 +428,7 @@ The holder's rolling return, not since-launch.`,
       id: "rsidots",
       text: ct`📊 SPX6900 RSI today: ${r} — ${tag}.
 Price as dots coloured by RSI — blue cold/oversold, red hot/overbought — over its geometric MA.
-A homage to @100trillionUSD's Bitcoin RSI chart.`,
+A homage to the Bitcoin RSI chart by @100trillionUSD.`,
       card: { type: "rsidots" },
     };
   })(),
@@ -1216,7 +1216,7 @@ You never needed the bottom, just consistency.`,
     const bands = M.BAND_LABELS.map((b, i) => ({ label: b.l, color: b.c, mult: LADDER[i].mult, sell: LADDER[i].sell, action: LADDER[i].action }));
     return {
       id: "dcaladder",
-      text: ct`🌈 ${COWEN}'s BTC risk strategy, on SPX6900.
+      text: ct`🌈 ${COWEN} BTC risk strategy, on SPX6900.
 His risk-based DCA: buy more units of x the cheaper it gets, sell more units of y the hotter. x and y are your own base buy and sell sizes, not fixed amounts.
 Ben Cowen's method, on our chart. A model, not advice.`,
       card: { type: "dcaladder", spec: {
