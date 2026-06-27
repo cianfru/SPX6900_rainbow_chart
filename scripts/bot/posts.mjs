@@ -358,8 +358,8 @@ A cleaner read on how far price is from the middle.`,
     const label = z < -1.5 ? "deep value" : z < -0.5 ? "cheap" : z < 0.5 ? "around fair value" : z < 1.5 ? "stretched" : "frothy";
     return {
       id: "riskcolor",
-      text: ct`🌈 SPX6900's price, coloured by its valuation z-score — how many standard deviations it sits from its long-run power-law fair value. Blue = cheap (below trend), red = stretched (above).
-Today: ${(z >= 0 ? "+" : "") + z.toFixed(1)}σ — ${label}.
+      text: ct`🌈 SPX6900 is ${(z >= 0 ? "+" : "") + z.toFixed(1)}σ from fair value — ${label}.
+Price coloured by its valuation z-score: blue = below trend, red = stretched above.
 A statistical read on cheap vs heated.`,
       card: { type: "riskcolor" },
     };
@@ -368,9 +368,9 @@ A statistical read on cheap vs heated.`,
   // 1b3 — current risk levels projected onto price: "what price = what risk, today".
   s => ({
     id: "risklevels",
-    text: ct`🎯 What price = what risk, right now. Each dashed line is a risk level mapped to today's price on the rainbow model — from cheap at the bottom up to stretched at the top.
-At ${fPrice(s.price)}, SPX6900 sits at risk ${s.risk.toFixed(2)} / 1.00.
-A near-term map of price by risk level.`,
+    text: ct`🎯 At ${fPrice(s.price)}, SPX6900 sits at risk ${s.risk.toFixed(2)} / 1.00.
+Each dashed line is a rainbow risk level priced for today — cheap at the bottom, stretched at the top.
+What price = what risk, right now.`,
     card: { type: "risklevels" },
   }),
 
@@ -385,9 +385,9 @@ A near-term map of price by risk level.`,
     const ext = Math.round((s.price / (n ? sum / n : DEFAULT_RAW[0].price) - 1) * 100);
     return {
       id: "riskheat",
-      text: ct`🌡️ Short-term risk: how far SPX6900 is stretched from its 20-week moving average — the line it tends to revert toward. Red bars above = hot/extended, blue below = cold/discounted.
-Today: ${ext >= 0 ? "+" : ""}${ext}% vs the 20W MA.
-A faster, mean-reversion read than the long-run rainbow.`,
+      text: ct`🌡️ SPX6900 is ${ext >= 0 ? "+" : ""}${ext}% from its 20-week moving average.
+How stretched price is from the line it reverts to — red = hot/extended, blue = cold/discounted.
+A faster, short-term read than the rainbow.`,
       card: { type: "riskheat" },
     };
   })(),
@@ -402,9 +402,9 @@ A faster, mean-reversion read than the long-run rainbow.`,
     const roi = s.price / best.price, pct = Math.round((roi - 1) * 100);
     return {
       id: "runningroi",
-      text: ct`📈 Rolling 1-year ROI: your return if you'd bought SPX6900 exactly a year earlier, at each date. Above the green 1× line = a profitable year, below = underwater.
-Today: ${roi.toFixed(2)}× over the past year (${pct >= 0 ? "+" : ""}${pct}%).
-The 1-year holder's return — rolling, not cumulative since launch.`,
+      text: ct`📈 Bought SPX6900 a year ago? You'd be ${roi.toFixed(2)}× — ${pct >= 0 ? "+" : ""}${pct}%.
+Rolling 1-year ROI at each date: above the green 1× line = a profitable year, below = underwater.
+The holder's rolling return, not since-launch.`,
       card: { type: "runningroi" },
     };
   })(),
@@ -426,8 +426,9 @@ The 1-year holder's return — rolling, not cumulative since launch.`,
     const tag = r < 40 ? "cold / oversold" : r < 55 ? "neutral" : r < 70 ? "warming up" : "hot / overbought";
     return {
       id: "rsidots",
-      text: ct`📊 SPX6900's price, every point coloured by its 14-period RSI — blue = cold/oversold, red = hot/overbought — riding its geometric moving average. A homage to @100trillionUSD's Bitcoin RSI chart, built for SPX.
-RSI today: ${r} — ${tag}.`,
+      text: ct`📊 SPX6900 RSI today: ${r} — ${tag}.
+Price as dots coloured by RSI — blue cold/oversold, red hot/overbought — over its geometric MA.
+A homage to @100trillionUSD's Bitcoin RSI chart.`,
       card: { type: "rsidots" },
     };
   })(),
@@ -446,9 +447,9 @@ RSI today: ${r} — ${tag}.`,
     const spPts = s.series.price.map(([ts]) => { const c = spNear(new Date(ts).toISOString().slice(0, 10)); return c ? [ts, c / spFirst] : null; }).filter(Boolean);
     return {
       id: "spxvssp",
-      text: ct`🏆 Since launch, SPX6900 is up ${fMult(spxMult)} while the S&P 500 — the index it's literally named after — is up ${fPct(spMult - 1)}.
-Two honest total returns from day one, same clock. The memecoin vs its namesake.
-A telescope on how far it has run, not a forecast of the next leg.`,
+      text: ct`🏆 Since launch: SPX6900 ${fMult(spxMult)} vs the S&P 500's ${fPct(spMult - 1)}.
+The memecoin vs the index it's literally named after — two honest returns from day one.
+How far it has run, not a call on the next leg.`,
       card: { type: "line", spec: {
         title: "SPX6900 vs the S&P 500 — since launch", headline: `${fMult(spxMult)} vs ${fPct(spMult - 1)}`, accent: "#4ade80",
         yLog: true, yFmt: v => `${v >= 1 ? Math.round(v) : v}×`,
@@ -474,8 +475,9 @@ A telescope on how far it has run, not a forecast of the next leg.`,
     for (let d = M.dayN(s.firstDate); d <= t.at(-1).day; d = Math.max(d + 1, Math.round(d * 1.02))) fairPts.push([Date.parse(M.ds(Math.round(d))), fairAt(d)]);
     return {
       id: "roadmap",
-      text: ct`📈 The trend, extrapolated. If SPX6900 holds its power-law fair value, the center line reaches ${t[0].label} by ${fMonY(t[0].day)}, ${t[1].label} by ${fMonY(t[1].day)}${t[2] ? `, ${t[2].label} by ${fMonY(t[2].day)}` : ""}.
-The rainbow's fair-value line run forward — grounded in the fit, not a vibes target.`,
+      text: ct`📈 Where the trend points next: ${t[0].label} by ${fMonY(t[0].day)}.
+Hold the power-law fair value and the center line reaches ${t[1].label} by ${fMonY(t[1].day)}${t[2] ? `, ${t[2].label} by ${fMonY(t[2].day)}` : ""}.
+The fit run forward, not a vibes target.`,
       card: { type: "line", spec: {
         title: "Power-law roadmap — the trend, extrapolated", headline: `next: ${t[0].label} by ${fMonY(t[0].day)}`, accent: "#a78bfa",
         yLog: true, yTicks: decadeTicks(s.firstPrice, t.at(-1).price * 1.2),
@@ -679,9 +681,9 @@ High conviction, thin float.`,
     const hi = Math.max(s.supply.breakEven, ...pts.map(p => p[1]));
     return {
       id: "breakeven",
-      text: ct`📊 The average SPX6900 holder's entry is ~${fPrice(s.supply.breakEven)}.
-At ${fPrice(s.price)} that's about ${fPct(s.supply.avgHolderPnl)}, so the average holder is ${up ? "in profit" : "underwater"}. This cost basis is the on-chain price the supply last moved at.
-${up ? "Most of the float is green and still holding." : "The crowd's red and still hasn't sold. That's looked like accumulation."}`,
+      text: ct`📊 The average SPX6900 holder bought in at ~${fPrice(s.supply.breakEven)}.
+At ${fPrice(s.price)} that's ${fPct(s.supply.avgHolderPnl)} — the crowd is ${up ? "in profit" : "underwater"}. It's the on-chain cost basis of the supply.
+${up ? "Most of the float is green and still holding." : "Red and still not selling. That's looked like accumulation."}`,
       card: { type: "line", spec: {
         title: "Price vs the crowd's cost basis — last 12 months", headline: `${fPct(s.supply.avgHolderPnl)} avg holder`, accent,
         yLog: true, yTicks: decadeTicks(lo, hi),
@@ -764,8 +766,9 @@ Up only is a meme, but the direction has been one way.`,
     const c = btcCycleProjection();
     return {
       id: "cycle",
-      text: ct`🔮 Why "≈ BTC ${fMon(c.btcFrom)}"? Line the charts up: SPX retraced Bitcoin's 2021 DOUBLE TOP — Apr & Nov — then the slide into the 2022 bottom, the peaks landing weeks apart on the aligned clock.
-Today ≈ that low; BTC ran from here. A rhyme, not a forecast.`,
+      text: ct`🔮 Today ≈ Bitcoin's ${fMon(c.btcFrom)} — just off the bottom.
+Line the charts up: SPX retraced BTC's 2021 double top (Apr & Nov) → 2022 low, peaking weeks apart.
+A rhyme, not a forecast. BTC ran from here.`,
       card: { type: "cyclesync" },
     };
   })(),
@@ -775,7 +778,8 @@ Today ≈ that low; BTC ran from here. A rhyme, not a forecast.`,
     const c = btcCycleProjection();
     return {
       id: "cycleclock",
-      text: ct`⏳ Same cycle, forward. SPX already retraced Bitcoin's 2021 double top → 2022 bottom, so today ≈ BTC ${fMon(c.btcFrom)}. If the rhyme holds: a top near ${fPx(c.peak)} by ${fMon(c.peakTs)}, after a dip near ${fPrice(c.low)}.
+      text: ct`⏳ If the cycle rhymes: a top near ${fPx(c.peak)} by ${fMon(c.peakTs)}.
+SPX already retraced BTC's 2021 double top → 2022 bottom, so today ≈ BTC ${fMon(c.btcFrom)} — a dip near ${fPrice(c.low)} first.
 Where on the halving clock, not a hard date.`,
       card: { type: "line", spec: {
         title: "The projected cycle, by the halving clock", headline: `Top ~${fMon(c.peakTs)}`, accent: "#f7931a",
@@ -1042,8 +1046,8 @@ That lopsided shape is the up-only skew. Up months dwarf the down ones.`,
     const ahead = both.filter(o => o.b >= o.a).length;
     return {
       id: "monthcompare",
-      text: ct`📊 SPX6900 month by month — ${yNew} vs ${yOld}, the same calendar month side by side, so you can see how this year stacks up against last.
-Through ${both.length ? MON[both.at(-1).m] : "now"}, ${yNew} has beaten ${yOld} in ${ahead} of ${both.length}.
+      text: ct`📊 SPX6900 month by month: ${yNew} vs ${yOld}.
+The same calendar month side by side — this year against last. Through ${both.length ? MON[both.at(-1).m] : "now"}, ${yNew} leads in ${ahead} of ${both.length}.
 Seasonality, not a forecast.`,
       card: { type: "monthcompare" },
     };
