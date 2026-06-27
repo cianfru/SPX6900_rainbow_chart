@@ -39,5 +39,6 @@
   "riskheat": "square",
   "runningroi": "square",
   "cycle": "square",
-  "rsidots": "square"
+  "rsidots": "square",
+  "monthlyreturns": "square"
 }
