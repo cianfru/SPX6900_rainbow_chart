@@ -144,18 +144,33 @@
       `price / exp(z)` so it agrees exactly with the colouring. Original greenlit note:
   - ✅ **PlanB-style RSI dots — BUILT 2026-06-26** (card id `rsidots`, `scripts/bot/rsi-card.mjs`).
     An explicit homage to @100trillionUSD's Bitcoin "Realized Price & Geometric MA" chart:
-    SPX6900 price plotted as DOTS coloured by Wilder's RSI(14) (blue cold/oversold → red
+    SPX6900 price plotted as DOTS coloured by Wilder's RSI (blue cold/oversold → red
     hot/overbought, jet colormap via the shared `riskColor`). Left-side RSI colour legend
-    like his. The post copy **@-mentions PlanB directly** and computes the same RSI(14)
-    inline so headline matches the card. (RSI colour domain fixed 35..85.)
-    - **Reference line = GEOMETRIC MA, not our power-law fair value (changed 2026-06-26,
-      owner: "PlanB associates RSI with realized price, not our fair value").** Now draws a
-      trailing geometric moving average (`GMA_N=30` closes, only once primed — begins
-      partway in, like his 200-week MA does). We CAN'T match him exactly: a true 200-week
-      MA needs >3yr (we have <3), and his REALIZED PRICE line is the `be`/break-even, which
-      is data-gated (revisit ~mid-July once ~30d banked — THEN we can add the realized line
-      and it'll be an even closer match). The geometric MA is the closest computable analog
-      now and looks much more like his than the fair-value line did.
+    like his. The post copy **@-mentions PlanB directly** and uses the shared `rsiNow()`
+    helper so the headline matches the card. (RSI colour domain fixed 35..85.)
+    - **Reference line = GEOMETRIC MA, not our power-law fair value** (owner: "PlanB
+      associates RSI with realized price, not our fair value"). Trailing geometric MA
+      (`GMA_MONTHS=6` on the monthly closes), only once primed. We CAN'T match him exactly:
+      a true 200-week MA needs >3yr (we have <3), and his REALIZED PRICE line is the
+      `be`/break-even, which is data-gated (revisit ~mid-July once ~30d banked — THEN we
+      can add the realized line for an even closer match).
+    - **Cadence/period = "variant F" (changed 2026-06-27 after mocking 6 variants).**
+      MONTHLY closes (one dot per month, like his ~12/yr — was weekly ~52/yr and read as a
+      dense band that "fired" too often), Wilder **RSI(6)** on those monthly closes
+      (`RSI_PERIOD`), **left edge cropped to the first primed dot** so the dots fill the
+      chart edge-to-edge (his warm-up sits off-screen in pre-2013 data; we crop ours),
+      chunkier dots (r=7), current month overridden by the live price. `monthlyCloses()`
+      + `rsiNow()` are exported so the post headline can't drift from the card.
+    - **🔭 REVISIT as history grows — we get closer to PlanB over time (owner, 2026-06-27).**
+      The whole reason we're on a short RSI(6) + crop is that SPX6900 is only ~3yr old: a
+      true **14-month RSI** (his) burns 14 months of warm-up and leaves ~20 dots starting
+      in 2025 (mocked it — too sparse, loses the launch cycle). As we bank more history the
+      tradeoff eases — **lengthen `RSI_PERIOD` toward ~9→12→14 months and relax the crop**
+      to march toward true PlanB parity (and pair it with the realized-price line once `be`
+      is banked). Rough cadence to re-check: **~every 6 months** (next ~2026-12), or whenever
+      we've added a full extra year of monthly closes. Caveat baked in: SPX's moves are so
+      violent that even a 14-month RSI still saturates red at tops — fewer/cleaner MONTHLY
+      dots is the realistic win, not making red rare like his 15-yr chart.
   - ✅ **Monthly returns, year-vs-year grouped bars — BUILT 2026-06-26** (card id
     `monthcompare`, `scripts/bot/monthly-compare-card.mjs`). Owner asked for monthly
     returns where the same calendar month from each year sits side by side (Jan '25 next

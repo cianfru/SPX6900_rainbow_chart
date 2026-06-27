@@ -9,6 +9,7 @@ import { btcCycleProjection } from "../../src/btc-cycle.js";
 import { BTC_HISTORY } from "../../src/btc-history.js";
 import { ETH_HISTORY, SOL_HISTORY } from "../../src/alt-age-history.js";
 import { SP500_HISTORY } from "../../src/sp500-history.js";
+import { rsiNow } from "./rsi-card.mjs";
 
 // --- owner-editable post copy ---------------------------------------------
 // EVERY card's tweet text is owner-editable from the control panel. Cards wrap
@@ -409,20 +410,11 @@ The holder's rolling return, not since-launch.`,
     };
   })(),
 
-  // 1b6 — PlanB-style RSI dots: price coloured by RSI over the power-law fair
-  // value — an homage to @100trillionUSD's Bitcoin "Realized Price & MA" chart.
+  // 1b6 — PlanB-style RSI dots: monthly price coloured by RSI over a geometric MA —
+  // an homage to @100trillionUSD's Bitcoin "Realized Price & MA" chart.
   s => (() => {
-    // Wilder's RSI(14) on the bundled closes, computed inline so the headline
-    // matches the card (same series + period).
-    const P = DEFAULT_RAW.map(r => r.price);
-    let ag = 0, al = 0, rsi = 50;
-    for (let i = 1; i < P.length; i++) {
-      const ch = P[i] - P[i - 1], g = Math.max(0, ch), l = Math.max(0, -ch);
-      if (i <= 14) { ag += g; al += l; if (i === 14) { ag /= 14; al /= 14; } }
-      else { ag = (ag * 13 + g) / 14; al = (al * 13 + l) / 14; }
-      if (i >= 14) rsi = 100 - 100 / (1 + ag / (al || 1e-9));
-    }
-    const r = Math.round(rsi);
+    // monthly RSI(6) from the shared card helper, so the headline matches the card.
+    const r = Math.round(rsiNow(s.price, s.date));
     const tag = r < 40 ? "cold / oversold" : r < 55 ? "neutral" : r < 70 ? "warming up" : "hot / overbought";
     return {
       id: "rsidots",
