@@ -551,23 +551,11 @@ Cheap can get cheaper, but the deepest discounts paid the patient.`,
     };
   })(),
 
-  // 5 — strategy vs HODL (two-line equity curve, log)
-  s => s.series.strategy && ({
-    id: "strategy",
-    text: ct`🧪 ~${fMult(s.edge)} vs HODL: buying every cycle dip and selling the peak, with perfect hindsight.
-Accumulate deep blue, trim deep red, cash otherwise. With flawless timing that beats holding by ~${fMult(s.edge)}.
-Nobody nails it live. The lesson is the size of the swings.`,
-    card: { type: "line", spec: {
-      title: "Timing the dips vs HODL (hindsight)", headline: fMult(s.edge) + " vs HODL", accent: "#a78bfa",
-      yLog: true,
-      yTicks: [1, 10, 100, 1000].map(v => ({ v, label: v + "×" })),
-      series: [
-        { pts: s.series.strategy.map(r => [r[0], r[2]]), color: "#64748b", width: 2.5 },
-        { pts: s.series.strategy.map(r => [r[0], r[1]]), color: "#4ade80", width: 3.2 },
-      ],
-      legend: [{ label: "Strategy", color: "#4ade80" }, { label: "HODL", color: "#64748b" }],
-    } },
-  }),
+  // (removed 2026-06-28) the "strategy vs HODL (perfect hindsight)" card — too dry,
+  // and perfect-hindsight peak-timing reads as buy-the-top hype, against the honest-
+  // analysis moat. The dca + dcaladder cards cover the honest/actionable angle. We
+  // mocked up replacements (polished, dollar-reframe, rainbow-rule DCA) but the
+  // backtests were either still hindsight or too modest to be worth a slot.
 
   // 6 — targets (price line climbing toward the next target levels)
   s => {

@@ -42,7 +42,6 @@ on:
           - risk
           - drawdown
           - rally
-          - strategy
           - targets
           - timeinband
           - marketcap
