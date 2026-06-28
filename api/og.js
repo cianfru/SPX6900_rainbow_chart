@@ -58,10 +58,6 @@ export default async function handler(req, res) {
   // ?portrait=1 renders the card in its true posted shape (4:5) — used by the
   // control gallery. Link-unfurl previews (?tab=) omit it and stay landscape.
   const portrait = params.get("portrait") === "1";
-  // ?thumb=1 — a gallery thumbnail: render the post's card landscape (1200x630)
-  // and cache it HARD (like a share image), so the public /charts gallery's many
-  // tiles serve from the CDN instead of re-rendering on every visit.
-  const thumb = params.get("thumb") === "1";
   const price = (await fetchLivePrice())?.price ?? DEFAULT_RAW.at(-1).price;
 
   let png;
@@ -90,9 +86,7 @@ export default async function handler(req, res) {
       // an aspect-ratio choice. Share-link unfurls (?tab=) render 1.91:1 so X's link
       // card doesn't crop the chart's axes off.
       const arDims = dimsForAR(params.get("ar"));
-      const cardOpts = directPost
-        ? (arDims ? { dims: arDims } : (thumb ? { landscape: { W: 1200, H: 630 } } : { portrait }))
-        : { landscape: { W: 1200, H: 630 } };
+      const cardOpts = directPost ? (arDims ? { dims: arDims } : { portrait }) : { landscape: { W: 1200, H: 630 } };
       // buildPost falls back to rotation if the requested post lacks data; if so,
       // fall back to the rainbow card rather than show an unrelated chart.
       png = post.id === postId ? renderPostCard(post, stats, cardOpts) : rainbowPng(price);
@@ -106,7 +100,7 @@ export default async function handler(req, res) {
   // panel reflects a new deploy within seconds (was 60s + 5min stale, which made
   // card tweaks look like they "weren't deploying"). Share images (default /
   // ?tab=) cache hard so crawler/unfurl re-fetches come from the CDN.
-  res.setHeader("Cache-Control", (directPost && !thumb)
+  res.setHeader("Cache-Control", directPost
     ? "s-maxage=10, stale-while-revalidate=20"
     : "s-maxage=3600, stale-while-revalidate=86400");
   res.status(200).end(png);
