@@ -286,28 +286,15 @@
     category (Valuation / Risk / Returns / On-chain / Macro) = quick & clean; OR a side
     list / drawer (matches ITC, collapses on mobile); OR a charts GALLERY grid of preview
     tiles.
-  - ✅ **Charts GALLERY grid — BUILT 2026-06-28** (`src/ChartsGallery.jsx`). A
-    browsable grid of card-preview tiles grouped into 5 categories (Valuation /
-    Targets / Returns & Seasonality / On-chain & Sentiment / Bitcoin & Markets),
-    **40 charts** total, ITC "Charts" page style. Reached via an always-visible
-    **"Charts" nav button** (grid icon, in `navActions`) and deep-linked at
-    **`?view=charts`** (load + popstate). Tiles with a native interactive tab open
-    it (`onOpen` → `goChart`); card-only charts open in a **lightbox** of the full
-    OG image (Esc / tap-to-close). Hero rainbow stays on the homepage; the gallery
-    is a separate in-SPA view (the big content block is gated behind `!gallery`).
-    - **Thumbnails reuse the OG renderer**: `/api/og?post=<id>&thumb=1`. Added a
-      `thumb=1` mode to `api/og.js` that renders the card landscape (1200×630) and
-      **caches it HARD** (`s-maxage=3600, swr=86400`) — unlike the bare `?post=`
-      console previews (10s), so the ~40 tiles serve from the CDN, not a re-render
-      per visit. Tiles are `loading="lazy"` so off-screen ones don't fetch.
-    - **Coin-dependent tiles** (`btc`/`majors`/`majorcaps`/`ytd`) render on Vercel
-      (og.js fetches `coins` via `NEEDS_COINS`); they only fall back to rainbow if
-      the live coin fetch fails — the tile has its own onError fallback too.
-    - **Original greenlit note (2026-06-25, "would look very cool"):** keep the hero
-      rainbow on the homepage; a grouped "Charts ▾" dropdown was floated as an interim
-      de-clutter but the full gallery landed first. **TODO next:** the top nav still
-      has ~12 tabs — consider trimming/grouping it now that the gallery is the
-      browse-all surface (the nav redesign note above).
+  - **⭐ Charts GALLERY grid — owner LIKES this direction (2026-06-25, "would look very
+    cool").** A browsable grid of chart preview tiles, one per chart (image/thumb + title
+    + one-line desc), click to open — exactly the Into the Cryptoverse "Charts" page
+    layout the owner has been screenshotting. Best way to showcase the growing library
+    (makes "lots of charts" a feature, not clutter). Each tile thumb can reuse the
+    existing OG render (`/api/og?tab=<id>` / `?post=<id>`), so previews are ~free. Plan:
+    keep the hero rainbow on the homepage; add a `/charts` gallery as the browse-all view;
+    a quick grouped "Charts ▾" dropdown can land first as the interim de-clutter. Build
+    the gallery once a few more variety cards exist so it launches looking abundant.
     - **Cards to PROMOTE to website tabs in the suite/gallery (owner, 2026-06-26):** the
       newer cards are currently BOT-CARD-ONLY (only `channel` has a native React tab so
       far). Candidates to add as site tabs: `riskheat` (20W extension), `riskcolor`,
