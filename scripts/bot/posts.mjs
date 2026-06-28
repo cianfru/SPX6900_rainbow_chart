@@ -840,8 +840,8 @@ ${ms.map(m => `${m.short} (${m.mc}) → ${fMult(m.mult)}`).join(TIGHT)}
 Each rung is the SPX price whose cap equals BTC's at $1K, $10K, $100K. Bitcoin cleared them all.`,
       card: { type: "line", spec: {
         title: "SPX6900 on Bitcoin's MC ladder", headline: `BTC @ $100K = ${fMult(top.mult)}`, accent: "#f7931a",
-        yLog: true, yTicks: decadeTicks(s.firstPrice, top.price),
-        hlines: ms.map(m => ({ y: m.price, label: `${m.short} · ${fMult(m.mult)}`, color: m.c })),
+        yLog: true, yMax: top.price * 2.4, yTicks: decadeTicks(s.firstPrice, top.price),
+        hlines: ms.map(m => ({ y: m.price, label: `${m.short.replace(/^BTC @ ?/, "")} · ${fMult(m.mult)}`, color: m.c })),
         series: [{ pts: s.series.price, color: "#34d399", width: 3, fill: 0.12 }],
         marker: { x: lastTs(s), y: s.price, color: "#34d399" },
       } },

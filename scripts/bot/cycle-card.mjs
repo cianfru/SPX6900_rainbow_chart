@@ -56,7 +56,7 @@ export function cycleSyncSvg(price, dateStr = new Date().toISOString().slice(0, 
   }
   const nx = x(anchorTs).toFixed(1);
   guides += `<line x1="${nx}" y1="${mT}" x2="${nx}" y2="${mT + pH}" stroke="rgba(226,232,240,0.5)" stroke-dasharray="5 5"/>`;
-  guides += `<text x="${nx}" y="${mT + 18}" fill="#e2e8f0" font-size="15" text-anchor="end" font-family="sans-serif">today ≈ BTC ${fMon(c.btcFrom.getTime())} </text>`;
+  guides += `<text x="${nx - 6}" y="${mT + 18}" fill="#e2e8f0" font-size="15" text-anchor="end" font-family="sans-serif">today</text>`;
 
   // x-axis year labels
   let xlab = "";
@@ -111,7 +111,7 @@ ${xlab}
 ${logoMark("spx", 64, 12, 42)}${logoMark("btc", 114, 12, 42)}
 <text x="166" y="42" fill="#e2e8f0" font-size="27" font-weight="700" font-family="sans-serif" letter-spacing="1">SPX6900 vs BITCOIN'S LAST CYCLE</text>
 <text x="${W - mR}" y="42" fill="#f7931a" font-size="24" font-weight="800" font-family="sans-serif" text-anchor="end">now ≈ BTC ${fMon(c.btcFrom.getTime())}</text>
-<text x="64" y="70" fill="#94a3b8" font-size="24" font-family="sans-serif">SPX retraced BTC's 2021 double top (Apr &amp; Nov) → 2022 bottom — weeks apart, aligned</text>
+<text x="64" y="70" fill="#94a3b8" font-size="22" font-family="sans-serif">SPX retraced BTC's 2021 double top → 2022 bottom</text>
 <text x="64" y="${H - 14}" fill="#475569" font-size="15" font-family="sans-serif">spx6900rainbow.xyz · not financial advice · each on its own scale, aligned in time</text>
 </svg>`;
 }
