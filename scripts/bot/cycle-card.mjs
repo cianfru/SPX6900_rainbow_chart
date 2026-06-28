@@ -14,7 +14,7 @@ import { FONT } from "./font.mjs";
 const png = (svg, w) => new Resvg(svg, { fitTo: { mode: "width", value: w }, font: FONT }).render().asPng();
 const fMon = ts => new Date(ts).toLocaleDateString("en-US", { month: "short", year: "2-digit" });
 const fBtc = v => v >= 1000 ? "$" + Math.round(v / 1000) + "k" : "$" + Math.round(v);
-const fSpx = v => v >= 1 ? "$" + v.toFixed(2) : "$" + v.toFixed(v < 0.01 ? 4 : v < 0.1 ? 3 : 2);
+const fSpx = v => v >= 1 ? "$" + v.toFixed(2) : "$" + v.toFixed(v < 0.01 ? 3 : v < 0.1 ? 2 : 2);
 // decade-ish ticks within a [min,max] range for a log axis
 const decadeTicks = (lo, hi, cand) => cand.filter(v => v >= lo * 0.92 && v <= hi * 1.08);
 
@@ -24,7 +24,7 @@ export function cycleSyncSvg(price, dateStr = new Date().toISOString().slice(0, 
   const spx = DEFAULT_RAW.map(r => ({ ts: new Date(r.date).getTime(), price: r.price })).sort((a, b) => a.ts - b.ts);
   const anchorTs = c.anchorTs;
 
-  const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 86, mR = 92, mT = 92, mB = 70, pW = W - mL - mR, pH = H - mT - mB;
+  const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 104, mR = 92, mT = 92, mB = 70, pW = W - mL - mR, pH = H - mT - mB;
   const xMin = SPX0, xMax = c.histFwd.at(-1)?.[0] ?? anchorTs;
   const x = t => mL + ((t - xMin) / ((xMax - xMin) || 1)) * pW;
 
@@ -41,10 +41,10 @@ export function cycleSyncSvg(price, dateStr = new Date().toISOString().slice(0, 
   for (const t of decadeTicks(sMin, sMax, [0.001, 0.003, 0.01, 0.03, 0.1, 0.3, 1, 3])) {
     const yy = yL(t).toFixed(1);
     grid += `<line x1="${mL}" y1="${yy}" x2="${mL + pW}" y2="${yy}" stroke="rgba(255,255,255,0.05)"/>`;
-    grid += `<text x="${mL - 10}" y="${(+yy + 5).toFixed(1)}" fill="#4ade80" font-size="22" text-anchor="end" font-family="sans-serif">${fSpx(t)}</text>`;
+    grid += `<text x="${mL - 10}" y="${(+yy + 5).toFixed(1)}" fill="#4ade80" font-size="26" text-anchor="end" font-family="sans-serif">${fSpx(t)}</text>`;
   }
   for (const t of decadeTicks(bMin, bMax, [1000, 3000, 10000, 20000, 30000, 50000, 69000, 100000])) {
-    grid += `<text x="${mL + pW + 10}" y="${(yR(t) + 5).toFixed(1)}" fill="#f7931a" font-size="22" font-family="sans-serif">${fBtc(t)}</text>`;
+    grid += `<text x="${mL + pW + 10}" y="${(yR(t) + 5).toFixed(1)}" fill="#f7931a" font-size="26" font-family="sans-serif">${fBtc(t)}</text>`;
   }
 
   // vertical guides at the two aligned double-top dates + the NOW line
@@ -62,7 +62,7 @@ export function cycleSyncSvg(price, dateStr = new Date().toISOString().slice(0, 
   let xlab = "";
   for (let yr = new Date(xMin).getFullYear(); yr <= new Date(xMax).getFullYear(); yr++) {
     const d = Date.parse(`${yr}-01-01`); if (d < xMin || d > xMax) continue;
-    xlab += `<text x="${x(d).toFixed(1)}" y="${H - 42}" fill="#64748b" font-size="23" text-anchor="middle" font-family="sans-serif">${yr}</text>`;
+    xlab += `<text x="${x(d).toFixed(1)}" y="${H - 42}" fill="#64748b" font-size="26" text-anchor="middle" font-family="sans-serif">${yr}</text>`;
   }
 
   const btcSolid = c.histPts.map(([t, v]) => `${x(t).toFixed(1)},${yR(v).toFixed(1)}`).join(" ");
@@ -84,8 +84,8 @@ export function cycleSyncSvg(price, dateStr = new Date().toISOString().slice(0, 
   // legend chip (top-left, clear of the launch run)
   const lx = mL + 16, ly = mT + 14;
   const legend = `<rect x="${lx}" y="${ly}" width="246" height="70" rx="9" fill="rgba(5,5,14,0.62)" stroke="rgba(255,255,255,0.10)"/>`
-    + `<rect x="${lx + 14}" y="${ly + 16}" width="24" height="7" rx="3.5" fill="#4ade80"/><text x="${lx + 48}" y="${ly + 24}" fill="#cbd5e1" font-size="20" font-family="sans-serif">SPX6900 (left)</text>`
-    + `<rect x="${lx + 14}" y="${ly + 44}" width="24" height="7" rx="3.5" fill="#f7931a"/><text x="${lx + 48}" y="${ly + 52}" fill="#cbd5e1" font-size="20" font-family="sans-serif">Bitcoin, aligned (right)</text>`;
+    + `<rect x="${lx + 14}" y="${ly + 16}" width="24" height="7" rx="3.5" fill="#4ade80"/><text x="${lx + 48}" y="${ly + 24}" fill="#cbd5e1" font-size="24" font-family="sans-serif">SPX6900 (left)</text>`
+    + `<rect x="${lx + 14}" y="${ly + 44}" width="24" height="7" rx="3.5" fill="#f7931a"/><text x="${lx + 48}" y="${ly + 52}" fill="#cbd5e1" font-size="24" font-family="sans-serif">Bitcoin, aligned (right)</text>`;
 
   return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
 <defs>
@@ -111,7 +111,7 @@ ${xlab}
 ${logoMark("spx", 64, 18, 34)}${logoMark("btc", 104, 18, 34)}
 <text x="150" y="42" fill="#e2e8f0" font-size="27" font-weight="700" font-family="sans-serif" letter-spacing="1">SPX6900 vs BITCOIN'S LAST CYCLE</text>
 <text x="${W - mR}" y="42" fill="#f7931a" font-size="24" font-weight="800" font-family="sans-serif" text-anchor="end">now ≈ BTC ${fMon(c.btcFrom.getTime())}</text>
-<text x="64" y="70" fill="#94a3b8" font-size="21" font-family="sans-serif">SPX retraced BTC's 2021 double top (Apr &amp; Nov) → 2022 bottom — weeks apart, aligned</text>
+<text x="64" y="70" fill="#94a3b8" font-size="24" font-family="sans-serif">SPX retraced BTC's 2021 double top (Apr &amp; Nov) → 2022 bottom — weeks apart, aligned</text>
 <text x="64" y="${H - 14}" fill="#475569" font-size="15" font-family="sans-serif">spx6900rainbow.xyz · not financial advice · each on its own scale, aligned in time</text>
 </svg>`;
 }

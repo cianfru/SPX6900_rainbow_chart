@@ -79,12 +79,12 @@ export function rsiDotsSvg(price, dateStr = new Date().toISOString().slice(0, 10
   for (const t of [0.0001, 0.001, 0.01, 0.1, 1, 10].filter(v => v >= yMin && v <= yMax)) {
     const yy = y(t).toFixed(1);
     grid += `<line x1="${mL}" y1="${yy}" x2="${W - mR}" y2="${yy}" stroke="rgba(255,255,255,0.06)"/>`;
-    grid += `<text x="${mL - 12}" y="${(+yy + 5).toFixed(1)}" fill="#64748b" font-size="23" text-anchor="end" font-family="sans-serif">$${t < 1 ? t : t.toLocaleString()}</text>`;
+    grid += `<text x="${mL - 12}" y="${(+yy + 5).toFixed(1)}" fill="#64748b" font-size="26" text-anchor="end" font-family="sans-serif">$${t < 1 ? t : t.toLocaleString()}</text>`;
   }
   let xlab = "";
   for (let yr = new Date(xMin).getUTCFullYear(); yr <= new Date(xMax).getUTCFullYear(); yr++) {
     const d = Date.UTC(yr, 0, 1); if (d < xMin || d > xMax) continue;
-    xlab += `<text x="${x(d).toFixed(1)}" y="${H - 42}" fill="#64748b" font-size="23" text-anchor="middle" font-family="sans-serif">${yr}</text>`;
+    xlab += `<text x="${x(d).toFixed(1)}" y="${H - 42}" fill="#64748b" font-size="26" text-anchor="middle" font-family="sans-serif">${yr}</text>`;
   }
 
   // RSI colour legend (vertical bar, blue bottom → red top), PlanB-style
@@ -94,12 +94,12 @@ export function rsiDotsSvg(price, dateStr = new Date().toISOString().slice(0, 10
   let legTicks = "";
   for (let v = RSI_LO; v <= RSI_HI; v += 10) {
     const yy = (lbBot - ((v - RSI_LO) / (RSI_HI - RSI_LO)) * (lbBot - lbTop)).toFixed(1);
-    legTicks += `<text x="${lbX + lbW + 7}" y="${(+yy + 5).toFixed(1)}" fill="#94a3b8" font-size="19" font-family="sans-serif">${v}</text>`;
+    legTicks += `<text x="${lbX + lbW + 7}" y="${(+yy + 5).toFixed(1)}" fill="#94a3b8" font-size="23" font-family="sans-serif">${v}</text>`;
   }
   const legend = `<rect x="${lbX}" y="${lbTop}" width="${lbW}" height="${(lbBot - lbTop).toFixed(1)}" fill="url(#rsiBar)" rx="4"/>`
     + `<rect x="${lbX}" y="${lbTop}" width="${lbW}" height="${(lbBot - lbTop).toFixed(1)}" fill="none" stroke="rgba(255,255,255,0.18)" rx="4"/>`
     + legTicks
-    + `<text x="${lbX - 6}" y="${(lbTop + pH / 2).toFixed(1)}" fill="#94a3b8" font-size="19" font-family="sans-serif" text-anchor="middle" transform="rotate(-90 ${lbX - 6} ${(lbTop + pH / 2).toFixed(1)})">RSI (6mo)</text>`;
+    + `<text x="${lbX - 6}" y="${(lbTop + pH / 2).toFixed(1)}" fill="#94a3b8" font-size="23" font-family="sans-serif" text-anchor="middle" transform="rotate(-90 ${lbX - 6} ${(lbTop + pH / 2).toFixed(1)})">RSI (6mo)</text>`;
 
   // faint connector under the dots so the eye follows the monthly path
   const connector = raw.filter(p => p.ts >= xMin).map(p => `${x(p.ts).toFixed(1)},${y(p.price).toFixed(1)}`).join(" ");
@@ -130,7 +130,7 @@ ${coreDots}
 <circle cx="${lx}" cy="${ly}" r="10" fill="#fff" stroke="${dc}" stroke-width="3.5"/>
 <text x="${mL - legW - 32}" y="42" fill="#e2e8f0" font-size="29" font-weight="700" font-family="sans-serif" letter-spacing="1">SPX6900 — PRICE × RSI</text>
 <text x="${W - mR}" y="42" fill="${dc}" font-size="27" font-weight="800" font-family="sans-serif" text-anchor="end">RSI ${Math.round(curRsi)} · ${fP(price)}</text>
-<text x="${mL - legW - 32}" y="70" font-size="20" font-family="sans-serif"><tspan fill="#e2e8f0" font-weight="700">— geometric MA</tspan><tspan fill="#64748b">     </tspan><tspan fill="#94a3b8">● monthly price (colour = RSI, blue cold → red hot)</tspan></text>
+<text x="${mL - legW - 32}" y="70" font-size="24" font-family="sans-serif"><tspan fill="#e2e8f0" font-weight="700">— geometric MA</tspan><tspan fill="#64748b">     </tspan><tspan fill="#94a3b8">● monthly price (colour = RSI, blue cold → red hot)</tspan></text>
 <text x="${mL - legW - 32}" y="${H - 14}" fill="#475569" font-size="15" font-family="sans-serif">spx6900rainbow.xyz · not financial advice · RSI overlay — homage to @100trillionUSD (PlanB)</text>
 </svg>`;
 }

@@ -14,7 +14,7 @@ import { renderMonthlyCompareCard } from "./monthly-compare-card.mjs";
 import { logoMark } from "./logos.mjs";
 import { FONT } from "./font.mjs";
 
-const W = 1200, H = 800, mL = 100, mR = 48, mT = 188, mB = 76; // landscape card is 3:2 (mL gives room for the bigger axis labels)
+const W = 1200, H = 800, mL = 120, mR = 48, mT = 188, mB = 76; // landscape card is 3:2 (mL gives room for the bigger axis labels)
 const pW = W - mL - mR, pH = H - mT - mB;
 // Per-card canvas geometry. Defaults to the 3:2 landscape; callers (e.g. the OG
 // link-unfurl endpoint) can pass {W,H} to render the same card at another size.
@@ -57,7 +57,7 @@ function chromeSvg(spec, inner, extraDefs = "", dims) {
 <text x="${DW - 64}" y="52" fill="#475569" font-size="24" text-anchor="end" font-family="sans-serif">${esc(spec.date || "")}</text>
 ${header}
 ${inner}
-<text x="64" y="${DH - 22}" fill="#475569" font-size="22" font-family="sans-serif">${esc(footer)}</text>
+<text x="64" y="${DH - 22}" fill="#475569" font-size="26" font-family="sans-serif">${esc(footer)}</text>
 </svg>`;
 }
 const chrome = (spec, inner, extraDefs = "", dims) => png(chromeSvg(spec, inner, extraDefs, dims), dims?.W ?? W);
@@ -182,7 +182,7 @@ export function lineCardSvg(spec, opts = {}) {
     if (t.v < Math.min(yMin, yMax) || t.v > Math.max(yMin, yMax)) continue;
     const yy = Y(t.v).toFixed(1);
     grid += `<line x1="${mL}" y1="${yy}" x2="${DW - mR}" y2="${yy}" stroke="rgba(255,255,255,0.07)"/>`;
-    grid += `<text x="${mL - 12}" y="${(+yy + 6).toFixed(1)}" fill="#64748b" font-size="25" text-anchor="end" font-family="sans-serif">${esc(t.label)}</text>`;
+    grid += `<text x="${mL - 12}" y="${(+yy + 6).toFixed(1)}" fill="#64748b" font-size="30" text-anchor="end" font-family="sans-serif">${esc(t.label)}</text>`;
   }
   // x-axis ticks: calendar (timeTicks) by default, or caller-supplied {x,label}
   // for non-time axes like "age since launch" (the SPX-vs-BTC overlay).
@@ -190,7 +190,7 @@ export function lineCardSvg(spec, opts = {}) {
     ? spec.xTicks.map(t => ({ x: t.x, label: t.label, anchor: t.anchor }))
     : timeTicks(xMin, xMax).map(t => ({ x: t.ts, label: t.label, anchor: t.anchor }));
   for (const t of xticks) {
-    grid += `<text x="${X(t.x).toFixed(1)}" y="${DH - 50}" fill="#64748b" font-size="25" text-anchor="${t.anchor || "middle"}" font-family="sans-serif">${esc(t.label)}</text>`;
+    grid += `<text x="${X(t.x).toFixed(1)}" y="${DH - 50}" fill="#64748b" font-size="30" text-anchor="${t.anchor || "middle"}" font-family="sans-serif">${esc(t.label)}</text>`;
   }
 
   // bear–bull cone (drawn behind the lines), clipped to the reveal sweep
@@ -229,21 +229,21 @@ export function lineCardSvg(spec, opts = {}) {
     // A coin logo can cap the line at its right end (e.g. each major's market cap);
     // the line is pulled in to make room and the label sits just left of the coin.
     if (h.logo) {
-      const SZ = 44, lgx = DW - mR - SZ;
-      const lbl = esc(h.label), tx = lgx - 12, tw = lbl.length * 14 + 18;
+      const SZ = 46, lgx = DW - mR - SZ;
+      const lbl = esc(h.label), tx = lgx - 12, tw = lbl.length * 16 + 20;
       hl += `<line x1="${mL}" y1="${yy}" x2="${(lgx - 6).toFixed(1)}" y2="${yy}" stroke="${h.color}" stroke-opacity="0.8" stroke-width="2"${h.dash === false ? "" : ` stroke-dasharray="6 6"`}/>`;
       // Dark chip behind the label so the dashed line + any projection read as
       // passing behind the text, not crossing through it.
-      hl += `<rect x="${(tx - tw + 8).toFixed(1)}" y="${(h.py - 19).toFixed(1)}" width="${tw.toFixed(1)}" height="38" rx="8" fill="rgba(5,5,14,0.86)" stroke="rgba(255,255,255,0.10)"/>`;
+      hl += `<rect x="${(tx - tw + 8).toFixed(1)}" y="${(h.py - 22).toFixed(1)}" width="${tw.toFixed(1)}" height="44" rx="9" fill="rgba(5,5,14,0.86)" stroke="rgba(255,255,255,0.10)"/>`;
       hl += logoMark(h.logo, lgx, h.py - SZ / 2, SZ);
-      hl += `<text x="${tx.toFixed(1)}" y="${(h.py + 9).toFixed(1)}" fill="${h.color}" font-size="27" font-weight="800" text-anchor="end" font-family="sans-serif">${lbl}</text>`;
+      hl += `<text x="${tx.toFixed(1)}" y="${(h.py + 10).toFixed(1)}" fill="${h.color}" font-size="31" font-weight="800" text-anchor="end" font-family="sans-serif">${lbl}</text>`;
       continue;
     }
     hl += `<line x1="${mL}" y1="${yy}" x2="${DW - mR}" y2="${yy}" stroke="${h.color}" stroke-opacity="0.8" stroke-width="2"${h.dash === false ? "" : ` stroke-dasharray="6 6"`}/>`;
     let ly = h.py - 9;
-    if (ly < lastLabelY + 33) ly = lastLabelY + 33; // keep labels from overlapping
+    if (ly < lastLabelY + 38) ly = lastLabelY + 38; // keep labels from overlapping
     lastLabelY = ly;
-    hl += `<text x="${DW - mR - 6}" y="${ly.toFixed(1)}" fill="${h.color}" font-size="27" font-weight="700" text-anchor="end" font-family="sans-serif">${esc(h.label)}</text>`;
+    hl += `<text x="${DW - mR - 6}" y="${ly.toFixed(1)}" fill="${h.color}" font-size="31" font-weight="700" text-anchor="end" font-family="sans-serif">${esc(h.label)}</text>`;
   }
 
   let marker = "";
@@ -288,7 +288,7 @@ export function lineCardSvg(spec, opts = {}) {
     items.forEach((l, i) => {
       const ey = ly + 24 + i * 30;
       legend += `<rect x="${lx + 14}" y="${ey - 11}" width="24" height="7" rx="3.5" fill="${l.color}"/>`;
-      legend += `<text x="${lx + 48}" y="${ey - 3}" fill="#cbd5e1" font-size="22" font-family="sans-serif">${esc(l.label)}</text>`;
+      legend += `<text x="${lx + 48}" y="${ey - 3}" fill="#cbd5e1" font-size="26" font-family="sans-serif">${esc(l.label)}</text>`;
     });
   }
 
@@ -343,13 +343,13 @@ export function renderBarCard(spec, opts = {}) {
     const cx = mL + gap * i + gap / 2;
     const yTop = mT + PH - bh;
     svg += `<rect x="${(cx - bw / 2).toFixed(1)}" y="${yTop.toFixed(1)}" width="${bw.toFixed(1)}" height="${bh.toFixed(1)}" rx="9" fill="url(#bar${i})"${b.outline ? ` stroke="#fff" stroke-width="2"` : ""}/>`;
-    svg += `<text x="${cx.toFixed(1)}" y="${(yTop - 14).toFixed(1)}" fill="#e2e8f0" font-size="26" font-weight="700" text-anchor="middle" font-family="sans-serif">${esc(b.text ?? b.value)}</text>`;
+    svg += `<text x="${cx.toFixed(1)}" y="${(yTop - 14).toFixed(1)}" fill="#e2e8f0" font-size="30" font-weight="700" text-anchor="middle" font-family="sans-serif">${esc(b.text ?? b.value)}</text>`;
     // Under-bar identity: a coin logo when supplied, else the text label.
     if (b.logo) {
       const ls = 32;
       svg += logoMark(b.logo, cx - ls / 2, mT + PH + 2, ls);
     } else {
-      svg += `<text x="${cx.toFixed(1)}" y="${(mT + PH + 32).toFixed(1)}" fill="#94a3b8" font-size="22" text-anchor="middle" font-family="sans-serif">${esc(b.label)}</text>`;
+      svg += `<text x="${cx.toFixed(1)}" y="${(mT + PH + 32).toFixed(1)}" fill="#94a3b8" font-size="26" text-anchor="middle" font-family="sans-serif">${esc(b.label)}</text>`;
     }
   });
   return chrome(spec, svg, defs, { W: DW, H: DH });
@@ -385,7 +385,7 @@ export function renderMonthBars(spec, opts = {}) {
   for (let v = step; v <= posMax + 1e-9; v += step) {
     const yy = (zeroY - v * k).toFixed(1);
     grid += `<line x1="${mL}" y1="${yy}" x2="${DW - mR}" y2="${yy}" stroke="rgba(255,255,255,0.06)"/>`;
-    grid += `<text x="${mL - 12}" y="${(+yy + 6).toFixed(1)}" fill="#64748b" font-size="25" text-anchor="end" font-family="sans-serif">+${Math.round(v * 100)}%</text>`;
+    grid += `<text x="${mL - 12}" y="${(+yy + 6).toFixed(1)}" fill="#64748b" font-size="30" text-anchor="end" font-family="sans-serif">+${Math.round(v * 100)}%</text>`;
   }
 
   let body = "";
@@ -403,21 +403,21 @@ export function renderMonthBars(spec, opts = {}) {
   const tag = (b, above) => {
     const cx = mL + slot * bars.indexOf(b) + slot / 2, bh = Math.abs(b.value) * k;
     const y = above ? zeroY - bh - 12 : zeroY + bh + 26;
-    return `<text x="${cx.toFixed(1)}" y="${y.toFixed(1)}" fill="${above ? "#86efac" : "#fca5a5"}" font-size="22" font-weight="700" text-anchor="middle" font-family="sans-serif">${b.value >= 0 ? "+" : ""}${Math.round(b.value * 100)}%</text>`;
+    return `<text x="${cx.toFixed(1)}" y="${y.toFixed(1)}" fill="${above ? "#86efac" : "#fca5a5"}" font-size="26" font-weight="700" text-anchor="middle" font-family="sans-serif">${b.value >= 0 ? "+" : ""}${Math.round(b.value * 100)}%</text>`;
   };
   let labels = tag(best, true);
   if (worst.value < 0) labels += tag(worst, false);
 
   // The 0% axis, drawn brighter than the gridlines and labeled at the left.
   const axis = `<line x1="${mL}" y1="${zeroY.toFixed(1)}" x2="${DW - mR}" y2="${zeroY.toFixed(1)}" stroke="rgba(255,255,255,0.55)" stroke-width="2"/>`
-    + `<text x="${mL - 12}" y="${(zeroY + 6).toFixed(1)}" fill="#cbd5e1" font-size="25" text-anchor="end" font-family="sans-serif">0%</text>`;
+    + `<text x="${mL - 12}" y="${(zeroY + 6).toFixed(1)}" fill="#cbd5e1" font-size="30" text-anchor="end" font-family="sans-serif">0%</text>`;
 
   // Year labels under the first bar of each calendar year.
   let years = "", seen = -1;
   bars.forEach((b, i) => {
     if (b.year === seen) return;
     seen = b.year;
-    years += `<text x="${(mL + slot * i + slot / 2).toFixed(1)}" y="${(mT + PH + 30).toFixed(1)}" fill="#64748b" font-size="22" text-anchor="middle" font-family="sans-serif">${b.year}</text>`;
+    years += `<text x="${(mL + slot * i + slot / 2).toFixed(1)}" y="${(mT + PH + 30).toFixed(1)}" fill="#64748b" font-size="26" text-anchor="middle" font-family="sans-serif">${b.year}</text>`;
   });
 
   return chrome(spec, grid + axis + body + labels + years, defs, { W: DW, H: DH });
@@ -479,7 +479,7 @@ export function renderHeatmap(spec, opts = {}) {
     if (hasYear) draw(12, row.year, true, true);
   });
 
-  svg += `<text x="64" y="${(DH - 48).toFixed(1)}" fill="#64748b" font-size="25" font-family="sans-serif">Each cell = that month's return · green up, red down</text>`;
+  svg += `<text x="64" y="${(DH - 48).toFixed(1)}" fill="#64748b" font-size="30" font-family="sans-serif">Each cell = that month's return · green up, red down</text>`;
   return chrome(spec, svg, "", { W: DW, H: DH });
 }
 
@@ -529,10 +529,10 @@ export function renderDca(spec, opts = {}) {
   for (const v of gridVals) {
     const yy = Y(v).toFixed(1);
     grid += `<line x1="${mL}" y1="${yy}" x2="${DW - mR}" y2="${yy}" stroke="rgba(255,255,255,0.07)"/>`;
-    grid += `<text x="${mL - 12}" y="${(+yy + 6).toFixed(1)}" fill="#64748b" font-size="25" text-anchor="end" font-family="sans-serif">${fK(v)}</text>`;
+    grid += `<text x="${mL - 12}" y="${(+yy + 6).toFixed(1)}" fill="#64748b" font-size="30" text-anchor="end" font-family="sans-serif">${fK(v)}</text>`;
   }
   for (const t of timeTicks(xMin, xMax)) {
-    grid += `<text x="${X(t.ts).toFixed(1)}" y="${DH - 50}" fill="#64748b" font-size="25" text-anchor="${t.anchor || "middle"}" font-family="sans-serif">${esc(t.label)}</text>`;
+    grid += `<text x="${X(t.ts).toFixed(1)}" y="${DH - 50}" fill="#64748b" font-size="30" text-anchor="${t.anchor || "middle"}" font-family="sans-serif">${esc(t.label)}</text>`;
   }
 
   // invested area (amber, to baseline) — the "what you put in" floor
@@ -555,8 +555,8 @@ export function renderDca(spec, opts = {}) {
   // legend chip top-left of plot
   const lx = mL + 16, ly = mT + 14;
   const legend = `<rect x="${lx}" y="${ly}" width="208" height="76" rx="9" fill="rgba(5,5,14,0.62)" stroke="rgba(255,255,255,0.10)"/>`
-    + `<rect x="${lx + 14}" y="${ly + 18}" width="24" height="8" rx="4" fill="${green}"/><text x="${lx + 48}" y="${ly + 27}" fill="#cbd5e1" font-size="22" font-family="sans-serif">Stack value</text>`
-    + `<rect x="${lx + 14}" y="${ly + 48}" width="24" height="8" rx="4" fill="${amber}"/><text x="${lx + 48}" y="${ly + 57}" fill="#cbd5e1" font-size="22" font-family="sans-serif">Invested</text>`;
+    + `<rect x="${lx + 14}" y="${ly + 18}" width="24" height="8" rx="4" fill="${green}"/><text x="${lx + 48}" y="${ly + 27}" fill="#cbd5e1" font-size="26" font-family="sans-serif">Stack value</text>`
+    + `<rect x="${lx + 14}" y="${ly + 48}" width="24" height="8" rx="4" fill="${amber}"/><text x="${lx + 48}" y="${ly + 57}" fill="#cbd5e1" font-size="26" font-family="sans-serif">Invested</text>`;
 
   return chrome(spec, grid + invArea + profit + invLine + valLine + sparks + marker + legend, defs, { W: DW, H: DH });
 }
@@ -598,7 +598,7 @@ export function renderDonut(spec, opts = {}) {
     const pct = Math.round((s.value / total) * 100);
     legend += `<rect x="${lx}" y="${(ly - 22).toFixed(1)}" width="30" height="30" rx="7" fill="${s.color}"/>`;
     legend += `<text x="${lx + 44}" y="${ly.toFixed(1)}" fill="#e2e8f0" font-size="28" font-weight="700" font-family="sans-serif">${esc(s.label)}</text>`;
-    legend += `<text x="${lx + 44}" y="${(ly + 28).toFixed(1)}" fill="#94a3b8" font-size="23" font-family="sans-serif">${pct}% ${esc(unit)}</text>`;
+    legend += `<text x="${lx + 44}" y="${(ly + 28).toFixed(1)}" fill="#94a3b8" font-size="26" font-family="sans-serif">${pct}% ${esc(unit)}</text>`;
   });
   return chrome(spec, ring + center + legend, "", { W: DW, H: DH });
 }
@@ -617,8 +617,8 @@ export function renderStackBar(spec, opts = {}) {
     const pct = Math.round((s.value / total) * 100);
     body += `<rect x="${(x + 2).toFixed(1)}" y="${barY}" width="${Math.max(0, w - 4).toFixed(1)}" height="${barH}" rx="8" fill="url(#seg${i})"/>`;
     if (w > 120) body += `<text x="${(x + w / 2).toFixed(1)}" y="${barY + barH / 2 + 10}" fill="#05050e" font-size="30" font-weight="800" text-anchor="middle" font-family="sans-serif">${pct}%</text>`;
-    body += `<text x="${(x + w / 2).toFixed(1)}" y="${barY - 18}" fill="#e2e8f0" font-size="26" font-weight="700" text-anchor="middle" font-family="sans-serif">${esc(s.text ?? "")}</text>`;
-    body += `<text x="${(x + w / 2).toFixed(1)}" y="${barY + barH + 38}" fill="#94a3b8" font-size="23" text-anchor="middle" font-family="sans-serif">${esc(s.label)}</text>`;
+    body += `<text x="${(x + w / 2).toFixed(1)}" y="${barY - 18}" fill="#e2e8f0" font-size="30" font-weight="700" text-anchor="middle" font-family="sans-serif">${esc(s.text ?? "")}</text>`;
+    body += `<text x="${(x + w / 2).toFixed(1)}" y="${barY + barH + 38}" fill="#94a3b8" font-size="26" text-anchor="middle" font-family="sans-serif">${esc(s.label)}</text>`;
     x += w;
   });
   return chrome(spec, body, defs, { W: DW, H: DH });
@@ -669,7 +669,7 @@ export function renderGauge(spec, opts = {}) {
   svg += `<circle cx="${dx.toFixed(1)}" cy="${dy.toFixed(1)}" r="11" fill="${accent}" stroke="#05050e" stroke-width="3"/>`;
   svg += `<circle cx="${cx}" cy="${cy}" r="17" fill="#0b0f1c" stroke="${accent}" stroke-width="4"/>`;
   if (spec.centerBig) svg += `<text x="${cx}" y="${(cy + 96).toFixed(1)}" fill="#f8fafc" font-size="52" font-weight="800" text-anchor="middle" font-family="sans-serif">${esc(spec.centerBig)}</text>`;
-  if (spec.centerSmall) svg += `<text x="${cx}" y="${(cy + 134).toFixed(1)}" fill="#94a3b8" font-size="26" text-anchor="middle" font-family="sans-serif">${esc(spec.centerSmall)}</text>`;
+  if (spec.centerSmall) svg += `<text x="${cx}" y="${(cy + 134).toFixed(1)}" fill="#94a3b8" font-size="30" text-anchor="middle" font-family="sans-serif">${esc(spec.centerSmall)}</text>`;
   return chrome(spec, svg, "", { W: DW, H: DH });
 }
 
@@ -688,7 +688,7 @@ export function renderFngDial(spec, opts = {}) {
       return s.trim();
     };
     const v = Math.min(1, Math.max(0, d.value));
-    let g = `<text x="${cx}" y="${(cy - R - 26).toFixed(1)}" fill="#cbd5e1" font-size="27" font-weight="700" text-anchor="middle" font-family="sans-serif">${esc(d.title)}</text>`;
+    let g = `<text x="${cx}" y="${(cy - R - 26).toFixed(1)}" fill="#cbd5e1" font-size="31" font-weight="700" text-anchor="middle" font-family="sans-serif">${esc(d.title)}</text>`;
     g += `<path d="${arc(0, 1, R)}" fill="none" stroke="#1e2433" stroke-width="${sw}" stroke-linecap="round"/>`;
     for (const seg of d.segments) g += `<path d="${arc(seg.from, seg.to, R)}" fill="none" stroke="${seg.color}" stroke-width="${sw}" stroke-linejoin="round" stroke-opacity="0.95"/>`;
     const [nx, ny] = pt(v, R - 28), [dx, dy] = pt(v, R);
@@ -696,7 +696,7 @@ export function renderFngDial(spec, opts = {}) {
     g += `<circle cx="${dx.toFixed(1)}" cy="${dy.toFixed(1)}" r="10" fill="${d.color}" stroke="#05050e" stroke-width="3"/>`;
     g += `<circle cx="${cx}" cy="${cy}" r="15" fill="#0b0f1c" stroke="${d.color}" stroke-width="4"/>`;
     g += `<text x="${cx}" y="${(cy + 66).toFixed(1)}" fill="#f8fafc" font-size="58" font-weight="800" text-anchor="middle" font-family="sans-serif">${esc(d.big)}</text>`;
-    g += `<text x="${cx}" y="${(cy + 104).toFixed(1)}" fill="${d.color}" font-size="27" font-weight="700" text-anchor="middle" font-family="sans-serif">${esc(d.verdict)}</text>`;
+    g += `<text x="${cx}" y="${(cy + 104).toFixed(1)}" fill="${d.color}" font-size="31" font-weight="700" text-anchor="middle" font-family="sans-serif">${esc(d.verdict)}</text>`;
     return g;
   };
   const body = dial(mL + (DW - mL - mR) * 0.27, spec.left) + dial(mL + (DW - mL - mR) * 0.73, spec.right);
@@ -730,13 +730,13 @@ export function renderDcaLadder(spec, opts = {}) {
     const y = mT + rowIndex * (rowH + gap);
     const cy = y + rowH / 2, isCur = i === cur;
     svg += `<rect x="${mL}" y="${y.toFixed(1)}" width="${PW}" height="${rowH.toFixed(1)}" rx="12" fill="${b.color}" fill-opacity="${isCur ? 0.34 : 0.13}"${isCur ? ` stroke="#fff" stroke-width="3"` : ""}/>`;
-    svg += `<text x="${mL + 24}" y="${(cy + 9).toFixed(1)}" fill="#f1f5f9" font-size="27" font-weight="700" font-family="sans-serif">${esc(b.label)}</text>`;
+    svg += `<text x="${mL + 24}" y="${(cy + 9).toFixed(1)}" fill="#f1f5f9" font-size="31" font-weight="700" font-family="sans-serif">${esc(b.label)}</text>`;
     if (b.mult || b.sell) {
       const isSell = !!b.sell, col = isSell ? sell : buy;
       const bw = Math.max(16, ((isSell ? b.sell / maxSell : b.mult / maxMult)) * maxBar), id = `lad${i}`;
       defs += `<linearGradient id="${id}" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="${col}" stop-opacity="0.9"/><stop offset="100%" stop-color="${col}" stop-opacity="0.4"/></linearGradient>`;
       svg += `<rect x="${barX}" y="${(cy - 14).toFixed(1)}" width="${bw.toFixed(1)}" height="28" rx="14" fill="url(#${id})"/>`;
-      svg += `<text x="${(barX + bw + 16).toFixed(1)}" y="${(cy + 9).toFixed(1)}" fill="#f8fafc" font-size="26" font-weight="800" font-family="sans-serif">${esc(b.action)}</text>`;
+      svg += `<text x="${(barX + bw + 16).toFixed(1)}" y="${(cy + 9).toFixed(1)}" fill="#f8fafc" font-size="30" font-weight="800" font-family="sans-serif">${esc(b.action)}</text>`;
     } else {
       svg += `<text x="${barX}" y="${(cy + 9).toFixed(1)}" fill="#94a3b8" font-size="24" font-style="italic" font-family="sans-serif">${esc(b.action)}</text>`;
     }
@@ -796,7 +796,7 @@ export function renderStatGrid(spec, opts = {}) {
     svg += `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${tw.toFixed(1)}" height="${th.toFixed(1)}" rx="16" fill="rgba(255,255,255,0.04)" stroke="rgba(255,255,255,0.09)"/>`;
     const big = String(t.big), fs = big.length > 9 ? 44 : big.length > 6 ? 56 : 70;
     svg += `<text x="${cx.toFixed(1)}" y="${(y + th * 0.5).toFixed(1)}" fill="${t.color || spec.accent}" font-size="${fs}" font-weight="800" text-anchor="middle" font-family="sans-serif">${esc(big)}</text>`;
-    svg += `<text x="${cx.toFixed(1)}" y="${(y + th * 0.78).toFixed(1)}" fill="#94a3b8" font-size="23" text-anchor="middle" font-family="sans-serif">${esc(t.label)}</text>`;
+    svg += `<text x="${cx.toFixed(1)}" y="${(y + th * 0.78).toFixed(1)}" fill="#94a3b8" font-size="26" text-anchor="middle" font-family="sans-serif">${esc(t.label)}</text>`;
   });
   return chrome(spec, svg, "", { W: DW, H: DH });
 }
@@ -828,12 +828,12 @@ export function renderModelCard(spec, opts = {}) {
     const v = bands[i]; if (v < yMin || v > yMax) continue;
     const yy = Y(v).toFixed(1);
     grid += `<line x1="${mL}" y1="${yy}" x2="${DW - mR}" y2="${yy}" stroke="rgba(255,255,255,0.06)"/>`;
-    grid += `<text x="${mL - 12}" y="${(+yy + 6).toFixed(1)}" fill="#94a3b8" font-size="25" text-anchor="end" font-family="sans-serif">${pct(v)}</text>`;
+    grid += `<text x="${mL - 12}" y="${(+yy + 6).toFixed(1)}" fill="#94a3b8" font-size="30" text-anchor="end" font-family="sans-serif">${pct(v)}</text>`;
   }
-  for (const t of yearTicks(xMin, xMax)) grid += `<text x="${X(t.ts).toFixed(1)}" y="${DH - 50}" fill="#64748b" font-size="25" text-anchor="middle" font-family="sans-serif">${t.label}</text>`;
+  for (const t of yearTicks(xMin, xMax)) grid += `<text x="${X(t.ts).toFixed(1)}" y="${DH - 50}" fill="#64748b" font-size="30" text-anchor="middle" font-family="sans-serif">${t.label}</text>`;
 
   const zy = Y(0).toFixed(1);
-  const zero = `<line x1="${mL}" y1="${zy}" x2="${DW - mR}" y2="${zy}" stroke="rgba(255,255,255,0.75)" stroke-width="2" stroke-dasharray="6 5"/><text x="${mL + 8}" y="${(+zy - 9).toFixed(1)}" fill="#f1f5f9" font-size="25" font-weight="700" font-family="sans-serif">trend line</text>`;
+  const zero = `<line x1="${mL}" y1="${zy}" x2="${DW - mR}" y2="${zy}" stroke="rgba(255,255,255,0.75)" stroke-width="2" stroke-dasharray="6 5"/><text x="${mL + 8}" y="${(+zy - 9).toFixed(1)}" fill="#f1f5f9" font-size="30" font-weight="700" font-family="sans-serif">trend line</text>`;
 
   let dots = "";
   for (const [x, r] of pts) dots += `<circle cx="${X(x).toFixed(1)}" cy="${Y(r).toFixed(1)}" r="2.6" fill="#f8fafc" fill-opacity="0.78"/>`;
@@ -918,7 +918,7 @@ export function cubeCardSvg(spec, opts = {}) {
       body += logoMark(it.logo, cx0 - ls / 2, ly + 12, ls);
       if (it.sub) body += `<text x="${cx0.toFixed(1)}" y="${ly + 70}" fill="#94a3b8" font-size="19" text-anchor="middle" font-family="sans-serif">${esc(it.sub)}</text>`;
     } else {
-      body += `<text x="${cx0.toFixed(1)}" y="${ly + 28}" fill="${it.color}" font-size="22" font-weight="700" text-anchor="middle" font-family="sans-serif">${esc(it.label)}</text>`;
+      body += `<text x="${cx0.toFixed(1)}" y="${ly + 28}" fill="${it.color}" font-size="26" font-weight="700" text-anchor="middle" font-family="sans-serif">${esc(it.label)}</text>`;
       if (it.sub) body += `<text x="${cx0.toFixed(1)}" y="${ly + 52}" fill="#94a3b8" font-size="19" text-anchor="middle" font-family="sans-serif">${esc(it.sub)}</text>`;
     }
   });

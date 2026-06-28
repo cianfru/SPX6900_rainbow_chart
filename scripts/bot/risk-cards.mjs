@@ -69,7 +69,7 @@ export function riskColorSvg(price, dateStr = new Date().toISOString().slice(0, 
   const curZ = (curRawZ - mean) / std;
   const dc = colorOf(curRawZ);
 
-  const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 84, mR = 40, mT = 76, mB = 64, pW = W - mL - mR, pH = H - mT - mB;
+  const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 104, mR = 40, mT = 76, mB = 64, pW = W - mL - mR, pH = H - mT - mB;
   const xMin = pts[0].ts, xMax = pts.at(-1).ts;
   let yMin = Infinity, yMax = -Infinity;
   for (const r of pts) { if (r.price < yMin) yMin = r.price; if (r.price > yMax) yMax = r.price; }
@@ -81,12 +81,12 @@ export function riskColorSvg(price, dateStr = new Date().toISOString().slice(0, 
   for (const t of yDollarTicks(yMin, yMax)) {
     const yy = y(t).toFixed(1);
     grid += `<line x1="${mL}" y1="${yy}" x2="${W - mR}" y2="${yy}" stroke="rgba(255,255,255,0.07)"/>`;
-    grid += `<text x="${mL - 10}" y="${(+yy + 5).toFixed(1)}" fill="#64748b" font-size="23" text-anchor="end" font-family="sans-serif">$${t < 1 ? t : t.toLocaleString()}</text>`;
+    grid += `<text x="${mL - 10}" y="${(+yy + 5).toFixed(1)}" fill="#64748b" font-size="26" text-anchor="end" font-family="sans-serif">$${t < 1 ? t : t.toLocaleString()}</text>`;
   }
   let xlab = "";
   for (let yr = new Date(xMin).getFullYear(); yr <= new Date(xMax).getFullYear(); yr++) {
     const d = Date.parse(`${yr}-01-01`); if (d < xMin || d > xMax) continue;
-    xlab += `<text x="${x(d).toFixed(1)}" y="${H - 42}" fill="#64748b" font-size="23" text-anchor="middle" font-family="sans-serif">${yr}</text>`;
+    xlab += `<text x="${x(d).toFixed(1)}" y="${H - 42}" fill="#64748b" font-size="26" text-anchor="middle" font-family="sans-serif">${yr}</text>`;
   }
   // power-law fair-value (center) line, derived straight from the residual:
   // fair = price / exp(z), so it agrees exactly with the colouring.
@@ -132,7 +132,7 @@ export function riskLevelsSvg(price, dateStr = new Date().toISOString().slice(0,
   const LEVELS = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7].map(r => ({ risk: r, price: priceAtRisk(r) }));
   const recent = DEFAULT_RAW.slice(-60).map(r => ({ ts: new Date(r.date).getTime(), price: r.price }));
 
-  const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 84, mR = 168, mT = 76, mB = 68, pW = W - mL - mR, pH = H - mT - mB;
+  const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 104, mR = 168, mT = 76, mB = 68, pW = W - mL - mR, pH = H - mT - mB;
   const xMin = recent[0].ts, xMax = recent.at(-1).ts;
   // Anchor the y-axis to the LEVELS so all the risk bands fill the FULL card height
   // (the point of the card) instead of bunching at the top; expand only if the
@@ -148,7 +148,7 @@ export function riskLevelsSvg(price, dateStr = new Date().toISOString().slice(0,
   for (const l of LEVELS) {
     const yy = y(l.price).toFixed(1), c = riskColor(l.risk);
     lines += `<line x1="${mL}" y1="${yy}" x2="${mL + pW}" y2="${yy}" stroke="${c}" stroke-opacity="0.85" stroke-width="2" stroke-dasharray="6 6"/>`;
-    lines += `<text x="${mL + pW + 10}" y="${(+yy + 5).toFixed(1)}" fill="${c}" font-size="22" font-weight="700" font-family="sans-serif">${l.risk.toFixed(2)} · ${fP(l.price)}</text>`;
+    lines += `<text x="${mL + pW + 10}" y="${(+yy + 5).toFixed(1)}" fill="${c}" font-size="26" font-weight="700" font-family="sans-serif">${l.risk.toFixed(2)} · ${fP(l.price)}</text>`;
   }
   // recent price (white) + a fading area fill down to the floor
   const priceLine = recent.map(r => `${x(r.ts).toFixed(1)},${y(r.price).toFixed(1)}`).join(" ");
@@ -157,7 +157,7 @@ export function riskLevelsSvg(price, dateStr = new Date().toISOString().slice(0,
   let xlab = "";
   const monMs = 30 * 86400000;
   for (let t = xMin; t <= xMax; t += monMs * 2) {
-    xlab += `<text x="${x(t).toFixed(1)}" y="${H - 44}" fill="#64748b" font-size="22" text-anchor="middle" font-family="sans-serif">${new Date(t).toLocaleDateString("en-US", { month: "short", year: "2-digit" })}</text>`;
+    xlab += `<text x="${x(t).toFixed(1)}" y="${H - 44}" fill="#64748b" font-size="26" text-anchor="middle" font-family="sans-serif">${new Date(t).toLocaleDateString("en-US", { month: "short", year: "2-digit" })}</text>`;
   }
   const px = x(xMax), py = y(price);
   return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
@@ -201,7 +201,7 @@ export function riskHeatSvg(price, dateStr = new Date().toISOString().slice(0, 1
   const curN = 0.5 + 0.5 * Math.max(-1, Math.min(1, curExt / maxAbs));
   const dc = riskColor(curN);
 
-  const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 84, mR = 40, mT = 76, mB = 64;
+  const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 104, mR = 40, mT = 76, mB = 64;
   const innerTop = mT, innerBot = H - mB, innerH = innerBot - innerTop;
   // Bigger price panel (carries the prominent overlay), a slim oscillator below.
   const priceTop = innerTop, priceBot = innerTop + innerH * 0.66;
@@ -223,7 +223,7 @@ export function riskHeatSvg(price, dateStr = new Date().toISOString().slice(0, 1
   for (const t of yDollarTicks(yMin, yMax)) {
     const yy = yP(t).toFixed(1);
     grid += `<line x1="${mL}" y1="${yy}" x2="${W - mR}" y2="${yy}" stroke="rgba(255,255,255,0.06)"/>`;
-    grid += `<text x="${mL - 10}" y="${(+yy + 5).toFixed(1)}" fill="#64748b" font-size="23" text-anchor="end" font-family="sans-serif">$${t < 1 ? t : t.toLocaleString()}</text>`;
+    grid += `<text x="${mL - 10}" y="${(+yy + 5).toFixed(1)}" fill="#64748b" font-size="26" text-anchor="end" font-family="sans-serif">$${t < 1 ? t : t.toLocaleString()}</text>`;
   }
   const bw = Math.max(1.4, (W - mL - mR) / (pts.length - 1) + 0.8);
   // OVERLAY (Cowen-style): fill the gap between price and its 20W MA — red where
@@ -253,7 +253,7 @@ export function riskHeatSvg(price, dateStr = new Date().toISOString().slice(0, 1
   let xlab = "";
   for (let yr = new Date(xMin).getFullYear(); yr <= new Date(xMax).getFullYear(); yr++) {
     const d = Date.parse(`${yr}-01-01`); if (d < xMin || d > xMax) continue;
-    xlab += `<text x="${x(d).toFixed(1)}" y="${H - 42}" fill="#64748b" font-size="23" text-anchor="middle" font-family="sans-serif">${yr}</text>`;
+    xlab += `<text x="${x(d).toFixed(1)}" y="${H - 42}" fill="#64748b" font-size="26" text-anchor="middle" font-family="sans-serif">${yr}</text>`;
   }
   return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
 <defs>
