@@ -290,9 +290,21 @@
       `risklevels`, `runningroi` (365D ROI), `spxvssp` (vs S&P), `roadmap`. They already render as OG images
       (`/api/og?post=<id>`), so a gallery tile is ~free; a native interactive tab is a
       separate per-card React build (like `ChannelChart.jsx`).
-  - **Decoupling from Bitcoin.** Rolling 90-day correlation of SPX vs BTC over time;
-    story = "SPX finding its own legs" IF the data is flattering (check first — if it's
-    still glued to BTC, shelve it).
+  - ✅ **Volatility "how wild is it" — BUILT 2026-06-28** (card id `volatility`, a `bar`
+    card in `posts.mjs`). Annualized WEEKLY vol (stdev of weekly log-returns × √52, last
+    52wk), SPX6900 vs BTC vs the S&P 500 — three bars + coin logos. Currently ~120% vs
+    ~41% vs ~11% → "2.9× Bitcoin's swings, ~10× the S&P." Weekly (not monthly) on purpose:
+    monthly vol is wildly inflated by the launch-pump outliers (Sep/Oct '24 +685/+889%),
+    which gave the misleading 768%/17×/60× figures. Honest-about-risk angle (the moat).
+    `weeklyCloses()`/`annWeeklyVol()` helpers are self-contained from the bundled histories.
+  - **❌ Decoupling from Bitcoin — CHECKED & SHELVED (2026-06-28).** The "SPX finding its
+    own legs" story does NOT survive scrutiny. The flattering 0.49→0.20→0.11 figures were
+    MONTHLY-return correlations over 24/12/6mo — i.e. only **6–12 data points**, a tiny-
+    sample artifact. A robust **26-week rolling** correlation (weekly returns) bounces
+    0.0–0.75 and is currently **RISING to ~0.49** (more correlated, not less). So a
+    decoupling card would either tell the opposite story or require cherry-picking the
+    noisy monthly metric — dishonest, against the moat. Mocked it to confirm; do not build.
+    (Also tensions with the BTC-cycle cards' "we follow BTC" thesis.)
   - **% of supply in profit / MVRV.** price ÷ holders' realized cost (we already compute
     break-even, so current value is free). A respected, crypto-native on-chain metric.
     Full over-time chart needs ~30 days of snapshot history (same wait as holder-growth).

@@ -352,7 +352,7 @@ export function renderBarCard(spec, opts = {}) {
     svg += `<text x="${cx.toFixed(1)}" y="${(yTop - 14).toFixed(1)}" fill="#e2e8f0" font-size="30" font-weight="700" text-anchor="middle" font-family="sans-serif">${esc(b.text ?? b.value)}</text>`;
     // Under-bar identity: a coin logo when supplied, else the text label.
     if (b.logo) {
-      const ls = 40;
+      const ls = 34;
       svg += logoMark(b.logo, cx - ls / 2, mT + PH + 2, ls);
     } else {
       svg += `<text x="${cx.toFixed(1)}" y="${(mT + PH + 32).toFixed(1)}" fill="#94a3b8" font-size="26" text-anchor="middle" font-family="sans-serif">${esc(b.label)}</text>`;
