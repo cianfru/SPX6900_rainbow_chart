@@ -47,20 +47,20 @@ export function monthlyCompareSvg(price, dateStr = new Date().toISOString().slic
     if (Math.abs(v) < 1e-9) continue;
     const gy = y(v).toFixed(1);
     grid += `<line x1="${mL}" y1="${gy}" x2="${W - mR}" y2="${gy}" stroke="rgba(255,255,255,0.06)"/>`;
-    grid += `<text x="${mL - 10}" y="${(+gy + 5).toFixed(1)}" fill="#64748b" font-size="17" text-anchor="end" font-family="sans-serif">${v > 0 ? "+" : ""}${Math.round(v * 100)}%</text>`;
+    grid += `<text x="${mL - 10}" y="${(+gy + 5).toFixed(1)}" fill="#64748b" font-size="21" text-anchor="end" font-family="sans-serif">${v > 0 ? "+" : ""}${Math.round(v * 100)}%</text>`;
   }
 
   // bars + value labels + month labels
   let bars = "", labels = "", xlab = "";
   months.forEach((mo, i) => {
     const cx = mL + (i + 0.5) * groupW;
-    xlab += `<text x="${cx.toFixed(1)}" y="${H - 44}" fill="#94a3b8" font-size="19" text-anchor="middle" font-family="sans-serif">${mo.name}</text>`;
+    xlab += `<text x="${cx.toFixed(1)}" y="${H - 44}" fill="#94a3b8" font-size="22" text-anchor="middle" font-family="sans-serif">${mo.name}</text>`;
     const draw = (v, bx, color) => {
       if (v == null) return;
       const yv = y(v), top = Math.min(yv, y0), h = Math.max(2, Math.abs(yv - y0));
       bars += `<rect x="${(bx - barW / 2).toFixed(1)}" y="${top.toFixed(1)}" width="${barW.toFixed(1)}" height="${h.toFixed(1)}" rx="3" fill="${color}"/>`;
       const ly = v >= 0 ? top - 6 : top + h + 16;
-      labels += `<text x="${bx.toFixed(1)}" y="${ly.toFixed(1)}" fill="${color}" font-size="13" font-weight="700" text-anchor="middle" font-family="sans-serif">${fpct(v)}</text>`;
+      labels += `<text x="${bx.toFixed(1)}" y="${ly.toFixed(1)}" fill="${color}" font-size="15" font-weight="700" text-anchor="middle" font-family="sans-serif">${fpct(v)}</text>`;
     };
     draw(mo.old, cx - off, C_OLD);
     draw(mo.now, cx + off, C_NEW);
@@ -69,8 +69,8 @@ export function monthlyCompareSvg(price, dateStr = new Date().toISOString().slic
   // legend chip — parked upper-right, clear of the tall early-year bars
   const lx = mL + pW * 0.62, ly = mT + 8;
   const legend = `<rect x="${lx}" y="${ly}" width="186" height="40" rx="9" fill="rgba(5,5,14,0.6)" stroke="rgba(255,255,255,0.10)"/>`
-    + `<rect x="${lx + 14}" y="${ly + 13}" width="22" height="14" rx="3" fill="${C_OLD}"/><text x="${lx + 44}" y="${ly + 25}" fill="#cbd5e1" font-size="19" font-family="sans-serif">${yOld}</text>`
-    + `<rect x="${lx + 100}" y="${ly + 13}" width="22" height="14" rx="3" fill="${C_NEW}"/><text x="${lx + 130}" y="${ly + 25}" fill="#cbd5e1" font-size="19" font-family="sans-serif">${yNew}</text>`;
+    + `<rect x="${lx + 14}" y="${ly + 13}" width="22" height="14" rx="3" fill="${C_OLD}"/><text x="${lx + 44}" y="${ly + 25}" fill="#cbd5e1" font-size="22" font-family="sans-serif">${yOld}</text>`
+    + `<rect x="${lx + 100}" y="${ly + 13}" width="22" height="14" rx="3" fill="${C_NEW}"/><text x="${lx + 130}" y="${ly + 25}" fill="#cbd5e1" font-size="22" font-family="sans-serif">${yNew}</text>`;
 
   return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
 <defs>
@@ -81,7 +81,7 @@ export function monthlyCompareSvg(price, dateStr = new Date().toISOString().slic
 ${grid}${bars}${labels}${xlab}${legend}
 <text x="64" y="42" fill="#e2e8f0" font-size="29" font-weight="700" font-family="sans-serif" letter-spacing="1">SPX6900 MONTHLY RETURNS — ${yy(yOld)} vs ${yy(yNew)}</text>
 <text x="${W - mR}" y="42" fill="#fbbf24" font-size="22" font-weight="800" font-family="sans-serif" text-anchor="end">month by month</text>
-<text x="64" y="70" fill="#94a3b8" font-size="17" font-family="sans-serif">each month's close-to-close return, ${yOld} vs ${yNew} side by side — bars rise on a gain, drop on a loss</text>
+<text x="64" y="70" fill="#94a3b8" font-size="21" font-family="sans-serif">each month's close-to-close return, ${yOld} vs ${yNew} side by side — bars rise on a gain, drop on a loss</text>
 <text x="64" y="${H - 14}" fill="#475569" font-size="15" font-family="sans-serif">spx6900rainbow.xyz · not financial advice · month-over-month close returns</text>
 </svg>`;
 }

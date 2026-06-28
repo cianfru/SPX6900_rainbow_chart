@@ -14,7 +14,7 @@ import { renderMonthlyCompareCard } from "./monthly-compare-card.mjs";
 import { logoMark } from "./logos.mjs";
 import { FONT } from "./font.mjs";
 
-const W = 1200, H = 800, mL = 88, mR = 48, mT = 188, mB = 76; // landscape card is 3:2
+const W = 1200, H = 800, mL = 100, mR = 48, mT = 188, mB = 76; // landscape card is 3:2 (mL gives room for the bigger axis labels)
 const pW = W - mL - mR, pH = H - mT - mB;
 // Per-card canvas geometry. Defaults to the 3:2 landscape; callers (e.g. the OG
 // link-unfurl endpoint) can pass {W,H} to render the same card at another size.
@@ -182,7 +182,7 @@ export function lineCardSvg(spec, opts = {}) {
     if (t.v < Math.min(yMin, yMax) || t.v > Math.max(yMin, yMax)) continue;
     const yy = Y(t.v).toFixed(1);
     grid += `<line x1="${mL}" y1="${yy}" x2="${DW - mR}" y2="${yy}" stroke="rgba(255,255,255,0.07)"/>`;
-    grid += `<text x="${mL - 12}" y="${(+yy + 6).toFixed(1)}" fill="#64748b" font-size="20" text-anchor="end" font-family="sans-serif">${esc(t.label)}</text>`;
+    grid += `<text x="${mL - 12}" y="${(+yy + 6).toFixed(1)}" fill="#64748b" font-size="25" text-anchor="end" font-family="sans-serif">${esc(t.label)}</text>`;
   }
   // x-axis ticks: calendar (timeTicks) by default, or caller-supplied {x,label}
   // for non-time axes like "age since launch" (the SPX-vs-BTC overlay).
@@ -190,7 +190,7 @@ export function lineCardSvg(spec, opts = {}) {
     ? spec.xTicks.map(t => ({ x: t.x, label: t.label, anchor: t.anchor }))
     : timeTicks(xMin, xMax).map(t => ({ x: t.ts, label: t.label, anchor: t.anchor }));
   for (const t of xticks) {
-    grid += `<text x="${X(t.x).toFixed(1)}" y="${DH - 50}" fill="#64748b" font-size="20" text-anchor="${t.anchor || "middle"}" font-family="sans-serif">${esc(t.label)}</text>`;
+    grid += `<text x="${X(t.x).toFixed(1)}" y="${DH - 50}" fill="#64748b" font-size="25" text-anchor="${t.anchor || "middle"}" font-family="sans-serif">${esc(t.label)}</text>`;
   }
 
   // bear–bull cone (drawn behind the lines), clipped to the reveal sweep
@@ -229,21 +229,21 @@ export function lineCardSvg(spec, opts = {}) {
     // A coin logo can cap the line at its right end (e.g. each major's market cap);
     // the line is pulled in to make room and the label sits just left of the coin.
     if (h.logo) {
-      const SZ = 42, lgx = DW - mR - SZ;
-      const lbl = esc(h.label), tx = lgx - 12, tw = lbl.length * 11.5 + 16;
+      const SZ = 44, lgx = DW - mR - SZ;
+      const lbl = esc(h.label), tx = lgx - 12, tw = lbl.length * 14 + 18;
       hl += `<line x1="${mL}" y1="${yy}" x2="${(lgx - 6).toFixed(1)}" y2="${yy}" stroke="${h.color}" stroke-opacity="0.8" stroke-width="2"${h.dash === false ? "" : ` stroke-dasharray="6 6"`}/>`;
       // Dark chip behind the label so the dashed line + any projection read as
       // passing behind the text, not crossing through it.
-      hl += `<rect x="${(tx - tw + 8).toFixed(1)}" y="${(h.py - 16).toFixed(1)}" width="${tw.toFixed(1)}" height="32" rx="8" fill="rgba(5,5,14,0.86)" stroke="rgba(255,255,255,0.10)"/>`;
+      hl += `<rect x="${(tx - tw + 8).toFixed(1)}" y="${(h.py - 19).toFixed(1)}" width="${tw.toFixed(1)}" height="38" rx="8" fill="rgba(5,5,14,0.86)" stroke="rgba(255,255,255,0.10)"/>`;
       hl += logoMark(h.logo, lgx, h.py - SZ / 2, SZ);
-      hl += `<text x="${tx.toFixed(1)}" y="${(h.py + 7).toFixed(1)}" fill="${h.color}" font-size="22" font-weight="800" text-anchor="end" font-family="sans-serif">${lbl}</text>`;
+      hl += `<text x="${tx.toFixed(1)}" y="${(h.py + 9).toFixed(1)}" fill="${h.color}" font-size="27" font-weight="800" text-anchor="end" font-family="sans-serif">${lbl}</text>`;
       continue;
     }
     hl += `<line x1="${mL}" y1="${yy}" x2="${DW - mR}" y2="${yy}" stroke="${h.color}" stroke-opacity="0.8" stroke-width="2"${h.dash === false ? "" : ` stroke-dasharray="6 6"`}/>`;
     let ly = h.py - 9;
-    if (ly < lastLabelY + 27) ly = lastLabelY + 27; // keep labels from overlapping
+    if (ly < lastLabelY + 33) ly = lastLabelY + 33; // keep labels from overlapping
     lastLabelY = ly;
-    hl += `<text x="${DW - mR - 6}" y="${ly.toFixed(1)}" fill="${h.color}" font-size="21" font-weight="700" text-anchor="end" font-family="sans-serif">${esc(h.label)}</text>`;
+    hl += `<text x="${DW - mR - 6}" y="${ly.toFixed(1)}" fill="${h.color}" font-size="27" font-weight="700" text-anchor="end" font-family="sans-serif">${esc(h.label)}</text>`;
   }
 
   let marker = "";
@@ -385,7 +385,7 @@ export function renderMonthBars(spec, opts = {}) {
   for (let v = step; v <= posMax + 1e-9; v += step) {
     const yy = (zeroY - v * k).toFixed(1);
     grid += `<line x1="${mL}" y1="${yy}" x2="${DW - mR}" y2="${yy}" stroke="rgba(255,255,255,0.06)"/>`;
-    grid += `<text x="${mL - 12}" y="${(+yy + 6).toFixed(1)}" fill="#64748b" font-size="20" text-anchor="end" font-family="sans-serif">+${Math.round(v * 100)}%</text>`;
+    grid += `<text x="${mL - 12}" y="${(+yy + 6).toFixed(1)}" fill="#64748b" font-size="25" text-anchor="end" font-family="sans-serif">+${Math.round(v * 100)}%</text>`;
   }
 
   let body = "";
@@ -410,7 +410,7 @@ export function renderMonthBars(spec, opts = {}) {
 
   // The 0% axis, drawn brighter than the gridlines and labeled at the left.
   const axis = `<line x1="${mL}" y1="${zeroY.toFixed(1)}" x2="${DW - mR}" y2="${zeroY.toFixed(1)}" stroke="rgba(255,255,255,0.55)" stroke-width="2"/>`
-    + `<text x="${mL - 12}" y="${(zeroY + 6).toFixed(1)}" fill="#cbd5e1" font-size="20" text-anchor="end" font-family="sans-serif">0%</text>`;
+    + `<text x="${mL - 12}" y="${(zeroY + 6).toFixed(1)}" fill="#cbd5e1" font-size="25" text-anchor="end" font-family="sans-serif">0%</text>`;
 
   // Year labels under the first bar of each calendar year.
   let years = "", seen = -1;
@@ -479,7 +479,7 @@ export function renderHeatmap(spec, opts = {}) {
     if (hasYear) draw(12, row.year, true, true);
   });
 
-  svg += `<text x="64" y="${(DH - 48).toFixed(1)}" fill="#64748b" font-size="20" font-family="sans-serif">Each cell = that month's return · green up, red down</text>`;
+  svg += `<text x="64" y="${(DH - 48).toFixed(1)}" fill="#64748b" font-size="25" font-family="sans-serif">Each cell = that month's return · green up, red down</text>`;
   return chrome(spec, svg, "", { W: DW, H: DH });
 }
 
@@ -529,10 +529,10 @@ export function renderDca(spec, opts = {}) {
   for (const v of gridVals) {
     const yy = Y(v).toFixed(1);
     grid += `<line x1="${mL}" y1="${yy}" x2="${DW - mR}" y2="${yy}" stroke="rgba(255,255,255,0.07)"/>`;
-    grid += `<text x="${mL - 12}" y="${(+yy + 6).toFixed(1)}" fill="#64748b" font-size="20" text-anchor="end" font-family="sans-serif">${fK(v)}</text>`;
+    grid += `<text x="${mL - 12}" y="${(+yy + 6).toFixed(1)}" fill="#64748b" font-size="25" text-anchor="end" font-family="sans-serif">${fK(v)}</text>`;
   }
   for (const t of timeTicks(xMin, xMax)) {
-    grid += `<text x="${X(t.ts).toFixed(1)}" y="${DH - 50}" fill="#64748b" font-size="20" text-anchor="${t.anchor || "middle"}" font-family="sans-serif">${esc(t.label)}</text>`;
+    grid += `<text x="${X(t.ts).toFixed(1)}" y="${DH - 50}" fill="#64748b" font-size="25" text-anchor="${t.anchor || "middle"}" font-family="sans-serif">${esc(t.label)}</text>`;
   }
 
   // invested area (amber, to baseline) — the "what you put in" floor
@@ -828,12 +828,12 @@ export function renderModelCard(spec, opts = {}) {
     const v = bands[i]; if (v < yMin || v > yMax) continue;
     const yy = Y(v).toFixed(1);
     grid += `<line x1="${mL}" y1="${yy}" x2="${DW - mR}" y2="${yy}" stroke="rgba(255,255,255,0.06)"/>`;
-    grid += `<text x="${mL - 12}" y="${(+yy + 6).toFixed(1)}" fill="#94a3b8" font-size="20" text-anchor="end" font-family="sans-serif">${pct(v)}</text>`;
+    grid += `<text x="${mL - 12}" y="${(+yy + 6).toFixed(1)}" fill="#94a3b8" font-size="25" text-anchor="end" font-family="sans-serif">${pct(v)}</text>`;
   }
-  for (const t of yearTicks(xMin, xMax)) grid += `<text x="${X(t.ts).toFixed(1)}" y="${DH - 50}" fill="#64748b" font-size="20" text-anchor="middle" font-family="sans-serif">${t.label}</text>`;
+  for (const t of yearTicks(xMin, xMax)) grid += `<text x="${X(t.ts).toFixed(1)}" y="${DH - 50}" fill="#64748b" font-size="25" text-anchor="middle" font-family="sans-serif">${t.label}</text>`;
 
   const zy = Y(0).toFixed(1);
-  const zero = `<line x1="${mL}" y1="${zy}" x2="${DW - mR}" y2="${zy}" stroke="rgba(255,255,255,0.75)" stroke-width="2" stroke-dasharray="6 5"/><text x="${mL + 8}" y="${(+zy - 9).toFixed(1)}" fill="#f1f5f9" font-size="20" font-weight="700" font-family="sans-serif">trend line</text>`;
+  const zero = `<line x1="${mL}" y1="${zy}" x2="${DW - mR}" y2="${zy}" stroke="rgba(255,255,255,0.75)" stroke-width="2" stroke-dasharray="6 5"/><text x="${mL + 8}" y="${(+zy - 9).toFixed(1)}" fill="#f1f5f9" font-size="25" font-weight="700" font-family="sans-serif">trend line</text>`;
 
   let dots = "";
   for (const [x, r] of pts) dots += `<circle cx="${X(x).toFixed(1)}" cy="${Y(r).toFixed(1)}" r="2.6" fill="#f8fafc" fill-opacity="0.78"/>`;

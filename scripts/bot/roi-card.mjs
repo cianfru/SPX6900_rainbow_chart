@@ -31,11 +31,11 @@ export function runningRoiSvg(price, dateStr = new Date().toISOString().slice(0,
   for (const t of [0.0001, 0.001, 0.01, 0.1, 1, 10].filter(v => v >= pMin && v <= pMax)) {
     const yy = yP(t).toFixed(1);
     grid += `<line x1="${mL}" y1="${yy}" x2="${mL + pW}" y2="${yy}" stroke="rgba(255,255,255,0.05)"/>`;
-    grid += `<text x="${mL - 10}" y="${(+yy + 5).toFixed(1)}" fill="#64748b" font-size="18" text-anchor="end" font-family="sans-serif">$${t < 1 ? t : t.toLocaleString()}</text>`;
+    grid += `<text x="${mL - 10}" y="${(+yy + 5).toFixed(1)}" fill="#64748b" font-size="22" text-anchor="end" font-family="sans-serif">$${t < 1 ? t : t.toLocaleString()}</text>`;
   }
   let rtick = "";
   for (const v of [0.1, 0.2, 0.5, 1, 2, 3, 5, 10, 20, 50].filter(v => v >= rMin && v <= rMax)) {
-    rtick += `<text x="${mL + pW + 10}" y="${(yR(v) + 5).toFixed(1)}" fill="${v === 1 ? "#4ade80" : "#a06a72"}" font-size="17" font-weight="${v === 1 ? 700 : 400}" font-family="sans-serif">${v}×</text>`;
+    rtick += `<text x="${mL + pW + 10}" y="${(yR(v) + 5).toFixed(1)}" fill="${v === 1 ? "#4ade80" : "#a06a72"}" font-size="21" font-weight="${v === 1 ? 700 : 400}" font-family="sans-serif">${v}×</text>`;
   }
   const oneY = yR(1).toFixed(1);
   const beLine = `<line x1="${mL}" y1="${oneY}" x2="${mL + pW}" y2="${oneY}" stroke="#4ade80" stroke-width="2" stroke-opacity="0.85"/>`;
@@ -46,7 +46,7 @@ export function runningRoiSvg(price, dateStr = new Date().toISOString().slice(0,
   let xlab = "";
   for (let yr = new Date(xMin).getFullYear(); yr <= new Date(xMax).getFullYear(); yr++) {
     const d = Date.parse(`${yr}-01-01`); if (d < xMin || d > xMax) continue;
-    xlab += `<text x="${x(d).toFixed(1)}" y="${H - 44}" fill="#64748b" font-size="19" text-anchor="middle" font-family="sans-serif">${yr}</text>`;
+    xlab += `<text x="${x(d).toFixed(1)}" y="${H - 44}" fill="#64748b" font-size="23" text-anchor="middle" font-family="sans-serif">${yr}</text>`;
   }
   const dc = curRoi >= 1 ? "#4ade80" : "#f87171";
   const pct = Math.round((curRoi - 1) * 100);
@@ -72,7 +72,7 @@ ${grid}${rtick}${beLine}
 ${xlab}
 <text x="64" y="42" fill="#e2e8f0" font-size="29" font-weight="700" font-family="sans-serif" letter-spacing="1.5">SPX6900 — 365D RUNNING ROI</text>
 <text x="${W - mR}" y="42" fill="${dc}" font-size="27" font-weight="800" font-family="sans-serif" text-anchor="end">${curRoi.toFixed(2)}× · ${pct >= 0 ? "+" : ""}${pct}% (1yr)</text>
-<text x="64" y="70" font-size="18" font-family="sans-serif"><tspan fill="#38bdf8" font-weight="700">— price</tspan><tspan fill="#64748b">    </tspan><tspan fill="#f87171" font-weight="700">— 365D ROI</tspan><tspan fill="#64748b">    </tspan><tspan fill="#4ade80" font-weight="700">— break-even (1×)</tspan></text>
+<text x="64" y="70" font-size="22" font-family="sans-serif"><tspan fill="#38bdf8" font-weight="700">— price</tspan><tspan fill="#64748b">    </tspan><tspan fill="#f87171" font-weight="700">— 365D ROI</tspan><tspan fill="#64748b">    </tspan><tspan fill="#4ade80" font-weight="700">— break-even (1×)</tspan></text>
 <text x="64" y="${H - 14}" fill="#475569" font-size="15" font-family="sans-serif">spx6900rainbow.xyz · not financial advice · price ÷ price 365d ago</text>
 </svg>`;
 }
