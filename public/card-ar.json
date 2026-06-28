@@ -38,7 +38,7 @@
   "strategy": "square",
   "riskheat": "square",
   "runningroi": "square",
-  "cycle": "landscape",
+  "cycle": "square",
   "rsidots": "square",
   "monthlyreturns": "landscape",
   "monthcompare": "square"
