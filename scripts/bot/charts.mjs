@@ -223,20 +223,26 @@ export function lineCardSvg(spec, opts = {}) {
   // right-aligned labels. Labels are nudged apart so stacked lines never collide.
   let hl = "";
   const hlSorted = (spec.hlines || []).map(h => ({ ...h, py: Y(h.y) })).sort((a, b) => a.py - b.py);
-  let lastLabelY = -1e9;
+  let lastLabelY = -1e9, lastLogoY = -1e9;
   for (const h of hlSorted) {
     const yy = h.py.toFixed(1);
     // A coin logo can cap the line at its right end (e.g. each major's market cap);
     // the line is pulled in to make room and the label sits just left of the coin.
     if (h.logo) {
-      const SZ = 55, lgx = DW - mR - SZ;
+      const SZ = 50, lgx = DW - mR - SZ;
+      // The line stays at its true price; the logo+label row is nudged down so
+      // stacked coins never overlap, with a short leader connecting the two.
+      let cy = h.py;
+      if (cy < lastLogoY + SZ + 4) cy = lastLogoY + SZ + 4;
+      lastLogoY = cy;
       const lbl = esc(h.label), tx = lgx - 12, tw = lbl.length * 16 + 20;
       hl += `<line x1="${mL}" y1="${yy}" x2="${(lgx - 6).toFixed(1)}" y2="${yy}" stroke="${h.color}" stroke-opacity="0.8" stroke-width="2"${h.dash === false ? "" : ` stroke-dasharray="6 6"`}/>`;
+      if (Math.abs(cy - h.py) > 2) hl += `<line x1="${(lgx - 6).toFixed(1)}" y1="${yy}" x2="${(lgx - 6).toFixed(1)}" y2="${cy.toFixed(1)}" stroke="${h.color}" stroke-opacity="0.5" stroke-width="2"/>`;
       // Dark chip behind the label so the dashed line + any projection read as
       // passing behind the text, not crossing through it.
-      hl += `<rect x="${(tx - tw + 8).toFixed(1)}" y="${(h.py - 22).toFixed(1)}" width="${tw.toFixed(1)}" height="44" rx="9" fill="rgba(5,5,14,0.86)" stroke="rgba(255,255,255,0.10)"/>`;
-      hl += logoMark(h.logo, lgx, h.py - SZ / 2, SZ);
-      hl += `<text x="${tx.toFixed(1)}" y="${(h.py + 10).toFixed(1)}" fill="${h.color}" font-size="31" font-weight="800" text-anchor="end" font-family="sans-serif">${lbl}</text>`;
+      hl += `<rect x="${(tx - tw + 8).toFixed(1)}" y="${(cy - 22).toFixed(1)}" width="${tw.toFixed(1)}" height="44" rx="9" fill="rgba(5,5,14,0.86)" stroke="rgba(255,255,255,0.10)"/>`;
+      hl += logoMark(h.logo, lgx, cy - SZ / 2, SZ);
+      hl += `<text x="${tx.toFixed(1)}" y="${(cy + 10).toFixed(1)}" fill="${h.color}" font-size="31" font-weight="800" text-anchor="end" font-family="sans-serif">${lbl}</text>`;
       continue;
     }
     hl += `<line x1="${mL}" y1="${yy}" x2="${DW - mR}" y2="${yy}" stroke="${h.color}" stroke-opacity="0.8" stroke-width="2"${h.dash === false ? "" : ` stroke-dasharray="6 6"`}/>`;

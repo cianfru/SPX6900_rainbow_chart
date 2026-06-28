@@ -67,10 +67,10 @@ export function monthlyCompareSvg(price, dateStr = new Date().toISOString().slic
   });
 
   // legend chip — parked upper-right, clear of the tall early-year bars
-  const lx = mL + pW * 0.62, ly = mT + 8;
-  const legend = `<rect x="${lx}" y="${ly}" width="186" height="40" rx="9" fill="rgba(5,5,14,0.6)" stroke="rgba(255,255,255,0.10)"/>`
-    + `<rect x="${lx + 14}" y="${ly + 13}" width="22" height="14" rx="3" fill="${C_OLD}"/><text x="${lx + 44}" y="${ly + 25}" fill="#cbd5e1" font-size="26" font-family="sans-serif">${yOld}</text>`
-    + `<rect x="${lx + 100}" y="${ly + 13}" width="22" height="14" rx="3" fill="${C_NEW}"/><text x="${lx + 130}" y="${ly + 25}" fill="#cbd5e1" font-size="26" font-family="sans-serif">${yNew}</text>`;
+  const lx = mL + pW * 0.58, ly = mT + 6;
+  const legend = `<rect x="${lx}" y="${ly}" width="232" height="42" rx="9" fill="rgba(5,5,14,0.6)" stroke="rgba(255,255,255,0.10)"/>`
+    + `<rect x="${lx + 16}" y="${ly + 14}" width="24" height="15" rx="3" fill="${C_OLD}"/><text x="${lx + 48}" y="${ly + 27}" fill="#cbd5e1" font-size="25" font-family="sans-serif">${yOld}</text>`
+    + `<rect x="${lx + 128}" y="${ly + 14}" width="24" height="15" rx="3" fill="${C_NEW}"/><text x="${lx + 160}" y="${ly + 27}" fill="#cbd5e1" font-size="25" font-family="sans-serif">${yNew}</text>`;
 
   return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
 <defs>

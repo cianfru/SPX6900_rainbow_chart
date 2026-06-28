@@ -1124,14 +1124,15 @@ ${rungs.map(r => `${r.short} (${r.mc}) → ${r.top ? `≈ top ${fMon(c.peakTs)}`
 Where SPX meets each king's ATH cap on Bitcoin's path. A what-if, not a forecast.`,
       card: { type: "line", spec: {
         title: "When does SPX6900 flip the kings?", headline: `DOGE-size ≈ ${fMon(c.peakTs)}`, accent: doge.color,
-        yLog: true, yTicks: decadeTicks(s.firstPrice, c.peakHi),
+        yLog: true, yMax: Math.max(c.peakHi, doge.price) * 2.4, yTicks: decadeTicks(s.firstPrice, c.peakHi),
         series: [
           { pts: s.series.price, color: "#4ade80", width: 3, fill: 0.1 },
           { pts: c.projPts, color: "#f7931a", width: 3, dash: true },
         ],
         hlines: rungs.map(r => ({ y: r.price, label: r.when, logo: r.short.toLowerCase(), color: r.color })),
         markers: rungs.map(r => ({ x: r.ts, y: r.y, color: r.color })),
-        legend: [{ label: "SPX actual", color: "#4ade80" }, { label: "BTC cycle (real)", color: "#f7931a" }],
+        // no legend: green solid = SPX actual, orange dashed = BTC-cycle projection
+        // reads clearly, and the legend just got crossed by the top king line.
         marker: { x: c.anchorTs, y: c.anchorPrice, color: "#4ade80" },
       } },
     };
