@@ -24,6 +24,7 @@ const SupplyConviction = lazy(() => import("./SupplyConviction.jsx"));
 const ModelChart = lazy(() => import("./ModelChart.jsx"));
 const ChannelChart = lazy(() => import("./ChannelChart.jsx"));
 const SeasonalityGrid = lazy(() => import("./SeasonalityGrid.jsx"));
+const ChartsGallery = lazy(() => import("./ChartsGallery.jsx"));
 
 const SANS = "'Space Grotesk', system-ui, sans-serif";
 const MONO = "ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace";
@@ -158,6 +159,7 @@ export default function App() {
   const [showAbout, setShowAbout] = useState(false);
   const [tab, setTab] = useState("risk");
   const [view, setView] = useState("rainbow"); // which nav item is highlighted
+  const [gallery, setGallery] = useState(false); // "/charts" browse-all view
   const [copied, setCopied] = useState(false);  // "Share" → link copied confirmation
   const [relWhich, setRelWhich] = useState("BTC"); // Relative chart asset (driven by nav dropdown)
   const [relRect, setRelRect] = useState(null);    // Relative tab rect, for the hover menu
@@ -438,11 +440,15 @@ export default function App() {
 
   // Reflect the selected chart in the URL so any tab is shareable and browser
   // back/forward steps through charts. tab=rainbow (the hero) clears the param.
-  const syncUrl = (id, rel) => {
+  const syncUrl = (id, rel, opts = {}) => {
     if (typeof window === "undefined") return;
     const params = new URLSearchParams(window.location.search);
-    if (!id || id === "rainbow") params.delete("tab"); else params.set("tab", id);
-    if (id === "relative" && rel) params.set("rel", rel); else params.delete("rel");
+    if (opts.gallery) { params.set("view", "charts"); params.delete("tab"); params.delete("rel"); }
+    else {
+      params.delete("view");
+      if (!id || id === "rainbow") params.delete("tab"); else params.set("tab", id);
+      if (id === "relative" && rel) params.set("rel", rel); else params.delete("rel");
+    }
     const qs = params.toString();
     const next = window.location.pathname + (qs ? "?" + qs : "") + window.location.hash;
     const cur = window.location.pathname + window.location.search + window.location.hash;
@@ -469,12 +475,19 @@ export default function App() {
       setTimeout(() => ro.disconnect(), 1000);
     }
   };
-  const scrollTop = () => { setView("rainbow"); syncUrl("rainbow"); window.scrollTo({ top: 0, behavior: "smooth" }); };
+  const scrollTop = () => { setGallery(false); setView("rainbow"); syncUrl("rainbow"); window.scrollTo({ top: 0, behavior: "smooth" }); };
   const goChart = (id, relOverride) => {
     if (id === "rainbow") { scrollTop(); return; }
+    setGallery(false);
     setView(id); setTab(id);
     syncUrl(id, id === "relative" ? (relOverride || relWhich) : null);
     requestAnimationFrame(scrollToCharts);
+  };
+  // Open / leave the browse-all charts gallery.
+  const openGallery = () => {
+    setGallery(true); setView("gallery");
+    syncUrl(null, null, { gallery: true });
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const openRel = () => {
@@ -504,6 +517,11 @@ export default function App() {
       const p = new URLSearchParams(window.location.search);
       const t = p.get("tab"), rel = p.get("rel");
       if (rel && REL_IDS.has(rel)) setRelWhich(rel);
+      if (p.get("view") === "charts") {
+        setGallery(true); setView("gallery");
+        return;
+      }
+      setGallery(false);
       if (t && TAB_IDS.has(t) && t !== "rainbow") {
         setView(t); setTab(t);
         if (scroll) setTimeout(scrollToCharts, 80);
@@ -522,8 +540,24 @@ export default function App() {
     width: 38, height: 38, borderRadius: 9, cursor: "pointer", textDecoration: "none",
     color, ...glass(rgb, 0.10), border: "1px solid transparent", boxShadow: "none", "--glow": glow,
   });
+  const galleryActive = gallery;
   const navActions = (
-    <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+    <div style={{ display: "flex", gap: 8, flexShrink: 0, alignItems: "center" }}>
+      <button className="pill" onClick={openGallery} title="Browse all charts"
+        style={{
+          display: "inline-flex", alignItems: "center", gap: 7, whiteSpace: "nowrap",
+          fontFamily: SANS, fontSize: 13.5, fontWeight: 700, padding: "8px 13px", borderRadius: 9,
+          cursor: "pointer", background: galleryActive ? "rgba(167,139,250,0.16)" : "transparent",
+          border: `1px solid ${galleryActive ? "#a78bfacc" : "rgba(167,139,250,0.45)"}`,
+          boxShadow: galleryActive ? "0 0 14px #a78bfa55" : "none",
+          color: galleryActive ? "#f8fafc" : "#c4b5fd", "--glow": "#a78bfa",
+        }}>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+          <rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" />
+          <rect x="3" y="14" width="7" height="7" rx="1" /><rect x="14" y="14" width="7" height="7" rx="1" />
+        </svg>
+        {!isMobile && <span>Charts</span>}
+      </button>
       <a className="pill" href={X_URL} target="_blank" rel="noopener noreferrer" title="@SPX6900Rainbow" style={navIcon("255, 255, 255", "rgba(226,232,240,0.5)")}>
         <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24h-6.66l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" /></svg>
       </a>
@@ -644,6 +678,11 @@ export default function App() {
       )}
 
       {/* Content */}
+      {gallery ? (
+        <Suspense fallback={<div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Loading charts…</div>}>
+          <ChartsGallery isMobile={isMobile} onOpen={goChart} />
+        </Suspense>
+      ) : (
       <div style={{ padding: isMobile ? "16px 12px 40px" : "26px 20px 52px" }}>
       {/* Header */}
       <div style={{ maxWidth: MAX_W, margin: "0 auto 24px" }}>
@@ -1187,7 +1226,8 @@ export default function App() {
       }}>
         Single-cycle fit on a memecoin. Not financial advice. Supply ~939M.
       </div>
-      </div>{/* end content */}
+      </div>
+      )}{/* end content */}
 
     </div>
   );
