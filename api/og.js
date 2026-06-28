@@ -96,11 +96,12 @@ export default async function handler(req, res) {
   }
 
   res.setHeader("Content-Type", "image/png");
-  // Console previews (?post=) stay fresh for card dev; share images (default /
-  // ?tab=) cache hard so crawler/unfurl re-fetches are served from the CDN
-  // instead of re-rendering the PNG — a social preview being an hour stale is fine.
+  // Console previews (?post=) stay fresh for card dev — short TTL so the control
+  // panel reflects a new deploy within seconds (was 60s + 5min stale, which made
+  // card tweaks look like they "weren't deploying"). Share images (default /
+  // ?tab=) cache hard so crawler/unfurl re-fetches come from the CDN.
   res.setHeader("Cache-Control", directPost
-    ? "s-maxage=60, stale-while-revalidate=300"
+    ? "s-maxage=10, stale-while-revalidate=20"
     : "s-maxage=3600, stale-while-revalidate=86400");
   res.status(200).end(png);
 }
