@@ -260,6 +260,17 @@
     - **Meta:** ITC's library is large and much of it (these + supertrend + pi-cycle) is
       generic price-derived TA. Off the SPX6900 moat (honest VALUATION: rainbow, realized
       price, risk, S&P flex). Don't rebuild their whole TA suite; favor valuation/on-chain.
+  - **⭐ WHAT LANDS WITH THE AUDIENCE (owner, 2026-06-28) — read before building cards.**
+    The best-received cards are ALL **price-TARGET / "how many X it's run"** cards — the
+    aspirational growth-multiple framing: `targets`, `milestones`, `memecoins`, `btcgrade`,
+    `dogeclock`, `roadmap`, `alltime`, `hundred`, and the S&P-500 flexes. **"Techy" stats
+    land WEAKLY** — volatility, correlation, RSI, z-score, etc.: the average holder doesn't
+    decode them at a glance, which is a barrier to entry (this is why `volatility` was
+    removed and `correlation` never built). **A visual must tell its story at first glance**
+    — if you have to read the axis to get it, it's too techy. So for any NEW card: favour
+    a big aspirational number ("X× to $69 / DOGE's cap / the next target") over a clever
+    metric. The roster already rotates ~40+ days without repeat, so the bar for adding is
+    high — only add if it's an obvious X-multiple/target win, not another indicator.
   - **Card-variety principle (owner, 2026-06-25) — IMPORTANT framing correction.**
     The daily FEED has a LOWER bar than a site tab: a visually-fresh card keeps the
     rotation from going stale even if its data overlaps an existing one. Bot cards are
@@ -290,13 +301,12 @@
       `risklevels`, `runningroi` (365D ROI), `spxvssp` (vs S&P), `roadmap`. They already render as OG images
       (`/api/og?post=<id>`), so a gallery tile is ~free; a native interactive tab is a
       separate per-card React build (like `ChannelChart.jsx`).
-  - ✅ **Volatility "how wild is it" — BUILT 2026-06-28** (card id `volatility`, a `bar`
-    card in `posts.mjs`). Annualized WEEKLY vol (stdev of weekly log-returns × √52, last
-    52wk), SPX6900 vs BTC vs the S&P 500 — three bars + coin logos. Currently ~120% vs
-    ~41% vs ~11% → "2.9× Bitcoin's swings, ~10× the S&P." Weekly (not monthly) on purpose:
-    monthly vol is wildly inflated by the launch-pump outliers (Sep/Oct '24 +685/+889%),
-    which gave the misleading 768%/17×/60× figures. Honest-about-risk angle (the moat).
-    `weeklyCloses()`/`annWeeklyVol()` helpers are self-contained from the bundled histories.
+  - **❌ Volatility "how wild is it" — BUILT then REMOVED 2026-06-28.** Was a 3-bar SPX
+    vs BTC vs S&P annualized-weekly-vol card. Owner pulled it: a bar of "120% annualized
+    volatility" is too abstract — the average user can't decode it at a glance, so it's a
+    barrier to entry. (The numbers, if ever revived: weekly vol — NOT monthly, which the
+    launch pumps inflate to a bogus 768% — gives SPX ~120% / BTC ~41% / S&P ~11%, i.e.
+    ~3× BTC, ~10× S&P. A "±17% in a typical week" reframe is more visceral but still techy.)
   - **❌ Decoupling from Bitcoin — CHECKED & SHELVED (2026-06-28).** The "SPX finding its
     own legs" story does NOT survive scrutiny. The flattering 0.49→0.20→0.11 figures were
     MONTHLY-return correlations over 24/12/6mo — i.e. only **6–12 data points**, a tiny-

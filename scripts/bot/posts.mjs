@@ -6,7 +6,7 @@ import * as M from "../../src/models.js";
 import { DEFAULT_RAW } from "../../src/data.js";
 import { CRYPTO_MILESTONES } from "../../src/milestones.js";
 import { btcCycleProjection } from "../../src/btc-cycle.js";
-import { BTC_HISTORY, BTC_FIRST_DATE } from "../../src/btc-history.js";
+import { BTC_HISTORY } from "../../src/btc-history.js";
 import { ETH_HISTORY, SOL_HISTORY } from "../../src/alt-age-history.js";
 import { SP500_HISTORY } from "../../src/sp500-history.js";
 import { rsiNow } from "./rsi-card.mjs";
@@ -92,23 +92,6 @@ const SPX_CUBE = "#facc15";
 const CUBE_COLORS = { "PEPE ATH MC": "#22c55e", "SHIB ATH MC": "#f43f5e", "DOGE ATH MC": "#a78bfa" };
 // S&P 500 total market cap (drifts over time; bump as needed). Used by the sp500 card.
 const SP500_CAP = 50e12;
-// Annualized weekly volatility (last 52 weeks) for the "how wild is it" card. Each
-// source is resampled to weekly closes (one close per ISO-week bucket), then the
-// stdev of log-returns × √52. Weekly avoids the launch-pump monthly outliers.
-const VOL_WK = 7 * 86400000;
-const weeklyCloses = (rows, getTs, getP) => {
-  const m = new Map();
-  for (const r of rows) m.set(Math.floor(getTs(r) / VOL_WK), getP(r));
-  return [...m.keys()].sort((a, b) => a - b).map(k => m.get(k));
-};
-const annWeeklyVol = closes => {
-  const r = [];
-  for (let i = 1; i < closes.length; i++) if (closes[i] > 0 && closes[i - 1] > 0) r.push(Math.log(closes[i] / closes[i - 1]));
-  const w = r.slice(-52);
-  if (w.length < 8) return null;
-  const mean = w.reduce((a, b) => a + b, 0) / w.length;
-  return Math.sqrt(w.reduce((a, b) => a + (b - mean) ** 2, 0) / w.length) * Math.sqrt(52);
-};
 const TIERS = [
   ["diamond", "Diamond", "#22d3ee"], ["gold", "Gold", "#f59e0b"], ["silver", "Silver", "#cbd5e1"],
   ["bronze", "Bronze", "#b45309"], ["wood", "Wood", "#78716c"],
@@ -568,35 +551,14 @@ Cheap can get cheaper, but the deepest discounts paid the patient.`,
     };
   })(),
 
-  // (removed 2026-06-28) the "strategy vs HODL (perfect hindsight)" card — too dry,
-  // and perfect-hindsight peak-timing reads as buy-the-top hype, against the honest-
-  // analysis moat. The dca + dcaladder cards cover the honest/actionable angle.
-
-  // 5b — "how wild is it": annualized volatility, SPX6900 vs BTC vs the S&P 500.
-  // Honest about risk (the moat), and the magnitude is the whole story.
-  s => (() => {
-    const btcF = new Date(BTC_FIRST_DATE).getTime();
-    const spxV = annWeeklyVol(weeklyCloses(DEFAULT_RAW, r => new Date(r.date).getTime(), r => r.price));
-    const btcV = annWeeklyVol(weeklyCloses(BTC_HISTORY, r => btcF + r[0] * 86400000, r => r[1]));
-    const spV = annWeeklyVol(weeklyCloses(SP500_HISTORY, r => new Date(r[0]).getTime(), r => r[1]));
-    if (!spxV || !btcV || !spV) return null;
-    const xBtc = spxV / btcV, xSp = spxV / spV, pct = v => Math.round(v * 100) + "%";
-    return {
-      id: "volatility",
-      text: ct`🌪️ SPX6900 swings ~${xBtc.toFixed(1)}× as hard as Bitcoin — and ~${Math.round(xSp)}× the S&P 500.
-Annualized volatility, last 12 months: SPX ${pct(spxV)}, Bitcoin ${pct(btcV)}, the S&P just ${pct(spV)}.
-The wild ride is the risk and the reward.`,
-      card: { type: "bar", spec: {
-        title: "How wild is SPX6900?", headline: `${xBtc.toFixed(1)}× Bitcoin's swings`, accent: "#4ade80",
-        footer: "spx6900rainbow.xyz · annualized weekly volatility, 12mo · not financial advice",
-        bars: [
-          { value: spxV * 100, text: pct(spxV), logo: "spx", color: "#4ade80", outline: true },
-          { value: btcV * 100, text: pct(btcV), logo: "btc", color: "#f7931a" },
-          { value: spV * 100, text: pct(spV), logo: "sp500", color: "#94a3b8" },
-        ],
-      } },
-    };
-  })(),
+  // (removed 2026-06-28) two cards pulled as not landing with the audience:
+  //   • "strategy vs HODL (perfect hindsight)" — dry + buy-the-top-hype framing.
+  //   • "volatility / how wild is it" (3-bar SPX vs BTC vs S&P) — owner: a bar of
+  //     "120% annualized vol" is too abstract; the average user doesn't decode it.
+  // Lesson (owner, 2026-06-28): the WINNERS are price-TARGET / "how many X it's run"
+  // cards (targets, milestones, memecoins, btcgrade, dogeclock, roadmap, alltime, the
+  // S&P flexes). "Techy" stats (vol, correlation, RSI, z-score) land weakly. Favour
+  // aspirational X-multiple framing for any new card; don't add more techy ones.
 
   // 6 — targets (price line climbing toward the next target levels)
   s => {
