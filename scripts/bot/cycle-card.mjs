@@ -76,7 +76,7 @@ export function cycleSyncSvg(price, dateStr = new Date().toISOString().slice(0, 
   // line's end (today), the BTC coin at the orange line's end (its real recovery).
   const sx = x(anchorTs), sy = yL(price);
   const be = c.histFwd.at(-1) ?? c.histPts.at(-1);
-  const bx = x(be[0]), by = yR(be[1]), CO = 38;
+  const bx = x(be[0]), by = yR(be[1]), CO = 46;
   const endCoin = (kind, cx, cy, stroke) =>
     `<circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="${(CO / 2 + 3).toFixed(1)}" fill="#05050e" stroke="${stroke}" stroke-width="2"/>`
     + logoMark(kind, cx - CO / 2, cy - CO / 2, CO);
@@ -108,8 +108,8 @@ ${dots}
 ${endCoin("btc", bx, by, "#f7931a")}
 ${endCoin("spx", sx, sy, "#4ade80")}
 ${xlab}
-${logoMark("spx", 64, 18, 34)}${logoMark("btc", 104, 18, 34)}
-<text x="150" y="42" fill="#e2e8f0" font-size="27" font-weight="700" font-family="sans-serif" letter-spacing="1">SPX6900 vs BITCOIN'S LAST CYCLE</text>
+${logoMark("spx", 64, 12, 42)}${logoMark("btc", 114, 12, 42)}
+<text x="166" y="42" fill="#e2e8f0" font-size="27" font-weight="700" font-family="sans-serif" letter-spacing="1">SPX6900 vs BITCOIN'S LAST CYCLE</text>
 <text x="${W - mR}" y="42" fill="#f7931a" font-size="24" font-weight="800" font-family="sans-serif" text-anchor="end">now ≈ BTC ${fMon(c.btcFrom.getTime())}</text>
 <text x="64" y="70" fill="#94a3b8" font-size="24" font-family="sans-serif">SPX retraced BTC's 2021 double top (Apr &amp; Nov) → 2022 bottom — weeks apart, aligned</text>
 <text x="64" y="${H - 14}" fill="#475569" font-size="15" font-family="sans-serif">spx6900rainbow.xyz · not financial advice · each on its own scale, aligned in time</text>

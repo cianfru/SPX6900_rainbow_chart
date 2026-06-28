@@ -24,7 +24,7 @@ const png = (svg, w = W) => new Resvg(svg, { fitTo: { mode: "width", value: w },
 
 // "[logo] vs [logo] = result" header — sharp + colorful, replaces the wordy title.
 function logoHeaderSvg(lh, accent) {
-  const size = 76, y = 72;
+  const size = 90, y = 68;
   let x = 64, out = logoMark(lh.left, x, y, size);
   x += size + 22;
   out += `<text x="${x}" y="${(y + size * 0.7).toFixed(1)}" fill="#94a3b8" font-size="34" font-weight="700" font-family="sans-serif">vs</text>`;
@@ -229,7 +229,7 @@ export function lineCardSvg(spec, opts = {}) {
     // A coin logo can cap the line at its right end (e.g. each major's market cap);
     // the line is pulled in to make room and the label sits just left of the coin.
     if (h.logo) {
-      const SZ = 46, lgx = DW - mR - SZ;
+      const SZ = 55, lgx = DW - mR - SZ;
       const lbl = esc(h.label), tx = lgx - 12, tw = lbl.length * 16 + 20;
       hl += `<line x1="${mL}" y1="${yy}" x2="${(lgx - 6).toFixed(1)}" y2="${yy}" stroke="${h.color}" stroke-opacity="0.8" stroke-width="2"${h.dash === false ? "" : ` stroke-dasharray="6 6"`}/>`;
       // Dark chip behind the label so the dashed line + any projection read as
@@ -297,7 +297,7 @@ export function lineCardSvg(spec, opts = {}) {
   // a thin connector ties each mark back to its true endpoint (the majors race).
   let endLogos = "";
   if (hasEndLogos && reveal >= 1) {
-    const SZ = 46, GAP = 8;
+    const SZ = 55, GAP = 8;
     let ends = series
       .map(s => ({ s, last: s.pts.filter(([, y]) => !spec.yLog || y > 0).at(-1) }))
       .filter(o => o.s.logo && o.last)
@@ -346,7 +346,7 @@ export function renderBarCard(spec, opts = {}) {
     svg += `<text x="${cx.toFixed(1)}" y="${(yTop - 14).toFixed(1)}" fill="#e2e8f0" font-size="30" font-weight="700" text-anchor="middle" font-family="sans-serif">${esc(b.text ?? b.value)}</text>`;
     // Under-bar identity: a coin logo when supplied, else the text label.
     if (b.logo) {
-      const ls = 32;
+      const ls = 40;
       svg += logoMark(b.logo, cx - ls / 2, mT + PH + 2, ls);
     } else {
       svg += `<text x="${cx.toFixed(1)}" y="${(mT + PH + 32).toFixed(1)}" fill="#94a3b8" font-size="26" text-anchor="middle" font-family="sans-serif">${esc(b.label)}</text>`;
@@ -914,7 +914,7 @@ export function cubeCardSvg(spec, opts = {}) {
     const ly = baseY + 38;
     body += `<text x="${cx0.toFixed(1)}" y="${ly}" fill="#f8fafc" font-size="30" font-weight="800" text-anchor="middle" font-family="sans-serif">${esc(fMultLbl(shown))}</text>`;
     if (it.logo) {
-      const ls = 34;
+      const ls = 42;
       body += logoMark(it.logo, cx0 - ls / 2, ly + 12, ls);
       if (it.sub) body += `<text x="${cx0.toFixed(1)}" y="${ly + 70}" fill="#94a3b8" font-size="19" text-anchor="middle" font-family="sans-serif">${esc(it.sub)}</text>`;
     } else {
