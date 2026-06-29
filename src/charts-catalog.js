@@ -13,16 +13,20 @@ export const CHART_GROUPS = [
     charts: [
       { id: "channel", title: "Power-Law Channel", post: "channel", desc: "Price inside its log-regression trend channel." },
       { id: "risk", title: "Risk Bands", post: "risk", desc: "Valuation risk on a 0–1 scale over time." },
+      { id: "riskcolor", title: "Valuation Z-Score", post: "riskcolor", desc: "Price recoloured by how many σ from fair value." },
+      { id: "riskheat", title: "20-Week Heat", post: "riskheat", desc: "How stretched price is from its 20-week average." },
+      { id: "rsidots", title: "RSI Dots", post: "rsidots", desc: "Price as dots coloured by RSI, PlanB-style." },
       { id: "model", title: "The Model", post: "model", desc: "How the rainbow bands are fit from the data." },
     ],
   },
   {
     title: "Performance",
     color: "#4ade80",
-    desc: "What it's done — rallies, drawdowns and seasonality.",
+    desc: "What it's done — rallies, drawdowns, ROI and seasonality.",
     charts: [
       { id: "rally", title: "Rallies", post: "rally", desc: "Every major rally up off the lows." },
       { id: "drawdown", title: "Drawdowns", post: "drawdown", desc: "The depth and recovery of each dip." },
+      { id: "runningroi", title: "365-Day ROI", post: "runningroi", desc: "Rolling one-year return over time." },
       { id: "monthly", title: "Seasonality", post: "monthlyreturns", desc: "Monthly returns across every year." },
     ],
   },

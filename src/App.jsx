@@ -25,6 +25,10 @@ const SupplyConviction = lazy(() => import("./SupplyConviction.jsx"));
 const ModelChart = lazy(() => import("./ModelChart.jsx"));
 const ChannelChart = lazy(() => import("./ChannelChart.jsx"));
 const SeasonalityGrid = lazy(() => import("./SeasonalityGrid.jsx"));
+const RiskColorChart = lazy(() => import("./RiskColorChart.jsx"));
+const RiskHeatChart = lazy(() => import("./RiskHeatChart.jsx"));
+const RunningRoiChart = lazy(() => import("./RunningRoiChart.jsx"));
+const RsiDotsChart = lazy(() => import("./RsiDotsChart.jsx"));
 const ChartsGallery = lazy(() => import("./ChartsGallery.jsx"));
 
 const SANS = "'Space Grotesk', system-ui, sans-serif";
@@ -116,6 +120,10 @@ function TabIcon({ name }) {
     case "supply": return (<svg {...p}><path d="M6 3h12l4 6-10 13L2 9Z" /><path d="M11 3 8 9l4 13 4-13-3-6" /><path d="M2 9h20" /></svg>);
     case "holders": return (<svg {...p}><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>);
     case "model": return (<svg {...p}><path d="M3 3v18h18" /><circle cx="8" cy="15" r="1.4" /><circle cx="13" cy="10" r="1.4" /><circle cx="18" cy="6" r="1.4" /><path d="M3 17 21 5" strokeDasharray="3 3" /></svg>);
+    case "riskcolor": return (<svg {...p}><path d="M3 17c3-1 4-9 7-9s4 6 7 4 3-7 4-8" /><circle cx="8" cy="8" r="1.2" /><circle cx="17" cy="12" r="1.2" /></svg>);
+    case "riskheat": return (<svg {...p}><path d="M3 12h3l2-6 4 12 2.5-7 1.5 3H21" /></svg>);
+    case "rsidots": return (<svg {...p}><circle cx="5" cy="16" r="1.6" /><circle cx="10" cy="11" r="1.6" /><circle cx="15" cy="13" r="1.6" /><circle cx="20" cy="6" r="1.6" /><path d="M3 19 21 4" strokeDasharray="3 3" /></svg>);
+    case "runningroi": return (<svg {...p}><path d="M3 12a9 9 0 1 0 9-9" /><path d="M3 4v4h4" /><path d="M12 8v4l3 2" /></svg>);
     default: return null;
   }
 }
@@ -1111,6 +1119,10 @@ export default function App() {
         <Suspense fallback={<div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 40 }}>Loading chart…</div>}>
           {tab === "channel" && <ChannelChart series={priceData} m={m} isMobile={isMobile} />}
           {tab === "risk" && <RiskChart series={priceData} m={m} isMobile={isMobile} />}
+          {tab === "riskcolor" && <RiskColorChart series={priceData} m={m} isMobile={isMobile} />}
+          {tab === "riskheat" && <RiskHeatChart series={priceData} isMobile={isMobile} />}
+          {tab === "rsidots" && <RsiDotsChart series={priceData} isMobile={isMobile} />}
+          {tab === "runningroi" && <RunningRoiChart series={priceData} isMobile={isMobile} />}
           {tab === "drawdown" && <DrawdownChart series={priceData} isMobile={isMobile} />}
           {tab === "monthly" && <SeasonalityGrid series={priceData} isMobile={isMobile} />}
           {tab === "rally" && <RallyChart series={priceData} m={m} isMobile={isMobile} />}

@@ -1,0 +1,105 @@
+import { useMemo } from "react";
+import {
+  ResponsiveContainer, ComposedChart, Line, Area, XAxis, YAxis, Tooltip, CartesianGrid,
+} from "recharts";
+import { zScoreSeries } from "./chart-math.js";
+
+const SANS = "'Space Grotesk', system-ui, sans-serif";
+const MONO = "ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace";
+const MAX_W = 1400;
+const fPrice = p => (p < 1 ? "$" + p.toFixed(p < 0.01 ? 4 : 3) : "$" + p.toLocaleString(undefined, { maximumFractionDigits: 2 }));
+const yearOf = t => new Date(t).getUTCFullYear();
+const sigWord = s => (s <= -1.5 ? "deeply cheap" : s < -0.5 ? "cheap" : s < 0.5 ? "fair value" : s < 1.5 ? "stretched" : "very stretched");
+
+function Tip({ active, payload }) {
+  if (!active || !payload?.length) return null;
+  const d = payload.find(p => p.payload?.price != null)?.payload;
+  if (!d) return null;
+  return (
+    <div style={{ background: "rgba(4,4,12,0.97)", border: "1px solid rgba(255,255,255,0.18)", borderRadius: 10, padding: "12px 16px", fontFamily: SANS, fontSize: 13, color: "#cbd5e1" }}>
+      <div style={{ fontWeight: 700, color: "#f8fafc", marginBottom: 4 }}>
+        {new Date(d.ts).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
+      </div>
+      <div>Price: <span style={{ fontFamily: MONO }}>{fPrice(d.price)}</span></div>
+      <div>Fair value: <span style={{ fontFamily: MONO, color: "#cbd5e1" }}>{fPrice(d.fair)}</span></div>
+      <div>vs trend: <span style={{ fontFamily: MONO, fontWeight: 700, color: d.color }}>{d.sigma >= 0 ? "+" : ""}{d.sigma.toFixed(2)}σ</span> <span style={{ color: "#94a3b8" }}>({sigWord(d.sigma)})</span></div>
+    </div>
+  );
+}
+
+function Metric({ label, value, color = "#f8fafc", sub }) {
+  return (
+    <div style={{ textAlign: "center", minWidth: 96 }}>
+      <div style={{ fontFamily: MONO, fontSize: 11, color: "#94a3b8", letterSpacing: 1.1, textTransform: "uppercase" }}>{label}</div>
+      <div style={{ fontFamily: MONO, fontSize: 24, fontWeight: 700, color }}>{value}</div>
+      {sub && <div style={{ fontFamily: SANS, fontSize: 11, color: "#64748b" }}>{sub}</div>}
+    </div>
+  );
+}
+
+// Price recoloured by its valuation z-score — how many σ the log-price sits from
+// the power-law fair value. Blue = cheap (below trend), red = stretched (above).
+export default function RiskColorChart({ series, m, isMobile }) {
+  const { rows, xDomain, xTicks, yDomain, stops, cur, areaColor } = useMemo(() => {
+    const { pts } = zScoreSeries(series, m);
+    const rows = pts.map(p => ({ ts: p.ts, price: p.price, fair: p.fair, sigma: p.sigma, color: p.color }));
+    const xMin = rows[0].ts, xMax = rows.at(-1).ts;
+    let yMin = Infinity, yMax = -Infinity;
+    for (const r of rows) { if (r.price < yMin) yMin = r.price; if (r.price > yMax) yMax = r.price; if (r.fair < yMin) yMin = r.fair; if (r.fair > yMax) yMax = r.fair; }
+    const xTicks = [];
+    for (let yr = yearOf(xMin); yr <= yearOf(xMax); yr++) { const d = Date.UTC(yr, 0, 1); if (d >= xMin && d <= xMax) xTicks.push(d); }
+    // gradient stops along x: colour at each point (objectBoundingBox, x1→x2 horizontal)
+    const span = (xMax - xMin) || 1;
+    const stops = rows.map(r => ({ off: ((r.ts - xMin) / span * 100).toFixed(2) + "%", color: r.color }));
+    return { rows, xDomain: [xMin, xMax], xTicks, yDomain: [yMin * 0.75, yMax * 1.3], stops, cur: pts.at(-1), areaColor: pts.at(-1).color };
+  }, [series, m]);
+
+  const yTicks = [0.0001, 0.001, 0.01, 0.1, 1, 10, 100].filter(v => v >= yDomain[0] && v <= yDomain[1]);
+
+  return (
+    <div style={{ maxWidth: MAX_W, margin: "0 auto" }}>
+      <div style={{ display: "flex", gap: isMobile ? 16 : 30, justifyContent: "center", marginBottom: 18, flexWrap: "wrap" }}>
+        <Metric label="today" value={`${cur.sigma >= 0 ? "+" : ""}${cur.sigma.toFixed(1)}σ`} color={cur.color} sub={sigWord(cur.sigma)} />
+        <Metric label="fair value" value={fPrice(cur.fair)} sub="power-law trend, today" />
+        <Metric label="price" value={fPrice(cur.price)} color="#f8fafc" sub="live" />
+      </div>
+
+      <ResponsiveContainer width="100%" height={isMobile ? 400 : 560}>
+        <ComposedChart data={rows} margin={{ top: 10, right: isMobile ? 14 : 32, bottom: 24, left: isMobile ? 0 : 12 }}>
+          <defs>
+            <linearGradient id="zgrad" x1="0" y1="0" x2="1" y2="0">
+              {stops.map((s, i) => <stop key={i} offset={s.off} stopColor={s.color} />)}
+            </linearGradient>
+            <linearGradient id="zarea" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={areaColor} stopOpacity={0.28} />
+              <stop offset="100%" stopColor={areaColor} stopOpacity={0} />
+            </linearGradient>
+          </defs>
+          <CartesianGrid strokeDasharray="2 8" stroke="rgba(255,255,255,0.06)" />
+          <XAxis
+            dataKey="ts" type="number" domain={xDomain} ticks={xTicks} scale="time" allowDataOverflow
+            tickFormatter={t => String(yearOf(t))}
+            tick={{ fill: "#cbd5e1", fontSize: isMobile ? 10 : 12, fontFamily: MONO }}
+            axisLine={{ stroke: "rgba(255,255,255,0.15)" }} tickLine={false}
+          />
+          <YAxis
+            type="number" scale="log" domain={yDomain} ticks={yTicks} allowDataOverflow
+            tickFormatter={v => (v < 1 ? "$" + v : "$" + v.toLocaleString())}
+            tick={{ fill: "#cbd5e1", fontSize: isMobile ? 10 : 12, fontFamily: MONO }}
+            axisLine={{ stroke: "rgba(255,255,255,0.15)" }} tickLine={false} width={isMobile ? 48 : 60}
+          />
+          <Tooltip content={<Tip />} cursor={{ stroke: "rgba(255,255,255,0.2)" }} />
+          <Area dataKey="price" stroke="none" fill="url(#zarea)" isAnimationActive={false} activeDot={false} />
+          <Line dataKey="fair" stroke="#cbd5e1" strokeWidth={1.8} strokeDasharray="2 7" dot={false} isAnimationActive={false} name="fair value" />
+          <Line dataKey="price" stroke="url(#zgrad)" strokeWidth={3.2} dot={false} isAnimationActive={false} name="price" />
+        </ComposedChart>
+      </ResponsiveContainer>
+
+      <div style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.65, maxWidth: 880, marginInline: "auto" }}>
+        The price line recoloured by its <strong style={{ color: "#cbd5e1" }}>valuation z-score</strong> — how many standard deviations the log-price sits
+        from the power-law <span style={{ color: "#cbd5e1" }}>fair value</span> (dashed). <span style={{ color: "#2563eb" }}>Blue</span> = cheap, below trend;
+        <span style={{ color: "#ef4444" }}> red</span> = stretched, above trend. A long-term statistical read, distinct from the short-term 20-week heat. Not financial advice.
+      </div>
+    </div>
+  );
+}
