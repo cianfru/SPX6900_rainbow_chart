@@ -280,27 +280,41 @@
     SITE-TAB / info value — several of them (e.g. MA-strength line, BMSB, even a fresh
     corridor) are still fine as ROTATION-variety cards. Still skip the genuinely
     off-brand/overfit ones (supertrend buy/sell signals, pi-cycle, day-of-month returns).
-  - **Site nav getting crowded (owner, 2026-06-25).** ~12 top-bar tabs now and growing;
-    time to redesign nav SOON. Lean AWAY from a pure hamburger (hides the breadth, which
-    is the value prop for a chart-heavy site). Candidates: grouped "Charts ▾" dropdown by
-    category (Valuation / Risk / Returns / On-chain / Macro) = quick & clean; OR a side
-    list / drawer (matches ITC, collapses on mobile); OR a charts GALLERY grid of preview
-    tiles.
-  - **⭐ Charts GALLERY grid — owner LIKES this direction (2026-06-25, "would look very
-    cool").** A browsable grid of chart preview tiles, one per chart (image/thumb + title
-    + one-line desc), click to open — exactly the Into the Cryptoverse "Charts" page
-    layout the owner has been screenshotting. Best way to showcase the growing library
-    (makes "lots of charts" a feature, not clutter). Each tile thumb can reuse the
-    existing OG render (`/api/og?tab=<id>` / `?post=<id>`), so previews are ~free. Plan:
-    keep the hero rainbow on the homepage; add a `/charts` gallery as the browse-all view;
-    a quick grouped "Charts ▾" dropdown can land first as the interim de-clutter. Build
-    the gallery once a few more variety cards exist so it launches looking abundant.
-    - **Cards to PROMOTE to website tabs in the suite/gallery (owner, 2026-06-26):** the
-      newer cards are currently BOT-CARD-ONLY (only `channel` has a native React tab so
-      far). Candidates to add as site tabs: `riskheat` (20W extension), `riskcolor`,
-      `risklevels`, `runningroi` (365D ROI), `spxvssp` (vs S&P), `roadmap`. They already render as OG images
-      (`/api/og?post=<id>`), so a gallery tile is ~free; a native interactive tab is a
-      separate per-card React build (like `ChannelChart.jsx`).
+  - ✅ **SITE REDESIGN — nav declutter + Charts gallery + interactive chart pages —
+    BUILT 2026-06-29.** Replaced the crowded 12-tab top strip with **3 routes**:
+    - **Home (`/`)** = the Rainbow hero ONLY + its rainbow-specific sections (band
+      stats, target timeline, scale plan, model footer). Decluttered, breathing room.
+    - **Charts gallery (`?view=charts`)** = ITC-style grid of preview tiles grouped by
+      category (Valuation / Performance / On-Chain / Bitcoin & Markets) + a featured
+      Rainbow tile. `src/ChartsGallery.jsx`. Tile thumbnails = the OG card image
+      (`/api/og?post=<id>&thumb=1`, hard-cached landscape), lazy-loaded — purely an
+      at-a-glance preview; the DESTINATION is the interactive chart.
+    - **Dedicated chart page (`?chart=<id>`)** = each interactive chart full-width with
+      back-to-gallery · category · title · description · share. Reuses the existing
+      lazy React chart components.
+    - **Minimal nav** = `Rainbow (home) · Charts · X` (the `relative` variant dropdown
+      moved out of the nav — `RelativeChart` has its own in-chart selector).
+    - **`src/charts-catalog.js` = single source of truth** (CHART_GROUPS / CHART_META /
+      CHART_IDS) shared by gallery + routing + deep-links. Adding/removing a site chart =
+      edit this one file (id must match the render switch in App.jsx + a lazy import).
+    - Deep-links: `?chart=`/`?view=`; legacy `?tab=` still honored (old shared links).
+  - **⭐ KEY DECISION (owner, 2026-06-29): the website is INTERACTIVE charts only;
+    INFOGRAPHIC cards are tweet-only and do NOT live on the site at all.** The library
+    splits in two: (a) **time-series charts** that benefit from zoom/hover/toggle → these
+    get interactive React pages in the gallery; (b) **infographic cards** (targets,
+    memecoins, milestones, hundred, btcgrade, dogeclock, F&G dial, sp500 cube, etc.) —
+    complete at a glance BY DESIGN → stay as bot/tweet cards, NOT on the website. Do not
+    mirror tweet cards onto the site (an earlier "gallery of card images" attempt was
+    rejected for exactly this — destinations must be genuinely interactive).
+  - **NEXT (incremental): convert card-only TIME-SERIES charts to interactive React
+    pages**, one at a time, adding each to `charts-catalog.js`. Phase-1 shipped the 11
+    that already had components (channel, risk, model, rally, drawdown, monthly, supply,
+    holders, spxbtc, btccycle, relative). Candidates to build next (all time-series, all
+    currently bot-card-only): `riskcolor` (z-score), `riskheat` (20W extension),
+    `runningroi` (365D ROI), `rsidots` (RSI dots), `roadmap` (power-law projection),
+    `spxvssp` (vs S&P), `breakeven` (cost basis), `diamondtrend` (% supply in profit).
+    Each is a per-chart React build (like `ChannelChart.jsx`); the data/model logic is
+    already shared in `src/`, so it's a rendering job. (NOT the infographic cards above.)
   - **❌ Volatility "how wild is it" — BUILT then REMOVED 2026-06-28.** Was a 3-bar SPX
     vs BTC vs S&P annualized-weekly-vol card. Owner pulled it: a bar of "120% annualized
     volatility" is too abstract — the average user can't decode it at a glance, so it's a
