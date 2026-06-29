@@ -126,7 +126,6 @@ export function renderCycleSyncCard(stats, opts = {}) { return png(cycleSyncSvg(
 // ARE HERE pointer makes the "where on the halving clock" idea legible.
 const fMult = m => (m >= 100 ? Math.round(m) + "×" : m >= 10 ? m.toFixed(0) + "×" : m.toFixed(1) + "×");
 const fDollar = v => (v >= 1 ? "$" + Math.round(v) : "$" + v.toFixed(v < 0.01 ? 4 : v < 0.1 ? 3 : 2));
-const fMonA = ts => { const d = new Date(ts); return d.toLocaleDateString("en-US", { month: "short" }) + " '" + String(d.getUTCFullYear()).slice(2); };
 
 export function cycleClockSvg(price, dateStr = new Date().toISOString().slice(0, 10), opts = {}) {
   const c = btcCycleProjection();
@@ -214,8 +213,7 @@ ${cone}
 <line x1="${nx.toFixed(1)}" y1="${mT}" x2="${nx.toFixed(1)}" y2="${plotBot}" stroke="rgba(226,232,240,0.5)" stroke-dasharray="5 5"/>
 <text x="${(nx).toFixed(1)}" y="${(mT - 8).toFixed(1)}" fill="#e2e8f0" font-size="18" font-weight="800" text-anchor="middle" font-family="sans-serif">▼ YOU ARE HERE</text>
 <circle cx="${peakX.toFixed(1)}" cy="${peakY.toFixed(1)}" r="7" fill="#f7931a" stroke="#fff" stroke-width="2"/>
-<text x="${(peakX - 10).toFixed(1)}" y="${(peakY - 14).toFixed(1)}" fill="#f7931a" font-size="23" font-weight="800" text-anchor="end" font-family="sans-serif">~${fDollar(c.peak)} · ~${fMult(mult)}</text>
-<text x="${(peakX - 10).toFixed(1)}" y="${(peakY + 10).toFixed(1)}" fill="#fbbf24" font-size="19" font-weight="700" text-anchor="end" font-family="sans-serif">${fMonA(c.peakTs)}</text>
+<text x="${(peakX - 10).toFixed(1)}" y="${(peakY - 12).toFixed(1)}" fill="#f7931a" font-size="23" font-weight="800" text-anchor="end" font-family="sans-serif">~${fDollar(c.peak)} · ~${fMult(mult)}</text>
 ${strip}
 ${logoMark("spx", 64, 14, 40)}${logoMark("btc", 110, 14, 40)}
 <text x="160" y="42" fill="#e2e8f0" font-size="28" font-weight="700" font-family="sans-serif" letter-spacing="1">SPX6900 ON THE HALVING CLOCK</text>

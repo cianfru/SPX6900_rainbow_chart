@@ -761,15 +761,10 @@ A rhyme, not a forecast. BTC ran from here.`,
     const c = btcCycleProjection();
     return {
       id: "cycleclock",
-      text: ct`⏳ If the cycle rhymes: a top near ${fPx(c.peak)} by ${fMon(c.peakTs)}.
-SPX already retraced BTC's 2021 double top → 2022 bottom, so today ≈ BTC ${fMon(c.btcFrom)} — a dip near ${fPrice(c.low)} first.
-Where on the halving clock, not a hard date.`,
-      card: { type: "line", spec: {
-        title: "The projected cycle, by the halving clock", headline: `Top ~${fMon(c.peakTs)}`, accent: "#f7931a",
-        yLog: true, yTicks: decadeTicks(c.low, c.peakHi),
-        series: [{ pts: c.projPts, color: "#f7931a", width: 3.2, fill: 0.14 }],
-        marker: { x: c.peakTs, y: c.peak, color: "#f7931a" },
-      } },
+      text: ct`⏳ On Bitcoin's halving clock, SPX6900 sits just off the cycle bottom — today ≈ BTC ${fMon(c.btcFrom)}.
+If it rhymes BTC's post-halving run, the path points toward ~${fPx(c.peak)} by ${fMon(c.peakTs)} (~${fMult(c.peak / s.price)} from here) — a wide cone, not a date.
+A rhyme, not a forecast.`,
+      card: { type: "cycleclock" },
     };
   })(),
 
