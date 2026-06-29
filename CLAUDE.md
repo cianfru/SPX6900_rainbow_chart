@@ -383,14 +383,24 @@
   comes from `btcCycleProjection()` which now also returns `histPts` (BTC real aligned,
   launch→now), `histFwd` (the post-now real stub) and `peaks` (the two mapped tops).
 - **The `cycle` post now uses `cyclesync`** (was the forward-projection `line` card) and
-  its copy explains the double-top reasoning; **`cycleclock`** (still the forward
-  beta-scaled projection) copy now also leads with "SPX already retraced BTC's 2021
-  double top → 2022 bottom, so today ≈ BTC Aug '22". Website **BtcCycleChart.jsx** mirrors
+  its copy explains the double-top reasoning. Website **BtcCycleChart.jsx** mirrors
   it: added a right BTC axis + the aligned real-cycle line + the two peak guides, and the
   caption now opens with the "why ≈ BTC Aug '22" explanation. The forward beta-scaled
   projection (the aggressive ~$85–90 top) is UNCHANGED and kept as the dashed path — note
   it's deliberately more aggressive than realized history (effective beta ~1.4 vs the
   3.4 used forward); left as owner-tuned, not re-calibrated here.
+- ✅ **`cycleclock` REDESIGNED — "The Halving Clock" custom card (BUILT 2026-06-29,
+  `renderCycleClockCard` in `cycle-card.mjs`).** Was a single up-only orange projected
+  line (`type:"line"`) people couldn't read. Now a full-context card: SPX's REAL history
+  (green, with its true double-top + drawdown) flows into a NOW marker; ahead, the
+  beta-scaled path is a bear→bull **CONE** (`projLo`/`projHi`) up to the projected top;
+  dashed `$1/$6.90/$69` lines anchor the scale; and a **phase strip** (journey so far →
+  recovery → bull run → cool-off) with a ▼ YOU ARE HERE pointer makes the "halving clock"
+  legible. Card text kept minimal (owner: "the tweet will describe") — title, `cycle top
+  ~$X`, `~$X · ~Y×` at the peak, phase labels; the DATE lives only in the tweet copy.
+  Wired: `posts.mjs` cycleclock → `card:{type:"cycleclock"}` + 3-line copy; `charts.mjs`
+  dispatch. The ~$91/272× top is the owner-tuned aggressive beta (3.4) — dial down if ever
+  wanted. (`cyclesync` = the rhyme overlay card is separate and unchanged.)
 
 ## Model re-fit hygiene — IMPORTANT, recurring (noted 2026-06-23)
 - The rainbow's power-law fit is **frozen on the bundled `DEFAULT_RAW`** (`buildModel`
