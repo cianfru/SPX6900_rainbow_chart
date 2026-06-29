@@ -7,7 +7,7 @@
 // amplitude doesn't), so it's an honest shape overlay — not a beta-scaled forecast.
 import { Resvg } from "@resvg/resvg-js";
 import { DEFAULT_RAW } from "../../src/data.js";
-import { btcCycleProjection } from "../../src/btc-cycle.js";
+import { btcCycleProjection, BTC_CYCLE } from "../../src/btc-cycle.js";
 import { logoMark } from "./logos.mjs";
 import { FONT } from "./font.mjs";
 
@@ -218,7 +218,8 @@ ${strip}
 ${logoMark("spx", 64, 14, 40)}${logoMark("btc", 110, 14, 40)}
 <text x="160" y="42" fill="#e2e8f0" font-size="28" font-weight="700" font-family="sans-serif" letter-spacing="1">SPX6900 ON THE HALVING CLOCK</text>
 <text x="${W - mR}" y="42" fill="#f7931a" font-size="24" font-weight="800" text-anchor="end" font-family="sans-serif">cycle top ~${fDollar(c.peak)}</text>
-<text x="64" y="${H - 14}" fill="#475569" font-size="15" font-family="sans-serif">spx6900rainbow.xyz · not financial advice · a rhyme, not a forecast</text>
+<text x="${W - mR}" y="68" fill="#94a3b8" font-size="16" text-anchor="end" font-family="sans-serif">assumes SPX swings ~${BTC_CYCLE.beta}× Bitcoin (β)</text>
+<text x="64" y="${H - 14}" fill="#475569" font-size="15" font-family="sans-serif">spx6900rainbow.xyz · not financial advice · a rhyme, not a forecast · cone = bear–bull β range</text>
 </svg>`;
 }
 
