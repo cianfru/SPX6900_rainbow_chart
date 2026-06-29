@@ -195,8 +195,6 @@ export function cycleClockSvg(price, dateStr = new Date().toISOString().slice(0,
     + seg(peakX, x(xMax), "#ef4444", "cool-off");
   strip += `<path d="M${nx.toFixed(1)},${(sy - 3).toFixed(1)} l-8,-11 l16,0 z" fill="#e2e8f0"/>`;
 
-  const topLabel = `~${fDollar(c.peak)} · ${fMonA(c.peakTs)}`;
-
   return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
 <defs>
   <radialGradient id="ccTop" cx="50%" cy="0%" r="85%"><stop offset="0%" stop-color="#f7931a" stop-opacity="0.16"/><stop offset="60%" stop-color="#f7931a" stop-opacity="0"/></radialGradient>
@@ -214,16 +212,15 @@ ${cone}
 <polyline points="${histLine}" fill="none" stroke="#4ade80" stroke-width="9" stroke-opacity="0.18" filter="url(#ccGlow)"/>
 <polyline points="${histLine}" fill="none" stroke="#4ade80" stroke-width="3.4" stroke-linejoin="round" stroke-linecap="round"/>
 <line x1="${nx.toFixed(1)}" y1="${mT}" x2="${nx.toFixed(1)}" y2="${plotBot}" stroke="rgba(226,232,240,0.5)" stroke-dasharray="5 5"/>
-<text x="${(nx).toFixed(1)}" y="${(mT - 8).toFixed(1)}" fill="#e2e8f0" font-size="18" font-weight="800" text-anchor="middle" font-family="sans-serif">▼ YOU ARE HERE · ≈ BTC ${fMonA(c.btcFrom.getTime())}</text>
+<text x="${(nx).toFixed(1)}" y="${(mT - 8).toFixed(1)}" fill="#e2e8f0" font-size="18" font-weight="800" text-anchor="middle" font-family="sans-serif">▼ YOU ARE HERE</text>
 <circle cx="${peakX.toFixed(1)}" cy="${peakY.toFixed(1)}" r="7" fill="#f7931a" stroke="#fff" stroke-width="2"/>
-<text x="${(peakX - 10).toFixed(1)}" y="${(peakY - 14).toFixed(1)}" fill="#f7931a" font-size="22" font-weight="800" text-anchor="end" font-family="sans-serif">cycle top ${topLabel}</text>
-<text x="${(peakX - 10).toFixed(1)}" y="${(peakY + 10).toFixed(1)}" fill="#fbbf24" font-size="19" font-weight="700" text-anchor="end" font-family="sans-serif">~${fMult(mult)} from here</text>
+<text x="${(peakX - 10).toFixed(1)}" y="${(peakY - 14).toFixed(1)}" fill="#f7931a" font-size="23" font-weight="800" text-anchor="end" font-family="sans-serif">~${fDollar(c.peak)} · ~${fMult(mult)}</text>
+<text x="${(peakX - 10).toFixed(1)}" y="${(peakY + 10).toFixed(1)}" fill="#fbbf24" font-size="19" font-weight="700" text-anchor="end" font-family="sans-serif">${fMonA(c.peakTs)}</text>
 ${strip}
 ${logoMark("spx", 64, 14, 40)}${logoMark("btc", 110, 14, 40)}
 <text x="160" y="42" fill="#e2e8f0" font-size="28" font-weight="700" font-family="sans-serif" letter-spacing="1">SPX6900 ON THE HALVING CLOCK</text>
 <text x="${W - mR}" y="42" fill="#f7931a" font-size="24" font-weight="800" text-anchor="end" font-family="sans-serif">cycle top ~${fDollar(c.peak)}</text>
-<text x="64" y="72" fill="#94a3b8" font-size="17" font-family="sans-serif">SPX so far (green) → if it rhymes Bitcoin's post-halving run, the cycle path (orange cone = bear–bull range) points up</text>
-<text x="64" y="${H - 14}" fill="#475569" font-size="15" font-family="sans-serif">spx6900rainbow.xyz · not financial advice · a rhyme, not a forecast · where on the clock, not a hard date</text>
+<text x="64" y="${H - 14}" fill="#475569" font-size="15" font-family="sans-serif">spx6900rainbow.xyz · not financial advice · a rhyme, not a forecast</text>
 </svg>`;
 }
 
