@@ -1282,15 +1282,89 @@ const NO_ROTATE = new Set(["drawdown", "risk", "kraken", "dcaladder"]);
 // — it's a real promo you fire from the console.)
 export const OG_ONLY = new Set(["drawdown", "risk"]);
 
-// Build the weighted rotation order in round-robin passes (pass k includes posts
-// whose weight > k). So higher-weight topics recur more often across the cycle
-// without ever landing on consecutive days.
+// Visual "look" of each card, so the daily feed can ALTERNATE looks instead of
+// spamming the same green log-scale line day after day (owner, 2026-06-29). Two
+// tiers: TIER A = the line-on-log "chart" looks (rainbow/channel/target-ladder/
+// rebased-race/plain-trend — they all read alike); TIER B = the visually distinct
+// "flavour" cards (heatmaps, bars, dial, donut, cube, scatter, colour/dual-axis
+// charts). The rotation interleaves A and B (chart → flavour → chart …) and, within
+// each tier, spreads families so consecutive same-tier days still differ in look.
+const LOOK = {
+  // — Tier A: the green log-line family (visually similar; spread them out) —
+  valuation: "rainbow", channel: "channel",
+  targets: "ladder", memecoins: "ladder", btcgrade: "ladder", dogeclock: "ladder", hundred: "ladder", majorcaps: "ladder",
+  spxvssp: "race", majors: "race", ytd: "race", sp500ytd: "race", sp500roll12: "race", btc: "race",
+  roadmap: "trend", rally: "trend", alltime: "trend", breakeven: "trend", diamondtrend: "trend",
+  cycleclock: "trend", fngtrend: "trend", btcage: "trend", ethage: "trend", solage: "trend",
+  // — Tier B: flavourful / distinct looks (used to break up the green lines) —
+  riskcolor: "colorline", risklevels: "colorline", rsidots: "colorline",
+  riskheat: "dual", runningroi: "dual", cycle: "dual",
+  model: "scatter",
+  monthlyreturns: "heatmap", monthlyreturnssp: "heatmap", monthlyreturnsbtc: "heatmap",
+  timeinband: "bars", monthlybars: "bars", monthcompare: "bars",
+  fngdial: "round", distribution: "round",
+  marketcap: "blocks", milestones: "blocks", sp500: "blocks",
+  dca: "dca",
+};
+const A_FAMILIES = new Set(["rainbow", "channel", "ladder", "race", "trend"]);
+const lookOf = id => LOOK[id] || "trend"; // unknown line cards default to the green bucket
+
+// Order a set of posts (expanded by weight) so each visual family is spread EVENLY
+// across the sequence — deficit round-robin: every family gets a stride =
+// total/copies and a running "due" position; each slot takes the most-overdue
+// eligible family (smallest due) that isn't the previous one, then advances its due
+// by a stride. This spaces low-count high-value cards (e.g. the flagship rainbow)
+// just as evenly as the big families, while never repeating a family back-to-back
+// when avoidable. Within a family, round-robin the distinct cards. Deterministic.
+function spreadByFamily(posts) {
+  const fams = new Map(); const order = [];
+  for (const p of posts) {
+    const f = lookOf(p.id);
+    if (!fams.has(f)) { fams.set(f, { cards: [], count: 0 }); order.push(f); }
+    const g = fams.get(f); const w = weightOf(p.id);
+    g.cards.push({ post: p, count: w }); g.count += w;
+  }
+  const total = [...fams.values()].reduce((s, g) => s + g.count, 0);
+  const st = new Map([...fams].map(([f, g]) => [f, { remaining: g.count, stride: total / g.count, due: (total / g.count) / 2, ptr: 0 }]));
+  const out = []; let last = null;
+  for (let n = 0; n < total; n++) {
+    let elig = order.filter(f => st.get(f).remaining > 0 && f !== last);
+    if (!elig.length) elig = order.filter(f => st.get(f).remaining > 0);
+    let best = elig[0];
+    for (const f of elig) if (st.get(f).due < st.get(best).due) best = f;
+    const s = st.get(best), arr = fams.get(best).cards;
+    let idx = s.ptr, guard = 0;
+    while (arr[idx % arr.length].count === 0 && guard < arr.length) { idx++; guard++; }
+    idx %= arr.length;
+    arr[idx].count--; s.remaining--; s.ptr = idx + 1; s.due += s.stride;
+    out.push(arr[idx].post); last = best;
+  }
+  return out;
+}
+
+// Merge two ordered lists so the shorter (B) is spread EVENLY through the longer
+// (A) — Bresenham-style, starting on A — so a flavour card breaks up the green
+// charts as often as the counts allow (runs of A stay short).
+function interleave(A, B) {
+  const out = []; let i = 0, j = 0; const a = A.length, b = B.length;
+  while (i < a || j < b) {
+    if (j >= b) out.push(A[i++]);
+    else if (i >= a) out.push(B[j++]);
+    else if ((j + 1) * a <= (i + 1) * b) out.push(B[j++]);
+    else out.push(A[i++]);
+  }
+  return out;
+}
+
+// Build the rotation: split the pool into the two look-tiers, spread each tier so
+// its own families don't clump, then interleave so the feed alternates chart →
+// flavour → chart. Length = sum of weights (unchanged), so the per-day index still
+// cycles through everything; higher-weight topics still recur more often.
 function rotation(built) {
   const pool = built.filter(p => !NO_ROTATE.has(p.id));
-  const maxW = Math.max(1, ...pool.map(p => weightOf(p.id)));
-  const rota = [];
-  for (let pass = 0; pass < maxW; pass++) for (const p of pool) if (weightOf(p.id) > pass) rota.push(p);
-  return rota;
+  const A = spreadByFamily(pool.filter(p => A_FAMILIES.has(lookOf(p.id))));
+  const B = spreadByFamily(pool.filter(p => !A_FAMILIES.has(lookOf(p.id))));
+  return interleave(A, B);
 }
 
 // Final formatting shared by every post: drop the inline NFA line (the card

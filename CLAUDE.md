@@ -461,8 +461,20 @@
 
 ## How the bot picks a post
 - Daily rotation is deterministic: `rota[epochDay % rota.length]` in
-  `scripts/bot/posts.mjs` (`buildPost`). Weighted round-robin — `valuation` 3×,
-  bullish posts 2×, rest 1×. So the post for any date can be computed ahead of time.
+  `scripts/bot/posts.mjs` (`buildPost`). Weights still apply — `valuation` 3×,
+  bullish posts 2×, rest 1× (`WEIGHT`/`BULLISH`) — so the post for any date is
+  computable ahead of time and bullish topics recur more often.
+- **ALTERNATING look order (owner, 2026-06-29): the feed must not spam the same
+  green log-scale line day after day.** Every card has a visual `LOOK` family,
+  split into two TIERS: **A** = the line-on-log "chart" looks (`rainbow`/`channel`/
+  `ladder` target cards / `race` rebased lines / plain `trend` lines — they read
+  alike) and **B** = the visually distinct "flavour" cards (heatmaps, bars, dial,
+  donut, cube, scatter, colour/dual-axis charts). `rotation()` (1) spreads each
+  tier's families EVENLY via a deficit round-robin (`spreadByFamily` — so the
+  flagship rainbow and other low-count cards space out, not clump), then (2)
+  `interleave()`s A and B Bresenham-style so a flavour card breaks up the green
+  charts as often as the counts allow (B is ~39% of slots → runs of green ≤2, and
+  even those differ in sub-family). To re-tune: edit the `LOOK` map / `A_FAMILIES`.
 - Override a single run with `BOT_POST=<id>` (real) or `--post=<id>` (forces dry-run).
 - Scheduled post: `.github/workflows/post-tweet.yml`, targets **08:00 America/New_York
   (Eastern — most of the audience)** year-round (changed 2026-06-26). GitHub cron is
