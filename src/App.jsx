@@ -486,6 +486,31 @@ export default function App() {
     return () => window.removeEventListener("popstate", onPop);
   }, []);
 
+  // Render the interactive component for a chart id — shared by the dedicated
+  // chart page and the gallery's live mini-previews. `preview` => non-interactive
+  // (no live relative-asset switching) and always the desktop layout.
+  const chartEl = (id, { preview = false } = {}) => {
+    const mob = preview ? false : isMobile;
+    switch (id) {
+      case "channel": return <ChannelChart series={priceData} m={m} isMobile={mob} />;
+      case "risk": return <RiskChart series={priceData} m={m} isMobile={mob} />;
+      case "riskcolor": return <RiskColorChart series={priceData} m={m} isMobile={mob} />;
+      case "riskheat": return <RiskHeatChart series={priceData} isMobile={mob} />;
+      case "rsidots": return <RsiDotsChart series={priceData} isMobile={mob} />;
+      case "runningroi": return <RunningRoiChart series={priceData} isMobile={mob} />;
+      case "drawdown": return <DrawdownChart series={priceData} isMobile={mob} />;
+      case "monthly": return <SeasonalityGrid series={priceData} isMobile={mob} />;
+      case "rally": return <RallyChart series={priceData} m={m} isMobile={mob} />;
+      case "spxbtc": return <SpxBtcChart series={priceData} isMobile={mob} />;
+      case "btccycle": return <BtcCycleChart series={priceData} isMobile={mob} />;
+      case "relative": return <RelativeChart series={priceData} isMobile={mob} which={relWhich} setWhich={preview ? () => {} : setRelWhich} />;
+      case "supply": return <SupplyConviction price={last.price} isMobile={mob} />;
+      case "holders": return <HolderscanDashboard />;
+      case "model": return <ModelChart series={priceData} m={m} isMobile={mob} />;
+      default: return null;
+    }
+  };
+
   const navIcon = (rgb, glow, color = "#e2e8f0") => ({
     display: "inline-flex", alignItems: "center", justifyContent: "center",
     width: 38, height: 38, borderRadius: 9, cursor: "pointer", textDecoration: "none",
@@ -581,7 +606,7 @@ export default function App() {
       {/* Browse-all gallery */}
       {route === "gallery" && (
         <Suspense fallback={<div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Loading charts…</div>}>
-          <ChartsGallery isMobile={isMobile} onOpen={goChart} onHome={goHome} />
+          <ChartsGallery isMobile={isMobile} onOpen={goChart} onHome={goHome} renderPreview={id => chartEl(id, { preview: true })} />
         </Suspense>
       )}
 
@@ -1117,21 +1142,7 @@ export default function App() {
         <div style={{ fontFamily: SANS, fontSize: isMobile ? 14 : 16, color: "#94a3b8", marginBottom: 18 }}>{CHART_META[tab]?.desc}</div>
         <ErrorBoundary key={tab}>
         <Suspense fallback={<div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 40 }}>Loading chart…</div>}>
-          {tab === "channel" && <ChannelChart series={priceData} m={m} isMobile={isMobile} />}
-          {tab === "risk" && <RiskChart series={priceData} m={m} isMobile={isMobile} />}
-          {tab === "riskcolor" && <RiskColorChart series={priceData} m={m} isMobile={isMobile} />}
-          {tab === "riskheat" && <RiskHeatChart series={priceData} isMobile={isMobile} />}
-          {tab === "rsidots" && <RsiDotsChart series={priceData} isMobile={isMobile} />}
-          {tab === "runningroi" && <RunningRoiChart series={priceData} isMobile={isMobile} />}
-          {tab === "drawdown" && <DrawdownChart series={priceData} isMobile={isMobile} />}
-          {tab === "monthly" && <SeasonalityGrid series={priceData} isMobile={isMobile} />}
-          {tab === "rally" && <RallyChart series={priceData} m={m} isMobile={isMobile} />}
-          {tab === "spxbtc" && <SpxBtcChart series={priceData} isMobile={isMobile} />}
-          {tab === "btccycle" && <BtcCycleChart series={priceData} isMobile={isMobile} />}
-          {tab === "relative" && <RelativeChart series={priceData} isMobile={isMobile} which={relWhich} setWhich={setRelWhich} />}
-          {tab === "supply" && <SupplyConviction price={last.price} isMobile={isMobile} />}
-          {tab === "holders" && <HolderscanDashboard />}
-          {tab === "model" && <ModelChart series={priceData} m={m} isMobile={isMobile} />}
+          {chartEl(tab)}
         </Suspense>
         </ErrorBoundary>
       </div>

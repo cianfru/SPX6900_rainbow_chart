@@ -286,9 +286,12 @@
       stats, target timeline, scale plan, model footer). Decluttered, breathing room.
     - **Charts gallery (`?view=charts`)** = ITC-style grid of preview tiles grouped by
       category (Valuation / Performance / On-Chain / Bitcoin & Markets) + a featured
-      Rainbow tile. `src/ChartsGallery.jsx`. Tile thumbnails = the OG card image
-      (`/api/og?post=<id>&thumb=1`, hard-cached landscape), lazy-loaded — purely an
-      at-a-glance preview; the DESTINATION is the interactive chart.
+      Rainbow tile. `src/ChartsGallery.jsx`. **Tile previews are LIVE, scaled-down
+      renders of the REAL chart component** (App passes `renderPreview={id => chartEl(id,
+      {preview:true})}`), lazy-mounted via IntersectionObserver and CSS-scaled to fit —
+      the actual look of the site chart, NOT the tweet-card image (owner: "don't use the
+      cards as previews but the actual look of the chart"). `chartEl(id)` in App.jsx is
+      the single render switch shared by the gallery previews and the chart pages.
     - **Dedicated chart page (`?chart=<id>`)** = each interactive chart full-width with
       back-to-gallery · category · title · description · share. Reuses the existing
       lazy React chart components.
