@@ -3,7 +3,7 @@ import {
   ResponsiveContainer, ComposedChart, Area, Line, XAxis, YAxis,
   CartesianGrid, ReferenceLine
 } from "recharts";
-import { DEFAULT_RAW, fetchLivePrices, fetchSpotPrice } from "./data.js";
+import { DEFAULT_RAW, fetchLivePrices, fetchSpotPrice, fetchMajors, fetchMemekings } from "./data.js";
 import {
   buildModel, BAND_LABELS, TARGETS,
   dayN, ds, bandVal, bandIndex,
@@ -29,7 +29,20 @@ const RiskColorChart = lazy(() => import("./RiskColorChart.jsx"));
 const RiskHeatChart = lazy(() => import("./RiskHeatChart.jsx"));
 const RunningRoiChart = lazy(() => import("./RunningRoiChart.jsx"));
 const RsiDotsChart = lazy(() => import("./RsiDotsChart.jsx"));
+const RaceChart = lazy(() => import("./RaceChart.jsx"));
 const ChartsGallery = lazy(() => import("./ChartsGallery.jsx"));
+
+// Basket rosters for the performance-race charts (keys match the /api endpoints).
+const MAJORS_META = [
+  { key: "BTC", label: "Bitcoin", color: "#f7931a" },
+  { key: "ETH", label: "Ethereum", color: "#8b9bff" },
+  { key: "SOL", label: "Solana", color: "#14f195" },
+];
+const MEMEKINGS_META = [
+  { key: "DOGE", label: "Dogecoin", color: "#c2a633" },
+  { key: "SHIB", label: "Shiba Inu", color: "#f43f5e" },
+  { key: "PEPE", label: "Pepe", color: "#4ade80" },
+];
 
 const SANS = "'Space Grotesk', system-ui, sans-serif";
 const MONO = "ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace";
@@ -124,6 +137,8 @@ function TabIcon({ name }) {
     case "riskheat": return (<svg {...p}><path d="M3 12h3l2-6 4 12 2.5-7 1.5 3H21" /></svg>);
     case "rsidots": return (<svg {...p}><circle cx="5" cy="16" r="1.6" /><circle cx="10" cy="11" r="1.6" /><circle cx="15" cy="13" r="1.6" /><circle cx="20" cy="6" r="1.6" /><path d="M3 19 21 4" strokeDasharray="3 3" /></svg>);
     case "runningroi": return (<svg {...p}><path d="M3 12a9 9 0 1 0 9-9" /><path d="M3 4v4h4" /><path d="M12 8v4l3 2" /></svg>);
+    case "vsmajors":
+    case "vsmemekings": return (<svg {...p}><path d="M4 20V6" /><path d="M10 20V10" /><path d="M16 20V4" /><path d="M3 20h18" /><path d="M4 6l6 4 6-6" strokeDasharray="2 2" /></svg>);
     default: return null;
   }
 }
@@ -504,6 +519,8 @@ export default function App() {
       case "spxbtc": return <SpxBtcChart series={priceData} isMobile={mob} />;
       case "btccycle": return <BtcCycleChart series={priceData} isMobile={mob} />;
       case "relative": return <RelativeChart series={priceData} isMobile={mob} which={relWhich} setWhich={preview ? () => {} : setRelWhich} />;
+      case "vsmajors": return <RaceChart series={priceData} isMobile={mob} fetchCoins={fetchMajors} coins={MAJORS_META} basketLabel="majors" />;
+      case "vsmemekings": return <RaceChart series={priceData} isMobile={mob} fetchCoins={fetchMemekings} coins={MEMEKINGS_META} basketLabel="memekings" />;
       case "supply": return <SupplyConviction price={last.price} isMobile={mob} />;
       case "holders": return <HolderscanDashboard />;
       case "model": return <ModelChart series={priceData} m={m} isMobile={mob} />;

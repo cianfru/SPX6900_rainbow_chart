@@ -46,7 +46,16 @@ export const CHART_GROUPS = [
     charts: [
       { id: "spxbtc", title: "SPX vs BTC", post: "btc", desc: "The SPX6900 / Bitcoin ratio over time." },
       { id: "btccycle", title: "Bitcoin Cycle", post: "cycle", desc: "SPX6900 tracing Bitcoin's last cycle." },
-      { id: "relative", title: "vs Majors", post: "majors", desc: "SPX6900 measured against BTC, ETH and SOL." },
+      { id: "relative", title: "Rich / Cheap vs Majors", post: "majors", desc: "Valuation ratio vs BTC, ETH and SOL." },
+    ],
+  },
+  {
+    title: "Races",
+    color: "#22d3ee",
+    desc: "Same-start performance races — pick the window.",
+    charts: [
+      { id: "vsmajors", title: "SPX vs Majors", post: "majors", desc: "Rebased race vs BTC, ETH and SOL — YTD, 12mo or since launch." },
+      { id: "vsmemekings", title: "SPX vs Memekings", post: "memecoins", desc: "Rebased race vs DOGE, SHIB and PEPE — YTD, 12mo or since launch." },
     ],
   },
 ];

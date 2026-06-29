@@ -38,6 +38,17 @@ export async function fetchMajors() {
   return json.prices; // { BTC: [...], ETH: [...], SOL: [...] }
 }
 
+export async function fetchMemekings() {
+  const res = await fetch("/api/memekings");
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.error || `Memekings proxy returned ${res.status}`);
+  }
+  const json = await res.json();
+  if (!json.prices || Object.keys(json.prices).length === 0) throw new Error("No memekings data returned");
+  return json.prices; // { DOGE: [...], SHIB: [...], PEPE: [...] }
+}
+
 export async function fetchBtcHistory() {
   const res = await fetch("/api/btc");
   if (!res.ok) {
@@ -55,7 +66,6 @@ export async function fetchBtcHistory() {
 // and appends any new dates beyond what's bundled.
 export function mergePrices(bundled, live) {
   if (!live || live.length === 0) return bundled;
-  const liveByDate = new Map(live.map(p => [p.date, p.price]));
   const liveStart = live[0].date;
   // Keep bundled rows before live data starts; replace/append from live onward
   const kept = bundled.filter(p => p.date < liveStart);
