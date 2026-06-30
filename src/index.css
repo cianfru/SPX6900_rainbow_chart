@@ -58,6 +58,36 @@ body { margin: 0; overflow-x: clip; }
   transform: translateY(0);
 }
 
+/* Zoom-hint demo: a looping drag-select gesture shown over a zoomable chart. */
+.zoomhint-box {
+  position: absolute; top: 0; bottom: 0;
+  border: 2px solid #38bdf8; background: rgba(56, 189, 248, 0.16);
+  border-radius: 6px; box-shadow: 0 0 18px rgba(56, 189, 248, 0.45);
+  animation: zoomhint-box 3s ease-in-out infinite;
+}
+.zoomhint-cursor {
+  position: absolute; top: 60%; margin-top: -13px;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.6));
+  animation: zoomhint-cursor 3s ease-in-out infinite;
+}
+@keyframes zoomhint-box {
+  0%, 8% { left: 16%; width: 0; opacity: 0; }
+  16% { opacity: 1; }
+  52%, 66% { left: 16%; width: 46%; opacity: 1; }
+  80%, 100% { left: 16%; width: 46%; opacity: 0; }
+}
+@keyframes zoomhint-cursor {
+  0%, 8% { left: 16%; opacity: 0; }
+  16% { opacity: 1; }
+  52%, 66% { left: 62%; opacity: 1; }
+  80%, 100% { left: 62%; opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .zoomhint-box, .zoomhint-cursor { animation: none; }
+  .zoomhint-box { left: 16%; width: 46%; opacity: 1; }
+  .zoomhint-cursor { left: 62%; opacity: 1; }
+}
+
 /* Neon nav pills / toggles: flat at rest, backlit colored glow when hovered/active */
 .neon-pill {
   border: 1px solid transparent;

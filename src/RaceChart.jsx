@@ -1,13 +1,16 @@
 import { useState, useEffect, useMemo } from "react";
 import {
-  ResponsiveContainer, ComposedChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, ReferenceLine,
+  ResponsiveContainer, ComposedChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, ReferenceLine, ReferenceArea,
 } from "recharts";
+import ChartZoomHint from "./ChartZoomHint.jsx";
 
 const SANS = "'Space Grotesk', system-ui, sans-serif";
 const MONO = "ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace";
 const MAX_W = 1400;
+const DAY = 86400000;
 const tsOf = d => new Date(d).getTime();
 const yearOf = t => new Date(t).getUTCFullYear();
+const fShort = t => new Date(t).toLocaleDateString("en-US", { month: "short", year: "2-digit" });
 const fMult = v => (v >= 100 ? Math.round(v) + "×" : v >= 10 ? v.toFixed(1) + "×" : v.toFixed(2) + "×");
 const fPct = v => `${v >= 0 ? "+" : ""}${Math.round((v - 1) * 100).toLocaleString()}%`;
 const WINDOWS = [["launch", "Since launch"], ["12m", "12 months"], ["ytd", "YTD"]];
@@ -60,6 +63,9 @@ export default function RaceChart({ series, isMobile, fetchCoins, coins, basketL
   const [coinData, setCoinData] = useState(null);
   const [status, setStatus] = useState("loading");
   const [win, setWin] = useState("launch");
+  const [zoom, setZoom] = useState(null);   // [x0,x1] drag-selected window (overrides the toggle)
+  const [selL, setSelL] = useState(null);
+  const [selR, setSelR] = useState(null);
 
   useEffect(() => {
     let live = true;
@@ -69,14 +75,16 @@ export default function RaceChart({ series, isMobile, fetchCoins, coins, basketL
     return () => { live = false; };
   }, [fetchCoins]);
 
-  const { rows, xDomain, xTicks, yDomain, yTicks, standings } = useMemo(() => {
-    if (!coinData) return { rows: [], xDomain: [0, 1], xTicks: [], yDomain: [0.5, 2], yTicks: [1], standings: [] };
+  const { rows, xDomain, xTicks, fmtX, yDomain, yTicks, standings } = useMemo(() => {
+    if (!coinData) return { rows: [], xDomain: [0, 1], xTicks: [], fmtX: t => t, yDomain: [0.5, 2], yTicks: [1], standings: [] };
     const now = tsOf(series.at(-1).date);
-    const startTs = win === "ytd" ? Date.UTC(yearOf(now), 0, 1)
-      : win === "12m" ? now - 365 * 86400000
+    const winStart = win === "ytd" ? Date.UTC(yearOf(now), 0, 1)
+      : win === "12m" ? now - 365 * DAY
       : tsOf(series[0].date);
-    const dates = series.filter(r => tsOf(r.date) >= startTs).map(r => tsOf(r.date));
-    if (dates[0] > startTs && win !== "launch") dates.unshift(startTs);
+    // A drag-selected zoom window overrides the toggle; everything rebases to its start.
+    const [startTs, endTs] = zoom ?? [winStart, now];
+    const dates = series.filter(r => { const t = tsOf(r.date); return t >= startTs && t <= endTs; }).map(r => tsOf(r.date));
+    if (!zoom && dates[0] > startTs && win !== "launch") dates.unshift(startTs);
     const spxL = lookupFn(series);
     const coinL = Object.fromEntries(coins.map(c => [c.key, coinData[c.key] ? lookupFn(coinData[c.key]) : null]));
     const t0 = dates[0];
@@ -89,17 +97,33 @@ export default function RaceChart({ series, isMobile, fetchCoins, coins, basketL
     });
     let yMin = Infinity, yMax = -Infinity;
     for (const r of rows) for (const k of ["spx", ...coins.map(c => c.key)]) if (r[k] != null) { if (r[k] < yMin) yMin = r[k]; if (r[k] > yMax) yMax = r[k]; }
+    const spanDays = (endTs - t0) / DAY, monthly = spanDays <= 560;
     const xTicks = [];
-    for (let yr = yearOf(t0); yr <= yearOf(now); yr++) { const d = Date.UTC(yr, 0, 1); if (d >= t0 && d <= now) xTicks.push(d); }
+    if (monthly) {
+      let t = Date.UTC(new Date(t0).getUTCFullYear(), new Date(t0).getUTCMonth(), 1);
+      while (t <= endTs) { if (t >= t0) xTicks.push(t); const dd = new Date(t); t = Date.UTC(dd.getUTCFullYear(), dd.getUTCMonth() + 1, 1); }
+    } else {
+      for (let yr = yearOf(t0); yr <= yearOf(endTs); yr++) { const d = Date.UTC(yr, 0, 1); if (d >= t0 && d <= endTs) xTicks.push(d); }
+    }
     const allYTicks = [0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1, 2, 5, 10, 20, 50, 100, 200, 500, 1000];
     const last = rows.at(-1) || {};
     const standings = [{ key: "spx", label: "SPX6900", color: "#ffffff", v: last.spx }, ...coins.map(c => ({ ...c, v: last[c.key] }))]
       .filter(s => s.v != null).sort((a, b) => b.v - a.v);
     return {
-      rows, xDomain: [t0, now], xTicks,
+      rows, xDomain: [t0, endTs], xTicks, fmtX: monthly ? fShort : (t => String(yearOf(t))),
       yDomain: [yMin * 0.8, yMax * 1.25], yTicks: allYTicks.filter(v => v >= yMin * 0.8 && v <= yMax * 1.25), standings,
     };
-  }, [coinData, series, win, coins]);
+  }, [coinData, series, win, coins, zoom]);
+
+  const onDown = e => { if (e && e.activeLabel != null) { setSelL(e.activeLabel); setSelR(e.activeLabel); } };
+  const onMove = e => { if (selL != null && e && e.activeLabel != null) setSelR(e.activeLabel); };
+  const onUp = () => {
+    if (selL != null && selR != null && selL !== selR) {
+      const [a, b] = selL < selR ? [selL, selR] : [selR, selL];
+      if (series.filter(r => { const t = tsOf(r.date); return t >= a && t <= b; }).length >= 2) setZoom([a, b]);
+    }
+    setSelL(null); setSelR(null);
+  };
 
   const spxColor = "#ffffff";
   const spxV = standings.find(s => s.key === "spx")?.v;
@@ -109,9 +133,13 @@ export default function RaceChart({ series, isMobile, fetchCoins, coins, basketL
     <div style={{ maxWidth: MAX_W, margin: "0 auto" }}>
       <div style={{ display: "flex", gap: 8, justifyContent: "center", marginBottom: 16, flexWrap: "wrap" }}>
         {WINDOWS.map(([id, lbl]) => (
-          <button key={id} onClick={() => setWin(id)} className={`neon-pill${win === id ? " active" : ""}`}
-            style={{ fontFamily: SANS, fontSize: 13, fontWeight: 600, padding: "7px 14px", borderRadius: 7, color: win === id ? "#f8fafc" : "#94a3b8", "--glow": "#22d3ee" }}>{lbl}</button>
+          <button key={id} onClick={() => { setWin(id); setZoom(null); }} className={`neon-pill${win === id && !zoom ? " active" : ""}`}
+            style={{ fontFamily: SANS, fontSize: 13, fontWeight: 600, padding: "7px 14px", borderRadius: 7, color: win === id && !zoom ? "#f8fafc" : "#94a3b8", "--glow": "#22d3ee" }}>{lbl}</button>
         ))}
+        {zoom && (
+          <button onClick={() => setZoom(null)} className="pill"
+            style={{ fontFamily: SANS, fontSize: 13, fontWeight: 600, padding: "7px 14px", borderRadius: 7, cursor: "pointer", background: "transparent", border: "1px solid rgba(56,189,248,0.4)", color: "#7dd3fc", "--glow": "#38bdf8" }}>⤢ Reset zoom</button>
+        )}
       </div>
 
       {status === "ok" && (
@@ -128,26 +156,39 @@ export default function RaceChart({ series, isMobile, fetchCoins, coins, basketL
       {status !== "ok" && status !== "loading" && <div style={{ textAlign: "center", fontFamily: SANS, color: "#f87171", padding: 60 }}>Couldn&apos;t load data: {status}</div>}
 
       {status === "ok" && (
-        <ResponsiveContainer width="100%" height={isMobile ? 400 : 560}>
-          <ComposedChart data={rows} margin={{ top: 10, right: isMobile ? 14 : 32, bottom: 24, left: isMobile ? 0 : 12 }}>
-            <CartesianGrid strokeDasharray="2 8" stroke="rgba(255,255,255,0.06)" />
-            <XAxis dataKey="ts" type="number" domain={xDomain} ticks={xTicks} scale="time" allowDataOverflow
-              tickFormatter={t => String(yearOf(t))}
-              tick={{ fill: "#cbd5e1", fontSize: isMobile ? 10 : 12, fontFamily: MONO }}
-              axisLine={{ stroke: "rgba(255,255,255,0.15)" }} tickLine={false} />
-            <YAxis type="number" scale="log" domain={yDomain} ticks={yTicks} allowDataOverflow
-              tickFormatter={v => (v >= 1 ? v + "×" : v + "×")}
-              tick={{ fill: "#cbd5e1", fontSize: isMobile ? 10 : 12, fontFamily: MONO }}
-              axisLine={{ stroke: "rgba(255,255,255,0.15)" }} tickLine={false} width={isMobile ? 44 : 56} />
-            <ReferenceLine y={1} stroke="rgba(148,163,184,0.6)" strokeDasharray="5 5"
-              label={{ value: "start 1×", position: "insideBottomRight", fill: "#94a3b8", fontSize: 11, fontFamily: MONO }} />
-            <Tooltip content={<Tip coins={coins} spxColor={spxColor} />} cursor={{ stroke: "rgba(255,255,255,0.2)" }} />
-            {coins.map(c => (
-              <Line key={c.key} dataKey={c.key} stroke={c.color} strokeWidth={2} dot={false} isAnimationActive={false} name={c.label} connectNulls />
-            ))}
-            <Line dataKey="spx" stroke={spxColor} strokeWidth={3.2} dot={false} isAnimationActive={false} name="SPX6900" connectNulls />
-          </ComposedChart>
-        </ResponsiveContainer>
+        <>
+          <div style={{ textAlign: "center", fontFamily: SANS, fontSize: 12.5, color: "#64748b", marginBottom: 8 }}>
+            {zoom ? "Rebased to the selected window's start." : "Drag across the chart to zoom into any period."}
+          </div>
+          <div style={{ position: "relative" }}>
+            <ChartZoomHint />
+            <ResponsiveContainer width="100%" height={isMobile ? 400 : 560}>
+              <ComposedChart data={rows} margin={{ top: 10, right: isMobile ? 14 : 32, bottom: 24, left: isMobile ? 0 : 12 }}
+                onMouseDown={onDown} onMouseMove={onMove} onMouseUp={onUp} onMouseLeave={onUp}
+                style={{ cursor: "crosshair", userSelect: "none" }}>
+                <CartesianGrid strokeDasharray="2 8" stroke="rgba(255,255,255,0.06)" />
+                <XAxis dataKey="ts" type="number" domain={xDomain} ticks={xTicks} scale="time" allowDataOverflow
+                  tickFormatter={fmtX}
+                  tick={{ fill: "#cbd5e1", fontSize: isMobile ? 10 : 12, fontFamily: MONO }}
+                  axisLine={{ stroke: "rgba(255,255,255,0.15)" }} tickLine={false} />
+                <YAxis type="number" scale="log" domain={yDomain} ticks={yTicks} allowDataOverflow
+                  tickFormatter={v => v + "×"}
+                  tick={{ fill: "#cbd5e1", fontSize: isMobile ? 10 : 12, fontFamily: MONO }}
+                  axisLine={{ stroke: "rgba(255,255,255,0.15)" }} tickLine={false} width={isMobile ? 44 : 56} />
+                <ReferenceLine y={1} stroke="rgba(148,163,184,0.6)" strokeDasharray="5 5"
+                  label={{ value: "start 1×", position: "insideBottomRight", fill: "#94a3b8", fontSize: 11, fontFamily: MONO }} />
+                <Tooltip content={<Tip coins={coins} spxColor={spxColor} />} cursor={{ stroke: "rgba(255,255,255,0.2)" }} />
+                {coins.map(c => (
+                  <Line key={c.key} dataKey={c.key} stroke={c.color} strokeWidth={2} dot={false} isAnimationActive={false} name={c.label} connectNulls />
+                ))}
+                <Line dataKey="spx" stroke={spxColor} strokeWidth={3.2} dot={false} isAnimationActive={false} name="SPX6900" connectNulls />
+                {selL != null && selR != null && selL !== selR && (
+                  <ReferenceArea x1={selL} x2={selR} strokeOpacity={0.4} stroke="#38bdf8" fill="#38bdf8" fillOpacity={0.12} />
+                )}
+              </ComposedChart>
+            </ResponsiveContainer>
+          </div>
+        </>
       )}
 
       {/* legend */}

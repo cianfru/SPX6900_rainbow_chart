@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import {
   ResponsiveContainer, ComposedChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, ReferenceLine, ReferenceArea,
 } from "recharts";
+import ChartZoomHint from "./ChartZoomHint.jsx";
 
 const SANS = "'Space Grotesk', system-ui, sans-serif";
 const MONO = "ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace";
@@ -120,6 +121,8 @@ export default function RunningRoiChart({ series, isMobile }) {
         )}
       </div>
 
+      <div style={{ position: "relative" }}>
+      <ChartZoomHint />
       <ResponsiveContainer width="100%" height={isMobile ? 400 : 560}>
         <ComposedChart data={view.data} margin={{ top: 10, right: isMobile ? 6 : 18, bottom: 24, left: isMobile ? 0 : 12 }}
           onMouseDown={onDown} onMouseMove={onMove} onMouseUp={onUp} onMouseLeave={onUp}
@@ -153,6 +156,7 @@ export default function RunningRoiChart({ series, isMobile }) {
           )}
         </ComposedChart>
       </ResponsiveContainer>
+      </div>
 
       <div style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.65, maxWidth: 880, marginInline: "auto" }}>
         Growth measured from the <strong style={{ color: "#cbd5e1" }}>start of the window</strong> — the <span style={{ color: GROWTH }}>gold line</span> begins at
