@@ -1134,8 +1134,8 @@ export default function App() {
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12, flexWrap: "wrap" }}>
           <button className="pill" onClick={openGallery} title="Back to all charts" style={{
             display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 8, cursor: "pointer",
-            background: "transparent", border: "1px solid rgba(148,163,184,0.3)", color: "#cbd5e1",
-            fontFamily: SANS, fontSize: 13, fontWeight: 600, "--glow": "rgba(148,163,184,0.5)",
+            background: "transparent", border: "1px solid transparent", color: "#cbd5e1",
+            fontFamily: SANS, fontSize: 13, fontWeight: 600, "--glow": "rgba(148,163,184,0.6)",
           }}>← All charts</button>
           <span style={{ fontFamily: SANS, fontSize: 12, fontWeight: 700, letterSpacing: 1.2, textTransform: "uppercase", color: CHART_META[tab]?.color }}>{CHART_META[tab]?.group}</span>
           <button className="pill" onClick={shareChart} title="Share this chart"

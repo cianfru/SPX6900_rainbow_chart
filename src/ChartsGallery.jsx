@@ -61,7 +61,6 @@ function Tile({ item, color, onOpen, renderPreview }) {
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 5 }}>
           <span style={{ width: 8, height: 8, borderRadius: 2, background: color, flexShrink: 0, boxShadow: `0 0 8px ${color}` }} />
           <span style={{ fontFamily: SANS, fontSize: 16, fontWeight: 700, color: "#f1f5f9", lineHeight: 1.15 }}>{item.title}</span>
-          <span style={{ marginLeft: "auto", fontFamily: SANS, fontSize: 10, fontWeight: 700, letterSpacing: 0.5, textTransform: "uppercase", color, border: `1px solid ${color}66`, borderRadius: 5, padding: "2px 6px", whiteSpace: "nowrap" }}>Interactive</span>
         </div>
         <div style={{ fontFamily: SANS, fontSize: 13, color: "#94a3b8", lineHeight: 1.45 }}>{item.desc}</div>
       </div>
