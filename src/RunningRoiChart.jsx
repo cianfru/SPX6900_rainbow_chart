@@ -1,14 +1,18 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import {
-  ResponsiveContainer, ComposedChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, ReferenceLine,
+  ResponsiveContainer, ComposedChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, ReferenceLine, ReferenceArea,
 } from "recharts";
-import { runningRoiSeries } from "./chart-math.js";
 
 const SANS = "'Space Grotesk', system-ui, sans-serif";
 const MONO = "ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace";
 const MAX_W = 1400;
 const fPrice = p => (p < 1 ? "$" + p.toFixed(p < 0.01 ? 4 : 3) : "$" + p.toLocaleString(undefined, { maximumFractionDigits: 2 }));
+const fPct = v => `${v >= 0 ? "+" : ""}${Math.round(v * 100).toLocaleString()}%`;
+const fMult = v => (v >= 100 ? Math.round(v).toLocaleString() : v >= 10 ? v.toFixed(1) : v.toFixed(2)) + "×";
 const yearOf = t => new Date(t).getUTCFullYear();
+const fShort = t => new Date(t).toLocaleDateString("en-US", { month: "short", year: "2-digit" });
+const DAY = 86400000;
+const GROWTH = "#fbbf24", PRICE = "#38bdf8";
 
 function Tip({ active, payload }) {
   if (!active || !payload?.length) return null;
@@ -18,12 +22,10 @@ function Tip({ active, payload }) {
       <div style={{ fontWeight: 700, color: "#f8fafc", marginBottom: 4 }}>
         {new Date(d.ts).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
       </div>
-      <div>Price: <span style={{ fontFamily: MONO, color: "#38bdf8" }}>{fPrice(d.price)}</span></div>
-      {d.roi != null && (
-        <div>365-day ROI: <span style={{ fontFamily: MONO, fontWeight: 700, color: d.roi >= 1 ? "#4ade80" : "#f87171" }}>
-          {d.roi.toFixed(2)}× ({d.roi >= 1 ? "+" : ""}{Math.round((d.roi - 1) * 100)}%)
-        </span></div>
-      )}
+      <div>Price: <span style={{ fontFamily: MONO, color: PRICE }}>{fPrice(d.price)}</span></div>
+      <div>From window start: <span style={{ fontFamily: MONO, fontWeight: 700, color: d.roi >= 1 ? "#4ade80" : "#f87171" }}>
+        {fMult(d.roi)} ({d.roi >= 1 ? "+" : ""}{Math.round((d.roi - 1) * 100)}%)
+      </span></div>
     </div>
   );
 }
@@ -38,75 +40,124 @@ function Metric({ label, value, color = "#f8fafc", sub }) {
   );
 }
 
-// 365-day running ROI: at each date, price(t) / price(t−365d). 1× = break-even.
+// Performance from the START of whatever window you're viewing: the growth line
+// rebases to 1× at the left edge, so the full chart = growth since launch, and a
+// drag-selected window = growth from that window's own start. Drag across to zoom
+// into a period (like a screenshot region select); Reset to zoom back out.
 export default function RunningRoiChart({ series, isMobile }) {
-  const { rows, xDomain, xTicks, pDomain, rDomain, cur, best, worst } = useMemo(() => {
-    const { rows: all, firstRoiTs, cur } = runningRoiSeries(series);
-    const rows = all.filter(r => r.ts >= firstRoiTs); // start where the ROI line begins
-    const xMin = rows[0]?.ts ?? all[0].ts, xMax = rows.at(-1)?.ts ?? all.at(-1).ts;
-    let pMin = Infinity, pMax = -Infinity, rMin = 1, rMax = 1;
-    for (const r of rows) {
-      if (r.price < pMin) pMin = r.price; if (r.price > pMax) pMax = r.price;
-      if (r.roi != null) { if (r.roi < rMin) rMin = r.roi; if (r.roi > rMax) rMax = r.roi; }
-    }
-    const withRoi = rows.filter(r => r.roi != null);
-    const best = withRoi.reduce((a, r) => (r.roi > a.roi ? r : a), withRoi[0] ?? { roi: 1 });
-    const worst = withRoi.reduce((a, r) => (r.roi < a.roi ? r : a), withRoi[0] ?? { roi: 1 });
-    const xTicks = [];
-    for (let yr = yearOf(xMin); yr <= yearOf(xMax); yr++) { const d = Date.UTC(yr, 0, 1); if (d >= xMin && d <= xMax) xTicks.push(d); }
-    return {
-      rows, xDomain: [xMin, xMax], xTicks,
-      pDomain: [pMin * 0.7, pMax * 1.35], rDomain: [rMin * 0.7, rMax * 1.35],
-      cur, best: best?.roi ?? 1, worst: worst?.roi ?? 1,
-    };
+  const { all, fullX } = useMemo(() => {
+    const all = series.map(r => ({ ts: new Date(r.date).getTime(), date: r.date, price: r.price })).sort((a, b) => a.ts - b.ts);
+    return { all, fullX: [all[0]?.ts ?? 0, all.at(-1)?.ts ?? 1] };
   }, [series]);
 
-  const pTicks = [0.0001, 0.001, 0.01, 0.1, 1, 10].filter(v => v >= pDomain[0] && v <= pDomain[1]);
-  const rTicks = [0.1, 0.2, 0.5, 1, 2, 3, 5, 10, 20, 50].filter(v => v >= rDomain[0] && v <= rDomain[1]);
-  const pct = Math.round((cur - 1) * 100);
-  const dc = cur >= 1 ? "#4ade80" : "#f87171";
+  const [zoom, setZoom] = useState(null);
+  const [selL, setSelL] = useState(null);
+  const [selR, setSelR] = useState(null);
+
+  const view = useMemo(() => {
+    const [x0, x1] = zoom ?? fullX;
+    const vis = all.filter(r => r.ts >= x0 && r.ts <= x1);
+    const startPrice = vis[0]?.price ?? 1;
+    const data = vis.map(r => ({ ...r, roi: r.price / startPrice }));
+    let pMin = Infinity, pMax = -Infinity, rMin = Infinity, rMax = -Infinity, runPeak = -Infinity, mdd = 0;
+    for (const r of data) {
+      if (r.price < pMin) pMin = r.price; if (r.price > pMax) pMax = r.price;
+      if (r.roi < rMin) rMin = r.roi; if (r.roi > rMax) rMax = r.roi;
+      if (r.price > runPeak) runPeak = r.price; mdd = Math.min(mdd, r.price / runPeak - 1);
+    }
+    const spanDays = (x1 - x0) / DAY, monthly = spanDays <= 560;
+    const xTicks = [];
+    if (monthly) {
+      let t = Date.UTC(new Date(x0).getUTCFullYear(), new Date(x0).getUTCMonth(), 1);
+      while (t <= x1) { if (t >= x0) xTicks.push(t); const dd = new Date(t); t = Date.UTC(dd.getUTCFullYear(), dd.getUTCMonth() + 1, 1); }
+    } else {
+      for (let yr = yearOf(x0); yr <= yearOf(x1); yr++) { const t = Date.UTC(yr, 0, 1); if (t >= x0 && t <= x1) xTicks.push(t); }
+    }
+    const winRet = (data.at(-1)?.roi ?? 1) - 1;
+    // ONE curve, two labelings: the right ×-axis is the left $-axis divided by the
+    // window's start price (on a log scale price and growth-from-start are the same
+    // shape), so both axes describe the single gold line at the same pixels.
+    const pLo = pMin * 0.8, pHi = pMax * 1.25;
+    return {
+      data, xDomain: [x0, x1], xTicks, fmtX: monthly ? fShort : (t => String(yearOf(t))),
+      pDomain: [pLo, pHi], rDomain: [pLo / startPrice, pHi / startPrice],
+      winRet, peak: rMax, mdd, start: vis[0], end: vis.at(-1), rMin, rMax,
+    };
+  }, [all, fullX, zoom]);
+
+  const onDown = e => { if (e && e.activeLabel != null) { setSelL(e.activeLabel); setSelR(e.activeLabel); } };
+  const onMove = e => { if (selL != null && e && e.activeLabel != null) setSelR(e.activeLabel); };
+  const onUp = () => {
+    if (selL != null && selR != null && selL !== selR) {
+      const [a, b] = selL < selR ? [selL, selR] : [selR, selL];
+      if (all.filter(r => r.ts >= a && r.ts <= b).length >= 2) setZoom([a, b]);
+    }
+    setSelL(null); setSelR(null);
+  };
+
+  const pTicks = [0.0001, 0.001, 0.01, 0.1, 1, 10].filter(v => v >= view.pDomain[0] && v <= view.pDomain[1]);
+  const rTicks = [0.1, 0.2, 0.5, 1, 2, 3, 5, 10, 20, 50, 100, 200, 500, 1000, 2000].filter(v => v >= view.rDomain[0] && v <= view.rDomain[1]);
+  const zoomed = !!zoom;
+  const rangeSub = view.start ? `${fShort(view.start.ts)} → ${fShort(view.end.ts)}` : "";
 
   return (
     <div style={{ maxWidth: MAX_W, margin: "0 auto" }}>
-      <div style={{ display: "flex", gap: isMobile ? 16 : 30, justifyContent: "center", marginBottom: 18, flexWrap: "wrap" }}>
-        <Metric label="365d ROI now" value={`${cur.toFixed(2)}×`} color={dc} sub={`${pct >= 0 ? "+" : ""}${pct}% over a year`} />
-        <Metric label="best year" value={`${best.toFixed(1)}×`} color="#4ade80" sub="peak 1-yr return" />
-        <Metric label="worst year" value={`${worst.toFixed(2)}×`} color="#f87171" sub="trough 1-yr return" />
+      <div style={{ display: "flex", gap: isMobile ? 16 : 30, justifyContent: "center", marginBottom: 14, flexWrap: "wrap" }}>
+        <Metric label={zoomed ? "window return" : "since launch"} value={fPct(view.winRet)} color={view.winRet >= 0 ? "#4ade80" : "#f87171"} sub={zoomed ? rangeSub : "start → now"} />
+        <Metric label="peak" value={fMult(view.peak)} color={GROWTH} sub="high from start" />
+        <Metric label="max drawdown" value={fPct(view.mdd)} color="#f87171" sub="peak to trough" />
+      </div>
+
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12, marginBottom: 10 }}>
+        <span style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b" }}>
+          {zoomed ? "Growth rebased to this window's start." : "Drag across the chart to zoom into any period."}
+        </span>
+        {zoomed && (
+          <button onClick={() => setZoom(null)} className="pill" style={{
+            fontFamily: SANS, fontSize: 12, fontWeight: 600, padding: "5px 12px", borderRadius: 7, cursor: "pointer",
+            background: "transparent", border: "1px solid rgba(56,189,248,0.4)", color: "#7dd3fc", "--glow": "#38bdf8",
+          }}>⤢ Reset zoom</button>
+        )}
       </div>
 
       <ResponsiveContainer width="100%" height={isMobile ? 400 : 560}>
-        <ComposedChart data={rows} margin={{ top: 10, right: isMobile ? 6 : 18, bottom: 24, left: isMobile ? 0 : 12 }}>
+        <ComposedChart data={view.data} margin={{ top: 10, right: isMobile ? 6 : 18, bottom: 24, left: isMobile ? 0 : 12 }}
+          onMouseDown={onDown} onMouseMove={onMove} onMouseUp={onUp} onMouseLeave={onUp}
+          style={{ cursor: "crosshair", userSelect: "none" }}>
           <CartesianGrid strokeDasharray="2 8" stroke="rgba(255,255,255,0.06)" />
           <XAxis
-            dataKey="ts" type="number" domain={xDomain} ticks={xTicks} scale="time" allowDataOverflow
-            tickFormatter={t => String(yearOf(t))}
+            dataKey="ts" type="number" domain={view.xDomain} ticks={view.xTicks} scale="time" allowDataOverflow
+            tickFormatter={view.fmtX}
             tick={{ fill: "#cbd5e1", fontSize: isMobile ? 10 : 12, fontFamily: MONO }}
             axisLine={{ stroke: "rgba(255,255,255,0.15)" }} tickLine={false}
           />
           <YAxis
-            yAxisId="price" type="number" scale="log" domain={pDomain} ticks={pTicks} allowDataOverflow
+            yAxisId="price" type="number" scale="log" domain={view.pDomain} ticks={pTicks} allowDataOverflow
             tickFormatter={v => (v < 1 ? "$" + v : "$" + v.toLocaleString())}
-            tick={{ fill: "#38bdf8", fontSize: isMobile ? 10 : 12, fontFamily: MONO }}
+            tick={{ fill: PRICE, fontSize: isMobile ? 10 : 12, fontFamily: MONO }}
             axisLine={{ stroke: "rgba(255,255,255,0.15)" }} tickLine={false} width={isMobile ? 46 : 58}
           />
           <YAxis
-            yAxisId="roi" orientation="right" type="number" scale="log" domain={rDomain} ticks={rTicks} allowDataOverflow
+            yAxisId="roi" orientation="right" type="number" scale="log" domain={view.rDomain} ticks={rTicks} allowDataOverflow
             tickFormatter={v => v + "×"}
-            tick={{ fill: "#f87171", fontSize: isMobile ? 10 : 12, fontFamily: MONO }}
+            tick={{ fill: GROWTH, fontSize: isMobile ? 10 : 12, fontFamily: MONO }}
             axisLine={{ stroke: "rgba(255,255,255,0.15)" }} tickLine={false} width={isMobile ? 40 : 52}
           />
           <ReferenceLine yAxisId="roi" y={1} stroke="#4ade80" strokeWidth={1.6} strokeOpacity={0.85}
-            label={{ value: "break-even 1×", position: "insideBottomRight", fill: "#4ade80", fontSize: 11, fontFamily: MONO }} />
+            label={{ value: "start · 1×", position: "insideBottomRight", fill: "#4ade80", fontSize: 11, fontFamily: MONO }} />
           <Tooltip content={<Tip />} cursor={{ stroke: "rgba(255,255,255,0.2)" }} />
-          <Line yAxisId="price" dataKey="price" stroke="#38bdf8" strokeWidth={2.4} dot={false} isAnimationActive={false} name="price" connectNulls />
-          <Line yAxisId="roi" dataKey="roi" stroke="#f87171" strokeWidth={2.8} dot={false} isAnimationActive={false} name="365-day ROI" connectNulls={false} />
+          {/* single curve — the left $-axis and right ×-axis both label it */}
+          <Line yAxisId="roi" dataKey="roi" stroke={GROWTH} strokeWidth={2.8} dot={false} isAnimationActive={false} name="growth from start" connectNulls />
+          {selL != null && selR != null && selL !== selR && (
+            <ReferenceArea yAxisId="price" x1={selL} x2={selR} strokeOpacity={0.4} stroke={PRICE} fill={PRICE} fillOpacity={0.12} />
+          )}
         </ComposedChart>
       </ResponsiveContainer>
 
       <div style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.65, maxWidth: 880, marginInline: "auto" }}>
-        At each date, the return you'd have if you'd bought exactly <strong style={{ color: "#cbd5e1" }}>365 days earlier</strong> — price ÷ price one year ago
-        (<span style={{ color: "#f87171" }}>red, right axis</span>). Above the green <strong style={{ color: "#4ade80" }}>1× break-even</strong> line = a profitable
-        year; below = a year underwater. <span style={{ color: "#38bdf8" }}>Price</span> is on the left axis for context. Not financial advice.
+        Growth measured from the <strong style={{ color: "#cbd5e1" }}>start of the window</strong> — the <span style={{ color: GROWTH }}>gold line</span> begins at
+        1× on the left edge (<span style={{ color: "#4ade80" }}>green 1× = back to the starting price</span>), with <span style={{ color: PRICE }}>price</span> on the left axis.
+        <strong style={{ color: "#7dd3fc" }}> Drag to select any period</strong> and the chart zooms in and rebases to it. Not financial advice.
       </div>
     </div>
   );

@@ -26,7 +26,7 @@ export const CHART_GROUPS = [
     charts: [
       { id: "rally", title: "Rallies", post: "rally", desc: "Every major rally up off the lows." },
       { id: "drawdown", title: "Drawdowns", post: "drawdown", desc: "The depth and recovery of each dip." },
-      { id: "runningroi", title: "365-Day ROI", post: "runningroi", desc: "Rolling one-year return over time." },
+      { id: "runningroi", title: "Performance", post: "runningroi", desc: "Growth from any window's start — drag to zoom in." },
       { id: "monthly", title: "Seasonality", post: "monthlyreturns", desc: "Monthly returns across every year." },
     ],
   },
