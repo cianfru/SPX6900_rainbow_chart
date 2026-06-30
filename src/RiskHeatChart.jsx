@@ -38,20 +38,23 @@ function Metric({ label, value, color = "#f8fafc", sub }) {
 // moving average (the line it mean-reverts toward). Two panels: price + 20W MA on
 // top, the % extension as a hot/cold oscillator below.
 export default function RiskHeatChart({ series, isMobile }) {
-  const { rows, xDomain, xTicks, yDomain, oscDomain, cur } = useMemo(() => {
-    const { rows, cur } = extensionSeries(series);
+  const { rows, xDomain, xTicks, yDomain, oscTicks, fmtOsc, cur } = useMemo(() => {
+    const { rows, maxAbs, cur } = extensionSeries(series);
     const xMin = rows[0].ts, xMax = rows.at(-1).ts;
     let yMin = Infinity, yMax = -Infinity;
     for (const r of rows) { for (const v of [r.price, r.ma]) { if (v < yMin) yMin = v; if (v > yMax) yMax = v; } }
-    // Scale the oscillator to the ~92nd-percentile extension, NOT the absolute max —
-    // a single launch-era spike would otherwise flatten the everyday signal. The
-    // outlier bars clip at the panel edge (same intent as the card's tanh squash).
-    const absPct = rows.map(r => Math.abs(r.pct)).sort((a, b) => a - b);
-    const p92 = absPct[Math.floor(absPct.length * 0.92)] || 50;
-    const lim = Math.max(40, Math.ceil(p92 / 20) * 20);
     const xTicks = [];
     for (let yr = yearOf(xMin); yr <= yearOf(xMax); yr++) { const d = Date.UTC(yr, 0, 1); if (d >= xMin && d <= xMax) xTicks.push(d); }
-    return { rows, xDomain: [xMin, xMax], xTicks, yDomain: [yMin * 0.8, yMax * 1.25], oscDomain: [-lim, lim], cur };
+    // Oscillator plots the tanh-SQUASHED extension on a fixed [-1,1] axis (no cap —
+    // outliers compress toward the edge). Axis ticks sit at the ±1/±2 "knees" and are
+    // labelled with the REAL % (inverse of the squash) so it still reads in percent.
+    const oscTicks = [-2, -1, 0, 1, 2].map(k => Math.tanh(k));
+    const fmtOsc = v => {
+      const k = Math.atanh(Math.max(-0.999, Math.min(0.999, v)));
+      const pct = Math.round((Math.exp(k * maxAbs) - 1) * 100);
+      return (pct > 0 ? "+" : "") + pct + "%";
+    };
+    return { rows, xDomain: [xMin, xMax], xTicks, yDomain: [yMin * 0.8, yMax * 1.25], oscTicks, fmtOsc, cur };
   }, [series]);
 
   const yTicks = [0.0001, 0.001, 0.01, 0.1, 1, 10].filter(v => v >= yDomain[0] && v <= yDomain[1]);
@@ -90,13 +93,13 @@ export default function RiskHeatChart({ series, isMobile }) {
             tickFormatter={t => String(yearOf(t))}
             tick={{ fill: "#cbd5e1", fontSize: isMobile ? 10 : 12, fontFamily: MONO }}
             axisLine={{ stroke: "rgba(255,255,255,0.15)" }} tickLine={false} />
-          <YAxis type="number" domain={oscDomain} allowDataOverflow ticks={[oscDomain[0], oscDomain[0] / 2, 0, oscDomain[1] / 2, oscDomain[1]]}
-            tickFormatter={v => (v > 0 ? "+" : "") + v + "%"}
+          <YAxis type="number" domain={[-1, 1]} allowDataOverflow ticks={oscTicks}
+            tickFormatter={fmtOsc}
             tick={{ fill: "#94a3b8", fontSize: isMobile ? 9 : 11, fontFamily: MONO }}
             axisLine={{ stroke: "rgba(255,255,255,0.15)" }} tickLine={false} width={yW} />
           <ReferenceLine y={0} stroke="rgba(255,255,255,0.55)" strokeDasharray="6 6" />
           <Tooltip content={<PriceTip />} cursor={{ fill: "rgba(255,255,255,0.05)" }} />
-          <Bar dataKey="pct" isAnimationActive={false} name="extension vs 20W MA">
+          <Bar dataKey="sq" isAnimationActive={false} name="extension vs 20W MA">
             {rows.map((r, i) => <Cell key={i} fill={r.color} />)}
           </Bar>
         </BarChart>

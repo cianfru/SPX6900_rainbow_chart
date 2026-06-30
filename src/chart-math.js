@@ -30,15 +30,34 @@ export function zScoreSeries(series, m) {
   return { pts, mean, std };
 }
 
+// Resample a {date,price} series to a uniform ~weekly cadence. The bundled history
+// is ~weekly but the live tail is DAILY, which otherwise makes the right edge of a
+// chart (and a bar oscillator especially) suddenly densify. Greedy: keep points ≥6
+// days apart, always keep the latest (live) point.
+function toWeekly(series) {
+  const pts = series.map(r => ({ ts: ts(r.date), date: r.date, price: r.price })).sort((a, b) => a.ts - b.ts);
+  if (pts.length < 2) return pts;
+  const out = [pts[0]];
+  for (let i = 1; i < pts.length; i++) if (pts[i].ts - out[out.length - 1].ts >= 6 * 86400000) out.push(pts[i]);
+  const last = pts[pts.length - 1];
+  if (out[out.length - 1].ts !== last.ts) out.push(last);
+  return out;
+}
+
 // --- 20-week (140d) extension oscillator (Cowen-style) ----------------------
 export function extensionSeries(series) {
-  const pts = series.map(r => ({ ts: ts(r.date), date: r.date, price: r.price })).sort((a, b) => a.ts - b.ts);
+  const pts = toWeekly(series); // unify cadence so the weekly history + daily live tail match
   const WK20 = 140 * 86400000;
   const maAt = t => { let s = 0, n = 0; for (const q of pts) if (q.ts > t - WK20 && q.ts <= t) { s += q.price; n++; } return n ? s / n : pts[0].price; };
   const rows = pts.map(p => { const ma = maAt(p.ts); const ext = Math.log(p.price / ma); return { ...p, ma, ext, pct: (p.price / ma - 1) * 100 }; });
   const absSorted = rows.map(r => Math.abs(r.ext)).sort((a, b) => a - b);
   const maxAbs = Math.max(0.05, absSorted[Math.floor(absSorted.length * 0.9)] || 0.05);
-  for (const r of rows) { const u = 0.5 + 0.5 * Math.max(-1, Math.min(1, r.ext / maxAbs)); r.u = u; r.color = riskColor(u); }
+  // sq = tanh-squashed bar height in (-1,1): big launch-era extensions compress
+  // smoothly toward the edge instead of hard-clipping flat at a capped axis.
+  for (const r of rows) {
+    const u = 0.5 + 0.5 * Math.max(-1, Math.min(1, r.ext / maxAbs));
+    r.u = u; r.color = riskColor(u); r.sq = Math.tanh(r.ext / maxAbs);
+  }
   const cur = rows.at(-1);
   return { rows, maxAbs, cur };
 }
