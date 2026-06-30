@@ -6,7 +6,7 @@ const SANS = "'Space Grotesk', system-ui, sans-serif";
 // drag-to-select gesture so users learn the chart is interactive. It's
 // pointer-transparent (never blocks the real chart) and vanishes the moment the
 // user clicks/taps anywhere — then stays gone (localStorage). Auto-dismisses too.
-export default function ChartZoomHint({ storageKey = "spx-zoom-hint-v1" }) {
+export default function ChartZoomHint({ storageKey = "spx-zoom-hint-v2" }) {
   // Read "already seen" once at mount (client-only SPA, no SSR) so we never
   // setState synchronously inside an effect.
   const [show, setShow] = useState(() => {

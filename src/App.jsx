@@ -512,15 +512,15 @@ export default function App() {
       case "riskcolor": return <RiskColorChart series={priceData} m={m} isMobile={mob} />;
       case "riskheat": return <RiskHeatChart series={priceData} isMobile={mob} />;
       case "rsidots": return <RsiDotsChart series={priceData} isMobile={mob} />;
-      case "runningroi": return <RunningRoiChart series={priceData} isMobile={mob} />;
+      case "runningroi": return <RunningRoiChart series={priceData} isMobile={mob} preview={preview} />;
       case "drawdown": return <DrawdownChart series={priceData} isMobile={mob} />;
       case "monthly": return <SeasonalityGrid series={priceData} isMobile={mob} />;
       case "rally": return <RallyChart series={priceData} m={m} isMobile={mob} />;
       case "spxbtc": return <SpxBtcChart series={priceData} isMobile={mob} />;
       case "btccycle": return <BtcCycleChart series={priceData} isMobile={mob} />;
       case "relative": return <RelativeChart series={priceData} isMobile={mob} which={relWhich} setWhich={preview ? () => {} : setRelWhich} />;
-      case "vsmajors": return <RaceChart series={priceData} isMobile={mob} fetchCoins={fetchMajors} coins={MAJORS_META} basketLabel="majors" />;
-      case "vsmemekings": return <RaceChart series={priceData} isMobile={mob} fetchCoins={fetchMemekings} coins={MEMEKINGS_META} basketLabel="memekings" />;
+      case "vsmajors": return <RaceChart series={priceData} isMobile={mob} preview={preview} fetchCoins={fetchMajors} coins={MAJORS_META} basketLabel="majors" />;
+      case "vsmemekings": return <RaceChart series={priceData} isMobile={mob} preview={preview} fetchCoins={fetchMemekings} coins={MEMEKINGS_META} basketLabel="memekings" />;
       case "supply": return <SupplyConviction price={last.price} isMobile={mob} />;
       case "holders": return <HolderscanDashboard />;
       case "model": return <ModelChart series={priceData} m={m} isMobile={mob} />;

@@ -45,7 +45,7 @@ function Metric({ label, value, color = "#f8fafc", sub }) {
 // rebases to 1× at the left edge, so the full chart = growth since launch, and a
 // drag-selected window = growth from that window's own start. Drag across to zoom
 // into a period (like a screenshot region select); Reset to zoom back out.
-export default function RunningRoiChart({ series, isMobile }) {
+export default function RunningRoiChart({ series, isMobile, preview = false }) {
   const { all, fullX } = useMemo(() => {
     const all = series.map(r => ({ ts: new Date(r.date).getTime(), date: r.date, price: r.price })).sort((a, b) => a.ts - b.ts);
     return { all, fullX: [all[0]?.ts ?? 0, all.at(-1)?.ts ?? 1] };
@@ -122,7 +122,7 @@ export default function RunningRoiChart({ series, isMobile }) {
       </div>
 
       <div style={{ position: "relative" }}>
-      <ChartZoomHint />
+      {!preview && <ChartZoomHint />}
       <ResponsiveContainer width="100%" height={isMobile ? 400 : 560}>
         <ComposedChart data={view.data} margin={{ top: 10, right: isMobile ? 6 : 18, bottom: 24, left: isMobile ? 0 : 12 }}
           onMouseDown={onDown} onMouseMove={onMove} onMouseUp={onUp} onMouseLeave={onUp}

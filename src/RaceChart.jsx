@@ -59,7 +59,7 @@ function Metric({ label, value, color = "#f8fafc", sub }) {
 
 // Rebased performance race: SPX6900 vs a basket, every line starting at 1× on the
 // window's start date, on a LOG axis so a 500× SPX and a 3× peer both read clearly.
-export default function RaceChart({ series, isMobile, fetchCoins, coins, basketLabel }) {
+export default function RaceChart({ series, isMobile, fetchCoins, coins, basketLabel, preview = false }) {
   const [coinData, setCoinData] = useState(null);
   const [status, setStatus] = useState("loading");
   const [win, setWin] = useState("launch");
@@ -161,7 +161,7 @@ export default function RaceChart({ series, isMobile, fetchCoins, coins, basketL
             {zoom ? "Rebased to the selected window's start." : "Drag across the chart to zoom into any period."}
           </div>
           <div style={{ position: "relative" }}>
-            <ChartZoomHint />
+            {!preview && <ChartZoomHint />}
             <ResponsiveContainer width="100%" height={isMobile ? 400 : 560}>
               <ComposedChart data={rows} margin={{ top: 10, right: isMobile ? 14 : 32, bottom: 24, left: isMobile ? 0 : 12 }}
                 onMouseDown={onDown} onMouseMove={onMove} onMouseUp={onUp} onMouseLeave={onUp}
