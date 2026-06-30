@@ -15,18 +15,24 @@ const fMult = v => (v >= 100 ? Math.round(v) + "×" : v >= 10 ? v.toFixed(1) + "
 const fPct = v => `${v >= 0 ? "+" : ""}${Math.round((v - 1) * 100).toLocaleString()}%`;
 const WINDOWS = [["launch", "Since launch"], ["12m", "12 months"], ["ytd", "YTD"]];
 
-// nearest-price lookup over a {date,price} series (binary search)
+// nearest-price lookup over a {date,price} series (binary search). Returns null
+// BEFORE the series' first data point — never clamps the start — so a peer whose
+// history doesn't reach back to the window start draws a gap instead of a fake
+// flat line. `.first` exposes that first timestamp. The recent end still clamps to
+// the last known price (today).
 function lookupFn(arr) {
   const m = arr.map(p => ({ ts: tsOf(p.date), price: p.price })).sort((a, b) => a.ts - b.ts);
-  return target => {
+  const fn = target => {
     if (!m.length) return null;
-    if (target <= m[0].ts) return m[0].price;
+    if (target < m[0].ts) return null;
     if (target >= m[m.length - 1].ts) return m[m.length - 1].price;
     let lo = 0, hi = m.length - 1;
     while (lo <= hi) { const mid = (lo + hi) >> 1; if (m[mid].ts < target) lo = mid + 1; else hi = mid - 1; }
     const a = m[Math.max(0, lo - 1)], b = m[Math.min(m.length - 1, lo)];
     return (target - a.ts) <= (b.ts - target) ? a.price : b.price;
   };
+  fn.first = m.length ? m[0].ts : Infinity;
+  return fn;
 }
 
 function Tip({ active, payload, coins, spxColor }) {
@@ -88,11 +94,24 @@ export default function RaceChart({ series, isMobile, fetchCoins, coins, basketL
     const spxL = lookupFn(series);
     const coinL = Object.fromEntries(coins.map(c => [c.key, coinData[c.key] ? lookupFn(coinData[c.key]) : null]));
     const t0 = dates[0];
-    const base = { spx: spxL(t0) };
-    for (const c of coins) base[c.key] = coinL[c.key] ? coinL[c.key](t0) : null;
+    // Rebase each line to the window start — or, if a peer's history begins later,
+    // to ITS first available date (so it starts at 1× where its data actually
+    // begins, rather than clamping to a flat 1× across the gap).
+    const baseTs = { spx: t0 }, base = { spx: spxL(t0) };
+    for (const c of coins) {
+      const L = coinL[c.key];
+      if (!L) { base[c.key] = null; baseTs[c.key] = Infinity; continue; }
+      const eff = Math.max(t0, L.first);
+      baseTs[c.key] = eff; base[c.key] = L(eff);
+    }
     const rows = dates.map(t => {
-      const row = { ts: t, spx: spxL(t) / base.spx };
-      for (const c of coins) row[c.key] = coinL[c.key] ? coinL[c.key](t) / base[c.key] : null;
+      const sp = spxL(t);
+      const row = { ts: t, spx: (sp != null && base.spx) ? sp / base.spx : null };
+      for (const c of coins) {
+        const L = coinL[c.key], b = base[c.key];
+        const v = (L && b && t >= baseTs[c.key]) ? L(t) : null;
+        row[c.key] = (v != null && b) ? v / b : null;
+      }
       return row;
     });
     let yMin = Infinity, yMax = -Infinity;
