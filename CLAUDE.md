@@ -312,12 +312,17 @@
   - **NEXT (incremental): convert card-only TIME-SERIES charts to interactive React
     pages**, one at a time, adding each to `charts-catalog.js`. Phase-1 shipped the 11
     that already had components (channel, risk, model, rally, drawdown, monthly, supply,
-    holders, spxbtc, btccycle, relative). Candidates to build next (all time-series, all
-    currently bot-card-only): `riskcolor` (z-score), `riskheat` (20W extension),
-    `runningroi` (365D ROI), `rsidots` (RSI dots), `roadmap` (power-law projection),
-    `spxvssp` (vs S&P), `breakeven` (cost basis), `diamondtrend` (% supply in profit).
-    Each is a per-chart React build (like `ChannelChart.jsx`); the data/model logic is
-    already shared in `src/`, so it's a rendering job. (NOT the infographic cards above.)
+    holders, spxbtc, btccycle, relative). **Since shipped as interactive pages (2026-06/07):**
+    `riskcolor` (z-score), `riskheat` (20W extension), `runningroi` (Performance / windowed
+    growth), `rsidots` (RSI dots), `roadmap` (power-law projection), `holdersprice` (holders
+    vs price), `mvrv` (MVRV & Realized Price — realized/MVRV/Z-score modes). **Still
+    card-only, candidates to build next:** `spxvssp` (vs S&P), `breakeven` (cost basis),
+    `diamondtrend` (**diamond-hands SHARE of total supply over time** — NOTE: this is the
+    conviction-tier share, NOT "% supply in profit"; that's a separate, data-blocked metric,
+    see below). The `diamondtrend` BOT CARD is already in production; only the interactive
+    site page is unbuilt. Each is a per-chart React build (like `ChannelChart.jsx`); the
+    data/model logic is already shared in `src/`, so it's a rendering job. (NOT the
+    infographic cards above.)
   - **❌ Volatility "how wild is it" — BUILT then REMOVED 2026-06-28.** Was a 3-bar SPX
     vs BTC vs S&P annualized-weekly-vol card. Owner pulled it: a bar of "120% annualized
     volatility" is too abstract — the average user can't decode it at a glance, so it's a
@@ -335,6 +340,14 @@
   - **% of supply in profit / MVRV.** price ÷ holders' realized cost (we already compute
     break-even, so current value is free). A respected, crypto-native on-chain metric.
     Full over-time chart needs ~30 days of snapshot history (same wait as holder-growth).
+    - **✅ MVRV / Realized-price / MVRV-Z SHIPPED as an interactive site page 2026-07-01**
+      (`mvrv`, `src/OnchainValueChart.jsx`, On-Chain group). Three modes off the daily
+      snapshots: Realized price (price vs `be`), MVRV (price ÷ `be`, 1× break-even line),
+      MVRV Z-score ((mcap−rcap)/std(mcap), SUPPLY=939M). Young data by design — caption
+      says it fills in as snapshots accumulate; the Z std is still tiny (~1 month) so early
+      Z reads are exaggerated. **Exact "% supply in profit" is STILL NOT shipped/computable**
+      — it needs the cost-basis DISTRIBUTION HolderScan doesn't give (the collab ask); MVRV
+      is the buildable proxy and it's what shipped.
     **Status (2026-06-23):** now banking `upnl` (unrealized) + `rpnl` (realized) $ PnL
     daily in `history.json` alongside `be`. HolderScan's `/stats/pnl` only gives
     break-even + aggregate realized/unrealized totals — NO cost-basis distribution, so
