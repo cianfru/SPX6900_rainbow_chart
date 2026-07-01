@@ -32,6 +32,7 @@ const RsiDotsChart = lazy(() => import("./RsiDotsChart.jsx"));
 const RaceChart = lazy(() => import("./RaceChart.jsx"));
 const HoldersPriceChart = lazy(() => import("./HoldersPriceChart.jsx"));
 const RoadmapChart = lazy(() => import("./RoadmapChart.jsx"));
+const OnchainValueChart = lazy(() => import("./OnchainValueChart.jsx"));
 const ChartsGallery = lazy(() => import("./ChartsGallery.jsx"));
 
 // Basket rosters for the performance-race charts (keys match the /api endpoints).
@@ -142,6 +143,7 @@ function TabIcon({ name }) {
     case "vsmajors":
     case "vsmemekings": return (<svg {...p}><path d="M4 20V6" /><path d="M10 20V10" /><path d="M16 20V4" /><path d="M3 20h18" /><path d="M4 6l6 4 6-6" strokeDasharray="2 2" /></svg>);
     case "holdersprice": return (<svg {...p}><path d="M3 17l5-4 4 2 5-7 4 3" /><path d="M3 20l5-2 4 1 5-4 4 2" strokeDasharray="2 3" strokeOpacity="0.7" /></svg>);
+    case "mvrv": return (<svg {...p}><path d="M3 15l5-3 4 1 5-6 4 2" /><path d="M3 18l5-1 4 0 5-3 4 1" strokeDasharray="2 3" strokeOpacity="0.7" /></svg>);
     case "roadmap": return (<svg {...p}><path d="M3 20 21 4" strokeDasharray="4 3" /><circle cx="9" cy="13.5" r="1.4" /><circle cx="15" cy="8.5" r="1.4" /><circle cx="20" cy="4.5" r="1.4" /></svg>);
     default: return null;
   }
@@ -529,6 +531,7 @@ export default function App() {
       case "supply": return <SupplyConviction price={last.price} isMobile={mob} />;
       case "holders": return <HolderscanDashboard />;
       case "holdersprice": return <HoldersPriceChart isMobile={mob} preview={preview} />;
+      case "mvrv": return <OnchainValueChart isMobile={mob} preview={preview} />;
       case "model": return <ModelChart series={priceData} m={m} isMobile={mob} />;
       default: return null;
     }
