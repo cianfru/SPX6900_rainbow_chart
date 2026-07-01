@@ -131,6 +131,31 @@ function niceTicks(min, max, yLog, fmt) {
 
 export const renderLineCard = (spec, opts = {}) => png(lineCardSvg(spec, opts), opts.W ?? W);
 
+// Monotone-cubic Hermite spline → SVG path `d` over SCREEN points (Fritsch-
+// Carlson). Rounds corners just enough to read smooth, but NEVER overshoots a
+// data point, so the line stays canonically correct (same as Recharts monotone).
+function monotonePath(P) {
+  const n = P.length;
+  if (n < 2) return n ? `M ${P[0][0].toFixed(1)},${P[0][1].toFixed(1)}` : "";
+  if (n === 2) return `M ${P[0][0].toFixed(1)},${P[0][1].toFixed(1)} L ${P[1][0].toFixed(1)},${P[1][1].toFixed(1)}`;
+  const dx = [], delta = [];
+  for (let i = 0; i < n - 1; i++) { dx[i] = P[i + 1][0] - P[i][0]; delta[i] = dx[i] !== 0 ? (P[i + 1][1] - P[i][1]) / dx[i] : 0; }
+  const m = new Array(n);
+  m[0] = delta[0]; m[n - 1] = delta[n - 2];
+  for (let i = 1; i < n - 1; i++) m[i] = delta[i - 1] * delta[i] <= 0 ? 0 : (delta[i - 1] + delta[i]) / 2;
+  for (let i = 0; i < n - 1; i++) {
+    if (delta[i] === 0) { m[i] = 0; m[i + 1] = 0; continue; }
+    const a = m[i] / delta[i], b = m[i + 1] / delta[i], s = a * a + b * b;
+    if (s > 9) { const t = 3 / Math.sqrt(s); m[i] = t * a * delta[i]; m[i + 1] = t * b * delta[i]; }
+  }
+  let d = `M ${P[0][0].toFixed(1)},${P[0][1].toFixed(1)}`;
+  for (let i = 0; i < n - 1; i++) {
+    const h = dx[i];
+    d += ` C ${(P[i][0] + h / 3).toFixed(1)},${(P[i][1] + m[i] * h / 3).toFixed(1)} ${(P[i + 1][0] - h / 3).toFixed(1)},${(P[i + 1][1] - m[i + 1] * h / 3).toFixed(1)} ${P[i + 1][0].toFixed(1)},${P[i + 1][1].toFixed(1)}`;
+  }
+  return d;
+}
+
 // Portrait/video format decisions live in card-format.mjs (dependency-free so the
 // schedule endpoint can share them). Re-exported here for existing importers.
 import { PORTRAIT, isPortraitCard, isVideoCard } from "./card-format.mjs";
@@ -160,7 +185,7 @@ export function lineCardSvg(spec, opts = {}) {
   const Y = y => spec.yLog
     ? mT + ((Math.log(yMax) - Math.log(Math.max(y, 1e-9))) / ((Math.log(yMax) - Math.log(yMin)) || 1)) * PH
     : mT + ((yMax - y) / ((yMax - yMin) || 1)) * PH;
-  const path = pts => pts.map(([x, y]) => `${X(x).toFixed(1)},${Y(y).toFixed(1)}`).join(" ");
+  const smoothD = pts => monotonePath(pts.map(([x, y]) => [X(x), Y(y)]));
   // Reveal as a single left→right sweep by x (timestamp), so earlier series (e.g.
   // actual history) finish before later ones (e.g. the forward projection) start.
   // opts.revealFromX starts the sweep partway in (e.g. at "now"), so the history
@@ -214,13 +239,14 @@ export function lineCardSvg(spec, opts = {}) {
     let pts = s.pts.filter(([, y]) => !spec.yLog || y > 0);
     if (reveal < 1) pts = pts.filter(([x]) => x <= xCut);
     if (pts.length < 2) continue; // this series hasn't been reached by the sweep yet
+    const d = smoothD(pts);
     if (s.fill) {
       const base = Y(spec.fillBase ?? yMin).toFixed(1);
-      plot += `<polygon points="${X(pts[0][0]).toFixed(1)},${base} ${path(pts)} ${X(pts.at(-1)[0]).toFixed(1)},${base}" fill="url(#fill${i})"/>`;
+      plot += `<path d="${d} L ${X(pts.at(-1)[0]).toFixed(1)},${base} L ${X(pts[0][0]).toFixed(1)},${base} Z" fill="url(#fill${i})"/>`;
     }
     // optional soft glow underlay (s.glow) so a hero line reads with weight
-    if (s.glow) plot += `<polyline points="${path(pts)}" fill="none" stroke="${s.color}" stroke-width="${(s.width || 3) * 3}" stroke-opacity="0.22" stroke-linejoin="round" stroke-linecap="round" filter="url(#lglow)"/>`;
-    plot += `<polyline points="${path(pts)}" fill="none" stroke="${s.color}" stroke-width="${s.width || 3}" stroke-linejoin="round" stroke-linecap="round"${s.dash ? ` stroke-dasharray="7 7"` : ""}/>`;
+    if (s.glow) plot += `<path d="${d}" fill="none" stroke="${s.color}" stroke-width="${(s.width || 3) * 3}" stroke-opacity="0.22" stroke-linejoin="round" stroke-linecap="round" filter="url(#lglow)"/>`;
+    plot += `<path d="${d}" fill="none" stroke="${s.color}" stroke-width="${s.width || 3}" stroke-linejoin="round" stroke-linecap="round"${s.dash ? ` stroke-dasharray="7 7"` : ""}/>`;
   }
 
   // horizontal reference lines (e.g. price targets, milestones, cost basis) with
