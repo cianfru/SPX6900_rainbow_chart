@@ -144,6 +144,19 @@ export async function buildRecapPost(month, history) {
     title: `${R.label} — day by day`, headline: `${greenDays}/${dayBars.length} green days · best ${fPct(R.bestDay.ret)}`, accent: "#38bdf8", bars: dayBars,
   } } : null;
 
+  // --- holder growth over the month: the "+X new holders" as a rising line ----
+  const hser = R.holderSeries;
+  let holdersCard = null;
+  if (hser && hser.length >= 2 && R.holders) {
+    const hv = hser.map(p => p[1]); const hlo = Math.min(...hv), hhi = Math.max(...hv), hr = hhi - hlo, hp = Math.max(hr * 0.25, 20);
+    holdersCard = { type: "line", spec: {
+      title: `Holders — ${R.label}`, headline: `${R.holders.delta >= 0 ? "+" : ""}${fNum(R.holders.delta)} new holders`, accent: "#4ade80",
+      yMin: hlo - hp, yMax: hhi + hp, yFmt: v => fNum(v),
+      series: [{ pts: hser, color: "#4ade80", width: 3, fill: 0.18 }],
+      marker: { x: hser.at(-1)[0], y: hser.at(-1)[1], color: "#4ade80" },
+    } };
+  }
+
   // --- the 4 image cards: Hero scorecard, Rainbow, SPX vs the field, day-by-day.
   // X caps a post at 4 images; the price-path + sentiment charts are dropped here
   // and folded into the post text instead (the two most summarizable in words).
@@ -157,8 +170,11 @@ export async function buildRecapPost(month, history) {
     hlines: [{ y: 0, label: "0%", color: "#475569" }],
     series: fieldLines.map(f => ({ pts: f.pts, color: f.color, width: f.width, logo: f.logo })),
   } });
-  if (dailyCard) cards.push(dailyCard);
-  else if (diamondCard) cards.push(diamondCard); // fallback if the month has too few daily points
+  // 4th card: holder growth (positive, on-brand). Falls back to the day-by-day
+  // returns, then the diamond-supply line, if a month lacks the data.
+  if (holdersCard) cards.push(holdersCard);
+  else if (dailyCard) cards.push(dailyCard);
+  else if (diamondCard) cards.push(diamondCard);
   while (cards.length > 4) cards.pop(); // X hard-caps a post at 4 images
 
   // --- the single long-form post (no URL in the body — links throttle reach and
