@@ -421,13 +421,20 @@ export function renderMonthBars(spec, opts = {}) {
   const axis = `<line x1="${mL}" y1="${zeroY.toFixed(1)}" x2="${DW - mR}" y2="${zeroY.toFixed(1)}" stroke="rgba(255,255,255,0.55)" stroke-width="2"/>`
     + `<text x="${mL - 12}" y="${(zeroY + 6).toFixed(1)}" fill="#cbd5e1" font-size="30" text-anchor="end" font-family="sans-serif">0%</text>`;
 
-  // Year labels under the first bar of each calendar year.
-  let years = "", seen = -1;
-  bars.forEach((b, i) => {
-    if (b.year === seen) return;
-    seen = b.year;
-    years += `<text x="${(mL + slot * i + slot / 2).toFixed(1)}" y="${(mT + PH + 30).toFixed(1)}" fill="#64748b" font-size="26" text-anchor="middle" font-family="sans-serif">${b.year}</text>`;
-  });
+  // x-axis labels: explicit `bar.label`s when supplied (e.g. daily "Jun 4" dates),
+  // otherwise the year under the first bar of each calendar year.
+  const xLabelY = (mT + PH + 30).toFixed(1);
+  let years = "";
+  if (bars.some(b => b.label)) {
+    bars.forEach((b, i) => { if (b.label) years += `<text x="${(mL + slot * i + slot / 2).toFixed(1)}" y="${xLabelY}" fill="#64748b" font-size="26" text-anchor="middle" font-family="sans-serif">${esc(b.label)}</text>`; });
+  } else {
+    let seen = -1;
+    bars.forEach((b, i) => {
+      if (b.year === seen) return;
+      seen = b.year;
+      years += `<text x="${(mL + slot * i + slot / 2).toFixed(1)}" y="${xLabelY}" fill="#64748b" font-size="26" text-anchor="middle" font-family="sans-serif">${b.year}</text>`;
+    });
+  }
 
   return chrome(spec, grid + axis + body + labels + years, defs, { W: DW, H: DH });
 }

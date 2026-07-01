@@ -127,7 +127,24 @@ export async function buildRecapPost(month, history) {
     } };
   }
 
-  // --- the 4 image cards: Hero scorecard, Rainbow, SPX vs the field, Diamond.
+  // --- the month, day by day: each daily close-to-close return as a green/red
+  // bar diverging from 0% (the mbars renderer). Additive to the scorecard — shows
+  // the month's rhythm + standout days the tiles can't. Date labels via bar.label.
+  const dMon = d => { const [, m, day] = d.split("-"); return `${MON[+m - 1]} ${+day}`; };
+  const ps = R.priceSeries;
+  const dayBars = [];
+  for (let i = 1; i < ps.length; i++) {
+    const d = new Date(ps[i][0]).toISOString().slice(0, 10);
+    dayBars.push({ value: ps[i][1] / ps[i - 1][1] - 1, year: new Date(ps[i][0]).getUTCFullYear(), d });
+  }
+  // label ~5 dates evenly across the axis so it doesn't crowd
+  if (dayBars.length) { const every = Math.max(1, Math.round(dayBars.length / 5)); dayBars.forEach((b, i) => { if (i % every === 0 || i === dayBars.length - 1) b.label = dMon(b.d); }); }
+  const greenDays = dayBars.filter(b => b.value >= 0).length;
+  const dailyCard = dayBars.length >= 2 ? { type: "mbars", spec: {
+    title: `${R.label} — day by day`, headline: `${greenDays}/${dayBars.length} green days · best ${fPct(R.bestDay.ret)}`, accent: "#38bdf8", bars: dayBars,
+  } } : null;
+
+  // --- the 4 image cards: Hero scorecard, Rainbow, SPX vs the field, day-by-day.
   // X caps a post at 4 images; the price-path + sentiment charts are dropped here
   // and folded into the post text instead (the two most summarizable in words).
   const cards = [
@@ -140,7 +157,8 @@ export async function buildRecapPost(month, history) {
     hlines: [{ y: 0, label: "0%", color: "#475569" }],
     series: fieldLines.map(f => ({ pts: f.pts, color: f.color, width: f.width, logo: f.logo })),
   } });
-  if (diamondCard) cards.push(diamondCard);
+  if (dailyCard) cards.push(dailyCard);
+  else if (diamondCard) cards.push(diamondCard); // fallback if the month has too few daily points
   while (cards.length > 4) cards.pop(); // X hard-caps a post at 4 images
 
   // --- the single long-form post (no URL in the body — links throttle reach and
