@@ -37,6 +37,7 @@ export const CHART_GROUPS = [
     charts: [
       { id: "supply", title: "Holder Conviction", post: "distribution", desc: "Supply split across holder-conviction tiers." },
       { id: "holders", title: "Holders", post: "marketcap", desc: "The holder base and its average cost basis." },
+      { id: "holdersprice", title: "Holders vs Price", post: "marketcap", desc: "Does accumulation hold through the price swings?" },
     ],
   },
   {

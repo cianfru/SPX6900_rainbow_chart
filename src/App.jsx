@@ -30,6 +30,7 @@ const RiskHeatChart = lazy(() => import("./RiskHeatChart.jsx"));
 const RunningRoiChart = lazy(() => import("./RunningRoiChart.jsx"));
 const RsiDotsChart = lazy(() => import("./RsiDotsChart.jsx"));
 const RaceChart = lazy(() => import("./RaceChart.jsx"));
+const HoldersPriceChart = lazy(() => import("./HoldersPriceChart.jsx"));
 const ChartsGallery = lazy(() => import("./ChartsGallery.jsx"));
 
 // Basket rosters for the performance-race charts (keys match the /api endpoints).
@@ -139,6 +140,7 @@ function TabIcon({ name }) {
     case "runningroi": return (<svg {...p}><path d="M3 12a9 9 0 1 0 9-9" /><path d="M3 4v4h4" /><path d="M12 8v4l3 2" /></svg>);
     case "vsmajors":
     case "vsmemekings": return (<svg {...p}><path d="M4 20V6" /><path d="M10 20V10" /><path d="M16 20V4" /><path d="M3 20h18" /><path d="M4 6l6 4 6-6" strokeDasharray="2 2" /></svg>);
+    case "holdersprice": return (<svg {...p}><path d="M3 17l5-4 4 2 5-7 4 3" /><path d="M3 20l5-2 4 1 5-4 4 2" strokeDasharray="2 3" strokeOpacity="0.7" /></svg>);
     default: return null;
   }
 }
@@ -523,6 +525,7 @@ export default function App() {
       case "vsmemekings": return <RaceChart series={priceData} isMobile={mob} preview={preview} fetchCoins={fetchMemekings} coins={MEMEKINGS_META} basketLabel="memekings" />;
       case "supply": return <SupplyConviction price={last.price} isMobile={mob} />;
       case "holders": return <HolderscanDashboard />;
+      case "holdersprice": return <HoldersPriceChart isMobile={mob} preview={preview} />;
       case "model": return <ModelChart series={priceData} m={m} isMobile={mob} />;
       default: return null;
     }
