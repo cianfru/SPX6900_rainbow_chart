@@ -29,7 +29,11 @@ function lookupFn(arr) {
     let lo = 0, hi = m.length - 1;
     while (lo <= hi) { const mid = (lo + hi) >> 1; if (m[mid].ts < target) lo = mid + 1; else hi = mid - 1; }
     const a = m[Math.max(0, lo - 1)], b = m[Math.min(m.length - 1, lo)];
-    return (target - a.ts) <= (b.ts - target) ? a.price : b.price;
+    if (a.ts === b.ts || b.ts === a.ts) return a.price;
+    // log-linear interpolation — a straight line on the log axis between anchors,
+    // so sampling on a fine grid renders smooth (not blocky) between sparse points.
+    const f = (target - a.ts) / (b.ts - a.ts);
+    return Math.exp(Math.log(a.price) + (Math.log(b.price) - Math.log(a.price)) * f);
   };
   fn.first = m.length ? m[0].ts : Infinity;
   return fn;
@@ -72,6 +76,8 @@ export default function RaceChart({ series, isMobile, fetchCoins, coins, basketL
   const [zoom, setZoom] = useState(null);   // [x0,x1] drag-selected window (overrides the toggle)
   const [selL, setSelL] = useState(null);
   const [selR, setSelR] = useState(null);
+  const [hidden, setHidden] = useState(() => new Set()); // deselected peers
+  const toggle = key => setHidden(prev => { const n = new Set(prev); n.has(key) ? n.delete(key) : n.add(key); return n; });
 
   useEffect(() => {
     let live = true;
@@ -89,11 +95,15 @@ export default function RaceChart({ series, isMobile, fetchCoins, coins, basketL
       : tsOf(series[0].date);
     // A drag-selected zoom window overrides the toggle; everything rebases to its start.
     const [startTs, endTs] = zoom ?? [winStart, now];
-    const dates = series.filter(r => { const t = tsOf(r.date); return t >= startTs && t <= endTs; }).map(r => tsOf(r.date));
-    if (!zoom && dates[0] > startTs && win !== "launch") dates.unshift(startTs);
     const spxL = lookupFn(series);
     const coinL = Object.fromEntries(coins.map(c => [c.key, coinData[c.key] ? lookupFn(coinData[c.key]) : null]));
-    const t0 = dates[0];
+    const t0 = Math.max(startTs, spxL.first);
+    // Sample on a fine (daily) grid instead of the sparse weekly source dates, so
+    // the lines render smooth and rich rather than blocky. ~1 point/day, capped.
+    const step = Math.max(DAY, Math.ceil((endTs - t0) / (900 * DAY)) * DAY);
+    const grid = [];
+    for (let t = t0; t < endTs; t += step) grid.push(t);
+    grid.push(endTs);
     // Rebase each line to the window start — or, if a peer's history begins later,
     // to ITS first available date (so it starts at 1× where its data actually
     // begins, rather than clamping to a flat 1× across the gap).
@@ -104,7 +114,7 @@ export default function RaceChart({ series, isMobile, fetchCoins, coins, basketL
       const eff = Math.max(t0, L.first);
       baseTs[c.key] = eff; base[c.key] = L(eff);
     }
-    const rows = dates.map(t => {
+    const rows = grid.map(t => {
       const sp = spxL(t);
       const row = { ts: t, spx: (sp != null && base.spx) ? sp / base.spx : null };
       for (const c of coins) {
@@ -114,8 +124,11 @@ export default function RaceChart({ series, isMobile, fetchCoins, coins, basketL
       }
       return row;
     });
+    // Scale to the VISIBLE lines only (SPX + peers not toggled off).
+    const visKeys = ["spx", ...coins.filter(c => !hidden.has(c.key)).map(c => c.key)];
     let yMin = Infinity, yMax = -Infinity;
-    for (const r of rows) for (const k of ["spx", ...coins.map(c => c.key)]) if (r[k] != null) { if (r[k] < yMin) yMin = r[k]; if (r[k] > yMax) yMax = r[k]; }
+    for (const r of rows) for (const k of visKeys) if (r[k] != null) { if (r[k] < yMin) yMin = r[k]; if (r[k] > yMax) yMax = r[k]; }
+    if (!Number.isFinite(yMin)) { yMin = 0.5; yMax = 2; }
     const spanDays = (endTs - t0) / DAY, monthly = spanDays <= 560;
     const xTicks = [];
     if (monthly) {
@@ -126,13 +139,13 @@ export default function RaceChart({ series, isMobile, fetchCoins, coins, basketL
     }
     const allYTicks = [0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1, 2, 5, 10, 20, 50, 100, 200, 500, 1000];
     const last = rows.at(-1) || {};
-    const standings = [{ key: "spx", label: "SPX6900", color: "#ffffff", v: last.spx }, ...coins.map(c => ({ ...c, v: last[c.key] }))]
+    const standings = [{ key: "spx", label: "SPX6900", color: "#ffffff", v: last.spx }, ...coins.filter(c => !hidden.has(c.key)).map(c => ({ ...c, v: last[c.key] }))]
       .filter(s => s.v != null).sort((a, b) => b.v - a.v);
     return {
       rows, xDomain: [t0, endTs], xTicks, fmtX: monthly ? fShort : (t => String(yearOf(t))),
       yDomain: [yMin * 0.8, yMax * 1.25], yTicks: allYTicks.filter(v => v >= yMin * 0.8 && v <= yMax * 1.25), standings,
     };
-  }, [coinData, series, win, coins, zoom]);
+  }, [coinData, series, win, coins, zoom, hidden]);
 
   const onDown = e => { if (e && e.activeLabel != null) { setSelL(e.activeLabel); setSelR(e.activeLabel); } };
   const onMove = e => { if (selL != null && e && e.activeLabel != null) setSelR(e.activeLabel); };
@@ -197,10 +210,10 @@ export default function RaceChart({ series, isMobile, fetchCoins, coins, basketL
                 <ReferenceLine y={1} stroke="rgba(148,163,184,0.6)" strokeDasharray="5 5"
                   label={{ value: "start 1×", position: "insideBottomRight", fill: "#94a3b8", fontSize: 11, fontFamily: MONO }} />
                 <Tooltip content={<Tip coins={coins} spxColor={spxColor} />} cursor={{ stroke: "rgba(255,255,255,0.2)" }} />
-                {coins.map(c => (
-                  <Line key={c.key} dataKey={c.key} stroke={c.color} strokeWidth={2} dot={false} isAnimationActive={false} name={c.label} connectNulls />
+                {coins.filter(c => !hidden.has(c.key)).map(c => (
+                  <Line key={c.key} dataKey={c.key} stroke={c.color} strokeWidth={1.5} dot={false} isAnimationActive={false} name={c.label} connectNulls />
                 ))}
-                <Line dataKey="spx" stroke={spxColor} strokeWidth={3.2} dot={false} isAnimationActive={false} name="SPX6900" connectNulls />
+                <Line dataKey="spx" stroke={spxColor} strokeWidth={2.2} dot={false} isAnimationActive={false} name="SPX6900" connectNulls />
                 {selL != null && selR != null && selL !== selR && (
                   <ReferenceArea x1={selL} x2={selR} strokeOpacity={0.4} stroke="#38bdf8" fill="#38bdf8" fillOpacity={0.12} />
                 )}
@@ -210,20 +223,33 @@ export default function RaceChart({ series, isMobile, fetchCoins, coins, basketL
         </>
       )}
 
-      {/* legend */}
+      {/* legend — click a peer to show / hide it */}
       {status === "ok" && (
-        <div style={{ display: "flex", gap: 16, justifyContent: "center", flexWrap: "wrap", marginTop: 12 }}>
-          {[{ key: "spx", label: "SPX6900", color: spxColor }, ...coins].map(c => (
-            <span key={c.key} style={{ display: "inline-flex", alignItems: "center", gap: 6, fontFamily: SANS, fontSize: 13, color: "#cbd5e1" }}>
-              <span style={{ width: 14, height: 3, borderRadius: 2, background: c.color }} />{c.label}
-            </span>
-          ))}
+        <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap", marginTop: 12 }}>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontFamily: SANS, fontSize: 13, fontWeight: 700, color: "#f1f5f9", padding: "5px 6px" }}>
+            <span style={{ width: 16, height: 3, borderRadius: 2, background: spxColor }} />SPX6900
+          </span>
+          {coins.map(c => {
+            const off = hidden.has(c.key);
+            return (
+              <button key={c.key} onClick={() => toggle(c.key)} className="pill" title={off ? `Show ${c.label}` : `Hide ${c.label}`}
+                style={{
+                  display: "inline-flex", alignItems: "center", gap: 6, cursor: "pointer", padding: "5px 11px", borderRadius: 8,
+                  fontFamily: SANS, fontSize: 13, fontWeight: 600, background: "transparent",
+                  border: `1px solid ${off ? "transparent" : c.color + "55"}`, "--glow": c.color,
+                  color: off ? "#64748b" : "#e2e8f0", opacity: off ? 0.6 : 1,
+                }}>
+                <span style={{ width: 16, height: 3, borderRadius: 2, background: off ? "#475569" : c.color }} />
+                <span style={{ textDecoration: off ? "line-through" : "none" }}>{c.label}</span>
+              </button>
+            );
+          })}
         </div>
       )}
 
       <div style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 14, lineHeight: 1.65, maxWidth: 880, marginInline: "auto" }}>
         A clean same-start race: every line begins at <strong style={{ color: "#cbd5e1" }}>1×</strong> on the window&apos;s first day, so you read pure relative
-        performance. Log axis, so SPX6900&apos;s big run and the peers stay legible together. Toggle the window above. Not financial advice.
+        performance. Log axis, so SPX6900&apos;s big run and the peers stay legible together. <strong style={{ color: "#cbd5e1" }}>Click a coin in the legend to show/hide it</strong>, drag to zoom, or switch the window above. Not financial advice.
       </div>
     </div>
   );
