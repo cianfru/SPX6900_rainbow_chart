@@ -135,8 +135,8 @@ export default function BtcCycleChart({ series, isMobile }) {
           <Line yAxisId="spx" dataKey="floor" stroke="#38bdf8" strokeWidth={1.5} strokeDasharray="3 4" strokeOpacity={0.7} dot={false} activeDot={false} isAnimationActive={false} connectNulls />
           <Area yAxisId="spx" dataKey="cone" stroke="none" fill="#f7931a" fillOpacity={0.1} isAnimationActive={false} activeDot={false} connectNulls />
           <Line yAxisId="spx" dataKey="proj" stroke="#f7931a" strokeWidth={2.2} strokeDasharray="7 6" strokeOpacity={0.55} dot={false} activeDot={false} isAnimationActive={false} connectNulls />
-          <Line yAxisId="btc" dataKey="btc" stroke="#f7931a" strokeWidth={2.4} dot={false} activeDot={false} isAnimationActive={false} connectNulls />
-          <Line yAxisId="spx" dataKey="spx" stroke="#4ade80" strokeWidth={2.8} dot={false} activeDot={false} isAnimationActive={false} connectNulls />
+          <Line yAxisId="btc" type="monotone" dataKey="btc" stroke="#f7931a" strokeWidth={2} dot={false} activeDot={false} isAnimationActive={false} connectNulls />
+          <Line yAxisId="spx" type="monotone" dataKey="spx" stroke="#4ade80" strokeWidth={2.2} dot={false} activeDot={false} isAnimationActive={false} connectNulls />
         </ComposedChart>
       </ResponsiveContainer>
 

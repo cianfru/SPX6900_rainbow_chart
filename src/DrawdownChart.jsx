@@ -102,7 +102,7 @@ export default function DrawdownChart({ series, isMobile }) {
           {cycles.map((c, i) => (
             <Line
               key={i} dataKey={"e" + i} name={fMon(c.startDate) + (c.ongoing ? " (now)" : "")}
-              type="monotone" stroke={colorFor(i)} strokeWidth={c.ongoing ? 3 : 2}
+              type="monotone" stroke={colorFor(i)} strokeWidth={c.ongoing ? 2.4 : 1.7}
               dot={false} connectNulls isAnimationActive={false}
             />
           ))}

@@ -131,10 +131,10 @@ export default function RiskChart({ series, m, isMobile }) {
           ))}
           <Tooltip content={<RiskTip />} />
           {showFng && (
-            <Line dataKey="fng" stroke={FNG_COLOR} strokeWidth={2} dot={false} connectNulls
+            <Line type="monotone" dataKey="fng" stroke={FNG_COLOR} strokeWidth={1.7} dot={false} connectNulls
               strokeDasharray="5 4" isAnimationActive={false} />
           )}
-          <Line dataKey="risk" stroke="#ffffff" strokeWidth={2.2} dot={false} isAnimationActive={false} />
+          <Line type="monotone" dataKey="risk" stroke="#ffffff" strokeWidth={2} dot={false} isAnimationActive={false} />
         </ComposedChart>
       </ResponsiveContainer>
 

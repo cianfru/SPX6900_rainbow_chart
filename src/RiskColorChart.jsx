@@ -90,8 +90,8 @@ export default function RiskColorChart({ series, m, isMobile }) {
           />
           <Tooltip content={<Tip />} cursor={{ stroke: "rgba(255,255,255,0.2)" }} />
           <Area dataKey="price" stroke="none" fill="url(#zarea)" isAnimationActive={false} activeDot={false} />
-          <Line dataKey="fair" stroke="#cbd5e1" strokeWidth={1.8} strokeDasharray="2 7" dot={false} isAnimationActive={false} name="fair value" />
-          <Line dataKey="price" stroke="url(#zgrad)" strokeWidth={3.2} dot={false} isAnimationActive={false} name="price" />
+          <Line type="monotone" dataKey="fair" stroke="#cbd5e1" strokeWidth={1.6} strokeDasharray="2 7" dot={false} isAnimationActive={false} name="fair value" />
+          <Line type="monotone" dataKey="price" stroke="url(#zgrad)" strokeWidth={2.4} dot={false} isAnimationActive={false} name="price" />
         </ComposedChart>
       </ResponsiveContainer>
 

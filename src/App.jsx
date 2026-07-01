@@ -959,7 +959,7 @@ export default function App() {
               strokeDasharray="3 5" dot={false} isAnimationActive={false} activeDot={false}
             />
             <Line
-              dataKey="price" stroke="#ffffff" strokeWidth={3} dot={false}
+              type="monotone" dataKey="price" stroke="#ffffff" strokeWidth={2.2} dot={false}
               isAnimationActive={false} connectNulls={false}
               activeDot={{ r: 5, fill: "#fff", stroke: cb.c, strokeWidth: 2.5 }}
             />

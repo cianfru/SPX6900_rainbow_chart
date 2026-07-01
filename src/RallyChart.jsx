@@ -144,7 +144,7 @@ export default function RallyChart({ series, m, isMobile }) {
           {cycles.map((c, i) => (
             <Line
               key={i} dataKey={"e" + i} name={fMon(c.startDate) + (c.ongoing ? " (now)" : "")}
-              type="monotone" stroke={colorFor(i)} strokeWidth={c.ongoing ? 3 : 2}
+              type="monotone" stroke={colorFor(i)} strokeWidth={c.ongoing ? 2.4 : 1.7}
               dot={false} connectNulls isAnimationActive={false}
             />
           ))}
@@ -210,8 +210,8 @@ export default function RallyChart({ series, m, isMobile }) {
                 labelFormatter={ts => new Date(ts).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
                 formatter={(v, name) => [fMult(v), name]}
               />
-              <Line dataKey="hodl" name="HODL" stroke="#64748b" strokeWidth={2} dot={false} isAnimationActive={false} />
-              <Line dataKey="strat" name="Strategy" stroke="#4ade80" strokeWidth={2.4} dot={false} isAnimationActive={false} />
+              <Line type="monotone" dataKey="hodl" name="HODL" stroke="#64748b" strokeWidth={1.7} dot={false} isAnimationActive={false} />
+              <Line type="monotone" dataKey="strat" name="Strategy" stroke="#4ade80" strokeWidth={2} dot={false} isAnimationActive={false} />
             </LineChart>
           </ResponsiveContainer>
 

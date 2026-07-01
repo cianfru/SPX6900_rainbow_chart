@@ -117,9 +117,9 @@ export default function RsiDotsChart({ series, isMobile }) {
               />
               <Tooltip content={<Tip />} cursor={{ stroke: "rgba(255,255,255,0.2)" }} />
               {/* thin geometric MA reference */}
-              <Line dataKey="gma" stroke="#cbd5e1" strokeWidth={1.6} strokeOpacity={0.85} dot={false} isAnimationActive={false} name="geometric MA" connectNulls />
-              {/* the price line, coloured by RSI along its length */}
-              <Line dataKey="price" stroke="url(#rsiPriceGrad)" strokeWidth={2.6} dot={false} isAnimationActive={false} name="price" connectNulls />
+              <Line type="monotone" dataKey="gma" stroke="#cbd5e1" strokeWidth={1.5} strokeOpacity={0.85} dot={false} isAnimationActive={false} name="geometric MA" connectNulls />
+              {/* the price line, coloured by RSI along its length (linear — connects the monthly dots) */}
+              <Line dataKey="price" stroke="url(#rsiPriceGrad)" strokeWidth={2.2} dot={false} isAnimationActive={false} name="price" connectNulls />
               {/* RSI-coloured dots on top */}
               <Scatter dataKey="price" shape={<RsiDot />} isAnimationActive={false} name="monthly price" />
             </ComposedChart>

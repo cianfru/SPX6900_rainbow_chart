@@ -166,7 +166,7 @@ export default function RelativeChart({ series, isMobile, which, setWhich }) {
                 </>
               )}
 
-              <Line type="monotone" dataKey={metric} stroke="#ffffff" strokeWidth={2.2} dot={false} isAnimationActive={false} />
+              <Line type="monotone" dataKey={metric} stroke="#ffffff" strokeWidth={2} dot={false} isAnimationActive={false} />
             </ComposedChart>
           </ResponsiveContainer>
 
