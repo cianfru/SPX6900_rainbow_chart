@@ -9,6 +9,7 @@ import { renderChannelCard } from "./channel-card.mjs";
 import { renderRiskColorCard, renderRiskLevelsCard, renderRiskHeatCard } from "./risk-cards.mjs";
 import { renderRunningRoiCard } from "./roi-card.mjs";
 import { renderCycleSyncCard, renderCycleClockCard } from "./cycle-card.mjs";
+import { renderHoldersPriceCard } from "./holders-price-card.mjs";
 import { renderRsiDotsCard } from "./rsi-card.mjs";
 import { renderMonthlyCompareCard } from "./monthly-compare-card.mjs";
 import { logoMark } from "./logos.mjs";
@@ -780,6 +781,7 @@ export function renderPostCard(post, stats, opts = {}) {
   if (type === "runningroi") return renderRunningRoiCard(stats, dims);
   if (type === "cyclesync") return renderCycleSyncCard(stats, dims);
   if (type === "cycleclock") return renderCycleClockCard(stats, dims);
+  if (type === "holderspair") return renderHoldersPriceCard(s, dims);
   if (type === "rsidots") return renderRsiDotsCard(stats, dims);
   if (type === "monthcompare") return renderMonthlyCompareCard(stats, dims);
   if (type === "kraken") return renderKrakenCard();

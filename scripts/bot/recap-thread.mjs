@@ -147,15 +147,15 @@ export async function buildRecapPost(month, history) {
   } } : null;
 
   // --- holder growth over the month: the "+X new holders" as a rising line ----
+  // Holder growth vs SPX price — dual axis, so you can see whether accumulation
+  // held through the month's price swings (the honest "conviction through the
+  // chop" read, not a correlation claim).
   const hser = R.holderSeries;
   let holdersCard = null;
   if (hser && hser.length >= 2 && R.holders) {
-    const hv = hser.map(p => p[1]); const hlo = Math.min(...hv), hhi = Math.max(...hv), hr = hhi - hlo, hp = Math.max(hr * 0.25, 20);
-    holdersCard = { type: "line", spec: {
-      title: `Holders — ${R.label}`, headline: `${R.holders.delta >= 0 ? "+" : ""}${fNum(R.holders.delta)} new holders`, accent: "#4ade80",
-      yMin: hlo - hp, yMax: hhi + hp, yFmt: v => fNum(v),
-      series: [{ pts: hser, color: "#4ade80", width: 3, fill: 0.18 }],
-      marker: { x: hser.at(-1)[0], y: hser.at(-1)[1], color: "#4ade80" },
+    holdersCard = { type: "holderspair", spec: {
+      title: `Holders vs price — ${R.label}`, headline: `${R.holders.delta >= 0 ? "+" : ""}${fNum(R.holders.delta)} new holders`, accent: "#4ade80",
+      holders: hser, price: R.priceSeries,
     } };
   }
 
