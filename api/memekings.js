@@ -1,5 +1,17 @@
 // Daily USD history for the memecoin "kings" (DOGE, SHIB, PEPE), for the
 // SPX6900-vs-memekings performance race. Same sources/fallbacks as api/majors.js.
+// PEPE's live source doesn't reach back to SPX6900's launch, so its early history
+// is bundled (PEPE_HISTORY) and merged UNDER the live tail.
+import { PEPE_HISTORY } from "../src/pepe-history.js";
+
+// Merge bundled [date,price] history with live [{date,price}] — live wins on
+// overlapping dates and extends the tail; result sorted, positives only.
+function mergeHist(bundled, live) {
+  const m = new Map();
+  for (const [date, price] of bundled) m.set(date, price);
+  for (const p of live || []) m.set(p.date, p.price);
+  return [...m.entries()].map(([date, price]) => ({ date, price })).filter(p => p.price > 0).sort((a, b) => a.date.localeCompare(b.date));
+}
 
 async function cryptoCompare(sym) {
   const url = `https://min-api.cryptocompare.com/data/v2/histoday?fsym=${sym}&tsym=USD&limit=1300`;
@@ -41,7 +53,7 @@ async function getCoin(sym) {
     try {
       return await coinbasePaged(`${sym}-USD`);
     } catch (e2) {
-      throw new Error(`${e1.message}; ${e2.message}`);
+      throw new Error(`${e1.message}; ${e2.message}`, { cause: e2 });
     }
   }
 }
@@ -55,6 +67,9 @@ export default async function handler(req, res) {
     if (r.status === "fulfilled") prices[syms[i]] = r.value;
     else errors.push(`${syms[i]}: ${r.reason.message}`);
   });
+  // Backfill PEPE with its bundled early history (fills the pre-2024 gap; live
+  // keeps the recent tail fresh). PEPE is therefore always present.
+  prices.PEPE = mergeHist(PEPE_HISTORY, prices.PEPE);
   if (Object.keys(prices).length === 0) {
     return res.status(502).json({ error: "All memekings failed", details: errors });
   }
