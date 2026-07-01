@@ -6,6 +6,20 @@ import { Resvg } from "@resvg/resvg-js";
 import { FONT } from "./font.mjs";
 
 const png = (svg, w) => new Resvg(svg, { fitTo: { mode: "width", value: w }, font: FONT }).render().asPng();
+
+// Smooth SVG path through screen points (Catmull-Rom → cubic Bézier), so the
+// card's lines read smooth like the website's type="monotone" curves, not edgy.
+function smoothPath(pts) {
+  if (pts.length < 2) return "";
+  let d = `M ${pts[0][0].toFixed(1)},${pts[0][1].toFixed(1)}`;
+  for (let i = 0; i < pts.length - 1; i++) {
+    const p0 = pts[i - 1] || pts[i], p1 = pts[i], p2 = pts[i + 1], p3 = pts[i + 2] || p2;
+    const c1x = p1[0] + (p2[0] - p0[0]) / 6, c1y = p1[1] + (p2[1] - p0[1]) / 6;
+    const c2x = p2[0] - (p3[0] - p1[0]) / 6, c2y = p2[1] - (p3[1] - p1[1]) / 6;
+    d += ` C ${c1x.toFixed(1)},${c1y.toFixed(1)} ${c2x.toFixed(1)},${c2y.toFixed(1)} ${p2[0].toFixed(1)},${p2[1].toFixed(1)}`;
+  }
+  return d;
+}
 const esc = s => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 const fNum = n => Math.round(n).toLocaleString("en-US");
 const fPx = p => (p >= 1 ? "$" + p.toFixed(2) : "$" + p.toFixed(p < 0.01 ? 4 : p < 0.1 ? 3 : 2));
@@ -47,9 +61,11 @@ export function holdersPriceSvg(spec, opts = {}) {
   const every = Math.max(1, Math.round(src.length / 5));
   src.forEach((p, i) => { if (i % every === 0 && i <= src.length - 1 - Math.floor(every / 2)) xlab += `<text x="${X(p[0]).toFixed(1)}" y="${H - mB + 38}" fill="#64748b" font-size="26" text-anchor="middle" font-family="sans-serif">${fMon(p[0])}</text>`; });
 
-  const pathH = holders.map(p => `${X(p[0]).toFixed(1)},${Yh(p[1]).toFixed(1)}`).join(" ");
-  const pathP = price.map(p => `${X(p[0]).toFixed(1)},${Yp(p[1]).toFixed(1)}`).join(" ");
-  const areaH = holders.length ? `${X(holders[0][0]).toFixed(1)},${(mT + pH).toFixed(1)} ${pathH} ${X(holders.at(-1)[0]).toFixed(1)},${(mT + pH).toFixed(1)}` : "";
+  const hPts = holders.map(p => [X(p[0]), Yh(p[1])]);
+  const pPts = price.map(p => [X(p[0]), Yp(p[1])]);
+  const pathH = smoothPath(hPts), pathP = smoothPath(pPts);
+  const base = (mT + pH).toFixed(1);
+  const areaH = hPts.length >= 2 ? `${pathH} L ${hPts.at(-1)[0].toFixed(1)},${base} L ${hPts[0][0].toFixed(1)},${base} Z` : "";
   const lastH = holders.at(-1);
 
   const hlFont = spec.headline ? Math.min(52, Math.floor((W - 128) / (spec.headline.length * 0.6))) : 52;
@@ -65,9 +81,9 @@ export function holdersPriceSvg(spec, opts = {}) {
 <text x="64" y="112" fill="#e2e8f0" font-size="38" font-weight="700" font-family="sans-serif">${esc(spec.title || "")}</text>
 ${spec.headline ? `<text x="64" y="166" fill="${accent}" font-size="${hlFont}" font-weight="800" font-family="sans-serif">${esc(spec.headline)}</text>` : ""}
 ${grid}${xlab}
-<polygon points="${areaH}" fill="url(#hpFill)"/>
-<polyline points="${pathP}" fill="none" stroke="${PRICE}" stroke-width="3" stroke-opacity="0.9" stroke-linejoin="round"/>
-<polyline points="${pathH}" fill="none" stroke="${HOLDERS}" stroke-width="4" stroke-linejoin="round"/>
+<path d="${areaH}" fill="url(#hpFill)"/>
+<path d="${pathP}" fill="none" stroke="${PRICE}" stroke-width="3" stroke-opacity="0.9" stroke-linejoin="round"/>
+<path d="${pathH}" fill="none" stroke="${HOLDERS}" stroke-width="4" stroke-linejoin="round"/>
 ${lastH ? `<circle cx="${X(lastH[0]).toFixed(1)}" cy="${Yh(lastH[1]).toFixed(1)}" r="8" fill="#fff" stroke="${HOLDERS}" stroke-width="3"/>` : ""}
 <g font-family="sans-serif"><rect x="64" y="${H - mB + 74}" width="20" height="6" rx="3" fill="${HOLDERS}"/><text x="92" y="${H - mB + 86}" fill="#cbd5e1" font-size="26">holders (left)</text><rect x="330" y="${H - mB + 74}" width="20" height="6" rx="3" fill="${PRICE}"/><text x="358" y="${H - mB + 86}" fill="#cbd5e1" font-size="26">SPX price (right)</text></g>
 <text x="64" y="${H - 22}" fill="#475569" font-size="26" font-family="sans-serif">spx6900rainbow.xyz · not financial advice</text>
