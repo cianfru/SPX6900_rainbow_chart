@@ -43,7 +43,11 @@ export default function RoadmapChart({ series, m, isMobile, preview = false }) {
     const dayForPrice = T => Math.exp((Math.log(T) - m.b) / m.a) - m.t0;
     const nowDay = dayN(series.at(-1).date);
     const targets = TARGETS.map(t => ({ ...t, day: dayForPrice(t.price) })).filter(t => t.day > nowDay).slice(0, 3);
-    const lastDay = targets.length ? targets.at(-1).day : Math.round(nowDay * 1.6);
+    // Anchor the default view to the MID target (e.g. $69) not the far one ($690,
+    // ~10yr out) — otherwise 3yr of real price history squishes into a left sliver.
+    // All targets still render as horizontal lines + metric cards (the far one up top).
+    const viewTarget = targets[Math.min(1, targets.length - 1)];
+    const lastDay = viewTarget ? viewTarget.day * 1.04 : Math.round(nowDay * 1.6);
     const map = new Map();
     for (let d = dayN(series[0].date); d <= lastDay; d = Math.max(d + 1, Math.round(d * 1.015))) {
       const ts = Date.parse(ds(Math.round(d)));
@@ -63,7 +67,9 @@ export default function RoadmapChart({ series, m, isMobile, preview = false }) {
     const vis = all.filter(r => r.ts >= x0 && r.ts <= x1);
     let yMin = Infinity, yMax = -Infinity;
     for (const r of vis) { for (const v of [r.price, r.fair]) if (v != null) { if (v < yMin) yMin = v; if (v > yMax) yMax = v; } }
-    for (const t of targets) if (t.ts >= x0 && t.ts <= x1) yMax = Math.max(yMax, t.price);
+    // include every target's price in yMax even if its crossing date sits past the
+    // view's right edge, so the far ($690) horizontal line still renders near the top.
+    for (const t of targets) yMax = Math.max(yMax, t.price);
     const xTicks = [];
     for (let yr = yearOf(x0); yr <= yearOf(x1); yr++) { const t = Date.UTC(yr, 0, 1); if (t >= x0 && t <= x1) xTicks.push(t); }
     return { vis, xDomain: [x0, x1], xTicks, yDomain: [yMin * 0.7, yMax * 1.4] };
