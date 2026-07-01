@@ -12,6 +12,7 @@ export const CHART_GROUPS = [
     desc: "Where the price sits versus its long-term trend.",
     charts: [
       { id: "channel", title: "Power-Law Channel", post: "channel", desc: "Price inside its log-regression trend channel." },
+      { id: "roadmap", title: "Price Roadmap", post: "roadmap", desc: "The trend extrapolated — when it crosses $6.90/$69/$690." },
       { id: "risk", title: "Risk Bands", post: "risk", desc: "Valuation risk on a 0–1 scale over time." },
       { id: "riskcolor", title: "Valuation Z-Score", post: "riskcolor", desc: "Price recoloured by how many σ from fair value." },
       { id: "riskheat", title: "20-Week Heat", post: "riskheat", desc: "How stretched price is from its 20-week average." },
