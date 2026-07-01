@@ -1,15 +1,16 @@
 name: Monthly recap
 
+# MANUAL publish/preview for the monthly recap. The AUTO-post now rides the daily
+# post-tweet.yml workflow: on the 1st of the month it fires the recap (via
+# `recap-run.mjs --post`) at 08:00 ET instead of the daily rotation, so the 1st
+# has exactly one post and the rotation resumes on the 2nd. This workflow stays
+# for on-demand use — the control panel's "Post recap" button and re-posting a
+# specific month — and for rendering a recap to the job log as a check.
 # Review the recap LIVE on the hidden control panel (/control → Monthly recap),
-# which renders the post + cards on demand — nothing is committed to the repo for
-# previews. This workflow only PUBLISHES: run it manually with post=true (or via
-# the panel's "Post recap" button) to ship the single post + images. The
-# scheduled run and any post=false run just render it to the job log as a sanity
-# check and commit nothing. 1-tap approval, zero writing.
+# which renders the post + cards on demand. Run with post=true to ship; post=false
+# just renders it to the job log and commits nothing.
 
 on:
-  schedule:
-    - cron: "0 14 1 * *" # 14:00 UTC on the 1st
   workflow_dispatch:
     inputs:
       post:

@@ -99,9 +99,20 @@ jobs:
       - run: npm ci
         if: steps.gate.outputs.proceed == 'true'
 
+      # On the 1st of the month the monthly recap takes this slot INSTEAD of the
+      # daily rotation (so the 1st has exactly one post — the recap — and the
+      # rotation resumes on the 2nd), fired at the same 08:00 ET time via the same
+      # cron + gate. Any manual/dry/check/override run still exercises the daily
+      # path (the recap is previewed/tested via the Monthly recap workflow).
       - name: Build + post
         if: steps.gate.outputs.proceed == 'true'
-        run: node scripts/bot/post.mjs
+        run: |
+          if [ "$(date -u +%d)" = "01" ] && [ -z "${DRY_RUN}${BOT_CHECK}${BOT_VERIFY_MEDIA}${BOT_NO_MEDIA}${BOT_POST}${BOT_FORCE}" ]; then
+            echo "== 1st of the month → posting the monthly recap (not the daily rotation) =="
+            node scripts/bot/recap-run.mjs --post
+          else
+            node scripts/bot/post.mjs
+          fi
         env:
           DRY_RUN: ${{ (github.event_name == 'workflow_dispatch' && inputs.dry_run) && '1' || '' }}
           BOT_CHECK: ${{ (github.event_name == 'workflow_dispatch' && inputs.check) && '1' || '' }}
@@ -119,10 +130,10 @@ jobs:
       - name: Commit post state (queue consume + once-per-day guard)
         if: always() && steps.gate.outputs.proceed == 'true'
         run: |
-          if [[ -n "$(git status --porcelain public/next-post.json public/post-state.json public/daily-band-state.json)" ]]; then
+          if [[ -n "$(git status --porcelain public/next-post.json public/post-state.json public/daily-band-state.json public/recap-pending.json)" ]]; then
             git config user.name "github-actions[bot]"
             git config user.email "github-actions[bot]@users.noreply.github.com"
-            git add public/next-post.json public/post-state.json public/daily-band-state.json
+            git add public/next-post.json public/post-state.json public/daily-band-state.json public/recap-pending.json
             git commit -m "chore: post state $(date -u +%F)"
             git push
           else
