@@ -806,16 +806,22 @@ export function renderStatGrid(spec, opts = {}) {
   const tiles = spec.tiles, cols = spec.cols || 3, gap = 20;
   const rows = Math.ceil(tiles.length / cols);
   const tw = (PW - gap * (cols - 1)) / cols, th = (PH - gap * (rows - 1)) / rows;
-  let svg = "";
+  // Each tile glows its own on-brand colour (a soft top-down wash + a tinted
+  // border), with the big number in that colour — colourful, on-brand rainbow.
+  let defs = "", svg = "";
   tiles.forEach((t, i) => {
+    const col = t.color || spec.accent;
+    defs += `<radialGradient id="sgt${i}" cx="50%" cy="0%" r="95%"><stop offset="0%" stop-color="${col}" stop-opacity="0.28"/><stop offset="72%" stop-color="${col}" stop-opacity="0.05"/></radialGradient>`;
     const r = Math.floor(i / cols), c = i % cols;
     const x = mL + c * (tw + gap), y = mT + r * (th + gap), cx = x + tw / 2;
-    svg += `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${tw.toFixed(1)}" height="${th.toFixed(1)}" rx="16" fill="rgba(255,255,255,0.04)" stroke="rgba(255,255,255,0.09)"/>`;
+    const dims = `x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${tw.toFixed(1)}" height="${th.toFixed(1)}" rx="16"`;
+    svg += `<rect ${dims} fill="#0b0b17"/>`;
+    svg += `<rect ${dims} fill="url(#sgt${i})" stroke="${col}66" stroke-width="1.5"/>`;
     const big = String(t.big), fs = big.length > 9 ? 44 : big.length > 6 ? 56 : 70;
-    svg += `<text x="${cx.toFixed(1)}" y="${(y + th * 0.5).toFixed(1)}" fill="${t.color || spec.accent}" font-size="${fs}" font-weight="800" text-anchor="middle" font-family="sans-serif">${esc(big)}</text>`;
+    svg += `<text x="${cx.toFixed(1)}" y="${(y + th * 0.5).toFixed(1)}" fill="${col}" font-size="${fs}" font-weight="800" text-anchor="middle" font-family="sans-serif">${esc(big)}</text>`;
     svg += `<text x="${cx.toFixed(1)}" y="${(y + th * 0.78).toFixed(1)}" fill="#94a3b8" font-size="26" text-anchor="middle" font-family="sans-serif">${esc(t.label)}</text>`;
   });
-  return chrome(spec, svg, "", { W: DW, H: DH });
+  return chrome(spec, svg, defs, { W: DW, H: DH });
 }
 
 // Model-fit explainer: each day's residual (distance from the power-law trend)

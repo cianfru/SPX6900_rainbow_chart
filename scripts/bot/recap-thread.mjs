@@ -53,14 +53,16 @@ export async function buildRecapPost(month, history) {
   const merged = [...DEFAULT_RAW, ...history.map(r => ({ date: r.d, price: r.p })).filter(p => p.date > lastBundled && p.price > 0)];
   const endStats = computeStats(R.close, R.endDate, { history: merged });
 
+  // On-brand rainbow palette across the tiles — the price change keeps its green/
+  // red (up/down) meaning, the rest spread across the spectrum.
   const green = R.change >= 0 ? "#4ade80" : "#f87171";
   const heroTiles = [
     { big: fPct(R.change), label: "price · this month", color: green },
-    { big: fPrice(R.high), label: "high · " + fMon(R.highDate) },
-    { big: fPrice(R.low), label: "low · " + fMon(R.lowDate) },
-    { big: (R.holders ? (R.holders.delta >= 0 ? "+" : "") + fNum(R.holders.delta) : "—"), label: "new holders" },
-    { big: R.diamondOfTotal != null ? Math.round(R.diamondOfTotal * 100) + "%" : "—", label: "diamond hands" },
-    { big: fMult(R.allTimeReturn), label: "since launch" },
+    { big: fPrice(R.high), label: "high · " + fMon(R.highDate), color: "#fbbf24" },
+    { big: fPrice(R.low), label: "low · " + fMon(R.lowDate), color: "#38bdf8" },
+    { big: (R.holders ? (R.holders.delta >= 0 ? "+" : "") + fNum(R.holders.delta) : "—"), label: "new holders", color: "#a78bfa" },
+    { big: R.diamondOfTotal != null ? Math.round(R.diamondOfTotal * 100) + "%" : "—", label: "diamond hands", color: "#22d3ee" },
+    { big: fMult(R.allTimeReturn), label: "since launch", color: "#fb7185" },
   ];
 
   // --- monthly performance vs the field (majors + meme kings) ---------------
