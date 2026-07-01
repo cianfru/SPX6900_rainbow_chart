@@ -21,7 +21,10 @@ const built = await buildRecapPost(month, history);
 if (!built) { console.error(`No recap data for ${month} (need ≥2 daily snapshots).`); process.exit(0); }
 const { R, endStats, text, cards } = built;
 
-const images = cards.map(c => renderPostCard({ card: c }, endStats));
+// Recap cards render SQUARE (1:1) — the best shape for X's multi-image grid
+// (no cropping) and how the recap set reads best.
+const RECAP_DIMS = { W: 1080, H: 1080 };
+const images = cards.map(c => renderPostCard({ card: c }, endStats, { dims: RECAP_DIMS }));
 
 if (dryRun || !postMode) {
   images.forEach((png, i) => writeFileSync(`recap-preview-${i + 1}.png`, png));

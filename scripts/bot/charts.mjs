@@ -40,10 +40,13 @@ function chromeSvg(spec, inner, extraDefs = "", dims) {
   const accent = spec.accent || "#4ade80";
   const footer = spec.footer || "spx6900rainbow.xyz · not financial advice";
   // Logo header ("[logo] vs [logo] = result") replaces the text title+headline.
+  // Headline auto-fits the card width — shrinks from 58 only if it would overflow
+  // (so a long headline still fits on a narrow/square card; short ones are untouched).
+  const hlFont = spec.headline ? Math.min(58, Math.floor((DW - 128) / (spec.headline.length * 0.6))) : 58;
   const header = spec.logoHeader
     ? logoHeaderSvg(spec.logoHeader, accent)
     : `<text x="64" y="112" fill="#e2e8f0" font-size="38" font-weight="700" font-family="sans-serif">${esc(spec.title)}</text>`
-      + (spec.headline ? `<text x="64" y="166" fill="${accent}" font-size="58" font-weight="800" font-family="sans-serif">${esc(spec.headline)}</text>` : "");
+      + (spec.headline ? `<text x="64" y="166" fill="${accent}" font-size="${hlFont}" font-weight="800" font-family="sans-serif">${esc(spec.headline)}</text>` : "");
   return `<svg width="${DW}" height="${DH}" viewBox="0 0 ${DW} ${DH}" xmlns="http://www.w3.org/2000/svg">
 <defs>
   <radialGradient id="g" cx="50%" cy="0%" r="80%">

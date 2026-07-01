@@ -131,7 +131,7 @@ export async function buildRecapPost(month, history) {
   // X caps a post at 4 images; the price-path + sentiment charts are dropped here
   // and folded into the post text instead (the two most summarizable in words).
   const cards = [
-    { type: "statgrid", spec: { title: `SPX6900 — ${R.label} in review`, headline: `${fPct(R.change)} · ${R.endBand.l}`, accent: "#38bdf8", tiles: heroTiles } },
+    { type: "statgrid", spec: { title: `SPX6900 — ${R.label} in review`, accent: "#38bdf8", tiles: heroTiles } },
     { type: "rainbow" },
   ];
   if (fieldLines.length >= 2) cards.push({ type: "line", spec: {

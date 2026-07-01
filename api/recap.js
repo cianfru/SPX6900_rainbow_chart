@@ -33,7 +33,7 @@ export default async function handler(req, res) {
       return;
     }
     const { R, endStats, text, cards } = built;
-    const images = cards.map(c => "data:image/png;base64," + renderPostCard({ card: c }, endStats).toString("base64"));
+    const images = cards.map(c => "data:image/png;base64," + renderPostCard({ card: c }, endStats, { dims: { W: 1080, H: 1080 } }).toString("base64"));
     res.setHeader("Content-Type", "application/json");
     // Owner-only preview; let the CDN hold it briefly so repeated refreshes don't
     // re-run the CoinGecko/F&G fetches, but stay fresh enough to verify edits.
