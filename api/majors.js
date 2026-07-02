@@ -40,7 +40,7 @@ async function getCoin(sym) {
     try {
       return await coinbasePaged(`${sym}-USD`);
     } catch (e2) {
-      throw new Error(`${e1.message}; ${e2.message}`);
+      throw new Error(`${e1.message}; ${e2.message}`, { cause: e2 });
     }
   }
 }

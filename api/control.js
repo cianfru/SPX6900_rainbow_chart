@@ -1,4 +1,3 @@
-/* global process, Buffer */
 // Password-gated control actions for the hidden /control page. The browser only
 // ever sends a password (checked against CONTROL_PASSWORD); all GitHub work runs
 // here server-side with GH_PAT, so no token ever touches the client.

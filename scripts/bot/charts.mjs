@@ -14,13 +14,13 @@ import { renderRsiDotsCard } from "./rsi-card.mjs";
 import { renderMonthlyCompareCard } from "./monthly-compare-card.mjs";
 import { logoMark } from "./logos.mjs";
 import { FONT } from "./font.mjs";
+import { esc, monotonePath } from "./svg-util.mjs";
 
 const W = 1200, H = 800, mL = 120, mR = 48, mT = 188, mB = 76; // landscape card is 3:2 (mL gives room for the bigger axis labels)
 const pW = W - mL - mR, pH = H - mT - mB;
 // Per-card canvas geometry. Defaults to the 3:2 landscape; callers (e.g. the OG
 // link-unfurl endpoint) can pass {W,H} to render the same card at another size.
 const geom = (o = {}) => { const DW = o.W ?? W, DH = o.H ?? H; return { DW, DH, PW: DW - mL - mR, PH: DH - mT - mB }; };
-const esc = s => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 const png = (svg, w = W) => new Resvg(svg, { fitTo: { mode: "width", value: w }, font: FONT }).render().asPng();
 
 // "[logo] vs [logo] = result" header — sharp + colorful, replaces the wordy title.
@@ -130,31 +130,6 @@ function niceTicks(min, max, yLog, fmt) {
 }
 
 export const renderLineCard = (spec, opts = {}) => png(lineCardSvg(spec, opts), opts.W ?? W);
-
-// Monotone-cubic Hermite spline → SVG path `d` over SCREEN points (Fritsch-
-// Carlson). Rounds corners just enough to read smooth, but NEVER overshoots a
-// data point, so the line stays canonically correct (same as Recharts monotone).
-function monotonePath(P) {
-  const n = P.length;
-  if (n < 2) return n ? `M ${P[0][0].toFixed(1)},${P[0][1].toFixed(1)}` : "";
-  if (n === 2) return `M ${P[0][0].toFixed(1)},${P[0][1].toFixed(1)} L ${P[1][0].toFixed(1)},${P[1][1].toFixed(1)}`;
-  const dx = [], delta = [];
-  for (let i = 0; i < n - 1; i++) { dx[i] = P[i + 1][0] - P[i][0]; delta[i] = dx[i] !== 0 ? (P[i + 1][1] - P[i][1]) / dx[i] : 0; }
-  const m = new Array(n);
-  m[0] = delta[0]; m[n - 1] = delta[n - 2];
-  for (let i = 1; i < n - 1; i++) m[i] = delta[i - 1] * delta[i] <= 0 ? 0 : (delta[i - 1] + delta[i]) / 2;
-  for (let i = 0; i < n - 1; i++) {
-    if (delta[i] === 0) { m[i] = 0; m[i + 1] = 0; continue; }
-    const a = m[i] / delta[i], b = m[i + 1] / delta[i], s = a * a + b * b;
-    if (s > 9) { const t = 3 / Math.sqrt(s); m[i] = t * a * delta[i]; m[i + 1] = t * b * delta[i]; }
-  }
-  let d = `M ${P[0][0].toFixed(1)},${P[0][1].toFixed(1)}`;
-  for (let i = 0; i < n - 1; i++) {
-    const h = dx[i];
-    d += ` C ${(P[i][0] + h / 3).toFixed(1)},${(P[i][1] + m[i] * h / 3).toFixed(1)} ${(P[i + 1][0] - h / 3).toFixed(1)},${(P[i + 1][1] - m[i + 1] * h / 3).toFixed(1)} ${P[i + 1][0].toFixed(1)},${P[i + 1][1].toFixed(1)}`;
-  }
-  return d;
-}
 
 // Portrait/video format decisions live in card-format.mjs (dependency-free so the
 // schedule endpoint can share them). Re-exported here for existing importers.

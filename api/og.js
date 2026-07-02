@@ -1,4 +1,3 @@
-/* global process */
 // Dynamic social share image: a 1200x630 PNG of the SPX6900 chart. Defaults to
 // the rainbow card; with ?tab=<id> it renders that tab's card using the SAME
 // pipeline as the X bot (stats → post spec → resvg), so a shared deep link gets

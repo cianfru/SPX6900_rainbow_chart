@@ -10,6 +10,7 @@ import { BTC_HISTORY } from "../../src/btc-history.js";
 import { ETH_HISTORY, SOL_HISTORY } from "../../src/alt-age-history.js";
 import { SP500_HISTORY } from "../../src/sp500-history.js";
 import { rsiNow } from "./rsi-card.mjs";
+import { fNum } from "./svg-util.mjs";
 
 // --- owner-editable post copy ---------------------------------------------
 // EVERY card's tweet text is owner-editable from the control panel. Cards wrap
@@ -72,6 +73,8 @@ const KRAKEN_EVERY = 30;
 const COWEN = process.env.BOT_COWEN || "@benjamincowen";
 const TIGHT = ""; // a line break that stays single (not spaced out) — for tight lists
 
+// Tweet-text price convention. recap-thread.mjs + the card modules keep their
+// own (tiered decimals for card axes) — per-surface on purpose; don't unify blindly.
 const fPrice = p => (p >= 1 ? "$" + p.toFixed(2) : "$" + p.toFixed(4));
 const fPct = x => (x >= 0 ? "+" : "") + Math.round(x * 100).toLocaleString() + "%";
 const fMult = x => (x >= 100 ? Math.round(x).toLocaleString() : x.toFixed(1)) + "×";
@@ -81,7 +84,6 @@ const fMoney = n =>
   : n >= 1e9 ? "$" + (n / 1e9).toFixed(n >= 1e11 ? 0 : 1) + "B"
   : n >= 1e6 ? "$" + (n / 1e6).toFixed(0) + "M"
   : "$" + (n / 1e3).toFixed(0) + "K";
-const fNum = n => Math.round(n).toLocaleString();
 const fUsd0 = n => "$" + Math.round(n).toLocaleString();
 const fPx = p => (p >= 10 ? fUsd0(p) : fPrice(p)); // whole dollars for big cycle prices, cents below $10
 const BAND_EMOJI = ["🟣", "🔵", "🟦", "🟢", "🟩", "🟡", "🟠", "🔴", "🟥"];

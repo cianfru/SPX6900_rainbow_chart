@@ -4,35 +4,12 @@
 // holders: [[ts,count]], price: [[ts,price]] }.
 import { Resvg } from "@resvg/resvg-js";
 import { FONT } from "./font.mjs";
+import { esc, fNum, monotonePath as smoothPath } from "./svg-util.mjs";
 
 const png = (svg, w) => new Resvg(svg, { fitTo: { mode: "width", value: w }, font: FONT }).render().asPng();
 
-// Monotone-cubic Hermite spline → SVG path over screen points (Fritsch-Carlson):
-// smooth like the website's type="monotone" curves but NEVER overshoots a data
-// point, so the line stays canonically correct.
-function smoothPath(P) {
-  const n = P.length;
-  if (n < 2) return n ? `M ${P[0][0].toFixed(1)},${P[0][1].toFixed(1)}` : "";
-  if (n === 2) return `M ${P[0][0].toFixed(1)},${P[0][1].toFixed(1)} L ${P[1][0].toFixed(1)},${P[1][1].toFixed(1)}`;
-  const dx = [], delta = [];
-  for (let i = 0; i < n - 1; i++) { dx[i] = P[i + 1][0] - P[i][0]; delta[i] = dx[i] !== 0 ? (P[i + 1][1] - P[i][1]) / dx[i] : 0; }
-  const m = new Array(n);
-  m[0] = delta[0]; m[n - 1] = delta[n - 2];
-  for (let i = 1; i < n - 1; i++) m[i] = delta[i - 1] * delta[i] <= 0 ? 0 : (delta[i - 1] + delta[i]) / 2;
-  for (let i = 0; i < n - 1; i++) {
-    if (delta[i] === 0) { m[i] = 0; m[i + 1] = 0; continue; }
-    const a = m[i] / delta[i], b = m[i + 1] / delta[i], s = a * a + b * b;
-    if (s > 9) { const t = 3 / Math.sqrt(s); m[i] = t * a * delta[i]; m[i + 1] = t * b * delta[i]; }
-  }
-  let d = `M ${P[0][0].toFixed(1)},${P[0][1].toFixed(1)}`;
-  for (let i = 0; i < n - 1; i++) {
-    const h = dx[i];
-    d += ` C ${(P[i][0] + h / 3).toFixed(1)},${(P[i][1] + m[i] * h / 3).toFixed(1)} ${(P[i + 1][0] - h / 3).toFixed(1)},${(P[i + 1][1] - m[i + 1] * h / 3).toFixed(1)} ${P[i + 1][0].toFixed(1)},${P[i + 1][1].toFixed(1)}`;
-  }
-  return d;
-}
-const esc = s => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-const fNum = n => Math.round(n).toLocaleString("en-US");
+// Axis-label price format for THIS card (tweet text in posts.mjs uses its own
+// fPrice convention — per-surface on purpose, don't unify blindly).
 const fPx = p => (p >= 1 ? "$" + p.toFixed(2) : "$" + p.toFixed(p < 0.01 ? 4 : p < 0.1 ? 3 : 2));
 const HOLDERS = "#4ade80", PRICE = "#38bdf8";
 const fMon = ts => new Date(ts).toLocaleDateString("en-US", { month: "short", day: "numeric" });

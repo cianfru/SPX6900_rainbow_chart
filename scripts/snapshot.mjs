@@ -74,12 +74,9 @@ async function main() {
     sup,
   };
 
-  // Discovery aid (remove once read from the CI logs): dump every field the pnl
-  // endpoint returns, to see whether it carries a "percent in profit" / cost-basis
-  // distribution we're not yet capturing — drives the future MVRV / supply-in-
-  // profit card.
-  if (pnl) console.log("pnl fields:", JSON.stringify(pnl));
-
+  // Note: /stats/pnl returns exactly {break_even_price, realized_pnl_total,
+  // unrealized_pnl_total} (verified from the CI logs 2026-07-02) — no percent-in-
+  // profit or cost-basis distribution, so all of it is already banked above.
   let arr = [];
   try { const txt = await readFile(FILE, "utf8"); const parsed = JSON.parse(txt); if (Array.isArray(parsed)) arr = parsed; } catch { /* first run */ }
   arr = arr.filter(x => x.d !== rec.d); // one record per day (replace today's if rerun)

@@ -352,10 +352,12 @@
     daily in `history.json` alongside `be`. HolderScan's `/stats/pnl` only gives
     break-even + aggregate realized/unrealized totals — NO cost-basis distribution, so
     the *exact* "% supply in profit" isn't computable from it; **MVRV = price ÷ be** is
-    the buildable proxy. **TODO before building:** (1) read the `pnl fields:` line in the
-    snapshot CI log to check if HolderScan secretly returns a percent-in-profit / cost-
-    basis field (then remove that debug log); (2) **revisit ~2026-07-23** once ~30 days
-    of `be`/`upnl`/`rpnl` are banked, to build the MVRV-over-time card (line + zones).
+    the buildable proxy. **✅ pnl-fields question ANSWERED (2026-07-02, read from the CI
+    log; debug log removed):** `/stats/pnl` returns exactly {break_even_price,
+    realized_pnl_total, unrealized_pnl_total} — NO percent-in-profit / cost-basis
+    distribution field. All three are already banked; the distribution stays blocked on
+    the HolderScan collab. **Revisit ~2026-07-23** once ~30 days of `be`/`upnl`/`rpnl`
+    are banked, to build the MVRV-over-time card (line + zones).
     - **= the BTC "Realized Price" analog the owner asked for (2026-06-25, ref ITC
       Bitcoin Terminal Price chart).** SPX6900's realized price IS the break-even (`be`)
       = avg on-chain cost basis; the buildable card is the ITC-style **price line + the

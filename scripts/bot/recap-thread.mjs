@@ -5,6 +5,7 @@
 // fetches itself and degrades gracefully — the vs-field / diamond cards drop if
 // their data can't be reached (price-path + sentiment ride in the text, not as
 // images, since X caps a post at 4). Never throws.
+import { fNum } from "./svg-util.mjs";
 import { computeMonthlyRecap } from "./recap.mjs";
 import { computeStats } from "./stats.mjs";
 import { DEFAULT_RAW } from "../../src/data.js";
@@ -13,9 +14,10 @@ import { DEFAULT_RAW } from "../../src/data.js";
 const MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const fMon = d => { const [, m, day] = d.split("-"); return `${MON[+m - 1]} ${+day}`; };
 const fPct = x => `${x >= 0 ? "+" : ""}${(x * 100).toFixed(Math.abs(x) < 0.1 ? 1 : 0)}%`;
+// Recap-card price convention (tiered decimals). posts.mjs tweet text uses a
+// flat 4-decimal rule — per-surface on purpose; don't unify blindly.
 const fPrice = p => p >= 1 ? "$" + p.toFixed(2) : "$" + p.toFixed(p < 0.001 ? 5 : p < 0.01 ? 4 : p < 0.1 ? 3 : 2);
 const fMult = x => Math.round(x) + "×";
-const fNum = n => Math.round(n).toLocaleString("en-US");
 
 async function coinGeckoSeries(id) {
   try {
