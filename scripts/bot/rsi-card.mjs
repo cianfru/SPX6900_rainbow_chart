@@ -36,22 +36,23 @@ export const RSI_PERIOD = 6, GMA_MONTHS = 6;
 
 // MONTHLY closes (last close per calendar month), with the current month overridden
 // by the live price so the latest dot is month-to-date.
-export function monthlyCloses(price, dateStr) {
+export function monthlyCloses(price, dateStr, series = DEFAULT_RAW) {
+  const raw = (series && series.length) ? series : DEFAULT_RAW;
   const byM = new Map();
-  for (const r of DEFAULT_RAW) { const d = new Date(r.date); byM.set(d.getUTCFullYear() * 12 + d.getUTCMonth(), { ts: new Date(r.date).getTime(), price: r.price }); }
+  for (const r of raw) { const d = new Date(r.date); byM.set(d.getUTCFullYear() * 12 + d.getUTCMonth(), { ts: new Date(r.date).getTime(), price: r.price }); }
   const cd = new Date(dateStr), key = cd.getUTCFullYear() * 12 + cd.getUTCMonth(), cur = byM.get(key);
   byM.set(key, { ts: cur ? cur.ts : cd.getTime(), price });
   return [...byM.keys()].sort((a, b) => a - b).map(k => byM.get(k));
 }
 
 // Current monthly RSI(6) — shared with the post so its headline matches the card.
-export function rsiNow(price, dateStr = new Date().toISOString().slice(0, 10)) {
-  const closes = monthlyCloses(price, dateStr);
+export function rsiNow(price, dateStr = new Date().toISOString().slice(0, 10), series = DEFAULT_RAW) {
+  const closes = monthlyCloses(price, dateStr, series);
   return rsiSeries(closes.map(p => p.price), RSI_PERIOD).at(-1) ?? 50;
 }
 
 export function rsiDotsSvg(price, dateStr = new Date().toISOString().slice(0, 10), opts = {}) {
-  const raw = monthlyCloses(price, dateStr);
+  const raw = monthlyCloses(price, dateStr, opts.series);
   const rsis = rsiSeries(raw.map(p => p.price), RSI_PERIOD);
   const dots = raw.map((p, i) => ({ ...p, rsi: rsis[i] })).filter(p => p.rsi != null);
   const curRsi = rsis.at(-1) ?? (dots.at(-1)?.rsi ?? 50);
@@ -135,4 +136,4 @@ ${coreDots}
 </svg>`;
 }
 
-export function renderRsiDotsCard(stats, opts = {}) { return png(rsiDotsSvg(stats.price, stats.date, { W: opts.W, H: opts.H }), opts.W ?? 1200); }
+export function renderRsiDotsCard(stats, opts = {}) { return png(rsiDotsSvg(stats.price, stats.date, { W: opts.W, H: opts.H, series: stats.drawn }), opts.W ?? 1200); }

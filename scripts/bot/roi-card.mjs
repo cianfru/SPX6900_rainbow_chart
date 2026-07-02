@@ -10,7 +10,9 @@ const png = (svg, w) => new Resvg(svg, { fitTo: { mode: "width", value: w }, fon
 const YEAR = 365 * 86400000;
 
 export function runningRoiSvg(price, dateStr = new Date().toISOString().slice(0, 10), opts = {}) {
-  const pts = DEFAULT_RAW.map(r => ({ ts: new Date(r.date).getTime(), price: r.price })).sort((a, b) => a.ts - b.ts);
+  // Draw from the bundled history extended to today (snapshot); default to bundled.
+  const RAW = (opts.series && opts.series.length) ? opts.series : DEFAULT_RAW;
+  const pts = RAW.map(r => ({ ts: new Date(r.date).getTime(), price: r.price })).sort((a, b) => a.ts - b.ts);
   const priceAtTs = target => { let best = null, bd = Infinity; for (const p of pts) { const d = Math.abs(p.ts - target); if (d < bd) { bd = d; best = p; } } return bd <= 18 * 86400000 ? best.price : null; };
   const roi = pts.map(p => { const prev = priceAtTs(p.ts - YEAR); return prev ? { ts: p.ts, v: p.price / prev } : null; }).filter(Boolean);
   const curPrev = priceAtTs(Date.parse(dateStr) - YEAR) ?? priceAtTs(pts.at(-1).ts - YEAR);
@@ -77,4 +79,4 @@ ${xlab}
 </svg>`;
 }
 
-export function renderRunningRoiCard(stats, opts = {}) { return png(runningRoiSvg(stats.price, stats.date, { W: opts.W, H: opts.H }), opts.W ?? 1200); }
+export function renderRunningRoiCard(stats, opts = {}) { return png(runningRoiSvg(stats.price, stats.date, { W: opts.W, H: opts.H, series: stats.drawn }), opts.W ?? 1200); }
