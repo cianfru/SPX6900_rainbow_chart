@@ -6,5 +6,5 @@ import { FONT } from "./font.mjs";
 
 export function renderRainbowCard(stats, opts = {}) {
   const w = opts.W ?? 1200;
-  return new Resvg(rainbowSvg(stats.price, stats.date, { W: opts.W, H: opts.H }), { fitTo: { mode: "width", value: w }, font: FONT }).render().asPng();
+  return new Resvg(rainbowSvg(stats.price, stats.date, { W: opts.W, H: opts.H, series: stats.drawn }), { fitTo: { mode: "width", value: w }, font: FONT }).render().asPng();
 }

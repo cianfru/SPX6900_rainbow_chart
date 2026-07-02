@@ -6,8 +6,12 @@ import * as M from "./models.js";
 
 export function rainbowSvg(price, dateStr = new Date().toISOString().slice(0, 10), opts = {}) {
   const reveal = opts.reveal; // 0..1 progressive price-line draw (for video); undefined = full
-  const m = M.buildModel(DEFAULT_RAW);
+  const m = M.buildModel(DEFAULT_RAW); // bands stay frozen on the bundled fit
   const day = M.dayN(dateStr);
+  // The drawn price LINE uses the caller's series (bundled history extended to
+  // today via the daily snapshot); defaults to the bundled set. The model/bands
+  // never use this — the rainbow shape is unchanged; only the line runs to today.
+  const raw = (opts.series && opts.series.length) ? opts.series : DEFAULT_RAW;
 
   // Canvas defaults to the 1200×630 landscape card; opts.W/opts.H allow a
   // portrait (e.g. 4:5) render for mobile feeds.
@@ -15,7 +19,7 @@ export function rainbowSvg(price, dateStr = new Date().toISOString().slice(0, 10
   const pW = W - mL - mR, pH = H - mT - mB;
 
   const firstDay = M.dayN(DEFAULT_RAW[0].date);
-  const lastDay = M.dayN(DEFAULT_RAW.at(-1).date);
+  const lastDay = M.dayN(raw.at(-1).date);
   const nowDay = Math.max(lastDay, day);
   const dMin = Math.max(1, firstDay - 30);
   const dMax = nowDay + 150; // small projection so the band cone shows
@@ -38,7 +42,7 @@ export function rainbowSvg(price, dateStr = new Date().toISOString().slice(0, 10
   }
   const center = days.map(d => `${x(d).toFixed(1)},${y(Math.exp(m.predict(d))).toFixed(1)}`).join(" ");
   // Progressive reveal for video: draw only the first `reveal` fraction of points.
-  const shown = reveal == null ? DEFAULT_RAW : DEFAULT_RAW.slice(0, Math.max(2, Math.ceil(DEFAULT_RAW.length * reveal)));
+  const shown = reveal == null ? raw : raw.slice(0, Math.max(2, Math.ceil(raw.length * reveal)));
   const priceLine = shown.map(r => `${x(M.dayN(r.date)).toFixed(1)},${y(r.price).toFixed(1)}`).join(" ");
 
   let grid = "";

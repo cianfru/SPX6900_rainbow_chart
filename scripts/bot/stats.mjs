@@ -233,6 +233,7 @@ export function computeStats(price, dateStr = new Date().toISOString().slice(0, 
     firstPrice: first.price, firstDate: first.date, allTimeReturn: price / first.price - 1,
     targets: M.TARGETS.map(t => ({ ...t, mult: t.price / price })),
     supply, btc, majors,
+    drawn: RAW, // merged {date,price}[] history (bundled + snapshot) for the rainbow line
     series: {
       price: RAW.map(r => [Date.parse(r.date), r.price]),
       resid: thinSeries(RAW.map(r => [Date.parse(r.date), Math.log(r.price) - m.predict(M.dayN(r.date))])),
