@@ -31,10 +31,12 @@ export default function RoadmapChart({ series, m, isMobile, preview = false }) {
     const dayForPrice = T => Math.exp((Math.log(T) - m.b) / m.a) - m.t0;
     const nowDay = dayN(series.at(-1).date);
     const targets = TARGETS.map(t => ({ ...t, day: dayForPrice(t.price) })).filter(t => t.day > nowDay).slice(0, 3);
-    // Anchor the default view to the MID target (e.g. $69) not the far one ($690,
-    // ~10yr out) — otherwise 3yr of real price history squishes into a left sliver.
-    // All targets still render as horizontal lines + metric cards (the far one up top).
-    const viewTarget = targets[Math.min(1, targets.length - 1)];
+    // Run the view all the way to the FURTHEST target so the trend line actually
+    // crosses every target it advertises ($6.90 / $69 / $690) — otherwise the far
+    // target ($690, ~10yr out) floats as an orphaned line the trend never reaches
+    // and the "roadmap" looks truncated. Price history compresses to a left sliver
+    // (~20% of width), which is fine here: this chart is about the forward path.
+    const viewTarget = targets.at(-1);
     const lastDay = viewTarget ? viewTarget.day * 1.04 : Math.round(nowDay * 1.6);
     const map = new Map();
     for (let d = dayN(series[0].date); d <= lastDay; d = Math.max(d + 1, Math.round(d * 1.015))) {
