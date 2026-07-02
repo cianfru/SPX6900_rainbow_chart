@@ -4,10 +4,9 @@ import {
 } from "recharts";
 import ChartZoomHint from "./ChartZoomHint.jsx";
 import { loadHistory } from "./history-data.js";
+import { SANS, MONO, MAX_W, Metric, TipBox, ZoomBar } from "./chart-ui.jsx";
+import { useDragZoom } from "./use-drag-zoom.js";
 
-const SANS = "'Space Grotesk', system-ui, sans-serif";
-const MONO = "ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace";
-const MAX_W = 1400;
 const DAY = 86400000;
 const HOLDERS = "#4ade80", PRICE = "#38bdf8";
 const fPrice = p => (p < 1 ? "$" + p.toFixed(p < 0.01 ? 4 : 3) : "$" + p.toLocaleString(undefined, { maximumFractionDigits: 2 }));
@@ -19,21 +18,10 @@ function Tip({ active, payload }) {
   if (!active || !payload?.length) return null;
   const d = payload[0].payload;
   return (
-    <div style={{ background: "rgba(4,4,12,0.97)", border: "1px solid rgba(255,255,255,0.18)", borderRadius: 10, padding: "12px 16px", fontFamily: SANS, fontSize: 13, color: "#cbd5e1" }}>
-      <div style={{ fontWeight: 700, color: "#f8fafc", marginBottom: 4 }}>{new Date(d.ts).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}</div>
+    <TipBox title={new Date(d.ts).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}>
       <div>Holders: <span style={{ fontFamily: MONO, color: HOLDERS }}>{fNum(d.holders)}</span></div>
       <div>Price: <span style={{ fontFamily: MONO, color: PRICE }}>{fPrice(d.price)}</span></div>
-    </div>
-  );
-}
-
-function Metric({ label, value, color = "#f8fafc", sub }) {
-  return (
-    <div style={{ textAlign: "center", minWidth: 96 }}>
-      <div style={{ fontFamily: MONO, fontSize: 11, color: "#94a3b8", letterSpacing: 1.1, textTransform: "uppercase" }}>{label}</div>
-      <div style={{ fontFamily: MONO, fontSize: 24, fontWeight: 700, color }}>{value}</div>
-      {sub && <div style={{ fontFamily: SANS, fontSize: 11, color: "#64748b" }}>{sub}</div>}
-    </div>
+    </TipBox>
   );
 }
 
@@ -55,9 +43,8 @@ export default function HoldersPriceChart({ isMobile, preview = false }) {
     return rows;
   }, [history]);
 
-  const [zoom, setZoom] = useState(null);
-  const [selL, setSelL] = useState(null);
-  const [selR, setSelR] = useState(null);
+  const { zoom, setZoom, selL, selR, onDown, onMove, onUp, zoomed } = useDragZoom(
+    (a, b) => all && all.filter(r => r.ts >= a && r.ts <= b).length >= 2);
 
   const view = useMemo(() => {
     if (!all || all.length < 2) return null;
@@ -80,20 +67,9 @@ export default function HoldersPriceChart({ isMobile, preview = false }) {
     };
   }, [all, zoom]);
 
-  const onDown = e => { if (e && e.activeLabel != null) { setSelL(e.activeLabel); setSelR(e.activeLabel); } };
-  const onMove = e => { if (selL != null && e && e.activeLabel != null) setSelR(e.activeLabel); };
-  const onUp = () => {
-    if (selL != null && selR != null && selL !== selR && all) {
-      const [a, b] = selL < selR ? [selL, selR] : [selR, selL];
-      if (all.filter(r => r.ts >= a && r.ts <= b).length >= 2) setZoom([a, b]);
-    }
-    setSelL(null); setSelR(null);
-  };
-
   if (all == null) return <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Loading holder history…</div>;
   if (!view) return <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Not enough holder history yet — we started banking daily snapshots recently; this fills in as it accumulates.</div>;
 
-  const zoomed = !!zoom;
   const pTicks = [0.0001, 0.001, 0.01, 0.1, 0.2, 0.3, 0.5, 1, 2, 5, 10].filter(v => v >= view.pDomain[0] && v <= view.pDomain[1]);
 
   return (
@@ -104,12 +80,7 @@ export default function HoldersPriceChart({ isMobile, preview = false }) {
         <Metric label="price" value={fPct(view.pChange)} color={view.pChange >= 0 ? "#4ade80" : "#f87171"} sub="over the window" />
       </div>
 
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12, marginBottom: 10 }}>
-        <span style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b" }}>{zoomed ? "Viewing a selected window." : "Drag across the chart to zoom into any period."}</span>
-        {zoomed && (
-          <button onClick={() => setZoom(null)} className="pill" style={{ fontFamily: SANS, fontSize: 12, fontWeight: 600, padding: "5px 12px", borderRadius: 7, cursor: "pointer", background: "transparent", border: "1px solid rgba(56,189,248,0.4)", color: "#7dd3fc", "--glow": "#38bdf8" }}>⤢ Reset zoom</button>
-        )}
-      </div>
+      <ZoomBar zoomed={zoomed} onReset={() => setZoom(null)} />
 
       <div style={{ position: "relative" }}>
         {!preview && <ChartZoomHint />}

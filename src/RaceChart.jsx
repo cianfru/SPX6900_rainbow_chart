@@ -4,10 +4,9 @@ import {
 } from "recharts";
 import ChartZoomHint from "./ChartZoomHint.jsx";
 import { LIVE_DATA_DOWN } from "./history-data.js";
+import { SANS, MONO, MAX_W, Metric, TipBox, ZoomResetButton } from "./chart-ui.jsx";
+import { useDragZoom } from "./use-drag-zoom.js";
 
-const SANS = "'Space Grotesk', system-ui, sans-serif";
-const MONO = "ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace";
-const MAX_W = 1400;
 const DAY = 86400000;
 const tsOf = d => new Date(d).getTime();
 const yearOf = t => new Date(t).getUTCFullYear();
@@ -46,7 +45,7 @@ function Tip({ active, payload, coins, spxColor }) {
   const rows = [{ key: "spx", label: "SPX6900", color: spxColor }, ...coins].filter(r => d[r.key] != null);
   rows.sort((a, b) => d[b.key] - d[a.key]);
   return (
-    <div style={{ background: "rgba(4,4,12,0.97)", border: "1px solid rgba(255,255,255,0.18)", borderRadius: 10, padding: "12px 16px", fontFamily: SANS, fontSize: 13, color: "#cbd5e1" }}>
+    <TipBox>
       <div style={{ fontWeight: 700, color: "#f8fafc", marginBottom: 6 }}>{new Date(d.ts).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}</div>
       {rows.map(r => (
         <div key={r.key} style={{ display: "flex", justifyContent: "space-between", gap: 16 }}>
@@ -54,17 +53,7 @@ function Tip({ active, payload, coins, spxColor }) {
           <span style={{ fontFamily: MONO, color: d[r.key] >= 1 ? "#4ade80" : "#f87171" }}>{fMult(d[r.key])} <span style={{ color: "#64748b" }}>{fPct(d[r.key])}</span></span>
         </div>
       ))}
-    </div>
-  );
-}
-
-function Metric({ label, value, color = "#f8fafc", sub }) {
-  return (
-    <div style={{ textAlign: "center", minWidth: 96 }}>
-      <div style={{ fontFamily: MONO, fontSize: 11, color: "#94a3b8", letterSpacing: 1.1, textTransform: "uppercase" }}>{label}</div>
-      <div style={{ fontFamily: MONO, fontSize: 24, fontWeight: 700, color }}>{value}</div>
-      {sub && <div style={{ fontFamily: SANS, fontSize: 11, color: "#64748b" }}>{sub}</div>}
-    </div>
+    </TipBox>
   );
 }
 
@@ -74,9 +63,9 @@ export default function RaceChart({ series, isMobile, fetchCoins, coins, basketL
   const [coinData, setCoinData] = useState(null);
   const [status, setStatus] = useState("loading");
   const [win, setWin] = useState("launch");
-  const [zoom, setZoom] = useState(null);   // [x0,x1] drag-selected window (overrides the toggle)
-  const [selL, setSelL] = useState(null);
-  const [selR, setSelR] = useState(null);
+  // [x0,x1] drag-selected window (overrides the toggle)
+  const { zoom, setZoom, selL, selR, onDown, onMove, onUp } = useDragZoom(
+    (a, b) => series.filter(r => { const t = tsOf(r.date); return t >= a && t <= b; }).length >= 2);
   const [hidden, setHidden] = useState(() => new Set()); // deselected peers
   const toggle = key => setHidden(prev => { const n = new Set(prev); n.has(key) ? n.delete(key) : n.add(key); return n; });
 
@@ -148,16 +137,6 @@ export default function RaceChart({ series, isMobile, fetchCoins, coins, basketL
     };
   }, [coinData, series, win, coins, zoom, hidden]);
 
-  const onDown = e => { if (e && e.activeLabel != null) { setSelL(e.activeLabel); setSelR(e.activeLabel); } };
-  const onMove = e => { if (selL != null && e && e.activeLabel != null) setSelR(e.activeLabel); };
-  const onUp = () => {
-    if (selL != null && selR != null && selL !== selR) {
-      const [a, b] = selL < selR ? [selL, selR] : [selR, selL];
-      if (series.filter(r => { const t = tsOf(r.date); return t >= a && t <= b; }).length >= 2) setZoom([a, b]);
-    }
-    setSelL(null); setSelR(null);
-  };
-
   const spxColor = "#ffffff";
   const spxV = standings.find(s => s.key === "spx")?.v;
   const spxRank = standings.findIndex(s => s.key === "spx") + 1;
@@ -169,10 +148,7 @@ export default function RaceChart({ series, isMobile, fetchCoins, coins, basketL
           <button key={id} onClick={() => { setWin(id); setZoom(null); }} className={`neon-pill${win === id && !zoom ? " active" : ""}`}
             style={{ fontFamily: SANS, fontSize: 13, fontWeight: 600, padding: "7px 14px", borderRadius: 7, color: win === id && !zoom ? "#f8fafc" : "#94a3b8", "--glow": "#22d3ee" }}>{lbl}</button>
         ))}
-        {zoom && (
-          <button onClick={() => setZoom(null)} className="pill"
-            style={{ fontFamily: SANS, fontSize: 13, fontWeight: 600, padding: "7px 14px", borderRadius: 7, cursor: "pointer", background: "transparent", border: "1px solid rgba(56,189,248,0.4)", color: "#7dd3fc", "--glow": "#38bdf8" }}>⤢ Reset zoom</button>
-        )}
+        {zoom && <ZoomResetButton onReset={() => setZoom(null)} fontSize={13} padding="7px 14px" />}
       </div>
 
       {status === "ok" && (

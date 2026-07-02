@@ -3,10 +3,8 @@ import {
   ResponsiveContainer, ComposedChart, Line, Scatter, XAxis, YAxis, Tooltip, CartesianGrid,
 } from "recharts";
 import { rsiDotsSeries, rsiColor, RSI_LO, RSI_HI } from "./chart-math.js";
+import { SANS, MONO, MAX_W, Metric, TipBox } from "./chart-ui.jsx";
 
-const SANS = "'Space Grotesk', system-ui, sans-serif";
-const MONO = "ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace";
-const MAX_W = 1400;
 const fPrice = p => (p < 1 ? "$" + p.toFixed(p < 0.01 ? 4 : 3) : "$" + p.toLocaleString(undefined, { maximumFractionDigits: 2 }));
 const yearOf = t => new Date(t).getUTCFullYear();
 const rsiWord = v => (v >= 70 ? "overbought" : v >= 55 ? "warm" : v >= 45 ? "neutral" : v >= 35 ? "cool" : "oversold");
@@ -16,23 +14,13 @@ function Tip({ active, payload }) {
   const d = payload.find(p => p.payload?.rsi != null)?.payload;
   if (!d) return null;
   return (
-    <div style={{ background: "rgba(4,4,12,0.97)", border: "1px solid rgba(255,255,255,0.18)", borderRadius: 10, padding: "12px 16px", fontFamily: SANS, fontSize: 13, color: "#cbd5e1" }}>
+    <TipBox>
       <div style={{ fontWeight: 700, color: "#f8fafc", marginBottom: 4 }}>
         {new Date(d.ts).toLocaleDateString("en-US", { month: "long", year: "numeric" })}
       </div>
       <div>Price: <span style={{ fontFamily: MONO }}>{fPrice(d.price)}</span></div>
       <div>RSI(6): <span style={{ fontFamily: MONO, fontWeight: 700, color: d.color }}>{Math.round(d.rsi)}</span> <span style={{ color: "#94a3b8" }}>({rsiWord(d.rsi)})</span></div>
-    </div>
-  );
-}
-
-function Metric({ label, value, color = "#f8fafc", sub }) {
-  return (
-    <div style={{ textAlign: "center", minWidth: 96 }}>
-      <div style={{ fontFamily: MONO, fontSize: 11, color: "#94a3b8", letterSpacing: 1.1, textTransform: "uppercase" }}>{label}</div>
-      <div style={{ fontFamily: MONO, fontSize: 24, fontWeight: 700, color }}>{value}</div>
-      {sub && <div style={{ fontFamily: SANS, fontSize: 11, color: "#64748b" }}>{sub}</div>}
-    </div>
+    </TipBox>
   );
 }
 

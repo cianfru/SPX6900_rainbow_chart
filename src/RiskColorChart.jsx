@@ -3,10 +3,8 @@ import {
   ResponsiveContainer, ComposedChart, Line, Area, XAxis, YAxis, Tooltip, CartesianGrid,
 } from "recharts";
 import { zScoreSeries } from "./chart-math.js";
+import { SANS, MONO, MAX_W, Metric, TipBox } from "./chart-ui.jsx";
 
-const SANS = "'Space Grotesk', system-ui, sans-serif";
-const MONO = "ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace";
-const MAX_W = 1400;
 const fPrice = p => (p < 1 ? "$" + p.toFixed(p < 0.01 ? 4 : 3) : "$" + p.toLocaleString(undefined, { maximumFractionDigits: 2 }));
 const yearOf = t => new Date(t).getUTCFullYear();
 const sigWord = s => (s <= -1.5 ? "deeply cheap" : s < -0.5 ? "cheap" : s < 0.5 ? "fair value" : s < 1.5 ? "stretched" : "very stretched");
@@ -16,24 +14,14 @@ function Tip({ active, payload }) {
   const d = payload.find(p => p.payload?.price != null)?.payload;
   if (!d) return null;
   return (
-    <div style={{ background: "rgba(4,4,12,0.97)", border: "1px solid rgba(255,255,255,0.18)", borderRadius: 10, padding: "12px 16px", fontFamily: SANS, fontSize: 13, color: "#cbd5e1" }}>
+    <TipBox>
       <div style={{ fontWeight: 700, color: "#f8fafc", marginBottom: 4 }}>
         {new Date(d.ts).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
       </div>
       <div>Price: <span style={{ fontFamily: MONO }}>{fPrice(d.price)}</span></div>
       <div>Fair value: <span style={{ fontFamily: MONO, color: "#cbd5e1" }}>{fPrice(d.fair)}</span></div>
       <div>vs trend: <span style={{ fontFamily: MONO, fontWeight: 700, color: d.color }}>{d.sigma >= 0 ? "+" : ""}{d.sigma.toFixed(2)}σ</span> <span style={{ color: "#94a3b8" }}>({sigWord(d.sigma)})</span></div>
-    </div>
-  );
-}
-
-function Metric({ label, value, color = "#f8fafc", sub }) {
-  return (
-    <div style={{ textAlign: "center", minWidth: 96 }}>
-      <div style={{ fontFamily: MONO, fontSize: 11, color: "#94a3b8", letterSpacing: 1.1, textTransform: "uppercase" }}>{label}</div>
-      <div style={{ fontFamily: MONO, fontSize: 24, fontWeight: 700, color }}>{value}</div>
-      {sub && <div style={{ fontFamily: SANS, fontSize: 11, color: "#64748b" }}>{sub}</div>}
-    </div>
+    </TipBox>
   );
 }
 

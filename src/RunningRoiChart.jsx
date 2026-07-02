@@ -1,12 +1,11 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import {
   ResponsiveContainer, ComposedChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, ReferenceLine, ReferenceArea,
 } from "recharts";
 import ChartZoomHint from "./ChartZoomHint.jsx";
+import { SANS, MONO, MAX_W, Metric, TipBox, ZoomBar } from "./chart-ui.jsx";
+import { useDragZoom } from "./use-drag-zoom.js";
 
-const SANS = "'Space Grotesk', system-ui, sans-serif";
-const MONO = "ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace";
-const MAX_W = 1400;
 const fPrice = p => (p < 1 ? "$" + p.toFixed(p < 0.01 ? 4 : 3) : "$" + p.toLocaleString(undefined, { maximumFractionDigits: 2 }));
 const fPct = v => `${v >= 0 ? "+" : ""}${Math.round(v * 100).toLocaleString()}%`;
 const fMult = v => (v >= 100 ? Math.round(v).toLocaleString() : v >= 10 ? v.toFixed(1) : v.toFixed(2)) + "×";
@@ -19,7 +18,7 @@ function Tip({ active, payload }) {
   if (!active || !payload?.length) return null;
   const d = payload[0].payload;
   return (
-    <div style={{ background: "rgba(4,4,12,0.97)", border: "1px solid rgba(255,255,255,0.18)", borderRadius: 10, padding: "12px 16px", fontFamily: SANS, fontSize: 13, color: "#cbd5e1" }}>
+    <TipBox>
       <div style={{ fontWeight: 700, color: "#f8fafc", marginBottom: 4 }}>
         {new Date(d.ts).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
       </div>
@@ -27,17 +26,7 @@ function Tip({ active, payload }) {
       <div>From window start: <span style={{ fontFamily: MONO, fontWeight: 700, color: d.roi >= 1 ? "#4ade80" : "#f87171" }}>
         {fMult(d.roi)} ({d.roi >= 1 ? "+" : ""}{Math.round((d.roi - 1) * 100)}%)
       </span></div>
-    </div>
-  );
-}
-
-function Metric({ label, value, color = "#f8fafc", sub }) {
-  return (
-    <div style={{ textAlign: "center", minWidth: 96 }}>
-      <div style={{ fontFamily: MONO, fontSize: 11, color: "#94a3b8", letterSpacing: 1.1, textTransform: "uppercase" }}>{label}</div>
-      <div style={{ fontFamily: MONO, fontSize: 24, fontWeight: 700, color }}>{value}</div>
-      {sub && <div style={{ fontFamily: SANS, fontSize: 11, color: "#64748b" }}>{sub}</div>}
-    </div>
+    </TipBox>
   );
 }
 
@@ -51,9 +40,8 @@ export default function RunningRoiChart({ series, isMobile, preview = false }) {
     return { all, fullX: [all[0]?.ts ?? 0, all.at(-1)?.ts ?? 1] };
   }, [series]);
 
-  const [zoom, setZoom] = useState(null);
-  const [selL, setSelL] = useState(null);
-  const [selR, setSelR] = useState(null);
+  const { zoom, setZoom, selL, selR, onDown, onMove, onUp, zoomed } = useDragZoom(
+    (a, b) => all.filter(r => r.ts >= a && r.ts <= b).length >= 2);
 
   const view = useMemo(() => {
     const [x0, x1] = zoom ?? fullX;
@@ -86,19 +74,8 @@ export default function RunningRoiChart({ series, isMobile, preview = false }) {
     };
   }, [all, fullX, zoom]);
 
-  const onDown = e => { if (e && e.activeLabel != null) { setSelL(e.activeLabel); setSelR(e.activeLabel); } };
-  const onMove = e => { if (selL != null && e && e.activeLabel != null) setSelR(e.activeLabel); };
-  const onUp = () => {
-    if (selL != null && selR != null && selL !== selR) {
-      const [a, b] = selL < selR ? [selL, selR] : [selR, selL];
-      if (all.filter(r => r.ts >= a && r.ts <= b).length >= 2) setZoom([a, b]);
-    }
-    setSelL(null); setSelR(null);
-  };
-
   const pTicks = [0.0001, 0.001, 0.01, 0.1, 1, 10].filter(v => v >= view.pDomain[0] && v <= view.pDomain[1]);
   const rTicks = [0.1, 0.2, 0.5, 1, 2, 3, 5, 10, 20, 50, 100, 200, 500, 1000, 2000].filter(v => v >= view.rDomain[0] && v <= view.rDomain[1]);
-  const zoomed = !!zoom;
   const rangeSub = view.start ? `${fShort(view.start.ts)} → ${fShort(view.end.ts)}` : "";
 
   return (
@@ -109,17 +86,7 @@ export default function RunningRoiChart({ series, isMobile, preview = false }) {
         <Metric label="max drawdown" value={fPct(view.mdd)} color="#f87171" sub="peak to trough" />
       </div>
 
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12, marginBottom: 10 }}>
-        <span style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b" }}>
-          {zoomed ? "Growth rebased to this window's start." : "Drag across the chart to zoom into any period."}
-        </span>
-        {zoomed && (
-          <button onClick={() => setZoom(null)} className="pill" style={{
-            fontFamily: SANS, fontSize: 12, fontWeight: 600, padding: "5px 12px", borderRadius: 7, cursor: "pointer",
-            background: "transparent", border: "1px solid rgba(56,189,248,0.4)", color: "#7dd3fc", "--glow": "#38bdf8",
-          }}>⤢ Reset zoom</button>
-        )}
-      </div>
+      <ZoomBar zoomed={zoomed} onReset={() => setZoom(null)} viewing="Growth rebased to this window's start." />
 
       <div style={{ position: "relative" }}>
       {!preview && <ChartZoomHint />}

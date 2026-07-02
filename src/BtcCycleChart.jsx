@@ -10,10 +10,9 @@ import {
 import { DEFAULT_RAW } from "./data.js";
 import { buildModel } from "./models.js";
 import { btcCycleProjection } from "./btc-cycle.js";
+import { SANS, MONO, MAX_W, TipBox } from "./chart-ui.jsx";
 
-const SANS = "'Space Grotesk', system-ui, sans-serif";
-const MONO = "ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace";
-const MAX_W = 1400, DAY = 86400000;
+const DAY = 86400000;
 
 const RBW = buildModel(DEFAULT_RAW);
 const bubbleAt = age => Math.exp(RBW.predict(age + 1) + RBW.bands[8]);
@@ -39,13 +38,12 @@ function Tip({ active, payload, label }) {
   const get = k => payload.find(p => p.dataKey === k)?.value;
   const spx = get("spx"), btc = get("btc"), fut = get("proj"), cone = get("cone");
   return (
-    <div style={{ background: "rgba(4,4,12,0.97)", border: "1px solid rgba(255,255,255,0.18)", borderRadius: 10, padding: "10px 14px", fontFamily: SANS, fontSize: 13, color: "#cbd5e1" }}>
-      <div style={{ fontWeight: 700, color: "#f8fafc", marginBottom: 4 }}>{fMonY(label)}</div>
+    <TipBox title={fMonY(label)} style={{ padding: "10px 14px" }}>
       {spx != null && <div>SPX6900: <b style={{ fontFamily: MONO, color: "#4ade80" }}>{fP(spx)}</b></div>}
       {btc != null && <div>Bitcoin (aligned): <b style={{ fontFamily: MONO, color: "#f7931a" }}>{fBtc(btc)}</b></div>}
       {fut != null && <div>BTC-cycle path: <b style={{ fontFamily: MONO, color: "#f7931a" }}>{fP(fut)}</b></div>}
       {cone && <div style={{ color: "#94a3b8" }}>scenario: {fP(cone[0])} – {fP(cone[1])}</div>}
-    </div>
+    </TipBox>
   );
 }
 

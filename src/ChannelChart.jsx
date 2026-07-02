@@ -3,10 +3,8 @@ import {
   ResponsiveContainer, ComposedChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, ReferenceLine,
 } from "recharts";
 import { dayN, ds, bandVal, bandIndex, BAND_LABELS } from "./models.js";
+import { SANS, MONO, MAX_W, Metric, TipBox } from "./chart-ui.jsx";
 
-const SANS = "'Space Grotesk', system-ui, sans-serif";
-const MONO = "ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace";
-const MAX_W = 1400;
 const fPrice = p => (p < 1 ? "$" + p.toFixed(p < 0.01 ? 4 : 3) : "$" + p.toLocaleString(undefined, { maximumFractionDigits: 2 }));
 const DECADES = [0.0001, 0.001, 0.01, 0.1, 1, 10, 100, 1000];
 
@@ -16,7 +14,7 @@ function Tip({ active, payload }) {
   if (d.price == null) return null;
   const vs = d.price / d.fair - 1;
   return (
-    <div style={{ background: "rgba(4,4,12,0.97)", border: "1px solid rgba(255,255,255,0.18)", borderRadius: 10, padding: "12px 16px", fontFamily: SANS, fontSize: 13, color: "#cbd5e1" }}>
+    <TipBox>
       <div style={{ fontWeight: 700, color: "#f8fafc", marginBottom: 4 }}>
         {new Date(d.date).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
       </div>
@@ -24,17 +22,7 @@ function Tip({ active, payload }) {
       <div>Fair value: <span style={{ fontFamily: MONO }}>{fPrice(d.fair)}</span></div>
       <div>vs fair: <span style={{ fontFamily: MONO, fontWeight: 700, color: vs >= 0 ? "#f87171" : "#60a5fa" }}>{vs >= 0 ? "+" : ""}{Math.round(vs * 100)}%</span></div>
       <div style={{ color: BAND_LABELS[d.bi].c, fontWeight: 700 }}>{BAND_LABELS[d.bi].l}</div>
-    </div>
-  );
-}
-
-function Metric({ label, value, color = "#f8fafc", sub }) {
-  return (
-    <div style={{ textAlign: "center", minWidth: 96 }}>
-      <div style={{ fontFamily: MONO, fontSize: 11, color: "#94a3b8", letterSpacing: 1.1, textTransform: "uppercase" }}>{label}</div>
-      <div style={{ fontFamily: MONO, fontSize: 24, fontWeight: 700, color }}>{value}</div>
-      {sub && <div style={{ fontFamily: SANS, fontSize: 11, color: "#64748b" }}>{sub}</div>}
-    </div>
+    </TipBox>
   );
 }
 

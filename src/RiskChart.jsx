@@ -5,10 +5,8 @@ import {
 import { buildRiskSeries, BAND_LABELS } from "./models.js";
 import { FNG_HISTORY } from "./fng-history.js";
 import { loadHistory } from "./history-data.js";
+import { SANS, MONO, MAX_W, TipBox } from "./chart-ui.jsx";
 
-const SANS = "'Space Grotesk', system-ui, sans-serif";
-const MONO = "ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace";
-const MAX_W = 1400;
 const FNG_COLOR = "#f59e0b";
 const fD = ts => new Date(ts).toLocaleDateString("en-US", { month: "short", year: "2-digit" });
 
@@ -16,17 +14,14 @@ function RiskTip({ active, payload }) {
   if (!active || !payload?.[0]) return null;
   const d = payload[0].payload;
   return (
-    <div style={{
-      background: "rgba(4,4,12,0.97)", border: "1px solid rgba(255,255,255,0.18)",
-      borderRadius: 10, padding: "12px 16px", fontFamily: SANS, fontSize: 13, color: "#cbd5e1",
-    }}>
+    <TipBox>
       <div style={{ fontWeight: 700, color: "#f8fafc", marginBottom: 4 }}>
         {new Date(d.date).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
       </div>
       <div>Risk: <span style={{ fontFamily: MONO, fontWeight: 700, color: "#f8fafc" }}>{d.risk.toFixed(3)}</span></div>
       {d.fng != null && <div>Fear &amp; Greed: <span style={{ fontFamily: MONO, fontWeight: 700, color: FNG_COLOR }}>{Math.round(d.fng * 100)}</span></div>}
       <div>Price: <span style={{ fontFamily: MONO }}>${d.price < 1 ? d.price.toFixed(4) : d.price.toFixed(2)}</span></div>
-    </div>
+    </TipBox>
   );
 }
 

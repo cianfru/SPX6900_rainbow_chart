@@ -5,36 +5,24 @@ import {
 import { SUPPLY } from "./data.js";
 import { loadHistory } from "./history-data.js";
 import ChartZoomHint from "./ChartZoomHint.jsx";
+import { SANS, MONO, MAX_W, Metric, TipBox, ZoomBar } from "./chart-ui.jsx";
+import { useDragZoom } from "./use-drag-zoom.js";
 
-const SANS = "'Space Grotesk', system-ui, sans-serif";
-const MONO = "ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace";
-const MAX_W = 1400;
 const PRICE = "#38bdf8", COST = "#f59e0b", MVRV = "#a78bfa";
 const fPrice = p => (p < 1 ? "$" + p.toFixed(p < 0.01 ? 4 : 3) : "$" + p.toLocaleString(undefined, { maximumFractionDigits: 2 }));
 const fPct = v => `${v >= 0 ? "+" : ""}${Math.round(v * 100)}%`;
 const fShort = t => new Date(t).toLocaleDateString("en-US", { month: "short", day: "numeric" });
 const MODES = [["realized", "Realized price"], ["mvrv", "MVRV"], ["z", "MVRV Z-score"]];
 
-function Metric({ label, value, color = "#f8fafc", sub }) {
-  return (
-    <div style={{ textAlign: "center", minWidth: 96 }}>
-      <div style={{ fontFamily: MONO, fontSize: 11, color: "#94a3b8", letterSpacing: 1.1, textTransform: "uppercase" }}>{label}</div>
-      <div style={{ fontFamily: MONO, fontSize: 24, fontWeight: 700, color }}>{value}</div>
-      {sub && <div style={{ fontFamily: SANS, fontSize: 11, color: "#64748b" }}>{sub}</div>}
-    </div>
-  );
-}
-
 function Tip({ active, payload, mode }) {
   if (!active || !payload?.length) return null;
   const d = payload[0].payload;
   return (
-    <div style={{ background: "rgba(4,4,12,0.97)", border: "1px solid rgba(255,255,255,0.18)", borderRadius: 10, padding: "12px 16px", fontFamily: SANS, fontSize: 13, color: "#cbd5e1" }}>
-      <div style={{ fontWeight: 700, color: "#f8fafc", marginBottom: 4 }}>{new Date(d.ts).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}</div>
+    <TipBox title={new Date(d.ts).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}>
       {mode === "realized" && <><div>Price: <span style={{ fontFamily: MONO, color: PRICE }}>{fPrice(d.price)}</span></div><div>Cost basis: <span style={{ fontFamily: MONO, color: COST }}>{fPrice(d.be)}</span></div></>}
       {mode === "mvrv" && <div>MVRV: <span style={{ fontFamily: MONO, color: d.mvrv >= 1 ? "#4ade80" : "#f87171" }}>{d.mvrv.toFixed(2)}×</span> <span style={{ color: "#94a3b8" }}>(avg holder {fPct(d.mvrv - 1)})</span></div>}
       {mode === "z" && <div>MVRV Z: <span style={{ fontFamily: MONO, color: MVRV }}>{d.z.toFixed(2)}</span></div>}
-    </div>
+    </TipBox>
   );
 }
 
@@ -62,9 +50,8 @@ export default function OnchainValueChart({ isMobile, preview = false }) {
   }, [history]);
 
   const [mode, setMode] = useState("realized");
-  const [zoom, setZoom] = useState(null);
-  const [selL, setSelL] = useState(null);
-  const [selR, setSelR] = useState(null);
+  const { zoom, setZoom, selL, selR, onDown, onMove, onUp, zoomed } = useDragZoom(
+    (a, b) => all && all.filter(r => r.ts >= a && r.ts <= b).length >= 2);
 
   const view = useMemo(() => {
     if (!all || all.length < 2) return null;
@@ -83,21 +70,10 @@ export default function OnchainValueChart({ isMobile, preview = false }) {
     return { vis, xDomain: [x0, x1], xTicks, yDomain: mode === "realized" ? [yMin * 0.85, yMax * 1.15] : mode === "z" ? [yMin, yMax] : [yMin * 0.95, yMax * 1.05], cur };
   }, [all, zoom, mode]);
 
-  const onDown = e => { if (e && e.activeLabel != null) { setSelL(e.activeLabel); setSelR(e.activeLabel); } };
-  const onMove = e => { if (selL != null && e && e.activeLabel != null) setSelR(e.activeLabel); };
-  const onUp = () => {
-    if (selL != null && selR != null && selL !== selR && all) {
-      const [a, b] = selL < selR ? [selL, selR] : [selR, selL];
-      if (all.filter(r => r.ts >= a && r.ts <= b).length >= 2) setZoom([a, b]);
-    }
-    setSelL(null); setSelR(null);
-  };
-
   if (all == null) return <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Loading on-chain data…</div>;
   if (!view) return <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Not enough on-chain history yet — daily cost-basis snapshots started recently; this fills in as it accumulates.</div>;
 
   const cur = view.cur;
-  const zoomed = !!zoom;
   const mvrvLabel = cur.mvrv >= 1.5 ? "hot" : cur.mvrv >= 1 ? "in profit" : "underwater";
   const zLabel = cur.z >= 0.5 ? "stretched" : cur.z <= -0.5 ? "cheap" : "fair";
 
@@ -116,10 +92,7 @@ export default function OnchainValueChart({ isMobile, preview = false }) {
         <Metric label={mode === "z" ? "MVRV Z" : "MVRV"} value={mode === "z" ? cur.z.toFixed(2) : cur.mvrv.toFixed(2) + "×"} color={cur.mvrv >= 1 ? "#4ade80" : "#f87171"} sub={mode === "z" ? zLabel : mvrvLabel} />
       </div>
 
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12, marginBottom: 10 }}>
-        <span style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b" }}>{zoomed ? "Viewing a selected window." : "Drag across the chart to zoom into any period."}</span>
-        {zoomed && <button onClick={() => setZoom(null)} className="pill" style={{ fontFamily: SANS, fontSize: 12, fontWeight: 600, padding: "5px 12px", borderRadius: 7, cursor: "pointer", background: "transparent", border: "1px solid rgba(167,139,250,0.4)", color: "#c4b5fd", "--glow": "#a78bfa" }}>⤢ Reset zoom</button>}
-      </div>
+      <ZoomBar zoomed={zoomed} onReset={() => setZoom(null)} accent="#a78bfa" />
 
       <div style={{ position: "relative" }}>
         {!preview && <ChartZoomHint />}

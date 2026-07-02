@@ -14,6 +14,7 @@ import { CHART_META, CHART_IDS } from "./charts-catalog.js";
 import BandStats from "./BandStats.jsx";
 // Secondary tab charts are lazy-loaded so their code only ships when the tab is opened.
 import ErrorBoundary from "./ErrorBoundary.jsx";
+import { SANS, MONO, MAX_W } from "./chart-ui.jsx";
 const HolderscanDashboard = lazy(() => import("./HolderscanDashboard.jsx"));
 const RiskChart = lazy(() => import("./RiskChart.jsx"));
 const DrawdownChart = lazy(() => import("./DrawdownChart.jsx"));
@@ -47,10 +48,7 @@ const MEMEKINGS_META = [
   { key: "PEPE", label: "Pepe", color: "#4ade80" },
 ];
 
-const SANS = "'Space Grotesk', system-ui, sans-serif";
-const MONO = "ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace";
 const LED = "'DSEG7 Classic', ui-monospace, monospace";
-const MAX_W = 1400;
 
 // Frosted-glass card style. Pass an rgb string + alpha to tint the fill.
 const glass = (rgb = "255, 255, 255", alpha = 0.05, blur = 14) => ({

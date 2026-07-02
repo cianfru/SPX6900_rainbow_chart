@@ -3,10 +3,8 @@ import {
   ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, ReferenceDot,
 } from "recharts";
 import { buildRallyCycles, buildFireSaleRallies, buildCycleStrategy } from "./models.js";
+import { SANS, MONO, MAX_W, TipBox } from "./chart-ui.jsx";
 
-const SANS = "'Space Grotesk', system-ui, sans-serif";
-const MONO = "ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace";
-const MAX_W = 1400;
 const fMon = d => new Date(d).toLocaleDateString("en-US", { month: "short", year: "2-digit" });
 const fMult = x => (x >= 100 ? Math.round(x).toLocaleString() : x.toFixed(1)) + "×";
 
@@ -15,17 +13,13 @@ function CycleTip({ active, payload, label }) {
   const rows = payload.filter(p => p.value != null);
   if (rows.length === 0) return null;
   return (
-    <div style={{
-      background: "rgba(4,4,12,0.97)", border: "1px solid rgba(255,255,255,0.18)",
-      borderRadius: 10, padding: "10px 14px", fontFamily: SANS, fontSize: 13, color: "#cbd5e1",
-    }}>
-      <div style={{ fontWeight: 700, color: "#f8fafc", marginBottom: 4 }}>Day {label} after low</div>
+    <TipBox title={<>Day {label} after low</>} style={{ padding: "10px 14px" }}>
       {rows.map((p, i) => (
         <div key={i} style={{ color: p.color, fontFamily: MONO, fontSize: 12.5 }}>
           {p.name}: +{p.value.toFixed(1)}%
         </div>
       ))}
-    </div>
+    </TipBox>
   );
 }
 

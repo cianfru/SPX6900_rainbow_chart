@@ -1,9 +1,7 @@
 import { useMemo } from "react";
 import { bandIndex, BAND_LABELS, dayN } from "./models.js";
+import { SANS, MONO, MAX_W } from "./chart-ui.jsx";
 
-const SANS = "'Space Grotesk', system-ui, sans-serif";
-const MONO = "ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace";
-const MAX_W = 1400;
 const DAY = 86400000;
 
 const fDays = n => {

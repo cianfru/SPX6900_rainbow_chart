@@ -1,15 +1,13 @@
 import { useState, useEffect, useRef, Suspense } from "react";
 import { CHART_GROUPS } from "./charts-catalog.js";
 import ErrorBoundary from "./ErrorBoundary.jsx";
+import { SANS, MONO, MAX_W } from "./chart-ui.jsx";
 
 // The browse-all "Charts" gallery — an ITC-style grid of preview tiles. Every
 // tile opens a FULLY INTERACTIVE chart page (onOpen). The preview is a LIVE,
 // scaled-down render of the real chart component (not the tweet card) — the
 // actual look of the chart on the site — lazy-mounted as it scrolls into view.
 
-const SANS = "'Space Grotesk', system-ui, sans-serif";
-const MONO = "ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace";
-const MAX_W = 1400;
 const BASE_W = 1180;   // width the real chart renders at before being scaled to fit
 const CONTENT_H = 700; // clip region (chart's header + body, caption cropped off)
 

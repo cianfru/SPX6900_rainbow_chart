@@ -1,5 +1,6 @@
 import { useMemo, useState, useEffect } from "react";
 import { fetchBtcHistory } from "./data.js";
+import { SANS, MONO, MAX_W } from "./chart-ui.jsx";
 
 // Monthly-returns heatmap: rows = years, columns = Jan…Dec, green for a positive
 // month, red for negative, intensity scaled by size. A right-hand column gives
@@ -8,9 +9,6 @@ import { fetchBtcHistory } from "./data.js";
 // table between dollar returns and returns measured in Bitcoin (SPX priced in
 // BTC). Returns are month-over-month on each month's last close — same
 // definition the bot's monthly-returns cards use.
-const SANS = "'Space Grotesk', system-ui, sans-serif";
-const MONO = "ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace";
-const MAX_W = 1400;
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 // One shared label format: always a % return, with a compact "k%" for the rare

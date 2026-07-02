@@ -3,10 +3,8 @@ import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianG
 import { fetchSupplyBreakdown } from "./holderscan.js";
 import { SUPPLY } from "./data.js";
 import { loadHistory, LIVE_DATA_DOWN } from "./history-data.js";
+import { SANS, MONO, MAX_W } from "./chart-ui.jsx";
 
-const SANS = "'Space Grotesk', system-ui, sans-serif";
-const MONO = "ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace";
-const MAX_W = 1400;
 
 const fUsd = n => {
   if (n == null || !isFinite(n)) return "—";

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
+import { SANS } from "./chart-ui.jsx";
 
-const SANS = "'Space Grotesk', system-ui, sans-serif";
 
 // A one-time animated demo that sits in front of a zoomable chart, looping a
 // drag-to-select gesture so users learn the chart is interactive. It's

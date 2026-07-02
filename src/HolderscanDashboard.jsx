@@ -2,10 +2,8 @@ import { useState, useEffect } from "react";
 import { fetchAllHolderscanData } from "./holderscan.js";
 import { loadHistory, LIVE_DATA_DOWN } from "./history-data.js";
 import { SUPPLY } from "./data.js";
+import { SANS, MONO, MAX_W } from "./chart-ui.jsx";
 
-const SANS = "'Space Grotesk', system-ui, sans-serif";
-const MONO = "ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace";
-const MAX_W = 1400;
 
 // Frosted-glass card style, matching App.jsx.
 const glassCard = {

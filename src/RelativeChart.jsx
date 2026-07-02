@@ -4,10 +4,8 @@ import {
 } from "recharts";
 import { fetchMajors } from "./data.js";
 import { LIVE_DATA_DOWN } from "./history-data.js";
+import { SANS, MONO, MAX_W, TipBox } from "./chart-ui.jsx";
 
-const SANS = "'Space Grotesk', system-ui, sans-serif";
-const MONO = "ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace";
-const MAX_W = 1400;
 const fMon = ts => new Date(ts).toLocaleDateString("en-US", { month: "short", year: "2-digit" });
 
 function makeLookup(asset) {
@@ -53,7 +51,7 @@ function OscTip({ active, payload, label, metric }) {
   const d = payload[0].payload;
   const [verdict, vcolor] = metric === "z" ? verdictZ(d.z) : verdictP(d.pct);
   return (
-    <div style={{ background: "rgba(4,4,12,0.97)", border: `1px solid ${vcolor}80`, borderRadius: 10, padding: "11px 14px", fontFamily: SANS, fontSize: 13, color: "#cbd5e1" }}>
+    <TipBox style={{ border: `1px solid ${vcolor}80`, padding: "11px 14px" }}>
       <div style={{ fontFamily: MONO, fontSize: 12, color: "#94a3b8", marginBottom: 4 }}>
         {new Date(label).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
       </div>
@@ -61,7 +59,7 @@ function OscTip({ active, payload, label, metric }) {
         {metric === "z" ? (d.z >= 0 ? "+" : "") + d.z.toFixed(2) + "σ" : Math.round(d.pct) + "th pct"}
       </div>
       <div style={{ fontSize: 13, fontWeight: 700, color: vcolor, marginTop: 2 }}>● {verdict}</div>
-    </div>
+    </TipBox>
   );
 }
 
