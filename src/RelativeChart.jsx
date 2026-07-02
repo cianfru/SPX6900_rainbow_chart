@@ -3,6 +3,7 @@ import {
   ResponsiveContainer, ComposedChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, ReferenceArea, ReferenceLine,
 } from "recharts";
 import { fetchMajors } from "./data.js";
+import { LIVE_DATA_DOWN } from "./history-data.js";
 
 const SANS = "'Space Grotesk', system-ui, sans-serif";
 const MONO = "ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace";
@@ -122,7 +123,7 @@ export default function RelativeChart({ series, isMobile, which, setWhich }) {
       </div>
 
       {status === "loading" && <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 40 }}>Loading majors…</div>}
-      {status !== "loading" && status !== "ok" && <div style={{ textAlign: "center", fontFamily: SANS, color: "#f87171", padding: 40 }}>Couldn&apos;t load data: {status}</div>}
+      {status !== "loading" && status !== "ok" && <div style={{ textAlign: "center", fontFamily: SANS, color: "#f87171", padding: 40 }}>{LIVE_DATA_DOWN}</div>}
 
       {status === "ok" && cur && (
         <>

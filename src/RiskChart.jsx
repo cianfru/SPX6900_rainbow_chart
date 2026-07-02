@@ -4,6 +4,7 @@ import {
 } from "recharts";
 import { buildRiskSeries, BAND_LABELS } from "./models.js";
 import { FNG_HISTORY } from "./fng-history.js";
+import { loadHistory } from "./history-data.js";
 
 const SANS = "'Space Grotesk', system-ui, sans-serif";
 const MONO = "ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace";
@@ -40,14 +41,11 @@ export default function RiskChart({ series, m, isMobile }) {
   useEffect(() => {
     if (!showFng || liveFng) return;
     let live = true;
-    fetch("/history.json")
-      .then(r => (r.ok ? r.json() : null))
-      .then(arr => {
-        if (!live || !Array.isArray(arr)) return;
-        const pts = arr.filter(x => x && typeof x.fng === "number" && x.d).map(x => [new Date(x.d).getTime(), x.fng]);
-        setLiveFng(pts); // [] is fine — marks "loaded", falls back to bundled
-      })
-      .catch(() => { if (live) setLiveFng([]); });
+    loadHistory().then(arr => {
+      if (!live) return;
+      const pts = arr.filter(x => x && typeof x.fng === "number" && x.d).map(x => [new Date(x.d).getTime(), x.fng]);
+      setLiveFng(pts); // [] is fine — marks "loaded", falls back to bundled
+    });
     return () => { live = false; };
   }, [showFng, liveFng]);
 

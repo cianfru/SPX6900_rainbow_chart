@@ -3,6 +3,7 @@ import {
   ResponsiveContainer, ComposedChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, ReferenceLine, ReferenceArea,
 } from "recharts";
 import ChartZoomHint from "./ChartZoomHint.jsx";
+import { LIVE_DATA_DOWN } from "./history-data.js";
 
 const SANS = "'Space Grotesk', system-ui, sans-serif";
 const MONO = "ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace";
@@ -185,7 +186,7 @@ export default function RaceChart({ series, isMobile, fetchCoins, coins, basketL
       )}
 
       {status === "loading" && <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Loading {basketLabel}…</div>}
-      {status !== "ok" && status !== "loading" && <div style={{ textAlign: "center", fontFamily: SANS, color: "#f87171", padding: 60 }}>Couldn&apos;t load data: {status}</div>}
+      {status !== "ok" && status !== "loading" && <div style={{ textAlign: "center", fontFamily: SANS, color: "#f87171", padding: 60 }}>{LIVE_DATA_DOWN}</div>}
 
       {status === "ok" && (
         <>

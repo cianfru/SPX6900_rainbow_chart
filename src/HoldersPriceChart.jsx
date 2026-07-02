@@ -3,6 +3,7 @@ import {
   ResponsiveContainer, ComposedChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, ReferenceArea,
 } from "recharts";
 import ChartZoomHint from "./ChartZoomHint.jsx";
+import { loadHistory } from "./history-data.js";
 
 const SANS = "'Space Grotesk', system-ui, sans-serif";
 const MONO = "ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace";
@@ -42,7 +43,7 @@ export default function HoldersPriceChart({ isMobile, preview = false }) {
   const [history, setHistory] = useState(null);
   useEffect(() => {
     let cancelled = false;
-    fetch("/history.json").then(r => (r.ok ? r.json() : [])).then(d => { if (!cancelled) setHistory(Array.isArray(d) ? d : []); }).catch(() => { if (!cancelled) setHistory([]); });
+    loadHistory().then(d => { if (!cancelled) setHistory(d); });
     return () => { cancelled = true; };
   }, []);
 

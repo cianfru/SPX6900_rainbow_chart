@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import { fetchAllHolderscanData } from "./holderscan.js";
+import { loadHistory, LIVE_DATA_DOWN } from "./history-data.js";
+import { SUPPLY } from "./data.js";
 
 const SANS = "'Space Grotesk', system-ui, sans-serif";
 const MONO = "ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace";
@@ -101,37 +103,48 @@ function TopHolderRow({ holder, index }) {
   );
 }
 
+const SectionHeader = () => (
+  <div style={{
+    fontFamily: SANS, fontSize: 16, fontWeight: 700, color: "#cbd5e1", marginBottom: 14,
+    letterSpacing: 1.2, textTransform: "uppercase",
+    display: "flex", alignItems: "center", gap: 12,
+  }}>
+    <span style={{
+      background: "linear-gradient(90deg, #6366f1, #3b82f6)",
+      WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
+    }}>Holder Analytics</span>
+    <span style={{ fontSize: 12, color: "#475569", fontWeight: 500, textTransform: "none", letterSpacing: 0 }}>
+      powered by Holderscan
+    </span>
+  </div>
+);
+
 export default function HolderscanDashboard() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  const [snap, setSnap] = useState(null); // last banked daily snapshot, error fallback
+
   useEffect(() => {
     fetchAllHolderscanData()
       .then(d => {
         const allNull = !d.deltas && !d.breakdowns && !d.stats && !d.pnl && !d.topHolders;
-        if (allNull) setError("All endpoints returned empty — check server-side API key");
+        if (allNull) setError(LIVE_DATA_DOWN);
         else setData(d);
         setLoading(false);
       })
-      .catch(e => { setError(e.message); setLoading(false); });
+      .catch(() => { setError(LIVE_DATA_DOWN); setLoading(false); });
   }, []);
 
-  const SectionHeader = () => (
-    <div style={{
-      fontFamily: SANS, fontSize: 16, fontWeight: 700, color: "#cbd5e1", marginBottom: 14,
-      letterSpacing: 1.2, textTransform: "uppercase",
-      display: "flex", alignItems: "center", gap: 12,
-    }}>
-      <span style={{
-        background: "linear-gradient(90deg, #6366f1, #3b82f6)",
-        WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
-      }}>Holder Analytics</span>
-      <span style={{ fontSize: 12, color: "#475569", fontWeight: 500, textTransform: "none", letterSpacing: 0 }}>
-        powered by Holderscan
-      </span>
-    </div>
-  );
+  // When live analytics are down, surface the essentials from the newest daily
+  // snapshot so the page isn't empty.
+  useEffect(() => {
+    if (!error) return;
+    let live = true;
+    loadHistory().then(h => { if (live && h.length) setSnap(h[h.length - 1]); });
+    return () => { live = false; };
+  }, [error]);
 
   if (loading) {
     return (
@@ -150,10 +163,17 @@ export default function HolderscanDashboard() {
         <SectionHeader />
         <div style={{
           padding: "16px 20px",
-          background: "rgba(239,68,68,0.06)", border: "1px solid rgba(239,68,68,0.2)",
-          borderRadius: 8, fontFamily: SANS, fontSize: 14, color: "#f87171",
+          background: "rgba(251,191,36,0.06)", border: "1px solid rgba(251,191,36,0.25)",
+          borderRadius: 8, fontFamily: SANS, fontSize: 14, color: "#fbbf24",
         }}>
-          Holderscan: {error}
+          {error}
+          {snap && (
+            <div style={{ marginTop: 8, color: "#cbd5e1" }}>
+              Last daily snapshot ({snap.d}): <strong>{fNum(snap.holders)}</strong> holders
+              {snap.be > 0 && <> · avg cost basis <strong>{fUsd(snap.be)}</strong></>}
+              {snap.sup?.diamond > 0 && <> · <strong>{Math.round((snap.sup.diamond / SUPPLY) * 100)}%</strong> of supply in diamond hands</>}
+            </div>
+          )}
         </div>
       </div>
     );

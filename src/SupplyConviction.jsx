@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
 import { fetchSupplyBreakdown } from "./holderscan.js";
 import { SUPPLY } from "./data.js";
+import { loadHistory, LIVE_DATA_DOWN } from "./history-data.js";
 
 const SANS = "'Space Grotesk', system-ui, sans-serif";
 const MONO = "ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace";
@@ -144,10 +145,7 @@ export default function SupplyConviction({ price, isMobile }) {
   const [history, setHistory] = useState(null);
   useEffect(() => {
     let cancelled = false;
-    fetch("/history.json")
-      .then(r => (r.ok ? r.json() : []))
-      .then(d => { if (!cancelled) setHistory(Array.isArray(d) ? d : []); })
-      .catch(() => { if (!cancelled) setHistory([]); });
+    loadHistory().then(d => { if (!cancelled) setHistory(d); });
     return () => { cancelled = true; };
   }, []);
 
@@ -166,9 +164,20 @@ export default function SupplyConviction({ price, isMobile }) {
     return rows;
   }, [history]);
 
+  // Live breakdown, or — when the live proxy is down — the newest banked daily
+  // snapshot from history.json (same fields, at most a day old).
+  const lastSnap = useMemo(() => {
+    if (!history) return null;
+    for (let i = history.length - 1; i >= 0; i--) if (history[i]?.sup) return history[i];
+    return null;
+  }, [history]);
+  const liveDown = status !== "ok" && status !== "loading";
+
   const model = useMemo(() => {
-    const ps = raw ? parseSupply(raw) : null;
+    const live = raw ? parseSupply(raw) : null;
+    const ps = live || (lastSnap ? parseSupply(lastSnap.sup) : null);
     if (!ps) return null;
+    const fromSnapshot = !live;
     const shareOfSupply = {};
     CATS.forEach(({ key }) => { shareOfSupply[key] = ps.tokens[key] / SUPPLY; });
     return {
@@ -179,8 +188,10 @@ export default function SupplyConviction({ price, isMobile }) {
       longTermPctTotal: (ps.tokens.diamond + ps.tokens.gold) / SUPPLY,
       classifiedPctTotal: ps.classified / SUPPLY,
       diamondTokens: ps.diamondTokens,
+      fromSnapshot,
     };
-  }, [raw]);
+  }, [raw, lastSnap]);
+  const usingSnapshot = !!model?.fromSnapshot;
 
   // Diamond % barely moves day to day, so an "auto" domain + whole-number ticks
   // collapses every label to "61%". Pad the domain around the real min/max and
@@ -200,15 +211,10 @@ export default function SupplyConviction({ price, isMobile }) {
     };
   }, [hist]);
 
-  if (status === "loading") return <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 40 }}>Loading supply data…</div>;
-  if (status !== "ok") return <div style={{ textAlign: "center", fontFamily: SANS, color: "#f87171", padding: 40 }}>Couldn&apos;t load supply data: {status}</div>;
-  if (!model) {
-    return (
-      <div style={{ textAlign: "center", fontFamily: SANS, color: "#f87171", padding: 40 }}>
-        Unexpected response shape. Keys: <span style={{ fontFamily: MONO, color: "#94a3b8" }}>{raw ? Object.keys(raw).join(", ") : "—"}</span>
-      </div>
-    );
-  }
+  // While live is loading — or live failed and we're still waiting to learn
+  // whether a banked snapshot can stand in — keep showing the loader.
+  if (status === "loading" || (liveDown && history === null)) return <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 40 }}>Loading supply data…</div>;
+  if (!model) return <div style={{ textAlign: "center", fontFamily: SANS, color: "#f87171", padding: 40 }}>{LIVE_DATA_DOWN}</div>;
 
   const { shareOfSupply, unclassifiedShare, diamondPctTotal, diamondPctClassified, classifiedPctTotal, diamondTokens } = model;
   const diamondValue = price * diamondTokens;
@@ -223,6 +229,11 @@ export default function SupplyConviction({ price, isMobile }) {
 
   return (
     <div style={{ maxWidth: MAX_W, margin: "0 auto" }}>
+      {usingSnapshot && (
+        <div style={{ textAlign: "center", fontFamily: SANS, fontSize: 12.5, color: "#fbbf24", marginBottom: 16 }}>
+          Live holder feed unavailable — showing the last daily snapshot ({lastSnap.d}).
+        </div>
+      )}
       <div style={{ display: "flex", gap: isMobile ? 18 : 40, justifyContent: "center", flexWrap: "wrap", marginBottom: 24 }}>
         <Readout label="DIAMOND SUPPLY" value={(diamondPctTotal * 100).toFixed(0) + "%"} color="#22d3ee" sub={`${fUsd(diamondValue)} · ${(diamondPctClassified * 100).toFixed(0)}% of classified`} isMobile={isMobile} />
         <Readout label="EFFECTIVE FLOAT" value={fNum(effFloatTokens) + " SPX"} color="#cbd5e1" sub={`${((1 - diamondPctTotal) * 100).toFixed(0)}% of supply`} isMobile={isMobile} />

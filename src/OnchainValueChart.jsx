@@ -3,6 +3,7 @@ import {
   ResponsiveContainer, ComposedChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, ReferenceLine, ReferenceArea,
 } from "recharts";
 import { SUPPLY } from "./data.js";
+import { loadHistory } from "./history-data.js";
 import ChartZoomHint from "./ChartZoomHint.jsx";
 
 const SANS = "'Space Grotesk', system-ui, sans-serif";
@@ -43,7 +44,7 @@ export default function OnchainValueChart({ isMobile, preview = false }) {
   const [history, setHistory] = useState(null);
   useEffect(() => {
     let cancelled = false;
-    fetch("/history.json").then(r => (r.ok ? r.json() : [])).then(d => { if (!cancelled) setHistory(Array.isArray(d) ? d : []); }).catch(() => { if (!cancelled) setHistory([]); });
+    loadHistory().then(d => { if (!cancelled) setHistory(d); });
     return () => { cancelled = true; };
   }, []);
 
