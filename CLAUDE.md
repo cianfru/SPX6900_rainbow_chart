@@ -1,6 +1,18 @@
 # SPX6900 Rainbow Chart — project notes
 
 ## Backlog / decisions
+- **❌ "Grade my entry" / "entry report card" — PARKED (owner, 2026-07-02).** Mocked
+  three variants (personal entry-vs-bands card, site widget + og share, and a 5-row
+  archetype "report card" graded by buy-date band). Owner parked the whole thread:
+  not exciting enough to justify the risk — **part of the community already dislikes
+  the daily chart posting ("walking on eggs"), so anything cringey could create real
+  problems.** Do not revive without a strong pull signal from the audience.
+- **⭐ CONTENT PRINCIPLE (owner, 2026-07-02): don't force new formats for the sake
+  of novelty.** The bar for NEW content types is high and rising. Prefer **insights
+  that EMERGE from accumulating data over time** (the data-gated queue: MVRV line
+  ~Jul 23, realized-price line for `rsidots`, 30d holder-growth, 690 milestone,
+  Uptober in Sept) over invented engagement mechanics. When in doubt: quality of the
+  existing rotation > adding to it.
 - **Revisit band-watch daily-suppression — likely too restrictive (flagged 2026-06-24).**
   The anti-flap **hysteresis** (fire once per excursion into a marquee/extreme zone,
   re-arm only on return to a calm band) is the right guard and is NOT over-restrictive —

@@ -7,15 +7,18 @@ import { DEFAULT_RAW } from "./data.js";
 import * as M from "./models.js";
 
 export function channelSvg(price, dateStr = new Date().toISOString().slice(0, 10), opts = {}) {
-  const m = M.buildModel(DEFAULT_RAW);
+  const m = M.buildModel(DEFAULT_RAW);               // bands stay frozen on the bundled fit
   const t0 = m.t0;                                   // the offset that makes it straight
   const day = M.dayN(dateStr);
+  // Drawn price LINE uses the caller's series (bundled history extended to today
+  // via the daily snapshot); defaults to the bundled set. Model is unchanged.
+  const raw = (opts.series && opts.series.length) ? opts.series : DEFAULT_RAW;
 
   const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 84, mR = 132, mT = 76, mB = 56;
   const pW = W - mL - mR, pH = H - mT - mB;
 
   const firstDay = M.dayN(DEFAULT_RAW[0].date);
-  const lastDay = M.dayN(DEFAULT_RAW.at(-1).date);
+  const lastDay = M.dayN(raw.at(-1).date);
   const nowDay = Math.max(lastDay, day);
   const dMax = Math.round(nowDay * 1.9);             // project the rails into the future
   // x = ln(age + t0) — this is what straightens the power law into a diagonal.
@@ -37,7 +40,7 @@ export function channelSvg(price, dateStr = new Date().toISOString().slice(0, 10
 
   const path = f => days.map(d => `${x(d).toFixed(1)},${y(f(d)).toFixed(1)}`).join(" ");
   const channelFill = `${days.map(d => `${x(d).toFixed(1)},${y(upper(d)).toFixed(1)}`).join(" ")} ${days.map(d => `${x(d).toFixed(1)},${y(lower(d)).toFixed(1)}`).reverse().join(" ")}`;
-  const priceLine = DEFAULT_RAW.map(r => `${x(M.dayN(r.date)).toFixed(1)},${y(r.price).toFixed(1)}`).join(" ");
+  const priceLine = raw.map(r => `${x(M.dayN(r.date)).toFixed(1)},${y(r.price).toFixed(1)}`).join(" ");
 
   // gridlines + $ decade y-labels
   let grid = "";

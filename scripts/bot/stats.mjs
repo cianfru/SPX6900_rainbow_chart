@@ -43,14 +43,30 @@ export async function fetchPriceHistory() {
   return null;
 }
 
-// Bundled baseline with any newer live daily closes appended. Never rewrites the
-// bundled history (the model is fit on it); only extends the drawn series so the
-// cards/charts run to today. Falls back to the bundled set if live is unreachable.
+// Daily prices the snapshot cron commits to public/history.json — the
+// authoritative daily series (same source DEFAULT_RAW is rebundled from), read
+// locally so it needs no network and is fresh every day. Returns {date,price}[].
+function loadSnapshotPrices() {
+  try {
+    const arr = JSON.parse(readFileSync(new URL("../../public/history.json", import.meta.url), "utf8"));
+    return arr.filter(r => r?.d && r.p > 0).map(r => ({ date: r.d, price: r.p }));
+  } catch { return []; }
+}
+
+// Bundled baseline extended to today. PRIMARY extender is the committed daily
+// snapshot (public/history.json — local, always fresh, same lineage as the
+// bundle); the external OHLCV candles only backfill dates the snapshot lacks.
+// The candle endpoint alone silently stops updating recent days for the
+// low-volume V2 pool, which froze the drawn line weeks behind the live dot.
+// Never rewrites the bundled history (the model is fit on it); only extends the
+// drawn series so the cards/charts run to today.
 export async function fetchHistory() {
-  const live = await fetchPriceHistory();
-  if (!live) return DEFAULT_RAW;
   const lastBundled = DEFAULT_RAW.at(-1).date;
-  const newer = live.filter(p => p.date > lastBundled && p.price > 0);
+  const live = await fetchPriceHistory(); // OHLCV candles, or null if unreachable
+  const byDate = new Map();
+  for (const p of (live || [])) if (p.date > lastBundled && p.price > 0) byDate.set(p.date, p.price);
+  for (const p of loadSnapshotPrices()) if (p.date > lastBundled) byDate.set(p.date, p.price); // snapshot wins
+  const newer = [...byDate].map(([date, price]) => ({ date, price })).sort((a, b) => a.date.localeCompare(b.date));
   return newer.length ? [...DEFAULT_RAW, ...newer] : DEFAULT_RAW;
 }
 
@@ -217,6 +233,7 @@ export function computeStats(price, dateStr = new Date().toISOString().slice(0, 
     firstPrice: first.price, firstDate: first.date, allTimeReturn: price / first.price - 1,
     targets: M.TARGETS.map(t => ({ ...t, mult: t.price / price })),
     supply, btc, majors,
+    drawn: RAW, // merged {date,price}[] history (bundled + snapshot) for the rainbow line
     series: {
       price: RAW.map(r => [Date.parse(r.date), r.price]),
       resid: thinSeries(RAW.map(r => [Date.parse(r.date), Math.log(r.price) - m.predict(M.dayN(r.date))])),

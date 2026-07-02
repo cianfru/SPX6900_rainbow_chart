@@ -416,7 +416,7 @@ The holder's rolling return, not since-launch.`,
   // an homage to @100trillionUSD's Bitcoin "Realized Price & MA" chart.
   s => (() => {
     // monthly RSI(6) from the shared card helper, so the headline matches the card.
-    const r = Math.round(rsiNow(s.price, s.date));
+    const r = Math.round(rsiNow(s.price, s.date, s.drawn));
     const tag = r < 40 ? "cold / oversold" : r < 55 ? "neutral" : r < 70 ? "warming up" : "hot / overbought";
     return {
       id: "rsidots",

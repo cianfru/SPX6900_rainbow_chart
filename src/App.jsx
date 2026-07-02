@@ -4,6 +4,7 @@ import {
   CartesianGrid, ReferenceLine
 } from "recharts";
 import { DEFAULT_RAW, fetchLivePrices, fetchSpotPrice, fetchMajors, fetchMemekings } from "./data.js";
+import { loadHistory } from "./history-data.js";
 import {
   buildModel, BAND_LABELS, TARGETS,
   dayN, ds, bandVal, bandIndex,
@@ -193,25 +194,39 @@ export default function App() {
     { l: "Auto", y: null }, // auto-fit to highest selected target
   ];
 
-  // Extend bundled prices with any newer live points only — do not replace history.
-  const applyLive = useCallback((livePrices, source) => {
+  // Extend bundled prices with any newer daily points — do not replace history.
+  const applyLive = useCallback((points) => {
     const bundledLast = DEFAULT_RAW[DEFAULT_RAW.length - 1].date;
-    const newer = livePrices.filter(p => p.date > bundledLast);
+    const newer = points
+      .filter(p => p.date > bundledLast && p.price > 0)
+      .sort((a, b) => a.date.localeCompare(b.date));
     if (newer.length === 0) {
-      setDataStatus(`Up to date · bundled covers latest (${source})`);
+      setDataStatus("Up to date · bundled covers latest");
       return;
     }
     setPriceData([...DEFAULT_RAW, ...newer]);
-    setDataStatus(`Live · +${newer.length} fresh pts from ${source}`);
+    setDataStatus(`Live · +${newer.length} fresh pts`);
   }, []);
 
+  // Fill the gap between the bundled history (frozen at build time — weeks stale
+  // between rebundles) and today from TWO sources, so the line never freezes if
+  // one is stale. Primary = /history.json: the daily on-chain snapshot the cron
+  // commits and that DEFAULT_RAW is itself rebundled from — same-origin and
+  // fresh every day, no external-API/candle-freshness fragility. Secondary =
+  // /api/prices (external daily candles) backfills any date the snapshot lacks.
+  // Merge by date; the snapshot wins on conflict (same lineage as the bundle).
   useEffect(() => {
     let cancelled = false;
-    fetchLivePrices().then(({ prices, source }) => {
-      if (cancelled || prices.length === 0) return;
-      applyLive(prices, source);
-    }).catch(err => {
-      if (!cancelled) setDataStatus(`Using bundled data (${err.message})`);
+    Promise.all([
+      loadHistory(),                                     // never rejects → []
+      fetchLivePrices().then(r => r.prices, () => []),   // swallow error → []
+    ]).then(([snap, live]) => {
+      if (cancelled) return;
+      const byDate = new Map();
+      for (const p of (Array.isArray(live) ? live : [])) if (p?.date && p.price > 0) byDate.set(p.date, p.price);
+      for (const r of (Array.isArray(snap) ? snap : [])) if (r?.d && r.p > 0) byDate.set(r.d, r.p);
+      const merged = [...byDate].map(([date, price]) => ({ date, price }));
+      if (merged.length) applyLive(merged);
     });
     return () => { cancelled = true; };
   }, [applyLive]);

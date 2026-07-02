@@ -21,8 +21,8 @@ const TAB_POST = {
 // Posts that need the major-coin series fetched before computeStats.
 const NEEDS_COINS = new Set(["btc", "majors", "majorcaps", "ytd"]);
 
-const rainbowPng = price =>
-  new Resvg(rainbowSvg(price), { fitTo: { mode: "width", value: 1200 }, font: FONT }).render().asPng();
+const rainbowPng = (price, series) =>
+  new Resvg(rainbowSvg(price, undefined, { series }), { fitTo: { mode: "width", value: 1200 }, font: FONT }).render().asPng();
 
 export default async function handler(req, res) {
   const params = new URL(req.url, "http://x").searchParams;
@@ -62,15 +62,18 @@ export default async function handler(req, res) {
   // tiles serve from the CDN instead of re-rendering on every visit.
   const thumb = params.get("thumb") === "1";
   const price = (await fetchLivePrice())?.price ?? DEFAULT_RAW.at(-1).price;
+  // Bundled history extended to today (snapshot + candles) so the drawn line runs
+  // to the live dot instead of freezing at the last bundled date. fetchHistory
+  // falls back to the bundled set internally, so this never throws.
+  const history = await fetchHistory();
 
   let png;
   try {
     const postId = directPost || TAB_POST[tab];
     if (!postId) {
-      png = rainbowPng(price); // default share image (landscape)
+      png = rainbowPng(price, history); // default share image (landscape)
     } else {
-      const opts = {};
-      try { opts.history = await fetchHistory(); } catch { /* fall back to bundled */ }
+      const opts = { history };
       if (NEEDS_COINS.has(postId)) { try { opts.coins = await fetchMajors(); } catch { /* skip */ } }
       const stats = computeStats(price, undefined, opts);
       const post = buildPost(stats, new Date(), postId);
@@ -94,10 +97,10 @@ export default async function handler(req, res) {
         : { landscape: { W: 1200, H: 630 } };
       // buildPost falls back to rotation if the requested post lacks data; if so,
       // fall back to the rainbow card rather than show an unrelated chart.
-      png = post.id === postId ? renderPostCard(post, stats, cardOpts) : rainbowPng(price);
+      png = post.id === postId ? renderPostCard(post, stats, cardOpts) : rainbowPng(price, history);
     }
   } catch {
-    png = rainbowPng(price);
+    png = rainbowPng(price, history);
   }
 
   res.setHeader("Content-Type", "image/png");

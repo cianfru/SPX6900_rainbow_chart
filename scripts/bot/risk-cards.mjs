@@ -63,7 +63,11 @@ const zToUnit = (z, mean, std) => Math.max(0, Math.min(1, 0.5 + (z - mean) / (st
 
 export function riskColorSvg(price, dateStr = new Date().toISOString().slice(0, 10), opts = {}) {
   const m = M.buildModel(DEFAULT_RAW);
-  const { pts, mean, std } = zScoreSeries(m);
+  // mean/std stay on the frozen bundled fit; the DRAWN line extends to today via
+  // the snapshot series so it never freezes weeks behind the live dot.
+  const { mean, std } = zScoreSeries(m);
+  const RAW = (opts.series && opts.series.length) ? opts.series : DEFAULT_RAW;
+  const pts = RAW.map(r => ({ ts: new Date(r.date).getTime(), price: r.price, z: Math.log(r.price) - m.predict(M.dayN(r.date)) }));
   const colorOf = z => riskColor(zToUnit(z, mean, std));
   const curRawZ = Math.log(price) - m.predict(M.dayN(dateStr));
   const curZ = (curRawZ - mean) / std;
@@ -130,7 +134,8 @@ export function riskLevelsSvg(price, dateStr = new Date().toISOString().slice(0,
   const curRisk = Math.max(0, Math.min(1, (Math.log(price) - m.predict(curDay) - lo) / ((hi - lo) || 1)));
   const dc = riskColor(curRisk);
   const LEVELS = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7].map(r => ({ risk: r, price: priceAtRisk(r) }));
-  const recent = DEFAULT_RAW.slice(-60).map(r => ({ ts: new Date(r.date).getTime(), price: r.price }));
+  const RAW = (opts.series && opts.series.length) ? opts.series : DEFAULT_RAW;
+  const recent = RAW.slice(-60).map(r => ({ ts: new Date(r.date).getTime(), price: r.price }));
 
   const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 104, mR = 168, mT = 76, mB = 68, pW = W - mL - mR, pH = H - mT - mB;
   const xMin = recent[0].ts, xMax = recent.at(-1).ts;
@@ -186,7 +191,8 @@ export function riskHeatSvg(price, dateStr = new Date().toISOString().slice(0, 1
   // Short-term "bubble risk" à la Cowen: extension of price from its 20-WEEK moving
   // average (mean-reversion), NOT the long-term rainbow risk. Centered at the MA
   // (the zero line) — hot/red when price is stretched ABOVE it, cold/blue below.
-  const pts = DEFAULT_RAW.map(r => ({ ts: new Date(r.date).getTime(), price: r.price })).sort((a, b) => a.ts - b.ts);
+  const RAW = (opts.series && opts.series.length) ? opts.series : DEFAULT_RAW;
+  const pts = RAW.map(r => ({ ts: new Date(r.date).getTime(), price: r.price })).sort((a, b) => a.ts - b.ts);
   const WK20 = 140 * 86400000;
   const maAt = ts => { let s = 0, n = 0; for (const q of pts) if (q.ts > ts - WK20 && q.ts <= ts) { s += q.price; n++; } return n ? s / n : pts[0].price; };
   const ma = pts.map(p => maAt(p.ts));
@@ -273,6 +279,6 @@ ${heat}${axis}${xlab}
 </svg>`;
 }
 
-export function renderRiskColorCard(stats, opts = {}) { return png(riskColorSvg(stats.price, stats.date, { W: opts.W, H: opts.H }), opts.W ?? 1200); }
-export function renderRiskLevelsCard(stats, opts = {}) { return png(riskLevelsSvg(stats.price, stats.date, { W: opts.W, H: opts.H }), opts.W ?? 1200); }
-export function renderRiskHeatCard(stats, opts = {}) { return png(riskHeatSvg(stats.price, stats.date, { W: opts.W, H: opts.H }), opts.W ?? 1200); }
+export function renderRiskColorCard(stats, opts = {}) { return png(riskColorSvg(stats.price, stats.date, { W: opts.W, H: opts.H, series: stats.drawn }), opts.W ?? 1200); }
+export function renderRiskLevelsCard(stats, opts = {}) { return png(riskLevelsSvg(stats.price, stats.date, { W: opts.W, H: opts.H, series: stats.drawn }), opts.W ?? 1200); }
+export function renderRiskHeatCard(stats, opts = {}) { return png(riskHeatSvg(stats.price, stats.date, { W: opts.W, H: opts.H, series: stats.drawn }), opts.W ?? 1200); }

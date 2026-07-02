@@ -1,7 +1,7 @@
 {
   "functions": {
-    "api/og.js": { "includeFiles": "scripts/bot/**" },
-    "api/recap.js": { "includeFiles": "scripts/bot/**" }
+    "api/og.js": { "includeFiles": "{scripts/bot/**,public/history.json}" },
+    "api/recap.js": { "includeFiles": "{scripts/bot/**,public/history.json}" }
   },
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api/$1" },
