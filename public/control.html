@@ -164,6 +164,7 @@
       <div class="bar">
         <button id="refresh">↻ Refresh</button>
         <button id="clear" class="danger">Clear queue → auto</button>
+        <button id="skiptoday" class="danger">🚫 No post today</button>
         <span style="margin-left:auto"></span>
         <button id="lock">Lock</button>
       </div>
@@ -267,7 +268,9 @@ async function loadSchedule() {
 function renderSchedule(meta) {
   const chips = [];
   if (QUEUED) chips.push(`<span class="chip" style="border-color:#f59e0b"><b style="color:#fcd34d">queued:</b> ${QUEUED}</span>`);
-  if (meta.postedToday) chips.push(`<span class="chip"><b>today:</b> already posted (${meta.lastId ?? "?"})</span>`);
+  if (meta.postedToday) chips.push(meta.lastId === "manual-skip"
+    ? `<span class="chip" style="border-color:#ef4444"><b style="color:#fca5a5">today:</b> no post (manual skip)</span>`
+    : `<span class="chip"><b>today:</b> already posted (${meta.lastId ?? "?"})</span>`);
   UPCOMING.slice(0, 6).forEach((u, i) => {
     const isNext = u.id === NEXT && !(meta.postedToday && i === 0);
     chips.push(`<span class="chip">${u.date.slice(5)} → <b>${u.id}</b>${isNext ? " ·next" : ""}</span>`);
@@ -340,6 +343,18 @@ async function postNow(id) {
   try {
     await action({ action: "postnow", id });
     status(`Posting "${id}" now — check the Actions tab / X in ~1 min. The scheduled run will skip today.`, "ok");
+  } catch (e) { handleErr(e); }
+}
+
+async function skipToday() {
+  if (!confirm("Skip today's scheduled post?\n\nThe 08:00 ET auto-post will be suppressed (use after posting manually). It resumes automatically tomorrow.")) return;
+  status("Suppressing today's post…");
+  try {
+    const r = await action({ action: "skip-today" });
+    // reflect immediately so the schedule strip shows today as handled
+    META.postedToday = true; META.lastId = "manual-skip";
+    renderSchedule(META); renderGrid();
+    status(`Today (${r.skipped || "today"}) is set to no-post — the scheduled run will skip. Resumes tomorrow.`, "ok");
   } catch (e) { handleErr(e); }
 }
 
@@ -430,6 +445,7 @@ $("#grid").addEventListener("click", e => {
 });
 $("#refresh").onclick = refresh;
 $("#clear").onclick = () => queue(null);
+$("#skiptoday").onclick = skipToday;
 
 // ---- Monthly recap tab ----
 // Renders the exact thread the bot would post (text + cards), live, so it can be

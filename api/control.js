@@ -11,6 +11,7 @@ const QUEUE_PATH = "public/next-post.json", WORKFLOW = "post-tweet.yml";
 const WORKFLOW_RECAP = "monthly-recap.yml";
 const COPY_PATH = "public/post-copy.json"; // owner-edited card-copy overrides
 const AR_PATH = "public/card-ar.json";     // owner-picked aspect ratio per card
+const STATE_PATH = "public/post-state.json"; // last-posted date guard (once-per-day)
 
 const gh = (path, init = {}) => fetch("https://api.github.com" + path, {
   ...init,
@@ -64,6 +65,32 @@ export default async function handler(req, res) {
       }
       if (!put.ok) throw new Error("queue write failed (" + put.status + ") " + body);
       res.status(200).json({ ok: true, queued: newId });
+      return;
+    }
+    // "No post today" — stamp post-state.json's lastPostedDate with today's date so
+    // post.mjs's once-per-day guard (state.lastPostedDate === today) skips the next
+    // scheduled 08:00 ET run. Use when posting manually. Date is America/New_York —
+    // which equals the UTC date the run computes at 12:00 UTC (08:00 ET), so it matches.
+    if (action === "skip-today") {
+      const today = new Date().toLocaleDateString("en-CA", { timeZone: "America/New_York" });
+      let put, body;
+      for (let i = 0; i < 3; i++) {
+        let sha, obj = {};
+        const cur = await gh(`/repos/${OWNER}/${REPO}/contents/${STATE_PATH}?ref=${BRANCH}`);
+        if (cur.ok) { const j = await cur.json(); sha = j.sha; try { obj = JSON.parse(Buffer.from(j.content, "base64").toString("utf8")) || {}; } catch { obj = {}; } }
+        obj.lastPostedDate = today; obj.lastId = "manual-skip";
+        const content = Buffer.from(JSON.stringify(obj, null, 2) + "\n").toString("base64");
+        put = await gh(`/repos/${OWNER}/${REPO}/contents/${STATE_PATH}`, {
+          method: "PUT",
+          body: JSON.stringify({ message: `control: skip today (${today})`, content, branch: BRANCH, ...(sha ? { sha } : {}) }),
+        });
+        if (put.ok) break;
+        body = await put.text();
+        if (put.status !== 409) break;
+        await new Promise(r => setTimeout(r, 400 * (i + 1)));
+      }
+      if (!put.ok) throw new Error("skip write failed (" + put.status + ") " + body);
+      res.status(200).json({ ok: true, skipped: today });
       return;
     }
     if (action === "postnow") {
