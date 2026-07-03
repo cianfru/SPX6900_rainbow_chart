@@ -137,7 +137,17 @@ export function computeStats(price, dateStr = new Date().toISOString().slice(0, 
   // Drawn history + series-derived stats use the merged history when provided
   // (bundled baseline + live daily closes). The MODEL FIT stays frozen on the
   // bundled DEFAULT_RAW, so the bands never move under live data.
-  const RAW = (opts.history && opts.history.length) ? opts.history : DEFAULT_RAW;
+  const RAW0 = (opts.history && opts.history.length) ? opts.history : DEFAULT_RAW;
+  // Upsert the live price as the current day's point so DRAWN lines END at the
+  // live price — and the "now" marker (also the live price) sits ON the line
+  // instead of floating off the last banked daily snapshot.
+  const RAW = (() => {
+    if (!(price > 0)) return RAW0;
+    const last = RAW0[RAW0.length - 1];
+    if (last && last.date === dateStr) return [...RAW0.slice(0, -1), { date: dateStr, price }];
+    if (!last || dateStr > last.date) return [...RAW0, { date: dateStr, price }];
+    return RAW0; // dateStr predates the series (e.g. a historical recap) — leave as-is
+  })();
   const m = M.buildModel(DEFAULT_RAW);
   const day = M.dayN(dateStr);
   const center = Math.exp(m.predict(day));
