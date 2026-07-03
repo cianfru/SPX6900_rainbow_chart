@@ -1,5 +1,4 @@
 {
   "dcaladder": "🌈 {0} BTC risk strategy, on SPX6900.\nHis risk-based DCA: buy more units of x the cheaper it gets, sell more units of y the hotter. x and y are your own base buy and sell sizes, not fixed amounts.\nBen Cowen's method, on our chart. A model, not advice.",
-  "rsidots": "📊 SPX6900 RSI today: {0} — {1}.\nPrice as dots coloured by RSI — blue cold/oversold, red hot/overbought — over its geometric MA.\nA homage to the Bitcoin RSI chart by @100trillionUSD.",
-  "diamondtrend": "💎 Today we detected a spike in Diamond hands held coins (+8M) ~61% of all SPX6900 supply ($217M)\n\nA batch of long-held coins crossed the holding-age threshold and matured into the diamond bucket.\n\nThe float that rarely moves just grew.\n\n🌈 $SPX #spx6900\n"
+  "rsidots": "📊 SPX6900 RSI today: {0} — {1}.\nPrice as dots coloured by RSI — blue cold/oversold, red hot/overbought — over its geometric MA.\nA homage to the Bitcoin RSI chart by @100trillionUSD."
 }
