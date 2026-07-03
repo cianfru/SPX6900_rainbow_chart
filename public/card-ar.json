@@ -40,5 +40,6 @@
   "cycle": "square",
   "rsidots": "square",
   "monthlyreturns": "landscape",
-  "monthcompare": "square"
+  "monthcompare": "square",
+  "diamondtrend": "square"
 }
