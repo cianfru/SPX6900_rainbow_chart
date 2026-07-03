@@ -5,7 +5,8 @@ import {
 import { buildRiskSeries, BAND_LABELS } from "./models.js";
 import { FNG_HISTORY } from "./fng-history.js";
 import { loadHistory } from "./history-data.js";
-import { SANS, MONO, MAX_W, TipBox } from "./chart-ui.jsx";
+import { SANS, MONO, MAX_W, TipBox, ZoomBar } from "./chart-ui.jsx";
+import { useDragZoom, timeWindow } from "./use-drag-zoom.js";
 
 const FNG_COLOR = "#f59e0b";
 const fD = ts => new Date(ts).toLocaleDateString("en-US", { month: "short", year: "2-digit" });
@@ -64,6 +65,9 @@ export default function RiskChart({ series, m, isMobile }) {
     });
   }, [risk, fngHist]);
   const cur = data[data.length - 1];
+  const { zoom, setZoom, selL, selR, onDown, onMove, onUp, zoomed } = useDragZoom(
+    (a, b) => data.filter(d => d.ts >= a && d.ts <= b).length >= 2);
+  const view = useMemo(() => (data.length ? timeWindow(data, zoom) : null), [data, zoom]);
   const zoneIdx = Math.min(8, Math.max(0, Math.floor(cur.risk * 9)));
   const zoneColor = BAND_LABELS[zoneIdx].c;
   const riskLabel = cur.risk < 0.33 ? "LOW RISK" : cur.risk < 0.66 ? "MEDIUM RISK" : "HIGH RISK";
@@ -105,12 +109,15 @@ export default function RiskChart({ series, m, isMobile }) {
         </button>
       </div>
 
+      <ZoomBar zoomed={zoomed} onReset={() => setZoom(null)} accent="#a78bfa" />
+
       <ResponsiveContainer width="100%" height={isMobile ? 380 : 560}>
-        <ComposedChart data={data} margin={{ top: 10, right: isMobile ? 12 : 30, bottom: 24, left: isMobile ? 0 : 12 }}>
+        <ComposedChart data={view?.vis ?? data} margin={{ top: 10, right: isMobile ? 12 : 30, bottom: 24, left: isMobile ? 0 : 12 }}
+          onMouseDown={onDown} onMouseMove={onMove} onMouseUp={onUp} onMouseLeave={onUp} style={{ cursor: "crosshair", userSelect: "none" }}>
           <CartesianGrid strokeDasharray="2 8" stroke="rgba(255,255,255,0.07)" vertical={false} />
           <XAxis
-            dataKey="ts" type="number" scale="time" domain={["dataMin", "dataMax"]}
-            tickFormatter={fD} tick={{ fill: "#cbd5e1", fontSize: isMobile ? 10 : 12, fontFamily: MONO }}
+            dataKey="ts" type="number" scale="time" domain={view?.xDomain ?? ["dataMin", "dataMax"]} ticks={view?.xTicks} allowDataOverflow
+            tickFormatter={view?.fmtX ?? fD} tick={{ fill: "#cbd5e1", fontSize: isMobile ? 10 : 12, fontFamily: MONO }}
             axisLine={{ stroke: "rgba(255,255,255,0.15)" }} tickLine={false}
             minTickGap={isMobile ? 40 : 30}
           />
@@ -128,6 +135,9 @@ export default function RiskChart({ series, m, isMobile }) {
               strokeDasharray="5 4" isAnimationActive={false} />
           )}
           <Line type="monotone" dataKey="risk" stroke="#ffffff" strokeWidth={2} dot={false} isAnimationActive={false} />
+          {selL != null && selR != null && selL !== selR && (
+            <ReferenceArea x1={selL} x2={selR} strokeOpacity={0.3} stroke="#a78bfa" fill="#a78bfa" fillOpacity={0.15} />
+          )}
         </ComposedChart>
       </ResponsiveContainer>
 
