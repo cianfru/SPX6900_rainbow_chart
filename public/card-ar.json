@@ -6,7 +6,7 @@
   "timeinband": "landscape",
   "marketcap": "landscape",
   "btc": "landscape",
-  "distribution": "landscape",
+  "distribution": "square",
   "breakeven": "square",
   "diamondtrend": "square",
   "majors": "portrait",
