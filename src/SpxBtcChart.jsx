@@ -1,9 +1,10 @@
 import { useState, useEffect, useMemo } from "react";
 import {
-  ResponsiveContainer, ComposedChart, Area, XAxis, YAxis, Tooltip, CartesianGrid,
+  ResponsiveContainer, ComposedChart, Area, XAxis, YAxis, Tooltip, CartesianGrid, ReferenceArea,
 } from "recharts";
 import { fetchBtcHistory } from "./data.js";
-import { SANS, MONO, MAX_W, TipBox } from "./chart-ui.jsx";
+import { SANS, MONO, MAX_W, TipBox, ZoomBar } from "./chart-ui.jsx";
+import { useDragZoom, timeWindow } from "./use-drag-zoom.js";
 
 const fMon = ts => new Date(ts).toLocaleDateString("en-US", { month: "short", year: "2-digit" });
 const fSats = v => (v >= 1000 ? (v / 1000).toFixed(2) + "k" : v >= 10 ? v.toFixed(0) : v.toFixed(1));
@@ -55,6 +56,9 @@ export default function SpxBtcChart({ series, isMobile }) {
   }, []);
 
   const data = useMemo(() => (btc ? buildRatio(series, btc) : []), [series, btc]);
+  const { zoom, setZoom, selL, selR, onDown, onMove, onUp, zoomed } = useDragZoom(
+    (a, b) => data.filter(d => d.ts >= a && d.ts <= b).length >= 2);
+  const view = useMemo(() => (data.length ? timeWindow(data, zoom) : null), [data, zoom]);
   const cur = data.length ? data[data.length - 1] : null;
   const perf = data.length > 1 ? (data[data.length - 1].sats / data[0].sats - 1) * 100 : 0;
   const perfColor = perf >= 0 ? "#4ade80" : "#f87171";
@@ -83,8 +87,11 @@ export default function SpxBtcChart({ series, isMobile }) {
         </div>
       </div>
 
+      <ZoomBar zoomed={zoomed} onReset={() => setZoom(null)} accent="#f59e0b" />
+
       <ResponsiveContainer width="100%" height={isMobile ? 380 : 540}>
-        <ComposedChart data={data} margin={{ top: 10, right: isMobile ? 14 : 30, bottom: 24, left: isMobile ? 0 : 12 }}>
+        <ComposedChart data={view?.vis ?? data} margin={{ top: 10, right: isMobile ? 14 : 30, bottom: 24, left: isMobile ? 0 : 12 }}
+          onMouseDown={onDown} onMouseMove={onMove} onMouseUp={onUp} onMouseLeave={onUp} style={{ cursor: "crosshair", userSelect: "none" }}>
           <defs>
             <linearGradient id="btcFill" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor="#f59e0b" stopOpacity={0.35} />
@@ -93,8 +100,8 @@ export default function SpxBtcChart({ series, isMobile }) {
           </defs>
           <CartesianGrid strokeDasharray="2 8" stroke="rgba(255,255,255,0.07)" vertical={false} />
           <XAxis
-            dataKey="ts" type="number" scale="time" domain={["dataMin", "dataMax"]}
-            tickFormatter={fMon} tick={{ fill: "#cbd5e1", fontSize: isMobile ? 10 : 12, fontFamily: MONO }}
+            dataKey="ts" type="number" scale="time" domain={view?.xDomain ?? ["dataMin", "dataMax"]} ticks={view?.xTicks} allowDataOverflow
+            tickFormatter={view?.fmtX ?? fMon} tick={{ fill: "#cbd5e1", fontSize: isMobile ? 10 : 12, fontFamily: MONO }}
             axisLine={{ stroke: "rgba(255,255,255,0.15)" }} tickLine={false} minTickGap={isMobile ? 40 : 30}
           />
           <YAxis
@@ -104,6 +111,9 @@ export default function SpxBtcChart({ series, isMobile }) {
           />
           <Tooltip content={<RatioTip />} />
           <Area type="monotone" dataKey="sats" stroke="#f59e0b" strokeWidth={2} fill="url(#btcFill)" isAnimationActive={false} />
+          {selL != null && selR != null && selL !== selR && (
+            <ReferenceArea x1={selL} x2={selR} strokeOpacity={0.3} stroke="#f59e0b" fill="#f59e0b" fillOpacity={0.1} />
+          )}
         </ComposedChart>
       </ResponsiveContainer>
 

@@ -4,7 +4,8 @@ import {
 } from "recharts";
 import { fetchMajors } from "./data.js";
 import { LIVE_DATA_DOWN } from "./history-data.js";
-import { SANS, MONO, MAX_W, TipBox } from "./chart-ui.jsx";
+import { SANS, MONO, MAX_W, TipBox, ZoomBar } from "./chart-ui.jsx";
+import { useDragZoom, timeWindow } from "./use-drag-zoom.js";
 
 const fMon = ts => new Date(ts).toLocaleDateString("en-US", { month: "short", year: "2-digit" });
 
@@ -104,6 +105,9 @@ export default function RelativeChart({ series, isMobile, which, setWhich }) {
   const cur = data.length ? data[data.length - 1] : null;
   const opt = OPTIONS.find(o => o[0] === which);
   const [verdict, vcolor] = cur ? (metric === "z" ? verdictZ(cur.z) : verdictP(cur.pct)) : ["", "#94a3b8"];
+  const { zoom, setZoom, selL, selR, onDown, onMove, onUp, zoomed } = useDragZoom(
+    (a, b) => data.filter(d => d.ts >= a && d.ts <= b).length >= 2);
+  const view = useMemo(() => (data.length ? timeWindow(data, zoom) : null), [data, zoom]);
 
   return (
     <div style={{ maxWidth: MAX_W, margin: "0 auto" }}>
@@ -135,11 +139,14 @@ export default function RelativeChart({ series, isMobile, which, setWhich }) {
             <div style={{ fontFamily: SANS, fontSize: 13, fontWeight: 700, color: vcolor }}>{verdict} {opt[1]}</div>
           </div>
 
+          <ZoomBar zoomed={zoomed} onReset={() => setZoom(null)} accent="#6366f1" />
+
           <ResponsiveContainer width="100%" height={isMobile ? 380 : 520}>
-            <ComposedChart data={data} margin={{ top: 10, right: isMobile ? 14 : 30, bottom: 24, left: isMobile ? 0 : 12 }}>
+            <ComposedChart data={view?.vis ?? data} margin={{ top: 10, right: isMobile ? 14 : 30, bottom: 24, left: isMobile ? 0 : 12 }}
+              onMouseDown={onDown} onMouseMove={onMove} onMouseUp={onUp} onMouseLeave={onUp} style={{ cursor: "crosshair", userSelect: "none" }}>
               <CartesianGrid strokeDasharray="2 8" stroke="rgba(255,255,255,0.07)" vertical={false} />
-              <XAxis dataKey="ts" type="number" scale="time" domain={["dataMin", "dataMax"]}
-                tickFormatter={fMon} tick={{ fill: "#cbd5e1", fontSize: isMobile ? 10 : 12, fontFamily: MONO }}
+              <XAxis dataKey="ts" type="number" scale="time" domain={view?.xDomain ?? ["dataMin", "dataMax"]} ticks={view?.xTicks} allowDataOverflow
+                tickFormatter={view?.fmtX ?? fMon} tick={{ fill: "#cbd5e1", fontSize: isMobile ? 10 : 12, fontFamily: MONO }}
                 axisLine={{ stroke: "rgba(255,255,255,0.15)" }} tickLine={false} minTickGap={isMobile ? 40 : 30} />
               <YAxis domain={metric === "z" ? [-zExtent, zExtent] : [0, 100]}
                 tickFormatter={v => (metric === "z" ? v + "σ" : v + "%")}
@@ -166,6 +173,9 @@ export default function RelativeChart({ series, isMobile, which, setWhich }) {
               )}
 
               <Line type="monotone" dataKey={metric} stroke="#ffffff" strokeWidth={2} dot={false} isAnimationActive={false} />
+              {selL != null && selR != null && selL !== selR && (
+                <ReferenceArea x1={selL} x2={selR} strokeOpacity={0.3} stroke="#a78bfa" fill="#a78bfa" fillOpacity={0.15} />
+              )}
             </ComposedChart>
           </ResponsiveContainer>
 

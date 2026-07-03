@@ -1,12 +1,12 @@
 import { useMemo } from "react";
 import {
-  ResponsiveContainer, ComposedChart, Line, Area, XAxis, YAxis, Tooltip, CartesianGrid,
+  ResponsiveContainer, ComposedChart, Line, Area, XAxis, YAxis, Tooltip, CartesianGrid, ReferenceArea,
 } from "recharts";
 import { zScoreSeries } from "./chart-math.js";
-import { SANS, MONO, MAX_W, Metric, TipBox } from "./chart-ui.jsx";
+import { SANS, MONO, MAX_W, Metric, TipBox, ZoomBar } from "./chart-ui.jsx";
+import { useDragZoom, timeWindow } from "./use-drag-zoom.js";
 
 const fPrice = p => (p < 1 ? "$" + p.toFixed(p < 0.01 ? 4 : 3) : "$" + p.toLocaleString(undefined, { maximumFractionDigits: 2 }));
-const yearOf = t => new Date(t).getUTCFullYear();
 const sigWord = s => (s <= -1.5 ? "deeply cheap" : s < -0.5 ? "cheap" : s < 0.5 ? "fair value" : s < 1.5 ? "stretched" : "very stretched");
 
 function Tip({ active, payload }) {
@@ -28,19 +28,25 @@ function Tip({ active, payload }) {
 // Price recoloured by its valuation z-score — how many σ the log-price sits from
 // the power-law fair value. Blue = cheap (below trend), red = stretched (above).
 export default function RiskColorChart({ series, m, isMobile }) {
-  const { rows, xDomain, xTicks, yDomain, stops, cur, areaColor } = useMemo(() => {
+  const { all, cur } = useMemo(() => {
     const { pts } = zScoreSeries(series, m);
-    const rows = pts.map(p => ({ ts: p.ts, price: p.price, fair: p.fair, sigma: p.sigma, color: p.color }));
-    const xMin = rows[0].ts, xMax = rows.at(-1).ts;
-    let yMin = Infinity, yMax = -Infinity;
-    for (const r of rows) { if (r.price < yMin) yMin = r.price; if (r.price > yMax) yMax = r.price; if (r.fair < yMin) yMin = r.fair; if (r.fair > yMax) yMax = r.fair; }
-    const xTicks = [];
-    for (let yr = yearOf(xMin); yr <= yearOf(xMax); yr++) { const d = Date.UTC(yr, 0, 1); if (d >= xMin && d <= xMax) xTicks.push(d); }
-    // gradient stops along x: colour at each point (objectBoundingBox, x1→x2 horizontal)
-    const span = (xMax - xMin) || 1;
-    const stops = rows.map(r => ({ off: ((r.ts - xMin) / span * 100).toFixed(2) + "%", color: r.color }));
-    return { rows, xDomain: [xMin, xMax], xTicks, yDomain: [yMin * 0.75, yMax * 1.3], stops, cur: pts.at(-1), areaColor: pts.at(-1).color };
+    const all = pts.map(p => ({ ts: p.ts, price: p.price, fair: p.fair, sigma: p.sigma, color: p.color }));
+    return { all, cur: pts.at(-1) };
   }, [series, m]);
+
+  const { zoom, setZoom, selL, selR, onDown, onMove, onUp, zoomed } = useDragZoom(
+    (a, b) => all.filter(r => r.ts >= a && r.ts <= b).length >= 2);
+
+  const { rows, xDomain, xTicks, fmtX, yDomain, stops, areaColor } = useMemo(() => {
+    const { vis, xDomain, xTicks, fmtX } = timeWindow(all, zoom);
+    let yMin = Infinity, yMax = -Infinity;
+    for (const r of vis) { for (const v of [r.price, r.fair]) { if (v < yMin) yMin = v; if (v > yMax) yMax = v; } }
+    // gradient stops along x: colour at each point, positioned relative to the
+    // VISIBLE window (objectBoundingBox, x1→x2 horizontal) so colours track the zoom.
+    const [xMin, xMax] = xDomain, span = (xMax - xMin) || 1;
+    const stops = vis.map(r => ({ off: (((r.ts - xMin) / span) * 100).toFixed(2) + "%", color: r.color }));
+    return { rows: vis, xDomain, xTicks, fmtX, yDomain: [yMin * 0.75, yMax * 1.3], stops, areaColor: vis.at(-1).color };
+  }, [all, zoom]);
 
   const yTicks = [0.0001, 0.001, 0.01, 0.1, 1, 10, 100].filter(v => v >= yDomain[0] && v <= yDomain[1]);
 
@@ -52,8 +58,11 @@ export default function RiskColorChart({ series, m, isMobile }) {
         <Metric label="price" value={fPrice(cur.price)} color="#f8fafc" sub="live" />
       </div>
 
+      <ZoomBar zoomed={zoomed} onReset={() => setZoom(null)} accent="#a78bfa" />
+
       <ResponsiveContainer width="100%" height={isMobile ? 400 : 560}>
-        <ComposedChart data={rows} margin={{ top: 10, right: isMobile ? 14 : 32, bottom: 24, left: isMobile ? 0 : 12 }}>
+        <ComposedChart data={rows} margin={{ top: 10, right: isMobile ? 14 : 32, bottom: 24, left: isMobile ? 0 : 12 }}
+          onMouseDown={onDown} onMouseMove={onMove} onMouseUp={onUp} onMouseLeave={onUp} style={{ cursor: "crosshair", userSelect: "none" }}>
           <defs>
             <linearGradient id="zgrad" x1="0" y1="0" x2="1" y2="0">
               {stops.map((s, i) => <stop key={i} offset={s.off} stopColor={s.color} />)}
@@ -66,7 +75,7 @@ export default function RiskColorChart({ series, m, isMobile }) {
           <CartesianGrid strokeDasharray="2 8" stroke="rgba(255,255,255,0.06)" />
           <XAxis
             dataKey="ts" type="number" domain={xDomain} ticks={xTicks} scale="time" allowDataOverflow
-            tickFormatter={t => String(yearOf(t))}
+            tickFormatter={fmtX}
             tick={{ fill: "#cbd5e1", fontSize: isMobile ? 10 : 12, fontFamily: MONO }}
             axisLine={{ stroke: "rgba(255,255,255,0.15)" }} tickLine={false}
           />
@@ -80,6 +89,9 @@ export default function RiskColorChart({ series, m, isMobile }) {
           <Area dataKey="price" stroke="none" fill="url(#zarea)" isAnimationActive={false} activeDot={false} />
           <Line type="monotone" dataKey="fair" stroke="#cbd5e1" strokeWidth={1.6} strokeDasharray="2 7" dot={false} isAnimationActive={false} name="fair value" />
           <Line type="monotone" dataKey="price" stroke="url(#zgrad)" strokeWidth={2.4} dot={false} isAnimationActive={false} name="price" />
+          {selL != null && selR != null && selL !== selR && (
+            <ReferenceArea x1={selL} x2={selR} strokeOpacity={0.3} stroke="#a78bfa" fill="#a78bfa" fillOpacity={0.12} />
+          )}
         </ComposedChart>
       </ResponsiveContainer>
 
