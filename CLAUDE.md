@@ -1,6 +1,25 @@
 # SPX6900 Rainbow Chart — project notes
 
 ## Backlog / decisions
+- **⭐ CARD vs WEBSITE — different audiences, different defaults (owner, 2026-07-03).**
+  **Cards are for the general public** → keep them digestible: a tight, cropped, single
+  clear read at a glance. **The website is for DIGGING INTO THE DATA** → default to the
+  FULL history/dataset with interactive **zoom** to narrow the timeframe. First applied
+  to `riskheat` (card = ~18-month crop of the 20W-extension; site page = full history +
+  drag-to-zoom, PR #150/#151). Apply the same split to the other interactive charts over
+  time: a card may show a tight recent window while its site page shows everything + zoom.
+  Don't crop the website to match a card — that's backwards.
+- **Holder-tier "diamond" spikes are AGING, not accumulation (verified 2026-07-03).**
+  On 2026-07-03 the diamond tier jumped **+8.0M tokens** (60.1%→60.9% of supply) — but
+  **gold fell −8.9M**, while total classified supply AND holder count were flat. So a
+  cohort **graduated gold→diamond by crossing the holding-age threshold**, NOT new
+  buying: HolderScan's tiers are by HOLDING TIME, so fresh buys land in the newest
+  (`wood`) tier, and diamond can only grow by coins aging in. Read: a diamond-share
+  spike is **mostly mechanical** (supply maturing into the longest-held bucket) — a
+  *lagging* confirmation that a cohort held through, mildly positive (stickier float /
+  less sell-side overhang) but NOT a leading signal, NOT "diamonds accumulated," and
+  ~uncorrelated with the same-day price move. **Do not post a diamond spike as
+  accumulation** — it would be inaccurate (honesty is the moat).
 - **❌ "Grade my entry" / "entry report card" — PARKED (owner, 2026-07-02).** Mocked
   three variants (personal entry-vs-bands card, site widget + og share, and a 5-row
   archetype "report card" graded by buy-date band). Owner parked the whole thread:

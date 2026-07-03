@@ -41,12 +41,18 @@ export default function RoadmapChart({ series, m, isMobile, preview = false }) {
     const histSpan = nowDay - firstDay;
     const nearTarget = targets[0]?.day ?? nowDay;
     const lastDay = Math.max(nowDay + histSpan, Math.round(nearTarget * 1.12));
+    // One row per real price point (each carries its own fair value) for the FULL
+    // launch→now history — same data as the rainbow, drawn as a continuous line.
+    // Then fair-value-only rows for the FUTURE projection beyond the last price.
+    // Crucially the projection grid is NOT interleaved into the historical region:
+    // a dense null-price grid there would break the price line (connectNulls=false)
+    // and hide the launch era. That was the bug.
     const map = new Map();
-    for (let d = dayN(series[0].date); d <= lastDay; d = Math.max(d + 1, Math.round(d * 1.015))) {
+    for (const r of series) { const ts = new Date(r.date).getTime(); map.set(ts, { ts, price: r.price, fair: fairAt(dayN(r.date)) }); }
+    for (let d = dayN(series.at(-1).date) + 1; d <= lastDay; d = Math.max(d + 1, Math.round(d * 1.015))) {
       const ts = Date.parse(ds(Math.round(d)));
-      map.set(ts, { ts, fair: fairAt(d), price: null });
+      if (!map.has(ts)) map.set(ts, { ts, fair: fairAt(d), price: null });
     }
-    for (const r of series) { const ts = new Date(r.date).getTime(); const e = map.get(ts) || { ts, fair: fairAt(dayN(r.date)) }; e.price = r.price; map.set(ts, e); }
     const all = [...map.values()].sort((a, b) => a.ts - b.ts);
     return { all, targets: targets.map(t => ({ ...t, ts: Date.parse(ds(Math.round(t.day))) })), fullX: [all[0].ts, all.at(-1).ts] };
   }, [series, m]);
