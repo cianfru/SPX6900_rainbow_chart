@@ -212,10 +212,20 @@ export function riskHeatSvg(price, dateStr = new Date().toISOString().slice(0, 1
   // Bigger price panel (carries the prominent overlay), a slim oscillator below.
   const priceTop = innerTop, priceBot = innerTop + innerH * 0.66;
   const riskTop = innerTop + innerH * 0.76, riskBot = innerBot, cyc = (riskTop + riskBot) / 2, half = (riskBot - riskTop) / 2;
-  const xMin = pts[0].ts, xMax = pts.at(-1).ts;
+  // MA / extension / colour scale are computed over the FULL history above (so the
+  // 20W MA is primed and the percentile scale is stable); DISPLAY only a recent
+  // window — this is a SHORT-TERM signal, and a 3-yr log view buries the current
+  // read under the tiny-price launch era. Default ~18 months; opts.windowDays
+  // overrides (null = full history).
+  const DAY = 86400000;
+  const winDays = opts.windowDays === null ? null : (opts.windowDays ?? 549);
+  const xMax = pts.at(-1).ts;
+  const viewMin = winDays ? xMax - winDays * DAY : pts[0].ts;
+  const vis = pts.map((p, i) => ({ ...p, gi: i })).filter(p => p.ts >= viewMin);
+  const xMin = vis[0].ts;
   const x = t => mL + ((t - xMin) / ((xMax - xMin) || 1)) * (W - mL - mR);
   let yMin = Infinity, yMax = -Infinity;
-  for (const p of pts) { if (p.price < yMin) yMin = p.price; if (p.price > yMax) yMax = p.price; }
+  for (const p of vis) { for (const v of [p.price, ma[p.gi]]) { if (v < yMin) yMin = v; if (v > yMax) yMax = v; } }
   yMin *= 0.8; yMax *= 1.25;
   const yP = p => priceTop + ((Math.log(yMax) - Math.log(p)) / ((Math.log(yMax) - Math.log(yMin)) || 1)) * (priceBot - priceTop);
   // SOFT (tanh) squash so big extensions compress smoothly toward the edge instead
@@ -231,20 +241,20 @@ export function riskHeatSvg(price, dateStr = new Date().toISOString().slice(0, 1
     grid += `<line x1="${mL}" y1="${yy}" x2="${W - mR}" y2="${yy}" stroke="rgba(255,255,255,0.06)"/>`;
     grid += `<text x="${mL - 10}" y="${(+yy + 5).toFixed(1)}" fill="#64748b" font-size="26" text-anchor="end" font-family="sans-serif">$${t < 1 ? t : t.toLocaleString()}</text>`;
   }
-  const bw = Math.max(1.4, (W - mL - mR) / (pts.length - 1) + 0.8);
+  const bw = Math.max(1.4, (W - mL - mR) / (Math.max(2, vis.length) - 1) + 0.8);
   // OVERLAY (Cowen-style): fill the gap between price and its 20W MA — red where
   // price is stretched ABOVE the MA, blue where it sits below. The extension drawn
   // straight onto the price, which is the prominent read.
   let band = "";
-  pts.forEach((p, i) => {
-    const a = yP(p.price), b = yP(ma[i]), top = Math.min(a, b), h = Math.abs(a - b);
+  vis.forEach(p => {
+    const i = p.gi, a = yP(p.price), b = yP(ma[i]), top = Math.min(a, b), h = Math.abs(a - b);
     band += `<rect x="${(x(p.ts) - bw / 2).toFixed(1)}" y="${top.toFixed(1)}" width="${bw.toFixed(1)}" height="${Math.max(0.4, h).toFixed(1)}" fill="${riskColor(colN(i))}" fill-opacity="0.5"/>`;
   });
   // oscillator strip below: same signal, centred on the MA zero line, tanh-scaled
   const cy = cyc.toFixed(1);
   let heat = "";
-  pts.forEach((p, i) => {
-    const yy = yE(ext[i]), top = Math.min(yy, +cy), h = Math.abs(yy - +cy);
+  vis.forEach(p => {
+    const i = p.gi, yy = yE(ext[i]), top = Math.min(yy, +cy), h = Math.abs(yy - +cy);
     heat += `<rect x="${(x(p.ts) - bw / 2).toFixed(1)}" y="${top.toFixed(1)}" width="${bw.toFixed(1)}" height="${Math.max(0.4, h).toFixed(1)}" fill="${riskColor(colN(i))}" fill-opacity="0.95"/>`;
   });
   // edge marks the ~maxAbs knee (tanh saturates beyond it, so label with a "+")
@@ -254,12 +264,23 @@ export function riskHeatSvg(price, dateStr = new Date().toISOString().slice(0, 1
     + `<text x="${mL - 10}" y="${(+cy + 5).toFixed(1)}" fill="#94a3b8" font-size="14" text-anchor="end" font-family="sans-serif">MA</text>`
     + `<text x="${mL - 10}" y="${(riskBot - 2).toFixed(1)}" fill="#94a3b8" font-size="14" text-anchor="end" font-family="sans-serif">−${pctBot}%+</text>`
     + `<text x="${W - mR}" y="${(riskTop - 6).toFixed(1)}" fill="#94a3b8" font-size="15" text-anchor="end" font-family="sans-serif">extension vs 20W MA — hot above, cold below</text>`;
-  const maLine = pts.map((p, i) => `${x(p.ts).toFixed(1)},${yP(ma[i]).toFixed(1)}`).join(" ");
-  const priceLine = pts.map(p => `${x(p.ts).toFixed(1)},${yP(p.price).toFixed(1)}`).join(" ");
+  const maLine = vis.map(p => `${x(p.ts).toFixed(1)},${yP(ma[p.gi]).toFixed(1)}`).join(" ");
+  const priceLine = vis.map(p => `${x(p.ts).toFixed(1)},${yP(p.price).toFixed(1)}`).join(" ");
+  // x labels: year marks for a full-history view; month-year for the cropped window
+  // (where only 1–2 year ticks would otherwise show).
   let xlab = "";
-  for (let yr = new Date(xMin).getFullYear(); yr <= new Date(xMax).getFullYear(); yr++) {
-    const d = Date.parse(`${yr}-01-01`); if (d < xMin || d > xMax) continue;
-    xlab += `<text x="${x(d).toFixed(1)}" y="${H - 42}" fill="#64748b" font-size="26" text-anchor="middle" font-family="sans-serif">${yr}</text>`;
+  const spanDays = (xMax - xMin) / DAY;
+  if (spanDays > 900) {
+    for (let yr = new Date(xMin).getFullYear(); yr <= new Date(xMax).getFullYear(); yr++) {
+      const d = Date.parse(`${yr}-01-01`); if (d < xMin || d > xMax) continue;
+      xlab += `<text x="${x(d).toFixed(1)}" y="${H - 42}" fill="#64748b" font-size="26" text-anchor="middle" font-family="sans-serif">${yr}</text>`;
+    }
+  } else {
+    const step = spanDays > 400 ? 3 : 2; // months between labels
+    const d0 = new Date(xMin);
+    for (let m = new Date(Date.UTC(d0.getUTCFullYear(), d0.getUTCMonth() + 1, 1)); m.getTime() <= xMax; m = new Date(Date.UTC(m.getUTCFullYear(), m.getUTCMonth() + step, 1))) {
+      xlab += `<text x="${x(m.getTime()).toFixed(1)}" y="${H - 42}" fill="#64748b" font-size="24" text-anchor="middle" font-family="sans-serif">${m.toLocaleDateString("en-US", { month: "short", year: "2-digit" })}</text>`;
+    }
   }
   return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
 <defs>

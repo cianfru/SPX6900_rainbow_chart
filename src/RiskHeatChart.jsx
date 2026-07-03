@@ -6,7 +6,10 @@ import { extensionSeries } from "./chart-math.js";
 import { SANS, MONO, MAX_W, Metric, TipBox } from "./chart-ui.jsx";
 
 const fPrice = p => (p < 1 ? "$" + p.toFixed(p < 0.01 ? 4 : 3) : "$" + p.toLocaleString(undefined, { maximumFractionDigits: 2 }));
-const yearOf = t => new Date(t).getUTCFullYear();
+const DAY = 86400000;
+const HEAT_WINDOW_DAYS = 549; // ~18 months — this is a SHORT-TERM read; the full
+// 3-yr log view buries the recent signal under the tiny-price launch era.
+const fMonY = t => new Date(t).toLocaleDateString("en-US", { month: "short", year: "2-digit" });
 const heatWord = pct => (pct >= 40 ? "very hot" : pct >= 12 ? "hot" : pct > -12 ? "near the MA" : pct > -40 ? "cold" : "very cold");
 
 function PriceTip({ active, payload }) {
@@ -26,12 +29,18 @@ function PriceTip({ active, payload }) {
 // top, the % extension as a hot/cold oscillator below.
 export default function RiskHeatChart({ series, isMobile }) {
   const { rows, xDomain, xTicks, yDomain, oscTicks, fmtOsc, cur } = useMemo(() => {
-    const { rows, maxAbs, cur } = extensionSeries(series);
-    const xMin = rows[0].ts, xMax = rows.at(-1).ts;
+    // Extension + MA + colour scale are computed over the FULL history (MA primed,
+    // maxAbs stable), then the DISPLAY is cropped to the recent window.
+    const { rows: allRows, maxAbs, cur } = extensionSeries(series);
+    const xMax = allRows.at(-1).ts;
+    const rows = allRows.filter(r => r.ts >= xMax - HEAT_WINDOW_DAYS * DAY);
+    const xMin = rows[0].ts;
     let yMin = Infinity, yMax = -Infinity;
     for (const r of rows) { for (const v of [r.price, r.ma]) { if (v < yMin) yMin = v; if (v > yMax) yMax = v; } }
+    // month ticks (every 3 months) across the ~18-month window
     const xTicks = [];
-    for (let yr = yearOf(xMin); yr <= yearOf(xMax); yr++) { const d = Date.UTC(yr, 0, 1); if (d >= xMin && d <= xMax) xTicks.push(d); }
+    const d0 = new Date(xMin);
+    for (let m = new Date(Date.UTC(d0.getUTCFullYear(), d0.getUTCMonth() + 1, 1)); m.getTime() <= xMax; m = new Date(Date.UTC(m.getUTCFullYear(), m.getUTCMonth() + 3, 1))) xTicks.push(m.getTime());
     // Oscillator plots the tanh-SQUASHED extension on a fixed [-1,1] axis (no cap —
     // outliers compress toward the edge). Axis ticks sit at the ±1/±2 "knees" and are
     // labelled with the REAL % (inverse of the squash) so it still reads in percent.
@@ -77,7 +86,7 @@ export default function RiskHeatChart({ series, isMobile }) {
       <ResponsiveContainer width="100%" height={isMobile ? 150 : 190}>
         <BarChart data={rows} margin={{ top: 4, right: rMargin, bottom: 24, left: lMargin }} syncId="heat" barCategoryGap={0}>
           <XAxis dataKey="ts" type="number" domain={xDomain} ticks={xTicks} scale="time" allowDataOverflow
-            tickFormatter={t => String(yearOf(t))}
+            tickFormatter={fMonY}
             tick={{ fill: "#cbd5e1", fontSize: isMobile ? 10 : 12, fontFamily: MONO }}
             axisLine={{ stroke: "rgba(255,255,255,0.15)" }} tickLine={false} />
           <YAxis type="number" domain={[-1, 1]} allowDataOverflow ticks={oscTicks}
