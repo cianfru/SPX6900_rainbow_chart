@@ -12,11 +12,17 @@
   honest suggested **framing** + a **guardrail note** in the control panel's
   "⚡ Notable today" strip; owner reviews and one-click **queues** the mapped card,
   or ignores. Rationale (owner-aligned): anomaly DETECTION is easy, INTERPRETATION
-  is human — a naive auto-poster would misread mechanical spikes (e.g. the diamond
-  **aging** reclassification) as signals and erode the honesty moat. So the detector
-  encodes those interpretations (diamond jump → compare gold delta → "aging, not
-  accumulation, do NOT post as buying"; holder-COUNT growth → safe to call
-  accumulation) and gets more honest over time. Only shows TODAY's signals.
+  is human — auto-posting risks misreading a spike, eroding the honesty moat.
+- **⭐ Find the interesting TRUE angle — don't debunk (owner, 2026-07-03).** The
+  detector's job is to surface events worth posting, NOT to fact-check them into a
+  dry logbook. Every signal **LEADS with the honest hook** (`framing`) and uses the
+  guardrail `note` only to fence the ONE thing you can't claim. The diamond jump is
+  the canonical case: the hook is real and good — *coins reach the diamond tier only
+  by being HELD through everything, so an 8M jump = a cohort held through the
+  drawdown and matured into the strongest tier, conviction deepening* — POST THAT;
+  the narrow guardrail is just "word it as HELD, not BOUGHT." (Holder-COUNT growth →
+  safe to call accumulation outright — genuinely new wallets.) Honest AND interesting,
+  both required. Only shows TODAY's signals.
 - To add a signal type: add a block in signals.mjs returning
   `{type, severity, emoji, title, detail, framing, note, card}` (card = the post id
   the Queue button fires). Keep thresholds conservative — noise/false-positives cost
