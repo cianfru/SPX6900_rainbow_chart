@@ -337,6 +337,13 @@ function card(id) {
     : "";
   const shape = isVid ? "4:5 portrait" : AR_LABEL[curAR];
   const cc = isVid ? `still preview · posts as a ~10s ${shape} video` : `posts as this static ${shape} image`;
+  // Preview text for editable cards comes from the FRESH override state (same
+  // source the editor uses), not /api/schedule's TEXTS — that endpoint reads the
+  // deploy-frozen + CDN-cached post-copy.json, so it lags edits/resets. Falls back
+  // to the schedule text for non-editable cards.
+  const em = EDITABLE[id];
+  const editTpl = em && ((typeof OVERRIDES[id] === "string" && OVERRIDES[id].trim()) ? OVERRIDES[id] : em.default);
+  const ptextStr = editTpl != null ? fillTokens(editTpl, em.tokens || {}) : (TEXTS[id] || "");
   el.innerHTML = `
     <img loading="lazy" style="aspect-ratio:${aw}/${ah}" src="${imgSrc}" alt="${id}" />
     <div class="meta">
@@ -352,7 +359,7 @@ function card(id) {
       </span>
     </div>
     ${arRow}
-    <div class="ptext">${esc(TEXTS[id] || "")}<span class="cc">${cc}</span></div>
+    <div class="ptext">${esc(ptextStr)}<span class="cc">${cc}</span></div>
     ${EDITABLE[id] ? `<div class="editor" id="editor-${id}" style="display:none"></div>` : ""}`;
   return el;
 }
