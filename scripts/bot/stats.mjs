@@ -171,11 +171,22 @@ export function computeStats(price, dateStr = new Date().toISOString().slice(0, 
   const dd = price / Math.max(ath, price) - 1;
   const maxDd = ddSeries.reduce((mn, r) => Math.min(mn, r.dd), 0);
 
-  // Share of history spent this cheap or cheaper (band <= current).
-  const histBands = RAW.map(r => M.bandIndex(m, r.price, M.dayN(r.date)));
-  const cheaperFrac = histBands.filter(b => b <= bi).length / histBands.length;
+  // Share of LIFETIME in each band + "this cheap or cheaper" — TIME-weighted (each
+  // point counts for the calendar days until the next sample), matching the site's
+  // BandStats. A raw point count would over-weight the densely-sampled recent
+  // stretch (recent history is daily, early is ~weekly), inflating whatever bands
+  // 2026 sat in. bandCounts now holds days-in-band; the card renders it as a share.
   const bandCounts = Array(M.BAND_LABELS.length).fill(0);
-  histBands.forEach(b => bandCounts[b]++);
+  let cheaperDays = 0, totalDays = 0;
+  for (let i = 0; i < RAW.length; i++) {
+    const b = M.bandIndex(m, RAW[i].price, M.dayN(RAW[i].date));
+    const t0 = new Date(RAW[i].date).getTime();
+    const t1 = i + 1 < RAW.length ? new Date(RAW[i + 1].date).getTime() : t0 + 86400000;
+    const days = Math.max(0, (t1 - t0) / 86400000);
+    bandCounts[b] += days; totalDays += days;
+    if (b <= bi) cheaperDays += days;
+  }
+  const cheaperFrac = totalDays ? cheaperDays / totalDays : 0;
 
   // Hindsight strategy edge vs HODL (cycle anchor — the more conservative one).
   const stratCyc = M.buildCycleStrategy(RAW, M.buildRallyCycles(RAW, { minDepth: 0.4, minPeakPrice: 0.05, minGain: 0.3 }));
