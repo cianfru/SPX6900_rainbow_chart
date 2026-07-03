@@ -1,5 +1,27 @@
 # SPX6900 Rainbow Chart — project notes
 
+## Anomaly detector — "⚡ Notable today" (built 2026-07-03)
+- `scripts/bot/signals.mjs` `detectSignals(history)` runs at the end of the snapshot
+  cron (`scripts/snapshot.mjs`) and writes `public/signals.json` (committed by
+  snapshot.yml, deploy-ignored, read by the control panel via raw). Scans the daily
+  on-chain snapshots for notable day-over-day changes — **break-even/profit cross**
+  (price vs crowd cost basis), **holder-count surge** (>2.2σ vs trailing 30d),
+  **diamond-share jump**, **F&G extremes** — top 3 by severity. COMPLEMENTARY to
+  band-watch (price/band) and milestone-watch (meme prices), which own those lanes.
+- **HUMAN-IN-THE-LOOP by design — nothing auto-posts.** It surfaces candidates + an
+  honest suggested **framing** + a **guardrail note** in the control panel's
+  "⚡ Notable today" strip; owner reviews and one-click **queues** the mapped card,
+  or ignores. Rationale (owner-aligned): anomaly DETECTION is easy, INTERPRETATION
+  is human — a naive auto-poster would misread mechanical spikes (e.g. the diamond
+  **aging** reclassification) as signals and erode the honesty moat. So the detector
+  encodes those interpretations (diamond jump → compare gold delta → "aging, not
+  accumulation, do NOT post as buying"; holder-COUNT growth → safe to call
+  accumulation) and gets more honest over time. Only shows TODAY's signals.
+- To add a signal type: add a block in signals.mjs returning
+  `{type, severity, emoji, title, detail, framing, note, card}` (card = the post id
+  the Queue button fires). Keep thresholds conservative — noise/false-positives cost
+  credibility + posting fatigue.
+
 ## Backlog / decisions
 - **⭐ CARD vs WEBSITE — different audiences, different defaults (owner, 2026-07-03).**
   **Cards are for the general public** → keep them digestible: a tight, cropped, single

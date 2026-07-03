@@ -1,12 +1,14 @@
 // Daily snapshot of SPX6900 on-chain conviction data → public/history.json.
 // Run by .github/workflows/snapshot.yml. Append-only, one record per day.
 import { readFile, writeFile } from "node:fs/promises";
+import { detectSignals } from "./bot/signals.mjs";
 
 const CONTRACT = "0xe0f63a424a4439cbe457d80e4f4b51ad25b2c56c";
 const HS = `https://api.holderscan.com/v0/eth/tokens/${CONTRACT}`;
 const POOL = "0x52c77b0cb827afbad022e6d6caf2c44452edbc39";
 const KEY = process.env.HOLDERSCAN_KEY;
 const FILE = "public/history.json";
+const SIGNALS_FILE = "public/signals.json";
 
 async function hs(path) {
   const r = await fetch(`${HS}${path}`, { headers: { "x-api-key": KEY, Accept: "application/json" } });
@@ -85,6 +87,15 @@ async function main() {
 
   await writeFile(FILE, JSON.stringify(arr));
   console.log(`snapshot ${rec.d} · price ${p} · holders ${rec.holders} · upnl ${rec.upnl} · rpnl ${rec.rpnl} · ${arr.length} records total`);
+
+  // Anomaly detector → public/signals.json for the control panel's "Notable
+  // today" strip. Human-in-the-loop: it only surfaces candidates + honest framing;
+  // the owner approves and queues. Never throws the snapshot.
+  try {
+    const sig = detectSignals(arr);
+    await writeFile(SIGNALS_FILE, JSON.stringify(sig, null, 2) + "\n");
+    console.log(`signals ${sig.date}: ${sig.signals.length} notable${sig.signals.length ? " — " + sig.signals.map(s => s.type).join(", ") : ""}`);
+  } catch (e) { console.warn("signals:", e.message); }
 }
 
 main().catch(e => { console.error(e); process.exit(1); });
