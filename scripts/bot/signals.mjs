@@ -4,10 +4,14 @@
 // band-watch (price/band crossings) and milestone-watch (meme prices), which
 // already own those dimensions, so this focuses on the holder/valuation side.
 //
-// It only NOTICES. A human approves + frames the post. Every signal carries an
-// honest suggested framing and a guardrail note (e.g. a diamond-share spike is
-// usually AGING, not accumulation) so the accurate story gets posted, not the
-// spiky one — honesty is the moat, and interpretation is the human's job.
+// It only NOTICES. A human approves + frames the post. The goal is to surface
+// genuinely INTERESTING true angles worth posting — NOT to debunk events into a
+// dry logbook. So every signal LEADS with the honest hook (`framing`) and uses
+// `note` only as a narrow fence around the one thing you can't claim. Example: a
+// diamond-share jump is a real "held through → matured into the strongest tier =
+// conviction" story worth telling; the note just keeps it "held," not "bought."
+// Honest AND interesting — both are required; honesty is the moat, interest is
+// the point.
 const SUPPLY = 939_000_000;
 const fPx = p => (p >= 1 ? "$" + p.toFixed(2) : "$" + p.toFixed(p < 0.01 ? 4 : 3));
 const fNum = n => Math.round(n).toLocaleString("en-US");
@@ -77,16 +81,17 @@ export function detectSignals(history) {
       const dDia = today.sup.diamond - prev.sup.diamond;
       const dGold = (today.sup.gold ?? 0) - (prev.sup.gold ?? 0);
       const aging = dDia > 0 && dGold < 0 && Math.abs(dDia + dGold) < Math.abs(dDia) * 0.5;
+      const up = fNum(Math.abs(dDia));
       sig.push({
         type: "diamond-jump", severity: 3, emoji: "💎",
         title: `Diamond share ${dpp >= 0 ? "up" : "down"} ${(dpp >= 0 ? "+" : "") + dpp.toFixed(1)}pp → ${dNow.toFixed(1)}%`,
-        detail: `${fNum(today.sup.diamond)} SPX in the longest-held tier.`,
+        detail: `${fNum(today.sup.diamond)} SPX now in the longest-held tier.`,
         framing: aging
-          ? "A cohort aged into the diamond tier (gold→diamond crossed the holding-age threshold). Frame as CONVICTION / maturing supply — coins that held through, now in the top tier."
-          : `Diamond share moved ${(dpp >= 0 ? "+" : "") + dpp.toFixed(1)}pp. Check the tier deltas before posting.`,
+          ? `Post it — ~${up} SPX just aged into DIAMOND hands (the longest-held, rarely-sold tier). Coins reach it only by being HELD through everything, not by trading — supply maturing into strong hands, conviction deepening. Diamond hands earning the name.`
+          : `Diamond share moved ${(dpp >= 0 ? "+" : "") + dpp.toFixed(1)}pp — a conviction/holding read. Glance at the tier deltas so you word it right (aged-in vs genuinely new long-term supply).`,
         note: aging
-          ? `⚠️ AGING, not accumulation: diamond ${dDia >= 0 ? "+" : ""}${fNum(dDia)} ≈ gold ${fNum(dGold)}. Do NOT post as "diamonds bought" — new buys land in the newest tier.`
-          : "Verify whether this is new supply or a tier reclassification (compare diamond vs gold delta) before framing.",
+          ? `Word it as HELD, not BOUGHT: the +${up} came from a cohort aging in from gold (≈ gold ${fNum(dGold)}), not fresh demand. "Held into diamond" ✓ · "diamonds bought ${up}" ✗.`
+          : "Compare diamond vs gold delta so the wording is accurate (aged-in vs new long-term supply).",
         card: "diamondtrend",
       });
     }
