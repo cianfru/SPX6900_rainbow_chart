@@ -1,7 +1,7 @@
 {
   "valuation": "square",
   "channel": "square",
-  "rally": "wide",
+  "rally": "square",
   "targets": "square",
   "timeinband": "landscape",
   "marketcap": "landscape",
