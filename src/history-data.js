@@ -6,7 +6,7 @@ let promise = null;
 
 export function loadHistory() {
   if (!promise) {
-    promise = fetch("/history.json")
+    promise = fetch("/history.json", { cache: "no-store" })
       .then(r => (r.ok ? r.json() : []))
       .then(d => (Array.isArray(d) ? d : []))
       .catch(() => []);

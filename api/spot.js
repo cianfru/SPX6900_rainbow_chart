@@ -32,7 +32,10 @@ export default async function handler(req, res) {
       const price = await fn();
       // Short edge cache so many clients polling every ~5s share one upstream hit
       // (~12 upstream req/min worst case, well under GeckoTerminal's free limit).
-      res.setHeader("Cache-Control", "s-maxage=5, stale-while-revalidate=30");
+      // max-age=0 → the BROWSER always revalidates (Safari otherwise heuristically
+      // caches this and serves a stale spot price forever); s-maxage keeps the CDN
+      // absorbing the upstream so the revalidation is cheap.
+      res.setHeader("Cache-Control", "public, max-age=0, s-maxage=5, stale-while-revalidate=30");
       return res.status(200).json({ source: name, price, ts: Date.now() });
     } catch (err) {
       errors.push(`${name}: ${err.message}`);
