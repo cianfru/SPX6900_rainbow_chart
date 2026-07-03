@@ -69,7 +69,7 @@ export default async function handler(req, res) {
     try {
       const prices = await fn();
       if (prices.length > 0) {
-        res.setHeader("Cache-Control", "s-maxage=600, stale-while-revalidate=3600");
+        res.setHeader("Cache-Control", "public, max-age=0, s-maxage=600, stale-while-revalidate=3600");
         return res.status(200).json({ source: name, prices });
       }
     } catch (err) {

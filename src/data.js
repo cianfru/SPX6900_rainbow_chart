@@ -4,7 +4,7 @@ export const D0 = new Date("2023-08-17").getTime();
 export const SUPPLY = 939_000_000;
 
 export async function fetchLivePrices() {
-  const res = await fetch("/api/prices");
+  const res = await fetch("/api/prices", { cache: "no-store" });
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
     throw new Error(body.error || `Proxy returned ${res.status}`);
@@ -17,7 +17,7 @@ export async function fetchLivePrices() {
 
 // Near-real-time spot price for the live-updating headline (not daily history).
 export async function fetchSpotPrice() {
-  const res = await fetch("/api/spot");
+  const res = await fetch("/api/spot", { cache: "no-store" });
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
     throw new Error(body.error || `Spot proxy returned ${res.status}`);
@@ -28,7 +28,7 @@ export async function fetchSpotPrice() {
 }
 
 export async function fetchMajors() {
-  const res = await fetch("/api/majors");
+  const res = await fetch("/api/majors", { cache: "no-store" });
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
     throw new Error(body.error || `Majors proxy returned ${res.status}`);
@@ -39,7 +39,7 @@ export async function fetchMajors() {
 }
 
 export async function fetchMemekings() {
-  const res = await fetch("/api/memekings");
+  const res = await fetch("/api/memekings", { cache: "no-store" });
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
     throw new Error(body.error || `Memekings proxy returned ${res.status}`);
@@ -50,7 +50,7 @@ export async function fetchMemekings() {
 }
 
 export async function fetchBtcHistory() {
-  const res = await fetch("/api/btc");
+  const res = await fetch("/api/btc", { cache: "no-store" });
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
     throw new Error(body.error || `BTC proxy returned ${res.status}`);
