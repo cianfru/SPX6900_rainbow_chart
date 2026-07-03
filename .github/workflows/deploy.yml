@@ -21,6 +21,7 @@ on:
       - "public/post-copy.json"
       - "public/card-ar.json"
       - "public/recap-pending.json"
+      - "public/signals.json"
   workflow_dispatch: {}
 
 # Cancel an in-flight deploy if a newer commit lands, so the queue can never pile up.
