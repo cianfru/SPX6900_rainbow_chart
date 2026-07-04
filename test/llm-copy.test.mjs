@@ -47,6 +47,29 @@ test("real path parses a good completion and returns it", async () => {
   assert.equal(d.model, "test/model");
 });
 
+test("falls back to the next free model when the first is rate-limited (429)", async () => {
+  const calls = [];
+  const fakeFetch = async (_url, init) => {
+    const model = JSON.parse(init.body).model;
+    calls.push(model);
+    if (calls.length === 1) return { ok: false, status: 429, text: async () => "temporarily rate-limited" };
+    return { ok: true, json: async () => ({ choices: [{ message: { content: good3 } }] }) };
+  };
+  const d = await draftCopy(SIGNAL, { apiKey: "sk-test", fetchImpl: fakeFetch });
+  assert.equal(d.ok, true);
+  assert.equal(d.text, good3);
+  assert.ok(calls.length >= 2, "should have tried a second model");
+  assert.notEqual(d.model, calls[0], "returned model should be the fallback, not the 429'd one");
+});
+
+test("a bad key (401) stops the chain early — no hammering every model", async () => {
+  let n = 0;
+  const fakeFetch = async () => { n++; return { ok: false, status: 401, text: async () => "no auth" }; };
+  const d = await draftCopy(SIGNAL, { apiKey: "bad", fetchImpl: fakeFetch, models: ["a:free", "b:free", "c:free"] });
+  assert.equal(d.ok, false);
+  assert.equal(n, 1, "should stop after the first 401, not try the rest");
+});
+
 test("a hallucinated/hype completion is rejected, not surfaced", async () => {
   const fakeFetch = async () => ({
     ok: true,

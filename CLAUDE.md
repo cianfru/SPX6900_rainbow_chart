@@ -45,9 +45,17 @@
     visibly beats the templates.
   - **No key → labelled MOCK draft** so the control-panel UX renders before a real key
     is wired (owner asked to see the UX first). Wire it by adding repo secret
-    `OPENROUTER_API_KEY` (+ optional repo var `OPENROUTER_MODEL`; default
-    `meta-llama/llama-3.3-70b-instruct:free`) — already referenced in snapshot.yml, so
-    the next snapshot picks it up automatically. Free/1-post-a-day fits free tiers.
+    `OPENROUTER_API_KEY` — already referenced in snapshot.yml, so the next snapshot picks
+    it up automatically. Free/1-post-a-day fits free tiers.
+  - **FREE-MODEL FALLBACK CHAIN (owner chose "stay free", 2026-07-04).** The self-test
+    proved the key + request work but OpenRouter's `:free` endpoints throw pooled 429s
+    ("temporarily rate-limited") per provider. So `draftCopy` tries a CHAIN of free models
+    from DIFFERENT providers (`FREE_FALLBACKS`: llama-3.3-70b · gemini-2.0-flash · qwen-2.5
+    -72b) and takes the first VALID draft — $0, survives one provider being saturated, and
+    tolerates a stale/renamed id (that model just fails and we move on). A 401/403 stops
+    the chain early (same key everywhere). Overrides: repo var `OPENROUTER_MODEL` (primary)
+    or `OPENROUTER_MODELS` (whole comma-separated chain); both optional. If drafts ever go
+    reliably empty, add a few $ OpenRouter credits or set a cheap paid model as primary.
   - Offline-tested (`test/llm-copy.test.mjs`, injectable fetch). `signals.json` stays
     deploy-ignored, so drafts never trigger a Vercel deploy.
 
