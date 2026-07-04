@@ -2,6 +2,7 @@
 // Run by .github/workflows/snapshot.yml. Append-only, one record per day.
 import { readFile, writeFile } from "node:fs/promises";
 import { detectSignals } from "./bot/signals.mjs";
+import { draftCopy } from "./bot/llm-copy.mjs";
 
 const CONTRACT = "0xe0f63a424a4439cbe457d80e4f4b51ad25b2c56c";
 const HS = `https://api.holderscan.com/v0/eth/tokens/${CONTRACT}`;
@@ -93,8 +94,16 @@ async function main() {
   // the owner approves and queues. Never throws the snapshot.
   try {
     const sig = detectSignals(arr);
+    // Shadow-mode LLM copywriter: attach an engaging draft per signal (from the
+    // detector's real numbers only). With no OPENROUTER_API_KEY it returns a
+    // labelled mock so the control-panel UX renders; nothing ever auto-posts.
+    for (const s of sig.signals) {
+      try { s.llmDraft = await draftCopy(s); }
+      catch (e) { s.llmDraft = { text: "", model: "none", mock: false, ok: false, reason: e.message }; }
+    }
     await writeFile(SIGNALS_FILE, JSON.stringify(sig, null, 2) + "\n");
-    console.log(`signals ${sig.date}: ${sig.signals.length} notable${sig.signals.length ? " — " + sig.signals.map(s => s.type).join(", ") : ""}`);
+    const drafted = sig.signals.filter(s => s.llmDraft?.ok && !s.llmDraft.mock).length;
+    console.log(`signals ${sig.date}: ${sig.signals.length} notable${sig.signals.length ? " — " + sig.signals.map(s => s.type).join(", ") : ""}${sig.signals.length ? ` · ${drafted} LLM draft(s)` : ""}`);
   } catch (e) { console.warn("signals:", e.message); }
 }
 
