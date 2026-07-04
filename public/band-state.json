@@ -1,8 +1,8 @@
 {
   "band": 1,
-  "ts": "2026-07-03T17:25:09.881Z",
+  "ts": "2026-07-04T11:26:11.040Z",
   "lastPostTs": "2026-06-25T00:12:56.042Z",
   "armed": false,
-  "pendingBand": null,
-  "pendingCount": 0
+  "pendingBand": 2,
+  "pendingCount": 1
 }
