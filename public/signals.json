@@ -1,15 +1,4 @@
 {
-  "date": "2026-07-03",
-  "signals": [
-    {
-      "type": "diamond-jump",
-      "severity": 3,
-      "emoji": "💎",
-      "title": "Diamond share up +0.9pp → 60.9%",
-      "detail": "572,317,935 SPX now in the longest-held tier.",
-      "framing": "Post it — ~8,033,818 SPX just aged into DIAMOND hands (the longest-held, rarely-sold tier). Coins reach it only by being HELD through everything, not by trading — supply maturing into strong hands, conviction deepening. Diamond hands earning the name.",
-      "note": "Word it as HELD, not BOUGHT: the +8,033,818 came from a cohort aging in from gold (≈ gold -8,859,966), not fresh demand. \"Held into diamond\" ✓ · \"diamonds bought 8,033,818\" ✗.",
-      "card": "diamondtrend"
-    }
-  ]
+  "date": "2026-07-04",
+  "signals": []
 }
