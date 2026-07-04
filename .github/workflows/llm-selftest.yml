@@ -1,0 +1,20 @@
+# Manual, on-demand check that the shadow-mode LLM copywriter can make a real
+# OpenRouter call with the repo secret. Drafts ONE synthetic signal, prints the
+# result + PASS/FAIL, and posts/commits nothing. Run it from the Actions tab
+# ("Run workflow") after setting OPENROUTER_API_KEY, or to sanity-check the model.
+name: LLM copy self-test
+on:
+  workflow_dispatch:
+jobs:
+  selftest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+      - name: Draft one synthetic signal via OpenRouter
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          OPENROUTER_MODEL: ${{ vars.OPENROUTER_MODEL }}
+        run: node scripts/bot/llm-selftest.mjs
