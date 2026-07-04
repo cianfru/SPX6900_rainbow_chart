@@ -20,6 +20,7 @@ const hasKey = !!process.env.OPENROUTER_API_KEY;
 console.log(`OPENROUTER_API_KEY: ${hasKey ? "set" : "MISSING"} · OPENROUTER_MODEL: ${process.env.OPENROUTER_MODEL || "(default)"}`);
 
 const d = await draftCopy(signal);
+if (d.tried?.length) console.log(`chain tried: ${d.tried.join(" | ")}`);
 console.log(`model: ${d.model} · mock: ${d.mock} · ok: ${d.ok}${d.reason ? ` · reason: ${d.reason}` : ""}`);
 console.log("--- draft ---");
 console.log(d.text || "(none)");

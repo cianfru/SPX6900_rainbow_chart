@@ -17,4 +17,5 @@ jobs:
         env:
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
           OPENROUTER_MODEL: ${{ vars.OPENROUTER_MODEL }}
+          OPENROUTER_MODELS: ${{ vars.OPENROUTER_MODELS }}
         run: node scripts/bot/llm-selftest.mjs

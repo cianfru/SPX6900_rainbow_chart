@@ -14,9 +14,30 @@
 // MOCK so the control-panel UX is visible before a real key is wired.
 
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
-// Free/cheap default; override with OPENROUTER_MODEL. OpenRouter's free tier
-// churns model ids over time, so keep this env-overridable and fail soft.
-const DEFAULT_MODEL = "meta-llama/llama-3.3-70b-instruct:free";
+// Free-model FALLBACK CHAIN. OpenRouter's free endpoints get pooled 429s ("temporarily
+// rate-limited") independently per provider, so we try several free models from DIFFERENT
+// providers in order and take the first that yields a valid draft — staying $0 while
+// surviving one provider being saturated. The chain also tolerates a stale/renamed id
+// (that model just fails and we move on). Override the primary with OPENROUTER_MODEL, or
+// the whole chain with OPENROUTER_MODELS (comma-separated). Kept env-overridable because
+// free ids churn.
+const FREE_FALLBACKS = [
+  "meta-llama/llama-3.3-70b-instruct:free", // Meta / Together
+  "google/gemini-2.0-flash-exp:free",       // Google
+  "qwen/qwen-2.5-72b-instruct:free",        // Alibaba / Qwen
+];
+const DEFAULT_MODEL = FREE_FALLBACKS[0];
+
+// Resolve the ordered list of models to try: explicit chain wins, else the primary
+// (opts/env) followed by the remaining free fallbacks (deduped).
+function resolveModels(opts = {}) {
+  const envList = (process.env.OPENROUTER_MODELS || "").split(",").map(s => s.trim()).filter(Boolean);
+  if (opts.models?.length) return [...new Set(opts.models)];
+  if (envList.length) return [...new Set(envList)];
+  const primary = opts.model || process.env.OPENROUTER_MODEL;
+  const chain = primary ? [primary, ...FREE_FALLBACKS] : [...FREE_FALLBACKS];
+  return [...new Set(chain)];
+}
 
 // Words that read as hype / financial advice — an instant credibility leak for
 // an account whose whole moat is honest analysis. A draft containing any of
@@ -88,19 +109,11 @@ function mockDraft(signal) {
   return { text, model: "mock", mock: true, ok: true, reason: "no OPENROUTER_API_KEY — placeholder so the shadow UX renders" };
 }
 
-// Draft engaging copy for one signal. Returns
-//   { text, model, mock, ok, reason }
-// Never throws — on any error it degrades to a mock so the pipeline is robust.
-// opts.fetchImpl lets tests inject a fake fetch (offline).
-export async function draftCopy(signal, opts = {}) {
-  const apiKey = opts.apiKey ?? process.env.OPENROUTER_API_KEY;
-  // `||` (not `??`) so an empty-string env/var — e.g. an unset GitHub `vars.*` —
-  // falls through to the default instead of being used as a blank model id.
-  const model = opts.model || process.env.OPENROUTER_MODEL || DEFAULT_MODEL;
-  const doFetch = opts.fetchImpl ?? (typeof fetch === "function" ? fetch : null);
-  if (!signal) return { text: "", model: "none", mock: true, ok: false, reason: "no signal" };
-  if (!apiKey || !doFetch) return mockDraft(signal);
-
+// One OpenRouter call for a single model. Returns
+//   { ok, text, status, reason }
+// status is the HTTP code (or 0 on a thrown/network error) so the caller can
+// decide whether trying the NEXT model would help (e.g. don't bother on 401/403).
+async function callModel(model, signal, apiKey, doFetch) {
   try {
     const res = await doFetch(OPENROUTER_URL, {
       method: "POST",
@@ -123,14 +136,38 @@ export async function draftCopy(signal, opts = {}) {
     });
     if (!res.ok) {
       const body = await res.text().catch(() => "");
-      return { text: "", model, mock: false, ok: false, reason: `OpenRouter ${res.status}${body ? ": " + body.slice(0, 140) : ""}` };
+      return { ok: false, text: "", status: res.status, reason: `${res.status}${body ? ": " + body.slice(0, 120) : ""}` };
     }
     const json = await res.json();
     const raw = json?.choices?.[0]?.message?.content;
     const text = String(raw || "").replace(/^["'\s]+|["'\s]+$/g, "").trim();
     const v = validateDraft(text);
-    return { text: v.ok ? text : "", model, mock: false, ok: v.ok, reason: v.reason };
+    return { ok: v.ok, text: v.ok ? text : "", status: res.status, reason: v.ok ? "" : `invalid draft (${v.reason})` };
   } catch (e) {
-    return { text: "", model, mock: false, ok: false, reason: e.message || "fetch failed" };
+    return { ok: false, text: "", status: 0, reason: e.message || "fetch failed" };
   }
+}
+
+// Draft engaging copy for one signal, trying the free-model fallback chain in
+// order and returning the first VALID draft. Returns
+//   { text, model, mock, ok, reason, tried }
+// Never throws — no key/fetch degrades to a mock; all-models-failed returns ok:false
+// with the aggregated reasons (the template stays the fallback downstream).
+// opts.fetchImpl lets tests inject a fake fetch (offline).
+export async function draftCopy(signal, opts = {}) {
+  const apiKey = opts.apiKey ?? process.env.OPENROUTER_API_KEY;
+  const doFetch = opts.fetchImpl ?? (typeof fetch === "function" ? fetch : null);
+  if (!signal) return { text: "", model: "none", mock: true, ok: false, reason: "no signal", tried: [] };
+  if (!apiKey || !doFetch) return mockDraft(signal);
+
+  const models = resolveModels(opts);
+  const tried = [];
+  for (const model of models) {
+    const r = await callModel(model, signal, apiKey, doFetch);
+    tried.push(`${model}: ${r.ok ? "ok" : r.reason}`);
+    if (r.ok) return { text: r.text, model, mock: false, ok: true, reason: "", tried };
+    // A bad key/quota is the same for every model — stop early, don't hammer the chain.
+    if (r.status === 401 || r.status === 403) break;
+  }
+  return { text: "", model: models[0], mock: false, ok: false, reason: `all ${tried.length} model(s) failed — ${tried.join(" | ")}`, tried };
 }
