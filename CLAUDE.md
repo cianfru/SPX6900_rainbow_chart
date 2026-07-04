@@ -27,6 +27,29 @@
   `{type, severity, emoji, title, detail, framing, note, card}` (card = the post id
   the Queue button fires). Keep thresholds conservative — noise/false-positives cost
   credibility + posting fatigue.
+- **⭐ SHADOW-MODE LLM COPYWRITER — BUILT 2026-07-04 (owner greenlit; OpenRouter).**
+  Direction: move the account from purely descriptive rotation cards toward
+  event-driven "interesting TRUE angle" posts — the diamond-hands tweet (50+ likes
+  in <10h vs ~25 avg) is the proof point. The DETECTION half is the anomaly detector
+  above; this adds an LLM to write the ENGAGING COPY from the detector's real numbers.
+  - `scripts/bot/llm-copy.mjs` `draftCopy(signal, opts)` — feeds ONLY the detector's
+    already-computed honest facts (title/detail/framing/note) to OpenRouter and returns
+    house-style 3-line copy. **The LLM does LANGUAGE ONLY — never fetches or invents
+    numbers** (honest numbers are the moat). Output is validated (`validateDraft`):
+    ≤235 xLen, blocklist (hype/advice words), must contain a number, ~3 lines, no
+    possessive-on-@handle. Fails soft to nothing rather than surfacing a bad draft.
+  - **SHADOW MODE — nothing auto-posts.** The snapshot cron attaches an `llmDraft` to
+    each signal in `signals.json`; the control panel shows it NEXT TO the honest framing
+    (airy, via `footerize`) with a 📋 Copy button. Owner reads both, copies the LLM
+    draft if it lands better, or queues the template card. Flip to live only once it
+    visibly beats the templates.
+  - **No key → labelled MOCK draft** so the control-panel UX renders before a real key
+    is wired (owner asked to see the UX first). Wire it by adding repo secret
+    `OPENROUTER_API_KEY` (+ optional repo var `OPENROUTER_MODEL`; default
+    `meta-llama/llama-3.3-70b-instruct:free`) — already referenced in snapshot.yml, so
+    the next snapshot picks it up automatically. Free/1-post-a-day fits free tiers.
+  - Offline-tested (`test/llm-copy.test.mjs`, injectable fetch). `signals.json` stays
+    deploy-ignored, so drafts never trigger a Vercel deploy.
 
 ## Backlog / decisions
 - **⭐ CARD vs WEBSITE — different audiences, different defaults (owner, 2026-07-03).**
@@ -150,16 +173,17 @@
 - **LLM-written copy + auto-replies — split by cost; only the free half is worth doing.**
   Explored 2026-06-20 (making the bot more "AIXBT-like"). The two halves sit on
   opposite sides of X's API paywall, and the cost is the *read* access, not the LLM:
-  - **LLM-written post copy — free, worth a shadow-mode trial.** Have a free-tier
-    LLM (Gemini Flash / Groq) write each day's text from the exact computed stats
-    instead of the templates. ~1 post/day, so free tiers cover it (the LLM was
-    never the expensive part). MUST: pass only the real numbers (no invented
-    figures), validate output before posting (length, must contain the key number,
-    blocklist "guaranteed / will hit / buy now / financial advice"), and keep the
-    deterministic template as the fallback so the bot never breaks. Build it in
-    **shadow mode first** (log LLM-vs-template side by side, post nothing) and only
-    flip live if it actually beats the current hooks. Note: templates are already
-    good post-hook-rewrite, so the LLM mainly buys variety vs. accuracy/brand risk.
+  - **✅ LLM-written post copy — BUILT (shadow mode) 2026-07-04.** First applied to the
+    "Notable today" anomaly signals via OpenRouter (see the detector section up top —
+    `scripts/bot/llm-copy.mjs`), NOT (yet) the daily rotation templates. Same rules as
+    planned: pass only real numbers, validate (length / must-contain-a-number /
+    hype-blocklist), template stays the fallback, post nothing until it beats the
+    templates. Extending it from the event signals to the DAILY rotation copy is the
+    natural next step once the shadow output proves out. Original note kept below:
+    Have a free-tier LLM write each day's text from the exact computed stats instead
+    of the templates. ~1 post/day, so free tiers cover it (the LLM was never the
+    expensive part). Note: templates are already good post-hook-rewrite, so the LLM
+    mainly buys variety vs. accuracy/brand risk.
   - **Auto-reply to repliers — parked, needs paid X API.** Blocker is READ access,
     not the LLM. Reading replies/mentions (`conversation_id` search or the mentions
     timeline) starts at X API **Basic (~$100/mo)**; the **Free** tier the bot runs

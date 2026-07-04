@@ -68,6 +68,14 @@
   .sigframe { font-size: 13px; color: #cbd5e1; margin-top: 6px; line-height: 1.5; }
   .sigframe b { color: #7dd3fc; }
   .signote { font-size: 12.5px; color: #fca5a5; margin-top: 6px; background: rgba(239,68,68,.09); border-radius: 6px; padding: 5px 8px; line-height: 1.45; }
+  /* Shadow-mode LLM draft shown next to the honest framing (nothing auto-posts) */
+  .sigdraft { flex-basis: 100%; margin-top: 10px; background: rgba(56,189,248,.06); border: 1px solid rgba(56,189,248,.22); border-radius: 8px; padding: 8px 10px; }
+  .sigdraft .dhdr { font-size: 12px; font-weight: 700; color: #7dd3fc; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .sigdraft .dhdr .tag { font-weight: 400; color: #64748b; font-size: 11px; }
+  .sigdraft .dhdr .tag.mock { color: #fbbf24; }
+  .sigdraft .dtext { white-space: pre-wrap; font-size: 13px; color: #e2e8f0; line-height: 1.5; margin-top: 6px; }
+  .sigdraft .dfail { font-size: 12px; color: #94a3b8; margin-top: 4px; font-style: italic; }
+  .sigdraft .dcopy { margin-top: 8px; font-size: 12px; padding: 4px 10px; }
   .sigact { display: flex; align-items: center; }
   .grid {
     display: grid; gap: 16px; margin-top: 14px;
@@ -216,6 +224,7 @@ let PW = "";
 let QUEUED = null, NEXT = null, IDS = [], UPCOMING = [], TEXTS = {}, MEDIA = {}, ORIENT = {}, META = { postedToday: false };
 let EDITABLE = {}, OVERRIDES = {}; // editable card copy: {id:{default,tokens}} + saved overrides {id:template}
 let SIGNALS = null;                // { date, signals:[…] } from the daily anomaly detector
+let DRAFT_TEXT = {};               // per-signal footerized LLM draft, for the 📋 Copy button
 let AR_OVERRIDES = {};             // owner-picked aspect ratio per card: {id: presetKey}
 // AR presets (must mirror scripts/bot/card-format.mjs AR_PRESETS)
 const AR_PRESETS = { landscape: [1200, 800], wide: [1200, 628], square: [1200, 1200], portrait: [1080, 1350] };
@@ -287,10 +296,11 @@ function renderSignals() {
   const el = $("#signals");
   if (!el) return;
   const today = new Date().toISOString().slice(0, 10);
+  DRAFT_TEXT = {};
   const sigs = (SIGNALS && SIGNALS.date === today && Array.isArray(SIGNALS.signals)) ? SIGNALS.signals : [];
   if (!sigs.length) { el.innerHTML = ""; return; }
   el.innerHTML = `<div class="sighdr">⚡ Notable today <span>· from the daily on-chain snapshot — review the framing, then queue or ignore</span></div>` +
-    sigs.map(s => `
+    sigs.map((s, i) => `
       <div class="sig">
         <div class="sigmain">
           <div class="sigtitle">${esc(s.emoji || "•")} ${esc(s.title || "")}</div>
@@ -299,7 +309,30 @@ function renderSignals() {
           ${s.note ? `<div class="signote">${esc(s.note)}</div>` : ""}
         </div>
         <div class="sigact">${s.card ? `<button class="primary" data-sigq="${esc(s.card)}">Queue ${esc(s.card)} →</button>` : ""}</div>
+        ${renderDraft(s.llmDraft, i)}
       </div>`).join("");
+}
+
+// Shadow-mode LLM copy draft for a signal (from the daily snapshot's OpenRouter
+// pass). Displayed NEXT TO the honest framing, formatted airy like a real tweet
+// via footerize(). Nothing auto-posts — the owner reads both and copies this if
+// it lands better, or queues the template card above.
+function renderDraft(d, i) {
+  if (!d) return "";
+  const tag = d.mock
+    ? `<span class="tag mock">MOCK — set OPENROUTER_API_KEY for real drafts</span>`
+    : `<span class="tag">${esc(d.model || "llm")}</span>`;
+  if (!d.ok || !d.text) {
+    return `<div class="sigdraft"><div class="dhdr">🤖 LLM draft <span class="tag">shadow · not posted</span></div>
+      <div class="dfail">draft unavailable${d.reason ? " — " + esc(d.reason) : ""}</div></div>`;
+  }
+  const full = footerize(d.text);
+  DRAFT_TEXT[i] = full;
+  return `<div class="sigdraft">
+    <div class="dhdr">🤖 LLM draft <span class="tag">shadow · not posted</span> ${tag}</div>
+    <div class="dtext">${esc(full)}</div>
+    <button class="dcopy" data-draft="${i}">📋 Copy text</button>
+  </div>`;
 }
 
 function renderSchedule(meta) {
@@ -343,7 +376,7 @@ function card(id) {
   // to the schedule text for non-editable cards.
   const em = EDITABLE[id];
   const editTpl = em && ((typeof OVERRIDES[id] === "string" && OVERRIDES[id].trim()) ? OVERRIDES[id] : em.default);
-  const ptextStr = editTpl != null ? fillTokens(editTpl, em.tokens || {}) : (TEXTS[id] || "");
+  const ptextStr = editTpl != null ? footerize(fillTokens(editTpl, em.tokens || {})) : (TEXTS[id] || "");
   el.innerHTML = `
     <img loading="lazy" style="aspect-ratio:${aw}/${ah}" src="${imgSrc}" alt="${id}" />
     <div class="meta">
@@ -420,6 +453,14 @@ async function refresh() {
 
 // ---- Inline copy editor (owner-editable tweet text, saved permanently) ----
 const fillTokens = (tpl, tokens) => tpl.replace(/\{(\w+)\}/g, (_, k) => (k in tokens ? String(tokens[k]) : "{" + k + "}"));
+// Mirror scripts/bot/posts.mjs withFooter() so the preview matches the posted
+// tweet's structure: single \n → blank-line paragraph, U+0001 (tight) → single \n,
+// then the branded footer. This is why the hero/body/closing read airy.
+const footerize = text => text
+  .replace(/\n?(?:🌈 )?NFA\s*$/u, "")
+  .replace(/\n/g, "\n\n")
+  .replace(/\u0001/g, "\n")
+  + "\n\n🌈 $SPX #spx6900";
 
 function openEditor(id) {
   const box = $("#editor-" + id);
@@ -493,7 +534,15 @@ $("#clear").onclick = () => queue(null);
 $("#skiptoday").onclick = skipToday;
 $("#signals").addEventListener("click", e => {
   const q = e.target.closest("[data-sigq]");
-  if (q) queue(q.dataset.sigq);
+  if (q) { queue(q.dataset.sigq); return; }
+  const c = e.target.closest("[data-draft]");
+  if (c) {
+    const text = DRAFT_TEXT[c.dataset.draft] || "";
+    navigator.clipboard.writeText(text).then(
+      () => { const o = c.textContent; c.textContent = "✓ Copied"; setTimeout(() => { c.textContent = o; }, 1500); },
+      () => status("Clipboard blocked — select the draft text to copy manually.", "err"),
+    );
+  }
 });
 
 // ---- Monthly recap tab ----
