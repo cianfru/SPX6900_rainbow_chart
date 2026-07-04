@@ -5,7 +5,7 @@
 // against it. A for-fun what-if, not a forecast.
 import { useMemo } from "react";
 import {
-  ResponsiveContainer, ComposedChart, Area, Line, XAxis, YAxis, Tooltip, CartesianGrid, ReferenceLine,
+  ResponsiveContainer, ComposedChart, Area, Line, XAxis, YAxis, Tooltip, CartesianGrid, ReferenceLine, ReferenceDot,
 } from "recharts";
 import { DEFAULT_RAW } from "./data.js";
 import { buildModel } from "./models.js";
@@ -77,11 +77,19 @@ export default function BtcCycleChart({ series, isMobile }) {
     // justifies "≈ BTC Aug '22": SPX retraced BTC's 2021 double top → 2022 bottom.
     const btcReal = [...c.histPts, ...c.histFwd];
 
-    const data = [];
-    for (let age = 0; age <= endAge; age += 6) {
+    // Sample the shared grid every 6 days, but ALSO force a node at SPX's live
+    // tip (spxMaxAge) so the green line reaches exactly today's price and updates
+    // with the 60s spot poll instead of stopping a few days short on the grid.
+    const ages = [];
+    for (let age = 0; age <= endAge; age += 6) ages.push(age);
+    if (spxMaxAge >= 0 && spxMaxAge <= endAge && !ages.includes(spxMaxAge)) {
+      ages.push(spxMaxAge);
+      ages.sort((a, b) => a - b);
+    }
+    const data = ages.map(age => {
       const ts = SPX0 + age * DAY;
       const pj = interpTs(c.projPts, ts);
-      data.push({
+      return {
         ts,
         spx: age <= spxMaxAge ? Math.exp(spxLnAt(age)) : null,
         btc: interpTs(btcReal, ts),
@@ -90,13 +98,15 @@ export default function BtcCycleChart({ series, isMobile }) {
         center: centerAt(age),
         proj: pj,
         cone: pj != null ? [interpTs(c.projLo, ts), interpTs(c.projHi, ts)] : null,
-      });
-    }
+      };
+    });
     return {
       data,
       stats: {
         peak: c.peak, low: c.low, peakLo: c.peakLo, peakHi: c.peakHi,
-        peakDate: new Date(c.peakTs), lowDate: new Date(c.lowTs), nowTs: c.anchorTs,
+        peakDate: new Date(c.peakTs), lowDate: new Date(c.lowTs), anchorTs: c.anchorTs,
+        // Live "today" tip: where SPX actually is now, vs the fixed what-if anchor.
+        todayTs: SPX0 + spxMaxAge * DAY, livePrice: Math.exp(spxLnAt(spxMaxAge)),
         btcFrom: c.btcFrom, peaks: c.peaks,
       },
     };
@@ -127,7 +137,11 @@ export default function BtcCycleChart({ series, isMobile }) {
           {(stats.peaks || []).map((pk, i) => (
             <ReferenceLine yAxisId="spx" key={`pk${i}`} x={pk.ts} stroke="rgba(247,147,26,0.35)" strokeDasharray="2 6" label={{ value: `BTC ${pk.label}`, fill: "#f7931a", fontSize: 11, position: "insideTopRight" }} />
           ))}
-          <ReferenceLine yAxisId="spx" x={stats.nowTs} stroke="#64748b" strokeDasharray="4 5" label={{ value: "NOW", fill: "#94a3b8", fontSize: 12, position: "insideTopRight" }} />
+          <ReferenceLine yAxisId="spx" x={stats.anchorTs} stroke="#475569" strokeDasharray="2 6" label={{ value: "what-if start", fill: "#64748b", fontSize: 11, position: "insideBottomRight" }} />
+          {stats.todayTs > stats.anchorTs && (
+            <ReferenceLine yAxisId="spx" x={stats.todayTs} stroke="#4ade80" strokeOpacity={0.65} strokeDasharray="4 5" label={{ value: "NOW", fill: "#4ade80", fontSize: 12, position: "insideTopRight" }} />
+          )}
+          <ReferenceDot yAxisId="spx" x={stats.todayTs} y={stats.livePrice} r={4.5} fill="#4ade80" stroke="#0b0f14" strokeWidth={2} isFront />
           <Line yAxisId="spx" dataKey="bubble" stroke="#a78bfa" strokeWidth={1.5} strokeDasharray="3 4" strokeOpacity={0.8} dot={false} activeDot={false} isAnimationActive={false} connectNulls />
           <Line yAxisId="spx" dataKey="center" stroke="#a78bfa" strokeWidth={1} strokeDasharray="1 6" strokeOpacity={0.25} dot={false} activeDot={false} isAnimationActive={false} connectNulls />
           <Line yAxisId="spx" dataKey="floor" stroke="#38bdf8" strokeWidth={1.5} strokeDasharray="3 4" strokeOpacity={0.7} dot={false} activeDot={false} isAnimationActive={false} connectNulls />
