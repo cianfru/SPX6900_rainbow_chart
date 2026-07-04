@@ -343,7 +343,7 @@ function card(id) {
   // to the schedule text for non-editable cards.
   const em = EDITABLE[id];
   const editTpl = em && ((typeof OVERRIDES[id] === "string" && OVERRIDES[id].trim()) ? OVERRIDES[id] : em.default);
-  const ptextStr = editTpl != null ? fillTokens(editTpl, em.tokens || {}) : (TEXTS[id] || "");
+  const ptextStr = editTpl != null ? footerize(fillTokens(editTpl, em.tokens || {})) : (TEXTS[id] || "");
   el.innerHTML = `
     <img loading="lazy" style="aspect-ratio:${aw}/${ah}" src="${imgSrc}" alt="${id}" />
     <div class="meta">
@@ -420,6 +420,14 @@ async function refresh() {
 
 // ---- Inline copy editor (owner-editable tweet text, saved permanently) ----
 const fillTokens = (tpl, tokens) => tpl.replace(/\{(\w+)\}/g, (_, k) => (k in tokens ? String(tokens[k]) : "{" + k + "}"));
+// Mirror scripts/bot/posts.mjs withFooter() so the preview matches the posted
+// tweet's structure: single \n → blank-line paragraph, U+0001 (tight) → single \n,
+// then the branded footer. This is why the hero/body/closing read airy.
+const footerize = text => text
+  .replace(/\n?(?:🌈 )?NFA\s*$/u, "")
+  .replace(/\n/g, "\n\n")
+  .replace(/\u0001/g, "\n")
+  + "\n\n🌈 $SPX #spx6900";
 
 function openEditor(id) {
   const box = $("#editor-" + id);
