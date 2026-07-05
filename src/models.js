@@ -176,24 +176,33 @@ function ralliesFromAnchors(series, anchors, minGain) {
   const dayOf = d => new Date(d).getTime() / 86400000;
   const out = [];
   for (let k = 0; k < anchors.length; k++) {
-    const start = anchors[k];
+    const a0 = anchors[k].idx;
     const end = k + 1 < anchors.length ? anchors[k + 1].idx : series.length; // exclusive
+    // Peak = the highest price in the window; the rally is the climb up to it.
+    let peakIdx = a0;
+    for (let i = a0 + 1; i < end; i++) if (series[i].price > series[peakIdx].price) peakIdx = i;
+    // Re-anchor to the true low BEFORE that peak, so the climb starts at the real
+    // bottom (no dip below its own start) — without pulling the anchor past the
+    // peak, which would erase the rally. The detected trough isn't always the
+    // actual low (a deeper low can precede the run).
+    let startIdx = a0;
+    for (let i = a0 + 1; i <= peakIdx; i++) if (series[i].price < series[startIdx].price) startIdx = i;
+    const start = series[startIdx];
     const startDay = dayOf(start.date);
-    const points = [{ day: 0, gain: 0, date: start.date }];
-    let maxGain = 0, peakDate = start.date, peakIdx = start.idx;
-    for (let i = start.idx + 1; i < end; i++) {
+    const points = [];
+    let maxGain = 0;
+    for (let i = startIdx; i <= peakIdx; i++) {
       const gain = series[i].price / start.price - 1;
       points.push({ day: Math.round(dayOf(series[i].date) - startDay), gain, date: series[i].date });
-      if (gain > maxGain) { maxGain = gain; peakDate = series[i].date; peakIdx = i; }
+      if (gain > maxGain) maxGain = gain;
     }
     if (maxGain < minGain) continue;
-    const ti = points.findIndex(p => p.date === peakDate);
     out.push({
       startDate: start.date,
       lowPrice: start.price,
-      peakDate,
+      peakDate: series[peakIdx].date,
       maxGain,
-      points: points.slice(0, ti + 1),
+      points,
       ongoing: end === series.length && peakIdx >= series.length - 1,
     });
   }

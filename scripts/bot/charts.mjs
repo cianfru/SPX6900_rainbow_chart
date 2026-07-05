@@ -584,11 +584,13 @@ export function renderDca(spec, opts = {}) {
   const ex = X(val.at(-1)[0]).toFixed(1), ey = Y(val.at(-1)[1]).toFixed(1);
   const marker = `<circle cx="${ex}" cy="${ey}" r="11" fill="${green}" fill-opacity="0.9" filter="url(#dcaGlow)"/><circle cx="${ex}" cy="${ey}" r="7" fill="#fff" stroke="${green}" stroke-width="3"/>`;
 
-  // legend chip top-left of plot
-  const lx = mL + 16, ly = mT + 14;
-  const legend = `<rect x="${lx}" y="${ly}" width="208" height="76" rx="9" fill="rgba(5,5,14,0.62)" stroke="rgba(255,255,255,0.10)"/>`
+  // legend chip top-left of plot — includes the dot key so the per-buy sparkles
+  // on the value line read as "each monthly $100 buy", not mystery marks.
+  const lx = mL + 16, ly = mT + 14, dotcx = lx + 26;
+  const legend = `<rect x="${lx}" y="${ly}" width="322" height="106" rx="9" fill="rgba(5,5,14,0.62)" stroke="rgba(255,255,255,0.10)"/>`
     + `<rect x="${lx + 14}" y="${ly + 18}" width="24" height="8" rx="4" fill="${green}"/><text x="${lx + 48}" y="${ly + 27}" fill="#cbd5e1" font-size="26" font-family="sans-serif">Stack value</text>`
-    + `<rect x="${lx + 14}" y="${ly + 48}" width="24" height="8" rx="4" fill="${amber}"/><text x="${lx + 48}" y="${ly + 57}" fill="#cbd5e1" font-size="26" font-family="sans-serif">Invested</text>`;
+    + `<rect x="${lx + 14}" y="${ly + 48}" width="24" height="8" rx="4" fill="${amber}"/><text x="${lx + 48}" y="${ly + 57}" fill="#cbd5e1" font-size="26" font-family="sans-serif">Invested</text>`
+    + `<circle cx="${dotcx}" cy="${ly + 86}" r="7" fill="${green}" fill-opacity="0.75" filter="url(#dcaSpark)"/><circle cx="${dotcx}" cy="${ly + 86}" r="3.2" fill="#eafff5"/><text x="${lx + 48}" y="${ly + 94}" fill="#cbd5e1" font-size="26" font-family="sans-serif">each dot = a $100 buy</text>`;
 
   return chrome(spec, grid + invArea + profit + invLine + valLine + sparks + marker + legend, defs, { W: DW, H: DH });
 }
