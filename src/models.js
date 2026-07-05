@@ -238,7 +238,27 @@ export function buildFireSaleRallies(series, m, { minGain = 0.3 } = {}) {
     }
   }
   if (inEpisode) flush();
-  return ralliesFromAnchors(series, anchors, minGain);
+
+  // Coalesce troughs that belong to the SAME capitulation. A brief pop out of the
+  // fire-sale band and back in (a choppy bottom) otherwise splits one event into
+  // several anchors — and a shallow re-dip can mask the true low, since the deeper
+  // trough's rally gets truncated at the re-dip and dropped for being < minGain.
+  // Merge consecutive anchors unless price staged a real rally (>= minGain) between
+  // them, keeping the LOWEST trough so the anchor is the actual capitulation low.
+  const coalesced = [];
+  for (const a of anchors) {
+    const prev = coalesced[coalesced.length - 1];
+    if (prev) {
+      let peakBetween = 0;
+      for (let i = prev.idx + 1; i < a.idx; i++) if (series[i].price > peakBetween) peakBetween = series[i].price;
+      if (peakBetween / prev.price - 1 < minGain) { // no real rally between → same event
+        if (a.price < prev.price) { prev.date = a.date; prev.price = a.price; prev.idx = a.idx; }
+        continue;
+      }
+    }
+    coalesced.push({ ...a });
+  }
+  return ralliesFromAnchors(series, coalesced, minGain);
 }
 
 // Hindsight strategy: start with 1×, buy each cycle low and sell at that cycle's
