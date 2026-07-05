@@ -106,6 +106,15 @@ function loadSupplyHistory() {
   } catch { return []; }
 }
 
+// Futures positioning banked by the longshort workflow (Hyperliquid on-chain funding
+// + OI). For the on-chain positioning card; data-gated, grows daily.
+function loadLongShort() {
+  try {
+    const arr = JSON.parse(readFileSync(new URL("../../public/longshort.json", import.meta.url), "utf8"));
+    return Array.isArray(arr) ? arr.filter(r => r.hlFunding != null) : [];
+  } catch { return []; }
+}
+
 // SPX-vs-coin ratio aligned on SPX dates, and relative-strength over a window.
 function alignedRatio(coin, raw) {
   const map = new Map(coin.map(r => [r.date, r.price]));
@@ -270,6 +279,7 @@ export function computeStats(price, dateStr = new Date().toISOString().slice(0, 
     targets: M.TARGETS.map(t => ({ ...t, mult: t.price / price })),
     supply, btc, majors,
     drawn: RAW, // merged {date,price}[] history (bundled + snapshot) for the rainbow line
+    longshort: loadLongShort(), // Hyperliquid funding/OI positioning (data-gated)
     series: {
       price: RAW.map(r => [Date.parse(r.date), r.price]),
       resid: thinSeries(RAW.map(r => [Date.parse(r.date), Math.log(r.price) - m.predict(M.dayN(r.date))])),

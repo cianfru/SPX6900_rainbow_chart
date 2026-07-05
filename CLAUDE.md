@@ -105,6 +105,12 @@
       funding + OI — unmanipulable, with real history from run one. CEX L/S stays a
       soft-try (harmless 403s) in case it unblocks; Coinglass is the fallback if
       Binance's crowd L/S is ever wanted.
+    - **Chart + card BUILT (2026-07-05):** site `longshort` (On-Chain group, drag-zoom)
+      + rotation card (`type:"longshort"`, LOOK "dual", data-gated ≥8 days). **Funding
+      is NORMALISED to its neutral baseline** (the median APR ≈ HL's structural ~+10%):
+      owner noted that pivoting on 0 made "just neutral" read as "crowd long," so bars
+      show deviation FROM neutral (green above / red below), while the right axis still
+      reads absolute APR. Baseline computed over full history so it's stable when zoomed.
 - **❌ "Diminishing returns" — I GOT IT WRONG, reverted (owner correction, 2026-07-05).**
   Diminishing returns = each **cycle's RALLY (bottom→top) is less steep / a smaller
   multiple than the previous cycle** (cross-cycle). I mistakenly drew a trendline through
