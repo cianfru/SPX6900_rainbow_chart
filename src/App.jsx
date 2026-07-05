@@ -194,27 +194,28 @@ export default function App() {
     { l: "Auto", y: null }, // auto-fit to highest selected target
   ];
 
-  // Extend bundled prices with any newer daily points — do not replace history.
-  const applyLive = useCallback((points) => {
-    const bundledLast = DEFAULT_RAW[DEFAULT_RAW.length - 1].date;
-    const newer = points
-      .filter(p => p.date > bundledLast && p.price > 0)
-      .sort((a, b) => a.date.localeCompare(b.date));
-    if (newer.length === 0) {
-      setDataStatus("Up to date · bundled covers latest");
-      return;
-    }
-    setPriceData([...DEFAULT_RAW, ...newer]);
-    setDataStatus(`Live · +${newer.length} fresh pts`);
+  // Build the DRAWN price series at DAILY precision. The bundled history is thinned
+  // to ~weekly in its early stretch (curated for the model fit), which makes lines
+  // boxy; the /api/prices daily candles (full history) fill those gaps so the shape
+  // is precise. Precedence: daily candles are the base, curated bundled closes are
+  // kept where present (so existing anchor points don't move), and the daily
+  // snapshot wins on recent dates. The MODEL stays frozen on DEFAULT_RAW — this only
+  // densifies what's drawn. If the candle fetch fails we fall back to bundle+snapshot.
+  const applyLive = useCallback((candles, snapshot) => {
+    const byDate = new Map();
+    for (const p of candles) if (p?.date && p.price > 0) byDate.set(p.date, p.price);   // daily gap-filler (full history)
+    for (const r of DEFAULT_RAW) byDate.set(r.date, r.price);                            // keep curated bundled anchors
+    for (const r of snapshot) if (r?.d && r.p > 0) byDate.set(r.d, r.p);                 // snapshot authoritative (recent)
+    const merged = [...byDate].map(([date, price]) => ({ date, price })).sort((a, b) => a.date.localeCompare(b.date));
+    setPriceData(merged);
+    const added = merged.length - DEFAULT_RAW.length;
+    setDataStatus(added > 0 ? `Live · daily +${added} pts` : "Up to date · bundled covers latest");
   }, []);
 
-  // Fill the gap between the bundled history (frozen at build time — weeks stale
-  // between rebundles) and today from TWO sources, so the line never freezes if
-  // one is stale. Primary = /history.json: the daily on-chain snapshot the cron
-  // commits and that DEFAULT_RAW is itself rebundled from — same-origin and
-  // fresh every day, no external-API/candle-freshness fragility. Secondary =
-  // /api/prices (external daily candles) backfills any date the snapshot lacks.
-  // Merge by date; the snapshot wins on conflict (same lineage as the bundle).
+  // Two sources feed the dense series so it never freezes if one is stale:
+  // /history.json = the daily on-chain snapshot the cron commits (same lineage as
+  // the bundle, authoritative for recent dates); /api/prices = external daily
+  // candles covering full history (fills the early ~weekly gaps + backfills).
   useEffect(() => {
     let cancelled = false;
     Promise.all([
@@ -222,11 +223,7 @@ export default function App() {
       fetchLivePrices().then(r => r.prices, () => []),   // swallow error → []
     ]).then(([snap, live]) => {
       if (cancelled) return;
-      const byDate = new Map();
-      for (const p of (Array.isArray(live) ? live : [])) if (p?.date && p.price > 0) byDate.set(p.date, p.price);
-      for (const r of (Array.isArray(snap) ? snap : [])) if (r?.d && r.p > 0) byDate.set(r.d, r.p);
-      const merged = [...byDate].map(([date, price]) => ({ date, price }));
-      if (merged.length) applyLive(merged);
+      applyLive(Array.isArray(live) ? live : [], Array.isArray(snap) ? snap : []);
     });
     return () => { cancelled = true; };
   }, [applyLive]);
