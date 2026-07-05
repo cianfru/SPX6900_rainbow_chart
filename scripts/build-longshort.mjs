@@ -9,14 +9,16 @@
 import { readFile, writeFile } from "node:fs/promises";
 
 const OUT = "public/longshort.json";
-const BYBIT_SYMS = process.env.BYBIT_LS_SYMBOL ? [process.env.BYBIT_LS_SYMBOL] : ["SPXUSDT", "1000SPXUSDT", "SPX6900USDT"];
+const BYBIT_SYM = process.env.BYBIT_LS_SYMBOL || "SPXUSDT"; // confirmed by owner
+// api.bybit.com geo-blocks US CI (403); api.bytick.com is Bybit's mirror, usually not.
+const BYBIT_HOSTS = ["https://api.bytick.com", "https://api.bybit.com"];
 const HL_COIN = process.env.HL_COIN || "SPX";
 
 // Bybit global long/short ACCOUNT ratio (buyRatio ÷ sellRatio), last 30 daily points.
 async function bybit() {
-  for (const sym of BYBIT_SYMS) {
+  for (const host of BYBIT_HOSTS) {
     try {
-      const r = await fetch(`https://api.bybit.com/v5/market/account-ratio?category=linear&symbol=${sym}&period=1d&limit=30`, { headers: { Accept: "application/json" } });
+      const r = await fetch(`${host}/v5/market/account-ratio?category=linear&symbol=${BYBIT_SYM}&period=1d&limit=30`, { headers: { Accept: "application/json" } });
       if (!r.ok) throw new Error(`${r.status}`);
       const list = (await r.json())?.result?.list;
       if (!Array.isArray(list) || !list.length) throw new Error("empty");
@@ -24,8 +26,8 @@ async function bybit() {
         const buy = parseFloat(d.buyRatio), sell = parseFloat(d.sellRatio);
         return { date: new Date(+d.timestamp).toISOString().slice(0, 10), bybitLS: sell > 0 ? buy / sell : null };
       }).filter(r => r.bybitLS != null);
-      if (rows.length) { console.log(`  bybit: ${sym} · ${rows.length} days`); return rows; }
-    } catch (e) { console.warn(`  bybit ${sym}: ${e.message}`); }
+      if (rows.length) { console.log(`  bybit: ${host.replace("https://", "")} ${BYBIT_SYM} · ${rows.length} days`); return rows; }
+    } catch (e) { console.warn(`  bybit ${host.replace("https://", "")}: ${e.message}`); }
   }
   return [];
 }
