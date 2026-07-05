@@ -716,6 +716,24 @@ That's {cpct}% of classified holders (HolderScan's number); the gap is coins on 
     };
   })(),
 
+  // 11c — on-chain positioning: Hyperliquid perp funding, normalised to its neutral
+  // baseline (so the structural ~+10% APR reads as neutral, not "long"). Data-gated.
+  s => s.longshort && s.longshort.filter(r => r.hlFunding != null).length >= 8 && (() => {
+    const fund = s.longshort.filter(r => r.hlFunding != null);
+    const aprs = fund.map(r => r.hlFunding * 24 * 365 * 100);
+    const neutral = [...aprs].sort((a, b) => a - b)[Math.floor(aprs.length / 2)];
+    const dev = aprs.at(-1) - neutral;
+    const lean = dev > 8 ? "leaning long" : dev < -8 ? "leaning short" : "sitting neutral";
+    const devTxt = `${dev >= 0 ? "+" : ""}${Math.round(dev)}%`;
+    return {
+      id: "longshort",
+      text: ct`⚖️ SPX6900 perp funding is ${lean} — ${devTxt} vs its neutral baseline (Hyperliquid).
+It runs ~${Math.round(neutral)}% APR even when balanced; normalised to that, this is the real skew.
+On-chain, unmanipulable — extremes are a contrarian tell, not a signal.`,
+      card: { type: "longshort" },
+    };
+  })(),
+
   // 12 — SPX vs the majors over the trailing 12 months (rebased to 0% a year back).
   // Four overlaying price-action lines, each ending in its coin logo — the rolling
   // sibling of the YTD race. Shown even when SPX trails; the closer reflects rank.
@@ -1306,7 +1324,7 @@ const LOOK = {
   cycleclock: "trend", fngtrend: "trend", btcage: "trend", ethage: "trend", solage: "trend",
   // — Tier B: flavourful / distinct looks (used to break up the green lines) —
   riskcolor: "colorline", risklevels: "colorline", rsidots: "colorline",
-  riskheat: "dual", runningroi: "dual", cycle: "dual",
+  riskheat: "dual", runningroi: "dual", cycle: "dual", longshort: "dual",
   model: "scatter",
   monthlyreturns: "heatmap", monthlyreturnssp: "heatmap", monthlyreturnsbtc: "heatmap",
   timeinband: "bars", monthlybars: "bars", monthcompare: "bars",
