@@ -29,6 +29,20 @@ export function loadPriceHistory() {
   return pricePromise;
 }
 
+// Shared, cached loader for /longshort.json — the daily futures POSITIONING bank
+// (Hyperliquid on-chain funding + open interest; CEX L/S is geo-blocked from CI).
+// Data-gated: fills in as the daily banker accumulates. []-on-failure.
+let lsPromise = null;
+export function loadLongShort() {
+  if (!lsPromise) {
+    lsPromise = fetch("/longshort.json", { cache: "no-store" })
+      .then(r => (r.ok ? r.json() : []))
+      .then(d => (Array.isArray(d) ? d : []))
+      .catch(() => []);
+  }
+  return lsPromise;
+}
+
 // Friendly copy for live-API failures. The raw error (JSON parse noise, proxy
 // statuses) is meaningless to visitors — never show it in the UI.
 export const LIVE_DATA_DOWN = "Live data is temporarily unavailable — try again in a minute.";
