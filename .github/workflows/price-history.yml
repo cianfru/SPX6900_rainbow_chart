@@ -1,0 +1,30 @@
+# Builds public/price-history.json — the DENSE daily price series the site draws
+# from (the bundled DEFAULT_RAW is thinned to ~weekly for the model fit). Runs in
+# CI because the price APIs aren't reachable from the dev sandbox. Weekly refresh
+# + manual dispatch; commits only when the data changed.
+name: Build price history
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 6 * * 1"   # Mondays 06:17 UTC
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+      - name: Build dense daily price history
+        run: node scripts/build-price-history.mjs
+      - name: Commit if changed
+        run: |
+          if [[ -n "$(git status --porcelain public/price-history.json)" ]]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add public/price-history.json
+            git commit -m "chore: refresh dense price history"
+            git push
+          else
+            echo "no change"
+          fi

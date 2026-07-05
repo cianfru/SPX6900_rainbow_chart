@@ -4,7 +4,7 @@ import {
   CartesianGrid, ReferenceLine
 } from "recharts";
 import { DEFAULT_RAW, fetchLivePrices, fetchSpotPrice, fetchMajors, fetchMemekings } from "./data.js";
-import { loadHistory } from "./history-data.js";
+import { loadHistory, loadPriceHistory } from "./history-data.js";
 import {
   buildModel, BAND_LABELS, TARGETS,
   dayN, ds, bandVal, bandIndex,
@@ -201,29 +201,33 @@ export default function App() {
   // kept where present (so existing anchor points don't move), and the daily
   // snapshot wins on recent dates. The MODEL stays frozen on DEFAULT_RAW — this only
   // densifies what's drawn. If the candle fetch fails we fall back to bundle+snapshot.
-  const applyLive = useCallback((candles, snapshot) => {
+  const applyLive = useCallback((priceHist, candles, snapshot) => {
+    // Build the drawn series, later sources overriding earlier (increasing authority):
     const byDate = new Map();
-    for (const p of candles) if (p?.date && p.price > 0) byDate.set(p.date, p.price);   // daily gap-filler (full history)
-    for (const r of DEFAULT_RAW) byDate.set(r.date, r.price);                            // keep curated bundled anchors
-    for (const r of snapshot) if (r?.d && r.p > 0) byDate.set(r.d, r.p);                 // snapshot authoritative (recent)
+    for (const r of DEFAULT_RAW) byDate.set(r.date, r.price);                            // thinned bundle — the always-present fallback
+    for (const p of priceHist) if (p?.date && p.price > 0) byDate.set(p.date, p.price);  // dense daily history (CI-built) — the real precision fix
+    for (const p of candles) if (p?.date && p.price > 0) byDate.set(p.date, p.price);    // live daily candles (recent, fresher)
+    for (const r of snapshot) if (r?.d && r.p > 0) byDate.set(r.d, r.p);                 // on-chain snapshot — authoritative recent
     const merged = [...byDate].map(([date, price]) => ({ date, price })).sort((a, b) => a.date.localeCompare(b.date));
     setPriceData(merged);
     const added = merged.length - DEFAULT_RAW.length;
     setDataStatus(added > 0 ? `Live · daily +${added} pts` : "Up to date · bundled covers latest");
   }, []);
 
-  // Two sources feed the dense series so it never freezes if one is stale:
-  // /history.json = the daily on-chain snapshot the cron commits (same lineage as
-  // the bundle, authoritative for recent dates); /api/prices = external daily
-  // candles covering full history (fills the early ~weekly gaps + backfills).
+  // Sources feed the dense drawn series so it's precise AND never freezes if one is
+  // stale: /price-history.json = the CI-built dense daily history (fixes the boxy
+  // early years); /history.json = the daily on-chain snapshot (authoritative recent);
+  // /api/prices = live daily candles (freshest, backfills). The MODEL stays frozen
+  // on DEFAULT_RAW — this only densifies what's drawn.
   useEffect(() => {
     let cancelled = false;
     Promise.all([
+      loadPriceHistory(),                                // never rejects → []
       loadHistory(),                                     // never rejects → []
       fetchLivePrices().then(r => r.prices, () => []),   // swallow error → []
-    ]).then(([snap, live]) => {
+    ]).then(([priceHist, snap, live]) => {
       if (cancelled) return;
-      applyLive(Array.isArray(live) ? live : [], Array.isArray(snap) ? snap : []);
+      applyLive(Array.isArray(priceHist) ? priceHist : [], Array.isArray(live) ? live : [], Array.isArray(snap) ? snap : []);
     });
     return () => { cancelled = true; };
   }, [applyLive]);

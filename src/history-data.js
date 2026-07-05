@@ -14,6 +14,21 @@ export function loadHistory() {
   return promise;
 }
 
+// Shared, cached loader for /price-history.json — the DENSE daily price series
+// (built in CI from all price sources, weekly-refreshed) the charts draw from,
+// so the early history isn't the ~weekly cadence of the model-fit bundle. Same
+// []-on-failure contract; the drawn line falls back to the bundle if it's absent.
+let pricePromise = null;
+export function loadPriceHistory() {
+  if (!pricePromise) {
+    pricePromise = fetch("/price-history.json", { cache: "no-store" })
+      .then(r => (r.ok ? r.json() : []))
+      .then(d => (Array.isArray(d) ? d : []))
+      .catch(() => []);
+  }
+  return pricePromise;
+}
+
 // Friendly copy for live-API failures. The raw error (JSON parse noise, proxy
 // statuses) is meaningless to visitors — never show it in the UI.
 export const LIVE_DATA_DOWN = "Live data is temporarily unavailable — try again in a minute.";
