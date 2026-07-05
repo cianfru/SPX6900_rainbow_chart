@@ -58,25 +58,34 @@
     reliably empty, add a few $ OpenRouter credits or set a cheap paid model as primary.
   - Offline-tested (`test/llm-copy.test.mjs`, injectable fetch). `signals.json` stays
     deploy-ignored, so drafts never trigger a Vercel deploy.
-- **⭐ WANTED — CONTROL-PANEL LLM "AGENT" ("ask the agent") — owner request 2026-07-05.**
-  Owner wants a **chat section in the control panel**, connected to OpenRouter, where he
-  asks an "agent" directly — e.g. *"what do you see today?"*, *"which card should be fired
-  today?"* — instead of going back and forth with Claude Code. The agent should reach the
-  **codebase + logic + current state** so it can reason about the day's post choice.
-  - **Honest scope (important):** a browser-side LLM can't read the repo. Practically this
-    is a serverless endpoint (`api/agent`) that ASSEMBLES the context and feeds it to
-    OpenRouter with the owner's question, streaming the answer into a panel chat box. The
-    context to gather: today's `computeStats`, the deterministic **rotation pick**
-    (`buildPost`/`rotation()` for today's epochDay), the **"Notable today" signals**
-    (`signals.json`), post-state / queue / band-state, and a compact **card catalog**
-    (ids + one-line descriptions of what each card shows). With that, it can answer "which
-    card today + why" from REAL numbers, not guesses.
-  - **Reuse the existing infra:** same `OPENROUTER_API_KEY` + free-model fallback chain as
-    `llm-copy.mjs`; same honesty guardrails (real numbers only, no invented figures). Could
-    later expose "tools" (call the rotation calc / stats live) for a truer agent.
-  - **Status: idea captured, build when prioritized.** Bigger than the shadow copywriter —
-    needs the context-assembly endpoint + a chat UI in `control.html` (streaming). Owner's
-    goal is self-serve: reduce the Claude-Code round-trips for "what's the read today."
+- **⭐ CONTROL-PANEL LLM "AGENT" ("ask the agent") — BUILT 2026-07-05 (owner request).**
+  A **chat section in the control panel** (`/control` daily view), connected to OpenRouter,
+  where the owner asks an "agent" directly — *"what's notable today?"*, *"which card should
+  I fire today?"*, *"give me a draft for the best card"* — instead of round-tripping through
+  Claude Code. It reasons about the day's post choice from the **current state**.
+  - **`api/agent.js`** — password-gated (`CONTROL_PASSWORD`) POST endpoint. A browser LLM
+    can't read the repo, so this ASSEMBLES the context server-side and feeds it to OpenRouter
+    with the owner's question. Context gathered (the SAME numbers the bot uses): today's
+    `computeStats` facts (price/band/risk/vs-fair-value/drawdown/F&G/break-even/MVRV/holders/
+    diamond-share), the deterministic **rotation pick** (`buildPost(stats)`), the **full card
+    catalog** (`buildAll(stats)` → `{id, hero}` per card — id + its live hero line), the
+    **"Notable today" signals** (`signals.json`), and queue/last-posted state — all via raw
+    for the deploy-ignored runtime files. Answers are grounded in REAL numbers only (the
+    honesty guardrail).
+  - **Actionable recommendations:** the system prompt tells the agent to append machine tags
+    when it lands on a card — `[[card:<id>]]` and optionally `[[draft]]…3 lines…[[/draft]]`.
+    `parseAction` strips them from the visible answer and returns `{answer, card, draft,
+    model, rotationPick}`. The chat UI then renders a recommendation block with an **editable
+    draft textarea** + **Queue / Post-now / Save-as-copy / Copy** buttons wired to the
+    existing control actions — so the decision goes straight to the queue. (Save-as-copy only
+    shows for `EDITABLE` ct-cards, since plain overrides only apply to those.)
+  - **Reuses existing infra:** `chat()` in `llm-copy.mjs` runs the SAME `OPENROUTER_API_KEY`
+    + free-model fallback chain; `buildAll()`/`allIds()` added to `posts.mjs` for the one-pass
+    catalog; `vercel.json` bundles `scripts/bot/**` + `history.json` into the function (mirrors
+    og.js/recap.js). Multi-turn: the UI sends back a capped (~12-msg) history.
+  - **Not streaming** (kept simple — one request/response with a "…thinking" placeholder).
+    Future: expose "tools" (call rotation/stats live) for a truer agent; add streaming if the
+    single-shot latency ever grates.
 
 ## Backlog / decisions
 - **⭐ BUILD THE FOUNDATION — collect data now, even at 3yr (owner, 2026-07-05).** Many

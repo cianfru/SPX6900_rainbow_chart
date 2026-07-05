@@ -39,6 +39,32 @@ function resolveModels(opts = {}) {
   return [...new Set(chain)];
 }
 
+// General chat completion over the same free-model fallback chain — for the
+// control-panel "ask the agent" endpoint (arbitrary messages, no draft validation).
+// Returns { text, model, ok, reason, tried }. Never throws.
+export async function chat(messages, opts = {}) {
+  const apiKey = opts.apiKey ?? process.env.OPENROUTER_API_KEY;
+  const doFetch = opts.fetchImpl ?? (typeof fetch === "function" ? fetch : null);
+  if (!apiKey || !doFetch) return { text: "", model: "none", ok: false, reason: "no OPENROUTER_API_KEY", tried: [] };
+  const models = resolveModels(opts);
+  const tried = [];
+  for (const model of models) {
+    try {
+      const res = await doFetch(OPENROUTER_URL, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json", "HTTP-Referer": "https://spx6900rainbow.xyz", "X-Title": "SPX6900 Control Agent" },
+        body: JSON.stringify({ model, temperature: opts.temperature ?? 0.4, max_tokens: opts.maxTokens ?? 800, messages }),
+      });
+      if (!res.ok) { const b = await res.text().catch(() => ""); tried.push(`${model}: ${res.status}${b ? " " + b.slice(0, 80) : ""}`); if (res.status === 401 || res.status === 403) break; continue; }
+      const json = await res.json();
+      const text = String(json?.choices?.[0]?.message?.content || "").trim();
+      if (text) return { text, model, ok: true, reason: "", tried };
+      tried.push(`${model}: empty`);
+    } catch (e) { tried.push(`${model}: ${e.message}`); }
+  }
+  return { text: "", model: models[0], ok: false, reason: `all models failed — ${tried.join(" | ")}`, tried };
+}
+
 // Words that read as hype / financial advice — an instant credibility leak for
 // an account whose whole moat is honest analysis. A draft containing any of
 // these is rejected and we fall back to the template.
