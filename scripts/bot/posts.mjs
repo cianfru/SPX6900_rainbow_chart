@@ -1281,6 +1281,9 @@ Sign up with our link (referral code ${KRAKEN_CODE}) 👇${TIGHT}${KRAKEN_REF}`,
 ];
 
 export function allIds(stats) { return POSTS.map(p => p(stats)?.id).filter(Boolean); }
+// Every buildable post today in ONE pass — {id, text, card}. For the control agent
+// (id + hero line = a live card catalog) without 40 separate buildPost calls.
+export function buildAll(stats) { return POSTS.map(p => p(stats)).filter(Boolean); }
 
 // Upside-forward posts get extra weight in the daily rotation so the feed skews
 // bullish (they show up ~twice as often as the analytical/neutral ones).

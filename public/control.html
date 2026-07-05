@@ -77,6 +77,27 @@
   .sigdraft .dfail { font-size: 12px; color: #94a3b8; margin-top: 4px; font-style: italic; }
   .sigdraft .dcopy { margin-top: 8px; font-size: 12px; padding: 4px 10px; }
   .sigact { display: flex; align-items: center; }
+  /* Ask-the-agent chat: consult OpenRouter over today's real numbers */
+  .agent { margin: 16px 0 4px; border: 1px solid rgba(167,139,250,.28); background: rgba(167,139,250,.05); border-radius: 12px; padding: 12px 14px; }
+  .agenthdr { font-size: 13px; font-weight: 700; color: #c4b5fd; margin-bottom: 2px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .agenthdr span { color: #64748b; font-weight: 400; font-size: 12px; }
+  .achat { display: flex; flex-direction: column; gap: 10px; margin: 12px 0; max-height: 460px; overflow-y: auto; }
+  .achat:empty { display: none; }
+  .amsg { font-size: 13.5px; line-height: 1.55; border-radius: 10px; padding: 9px 12px; max-width: 92%; white-space: pre-wrap; }
+  .amsg.user { align-self: flex-end; background: rgba(37,99,235,.18); border: 1px solid rgba(59,130,246,.35); color: #dbeafe; }
+  .amsg.bot { align-self: flex-start; background: rgba(148,163,184,.09); border: 1px solid rgba(148,163,184,.2); color: #e2e8f0; }
+  .amsg.bot .amodel { display: block; font-size: 11px; color: #64748b; margin-top: 6px; }
+  .amsg.err { align-self: flex-start; background: rgba(239,68,68,.1); border: 1px solid rgba(239,68,68,.3); color: #fca5a5; }
+  .arec { flex-basis: 100%; margin-top: 10px; background: rgba(34,197,94,.07); border: 1px solid rgba(34,197,94,.28); border-radius: 8px; padding: 8px 10px; }
+  .arec .rhdr { font-size: 12px; font-weight: 700; color: #86efac; }
+  .arec .rdraft { white-space: pre-wrap; font-size: 13px; color: #e2e8f0; line-height: 1.5; margin: 6px 0; }
+  .arec .racts { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
+  .arec .racts button { font-size: 12px; padding: 5px 11px; }
+  .abar { display: flex; gap: 8px; align-items: stretch; }
+  .abar textarea { flex: 1; min-height: 40px; resize: vertical; background: #0b1220; color: #e2e8f0; border: 1px solid #24324a; border-radius: 8px; padding: 9px 11px; font: inherit; font-size: 13.5px; }
+  .abar .asend { align-self: stretch; white-space: nowrap; }
+  .asugg { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+  .asugg button { font-size: 11.5px; padding: 4px 9px; color: #a5b4fc; border-color: rgba(129,140,248,.3); background: rgba(129,140,248,.08); }
   .grid {
     display: grid; gap: 16px; margin-top: 14px;
     /* min(340px, 100%) keeps a single column from overflowing a narrow phone */
@@ -191,6 +212,15 @@
       <div class="status" id="status">Loading…</div>
       <div class="sched" id="sched"></div>
       <div class="signals" id="signals"></div>
+      <div class="agent">
+        <div class="agenthdr">🤖 Ask the agent <span>· consults OpenRouter over today's real numbers — stats, the rotation pick, "Notable today" & the full card catalog</span></div>
+        <div class="achat" id="achat"></div>
+        <div class="abar">
+          <textarea id="ainput" rows="1" placeholder="e.g. What's notable today? Which card should I fire?"></textarea>
+          <button class="primary asend" id="asend">Ask →</button>
+        </div>
+        <div class="asugg" id="asugg"></div>
+      </div>
       <div class="grid" id="grid"></div>
     </div>
 
@@ -544,6 +574,92 @@ $("#signals").addEventListener("click", e => {
     );
   }
 });
+
+// ---- Ask the agent (OpenRouter over today's real context) ----
+// A running chat the owner consults to decide the day's post. /api/agent assembles
+// the SAME numbers the bot uses (stats + rotation pick + card catalog + "Notable
+// today" + queue/state) and feeds them to OpenRouter. When the agent lands on a
+// card it returns {card,draft}; we render Queue / Post-now / Save-copy actions so
+// the decision goes straight to the queue — no Claude-Code round-trip.
+let AGENT_HISTORY = [];       // [{role,content}] sent back for multi-turn context
+let AGENT_BUSY = false;
+const SUGGESTS = ["What's notable today?", "Which card should I fire today?", "Give me a draft for the best card"];
+
+function renderSuggests() {
+  const el = $("#asugg");
+  if (!el) return;
+  el.innerHTML = AGENT_HISTORY.length ? "" : SUGGESTS.map(s => `<button data-sugg="${esc(s)}">${esc(s)}</button>`).join("");
+}
+
+function pushMsg(role, content, extra = "") {
+  const chat = $("#achat");
+  const div = document.createElement("div");
+  div.className = "amsg " + role;
+  div.innerHTML = esc(content) + extra;
+  chat.appendChild(div);
+  chat.scrollTop = chat.scrollHeight;
+  return div;
+}
+
+// The agent's card recommendation → actionable block (edit + queue + post).
+function recBlock(card, draft) {
+  const canSave = !!(draft && EDITABLE[card]);
+  return `<div class="arec" data-rec="${esc(card)}">
+    <div class="rhdr">▶ ${esc(card)}</div>
+    ${draft ? `<textarea class="rdrafttxt" style="width:100%;min-height:74px;background:#0b1220;color:#e2e8f0;border:1px solid #24324a;border-radius:8px;padding:8px;font:inherit;font-size:13px">${esc(footerize(draft))}</textarea>` : ""}
+    <div class="racts">
+      ${draft ? `<button class="rcopy">📋 Copy</button>` : ""}
+      ${canSave ? `<button class="rsave">💾 Save as copy</button>` : ""}
+      <button class="rqueue primary">Queue ${esc(card)}</button>
+      <button class="rpost">Post ${esc(card)} now</button>
+    </div>
+  </div>`;
+}
+
+async function askAgent(text) {
+  const q = (text != null ? text : $("#ainput").value).trim();
+  if (!q || AGENT_BUSY) return;
+  AGENT_BUSY = true;
+  $("#ainput").value = "";
+  pushMsg("user", q);
+  renderSuggests();
+  const thinking = pushMsg("bot", "…thinking");
+  try {
+    const r = await fetch("/api/agent", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ password: PW, message: q, messages: AGENT_HISTORY }),
+    });
+    const j = await r.json().catch(() => ({}));
+    if (r.status === 401) { thinking.remove(); lock(); return; }
+    if (!r.ok || j.error) { thinking.className = "amsg err"; thinking.textContent = j.error || ("request failed (" + r.status + ")"); return; }
+    const answer = j.answer || "(no answer)";
+    const rec = j.card ? recBlock(j.card, j.draft) : "";
+    const model = j.model ? `<span class="amodel">via ${esc(j.model)}${j.rotationPick ? " · today's rotation pick: " + esc(j.rotationPick) : ""}</span>` : "";
+    thinking.className = "amsg bot";
+    thinking.innerHTML = esc(answer) + rec + model;
+    AGENT_HISTORY.push({ role: "user", content: q }, { role: "assistant", content: answer });
+    if (AGENT_HISTORY.length > 12) AGENT_HISTORY = AGENT_HISTORY.slice(-12); // cap context
+    $("#achat").scrollTop = $("#achat").scrollHeight;
+  } catch (e) {
+    thinking.className = "amsg err"; thinking.textContent = e.message || "network error";
+  } finally { AGENT_BUSY = false; }
+}
+
+$("#asend").onclick = () => askAgent();
+$("#ainput").addEventListener("keydown", e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); askAgent(); } });
+$("#asugg").addEventListener("click", e => { const b = e.target.closest("[data-sugg]"); if (b) askAgent(b.dataset.sugg); });
+$("#achat").addEventListener("click", e => {
+  const rec = e.target.closest(".arec"); if (!rec) return;
+  const id = rec.dataset.rec, ta = rec.querySelector(".rdrafttxt");
+  if (e.target.closest(".rqueue")) { queue(id); }
+  else if (e.target.closest(".rpost")) { postNow(id); }
+  else if (e.target.closest(".rsave")) { saveCopy(id, (ta?.value || "").replace(/\n\n/g, "\n").replace(/\n?🌈 \$SPX #spx6900\s*$/u, "").trim()); }
+  else if (e.target.closest(".rcopy")) {
+    const b = e.target.closest(".rcopy"), txt = ta?.value || "";
+    navigator.clipboard.writeText(txt).then(() => { const o = b.textContent; b.textContent = "✓ Copied"; setTimeout(() => { b.textContent = o; }, 1500); }, () => {});
+  }
+});
+renderSuggests();
 
 // ---- Monthly recap tab ----
 // Renders the exact thread the bot would post (text + cards), live, so it can be
