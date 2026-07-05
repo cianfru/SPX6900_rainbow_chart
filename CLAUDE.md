@@ -87,6 +87,15 @@
   inputs daily/weekly (snapshot cron, price-history builder, a futures-L/S banker) and
   put up chart scaffolding that FILLS IN as history accumulates. The ask is infrastructure
   + patience, not forcing a premature signal onto thin data.
+  - **Futures Long/Short foundation — data source (2026-07-05).** `scripts/build-longshort.mjs`
+    + `longshort.yml` (daily) bank positioning into `public/longshort.json`. **Binance's
+    L/S endpoints geo-block CI (HTTP 451 to US GitHub runners)** — not a symbol issue
+    (SPX's Binance perp IS `SPXUSDT`, TradingView `SPXUSDT.P`), Binance just refuses US
+    IPs. So we source from venues reachable from CI: **Bybit** (global long/short account
+    ratio = the ITC metric, seeds ~30d) + **Hyperliquid** (on-chain funding + OI, banked
+    daily). To use Binance's actual numbers later: Coinglass (free key, US-ok) or a
+    non-US Vercel-cron committing via GH_PAT. Override symbols via repo vars
+    `BYBIT_LS_SYMBOL` / `HL_COIN`.
 - **❌ "Diminishing returns" — I GOT IT WRONG, reverted (owner correction, 2026-07-05).**
   Diminishing returns = each **cycle's RALLY (bottom→top) is less steep / a smaller
   multiple than the previous cycle** (cross-cycle). I mistakenly drew a trendline through

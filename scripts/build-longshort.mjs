@@ -1,64 +1,68 @@
-// FOUNDATION banker: accumulate Binance futures Long/Short positioning for SPX6900
-// into public/longshort.json (append-only, grows daily). The top-trader L/S ratios
-// are a Binance analytics product (ITC's "Long/Short Ratios" chart); Binance is
-// SPX's main venue. On-chain Hyperliquid funding/OI is a planned COMPLEMENT (its
-// API exposes funding + open interest, not the top-trader L/S — a different metric).
-//
-// Binance's L/S endpoints only serve the last ~30 days, so we MERGE each run's
-// window into the growing file — the history accumulates going forward. Runs in CI
-// (the APIs are blocked from the dev sandbox); the chart fills in as days bank.
+// FOUNDATION banker: accumulate SPX6900 futures POSITIONING into public/longshort.json
+// (append-only, grows daily). Binance's L/S endpoints geo-block CI (HTTP 451 to US
+// runners), so we use venues reachable from GitHub Actions:
+//   • BYBIT — global long/short ACCOUNT ratio (the ITC "Long/Short" metric); seeds ~30d.
+//   • HYPERLIQUID — on-chain, unmanipulable: current FUNDING rate + OPEN INTEREST
+//     (a related positioning signal, banked one point/day).
+// Soft on each source, so a partial fetch still banks. The chart fills in as history
+// accumulates. Runs in CI (the exchange APIs are blocked from the dev sandbox).
 import { readFile, writeFile } from "node:fs/promises";
 
 const OUT = "public/longshort.json";
-const BASE = "https://fapi.binance.com/futures/data";
-// SPX6900's exact Binance PERP symbol is unverified from here — try candidates and
-// use the first that returns data (the CI log reports which worked). Override with
-// the repo variable BINANCE_LS_SYMBOL once we know it.
-const CANDIDATES = process.env.BINANCE_LS_SYMBOL ? [process.env.BINANCE_LS_SYMBOL] : ["SPXUSDT", "SPX6900USDT", "1000SPXUSDT"];
+const BYBIT_SYMS = process.env.BYBIT_LS_SYMBOL ? [process.env.BYBIT_LS_SYMBOL] : ["SPXUSDT", "1000SPXUSDT", "SPX6900USDT"];
+const HL_COIN = process.env.HL_COIN || "SPX";
 
-async function fetchRatio(kind, symbol) {
-  const r = await fetch(`${BASE}/${kind}?symbol=${symbol}&period=1d&limit=30`, { headers: { Accept: "application/json" } });
-  if (!r.ok) throw new Error(`${kind} ${r.status}`);
-  const arr = await r.json();
-  if (!Array.isArray(arr) || !arr.length) throw new Error(`${kind} empty`);
-  return arr; // [{ longShortRatio, longAccount/longPosition, shortAccount, timestamp }, …]
+// Bybit global long/short ACCOUNT ratio (buyRatio ÷ sellRatio), last 30 daily points.
+async function bybit() {
+  for (const sym of BYBIT_SYMS) {
+    try {
+      const r = await fetch(`https://api.bybit.com/v5/market/account-ratio?category=linear&symbol=${sym}&period=1d&limit=30`, { headers: { Accept: "application/json" } });
+      if (!r.ok) throw new Error(`${r.status}`);
+      const list = (await r.json())?.result?.list;
+      if (!Array.isArray(list) || !list.length) throw new Error("empty");
+      const rows = list.map(d => {
+        const buy = parseFloat(d.buyRatio), sell = parseFloat(d.sellRatio);
+        return { date: new Date(+d.timestamp).toISOString().slice(0, 10), bybitLS: sell > 0 ? buy / sell : null };
+      }).filter(r => r.bybitLS != null);
+      if (rows.length) { console.log(`  bybit: ${sym} · ${rows.length} days`); return rows; }
+    } catch (e) { console.warn(`  bybit ${sym}: ${e.message}`); }
+  }
+  return [];
 }
 
-async function forSymbol(symbol) {
-  const [ta, tp, ga] = await Promise.all([
-    fetchRatio("topLongShortAccountRatio", symbol),
-    fetchRatio("topLongShortPositionRatio", symbol),
-    fetchRatio("globalLongShortAccountRatio", symbol),
-  ]);
-  const byDate = new Map();
-  const put = (arr, key) => { for (const d of arr) { const date = new Date(+d.timestamp).toISOString().slice(0, 10); const o = byDate.get(date) || { date }; o[key] = parseFloat(d.longShortRatio); byDate.set(date, o); } };
-  put(ta, "topAcct"); put(tp, "topPos"); put(ga, "globalAcct");
-  return [...byDate.values()];
+// Hyperliquid current funding rate + open interest (on-chain). One point for today.
+async function hyperliquid() {
+  try {
+    const r = await fetch("https://api.hyperliquid.xyz/info", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ type: "metaAndAssetCtxs" }) });
+    if (!r.ok) throw new Error(`${r.status}`);
+    const [meta, ctxs] = await r.json();
+    let i = meta.universe.findIndex(u => u.name === HL_COIN);
+    if (i < 0) i = meta.universe.findIndex(u => u.name.toUpperCase().includes("SPX"));
+    if (i < 0) throw new Error("no SPX-like coin listed");
+    const name = meta.universe[i].name, c = ctxs[i];
+    const funding = parseFloat(c.funding), oi = parseFloat(c.openInterest);
+    console.log(`  hyperliquid: ${name} · funding ${funding} · OI ${oi}`);
+    return { date: new Date().toISOString().slice(0, 10), hlFunding: funding, hlOI: oi };
+  } catch (e) { console.warn(`  hyperliquid: ${e.message}`); return null; }
 }
 
 async function main() {
-  console.log("Fetching Binance top-trader Long/Short ratios…");
-  let rows = null, used = null;
-  for (const sym of CANDIDATES) {
-    try { const r = await forSymbol(sym); if (r.length) { rows = r; used = sym; break; } }
-    catch (e) { console.warn(`  ${sym}: ${e.message}`); }
-  }
-  if (!rows) throw new Error(`no Binance L/S data for any of [${CANDIDATES.join(", ")}] — is SPX6900 listed on Binance FUTURES? If under another symbol, set repo var BINANCE_LS_SYMBOL.`);
-  console.log(`Binance symbol: ${used} · fetched ${rows.length} days (${rows[0].date} → ${rows.at(-1).date})`);
+  console.log("Banking SPX6900 futures positioning (Bybit L/S + Hyperliquid funding/OI)…");
+  const [by, hl] = await Promise.all([bybit(), hyperliquid()]);
+  if (!by.length && !hl) throw new Error("no positioning data from Bybit or Hyperliquid — check the Bybit symbol / Hyperliquid coin");
 
-  // merge into the accumulating file — union by date, this run's values win.
   let prev = [];
   try { const p = JSON.parse(await readFile(OUT, "utf8")); if (Array.isArray(p)) prev = p; } catch { /* first run */ }
   const byDate = new Map(prev.map(r => [r.date, r]));
-  for (const r of rows) byDate.set(r.date, { ...byDate.get(r.date), ...r });
+  for (const r of by) byDate.set(r.date, { ...byDate.get(r.date), ...r });
+  if (hl) byDate.set(hl.date, { ...byDate.get(hl.date), ...hl });
   const merged = [...byDate.values()].filter(r => r.date).sort((a, b) => a.date.localeCompare(b.date));
 
   const next = JSON.stringify(merged);
   let old = null; try { old = await readFile(OUT, "utf8"); } catch { /* first run */ }
   if (old === next) { console.log(`No change (${merged.length} days banked).`); return; }
   await writeFile(OUT, next);
-  const last = merged.at(-1);
-  console.log(`Wrote ${OUT}: ${merged.length} days · ${merged[0].date} → ${last.date} · latest topAcct=${last.topAcct} topPos=${last.topPos} global=${last.globalAcct}`);
+  console.log(`Wrote ${OUT}: ${merged.length} days · ${merged[0].date} → ${merged.at(-1).date}`);
 }
 
 main().catch(e => { console.error("build-longshort failed:", e.message); process.exit(1); });

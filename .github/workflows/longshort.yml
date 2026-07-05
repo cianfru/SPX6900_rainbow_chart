@@ -17,9 +17,10 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: 24
-      - name: Bank Binance long/short ratios
+      - name: Bank Bybit L/S + Hyperliquid funding/OI
         env:
-          BINANCE_LS_SYMBOL: ${{ vars.BINANCE_LS_SYMBOL }}
+          BYBIT_LS_SYMBOL: ${{ vars.BYBIT_LS_SYMBOL }}
+          HL_COIN: ${{ vars.HL_COIN }}
         run: node scripts/build-longshort.mjs
       - name: Commit if changed
         run: |
