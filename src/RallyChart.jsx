@@ -16,7 +16,7 @@ function CycleTip({ active, payload, label }) {
     <TipBox title={<>Day {label} after low</>} style={{ padding: "10px 14px" }}>
       {rows.map((p, i) => (
         <div key={i} style={{ color: p.color, fontFamily: MONO, fontSize: 12.5 }}>
-          {p.name}: +{p.value.toFixed(1)}%
+          {p.name}: {fMult(p.value)} <span style={{ color: "#94a3b8" }}>(+{Math.round((p.value - 1) * 100).toLocaleString()}%)</span>
         </div>
       ))}
     </TipBox>
@@ -37,11 +37,14 @@ export default function RallyChart({ series, m, isMobile }) {
   const cycles = useMemo(
     () => (anchor === "firesale"
       ? buildFireSaleRallies(series, m, { minGain: 0.3 })
-      : buildRallyCycles(series, { minDepth: 0.4, minPeakPrice: 0.05, minGain: 0.3 })),
+      // Only MAJOR corrections (60%+) start a new cycle, so long climbs aren't
+      // chopped into many short truncated rallies; a tiny minPeakPrice keeps the
+      // launch-era cycles (2024) that a 5¢ floor was silently dropping.
+      : buildRallyCycles(series, { minDepth: 0.6, minPeakPrice: 0.001, minGain: 0.3 })),
     [series, m, anchor],
   );
 
-  const { rows, maxDay, maxPct } = useMemo(() => {
+  const { rows, maxDay, maxMult } = useMemo(() => {
     const dayset = new Set();
     cycles.forEach(c => c.points.forEach(p => dayset.add(p.day)));
     const days = [...dayset].sort((a, b) => a - b);
@@ -50,16 +53,19 @@ export default function RallyChart({ series, m, isMobile }) {
       c.points.forEach(p => map.set(p.day, p.gain));
       return map;
     });
+    // Plot the MULTIPLE from the low (1 + gain), so the launch cycle's ~163× and
+    // the current ~1.8× are comparable on a LOG axis (a % axis can't show 0% at
+    // day 0, and a linear one buries the small cycles under the launch mega-runs).
     const r = days.map(day => {
       const row = { day };
       cycles.forEach((c, i) => {
-        row["e" + i] = maps[i].has(day) ? maps[i].get(day) * 100 : null;
+        row["e" + i] = maps[i].has(day) ? maps[i].get(day) + 1 : null;
       });
       return row;
     });
     const maxD = days.length ? days[days.length - 1] : 0;
-    const maxP = cycles.reduce((mx, c) => Math.max(mx, c.maxGain * 100), 0);
-    return { rows: r, maxDay: maxD, maxPct: maxP };
+    const maxM = cycles.reduce((mx, c) => Math.max(mx, c.maxGain + 1), 1);
+    return { rows: r, maxDay: maxD, maxMult: maxM };
   }, [cycles]);
 
   const colorFor = i => {
@@ -129,8 +135,8 @@ export default function RallyChart({ series, m, isMobile }) {
             label={{ value: anchor === "firesale" ? "Days since Fire Sale low" : "Days since cycle low", position: "insideBottom", offset: -14, fill: "#64748b", fontSize: 12, fontFamily: SANS }}
           />
           <YAxis
-            domain={[0, Math.ceil(maxPct / 10) * 10]}
-            tickFormatter={v => "+" + v + "%"}
+            scale="log" domain={[1, Math.ceil(maxMult * 1.15)]} allowDataOverflow
+            tickFormatter={v => fMult(v)}
             tick={{ fill: "#cbd5e1", fontSize: isMobile ? 10 : 12, fontFamily: MONO }}
             axisLine={{ stroke: "rgba(255,255,255,0.15)" }} tickLine={false} width={isMobile ? 46 : 58}
           />
@@ -138,7 +144,7 @@ export default function RallyChart({ series, m, isMobile }) {
           {cycles.map((c, i) => (
             <Line
               key={i} dataKey={"e" + i} name={fMon(c.startDate) + (c.ongoing ? " (now)" : "")}
-              type="monotone" stroke={colorFor(i)} strokeWidth={c.ongoing ? 2.4 : 1.7}
+              type="linear" stroke={colorFor(i)} strokeWidth={c.ongoing ? 2.4 : 1.7}
               dot={false} connectNulls isAnimationActive={false}
             />
           ))}
@@ -146,7 +152,7 @@ export default function RallyChart({ series, m, isMobile }) {
             const t = c.points[c.points.length - 1];
             return (
               <ReferenceDot
-                key={"dot" + i} x={t.day} y={t.gain * 100} r={4}
+                key={"dot" + i} x={t.day} y={t.gain + 1} r={4}
                 fill={colorFor(i)} stroke="#020208" strokeWidth={1.5} ifOverflow="extendDomain"
               />
             );
@@ -165,8 +171,8 @@ export default function RallyChart({ series, m, isMobile }) {
 
       <div style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.6 }}>
         {anchor === "firesale"
-          ? "Each line traces how far price climbed after entering the cheapest “Fire Sale” valuation band, vs. days since that low — i.e. how capitulation-band entries have paid off. Not financial advice."
-          : "The mirror of the drawdown chart: each line traces how far price climbed after a cycle bottom, vs. days since that low. Use it to compare the size and pace of recoveries across cycles. Not financial advice."}
+          ? "Each line traces the climb (× from the low, log scale) after price entered the cheapest “Fire Sale” valuation band, vs. days since that low — i.e. how capitulation-band entries have paid off. Not financial advice."
+          : "The mirror of the drawdown chart: each line traces the climb (× from the low, log scale) after a major cycle bottom, vs. days since that low. Log makes cycles of very different size comparable — note each recovery has run a smaller multiple than the last as SPX6900 matures. Not financial advice."}
       </div>
 
       {strategy && (
