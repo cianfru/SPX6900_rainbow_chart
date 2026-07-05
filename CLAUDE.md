@@ -96,6 +96,15 @@
     daily). To use Binance's actual numbers later: Coinglass (free key, US-ok) or a
     non-US Vercel-cron committing via GH_PAT. Override symbols via repo vars
     `BYBIT_LS_SYMBOL` / `HL_COIN`.
+    - **RESULT (2026-07-05 dispatches): CEX all geo-block CI, Hyperliquid is it.**
+      Binance 451, Bybit `api.bybit.com` 403 AND the `api.bytick.com` mirror also
+      failed — SPXUSDT is correct, it's purely a US-runner IP block. **Hyperliquid
+      works** (coin `SPX`): the banker now BACKFILLS full daily funding-rate history
+      (`fundingHistory`, hourly → daily mean) + banks today's OI (only current OI is
+      exposed, so OI accumulates). So the positioning chart is Hyperliquid on-chain
+      funding + OI — unmanipulable, with real history from run one. CEX L/S stays a
+      soft-try (harmless 403s) in case it unblocks; Coinglass is the fallback if
+      Binance's crowd L/S is ever wanted.
 - **❌ "Diminishing returns" — I GOT IT WRONG, reverted (owner correction, 2026-07-05).**
   Diminishing returns = each **cycle's RALLY (bottom→top) is less steep / a smaller
   multiple than the previous cycle** (cross-cycle). I mistakenly drew a trendline through

@@ -32,19 +32,43 @@ async function bybit() {
   return [];
 }
 
-// Hyperliquid current funding rate + open interest (on-chain). One point for today.
+const HL = "https://api.hyperliquid.xyz/info";
+const hlPost = body => fetch(HL, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+
+// Full hourly funding history for a coin, paged, aggregated to DAILY MEAN funding.
+async function hlFundingDaily(coin) {
+  const rows = [];
+  let start = Date.parse("2024-01-01"), now = Date.now();
+  for (let page = 0; page < 40 && start < now; page++) {
+    const r = await hlPost({ type: "fundingHistory", coin, startTime: start });
+    if (!r.ok) break;
+    const arr = await r.json();
+    if (!Array.isArray(arr) || !arr.length) break;
+    for (const d of arr) rows.push({ time: d.time, rate: parseFloat(d.fundingRate) });
+    const last = arr.at(-1).time;
+    if (last <= start) break;
+    start = last + 1;
+    if (arr.length < 500) break; // caught up to now
+  }
+  const byDate = new Map();
+  for (const d of rows) { const date = new Date(d.time).toISOString().slice(0, 10); const o = byDate.get(date) || { s: 0, n: 0 }; o.s += d.rate; o.n++; byDate.set(date, o); }
+  return [...byDate].map(([date, o]) => ({ date, hlFunding: o.s / o.n }));
+}
+
+// Hyperliquid (on-chain): daily funding-rate HISTORY (backfilled) + today's open
+// interest (only the current value is exposed, so OI accumulates day by day).
 async function hyperliquid() {
   try {
-    const r = await fetch("https://api.hyperliquid.xyz/info", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ type: "metaAndAssetCtxs" }) });
-    if (!r.ok) throw new Error(`${r.status}`);
+    const r = await hlPost({ type: "metaAndAssetCtxs" });
+    if (!r.ok) throw new Error(`ctx ${r.status}`);
     const [meta, ctxs] = await r.json();
     let i = meta.universe.findIndex(u => u.name === HL_COIN);
     if (i < 0) i = meta.universe.findIndex(u => u.name.toUpperCase().includes("SPX"));
     if (i < 0) throw new Error("no SPX-like coin listed");
-    const name = meta.universe[i].name, c = ctxs[i];
-    const funding = parseFloat(c.funding), oi = parseFloat(c.openInterest);
-    console.log(`  hyperliquid: ${name} · funding ${funding} · OI ${oi}`);
-    return { date: new Date().toISOString().slice(0, 10), hlFunding: funding, hlOI: oi };
+    const name = meta.universe[i].name, oi = parseFloat(ctxs[i].openInterest);
+    const funding = await hlFundingDaily(name);
+    console.log(`  hyperliquid: ${name} · ${funding.length} days funding${funding.length ? ` (${funding[0].date} → ${funding.at(-1).date})` : ""} · OI ${oi}`);
+    return { funding, oi: { date: new Date().toISOString().slice(0, 10), hlOI: oi } };
   } catch (e) { console.warn(`  hyperliquid: ${e.message}`); return null; }
 }
 
@@ -56,8 +80,11 @@ async function main() {
   let prev = [];
   try { const p = JSON.parse(await readFile(OUT, "utf8")); if (Array.isArray(p)) prev = p; } catch { /* first run */ }
   const byDate = new Map(prev.map(r => [r.date, r]));
-  for (const r of by) byDate.set(r.date, { ...byDate.get(r.date), ...r });
-  if (hl) byDate.set(hl.date, { ...byDate.get(hl.date), ...hl });
+  for (const r of by) byDate.set(r.date, { ...byDate.get(r.date), ...r });              // bybit L/S (if reachable)
+  if (hl) {
+    for (const f of hl.funding) byDate.set(f.date, { ...byDate.get(f.date), ...f });   // funding history (backfilled)
+    byDate.set(hl.oi.date, { ...byDate.get(hl.oi.date), ...hl.oi });                   // today's OI
+  }
   const merged = [...byDate.values()].filter(r => r.date).sort((a, b) => a.date.localeCompare(b.date));
 
   const next = JSON.stringify(merged);
