@@ -7,6 +7,8 @@ on:
   workflow_dispatch:
   schedule:
     - cron: "17 6 * * 1"   # Mondays 06:17 UTC
+permissions:
+  contents: write          # needed to commit + push public/price-history.json
 jobs:
   build:
     runs-on: ubuntu-latest
