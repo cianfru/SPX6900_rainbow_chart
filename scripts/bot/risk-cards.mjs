@@ -184,39 +184,33 @@ ${xlab}
 </svg>`;
 }
 
-// --- card 3: price (top) + risk HEAT oscillator (bottom) -------------------
-// Risk drawn as bars from a neutral 0.5 midline — red/hot above, blue/cold below —
-// aligned under the price. Same data as the rainbow, a fresh "valuation oscillator".
+// --- card 3: ITC-style Short Term Bubble Risk — price over a price/20W-MA -----
+// histogram, single panel. Bars pivot on the 1× (MA) line: hot (green→red) when
+// price runs above the MA, discount (cyan→blue) below. Zones are SPX-calibrated by
+// percentile (a memecoin trades multiples above its MA, so a fixed ">2×=bubble"
+// would peg it perma-red). Mirrors the site RiskHeatChart.
 export function riskHeatSvg(price, dateStr = new Date().toISOString().slice(0, 10), opts = {}) {
-  // Short-term "bubble risk" à la Cowen: extension of price from its 20-WEEK moving
-  // average (mean-reversion), NOT the long-term rainbow risk. Centered at the MA
-  // (the zero line) — hot/red when price is stretched ABOVE it, cold/blue below.
   const RAW = (opts.series && opts.series.length) ? opts.series : DEFAULT_RAW;
   const pts = RAW.map(r => ({ ts: new Date(r.date).getTime(), price: r.price })).sort((a, b) => a.ts - b.ts);
   const WK20 = 140 * 86400000;
   const maAt = ts => { let s = 0, n = 0; for (const q of pts) if (q.ts > ts - WK20 && q.ts <= ts) { s += q.price; n++; } return n ? s / n : pts[0].price; };
   const ma = pts.map(p => maAt(p.ts));
   const ext = pts.map((p, i) => Math.log(p.price / ma[i]));
-  // Scale to the ~90th-percentile extension, not the absolute max — a single
-  // launch-era spike would otherwise flatten the whole oscillator. Outliers clamp.
+  // Colour scale = ~90th-pctl extension over the FULL history (stable zones), so a
+  // single launch-era spike doesn't wash out the palette. Outliers clamp.
   const absSorted = ext.map(Math.abs).sort((a, b) => a - b);
   const maxAbs = Math.max(0.05, absSorted[Math.floor(absSorted.length * 0.9)] || 0.05);
   const maNow = maAt(pts.at(-1).ts);
-  const curExt = Math.log(price / maNow);
-  const curPct = Math.round((price / maNow - 1) * 100);
-  const curN = 0.5 + 0.5 * Math.max(-1, Math.min(1, curExt / maxAbs));
+  const curRatio = price / maNow, curPct = Math.round((curRatio - 1) * 100);
+  const curN = 0.5 + 0.5 * Math.max(-1, Math.min(1, Math.log(curRatio) / maxAbs));
   const dc = riskColor(curN);
+  const colN = i => 0.5 + 0.5 * Math.max(-1, Math.min(1, ext[i] / maxAbs));
+  const fRatio = r => (r >= 10 ? r.toFixed(0) : r.toFixed(r < 1 ? 2 : 1)) + "×";
 
-  const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 104, mR = 40, mT = 76, mB = 64;
+  const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 104, mR = 96, mT = 76, mB = 64;
   const innerTop = mT, innerBot = H - mB, innerH = innerBot - innerTop;
-  // Bigger price panel (carries the prominent overlay), a slim oscillator below.
-  const priceTop = innerTop, priceBot = innerTop + innerH * 0.66;
-  const riskTop = innerTop + innerH * 0.76, riskBot = innerBot, cyc = (riskTop + riskBot) / 2, half = (riskBot - riskTop) / 2;
-  // MA / extension / colour scale are computed over the FULL history above (so the
-  // 20W MA is primed and the percentile scale is stable); DISPLAY only a recent
-  // window — this is a SHORT-TERM signal, and a 3-yr log view buries the current
-  // read under the tiny-price launch era. Default ~18 months; opts.windowDays
-  // overrides (null = full history).
+  // DISPLAY a recent window (short-term signal; a 3-yr log view buries the current
+  // read under the launch era). Default ~18 months; opts.windowDays overrides.
   const DAY = 86400000;
   const winDays = opts.windowDays === null ? null : (opts.windowDays ?? 549);
   const xMax = pts.at(-1).ts;
@@ -224,50 +218,39 @@ export function riskHeatSvg(price, dateStr = new Date().toISOString().slice(0, 1
   const vis = pts.map((p, i) => ({ ...p, gi: i })).filter(p => p.ts >= viewMin);
   const xMin = vis[0].ts;
   const x = t => mL + ((t - xMin) / ((xMax - xMin) || 1)) * (W - mL - mR);
-  let yMin = Infinity, yMax = -Infinity;
-  for (const p of vis) { for (const v of [p.price, ma[p.gi]]) { if (v < yMin) yMin = v; if (v > yMax) yMax = v; } }
-  yMin *= 0.8; yMax *= 1.25;
-  const yP = p => priceTop + ((Math.log(yMax) - Math.log(p)) / ((Math.log(yMax) - Math.log(yMin)) || 1)) * (priceBot - priceTop);
-  // SOFT (tanh) squash so big extensions compress smoothly toward the edge instead
-  // of being hard-clipped flat — fixes the "cut off at the top" look. maxAbs sets
-  // the knee (tanh(1)≈0.76), so a 90th-pctl extension reaches ~3/4 of the panel.
-  const yE = e => cyc - Math.tanh(e / maxAbs) * half;
-  const colN = i => 0.5 + 0.5 * Math.max(-1, Math.min(1, ext[i] / maxAbs)); // ext → 0..1 colour
+  // two independent y-scales sharing the panel: price (log, left) + extension
+  // (linear ln-ratio, right) centred on the 1× pivot.
+  let yMin = Infinity, yMax = -Infinity, eMin = -0.05, eMax = 0.05;
+  for (const p of vis) { if (p.price < yMin) yMin = p.price; if (p.price > yMax) yMax = p.price; const e = ext[p.gi]; if (e < eMin) eMin = e; if (e > eMax) eMax = e; }
+  yMin *= 0.7; yMax *= 1.4;
+  const ePad = (eMax - eMin) * 0.12 || 0.1; eMin -= ePad; eMax += ePad;
+  const yP = p => innerTop + ((Math.log(yMax) - Math.log(p)) / ((Math.log(yMax) - Math.log(yMin)) || 1)) * innerH;
+  const yE = e => innerTop + ((eMax - e) / ((eMax - eMin) || 1)) * innerH;
 
-  // price-panel $ gridlines
+  // left $ gridlines
   let grid = "";
   for (const t of yDollarTicks(yMin, yMax)) {
     const yy = yP(t).toFixed(1);
     grid += `<line x1="${mL}" y1="${yy}" x2="${W - mR}" y2="${yy}" stroke="rgba(255,255,255,0.06)"/>`;
     grid += `<text x="${mL - 10}" y="${(+yy + 5).toFixed(1)}" fill="#64748b" font-size="26" text-anchor="end" font-family="sans-serif">$${t < 1 ? t : t.toLocaleString()}</text>`;
   }
+  // right ratio ticks (ext = ln ratio), at nice ratios inside the window
+  let rlab = "";
+  for (const r of [0.5, 0.75, 1, 1.5, 2, 3, 5, 10, 20]) {
+    const e = Math.log(r); if (e < eMin || e > eMax) continue;
+    rlab += `<text x="${W - mR + 12}" y="${(yE(e) + 5).toFixed(1)}" fill="#94a3b8" font-size="22" text-anchor="start" font-family="sans-serif">${fRatio(r)}</text>`;
+  }
   const bw = Math.max(1.4, (W - mL - mR) / (Math.max(2, vis.length) - 1) + 0.8);
-  // OVERLAY (Cowen-style): fill the gap between price and its 20W MA — red where
-  // price is stretched ABOVE the MA, blue where it sits below. The extension drawn
-  // straight onto the price, which is the prominent read.
-  let band = "";
-  vis.forEach(p => {
-    const i = p.gi, a = yP(p.price), b = yP(ma[i]), top = Math.min(a, b), h = Math.abs(a - b);
-    band += `<rect x="${(x(p.ts) - bw / 2).toFixed(1)}" y="${top.toFixed(1)}" width="${bw.toFixed(1)}" height="${Math.max(0.4, h).toFixed(1)}" fill="${riskColor(colN(i))}" fill-opacity="0.5"/>`;
-  });
-  // oscillator strip below: same signal, centred on the MA zero line, tanh-scaled
-  const cy = cyc.toFixed(1);
+  // colour-coded histogram from the 1× (ext=0) pivot — hot up, discount down.
+  const yPivot = yE(0);
   let heat = "";
   vis.forEach(p => {
-    const i = p.gi, yy = yE(ext[i]), top = Math.min(yy, +cy), h = Math.abs(yy - +cy);
-    heat += `<rect x="${(x(p.ts) - bw / 2).toFixed(1)}" y="${top.toFixed(1)}" width="${bw.toFixed(1)}" height="${Math.max(0.4, h).toFixed(1)}" fill="${riskColor(colN(i))}" fill-opacity="0.95"/>`;
+    const i = p.gi, yy = yE(ext[i]), top = Math.min(yy, yPivot), h = Math.abs(yy - yPivot);
+    heat += `<rect x="${(x(p.ts) - bw / 2).toFixed(1)}" y="${top.toFixed(1)}" width="${bw.toFixed(1)}" height="${Math.max(0.4, h).toFixed(1)}" fill="${riskColor(colN(i))}" fill-opacity="0.9"/>`;
   });
-  // edge marks the ~maxAbs knee (tanh saturates beyond it, so label with a "+")
-  const pctTop = Math.round((Math.exp(maxAbs) - 1) * 100), pctBot = Math.round((1 - Math.exp(-maxAbs)) * 100);
-  const axis = `<line x1="${mL}" y1="${cy}" x2="${W - mR}" y2="${cy}" stroke="rgba(255,255,255,0.55)" stroke-dasharray="6 6"/>`
-    + `<text x="${mL - 10}" y="${(riskTop + 12).toFixed(1)}" fill="#94a3b8" font-size="14" text-anchor="end" font-family="sans-serif">+${pctTop}%+</text>`
-    + `<text x="${mL - 10}" y="${(+cy + 5).toFixed(1)}" fill="#94a3b8" font-size="14" text-anchor="end" font-family="sans-serif">MA</text>`
-    + `<text x="${mL - 10}" y="${(riskBot - 2).toFixed(1)}" fill="#94a3b8" font-size="14" text-anchor="end" font-family="sans-serif">−${pctBot}%+</text>`
-    + `<text x="${W - mR}" y="${(riskTop - 6).toFixed(1)}" fill="#94a3b8" font-size="15" text-anchor="end" font-family="sans-serif">extension vs 20W MA — hot above, cold below</text>`;
-  const maLine = vis.map(p => `${x(p.ts).toFixed(1)},${yP(ma[p.gi]).toFixed(1)}`).join(" ");
+  const pivot = `<line x1="${mL}" y1="${yPivot.toFixed(1)}" x2="${W - mR}" y2="${yPivot.toFixed(1)}" stroke="rgba(255,255,255,0.5)" stroke-dasharray="6 6"/>`
+    + `<text x="${mL + 8}" y="${(yPivot - 8).toFixed(1)}" fill="#94a3b8" font-size="18" font-family="sans-serif">1× · 20W MA</text>`;
   const priceLine = vis.map(p => `${x(p.ts).toFixed(1)},${yP(p.price).toFixed(1)}`).join(" ");
-  // x labels: year marks for a full-history view; month-year for the cropped window
-  // (where only 1–2 year ticks would otherwise show).
   let xlab = "";
   const spanDays = (xMax - xMin) / DAY;
   if (spanDays > 900) {
@@ -276,7 +259,7 @@ export function riskHeatSvg(price, dateStr = new Date().toISOString().slice(0, 1
       xlab += `<text x="${x(d).toFixed(1)}" y="${H - 42}" fill="#64748b" font-size="26" text-anchor="middle" font-family="sans-serif">${yr}</text>`;
     }
   } else {
-    const step = spanDays > 400 ? 3 : 2; // months between labels
+    const step = spanDays > 400 ? 3 : 2;
     const d0 = new Date(xMin);
     for (let m = new Date(Date.UTC(d0.getUTCFullYear(), d0.getUTCMonth() + 1, 1)); m.getTime() <= xMax; m = new Date(Date.UTC(m.getUTCFullYear(), m.getUTCMonth() + step, 1))) {
       xlab += `<text x="${x(m.getTime()).toFixed(1)}" y="${H - 42}" fill="#64748b" font-size="24" text-anchor="middle" font-family="sans-serif">${m.toLocaleDateString("en-US", { month: "short", year: "2-digit" })}</text>`;
@@ -289,14 +272,13 @@ export function riskHeatSvg(price, dateStr = new Date().toISOString().slice(0, 1
 <rect width="${W}" height="${H}" fill="#05050e"/>
 ${auroraBg(W, H, dc)}
 ${grid}
-${band}
-<polyline points="${maLine}" fill="none" stroke="#f59e0b" stroke-width="4" stroke-opacity="0.95"/>
-<polyline points="${priceLine}" fill="none" stroke="#ffffff" stroke-width="9" stroke-opacity="0.2" filter="url(#rhGlow)"/>
-<polyline points="${priceLine}" fill="none" stroke="#ffffff" stroke-width="3.8" stroke-linejoin="round" stroke-linecap="round"/>
-${heat}${axis}${xlab}
-<text x="64" y="42" fill="#e2e8f0" font-size="29" font-weight="700" font-family="sans-serif" letter-spacing="1.5">SPX6900 — 20-WEEK EXTENSION</text>
-<text x="${W - mR}" y="42" fill="${dc}" font-size="27" font-weight="800" font-family="sans-serif" text-anchor="end">${curPct >= 0 ? "+" : ""}${curPct}% vs 20W MA</text>
-<text x="64" y="${H - 14}" fill="#475569" font-size="15" font-family="sans-serif">spx6900rainbow.xyz · not financial advice · short-term risk</text>
+${heat}${pivot}
+<polyline points="${priceLine}" fill="none" stroke="#38bdf8" stroke-width="9" stroke-opacity="0.18" filter="url(#rhGlow)"/>
+<polyline points="${priceLine}" fill="none" stroke="#38bdf8" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"/>
+${rlab}${xlab}
+<text x="64" y="42" fill="#e2e8f0" font-size="29" font-weight="700" font-family="sans-serif" letter-spacing="1.5">SPX6900 — 20-WEEK HEAT</text>
+<text x="${W - mR + 24}" y="42" fill="${dc}" font-size="27" font-weight="800" font-family="sans-serif" text-anchor="end">${fRatio(curRatio)} vs 20W MA</text>
+<text x="64" y="${H - 14}" fill="#475569" font-size="15" font-family="sans-serif">spx6900rainbow.xyz · not financial advice · price ÷ 20-week MA, hot above the 1× line</text>
 </svg>`;
 }
 
