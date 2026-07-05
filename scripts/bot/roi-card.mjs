@@ -36,7 +36,7 @@ export function runningRoiSvg(price, dateStr = new Date().toISOString().slice(0,
     grid += `<text x="${mL - 10}" y="${(+yy + 5).toFixed(1)}" fill="#64748b" font-size="26" text-anchor="end" font-family="sans-serif">$${t < 1 ? t : t.toLocaleString()}</text>`;
   }
   let rtick = "";
-  for (const v of [0.1, 0.2, 0.5, 1, 2, 3, 5, 10, 20, 50].filter(v => v >= rMin && v <= rMax)) {
+  for (const v of [0.1, 0.2, 0.5, 1, 2, 5, 10, 20, 50, 100, 200, 500, 1000].filter(v => v >= rMin && v <= rMax)) {
     rtick += `<text x="${mL + pW + 10}" y="${(yR(v) + 5).toFixed(1)}" fill="${v === 1 ? "#4ade80" : "#a06a72"}" font-size="24" font-weight="${v === 1 ? 700 : 400}" font-family="sans-serif">${v}×</text>`;
   }
   const oneY = yR(1).toFixed(1);
@@ -45,6 +45,32 @@ export function runningRoiSvg(price, dateStr = new Date().toISOString().slice(0,
   const priceArea = shown.length ? `${x(shown[0].ts).toFixed(1)},${(mT + pH).toFixed(1)} ${priceLine} ${x(shown.at(-1).ts).toFixed(1)},${(mT + pH).toFixed(1)}` : "";
   const roiLine = roi.map(r => `${x(r.ts).toFixed(1)},${yR(r.v).toFixed(1)}`).join(" ");
   const roiArea = roi.length ? `${x(roi[0].ts).toFixed(1)},${(mT + pH).toFixed(1)} ${roiLine} ${x(roi.at(-1).ts).toFixed(1)},${(mT + pH).toFixed(1)}` : "";
+  // Diminishing-returns line (ITC's read): connect the 365D-ROI cycle PEAKS from the
+  // all-time ROI high forward — each yearly-ROI peak steps lower as the year-ago
+  // baseline grows and market cap rises. Only drawn when there are ≥2 declining peaks.
+  let trend = "";
+  {
+    const win = 55 * 86400000;
+    const cand = [];
+    for (let i = 0; i < roi.length; i++) { let ok = roi[i].v > 1.2; for (const q of roi) if (Math.abs(q.ts - roi[i].ts) <= win && q.v > roi[i].v) { ok = false; break; } if (ok) cand.push(roi[i]); }
+    const merged = [];
+    for (const p of cand) { const l = merged.at(-1); if (l && p.ts - l.ts <= win) { if (p.v > l.v) merged[merged.length - 1] = p; } else merged.push(p); }
+    const mi = merged.reduce((bi, p, i, a) => (p.v > a[bi].v ? i : bi), 0);
+    const use = merged.slice(mi); // from the all-time ROI peak forward (skip the ramp-up)
+    if (use.length >= 2) {
+      const X = use.map(p => (p.ts - xMin) / 86400000), Y = use.map(p => Math.log(p.v));
+      const n = X.length, sx = X.reduce((a, b) => a + b, 0), sy = Y.reduce((a, b) => a + b, 0);
+      const sxx = X.reduce((a, b) => a + b * b, 0), sxy = X.reduce((a, xi, i) => a + xi * Y[i], 0);
+      const slope = (n * sxy - sx * sy) / (n * sxx - sx * sx || 1), inter = (sy - slope * sx) / n;
+      if (slope < 0) {
+        const at = t => Math.exp(inter + slope * ((t - xMin) / 86400000));
+        const t0 = use[0].ts;
+        trend = `<line x1="${x(t0).toFixed(1)}" y1="${yR(at(t0)).toFixed(1)}" x2="${x(xMax).toFixed(1)}" y2="${yR(at(xMax)).toFixed(1)}" stroke="#fbbf24" stroke-width="2.6" stroke-dasharray="11 7" stroke-opacity="0.9"/>`;
+        for (const p of use) trend += `<circle cx="${x(p.ts).toFixed(1)}" cy="${yR(p.v).toFixed(1)}" r="6" fill="#fbbf24" stroke="#05050e" stroke-width="2"/>`;
+        trend += `<text x="${(x(t0) + 16).toFixed(1)}" y="${(yR(at(t0)) - 12).toFixed(1)}" fill="#fbbf24" font-size="22" font-weight="700" font-family="sans-serif">diminishing returns</text>`;
+      }
+    }
+  }
   let xlab = "";
   for (let yr = new Date(xMin).getFullYear(); yr <= new Date(xMax).getFullYear(); yr++) {
     const d = Date.parse(`${yr}-01-01`); if (d < xMin || d > xMax) continue;
@@ -71,7 +97,7 @@ ${grid}${rtick}${beLine}
 <polyline points="${priceLine}" fill="none" stroke="#38bdf8" stroke-width="3.4" stroke-opacity="0.95" stroke-linejoin="round"/>
 <polyline points="${roiLine}" fill="none" stroke="#f87171" stroke-width="10" stroke-opacity="0.24" filter="url(#roiGlow)"/>
 <polyline points="${roiLine}" fill="none" stroke="#f87171" stroke-width="4.2" stroke-linejoin="round" stroke-linecap="round"/>
-${xlab}
+${trend}${xlab}
 <text x="64" y="42" fill="#e2e8f0" font-size="29" font-weight="700" font-family="sans-serif" letter-spacing="1.5">SPX6900 — 365D RUNNING ROI</text>
 <text x="${W - mR}" y="42" fill="${dc}" font-size="27" font-weight="800" font-family="sans-serif" text-anchor="end">${curRoi.toFixed(2)}× · ${pct >= 0 ? "+" : ""}${pct}% (1yr)</text>
 <text x="64" y="70" font-size="26" font-family="sans-serif"><tspan fill="#38bdf8" font-weight="700">— price</tspan><tspan fill="#64748b">    </tspan><tspan fill="#f87171" font-weight="700">— 365D ROI</tspan><tspan fill="#64748b">    </tspan><tspan fill="#4ade80" font-weight="700">— break-even (1×)</tspan></text>

@@ -58,6 +58,25 @@
     reliably empty, add a few $ OpenRouter credits or set a cheap paid model as primary.
   - Offline-tested (`test/llm-copy.test.mjs`, injectable fetch). `signals.json` stays
     deploy-ignored, so drafts never trigger a Vercel deploy.
+- **⭐ WANTED — CONTROL-PANEL LLM "AGENT" ("ask the agent") — owner request 2026-07-05.**
+  Owner wants a **chat section in the control panel**, connected to OpenRouter, where he
+  asks an "agent" directly — e.g. *"what do you see today?"*, *"which card should be fired
+  today?"* — instead of going back and forth with Claude Code. The agent should reach the
+  **codebase + logic + current state** so it can reason about the day's post choice.
+  - **Honest scope (important):** a browser-side LLM can't read the repo. Practically this
+    is a serverless endpoint (`api/agent`) that ASSEMBLES the context and feeds it to
+    OpenRouter with the owner's question, streaming the answer into a panel chat box. The
+    context to gather: today's `computeStats`, the deterministic **rotation pick**
+    (`buildPost`/`rotation()` for today's epochDay), the **"Notable today" signals**
+    (`signals.json`), post-state / queue / band-state, and a compact **card catalog**
+    (ids + one-line descriptions of what each card shows). With that, it can answer "which
+    card today + why" from REAL numbers, not guesses.
+  - **Reuse the existing infra:** same `OPENROUTER_API_KEY` + free-model fallback chain as
+    `llm-copy.mjs`; same honesty guardrails (real numbers only, no invented figures). Could
+    later expose "tools" (call the rotation calc / stats live) for a truer agent.
+  - **Status: idea captured, build when prioritized.** Bigger than the shadow copywriter —
+    needs the context-assembly endpoint + a chat UI in `control.html` (streaming). Owner's
+    goal is self-serve: reduce the Claude-Code round-trips for "what's the read today."
 
 ## Backlog / decisions
 - **⭐ CARD vs WEBSITE — different audiences, different defaults (owner, 2026-07-03).**
