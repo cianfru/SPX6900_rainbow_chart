@@ -79,6 +79,30 @@
     goal is self-serve: reduce the Claude-Code round-trips for "what's the read today."
 
 ## Backlog / decisions
+- **⭐ BUILD THE FOUNDATION — collect data now, even at 3yr (owner, 2026-07-05).** Many
+  ITC charts encode 15-year / multi-cycle BTC insights that SPX is TOO YOUNG to show yet
+  (quantile fan, Cowen corridor, cross-cycle diminishing returns). Owner's directive:
+  don't skip them — **build the DATA-COLLECTION foundation now** so they mature over time
+  (same model as the MVRV / holder-growth data-gated charts). For each: bank the raw
+  inputs daily/weekly (snapshot cron, price-history builder, a futures-L/S banker) and
+  put up chart scaffolding that FILLS IN as history accumulates. The ask is infrastructure
+  + patience, not forcing a premature signal onto thin data.
+- **❌ "Diminishing returns" — I GOT IT WRONG, reverted (owner correction, 2026-07-05).**
+  Diminishing returns = each **cycle's RALLY (bottom→top) is less steep / a smaller
+  multiple than the previous cycle** (cross-cycle). I mistakenly drew a trendline through
+  the 365D-ROI *peaks within one cycle* — that's just the last bull→bear ROI rolloff, NOT
+  diminishing returns. **SPX is too young** (≈2 cycles) to show real cross-cycle
+  diminishing returns. Removed the ROI-card trendline. The honest home for this is the
+  **rally chart** (cycle bottom→top multiples, +16240% → +415% → +81%), which already
+  shows the maturation as far as the data allows — it just needs more cycles to bank.
+- **Dense historical price data is NOT freely available before ~2025-09 (found 2026-07-05).**
+  The `price-history` builder ran: coinbase gave 300 pts (2025-09→now), GeckoTerminal FREE
+  only ~180 recent (its free OHLCV caps historical depth), bybit nothing. So `public/
+  price-history.json` densifies **2025-09 → today** only; **2024 / early-2025 stay on the
+  weekly bundle** (the boxy older rallies can't be fixed from free sources — the dense
+  daily 2024 data that DEFAULT_RAW was thinned from is no longer served). To fully densify
+  the launch era would need a PAID API (GeckoTerminal paid, or the RCCE_Scanner exchange
+  code the owner pointed to) — otherwise the daily banking accumulates going forward.
 - **⭐ CARD vs WEBSITE — different audiences, different defaults (owner, 2026-07-03).**
   **Cards are for the general public** → keep them digestible: a tight, cropped, single
   clear read at a glance. **The website is for DIGGING INTO THE DATA** → default to the
