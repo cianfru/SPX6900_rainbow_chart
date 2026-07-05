@@ -35,7 +35,7 @@
   "risklevels": "square",
   "spxvssp": "square",
   "strategy": "square",
-  "riskheat": "square",
+  "riskheat": "landscape",
   "runningroi": "square",
   "cycle": "square",
   "rsidots": "square",
