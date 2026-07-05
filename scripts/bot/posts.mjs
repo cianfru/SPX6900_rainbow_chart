@@ -541,6 +541,9 @@ Cheap can get cheaper, but the deepest discounts paid the patient.`,
       card: { type: "line", spec: {
         title: `Since the last Fire Sale (${fMon(s.lastFireSale.date)})`, headline: fPct(s.lastFireSale.sinceGain), accent: "#4ade80",
         yLog: true, yTicks: decadeTicks(lo, hi),
+        // The rainbow valuation bands the rally climbed through (Fire Sale → up),
+        // as horizontal strips behind the price line.
+        bands: s.lastFireSale.bands,
         series: [{ pts, color: "#4ade80", width: 3.5, fill: 0.14 }],
         // Frame the move: the Fire Sale low (entry) and, if it ran meaningfully
         // higher than now, the peak.

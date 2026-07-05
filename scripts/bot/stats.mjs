@@ -245,7 +245,22 @@ export function computeStats(price, dateStr = new Date().toISOString().slice(0, 
     nextUp: M.BAND_LABELS[nextUpIdx],
     nextUpPrice: M.bandVal(m, day, nextUpIdx),
     lastFireSale: lastFs
-      ? { date: lastFs.startDate, low: lastFs.lowPrice, sinceGain: price / lastFs.lowPrice - 1, peakGain: lastFs.maxGain }
+      ? {
+          date: lastFs.startDate, low: lastFs.lowPrice, sinceGain: price / lastFs.lowPrice - 1, peakGain: lastFs.maxGain,
+          // Rainbow valuation bands the rally climbed through, from the Fire Sale
+          // low up to the band the peak reached — evaluated at TODAY's levels so
+          // the read matches the site's current-band call (band `bi`). Horizontal
+          // is an approximation (the bands drift up over the weeks) but the window
+          // is short. Each: {y0,y1,label,color} = one band's price span.
+          bands: (() => {
+            const peakPrice = lastFs.lowPrice * (1 + lastFs.maxGain);
+            const top = M.bandIndex(m, peakPrice, day);
+            const out = [];
+            for (let i = 0; i <= top && i < M.BAND_LABELS.length; i++)
+              out.push({ y0: M.bandVal(m, day, i), y1: M.bandVal(m, day, i + 1), label: M.BAND_LABELS[i].l, color: M.BAND_LABELS[i].c });
+            return out;
+          })(),
+        }
       : null,
     ath, athDate, drawdown: dd, maxDrawdown: maxDd,
     cheaperFrac, edge,
