@@ -197,6 +197,20 @@ export function lineCardSvg(spec, opts = {}) {
     grid += `<text x="${X(t.x).toFixed(1)}" y="${DH - 50}" fill="#64748b" font-size="30" text-anchor="${t.anchor || "middle"}" font-family="sans-serif">${esc(t.label)}</text>`;
   }
 
+  // Horizontal valuation-band strips (e.g. the rainbow bands a rally climbed
+  // through). Drawn behind the line/fill, clamped to the plot, each labelled at
+  // the left. {y0,y1,label,color}; y0<y1 in price. Cool tint so the line reads on top.
+  let bandRects = "";
+  for (const b of (spec.bands || [])) {
+    const yTop = Math.max(mT, Math.min(mT + PH, Y(b.y1)));
+    const yBot = Math.max(mT, Math.min(mT + PH, Y(b.y0)));
+    const bh = yBot - yTop;
+    if (bh <= 1) continue;
+    bandRects += `<rect x="${mL}" y="${yTop.toFixed(1)}" width="${PW}" height="${bh.toFixed(1)}" fill="${b.color}" fill-opacity="${b.opacity ?? 0.13}"/>`;
+    bandRects += `<line x1="${mL}" y1="${yTop.toFixed(1)}" x2="${DW - mR}" y2="${yTop.toFixed(1)}" stroke="${b.color}" stroke-opacity="0.4" stroke-width="1.5"/>`;
+    if (b.label && bh >= 22) bandRects += `<text x="${mL + 12}" y="${(yTop + Math.min(bh / 2, 26) + 8).toFixed(1)}" fill="${b.color}" font-size="26" font-weight="700" font-family="sans-serif" opacity="0.92">${esc(b.label)}</text>`;
+  }
+
   // bear–bull cone (drawn behind the lines), clipped to the reveal sweep
   let cone = "";
   if (spec.cone) {
@@ -326,7 +340,7 @@ export function lineCardSvg(spec, opts = {}) {
     }
   }
 
-  return chromeSvg(spec, grid + cone + plot + hl + marker + legend + endLogos, defs, { W: DW, H: DH });
+  return chromeSvg(spec, grid + bandRects + cone + plot + hl + marker + legend + endLogos, defs, { W: DW, H: DH });
 }
 
 export function renderBarCard(spec, opts = {}) {
