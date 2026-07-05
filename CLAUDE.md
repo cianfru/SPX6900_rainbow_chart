@@ -140,6 +140,17 @@
   less sell-side overhang) but NOT a leading signal, NOT "diamonds accumulated," and
   ~uncorrelated with the same-day price move. **Do not post a diamond spike as
   accumulation** — it would be inaccurate (honesty is the moat).
+- **⭐ TWO diamond numbers — 61% of SUPPLY vs 86% of CLASSIFIED (owner, 2026-07-05).**
+  Community confusion (whythatnickname/Robert): the `diamondtrend` card headlines
+  diamond as a share of TOTAL 939M supply (~61%), while the `distribution` donut +
+  HolderScan headline diamond as a share of CLASSIFIED holders (~86%, which EXCLUDES
+  exchanges, LP pools & contracts). Same coins, two denominators — 86% of the real
+  holder base = 61% of the whole float; nobody "dropped" 86→61. **Decision (option 2):
+  BRIDGE both on the card** — `diamondtrend` now headlines "61% of supply · 86% of
+  classified" and its copy states both, so the numbers never read as a contradiction.
+  86%-of-classified = `s.supply.diamondTokens / s.supply.classified`; the donut already
+  footnotes "86% of classified ≈ 61% of all supply." When posting diamond numbers,
+  always say WHICH denominator (or bridge them).
 - **❌ "Grade my entry" / "entry report card" — PARKED (owner, 2026-07-02).** Mocked
   three variants (personal entry-vs-bands card, site widget + og share, and a 5-row
   archetype "report card" graded by buy-date band). Owner parked the whole thread:

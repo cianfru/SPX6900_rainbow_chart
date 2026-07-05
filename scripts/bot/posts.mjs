@@ -695,14 +695,20 @@ ${up ? "Most of the float is green and still holding." : "Red and still not sell
     const trend = Math.abs(delta) < 0.2
       ? `Rock steady near ${nowPct.toFixed(decimals)}% across every snapshot we've taken`
       : `${delta > 0 ? "Up" : "Down"} from ${startPct.toFixed(decimals)}% to ${nowPct.toFixed(decimals)}% since we started tracking`;
+    // Bridge the two diamond numbers that confuse people: this trend is diamond as a
+    // share of TOTAL supply (~61%); HolderScan headlines diamond as a share of
+    // CLASSIFIED holders (~86%, excludes exchanges/LPs/contracts). Same coins, two
+    // denominators — say both so 61 vs 86 never reads as a drop.
+    const cpct = s.supply.classified ? Math.round((s.supply.diamondTokens / s.supply.classified) * 100) : null;
     return {
       id: "diamondtrend",
       text: copy("diamondtrend",
-`💎 Diamond hands hold ~{pct}% of all SPX6900 supply ({value}) — the longest-held coins on-chain, the float that rarely moves.
-{trend} — the conviction base sitting under the price.`,
-        { pct: Math.round(nowPct), value: fMoney(s.supply.diamondValue), trend }),
+`💎 Diamond hands hold ~{pct}% of all SPX6900 supply ({value}) — the float that rarely moves.
+That's {cpct}% of classified holders (HolderScan's number); the gap is coins on exchanges & in LPs.
+{trend}.`,
+        { pct: Math.round(nowPct), cpct, value: fMoney(s.supply.diamondValue), trend }),
       card: { type: "line", spec: {
-        title: "Diamond hands — share of supply over time", headline: `${Math.round(nowPct)}% diamond supply`, accent: "#22d3ee",
+        title: "Diamond hands — share of total supply over time", headline: cpct ? `${Math.round(nowPct)}% of supply · ${cpct}% of classified` : `${Math.round(nowPct)}% diamond supply`, accent: "#22d3ee",
         yMin: lo - pad, yMax: hi + pad, yFmt: v => v.toFixed(decimals) + "%",
         series: [{ pts: ds, color: "#22d3ee", width: 3.5, fill: 0.18 }],
         marker: { x: ds.at(-1)[0], y: ds.at(-1)[1], color: "#22d3ee" },
