@@ -1183,7 +1183,9 @@ Buy $100 on the 1st of every month, no timing, through every crash. ${fUsd0(cont
 You never needed the bottom, just consistency.`,
       card: { type: "dca", spec: {
         title: "Stacking $100/mo since launch", headline: `${fUsd0(contributed)} → ${fUsd0(cur)}`, accent: "#34d399",
-        linear: true, invested, value, buys,
+        // Log scale: on linear the flat "$X invested" staircase and the early years
+        // compress to an unreadable sliver — log keeps the monthly adds distinct.
+        invested, value, buys,
       } },
     };
   })(),
