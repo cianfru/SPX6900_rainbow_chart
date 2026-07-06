@@ -87,7 +87,10 @@ export async function resolveModelsAsync(opts = {}, doFetch = null) {
   if (!FREE_CACHE || now - FREE_CACHE.at > 600000) FREE_CACHE = { at: now, ids: await discoverFreeModels(doFetch) };
   const discovered = FREE_CACHE.ids || [];
   if (!discovered.length) return base;
-  return [...new Set([...discovered, ...FREE_FALLBACKS])].slice(0, 8);
+  // Owner-vetted SEEDS lead (predictable, known-good, non-truncating); discovery is
+  // the CHURN SAFETY NET appended after — used only if the seeds are all dead/429.
+  // (Discovery-first kept surfacing giant reasoning models that truncate the answer.)
+  return [...new Set([...base, ...discovered])].slice(0, 8);
 }
 
 // General chat completion over the same free-model fallback chain — for the
@@ -104,9 +107,10 @@ export async function chat(messages, opts = {}) {
       const res = await doFetch(OPENROUTER_URL, {
         method: "POST",
         headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json", "HTTP-Referer": "https://spx6900rainbow.xyz", "X-Title": "SPX6900 Control Agent" },
-        // reasoning.exclude drops chain-of-thought tokens for reasoning models
-        // (e.g. Nemotron) so their scratchpad never leaks into the answer.
-        body: JSON.stringify({ model, temperature: opts.temperature ?? 0.4, max_tokens: opts.maxTokens ?? 800, reasoning: { exclude: true }, messages }),
+        // reasoning: cap the scratchpad (effort:low) AND exclude it from the response
+        // so a reasoning model (e.g. Nemotron) neither leaks its thinking into the
+        // answer nor burns the whole token budget on it (which truncated the reply).
+        body: JSON.stringify({ model, temperature: opts.temperature ?? 0.4, max_tokens: opts.maxTokens ?? 800, reasoning: { effort: "low", exclude: true }, messages }),
       });
       if (!res.ok) { const b = await res.text().catch(() => ""); tried.push(`${model}: ${res.status}${b ? " " + b.slice(0, 80) : ""}`); if (res.status === 401 || res.status === 403) break; continue; }
       const json = await res.json();

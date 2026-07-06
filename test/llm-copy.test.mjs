@@ -96,17 +96,20 @@ test("fetch failure degrades gracefully (no throw)", async () => {
   assert.match(d.reason, /network down/);
 });
 
-test("resolveModelsAsync discovers live free text models, orders by context, seeds after", async () => {
+test("resolveModelsAsync tries owner-vetted seeds first, then appends discovered free models", async () => {
   _resetFreeModelCache();
   const doFetch = async () => ({ ok: true, json: async () => MODELS_LIST });
   const models = await resolveModelsAsync({}, doFetch);
-  // text→text :free models only, biggest context first; the vision + paid ids dropped
-  assert.equal(models[0], "provider-a/big:free");
-  assert.equal(models[1], "provider-b/small:free");
+  // seeds lead (predictable, non-truncating); the owner-confirmed model is first
+  assert.equal(models[0], "nvidia/nemotron-3-super-120b-a12b:free");
+  // discovered text→text :free models appended as the churn safety net
+  assert.ok(models.includes("provider-a/big:free"), "discovered text model appended");
+  assert.ok(models.includes("provider-b/small:free"));
+  // bigger-context discovered model precedes the smaller one
+  assert.ok(models.indexOf("provider-a/big:free") < models.indexOf("provider-b/small:free"));
+  // vision-input and non-free models dropped
   assert.ok(!models.includes("provider-c/vision:free"), "image-input model excluded");
   assert.ok(!models.includes("provider-d/paid"), "non-free model excluded");
-  // static seeds still anchored after the discovered ids
-  assert.ok(models.includes("deepseek/deepseek-chat-v3-0324:free"));
 });
 
 test("resolveModelsAsync skips discovery when models are pinned explicitly", async () => {
