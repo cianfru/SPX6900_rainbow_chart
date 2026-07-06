@@ -104,7 +104,9 @@ export async function chat(messages, opts = {}) {
       const res = await doFetch(OPENROUTER_URL, {
         method: "POST",
         headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json", "HTTP-Referer": "https://spx6900rainbow.xyz", "X-Title": "SPX6900 Control Agent" },
-        body: JSON.stringify({ model, temperature: opts.temperature ?? 0.4, max_tokens: opts.maxTokens ?? 800, messages }),
+        // reasoning.exclude drops chain-of-thought tokens for reasoning models
+        // (e.g. Nemotron) so their scratchpad never leaks into the answer.
+        body: JSON.stringify({ model, temperature: opts.temperature ?? 0.4, max_tokens: opts.maxTokens ?? 800, reasoning: { exclude: true }, messages }),
       });
       if (!res.ok) { const b = await res.text().catch(() => ""); tried.push(`${model}: ${res.status}${b ? " " + b.slice(0, 80) : ""}`); if (res.status === 401 || res.status === 403) break; continue; }
       const json = await res.json();

@@ -90,25 +90,32 @@ const SYSTEM = `You are the on-call analyst for the SPX6900 rainbow-chart X (Twi
 You are given a CONTEXT block of REAL, already-computed numbers (today's stats, the "Notable today" signals, the deterministic rotation pick, and the full catalog of cards that can post today with each card's live hero line). Ground every claim in that context.
 
 Hard rules:
-- Use ONLY numbers present in the CONTEXT. NEVER invent, re-round, or add a figure that isn't there. Honesty is the account's whole moat — it kept followers through a ~28% drawdown by being straight.
-- Be concise and direct. The owner is an expert; skip preamble. A few tight sentences, not an essay.
-- When you recommend a specific card to post, reference it by its catalog id and briefly say WHY today (tie it to a real number or a Notable-today signal).
-- If the owner asks you to prepare/post a specific card, or you land on a clear single recommendation, END your message with action tags on their own lines:
-    [[card:<id>]]
-  and, if you also want to hand over ready tweet copy, an editable 3-line draft:
-    [[draft]]
-    <hero line — lead with the number/state>
-    <one tight description sentence>
-    <short closing takeaway>
-    [[/draft]]
-  Draft rules: exactly 3 short lines, ~180–230 chars total, must contain a number, no hype/advice words, no hashtags/footer (the system appends its own), never attach 's to an @handle.
-- Only emit [[card:...]] when there's a real pick — for open-ended "what do you see" answers without a decision, skip the tags.
-- The <id> in [[card:...]] MUST be one from the catalog. Never invent an id.`;
+- OUTPUT ONLY YOUR FINAL ANSWER for the owner to read. NEVER show your reasoning, planning, step-by-step deliberation, or meta-commentary about these instructions. No "we need to…", no thinking out loud. Just the answer.
+- Answer in 2–4 tight sentences. The owner is an expert; skip preamble. No essays.
+- Use ONLY numbers present in the CONTEXT. NEVER invent, re-round, or add a figure that isn't there. Honesty is the account's whole moat.
+- When you recommend a card, name it by its catalog id and give ONE sentence of why today (tie it to a real number or a Notable-today signal).
+- If nothing is notable, recommend the day's rotation pick (rotationPickForToday) — that's what auto-posts anyway — UNLESS it's a promo (e.g. kraken) and the owner wants analysis, in which case suggest the strongest evergreen value card that fits today's price (the deep Fire-Sale/discount cards when price is low).
+
+Recommending a card — if (and only if) you land on a clear single pick, append action tags at the very end, each on its own line:
+[[card:<id>]]
+Optionally also hand over ready copy as a 3-line draft:
+[[draft]]
+line 1 — the hook (lead with the number or current state)
+line 2 — one tight description sentence
+line 3 — a short takeaway
+[[/draft]]
+Draft guidance (soft — the owner edits it): ~3 short lines, under ~230 chars, calm not hype, no hashtags/footer (added automatically), include a number when the card is data-driven, and never attach 's to an @handle. If a card has no natural number (e.g. a promo), just skip the draft — recommend the card without one.
+For open-ended "what do you see" questions with no clear decision, skip the tags entirely. The <id> MUST be one from the catalog — never invent an id.`;
 
 // Parse the agent's action tags out of the reply. Returns { answer, card, draft }
 // with the tags stripped from the visible answer.
 function parseAction(text, validIds) {
   let answer = String(text || "");
+  // Reasoning models sometimes leak their scratchpad inline — strip <think>/<reasoning>
+  // blocks. If the model emitted an unclosed opener, keep only what follows it.
+  answer = answer.replace(/<(think|thinking|reasoning|analysis)>[\s\S]*?<\/\1>/gi, "");
+  const openTag = answer.match(/<\/(think|thinking|reasoning|analysis)>/i);
+  if (openTag) answer = answer.slice(answer.lastIndexOf(openTag[0]) + openTag[0].length);
   let card = null, draft = null;
   const draftMatch = answer.match(/\[\[draft\]\]([\s\S]*?)\[\[\/draft\]\]/i);
   if (draftMatch) {
