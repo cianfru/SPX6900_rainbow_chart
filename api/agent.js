@@ -42,11 +42,16 @@ async function readBody(req) {
   try { return JSON.parse(raw || "{}"); } catch { return {}; }
 }
 
-// The first line of a post's rendered text = its hero, which doubles as a one-line
-// "what this card says today" for the catalog. Resolve any ct`` copy marker first.
-function heroOf(post) {
+// The FULL resolved copy of a card = exactly "what this card says today", REAL numbers
+// and all — so the agent grounds its "why" in the card's own figures instead of inventing
+// them (only the first line isn't enough: the numbers usually live on line 2/3). Resolve
+// any ct`` copy marker, drop the NFA line, collapse blanks, and cap the length.
+function cardSays(post) {
   const text = isCopyMarker(post.text) ? bindCopy(post.id, post.text) : String(post.text || "");
-  return text.split("\n").map(l => l.trim()).find(Boolean) || "";
+  return text
+    .replace(/\n?(?:🌈 )?NFA\s*$/u, "")
+    .split("\n").map(l => l.trim()).filter(Boolean).join(" · ")
+    .slice(0, 300);
 }
 
 function assembleContext(stats, todayPick, catalog, signals, queue, postState) {
@@ -77,23 +82,24 @@ function assembleContext(stats, todayPick, catalog, signals, queue, postState) {
   }));
   return {
     today: facts,
-    rotationPickForToday: { id: todayPick.id, hero: heroOf(todayPick) },
+    rotationPickForToday: { id: todayPick.id, says: cardSays(todayPick) },
     notableToday: notable,
     queuedCard: queue?.id || null,
     lastPosted: postState ? { date: postState.lastPostedDate, id: postState.lastId } : null,
-    cardCatalog: catalog, // [{ id, hero }] — every card buildable today, id + its live hero line
+    cardCatalog: catalog, // [{ id, says }] — every card buildable today, id + its full live copy (real numbers)
   };
 }
 
 const SYSTEM = `You are the on-call analyst for the SPX6900 rainbow-chart X (Twitter) account, chatting with the account owner inside his private control panel. He asks what's notable today and which card to post; you reason it out WITH him.
 
-You are given a CONTEXT block of REAL, already-computed numbers (today's stats, the "Notable today" signals, the deterministic rotation pick, and the full catalog of cards that can post today with each card's live hero line). Ground every claim in that context.
+You are given a CONTEXT block of REAL, already-computed numbers: today's stats, the "Notable today" signals, the deterministic rotation pick, and the full catalog of cards that can post today — each with its id and its live copy under "says" (the card's actual text WITH its real numbers). Ground every claim in that context.
 
 Hard rules:
 - OUTPUT ONLY YOUR FINAL ANSWER for the owner to read. NEVER show your reasoning, planning, step-by-step deliberation, or meta-commentary about these instructions. No "we need to…", no thinking out loud. Just the answer.
 - Answer in 2–4 tight sentences. The owner is an expert; skip preamble. No essays.
-- Use ONLY numbers present in the CONTEXT. NEVER invent, re-round, or add a figure that isn't there. Honesty is the account's whole moat.
-- When you recommend a card, name it by its catalog id and give ONE sentence of why today (tie it to a real number or a Notable-today signal).
+- Use ONLY numbers that appear in the CONTEXT (the stats, a signal, or a card's own "says" text). NEVER invent, compute, extrapolate, or re-round a figure that isn't given — no made-up ages, dates, cycle percentages, multiples, or prices. Honesty is the account's whole moat: a fabricated number is a firing offence. If you don't have a number for a point, make the point qualitatively or don't make it.
+- Describe a card ONLY from its "says" text. Do not infer what a card shows from its id — e.g. don't assume what "btcage" plots; read its says line. If unsure what a card conveys, pick a different one whose says text is clear.
+- When you recommend a card, name it by its catalog id and give ONE sentence of why today, tied to a real number from its "says" text, the stats, or a Notable-today signal.
 - If nothing is notable, recommend the day's rotation pick (rotationPickForToday) — that's what auto-posts anyway — UNLESS it's a promo (e.g. kraken) and the owner wants analysis, in which case suggest the strongest evergreen value card that fits today's price (the deep Fire-Sale/discount cards when price is low).
 
 Recommending a card — if (and only if) you land on a clear single pick, append action tags at the very end, each on its own line:
@@ -160,7 +166,7 @@ export default async function handler(req, res) {
     const stats = computeStats(price, undefined, opts);
 
     const todayPick = buildPost(stats);
-    const catalog = buildAll(stats).map(p => ({ id: p.id, hero: heroOf(p) }));
+    const catalog = buildAll(stats).map(p => ({ id: p.id, says: cardSays(p) }));
     const validIds = catalog.map(c => c.id);
 
     const [signals, queue, postState] = await Promise.all([
