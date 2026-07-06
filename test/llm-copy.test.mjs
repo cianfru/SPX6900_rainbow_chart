@@ -3,7 +3,16 @@
 // deterministic mock. Guards the honesty rails (numbers only, blocklist, length).
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { draftCopy, validateDraft, xLen } from "../scripts/bot/llm-copy.mjs";
+import { draftCopy, validateDraft, xLen, resolveModelsAsync, _resetFreeModelCache } from "../scripts/bot/llm-copy.mjs";
+
+const MODELS_LIST = {
+  data: [
+    { id: "provider-a/big:free", context_length: 128000, architecture: { input_modalities: ["text"], output_modalities: ["text"] } },
+    { id: "provider-b/small:free", context_length: 8000, architecture: { input_modalities: ["text"], output_modalities: ["text"] } },
+    { id: "provider-c/vision:free", context_length: 64000, architecture: { input_modalities: ["image"], output_modalities: ["text"] } },
+    { id: "provider-d/paid", context_length: 200000, architecture: { input_modalities: ["text"], output_modalities: ["text"] } },
+  ],
+};
 
 const SIGNAL = {
   type: "diamond-jump", emoji: "💎",
@@ -85,6 +94,39 @@ test("fetch failure degrades gracefully (no throw)", async () => {
   const d = await draftCopy(SIGNAL, { apiKey: "sk-test", fetchImpl: boom });
   assert.equal(d.ok, false);
   assert.match(d.reason, /network down/);
+});
+
+test("resolveModelsAsync discovers live free text models, orders by context, seeds after", async () => {
+  _resetFreeModelCache();
+  const doFetch = async () => ({ ok: true, json: async () => MODELS_LIST });
+  const models = await resolveModelsAsync({}, doFetch);
+  // text→text :free models only, biggest context first; the vision + paid ids dropped
+  assert.equal(models[0], "provider-a/big:free");
+  assert.equal(models[1], "provider-b/small:free");
+  assert.ok(!models.includes("provider-c/vision:free"), "image-input model excluded");
+  assert.ok(!models.includes("provider-d/paid"), "non-free model excluded");
+  // static seeds still anchored after the discovered ids
+  assert.ok(models.includes("deepseek/deepseek-chat-v3-0324:free"));
+});
+
+test("resolveModelsAsync skips discovery when models are pinned explicitly", async () => {
+  let called = false;
+  const doFetch = async () => { called = true; return { ok: true, json: async () => MODELS_LIST }; };
+  const models = await resolveModelsAsync({ models: ["only/this:free"] }, doFetch);
+  assert.deepEqual(models, ["only/this:free"]);
+  assert.equal(called, false, "no /models call when the chain is pinned");
+});
+
+test("resolveModelsAsync falls back to static seeds when discovery fails", async () => {
+  _resetFreeModelCache();
+  const doFetch = async () => ({ ok: false, status: 500, text: async () => "err" });
+  const models = await resolveModelsAsync({}, doFetch);
+  assert.deepEqual(models, [
+    "nvidia/nemotron-3-super-120b-a12b:free",
+    "deepseek/deepseek-chat-v3-0324:free",
+    "meta-llama/llama-3.3-70b-instruct:free",
+    "google/gemma-3-27b-it:free",
+  ]);
 });
 
 test("xLen counts emoji as 2 and URLs as 23", () => {
