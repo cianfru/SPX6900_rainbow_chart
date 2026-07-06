@@ -47,15 +47,22 @@
     is wired (owner asked to see the UX first). Wire it by adding repo secret
     `OPENROUTER_API_KEY` — already referenced in snapshot.yml, so the next snapshot picks
     it up automatically. Free/1-post-a-day fits free tiers.
-  - **FREE-MODEL FALLBACK CHAIN (owner chose "stay free", 2026-07-04).** The self-test
-    proved the key + request work but OpenRouter's `:free` endpoints throw pooled 429s
-    ("temporarily rate-limited") per provider. So `draftCopy` tries a CHAIN of free models
-    from DIFFERENT providers (`FREE_FALLBACKS`: llama-3.3-70b · gemini-2.0-flash · qwen-2.5
-    -72b) and takes the first VALID draft — $0, survives one provider being saturated, and
-    tolerates a stale/renamed id (that model just fails and we move on). A 401/403 stops
-    the chain early (same key everywhere). Overrides: repo var `OPENROUTER_MODEL` (primary)
-    or `OPENROUTER_MODELS` (whole comma-separated chain); both optional. If drafts ever go
-    reliably empty, add a few $ OpenRouter credits or set a cheap paid model as primary.
+  - **FREE-MODEL CHAIN → RUNTIME DISCOVERY (owner chose "stay free"; churn fix 2026-07-06).**
+    OpenRouter's `:free` endpoints (a) throw pooled 429s per provider AND (b) CHURN — on
+    2026-07-06 the whole hardcoded chain died at once: `gemini-2.0-flash-exp:free` → 404
+    (deleted), `qwen-2.5-72b:free` → 404 (moved to paid-only), `llama-3.3-70b:free` → 429.
+    A static list rots. **Fix:** `resolveModelsAsync` now DISCOVERS the live free models at
+    runtime from OpenRouter's public `/models` endpoint (no key needed), filters to text→text
+    chat models, orders by context length, and tries them first — with `FREE_FALLBACKS`
+    (nvidia-nemotron-3-super-120b **owner-confirmed live** · deepseek-v3 · llama-3.3-70b ·
+    gemma-3-27b) as seed/fallback anchors after.
+    Cached 10 min per warm lambda; degrades to the seeds if `/models` is unreachable. Both
+    `draftCopy` (shadow copy) and `chat` (control agent) use it. A 401/403 still stops early
+    (bad key). Pin to skip discovery: repo/Vercel var `OPENROUTER_MODEL` (primary) or
+    `OPENROUTER_MODELS` (whole comma-separated chain). If it ever goes reliably empty, add a
+    few $ OpenRouter credits or pin a cheap paid model. **NOTE: the control agent runs on
+    VERCEL, so `OPENROUTER_API_KEY` must be set in VERCEL env (not just the GH Actions secret
+    the snapshot cron uses) — they're separate.**
   - Offline-tested (`test/llm-copy.test.mjs`, injectable fetch). `signals.json` stays
     deploy-ignored, so drafts never trigger a Vercel deploy.
 - **⭐ CONTROL-PANEL LLM "AGENT" ("ask the agent") — BUILT 2026-07-05 (owner request).**

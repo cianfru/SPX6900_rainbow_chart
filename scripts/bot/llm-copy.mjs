@@ -14,22 +14,26 @@
 // MOCK so the control-panel UX is visible before a real key is wired.
 
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
-// Free-model FALLBACK CHAIN. OpenRouter's free endpoints get pooled 429s ("temporarily
-// rate-limited") independently per provider, so we try several free models from DIFFERENT
-// providers in order and take the first that yields a valid draft — staying $0 while
-// surviving one provider being saturated. The chain also tolerates a stale/renamed id
-// (that model just fails and we move on). Override the primary with OPENROUTER_MODEL, or
-// the whole chain with OPENROUTER_MODELS (comma-separated). Kept env-overridable because
-// free ids churn.
+const OPENROUTER_MODELS_URL = "https://openrouter.ai/api/v1/models";
+// Free-model FALLBACK CHAIN — but free ids CHURN constantly: providers rename them,
+// delete the `:free` endpoint, or move a model to paid-only (seen 2026-07: gemini
+// -2.0-flash-exp:free → 404, qwen-2.5-72b:free → paid-only, llama-3.3-70b:free → 429).
+// So a hardcoded list rots. These are only SEED/FALLBACK anchors; the live chain is
+// DISCOVERED at runtime from OpenRouter's public /models endpoint (resolveModelsAsync →
+// discoverFreeModels). Kept diverse across providers. Override the primary with
+// OPENROUTER_MODEL, or pin the whole chain with OPENROUTER_MODELS (comma-separated) to
+// skip discovery entirely.
 const FREE_FALLBACKS = [
-  "meta-llama/llama-3.3-70b-instruct:free", // Meta / Together
-  "google/gemini-2.0-flash-exp:free",       // Google
-  "qwen/qwen-2.5-72b-instruct:free",        // Alibaba / Qwen
+  "nvidia/nemotron-3-super-120b-a12b:free", // NVIDIA Nemotron — owner-confirmed live 2026-07-06
+  "deepseek/deepseek-chat-v3-0324:free",    // DeepSeek — historically reliable free
+  "meta-llama/llama-3.3-70b-instruct:free", // Meta / Together (exists; can 429)
+  "google/gemma-3-27b-it:free",             // Google Gemma
 ];
 const DEFAULT_MODEL = FREE_FALLBACKS[0];
 
 // Resolve the ordered list of models to try: explicit chain wins, else the primary
-// (opts/env) followed by the remaining free fallbacks (deduped).
+// (opts/env) followed by the remaining free fallbacks (deduped). SYNC — no discovery;
+// used directly by tests and as the base for resolveModelsAsync.
 function resolveModels(opts = {}) {
   const envList = (process.env.OPENROUTER_MODELS || "").split(",").map(s => s.trim()).filter(Boolean);
   if (opts.models?.length) return [...new Set(opts.models)];
@@ -39,6 +43,53 @@ function resolveModels(opts = {}) {
   return [...new Set(chain)];
 }
 
+// True when the caller pinned models explicitly (opts/env) — discovery is then skipped.
+function hasExplicitModels(opts = {}) {
+  return !!(opts.models?.length || (process.env.OPENROUTER_MODELS || "").trim() || opts.model || process.env.OPENROUTER_MODEL);
+}
+
+// Per-warm-lambda cache of the discovered free-model ids (10 min TTL) so we don't
+// GET /models on every request.
+let FREE_CACHE = null;
+// Test hook: clear the discovery cache so cases don't leak into each other.
+export function _resetFreeModelCache() { FREE_CACHE = null; }
+
+// Ask OpenRouter which models are FREE right now (no API key needed). Filters to
+// text→text chat models, orders by context length (a rough capability proxy). Returns
+// [] on any failure so the caller falls back to the static seeds — never throws.
+async function discoverFreeModels(doFetch) {
+  try {
+    const res = await doFetch(OPENROUTER_MODELS_URL);
+    if (!res.ok) return [];
+    const j = await res.json();
+    return (j?.data || [])
+      .filter(m => typeof m?.id === "string" && m.id.endsWith(":free"))
+      .filter(m => {
+        // keep text-in/text-out chat models; skip image/audio-only endpoints
+        const a = m.architecture || {};
+        const out = a.output_modalities || (a.modality ? String(a.modality).split("->").pop().split("+") : []);
+        const inp = a.input_modalities || [];
+        return (!out.length || out.includes("text")) && (!inp.length || inp.includes("text"));
+      })
+      .map(m => ({ id: m.id, ctx: m.context_length || 0 }))
+      .sort((a, b) => b.ctx - a.ctx)
+      .map(m => m.id);
+  } catch { return []; }
+}
+
+// Async resolver: honours an explicit pin (no discovery), otherwise discovers the live
+// free models and anchors the static seeds after them (deduped, capped at 8). Discovery
+// is skipped when a fetch is injected (tests) so the offline suite stays deterministic.
+export async function resolveModelsAsync(opts = {}, doFetch = null) {
+  const base = resolveModels(opts);
+  if (hasExplicitModels(opts) || opts.fetchImpl || !doFetch) return base;
+  const now = Date.now();
+  if (!FREE_CACHE || now - FREE_CACHE.at > 600000) FREE_CACHE = { at: now, ids: await discoverFreeModels(doFetch) };
+  const discovered = FREE_CACHE.ids || [];
+  if (!discovered.length) return base;
+  return [...new Set([...discovered, ...FREE_FALLBACKS])].slice(0, 8);
+}
+
 // General chat completion over the same free-model fallback chain — for the
 // control-panel "ask the agent" endpoint (arbitrary messages, no draft validation).
 // Returns { text, model, ok, reason, tried }. Never throws.
@@ -46,7 +97,7 @@ export async function chat(messages, opts = {}) {
   const apiKey = opts.apiKey ?? process.env.OPENROUTER_API_KEY;
   const doFetch = opts.fetchImpl ?? (typeof fetch === "function" ? fetch : null);
   if (!apiKey || !doFetch) return { text: "", model: "none", ok: false, reason: "no OPENROUTER_API_KEY", tried: [] };
-  const models = resolveModels(opts);
+  const models = await resolveModelsAsync(opts, doFetch);
   const tried = [];
   for (const model of models) {
     try {
@@ -186,7 +237,7 @@ export async function draftCopy(signal, opts = {}) {
   if (!signal) return { text: "", model: "none", mock: true, ok: false, reason: "no signal", tried: [] };
   if (!apiKey || !doFetch) return mockDraft(signal);
 
-  const models = resolveModels(opts);
+  const models = await resolveModelsAsync(opts, doFetch);
   const tried = [];
   for (const model of models) {
     const r = await callModel(model, signal, apiKey, doFetch);
