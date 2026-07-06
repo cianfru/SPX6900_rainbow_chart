@@ -62,15 +62,13 @@ export default function QuantileFanChart({ series, isMobile, preview = false }) 
 
   return (
     <div style={{ maxWidth: MAX_W, margin: "0 auto" }}>
-      {!preview && (
-        <div style={{ display: "flex", gap: isMobile ? 16 : 34, justifyContent: "center", marginBottom: 14, flexWrap: "wrap" }}>
-          <Metric label="median trend now" value={fPrice(cur.median)} color="#cbd5e1" sub={cur.price != null ? (cur.price >= cur.median ? "price above trend" : "price below trend") : ""} />
-          <Metric label="2030 median" value={fPrice(proj.median)} color="#a78bfa" sub="central projection" />
-          <Metric label="2030 range" value={`${fPrice(proj.lo)}–${fPrice(proj.hi)}`} color="#f59e0b" sub="1st–99th pct" />
-        </div>
-      )}
+      <div style={{ display: "flex", gap: isMobile ? 16 : 34, justifyContent: "center", marginBottom: 14, flexWrap: "wrap" }}>
+        <Metric label="median trend now" value={fPrice(cur.median)} color="#cbd5e1" sub={cur.price != null ? (cur.price >= cur.median ? "price above trend" : "price below trend") : ""} />
+        <Metric label="2030 median" value={fPrice(proj.median)} color="#a78bfa" sub="central projection" />
+        <Metric label="2030 range" value={`${fPrice(proj.lo)}–${fPrice(proj.hi)}`} color="#f59e0b" sub="1st–99th pct" />
+      </div>
 
-      <ResponsiveContainer width="100%" height={preview ? 220 : (isMobile ? 400 : 560)}>
+      <ResponsiveContainer width="100%" height={isMobile ? 400 : 560}>
         <ComposedChart data={rows} margin={{ top: 10, right: isMobile ? 10 : 26, bottom: 24, left: isMobile ? 0 : 12 }}>
           <CartesianGrid strokeDasharray="2 8" stroke="rgba(255,255,255,0.06)" />
           <XAxis dataKey="ts" type="number" domain={["dataMin", "dataMax"]} ticks={xTicks} scale="time" allowDataOverflow
