@@ -54,28 +54,74 @@ function cardSays(post) {
     .slice(0, 300);
 }
 
+// Hyperliquid funding APR from an hourly rate, matching the longshort card.
+const toAPR = hourly => hourly * 24 * 365 * 100;
+const median = xs => { const a = [...xs].sort((x, y) => x - y); return a.length ? a[Math.floor(a.length / 2)] : null; };
+
+// Distil the FULL computeStats logic output — every number the cards are built from —
+// into a compact, array-free facts snapshot the agent reasons over. This IS "the whole
+// logic", not per-card lines: valuation, performance, on-chain, positioning, BTC/majors.
 function assembleContext(stats, todayPick, catalog, signals, queue, postState) {
   const s = stats;
   const price = s.price;
   const dp = price < 1 ? 4 : 2;
-  const round = (n, d = 2) => (n == null ? null : Number(n.toFixed(d)));
+  const r = (n, d = 2) => (n == null || Number.isNaN(n) ? null : Number(n.toFixed(d)));
+  const pct = (n, d = 1) => (n == null ? null : r(n * 100, d) + "%");
   const be = s.supply?.breakEven ?? null;
+
+  // Hyperliquid positioning: latest funding vs its neutral (median) baseline + OI.
+  let positioning = null;
+  const ls = Array.isArray(s.longshort) ? s.longshort.filter(x => x?.hlFunding != null) : [];
+  if (ls.length >= 8) {
+    const aprs = ls.map(x => toAPR(x.hlFunding));
+    const neutral = median(aprs), now = aprs.at(-1);
+    positioning = {
+      fundingAPRnow: r(now, 1) + "%", neutralBaselineAPR: r(neutral, 1) + "%",
+      deviationFromNeutral: r(now - neutral, 1) + "pp",
+      lean: now - neutral > 1 ? "crowd leaning long" : now - neutral < -1 ? "crowd leaning short" : "roughly neutral",
+      openInterestUSD: s.longshort.at(-1)?.hlOI != null ? Math.round(s.longshort.at(-1).hlOI) : null,
+      daysOfData: ls.length,
+    };
+  }
+
   const facts = {
-    date: s.date,
-    price: round(price, dp),
-    band: s.band?.l ?? null,                         // e.g. "BUY!" / "Accumulate"
-    risk: round(s.risk, 3),                          // 0–1 valuation risk
-    vsFairValue: round(s.vsCenter * 100, 1) + "%",   // price vs power-law center
-    fairValue: round(s.center, dp),
-    drawdownFromATH: round(s.drawdown * 100, 1) + "%",
-    fearGreed: s.fng ?? null,
-    breakEven: be != null ? round(be, dp) : null,    // crowd cost basis
-    mvrv: (be && price) ? round(price / be, 2) : null,
-    holders: s.supply?.holders ?? null,
-    diamondShareOfSupply: s.supply?.diamondShare != null ? round(s.supply.diamondShare * 100, 1) + "%" : null,
-    nextBand: s.nextUp?.l ?? null,
-    nextBandPrice: s.nextUpPrice != null ? round(s.nextUpPrice, dp) : null,
+    date: s.date, price: r(price, dp),
+    ageDays: s.day, launchDate: s.firstDate, launchPrice: r(s.firstPrice, 6),
+    valuation: {
+      band: s.band?.l ?? null, riskScore: r(s.risk, 3),           // 0–1 rainbow risk
+      vsFairValue: pct(s.vsCenter), fairValue: r(s.center, dp),   // power-law center
+      nextBand: s.nextUp?.l ?? null, nextBandPrice: s.nextUpPrice != null ? r(s.nextUpPrice, dp) : null,
+      cheaperOrEqualShareOfHistory: pct(s.cheaperFrac),          // how much of its life was this cheap or cheaper
+    },
+    performance: {
+      allTimeReturnMultiple: s.allTimeReturn != null ? r(s.allTimeReturn + 1, 1) + "×" : null,
+      drawdownFromATH: pct(s.drawdown), ath: r(s.ath, dp), athDate: s.athDate,
+      deepestDrawdownEver: pct(s.maxDrawdown),
+      hindsightStrategyEdgeVsHodl: s.edge != null ? r(s.edge, 2) + "×" : null,
+      lastFireSaleRally: s.lastFireSale ? {
+        from: s.lastFireSale.date, lowPrice: r(s.lastFireSale.low, dp),
+        sinceLowMultiple: r(s.lastFireSale.sinceGain + 1, 2) + "×", peakMultiple: r(s.lastFireSale.peakGain + 1, 2) + "×",
+      } : null,
+    },
+    onChain: s.supply ? {
+      holders: s.supply.holders, holdersSnapshotDate: s.supply.snapDate,
+      diamondShareOfSupply: pct(s.supply.diamondShare),
+      diamondShareOfClassified: s.supply.classified ? pct(s.supply.diamondTokens / s.supply.classified) : null,
+      breakEven: be != null ? r(be, dp) : null,                  // crowd avg cost basis (realized price)
+      mvrv: (be && price) ? r(price / be, 2) : null,             // price ÷ cost basis
+      avgHolderPnL: s.supply.avgHolderPnl != null ? pct(s.supply.avgHolderPnl) : null,
+      giniConcentration: r(s.supply.gini, 3),
+    } : null,
+    positioning,
+    sentiment: { fearGreed: s.fng ?? null, sp500close: s.sp ?? null },
+    vsBitcoin: s.btc ? {
+      priceInSats: r(s.btc.sats, 2), btcPrice: r(s.btc.btcNow, 0),
+      relStrength90d: r(s.btc.rel90, 2), relStrength365d: r(s.btc.rel365, 2), // >1 = SPX outperforming BTC
+    } : null,
+    vsMajors: (s.majors || []).map(m => ({ coin: m.name, relStrength365d: r(m.rel365, 2), spxPriceAtItsMarketCap: r(m.spxAtCap, 2) })),
+    memeTargets: (s.targets || []).map(t => ({ target: t.label, multipleFromHere: r(t.mult, 1) + "×" })),
   };
+
   const notable = (signals?.signals || signals || []).slice(0, 3).map(x => ({
     title: x.title, detail: x.detail, framing: x.framing, note: x.note, card: x.card,
     llmDraft: x.llmDraft?.text || null,
@@ -86,13 +132,13 @@ function assembleContext(stats, todayPick, catalog, signals, queue, postState) {
     notableToday: notable,
     queuedCard: queue?.id || null,
     lastPosted: postState ? { date: postState.lastPostedDate, id: postState.lastId } : null,
-    cardCatalog: catalog, // [{ id, says }] — every card buildable today, id + its full live copy (real numbers)
+    cardCatalog: catalog, // [{ id, says }] — every card buildable today, id + its full live copy (the exact numbers each would post)
   };
 }
 
 const SYSTEM = `You are the on-call analyst for the SPX6900 rainbow-chart X (Twitter) account, chatting with the account owner inside his private control panel. He asks what's notable today and which card to post; you reason it out WITH him.
 
-You are given a CONTEXT block of REAL, already-computed numbers: today's stats, the "Notable today" signals, the deterministic rotation pick, and the full catalog of cards that can post today — each with its id and its live copy under "says" (the card's actual text WITH its real numbers). Ground every claim in that context.
+You are given a CONTEXT block of REAL, already-computed numbers — the FULL output of the same analysis engine the cards are built from, grouped as: today.valuation (band, risk, vs-fair-value, next band, cheapness percentile), today.performance (all-time multiple, drawdown, deepest-ever, last Fire-Sale rally, hindsight edge), today.onChain (holders, diamond share of supply AND of classified, break-even/realized price, MVRV, avg holder PnL, gini), today.positioning (Hyperliquid funding vs neutral, OI, lean), today.sentiment (Fear & Greed, S&P close), today.vsBitcoin (price in sats, relative strength), today.vsMajors, today.memeTargets (multiple to $1/$6.90/$69…). PLUS the "Notable today" signals, the deterministic rotation pick, and the full card catalog — each card's id with its live copy under "says" (the exact text + numbers it would post). Ground every claim in this context.
 
 Hard rules:
 - OUTPUT ONLY YOUR FINAL ANSWER for the owner to read. NEVER show your reasoning, planning, step-by-step deliberation, or meta-commentary about these instructions. No "we need to…", no thinking out loud. Just the answer.
