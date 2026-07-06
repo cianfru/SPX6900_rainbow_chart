@@ -5,7 +5,7 @@
   "targets": "square",
   "timeinband": "landscape",
   "marketcap": "landscape",
-  "btc": "portrait",
+  "btc": "square",
   "distribution": "landscape",
   "breakeven": "square",
   "majors": "portrait",
