@@ -117,9 +117,13 @@ function parseAction(text, validIds) {
   const openTag = answer.match(/<\/(think|thinking|reasoning|analysis)>/i);
   if (openTag) answer = answer.slice(answer.lastIndexOf(openTag[0]) + openTag[0].length);
   let card = null, draft = null;
-  const draftMatch = answer.match(/\[\[draft\]\]([\s\S]*?)\[\[\/draft\]\]/i);
+  // Draft: prefer a closed block, but tolerate an UNCLOSED [[draft]] (truncated reply)
+  // by taking everything after it. Then strip the whole matched span from the answer.
+  let draftMatch = answer.match(/\[\[draft\]\]([\s\S]*?)\[\[\/draft\]\]/i);
+  if (!draftMatch) draftMatch = answer.match(/\[\[draft\]\]([\s\S]*)$/i);
   if (draftMatch) {
-    draft = draftMatch[1].split("\n").map(l => l.trim()).filter(Boolean).slice(0, 3).join("\n");
+    const body = draftMatch[1].split("\n").map(l => l.trim()).filter(Boolean).slice(0, 3).join("\n");
+    draft = body || null;
     answer = answer.replace(draftMatch[0], "");
   }
   const cardMatch = answer.match(/\[\[card:\s*([a-z0-9_-]+)\s*\]\]/i);
@@ -128,6 +132,8 @@ function parseAction(text, validIds) {
     if (!validIds || validIds.includes(id)) card = id;
     answer = answer.replace(cardMatch[0], "");
   }
+  // Safety net: drop any stray/leftover tag literals so they never render in the bubble.
+  answer = answer.replace(/\[\[\/?(?:card|draft)[^\]]*\]\]/gi, "");
   return { answer: answer.trim(), card, draft };
 }
 
@@ -171,7 +177,9 @@ export default async function handler(req, res) {
     ];
     if (latest) messages.push({ role: "user", content: latest });
 
-    const out = await chat(messages, { maxTokens: 700, temperature: 0.4 });
+    // Generous budget: reasoning models still spend hidden tokens even with
+    // effort:low+exclude, so leave ample room for the visible answer + draft.
+    const out = await chat(messages, { maxTokens: 1600, temperature: 0.4 });
     if (!out.ok) { res.status(200).json({ error: out.reason || "agent unavailable", answer: "", model: out.model }); return; }
 
     const { answer, card, draft } = parseAction(out.text, validIds);
