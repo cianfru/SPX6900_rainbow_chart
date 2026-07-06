@@ -14,7 +14,11 @@
     -webkit-font-smoothing: antialiased;
   }
   .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
-  header { padding: 22px 24px 8px; border-bottom: 1px solid rgba(255,255,255,.08); }
+  header {
+    padding: 22px 24px 8px; border-bottom: 1px solid rgba(255,255,255,.08);
+    position: sticky; top: 0; z-index: 20;
+    background: rgba(5,5,14,.82); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  }
   h1 { margin: 0; font-size: 22px; letter-spacing: .5px; }
   .sub { color: #64748b; font-size: 13px; margin-top: 4px; }
   .wrap { max-width: 1320px; margin: 0 auto; padding: 18px 24px 80px; }
@@ -78,26 +82,38 @@
   .sigdraft .dcopy { margin-top: 8px; font-size: 12px; padding: 4px 10px; }
   .sigact { display: flex; align-items: center; }
   /* Ask-the-agent chat: consult OpenRouter over today's real numbers */
-  .agent { margin: 16px 0 4px; border: 1px solid rgba(167,139,250,.28); background: rgba(167,139,250,.05); border-radius: 12px; padding: 12px 14px; }
-  .agenthdr { font-size: 13px; font-weight: 700; color: #c4b5fd; margin-bottom: 2px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .agent {
+    margin: 18px 0 4px; border: 1px solid rgba(167,139,250,.28); border-radius: 14px; padding: 14px 15px;
+    background: linear-gradient(180deg, rgba(167,139,250,.10), rgba(167,139,250,.03));
+    box-shadow: 0 1px 0 rgba(255,255,255,.03) inset;
+  }
+  .agenthdr { font-size: 13.5px; font-weight: 700; color: #c4b5fd; margin-bottom: 2px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
   .agenthdr span { color: #64748b; font-weight: 400; font-size: 12px; }
-  .achat { display: flex; flex-direction: column; gap: 10px; margin: 12px 0; max-height: 460px; overflow-y: auto; }
+  .achat { display: flex; flex-direction: column; gap: 10px; margin: 12px 0; max-height: 460px; overflow-y: auto; scroll-behavior: smooth; }
   .achat:empty { display: none; }
-  .amsg { font-size: 13.5px; line-height: 1.55; border-radius: 10px; padding: 9px 12px; max-width: 92%; white-space: pre-wrap; }
-  .amsg.user { align-self: flex-end; background: rgba(37,99,235,.18); border: 1px solid rgba(59,130,246,.35); color: #dbeafe; }
-  .amsg.bot { align-self: flex-start; background: rgba(148,163,184,.09); border: 1px solid rgba(148,163,184,.2); color: #e2e8f0; }
-  .amsg.bot .amodel { display: block; font-size: 11px; color: #64748b; margin-top: 6px; }
-  .amsg.err { align-self: flex-start; background: rgba(239,68,68,.1); border: 1px solid rgba(239,68,68,.3); color: #fca5a5; }
-  .arec { flex-basis: 100%; margin-top: 10px; background: rgba(34,197,94,.07); border: 1px solid rgba(34,197,94,.28); border-radius: 8px; padding: 8px 10px; }
-  .arec .rhdr { font-size: 12px; font-weight: 700; color: #86efac; }
+  .amsg { font-size: 13.5px; line-height: 1.55; border-radius: 13px; padding: 9px 13px; max-width: 88%; white-space: pre-wrap; word-break: break-word; animation: apop .18s ease-out; }
+  @keyframes apop { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+  .amsg.user { align-self: flex-end; background: linear-gradient(180deg, rgba(37,99,235,.28), rgba(37,99,235,.16)); border: 1px solid rgba(59,130,246,.4); color: #eff6ff; border-bottom-right-radius: 4px; }
+  .amsg.bot { align-self: flex-start; background: rgba(148,163,184,.1); border: 1px solid rgba(148,163,184,.2); color: #e2e8f0; border-bottom-left-radius: 4px; }
+  .amsg.bot .amodel { display: block; font-size: 11px; color: #64748b; margin-top: 8px; padding-top: 6px; border-top: 1px solid rgba(255,255,255,.06); }
+  .amsg.err { align-self: flex-start; background: rgba(239,68,68,.1); border: 1px solid rgba(239,68,68,.3); color: #fca5a5; border-bottom-left-radius: 4px; }
+  /* animated "…thinking" dots while the agent responds */
+  .amsg.thinking { color: #94a3b8; }
+  .amsg.thinking::after { content: "▋"; animation: ablink 1s steps(2) infinite; margin-left: 1px; }
+  @keyframes ablink { 50% { opacity: 0; } }
+  .arec { flex-basis: 100%; margin-top: 10px; background: rgba(34,197,94,.08); border: 1px solid rgba(34,197,94,.3); border-radius: 10px; padding: 10px 11px; }
+  .arec .rhdr { font-size: 12.5px; font-weight: 700; color: #86efac; letter-spacing: .3px; }
   .arec .rdraft { white-space: pre-wrap; font-size: 13px; color: #e2e8f0; line-height: 1.5; margin: 6px 0; }
-  .arec .racts { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
-  .arec .racts button { font-size: 12px; padding: 5px 11px; }
-  .abar { display: flex; gap: 8px; align-items: stretch; }
-  .abar textarea { flex: 1; min-height: 40px; resize: vertical; background: #0b1220; color: #e2e8f0; border: 1px solid #24324a; border-radius: 8px; padding: 9px 11px; font: inherit; font-size: 13.5px; }
-  .abar .asend { align-self: stretch; white-space: nowrap; }
+  .arec .rdrafttxt { width: 100%; min-height: 78px; background: #0b1220; color: #e2e8f0; border: 1px solid #24324a; border-radius: 8px; padding: 9px 10px; font: inherit; font-size: 13px; line-height: 1.5; resize: vertical; }
+  .arec .racts { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+  .arec .racts button { font-size: 12.5px; padding: 7px 13px; }
+  .abar { display: flex; gap: 8px; align-items: flex-end; }
+  .abar textarea { flex: 1; min-height: 44px; max-height: 180px; resize: none; overflow-y: auto; background: #0b1220; color: #e2e8f0; border: 1px solid #24324a; border-radius: 10px; padding: 11px 13px; font: inherit; font-size: 14px; line-height: 1.45; transition: border-color .12s; }
+  .abar textarea:focus { outline: none; border-color: #7c6bd6; }
+  .abar .asend { align-self: stretch; white-space: nowrap; padding-inline: 18px; }
   .asugg { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
-  .asugg button { font-size: 11.5px; padding: 4px 9px; color: #a5b4fc; border-color: rgba(129,140,248,.3); background: rgba(129,140,248,.08); }
+  .asugg button { font-size: 11.5px; padding: 5px 11px; border-radius: 999px; color: #c4b5fd; border-color: rgba(167,139,250,.32); background: rgba(167,139,250,.09); }
+  .asugg button:hover { background: rgba(167,139,250,.18); }
   .grid {
     display: grid; gap: 16px; margin-top: 14px;
     /* min(340px, 100%) keeps a single column from overflowing a narrow phone */
@@ -162,16 +178,35 @@
 
   /* Phone layout: tighter gutters, full-width finger-friendly action buttons. */
   @media (max-width: 640px) {
-    header { padding: 16px 14px 8px; }
-    h1 { font-size: 19px; }
-    .wrap { padding: 14px 12px 64px; }
-    .bar { padding: 10px 12px; }
-    .bar button { padding: 11px 14px; font-size: 14px; }
+    header { padding: 14px 14px 6px; }
+    h1 { font-size: 18px; }
+    .sub { font-size: 12.5px; }
+    .wrap { padding: 14px 12px 72px; }
+    .bar { padding: 10px 12px; gap: 8px; }
+    /* the three action buttons share a row full-width; Lock drops to its own line */
+    .bar button { flex: 1 1 40%; padding: 12px 10px; font-size: 14px; }
+    .bar > span { display: none; }
+    #lock { flex-basis: 100%; }
     input[type=password] { width: 100%; min-width: 0; }
+    /* full-width, thumb-sized tabs */
+    .tabs { gap: 6px; }
+    .tab { flex: 1; padding: 11px 8px; font-size: 13px; text-align: center; }
     /* badges/buttons wrap; the two card actions go full-width side by side */
     .card .actions { margin-left: 0; width: 100%; gap: 8px; }
     .card .actions button { flex: 1; padding: 12px; font-size: 14px; }
     .card .ptext { font-size: 13.5px; }
+    /* agent chat: input over a full-width Ask button, roomier bubbles */
+    .agent { padding: 12px 12px; }
+    .abar { flex-direction: column; align-items: stretch; }
+    .abar .asend { padding: 13px; font-size: 15px; }
+    .amsg { max-width: 94%; font-size: 14px; }
+    .achat { max-height: 60vh; }
+    .arec .racts { gap: 8px; }
+    .arec .racts button { flex: 1 1 44%; padding: 11px 8px; }
+    /* signals: the queue button spans full width for an easy tap */
+    .sigact { width: 100%; }
+    .sigact button { width: 100%; padding: 12px; font-size: 14px; }
+    .sigdraft .dcopy { width: 100%; padding: 11px; font-size: 13.5px; }
   }
 </style>
 </head>
@@ -620,10 +655,13 @@ async function askAgent(text) {
   const q = (text != null ? text : $("#ainput").value).trim();
   if (!q || AGENT_BUSY) return;
   AGENT_BUSY = true;
-  $("#ainput").value = "";
+  const inp = $("#ainput");
+  inp.value = ""; inp.style.height = "auto";
+  $("#asend").disabled = true;
   pushMsg("user", q);
   renderSuggests();
-  const thinking = pushMsg("bot", "…thinking");
+  const thinking = pushMsg("bot", "thinking");
+  thinking.classList.add("thinking");
   try {
     const r = await fetch("/api/agent", {
       method: "POST", headers: { "Content-Type": "application/json" },
@@ -642,10 +680,12 @@ async function askAgent(text) {
     $("#achat").scrollTop = $("#achat").scrollHeight;
   } catch (e) {
     thinking.className = "amsg err"; thinking.textContent = e.message || "network error";
-  } finally { AGENT_BUSY = false; }
+  } finally { AGENT_BUSY = false; $("#asend").disabled = false; }
 }
 
 $("#asend").onclick = () => askAgent();
+// Auto-grow the input as it wraps (capped by CSS max-height), Enter sends / Shift+Enter newlines.
+$("#ainput").addEventListener("input", e => { const t = e.target; t.style.height = "auto"; t.style.height = Math.min(t.scrollHeight, 180) + "px"; });
 $("#ainput").addEventListener("keydown", e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); askAgent(); } });
 $("#asugg").addEventListener("click", e => { const b = e.target.closest("[data-sugg]"); if (b) askAgent(b.dataset.sugg); });
 $("#achat").addEventListener("click", e => {
