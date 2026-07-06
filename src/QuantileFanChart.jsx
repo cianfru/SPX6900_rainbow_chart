@@ -9,6 +9,12 @@ const fPrice = v => (v >= 1000 ? "$" + Math.round(v / 1000).toLocaleString() + "
 const yearOf = t => new Date(t).getUTCFullYear();
 const DAY = 86400000;
 const PROJECT_TO = "2030-06-01";
+// Crop the blown-out launch corner: near day 0 the quantiles (quadratics in ln(day))
+// diverge hard — a 100-266x-wide fan through the first ~9 months that reads as a
+// visual "bowtie" and buries the useful forward cone. Start the visible window this
+// many days after launch, where the fan settles to a sane width. The FIT still uses
+// all history (quantile-fan.js) — this only trims the DISPLAY.
+const CROP_DAYS = 300;
 
 function Tip({ active, payload }) {
   if (!active || !payload?.length) return null;
@@ -31,18 +37,20 @@ export default function QuantileFanChart({ series, isMobile, preview = false }) 
     if (s.length < 30) return { rows: null };
     const fan = fitQuantileFan(s);
     const t0 = fan.t0, nowTs = new Date(s.at(-1).date).getTime(), tEnd = Date.parse(PROJECT_TO);
+    // Left edge of the DRAWN window — the launch corner cropped off (fit is untouched).
+    const tCrop = Math.min(t0 + CROP_DAYS * DAY, nowTs);
     const priceMap = new Map(s.map(r => [new Date(r.date).getTime(), r.price]));
-    // historical timestamps (thinned for perf) + monthly future samples
-    const histTs = s.filter((_, i) => i % 2 === 0 || i === s.length - 1).map(r => new Date(r.date).getTime());
+    // historical timestamps (thinned for perf) from the crop point + monthly future samples
+    const histTs = s.filter((_, i) => i % 2 === 0 || i === s.length - 1).map(r => new Date(r.date).getTime()).filter(ts => ts >= tCrop);
     const futTs = [];
     for (let m = new Date(nowTs); m.getTime() <= tEnd; m = new Date(Date.UTC(m.getUTCFullYear(), m.getUTCMonth() + 1, 1))) if (m.getTime() > nowTs) futTs.push(m.getTime());
-    const allTs = [...new Set([...histTs, ...futTs])].sort((a, b) => a - b);
+    const allTs = [...new Set([tCrop, ...histTs, ...futTs])].sort((a, b) => a - b);
     let yLo = Infinity, yHi = -Infinity;
     const rows = allTs.map(ts => {
       const q = quantilePricesAt(fan.fits, dayForTs(fan, ts));
       const row = { ts, price: priceMap.get(ts) ?? null, redBand: [q[5], q[6]], greenBand: [q[0], q[2]] };
       q.forEach((v, i) => { row["q" + i] = v; });
-      if (ts >= t0) { yLo = Math.min(yLo, q[0]); yHi = Math.max(yHi, q[6]); }
+      yLo = Math.min(yLo, q[0]); yHi = Math.max(yHi, q[6]);
       const p = row.price; if (p != null) { yLo = Math.min(yLo, p); yHi = Math.max(yHi, p); }
       return row;
     });
@@ -50,7 +58,7 @@ export default function QuantileFanChart({ series, isMobile, preview = false }) 
     const projQ = quantilePricesAt(fan.fits, dayForTs(fan, tEnd));
     const yTicks = [0.001, 0.01, 0.1, 1, 10, 100, 1000].filter(v => v >= yLo * 0.7 && v <= yHi * 1.3);
     const xTicks = [];
-    for (let y = yearOf(t0); y <= yearOf(tEnd); y++) { const t = Date.UTC(y, 0, 1); if (t >= t0 && t <= tEnd) xTicks.push(t); }
+    for (let y = yearOf(tCrop); y <= yearOf(tEnd); y++) { const t = Date.UTC(y, 0, 1); if (t >= tCrop && t <= tEnd) xTicks.push(t); }
     return {
       rows, nowTs, xTicks, yDomain: [yLo * 0.7, yHi * 1.3], yTicks,
       cur: { price: priceMap.get(nowTs), median: curQ[3], q25: curQ[2] },
