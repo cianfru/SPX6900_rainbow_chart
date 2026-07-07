@@ -3,7 +3,7 @@
 import { readFile, writeFile } from "node:fs/promises";
 import { detectSignals } from "./bot/signals.mjs";
 import { computeAngles, cardRecencyPenalty } from "./bot/quant.mjs";
-import { computeStats } from "./bot/stats.mjs";
+import { computeStats, fetchMajors } from "./bot/stats.mjs";
 import { DEFAULT_RAW } from "../src/data.js";
 import { draftCopy } from "./bot/llm-copy.mjs";
 
@@ -102,14 +102,15 @@ async function main() {
     const lastBundled = DEFAULT_RAW.at(-1).date;
     const newer = arr.filter(x => x.d > lastBundled && x.p > 0).map(x => ({ date: x.d, price: x.p }));
     const history = newer.length ? [...DEFAULT_RAW, ...newer] : DEFAULT_RAW;
-    const stats = computeStats(p ?? DEFAULT_RAW.at(-1).price, rec.d, { history });
+    let coins; try { coins = await fetchMajors(); } catch { /* vs-BTC/peer angles just skip */ }
+    const stats = computeStats(p ?? DEFAULT_RAW.at(-1).price, rec.d, { history, coins });
 
     // Recent-post look-back so we don't surface a card fired too recently.
     let recent = [];
     try { recent = JSON.parse(await readFile("public/post-state.json", "utf8")).recent || []; } catch { /* none yet */ }
 
     const detector = detectSignals(arr).signals.map(x => ({ ...x, score: x.severity - cardRecencyPenalty(x.card, recent, rec.d) }));
-    const angles = computeAngles(stats, { recent }).map(a => ({
+    const angles = computeAngles(stats, { recent, onchain: arr }).map(a => ({
       type: a.key, emoji: a.emoji, title: a.headline, detail: a.detail, framing: a.framing, note: a.note, card: a.card, score: a.score,
     }));
     // Merge, keep the strongest per card, take the top 3.

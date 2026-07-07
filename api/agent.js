@@ -62,7 +62,7 @@ const median = xs => { const a = [...xs].sort((x, y) => x - y); return a.length 
 // Distil the FULL computeStats logic output — every number the cards are built from —
 // into a compact, array-free facts snapshot the agent reasons over. This IS "the whole
 // logic", not per-card lines: valuation, performance, on-chain, positioning, BTC/majors.
-function assembleContext(stats, todayPick, catalog, signals, queue, postState) {
+function assembleContext(stats, todayPick, catalog, signals, queue, postState, onchain) {
   const s = stats;
   const price = s.price;
   const dp = price < 1 ? 4 : 2;
@@ -132,7 +132,7 @@ function assembleContext(stats, todayPick, catalog, signals, queue, postState) {
     // The "Quant": ranked candidate ANGLES pre-computed from the full stat set — each a
     // READ (often a cross-metric divergence) mapped to the card that expresses it,
     // sorted by how notable/interesting. This is the agent's starting point.
-    quantAngles: topAngles(s, 6, { recent: postState?.recent || [] }),
+    quantAngles: topAngles(s, 6, { recent: postState?.recent || [], onchain: Array.isArray(onchain) ? onchain : [] }),
     rotationPickForToday: { id: todayPick.id, says: cardSays(todayPick) },
     notableToday: notable,
     queuedCard: queue?.id || null,
@@ -145,7 +145,9 @@ const SYSTEM = `You are the QUANT for the SPX6900 rainbow-chart X (Twitter) acco
 
 The CONTEXT gives you REAL, already-computed numbers — the FULL analysis engine's output. Two parts to lean on:
 1. today.* — the raw grouped stats: valuation (band, risk, vs-fair-value, cheapness pctl), performance (all-time ×, drawdown, deepest-ever, last Fire-Sale rally), onChain (holders, diamond share of supply AND classified, break-even/realized price, MVRV, avg holder PnL, gini), positioning (Hyperliquid funding vs neutral), sentiment (Fear & Greed, S&P), vsBitcoin, vsMajors, memeTargets.
-2. quantAngles — a RANKED list of candidate reads already computed for you, each with {read, why, card, framing, guardrail, score}. These are pre-scored so DIVERGENCES and cross-metric reads (e.g. "holders underwater but not selling") outrank generic single-metric restatements (e.g. "price is cheap"). Higher score = more notable. An angle flagged firedRecently had its card posted in the last several days — it's already de-ranked; prefer a fresher angle so the feed doesn't repeat.
+2. quantAngles — a RANKED shortlist of candidate reads already computed for you across the WHOLE dataset (valuation, on-chain cost-basis & holder trends, positioning, drawdown, momentum, vs-Bitcoin/peers, S&P flex, 20-week heat, BTC-cycle, targets), each with {read, why, card, framing, guardrail, score}. Pre-scored so DIVERGENCES and cross-metric/trend reads outrank generic single-metric restatements. Higher score = more notable. An angle flagged firedRecently had its card posted in the last several days — it's already de-ranked; prefer a fresher one so the feed doesn't repeat.
+
+The quantAngles are your SHORTLIST, not a cage: you also have the full cardCatalog (dozens of cards with live "says" copy). Lead with the strongest angle, but if a catalog card fits today's story better, use it — just ground it in real numbers from the context.
 
 How to answer:
 - DEFAULT to the TOP quantAngle unless the owner steers elsewhere or you can justify a better one from today.*. Lead with its READ, in the account's honest voice — a cross-metric divergence beats restating the valuation band. Do NOT default to "price is X% below trend / BUY band" when a richer angle is available; that's the lazy answer.
@@ -227,13 +229,14 @@ export default async function handler(req, res) {
     const catalog = buildAll(stats).map(p => ({ id: p.id, says: cardSays(p) }));
     const validIds = catalog.map(c => c.id);
 
-    const [signals, queue, postState] = await Promise.all([
+    const [signals, queue, postState, onchain] = await Promise.all([
       rawJson("signals.json", { signals: [] }),
       rawJson("next-post.json", { id: null }),
       rawJson("post-state.json", {}),
+      rawJson("history.json", []),   // on-chain daily history → the Quant's trend reads
     ]);
 
-    const context = assembleContext(stats, todayPick, catalog, signals, queue, postState);
+    const context = assembleContext(stats, todayPick, catalog, signals, queue, postState, onchain);
     const messages = [
       { role: "system", content: SYSTEM },
       { role: "system", content: "CONTEXT (today's real numbers):\n" + JSON.stringify(context, null, 1) },

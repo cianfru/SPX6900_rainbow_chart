@@ -10,8 +10,12 @@
 // card (or a card in the same THEME) went out in the last ~8 days get a score penalty,
 // so the strip/agent don't propose the same kind of post twice in a row.
 
+import { SP500_HISTORY } from "../../src/sp500-history.js";
+import { btcCycleProjection } from "../../src/btc-cycle.js";
+
 const pct = (x, d = 0) => (x >= 0 ? "+" : "") + (x * 100).toFixed(d) + "%";
 const round = (x, d = 2) => (x == null ? null : Number(x.toFixed(d)));
+const fmt = n => (n >= 1000 ? Math.round(n).toLocaleString() : String(n));
 const DAY = 86400000;
 
 // Coarse theme per card, so "similar" (not just identical) cards are recency-aware.
@@ -80,16 +84,59 @@ export function computeAngles(stats, opts = {}) {
   const fund = fundingRead(s);
   const push = a => a && out.push(a);
 
+  // ── RECENT BEHAVIOUR: trends over the on-chain history (opts.onchain), if given.
+  // Lets the reads see the DIRECTION of travel, not just today's snapshot. Degrades
+  // to nothing when history is absent/flat.
+  const oc = opts.onchain || [];
+  const span = oc.length ? Math.round((Date.parse(s.date) - Date.parse(oc[0].d)) / DAY) : 0;
+  const win = Math.min(30, Math.max(14, span));                 // trend window, capped by data
+  const past = oc.length ? [...oc].reverse().find(r => Date.parse(r.d) <= Date.parse(s.date) - win * DAY) : null;
+  const holderGrowth = (past?.holders && s.supply?.holders) ? s.supply.holders / past.holders - 1 : null;
+  const mvrvPast = (past?.be && past?.p) ? past.p / past.be : null;
+  const mvrvTrend = (mvrv != null && mvrvPast != null) ? mvrv - mvrvPast : null;
+  const dser = s.supply?.diamondSeries || [];                   // [ts, percent]
+  const dPast = dser.length ? [...dser].reverse().find(p => p[0] <= Date.parse(s.date) - win * DAY) : null;
+  const diamondNow = dser.length ? dser.at(-1)[1] : (diamond != null ? diamond * 100 : null);
+  const diamondTrend = (diamondNow != null && dPast) ? diamondNow - dPast[1] : null;
+
   // ── CROSS-METRIC DIVERGENCES (the interesting reads) ─────────────────────────
   if (under != null && under > 0.1 && diamond != null && diamond > 0.5) {
+    const dir = mvrvTrend != null && Math.abs(mvrvTrend) >= 0.03
+      ? ` MVRV has ${mvrvTrend > 0 ? "risen" : "slipped"} ${round(mvrvPast, 2)}→${round(mvrv, 2)} over ~${win}d.` : "";
     push({
       key: "underwater-holding", emoji: "💎", card: "breakeven", score: 1.2 + under * 1.6 + (diamond - 0.5),
       headline: `Holders ~${Math.round(under * 100)}% underwater — and still not selling`,
-      detail: `MVRV ${round(mvrv, 2)}: price is ${Math.round(under * 100)}% below the crowd's avg on-chain cost basis ($${round(be, 3)}). Yet ${Math.round(diamond * 100)}% of supply is in the longest-held tier — the float isn't moving.`,
+      detail: `MVRV ${round(mvrv, 2)}: price is ${Math.round(under * 100)}% below the crowd's avg on-chain cost basis ($${round(be, 3)}). Yet ${Math.round(diamond * 100)}% of supply is in the longest-held tier — the float isn't moving.${dir}`,
       framing: `Maximum financial pain, minimal capitulation — conviction being tested and, so far, holding.`,
       note: `Describe the divergence, NOT a bottom call. "Not selling", not "buy".`,
     });
   }
+  // Accumulation: holder COUNT rising = genuinely new wallets (safe to call accumulation)
+  if (holderGrowth != null && holderGrowth > 0.02) push({
+    key: "accumulation", emoji: "🧲", card: "holders",
+    score: 0.9 + Math.min(0.8, holderGrowth * 8) + (r30 < 0.05 ? 0.4 : 0),
+    headline: `Holders +${(holderGrowth * 100).toFixed(1)}% in ~${win}d${r30 < 0.05 ? " — while price went nowhere" : ""}`,
+    detail: `Wallet count grew ${(holderGrowth * 100).toFixed(1)}% over ~${win} days (${fmt(past.holders)}→${fmt(s.supply.holders)}) — genuinely new holders${r30 < 0.05 ? `, even with price ${pct(r30)} on the month` : ""}.`,
+    framing: `New wallets = real accumulation (not a reclassification). Buying while it's quiet.`,
+    note: `Holder COUNT growth IS safe to call accumulation (unlike diamond-tier aging).`,
+  });
+  // MVRV direction: are holders clawing back toward break-even, or sinking further?
+  if (mvrvTrend != null && Math.abs(mvrvTrend) >= 0.05) push({
+    key: "mvrv-trend", emoji: mvrvTrend > 0 ? "↗️" : "↘️", card: "breakeven",
+    score: 0.8 + Math.min(0.7, Math.abs(mvrvTrend) * 2),
+    headline: `Holders ${mvrvTrend > 0 ? "clawing back toward" : "sinking further from"} break-even`,
+    detail: `MVRV has ${mvrvTrend > 0 ? "risen" : "fallen"} ${round(mvrvPast, 2)}→${round(mvrv, 2)} over ~${win}d — the average holder is ${mvrvTrend > 0 ? "less" : "more"} underwater than ~${win}d ago.`,
+    framing: `Direction of the crowd's PnL, not just today's level.`, note: `Trend read; don't imply it continues.`,
+  });
+  // Diamond tier growing over time (a cohort aging into the longest-held bucket)
+  if (diamondTrend != null && diamondTrend >= 0.4) push({
+    key: "diamond-trend", emoji: "💠", card: "diamondtrend",
+    score: 0.7 + Math.min(0.7, diamondTrend / 3),
+    headline: `Diamond tier grew ${diamondTrend.toFixed(1)}pp in ~${win}d → ${diamondNow.toFixed(1)}% of supply`,
+    detail: `Supply in the longest-held tier rose ${(diamondNow - diamondTrend).toFixed(1)}%→${diamondNow.toFixed(1)}% over ~${win} days — a cohort maturing into diamond.`,
+    framing: `Float tightening as coins age into the strongest-held tier.`,
+    note: `HELD, not BOUGHT — diamond grows by aging; frame it as maturing/held.`,
+  });
   if (r30 > 0.08 && fng != null && fng < 35) {
     push({
       key: "recovery-disbelief", emoji: "📈", card: "fngdial", score: 0.9 + Math.min(0.6, r30) + (35 - fng) / 60,
@@ -154,6 +201,61 @@ export function computeAngles(stats, opts = {}) {
     detail: `At $${round(s.price, 4)}, it's ${round(t1.mult, 1)}× away from the $1 milestone.`,
     framing: `The aspirational round number.`, note: `A target, not a forecast.`,
   });
+
+  // ── BREADTH: the rest of the data — BTC/peers, performance flex, heat, cycle. Mostly
+  // lower-scoring "evergreen" reads that only rise to the top on a quiet day, so the
+  // Quant always has a card to reach for across the full catalog. ──
+  if (s.btc?.rel365 != null && Math.abs(s.btc.rel365 - 1) > 0.15) {
+    const beat = s.btc.rel365 > 1;
+    push({
+      key: "vs-btc", emoji: "₿", card: "spxbtc", score: 0.55 + Math.min(0.6, Math.abs(s.btc.rel365 - 1)),
+      headline: `${beat ? "Outrunning" : "Lagging"} Bitcoin over the past year`,
+      detail: `365-day relative strength vs BTC is ${round(s.btc.rel365, 2)}× — SPX6900 has ${beat ? "beaten" : "trailed"} Bitcoin over the year.`,
+      framing: `The honest scoreboard vs crypto's benchmark.`, note: `Relative strength, not a call.`,
+    });
+  }
+  const spLaunch = SP500_HISTORY.find(([d]) => d >= s.firstDate)?.[1] ?? SP500_HISTORY[0]?.[1];
+  const spNow = s.sp ?? SP500_HISTORY.at(-1)?.[1];
+  if (spLaunch && spNow && s.allTimeReturn != null) {
+    push({
+      key: "vs-sp", emoji: "🏦", card: "spxvssp", score: 0.35,
+      headline: `${round(1 + s.allTimeReturn, 0)}× vs the S&P's ${round(spNow / spLaunch, 2)}× since launch`,
+      detail: `Since ${s.firstDate}, SPX6900 is ${round(1 + s.allTimeReturn, 0)}× while the S&P 500 is ${round(spNow / spLaunch, 2)}× — the index it's named after.`,
+      framing: `Two honest returns from day one.`, note: `A flex, not a forecast.`,
+    });
+  }
+  if (s.lastFireSale?.sinceGain != null) {
+    const g = s.lastFireSale.sinceGain, ranHigher = s.lastFireSale.peakGain > g + 0.03;
+    push({
+      key: "firesale-rally", emoji: "🔥", card: "firesalerally", score: 0.45 + Math.min(0.5, Math.abs(g)),
+      headline: `${pct(g)} since the last Fire Sale low (${s.lastFireSale.date})`,
+      detail: `Off the ${s.lastFireSale.date} capitulation low ($${round(s.lastFireSale.low, 3)}), price is ${pct(g)}${ranHigher ? `, having peaked ${pct(s.lastFireSale.peakGain)}` : ""}.`,
+      framing: `Every capitulation-band low has rallied off it.`, note: `Pattern, not a promise; the chart shows the first 90 days.`,
+    });
+  }
+  const pts = (s.drawn || []).map(r => ({ t: Date.parse(r.date), p: r.price }));
+  if (pts.length > 20) {
+    const T = pts.at(-1).t, WK = 140 * DAY; let sum = 0, n = 0;
+    for (const q of pts) if (q.t > T - WK && q.t <= T) { sum += q.p; n++; }
+    const ext = s.price / (n ? sum / n : pts[0].p) - 1;
+    if (Math.abs(ext) > 0.25) push({
+      key: "heat", emoji: ext > 0 ? "🌡️" : "❄️", card: "riskheat", score: 0.5 + Math.min(0.5, Math.abs(ext)),
+      headline: `${pct(ext)} ${ext > 0 ? "above" : "below"} its 20-week average`,
+      detail: `Price is ${pct(ext)} ${ext > 0 ? "stretched above" : "discounted below"} its 20-week moving average — the short-term line it reverts toward.`,
+      framing: `Short-term heat vs the 20W line.`, note: `Mean-reversion read, not a signal.`,
+    });
+  }
+  try {
+    const c = btcCycleProjection();
+    if (c?.btcFrom) { const m = new Date(c.btcFrom).toLocaleString("en-US", { month: "short", year: "2-digit" });
+      push({
+        key: "cycle-rhyme", emoji: "🔮", card: "cycle", score: 0.3,
+        headline: `Today rhymes with Bitcoin's ${m}`,
+        detail: `Aligning SPX's launch to Bitcoin's last cycle puts today near BTC's ${m} — just off the post-top low.`,
+        framing: `A timing rhyme (amplitude differs), not a forecast.`, note: `Rhyme, not a prediction.`,
+      });
+    }
+  } catch { /* projection optional */ }
 
   // Recency look-back: penalise angles whose card (or theme) was fired recently.
   for (const a of out) {
