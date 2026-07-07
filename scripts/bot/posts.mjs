@@ -610,6 +610,21 @@ A widely-watched line, not a signal.`,
     };
   })(),
 
+  // 4e — Holder growth: the holder COUNT over time vs price. Data-gated (needs a couple
+  // weeks of daily snapshots). Holder-count growth = genuinely new wallets, the one
+  // on-chain metric safe to read as accumulation. A foundation card — grows over time.
+  s => (s.supply?.holderSeries?.length >= 8) && (() => {
+    const hs = s.supply.holderSeries, first = hs[0], cur = hs.at(-1);
+    const grew = cur.holders - first.holders, ndays = Math.round((cur.ts - first.ts) / 86400000);
+    return {
+      id: "holdergrowth",
+      text: ct`🧲 SPX6900's holder base has grown to ${cur.holders.toLocaleString()} wallets — ${grew >= 0 ? "+" : ""}${grew.toLocaleString()} in ~${ndays} days.
+New wallets are genuinely new holders (not a tier reclassification), so a rising count is real accumulation — even through the price swings.
+The base keeps building.`,
+      card: { type: "holdergrowth" },
+    };
+  })(),
+
   // (removed 2026-06-28) two cards pulled as not landing with the audience:
   //   • "strategy vs HODL (perfect hindsight)" — dry + buy-the-top-hype framing.
   //   • "volatility / how wild is it" (3-bar SPX vs BTC vs S&P) — owner: a bar of
@@ -1363,7 +1378,7 @@ const LOOK = {
   cycleclock: "trend", fngtrend: "trend", btcage: "trend", ethage: "trend", solage: "trend",
   // — Tier B: flavourful / distinct looks (used to break up the green lines) —
   riskcolor: "colorline", risklevels: "colorline", rsidots: "colorline",
-  riskheat: "dual", runningroi: "dual", cycle: "dual", longshort: "dual", underwater: "dual", goldencross: "dual",
+  riskheat: "dual", runningroi: "dual", cycle: "dual", longshort: "dual", underwater: "dual", goldencross: "dual", holdergrowth: "dual",
   firesalerally: "fanlines",
   model: "scatter",
   monthlyreturns: "heatmap", monthlyreturnssp: "heatmap", monthlyreturnsbtc: "heatmap",

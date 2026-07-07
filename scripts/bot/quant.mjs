@@ -21,7 +21,7 @@ const DAY = 86400000;
 
 // Coarse theme per card, so "similar" (not just identical) cards are recency-aware.
 const THEME = {
-  breakeven: "onchain-value", mvrv: "onchain-value", diamondtrend: "onchain-value", distribution: "onchain-value", holders: "onchain-value", holderspair: "onchain-value", marketcap: "onchain-value",
+  breakeven: "onchain-value", mvrv: "onchain-value", diamondtrend: "onchain-value", distribution: "onchain-value", holders: "onchain-value", holderspair: "onchain-value", holdergrowth: "onchain-value", marketcap: "onchain-value",
   valuation: "valuation", riskcolor: "valuation", risklevels: "valuation", channel: "valuation", roadmap: "valuation", model: "valuation", risk: "valuation",
   underwater: "drawdown", drawdown: "drawdown",
   rally: "performance", firesalerally: "performance", runningroi: "performance", alltime: "performance",
@@ -115,7 +115,7 @@ export function computeAngles(stats, opts = {}) {
   }
   // Accumulation: holder COUNT rising = genuinely new wallets (safe to call accumulation)
   if (holderGrowth != null && holderGrowth > 0.02) push({
-    key: "accumulation", emoji: "🧲", card: "holders",
+    key: "accumulation", emoji: "🧲", card: "holdergrowth",
     score: 0.9 + Math.min(0.8, holderGrowth * 8) + (r30 < 0.05 ? 0.4 : 0),
     headline: `Holders +${(holderGrowth * 100).toFixed(1)}% in ~${win}d${r30 < 0.05 ? " — while price went nowhere" : ""}`,
     detail: `Wallet count grew ${(holderGrowth * 100).toFixed(1)}% over ~${win} days (${fmt(past.holders)}→${fmt(s.supply.holders)}) — genuinely new holders${r30 < 0.05 ? `, even with price ${pct(r30)} on the month` : ""}.`,

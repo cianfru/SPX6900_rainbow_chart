@@ -106,6 +106,15 @@ function loadSupplyHistory() {
   } catch { return []; }
 }
 
+// Holder COUNT over time (with the day's price) — for the holder-growth card. Grows
+// as daily snapshots accumulate; genuinely new wallets (safe to read as accumulation).
+function loadHolderHistory() {
+  try {
+    const arr = JSON.parse(readFileSync(new URL("../../public/history.json", import.meta.url), "utf8"));
+    return arr.filter(r => r.holders != null && r.p > 0).map(r => ({ ts: Date.parse(r.d), holders: r.holders, price: r.p }));
+  } catch { return []; }
+}
+
 // Futures positioning banked by the longshort workflow (Hyperliquid on-chain funding
 // + OI). For the on-chain positioning card; data-gated, grows daily.
 function loadLongShort() {
@@ -220,6 +229,7 @@ export function computeStats(price, dateStr = new Date().toISOString().slice(0, 
       breakEven: snap.be, gini: snap.gini,
       avgHolderPnl: snap.be ? price / snap.be - 1 : null,
       diamondSeries: loadSupplyHistory(),
+      holderSeries: loadHolderHistory(),
     };
   }
 
