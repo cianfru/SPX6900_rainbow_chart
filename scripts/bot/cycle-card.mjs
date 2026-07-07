@@ -20,8 +20,11 @@ const decadeTicks = (lo, hi, cand) => cand.filter(v => v >= lo * 0.92 && v <= hi
 
 export function cycleSyncSvg(price, dateStr = new Date().toISOString().slice(0, 10), opts = {}) {
   const c = btcCycleProjection();
-  const SPX0 = new Date(DEFAULT_RAW[0].date).getTime();
-  const spx = DEFAULT_RAW.map(r => ({ ts: new Date(r.date).getTime(), price: r.price })).sort((a, b) => a.ts - b.ts);
+  // Draw the MERGED history (bundled + live snapshots) so the SPX line runs to today's
+  // dot instead of freezing weeks back at the bundle date. Falls back to the bundle.
+  const src = (opts.series && opts.series.length) ? opts.series : DEFAULT_RAW;
+  const SPX0 = new Date(src[0].date).getTime();
+  const spx = src.map(r => ({ ts: new Date(r.date).getTime(), price: r.price })).sort((a, b) => a.ts - b.ts);
   const anchorTs = c.anchorTs;
 
   const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 104, mR = 92, mT = 92, mB = 70, pW = W - mL - mR, pH = H - mT - mB;
@@ -115,7 +118,7 @@ ${logoMark("spx", 64, 12, 42)}${logoMark("btc", 114, 12, 42)}
 </svg>`;
 }
 
-export function renderCycleSyncCard(stats, opts = {}) { return png(cycleSyncSvg(stats.price, stats.date, { W: opts.W, H: opts.H }), opts.W ?? 1200); }
+export function renderCycleSyncCard(stats, opts = {}) { return png(cycleSyncSvg(stats.price, stats.date, { W: opts.W, H: opts.H, series: stats.drawn }), opts.W ?? 1200); }
 
 // ── "The Halving Clock" — the FORWARD card (replaces the old up-only line). ──
 // Tells the whole story at a glance: SPX's REAL history (green, with its true
@@ -130,8 +133,11 @@ const fDollar = v => (v >= 1 ? "$" + Math.round(v) : "$" + v.toFixed(v < 0.01 ? 
 export function cycleClockSvg(price, dateStr = new Date().toISOString().slice(0, 10), opts = {}) {
   const c = btcCycleProjection();
   const nowTs = c.anchorTs;
-  const hist = DEFAULT_RAW.map(r => ({ ts: new Date(r.date).getTime(), price: r.price })).filter(p => p.ts <= nowTs).sort((a, b) => a.ts - b.ts);
-  hist.push({ ts: nowTs, price });
+  // Merged history (bundled + live snapshots) so the recent weeks (June dip, the rally)
+  // show as real detail instead of a flat straight line from the bundle date to today.
+  const src = (opts.series && opts.series.length) ? opts.series : DEFAULT_RAW;
+  const hist = src.map(r => ({ ts: new Date(r.date).getTime(), price: r.price })).filter(p => p.ts <= nowTs).sort((a, b) => a.ts - b.ts);
+  if (!hist.length || hist.at(-1).ts < nowTs) hist.push({ ts: nowTs, price });
 
   const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 104, mR = 96, mT = 96, mB = 150;
   const plotBot = H - mB, pW = W - mL - mR, pH = plotBot - mT;
@@ -223,4 +229,4 @@ ${logoMark("spx", 64, 14, 40)}${logoMark("btc", 110, 14, 40)}
 </svg>`;
 }
 
-export function renderCycleClockCard(stats, opts = {}) { return png(cycleClockSvg(stats.price, stats.date, { W: opts.W, H: opts.H }), opts.W ?? 1200); }
+export function renderCycleClockCard(stats, opts = {}) { return png(cycleClockSvg(stats.price, stats.date, { W: opts.W, H: opts.H, series: stats.drawn }), opts.W ?? 1200); }
