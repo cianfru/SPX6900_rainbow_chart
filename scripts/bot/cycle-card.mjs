@@ -26,6 +26,10 @@ export function cycleSyncSvg(price, dateStr = new Date().toISOString().slice(0, 
   const SPX0 = new Date(src[0].date).getTime();
   const spx = src.map(r => ({ ts: new Date(r.date).getTime(), price: r.price })).sort((a, b) => a.ts - b.ts);
   const anchorTs = c.anchorTs;
+  // The projection stays anchored at the frozen bundle date, but the "today" marker,
+  // the SPX coin and the BTC solid/dashed split ride the ACTUAL latest SPX point so the
+  // coin sits on the live dot at the end of the green line, not weeks behind it.
+  const nowTs = spx.at(-1).ts, nowPrice = spx.at(-1).price;
 
   const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 104, mR = 92, mT = 92, mB = 70, pW = W - mL - mR, pH = H - mT - mB;
   const xMin = SPX0, xMax = c.histFwd.at(-1)?.[0] ?? anchorTs;
@@ -57,7 +61,7 @@ export function cycleSyncSvg(price, dateStr = new Date().toISOString().slice(0, 
     guides += `<line x1="${gx}" y1="${mT}" x2="${gx}" y2="${mT + pH}" stroke="rgba(247,147,26,0.28)" stroke-dasharray="3 7"/>`;
     guides += `<text x="${gx}" y="${mT + 18}" fill="#f7931a" font-size="15" text-anchor="middle" font-family="sans-serif">BTC ${pk.label}</text>`;
   }
-  const nx = x(anchorTs).toFixed(1);
+  const nx = x(nowTs).toFixed(1);
   guides += `<line x1="${nx}" y1="${mT}" x2="${nx}" y2="${mT + pH}" stroke="rgba(226,232,240,0.5)" stroke-dasharray="5 5"/>`;
   guides += `<text x="${nx - 6}" y="${mT + 18}" fill="#e2e8f0" font-size="15" text-anchor="end" font-family="sans-serif">today</text>`;
 
@@ -68,8 +72,12 @@ export function cycleSyncSvg(price, dateStr = new Date().toISOString().slice(0, 
     xlab += `<text x="${x(d).toFixed(1)}" y="${H - 42}" fill="#64748b" font-size="26" text-anchor="middle" font-family="sans-serif">${yr}</text>`;
   }
 
-  const btcSolid = c.histPts.map(([t, v]) => `${x(t).toFixed(1)},${yR(v).toFixed(1)}`).join(" ");
-  const btcDash = c.histFwd.map(([t, v]) => `${x(t).toFixed(1)},${yR(v).toFixed(1)}`).join(" ");
+  // Split BTC solid/dashed at ACTUAL today (not the frozen anchor) so the dashed
+  // "future" starts at the today line, not weeks before it. histFwd carries BTC's real
+  // path past the anchor, so the solid stretch simply extends to today.
+  const btcMerged = [...new Map([...c.histPts, ...c.histFwd].map(p => [p[0], p])).values()].sort((a, b) => a[0] - b[0]);
+  const btcSolid = btcMerged.filter(p => p[0] <= nowTs).map(([t, v]) => `${x(t).toFixed(1)},${yR(v).toFixed(1)}`).join(" ");
+  const btcDash = btcMerged.filter(p => p[0] >= nowTs).map(([t, v]) => `${x(t).toFixed(1)},${yR(v).toFixed(1)}`).join(" ");
   const spxLine = spx.map(p => `${x(p.ts).toFixed(1)},${yL(p.price).toFixed(1)}`).join(" ");
   const spxArea = `${x(spx[0].ts).toFixed(1)},${(mT + pH).toFixed(1)} ${spxLine} ${x(spx.at(-1).ts).toFixed(1)},${(mT + pH).toFixed(1)}`;
   // BTC peak dots (on the BTC scale)
@@ -77,7 +85,7 @@ export function cycleSyncSvg(price, dateStr = new Date().toISOString().slice(0, 
   for (const pk of c.peaks) dots += `<circle cx="${x(pk.ts).toFixed(1)}" cy="${yR(pk.btc).toFixed(1)}" r="5" fill="#f7931a"/>`;
   // end-of-line coin tags (same as the other cards): the SPX coin at the green
   // line's end (today), the BTC coin at the orange line's end (its real recovery).
-  const sx = x(anchorTs), sy = yL(price);
+  const sx = x(nowTs), sy = yL(nowPrice);
   const be = c.histFwd.at(-1) ?? c.histPts.at(-1);
   const bx = x(be[0]), by = yR(be[1]), CO = 46;
   const endCoin = (kind, cx, cy, stroke) =>
