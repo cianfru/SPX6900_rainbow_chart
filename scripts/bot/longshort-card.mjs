@@ -16,9 +16,15 @@ export function longShortSvg(stats, opts = {}) {
   if (fund.length < 8) return null; // data-gated — needs a bit of history
 
   const aprs = fund.map(r => r.hlFunding * 24 * 365 * 100);
-  const neutral = [...aprs].sort((a, b) => a - b)[Math.floor(aprs.length / 2)]; // median ≈ HL baseline
+  const neutral = [...aprs].sort((a, b) => a - b)[Math.floor(aprs.length / 2)]; // median over FULL history ≈ HL baseline
   const priceByDate = new Map((stats.drawn || []).map(r => [r.date, r.price]));
-  const rows = fund.map((r, i) => ({ ts: Date.parse(r.date), apr: aprs[i], dev: aprs[i] - neutral, price: priceByDate.get(r.date) ?? null }));
+  const allRows = fund.map((r, i) => ({ ts: Date.parse(r.date), apr: aprs[i], dev: aprs[i] - neutral, price: priceByDate.get(r.date) ?? null }));
+  // CARD = a tight, glanceable RECENT window so the current lean vs neutral is the clear
+  // read (funding is a short-term signal; full history is noise on a card). The SITE chart
+  // keeps full history + zoom. Baseline stays full-history above, so the pivot is stable.
+  const WINDOW_DAYS = opts.windowDays ?? 90;
+  const cutoff = allRows.at(-1).ts - WINDOW_DAYS * 86400000;
+  const rows = allRows.filter(r => r.ts >= cutoff);
   const cur = rows.at(-1);
 
   const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 96, mR = 92, mT = 84, mB = 64;
@@ -57,11 +63,11 @@ export function longShortSvg(stats, opts = {}) {
     + `<text x="${mL + 8}" y="${(yPivot - 8).toFixed(1)}" fill="#94a3b8" font-size="18" font-family="sans-serif">neutral · ~${Math.round(neutral)}% APR</text>`;
   const priceLine = rows.filter(r => r.price != null).map(r => `${x(r.ts).toFixed(1)},${yP(r.price).toFixed(1)}`).join(" ");
 
-  // x labels: quarter marks
+  // x labels: monthly marks (the window is short now, so quarter marks were too sparse)
   let xlab = "";
   const d0 = new Date(xMin);
-  for (let m = new Date(Date.UTC(d0.getUTCFullYear(), d0.getUTCMonth(), 1)); m.getTime() <= xMax; m = new Date(Date.UTC(m.getUTCFullYear(), m.getUTCMonth() + 3, 1))) {
-    if (m.getTime() < xMin - 45 * 86400000) continue;
+  for (let m = new Date(Date.UTC(d0.getUTCFullYear(), d0.getUTCMonth(), 1)); m.getTime() <= xMax; m = new Date(Date.UTC(m.getUTCFullYear(), m.getUTCMonth() + 1, 1))) {
+    if (m.getTime() < xMin - 10 * 86400000) continue;
     xlab += `<text x="${x(m.getTime()).toFixed(1)}" y="${H - 42}" fill="#64748b" font-size="24" text-anchor="middle" font-family="sans-serif">${m.toLocaleDateString("en-US", { month: "short", year: "2-digit" })}</text>`;
   }
 
