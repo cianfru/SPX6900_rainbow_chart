@@ -381,11 +381,14 @@ What price = what risk, right now.`,
   // under the price. Same data as the rainbow, a different read.
   s => (() => {
     // short-term extension vs the 20-week MA (trailing 140d avg), computed inline so
-    // this stays out of the renderer's dependency graph.
-    const last = new Date(DEFAULT_RAW.at(-1).date).getTime(), WK = 140 * 86400000;
+    // this stays out of the renderer's dependency graph. Uses the MERGED history ending
+    // TODAY (not the frozen bundle) so the MA is current and matches the riskheat card.
+    const src = (s.drawn && s.drawn.length) ? s.drawn : DEFAULT_RAW;
+    const pts = src.map(r => ({ t: new Date(r.date).getTime(), p: r.price })).sort((a, b) => a.t - b.t);
+    const last = pts.at(-1).t, WK = 140 * 86400000;
     let sum = 0, n = 0;
-    for (const r of DEFAULT_RAW) { const t = new Date(r.date).getTime(); if (t > last - WK && t <= last) { sum += r.price; n++; } }
-    const ext = Math.round((s.price / (n ? sum / n : DEFAULT_RAW[0].price) - 1) * 100);
+    for (const r of pts) { if (r.t > last - WK && r.t <= last) { sum += r.p; n++; } }
+    const ext = Math.round((s.price / (n ? sum / n : pts[0].p) - 1) * 100);
     return {
       id: "riskheat",
       text: ct`🌡️ SPX6900 is ${ext >= 0 ? "+" : ""}${ext}% from its 20-week moving average.
