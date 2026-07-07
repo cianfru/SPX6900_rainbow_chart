@@ -13,10 +13,14 @@ const fpct = v => `${v >= 0 ? "+" : ""}${Math.round(v * 100)}%`;
 const yy = y => "'" + String(y).slice(2);
 
 // month-over-month returns keyed by year*12+month, with the current month using
-// the live price so the latest bar is month-to-date.
-export function monthlyCompareData(price, dateStr) {
+// the live price so the latest bar is month-to-date. `series` is the daily history to
+// read (default DEFAULT_RAW); the card passes the MERGED history (stats.drawn) so the
+// recent months banked since the bundle date (e.g. June) aren't a gap. Sorted so the
+// last point of each month = that month's close.
+export function monthlyCompareData(price, dateStr, series = DEFAULT_RAW) {
   const byMonth = new Map();
-  for (const r of DEFAULT_RAW) { const d = new Date(r.date); byMonth.set(d.getUTCFullYear() * 12 + d.getUTCMonth(), r.price); }
+  const sorted = [...series].sort((a, b) => a.date.localeCompare(b.date));
+  for (const r of sorted) { if (!(r.price > 0)) continue; const d = new Date(r.date); byMonth.set(d.getUTCFullYear() * 12 + d.getUTCMonth(), r.price); }
   const cd = new Date(dateStr); byMonth.set(cd.getUTCFullYear() * 12 + cd.getUTCMonth(), price);
   const keys = [...byMonth.keys()].sort((a, b) => a - b);
   const ret = new Map();
@@ -28,7 +32,7 @@ export function monthlyCompareData(price, dateStr) {
 }
 
 export function monthlyCompareSvg(price, dateStr = new Date().toISOString().slice(0, 10), opts = {}) {
-  const { yOld, yNew, at } = monthlyCompareData(price, dateStr);
+  const { yOld, yNew, at } = monthlyCompareData(price, dateStr, opts.series);
   const months = MON.map((name, m) => ({ name, m, old: at(yOld, m), now: at(yNew, m) }));
   let maxAbs = 0.1;
   for (const mo of months) for (const v of [mo.old, mo.now]) if (v != null) maxAbs = Math.max(maxAbs, Math.abs(v));
@@ -86,4 +90,8 @@ ${grid}${bars}${labels}${xlab}${legend}
 </svg>`;
 }
 
-export function renderMonthlyCompareCard(stats, opts = {}) { return png(monthlyCompareSvg(stats.price, stats.date, { W: opts.W, H: opts.H }), opts.W ?? 1200); }
+export function renderMonthlyCompareCard(stats, opts = {}) {
+  // Use the MERGED daily history (bundled + live snapshots), not the frozen bundle, so
+  // recent months banked since the bundle date show up (fixes a missing June bar).
+  return png(monthlyCompareSvg(stats.price, stats.date, { W: opts.W, H: opts.H, series: stats.drawn }), opts.W ?? 1200);
+}
