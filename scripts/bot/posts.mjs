@@ -10,7 +10,6 @@ import { BTC_HISTORY } from "../../src/btc-history.js";
 import { ETH_HISTORY, SOL_HISTORY } from "../../src/alt-age-history.js";
 import { SP500_HISTORY } from "../../src/sp500-history.js";
 import { rsiNow } from "./rsi-card.mjs";
-import { hundredVsData } from "./hundred-data.mjs";
 import { fNum } from "./svg-util.mjs";
 
 // --- owner-editable post copy ---------------------------------------------
@@ -973,23 +972,6 @@ One year is a blink for a power-law asset.`,
     };
   })(),
 
-  // 22 — what an early $100 became (price history scaled to a $100 stake, log).
-  // Relatable + screenshot-able; reuses the line card.
-  s => (() => {
-    // The same $100 buy at SPX's launch, four ways — SPX vs BTC vs the S&P vs cash. A
-    // comparative twist on the plain since-launch multiple (bar card, same numbers).
-    const { items, firstDate } = hundredVsData(s);
-    const get = k => items.find(i => i.key === k);
-    const spx = get("spx"), btc = get("btc"), sp = get("sp");
-    return {
-      id: "hundred",
-      text: ct`💸 $100 in SPX6900 at launch is ${fUsd0(spx.v)} today — vs ${fUsd0(btc.v)} in Bitcoin, ${fUsd0(sp.v)} in the S&P 500.
-Same $100, same day (${fMon(firstDate)}), four ways. The gap is being early in a power-law asset, not timing it.
-Not repeatable. The lesson is being early.`,
-      card: { type: "hundredvs" },
-    };
-  })(),
-
   // 23 — monthly returns as a seasonality heatmap (the website's Monthly grid,
   // condensed): years × months, green up / red down, plus a compounded Year
   // column. Same month-over-month definition the site uses, so they agree.
@@ -1312,7 +1294,7 @@ export function buildAll(stats) { return POSTS.map(p => p(stats)).filter(Boolean
 // bullish (they show up ~twice as often as the analytical/neutral ones).
 const BULLISH = new Set([
   "milestones", "memecoins", "btcgrade", "cycle", "cycleclock",
-  "targets", "rally", "alltime", "hundred", "dogeclock", "majorcaps", "dca",
+  "targets", "rally", "alltime", "dogeclock", "majorcaps", "dca",
 ]);
 // Per-post rotation weight (copies per cycle). The flagship rainbow is weighted
 // up so the site's main chart surfaces ~weekly (≈3×/month); bullish posts 2×.
@@ -1354,7 +1336,7 @@ const LOOK = {
   firesalerally: "fanlines",
   model: "scatter",
   monthlyreturns: "heatmap", monthlyreturnssp: "heatmap", monthlyreturnsbtc: "heatmap",
-  timeinband: "bars", monthlybars: "bars", monthcompare: "bars", hundred: "bars",
+  timeinband: "bars", monthlybars: "bars", monthcompare: "bars",
   fngdial: "round", distribution: "round",
   marketcap: "blocks", milestones: "blocks", sp500: "blocks",
   dca: "dca",
