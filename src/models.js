@@ -270,6 +270,44 @@ export function buildFireSaleRallies(series, m, { minGain = 0.3 } = {}) {
   return ralliesFromAnchors(series, coalesced, minGain);
 }
 
+// Golden/death cross: 50-day vs 200-day simple moving averages. Interpolates the
+// (irregularly-sampled) price history to a DAILY series first, then rolls true SMAs
+// over it — so the MAs are smooth even across the sparse early history. Returns the
+// daily rows (where the 200-MA exists), the cross events, and today's state. Shared by
+// the card, its copy and the Quant so they can't drift.
+export function goldenCross(series) {
+  const s = (series || []).filter(r => r.price > 0).map(r => ({ t: new Date(r.date).getTime(), p: r.price })).sort((a, b) => a.t - b.t);
+  if (s.length < 2) return { rows: [], crosses: [], price: null, ma50: null, ma200: null, gap: null };
+  const DAY = 86400000;
+  // daily linear-interpolated price series
+  const d = [];
+  for (let t = s[0].t, j = 0; t <= s.at(-1).t; t += DAY) {
+    while (j + 1 < s.length && s[j + 1].t <= t) j++;
+    let p = s[j].p;
+    if (j + 1 < s.length && s[j + 1].t > s[j].t) { const f = (t - s[j].t) / (s[j + 1].t - s[j].t); p = s[j].p + (s[j + 1].p - s[j].p) * f; }
+    d.push({ t, p });
+  }
+  // running-sum rolling SMAs
+  const ma = n => { const out = Array(d.length).fill(null); let sum = 0; for (let i = 0; i < d.length; i++) { sum += d[i].p; if (i >= n) sum -= d[i - n].p; if (i >= n - 1) out[i] = sum / n; } return out; };
+  const m50 = ma(50), m200 = ma(200);
+  const rows = d.map((r, i) => ({ ts: r.t, p: r.p, ma50: m50[i], ma200: m200[i] })).filter(r => r.ma200 != null);
+  const crosses = [];
+  for (let i = 1; i < rows.length; i++) {
+    const pa = rows[i - 1].ma50 - rows[i - 1].ma200, pb = rows[i].ma50 - rows[i].ma200;
+    if (pa <= 0 && pb > 0) crosses.push({ ts: rows[i].ts, y: rows[i].ma50, type: "golden" });
+    if (pa >= 0 && pb < 0) crosses.push({ ts: rows[i].ts, y: rows[i].ma50, type: "death" });
+  }
+  const last = rows.at(-1) || { p: null, ma50: null, ma200: null };
+  return { rows, crosses, price: last.p, ma50: last.ma50, ma200: last.ma200, gap: (last.ma50 && last.ma200) ? last.ma50 / last.ma200 - 1 : null };
+}
+
+// Shared phrasing for the golden/death cross state (card, copy, Quant agree).
+export function crossState(gap) {
+  if (gap == null) return { label: "", watch: "", color: "#94a3b8" };
+  if (gap >= 0) return { label: "50D above 200D", watch: gap < 0.05 ? "golden cross — fresh" : "", color: "#4ade80" };
+  return { label: `50D ${Math.round(gap * 100)}% below 200D`, watch: gap > -0.06 ? "▲ golden-cross watch" : "", color: "#f87171" };
+}
+
 // Underwater summary for the drawdown card + its copy (one source so they agree):
 // the drawdown series plus headline stats — current dd, deepest ever, and how many
 // times price returned to a fresh all-time high (dd back to ~0), i.e. the recovery

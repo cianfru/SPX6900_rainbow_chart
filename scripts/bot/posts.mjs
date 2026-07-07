@@ -594,6 +594,22 @@ Deep drawdowns are the toll. It's paid them before.`,
     };
   })(),
 
+  // 4d — Golden / Death Cross: the classic 50-day vs 200-day MA cross. The most
+  // recognisable trend line in markets — mainstream, meme-able, and event-driven (a
+  // cross is a genuine "notable today"). A widely-watched line, framed as such (NFA).
+  s => (() => {
+    const gc = M.goldenCross(s.drawn);
+    if (!gc.rows.length || gc.gap == null) return null;
+    const st = M.crossState(gc.gap), gp = Math.round(Math.abs(gc.gap) * 100);
+    return {
+      id: "goldencross",
+      text: ct`📊 SPX6900's 50-day average is ${gp}% ${gc.gap >= 0 ? "above" : "below"} its 200-day — ${st.watch || st.label.toLowerCase()}.
+The classic 50/200 cross: golden = the 50 crossing up through the 200, death = crossing down. It's crossed ${gc.crosses.length} times since launch.
+A widely-watched line, not a signal.`,
+      card: { type: "goldencross" },
+    };
+  })(),
+
   // (removed 2026-06-28) two cards pulled as not landing with the audience:
   //   • "strategy vs HODL (perfect hindsight)" — dry + buy-the-top-hype framing.
   //   • "volatility / how wild is it" (3-bar SPX vs BTC vs S&P) — owner: a bar of
@@ -1347,7 +1363,7 @@ const LOOK = {
   cycleclock: "trend", fngtrend: "trend", btcage: "trend", ethage: "trend", solage: "trend",
   // — Tier B: flavourful / distinct looks (used to break up the green lines) —
   riskcolor: "colorline", risklevels: "colorline", rsidots: "colorline",
-  riskheat: "dual", runningroi: "dual", cycle: "dual", longshort: "dual", underwater: "dual",
+  riskheat: "dual", runningroi: "dual", cycle: "dual", longshort: "dual", underwater: "dual", goldencross: "dual",
   firesalerally: "fanlines",
   model: "scatter",
   monthlyreturns: "heatmap", monthlyreturnssp: "heatmap", monthlyreturnsbtc: "heatmap",

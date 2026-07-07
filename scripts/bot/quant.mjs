@@ -12,6 +12,7 @@
 
 import { SP500_HISTORY } from "../../src/sp500-history.js";
 import { btcCycleProjection } from "../../src/btc-cycle.js";
+import { goldenCross } from "../../src/models.js";
 
 const pct = (x, d = 0) => (x >= 0 ? "+" : "") + (x * 100).toFixed(d) + "%";
 const round = (x, d = 2) => (x == null ? null : Number(x.toFixed(d)));
@@ -26,6 +27,7 @@ const THEME = {
   rally: "performance", firesalerally: "performance", runningroi: "performance", alltime: "performance",
   fngdial: "sentiment", fngtrend: "sentiment",
   longshort: "positioning",
+  goldencross: "ma-cross", riskheat: "ma-cross",
   targets: "targets", milestones: "targets", hundred: "targets",
 };
 const themeOf = card => THEME[card] || card;
@@ -245,6 +247,27 @@ export function computeAngles(stats, opts = {}) {
       framing: `Short-term heat vs the 20W line.`, note: `Mean-reversion read, not a signal.`,
     });
   }
+  // Golden/death cross: score high when a cross is FRESH (last ~14d) or imminent
+  // (within ~4% and converging) — a genuine event; otherwise a quiet evergreen.
+  const gc = goldenCross(s.drawn || []);
+  if (gc.gap != null) {
+    const last = gc.crosses.at(-1);
+    const fresh = last && (Date.parse(s.date) - last.ts) / DAY <= 14;
+    const near = gc.gap < 0 && gc.gap > -0.06;   // matches crossState's "watch" band
+    if (fresh) push({
+      key: "cross-fresh", emoji: last.type === "golden" ? "✨" : "☠️", card: "goldencross", score: 1.3,
+      headline: `SPX6900 just printed a ${last.type} cross`,
+      detail: `The 50-day moving average ${last.type === "golden" ? "crossed UP through" : "crossed DOWN through"} the 200-day — the classic ${last.type} cross, ${Math.round((Date.parse(s.date) - last.ts) / DAY)}d ago.`,
+      framing: `The most-watched trend line in markets just flipped.`, note: `A widely-watched line, NOT a signal.`,
+    });
+    else if (near) push({
+      key: "cross-watch", emoji: "⏳", card: "goldencross", score: 0.9,
+      headline: `${Math.round(Math.abs(gc.gap) * 100)}% from a golden cross`,
+      detail: `The 50-day average is just ${Math.round(Math.abs(gc.gap) * 100)}% below the 200-day and converging — the closest to a golden cross in a while.`,
+      framing: `A recognisable trend event brewing.`, note: `Watch, not a call; crosses can whipsaw.`,
+    });
+  }
+
   try {
     const c = btcCycleProjection();
     if (c?.btcFrom) { const m = new Date(c.btcFrom).toLocaleString("en-US", { month: "short", year: "2-digit" });
