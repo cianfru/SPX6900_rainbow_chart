@@ -566,10 +566,11 @@ Cheap can get cheaper, but the deepest discounts paid the patient.`,
     const cur = R.at(-1);
     if (!cur || !cur.live) return null;
     const desc = cur.offPeak >= -0.1 ? "near its high" : cur.offPeak > -0.35 ? "pulled back" : "faded";
+    const win = Math.max(90, cur.daysSince); // chart's x-window (mirrors the card)
     return {
       id: "firesalerally",
       text: ct`🔥 SPX6900 is ${fPct(cur.nowGain)} since the ${fMon(cur.startDate)} Fire Sale low — ${desc}, ${cur.daysSince}d in (peaked ${fPct(cur.peakGain)}).
-Every low in the rainbow's deepest band has rallied off it. The launch-era run went far further, from a sub-cent base.
+Every low in the rainbow's deepest band rallied off it (chart: first ${win} days). The launch run went further, from a sub-cent base.
 A pattern, not a promise.`,
       card: { type: "firesalerally" },
     };
