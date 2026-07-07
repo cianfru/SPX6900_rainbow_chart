@@ -42,5 +42,6 @@
   "monthlyreturns": "landscape",
   "monthcompare": "square",
   "diamondtrend": "square",
-  "longshort": "square"
+  "longshort": "square",
+  "monthlyreturnsbtc": "square"
 }
