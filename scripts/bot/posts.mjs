@@ -556,6 +556,25 @@ Cheap can get cheaper, but the deepest discounts paid the patient.`,
     };
   })(),
 
+  // 4b — Fire Sale rallies overlay: EVERY capitulation-band low and how it ran (×
+  // from the low, log). The current episode runs to today (peak may be behind it).
+  // Honest framing: lead with the LIVE gain, headline the PATTERN not the launch
+  // mega-run (that came off a sub-cent base and can't repeat). A rally ends only when
+  // price re-enters the Fire Sale band, not on a % pullback.
+  s => s.lastFireSale && (() => {
+    const R = M.buildFireSaleRalliesLive(s.drawn, s.model, { minGain: 0.3 });
+    const cur = R.at(-1);
+    if (!cur || !cur.live) return null;
+    const desc = cur.offPeak >= -0.1 ? "near its high" : cur.offPeak > -0.35 ? "pulled back" : "faded";
+    return {
+      id: "firesalerally",
+      text: ct`🔥 SPX6900 is ${fPct(cur.nowGain)} since the ${fMon(cur.startDate)} Fire Sale low — ${desc}, ${cur.daysSince}d in (peaked ${fPct(cur.peakGain)}).
+Every low in the rainbow's deepest band has rallied off it. The launch-era run went far further, from a sub-cent base.
+A pattern, not a promise.`,
+      card: { type: "firesalerally" },
+    };
+  })(),
+
   // (removed 2026-06-28) two cards pulled as not landing with the audience:
   //   • "strategy vs HODL (perfect hindsight)" — dry + buy-the-top-hype framing.
   //   • "volatility / how wild is it" (3-bar SPX vs BTC vs S&P) — owner: a bar of
@@ -1328,6 +1347,7 @@ const LOOK = {
   // — Tier B: flavourful / distinct looks (used to break up the green lines) —
   riskcolor: "colorline", risklevels: "colorline", rsidots: "colorline",
   riskheat: "dual", runningroi: "dual", cycle: "dual", longshort: "dual",
+  firesalerally: "fanlines",
   model: "scatter",
   monthlyreturns: "heatmap", monthlyreturnssp: "heatmap", monthlyreturnsbtc: "heatmap",
   timeinband: "bars", monthlybars: "bars", monthcompare: "bars",

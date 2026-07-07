@@ -270,6 +270,28 @@ export function buildFireSaleRallies(series, m, { minGain = 0.3 } = {}) {
   return ralliesFromAnchors(series, coalesced, minGain);
 }
 
+// Fire-sale rallies with the CURRENT (last) episode extended to the live price. Each
+// COMPLETED rally stays low→peak ("how far the climb ran"); the last one is redrawn
+// low→today so its endpoint is the REAL current gain — its peak may be behind it. A
+// rally ENDS only when price re-enters the Fire Sale band (a fresh anchor), NOT on a %
+// pullback (deep dips are routine in crypto, so a % threshold would end rallies on
+// noise). Adds {live, peakGain, nowGain, daysSince, offPeak} to the current rally.
+export function buildFireSaleRalliesLive(series, m, opts = {}) {
+  const rallies = buildFireSaleRallies(series, m, opts).map(c => ({ ...c, points: c.points.slice() }));
+  const cur = rallies[rallies.length - 1];
+  if (!cur) return rallies;
+  const lowIdx = series.findIndex(r => r.date === cur.startDate);
+  if (lowIdx < 0) return rallies;
+  const low = series[lowIdx].price, startDay = new Date(cur.startDate).getTime() / 86400000;
+  cur.peakGain = cur.maxGain; // the high-water mark of this episode
+  cur.points = series.slice(lowIdx).map(r => ({ day: Math.round(new Date(r.date).getTime() / 86400000 - startDay), gain: r.price / low - 1, date: r.date }));
+  cur.nowGain = cur.points[cur.points.length - 1].gain;
+  cur.daysSince = cur.points[cur.points.length - 1].day;
+  cur.offPeak = cur.peakGain > 0 ? (1 + cur.nowGain) / (1 + cur.peakGain) - 1 : 0; // ≤0, how far below the peak now
+  cur.live = true;
+  return rallies;
+}
+
 // Hindsight strategy: start with 1×, buy each cycle low and sell at that cycle's
 // peak (compounding), sitting in cash between cycles. Returns an equity curve vs a
 // HODL-from-first-low baseline. Perfect timing — illustrative, not achievable live.
