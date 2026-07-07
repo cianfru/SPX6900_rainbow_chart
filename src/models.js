@@ -270,6 +270,20 @@ export function buildFireSaleRallies(series, m, { minGain = 0.3 } = {}) {
   return ralliesFromAnchors(series, coalesced, minGain);
 }
 
+// Underwater summary for the drawdown card + its copy (one source so they agree):
+// the drawdown series plus headline stats — current dd, deepest ever, and how many
+// times price returned to a fresh all-time high (dd back to ~0), i.e. the recovery
+// count that makes the "deep dip → new ATH" rhythm concrete.
+export function drawdownSummary(series) {
+  const dd = buildDrawdownSeries(series);
+  let deepest = 0, athCount = 0, below = false;
+  for (const r of dd) {
+    if (r.dd < deepest) deepest = r.dd;
+    if (r.dd >= -0.001) { if (below) { athCount++; below = false; } } else below = true;
+  }
+  return { series: dd, current: dd.length ? dd.at(-1).dd : 0, deepest, athCount };
+}
+
 // Fire-sale rallies with the CURRENT (last) episode extended to the live price. Each
 // COMPLETED rally stays low→peak ("how far the climb ran"); the last one is redrawn
 // low→today so its endpoint is the REAL current gain — its peak may be behind it. A
