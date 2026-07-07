@@ -33,31 +33,12 @@ on:
         type: boolean
         default: false
       post_id:
-        description: "Which topic to publish (auto = daily rotation)"
-        type: choice
+        # Free-form so ANY card id dispatches (the control panel posts every card in
+        # the grid). A fixed `choice` list drifted out of date and 422'd new cards
+        # (firesalerally, underwater, …). "auto" = the daily rotation; else a card id.
+        description: "Which topic to publish (auto = daily rotation; else a card id, e.g. firesalerally)"
+        type: string
         default: auto
-        options:
-          - auto
-          - valuation
-          - risk
-          - drawdown
-          - rally
-          - targets
-          - timeinband
-          - marketcap
-          - distribution
-          - breakeven
-          - btc
-          - majors
-          - alltime
-          - cycle
-          - cyclepeak
-          - cycleclock
-          - milestones
-          - memecoins
-          - btcgrade
-          - model
-          - sp500
 
 permissions:
   contents: write
