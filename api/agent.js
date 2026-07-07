@@ -132,7 +132,7 @@ function assembleContext(stats, todayPick, catalog, signals, queue, postState) {
     // The "Quant": ranked candidate ANGLES pre-computed from the full stat set — each a
     // READ (often a cross-metric divergence) mapped to the card that expresses it,
     // sorted by how notable/interesting. This is the agent's starting point.
-    quantAngles: topAngles(s, 6),
+    quantAngles: topAngles(s, 6, { recent: postState?.recent || [] }),
     rotationPickForToday: { id: todayPick.id, says: cardSays(todayPick) },
     notableToday: notable,
     queuedCard: queue?.id || null,
@@ -145,7 +145,7 @@ const SYSTEM = `You are the QUANT for the SPX6900 rainbow-chart X (Twitter) acco
 
 The CONTEXT gives you REAL, already-computed numbers — the FULL analysis engine's output. Two parts to lean on:
 1. today.* — the raw grouped stats: valuation (band, risk, vs-fair-value, cheapness pctl), performance (all-time ×, drawdown, deepest-ever, last Fire-Sale rally), onChain (holders, diamond share of supply AND classified, break-even/realized price, MVRV, avg holder PnL, gini), positioning (Hyperliquid funding vs neutral), sentiment (Fear & Greed, S&P), vsBitcoin, vsMajors, memeTargets.
-2. quantAngles — a RANKED list of candidate reads already computed for you, each with {read, why, card, framing, guardrail, score}. These are pre-scored so DIVERGENCES and cross-metric reads (e.g. "holders underwater but not selling") outrank generic single-metric restatements (e.g. "price is cheap"). Higher score = more notable.
+2. quantAngles — a RANKED list of candidate reads already computed for you, each with {read, why, card, framing, guardrail, score}. These are pre-scored so DIVERGENCES and cross-metric reads (e.g. "holders underwater but not selling") outrank generic single-metric restatements (e.g. "price is cheap"). Higher score = more notable. An angle flagged firedRecently had its card posted in the last several days — it's already de-ranked; prefer a fresher angle so the feed doesn't repeat.
 
 How to answer:
 - DEFAULT to the TOP quantAngle unless the owner steers elsewhere or you can justify a better one from today.*. Lead with its READ, in the account's honest voice — a cross-metric divergence beats restating the valuation band. Do NOT default to "price is X% below trend / BUY band" when a richer angle is available; that's the lazy answer.

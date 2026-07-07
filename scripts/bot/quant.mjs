@@ -2,16 +2,50 @@
 // candidate ANGLES (reads worth posting), each mapped to the card that expresses it.
 // Cross-metric DIVERGENCES (the genuinely interesting stuff — e.g. "underwater but
 // not selling") score above single-metric extremes ("price is cheap"). Feeds the
-// control agent so a free model reasons FROM angles instead of raw fields, and can
-// power the "Notable today" strip. Pure: no fetch, no render — it only reads numbers
-// already computed by computeStats (honesty rule: never invents figures).
+// control agent AND the "Notable today" strip so both reason FROM angles, not raw
+// fields. Pure: no fetch, no render — it only reads numbers already computed by
+// computeStats (honesty rule: never invents figures).
+//
+// LOOK-BACK: pass opts.recent = [{date,id}] of recently-fired cards and angles whose
+// card (or a card in the same THEME) went out in the last ~8 days get a score penalty,
+// so the strip/agent don't propose the same kind of post twice in a row.
 
 const pct = (x, d = 0) => (x >= 0 ? "+" : "") + (x * 100).toFixed(d) + "%";
 const round = (x, d = 2) => (x == null ? null : Number(x.toFixed(d)));
+const DAY = 86400000;
+
+// Coarse theme per card, so "similar" (not just identical) cards are recency-aware.
+const THEME = {
+  breakeven: "onchain-value", mvrv: "onchain-value", diamondtrend: "onchain-value", distribution: "onchain-value", holders: "onchain-value", holderspair: "onchain-value", marketcap: "onchain-value",
+  valuation: "valuation", riskcolor: "valuation", risklevels: "valuation", channel: "valuation", roadmap: "valuation", model: "valuation", risk: "valuation",
+  underwater: "drawdown", drawdown: "drawdown",
+  rally: "performance", firesalerally: "performance", runningroi: "performance", alltime: "performance",
+  fngdial: "sentiment", fngtrend: "sentiment",
+  longshort: "positioning",
+  targets: "targets", milestones: "targets", hundred: "targets",
+};
+const themeOf = card => THEME[card] || card;
+
+// How much to knock a card's score for having been fired recently (exact card heavier
+// than same-theme; both decay to 0 over ~8 days). Reused by the strip for detector
+// signals too.
+export function cardRecencyPenalty(card, recent, todayStr) {
+  if (!recent?.length || !card || !todayStr) return 0;
+  const today = Date.parse(todayStr), theme = themeOf(card);
+  let pen = 0;
+  for (const r of recent) {
+    const days = Math.round((today - Date.parse(r.date)) / DAY);
+    if (!(days >= 0) || days > 8) continue;
+    const decay = Math.max(0, 1 - days / 8);
+    if (r.id === card) pen = Math.max(pen, 1.1 * decay);
+    else if (themeOf(r.id) === theme) pen = Math.max(pen, 0.55 * decay);
+  }
+  return pen;
+}
 
 // price N days before stats.date, from the merged drawn history
 function priceDaysAgo(stats, days) {
-  const target = Date.parse(stats.date) - days * 86400000;
+  const target = Date.parse(stats.date) - days * DAY;
   let best = null;
   for (const r of stats.drawn || []) { const t = Date.parse(r.date); if (t <= target) best = r; else break; }
   return best?.price ?? (stats.drawn?.[0]?.price ?? null);
@@ -31,9 +65,9 @@ function fundingRead(stats) {
   return { now, neutral, dev, noisy: sd > Math.abs(dev) * 1.2 };
 }
 
-// Each builder returns an angle {key, card, score, headline, detail, framing, note} or
-// null. `score` ranks interestingness (roughly 0..2.5); divergences get a boost.
-export function computeAngles(stats) {
+// Each builder returns an angle {key, emoji, card, score, headline, detail, framing,
+// note} or null. `score` ranks interestingness (~0..2.5); divergences get a boost.
+export function computeAngles(stats, opts = {}) {
   const s = stats, out = [];
   const be = s.supply?.breakEven ?? null;
   const mvrv = (be && s.price) ? s.price / be : null;
@@ -47,30 +81,27 @@ export function computeAngles(stats) {
   const push = a => a && out.push(a);
 
   // ── CROSS-METRIC DIVERGENCES (the interesting reads) ─────────────────────────
-  // Underwater but holding: crowd below cost basis, yet the float isn't leaving.
   if (under != null && under > 0.1 && diamond != null && diamond > 0.5) {
     push({
-      key: "underwater-holding", card: "breakeven", score: 1.2 + under * 1.6 + (diamond - 0.5),
+      key: "underwater-holding", emoji: "💎", card: "breakeven", score: 1.2 + under * 1.6 + (diamond - 0.5),
       headline: `Holders ~${Math.round(under * 100)}% underwater — and still not selling`,
       detail: `MVRV ${round(mvrv, 2)}: price is ${Math.round(under * 100)}% below the crowd's avg on-chain cost basis ($${round(be, 3)}). Yet ${Math.round(diamond * 100)}% of supply is in the longest-held tier — the float isn't moving.`,
       framing: `Maximum financial pain, minimal capitulation — conviction being tested and, so far, holding.`,
       note: `Describe the divergence, NOT a bottom call. "Not selling", not "buy".`,
     });
   }
-  // Recovery not believed: price up over 30d but sentiment still fearful.
   if (r30 > 0.08 && fng != null && fng < 35) {
     push({
-      key: "recovery-disbelief", card: "fngdial", score: 0.9 + Math.min(0.6, r30) + (35 - fng) / 60,
+      key: "recovery-disbelief", emoji: "📈", card: "fngdial", score: 0.9 + Math.min(0.6, r30) + (35 - fng) / 60,
       headline: `Up ${pct(r30)} in 30d, but Fear & Greed is still ${fng}`,
       detail: `Price has recovered ${pct(r30)} over the month while sentiment sits at ${fng} (fear). The move isn't being believed yet.`,
       framing: `Recovery running ahead of sentiment — the crowd hasn't caught up.`,
       note: `Not a prediction; just the sentiment-vs-price gap.`,
     });
   }
-  // Cheap AND fearful: valuation floor lining up with fear.
   if (vsFV != null && vsFV < -0.6 && fng != null && fng < 30) {
     push({
-      key: "capitulation-cluster", card: "riskcolor", score: 1.0 + (-vsFV - 0.6) * 2 + (30 - fng) / 50,
+      key: "capitulation-cluster", emoji: "🧊", card: "riskcolor", score: 1.0 + (-vsFV - 0.6) * 2 + (30 - fng) / 50,
       headline: `${pct(vsFV)} below trend AND fear at ${fng}`,
       detail: `Deep in the ${band} band (${pct(vsFV)} vs the power-law fair value $${round(s.center, 3)}) with Fear & Greed at ${fng}. Valuation and sentiment bottoming together.`,
       framing: `Where value and fear overlap — historically the account's best-resonating zone.`,
@@ -80,57 +111,62 @@ export function computeAngles(stats) {
 
   // ── SINGLE-METRIC EXTREMES / STATES ──────────────────────────────────────────
   if (vsFV != null && vsFV < -0.55) push({
-    key: "deep-value", card: "valuation", score: 0.5 + Math.min(1.0, -vsFV),
+    key: "deep-value", emoji: "🟣", card: "valuation", score: 0.5 + Math.min(1.0, -vsFV),
     headline: `${pct(vsFV)} below its long-run trend (${band} band)`,
     detail: `Fair value for its age is $${round(s.center, 2)}; price sits ${pct(vsFV)} under it.`,
     framing: `Where today sits in the long power-law arc.`, note: `Not a prediction.`,
   });
   if (dd != null && dd < -0.6) push({
-    key: "drawdown", card: "underwater", score: 0.5 + Math.min(1.0, -dd * 1.2),
+    key: "drawdown", emoji: "📉", card: "underwater", score: 0.5 + Math.min(1.0, -dd * 1.2),
     headline: `${pct(dd)} below its all-time high`,
     detail: `Deepest drawdown on record was ${pct(s.maxDrawdown)}; it has made new highs after every prior one so far.`,
     framing: `Deep drawdowns are the toll — it's paid them before (no recovery promise).`,
     note: `It's deep and unrecovered NOW; don't imply it always recovers.`,
   });
   if (fund && !fund.noisy && Math.abs(fund.dev) > 4) push({
-    key: "positioning", card: "longshort", score: 0.6 + Math.min(0.8, Math.abs(fund.dev) / 15),
+    key: "positioning", emoji: "⚖️", card: "longshort", score: 0.6 + Math.min(0.8, Math.abs(fund.dev) / 15),
     headline: `Perp funding ${fund.dev > 0 ? "above" : "below"} neutral by ${Math.round(Math.abs(fund.dev))}pp`,
     detail: `Funding ${Math.round(fund.now)}% APR vs the ~${Math.round(fund.neutral)}% neutral baseline — crowd leaning ${fund.dev > 0 ? "long" : "short"}.`,
     framing: `Where the derivatives crowd is positioned right now.`, note: `Positioning, not a signal.`,
   });
   if (fund && fund.noisy && Math.abs(fund.dev) > 4) push({
-    key: "positioning-noisy", card: "longshort", score: 0.3,
+    key: "positioning-noisy", emoji: "〰️", card: "longshort", score: 0.3,
     headline: `Funding choppy around neutral`,
     detail: `Funding is whippy (recently spiked far from the ~${Math.round(fund.neutral)}% neutral and snapped back) — no clean positioning read today.`,
     framing: `Froth in/out, no durable lean.`, note: `Do NOT claim long/short lean — it's noise.`,
   });
   if (fng != null && (fng <= 25 || fng >= 75)) push({
-    key: "fng-extreme", card: "fngdial", score: 0.5 + Math.abs(fng - 50) / 60,
+    key: "fng-extreme", emoji: fng <= 25 ? "🧊" : "🔥", card: "fngdial", score: 0.5 + Math.abs(fng - 50) / 60,
     headline: `Fear & Greed at ${fng} — ${fng <= 25 ? "extreme fear" : "extreme greed"}`,
     detail: `Sentiment is at a ${fng <= 25 ? "fearful" : "greedy"} extreme (${fng}/100).`,
     framing: `Crowd emotion at an edge.`, note: `Contrarian-flavoured but never a promise.`,
   });
   if (Math.abs(r7) > 0.15) push({
-    key: "momentum", card: "runningroi", score: 0.4 + Math.min(0.7, Math.abs(r7)),
+    key: "momentum", emoji: "⚡", card: "runningroi", score: 0.4 + Math.min(0.7, Math.abs(r7)),
     headline: `${pct(r7)} over the past 7 days`,
     detail: `A ${r7 > 0 ? "sharp move up" : "sharp pullback"} this week (${pct(r7)}).`,
     framing: `Short-term momentum.`, note: `A week is noise; frame it as such.`,
   });
-  // Milestone proximity: how far to the next round meme target
   const t1 = s.targets?.find(t => t.price === 1);
   if (t1 && s.price >= 0.4) push({
-    key: "dollar-proximity", card: "targets", score: 0.3 + Math.max(0, 0.6 - (t1.mult - 1)),
+    key: "dollar-proximity", emoji: "🎯", card: "targets", score: 0.3 + Math.max(0, 0.6 - (t1.mult - 1)),
     headline: `${round(t1.mult, 1)}× from $1`,
     detail: `At $${round(s.price, 4)}, it's ${round(t1.mult, 1)}× away from the $1 milestone.`,
     framing: `The aspirational round number.`, note: `A target, not a forecast.`,
   });
 
+  // Recency look-back: penalise angles whose card (or theme) was fired recently.
+  for (const a of out) {
+    const pen = cardRecencyPenalty(a.card, opts.recent, s.date);
+    if (pen > 0) { a.score -= pen; a.firedRecently = true; }
+  }
   return out.sort((a, b) => b.score - a.score);
 }
 
 // Compact form for prompts/strips: top N, rounded scores, only the fields a consumer needs.
-export function topAngles(stats, n = 6) {
-  return computeAngles(stats).slice(0, n).map(a => ({
-    read: a.headline, why: a.detail, card: a.card, framing: a.framing, guardrail: a.note, score: round(a.score, 2),
+export function topAngles(stats, n = 6, opts = {}) {
+  return computeAngles(stats, opts).slice(0, n).map(a => ({
+    read: a.headline, why: a.detail, card: a.card, framing: a.framing, guardrail: a.note,
+    score: round(a.score, 2), ...(a.firedRecently ? { firedRecently: true } : {}),
   }));
 }

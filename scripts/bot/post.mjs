@@ -199,7 +199,10 @@ try {
 
 // Record the day (guard) and consume the queue if we used it, so tomorrow is auto
 // again. The workflow commits these back to the repo after the run.
-writeFileSync(STATE_FILE, JSON.stringify({ lastPostedDate: today, lastId: post.id }, null, 2) + "\n");
+// Keep a rolling log of recent posts (last ~20) so the Quant / Notable-today strip can
+// avoid proposing the same card — or the same kind of card — too close together.
+const recent = [...(Array.isArray(state.recent) ? state.recent : []), { date: today, id: post.id }].slice(-20);
+writeFileSync(STATE_FILE, JSON.stringify({ lastPostedDate: today, lastId: post.id, recent }, null, 2) + "\n");
 if (fromQueue) writeFileSync(QUEUE_FILE, JSON.stringify({ id: null }, null, 2) + "\n");
 
 // Advance the tier-A band tracker off this run's settled close (skip when an owner

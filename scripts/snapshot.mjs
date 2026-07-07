@@ -2,6 +2,9 @@
 // Run by .github/workflows/snapshot.yml. Append-only, one record per day.
 import { readFile, writeFile } from "node:fs/promises";
 import { detectSignals } from "./bot/signals.mjs";
+import { computeAngles, cardRecencyPenalty } from "./bot/quant.mjs";
+import { computeStats } from "./bot/stats.mjs";
+import { DEFAULT_RAW } from "../src/data.js";
 import { draftCopy } from "./bot/llm-copy.mjs";
 
 const CONTRACT = "0xe0f63a424a4439cbe457d80e4f4b51ad25b2c56c";
@@ -93,7 +96,27 @@ async function main() {
   // today" strip. Human-in-the-loop: it only surfaces candidates + honest framing;
   // the owner approves and queues. Never throws the snapshot.
   try {
-    const sig = detectSignals(arr);
+    // Two sources, merged: the day-over-day detector (something CHANGED today) + the
+    // Quant's state reads (interesting divergences right now). computeStats reads the
+    // fresh on-chain data we just wrote plus the bundled+snapshot price history.
+    const lastBundled = DEFAULT_RAW.at(-1).date;
+    const newer = arr.filter(x => x.d > lastBundled && x.p > 0).map(x => ({ date: x.d, price: x.p }));
+    const history = newer.length ? [...DEFAULT_RAW, ...newer] : DEFAULT_RAW;
+    const stats = computeStats(p ?? DEFAULT_RAW.at(-1).price, rec.d, { history });
+
+    // Recent-post look-back so we don't surface a card fired too recently.
+    let recent = [];
+    try { recent = JSON.parse(await readFile("public/post-state.json", "utf8")).recent || []; } catch { /* none yet */ }
+
+    const detector = detectSignals(arr).signals.map(x => ({ ...x, score: x.severity - cardRecencyPenalty(x.card, recent, rec.d) }));
+    const angles = computeAngles(stats, { recent }).map(a => ({
+      type: a.key, emoji: a.emoji, title: a.headline, detail: a.detail, framing: a.framing, note: a.note, card: a.card, score: a.score,
+    }));
+    // Merge, keep the strongest per card, take the top 3.
+    const byCard = new Map();
+    for (const x of [...detector, ...angles].sort((a, b) => b.score - a.score)) if (!byCard.has(x.card)) byCard.set(x.card, x);
+    const sig = { date: rec.d, signals: [...byCard.values()].sort((a, b) => b.score - a.score).slice(0, 3) };
+
     // Shadow-mode LLM copywriter: attach an engaging draft per signal (from the
     // detector's real numbers only). With no OPENROUTER_API_KEY it returns a
     // labelled mock so the control-panel UX renders; nothing ever auto-posts.
