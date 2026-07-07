@@ -10,6 +10,7 @@ import { BTC_HISTORY } from "../../src/btc-history.js";
 import { ETH_HISTORY, SOL_HISTORY } from "../../src/alt-age-history.js";
 import { SP500_HISTORY } from "../../src/sp500-history.js";
 import { rsiNow } from "./rsi-card.mjs";
+import { hundredVsData } from "./hundred-data.mjs";
 import { fNum } from "./svg-util.mjs";
 
 // --- owner-editable post copy ---------------------------------------------
@@ -975,18 +976,17 @@ One year is a blink for a power-law asset.`,
   // 22 — what an early $100 became (price history scaled to a $100 stake, log).
   // Relatable + screenshot-able; reuses the line card.
   s => (() => {
-    const grew = p => p * 100 / s.firstPrice; // value of a $100 stake at price p
+    // The same $100 buy at SPX's launch, four ways — SPX vs BTC vs the S&P vs cash. A
+    // comparative twist on the plain since-launch multiple (bar card, same numbers).
+    const { items, firstDate } = hundredVsData(s);
+    const get = k => items.find(i => i.key === k);
+    const spx = get("spx"), btc = get("btc"), sp = get("sp");
     return {
       id: "hundred",
-      text: ct`💸 $100 in SPX6900 at its first print (${fMon(s.firstDate)}, ${fPrice(s.firstPrice)}) is worth ${fMoney(grew(s.price))} today.
-The all-time curve rebased to a single $100 buy. The earliest holders sit on absurd multiples because they were early, not because they timed it.
+      text: ct`💸 $100 in SPX6900 at launch is ${fUsd0(spx.v)} today — vs ${fUsd0(btc.v)} in Bitcoin, ${fUsd0(sp.v)} in the S&P 500.
+Same $100, same day (${fMon(firstDate)}), four ways. The gap is being early in a power-law asset, not timing it.
 Not repeatable. The lesson is being early.`,
-      card: { type: "line", spec: {
-        title: "What an early $100 turned into", headline: fMoney(grew(s.price)), accent: "#34d399",
-        yLog: true, yTicks: decadeTicks(100, grew(s.ath)),
-        series: [{ pts: s.series.price.map(([t, p]) => [t, grew(p)]), color: "#34d399", width: 3, fill: 0.14 }],
-        marker: { x: lastTs(s), y: grew(s.price), color: "#34d399" },
-      } },
+      card: { type: "hundredvs" },
     };
   })(),
 
@@ -1344,7 +1344,7 @@ export const OG_ONLY = new Set(["drawdown", "risk"]);
 const LOOK = {
   // — Tier A: the green log-line family (visually similar; spread them out) —
   valuation: "rainbow", channel: "channel",
-  targets: "ladder", memecoins: "ladder", btcgrade: "ladder", dogeclock: "ladder", hundred: "ladder", majorcaps: "ladder",
+  targets: "ladder", memecoins: "ladder", btcgrade: "ladder", dogeclock: "ladder", majorcaps: "ladder",
   spxvssp: "race", majors: "race", ytd: "race", sp500ytd: "race", sp500roll12: "race", btc: "race",
   roadmap: "trend", rally: "trend", alltime: "trend", breakeven: "trend", diamondtrend: "trend",
   cycleclock: "trend", fngtrend: "trend", btcage: "trend", ethage: "trend", solage: "trend",
@@ -1354,7 +1354,7 @@ const LOOK = {
   firesalerally: "fanlines",
   model: "scatter",
   monthlyreturns: "heatmap", monthlyreturnssp: "heatmap", monthlyreturnsbtc: "heatmap",
-  timeinband: "bars", monthlybars: "bars", monthcompare: "bars",
+  timeinband: "bars", monthlybars: "bars", monthcompare: "bars", hundred: "bars",
   fngdial: "round", distribution: "round",
   marketcap: "blocks", milestones: "blocks", sp500: "blocks",
   dca: "dca",
