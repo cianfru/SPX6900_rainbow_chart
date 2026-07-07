@@ -579,6 +579,21 @@ A pattern, not a promise.`,
     };
   })(),
 
+  // 4c — Underwater: drawdown from the ATH over time + price, with the recovery track
+  // record (fresh-ATH count, deepest valley). The honest pain-side counterpart to the
+  // aspirational cards. Leads with the current depth; NO recovery promise (it's deep
+  // and unrecovered now). A rhyme of survived drawdowns, not a bottom call.
+  s => (() => {
+    const { athCount, deepest } = M.drawdownSummary(s.drawn);
+    return {
+      id: "underwater",
+      text: ct`📉 SPX6900 is ${fPct(s.drawdown)} below its all-time high (${fPrice(s.ath)}, ${fMon(s.athDate)}).
+Every red valley is a drawdown from a peak; back to 0% is a fresh high. It's made ${athCount}, and once fell ${fPct(deepest)} before climbing back.
+Deep drawdowns are the toll. It's paid them before.`,
+      card: { type: "underwater" },
+    };
+  })(),
+
   // (removed 2026-06-28) two cards pulled as not landing with the audience:
   //   • "strategy vs HODL (perfect hindsight)" — dry + buy-the-top-hype framing.
   //   • "volatility / how wild is it" (3-bar SPX vs BTC vs S&P) — owner: a bar of
@@ -1332,7 +1347,7 @@ const LOOK = {
   cycleclock: "trend", fngtrend: "trend", btcage: "trend", ethage: "trend", solage: "trend",
   // — Tier B: flavourful / distinct looks (used to break up the green lines) —
   riskcolor: "colorline", risklevels: "colorline", rsidots: "colorline",
-  riskheat: "dual", runningroi: "dual", cycle: "dual", longshort: "dual",
+  riskheat: "dual", runningroi: "dual", cycle: "dual", longshort: "dual", underwater: "dual",
   firesalerally: "fanlines",
   model: "scatter",
   monthlyreturns: "heatmap", monthlyreturnssp: "heatmap", monthlyreturnsbtc: "heatmap",
