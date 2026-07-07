@@ -32,6 +32,13 @@ function btcLnAt(a) {
 // bear/bull cone, plus peak/low/anchor summary — same shape the bot posts expect.
 export function btcCycleProjection(opts = {}) {
   const { shift, scale, beta, spread } = { ...BTC_CYCLE, ...opts };
+  // The AMPLITUDE (tuned ~$91 top / 272×) is always derived from the frozen bundle
+  // edge, so the projected top is STABLE and never balloons — beta=3.4 amplifies
+  // BTC's choppy 2022-bottom, so re-deriving the top from a live anchor swings it
+  // wildly (272×→539×) day to day. A live anchor (opts.anchorDate/anchorPrice) instead
+  // only TRANSLATES the frozen curve to begin at (today, live price): the "you are
+  // here" marker, cone origin and forward path track today's price and auto-update
+  // daily, while the shape/spread and the top MULTIPLE stay exactly as tuned.
   const anchor = DEFAULT_RAW.at(-1);
   const anchorAge = Math.round((new Date(anchor.date).getTime() - SPX0) / DAY);
   const lnSpxNow = Math.log(anchor.price);
@@ -74,7 +81,7 @@ export function btcCycleProjection(opts = {}) {
       label: new Date(d).toLocaleDateString("en-US", { month: "short", year: "2-digit" }) };
   }).filter(p => p.ts >= SPX0 && p.ts <= SPX0 + anchorAge * DAY);
 
-  return {
+  const out = {
     projPts, projLo, projHi,
     histPts, histFwd, peaks,
     peak: peak.p, peakTs: SPX0 + peak.age * DAY,
@@ -83,4 +90,21 @@ export function btcCycleProjection(opts = {}) {
     anchorTs: SPX0 + anchorAge * DAY, anchorPrice: anchor.price,
     btcFrom: new Date(btcF + btcDay(anchorAge) * DAY),
   };
+
+  // Live-anchor TRANSLATION (cycleclock, option A): relocate the frozen forward curve
+  // to begin at (today, live price) without touching its shape or top-multiple. Scale
+  // all forward prices by live/frozen and shift all forward timestamps to today, so the
+  // cone origin sits on today's price and the top scales gently & monotonically with it
+  // (never the beta-amplified swing). The rhyme overlay (histPts/histFwd/peaks/btcFrom)
+  // stays frozen — cycleclock doesn't draw it and the "today ≈ BTC Aug '22" copy holds.
+  if (opts.anchorDate && opts.anchorPrice > 0) {
+    const liveTs = new Date(opts.anchorDate).getTime();
+    const dt = liveTs - out.anchorTs, sc = opts.anchorPrice / out.anchorPrice;
+    const mv = pts => pts.map(([ts, p]) => [ts + dt, p * sc]);
+    out.projPts = mv(out.projPts); out.projLo = mv(out.projLo); out.projHi = mv(out.projHi);
+    out.peak *= sc; out.peakLo *= sc; out.peakHi *= sc; out.low *= sc;
+    out.peakTs += dt; out.lowTs += dt;
+    out.anchorTs = liveTs; out.anchorPrice = opts.anchorPrice;
+  }
+  return out;
 }

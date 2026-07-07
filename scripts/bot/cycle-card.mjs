@@ -139,10 +139,12 @@ const fMult = m => (m >= 100 ? Math.round(m) + "×" : m >= 10 ? m.toFixed(0) + "
 const fDollar = v => (v >= 1 ? "$" + Math.round(v) : "$" + v.toFixed(v < 0.01 ? 4 : v < 0.1 ? 3 : 2));
 
 export function cycleClockSvg(price, dateStr = new Date().toISOString().slice(0, 10), opts = {}) {
-  const c = btcCycleProjection();
+  // Re-anchor the projection at TODAY's live price so "you are here", the cone and the
+  // real history all sit at the current day and auto-update daily (no stale bundle edge).
+  const c = btcCycleProjection({ anchorDate: dateStr, anchorPrice: price });
   const nowTs = c.anchorTs;
-  // Merged history (bundled + live snapshots) so the recent weeks (June dip, the rally)
-  // show as real detail instead of a flat straight line from the bundle date to today.
+  // Merged history (bundled + live snapshots) up to today — real detail through the
+  // recent weeks (June dip, the rally), now flowing into the NOW marker at today.
   const src = (opts.series && opts.series.length) ? opts.series : DEFAULT_RAW;
   const hist = src.map(r => ({ ts: new Date(r.date).getTime(), price: r.price })).filter(p => p.ts <= nowTs).sort((a, b) => a.ts - b.ts);
   if (!hist.length || hist.at(-1).ts < nowTs) hist.push({ ts: nowTs, price });

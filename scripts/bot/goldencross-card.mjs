@@ -13,7 +13,14 @@ const fMon = t => new Date(t).toLocaleString("en-US", { month: "short", year: "2
 export function goldenCrossSvg(stats, opts = {}) {
   const gc = goldenCross(stats.drawn || []);
   if (gc.rows.length < 5) return null;
-  const rows = gc.rows, cur = rows.at(-1), st = crossState(gc.gap);
+  // Zoom to the last ~3 crosses (with ~45d lead-in) so the recent action reads clearly
+  // and the sparse launch-era MAs are cropped off. Falls back to all rows if few crosses.
+  const SHOW = 3, DAY = 86400000;
+  const anchorCross = gc.crosses[Math.max(0, gc.crosses.length - SHOW)];
+  const cropStart = anchorCross ? anchorCross.ts - 45 * DAY : gc.rows[0].ts;
+  const rows = gc.rows.filter(r => r.ts >= cropStart);
+  const crosses = gc.crosses.filter(c => c.ts >= cropStart);
+  const cur = rows.at(-1), st = crossState(gc.gap);
 
   const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 96, mR = 96, mT = 118, mB = 70, pW = W - mL - mR, pH = H - mT - mB;
   const t0 = rows[0].ts, t1 = rows.at(-1).ts;
@@ -35,7 +42,7 @@ export function goldenCrossSvg(stats, opts = {}) {
     xlab += `<text x="${x(t).toFixed(1)}" y="${H - 40}" fill="#64748b" font-size="22" text-anchor="middle" font-family="sans-serif">${fMon(t)}</text>`;
   }
   let marks = "";
-  for (const c of gc.crosses) {
+  for (const c of crosses) {
     const cx = x(c.ts), cy = y(c.y), col = c.type === "golden" ? "#4ade80" : "#f87171", up = c.type === "golden";
     marks += `<circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="12" fill="${col}" fill-opacity="0.22"/>`
       + `<path d="M${cx.toFixed(1)},${(cy + (up ? -9 : 9)).toFixed(1)} l-8,${up ? 15 : -15} l16,0 z" fill="${col}"/>`
@@ -58,7 +65,7 @@ ${marks}
 <text x="64" y="50" fill="#e2e8f0" font-size="30" font-weight="800" font-family="sans-serif" letter-spacing="1">SPX6900 — GOLDEN / DEATH CROSS</text>
 <text x="${W - 60}" y="46" fill="${st.color}" font-size="27" font-weight="800" font-family="sans-serif" text-anchor="end">${st.label}</text>
 ${st.watch ? `<text x="${W - 60}" y="76" fill="#fbbf24" font-size="20" font-family="sans-serif" text-anchor="end">${st.watch}</text>` : ""}
-<text x="64" y="86" fill="#94a3b8" font-size="22" font-family="sans-serif">50-day vs 200-day moving average — the classic trend cross</text>
+<text x="64" y="86" fill="#94a3b8" font-size="22" font-family="sans-serif">50-day vs 200-day moving average — the last ${crosses.length} crosses</text>
 <text x="64" y="${H - 16}" fill="#475569" font-size="15" font-family="sans-serif">${esc("spx6900rainbow.xyz · not financial advice · ")}<tspan fill="#fbbf24">50-day</tspan> · <tspan fill="#f97316">200-day</tspan> · <tspan fill="#38bdf8">price</tspan></text>
 </svg>`;
 }

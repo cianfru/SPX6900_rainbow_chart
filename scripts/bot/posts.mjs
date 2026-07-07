@@ -856,7 +856,8 @@ A rhyme, not a forecast. BTC ran from here.`,
 
   // 16 — the BTC overlay, future-only path (line, log)
   s => (() => {
-    const c = btcCycleProjection();
+    // Live-anchored (matches the cycleclock card) so the copy's top/date track today.
+    const c = btcCycleProjection({ anchorDate: s.date, anchorPrice: s.price });
     return {
       id: "cycleclock",
       text: ct`⏳ On Bitcoin's halving clock, SPX6900 sits just off the cycle bottom — today ≈ BTC ${fMon(c.btcFrom)}.
