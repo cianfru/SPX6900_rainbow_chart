@@ -10,6 +10,7 @@ import { renderRiskColorCard, renderRiskLevelsCard, renderRiskHeatCard } from ".
 import { renderRunningRoiCard } from "./roi-card.mjs";
 import { renderLongShortCard } from "./longshort-card.mjs";
 import { renderFireSaleRalliesCard } from "./firesale-rally-card.mjs";
+import { renderHundredVsCard } from "./hundred-card.mjs";
 import { renderCycleSyncCard, renderCycleClockCard } from "./cycle-card.mjs";
 import { renderHoldersPriceCard } from "./holders-price-card.mjs";
 import { renderRsiDotsCard } from "./rsi-card.mjs";
@@ -800,6 +801,7 @@ export function renderPostCard(post, stats, opts = {}) {
   if (type === "runningroi") return renderRunningRoiCard(stats, dims);
   if (type === "longshort") return renderLongShortCard(stats, dims);
   if (type === "firesalerally") return renderFireSaleRalliesCard(stats, dims);
+  if (type === "hundredvs") return renderHundredVsCard(stats, dims);
   if (type === "cyclesync") return renderCycleSyncCard(stats, dims);
   if (type === "cycleclock") return renderCycleClockCard(stats, dims);
   if (type === "holderspair") return renderHoldersPriceCard(s, dims);
