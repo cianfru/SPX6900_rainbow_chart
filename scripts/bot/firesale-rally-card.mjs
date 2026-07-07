@@ -70,7 +70,7 @@ export function fireSaleRallySvg(stats, opts = {}) {
 ${grid}${xlab}
 ${glow}${lines}${dots}
 <text x="64" y="50" fill="#e2e8f0" font-size="30" font-weight="800" font-family="sans-serif" letter-spacing="1">SPX6900 — FIRE SALE RALLIES</text>
-<text x="64" y="86" fill="#818cf8" font-size="22" font-family="sans-serif">Every Fire Sale-band low → the climb since (× from low, log)</text>
+<text x="64" y="86" fill="#818cf8" font-size="22" font-family="sans-serif">The first ${dayCap} days after each Fire Sale-band low (× from low, log)</text>
 <text x="${W - 60}" y="44" fill="#ffffff" font-size="28" font-weight="800" font-family="sans-serif" text-anchor="end">NOW ${fPct(cur.nowGain ?? cur.maxGain)}</text>
 <text x="${W - 60}" y="76" fill="#94a3b8" font-size="20" font-family="sans-serif" text-anchor="end">${cur.daysSince ?? 0}d since low · peaked ${fPct(cur.peakGain ?? cur.maxGain)}</text>
 <text x="64" y="${H - 18}" font-size="21" font-family="sans-serif">${legend}</text>
