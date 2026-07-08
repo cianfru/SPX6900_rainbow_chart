@@ -450,6 +450,23 @@
       moat is honest VALUATION, not trade signals; "buy/sell" arrows invite blowback.
     - **SKIP — Pi Cycle Bottom/Top** (111D vs 2×350D SMA): a BTC-halving-cycle top caller;
       borrowed/overfit for a ~2yr memecoin (same reasoning as Uptober). Not meaningful.
+      - **🔭 REOPENED to EXPLORE — owner read Cowen's Pi Cycle page (2026-07-08), PARKED until
+        after MVRV.** Owner wants a fresh look for an interesting angle. Reference details from
+        the ITC writeup: **Pi Cycle TOP** = 111DMA crosses ABOVE 350DMA×2 (350/111 ≈ π); called
+        BTC tops within ~3 days (2021 included). **Pi Cycle BOTTOM** (different author, more
+        arbitrary — 150EMA crosses below 471SMA×0.745; 150·π ≈ 471). **The interesting part for
+        us = the "MAs Divided" RATIO 111DMA / (350DMA×2):** a CONTINUOUS gauge — >1 = top signal,
+        **<0.4–0.5 = good accumulation zone**, near 1 = higher-risk; and its PEAKS DIMINISH each
+        cycle (2021 barely cleared 1). Honest-angle thoughts for when we pick it up:
+        (a) SPX is now old enough (~2yr → 700+ days) to actually COMPUTE a 350DMA, unlike the
+        first assessment — so it's buildable now. (b) The binary CROSS is overfit/borrowed for a
+        young memecoin (built for BTC; owner's own note: mixed for alts — bad for ETH, good for
+        total mcap/XRP/ONE) → do NOT post "Pi Cycle says top/bottom." (c) The honest framing is
+        the CONTINUOUS ratio as a descriptive extension/accumulation gauge (like our riskheat/
+        z-score lane), clearly labelled "a Bitcoin indicator applied to SPX, for context" — and
+        the diminishing-peaks idea overlaps the already-parked cross-cycle "diminishing returns"
+        (SPX too young). Decide top-vs-ratio framing + whether it clears the "techy" bar (owner:
+        visuals must read at a glance) when we return to it.
   - **ITC batch 3 verdicts (2026-06-25, MA-based TA charts) — different lane from our
     valuation moat; cherry-pick at most one:**
     - **Bull Market Support Band (BMSB)** (20W SMA / 21W EMA band) — the pick if any:
@@ -609,12 +626,25 @@
         this cheap at its 2011/2015/2018 GENERATIONAL BOTTOMS. So "are we down similarly?" →
         YES, decisively. Interesting AND true — a strong candidate angle once there's enough
         SPX history to post it without the "weeks vs decade" caveat misleading.
+      - **⭐ SPX'S OWN MVRV TRAIL added (owner point 1, 2026-07-08):** `MvrvContextChart` now
+        also draws SPX6900's real MVRV series (`spxSeries`, price÷be per snapshot) as a purple
+        line on BTC's timeline at its true dates (right/2026 region). Short now (~weeks), grows
+        into a longer path over time — you watch it climb/fall through BTC's zones. Dots shown
+        while ≤40 points, then just the line.
+      - **⭐ CARD BUILT (owner point 2, "the card makes sense now"):** `scripts/bot/mvrv-card.mjs`
+        (`renderMvrvBtcCard`, type `mvrvbtc`, LOOK "dual", data-gated `btcMvrv.length>=100 &&
+        supply.breakEven>0`). Glanceable: BTC MVRV line + BTC-quantile zones, SPX marker line +
+        ±12% band, the "we've been here" match dots at BTC's bottoms, hero "Nth %ile · cheaper
+        than X% of BTC history". `stats.btcMvrv` added via `loadBtcMvrv()` (reads
+        public/btc-mvrv.json, mirrors loadLongShort). Copy leads with the honest POSITION stat
+        ("MVRV Nx, cheaper than X% of Bitcoin's history — a level BTC only reached at its cycle
+        bottoms") — a valuation-LEVEL claim true right now, NOT "SPX will follow BTC's path"
+        (the guardrail). Wired in charts.mjs + posts.mjs; test whitelist updated. 71 tests green.
       - **Honesty guardrails (same as cyclesync):** SPX's MVRV history is ~weeks vs BTC's
-        ~decade — do NOT force a numeric "SPX today = BTC date X" claim; the chart frames it as
-        a VISUAL position on BTC's map (zones are a REFERENCE, not a target) and the caption
-        says "a rhyme, not a forecast, grows daily." Pairs with the plain MVRV-over-time line +
-        Z-score on the `mvrv` page (~2026-07-23). A CARD version waits until SPX has enough
-        history to not mislead — for now it's a site chart only.
+        ~decade — do NOT force a numeric "SPX today = BTC date X" claim; the chart/card frame it
+        as a VISUAL position on BTC's map (zones are a REFERENCE, not a target). The card copy
+        is a valuation-LEVEL statement (as cheap as BTC's bottoms WERE), never a path forecast.
+        Pairs with the plain MVRV-over-time line + Z-score on the `mvrv` page (~2026-07-23).
   - **Day-of-week "best day to buy" — rejected.** Same overfit trap as Uptober (~150
     samples/weekday, crypto is 24/7). At best a low-impact myth-buster ("weekday barely
     matters"); don't present it as a buy signal.

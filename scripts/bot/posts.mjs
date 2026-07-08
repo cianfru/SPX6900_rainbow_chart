@@ -625,6 +625,23 @@ The base keeps building.`,
     };
   })(),
 
+  // MVRV vs Bitcoin — SPX6900's on-chain valuation on BTC's decade of MVRV. Data-gated on
+  // the BTC MVRV bundle (public/btc-mvrv.json, banked monthly) + the holder break-even. The
+  // hook is a valuation POSITION (percentile on BTC's own map), true right now — framed as
+  // "as cheap as BTC's bottoms were," NOT "SPX will follow BTC's path" (that's the guardrail).
+  s => (s.btcMvrv?.length >= 100 && s.supply?.breakEven > 0) && (() => {
+    const mvrv = s.price / s.supply.breakEven;
+    const sorted = s.btcMvrv.map(p => p[1]).filter(v => v > 0).sort((a, b) => a - b);
+    const cheaperThan = 100 - Math.round(sorted.filter(v => v <= mvrv).length / sorted.length * 100);
+    return {
+      id: "mvrvbtc",
+      text: ct`🔵 SPX6900's MVRV is ${mvrv.toFixed(2)}× — the average holder is ${mvrv >= 1 ? "in profit" : "underwater"}.
+On-chain, that's cheaper than ${cheaperThan}% of Bitcoin's entire history — a level BTC only reached at its cycle bottoms.
+As cheap as it's been, measured against Bitcoin.`,
+      card: { type: "mvrvbtc" },
+    };
+  })(),
+
   // (removed 2026-06-28) two cards pulled as not landing with the audience:
   //   • "strategy vs HODL (perfect hindsight)" — dry + buy-the-top-hype framing.
   //   • "volatility / how wild is it" (3-bar SPX vs BTC vs S&P) — owner: a bar of
@@ -1379,7 +1396,7 @@ const LOOK = {
   cycleclock: "trend", fngtrend: "trend", btcage: "trend", ethage: "trend", solage: "trend",
   // — Tier B: flavourful / distinct looks (used to break up the green lines) —
   riskcolor: "colorline", risklevels: "colorline", rsidots: "colorline",
-  riskheat: "dual", runningroi: "dual", cycle: "dual", longshort: "dual", underwater: "dual", goldencross: "dual", holdergrowth: "dual",
+  riskheat: "dual", runningroi: "dual", cycle: "dual", longshort: "dual", underwater: "dual", goldencross: "dual", holdergrowth: "dual", mvrvbtc: "dual",
   firesalerally: "fanlines",
   model: "scatter",
   monthlyreturns: "heatmap", monthlyreturnssp: "heatmap", monthlyreturnsbtc: "heatmap",

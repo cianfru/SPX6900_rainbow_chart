@@ -124,6 +124,15 @@ function loadLongShort() {
   } catch { return []; }
 }
 
+// Bitcoin's ~decade of MVRV (banked monthly by the btc-mvrv workflow) — the CONTEXT
+// backdrop for the MVRV-vs-BTC card. [[YYYY-MM-DD, mvrv], …]; [] until the build runs.
+function loadBtcMvrv() {
+  try {
+    const j = JSON.parse(readFileSync(new URL("../../public/btc-mvrv.json", import.meta.url), "utf8"));
+    return Array.isArray(j?.points) ? j.points.filter(p => Array.isArray(p) && p[1] > 0) : [];
+  } catch { return []; }
+}
+
 // SPX-vs-coin ratio aligned on SPX dates, and relative-strength over a window.
 function alignedRatio(coin, raw) {
   const map = new Map(coin.map(r => [r.date, r.price]));
@@ -290,6 +299,7 @@ export function computeStats(price, dateStr = new Date().toISOString().slice(0, 
     supply, btc, majors,
     drawn: RAW, // merged {date,price}[] history (bundled + snapshot) for the rainbow line
     longshort: loadLongShort(), // Hyperliquid funding/OI positioning (data-gated)
+    btcMvrv: loadBtcMvrv(), // Bitcoin's decade of MVRV, context for the MVRV-vs-BTC card
     series: {
       price: RAW.map(r => [Date.parse(r.date), r.price]),
       resid: thinSeries(RAW.map(r => [Date.parse(r.date), Math.log(r.price) - m.predict(M.dayN(r.date))])),

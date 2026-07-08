@@ -70,14 +70,16 @@ export default function MvrvContextChart({ isMobile, preview = false }) {
     return { rows, sorted, zones, btcCur: rows.at(-1).mvrv };
   }, [btc]);
 
-  // SPX's current MVRV = price ÷ realized price (avg cost basis), from the latest snapshot.
-  const spx = useMemo(() => {
-    if (!spxHist?.length) return null;
-    const good = spxHist.filter(r => r.be > 0 && r.p > 0);
-    if (!good.length) return null;
-    const cur = good.at(-1);
-    return { mvrv: cur.p / cur.be, date: cur.d, price: cur.p, be: cur.be };
+  // SPX6900's OWN MVRV trail = price ÷ realized price (avg cost basis) per daily snapshot.
+  // Short for now (banking since ~2026-06) — it grows into a longer path over time, drawn
+  // on BTC's timeline at its real dates (so it sits in the recent/right region of the chart).
+  const spxSeries = useMemo(() => {
+    if (!spxHist?.length) return [];
+    return spxHist.filter(r => r.be > 0 && r.p > 0)
+      .map(r => ({ ts: new Date(r.d + "T00:00:00Z").getTime(), mvrv: r.p / r.be }))
+      .sort((a, b) => a.ts - b.ts);
   }, [spxHist]);
+  const spx = spxSeries.length ? { mvrv: spxSeries.at(-1).mvrv, ts: spxSeries.at(-1).ts } : null;
 
   // "See the similarities": the Bitcoin moments when BTC's MVRV was within ±band of
   // where SPX6900 sits today — clustered into periods (a >120-day gap starts a new one).
@@ -169,6 +171,10 @@ export default function MvrvContextChart({ isMobile, preview = false }) {
             <Line type="monotone" dataKey="mvrv" stroke={BTC} strokeWidth={2} dot={false} isAnimationActive={false} name="BTC MVRV" />
             {/* highlight the Bitcoin points sitting at SPX's level today — the "we've been here" moments */}
             <Scatter dataKey="match" fill={MATCH} isAnimationActive={false} shape="circle" legendType="none" />
+            {/* SPX6900's OWN MVRV trail (its real dates, right region) — short now, grows over time */}
+            {spxSeries.length > 1 && <Line data={spxSeries} type="monotone" dataKey="mvrv" stroke={SPX} strokeWidth={3}
+              dot={spxSeries.length <= 40 ? { r: 2.5, fill: SPX, stroke: "none" } : false}
+              isAnimationActive={false} name="SPX6900 MVRV" />}
             {selL != null && selR != null && selL !== selR && (
               <ReferenceArea x1={selL} x2={selR} strokeOpacity={0.4} stroke={SPX} fill={SPX} fillOpacity={0.12} />
             )}
