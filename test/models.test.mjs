@@ -72,12 +72,23 @@ test("piCycleRatio computes 111/(350*2) with real cross events and a bounded sta
   assert.ok(pc.crosses.some(c => c.type === "top"), "a top-zone cross exists");
 });
 
-test("piCycleState buckets the ratio into the right zone", () => {
-  assert.equal(M.piCycleState(1.2).zone, "top");
-  assert.equal(M.piCycleState(0.7).zone, "neutral");
-  assert.equal(M.piCycleState(0.45).zone, "accum");
-  assert.equal(M.piCycleState(0.25).zone, "deep");
-  assert.equal(M.piCycleState(null).zone, "");
+test("piCycleState buckets the ratio into the right zone (fixed 0.5/0.4, tilted top)", () => {
+  const z = { deep: 0.4, accum: 0.5, top: 1.4, btcTop: 1.0 };
+  assert.equal(M.piCycleState(1.5, z).zone, "top");
+  assert.equal(M.piCycleState(1.2, z).zone, "fair");  // above BTC's 1.0 but below SPX's top
+  assert.equal(M.piCycleState(0.7, z).zone, "fair");
+  assert.equal(M.piCycleState(0.45, z).zone, "accum");
+  assert.equal(M.piCycleState(0.25, z).zone, "deep");
+  assert.equal(M.piCycleState(null, z).zone, "");
+  assert.equal(M.piCycleState(0.5).zone, "");         // no zones → empty
+});
+
+test("piCycleRatio returns SPX-tuned zones: fixed 0.5/0.4, top well above 1", () => {
+  const pc = M.piCycleRatio(DEFAULT_RAW);
+  assert.equal(pc.zones.accum, 0.5);
+  assert.equal(pc.zones.deep, 0.4);
+  assert.equal(pc.zones.btcTop, 1.0);
+  assert.ok(pc.zones.top > 1.1, `SPX top zone tilted up: ${pc.zones.top}`);
 });
 
 test("piCycleRatio degrades gracefully on too-short input", () => {

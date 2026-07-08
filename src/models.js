@@ -340,15 +340,27 @@ export function piCycleRatio(series) {
     if (a > 0.5 && b <= 0.5) crosses.push({ ts: rows[i].ts, ratio: b, type: "accumulation" });
   }
   const peak = rows.reduce((m, r) => r.ratio > m.ratio ? r : m, rows[0]);
-  return { rows, cur: rows.at(-1), peak, crosses };
+  // Zone thresholds (owner-tuned 2026-07-08 after checking BTC vs SPX on the same math):
+  //  • ACCUMULATION side stays at Bitcoin's fixed 0.5 / 0.4 — validated: SPX sits below 0.5
+  //    ~30% of the time, almost exactly BTC's ~31%, so those levels transfer cleanly.
+  //  • The TOP is TILTED UP to SPX's own distribution — SPX runs far hotter than BTC (above
+  //    1.0 ~26% of the time vs BTC's ~8%), so BTC's "top = 1.0" fires far too often for SPX.
+  //    We use SPX's p90 (≈1.4–1.5, matching BTC's ~8% rarity at 1.0). BTC_TOP (1.0) is kept
+  //    only as a light reference line ("Bitcoin's top line"), not an SPX zone boundary.
+  const sorted = rows.map(r => r.ratio).slice().sort((a, b) => a - b);
+  const q = f => sorted[Math.min(sorted.length - 1, Math.floor(f * sorted.length))];
+  const zones = { deep: 0.4, accum: 0.5, top: Math.max(1.1, q(0.90)), btcTop: 1.0 };
+  return { rows, cur: rows.at(-1), peak, crosses, zones };
 }
 
-// Shared phrasing/zone for the current Pi Cycle ratio (card, copy, chart agree).
-export function piCycleState(ratio) {
-  if (ratio == null) return { label: "", zone: "", color: "#94a3b8" };
-  if (ratio >= 1) return { label: "top zone", zone: "top", color: "#f87171" };
-  if (ratio >= 0.5) return { label: "neutral", zone: "neutral", color: "#fbbf24" };
-  if (ratio >= 0.4) return { label: "accumulation zone", zone: "accum", color: "#38bdf8" };
+// Shared phrasing/zone for the current Pi Cycle ratio against SPX's zones (card, copy,
+// chart agree). `zones` comes from piCycleRatio(...).zones — fixed 0.5/0.4 accumulation,
+// SPX-calibrated top.
+export function piCycleState(ratio, zones) {
+  if (ratio == null || !zones) return { label: "", zone: "", color: "#94a3b8" };
+  if (ratio >= zones.top) return { label: "top zone", zone: "top", color: "#f87171" };
+  if (ratio >= zones.accum) return { label: "mid-range", zone: "fair", color: "#94a3b8" };
+  if (ratio >= zones.deep) return { label: "accumulation zone", zone: "accum", color: "#38bdf8" };
   return { label: "deep accumulation", zone: "deep", color: "#4ade80" };
 }
 

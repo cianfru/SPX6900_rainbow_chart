@@ -479,8 +479,12 @@
           time (1.0 = only ~73rd pct), below 0.5 **30%**. Verdict: **0.5 accumulation FITS SPX**
           (30% ≈ BTC's 31% — keep it), but **1.0 is TOO LOW a "top" for SPX** — SPX runs hotter
           (above it 3× as often), so a top comparable in rarity to BTC's 1.0 sits at SPX's ~p90 ≈
-          **1.4** (SPX's actual top printed 1.53). Pending owner choice: keep pure BTC 1.0/0.5 +
-          caveat, OR keep 0.5 and add an SPX-tuned top ~1.4 (1.0 relabelled "Bitcoin's top line").
+          **1.4** (SPX's actual top printed 1.53). **DECISION (owner 2026-07-08): keep 0.5/0.4
+          fixed (validated) and TILT THE TOP ONLY to SPX's own p90 (`zones.top = max(1.1, q0.90)`
+          ≈ 1.49); 1.0 kept as a faint labelled "Bitcoin's top line" reference, not an SPX zone
+          boundary.** Shipped: `piCycleRatio(...).zones = {deep:0.4, accum:0.5, top:p90, btcTop:1.0}`
+          + `piCycleState(ratio, zones)`; card + `PiCycleChart` + copy all read from it. So 1.0–1.49
+          now reads "mid-range" (SPX runs hot but not topped for SPX), only >1.49 = top zone.
   - **⭐ "AM I CHEAP?" VALUATION DASHBOARD — greenlit for memory (owner, 2026-07-08).** A view/card
     that flags when MULTIPLE INDEPENDENT valuation gauges AGREE that SPX is cheap/heated — the
     corroboration is the signal (one metric can mislead; three aligning is stronger + honest). The

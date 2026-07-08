@@ -15,20 +15,22 @@ const fMon = t => new Date(t).toLocaleString("en-US", { month: "short", year: "2
 export function piCycleSvg(stats, opts = {}) {
   const pc = piCycleRatio(stats.drawn || []);
   if (pc.rows.length < 60) return null; // needs a real stretch of 350-DMA history
-  const rows = pc.rows, cur = pc.cur, peak = pc.peak, st = piCycleState(cur.ratio);
+  const rows = pc.rows, cur = pc.cur, peak = pc.peak, z = pc.zones, st = piCycleState(cur.ratio, z);
   const sorted = rows.map(r => r.ratio).sort((a, b) => a - b);
   const pct = Math.round(sorted.filter(v => v <= cur.ratio).length / sorted.length * 100);
 
-  const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 80, mR = 168, mT = 140, mB = 70, pW = W - mL - mR, pH = H - mT - mB;
+  const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 80, mR = 184, mT = 140, mB = 70, pW = W - mL - mR, pH = H - mT - mB;
   const t0 = rows[0].ts, t1 = rows.at(-1).ts;
   const x = t => mL + ((t - t0) / ((t1 - t0) || 1)) * pW;
-  const ymax = Math.max(1.6, peak.ratio * 1.05), ymin = 0;
+  const ymax = Math.max(z.top * 1.08, peak.ratio * 1.05), ymin = 0;
   const y = v => mT + (1 - (v - ymin) / (ymax - ymin)) * pH;
   const line = rows.map(r => `${x(r.ts).toFixed(1)},${y(r.ratio).toFixed(1)}`).join(" ");
   const area = `${x(rows[0].ts).toFixed(1)},${(mT + pH).toFixed(1)} ${line} ${x(rows.at(-1).ts).toFixed(1)},${(mT + pH).toFixed(1)}`;
 
-  const band = (v1, v2, c) => `<rect x="${mL}" y="${y(v2).toFixed(1)}" width="${pW}" height="${(y(v1) - y(v2)).toFixed(1)}" fill="${c}" fill-opacity="0.13"/>`;
-  const zones = band(1, ymax, "#f87171") + band(0.5, 1, "#fbbf24") + band(0.4, 0.5, "#38bdf8") + band(ymin, 0.4, "#4ade80");
+  // Zones: top = SPX-calibrated (p90); accumulation (0.4–0.5) + deep (<0.4) = fixed BTC levels
+  // that transfer cleanly to SPX; the 0.5→top middle stays neutral.
+  const band = (v1, v2, c, o = 0.13) => `<rect x="${mL}" y="${y(v2).toFixed(1)}" width="${pW}" height="${(y(v1) - y(v2)).toFixed(1)}" fill="${c}" fill-opacity="${o}"/>`;
+  const zones = band(z.top, ymax, "#f87171") + band(z.accum, z.top, "#64748b", 0.05) + band(z.deep, z.accum, "#38bdf8") + band(ymin, z.deep, "#4ade80");
   let gy = "";
   for (const v of [0.2, 0.4, 0.5, 0.75, 1, 1.25, 1.5].filter(v => v <= ymax)) {
     const yy = y(v).toFixed(1);
@@ -49,13 +51,14 @@ export function piCycleSvg(stats, opts = {}) {
 </defs>
 <rect width="${W}" height="${H}" fill="#05050e"/>
 <text x="60" y="52" fill="#e2e8f0" font-size="33" font-weight="800" font-family="sans-serif" letter-spacing="1">SPX6900 — PI CYCLE RATIO</text>
-<text x="60" y="88" fill="#94a3b8" font-size="21" font-family="sans-serif">111-day ÷ (350-day × 2) moving average — Bitcoin's top/bottom gauge</text>
+<text x="60" y="88" fill="#94a3b8" font-size="21" font-family="sans-serif">111-day ÷ (350-day × 2) MA — Bitcoin's gauge, top tuned to SPX's own range</text>
 <text x="60" y="122" fill="${st.color}" font-size="25" font-weight="800" font-family="sans-serif">${cur.ratio.toFixed(2)} — ${st.label}</text>
 <text x="${W - 40}" y="58" fill="${st.color}" font-size="40" font-weight="800" text-anchor="end" font-family="sans-serif">${cur.ratio.toFixed(2)}</text>
 <text x="${W - 40}" y="90" fill="#94a3b8" font-size="19" font-family="sans-serif" text-anchor="end">${pct}th %ile</text>
 ${zones}${gy}${gx}
-${thr(1, "#f87171", "top signal ▸ 1.0")}
-${thr(0.5, "#38bdf8", "accumulation ▸ 0.5")}
+<line x1="${mL}" y1="${y(z.btcTop).toFixed(1)}" x2="${W - mR}" y2="${y(z.btcTop).toFixed(1)}" stroke="#64748b" stroke-width="1.4" stroke-dasharray="3 5"/><text x="${W - mR - 6}" y="${(y(z.btcTop) - 8).toFixed(1)}" fill="#64748b" font-size="15" text-anchor="end" font-family="sans-serif">Bitcoin's top ▸ 1.0</text>
+${thr(z.top, "#f87171", `SPX top ▸ ${z.top.toFixed(2)}`)}
+${thr(z.accum, "#38bdf8", "accumulation ▸ 0.5")}
 <polygon points="${area}" fill="url(#pcf)"/>
 <polyline points="${line}" fill="none" stroke="#a78bfa" stroke-width="10" stroke-opacity="0.16" filter="url(#pcg)"/>
 <polyline points="${line}" fill="none" stroke="#a78bfa" stroke-width="4.5" stroke-linejoin="round"/>

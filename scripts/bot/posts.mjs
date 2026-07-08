@@ -649,11 +649,11 @@ As cheap as it's been, measured against Bitcoin.`,
   s => (() => {
     const pc = M.piCycleRatio(s.drawn);
     if (pc.rows.length < 60) return null;
-    const r = pc.cur.ratio, peak = pc.peak.ratio, st = M.piCycleState(r);
+    const r = pc.cur.ratio, peak = pc.peak.ratio, st = M.piCycleState(r, pc.zones);
     return {
       id: "picycle",
       text: ct`🟣 SPX6900's Pi Cycle ratio sits at ${r.toFixed(2)} — ${st.label}.
-This Bitcoin top/bottom gauge (the 111-day vs 350-day MA) ran hot above 1 at SPX's 2025 top; today it's down near ${peak >= 1 ? "the accumulation floor" : "its lows"}.
+This 111-day vs 350-day MA gauge (from Bitcoin's Pi Cycle) peaked at ${peak.toFixed(2)} at SPX's 2025 top; today it's near the bottom of its range.
 A Bitcoin indicator, applied to SPX for context.`,
       card: { type: "picycle" },
     };
