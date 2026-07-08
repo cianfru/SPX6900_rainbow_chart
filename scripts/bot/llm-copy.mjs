@@ -32,17 +32,25 @@ const FREE_FALLBACKS = [
   "nvidia/nemotron-3-super-120b-a12b:free", // NVIDIA Nemotron — owner-confirmed live 2026-07-06
   "meta-llama/llama-3.3-70b-instruct:free", // Meta / Together (exists; can 429)
 ];
-const DEFAULT_MODEL = FREE_FALLBACKS[0];
+
+// ⭐ PAID PRIMARY (owner opted in 2026-07-08 — has OpenRouter credits). The free tier
+// proved too unreliable for a once-a-day draft: on 2026-07-08 the whole chain was 2 dead
+// / 2 rate-limited (429) / 2 reasoning-leak (too long) / 2 empty. A cheap, non-reasoning
+// instruct model leads the chain so the daily draft is dependable and never leaks a
+// scratchpad. gpt-4o-mini is ~$0.15/$0.60 per M tokens → a single ~500-token draft costs
+// a small fraction of a cent. Swap it by setting the OPENROUTER_MODEL repo/Vercel var
+// (that override wins); the free seeds + discovery stay as the fallback if it ever fails.
+const PAID_PRIMARY = "openai/gpt-4o-mini";
 
 // Resolve the ordered list of models to try: explicit chain wins, else the primary
-// (opts/env) followed by the remaining free fallbacks (deduped). SYNC — no discovery;
-// used directly by tests and as the base for resolveModelsAsync.
+// (opts/env override, else the paid primary) followed by the free fallbacks (deduped).
+// SYNC — no discovery; used directly by tests and as the base for resolveModelsAsync.
 function resolveModels(opts = {}) {
   const envList = (process.env.OPENROUTER_MODELS || "").split(",").map(s => s.trim()).filter(Boolean);
   if (opts.models?.length) return [...new Set(opts.models)];
   if (envList.length) return [...new Set(envList)];
-  const primary = opts.model || process.env.OPENROUTER_MODEL;
-  const chain = primary ? [primary, ...FREE_FALLBACKS] : [...FREE_FALLBACKS];
+  const primary = opts.model || process.env.OPENROUTER_MODEL || PAID_PRIMARY;
+  const chain = [primary, ...FREE_FALLBACKS];
   return [...new Set(chain)];
 }
 

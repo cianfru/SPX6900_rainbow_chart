@@ -59,10 +59,27 @@
     Cached 10 min per warm lambda; degrades to the seeds if `/models` is unreachable. Both
     `draftCopy` (shadow copy) and `chat` (control agent) use it. A 401/403 still stops early
     (bad key). Pin to skip discovery: repo/Vercel var `OPENROUTER_MODEL` (primary) or
-    `OPENROUTER_MODELS` (whole comma-separated chain). If it ever goes reliably empty, add a
-    few $ OpenRouter credits or pin a cheap paid model. **NOTE: the control agent runs on
+    `OPENROUTER_MODELS` (whole comma-separated chain). **NOTE: the control agent runs on
     VERCEL, so `OPENROUTER_API_KEY` must be set in VERCEL env (not just the GH Actions secret
     the snapshot cron uses) — they're separate.**
+  - **⭐ SWITCHED TO A CHEAP PAID PRIMARY — free tier gave up (owner opted in 2026-07-08).**
+    "Stay free" proved too unreliable for a once-a-day draft. On 2026-07-08 the ENTIRE
+    8-model chain failed at once: 2 dead (deepseek-v3-0324 & gemma-3-27b → 404/paid-only),
+    2 rate-limited (llama-3.3 & qwen3-coder → 429), **2 reasoning-leak** (nemotron super &
+    ultra dumped their `<think>` scratchpad inline → "too long 802/714 > 235"), 2 empty.
+    Fixes shipped together: (1) `callModel` (shadow `draftCopy`) now sends
+    `reasoning:{effort:"low",exclude:true}` + `stripReasoning()` (inline `<think>` strip,
+    mirrors `api/agent.js`) + `max_tokens` 200→500 — it was MISSING the reasoning guard that
+    `chat()` already had, which is why Nemotron leaked. (2) **`PAID_PRIMARY` = `openai/gpt-4o-mini`
+    now LEADS the chain** (`resolveModels`), free seeds (nemotron-super, llama-3.3) + discovery
+    stay as fallback. Non-reasoning, ~$0.15/$0.60 per M → a ~500-tok draft is a fraction of a
+    cent; 1 draft/day. Override via `OPENROUTER_MODEL` (that wins over the code default). The
+    account already has OpenRouter credits. Dead seeds deepseek-v3-0324 & gemma-3-27b DROPPED.
+  - **⭐ ONLY THE TOP SIGNAL GETS AN LLM DRAFT (owner, 2026-07-08).** `snapshot.mjs` used to
+    `draftCopy` all 3 "Notable today" signals → 3 calls/day, which is what triggered the 429
+    cascade (1 drafted, 2 failed). Now it drafts **`sig.signals[0]` only** — the one actually
+    up for posting — and the other signals show just their honest template framing in the
+    panel. Cuts LLM calls 3×→1× (cost + rate-limit headroom).
   - Offline-tested (`test/llm-copy.test.mjs`, injectable fetch). `signals.json` stays
     deploy-ignored, so drafts never trigger a Vercel deploy.
 - **⭐ CONTROL-PANEL LLM "AGENT" ("ask the agent") — BUILT 2026-07-05 (owner request).**
@@ -559,6 +576,29 @@
       needs a meaningful run of daily `be` to be stable (the plain MVRV-over-time line
       unlocks ~mid-July at ~30 days; the Z-score wants more history before it's
       trustworthy). So: nothing to build yet — revisit with the rest of the MVRV work.
+    - **⭐ MVRV OVERLAY vs BTC's MVRV — greenlit, build the foundation now (owner, 2026-07-08).**
+      Owner wants to develop the MVRV concept: overlay SPX's MVRV on **Bitcoin's full MVRV
+      history** so we can ask "are we down/heated SIMILARLY to some BTC moment?" — the same
+      cross-asset "rhyme" idea as the `cyclesync` BTC-cycle overlay, but on the VALUATION
+      metric instead of price. SPX's MVRV history is very short (banking since ~2026-06, ~30d
+      by mid-July) — build it anyway and let it fill in daily (same data-gated model as the
+      rest of MVRV / holder-growth). Design notes to honor when building:
+      - **Need a BTC MVRV history series to bundle** (BTC market-cap ÷ BTC realized-cap over
+        years). We already bundle BTC PRICE (`src/btc-history.js`) but NOT BTC realized-cap /
+        MVRV — source it (e.g. Coin Metrics / Bitbo / an ITC-style export) and bundle like
+        `sp500-history.js`. SPX MVRV = `price ÷ be` from the daily snapshots (already banked).
+      - **Honesty guardrails (same as cyclesync):** SPX's MVRV history is ~weeks vs BTC's
+        ~decade — do NOT force a numeric "SPX today = BTC date X" claim off ~30 points. Frame
+        it as a VISUAL rhyme / context ("SPX's MVRV sits at ~N vs BTC's cycle range of A–B"),
+        and be honest that the conclusion is thin until months accumulate. MVRV bands are also
+        asset-specific (BTC's cycle tops printed MVRV ~3–4, SPX's short history can't define
+        its own bands yet) — so overlaying BTC's band structure is a REFERENCE, not a target.
+      - **The honest question to answer:** is SPX's current MVRV cheap/heated *relative to its
+        own short history* AND *where does that sit on BTC's long MVRV distribution* — "are we
+        down similarly?" Likely a site chart (dual view: SPX MVRV line + BTC MVRV context),
+        possibly a card once there's enough SPX history to not mislead. Pairs with the plain
+        MVRV-over-time line + Z-score already queued (~2026-07-23). Foundation first, per the
+        "collect data now even at 3yr" directive up top.
   - **Day-of-week "best day to buy" — rejected.** Same overfit trap as Uptober (~150
     samples/weekday, crypto is 24/7). At best a low-impact myth-buster ("weekday barely
     matters"); don't present it as a buy signal.

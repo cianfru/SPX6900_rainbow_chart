@@ -118,12 +118,16 @@ async function main() {
     for (const x of [...detector, ...angles].sort((a, b) => b.score - a.score)) if (!byCard.has(x.card)) byCard.set(x.card, x);
     const sig = { date: rec.d, signals: [...byCard.values()].sort((a, b) => b.score - a.score).slice(0, 3) };
 
-    // Shadow-mode LLM copywriter: attach an engaging draft per signal (from the
-    // detector's real numbers only). With no OPENROUTER_API_KEY it returns a
-    // labelled mock so the control-panel UX renders; nothing ever auto-posts.
-    for (const s of sig.signals) {
-      try { s.llmDraft = await draftCopy(s); }
-      catch (e) { s.llmDraft = { text: "", model: "none", mock: false, ok: false, reason: e.message }; }
+    // Shadow-mode LLM copywriter: attach an engaging draft to the TOP signal only
+    // (from the detector's real numbers). Drafting all 3 wasted calls and hit the
+    // free-tier 429 cascade (owner, 2026-07-08: 1 of 3 drafted, 2 got 429'd) — and the
+    // top signal is the one actually up for posting anyway. The other signals still show
+    // their honest template framing in the panel. No key → a labelled mock so the UX
+    // renders; nothing ever auto-posts.
+    const top = sig.signals[0];
+    if (top) {
+      try { top.llmDraft = await draftCopy(top); }
+      catch (e) { top.llmDraft = { text: "", model: "none", mock: false, ok: false, reason: e.message }; }
     }
     await writeFile(SIGNALS_FILE, JSON.stringify(sig, null, 2) + "\n");
     const drafted = sig.signals.filter(s => s.llmDraft?.ok && !s.llmDraft.mock).length;

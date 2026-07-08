@@ -124,8 +124,9 @@ test("resolveModelsAsync tries owner-vetted seeds first, then appends discovered
   _resetFreeModelCache();
   const doFetch = async () => ({ ok: true, json: async () => MODELS_LIST });
   const models = await resolveModelsAsync({}, doFetch);
-  // seeds lead (predictable, non-truncating); the owner-confirmed model is first
-  assert.equal(models[0], "nvidia/nemotron-3-super-120b-a12b:free");
+  // the cheap PAID primary leads (dependable, non-reasoning), then the free seeds
+  assert.equal(models[0], "openai/gpt-4o-mini");
+  assert.ok(models.includes("nvidia/nemotron-3-super-120b-a12b:free"), "free seed kept as fallback");
   // discovered text→text :free models appended as the churn safety net
   assert.ok(models.includes("provider-a/big:free"), "discovered text model appended");
   assert.ok(models.includes("provider-b/small:free"));
@@ -149,6 +150,7 @@ test("resolveModelsAsync falls back to static seeds when discovery fails", async
   const doFetch = async () => ({ ok: false, status: 500, text: async () => "err" });
   const models = await resolveModelsAsync({}, doFetch);
   assert.deepEqual(models, [
+    "openai/gpt-4o-mini",
     "nvidia/nemotron-3-super-120b-a12b:free",
     "meta-llama/llama-3.3-70b-instruct:free",
   ]);
