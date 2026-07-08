@@ -23,11 +23,14 @@ const OPENROUTER_MODELS_URL = "https://openrouter.ai/api/v1/models";
 // discoverFreeModels). Kept diverse across providers. Override the primary with
 // OPENROUTER_MODEL, or pin the whole chain with OPENROUTER_MODELS (comma-separated) to
 // skip discovery entirely.
+// NOTE on churn (re-confirmed 2026-07-08): free ids rot fast. deepseek-chat-v3-0324:free
+// and gemma-3-27b-it:free both went 404/paid-only, so they're dropped as SEEDS — a dead
+// seed just wastes a chain slot ahead of the live discovered models. The seeds only need
+// to be a couple of known-live anchors; runtime discovery (discoverFreeModels) fills the
+// rest. Nemotron stays lead (owner-confirmed live), llama-3.3 kept (exists; transient 429).
 const FREE_FALLBACKS = [
   "nvidia/nemotron-3-super-120b-a12b:free", // NVIDIA Nemotron — owner-confirmed live 2026-07-06
-  "deepseek/deepseek-chat-v3-0324:free",    // DeepSeek — historically reliable free
   "meta-llama/llama-3.3-70b-instruct:free", // Meta / Together (exists; can 429)
-  "google/gemma-3-27b-it:free",             // Google Gemma
 ];
 const DEFAULT_MODEL = FREE_FALLBACKS[0];
 
@@ -192,6 +195,19 @@ function mockDraft(signal) {
   return { text, model: "mock", mock: true, ok: true, reason: "no OPENROUTER_API_KEY — placeholder so the shadow UX renders" };
 }
 
+// Strip a reasoning model's leaked scratchpad from the visible content. Even with
+// the API-level `reasoning.exclude` (below), some free reasoning models still emit
+// a <think>…</think> (or <reasoning>/<analysis>) block inline — left in, it blows the
+// 235-char limit ("too long (802 > 235)"). Mirrors api/agent.js parseAction: remove
+// closed blocks, and if only a closer survived (truncated), keep what follows it.
+export function stripReasoning(text) {
+  let t = String(text || "");
+  t = t.replace(/<(think|thinking|reasoning|analysis)>[\s\S]*?<\/\1>/gi, "");
+  const closer = t.match(/<\/(think|thinking|reasoning|analysis)>/i);
+  if (closer) t = t.slice(t.lastIndexOf(closer[0]) + closer[0].length);
+  return t.replace(/^["'\s]+|["'\s]+$/g, "").trim();
+}
+
 // One OpenRouter call for a single model. Returns
 //   { ok, text, status, reason }
 // status is the HTTP code (or 0 on a thrown/network error) so the caller can
@@ -210,7 +226,13 @@ async function callModel(model, signal, apiKey, doFetch) {
       body: JSON.stringify({
         model,
         temperature: 0.7,
-        max_tokens: 200,
+        // Headroom for reasoning models: with reasoning.exclude the visible answer is
+        // short, but the model still spends hidden tokens — 200 truncated them mid-draft.
+        max_tokens: 500,
+        // Cap the scratchpad (effort:low) AND exclude it from the response so a reasoning
+        // model (Nemotron et al.) neither leaks its thinking into the draft — which blew
+        // the 235-char cap — nor burns the whole budget on it. Same guard as chat().
+        reasoning: { effort: "low", exclude: true },
         messages: [
           { role: "system", content: SYSTEM_PROMPT },
           { role: "user", content: userPrompt(signal) },
@@ -223,7 +245,8 @@ async function callModel(model, signal, apiKey, doFetch) {
     }
     const json = await res.json();
     const raw = json?.choices?.[0]?.message?.content;
-    const text = String(raw || "").replace(/^["'\s]+|["'\s]+$/g, "").trim();
+    // Belt-and-suspenders: strip any inline <think> block the API-level exclude missed.
+    const text = stripReasoning(raw);
     const v = validateDraft(text);
     return { ok: v.ok, text: v.ok ? text : "", status: res.status, reason: v.ok ? "" : `invalid draft (${v.reason})` };
   } catch (e) {

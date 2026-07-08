@@ -3,7 +3,7 @@
 // deterministic mock. Guards the honesty rails (numbers only, blocklist, length).
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { draftCopy, validateDraft, xLen, resolveModelsAsync, _resetFreeModelCache } from "../scripts/bot/llm-copy.mjs";
+import { draftCopy, validateDraft, xLen, resolveModelsAsync, _resetFreeModelCache, stripReasoning } from "../scripts/bot/llm-copy.mjs";
 
 const MODELS_LIST = {
   data: [
@@ -54,6 +54,30 @@ test("real path parses a good completion and returns it", async () => {
   assert.equal(d.ok, true);
   assert.equal(d.text, good3);
   assert.equal(d.model, "test/model");
+});
+
+test("stripReasoning removes a leaked <think> scratchpad, keeping only the answer", () => {
+  const leaked = "<think>Let me plan the three lines and count characters carefully...</think>\n" + good3;
+  assert.equal(stripReasoning(leaked), good3);
+  // unclosed opener (truncated block) → keep what follows the closer if any, else trim
+  assert.equal(stripReasoning("<reasoning>partial thoughts</reasoning>  " + good3), good3);
+});
+
+test("a reasoning model that leaks its scratchpad is salvaged, not rejected as too-long", async () => {
+  // Nemotron-style: the whole chain-of-thought dumped inline ahead of the real 3 lines,
+  // which pushed the raw content to 800+ chars ("too long"). stripReasoning must rescue it.
+  const leaked = "<think>" + "reasoning ".repeat(90) + "</think>\n" + good3;
+  const fakeFetch = async () => ({ ok: true, json: async () => ({ choices: [{ message: { content: leaked } }] }) });
+  const d = await draftCopy(SIGNAL, { apiKey: "sk-test", fetchImpl: fakeFetch, model: "reasoner/x:free" });
+  assert.equal(d.ok, true, d.reason);
+  assert.equal(d.text, good3);
+});
+
+test("draftCopy sends reasoning.exclude so reasoning models don't leak into the draft", async () => {
+  let body = null;
+  const fakeFetch = async (_url, init) => { body = JSON.parse(init.body); return { ok: true, json: async () => ({ choices: [{ message: { content: good3 } }] }) }; };
+  await draftCopy(SIGNAL, { apiKey: "sk-test", fetchImpl: fakeFetch, model: "test/model" });
+  assert.equal(body.reasoning?.exclude, true, "reasoning must be excluded from the response");
 });
 
 test("falls back to the next free model when the first is rate-limited (429)", async () => {
@@ -126,9 +150,7 @@ test("resolveModelsAsync falls back to static seeds when discovery fails", async
   const models = await resolveModelsAsync({}, doFetch);
   assert.deepEqual(models, [
     "nvidia/nemotron-3-super-120b-a12b:free",
-    "deepseek/deepseek-chat-v3-0324:free",
     "meta-llama/llama-3.3-70b-instruct:free",
-    "google/gemma-3-27b-it:free",
   ]);
 });
 
