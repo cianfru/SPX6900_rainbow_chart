@@ -472,6 +472,27 @@
           SPX the cross fired ~3mo EARLY (Oct 2024 vs the Jan 2025 top); it's the CONTINUOUS ratio
           that's honest, not the cross. Only ~1 SPX cycle so far → descriptive of WHERE WE ARE,
           not a repeatable prediction. Diminishing-peaks idea still needs more cycles (SPX young).
+        - **⭐ THRESHOLD CALIBRATION — 1.0/0.5 are BITCOIN's, checked vs SPX (owner asked 2026-07-08).**
+          Ran the SAME 111/(350×2) math on BTC (btc-history.js, 5457 days) vs SPX (705 days):
+          **BTC** median 0.58, above 1.0 only **7.9%** of the time (1.0 = ~92nd pct, its real tops
+          2013/2017/2021), below 0.5 **31%**. **SPX** median 0.72, above 1.0 a full **26%** of the
+          time (1.0 = only ~73rd pct), below 0.5 **30%**. Verdict: **0.5 accumulation FITS SPX**
+          (30% ≈ BTC's 31% — keep it), but **1.0 is TOO LOW a "top" for SPX** — SPX runs hotter
+          (above it 3× as often), so a top comparable in rarity to BTC's 1.0 sits at SPX's ~p90 ≈
+          **1.4** (SPX's actual top printed 1.53). Pending owner choice: keep pure BTC 1.0/0.5 +
+          caveat, OR keep 0.5 and add an SPX-tuned top ~1.4 (1.0 relabelled "Bitcoin's top line").
+  - **⭐ "AM I CHEAP?" VALUATION DASHBOARD — greenlit for memory (owner, 2026-07-08).** A view/card
+    that flags when MULTIPLE INDEPENDENT valuation gauges AGREE that SPX is cheap/heated — the
+    corroboration is the signal (one metric can mislead; three aligning is stronger + honest). The
+    lenses already built & data-ready: **MVRV percentile vs BTC** (mvrvbtc — currently ~1st %ile),
+    **Pi Cycle ratio zone** (picycle — deep accumulation), **rainbow band** (Fire Sale?), **20W
+    heat / z-score** (riskheat/riskcolor), **F&G**. Concept: a compact "N of 5 gauges say cheap"
+    readout, each a labelled chip with its live value, leading to a single honest headline. MUST
+    read at a glance (owner's anti-techy bar) — chips with plain words ("underwater", "accumulation",
+    "Fire Sale"), not raw indicator jargon. Guardrail: it's a VALUATION-POSITION statement (where we
+    sit), never a buy signal or a "bottom is in" call — agreement of lagging value metrics ≠ timing.
+    Build after the Pi Cycle calibration is settled. Distinct from any single card; the value is the
+    CONVERGENCE. (Idea emerged because MVRV + Pi Cycle independently landed on "deeply cheap".)
   - **ITC batch 3 verdicts (2026-06-25, MA-based TA charts) — different lane from our
     valuation moat; cherry-pick at most one:**
     - **Bull Market Support Band (BMSB)** (20W SMA / 21W EMA band) — the pick if any:
