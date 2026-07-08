@@ -248,8 +248,13 @@ async function callModel(model, signal, apiKey, doFetch) {
       }),
     });
     if (!res.ok) {
-      const body = await res.text().catch(() => "");
-      return { ok: false, text: "", status: res.status, reason: `${res.status}${body ? ": " + body.slice(0, 120) : ""}` };
+      // Keep the reason SHORT — the raw provider JSON body (404 "use this slug instead…",
+      // 429 metadata) was dumping a wall of text into the control panel. A one-word class
+      // is enough: rate-limited / unavailable / auth / http<code>.
+      await res.text().catch(() => "");
+      const cls = res.status === 429 ? "rate-limited" : res.status === 404 ? "unavailable"
+        : (res.status === 401 || res.status === 403) ? "auth" : `http ${res.status}`;
+      return { ok: false, text: "", status: res.status, reason: cls };
     }
     const json = await res.json();
     const raw = json?.choices?.[0]?.message?.content;

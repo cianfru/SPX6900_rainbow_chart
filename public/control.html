@@ -388,8 +388,12 @@ function renderDraft(d, i) {
     ? `<span class="tag mock">MOCK — set OPENROUTER_API_KEY for real drafts</span>`
     : `<span class="tag">${esc(d.model || "llm")}</span>`;
   if (!d.ok || !d.text) {
+    // Calm, capped failure line — the full provider chain (when present) goes in a title
+    // tooltip so the panel never shows a wall of raw JSON. Reassure it's cached/transient.
+    const short = d.reason ? esc(String(d.reason).replace(/\s+/g, " ").slice(0, 90)) : "";
+    const full = d.reason ? ` title="${esc(String(d.reason))}"` : "";
     return `<div class="sigdraft"><div class="dhdr">🤖 LLM draft <span class="tag">shadow · not posted</span></div>
-      <div class="dfail">draft unavailable${d.reason ? " — " + esc(d.reason) : ""}</div></div>`;
+      <div class="dfail"${full}>no draft this run${short ? " — " + short : ""} · refreshes on the next snapshot</div></div>`;
   }
   const full = footerize(d.text);
   DRAFT_TEXT[i] = full;
