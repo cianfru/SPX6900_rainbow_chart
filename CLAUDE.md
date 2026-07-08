@@ -576,29 +576,38 @@
       needs a meaningful run of daily `be` to be stable (the plain MVRV-over-time line
       unlocks ~mid-July at ~30 days; the Z-score wants more history before it's
       trustworthy). So: nothing to build yet — revisit with the rest of the MVRV work.
-    - **⭐ MVRV OVERLAY vs BTC's MVRV — greenlit, build the foundation now (owner, 2026-07-08).**
-      Owner wants to develop the MVRV concept: overlay SPX's MVRV on **Bitcoin's full MVRV
-      history** so we can ask "are we down/heated SIMILARLY to some BTC moment?" — the same
-      cross-asset "rhyme" idea as the `cyclesync` BTC-cycle overlay, but on the VALUATION
-      metric instead of price. SPX's MVRV history is very short (banking since ~2026-06, ~30d
-      by mid-July) — build it anyway and let it fill in daily (same data-gated model as the
-      rest of MVRV / holder-growth). Design notes to honor when building:
-      - **Need a BTC MVRV history series to bundle** (BTC market-cap ÷ BTC realized-cap over
-        years). We already bundle BTC PRICE (`src/btc-history.js`) but NOT BTC realized-cap /
-        MVRV — source it (e.g. Coin Metrics / Bitbo / an ITC-style export) and bundle like
-        `sp500-history.js`. SPX MVRV = `price ÷ be` from the daily snapshots (already banked).
+    - **⭐ MVRV OVERLAY vs BTC's MVRV — FOUNDATION BUILT 2026-07-08 (owner "build it now").**
+      Develops the MVRV concept: overlay SPX's MVRV on **Bitcoin's ~decade of MVRV** to ask
+      "are we down/heated SIMILARLY to some BTC moment?" — the cross-asset "rhyme" idea from
+      `cyclesync`, but on the VALUATION metric. MVRV is UNITLESS (mcap ÷ realized-cap) so it's
+      directly comparable across assets — that's what makes the overlay honest despite BTC
+      having years and SPX only weeks. **Shipped:**
+      - **Data:** `scripts/build-btc-mvrv.mjs` fetches BTC MVRV (Coin Metrics COMMUNITY API,
+        free/no-key, metric `CapMVRVCur`), samples ~weekly, writes `public/btc-mvrv.json`
+        (`{asset,metric,sampledDays,updated,points:[["YYYY-MM-DD",mvrv],…]}`). Pure core
+        `sampleMvrv()` is unit-tested (`test/btc-mvrv.test.mjs`). Workflow `btc-mvrv.yml` =
+        dispatch + **monthly** cron (BTC MVRV is ~static/append-only; the daily-moving part
+        is SPX's own MVRV from history.json). Coin Metrics is BLOCKED from the dev sandbox
+        (egress policy) — it only runs in CI, so **the owner must run the "Build BTC MVRV
+        context" workflow ONCE to populate `btc-mvrv.json`** (then monthly keeps it fresh).
+      - **Chart:** `src/MvrvContextChart.jsx`, catalog id `mvrvbtc` (On-Chain group). BTC MVRV
+        line over its full timeline (log y), **zones derived from BTC's OWN quantiles**
+        (capitulation/cheap/fair/warm/hot — self-consistent, no hardcoded thresholds), a
+        break-even 1× line, and a bold **"SPX today N×" marker line** across BTC's map + a
+        "Nth percentile of BTC history" metric. Loads `btc-mvrv.json` + history.json; graceful
+        "being banked" empty state until the workflow runs. Reads live `price÷be`.
+      - **⭐ THE HONEST FINDING (verified against the real snapshot):** SPX6900's current MVRV
+        is ~**0.70×** — the average holder is UNDERWATER — which sits at/below Bitcoin's
+        **capitulation floor** (BTC's worst bear bottoms 2015/2018/2022 printed MVRV ~0.72–0.85).
+        So the honest answer to "are we down similarly?" is YES — SPX's valuation is near BTC's
+        deepest historical MVRV lows. Interesting AND true. (Confirmed layout with a throwaway
+        BTC shape; NOT committed — real values come from the CI fetch.)
       - **Honesty guardrails (same as cyclesync):** SPX's MVRV history is ~weeks vs BTC's
-        ~decade — do NOT force a numeric "SPX today = BTC date X" claim off ~30 points. Frame
-        it as a VISUAL rhyme / context ("SPX's MVRV sits at ~N vs BTC's cycle range of A–B"),
-        and be honest that the conclusion is thin until months accumulate. MVRV bands are also
-        asset-specific (BTC's cycle tops printed MVRV ~3–4, SPX's short history can't define
-        its own bands yet) — so overlaying BTC's band structure is a REFERENCE, not a target.
-      - **The honest question to answer:** is SPX's current MVRV cheap/heated *relative to its
-        own short history* AND *where does that sit on BTC's long MVRV distribution* — "are we
-        down similarly?" Likely a site chart (dual view: SPX MVRV line + BTC MVRV context),
-        possibly a card once there's enough SPX history to not mislead. Pairs with the plain
-        MVRV-over-time line + Z-score already queued (~2026-07-23). Foundation first, per the
-        "collect data now even at 3yr" directive up top.
+        ~decade — do NOT force a numeric "SPX today = BTC date X" claim; the chart frames it as
+        a VISUAL position on BTC's map (zones are a REFERENCE, not a target) and the caption
+        says "a rhyme, not a forecast, grows daily." Pairs with the plain MVRV-over-time line +
+        Z-score on the `mvrv` page (~2026-07-23). A CARD version waits until SPX has enough
+        history to not mislead — for now it's a site chart only.
   - **Day-of-week "best day to buy" — rejected.** Same overfit trap as Uptober (~150
     samples/weekday, crypto is 24/7). At best a low-impact myth-buster ("weekday barely
     matters"); don't present it as a buy signal.

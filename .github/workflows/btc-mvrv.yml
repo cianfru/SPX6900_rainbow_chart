@@ -1,0 +1,33 @@
+# FOUNDATION: bank Bitcoin's full MVRV history into public/btc-mvrv.json so the SPX6900
+# MVRV page can overlay SPX's short MVRV on BTC's ~decade of MVRV context. Sourced from
+# the free Coin Metrics community API (no key), which is blocked from the dev sandbox but
+# reachable from CI. BTC's MVRV history is ~static/append-only, so monthly is plenty; the
+# daily-moving part (SPX's own MVRV) comes from the snapshot cron's history.json.
+name: Build BTC MVRV context
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "31 6 1 * *"   # 06:31 UTC on the 1st of each month
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+      - name: Fetch BTC MVRV history (Coin Metrics community API)
+        run: node scripts/build-btc-mvrv.mjs
+      - name: Commit if changed
+        run: |
+          if [[ -n "$(git status --porcelain public/btc-mvrv.json)" ]]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add public/btc-mvrv.json
+            git commit -m "chore: bank BTC MVRV context"
+            git push
+          else
+            echo "no change"
+          fi
