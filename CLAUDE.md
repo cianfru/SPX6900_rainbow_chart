@@ -593,15 +593,22 @@
       - **Chart:** `src/MvrvContextChart.jsx`, catalog id `mvrvbtc` (On-Chain group). BTC MVRV
         line over its full timeline (log y), **zones derived from BTC's OWN quantiles**
         (capitulation/cheap/fair/warm/hot — self-consistent, no hardcoded thresholds), a
-        break-even 1× line, and a bold **"SPX today N×" marker line** across BTC's map + a
-        "Nth percentile of BTC history" metric. Loads `btc-mvrv.json` + history.json; graceful
-        "being banked" empty state until the workflow runs. Reads live `price÷be`.
-      - **⭐ THE HONEST FINDING (verified against the real snapshot):** SPX6900's current MVRV
-        is ~**0.70×** — the average holder is UNDERWATER — which sits at/below Bitcoin's
-        **capitulation floor** (BTC's worst bear bottoms 2015/2018/2022 printed MVRV ~0.72–0.85).
-        So the honest answer to "are we down similarly?" is YES — SPX's valuation is near BTC's
-        deepest historical MVRV lows. Interesting AND true. (Confirmed layout with a throwaway
-        BTC shape; NOT committed — real values come from the CI fetch.)
+        break-even 1× line, a bold **"SPX today N×" marker line** + shaded ±12% band across
+        BTC's map, and a "Nth percentile of BTC history" metric. Loads `btc-mvrv.json` +
+        history.json; graceful "being banked" empty state until the workflow runs. Reads live
+        `price÷be`.
+      - **⭐ "SEE THE SIMILARITIES" (owner iteration 2026-07-08):** magenta **match dots**
+        (`Scatter` + the `similar` memo) highlight every Bitcoin week whose MVRV sat within ±12%
+        of SPX's today, clustered into periods. Against the REAL data they land exactly on BTC's
+        **2011, 2015 and 2018 cycle bottoms**. Ordinal metric fixed (2nd, not "2th"); dots +
+        band + percentile recompute live as SPX's MVRV moves.
+      - **⭐ THE HONEST FINDING (REAL DATA landed 2026-07-08 — owner ran the workflow):**
+        `btc-mvrv.json` = 811 weekly points 2011→2026 (BTC MVRV min 0.443 / max 7.743). SPX's
+        current MVRV ~**0.70×** — average holder UNDERWATER — is the **2nd percentile** of
+        Bitcoin's entire history (cheaper on MVRV than 98% of all BTC days); BTC only traded
+        this cheap at its 2011/2015/2018 GENERATIONAL BOTTOMS. So "are we down similarly?" →
+        YES, decisively. Interesting AND true — a strong candidate angle once there's enough
+        SPX history to post it without the "weeks vs decade" caveat misleading.
       - **Honesty guardrails (same as cyclesync):** SPX's MVRV history is ~weeks vs BTC's
         ~decade — do NOT force a numeric "SPX today = BTC date X" claim; the chart frames it as
         a VISUAL position on BTC's map (zones are a REFERENCE, not a target) and the caption
