@@ -73,9 +73,9 @@ export function mvrvBtcSvg(stats, opts = {}) {
 <text x="${W - 60}" y="90" fill="#94a3b8" font-size="19" font-family="sans-serif" text-anchor="end">cheaper than ${cheaperThan}% of BTC history</text>
 ${zones}${grid}${xlab}
 <rect x="${mL}" y="${y(hi).toFixed(1)}" width="${pW}" height="${(y(lo) - y(hi)).toFixed(1)}" fill="${SPX_C}" fill-opacity="0.16"/>
-<polyline points="${btcLine}" fill="none" stroke="${BTC_C}" stroke-width="2.2" stroke-linejoin="round"/>
-<line x1="${mL}" y1="${spxY.toFixed(1)}" x2="${W - mR}" y2="${spxY.toFixed(1)}" stroke="${SPX_C}" stroke-width="2.4" stroke-opacity="0.95"/>
-<text x="${W - mR - 6}" y="${(spxY - 10).toFixed(1)}" fill="${SPX_C}" font-size="20" font-weight="700" text-anchor="end" font-family="sans-serif">SPX today ${fMvrv(spxMvrv)}</text>
+<polyline points="${btcLine}" fill="none" stroke="${BTC_C}" stroke-width="2.8" stroke-linejoin="round"/>
+<line x1="${mL}" y1="${spxY.toFixed(1)}" x2="${W - mR}" y2="${spxY.toFixed(1)}" stroke="${SPX_C}" stroke-width="3.2" stroke-opacity="0.95"/>
+<text x="${W - mR - 6}" y="${(spxY - 12).toFixed(1)}" fill="${SPX_C}" font-size="22" font-weight="800" text-anchor="end" font-family="sans-serif">SPX today ${fMvrv(spxMvrv)}</text>
 ${dots}
 <text x="60" y="${H - 22}" fill="#475569" font-size="18" font-family="sans-serif">${esc("spx6900rainbow.xyz · not financial advice · ")}<tspan fill="${BTC_C}">Bitcoin MVRV</tspan> · <tspan fill="${MATCH_C}">BTC at SPX's level ●</tspan>${yearStr ? ` <tspan fill="#64748b">(${esc(yearStr)} bottoms)</tspan>` : ""}</text>
 </svg>`;

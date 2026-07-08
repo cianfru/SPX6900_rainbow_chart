@@ -55,15 +55,16 @@ export function underwaterSvg(stats, opts = {}) {
 <rect width="${W}" height="${H}" fill="url(#uwV)"/>
 ${grid}${xlab}
 <polygon points="${areaPoly}" fill="url(#uw)"/>
-<polyline points="${area}" fill="none" stroke="#ef4444" stroke-width="2.4"/>
 <polyline points="${priceLine}" fill="none" stroke="#38bdf8" stroke-width="8" stroke-opacity="0.16" filter="url(#ug)"/>
 <polyline points="${priceLine}" fill="none" stroke="#38bdf8" stroke-width="3" stroke-linejoin="round"/>
+<polyline points="${area}" fill="none" stroke="#ef4444" stroke-width="9" stroke-opacity="0.18" filter="url(#ug)"/>
+<polyline points="${area}" fill="none" stroke="#ef4444" stroke-width="3.6" stroke-linejoin="round"/>
 <circle cx="${cx.toFixed(1)}" cy="${cyD.toFixed(1)}" r="7" fill="#ef4444" stroke="#05050e" stroke-width="2"/>
 <text x="64" y="50" fill="#e2e8f0" font-size="30" font-weight="800" font-family="sans-serif" letter-spacing="1">SPX6900 — UNDERWATER</text>
 <text x="${W - 60}" y="46" fill="#f87171" font-size="30" font-weight="800" font-family="sans-serif" text-anchor="end">NOW ${fPct0(current)}</text>
 <text x="${W - 60}" y="78" fill="#94a3b8" font-size="20" font-family="sans-serif" text-anchor="end">from the all-time high (${fPrice(stats.ath)})</text>
 <text x="64" y="86" fill="#94a3b8" font-size="22" font-family="sans-serif">% below the running ATH · ${athCount} fresh highs so far · deepest valley ${fPct0(deepest)}</text>
-<text x="64" y="${H - 14}" fill="#475569" font-size="15" font-family="sans-serif">${esc("spx6900rainbow.xyz · not financial advice · red = drawdown from ATH · blue = price (log)")}</text>
+<text x="64" y="${H - 16}" fill="#64748b" font-size="19" font-family="sans-serif">${esc("spx6900rainbow.xyz · ")}<tspan fill="#f87171" font-weight="700">drawdown from ATH</tspan> · <tspan fill="#38bdf8" font-weight="700">price (log)</tspan></text>
 </svg>`;
 }
 
