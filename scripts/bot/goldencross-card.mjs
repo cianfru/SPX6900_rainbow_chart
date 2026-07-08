@@ -44,9 +44,9 @@ export function goldenCrossSvg(stats, opts = {}) {
   let marks = "";
   for (const c of crosses) {
     const cx = x(c.ts), cy = y(c.y), col = c.type === "golden" ? "#4ade80" : "#f87171", up = c.type === "golden";
-    marks += `<circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="12" fill="${col}" fill-opacity="0.22"/>`
-      + `<path d="M${cx.toFixed(1)},${(cy + (up ? -9 : 9)).toFixed(1)} l-8,${up ? 15 : -15} l16,0 z" fill="${col}"/>`
-      + `<text x="${cx.toFixed(1)}" y="${up ? (cy + 30).toFixed(1) : (cy - 18).toFixed(1)}" fill="${col}" font-size="15" font-weight="700" text-anchor="middle" font-family="sans-serif">${up ? "golden" : "death"}</text>`;
+    marks += `<circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="15" fill="${col}" fill-opacity="0.22"/>`
+      + `<path d="M${cx.toFixed(1)},${(cy + (up ? -11 : 11)).toFixed(1)} l-11,${up ? 19 : -19} l22,0 z" fill="${col}"/>`
+      + `<text x="${cx.toFixed(1)}" y="${up ? (cy + 42).toFixed(1) : (cy - 26).toFixed(1)}" fill="${col}" font-size="26" font-weight="800" text-anchor="middle" font-family="sans-serif">${up ? "golden" : "death"}</text>`;
   }
 
   return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
@@ -55,18 +55,18 @@ export function goldenCrossSvg(stats, opts = {}) {
 <radialGradient id="gcv" cx="50%" cy="0%" r="90%"><stop offset="0%" stop-color="${st.color}" stop-opacity="0.10"/><stop offset="60%" stop-color="${st.color}" stop-opacity="0"/></radialGradient>
 <rect width="${W}" height="${H}" fill="url(#gcv)"/>
 ${grid}${xlab}
-<polyline points="${poly("p")}" fill="none" stroke="#38bdf8" stroke-width="2" stroke-opacity="0.45"/>
-<polyline points="${poly("ma200")}" fill="none" stroke="#f97316" stroke-width="8" stroke-opacity="0.18" filter="url(#gcg)"/>
-<polyline points="${poly("ma200")}" fill="none" stroke="#f97316" stroke-width="4.5" stroke-linejoin="round"/>
-<polyline points="${poly("ma50")}" fill="none" stroke="#fbbf24" stroke-width="8" stroke-opacity="0.18" filter="url(#gcg)"/>
-<polyline points="${poly("ma50")}" fill="none" stroke="#fbbf24" stroke-width="4.5" stroke-linejoin="round"/>
+<polyline points="${poly("p")}" fill="none" stroke="#38bdf8" stroke-width="3" stroke-opacity="0.6"/>
+<polyline points="${poly("ma200")}" fill="none" stroke="#f97316" stroke-width="12" stroke-opacity="0.20" filter="url(#gcg)"/>
+<polyline points="${poly("ma200")}" fill="none" stroke="#f97316" stroke-width="6.5" stroke-linejoin="round"/>
+<polyline points="${poly("ma50")}" fill="none" stroke="#fbbf24" stroke-width="12" stroke-opacity="0.20" filter="url(#gcg)"/>
+<polyline points="${poly("ma50")}" fill="none" stroke="#fbbf24" stroke-width="6.5" stroke-linejoin="round"/>
 ${marks}
-<circle cx="${x(cur.ts).toFixed(1)}" cy="${y(cur.p).toFixed(1)}" r="6" fill="#38bdf8" stroke="#05050e" stroke-width="2"/>
+<circle cx="${x(cur.ts).toFixed(1)}" cy="${y(cur.p).toFixed(1)}" r="7" fill="#38bdf8" stroke="#05050e" stroke-width="2"/>
 <text x="64" y="50" fill="#e2e8f0" font-size="30" font-weight="800" font-family="sans-serif" letter-spacing="1">SPX6900 — GOLDEN / DEATH CROSS</text>
 <text x="${W - 60}" y="46" fill="${st.color}" font-size="27" font-weight="800" font-family="sans-serif" text-anchor="end">${st.label}</text>
 ${st.watch ? `<text x="${W - 60}" y="76" fill="#fbbf24" font-size="20" font-family="sans-serif" text-anchor="end">${st.watch}</text>` : ""}
 <text x="64" y="86" fill="#94a3b8" font-size="22" font-family="sans-serif">50-day vs 200-day moving average — the last ${crosses.length} crosses</text>
-<text x="64" y="${H - 16}" fill="#475569" font-size="15" font-family="sans-serif">${esc("spx6900rainbow.xyz · not financial advice · ")}<tspan fill="#fbbf24">50-day</tspan> · <tspan fill="#f97316">200-day</tspan> · <tspan fill="#38bdf8">price</tspan></text>
+<text x="64" y="${H - 16}" fill="#64748b" font-size="19" font-family="sans-serif">${esc("spx6900rainbow.xyz · ")}<tspan fill="#fbbf24" font-weight="700">50-day MA</tspan> · <tspan fill="#f97316" font-weight="700">200-day MA</tspan> · <tspan fill="#38bdf8" font-weight="700">price</tspan></text>
 </svg>`;
 }
 
