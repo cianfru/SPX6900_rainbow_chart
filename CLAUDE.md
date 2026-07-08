@@ -450,23 +450,28 @@
       moat is honest VALUATION, not trade signals; "buy/sell" arrows invite blowback.
     - **SKIP — Pi Cycle Bottom/Top** (111D vs 2×350D SMA): a BTC-halving-cycle top caller;
       borrowed/overfit for a ~2yr memecoin (same reasoning as Uptober). Not meaningful.
-      - **🔭 REOPENED to EXPLORE — owner read Cowen's Pi Cycle page (2026-07-08), PARKED until
-        after MVRV.** Owner wants a fresh look for an interesting angle. Reference details from
-        the ITC writeup: **Pi Cycle TOP** = 111DMA crosses ABOVE 350DMA×2 (350/111 ≈ π); called
-        BTC tops within ~3 days (2021 included). **Pi Cycle BOTTOM** (different author, more
-        arbitrary — 150EMA crosses below 471SMA×0.745; 150·π ≈ 471). **The interesting part for
-        us = the "MAs Divided" RATIO 111DMA / (350DMA×2):** a CONTINUOUS gauge — >1 = top signal,
-        **<0.4–0.5 = good accumulation zone**, near 1 = higher-risk; and its PEAKS DIMINISH each
-        cycle (2021 barely cleared 1). Honest-angle thoughts for when we pick it up:
-        (a) SPX is now old enough (~2yr → 700+ days) to actually COMPUTE a 350DMA, unlike the
-        first assessment — so it's buildable now. (b) The binary CROSS is overfit/borrowed for a
-        young memecoin (built for BTC; owner's own note: mixed for alts — bad for ETH, good for
-        total mcap/XRP/ONE) → do NOT post "Pi Cycle says top/bottom." (c) The honest framing is
-        the CONTINUOUS ratio as a descriptive extension/accumulation gauge (like our riskheat/
-        z-score lane), clearly labelled "a Bitcoin indicator applied to SPX, for context" — and
-        the diminishing-peaks idea overlaps the already-parked cross-cycle "diminishing returns"
-        (SPX too young). Decide top-vs-ratio framing + whether it clears the "techy" bar (owner:
-        visuals must read at a glance) when we return to it.
+      - **✅ BUILT 2026-07-08 as the CONTINUOUS RATIO (owner "lets build both. I like it").**
+        Owner read Cowen's Pi Cycle page and wanted an angle. We use the "MAs Divided" RATIO
+        `111DMA / (350DMA × 2)` (350/111 ≈ π) as a descriptive extension/accumulation gauge —
+        NOT the binary "top in 3 days" cross (overfit/borrowed for a ~2yr memecoin; the cross is
+        the honesty trap). Thresholds: **>1 = top zone, <0.5 = accumulation, <0.4 = deep**.
+        - **Shared core:** `piCycleRatio(series)` + `piCycleState(ratio)` in `src/models.js`
+          (same daily-interpolation as `goldenCross`, so MAs are smooth over sparse early data).
+          Unit-tested (`test/models.test.mjs`). Card + site chart both import it → can't drift.
+        - **Site chart:** `src/PiCycleChart.jsx`, catalog id `picycle` (Valuation group) — ratio
+          area line, quantile-independent zones, top/accumulation threshold lines, drag-zoom.
+        - **Card:** `scripts/bot/picycle-card.mjs` (type `picycle`, LOOK "dual") — glanceable:
+          ratio line + zones + peak annotation + hero "N.NN — <zone>". Wired charts.mjs+posts.mjs.
+        - **⭐ THE REAL FINDING (708 days of ratio, since 2024-07-31):** SPX crossed **above 1
+          (top zone) in Oct 2024**, peaked **1.53 on 2025-01-09 at its ~$1.34 cycle top**, fell
+          back below 1 in Apr 2025, entered accumulation (<0.5) Dec 2025, and today sits at
+          **~0.25 (16th %ile, deep accumulation)**. A RHYME with the MVRV-vs-BTC read: two
+          independent lenses (realized-value + trend-extension) both say SPX is deeply cheap now.
+        - **Honesty guardrails baked in:** copy/caption say "a Bitcoin indicator applied to SPX,
+          for context — a rhyme, not a signal." Do NOT claim it "called SPX's top in 3 days" — for
+          SPX the cross fired ~3mo EARLY (Oct 2024 vs the Jan 2025 top); it's the CONTINUOUS ratio
+          that's honest, not the cross. Only ~1 SPX cycle so far → descriptive of WHERE WE ARE,
+          not a repeatable prediction. Diminishing-peaks idea still needs more cycles (SPX young).
   - **ITC batch 3 verdicts (2026-06-25, MA-based TA charts) — different lane from our
     valuation moat; cherry-pick at most one:**
     - **Bull Market Support Band (BMSB)** (20W SMA / 21W EMA band) — the pick if any:

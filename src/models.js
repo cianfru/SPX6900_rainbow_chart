@@ -308,6 +308,50 @@ export function crossState(gap) {
   return { label: `50D ${Math.round(gap * 100)}% below 200D`, watch: gap > -0.06 ? "▲ golden-cross watch" : "", color: "#f87171" };
 }
 
+// Pi Cycle ratio = 111-day MA / (350-day MA × 2) — the CONTINUOUS "MAs Divided" gauge
+// from Bitcoin's Pi Cycle Top indicator (350/111 ≈ π). >1 = top zone, <0.5 = historically
+// an accumulation zone. We use the ratio as a descriptive extension gauge (NOT the binary
+// "top in 3 days" cross, which is overfit for a ~2yr memecoin) — clearly "a Bitcoin
+// indicator applied to SPX, for context". Same daily-interpolation as goldenCross so the
+// MAs are smooth across sparse early history. Returns the ratio rows (where the 350-MA
+// exists), the current point, the peak, and threshold-cross events. Shared by card+chart.
+export function piCycleRatio(series) {
+  const s = (series || []).filter(r => r.price > 0).map(r => ({ t: new Date(r.date).getTime(), p: r.price })).sort((a, b) => a.t - b.t);
+  const empty = { rows: [], cur: null, peak: null, crosses: [] };
+  if (s.length < 2) return empty;
+  const DAY = 86400000;
+  const d = [];
+  for (let t = s[0].t, j = 0; t <= s.at(-1).t; t += DAY) {
+    while (j + 1 < s.length && s[j + 1].t <= t) j++;
+    let p = s[j].p;
+    if (j + 1 < s.length && s[j + 1].t > s[j].t) { const f = (t - s[j].t) / (s[j + 1].t - s[j].t); p = s[j].p + (s[j + 1].p - s[j].p) * f; }
+    d.push({ t, p });
+  }
+  const ma = n => { const out = Array(d.length).fill(null); let sum = 0; for (let i = 0; i < d.length; i++) { sum += d[i].p; if (i >= n) sum -= d[i - n].p; if (i >= n - 1) out[i] = sum / n; } return out; };
+  const m111 = ma(111), m350 = ma(350);
+  const rows = [];
+  for (let i = 0; i < d.length; i++) if (m111[i] != null && m350[i] != null) rows.push({ ts: d[i].t, price: d[i].p, ma111: m111[i], ma350: m350[i], ratio: m111[i] / (m350[i] * 2) });
+  if (!rows.length) return empty;
+  const crosses = [];
+  for (let i = 1; i < rows.length; i++) {
+    const a = rows[i - 1].ratio, b = rows[i].ratio;
+    if (a < 1 && b >= 1) crosses.push({ ts: rows[i].ts, ratio: b, type: "top" });
+    if (a >= 1 && b < 1) crosses.push({ ts: rows[i].ts, ratio: b, type: "cooldown" });
+    if (a > 0.5 && b <= 0.5) crosses.push({ ts: rows[i].ts, ratio: b, type: "accumulation" });
+  }
+  const peak = rows.reduce((m, r) => r.ratio > m.ratio ? r : m, rows[0]);
+  return { rows, cur: rows.at(-1), peak, crosses };
+}
+
+// Shared phrasing/zone for the current Pi Cycle ratio (card, copy, chart agree).
+export function piCycleState(ratio) {
+  if (ratio == null) return { label: "", zone: "", color: "#94a3b8" };
+  if (ratio >= 1) return { label: "top zone", zone: "top", color: "#f87171" };
+  if (ratio >= 0.5) return { label: "neutral", zone: "neutral", color: "#fbbf24" };
+  if (ratio >= 0.4) return { label: "accumulation zone", zone: "accum", color: "#38bdf8" };
+  return { label: "deep accumulation", zone: "deep", color: "#4ade80" };
+}
+
 // Underwater summary for the drawdown card + its copy (one source so they agree):
 // the drawdown series plus headline stats — current dd, deepest ever, and how many
 // times price returned to a fresh all-time high (dd back to ~0), i.e. the recovery

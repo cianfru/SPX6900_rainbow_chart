@@ -642,6 +642,23 @@ As cheap as it's been, measured against Bitcoin.`,
     };
   })(),
 
+  // Pi Cycle ratio — the continuous 111/(350×2) MA gauge from Bitcoin's Pi Cycle indicator,
+  // applied to SPX for context. The ratio (not the borrowed binary cross) as an accumulation
+  // gauge: >1 top zone, <0.5 accumulation. Honest angle: it ran hot at SPX's 2025 top and is
+  // now deep in accumulation — a rhyme with the MVRV read. Data-gated on a 350-DMA existing.
+  s => (() => {
+    const pc = M.piCycleRatio(s.drawn);
+    if (pc.rows.length < 60) return null;
+    const r = pc.cur.ratio, peak = pc.peak.ratio, st = M.piCycleState(r);
+    return {
+      id: "picycle",
+      text: ct`🟣 SPX6900's Pi Cycle ratio sits at ${r.toFixed(2)} — ${st.label}.
+This Bitcoin top/bottom gauge (the 111-day vs 350-day MA) ran hot above 1 at SPX's 2025 top; today it's down near ${peak >= 1 ? "the accumulation floor" : "its lows"}.
+A Bitcoin indicator, applied to SPX for context.`,
+      card: { type: "picycle" },
+    };
+  })(),
+
   // (removed 2026-06-28) two cards pulled as not landing with the audience:
   //   • "strategy vs HODL (perfect hindsight)" — dry + buy-the-top-hype framing.
   //   • "volatility / how wild is it" (3-bar SPX vs BTC vs S&P) — owner: a bar of
@@ -1396,7 +1413,7 @@ const LOOK = {
   cycleclock: "trend", fngtrend: "trend", btcage: "trend", ethage: "trend", solage: "trend",
   // — Tier B: flavourful / distinct looks (used to break up the green lines) —
   riskcolor: "colorline", risklevels: "colorline", rsidots: "colorline",
-  riskheat: "dual", runningroi: "dual", cycle: "dual", longshort: "dual", underwater: "dual", goldencross: "dual", holdergrowth: "dual", mvrvbtc: "dual",
+  riskheat: "dual", runningroi: "dual", cycle: "dual", longshort: "dual", underwater: "dual", goldencross: "dual", holdergrowth: "dual", mvrvbtc: "dual", picycle: "dual",
   firesalerally: "fanlines",
   model: "scatter",
   monthlyreturns: "heatmap", monthlyreturnssp: "heatmap", monthlyreturnsbtc: "heatmap",

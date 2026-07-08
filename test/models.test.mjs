@@ -55,3 +55,32 @@ test("buildRiskSeries is bounded in [0,1] and pinned at the extremes", () => {
   }
   approx(min, 0); approx(max, 1); // min–max normalized, so both ends are reached
 });
+
+test("piCycleRatio computes 111/(350*2) with real cross events and a bounded state", () => {
+  const pc = M.piCycleRatio(DEFAULT_RAW);
+  assert.ok(pc.rows.length > 0, "SPX is old enough for a 350-day MA");
+  // ratio is finite and positive throughout; matches ma111/(ma350*2)
+  for (const r of pc.rows) {
+    assert.ok(r.ratio > 0 && Number.isFinite(r.ratio));
+    approx(r.ratio, r.ma111 / (r.ma350 * 2));
+  }
+  assert.equal(pc.cur, pc.rows.at(-1));
+  // peak is the max ratio in the series
+  const maxR = Math.max(...pc.rows.map(r => r.ratio));
+  approx(pc.peak.ratio, maxR);
+  // SPX crossed above 1 at least once (the 2024-25 run), so a "top" event exists
+  assert.ok(pc.crosses.some(c => c.type === "top"), "a top-zone cross exists");
+});
+
+test("piCycleState buckets the ratio into the right zone", () => {
+  assert.equal(M.piCycleState(1.2).zone, "top");
+  assert.equal(M.piCycleState(0.7).zone, "neutral");
+  assert.equal(M.piCycleState(0.45).zone, "accum");
+  assert.equal(M.piCycleState(0.25).zone, "deep");
+  assert.equal(M.piCycleState(null).zone, "");
+});
+
+test("piCycleRatio degrades gracefully on too-short input", () => {
+  const pc = M.piCycleRatio([{ date: "2026-01-01", price: 1 }]);
+  assert.deepEqual(pc, { rows: [], cur: null, peak: null, crosses: [] });
+});

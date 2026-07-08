@@ -36,6 +36,7 @@ const HoldersPriceChart = lazy(() => import("./HoldersPriceChart.jsx"));
 const RoadmapChart = lazy(() => import("./RoadmapChart.jsx"));
 const OnchainValueChart = lazy(() => import("./OnchainValueChart.jsx"));
 const MvrvContextChart = lazy(() => import("./MvrvContextChart.jsx"));
+const PiCycleChart = lazy(() => import("./PiCycleChart.jsx"));
 const LongShortChart = lazy(() => import("./LongShortChart.jsx"));
 const QuantileFanChart = lazy(() => import("./QuantileFanChart.jsx"));
 const ChartsGallery = lazy(() => import("./ChartsGallery.jsx"));
@@ -140,6 +141,7 @@ function TabIcon({ name }) {
     case "model": return (<svg {...p}><path d="M3 3v18h18" /><circle cx="8" cy="15" r="1.4" /><circle cx="13" cy="10" r="1.4" /><circle cx="18" cy="6" r="1.4" /><path d="M3 17 21 5" strokeDasharray="3 3" /></svg>);
     case "riskcolor": return (<svg {...p}><path d="M3 17c3-1 4-9 7-9s4 6 7 4 3-7 4-8" /><circle cx="8" cy="8" r="1.2" /><circle cx="17" cy="12" r="1.2" /></svg>);
     case "riskheat": return (<svg {...p}><path d="M3 12h3l2-6 4 12 2.5-7 1.5 3H21" /></svg>);
+    case "picycle": return (<svg {...p}><path d="M3 7c3 0 4 2 6 2s3-6 6-6" /><path d="M3 20c3 0 5-9 8-9s4 5 10 5" /><line x1="3" y1="13" x2="21" y2="13" strokeDasharray="3 2" strokeOpacity="0.7" /></svg>);
     case "rsidots": return (<svg {...p}><circle cx="5" cy="16" r="1.6" /><circle cx="10" cy="11" r="1.6" /><circle cx="15" cy="13" r="1.6" /><circle cx="20" cy="6" r="1.6" /><path d="M3 19 21 4" strokeDasharray="3 3" /></svg>);
     case "runningroi": return (<svg {...p}><path d="M3 12a9 9 0 1 0 9-9" /><path d="M3 4v4h4" /><path d="M12 8v4l3 2" /></svg>);
     case "vsmajors":
@@ -538,6 +540,7 @@ export default function App() {
       case "risk": return <RiskChart series={priceData} m={m} isMobile={mob} />;
       case "riskcolor": return <RiskColorChart series={priceData} m={m} isMobile={mob} />;
       case "riskheat": return <RiskHeatChart series={priceData} isMobile={mob} />;
+      case "picycle": return <PiCycleChart series={priceData} isMobile={mob} preview={preview} />;
       case "rsidots": return <RsiDotsChart series={priceData} isMobile={mob} />;
       case "runningroi": return <RunningRoiChart series={priceData} isMobile={mob} preview={preview} />;
       case "drawdown": return <DrawdownChart series={priceData} isMobile={mob} />;
