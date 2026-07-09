@@ -72,6 +72,10 @@
   .sig { display: flex; gap: 14px; align-items: flex-start; justify-content: space-between; background: rgba(251,191,36,.06); border: 1px solid rgba(251,191,36,.22); border-radius: 10px; padding: 12px 14px; margin-bottom: 8px; flex-wrap: wrap; }
   .sigmain { flex: 1; min-width: 240px; }
   .sigtitle { font-size: 15px; font-weight: 700; color: #f1f5f9; }
+  /* tap a signal title / agent-rec header to jump to that card's preview */
+  .sigtitle.goto, .arec .rhdr.goto { cursor: pointer; }
+  .sigtitle.goto:hover, .arec .rhdr.goto:hover { color: #38bdf8; }
+  .gotohint { font-size: 11px; font-weight: 600; color: #38bdf8; opacity: .75; margin-left: 5px; white-space: nowrap; }
   .sigdetail { font-size: 13px; color: #94a3b8; margin-top: 2px; }
   .sigframe { font-size: 13px; color: #cbd5e1; margin-top: 6px; line-height: 1.5; }
   .sigframe b { color: #7dd3fc; }
@@ -375,7 +379,7 @@ function renderSignals() {
     sigs.map((s, i) => `
       <div class="sig">
         <div class="sigmain">
-          <div class="sigtitle">${esc(s.emoji || "•")} ${esc(s.title || "")}</div>
+          <div class="sigtitle${s.card ? " goto" : ""}"${s.card ? ` data-goto="${esc(s.card)}" title="Jump to ${esc(s.card)} preview"` : ""}>${esc(s.emoji || "•")} ${esc(s.title || "")}${s.card ? ` <span class="gotohint">↧ ${esc(s.card)}</span>` : ""}</div>
           ${s.detail ? `<div class="sigdetail">${esc(s.detail)}</div>` : ""}
           ${s.framing ? `<div class="sigframe"><b>Framing:</b> ${esc(s.framing)}</div>` : ""}
           ${s.note ? `<div class="signote">${esc(s.note)}</div>` : ""}
@@ -619,7 +623,9 @@ function gotoCard(id) {
   window.scrollTo({ top: Math.max(0, y), behavior: "smooth" });
   el.classList.remove("flash"); void el.offsetWidth; el.classList.add("flash");
 }
-$("#sched").addEventListener("click", e => {
+// Any element with data-goto (rotation chips, signal titles, agent recs) jumps to
+// its card's preview. Document-level so every section is covered by one handler.
+document.addEventListener("click", e => {
   const g = e.target.closest("[data-goto]");
   if (g) gotoCard(g.dataset.goto);
 });
@@ -669,7 +675,7 @@ function pushMsg(role, content, extra = "") {
 function recBlock(card, draft) {
   const canSave = !!(draft && EDITABLE[card]);
   return `<div class="arec" data-rec="${esc(card)}">
-    <div class="rhdr">▶ ${esc(card)}</div>
+    <div class="rhdr goto" data-goto="${esc(card)}" title="Jump to ${esc(card)} preview">▶ ${esc(card)} <span class="gotohint">↧ preview</span></div>
     ${draft ? `<textarea class="rdrafttxt" style="width:100%;min-height:74px;background:#0b1220;color:#e2e8f0;border:1px solid #24324a;border-radius:8px;padding:8px;font:inherit;font-size:13px">${esc(footerize(draft))}</textarea>` : ""}
     <div class="racts">
       ${draft ? `<button class="rcopy">📋 Copy</button>` : ""}
