@@ -7,8 +7,11 @@ export const SUPPLY = 939_000_000;
 // the model fit, so its peak SAMPLE is only $1.82 (2025-07-31 close) — the intraday spike
 // to the real ATH was smoothed away. This constant keeps every "all-time high" / drawdown
 // read honest without polluting the close-based price line (or the frozen power-law fit).
-// Update if a higher high prints. Source: on-chain ATH (owner-verified).
-export const ATH = { price: 2.28, date: "2025-07-31" };
+// price = intraday high (owner/CoinGecko coin page); date = the real peak day per the
+// dense daily data (CoinGecko market_chart daily topped at $2.15 on 2025-07-28, so the
+// intraday $2.28 high was that day — not the 07-31 the thinned bundle sampled).
+// Update if a higher high prints.
+export const ATH = { price: 2.28, date: "2025-07-28" };
 
 export async function fetchLivePrices() {
   const res = await fetch("/api/prices", { cache: "no-store" });
