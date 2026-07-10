@@ -1,4 +1,18 @@
-import { D0 } from "./data.js";
+import { D0, ATH } from "./data.js";
+
+// Lift the ATH-date sample to the true intraday high the weekly bundle misses, so
+// rally/cycle PEAK detection reflects the real high (the rally genuinely reached it —
+// unlike drawdown, where we keep the line on closes and only floor the running peak).
+// Returns the same array if nothing changed (date absent, or close already ≥ ATH).
+function withAthFloor(series, ath = ATH) {
+  if (!ath || !(ath.price > 0)) return series;
+  let touched = false;
+  const out = series.map(r => {
+    if (r.date === ath.date && ath.price > r.price) { touched = true; return { ...r, price: ath.price }; }
+    return r;
+  });
+  return touched ? out : series;
+}
 
 export function dayN(ds) {
   return Math.max(1, Math.round((new Date(ds).getTime() - D0) / 86400000) + 1);
@@ -227,6 +241,7 @@ function ralliesFromAnchors(series, anchors, minGain) {
 // later recoveries run higher/longer as the asset matures.
 export function buildRallyCycles(series, { minDepth = 0.4, minPeakPrice = 0.05, minGain = 0.3 } = {}) {
   if (series.length === 0) return [];
+  series = withAthFloor(series); // so a rally's peak reflects the true intraday high
   const idxByDate = new Map(series.map((r, i) => [r.date, i]));
   // Reuse drawdown trough detection so bottoms are defined identically to the
   // drawdown chart. lowPrice = peakPrice × (1 + minDD).
@@ -243,6 +258,7 @@ export function buildRallyCycles(series, { minDepth = 0.4, minPeakPrice = 0.05, 
 // "if you bought every time price hit the capitulation band, how did it run?"
 export function buildFireSaleRallies(series, m, { minGain = 0.3 } = {}) {
   if (!m || series.length === 0) return [];
+  series = withAthFloor(series); // rally peaks reflect the true intraday high (ATH untouched by thinning)
   const anchors = [];
   let inEpisode = false, epLowIdx = -1, epLowPrice = Infinity;
   const flush = () => {
