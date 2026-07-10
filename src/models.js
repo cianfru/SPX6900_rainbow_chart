@@ -131,10 +131,15 @@ export function buildDrawdownSeries(series, ath = null) {
 // trough — once no new low is made, the drawdown is over). Overlaying these
 // shows whether later cycles get longer/shallower as the asset matures.
 // `minPeakPrice` skips the immature, low-liquidity early ATHs.
-export function buildDrawdownCycles(series, { minDepth = 0.3, minPeakPrice = 0 } = {}) {
+// `ath` (optional {price, date}) steps the running high-water mark up to the true
+// intraday ATH the weekly bundle misses, so the CURRENT cycle shows the real depth
+// (e.g. from $2.28, not the $1.82 close). Opt-in — callers that want close-based cycles
+// (the fire-sale/rally derivation) just omit it.
+export function buildDrawdownCycles(series, { minDepth = 0.3, minPeakPrice = 0, ath = null } = {}) {
   if (series.length === 0) return [];
   const dayOf = d => new Date(d).getTime() / 86400000;
-  let peak = -Infinity, peakDay = 0, peakDate = series[0].date;
+  const athTs = ath && ath.price > 0 ? new Date(ath.date).getTime() : null;
+  let peak = -Infinity, peakDay = 0, peakDate = series[0].date, athApplied = false;
   let cur = null;
   const out = [];
   const close = ongoing => {
@@ -157,6 +162,12 @@ export function buildDrawdownCycles(series, { minDepth = 0.3, minPeakPrice = 0 }
     cur = null;
   };
   for (const r of series) {
+    // At (or first past) the ATH date, step the high-water mark to the true intraday high
+    // once — the close there sits below it, so the cycle from the ATH shows the real depth.
+    if (athTs != null && !athApplied && new Date(r.date).getTime() >= athTs && ath.price > peak) {
+      close(false);
+      peak = ath.price; peakDate = ath.date; peakDay = dayOf(ath.date); athApplied = true;
+    }
     if (r.price >= peak) {
       close(false);
       peak = r.price; peakDate = r.date; peakDay = dayOf(r.date);

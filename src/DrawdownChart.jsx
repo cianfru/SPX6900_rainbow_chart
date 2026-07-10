@@ -48,7 +48,7 @@ function Readout({ label, value, color, isMobile }) {
 export default function DrawdownChart({ series, isMobile }) {
   const [mode, setMode] = useState("underwater"); // "underwater" = from-ATH over time; "cycle" = per-correction
 
-  const cycles = useMemo(() => buildDrawdownCycles(series, { minDepth: 0.4, minPeakPrice: 0.05 }), [series]);
+  const cycles = useMemo(() => buildDrawdownCycles(series, { minDepth: 0.4, minPeakPrice: 0.05, ath: ATH }), [series]);
 
   const { rows, maxDay, minPct } = useMemo(() => {
     const dayset = new Set();
