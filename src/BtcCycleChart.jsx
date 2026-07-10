@@ -22,7 +22,7 @@ const HALVINGS = ["2024-04-20", "2028-04-15"].map(d => new Date(d).getTime());
 const fMon = ts => new Date(ts).toLocaleDateString("en-US", { month: "short", year: "2-digit" });
 const fMonY = ts => new Date(ts).toLocaleDateString("en-US", { month: "short", year: "numeric" });
 const fP = p => p >= 1 ? "$" + p.toFixed(2) : "$" + p.toFixed(4);
-const fBtc = v => v >= 1000 ? "$" + Math.round(v / 1000) + "k" : "$" + Math.round(v);
+const fBtc = v => v >= 1e6 ? "$" + (v / 1e6).toFixed(v < 1e7 ? 1 : 0) + "M" : v >= 1000 ? "$" + Math.round(v / 1000) + "k" : "$" + Math.round(v);
 
 // interpolate a [ts, value][] series at an arbitrary ts (null if out of range)
 const interpTs = (arr, ts) => {
@@ -100,9 +100,22 @@ export default function BtcCycleChart({ series, isMobile }) {
         cone: pj != null ? [interpTs(c.projLo, ts), interpTs(c.projHi, ts)] : null,
       };
     });
+    // ⭐ ANCHOR THE BTC AXIS TO SPX (past-performance amplitude fix). On an independent
+    // auto-scaled right axis, BTC's 2021 double-top fills its own axis and TOWERS over SPX —
+    // a false visual, since BTC's real 2021 move (~3.4× off its cycle low) was actually
+    // SMALLER than SPX's (~6×). Pin the BTC axis to the SPX axis at the shared "≈ BTC Aug '22"
+    // anchor, on the SAME log scale, so BTC's real cycle shows at its TRUE relative amplitude —
+    // it now sits BELOW SPX's peak instead of overshooting it. (Real BTC prices still label the
+    // right axis.) The SPX axis is set explicitly here so the two stay locked together.
+    let spxLo = Infinity, spxHi = -Infinity;
+    for (const d of data) for (const v of [d.spx, d.proj, d.bubble, d.floor, d.cone?.[0], d.cone?.[1]]) if (v > 0) { spxLo = Math.min(spxLo, v); spxHi = Math.max(spxHi, v); }
+    spxLo *= 0.8; spxHi *= 1.2;
+    const btcAnchor = interpTs(btcReal, c.anchorTs) || interpTs(btcReal, c.projPts[0][0]);
+    const ratio = btcAnchor > 0 ? btcAnchor / c.anchorPrice : 1;
     return {
       data,
       stats: {
+        spxDomain: [spxLo, spxHi], btcDomain: [spxLo * ratio, spxHi * ratio],
         peak: c.peak, low: c.low, peakLo: c.peakLo, peakHi: c.peakHi,
         peakDate: new Date(c.peakTs), lowDate: new Date(c.lowTs), anchorTs: c.anchorTs,
         // Live "today" tip: where SPX actually is now, vs the fixed what-if anchor.
@@ -126,16 +139,17 @@ export default function BtcCycleChart({ series, isMobile }) {
           <CartesianGrid strokeDasharray="2 8" stroke="rgba(255,255,255,0.07)" vertical={false} />
           <XAxis dataKey="ts" type="number" scale="time" domain={["dataMin", "dataMax"]} tickFormatter={fMon}
             tick={{ fill: "#cbd5e1", fontSize: isMobile ? 10 : 12, fontFamily: MONO }} axisLine={{ stroke: "rgba(255,255,255,0.15)" }} tickLine={false} minTickGap={isMobile ? 50 : 36} />
-          <YAxis yAxisId="spx" scale="log" domain={["auto", "auto"]} tickFormatter={fP}
+          <YAxis yAxisId="spx" scale="log" domain={stats.spxDomain} allowDataOverflow tickFormatter={fP}
             tick={{ fill: "#4ade80", fontSize: isMobile ? 10 : 12, fontFamily: MONO }} axisLine={{ stroke: "rgba(255,255,255,0.15)" }} tickLine={false} width={isMobile ? 46 : 60} />
-          <YAxis yAxisId="btc" orientation="right" scale="log" domain={["auto", "auto"]} tickFormatter={fBtc}
+          <YAxis yAxisId="btc" orientation="right" scale="log" domain={stats.btcDomain} allowDataOverflow tickFormatter={fBtc}
             tick={{ fill: "#f7931a", fontSize: isMobile ? 10 : 12, fontFamily: MONO }} axisLine={{ stroke: "rgba(255,255,255,0.15)" }} tickLine={false} width={isMobile ? 40 : 52} />
           <Tooltip content={<Tip />} />
           {HALVINGS.map((h, i) => (
             <ReferenceLine yAxisId="spx" key={i} x={h} stroke="rgba(255,255,255,0.2)" label={{ value: "BTC Halving", fill: "#94a3b8", fontSize: 11, position: "insideBottomLeft", angle: -90, offset: 8 }} />
           ))}
           {(stats.peaks || []).map((pk, i) => (
-            <ReferenceLine yAxisId="spx" key={`pk${i}`} x={pk.ts} stroke="rgba(247,147,26,0.35)" strokeDasharray="2 6" label={{ value: `BTC ${pk.label}`, fill: "#f7931a", fontSize: 11, position: "insideTopRight" }} />
+            <ReferenceLine yAxisId="spx" key={`pk${i}`} x={pk.ts} stroke="rgba(247,147,26,0.35)" strokeDasharray="2 6"
+              label={{ value: `BTC top ${pk.label}`, fill: "#f7931a", fontSize: 10.5, position: "insideTopLeft", angle: -90, offset: 8 }} />
           ))}
           <ReferenceLine yAxisId="spx" x={stats.anchorTs} stroke="#475569" strokeDasharray="2 6" label={{ value: "what-if start", fill: "#64748b", fontSize: 11, position: "insideBottomRight" }} />
           {stats.todayTs > stats.anchorTs && (
@@ -153,8 +167,8 @@ export default function BtcCycleChart({ series, isMobile }) {
       </ResponsiveContainer>
 
       <div style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.6 }}>
-        <span style={{ color: "#4ade80" }}>■</span> SPX6900 (left axis) &nbsp;·&nbsp; <span style={{ color: "#f7931a" }}>■</span> Bitcoin's real last cycle, time-aligned (right axis) &nbsp;·&nbsp; <span style={{ color: "#f7931a" }}>┄</span> beta-scaled projection (shaded = range) &nbsp;·&nbsp; <span style={{ color: "#a78bfa" }}>┄</span> bubble / <span style={{ color: "#38bdf8" }}>┄</span> fire-sale band.
-        <br /><b style={{ color: "#cbd5e1" }}>Why "≈ BTC {fMonY(stats.btcFrom.getTime())}"?</b> Line the two charts up on their own scales and SPX has retraced Bitcoin's <b>2021 double top</b> (Apr &amp; Nov) → 2022 bottom — the peaks landing within weeks on the aligned clock, which is why today maps to BTC's post-top low. The timing rhymes; the amplitude is each asset's own (BTC's 2021 spike was a bigger relative move). From that low, BTC went on to a new ATH — the dashed line beta-scales that path to a top near <span style={{ color: "#a78bfa" }}>{fP(stats.peak)}</span> ({fP(stats.peakLo)}–{fP(stats.peakHi)}) around {stats.peakDate.toLocaleDateString("en-US", { month: "short", year: "numeric" })}. A for-fun <i>what-if</i>, NOT a forecast or financial advice.
+        <span style={{ color: "#4ade80" }}>■</span> SPX6900 (left axis) &nbsp;·&nbsp; <span style={{ color: "#f7931a" }}>■</span> Bitcoin's real last cycle, amplitude-anchored (right axis) &nbsp;·&nbsp; <span style={{ color: "#f7931a" }}>┄</span> beta-scaled projection (shaded = range) &nbsp;·&nbsp; <span style={{ color: "#a78bfa" }}>┄</span> bubble / <span style={{ color: "#38bdf8" }}>┄</span> fire-sale band.
+        <br /><b style={{ color: "#cbd5e1" }}>Why "≈ BTC {fMonY(stats.btcFrom.getTime())}"?</b> Line the two cycles up in time and SPX has retraced Bitcoin's <b>2021 double top</b> (Apr &amp; Nov) → 2022 bottom — the peaks landing within weeks on the aligned clock, which is why today maps to BTC's post-top low. Both are drawn on the <b style={{ color: "#cbd5e1" }}>same log scale, anchored at that shared low</b>, so Bitcoin shows its <i>true</i> relative amplitude — its 2021 run (~3.4× off the low) was actually smaller than SPX's (~6×), so it sits below SPX rather than towering over it. From the low, BTC went to a new ATH — the dashed line beta-scales that path to a top near <span style={{ color: "#fbbf24" }}>{fP(stats.peak)}</span> ({fP(stats.peakLo)}–{fP(stats.peakHi)}) around {stats.peakDate.toLocaleDateString("en-US", { month: "short", year: "numeric" })}. A for-fun <i>what-if</i>, NOT a forecast or financial advice.
       </div>
     </div>
   );

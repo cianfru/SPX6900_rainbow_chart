@@ -724,12 +724,18 @@
   **double top (Jan '25 + Jul '25)** line up — within WEEKS — with BTC's **2021 double
   top (Apr & Nov)**, and today land on BTC's post-top **Aug '22** low. Verified: SPX
   peaks at age 522/714 vs BTC tops mapped to age 529/737. Strong TIMING rhyme.
-- **Key honesty constraint — timing rhymes, amplitude does NOT.** BTC's 2021 spike was
-  a far bigger *relative* move than SPX's (BTC ~3.4× over its now-price into the top;
-  SPX only ~5.5× but from a tiny base). Any single-axis **beta-scaled** overlay
-  overshoots SPX's real peaks ~7× — looks wrong, overclaims. So the rhyme card uses a
-  **dual-axis, time-aligned** overlay: SPX on the LEFT log axis, Bitcoin's REAL price on
-  the RIGHT log axis, each on its own scale, lined up in time. No fake amplitude scaling.
+- **Key honesty constraint — timing rhymes, amplitude does NOT.** BTC's 2021 spike was a
+  far bigger *relative* move than SPX's? — NO, actually the reverse: BTC ~3.4× off its cycle
+  low into the top, SPX ~6× off its own low. A beta-SCALED overlay (×3.4) overshoots ~7× —
+  don't do that. So the overlay lines the two cycles up in TIME on log price.
+  - **⭐ AXIS AMPLITUDE — ANCHORED, not independent-auto (owner flagged 2026-07-10).** The
+    website `BtcCycleChart` used to auto-scale BTC's right axis independently, which made BTC's
+    2021 double-top FILL its axis and TOWER over SPX — a false visual (BTC's real move was
+    smaller). FIX: pin the BTC right axis to the SPX left axis at the shared "≈ BTC Aug '22"
+    anchor on the SAME log scale (`btcDomain = spxDomain × (btcAnchor/spxAnchor)`), so BTC shows
+    its TRUE relative amplitude and sits BELOW SPX's peak. More honest AND better-looking. The
+    `cyclesync` CARD was already hand-scaled this way (BTC ≈/below SPX), so they now agree. The
+    forward beta-scaled projection is UNCHANGED (owner: "future path looks ok").
 - **BUILT — `cyclesync` card** (`scripts/bot/cycle-card.mjs`, render `renderCycleSyncCard`,
   wired in `charts.mjs`). SPX green (left) + BTC orange real (right), vertical guides at
   the two mapped BTC tops + a "today ≈ BTC Aug '22" NOW line, plus a dashed stub of BTC's
