@@ -42,6 +42,29 @@ async function bybit() {
   return list.map(r => ({ date: new Date(parseInt(r[0], 10)).toISOString().slice(0, 10), price: parseFloat(r[4]) })).filter(p => p.price > 0);
 }
 
+// CoinGecko COIN API (aggregated across markets) daily closes. Distinct from
+// GeckoTerminal (the DEX-pool product above): the free/demo tier caps market_chart
+// history to the last 365 DAYS — which still reaches back ~a year and, crucially,
+// covers the true intraday ATH region (Jul '25) the thinned DEX OHLCV misses. A paid
+// PRO key (COINGECKO_PRO_KEY) auto-upgrades this to days=max = FULL daily history back
+// to launch. id override: COINGECKO_ID (default spx6900); demo key: COINGECKO_KEY.
+async function coingecko() {
+  const id = process.env.COINGECKO_ID || "spx6900";
+  const proKey = process.env.COINGECKO_PRO_KEY, demoKey = process.env.COINGECKO_KEY;
+  const host = proKey ? "https://pro-api.coingecko.com" : "https://api.coingecko.com";
+  const days = proKey ? "max" : "365"; // free tier is capped at 365; pro unlocks max
+  const headers = { Accept: "application/json" };
+  if (proKey) headers["x-cg-pro-api-key"] = proKey;
+  else if (demoKey) headers["x-cg-demo-api-key"] = demoKey;
+  const res = await fetch(`${host}/api/v3/coins/${id}/market_chart?vs_currency=usd&days=${days}&interval=daily`, { headers });
+  if (!res.ok) throw new Error(`coingecko ${res.status}`);
+  const prices = (await res.json())?.prices;
+  if (!Array.isArray(prices) || !prices.length) throw new Error("coingecko empty");
+  const byDay = new Map(); // one point per day; last write per date
+  for (const [ms, p] of prices) if (p > 0) byDay.set(new Date(ms).toISOString().slice(0, 10), p);
+  return [...byDay].map(([date, price]) => ({ date, price }));
+}
+
 // Coinbase SPX-USD daily (listed Feb 2025) — paged 300 at a time.
 async function coinbase() {
   const out = [];
@@ -65,11 +88,17 @@ async function soft(fn, name) {
 
 async function main() {
   console.log("Fetching daily price history from all sources…");
-  const [g, b, c] = await Promise.all([soft(gecko, "geckoterminal"), soft(bybit, "bybit"), soft(coinbase, "coinbase")]);
+  const [g, b, c, cg] = await Promise.all([
+    soft(gecko, "geckoterminal"), soft(bybit, "bybit"), soft(coinbase, "coinbase"), soft(coingecko, "coingecko"),
+  ]);
 
   // Merge by date. GeckoTerminal (on-chain, same lineage as the bundle) wins where
-  // present; Bybit then Coinbase fill the gaps it lacks — maximises density.
+  // present; Bybit then Coinbase fill the gaps it lacks. CoinGecko is set FIRST (lowest
+  // priority) so it only fills where nothing on-chain exists — chiefly the older months
+  // beyond GeckoTerminal's ~6-month free depth (incl. the Jul '25 ATH) — without changing
+  // the recent on-chain closes. (With a pro key it also backfills the full launch era.)
   const byDate = new Map();
+  for (const p of cg) byDate.set(p.date, p.price);
   for (const p of c) byDate.set(p.date, p.price);
   for (const p of b) byDate.set(p.date, p.price);
   for (const p of g) byDate.set(p.date, p.price);

@@ -18,6 +18,14 @@ jobs:
         with:
           node-version: 24
       - name: Build dense daily price history
+        env:
+          # Optional CoinGecko coin-API keys. NONE needed for the free path (last 365d
+          # daily, incl. the true ATH). Set COINGECKO_KEY (free demo) to raise rate limits,
+          # or COINGECKO_PRO_KEY (paid) to backfill FULL daily history (days=max). Override
+          # the coin id with COINGECKO_ID if it isn't "spx6900".
+          COINGECKO_KEY: ${{ secrets.COINGECKO_KEY }}
+          COINGECKO_PRO_KEY: ${{ secrets.COINGECKO_PRO_KEY }}
+          COINGECKO_ID: ${{ vars.COINGECKO_ID }}
         run: node scripts/build-price-history.mjs
       - name: Commit if changed
         run: |
