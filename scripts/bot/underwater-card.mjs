@@ -12,7 +12,9 @@ const fPct0 = v => Math.round(v * 100) + "%";
 const fPrice = p => (p >= 1 ? "$" + p.toFixed(2) : p >= 0.01 ? "$" + p.toFixed(3) : "$" + p.toFixed(4));
 
 export function underwaterSvg(stats, opts = {}) {
-  const { series: dd, current, deepest, athCount } = drawdownSummary(stats.drawn || []);
+  // Use the true ATH high-water mark (stats.ath folds in the intraday high the weekly
+  // bundle misses) so the drawdown depth + "-N% from ATH" match the real all-time high.
+  const { series: dd, current, deepest, athCount } = drawdownSummary(stats.drawn || [], stats.ath > 0 ? { price: stats.ath, date: stats.athDate } : null);
   if (dd.length < 2) return null;
 
   const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 92, mR = 96, mT = 118, mB = 70, pW = W - mL - mR, pH = H - mT - mB;

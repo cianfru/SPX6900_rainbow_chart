@@ -111,17 +111,18 @@ export function buildRiskSeries(m, series) {
 }
 
 // Drawdown from the running all-time high (0 = at ATH, -0.7 = 70% below peak).
-export function buildDrawdownSeries(series) {
+// `ath` (optional {price, date}) is the true intraday high-water mark — the weekly-thinned
+// close series misses the intraday ATH spike, so from ath.date on we floor the running peak
+// to ath.price. The price LINE stays on real closes; only the drawdown depth reflects the
+// true high (so the top may show price a bit below a fresh-high, which is honest).
+export function buildDrawdownSeries(series, ath = null) {
   let peak = -Infinity;
+  const athTs = ath && ath.price > 0 ? new Date(ath.date).getTime() : null;
   return series.map(r => {
     if (r.price > peak) peak = r.price;
-    return {
-      date: r.date,
-      ts: new Date(r.date).getTime(),
-      price: r.price,
-      peak,
-      dd: r.price / peak - 1,
-    };
+    const ts = new Date(r.date).getTime();
+    if (athTs != null && ts >= athTs && ath.price > peak) peak = ath.price;
+    return { date: r.date, ts, price: r.price, peak, dd: r.price / peak - 1 };
   });
 }
 
@@ -368,8 +369,8 @@ export function piCycleState(ratio, zones) {
 // the drawdown series plus headline stats — current dd, deepest ever, and how many
 // times price returned to a fresh all-time high (dd back to ~0), i.e. the recovery
 // count that makes the "deep dip → new ATH" rhythm concrete.
-export function drawdownSummary(series) {
-  const dd = buildDrawdownSeries(series);
+export function drawdownSummary(series, ath = null) {
+  const dd = buildDrawdownSeries(series, ath);
   let deepest = 0, athCount = 0, below = false;
   for (const r of dd) {
     if (r.dd < deepest) deepest = r.dd;

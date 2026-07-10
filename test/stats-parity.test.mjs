@@ -5,7 +5,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import * as M from "../src/models.js";
-import { DEFAULT_RAW } from "../src/data.js";
+import { DEFAULT_RAW, ATH } from "../src/data.js";
 import { computeStats } from "../scripts/bot/stats.mjs";
 
 const m = M.buildModel(DEFAULT_RAW);
@@ -27,10 +27,14 @@ test("risk matches buildRiskSeries' last value", () => {
   approx(s.risk, rs.at(-1).risk);
 });
 
-test("drawdown / ATH are consistent with the raw history", () => {
-  const ath = Math.max(...DEFAULT_RAW.map(r => r.price));
-  approx(s.ath, ath);
-  approx(s.drawdown, last.price / ath - 1);
+test("drawdown / ATH fold in the true high-water mark (ATH), not just the thinned bundle", () => {
+  // stats.ath = max(bundle max, the intraday ATH constant). The weekly bundle peaks at
+  // $1.82 but the real ATH is higher, so the ATH constant should win.
+  const rawMax = Math.max(...DEFAULT_RAW.map(r => r.price));
+  const expectedAth = Math.max(rawMax, ATH.price);
+  approx(s.ath, expectedAth);
+  assert.ok(s.ath >= rawMax, "ATH is never below the bundle's own max");
+  approx(s.drawdown, last.price / expectedAth - 1);
   assert.ok(s.drawdown <= 0 && s.drawdown > -1, "current drawdown is in (-1, 0]");
 });
 

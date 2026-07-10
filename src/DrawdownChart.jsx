@@ -3,6 +3,7 @@ import {
   ResponsiveContainer, LineChart, ComposedChart, Line, Area, XAxis, YAxis, Tooltip, CartesianGrid, ReferenceDot,
 } from "recharts";
 import { buildDrawdownCycles, buildDrawdownSeries } from "./models.js";
+import { ATH } from "./data.js";
 import { SANS, MONO, MAX_W, TipBox } from "./chart-ui.jsx";
 
 const fMon = d => new Date(d).toLocaleDateString("en-US", { month: "short", year: "2-digit" });
@@ -64,7 +65,7 @@ export default function DrawdownChart({ series, isMobile }) {
 
   // Continuous "underwater" curve: % below the running all-time high at every date.
   const uw = useMemo(() => {
-    const s = buildDrawdownSeries(series);
+    const s = buildDrawdownSeries(series, ATH);
     const rows = s.map(r => ({ ts: r.ts, price: r.price, dd: r.dd * 100 }));
     let pMin = Infinity, pMax = -Infinity, dMin = 0;
     for (const r of rows) { if (r.price < pMin) pMin = r.price; if (r.price > pMax) pMax = r.price; if (r.dd < dMin) dMin = r.dd; }

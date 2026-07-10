@@ -2,7 +2,7 @@
 // rotating posts and the cards need from the model + snapshot data. Mirrors the
 // site / api/og.js logic so the bot can never disagree with the chart.
 import { readFileSync } from "node:fs";
-import { DEFAULT_RAW, SUPPLY } from "../../src/data.js";
+import { DEFAULT_RAW, SUPPLY, ATH } from "../../src/data.js";
 import * as M from "../../src/models.js";
 import { SP500_HISTORY } from "../../src/sp500-history.js";
 import { FNG_HISTORY } from "../../src/fng-history.js";
@@ -191,10 +191,12 @@ export function computeStats(price, dateStr = new Date().toISOString().slice(0, 
   const fsr = M.buildFireSaleRallies(RAW, m, { minGain: 0.3 });
   const lastFs = fsr.at(-1);
 
-  // All-time high + current drawdown from it.
+  // All-time high + current drawdown from it. The weekly-thinned bundle misses the intraday
+  // ATH, so fold in the true high-water mark (src/data.js ATH) if it's higher.
   let ath = -Infinity, athDate = RAW[0].date;
   for (const r of RAW) if (r.price > ath) { ath = r.price; athDate = r.date; }
-  const ddSeries = M.buildDrawdownSeries(RAW);
+  if (ATH.price > ath) { ath = ATH.price; athDate = ATH.date; }
+  const ddSeries = M.buildDrawdownSeries(RAW, { price: ath, date: athDate });
   const dd = price / Math.max(ath, price) - 1;
   const maxDd = ddSeries.reduce((mn, r) => Math.min(mn, r.dd), 0);
 
