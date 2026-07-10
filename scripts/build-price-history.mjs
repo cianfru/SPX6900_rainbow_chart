@@ -65,6 +65,36 @@ async function coingecko() {
   return [...byDay].map(([date, price]) => ({ date, price }));
 }
 
+// Uniswap subgraph (The Graph decentralized network). tokenDayDatas gives one
+// priceUSD per day back to the token's FIRST trade (Aug '23) — so it densifies the
+// ENTIRE launch era that CoinGecko's free 365-day window can't reach, at no cost, and
+// on the same on-chain lineage as the bundle. Needs a free Graph Studio API key
+// (GRAPH_API_KEY); soft-skips without one. The subgraph id defaults to Uniswap v2
+// mainnet — override with GRAPH_SUBGRAPH_ID if SPX's pool is v3 (id
+// 5zvR82QoaXYFyDEKLZ9t6v9adgnptxYpKpSbxtgVENFV) or the default is wrong. Token: GRAPH_TOKEN.
+async function graph() {
+  const key = process.env.GRAPH_API_KEY;
+  if (!key) throw new Error("no GRAPH_API_KEY — skipping");
+  const subgraph = process.env.GRAPH_SUBGRAPH_ID || "A3Np3RQbaBA6oKJgiwDJeo5T3zrYfGHPWFYayMwtNDum"; // Uniswap v2 mainnet
+  const token = (process.env.GRAPH_TOKEN || "0xe0f63a424a4439cbe457d80e4f4b51ad25b2c56c").toLowerCase();
+  const url = `https://gateway.thegraph.com/api/${key}/subgraphs/id/${subgraph}`;
+  const out = [];
+  let lastDate = 0;
+  for (let page = 0; page < 10; page++) { // page by date cursor (The Graph caps `first` at 1000)
+    const query = `{ tokenDayDatas(first: 1000, orderBy: date, orderDirection: asc, where: { token: "${token}", date_gt: ${lastDate} }) { date priceUSD } }`;
+    const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify({ query }) });
+    if (!res.ok) throw new Error(`graph ${res.status}`);
+    const j = await res.json();
+    if (j.errors?.length) throw new Error(`graph: ${j.errors[0].message}`);
+    const rows = j?.data?.tokenDayDatas;
+    if (!Array.isArray(rows) || !rows.length) break;
+    for (const r of rows) { const p = parseFloat(r.priceUSD); if (p > 0) out.push({ date: new Date(r.date * 1000).toISOString().slice(0, 10), price: p }); }
+    lastDate = rows[rows.length - 1].date;
+    if (rows.length < 1000) break;
+  }
+  return out;
+}
+
 // Coinbase SPX-USD daily (listed Feb 2025) — paged 300 at a time.
 async function coinbase() {
   const out = [];
@@ -88,19 +118,20 @@ async function soft(fn, name) {
 
 async function main() {
   console.log("Fetching daily price history from all sources…");
-  const [g, b, c, cg] = await Promise.all([
-    soft(gecko, "geckoterminal"), soft(bybit, "bybit"), soft(coinbase, "coinbase"), soft(coingecko, "coingecko"),
+  const [g, b, c, cg, gr] = await Promise.all([
+    soft(gecko, "geckoterminal"), soft(bybit, "bybit"), soft(coinbase, "coinbase"), soft(coingecko, "coingecko"), soft(graph, "uniswap-subgraph"),
   ]);
 
-  // Merge by date. GeckoTerminal (on-chain, same lineage as the bundle) wins where
-  // present; Bybit then Coinbase fill the gaps it lacks. CoinGecko is set FIRST (lowest
-  // priority) so it only fills where nothing on-chain exists — chiefly the older months
-  // beyond GeckoTerminal's ~6-month free depth (incl. the Jul '25 ATH) — without changing
-  // the recent on-chain closes. (With a pro key it also backfills the full launch era.)
+  // Merge by date (later set = higher priority). Priority, low→high:
+  //   coingecko (aggregated) < CEX (coinbase, bybit) < uniswap-subgraph (on-chain, full
+  //   launch-era history) < geckoterminal (our exact pool). On-chain sources win over CEX/
+  //   aggregator; the subgraph backfills the entire launch era nothing else reaches, while
+  //   GeckoTerminal stays authoritative for the recent months it covers.
   const byDate = new Map();
   for (const p of cg) byDate.set(p.date, p.price);
   for (const p of c) byDate.set(p.date, p.price);
   for (const p of b) byDate.set(p.date, p.price);
+  for (const p of gr) byDate.set(p.date, p.price);
   for (const p of g) byDate.set(p.date, p.price);
   const merged = [...byDate].map(([date, price]) => ({ date, price })).filter(p => p.price > 0).sort((a, b) => a.date.localeCompare(b.date));
 

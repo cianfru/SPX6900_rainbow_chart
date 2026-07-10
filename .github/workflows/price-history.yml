@@ -26,6 +26,12 @@ jobs:
           COINGECKO_KEY: ${{ secrets.COINGECKO_KEY }}
           COINGECKO_PRO_KEY: ${{ secrets.COINGECKO_PRO_KEY }}
           COINGECKO_ID: ${{ vars.COINGECKO_ID }}
+          # Uniswap subgraph (The Graph) — free full launch-era daily history. Set the
+          # GRAPH_API_KEY secret (free Studio key). Override GRAPH_SUBGRAPH_ID if SPX's
+          # pool is v3, and GRAPH_TOKEN if the contract differs. Skips cleanly without a key.
+          GRAPH_API_KEY: ${{ secrets.GRAPH_API_KEY }}
+          GRAPH_SUBGRAPH_ID: ${{ vars.GRAPH_SUBGRAPH_ID }}
+          GRAPH_TOKEN: ${{ vars.GRAPH_TOKEN }}
         run: node scripts/build-price-history.mjs
       - name: Commit if changed
         run: |
