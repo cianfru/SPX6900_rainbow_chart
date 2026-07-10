@@ -152,14 +152,37 @@
   diminishing returns. Removed the ROI-card trendline. The honest home for this is the
   **rally chart** (cycle bottom→top multiples, +16240% → +415% → +81%), which already
   shows the maturation as far as the data allows — it just needs more cycles to bank.
-- **Dense historical price data is NOT freely available before ~2025-09 (found 2026-07-05).**
-  The `price-history` builder ran: coinbase gave 300 pts (2025-09→now), GeckoTerminal FREE
-  only ~180 recent (its free OHLCV caps historical depth), bybit nothing. So `public/
-  price-history.json` densifies **2025-09 → today** only; **2024 / early-2025 stay on the
-  weekly bundle** (the boxy older rallies can't be fixed from free sources — the dense
-  daily 2024 data that DEFAULT_RAW was thinned from is no longer served). To fully densify
-  the launch era would need a PAID API (GeckoTerminal paid, or the RCCE_Scanner exchange
-  code the owner pointed to) — otherwise the daily banking accumulates going forward.
+- **Dense historical price data — SOLVED IN STAGES (2026-07-05 → 2026-07-10).** Original
+  finding: coinbase gave 300 pts (2025-09→now), GeckoTerminal FREE only ~6mo depth, bybit
+  nothing → `price-history.json` densified 2025-09→today only, launch era stayed boxy weekly.
+  Two free sources added since (`scripts/build-price-history.mjs`):
+  - **✅ CoinGecko COIN API (`market_chart`, free) — LIVE 2026-07-10.** Distinct from
+    GeckoTerminal (DEX product). Free/demo tier caps history to the last **365 days** — which
+    still reaches ~a year back and covers the true ATH region. Owner ran it: price-history.json
+    now dense **2025-07-11 → today** (365 pts); Jul '25 top peaks **$2.15 daily on 2025-07-28**.
+    Merged as lowest-priority gap-filler. Pro key (`COINGECKO_PRO_KEY`) auto-upgrades to
+    `days=max` (full history) — the cheapest full-history tier is **Analyst ~$129/mo**; a
+    ONE-MONTH backfill (subscribe, run once, cancel) = ~$129 one-time, then free keeps it fresh.
+  - **🔲 Uniswap subgraph (The Graph) — WIRED, NEEDS A KEY TO ACTIVATE (2026-07-10).** The
+    promising FREE route to the FULL launch-era daily history (CoinGecko free can't pass 365d).
+    `tokenDayDatas` gives one priceUSD/day back to Aug '23, on-chain lineage. **PENDING OWNER
+    ACTION (on mobile, do later):** (1) create a free Graph Studio key at thegraph.com/studio;
+    (2) add repo secret `GRAPH_API_KEY`; (3) run the "Build price history" workflow; (4) CHECK
+    the `uniswap-subgraph:` log line — if `N pts (2023-08…→)` it worked (full history dense, no
+    Pro needed); if `0 pts`/error the pool is v3 → set repo var `GRAPH_SUBGRAPH_ID` to the v3 id
+    `5zvR82QoaXYFyDEKLZ9t6v9adgnptxYpKpSbxtgVENFV` and re-run (`GRAPH_TOKEN` overrides the
+    contract). Defaults to Uniswap v2 mainnet id `A3Np3RQbaBA6oKJgiwDJeo5T3zrYfGHPWFYayMwtNDum`.
+    If it flows, we can eventually re-bundle DEFAULT_RAW from real daily data + retire the ATH
+    constant — but that touches the FROZEN model fit, so do it deliberately as a separate step.
+- **⭐ TRUE ATH = $2.28 intraday (2025-07-28), NOT the bundle's $1.82 (owner flagged 2026-07-10).**
+  DEFAULT_RAW is thinned to ~weekly, so its peak SAMPLE ($1.82) missed the intraday spike. Fixed
+  via `ATH = {price:2.28, date:"2025-07-28"}` in `src/data.js` (intraday high-water mark, kept
+  SEPARATE from the close-based line + frozen fit). Folded into `stats.ath`/`athDate` and
+  threaded through drawdown (`buildDrawdownSeries`/`buildDrawdownCycles` take an `ath` param and
+  floor the running peak from its date — line stays on closes, depth reflects the true high) and
+  rally/fire-sale (`withAthFloor` lifts the ATH-date sample so a rally's peak = the real high).
+  CoinGecko daily confirmed the peak DAY is 2025-07-28 ($2.15 daily; $2.28 = intraday). Update
+  the one constant if a higher high prints.
 - **⭐ CARD vs WEBSITE — different audiences, different defaults (owner, 2026-07-03).**
   **Cards are for the general public** → keep them digestible: a tight, cropped, single
   clear read at a glance. **The website is for DIGGING INTO THE DATA** → default to the
