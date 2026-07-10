@@ -95,6 +95,23 @@ async function graph() {
   return out;
 }
 
+// Hyperliquid perp OHLCV (candleSnapshot). We already talk to HL for funding/OI, and it's
+// reachable from CI (unlike Binance, which geo-blocks US runners). Only reaches back to when
+// the SPX PERP listed (well after the Aug '23 DEX launch), so it helps fill the 2024→mid-2025
+// middle gap CoinGecko's free 365d can't — NOT the deep launch era (on-chain only). Perp
+// price ≈ spot; kept low priority. Coin override: HL_COIN.
+async function hyperliquid() {
+  const coin = process.env.HL_COIN || "SPX";
+  const res = await fetch("https://api.hyperliquid.xyz/info", {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ type: "candleSnapshot", req: { coin, interval: "1d", startTime: Date.parse("2023-01-01"), endTime: Date.now() } }),
+  });
+  if (!res.ok) throw new Error(`hyperliquid ${res.status}`);
+  const arr = await res.json();
+  if (!Array.isArray(arr) || !arr.length) throw new Error("hyperliquid empty");
+  return arr.map(k => ({ date: new Date(k.t).toISOString().slice(0, 10), price: parseFloat(k.c) })).filter(p => p.price > 0);
+}
+
 // Coinbase SPX-USD daily (listed Feb 2025) — paged 300 at a time.
 async function coinbase() {
   const out = [];
@@ -118,17 +135,19 @@ async function soft(fn, name) {
 
 async function main() {
   console.log("Fetching daily price history from all sources…");
-  const [g, b, c, cg, gr] = await Promise.all([
-    soft(gecko, "geckoterminal"), soft(bybit, "bybit"), soft(coinbase, "coinbase"), soft(coingecko, "coingecko"), soft(graph, "uniswap-subgraph"),
+  const [g, b, c, cg, gr, hl] = await Promise.all([
+    soft(gecko, "geckoterminal"), soft(bybit, "bybit"), soft(coinbase, "coinbase"),
+    soft(coingecko, "coingecko"), soft(graph, "uniswap-subgraph"), soft(hyperliquid, "hyperliquid"),
   ]);
 
   // Merge by date (later set = higher priority). Priority, low→high:
-  //   coingecko (aggregated) < CEX (coinbase, bybit) < uniswap-subgraph (on-chain, full
-  //   launch-era history) < geckoterminal (our exact pool). On-chain sources win over CEX/
-  //   aggregator; the subgraph backfills the entire launch era nothing else reaches, while
-  //   GeckoTerminal stays authoritative for the recent months it covers.
+  //   coingecko (aggregated) < hyperliquid (perp) < CEX (coinbase, bybit) < uniswap-subgraph
+  //   (on-chain, full launch-era history) < geckoterminal (our exact pool). On-chain wins over
+  //   CEX/perp/aggregator; the subgraph backfills the launch era nothing else reaches; HL fills
+  //   the 2024→mid-2025 middle where only it + coingecko might have data.
   const byDate = new Map();
   for (const p of cg) byDate.set(p.date, p.price);
+  for (const p of hl) byDate.set(p.date, p.price);
   for (const p of c) byDate.set(p.date, p.price);
   for (const p of b) byDate.set(p.date, p.price);
   for (const p of gr) byDate.set(p.date, p.price);

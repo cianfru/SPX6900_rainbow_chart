@@ -32,6 +32,9 @@ jobs:
           GRAPH_API_KEY: ${{ secrets.GRAPH_API_KEY }}
           GRAPH_SUBGRAPH_ID: ${{ vars.GRAPH_SUBGRAPH_ID }}
           GRAPH_TOKEN: ${{ vars.GRAPH_TOKEN }}
+          # Hyperliquid perp candles (fills the 2024→mid-2025 middle). Override the coin if
+          # it isn't "SPX". No key needed — reachable from CI (unlike Binance's US geo-block).
+          HL_COIN: ${{ vars.HL_COIN }}
         run: node scripts/build-price-history.mjs
       - name: Commit if changed
         run: |

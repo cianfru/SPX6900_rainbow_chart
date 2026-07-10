@@ -174,6 +174,21 @@
     contract). Defaults to Uniswap v2 mainnet id `A3Np3RQbaBA6oKJgiwDJeo5T3zrYfGHPWFYayMwtNDum`.
     If it flows, we can eventually re-bundle DEFAULT_RAW from real daily data + retire the ATH
     constant — but that touches the FROZEN model fit, so do it deliberately as a separate step.
+  - **✅ Hyperliquid perp candles — WIRED 2026-07-10.** `candleSnapshot` daily OHLCV for the SPX
+    perp, added to the builder (reachable from CI, we already use HL for funding/OI). Fills the
+    **2024 → mid-2025 middle gap** CoinGecko's free 365d can't reach — but only back to when the
+    SPX PERP listed (well after the Aug '23 DEX launch), so it is NOT the deep launch era (that's
+    on-chain/subgraph only). Perp price ≈ spot, kept low priority. Coin override `HL_COIN`.
+  - **KEY CONSTRAINT (why CEX can't fix the launch era):** SPX launched Aug '23 as a DEX token;
+    every CEX/perp listing (Hyperliquid, Binance, Coinbase) came LATER (2024-25). So NONE reach
+    Aug '23→2024 — only on-chain (Uniswap subgraph, or paid GeckoTerminal) does. CEX/perp sources
+    only supplement the 2024→2025 middle.
+  - **Binance — NOT wired (geo-block).** Binance klines are free + comprehensive BUT `api.binance.com`
+    returns **HTTP 451 to US GitHub runners** (same block the longshort builder hit), so the live
+    API is dead from CI. The free geo-block-FREE route is the **data.binance.vision** historical
+    CSV/ZIP dumps (public data host, no auth) — but it's more work (download+unzip+parse) and only
+    helps if SPX has a Binance spot/perp listing, and only back to that listing. Left as a TODO to
+    wire only if the HL + subgraph coverage still leaves a gap worth closing.
 - **⭐ TRUE ATH = $2.28 intraday (2025-07-28), NOT the bundle's $1.82 (owner flagged 2026-07-10).**
   DEFAULT_RAW is thinned to ~weekly, so its peak SAMPLE ($1.82) missed the intraday spike. Fixed
   via `ATH = {price:2.28, date:"2025-07-28"}` in `src/data.js` (intraday high-water mark, kept
