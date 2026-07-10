@@ -53,6 +53,16 @@ function loadSnapshotPrices() {
   } catch { return []; }
 }
 
+// Dense daily price history committed by the price-history builder (CoinGecko / Uniswap
+// subgraph / DEX candles). Same file the SITE draws from. Densifies the drawn line where
+// the ~weekly bundle boxes over; MODEL fit stays frozen on DEFAULT_RAW. [] if absent.
+function loadDensePriceHistory() {
+  try {
+    const arr = JSON.parse(readFileSync(new URL("../../public/price-history.json", import.meta.url), "utf8"));
+    return Array.isArray(arr) ? arr.filter(r => r?.date && r.price > 0).map(r => ({ date: r.date, price: r.price })) : [];
+  } catch { return []; }
+}
+
 // Bundled baseline extended to today. PRIMARY extender is the committed daily
 // snapshot (public/history.json — local, always fresh, same lineage as the
 // bundle); the external OHLCV candles only backfill dates the snapshot lacks.
@@ -64,10 +74,18 @@ export async function fetchHistory() {
   const lastBundled = DEFAULT_RAW.at(-1).date;
   const live = await fetchPriceHistory(); // OHLCV candles, or null if unreachable
   const byDate = new Map();
+  // 1. weekly bundle — the always-present baseline across ALL history.
+  for (const r of DEFAULT_RAW) byDate.set(r.date, r.price);
+  // 2. DENSE daily history (public/price-history.json, built in CI) — densifies the recent
+  //    ~year the ~weekly bundle boxes over, incl. the real ATH region. Same as the SITE's
+  //    drawn line. The MODEL stays frozen on DEFAULT_RAW (buildModel below); this only
+  //    affects the DRAWN series + its derived cards.
+  for (const p of loadDensePriceHistory()) byDate.set(p.date, p.price);
+  // 3. recent extenders past the bundle edge: OHLCV candles, then the daily on-chain
+  //    snapshot (snapshot wins — it's the authoritative daily that matches the live dot).
   for (const p of (live || [])) if (p.date > lastBundled && p.price > 0) byDate.set(p.date, p.price);
-  for (const p of loadSnapshotPrices()) if (p.date > lastBundled) byDate.set(p.date, p.price); // snapshot wins
-  const newer = [...byDate].map(([date, price]) => ({ date, price })).sort((a, b) => a.date.localeCompare(b.date));
-  return newer.length ? [...DEFAULT_RAW, ...newer] : DEFAULT_RAW;
+  for (const p of loadSnapshotPrices()) byDate.set(p.date, p.price);
+  return [...byDate].map(([date, price]) => ({ date, price })).filter(p => p.price > 0).sort((a, b) => a.date.localeCompare(b.date));
 }
 
 // Daily closes (~1y) for a CoinGecko coin id, to price SPX against majors.
