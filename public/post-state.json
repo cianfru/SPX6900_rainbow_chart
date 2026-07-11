@@ -1,6 +1,6 @@
 {
-  "lastPostedDate": "2026-07-10",
-  "lastId": "monthlyreturnssp",
+  "lastPostedDate": "2026-07-11",
+  "lastId": "dcaladder",
   "recent": [
     {
       "date": "2026-07-08",
@@ -13,6 +13,10 @@
     {
       "date": "2026-07-10",
       "id": "monthlyreturnssp"
+    },
+    {
+      "date": "2026-07-11",
+      "id": "dcaladder"
     }
   ]
 }
