@@ -1,48 +1,48 @@
 {
-  "date": "2026-07-10",
+  "date": "2026-07-11",
   "signals": [
     {
       "type": "underwater-holding",
       "emoji": "💎",
-      "title": "Holders ~29% underwater — and still not selling",
-      "detail": "MVRV 0.71: price is 29% below the crowd's avg on-chain cost basis ($0.539). Yet 61% of supply is in the longest-held tier — the float isn't moving. MVRV has risen 0.55→0.71 over ~30d.",
+      "title": "Holders ~31% underwater — and still not selling",
+      "detail": "MVRV 0.69: price is 31% below the crowd's avg on-chain cost basis ($0.537). Yet 61% of supply is in the longest-held tier — the float isn't moving. MVRV has risen 0.59→0.69 over ~30d.",
       "framing": "Maximum financial pain, minimal capitulation — conviction being tested and, so far, holding.",
       "note": "Describe the divergence, NOT a bottom call. \"Not selling\", not \"buy\".",
       "card": "breakeven",
-      "score": 1.7700161483246228,
+      "score": 1.8068320481223372,
       "llmDraft": {
-        "text": "",
-        "model": "openai/gpt-4o-mini",
+        "text": "MVRV 0.69 — price is 31% below the crowd's avg on-chain cost basis ($0.537).  \nYet 61% of supply sits in the longest-held tier — the float isn't moving.  \nConviction being tested, so far not selling.",
+        "model": "poolside/laguna-m.1:free",
         "mock": false,
-        "ok": false,
-        "reason": "all 8 model(s) failed — openai/gpt-4o-mini: invalid draft (too long (279 > 235)) | nvidia/nemotron-3-super-120b-a12b:free: invalid draft (empty) | meta-llama/llama-3.3-70b-instruct:free: rate-limited | qwen/qwen3-coder:free: rate-limited | nvidia/nemotron-3-ultra-550b-a55b:free: invalid draft (too long (1446 > 235)) | tencent/hy3:free: invalid draft (empty) | poolside/laguna-xs-2.1:free: rate-limited | poolside/laguna-m.1:free: invalid draft (too long (242 > 235))",
+        "ok": true,
+        "reason": "",
         "tried": [
-          "openai/gpt-4o-mini: invalid draft (too long (279 > 235))",
-          "nvidia/nemotron-3-super-120b-a12b:free: invalid draft (empty)",
+          "openai/gpt-4o-mini: invalid draft (too long (242 > 235))",
+          "nvidia/nemotron-3-super-120b-a12b:free: invalid draft (blocked phrase: \"guaranteed\")",
           "meta-llama/llama-3.3-70b-instruct:free: rate-limited",
           "qwen/qwen3-coder:free: rate-limited",
-          "nvidia/nemotron-3-ultra-550b-a55b:free: invalid draft (too long (1446 > 235))",
+          "nvidia/nemotron-3-ultra-550b-a55b:free: invalid draft (expected ~3 lines, got 1)",
           "tencent/hy3:free: invalid draft (empty)",
-          "poolside/laguna-xs-2.1:free: rate-limited",
-          "poolside/laguna-m.1:free: invalid draft (too long (242 > 235))"
+          "poolside/laguna-xs-2.1:free: invalid draft (empty)",
+          "poolside/laguna-m.1:free: ok"
         ]
       }
     },
     {
       "type": "recovery-disbelief",
       "emoji": "📈",
-      "title": "Up +29% in 30d, but Fear & Greed is still 23",
-      "detail": "Price has recovered +29% over the month while sentiment sits at 23 (fear). The move isn't being believed yet.",
+      "title": "Up +15% in 30d, but Fear & Greed is still 26",
+      "detail": "Price has recovered +15% over the month while sentiment sits at 26 (fear). The move isn't being believed yet.",
       "framing": "Recovery running ahead of sentiment — the crowd hasn't caught up.",
       "note": "Not a prediction; just the sentiment-vs-price gap.",
       "card": "fngdial",
-      "score": 1.3907674150169151
+      "score": 1.1997134203014683
     },
     {
       "type": "vs-btc",
       "emoji": "₿",
       "title": "Lagging Bitcoin over the past year",
-      "detail": "365-day relative strength vs BTC is -0.54× — SPX6900 has trailed Bitcoin over the year.",
+      "detail": "365-day relative strength vs BTC is -0.56× — SPX6900 has trailed Bitcoin over the year.",
       "framing": "The honest scoreboard vs crypto's benchmark.",
       "note": "Relative strength, not a call.",
       "card": "spxbtc",
