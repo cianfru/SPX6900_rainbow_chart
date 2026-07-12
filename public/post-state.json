@@ -1,6 +1,6 @@
 {
-  "lastPostedDate": "2026-07-11",
-  "lastId": "dcaladder",
+  "lastPostedDate": "2026-07-12",
+  "lastId": "riskcolor",
   "recent": [
     {
       "date": "2026-07-08",
@@ -17,6 +17,10 @@
     {
       "date": "2026-07-11",
       "id": "dcaladder"
+    },
+    {
+      "date": "2026-07-12",
+      "id": "riskcolor"
     }
   ]
 }
