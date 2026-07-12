@@ -95,14 +95,14 @@ export function riskColorSvg(price, dateStr = new Date().toISOString().slice(0, 
   // power-law fair-value (center) line, derived straight from the residual:
   // fair = price / exp(z), so it agrees exactly with the colouring.
   const fairLine = pts.map(p => `${x(p.ts).toFixed(1)},${y(p.price / Math.exp(p.z)).toFixed(1)}`).join(" ");
-  // price path as one polyline (for the glow underlay + fading area fill) and the
-  // colour-by-z segments on top.
-  const pricePoly = pts.map(p => `${x(p.ts).toFixed(1)},${y(p.price).toFixed(1)}`).join(" ");
-  const base = y(yMin).toFixed(1);
-  let seg = "";
-  for (let i = 0; i < pts.length - 1; i++) {
-    seg += `<line x1="${x(pts[i].ts).toFixed(1)}" y1="${y(pts[i].price).toFixed(1)}" x2="${x(pts[i + 1].ts).toFixed(1)}" y2="${y(pts[i + 1].price).toFixed(1)}" stroke="${colorOf((pts[i].z + pts[i + 1].z) / 2)}" stroke-width="5.5" stroke-linecap="round"/>`;
-  }
+  // WEEKLY closes as colour-by-z DOTS (ITC-style scatter, like the original). The drawn
+  // series is dense daily now, so sample ~one point per week; each dot's colour = its σ
+  // from fair value (blue cheap → red stretched), read against the dashed fair-value line.
+  const WEEK = 7 * 86400000;
+  const weekly = [];
+  let lastTs = -Infinity;
+  for (const p of pts) if (p.ts - lastTs >= WEEK - 43200000) { weekly.push(p); lastTs = p.ts; }
+  const dots = weekly.map(p => `<circle cx="${x(p.ts).toFixed(1)}" cy="${y(p.price).toFixed(1)}" r="5" fill="${colorOf(p.z)}" fill-opacity="0.92"/>`).join("");
   const px = x(xMax), py = y(price);
   const zTxt = `${curZ >= 0 ? "+" : ""}${curZ.toFixed(1)}σ`;
   return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
@@ -113,14 +113,12 @@ export function riskColorSvg(price, dateStr = new Date().toISOString().slice(0, 
 <rect width="${W}" height="${H}" fill="#05050e"/>
 ${auroraBg(W, H, dc)}
 ${grid}${xlab}
-<polygon points="${x(xMin).toFixed(1)},${base} ${pricePoly} ${x(xMax).toFixed(1)},${base}" fill="url(#zFill)"/>
 <polyline points="${fairLine}" fill="none" stroke="#cbd5e1" stroke-width="2.4" stroke-opacity="0.85" stroke-dasharray="2 8" stroke-linecap="round"/>
-<polyline points="${pricePoly}" fill="none" stroke="${dc}" stroke-width="11" stroke-opacity="0.22" filter="url(#zGlow)"/>
-${seg}
-<circle cx="${px.toFixed(1)}" cy="${py.toFixed(1)}" r="7.5" fill="#fff" stroke="${dc}" stroke-width="3"/>
+${dots}
+<circle cx="${px.toFixed(1)}" cy="${py.toFixed(1)}" r="8.5" fill="#fff" stroke="${dc}" stroke-width="3.5"/>
 <text x="64" y="42" fill="#e2e8f0" font-size="29" font-weight="700" font-family="sans-serif" letter-spacing="1.5">SPX6900 — VALUATION Z-SCORE</text>
 <text x="${W - mR}" y="42" fill="${dc}" font-size="27" font-weight="800" font-family="sans-serif" text-anchor="end">${zTxt} vs trend</text>
-<text x="64" y="70" font-size="16" font-family="sans-serif"><tspan fill="#cbd5e1" font-weight="700">┄ power-law fair value</tspan><tspan fill="#64748b">     </tspan><tspan fill="#94a3b8">line colour = σ from fair value (blue cheap → red stretched)</tspan></text>
+<text x="64" y="70" font-size="16" font-family="sans-serif"><tspan fill="#cbd5e1" font-weight="700">┄ power-law fair value</tspan><tspan fill="#64748b">     </tspan><tspan fill="#94a3b8">dots = weekly close, coloured by σ from fair value (blue cheap → red stretched)</tspan></text>
 <text x="64" y="${H - 14}" fill="#475569" font-size="15" font-family="sans-serif">spx6900rainbow.xyz · not financial advice · σ from power-law fair value</text>
 </svg>`;
 }
