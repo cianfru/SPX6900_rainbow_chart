@@ -349,8 +349,8 @@ A cleaner read on how far price is from the middle.`,
     card: { type: "channel" },
   }),
 
-  // 1b2 — price coloured by the valuation z-score: the price line recoloured by how
-  // many σ it sits from the power-law fair value (blue = cheap, red = stretched).
+  // 1b2 — valuation z-score: weekly closes drawn as DOTS, each coloured by how many σ
+  // it sits from the power-law fair value (blue = cheap, red = stretched).
   s => (() => {
     // log-residual z-score vs the model's fair value, same model as the card so the
     // headline number matches. Population mean/std over the full history.
@@ -362,7 +362,7 @@ A cleaner read on how far price is from the middle.`,
     return {
       id: "riskcolor",
       text: ct`🌈 SPX6900 is ${(z >= 0 ? "+" : "") + z.toFixed(1)}σ from fair value — ${label}.
-Price coloured by its valuation z-score: blue = below trend, red = stretched above.
+Each dot is a weekly close, coloured by its z-score from fair value: blue = below trend, red = stretched above.
 A statistical read on cheap vs heated.`,
       card: { type: "riskcolor" },
     };
