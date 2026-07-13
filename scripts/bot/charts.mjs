@@ -13,6 +13,7 @@ import { renderFireSaleRalliesCard } from "./firesale-rally-card.mjs";
 import { renderUnderwaterCard } from "./underwater-card.mjs";
 import { renderGoldenCrossCard } from "./goldencross-card.mjs";
 import { renderHolderGrowthCard } from "./holdergrowth-card.mjs";
+import { renderMultichainCard } from "./multichain-card.mjs";
 import { renderCycleSyncCard, renderCycleClockCard } from "./cycle-card.mjs";
 import { renderMvrvBtcCard } from "./mvrv-card.mjs";
 import { renderPiCycleCard } from "./picycle-card.mjs";
@@ -808,6 +809,7 @@ export function renderPostCard(post, stats, opts = {}) {
   if (type === "underwater") return renderUnderwaterCard(stats, dims);
   if (type === "goldencross") return renderGoldenCrossCard(stats, dims);
   if (type === "holdergrowth") return renderHolderGrowthCard(stats, dims);
+  if (type === "multichain") return renderMultichainCard(stats, dims);
   if (type === "mvrvbtc") return renderMvrvBtcCard(stats, dims);
   if (type === "picycle") return renderPiCycleCard(stats, dims);
   if (type === "cyclesync") return renderCycleSyncCard(stats, dims);

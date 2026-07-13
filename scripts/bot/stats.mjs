@@ -249,6 +249,7 @@ export function computeStats(price, dateStr = new Date().toISOString().slice(0, 
     const classified = Object.values(tiers).reduce((a, b) => a + b, 0);
     supply = {
       diamondTokens: tiers.diamond, holders: snap.holders, snapDate: snap.d,
+      holdersBase: snap.holdersBase ?? null, holdersSol: snap.holdersSol ?? null, // multi-chain headcount (bridged)
       diamondShare: tiers.diamond / SUPPLY,
       nominalMc: price * SUPPLY,
       floatTokens: SUPPLY - tiers.diamond,

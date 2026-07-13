@@ -625,6 +625,26 @@ The base keeps building.`,
     };
   })(),
 
+  // Holders across chains — the REACH story. SPX is on ETH (native) + Base + Solana
+  // (bridged). By supply the bridged chains are ~6%, but by HEADCOUNT they dwarf ETH,
+  // so the real community is several× the ~50k we usually post. Data-gated on the
+  // multi-chain snapshot columns (Base banks free on the first cron; Solana once its
+  // key is set). Honesty rail baked in: wallets across chains, not people.
+  s => {
+    const eth = s.supply?.holders, base = s.supply?.holdersBase, sol = s.supply?.holdersSol;
+    if (!(eth > 0) || !(base > 0 || sol > 0)) return null;
+    const total = eth + (base || 0) + (sol || 0), mult = total / eth;
+    const chains = ["Ethereum", base > 0 ? "Base" : null, sol > 0 ? "Solana" : null].filter(Boolean);
+    const list = chains.length === 3 ? "Ethereum, Base & Solana" : chains.join(" & ");
+    return {
+      id: "multichain",
+      text: ct`🌐 SPX6900 has ~${(total / 1000).toFixed(0)}k holders across ${list} — ${mult.toFixed(1)}× the ~${(eth / 1000).toFixed(0)}k on Ethereum alone.
+Supply concentrates on Ethereum, but most of the crowd lives on the bridged chains — these are wallets across chains, not people.
+One coin, one community, three chains.`,
+      card: { type: "multichain" },
+    };
+  },
+
   // MVRV vs Bitcoin — SPX6900's on-chain valuation on BTC's decade of MVRV. Data-gated on
   // the BTC MVRV bundle (public/btc-mvrv.json, banked monthly) + the holder break-even. The
   // hook is a valuation POSITION (percentile on BTC's own map), true right now — framed as
@@ -1417,7 +1437,7 @@ const LOOK = {
   firesalerally: "fanlines",
   model: "scatter",
   monthlyreturns: "heatmap", monthlyreturnssp: "heatmap", monthlyreturnsbtc: "heatmap",
-  timeinband: "bars", monthlybars: "bars", monthcompare: "bars",
+  timeinband: "bars", monthlybars: "bars", monthcompare: "bars", multichain: "bars",
   fngdial: "round", distribution: "round",
   marketcap: "blocks", milestones: "blocks", sp500: "blocks",
   dca: "dca",
