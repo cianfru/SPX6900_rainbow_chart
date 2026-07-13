@@ -20,7 +20,7 @@ import { DEFAULT_RAW } from "../src/data.js";
 import { fetchLivePrice, fetchMajors, fetchHistory, computeStats } from "../scripts/bot/stats.mjs";
 import { buildPost, buildAll, isCopyMarker, bindCopy } from "../scripts/bot/posts.mjs";
 import { topAngles } from "../scripts/bot/quant.mjs";
-import { chat } from "../scripts/bot/llm-copy.mjs";
+import { chat, draftCopy } from "../scripts/bot/llm-copy.mjs";
 
 const OWNER = "cianfru", REPO = "SPX6900_rainbow_chart", BRANCH = "main";
 const RAW = `https://raw.githubusercontent.com/${OWNER}/${REPO}/${BRANCH}/public`;
@@ -210,6 +210,21 @@ export default async function handler(req, res) {
   if (!process.env.CONTROL_PASSWORD) { res.status(500).json({ error: "Server not configured: set CONTROL_PASSWORD." }); return; }
   const body = await readBody(req);
   if (body.password !== process.env.CONTROL_PASSWORD) { res.status(401).json({ error: "Wrong password." }); return; }
+
+  // ON-DEMAND "Notable today" draft: the daily auto-draft was removed to save credits, so
+  // the owner clicks ✨ Draft on a signal when he wants one. Feeds ONLY the signal's honest
+  // facts (title/detail/framing/note) to the same shadow copywriter. No key → labelled mock.
+  if (body.draftSignal && typeof body.draftSignal === "object") {
+    try {
+      const d = await draftCopy(body.draftSignal);
+      res.setHeader("Cache-Control", "no-store");
+      res.status(200).json({ llmDraft: d });
+    } catch (e) {
+      res.status(200).json({ llmDraft: { text: "", model: "none", mock: false, ok: false, reason: String(e?.message || e) } });
+    }
+    return;
+  }
+
   if (!process.env.OPENROUTER_API_KEY) { res.status(200).json({ error: "No OPENROUTER_API_KEY set — the agent needs it to answer.", answer: "" }); return; }
 
   // Accept either a single {message} or a running {messages:[{role,content}]} history.

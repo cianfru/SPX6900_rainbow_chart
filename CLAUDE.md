@@ -80,6 +80,17 @@
     cascade (1 drafted, 2 failed). Now it drafts **`sig.signals[0]` only** — the one actually
     up for posting — and the other signals show just their honest template framing in the
     panel. Cuts LLM calls 3×→1× (cost + rate-limit headroom).
+  - **⭐ DAILY DRAFT REMOVED — NOW ON-DEMAND ONLY (owner, 2026-07-13).** The snapshot cron NO
+    LONGER calls OpenRouter at all (`draftCopy` + its import dropped from `snapshot.mjs`); it just
+    banks the detector's signals + honest template framing. **Zero LLM credits are spent on the
+    daily cron or on opening the control panel** (the panel only READS `signals.json` + renders
+    card images + the deterministic schedule — no LLM anywhere in the load path; confirmed across
+    control.html/api/schedule.js/api/og.js). The owner generates a draft **on demand**: each
+    "⚡ Notable today" signal now shows a **✨ Draft with AI** button that POSTs the signal to
+    **`api/agent.js` (new `body.draftSignal` branch → `draftCopy`)** and renders the shadow draft
+    in place. So credits are spent ONLY when he clicks it (or uses "Ask the agent"). No-key still
+    yields a labelled MOCK. The two LLM touchpoints left are BOTH click-to-run: ✨ Draft + Ask the
+    agent.
   - Offline-tested (`test/llm-copy.test.mjs`, injectable fetch). `signals.json` stays
     deploy-ignored, so drafts never trigger a Vercel deploy.
 - **⭐ CONTROL-PANEL LLM "AGENT" ("ask the agent") — BUILT 2026-07-05 (owner request).**

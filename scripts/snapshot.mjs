@@ -5,7 +5,6 @@ import { detectSignals } from "./bot/signals.mjs";
 import { computeAngles, cardRecencyPenalty } from "./bot/quant.mjs";
 import { computeStats, fetchMajors } from "./bot/stats.mjs";
 import { DEFAULT_RAW } from "../src/data.js";
-import { draftCopy } from "./bot/llm-copy.mjs";
 
 const CONTRACT = "0xe0f63a424a4439cbe457d80e4f4b51ad25b2c56c";
 const HS = `https://api.holderscan.com/v0/eth/tokens/${CONTRACT}`;
@@ -233,20 +232,12 @@ async function main() {
     for (const x of [...detector, ...angles].sort((a, b) => b.score - a.score)) if (!byCard.has(x.card)) byCard.set(x.card, x);
     const sig = { date: rec.d, signals: [...byCard.values()].sort((a, b) => b.score - a.score).slice(0, 3) };
 
-    // Shadow-mode LLM copywriter: attach an engaging draft to the TOP signal only
-    // (from the detector's real numbers). Drafting all 3 wasted calls and hit the
-    // free-tier 429 cascade (owner, 2026-07-08: 1 of 3 drafted, 2 got 429'd) — and the
-    // top signal is the one actually up for posting anyway. The other signals still show
-    // their honest template framing in the panel. No key → a labelled mock so the UX
-    // renders; nothing ever auto-posts.
-    const top = sig.signals[0];
-    if (top) {
-      try { top.llmDraft = await draftCopy(top); }
-      catch (e) { top.llmDraft = { text: "", model: "none", mock: false, ok: false, reason: e.message }; }
-    }
+    // NO daily LLM draft (owner, 2026-07-13): the cron no longer calls OpenRouter — it
+    // just banks the detector's signals + their honest template framing. The owner
+    // generates an LLM draft ON DEMAND from the control panel (per-signal ✨ Draft button
+    // → api/agent draft mode), so credits are only spent when he asks for one.
     await writeFile(SIGNALS_FILE, JSON.stringify(sig, null, 2) + "\n");
-    const drafted = sig.signals.filter(s => s.llmDraft?.ok && !s.llmDraft.mock).length;
-    console.log(`signals ${sig.date}: ${sig.signals.length} notable${sig.signals.length ? " — " + sig.signals.map(s => s.type).join(", ") : ""}${sig.signals.length ? ` · ${drafted} LLM draft(s)` : ""}`);
+    console.log(`signals ${sig.date}: ${sig.signals.length} notable${sig.signals.length ? " — " + sig.signals.map(s => s.type).join(", ") : ""}`);
   } catch (e) { console.warn("signals:", e.message); }
 }
 

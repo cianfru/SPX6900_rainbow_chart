@@ -88,6 +88,9 @@
   .sigdraft .dtext { white-space: pre-wrap; font-size: 13px; color: #e2e8f0; line-height: 1.5; margin-top: 6px; }
   .sigdraft .dfail { font-size: 12px; color: #94a3b8; margin-top: 4px; font-style: italic; }
   .sigdraft .dcopy { margin-top: 8px; font-size: 12px; padding: 4px 10px; }
+  .sigdraft.ddwrap { background: transparent; border: none; padding: 0; }
+  .sigdraft .ddraft { margin-top: 8px; color: #c4b5fd; border-color: rgba(139,92,246,.4); background: rgba(139,92,246,.1); }
+  .sigdraft .ddraft:disabled { opacity: .6; }
   .sigact { display: flex; align-items: center; }
   /* Ask-the-agent chat: consult OpenRouter over today's real numbers */
   .agent {
@@ -394,7 +397,9 @@ function renderSignals() {
 // via footerize(). Nothing auto-posts — the owner reads both and copies this if
 // it lands better, or queues the template card above.
 function renderDraft(d, i) {
-  if (!d) return "";
+  // No daily auto-draft anymore (saves credits) — offer an on-demand ✨ Draft button.
+  // It calls /api/agent (draft mode → OpenRouter) only when the owner clicks it.
+  if (!d) return `<div class="sigdraft ddwrap"><button class="dcopy ddraft" data-drafti="${i}">✨ Draft with AI</button></div>`;
   const tag = d.mock
     ? `<span class="tag mock">MOCK — set OPENROUTER_API_KEY for real drafts</span>`
     : `<span class="tag">${esc(d.model || "llm")}</span>`;
@@ -632,7 +637,29 @@ document.addEventListener("click", e => {
 $("#refresh").onclick = refresh;
 $("#clear").onclick = () => queue(null);
 $("#skiptoday").onclick = skipToday;
+// On-demand ✨ Draft: call /api/agent (draft mode) for one signal, render it in place.
+async function onDemandDraft(i, btn) {
+  const sig = SIGNALS?.signals?.[i];
+  if (!sig || btn.disabled) return;
+  btn.disabled = true; btn.textContent = "✨ drafting…";
+  try {
+    const r = await fetch("/api/agent", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ password: PW, draftSignal: { type: sig.type, title: sig.title, detail: sig.detail, framing: sig.framing, note: sig.note } }),
+    });
+    if (r.status === 401) { lock(); return; }
+    const j = await r.json().catch(() => ({}));
+    sig.llmDraft = j.llmDraft || { text: "", ok: false, model: "none", reason: j.error || ("request failed (" + r.status + ")") };
+    renderSignals();
+  } catch (err) {
+    btn.disabled = false; btn.textContent = "✨ Draft with AI";
+    status(err.message || "network error", "err");
+  }
+}
+
 $("#signals").addEventListener("click", e => {
+  const dd = e.target.closest("[data-drafti]");
+  if (dd) { onDemandDraft(+dd.dataset.drafti, dd); return; }
   const q = e.target.closest("[data-sigq]");
   if (q) { queue(q.dataset.sigq); return; }
   const c = e.target.closest("[data-draft]");
