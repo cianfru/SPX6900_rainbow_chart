@@ -645,6 +645,37 @@
     distribution field. All three are already banked; the distribution stays blocked on
     the HolderScan collab. **Revisit ~2026-07-23** once ~30 days of `be`/`upnl`/`rpnl`
     are banked, to build the MVRV-over-time card (line + zones).
+    - **🔲 HISTORICAL MVRV BACKFILL via Dune — TOP PRIORITY, deferred to laptop (owner, 2026-07-13).**
+      Owner: MVRV is genuinely interesting because it shows how holders' COST BASIS moves vs
+      PRICE — cost basis holds while price crashes = conviction/diamond-hands; cost basis falls
+      = capitulation. HolderScan only gives CURRENT `be`, so we only bank it forward (starts
+      ~Jun 2026). To reconstruct PAST MVRV (the 2024→2025 cycle), compute **Realized Cap from
+      on-chain transfer history** (each coin × price when last moved) → realized price → MVRV.
+      **PLAN:** (0) FIRST search Dune for an existing `spx6900 realized cap / mvrv` query (SPX is
+      popular; may already exist = easy win). (1) else write it: `erc20_ethereum.evt_Transfer`
+      for the SPX ERC-20 (`0xe0f63a424a4439cbe457d80e4f4b51ad25b2c56c`, verify decimals=8) +
+      daily USD price (`prices.usd` or `dex.trades`) → per-address running AVG cost basis →
+      realized_cap = Σ(balance × avg_cost) → mvrv = mktcap/realized_cap. The per-address stateful
+      cost basis is the hard part (needs iteration in the Dune editor). (2) export CSV → Claude
+      bundles it like `btc-mvrv.json` (committed historical series) → the MVRV / MVRV-vs-BTC
+      charts backfill instantly; daily HolderScan `be` keeps it current. **Owner is on MOBILE, Dune
+      is a struggle there — do the Dune part at a laptop, then send Claude the CSV to wire the
+      ingest.** Claude can draft the full SQL but CANNOT run/test it (sandbox proxy blocks Dune).
+    - **⭐ MULTI-CHAIN HOLDER COUNT — WORTH BUILDING after the holder-count flip (owner, 2026-07-13).**
+      SPX is on Ethereum (native) + Base + Solana (bridged, e.g. Wormhole). We only track ETH via
+      HolderScan. By SUPPLY, Base+Solana are ~6% → looked skippable. BUT by HOLDER COUNT they
+      DWARF ETH: **ETH ~49.5k · Base ~114k · Solana ~66k → ~230k total.** We currently post ~49.5k
+      = we UNDERCOUNT the community by ~4.6×; 78% of holders are on chains we're blind to. Owner's
+      read: "small fishes on Base/Solana, whales/supply on ETH" — a real distribution story
+      (supply concentrates on ETH, the headcount lives on Base+Solana). **BUILD (lean):** bank
+      total holders per chain daily → a "**~230k holders across Ethereum, Base & Solana**" reach
+      card + the split. Keep supply/tiers/MVRV STRICTLY ETH-native (don't blend). Honesty rails:
+      "wallets across chains, not people" (Base is EVM so a whale could reuse the ETH address —
+      flag it), and reach ≠ supply-tier math. **DATA SOURCE (owner):** the counts surface on the
+      basescan + solscan main SPX token pages without querying — so wire via Basescan API (Base)
+      + Solscan API (Solana) for daily banking (confirm the exact holder-count endpoints/keys).
+      Base SPX contract `0x50dA645f148798F68EF2d7dB7C1CB22A6819bb2C`; Solana = the Wormhole-wrapped
+      mint (owner to confirm the base58 mint — the 0x pasted for Solana was an EVM address).
     - **= the BTC "Realized Price" analog the owner asked for (2026-06-25, ref ITC
       Bitcoin Terminal Price chart).** SPX6900's realized price IS the break-even (`be`)
       = avg on-chain cost basis; the buildable card is the ITC-style **price line + the
