@@ -219,6 +219,15 @@ export function lineCardSvg(spec, opts = {}) {
     if (b.label && bh >= 22) bandRects += `<text x="${mL + 12}" y="${(yTop + Math.min(bh / 2, 26) + 8).toFixed(1)}" fill="${b.color}" font-size="26" font-weight="700" font-family="sans-serif" opacity="0.92">${esc(b.label)}</text>`;
   }
 
+  // vertical reference lines (e.g. a "now / same age" divider on the age overlays).
+  // Drawn behind the plot; optional top label. {x, label, color, opacity, dash}.
+  let vlines = "";
+  for (const v of (spec.vlines || [])) {
+    const vx = X(v.x).toFixed(1), vc = v.color || "#94a3b8";
+    vlines += `<line x1="${vx}" y1="${mT}" x2="${vx}" y2="${(mT + PH).toFixed(1)}" stroke="${vc}" stroke-opacity="${v.opacity ?? 0.5}" stroke-width="2"${v.dash === false ? "" : ` stroke-dasharray="5 6"`}/>`;
+    if (v.label) vlines += `<text x="${vx}" y="${(mT - 9).toFixed(1)}" fill="${vc}" font-size="24" font-weight="700" text-anchor="middle" font-family="sans-serif">${esc(v.label)}</text>`;
+  }
+
   // bear–bull cone (drawn behind the lines), clipped to the reveal sweep
   let cone = "";
   if (spec.cone) {
@@ -348,7 +357,7 @@ export function lineCardSvg(spec, opts = {}) {
     }
   }
 
-  return chromeSvg(spec, grid + bandRects + cone + plot + hl + marker + legend + endLogos, defs, { W: DW, H: DH });
+  return chromeSvg(spec, grid + bandRects + vlines + cone + plot + hl + marker + legend + endLogos, defs, { W: DW, H: DH });
 }
 
 export function renderBarCard(spec, opts = {}) {
