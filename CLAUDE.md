@@ -661,21 +661,43 @@
       charts backfill instantly; daily HolderScan `be` keeps it current. **Owner is on MOBILE, Dune
       is a struggle there — do the Dune part at a laptop, then send Claude the CSV to wire the
       ingest.** Claude can draft the full SQL but CANNOT run/test it (sandbox proxy blocks Dune).
-    - **⭐ MULTI-CHAIN HOLDER COUNT — WORTH BUILDING after the holder-count flip (owner, 2026-07-13).**
-      SPX is on Ethereum (native) + Base + Solana (bridged, e.g. Wormhole). We only track ETH via
+    - **⭐ MULTI-CHAIN HOLDER COUNT — BUILT 2026-07-13, DATA-GATED (waiting on the cron + Solana key).**
+      SPX is on Ethereum (native) + Base + Solana (bridged, e.g. Wormhole). We only tracked ETH via
       HolderScan. By SUPPLY, Base+Solana are ~6% → looked skippable. BUT by HOLDER COUNT they
-      DWARF ETH: **ETH ~49.5k · Base ~114k · Solana ~66k → ~230k total.** We currently post ~49.5k
-      = we UNDERCOUNT the community by ~4.6×; 78% of holders are on chains we're blind to. Owner's
-      read: "small fishes on Base/Solana, whales/supply on ETH" — a real distribution story
-      (supply concentrates on ETH, the headcount lives on Base+Solana). **BUILD (lean):** bank
-      total holders per chain daily → a "**~230k holders across Ethereum, Base & Solana**" reach
-      card + the split. Keep supply/tiers/MVRV STRICTLY ETH-native (don't blend). Honesty rails:
-      "wallets across chains, not people" (Base is EVM so a whale could reuse the ETH address —
-      flag it), and reach ≠ supply-tier math. **DATA SOURCE (owner):** the counts surface on the
-      basescan + solscan main SPX token pages without querying — so wire via Basescan API (Base)
-      + Solscan API (Solana) for daily banking (confirm the exact holder-count endpoints/keys).
-      Base SPX contract `0x50dA645f148798F68EF2d7dB7C1CB22A6819bb2C`; Solana = the Wormhole-wrapped
-      mint (owner to confirm the base58 mint — the 0x pasted for Solana was an EVM address).
+      DWARF ETH: **ETH ~49.5k · Base ~114k · Solana ~66k → ~230k total** (owner's ROUNDED figures —
+      the cards fetch the EXACT live counts). We post ~49.5k = we UNDERCOUNT the community by ~4.6×.
+      Real distribution story: supply concentrates on ETH, the headcount lives on Base+Solana.
+      Keep supply/tiers/MVRV STRICTLY ETH-native (don't blend). Honesty rails baked into the copy:
+      "wallets across chains, not people" + "Base & Solana are bridged."
+      - **DATA (`scripts/snapshot.mjs`):** banks `holdersBase` + `holdersSol` daily alongside
+        ETH-native `holders`. **Base** = FREE via **Blockscout** (`base.blockscout.com/api/v2/tokens/…`,
+        no key — Basescan's own tokenholdercount API is pro-only); `baseHolders()` also SUBTRACTS
+        contract addresses (Wormhole bridge lock, LP pools, routers — they're not people) by scanning
+        the top ~150 holders for `is_contract`, plus a `BASE_EXCLUDE` repo-var override for any it
+        misses. **Solana** = **Solscan** pro-api (`solHolders()`), SOFT-SKIPS (banks null) until BOTH
+        `SOLSCAN_KEY` (secret) + `SOL_SPX` (the base58 Wormhole mint) are set. Base SPX contract
+        `0x50dA645f148798F68EF2d7dB7C1CB22A6819bb2C` (hardcoded default, override via `BASE_SPX` var).
+      - **CARDS BUILT (both `scripts/bot/multichain-card.mjs`, data-gated, rotation-only, read
+        `stats.supply.holders/holdersBase/holdersSol` + `chainSeries` — NOTHING hardcoded):**
+        (1) **`multichain`** = DONUT snapshot (total in the centre + per-chain legend/%); renders once
+        ETH + ≥1 bridged chain is banked. LOOK "bars". (2) **`chainrace`** = three-line RACE (owner
+        asked 2026-07-13), each chain rebased to its own start → "% change in holders per chain over
+        time"; the TREND companion to the donut. Data-gated ≥6 multi-chain snapshots (a foundation
+        card that fills in over time). LOOK "race". Both wired in charts.mjs/posts.mjs; test whitelist
+        updated. `loadChainHistory()` in stats.mjs exposes `supply.chainSeries`.
+      - **🔲 PENDING OWNER ACTION (LAPTOP — do when back from Kenya):**
+        1. **Activate Solana** — create a free Solscan API key → repo secret `SOLSCAN_KEY`; add the
+           base58 Wormhole SPX mint as repo var `SOL_SPX` (the `0x50dA645f…` pasted for Solana was an
+           EVM address, NOT the Solana mint — need the real base58 mint from the Solscan SPX page).
+        2. **First-run sanity check** — run/await the "Daily supply snapshot" workflow, then check the
+           log: `base holders: -N contract address(es) removed` (confirms contract stripping) + the
+           `holders eth … · base … · sol …` line. Compare Base to the ~114k expectation (minus a
+           handful of contracts). If a contract slips through, set `BASE_EXCLUDE` (comma-sep addresses).
+        3. Then both cards go live in rotation automatically (donut immediately once Base banks; race
+           after ~a week of multi-chain history accumulates).
+      - Claude CAN'T dispatch the snapshot workflow or test the fetchers (sandbox network policy 403s
+        Blockscout/Solscan) — owner triggers the run or waits for the 00:17 UTC cron. Lifting that
+        network policy (env settings, doable from mobile) would let Claude test the fetchers directly.
     - **= the BTC "Realized Price" analog the owner asked for (2026-06-25, ref ITC
       Bitcoin Terminal Price chart).** SPX6900's realized price IS the break-even (`be`)
       = avg on-chain cost basis; the buildable card is the ITC-style **price line + the
