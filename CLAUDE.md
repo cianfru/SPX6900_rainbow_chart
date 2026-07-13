@@ -580,8 +580,17 @@
         to 1× at that July point; capitulation troughs marked (`spec.markers`); SPX logo at P0 via the
         new `logoMarks` primitive in lineCardSvg. The HONEST result: from Jul, each fell ANOTHER **72–85%**
         into the year-end low and stayed BELOW the Jul level for 1–2y before climbing (+45×/+5×/+4.7× by
-        3y). Copy: "SPX sits where the legends did months BEFORE their final bottom … the bottom may
-        still be ahead — not a forecast." Far more honest than bottom-anchoring.
+        3y). Far more honest than bottom-anchoring.
+      - **⭐ GENERIC, TIME-ADAPTIVE title + methodology in the copy (owner, 2026-07-13).** Because P0 =
+        "today" ADVANCES as real time moves (today's month walks through each peer's bottom year), the
+        title must NOT hardcode cycle state ("before the bottom" would go stale). Headline is now the
+        generic **"The legends at SPX6900's point in the first bear cycle"**; the hline label
+        "SPX is here — today (${monLbl}, 1×)" auto-updates its month too. The X-post COPY now LEADS with
+        the construction method for correctness/transparency (honesty moat): "Each legend is aligned to
+        the month SPX sits at now (Jul), in its own first bear-cycle year — so 1× = today. Each then fell
+        another 72–85% into a year-end low, then Bitcoin +45×, Ethereum +5×, Solana +4.7× over 3y. The
+        bottom may still be ahead — not a forecast." Keep the title generic + the method in-copy on any
+        future edit.
       - **`firstCycleBottom(series)` detector:** first ATH that HOLDS ≥365d (a real cycle top, not
         launch noise) and drops ≥55%, then the trough before recovery. The naive "first ≥55% drop"
         caught launch-era dumps (ETH age 0.2y, SOL 0.7y) — the ≥365d-hold filter fixed it (→ ETH

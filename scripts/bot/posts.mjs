@@ -402,12 +402,12 @@ const whatNextCard = s => (() => {
   const dips = peers.map(x => Math.round((1 - x.capY) * 100));
   return {
     id: "whatnext",
-    text: ct`🔮 SPX6900 sits where the legends did months BEFORE their final bottom.
-From here (${monLbl}), each fell another ${Math.min(...dips)}–${Math.max(...dips)}% into a year-end low, then ${moveStr} over ${yrs}y.
+    text: ct`🔮 Each legend is aligned to the month SPX sits at now (${monLbl}), in its own first bear-cycle year — so 1× = today.
+Each then fell another ${Math.min(...dips)}–${Math.max(...dips)}% into a year-end low, then ${moveStr} over ${yrs}y.
 The bottom may still be ahead — not a forecast.`,
     card: { type: "line", spec: {
       title: "",
-      headline: `Before the bottom: capitulation, then the climb`,
+      headline: `The legends at SPX6900's point in the first bear cycle`,
       accent: "#4ade80",
       yLog: true, yMin: yMin * 0.8, yMax: yMax * 1.2, yTicks, xTicks,
       hlines: [{ y: 1, color: "#94a3b8", label: `SPX is here — today (${monLbl}, 1×)`, dash: true }],
