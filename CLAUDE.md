@@ -572,20 +572,31 @@
     - **❌ "vs the legends" composite (BUILT then REMOVED 2026-07-13)** — one chart with SPX
       vs BTC+ETH+SOL at the same age. Owner: it's a REPETITION of the 3 pairwise cards, not
       interesting. Don't rebuild composites of existing same-age cards.
-    - **✅ DOGE same-age + what-came-next (`dogeage`/`dogenext`, BUILT 2026-07-13, DATA-GATED).**
-      The most on-brand peer (memecoin blueprint). Reuses ageCard/nextCard via `dogePeer(h)`
-      with a RUNTIME-loaded series (`stats.altHistory.doge`). Logo already bundled (COIN_IMG
-      in logos.mjs has doge/pepe/shib). **DATA: `scripts/build-alt-history.mjs` + `alt-history.yml`**
-      fetch DOGE+PEPE+SHIB full daily history from CryptoCompare (free, CI-reachable — same
-      source as memekings; blocked from the dev sandbox), age-index since launch, thin ~3d →
-      `public/alt-history.json`. **🔲 OWNER: RUN the "Build memecoin age history" workflow ONCE**
-      (dispatch, mobile-OK) to populate it — then `dogeage`/`dogenext` go live automatically
-      (monthly cron keeps it fresh). Data for all 3 coins is banked, but only DOGE is WIRED.
-    - **🔲 PEPE / SHIB same-age cards — HELD for later (data already banked by the builder).**
-      Just add a `pepePeer(h)`/`shibPeer(h)` (mirror `dogePeer`) + two POSTS entries + LOOK
-      keys, once DOGE proves out. CAVEAT: PEPE launched 2023-04, only ~3mo before SPX, so it
-      has almost NO "older peer" runway — same-age/what-next is weak for PEPE (SHIB, Aug 2020,
-      is fine). Prefer DOGE + SHIB; PEPE only if a memecoin-trio set is wanted.
+    - **❌ DOGE same-age — BUILT then PULLED 2026-07-13 (owner: "the doge gap is quite something.
+      Not sure is a good card").** DOGE was FLAT its first ~3 years (the meme pump was year 7–8,
+      2021), so at SPX's age SPX ≈ 500× vs DOGE ≈ 1× — a GAP that dwarfs, doesn't RHYME. Removed
+      the `dogePeer` + `dogeage`/`dogenext` wiring. Lesson: a same-age peer only works if its
+      early trajectory is a similar ORDER of multiple to SPX's — pick by DATA, not on-brand-ness.
+    - **⭐ PICK THE PEER BY DATA — resemblance study (`scripts/find-resemblance.mjs` +
+      `resemblance.yml`, BUILT 2026-07-13).** Owner asked "what other coin resembles SPX's
+      performance, beyond the memekings? can you check?" — I can't (CryptoCompare is blocked
+      from the dev sandbox), so it's a dispatch workflow. Scans a broad basket (BNB, MATIC, POL,
+      LINK, AVAX, ADA, DOT, ATOM, NEAR, LTC, XRP, UNI, INJ, SUI, APT, … + DOGE/SHIB) via
+      CryptoCompare, computes each coin's growth MULTIPLE at SPX's CURRENT age + the log-curve
+      shape correlation, ranks by closeness to SPX's own same-age multiple (~500×), commits
+      `public/resemblance.json`. Reference points already computed (bundled BTC/ETH/SOL): at
+      SPX's age (2.9y) SPX ≈ 522×, **BTC 2,099× · ETH 161× · SOL 20×** — SPX sits BETWEEN ETH
+      and BTC. My prior for the best NON-memecoin match: **Polygon/MATIC** (~500–600× at 2.9y).
+      **🔲 OWNER: RUN "Find resemblance (study)" ONCE** → read the ranking → we build the
+      same-age (+ what-came-next) card for the WINNER via the `ageCard`/`nextCard` factories +
+      `stats.altHistory` mechanism (add the winner to `build-alt-history.mjs` COINS if it's not
+      already a memecoin). Logos: doge/pepe/shib bundled (COIN_IMG); a new peer needs a logo add.
+    - **Data foundation kept:** `scripts/build-alt-history.mjs` + `alt-history.yml` (banks
+      DOGE/PEPE/SHIB age history → `public/alt-history.json`) and `loadAltHistory()`/
+      `stats.altHistory` in stats.mjs stay as the reusable mechanism — no card reads them YET
+      (DOGE pulled), they light up whichever peer the study picks. PEPE caveat if ever used:
+      launched 2023-04, only ~3mo before SPX → almost no "older peer" runway (SHIB, Aug 2020,
+      is fine).
   - **Card-variety principle (owner, 2026-06-25) — IMPORTANT framing correction.**
     The daily FEED has a LOWER bar than a site tab: a visually-fresh card keeps the
     rotation from going stale even if its data overlaps an existing one. Bot cards are

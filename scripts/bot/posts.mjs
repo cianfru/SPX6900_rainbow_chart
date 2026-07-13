@@ -394,12 +394,10 @@ History rhymes — it's not a forecast.`,
   };
 })();
 
-// DOGE peer config for the ageCard/nextCard factories, built from the runtime-loaded
-// alt-history series. Its logo (kind "doge") is already bundled (COIN_IMG in logos.mjs).
-const dogePeer = h => ({
-  id: "dogeage", name: "Dogecoin", color: "#c2a633", series: h.series, launch: h.launch, emoji: "🐕", kind: "doge",
-  story: "Dogecoin began as a 2013 joke and sat near-worthless for years — then ran to a top-10 coin. The original memecoin.",
-});
+// NOTE: memecoin same-age peer config (dogePeer etc.) removed 2026-07-13 — DOGE was a
+// POOR same-age match (flat its first ~3y; SPX ~500× vs DOGE ~1× = a gap, not a rhyme).
+// The resemblance study (scripts/find-resemblance.mjs) picks the true best-matching peer;
+// its card gets built from stats.altHistory via the same ageCard/nextCard factories.
 
 // Each builder returns { id, text, card }. card is { type, spec }.
 const POSTS = [
@@ -1482,15 +1480,6 @@ Everything rebased to 0% on Jan 1, a clean same-start race against BTC, ETH and 
   // the same-age cards. The legend was right here, then it did THIS. (see nextCard).
   ...AGE_PEERS.map(nextCard),
 
-  // 32d — DOGECOIN same-age + what-came-next. The memecoin blueprint: a 2013 joke that
-  // sat near-worthless for years, then ran to a top-10 coin — the most on-brand peer for
-  // a memecoin audience. Data-gated on the alt-history builder (public/alt-history.json,
-  // banked from CryptoCompare). DOGE is far older than SPX, so it has real same-age +
-  // forward runway. Reuses the ageCard/nextCard factories with the runtime-loaded series.
-  // (PEPE/SHIB data is banked too but their cards are held for later — see the memory note.)
-  s => { const h = s.altHistory?.doge; return h && h.series?.length >= 20 ? ageCard(dogePeer(h))(s) : null; },
-  s => { const h = s.altHistory?.doge; return h && h.series?.length >= 20 ? nextCard(dogePeer(h))(s) : null; },
-
   // 29 — Kraken affiliate promo. A finished marketing graphic (public/rainbow-
   // kraken.png) posted as-is + a referral CTA. Kept OUT of the organic rotation
   // (NO_ROTATE) and surfaced on a fixed ~monthly cadence by buildPost instead, so
@@ -1549,7 +1538,7 @@ const LOOK = {
   spxvssp: "race", majors: "race", ytd: "race", sp500ytd: "race", sp500roll12: "race", btc: "race", chainrace: "race",
   roadmap: "trend", rally: "trend", alltime: "trend", breakeven: "trend", diamondtrend: "trend",
   cycleclock: "trend", fngtrend: "trend", btcage: "trend", ethage: "trend", solage: "trend",
-  btcnext: "trend", ethnext: "trend", solnext: "trend", dogeage: "trend", dogenext: "trend",
+  btcnext: "trend", ethnext: "trend", solnext: "trend",
   // — Tier B: flavourful / distinct looks (used to break up the green lines) —
   riskcolor: "colorline", risklevels: "colorline", rsidots: "colorline",
   riskheat: "dual", runningroi: "dual", cycle: "dual", longshort: "dual", underwater: "dual", goldencross: "dual", holdergrowth: "dual", mvrvbtc: "dual", picycle: "dual",
