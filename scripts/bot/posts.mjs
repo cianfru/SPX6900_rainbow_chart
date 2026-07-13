@@ -374,7 +374,10 @@ const whatNextCard = s => (() => {
     const atEnd = interpAt(peer.series, end) / fb.botP;
     const pts = [[0, 1], ...fwd, [(end - fb.botAge) / 365, atEnd]];
     if (pts.length < 5) return null;
-    return { peer, pts, mult: atEnd, years: Math.round((end - fb.botAge) / 365) };
+    // real calendar month of this bottom (age-since-launch → date), to ground the card
+    const botDate = new Date(Date.parse(peer.launch + "T00:00:00Z") + fb.botAge * DAY);
+    const botMon = botDate.toLocaleString("en-US", { month: "short", year: "numeric" });
+    return { peer, pts, mult: atEnd, years: Math.round((end - fb.botAge) / 365), botMon };
   }).filter(Boolean);
   if (peers.length < 2) return null;
   const yrs = Math.max(...peers.map(p => p.years));
@@ -396,8 +399,8 @@ Different era — history rhymes, not a forecast.`,
       accent: "#4ade80",
       yLog: true, yMin: yMin * 0.85, yMax: yMax * 1.2, yTicks, xTicks,
       hlines: [{ y: 1, color: "#94a3b8", label: "SPX is here — its first bottom (1×)", dash: true }],
-      marker: { x: 0, y: 1, color: "#4ade80" },
-      legend: peers.map(x => ({ color: x.peer.color, label: x.peer.name })),
+      logoMarks: [{ x: 0, y: 1, kind: "spx", size: 58 }], // SPX coin at P0 — on brand
+      legend: peers.map(x => ({ color: x.peer.color, label: `${x.peer.name} · ${x.botMon}` })),
       series: peers.map(x => ({ pts: x.pts, color: x.peer.color, width: 3.6, logo: x.peer.kind })),
     } },
   };

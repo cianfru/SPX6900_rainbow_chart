@@ -319,6 +319,15 @@ export function lineCardSvg(spec, opts = {}) {
     }
   }
 
+  // Coin-logo markers at plot points (e.g. the SPX logo at the origin of the recovery
+  // card — on brand). {x, y, kind, size, halo}. A soft halo behind so it pops on data.
+  let logoM = "";
+  for (const lm of (spec.logoMarks || [])) {
+    const sz = lm.size ?? 54, cx = X(lm.x), cy = Y(lm.y);
+    logoM += `<circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="${(sz / 2 + 6).toFixed(1)}" fill="${lm.halo || spec.accent || "#4ade80"}" fill-opacity="0.28" filter="url(#glow)"/>`
+      + logoMark(lm.kind, cx - sz / 2, cy - sz / 2, sz);
+  }
+
   // legend with a backing chip, parked top-left of the plot (clear of the data)
   let legend = "";
   const items = spec.legend || [];
@@ -357,7 +366,7 @@ export function lineCardSvg(spec, opts = {}) {
     }
   }
 
-  return chromeSvg(spec, grid + bandRects + vlines + cone + plot + hl + marker + legend + endLogos, defs, { W: DW, H: DH });
+  return chromeSvg(spec, grid + bandRects + vlines + cone + plot + hl + marker + logoM + legend + endLogos, defs, { W: DW, H: DH });
 }
 
 export function renderBarCard(spec, opts = {}) {
