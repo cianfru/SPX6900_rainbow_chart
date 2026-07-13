@@ -567,13 +567,21 @@
       on ONE chart, rebased to 1× at the bottom. x-axis = +1y/+2y/+3y since the bottom; a green
       "SPX is here — its first bottom (1×)" marker+hline at the origin. Real recoveries: **BTC +183×,
       ETH +46×, SOL +13×** over the 3 years after their bottoms.
-      - **⭐ WHY CYCLE-BOTTOM ALIGNMENT (owner idea, 2026-07-13):** owner asked to align "from their
-        first bottoming cycle" since **SPX is ~at its own first bear-cycle bottom now** (4-yr-cycle
-        framing) — this SYNCS the peers to SPX by CYCLE PHASE, not arbitrary age, AND shows the
-        aspirational half (the recovery). Notably ETH (bottom age 3.4y), SOL (2.7y) and SPX (~2.9y)
-        all first-bottomed at a SIMILAR age → clean analogs; BTC's was earlier (1.3y, its 2011 low)
-        and its +183× towers (early-BTC was wilder) — kept but leaned-on less; honesty rail
-        "different era — not a forecast." SPX framed as NEAR its first bottom (may not be fully in).
+      - **⭐ WHY CYCLE-BOTTOM ALIGNMENT (owner idea, 2026-07-13):** align by CYCLE PHASE, not age,
+        since SPX is in its own first bear cycle now (4-yr-cycle framing). ETH (bottom Dec 2018),
+        SOL (Dec 2022), BTC (Nov 2011) — all bottomed in **Nov–Dec** (Q4 clustering; n=3, don't
+        over-claim). Real bottom dates surfaced via `botAge → launch date`.
+      - **⭐⭐ P0 = "TODAY (Jul)", NOT the bottom (owner refinement, 2026-07-13).** Anchoring at the
+        BOTTOM made it read "the low is in, here's the +183× moonshot" — misleading. Owner: P0 should
+        be **today's month (Jul) in each coin's bottom YEAR** — i.e. where SPX sits NOW, seasonally,
+        in the peer's cycle — so the card shows the **FINAL CAPITULATION still ahead** (a further leg
+        down into the Nov/Dec low) THEN the climb. Implemented: `today = px.at(-1)` month/day; per peer
+        `anchorAge = Date.UTC(botYear, tMon, tDay) - launch` (guarded to sit BEFORE the bottom), rebased
+        to 1× at that July point; capitulation troughs marked (`spec.markers`); SPX logo at P0 via the
+        new `logoMarks` primitive in lineCardSvg. The HONEST result: from Jul, each fell ANOTHER **72–85%**
+        into the year-end low and stayed BELOW the Jul level for 1–2y before climbing (+45×/+5×/+4.7× by
+        3y). Copy: "SPX sits where the legends did months BEFORE their final bottom … the bottom may
+        still be ahead — not a forecast." Far more honest than bottom-anchoring.
       - **`firstCycleBottom(series)` detector:** first ATH that HOLDS ≥365d (a real cycle top, not
         launch noise) and drops ≥55%, then the trough before recovery. The naive "first ≥55% drop"
         caught launch-era dumps (ETH age 0.2y, SOL 0.7y) — the ≥365d-hold filter fixed it (→ ETH

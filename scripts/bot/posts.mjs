@@ -365,42 +365,55 @@ const whatNextCard = s => (() => {
   const DAY = 86400000;
   const px = s.series?.price;
   if (!px || !px.length) return null;
-  const spxAge = (px.at(-1)[0] - px[0][0]) / DAY;
+  // "Today" = SPX's latest data point (month/day). P0 for each peer is the SAME month/day
+  // in ITS cycle-bottom YEAR — i.e. where SPX sits now, seasonally, in the peer's cycle. So
+  // the card shows the FINAL capitulation (a further leg down into the Nov/Dec low) that
+  // still lay ahead from this point, THEN the climb — not "the bottom is already in".
+  const today = new Date(px.at(-1)[0]), tMon = today.getUTCMonth(), tDay = today.getUTCDate();
+  const monLbl = today.toLocaleString("en-US", { month: "short" });
   const peers = AGE_PEERS.map(peer => {
     const fb = firstCycleBottom(peer.series);
     if (!fb) return null;
-    const end = Math.min(fb.botAge + FUTURE_DAYS, peer.series.at(-1)[0]);
-    const fwd = peer.series.filter(([a]) => a > fb.botAge && a <= end).map(([a, p]) => [(a - fb.botAge) / 365, p / fb.botP]);
-    const atEnd = interpAt(peer.series, end) / fb.botP;
-    const pts = [[0, 1], ...fwd, [(end - fb.botAge) / 365, atEnd]];
+    const launchTs = Date.parse(peer.launch + "T00:00:00Z");
+    const botYear = new Date(launchTs + fb.botAge * DAY).getUTCFullYear();
+    const anchorAge = (Date.UTC(botYear, tMon, tDay) - launchTs) / DAY; // "today" in the bottom year
+    if (anchorAge <= 0 || anchorAge >= fb.botAge) return null;          // must sit BEFORE the bottom
+    const anchorP = interpAt(peer.series, anchorAge);
+    if (!(anchorP > 0)) return null;
+    const end = Math.min(anchorAge + FUTURE_DAYS, peer.series.at(-1)[0]);
+    const fwd = peer.series.filter(([a]) => a > anchorAge && a <= end).map(([a, p]) => [(a - anchorAge) / 365, p / anchorP]);
+    const atEnd = interpAt(peer.series, end) / anchorP;
+    const pts = [[0, 1], ...fwd, [(end - anchorAge) / 365, atEnd]];
     if (pts.length < 5) return null;
-    // real calendar month of this bottom (age-since-launch → date), to ground the card
-    const botDate = new Date(Date.parse(peer.launch + "T00:00:00Z") + fb.botAge * DAY);
-    const botMon = botDate.toLocaleString("en-US", { month: "short", year: "numeric" });
-    return { peer, pts, mult: atEnd, years: Math.round((end - fb.botAge) / 365), botMon };
+    return {
+      peer, pts, mult: atEnd, year: botYear,
+      capX: (fb.botAge - anchorAge) / 365, capY: fb.botP / anchorP, // the final-capitulation trough
+    };
   }).filter(Boolean);
   if (peers.length < 2) return null;
-  const yrs = Math.max(...peers.map(p => p.years));
+  const yrs = Math.round(Math.max(...peers.map(p => p.pts.at(-1)[0])));
   const allY = peers.flatMap(x => x.pts.map(p => p[1]));
   const yMin = Math.min(...allY), yMax = Math.max(...allY);
-  const yTicks = [0.5, 1, 2, 5, 10, 25, 50, 100, 250].filter(v => v >= yMin * 0.85 && v <= yMax * 1.15).map(v => ({ v, label: fMult(v) }));
+  const yTicks = [0.1, 0.25, 0.5, 1, 2, 5, 10, 25, 50, 100].filter(v => v >= yMin * 0.85 && v <= yMax * 1.15).map(v => ({ v, label: fMult(v) }));
   const xTicks = [];
   for (let y = 1; y <= yrs; y++) xTicks.push({ x: y, label: `+${y}y` });
-  const fm = m => (m >= 10 ? Math.round(m) : m.toFixed(1)) + "×";
+  const fm = m => String(+m.toFixed(m >= 10 ? 0 : 1)) + "×";
   const moveStr = peers.map(x => `${x.peer.name} +${fm(x.mult)}`).join(", ");
+  const dips = peers.map(x => Math.round((1 - x.capY) * 100));
   return {
     id: "whatnext",
-    text: ct`🔮 SPX6900 sits near its first bear-cycle bottom — where the legends once stood too.
-From THEIR first bottoms: ${moveStr} over the next ${yrs} years, each rebased to its low.
-Different era — history rhymes, not a forecast.`,
+    text: ct`🔮 SPX6900 sits where the legends did months BEFORE their final bottom.
+From here (${monLbl}), each fell another ${Math.min(...dips)}–${Math.max(...dips)}% into a year-end low, then ${moveStr} over ${yrs}y.
+The bottom may still be ahead — not a forecast.`,
     card: { type: "line", spec: {
       title: "",
-      headline: `The recovery from each legend's first bear-cycle bottom`,
+      headline: `Before the bottom: capitulation, then the climb`,
       accent: "#4ade80",
-      yLog: true, yMin: yMin * 0.85, yMax: yMax * 1.2, yTicks, xTicks,
-      hlines: [{ y: 1, color: "#94a3b8", label: "SPX is here — its first bottom (1×)", dash: true }],
-      logoMarks: [{ x: 0, y: 1, kind: "spx", size: 58 }], // SPX coin at P0 — on brand
-      legend: peers.map(x => ({ color: x.peer.color, label: `${x.peer.name} · ${x.botMon}` })),
+      yLog: true, yMin: yMin * 0.8, yMax: yMax * 1.2, yTicks, xTicks,
+      hlines: [{ y: 1, color: "#94a3b8", label: `SPX is here — today (${monLbl}, 1×)`, dash: true }],
+      logoMarks: [{ x: 0, y: 1, kind: "spx", size: 58 }],                 // SPX coin at P0 (today) — on brand
+      markers: peers.map(x => ({ x: x.capX, y: x.capY, color: x.peer.color })), // final-capitulation troughs
+      legend: peers.map(x => ({ color: x.peer.color, label: `${x.peer.name} · ${x.year}` })),
       series: peers.map(x => ({ pts: x.pts, color: x.peer.color, width: 3.6, logo: x.peer.kind })),
     } },
   };
