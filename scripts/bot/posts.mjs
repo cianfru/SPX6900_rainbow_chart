@@ -343,7 +343,7 @@ const interpAt = (series, age) => {
 // (near its own first bottom), so it overlays at the origin: cycle-phase sync, not age.
 // The first cycle bottom is detected robustly: the first all-time-high that HOLDS ≥365d
 // (a genuine cycle top, not launch noise) and drops ≥55%, then the trough before recovery.
-const FUTURE_DAYS = 1095; // ~3 years of recovery from the bottom
+const FUTURE_DAYS = 1460; // ~4 years forward — long enough to reach the next cycle TOP
 function firstCycleBottom(series) {
   for (let i = 0; i < series.length; i++) {
     let isATH = true;
@@ -381,12 +381,17 @@ const whatNextCard = s => (() => {
     const anchorP = interpAt(peer.series, anchorAge);
     if (!(anchorP > 0)) return null;
     const end = Math.min(anchorAge + FUTURE_DAYS, peer.series.at(-1)[0]);
-    const fwd = peer.series.filter(([a]) => a > anchorAge && a <= end).map(([a, p]) => [(a - anchorAge) / 365, p / anchorP]);
+    const fwdRows = peer.series.filter(([a]) => a > anchorAge && a <= end);
+    const fwd = fwdRows.map(([a, p]) => [(a - anchorAge) / 365, p / anchorP]);
     const atEnd = interpAt(peer.series, end) / anchorP;
     const pts = [[0, 1], ...fwd, [(end - anchorAge) / 365, atEnd]];
     if (pts.length < 5) return null;
+    // The PEAK of the recovery (the next cycle top) — the honest "how high it got".
+    // The +Ny ENDPOINT undersells badly when the coin peaked then fell back (SOL, ETH).
+    let peakMult = 1, peakX = 0;
+    for (const [a, p] of fwdRows) { const m = p / anchorP; if (m > peakMult) { peakMult = m; peakX = (a - anchorAge) / 365; } }
     return {
-      peer, pts, mult: atEnd, year: botYear,
+      peer, pts, mult: peakMult, peakX, peakY: peakMult, year: botYear,
       capX: (fb.botAge - anchorAge) / 365, capY: fb.botP / anchorP, // the final-capitulation trough
     };
   }).filter(Boolean);
@@ -402,8 +407,8 @@ const whatNextCard = s => (() => {
   const dips = peers.map(x => Math.round((1 - x.capY) * 100));
   return {
     id: "whatnext",
-    text: ct`🔮 Each legend is aligned to the month SPX sits at now (${monLbl}), in its own first bear-cycle year — so 1× = today.
-Each then fell another ${Math.min(...dips)}–${Math.max(...dips)}% into a year-end low, then ${moveStr} over ${yrs}y.
+    text: ct`🔮 Each legend aligned to the month SPX sits at now (${monLbl}), in its first bear-cycle year (1× = today).
+Each fell another ${Math.min(...dips)}–${Math.max(...dips)}% into a year-end low, then ran to its top: ${moveStr}.
 The bottom may still be ahead — not a forecast.`,
     card: { type: "line", spec: {
       title: "",
@@ -412,7 +417,10 @@ The bottom may still be ahead — not a forecast.`,
       yLog: true, yMin: yMin * 0.8, yMax: yMax * 1.2, yTicks, xTicks,
       hlines: [{ y: 1, color: "#94a3b8", label: `SPX is here — today (${monLbl}, 1×)`, dash: true }],
       logoMarks: [{ x: 0, y: 1, kind: "spx", size: 58 }],                 // SPX coin at P0 (today) — on brand
-      markers: peers.map(x => ({ x: x.capX, y: x.capY, color: x.peer.color })), // final-capitulation troughs
+      markers: [
+        ...peers.map(x => ({ x: x.capX, y: x.capY, color: x.peer.color })),   // final-capitulation troughs
+        ...peers.map(x => ({ x: x.peakX, y: x.peakY, color: x.peer.color })),  // next-cycle-top peaks
+      ],
       legend: peers.map(x => ({ color: x.peer.color, label: `${x.peer.name} · ${x.year}` })),
       series: peers.map(x => ({ pts: x.pts, color: x.peer.color, width: 3.6, logo: x.peer.kind })),
     } },

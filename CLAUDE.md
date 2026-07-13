@@ -602,6 +602,17 @@
         another 72–85% into a year-end low, then Bitcoin +45×, Ethereum +5×, Solana +4.7× over 3y. The
         bottom may still be ahead — not a forecast." Keep the title generic + the method in-copy on any
         future edit.
+      - **⭐ REPORT THE PEAK, NOT THE +Ny ENDPOINT (owner caught the bug 2026-07-13).** The card was
+        reporting each coin's multiple at a FIXED +3y point, which lands AFTER the cycle top → it badly
+        undersold (SOL showed +4.7× when it actually PEAKED ~7.4× from the Jul anchor, Nov 2024). Fixed:
+        `FUTURE_DAYS` 1095→1460 (~4y, reaches the next top) and the copy/marker now use the **peak**
+        multiple over the window (`peakMult`), not `atEnd`. Real peaks FROM THE JUL ANCHOR: **BTC +79×
+        (Nov 2013), ETH +11× (Nov 2021), SOL +7.4× (Nov 2024)**; peak markers added alongside the
+        capitulation troughs. NOTE the anchor: these are peak-from-JULY (1× = today). The owner's
+        "$8→$295 ≈ 37×" is peak-from-BOTTOM (our data: SOL $9.60→$257 ≈ 27×; BTC from-bottom would be an
+        absurd 538× — which is why we anchor at Jul, not the low). DATA CAVEAT: bundled SOL series tops
+        at $257 (Nov 2024) vs the real ~$295 (Jan 2025) ATH — a thinning artifact, so SOL runs slightly
+        conservative (true peak-from-Jul ≈ 8.5×).
       - **`firstCycleBottom(series)` detector:** first ATH that HOLDS ≥365d (a real cycle top, not
         launch noise) and drops ≥55%, then the trough before recovery. The naive "first ≥55% drop"
         caught launch-era dumps (ETH age 0.2y, SOL 0.7y) — the ≥365d-hold filter fixed it (→ ETH
