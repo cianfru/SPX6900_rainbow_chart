@@ -1,9 +1,12 @@
 // Daily BTC/USD history (back to SPX6900's 2023 launch), for the SPX/BTC ratio chart.
 
-// CryptoCompare returns full daily history in one call (no key needed).
+// CryptoCompare made histoday key-gated (keyless now 401s). Send the free API key
+// from the Vercel env if present; without it we fall back to the other sources.
+const CC_HEADERS = { "Accept": "application/json", ...(process.env.CRYPTOCOMPARE_KEY ? { authorization: `Apikey ${process.env.CRYPTOCOMPARE_KEY}` } : {}) };
+
 async function fetchCryptoCompare() {
   const url = "https://min-api.cryptocompare.com/data/v2/histoday?fsym=BTC&tsym=USD&limit=1300";
-  const res = await fetch(url, { headers: { "Accept": "application/json" } });
+  const res = await fetch(url, { headers: CC_HEADERS });
   if (!res.ok) throw new Error(`CryptoCompare ${res.status}`);
   const json = await res.json();
   const list = json?.Data?.Data;

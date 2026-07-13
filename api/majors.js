@@ -1,8 +1,12 @@
 // Daily USD history for the major assets, for SPX6900 relative-valuation ratios.
 
+// CryptoCompare made histoday key-gated (keyless now 401s). Send the free API key
+// from the Vercel env if present; without it CryptoCompare fails and we fall back.
+const CC_HEADERS = { "Accept": "application/json", ...(process.env.CRYPTOCOMPARE_KEY ? { authorization: `Apikey ${process.env.CRYPTOCOMPARE_KEY}` } : {}) };
+
 async function cryptoCompare(sym) {
   const url = `https://min-api.cryptocompare.com/data/v2/histoday?fsym=${sym}&tsym=USD&limit=1300`;
-  const res = await fetch(url, { headers: { "Accept": "application/json" } });
+  const res = await fetch(url, { headers: CC_HEADERS });
   if (!res.ok) throw new Error(`CryptoCompare ${sym} ${res.status}`);
   const json = await res.json();
   const list = json?.Data?.Data;

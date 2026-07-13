@@ -78,8 +78,6 @@ const TIGHT = ""; // a line break that stays single (not spaced out) — for ti
 const fPrice = p => (p >= 1 ? "$" + p.toFixed(2) : "$" + p.toFixed(4));
 const fPct = x => (x >= 0 ? "+" : "") + Math.round(x * 100).toLocaleString() + "%";
 const fMult = x => (x >= 100 ? Math.round(x).toLocaleString() : x.toFixed(1)) + "×";
-// Compact y-axis tick label so 4–5-figure multiples don't overflow the left gutter.
-const fMultTick = v => (v >= 1000 ? (v / 1000) + "k" : String(Math.round(v))) + "×";
 const fMon = d => { const t = new Date(d); return t.toLocaleString("en-US", { month: "short" }) + " '" + String(t.getFullYear()).slice(2); };
 const fMoney = n =>
   n >= 1e12 ? "$" + (n / 1e12).toFixed(n >= 1e13 ? 0 : 1) + "T"
@@ -339,57 +337,57 @@ const interpAt = (series, age) => {
   return series.at(-1)[1];
 };
 
-// "What came next" overlay factory — the FORWARD twin of ageCard. Same same-age
-// rebasing, but the peer's line continues PAST SPX's current age as a dashed
-// stretch (its real path AFTER this age), with a "SPX today" divider and the
-// forward multiple as the hook. The aspirational angle: the legend was right here
-// at SPX's age — and then it did THIS. History, clearly the peer's, not a forecast.
-const FUTURE_DAYS = 1095; // show ~3 years of "what came next" (a fuller cycle; capped to the peer's age)
-const nextCard = peer => s => (() => {
+// "What came next" — FORWARD-ONLY composite. Start at SPX6900's CURRENT age (the
+// divider) and show what each legend did over the FOLLOWING years, with every coin
+// REBASED to its own price at that age (so all lines start together at 1×). This
+// removes the misleading "the peer was here too" (they were at wildly different
+// multiples-since-launch — rebasing at the divider is what actually makes them start
+// together) AND the confusing 4–5-figure launch-relative y-axis (now a small
+// multiple-since-here range). Aspirational: from where SPX stands now, the greats
+// went on to do THIS. NOT a forecast — clearly each peer's own forward history.
+const FUTURE_DAYS = 1095; // ~3 years forward (a fuller cycle; capped to each peer's age)
+const whatNextCard = s => (() => {
   const DAY = 86400000;
   const px = s.series?.price;
   if (!px || !px.length) return null;
-  const t0 = px[0][0], p0 = px[0][1];
-  if (!(p0 > 0)) return null;
+  const t0 = px[0][0];
   const ageNow = (px.at(-1)[0] - t0) / DAY;
-  const spx = px.filter(([, p]) => p > 0).map(([ts, p]) => [(ts - t0) / DAY, p / p0]);
-  if (spx.length < 10) return null;
-  const base = peer.series[0][1], peerMaxAge = peer.series.at(-1)[0];
-  if (peerMaxAge <= ageNow + 90) return null; // peer not meaningfully older than SPX
-  const futureEnd = Math.min(ageNow + FUTURE_DAYS, peerMaxAge);
-  const atNow = interpAt(peer.series, ageNow) / base, atEnd = interpAt(peer.series, futureEnd) / base;
-  const solid = peer.series.filter(([a]) => a <= ageNow).map(([a, p]) => [a, p / base]);
-  if (solid.length && solid.at(-1)[0] < ageNow - 0.5) solid.push([ageNow, atNow]);
-  const dash = [[ageNow, atNow], ...peer.series.filter(([a]) => a > ageNow && a <= futureEnd).map(([a, p]) => [a, p / base]), [futureEnd, atEnd]];
-  if (solid.length < 6 || dash.length < 3) return null;
-  const forwardMult = atEnd / atNow, fYears = Math.round((futureEnd - ageNow) / 365);
-  // Direction-aware phrasing — not every legend ran up from this age (honesty moat).
-  const move = forwardMult >= 1.1 ? `ran ${fMult(forwardMult)}`
-    : forwardMult <= 0.9 ? `fell ${Math.round((1 - forwardMult) * 100)}%`
-      : "went roughly sideways";
-  const allY = [...spx.map(p => p[1]), ...solid.map(p => p[1]), ...dash.map(p => p[1])];
-  const yMax = Math.max(...allY), yMin = Math.min(...allY, 1);
-  const yTicks = [1, 10, 100, 1000, 10000].filter(v => v >= yMin * 0.6 && v <= yMax * 1.6).map(v => ({ v, label: fMultTick(v) }));
+  const peers = AGE_PEERS.map(peer => {
+    const maxAge = peer.series.at(-1)[0];
+    if (maxAge <= ageNow + 120) return null;               // peer not meaningfully older than SPX
+    const atNow = interpAt(peer.series, ageNow);
+    if (!(atNow > 0)) return null;
+    const end = Math.min(ageNow + FUTURE_DAYS, maxAge);
+    const fwd = peer.series.filter(([a]) => a > ageNow && a <= end).map(([a, p]) => [(a - ageNow) / 365, p / atNow]);
+    const atEnd = interpAt(peer.series, end) / atNow;
+    const pts = [[0, 1], ...fwd, [(end - ageNow) / 365, atEnd]];
+    if (pts.length < 5) return null;
+    return { peer, pts, mult: atEnd, years: Math.round((end - ageNow) / 365) };
+  }).filter(Boolean);
+  if (peers.length < 2) return null;
+  const yrs = Math.max(...peers.map(p => p.years));
+  const allY = peers.flatMap(x => x.pts.map(p => p[1]));
+  const yMin = Math.min(...allY), yMax = Math.max(...allY);
+  const yTicks = [0.25, 0.5, 1, 2, 3, 5, 10, 20, 50].filter(v => v >= yMin * 0.85 && v <= yMax * 1.15).map(v => ({ v, label: fMult(v) }));
   const xTicks = [];
-  for (let y = 1; y * 365 <= futureEnd; y++) xTicks.push({ x: y * 365, label: `Yr ${y}` });
+  for (let y = 1; y <= yrs; y++) xTicks.push({ x: y, label: `+${y}y` });
+  // Direction-aware per-coin phrasing (not every legend ran up from here).
+  const moveOf = m => m >= 1.1 ? `+${fMult(m)}` : m <= 0.9 ? `−${Math.round((1 - m) * 100)}%` : "flat";
+  const moveStr = peers.map(x => `${x.peer.name} ${moveOf(x.mult)}`).join(", ");
   return {
-    id: peer.kind + "next",
-    text: ct`🔮 At SPX6900's age, ${peer.name} was right here too — then it ${move} over the next ${fYears}y.
-Every line is rebased to its launch; the dashed stretch is ${peer.name}'s real path AFTER this age. SPX6900 sits at the divider today.
+    id: "whatnext",
+    text: ct`🔮 From SPX6900's age (~${(ageNow / 365).toFixed(1)}y), here's what the legends did over the NEXT ${yrs} years:
+${moveStr} — each rebased to its own price at that age, so 1× = where it stood then.
 History rhymes — it's not a forecast.`,
     card: { type: "line", spec: {
-      title: `What came next: ${peer.name} after SPX6900's age`,
-      headline: `${peer.name} ${move} in the ${fYears}y after this age`,
-      accent: peer.color,
-      yLog: true, yMin: yMin * 0.7, yMax: yMax * 1.4, yTicks, xTicks,
-      vlines: [{ x: ageNow, label: "SPX today", color: "#4ade80", opacity: 0.6 }],
-      logoHeader: { left: "spx", right: peer.kind, result: "what next" },
-      legend: [{ color: peer.color, label: `${peer.name} (dashed = after)` }, { color: "#4ade80", label: "SPX6900" }],
-      series: [
-        { pts: solid, color: peer.color, width: 3 },
-        { pts: dash, color: peer.color, width: 3, dash: true },
-        { pts: spx, color: "#4ade80", width: 4, fill: 0.12, glow: true },
-      ],
+      title: `What came next — from SPX6900's age, ${yrs}y forward`,
+      headline: `From ~${(ageNow / 365).toFixed(1)}y: the legends' next ${yrs} years`,
+      accent: "#4ade80",
+      yLog: true, yMin: yMin * 0.85, yMax: yMax * 1.18, yTicks, xTicks,
+      hlines: [{ y: 1, color: "#94a3b8", label: "SPX is here (1×)", dash: true }],
+      marker: { x: 0, y: 1, color: "#4ade80" },
+      legend: peers.map(x => ({ color: x.peer.color, label: x.peer.name })),
+      series: peers.map(x => ({ pts: x.pts, color: x.peer.color, width: 3.6, logo: x.peer.kind })),
     } },
   };
 })();
@@ -397,7 +395,8 @@ History rhymes — it's not a forecast.`,
 // NOTE: memecoin same-age peer config (dogePeer etc.) removed 2026-07-13 — DOGE was a
 // POOR same-age match (flat its first ~3y; SPX ~500× vs DOGE ~1× = a gap, not a rhyme).
 // The resemblance study (scripts/find-resemblance.mjs) picks the true best-matching peer;
-// its card gets built from stats.altHistory via the same ageCard/nextCard factories.
+// its same-age card gets built from stats.altHistory via the ageCard factory, and it can
+// also be folded into whatNextCard's peer list once its series is banked.
 
 // Each builder returns { id, text, card }. card is { type, spec }.
 const POSTS = [
@@ -1475,10 +1474,10 @@ Everything rebased to 0% on Jan 1, a clean same-start race against BTC, ETH and 
   // 30–32 — SPX6900 at the same age as Bitcoin / Ethereum / Solana (see ageCard).
   ...AGE_PEERS.map(ageCard),
 
-  // 32c — "What came next": SPX at the same age as BTC / ETH / SOL, with the peer's
-  // real path continuing PAST SPX's age (dashed) — the forward, aspirational twin of
-  // the same-age cards. The legend was right here, then it did THIS. (see nextCard).
-  ...AGE_PEERS.map(nextCard),
+  // 32c — "What came next" (forward-only composite): from SPX6900's current age, what
+  // each legend did over the following ~3 years, all rebased to 1× at that age. One
+  // chart, no past, sane y-scale. (see whatNextCard.)
+  whatNextCard,
 
   // 29 — Kraken affiliate promo. A finished marketing graphic (public/rainbow-
   // kraken.png) posted as-is + a referral CTA. Kept OUT of the organic rotation
@@ -1538,7 +1537,7 @@ const LOOK = {
   spxvssp: "race", majors: "race", ytd: "race", sp500ytd: "race", sp500roll12: "race", btc: "race", chainrace: "race",
   roadmap: "trend", rally: "trend", alltime: "trend", breakeven: "trend", diamondtrend: "trend",
   cycleclock: "trend", fngtrend: "trend", btcage: "trend", ethage: "trend", solage: "trend",
-  btcnext: "trend", ethnext: "trend", solnext: "trend",
+  whatnext: "race",
   // — Tier B: flavourful / distinct looks (used to break up the green lines) —
   riskcolor: "colorline", risklevels: "colorline", rsidots: "colorline",
   riskheat: "dual", runningroi: "dual", cycle: "dual", longshort: "dual", underwater: "dual", goldencross: "dual", holdergrowth: "dual", mvrvbtc: "dual", picycle: "dual",

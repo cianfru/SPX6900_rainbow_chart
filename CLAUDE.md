@@ -562,13 +562,20 @@
     aspirational same-age overlays land well. State of the set:
     - **Pairwise same-age** (`btcage`/`ethage`/`solage`, `ageCard` factory in posts.mjs) —
       SPX vs BTC/ETH/SOL as a multiple since each launch, log, x=age. Existing, liked.
-    - **✅ "What came next"** (`btcnext`/`ethnext`/`solnext`, `nextCard` factory, BUILT
-      2026-07-13) — the FORWARD twin: same rebasing, but the peer's line continues PAST
-      SPX's current age as a DASHED stretch (its real path AFTER this age), a "SPX today"
-      vertical divider (new `vlines` primitive in `lineCardSvg`), and the forward multiple
-      as the hook. ~3-YEAR window (a fuller cycle — 2y caught ETH mid-bear and read as a
-      decline). Direction-aware phrasing (`move` = "ran X×" / "fell Y%" / "sideways") so a
-      down-move never reads as "ran 0.5×". Honesty rail: "History rhymes — not a forecast."
+    - **✅ "What came next"** (`whatnext`, `whatNextCard`, BUILT then REDESIGNED 2026-07-13).
+      FORWARD-ONLY COMPOSITE: start at SPX's CURRENT age (the divider) and show what BTC+ETH+SOL
+      each did over the FOLLOWING ~3 years, on ONE chart, every coin REBASED to its own price at
+      that age (so all lines start together at 1×). x-axis = +1y/+2y/+3y forward; a green "SPX is
+      here (1×)" marker+hline at the origin. Direction-aware per-coin labels (`+X×` / `−Y%` / flat).
+      - **WHY the redesign (owner, 2026-07-13):** the FIRST version was per-peer (`btcnext`/
+        `ethnext`/`solnext`) showing launch→now solid + a dashed forward stretch. Owner flagged
+        TWO real problems: (1) copy said "the peer was HERE too" — MISLEADING, peers were at wildly
+        different multiples-since-launch, it read like same-price; (2) the y-axis was launch-relative
+        so it hit **10,000×** (correct but confusing — NOT a bug, just BTC's $0.06→$600). Rebasing
+        every coin to 1× at the divider fixes BOTH at once (they genuinely start together; y-axis
+        collapses to a sane ~0.3×–10× range) AND drops the past. Removed the 3 per-peer cards +
+        `nextCard` factory + `fMultTick`. The `vlines` primitive added earlier stays in `lineCardSvg`.
+        Honesty rail: "History rhymes — it's not a forecast."
     - **❌ "vs the legends" composite (BUILT then REMOVED 2026-07-13)** — one chart with SPX
       vs BTC+ETH+SOL at the same age. Owner: it's a REPETITION of the 3 pairwise cards, not
       interesting. Don't rebuild composites of existing same-age cards.
@@ -597,9 +604,12 @@
         `build-alt-history.mjs` now send `authorization: Apikey <CRYPTOCOMPARE_KEY>` (env/secret).
         **🔲 OWNER: create a FREE CryptoCompare API key (cryptocompare.com → API keys) → add repo
         secret `CRYPTOCOMPARE_KEY`, then RE-RUN the study** (and later the alt-history builder — same
-        key). Without it both produce empty output. NOTE: the LIVE memekings race (`api/memekings.js`)
-        uses the same keyless endpoint → it's likely been silently falling over to its Coinbase
-        fallback (shallower history); wiring the same key there would restore full depth (separate TODO).
+        key). Without it both produce empty output.
+      - **✅ LIVE endpoints fixed too (2026-07-13):** `api/memekings.js` + `api/majors.js` + `api/btc.js`
+        all used the same keyless CryptoCompare call → they'd been silently failing over to Coinbase
+        (shallower history). All three now send `authorization: Apikey <CRYPTOCOMPARE_KEY>` from the
+        VERCEL env. **🔲 OWNER: add `CRYPTOCOMPARE_KEY` to the VERCEL env too** (separate from the GH
+        Actions secret — these run on Vercel) to restore full memekings/majors/btc history depth.
     - **Data foundation kept:** `scripts/build-alt-history.mjs` + `alt-history.yml` (banks
       DOGE/PEPE/SHIB age history → `public/alt-history.json`) and `loadAltHistory()`/
       `stats.altHistory` in stats.mjs stay as the reusable mechanism — no card reads them YET
