@@ -763,6 +763,18 @@
         run. **AUTOMATE:** Dune's FREE API tier can fetch the pre-computed result as JSON/CSV → dump
         straight into our data (bundle like `btc-mvrv.json`). So the fastest path is fork-an-existing-
         query, not write-from-scratch.
+      - **⭐ SAME DUNE WORK ALSO BACKFILLS HOLDERS-OVER-TIME on ETH + Base (owner, 2026-07-13).** Holder
+        count over time is the SIMPLER BYPRODUCT of the same per-address running-balance reconstruction:
+        realized-cap needs `balance × cost-basis` (price join); holder count just needs **count(distinct
+        address WHERE balance > 0) per day** — NO `prices.usd` join. So build both in one query. Sources:
+        **ETH** `erc20_ethereum.evt_Transfer` (`0xE0f63A…56C`), **Base** the Base transfers table
+        (`erc20_base.evt_Transfer`, Base contract `0x50dA645f…bb2C`). CAVEAT: EXCLUDE contract addresses
+        (bridge lock, LP, routers) for an honest headcount — join Dune `labels`/contracts or a hardcoded
+        set, same as the Blockscout `is_contract` strip. **PAYOFF: backfills `holdergrowth` + `chainrace`
+        to LAUNCH** (they're forward-only now, ~weeks of data — Dune gives ETH from Aug-2023 launch, Base
+        from its deploy). Export the daily {date, eth_holders, base_holders} series → bundle → the cards
+        show full history. **Solana** = possible too but via Dune's SEPARATE Solana/SPL tables (fiddlier);
+        the keyless `getProgramAccounts` already covers Solana forward, so backfill it later if wanted.
     - **⭐ MULTI-CHAIN HOLDER COUNT — BUILT 2026-07-13, DATA-GATED (waiting on the cron + Solana key).**
       SPX is on Ethereum (native) + Base + Solana (bridged, e.g. Wormhole). We only tracked ETH via
       HolderScan. By SUPPLY, Base+Solana are ~6% → looked skippable. BUT by HOLDER COUNT they
