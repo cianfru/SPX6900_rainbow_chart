@@ -297,8 +297,10 @@ const ageCard = peer => s => (() => {
   if (!(p0 > 0)) return null;
   const ageNow = (px.at(-1)[0] - t0) / DAY;
   const spx = px.filter(([, p]) => p > 0).map(([ts, p]) => [(ts - t0) / DAY, p / p0]);
-  const base = peer.series[0][1];
-  const peerPts = peer.series.filter(([a]) => a <= ageNow + 25).map(([a, p]) => [a, p / base]);
+  // Prefer the DAILY peer series (stats.altHistory) over the thinned bundled one.
+  const series = s.altHistory?.[peer.kind]?.series?.length >= 100 ? s.altHistory[peer.kind].series : peer.series;
+  const base = series[0][1];
+  const peerPts = series.filter(([a]) => a <= ageNow + 25).map(([a, p]) => [a, p / base]);
   if (peerPts.length < 8 || spx.length < 10) return null;
   const spxMult = spx.at(-1)[1], peerMult = peerPts.at(-1)[1], ahead = spxMult >= peerMult;
   const xTicks = [];
@@ -372,16 +374,19 @@ const whatNextCard = s => (() => {
   const today = new Date(px.at(-1)[0]), tMon = today.getUTCMonth(), tDay = today.getUTCDate();
   const monLbl = today.toLocaleString("en-US", { month: "short" });
   const peers = AGE_PEERS.map(peer => {
-    const fb = firstCycleBottom(peer.series);
+    // Prefer the DAILY series (banked by build-alt-history → stats.altHistory) so peaks are
+    // exact; fall back to the thinned bundled series until the daily data is present.
+    const series = s.altHistory?.[peer.kind]?.series?.length >= 100 ? s.altHistory[peer.kind].series : peer.series;
+    const fb = firstCycleBottom(series);
     if (!fb) return null;
     const launchTs = Date.parse(peer.launch + "T00:00:00Z");
     const botYear = new Date(launchTs + fb.botAge * DAY).getUTCFullYear();
     const anchorAge = (Date.UTC(botYear, tMon, tDay) - launchTs) / DAY; // "today" in the bottom year
     if (anchorAge <= 0 || anchorAge >= fb.botAge) return null;          // must sit BEFORE the bottom
-    const anchorP = interpAt(peer.series, anchorAge);
+    const anchorP = interpAt(series, anchorAge);
     if (!(anchorP > 0)) return null;
-    const end = Math.min(anchorAge + FUTURE_DAYS, peer.series.at(-1)[0]);
-    const fwdRows = peer.series.filter(([a]) => a > anchorAge && a <= end);
+    const end = Math.min(anchorAge + FUTURE_DAYS, series.at(-1)[0]);
+    const fwdRows = series.filter(([a]) => a > anchorAge && a <= end);
     const fwd = fwdRows.map(([a, p]) => [(a - anchorAge) / 365, p / anchorP]);
     const atEnd = interpAt(peer.series, end) / anchorP;
     const pts = [[0, 1], ...fwd, [(end - anchorAge) / 365, atEnd]];
@@ -407,9 +412,9 @@ const whatNextCard = s => (() => {
   const dips = peers.map(x => Math.round((1 - x.capY) * 100));
   return {
     id: "whatnext",
-    text: ct`🔮 Each legend aligned to the month SPX sits at now (${monLbl}), in its first bear-cycle year (1× = today).
-Each fell another ${Math.min(...dips)}–${Math.max(...dips)}% into a year-end low, then ran to its top: ${moveStr}.
-The bottom may still be ahead — not a forecast.`,
+    text: ct`🔮 Each legend aligned to the month SPX sits at now (${monLbl}), in its own first bear-cycle year (1× = today).
+From there, after a dip into a year-end low, they ran to their next-cycle tops: ${moveStr}.
+History rhymes — it's not a forecast.`,
     card: { type: "line", spec: {
       title: "",
       headline: `The legends at SPX6900's point in the first bear cycle`,
@@ -1524,13 +1529,12 @@ Everything rebased to 0% on Jan 1, a clean same-start race against BTC, ETH and 
   // 30–32 — SPX6900 at the same age as Bitcoin / Ethereum / Solana (see ageCard).
   ...AGE_PEERS.map(ageCard),
 
-  // 32c — "What came next" — PARKED (owner, 2026-07-13). The July-anchor / "final
-  // capitulation still ahead" framing reads confusing, and the thinned peer data made the
-  // peaks wrong (SOL's real $295 Jan-25 top sampled to ~$220). Rebuild it AFTER SPX bottoms
-  // as the simple, intuitive "recovery FROM the bottom" version, once daily peer data is
-  // banked (build-alt-history.mjs now fetches daily BTC/ETH/SOL). `whatNextCard` + the
-  // `firstCycleBottom` detector are kept below, just out of rotation.
-  // whatNextCard,
+  // 32c — "What came next": each legend aligned to the month SPX sits at now, in its own
+  // first bear-cycle year (1× = today) → the year-end capitulation dip, then the next-cycle
+  // top. Copy kept NEUTRAL/descriptive (owner writes the actual post text per the daily);
+  // no bottom-call. Prefers DAILY peer data (stats.altHistory) so peaks are exact once the
+  // CryptoCompare key is set; falls back to the bundled series until then.
+  whatNextCard,
 
   // 29 — Kraken affiliate promo. A finished marketing graphic (public/rainbow-
   // kraken.png) posted as-is + a referral CTA. Kept OUT of the organic rotation
@@ -1590,7 +1594,7 @@ const LOOK = {
   spxvssp: "race", majors: "race", ytd: "race", sp500ytd: "race", sp500roll12: "race", btc: "race", chainrace: "race",
   roadmap: "trend", rally: "trend", alltime: "trend", breakeven: "trend", diamondtrend: "trend",
   cycleclock: "trend", fngtrend: "trend", btcage: "trend", ethage: "trend", solage: "trend",
-  whatnext: "race", // parked (out of rotation); kept for the post-bottom rebuild
+  whatnext: "race",
   // — Tier B: flavourful / distinct looks (used to break up the green lines) —
   riskcolor: "colorline", risklevels: "colorline", rsidots: "colorline",
   riskheat: "dual", runningroi: "dual", cycle: "dual", longshort: "dual", underwater: "dual", goldencross: "dual", holdergrowth: "dual", mvrvbtc: "dual", picycle: "dual",
