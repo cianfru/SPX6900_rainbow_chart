@@ -20,7 +20,7 @@ export function channelSvg(price, dateStr = new Date().toISOString().slice(0, 10
   const firstDay = M.dayN(DEFAULT_RAW[0].date);
   const lastDay = M.dayN(raw.at(-1).date);
   const nowDay = Math.max(lastDay, day);
-  const dMax = Math.round(nowDay * 1.9);             // project the rails into the future
+  const dMax = Math.round(nowDay * 1.2);             // project the rails a little past today (room for the gutter labels), not into empty space
   // x = ln(age + t0) — this is what straightens the power law into a diagonal.
   const xMin = Math.log(firstDay + t0), xMax = Math.log(dMax + t0);
   const x = d => mL + ((Math.log(d + t0) - xMin) / (xMax - xMin)) * pW;
@@ -39,7 +39,11 @@ export function channelSvg(price, dateStr = new Date().toISOString().slice(0, 10
   const y = p => mT + ((Math.log(yMax) - Math.log(p)) / (Math.log(yMax) - Math.log(yMin))) * pH;
 
   const path = f => days.map(d => `${x(d).toFixed(1)},${y(f(d)).toFixed(1)}`).join(" ");
-  const channelFill = `${days.map(d => `${x(d).toFixed(1)},${y(upper(d)).toFixed(1)}`).join(" ")} ${days.map(d => `${x(d).toFixed(1)},${y(lower(d)).toFixed(1)}`).reverse().join(" ")}`;
+  // Two shaded zones split by the fair-value rail: EXPENSIVE (fair→upper, red) and
+  // CHEAP (lower→fair, blue), each fading toward the divider — gives the corridor a body.
+  const fairPts = days.map(d => `${x(d).toFixed(1)},${y(fair(d)).toFixed(1)}`);
+  const zoneUpper = `${days.map(d => `${x(d).toFixed(1)},${y(upper(d)).toFixed(1)}`).join(" ")} ${[...fairPts].reverse().join(" ")}`;
+  const zoneLower = `${fairPts.join(" ")} ${days.map(d => `${x(d).toFixed(1)},${y(lower(d)).toFixed(1)}`).reverse().join(" ")}`;
   const priceLine = raw.map(r => `${x(M.dayN(r.date)).toFixed(1)},${y(r.price).toFixed(1)}`).join(" ");
 
   // gridlines + $ decade y-labels
@@ -70,11 +74,9 @@ export function channelSvg(price, dateStr = new Date().toISOString().slice(0, 10
 
   return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
 <defs>
-  <linearGradient id="chFill" x1="0" y1="0" x2="0" y2="1">
-    <stop offset="0%" stop-color="#dc2626" stop-opacity="0.14"/>
-    <stop offset="50%" stop-color="#22c55e" stop-opacity="0.06"/>
-    <stop offset="100%" stop-color="#3b82f6" stop-opacity="0.16"/>
-  </linearGradient>
+  <linearGradient id="chUp" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#ef4444" stop-opacity="0.30"/><stop offset="100%" stop-color="#ef4444" stop-opacity="0.02"/></linearGradient>
+  <linearGradient id="chLo" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#3b82f6" stop-opacity="0.03"/><stop offset="100%" stop-color="#3b82f6" stop-opacity="0.30"/></linearGradient>
+  <filter id="chGlow" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="5"/></filter>
   <radialGradient id="chTop" cx="50%" cy="0%" r="85%"><stop offset="0%" stop-color="${band.c}" stop-opacity="0.20"/><stop offset="60%" stop-color="${band.c}" stop-opacity="0"/></radialGradient>
   <radialGradient id="chWarm" cx="4%" cy="8%" r="62%"><stop offset="0%" stop-color="#f43f5e" stop-opacity="0.18"/><stop offset="70%" stop-color="#f43f5e" stop-opacity="0"/></radialGradient>
   <radialGradient id="chViolet" cx="96%" cy="94%" r="62%"><stop offset="0%" stop-color="#7c3aed" stop-opacity="0.22"/><stop offset="70%" stop-color="#7c3aed" stop-opacity="0"/></radialGradient>
@@ -84,15 +86,19 @@ export function channelSvg(price, dateStr = new Date().toISOString().slice(0, 10
 <rect width="${W}" height="${H}" fill="url(#chWarm)"/>
 <rect width="${W}" height="${H}" fill="url(#chTop)"/>
 ${grid}${xlab}
-<polygon points="${channelFill}" fill="url(#chFill)"/>
-<polyline points="${path(upper)}" fill="none" stroke="#dc2626" stroke-width="2.5"/>
-<polyline points="${path(fair)}" fill="none" stroke="#84cc16" stroke-width="3.5"/>
-<polyline points="${path(lower)}" fill="none" stroke="#3b82f6" stroke-width="2.5"/>
-<polyline points="${priceLine}" fill="none" stroke="#ffffff" stroke-width="2.6"/>
+<polygon points="${zoneUpper}" fill="url(#chUp)"/>
+<polygon points="${zoneLower}" fill="url(#chLo)"/>
+<polyline points="${path(upper)}" fill="none" stroke="#ef4444" stroke-width="3" stroke-opacity="0.9"/>
+<polyline points="${path(fair)}" fill="none" stroke="#84cc16" stroke-width="9" stroke-opacity="0.18" filter="url(#chGlow)"/>
+<polyline points="${path(fair)}" fill="none" stroke="#a3e635" stroke-width="4"/>
+<polyline points="${path(lower)}" fill="none" stroke="#3b82f6" stroke-width="3" stroke-opacity="0.9"/>
+<polyline points="${priceLine}" fill="none" stroke="#ffffff" stroke-width="9" stroke-opacity="0.20" filter="url(#chGlow)"/>
+<polyline points="${priceLine}" fill="none" stroke="#ffffff" stroke-width="3.4" stroke-linejoin="round" stroke-linecap="round"/>
 ${rl(upper, "#f87171", "upper limit")}
 ${rl(fair, "#bef264", "fair value")}
 ${rl(lower, "#93c5fd", "lower limit")}
-<circle cx="${px.toFixed(1)}" cy="${py.toFixed(1)}" r="7" fill="#fff" stroke="${band.c}" stroke-width="3"/>
+<circle cx="${px.toFixed(1)}" cy="${py.toFixed(1)}" r="12" fill="${band.c}" fill-opacity="0.25"/>
+<circle cx="${px.toFixed(1)}" cy="${py.toFixed(1)}" r="8.5" fill="#fff" stroke="${band.c}" stroke-width="3.5"/>
 <text x="${mL}" y="42" fill="#e2e8f0" font-size="29" font-weight="700" font-family="sans-serif" letter-spacing="1.5">SPX6900 POWER-LAW CHANNEL</text>
 <text x="${mL + pW}" y="42" fill="${band.c}" font-size="29" font-weight="800" font-family="sans-serif" text-anchor="end">${priceText} · ${band.l}</text>
 <text x="${mL + pW}" y="68" font-size="20" font-family="sans-serif" text-anchor="end" fill="#94a3b8">log price vs log age · <tspan fill="#cbd5e1" font-weight="700">${fpct(vsFair)} vs fair value</tspan></text>
