@@ -51,9 +51,11 @@ async function fng() {
 // Base + Solana (bridged, e.g. Wormhole). By supply Base+Solana are ~6%, but by HEADCOUNT
 // they dwarf ETH (Base ~114k, Solana ~66k vs ETH ~49.5k) — so the "total holders" reach is
 // ~4.6× what we post. We bank the COUNT only; supply/tiers/MVRV stay ETH-native. Wallets,
-// not people. Override contracts via BASE_SPX / SOL_SPX; Solana also needs SOLSCAN_KEY.
+// not people. Override contracts via BASE_SPX / SOL_SPX; Solana is keyless (public RPC).
 const BASE_SPX = process.env.BASE_SPX || "0x50dA645f148798F68EF2d7dB7C1CB22A6819bb2C";
-const SOL_SPX = process.env.SOL_SPX; // base58 mint of the Wormhole-wrapped SPX on Solana
+const SOL_SPX = process.env.SOL_SPX || "J3NKxxXZcnNiMjKw9hYb2K4LUxgwB6t1FtPtQVsv3KFr"; // base58 Solana mint (Wormhole SPX)
+const SOL_RPC = process.env.SOL_RPC || "https://api.mainnet-beta.solana.com"; // override if the public node rate-limits getProgramAccounts
+const SPL_TOKEN_PROGRAM = "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA";
 
 // Base holders — FREE via Blockscout (the same number the Basescan token page shows;
 // Basescan's own tokenholdercount API is pro-only). No key needed. We SUBTRACT contract
@@ -87,17 +89,39 @@ async function baseHolders() {
   } catch (e) { console.warn("base holders:", e.message); return null; }
 }
 
-// Solana holders — Solscan (needs a free SOLSCAN_KEY + the base58 mint SOL_SPX). Soft-skips
-// cleanly until both are set (the 0x address the owner first pasted was an EVM address).
+// Solana holders — direct from a public Solana RPC, NO key. getProgramAccounts scans every
+// SPL token account for the SPX mint; `dataSlice` downloads ONLY the 8-byte balance (a u64
+// at offset 64) so the payload stays tiny, and we count accounts with balance > 0 (= active
+// holders). It's a heavy call: the public node may rate-limit/refuse it — set SOL_RPC to a
+// dedicated endpoint (Helius/QuickNode) if so. Soft-skips (null) on any failure.
 async function solHolders() {
-  const key = process.env.SOLSCAN_KEY;
-  if (!key || !SOL_SPX) return null;
   try {
-    const r = await fetch(`https://pro-api.solscan.io/v2.0/token/meta?address=${SOL_SPX}`, { headers: { token: key, Accept: "application/json" } });
+    const payload = {
+      jsonrpc: "2.0", id: 1, method: "getProgramAccounts",
+      params: [SPL_TOKEN_PROGRAM, {
+        encoding: "base64",
+        dataSlice: { offset: 64, length: 8 },       // just the u64 balance
+        filters: [{ dataSize: 165 }, { memcmp: { offset: 0, bytes: SOL_SPX } }],
+      }],
+    };
+    const r = await fetch(SOL_RPC, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify(payload),
+      signal: AbortSignal.timeout(45000),
+    });
     if (!r.ok) throw new Error(`${r.status}`);
     const j = await r.json();
-    const n = parseInt(j?.data?.holder ?? j?.data?.holders, 10);
-    return Number.isFinite(n) && n > 0 ? n : null;
+    if (j?.error) throw new Error(j.error.message || "rpc error");
+    if (!Array.isArray(j?.result)) throw new Error("no result");
+    let active = 0;
+    for (const acc of j.result) {
+      const b64 = acc?.account?.data?.[0];
+      if (!b64) continue;
+      const buf = Buffer.from(b64, "base64");
+      if (buf.length >= 8 && buf.readBigUInt64LE(0) > 0n) active++;
+    }
+    return active > 0 ? active : null;
   } catch (e) { console.warn("sol holders:", e.message); return null; }
 }
 

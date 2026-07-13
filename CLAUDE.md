@@ -764,9 +764,14 @@
         no key — Basescan's own tokenholdercount API is pro-only); `baseHolders()` also SUBTRACTS
         contract addresses (Wormhole bridge lock, LP pools, routers — they're not people) by scanning
         the top ~150 holders for `is_contract`, plus a `BASE_EXCLUDE` repo-var override for any it
-        misses. **Solana** = **Solscan** pro-api (`solHolders()`), SOFT-SKIPS (banks null) until BOTH
-        `SOLSCAN_KEY` (secret) + `SOL_SPX` (the base58 Wormhole mint) are set. Base SPX contract
-        `0x50dA645f148798F68EF2d7dB7C1CB22A6819bb2C` (hardcoded default, override via `BASE_SPX` var).
+        misses. **Solana** = KEYLESS via a **public Solana RPC** (`solHolders()`, owner-provided method
+        2026-07-13): `getProgramAccounts` on the SPL Token Program filtered to the SPX mint, with
+        `dataSlice{offset:64,length:8}` fetching ONLY the u64 balance so the payload stays tiny; count
+        accounts with balance > 0 (`Buffer.readBigUInt64LE`). Mint `J3NKxxXZcnNiMjKw9hYb2K4LUxgwB6t1FtPtQVsv3KFr`
+        (default, override `SOL_SPX`). It's a HEAVY call — the public node (`api.mainnet-beta.solana.com`)
+        may rate-limit/refuse it; set `SOL_RPC` to a dedicated endpoint (Helius/QuickNode) if so.
+        Soft-skips (null) on failure. **No Solscan key needed anymore** (dropped SOLSCAN_KEY). Base SPX
+        contract `0x50dA645f148798F68EF2d7dB7C1CB22A6819bb2C` (hardcoded default, override via `BASE_SPX`).
       - **CARDS BUILT (both `scripts/bot/multichain-card.mjs`, data-gated, rotation-only, read
         `stats.supply.holders/holdersBase/holdersSol` + `chainSeries` — NOTHING hardcoded):**
         (1) **`multichain`** = DONUT snapshot (total in the centre + per-chain legend/%); renders once
@@ -775,19 +780,17 @@
         time"; the TREND companion to the donut. Data-gated ≥6 multi-chain snapshots (a foundation
         card that fills in over time). LOOK "race". Both wired in charts.mjs/posts.mjs; test whitelist
         updated. `loadChainHistory()` in stats.mjs exposes `supply.chainSeries`.
-      - **🔲 PENDING OWNER ACTION (LAPTOP — do when back from Kenya):**
-        1. **Activate Solana** — create a free Solscan API key → repo secret `SOLSCAN_KEY`; add the
-           base58 Wormhole SPX mint as repo var `SOL_SPX` (the `0x50dA645f…` pasted for Solana was an
-           EVM address, NOT the Solana mint — need the real base58 mint from the Solscan SPX page).
-        2. **First-run sanity check** — run/await the "Daily supply snapshot" workflow, then check the
-           log: `base holders: -N contract address(es) removed` (confirms contract stripping) + the
-           `holders eth … · base … · sol …` line. Compare Base to the ~114k expectation (minus a
-           handful of contracts). If a contract slips through, set `BASE_EXCLUDE` (comma-sep addresses).
-        3. Then both cards go live in rotation automatically (donut immediately once Base banks; race
-           after ~a week of multi-chain history accumulates).
-      - Claude CAN'T dispatch the snapshot workflow or test the fetchers (sandbox network policy 403s
-        Blockscout/Solscan) — owner triggers the run or waits for the 00:17 UTC cron. Lifting that
-        network policy (env settings, doable from mobile) would let Claude test the fetchers directly.
+      - **🔲 PENDING OWNER ACTION (both mints now DEFAULTED — should just work on the next cron):**
+        1. **First-run sanity check** — run/await the "Daily supply snapshot" workflow, then check the
+           log: `base holders: -N contract address(es) removed` + the `holders eth … · base … · sol …`
+           line. Base ≈ ~114k (minus a handful of contracts; Blockscout ran ~127k on 2026-07-13, higher
+           than Basescan — different holder definition, flagged). Sol ≈ ~66k. If a Base contract slips
+           through set `BASE_EXCLUDE`; if the public Solana RPC rate-limits `getProgramAccounts` (sol
+           logs an error → banks null), set `SOL_RPC` to a Helius/QuickNode endpoint.
+        2. Then both cards go live automatically (donut once ETH+Base bank; race after ~a week).
+      - Claude CAN'T dispatch the snapshot workflow or test the fetchers (sandbox 403s Blockscout +
+        the Solana RPC) — owner triggers the run or waits for the 00:17 UTC cron. Lifting the network
+        policy (env settings, mobile-doable) would let Claude test the fetchers directly.
     - **= the BTC "Realized Price" analog the owner asked for (2026-06-25, ref ITC
       Bitcoin Terminal Price chart).** SPX6900's realized price IS the break-even (`be`)
       = avg on-chain cost basis; the buildable card is the ITC-style **price line + the
