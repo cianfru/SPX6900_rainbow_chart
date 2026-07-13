@@ -56,14 +56,34 @@ const BASE_SPX = process.env.BASE_SPX || "0x50dA645f148798F68EF2d7dB7C1CB22A6819
 const SOL_SPX = process.env.SOL_SPX; // base58 mint of the Wormhole-wrapped SPX on Solana
 
 // Base holders — FREE via Blockscout (the same number the Basescan token page shows;
-// Basescan's own tokenholdercount API is pro-only). No key needed.
+// Basescan's own tokenholdercount API is pro-only). No key needed. We SUBTRACT contract
+// addresses (the Wormhole bridge lock, LP pools, routers) — they're not people, and they
+// are always the LARGEST holders, so scanning the top pages catches them. BASE_EXCLUDE
+// (comma-separated addresses) pins any the is_contract flag misses.
 async function baseHolders() {
   try {
     const r = await fetch(`https://base.blockscout.com/api/v2/tokens/${BASE_SPX}`, { headers: { Accept: "application/json" } });
     if (!r.ok) throw new Error(`${r.status}`);
     const j = await r.json();
-    const n = parseInt(j?.holders ?? j?.holders_count, 10);
-    return Number.isFinite(n) && n > 0 ? n : null;
+    let n = parseInt(j?.holders ?? j?.holders_count, 10);
+    if (!(Number.isFinite(n) && n > 0)) return null;
+
+    const exclude = new Set((process.env.BASE_EXCLUDE || "").toLowerCase().split(",").map(s => s.trim()).filter(Boolean));
+    let contracts = 0, query = "";
+    for (let page = 0; page < 3; page++) { // top ~150 holders — where every contract sits
+      const hr = await fetch(`https://base.blockscout.com/api/v2/tokens/${BASE_SPX}/holders${query}`, { headers: { Accept: "application/json" } });
+      if (!hr.ok) break;
+      const hj = await hr.json();
+      for (const it of (hj?.items || [])) {
+        const addr = it?.address?.hash?.toLowerCase();
+        if (it?.address?.is_contract || (addr && exclude.has(addr))) contracts++;
+      }
+      if (!hj?.next_page_params) break;
+      query = "?" + new URLSearchParams(hj.next_page_params).toString();
+    }
+    n -= contracts;
+    if (contracts) console.log(`base holders: -${contracts} contract address(es) removed`);
+    return n > 0 ? n : null;
   } catch (e) { console.warn("base holders:", e.message); return null; }
 }
 

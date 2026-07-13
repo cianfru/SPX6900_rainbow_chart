@@ -36,6 +36,7 @@ jobs:
           # default). Solana needs a base58 mint (SOL_SPX var) + a free Solscan key
           # (SOLSCAN_KEY secret) — soft-skips cleanly until both are set.
           BASE_SPX: ${{ vars.BASE_SPX }}
+          BASE_EXCLUDE: ${{ vars.BASE_EXCLUDE }}
           SOL_SPX: ${{ vars.SOL_SPX }}
           SOLSCAN_KEY: ${{ secrets.SOLSCAN_KEY }}
         run: node scripts/snapshot.mjs
