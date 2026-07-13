@@ -47,6 +47,40 @@ async function fng() {
   } catch (e) { console.warn("fng:", e.message); return null; }
 }
 
+// MULTI-CHAIN HOLDER COUNT. SPX lives on ETH (native, tracked above via HolderScan) +
+// Base + Solana (bridged, e.g. Wormhole). By supply Base+Solana are ~6%, but by HEADCOUNT
+// they dwarf ETH (Base ~114k, Solana ~66k vs ETH ~49.5k) — so the "total holders" reach is
+// ~4.6× what we post. We bank the COUNT only; supply/tiers/MVRV stay ETH-native. Wallets,
+// not people. Override contracts via BASE_SPX / SOL_SPX; Solana also needs SOLSCAN_KEY.
+const BASE_SPX = process.env.BASE_SPX || "0x50dA645f148798F68EF2d7dB7C1CB22A6819bb2C";
+const SOL_SPX = process.env.SOL_SPX; // base58 mint of the Wormhole-wrapped SPX on Solana
+
+// Base holders — FREE via Blockscout (the same number the Basescan token page shows;
+// Basescan's own tokenholdercount API is pro-only). No key needed.
+async function baseHolders() {
+  try {
+    const r = await fetch(`https://base.blockscout.com/api/v2/tokens/${BASE_SPX}`, { headers: { Accept: "application/json" } });
+    if (!r.ok) throw new Error(`${r.status}`);
+    const j = await r.json();
+    const n = parseInt(j?.holders ?? j?.holders_count, 10);
+    return Number.isFinite(n) && n > 0 ? n : null;
+  } catch (e) { console.warn("base holders:", e.message); return null; }
+}
+
+// Solana holders — Solscan (needs a free SOLSCAN_KEY + the base58 mint SOL_SPX). Soft-skips
+// cleanly until both are set (the 0x address the owner first pasted was an EVM address).
+async function solHolders() {
+  const key = process.env.SOLSCAN_KEY;
+  if (!key || !SOL_SPX) return null;
+  try {
+    const r = await fetch(`https://pro-api.solscan.io/v2.0/token/meta?address=${SOL_SPX}`, { headers: { token: key, Accept: "application/json" } });
+    if (!r.ok) throw new Error(`${r.status}`);
+    const j = await r.json();
+    const n = parseInt(j?.data?.holder ?? j?.data?.holders, 10);
+    return Number.isFinite(n) && n > 0 ? n : null;
+  } catch (e) { console.warn("sol holders:", e.message); return null; }
+}
+
 // S&P 500 latest close (Yahoo, no key). Reachable from CI even where it's blocked
 // in sandboxes. Keeps the SPX-vs-S&P cards current without bundling a fresh CSV.
 async function sp500() {
@@ -63,14 +97,17 @@ async function main() {
   if (!KEY) throw new Error("Missing HOLDERSCAN_KEY env (set it as a repo secret)");
 
   const sup = await hs("/stats/supply-breakdown"); // required
-  const [p, stats, pnl, breakdowns, fearGreed, spx500] = await Promise.all([
+  const [p, stats, pnl, breakdowns, fearGreed, spx500, baseH, solH] = await Promise.all([
     price(), softHs("/stats"), softHs("/stats/pnl"), softHs("/holders/breakdowns"), fng(), sp500(),
+    baseHolders(), solHolders(),
   ]);
 
   const rec = {
     d: new Date().toISOString().slice(0, 10),
     p,
-    holders: breakdowns?.total_holders ?? null,
+    holders: breakdowns?.total_holders ?? null, // ETH-native (HolderScan) — the supply/tier/MVRV base
+    holdersBase: baseH, // Base (bridged) headcount, Blockscout
+    holdersSol: solH,   // Solana (Wormhole) headcount, Solscan — null until SOL_SPX + SOLSCAN_KEY set
     be: pnl?.break_even_price ?? null,
     upnl: pnl?.unrealized_pnl_total ?? null, // aggregate unrealized $ PnL of all holders
     rpnl: pnl?.realized_pnl_total ?? null,   // aggregate realized $ PnL (booked)
@@ -90,7 +127,8 @@ async function main() {
   arr.sort((a, b) => a.d.localeCompare(b.d));
 
   await writeFile(FILE, JSON.stringify(arr));
-  console.log(`snapshot ${rec.d} · price ${p} · holders ${rec.holders} · upnl ${rec.upnl} · rpnl ${rec.rpnl} · ${arr.length} records total`);
+  const totalH = [rec.holders, rec.holdersBase, rec.holdersSol].reduce((s, n) => s + (n || 0), 0) || null;
+  console.log(`snapshot ${rec.d} · price ${p} · holders eth ${rec.holders} · base ${rec.holdersBase} · sol ${rec.holdersSol} · total ${totalH} · upnl ${rec.upnl} · rpnl ${rec.rpnl} · ${arr.length} records total`);
 
   // Anomaly detector → public/signals.json for the control panel's "Notable
   // today" strip. Human-in-the-loop: it only surfaces candidates + honest framing;

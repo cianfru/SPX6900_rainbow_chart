@@ -32,6 +32,12 @@ jobs:
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
           OPENROUTER_MODEL: ${{ vars.OPENROUTER_MODEL }}
           OPENROUTER_MODELS: ${{ vars.OPENROUTER_MODELS }}
+          # Multi-chain holder count. Base banks FREE via Blockscout (contract has a
+          # default). Solana needs a base58 mint (SOL_SPX var) + a free Solscan key
+          # (SOLSCAN_KEY secret) — soft-skips cleanly until both are set.
+          BASE_SPX: ${{ vars.BASE_SPX }}
+          SOL_SPX: ${{ vars.SOL_SPX }}
+          SOLSCAN_KEY: ${{ secrets.SOLSCAN_KEY }}
         run: node scripts/snapshot.mjs
       - name: Commit if changed
         run: |
