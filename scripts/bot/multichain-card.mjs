@@ -53,9 +53,13 @@ function donutSvg(id, cx, cy, rOut, rIn, rows, total) {
   const hole = `<circle cx="${cx}" cy="${cy}" r="${rIn}" fill="url(#hole)"/>`;
   return { defs, body: track + glows + arcs + gloss + spec + hole };
 }
-const centerText = (cx, cy, big, fs = 54) =>
-  `<text x="${cx}" y="${cy + 4}" fill="url(#mcTot)" font-size="${fs}" font-weight="800" font-family="sans-serif" text-anchor="middle" filter="url(#mcGlow)" opacity="0.4">${big}</text>`
-  + `<text x="${cx}" y="${cy + 4}" fill="url(#mcTot)" font-size="${fs}" font-weight="800" font-family="sans-serif" text-anchor="middle" letter-spacing="-1">${big}</text>`;
+// Centre number, auto-sized to fit inside the donut hole (2·rIn) and vertically centred.
+const centerText = (cx, cy, big, rIn) => {
+  const fs = Math.max(28, Math.min(54, Math.floor((2 * rIn - 26) / (big.length * 0.6))));
+  const y = (cy + fs * 0.34).toFixed(1);
+  return `<text x="${cx}" y="${y}" fill="url(#mcTot)" font-size="${fs}" font-weight="800" font-family="sans-serif" text-anchor="middle" filter="url(#mcGlow)" opacity="0.4">${big}</text>`
+    + `<text x="${cx}" y="${y}" fill="url(#mcTot)" font-size="${fs}" font-weight="800" font-family="sans-serif" text-anchor="middle" letter-spacing="-1">${big}</text>`;
+};
 const donutLabel = (cx, y, t) => `<text x="${cx}" y="${y}" fill="#8c98b0" font-size="24" font-weight="800" font-family="sans-serif" text-anchor="middle" letter-spacing="3">${t}</text>`;
 
 const DEFS = (arcDefs, extra = "") => `<defs>
@@ -128,10 +132,8 @@ export function multichainSvg(stats, opts = {}) {
 ${DEFS(arcDefs, dA.defs + dB.defs)}
 ${BG(W, H)}
 ${title}${table}
-${donutLabel(aCx, cyD - rOut - 26, "HOLDERS")}${dA.body}${centerText(aCx, cyD - 6, "~" + fK(totalH))}
-<text x="${aCx}" y="${cyD + 34}" fill="#8894ac" font-size="21" font-family="sans-serif" text-anchor="middle">wallets</text>
-${donutLabel(bCx, cyD - rOut - 26, "VALUE")}${dB.body}${centerText(bCx, cyD - 6, fUsd(totalV))}
-<text x="${bCx}" y="${cyD + 34}" fill="#8894ac" font-size="21" font-family="sans-serif" text-anchor="middle">of SPX</text>
+${donutLabel(aCx, cyD - rOut - 26, "HOLDERS")}${dA.body}${centerText(aCx, cyD, "~" + fK(totalH), rIn)}
+${donutLabel(bCx, cyD - rOut - 26, "VALUE")}${dB.body}${centerText(bCx, cyD, fUsd(totalV), rIn)}
 <text x="64" y="${H - 24}" fill="#5a6478" font-size="17" font-family="sans-serif">spx6900rainbow.xyz · value = each chain's SPX supply × price · Base &amp; Solana bridged · wallets, not people</text>
 </svg>`;
   }
@@ -154,8 +156,7 @@ ${donutLabel(bCx, cyD - rOut - 26, "VALUE")}${dB.body}${centerText(bCx, cyD - 6,
 ${DEFS(arcDefs, d.defs)}
 ${BG(W, H)}
 ${title}
-${d.body}${centerText(cx, cy - 4, "~" + fK(totalH))}
-<text x="${cx}" y="${cy + 40}" fill="#8894ac" font-size="23" font-family="sans-serif" text-anchor="middle">holders</text>
+${d.body}${centerText(cx, cy, "~" + fK(totalH), rIn)}
 ${legend}
 <text x="64" y="${H - 24}" fill="#5a6478" font-size="17" font-family="sans-serif">spx6900rainbow.xyz · wallets across chains, not people · Base &amp; Solana are bridged</text>
 </svg>`;
