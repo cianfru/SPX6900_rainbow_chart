@@ -277,6 +277,8 @@ export function computeStats(price, dateStr = new Date().toISOString().slice(0, 
     supply = {
       diamondTokens: tiers.diamond, holders: snap.holders, snapDate: snap.d,
       holdersBase: snap.holdersBase ?? null, holdersSol: snap.holdersSol ?? null, // multi-chain headcount (bridged)
+      supplyBase: snap.supplyBase ?? null, supplySol: snap.supplySol ?? null,     // SPX tokens on Base/Solana (× price = value)
+      totalSupply: SUPPLY,
       diamondShare: tiers.diamond / SUPPLY,
       nominalMc: price * SUPPLY,
       floatTokens: SUPPLY - tiers.diamond,

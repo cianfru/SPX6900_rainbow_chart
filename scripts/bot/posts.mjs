@@ -734,12 +734,27 @@ The base keeps building.`,
   s => {
     const eth = s.supply?.holders, base = s.supply?.holdersBase, sol = s.supply?.holdersSol;
     if (!(eth > 0) || !(base > 0 || sol > 0)) return null;
-    const total = eth + (base || 0) + (sol || 0), mult = total / eth;
+    const totalH = eth + (base || 0) + (sol || 0);
+    const total = s.supply?.totalSupply || 939e6;
+    const haveValue = s.supply?.supplyBase > 0 || s.supply?.supplySol > 0;
+    // With per-chain supplies banked, lead with the honest contrast: headcount vs value.
+    if (haveValue) {
+      const bridgedH = Math.round(((base || 0) + (sol || 0)) / totalH * 100);
+      const bridgedV = Math.round(((s.supply.supplyBase || 0) + (s.supply.supplySol || 0)) / total * 100);
+      return {
+        id: "multichain",
+        text: ct`🌐 Two views of SPX6900 across chains — ~${(totalH / 1000).toFixed(0)}k wallets, but where's the value?
+${bridgedH}% of holders sit on Base & Solana, yet those bridged chains hold just ~${bridgedV}% of the supply — ${100 - bridgedV}% of the value stays on Ethereum.
+Wallets, not people. Base & Solana are bridged.`,
+        card: { type: "multichain" },
+      };
+    }
+    const mult = totalH / eth;
     const chains = ["Ethereum", base > 0 ? "Base" : null, sol > 0 ? "Solana" : null].filter(Boolean);
     const list = chains.length === 3 ? "Ethereum, Base & Solana" : chains.join(" & ");
     return {
       id: "multichain",
-      text: ct`🌐 SPX6900 has ~${(total / 1000).toFixed(0)}k holders across ${list} — ${mult.toFixed(1)}× the ~${(eth / 1000).toFixed(0)}k on Ethereum alone.
+      text: ct`🌐 SPX6900 has ~${(totalH / 1000).toFixed(0)}k holders across ${list} — ${mult.toFixed(1)}× the ~${(eth / 1000).toFixed(0)}k on Ethereum alone.
 Supply concentrates on Ethereum, but most of the crowd lives on the bridged chains — these are wallets across chains, not people.
 One coin, one community, three chains.`,
       card: { type: "multichain" },

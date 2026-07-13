@@ -89,6 +89,37 @@ async function baseHolders() {
   } catch (e) { console.warn("base holders:", e.message); return null; }
 }
 
+// Base SPX supply (tokens bridged to Base) — from the SAME Blockscout token endpoint
+// (total_supply + decimals). × price = the VALUE on Base, for the value-by-chain donut.
+async function baseSupply() {
+  try {
+    const r = await fetch(`https://base.blockscout.com/api/v2/tokens/${BASE_SPX}`, { headers: { Accept: "application/json" } });
+    if (!r.ok) throw new Error(`${r.status}`);
+    const j = await r.json();
+    const raw = j?.total_supply, dec = parseInt(j?.decimals, 10);
+    if (raw == null || !Number.isFinite(dec)) return null;
+    const v = Number(raw) / 10 ** dec;
+    return v > 0 ? v : null;
+  } catch (e) { console.warn("base supply:", e.message); return null; }
+}
+
+// Solana SPX supply (tokens bridged to Solana) — one lightweight RPC call getTokenSupply
+// on the mint; uiAmount is the decimal-adjusted total. × price = the VALUE on Solana.
+async function solSupply() {
+  try {
+    const r = await fetch(SOL_RPC, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "getTokenSupply", params: [SOL_SPX] }),
+      signal: AbortSignal.timeout(20000),
+    });
+    if (!r.ok) throw new Error(`${r.status}`);
+    const j = await r.json();
+    const v = j?.result?.value?.uiAmount;
+    return (typeof v === "number" && v > 0) ? v : null;
+  } catch (e) { console.warn("sol supply:", e.message); return null; }
+}
+
 // Solana holders — direct from a public Solana RPC, NO key. getProgramAccounts scans every
 // SPL token account for the SPX mint; `dataSlice` downloads ONLY the 8-byte balance (a u64
 // at offset 64) so the payload stays tiny, and we count accounts with balance > 0 (= active
@@ -141,9 +172,9 @@ async function main() {
   if (!KEY) throw new Error("Missing HOLDERSCAN_KEY env (set it as a repo secret)");
 
   const sup = await hs("/stats/supply-breakdown"); // required
-  const [p, stats, pnl, breakdowns, fearGreed, spx500, baseH, solH] = await Promise.all([
+  const [p, stats, pnl, breakdowns, fearGreed, spx500, baseH, solH, baseSup, solSup] = await Promise.all([
     price(), softHs("/stats"), softHs("/stats/pnl"), softHs("/holders/breakdowns"), fng(), sp500(),
-    baseHolders(), solHolders(),
+    baseHolders(), solHolders(), baseSupply(), solSupply(),
   ]);
 
   const rec = {
@@ -151,7 +182,9 @@ async function main() {
     p,
     holders: breakdowns?.total_holders ?? null, // ETH-native (HolderScan) — the supply/tier/MVRV base
     holdersBase: baseH, // Base (bridged) headcount, Blockscout
-    holdersSol: solH,   // Solana (Wormhole) headcount, Solscan — null until SOL_SPX + SOLSCAN_KEY set
+    holdersSol: solH,   // Solana (Wormhole) headcount, public Solana RPC
+    supplyBase: baseSup, // SPX tokens bridged to Base (× price = value on Base)
+    supplySol: solSup,   // SPX tokens bridged to Solana (× price = value on Solana)
     be: pnl?.break_even_price ?? null,
     upnl: pnl?.unrealized_pnl_total ?? null, // aggregate unrealized $ PnL of all holders
     rpnl: pnl?.realized_pnl_total ?? null,   // aggregate realized $ PnL (booked)
@@ -172,7 +205,7 @@ async function main() {
 
   await writeFile(FILE, JSON.stringify(arr));
   const totalH = [rec.holders, rec.holdersBase, rec.holdersSol].reduce((s, n) => s + (n || 0), 0) || null;
-  console.log(`snapshot ${rec.d} · price ${p} · holders eth ${rec.holders} · base ${rec.holdersBase} · sol ${rec.holdersSol} · total ${totalH} · upnl ${rec.upnl} · rpnl ${rec.rpnl} · ${arr.length} records total`);
+  console.log(`snapshot ${rec.d} · price ${p} · holders eth ${rec.holders} · base ${rec.holdersBase} · sol ${rec.holdersSol} · total ${totalH} · supply base ${rec.supplyBase} · sol ${rec.supplySol} · upnl ${rec.upnl} · rpnl ${rec.rpnl} · ${arr.length} records total`);
 
   // Anomaly detector → public/signals.json for the control panel's "Notable
   // today" strip. Human-in-the-loop: it only surfaces candidates + honest framing;
