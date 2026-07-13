@@ -791,6 +791,18 @@
       - Claude CAN'T dispatch the snapshot workflow or test the fetchers (sandbox 403s Blockscout +
         the Solana RPC) — owner triggers the run or waits for the 00:17 UTC cron. Lifting the network
         policy (env settings, mobile-doable) would let Claude test the fetchers directly.
+      - **⭐ SNAPSHOT NOW AUTO-DEPLOYS (fixed 2026-07-13).** Symptom: owner ran the snapshot, Solana
+        banked (`holdersSol: 66149`) but the donut STILL showed only ETH+Base. Root cause: og.js renders
+        cards from the `history.json` BUNDLED at deploy time (vercel.json includeFiles), and the daily
+        snapshot commits via `github-actions[bot]`/GITHUB_TOKEN — **GitHub's recursion guard blocks
+        GITHUB_TOKEN-pushed commits from triggering deploy.yml**, so og.js's bundle was frozen at the
+        last CODE deploy (pre-Solana). The live site + og cards therefore only refreshed data on a
+        human/PAT push, not on the daily snapshot. FIX: `snapshot.yml` now has a **`deploy` job**
+        (`needs: snapshot`, gated on history.json actually changing) that runs the Vercel build+deploy
+        itself (mirrors deploy.yml, shares its `vercel-production` concurrency group). No PAT needed —
+        uses the existing VERCEL_* secrets. So each daily snapshot redeploys → fresh data reaches the
+        site + control-panel card renders automatically. (og cards are cache-busted with `CB=Date.now()`
+        on /control, so once the deploy lands the donut shows all 3 chains without a hard refresh.)
     - **= the BTC "Realized Price" analog the owner asked for (2026-06-25, ref ITC
       Bitcoin Terminal Price chart).** SPX6900's realized price IS the break-even (`be`)
       = avg on-chain cost basis; the buildable card is the ITC-style **price line + the

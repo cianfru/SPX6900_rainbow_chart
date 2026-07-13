@@ -15,6 +15,8 @@ concurrency:
 jobs:
   snapshot:
     runs-on: ubuntu-latest
+    outputs:
+      deploy: ${{ steps.commit.outputs.deploy }}
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
@@ -41,7 +43,12 @@ jobs:
           SOL_RPC: ${{ vars.SOL_RPC }}
         run: node scripts/snapshot.mjs
       - name: Commit if changed
+        id: commit
         run: |
+          # history.json is what the deployed site + og.js card renders bundle, so a
+          # change to it must redeploy. signals.json is deploy-ignored (read via raw).
+          HIST_CHANGED=""
+          [[ -n "$(git status --porcelain public/history.json)" ]] && HIST_CHANGED=1
           if [[ -n "$(git status --porcelain public/history.json public/signals.json)" ]]; then
             git config user.name "github-actions[bot]"
             git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -51,3 +58,38 @@ jobs:
           else
             echo "No change to commit"
           fi
+          # This job pushes with GITHUB_TOKEN, whose commits CANNOT trigger deploy.yml
+          # (GitHub's recursion guard). So signal the deploy job below to redeploy.
+          [[ -n "$HIST_CHANGED" ]] && echo "deploy=true" >> "$GITHUB_OUTPUT" || echo "deploy=false" >> "$GITHUB_OUTPUT"
+
+  # Redeploy so the fresh history.json reaches the deployed site + the og.js card
+  # renders (control panel). Needed because the GITHUB_TOKEN snapshot commit above
+  # can't trigger deploy.yml. Mirrors deploy.yml; shares its concurrency group so the
+  # two never deploy at once. Only runs when history.json actually changed (~1/day).
+  deploy:
+    needs: snapshot
+    if: needs.snapshot.outputs.deploy == 'true'
+    runs-on: ubuntu-latest
+    concurrency:
+      group: vercel-production
+      cancel-in-progress: true
+    env:
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main            # the just-pushed snapshot commit (not the trigger SHA)
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install --global vercel@latest
+      - run: vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      - run: vercel build --prod --token="$VERCEL_TOKEN"
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      - run: vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN"
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
