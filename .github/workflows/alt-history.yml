@@ -20,6 +20,8 @@ jobs:
         with:
           node-version: 24
       - name: Fetch memecoin age history (CryptoCompare)
+        env:
+          CRYPTOCOMPARE_KEY: ${{ secrets.CRYPTOCOMPARE_KEY }}
         run: node scripts/build-alt-history.mjs
       - name: Commit if changed
         run: |

@@ -14,6 +14,10 @@ const COINS = [
 ];
 const DAY = 86400000, THIN_DAYS = 3;
 
+// CryptoCompare now requires a (free) API key for histoday — keyless calls 401.
+const CC_KEY = process.env.CRYPTOCOMPARE_KEY || process.env.CC_KEY || "";
+const CC_HEADERS = { Accept: "application/json", ...(CC_KEY ? { authorization: `Apikey ${CC_KEY}` } : {}) };
+
 // CryptoCompare histoday caps at ~2000 points/call; page backward with toTs until
 // we've covered the coin's launch (or run out of data).
 async function fullHistory(sym, launchTs) {
@@ -21,8 +25,8 @@ async function fullHistory(sym, launchTs) {
   let toTs = Math.floor(Date.now() / 1000);
   for (let page = 0; page < 6; page++) {
     const url = `https://min-api.cryptocompare.com/data/v2/histoday?fsym=${sym}&tsym=USD&limit=2000&toTs=${toTs}`;
-    const res = await fetch(url, { headers: { Accept: "application/json" } });
-    if (!res.ok) throw new Error(`${sym} HTTP ${res.status}`);
+    const res = await fetch(url, { headers: CC_HEADERS });
+    if (!res.ok) throw new Error(`${sym} HTTP ${res.status}${res.status === 401 ? " (set CRYPTOCOMPARE_KEY)" : ""}`);
     const json = await res.json();
     const list = json?.Data?.Data;
     if (!Array.isArray(list) || !list.length) break;
@@ -35,6 +39,7 @@ async function fullHistory(sym, launchTs) {
 }
 
 async function build() {
+  if (!CC_KEY) console.warn("⚠ No CRYPTOCOMPARE_KEY set — CryptoCompare will 401. Add a free key as a repo secret.\n");
   const result = {};
   for (const c of COINS) {
     const launchTs = Date.parse(c.launch + "T00:00:00Z");

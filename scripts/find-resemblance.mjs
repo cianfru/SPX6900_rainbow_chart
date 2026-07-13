@@ -17,13 +17,17 @@ const CANDIDATES = [
   "ALGO", "FTM", "ICP", "HBAR", "VET", "DOGE", "SHIB",
 ];
 
+// CryptoCompare now requires a (free) API key for histoday — keyless calls 401.
+const CC_KEY = process.env.CRYPTOCOMPARE_KEY || process.env.CC_KEY || "";
+const CC_HEADERS = { Accept: "application/json", ...(CC_KEY ? { authorization: `Apikey ${CC_KEY}` } : {}) };
+
 async function fullHistory(sym) {
   const out = new Map(); // time(sec) -> close
   let toTs = Math.floor(Date.now() / 1000);
   for (let page = 0; page < 6; page++) {
     const url = `https://min-api.cryptocompare.com/data/v2/histoday?fsym=${sym}&tsym=USD&limit=2000&toTs=${toTs}`;
-    const res = await fetch(url, { headers: { Accept: "application/json" } });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const res = await fetch(url, { headers: CC_HEADERS });
+    if (!res.ok) throw new Error(`HTTP ${res.status}${res.status === 401 ? " (set CRYPTOCOMPARE_KEY)" : ""}`);
     const json = await res.json();
     const list = json?.Data?.Data;
     if (!Array.isArray(list) || !list.length) break;
@@ -58,6 +62,7 @@ function shapeCorr(spx, peer, age) {
 }
 
 async function run() {
+  if (!CC_KEY) console.warn("⚠ No CRYPTOCOMPARE_KEY set — CryptoCompare will 401. Add a free key as a repo secret.\n");
   // SPX from the bundled model set (self-contained); age & multiple at "now".
   const spx = DEFAULT_RAW.map(r => [Date.parse(r.date), r.price]);
   const st0 = spx[0][0], sp0 = spx[0][1];

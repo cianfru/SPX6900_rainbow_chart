@@ -591,6 +591,15 @@
       same-age (+ what-came-next) card for the WINNER via the `ageCard`/`nextCard` factories +
       `stats.altHistory` mechanism (add the winner to `build-alt-history.mjs` COINS if it's not
       already a memecoin). Logos: doge/pepe/shib bundled (COIN_IMG); a new peer needs a logo add.
+      - **⚠ CRYPTOCOMPARE NOW NEEDS A KEY (found 2026-07-13, first study run 401'd on all 27 coins).**
+        The keyless `min-api.cryptocompare.com/data/v2/histoday` calls the codebase relied on now
+        return **HTTP 401** — CryptoCompare made histoday key-gated. BOTH `find-resemblance.mjs` and
+        `build-alt-history.mjs` now send `authorization: Apikey <CRYPTOCOMPARE_KEY>` (env/secret).
+        **🔲 OWNER: create a FREE CryptoCompare API key (cryptocompare.com → API keys) → add repo
+        secret `CRYPTOCOMPARE_KEY`, then RE-RUN the study** (and later the alt-history builder — same
+        key). Without it both produce empty output. NOTE: the LIVE memekings race (`api/memekings.js`)
+        uses the same keyless endpoint → it's likely been silently falling over to its Coinbase
+        fallback (shallower history); wiring the same key there would restore full depth (separate TODO).
     - **Data foundation kept:** `scripts/build-alt-history.mjs` + `alt-history.yml` (banks
       DOGE/PEPE/SHIB age history → `public/alt-history.json`) and `loadAltHistory()`/
       `stats.altHistory` in stats.mjs stay as the reusable mechanism — no card reads them YET
