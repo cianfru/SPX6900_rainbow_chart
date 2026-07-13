@@ -772,10 +772,20 @@
         may rate-limit/refuse it; set `SOL_RPC` to a dedicated endpoint (Helius/QuickNode) if so.
         Soft-skips (null) on failure. **No Solscan key needed anymore** (dropped SOLSCAN_KEY). Base SPX
         contract `0x50dA645f148798F68EF2d7dB7C1CB22A6819bb2C` (hardcoded default, override via `BASE_SPX`).
-      - **CARDS BUILT (both `scripts/bot/multichain-card.mjs`, data-gated, rotation-only, read
-        `stats.supply.holders/holdersBase/holdersSol` + `chainSeries` — NOTHING hardcoded):**
-        (1) **`multichain`** = DONUT snapshot (total in the centre + per-chain legend/%); renders once
-        ETH + ≥1 bridged chain is banked. LOOK "bars". (2) **`chainrace`** = three-line RACE (owner
+      - **⭐ VALUE-BY-CHAIN added (owner, 2026-07-13): holders ≠ value.** Base/Solana dominate HEADCOUNT
+        but hold only ~6% of the SUPPLY — the value sits on ETH. `multichain` is now a **TWO-DONUT card**:
+        HOLDERS vs VALUE by chain + a comparison table (ETH 20%/94%, Base 52%/3%, Solana 27%/3%). Per-chain
+        **supply** banked keyless: Base from Blockscout `total_supply`/`decimals` (`baseSupply()`), Solana
+        via `getTokenSupply` RPC (`solSupply()`) → `supplyBase`/`supplySol` in history.json + `stats.supply`
+        (+ `totalSupply` = SUPPLY 939M); value = supply×price, ETH-native = total − bridged. Brand colors
+        (owner spec): **ETH grey, Base blue, Solana purple** (both donuts). Removed the misleading "4.9× ETH"
+        centre line. Falls back to the single holders donut until supplies bank (needs the next snapshot).
+        Copy leads with the contrast. og.js redeploys via the snapshot deploy job, so it lights up on the
+        next cron.
+      - **CARDS (both `scripts/bot/multichain-card.mjs`, data-gated, rotation-only, read
+        `stats.supply.holders/holdersBase/holdersSol/supplyBase/supplySol` + `chainSeries` — NOTHING hardcoded):**
+        (1) **`multichain`** = HOLDERS-vs-VALUE two-donut (see above); renders once ETH + ≥1 bridged chain is
+        banked. LOOK "bars". (2) **`chainrace`** = three-line RACE (owner
         asked 2026-07-13), each chain rebased to its own start → "% change in holders per chain over
         time"; the TREND companion to the donut. Data-gated ≥6 multi-chain snapshots (a foundation
         card that fills in over time). LOOK "race". Both wired in charts.mjs/posts.mjs; test whitelist
