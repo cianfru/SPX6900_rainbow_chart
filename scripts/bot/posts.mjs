@@ -380,8 +380,8 @@ const whatNextCard = s => (() => {
 ${moveStr} — each rebased to its own price at that age, so 1× = where it stood then.
 History rhymes — it's not a forecast.`,
     card: { type: "line", spec: {
-      title: `What came next — from SPX6900's age, ${yrs}y forward`,
-      headline: `From ~${(ageNow / 365).toFixed(1)}y: the legends' next ${yrs} years`,
+      title: "",
+      headline: `From SPX6900's age — the legends' next ${yrs} years`,
       accent: "#4ade80",
       yLog: true, yMin: yMin * 0.85, yMax: yMax * 1.18, yTicks, xTicks,
       hlines: [{ y: 1, color: "#94a3b8", label: "SPX is here (1×)", dash: true }],
