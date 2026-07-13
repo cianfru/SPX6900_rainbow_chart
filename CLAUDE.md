@@ -751,6 +751,18 @@
       charts backfill instantly; daily HolderScan `be` keeps it current. **Owner is on MOBILE, Dune
       is a struggle there — do the Dune part at a laptop, then send Claude the CSV to wire the
       ingest.** Claude can draft the full SQL but CANNOT run/test it (sandbox proxy blocks Dune).
+      - **⭐ HOW-TO (owner detail, 2026-07-13) — Dune indexes every ETH tx/log from genesis, so let
+        its SQL engine do the heavy lifting and just pull the RESULT.** Community queries for ERC-20
+        MVRV / Realized Cap ALREADY EXIST. The mechanism: (1) query `erc20_ethereum.evt_Transfer` for
+        the SPX contract **`0xE0f63A424a4439cBE457d80e4f4b51ad25b2c56C`**; (2) join `prices.usd` for the
+        token price at each transfer's block time; (3) a WINDOW FUNCTION tracks each wallet's balance
+        chronologically + an accounting rule (**FIFO** cost basis; the earlier note said running-AVG —
+        either works, FIFO is the cleaner standard); (4) aggregate → **daily historical Realized Cap**
+        (→ realized price → MVRV = mktcap ÷ realized_cap). **USE:** search Dune for "**ERC20 MVRV**" or
+        "**Updated Realized Cap**" (e.g. **query ID `3729687`**), fork it, set the params for SPX6900,
+        run. **AUTOMATE:** Dune's FREE API tier can fetch the pre-computed result as JSON/CSV → dump
+        straight into our data (bundle like `btc-mvrv.json`). So the fastest path is fork-an-existing-
+        query, not write-from-scratch.
     - **⭐ MULTI-CHAIN HOLDER COUNT — BUILT 2026-07-13, DATA-GATED (waiting on the cron + Solana key).**
       SPX is on Ethereum (native) + Base + Solana (bridged, e.g. Wormhole). We only tracked ETH via
       HolderScan. By SUPPLY, Base+Solana are ~6% → looked skippable. BUT by HOLDER COUNT they
