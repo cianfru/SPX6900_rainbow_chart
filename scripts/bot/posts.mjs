@@ -337,54 +337,65 @@ const interpAt = (series, age) => {
   return series.at(-1)[1];
 };
 
-// "What came next" — FORWARD-ONLY composite. Start at SPX6900's CURRENT age (the
-// divider) and show what each legend did over the FOLLOWING years, with every coin
-// REBASED to its own price at that age (so all lines start together at 1×). This
-// removes the misleading "the peer was here too" (they were at wildly different
-// multiples-since-launch — rebasing at the divider is what actually makes them start
-// together) AND the confusing 4–5-figure launch-relative y-axis (now a small
-// multiple-since-here range). Aspirational: from where SPX stands now, the greats
-// went on to do THIS. NOT a forecast — clearly each peer's own forward history.
-const FUTURE_DAYS = 1095; // ~3 years forward (a fuller cycle; capped to each peer's age)
+// "What came next" — FORWARD-ONLY composite. Each legend's recovery forward from its
+// own FIRST BEAR-CYCLE BOTTOM (cycle-phase alignment, NOT age), rebased to 1× there,
+// forward ~3 years — the RECOVERY from the first bear. SPX sits at that same point NOW
+// (near its own first bottom), so it overlays at the origin: cycle-phase sync, not age.
+// The first cycle bottom is detected robustly: the first all-time-high that HOLDS ≥365d
+// (a genuine cycle top, not launch noise) and drops ≥55%, then the trough before recovery.
+const FUTURE_DAYS = 1095; // ~3 years of recovery from the bottom
+function firstCycleBottom(series) {
+  for (let i = 0; i < series.length; i++) {
+    let isATH = true;
+    for (let k = 0; k < i; k++) if (series[k][1] >= series[i][1]) { isATH = false; break; }
+    if (!isATH) continue;
+    const P = series[i][1], A = series[i][0];
+    let j = series.length;
+    for (let k = i + 1; k < series.length; k++) if (series[k][1] >= P) { j = k; break; }
+    const held = (j < series.length ? series[j][0] : series.at(-1)[0]) - A;
+    if (held < 365) continue;                              // recovered too fast = launch noise, not a cycle top
+    let botIdx = i, botP = P;
+    for (let k = i + 1; k < j; k++) if (series[k][1] < botP) { botP = series[k][1]; botIdx = k; }
+    if (botP > P * 0.45) continue;                         // require ≥55% drawdown
+    return { botAge: series[botIdx][0], botP };
+  }
+  return null;
+}
 const whatNextCard = s => (() => {
   const DAY = 86400000;
   const px = s.series?.price;
   if (!px || !px.length) return null;
-  const t0 = px[0][0];
-  const ageNow = (px.at(-1)[0] - t0) / DAY;
+  const spxAge = (px.at(-1)[0] - px[0][0]) / DAY;
   const peers = AGE_PEERS.map(peer => {
-    const maxAge = peer.series.at(-1)[0];
-    if (maxAge <= ageNow + 120) return null;               // peer not meaningfully older than SPX
-    const atNow = interpAt(peer.series, ageNow);
-    if (!(atNow > 0)) return null;
-    const end = Math.min(ageNow + FUTURE_DAYS, maxAge);
-    const fwd = peer.series.filter(([a]) => a > ageNow && a <= end).map(([a, p]) => [(a - ageNow) / 365, p / atNow]);
-    const atEnd = interpAt(peer.series, end) / atNow;
-    const pts = [[0, 1], ...fwd, [(end - ageNow) / 365, atEnd]];
+    const fb = firstCycleBottom(peer.series);
+    if (!fb) return null;
+    const end = Math.min(fb.botAge + FUTURE_DAYS, peer.series.at(-1)[0]);
+    const fwd = peer.series.filter(([a]) => a > fb.botAge && a <= end).map(([a, p]) => [(a - fb.botAge) / 365, p / fb.botP]);
+    const atEnd = interpAt(peer.series, end) / fb.botP;
+    const pts = [[0, 1], ...fwd, [(end - fb.botAge) / 365, atEnd]];
     if (pts.length < 5) return null;
-    return { peer, pts, mult: atEnd, years: Math.round((end - ageNow) / 365) };
+    return { peer, pts, mult: atEnd, years: Math.round((end - fb.botAge) / 365) };
   }).filter(Boolean);
   if (peers.length < 2) return null;
   const yrs = Math.max(...peers.map(p => p.years));
   const allY = peers.flatMap(x => x.pts.map(p => p[1]));
   const yMin = Math.min(...allY), yMax = Math.max(...allY);
-  const yTicks = [0.25, 0.5, 1, 2, 3, 5, 10, 20, 50].filter(v => v >= yMin * 0.85 && v <= yMax * 1.15).map(v => ({ v, label: fMult(v) }));
+  const yTicks = [0.5, 1, 2, 5, 10, 25, 50, 100, 250].filter(v => v >= yMin * 0.85 && v <= yMax * 1.15).map(v => ({ v, label: fMult(v) }));
   const xTicks = [];
   for (let y = 1; y <= yrs; y++) xTicks.push({ x: y, label: `+${y}y` });
-  // Direction-aware per-coin phrasing (not every legend ran up from here).
-  const moveOf = m => m >= 1.1 ? `+${fMult(m)}` : m <= 0.9 ? `−${Math.round((1 - m) * 100)}%` : "flat";
-  const moveStr = peers.map(x => `${x.peer.name} ${moveOf(x.mult)}`).join(", ");
+  const fm = m => (m >= 10 ? Math.round(m) : m.toFixed(1)) + "×";
+  const moveStr = peers.map(x => `${x.peer.name} +${fm(x.mult)}`).join(", ");
   return {
     id: "whatnext",
-    text: ct`🔮 From SPX6900's age (~${(ageNow / 365).toFixed(1)}y), here's what the legends did over the NEXT ${yrs} years:
-${moveStr} — each rebased to its own price at that age, so 1× = where it stood then.
-History rhymes — it's not a forecast.`,
+    text: ct`🔮 SPX6900 sits near its first bear-cycle bottom — where the legends once stood too.
+From THEIR first bottoms: ${moveStr} over the next ${yrs} years, each rebased to its low.
+Different era — history rhymes, not a forecast.`,
     card: { type: "line", spec: {
       title: "",
-      headline: `From SPX6900's age — the legends' next ${yrs} years`,
+      headline: `The recovery from each legend's first bear-cycle bottom`,
       accent: "#4ade80",
-      yLog: true, yMin: yMin * 0.85, yMax: yMax * 1.18, yTicks, xTicks,
-      hlines: [{ y: 1, color: "#94a3b8", label: "SPX is here (1×)", dash: true }],
+      yLog: true, yMin: yMin * 0.85, yMax: yMax * 1.2, yTicks, xTicks,
+      hlines: [{ y: 1, color: "#94a3b8", label: "SPX is here — its first bottom (1×)", dash: true }],
       marker: { x: 0, y: 1, color: "#4ade80" },
       legend: peers.map(x => ({ color: x.peer.color, label: x.peer.name })),
       series: peers.map(x => ({ pts: x.pts, color: x.peer.color, width: 3.6, logo: x.peer.kind })),

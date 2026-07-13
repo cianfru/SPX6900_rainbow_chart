@@ -562,11 +562,26 @@
     aspirational same-age overlays land well. State of the set:
     - **Pairwise same-age** (`btcage`/`ethage`/`solage`, `ageCard` factory in posts.mjs) —
       SPX vs BTC/ETH/SOL as a multiple since each launch, log, x=age. Existing, liked.
-    - **✅ "What came next"** (`whatnext`, `whatNextCard`, BUILT then REDESIGNED 2026-07-13).
-      FORWARD-ONLY COMPOSITE: start at SPX's CURRENT age (the divider) and show what BTC+ETH+SOL
-      each did over the FOLLOWING ~3 years, on ONE chart, every coin REBASED to its own price at
-      that age (so all lines start together at 1×). x-axis = +1y/+2y/+3y forward; a green "SPX is
-      here (1×)" marker+hline at the origin. Direction-aware per-coin labels (`+X×` / `−Y%` / flat).
+    - **✅ "What came next"** (`whatnext`, `whatNextCard`, BUILT → REDESIGNED → RE-ANCHORED 2026-07-13).
+      FORWARD-ONLY COMPOSITE: each legend's RECOVERY forward from its own **FIRST BEAR-CYCLE BOTTOM**,
+      on ONE chart, rebased to 1× at the bottom. x-axis = +1y/+2y/+3y since the bottom; a green
+      "SPX is here — its first bottom (1×)" marker+hline at the origin. Real recoveries: **BTC +183×,
+      ETH +46×, SOL +13×** over the 3 years after their bottoms.
+      - **⭐ WHY CYCLE-BOTTOM ALIGNMENT (owner idea, 2026-07-13):** owner asked to align "from their
+        first bottoming cycle" since **SPX is ~at its own first bear-cycle bottom now** (4-yr-cycle
+        framing) — this SYNCS the peers to SPX by CYCLE PHASE, not arbitrary age, AND shows the
+        aspirational half (the recovery). Notably ETH (bottom age 3.4y), SOL (2.7y) and SPX (~2.9y)
+        all first-bottomed at a SIMILAR age → clean analogs; BTC's was earlier (1.3y, its 2011 low)
+        and its +183× towers (early-BTC was wilder) — kept but leaned-on less; honesty rail
+        "different era — not a forecast." SPX framed as NEAR its first bottom (may not be fully in).
+      - **`firstCycleBottom(series)` detector:** first ATH that HOLDS ≥365d (a real cycle top, not
+        launch noise) and drops ≥55%, then the trough before recovery. The naive "first ≥55% drop"
+        caught launch-era dumps (ETH age 0.2y, SOL 0.7y) — the ≥365d-hold filter fixed it (→ ETH
+        2018, SOL 2022, BTC 2011 bottoms). Lives in posts.mjs.
+      - **History (same session):** v1 was PER-PEER (btcnext/ethnext/solnext, launch→now solid +
+        dashed forward) — owner flagged misleading "peer was here too" + confusing 10,000× launch-
+        relative y-axis. v2 = forward-from-SPX's-AGE composite (rebased at divider). v3 (this) =
+        forward-from-each-coin's-first-BOTTOM. Each superseded the last; `nextCard`/`fMultTick` gone.
       - **WHY the redesign (owner, 2026-07-13):** the FIRST version was per-peer (`btcnext`/
         `ethnext`/`solnext`) showing launch→now solid + a dashed forward stretch. Owner flagged
         TWO real problems: (1) copy said "the peer was HERE too" — MISLEADING, peers were at wildly
