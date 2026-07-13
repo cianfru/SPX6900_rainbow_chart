@@ -11,10 +11,11 @@ const png = (svg, w) => new Resvg(svg, { fitTo: { mode: "width", value: w }, fon
 const fK = n => (n >= 1000 ? Math.round(n / 1000) + "k" : String(n));
 
 // Brand-accurate palette (owner spec): Ethereum grey, Base blue, Solana purple.
+// lite = glossy top edge, dark = shaded bottom (the 3D tube gradient).
 const CHAINS = [
-  { key: "eth", label: "Ethereum", sub: "native", c: "#98a2b7", lite: "#cbd2df" },
-  { key: "base", label: "Base", sub: "bridged", c: "#3b82f6", lite: "#8fb6ff" },
-  { key: "sol", label: "Solana", sub: "bridged", c: "#9945ff", lite: "#c193ff" },
+  { key: "eth", label: "Ethereum", sub: "native", c: "#98a2b7", lite: "#dbe1ec", dark: "#5c6675" },
+  { key: "base", label: "Base", sub: "bridged", c: "#3b82f6", lite: "#a6c6ff", dark: "#1c56c8" },
+  { key: "sol", label: "Solana", sub: "bridged", c: "#9945ff", lite: "#cba3ff", dark: "#6a1fd6" },
 ];
 const fUsd = v => "$" + (v >= 1e9 ? (v / 1e9).toFixed(2) + "B" : v >= 1e6 ? Math.round(v / 1e6) + "M" : v >= 1e3 ? Math.round(v / 1e3) + "k" : Math.round(v));
 
@@ -24,10 +25,15 @@ const pt = (cx, cy, r, frac) => {
   return [cx + r * Math.cos(a), cy + r * Math.sin(a)];
 };
 
-// Draw one gradient-filled donut with a glow underlay, dark channel track + centre hole.
-function donutSvg(cx, cy, rOut, rIn, rows, total) {
+// Draw one GLOSSY gradient donut: colored 3D-tube arcs + a userspace gloss sheen (bright
+// top → shaded bottom) + a specular highlight streak, over a dark channel track. Returns
+// {defs, body} so the per-donut gloss gradient (needs the real cx/cy) rides in <defs>.
+function donutSvg(id, cx, cy, rOut, rIn, rows, total) {
   const rMid = (rOut + rIn) / 2, thick = rOut - rIn;
-  let glows = "", arcs = "", acc = 0;
+  const defs = `<linearGradient id="gl-${id}" gradientUnits="userSpaceOnUse" x1="${cx}" y1="${(cy - rOut).toFixed(1)}" x2="${cx}" y2="${(cy + rIn).toFixed(1)}">`
+    + `<stop offset="0%" stop-color="#ffffff" stop-opacity="0.5"/><stop offset="17%" stop-color="#ffffff" stop-opacity="0.15"/>`
+    + `<stop offset="44%" stop-color="#ffffff" stop-opacity="0"/><stop offset="100%" stop-color="#0a0a20" stop-opacity="0.34"/></linearGradient>`;
+  let glows = "", arcs = "", gloss = "", acc = 0;
   rows.forEach(r => {
     if (r.n <= 0) return;
     const f0 = acc / total, f1 = (acc + r.n) / total, gap = 0.008;
@@ -36,32 +42,40 @@ function donutSvg(cx, cy, rOut, rIn, rows, total) {
     const d = `M${x0.toFixed(1)},${y0.toFixed(1)} A${rMid},${rMid} 0 ${large} 1 ${x1.toFixed(1)},${y1.toFixed(1)}`;
     glows += `<path d="${d}" fill="none" stroke="${r.c}" stroke-width="${thick + 4}" stroke-opacity="0.42" filter="url(#mcGlow)"/>`;
     arcs += `<path d="${d}" fill="none" stroke="url(#arc-${r.key})" stroke-width="${thick}"/>`;
+    gloss += `<path d="${d}" fill="none" stroke="url(#gl-${id})" stroke-width="${thick}"/>`;
     acc += r.n;
   });
   const track = `<circle cx="${cx}" cy="${cy}" r="${rMid}" fill="none" stroke="#0b1024" stroke-width="${thick + 10}" stroke-opacity="0.55"/>`;
+  // specular shine streak arced over the top-left outer edge (the "glint")
+  const rs = rMid + thick * 0.24;
+  const [sx0, sy0] = pt(cx, cy, rs, -0.30), [sx1, sy1] = pt(cx, cy, rs, 0.05);
+  const spec = `<path d="M${sx0.toFixed(1)},${sy0.toFixed(1)} A${rs.toFixed(1)},${rs.toFixed(1)} 0 0 1 ${sx1.toFixed(1)},${sy1.toFixed(1)}" fill="none" stroke="#ffffff" stroke-opacity="0.5" stroke-width="${(thick * 0.13).toFixed(1)}" stroke-linecap="round" filter="url(#mcGlow)"/>`;
   const hole = `<circle cx="${cx}" cy="${cy}" r="${rIn}" fill="url(#hole)"/>`;
-  return track + glows + arcs + hole;
+  return { defs, body: track + glows + arcs + gloss + spec + hole };
 }
-const centerText = (cx, cy, big) =>
-  `<text x="${cx}" y="${cy + 4}" fill="url(#mcTot)" font-size="54" font-weight="800" font-family="sans-serif" text-anchor="middle" filter="url(#mcGlow)" opacity="0.4">${big}</text>`
-  + `<text x="${cx}" y="${cy + 4}" fill="url(#mcTot)" font-size="54" font-weight="800" font-family="sans-serif" text-anchor="middle" letter-spacing="-1">${big}</text>`;
+const centerText = (cx, cy, big, fs = 54) =>
+  `<text x="${cx}" y="${cy + 4}" fill="url(#mcTot)" font-size="${fs}" font-weight="800" font-family="sans-serif" text-anchor="middle" filter="url(#mcGlow)" opacity="0.4">${big}</text>`
+  + `<text x="${cx}" y="${cy + 4}" fill="url(#mcTot)" font-size="${fs}" font-weight="800" font-family="sans-serif" text-anchor="middle" letter-spacing="-1">${big}</text>`;
 const donutLabel = (cx, y, t) => `<text x="${cx}" y="${y}" fill="#8c98b0" font-size="24" font-weight="800" font-family="sans-serif" text-anchor="middle" letter-spacing="3">${t}</text>`;
 
-const DEFS = arcDefs => `<defs>
+const DEFS = (arcDefs, extra = "") => `<defs>
  <radialGradient id="bgIndigo" cx="16%" cy="8%" r="60%"><stop offset="0%" stop-color="#6366f1" stop-opacity="0.28"/><stop offset="70%" stop-color="#6366f1" stop-opacity="0"/></radialGradient>
  <radialGradient id="bgBlue" cx="50%" cy="115%" r="65%"><stop offset="0%" stop-color="#2563eb" stop-opacity="0.22"/><stop offset="70%" stop-color="#2563eb" stop-opacity="0"/></radialGradient>
  <radialGradient id="bgPurple" cx="92%" cy="86%" r="60%"><stop offset="0%" stop-color="#9945ff" stop-opacity="0.20"/><stop offset="70%" stop-color="#9945ff" stop-opacity="0"/></radialGradient>
  <radialGradient id="vig" cx="50%" cy="44%" r="80%"><stop offset="56%" stop-color="#05060f" stop-opacity="0"/><stop offset="100%" stop-color="#05060f" stop-opacity="0.55"/></radialGradient>
- <radialGradient id="hole" cx="50%" cy="45%" r="60%"><stop offset="0%" stop-color="#0a0f22" stop-opacity="0.92"/><stop offset="100%" stop-color="#0a0f22" stop-opacity="0"/></radialGradient>
- <linearGradient id="mcTot" x1="0" y1="0" x2="1" y2="0.4"><stop offset="0%" stop-color="#dfe6ff"/><stop offset="100%" stop-color="#aab8ff"/></linearGradient>
+ <radialGradient id="hole" cx="50%" cy="42%" r="62%"><stop offset="0%" stop-color="#0a0f22" stop-opacity="0.94"/><stop offset="100%" stop-color="#0a0f22" stop-opacity="0"/></radialGradient>
+ <linearGradient id="mcTot" x1="0" y1="0" x2="1" y2="0.4"><stop offset="0%" stop-color="#f0f4ff"/><stop offset="100%" stop-color="#b7c3ff"/></linearGradient>
  <filter id="mcGlow" x="-45%" y="-45%" width="190%" height="190%"><feGaussianBlur stdDeviation="9"/></filter>
- ${arcDefs}
+ ${arcDefs}${extra}
 </defs>`;
-const BG = W => `<rect width="${W}" height="630" fill="#05060f"/>
-<rect width="${W}" height="630" fill="url(#bgIndigo)"/>
-<rect width="${W}" height="630" fill="url(#bgBlue)"/>
-<rect width="${W}" height="630" fill="url(#bgPurple)"/>
-<rect width="${W}" height="630" fill="url(#vig)"/>`;
+const BG = (W, H) => `<rect width="${W}" height="${H}" fill="#05060f"/>
+<rect width="${W}" height="${H}" fill="url(#bgIndigo)"/>
+<rect width="${W}" height="${H}" fill="url(#bgBlue)"/>
+<rect width="${W}" height="${H}" fill="url(#bgPurple)"/>
+<rect width="${W}" height="${H}" fill="url(#vig)"/>`;
+// 3-stop tube gradient per chain for the glossy look (top-lit → mid → shaded bottom).
+const arcDefsFor = () => CHAINS.map(r =>
+  `<linearGradient id="arc-${r.key}" x1="0" y1="0" x2="0.25" y2="1"><stop offset="0%" stop-color="${r.lite}"/><stop offset="48%" stop-color="${r.c}"/><stop offset="100%" stop-color="${r.dark}"/></linearGradient>`).join("");
 
 export function multichainSvg(stats, opts = {}) {
   const s = stats.supply;
@@ -71,8 +85,7 @@ export function multichainSvg(stats, opts = {}) {
   if (!(hc.eth > 0) || !(hc.base > 0 || hc.sol > 0)) return null;
 
   const W = opts.W ?? 1200, H = opts.H ?? 630;
-  const arcDefs = CHAINS.map(r =>
-    `<linearGradient id="arc-${r.key}" x1="0" y1="0" x2="0.4" y2="1"><stop offset="0%" stop-color="${r.lite}"/><stop offset="100%" stop-color="${r.c}"/></linearGradient>`).join("");
+  const arcDefs = arcDefsFor();
 
   // VALUE by chain = each chain's SPX supply × price (tokens on Base/Solana are bridged;
   // ETH-native = total − the two). It's the honest counterweight to headcount.
@@ -85,22 +98,23 @@ export function multichainSvg(stats, opts = {}) {
 
   const titleText = haveValue ? "SPX6900 — HOLDERS vs VALUE BY CHAIN" : "SPX6900 — HOLDERS ACROSS CHAINS";
   const title = `<text x="64" y="62" fill="#eef2fb" font-size="31" font-weight="800" font-family="sans-serif" letter-spacing="1">${titleText}</text>`;
+  const midY = Math.round((124 + (H - 40)) / 2); // vertical centre of the content band
 
   // ── Two-donut view (once the per-chain supplies are banked) ──────────────────────
   if (haveValue) {
     const valueRows = CHAINS.map(c => ({ ...c, n: val[c.key] || 0 })).filter(r => r.n > 0);
     const totalV = valueRows.reduce((a, r) => a + r.n, 0);
-    const aCx = 268, bCx = 566, cyD = 372, rOut = 122, rIn = 76;
-    const donutA = donutSvg(aCx, cyD, rOut, rIn, holderRows, totalH);
-    const donutB = donutSvg(bCx, cyD, rOut, rIn, valueRows, totalV);
+    const aCx = 268, bCx = 566, cyD = midY, rOut = 122, rIn = 76;
+    const dA = donutSvg("h", aCx, cyD, rOut, rIn, holderRows, totalH);
+    const dB = donutSvg("v", bCx, cyD, rOut, rIn, valueRows, totalV);
 
     // Comparison table on the right — the money shot: same chains, flipped distributions.
     const tx = 748, hCol = 1010, vCol = 1160;
     let table = `<text x="64" y="96" fill="#93a0b8" font-size="22" font-family="sans-serif">Two views: WHO holds SPX (wallets) vs WHERE the value sits ($).</text>`;
-    table += `<text x="${hCol}" y="248" fill="#8c98b0" font-size="22" font-weight="700" font-family="sans-serif" text-anchor="end" letter-spacing="1">HOLDERS</text>`;
-    table += `<text x="${vCol}" y="248" fill="#8c98b0" font-size="22" font-weight="700" font-family="sans-serif" text-anchor="end" letter-spacing="1">VALUE</text>`;
+    table += `<text x="${hCol}" y="${cyD - 108}" fill="#8c98b0" font-size="22" font-weight="700" font-family="sans-serif" text-anchor="end" letter-spacing="1">HOLDERS</text>`;
+    table += `<text x="${vCol}" y="${cyD - 108}" fill="#8c98b0" font-size="22" font-weight="700" font-family="sans-serif" text-anchor="end" letter-spacing="1">VALUE</text>`;
     CHAINS.forEach((c, i) => {
-      const y = 306 + i * 66;
+      const y = cyD - 50 + i * 66;
       const hPct = totalH ? Math.round((hc[c.key] || 0) / totalH * 100) : 0;
       const vPct = totalV ? Math.round((val[c.key] || 0) / totalV * 100) : 0;
       table += `<circle cx="${tx + 12}" cy="${y - 8}" r="13" fill="${c.c}" fill-opacity="0.5" filter="url(#mcGlow)"/>`;
@@ -111,21 +125,21 @@ export function multichainSvg(stats, opts = {}) {
     });
 
     return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
-${DEFS(arcDefs)}
-${BG(W)}
+${DEFS(arcDefs, dA.defs + dB.defs)}
+${BG(W, H)}
 ${title}${table}
-${donutLabel(aCx, 214, "HOLDERS")}${donutA}${centerText(aCx, cyD - 6, "~" + fK(totalH))}
+${donutLabel(aCx, cyD - rOut - 26, "HOLDERS")}${dA.body}${centerText(aCx, cyD - 6, "~" + fK(totalH))}
 <text x="${aCx}" y="${cyD + 34}" fill="#8894ac" font-size="21" font-family="sans-serif" text-anchor="middle">wallets</text>
-${donutLabel(bCx, 214, "VALUE")}${donutB}${centerText(bCx, cyD - 6, fUsd(totalV))}
+${donutLabel(bCx, cyD - rOut - 26, "VALUE")}${dB.body}${centerText(bCx, cyD - 6, fUsd(totalV))}
 <text x="${bCx}" y="${cyD + 34}" fill="#8894ac" font-size="21" font-family="sans-serif" text-anchor="middle">of SPX</text>
-<text x="64" y="${H - 22}" fill="#5a6478" font-size="17" font-family="sans-serif">spx6900rainbow.xyz · value = each chain's SPX supply × price · Base &amp; Solana bridged · wallets, not people</text>
+<text x="64" y="${H - 24}" fill="#5a6478" font-size="17" font-family="sans-serif">spx6900rainbow.xyz · value = each chain's SPX supply × price · Base &amp; Solana bridged · wallets, not people</text>
 </svg>`;
   }
 
   // ── Fallback: single holders donut until the per-chain supplies bank ──────────────
-  const cx = 340, cy = 358, rOut = 150, rIn = 92;
-  const donut = donutSvg(cx, cy, rOut, rIn, holderRows, totalH);
-  const lx = 650, lyTop = 210, rowH = 116;
+  const cx = 340, cy = midY, rOut = 150, rIn = 92;
+  const d = donutSvg("h", cx, cy, rOut, rIn, holderRows, totalH);
+  const lx = 650, rowH = 116, lyTop = cy - rowH;
   let legend = "";
   holderRows.forEach((r, i) => {
     const y = lyTop + rowH * i;
@@ -137,13 +151,13 @@ ${donutLabel(bCx, 214, "VALUE")}${donutB}${centerText(bCx, cyD - 6, fUsd(totalV)
     if (i < holderRows.length - 1) legend += `<line x1="${lx}" y1="${y + 68}" x2="${W - 64}" y2="${y + 68}" stroke="#ffffff" stroke-opacity="0.06"/>`;
   });
   return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
-${DEFS(arcDefs)}
-${BG(W)}
+${DEFS(arcDefs, d.defs)}
+${BG(W, H)}
 ${title}
-${donut}${centerText(cx, cy - 4, "~" + fK(totalH))}
+${d.body}${centerText(cx, cy - 4, "~" + fK(totalH))}
 <text x="${cx}" y="${cy + 40}" fill="#8894ac" font-size="23" font-family="sans-serif" text-anchor="middle">holders</text>
 ${legend}
-<text x="64" y="${H - 22}" fill="#5a6478" font-size="17" font-family="sans-serif">spx6900rainbow.xyz · wallets across chains, not people · Base &amp; Solana are bridged</text>
+<text x="64" y="${H - 24}" fill="#5a6478" font-size="17" font-family="sans-serif">spx6900rainbow.xyz · wallets across chains, not people · Base &amp; Solana are bridged</text>
 </svg>`;
 }
 
