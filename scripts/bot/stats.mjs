@@ -164,6 +164,20 @@ function loadBtcMvrv() {
   } catch { return []; }
 }
 
+// Memecoin peers' age-indexed price history (DOGE/PEPE/SHIB), banked by the alt-history
+// workflow → public/alt-history.json. { <coin>: { launch, name, series: [[ageDays, price]] } }.
+// Feeds the memecoin same-age / what-came-next cards; {} until the build runs.
+function loadAltHistory() {
+  try {
+    const obj = JSON.parse(readFileSync(new URL("../../public/alt-history.json", import.meta.url), "utf8"));
+    const out = {};
+    for (const [k, v] of Object.entries(obj || {})) {
+      if (Array.isArray(v?.points) && v.points.length) out[k] = { launch: v.launch, name: v.name, series: v.points };
+    }
+    return out;
+  } catch { return {}; }
+}
+
 // SPX-vs-coin ratio aligned on SPX dates, and relative-strength over a window.
 function alignedRatio(coin, raw) {
   const map = new Map(coin.map(r => [r.date, r.price]));
@@ -335,6 +349,7 @@ export function computeStats(price, dateStr = new Date().toISOString().slice(0, 
     drawn: RAW, // merged {date,price}[] history (bundled + snapshot) for the rainbow line
     longshort: loadLongShort(), // Hyperliquid funding/OI positioning (data-gated)
     btcMvrv: loadBtcMvrv(), // Bitcoin's decade of MVRV, context for the MVRV-vs-BTC card
+    altHistory: loadAltHistory(), // DOGE/PEPE/SHIB age-indexed history for the memecoin age cards
     series: {
       price: RAW.map(r => [Date.parse(r.date), r.price]),
       resid: thinSeries(RAW.map(r => [Date.parse(r.date), Math.log(r.price) - m.predict(M.dayN(r.date))])),

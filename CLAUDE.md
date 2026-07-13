@@ -558,6 +558,34 @@
     a big aspirational number ("X× to $69 / DOGE's cap / the next target") over a clever
     metric. The roster already rotates ~40+ days without repeat, so the bar for adding is
     high — only add if it's an obvious X-multiple/target win, not another indicator.
+  - **⭐ SAME-AGE / PERFORMANCE-COMPARISON cards — owner loves these (2026-07-13).** The
+    aspirational same-age overlays land well. State of the set:
+    - **Pairwise same-age** (`btcage`/`ethage`/`solage`, `ageCard` factory in posts.mjs) —
+      SPX vs BTC/ETH/SOL as a multiple since each launch, log, x=age. Existing, liked.
+    - **✅ "What came next"** (`btcnext`/`ethnext`/`solnext`, `nextCard` factory, BUILT
+      2026-07-13) — the FORWARD twin: same rebasing, but the peer's line continues PAST
+      SPX's current age as a DASHED stretch (its real path AFTER this age), a "SPX today"
+      vertical divider (new `vlines` primitive in `lineCardSvg`), and the forward multiple
+      as the hook. ~3-YEAR window (a fuller cycle — 2y caught ETH mid-bear and read as a
+      decline). Direction-aware phrasing (`move` = "ran X×" / "fell Y%" / "sideways") so a
+      down-move never reads as "ran 0.5×". Honesty rail: "History rhymes — not a forecast."
+    - **❌ "vs the legends" composite (BUILT then REMOVED 2026-07-13)** — one chart with SPX
+      vs BTC+ETH+SOL at the same age. Owner: it's a REPETITION of the 3 pairwise cards, not
+      interesting. Don't rebuild composites of existing same-age cards.
+    - **✅ DOGE same-age + what-came-next (`dogeage`/`dogenext`, BUILT 2026-07-13, DATA-GATED).**
+      The most on-brand peer (memecoin blueprint). Reuses ageCard/nextCard via `dogePeer(h)`
+      with a RUNTIME-loaded series (`stats.altHistory.doge`). Logo already bundled (COIN_IMG
+      in logos.mjs has doge/pepe/shib). **DATA: `scripts/build-alt-history.mjs` + `alt-history.yml`**
+      fetch DOGE+PEPE+SHIB full daily history from CryptoCompare (free, CI-reachable — same
+      source as memekings; blocked from the dev sandbox), age-index since launch, thin ~3d →
+      `public/alt-history.json`. **🔲 OWNER: RUN the "Build memecoin age history" workflow ONCE**
+      (dispatch, mobile-OK) to populate it — then `dogeage`/`dogenext` go live automatically
+      (monthly cron keeps it fresh). Data for all 3 coins is banked, but only DOGE is WIRED.
+    - **🔲 PEPE / SHIB same-age cards — HELD for later (data already banked by the builder).**
+      Just add a `pepePeer(h)`/`shibPeer(h)` (mirror `dogePeer`) + two POSTS entries + LOOK
+      keys, once DOGE proves out. CAVEAT: PEPE launched 2023-04, only ~3mo before SPX, so it
+      has almost NO "older peer" runway — same-age/what-next is weak for PEPE (SHIB, Aug 2020,
+      is fine). Prefer DOGE + SHIB; PEPE only if a memecoin-trio set is wanted.
   - **Card-variety principle (owner, 2026-06-25) — IMPORTANT framing correction.**
     The daily FEED has a LOWER bar than a site tab: a visually-fresh card keeps the
     rotation from going stale even if its data overlaps an existing one. Bot cards are

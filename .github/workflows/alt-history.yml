@@ -1,0 +1,34 @@
+# FOUNDATION: bank the memecoin peers' (DOGE, PEPE, SHIB) full price history, age-indexed
+# since each coin's launch, into public/alt-history.json — for the memecoin "same age" +
+# "what came next" cards. Sourced from CryptoCompare's free daily history (the same source
+# the memekings race uses), which is allowlist-blocked from the dev sandbox but reachable
+# from CI. The deep history is ~static/append-only, so monthly is plenty (only the recent
+# tail moves). RUN ONCE via "Run workflow" to populate it, then monthly keeps it fresh.
+name: Build memecoin age history
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "37 6 2 * *"   # 06:37 UTC on the 2nd of each month
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+      - name: Fetch memecoin age history (CryptoCompare)
+        run: node scripts/build-alt-history.mjs
+      - name: Commit if changed
+        run: |
+          if [[ -n "$(git status --porcelain public/alt-history.json)" ]]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add public/alt-history.json
+            git commit -m "chore: bank memecoin age history"
+            git push
+          else
+            echo "no change"
+          fi
