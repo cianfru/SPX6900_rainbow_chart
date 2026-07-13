@@ -1,10 +1,11 @@
-# FOUNDATION: bank the memecoin peers' (DOGE, PEPE, SHIB) full price history, age-indexed
-# since each coin's launch, into public/alt-history.json — for the memecoin "same age" +
-# "what came next" cards. Sourced from CryptoCompare's free daily history (the same source
-# the memekings race uses), which is allowlist-blocked from the dev sandbox but reachable
-# from CI. The deep history is ~static/append-only, so monthly is plenty (only the recent
-# tail moves). RUN ONCE via "Run workflow" to populate it, then monthly keeps it fresh.
-name: Build memecoin age history
+# FOUNDATION: bank the peer coins' full DAILY price history, age-indexed since each coin's
+# launch, into public/alt-history.json — the MAJORS (BTC/ETH/SOL, the same-age / what-came-
+# next comparison peers) + memecoins (DOGE/PEPE/SHIB). DAILY (not thinned) so peaks/ATHs are
+# exact — the bundled ~3-day src series erased sharp tops (SOL's $295 Jan-25 ATH → ~$220).
+# Sourced from CryptoCompare daily (needs CRYPTOCOMPARE_KEY; allowlist-blocked from the dev
+# sandbox but reachable from CI). Deep history is ~static, so monthly is plenty. RUN ONCE via
+# "Run workflow" to populate, then monthly keeps the tail fresh.
+name: Build peer price history (daily)
 on:
   workflow_dispatch:
   schedule:

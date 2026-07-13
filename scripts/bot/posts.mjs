@@ -1524,10 +1524,13 @@ Everything rebased to 0% on Jan 1, a clean same-start race against BTC, ETH and 
   // 30–32 — SPX6900 at the same age as Bitcoin / Ethereum / Solana (see ageCard).
   ...AGE_PEERS.map(ageCard),
 
-  // 32c — "What came next" (forward-only composite): from SPX6900's current age, what
-  // each legend did over the following ~3 years, all rebased to 1× at that age. One
-  // chart, no past, sane y-scale. (see whatNextCard.)
-  whatNextCard,
+  // 32c — "What came next" — PARKED (owner, 2026-07-13). The July-anchor / "final
+  // capitulation still ahead" framing reads confusing, and the thinned peer data made the
+  // peaks wrong (SOL's real $295 Jan-25 top sampled to ~$220). Rebuild it AFTER SPX bottoms
+  // as the simple, intuitive "recovery FROM the bottom" version, once daily peer data is
+  // banked (build-alt-history.mjs now fetches daily BTC/ETH/SOL). `whatNextCard` + the
+  // `firstCycleBottom` detector are kept below, just out of rotation.
+  // whatNextCard,
 
   // 29 — Kraken affiliate promo. A finished marketing graphic (public/rainbow-
   // kraken.png) posted as-is + a referral CTA. Kept OUT of the organic rotation
@@ -1587,7 +1590,7 @@ const LOOK = {
   spxvssp: "race", majors: "race", ytd: "race", sp500ytd: "race", sp500roll12: "race", btc: "race", chainrace: "race",
   roadmap: "trend", rally: "trend", alltime: "trend", breakeven: "trend", diamondtrend: "trend",
   cycleclock: "trend", fngtrend: "trend", btcage: "trend", ethage: "trend", solage: "trend",
-  whatnext: "race",
+  whatnext: "race", // parked (out of rotation); kept for the post-bottom rebuild
   // — Tier B: flavourful / distinct looks (used to break up the green lines) —
   riskcolor: "colorline", risklevels: "colorline", rsidots: "colorline",
   riskheat: "dual", runningroi: "dual", cycle: "dual", longshort: "dual", underwater: "dual", goldencross: "dual", holdergrowth: "dual", mvrvbtc: "dual", picycle: "dual",

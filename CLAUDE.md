@@ -613,6 +613,20 @@
         absurd 538× — which is why we anchor at Jul, not the low). DATA CAVEAT: bundled SOL series tops
         at $257 (Nov 2024) vs the real ~$295 (Jan 2025) ATH — a thinning artifact, so SOL runs slightly
         conservative (true peak-from-Jul ≈ 8.5×).
+      - **⭐ PARKED + NEEDS DAILY DATA (owner, 2026-07-13).** Owner: the July-anchor / "capitulation
+        still ahead" framing reads CONFUSING, and the thinned peer data made peaks WRONG — SOL's real
+        **$295 ATH on Jan-18-2025** sampled down to ~$220 in our bundle (series maxes $257 Nov-2024).
+        Weekly/~3-day thinning ERASES sharp tops, so every peak/ATH read off the bundled peer series is
+        suspect. **DECISION: PARKED `whatnext`** (commented out of the POSTS rotation + LOOK; `whatNextCard`
+        + `firstCycleBottom` kept). **REBUILD AFTER SPX BOTTOMS** as the simple intuitive "recovery FROM the
+        bottom" card (bottom-anchored, one clean multiple/coin, no "capitulation ahead" caveat — matches
+        the $8→$295 mental model). **PREREQ — DAILY PEER DATA:** `build-alt-history.mjs` now fetches
+        **DAILY** (THIN_DAYS 3→1) history for **BTC/ETH/SOL** (added) + the memecoins from CryptoCompare
+        → `public/alt-history.json`; workflow renamed "Build peer price history (daily)". 🔲 OWNER: once
+        `CRYPTOCOMPARE_KEY` is set, RUN it → then wire the age/what-next cards to `stats.altHistory.<coin>`
+        (dense) instead of the thinned bundled `BTC_HISTORY`/`ETH_HISTORY`/`SOL_HISTORY` src, and re-verify
+        SOL's Jan-25 $295 top lands. (SPX's own price is already daily in price-history.json; only the PEER
+        series were thin.)
       - **`firstCycleBottom(series)` detector:** first ATH that HOLDS ≥365d (a real cycle top, not
         launch noise) and drops ≥55%, then the trough before recovery. The naive "first ≥55% drop"
         caught launch-era dumps (ETH age 0.2y, SOL 0.7y) — the ≥365d-hold filter fixed it (→ ETH

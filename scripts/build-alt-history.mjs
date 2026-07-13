@@ -1,18 +1,21 @@
-// Build age-indexed price history for the memecoin peers (DOGE, PEPE, SHIB) from
-// CryptoCompare's free daily history (full history, reachable from CI — the same
-// source the memekings race uses). Writes public/alt-history.json:
-//   { <coin>: { name, launch, points: [[ageDaysSinceLaunch, priceUSD], ...] } }
-// thinned to ~every 3 days, matching the bundled BTC/ETH/SOL age series format.
-// Feeds the memecoin "same age" + "what came next" cards. CryptoCompare is
-// geo/allowlist-blocked from the dev sandbox, so this only runs in CI (dispatch/cron).
+// Build age-indexed DAILY price history for the peer coins — the MAJORS (BTC/ETH/SOL,
+// the same-age / what-came-next comparison peers) and the memecoins (DOGE/PEPE/SHIB) —
+// from CryptoCompare's full daily history (reachable from CI; the memekings source).
+// Writes public/alt-history.json:  { <coin>: { name, launch, points: [[ageDaysSinceLaunch, priceUSD], …] } }
+// DAILY (no thinning) — the bundled src series were thinned to ~3-day, which ERASED sharp
+// tops (e.g. SOL's real $295 Jan-18-2025 ATH sampled down to ~$220), so every peak/ATH read
+// was wrong. Daily fixes that. CryptoCompare is allowlist-blocked from the dev sandbox → CI only.
 import { writeFile } from "node:fs/promises";
 
 const COINS = [
+  { key: "btc", sym: "BTC", launch: "2010-07-17", name: "Bitcoin" },
+  { key: "eth", sym: "ETH", launch: "2015-08-07", name: "Ethereum" },
+  { key: "sol", sym: "SOL", launch: "2020-04-11", name: "Solana" },
   { key: "doge", sym: "DOGE", launch: "2013-12-06", name: "Dogecoin" },
   { key: "shib", sym: "SHIB", launch: "2020-08-01", name: "Shiba Inu" },
   { key: "pepe", sym: "PEPE", launch: "2023-04-14", name: "Pepe" },
 ];
-const DAY = 86400000, THIN_DAYS = 3;
+const DAY = 86400000, THIN_DAYS = 1; // DAILY — no thinning, so peaks/ATHs are exact
 
 // CryptoCompare now requires a (free) API key for histoday — keyless calls 401.
 const CC_KEY = process.env.CRYPTOCOMPARE_KEY || process.env.CC_KEY || "";
