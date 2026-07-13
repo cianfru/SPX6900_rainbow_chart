@@ -645,6 +645,33 @@ One coin, one community, three chains.`,
     };
   },
 
+  // Holder growth by chain — the three-line race (ETH/Base/Solana), each rebased to
+  // its own start so it reads as % change in holders per chain over time. The TREND
+  // companion to the multichain donut snapshot. Data-gated on the multi-chain era
+  // accumulating (~a week+ of banked columns); a foundation card — fills in over time.
+  s => {
+    const cs = s.supply?.chainSeries || [];
+    if (cs.length < 6) return null;
+    // Rebase each chain to its first non-null value and read the current % change.
+    const pctOf = key => {
+      const pts = cs.map(r => r[key]).filter(v => v != null && v > 0);
+      return pts.length >= 2 ? pts.at(-1) / pts[0] - 1 : null;
+    };
+    const parts = [["Ethereum", pctOf("eth")], ["Base", pctOf("base")], ["Solana", pctOf("sol")]]
+      .filter(([, v]) => v != null);
+    if (parts.length < 2) return null;
+    const fp = v => (v >= 0 ? "+" : "−") + Math.round(Math.abs(v) * 100) + "%";
+    const lead = parts.slice().sort((a, b) => b[1] - a[1])[0];
+    const list = parts.map(([n, v]) => `${n} ${fp(v)}`).join(", ");
+    return {
+      id: "chainrace",
+      text: ct`📈 Holders by chain since we started tracking all three: ${list}.
+${lead[0]} is growing its wallet base fastest — Base and Solana are bridged, and these are wallets, not people.
+The whole community, chain by chain.`,
+      card: { type: "chainrace" },
+    };
+  },
+
   // MVRV vs Bitcoin — SPX6900's on-chain valuation on BTC's decade of MVRV. Data-gated on
   // the BTC MVRV bundle (public/btc-mvrv.json, banked monthly) + the holder break-even. The
   // hook is a valuation POSITION (percentile on BTC's own map), true right now — framed as
@@ -1428,7 +1455,7 @@ const LOOK = {
   // — Tier A: the green log-line family (visually similar; spread them out) —
   valuation: "rainbow", channel: "channel",
   targets: "ladder", memecoins: "ladder", btcgrade: "ladder", dogeclock: "ladder", majorcaps: "ladder",
-  spxvssp: "race", majors: "race", ytd: "race", sp500ytd: "race", sp500roll12: "race", btc: "race",
+  spxvssp: "race", majors: "race", ytd: "race", sp500ytd: "race", sp500roll12: "race", btc: "race", chainrace: "race",
   roadmap: "trend", rally: "trend", alltime: "trend", breakeven: "trend", diamondtrend: "trend",
   cycleclock: "trend", fngtrend: "trend", btcage: "trend", ethage: "trend", solage: "trend",
   // — Tier B: flavourful / distinct looks (used to break up the green lines) —

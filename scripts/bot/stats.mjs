@@ -133,6 +133,19 @@ function loadHolderHistory() {
   } catch { return []; }
 }
 
+// Per-chain holder COUNT over time (ETH native + Base/Solana bridged) — for the
+// multi-chain holder-race card. The multi-chain era begins the first day a bridged
+// column is banked; ETH has the longer history but the race rebases from the shared
+// start, so we only keep records where at least one bridged chain is present.
+function loadChainHistory() {
+  try {
+    const arr = JSON.parse(readFileSync(new URL("../../public/history.json", import.meta.url), "utf8"));
+    return arr
+      .filter(r => (r.holdersBase != null || r.holdersSol != null) && r.holders != null)
+      .map(r => ({ ts: Date.parse(r.d), eth: r.holders, base: r.holdersBase ?? null, sol: r.holdersSol ?? null }));
+  } catch { return []; }
+}
+
 // Futures positioning banked by the longshort workflow (Hyperliquid on-chain funding
 // + OI). For the on-chain positioning card; data-gated, grows daily.
 function loadLongShort() {
@@ -260,6 +273,7 @@ export function computeStats(price, dateStr = new Date().toISOString().slice(0, 
       avgHolderPnl: snap.be ? price / snap.be - 1 : null,
       diamondSeries: loadSupplyHistory(),
       holderSeries: loadHolderHistory(),
+      chainSeries: loadChainHistory(),
     };
   }
 

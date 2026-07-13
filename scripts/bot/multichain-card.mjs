@@ -83,3 +83,94 @@ export function renderMultichainCard(stats, opts = {}) {
   const svg = multichainSvg(stats, { W: opts.W, H: opts.H });
   return svg ? png(svg, opts.W ?? 1200) : null;
 }
+
+// Catmull-Rom → bezier smoothing (shared shape with the other trend cards).
+const smooth = pts => {
+  if (pts.length < 2) return pts.length ? `M${pts[0][0].toFixed(1)},${pts[0][1].toFixed(1)}` : "";
+  let d = `M${pts[0][0].toFixed(1)},${pts[0][1].toFixed(1)}`;
+  for (let i = 0; i < pts.length - 1; i++) {
+    const p0 = pts[i - 1] || pts[i], p1 = pts[i], p2 = pts[i + 1], p3 = pts[i + 2] || p2;
+    const c1x = p1[0] + (p2[0] - p0[0]) / 6, c1y = p1[1] + (p2[1] - p0[1]) / 6;
+    const c2x = p2[0] - (p3[0] - p1[0]) / 6, c2y = p2[1] - (p3[1] - p1[1]) / 6;
+    d += ` C${c1x.toFixed(1)},${c1y.toFixed(1)} ${c2x.toFixed(1)},${c2y.toFixed(1)} ${p2[0].toFixed(1)},${p2[1].toFixed(1)}`;
+  }
+  return d;
+};
+
+// HOLDER RACE BY CHAIN — three lines, each REBASED to 0% at its own first banked point,
+// so the card reads as "% change in holders per chain over time." A foundation card:
+// fills in as the daily snapshot banks multi-chain columns. Data-gated. Returns null
+// until there's enough of a multi-chain history to draw.
+export function chainRaceSvg(stats, opts = {}) {
+  const raw = stats.supply?.chainSeries || [];
+  if (raw.length < 6) return null; // needs ~a week+ of multi-chain snapshots
+
+  // Per-chain rebased % series (each from its own first non-null value in the window).
+  const series = CHAINS.map(c => {
+    const pts = raw.map(r => ({ ts: r.ts, v: r[c.key] })).filter(p => p.v != null && p.v > 0);
+    if (pts.length < 2) return null;
+    const base = pts[0].v;
+    return { ...c, pts: pts.map(p => ({ ts: p.ts, pct: p.v / base - 1 })), cur: pts.at(-1).v, curPct: pts.at(-1).v / base - 1 };
+  }).filter(Boolean);
+  if (series.length < 2) return null;
+
+  const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 78, mR = 176, mT = 116, mB = 68, pW = W - mL - mR, pH = H - mT - mB;
+  const allTs = raw.map(r => r.ts), t0 = Math.min(...allTs), t1 = Math.max(...allTs);
+  const x = t => mL + ((t - t0) / ((t1 - t0) || 1)) * pW;
+  let lo = 0, hi = 0;
+  for (const s of series) for (const p of s.pts) { lo = Math.min(lo, p.pct); hi = Math.max(hi, p.pct); }
+  const pad = (hi - lo) * 0.18 || 0.05; lo -= pad; hi += pad;
+  const y = v => mT + ((hi - v) / ((hi - lo) || 1)) * pH;
+  const fPct = v => (v >= 0 ? "+" : "−") + Math.round(Math.abs(v) * 100) + "%";
+
+  // gridlines at round % marks + zero baseline
+  let grid = "";
+  const span = hi - lo, stepPct = span > 1 ? 0.25 : span > 0.4 ? 0.1 : 0.05;
+  for (let v = Math.ceil(lo / stepPct) * stepPct; v <= hi; v += stepPct) {
+    const yy = y(v).toFixed(1), zero = Math.abs(v) < 1e-9;
+    grid += `<line x1="${mL}" y1="${yy}" x2="${W - mR}" y2="${yy}" stroke="rgba(255,255,255,${zero ? 0.16 : 0.06})"/>`;
+    grid += `<text x="${mL - 12}" y="${(+yy + 6).toFixed(1)}" fill="#64748b" font-size="21" text-anchor="end" font-family="sans-serif">${fPct(v)}</text>`;
+  }
+  let xlab = "";
+  const step = Math.max(1, Math.ceil(raw.length / 5));
+  for (let i = 0; i < raw.length; i += step)
+    xlab += `<text x="${x(raw[i].ts).toFixed(1)}" y="${H - 38}" fill="#64748b" font-size="21" text-anchor="middle" font-family="sans-serif">${new Date(raw[i].ts).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</text>`;
+
+  // avoid end-label overlap: sort by y and nudge apart
+  const ends = series.map(s => ({ c: s.c, label: s.label, curPct: s.curPct, yy: y(s.pts.at(-1).pct) }))
+    .sort((a, b) => a.yy - b.yy);
+  for (let i = 1; i < ends.length; i++) if (ends[i].yy - ends[i - 1].yy < 30) ends[i].yy = ends[i - 1].yy + 30;
+
+  let lines = "", dots = "", endlab = "";
+  for (const s of series) {
+    const pts = s.pts.map(p => [x(p.ts), y(p.pct)]);
+    lines += `<path d="${smooth(pts)}" fill="none" stroke="${s.c}" stroke-width="11" stroke-opacity="0.16" filter="url(#crG)"/>`;
+    lines += `<path d="${smooth(pts)}" fill="none" stroke="${s.c}" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"/>`;
+    const last = pts.at(-1);
+    dots += `<circle cx="${last[0].toFixed(1)}" cy="${last[1].toFixed(1)}" r="7" fill="${s.c}" stroke="#05050e" stroke-width="2"/>`;
+  }
+  for (const e of ends) {
+    endlab += `<text x="${W - mR + 14}" y="${(e.yy - 4).toFixed(1)}" fill="${e.c}" font-size="24" font-weight="800" font-family="sans-serif">${e.label}</text>`;
+    endlab += `<text x="${W - mR + 14}" y="${(e.yy + 20).toFixed(1)}" fill="${e.c}" font-size="22" font-weight="700" font-family="sans-serif" fill-opacity="0.85">${fPct(e.curPct)}</text>`;
+  }
+  const ndays = Math.round((t1 - t0) / 86400000);
+
+  return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
+<defs>
+ <radialGradient id="crV" cx="20%" cy="0%" r="90%"><stop offset="0%" stop-color="#3b82f6" stop-opacity="0.10"/><stop offset="60%" stop-color="#3b82f6" stop-opacity="0"/></radialGradient>
+ <filter id="crG" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="5"/></filter>
+</defs>
+<rect width="${W}" height="${H}" fill="#05050e"/>
+<rect width="${W}" height="${H}" fill="url(#crV)"/>
+<text x="${mL}" y="60" fill="#e2e8f0" font-size="32" font-weight="800" font-family="sans-serif" letter-spacing="1">SPX6900 — HOLDER GROWTH BY CHAIN</text>
+<text x="${mL}" y="94" fill="#94a3b8" font-size="22" font-family="sans-serif">% change in holders per chain over ~${ndays}d · each line rebased to its start</text>
+${grid}${xlab}
+${lines}${dots}${endlab}
+<text x="${mL}" y="${H - 14}" fill="#475569" font-size="16" font-family="sans-serif">spx6900rainbow.xyz · wallets per chain, not people · Base &amp; Solana are bridged</text>
+</svg>`;
+}
+
+export function renderChainRaceCard(stats, opts = {}) {
+  const svg = chainRaceSvg(stats, { W: opts.W, H: opts.H });
+  return svg ? png(svg, opts.W ?? 1200) : null;
+}
