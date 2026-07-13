@@ -11,9 +11,9 @@ const png = (svg, w) => new Resvg(svg, { fitTo: { mode: "width", value: w }, fon
 const fK = n => (n >= 1000 ? Math.round(n / 1000) + "k" : String(n));
 
 const CHAINS = [
-  { key: "eth", label: "Ethereum", sub: "native", c: "#8b9dfa" },
-  { key: "base", label: "Base", sub: "bridged", c: "#3b82f6" },
-  { key: "sol", label: "Solana", sub: "bridged", c: "#14f195" },
+  { key: "eth", label: "Ethereum", sub: "native", c: "#8b9dfa", lite: "#c7d0ff" },
+  { key: "base", label: "Base", sub: "bridged", c: "#3b82f6", lite: "#8fb6ff" },
+  { key: "sol", label: "Solana", sub: "bridged", c: "#14f195", lite: "#7cffca" },
 ];
 
 // Point on the donut circle at a given fraction of the way round (0 = 12 o'clock).
@@ -36,46 +36,65 @@ export function multichainSvg(stats, opts = {}) {
   // Donut on the left, legend on the right.
   const cx = 360, cy = 348, rOut = 176, rIn = 104, rMid = (rOut + rIn) / 2, thick = rOut - rIn;
 
-  // Donut arcs — one per chain, as thick stroked arc segments round the ring.
-  let arcs = "", acc = 0;
+  // Donut arcs — a blurred colored glow underlay + the gradient-filled segment on top,
+  // so each slice reads with depth. A dark track ring sits behind for a "channel" look.
+  let glows = "", arcs = "", acc = 0;
   rows.forEach(r => {
     const f0 = acc / total, f1 = (acc + r.n) / total;
-    const gap = 0.006; // small separation between slices
+    const gap = 0.007;
     const [x0, y0] = pt(cx, cy, rMid, f0 + gap);
     const [x1, y1] = pt(cx, cy, rMid, f1 - gap);
     const large = (f1 - f0) > 0.5 ? 1 : 0;
-    arcs += `<path d="M${x0.toFixed(1)},${y0.toFixed(1)} A${rMid},${rMid} 0 ${large} 1 ${x1.toFixed(1)},${y1.toFixed(1)}" fill="none" stroke="${r.c}" stroke-width="${thick}" stroke-linecap="butt"/>`;
+    const d = `M${x0.toFixed(1)},${y0.toFixed(1)} A${rMid},${rMid} 0 ${large} 1 ${x1.toFixed(1)},${y1.toFixed(1)}`;
+    glows += `<path d="${d}" fill="none" stroke="${r.c}" stroke-width="${thick + 4}" stroke-opacity="0.45" filter="url(#mcGlow)"/>`;
+    arcs += `<path d="${d}" fill="none" stroke="url(#arc-${r.key})" stroke-width="${thick}"/>`;
     acc += r.n;
   });
+  const track = `<circle cx="${cx}" cy="${cy}" r="${rMid}" fill="none" stroke="#0b1024" stroke-width="${thick + 10}" stroke-opacity="0.55"/>`;
 
   const totText = total >= 1000 ? "~" + fK(total) : String(total);
+  const arcDefs = rows.map(r =>
+    `<linearGradient id="arc-${r.key}" x1="0" y1="0" x2="0.4" y2="1"><stop offset="0%" stop-color="${r.lite}"/><stop offset="100%" stop-color="${r.c}"/></linearGradient>`).join("");
 
-  // Legend on the right — swatch, chain, big count, sub · %.
+  // Legend on the right — glowing swatch, chain, big count, sub · %.
   const lx = 650, lyTop = 196, rowH = 118;
   let legend = "";
   rows.forEach((r, i) => {
     const y = lyTop + rowH * i;
-    legend += `<rect x="${lx}" y="${y - 24}" width="26" height="26" rx="6" fill="${r.c}"/>`;
-    legend += `<text x="${lx + 40}" y="${y - 2}" fill="#e2e8f0" font-size="30" font-weight="700" font-family="sans-serif">${r.label}</text>`;
-    legend += `<text x="${W - 64}" y="${y - 2}" fill="#64748b" font-size="26" font-family="sans-serif" text-anchor="end">${r.sub} · ${Math.round((r.n / total) * 100)}%</text>`;
-    legend += `<text x="${lx + 40}" y="${y + 46}" fill="${r.c}" font-size="48" font-weight="800" font-family="sans-serif">${r.n.toLocaleString()}</text>`;
+    legend += `<circle cx="${lx + 13}" cy="${y - 11}" r="15" fill="${r.c}" fill-opacity="0.55" filter="url(#mcGlow)"/>`;
+    legend += `<rect x="${lx}" y="${y - 24}" width="27" height="27" rx="8" fill="url(#arc-${r.key})"/>`;
+    legend += `<text x="${lx + 42}" y="${y - 2}" fill="#e6ebf5" font-size="30" font-weight="700" font-family="sans-serif">${r.label}</text>`;
+    legend += `<text x="${W - 64}" y="${y - 2}" fill="#7c8aa3" font-size="25" font-family="sans-serif" text-anchor="end">${r.sub} · ${Math.round((r.n / total) * 100)}%</text>`;
+    legend += `<text x="${lx + 42}" y="${y + 47}" fill="${r.lite}" font-size="49" font-weight="800" font-family="sans-serif">${r.n.toLocaleString()}</text>`;
+    if (i < rows.length - 1) legend += `<line x1="${lx}" y1="${y + 68}" x2="${W - 64}" y2="${y + 68}" stroke="#ffffff" stroke-opacity="0.06"/>`;
   });
 
   return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
 <defs>
- <radialGradient id="mcV" cx="30%" cy="0%" r="90%"><stop offset="0%" stop-color="#3b82f6" stop-opacity="0.12"/><stop offset="60%" stop-color="#3b82f6" stop-opacity="0"/></radialGradient>
- <radialGradient id="mcV2" cx="95%" cy="100%" r="70%"><stop offset="0%" stop-color="#14f195" stop-opacity="0.10"/><stop offset="70%" stop-color="#14f195" stop-opacity="0"/></radialGradient>
- <linearGradient id="mcTot" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#8b9dfa"/><stop offset="50%" stop-color="#3b82f6"/><stop offset="100%" stop-color="#14f195"/></linearGradient>
+ <radialGradient id="bgIndigo" cx="16%" cy="8%" r="60%"><stop offset="0%" stop-color="#6366f1" stop-opacity="0.30"/><stop offset="70%" stop-color="#6366f1" stop-opacity="0"/></radialGradient>
+ <radialGradient id="bgBlue" cx="52%" cy="112%" r="65%"><stop offset="0%" stop-color="#2563eb" stop-opacity="0.24"/><stop offset="70%" stop-color="#2563eb" stop-opacity="0"/></radialGradient>
+ <radialGradient id="bgTeal" cx="92%" cy="86%" r="60%"><stop offset="0%" stop-color="#14f195" stop-opacity="0.20"/><stop offset="70%" stop-color="#14f195" stop-opacity="0"/></radialGradient>
+ <radialGradient id="spot" cx="30%" cy="55%" r="30%"><stop offset="0%" stop-color="#20264d" stop-opacity="0.65"/><stop offset="100%" stop-color="#20264d" stop-opacity="0"/></radialGradient>
+ <radialGradient id="vig" cx="50%" cy="42%" r="78%"><stop offset="58%" stop-color="#05050e" stop-opacity="0"/><stop offset="100%" stop-color="#05050e" stop-opacity="0.55"/></radialGradient>
+ <radialGradient id="hole" cx="50%" cy="45%" r="60%"><stop offset="0%" stop-color="#0a0f22" stop-opacity="0.9"/><stop offset="100%" stop-color="#0a0f22" stop-opacity="0"/></radialGradient>
+ <linearGradient id="mcTot" x1="0" y1="0" x2="1" y2="0.35"><stop offset="0%" stop-color="#a9b6ff"/><stop offset="52%" stop-color="#5b9bff"/><stop offset="100%" stop-color="#2ffbb0"/></linearGradient>
+ <filter id="mcGlow" x="-45%" y="-45%" width="190%" height="190%"><feGaussianBlur stdDeviation="9"/></filter>
+ ${arcDefs}
 </defs>
-<rect width="${W}" height="${H}" fill="#05050e"/>
-<rect width="${W}" height="${H}" fill="url(#mcV)"/>
-<rect width="${W}" height="${H}" fill="url(#mcV2)"/>
-<text x="64" y="74" fill="#e2e8f0" font-size="33" font-weight="800" font-family="sans-serif" letter-spacing="1">SPX6900 — HOLDERS ACROSS CHAINS</text>
-${arcs}
-<text x="${cx}" y="${cy - 6}" fill="url(#mcTot)" font-size="76" font-weight="800" font-family="sans-serif" text-anchor="middle" letter-spacing="-1">${totText}</text>
-<text x="${cx}" y="${cy + 38}" fill="#94a3b8" font-size="26" font-family="sans-serif" text-anchor="middle">holders · ${mult.toFixed(1)}× ETH</text>
+<rect width="${W}" height="${H}" fill="#05060f"/>
+<rect width="${W}" height="${H}" fill="url(#bgIndigo)"/>
+<rect width="${W}" height="${H}" fill="url(#bgBlue)"/>
+<rect width="${W}" height="${H}" fill="url(#bgTeal)"/>
+<rect width="${W}" height="${H}" fill="url(#spot)"/>
+<rect width="${W}" height="${H}" fill="url(#vig)"/>
+<text x="64" y="74" fill="#eef2fb" font-size="33" font-weight="800" font-family="sans-serif" letter-spacing="1">SPX6900 — HOLDERS ACROSS CHAINS</text>
+${track}${glows}${arcs}
+<circle cx="${cx}" cy="${cy}" r="${rIn}" fill="url(#hole)"/>
+<text x="${cx}" y="${cy - 4}" fill="${'#0af'}" font-size="80" font-weight="800" font-family="sans-serif" text-anchor="middle" filter="url(#mcGlow)" opacity="0.35">${totText}</text>
+<text x="${cx}" y="${cy - 4}" fill="url(#mcTot)" font-size="80" font-weight="800" font-family="sans-serif" text-anchor="middle" letter-spacing="-1">${totText}</text>
+<text x="${cx}" y="${cy + 40}" fill="#aab6cf" font-size="26" font-family="sans-serif" text-anchor="middle">holders · ${mult.toFixed(1)}× ETH</text>
 ${legend}
-<text x="64" y="${H - 22}" fill="#475569" font-size="17" font-family="sans-serif">spx6900rainbow.xyz · wallets across chains, not people · Base &amp; Solana are bridged</text>
+<text x="64" y="${H - 22}" fill="#5a6478" font-size="17" font-family="sans-serif">spx6900rainbow.xyz · wallets across chains, not people · Base &amp; Solana are bridged</text>
 </svg>`;
 }
 
