@@ -1400,6 +1400,51 @@ Everything rebased to 0% on Jan 1, a clean same-start race against BTC, ETH and 
   // 30–32 — SPX6900 at the same age as Bitcoin / Ethereum / Solana (see ageCard).
   ...AGE_PEERS.map(ageCard),
 
+  // 32b — Composite "vs the legends": SPX6900 against BTC + ETH + SOL on ONE chart,
+  // every line rebased to 1× at its own launch and shown only up to SPX's CURRENT
+  // age — the "class photo" against the greats at the same point in their life. One
+  // card instead of the three pairwise ones; same honest, baseline-sensitive caveat.
+  s => (() => {
+    const DAY = 86400000;
+    const px = s.series?.price;
+    if (!px || !px.length) return null;
+    const t0 = px[0][0], p0 = px[0][1];
+    if (!(p0 > 0)) return null;
+    const ageNow = (px.at(-1)[0] - t0) / DAY;
+    const spx = px.filter(([, p]) => p > 0).map(([ts, p]) => [(ts - t0) / DAY, p / p0]);
+    if (spx.length < 10) return null;
+    const peers = AGE_PEERS.map(peer => {
+      const base = peer.series[0][1];
+      const pts = peer.series.filter(([a]) => a <= ageNow).map(([a, p]) => [a, p / base]);
+      return pts.length >= 8 ? { peer, pts, mult: pts.at(-1)[1] } : null;
+    }).filter(Boolean);
+    if (peers.length < 2) return null;
+    const spxMult = spx.at(-1)[1];
+    const allY = [...spx.map(p => p[1]), ...peers.flatMap(x => x.pts.map(p => p[1]))];
+    const yMax = Math.max(...allY), yMin = Math.min(...allY, 1);
+    const yTicks = [1, 10, 100, 1000, 10000].filter(v => v >= yMin * 0.6 && v <= yMax * 1.6).map(v => ({ v, label: fMult(v) }));
+    const xTicks = [];
+    for (let y = 1; y * 365 <= ageNow; y++) xTicks.push({ x: y * 365, label: `Yr ${y}` });
+    const peerStr = peers.map(x => `${x.peer.name} ${fMult(x.mult)}`).join(", ");
+    return {
+      id: "legends",
+      text: ct`🏆 SPX6900 vs the legends — Bitcoin, Ethereum & Solana, all at the same age since launch.
+At ~${(ageNow / 365).toFixed(1)}y old: SPX6900 ${fMult(spxMult)}, ${peerStr} — each measured from its own first day.
+Same age as the greats. A resemblance, not a forecast.`,
+      card: { type: "line", spec: {
+        title: "SPX6900 vs the legends, at the same age",
+        headline: `SPX6900 ${fMult(spxMult)} at ~${(ageNow / 365).toFixed(1)}y`,
+        accent: "#4ade80",
+        yLog: true, yMin: yMin * 0.7, yMax: yMax * 1.4, yTicks, xTicks,
+        legend: [...peers.map(x => ({ color: x.peer.color, label: x.peer.name })), { color: "#4ade80", label: "SPX6900" }],
+        series: [
+          ...peers.map(x => ({ pts: x.pts, color: x.peer.color, width: 3, dash: true })),
+          { pts: spx, color: "#4ade80", width: 4.2, fill: 0.14, glow: true, logo: "spx" },
+        ],
+      } },
+    };
+  })(),
+
   // 29 — Kraken affiliate promo. A finished marketing graphic (public/rainbow-
   // kraken.png) posted as-is + a referral CTA. Kept OUT of the organic rotation
   // (NO_ROTATE) and surfaced on a fixed ~monthly cadence by buildPost instead, so
@@ -1457,7 +1502,7 @@ const LOOK = {
   targets: "ladder", memecoins: "ladder", btcgrade: "ladder", dogeclock: "ladder", majorcaps: "ladder",
   spxvssp: "race", majors: "race", ytd: "race", sp500ytd: "race", sp500roll12: "race", btc: "race", chainrace: "race",
   roadmap: "trend", rally: "trend", alltime: "trend", breakeven: "trend", diamondtrend: "trend",
-  cycleclock: "trend", fngtrend: "trend", btcage: "trend", ethage: "trend", solage: "trend",
+  cycleclock: "trend", fngtrend: "trend", btcage: "trend", ethage: "trend", solage: "trend", legends: "race",
   // — Tier B: flavourful / distinct looks (used to break up the green lines) —
   riskcolor: "colorline", risklevels: "colorline", rsidots: "colorline",
   riskheat: "dual", runningroi: "dual", cycle: "dual", longshort: "dual", underwater: "dual", goldencross: "dual", holdergrowth: "dual", mvrvbtc: "dual", picycle: "dual",
