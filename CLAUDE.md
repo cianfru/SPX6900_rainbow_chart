@@ -369,6 +369,14 @@
     multiple returns race on a log axis: SPX ~497× vs the S&P ~+68% since launch, two
     honest returns from day one (S&P closes already bundled in `src/sp500-history.js`).
     Distinct from the cap-scale `sp500` cube and the `monthlyreturnssp` heatmap.
+    - **⭐ S&P LINE STALENESS FIXED (owner flagged 2026-07-14).** Bundled `SP500_HISTORY`
+      only refreshes on a re-bundle (ended 2026-06-23), and the cards drew the LINE from it —
+      so the S&P line FROZE ~3 weeks back while SPX kept going (the fresh `s.sp` was used for
+      the headline but never added to the line). The snapshot DOES bank a daily S&P close
+      (`rec.sp`) fine. FIX: `stats.spSeries` = `loadSpHistory()` (daily closes from history.json)
+      + `spMerged(s)` in posts.mjs extends `SP500_HISTORY` with them, so EVERY S&P line
+      (`spxvssp`, `sp500ytd`/`sp500roll12` via `spVsWindow`, `monthlyreturnssp` via
+      `spxInSpSeries`) reaches today. Still worth periodically re-bundling `sp500-history.js`.
   - ✅ **Power-law price roadmap — BUILT 2026-06-25** (card id `roadmap`). Projects the
     fitted fair-value (center) line forward and stamps the dates it crosses the meme
     targets (currently $6.90 Oct '27 / $69 Dec '30 / $690 Mar '36 — auto-computed via the

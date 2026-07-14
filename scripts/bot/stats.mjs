@@ -133,6 +133,15 @@ function loadHolderHistory() {
   } catch { return []; }
 }
 
+// Daily S&P 500 closes the snapshot cron banks (rec.sp) — used to EXTEND the bundled
+// SP500_HISTORY (which is only refreshed on a re-bundle) so the S&P line stays current.
+function loadSpHistory() {
+  try {
+    const arr = JSON.parse(readFileSync(new URL("../../public/history.json", import.meta.url), "utf8"));
+    return arr.filter(r => r.sp > 0).map(r => [r.d, r.sp]);
+  } catch { return []; }
+}
+
 // Per-chain holder COUNT over time (ETH native + Base/Solana bridged) — for the
 // multi-chain holder-race card. The multi-chain era begins the first day a bridged
 // column is banked; ETH has the longer history but the race rebases from the shared
@@ -345,6 +354,7 @@ export function computeStats(price, dateStr = new Date().toISOString().slice(0, 
     cheaperFrac, edge,
     fng: snap?.fng ?? (FNG_HISTORY.at(-1)?.[1] ?? null), // live snapshot value, else the bundled history's latest
     sp: snap?.sp ?? (SP500_HISTORY.at(-1)?.[1] ?? null), // latest S&P 500 close (snapshot), else bundled latest
+    spSeries: loadSpHistory(), // daily S&P closes banked since bundling — extends SP500_HISTORY so the line stays fresh
     firstPrice: first.price, firstDate: first.date, allTimeReturn: price / first.price - 1,
     targets: M.TARGETS.map(t => ({ ...t, mult: t.price / price })),
     supply, btc, majors,

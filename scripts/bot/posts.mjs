@@ -156,16 +156,30 @@ const spCloseAt = ts => {
   while (lo <= hi) { const m = (lo + hi) >> 1; if (SP500[m][0] <= ts) { ans = m; lo = m + 1; } else hi = m - 1; }
   return ans >= 0 ? SP500[ans][1] : null;
 };
+// Bundled SP500_HISTORY only refreshes on a re-bundle, so its last date lags. Extend it
+// with the daily closes the snapshot banks (stats.spSeries) so every S&P LINE reaches today.
+function spMerged(s) {
+  const byTs = new Map(SP500);
+  for (const [d, c] of (s?.spSeries || [])) if (c > 0) byTs.set(Date.parse(d + "T00:00:00Z"), c);
+  const arr = [...byTs].sort((a, b) => a[0] - b[0]);
+  const closeAt = ts => {
+    let lo = 0, hi = arr.length - 1, ans = -1;
+    while (lo <= hi) { const m = (lo + hi) >> 1; if (arr[m][0] <= ts) { ans = m; lo = m + 1; } else hi = m - 1; }
+    return ans >= 0 ? arr[ans][1] : null;
+  };
+  return { arr, closeAt };
+}
 
 // SPX6900 priced in S&P 500 units over its life: divide each SPX close by the
 // nearest-prior S&P close. Feeds the SPX-vs-S&P monthly heatmap. Returns of the
 // ratio == SPX's return relative to the index. [ts, spx/sp].
-function spxInSpSeries(priceSeries) {
-  const lastSpTs = SP500.at(-1)[0];
+function spxInSpSeries(priceSeries, s) {
+  const sp = spMerged(s);
+  const lastSpTs = sp.arr.at(-1)[0];
   const out = [];
   for (const [ts, usd] of priceSeries) {
     if (!(usd > 0) || ts > lastSpTs + 7 * 86400000) continue;
-    const c = spCloseAt(ts);
+    const c = sp.closeAt(ts);
     if (c > 0) out.push([ts, usd / c]);
   }
   return out;
@@ -176,12 +190,11 @@ function spxInSpSeries(priceSeries) {
 // S&P path plus s.sp as the live current endpoint so it stays fresh. Returns
 // { spxPts, spPts, spxRet, spRet } or null.
 function spVsWindow(s, startTs) {
-  const spStart = spCloseAt(startTs);
+  const sp = spMerged(s); // bundled + daily snapshot closes → reaches today
+  const spStart = sp.closeAt(startTs);
   if (!spStart) return null;
   const nowTs = s.series.price.at(-1)[0];
-  const spNow = s.sp ?? SP500.at(-1)[1];
-  const spPts = SP500.filter(([ts]) => ts >= startTs && ts <= nowTs).map(([ts, c]) => [ts, (c / spStart - 1) * 100]);
-  if (spNow) spPts.push([nowTs, (spNow / spStart - 1) * 100]);
+  const spPts = sp.arr.filter(([ts]) => ts >= startTs && ts <= nowTs).map(([ts, c]) => [ts, (c / spStart - 1) * 100]);
   const spxIn = s.series.price.filter(([ts, p]) => ts >= startTs && p > 0);
   if (spxIn.length < 2 || spPts.length < 2) return null;
   const spxStart = spxIn[0][1];
@@ -549,6 +562,7 @@ A homage to the Bitcoin RSI chart by @100trillionUSD.`,
   // after — two honest returns from day one. S&P closes are bundled (SP500_HISTORY).
   s => (() => {
     const spBy = new Map(SP500_HISTORY.map(([d, c]) => [d, c]));
+    for (const [d, c] of (s.spSeries || [])) if (c > 0) spBy.set(d, c); // extend past the bundle with daily snapshot closes
     const spNear = d => { let t = new Date(d); for (let k = 0; k < 8; k++) { const ds = t.toISOString().slice(0, 10); if (spBy.has(ds)) return spBy.get(ds); t = new Date(t - 86400000); } return null; };
     const spFirst = spNear(s.firstDate);
     if (!spFirst) return null;
@@ -1183,7 +1197,7 @@ A telescope, not a target. Every giant was once a rounding error.`,
   // the recent give-back honestly, with no single damning headline — and a fresh
   // rendering vs another log line chart.
   s => (() => {
-    const mh = monthlyHeatmap(spxInSpSeries(s.series.price));
+    const mh = monthlyHeatmap(spxInSpSeries(s.series.price, s));
     if (!mh) return null;
     return {
       id: "monthlyreturnssp",
