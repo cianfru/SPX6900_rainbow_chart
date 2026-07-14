@@ -377,6 +377,29 @@
       + `spMerged(s)` in posts.mjs extends `SP500_HISTORY` with them, so EVERY S&P line
       (`spxvssp`, `sp500ytd`/`sp500roll12` via `spVsWindow`, `monthlyreturnssp` via
       `spxInSpSeries`) reaches today. Still worth periodically re-bundling `sp500-history.js`.
+  - **🔲 ALT-MARKET RAINBOW — SPX vs the broader altcoin market (owner greenlit, plan set 2026-07-14).**
+    We have NO alt index in code — only per-coin races (`majors` = BTC/ETH/SOL, `memecoins` = DOGE/SHIB/PEPE,
+    `spxbtc`, `spxvssp`). Owner wants "how's SPX vs the whole alt market." **Benchmark = `CRYPTOCAP:TOTAL3ES`**
+    (TradingView) = **TOTAL3 Excluding Stablecoins** — ex-BTC, ex-ETH, ex-stables. Owner's key point: plain
+    TOTAL2/TOTAL3 INCLUDE stablecoins (~$150–250B pegged deadweight that dampens the index) — TOTAL3ES is the
+    clean one.
+    - **DATA (owner runs on laptop — sandbox blocks TradingView + it's Python):** the free `tvdatafeed` lib
+      (no-login) pulls it. Script: `TvDatafeed().get_hist(symbol='TOTAL3ES', exchange='CRYPTOCAP',
+      interval=Interval.in_daily, n_bars=5000)` → export `date,total3es` CSV. Terminal: `pip3 install pandas
+      git+https://github.com/asimov-academy/Asimov_TV_connector.git`, then run the script (saves to
+      ~/Desktop/total3es.csv). **PULL TOTAL3ES ONLY** — DON'T pull SPX from MEXC; use OUR dense daily SPX
+      (`price-history.json`) for the ratio so it's consistent with every other chart + avoids a flaky feed.
+      tvdatafeed no-login is sometimes rate-limited/empty → fallback: pass TV login, OR the keyless
+      **CoinGecko `/global`** (total + BTC%/ETH% → TOTAL3) **minus DeFiLlama stablecoin cap** (subtract stables)
+      route, which Claude can wire entirely server-side.
+    - **CARD:** `SPX ÷ TOTAL3ES` ratio → fit a **log-trend + σ (z-score) bands** = a RELATIVE-STRENGTH rainbow
+      (when is SPX overextended/cheap vs the ALT MARKET, not vs its own price). NOTE: it's a ratio series, so
+      use the trend+std-dev math (like `riskcolor` z-score), NOT the age-based power-law fit. On-brand extension
+      of the rainbow concept.
+    - **🔲 PENDING OWNER (travelling):** run the tvdatafeed export → send the CSV → Claude bundles it (like
+      `sp500-history.js`), builds the alt-rainbow card, and wires a forward banker (CoinGecko/global + DeFiLlama
+      stables) to keep the tail current between exports. Claude offered to PRE-BUILD the ingest + card scaffolding
+      (reads a `total3es.json`, computes ratio+bands, renders) as a dormant drop-in — do that if useful before the CSV lands.
   - ✅ **Power-law price roadmap — BUILT 2026-06-25** (card id `roadmap`). Projects the
     fitted fair-value (center) line forward and stamps the dates it crosses the meme
     targets (currently $6.90 Oct '27 / $69 Dec '30 / $690 Mar '36 — auto-computed via the
