@@ -170,6 +170,12 @@
   layers it in `applyLive`; `stats.mjs` `fetchHistory()` adds it as step 1b. Precedence: weekly
   DEFAULT_RAW < SPX_DAILY < price-history.json < live candles < snapshot (fresh sources still win
   the recent tail). Launch-era density went ~52→362 pts/yr — no more boxy weekly steps anywhere.
+  - **CI SELF-REFRESHES IT (2026-07-15):** `build-price-history.mjs` now SEEDS its merge with
+    `SPX_DAILY` as the lowest-priority base, so `price-history.json` always carries the FULL launch
+    era (no Graph key needed) and the live sources (coingecko/HL/CEX/gecko/subgraph) just refresh the
+    recent tail on top. The bundle no longer needs periodic re-export for the launch era — only if you
+    want to advance the static base's END date (the post-07-14 gap is filled by the live sources +
+    snapshot anyway).
   - **⭐ MODEL STAYS FROZEN ON WEEKLY — daily fit VALIDATED the choice (owner asked 2026-07-15).**
     Re-fitting the power-law on the DAILY series gives **R² 0.694** vs the frozen weekly **0.742**
     (exponent 4.60→4.06, fair value today $1.83→$1.54). So daily does NOT stay in the 0.74 framework —

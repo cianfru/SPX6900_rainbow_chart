@@ -5,9 +5,13 @@
 // full daily history from every source, merges by date, and writes
 // public/price-history.json, which the site loads as its dense drawing base.
 //
-// Runs in CI (GitHub Actions can reach these APIs, the sandbox can't). Historical
-// closes don't change, so a weekly refresh keeps it current + fills recent days.
+// Seeded with the bundled full-daily history (src/spx-daily.js, owner CoinGecko "max"
+// export) as the base, so the FULL launch era is always present without a Graph key; the
+// live sources just refresh the recent tail on top. → price-history.json self-maintains
+// the complete daily series. Runs in CI (GitHub Actions can reach these APIs, the sandbox
+// can't). Historical closes don't change, so a weekly refresh keeps it current.
 import { readFile, writeFile } from "node:fs/promises";
+import { SPX_DAILY } from "../src/spx-daily.js";
 
 const POOL = "0x52c77b0cb827afbad022e6d6caf2c44452edbc39";
 const OUT = "public/price-history.json";
@@ -141,11 +145,14 @@ async function main() {
   ]);
 
   // Merge by date (later set = higher priority). Priority, low→high:
-  //   coingecko (aggregated) < hyperliquid (perp) < CEX (coinbase, bybit) < uniswap-subgraph
-  //   (on-chain, full launch-era history) < geckoterminal (our exact pool). On-chain wins over
-  //   CEX/perp/aggregator; the subgraph backfills the launch era nothing else reaches; HL fills
-  //   the 2024→mid-2025 middle where only it + coingecko might have data.
+  //   SPX_DAILY (bundled full-daily launch→now base) < coingecko (aggregated) < hyperliquid
+  //   (perp) < CEX (coinbase, bybit) < uniswap-subgraph (on-chain, full launch-era history) <
+  //   geckoterminal (our exact pool). SPX_DAILY guarantees the FULL launch era is always present
+  //   (no dependence on a Graph key) — the live sources refresh the recent tail on top of it, so
+  //   price-history.json self-maintains the complete daily history. On-chain wins over CEX/perp/
+  //   aggregator; the subgraph backfills the launch era; HL fills the 2024→mid-2025 middle.
   const byDate = new Map();
+  for (const [date, price] of SPX_DAILY) if (price > 0) byDate.set(date, price); // full-daily base
   for (const p of cg) byDate.set(p.date, p.price);
   for (const p of hl) byDate.set(p.date, p.price);
   for (const p of c) byDate.set(p.date, p.price);
