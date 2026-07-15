@@ -832,6 +832,24 @@ As cheap as it's been, measured against Bitcoin.`,
     };
   })(),
 
+  // MVRV over time — SPX6900's own on-chain valuation across its FULL history (price ÷ the
+  // crowd's realized cost basis), now buildable from the Dune realized-cost backfill. Sibling
+  // of mvrvbtc but vs ITS OWN history (own-quantile zones + percentile), not Bitcoin's. Hook:
+  // a valuation POSITION true right now — cheaper than most of its own history — plainly worded
+  // ("underwater"), NOT a buy signal (the guardrail: a lagging value read, not timing).
+  s => (s.mvrvSeries?.length >= 100) && (() => {
+    const raw = s.mvrvSeries, mvrv = raw.at(-1).mvrv, up = mvrv >= 1;
+    const sorted = raw.map(r => r.mvrv).sort((a, b) => a - b);
+    const cheaperThan = 100 - Math.round(sorted.filter(v => v <= mvrv).length / sorted.length * 100);
+    return {
+      id: "mvrvtrend",
+      text: ct`🟣 SPX6900's MVRV is ${mvrv.toFixed(2)}× — the average holder is ${up ? "in profit" : "underwater"}.
+Price sits ${up ? "above" : "below"} the crowd's on-chain cost basis — cheaper than ${cheaperThan}% of SPX6900's entire history.
+${up ? "Rich on its own chart." : "It's only been this cheap near its lows."}`,
+      card: { type: "mvrvtrend" },
+    };
+  })(),
+
   // Pi Cycle ratio — the continuous 111/(350×2) MA gauge from Bitcoin's Pi Cycle indicator,
   // applied to SPX for context. The ratio (not the borrowed binary cross) as an accumulation
   // gauge: >1 top zone, <0.5 accumulation. Honest angle: it ran hot at SPX's 2025 top and is
@@ -1611,7 +1629,7 @@ const LOOK = {
   whatnext: "race",
   // — Tier B: flavourful / distinct looks (used to break up the green lines) —
   riskcolor: "colorline", risklevels: "colorline", rsidots: "colorline",
-  riskheat: "dual", runningroi: "dual", cycle: "dual", longshort: "dual", underwater: "dual", goldencross: "dual", holdergrowth: "dual", mvrvbtc: "dual", picycle: "dual",
+  riskheat: "dual", runningroi: "dual", cycle: "dual", longshort: "dual", underwater: "dual", goldencross: "dual", holdergrowth: "dual", mvrvbtc: "dual", mvrvtrend: "dual", picycle: "dual",
   firesalerally: "fanlines",
   model: "scatter",
   monthlyreturns: "heatmap", monthlyreturnssp: "heatmap", monthlyreturnsbtc: "heatmap",

@@ -839,7 +839,21 @@
       — it uses the live CURRENT MVRV (price/be), which the backfill doesn't affect. Captions updated
       (dropped "young/weeks old"). Model fit untouched (MVRV is a separate on-chain metric). The
       Dune finding: MVRV max 5.39 (Oct-2024 euphoria, NOT the Jan-2025 price top), min 0.24 (Feb-2024),
-      today ~0.68 (underwater, ~21st pctl of its own history). Original note:
+      today ~0.68 (underwater, ~21st pctl of its own history). NOTE the charts/card recompute MVRV as
+      OUR daily price ÷ Dune realized (for consistency with our price line), so the DRAWN peak reads
+      ~6.32× Oct-2024 (our dense price ran hotter than Dune's own price column at that point) — same
+      shape, slightly higher peak than Dune's native 5.39×.
+      - **✅ ROTATION CARD BUILT 2026-07-15 — `mvrvtrend` "MVRV over time" (owner: "make sure we have a
+        good card rotation too").** `scripts/bot/mvrv-trend-card.mjs` (`renderMvrvTrendCard`, type
+        `mvrvtrend`, LOOK "dual", data-gated `mvrvSeries.length>=100`). SPX's OWN full-history MVRV line
+        (glow + area fill) with valuation zones from ITS OWN quantiles, a 1× break-even reference, a
+        peak annotation, and a "today N×" marker. Hero leads with the plain-word state ("underwater")
+        + percentile of its own history. **Sibling of `mvrvbtc` but vs ITS OWN history, not Bitcoin's**
+        (own-quantile zones + "cheaper than X% of SPX6900's entire history" vs mvrvbtc's "…of Bitcoin's
+        history") — decoupled bot card, no site page (the `mvrv` interactive page already covers it).
+        Data: `stats.mvrvSeries` = `loadMvrvSeries()` (history.json → `mvrvHistory()` → `[{ts,price,be,
+        mvrv}]`). Copy is a valuation-POSITION statement, NOT a buy signal (guardrail). Wired charts.mjs
+        + posts.mjs + LOOK + test whitelist; 75 tests green.
       Owner: MVRV is genuinely interesting because it shows how holders' COST BASIS moves vs
       PRICE — cost basis holds while price crashes = conviction/diamond-hands; cost basis falls
       = capitulation. HolderScan only gives CURRENT `be`, so we only bank it forward (starts

@@ -7,6 +7,7 @@ import { SPX_DAILY } from "../../src/spx-daily.js";
 import * as M from "../../src/models.js";
 import { SP500_HISTORY } from "../../src/sp500-history.js";
 import { FNG_HISTORY } from "../../src/fng-history.js";
+import { mvrvHistory } from "../../src/mvrv-data.js";
 
 const POOL = "0x52c77b0cb827afbad022e6d6caf2c44452edbc39";
 
@@ -166,6 +167,15 @@ function loadLongShort() {
     const arr = JSON.parse(readFileSync(new URL("../../public/longshort.json", import.meta.url), "utf8"));
     return Array.isArray(arr) ? arr.filter(r => r.hlFunding != null) : [];
   } catch { return []; }
+}
+
+// SPX6900's OWN MVRV over its full history — the on-chain Dune realized-cost backfill
+// (src/spx-mvrv.js, launch→now) merged with our daily price line, extended by the live
+// HolderScan snapshots (history.json p+be) on the tail. Returns [{ts, price, be, mvrv}].
+function loadMvrvSeries() {
+  let hist = [];
+  try { hist = JSON.parse(readFileSync(new URL("../../public/history.json", import.meta.url), "utf8")); } catch { /* bundle-only */ }
+  return mvrvHistory(hist).map(r => ({ ts: r.ts, price: r.p, be: r.be, mvrv: r.p / r.be }));
 }
 
 // Bitcoin's ~decade of MVRV (banked monthly by the btc-mvrv workflow) — the CONTEXT
@@ -365,6 +375,7 @@ export function computeStats(price, dateStr = new Date().toISOString().slice(0, 
     drawn: RAW, // merged {date,price}[] history (bundled + snapshot) for the rainbow line
     longshort: loadLongShort(), // Hyperliquid funding/OI positioning (data-gated)
     btcMvrv: loadBtcMvrv(), // Bitcoin's decade of MVRV, context for the MVRV-vs-BTC card
+    mvrvSeries: loadMvrvSeries(), // SPX's own full-history MVRV (Dune backfill + live tail), for the MVRV-over-time card
     altHistory: loadAltHistory(), // DOGE/PEPE/SHIB age-indexed history for the memecoin age cards
     series: {
       price: RAW.map(r => [Date.parse(r.date), r.price]),
