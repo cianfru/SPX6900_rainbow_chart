@@ -1,6 +1,6 @@
 {
-  "lastPostedDate": "2026-07-14",
-  "lastId": "sp500roll12",
+  "lastPostedDate": "2026-07-15",
+  "lastId": "ethage",
   "recent": [
     {
       "date": "2026-07-08",
@@ -29,6 +29,10 @@
     {
       "date": "2026-07-14",
       "id": "sp500roll12"
+    },
+    {
+      "date": "2026-07-15",
+      "id": "ethage"
     }
   ]
 }
