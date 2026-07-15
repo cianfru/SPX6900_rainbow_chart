@@ -860,6 +860,16 @@
       card; the winner feeds the aspirational ageCard/whatNextCard). Owner runs it → sends the ranking → we build the
       same-age/what-next card for the winner. **The CryptoCompare `find-resemblance.mjs` is now legacy** (kept for
       the growth-MULTIPLE angle, but the Dune corr approach is primary + keyless).
+      - **✅ RAN 2026-07-15 → VERDICT: SPX HAS NO TWIN (do NOT build a peer card).** Same-day returns-corr top-50 was
+        DOMINATED by wrapped BTC/ETH + LSTs (syBTC, cbBTC, stETH, weETH, ezETH…) + leveraged tradfi tokens (COINon/x =
+        Coinbase, MSTRon/x = MicroStrategy) = pure market beta, exactly the caveat. THE KEY DATAPOINT: **WETH itself
+        (0x000…000, "ETH") = 0.469 over 1019d = SPX's market-beta FLOOR.** Everything at 0.46–0.52 (PEPE 0.47, Mog
+        0.47, ENA 0.48, all LSTs) sits ON the floor = no special link. Only 2 names poke above with real history:
+        **BITCOIN (HPOS10I memecoin) 0.58 / AIXBT 0.57** — mild, not a twin. Fractal query: **PEPE 2024 vs SPX last
+        12mo = −0.05 (≈0)** — no rhyme (also phase-mismatched: SPX drawdown vs PEPE bull run). **CONCLUSION: SPX
+        trades idiosyncratically ("does its own thing") — the honest, flattering finding.** PEPE is dead on BOTH
+        tests. Don't force a resemblance/peer card; the BTC/ETH/SOL same-age cards stand on their own. Thread CLOSED
+        (the rigorous market-residual version would just confirm the null — not worth the credits).
     - **⭐ PICK THE PEER BY DATA — resemblance study (`scripts/find-resemblance.mjs` +
       `resemblance.yml`, BUILT 2026-07-13) — LEGACY, see the Dune version above.** Owner asked "what other coin resembles SPX's
       performance, beyond the memekings? can you check?" — I can't (CryptoCompare is blocked
