@@ -4,7 +4,16 @@ import {
   CartesianGrid, ReferenceLine
 } from "recharts";
 import { DEFAULT_RAW, fetchLivePrices, fetchSpotPrice, fetchMajors, fetchMemekings } from "./data.js";
+import { SPX_DAILY } from "./spx-daily.js";
 import { loadHistory, loadPriceHistory } from "./history-data.js";
+
+// Dense DRAWN base: the thinned weekly model bundle + the full DAILY history (launch→now)
+// so the price line is never boxy. The MODEL FIT still runs on DEFAULT_RAW only (frozen).
+const DENSE_BASE = (() => {
+  const m = new Map(DEFAULT_RAW.map(r => [r.date, r.price]));
+  for (const [d, p] of SPX_DAILY) if (p > 0) m.set(d, p);
+  return [...m].map(([date, price]) => ({ date, price })).sort((a, b) => a.date.localeCompare(b.date));
+})();
 import {
   buildModel, BAND_LABELS, TARGETS,
   dayN, ds, bandVal, bandIndex,
@@ -169,7 +178,7 @@ export default function App() {
   const isMobile = vw < 640;
   const isTablet = vw < 980;
 
-  const [priceData, setPriceData] = useState(DEFAULT_RAW);
+  const [priceData, setPriceData] = useState(DENSE_BASE);
   const [, setDataStatus] = useState(null);
   const [tickFlash, setTickFlash] = useState({ key: 0, dir: null }); // up/down flash on price move
   const prevPriceRef = useRef(null); // last live spot price, for tick direction
@@ -213,6 +222,7 @@ export default function App() {
     // Build the drawn series, later sources overriding earlier (increasing authority):
     const byDate = new Map();
     for (const r of DEFAULT_RAW) byDate.set(r.date, r.price);                            // thinned bundle — the always-present fallback
+    for (const [d, p] of SPX_DAILY) if (p > 0) byDate.set(d, p);                         // full DAILY launch→now — kills the boxy early years
     for (const p of priceHist) if (p?.date && p.price > 0) byDate.set(p.date, p.price);  // dense daily history (CI-built) — the real precision fix
     for (const p of candles) if (p?.date && p.price > 0) byDate.set(p.date, p.price);    // live daily candles (recent, fresher)
     for (const r of snapshot) if (r?.d && r.p > 0) byDate.set(r.d, r.p);                 // on-chain snapshot — authoritative recent

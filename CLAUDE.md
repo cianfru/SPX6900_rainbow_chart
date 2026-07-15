@@ -163,6 +163,19 @@
   diminishing returns. Removed the ROI-card trendline. The honest home for this is the
   **rally chart** (cycle bottom→top multiples, +16240% → +415% → +81%), which already
   shows the maturation as far as the data allows — it just needs more cycles to bank.
+- **✅ BOXY LAUNCH ERA FIXED — full daily bundle (owner CSV, 2026-07-15).** Owner exported the
+  FULL daily SPX history from CoinGecko ("max", 2023-08-24→2026-07-14, 1051 pts) → bundled as
+  **`src/spx-daily.js`** (`SPX_DAILY = [[date, price], …]`, close-based). Merged into the DRAWN
+  line: `App.jsx` builds a `DENSE_BASE` (DEFAULT_RAW + SPX_DAILY) as the initial priceData +
+  layers it in `applyLive`; `stats.mjs` `fetchHistory()` adds it as step 1b. Precedence: weekly
+  DEFAULT_RAW < SPX_DAILY < price-history.json < live candles < snapshot (fresh sources still win
+  the recent tail). Launch-era density went ~52→362 pts/yr — no more boxy weekly steps anywhere.
+  - **⭐ MODEL STAYS FROZEN ON WEEKLY — daily fit VALIDATED the choice (owner asked 2026-07-15).**
+    Re-fitting the power-law on the DAILY series gives **R² 0.694** vs the frozen weekly **0.742**
+    (exponent 4.60→4.06, fair value today $1.83→$1.54). So daily does NOT stay in the 0.74 framework —
+    it's WORSE, because daily carries the day-to-day noise + heavy autocorrelation that weekly closes
+    smooth out. Confirms the policy: dense daily for the drawn LINE, frozen weekly `DEFAULT_RAW` for the
+    FIT. Do NOT re-fit on daily.
 - **Dense historical price data — SOLVED IN STAGES (2026-07-05 → 2026-07-10).** Original
   finding: coinbase gave 300 pts (2025-09→now), GeckoTerminal FREE only ~6mo depth, bybit
   nothing → `price-history.json` densified 2025-09→today only, launch era stayed boxy weekly.

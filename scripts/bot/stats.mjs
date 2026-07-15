@@ -3,6 +3,7 @@
 // site / api/og.js logic so the bot can never disagree with the chart.
 import { readFileSync } from "node:fs";
 import { DEFAULT_RAW, SUPPLY, ATH } from "../../src/data.js";
+import { SPX_DAILY } from "../../src/spx-daily.js";
 import * as M from "../../src/models.js";
 import { SP500_HISTORY } from "../../src/sp500-history.js";
 import { FNG_HISTORY } from "../../src/fng-history.js";
@@ -76,6 +77,9 @@ export async function fetchHistory() {
   const byDate = new Map();
   // 1. weekly bundle — the always-present baseline across ALL history.
   for (const r of DEFAULT_RAW) byDate.set(r.date, r.price);
+  // 1b. FULL DAILY history (bundled src/spx-daily.js, launch→now) — kills the boxy early
+  //     years the weekly bundle leaves. Only densifies the DRAWN line; MODEL stays frozen.
+  for (const [d, p] of SPX_DAILY) if (p > 0) byDate.set(d, p);
   // 2. DENSE daily history (public/price-history.json, built in CI) — densifies the recent
   //    ~year the ~weekly bundle boxes over, incl. the real ATH region. Same as the SITE's
   //    drawn line. The MODEL stays frozen on DEFAULT_RAW (buildModel below); this only
