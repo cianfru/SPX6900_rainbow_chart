@@ -843,8 +843,25 @@
       2021), so at SPX's age SPX ≈ 500× vs DOGE ≈ 1× — a GAP that dwarfs, doesn't RHYME. Removed
       the `dogePeer` + `dogeage`/`dogenext` wiring. Lesson: a same-age peer only works if its
       early trajectory is a similar ORDER of multiple to SPX's — pick by DATA, not on-brand-ness.
+    - **⭐⭐ RESEMBLANCE STUDY — MOVED TO DUNE (owner, 2026-07-15) — SUPERSEDES the CryptoCompare version below.**
+      Owner's insight: Dune's Trino has a built-in `corr(y,x)` (Pearson r), so we can correlate SPX vs EVERY ETH
+      token in `prices.day` in seconds — no key, no hand-picked basket. **Two queries saved:**
+      • `dune/spx6900_correlation.sql` — correlates SPX's DAILY % RETURNS (not price levels → avoids the spurious
+        "both charts go up" trap) vs every ETH token, ranks by Pearson r, `HAVING count>=90` to drop new-token noise.
+      • `dune/spx6900_fractal_correlation.sql` — TIME-SHIFTED cross-correlation: aligns SPX's last 12mo vs a target
+        token's PAST era by `ROW_NUMBER()` sequence (not calendar date) → "does SPX's recent path rhyme with PEPE's
+        2024 / DOGE's 2021?". The rigorous version of the whatnext/same-age thesis.
+      **Claude review flags baked into the SQL headers:** (1) VERIFY `prices.day` columns on first run — if
+      `timestamp` errors it's likely `day`, or fall back to `prices.usd` + date_trunc (heavier); (2) MARKET-BETA
+      caveat — on returns most alts share a common crypto beta, so the top skews to generic high-beta alts, not
+      SPX-SPECIFIC co-movement (regress out a market index → correlate RESIDUALS to isolate idiosyncratic); (3)
+      Pearson is outlier-sensitive (one +5000% low-liq day dominates — add a liquidity floor / Spearman if junk
+      surfaces); stables self-filter (≈0 return corr). **USE = peer SELECTION, not a post** (a raw r is too techy to
+      card; the winner feeds the aspirational ageCard/whatNextCard). Owner runs it → sends the ranking → we build the
+      same-age/what-next card for the winner. **The CryptoCompare `find-resemblance.mjs` is now legacy** (kept for
+      the growth-MULTIPLE angle, but the Dune corr approach is primary + keyless).
     - **⭐ PICK THE PEER BY DATA — resemblance study (`scripts/find-resemblance.mjs` +
-      `resemblance.yml`, BUILT 2026-07-13).** Owner asked "what other coin resembles SPX's
+      `resemblance.yml`, BUILT 2026-07-13) — LEGACY, see the Dune version above.** Owner asked "what other coin resembles SPX's
       performance, beyond the memekings? can you check?" — I can't (CryptoCompare is blocked
       from the dev sandbox), so it's a dispatch workflow. Scans a broad basket (BNB, MATIC, POL,
       LINK, AVAX, ADA, DOT, ATOM, NEAR, LTC, XRP, UNI, INJ, SUI, APT, … + DOGE/SHIB) via
