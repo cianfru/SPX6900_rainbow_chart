@@ -175,10 +175,14 @@
     - **STAGE 1 (do first): VALIDATE today's row vs HolderScan** — realized_price ≈ `be` ~$0.54, holder_count ≈
       our snapshot. Cheap, fast to iterate in the Dune editor. This ALSO is the HolderScan-parity check for the
       eventual cutover.
-    - **STAGE 2 (after it validates): historical daily-series variant** — cross-join a day calendar + compute
-      balance/cost AS-OF each day → backfills supply-in-profit % + concentration to launch. Heavier (credits) →
-      run once/weekly. Realized-price-over-time is already backfilled (src/spx-mvrv.js) so this is mainly the
-      NEW columns (supply-in-profit, concentration, age bands).
+    - **✅ STAGE 2 DRAFTED 2026-07-15 — `dune/spx6900_onchain_history.sql` (historical WEEKLY series).** Same
+      method AS-OF each week via an interval (as-of) join: per-address running state (balance/VWAP-cost/last-recv)
+      → validity intervals → joined to a Monday grid → aggregated per week into the SAME columns as Stage 1.
+      Backfills supply_in_profit_pct + concentration + gini + HODL-wave age bands to launch. HEAVY (the credit-
+      costly non-equi panel join) → run ONCE to seed; weekly sampling (`day_of_week(d)=1`) keeps it ~7× cheaper
+      than daily; its cached result IS the whole series (self-sufficient for the past). Fallback if it times out:
+      monthly sample (`day_of_month(d)=1`) or narrow the range. Owner runs it + sends the CSV → bundle like
+      src/spx-mvrv.js. NOT yet run/validated (Claude can't run Dune).
     - **WIRING when the CSV/query-id lands:** bundle like src/spx-mvrv.js (or fetch cached results via
       `DUNE_API_KEY` → `/api/v1/query/{id}/results`, mirror CRYPTOCOMPARE_KEY: GH secret + Vercel env). Build
       **Supply in Profit %** card first (flagship), then holder-concentration + HODL-wave backfills off the same feed.
