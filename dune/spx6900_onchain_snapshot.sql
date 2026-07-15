@@ -77,9 +77,12 @@ exclude AS (
 
 -- Transfer date range → a calendar that spans it, so every transfer day gets a
 -- (gap-filled) price and no receive is dropped for lack of an exact price row.
+-- NOTE: use plain DATE throughout the day-granularity logic. Trino's sequence()
+-- rejects `timestamp with time zone` + a day interval, and evt_block_time is
+-- tz-aware on Dune, so CAST(... AS date) everywhere the day is used.
 xfer_days AS (
-  SELECT date_trunc('day', min(evt_block_time)) AS d0,
-         date_trunc('day', max(evt_block_time)) AS d1
+  SELECT min(CAST(evt_block_time AS date)) AS d0,
+         max(CAST(evt_block_time AS date)) AS d1
   FROM erc20_ethereum.evt_Transfer
   WHERE contract_address = (SELECT token FROM params)
 ),
@@ -89,7 +92,7 @@ day_cal AS (
   )) AS t(ts)
 ),
 px_raw AS (
-  SELECT date_trunc('day', minute) AS d, avg(price) AS price
+  SELECT CAST(minute AS date) AS d, avg(price) AS price
   FROM prices.usd
   WHERE contract_address = (SELECT token FROM params)
     AND blockchain = 'ethereum'
@@ -128,14 +131,14 @@ cost AS (
          sum( (CAST(t.value AS double)/pow(10,(SELECT decimals FROM params))) * px.price )
            / nullif(sum( CAST(t.value AS double)/pow(10,(SELECT decimals FROM params)) ), 0) AS avg_cost
   FROM erc20_ethereum.evt_Transfer t
-  JOIN px ON px.d = date_trunc('day', t.evt_block_time)
+  JOIN px ON px.d = CAST(t.evt_block_time AS date)
   WHERE t.contract_address = (SELECT token FROM params)
   GROUP BY t."to"
 ),
 
 -- Per-address last receive date → holding-age proxy.
 last_recv AS (
-  SELECT "to" AS address, max(date_trunc('day', evt_block_time)) AS last_in
+  SELECT "to" AS address, max(CAST(evt_block_time AS date)) AS last_in
   FROM erc20_ethereum.evt_Transfer
   WHERE contract_address = (SELECT token FROM params) AND value > 0
   GROUP BY "to"

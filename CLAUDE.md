@@ -195,6 +195,21 @@
       accumulate) → the forward series needs OUR snapshot cron to pull the row daily via the Dune API and append
       to history.json (Stage 2's historical variant is self-sufficient for the past). (5) realized_price computed
       ONCE (CTE) then mvrv derived. Gini formula confirmed correct.
+    - **✅ STAGE 1 RAN 2026-07-15 (owner, 35s, 51 credits) — VALIDATED.** After one fix (Trino `sequence()` rejects
+      tz-aware timestamps + a day interval → converted the day logic to plain `DATE` throughout; repo SQL updated to
+      match, methodology unchanged). Results: **realized_price $0.4959** (vs HolderScan be ~$0.54, ~8% low = the
+      expected VWAP-vs-FIFO gap), **holder_count_eth 49,598** (vs Etherscan raw 49,520 — 0.16% off, near-perfect →
+      validates the whole balance reconstruction), mvrv 0.772, supply_in_profit 47.4%, top10 31.3%, top100 69.0%,
+      **gini 0.981**. Only 2 addresses excluded so far.
+    - **🔲 NEXT — REFINE THE EXCLUDE LIST (owner flagged gini 0.981 as suspiciously high).** Correct instinct:
+      concentration + gini + realized_price are SENSITIVE to unexcluded non-persons (LP pools, the **bridge lock
+      holding the Base/Solana supply** — a single huge ETH address, CEX hot wallets, routers), while holder_count +
+      supply_in_profit are robust. Built **`dune/spx6900_top_holders.sql`** — lists the top 40 by balance with
+      `is_contract` (via `ethereum.creation_traces`) + n_recv/n_send + share, to classify & label via Etherscan.
+      Owner runs it, pastes the non-person addrs into `exclude`, re-runs the snapshot. Expect gini/top-N to drop to
+      realistic levels (token distributions ARE high-gini from the dust long-tail, but 0.98 with only 2 exclusions
+      likely has the bridge/CEX lumps in the top 10); holder_count_eth should barely move. Excluding the bridge lock
+      is ALSO correct for realized_price (those are Base/Solana holders whose true cost basis we can't trace on ETH).
     - **⭐ MULTI-CHAIN SCOPE (owner, 2026-07-15):** the query is ETHEREUM-only, so `holder_count_eth` is the ETH
       slice (~49.5k), NOT the ~230k cross-chain total (ETH + Base ~114k + Solana ~66k). Renamed the column to
       `holder_count_eth` + header warns never to present it as "total holders." The valuation metrics (realized
