@@ -667,16 +667,21 @@
         is a good card today too" — DON'T remove it; just make the explanation NEUTRAL (no bottom-call) and
         he writes the actual post text per the daily. Copy now: "Each legend aligned to the month SPX sits at
         now, in its own first bear-cycle year (1× = today). From there, after a dip into a year-end low, they
-        ran to their next-cycle tops: BTC +79×, ETH +11×, SOL +7.4×. History rhymes — not a forecast." (Dropped
-        the "SPX sits before its final bottom / the bottom may still be ahead" prediction.) **DATA FIX:** the
-        thinned bundled peer series erased sharp tops (SOL's real **$295 Jan-18-2025** ATH → ~$220; series maxed
-        $257). `build-alt-history.mjs` now fetches **DAILY** (THIN_DAYS 3→1) BTC/ETH/SOL + memecoins → `alt-history.json`,
-        and BOTH `ageCard` + `whatNextCard` now PREFER `stats.altHistory.<kind>.series` (≥100 pts) over the thinned
-        bundled `BTC_HISTORY`/`ETH_HISTORY`/`SOL_HISTORY`, falling back until the daily data is banked. 🔲 OWNER:
-        set `CRYPTOCOMPARE_KEY` → run "Build peer price history (daily)" → the peaks self-correct (SOL → ~8.5×).
-        Until then it uses the bundled series (SOL peak slightly low). SPX's own price was already daily
-        (price-history.json); only the PEER series were thin. Post-SPX-bottom, still worth simplifying to a clean
-        bottom-anchored "recovery from the low" variant, but it's LIVE and neutral now.
+        ran to their next-cycle tops: BTC +80×, ETH +11×, SOL +7×. History rhymes — not a forecast." (Dropped
+        the "SPX sits before its final bottom / the bottom may still be ahead" prediction.)
+        - **✅ DATA FIXED WITHOUT THE KEY — owner gave full daily ETH/SOL CSVs (2026-07-15).** The ~3-day thinning
+          had erased sharp tops. Owner exported CoinGecko "max" DAILY for **ETH (3993 pts, 2015→now) + SOL (2285
+          pts, 2020→now)** → re-bundled **`src/alt-age-history.js`** (`ETH_HISTORY`/`SOL_HISTORY`, full daily, no
+          thinning). So the age/what-next cards now use ACCURATE daily ETH/SOL directly (the `stats.altHistory`
+          preference still applies but the bundled fallback is now daily too — no CryptoCompare key needed for
+          ETH/SOL). **SOL's peak is $262.56 CLOSE on Jan-18-2025** (age 1743) — the $295 the owner remembers was
+          the intraday WICK; our charts are close-based throughout (same as SPX $1.82 close vs $2.28 intraday ATH),
+          so SOL reads **+7× from the Jul anchor**, honestly. **BTC still thinned** (`btc-history.js` — owner gave
+          ETH+SOL only; BTC's 2013 top ~$1102 close is fine, +80×). alt-age-history is BOT-ONLY (not imported by
+          any src/*.jsx) so the 90KB doesn't bloat the site bundle.
+        - `CRYPTOCOMPARE_KEY` + "Build peer price history (daily)" is now only needed for **BTC daily**, the
+          **memecoins** (DOGE/SHIB/PEPE), the **resemblance study**, and live **memekings/majors** depth — NOT for
+          ETH/SOL anymore. Post-SPX-bottom, still worth a clean bottom-anchored "recovery from the low" variant.
       - **`firstCycleBottom(series)` detector:** first ATH that HOLDS ≥365d (a real cycle top, not
         launch noise) and drops ≥55%, then the trough before recovery. The naive "first ≥55% drop"
         caught launch-era dumps (ETH age 0.2y, SOL 0.7y) — the ≥365d-hold filter fixed it (→ ETH
