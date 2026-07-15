@@ -62,8 +62,8 @@ export function mvrvTrendSvg(stats, opts = {}) {
   return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
 <defs>
 <linearGradient id="mtbg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#0b0b16"/><stop offset="100%" stop-color="#05050e"/></linearGradient>
-<linearGradient id="mtfill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="${SPX_C}" stop-opacity="0.34"/><stop offset="100%" stop-color="${SPX_C}" stop-opacity="0"/></linearGradient>
-<filter id="mtglow" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+<linearGradient id="mtfill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="${SPX_C}" stop-opacity="0.42"/><stop offset="55%" stop-color="${SPX_C}" stop-opacity="0.14"/><stop offset="100%" stop-color="${SPX_C}" stop-opacity="0"/></linearGradient>
+<filter id="mtglow" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="4.5"/></filter>
 </defs>
 <rect width="${W}" height="${H}" fill="url(#mtbg)"/>
 <text x="60" y="56" fill="#e2e8f0" font-size="34" font-weight="800" font-family="sans-serif" letter-spacing="1">SPX6900 — MVRV OVER TIME</text>
@@ -75,7 +75,8 @@ ${zones}${grid}${xlab}
 <polygon points="${area}" fill="url(#mtfill)"/>
 <line x1="${mL}" y1="${beY}" x2="${W - mR}" y2="${beY}" stroke="#4ade80" stroke-width="1.8" stroke-opacity="0.85" stroke-dasharray="7 6"/>
 <text x="${mL + 8}" y="${(+beY - 9).toFixed(1)}" fill="#4ade80" font-size="18" font-family="sans-serif">break-even 1×</text>
-<polyline points="${line}" fill="none" stroke="${SPX_C}" stroke-width="3.4" stroke-linejoin="round" filter="url(#mtglow)"/>
+<polyline points="${line}" fill="none" stroke="${SPX_C}" stroke-width="8" stroke-opacity="0.20" stroke-linejoin="round" stroke-linecap="round" filter="url(#mtglow)"/>
+<polyline points="${line}" fill="none" stroke="${SPX_C}" stroke-width="2.8" stroke-linejoin="round" stroke-linecap="round"/>
 <circle cx="${peakX.toFixed(1)}" cy="${peakY.toFixed(1)}" r="6" fill="${HOT_C}" stroke="#05050e" stroke-width="1.5"/>
 <text x="${peakX.toFixed(1)}" y="${(peakY < mT + 40 ? peakY + 34 : peakY - 14).toFixed(1)}" fill="${HOT_C}" font-size="18" font-weight="700" text-anchor="middle" font-family="sans-serif">peak ${fMvrv(peak.mvrv)} · ${esc(fMon(peak.ts))}</text>
 <circle cx="${curX.toFixed(1)}" cy="${curY.toFixed(1)}" r="8" fill="${SPX_C}" stroke="#05050e" stroke-width="2"/>
