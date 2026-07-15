@@ -201,15 +201,19 @@
       expected VWAP-vs-FIFO gap), **holder_count_eth 49,598** (vs Etherscan raw 49,520 — 0.16% off, near-perfect →
       validates the whole balance reconstruction), mvrv 0.772, supply_in_profit 47.4%, top10 31.3%, top100 69.0%,
       **gini 0.981**. Only 2 addresses excluded so far.
-    - **🔲 NEXT — REFINE THE EXCLUDE LIST (owner flagged gini 0.981 as suspiciously high).** Correct instinct:
-      concentration + gini + realized_price are SENSITIVE to unexcluded non-persons (LP pools, the **bridge lock
-      holding the Base/Solana supply** — a single huge ETH address, CEX hot wallets, routers), while holder_count +
-      supply_in_profit are robust. Built **`dune/spx6900_top_holders.sql`** — lists the top 40 by balance with
-      `is_contract` (via `ethereum.creation_traces`) + n_recv/n_send + share, to classify & label via Etherscan.
-      Owner runs it, pastes the non-person addrs into `exclude`, re-runs the snapshot. Expect gini/top-N to drop to
-      realistic levels (token distributions ARE high-gini from the dust long-tail, but 0.98 with only 2 exclusions
-      likely has the bridge/CEX lumps in the top 10); holder_count_eth should barely move. Excluding the bridge lock
-      is ALSO correct for realized_price (those are Base/Solana holders whose true cost basis we can't trace on ETH).
+    - **✅ EXCLUDE LIST REFINED & RE-VALIDATED 2026-07-15 (owner, 16 addresses, saved as a Dune favorite).**
+      Diagnostic `dune/spx6900_top_holders.sql` (top 250 + `is_contract` via `ethereum.creation_traces` + cumulative
+      share) → owner labelled the non-persons via Etherscan and added them. The 16-addr list (zero+dead, Uniswap v2
+      pool, Wormhole bridge, Kraken×3, Bybit, Bitpanda, CoinSpot, Revolut, MEXC, KuCoin, Coinbase, 1 unlabeled CEX,
+      1 unlabeled contract) is now baked into `dune/spx6900_onchain_snapshot.sql` (kept in sync with the favorite).
+      **Result: realized_price $0.5381 — within 0.4% of HolderScan be ~$0.54** (was 8% off with 2 excludes). top10
+      31.3%→16.8%, top100 69%→58.2%, gini 0.981→0.973 (barely moves — it's dust-tail-driven, so this is now the REAL
+      concentration, not an artifact), age>12m 26%→37.8% (the hot-potato fix: excluded CEX hops were resetting
+      long-held coins to "fresh"). holder_count_eth stayed ~49.6k (robust). Stage 1 DONE + parity-validated for the
+      HolderScan cutover. **Also fixed:** Trino `sequence(DATE,DATE)` must omit the explicit `interval '1' day` (it
+      defaults to a 1-day step; the explicit interval errors on Dune) — owner-confirmed, repo synced.
+      - The +64 holder_count bump between the owner's 12→16 runs is organic on-chain growth between run times (live
+        current-state snapshot; the chain gains dozens of wallets/hr) — NOT a CTE bug (excludes only ever remove rows).
     - **⭐ MULTI-CHAIN SCOPE (owner, 2026-07-15):** the query is ETHEREUM-only, so `holder_count_eth` is the ETH
       slice (~49.5k), NOT the ~230k cross-chain total (ETH + Base ~114k + Solana ~66k). Renamed the column to
       `holder_count_eth` + header warns never to present it as "total holders." The valuation metrics (realized

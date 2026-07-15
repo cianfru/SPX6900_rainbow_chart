@@ -64,14 +64,28 @@ params AS (
     1e-9 AS dust                                             -- ignore balances below this
 ),
 
--- Non-holder addresses to strip from headcount & concentration. EXTEND THIS.
+-- Non-holder addresses to strip from headcount & concentration. VALIDATED LIST
+-- (owner-curated 2026-07-15 from the top-holders diagnostic + Etherscan labels;
+-- this 16-addr set gives realized_price $0.5381 ≈ HolderScan be ~$0.54). Extend
+-- as new pools/bridges/CEX appear. Kept in sync with the owner's Dune favorite.
 exclude AS (
   SELECT addr FROM (VALUES
       (0x0000000000000000000000000000000000000000)   -- mint/burn (zero address)
-    , (0x52c77b0cb827afbad022e6d6caf2c44452edbc39)   -- Uniswap v2 SPX/WETH pool (our price-history POOL; verify on Etherscan)
-    -- , (0x................)  -- add any Uniswap v3 pool(s)
-    -- , (0x................)  -- add bridge lock addrs (Base/Wormhole etc.)
-    -- , (0x................)  -- add CEX deposit/hot wallets you recognise
+    , (0x000000000000000000000000000000000000dead)   -- dead/burn
+    , (0x52c77b0cb827afbad022e6d6caf2c44452edbc39)   -- Uniswap v2 SPX/WETH pool
+    , (0x3ee18b2214aff97000d974cf647e7c347e8fa585)   -- Wormhole bridge (holds Base/Solana supply)
+    , (0x7dafba1d69f6c01ae7567ffd7b046ca03b706f83)   -- Kraken
+    , (0xd2dd7b597fd2435b6db61ddf48544fd931e6869f)   -- Kraken
+    , (0xdf5e3a1ed0c14a53eee240022301ecb9d267671b)   -- Kraken
+    , (0x651641299c7ec0aa44ad7ed9b7e12702fed2022f)   -- Bybit
+    , (0x0529ea5885702715e83923c59746ae8734c553b7)   -- Bitpanda
+    , (0xf35a6bd6e0459a4b53a27862c51a2a7292b383d1)   -- CoinSpot
+    , (0x9b0c45d46d386cedd98873168c36efd0dcba8d46)   -- Revolut
+    , (0x3cc936b795a188f0e246cbb2d74c5bd190aecf18)   -- MEXC
+    , (0x6d6cc65e2060d0a280fcd47b6c22ec5636797fec)   -- KuCoin
+    , (0xa9d1e08c7793af67e9d92fe308d5697fb81d3e43)   -- Coinbase
+    , (0x73d8bd54f7cf5fab43fe4ef40a62d390644946db)   -- CEX (unlabeled)
+    , (0xdc154fcee1babb560e8528c3a7791527f01423df)   -- contract (unlabeled non-person)
   ) AS t(addr)
 ),
 
@@ -87,8 +101,10 @@ xfer_days AS (
   WHERE contract_address = (SELECT token FROM params)
 ),
 day_cal AS (
+  -- Trino defaults a DATE sequence to a 1-day step; passing `interval '1' day`
+  -- explicitly errors on the Dune engine, so omit it (owner-confirmed fix).
   SELECT ts AS d FROM UNNEST(sequence(
-    (SELECT d0 FROM xfer_days), (SELECT d1 FROM xfer_days), interval '1' day
+    (SELECT d0 FROM xfer_days), (SELECT d1 FROM xfer_days)
   )) AS t(ts)
 ),
 px_raw AS (
