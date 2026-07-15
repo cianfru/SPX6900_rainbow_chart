@@ -75,12 +75,13 @@ px AS (
 weeks AS ( SELECT d AS wk, price AS spot FROM px WHERE day_of_week(d) = 1 ),
 
 -- Per-address, per-day net change + receive value/amount (priced) + receive flag.
+-- NOTE: qualify legs.d — both legs and px expose a `d` after the join (owner fix).
 daily AS (
-  SELECT address, d,
-         sum(amt)                                        AS d_delta,
-         sum(CASE WHEN amt > 0 THEN amt * price ELSE 0 END) AS d_cost_in,
-         sum(CASE WHEN amt > 0 THEN amt ELSE 0 END)         AS d_amt_in,
-         max(CASE WHEN amt > 0 THEN d END)               AS d_recv_day
+  SELECT legs.address, legs.d,
+         sum(legs.amt)                                            AS d_delta,
+         sum(CASE WHEN legs.amt > 0 THEN legs.amt * px.price ELSE 0 END) AS d_cost_in,
+         sum(CASE WHEN legs.amt > 0 THEN legs.amt ELSE 0 END)     AS d_amt_in,
+         max(CASE WHEN legs.amt > 0 THEN legs.d END)              AS d_recv_day
   FROM (
     SELECT "to" AS address,  CAST(value AS double)/pow(10,(SELECT decimals FROM params)) AS amt,
            CAST(evt_block_time AS date) AS d
@@ -91,7 +92,7 @@ daily AS (
       FROM erc20_ethereum.evt_Transfer WHERE contract_address = (SELECT token FROM params)
   ) legs
   JOIN px ON px.d = legs.d
-  GROUP BY address, d
+  GROUP BY legs.address, legs.d
 ),
 
 -- Running per-address state at each of its event days.

@@ -17,6 +17,7 @@ import { renderMultichainCard, renderChainRaceCard } from "./multichain-card.mjs
 import { renderCycleSyncCard, renderCycleClockCard } from "./cycle-card.mjs";
 import { renderMvrvBtcCard } from "./mvrv-card.mjs";
 import { renderMvrvTrendCard } from "./mvrv-trend-card.mjs";
+import { renderSupplyProfitCard } from "./supply-profit-card.mjs";
 import { renderPiCycleCard } from "./picycle-card.mjs";
 import { renderHoldersPriceCard } from "./holders-price-card.mjs";
 import { renderRsiDotsCard } from "./rsi-card.mjs";
@@ -832,6 +833,7 @@ export function renderPostCard(post, stats, opts = {}) {
   if (type === "chainrace") return renderChainRaceCard(stats, dims);
   if (type === "mvrvbtc") return renderMvrvBtcCard(stats, dims);
   if (type === "mvrvtrend") return renderMvrvTrendCard(stats, dims);
+  if (type === "supplyprofit") return renderSupplyProfitCard(stats, dims);
   if (type === "picycle") return renderPiCycleCard(stats, dims);
   if (type === "cyclesync") return renderCycleSyncCard(stats, dims);
   if (type === "cycleclock") return renderCycleClockCard(stats, dims);

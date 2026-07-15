@@ -44,6 +44,7 @@ const RaceChart = lazy(() => import("./RaceChart.jsx"));
 const HoldersPriceChart = lazy(() => import("./HoldersPriceChart.jsx"));
 const RoadmapChart = lazy(() => import("./RoadmapChart.jsx"));
 const OnchainValueChart = lazy(() => import("./OnchainValueChart.jsx"));
+const SupplyInProfitChart = lazy(() => import("./SupplyInProfitChart.jsx"));
 const MvrvContextChart = lazy(() => import("./MvrvContextChart.jsx"));
 const PiCycleChart = lazy(() => import("./PiCycleChart.jsx"));
 const LongShortChart = lazy(() => import("./LongShortChart.jsx"));
@@ -157,6 +158,7 @@ function TabIcon({ name }) {
     case "vsmemekings": return (<svg {...p}><path d="M4 20V6" /><path d="M10 20V10" /><path d="M16 20V4" /><path d="M3 20h18" /><path d="M4 6l6 4 6-6" strokeDasharray="2 2" /></svg>);
     case "holdersprice": return (<svg {...p}><path d="M3 17l5-4 4 2 5-7 4 3" /><path d="M3 20l5-2 4 1 5-4 4 2" strokeDasharray="2 3" strokeOpacity="0.7" /></svg>);
     case "mvrv": return (<svg {...p}><path d="M3 15l5-3 4 1 5-6 4 2" /><path d="M3 18l5-1 4 0 5-3 4 1" strokeDasharray="2 3" strokeOpacity="0.7" /></svg>);
+    case "supplyprofit": return (<svg {...p}><path d="M3 16c3 1 5-8 8-8s4 7 10 3" /><line x1="3" y1="12" x2="21" y2="12" strokeDasharray="3 2" strokeOpacity="0.7" /></svg>);
     case "mvrvbtc": return (<svg {...p}><path d="M3 16c3 1 4-8 7-8s3 7 6 5 3-6 5-7" /><line x1="3" y1="11" x2="21" y2="11" strokeDasharray="3 2" strokeOpacity="0.8" /></svg>);
     case "longshort": return (<svg {...p}><line x1="3" y1="12" x2="21" y2="12" strokeDasharray="2 3" /><rect x="5" y="6" width="3" height="6" /><rect x="11" y="12" width="3" height="5" /><rect x="17" y="8" width="3" height="4" /></svg>);
     case "quantilefan": return (<svg {...p}><path d="M3 20 Q9 6 21 4" /><path d="M3 20 Q9 11 21 9" strokeOpacity="0.7" /><path d="M3 20 Q9 15 21 14" strokeOpacity="0.5" /></svg>);
@@ -565,6 +567,7 @@ export default function App() {
       case "holders": return <HolderscanDashboard />;
       case "holdersprice": return <HoldersPriceChart isMobile={mob} preview={preview} />;
       case "mvrv": return <OnchainValueChart isMobile={mob} preview={preview} />;
+      case "supplyprofit": return <SupplyInProfitChart isMobile={mob} preview={preview} />;
       case "mvrvbtc": return <MvrvContextChart isMobile={mob} preview={preview} />;
       case "longshort": return <LongShortChart series={priceData} isMobile={mob} />;
       case "quantilefan": return <QuantileFanChart series={priceData} isMobile={mob} preview={preview} />;

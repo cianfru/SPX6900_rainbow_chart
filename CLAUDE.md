@@ -181,8 +181,24 @@
       Backfills supply_in_profit_pct + concentration + gini + HODL-wave age bands to launch. HEAVY (the credit-
       costly non-equi panel join) → run ONCE to seed; weekly sampling (`day_of_week(d)=1`) keeps it ~7× cheaper
       than daily; its cached result IS the whole series (self-sufficient for the past). Fallback if it times out:
-      monthly sample (`day_of_month(d)=1`) or narrow the range. Owner runs it + sends the CSV → bundle like
-      src/spx-mvrv.js. NOT yet run/validated (Claude can't run Dune).
+      monthly sample (`day_of_month(d)=1`) or narrow the range.
+    - **✅ STAGE 2 RAN & BUNDLED 2026-07-15 (owner, Dune query 7991307).** Two fixes: restored the `*` operators the
+      markdown paste stripped from the gini formula, and qualified `legs.d` (both `legs` and `px` expose `d` after
+      the join → "Column 'd' is ambiguous"; repo synced). 152 weekly rows 2023-08-21→2026-07-13. Latest week matches
+      the Stage 1 snapshot (realized $0.538, gini 0.973, ~49.5k holders → both methods consistent); launch weeks
+      jumpy-but-real (2023-08-21: 100% <1m old, 98% in profit, 1,433 holders). Bundled as **`src/spx-onchain.js`**
+      (`SPX_ONCHAIN = [{d,sip,top10,top100,gini,age[5],holders,rp,mvrv,spot}]`) → `stats.onchain`.
+    - **✅ FLAGSHIP "SUPPLY IN PROFIT %" SHIPPED 2026-07-15 — bot card + interactive site page.**
+      • **Bot card** `scripts/bot/supply-profit-card.mjs` (`renderSupplyProfitCard`, type `supplyprofit`, LOOK
+        "dual", data-gated `onchain.length>=50`): green line + fading fill + warm/cool valuation zones (no labels,
+        mvrvtrend clean style) + 50% "half in profit" line + "now" dot. Hero "40% in profit — most of the float is
+        underwater." Wired charts.mjs/posts.mjs/LOOK/test whitelist. Copy is a valuation POSITION, not a signal.
+      • **Site page** `src/SupplyInProfitChart.jsx` (catalog id `supplyprofit`, On-Chain group) — drag-zoom, zone
+        labels (site = full detail), 50% reference, live metrics. Registered in charts-catalog.js + App.jsx (lazy +
+        switch + icon). Browser-verified via Playwright (renders clean, no JS errors). The current-state metric is
+        the last bundled WEEK (~40.2%); a live daily value would need the Stage 1 snapshot wired into the cron (TODO).
+      Current read: **40% of supply in profit** (60% underwater) — the conviction story. Ran ~100% at every price
+      top (frothy), bottomed ~2% Feb-2024 (everyone underwater).
     - **WIRING when the CSV/query-id lands:** bundle like src/spx-mvrv.js (or fetch cached results via
       `DUNE_API_KEY` → `/api/v1/query/{id}/results`, mirror CRYPTOCOMPARE_KEY: GH secret + Vercel env). Build
       **Supply in Profit %** card first (flagship), then holder-concentration + HODL-wave backfills off the same feed.

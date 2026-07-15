@@ -850,6 +850,21 @@ ${up ? "Rich on its own chart." : "It's only been this cheap near its lows."}`,
     };
   })(),
 
+  // Supply in Profit % — the flagship on-chain metric, from the Dune per-wallet
+  // cost-basis reconstruction (previously impossible via HolderScan). Share of
+  // ETH-native supply whose holder is above their cost basis. Plain-word valuation
+  // POSITION (high near tops, low near bottoms), not a buy signal (the guardrail).
+  s => (s.onchain?.length >= 50) && (() => {
+    const sip = s.onchain.at(-1).sip, under = sip < 50;
+    return {
+      id: "supplyprofit",
+      text: ct`🟢 ${sip.toFixed(0)}% of SPX6900's supply is in profit — the rest is underwater.
+Reconstructed on-chain: the share of supply whose wallet sits above its cost basis. It topped ~100% at every price peak and bottomed near 2%.
+${under ? "Most holders are red — and still holding." : "Most of the float is green."}`,
+      card: { type: "supplyprofit" },
+    };
+  })(),
+
   // Pi Cycle ratio — the continuous 111/(350×2) MA gauge from Bitcoin's Pi Cycle indicator,
   // applied to SPX for context. The ratio (not the borrowed binary cross) as an accumulation
   // gauge: >1 top zone, <0.5 accumulation. Honest angle: it ran hot at SPX's 2025 top and is
@@ -1629,7 +1644,7 @@ const LOOK = {
   whatnext: "race",
   // — Tier B: flavourful / distinct looks (used to break up the green lines) —
   riskcolor: "colorline", risklevels: "colorline", rsidots: "colorline",
-  riskheat: "dual", runningroi: "dual", cycle: "dual", longshort: "dual", underwater: "dual", goldencross: "dual", holdergrowth: "dual", mvrvbtc: "dual", mvrvtrend: "dual", picycle: "dual",
+  riskheat: "dual", runningroi: "dual", cycle: "dual", longshort: "dual", underwater: "dual", goldencross: "dual", holdergrowth: "dual", mvrvbtc: "dual", mvrvtrend: "dual", supplyprofit: "dual", picycle: "dual",
   firesalerally: "fanlines",
   model: "scatter",
   monthlyreturns: "heatmap", monthlyreturnssp: "heatmap", monthlyreturnsbtc: "heatmap",
