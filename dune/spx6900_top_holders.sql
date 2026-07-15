@@ -37,15 +37,20 @@ tot AS ( SELECT sum(balance) AS s FROM agg WHERE balance > 0 )
 SELECT
   a.address,
   a.balance,
-  100.0 * a.balance / (SELECT s FROM tot)   AS share_pct,
+  100.0 * a.balance / (SELECT s FROM tot)                                        AS share_pct,
+  -- Cumulative share down the ranked list: once this plateaus, the wallets below
+  -- barely move the aggregates → stop reviewing there (no need to sweep 1000).
+  100.0 * sum(a.balance) OVER (ORDER BY a.balance DESC) / (SELECT s FROM tot)     AS cum_share_pct,
   a.n_recv,
   a.n_send,
-  -- Contract detection: present in creation traces ⇒ it's a contract (pool/bridge/
-  -- router), not a person. If ethereum.creation_traces is unavailable in your
-  -- Dune tier, delete this column + the LEFT JOIN and classify via Etherscan.
-  (ct.address IS NOT NULL)                   AS is_contract
+  -- Contract detection: present in creation traces ⇒ a contract (pool/bridge/
+  -- router), not a person → exclude. Catches non-persons at EVERY rank, not just
+  -- the top, with zero manual work. (Caveat: also flags smart-contract WALLETS
+  -- like Safe — rare among memecoin holders, acceptable per published method.)
+  -- If ethereum.creation_traces is unavailable in your tier, drop this + the JOIN.
+  (ct.address IS NOT NULL)                                                        AS is_contract
 FROM agg a
 LEFT JOIN ethereum.creation_traces ct ON ct.address = a.address
 WHERE a.balance > 0
 ORDER BY a.balance DESC
-LIMIT 40
+LIMIT 250
