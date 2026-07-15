@@ -4,6 +4,7 @@ import {
 } from "recharts";
 import { SUPPLY } from "./data.js";
 import { loadHistory } from "./history-data.js";
+import { mvrvHistory } from "./mvrv-data.js";
 import ChartZoomHint from "./ChartZoomHint.jsx";
 import { SANS, MONO, MAX_W, Metric, TipBox, ZoomBar } from "./chart-ui.jsx";
 import { useDragZoom } from "./use-drag-zoom.js";
@@ -38,9 +39,7 @@ export default function OnchainValueChart({ isMobile, preview = false }) {
 
   const all = useMemo(() => {
     if (!history) return null;
-    const rows = [];
-    for (const r of history) if (r.be > 0 && r.p > 0) rows.push({ ts: new Date(r.d).getTime(), price: r.p, be: r.be, mvrv: r.p / r.be, mcap: r.p * SUPPLY, rcap: r.be * SUPPLY });
-    rows.sort((a, b) => a.ts - b.ts);
+    const rows = mvrvHistory(history).map(r => ({ ts: r.ts, price: r.p, be: r.be, mvrv: r.p / r.be, mcap: r.p * SUPPLY, rcap: r.be * SUPPLY }));
     if (rows.length) {
       const mc = rows.map(r => r.mcap), mean = mc.reduce((s, x) => s + x, 0) / mc.length;
       const std = Math.sqrt(mc.reduce((s, x) => s + (x - mean) ** 2, 0) / mc.length) || 1;
@@ -126,7 +125,7 @@ export default function OnchainValueChart({ isMobile, preview = false }) {
         On-chain valuation from the crowd&apos;s <strong style={{ color: COST }}>realized price</strong> (avg cost basis).
         <strong style={{ color: "#cbd5e1" }}> Realized price</strong>: price vs cost basis — above = holders in profit.
         <strong style={{ color: "#cbd5e1" }}> MVRV</strong>: price ÷ cost (1× = break-even, high = frothy). <strong style={{ color: "#cbd5e1" }}>Z-score</strong>: MVRV normalized.
-        Daily snapshots banked recently, so it&apos;s young and grows over time. Drag to zoom. Not financial advice.
+        Cost basis reconstructed on-chain from launch; live HolderScan snapshots extend the tail. Drag to zoom. Not financial advice.
       </div>
     </div>
   );

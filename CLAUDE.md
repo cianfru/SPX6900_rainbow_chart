@@ -826,7 +826,20 @@
     distribution field. All three are already banked; the distribution stays blocked on
     the HolderScan collab. **Revisit ~2026-07-23** once ~30 days of `be`/`upnl`/`rpnl`
     are banked, to build the MVRV-over-time card (line + zones).
-    - **🔲 HISTORICAL MVRV BACKFILL via Dune — TOP PRIORITY, deferred to laptop (owner, 2026-07-13).**
+    - **✅ HISTORICAL MVRV BACKFILL via Dune — DONE 2026-07-15 (owner ran the Dune query, sent the CSV).**
+      Owner exported the Dune ERC-20 realized-price reconstruction (per-wallet cost basis → realized
+      cap) as a full DAILY series 2023-08-18→2026-07-15 (1063 pts). Bundled as **`src/spx-mvrv.js`**
+      (`SPX_MVRV = [["YYYY-MM-DD", realizedPriceUSD], …]`, realized price only). Shared merge helper
+      **`src/mvrv-data.js` `mvrvHistory(snapshotHistory)`** joins it with our dense daily price line
+      (SPX_DAILY over DEFAULT_RAW → MVRV = price/realized) and lets the live HolderScan snapshots
+      (history.json `p`+`be`) win on the recent tail — they align (Dune realized ~$0.564 vs HolderScan
+      be ~$0.537), so the join is seamless. **Wired:** `OnchainValueChart.jsx` (the `mvrv` page — now
+      full launch→now history instead of "not enough data yet") + `MvrvContextChart.jsx` (the SPX MVRV
+      trail on BTC's decade now spans launch→now, ~one full cycle). The `mvrvbtc` BOT CARD is unchanged
+      — it uses the live CURRENT MVRV (price/be), which the backfill doesn't affect. Captions updated
+      (dropped "young/weeks old"). Model fit untouched (MVRV is a separate on-chain metric). The
+      Dune finding: MVRV max 5.39 (Oct-2024 euphoria, NOT the Jan-2025 price top), min 0.24 (Feb-2024),
+      today ~0.68 (underwater, ~21st pctl of its own history). Original note:
       Owner: MVRV is genuinely interesting because it shows how holders' COST BASIS moves vs
       PRICE — cost basis holds while price crashes = conviction/diamond-hands; cost basis falls
       = capitulation. HolderScan only gives CURRENT `be`, so we only bank it forward (starts

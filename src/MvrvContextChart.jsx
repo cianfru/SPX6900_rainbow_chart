@@ -3,6 +3,7 @@ import {
   ResponsiveContainer, ComposedChart, Line, Scatter, XAxis, YAxis, Tooltip, CartesianGrid, ReferenceLine, ReferenceArea,
 } from "recharts";
 import { loadHistory, loadBtcMvrv } from "./history-data.js";
+import { mvrvHistory } from "./mvrv-data.js";
 import ChartZoomHint from "./ChartZoomHint.jsx";
 import { SANS, MONO, MAX_W, Metric, TipBox, ZoomBar } from "./chart-ui.jsx";
 import { useDragZoom } from "./use-drag-zoom.js";
@@ -70,14 +71,12 @@ export default function MvrvContextChart({ isMobile, preview = false }) {
     return { rows, sorted, zones, btcCur: rows.at(-1).mvrv };
   }, [btc]);
 
-  // SPX6900's OWN MVRV trail = price ÷ realized price (avg cost basis) per daily snapshot.
-  // Short for now (banking since ~2026-06) — it grows into a longer path over time, drawn
-  // on BTC's timeline at its real dates (so it sits in the recent/right region of the chart).
+  // SPX6900's OWN MVRV trail = price ÷ realized price (avg cost basis). Full launch→now
+  // path from the on-chain Dune realized-cost backfill, with the live HolderScan snapshots
+  // extending the tail — drawn on BTC's timeline at its real dates (recent/right region).
   const spxSeries = useMemo(() => {
-    if (!spxHist?.length) return [];
-    return spxHist.filter(r => r.be > 0 && r.p > 0)
-      .map(r => ({ ts: new Date(r.d + "T00:00:00Z").getTime(), mvrv: r.p / r.be }))
-      .sort((a, b) => a.ts - b.ts);
+    if (!spxHist) return [];
+    return mvrvHistory(spxHist).map(r => ({ ts: r.ts, mvrv: r.p / r.be }));
   }, [spxHist]);
   const spx = spxSeries.length ? { mvrv: spxSeries.at(-1).mvrv, ts: spxSeries.at(-1).ts } : null;
 
@@ -192,7 +191,7 @@ export default function MvrvContextChart({ isMobile, preview = false }) {
       <div style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 10, lineHeight: 1.65, maxWidth: 900, marginInline: "auto" }}>
         <strong style={{ color: BTC }}>Bitcoin&apos;s MVRV</strong> over its whole history (market-cap ÷ realized-cap — unitless, so it&apos;s comparable across coins);
         the <strong style={{ color: SPX }}>SPX6900 band</strong> marks where its MVRV sits today, and the <strong style={{ color: MATCH }}>dots</strong> are the Bitcoin weeks at that same level.
-        The zones are Bitcoin&apos;s own MVRV quantiles — a reference, not a target. SPX6900&apos;s MVRV history is only weeks old and grows daily, so read it as a rhyme, not a forecast. Drag to zoom. Not financial advice.
+        The zones are Bitcoin&apos;s own MVRV quantiles — a reference, not a target. SPX6900 has ~one cycle of MVRV vs Bitcoin&apos;s decade, so read it as a rhyme, not a forecast. Drag to zoom. Not financial advice.
       </div>
     </div>
   );
