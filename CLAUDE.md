@@ -184,6 +184,24 @@
       **Supply in Profit %** card first (flagship), then holder-concentration + HODL-wave backfills off the same feed.
     - Methodology honesty caveats baked into the SQL header (avg-cost VWAP approximation, address-level age proxy,
       why contracts are excluded). Claude CAN'T run Dune (sandbox blocks it) → owner pastes/tweaks + sends results.
+    - **⭐ OWNER REVIEW FIXES 2026-07-15 (all applied):** (1) decimals=8 CONFIRMED on Etherscan (the earlier MVRV
+      export divided by 1e18 = wrong, but realized_price/mvrv are ratios so the scale CANCELS → src/spx-mvrv.js
+      realized_price is still valid; only that CSV's volume/baseline cols were meaningless — we never used them).
+      (2) **Price gap-fill** — the cost CTE now joins a forward/back-filled daily calendar (last_value/first_value
+      IGNORE NULLS) so no receive on a price-feed-gap day is silently dropped from the VWAP (the original-MVRV bug
+      class). (3) **Hot-potato caveat** documented: address-level cost basis resets at every intermediary hop
+      (unlisted CEX/bridge/router distorts realized price) — exclude list fights known ones, full fidelity needs
+      tx-graph tracing. (4) **Scheduling corrected**: a scheduled Dune query REPLACES its cached result (doesn't
+      accumulate) → the forward series needs OUR snapshot cron to pull the row daily via the Dune API and append
+      to history.json (Stage 2's historical variant is self-sufficient for the past). (5) realized_price computed
+      ONCE (CTE) then mvrv derived. Gini formula confirmed correct.
+    - **⭐ MULTI-CHAIN SCOPE (owner, 2026-07-15):** the query is ETHEREUM-only, so `holder_count_eth` is the ETH
+      slice (~49.5k), NOT the ~230k cross-chain total (ETH + Base ~114k + Solana ~66k). Renamed the column to
+      `holder_count_eth` + header warns never to present it as "total holders." The valuation metrics (realized
+      price/MVRV/supply-in-profit/concentration/age) STAY ETH-native by design — cost basis is only reconstructable
+      on the traceable chain, and ~94% of VALUE sits on ETH. Cross-chain headcount stays on our existing bankers
+      (Base=Blockscout, Solana=RPC → holdersBase/holdersSol). Base could later move to a sibling Dune query on
+      `erc20_base.evt_Transfer`, Solana to the SPL tables, if we consolidate headcount — but valuation stays ETH-only.
 - **⭐ BUILD THE FOUNDATION — collect data now, even at 3yr (owner, 2026-07-05).** Many
   ITC charts encode 15-year / multi-cycle BTC insights that SPX is TOO YOUNG to show yet
   (quantile fan, Cowen corridor, cross-cycle diminishing returns). Owner's directive:
