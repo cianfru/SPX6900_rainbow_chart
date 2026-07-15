@@ -123,6 +123,51 @@
     single-shot latency ever grates.
 
 ## Backlog / decisions
+- **⭐⭐ ON-CHAIN IS THE NEW FRONTIER — Dune-backed pipeline + eventual HolderScan cutover
+  (owner strategy, 2026-07-15).** Now that Dune is unlocked (owner will wire a `DUNE_API_KEY`
+  to feed us), the moat (honest valuation) and on-chain data are the same thing → go deeper
+  on-chain. **THE KEY INSIGHT: one body of Dune work does BOTH jobs.** The per-wallet
+  reconstruction that replaces HolderScan is the SAME cost-basis + holding-age engine that
+  unlocks the new frontier metrics — not two projects, one pipeline. It reconstructs
+  per-wallet **balance + cost basis + age** from the ERC-20 transfer history (ETH-native, same
+  lineage as the MVRV backfill we shipped 2026-07-15), then exposes everything HolderScan gives
+  PLUS things it never could. Master Dune query outputs one row/day: realized price,
+  supply-in-profit %, holder count, gini, age-band shares. **Claude drafts the SQL (window
+  functions over `erc20_ethereum.evt_Transfer` for `0xE0f63A424a4439cBE457d80e4f4b51ad25b2c56C`
+  joined to `prices.usd`); owner pastes/tweaks in the Dune editor + sets a daily refresh + sends
+  the CSV/query id** (Claude can't run Dune — sandbox blocks it).
+  - **BUILD ORDER (owner agreed the framing; not yet greenlit to start coding):**
+    1. **⭐ Supply in Profit % — BUILD FIRST.** The highest-value new metric: previously
+       IMPOSSIBLE (HolderScan gave only aggregate `be`, never the cost-basis DISTRIBUTION), and
+       the most on-brand on-chain metric — "X% of all SPX6900 is held in profit," one plain-word
+       glanceable number, NOT techy. Card = % over time + valuation zones + "today" marker;
+       natural sibling of the MVRV card + the backbone of the greenlit **"Am I cheap?"** convergence
+       dashboard. Honest hook: low supply-in-profit % while price < most cost bases = "float
+       underwater and still not selling" (the conviction story, now EXACT not the MVRV proxy).
+    2. **Cost-basis distribution — "where the bags are" (URPD-style histogram):** the price levels
+       where supply was acquired → "most of the float bought around $X, that's the wall." Visually
+       striking, genuinely new (ITC/Glassnode-style).
+    3. **HODL waves / age cohorts backfilled to LAUNCH:** `diamondtrend` + `holdergrowth` are
+       FORWARD-ONLY today (weeks of data). The same query backfills them to Aug 2023 → full cycle
+       immediately, stops being "fills in over time." Big quality win beyond any new card. (Same
+       Dune ETH+Base holder-backfill already noted under the multi-chain section.)
+  - **HOLDERSCAN → DUNE CUTOVER (saves ~$200/yr; owner wants it eventually).** Dune reproduces ALL
+    of it: break-even (VALIDATED — Dune realized $0.564 vs HolderScan `be` $0.537, ~5% and they
+    track), realized/unrealized PnL, holder count (already keyless on Base/Solana), gini, and age
+    tiers (bucket wallets by holding age — the one non-trivial piece, but BETTER done ourselves with
+    TRANSPARENT PUBLISHED thresholds than HolderScan's proprietary buckets = more honesty moat).
+    **Migration hygiene: run BOTH in parallel ~2–3 weeks, confirm the daily Dune numbers match
+    HolderScan within tolerance, THEN cancel** — no silent discontinuity in `be`/tiers on cutover
+    day (honesty moat). Cheap insurance.
+  - **API mechanic:** write the query once → owner saves it in Dune + daily auto-refresh → CI/Vercel
+    fetches the CACHED results JSON with `DUNE_API_KEY` (`/api/v1/query/{id}/results`). Free tier is
+    fine: READING cached results is cheap, only EXECUTIONS are rate-limited, daily is well within.
+    Wire the key BOTH as a GH Actions secret (crons) AND Vercel env (any live endpoint) — separate,
+    mirror the `CRYPTOCOMPARE_KEY` pattern. Guardrail unchanged: on-chain metrics stay
+    valuation-POSITION statements, never buy signals.
+  - **NEXT ACTION when resumed:** Claude drafts the master per-wallet cost-basis SQL, prove it out on
+    **Supply in Profit %** first. (Owner said "put all in memory" 2026-07-15 — captured; greenlight to
+    write the SQL still pending.)
 - **⭐ BUILD THE FOUNDATION — collect data now, even at 3yr (owner, 2026-07-05).** Many
   ITC charts encode 15-year / multi-cycle BTC insights that SPX is TOO YOUNG to show yet
   (quantile fan, Cowen corridor, cross-cycle diminishing returns). Owner's directive:
