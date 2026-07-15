@@ -58,6 +58,21 @@ export function loadBtcMvrv() {
   return btcMvrvPromise;
 }
 
+// Shared, cached loader for /onchain.json — the SPX6900 on-chain valuation &
+// distribution WEEKLY series (Supply in Profit %, concentration, gini, HODL waves),
+// re-executed from Dune weekly in CI (build-onchain.mjs). Resolves to null on any
+// failure so callers can fall back to the bundled src/spx-onchain.js.
+let onchainPromise = null;
+export function loadOnchain() {
+  if (!onchainPromise) {
+    onchainPromise = fetch("/onchain.json", { cache: "no-store" })
+      .then(r => (r.ok ? r.json() : null))
+      .then(d => (Array.isArray(d) && d.length ? d : null))
+      .catch(() => null);
+  }
+  return onchainPromise;
+}
+
 // Friendly copy for live-API failures. The raw error (JSON parse noise, proxy
 // statuses) is meaningless to visitors — never show it in the UI.
 export const LIVE_DATA_DOWN = "Live data is temporarily unavailable — try again in a minute.";

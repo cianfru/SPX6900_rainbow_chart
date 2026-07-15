@@ -199,6 +199,24 @@
         the last bundled WEEK (~40.2%); a live daily value would need the Stage 1 snapshot wired into the cron (TODO).
       Current read: **40% of supply in profit** (60% underwater) — the conviction story. Ran ~100% at every price
       top (frothy), bottomed ~2% Feb-2024 (everyone underwater).
+    - **✅ AUTOMATED DUNE REFRESH WIRED 2026-07-15 (owner: "wire the weekly series via the Dune API").**
+      `scripts/build-onchain.mjs` + `.github/workflows/onchain.yml` (WEEKLY Monday cron + dispatch + a deploy job
+      mirroring snapshot.yml). The Stage-2 query is self-sufficient (one execution = whole series), and Dune's free
+      tier has no native scheduler, so CI RE-EXECUTES it via the API (execute → poll status → results), maps the
+      rows (`toBundle`, mirrors src/spx-onchain.js), and writes `public/onchain.json`; the deploy job redeploys so
+      the live site + og card pick it up (a GITHUB_TOKEN commit alone can't trigger deploy.yml). **Reading side
+      prefers the live JSON, bundle is the fallback:** site `SupplyInProfitChart.jsx` via `loadOnchain()`
+      (/onchain.json), bot `stats.onchain` via `loadOnchain()` (public/onchain.json). `vercel.json` includeFiles
+      adds public/onchain.json to og/agent/recap. **Seeded** public/onchain.json from the bundle so it works before
+      the first cron. **Credits: ~50/run × weekly ≈ 200/mo** (well within the 2,500 free budget). `toBundle` is
+      unit-testable (import guard on main). **🔲 OWNER ACTION: add `DUNE_API_KEY` as a repo secret + Vercel env**
+      (mirror CRYPTOCOMPARE_KEY — GH Actions for the cron, Vercel for any live use); optional repo var
+      `DUNE_ONCHAIN_QUERY_ID` (default 7991307). Without the key the workflow soft-fails and the bundle keeps serving.
+    - **🔲 DAILY GRANULARITY — owner wants it EVENTUALLY (not now, 2026-07-15).** Deepen the series from weekly to
+      daily: change the Stage-2 query's `day_of_week(d)=1` sample to ALL days (drop the filter). It's the heavy
+      non-equi panel join, so daily is ~7× the rows/credits per run (watch the 2,500/mo budget — maybe keep the
+      auto-refresh weekly but run a one-off daily backfill, or move to a paid tier). The bundle/loader/card/chart
+      all already handle arbitrary row counts, so it's purely a Dune-side sampling change + re-bundle.
     - **WIRING when the CSV/query-id lands:** bundle like src/spx-mvrv.js (or fetch cached results via
       `DUNE_API_KEY` → `/api/v1/query/{id}/results`, mirror CRYPTOCOMPARE_KEY: GH secret + Vercel env). Build
       **Supply in Profit %** card first (flagship), then holder-concentration + HODL-wave backfills off the same feed.

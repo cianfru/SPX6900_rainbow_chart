@@ -170,6 +170,16 @@ function loadLongShort() {
   } catch { return []; }
 }
 
+// On-chain weekly series (supply-in-profit, concentration, gini, HODL waves). Prefers
+// the CI-refreshed public/onchain.json (Dune, weekly) and falls back to the bundle.
+function loadOnchain() {
+  try {
+    const arr = JSON.parse(readFileSync(new URL("../../public/onchain.json", import.meta.url), "utf8"));
+    if (Array.isArray(arr) && arr.length >= 50) return arr;
+  } catch { /* fall back to bundle */ }
+  return SPX_ONCHAIN;
+}
+
 // SPX6900's OWN MVRV over its full history — the on-chain Dune realized-cost backfill
 // (src/spx-mvrv.js, launch→now) merged with our daily price line, extended by the live
 // HolderScan snapshots (history.json p+be) on the tail. Returns [{ts, price, be, mvrv}].
@@ -377,7 +387,7 @@ export function computeStats(price, dateStr = new Date().toISOString().slice(0, 
     longshort: loadLongShort(), // Hyperliquid funding/OI positioning (data-gated)
     btcMvrv: loadBtcMvrv(), // Bitcoin's decade of MVRV, context for the MVRV-vs-BTC card
     mvrvSeries: loadMvrvSeries(), // SPX's own full-history MVRV (Dune backfill + live tail), for the MVRV-over-time card
-    onchain: SPX_ONCHAIN, // Dune weekly on-chain series (supply-in-profit, concentration, gini, HODL waves) — ETH-native
+    onchain: loadOnchain(), // Dune weekly on-chain series (supply-in-profit, concentration, gini, HODL waves) — ETH-native
     altHistory: loadAltHistory(), // DOGE/PEPE/SHIB age-indexed history for the memecoin age cards
     series: {
       price: RAW.map(r => [Date.parse(r.date), r.price]),

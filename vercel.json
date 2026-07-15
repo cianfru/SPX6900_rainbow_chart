@@ -1,8 +1,8 @@
 {
   "functions": {
-    "api/og.js": { "includeFiles": "{scripts/bot/**,public/history.json}" },
-    "api/recap.js": { "includeFiles": "{scripts/bot/**,public/history.json}" },
-    "api/agent.js": { "includeFiles": "{scripts/bot/**,public/history.json}" }
+    "api/og.js": { "includeFiles": "{scripts/bot/**,public/history.json,public/onchain.json}" },
+    "api/recap.js": { "includeFiles": "{scripts/bot/**,public/history.json,public/onchain.json}" },
+    "api/agent.js": { "includeFiles": "{scripts/bot/**,public/history.json,public/onchain.json}" }
   },
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api/$1" },

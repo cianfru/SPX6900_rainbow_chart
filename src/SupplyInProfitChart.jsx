@@ -1,8 +1,9 @@
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 import {
   ResponsiveContainer, ComposedChart, Area, XAxis, YAxis, Tooltip, CartesianGrid, ReferenceLine, ReferenceArea,
 } from "recharts";
 import { SPX_ONCHAIN } from "./spx-onchain.js";
+import { loadOnchain } from "./history-data.js";
 import ChartZoomHint from "./ChartZoomHint.jsx";
 import { SANS, MONO, MAX_W, Metric, TipBox, ZoomBar } from "./chart-ui.jsx";
 import { useDragZoom } from "./use-drag-zoom.js";
@@ -25,9 +26,16 @@ function Tip({ active, payload }) {
 // basis sits below price, reconstructed on-chain from the ERC-20 transfer history
 // (Dune). High near tops (frothy), low near bottoms (cheap). A valuation position.
 export default function SupplyInProfitChart({ isMobile, preview = false }) {
+  // Prefer the CI-refreshed /onchain.json (Dune, weekly); fall back to the bundle.
+  const [live, setLive] = useState(null);
+  useEffect(() => {
+    let cancelled = false;
+    loadOnchain().then(d => { if (!cancelled && d) setLive(d); });
+    return () => { cancelled = true; };
+  }, []);
   const all = useMemo(
-    () => SPX_ONCHAIN.map(r => ({ ts: Date.parse(r.d), sip: r.sip })).filter(r => Number.isFinite(r.ts)).sort((a, b) => a.ts - b.ts),
-    []);
+    () => (live || SPX_ONCHAIN).map(r => ({ ts: Date.parse(r.d), sip: r.sip })).filter(r => Number.isFinite(r.ts)).sort((a, b) => a.ts - b.ts),
+    [live]);
 
   const { zoom, setZoom, selL, selR, onDown, onMove, onUp, zoomed } = useDragZoom(
     (a, b) => all.filter(r => r.ts >= a && r.ts <= b).length >= 2);
