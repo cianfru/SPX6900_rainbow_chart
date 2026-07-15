@@ -13,6 +13,7 @@ on:
     # would deploy every hour and blow Vercel's free 100-deploys/day limit.
     paths-ignore:
       - "CLAUDE.md"
+      - "dune/**"
       - "public/next-post.json"
       - "public/post-state.json"
       - "public/band-state.json"

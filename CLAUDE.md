@@ -165,9 +165,25 @@
     Wire the key BOTH as a GH Actions secret (crons) AND Vercel env (any live endpoint) — separate,
     mirror the `CRYPTOCOMPARE_KEY` pattern. Guardrail unchanged: on-chain metrics stay
     valuation-POSITION statements, never buy signals.
-  - **NEXT ACTION when resumed:** Claude drafts the master per-wallet cost-basis SQL, prove it out on
-    **Supply in Profit %** first. (Owner said "put all in memory" 2026-07-15 — captured; greenlight to
-    write the SQL still pending.)
+  - **✅ MASTER SQL DRAFTED 2026-07-15 — `dune/spx6900_onchain_snapshot.sql`.** Owner greenlit ("yes please").
+    ONE current-state query reconstructs per-wallet balance + avg-cost (VWAP of receives) + holding age from
+    `erc20_ethereum.evt_Transfer` (token `0xe0f63a…56c`, decimals 8) joined to `prices.usd`, and emits ONE row
+    with: realized_price · mvrv · supply_in_profit_pct · holder_count · top10/top100 share · gini · 5 age-band
+    (HODL-wave) shares. Credit-efficient (many columns / one execution; reads are free) → schedule DAILY, each
+    run appends today's row = the forward series. **Contract/pool/bridge `exclude` list is the #1 correctness
+    lever** (Uniswap v2 SPX/WETH pool `0x52c77b…bc39` pre-filled; owner adds v3 pools + bridges + CEX).
+    - **STAGE 1 (do first): VALIDATE today's row vs HolderScan** — realized_price ≈ `be` ~$0.54, holder_count ≈
+      our snapshot. Cheap, fast to iterate in the Dune editor. This ALSO is the HolderScan-parity check for the
+      eventual cutover.
+    - **STAGE 2 (after it validates): historical daily-series variant** — cross-join a day calendar + compute
+      balance/cost AS-OF each day → backfills supply-in-profit % + concentration to launch. Heavier (credits) →
+      run once/weekly. Realized-price-over-time is already backfilled (src/spx-mvrv.js) so this is mainly the
+      NEW columns (supply-in-profit, concentration, age bands).
+    - **WIRING when the CSV/query-id lands:** bundle like src/spx-mvrv.js (or fetch cached results via
+      `DUNE_API_KEY` → `/api/v1/query/{id}/results`, mirror CRYPTOCOMPARE_KEY: GH secret + Vercel env). Build
+      **Supply in Profit %** card first (flagship), then holder-concentration + HODL-wave backfills off the same feed.
+    - Methodology honesty caveats baked into the SQL header (avg-cost VWAP approximation, address-level age proxy,
+      why contracts are excluded). Claude CAN'T run Dune (sandbox blocks it) → owner pastes/tweaks + sends results.
 - **⭐ BUILD THE FOUNDATION — collect data now, even at 3yr (owner, 2026-07-05).** Many
   ITC charts encode 15-year / multi-cycle BTC insights that SPX is TOO YOUNG to show yet
   (quantile fan, Cowen corridor, cross-cycle diminishing returns). Owner's directive:
