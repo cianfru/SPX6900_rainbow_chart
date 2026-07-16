@@ -122,8 +122,23 @@ ORDER BY 1;
 --   • a lot exists as-of d only if acq_time <= d; held_qty uses total_out_asof.
 --   • profit/loss uses px.price on day d (not just today); age = date_diff(d, acq_time).
 --   • output: SELECT d, cohort, pct_in_loss, pct_in_profit ... GROUP BY d, cohort
---     (WEEKLY sample `WHERE day_of_week(d)=1` to cut ~7× the credits, like the master query).
--- This is the expensive non-equi/as-of panel (lots × days). Develop it on a 30-day window
--- first; only remove the window for the single full run. Then plot LTH-loss / STH-loss as a
--- stacked area beneath spot (STAGE 1's two columns become the "today" marker).
+--     (WEEKLY sample `WHERE day_of_week(d)=1` to cut ~7× the work, like the master query).
+-- This is the expensive non-equi/as-of panel (lots × days). Then plot LTH-loss / STH-loss
+-- as a stacked area beneath spot (STAGE 1's two columns become the "today" marker).
+--
+-- ⏱️ BEATING THE 2-MINUTE FREE-TIER TIMEOUT (a query that hits it STILL burns credits, so
+--    NEVER let one approach 2 min — design every run to finish in seconds). In order:
+--   1. DEVELOP ON A SLICE. While iterating, cap the transfer CTEs with a short window
+--      (`AND evt_block_time > now() - interval '30' day`) so a mistake costs ~nothing.
+--   2. CHUNK THE FULL RUN BY TIME. Don't run all 3 years at once — it times out. Run it
+--      one YEAR (or quarter) at a time by bounding the OUTPUT day-grid, e.g.:
+--         WHERE d >= DATE '2024-01-01' AND d < DATE '2025-01-01'   -- 2024 chunk
+--      Each chunk finishes well under 2 min; export each CSV; concatenate the chunks
+--      OFFLINE into the bundle (src/*.js). Full history gets computed — just in N safe
+--      runs instead of one impossible one. This is THE reliable way to beat the timeout.
+--   3. SAMPLE COARSER for the deepest/oldest chunks (monthly `day_of_month(d)=1`) where
+--      daily detail matters least.
+--   4. STAGE INTERMEDIATES. If a single chunk still nears the limit, save `held`/`lots` as
+--      its own Dune query (runs once, caches), then read that cached result (free) from a
+--      lighter downstream query instead of recomputing the reconstruction each time.
 -- ─────────────────────────────────────────────────────────────────────────────
