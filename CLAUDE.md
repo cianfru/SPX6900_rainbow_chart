@@ -181,13 +181,16 @@
       chain wallets" run: Base executed fine (114,651) but the **Solana query (7991945) returned 0 rows when
       EXECUTED via the API** — its as-of reconstruction over ~363k ever-seen wallets exceeds free-tier API execution
       limits (no error, just empty). The old builder wrote sol=null → regressed the live total to 164k; RESTORED and
-      hardened (aborts if any chain empty). **FIX (final): build-chain-wallets.mjs READS BOTH Base + Solana CACHED
-      results** (`GET /query/{id}/results`, free, never rate-limited) — NOT execution. Base executed OK the FIRST run
-      (114,651) but a later run threw `7996694 QUERY_STATE_FAILED` (rate-limited/credit-throttled after many runs that
-      day), so BOTH heavy reconstructions are unreliable to execute on free tier. Owner re-runs each query in the Dune
-      UI when they want it fresh; the workflow reads the caches + merges. **ETH still auto-refreshes weekly**
-      (onchain.json), so chain-wallets.json changes every week regardless. **Re-run must be a FRESH "Run workflow"
-      dispatch** (a re-run of an old run uses the old commit + fails on the stale-push). Empty-chain guard still guards.
+      hardened (aborts if any chain empty). **FIX (FINAL, reliable): build-chain-wallets.mjs does NOT touch Dune —
+      pure local merge.** Chased execution (Solana empty, Base QUERY_STATE_FAILED, Dune "timed out after 2 min" on
+      the heavy as-of interval join) and cached-reads (fragile: query 7991945's cache got OVERWRITTEN with Base data
+      when its SQL was edited → both IDs returned base_wallets; guard caught it). Given the free-tier can't reliably
+      run these, the builder now: **ETH ← public/onchain.json (auto-refreshed weekly), Base+Solana ← the validated
+      BUNDLE (src/chain-wallets.js, correct + slow-moving).** Can't fail on rate limits/heavy queries/stale caches.
+      ETH ticks weekly; Base/Solana refresh by re-bundling from a fresh CSV (owner sends occasionally). **Optional
+      path to TRUE Base/Solana auto:** lighter crossing/net-flow query rewrite (entry=0→+, exit=+→0, cumulative sum —
+      NO non-equi join) that runs under the 2-min limit; provided in dune/*.sql. Run those + flip the builder back to
+      execute if ever wanted. For now the chart is reliably correct (230,159) with zero fragile external calls.
 
 - **⭐⭐ ON-CHAIN IS THE NEW FRONTIER — Dune-backed pipeline + eventual HolderScan cutover
   (owner strategy, 2026-07-15).** Now that Dune is unlocked (owner will wire a `DUNE_API_KEY`
