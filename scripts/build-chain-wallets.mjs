@@ -14,8 +14,8 @@ import { readFile, writeFile } from "node:fs/promises";
 
 const OUT = "public/chain-wallets.json";
 const API = "https://api.dune.com/api/v1";
-const BASE_ID = process.env.DUNE_BASE_WALLETS_QUERY_ID;
-const SOL_ID = process.env.DUNE_SOL_WALLETS_QUERY_ID || "7991945";
+const BASE_ID = process.env.DUNE_BASE_WALLETS_QUERY_ID || "7996694"; // saved spx6900_base_wallets
+const SOL_ID = process.env.DUNE_SOL_WALLETS_QUERY_ID || "7991945";  // saved spx6900_solana_wallets
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 // Execute a saved Dune query and return its result rows.
@@ -63,7 +63,6 @@ export function mergeChains(ethMap, baseMap, solMap) {
 async function main() {
   const key = process.env.DUNE_API_KEY;
   if (!key) throw new Error("no DUNE_API_KEY — skipping (bundle keeps serving)");
-  if (!BASE_ID) throw new Error("no DUNE_BASE_WALLETS_QUERY_ID — save the Base query in Dune + set this repo var; skipping");
 
   // ETH from onchain.json (weekly holder_count_eth).
   const eth = new Map();
