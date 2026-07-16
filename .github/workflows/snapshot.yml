@@ -42,17 +42,21 @@ jobs:
           SOL_SPX: ${{ vars.SOL_SPX }}
           SOL_RPC: ${{ vars.SOL_RPC }}
         run: node scripts/snapshot.mjs
+      - name: Extend multi-chain wallet series (no Dune, free)
+        # Appends today's ETH/Base/Solana counts (just banked in history.json) onto the
+        # validated historical bundle → public/chain-wallets.json. Zero credits, no Dune.
+        run: node scripts/build-chain-wallets.mjs
       - name: Commit if changed
         id: commit
         run: |
-          # history.json is what the deployed site + og.js card renders bundle, so a
-          # change to it must redeploy. signals.json is deploy-ignored (read via raw).
-          HIST_CHANGED=""
-          [[ -n "$(git status --porcelain public/history.json)" ]] && HIST_CHANGED=1
-          if [[ -n "$(git status --porcelain public/history.json public/signals.json)" ]]; then
+          # history.json + chain-wallets.json are rendered by the deployed site + og.js
+          # card, so a change to either must redeploy. signals.json is deploy-ignored.
+          DEPLOY_CHANGED=""
+          [[ -n "$(git status --porcelain public/history.json public/chain-wallets.json)" ]] && DEPLOY_CHANGED=1
+          if [[ -n "$(git status --porcelain public/history.json public/signals.json public/chain-wallets.json)" ]]; then
             git config user.name "github-actions[bot]"
             git config user.email "github-actions[bot]@users.noreply.github.com"
-            git add public/history.json public/signals.json
+            git add public/history.json public/signals.json public/chain-wallets.json
             git commit -m "chore: supply snapshot $(date -u +%F)"
             git push
           else
@@ -60,7 +64,7 @@ jobs:
           fi
           # This job pushes with GITHUB_TOKEN, whose commits CANNOT trigger deploy.yml
           # (GitHub's recursion guard). So signal the deploy job below to redeploy.
-          [[ -n "$HIST_CHANGED" ]] && echo "deploy=true" >> "$GITHUB_OUTPUT" || echo "deploy=false" >> "$GITHUB_OUTPUT"
+          [[ -n "$DEPLOY_CHANGED" ]] && echo "deploy=true" >> "$GITHUB_OUTPUT" || echo "deploy=false" >> "$GITHUB_OUTPUT"
 
   # Redeploy so the fresh history.json reaches the deployed site + the og.js card
   # renders (control panel). Needed because the GITHUB_TOKEN snapshot commit above

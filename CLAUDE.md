@@ -191,7 +191,22 @@
       path to TRUE Base/Solana auto:** lighter crossing/net-flow query rewrite (entry=0→+, exit=+→0, cumulative sum —
       NO non-equi join) that runs under the 2-min limit; provided in dune/*.sql. Run those + flip the builder back to
       execute if ever wanted. For now the chart is reliably correct (230,159) with zero fragile external calls.
-    - **✅ v3 — PRE-COMPUTED BALANCE TABLES, no transfer scanning (owner insight 2026-07-16).** The crossing/net-flow
+    - **✅ FINAL — SNAPSHOT-FORWARD, ZERO DUNE (owner call 2026-07-16, after a 2,500-credit blowout).** We already
+      HAVE the validated historical series (the Dune reconstruction, bundled `src/chain-wallets.js`, launch→2026-07-13)
+      AND we already bank all three chain counts DAILY for FREE in the snapshot cron (ETH=HolderScan, Base=Blockscout,
+      Solana=public RPC — `snapshot.mjs`). So the wallet-growth series no longer touches Dune at all: `build-chain-wallets.mjs`
+      is now a pure local merge — **bundle (past) + daily snapshot counts (forward)** → `public/chain-wallets.json`. It
+      runs as a step INSIDE snapshot.yml (after the snapshot writes history.json, before the commit), so chain-wallets.json
+      ticks daily and rides the same commit+deploy. `chain-wallets.yml` (the Dune-executing weekly workflow) DELETED.
+      **SEAM SPLICE (the one subtlety):** the snapshot's Base source (Blockscout ~127k) sits ~12.6k ABOVE the bundle's
+      Dune reconstruction (~114k) — a holder-DEFINITION gap, not real growth. `extendForward()` rebases each chain's
+      forward points by the per-chain offset measured at the seam date (ETH +24/Sol −181 = noise, Base −12,633), so the
+      PAST stays the reconstruction and the FORWARD carries the real day-over-day deltas from a continuous level — no fake
+      jump at the handoff. Unit-tested (`test/chain-wallets.test.mjs`). The dune/*.sql queries (combined + per-chain
+      balance-table versions) are kept as REFERENCE only (for a future one-time backfill/re-bundle), NOT run by CI.
+      **Why:** the credit log showed ~88% of the 2,500/mo went to heavy transfer-scan/as-of executions that timed
+      out/cancelled/aborted (which STILL charge). Snapshot-forward spends ZERO credits and needs no key.
+    - **v3 — PRE-COMPUTED BALANCE TABLES, no transfer scanning (owner insight 2026-07-16, now REFERENCE-only).** The crossing/net-flow
       method still re-derives running balances by scanning every transfer on each run — heavy (esp. Solana's millions
       of rows). Dune already MAINTAINS per-wallet balances, so both count queries now read those instead → seconds,
       not minutes; the builder EXECUTES both via the API (build-chain-wallets.mjs, staggered 30s apart). **Solana:**
