@@ -252,6 +252,31 @@
 - **NOTE the realized-price data is NOT stale** — it forward-fills daily from HolderScan `be` via `mvrvHistory()`, so
   the floor model reads live even while the other Dune-gated metrics are frozen.
 
+## ✅ LOCAL FIFO ENGINE — offload the heavy math off Dune (owner idea, BUILT 2026-07-16)
+- **`scripts/build-onchain-local.mjs`** — the professional pattern: Dune does ONLY a cheap raw-transfer
+  dump (`dune/spx6900_raw_transfers.sql` — plain filtered SELECT, no joins/windows → GB not TB, a few
+  credits, NO 2-min-timeout risk), and the heavy per-wallet **FIFO lot** reconstruction runs LOCALLY in
+  Node for $0. It's OUR stack (not Python), so Claude WRITES AND RUNS it — the heavy compute is no longer
+  Dune's or the owner's problem.
+- **Pipeline:** owner runs 2 cheap Dune queries (raw transfers + tiny daily `prices.usd`) → Download CSV ×2
+  → sends them → `node scripts/build-onchain-local.mjs --transfers=t.csv --prices=p.csv` → emits the FULL
+  on-chain suite in the `SPX_ONCHAIN` shape **+ new LTH/STH fields** (`lthProfit/lthLoss/sthProfit/sthLoss`).
+  Bundle it like src/spx-onchain.js (or write straight to public/onchain.json). Chunk the transfer export by
+  year if too big to download in one shot (concat offline).
+- **Method (true FIFO, superset of the old avg-cost bundle):** each wallet a queue of {ts,price,qty}; a send
+  consumes the EARLIEST lots first, so every held coin keeps its real age + cost. Excluded 16 addresses are
+  never queued as holders, but a real wallet's receive is priced at the day's USD price regardless of
+  counterparty (buy-from-pool = cost basis at market — correct). Produces rp/mvrv/sip/top10/top100/gini/
+  age[5]/holders/spot + the LTH/STH split (90d default threshold, `--threshold=`). Denominator = tracked
+  (non-excluded) supply, so age bands sum to ~100%.
+- **Unit-tested** (`test/onchain-local.test.mjs`, 5 hand-verified synthetic cases: FIFO ordering, exclusion,
+  mint pricing, LTH/STH split, oversell, gini/ff/Monday-grid) + end-to-end smoke on synthetic CSVs (verified
+  by hand: realized price, age bands, LTH/STH all match). This **un-gates the whole on-chain suite from Dune
+  credits** — one cheap extract → everything computed locally, refreshable for a few credits.
+- **NEXT when the real CSV lands:** run the engine → sanity vs the current bundle (rp/sip/top100/age should
+  echo ~$0.54 / ~40% / ~58% / ~38%-1y+, FIFO will differ slightly from avg-cost — that's expected/more
+  precise) → bundle → build the LTH/STH card off the new fields + optionally retire the heavy Dune master query.
+
 ## 🔲 FIFO LTH/STH Supply in Profit/Loss — DRAFTED, run-once (2026-07-16, owner request)
 - **`dune/spx6900_lth_sth_profit.sql`** — the genuinely-new metric that needs LOT-LEVEL FIFO (our master query uses
   AVERAGE cost per wallet, which loses per-lot age). Loop-free FIFO via **cumulative matching** (rank receives by a
