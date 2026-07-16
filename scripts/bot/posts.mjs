@@ -956,8 +956,8 @@ Supply maturing, on-chain.`,
   })(),
 
   // "Am I Cheap?" convergence — how many independent valuation lenses (rainbow band,
-  // MVRV, supply-in-profit, Pi Cycle, F&G) agree on where SPX sits. The corroboration
-  // is the point; a valuation POSITION, never a timing call. Verdict adapts to state.
+  // MVRV, supply-in-profit, Pi Cycle, alt-market, F&G) agree on where SPX sits. The
+  // corroboration is the point; a valuation POSITION, never a timing call. Verdict adapts.
   s => (() => {
     const t = valuationTally(s);
     if (t.total < 4) return null;
@@ -967,7 +967,7 @@ Supply maturing, on-chain.`,
     return {
       id: "amicheap",
       text: ct`🌈 ${head}.
-Rainbow band, on-chain cost basis, supply-in-profit, Pi Cycle trend and Fear & Greed — one metric can mislead, several agreeing is the honest read.
+Rainbow band, cost basis, supply-in-profit, Pi Cycle, alt market and Fear & Greed — one metric can mislead, several agreeing is the honest read.
 Where it sits across the data — not a timing call.`,
       card: { type: "amicheap" },
     };

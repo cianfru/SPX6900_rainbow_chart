@@ -1,9 +1,9 @@
 // "Am I Cheap?" convergence dashboard — the capstone. Reads N independent valuation
-// lenses (rainbow band, MVRV cost basis, supply-in-profit, Pi Cycle trend, Fear &
-// Greed) and shows how many agree SPX is cheap right now. The CORROBORATION is the
-// point: one metric can mislead, several aligning is stronger AND honest. Each lens is
-// a plain-word chip ("Fire Sale", "underwater", "deep accumulation", "fear"). It's a
-// valuation-POSITION read (where we sit), NEVER a buy signal or "bottom is in" call.
+// lenses (rainbow band, MVRV cost basis, supply-in-profit, Pi Cycle trend, alt-market
+// over/under, Fear & Greed) and shows how many agree SPX is cheap right now. The
+// CORROBORATION is the point: one metric can mislead, several aligning is stronger AND
+// honest. Each lens is a plain-word chip + a 1–10 cheapness meter (10 squares filled by
+// score). A valuation-POSITION read (where we sit), NEVER a buy signal or "bottom is in".
 import { Resvg } from "@resvg/resvg-js";
 import { lenses } from "./valuation-lenses.mjs";
 import { FONT } from "./font.mjs";
