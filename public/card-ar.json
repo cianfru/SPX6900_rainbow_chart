@@ -56,5 +56,6 @@
   "hodlwaves": "square",
   "concentration": "square",
   "supplyprofit": "square",
-  "walletgrowth": "square"
+  "walletgrowth": "square",
+  "holdersprice": "square"
 }
