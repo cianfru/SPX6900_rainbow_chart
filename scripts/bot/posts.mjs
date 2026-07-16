@@ -11,6 +11,7 @@ import { ETH_HISTORY, SOL_HISTORY } from "../../src/alt-age-history.js";
 import { SP500_HISTORY } from "../../src/sp500-history.js";
 import { rsiNow } from "./rsi-card.mjs";
 import { fNum } from "./svg-util.mjs";
+import { tally as valuationTally } from "./valuation-lenses.mjs";
 
 // --- owner-editable post copy ---------------------------------------------
 // EVERY card's tweet text is owner-editable from the control panel. Cards wrap
@@ -894,6 +895,24 @@ Supply maturing, on-chain.`,
     };
   })(),
 
+  // "Am I Cheap?" convergence — how many independent valuation lenses (rainbow band,
+  // MVRV, supply-in-profit, Pi Cycle, F&G) agree on where SPX sits. The corroboration
+  // is the point; a valuation POSITION, never a timing call. Verdict adapts to state.
+  s => (() => {
+    const t = valuationTally(s);
+    if (t.total < 4) return null;
+    const head = t.verdict === "cheap" ? `${t.cheap} of ${t.total} independent valuation lenses say SPX6900 is cheap right now`
+      : t.verdict === "rich" ? `${t.rich} of ${t.total} independent valuation lenses say SPX6900 is rich right now`
+      : `SPX6900's valuation lenses are mixed right now — ${t.cheap} cheap, ${t.rich} rich of ${t.total}`;
+    return {
+      id: "amicheap",
+      text: ct`🌈 ${head}.
+Rainbow band, on-chain cost basis, supply-in-profit, Pi Cycle trend and Fear & Greed — one metric can mislead, several agreeing is the honest read.
+Where it sits across the data — not a timing call.`,
+      card: { type: "amicheap" },
+    };
+  })(),
+
   // Pi Cycle ratio — the continuous 111/(350×2) MA gauge from Bitcoin's Pi Cycle indicator,
   // applied to SPX for context. The ratio (not the borrowed binary cross) as an accumulation
   // gauge: >1 top zone, <0.5 accumulation. Honest angle: it ran hot at SPX's 2025 top and is
@@ -1677,7 +1696,7 @@ const LOOK = {
   firesalerally: "fanlines",
   model: "scatter",
   monthlyreturns: "heatmap", monthlyreturnssp: "heatmap", monthlyreturnsbtc: "heatmap",
-  hodlwaves: "stack",
+  hodlwaves: "stack", amicheap: "gauges",
   timeinband: "bars", monthlybars: "bars", monthcompare: "bars", multichain: "bars",
   fngdial: "round", distribution: "round",
   marketcap: "blocks", milestones: "blocks", sp500: "blocks",

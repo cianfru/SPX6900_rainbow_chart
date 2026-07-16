@@ -741,6 +741,14 @@
           boundary.** Shipped: `piCycleRatio(...).zones = {deep:0.4, accum:0.5, top:p90, btcTop:1.0}`
           + `piCycleState(ratio, zones)`; card + `PiCycleChart` + copy all read from it. So 1.0–1.49
           now reads "mid-range" (SPX runs hot but not topped for SPX), only >1.49 = top zone.
+  - **✅ "AM I CHEAP?" DASHBOARD — BUILT 2026-07-16.** `scripts/bot/am-i-cheap-card.mjs` (type `amicheap`, LOOK
+    "gauges") + shared `scripts/bot/valuation-lenses.mjs` (`lenses(s)` + `tally(s)` — ONE source for the card AND
+    the tweet copy, no drift, no Resvg import so posts/tests use it freely). 5 plain-word chips: Rainbow band ·
+    MVRV cost basis · Supply in profit · Pi Cycle trend · Fear & Greed, each cheap/neutral/rich, with a big "N of
+    M lenses say CHEAP/RICH/MIXED" headline (verdict adapts). Today: **5/5 cheap** (Fire Sale · 0.68× underwater ·
+    40% in profit · 0.27 deep accumulation · F&G 25 fear). Guardrail baked in: a valuation POSITION, NOT a timing
+    call / not "the bottom is in." Card-only (infographic snapshot, not a time-series → no site page, per the
+    card-vs-site principle). Wired charts.mjs/posts.mjs/LOOK/test; 6 tests green. Original greenlit note:
   - **⭐ "AM I CHEAP?" VALUATION DASHBOARD — greenlit for memory (owner, 2026-07-08).** A view/card
     that flags when MULTIPLE INDEPENDENT valuation gauges AGREE that SPX is cheap/heated — the
     corroboration is the signal (one metric can mislead; three aligning is stronger + honest). The
