@@ -58,5 +58,6 @@
   "supplyprofit": "square",
   "walletgrowth": "square",
   "holdersprice": "square",
-  "floormodel": "square"
+  "floormodel": "square",
+  "amicheap": "square"
 }
