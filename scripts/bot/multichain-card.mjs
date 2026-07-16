@@ -6,6 +6,7 @@
 // Solana once its key is set). Card writing stays MINIMAL — the tweet carries the copy.
 import { Resvg } from "@resvg/resvg-js";
 import { FONT } from "./font.mjs";
+import { currentChainHolders } from "./stats.mjs";
 
 const png = (svg, w) => new Resvg(svg, { fitTo: { mode: "width", value: w }, font: FONT }).render().asPng();
 const fK = n => (n >= 1000 ? Math.round(n / 1000) + "k" : String(n));
@@ -84,7 +85,7 @@ const arcDefsFor = () => CHAINS.map(r =>
 export function multichainSvg(stats, opts = {}) {
   const s = stats.supply;
   if (!s) return null;
-  const hc = { eth: s.holders, base: s.holdersBase, sol: s.holdersSol };
+  const hc = currentChainHolders(stats); // corrected (Blockscout Base over-count rebased away)
   // Data-gate: need ETH + at least one bridged chain, else there's no cross-chain story.
   if (!(hc.eth > 0) || !(hc.base > 0 || hc.sol > 0)) return null;
 

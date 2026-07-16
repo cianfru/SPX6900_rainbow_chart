@@ -181,6 +181,17 @@ function loadChainWalletsSeries() {
   return CHAIN_WALLETS;
 }
 
+// Current per-chain holder count for the cards/copy. Prefers the CORRECTED chain-wallets
+// series (its latest point) over the raw snapshot: the snapshot's Base source (Blockscout)
+// over-counts ~12.8k vs the truth (~114.5k, Basescan/Dune), and chain-wallets.json already
+// rebases that away at the seam. Falls back to the raw supply counts if the series is absent.
+export function currentChainHolders(stats) {
+  const last = Array.isArray(stats?.chainWallets) ? stats.chainWallets.at(-1) : null;
+  if (last && last.eth > 0) return { eth: last.eth, base: last.base ?? null, sol: last.sol ?? null };
+  const s = stats?.supply || {};
+  return { eth: s.holders, base: s.holdersBase, sol: s.holdersSol };
+}
+
 // On-chain weekly series (supply-in-profit, concentration, gini, HODL waves). Prefers
 // the CI-refreshed public/onchain.json (Dune, weekly) and falls back to the bundle.
 function loadOnchain() {

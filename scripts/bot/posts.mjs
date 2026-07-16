@@ -11,6 +11,7 @@ import { ETH_HISTORY, SOL_HISTORY } from "../../src/alt-age-history.js";
 import { SP500_HISTORY } from "../../src/sp500-history.js";
 import { rsiNow } from "./rsi-card.mjs";
 import { fNum } from "./svg-util.mjs";
+import { currentChainHolders } from "./stats.mjs";
 import { tally as valuationTally } from "./valuation-lenses.mjs";
 
 // --- owner-editable post copy ---------------------------------------------
@@ -784,7 +785,7 @@ Conviction, on-chain.`,
   // multi-chain snapshot columns (Base banks free on the first cron; Solana once its
   // key is set). Honesty rail baked in: wallets across chains, not people.
   s => {
-    const eth = s.supply?.holders, base = s.supply?.holdersBase, sol = s.supply?.holdersSol;
+    const { eth, base, sol } = currentChainHolders(s); // corrected (Base over-count rebased)
     if (!(eth > 0) || !(base > 0 || sol > 0)) return null;
     const totalH = eth + (base || 0) + (sol || 0);
     const total = s.supply?.totalSupply || 939e6;
