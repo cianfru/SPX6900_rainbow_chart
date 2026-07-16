@@ -55,5 +55,6 @@
   "mvrvtrend": "square",
   "hodlwaves": "square",
   "concentration": "square",
-  "supplyprofit": "square"
+  "supplyprofit": "square",
+  "walletgrowth": "square"
 }
