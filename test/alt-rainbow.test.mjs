@@ -23,7 +23,7 @@ test("a perfectly exponential ratio → z≈0 everywhere, slope recovered", () =
   near(R.series[0].rr, 1);                     // rebased to launch
   near(R.cur.rr, Math.exp(b * (n - 1)), 0.5);
   near(R.fit.b, b, 0.001);                     // recovered daily log-slope
-  assert.ok(R.fit.sigma < 1e-6, "no residual on a clean exponential");
+  assert.ok(R.fit.sigma <= 1e-6, "no residual on a clean exponential (σ floored)");
   assert.ok(Math.abs(R.cur.z) < 0.01);         // sits on trend
 });
 

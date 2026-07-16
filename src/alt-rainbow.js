@@ -36,7 +36,8 @@ export function buildAltRainbow(spxPairs, t3esPairs, opts = {}) {
   const a = (sY - b * sT) / n;
   const trendLog = t => a + b * t;
   const res = pts.map((p, i) => y[i] - trendLog(p.t));
-  const sigma = Math.sqrt(res.reduce((s, v) => s + v * v, 0) / n) || 1e-9;
+  // floor σ so a (near-)perfect fit yields z≈0 instead of 0/0 numerical noise.
+  const sigma = Math.max(Math.sqrt(res.reduce((s, v) => s + v * v, 0) / n), 1e-6);
 
   const series = pts.map((p, i) => ({ ts: p.ts, d: p.d, rr: p.rr, trend: Math.exp(trendLog(p.t)), z: res[i] / sigma }));
   // 5 rainbow bands at trend × exp(k·σ), k = -2..2 (blue cheap → red stretched)
