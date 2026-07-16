@@ -9,6 +9,7 @@ import { SP500_HISTORY } from "../../src/sp500-history.js";
 import { FNG_HISTORY } from "../../src/fng-history.js";
 import { mvrvHistory } from "../../src/mvrv-data.js";
 import { SPX_ONCHAIN } from "../../src/spx-onchain.js";
+import { CHAIN_WALLETS } from "../../src/chain-wallets.js";
 
 const POOL = "0x52c77b0cb827afbad022e6d6caf2c44452edbc39";
 
@@ -388,6 +389,7 @@ export function computeStats(price, dateStr = new Date().toISOString().slice(0, 
     btcMvrv: loadBtcMvrv(), // Bitcoin's decade of MVRV, context for the MVRV-vs-BTC card
     mvrvSeries: loadMvrvSeries(), // SPX's own full-history MVRV (Dune backfill + live tail), for the MVRV-over-time card
     onchain: loadOnchain(), // Dune weekly on-chain series (supply-in-profit, concentration, gini, HODL waves) — ETH-native
+    chainWallets: CHAIN_WALLETS, // multi-chain weekly wallet counts (ETH+Base+Solana) from each chain's start
     altHistory: loadAltHistory(), // DOGE/PEPE/SHIB age-indexed history for the memecoin age cards
     series: {
       price: RAW.map(r => [Date.parse(r.date), r.price]),

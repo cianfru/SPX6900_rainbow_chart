@@ -138,11 +138,23 @@
       better: optimized Solana tables + FREE CSV export). NOTE Flipside = **Snowflake SQL** (TABLE(GENERATOR)/seq4/
       DATEADD/QUALIFY), NOT Trino. Reconstructs distinct-owner weekly count from `solana.core.fact_transfers` (SPL
       mint `J3NKxx…3KFr`). Verify-flags in header (table/column names, owner-vs-token-account).
-    - **NEXT:** (a) build **Holders-vs-Price** card + site chart NOW off the ETH bundle (buildable, no new data);
-      (b) owner runs the Base (Dune) + Solana (Flipside) queries → send CSVs → bundle → the multi-chain race reaches
-      launch (upgrades the forward-only `chainrace`). OPEN Qs to owner: race style **absolute counts** (Claude leans
-      this — the "230k across 3 chains" headcount IS the story) vs rebased %-growth; exclude lists optional for count.
     - Query docs live in `dune/` + `flipside/` (both deploy-ignored).
+    - **✅ DATA LANDED & BUNDLED 2026-07-16.** Owner sent Base (Dune, 132 wks from 2024-01) + Solana CSVs. NOTE
+      **Flipside stopped working** → owner used an alternative Solana source (cols `timestamp,holder_count,unix`,
+      93 wks). Merged into **`src/chain-wallets.js`** (`CHAIN_WALLETS = [{d,eth,base,sol}]`, aligned on the ETH
+      Monday grid, null before each chain's start) → `stats.chainWallets`. VALIDATED: latest ETH 49,541 + Base
+      114,652 + Sol 66,148 = **230,341** ≈ the known ~230k total.
+    - **⚠ TWO DATA ARTIFACTS (owner flagged the Solana one):** (1) **Solana cold-starts at 12,443 (Oct-2024)** —
+      left-censored; SPX bridged to Solana in 2024 and the source only goes back to Oct-24, so the 0→12k ramp is
+      UNSHOWN (real, not fake). (2) **Base +50,246 in one week (2024-12-23)** = an airdrop distribution (real
+      wallets, many dust). Together they make late-2024 look like a sudden ~180k organic surge — it wasn't.
+    - **✅ WALLET-GROWTH CARD BUILT (`walletgrowth`, `scripts/bot/wallet-growth-card.mjs`, LOOK "stack")** — stacked
+      area ETH(grey)/Base(blue)/Solana(purple), total headline "230,341 across 3 chains from 1,433". Added an honest
+      **"Solana tracked from here" dashed marker** at the cold-start. Wired charts/posts/LOOK/test; tests green.
+    - **🔲 FRAMING DECISION PENDING (owner to pick A/B/C):** Claude RECOMMENDS leading with a CLEAN **ETH
+      Holders-vs-Price** card (49.5k grew steadily through the ~80% drawdown — NO artifacts, the pure conviction
+      story) as the hero, and keeping `walletgrowth` as the honestly-annotated multi-chain companion. Committed the
+      annotated multi-chain card (in rotation) to keep the tree clean; adjust once owner steers.
 
 - **⭐⭐ ON-CHAIN IS THE NEW FRONTIER — Dune-backed pipeline + eventual HolderScan cutover
   (owner strategy, 2026-07-15).** Now that Dune is unlocked (owner will wire a `DUNE_API_KEY`

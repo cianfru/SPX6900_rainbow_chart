@@ -913,6 +913,22 @@ Where it sits across the data — not a timing call.`,
     };
   })(),
 
+  // Multi-chain wallet growth — total holder headcount across ETH+Base+Solana from
+  // launch. Adoption compounded through the whole cycle. Honest rails: headcount is
+  // multi-chain (holders ≠ value); "wallets, not people".
+  s => (s.chainWallets?.length >= 50 && s.chainWallets.at(-1).base != null) && (() => {
+    const cur = s.chainWallets.at(-1), first = s.chainWallets[0];
+    const total = cur.eth + (cur.base || 0) + (cur.sol || 0);
+    const start = first.eth + (first.base || 0) + (first.sol || 0);
+    return {
+      id: "walletgrowth",
+      text: ct`🌐 ${total.toLocaleString("en-US")} wallets hold SPX6900 across Ethereum, Base and Solana — up from ${start.toLocaleString("en-US")} at launch.
+The holder base compounded through the whole cycle. Base & Solana lead headcount; Ethereum holds the value.
+Wallets, not people — adoption is adoption.`,
+      card: { type: "walletgrowth" },
+    };
+  })(),
+
   // Pi Cycle ratio — the continuous 111/(350×2) MA gauge from Bitcoin's Pi Cycle indicator,
   // applied to SPX for context. The ratio (not the borrowed binary cross) as an accumulation
   // gauge: >1 top zone, <0.5 accumulation. Honest angle: it ran hot at SPX's 2025 top and is
@@ -1696,7 +1712,7 @@ const LOOK = {
   firesalerally: "fanlines",
   model: "scatter",
   monthlyreturns: "heatmap", monthlyreturnssp: "heatmap", monthlyreturnsbtc: "heatmap",
-  hodlwaves: "stack", amicheap: "gauges",
+  hodlwaves: "stack", walletgrowth: "stack", amicheap: "gauges",
   timeinband: "bars", monthlybars: "bars", monthcompare: "bars", multichain: "bars",
   fngdial: "round", distribution: "round",
   marketcap: "blocks", milestones: "blocks", sp500: "blocks",
