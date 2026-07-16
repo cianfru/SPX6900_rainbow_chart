@@ -38,6 +38,19 @@ export function lenses(s) {
   return g;
 }
 
+// Aggregate GRADE from the per-lens scores → one general signal (the gauge). avg 1–10
+// cheapness → a plain-word position on a Cheap↔Expensive scale (NOT a buy/sell grade).
+// pos ∈ [0,1] is the needle position (0 = expensive/left, 1 = cheap/right).
+export function grade(lensArr) {
+  const avg = lensArr.length ? lensArr.reduce((a, x) => a + x.score, 0) / lensArr.length : 5;
+  const [label, color] = avg >= 8 ? ["Deeply Cheap", "#4ade80"]
+    : avg >= 6.5 ? ["Cheap", "#84cc16"]
+    : avg >= 4.5 ? ["Fair", "#fbbf24"]
+    : avg >= 3 ? ["Rich", "#fb923c"]
+    : ["Expensive", "#f87171"];
+  return { avg, label, color, pos: Math.max(0, Math.min(1, avg / 10)) };
+}
+
 // Tally + overall verdict (cheap / rich / mixed) from the lenses.
 export function tally(s) {
   const g = lenses(s);

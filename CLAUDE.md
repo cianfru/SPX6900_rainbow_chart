@@ -957,6 +957,13 @@
     `priceData`, be/fng from history.json, onchain.json, alt-market from the bundle), adds a per-lens one-line
     description (site = more detail) + avg-cheapness headline. Registered charts-catalog + App.jsx; browser-verified
     (6/6 cheap, avg 8.3/10, no JS errors). Card + site never drift (one lens source).
+  - **✅ GENERAL-SIGNAL GAUGE added 2026-07-16 (owner: "some grading that gives a general signal").** Both the card
+    AND site now LEAD with an aggregate **Cheap↔Expensive gauge** — a needle at the average lens score + a plain-word
+    grade (`grade(lensArr)` in valuation-lenses.mjs → Deeply Cheap / Cheap / Fair / Rich / Expensive, avg/10 → pos).
+    The 6 per-lens square meters stay BELOW as the evidence. HONESTY: it's a valuation POSITION (Cheap↔Expensive),
+    deliberately NOT an A-F / buy-sell grade (would read as advice); guardrail caption kept. Today: **Deeply Cheap ·
+    8.3/10**. Shared `grade()` so card + site agree. This gauge IS the site page's reason to exist (owner had
+    questioned the plain dashboard) — kept as a deliberate exception to the card-only-infographic principle.
   - **⭐ "AM I CHEAP?" VALUATION DASHBOARD — greenlit for memory (owner, 2026-07-08).** A view/card
     that flags when MULTIPLE INDEPENDENT valuation gauges AGREE that SPX is cheap/heated — the
     corroboration is the signal (one metric can mislead; three aligning is stronger + honest). The

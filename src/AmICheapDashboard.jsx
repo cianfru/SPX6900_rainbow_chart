@@ -3,7 +3,7 @@ import { buildModel, bandIndex, BAND_LABELS, dayN } from "./models.js";
 import { DEFAULT_RAW } from "./data.js";
 import { SPX_ONCHAIN } from "./spx-onchain.js";
 import { loadHistory, loadOnchain } from "./history-data.js";
-import { lenses } from "../scripts/bot/valuation-lenses.mjs";
+import { lenses, grade } from "../scripts/bot/valuation-lenses.mjs";
 import { SANS, MONO, MAX_W } from "./chart-ui.jsx";
 
 const COL = { cheap: "#4ade80", neutral: "#fbbf24", rich: "#f87171" };
@@ -50,18 +50,21 @@ export default function AmICheapDashboard({ series, isMobile, preview = false })
   if (!g || g.length < 4) return <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Loading valuation lenses…</div>;
 
   const cheap = g.filter(x => x.state === "cheap").length;
-  const rich = g.filter(x => x.state === "rich").length;
-  const verdict = cheap > rich && cheap >= g.length / 2 ? "cheap" : rich > cheap ? "rich" : "neutral";
-  const vWord = verdict === "cheap" ? "CHEAP" : verdict === "rich" ? "RICH" : "MIXED";
-  const vCol = COL[verdict];
-  const avg = (g.reduce((s, x) => s + x.score, 0) / g.length).toFixed(1);
+  const gr = grade(g);
   const sq = isMobile ? 15 : 21;
 
   return (
     <div style={{ maxWidth: 760, margin: "0 auto" }}>
-      <div style={{ textAlign: "center", marginBottom: 18 }}>
-        <div style={{ fontFamily: SANS, fontSize: isMobile ? 28 : 38, fontWeight: 800, color: vCol }}>{cheap} of {g.length} lenses say {vWord}</div>
-        <div style={{ fontFamily: MONO, fontSize: 13.5, color: "#94a3b8", marginTop: 4 }}>avg cheapness {avg}/10 · more squares = cheaper</div>
+      {/* General signal: the aggregate Cheap↔Expensive gauge */}
+      <div style={{ textAlign: "center", marginBottom: 22 }}>
+        <div style={{ fontFamily: SANS, fontSize: isMobile ? 34 : 52, fontWeight: 800, color: gr.color, letterSpacing: 0.5, lineHeight: 1.05 }}>{gr.label}</div>
+        <div style={{ fontFamily: MONO, fontSize: 13.5, color: "#94a3b8", marginTop: 4 }}>{cheap} of {g.length} lenses agree · cheapness {gr.avg.toFixed(1)}/10</div>
+        <div style={{ position: "relative", height: 34, borderRadius: 17, marginTop: 16, background: "linear-gradient(90deg,#f87171,#fbbf24,#4ade80)", opacity: 0.92 }}>
+          <div style={{ position: "absolute", left: `${gr.pos * 100}%`, top: 6, transform: "translateX(-50%)", width: 22, height: 22, borderRadius: "50%", background: "#f8fafc", border: "3px solid #05050e", boxSizing: "border-box" }} />
+        </div>
+        <div style={{ display: "flex", justifyContent: "space-between", marginTop: 7, fontFamily: SANS, fontSize: 13, fontWeight: 700 }}>
+          <span style={{ color: "#f87171" }}>Expensive</span><span style={{ color: "#4ade80" }}>Cheap</span>
+        </div>
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
@@ -85,7 +88,7 @@ export default function AmICheapDashboard({ series, isMobile, preview = false })
       </div>
 
       <div style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 16, lineHeight: 1.65 }}>
-        Each lens is an <strong style={{ color: "#cbd5e1" }}>independent</strong> read on valuation, scored 1–10 for cheapness. The <strong style={{ color: vCol }}>convergence</strong> is the signal — one metric can mislead, several aligning is stronger. A valuation position, not a timing call or a bottom. Not financial advice.
+        Each lens is an <strong style={{ color: "#cbd5e1" }}>independent</strong> read on valuation, scored 1–10 for cheapness. The <strong style={{ color: gr.color }}>convergence</strong> is the signal — one metric can mislead, several aligning is stronger. A valuation position, not a timing call or a bottom. Not financial advice.
       </div>
     </div>
   );
