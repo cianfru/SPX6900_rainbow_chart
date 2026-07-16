@@ -72,8 +72,16 @@ async function main() {
   } catch { /* handled below */ }
   if (!eth.size) throw new Error("public/onchain.json missing ETH holders — run the on-chain refresh first");
 
-  const base = toMap(await runQuery(BASE_ID, key), "base_wallets");
-  const sol = toMap(await runQuery(SOL_ID, key), "sol_wallets");
+  const baseRows = await runQuery(BASE_ID, key);
+  const solRows = await runQuery(SOL_ID, key);
+  console.log(`base query ${BASE_ID}: ${baseRows.length} rows${baseRows[0] ? " · keys=" + Object.keys(baseRows[0]).join(",") : ""}`);
+  console.log(`sol  query ${SOL_ID}: ${solRows.length} rows${solRows[0] ? " · keys=" + Object.keys(solRows[0]).join(",") : ""}`);
+  const base = toMap(baseRows, "base_wallets");
+  const sol = toMap(solRows, "sol_wallets");
+  // Never regress: if a chain query came back empty/mismatched, abort rather than
+  // silently drop that whole chain (which would wipe ~66k Solana wallets, etc.).
+  if (!base.size) throw new Error(`Base query ${BASE_ID} produced no usable rows (expected column base_wallets) — aborting`);
+  if (!sol.size) throw new Error(`Solana query ${SOL_ID} produced no usable rows (expected column sol_wallets) — aborting`);
   const series = mergeChains(eth, base, sol);
   if (series.length < 50) throw new Error(`only ${series.length} rows — refusing to overwrite`);
 
