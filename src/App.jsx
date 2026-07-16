@@ -52,6 +52,7 @@ const MvrvContextChart = lazy(() => import("./MvrvContextChart.jsx"));
 const PiCycleChart = lazy(() => import("./PiCycleChart.jsx"));
 const LongShortChart = lazy(() => import("./LongShortChart.jsx"));
 const AltMarketChart = lazy(() => import("./AltMarketChart.jsx"));
+const AmICheapDashboard = lazy(() => import("./AmICheapDashboard.jsx"));
 const QuantileFanChart = lazy(() => import("./QuantileFanChart.jsx"));
 const ChartsGallery = lazy(() => import("./ChartsGallery.jsx"));
 
@@ -168,6 +169,7 @@ function TabIcon({ name }) {
     case "walletgrowth": return (<svg {...p}><path d="M3 20v-3c4 0 5-6 9-6s5 4 9 4v5z" /><path d="M3 20h18" /></svg>);
     case "mvrvbtc": return (<svg {...p}><path d="M3 16c3 1 4-8 7-8s3 7 6 5 3-6 5-7" /><line x1="3" y1="11" x2="21" y2="11" strokeDasharray="3 2" strokeOpacity="0.8" /></svg>);
     case "altmarket": return (<svg {...p}><line x1="3" y1="12" x2="21" y2="12" /><path d="M3 12c2 0 3-6 5-6s2 10 4 10 3-8 5-8 2 4 4 4" /></svg>);
+    case "amicheap": return (<svg {...p}><rect x="3" y="6" width="4" height="4" rx="1" /><rect x="9" y="6" width="4" height="4" rx="1" /><rect x="15" y="6" width="4" height="4" rx="1" /><rect x="3" y="14" width="4" height="4" rx="1" /><rect x="9" y="14" width="4" height="4" rx="1" /></svg>);
     case "longshort": return (<svg {...p}><line x1="3" y1="12" x2="21" y2="12" strokeDasharray="2 3" /><rect x="5" y="6" width="3" height="6" /><rect x="11" y="12" width="3" height="5" /><rect x="17" y="8" width="3" height="4" /></svg>);
     case "quantilefan": return (<svg {...p}><path d="M3 20 Q9 6 21 4" /><path d="M3 20 Q9 11 21 9" strokeOpacity="0.7" /><path d="M3 20 Q9 15 21 14" strokeOpacity="0.5" /></svg>);
     case "roadmap": return (<svg {...p}><path d="M3 20 21 4" strokeDasharray="4 3" /><circle cx="9" cy="13.5" r="1.4" /><circle cx="15" cy="8.5" r="1.4" /><circle cx="20" cy="4.5" r="1.4" /></svg>);
@@ -581,6 +583,7 @@ export default function App() {
       case "walletgrowth": return <WalletGrowthChart isMobile={mob} preview={preview} />;
       case "mvrvbtc": return <MvrvContextChart isMobile={mob} preview={preview} />;
       case "altmarket": return <AltMarketChart isMobile={mob} preview={preview} />;
+      case "amicheap": return <AmICheapDashboard series={priceData} isMobile={mob} preview={preview} />;
       case "longshort": return <LongShortChart series={priceData} isMobile={mob} />;
       case "quantilefan": return <QuantileFanChart series={priceData} isMobile={mob} preview={preview} />;
       case "model": return <ModelChart series={priceData} m={m} isMobile={mob} />;

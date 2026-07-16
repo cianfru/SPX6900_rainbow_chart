@@ -19,6 +19,7 @@ export const CHART_GROUPS = [
       { id: "riskheat", title: "20-Week Heat", post: "riskheat", desc: "How stretched price is from its 20-week average." },
       { id: "picycle", title: "Pi Cycle Ratio", post: "picycle", desc: "Bitcoin's Pi Cycle top/bottom gauge, applied to SPX for context." },
       { id: "rsidots", title: "RSI Dots", post: "rsidots", desc: "Price as dots coloured by RSI, PlanB-style." },
+      { id: "amicheap", title: "Am I Cheap?", post: "amicheap", desc: "Independent valuation lenses — how many say cheap right now." },
       { id: "model", title: "The Model", post: "model", desc: "How the rainbow bands are fit from the data." },
     ],
   },

@@ -946,8 +946,17 @@
     MVRV cost basis · Supply in profit · Pi Cycle trend · Fear & Greed, each cheap/neutral/rich, with a big "N of
     M lenses say CHEAP/RICH/MIXED" headline (verdict adapts). Today: **5/5 cheap** (Fire Sale · 0.68× underwater ·
     40% in profit · 0.27 deep accumulation · F&G 25 fear). Guardrail baked in: a valuation POSITION, NOT a timing
-    call / not "the bottom is in." Card-only (infographic snapshot, not a time-series → no site page, per the
-    card-vs-site principle). Wired charts.mjs/posts.mjs/LOOK/test; 6 tests green. Original greenlit note:
+    call / not "the bottom is in." Wired charts.mjs/posts.mjs/LOOK/test; 6 tests green. Original greenlit note:
+  - **✅ UPGRADED 2026-07-16: 6th lens + 1-10 cheapness meters + LIVE SITE PAGE (owner).** (1) Added the
+    **alt-market over/under** as a 6th independent lens (`buildAltRainbow` z → cheap/neutral/rich) → today **6/6
+    cheap**. (2) Each lens now carries a **1-10 cheapness score** (`sc(cheap01)` in valuation-lenses.mjs, 10 =
+    maximally cheap) rendered as a row of **10 little squares** filled by score + coloured by state (card + site).
+    (3) Built the **live site page** `src/AmICheapDashboard.jsx` (catalog `amicheap`, Valuation group) — the owner
+    OVERRODE the earlier "infographic → card-only" principle for this one. It reuses the SAME `lenses()` (imported
+    from scripts/bot into src — pure, no Resvg, so Vite bundles it) fed live browser data (model band + piCycle from
+    `priceData`, be/fng from history.json, onchain.json, alt-market from the bundle), adds a per-lens one-line
+    description (site = more detail) + avg-cheapness headline. Registered charts-catalog + App.jsx; browser-verified
+    (6/6 cheap, avg 8.3/10, no JS errors). Card + site never drift (one lens source).
   - **⭐ "AM I CHEAP?" VALUATION DASHBOARD — greenlit for memory (owner, 2026-07-08).** A view/card
     that flags when MULTIPLE INDEPENDENT valuation gauges AGREE that SPX is cheap/heated — the
     corroboration is the signal (one metric can mislead; three aligning is stronger + honest). The
