@@ -57,5 +57,6 @@
   "concentration": "square",
   "supplyprofit": "square",
   "walletgrowth": "square",
-  "holdersprice": "square"
+  "holdersprice": "square",
+  "floormodel": "square"
 }
