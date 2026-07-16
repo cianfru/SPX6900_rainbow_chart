@@ -865,6 +865,35 @@ ${under ? "Most holders are red — and still holding." : "Most of the float is 
     };
   })(),
 
+  // Holder concentration — the largest wallets' share of ETH-native supply over time
+  // (Dune, contracts/CEX excluded). The honest story: SPX has DECENTRALISED as the
+  // holder base grew (top 100 ~68%→~58%). A distribution-of-ownership statement, NOT
+  // a signal. Sits in the "how healthy is the holder base" lane, not valuation.
+  s => (s.onchain?.length >= 50) && (() => {
+    const o = s.onchain, cur = o.at(-1), first = o[0];
+    return {
+      id: "concentration",
+      text: ct`🐋 SPX6900's top 100 wallets hold ${cur.top100.toFixed(0)}% of supply — down from ${first.top100.toFixed(0)}% at launch.
+As the holder base grew, the whales' grip loosened: the top 10 slipped from ${first.top10.toFixed(0)}% to ${cur.top10.toFixed(0)}%. The float keeps spreading into more hands.
+Decentralising, on-chain.`,
+      card: { type: "concentration" },
+    };
+  })(),
+
+  // HODL waves — supply by holding age over time (Dune). The classic maturation
+  // story: 100% fresh at launch → a third now in the longest-held (1y+) tier. A
+  // holding-behaviour / conviction read, NOT a signal.
+  s => (s.onchain?.length >= 50 && Array.isArray(s.onchain.at(-1).age)) && (() => {
+    const old = s.onchain.at(-1).age[4];
+    return {
+      id: "hodlwaves",
+      text: ct`💎 ${old.toFixed(0)}% of SPX6900's supply hasn't moved in over a year.
+At launch every coin was fresh; now more than a third sits in the longest-held tier — the cohort that held through the entire cycle so far.
+Supply maturing, on-chain.`,
+      card: { type: "hodlwaves" },
+    };
+  })(),
+
   // Pi Cycle ratio — the continuous 111/(350×2) MA gauge from Bitcoin's Pi Cycle indicator,
   // applied to SPX for context. The ratio (not the borrowed binary cross) as an accumulation
   // gauge: >1 top zone, <0.5 accumulation. Honest angle: it ran hot at SPX's 2025 top and is
@@ -1644,10 +1673,11 @@ const LOOK = {
   whatnext: "race",
   // — Tier B: flavourful / distinct looks (used to break up the green lines) —
   riskcolor: "colorline", risklevels: "colorline", rsidots: "colorline",
-  riskheat: "dual", runningroi: "dual", cycle: "dual", longshort: "dual", underwater: "dual", goldencross: "dual", holdergrowth: "dual", mvrvbtc: "dual", mvrvtrend: "dual", supplyprofit: "dual", picycle: "dual",
+  riskheat: "dual", runningroi: "dual", cycle: "dual", longshort: "dual", underwater: "dual", goldencross: "dual", holdergrowth: "dual", mvrvbtc: "dual", mvrvtrend: "dual", supplyprofit: "dual", concentration: "dual", picycle: "dual",
   firesalerally: "fanlines",
   model: "scatter",
   monthlyreturns: "heatmap", monthlyreturnssp: "heatmap", monthlyreturnsbtc: "heatmap",
+  hodlwaves: "stack",
   timeinband: "bars", monthlybars: "bars", monthcompare: "bars", multichain: "bars",
   fngdial: "round", distribution: "round",
   marketcap: "blocks", milestones: "blocks", sp500: "blocks",

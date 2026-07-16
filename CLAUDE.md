@@ -199,6 +199,20 @@
         the last bundled WEEK (~40.2%); a live daily value would need the Stage 1 snapshot wired into the cron (TODO).
       Current read: **40% of supply in profit** (60% underwater) — the conviction story. Ran ~100% at every price
       top (frothy), bottomed ~2% Feb-2024 (everyone underwater).
+    - **✅ CONCENTRATION + HODL-WAVES CARDS SHIPPED 2026-07-16 (owner "kick off with the charts you proposed").**
+      Both off the SAME `stats.onchain` bundle (no new Dune credits), bot rotation cards, LOOK "dual"/"stack",
+      data-gated `onchain.length>=50`:
+      • **`concentration`** (`scripts/bot/concentration-card.mjs`) — top-10 (red) + top-100 (amber) wallet share of
+        supply over time, fills + glow. Hero "Top 100 wallets hold 58% — down from 68% at launch." The DECENTRALISE
+        story: whales' grip loosened as the holder base grew (top10 25%→17%, top100 68%→58%). NOTE gini is left OFF
+        this card on purpose — it rose 0.85→0.97 (dust-tail-driven as holders grew to ~49k) while top-N FELL, so
+        showing both reads as contradictory; top-N share is the clean "whales spreading out" read.
+      • **`hodlwaves`** (`scripts/bot/hodl-waves-card.mjs`) — classic Glassnode stacked age bands (5 tiers, warm=fresh
+        bottom → cool=old top), right-edge legend. Hero "38% of supply hasn't moved in over a year." The maturation
+        story: 100% fresh at launch → a third in the 1y+ diamond tier. GOTCHA fixed: `<`/`>` in age labels break SVG
+        XML → use "0–1m"/"1y+" + esc(). Backfills the forward-only diamond narrative to launch.
+      Both are valuation-POSITION/holder-behaviour statements, NOT signals. Wired charts.mjs/posts.mjs/LOOK/test; 6
+      posts tests green. Site pages (like supplyprofit got) not built yet — offered as a follow-up.
     - **✅ AUTOMATED DUNE REFRESH WIRED 2026-07-15 (owner: "wire the weekly series via the Dune API").**
       `scripts/build-onchain.mjs` + `.github/workflows/onchain.yml` (WEEKLY Monday cron + dispatch + a deploy job
       mirroring snapshot.yml). The Stage-2 query is self-sufficient (one execution = whole series), and Dune's free
