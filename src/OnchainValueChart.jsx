@@ -9,7 +9,7 @@ import ChartZoomHint from "./ChartZoomHint.jsx";
 import { SANS, MONO, MAX_W, Metric, TipBox, ZoomBar } from "./chart-ui.jsx";
 import { useDragZoom } from "./use-drag-zoom.js";
 
-const PRICE = "#38bdf8", COST = "#f59e0b", MVRV = "#a78bfa";
+const PRICE = "#38bdf8", COST = "#f59e0b", MVRV = "#a78bfa", FLOOR = "#34d399", DEEP = "#f87171";
 const fPrice = p => (p < 1 ? "$" + p.toFixed(p < 0.01 ? 4 : 3) : "$" + p.toLocaleString(undefined, { maximumFractionDigits: 2 }));
 const fPct = v => `${v >= 0 ? "+" : ""}${Math.round(v * 100)}%`;
 const fShort = t => new Date(t).toLocaleDateString("en-US", { month: "short", day: "numeric" });
@@ -20,7 +20,7 @@ function Tip({ active, payload, mode }) {
   const d = payload[0].payload;
   return (
     <TipBox title={new Date(d.ts).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}>
-      {mode === "realized" && <><div>Price: <span style={{ fontFamily: MONO, color: PRICE }}>{fPrice(d.price)}</span></div><div>Cost basis: <span style={{ fontFamily: MONO, color: COST }}>{fPrice(d.be)}</span></div></>}
+      {mode === "realized" && <><div>Price: <span style={{ fontFamily: MONO, color: PRICE }}>{fPrice(d.price)}</span></div><div>Cost basis: <span style={{ fontFamily: MONO, color: COST }}>{fPrice(d.be)}</span></div><div>0.8× floor: <span style={{ fontFamily: MONO, color: FLOOR }}>{fPrice(d.f08)}</span></div><div>0.5× floor: <span style={{ fontFamily: MONO, color: DEEP }}>{fPrice(d.f05)}</span></div></>}
       {mode === "mvrv" && <div>MVRV: <span style={{ fontFamily: MONO, color: d.mvrv >= 1 ? "#4ade80" : "#f87171" }}>{d.mvrv.toFixed(2)}×</span> <span style={{ color: "#94a3b8" }}>(avg holder {fPct(d.mvrv - 1)})</span></div>}
       {mode === "z" && <div>MVRV Z: <span style={{ fontFamily: MONO, color: MVRV }}>{d.z.toFixed(2)}</span></div>}
     </TipBox>
@@ -39,7 +39,7 @@ export default function OnchainValueChart({ isMobile, preview = false }) {
 
   const all = useMemo(() => {
     if (!history) return null;
-    const rows = mvrvHistory(history).map(r => ({ ts: r.ts, price: r.p, be: r.be, mvrv: r.p / r.be, mcap: r.p * SUPPLY, rcap: r.be * SUPPLY }));
+    const rows = mvrvHistory(history).map(r => ({ ts: r.ts, price: r.p, be: r.be, f08: r.be * 0.8, f05: r.be * 0.5, mvrv: r.p / r.be, mcap: r.p * SUPPLY, rcap: r.be * SUPPLY }));
     if (rows.length) {
       const mc = rows.map(r => r.mcap), mean = mc.reduce((s, x) => s + x, 0) / mc.length;
       const std = Math.sqrt(mc.reduce((s, x) => s + (x - mean) ** 2, 0) / mc.length) || 1;
@@ -58,7 +58,7 @@ export default function OnchainValueChart({ isMobile, preview = false }) {
     const [x0, x1] = zoom ?? fullX;
     const vis = all.filter(r => r.ts >= x0 && r.ts <= x1);
     if (vis.length < 2) return null;
-    const keys = mode === "realized" ? ["price", "be"] : mode === "mvrv" ? ["mvrv"] : ["z"];
+    const keys = mode === "realized" ? ["price", "be", "f05"] : mode === "mvrv" ? ["mvrv"] : ["z"];
     let yMin = Infinity, yMax = -Infinity;
     for (const r of vis) for (const k of keys) { if (r[k] < yMin) yMin = r[k]; if (r[k] > yMax) yMax = r[k]; }
     if (mode === "mvrv") { yMin = Math.min(yMin, 0.9); yMax = Math.max(yMax, 1.1); }
@@ -109,6 +109,8 @@ export default function OnchainValueChart({ isMobile, preview = false }) {
             {mode === "z" && <ReferenceLine y={0} stroke="rgba(255,255,255,0.5)" strokeDasharray="5 5" />}
             <Tooltip content={<Tip mode={mode} />} cursor={{ stroke: "rgba(255,255,255,0.2)" }} />
             {mode === "realized" && <>
+              <Line type="monotone" dataKey="f08" stroke={FLOOR} strokeWidth={1.4} strokeDasharray="6 6" strokeOpacity={0.8} dot={false} isAnimationActive={false} name="0.8× floor" />
+              <Line type="monotone" dataKey="f05" stroke={DEEP} strokeWidth={1.4} strokeDasharray="4 7" strokeOpacity={0.75} dot={false} isAnimationActive={false} name="0.5× floor" />
               <Line type="monotone" dataKey="be" stroke={COST} strokeWidth={2.4} dot={false} isAnimationActive={false} name="realized price" />
               <Line type="monotone" dataKey="price" stroke={PRICE} strokeWidth={2.4} dot={false} isAnimationActive={false} name="price" />
             </>}
@@ -123,7 +125,7 @@ export default function OnchainValueChart({ isMobile, preview = false }) {
 
       <div style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.65, maxWidth: 900, marginInline: "auto" }}>
         On-chain valuation from the crowd&apos;s <strong style={{ color: COST }}>realized price</strong> (avg cost basis).
-        <strong style={{ color: "#cbd5e1" }}> Realized price</strong>: price vs cost basis — above = holders in profit.
+        <strong style={{ color: "#cbd5e1" }}> Realized price</strong>: price vs cost basis — above = holders in profit; the <strong style={{ color: FLOOR }}>0.8×</strong>/<strong style={{ color: DEEP }}>0.5×</strong> bands are the historical floor zone.
         <strong style={{ color: "#cbd5e1" }}> MVRV</strong>: price ÷ cost (1× = break-even, high = frothy). <strong style={{ color: "#cbd5e1" }}>Z-score</strong>: MVRV normalized.
         Cost basis reconstructed on-chain from launch; live HolderScan snapshots extend the tail. Drag to zoom. Not financial advice.
       </div>
