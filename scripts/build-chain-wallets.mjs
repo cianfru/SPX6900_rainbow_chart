@@ -71,7 +71,11 @@ async function main() {
   } catch { /* handled below */ }
   if (!eth.size) throw new Error("public/onchain.json missing ETH holders — run the on-chain refresh first");
 
+  // Run the two Dune executions STAGGERED, not back-to-back — Base finishes and releases
+  // its compute slot before Solana kicks off, giving Dune's engine breathing room (avoids
+  // two heavy scans competing for the free tier at once). ~1 light execution at a time.
   const baseRows = await runQuery(BASE_ID, key);
+  await sleep(30000); // offset before the second query
   const solRows = await runQuery(SOL_ID, key);
   console.log(`base query ${BASE_ID}: ${baseRows.length} rows${baseRows[0] ? " · keys=" + Object.keys(baseRows[0]).join(",") : ""}`);
   console.log(`sol  query ${SOL_ID}: ${solRows.length} rows${solRows[0] ? " · keys=" + Object.keys(solRows[0]).join(",") : ""}`);
