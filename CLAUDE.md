@@ -508,17 +508,12 @@
     Merged as lowest-priority gap-filler. Pro key (`COINGECKO_PRO_KEY`) auto-upgrades to
     `days=max` (full history) — the cheapest full-history tier is **Analyst ~$129/mo**; a
     ONE-MONTH backfill (subscribe, run once, cancel) = ~$129 one-time, then free keeps it fresh.
-  - **🔲 Uniswap subgraph (The Graph) — WIRED, NEEDS A KEY TO ACTIVATE (2026-07-10).** The
-    promising FREE route to the FULL launch-era daily history (CoinGecko free can't pass 365d).
-    `tokenDayDatas` gives one priceUSD/day back to Aug '23, on-chain lineage. **PENDING OWNER
-    ACTION (on mobile, do later):** (1) create a free Graph Studio key at thegraph.com/studio;
-    (2) add repo secret `GRAPH_API_KEY`; (3) run the "Build price history" workflow; (4) CHECK
-    the `uniswap-subgraph:` log line — if `N pts (2023-08…→)` it worked (full history dense, no
-    Pro needed); if `0 pts`/error the pool is v3 → set repo var `GRAPH_SUBGRAPH_ID` to the v3 id
-    `5zvR82QoaXYFyDEKLZ9t6v9adgnptxYpKpSbxtgVENFV` and re-run (`GRAPH_TOKEN` overrides the
-    contract). Defaults to Uniswap v2 mainnet id `A3Np3RQbaBA6oKJgiwDJeo5T3zrYfGHPWFYayMwtNDum`.
-    If it flows, we can eventually re-bundle DEFAULT_RAW from real daily data + retire the ATH
-    constant — but that touches the FROZEN model fit, so do it deliberately as a separate step.
+  - **✅ DROPPED — Uniswap subgraph (The Graph) key (owner, 2026-07-16).** It was the FREE route to the full
+    launch-era daily price, but that need is already SOLVED: the owner's CoinGecko "max" daily CSV (bundled
+    `src/spx-daily.js`, and `build-price-history.mjs` seeds from it) gives the full launch era dense, no key.
+    So `GRAPH_API_KEY` is no longer a TODO — do NOT create it. The subgraph code stays wired (harmless, soft-skips
+    without the key) as a dormant alt-source if ever wanted, but there's nothing to action. (Old note: it would have
+    given `tokenDayDatas` priceUSD/day back to Aug '23; moot now.)
   - **✅ Hyperliquid perp candles — WIRED 2026-07-10.** `candleSnapshot` daily OHLCV for the SPX
     perp, added to the builder (reachable from CI, we already use HL for funding/OI). Fills the
     **2024 → mid-2025 middle gap** CoinGecko's free 365d can't reach — but only back to when the
@@ -1087,14 +1082,17 @@
         The keyless `min-api.cryptocompare.com/data/v2/histoday` calls the codebase relied on now
         return **HTTP 401** — CryptoCompare made histoday key-gated. BOTH `find-resemblance.mjs` and
         `build-alt-history.mjs` now send `authorization: Apikey <CRYPTOCOMPARE_KEY>` (env/secret).
-        **🔲 OWNER: create a FREE CryptoCompare API key (cryptocompare.com → API keys) → add repo
-        secret `CRYPTOCOMPARE_KEY`, then RE-RUN the study** (and later the alt-history builder — same
-        key). Without it both produce empty output.
+        ~~🔲 OWNER: create a FREE CryptoCompare API key~~ — **DROPPED (owner, 2026-07-16).** The key's driver
+        was the resemblance study, which is CLOSED (no twin). `find-resemblance.mjs` + `build-alt-history.mjs`
+        are dormant (no card reads them). So `CRYPTOCOMPARE_KEY` is NOT a TODO — do NOT create it. Without it
+        those two builders just produce empty output, which is fine (nothing consumes them).
       - **✅ LIVE endpoints fixed too (2026-07-13):** `api/memekings.js` + `api/majors.js` + `api/btc.js`
         all used the same keyless CryptoCompare call → they'd been silently failing over to Coinbase
         (shallower history). All three now send `authorization: Apikey <CRYPTOCOMPARE_KEY>` from the
-        VERCEL env. **🔲 OWNER: add `CRYPTOCOMPARE_KEY` to the VERCEL env too** (separate from the GH
-        Actions secret — these run on Vercel) to restore full memekings/majors/btc history depth.
+        VERCEL env. ~~🔲 OWNER: add `CRYPTOCOMPARE_KEY` to the VERCEL env~~ — **ALSO DROPPED (owner, 2026-07-16).**
+        Without it, `api/memekings.js` / `majors.js` / `btc.js` just use their Coinbase FALLBACK (shallower but
+        working history) — an acceptable tradeoff. Not a TODO. If we ever want deeper live memekings/majors/btc
+        history we can revisit the key, but nothing needs it now.
     - **Data foundation kept:** `scripts/build-alt-history.mjs` + `alt-history.yml` (banks
       DOGE/PEPE/SHIB age history → `public/alt-history.json`) and `loadAltHistory()`/
       `stats.altHistory` in stats.mjs stay as the reusable mechanism — no card reads them YET
