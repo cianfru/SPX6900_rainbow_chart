@@ -177,6 +177,15 @@
       "Refresh chain wallets".** Solana ID already defaulted (7991945 = saved `spx6900_solana_wallets`). Needs
       `DUNE_API_KEY` (already set). Until the Base ID is set the builder soft-fails and the bundle keeps serving.
       Then the ENTIRE on-chain suite is self-refreshing. ~100 credits/wk extra (within the 2,500/mo budget).
+    - **⚠ SOLANA IS TOO HEAVY TO EXECUTE ON THE FREE-TIER API (found 2026-07-16, first run).** The first "Refresh
+      chain wallets" run: Base executed fine (114,651) but the **Solana query (7991945) returned 0 rows when
+      EXECUTED via the API** — its as-of reconstruction over ~363k ever-seen wallets exceeds free-tier API execution
+      limits (no error, just empty). The old builder wrote sol=null → regressed the live total to 164k; RESTORED and
+      hardened (aborts if any chain empty). **FIX: build-chain-wallets.mjs now EXECUTES Base (light) but READS the
+      Solana query's CACHED result** (`GET /query/{id}/results`, free, no execution) — the owner's UI run of 7991945
+      populates it; Solana is slow-moving (~66k) so occasional manual UI re-runs keep it fresh. ETH+Base refresh
+      weekly-automatic. **Re-run must be a FRESH "Run workflow" dispatch** (not a re-run of an old run, which uses the
+      old commit + fails on the stale-push).
 
 - **⭐⭐ ON-CHAIN IS THE NEW FRONTIER — Dune-backed pipeline + eventual HolderScan cutover
   (owner strategy, 2026-07-15).** Now that Dune is unlocked (owner will wire a `DUNE_API_KEY`
