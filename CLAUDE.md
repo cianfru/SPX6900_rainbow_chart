@@ -1063,8 +1063,15 @@
         trades idiosyncratically ("does its own thing") — the honest, flattering finding.** PEPE is dead on BOTH
         tests. Don't force a resemblance/peer card; the BTC/ETH/SOL same-age cards stand on their own. Thread CLOSED
         (the rigorous market-residual version would just confirm the null — not worth the credits).
+    - **✅✅ RESEMBLANCE STUDY — CLOSED, no action left (owner confirmed 2026-07-16).** The Dune correlation
+      approach (above) already ANSWERED it: **SPX has no twin** — AIXBT (0.57) and BITCOIN-the-memecoin/HPOS10I
+      (0.58) came up mildly but sit on the market-beta floor; SPX trades idiosyncratically. So the whole "run the
+      study / pick a peer / build a peer card" thread is DONE — do NOT run `find-resemblance.mjs`, do NOT build a
+      peer card. The 🔲 "RUN the study" + "create CRYPTOCOMPARE_KEY to re-run the study" actions below are MOOT for
+      this purpose (the CryptoCompare key is still *optionally* nice for memekings/majors/btc live depth + DOGE/PEPE/
+      SHIB alt-history, but NOT for resemblance). Legacy CryptoCompare notes kept below for reference only.
     - **⭐ PICK THE PEER BY DATA — resemblance study (`scripts/find-resemblance.mjs` +
-      `resemblance.yml`, BUILT 2026-07-13) — LEGACY, see the Dune version above.** Owner asked "what other coin resembles SPX's
+      `resemblance.yml`, BUILT 2026-07-13) — LEGACY/SUPERSEDED (thread CLOSED, see above).** Owner asked "what other coin resembles SPX's
       performance, beyond the memekings? can you check?" — I can't (CryptoCompare is blocked
       from the dev sandbox), so it's a dispatch workflow. Scans a broad basket (BNB, MATIC, POL,
       LINK, AVAX, ADA, DOT, ATOM, NEAR, LTC, XRP, UNI, INJ, SUI, APT, … + DOGE/SHIB) via
@@ -1073,10 +1080,9 @@
       `public/resemblance.json`. Reference points already computed (bundled BTC/ETH/SOL): at
       SPX's age (2.9y) SPX ≈ 522×, **BTC 2,099× · ETH 161× · SOL 20×** — SPX sits BETWEEN ETH
       and BTC. My prior for the best NON-memecoin match: **Polygon/MATIC** (~500–600× at 2.9y).
-      **🔲 OWNER: RUN "Find resemblance (study)" ONCE** → read the ranking → we build the
-      same-age (+ what-came-next) card for the WINNER via the `ageCard`/`nextCard` factories +
-      `stats.altHistory` mechanism (add the winner to `build-alt-history.mjs` COINS if it's not
-      already a memecoin). Logos: doge/pepe/shib bundled (COIN_IMG); a new peer needs a logo add.
+      ~~🔲 OWNER: RUN "Find resemblance (study)" ONCE~~ — **NO LONGER NEEDED (closed above, no twin exists).**
+      Had it found a winner we'd have built the same-age (+ what-came-next) card via the `ageCard`/`nextCard`
+      factories + `stats.altHistory`; moot now. Logos note (doge/pepe/shib bundled) kept for any future peer work.
       - **⚠ CRYPTOCOMPARE NOW NEEDS A KEY (found 2026-07-13, first study run 401'd on all 27 coins).**
         The keyless `min-api.cryptocompare.com/data/v2/histoday` calls the codebase relied on now
         return **HTTP 401** — CryptoCompare made histoday key-gated. BOTH `find-resemblance.mjs` and
