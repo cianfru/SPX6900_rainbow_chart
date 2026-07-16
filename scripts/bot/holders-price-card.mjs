@@ -27,11 +27,11 @@ export function holdersPriceSvg(spec, opts = {}) {
 
   const hv = holders.map(p => p[1]);
   const hlo = Math.min(...hv), hhi = Math.max(...hv), hpad = Math.max((hhi - hlo) * 0.3, 20);
-  const HL = hlo - hpad, HH = hhi + hpad;
+  const HL = Math.max(0, hlo - hpad), HH = hhi + hpad; // never show negative holders
   const Yh = v => mT + ((HH - v) / ((HH - HL) || 1)) * pH;
   const pv = price.map(p => p[1]);
   const plo = Math.min(...pv), phi = Math.max(...pv), ppad = Math.max((phi - plo) * 0.12, plo * 0.02);
-  const PL = plo - ppad, PH2 = phi + ppad;
+  const PL = Math.max(0, plo - ppad), PH2 = phi + ppad; // never show negative price
   const Yp = v => mT + ((PH2 - v) / ((PH2 - PL) || 1)) * pH;
 
   // gridlines + left (holders, green) / right (price, blue) axis labels

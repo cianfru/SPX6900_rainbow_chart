@@ -155,10 +155,23 @@
     - **✅ WALLET-GROWTH CARD BUILT (`walletgrowth`, `scripts/bot/wallet-growth-card.mjs`, LOOK "stack")** — stacked
       area ETH(grey)/Base(blue)/Solana(purple), total headline "230,341 across 3 chains from 1,433". Added an honest
       **"Solana tracked from here" dashed marker** at the cold-start. Wired charts/posts/LOOK/test; tests green.
-    - **🔲 FRAMING DECISION PENDING (owner to pick A/B/C):** Claude RECOMMENDS leading with a CLEAN **ETH
-      Holders-vs-Price** card (49.5k grew steadily through the ~80% drawdown — NO artifacts, the pure conviction
-      story) as the hero, and keeping `walletgrowth` as the honestly-annotated multi-chain companion. Committed the
-      annotated multi-chain card (in rotation) to keep the tree clean; adjust once owner steers.
+    - **✅ HISTORICAL HOLDERS-VS-PRICE + WALLET-GROWTH SITE CHART SHIPPED 2026-07-16.**
+      • **`holdersprice` rotation card** — HISTORICAL (from launch) off `stats.onchain` (holders + spot), reuses the
+        `holderspair` dual-axis render (holders-price-card.mjs). Story: holders climbed to ~49.5k (+35× since launch)
+        and held FLAT while price round-tripped through an ~83% drawdown = conviction. Auto-updates (onchain.json).
+        Distinct from `holdergrowth` (count-only, forward-only HolderScan). Fixed the shared render's axis floors
+        (`Math.max(0, …)`) — full-range linear padding was showing NEGATIVE holders/price labels.
+      • **`HoldersPriceChart.jsx` site chart** upgraded: `loadHistory` (forward-only) → `loadOnchain` (historical
+        from launch) + SPX_ONCHAIN fallback; log price axis; floored the holders domain at 0.
+      • **`WalletGrowthChart.jsx` site chart** (id `walletgrowth`, On-Chain group) — recharts stacked area
+        ETH/Base/Solana from launch, per-chain + total metrics, drag-zoom. Reads the `chain-wallets.js` BUNDLE (NOT
+        auto-refreshed — see below). Registered charts-catalog + App.jsx. Browser-verified (both clean, no JS errors).
+    - **⚠ AUTO-UPDATE STATUS (owner asked 2026-07-16):** `onchain.json` cards (supply-in-profit, concentration, HODL
+      waves, holders-vs-price, ETH holder count) DO auto-refresh weekly via onchain.yml. The **multi-chain wallet
+      card/chart do NOT** — `src/chain-wallets.js` is a static bundle from the Base/Solana CSVs. TO WIRE: save the
+      Base (`dune/spx6900_base_wallets.sql`) + Solana (`dune/spx6900_solana_wallets.sql`) queries in Dune, add a
+      builder (mirror build-onchain.mjs) that executes both weekly via the Dune API → `public/chain-wallets.json`,
+      loader prefers it over the bundle. ~100 credits/wk extra (still within budget). Not yet built.
 
 - **⭐⭐ ON-CHAIN IS THE NEW FRONTIER — Dune-backed pipeline + eventual HolderScan cutover
   (owner strategy, 2026-07-15).** Now that Dune is unlocked (owner will wire a `DUNE_API_KEY`

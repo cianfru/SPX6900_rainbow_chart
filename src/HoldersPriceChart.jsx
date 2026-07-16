@@ -3,7 +3,8 @@ import {
   ResponsiveContainer, ComposedChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, ReferenceArea,
 } from "recharts";
 import ChartZoomHint from "./ChartZoomHint.jsx";
-import { loadHistory } from "./history-data.js";
+import { loadOnchain } from "./history-data.js";
+import { SPX_ONCHAIN } from "./spx-onchain.js";
 import { SANS, MONO, MAX_W, Metric, TipBox, ZoomBar } from "./chart-ui.jsx";
 import { useDragZoom } from "./use-drag-zoom.js";
 
@@ -25,23 +26,24 @@ function Tip({ active, payload }) {
   );
 }
 
-// Holder count (left) vs SPX price (right) over time — does accumulation hold
-// through price swings? Conviction shows when holders keep climbing on red days.
+// ETH holder count (left) vs SPX price (right) over the FULL history (Dune
+// reconstruction, from launch) — does accumulation hold through price swings?
+// The conviction story: holders climbed to ~49.5k and held flat while price
+// round-tripped through an ~80% drawdown. Prefers the live /onchain.json.
 export default function HoldersPriceChart({ isMobile, preview = false }) {
-  const [history, setHistory] = useState(null);
+  const [live, setLive] = useState(null);
   useEffect(() => {
     let cancelled = false;
-    loadHistory().then(d => { if (!cancelled) setHistory(d); });
+    loadOnchain().then(d => { if (!cancelled && d) setLive(d); });
     return () => { cancelled = true; };
   }, []);
 
   const all = useMemo(() => {
-    if (!history) return null;
-    const rows = [];
-    for (const r of history) if (r.holders != null && r.p > 0) rows.push({ ts: new Date(r.d).getTime(), date: r.d, holders: r.holders, price: r.p });
-    rows.sort((a, b) => a.ts - b.ts);
-    return rows;
-  }, [history]);
+    return (live || SPX_ONCHAIN)
+      .filter(r => r.holders != null && r.spot > 0)
+      .map(r => ({ ts: Date.parse(r.d), date: r.d, holders: r.holders, price: r.spot }))
+      .sort((a, b) => a.ts - b.ts);
+  }, [live]);
 
   const { zoom, setZoom, selL, selR, onDown, onMove, onUp, zoomed } = useDragZoom(
     (a, b) => all && all.filter(r => r.ts >= a && r.ts <= b).length >= 2);
@@ -62,7 +64,7 @@ export default function HoldersPriceChart({ isMobile, preview = false }) {
     const pChange = vis.at(-1).price / vis[0].price - 1;
     return {
       vis, xDomain: [x0, x1], xTicks,
-      hDomain: [hMin - hPad, hMax + hPad], pDomain: [pMin * 0.9, pMax * 1.1],
+      hDomain: [Math.max(0, hMin - hPad), hMax + hPad], pDomain: [pMin * 0.9, pMax * 1.1],
       hNow: all.at(-1).holders, hDelta, pChange, start: vis[0], end: vis.at(-1), spanDays,
     };
   }, [all, zoom]);

@@ -754,6 +754,30 @@ The base keeps building.`,
     };
   })(),
 
+  // Holders vs price — HISTORICAL (from launch), off the Dune ETH holder series
+  // (stats.onchain, auto-refreshed). The conviction story: the holder count climbed
+  // steadily while price round-tripped — accumulation decoupled from price. Reuses the
+  // holderspair dual-axis render. Distinct from holdergrowth (count only, forward-only).
+  s => (s.onchain?.length >= 50) && (() => {
+    const o = s.onchain, first = o[0], cur = o.at(-1);
+    const peak = Math.max(...o.map(r => r.spot));
+    const dd = Math.round((1 - cur.spot / peak) * 100);
+    const mult = cur.holders / first.holders;
+    return {
+      id: "holdersprice",
+      text: ct`📈 SPX6900's on-chain holder base grew from ${first.holders.toLocaleString()} to ${cur.holders.toLocaleString()} — through the whole cycle, including an ~${dd}% drawdown from the top.
+Price round-tripped; the holder count only went up. Accumulation decoupled from price.
+Conviction, on-chain.`,
+      card: { type: "holderspair", spec: {
+        title: "Holders vs price — since launch",
+        headline: `${cur.holders.toLocaleString()} holders · +${mult.toFixed(0)}× since launch`,
+        accent: "#4ade80",
+        holders: o.map(r => [Date.parse(r.d), r.holders]),
+        price: o.map(r => [Date.parse(r.d), r.spot]),
+      } },
+    };
+  })(),
+
   // Holders across chains — the REACH story. SPX is on ETH (native) + Base + Solana
   // (bridged). By supply the bridged chains are ~6%, but by HEADCOUNT they dwarf ETH,
   // so the real community is several× the ~50k we usually post. Data-gated on the
@@ -1708,7 +1732,7 @@ const LOOK = {
   whatnext: "race",
   // — Tier B: flavourful / distinct looks (used to break up the green lines) —
   riskcolor: "colorline", risklevels: "colorline", rsidots: "colorline",
-  riskheat: "dual", runningroi: "dual", cycle: "dual", longshort: "dual", underwater: "dual", goldencross: "dual", holdergrowth: "dual", mvrvbtc: "dual", mvrvtrend: "dual", supplyprofit: "dual", concentration: "dual", picycle: "dual",
+  riskheat: "dual", runningroi: "dual", cycle: "dual", longshort: "dual", underwater: "dual", goldencross: "dual", holdergrowth: "dual", holdersprice: "dual", mvrvbtc: "dual", mvrvtrend: "dual", supplyprofit: "dual", concentration: "dual", picycle: "dual",
   firesalerally: "fanlines",
   model: "scatter",
   monthlyreturns: "heatmap", monthlyreturnssp: "heatmap", monthlyreturnsbtc: "heatmap",
