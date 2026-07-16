@@ -926,6 +926,22 @@ Where SPX sits vs alts — a relative read, not a signal.`,
     };
   })(),
 
+  // Free Float — the share of supply that's actually liquid (changed hands in the last
+  // 6 months), from the on-chain HODL age bands. Falls from ~100% at launch as coins mature
+  // into strong hands (the "supply squeeze"). Definition + source stated so it's verifiable.
+  // A holder-behaviour POSITION, not a signal.
+  s => (s.onchain?.length >= 50) && (() => {
+    const age = s.onchain.at(-1).age;
+    const ff = Math.round(100 - (age[3] + age[4]));
+    return {
+      id: "freefloat",
+      text: ct`🟡 ${ff}% of SPX6900's supply is liquid — the other ${100 - ff}% hasn't moved in 6 months.
+On-chain free float: the share of supply changing hands, down from ~100% at launch as coins matured into strong hands.
+Reproducible from Ethereum transfers — a position, not a signal.`,
+      card: { type: "freefloat" },
+    };
+  })(),
+
   // Holder concentration — the largest wallets' share of ETH-native supply over time
   // (Dune, contracts/CEX excluded). The honest story: SPX has DECENTRALISED as the
   // holder base grew (top 100 ~68%→~58%). A distribution-of-ownership statement, NOT
@@ -1768,7 +1784,7 @@ const LOOK = {
   whatnext: "race",
   // — Tier B: flavourful / distinct looks (used to break up the green lines) —
   riskcolor: "colorline", risklevels: "colorline", rsidots: "colorline",
-  riskheat: "dual", runningroi: "dual", cycle: "dual", longshort: "dual", underwater: "dual", goldencross: "dual", holdergrowth: "dual", holdersprice: "dual", mvrvbtc: "dual", mvrvtrend: "dual", supplyprofit: "dual", floormodel: "dual", altmarket: "dual", concentration: "dual", picycle: "dual",
+  riskheat: "dual", runningroi: "dual", cycle: "dual", longshort: "dual", underwater: "dual", goldencross: "dual", holdergrowth: "dual", holdersprice: "dual", mvrvbtc: "dual", mvrvtrend: "dual", supplyprofit: "dual", floormodel: "dual", altmarket: "dual", freefloat: "dual", concentration: "dual", picycle: "dual",
   firesalerally: "fanlines",
   model: "scatter",
   monthlyreturns: "heatmap", monthlyreturnssp: "heatmap", monthlyreturnsbtc: "heatmap",

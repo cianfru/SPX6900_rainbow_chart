@@ -382,6 +382,19 @@
         the last bundled WEEK (~40.2%); a live daily value would need the Stage 1 snapshot wired into the cron (TODO).
       Current read: **40% of supply in profit** (60% underwater) — the conviction story. Ran ~100% at every price
       top (frothy), bottomed ~2% Feb-2024 (everyone underwater).
+    - **✅ FREE-FLOAT CARD SHIPPED 2026-07-16 — our verifiable answer to an influencer's viral "Supply Squeeze
+      Composite".** Owner (rightly) irked that a 10k-follower account waves an unverifiable black-box composite
+      (diamond L-ratios + turnover velocity + CEX/DEX + bridged, no disclosed weights) and gets applause. Our play:
+      NOT a debunk (owner: "we go our way", and if the numbers match "he might be right") — a TRANSPARENT version.
+      `scripts/bot/free-float-card.mjs` (type `freefloat`, LOOK "dual", data-gated `onchain.length>=50`): **free float
+      = 100 − (age 6-12m + age 1y+)** from our HODL age bands = share of supply that CHANGED HANDS in the last 6
+      months, plotted vs days-since-inception with an exp-decay trend, definition + source STATED ON THE CARD
+      ("on-chain Ethereum · reproducible"). Falls ~100%→**36.8%** over 1057 days — essentially IDENTICAL to his ~37%,
+      which validates the finding while being fully checkable (his edge was reach, ours is receipts). Honest scope:
+      ETH-native age bands; BTC/ETH comparison deliberately LEFT OFF (needs cited external illiquid-supply data —
+      exactly where his method is fuzziest). Auto-updates off the onchain bundle. Wired charts/posts/LOOK/test; green.
+      **Posting strategy (owner agreed):** post as OUR content nodding to the trending idea, NOT a reply-guy dunk
+      (community-sensitive); our number ≈ his so it's transparency-as-differentiator, not a correction.
     - **✅ CONCENTRATION + HODL-WAVES CARDS SHIPPED 2026-07-16 (owner "kick off with the charts you proposed").**
       Both off the SAME `stats.onchain` bundle (no new Dune credits), bot rotation cards, LOOK "dual"/"stack",
       data-gated `onchain.length>=50`:
