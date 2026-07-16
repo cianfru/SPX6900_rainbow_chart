@@ -14,6 +14,7 @@ on:
     paths-ignore:
       - "CLAUDE.md"
       - "dune/**"
+      - "flipside/**"
       - "public/next-post.json"
       - "public/post-state.json"
       - "public/band-state.json"

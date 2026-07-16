@@ -123,6 +123,27 @@
     single-shot latency ever grates.
 
 ## Backlog / decisions
+- **⭐ MULTI-CHAIN WALLET GROWTH + OUR-OWN-METRICS (owner, 2026-07-16) — in progress.** Two linked asks:
+  (1) **Ditch HolderScan's confusing "classified/total supply" framing** — it burned us (86%-of-classified vs
+  61%-of-supply diamond mess). FIX = we already own transparent replacements from the Dune reconstruction: **HODL
+  waves** (published age bands as % of TOTAL supply) + **supply-in-profit**. Plan: SUNSET the HolderScan-sourced
+  `diamondtrend` + `distribution` cards in favour of those (also advances the $200 HolderScan cutover). (2) **Wallet
+  growth over time, MULTI-CHAIN (ETH+Base+Solana), from launch — race card + "holders vs price"**, to show the
+  holder base growing through the drawdown (adoption decoupled from price). Headcount is legitimately multi-chain
+  (unlike MVRV/cost-basis which stay ETH-only). Data status:
+    - **ETH: HAVE IT** — `src/spx-onchain.js` `holders` is weekly holder count to Aug-2023 launch (1,433→49,541).
+    - **Base: `dune/spx6900_base_wallets.sql`** (Trino, drafted) — as-of weekly distinct holders from
+      `erc20_base.evt_Transfer` (Base SPX `0x50dA645f…bb2C`, decimals 8), headcount only (no price join → cheap).
+    - **Solana: `flipside/spx6900_solana_wallets.sql`** (owner's call — Dune SPL is painful, **Flipside Crypto** is
+      better: optimized Solana tables + FREE CSV export). NOTE Flipside = **Snowflake SQL** (TABLE(GENERATOR)/seq4/
+      DATEADD/QUALIFY), NOT Trino. Reconstructs distinct-owner weekly count from `solana.core.fact_transfers` (SPL
+      mint `J3NKxx…3KFr`). Verify-flags in header (table/column names, owner-vs-token-account).
+    - **NEXT:** (a) build **Holders-vs-Price** card + site chart NOW off the ETH bundle (buildable, no new data);
+      (b) owner runs the Base (Dune) + Solana (Flipside) queries → send CSVs → bundle → the multi-chain race reaches
+      launch (upgrades the forward-only `chainrace`). OPEN Qs to owner: race style **absolute counts** (Claude leans
+      this — the "230k across 3 chains" headcount IS the story) vs rebased %-growth; exclude lists optional for count.
+    - Query docs live in `dune/` + `flipside/` (both deploy-ignored).
+
 - **⭐⭐ ON-CHAIN IS THE NEW FRONTIER — Dune-backed pipeline + eventual HolderScan cutover
   (owner strategy, 2026-07-15).** Now that Dune is unlocked (owner will wire a `DUNE_API_KEY`
   to feed us), the moat (honest valuation) and on-chain data are the same thing → go deeper
