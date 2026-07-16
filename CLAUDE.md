@@ -206,6 +206,68 @@
       balance-table versions) are kept as REFERENCE only (for a future one-time backfill/re-bundle), NOT run by CI.
       **Why:** the credit log showed ~88% of the 2,500/mo went to heavy transfer-scan/as-of executions that timed
       out/cancelled/aborted (which STILL charge). Snapshot-forward spends ZERO credits and needs no key.
+    - **✅ BASE HOLDER-COUNT CORRECTION (owner confirmed 114,535 truth, 2026-07-16).** Blockscout (the free daily Base
+      source in snapshot.mjs) OVER-COUNTS by ~12.8k vs the truth (127k vs ~114.5k; Basescan/Dune agree at ~114.6k).
+      The wallet-growth chart already rebases this away at the seam. The multichain donut card + its tweet copy used
+      to read the raw 127k — now routed through a shared `currentChainHolders(stats)` helper (stats.mjs) that prefers
+      the CORRECTED `chain-wallets.json` latest point, so every surface shows ~114.5k. snapshot.mjs still banks the raw
+      Blockscout reading in history.json (honest raw); nothing user-facing displays it. ONE data-driven correction (the
+      seam offset), no magic constants.
+
+## Dune credit discipline — HARD-WON, read before writing/running ANY Dune query (2026-07-16)
+- **The 2,500/mo free tier got blown in a WEEK, ~88% on ~5 heavy debugging runs.** The credit CSV was unambiguous:
+  one Solana run scanned **10.5 TB → 654 credits**; an *aborted* run charged **966**; a *cancelled* one **441**; a
+  *timeout* **43**. The light master query (7991307) cost **1–3 credits**. So the lesson is not "2,500 is too little" —
+  steady-state is a few hundred/mo — it's "**never run the expensive pattern.**"
+- **CANCELLED / TIMED-OUT / ABORTED QUERIES STILL CHARGE** (often the most — the CPU is already spent). You cannot
+  debug a heavy query by running it and killing it. Fix the DESIGN first.
+- **The 2-minute free-tier timeout is a hard wall.** A query that hits it burns credits AND returns nothing. So design
+  every execution to finish in SECONDS, never near 2 min.
+- **The levers, in order:** (1) READ pre-computed balance tables (`tokens_<chain>.balances_daily`, `solana_utils.
+  daily_balances`), never scan raw `evt_Transfer` for a count/balance — TB→GB. (2) CHUNK heavy one-time backfills by
+  time (run one year/quarter at a time, each <2 min, concat CSVs OFFLINE into a bundle). (3) SAMPLE coarser (weekly
+  `day_of_week(d)=1`, monthly for deep history). (4) FILTER token FIRST + fewer columns + partition-prune on block_time.
+  (5) STAGE intermediates as saved queries (run once → cached → free reads). (6) DEVELOP on a `LIMIT 1000` / 30-day
+  slice so a mistake costs ~nothing; remove the limit only for the ONE proven full run.
+- **Claude CANNOT run Dune (sandbox blocks it)** — draft SQL, owner runs it. So drafts must be RIGHT before running
+  (verify columns in Dune's schema browser, free) — a failed run is real money.
+- **What's Dune-gated vs free:** free/daily (never stale) = price/rainbow/holder-counts/wallet-growth/realized-price/
+  MVRV/floor/break-even (the snapshot cron + HolderScan `be`). Dune-gated (frozen at bundle between refreshes) =
+  supply-in-profit %, concentration, gini, HODL waves — BUT these are the SLOWEST-moving metrics AND refresh for only
+  ~2 credits via the WEEKLY `onchain.yml` master query, which resumes automatically on credit reset. They were never
+  the budget problem; the FIFO/heavy backfills are. Don't panic about a month of staleness — it's cosmetically invisible
+  and self-heals.
+- **Paying for Dune = NOT worth it for this project** (owner asked 2026-07-16): steady-state fits free; paying just
+  raises the ceiling you can accidentally blow through. If a big one-time backfill is ever needed, use the
+  subscribe-one-month-then-cancel trick (like CoinGecko), not a standing subscription.
+
+## ✅ Realized Price & Floor Model — card + site bands (2026-07-16, owner "build 2")
+- **`floormodel` card** (`scripts/bot/floor-model-card.mjs`, LOOK "dual", data-gated `onchain.length>=50`) — spot vs the
+  crowd's realized cost basis (`stats.onchain` rp/spot, ALREADY bundled → NO new Dune) with the **0.5×/0.8× realized
+  multiplier "floor zone"** beneath. Full-history log view shows price repeatedly finding support in that zone. Hero
+  leads with the number ("$0.37 spot · $0.54 cost basis — under cost basis · 1.36× the 0.5× floor"). Guardrail: bands
+  are historical support, NOT a promise. Wired charts/posts/LOOK/test.
+- **Site: floor bands added to `OnchainValueChart.jsx` realized mode** (0.8× green dashed, 0.5× red dashed + tooltip +
+  caption) so the `mvrv` page matches the card. Browser-verified.
+- **NOTE the realized-price data is NOT stale** — it forward-fills daily from HolderScan `be` via `mvrvHistory()`, so
+  the floor model reads live even while the other Dune-gated metrics are frozen.
+
+## 🔲 FIFO LTH/STH Supply in Profit/Loss — DRAFTED, run-once (2026-07-16, owner request)
+- **`dune/spx6900_lth_sth_profit.sql`** — the genuinely-new metric that needs LOT-LEVEL FIFO (our master query uses
+  AVERAGE cost per wallet, which loses per-lot age). Loop-free FIFO via **cumulative matching** (rank receives by a
+  running total; a lot is still-held = overhang of cumulative-received over cumulative-sent — no per-wallet queue). Stage 1
+  = cheap current-state (validate first, sanity vs `sip`~40% / age≥1y~38%); Stage 2 = the heavy historical daily series =
+  **run ONCE in yearly CHUNKS (each <2 min), concat offline, bundle** — never a cron. 8-decimal scaling (owner's skeleton
+  had `1e18` = wrong), full 16-address exclude, gap-filled price, 30/60/90d LTH toggle. Do NOT run until credits reset.
+- **Owner's skeleton had 2 bugs** (noted): `value/1e18` should be `1e8` (SPX is 8-decimal), and `SUM(realized_value)/
+  SUM(amount) GROUP BY day` = daily transfer VWAP, NOT realized price (realized price is a STOCK — all held coins' cost
+  basis — not a per-day flow; our master query already does it right).
+
+## ✅ MVRV-vs-Bitcoin chart — SPX trail REMOVED (owner, 2026-07-16)
+- `MvrvContextChart.jsx` used to overlay SPX6900's OWN full MVRV history (purple trail) on Bitcoin's decade. Removed as
+  redundant — SPX's own MVRV now has dedicated homes (`mvrvtrend` card + `mvrv` page). KEPT the chart's actual purpose:
+  the "SPX today N×" marker line + ±band + magenta match-dots that POSITION SPX's current MVRV on Bitcoin's map (when was
+  BTC last this cheap). The `mvrvbtc` bot card never had the trail (marker only) — unchanged.
     - **v3 — PRE-COMPUTED BALANCE TABLES, no transfer scanning (owner insight 2026-07-16, now REFERENCE-only).** The crossing/net-flow
       method still re-derives running balances by scanning every transfer on each run — heavy (esp. Solana's millions
       of rows). Dune already MAINTAINS per-wallet balances, so both count queries now read those instead → seconds,
