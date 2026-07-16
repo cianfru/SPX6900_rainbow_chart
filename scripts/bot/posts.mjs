@@ -891,6 +891,22 @@ ${under ? "Most holders are red — and still holding." : "Most of the float is 
     };
   })(),
 
+  // Realized Price & Floor Model — spot vs the crowd's on-chain cost basis, with the
+  // 0.5–0.8× multiplier "floor zone" beneath. Same bundled realized-price series as MVRV
+  // (no new Dune). Valuation POSITION (bands are historical support, not a guarantee).
+  s => (s.onchain?.length >= 50) && (() => {
+    const o = s.onchain.at(-1), rp = o.rp, spot = s.price > 0 ? s.price : o.spot;
+    const under = spot < rp, f05 = rp * 0.5;
+    const fp = v => "$" + (v >= 1 ? v.toFixed(2) : v.toFixed(3));
+    return {
+      id: "floormodel",
+      text: ct`🟡 SPX6900 is ${fp(spot)} — ${under ? "below" : "above"} its holders' on-chain cost basis of ${fp(rp)}.
+Realized price = what the average coin last moved at. Price has repeatedly found support in the 0.5–0.8× cost-basis zone (floor ~${fp(f05)}).
+${under ? "Underwater, near the floor." : "Trading above cost basis."} A position, not a promise.`,
+      card: { type: "floormodel" },
+    };
+  })(),
+
   // Holder concentration — the largest wallets' share of ETH-native supply over time
   // (Dune, contracts/CEX excluded). The honest story: SPX has DECENTRALISED as the
   // holder base grew (top 100 ~68%→~58%). A distribution-of-ownership statement, NOT
@@ -1733,7 +1749,7 @@ const LOOK = {
   whatnext: "race",
   // — Tier B: flavourful / distinct looks (used to break up the green lines) —
   riskcolor: "colorline", risklevels: "colorline", rsidots: "colorline",
-  riskheat: "dual", runningroi: "dual", cycle: "dual", longshort: "dual", underwater: "dual", goldencross: "dual", holdergrowth: "dual", holdersprice: "dual", mvrvbtc: "dual", mvrvtrend: "dual", supplyprofit: "dual", concentration: "dual", picycle: "dual",
+  riskheat: "dual", runningroi: "dual", cycle: "dual", longshort: "dual", underwater: "dual", goldencross: "dual", holdergrowth: "dual", holdersprice: "dual", mvrvbtc: "dual", mvrvtrend: "dual", supplyprofit: "dual", floormodel: "dual", concentration: "dual", picycle: "dual",
   firesalerally: "fanlines",
   model: "scatter",
   monthlyreturns: "heatmap", monthlyreturnssp: "heatmap", monthlyreturnsbtc: "heatmap",
