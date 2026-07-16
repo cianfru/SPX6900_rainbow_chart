@@ -1,6 +1,6 @@
 {
-  "lastPostedDate": "2026-07-15",
-  "lastId": "ethage",
+  "lastPostedDate": "2026-07-16",
+  "lastId": "hodlwaves",
   "recent": [
     {
       "date": "2026-07-08",
@@ -33,6 +33,10 @@
     {
       "date": "2026-07-15",
       "id": "ethage"
+    },
+    {
+      "date": "2026-07-16",
+      "id": "hodlwaves"
     }
   ]
 }
