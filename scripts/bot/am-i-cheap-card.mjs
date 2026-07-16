@@ -24,20 +24,28 @@ export function amICheapSvg(stats, opts = {}) {
   const W = opts.W ?? 1200, H = opts.H ?? 630;
   const rowsTop = 196, rowsBot = H - 74, rowH = (rowsBot - rowsTop) / g.length, mL = 60, mR = 60, rowGap = 10;
 
+  // 10-square cheapness meter: `score` of 10 filled (state colour), rest faint.
+  const SQ = 24, GAP = 6, STEP = SQ + GAP, N = 10, METER_W = N * STEP - GAP;
+  const meterEndX = W - mR - 14, meterX = meterEndX - METER_W;
   let rows = "";
   g.forEach((x, i) => {
     const y = rowsTop + i * rowH, h = rowH - rowGap, c = COL[x.state], midY = y + h / 2;
     rows += `<rect x="${mL}" y="${y.toFixed(1)}" width="${W - mL - mR}" height="${h.toFixed(1)}" rx="12" fill="${c}" fill-opacity="0.08"/>`
       + `<rect x="${mL}" y="${y.toFixed(1)}" width="8" height="${h.toFixed(1)}" rx="4" fill="${c}"/>`
-      + `<text x="${mL + 32}" y="${(midY + 11).toFixed(1)}" fill="#e2e8f0" font-size="32" font-weight="700" font-family="sans-serif">${esc(x.name)}</text>`
-      + `<text x="${W - mR - 28}" y="${(midY + 11).toFixed(1)}" fill="${c}" font-size="31" font-weight="800" text-anchor="end" font-family="sans-serif">${esc(x.phrase)}</text>`;
+      + `<text x="${mL + 32}" y="${(midY - 4).toFixed(1)}" fill="#e2e8f0" font-size="30" font-weight="700" font-family="sans-serif">${esc(x.name)}</text>`
+      + `<text x="${mL + 32}" y="${(midY + 26).toFixed(1)}" fill="${c}" font-size="21" font-weight="600" font-family="sans-serif">${esc(x.phrase)}</text>`;
+    const sqY = midY - SQ / 2;
+    for (let j = 0; j < N; j++) {
+      const filled = j < x.score;
+      rows += `<rect x="${(meterX + j * STEP).toFixed(1)}" y="${sqY.toFixed(1)}" width="${SQ}" height="${SQ}" rx="4" fill="${filled ? c : "#ffffff"}" fill-opacity="${filled ? 0.95 : 0.07}"${filled ? "" : ` stroke="${c}" stroke-opacity="0.25"`}/>`;
+    }
   });
 
   return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
 <defs><linearGradient id="acbg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#0b0b16"/><stop offset="100%" stop-color="#05050e"/></linearGradient></defs>
 <rect width="${W}" height="${H}" fill="url(#acbg)"/>
 <text x="60" y="58" fill="#e2e8f0" font-size="38" font-weight="800" font-family="sans-serif" letter-spacing="1">SPX6900 — AM I CHEAP?</text>
-<text x="60" y="96" fill="#94a3b8" font-size="22" font-family="sans-serif">Where it sits across independent valuation lenses</text>
+<text x="60" y="96" fill="#94a3b8" font-size="22" font-family="sans-serif">Independent valuation lenses · more squares filled = cheaper</text>
 <text x="60" y="160" fill="${vCol}" font-size="40" font-weight="800" font-family="sans-serif">${cheap} of ${g.length} lenses say ${vWord}</text>
 ${rows}
 <text x="60" y="${H - 22}" fill="#6b7688" font-size="18" font-family="sans-serif">${esc("spx6900rainbow.xyz · not financial advice · a valuation POSITION across lenses, not a timing call or a bottom")}</text>
