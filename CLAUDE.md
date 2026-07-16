@@ -134,10 +134,12 @@
     - **ETH: HAVE IT** — `src/spx-onchain.js` `holders` is weekly holder count to Aug-2023 launch (1,433→49,541).
     - **Base: `dune/spx6900_base_wallets.sql`** (Trino, drafted) — as-of weekly distinct holders from
       `erc20_base.evt_Transfer` (Base SPX `0x50dA645f…bb2C`, decimals 8), headcount only (no price join → cheap).
-    - **Solana: `flipside/spx6900_solana_wallets.sql`** (owner's call — Dune SPL is painful, **Flipside Crypto** is
-      better: optimized Solana tables + FREE CSV export). NOTE Flipside = **Snowflake SQL** (TABLE(GENERATOR)/seq4/
-      DATEADD/QUALIFY), NOT Trino. Reconstructs distinct-owner weekly count from `solana.core.fact_transfers` (SPL
-      mint `J3NKxx…3KFr`). Verify-flags in header (table/column names, owner-vs-token-account).
+    - **Solana: `dune/spx6900_solana_wallets.sql`** (Dune/Trino — after all). Path history: Flipside was proposed
+      (Snowflake), then Flipside stopped working; owner used an alt source that COLD-STARTED at 12k (Oct-24); then
+      owner found Dune's **`tokens_solana.transfers`** HAS SPX Solana data back to **Dec-2023**. First Dune query
+      counted CUMULATIVE-ever (first-seen wallets running-summed → 363k ever, monotonic, WRONG metric). **FIX =
+      reconstruct CURRENT holders (balance>0 as-of week)** from the same table → clean current-holder series from
+      launch, no cold-start, and it can fall (honest). Sanity: latest ≈ 66k. Flipside file deleted (superseded).
     - Query docs live in `dune/` + `flipside/` (both deploy-ignored).
     - **✅ DATA LANDED & BUNDLED 2026-07-16.** Owner sent Base (Dune, 132 wks from 2024-01) + Solana CSVs. NOTE
       **Flipside stopped working** → owner used an alternative Solana source (cols `timestamp,holder_count,unix`,
