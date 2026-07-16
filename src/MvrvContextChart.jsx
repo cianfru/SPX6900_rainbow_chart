@@ -170,10 +170,9 @@ export default function MvrvContextChart({ isMobile, preview = false }) {
             <Line type="monotone" dataKey="mvrv" stroke={BTC} strokeWidth={2} dot={false} isAnimationActive={false} name="BTC MVRV" />
             {/* highlight the Bitcoin points sitting at SPX's level today — the "we've been here" moments */}
             <Scatter dataKey="match" fill={MATCH} isAnimationActive={false} shape="circle" legendType="none" />
-            {/* SPX6900's OWN MVRV trail (its real dates, right region) — short now, grows over time */}
-            {spxSeries.length > 1 && <Line data={spxSeries} type="monotone" dataKey="mvrv" stroke={SPX} strokeWidth={3}
-              dot={spxSeries.length <= 40 ? { r: 2.5, fill: SPX, stroke: "none" } : false}
-              isAnimationActive={false} name="SPX6900 MVRV" />}
+            {/* SPX6900's own MVRV history is NOT overlaid here — it has its own dedicated chart
+                (mvrv page / mvrvtrend card). This chart only POSITIONS SPX's current MVRV on
+                Bitcoin's map via the marker line + band + match dots above. */}
             {selL != null && selR != null && selL !== selR && (
               <ReferenceArea x1={selL} x2={selR} strokeOpacity={0.4} stroke={SPX} fill={SPX} fillOpacity={0.12} />
             )}
