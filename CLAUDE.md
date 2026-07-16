@@ -172,11 +172,11 @@
       their SAVED Dune queries via the API (execute→poll→results, mirrors build-onchain.mjs). `mergeChains()` joins
       on the ETH Monday-week spine (unit-tested). Reading side prefers `public/chain-wallets.json`: site
       `WalletGrowthChart.jsx` via `loadChainWallets()`, bot `stats.chainWallets` via `loadChainWalletsSeries()`,
-      bundle fallback. vercel.json includeFiles + seeded public/chain-wallets.json. **🔲 OWNER (after break): save
-      the Base query (`dune/spx6900_base_wallets.sql`) in Dune → set repo var `DUNE_BASE_WALLETS_QUERY_ID` → trigger
-      "Refresh chain wallets".** Solana ID already defaulted (7991945 = saved `spx6900_solana_wallets`). Needs
-      `DUNE_API_KEY` (already set). Until the Base ID is set the builder soft-fails and the bundle keeps serving.
-      Then the ENTIRE on-chain suite is self-refreshing. ~100 credits/wk extra (within the 2,500/mo budget).
+      bundle fallback. vercel.json includeFiles + seeded public/chain-wallets.json. **✅ SUPERSEDED — this whole
+      Dune-executing chain-wallets pipeline was REPLACED by snapshot-forward (see the "FINAL — SNAPSHOT-FORWARD"
+      note below): chain-wallets.yml DELETED, build-chain-wallets.mjs is now a pure local merge (bundle + daily free
+      snapshots), no Dune query IDs / no DUNE_API_KEY needed. The old 🔲 "save the Base query + set DUNE_BASE_WALLETS_
+      QUERY_ID" action is MOOT — do NOT do it.**
     - **⚠ SOLANA IS TOO HEAVY TO EXECUTE ON THE FREE-TIER API (found 2026-07-16, first run).** The first "Refresh
       chain wallets" run: Base executed fine (114,651) but the **Solana query (7991945) returned 0 rows when
       EXECUTED via the API** — its as-of reconstruction over ~363k ever-seen wallets exceeds free-tier API execution
