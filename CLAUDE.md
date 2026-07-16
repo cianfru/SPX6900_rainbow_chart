@@ -212,7 +212,14 @@
         story: 100% fresh at launch → a third in the 1y+ diamond tier. GOTCHA fixed: `<`/`>` in age labels break SVG
         XML → use "0–1m"/"1y+" + esc(). Backfills the forward-only diamond narrative to launch.
       Both are valuation-POSITION/holder-behaviour statements, NOT signals. Wired charts.mjs/posts.mjs/LOOK/test; 6
-      posts tests green. Site pages (like supplyprofit got) not built yet — offered as a follow-up.
+      posts tests green.
+      • **INTERACTIVE SITE PAGES BUILT 2026-07-16** (owner "yes lets build the interactive charts"):
+        `src/HolderConcentrationChart.jsx` (id `concentration`, top-10 + top-100 lines, drag-zoom) +
+        `src/HodlWavesChart.jsx` (id `hodlwaves`, recharts stacked `Area` stackId, 5 age bands warm→cool, drag-zoom,
+        per-band tooltip). Both `loadOnchain()` (live /onchain.json) w/ SPX_ONCHAIN fallback. Registered in
+        charts-catalog.js (On-Chain group) + App.jsx (lazy + switch + icon). Browser-verified via Playwright (both
+        render clean, no JS errors). The core on-chain suite is now COMPLETE: supplyprofit · mvrv · mvrvbtc ·
+        concentration · hodlwaves — all from the one Dune reconstruction, all card + (most) site page.
     - **✅ AUTOMATED DUNE REFRESH WIRED 2026-07-15 (owner: "wire the weekly series via the Dune API").**
       `scripts/build-onchain.mjs` + `.github/workflows/onchain.yml` (WEEKLY Monday cron + dispatch + a deploy job
       mirroring snapshot.yml). The Stage-2 query is self-sufficient (one execution = whole series), and Dune's free
