@@ -171,6 +171,16 @@ function loadLongShort() {
   } catch { return []; }
 }
 
+// Multi-chain wallet counts (ETH+Base+Solana). Prefers the CI-refreshed
+// public/chain-wallets.json (chain-wallets.yml) and falls back to the bundle.
+function loadChainWalletsSeries() {
+  try {
+    const arr = JSON.parse(readFileSync(new URL("../../public/chain-wallets.json", import.meta.url), "utf8"));
+    if (Array.isArray(arr) && arr.length >= 50) return arr;
+  } catch { /* fall back to bundle */ }
+  return CHAIN_WALLETS;
+}
+
 // On-chain weekly series (supply-in-profit, concentration, gini, HODL waves). Prefers
 // the CI-refreshed public/onchain.json (Dune, weekly) and falls back to the bundle.
 function loadOnchain() {
@@ -389,7 +399,7 @@ export function computeStats(price, dateStr = new Date().toISOString().slice(0, 
     btcMvrv: loadBtcMvrv(), // Bitcoin's decade of MVRV, context for the MVRV-vs-BTC card
     mvrvSeries: loadMvrvSeries(), // SPX's own full-history MVRV (Dune backfill + live tail), for the MVRV-over-time card
     onchain: loadOnchain(), // Dune weekly on-chain series (supply-in-profit, concentration, gini, HODL waves) — ETH-native
-    chainWallets: CHAIN_WALLETS, // multi-chain weekly wallet counts (ETH+Base+Solana) from each chain's start
+    chainWallets: loadChainWalletsSeries(), // multi-chain weekly wallet counts (ETH+Base+Solana), live JSON or bundle
     altHistory: loadAltHistory(), // DOGE/PEPE/SHIB age-indexed history for the memecoin age cards
     series: {
       price: RAW.map(r => [Date.parse(r.date), r.price]),

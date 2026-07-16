@@ -1,8 +1,9 @@
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 import {
   ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid, ReferenceArea,
 } from "recharts";
 import { CHAIN_WALLETS } from "./chain-wallets.js";
+import { loadChainWallets } from "./history-data.js";
 import ChartZoomHint from "./ChartZoomHint.jsx";
 import { SANS, MONO, MAX_W, Metric, TipBox, ZoomBar } from "./chart-ui.jsx";
 import { useDragZoom } from "./use-drag-zoom.js";
@@ -35,10 +36,16 @@ function Tip({ active, payload }) {
 // NOTE: bundled data (src/chain-wallets.js) — refreshed when the per-chain Dune
 // queries are re-run, not weekly (unlike the /onchain.json cards).
 export default function WalletGrowthChart({ isMobile, preview = false }) {
+  const [live, setLive] = useState(null);
+  useEffect(() => {
+    let cancelled = false;
+    loadChainWallets().then(d => { if (!cancelled && d) setLive(d); });
+    return () => { cancelled = true; };
+  }, []);
   const all = useMemo(
-    () => CHAIN_WALLETS.map(r => ({ ts: Date.parse(r.d), eth: r.eth || 0, base: r.base || 0, sol: r.sol || 0 }))
+    () => (live || CHAIN_WALLETS).map(r => ({ ts: Date.parse(r.d), eth: r.eth || 0, base: r.base || 0, sol: r.sol || 0 }))
       .filter(r => Number.isFinite(r.ts)).sort((a, b) => a.ts - b.ts),
-    []);
+    [live]);
 
   const { zoom, setZoom, selL, selR, onDown, onMove, onUp, zoomed } = useDragZoom(
     (a, b) => all.filter(r => r.ts >= a && r.ts <= b).length >= 2);

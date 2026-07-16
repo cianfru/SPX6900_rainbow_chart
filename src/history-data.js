@@ -73,6 +73,20 @@ export function loadOnchain() {
   return onchainPromise;
 }
 
+// Shared, cached loader for /chain-wallets.json — multi-chain weekly wallet counts
+// (ETH+Base+Solana), refreshed by chain-wallets.yml. Resolves to null on any failure so
+// callers fall back to the bundled src/chain-wallets.js.
+let chainWalletsPromise = null;
+export function loadChainWallets() {
+  if (!chainWalletsPromise) {
+    chainWalletsPromise = fetch("/chain-wallets.json", { cache: "no-store" })
+      .then(r => (r.ok ? r.json() : null))
+      .then(d => (Array.isArray(d) && d.length ? d : null))
+      .catch(() => null);
+  }
+  return chainWalletsPromise;
+}
+
 // Friendly copy for live-API failures. The raw error (JSON parse noise, proxy
 // statuses) is meaningless to visitors — never show it in the UI.
 export const LIVE_DATA_DOWN = "Live data is temporarily unavailable — try again in a minute.";

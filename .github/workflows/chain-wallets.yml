@@ -1,0 +1,72 @@
+# AUTOMATED REFRESH of the multi-chain wallet-count series (ETH+Base+Solana) →
+# public/chain-wallets.json, then redeploys so the live wallet-growth card + site chart
+# pick it up. ETH is read from public/onchain.json (refreshed by onchain.yml); Base +
+# Solana are re-executed from their saved Dune queries via the API. Runs WEEKLY, a bit
+# after onchain.yml so the ETH column is fresh. Soft-fails to the bundle if the key /
+# query IDs aren't set. Needs: DUNE_API_KEY secret + DUNE_BASE_WALLETS_QUERY_ID repo var
+# (+ optional DUNE_SOL_WALLETS_QUERY_ID, defaults to 7991945).
+name: Refresh chain wallets
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "22 8 * * 1"   # 08:22 UTC Monday (after onchain.yml's 07:37)
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      deploy: ${{ steps.commit.outputs.changed }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+      - name: Fetch multi-chain wallet counts from Dune
+        env:
+          DUNE_API_KEY: ${{ secrets.DUNE_API_KEY }}
+          DUNE_BASE_WALLETS_QUERY_ID: ${{ vars.DUNE_BASE_WALLETS_QUERY_ID }}
+          DUNE_SOL_WALLETS_QUERY_ID: ${{ vars.DUNE_SOL_WALLETS_QUERY_ID }}
+        run: node scripts/build-chain-wallets.mjs
+      - name: Commit if changed
+        id: commit
+        run: |
+          if [[ -n "$(git status --porcelain public/chain-wallets.json)" ]]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add public/chain-wallets.json
+            git commit -m "chore: refresh chain wallets"
+            git push
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "no change"
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  deploy:
+    needs: build
+    if: needs.build.outputs.deploy == 'true'
+    runs-on: ubuntu-latest
+    concurrency:
+      group: vercel-production
+      cancel-in-progress: true
+    env:
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install --global vercel@latest
+      - run: vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      - run: vercel build --prod --token="$VERCEL_TOKEN"
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      - run: vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN"
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}

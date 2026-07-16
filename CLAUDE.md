@@ -166,12 +166,17 @@
       • **`WalletGrowthChart.jsx` site chart** (id `walletgrowth`, On-Chain group) — recharts stacked area
         ETH/Base/Solana from launch, per-chain + total metrics, drag-zoom. Reads the `chain-wallets.js` BUNDLE (NOT
         auto-refreshed — see below). Registered charts-catalog + App.jsx. Browser-verified (both clean, no JS errors).
-    - **⚠ AUTO-UPDATE STATUS (owner asked 2026-07-16):** `onchain.json` cards (supply-in-profit, concentration, HODL
-      waves, holders-vs-price, ETH holder count) DO auto-refresh weekly via onchain.yml. The **multi-chain wallet
-      card/chart do NOT** — `src/chain-wallets.js` is a static bundle from the Base/Solana CSVs. TO WIRE: save the
-      Base (`dune/spx6900_base_wallets.sql`) + Solana (`dune/spx6900_solana_wallets.sql`) queries in Dune, add a
-      builder (mirror build-onchain.mjs) that executes both weekly via the Dune API → `public/chain-wallets.json`,
-      loader prefers it over the bundle. ~100 credits/wk extra (still within budget). Not yet built.
+    - **✅ MULTI-CHAIN WALLET AUTO-REFRESH PIPELINE BUILT 2026-07-16 (dormant until owner sets the Base query ID).**
+      `scripts/build-chain-wallets.mjs` + `.github/workflows/chain-wallets.yml` (WEEKLY Mon 08:22 UTC, after
+      onchain.yml + a deploy job). ETH from `public/onchain.json` (holder_count_eth); Base + Solana by re-executing
+      their SAVED Dune queries via the API (execute→poll→results, mirrors build-onchain.mjs). `mergeChains()` joins
+      on the ETH Monday-week spine (unit-tested). Reading side prefers `public/chain-wallets.json`: site
+      `WalletGrowthChart.jsx` via `loadChainWallets()`, bot `stats.chainWallets` via `loadChainWalletsSeries()`,
+      bundle fallback. vercel.json includeFiles + seeded public/chain-wallets.json. **🔲 OWNER (after break): save
+      the Base query (`dune/spx6900_base_wallets.sql`) in Dune → set repo var `DUNE_BASE_WALLETS_QUERY_ID` → trigger
+      "Refresh chain wallets".** Solana ID already defaulted (7991945 = saved `spx6900_solana_wallets`). Needs
+      `DUNE_API_KEY` (already set). Until the Base ID is set the builder soft-fails and the bundle keeps serving.
+      Then the ENTIRE on-chain suite is self-refreshing. ~100 credits/wk extra (within the 2,500/mo budget).
 
 - **⭐⭐ ON-CHAIN IS THE NEW FRONTIER — Dune-backed pipeline + eventual HolderScan cutover
   (owner strategy, 2026-07-15).** Now that Dune is unlocked (owner will wire a `DUNE_API_KEY`
