@@ -28,12 +28,15 @@ legs AS (
 ),
 daily AS ( SELECT owner, d, sum(amt) AS delta FROM legs GROUP BY owner, d ),
 -- per-owner running balance (one window pass — no join)
-state AS (
+running AS (
   SELECT owner, d,
-         sum(delta) OVER (PARTITION BY owner ORDER BY d ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS bal,
-         lag(sum(delta) OVER (PARTITION BY owner ORDER BY d ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW))
-           OVER (PARTITION BY owner ORDER BY d) AS prev_bal
+         sum(delta) OVER (PARTITION BY owner ORDER BY d ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS bal
   FROM daily
+),
+-- previous-day balance (separate step — Trino can't nest window fns)
+state AS (
+  SELECT owner, d, bal, lag(bal) OVER (PARTITION BY owner ORDER BY d) AS prev_bal
+  FROM running
 ),
 -- +1 on entry (0→+), −1 on exit (+→0)
 trans AS (

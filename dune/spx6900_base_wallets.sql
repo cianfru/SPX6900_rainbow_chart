@@ -21,12 +21,16 @@ legs AS (
   FROM erc20_base.evt_Transfer WHERE contract_address = (SELECT token FROM params)
 ),
 daily AS ( SELECT addr, d, sum(amt) AS delta FROM legs GROUP BY addr, d ),
-state AS (
+-- running balance per address (one window pass)
+running AS (
   SELECT addr, d,
-         sum(delta) OVER (PARTITION BY addr ORDER BY d ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS bal,
-         lag(sum(delta) OVER (PARTITION BY addr ORDER BY d ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW))
-           OVER (PARTITION BY addr ORDER BY d) AS prev_bal
+         sum(delta) OVER (PARTITION BY addr ORDER BY d ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS bal
   FROM daily
+),
+-- previous-day balance (separate step — Trino can't nest window fns)
+state AS (
+  SELECT addr, d, bal, lag(bal) OVER (PARTITION BY addr ORDER BY d) AS prev_bal
+  FROM running
 ),
 trans AS (
   SELECT d,
