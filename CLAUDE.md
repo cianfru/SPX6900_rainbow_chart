@@ -585,6 +585,12 @@
   ~Jul 23, realized-price line for `rsidots`, 30d holder-growth, 690 milestone,
   Uptober in Sept) over invented engagement mechanics. When in doubt: quality of the
   existing rotation > adding to it.
+- **✅ RESOLVED 2026-07-16 — band-watch daily-suppression RELAXED for extremes (owner greenlit).**
+  Dropped `!dailyPostedToday` from `bandPostDecision` (the hourly EXTREME watcher = Fire Sale /
+  Max Bubble only), keeping hysteresis + cooldown as the flap guards. So a once-per-excursion
+  historic extreme print now fires even if the daily rotation already posted (e.g. a Fire Sale
+  crash on a day the daily went out — the highest-engagement moment). BUY/SELL unaffected (daily
+  slot, still one/day). Test updated. Original note kept below:
 - **Revisit band-watch daily-suppression — likely too restrictive (flagged 2026-06-24).**
   The anti-flap **hysteresis** (fire once per excursion into a marquee/extreme zone,
   re-arm only on return to a calm band) is the right guard and is NOT over-restrictive —

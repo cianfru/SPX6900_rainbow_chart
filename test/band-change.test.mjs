@@ -71,9 +71,10 @@ test("returning to a calm middle re-arms a future extreme post", () => {
   assert.equal(reEntry.shouldPost, true);
 });
 
-test("any post already out today suppresses extreme alerts", () => {
+test("an extreme print STILL fires even if the daily already posted (relaxed 2026-07-16)", () => {
+  // daily-suppression is no longer a gate for extremes — hysteresis + cooldown guard spam.
   const d = bandPostDecision({ bi: 0, state: { band: 3, armed: true }, dailyPostedToday: true, now: T0 });
-  assert.equal(d.shouldPost, false);
+  assert.equal(d.shouldPost, true);
 });
 
 test("cooldown blocks a second extreme post inside the window", () => {

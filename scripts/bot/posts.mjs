@@ -1891,8 +1891,13 @@ export function confirmBandCrossing({ bi, state, readings = BAND_CONFIRM_READING
 //   • hysteresis (`armed`): fire only once per EXCURSION out of the calm middle —
 //     price must return to a calm (non-marquee) band to re-arm, so oscillating
 //     between marquee bands can't keep firing;
-//   • cooldown: a minimum gap since the last real post;
-//   • daily suppression: if anything already posted today, stay quiet.
+//   • cooldown: a minimum gap since the last real post.
+// NOTE: daily-suppression (`dailyPostedToday`) is deliberately NOT a gate here — a
+// Fire Sale / Max Bubble is a historic, once-per-EXCURSION print (hysteresis + cooldown
+// already prevent spam), so it should fire even if the daily rotation already posted
+// today (relaxed 2026-07-16 — the redundant guard was killing the highest-engagement
+// moment, e.g. a Fire Sale crash on a day the daily already went out). The flag is still
+// returned/logged for context; BUY/SELL stay one-a-day via the daily slot.
 // Returns the derived flags plus the `armed` value to carry into the next state.
 export function bandPostDecision({ bi, state, dailyPostedToday = false, now = Date.now(), cooldownMs = BAND_COOLDOWN_MS }) {
   const calm = !MARQUEE_BANDS.has(bi);                    // calm middle re-arms both tiers
@@ -1900,7 +1905,7 @@ export function bandPostDecision({ bi, state, dailyPostedToday = false, now = Da
   const extreme = EXTREME_BANDS.has(bi);                  // hourly only fires the extremes
   const changed = !state || bi !== state.band;
   const cooled = !state?.lastPostTs || now - Date.parse(state.lastPostTs) >= cooldownMs;
-  const shouldPost = changed && extreme && armed && cooled && !dailyPostedToday;
+  const shouldPost = changed && extreme && armed && cooled;
   return { calm, armed, extreme, changed, cooled, shouldPost };
 }
 
