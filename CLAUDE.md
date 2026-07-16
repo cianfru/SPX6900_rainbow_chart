@@ -737,6 +737,21 @@
       + `spMerged(s)` in posts.mjs extends `SP500_HISTORY` with them, so EVERY S&P line
       (`spxvssp`, `sp500ytd`/`sp500roll12` via `spVsWindow`, `monthlyreturnssp` via
       `spxInSpSeries`) reaches today. Still worth periodically re-bundling `sp500-history.js`.
+  - **✅ ALT-MARKET OVER/UNDER — SHIPPED 2026-07-16 (owner sent the TV export; NOT a rainbow).** Owner exported
+    TOTAL3ES via a TradingView pine-CSV hack (2014→2026-07-15 daily; TV's own SPX column only reached Oct-2024, so
+    we use OUR dense SPX). Bundled `src/total3es-history.js` (trimmed to SPX era, 1079 rows) as the alt-market
+    denominator. **Owner steered AWAY from a rainbow (confuses with the price rainbow) → built an OVER/UNDER
+    OSCILLATOR instead:** `src/alt-rainbow.js` `buildAltRainbow()` = SPX÷TOTAL3ES rebased to launch, log-linear
+    trend + z-score; the card/site plot the DETRENDED z on a flat baseline (0 = SPX's own trend strength vs alts —
+    NOT parity, since SPX structurally outperforms the sector, so parity could never read "under"). Above 0 =
+    rich/overbought vs alts, below = cheap; flat ±1σ overbought/cheap bands. **Card** `scripts/bot/alt-osc-card.mjs`
+    (type `altmarket`, LOOK "dual", red-above/blue-below fill) wired charts/posts/LOOK/test. **Site** `AltMarketChart.jsx`
+    (catalog `altmarket`, Bitcoin & Markets group, split-fill Area + drag-zoom) registered + browser-verified.
+    Read: SPX overbought vs alts at its 2025 tops, deep cheap mid-2024, ~−1.2σ (cheap) now · 79× the sector since
+    launch. Both v-attempts (rainbow `alt-rainbow-card.mjs`, magnitude `alt-perf-card.mjs`) were built then removed.
+    **FRESHNESS:** TOTAL3ES denominator is static at the 2026-07-15 export (SPX numerator is live via the bundle);
+    re-export occasionally OR wire the keyless CoinGecko `/global` − DeFiLlama stables forward-banker (not built yet).
+    A relative-valuation POSITION, not a signal (guardrail baked into copy + caption). Original plan note kept below:
   - **🔲 ALT-MARKET RAINBOW — SPX vs the broader altcoin market (owner greenlit, plan set 2026-07-14).**
     We have NO alt index in code — only per-coin races (`majors` = BTC/ETH/SOL, `memecoins` = DOGE/SHIB/PEPE,
     `spxbtc`, `spxvssp`). Owner wants "how's SPX vs the whole alt market." **Benchmark = `CRYPTOCAP:TOTAL3ES`**

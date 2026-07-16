@@ -12,6 +12,7 @@ import { SP500_HISTORY } from "../../src/sp500-history.js";
 import { rsiNow } from "./rsi-card.mjs";
 import { fNum } from "./svg-util.mjs";
 import { currentChainHolders } from "./stats.mjs";
+import { buildAltRainbow } from "../../src/alt-rainbow.js";
 import { tally as valuationTally } from "./valuation-lenses.mjs";
 
 // --- owner-editable post copy ---------------------------------------------
@@ -907,6 +908,24 @@ ${under ? "Underwater, near the floor." : "Trading above cost basis."} A positio
     };
   })(),
 
+  // SPX vs the Alt Market — over/under valuation vs TOTAL3ES (alt sector ex-BTC/ETH/
+  // stables). Detrended so 0 = SPX's own trend strength vs alts; rich/overbought above,
+  // cheap below. A relative-valuation POSITION, not a signal (guardrail).
+  s => (() => {
+    const R = buildAltRainbow();
+    if (!R) return null;
+    const z = R.cur.z;
+    const zone = z >= 1 ? "overbought" : z <= -1 ? "cheap" : "fairly valued";
+    const state = z >= 1 ? "rich vs the sector" : z <= -1 ? "cheap vs the sector" : "in line with the sector";
+    return {
+      id: "altmarket",
+      text: ct`🌐 SPX6900 is ${zone} vs the alt market right now.
+Measured against the alt sector (ex-BTC/ETH/stables) and detrended: SPX ran overbought at its 2025 tops, bottomed cheap in 2024, and is ${state} today.
+Where SPX sits vs alts — a relative read, not a signal.`,
+      card: { type: "altmarket" },
+    };
+  })(),
+
   // Holder concentration — the largest wallets' share of ETH-native supply over time
   // (Dune, contracts/CEX excluded). The honest story: SPX has DECENTRALISED as the
   // holder base grew (top 100 ~68%→~58%). A distribution-of-ownership statement, NOT
@@ -1749,7 +1768,7 @@ const LOOK = {
   whatnext: "race",
   // — Tier B: flavourful / distinct looks (used to break up the green lines) —
   riskcolor: "colorline", risklevels: "colorline", rsidots: "colorline",
-  riskheat: "dual", runningroi: "dual", cycle: "dual", longshort: "dual", underwater: "dual", goldencross: "dual", holdergrowth: "dual", holdersprice: "dual", mvrvbtc: "dual", mvrvtrend: "dual", supplyprofit: "dual", floormodel: "dual", concentration: "dual", picycle: "dual",
+  riskheat: "dual", runningroi: "dual", cycle: "dual", longshort: "dual", underwater: "dual", goldencross: "dual", holdergrowth: "dual", holdersprice: "dual", mvrvbtc: "dual", mvrvtrend: "dual", supplyprofit: "dual", floormodel: "dual", altmarket: "dual", concentration: "dual", picycle: "dual",
   firesalerally: "fanlines",
   model: "scatter",
   monthlyreturns: "heatmap", monthlyreturnssp: "heatmap", monthlyreturnsbtc: "heatmap",
