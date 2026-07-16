@@ -3,11 +3,13 @@
 // src/chain-wallets.js as the bundled fallback).
 //
 // ETH comes from public/onchain.json (holder_count_eth, refreshed weekly by onchain.yml).
-// Base is re-EXECUTED via the API each run (light: ~114k wallets). Solana is READ from its
-// CACHED result (the heavy 363k-wallet as-of query returns empty on free-tier API
-// execution, so we don't execute it — the owner re-runs it in the Dune UI occasionally and
-// we read that cached result; it's slow-moving ~66k). All three land on the same weekly
-// Monday grid, so we join by date (ETH weeks are the spine; base/sol null before start).
+// Base + Solana are READ from their CACHED Dune results (free, never rate-limited): both
+// are heavy per-wallet as-of reconstructions that are UNRELIABLE to execute on the free-
+// tier API (Solana returns empty, Base intermittently fails), so we never execute them —
+// the owner re-runs each query in the Dune UI when they want it fresh and we read the
+// cached result. All three land on the same weekly Monday grid, so we join by date (ETH
+// weeks are the spine; base/sol null before each chain's start). ETH updating weekly keeps
+// chain-wallets.json changing every week even when Base/Solana caches are unchanged.
 //
 // Needs DUNE_API_KEY + DUNE_BASE_WALLETS_QUERY_ID (+ DUNE_SOL_WALLETS_QUERY_ID, default
 // 7991945 = the saved spx6900_solana_wallets query). Soft-fails to the bundle without
@@ -18,36 +20,17 @@ const OUT = "public/chain-wallets.json";
 const API = "https://api.dune.com/api/v1";
 const BASE_ID = process.env.DUNE_BASE_WALLETS_QUERY_ID || "7996694"; // saved spx6900_base_wallets
 const SOL_ID = process.env.DUNE_SOL_WALLETS_QUERY_ID || "7991945";  // saved spx6900_solana_wallets
-const sleep = ms => new Promise(r => setTimeout(r, ms));
 
-// Read a saved Dune query's LATEST CACHED result (free, no re-execution). Used for the
-// heavy Solana query, which is too heavy to execute reliably on the free-tier API — its
-// cached result (from the owner's UI run) is correct and slow-moving.
+// Read a saved Dune query's LATEST CACHED result (free, no re-execution, never
+// rate-limited). Both the Base and Solana wallet queries are heavy per-wallet as-of
+// reconstructions that are unreliable to EXECUTE on the free-tier API (Solana returns
+// empty, Base intermittently QUERY_STATE_FAILED). So we don't execute them — we read the
+// cached result the owner populates by running each query in the Dune UI. They're
+// slow-moving (~114k / ~66k), so occasional manual refreshes suffice; ETH stays weekly-
+// automatic via onchain.json, which keeps chain-wallets.json changing every week.
 async function readResults(queryId, key) {
   const res = await fetch(`${API}/query/${queryId}/results?limit=1000`, { headers: { "X-Dune-API-Key": key } });
   if (!res.ok) throw new Error(`results ${queryId}: ${res.status} ${await res.text()}`);
-  return (await res.json())?.result?.rows || [];
-}
-
-// Execute a saved Dune query and return its result rows.
-async function runQuery(queryId, key) {
-  const H = { "X-Dune-API-Key": key };
-  const ex = await fetch(`${API}/query/${queryId}/execute`, { method: "POST", headers: H });
-  if (!ex.ok) throw new Error(`execute ${queryId}: ${ex.status} ${await ex.text()}`);
-  const execution_id = (await ex.json())?.execution_id;
-  if (!execution_id) throw new Error(`no execution_id for ${queryId}`);
-  let state = "";
-  for (let i = 0; i < 90; i++) {
-    await sleep(5000);
-    const st = await fetch(`${API}/execution/${execution_id}/status`, { headers: H });
-    if (!st.ok) throw new Error(`status ${st.status}`);
-    state = (await st.json())?.state;
-    if (state === "QUERY_STATE_COMPLETED") break;
-    if (state === "QUERY_STATE_FAILED" || state === "QUERY_STATE_CANCELLED") throw new Error(`${queryId} ${state}`);
-  }
-  if (state !== "QUERY_STATE_COMPLETED") throw new Error(`${queryId} timed out (${state})`);
-  const res = await fetch(`${API}/execution/${execution_id}/results`, { headers: H });
-  if (!res.ok) throw new Error(`results ${res.status}`);
   return (await res.json())?.result?.rows || [];
 }
 
@@ -83,10 +66,10 @@ async function main() {
   } catch { /* handled below */ }
   if (!eth.size) throw new Error("public/onchain.json missing ETH holders — run the on-chain refresh first");
 
-  const baseRows = await runQuery(BASE_ID, key);   // light → execute fresh weekly
-  const solRows = await readResults(SOL_ID, key);  // heavy → read cached (owner re-runs in UI)
-  console.log(`base query ${BASE_ID} (executed): ${baseRows.length} rows${baseRows[0] ? " · keys=" + Object.keys(baseRows[0]).join(",") : ""}`);
-  console.log(`sol  query ${SOL_ID} (cached):   ${solRows.length} rows${solRows[0] ? " · keys=" + Object.keys(solRows[0]).join(",") : ""}`);
+  const baseRows = await readResults(BASE_ID, key);  // cached (owner re-runs in UI)
+  const solRows = await readResults(SOL_ID, key);    // cached (owner re-runs in UI)
+  console.log(`base query ${BASE_ID} (cached): ${baseRows.length} rows${baseRows[0] ? " · keys=" + Object.keys(baseRows[0]).join(",") : ""}`);
+  console.log(`sol  query ${SOL_ID} (cached): ${solRows.length} rows${solRows[0] ? " · keys=" + Object.keys(solRows[0]).join(",") : ""}`);
   const base = toMap(baseRows, "base_wallets");
   const sol = toMap(solRows, "sol_wallets");
   // Never regress: if a chain query came back empty/mismatched, abort rather than

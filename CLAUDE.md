@@ -181,11 +181,13 @@
       chain wallets" run: Base executed fine (114,651) but the **Solana query (7991945) returned 0 rows when
       EXECUTED via the API** — its as-of reconstruction over ~363k ever-seen wallets exceeds free-tier API execution
       limits (no error, just empty). The old builder wrote sol=null → regressed the live total to 164k; RESTORED and
-      hardened (aborts if any chain empty). **FIX: build-chain-wallets.mjs now EXECUTES Base (light) but READS the
-      Solana query's CACHED result** (`GET /query/{id}/results`, free, no execution) — the owner's UI run of 7991945
-      populates it; Solana is slow-moving (~66k) so occasional manual UI re-runs keep it fresh. ETH+Base refresh
-      weekly-automatic. **Re-run must be a FRESH "Run workflow" dispatch** (not a re-run of an old run, which uses the
-      old commit + fails on the stale-push).
+      hardened (aborts if any chain empty). **FIX (final): build-chain-wallets.mjs READS BOTH Base + Solana CACHED
+      results** (`GET /query/{id}/results`, free, never rate-limited) — NOT execution. Base executed OK the FIRST run
+      (114,651) but a later run threw `7996694 QUERY_STATE_FAILED` (rate-limited/credit-throttled after many runs that
+      day), so BOTH heavy reconstructions are unreliable to execute on free tier. Owner re-runs each query in the Dune
+      UI when they want it fresh; the workflow reads the caches + merges. **ETH still auto-refreshes weekly**
+      (onchain.json), so chain-wallets.json changes every week regardless. **Re-run must be a FRESH "Run workflow"
+      dispatch** (a re-run of an old run uses the old commit + fails on the stale-push). Empty-chain guard still guards.
 
 - **⭐⭐ ON-CHAIN IS THE NEW FRONTIER — Dune-backed pipeline + eventual HolderScan cutover
   (owner strategy, 2026-07-15).** Now that Dune is unlocked (owner will wire a `DUNE_API_KEY`
