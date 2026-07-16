@@ -1,54 +1,36 @@
 -- ============================================================================
 -- SPX6900 — BASE CURRENT WALLET COUNT over time (weekly)   [Dune · Trino SQL]
 -- ============================================================================
--- LIGHT rewrite (2026-07-16, crossing/net-flow method — same as the Solana query) that
--- avoids the heavy as-of interval join, so it runs in seconds and never times out:
---   • ENTER the holder set when balance crosses 0 → positive  (+1)
---   • EXIT when balance crosses positive → 0                   (−1)
---   • holders on any day = cumulative sum of (+1/−1), sampled to Mondays
--- Output: d (Monday), base_wallets (current holders). Latest should be ~114k.
--- Base SPX contract 0x50dA645f…bb2C, decimals 8 (scale irrelevant for a headcount).
+-- v3 (2026-07-16): reads Dune's PRE-COMPUTED balance schema instead of re-summing
+-- raw erc20_base.evt_Transfer. `tokens_base.balances_daily` is DENSE (Dune carries
+-- each wallet's balance FORWARD to every day), so — unlike Solana's sparse
+-- solana_utils.daily_balances — no interval forward-fill is needed: just filter to
+-- the SPX token, keep balances > 0, sample Mondays, and count distinct wallets.
+-- Reads already-aggregated balance state → runs in seconds, no transfer scanning.
+--
+-- Output: d (Monday), base_wallets (current holders that week). Latest ≈ 114k.
+-- ⚠ VERIFY ON FIRST RUN (Dune has churned these column names across schema vintages):
+--   • table:   tokens_base.balances_daily   (dense/forward-filled daily balances)
+--   • wallet:  address        (older erc20.view_token_balances_daily uses wallet_address)
+--   • token:   token_address
+--   • balance: balance         (older vintage uses `amount`)
+--   • day:     day
+--   Adjust the four names to match your Dune column browser if the run errors. Filter
+--   token_address FIRST (as below) so the scan is pruned to SPX — do not query the
+--   whole balances table unfiltered (Dune warns that times out). Sanity: latest ≈ 114k.
+--   If this schema ever gives trouble, the transfer-crossing version in git history
+--   (v2) still runs fine — Base's transfer volume is small.
 -- ============================================================================
 
 WITH params AS (
-  SELECT 0x50da645f148798f68ef2d7db7c1cb22a6819bb2c AS token, 1e-9 AS eps
-),
-legs AS (
-  SELECT "to" AS addr,  CAST(value AS double) AS amt, CAST(evt_block_time AS date) AS d
-  FROM erc20_base.evt_Transfer WHERE contract_address = (SELECT token FROM params)
-  UNION ALL
-  SELECT "from" AS addr, -CAST(value AS double) AS amt, CAST(evt_block_time AS date) AS d
-  FROM erc20_base.evt_Transfer WHERE contract_address = (SELECT token FROM params)
-),
-daily AS ( SELECT addr, d, sum(amt) AS delta FROM legs GROUP BY addr, d ),
--- running balance per address (one window pass)
-running AS (
-  SELECT addr, d,
-         sum(delta) OVER (PARTITION BY addr ORDER BY d ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS bal
-  FROM daily
-),
--- previous-day balance (separate step — Trino can't nest window fns)
-state AS (
-  SELECT addr, d, bal, lag(bal) OVER (PARTITION BY addr ORDER BY d) AS prev_bal
-  FROM running
-),
-trans AS (
-  SELECT d,
-         CASE WHEN bal > (SELECT eps FROM params) AND coalesce(prev_bal, 0) <= (SELECT eps FROM params) THEN 1
-              WHEN bal <= (SELECT eps FROM params) AND prev_bal > (SELECT eps FROM params) THEN -1
-              ELSE 0 END AS t
-  FROM state
-),
-daily_net AS ( SELECT d, sum(t) AS net FROM trans WHERE t <> 0 GROUP BY d ),
-cum AS ( SELECT d, sum(net) OVER (ORDER BY d ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS holders FROM daily_net ),
-bounds AS ( SELECT min(d) AS d0, max(d) AS d1 FROM cum ),
-cal AS ( SELECT ts AS d FROM UNNEST(sequence((SELECT d0 FROM bounds), (SELECT d1 FROM bounds))) AS t(ts) ),
-filled AS (
-  SELECT c.d,
-         last_value(cum.holders) IGNORE NULLS OVER (ORDER BY c.d ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS holders
-  FROM cal c LEFT JOIN cum ON cum.d = c.d
+  SELECT 0x50da645f148798f68ef2d7db7c1cb22a6819bb2c AS token
 )
-SELECT d, CAST(holders AS bigint) AS base_wallets
-FROM filled
-WHERE day_of_week(d) = 1 AND holders IS NOT NULL
+SELECT
+  CAST(day AS date) AS d,
+  CAST(count(DISTINCT address) AS bigint) AS base_wallets
+FROM tokens_base.balances_daily
+WHERE token_address = (SELECT token FROM params)
+  AND balance > 0
+  AND day_of_week(CAST(day AS date)) = 1
+GROUP BY CAST(day AS date)
 ORDER BY d;

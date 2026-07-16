@@ -191,6 +191,18 @@
       path to TRUE Base/Solana auto:** lighter crossing/net-flow query rewrite (entry=0→+, exit=+→0, cumulative sum —
       NO non-equi join) that runs under the 2-min limit; provided in dune/*.sql. Run those + flip the builder back to
       execute if ever wanted. For now the chart is reliably correct (230,159) with zero fragile external calls.
+    - **✅ v3 — PRE-COMPUTED BALANCE TABLES, no transfer scanning (owner insight 2026-07-16).** The crossing/net-flow
+      method still re-derives running balances by scanning every transfer on each run — heavy (esp. Solana's millions
+      of rows). Dune already MAINTAINS per-wallet balances, so both count queries now read those instead → seconds,
+      not minutes; the builder EXECUTES both via the API (build-chain-wallets.mjs, staggered 30s apart). **Solana:**
+      `solana_utils.daily_balances` is SPARSE (row only when a balance changes) → forward-fill via validity intervals
+      (lead()→valid_to) range-joined to a Monday calendar, count owners with bal>0. **Base:** `tokens_base.balances_daily`
+      is DENSE (Dune carries balances forward) → trivial: filter token + bal>0 + Mondays, count distinct address.
+      **VERIFY on first run** (Dune churns column names): Solana cols token_balance_owner/token_balance/day; Base
+      table/cols tokens_base.balances_daily · address · token_address · balance · day (older erc20.view_* vintage uses
+      wallet_address/amount — one-line fix if it errors). Mint stays OUR Wormhole mint J3NKxx…3KFr (NOT the SPX1Q8…
+      docs placeholder). Base was never the bottleneck (small transfer volume) — the crossing v2 in git still works as
+      a fallback. Re-save the new SQL into the saved query IDs (Base 7996694, Solana 7991945) before the next refresh.
 
 - **⭐⭐ ON-CHAIN IS THE NEW FRONTIER — Dune-backed pipeline + eventual HolderScan cutover
   (owner strategy, 2026-07-15).** Now that Dune is unlocked (owner will wire a `DUNE_API_KEY`
