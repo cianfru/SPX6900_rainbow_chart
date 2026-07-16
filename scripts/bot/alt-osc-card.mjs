@@ -13,7 +13,7 @@ const png = (svg, w) => new Resvg(svg, { fitTo: { mode: "width", value: w }, fon
 const RICH = "#f87171", CHEAP = "#38bdf8", MID = "#cbd5e1";
 
 export function altOscSvg(stats, opts = {}) {
-  const R = buildAltRainbow();
+  const R = buildAltRainbow(stats?.history || []);
   if (!R || R.series.length < 100) return null;
   const { series, cur } = R;
   const t0 = series[0].ts, t1 = series.at(-1).ts;

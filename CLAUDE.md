@@ -749,9 +749,17 @@
     (catalog `altmarket`, Bitcoin & Markets group, split-fill Area + drag-zoom) registered + browser-verified.
     Read: SPX overbought vs alts at its 2025 tops, deep cheap mid-2024, ~−1.2σ (cheap) now · 79× the sector since
     launch. Both v-attempts (rainbow `alt-rainbow-card.mjs`, magnitude `alt-perf-card.mjs`) were built then removed.
-    **FRESHNESS:** TOTAL3ES denominator is static at the 2026-07-15 export (SPX numerator is live via the bundle);
-    re-export occasionally OR wire the keyless CoinGecko `/global` − DeFiLlama stables forward-banker (not built yet).
-    A relative-valuation POSITION, not a signal (guardrail baked into copy + caption). Original plan note kept below:
+    **FRESHNESS — ✅ HANDS-OFF SNAPSHOT-FORWARD (owner wanted zero-touch, BUILT 2026-07-16).** The snapshot cron
+    (`snapshot.mjs` `total3es()`) banks a keyless-reconstructed TOTAL3ES daily into history.json `t3es` — CoinGecko
+    `/global` (total mcap + BTC/ETH dominance) minus DeFiLlama stablecoin cap → `total×(1−(btc%+eth%)/100)−stables`.
+    `buildAltRainbow(history)` now = bundle (PAST, TradingView) + history.json forward (`p` live SPX × rebased `t3es`),
+    so card AND site tick daily on the existing snapshot commit+deploy — NO new workflow, NO manual re-export. **SEAM
+    REBASE:** forward t3es is deterministically rebased to the bundle's level (`seamT3es / firstFwdT3es`) so the
+    CoinGecko-vs-TradingView definitional offset never draws a jump — only real daily deltas carry. Soft-fails to null
+    (bundle-only) if the fetch is blocked/errors; `t3es` is NULL until the first cron with the new code runs.
+    ⚠ CoinGecko/DeFiLlama are BLOCKED in the dev sandbox → the fetch only runs in CI; VALIDATE the first cron's `t3es`
+    value against the bundle level (~$393B ± the market's move). Unit-tested (fitRainbow z-math + altRatioSeries
+    rebase). A relative-valuation POSITION, not a signal (guardrail baked into copy + caption). Original plan below:
   - **🔲 ALT-MARKET RAINBOW — SPX vs the broader altcoin market (owner greenlit, plan set 2026-07-14).**
     We have NO alt index in code — only per-coin races (`majors` = BTC/ETH/SOL, `memecoins` = DOGE/SHIB/PEPE,
     `spxbtc`, `spxvssp`). Owner wants "how's SPX vs the whole alt market." **Benchmark = `CRYPTOCAP:TOTAL3ES`**

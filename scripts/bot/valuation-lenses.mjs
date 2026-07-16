@@ -28,7 +28,7 @@ export function lenses(s) {
     const r = pc.cur.ratio, st = M.piCycleState(r, pc.zones);
     g.push({ name: "Pi Cycle · trend", phrase: `${r.toFixed(2)} · ${st.label}`, state: r < pc.zones.accum ? "cheap" : r > pc.zones.top ? "rich" : "neutral", score: sc((pc.zones.top - r) / (pc.zones.top - pc.zones.deep)) });
   }
-  const ar = buildAltRainbow();
+  const ar = buildAltRainbow(s?.history || []);
   if (ar) {
     const z = ar.cur.z, word = z <= -1 ? "cheap vs alts" : z >= 1 ? "rich vs alts" : "fair vs alts";
     g.push({ name: "vs alt market", phrase: `${z >= 0 ? "+" : ""}${z.toFixed(1)}σ · ${word}`, state: z <= -1 ? "cheap" : z >= 1 ? "rich" : "neutral", score: sc((2.5 - z) / 5) });

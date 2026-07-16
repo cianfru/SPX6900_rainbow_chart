@@ -167,13 +167,34 @@ async function sp500() {
   } catch (e) { console.warn("sp500:", e.message); return null; }
 }
 
+// TOTAL3ES (alt market ex-BTC/ETH/stables) reconstructed keyless: CoinGecko /global gives
+// total mcap + BTC/ETH dominance; DeFiLlama gives total stablecoin mcap. TOTAL3ES =
+// total×(1 − (btc%+eth%)/100) − stables. Reachable from CI (blocked in the dev sandbox).
+// The alt-market chart REBASES this to the TradingView bundle's level at the seam, so the
+// definitional offset vs TV washes out — only the daily deltas carry. Soft-fails to null.
+async function total3es() {
+  try {
+    const g = await fetch("https://api.coingecko.com/api/v3/global", { headers: { Accept: "application/json" } });
+    if (!g.ok) return null;
+    const gd = (await g.json())?.data;
+    const total = gd?.total_market_cap?.usd, btc = gd?.market_cap_percentage?.btc, eth = gd?.market_cap_percentage?.eth;
+    if (!(total > 0) || !(btc >= 0) || !(eth >= 0)) return null;
+    const s = await fetch("https://stablecoins.llama.fi/stablecoins?includePrices=false", { headers: { Accept: "application/json" } });
+    if (!s.ok) return null; // require stables too, so the series stays consistent day to day
+    const stables = ((await s.json())?.peggedAssets || []).reduce((sum, a) => sum + (Number(a?.circulating?.peggedUSD) || 0), 0);
+    if (!(stables > 0)) return null;
+    const v = total * (1 - (btc + eth) / 100) - stables;
+    return (v > 20e9 && v < 5000e9) ? Math.round(v) : null; // sanity: a few hundred B, not absurd
+  } catch (e) { console.warn("total3es:", e.message); return null; }
+}
+
 async function main() {
   if (!KEY) throw new Error("Missing HOLDERSCAN_KEY env (set it as a repo secret)");
 
   const sup = await hs("/stats/supply-breakdown"); // required
-  const [p, stats, pnl, breakdowns, fearGreed, spx500, baseH, solH, baseSup, solSup] = await Promise.all([
+  const [p, stats, pnl, breakdowns, fearGreed, spx500, baseH, solH, baseSup, solSup, t3es] = await Promise.all([
     price(), softHs("/stats"), softHs("/stats/pnl"), softHs("/holders/breakdowns"), fng(), sp500(),
-    baseHolders(), solHolders(), baseSupply(), solSupply(),
+    baseHolders(), solHolders(), baseSupply(), solSupply(), total3es(),
   ]);
 
   const rec = {
@@ -190,6 +211,7 @@ async function main() {
     gini: stats?.gini ?? null,
     fng: fearGreed,
     sp: spx500, // latest S&P 500 close, for the SPX-vs-S&P cards
+    t3es, // TOTAL3ES (alt market ex-BTC/ETH/stables), keyless reconstruction — feeds the alt-market chart forward
     sup,
   };
 

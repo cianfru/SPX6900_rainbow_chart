@@ -42,6 +42,7 @@ export default function AmICheapDashboard({ series, isMobile, preview = false })
       supply: { breakEven: snap.be },
       onchain: onchain || SPX_ONCHAIN,
       drawn: series,
+      history, // raw snapshots (p + t3es) → alt-market lens forward tail
       fng: snap.fng,
     };
     return lenses(s);

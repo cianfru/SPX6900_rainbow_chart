@@ -1,8 +1,9 @@
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 import {
   ResponsiveContainer, ComposedChart, Area, XAxis, YAxis, Tooltip, CartesianGrid, ReferenceLine, ReferenceArea,
 } from "recharts";
 import { buildAltRainbow } from "./alt-rainbow.js";
+import { loadHistory } from "./history-data.js";
 import ChartZoomHint from "./ChartZoomHint.jsx";
 import { SANS, MONO, MAX_W, Metric, TipBox, ZoomBar } from "./chart-ui.jsx";
 import { useDragZoom } from "./use-drag-zoom.js";
@@ -26,10 +27,12 @@ function Tip({ active, payload }) {
 // how far SPX sits above/below its OWN trend strength vs alts. 0 = fair, above = rich/
 // overbought, below = cheap. A relative-valuation position, not a signal.
 export default function AltMarketChart({ isMobile, preview = false }) {
+  const [history, setHistory] = useState(null);
+  useEffect(() => { let off = false; loadHistory().then(d => { if (!off) setHistory(d || []); }); return () => { off = true; }; }, []);
   const all = useMemo(() => {
-    const R = buildAltRainbow();
+    const R = buildAltRainbow(history || []);
     return R ? R.series.map(s => ({ ts: s.ts, z: s.z, rr: s.rr })) : [];
-  }, []);
+  }, [history]);
 
   const { zoom, setZoom, selL, selR, onDown, onMove, onUp, zoomed } = useDragZoom(
     (a, b) => all.filter(r => r.ts >= a && r.ts <= b).length >= 2);
