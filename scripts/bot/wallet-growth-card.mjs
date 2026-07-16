@@ -23,10 +23,6 @@ export function walletGrowthSvg(stats, opts = {}) {
   raw.sort((a, b) => a.ts - b.ts);
   const cur = raw.at(-1), total = cur.eth + cur.base + cur.sol, first = raw[0];
   const startTotal = first.eth + first.base + first.sol;
-  // Honest marker: Solana's series is left-censored (data begins ~Oct '24 at ~12k) —
-  // flag where it enters so the step isn't read as overnight organic growth.
-  const solStartD = (stats.chainWallets.find(r => r.sol != null) || {}).d;
-  const solStartTs = solStartD ? Date.parse(solStartD) : null;
 
   const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 96, mR = 182, mT = 128, mB = 92, pW = W - mL - mR, pH = H - mT - mB;
   const t0 = raw[0].ts, t1 = cur.ts;
@@ -67,7 +63,6 @@ export function walletGrowthSvg(stats, opts = {}) {
 <text x="60" y="58" fill="#e2e8f0" font-size="36" font-weight="800" font-family="sans-serif" letter-spacing="1">SPX6900 — WALLET GROWTH</text>
 <text x="60" y="102" fill="#4ade80" font-size="28" font-weight="800" font-family="sans-serif">${total.toLocaleString("en-US")} wallets across 3 chains — from ${startTotal.toLocaleString("en-US")} at launch</text>
 ${grid}${ribbons}${xlab}${legend}
-${solStartTs && solStartTs > t0 && solStartTs < t1 ? `<line x1="${x(solStartTs).toFixed(1)}" y1="${mT}" x2="${x(solStartTs).toFixed(1)}" y2="${mT + pH}" stroke="#cbd5e1" stroke-width="1.4" stroke-opacity="0.5" stroke-dasharray="5 5"/><text x="${(x(solStartTs) + 8).toFixed(1)}" y="${(mT + 24).toFixed(1)}" fill="#cbd5e1" font-size="17" font-family="sans-serif" opacity="0.85">Solana tracked from here</text>` : ""}
 <text x="60" y="${H - 20}" fill="#6b7688" font-size="18" font-family="sans-serif">${esc("spx6900rainbow.xyz · not financial advice · wallets holding SPX on Ethereum, Base & Solana · wallets, not people")}</text>
 </svg>`;
 }

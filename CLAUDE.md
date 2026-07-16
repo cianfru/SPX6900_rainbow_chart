@@ -146,10 +146,12 @@
       93 wks). Merged into **`src/chain-wallets.js`** (`CHAIN_WALLETS = [{d,eth,base,sol}]`, aligned on the ETH
       Monday grid, null before each chain's start) → `stats.chainWallets`. VALIDATED: latest ETH 49,541 + Base
       114,652 + Sol 66,148 = **230,341** ≈ the known ~230k total.
-    - **⚠ TWO DATA ARTIFACTS (owner flagged the Solana one):** (1) **Solana cold-starts at 12,443 (Oct-2024)** —
-      left-censored; SPX bridged to Solana in 2024 and the source only goes back to Oct-24, so the 0→12k ramp is
-      UNSHOWN (real, not fake). (2) **Base +50,246 in one week (2024-12-23)** = an airdrop distribution (real
-      wallets, many dust). Together they make late-2024 look like a sudden ~180k organic surge — it wasn't.
+    - **✅ SOLANA COLD-START FIXED 2026-07-16** — owner re-ran the corrected Dune query (current holders as-of week
+      from `tokens_solana.transfers`): now starts **Dec-2023 at ~1,235** and ramps organically, latest **65,968 ≈
+      66k** (validates the reconstruction). Re-bundled `src/chain-wallets.js`; removed the "Solana tracked from here"
+      marker from the card. Total now 230,161. **ONE artifact remains (real, not fixable — it's a genuine event):**
+      Base **+50,246 in one week (2024-12-23)** = an airdrop distribution (real wallets, many dust) → a visible step.
+      Left as-is (honest). Solana's cumulative-ever query (363k) is a separate "reach/velocity" angle if ever wanted.
     - **✅ WALLET-GROWTH CARD BUILT (`walletgrowth`, `scripts/bot/wallet-growth-card.mjs`, LOOK "stack")** — stacked
       area ETH(grey)/Base(blue)/Solana(purple), total headline "230,341 across 3 chains from 1,433". Added an honest
       **"Solana tracked from here" dashed marker** at the cold-start. Wired charts/posts/LOOK/test; tests green.
