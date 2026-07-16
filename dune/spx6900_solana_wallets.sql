@@ -1,29 +1,21 @@
 -- ============================================================================
 -- SPX6900 — SOLANA CURRENT WALLET COUNT over time (weekly)   [Dune · Trino SQL]
 -- ============================================================================
--- Distinct OWNER wallets that CURRENTLY hold SPX on Solana (balance > 0), as of each
--- week, reconstructed from tokens_solana.transfers. Replaces two flawed earlier takes:
---   • the CUMULATIVE-ever query (COUNT of first-seen wallets, running-summed) — that
---     only ever grows (363k ever vs ~66k now); it counts wallets that long since sold.
---   • the alternative source that cold-started at ~12k in Oct-2024.
--- tokens_solana.transfers has SPX data back to Dec-2023, so this gives a CLEAN current-
--- holder series from ~launch (no cold start, and it can fall — the honest metric).
+-- LIGHT rewrite (2026-07-16): the previous as-of INTERVAL JOIN (holders × weeks) timed
+-- out on the free tier (>2 min). This version avoids that join entirely with the
+-- CROSSING / NET-FLOW method — the standard way to compute a running holder count:
+--   • a wallet ENTERS the holder set when its balance crosses 0 → positive  (+1)
+--   • a wallet EXITS when its balance crosses positive → 0                   (−1)
+--   • current holders on any day = cumulative sum of (+1/−1) over time
+-- No per-wallet × per-week panel → runs in seconds instead of timing out.
 --
--- SANITY CHECK: the latest week should land near ~66k (the known current Solana count).
---
--- ⚠ Notes / verify-flags:
---   • Columns to_owner / from_owner / block_time / token_mint_address are owner-confirmed
---     working; `amount` assumed to be the transfer token amount — for a HEADCOUNT the
---     decimal scale is irrelevant (we only test balance > 0).
---   • `bal > 0` uses a tiny epsilon to shrug off float rounding when a wallet's ins and
---     outs net to ~0 (closed token accounts).
---   • Excluding the Wormhole custody account is OPTIONAL for a headcount (one address).
---   • Heavy-ish non-equi as-of join → WEEKLY sampling keeps it cheap; if it times out,
---     switch day_of_week(d)=1 to a monthly sample (day_of_month(d)=1).
+-- Output: d (Monday), sol_wallets (current holders that week). Latest should be ~66k.
+-- ⚠ tokens_solana.transfers columns to_owner/from_owner/amount/block_time/token_mint_address
+--   are owner-confirmed. `amount` scale is irrelevant for a headcount (we only test > 0).
 -- ============================================================================
 
 WITH params AS (
-  SELECT 'J3NKxxXZcnNiMjKw9hYb2K4LUxgwB6t1FtPtQVsv3KFr' AS mint
+  SELECT 'J3NKxxXZcnNiMjKw9hYb2K4LUxgwB6t1FtPtQVsv3KFr' AS mint, 1e-7 AS eps
 ),
 legs AS (
   SELECT to_owner AS owner,  CAST(amount AS double) AS amt, CAST(block_time AS date) AS d
@@ -34,23 +26,34 @@ legs AS (
   FROM tokens_solana.transfers
   WHERE token_mint_address = (SELECT mint FROM params) AND from_owner IS NOT NULL
 ),
-xfer_days AS ( SELECT min(d) AS d0, max(d) AS d1 FROM legs ),
-day_cal AS ( SELECT ts AS d FROM UNNEST(sequence((SELECT d0 FROM xfer_days), (SELECT d1 FROM xfer_days))) AS t(ts) ),
-weeks AS ( SELECT d AS wk FROM day_cal WHERE day_of_week(d) = 1 ),
-
-daily AS ( SELECT owner, d, sum(amt) AS d_delta FROM legs GROUP BY owner, d ),
+daily AS ( SELECT owner, d, sum(amt) AS delta FROM legs GROUP BY owner, d ),
+-- per-owner running balance (one window pass — no join)
 state AS (
-  SELECT owner, d, sum(d_delta) OVER (PARTITION BY owner ORDER BY d ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS bal
+  SELECT owner, d,
+         sum(delta) OVER (PARTITION BY owner ORDER BY d ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS bal,
+         lag(sum(delta) OVER (PARTITION BY owner ORDER BY d ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW))
+           OVER (PARTITION BY owner ORDER BY d) AS prev_bal
   FROM daily
 ),
-intervals AS (
-  SELECT owner, d AS valid_from,
-         coalesce(lead(d) OVER (PARTITION BY owner ORDER BY d), DATE '2999-01-01') AS valid_to, bal
+-- +1 on entry (0→+), −1 on exit (+→0)
+trans AS (
+  SELECT d,
+         CASE WHEN bal > (SELECT eps FROM params) AND coalesce(prev_bal, 0) <= (SELECT eps FROM params) THEN 1
+              WHEN bal <= (SELECT eps FROM params) AND prev_bal > (SELECT eps FROM params) THEN -1
+              ELSE 0 END AS t
   FROM state
+),
+daily_net AS ( SELECT d, sum(t) AS net FROM trans WHERE t <> 0 GROUP BY d ),
+cum AS ( SELECT d, sum(net) OVER (ORDER BY d ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS holders FROM daily_net ),
+-- forward-fill the daily cumulative onto a Monday grid
+bounds AS ( SELECT min(d) AS d0, max(d) AS d1 FROM cum ),
+cal AS ( SELECT ts AS d FROM UNNEST(sequence((SELECT d0 FROM bounds), (SELECT d1 FROM bounds))) AS t(ts) ),
+filled AS (
+  SELECT c.d,
+         last_value(cum.holders) IGNORE NULLS OVER (ORDER BY c.d ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS holders
+  FROM cal c LEFT JOIN cum ON cum.d = c.d
 )
-SELECT w.wk AS d, count(DISTINCT i.owner) AS sol_wallets
-FROM weeks w
-JOIN intervals i ON w.wk >= i.valid_from AND w.wk < i.valid_to
-WHERE i.bal > 0.0000001
-GROUP BY w.wk
-ORDER BY w.wk;
+SELECT d, CAST(holders AS bigint) AS sol_wallets
+FROM filled
+WHERE day_of_week(d) = 1 AND holders IS NOT NULL
+ORDER BY d;
