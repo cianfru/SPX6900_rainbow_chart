@@ -228,6 +228,21 @@
   bundle it, drop `COINMETRICS_KEY`. Also on the list: the FIFO LTH/STH backfill, cost-basis histogram — all one-time.
 - **Prefer the LOCAL FIFO engine where it fits** (cheap raw-transfer extract → Node compute) so heavy math stays off
   Dune's meter entirely; use Dune executions only for what genuinely needs the indexed chain (balances, counts, spends).
+- **⭐ "GO DEEP ON SPX, NOT WIDE" — the wall-free frontier (owner morale reset 2026-07-17).** Owner felt we were "hitting
+  a lot of walls" building a Cowen/ITC-style data-rich site. Reframe that stuck: EVERY wall was CROSS-ASSET (other
+  coins' proprietary on-chain data paywalled — TOTAL3ES export, Coin Metrics active supply, Glassnode). NONE were about
+  SPX itself — SPX's own chain data is fully reconstructable by us (Dune ERC-20 history + the local FIFO engine, ~free).
+  So the moat + the no-wall path is DEPTH on SPX, not breadth across the market. **THE RUNWAY (one cheap raw-transfer
+  extract → local FIFO → a whole suite, $0 compute, no paywall):** (1) ✅ **NUPL** — SHIPPED (below), needed zero new
+  data. (2) **Cost-basis distribution / URPD** histogram ("where the bags are") — flagship, from FIFO per-lot cost. (3)
+  **FIFO LTH/STH profit-loss** — SQL already drafted + engine emits the fields. (4) **SOPR** — spent-output profit ratio,
+  needs the FIFO engine to track spends. All SPX-native, all reconstructable, none gated. Build these for the Cowen-deep feel.
+- **✅ NUPL CARD SHIPPED 2026-07-17 — the immediate no-wall win.** `scripts/bot/nupl-card.mjs` (type `nupl`, LOOK "dual",
+  data-gated `mvrvSeries.length>=100`). Net Unrealized Profit/Loss = (mcap−rcap)/mcap = **1 − 1/MVRV** → a PURE TRANSFORM
+  of `stats.mvrvSeries` (no new Dune, no paywall). Classic Glassnode/ITC sentiment oscillator with capitulation→hope→
+  optimism→belief→euphoria zones + break-even 0 line. SPX overshoots the BTC-calibrated bands (more volatile: true NUPL
+  range −3.84→+0.85) so the DISPLAY clips to [−1, 0.95] while the hero shows the true value. Today **−0.47 · capitulation**
+  (holders underwater), consistent with MVRV 0.68. Wired charts/posts/LOOK/test; copy ≤290. Site chart = natural next.
 
 ## Dune credit discipline — HARD-WON, read before writing/running ANY Dune query (2026-07-16)
 - **The 2,500/mo free tier got blown in a WEEK, ~88% on ~5 heavy debugging runs.** The credit CSV was unambiguous:

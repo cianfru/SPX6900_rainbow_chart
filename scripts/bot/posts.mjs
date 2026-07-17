@@ -942,6 +942,22 @@ Reproducible from Ethereum transfers — a position, not a signal.`,
     };
   })(),
 
+  // NUPL — Net Unrealized Profit/Loss, the classic on-chain valuation oscillator. NUPL =
+  // 1 − realized/price = 1 − 1/MVRV (pure transform of stats.mvrvSeries; no new Dune).
+  // Positive = holders in unrealized profit, negative = underwater. Sentiment zones. A
+  // valuation POSITION, not a signal.
+  s => (s.mvrvSeries?.length >= 100) && (() => {
+    const mvrv = s.mvrvSeries.at(-1).mvrv, n = 1 - 1 / mvrv;
+    const zone = n >= 0.75 ? "euphoria" : n >= 0.5 ? "belief" : n >= 0.25 ? "optimism" : n >= 0 ? "hope" : "capitulation";
+    return {
+      id: "nupl",
+      text: ct`🟣 SPX6900's NUPL is ${n >= 0 ? "+" : ""}${n.toFixed(2)} — ${zone}. The average holder is ${n >= 0 ? "in unrealized profit" : "underwater"}.
+Net Unrealized Profit/Loss = the share of market cap that's paper profit vs loss. It hit euphoria at the 2025 top, now capitulation.
+On-chain, reproducible — a position, not a signal.`,
+      card: { type: "nupl" },
+    };
+  })(),
+
   // Holder concentration — the largest wallets' share of ETH-native supply over time
   // (Dune, contracts/CEX excluded). The honest story: SPX has DECENTRALISED as the
   // holder base grew (top 100 ~68%→~58%). A distribution-of-ownership statement, NOT
@@ -1784,7 +1800,7 @@ const LOOK = {
   whatnext: "race",
   // — Tier B: flavourful / distinct looks (used to break up the green lines) —
   riskcolor: "colorline", risklevels: "colorline", rsidots: "colorline",
-  riskheat: "dual", runningroi: "dual", cycle: "dual", longshort: "dual", underwater: "dual", goldencross: "dual", holdergrowth: "dual", holdersprice: "dual", mvrvbtc: "dual", mvrvtrend: "dual", supplyprofit: "dual", floormodel: "dual", altmarket: "dual", freefloat: "dual", concentration: "dual", picycle: "dual",
+  riskheat: "dual", runningroi: "dual", cycle: "dual", longshort: "dual", underwater: "dual", goldencross: "dual", holdergrowth: "dual", holdersprice: "dual", mvrvbtc: "dual", mvrvtrend: "dual", supplyprofit: "dual", floormodel: "dual", altmarket: "dual", freefloat: "dual", nupl: "dual", concentration: "dual", picycle: "dual",
   firesalerally: "fanlines",
   model: "scatter",
   monthlyreturns: "heatmap", monthlyreturnssp: "heatmap", monthlyreturnsbtc: "heatmap",

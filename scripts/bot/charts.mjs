@@ -21,6 +21,7 @@ import { renderSupplyProfitCard } from "./supply-profit-card.mjs";
 import { renderFloorModelCard } from "./floor-model-card.mjs";
 import { renderAltOscCard } from "./alt-osc-card.mjs";
 import { renderFreeFloatCard } from "./free-float-card.mjs";
+import { renderNuplCard } from "./nupl-card.mjs";
 import { renderConcentrationCard } from "./concentration-card.mjs";
 import { renderHodlWavesCard } from "./hodl-waves-card.mjs";
 import { renderAmICheapCard } from "./am-i-cheap-card.mjs";
@@ -844,6 +845,7 @@ export function renderPostCard(post, stats, opts = {}) {
   if (type === "floormodel") return renderFloorModelCard(stats, dims);
   if (type === "altmarket") return renderAltOscCard(stats, dims);
   if (type === "freefloat") return renderFreeFloatCard(stats, dims);
+  if (type === "nupl") return renderNuplCard(stats, dims);
   if (type === "concentration") return renderConcentrationCard(stats, dims);
   if (type === "hodlwaves") return renderHodlWavesCard(stats, dims);
   if (type === "amicheap") return renderAmICheapCard(stats, dims);
