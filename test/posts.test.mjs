@@ -59,6 +59,18 @@ test("every post fits X's visible preview (no \"See more\" barrier)", () => {
   }
 });
 
+test("every post has at most one cashtag (X rejects posts with 2+)", () => {
+  // X's API 403s on "more than one cashtag ($SYMBOL)". The branded footer already
+  // spends the one allowed cashtag ($SPX), so a card's body must not add another —
+  // use plain "BITCOIN"/"SPX", not "$BITCOIN"/"$SPX". Cashtags are $ + letters
+  // ($0.37 price amounts don't count).
+  for (const id of allIds(statsCoins)) {
+    const text = buildPost(statsCoins, new Date(), id).text;
+    const cashtags = text.match(/\$[A-Za-z]\w*/g) || [];
+    assert.ok(cashtags.length <= 1, `post "${id}" has ${cashtags.length} cashtags (${cashtags.join(", ")}) — X allows one`);
+  }
+});
+
 test("the daily rotation actually rotates through topics", () => {
   const seen = new Set();
   for (let d = 0; d < ids.length * 2; d++) {

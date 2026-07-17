@@ -582,8 +582,12 @@ function openEditor(id) {
     const xl = [...full.replace(/https?:\/\/\S+/g, () => "x".repeat(23))]
       .reduce((n, c) => n + (c.codePointAt(0) > 0xffff ? 2 : 1), 0);
     const over = xl > 290;
-    len.textContent = `${xl} / 290 in-feed${over ? " · too long — X will fold it behind “Show more”, trim it" : ""}`;
-    len.style.color = over ? "#f87171" : xl > 272 ? "#fbbf24" : "#64748b";
+    // X rejects a post with more than one cashtag ($SYMBOL). The footer already spends
+    // the one allowed ($SPX), so the body must add none — warn on any $TICKER here.
+    const bodyTags = out.match(/\$[A-Za-z]\w*/g) || [];
+    const tagWarn = bodyTags.length ? ` · ⚠ drop ${bodyTags.join(", ")} — X allows one cashtag (footer $SPX), write it plain` : "";
+    len.textContent = `${xl} / 290 in-feed${over ? " · too long — X will fold it behind “Show more”, trim it" : ""}${tagWarn}`;
+    len.style.color = (over || bodyTags.length) ? "#f87171" : xl > 272 ? "#fbbf24" : "#64748b";
   };
   ta.addEventListener("input", render); render();
   box.querySelector(".esave").onclick = () => saveCopy(id, ta.value);

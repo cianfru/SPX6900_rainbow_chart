@@ -1765,7 +1765,7 @@ Everything rebased to 0% on Jan 1, a clean same-start race against BTC, ETH and 
   () => ({
     id: "kraken",
     text: ct`🌈 SPX6900 × 🐙 Kraken: the affiliate program is live.
-Trade $SPX on one of crypto's deepest, longest-running exchanges, and back the rainbow while you do.
+Trade SPX on one of crypto's deepest, longest-running exchanges, and back the rainbow while you do.
 Sign up with our link (referral code ${KRAKEN_CODE}) 👇${TIGHT}${KRAKEN_REF}`,
     card: { type: "kraken" },
   }),

@@ -2,5 +2,5 @@
   "dcaladder": "🌈 {0} BTC risk strategy, on SPX6900.\nHis risk-based DCA: buy more units of x the cheaper it gets, sell more units of y the hotter. x and y are your own base buy and sell sizes, not fixed amounts.\nBen Cowen's method, on our chart. A model, not advice.",
   "rsidots": "📊 SPX6900 RSI today: {0} — {1}.\nPrice as dots coloured by RSI — blue cold/oversold, red hot/overbought — over its geometric MA.\nA homage to the Bitcoin RSI chart by @100trillionUSD.",
   "underwater": "📉 SPX6900 is {0} below its all-time high ({1}, {2}).\nEvery red valley is a drawdown from a peak; back to 0% is a fresh high. It's made {3}, and once fell {4} before climbing back.\nDeep drawdowns have been the toll for great comebacks",
-  "spxbitcoin": "🫀 Ever wondered which coin follows $SPX the most? We ran the numbers on 10,000 of them.\n$BITCOIN (the meme) moves most like SPX6900 — same direction {0}% of days, correlation {1}.\nYet since launch SPX is +{2}× while BITCOIN {3}% — same heartbeat, opposite fate."
+  "spxbitcoin": "🫀 Ever wondered which coin follows SPX the most? We ran the numbers on 10,000 of them.\nBITCOIN (the meme) moves most like SPX6900 — same direction {0}% of days, correlation {1}.\nYet since launch SPX is +{2}× while BITCOIN {3}% — same heartbeat, opposite fate."
 }
