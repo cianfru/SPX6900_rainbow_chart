@@ -5,7 +5,10 @@
 // Inputs (CSV, exported from a CHEAP Dune query — no joins/windows):
 //   • transfers: from/"sender", to/"receiver", time/"evt_block_time", value/"amount"
 //   • prices:    day/"date", price   (SPX daily USD, ~1000 rows, near-free to pull)
-// Output: the SPX_ONCHAIN bundle shape + new LTH/STH profit-loss fields, WEEKLY by default.
+// Output: the SPX_ONCHAIN bundle shape + LTH/STH profit-loss + SOPR (per row), WEEKLY by
+// default, PLUS a companion urpd.json (current cost-basis distribution histogram).
+// One cheap extract → NUPL data + supply-in-profit + concentration + HODL waves + LTH/STH
+// + SOPR + URPD, all computed locally for $0 (no Dune credits, no paywall).
 //
 // Method: true FIFO lots (each wallet a queue of {ts, price, qty}); a send consumes the
 // EARLIEST lots first, so every held coin keeps its real acquisition age + cost. This is
@@ -89,27 +92,75 @@ export function replayFifo(transfers, priceAt, sampleTs, opts = {}) {
 
   const wallets = new Map(); // addr -> {q:[{ts,price,qty}], head, bal}
   const get = a => { let e = wallets.get(a); if (!e) { e = { q: [], head: 0, bal: 0 }; wallets.set(a, e); } return e; };
-  const consume = (e, amount) => {
-    let need = amount;
+  // FIFO consume; returns the realized VALUE (qty×send price) and COST (qty×lot price)
+  // of the spent coins — the raw material for SOPR (spent-output profit ratio).
+  const consume = (e, amount, sendPrice) => {
+    let need = amount, val = 0, cost = 0;
     while (need > EPS && e.head < e.q.length) {
       const lot = e.q[e.head], take = Math.min(lot.qty, need);
       lot.qty -= take; e.bal -= take; need -= take;
+      val += take * sendPrice; cost += take * lot.price;
       if (lot.qty <= EPS) { e.q[e.head] = null; e.head++; }
     }
+    return { val, cost };
   };
 
   const rows = [];
-  let p = 0;
+  let p = 0, winVal = 0, winCost = 0; // per-sample-window spend accumulators (SOPR)
   for (const sTs of sampleTs) {
     // replay all transfers up to and including this sample day
     while (p < tx.length && tx[p].ts <= sTs) {
       const t = tx[p++];
-      if (t.from && !exclude.has(t.from)) { const e = wallets.get(t.from); if (e) consume(e, t.amt); }
+      if (t.from && !exclude.has(t.from)) {
+        const e = wallets.get(t.from);
+        if (e) { const sp = priceAt(t.ts); const { val, cost } = consume(e, t.amt, sp ?? 0); if (sp != null) { winVal += val; winCost += cost; } }
+      }
       if (t.to && !exclude.has(t.to)) { const price = priceAt(t.ts); if (price != null) { const e = get(t.to); e.q.push({ ts: t.ts, price, qty: t.amt }); e.bal += t.amt; } }
     }
-    rows.push(snapshot(wallets, sTs, priceAt(sTs), thr));
+    const row = snapshot(wallets, sTs, priceAt(sTs), thr);
+    // SOPR for this window = realized value ÷ cost of all coins that MOVED since the
+    // last sample. >1 = holders spending at a profit, <1 = at a loss. null = nothing moved.
+    row.sopr = winCost > EPS ? +(winVal / winCost).toFixed(4) : null;
+    rows.push(row);
+    winVal = 0; winCost = 0;
   }
+  // URPD (cost-basis distribution) is a CURRENT-STATE histogram — compute it for the
+  // final wallet state only, returned alongside the rows when requested.
+  if (opts.collectUrpd) return { rows, urpd: computeUrpd(wallets, priceAt(sampleTs.at(-1)), iso(sampleTs.at(-1)), opts.urpdBuckets ?? 42) };
   return rows;
+}
+
+// Cost-basis distribution ("URPD" — Unrealized Realized Price Distribution): the share of
+// currently-held supply grouped by the PRICE each coin was acquired at (its FIFO lot cost).
+// The classic Glassnode/ITC "where are the bags" histogram — the walls of supply. Buckets
+// are log-spaced across the held cost range; each is flagged in/out of profit vs current spot.
+export function computeUrpd(wallets, spot, updated, nBuckets = 42) {
+  const lots = [];
+  let held = 0;
+  for (const e of wallets.values()) {
+    if (e.bal <= EPS) continue;
+    for (let i = e.head; i < e.q.length; i++) {
+      const lot = e.q[i]; if (!lot || lot.qty <= EPS || !(lot.price > 0)) continue;
+      lots.push(lot); held += lot.qty;
+    }
+  }
+  if (!lots.length || held <= 0) return { spot: spot ?? 0, updated, held: 0, buckets: [] };
+  let pmin = Infinity, pmax = -Infinity;
+  for (const l of lots) { if (l.price < pmin) pmin = l.price; if (l.price > pmax) pmax = l.price; }
+  if (pmin === pmax) pmax = pmin * 1.0001; // degenerate guard
+  const lo = Math.log(pmin), hi = Math.log(pmax), span = hi - lo || 1;
+  const b = Array.from({ length: nBuckets }, () => 0);
+  for (const l of lots) {
+    let k = Math.floor(((Math.log(l.price) - lo) / span) * nBuckets);
+    if (k < 0) k = 0; if (k >= nBuckets) k = nBuckets - 1;
+    b[k] += l.qty;
+  }
+  const edge = k => Math.exp(lo + (span * k) / nBuckets);
+  const buckets = b.map((qty, k) => {
+    const e0 = edge(k), e1 = edge(k + 1), mid = Math.sqrt(e0 * e1);
+    return { lo: +e0.toFixed(7), hi: +e1.toFixed(7), pct: +(100 * qty / held).toFixed(3), inProfit: spot != null && mid <= spot };
+  });
+  return { spot: spot != null ? +spot.toFixed(7) : 0, updated, held: +held.toFixed(2), buckets };
 }
 
 function snapshot(wallets, sTs, spot, thr) {
@@ -184,7 +235,7 @@ async function loadPrices(path) {
 async function main() {
   const args = Object.fromEntries(process.argv.slice(2).map(a => { const [k, v] = a.replace(/^--/, "").split("="); return [k, v ?? true]; }));
   const tPath = args.transfers, pPath = args.prices;
-  if (!tPath || !pPath) { console.error("usage: node scripts/build-onchain-local.mjs --transfers=raw.csv --prices=price.csv [--out=public/onchain.json] [--decimals=8] [--daily] [--threshold=90]"); process.exit(1); }
+  if (!tPath || !pPath) { console.error("usage: node scripts/build-onchain-local.mjs --transfers=raw.csv --prices=price.csv [--out=public/onchain.json] [--urpd=public/urpd.json] [--decimals=8] [--daily] [--threshold=90]"); process.exit(1); }
   const decimals = Number(args.decimals ?? 8);
   const transfers = await loadTransfers(tPath, decimals);
   const priced = await loadPrices(pPath);
@@ -194,12 +245,16 @@ async function main() {
   const grid = args.daily
     ? Array.from({ length: Math.floor((t1 - t0) / DAY) + 2 }, (_, i) => dayFloor(t0) + i * DAY)
     : mondays(t0, t1);
-  const rows = replayFifo(transfers, priceAt, grid, { thresholdDays: Number(args.threshold ?? 90) });
+  const { rows, urpd } = replayFifo(transfers, priceAt, grid, { thresholdDays: Number(args.threshold ?? 90), collectUrpd: true });
   const clean = rows.filter(r => r.holders > 0);
   const out = args.out || "public/onchain.json";
   await writeFile(out, JSON.stringify(clean));
+  // URPD histogram is a small current-state companion file (default sibling of `out`).
+  const urpdOut = args.urpd || out.replace(/[^/]+$/, "urpd.json");
+  await writeFile(urpdOut, JSON.stringify(urpd));
   const c = clean.at(-1);
-  console.log(`Wrote ${out}: ${clean.length} rows. Latest ${c.d}: rp $${c.rp} · mvrv ${c.mvrv}× · sip ${c.sip}% · holders ${c.holders} · top100 ${c.top100}% · age ${c.age.join("/")}`);
+  console.log(`Wrote ${out}: ${clean.length} rows. Latest ${c.d}: rp $${c.rp} · mvrv ${c.mvrv}× · sip ${c.sip}% · sopr ${c.sopr} · holders ${c.holders} · top100 ${c.top100}% · age ${c.age.join("/")}`);
+  console.log(`Wrote ${urpdOut}: URPD ${urpd.buckets.length} buckets · held ${urpd.held} · spot $${urpd.spot}`);
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {

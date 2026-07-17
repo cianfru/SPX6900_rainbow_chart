@@ -243,6 +243,34 @@
   optimism→belief→euphoria zones + break-even 0 line. SPX overshoots the BTC-calibrated bands (more volatile: true NUPL
   range −3.84→+0.85) so the DISPLAY clips to [−1, 0.95] while the hero shows the true value. Today **−0.47 · capitulation**
   (holders underwater), consistent with MVRV 0.68. Wired charts/posts/LOOK/test; copy ≤290. Site chart = natural next.
+  - **✅ NUPL SITE CHART SHIPPED 2026-07-17** (`src/NuplChart.jsx`, On-Chain group) — same transform live off
+    history.json + `mvrvHistory()`, zone ReferenceAreas, y clamp [−1, 0.95], drag-zoom, `<Explain>` box.
+- **✅ PLAIN-LANGUAGE EXPLANATION SWEEP 2026-07-17 (owner: the techy charts need a "numbers-go-up" gloss on BOTH
+  card + site; "wall text is a barrier of entry — slightly longer tweets, paragraphs separated by spaces").** Added a
+  reusable **`<Explain>`** component (`src/chart-ui.jsx`: accent-bordered box, bold plain-language QUESTION + one airy
+  sentence, colour-coded highlights) to the techy site charts — SupplyInProfit, AltMarket, MvrvContext, OnchainValue,
+  PiCycle, HolderConcentration, HodlWaves, Nupl. And a one-line plain-language **subtitle under the title** on the
+  matching cards (mvrvtrend/supplyprofit/floormodel/altmarket/concentration/hodlwaves + reworded mvrvbtc/picycle) —
+  hero + plot shifted down (mT bumped ~24px), NUPL card pattern. Tweet copy left as-is (already 3 airy blank-line
+  paragraphs leading with a plain hook). Tests green, build clean, browser-verified. Committed 18bff50.
+- **⭐ "GO DEEP ON SPX" RUNWAY — ENGINE READY, WAITING ON ONE CHEAP EXTRACT (2026-07-17).** The runway is NUPL ✅ →
+  URPD (cost-basis histogram) → LTH/STH → SOPR, all off ONE cheap raw-transfer extract → the LOCAL FIFO engine
+  (`build-onchain-local.mjs`), $0 compute. **Engine EXTENDED this session so the single extract yields ALL FOUR:**
+  - `consume()` now returns realized {val,cost}; `replayFifo` accumulates per-sample-window spends → **`sopr`** per row
+    (realized value ÷ cost of coins that MOVED; >1 = spending at profit). null when nothing moved.
+  - New **`computeUrpd(wallets, spot, updated, nBuckets=42)`** → log-spaced cost-basis histogram of CURRENT held supply,
+    each bucket flagged in/out of profit vs spot. `replayFifo(..., {collectUrpd:true})` returns `{rows, urpd}`; `main`
+    writes a companion **`urpd.json`** (default sibling of `--out`). Unit-tested (3 new cases) + end-to-end smoke on
+    synthetic CSVs (both files write, sopr/urpd sane). So one run → onchain.json (rp/mvrv/sip/age/conc/gini/LTH-STH/**sopr**)
+    + urpd.json. Cards/site pages for URPD/LTH-STH/SOPR are then pure rendering (build when the REAL CSV lands, to validate
+    numbers + visuals against real data — don't build blind).
+  - **⚠ BLOCKED: Dune credits spent until the monthly reset (~early Aug).** The extract is the CHEAP pattern (a few
+    credits, no timeout — never the budget problem), so it's affordable the moment credits reset. **FREE alternative
+    added so we needn't wait: `bigquery/spx6900_raw_transfers.sql`** — same 4-column dump from the PUBLIC Ethereum
+    dataset on BigQuery (`crypto_ethereum.token_transfers`), free 1 TB/mo scan, ONE run. **Owner only needs the
+    TRANSFERS csv** — the price csv is generated locally from `src/spx-daily.js` (bundled CoinGecko daily, launch→now),
+    so no second/price query is needed. Tier-1 (free, no data): still-unbuilt site pages for card-only `spxvssp` +
+    `diamondtrend` (pure render).
 
 ## Dune credit discipline — HARD-WON, read before writing/running ANY Dune query (2026-07-16)
 - **The 2,500/mo free tier got blown in a WEEK, ~88% on ~5 heavy debugging runs.** The credit CSV was unambiguous:

@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { replayFifo, gini, ageBand, makePriceAt, mondays } from "../scripts/build-onchain-local.mjs";
+import { replayFifo, gini, ageBand, makePriceAt, mondays, computeUrpd } from "../scripts/build-onchain-local.mjs";
 
 const DAY = 86400000;
 const D0 = Date.UTC(2024, 0, 1);
@@ -57,6 +57,44 @@ test("a wallet that sends more than it holds just empties (no negative balance)"
   const [r] = replayFifo(tx, price, [d(2)]);
   assert.equal(r.holders, 1);      // w1 emptied, w2 holds 80
   near(r.top10, 100);
+});
+
+test("SOPR = realized value ÷ cost of coins that moved in the window", () => {
+  const price = makePriceAt([[d(0), 1], [d(10), 2]]);
+  const tx = [
+    { from: ZERO, to: "w1", ts: d(0), amt: 100 },   // buy 100 @ $1 (mint — not a spend)
+    { from: "w1", to: "w2", ts: d(10), amt: 40 },    // send 40 @ $2 → spent value 80, cost 40
+  ];
+  const [r] = replayFifo(tx, price, [d(11)]);
+  near(r.sopr, 2);                 // 80 / 40 — spending at a 2× profit
+});
+
+test("SOPR is null when nothing moved; a loss reads < 1; excluded mints don't count", () => {
+  const price = makePriceAt([[d(0), 2], [d(5), 1]]);
+  const tx = [
+    { from: ZERO, to: "w1", ts: d(0), amt: 100 },   // mint @ $2 (excluded from → no spend)
+    { from: "w1", to: "w2", ts: d(5), amt: 50 },     // send 50 @ $1, cost $2 → SOPR 0.5
+  ];
+  const rows = replayFifo(tx, price, [d(4), d(6)]);
+  assert.equal(rows[0].sopr, null);   // nothing moved before d(4) except the excluded mint
+  near(rows[1].sopr, 0.5);            // realized at a loss
+});
+
+test("URPD buckets held supply by acquisition cost and flags in/out of profit", () => {
+  const price = makePriceAt([[d(0), 1], [d(10), 4]]);
+  const tx = [
+    { from: ZERO, to: "w1", ts: d(0), amt: 100 },    // 100 @ cost $1
+    { from: ZERO, to: "w2", ts: d(10), amt: 100 },   // 100 @ cost $4
+  ];
+  const { urpd } = replayFifo(tx, price, [d(20)], { collectUrpd: true }); // spot $4
+  near(urpd.held, 200);
+  const withSupply = urpd.buckets.filter(b => b.pct > 0);
+  assert.equal(withSupply.length, 2);                // two distinct cost levels
+  near(withSupply.reduce((s, b) => s + b.pct, 0), 100); // shares sum to 100%
+  assert.ok(withSupply.every(b => b.inProfit));      // both cost ≤ spot $4
+  // direct call: everything underwater when spot is below all costs
+  const under = computeUrpd(new Map([["w", { q: [{ ts: d(0), price: 5, qty: 10 }], head: 0, bal: 10 }]]), 1, "2024-01-20");
+  assert.ok(under.buckets.every(b => !b.inProfit));
 });
 
 test("gini, price forward-fill, and the Monday grid", () => {
