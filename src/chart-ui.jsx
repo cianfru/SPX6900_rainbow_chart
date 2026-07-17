@@ -30,6 +30,18 @@ export function TipBox({ title, style, children }) {
 
 const LIGHT = { "#38bdf8": "#7dd3fc", "#a78bfa": "#c4b5fd" };
 
+// Plain-language explainer box for the more technical charts (NUPL, MVRV, SOPR…). Leads
+// with the question the metric answers in human terms, so a general user gets it before
+// reading an axis. `q` = the plain question; children = the plain answer.
+export function Explain({ q, accent = "#38bdf8", children }) {
+  return (
+    <div style={{ maxWidth: 820, margin: "0 auto 18px", background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.07)", borderLeft: `3px solid ${accent}`, borderRadius: 10, padding: "13px 18px", fontFamily: SANS, fontSize: 14, color: "#cbd5e1", lineHeight: 1.6 }}>
+      {q && <div style={{ fontWeight: 700, color: "#f8fafc", marginBottom: 3 }}>{q}</div>}
+      {children}
+    </div>
+  );
+}
+
 export function ZoomResetButton({ onReset, accent = "#38bdf8", fontSize = 12, padding = "5px 12px" }) {
   return (
     <button onClick={onReset} className="pill" style={{ fontFamily: SANS, fontSize, fontWeight: 600, padding, borderRadius: 7, cursor: "pointer", background: "transparent", border: `1px solid ${accent}66`, color: LIGHT[accent] || accent, "--glow": accent }}>

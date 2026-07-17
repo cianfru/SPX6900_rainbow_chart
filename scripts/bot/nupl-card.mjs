@@ -28,7 +28,7 @@ export function nuplSvg(stats, opts = {}) {
   const pts = raw.map(r => ({ ts: r.ts, nupl: 1 - 1 / r.mvrv }));
   const cur = pts.at(-1), curN = cur.nupl, [, zLabel, zCol] = zoneOf(curN);
 
-  const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 84, mR = 118, mT = 128, mB = 92, pW = W - mL - mR, pH = H - mT - mB;
+  const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 84, mR = 118, mT = 148, mB = 92, pW = W - mL - mR, pH = H - mT - mB;
   const t0 = pts[0].ts, t1 = cur.ts;
   const x = t => mL + ((t - t0) / ((t1 - t0) || 1)) * pW;
   const yMin = -1, yMax = 0.95; // clip the display; SPX overshoots (hero shows true value)
@@ -58,8 +58,9 @@ export function nuplSvg(stats, opts = {}) {
 <filter id="nglow" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="4"/></filter>
 </defs>
 <rect width="${W}" height="${H}" fill="url(#nbg)"/>
-<text x="60" y="58" fill="#e2e8f0" font-size="36" font-weight="800" font-family="sans-serif" letter-spacing="1">SPX6900 — NUPL</text>
-<text x="60" y="100" fill="${zCol}" font-size="27" font-weight="800" font-family="sans-serif">${curN >= 0 ? "+" : ""}${curN.toFixed(2)} · ${esc(zLabel)} — ${curN >= 0 ? "holders sit on unrealized profit" : "holders are underwater"}</text>
+<text x="60" y="52" fill="#e2e8f0" font-size="34" font-weight="800" font-family="sans-serif" letter-spacing="1">SPX6900 — NUPL</text>
+<text x="60" y="84" fill="#94a3b8" font-size="21" font-family="sans-serif">Are holders sitting on profit or loss? Below 0 = underwater.</text>
+<text x="60" y="122" fill="${zCol}" font-size="27" font-weight="800" font-family="sans-serif">${curN >= 0 ? "+" : ""}${curN.toFixed(2)} · ${esc(zLabel)} — ${curN >= 0 ? "holders sit on unrealized profit" : "holders are underwater"}</text>
 ${zones}${labels}${grid}${xlab}
 <line x1="${mL}" y1="${y0}" x2="${W - mR}" y2="${y0}" stroke="#e2e8f0" stroke-width="2" stroke-opacity="0.8" stroke-dasharray="6 5"/>
 <text x="${mL + 8}" y="${(+y0 - 9).toFixed(1)}" fill="#cbd5e1" font-size="17" font-weight="700" font-family="sans-serif">break-even (0)</text>
