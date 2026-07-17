@@ -5,7 +5,7 @@ import {
 import { buildAltRainbow } from "./alt-rainbow.js";
 import { loadHistory } from "./history-data.js";
 import ChartZoomHint from "./ChartZoomHint.jsx";
-import { SANS, MONO, MAX_W, Metric, TipBox, ZoomBar } from "./chart-ui.jsx";
+import { SANS, MONO, MAX_W, Metric, TipBox, ZoomBar, Explain } from "./chart-ui.jsx";
 import { useDragZoom } from "./use-drag-zoom.js";
 
 const HOT = "#f87171", COOL = "#38bdf8", MID = "#cbd5e1";
@@ -59,6 +59,10 @@ export default function AltMarketChart({ isMobile, preview = false }) {
 
   return (
     <div style={{ maxWidth: MAX_W, margin: "0 auto" }}>
+      <Explain q="Is SPX6900 rich or cheap versus the whole alt market?" accent="#38bdf8">
+        SPX divided by the alt sector — every coin except Bitcoin, Ethereum and stablecoins — then detrended.
+        <strong style={{ color: "#f87171" }}> Above the line</strong> = SPX is running hot vs alts; <strong style={{ color: "#38bdf8" }}>below</strong> = cheap vs alts. It's about relative strength versus the sector, not price. A position, not a signal.
+      </Explain>
       <div style={{ display: "flex", gap: isMobile ? 16 : 30, justifyContent: "center", marginBottom: 14, flexWrap: "wrap" }}>
         <Metric label="vs alt market" value={zone} color={zoneC} sub={`${cur.z >= 0 ? "+" : ""}${cur.z.toFixed(2)}σ from trend`} />
         <Metric label="since launch" value={`${cur.rr.toFixed(0)}×`} color="#a3e635" sub="the alt sector" />

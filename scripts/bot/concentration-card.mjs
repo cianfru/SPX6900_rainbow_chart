@@ -18,7 +18,7 @@ export function concentrationSvg(stats, opts = {}) {
   const dir = cur.t100 < first.t100 ? "down from" : "up from";
   const spread = cur.t100 < first.t100;
 
-  const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 92, mR = 92, mT = 128, mB = 92, pW = W - mL - mR, pH = H - mT - mB;
+  const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 92, mR = 92, mT = 152, mB = 92, pW = W - mL - mR, pH = H - mT - mB;
   const t0 = raw[0].ts, t1 = cur.ts;
   const x = t => mL + ((t - t0) / ((t1 - t0) || 1)) * pW;
   const yMax = 75; // % axis, comfortably above top-100's launch ~68%
@@ -47,8 +47,9 @@ export function concentrationSvg(stats, opts = {}) {
 <filter id="ccglow" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="4.5"/></filter>
 </defs>
 <rect width="${W}" height="${H}" fill="url(#ccbg)"/>
-<text x="60" y="58" fill="#e2e8f0" font-size="36" font-weight="800" font-family="sans-serif" letter-spacing="1">SPX6900 — HOLDER CONCENTRATION</text>
-<text x="60" y="102" fill="${A100}" font-size="28" font-weight="800" font-family="sans-serif">Top 100 wallets hold ${cur.t100.toFixed(0)}% — ${dir} ${first.t100.toFixed(0)}% at launch</text>
+<text x="60" y="56" fill="#e2e8f0" font-size="36" font-weight="800" font-family="sans-serif" letter-spacing="1">SPX6900 — HOLDER CONCENTRATION</text>
+<text x="60" y="90" fill="#94a3b8" font-size="21" font-family="sans-serif">Do a few whales hold most of it, or is ownership spreading out?</text>
+<text x="60" y="128" fill="${A100}" font-size="28" font-weight="800" font-family="sans-serif">Top 100 wallets hold ${cur.t100.toFixed(0)}% — ${dir} ${first.t100.toFixed(0)}% at launch</text>
 ${grid}${xlab}
 <polygon points="${area100}" fill="url(#ccfill)"/>
 <polyline points="${line100}" fill="none" stroke="${A100}" stroke-width="8" stroke-opacity="0.18" stroke-linejoin="round" stroke-linecap="round" filter="url(#ccglow)"/>

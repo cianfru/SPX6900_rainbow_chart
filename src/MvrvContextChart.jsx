@@ -5,7 +5,7 @@ import {
 import { loadHistory, loadBtcMvrv } from "./history-data.js";
 import { mvrvHistory } from "./mvrv-data.js";
 import ChartZoomHint from "./ChartZoomHint.jsx";
-import { SANS, MONO, MAX_W, Metric, TipBox, ZoomBar } from "./chart-ui.jsx";
+import { SANS, MONO, MAX_W, Metric, TipBox, ZoomBar, Explain } from "./chart-ui.jsx";
 import { useDragZoom } from "./use-drag-zoom.js";
 
 const BTC = "#f7931a", SPX = "#a78bfa", MATCH = "#e879f9";
@@ -135,6 +135,10 @@ export default function MvrvContextChart({ isMobile, preview = false }) {
 
   return (
     <div style={{ maxWidth: MAX_W, margin: "0 auto" }}>
+      <Explain q="Is SPX6900 as cheap as Bitcoin was at its bottoms?" accent="#a78bfa">
+        MVRV (price vs holders' average cost) is <em>unitless</em>, so it compares across coins even though their histories differ wildly.
+        This drops SPX's current MVRV onto Bitcoin's whole decade — the <strong style={{ color: "#e879f9" }}>dots</strong> mark the weeks BTC last sat this cheap. A rhyme with history, not a forecast.
+      </Explain>
       <div style={{ display: "flex", gap: isMobile ? 16 : 30, justifyContent: "center", marginBottom: 14, flexWrap: "wrap" }}>
         <Metric label="SPX6900 MVRV" value={spx ? fMvrv(spx.mvrv) : "—"} color={SPX} sub={spx ? (spx.mvrv >= 1 ? "in profit" : "underwater") : "banking"} />
         <Metric label="Bitcoin MVRV" value={fMvrv(data.btcCur)} color={BTC} sub="today" />

@@ -26,7 +26,7 @@ export function floorModelSvg(stats, opts = {}) {
   const rpNow = cur.rp;
   const f08 = rpNow * 0.8, f05 = rpNow * 0.5;
 
-  const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 96, mR = 118, mT = 130, mB = 92, pW = W - mL - mR, pH = H - mT - mB;
+  const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 96, mR = 118, mT = 154, mB = 92, pW = W - mL - mR, pH = H - mT - mB;
   const t0 = raw[0].t, t1 = cur.t;
   const x = t => mL + ((t - t0) / ((t1 - t0) || 1)) * pW;
 
@@ -70,8 +70,9 @@ export function floorModelSvg(stats, opts = {}) {
 <filter id="fmglow" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="4.5"/></filter>
 </defs>
 <rect width="${W}" height="${H}" fill="url(#fmbg)"/>
-<text x="60" y="58" fill="#e2e8f0" font-size="35" font-weight="800" font-family="sans-serif" letter-spacing="1">SPX6900 — REALIZED PRICE &amp; FLOOR</text>
-<text x="60" y="102" fill="${SPOT_C}" font-size="27" font-weight="800" font-family="sans-serif">${fP(spotNow)} spot · ${fP(rpNow)} cost basis — ${esc(state)}</text>
+<text x="60" y="56" fill="#e2e8f0" font-size="35" font-weight="800" font-family="sans-serif" letter-spacing="1">SPX6900 — REALIZED PRICE &amp; FLOOR</text>
+<text x="60" y="90" fill="#94a3b8" font-size="21" font-family="sans-serif">Where has price kept finding a floor vs what holders paid?</text>
+<text x="60" y="130" fill="${SPOT_C}" font-size="27" font-weight="800" font-family="sans-serif">${fP(spotNow)} spot · ${fP(rpNow)} cost basis — ${esc(state)}</text>
 ${grid}${xlab}
 <polygon points="${bandPoly}" fill="${FLOOR_C}" fill-opacity="0.12"/>
 <polyline points="${up08}" fill="none" stroke="${FLOOR_C}" stroke-width="2" stroke-opacity="0.75" stroke-dasharray="6 6"/>

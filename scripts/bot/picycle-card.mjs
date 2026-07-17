@@ -51,7 +51,7 @@ export function piCycleSvg(stats, opts = {}) {
 </defs>
 <rect width="${W}" height="${H}" fill="#05050e"/>
 <text x="60" y="52" fill="#e2e8f0" font-size="33" font-weight="800" font-family="sans-serif" letter-spacing="1">SPX6900 — PI CYCLE RATIO</text>
-<text x="60" y="88" fill="#94a3b8" font-size="21" font-family="sans-serif">111-day ÷ (350-day × 2) MA — Bitcoin's gauge, top tuned to SPX's own range</text>
+<text x="60" y="88" fill="#94a3b8" font-size="21" font-family="sans-serif">Stretched above its trend, or quietly building a base? A Bitcoin gauge, for context.</text>
 <text x="60" y="122" fill="${st.color}" font-size="25" font-weight="800" font-family="sans-serif">${cur.ratio.toFixed(2)} — ${st.label}</text>
 <text x="${W - 40}" y="58" fill="${st.color}" font-size="40" font-weight="800" text-anchor="end" font-family="sans-serif">${cur.ratio.toFixed(2)}</text>
 <text x="${W - 40}" y="90" fill="#94a3b8" font-size="19" font-family="sans-serif" text-anchor="end">${pct}th %ile</text>

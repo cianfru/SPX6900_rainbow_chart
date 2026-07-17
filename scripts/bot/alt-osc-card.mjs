@@ -20,7 +20,7 @@ export function altOscSvg(stats, opts = {}) {
   const zone = cur.z >= 1 ? "overbought vs alts" : cur.z <= -1 ? "cheap vs alts" : "fair vs alts";
   const zoneC = cur.z >= 1 ? RICH : cur.z <= -1 ? CHEAP : MID;
 
-  const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 92, mR = 110, mT = 132, mB = 92, pW = W - mL - mR, pH = H - mT - mB;
+  const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 92, mR = 110, mT = 156, mB = 92, pW = W - mL - mR, pH = H - mT - mB;
   const x = ts => mL + ((ts - t0) / ((t1 - t0) || 1)) * pW;
   const zMax = Math.max(2.5, ...series.map(s => Math.abs(s.z))) * 1.06;
   const y = z => mT + ((zMax - z) / (2 * zMax)) * pH;
@@ -54,8 +54,9 @@ export function altOscSvg(stats, opts = {}) {
 <filter id="aoglow" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="4"/></filter>
 </defs>
 <rect width="${W}" height="${H}" fill="url(#aobg)"/>
-<text x="60" y="58" fill="#e2e8f0" font-size="35" font-weight="800" font-family="sans-serif" letter-spacing="1">SPX6900 vs THE ALT MARKET</text>
-<text x="60" y="102" fill="${zoneC}" font-size="27" font-weight="800" font-family="sans-serif">${esc("rich or cheap vs the alt sector — now " + zone)}</text>
+<text x="60" y="56" fill="#e2e8f0" font-size="35" font-weight="800" font-family="sans-serif" letter-spacing="1">SPX6900 vs THE ALT MARKET</text>
+<text x="60" y="90" fill="#94a3b8" font-size="21" font-family="sans-serif">Is SPX running hot or cheap vs every coin but BTC &amp; ETH? Above 0 = hot.</text>
+<text x="60" y="130" fill="${zoneC}" font-size="27" font-weight="800" font-family="sans-serif">${esc("rich or cheap vs the alt sector — now " + zone)}</text>
 ${shade}${xlab}
 ${redArea}${blueArea}
 <line x1="${mL}" y1="${y0.toFixed(1)}" x2="${W - mR}" y2="${y0.toFixed(1)}" stroke="${MID}" stroke-width="2" stroke-opacity="0.9"/>

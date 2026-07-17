@@ -5,7 +5,7 @@ import {
 import { SPX_ONCHAIN } from "./spx-onchain.js";
 import { loadOnchain } from "./history-data.js";
 import ChartZoomHint from "./ChartZoomHint.jsx";
-import { SANS, MONO, MAX_W, Metric, TipBox, ZoomBar } from "./chart-ui.jsx";
+import { SANS, MONO, MAX_W, Metric, TipBox, ZoomBar, Explain } from "./chart-ui.jsx";
 import { useDragZoom } from "./use-drag-zoom.js";
 
 // bottom → top = youngest → oldest (warm → cool); 1y+ is the diamond-hands tier.
@@ -65,6 +65,10 @@ export default function HodlWavesChart({ isMobile, preview = false }) {
 
   return (
     <div style={{ maxWidth: MAX_W, margin: "0 auto" }}>
+      <Explain q="How long has SPX6900's supply been sitting still?" accent={BANDS[4].c}>
+        Every coin coloured by <strong style={{ color: "#e2e8f0" }}>how long since it last moved</strong> — warm (bottom) = freshly traded, cool (top) = held for over a year.
+        The bands started <strong style={{ color: "#f87171" }}>all fresh</strong> at launch and have matured: a third of supply now sits in the <strong style={{ color: "#818cf8" }}>1-year+ diamond tier</strong>. Coins settling into strong hands.
+      </Explain>
       <div style={{ display: "flex", gap: isMobile ? 16 : 30, justifyContent: "center", marginBottom: 14, flexWrap: "wrap" }}>
         <Metric label="held 1 year+" value={cur.a4.toFixed(1) + "%"} color={BANDS[4].c} sub="diamond tier" />
         <Metric label="held under 1 month" value={cur.a0.toFixed(1) + "%"} color={BANDS[0].c} sub="freshly moved" />

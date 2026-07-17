@@ -4,7 +4,7 @@ import {
 } from "recharts";
 import { piCycleRatio, piCycleState } from "./models.js";
 import ChartZoomHint from "./ChartZoomHint.jsx";
-import { SANS, MONO, MAX_W, Metric, TipBox, ZoomBar } from "./chart-ui.jsx";
+import { SANS, MONO, MAX_W, Metric, TipBox, ZoomBar, Explain } from "./chart-ui.jsx";
 import { useDragZoom } from "./use-drag-zoom.js";
 
 const PC = "#a78bfa";
@@ -58,6 +58,10 @@ export default function PiCycleChart({ series, isMobile, preview = false }) {
 
   return (
     <div style={{ maxWidth: MAX_W, margin: "0 auto" }}>
+      <Explain q="Is SPX6900 running hot or in an accumulation zone?" accent={PC}>
+        A famous <strong style={{ color: "#e2e8f0" }}>Bitcoin timing indicator</strong>, borrowed for SPX: it compares a fast (111-day) price average to a slow one.
+        <strong style={{ color: "#f87171" }}> High</strong> = price stretched far above its own trend (top zone); <strong style={{ color: "#38bdf8" }}>low</strong> = quietly building a base (accumulation). A rhyme with Bitcoin, not a forecast.
+      </Explain>
       <div style={{ display: "flex", gap: isMobile ? 16 : 30, justifyContent: "center", marginBottom: 14, flexWrap: "wrap" }}>
         <Metric label="Pi Cycle ratio" value={fR(cur.ratio)} color={st.color} sub={st.label} />
         <Metric label="peak" value={fR(peak.ratio)} color="#f87171" sub={fShort(peak.ts)} />

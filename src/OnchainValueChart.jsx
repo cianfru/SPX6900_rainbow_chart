@@ -6,7 +6,7 @@ import { SUPPLY } from "./data.js";
 import { loadHistory } from "./history-data.js";
 import { mvrvHistory } from "./mvrv-data.js";
 import ChartZoomHint from "./ChartZoomHint.jsx";
-import { SANS, MONO, MAX_W, Metric, TipBox, ZoomBar } from "./chart-ui.jsx";
+import { SANS, MONO, MAX_W, Metric, TipBox, ZoomBar, Explain } from "./chart-ui.jsx";
 import { useDragZoom } from "./use-drag-zoom.js";
 
 const PRICE = "#38bdf8", COST = "#f59e0b", MVRV = "#a78bfa", FLOOR = "#34d399", DEEP = "#f87171";
@@ -78,6 +78,10 @@ export default function OnchainValueChart({ isMobile, preview = false }) {
 
   return (
     <div style={{ maxWidth: MAX_W, margin: "0 auto" }}>
+      <Explain q="Is the average SPX6900 holder up or down on what they paid?" accent="#a78bfa">
+        <strong style={{ color: "#f59e0b" }}>Realized price</strong> is the crowd's average on-chain cost basis. Price above it = holders in profit; below = underwater.
+        <strong style={{ color: "#a78bfa" }}> MVRV</strong> is just price ÷ that cost (1× = break-even, high = frothy). The floor bands (0.5×/0.8×) are where price has historically found support. A valuation position, not a signal.
+      </Explain>
       <div style={{ display: "flex", gap: 8, justifyContent: "center", marginBottom: 14, flexWrap: "wrap" }}>
         {MODES.map(([id, lbl]) => (
           <button key={id} onClick={() => { setMode(id); }} className={`neon-pill${mode === id ? " active" : ""}`}

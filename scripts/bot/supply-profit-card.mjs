@@ -19,7 +19,7 @@ export function supplyProfitSvg(stats, opts = {}) {
   raw.sort((a, b) => a.ts - b.ts);
   const cur = raw.at(-1), sip = cur.v, under = 100 - sip;
 
-  const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 92, mR = 92, mT = 128, mB = 92, pW = W - mL - mR, pH = H - mT - mB;
+  const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 92, mR = 92, mT = 152, mB = 92, pW = W - mL - mR, pH = H - mT - mB;
   const t0 = raw[0].ts, t1 = cur.ts;
   const x = t => mL + ((t - t0) / ((t1 - t0) || 1)) * pW;
   const y = v => mT + (1 - v / 100) * pH; // linear 0–100%
@@ -54,8 +54,9 @@ export function supplyProfitSvg(stats, opts = {}) {
 <filter id="spglow" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="4.5"/></filter>
 </defs>
 <rect width="${W}" height="${H}" fill="url(#spbg)"/>
-<text x="60" y="58" fill="#e2e8f0" font-size="36" font-weight="800" font-family="sans-serif" letter-spacing="1">SPX6900 — SUPPLY IN PROFIT</text>
-<text x="60" y="102" fill="${GRN}" font-size="28" font-weight="800" font-family="sans-serif">${sip.toFixed(0)}% in profit — ${state}</text>
+<text x="60" y="56" fill="#e2e8f0" font-size="36" font-weight="800" font-family="sans-serif" letter-spacing="1">SPX6900 — SUPPLY IN PROFIT</text>
+<text x="60" y="90" fill="#94a3b8" font-size="21" font-family="sans-serif">How many coins are held above what they cost? High = frothy, low = cheap.</text>
+<text x="60" y="128" fill="${GRN}" font-size="28" font-weight="800" font-family="sans-serif">${sip.toFixed(0)}% in profit — ${state}</text>
 ${zones}${grid}${xlab}
 <polygon points="${area}" fill="url(#spfill)"/>
 <line x1="${mL}" y1="${halfY}" x2="${W - mR}" y2="${halfY}" stroke="#94a3b8" stroke-width="1.8" stroke-opacity="0.7" stroke-dasharray="7 6"/>

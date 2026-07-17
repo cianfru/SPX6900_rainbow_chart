@@ -5,7 +5,7 @@ import {
 import { SPX_ONCHAIN } from "./spx-onchain.js";
 import { loadOnchain } from "./history-data.js";
 import ChartZoomHint from "./ChartZoomHint.jsx";
-import { SANS, MONO, MAX_W, Metric, TipBox, ZoomBar } from "./chart-ui.jsx";
+import { SANS, MONO, MAX_W, Metric, TipBox, ZoomBar, Explain } from "./chart-ui.jsx";
 import { useDragZoom } from "./use-drag-zoom.js";
 
 const GRN = "#4ade80", HOT = "#f87171", COOL = "#38bdf8";
@@ -59,6 +59,10 @@ export default function SupplyInProfitChart({ isMobile, preview = false }) {
 
   return (
     <div style={{ maxWidth: MAX_W, margin: "0 auto" }}>
+      <Explain q="How much of SPX6900's supply is sitting in profit?" accent={GRN}>
+        The share of coins whose holder is <strong style={{ color: "#e2e8f0" }}>above their cost basis</strong> — what they paid, reconstructed from on-chain transfers.
+        It runs near <strong style={{ color: HOT }}>100% at price tops</strong> (everyone green, frothy) and bottoms out near a few percent at the lows (almost everyone underwater — cheap). A valuation read, not a buy signal.
+      </Explain>
       <div style={{ display: "flex", gap: isMobile ? 16 : 30, justifyContent: "center", marginBottom: 14, flexWrap: "wrap" }}>
         <Metric label="supply in profit" value={cur.sip.toFixed(1) + "%"} color={GRN} sub={state} />
         <Metric label="underwater" value={(100 - cur.sip).toFixed(1) + "%"} color={HOT} sub="below cost basis" />

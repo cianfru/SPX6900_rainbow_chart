@@ -5,7 +5,7 @@ import {
 import { SPX_ONCHAIN } from "./spx-onchain.js";
 import { loadOnchain } from "./history-data.js";
 import ChartZoomHint from "./ChartZoomHint.jsx";
-import { SANS, MONO, MAX_W, Metric, TipBox, ZoomBar } from "./chart-ui.jsx";
+import { SANS, MONO, MAX_W, Metric, TipBox, ZoomBar, Explain } from "./chart-ui.jsx";
 import { useDragZoom } from "./use-drag-zoom.js";
 
 const A100 = "#fbbf24", A10 = "#f87171";
@@ -54,6 +54,10 @@ export default function HolderConcentrationChart({ isMobile, preview = false }) 
 
   return (
     <div style={{ maxWidth: MAX_W, margin: "0 auto" }}>
+      <Explain q="Are a few whales holding most of SPX6900, or is it spreading out?" accent={A100}>
+        The share of supply held by the <strong style={{ color: "#e2e8f0" }}>biggest wallets</strong> (exchanges, pools and contracts excluded).
+        SPX has <strong style={{ color: "#4ade80" }}>decentralised</strong> over time — the top 100 wallets&apos; grip has loosened as the holder base grew from thousands to ~50k. Falling lines = ownership spreading to more people.
+      </Explain>
       <div style={{ display: "flex", gap: isMobile ? 16 : 30, justifyContent: "center", marginBottom: 14, flexWrap: "wrap" }}>
         <Metric label="top 100 wallets" value={cur.t100.toFixed(1) + "%"} color={A100} sub={`from ${first.t100.toFixed(0)}% at launch`} />
         <Metric label="top 10 wallets" value={cur.t10.toFixed(1) + "%"} color={A10} sub={`from ${first.t10.toFixed(0)}% at launch`} />

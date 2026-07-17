@@ -23,7 +23,7 @@ export function mvrvTrendSvg(stats, opts = {}) {
   const q = f => sorted[Math.min(sorted.length - 1, Math.floor(f * sorted.length))];
   const peak = raw.reduce((m, r) => r.mvrv > m.mvrv ? r : m, raw[0]);
 
-  const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 92, mR = 92, mT = 128, mB = 92, pW = W - mL - mR, pH = H - mT - mB;
+  const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 92, mR = 92, mT = 152, mB = 92, pW = W - mL - mR, pH = H - mT - mB;
   const t0 = raw[0].ts, t1 = cur.ts;
   const x = t => mL + ((t - t0) / ((t1 - t0) || 1)) * pW;
   const ymin = Math.min(sorted[0], mvrv) * 0.9, ymax = sorted.at(-1) * 1.05;
@@ -64,8 +64,9 @@ export function mvrvTrendSvg(stats, opts = {}) {
 <filter id="mtglow" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="4.5"/></filter>
 </defs>
 <rect width="${W}" height="${H}" fill="url(#mtbg)"/>
-<text x="60" y="58" fill="#e2e8f0" font-size="36" font-weight="800" font-family="sans-serif" letter-spacing="1">SPX6900 — MVRV OVER TIME</text>
-<text x="60" y="102" fill="${SPX_C}" font-size="28" font-weight="800" font-family="sans-serif">${fMvrv(mvrv)} — ${state}</text>
+<text x="60" y="56" fill="#e2e8f0" font-size="36" font-weight="800" font-family="sans-serif" letter-spacing="1">SPX6900 — MVRV OVER TIME</text>
+<text x="60" y="90" fill="#94a3b8" font-size="21" font-family="sans-serif">Is the average holder up or down on what they paid? Below 1× = underwater.</text>
+<text x="60" y="128" fill="${SPX_C}" font-size="28" font-weight="800" font-family="sans-serif">${fMvrv(mvrv)} — ${state}</text>
 ${zones}${grid}${xlab}
 <polygon points="${area}" fill="url(#mtfill)"/>
 <line x1="${mL}" y1="${beY}" x2="${W - mR}" y2="${beY}" stroke="#4ade80" stroke-width="2" stroke-opacity="0.9" stroke-dasharray="7 6"/>
