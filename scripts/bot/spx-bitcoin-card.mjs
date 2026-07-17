@@ -58,7 +58,7 @@ export function spxBitcoinSvg(opts = {}) {
   // portrait / wide). Header sits at the top; the panel + strip stretch to fill.
   const pT = 152;                       // main panel top (below the hero line)
   const rB = H - 78;                    // rolling-strip bottom (above the year labels)
-  const rT = rB - Math.min(90, Math.max(56, (H - pT) * 0.12)); // strip height scales, clamped
+  const rT = rB - Math.min(150, Math.max(84, (H - pT) * 0.20)); // strip height scales, clamped
   const pB = rT - 34;                   // main panel bottom (gap for the strip title)
   const yearY = rB + 22, footY = H - 16;
   const logScale = (arr, top, bot) => { const lo = Math.log(Math.min(...arr)), hi = Math.log(Math.max(...arr)); return v => top + ((hi - Math.log(v)) / ((hi - lo) || 1)) * (bot - top); };
