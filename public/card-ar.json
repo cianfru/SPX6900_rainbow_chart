@@ -61,5 +61,6 @@
   "floormodel": "square",
   "amicheap": "square",
   "altmarket": "square",
-  "nupl": "landscape"
+  "nupl": "landscape",
+  "freefloat": "square"
 }
