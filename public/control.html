@@ -575,8 +575,15 @@ function openEditor(id) {
   const render = () => {
     const out = fillTokens(ta.value, tokens);
     prev.textContent = out;
-    len.textContent = out.length + " chars" + (out.length > 280 ? " · over 280 (will need a long post)" : "");
-    len.style.color = out.length > 280 ? "#fbbf24" : "#64748b";
+    // True in-feed length: the posted text INCLUDES the auto footer, and X weights
+    // emoji as 2 / URLs as 23. 290 is the ceiling above which X folds the post behind
+    // "Show more" (and CI's length test fails). Warn against THAT, not the raw count.
+    const full = footerize(out);
+    const xl = [...full.replace(/https?:\/\/\S+/g, () => "x".repeat(23))]
+      .reduce((n, c) => n + (c.codePointAt(0) > 0xffff ? 2 : 1), 0);
+    const over = xl > 290;
+    len.textContent = `${xl} / 290 in-feed${over ? " · too long — X will fold it behind “Show more”, trim it" : ""}`;
+    len.style.color = over ? "#f87171" : xl > 272 ? "#fbbf24" : "#64748b";
   };
   ta.addEventListener("input", render); render();
   box.querySelector(".esave").onclick = () => saveCopy(id, ta.value);
