@@ -1,0 +1,33 @@
+# FOUNDATION: bank BTC + ETH free float (liquid supply %) into public/freefloat-peers.json
+# so the Free Float chart can compare SPX6900 to them on the SAME definition (supply active
+# in the last ~6 months). Sourced from the free Coin Metrics community API (no key) — same
+# one we use for BTC MVRV; blocked from the dev sandbox, reachable from CI. Active supply
+# moves slowly, so monthly is plenty. Run "Build free-float peers" once to populate.
+name: Build free-float peers
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "41 6 1 * *"   # 06:41 UTC on the 1st of each month
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+      - name: Fetch BTC/ETH free float (Coin Metrics community API)
+        run: node scripts/build-freefloat-peers.mjs
+      - name: Commit if changed
+        run: |
+          if [[ -n "$(git status --porcelain public/freefloat-peers.json)" ]]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add public/freefloat-peers.json
+            git commit -m "chore: bank BTC/ETH free-float peers"
+            git push
+          else
+            echo "no change"
+          fi

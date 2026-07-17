@@ -202,6 +202,13 @@ function loadOnchain() {
   return SPX_ONCHAIN;
 }
 
+// BTC + ETH free float (liquid supply %) vs days-since-inception — Coin Metrics community,
+// banked by the freefloat-peers workflow. { btc: [[days, ff]], eth: [[days, ff]] } or empty.
+function loadFreeFloatPeers() {
+  try { const o = JSON.parse(readFileSync(new URL("../../public/freefloat-peers.json", import.meta.url), "utf8")); return { btc: o.btc || [], eth: o.eth || [] }; }
+  catch { return { btc: [], eth: [] }; }
+}
+
 // Raw daily snapshot records (history.json) — carries live SPX `p` + `t3es` for the
 // alt-market chart's forward tail (bundle handles the past). Empty if unavailable.
 function loadHistoryRaw() {
@@ -416,6 +423,8 @@ export function computeStats(price, dateStr = new Date().toISOString().slice(0, 
     longshort: loadLongShort(), // Hyperliquid funding/OI positioning (data-gated)
     btcMvrv: loadBtcMvrv(), // Bitcoin's decade of MVRV, context for the MVRV-vs-BTC card
     history: loadHistoryRaw(), // raw daily snapshots (p + t3es) — alt-market chart's forward tail
+    freeFloatPeers: loadFreeFloatPeers(), // BTC/ETH free float (Coin Metrics) for the free-float comparison
+
     mvrvSeries: loadMvrvSeries(), // SPX's own full-history MVRV (Dune backfill + live tail), for the MVRV-over-time card
     onchain: loadOnchain(), // Dune weekly on-chain series (supply-in-profit, concentration, gini, HODL waves) — ETH-native
     chainWallets: loadChainWalletsSeries(), // multi-chain weekly wallet counts (ETH+Base+Solana), live JSON or bundle

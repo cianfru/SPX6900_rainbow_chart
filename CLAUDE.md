@@ -395,6 +395,18 @@
       exactly where his method is fuzziest). Auto-updates off the onchain bundle. Wired charts/posts/LOOK/test; green.
       **Posting strategy (owner agreed):** post as OUR content nodding to the trending idea, NOT a reply-guy dunk
       (community-sensitive); our number ≈ his so it's transparency-as-differentiator, not a correction.
+      • **✅ BTC + ETH PEERS ADDED 2026-07-17 (owner: find open-source, don't reconstruct).** Instead of rebuilding
+        BTC/ETH free float ourselves, source it FREE + OPEN from **Coin Metrics community API** (same one as BTC MVRV,
+        no key): free float = `SplyActive180d / SplyCur` = supply active in the trailing 180d ÷ current supply — the
+        SAME "moved in ~6 months" definition as our SPX age-band metric, so the 3-asset comparison is methodologically
+        CONSISTENT + citeable (the honest answer to the black-box composite). `scripts/build-freefloat-peers.mjs`
+        (`toFreeFloat` unit-tested) → `public/freefloat-peers.json` `{btc:[[daysSinceInception,ff%]],eth:[...]}`;
+        workflow `freefloat-peers.yml` (dispatch + monthly). Card + `FreeFloatChart.jsx` auto-switch to the 3-line
+        comparison (SPX yellow / BTC orange / ETH blue, x=days since inception, legend) when peers present, else
+        SPX-only — verified both modes render (browser + card). Honest footnote: "SPX: on-chain age bands · BTC/ETH:
+        Coin Metrics active supply". **🔲 OWNER: run "Build free-float peers" once to populate** (Coin Metrics blocked
+        in the dev sandbox, reachable from CI — same as BTC MVRV). **⚠ VERIFY metric IDs on first run** (`SplyActive180d`
+        / `SplyCur`; if CM 400s, the ID may be `SplyAct180d` — one-line fix). Seeded empty so it renders SPX-only until then.
     - **✅ CONCENTRATION + HODL-WAVES CARDS SHIPPED 2026-07-16 (owner "kick off with the charts you proposed").**
       Both off the SAME `stats.onchain` bundle (no new Dune credits), bot rotation cards, LOOK "dual"/"stack",
       data-gated `onchain.length>=50`:
