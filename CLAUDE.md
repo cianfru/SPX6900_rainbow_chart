@@ -214,6 +214,21 @@
       Blockscout reading in history.json (honest raw); nothing user-facing displays it. ONE data-driven correction (the
       seam offset), no magic constants.
 
+## ⭐ DUNE STANCE — USE IT, RECONSTRUCT LIBERALLY, WITHIN THE BUDGET (owner, 2026-07-17)
+- **Policy shift from "avoid Dune / snapshot-forward everything":** the owner WANTS to use Dune and **reconstruct as
+  much as possible** (on-chain metrics BTC/ETH/etc. that aren't free elsewhere) — explicitly "keeping in mind the
+  credit limit. That's fine." So reconstruction is GREENLIT and encouraged where it adds value, NOT avoided.
+- **This does NOT relax the credit discipline below — it works THROUGH it.** The 2,500/mo budget is a hard ceiling;
+  the way to reconstruct freely within it is exactly the discipline: read pre-computed balance tables, ONE-TIME chunked
+  backfills (concat CSVs offline), weekly/monthly sampling, develop on `LIMIT`/short-window slices, stage intermediates,
+  and NEVER the heavy transfer-scan/as-of pattern that times out (still charges). Reconstruct boldly, run carefully.
+- **Concrete near-term target this unlocks:** BTC + ETH **free float** for the comparison chart — Coin Metrics gates
+  active supply behind paid (see freefloat-peers note), so a **one-time Dune reconstruction** (BTC via bitcoin UTXO/
+  spend tables, ETH via erc20 transfers → active-supply-180d ÷ supply) is now the sanctioned path. Do it chunked + once,
+  bundle it, drop `COINMETRICS_KEY`. Also on the list: the FIFO LTH/STH backfill, cost-basis histogram — all one-time.
+- **Prefer the LOCAL FIFO engine where it fits** (cheap raw-transfer extract → Node compute) so heavy math stays off
+  Dune's meter entirely; use Dune executions only for what genuinely needs the indexed chain (balances, counts, spends).
+
 ## Dune credit discipline — HARD-WON, read before writing/running ANY Dune query (2026-07-16)
 - **The 2,500/mo free tier got blown in a WEEK, ~88% on ~5 heavy debugging runs.** The credit CSV was unambiguous:
   one Solana run scanned **10.5 TB → 654 credits**; an *aborted* run charged **966**; a *cancelled* one **441**; a
@@ -411,8 +426,11 @@
         So the open-source-free route does NOT pan out. **Left DORMANT + key-ready:** builder honours `COINMETRICS_KEY`
         (hits the authenticated endpoint when set), workflow is dispatch-ONLY (no monthly schedule, so no auto-fail),
         seed stays empty → **the Free Float card + chart render SPX-ONLY** (already shipped, transparent). To enable
-        BTC/ETH later: (a) a Coin Metrics key with active-supply access → set `COINMETRICS_KEY` secret + run; or (b) a
-        one-time Dune reconstruction (the thing we wanted to avoid + credits). For now SPX-only stands on its own.
+        BTC/ETH later: (a) a Coin Metrics key with active-supply access → set `COINMETRICS_KEY` secret + run — but CM
+        Network Data Pro is enterprise/sales-gated (no public price, likely $thousands/yr → NOT worth it for this
+        project); or (b) **✅ NOW THE GREENLIT PATH (owner 2026-07-17): a one-time Dune reconstruction** of BTC/ETH
+        active-supply-180d ÷ supply (chunked, credit-aware — see the DUNE STANCE note up top), bundled once. Until
+        then the Free Float card/chart render SPX-only (shipped, transparent).
     - **✅ CONCENTRATION + HODL-WAVES CARDS SHIPPED 2026-07-16 (owner "kick off with the charts you proposed").**
       Both off the SAME `stats.onchain` bundle (no new Dune credits), bot rotation cards, LOOK "dual"/"stack",
       data-gated `onchain.length>=50`:
