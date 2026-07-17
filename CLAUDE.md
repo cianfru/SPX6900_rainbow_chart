@@ -1682,10 +1682,41 @@
   (`spxBitcoinStats`, memoised, one source for the SVG + copy): **same daily heartbeat,
   opposite fate** — 73% of days move the same direction, rolling corr positive 99% of the
   time (r 0.53), YET since launch SPX +147× while BITCOIN −88%. "Correlation isn't
-  destiny." Wired charts/posts/LOOK/test. **DEFAULT-EXCLUDED** in rotation-excludes.json
-  (owner: keep it visible to monitor the correlation for the future, one toggle from
-  posting). Website version parked — owner mused a monthly-refreshed Dune correlation
+  destiny." Wired charts/posts/LOOK/test. Was DEFAULT-EXCLUDED, but **owner then toggled it
+  INTO rotation via the panel, edited the copy, and QUEUED it** — so it's live-postable. His
+  copy edit was 414 xLen (over the 290 in-feed ceiling → broke CI's length test); kept his
+  improved hook ("ever wondered which coin follows $SPX… we ran the numbers on 10,000 of
+  them") trimmed to 282 (`public/post-copy.json`). Also **made the rolling-corr strip taller**
+  (~0.20 of panel, clamped 84–150px — it's the proof of the co-movement) and made the card
+  layout height/width-responsive across ARs (the square/portrait presets were cramming into
+  the top; fixed). Website version parked — owner mused a monthly-refreshed Dune correlation
   chart ("what's showing up") as a possible future.
+  - **⭐ THREE-WAY "SPX vs its closest movers" DRAFT + DATA-BLOCKED (owner, 2026-07-17) — REVISIT
+    ~AUG when Dune credits reset.** Owner sent AIXBT's CoinGecko "max" CSV (bundled `src/aixbt.js`,
+    bot-only) to compare all THREE (SPX + its two closest daily movers: BITCOIN #1, AIXBT #2).
+    `scripts/bot/spx-movers-card.mjs` (`renderSpxMoversCard`/`spxMoversStats`, memoised) — each coin
+    rebased to 1× at its own launch, plotted on a SHARED CALENDAR x-axis (log y), stacked legend
+    (name · now× · peak×), launch/peak/endpoint dots. **UNWIRED draft** (not in charts/posts/rotation).
+    From-inception read (CG data): SPX 147× now / peak 829×, BITCOIN 1.5× / 42×, AIXBT 0.53× / 25× —
+    both movers ROUND-TRIPPED while SPX survived ("same heartbeat, wildly different destinies").
+    - **⚠ TWO lessons baked in:** (1) **ALIGN BY DATE, NOT AGE.** First cut plotted by days-since-own-
+      launch → same x = different calendar date per coin → scrambled the co-movement into 3 unrelated
+      lines. Fixed to a shared calendar axis (rebased to own launch, real dates) → correlated daily
+      moves now show as PARALLEL JAGS on the log axis (visible in the 2025 pump + 2025-26 bleed).
+      (2) **DATA IS INCOMPLETE — THE BLOCKER.** CoinGecko "max" starts at CG-LISTING, not true
+      on-chain launch. BITCOIN's first CG point sits on a post-pump high then falls (a listing gap →
+      its 1× anchor is inflated/wrong); AIXBT rises from its first point (Virtuals launch, listed fast
+      → probably near-true but verify). So the multiples/early shape aren't trustworthy yet.
+    - **🔲 REVISIT NEXT MONTH:** reconstruct TRUE from-launch daily price for BITCOIN + AIXBT from the
+      first DEX swap. Best source = **Dune `dex.trades`** (pre-decoded swap prices back to the token's
+      first trade; moderate query, a few credits — affordable once the monthly reset lands; draft the
+      SQL then). Free-but-shallow alt GeckoTerminal (~6mo depth, can't cover 3yr → no). $0 fallback =
+      BigQuery public eth swap logs (needs decoding pool reserves — heavier). SPX's own `SPX_DAILY` is
+      already true-from-launch (only BITCOIN/AIXBT need re-sourcing). Then re-bundle bitcoin-meme.js +
+      aixbt.js (2-min swap, card code unchanged) and decide: wire it in, and/or a common-window variant
+      (Nov-2024→now, all 3 starting at 1× together — a one-line change offered). Contract addrs for the
+      Dune query: BITCOIN=HPOS10I (find its ETH pool), AIXBT (Base/ETH — check chain). Experiment is
+      GOOD, just needs honest data.
 - **ALTERNATING look order (owner, 2026-06-29): the feed must not spam the same
   green log-scale line day after day.** Every card has a visual `LOOK` family,
   split into two TIERS: **A** = the line-on-log "chart" looks (`rainbow`/`channel`/
