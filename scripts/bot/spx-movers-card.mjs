@@ -24,11 +24,14 @@ let _cache = null;
 export function spxMoversStats() {
   if (_cache) return _cache;
   const out = COINS.map(({ key, data, c }) => {
-    const t0 = Date.parse(data[0][0]), p0 = data[0][1];
-    const pts = data.map(([d, v]) => ({ age: (Date.parse(d) - t0) / DAY, m: v / p0 }));
+    const p0 = data[0][1];
+    // Keep the REAL calendar timestamp per point (rebased to 1× at own launch) so the
+    // three can be plotted on a shared date axis — that's what makes the daily
+    // co-movement visible; aligning by age would scramble different dates onto one x.
+    const pts = data.map(([d, v]) => ({ ts: Date.parse(d), m: v / p0 }));
     let peak = pts[0];
     for (const p of pts) if (p.m > peak.m) peak = p;
-    return { key, c, pts, now: pts.at(-1).m, peak, ageDays: pts.at(-1).age };
+    return { key, c, pts, now: pts.at(-1).m, peak, launchTs: pts[0].ts, lastTs: pts.at(-1).ts };
   });
   return (_cache = out);
 }
@@ -39,8 +42,9 @@ export function spxMoversSvg(opts = {}) {
   const narrow = W < 1160, heroFs = narrow ? 23 : 27;
   const pT = 152, pB = H - 96, footY = H - 16;
   const pW = W - mL - mR;
-  const maxAge = Math.max(...S.map(s => s.ageDays));
-  const x = a => mL + (a / (maxAge || 1)) * pW;
+  // shared CALENDAR x-axis (earliest launch → today) so identical dates line up.
+  const t0 = Math.min(...S.map(s => s.launchTs)), t1 = Math.max(...S.map(s => s.lastTs));
+  const x = t => mL + ((t - t0) / ((t1 - t0) || 1)) * pW;
 
   // log y over the full multiple range across all three (rebased to 1× at launch).
   let mMin = Infinity, mMax = 0;
@@ -60,23 +64,23 @@ export function spxMoversSvg(opts = {}) {
   }
   const y1 = y(1).toFixed(1);
 
-  // x labels every 6 months (in years)
+  // calendar x labels (Jan of each year in range)
   let xlab = "";
-  for (let d = 0; d <= maxAge; d += 182.5) {
-    const yr = d / 365;
-    const lbl = yr < 0.1 ? "launch" : (Number.isInteger(Math.round(yr * 2) / 2) ? (Math.round(yr * 2) / 2) + "y" : "");
-    if (!lbl) continue;
-    xlab += `<text x="${x(d).toFixed(1)}" y="${pB + 34}" fill="#8b95a7" font-size="19" text-anchor="middle" font-family="sans-serif">${lbl}</text>`;
+  for (let yr = new Date(t0).getUTCFullYear(); yr <= new Date(t1).getUTCFullYear(); yr++) {
+    const t = Date.UTC(yr, 0, 1); if (t < t0 || t > t1) continue;
+    xlab += `<text x="${x(t).toFixed(1)}" y="${pB + 34}" fill="#8b95a7" font-size="20" text-anchor="middle" font-family="sans-serif">${yr}</text>`;
   }
 
-  // one polyline per coin (up to its own age) + a faint peak dot + an endpoint dot.
+  // one polyline per coin (plotted at its REAL dates) + a faint peak dot, a launch dot
+  // (where it enters at 1×), and an endpoint dot.
   let lines = "", ends = "";
   S.forEach(s => {
-    const pline = s.pts.map(p => `${x(p.age).toFixed(1)},${y(p.m).toFixed(1)}`).join(" ");
-    lines += `<polyline points="${pline}" fill="none" stroke="${s.c}" stroke-width="7" stroke-opacity="0.14" stroke-linejoin="round" filter="url(#mvglow)"/>`
-      + `<polyline points="${pline}" fill="none" stroke="${s.c}" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>`;
-    ends += `<circle cx="${x(s.peak.age).toFixed(1)}" cy="${y(s.peak.m).toFixed(1)}" r="4.5" fill="${s.c}" fill-opacity="0.55"/>`
-      + `<circle cx="${x(s.ageDays).toFixed(1)}" cy="${y(s.now).toFixed(1)}" r="7" fill="${s.c}" stroke="#05050e" stroke-width="2"/>`;
+    const pline = s.pts.map(p => `${x(p.ts).toFixed(1)},${y(p.m).toFixed(1)}`).join(" ");
+    lines += `<polyline points="${pline}" fill="none" stroke="${s.c}" stroke-width="6" stroke-opacity="0.14" stroke-linejoin="round" filter="url(#mvglow)"/>`
+      + `<polyline points="${pline}" fill="none" stroke="${s.c}" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>`;
+    ends += `<circle cx="${x(s.launchTs).toFixed(1)}" cy="${y(1).toFixed(1)}" r="4" fill="${s.c}" fill-opacity="0.7"/>`
+      + `<circle cx="${x(s.peak.ts).toFixed(1)}" cy="${y(s.peak.m).toFixed(1)}" r="4.5" fill="${s.c}" fill-opacity="0.55"/>`
+      + `<circle cx="${x(s.lastTs).toFixed(1)}" cy="${y(s.now).toFixed(1)}" r="7" fill="${s.c}" stroke="#05050e" stroke-width="2"/>`;
   });
 
   // stacked legend (top-right, where every line sits low): name + now + peak, so the
@@ -98,12 +102,12 @@ export function spxMoversSvg(opts = {}) {
 </defs>
 <rect width="${W}" height="${H}" fill="url(#mvbg)"/>
 <text x="60" y="56" fill="#e2e8f0" font-size="35" font-weight="800" font-family="sans-serif" letter-spacing="1">SPX6900 vs ITS CLOSEST MOVERS</text>
-<text x="60" y="90" fill="#94a3b8" font-size="21" font-family="sans-serif">The two coins that trade most like SPX — from each one's launch day.</text>
+<text x="60" y="90" fill="#94a3b8" font-size="21" font-family="sans-serif">The two coins that trade most like SPX — one timeline, each from its launch.</text>
 <text x="60" y="128" fill="#f8fafc" font-size="${heroFs}" font-weight="800" font-family="sans-serif">Same daily heartbeat — <tspan fill="${spx.c}">wildly</tspan> different destinies.</text>
 ${grid}${xlab}
 <text x="${W - mR + 8}" y="${(+y1 + 5).toFixed(1)}" fill="#cbd5e1" font-size="15" font-family="sans-serif">launch</text>
 ${lines}${ends}${legend}
-<text x="60" y="${footY}" fill="#5b6577" font-size="15" font-family="sans-serif">${esc("spx6900rainbow.xyz · rebased to 1× at each coin's launch · days since inception · a for-fun curiosity, not a signal")}</text>
+<text x="60" y="${footY}" fill="#5b6577" font-size="15" font-family="sans-serif">${esc("spx6900rainbow.xyz · rebased to 1× at each coin's launch · same calendar dates · a for-fun curiosity, not a signal")}</text>
 </svg>`;
 }
 
