@@ -48,11 +48,19 @@ export function spxBitcoinSvg(opts = {}) {
   const { ts, sV, bV, r, sameDir, roll, rollPos, sMult, bMult } = s;
 
   const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 84, mR = 96;
+  const narrow = W < 1160;            // portrait/narrow presets → smaller header + tighter labels
+  const heroFs = narrow ? 23 : 27;
   const t0 = ts[0], t1 = ts.at(-1);
   const x = t => mL + ((t - t0) / ((t1 - t0) || 1)) * (W - mL - mR);
 
-  // main overlay panel (dual log axis) + rolling-corr strip beneath
-  const pT = 152, pB = 450, rT = 482, rB = 556;
+  // main overlay panel (dual log axis) + rolling-corr strip beneath — all derived
+  // from H so the card fills any aspect ratio (the control panel renders it square /
+  // portrait / wide). Header sits at the top; the panel + strip stretch to fill.
+  const pT = 152;                       // main panel top (below the hero line)
+  const rB = H - 78;                    // rolling-strip bottom (above the year labels)
+  const rT = rB - Math.min(90, Math.max(56, (H - pT) * 0.12)); // strip height scales, clamped
+  const pB = rT - 34;                   // main panel bottom (gap for the strip title)
+  const yearY = rB + 22, footY = H - 16;
   const logScale = (arr, top, bot) => { const lo = Math.log(Math.min(...arr)), hi = Math.log(Math.max(...arr)); return v => top + ((hi - Math.log(v)) / ((hi - lo) || 1)) * (bot - top); };
   const yS = logScale(sV, pT, pB), yB = logScale(bV, pT, pB);
   const lineOf = (vals, yf) => vals.map((v, i) => `${x(ts[i]).toFixed(1)},${yf(v).toFixed(1)}`).join(" ");
@@ -66,7 +74,7 @@ export function spxBitcoinSvg(opts = {}) {
   let xlab = "";
   for (let yr = new Date(t0).getUTCFullYear(); yr <= new Date(t1).getUTCFullYear(); yr++) {
     const t = Date.UTC(yr, 0, 1); if (t < t0 || t > t1) continue;
-    xlab += `<text x="${x(t).toFixed(1)}" y="${rB + 20}" fill="#8b95a7" font-size="20" text-anchor="middle" font-family="sans-serif">${yr}</text>`;
+    xlab += `<text x="${x(t).toFixed(1)}" y="${yearY}" fill="#8b95a7" font-size="20" text-anchor="middle" font-family="sans-serif">${yr}</text>`;
   }
 
   return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
@@ -78,7 +86,7 @@ export function spxBitcoinSvg(opts = {}) {
 <rect width="${W}" height="${H}" fill="url(#sbbg)"/>
 <text x="60" y="56" fill="#e2e8f0" font-size="36" font-weight="800" font-family="sans-serif" letter-spacing="1">SPX6900 <tspan fill="#64748b">×</tspan> BITCOIN</text>
 <text x="60" y="90" fill="#94a3b8" font-size="21" font-family="sans-serif">The coin that moves most like SPX — and where each one ended up.</text>
-<text x="60" y="128" fill="#f8fafc" font-size="27" font-weight="800" font-family="sans-serif">Same daily heartbeat — <tspan fill="${GRN}">${sameDir}% of days move together</tspan> — opposite fate.</text>
+<text x="60" y="128" fill="#f8fafc" font-size="${heroFs}" font-weight="800" font-family="sans-serif">Same daily heartbeat — <tspan fill="${GRN}">${sameDir}% of days move together</tspan> — opposite fate.</text>
 
 <polyline points="${lineOf(bV, yB)}" fill="none" stroke="${BTC_C}" stroke-width="2.4" stroke-opacity="0.9" stroke-linejoin="round"/>
 <polyline points="${lineOf(sV, yS)}" fill="none" stroke="${SPX_C}" stroke-width="7" stroke-opacity="0.16" stroke-linejoin="round" filter="url(#sbglow)"/>
@@ -89,7 +97,7 @@ export function spxBitcoinSvg(opts = {}) {
 <line x1="${W - mR - 116}" y1="${pT + 18}" x2="${W - mR - 90}" y2="${pT + 18}" stroke="${BTC_C}" stroke-width="4"/><text x="${W - mR - 84}" y="${pT + 24}" fill="${BTC_C}" font-size="18" font-weight="700" font-family="sans-serif">BITCOIN</text>
 
 <!-- rolling-correlation strip -->
-<text x="60" y="${rT - 8}" fill="#cbd5e1" font-size="18" font-weight="700" font-family="sans-serif">30-day correlation of daily moves <tspan fill="#64748b" font-weight="400">— positive ${rollPos}% of the time</tspan></text>
+<text x="60" y="${rT - 8}" fill="#cbd5e1" font-size="17" font-weight="700" font-family="sans-serif">30-day correlation <tspan fill="#64748b" font-weight="400">— positive ${rollPos}% of the time</tspan></text>
 <line x1="${mL}" y1="${yC0.toFixed(1)}" x2="${W - mR}" y2="${yC0.toFixed(1)}" stroke="#64748b" stroke-width="1.3" stroke-dasharray="4 5"/>
 <text x="${W - mR + 8}" y="${(yC0 + 5).toFixed(1)}" fill="#64748b" font-size="15" font-family="sans-serif">0</text>
 <polygon points="${rollArea}" fill="url(#sbroll)"/>
@@ -97,8 +105,8 @@ export function spxBitcoinSvg(opts = {}) {
 ${xlab}
 
 <!-- divergence callout (right end of the strip-title line) -->
-<text x="${W - mR}" y="${rT - 8}" text-anchor="end" fill="#8b95a7" font-size="19" font-family="sans-serif">Since launch: <tspan fill="${SPX_C}" font-weight="700">SPX +${Math.round(sMult)}×</tspan>  ·  <tspan fill="${RED}" font-weight="700">BITCOIN ${Math.round((bMult - 1) * 100)}%</tspan></text>
-<text x="60" y="${H - 14}" fill="#5b6577" font-size="15" font-family="sans-serif">${esc("spx6900rainbow.xyz · daily-returns correlation " + r.toFixed(2) + ", Aug 2023–Jul 2026 · a for-fun curiosity, not a signal")}</text>
+<text x="${W - mR}" y="${rT - 8}" text-anchor="end" fill="#8b95a7" font-size="18" font-family="sans-serif">Since launch: <tspan fill="${SPX_C}" font-weight="700">SPX +${Math.round(sMult)}×</tspan> · <tspan fill="${RED}" font-weight="700">BITCOIN ${Math.round((bMult - 1) * 100)}%</tspan></text>
+<text x="60" y="${footY}" fill="#5b6577" font-size="15" font-family="sans-serif">${esc("spx6900rainbow.xyz · daily-returns correlation " + r.toFixed(2) + ", Aug 2023–Jul 2026 · a for-fun curiosity, not a signal")}</text>
 </svg>`;
 }
 
