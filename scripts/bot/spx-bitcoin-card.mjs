@@ -22,14 +22,16 @@ const pearson = (a, b) => {
   return da > 0 && db > 0 ? nu / Math.sqrt(da * db) : 0;
 };
 
-export function spxBitcoinSvg(opts = {}) {
+// Shared compute (memoised — the bundles are static). One source of truth for the
+// SVG AND the tweet copy so the card's numbers and the post can never drift.
+let _cache = null;
+export function spxBitcoinStats() {
+  if (_cache) return _cache;
   const spx = new Map(SPX_DAILY), btc = new Map(BITCOIN_MEME);
   const days = [...spx.keys()].filter(d => btc.has(d)).sort();
-  if (days.length < 200) return null;
+  if (days.length < 200) return (_cache = null);
   const sV = days.map(d => spx.get(d)), bV = days.map(d => btc.get(d));
   const ts = days.map(d => Date.parse(d + "T00:00:00Z"));
-
-  // daily log returns + overall / rolling correlation
   const rs = [], rb = [];
   for (let i = 1; i < days.length; i++) { rs.push(Math.log(sV[i] / sV[i - 1])); rb.push(Math.log(bV[i] / bV[i - 1])); }
   const r = pearson(rs, rb);
@@ -37,7 +39,13 @@ export function spxBitcoinSvg(opts = {}) {
   const W_ROLL = 30, roll = []; // aligned to days[i] for i>=W_ROLL
   for (let i = W_ROLL; i < rs.length; i++) roll.push({ ts: ts[i + 1], c: pearson(rs.slice(i - W_ROLL, i), rb.slice(i - W_ROLL, i)) });
   const rollPos = Math.round(100 * roll.filter(x => x.c > 0).length / roll.length);
-  const sMult = sV.at(-1) / sV[0], bMult = bV.at(-1) / bV[0];
+  return (_cache = { days, ts, sV, bV, r, sameDir, roll, rollPos, sMult: sV.at(-1) / sV[0], bMult: bV.at(-1) / bV[0] });
+}
+
+export function spxBitcoinSvg(opts = {}) {
+  const s = spxBitcoinStats();
+  if (!s) return null;
+  const { ts, sV, bV, r, sameDir, roll, rollPos, sMult, bMult } = s;
 
   const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 84, mR = 96;
   const t0 = ts[0], t1 = ts.at(-1);

@@ -30,6 +30,7 @@ import { renderPiCycleCard } from "./picycle-card.mjs";
 import { renderHoldersPriceCard } from "./holders-price-card.mjs";
 import { renderRsiDotsCard } from "./rsi-card.mjs";
 import { renderMonthlyCompareCard } from "./monthly-compare-card.mjs";
+import { renderSpxBitcoinCard } from "./spx-bitcoin-card.mjs";
 import { logoMark } from "./logos.mjs";
 import { FONT } from "./font.mjs";
 import { esc, monotonePath } from "./svg-util.mjs";
@@ -851,6 +852,7 @@ export function renderPostCard(post, stats, opts = {}) {
   if (type === "amicheap") return renderAmICheapCard(stats, dims);
   if (type === "walletgrowth") return renderWalletGrowthCard(stats, dims);
   if (type === "picycle") return renderPiCycleCard(stats, dims);
+  if (type === "spxbitcoin") return renderSpxBitcoinCard(dims);
   if (type === "cyclesync") return renderCycleSyncCard(stats, dims);
   if (type === "cycleclock") return renderCycleClockCard(stats, dims);
   if (type === "holderspair") return renderHoldersPriceCard(s, dims);

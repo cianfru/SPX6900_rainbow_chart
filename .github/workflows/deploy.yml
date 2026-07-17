@@ -23,6 +23,7 @@ on:
       - "public/post-copy.json"
       - "public/card-ar.json"
       - "public/recap-pending.json"
+      - "public/rotation-excludes.json"
       - "public/signals.json"
   workflow_dispatch: {}
 

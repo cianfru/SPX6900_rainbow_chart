@@ -12,6 +12,7 @@ const WORKFLOW_RECAP = "monthly-recap.yml";
 const COPY_PATH = "public/post-copy.json"; // owner-edited card-copy overrides
 const AR_PATH = "public/card-ar.json";     // owner-picked aspect ratio per card
 const STATE_PATH = "public/post-state.json"; // last-posted date guard (once-per-day)
+const EXCLUDE_PATH = "public/rotation-excludes.json"; // cards held out of auto-rotation
 
 const gh = (path, init = {}) => fetch("https://api.github.com" + path, {
   ...init,
@@ -36,7 +37,7 @@ export default async function handler(req, res) {
     res.status(500).json({ error: "Server not configured: set CONTROL_PASSWORD and GH_PAT in Vercel." });
     return;
   }
-  const { password, action, id, month, template, ar } = await readBody(req);
+  const { password, action, id, month, template, ar, excluded } = await readBody(req);
   if (password !== process.env.CONTROL_PASSWORD) { res.status(401).json({ error: "Wrong password." }); return; }
 
   // Gate unlock: password already validated above, so just acknowledge.
@@ -165,6 +166,33 @@ export default async function handler(req, res) {
       }
       if (!put.ok) throw new Error("ar write failed (" + put.status + ") " + body);
       res.status(200).json({ ok: true, id, ar: keep ? ar : null });
+      return;
+    }
+    // Toggle a card in/out of the organic daily rotation. Persists to
+    // public/rotation-excludes.json ({id:true} = excluded). The card stays buildable
+    // + hand-postable; this only mutes the AUTO rotation. excluded=false removes it.
+    if (action === "exclude-save") {
+      if (!id) { res.status(400).json({ error: "missing id" }); return; }
+      const keep = !!excluded;
+      let put, body;
+      for (let i = 0; i < 3; i++) {
+        let sha, obj = {};
+        const cur = await gh(`/repos/${OWNER}/${REPO}/contents/${EXCLUDE_PATH}?ref=${BRANCH}`);
+        if (cur.ok) { const j = await cur.json(); sha = j.sha; try { obj = JSON.parse(Buffer.from(j.content, "base64").toString("utf8")) || {}; } catch { obj = {}; } }
+        if (Array.isArray(obj)) obj = Object.fromEntries(obj.map(k => [k, true])); // normalise legacy array form
+        if (keep) obj[id] = true; else delete obj[id];
+        const content = Buffer.from(JSON.stringify(obj, null, 2) + "\n").toString("base64");
+        put = await gh(`/repos/${OWNER}/${REPO}/contents/${EXCLUDE_PATH}`, {
+          method: "PUT",
+          body: JSON.stringify({ message: `control: rotation ${keep ? "exclude" : "include"} ${id}`, content, branch: BRANCH, ...(sha ? { sha } : {}) }),
+        });
+        if (put.ok) break;
+        body = await put.text();
+        if (put.status !== 409) break;
+        await new Promise(r => setTimeout(r, 400 * (i + 1)));
+      }
+      if (!put.ok) throw new Error("exclude write failed (" + put.status + ") " + body);
+      res.status(200).json({ ok: true, id, excluded: keep });
       return;
     }
     res.status(400).json({ error: "unknown action" });

@@ -14,6 +14,7 @@ import { fNum } from "./svg-util.mjs";
 import { currentChainHolders } from "./stats.mjs";
 import { buildAltRainbow } from "../../src/alt-rainbow.js";
 import { tally as valuationTally } from "./valuation-lenses.mjs";
+import { spxBitcoinStats } from "./spx-bitcoin-card.mjs";
 
 // --- owner-editable post copy ---------------------------------------------
 // EVERY card's tweet text is owner-editable from the control panel. Cards wrap
@@ -1038,6 +1039,24 @@ A Bitcoin indicator, applied to SPX for context.`,
     };
   })(),
 
+  // SPX6900 × BITCOIN resemblance (experiment) — the memecoin BITCOIN (HPOS10I) had
+  // the highest daily-returns correlation with SPX of any ETH token in the Dune study.
+  // Honest hook: same daily heartbeat, opposite fate (SPX up huge, BITCOIN down). Numbers
+  // computed live from the two bundles (spxBitcoinStats) — a for-fun curiosity, NOT a
+  // signal. Default-excluded from rotation via public/rotation-excludes.json (owner keeps
+  // it visible in the control panel to monitor the correlation), one toggle from posting.
+  s => (() => {
+    const b = spxBitcoinStats();
+    if (!b) return null;
+    return {
+      id: "spxbitcoin",
+      text: ct`🫀 BITCOIN is the coin that moves most like SPX6900 — same direction ${b.sameDir}% of days.
+Daily moves correlate ${b.r.toFixed(2)}, the tightest of any coin. Yet since launch SPX is +${Math.round(b.sMult)}× and BITCOIN ${Math.round((b.bMult - 1) * 100)}%.
+Same heartbeat, opposite fate — correlation isn't destiny.`,
+      card: { type: "spxbitcoin" },
+    };
+  })(),
+
   // (removed 2026-06-28) two cards pulled as not landing with the audience:
   //   • "strategy vs HODL (perfect hindsight)" — dry + buy-the-top-hype framing.
   //   • "volatility / how wild is it" (3-bar SPX vs BTC vs S&P) — owner: a bar of
@@ -1776,6 +1795,24 @@ const weightOf = id => WEIGHT[id] ?? (BULLISH.has(id) ? 2 : 1);
 // Greed, so the standalone is redundant in the feed.
 const NO_ROTATE = new Set(["drawdown", "risk", "kraken", "dcaladder"]);
 
+// Owner-editable rotation exclusions — cards kept BUILDABLE + visible in the control
+// panel (and hand-postable) but held OUT of the organic daily rotation. Toggled from
+// the panel (api/control.js `exclude-save` → public/rotation-excludes.json, an
+// {id:true} map). Read via fs like the copy overrides; missing/blank → nothing
+// excluded. An explicit override/queue/postnow still bypasses rotation, so an
+// excluded card can always be fired by hand — this only mutes the AUTO rotation.
+const EXCLUDES_FILE = new URL("../../public/rotation-excludes.json", import.meta.url);
+let _excludes;
+function loadExcludes() {
+  if (_excludes) return _excludes;
+  try {
+    const j = JSON.parse(readFileSync(EXCLUDES_FILE, "utf8"));
+    // accept either {id:true,…} or ["id",…]
+    _excludes = new Set(Array.isArray(j) ? j : Object.keys(j || {}).filter(k => j[k]));
+  } catch { _excludes = new Set(); }
+  return _excludes;
+}
+
 // Cards kept buildable ONLY to back website OG share images — never auto-posted
 // AND hidden from the control console (so they can't be fired by hand). Drawdown
 // and risk live here: the site's drawdown/risk tabs need their share images, but
@@ -1800,7 +1837,7 @@ const LOOK = {
   whatnext: "race",
   // — Tier B: flavourful / distinct looks (used to break up the green lines) —
   riskcolor: "colorline", risklevels: "colorline", rsidots: "colorline",
-  riskheat: "dual", runningroi: "dual", cycle: "dual", longshort: "dual", underwater: "dual", goldencross: "dual", holdergrowth: "dual", holdersprice: "dual", mvrvbtc: "dual", mvrvtrend: "dual", supplyprofit: "dual", floormodel: "dual", altmarket: "dual", freefloat: "dual", nupl: "dual", concentration: "dual", picycle: "dual",
+  riskheat: "dual", runningroi: "dual", cycle: "dual", longshort: "dual", underwater: "dual", goldencross: "dual", holdergrowth: "dual", holdersprice: "dual", mvrvbtc: "dual", mvrvtrend: "dual", supplyprofit: "dual", floormodel: "dual", altmarket: "dual", freefloat: "dual", nupl: "dual", concentration: "dual", picycle: "dual", spxbitcoin: "dual",
   firesalerally: "fanlines",
   model: "scatter",
   monthlyreturns: "heatmap", monthlyreturnssp: "heatmap", monthlyreturnsbtc: "heatmap",
@@ -1865,7 +1902,8 @@ function interleave(A, B) {
 // flavour → chart. Length = sum of weights (unchanged), so the per-day index still
 // cycles through everything; higher-weight topics still recur more often.
 function rotation(built) {
-  const pool = built.filter(p => !NO_ROTATE.has(p.id));
+  const excl = loadExcludes();
+  const pool = built.filter(p => !NO_ROTATE.has(p.id) && !excl.has(p.id));
   const A = spreadByFamily(pool.filter(p => A_FAMILIES.has(lookOf(p.id))));
   const B = spreadByFamily(pool.filter(p => !A_FAMILIES.has(lookOf(p.id))));
   return interleave(A, B);

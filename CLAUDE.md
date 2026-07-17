@@ -1660,6 +1660,32 @@
   `scripts/bot/posts.mjs` (`buildPost`). Weights still apply — `valuation` 3×,
   bullish posts 2×, rest 1× (`WEIGHT`/`BULLISH`) — so the post for any date is
   computable ahead of time and bullish topics recur more often.
+- **⭐ OWNER-TOGGLEABLE ROTATION EXCLUDES (2026-07-17).** Two exclusion layers now:
+  the static code-level `NO_ROTATE` set, PLUS a dynamic owner-editable one —
+  `loadExcludes()` reads `public/rotation-excludes.json` (`{id:true}` map, read via
+  `readFileSync` like the copy overrides) and `rotation()` drops those ids. Toggle it
+  from the control panel: each card has a **⊘ Exclude / ↺ Add to rotation** button
+  (`api/control.js` `exclude-save` action → commits the JSON; panel reads it live via
+  raw + dims the card + shows a "not in rotation" badge). An excluded card stays
+  BUILDABLE + visible in the panel + hand-postable (Queue/Post now/`--post=` all bypass
+  rotation) — it's only muted from the AUTO feed, so it can be kept around to monitor.
+  `rotation-excludes.json` is deploy-ignored (toggles don't trigger a Vercel deploy;
+  the real `post.mjs` reads the live committed file, the schedule PREVIEW bundled copy
+  lags a deploy — same accepted tradeoff as `post-copy.json`). Added to vercel
+  includeFiles + deploy.yml paths-ignore.
+- **🫀 SPX6900 × BITCOIN experiment card (`spxbitcoin`, 2026-07-17).** For-fun render of
+  the Dune study's top finding — the memecoin BITCOIN (HPOS10I) has the highest
+  daily-returns correlation with SPX of any ETH token (AIXBT was 2nd). Owner sent the
+  CoinGecko "max" CSV → bundled `src/bitcoin-meme.js` (bot-only). `scripts/bot/spx-bitcoin-card.mjs`
+  overlays both paths on a dual log axis (co-movement visible in the shapes) + a 30-day
+  rolling-correlation strip. The honest gem, computed live from the two bundles
+  (`spxBitcoinStats`, memoised, one source for the SVG + copy): **same daily heartbeat,
+  opposite fate** — 73% of days move the same direction, rolling corr positive 99% of the
+  time (r 0.53), YET since launch SPX +147× while BITCOIN −88%. "Correlation isn't
+  destiny." Wired charts/posts/LOOK/test. **DEFAULT-EXCLUDED** in rotation-excludes.json
+  (owner: keep it visible to monitor the correlation for the future, one toggle from
+  posting). Website version parked — owner mused a monthly-refreshed Dune correlation
+  chart ("what's showing up") as a possible future.
 - **ALTERNATING look order (owner, 2026-06-29): the feed must not spam the same
   green log-scale line day after day.** Every card has a visual `LOOK` family,
   split into two TIERS: **A** = the line-on-log "chart" looks (`rainbow`/`channel`/

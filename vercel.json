@@ -1,8 +1,8 @@
 {
   "functions": {
-    "api/og.js": { "includeFiles": "{scripts/bot/**,public/history.json,public/onchain.json,public/chain-wallets.json,public/freefloat-peers.json}" },
-    "api/recap.js": { "includeFiles": "{scripts/bot/**,public/history.json,public/onchain.json,public/chain-wallets.json,public/freefloat-peers.json}" },
-    "api/agent.js": { "includeFiles": "{scripts/bot/**,public/history.json,public/onchain.json,public/chain-wallets.json,public/freefloat-peers.json}" }
+    "api/og.js": { "includeFiles": "{scripts/bot/**,public/history.json,public/onchain.json,public/chain-wallets.json,public/freefloat-peers.json,public/rotation-excludes.json}" },
+    "api/recap.js": { "includeFiles": "{scripts/bot/**,public/history.json,public/onchain.json,public/chain-wallets.json,public/freefloat-peers.json,public/rotation-excludes.json}" },
+    "api/agent.js": { "includeFiles": "{scripts/bot/**,public/history.json,public/onchain.json,public/chain-wallets.json,public/freefloat-peers.json,public/rotation-excludes.json}" }
   },
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api/$1" },

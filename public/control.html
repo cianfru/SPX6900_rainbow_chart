@@ -139,6 +139,8 @@
   @keyframes cardflash { 0%, 100% { box-shadow: none; } 12%, 42% { box-shadow: 0 0 0 2px #38bdf8, 0 0 22px rgba(56,189,248,.55); } }
   .card.next { border-color: #3b82f6; box-shadow: 0 0 0 1px #3b82f6 inset; }
   .card.queued { border-color: #f59e0b; box-shadow: 0 0 0 1px #f59e0b inset; }
+  .card.excluded { border-color: #475569; opacity: .72; }
+  .card.excluded img { filter: grayscale(.5) brightness(.82); }
   /* object-fit: contain so a card whose true AR differs (e.g. the static Kraken
      promo) is letterboxed, never stretched. Landscape cards render at 3:2. */
   .card img { width: 100%; display: block; background: #05050e; aspect-ratio: 1200/800; object-fit: contain; }
@@ -152,6 +154,7 @@
   .badge.image { background: rgba(148,163,184,.16); color: #cbd5e1; }
   .badge.portrait { background: rgba(56,189,248,.18); color: #7dd3fc; }
   .badge.landscape { background: rgba(100,116,139,.18); color: #94a3b8; }
+  .badge.excluded { background: rgba(100,116,139,.22); color: #cbd5e1; }
   .card .actions { margin-left: auto; display: flex; gap: 6px; }
   .card .ptext {
     white-space: pre-wrap; word-break: break-word; font-size: 13px; line-height: 1.5;
@@ -305,6 +308,7 @@ let EDITABLE = {}, OVERRIDES = {}; // editable card copy: {id:{default,tokens}} 
 let SIGNALS = null;                // { date, signals:[…] } from the daily anomaly detector
 let DRAFT_TEXT = {};               // per-signal footerized LLM draft, for the 📋 Copy button
 let AR_OVERRIDES = {};             // owner-picked aspect ratio per card: {id: presetKey}
+let EXCLUDES = {};                 // cards held out of the auto rotation: {id: true}
 // AR presets (must mirror scripts/bot/card-format.mjs AR_PRESETS)
 const AR_PRESETS = { landscape: [1200, 800], wide: [1200, 628], square: [1200, 1200], portrait: [1080, 1350] };
 const AR_LABEL = { landscape: "3:2", wide: "1.91:1", square: "1:1", portrait: "4:5" };
@@ -350,9 +354,10 @@ $("#lock").onclick = lock;
 async function loadState() {
   const raw = p => fetch(`https://raw.githubusercontent.com/${OWNER}/${REPO}/${BRANCH}/${p}?t=${Date.now()}`, { cache: "no-store" })
     .then(r => r.ok ? r.json() : null).catch(() => null);
-  const [q, st, ov, arov, sg] = await Promise.all([raw(QUEUE_PATH), raw(STATE_PATH), raw("public/post-copy.json"), raw("public/card-ar.json"), raw("public/signals.json")]);
+  const [q, st, ov, arov, sg, ex] = await Promise.all([raw(QUEUE_PATH), raw(STATE_PATH), raw("public/post-copy.json"), raw("public/card-ar.json"), raw("public/signals.json"), raw("public/rotation-excludes.json")]);
   OVERRIDES = ov && typeof ov === "object" ? ov : {};
   AR_OVERRIDES = arov && typeof arov === "object" ? arov : {};
+  EXCLUDES = Array.isArray(ex) ? Object.fromEntries(ex.map(k => [k, true])) : (ex && typeof ex === "object" ? ex : {});
   SIGNALS = sg && typeof sg === "object" ? sg : null;
   QUEUED = q && q.id ? q.id : null;
   const today = new Date().toISOString().slice(0, 10);
@@ -436,9 +441,10 @@ function renderSchedule(meta) {
 function card(id) {
   const isNext = id === NEXT, isQ = id === QUEUED, isVid = MEDIA[id] === "video";
   const isPortrait = ORIENT[id] === "portrait";
+  const isExcl = !!EXCLUDES[id];
   const el = document.createElement("div");
   el.id = "card-" + id; // anchor target so the rotation chips can jump straight here
-  el.className = "card" + (isQ ? " queued" : isNext ? " next" : "");
+  el.className = "card" + (isExcl ? " excluded" : "") + (isQ ? " queued" : isNext ? " next" : "");
   const mediaBadge = isVid ? '<span class="badge video">🎥 video</span>' : '<span class="badge image">🖼 image</span>';
   const orientBadge = isPortrait
     ? '<span class="badge portrait">📱 4:5</span>'
@@ -469,10 +475,11 @@ function card(id) {
       <span class="id">${id}</span>
       ${mediaBadge}
       ${canAR ? `<span class="badge landscape">📐 ${AR_LABEL[curAR]}${AR_OVERRIDES[id] ? "" : " ·default"}</span>` : orientBadge}
-      ${isQ ? '<span class="badge queued">queued</span>' : isNext ? '<span class="badge next">next auto</span>' : ""}
+      ${isExcl ? '<span class="badge excluded">⊘ not in rotation</span>' : isQ ? '<span class="badge queued">queued</span>' : isNext ? '<span class="badge next">next auto</span>' : ""}
       ${EDITABLE[id] ? `<span class="badge edit" style="background:rgba(190,242,100,.16);color:#bef264">${OVERRIDES[id] ? "edited" : "editable"}</span>` : ""}
       <span class="actions">
         ${EDITABLE[id] ? `<button data-edit="${id}">✎ Edit text</button>` : ""}
+        <button data-excl="${id}" title="${isExcl ? "Add back to the daily auto-rotation" : "Keep visible here but hold out of the daily auto-rotation"}">${isExcl ? "↺ Add to rotation" : "⊘ Exclude"}</button>
         <button data-q="${id}">Queue</button>
         <button class="primary" data-now="${id}">Post now</button>
       </span>
@@ -608,9 +615,28 @@ async function setAR(id, key) {
   }
 }
 
+// ---- Include/exclude a card from the organic daily rotation (saved permanently) ----
+// The card stays buildable + hand-postable (Queue / Post now still work); this only
+// mutes the AUTO rotation. Lets the owner keep experimental cards visible to monitor
+// without letting them into the official feed.
+async function setExclude(id, excluded) {
+  const prev = !!EXCLUDES[id];
+  if (excluded) EXCLUDES[id] = true; else delete EXCLUDES[id];
+  renderGrid(); // optimistic
+  status(excluded ? `Holding "${id}" out of the rotation…` : `Adding "${id}" back to the rotation…`);
+  try {
+    await action({ action: "exclude-save", id, excluded });
+    status(excluded ? `"${id}" excluded from the auto rotation — still visible + hand-postable.` : `"${id}" back in the daily rotation.`, "ok");
+  } catch (e) {
+    if (prev) EXCLUDES[id] = true; else delete EXCLUDES[id]; // revert on failure
+    renderGrid(); handleErr(e);
+  }
+}
+
 $("#grid").addEventListener("click", e => {
-  const q = e.target.closest("[data-q]"), n = e.target.closest("[data-now]"), ed = e.target.closest("[data-edit]"), a = e.target.closest("[data-ar]");
+  const q = e.target.closest("[data-q]"), n = e.target.closest("[data-now]"), ed = e.target.closest("[data-edit]"), a = e.target.closest("[data-ar]"), x = e.target.closest("[data-excl]");
   if (a) { const [id, key] = a.dataset.ar.split(":"); setAR(id, key); return; }
+  if (x) { const id = x.dataset.excl; setExclude(id, !EXCLUDES[id]); return; }
   if (ed) { openEditor(ed.dataset.edit); return; }
   if (q) queue(q.dataset.q);
   if (n) postNow(n.dataset.now);
