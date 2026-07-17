@@ -405,8 +405,10 @@
         comparison (SPX yellow / BTC orange / ETH blue, x=days since inception, legend) when peers present, else
         SPX-only — verified both modes render (browser + card). Honest footnote: "SPX: on-chain age bands · BTC/ETH:
         Coin Metrics active supply". **🔲 OWNER: run "Build free-float peers" once to populate** (Coin Metrics blocked
-        in the dev sandbox, reachable from CI — same as BTC MVRV). **⚠ VERIFY metric IDs on first run** (`SplyActive180d`
-        / `SplyCur`; if CM 400s, the ID may be `SplyAct180d` — one-line fix). Seeded empty so it renders SPX-only until then.
+        in the dev sandbox, reachable from CI — same as BTC MVRV). **Metric IDs: first run confirmed `SplyActive180d` is
+        REJECTED → correct ID is `SplyAct180d`** (builder now tries `[SplyAct180d, SplyActive180d]`, first that returns
+        data wins). Seeded empty so it renders SPX-only until the run succeeds. If `SplyAct180d` also 400s (active
+        supply not in the community tier), pivot to a % variant or the catalog — but it should be community.
     - **✅ CONCENTRATION + HODL-WAVES CARDS SHIPPED 2026-07-16 (owner "kick off with the charts you proposed").**
       Both off the SAME `stats.onchain` bundle (no new Dune credits), bot rotation cards, LOOK "dual"/"stack",
       data-gated `onchain.length>=50`:

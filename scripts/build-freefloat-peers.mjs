@@ -14,32 +14,41 @@
 // from the dev sandbox, reachable from CI. Active supply moves slowly → monthly is plenty.
 // Output: public/freefloat-peers.json = { btc: [[daysSinceInception, ff%], …], eth: [...], updated }
 //
-// ⚠ VERIFY ON FIRST RUN: the metric IDs below (SplyActive180d / SplyCur). If Coin Metrics
-//   400s on `SplyActive180d`, check the community catalog — the ID may be `SplyAct180d`.
-//   Everything else stays; it's a one-line fix.
+// Coin Metrics ID for "supply active in the trailing 180d" is `SplyAct180d` (first run
+// confirmed `SplyActive180d` is rejected). We try candidates in order so a spelling change
+// resolves in one re-run; the first that returns data wins.
 import { writeFile } from "node:fs/promises";
 
 const OUT = "public/freefloat-peers.json";
 const CM = "https://community-api.coinmetrics.io/v4/timeseries/asset-metrics";
-const ACTIVE = "SplyActive180d", CUR = "SplyCur";
+const ACTIVE_CANDIDATES = ["SplyAct180d", "SplyActive180d"], CUR = "SplyCur";
 const SAMPLE_DAYS = 7;
 const DAY = 86400000;
 const GENESIS = { btc: "2009-01-03", eth: "2015-07-30" }; // day 0 = inception, like SPX
 
 async function fetchAsset(asset) {
-  const rows = [];
-  let url = `${CM}?assets=${asset}&metrics=${ACTIVE},${CUR}&frequency=1d&page_size=10000&start_time=${GENESIS[asset]}`;
-  for (let page = 0; page < 30 && url; page++) {
-    const r = await fetch(url, { headers: { Accept: "application/json" } });
-    if (!r.ok) throw new Error(`Coin Metrics ${asset} ${r.status}: ${(await r.text()).slice(0, 200)}`);
-    const j = await r.json();
-    for (const d of j?.data || []) {
-      const act = parseFloat(d[ACTIVE]), cur = parseFloat(d[CUR]);
-      if (d.time && act > 0 && cur > 0) rows.push([d.time.slice(0, 10), act, cur]);
+  let lastErr = "";
+  for (const active of ACTIVE_CANDIDATES) {
+    const rows = [];
+    let url = `${CM}?assets=${asset}&metrics=${active},${CUR}&frequency=1d&page_size=10000&start_time=${GENESIS[asset]}`;
+    let bad = false;
+    for (let page = 0; page < 30 && url; page++) {
+      const r = await fetch(url, { headers: { Accept: "application/json" } });
+      if (!r.ok) {
+        const t = await r.text();
+        if (r.status === 400) { lastErr = `${active}: ${t.slice(0, 140)}`; bad = true; break; } // try next candidate
+        throw new Error(`Coin Metrics ${asset} ${r.status}: ${t.slice(0, 200)}`);
+      }
+      const j = await r.json();
+      for (const d of j?.data || []) {
+        const act = parseFloat(d[active]), cur = parseFloat(d[CUR]);
+        if (d.time && act > 0 && cur > 0) rows.push([d.time.slice(0, 10), act, cur]);
+      }
+      url = j?.next_page_url || null;
     }
-    url = j?.next_page_url || null;
+    if (!bad && rows.length) { console.log(`${asset}: metric ${active}`); return rows; }
   }
-  return rows;
+  throw new Error(`no active-supply metric worked for ${asset} (tried ${ACTIVE_CANDIDATES.join(", ")}): ${lastErr}`);
 }
 
 // Pure core (unit-tested): rows [[date, active, cur]] → [[daysSinceInception, ff%]], deduped
