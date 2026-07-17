@@ -20,7 +20,12 @@
 import { writeFile } from "node:fs/promises";
 
 const OUT = "public/freefloat-peers.json";
-const CM = "https://community-api.coinmetrics.io/v4/timeseries/asset-metrics";
+// `SplyAct180d` (active supply, trailing 180d) is the RIGHT metric ID but it's GATED — the
+// free anonymous community tier 403s it (only MVRV etc. are free there). It needs a Coin
+// Metrics API key with active-supply access (set COINMETRICS_KEY). With a key we hit the
+// authenticated endpoint; without one this run fails cleanly and the chart stays SPX-only.
+const KEY = process.env.COINMETRICS_KEY || "";
+const CM = (KEY ? "https://api.coinmetrics.io" : "https://community-api.coinmetrics.io") + "/v4/timeseries/asset-metrics";
 const ACTIVE_CANDIDATES = ["SplyAct180d", "SplyActive180d"], CUR = "SplyCur";
 const SAMPLE_DAYS = 7;
 const DAY = 86400000;
@@ -30,13 +35,13 @@ async function fetchAsset(asset) {
   let lastErr = "";
   for (const active of ACTIVE_CANDIDATES) {
     const rows = [];
-    let url = `${CM}?assets=${asset}&metrics=${active},${CUR}&frequency=1d&page_size=10000&start_time=${GENESIS[asset]}`;
+    let url = `${CM}?assets=${asset}&metrics=${active},${CUR}&frequency=1d&page_size=10000&start_time=${GENESIS[asset]}${KEY ? `&api_key=${KEY}` : ""}`;
     let bad = false;
     for (let page = 0; page < 30 && url; page++) {
       const r = await fetch(url, { headers: { Accept: "application/json" } });
       if (!r.ok) {
         const t = await r.text();
-        if (r.status === 400) { lastErr = `${active}: ${t.slice(0, 140)}`; bad = true; break; } // try next candidate
+        if (r.status === 400 || r.status === 403) { lastErr = `${active} → ${r.status}: ${t.slice(0, 130)}`; bad = true; break; } // bad name (400) or gated (403) → try next / give up
         throw new Error(`Coin Metrics ${asset} ${r.status}: ${t.slice(0, 200)}`);
       }
       const j = await r.json();
@@ -48,7 +53,7 @@ async function fetchAsset(asset) {
     }
     if (!bad && rows.length) { console.log(`${asset}: metric ${active}`); return rows; }
   }
-  throw new Error(`no active-supply metric worked for ${asset} (tried ${ACTIVE_CANDIDATES.join(", ")}): ${lastErr}`);
+  throw new Error(`no active-supply metric for ${asset} (${lastErr}). SplyAct180d is gated behind a paid/keyed Coin Metrics tier — set COINMETRICS_KEY with active-supply access to enable BTC/ETH.`);
 }
 
 // Pure core (unit-tested): rows [[date, active, cur]] → [[daysSinceInception, ff%]], deduped

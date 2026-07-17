@@ -4,10 +4,12 @@
 # one we use for BTC MVRV; blocked from the dev sandbox, reachable from CI. Active supply
 # moves slowly, so monthly is plenty. Run "Build free-float peers" once to populate.
 name: Build free-float peers
+# ⚠ DORMANT: active supply (SplyAct180d) is GATED on Coin Metrics (the free anonymous tier
+# 403s it). Needs a COINMETRICS_KEY secret with active-supply access. Dispatch-only (no
+# monthly schedule) so it doesn't auto-fail; the Free Float chart stays SPX-only until a key
+# is wired. Add the key as a repo secret + env below, then run to populate BTC/ETH.
 on:
   workflow_dispatch:
-  schedule:
-    - cron: "41 6 1 * *"   # 06:41 UTC on the 1st of each month
 permissions:
   contents: write
 jobs:
@@ -18,7 +20,9 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: 24
-      - name: Fetch BTC/ETH free float (Coin Metrics community API)
+      - name: Fetch BTC/ETH free float (Coin Metrics — needs a keyed active-supply tier)
+        env:
+          COINMETRICS_KEY: ${{ secrets.COINMETRICS_KEY }}
         run: node scripts/build-freefloat-peers.mjs
       - name: Commit if changed
         run: |
