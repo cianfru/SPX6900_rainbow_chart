@@ -1,6 +1,6 @@
 {
   "lastPostedDate": "2026-07-18",
-  "lastId": "manual-skip",
+  "lastId": "multichain",
   "recent": [
     {
       "date": "2026-07-08",
@@ -37,6 +37,10 @@
     {
       "date": "2026-07-16",
       "id": "hodlwaves"
+    },
+    {
+      "date": "2026-07-18",
+      "id": "multichain"
     }
   ]
 }
