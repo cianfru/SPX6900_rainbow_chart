@@ -59,6 +59,15 @@ export default function LongShortChart({ series, isMobile }) {
   const { zoom, setZoom, selL, selR, onDown, onMove, onUp, zoomed } = useDragZoom(
     (a, b) => (allRows || []).filter(r => r.ts >= a && r.ts <= b).length >= 2);
 
+  // Default the initial view to the recent window — funding is a short-term signal, so
+  // 18 months of daily bars is dense/noisy. Reset (ZoomBar) still expands to full history.
+  useEffect(() => {
+    if (allRows && allRows.length > 2) {
+      const t1 = allRows.at(-1).ts, t0 = t1 - 120 * 86400000;
+      if (t0 > allRows[0].ts) setZoom([t0, t1]);
+    }
+  }, [allRows, setZoom]);
+
   const view = useMemo(() => {
     if (!allRows || !allRows.length) return null;
     const [x0, x1] = zoom ?? [allRows[0].ts, allRows.at(-1).ts];
