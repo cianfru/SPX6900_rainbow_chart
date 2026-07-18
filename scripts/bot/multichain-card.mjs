@@ -185,9 +185,33 @@ const smooth = pts => {
 // so the card reads as "% change in holders per chain over time." A foundation card:
 // fills in as the daily snapshot banks multi-chain columns. Data-gated. Returns null
 // until there's enough of a multi-chain history to draw.
+// Shared per-chain growth series for the race card + its copy (one source, no drift).
+// Reads the LONG chain-wallets series (launch→now, weekly) — NOT the daily snapshot log,
+// which only has ~a week of multi-chain columns and reads ~0% for everything. Rebases all
+// three to a COMMON start = the first week where each chain is past its cold-start ramp
+// (≥5% of its current count), so the reconstruction's "Base starts at 1 holder" artifact
+// doesn't blow the % up to millions. Returns the windowed series + current % per chain.
+export function chainRaceData(stats) {
+  const raw = (stats.chainWallets || [])
+    .map(r => ({ ts: Date.parse(r.d), eth: r.eth ?? null, base: r.base ?? null, sol: r.sol ?? null }))
+    .filter(r => Number.isFinite(r.ts));
+  if (raw.length < 6) return null;
+  const last = raw.at(-1);
+  if (!CHAINS.every(c => last[c.key] > 0)) return null;
+  const floor = Object.fromEntries(CHAINS.map(c => [c.key, last[c.key] * 0.05]));
+  let si = raw.findIndex(r => CHAINS.every(c => r[c.key] != null && r[c.key] >= floor[c.key]));
+  if (si < 0) si = 0;
+  const win = raw.slice(si);
+  if (win.length < 6) return null;
+  const b = win[0];
+  const pct = Object.fromEntries(CHAINS.map(c => [c.key, win.at(-1)[c.key] / b[c.key] - 1]));
+  return { win, pct, startTs: b.ts };
+}
+
 export function chainRaceSvg(stats, opts = {}) {
-  const raw = stats.supply?.chainSeries || [];
-  if (raw.length < 6) return null; // needs ~a week+ of multi-chain snapshots
+  const data = chainRaceData(stats);
+  if (!data) return null;
+  const raw = data.win; // long series, windowed to the common (post-cold-start) start
 
   // Per-chain rebased % series (each from its own first non-null value in the window).
   const series = CHAINS.map(c => {
@@ -209,7 +233,7 @@ export function chainRaceSvg(stats, opts = {}) {
 
   // gridlines at round % marks + zero baseline
   let grid = "";
-  const span = hi - lo, stepPct = span > 1 ? 0.25 : span > 0.4 ? 0.1 : 0.05;
+  const span = hi - lo, stepPct = span > 6 ? 2 : span > 2.5 ? 1 : span > 1 ? 0.5 : span > 0.4 ? 0.1 : 0.05;
   for (let v = Math.ceil(lo / stepPct) * stepPct; v <= hi; v += stepPct) {
     const yy = y(v).toFixed(1), zero = Math.abs(v) < 1e-9;
     grid += `<line x1="${mL}" y1="${yy}" x2="${W - mR}" y2="${yy}" stroke="rgba(255,255,255,${zero ? 0.16 : 0.06})"/>`;
@@ -247,7 +271,7 @@ export function chainRaceSvg(stats, opts = {}) {
 <rect width="${W}" height="${H}" fill="#05050e"/>
 <rect width="${W}" height="${H}" fill="url(#crV)"/>
 <text x="${mL}" y="60" fill="#e2e8f0" font-size="32" font-weight="800" font-family="sans-serif" letter-spacing="1">SPX6900 — HOLDER GROWTH BY CHAIN</text>
-<text x="${mL}" y="94" fill="#94a3b8" font-size="22" font-family="sans-serif">% change in holders per chain over ~${ndays}d · each line rebased to its start</text>
+<text x="${mL}" y="94" fill="#94a3b8" font-size="22" font-family="sans-serif">% change in holders per chain since ${new Date(t0).toLocaleDateString("en-US", { month: "short", year: "numeric", timeZone: "UTC" })} · rebased to that date</text>
 ${grid}${xlab}
 ${lines}${dots}${endlab}
 <text x="${mL}" y="${H - 14}" fill="#475569" font-size="16" font-family="sans-serif">spx6900rainbow.xyz · wallets per chain, not people · Base &amp; Solana are bridged</text>

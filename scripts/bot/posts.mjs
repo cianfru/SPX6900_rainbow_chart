@@ -15,6 +15,7 @@ import { currentChainHolders } from "./stats.mjs";
 import { buildAltRainbow } from "../../src/alt-rainbow.js";
 import { tally as valuationTally } from "./valuation-lenses.mjs";
 import { spxBitcoinStats } from "./spx-bitcoin-card.mjs";
+import { chainRaceData } from "./multichain-card.mjs";
 
 // --- owner-editable post copy ---------------------------------------------
 // EVERY card's tweet text is owner-editable from the control panel. Cards wrap
@@ -821,22 +822,21 @@ One coin, one community, three chains.`,
   // companion to the multichain donut snapshot. Data-gated on the multi-chain era
   // accumulating (~a week+ of banked columns); a foundation card — fills in over time.
   s => {
-    const cs = s.supply?.chainSeries || [];
-    if (cs.length < 6) return null;
-    // Rebase each chain to its first non-null value and read the current % change.
-    const pctOf = key => {
-      const pts = cs.map(r => r[key]).filter(v => v != null && v > 0);
-      return pts.length >= 2 ? pts.at(-1) / pts[0] - 1 : null;
-    };
-    const parts = [["Ethereum", pctOf("eth")], ["Base", pctOf("base")], ["Solana", pctOf("sol")]]
-      .filter(([, v]) => v != null);
+    // Shared with the card (chainRaceData): the LONG chain-wallets series, rebased to a
+    // common post-cold-start date — so the copy shows real growth, not the ~0% the 6-day
+    // snapshot log produced.
+    const d = chainRaceData(s);
+    if (!d) return null;
+    const names = { eth: "Ethereum", base: "Base", sol: "Solana" };
+    const parts = ["eth", "base", "sol"].map(k => [names[k], d.pct[k]]).filter(([, v]) => Number.isFinite(v));
     if (parts.length < 2) return null;
     const fp = v => (v >= 0 ? "+" : "−") + Math.round(Math.abs(v) * 100) + "%";
     const lead = parts.slice().sort((a, b) => b[1] - a[1])[0];
     const list = parts.map(([n, v]) => `${n} ${fp(v)}`).join(", ");
+    const since = new Date(d.startTs).toLocaleDateString("en-US", { month: "short", year: "numeric", timeZone: "UTC" });
     return {
       id: "chainrace",
-      text: ct`📈 Holders by chain since we started tracking all three: ${list}.
+      text: ct`📈 Holder growth by chain since ${since}: ${list}.
 ${lead[0]} is growing its wallet base fastest — Base and Solana are bridged, and these are wallets, not people.
 The whole community, chain by chain.`,
       card: { type: "chainrace" },

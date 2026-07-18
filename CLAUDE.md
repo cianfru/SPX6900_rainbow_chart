@@ -1448,6 +1448,18 @@
         time"; the TREND companion to the donut. Data-gated ≥6 multi-chain snapshots (a foundation
         card that fills in over time). LOOK "race". Both wired in charts.mjs/posts.mjs; test whitelist
         updated. `loadChainHistory()` in stats.mjs exposes `supply.chainSeries`.
+        - **⚠ FIXED 2026-07-18 — chainrace printed ~0% for ALL chains.** Root cause: it read
+          `supply.chainSeries` (the DAILY snapshot log, history.json) whose multi-chain columns only
+          began ~2026-07-13 → ~6 flat days → rounds to +0%/+0%/−0%. Also holder growth has PLATEAUED
+          across all chains for ~6mo, so any *recent* window is genuinely flat — the impressive growth is
+          the 2024 ramp. FIX: both the card AND its copy now use a shared **`chainRaceData(stats)`**
+          (in multichain-card.mjs) that reads the LONG `stats.chainWallets` (chain-wallets.json, 157 wks
+          launch→now) and rebases all three to a **COMMON post-cold-start date** = first week each chain
+          ≥5% of its current count (~Oct 2024) — dodging the reconstruction's "Base starts at 1 holder"
+          artifact that would otherwise blow Base up to +11,000,000%. Now reads **Base +898% · Solana
+          +784% · Ethereum +437% since Oct 2024**. Also made the y-axis gridline step scale with the
+          range (was 25% steps → ~48 overlapping labels on a 0–1000% axis). `chainSeries`/`loadChainHistory`
+          stays for other uses; chainrace no longer depends on it.
       - **🔲 PENDING OWNER ACTION (both mints now DEFAULTED — should just work on the next cron):**
         1. **First-run sanity check** — run/await the "Daily supply snapshot" workflow, then check the
            log: `base holders: -N contract address(es) removed` + the `holders eth … · base … · sol …`
