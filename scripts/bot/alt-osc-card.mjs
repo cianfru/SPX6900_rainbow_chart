@@ -34,16 +34,25 @@ export function altOscSvg(stats, opts = {}) {
   const redArea = `<polygon points="${redTop.join(" ")} ${baseF.join(" ")}" fill="${RICH}" fill-opacity="0.28"/>`;
   const blueArea = `<polygon points="${series.map((s, i) => `${xs[i]},${y0.toFixed(1)}`).join(" ")} ${blueBot.reverse().join(" ")}" fill="${CHEAP}" fill-opacity="0.28"/>`;
 
-  // faint zone shading beyond ±1σ
-  const zoneRect = (za, zb, c) => `<rect x="${mL}" y="${y(zb).toFixed(1)}" width="${pW}" height="${(y(za) - y(zb)).toFixed(1)}" fill="${c}" fill-opacity="0.08"/>`;
-  const shade = zoneRect(1, zMax, RICH) + zoneRect(-zMax, -1, CHEAP);
+  // vivid edge-bright zone shading beyond ±1σ: brightest at the extremes (top = rich,
+  // bottom = cheap), fading toward the ±1σ band edge where the line lives.
+  const zoneRect = (za, zb, grad) => `<rect x="${mL}" y="${y(zb).toFixed(1)}" width="${pW}" height="${(y(za) - y(zb)).toFixed(1)}" fill="url(#${grad})"/>`;
+  const shade = zoneRect(1, zMax, "aoHot") + zoneRect(-zMax, -1, "aoCool");
+
+  // left σ axis (bright, big) + faint gridlines; ±1σ drawn as the colored band lines below.
+  let grid = "";
+  for (let zi = -Math.floor(zMax); zi <= Math.floor(zMax); zi++) {
+    const yy = y(zi).toFixed(1);
+    grid += `<line x1="${mL}" y1="${yy}" x2="${W - mR}" y2="${yy}" stroke="rgba(255,255,255,${zi === 0 || Math.abs(zi) === 1 ? 0 : 0.10})"/>`
+      + `<text x="${mL - 14}" y="${(+yy + 8).toFixed(1)}" fill="#e2e8f0" font-size="26" font-weight="600" text-anchor="end" font-family="sans-serif">${zi > 0 ? "+" + zi + "σ" : zi < 0 ? zi + "σ" : "0"}</text>`;
+  }
 
   let xlab = "";
   for (let yr = new Date(t0).getUTCFullYear(); yr <= new Date(t1).getUTCFullYear(); yr++) {
     const t = Date.UTC(yr, 0, 1); if (t < t0 || t > t1) continue;
-    xlab += `<text x="${x(t).toFixed(1)}" y="${H - 48}" fill="#c3ccda" font-size="24" text-anchor="middle" font-family="sans-serif">${yr}</text>`;
+    xlab += `<text x="${x(t).toFixed(1)}" y="${H - 46}" fill="#cbd5e1" font-size="26" font-weight="600" text-anchor="middle" font-family="sans-serif">${yr}</text>`;
   }
-  const bandLine = (z, c, txt, dash = "7 6") => `<line x1="${mL}" y1="${y(z).toFixed(1)}" x2="${W - mR}" y2="${y(z).toFixed(1)}" stroke="${c}" stroke-width="2" stroke-opacity="0.85" stroke-dasharray="${dash}"/><text x="${W - 8}" y="${(y(z) - 9).toFixed(1)}" fill="${c}" font-size="18" font-weight="800" text-anchor="end" font-family="sans-serif">${esc(txt)}</text>`;
+  const bandLine = (z, c, txt, dash = "7 6") => `<line x1="${mL}" y1="${y(z).toFixed(1)}" x2="${W - mR}" y2="${y(z).toFixed(1)}" stroke="${c}" stroke-width="2.5" stroke-opacity="0.9" stroke-dasharray="${dash}"/><text x="${W - 8}" y="${(y(z) - 10).toFixed(1)}" fill="${c}" font-size="21" font-weight="800" text-anchor="end" font-family="sans-serif">${esc(txt)}</text>`;
 
   const line = series.map((s, i) => `${xs[i]},${y(s.z).toFixed(1)}`).join(" ");
   const curX = x(cur.ts), curY = y(cur.z);
@@ -51,16 +60,18 @@ export function altOscSvg(stats, opts = {}) {
   return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
 <defs>
 <linearGradient id="aobg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#0b0b16"/><stop offset="100%" stop-color="#05050e"/></linearGradient>
+<linearGradient id="aoHot" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#fb7185" stop-opacity="0.5"/><stop offset="100%" stop-color="#fb7185" stop-opacity="0.06"/></linearGradient>
+<linearGradient id="aoCool" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#38bdf8" stop-opacity="0.06"/><stop offset="100%" stop-color="#38bdf8" stop-opacity="0.5"/></linearGradient>
 <filter id="aoglow" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="4"/></filter>
 </defs>
 <rect width="${W}" height="${H}" fill="url(#aobg)"/>
 <text x="60" y="56" fill="#e2e8f0" font-size="35" font-weight="800" font-family="sans-serif" letter-spacing="1">SPX6900 vs THE ALT MARKET</text>
 <text x="60" y="90" fill="#94a3b8" font-size="21" font-family="sans-serif">Is SPX running hot or cheap vs every coin but BTC &amp; ETH? Above 0 = hot.</text>
 <text x="60" y="130" fill="${zoneC}" font-size="27" font-weight="800" font-family="sans-serif">${esc("rich or cheap vs the alt sector — now " + zone)}</text>
-${shade}${xlab}
+${shade}${grid}${xlab}
 ${redArea}${blueArea}
-<line x1="${mL}" y1="${y0.toFixed(1)}" x2="${W - mR}" y2="${y0.toFixed(1)}" stroke="${MID}" stroke-width="2" stroke-opacity="0.9"/>
-<text x="${W - 8}" y="${(y0 - 9).toFixed(1)}" fill="${MID}" font-size="18" font-weight="800" text-anchor="end" font-family="sans-serif">fair vs alts</text>
+<line x1="${mL}" y1="${y0.toFixed(1)}" x2="${W - mR}" y2="${y0.toFixed(1)}" stroke="${MID}" stroke-width="2.5" stroke-opacity="0.95"/>
+<text x="${W - 8}" y="${(y0 - 10).toFixed(1)}" fill="${MID}" font-size="21" font-weight="800" text-anchor="end" font-family="sans-serif">fair vs alts</text>
 ${bandLine(1, RICH, "overbought")}
 ${bandLine(-1, CHEAP, "cheap")}
 <polyline points="${line}" fill="none" stroke="#f8fafc" stroke-width="7" stroke-opacity="0.14" stroke-linejoin="round" stroke-linecap="round" filter="url(#aoglow)"/>

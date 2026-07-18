@@ -37,20 +37,20 @@ export function freeFloatSvg(stats, opts = {}) {
   let grid = "";
   for (const v of [20, 40, 60, 80, 100]) {
     const yy = y(v).toFixed(1);
-    grid += `<line x1="${mL}" y1="${yy}" x2="${W - mR}" y2="${yy}" stroke="rgba(255,255,255,0.08)"/><text x="${mL - 12}" y="${(+yy + 7).toFixed(1)}" fill="#c3ccda" font-size="22" text-anchor="end" font-family="sans-serif">${v}%</text>`;
+    grid += `<line x1="${mL}" y1="${yy}" x2="${W - mR}" y2="${yy}" stroke="rgba(255,255,255,0.12)"/><text x="${mL - 14}" y="${(+yy + 8).toFixed(1)}" fill="#e2e8f0" font-size="26" font-weight="600" text-anchor="end" font-family="sans-serif">${v}%</text>`;
   }
-  const xAxisY = mT + pH + 30;
+  const xAxisY = mT + pH + 32;
   let xlab = "";
   const ticks = multi ? [0, 1000, 2000, 3000, 4000, 5000, 6000] : [0, 200, 400, 600, 800, 1000];
-  for (const d of ticks.filter(d => d <= d1 + 20)) xlab += `<text x="${x(d).toFixed(1)}" y="${xAxisY.toFixed(1)}" fill="#c3ccda" font-size="20" text-anchor="middle" font-family="sans-serif">${d}</text>`;
+  for (const d of ticks.filter(d => d <= d1 + 20)) xlab += `<text x="${x(d).toFixed(1)}" y="${xAxisY.toFixed(1)}" fill="#cbd5e1" font-size="24" font-weight="600" text-anchor="middle" font-family="sans-serif">${d}</text>`;
 
   const poly = (series, color, w) => `<polyline points="${series.map(p => `${x(p[0]).toFixed(1)},${y(p[1]).toFixed(1)}`).join(" ")}" fill="none" stroke="${color}" stroke-width="${w}" stroke-linejoin="round" stroke-linecap="round"/>`;
   let lines = "", legend = "", hero, foot;
 
   if (multi) {
-    lines = poly(btc, BTC, 2.6) + poly(eth, ETH, 2.6)
-      + `<polyline points="${spx.map(p => `${x(p[0]).toFixed(1)},${y(p[1]).toFixed(1)}`).join(" ")}" fill="none" stroke="${SPX}" stroke-width="8" stroke-opacity="0.16" stroke-linejoin="round" filter="url(#ffglow)"/>`
-      + poly(spx, SPX, 3.4);
+    lines = poly(btc, BTC, 3.2) + poly(eth, ETH, 3.2)
+      + `<polyline points="${spx.map(p => `${x(p[0]).toFixed(1)},${y(p[1]).toFixed(1)}`).join(" ")}" fill="none" stroke="${SPX}" stroke-width="12" stroke-opacity="0.28" stroke-linejoin="round" filter="url(#ffglow)"/>`
+      + poly(spx, SPX, 4.5);
     const chip = (i, c, t) => `<rect x="${W - mR - 250 + i * 84}" y="118" width="14" height="14" rx="3" fill="${c}"/><text x="${W - mR - 250 + i * 84 + 20}" y="130" fill="#cbd5e1" font-size="20" font-weight="700" font-family="sans-serif">${t}</text>`;
     legend = chip(0, SPX, "SPX") + chip(1, BTC, "BTC") + chip(2, ETH, "ETH");
     const btcA = ffAt(btc, spxLastDay), ethA = ffAt(eth, spxLastDay);
@@ -66,9 +66,9 @@ export function freeFloatSvg(stats, opts = {}) {
     const fitLine = spx.map(p => `${x(p[0]).toFixed(1)},${y(Math.exp(a + b * p[0])).toFixed(1)}`).join(" ");
     const area = `${mL},${(mT + pH).toFixed(1)} ${spx.map(p => `${x(p[0]).toFixed(1)},${y(p[1]).toFixed(1)}`).join(" ")} ${(mL + pW).toFixed(1)},${(mT + pH).toFixed(1)}`;
     lines = `<polygon points="${area}" fill="url(#fffill)"/>`
-      + `<polyline points="${fitLine}" fill="none" stroke="#a3aec0" stroke-width="1.8" stroke-dasharray="7 6" stroke-opacity="0.65"/>`
-      + `<polyline points="${spx.map(p => `${x(p[0]).toFixed(1)},${y(p[1]).toFixed(1)}`).join(" ")}" fill="none" stroke="${SPX}" stroke-width="8" stroke-opacity="0.16" stroke-linejoin="round" filter="url(#ffglow)"/>`
-      + poly(spx, SPX, 3.2);
+      + `<polyline points="${fitLine}" fill="none" stroke="#cbd5e1" stroke-width="2" stroke-dasharray="7 6" stroke-opacity="0.7"/>`
+      + `<polyline points="${spx.map(p => `${x(p[0]).toFixed(1)},${y(p[1]).toFixed(1)}`).join(" ")}" fill="none" stroke="${SPX}" stroke-width="12" stroke-opacity="0.28" stroke-linejoin="round" filter="url(#ffglow)"/>`
+      + poly(spx, SPX, 4.5);
     hero = `${curFF.toFixed(0)}% liquid — ${(100 - curFF).toFixed(0)}% hasn't moved in 6 months`;
     foot = "free float = supply that changed hands in the last 6 months · on-chain (Ethereum) · reproducible · not financial advice";
   }
@@ -77,17 +77,17 @@ export function freeFloatSvg(stats, opts = {}) {
   return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
 <defs>
 <linearGradient id="ffbg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#0b0b16"/><stop offset="100%" stop-color="#05050e"/></linearGradient>
-<linearGradient id="fffill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="${SPX}" stop-opacity="0.30"/><stop offset="100%" stop-color="${SPX}" stop-opacity="0"/></linearGradient>
-<filter id="ffglow" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="4"/></filter>
+<linearGradient id="fffill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="${SPX}" stop-opacity="0.5"/><stop offset="55%" stop-color="${SPX}" stop-opacity="0.15"/><stop offset="100%" stop-color="${SPX}" stop-opacity="0"/></linearGradient>
+<filter id="ffglow" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="5"/></filter>
 </defs>
 <rect width="${W}" height="${H}" fill="url(#ffbg)"/>
 <text x="60" y="58" fill="#e2e8f0" font-size="36" font-weight="800" font-family="sans-serif" letter-spacing="1">${multi ? "FREE FLOAT — SPX6900 vs BTC &amp; ETH" : "SPX6900 — FREE FLOAT"}</text>
 <text x="60" y="100" fill="${SPX}" font-size="26" font-weight="800" font-family="sans-serif">${esc(hero)}</text>
 ${legend}${grid}${xlab}
-<text x="${(mL + pW / 2).toFixed(1)}" y="${(xAxisY + 26).toFixed(1)}" fill="#7c879b" font-size="17" text-anchor="middle" font-family="sans-serif">days since inception</text>
+<text x="${(mL + pW / 2).toFixed(1)}" y="${(xAxisY + 28).toFixed(1)}" fill="#aab6c8" font-size="19" text-anchor="middle" font-family="sans-serif">days since inception</text>
 ${lines}
-<circle cx="${curX.toFixed(1)}" cy="${curY.toFixed(1)}" r="8" fill="${SPX}" stroke="#05050e" stroke-width="2"/>
-<text x="${(mL + pW / 2).toFixed(1)}" y="${(xAxisY + 52).toFixed(1)}" fill="#6b7688" font-size="15.5" text-anchor="middle" font-family="sans-serif">${esc(foot)}</text>
+<circle cx="${curX.toFixed(1)}" cy="${curY.toFixed(1)}" r="9" fill="${SPX}" stroke="#05050e" stroke-width="3"/>
+<text x="${(mL + pW / 2).toFixed(1)}" y="${(xAxisY + 54).toFixed(1)}" fill="#8592a6" font-size="16.5" text-anchor="middle" font-family="sans-serif">${esc(foot)}</text>
 </svg>`;
 }
 

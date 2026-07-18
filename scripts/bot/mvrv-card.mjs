@@ -44,18 +44,19 @@ export function mvrvBtcSvg(stats, opts = {}) {
   const btcLine = pts.map(r => `${x(r.ts).toFixed(1)},${y(r.v).toFixed(1)}`).join(" ");
 
   // Zones (BTC's own quantiles) — shade the cheap end where the story lives.
-  const zband = (v1, v2, fill) => (v1 != null && v2 != null && v2 > v1)
-    ? `<rect x="${mL}" y="${y(v2).toFixed(1)}" width="${pW}" height="${(y(v1) - y(v2)).toFixed(1)}" fill="${fill}" fill-opacity="0.10"/>` : "";
-  const zones = zband(q(0.95), ymax, "#f87171") + zband(q(0.80), q(0.95), "#fbbf24")
+  // Vivid colours at ~0.24 opacity so the bands POP (was a very dim 0.10).
+  const zband = (v1, v2, fill, o = 0.24) => (v1 != null && v2 != null && v2 > v1)
+    ? `<rect x="${mL}" y="${y(v2).toFixed(1)}" width="${pW}" height="${(y(v1) - y(v2)).toFixed(1)}" fill="${fill}" fill-opacity="${o}"/>` : "";
+  const zones = zband(q(0.95), ymax, "#fb7185") + zband(q(0.80), q(0.95), "#fbbf24")
     + zband(q(0.50), q(0.80), "#4ade80") + zband(q(0.15), q(0.50), "#38bdf8") + zband(ymin, q(0.15), "#818cf8");
 
   let grid = "";
   for (const v of [0.5, 1, 2, 3, 5, 7].filter(v => v >= ymin && v <= ymax)) {
     const yy = y(v).toFixed(1);
-    grid += `<line x1="${mL}" y1="${yy}" x2="${W - mR}" y2="${yy}" stroke="rgba(255,255,255,0.06)"/><text x="${mL - 10}" y="${(+yy + 5).toFixed(1)}" fill="#64748b" font-size="20" text-anchor="end" font-family="sans-serif">${fMvrv(v)}</text>`;
+    grid += `<line x1="${mL}" y1="${yy}" x2="${W - mR}" y2="${yy}" stroke="rgba(255,255,255,0.12)"/><text x="${mL - 12}" y="${(+yy + 8).toFixed(1)}" fill="#e2e8f0" font-size="25" font-weight="600" text-anchor="end" font-family="sans-serif">${fMvrv(v)}</text>`;
   }
   let xlab = "";
-  for (let yr = fYr(t0); yr <= fYr(t1); yr += 2) { const t = Date.UTC(yr, 0, 1); if (t < t0 || t > t1) continue; xlab += `<text x="${x(t).toFixed(1)}" y="${H - 54}" fill="#64748b" font-size="20" text-anchor="middle" font-family="sans-serif">${yr}</text>`; }
+  for (let yr = fYr(t0); yr <= fYr(t1); yr += 2) { const t = Date.UTC(yr, 0, 1); if (t < t0 || t > t1) continue; xlab += `<text x="${x(t).toFixed(1)}" y="${H - 50}" fill="#cbd5e1" font-size="24" font-weight="600" text-anchor="middle" font-family="sans-serif">${yr}</text>`; }
 
   // SPX marker band + line, and the match dots on BTC's line.
   const dots = hits.map(r => `<circle cx="${x(r.ts).toFixed(1)}" cy="${y(r.v).toFixed(1)}" r="7" fill="${MATCH_C}" stroke="#05050e" stroke-width="1.5"/>`).join("");

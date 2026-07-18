@@ -26,7 +26,7 @@ export function floorModelSvg(stats, opts = {}) {
   const rpNow = cur.rp;
   const f08 = rpNow * 0.8, f05 = rpNow * 0.5;
 
-  const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 96, mR = 118, mT = 154, mB = 92, pW = W - mL - mR, pH = H - mT - mB;
+  const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 96, mR = 156, mT = 154, mB = 92, pW = W - mL - mR, pH = H - mT - mB;
   const t0 = raw[0].t, t1 = cur.t;
   const x = t => mL + ((t - t0) / ((t1 - t0) || 1)) * pW;
 
@@ -46,12 +46,12 @@ export function floorModelSvg(stats, opts = {}) {
   let grid = "";
   for (const v of [0.001, 0.003, 0.01, 0.03, 0.1, 0.3, 1].filter(v => v >= lo && v <= hi)) {
     const yy = y(v).toFixed(1);
-    grid += `<line x1="${mL}" y1="${yy}" x2="${W - mR}" y2="${yy}" stroke="rgba(255,255,255,0.08)"/><text x="${mL - 12}" y="${(+yy + 7).toFixed(1)}" fill="#a3aec0" font-size="22" text-anchor="end" font-family="sans-serif">${fP(v)}</text>`;
+    grid += `<line x1="${mL}" y1="${yy}" x2="${W - mR}" y2="${yy}" stroke="rgba(255,255,255,0.10)"/><text x="${mL - 14}" y="${(+yy + 8).toFixed(1)}" fill="#cbd5e1" font-size="26" font-weight="600" text-anchor="end" font-family="sans-serif">${fP(v)}</text>`;
   }
   let xlab = "";
   for (let yr = new Date(t0).getUTCFullYear(); yr <= new Date(t1).getUTCFullYear(); yr++) {
     const t = Date.UTC(yr, 0, 1); if (t < t0 || t > t1) continue;
-    xlab += `<text x="${x(t).toFixed(1)}" y="${H - 48}" fill="#a3aec0" font-size="24" text-anchor="middle" font-family="sans-serif">${yr}</text>`;
+    xlab += `<text x="${x(t).toFixed(1)}" y="${H - 46}" fill="#cbd5e1" font-size="26" font-weight="600" text-anchor="middle" font-family="sans-serif">${yr}</text>`;
   }
 
   const curX = x(t1), curY = y(spotNow);
@@ -62,11 +62,12 @@ export function floorModelSvg(stats, opts = {}) {
     : `${(spotNow / rpNow).toFixed(2)}× cost basis`;
 
   // right-edge band labels
-  const lbl = (v, c, txt) => `<text x="${W - mR + 8}" y="${(y(v) + 6).toFixed(1)}" fill="${c}" font-size="19" font-weight="700" font-family="sans-serif">${esc(txt)}</text>`;
+  const lbl = (v, c, txt) => `<text x="${W - mR + 8}" y="${(y(v) + 7).toFixed(1)}" fill="${c}" font-size="22" font-weight="700" font-family="sans-serif">${esc(txt)}</text>`;
 
   return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
 <defs>
 <linearGradient id="fmbg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#0b0b16"/><stop offset="100%" stop-color="#05050e"/></linearGradient>
+<linearGradient id="fmfloor" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="${FLOOR_C}" stop-opacity="0.16"/><stop offset="100%" stop-color="#22d38a" stop-opacity="0.34"/></linearGradient>
 <filter id="fmglow" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="4.5"/></filter>
 </defs>
 <rect width="${W}" height="${H}" fill="url(#fmbg)"/>
@@ -74,9 +75,9 @@ export function floorModelSvg(stats, opts = {}) {
 <text x="60" y="90" fill="#94a3b8" font-size="21" font-family="sans-serif">Where has price kept finding a floor vs what holders paid?</text>
 <text x="60" y="130" fill="${SPOT_C}" font-size="27" font-weight="800" font-family="sans-serif">${fP(spotNow)} spot · ${fP(rpNow)} cost basis — ${esc(state)}</text>
 ${grid}${xlab}
-<polygon points="${bandPoly}" fill="${FLOOR_C}" fill-opacity="0.12"/>
-<polyline points="${up08}" fill="none" stroke="${FLOOR_C}" stroke-width="2" stroke-opacity="0.75" stroke-dasharray="6 6"/>
-<polyline points="${up05}" fill="none" stroke="${DEEP_C}" stroke-width="2" stroke-opacity="0.7" stroke-dasharray="4 7"/>
+<polygon points="${bandPoly}" fill="url(#fmfloor)"/>
+<polyline points="${up08}" fill="none" stroke="${FLOOR_C}" stroke-width="2.5" stroke-opacity="0.9" stroke-dasharray="6 6"/>
+<polyline points="${up05}" fill="none" stroke="${DEEP_C}" stroke-width="2.5" stroke-opacity="0.85" stroke-dasharray="4 7"/>
 <polyline points="${rpLine}" fill="none" stroke="${RP_C}" stroke-width="3.5" stroke-linejoin="round" stroke-linecap="round"/>
 <polyline points="${spotLine}" fill="none" stroke="${SPOT_C}" stroke-width="8" stroke-opacity="0.20" stroke-linejoin="round" stroke-linecap="round" filter="url(#fmglow)"/>
 <polyline points="${spotLine}" fill="none" stroke="${SPOT_C}" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>

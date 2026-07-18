@@ -29,20 +29,22 @@ export function piCycleSvg(stats, opts = {}) {
 
   // Zones: top = SPX-calibrated (p90); accumulation (0.4–0.5) + deep (<0.4) = fixed BTC levels
   // that transfer cleanly to SPX; the 0.5→top middle stays neutral.
-  const band = (v1, v2, c, o = 0.13) => `<rect x="${mL}" y="${y(v2).toFixed(1)}" width="${pW}" height="${(y(v1) - y(v2)).toFixed(1)}" fill="${c}" fill-opacity="${o}"/>`;
-  const zones = band(z.top, ymax, "#f87171") + band(z.accum, z.top, "#64748b", 0.05) + band(z.deep, z.accum, "#38bdf8") + band(ymin, z.deep, "#4ade80");
+  // Discrete valuation bands — vivid colours at ~0.26 opacity so they POP (was a dim 0.13);
+  // the neutral 0.5→top middle stays faint so it reads as "no man's land".
+  const band = (v1, v2, c, o = 0.26) => `<rect x="${mL}" y="${y(v2).toFixed(1)}" width="${pW}" height="${(y(v1) - y(v2)).toFixed(1)}" fill="${c}" fill-opacity="${o}"/>`;
+  const zones = band(z.top, ymax, "#fb7185") + band(z.accum, z.top, "#64748b", 0.06) + band(z.deep, z.accum, "#38bdf8") + band(ymin, z.deep, "#4ade80");
   let gy = "";
   for (const v of [0.2, 0.4, 0.5, 0.75, 1, 1.25, 1.5].filter(v => v <= ymax)) {
     const yy = y(v).toFixed(1);
-    gy += `<line x1="${mL}" y1="${yy}" x2="${W - mR}" y2="${yy}" stroke="rgba(255,255,255,0.06)"/><text x="${mL - 8}" y="${(+yy + 5).toFixed(1)}" fill="#64748b" font-size="18" text-anchor="end" font-family="sans-serif">${v.toFixed(2)}</text>`;
+    gy += `<line x1="${mL}" y1="${yy}" x2="${W - mR}" y2="${yy}" stroke="rgba(255,255,255,0.12)"/><text x="${mL - 12}" y="${(+yy + 8).toFixed(1)}" fill="#e2e8f0" font-size="25" font-weight="600" text-anchor="end" font-family="sans-serif">${v.toFixed(2)}</text>`;
   }
   let gx = "";
   for (let yr = new Date(t0).getUTCFullYear(); yr <= new Date(t1).getUTCFullYear(); yr++) for (const mo of [0, 6]) {
     const t = Date.UTC(yr, mo, 1); if (t < t0 || t > t1) continue;
-    gx += `<text x="${x(t).toFixed(1)}" y="${H - 42}" fill="#64748b" font-size="18" text-anchor="middle" font-family="sans-serif">${fMon(t)}</text>`;
+    gx += `<text x="${x(t).toFixed(1)}" y="${H - 40}" fill="#cbd5e1" font-size="23" font-weight="600" text-anchor="middle" font-family="sans-serif">${fMon(t)}</text>`;
   }
-  const thr = (v, c, lab) => `<line x1="${mL}" y1="${y(v).toFixed(1)}" x2="${W - mR}" y2="${y(v).toFixed(1)}" stroke="${c}" stroke-width="1.6" stroke-dasharray="6 4"/>`
-    + `<text x="${W - mR - 6}" y="${(y(v) - 8).toFixed(1)}" fill="${c}" font-size="16" text-anchor="end" font-family="sans-serif">${lab}</text>`;
+  const thr = (v, c, lab) => `<line x1="${mL}" y1="${y(v).toFixed(1)}" x2="${W - mR}" y2="${y(v).toFixed(1)}" stroke="${c}" stroke-width="1.8" stroke-dasharray="6 4"/>`
+    + `<text x="${W - mR - 6}" y="${(y(v) - 10).toFixed(1)}" fill="${c}" font-size="20" font-weight="700" text-anchor="end" font-family="sans-serif">${lab}</text>`;
 
   return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
 <defs>
@@ -56,14 +58,14 @@ export function piCycleSvg(stats, opts = {}) {
 <text x="${W - 40}" y="58" fill="${st.color}" font-size="40" font-weight="800" text-anchor="end" font-family="sans-serif">${cur.ratio.toFixed(2)}</text>
 <text x="${W - 40}" y="90" fill="#94a3b8" font-size="19" font-family="sans-serif" text-anchor="end">${pct}th %ile</text>
 ${zones}${gy}${gx}
-<line x1="${mL}" y1="${y(z.btcTop).toFixed(1)}" x2="${W - mR}" y2="${y(z.btcTop).toFixed(1)}" stroke="#64748b" stroke-width="1.4" stroke-dasharray="3 5"/><text x="${W - mR - 6}" y="${(y(z.btcTop) - 8).toFixed(1)}" fill="#64748b" font-size="15" text-anchor="end" font-family="sans-serif">Bitcoin's top ▸ 1.0</text>
+<line x1="${mL}" y1="${y(z.btcTop).toFixed(1)}" x2="${W - mR}" y2="${y(z.btcTop).toFixed(1)}" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="3 5"/><text x="${W - mR - 6}" y="${(y(z.btcTop) - 9).toFixed(1)}" fill="#cbd5e1" font-size="18" font-weight="600" text-anchor="end" font-family="sans-serif">Bitcoin's top ▸ 1.0</text>
 ${thr(z.top, "#f87171", `SPX top ▸ ${z.top.toFixed(2)}`)}
 ${thr(z.accum, "#38bdf8", "accumulation ▸ 0.5")}
 <polygon points="${area}" fill="url(#pcf)"/>
 <polyline points="${line}" fill="none" stroke="#a78bfa" stroke-width="10" stroke-opacity="0.16" filter="url(#pcg)"/>
 <polyline points="${line}" fill="none" stroke="#a78bfa" stroke-width="4.5" stroke-linejoin="round"/>
-<circle cx="${x(peak.ts).toFixed(1)}" cy="${y(peak.ratio).toFixed(1)}" r="6" fill="#f87171"/>
-<text x="${x(peak.ts).toFixed(1)}" y="${(y(peak.ratio) - 14).toFixed(1)}" fill="#f87171" font-size="16" font-weight="700" text-anchor="middle" font-family="sans-serif">peak ${peak.ratio.toFixed(2)} · ${fMon(peak.ts)}</text>
+<circle cx="${x(peak.ts).toFixed(1)}" cy="${y(peak.ratio).toFixed(1)}" r="7" fill="#fb7185"/>
+<text x="${x(peak.ts).toFixed(1)}" y="${(y(peak.ratio) - 20).toFixed(1)}" fill="#fda4af" font-size="19" font-weight="700" text-anchor="middle" font-family="sans-serif">peak ${peak.ratio.toFixed(2)} · ${fMon(peak.ts)}</text>
 <circle cx="${x(cur.ts).toFixed(1)}" cy="${y(cur.ratio).toFixed(1)}" r="8" fill="${st.color}" stroke="#05050e" stroke-width="2"/>
 <text x="60" y="${H - 16}" fill="#64748b" font-size="17" font-family="sans-serif">${esc("spx6900rainbow.xyz · a Bitcoin indicator applied to SPX, for context · not financial advice")}</text>
 </svg>`;

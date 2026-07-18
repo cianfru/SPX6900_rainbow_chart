@@ -29,22 +29,29 @@ export function mvrvTrendSvg(stats, opts = {}) {
   const ymin = Math.min(sorted[0], mvrv) * 0.9, ymax = sorted.at(-1) * 1.05;
   const y = v => mT + ((Math.log(ymax) - Math.log(Math.max(v, 1e-9))) / ((Math.log(ymax) - Math.log(ymin)) || 1)) * pH;
 
-  // Valuation zones from SPX's OWN quantiles — colour context only (unlabelled; the
-  // tweet explains it). Warm at top = historically pricey, cool at bottom = cheap.
-  const zband = (v1, v2, fill, op) => (v1 != null && v2 != null && v2 > v1)
+  // Valuation zones from SPX's OWN quantiles. Warm at top = historically pricey, cool
+  // at bottom = cheap. Edge-bright gradients (vivid at the OUTER edge, fading toward the
+  // middle where the purple line lives) so the bands POP without muddying the line;
+  // grey mid stays a faint flat wash. Right-edge labels sit clear of the line.
+  const zbandGrad = (v1, v2, grad) => (v1 != null && v2 != null && v2 > v1)
+    ? `<rect x="${mL}" y="${y(v2).toFixed(1)}" width="${pW}" height="${(y(v1) - y(v2)).toFixed(1)}" fill="url(#${grad})"/>` : "";
+  const zbandFlat = (v1, v2, fill, op) => (v1 != null && v2 != null && v2 > v1)
     ? `<rect x="${mL}" y="${y(v2).toFixed(1)}" width="${pW}" height="${(y(v1) - y(v2)).toFixed(1)}" fill="${fill}" fill-opacity="${op}"/>` : "";
   const zHi = q(0.66), zLo = q(0.33);
-  const zones = zband(zHi, ymax, "#f87171", 0.18) + zband(zLo, zHi, "#94a3b8", 0.06) + zband(ymin, zLo, "#38bdf8", 0.16);
+  const zones = zbandGrad(zHi, ymax, "mtHot") + zbandFlat(zLo, zHi, "#94a3b8", 0.06) + zbandGrad(ymin, zLo, "mtCool");
+  const zoneLabels =
+    `<text x="${W - mR - 12}" y="${(y(ymax) + 34).toFixed(1)}" fill="#fecaca" font-size="21" font-weight="700" text-anchor="end" font-family="sans-serif">pricey</text>`
+    + `<text x="${W - mR - 12}" y="${(y(ymin) - 18).toFixed(1)}" fill="#bae6fd" font-size="21" font-weight="700" text-anchor="end" font-family="sans-serif">cheap</text>`;
 
   let grid = "";
   for (const v of [0.25, 0.5, 1, 2, 3, 5].filter(v => v >= ymin && v <= ymax)) {
     const yy = y(v).toFixed(1);
-    grid += `<line x1="${mL}" y1="${yy}" x2="${W - mR}" y2="${yy}" stroke="rgba(255,255,255,0.09)"/><text x="${mL - 12}" y="${(+yy + 7).toFixed(1)}" fill="#a3aec0" font-size="23" text-anchor="end" font-family="sans-serif">${fMvrv(v)}</text>`;
+    grid += `<line x1="${mL}" y1="${yy}" x2="${W - mR}" y2="${yy}" stroke="rgba(255,255,255,0.12)"/><text x="${mL - 14}" y="${(+yy + 8).toFixed(1)}" fill="#e2e8f0" font-size="27" font-weight="600" text-anchor="end" font-family="sans-serif">${fMvrv(v)}</text>`;
   }
   let xlab = "";
   for (let yr = new Date(t0).getUTCFullYear(); yr <= new Date(t1).getUTCFullYear(); yr++) {
     const t = Date.UTC(yr, 0, 1); if (t < t0 || t > t1) continue;
-    xlab += `<text x="${x(t).toFixed(1)}" y="${H - 48}" fill="#a3aec0" font-size="24" text-anchor="middle" font-family="sans-serif">${yr}</text>`;
+    xlab += `<text x="${x(t).toFixed(1)}" y="${H - 46}" fill="#cbd5e1" font-size="26" font-weight="600" text-anchor="middle" font-family="sans-serif">${yr}</text>`;
   }
 
   // MVRV line + area fill (glow underlay for punch, per the card visual-impact pass).
@@ -61,13 +68,15 @@ export function mvrvTrendSvg(stats, opts = {}) {
 <defs>
 <linearGradient id="mtbg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#0b0b16"/><stop offset="100%" stop-color="#05050e"/></linearGradient>
 <linearGradient id="mtfill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="${SPX_C}" stop-opacity="0.32"/><stop offset="60%" stop-color="${SPX_C}" stop-opacity="0.08"/><stop offset="100%" stop-color="${SPX_C}" stop-opacity="0"/></linearGradient>
+<linearGradient id="mtHot" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#fb7185" stop-opacity="0.5"/><stop offset="100%" stop-color="#fb7185" stop-opacity="0.05"/></linearGradient>
+<linearGradient id="mtCool" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#38bdf8" stop-opacity="0.05"/><stop offset="100%" stop-color="#38bdf8" stop-opacity="0.5"/></linearGradient>
 <filter id="mtglow" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="4.5"/></filter>
 </defs>
 <rect width="${W}" height="${H}" fill="url(#mtbg)"/>
 <text x="60" y="56" fill="#e2e8f0" font-size="36" font-weight="800" font-family="sans-serif" letter-spacing="1">SPX6900 — MVRV OVER TIME</text>
 <text x="60" y="90" fill="#94a3b8" font-size="21" font-family="sans-serif">Is the average holder up or down on what they paid? Below 1× = underwater.</text>
 <text x="60" y="128" fill="${SPX_C}" font-size="28" font-weight="800" font-family="sans-serif">${fMvrv(mvrv)} — ${state}</text>
-${zones}${grid}${xlab}
+${zones}${grid}${xlab}${zoneLabels}
 <polygon points="${area}" fill="url(#mtfill)"/>
 <line x1="${mL}" y1="${beY}" x2="${W - mR}" y2="${beY}" stroke="#4ade80" stroke-width="2" stroke-opacity="0.9" stroke-dasharray="7 6"/>
 <text x="${W - mR - 8}" y="${(+beY - 10).toFixed(1)}" fill="#86efac" font-size="20" font-weight="700" text-anchor="end" font-family="sans-serif">break-even 1×</text>
