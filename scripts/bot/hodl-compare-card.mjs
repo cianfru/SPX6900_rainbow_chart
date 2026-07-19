@@ -57,7 +57,12 @@ export function hodlCompareSvg(stats, opts = {}) {
   const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 84, mR = 168;
   const pw = W - mL - mR;
   const x = ax => mL + (ax / (maxAge || 1)) * pw;
-  const pAy = 118, pBy = 356, ph = 196;
+  // Vertical layout derived from H so the two panels FILL any aspect ratio (the card
+  // posts at the taller landscape AR — hardcoded y's left the bottom empty).
+  const top = 96, hdrH = 34, footY = H - 16;
+  const xLabY = footY - 34, panelBot = xLabY - 26; // reserve room for the age labels + footer
+  const ph = (panelBot - top - 2 * hdrH) / 2;
+  const pAy = top + hdrH, pBy = pAy + ph + hdrH;
 
   const panels = panel(spx, x, pAy, ph, "SPX6900", spxOld) + panel(btc, x, pBy, ph, "Bitcoin", btcOld);
 
@@ -65,16 +70,17 @@ export function hodlCompareSvg(stats, opts = {}) {
   let xax = "";
   for (let yr = 0; yr <= Math.round(maxAge); yr++) {
     if (yr > maxAge + 0.05) continue;
-    xax += `<line x1="${x(yr).toFixed(1)}" y1="${pBy + ph}" x2="${x(yr).toFixed(1)}" y2="${pBy + ph + 8}" stroke="#8592a6" stroke-width="1.5"/>`
-      + `<text x="${x(yr).toFixed(1)}" y="${(pBy + ph + 30).toFixed(1)}" fill="#cbd5e1" font-size="21" font-weight="600" text-anchor="middle" font-family="sans-serif">${yr === 0 ? "launch" : yr + "yr"}</text>`;
+    xax += `<line x1="${x(yr).toFixed(1)}" y1="${panelBot.toFixed(1)}" x2="${x(yr).toFixed(1)}" y2="${(panelBot + 8).toFixed(1)}" stroke="#8592a6" stroke-width="1.5"/>`
+      + `<text x="${x(yr).toFixed(1)}" y="${xLabY.toFixed(1)}" fill="#cbd5e1" font-size="21" font-weight="600" text-anchor="middle" font-family="sans-serif">${yr === 0 ? "launch" : yr + "yr"}</text>`;
   }
 
-  // band legend, right gutter
+  // band legend, right gutter — vertically centred on the two-panel region
   let legend = "";
+  const legMid = (pAy + pBy + ph) / 2;
   for (let i = 4; i >= 0; i--) {
-    const ly = 200 + (4 - i) * 36;
-    legend += `<rect x="${W - mR + 26}" y="${ly - 15}" width="18" height="18" rx="3" fill="${BANDS[i].c}"/>`
-      + `<text x="${W - mR + 52}" y="${ly}" fill="#e2e8f0" font-size="20" font-weight="600" font-family="sans-serif">${esc(BANDS[i].label)}</text>`;
+    const ly = legMid - 72 + (4 - i) * 36;
+    legend += `<rect x="${W - mR + 26}" y="${(ly - 15).toFixed(1)}" width="18" height="18" rx="3" fill="${BANDS[i].c}"/>`
+      + `<text x="${W - mR + 52}" y="${ly.toFixed(1)}" fill="#e2e8f0" font-size="20" font-weight="600" font-family="sans-serif">${esc(BANDS[i].label)}</text>`;
   }
 
   return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
