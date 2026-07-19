@@ -105,17 +105,23 @@ export function replayFifo(transfers, priceAt, sampleTs, opts = {}) {
     return { val, cost };
   };
 
+  const recv = t => { if (t.to && !exclude.has(t.to)) { const price = priceAt(t.ts); if (price != null) { const e = get(t.to); e.q.push({ ts: t.ts, price, qty: t.amt }); e.bal += t.amt; } } };
+  const send = t => { if (t.from && !exclude.has(t.from)) { const e = wallets.get(t.from); if (e) { const sp = priceAt(t.ts); const { val, cost } = consume(e, t.amt, sp ?? 0); if (sp != null) { winVal += val; winCost += cost; } } } };
+
   const rows = [];
   let p = 0, winVal = 0, winCost = 0; // per-sample-window spend accumulators (SOPR)
   for (const sTs of sampleTs) {
-    // replay all transfers up to and including this sample day
+    // Replay up to this sample, ONE BLOCK (same timestamp) at a time — applying every
+    // RECEIVE before every SEND in the block. block_timestamp is per-block, second-
+    // granularity, and the extract has no tx/log index to resolve intra-block order; a
+    // send processed before its same-block receive would hit an empty balance, skip the
+    // consume, and leave a phantom balance (inflating held supply ~1.75×). Receives-first
+    // fixes that without needing the ordering columns.
     while (p < tx.length && tx[p].ts <= sTs) {
-      const t = tx[p++];
-      if (t.from && !exclude.has(t.from)) {
-        const e = wallets.get(t.from);
-        if (e) { const sp = priceAt(t.ts); const { val, cost } = consume(e, t.amt, sp ?? 0); if (sp != null) { winVal += val; winCost += cost; } }
-      }
-      if (t.to && !exclude.has(t.to)) { const price = priceAt(t.ts); if (price != null) { const e = get(t.to); e.q.push({ ts: t.ts, price, qty: t.amt }); e.bal += t.amt; } }
+      const ts0 = tx[p].ts, start = p;
+      while (p < tx.length && tx[p].ts === ts0) p++;
+      for (let k = start; k < p; k++) recv(tx[k]);
+      for (let k = start; k < p; k++) send(tx[k]);
     }
     const row = snapshot(wallets, sTs, priceAt(sTs), thr);
     // SOPR for this window = realized value ÷ cost of all coins that MOVED since the
@@ -241,7 +247,9 @@ async function main() {
   const priced = await loadPrices(pPath);
   console.log(`loaded ${transfers.length} transfers, ${priced.length} price days`);
   const priceAt = makePriceAt(priced);
-  const t0 = Math.min(...transfers.map(t => t.ts)), t1 = Math.max(...transfers.map(t => t.ts));
+  // reduce, NOT Math.min(...arr) — spreading millions of args overflows the call stack.
+  let t0 = Infinity, t1 = -Infinity;
+  for (const t of transfers) { if (t.ts < t0) t0 = t.ts; if (t.ts > t1) t1 = t.ts; }
   const grid = args.daily
     ? Array.from({ length: Math.floor((t1 - t0) / DAY) + 2 }, (_, i) => dayFloor(t0) + i * DAY)
     : mondays(t0, t1);
