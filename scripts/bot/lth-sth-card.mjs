@@ -3,7 +3,7 @@
 // diamond base, vs short-term) and by whether it's in PROFIT or LOSS vs spot. Four stacked
 // bands over the full history. The on-brand read: the long-term block dominates AND much of
 // it sits underwater yet unmoved = conviction, not capitulation. Data: stats.fifo
-// (lthProfit/lthLoss/sthProfit/sthLoss, src/spx-fifo.js). A holder-behaviour POSITION, not a
+// (lthProfit/lthLoss/sthProfit/sthLoss, src/spx-onchain.js). A holder-behaviour POSITION, not a
 // signal. Clean/colourful in the HODL-waves house style the owner favours.
 import { Resvg } from "@resvg/resvg-js";
 import { FONT } from "./font.mjs";

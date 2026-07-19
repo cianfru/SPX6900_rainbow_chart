@@ -362,14 +362,27 @@
       default (gloomy-leaning; owner curates via the ⊘ toggle).
     - **`sopr`** (`scripts/bot/sopr-card.mjs`, LOOK "dual") — spent-output profit ratio oscillator, green/red zones at
       break-even 1.0. Today **0.97** (coins moving at a slight loss). ROTATION-EXCLUDED by default (techy; toggleable).
-    - **⭐ AGE-BAND METHODOLOGY NOTE (a live decision for the owner):** the FIFO **per-lot** age legitimately differs
-      from Dune's **per-address** age — Dune resets a whole address's age on ANY receive (a whale's small top-up flips
-      its entire balance to "0–1m fresh"), so Dune reads 0–1m 16.5% / 1y+ 37.7% while FIFO reads 0–1m 5.0% / **1y+
-      52.9%**. FIFO is the TRUE coin age and is exactly BTC's UTXO method — so swapping the age-based cards (hodlwaves /
-      hodlcompare / freefloat / concentration) to the FIFO bundle would make the SPX-vs-BTC HODL comparison
-      methodologically CONSISTENT (both per-lot) AND strengthen the diamond story (53% vs BTC 30% at same age). LEFT ON
-      THE DUNE BUNDLE for now (didn't want to silently change the owner's favourite cards' headline numbers + it'd need
-      the CI onchain.yml Dune refresh reconciled/retired). **Owner decision pending:** swap those cards to FIFO too?
+    - **✅ AGE-BAND SWAP DONE — FIFO IS NOW THE SINGLE ON-CHAIN SOURCE (owner: "be consistent with data", 2026-07-19).**
+      The FIFO **per-lot** age differs from Dune's **per-address** age — Dune reset a whole address's age on ANY receive
+      (a whale's small top-up flipped its entire balance to "0–1m fresh"), reading 0–1m 16.5% / 1y+ 37.7%; FIFO reads
+      0–1m 5.0% / **1y+ 52.9%** = the TRUE coin age, exactly BTC's UTXO method. Owner chose consistency, so ALL on-chain
+      surfaces now read ONE FIFO series:
+        • **`src/spx-onchain.js` REGENERATED from the FIFO output** (kept the `SPX_ONCHAIN` export name + shape, now a
+          superset with per-lot age + sopr + LTH/STH). Every reader — 8 site charts + all bot cards — picks it up with
+          NO rewiring. **`public/onchain.json` RESEEDED with the same FIFO data** (the site fetches it at runtime; the
+          bot prefers it). `stats.onchain` and `stats.fifo` are now the SAME array (`src/spx-fifo.js` DELETED, the temp
+          split-bundle from the first pass — no data duplication). `public/urpd.json` seeded too.
+        • **`.github/workflows/onchain.yml` (the Dune weekly master-query refresh) DELETED** — it would have re-clobbered
+          public/onchain.json back to per-address age. Matches the chain-wallets.yml precedent + the "local FIFO replaces
+          the Dune master query" philosophy. The dune/*.sql + `scripts/build-onchain.mjs` stay as dormant REFERENCE.
+        • **Consequence:** the on-chain series no longer auto-refreshes weekly — it refreshes when the owner runs the
+          free BigQuery extract + Claude re-bundles (the same snapshot-forward, zero-Dune model already used for wallet
+          growth). These metrics are slow-moving (cosmetically invisible when a few weeks stale); realized price for the
+          `mvrv` page still forward-fills daily via HolderScan `be` (independent of onchain.json). To refresh: re-run the
+          FIFO engine on a fresh extract → `node scratchpad bundle` regenerates spx-onchain.js + public/onchain.json.
+      **New card headlines after the swap** (all recompute live, verified): hodlwaves **53%** 1y+ (was 38%); hodlcompare
+      SPX **53%** vs BTC **30%** at the same age (now apples-to-apples, both per-lot/UTXO); freefloat **22%** liquid vs
+      BTC **48%** ("locked up faster than the king"); concentration unchanged (top-N reconciles). supplyprofit sip 45%.
     - **Refresh:** re-run `node scripts/build-onchain-local.mjs --transfers=X.csv --prices=<from spx-daily.js>` on a
       fresh extract → re-bundle spx-fifo.js/spx-urpd.js. $0, no Dune, no key. For EXACT intra-block ordering on a future
       extract, add `block_number`+`log_index` to the SQL and sort by them (drops the receives-first heuristic).

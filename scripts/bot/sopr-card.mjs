@@ -3,7 +3,7 @@
 // week, from the LOCAL FIFO per-lot engine. Above 1 = coins moving at a profit (green),
 // below 1 = at a loss / capitulation (red). The classic Glassnode oscillator, pinned at the
 // 1.0 break-even. Bottoms cluster where SOPR dips under 1 and holders refuse to realise
-// losses. Data: stats.fifo (sopr per weekly window, src/spx-fifo.js). A behaviour POSITION,
+// losses. Data: stats.fifo (sopr per weekly window, src/spx-onchain.js). A behaviour POSITION,
 // not a signal. Edge-bright zones in the HODL-waves house style.
 import { Resvg } from "@resvg/resvg-js";
 import { FONT } from "./font.mjs";
