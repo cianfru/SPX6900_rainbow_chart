@@ -1246,12 +1246,12 @@ Up in dollars is easy in a bull market. Up in BTC is the truer scoreboard.`,
     const ofAll = Math.round(s.supply.diamondShare * 100); // same diamond tokens, but ÷ TOTAL supply
     return {
     id: "distribution",
-    text: ct`💎 ~${diamondPct}% of SPX6900's classified holder supply is diamond hands — about ~${ofAll}% of all coins in circulation.
+    text: ct`💎 ~${diamondPct}% of SPX6900's classified holder supply is held 90 days+ — about ~${ofAll}% of all coins in circulation.
 Same coins, two denominators: HolderScan only tiers identified wallets, so exchanges, LPs and contracts sit outside this slice.
 High conviction, thin float.`,
     card: { type: "donut", spec: {
-      title: "Conviction of classified holder supply", headline: `${diamondPct}% diamond hands`, accent: "#22d3ee",
-      footer: `${diamondPct}% of classified ≈ ${ofAll}% of all supply · excludes exchanges, LPs & contracts`,
+      title: "Conviction of classified holder supply", headline: `${diamondPct}% held 90d+`, accent: "#22d3ee",
+      footer: `${diamondPct}% of classified ≈ ${ofAll}% of supply · held 90d+ · excludes exchanges, LPs, contracts`,
       legendUnit: "of classified",
       center: { big: `${diamondPct}%`, small: "of classified" },
       segments: TIERS.map(([k, label, c]) => ({ label, value: s.supply.tiers[k], color: c })),
@@ -1304,12 +1304,12 @@ ${up ? "Most of the float is green and still holding." : "Red and still not sell
     return {
       id: "diamondtrend",
       text: copy("diamondtrend",
-`💎 Diamond hands hold ~{pct}% of all SPX6900 supply ({value}) — the float that rarely moves.
+`💎 Long-term holders (90 days+) hold ~{pct}% of all SPX6900 supply ({value}) — the float that rarely moves.
 That's {cpct}% of classified holders (HolderScan's number); the gap is coins on exchanges & in LPs.
 {trend}.`,
         { pct: Math.round(nowPct), cpct, value: fMoney(s.supply.diamondValue), trend }),
       card: { type: "line", spec: {
-        title: "Diamond hands — share of total supply over time", headline: cpct ? `${Math.round(nowPct)}% of supply · ${cpct}% of classified` : `${Math.round(nowPct)}% diamond supply`, accent: "#22d3ee",
+        title: "Long-term holders (90d+) — share of total supply over time", headline: cpct ? `${Math.round(nowPct)}% of supply · ${cpct}% of classified` : `${Math.round(nowPct)}% held 90d+`, accent: "#22d3ee",
         yMin: lo - pad, yMax: hi + pad, yFmt: v => v.toFixed(decimals) + "%",
         series: [{ pts: ds, color: "#22d3ee", width: 3.5, fill: 0.18 }],
         marker: { x: ds.at(-1)[0], y: ds.at(-1)[1], color: "#22d3ee" },
@@ -1893,12 +1893,15 @@ const weightOf = id => WEIGHT[id] ?? (BULLISH.has(id) ? 2 : 1);
 // the monthly-returns card covers the same honesty without the gloom. The risk
 // line is here because the fngtrend card now plots it next to crypto Fear &
 // Greed, so the standalone is redundant in the feed.
-// distribution + diamondtrend read HolderScan's opaque "conviction tiers" (the 86%-of-
-// classified / 61%-of-supply diamond framing). The transparent FIFO age-band cards —
-// hodlwaves (age over time), supplyprofit and hodlcompare — now tell the same story as a
-// clean % of supply, so the HolderScan pair is sunset from the auto-feed (still buildable
-// + hand-postable) to keep the on-chain numbers consistent site-wide.
-const NO_ROTATE = new Set(["drawdown", "risk", "kraken", "dcaladder", "distribution", "diamondtrend"]);
+// NOTE on distribution + diamondtrend (HolderScan "diamond" tier): HolderScan classifies
+// diamond as wallets holding >90 DAYS — the SAME cohort as our FIFO long-term holders (lthsth,
+// >90d) — and the two RECONCILE (~86% of holder supply / ~61% of total). They are NOT in
+// conflict with the FIFO cards; the apparent 61-vs-53 gap was a threshold mismatch (>90d
+// diamond vs the 1-year+ hodlwaves band). KEPT IN ROTATION on purpose: HolderScan pulls
+// DAILY (auto) while the FIFO series is manual until the BigQuery daily pipeline is built, so
+// HolderScan is the daily-fresh bridge for now. FIFO is the long-term source — migrate these
+// two to FIFO once daily BigQuery lands. (owner call 2026-07-19)
+const NO_ROTATE = new Set(["drawdown", "risk", "kraken", "dcaladder"]);
 
 // Owner-editable rotation exclusions — cards kept BUILDABLE + visible in the control
 // panel (and hand-postable) but held OUT of the organic daily rotation. Toggled from

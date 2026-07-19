@@ -390,25 +390,30 @@
       drag-zoom). All in the On-Chain group (charts-catalog.js) + App.jsx (lazy + icon + switch), each with an `<Explain>`
       box. Browser-verified via Playwright — all three pages + gallery previews render clean, zero JS errors. They read the
       SAME `/onchain.json` (FIFO) as the cards, so site + cards never drift.
-    - **✅ HOLDERSCAN-TIER CARDS REALIGNED/SUNSET FOR CONSISTENCY 2026-07-19 (owner: "align the full website").**
-      After the FIFO swap, three "how much is locked/diamond" numbers coexisted: HolderScan diamond (61% of supply /
-      86% of classified — `marketcap`/`distribution`/`diamondtrend`), FIFO 1y+ (53% — hodlwaves/hodlcompare/freefloat),
-      FIFO LTH>90d (86% — lthsth). The sharp clash was FLOAT: `marketcap` said "39% free float" (from HolderScan diamond)
-      while `freefloat` said "22% liquid". Fixes:
-        • **`marketcap` REALIGNED** — locked/float now from the SAME FIFO age bands as the freefloat card (free float =
-          moved in last 6 months = 22%, locked = held 6m+ = 78%), dropping the HolderScan diamond dependency. marketcap
-          and freefloat now read the identical 22% float. Gated on `s.onchain>=50`; copy 279 xLen.
-        • **`distribution` + `diamondtrend` SUNSET into `NO_ROTATE`** — the opaque HolderScan conviction-tier framing is
-          superseded by the transparent FIFO cards (hodlwaves/supplyprofit/hodlcompare). Still buildable + hand-postable
-          + visible in the panel, just out of the auto-feed. (NOT rotation-excludes.json — that's the owner's live
-          curation file; this is a code-level data-quality sunset, same bucket as the redundant `risk`/`drawdown`.)
-        • **Site `HolderscanDashboard`** — dropped the one inline "61% of supply in diamond hands" caption (kept holder
-          count + avg cost basis, both legit live HolderScan). Removed the now-unused SUPPLY import.
-        • **🔲 STILL TO DECIDE (owner) — the `supply` gallery tile ("Holder Conviction", `SupplyConviction.jsx`)** is the
-          live-HolderScan conviction-tier donut = the direct SITE twin of the sunset `distribution` card (shows 86%/61%).
-          hodlwaves is its transparent interactive replacement in the same On-Chain group. RECOMMEND removing the tile
-          from charts-catalog (sunset the page) OR rebuilding it from FIFO age bands — left for the owner to confirm
-          before deleting a whole page. Everything else is aligned.
+    - **✅ HOLDERSCAN vs FIFO ALIGNED — "COMMON GROUND = >90-DAY HOLDER" (owner clarified 2026-07-19).** I first mis-read
+      an inconsistency and sunset the HolderScan cards; the OWNER CORRECTED the framing and I reversed it:
+        • **THE KEY FACT: HolderScan "diamond" = wallets holding >90 DAYS — the SAME cohort as our FIFO LTH (lthsth, >90d).**
+          They RECONCILE: HolderScan diamond 86% of classified / **61% of supply** ≈ FIFO LTH >90d **86% of holders / ~63%
+          of supply**. NOT a conflict. My false alarm (61 vs 53) was a THRESHOLD MISMATCH — I compared HolderScan's >90d
+          diamond against the FIFO **1-year+** hodlwaves band (53%), a stricter cohort. Three clearly-labelled thresholds
+          now coexist without contradiction: **>90d "diamond / long-term"** (distribution/diamondtrend/lthsth ≈ 86% holders
+          / 61% supply), **1y+** (hodlwaves 53%), **moved-in-6mo "free float"** (freefloat/marketcap 22%).
+        • **WHY HOLDERSCAN STAYS (owner's decider): it pulls DAILY (auto) while the FIFO series is MANUAL until the BigQuery
+          daily pipeline is built.** So HolderScan is the daily-fresh BRIDGE for now; **FIFO is the long-term source** —
+          migrate distribution/diamondtrend to FIFO once daily BigQuery lands. So the earlier NO_ROTATE sunset was REVERTED
+          — both stay in rotation.
+        • **`distribution` + `diamondtrend` KEPT in rotation, relabelled to the STANDARD:** "diamond hands" → "held 90 days+"
+          in headlines/copy/footers so the >90d threshold is explicit and they visibly reconcile with FIFO LTH (both 86%).
+          distribution headline "86% held 90d+"; footer "86% of classified ≈ 61% of supply · held 90d+ · excludes
+          exchanges, LPs, contracts". diamondtrend "Long-term holders (90d+) hold ~61% …".
+        • **`marketcap` KEPT on the FIFO free-float basis (22% float / 78% locked)** — "free float / tradable" is the
+          moved-in-6mo concept, so it pairs with the freefloat card (identical 22%), a DIFFERENT metric than the >90d
+          diamond cards (both correct, both labelled). Its $ headline updates daily via live price regardless of the
+          slow-moving float %. (Trivially switchable to the >90d/HolderScan-daily basis if ever wanted.)
+        • **Site `HolderscanDashboard`** — the inline caption reframed "61% in diamond hands" → "61% of supply held 90 days+"
+          (daily-fresh, standard-labelled). SUPPLY import restored.
+        • **Site `SupplyConviction` ("Holder Conviction" tile) KEPT** — it's the live-HolderScan tier donut, daily-fresh, so
+          it stays as the daily bridge (not removed); migrate to FIFO with the other two when BigQuery daily lands.
     - **🔲🔲 OWNER TODO — AUTO-UPDATE THE ON-CHAIN CHARTS via BigQuery (asked 2026-07-19; designed, NOT yet built).**
       **WHAT THIS IS FOR:** right now the whole on-chain suite — the 3 new depth charts (**Cost Basis Distribution / URPD**,
       **Long vs Short-Term Holders**, **SOPR**) PLUS the age-based ones (**HODL waves, Free Float, Supply-in-Profit,
