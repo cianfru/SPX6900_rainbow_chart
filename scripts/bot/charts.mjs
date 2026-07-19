@@ -296,7 +296,15 @@ export function lineCardSvg(spec, opts = {}) {
     let ly = h.py - 9;
     if (ly < lastLabelY + 38) ly = lastLabelY + 38; // keep labels from overlapping
     lastLabelY = ly;
-    hl += `<text x="${DW - mR - 6}" y="${ly.toFixed(1)}" fill="${h.color}" font-size="31" font-weight="700" text-anchor="end" font-family="sans-serif">${esc(h.label)}</text>`;
+    // When end-of-line logos reserve the right gutter, the label must end BEFORE the
+    // gutter (else the logos draw over its tail — the whatnext truncation bug). A dark
+    // chip keeps it readable where it crosses data lines inside the plot.
+    const lxr = hasEndLogos ? mL + PW - 10 : DW - mR - 6;
+    if (h.label) {
+      const lw = String(h.label).length * 15.5 + 18;
+      hl += `<rect x="${(lxr - lw + 6).toFixed(1)}" y="${(ly - 27).toFixed(1)}" width="${lw.toFixed(1)}" height="37" rx="8" fill="rgba(5,5,14,0.78)"/>`;
+      hl += `<text x="${lxr.toFixed(1)}" y="${ly.toFixed(1)}" fill="${h.color}" font-size="31" font-weight="700" text-anchor="end" font-family="sans-serif">${esc(h.label)}</text>`;
+    }
   }
 
   let marker = "";

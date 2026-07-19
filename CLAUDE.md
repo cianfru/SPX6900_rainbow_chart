@@ -253,6 +253,28 @@
   matching cards (mvrvtrend/supplyprofit/floormodel/altmarket/concentration/hodlwaves + reworded mvrvbtc/picycle) —
   hero + plot shifted down (mT bumped ~24px), NUPL card pattern. Tweet copy left as-is (already 3 airy blank-line
   paragraphs leading with a plain hook). Tests green, build clean, browser-verified. Committed 18bff50.
+- **⭐⭐ HODL-WAVES IS THE VISUAL NORTH STAR (owner, 2026-07-18): "clean, colorful, impactful."** The owner's
+  favourite card by far — full-bleed colour, minimal chrome, one big plain-word stat, no gridline clutter. Any
+  new card (and any future visual pass) should aim for that energy. The 2026-07-18 **brightness batch** moved the
+  8 on-chain cards toward it (edge-bright gradient zones — vivid at the outer extreme, fading toward the middle
+  so the line stays clean; vivid #fb7185/#38bdf8; ~26px near-white axis labels weight 600; every label clear of
+  the data lines). `supply-profit-card.mjs` is the template of that recipe.
+- **✅ FULL PROJECT AUDIT (Fable-5 review, 2026-07-18) — 3 defects found & FIXED, roster verdict good.**
+  Rendered all 60+ cards (zero failures), reviewed copy + visuals. Fixed: (1) **`model` copy hit 292 xLen live**
+  (band-label variance; the length test only checked fixed values) → trimmed the template ~12 chars AND the
+  posts length test now checks EVERY post at 3 price points ($0.05 Fire Sale / default / $12 Max Bubble) so
+  value-drift can't slip past again (worst case now 288, whatnext). (2) **whatnext hline label truncated under
+  the right-gutter end-logos** → generic lineCardSvg fix: when end-logos reserve the gutter, plain hline labels
+  anchor INSIDE the plot (mL+PW−10) with a dark chip for legibility over crossing lines. (3) **holdergrowth
+  over-sold flat growth** (zoomed 49.0–49.4k axis made +0.9%/44d look like a surge — the misleading-axis trap)
+  → hero/copy now carry the honest % + "zoomed axis — mind the scale" subtitle, copy closer neutralised
+  ("Holding steady", not "keeps building"), and the card is rotation-EXCLUDED (superseded by holdersprice +
+  walletgrowth; stays visible/monitored per the owner's curation workflow). REMAINING (owner-pass, not bugs):
+  near-duplicate rotation pairs (rally/firesalerally identical stat, milestones/memecoins same hook number,
+  cycle/cycleclock same thesis — consider excluding one of each); mvrvbtc (price÷be) vs mvrvtrend (mvrvSeries)
+  can print two different MVRVs the same day (~0.69 vs 0.67) — unify on one source someday; breakeven hero
+  "−31% avg holder" reads broken + duplicates floormodel. Owner on gloom cards: don't worry — negative cards
+  are hand-curated/excluded and monitored, waiting for better times.
 - **⭐ "GO DEEP ON SPX" RUNWAY — ENGINE READY, WAITING ON ONE CHEAP EXTRACT (2026-07-17).** The runway is NUPL ✅ →
   URPD (cost-basis histogram) → LTH/STH → SOPR, all off ONE cheap raw-transfer extract → the LOCAL FIFO engine
   (`build-onchain-local.mjs`), $0 compute. **Engine EXTENDED this session so the single extract yields ALL FOUR:**

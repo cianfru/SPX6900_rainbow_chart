@@ -53,9 +53,15 @@ test("every post fits X's visible preview (no \"See more\" barrier)", () => {
   // Hook + description + closing + branded footer must stay within X's visible
   // budget so the whole post reads in the timeline. 290 is the safe ceiling;
   // most land 250–280. Promo (kraken) included; its referral URL counts as 23.
-  for (const id of allIds(statsCoins)) {
-    const len = xLen(buildPost(statsCoins, new Date(), id).text);
-    assert.ok(len <= 290, `post "${id}" is ${len} chars — over the 290 visible ceiling`);
+  // Copy length is VALUE-DEPENDENT (band labels like "Fire Sale", big % strings),
+  // so also check at extreme prices spanning the deepest and hottest bands —
+  // otherwise live drift can push a card over the ceiling while the fixed-price
+  // test stays green (the `model` card did exactly this at 292).
+  for (const st of [statsCoins, computeStats(0.05, last.date), computeStats(12, last.date)]) {
+    for (const id of allIds(st)) {
+      const len = xLen(buildPost(st, new Date(), id).text);
+      assert.ok(len <= 290, `post "${id}" is ${len} chars at $${st.price} (${st.band.l}) — over the 290 visible ceiling`);
+    }
   }
 });
 

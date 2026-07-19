@@ -751,9 +751,9 @@ A widely-watched line, not a signal.`,
     const grew = cur.holders - first.holders, ndays = Math.round((cur.ts - first.ts) / 86400000);
     return {
       id: "holdergrowth",
-      text: ct`🧲 SPX6900's holder base has grown to ${cur.holders.toLocaleString()} wallets — ${grew >= 0 ? "+" : ""}${grew.toLocaleString()} in ~${ndays} days.
-New wallets are genuinely new holders (not a tier reclassification), so a rising count is real accumulation — even through the price swings.
-The base keeps building.`,
+      text: ct`🧲 SPX6900's holder base sits at ${cur.holders.toLocaleString()} wallets — ${grew >= 0 ? "+" : ""}${grew.toLocaleString()} (${grew >= 0 ? "+" : ""}${(100 * grew / first.holders).toFixed(1)}%) in ~${ndays} days.
+New wallets are genuinely new holders, not a tier reclassification — the count is the one on-chain metric that can't be faked by coins aging.
+Holding steady through the swings.`,
       card: { type: "holdergrowth" },
     };
   })(),
@@ -1372,7 +1372,7 @@ Each rung is the SPX price whose cap equals BTC's at $1K, $10K, $100K. Bitcoin c
     return {
       id: "model",
       text: ct`📐 How the SPX6900 rainbow is built: a power-law trend fit to price, R² ${m.r2.toFixed(2)}.
-Fit a log-log trend line (fair value), then sort each day's distance into bands: deep blue cheapest ever vs trend, deep red most stretched.
+A log-log trend is fair value; each day's distance from it sorts into bands — deep blue cheapest ever, deep red most stretched.
 Its own history sorted, not vibes. Today ${BAND_EMOJI[s.bandIndex]} ${s.band.l}.`,
       card: { type: "model", spec: {
         title: "How the SPX6900 rainbow is built", headline: `R² ${m.r2.toFixed(2)} fit · ${fPct(s.vsCenter)} vs trend`, accent: "#a78bfa",

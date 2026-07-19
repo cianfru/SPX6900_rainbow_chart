@@ -73,8 +73,8 @@ ${grid}${xlab}
 <path d="${hPath}" fill="none" stroke="${HOLD}" stroke-width="6" stroke-linejoin="round"/>
 <circle cx="${x(cur.ts).toFixed(1)}" cy="${yH(cur.holders).toFixed(1)}" r="8" fill="${HOLD}" stroke="#05050e" stroke-width="2"/>
 <text x="64" y="50" fill="#e2e8f0" font-size="30" font-weight="800" font-family="sans-serif" letter-spacing="1">SPX6900 — HOLDER GROWTH</text>
-<text x="${W - 60}" y="46" fill="${HOLD}" font-size="28" font-weight="800" font-family="sans-serif" text-anchor="end">${grew >= 0 ? "+" : ""}${grew.toLocaleString()} wallets</text>
-<text x="64" y="86" fill="#94a3b8" font-size="22" font-family="sans-serif">Holder base over ~${ndays}d vs price (${first.holders.toLocaleString()} → ${cur.holders.toLocaleString()}) — is the crowd accumulating?</text>
+<text x="${W - 60}" y="46" fill="${HOLD}" font-size="28" font-weight="800" font-family="sans-serif" text-anchor="end">${grew >= 0 ? "+" : ""}${grew.toLocaleString()} wallets (${grew >= 0 ? "+" : ""}${(100 * grew / first.holders).toFixed(1)}%)</text>
+<text x="64" y="86" fill="#94a3b8" font-size="22" font-family="sans-serif">Holder base over ~${ndays}d vs price (${first.holders.toLocaleString()} → ${cur.holders.toLocaleString()}) · zoomed axis — mind the scale</text>
 <text x="64" y="${H - 16}" fill="#475569" font-size="15" font-family="sans-serif">spx6900rainbow.xyz · not financial advice · <tspan fill="${HOLD}">holders</tspan> · <tspan fill="${PRICE}">price</tspan> · from the daily on-chain snapshot</text>
 </svg>`;
 }
