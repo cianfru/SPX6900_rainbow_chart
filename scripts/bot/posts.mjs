@@ -950,17 +950,21 @@ Where SPX sits vs alts — a relative read, not a signal.`,
   // free BigQuery UTXO reconstruction). The honest reveal: at ~3yr SPX's float is TIGHTER than
   // BTC's was — supply locked up faster. A holder-behaviour POSITION, not a signal.
   s => (s.onchain?.length >= 50 && BTC_HODL.length >= 100) && (() => {
-    const YR = 365.25 * 86400000, oc = s.onchain.filter(r => Array.isArray(r.age));
+    const DAY = 86400000, YR = 365.25 * DAY, oc = s.onchain.filter(r => Array.isArray(r.age));
     const ff = Math.round(100 - (oc.at(-1).age[3] + oc.at(-1).age[4]));
-    const maxAge = (Date.parse(oc.at(-1).d) - Date.parse(oc[0].d)) / YR;
+    const lastDay = (Date.parse(oc.at(-1).d) - Date.parse(oc[0].d)) / DAY;
     const bt0 = Date.parse(BTC_HODL[0][0]);
-    const btcRow = BTC_HODL.filter(r => (Date.parse(r[0]) - bt0) / YR <= maxAge + 0.03).at(-1);
-    const btcFf = Math.round(100 - (btcRow[1][3] + btcRow[1][4]));
-    const tighter = ff < btcFf;
+    const btcFF = BTC_HODL.map(r => [(Date.parse(r[0]) - bt0) / DAY, 100 - (r[1][3] + r[1][4])]);
+    const at = day => { let b = btcFF[0]; for (const p of btcFF) if (Math.abs(p[0] - day) < Math.abs(b[0] - day)) b = p; return Math.round(b[1]); };
+    const btcFf = at(lastDay); // BTC at SPX's current age
+    // BTC's next-24-months low, to check whether it ever got as tight as SPX is now
+    const fwd = btcFF.filter(p => p[0] >= lastDay && p[0] <= lastDay + 730).map(p => p[1]);
+    const btcFwdLow = fwd.length ? Math.round(Math.min(...fwd)) : btcFf;
+    const neverTighter = ff < btcFwdLow;
     return {
       id: "freefloat",
       text: ct`🟡 Only ${ff}% of SPX6900's supply is liquid — the other ${100 - ff}% hasn't moved in 6 months.
-At the same age, Bitcoin's free float was ${btcFf}%. SPX has locked supply up ${tighter ? "faster than the king did" : "at a similar pace to the king"} — same on-chain measure, same age since launch.
+At the same age Bitcoin's free float was ${btcFf}%, and ${neverTighter ? `never got as tight as SPX is now over the next 2 years` : `stayed near ${btcFwdLow}% for the 2 years after`} — supply locked up faster than the king's did.
 A position, not a signal.`,
       card: { type: "freefloat" },
     };
