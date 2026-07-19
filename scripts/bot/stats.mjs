@@ -9,6 +9,8 @@ import { SP500_HISTORY } from "../../src/sp500-history.js";
 import { FNG_HISTORY } from "../../src/fng-history.js";
 import { mvrvHistory } from "../../src/mvrv-data.js";
 import { SPX_ONCHAIN } from "../../src/spx-onchain.js";
+import { SPX_FIFO } from "../../src/spx-fifo.js";
+import { SPX_URPD } from "../../src/spx-urpd.js";
 import { CHAIN_WALLETS } from "../../src/chain-wallets.js";
 
 const POOL = "0x52c77b0cb827afbad022e6d6caf2c44452edbc39";
@@ -200,6 +202,25 @@ function loadOnchain() {
     if (Array.isArray(arr) && arr.length >= 50) return arr;
   } catch { /* fall back to bundle */ }
   return SPX_ONCHAIN;
+}
+
+// FIFO on-chain suite (TRUE per-lot coin age + sopr + LTH/STH), from the local FIFO engine
+// over the free BigQuery raw-transfer extract. Powers the SOPR + LTH/STH depth cards.
+function loadFifo() {
+  try {
+    const arr = JSON.parse(readFileSync(new URL("../../public/onchain-fifo.json", import.meta.url), "utf8"));
+    if (Array.isArray(arr) && arr.length >= 50) return arr;
+  } catch { /* fall back to bundle */ }
+  return SPX_FIFO;
+}
+
+// Cost-basis distribution (URPD) — where held supply was acquired, from the FIFO engine.
+function loadUrpd() {
+  try {
+    const o = JSON.parse(readFileSync(new URL("../../public/urpd.json", import.meta.url), "utf8"));
+    if (o && Array.isArray(o.buckets) && o.buckets.length) return o;
+  } catch { /* fall back to bundle */ }
+  return SPX_URPD;
 }
 
 // BTC + ETH free float (liquid supply %) vs days-since-inception — Coin Metrics community,
@@ -427,6 +448,8 @@ export function computeStats(price, dateStr = new Date().toISOString().slice(0, 
 
     mvrvSeries: loadMvrvSeries(), // SPX's own full-history MVRV (Dune backfill + live tail), for the MVRV-over-time card
     onchain: loadOnchain(), // Dune weekly on-chain series (supply-in-profit, concentration, gini, HODL waves) — ETH-native
+    fifo: loadFifo(), // FIFO on-chain series (true per-lot age + sopr + LTH/STH) — SOPR & LTH/STH cards
+    urpd: loadUrpd(), // cost-basis distribution snapshot (where held supply was acquired)
     chainWallets: loadChainWalletsSeries(), // multi-chain weekly wallet counts (ETH+Base+Solana), live JSON or bundle
     altHistory: loadAltHistory(), // DOGE/PEPE/SHIB age-indexed history for the memecoin age cards
     series: {

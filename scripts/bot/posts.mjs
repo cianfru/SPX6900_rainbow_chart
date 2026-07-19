@@ -1034,6 +1034,50 @@ On-chain, reproducible.`,
     };
   })(),
 
+  // Cost-basis distribution (URPD) — where the held supply was actually bought, from the
+  // LOCAL FIFO per-lot engine (free BigQuery extract, no Dune). "Where are the bags?" The
+  // walls of supply that become support/resistance. A holder-cost POSITION, not a signal.
+  s => (s.urpd?.buckets?.length >= 8) && (() => {
+    const u = s.urpd, inP = u.buckets.filter(b => b.inProfit).reduce((a, b) => a + b.pct, 0);
+    let w = u.buckets[0]; for (const b of u.buckets) if (b.pct > w.pct) w = b;
+    const fp = p => p >= 1 ? "$" + p.toFixed(2) : "$" + p.toFixed(p >= 0.1 ? 3 : 4);
+    return {
+      id: "urpd",
+      text: ct`📊 ${inP.toFixed(0)}% of SPX6900's supply is held in profit — the rest bought higher and stayed.
+The biggest wall of coins was bought around ${fp(w.lo)}–${fp(w.hi)}, ${w.pct.toFixed(0)}% of the float — reconstructed on-chain from every coin's cost basis.
+Where they bought, not where they'll sell.`,
+      card: { type: "urpd" },
+    };
+  })(),
+
+  // Long vs short-term holders, supply in profit/loss (FIFO per-lot). The conviction read:
+  // the long-term block dominates AND much of it is underwater yet unmoved. A holder-
+  // behaviour POSITION, not a signal. Gloomy-leaning → owner curates via the exclude toggle.
+  s => (s.fifo?.length >= 50 && Number.isFinite(s.fifo.at(-1)?.lthProfit)) && (() => {
+    const c = s.fifo.at(-1), lth = c.lthProfit + c.lthLoss, under = c.lthLoss + c.sthLoss;
+    return {
+      id: "lthsth",
+      text: ct`💎 ${lth.toFixed(0)}% of SPX6900's supply is held long-term — over 90 days, through the whole drawdown.
+${under.toFixed(0)}% of it sits underwater and still hasn't moved. Long-term holders aren't the ones selling — they're the ones holding at a loss and waiting.
+Conviction, on-chain.`,
+      card: { type: "lthsth" },
+    };
+  })(),
+
+  // SOPR — when coins move, are they sold at a profit or a loss? (FIFO per-lot.) The classic
+  // Glassnode oscillator pinned at break-even 1.0. A holder-behaviour POSITION, not a signal.
+  s => (s.fifo?.length >= 50 && Number.isFinite(s.fifo.at(-1)?.sopr)) && (() => {
+    const v = s.fifo.at(-1).sopr;
+    const state = v >= 1.02 ? "moving at a profit" : v <= 0.98 ? "moving at a loss" : "moving near break-even";
+    return {
+      id: "sopr",
+      text: ct`⚖️ SPX6900's SOPR is ${v.toFixed(2)} — the coins that moved this week were ${state}.
+Above 1, holders realise a profit when they sell; below 1, they sell at a loss. It dips under 1 at the bottoms, where sellers give up cheap.
+Behaviour, on-chain — not a signal.`,
+      card: { type: "sopr" },
+    };
+  })(),
+
   // "Am I Cheap?" convergence — how many independent valuation lenses (rainbow band,
   // MVRV, supply-in-profit, Pi Cycle, alt-market, F&G) agree on where SPX sits. The
   // corroboration is the point; a valuation POSITION, never a timing call. Verdict adapts.
@@ -1883,12 +1927,12 @@ const LOOK = {
   whatnext: "race",
   // — Tier B: flavourful / distinct looks (used to break up the green lines) —
   riskcolor: "colorline", risklevels: "colorline", rsidots: "colorline",
-  riskheat: "dual", runningroi: "dual", cycle: "dual", longshort: "dual", underwater: "dual", goldencross: "dual", holdergrowth: "dual", holdersprice: "dual", mvrvbtc: "dual", mvrvtrend: "dual", supplyprofit: "dual", floormodel: "dual", altmarket: "dual", freefloat: "dual", nupl: "dual", concentration: "dual", picycle: "dual", spxbitcoin: "dual",
+  riskheat: "dual", runningroi: "dual", cycle: "dual", longshort: "dual", underwater: "dual", goldencross: "dual", holdergrowth: "dual", holdersprice: "dual", mvrvbtc: "dual", mvrvtrend: "dual", supplyprofit: "dual", floormodel: "dual", altmarket: "dual", freefloat: "dual", nupl: "dual", concentration: "dual", picycle: "dual", spxbitcoin: "dual", sopr: "dual",
   firesalerally: "fanlines",
   model: "scatter",
   monthlyreturns: "heatmap", monthlyreturnssp: "heatmap", monthlyreturnsbtc: "heatmap",
-  hodlwaves: "stack", hodlcompare: "stack", walletgrowth: "stack", amicheap: "gauges",
-  timeinband: "bars", monthlybars: "bars", monthcompare: "bars", multichain: "bars",
+  hodlwaves: "stack", hodlcompare: "stack", walletgrowth: "stack", lthsth: "stack", amicheap: "gauges",
+  timeinband: "bars", monthlybars: "bars", monthcompare: "bars", multichain: "bars", urpd: "bars",
   fngdial: "round", distribution: "round",
   marketcap: "blocks", milestones: "blocks", sp500: "blocks",
   dca: "dca",

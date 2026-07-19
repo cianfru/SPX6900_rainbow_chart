@@ -26,6 +26,14 @@
 --
 -- Column headers (sender/receiver/time/value) match what the local FIFO engine auto-detects;
 -- `value` is the RAW 8-decimal integer — the engine scales by 1e8, so do NOT divide here.
+--
+-- INTRA-BLOCK ORDERING (validated 2026-07-19): block_timestamp is per-BLOCK (second
+-- granularity), so a receive and a send in the SAME block share a timestamp with no order.
+-- The engine handles this by replaying each same-timestamp block RECEIVES-first (a send
+-- can't spend what it hasn't received) — which reconciles exactly to the Dune ground truth
+-- (rp $0.534, 49,566 holders, 687.7M held). For a future re-bundle you can get EXACT
+-- ordering instead by also selecting `block_number` and `log_index` and sorting by them —
+-- then the receives-first heuristic is unnecessary. Not needed now (heuristic reconciles).
 -- ============================================================================
 
 SELECT
@@ -34,8 +42,8 @@ SELECT
   block_timestamp AS time,
   value           AS value          -- raw (8-decimal); engine divides by 1e8
 FROM `bigquery-public-data.crypto_ethereum.token_transfers`
-WHERE token_address = '0xe0f63a424a4439cbe457d80e4f4b51ad25b2c56c'   -- SPX6900 (Ethereum)
-ORDER BY block_timestamp;
+WHERE token_address = '0xe0f63a424a4439cbe457d80e4f4b51ad25b2c56c';   -- SPX6900 (Ethereum)
+-- (no ORDER BY — the engine re-sorts by timestamp anyway; sorting in BQ just costs time.)
 
 -- If you ever want to CHUNK by year to keep a single export small (file size, not cost):
 --   AND block_timestamp >= '2024-01-01' AND block_timestamp < '2025-01-01'
