@@ -1,5 +1,17 @@
 # SPX6900 Rainbow Chart — project notes
 
+## ⭐⭐ NORTH STAR — RADICAL TRANSPARENCY IS THE MOAT (owner affirmed 2026-07-19)
+- **The strategy is to be COMPLETELY OPEN about the project.** Not secret alpha — the durable edge is being the
+  transparent, SPX-native, REPRODUCIBLE on-chain analytics source. Every number must be checkable; methodology is
+  published; the data suite, the article, the open approach ARE the competitive advantage (a reputation/focus moat
+  that compounds, not a bag of secrets). Well-funded firms (Glassnode/Nansen) won't do this depth for a memecoin;
+  influencers can't do it credibly (black-box composites). We can, openly — that's the whole game.
+- **What would KILL it:** drifting into hype or an unverifiable "trust me" composite to juice engagement. The moment
+  a number stops being reproducible we become just another account with an opinion. Honesty/openness = the moat, full
+  stop. Every card/chart/article/decision defaults to: show the real numbers, state the method, label the caveats,
+  share it freely. When in doubt, MORE transparent.
+
+
 ## Anomaly detector — "⚡ Notable today" (built 2026-07-03)
 - `scripts/bot/signals.mjs` `detectSignals(history)` runs at the end of the snapshot
   cron (`scripts/snapshot.mjs`) and writes `public/signals.json` (committed by
