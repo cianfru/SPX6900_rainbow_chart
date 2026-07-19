@@ -16,6 +16,7 @@ import { buildAltRainbow } from "../../src/alt-rainbow.js";
 import { tally as valuationTally } from "./valuation-lenses.mjs";
 import { spxBitcoinStats } from "./spx-bitcoin-card.mjs";
 import { chainRaceData } from "./multichain-card.mjs";
+import { BTC_HODL } from "../../src/btc-hodl-waves.js";
 
 // --- owner-editable post copy ---------------------------------------------
 // EVERY card's tweet text is owner-editable from the control panel. Cards wrap
@@ -1005,6 +1006,21 @@ Supply maturing, on-chain.`,
     };
   })(),
 
+  // Bitcoin HODL waves — the king's version of our favourite chart, from genesis (free
+  // BigQuery UTXO reconstruction). The honest bridge: BTC's diamond tier was built over
+  // 17 years; SPX is maturing the same way in under 3. A holding-behaviour read, NOT a
+  // signal. BTC-only card; the SPX tie-in lives in the copy. Data: src/btc-hodl-waves.js.
+  s => (BTC_HODL.length >= 100) && (() => {
+    const btcOld = BTC_HODL.at(-1)[1][4];
+    const spxOld = s.onchain?.length ? s.onchain.at(-1).age[4] : null;
+    return {
+      id: "btchodlwaves",
+      text: ct`💎 ${btcOld.toFixed(0)}% of all Bitcoin hasn't moved in over a year — its diamond-hands tier.
+This 1y+ band swells through every bear as coins go dormant, and drains into every bull as old hands sell.${spxOld != null ? `\nSPX6900 is maturing the same way — ${spxOld.toFixed(0)}% already 1y+, in under 3 years.` : "\nThe king's holding behaviour, on-chain."}`,
+      card: { type: "btchodlwaves" },
+    };
+  })(),
+
   // "Am I Cheap?" convergence — how many independent valuation lenses (rainbow band,
   // MVRV, supply-in-profit, Pi Cycle, alt-market, F&G) agree on where SPX sits. The
   // corroboration is the point; a valuation POSITION, never a timing call. Verdict adapts.
@@ -1858,7 +1874,7 @@ const LOOK = {
   firesalerally: "fanlines",
   model: "scatter",
   monthlyreturns: "heatmap", monthlyreturnssp: "heatmap", monthlyreturnsbtc: "heatmap",
-  hodlwaves: "stack", walletgrowth: "stack", amicheap: "gauges",
+  hodlwaves: "stack", btchodlwaves: "stack", walletgrowth: "stack", amicheap: "gauges",
   timeinband: "bars", monthlybars: "bars", monthcompare: "bars", multichain: "bars",
   fngdial: "round", distribution: "round",
   marketcap: "blocks", milestones: "blocks", sp500: "blocks",

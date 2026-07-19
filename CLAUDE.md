@@ -253,6 +253,16 @@
   matching cards (mvrvtrend/supplyprofit/floormodel/altmarket/concentration/hodlwaves + reworded mvrvbtc/picycle) —
   hero + plot shifted down (mT bumped ~24px), NUPL card pattern. Tweet copy left as-is (already 3 airy blank-line
   paragraphs leading with a plain hook). Tests green, build clean, browser-verified. Committed 18bff50.
+- **✅ BITCOIN HODL WAVES SHIPPED 2026-07-18 — first FREE BigQuery reconstruction (owner ran it).** `bigquery/
+  btc_hodl_waves.sql` (public `crypto_bitcoin` dataset, UTXO age = EXACT, the Unchained method — no FIFO needed)
+  → owner ran the ONE query (916 weekly rows, genesis 2008-12→now, ~0.5 TB well within the 1 TB/mo free sandbox)
+  → bundled `src/btc-hodl-waves.js` (`BTC_HODL = [["YYYY-MM-DD",[a0..a4]]]`, same 5-band split as our SPX hodlwaves
+  so they're directly comparable). Validated: genesis 100% <1m, latest total 20.06M BTC (correct for 2026 post-
+  halving), shares sum ~100. `scripts/bot/btc-hodl-waves-card.mjs` (`btchodlwaves`, LOOK "stack") = the owner's
+  favourite visual applied to the king, bright/big-font per the north-star recipe. The textbook read: the 1y+ purple
+  band SWELLS through every bear, DRAINS into every bull top (visible across all 4 cycles). BTC-only card; the copy
+  bridges to SPX ("SPX6900 is maturing the same way — 38% already 1y+, in under 3 years" vs BTC's 62% over 17). Wired
+  charts/posts/LOOK/test; copy 272. Site chart = natural next. Proves the free-BigQuery path for BTC on-chain metrics.
 - **⭐⭐ HODL-WAVES IS THE VISUAL NORTH STAR (owner, 2026-07-18): "clean, colorful, impactful."** The owner's
   favourite card by far — full-bleed colour, minimal chrome, one big plain-word stat, no gridline clutter. Any
   new card (and any future visual pass) should aim for that energy. The 2026-07-18 **brightness batch** moved the
