@@ -414,6 +414,41 @@
           (daily-fresh, standard-labelled). SUPPLY import restored.
         • **Site `SupplyConviction` ("Holder Conviction" tile) KEPT** — it's the live-HolderScan tier donut, daily-fresh, so
           it stays as the daily bridge (not removed); migrate to FIFO with the other two when BigQuery daily lands.
+    - **⭐⭐ PARKED FOR A PROPER CONVERSATION — HODL / HOLDER-AGE / FREE-FLOAT: ALIGN SPX TO INDUSTRY STANDARDS + WRITE A
+      LONG-FORM ARTICLE (owner, 2026-07-19, travelling — LEAVE ALL CARDS AS-IS, resume when back).** A long thread on which
+      holder-age threshold to adopt and how to define free float; NOT resolved — owner wants a dedicated standards discussion
+      + an article (290-char tweets can't teach this; it's an interesting, on-brand, honesty-moat topic). Everything below is
+      the state to resume from:
+      - **ONE FIFO age curve, sliced many ways** (current SPX bands [0-1m,1-3m,3-6m,6-12m,1y+] = 5/9/9/25/53%):
+        held **>90d = 86%** of holders / 61% of total (HolderScan "diamond" & FIFO LTH reconcile here) · held **>6mo = 78%**
+        → **free float 22%** · held **>1y = 53%** (hodlwaves). "Free float" (= moved WITHIN the window) GROWS with the window:
+        **14% (90d) → 22% (6mo) → 47% (1y)** — a longer window catches more movement. All consistent points on one curve.
+      - **INDUSTRY-STANDARD LTH threshold = Glassnode 155 days (~5mo)**, empirically derived (spend probability flattens
+        ~155d). **90d (HolderScan) is the SOFT/short end** — flattering for young/retail projects, populates fast; **1y+ is
+        the strong-conviction bar**. SPX at ~3yr is old enough for the rigorous bars — doesn't need the 90d crutch (53% held
+        1y+ is already strong). RECOMMEND adopting **155d as "long-term holder"** (Glassnode parity → comparable to BTC) +
+        keep **1y+ as "diamond/high-conviction"**; 90d = HolderScan daily bridge only, always labelled ">90d".
+      - **⭐ CEX-HELD COINS SHOULD COUNT AS FREE FLOAT (owner's key point — AGREED).** Current `marketcap` (22%) gets this
+        WRONG: it applies the HOLDER age-distribution to TOTAL supply, so the ~243M coins on the 16 excluded addresses
+        (CEX/LP/bridge/burn ≈ 26% of supply) get lumped into "locked" — but exchange/LP coins are the MOST tradable = float.
+        **How BTC/Glassnode handle it:** (a) pure age (HODL waves/LTH-STH) does NOT special-case location — a coin's age is
+        its age wherever it sits; (b) **Liquid/Illiquid Supply** (Glassnode's float metric) classifies entities by spend
+        behaviour → **exchanges = "highly liquid" = float** (BTC ~75% illiquid / ~25% liquid+highly-liquid); (c) free-float /
+        index methodologies (Bitwise/MVIS) → float = circulating − provably-lost/dormant, **exchange coins ARE float, lost
+        coins (~3-4M BTC) EXCLUDED**. So a PROPER SPX free float = **CEX + LP + recently-moved holder supply**, EXCLUDING
+        burned (0x0/0xdead) and treating bridge-locked separately → lands ~**40%**, not 22% (the ~243M CEX/LP moves to float).
+        Buildable but a more sophisticated calc than the age-band shortcut (needs the exclude-set split into CEX/LP vs
+        burn/bridge).
+      - **TODOs for the conversation (do NOT act yet):** (1) pick the LTH standard (155d recommended) + relabel consistently;
+        (2) rebuild `marketcap` free float to count CEX/LP as float, exclude burn/bridge (the accurate tradable float ~40%);
+        (3) decide whether the age-based freefloat card (22%, no CEX adjustment — fine for the age comparison vs BTC) and the
+        market-cap free float (CEX-aware ~40%) coexist as two clearly-labelled metrics, or unify. Keep all thresholds labelled.
+      - **⭐ ARTICLE — GREENLIT TOPIC (build when the conversation lands).** Long-form explainer, hosted as a real article/blog
+        page on the site (and/or a thread linking to it): what HODL waves + holder age mean → why "% held" changes with the
+        window (90d/155d/6mo/1y) → the industry standards + where the soft ones come from → free float + the CEX/lost-coin
+        nuance → **how SPX measures up on the STRICT standards** (no 90d crutch; 53% 1y+) → SPX vs BTC on consistent
+        methodology. On-brand (honesty moat, educational); the vehicle tweets can't be. Distinct from the existing cards —
+        this is the "explain the metrics properly" piece.
     - **🔲🔲 OWNER TODO — AUTO-UPDATE THE ON-CHAIN CHARTS via BigQuery (asked 2026-07-19; designed, NOT yet built).**
       **WHAT THIS IS FOR:** right now the whole on-chain suite — the 3 new depth charts (**Cost Basis Distribution / URPD**,
       **Long vs Short-Term Holders**, **SOPR**) PLUS the age-based ones (**HODL waves, Free Float, Supply-in-Profit,
