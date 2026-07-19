@@ -260,9 +260,16 @@
   so they're directly comparable). Validated: genesis 100% <1m, latest total 20.06M BTC (correct for 2026 post-
   halving), shares sum ~100. `scripts/bot/btc-hodl-waves-card.mjs` (`btchodlwaves`, LOOK "stack") = the owner's
   favourite visual applied to the king, bright/big-font per the north-star recipe. The textbook read: the 1y+ purple
-  band SWELLS through every bear, DRAINS into every bull top (visible across all 4 cycles). BTC-only card; the copy
-  bridges to SPX ("SPX6900 is maturing the same way — 38% already 1y+, in under 3 years" vs BTC's 62% over 17). Wired
-  charts/posts/LOOK/test; copy 272. Site chart = natural next. Proves the free-BigQuery path for BTC on-chain metrics.
+  band SWELLS through every bear, DRAINS into every bull top (visible across all 4 cycles). **A standalone BTC card
+  is OFF-BRAND on an SPX account (owner, 2026-07-18) → rebuilt as a SIDE-BY-SIDE COMPARISON:**
+  `scripts/bot/hodl-compare-card.mjs` (`hodlcompare`, LOOK "stack") = two full-width stacked panels, SPX on top
+  (~3yr) + Bitcoin below (17yr, genesis→now), same 5-band scheme + shared legend, headline "38% of SPX6900 held
+  1y+ in 3 years — Bitcoin took 17 to reach 62%". The comparison IS the visual. Copy (271) leads with the same
+  bridge. The standalone `btc-hodl-waves-card.mjs` (btchodlwaves) was REMOVED (superseded; nothing imported it);
+  the `src/btc-hodl-waves.js` bundle + the `bigquery/btc_hodl_waves.sql` query stay (feed hodlcompare + any future
+  BTC site chart). Wired charts/posts/LOOK/test; suite green (96). Proves the free-BigQuery path for BTC on-chain
+  metrics — same route opens BTC realized-price/MVRV/supply-in-profit for more "SPX vs the king, measured the same
+  way" comparison cards.
 - **⭐⭐ HODL-WAVES IS THE VISUAL NORTH STAR (owner, 2026-07-18): "clean, colorful, impactful."** The owner's
   favourite card by far — full-bleed colour, minimal chrome, one big plain-word stat, no gridline clutter. Any
   new card (and any future visual pass) should aim for that energy. The 2026-07-18 **brightness batch** moved the

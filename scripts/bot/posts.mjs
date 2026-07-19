@@ -1006,18 +1006,19 @@ Supply maturing, on-chain.`,
     };
   })(),
 
-  // Bitcoin HODL waves — the king's version of our favourite chart, from genesis (free
-  // BigQuery UTXO reconstruction). The honest bridge: BTC's diamond tier was built over
-  // 17 years; SPX is maturing the same way in under 3. A holding-behaviour read, NOT a
-  // signal. BTC-only card; the SPX tie-in lives in the copy. Data: src/btc-hodl-waves.js.
-  s => (BTC_HODL.length >= 100) && (() => {
-    const btcOld = BTC_HODL.at(-1)[1][4];
-    const spxOld = s.onchain?.length ? s.onchain.at(-1).age[4] : null;
+  // HODL waves — SPX6900 vs Bitcoin, side by side (the owner's favourite visual, twice,
+  // as a COMPARISON — a standalone BTC card is off-brand). BTC from the free BigQuery UTXO
+  // reconstruction; SPX from its own age bands. The honest bridge: BTC's diamond tier was
+  // built over 17 years; SPX is doing the same in ~3. A holding-behaviour read, NOT a signal.
+  s => (BTC_HODL.length >= 100 && s.onchain?.length >= 50 && Array.isArray(s.onchain.at(-1).age)) && (() => {
+    const btcOld = BTC_HODL.at(-1)[1][4], spxOld = s.onchain.at(-1).age[4];
+    const btcYrs = Math.floor((Date.now() - Date.parse(BTC_HODL[0][0])) / (365.25 * 86400000));
     return {
-      id: "btchodlwaves",
-      text: ct`💎 ${btcOld.toFixed(0)}% of all Bitcoin hasn't moved in over a year — its diamond-hands tier.
-This 1y+ band swells through every bear as coins go dormant, and drains into every bull as old hands sell.${spxOld != null ? `\nSPX6900 is maturing the same way — ${spxOld.toFixed(0)}% already 1y+, in under 3 years.` : "\nThe king's holding behaviour, on-chain."}`,
-      card: { type: "btchodlwaves" },
+      id: "hodlcompare",
+      text: ct`💎 ${spxOld.toFixed(0)}% of SPX6900's supply is held 1y+ — Bitcoin's diamond tier took ${btcYrs} years to reach ${btcOld.toFixed(0)}%.
+Both mature the same way: the long-held band grows from the top through every cycle. SPX is doing in ~3 years what Bitcoin did over ${btcYrs}.
+On-chain, reproducible.`,
+      card: { type: "hodlcompare" },
     };
   })(),
 
@@ -1874,7 +1875,7 @@ const LOOK = {
   firesalerally: "fanlines",
   model: "scatter",
   monthlyreturns: "heatmap", monthlyreturnssp: "heatmap", monthlyreturnsbtc: "heatmap",
-  hodlwaves: "stack", btchodlwaves: "stack", walletgrowth: "stack", amicheap: "gauges",
+  hodlwaves: "stack", hodlcompare: "stack", walletgrowth: "stack", amicheap: "gauges",
   timeinband: "bars", monthlybars: "bars", monthcompare: "bars", multichain: "bars",
   fngdial: "round", distribution: "round",
   marketcap: "blocks", milestones: "blocks", sp500: "blocks",
