@@ -141,6 +141,35 @@
   btc-mvrv.json (monthly, 40d). To add a source: add to `FRESH_SOURCES` (panel) and/or `SOURCES`+`CHART_SOURCE`
   (site). Both derive the date from the file itself (last array `.d`/`.date` or object `.updated`).
 
+## ⭐ PROJECT AEON NFT TRACKING — greenlit, planned (owner, 2026-07-19, travelling — needs contract address to START)
+- Owner wants an NFT-focused analytics track for the **Project Aeon** NFT collection, mirroring the coin: floor
+  price, holders, HODL waves, concentration, etc. VERDICT: very buildable — and HODL/holder-age is actually
+  CLEANER for NFTs than the coin, because each tokenId is a discrete unit with ONE owner + ONE last-transfer
+  timestamp → "holder age" = now − last transfer per token, NO FIFO/lots/intra-block ordering needed.
+- **Metric map (coin → NFT):**
+  - Floor price + history (line) ← Reservoir/OpenSea floor, daily.
+  - Owners over time + owners-vs-floor (dual) ← distinct current owners from transfers.
+  - HODL waves / holder age (stacked bands) ← per-token time-since-last-transfer. Clean, no FIFO.
+  - Concentration (top-N owners' share) + distribution (holders by count: 1 / 2-5 / 6-10 / 10+ donut) ← ownership snapshot.
+  - Sales volume (bars) ← marketplace daily volume.
+  - Optional: realized floor / cost basis (last sale per token → MVRV-like), floor-by-trait / rarity.
+- **Data sources (mostly FREE, same philosophy as the coin):**
+  - **Reservoir API** (free key) — the standard NFT aggregator: floor, owners, sales, per-token — best single
+    source for floor/holders/volume; runs daily in CI like the snapshot cron.
+  - **Free BigQuery public Ethereum** — ERC-721 transfer history → reconstruct HODL waves / holder age /
+    concentration LOCALLY (mirrors the FIFO engine but simpler: per-token last-transfer). One cheap extract, $0.
+  - Dune `nft.trades` / `nft.transfers` as an alt.
+  - Claude CAN'T hit NFT APIs from the sandbox (network policy) → same as the coin: a CI/Vercel banker OR the
+    owner sends a BigQuery CSV.
+- **Architecture:** parallel `src/aeon-*.js` bundles + `public/aeon-*.json`; a daily banker (GH Action/Vercel)
+  for floor/owners/volume; a local ERC-721 reconstruction for HODL/age (from a BigQuery extract); cards + a new
+  "Project Aeon" site gallery group reusing the existing card/chart primitives (line/stack/dual/donut/bars). The
+  **freshness tags + control-panel rows extend to it automatically** (add aeon files to FRESH_SOURCES/SOURCES).
+- **🔲 BLOCKER — need from owner to start:** (1) Aeon **contract address + chain** (ETH? Base?); (2) preferred
+  floor/holders source — a free **Reservoir API key** for the daily CI banker is cleanest; (3) for HODL/age,
+  either wire the same BigQuery ERC-721 extract or owner runs it once + sends the CSV. Then Claude scaffolds the
+  aeon data layer + first cards (floor, owners, HODL waves).
+
 ## Backlog / decisions
 - **⭐ MULTI-CHAIN WALLET GROWTH + OUR-OWN-METRICS (owner, 2026-07-16) — in progress.** Two linked asks:
   (1) **Ditch HolderScan's confusing "classified/total supply" framing** — it burned us (86%-of-classified vs
