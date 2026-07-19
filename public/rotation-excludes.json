@@ -1,6 +1,5 @@
 {
   "spxbitcoin": true,
   "holdergrowth": true,
-  "cycleclock": true,
-  "sopr": true
+  "cycleclock": true
 }
