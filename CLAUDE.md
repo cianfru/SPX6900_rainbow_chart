@@ -390,14 +390,28 @@
       drag-zoom). All in the On-Chain group (charts-catalog.js) + App.jsx (lazy + icon + switch), each with an `<Explain>`
       box. Browser-verified via Playwright — all three pages + gallery previews render clean, zero JS errors. They read the
       SAME `/onchain.json` (FIFO) as the cards, so site + cards never drift.
-    - **🔲 DAILY AUTO-UPDATE via BigQuery — ANSWERED + DESIGNED (owner asked 2026-07-19, not yet built).** YES it's possible
-      and can be ~free. The trap: a full 546 GB re-scan of the 2.6M-transfer history daily = ~16 TB/mo, over the 1 TB free
-      tier (~$75/mo). The free path: a daily GH Action runs an INCREMENTAL query (`WHERE block_timestamp >= last_seen`, prunes
-      to recent date partitions = a few GB) that APPENDS to your OWN append-only BQ table, then EXPORTS that ~300 MB table
-      (exports are free — no scan-bill), runs the local FIFO engine ($0), commits onchain.json + urpd.json, deploys. Needs a
-      **GCP service account key** (one JSON → GH secret) — the only manual setup. RECOMMENDATION given: these are weekly-sampled,
-      slow-moving metrics, so WEEKLY is the natural cadence (even cheaper); daily is doable but overkill. Build the pipeline
-      when the owner creates the service account key. (The FIFO engine already runs headless on a CSV, so it drops straight in.)
+    - **🔲🔲 OWNER TODO — AUTO-UPDATE THE ON-CHAIN CHARTS via BigQuery (asked 2026-07-19; designed, NOT yet built).**
+      **WHAT THIS IS FOR:** right now the whole on-chain suite — the 3 new depth charts (**Cost Basis Distribution / URPD**,
+      **Long vs Short-Term Holders**, **SOPR**) PLUS the age-based ones (**HODL waves, Free Float, Supply-in-Profit,
+      Concentration, hodlcompare**) — is frozen at whatever the LAST BigQuery extract produced (currently the 2026-07-19
+      extract). They only refresh when YOU manually re-run `bigquery/spx6900_raw_transfers.sql`, send Claude the CSV, and
+      Claude re-bundles. This TODO makes that refresh happen AUTOMATICALLY on a schedule, no manual step.
+      **WHY IT'S NOT ALREADY AUTOMATED:** a full re-scan of the 2.6M-transfer history is 546 GB; running that daily = ~16 TB/mo,
+      which busts BigQuery's 1 TB/mo free tier (~$75/mo). So naive automation isn't free.
+      **THE FREE PLAN (what Claude will build):** a scheduled GitHub Action that (1) runs an INCREMENTAL query
+      (`WHERE block_timestamp >= last_seen` → only scans recent date partitions, a few GB, well under free tier) and APPENDS
+      the new transfers to YOUR OWN append-only BigQuery table; (2) EXPORTS that ~300 MB table to CSV (exports are FREE — no
+      scan-bill); (3) runs the local FIFO engine ($0, already headless); (4) commits public/onchain.json + public/urpd.json;
+      (5) redeploys. Net cost ≈ $0, stays inside the free tier.
+      **THE ONE THING ONLY YOU CAN DO (the blocker):** create a **GCP service account key** — one JSON file — and add it as a
+      GitHub repo secret (e.g. `GCP_SA_KEY`). That's the only manual setup; everything else Claude builds. (In GCP console:
+      IAM → Service Accounts → create → grant BigQuery Job User + Data Editor → create JSON key → paste into GH secret.)
+      **CADENCE — Claude's recommendation:** these are WEEKLY-sampled, slow-moving metrics (age bands / concentration / sip
+      barely move day-to-day), so **WEEKLY is the natural, even-cheaper cadence**; daily is doable but overkill. Decide
+      weekly-vs-daily when you kick it off.
+      **TO START:** once the `GCP_SA_KEY` secret exists, tell Claude "build the BigQuery auto-update pipeline, [weekly|daily]"
+      → Claude writes the GH Action + incremental query + wires the FIFO engine. NOTE: Claude CANNOT run BigQuery from its
+      sandbox (egress-blocked), so YOU verify the first CI run's output reconciles (rp ~$0.53, ~49.5k ETH holders).
     - **Refresh:** re-run `node scripts/build-onchain-local.mjs --transfers=X.csv --prices=<from spx-daily.js>` on a
       fresh extract → re-bundle spx-fifo.js/spx-urpd.js. $0, no Dune, no key. For EXACT intra-block ordering on a future
       extract, add `block_number`+`log_index` to the SQL and sort by them (drops the receives-first heuristic).
