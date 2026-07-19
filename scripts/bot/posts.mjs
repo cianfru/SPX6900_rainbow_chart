@@ -664,18 +664,28 @@ Every cycle looked like the end. None were.`,
   // 4 — rally since last fire sale (price line, log)
   s => s.lastFireSale && (() => {
     const lowTs = Date.parse(s.lastFireSale.date);
-    const pts = s.series.price.filter(([t]) => t >= lowTs);
+    // FRESH episode = price fell back into the Fire Sale band and the new cycle hasn't
+    // staged a real rally yet (the reset state). The copy leads with the reset, and the
+    // chart widens to the ~90 days INTO the low so it isn't a one-point stub.
+    const fresh = s.lastFireSale.peakGain < 0.3;
+    const winTs = fresh ? lowTs - 90 * 86400000 : lowTs;
+    const pts = s.series.price.filter(([t]) => t >= winTs);
     const lo = Math.min(...pts.map(p => p[1])), hi = Math.max(...pts.map(p => p[1]));
     // Only call out the peak when it ran meaningfully above where we sit now
     // (otherwise "is +37% and peaked +37%" reads as a redundant double-stat).
     const ranHigher = s.lastFireSale.peakGain - s.lastFireSale.sinceGain > 0.03;
     return {
       id: "rally",
-      text: ct`🚀 SPX6900 is ${fPct(s.lastFireSale.sinceGain)} since the last Fire Sale low (${fMon(s.lastFireSale.date)}, ${fPrice(s.lastFireSale.low)}).${ranHigher ? ` Ran as high as ${fPct(s.lastFireSale.peakGain)}.` : ""}
+      text: fresh
+        ? ct`🚀 Price is back in the Fire Sale band — the rally clock has reset. New low so far: ${fPrice(s.lastFireSale.low)} (${fMon(s.lastFireSale.date)}).
+A Fire Sale is the rainbow's deepest band. Every major SPX run so far has launched from there.
+Cheap can get cheaper, but the deepest discounts paid the patient.`
+        : ct`🚀 SPX6900 is ${fPct(s.lastFireSale.sinceGain)} since the last Fire Sale low (${fMon(s.lastFireSale.date)}, ${fPrice(s.lastFireSale.low)}).${ranHigher ? ` Ran as high as ${fPct(s.lastFireSale.peakGain)}.` : ""}
 A Fire Sale is the rainbow's deepest band. Every major SPX run so far has launched from there.
 Cheap can get cheaper, but the deepest discounts paid the patient.`,
       card: { type: "line", spec: {
-        title: `Since the last Fire Sale (${fMon(s.lastFireSale.date)})`, headline: fPct(s.lastFireSale.sinceGain), accent: "#4ade80",
+        title: fresh ? `Back in the Fire Sale band (${fMon(s.lastFireSale.date)})` : `Since the last Fire Sale (${fMon(s.lastFireSale.date)})`,
+        headline: fresh ? "rally reset" : fPct(s.lastFireSale.sinceGain), accent: "#4ade80",
         yLog: true, yTicks: decadeTicks(lo, hi),
         // The rainbow valuation bands the rally climbed through (Fire Sale → up),
         // as horizontal strips behind the price line.
@@ -703,9 +713,16 @@ Cheap can get cheaper, but the deepest discounts paid the patient.`,
     if (!cur || !cur.live) return null;
     const desc = cur.offPeak >= -0.1 ? "near its high" : cur.offPeak > -0.35 ? "pulled back" : "faded";
     const win = Math.max(90, cur.daysSince); // chart's x-window (mirrors the card)
+    // FRESH cycle = back in the Fire Sale band, no real rally yet — lead with the new
+    // cycle starting instead of a degenerate "+0% … peaked +0%".
+    const fresh = cur.peakGain < 0.3;
     return {
       id: "firesalerally",
-      text: ct`🔥 SPX6900 is ${fPct(cur.nowGain)} since the ${fMon(cur.startDate)} Fire Sale low — ${desc}, ${cur.daysSince}d in (peaked ${fPct(cur.peakGain)}).
+      text: fresh
+        ? ct`🔥 Price is back in the Fire Sale band — a new cycle starts from the ${fMon(cur.startDate)} low (${fPrice(cur.lowPrice)}).
+Every prior low in the rainbow's deepest band rallied off it (chart: each one's first ${win} days). The launch run went further, from a sub-cent base.
+A pattern, not a promise.`
+        : ct`🔥 SPX6900 is ${fPct(cur.nowGain)} since the ${fMon(cur.startDate)} Fire Sale low — ${desc}, ${cur.daysSince}d in (peaked ${fPct(cur.peakGain)}).
 Every low in the rainbow's deepest band rallied off it (chart: first ${win} days). The launch run went further, from a sub-cent base.
 A pattern, not a promise.`,
       card: { type: "firesalerally" },

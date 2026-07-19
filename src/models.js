@@ -222,7 +222,12 @@ function ralliesFromAnchors(series, anchors, minGain) {
       points.push({ day: Math.round(dayOf(series[i].date) - startDay), gain, date: series[i].date });
       if (gain > maxGain) maxGain = gain;
     }
-    if (maxGain < minGain) continue;
+    // minGain weeds out non-rallies from HISTORY — but the FINAL window is the LIVE
+    // episode and must survive even while its bounce is still small: when price falls
+    // back into the Fire Sale band, a new episode begins and the "rally since the last
+    // Fire Sale low" resets to the NEW low (it must not keep reporting the old rally).
+    const isFinal = end === series.length;
+    if (maxGain < minGain && !isFinal) continue;
     out.push({
       startDate: start.date,
       lowPrice: start.price,

@@ -10,7 +10,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { DEFAULT_RAW } from "../src/data.js";
-import { buildModel, buildFireSaleRallies } from "../src/models.js";
+import { buildModel, buildFireSaleRallies, bandVal, bandIndex, dayN } from "../src/models.js";
 
 // The real June 2026 daily closes that reproduced the bug: a Fire Sale bottom with
 // the true trough on 06-06 ($0.2762), a one-day pop to band 1 on 06-12, a shallow
@@ -45,4 +45,43 @@ test("fire-sale rally anchors on the true capitulation low, not a shallow re-dip
   assert.notEqual(last.startDate, "2026-06-13", "must not anchor on the shallow re-dip");
   // From $0.2762 → $0.4731 peak = ~71%, not the ~48% the shallow anchor produced.
   assert.ok(last.maxGain > 0.6, `rally from the true low should be ~71%, got ${(last.maxGain * 100).toFixed(0)}%`);
+});
+
+// Regression for the RESET semantics (owner, 2026-07-18): the "rally since the last
+// Fire Sale low" must RESET when price falls back into the Fire Sale band — a new
+// episode begins at the NEW low. The bug: the live episode's bounce was still below
+// minGain, so ralliesFromAnchors dropped it and the card kept reporting the OLD
+// rally ("+4,036% since Sep '24") even with price back in the deepest band.
+test("re-entering the Fire Sale band starts a NEW episode (rally resets to the new low)", () => {
+  const m = buildModel(DEFAULT_RAW);
+  const lastDate = DEFAULT_RAW.at(-1).date;
+  const day = n => {
+    const d = new Date(Date.parse(lastDate) + n * 86400000);
+    return d.toISOString().slice(0, 10);
+  };
+  // price safely inside the Fire Sale band on a given date (below the band-0 ceiling)
+  const inBand = ds => bandVal(m, dayN(ds), 1) * 0.8;
+  const ext = [];
+  // episode 1: five in-band days bottoming at L1
+  for (let i = 1; i <= 5; i++) ext.push({ date: day(i), price: inBand(day(i)) * (1 - 0.02 * Math.min(i, 3)) });
+  const L1 = Math.min(...ext.map(r => r.price));
+  // a real rally: 30 days well above the band (5× the low)
+  for (let i = 6; i <= 35; i++) ext.push({ date: day(i), price: L1 * (2 + 3 * (i - 6) / 29) });
+  // re-entry: back into the band with only a tiny bounce (< minGain)
+  const reLow = day(38);
+  ext.push({ date: day(36), price: inBand(day(36)) * 0.95 });
+  ext.push({ date: day(37), price: inBand(day(37)) * 0.9 });
+  ext.push({ date: reLow, price: inBand(reLow) * 0.85 });
+  ext.push({ date: day(39), price: inBand(day(39)) * 0.87 });
+  // self-check the premise: the re-entry prints really are band 0
+  assert.equal(bandIndex(m, ext.at(-1).price, dayN(ext.at(-1).date)), 0, "re-entry price sits in the Fire Sale band");
+
+  const series = [...DEFAULT_RAW, ...ext];
+  const rallies = buildFireSaleRallies(series, m, { minGain: 0.3 });
+  const last = rallies.at(-1), prev = rallies.at(-2);
+  // the LIVE episode is returned despite its small bounce, anchored on the NEW low…
+  assert.equal(last.startDate, reLow, `last rally must reset to the re-entry low, got ${last.startDate}`);
+  assert.ok(last.maxGain < 0.3, "the fresh episode hasn't staged a real rally yet");
+  // …and the prior cycle stays recorded with its top intact
+  assert.ok(prev && prev.maxGain >= 3.5, `previous cycle keeps its ~5x top, got ${prev && prev.maxGain}`);
 });

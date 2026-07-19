@@ -270,11 +270,28 @@
   → hero/copy now carry the honest % + "zoomed axis — mind the scale" subtitle, copy closer neutralised
   ("Holding steady", not "keeps building"), and the card is rotation-EXCLUDED (superseded by holdersprice +
   walletgrowth; stays visible/monitored per the owner's curation workflow). REMAINING (owner-pass, not bugs):
-  near-duplicate rotation pairs (rally/firesalerally identical stat, milestones/memecoins same hook number,
-  cycle/cycleclock same thesis — consider excluding one of each); mvrvbtc (price÷be) vs mvrvtrend (mvrvSeries)
-  can print two different MVRVs the same day (~0.69 vs 0.67) — unify on one source someday; breakeven hero
-  "−31% avg holder" reads broken + duplicates floormodel. Owner on gloom cards: don't worry — negative cards
-  are hand-curated/excluded and monitored, waiting for better times.
+  mvrvbtc (price÷be) vs mvrvtrend (mvrvSeries) can print two different MVRVs the same day (~0.69 vs 0.67) —
+  unify on one source someday; breakeven hero "−31% avg holder" reads broken + duplicates floormodel. Owner on
+  gloom cards: don't worry — negative cards are hand-curated/excluded and monitored, waiting for better times.
+  - **AUDIT CORRECTIONS (owner, 2026-07-18) — the "near-duplicate pairs" call was mostly WRONG:**
+    (1) **rally vs firesalerally are different BY DESIGN** — `rally` = the run since the LAST Fire Sale low and
+    must RESET when price falls back into the Fire Sale band; `firesalerally` = ALL fire-sale→fire-sale cycles
+    overlaid with each top recorded. They only LOOKED identical because of the reset bug below. (2) **milestones
+    is a VIDEO** (animated `scale` zoom-out) while memecoins is a chart — same numbers, different media, not
+    duplicates. (3) cycle vs cycleclock: owner AGREES same purpose → `cycleclock` rotation-excluded (kept
+    `cycle`, the honest rhyme explainer with the real BTC overlay; cycleclock = the aggressive owner-tuned
+    projection, stays hand-postable — one panel toggle to swap the choice).
+- **✅ FIRE-SALE RALLY RESET BUG FIXED (owner caught it, 2026-07-18).** With price back in the Fire Sale band,
+  `rally` still said "+4,036% since Sep '24" — no reset. ROOT CAUSE: `ralliesFromAnchors` (models.js) dropped
+  the LIVE episode because its bounce was still under `minGain` 30% (a filter meant to weed non-rallies out of
+  HISTORY), so `lastFireSale` stayed on the old cycle. FIX: the FINAL window (the live episode) survives the
+  filter — re-entry into band 0 now starts a new cycle anchored on the NEW low, the prior cycle keeps its
+  recorded top (fanlines card now shows Feb'24 +280% · Apr'24 +165% · May'24 +414% · Sep'24 +20,214% + the new
+  cycle at day 0). Both posts got a FRESH-episode copy branch ("the rally clock has reset" / "a new cycle starts
+  from the Jul '26 low") instead of a degenerate "+0% … peaked +0%", and the rally card widens to ~90d into the
+  low so it isn't a one-point stub. Regression test added (fire-sale-rally.test.mjs, synthetic re-entry via
+  bandVal). NOTE the model-relative semantics: a "new low" is band-relative (the frozen model's floor marches
+  up), so the new cycle's low can be a HIGHER price than an old out-of-band dip — correct by design.
 - **⭐ "GO DEEP ON SPX" RUNWAY — ENGINE READY, WAITING ON ONE CHEAP EXTRACT (2026-07-17).** The runway is NUPL ✅ →
   URPD (cost-basis histogram) → LTH/STH → SOPR, all off ONE cheap raw-transfer extract → the LOCAL FIFO engine
   (`build-onchain-local.mjs`), $0 compute. **Engine EXTENDED this session so the single extract yields ALL FOUR:**
