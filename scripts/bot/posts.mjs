@@ -1006,17 +1006,24 @@ Supply maturing, on-chain.`,
     };
   })(),
 
-  // HODL waves — SPX6900 vs Bitcoin, side by side (the owner's favourite visual, twice,
-  // as a COMPARISON — a standalone BTC card is off-brand). BTC from the free BigQuery UTXO
-  // reconstruction; SPX from its own age bands. The honest bridge: BTC's diamond tier was
-  // built over 17 years; SPX is doing the same in ~3. A holding-behaviour read, NOT a signal.
+  // HODL waves — SPX6900 vs Bitcoin at the SAME AGE (owner: age-aligned, not full history;
+  // the visual is the story, the tweet explains). BTC (free BigQuery UTXO reconstruction)
+  // cropped to SPX's age. The honest reveal: at ~3yr old SPX holds MORE of its supply for
+  // 1y+ than Bitcoin did at the same age — its base matured faster. Not a signal.
   s => (BTC_HODL.length >= 100 && s.onchain?.length >= 50 && Array.isArray(s.onchain.at(-1).age)) && (() => {
-    const btcOld = BTC_HODL.at(-1)[1][4], spxOld = s.onchain.at(-1).age[4];
-    const btcYrs = Math.floor((Date.now() - Date.parse(BTC_HODL[0][0])) / (365.25 * 86400000));
+    const YR = 365.25 * 86400000;
+    const spxRows = s.onchain.filter(r => Array.isArray(r.age));
+    const spxOld = spxRows.at(-1).age[4];
+    const spxYrs = Math.round((Date.parse(spxRows.at(-1).d) - Date.parse(spxRows[0].d)) / YR);
+    // BTC at SPX's age = last BTC row within maxAge of BTC's genesis
+    const maxAge = (Date.parse(spxRows.at(-1).d) - Date.parse(spxRows[0].d)) / YR;
+    const btcT0 = Date.parse(BTC_HODL[0][0]);
+    const btcSameAge = BTC_HODL.filter(r => (Date.parse(r[0]) - btcT0) / YR <= maxAge + 0.03).at(-1);
+    const btcOld = btcSameAge[1][4];
     return {
       id: "hodlcompare",
-      text: ct`💎 ${spxOld.toFixed(0)}% of SPX6900's supply is held 1y+ — Bitcoin's diamond tier took ${btcYrs} years to reach ${btcOld.toFixed(0)}%.
-Both mature the same way: the long-held band grows from the top through every cycle. SPX is doing in ~3 years what Bitcoin did over ${btcYrs}.
+      text: ct`💎 At the same age, SPX6900's holders are stickier than Bitcoin's were.
+${spxOld.toFixed(0)}% of SPX supply is held 1y+ at ~${spxYrs} years old — vs Bitcoin's ${btcOld.toFixed(0)}% at the same point in its life. The diamond-hands base is maturing faster than the king's did.
 On-chain, reproducible.`,
       card: { type: "hodlcompare" },
     };

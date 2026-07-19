@@ -262,10 +262,15 @@
   favourite visual applied to the king, bright/big-font per the north-star recipe. The textbook read: the 1y+ purple
   band SWELLS through every bear, DRAINS into every bull top (visible across all 4 cycles). **A standalone BTC card
   is OFF-BRAND on an SPX account (owner, 2026-07-18) → rebuilt as a SIDE-BY-SIDE COMPARISON:**
-  `scripts/bot/hodl-compare-card.mjs` (`hodlcompare`, LOOK "stack") = two full-width stacked panels, SPX on top
-  (~3yr) + Bitcoin below (17yr, genesis→now), same 5-band scheme + shared legend, headline "38% of SPX6900 held
-  1y+ in 3 years — Bitcoin took 17 to reach 62%". The comparison IS the visual. Copy (271) leads with the same
-  bridge. The standalone `btc-hodl-waves-card.mjs` (btchodlwaves) was REMOVED (superseded; nothing imported it);
+  `scripts/bot/hodl-compare-card.mjs` (`hodlcompare`, LOOK "stack") = two stacked panels, SPX on top + Bitcoin
+  below. **⭐ ALIGNED BY AGE, cropped to SPX's age, MINIMAL CHROME (owner refined 2026-07-18): "comparison at the
+  same age, full history not necessary, less explanation — the visuals are the story, the tweet explains."** Both
+  panels share an AGE x-axis (launch/1yr/2yr), BTC cropped to SPX's ~3yr age (its full 17yr isn't the point).
+  Stripped the subtitle + headline sentence — only the title, panel name + one "N% held 1y+" stat each, band
+  legend, tiny footer. **The reveal (flattering + honest): at the same age SPX holds 38% of supply 1y+ vs BTC's
+  30% at the same point — SPX's diamond base matured FASTER than the king's.** Copy (274) carries the explanation
+  ("stickier than Bitcoin's were … maturing faster than the king's did"). The standalone `btc-hodl-waves-card.mjs`
+  (btchodlwaves) was REMOVED (superseded; nothing imported it);
   the `src/btc-hodl-waves.js` bundle + the `bigquery/btc_hodl_waves.sql` query stay (feed hodlcompare + any future
   BTC site chart). Wired charts/posts/LOOK/test; suite green (96). Proves the free-BigQuery path for BTC on-chain
   metrics — same route opens BTC realized-price/MVRV/supply-in-profit for more "SPX vs the king, measured the same
