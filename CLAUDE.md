@@ -122,6 +122,25 @@
     Future: expose "tools" (call rotation/stats live) for a truer agent; add streaming if the
     single-shot latency ever grates.
 
+## ✅ DATA FRESHNESS AWARENESS — control panel + chart tags (owner asked 2026-07-19)
+- Owner wanted visibility into WHEN each chart/card's data last updated, to spot staleness (some
+  feeds are daily-auto, some — the FIFO on-chain bundle — are manual until BigQuery automation).
+- **Control panel `#fresh` strip** (`public/control.html`, `FRESH_SOURCES`/`loadFreshness`/`renderFreshness`,
+  called non-blocking in `refresh()`): a "🗂 Data freshness" section listing each source with a status dot,
+  last-updated date + "N days ago", and cadence. **Colour logic: green = current; RED = a DAILY source that
+  missed its window (the snapshot cron didn't run — action needed); AMBER = a MANUAL source (onchain/urpd)
+  getting old (expected to lag, re-run the BigQuery extract).** Reads the raw JSON dates from
+  raw.githubusercontent (same `raw()` helper as the rest of the panel). Header summarises "all current" /
+  "N need a refresh".
+- **Site chart tag** (`src/freshness.js` + `src/ChartFreshness.jsx`, mounted in App.jsx chart-page header):
+  a small "● data as of <date> · today/N days ago · manual" pill on charts backed by a runtime JSON file.
+  `CHART_SOURCE` maps chart id → source (onchain/urpd/chainwallets/btcmvrv/snapshot); price-derived charts
+  aren't listed → no tag (always live). Same green/amber/red staleness logic.
+- **Sources tracked + cadence + stale window:** history.json (daily, 2d), chain-wallets.json (daily, 2d),
+  signals.json (daily, 2d), longshort.json (daily, 3d), onchain.json (manual, 35d), urpd.json (manual, 35d),
+  btc-mvrv.json (monthly, 40d). To add a source: add to `FRESH_SOURCES` (panel) and/or `SOURCES`+`CHART_SOURCE`
+  (site). Both derive the date from the file itself (last array `.d`/`.date` or object `.updated`).
+
 ## Backlog / decisions
 - **⭐ MULTI-CHAIN WALLET GROWTH + OUR-OWN-METRICS (owner, 2026-07-16) — in progress.** Two linked asks:
   (1) **Ditch HolderScan's confusing "classified/total supply" framing** — it burned us (86%-of-classified vs

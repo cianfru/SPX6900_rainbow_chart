@@ -21,6 +21,7 @@ import {
 } from "./models.js";
 import { CRYPTO_MILESTONES } from "./milestones.js";
 import { CHART_META, CHART_IDS } from "./charts-catalog.js";
+import ChartFreshness from "./ChartFreshness.jsx";
 import BandStats from "./BandStats.jsx";
 // Secondary tab charts are lazy-loaded so their code only ships when the tab is opened.
 import ErrorBoundary from "./ErrorBoundary.jsx";
@@ -1234,7 +1235,8 @@ export default function App() {
           <span style={{ color: CHART_META[tab]?.color, display: "inline-flex" }}><TabIcon name={tab} /></span>
           <h2 style={{ fontFamily: SANS, fontSize: isMobile ? 26 : 34, fontWeight: 800, margin: 0, color: "#f8fafc", letterSpacing: "-0.02em" }}>{CHART_META[tab]?.title}</h2>
         </div>
-        <div style={{ fontFamily: SANS, fontSize: isMobile ? 14 : 16, color: "#94a3b8", marginBottom: 18 }}>{CHART_META[tab]?.desc}</div>
+        <div style={{ fontFamily: SANS, fontSize: isMobile ? 14 : 16, color: "#94a3b8", marginBottom: 10 }}>{CHART_META[tab]?.desc}</div>
+        <ChartFreshness chartId={tab} />
         <ErrorBoundary key={tab}>
         <Suspense fallback={<div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 40 }}>Loading chart…</div>}>
           {chartEl(tab)}

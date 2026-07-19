@@ -66,6 +66,15 @@
   .chip.goto:hover, .chip.goto:focus-visible { border-color: #38bdf8; background: #0e1424; outline: none; }
   .chip.goto:active { transform: scale(.96); }
   /* "Notable today" anomaly signals */
+  .fresh { margin: 12px 0 4px; background: #0b0b18; border: 1px solid rgba(255,255,255,.08); border-radius: 12px; padding: 11px 14px; }
+  .fresh h3 { margin: 0 0 6px; font-size: 13px; font-weight: 600; color: #cbd5e1; }
+  .fresh .frow { display: flex; align-items: center; gap: 10px; padding: 5px 0; font-size: 13px; border-top: 1px solid rgba(255,255,255,.05); }
+  .fresh .frow:first-of-type { border-top: none; }
+  .fresh .fdot { width: 9px; height: 9px; border-radius: 999px; flex: none; }
+  .fresh .flabel { color: #e2e8f0; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .fresh .fwhen { color: #94a3b8; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .fresh .fcad { color: #64748b; font-size: 11.5px; white-space: nowrap; min-width: 96px; text-align: right; }
+  @media (max-width: 640px) { .fresh .fcad { display: none; } .fresh .flabel { white-space: normal; } }
   .signals { margin: 12px 0 4px; }
   .sighdr { font-size: 13px; font-weight: 700; color: #fcd34d; margin-bottom: 8px; }
   .sighdr span { color: #64748b; font-weight: 400; font-size: 12px; }
@@ -263,6 +272,7 @@
       </div>
       <div class="status" id="status">Loading…</div>
       <div class="sched" id="sched"></div>
+      <div class="fresh" id="fresh"></div>
       <div class="signals" id="signals"></div>
       <div class="agent">
         <div class="agenthdr">🤖 Ask the agent <span>· consults OpenRouter over today's real numbers — stats, the rotation pick, "Notable today" & the full card catalog</span></div>
@@ -376,6 +386,49 @@ async function loadSchedule() {
 // "⚡ Notable today" — candidate anomaly posts from the daily on-chain detector
 // (public/signals.json). Human-in-the-loop: review the honest framing + guardrail,
 // then queue the mapped card in one click, or ignore. Only shows TODAY's signals.
+// ---- Data freshness (which feeds are current, which need a refresh) ----
+// Each source: how to read its last-updated date + expected cadence + the staleness
+// window. onchain/urpd are MANUAL (owner re-runs the free BigQuery extract) so they're
+// expected to lag; the daily ones going stale means the snapshot cron didn't run.
+const FRESH_SOURCES = [
+  { label: "Daily snapshot · price, holders, cost basis, F&G", file: "public/history.json", pick: d => Array.isArray(d) ? d.at(-1)?.d : null, cad: "daily", max: 2 },
+  { label: "Multi-chain wallet counts (ETH·Base·Solana)", file: "public/chain-wallets.json", pick: d => Array.isArray(d) ? d.at(-1)?.d : null, cad: "daily", max: 2 },
+  { label: "Notable-today signals", file: "public/signals.json", pick: d => d?.date, cad: "daily", max: 2 },
+  { label: "On-chain positioning · Hyperliquid", file: "public/longshort.json", pick: d => Array.isArray(d) ? d.at(-1)?.date : null, cad: "daily", max: 3 },
+  { label: "On-chain FIFO · HODL, supply-in-profit, concentration, SOPR", file: "public/onchain.json", pick: d => Array.isArray(d) ? d.at(-1)?.d : null, cad: "manual · BigQuery", max: 35, manual: true },
+  { label: "Cost-basis distribution (URPD)", file: "public/urpd.json", pick: d => d?.updated, cad: "manual · BigQuery", max: 35, manual: true },
+  { label: "Bitcoin MVRV context", file: "public/btc-mvrv.json", pick: d => d?.updated, cad: "monthly", max: 40 },
+];
+
+async function loadFreshness() {
+  const raw = p => fetch(`https://raw.githubusercontent.com/${OWNER}/${REPO}/${BRANCH}/${p}?t=${Date.now()}`, { cache: "no-store" }).then(r => r.ok ? r.json() : null).catch(() => null);
+  const now = Date.now();
+  return Promise.all(FRESH_SOURCES.map(async s => {
+    const data = await raw(s.file);
+    let date = null;
+    try { date = data ? s.pick(data) : null; } catch { /* leave null */ }
+    const days = date ? Math.max(0, Math.floor((now - Date.parse(date + "T00:00:00Z")) / 86400000)) : null;
+    const stale = days == null || days > s.max;
+    return { label: s.label, cad: s.cad, manual: s.manual, date, days, stale };
+  }));
+}
+
+function renderFreshness(rows) {
+  const el = $("#fresh");
+  if (!rows || !rows.length) { el.innerHTML = ""; return; }
+  const anyStale = rows.some(r => r.stale);
+  const dotColor = r => r.date == null ? "#64748b" : r.stale ? (r.manual ? "#f59e0b" : "#f87171") : "#4ade80";
+  const ago = r => r.date == null ? "no data" : `${r.date} · ${r.days === 0 ? "today" : r.days === 1 ? "1 day ago" : r.days + " days ago"}`;
+  const hdr = anyStale
+    ? `<span style="color:#f59e0b">· ${rows.filter(r => r.stale).length} need${rows.filter(r => r.stale).length === 1 ? "s" : ""} a refresh</span>`
+    : `<span style="color:#4ade80">· all current</span>`;
+  el.innerHTML = `<h3>🗂 Data freshness ${hdr}</h3>` + rows.map(r =>
+    `<div class="frow"><span class="fdot" style="background:${dotColor(r)}"></span>`
+    + `<span class="flabel">${esc(r.label)}</span>`
+    + `<span class="fwhen" style="color:${r.stale ? "#fca5a5" : "#94a3b8"}">${esc(ago(r))}</span>`
+    + `<span class="fcad">${esc(r.cad)}</span></div>`).join("");
+}
+
 function renderSignals() {
   const el = $("#signals");
   if (!el) return;
@@ -540,6 +593,7 @@ async function refresh() {
     renderSchedule(META);
     renderSignals();
     renderGrid();
+    loadFreshness().then(renderFreshness).catch(() => {}); // non-blocking freshness strip
     status(`${IDS.length} cards. ${QUEUED ? `Queued: ${QUEUED}.` : "No override — auto rotation."}`, "ok");
   } catch (e) { status(e.message, "err"); }
 }
