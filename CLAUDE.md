@@ -383,6 +383,21 @@
       **New card headlines after the swap** (all recompute live, verified): hodlwaves **53%** 1y+ (was 38%); hodlcompare
       SPX **53%** vs BTC **30%** at the same age (now apples-to-apples, both per-lot/UTXO); freefloat **22%** liquid vs
       BTC **48%** ("locked up faster than the king"); concentration unchanged (top-N reconciles). supplyprofit sip 45%.
+    - **✅ INTERACTIVE SITE CHARTS SHIPPED 2026-07-19 for all 3 depth cards (owner: "need to be interactive and beautiful").**
+      `src/UrpdChart.jsx` (recharts BarChart — green/red cost-basis histogram, gradient bars, spot ReferenceLine, per-bucket
+      tooltip; reads `/urpd.json` via new `loadUrpd()` + SPX_URPD fallback), `src/LthSthChart.jsx` (stacked AreaChart, 4
+      bands, drag-zoom, legend), `src/SoprChart.jsx` (oscillator line with green/red profit-loss zones + break-even 1.0,
+      drag-zoom). All in the On-Chain group (charts-catalog.js) + App.jsx (lazy + icon + switch), each with an `<Explain>`
+      box. Browser-verified via Playwright — all three pages + gallery previews render clean, zero JS errors. They read the
+      SAME `/onchain.json` (FIFO) as the cards, so site + cards never drift.
+    - **🔲 DAILY AUTO-UPDATE via BigQuery — ANSWERED + DESIGNED (owner asked 2026-07-19, not yet built).** YES it's possible
+      and can be ~free. The trap: a full 546 GB re-scan of the 2.6M-transfer history daily = ~16 TB/mo, over the 1 TB free
+      tier (~$75/mo). The free path: a daily GH Action runs an INCREMENTAL query (`WHERE block_timestamp >= last_seen`, prunes
+      to recent date partitions = a few GB) that APPENDS to your OWN append-only BQ table, then EXPORTS that ~300 MB table
+      (exports are free — no scan-bill), runs the local FIFO engine ($0), commits onchain.json + urpd.json, deploys. Needs a
+      **GCP service account key** (one JSON → GH secret) — the only manual setup. RECOMMENDATION given: these are weekly-sampled,
+      slow-moving metrics, so WEEKLY is the natural cadence (even cheaper); daily is doable but overkill. Build the pipeline
+      when the owner creates the service account key. (The FIFO engine already runs headless on a CSV, so it drops straight in.)
     - **Refresh:** re-run `node scripts/build-onchain-local.mjs --transfers=X.csv --prices=<from spx-daily.js>` on a
       fresh extract → re-bundle spx-fifo.js/spx-urpd.js. $0, no Dune, no key. For EXACT intra-block ordering on a future
       extract, add `block_number`+`log_index` to the SQL and sort by them (drops the receives-first heuristic).

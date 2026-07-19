@@ -86,6 +86,20 @@ export function loadOnchain() {
   return onchainPromise;
 }
 
+// Shared, cached loader for /urpd.json — the cost-basis distribution snapshot (URPD)
+// from the local FIFO engine. Resolves to null on failure so the caller falls back to
+// the bundled src/spx-urpd.js.
+let urpdPromise = null;
+export function loadUrpd() {
+  if (!urpdPromise) {
+    urpdPromise = fetch("/urpd.json", { cache: "no-store" })
+      .then(r => (r.ok ? r.json() : null))
+      .then(d => (d && Array.isArray(d.buckets) && d.buckets.length ? d : null))
+      .catch(() => null);
+  }
+  return urpdPromise;
+}
+
 // Shared, cached loader for /chain-wallets.json — multi-chain weekly wallet counts
 // (ETH+Base+Solana), refreshed by chain-wallets.yml. Resolves to null on any failure so
 // callers fall back to the bundled src/chain-wallets.js.
