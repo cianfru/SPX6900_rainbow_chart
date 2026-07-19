@@ -390,6 +390,25 @@
       drag-zoom). All in the On-Chain group (charts-catalog.js) + App.jsx (lazy + icon + switch), each with an `<Explain>`
       box. Browser-verified via Playwright — all three pages + gallery previews render clean, zero JS errors. They read the
       SAME `/onchain.json` (FIFO) as the cards, so site + cards never drift.
+    - **✅ HOLDERSCAN-TIER CARDS REALIGNED/SUNSET FOR CONSISTENCY 2026-07-19 (owner: "align the full website").**
+      After the FIFO swap, three "how much is locked/diamond" numbers coexisted: HolderScan diamond (61% of supply /
+      86% of classified — `marketcap`/`distribution`/`diamondtrend`), FIFO 1y+ (53% — hodlwaves/hodlcompare/freefloat),
+      FIFO LTH>90d (86% — lthsth). The sharp clash was FLOAT: `marketcap` said "39% free float" (from HolderScan diamond)
+      while `freefloat` said "22% liquid". Fixes:
+        • **`marketcap` REALIGNED** — locked/float now from the SAME FIFO age bands as the freefloat card (free float =
+          moved in last 6 months = 22%, locked = held 6m+ = 78%), dropping the HolderScan diamond dependency. marketcap
+          and freefloat now read the identical 22% float. Gated on `s.onchain>=50`; copy 279 xLen.
+        • **`distribution` + `diamondtrend` SUNSET into `NO_ROTATE`** — the opaque HolderScan conviction-tier framing is
+          superseded by the transparent FIFO cards (hodlwaves/supplyprofit/hodlcompare). Still buildable + hand-postable
+          + visible in the panel, just out of the auto-feed. (NOT rotation-excludes.json — that's the owner's live
+          curation file; this is a code-level data-quality sunset, same bucket as the redundant `risk`/`drawdown`.)
+        • **Site `HolderscanDashboard`** — dropped the one inline "61% of supply in diamond hands" caption (kept holder
+          count + avg cost basis, both legit live HolderScan). Removed the now-unused SUPPLY import.
+        • **🔲 STILL TO DECIDE (owner) — the `supply` gallery tile ("Holder Conviction", `SupplyConviction.jsx`)** is the
+          live-HolderScan conviction-tier donut = the direct SITE twin of the sunset `distribution` card (shows 86%/61%).
+          hodlwaves is its transparent interactive replacement in the same On-Chain group. RECOMMEND removing the tile
+          from charts-catalog (sunset the page) OR rebuilding it from FIFO age bands — left for the owner to confirm
+          before deleting a whole page. Everything else is aligned.
     - **🔲🔲 OWNER TODO — AUTO-UPDATE THE ON-CHAIN CHARTS via BigQuery (asked 2026-07-19; designed, NOT yet built).**
       **WHAT THIS IS FOR:** right now the whole on-chain suite — the 3 new depth charts (**Cost Basis Distribution / URPD**,
       **Long vs Short-Term Holders**, **SOPR**) PLUS the age-based ones (**HODL waves, Free Float, Supply-in-Profit,

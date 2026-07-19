@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { fetchAllHolderscanData } from "./holderscan.js";
 import { loadHistory, LIVE_DATA_DOWN } from "./history-data.js";
-import { SUPPLY } from "./data.js";
 import { SANS, MONO, MAX_W } from "./chart-ui.jsx";
 
 
@@ -169,7 +168,8 @@ export default function HolderscanDashboard() {
             <div style={{ marginTop: 8, color: "#cbd5e1" }}>
               Last daily snapshot ({snap.d}): <strong>{fNum(snap.holders)}</strong> holders
               {snap.be > 0 && <> · avg cost basis <strong>{fUsd(snap.be)}</strong></>}
-              {snap.sup?.diamond > 0 && <> · <strong>{Math.round((snap.sup.diamond / SUPPLY) * 100)}%</strong> of supply in diamond hands</>}
+              {/* diamond-hands % dropped: HolderScan's opaque tier (61% of supply) conflicts with the
+                  transparent FIFO age bands the On-Chain charts now use (53% held 1y+). See HODL Waves. */}
             </div>
           )}
         </div>

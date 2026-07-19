@@ -1195,21 +1195,27 @@ Rare cuts both ways: cheap is uncommon, but so is euphoria.`,
     };
   },
 
-  // 8 — diamond-adjusted "real" market cap (locked vs float, stacked)
-  s => s.supply && (() => {
-    const ofAll = Math.round(s.supply.diamondShare * 100); // diamond ÷ TOTAL supply
-    const ofClassified = s.supply.classified ? Math.round(s.supply.tiers.diamond / s.supply.classified * 100) : null; // ÷ identified holders only
+  // 8 — real free-float cap (locked vs float, stacked). Locked/float now comes from the
+  // SAME transparent on-chain free-float metric as the freefloat card (FIFO age bands) —
+  // free float = supply that moved in the last 6 months — instead of HolderScan's opaque
+  // "diamond" tier, so marketcap and freefloat read the same number site-wide.
+  s => s.supply && s.onchain?.length >= 50 && Array.isArray(s.onchain.at(-1)?.age) && (() => {
+    const age = s.onchain.at(-1).age;
+    const lockedFrac = (age[3] + age[4]) / 100;   // held 6m+ (hasn't moved in 6 months)
+    const freeFrac = Math.max(0, 1 - lockedFrac); // free float = moved in the last 6 months
+    const nominalMc = s.supply.nominalMc, floatMc = nominalMc * freeFrac, lockedValue = nominalMc * lockedFrac;
+    const freePct = Math.round(freeFrac * 100);
     return {
     id: "marketcap",
-    text: ct`💰 Real free-float cap is just ${fMoney(s.supply.floatMc)}, vs the ${fMoney(s.supply.nominalMc)} headline.
-The sticker cap assumes every coin trades. But ~${ofAll}% of all SPX sits in diamond hands that rarely sell${ofClassified ? ` (≈${ofClassified}% of identified holders)` : ""}, so tradable float is far smaller.
+    text: ct`💰 Real free-float cap is just ${fMoney(floatMc)}, vs the ${fMoney(nominalMc)} headline.
+The sticker cap assumes every coin trades. But ~${100 - freePct}% of SPX6900's supply hasn't moved in 6 months, so only ~${freePct}% is actually liquid float — reconstructed on-chain.
 Thin float amplifies moves both ways.`,
     card: { type: "stack", spec: {
-      title: "Headline cap vs real free float", headline: fMoney(s.supply.floatMc) + " free float", accent: "#22d3ee",
-      total: s.supply.nominalMc,
+      title: "Headline cap vs real free float", headline: fMoney(floatMc) + " free float", accent: "#22d3ee",
+      total: nominalMc,
       segments: [
-        { label: "Diamond-locked", value: s.supply.diamondValue, text: fMoney(s.supply.diamondValue), color: "#818cf8" },
-        { label: "Free float", value: s.supply.floatMc, text: fMoney(s.supply.floatMc), color: "#22d3ee" },
+        { label: "Locked (held 6m+)", value: lockedValue, text: fMoney(lockedValue), color: "#818cf8" },
+        { label: "Free float", value: floatMc, text: fMoney(floatMc), color: "#22d3ee" },
       ],
     } },
     };
@@ -1887,7 +1893,12 @@ const weightOf = id => WEIGHT[id] ?? (BULLISH.has(id) ? 2 : 1);
 // the monthly-returns card covers the same honesty without the gloom. The risk
 // line is here because the fngtrend card now plots it next to crypto Fear &
 // Greed, so the standalone is redundant in the feed.
-const NO_ROTATE = new Set(["drawdown", "risk", "kraken", "dcaladder"]);
+// distribution + diamondtrend read HolderScan's opaque "conviction tiers" (the 86%-of-
+// classified / 61%-of-supply diamond framing). The transparent FIFO age-band cards —
+// hodlwaves (age over time), supplyprofit and hodlcompare — now tell the same story as a
+// clean % of supply, so the HolderScan pair is sunset from the auto-feed (still buildable
+// + hand-postable) to keep the on-chain numbers consistent site-wide.
+const NO_ROTATE = new Set(["drawdown", "risk", "kraken", "dcaladder", "distribution", "diamondtrend"]);
 
 // Owner-editable rotation exclusions — cards kept BUILDABLE + visible in the control
 // panel (and hand-postable) but held OUT of the organic daily rotation. Toggled from
