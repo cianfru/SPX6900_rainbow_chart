@@ -342,6 +342,37 @@
     TRANSFERS csv** — the price csv is generated locally from `src/spx-daily.js` (bundled CoinGecko daily, launch→now),
     so no second/price query is needed. Tier-1 (free, no data): still-unbuilt site pages for card-only `spxvssp` +
     `diamondtrend` (pure render).
+  - **✅✅ RUNWAY COMPLETE — REAL EXTRACT RAN, ALL 3 CARDS SHIPPED 2026-07-19 (owner ran the free BigQuery extract).**
+    Owner ran `bigquery/spx6900_raw_transfers.sql` (545.9 GB scan, well under the 1 TB/mo free tier — NO Dune credits),
+    exported **2,645,958 transfers** (5 CSVs → merged), sent them. Ran the local FIFO engine over the real data →
+    onchain.json (153 weekly rows) + urpd.json. **Two engine bugs surfaced only at real scale + FIXED (committed):**
+    (1) `Math.min(...transfers.map())` stack-overflows on 2.6M args → reduce loop; (2) held supply inflated ~1.75× (1.2B
+    > the 931M total) because BigQuery `block_timestamp` is per-BLOCK with no tx/log index, so a receive-then-send in the
+    SAME block got mis-ordered (send hit empty balance, skipped the FIFO consume, left phantom balance) → engine now
+    replays each same-timestamp block **RECEIVES-first**. **RECONCILES EXACTLY to Dune:** rp $0.534 (Dune $0.538),
+    49,566 ETH holders (~49.5k), top100 58.1% (58.2%), held 687.7M. Bundled **`src/spx-fifo.js`** (full FIFO series +
+    sopr + LTH/STH) + **`src/spx-urpd.js`** (cost-basis histogram). `stats.fifo` / `stats.urpd` loaders added
+    (public-file preferred, bundle fallback — no CI writes those public files, so bundle is authoritative). **3 cards
+    BUILT** (charts/posts/LOOK/test, all render clean landscape + portrait, copy ≤290 / ≤1 cashtag, 96 tests green):
+    - **`urpd`** (`scripts/bot/urpd-card.mjs`, LOOK "bars") — cost-basis distribution histogram, green in-profit / red
+      underwater split at a spot line. "Where are the bags?" Today: **43% in profit**, biggest wall $0.38–0.45 (10%).
+      IN rotation (neutral/flagship, visually striking).
+    - **`lthsth`** (`scripts/bot/lth-sth-card.mjs`, LOOK "stack") — long vs short-term holders in profit/loss over time,
+      4-band stacked area. Today: **86% held long-term, 55% underwater and unmoved** (conviction). ROTATION-EXCLUDED by
+      default (gloomy-leaning; owner curates via the ⊘ toggle).
+    - **`sopr`** (`scripts/bot/sopr-card.mjs`, LOOK "dual") — spent-output profit ratio oscillator, green/red zones at
+      break-even 1.0. Today **0.97** (coins moving at a slight loss). ROTATION-EXCLUDED by default (techy; toggleable).
+    - **⭐ AGE-BAND METHODOLOGY NOTE (a live decision for the owner):** the FIFO **per-lot** age legitimately differs
+      from Dune's **per-address** age — Dune resets a whole address's age on ANY receive (a whale's small top-up flips
+      its entire balance to "0–1m fresh"), so Dune reads 0–1m 16.5% / 1y+ 37.7% while FIFO reads 0–1m 5.0% / **1y+
+      52.9%**. FIFO is the TRUE coin age and is exactly BTC's UTXO method — so swapping the age-based cards (hodlwaves /
+      hodlcompare / freefloat / concentration) to the FIFO bundle would make the SPX-vs-BTC HODL comparison
+      methodologically CONSISTENT (both per-lot) AND strengthen the diamond story (53% vs BTC 30% at same age). LEFT ON
+      THE DUNE BUNDLE for now (didn't want to silently change the owner's favourite cards' headline numbers + it'd need
+      the CI onchain.yml Dune refresh reconciled/retired). **Owner decision pending:** swap those cards to FIFO too?
+    - **Refresh:** re-run `node scripts/build-onchain-local.mjs --transfers=X.csv --prices=<from spx-daily.js>` on a
+      fresh extract → re-bundle spx-fifo.js/spx-urpd.js. $0, no Dune, no key. For EXACT intra-block ordering on a future
+      extract, add `block_number`+`log_index` to the SQL and sort by them (drops the receives-first heuristic).
 
 ## Dune credit discipline — HARD-WON, read before writing/running ANY Dune query (2026-07-16)
 - **The 2,500/mo free tier got blown in a WEEK, ~88% on ~5 heavy debugging runs.** The credit CSV was unambiguous:
