@@ -945,18 +945,23 @@ Where SPX sits vs alts — a relative read, not a signal.`,
     };
   })(),
 
-  // Free Float — the share of supply that's actually liquid (changed hands in the last
-  // 6 months), from the on-chain HODL age bands. Falls from ~100% at launch as coins mature
-  // into strong hands (the "supply squeeze"). Definition + source stated so it's verifiable.
-  // A holder-behaviour POSITION, not a signal.
-  s => (s.onchain?.length >= 50) && (() => {
-    const age = s.onchain.at(-1).age;
-    const ff = Math.round(100 - (age[3] + age[4]));
+  // Free Float — share of supply that's actually liquid (moved in the last 6 months), from
+  // the on-chain HODL age bands, vs Bitcoin on the SAME measure at the SAME age (BTC from the
+  // free BigQuery UTXO reconstruction). The honest reveal: at ~3yr SPX's float is TIGHTER than
+  // BTC's was — supply locked up faster. A holder-behaviour POSITION, not a signal.
+  s => (s.onchain?.length >= 50 && BTC_HODL.length >= 100) && (() => {
+    const YR = 365.25 * 86400000, oc = s.onchain.filter(r => Array.isArray(r.age));
+    const ff = Math.round(100 - (oc.at(-1).age[3] + oc.at(-1).age[4]));
+    const maxAge = (Date.parse(oc.at(-1).d) - Date.parse(oc[0].d)) / YR;
+    const bt0 = Date.parse(BTC_HODL[0][0]);
+    const btcRow = BTC_HODL.filter(r => (Date.parse(r[0]) - bt0) / YR <= maxAge + 0.03).at(-1);
+    const btcFf = Math.round(100 - (btcRow[1][3] + btcRow[1][4]));
+    const tighter = ff < btcFf;
     return {
       id: "freefloat",
-      text: ct`🟡 ${ff}% of SPX6900's supply is liquid — the other ${100 - ff}% hasn't moved in 6 months.
-On-chain free float: the share of supply changing hands, down from ~100% at launch as coins matured into strong hands.
-Reproducible from Ethereum transfers — a position, not a signal.`,
+      text: ct`🟡 Only ${ff}% of SPX6900's supply is liquid — the other ${100 - ff}% hasn't moved in 6 months.
+At the same age, Bitcoin's free float was ${btcFf}%. SPX has locked supply up ${tighter ? "faster than the king did" : "at a similar pace to the king"} — same on-chain measure, same age since launch.
+A position, not a signal.`,
       card: { type: "freefloat" },
     };
   })(),

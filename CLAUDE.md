@@ -275,6 +275,16 @@
   BTC site chart). Wired charts/posts/LOOK/test; suite green (96). Proves the free-BigQuery path for BTC on-chain
   metrics — same route opens BTC realized-price/MVRV/supply-in-profit for more "SPX vs the king, measured the same
   way" comparison cards.
+- **✅ FREE-FLOAT REBUILT AS SPX-vs-BTC SAME-AGE COMPARISON 2026-07-18 (owner: "people love comparisons").**
+  Free float = 100 − (age 6-12m + 1y+) = share that moved in the last 6 months — derivable from HODL age bands for
+  BOTH SPX (stats.onchain) and BTC (src/btc-hodl-waves.js, the free BigQuery UTXO reconstruction), same definition.
+  So `free-float-card.mjs` now draws SPX (yellow) vs Bitcoin (orange) as two lines, aligned by AGE (launch/1yr/2yr
+  x-axis) and cropped to SPX's age — the same-age race, height-responsive, minimal chrome. **This RETIRES the dead
+  Coin Metrics peers path** (SplyAct180d was paid-gated; freefloat-peers.json/build-freefloat-peers.mjs/workflow now
+  moot — BTC comes from the bundle, no key). ETH dropped (no ETH HODL data; would need its own reconstruction). The
+  reveal: at ~3yr SPX free float ~37% vs BTC's ~52% at the same age → **SPX locked supply up FASTER than the
+  king** (crosses under BTC ~2yr). Copy (274) carries it. Same pattern as hodlcompare — the "SPX vs the king at the
+  same age" series, all from the one free BTC HODL bundle.
 - **⭐⭐ HODL-WAVES IS THE VISUAL NORTH STAR (owner, 2026-07-18): "clean, colorful, impactful."** The owner's
   favourite card by far — full-bleed colour, minimal chrome, one big plain-word stat, no gridline clutter. Any
   new card (and any future visual pass) should aim for that energy. The 2026-07-18 **brightness batch** moved the
