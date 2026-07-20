@@ -415,8 +415,13 @@
     (public-file preferred, bundle fallback — no CI writes those public files, so bundle is authoritative). **3 cards
     BUILT** (charts/posts/LOOK/test, all render clean landscape + portrait, copy ≤290 / ≤1 cashtag, 96 tests green):
     - **`urpd`** (`scripts/bot/urpd-card.mjs`, LOOK "bars") — cost-basis distribution histogram, green in-profit / red
-      underwater split at a spot line. "Where are the bags?" Today: **43% in profit**, biggest wall $0.38–0.45 (10%).
-      IN rotation (neutral/flagship, visually striking).
+      underwater split at a spot line. "Where are the bags?" biggest wall $0.38–0.45 (10%). IN rotation (neutral/flagship).
+      **⚠ SPOT MUST BE LIVE, NOT THE EXTRACT'S FROZEN spot (fixed 2026-07-19).** The cost-basis BARS are historical (from
+      the BigQuery extract) but the spot LINE + green/red profit split + "% in profit" must track the LIVE price, not the
+      `urpd.json` `.spot` frozen when the extract ran (owner caught it reading $0.382 while price was $0.345). Card uses
+      `stats.price`; site `UrpdChart` takes a `price` prop (App passes `last.price`) → daily-snapshot fallback → frozen
+      spot last resort; each bucket's in-profit = midpoint(lo·hi) < spot (recomputed, `urpd.json`'s baked `inProfit` flag
+      is ignored). Keep it live on any future edit.
     - **`lthsth`** (`scripts/bot/lth-sth-card.mjs`, LOOK "stack") — long vs short-term holders in profit/loss over time,
       4-band stacked area. Today: **86% held long-term, 55% underwater and unmoved** (conviction). ROTATION-EXCLUDED by
       default (gloomy-leaning; owner curates via the ⊘ toggle).

@@ -3,7 +3,7 @@ import {
   ResponsiveContainer, BarChart, Bar, Cell, XAxis, YAxis, Tooltip, CartesianGrid, ReferenceLine,
 } from "recharts";
 import { SPX_URPD } from "./spx-urpd.js";
-import { loadUrpd } from "./history-data.js";
+import { loadUrpd, loadHistory } from "./history-data.js";
 import { SANS, MONO, MAX_W, Metric, TipBox, Explain } from "./chart-ui.jsx";
 
 const GRN = "#34d399", RED = "#fb7185";
@@ -23,25 +23,33 @@ function Tip({ active, payload }) {
 // Cost Basis Distribution (URPD) — where the held supply was bought, a histogram of per-lot
 // acquisition price from the local FIFO engine. Green = in profit (below spot), red =
 // underwater (above spot). "Where are the bags?" A holder-cost position, not a signal.
-export default function UrpdChart({ isMobile, preview = false }) {
+export default function UrpdChart({ isMobile, preview = false, price = null }) {
   const [live, setLive] = useState(null);
+  const [px, setPx] = useState(null); // live-ish price fallback from the daily snapshot
   useEffect(() => {
     let cancelled = false;
     loadUrpd().then(d => { if (!cancelled && d) setLive(d); });
+    if (!(Number.isFinite(price) && price > 0)) {
+      loadHistory().then(h => { if (!cancelled && Array.isArray(h) && h.length) setPx(h.at(-1)?.p ?? null); });
+    }
     return () => { cancelled = true; };
-  }, []);
+  }, [price]);
   const u = live || SPX_URPD;
+  // The cost-basis bars are historical; the spot line + profit split must track the LIVE
+  // price, not the price frozen into urpd.json at extract time. Prefer the passed live price,
+  // then the latest daily snapshot, then (last resort) the extract's own spot.
+  const spot = (Number.isFinite(price) && price > 0) ? price
+    : (Number.isFinite(px) && px > 0) ? px : (u?.spot ?? 0);
 
-  const { data, spotIdx, inProfit, wall, spot } = useMemo(() => {
-    const b = (u?.buckets || []).map((x, i) => ({ i, lo: x.lo, hi: x.hi, pct: x.pct, inProfit: x.inProfit }));
-    const spot = u?.spot ?? 0;
+  const { data, spotIdx, inProfit, wall } = useMemo(() => {
+    const b = (u?.buckets || []).map((x, i) => ({ i, lo: x.lo, hi: x.hi, pct: x.pct, inProfit: Math.sqrt(x.lo * x.hi) < spot }));
     let spotIdx = b.findIndex(x => spot >= x.lo && spot < x.hi);
     if (spotIdx < 0) spotIdx = b.findIndex(x => !x.inProfit); // first underwater bucket
     const inProfit = b.filter(x => x.inProfit).reduce((a, x) => a + x.pct, 0);
     let wall = b[0] || null;
     for (const x of b) if (wall && x.pct > wall.pct) wall = x;
-    return { data: b, spotIdx, inProfit, wall, spot };
-  }, [u]);
+    return { data: b, spotIdx, inProfit, wall };
+  }, [u, spot]);
 
   if (data.length < 8) return <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Not enough on-chain data yet.</div>;
 

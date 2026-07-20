@@ -16,8 +16,15 @@ const fp = p => p >= 1 ? "$" + p.toFixed(2) : "$" + p.toFixed(p >= 0.1 ? 3 : 4);
 export function urpdSvg(stats, opts = {}) {
   const u = stats.urpd;
   if (!u || !Array.isArray(u.buckets) || u.buckets.length < 8) return null;
-  const b = u.buckets, spot = u.spot;
-  const inProfit = b.filter(x => x.inProfit).reduce((a, x) => a + x.pct, 0);
+  const b = u.buckets;
+  // The cost-basis BARS are historical (from the extract) — but the spot line and the
+  // in/out-of-profit split must track the LIVE price, not the price frozen into urpd.json
+  // when the BigQuery extract ran. Recompute profit vs stats.price (fall back to the frozen
+  // spot only if there's no live price). A bucket is "in profit" if its cost < spot.
+  const spot = Number.isFinite(stats.price) && stats.price > 0 ? stats.price : u.spot;
+  const mid = z => Math.sqrt(z.lo * z.hi);
+  const inP = z => mid(z) < spot;
+  const inProfit = b.filter(inP).reduce((a, z) => a + z.pct, 0);
   // biggest wall
   let wall = b[0]; for (const x of b) if (x.pct > wall.pct) wall = x;
 
@@ -43,11 +50,11 @@ export function urpdSvg(stats, opts = {}) {
     const x0 = x(z.lo), x1 = x(z.hi), bw = Math.max(x1 - x0 - 1.5, 1);
     const yy = y(z.pct), h = baseY - yy;
     if (h < 0.5) continue;
-    bars += `<rect x="${x0.toFixed(1)}" y="${yy.toFixed(1)}" width="${bw.toFixed(1)}" height="${h.toFixed(1)}" rx="1.5" fill="${z.inProfit ? "url(#upG)" : "url(#upR)"}"/>`;
+    bars += `<rect x="${x0.toFixed(1)}" y="${yy.toFixed(1)}" width="${bw.toFixed(1)}" height="${h.toFixed(1)}" rx="1.5" fill="${inP(z) ? "url(#upG)" : "url(#upR)"}"/>`;
   }
   // spot marker (label sits inside the plot top, anchored away from the plot edge; the
   // biggest-wall figure lives in the hero, so no separate over-bar label to collide with)
-  const sx = x(spot), sxr = sx > mL + pW * 0.6; // spot on the right half → anchor label left
+  const sx = x(Math.max(b[0].lo, Math.min(b.at(-1).hi, spot))), sxr = sx > mL + pW * 0.6; // clamp line into plot; anchor label left when on the right half
   const spotMark = `<line x1="${sx.toFixed(1)}" y1="${mT.toFixed(1)}" x2="${sx.toFixed(1)}" y2="${baseY}" stroke="#f8fafc" stroke-width="2.5" stroke-dasharray="6 5"/>`
     + `<text x="${(sx + (sxr ? -10 : 10)).toFixed(1)}" y="${(mT + 26).toFixed(1)}" fill="#f8fafc" font-size="22" font-weight="700" text-anchor="${sxr ? "end" : "start"}" font-family="sans-serif">spot ${fp(spot)}</text>`;
 

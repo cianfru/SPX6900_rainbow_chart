@@ -591,7 +591,7 @@ export default function App() {
       case "supplyprofit": return <SupplyInProfitChart isMobile={mob} preview={preview} />;
       case "hodlwaves": return <HodlWavesChart isMobile={mob} preview={preview} />;
       case "concentration": return <HolderConcentrationChart isMobile={mob} preview={preview} />;
-      case "urpd": return <UrpdChart isMobile={mob} preview={preview} />;
+      case "urpd": return <UrpdChart isMobile={mob} preview={preview} price={last?.price} />;
       case "lthsth": return <LthSthChart isMobile={mob} preview={preview} />;
       case "sopr": return <SoprChart isMobile={mob} preview={preview} />;
       case "walletgrowth": return <WalletGrowthChart isMobile={mob} preview={preview} />;
