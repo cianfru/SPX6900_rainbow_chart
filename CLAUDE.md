@@ -1332,6 +1332,17 @@
     deliberately NOT an A-F / buy-sell grade (would read as advice); guardrail caption kept. Today: **Deeply Cheap ·
     8.3/10**. Shared `grade()` so card + site agree. This gauge IS the site page's reason to exist (owner had
     questioned the plain dashboard) — kept as a deliberate exception to the card-only-infographic principle.
+  - **🔲 TURN "AM I CHEAP?" INTO A TIME-SERIES COMPOSITE CHART (owner, 2026-07-19 — greenlit, build next).** Both the
+    card AND the site should become a **proprietary valuation OSCILLATOR over time**: combine the SAME 6 lenses (rainbow
+    band · MVRV cost basis · supply-in-profit · Pi Cycle · alt-market · F&G) into ONE composite score per day and plot it
+    as a line that swings from **extremely expensive → extremely cheap** across history. The current snapshot gauge/chips
+    become the "today" point on that line. Build plan: extend `valuation-lenses.mjs` so each lens exposes a HISTORICAL
+    normalised series (0=expensive…1=cheap) — most already have the inputs (model band from priceData, MVRV from
+    mvrvSeries, supply-in-profit + everything on-chain from stats.onchain, Pi Cycle from piCycleRatio, alt-market from
+    buildAltRainbow, F&G from FNG_HISTORY) — average them per day into a composite, plot with cheap/expensive zones +
+    a "today" marker (like nupl/picycle). Card = `amicheap` reworked to LOOK "dual"; site = `AmICheapDashboard` becomes a
+    real chart. Keep the honesty guardrail (a valuation POSITION over time, NOT a buy/sell signal). The convergence-over-
+    time IS the proprietary angle — our own composite, fully reproducible from the 6 published lenses.
   - **⭐ "AM I CHEAP?" VALUATION DASHBOARD — greenlit for memory (owner, 2026-07-08).** A view/card
     that flags when MULTIPLE INDEPENDENT valuation gauges AGREE that SPX is cheap/heated — the
     corroboration is the signal (one metric can mislead; three aligning is stronger + honest). The
