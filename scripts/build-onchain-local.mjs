@@ -143,6 +143,11 @@ export function replayFifo(transfers, priceAt, sampleTs, opts = {}) {
   };
   const liqKinds = new Set(["cex", "lp", "custody"]);
   const liqExcluded = () => { let s = 0; for (const [a, b] of exBal) { if (b > EPS && liqKinds.has(EXCLUDE_LABELS[a]?.kind)) s += b; } return s; };
+  // Per-kind excluded balances, so the LIQUID bucket can be split into its parts. CEX
+  // balance over time is the exchange-flow / sell-side proxy (coins ON exchanges); its
+  // week-over-week DELTA is the netflow. LP balance is Uniswap liquidity depth (a different
+  // story — providing liquidity, not selling), which BTC on-chain analytics can't isolate.
+  const kindBal = kind => { let s = 0; for (const [a, b] of exBal) { if (b > EPS && EXCLUDE_LABELS[a]?.kind === kind) s += b; } return s; };
 
   const rows = [];
   let p = 0, winVal = 0, winCost = 0; // per-sample-window spend accumulators (SOPR)
@@ -161,6 +166,8 @@ export function replayFifo(transfers, priceAt, sampleTs, opts = {}) {
     }
     const row = snapshot(wallets, sTs, priceAt(sTs), thr);
     row.liqEx = +(liqExcluded() / 1).toFixed(2); // CEX+LP+custody supply (tokens) — the always-liquid excluded bucket
+    row.cexBal = +kindBal("cex").toFixed(2);     // SPX on tagged CEX addresses — exchange-flow / sell-side proxy
+    row.lpBal = +kindBal("lp").toFixed(2);       // SPX in Uniswap LP — liquidity depth (our edge vs BTC on-chain)
     // SOPR for this window = realized value ÷ cost of all coins that MOVED since the
     // last sample. >1 = holders spending at a profit, <1 = at a loss. null = nothing moved.
     row.sopr = winCost > EPS ? +(winVal / winCost).toFixed(4) : null;
