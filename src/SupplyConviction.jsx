@@ -233,7 +233,7 @@ export default function SupplyConviction({ price, isMobile }) {
         </div>
       )}
       <div style={{ display: "flex", gap: isMobile ? 18 : 40, justifyContent: "center", flexWrap: "wrap", marginBottom: 24 }}>
-        <Readout label="DIAMOND SUPPLY" value={(diamondPctTotal * 100).toFixed(0) + "%"} color="#22d3ee" sub={`${fUsd(diamondValue)} · ${(diamondPctClassified * 100).toFixed(0)}% of classified`} isMobile={isMobile} />
+        <Readout label="DIAMOND SUPPLY" value={(diamondPctTotal * 100).toFixed(0) + "%"} color="#22d3ee" sub={`${fUsd(diamondValue)} · ${(diamondPctClassified * 100).toFixed(0)}% of holder supply`} isMobile={isMobile} />
         <Readout label="EFFECTIVE FLOAT" value={fNum(effFloatTokens) + " SPX"} color="#cbd5e1" sub={`${((1 - diamondPctTotal) * 100).toFixed(0)}% of supply`} isMobile={isMobile} />
         <Readout label="EFFECTIVE MARKET CAP" value={fUsd(effMc)} color="#4ade80" sub={`vs ${fUsd(nominalMc)} nominal`} isMobile={isMobile} />
       </div>
@@ -268,8 +268,8 @@ export default function SupplyConviction({ price, isMobile }) {
 
       <div style={{ maxWidth: 800, margin: "22px auto 0", fontFamily: SANS, fontSize: 13, color: "#cbd5e1", lineHeight: 1.7, textAlign: "center" }}>
         Supply grouped by holding time (Holderscan, FIFO). Diamond hands hold <strong style={{ color: "#22d3ee" }}>{fNum(diamondTokens)} SPX ({fUsd(diamondValue)})</strong> —
-        <strong> {(diamondPctTotal * 100).toFixed(0)}% of total supply</strong>. Holderscan reports this as <strong>{(diamondPctClassified * 100).toFixed(0)}%</strong> because
-        they measure it within age-classified holders (the top ~{(classifiedPctTotal * 100).toFixed(0)}% of supply); the rest is an untracked tail of smaller wallets.
+        <strong> {(diamondPctTotal * 100).toFixed(0)}% of all supply</strong> — or <strong>{(diamondPctClassified * 100).toFixed(0)}%</strong> if you
+        count only the supply in holder wallets (~{(classifiedPctTotal * 100).toFixed(0)}% of the total; the rest sits on exchanges, in LPs, or in a tail of tiny wallets). Same coins, two views.
         Treating diamonds as removed leaves an effective float of {fNum(effFloatTokens)} SPX → <strong style={{ color: "#4ade80" }}>{fUsd(effMc)}</strong> effective cap
         vs {fUsd(nominalMc)} nominal. Snapshot, not financial advice.
       </div>

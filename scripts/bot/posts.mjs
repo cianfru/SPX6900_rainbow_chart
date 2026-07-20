@@ -1245,14 +1245,14 @@ Up in dollars is easy in a bull market. Up in BTC is the truer scoreboard.`,
     const ofAll = Math.round(s.supply.diamondShare * 100); // same diamond tokens, but ÷ TOTAL supply
     return {
     id: "distribution",
-    text: ct`💎 ~${diamondPct}% of SPX6900's classified holder supply is held 90 days+ — about ~${ofAll}% of all coins in circulation.
-Same coins, two denominators: HolderScan only tiers identified wallets, so exchanges, LPs and contracts sit outside this slice.
-High conviction, thin float.`,
+    text: ct`💎 ~${diamondPct}% of the SPX6900 in holders' wallets is held 90 days+ — about ~${ofAll}% of all coins in circulation.
+Two views of the same coins: this counts only real holder wallets, not exchanges, LPs or contracts.
+High conviction.`,
     card: { type: "donut", spec: {
-      title: "Conviction of classified holder supply", headline: `${diamondPct}% held 90d+`, accent: "#22d3ee",
-      footer: `${diamondPct}% of classified ≈ ${ofAll}% of supply · held 90d+ · excludes exchanges, LPs, contracts`,
-      legendUnit: "of classified",
-      center: { big: `${diamondPct}%`, small: "of classified" },
+      title: "Holder supply by conviction", headline: `${diamondPct}% held 90d+`, accent: "#22d3ee",
+      footer: `${diamondPct}% of holder supply ≈ ${ofAll}% of all supply · held 90d+ · excludes exchanges, LPs, contracts`,
+      legendUnit: "of holder supply",
+      center: { big: `${diamondPct}%`, small: "of holders" },
       segments: TIERS.map(([k, label, c]) => ({ label, value: s.supply.tiers[k], color: c })),
     } },
     };
@@ -1303,12 +1303,12 @@ ${up ? "Most of the float is green and still holding." : "Red and still not sell
     return {
       id: "diamondtrend",
       text: copy("diamondtrend",
-`💎 Long-term holders (90 days+) hold ~{pct}% of all SPX6900 supply ({value}) — the float that rarely moves.
-That's {cpct}% of classified holders (HolderScan's number); the gap is coins on exchanges & in LPs.
+`💎 Coins held in wallets for 90 days+ make up ~{pct}% of all SPX6900 ({value}) — the float that rarely moves.
+Count only the supply in holders' wallets (not exchanges or LPs) and it's ~{cpct}%.
 {trend}.`,
         { pct: Math.round(nowPct), cpct, value: fMoney(s.supply.diamondValue), trend }),
       card: { type: "line", spec: {
-        title: "Long-term holders (90d+) — share of total supply over time", headline: cpct ? `${Math.round(nowPct)}% of supply · ${cpct}% of classified` : `${Math.round(nowPct)}% held 90d+`, accent: "#22d3ee",
+        title: "Held by wallets 90 days+ — share of supply over time", headline: cpct ? `${Math.round(nowPct)}% of all supply · ${cpct}% of holder supply` : `${Math.round(nowPct)}% held 90d+`, accent: "#22d3ee",
         yMin: lo - pad, yMax: hi + pad, yFmt: v => v.toFixed(decimals) + "%",
         series: [{ pts: ds, color: "#22d3ee", width: 3.5, fill: 0.18 }],
         marker: { x: ds.at(-1)[0], y: ds.at(-1)[1], color: "#22d3ee" },
