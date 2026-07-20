@@ -2,7 +2,8 @@ import { useState, useEffect, useMemo } from "react";
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
 import { fetchSupplyBreakdown } from "./holderscan.js";
 import { SUPPLY } from "./data.js";
-import { loadHistory, LIVE_DATA_DOWN } from "./history-data.js";
+import { loadHistory, loadOnchain, LIVE_DATA_DOWN } from "./history-data.js";
+import { SPX_ONCHAIN } from "./spx-onchain.js";
 import { SANS, MONO, MAX_W } from "./chart-ui.jsx";
 
 
@@ -132,19 +133,35 @@ export default function SupplyConviction({ price, isMobile }) {
     return () => { cancelled = true; };
   }, []);
 
+  // FIFO on-chain reconstruction (launch → last extract) — carries the SAME diamond number
+  // (held >90d = age bands 3-6m + 6-12m + 1y+) back to launch, reconciling with HolderScan
+  // to within ±0.7pp. Back-fills the pre-HolderScan history so the trend shows the full
+  // 0%→~87% maturation, while HolderScan's own daily points drive everything since ~2026-06.
+  const [onchain, setOnchain] = useState(null);
+  useEffect(() => {
+    let cancelled = false;
+    loadOnchain().then(d => { if (!cancelled) setOnchain(d || SPX_ONCHAIN); });
+    return () => { cancelled = true; };
+  }, []);
+
   const hist = useMemo(() => {
     if (!history) return [];
-    const rows = [];
+    const hs = [];
     for (const rec of history) {
       const ps = parseSupply(rec.sup);
       if (!ps) continue;
-      rows.push({
-        ts: new Date(rec.d).getTime(), date: rec.d,
-        diamond: ps.diamondShareClassified * 100, // share of tracked holders (HolderScan basis, ~87%)
-      });
+      hs.push({ ts: new Date(rec.d).getTime(), date: rec.d, diamond: ps.diamondShareClassified * 100 });
     }
-    return rows;
-  }, [history]);
+    hs.sort((a, b) => a.ts - b.ts);
+    if (!hs.length) return hs;
+    const seamTs = hs[0].ts;
+    const backbone = (onchain || [])
+      .filter(r => Array.isArray(r.age) && r.age.length === 5)
+      .map(r => ({ ts: new Date(r.d).getTime(), date: r.d, diamond: r.age[2] + r.age[3] + r.age[4] }))
+      .filter(r => Number.isFinite(r.ts) && Number.isFinite(r.diamond) && r.ts < seamTs)
+      .sort((a, b) => a.ts - b.ts);
+    return [...backbone, ...hs];
+  }, [history, onchain]);
 
   // Live breakdown, or — when the live proxy is down — the newest banked daily
   // snapshot from history.json (same fields, at most a day old).

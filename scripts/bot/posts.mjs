@@ -1305,8 +1305,8 @@ The real holder base — top wallets HolderScan tracks, exchanges and LPs exclud
 Conviction, wallet by wallet.`,
         { pct: Math.round(nowPct), trend }),
       card: { type: "line", spec: {
-        title: "Diamond hands (90 days+) — share of tracked holders over time", headline: `${Math.round(nowPct)}% diamond hands`, accent: "#22d3ee",
-        yMin: lo - pad, yMax: hi + pad, yFmt: v => v.toFixed(decimals) + "%",
+        title: "Diamond hands over time · held 90 days+", headline: `${Math.round(nowPct)}% diamond hands`, accent: "#22d3ee",
+        yMin: Math.max(0, lo - pad), yMax: Math.min(100, hi + pad), yFmt: v => v.toFixed(decimals) + "%",
         series: [{ pts: ds, color: "#22d3ee", width: 3.5, fill: 0.18 }],
         marker: { x: ds.at(-1)[0], y: ds.at(-1)[1], color: "#22d3ee" },
       } },

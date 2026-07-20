@@ -123,13 +123,10 @@ function loadSupplySnapshot() {
   } catch { return null; }
 }
 
-// Diamond-tier share of TOTAL supply over time (%), for the diamond-supply trend
-// card — grows as daily snapshots accumulate. Same basis as diamondShare above.
-function loadSupplyHistory() {
-  // Diamond hands as a share of TRACKED HOLDERS (HolderScan's basis: the top ~1,000 holder
-  // wallets, exchanges & LPs excluded) — i.e. diamond ÷ classified supply, ~85%. This is
-  // HolderScan's own "diamond hands" number and matches earlier posts; NOT diamond ÷ total
-  // supply (~61%), which mixes in exchanges/LPs/bridge and confused people.
+// HolderScan's own "diamond hands" number over time (%): diamond ÷ classified supply
+// (~87%). HolderScan's basis is the top ~1,000 holder wallets, exchanges & LPs excluded.
+// Daily-fresh, but only banked since we started snapshotting (2026-06).
+function loadHolderscanDiamond() {
   try {
     const arr = JSON.parse(readFileSync(new URL("../../public/history.json", import.meta.url), "utf8"));
     return arr.filter(r => r.sup && r.sup.diamond != null).map(r => {
@@ -137,6 +134,30 @@ function loadSupplyHistory() {
       return [Date.parse(r.d), classified > 0 ? (r.sup.diamond / classified) * 100 : 0];
     });
   } catch { return []; }
+}
+
+// Diamond-hands share over time (%), for the diamond-trend card. HolderScan only banks
+// back to when we started snapshotting (~2026-06), but our FIFO on-chain reconstruction
+// carries the SAME number back to launch (Aug 2023): held >90 days = age bands 3-6m +
+// 6-12m + 1y+, as a share of held supply. The two reconcile to within ±0.7pp across the
+// whole overlap (both are supply-weighted and exclude CEX/LP). So we back-fill the pre-
+// HolderScan history with FIFO (launch → ~2026-06) and keep HolderScan's own daily numbers
+// for everything since — so the visible recent trend + the live "now" value are exactly
+// what HolderScan reports (verifiable), and the card still shows the full 0%→~87% maturation.
+// The seam offset is only ~0.7pp (invisible on a 3-year 0→87% axis), so we splice the two
+// as-is — no rebase — keeping launch at exactly 0% and leaving both series undistorted.
+function loadSupplyHistory() {
+  const hs = loadHolderscanDiamond().sort((a, b) => a[0] - b[0]);
+  const fifo = loadOnchain()
+    .filter(r => Array.isArray(r.age) && r.age.length === 5)
+    .map(r => [Date.parse(r.d), r.age[2] + r.age[3] + r.age[4]]) // >90d = 3-6m + 6-12m + 1y+
+    .filter(p => Number.isFinite(p[0]) && Number.isFinite(p[1]))
+    .sort((a, b) => a[0] - b[0]);
+  if (!hs.length) return fifo;
+  if (!fifo.length) return hs;
+  const seamTs = hs[0][0];
+  const backbone = fifo.filter(p => p[0] < seamTs); // FIFO fills launch → HolderScan's first day
+  return [...backbone, ...hs];
 }
 
 // Holder COUNT over time (with the day's price) — for the holder-growth card. Grows
