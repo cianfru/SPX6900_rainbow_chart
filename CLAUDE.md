@@ -538,6 +538,19 @@
         68% illiquid vs BTC 54% at the same age — stickier than the king.** `lthsth` relabelled to 155d (81% now, was 86% @90d).
         `marketcap` RETIRED (NO_ROTATE — thin-float premise false). Catalog title → "Liquid vs Illiquid Supply". 96 tests green.
         Remaining (future): the per-address spend-ratio behavioural refinement; Base illiquid (partial-needle, ~12% supply).
+      - **🔲 BASE ON-CHAIN RECONSTRUCTION — follow-up (owner, 2026-07-19, "not needed immediately").** Owner saw a Base
+        holder dashboard showing "14 whales = 49.6% of supply / top-100 68% / Gini 0.994" and flagged the concentration.
+        **KEY: that's UN-FILTERED — those "whales" are almost certainly INFRASTRUCTURE, not people:** the Wormhole bridge
+        (Base supply is bridge-minted wrapped SPX), LP pools (Aerodrome/Uniswap-Base), CEX hot wallets (**Coinbase is native
+        on Base → likely a huge holder**), and the Dec-2024 airdrop distributor. Same trap our ETH `EXCLUDE_LABELS` fixes
+        (bridge alone was 12% of ETH supply; raw top-100 68% → 58% after excludes). Gini 0.994 = the 106k-shrimp dust tail
+        (why we use top-N share, not Gini). **So Base's TRUE holder concentration is unknown from that dashboard — needs the
+        same infra-tagging.** Buildable identically to ETH: Base is an ERC-20 → BigQuery/Dune `erc20_base.evt_Transfer`
+        (Base SPX `0x50dA645f…bb2C`, decimals 8) extract → the SAME FIFO engine (`build-onchain-local.mjs`) with a Base
+        `EXCLUDE_LABELS` set (tag the bridge/LP/CEX/airdrop addrs via Basescan, like the owner did for ETH). Yields honest
+        Base concentration + age + liquid/illiquid, and firms up the multi-chain picture. NOT urgent (Base ≈ 12% of supply,
+        moves the aggregate needle only partially). To start: owner runs the Base transfers extract + tags the top Base infra
+        addresses → Claude runs the engine + builds Base cards.
       - **~~🔲 REDESIGN~~ (done above).** Reframe `freefloat`
         (card + `FreeFloatChart.jsx`) around liquid/illiquid: a stacked area over time (illiquid = LTH>155d growing = accumulation/
         conviction; liquid = STH+CEX+LP), SPX vs BTC on the SAME method (BTC illiquid from its HODL/age via the free BigQuery
