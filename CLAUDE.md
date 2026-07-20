@@ -513,10 +513,30 @@
         `marketcap` "22% thin float" story is WRONG by the standard — the honest read is **~88% free float, but LOW TURNOVER
         (~78% hasn't moved in 6mo)**: liquid on paper, tightly held in practice. LTH numbers computed too:
         **@90d 86.5% · @155d (Glassnode standard) 80.8% · @1y 52.9%** of holder supply.
-      - **TODOs for the conversation (do NOT act yet):** (1) pick the LTH standard (155d recommended) + relabel consistently;
-        (2) rebuild `marketcap` free float to count CEX/LP as float, exclude burn/bridge (the accurate tradable float ~40%);
-        (3) decide whether the age-based freefloat card (22%, no CEX adjustment — fine for the age comparison vs BTC) and the
-        market-cap free float (CEX-aware ~40%) coexist as two clearly-labelled metrics, or unify. Keep all thresholds labelled.
+      - **✅ REFRAME RESOLVED 2026-07-19 — the concept is LIQUID vs ILLIQUID SUPPLY, not "free float" (owner + Claude).**
+        The conversation converged: "locked" is the WRONG word (self-custody held 6mo isn't locked — it can move any second);
+        "free float" is a WEAK metric for a fair-launch token (~88-100% is technically available → boring, undifferentiated).
+        The RIGHT, standard concept is **Glassnode's Liquid vs Illiquid Supply** = how likely supply is to actually come to
+        market, based on holder behaviour (NOT location, NOT a "lock").
+        - **Glassnode's TRUE metric is BEHAVIOURAL** (per-entity outflow÷inflow ratio; accumulators = illiquid, exchanges =
+          highly liquid) — needs entity-clustering (their proprietary black box). **OUR reproducible version = age + location:**
+          • **ILLIQUID (sticky)** = LONG-TERM HOLDER supply, self-custody, held **>155 days** (Glassnode LTH standard).
+          • **LIQUID (likely to move soon)** = short-term-holder supply (held <155d) **+ exchange balances + LP** — the CEX/LP
+            refinement to the owner's "remove LTH" mechanic: exchange/LP coins are liquid REGARDLESS of age (they exist to trade).
+          • Bridge (Wormhole 111.5M) = other-chain, shown separately / excluded from ETH-native; burn (69M) = out.
+        - **SPX NUMBERS (ETH-native, excl bridge+burn; denom 819.5M):** illiquid (LTH>155d self-custody) 555.5M = **~68%**;
+          liquid (STH 132M + CEX 118.6M + LP 13.2M = 264M) = **~32%**. Comparable to **BTC ~70-75% illiquid** — a strong, honest
+          same-methodology comparison ("SPX's supply is nearly as sticky as Bitcoin's").
+        - **Age-based LTH and behavioural illiquid are tightly correlated** (Glassnode says so) — the age+location version is
+          the TRANSPARENT, reproducible one (better for our moat than their clustering). OPTIONAL refinement: a per-address
+          spend-ratio (outflows÷inflows) score from our transfer data = a lightweight behavioural version, if ever wanted.
+      - **🔲 REDESIGN THE "FREE FLOAT" CARD/CHART → "LIQUID vs ILLIQUID SUPPLY" (greenlit, build next).** Reframe `freefloat`
+        (card + `FreeFloatChart.jsx`) around liquid/illiquid: a stacked area over time (illiquid = LTH>155d growing = accumulation/
+        conviction; liquid = STH+CEX+LP), SPX vs BTC on the SAME method (BTC illiquid from its HODL/age via the free BigQuery
+        UTXO bundle). Headline "~68% illiquid — nearly as sticky as Bitcoin." RETIRE the `marketcap` "22% thin float"/"locked"
+        framing (premise is false — fair launch, ~88% is technically tradable). Adopt **155d as THE LTH standard** across
+        lthsth/distribution/diamondtrend (relabel), keep 1y+ as deep-conviction, 90d = HolderScan daily bridge only. The
+        FIFO engine already does --threshold; EXCLUDE_LABELS gives the CEX/LP/bridge/burn split for the liquid side.
       - **⭐ ARTICLE — GREENLIT TOPIC (build when the conversation lands).** Long-form explainer, hosted as a real article/blog
         page on the site (and/or a thread linking to it): what HODL waves + holder age mean → why "% held" changes with the
         window (90d/155d/6mo/1y) → the industry standards + where the soft ones come from → free float + the CEX/lost-coin
