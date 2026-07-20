@@ -1,6 +1,6 @@
 {
-  "lastPostedDate": "2026-07-19",
-  "lastId": "picycle",
+  "lastPostedDate": "2026-07-20",
+  "lastId": "fngtrend",
   "recent": [
     {
       "date": "2026-07-08",
@@ -45,6 +45,10 @@
     {
       "date": "2026-07-19",
       "id": "picycle"
+    },
+    {
+      "date": "2026-07-20",
+      "id": "fngtrend"
     }
   ]
 }
