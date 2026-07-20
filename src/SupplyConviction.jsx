@@ -214,7 +214,7 @@ export default function SupplyConviction({ price, isMobile }) {
   if (status === "loading" || (liveDown && history === null)) return <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 40 }}>Loading supply data…</div>;
   if (!model) return <div style={{ textAlign: "center", fontFamily: SANS, color: "#f87171", padding: 40 }}>{LIVE_DATA_DOWN}</div>;
 
-  const { shareOfSupply, unclassifiedShare, diamondPctTotal, diamondPctClassified, classifiedPctTotal, diamondTokens } = model;
+  const { shareOfSupply, unclassifiedShare, diamondPctTotal, diamondTokens } = model;
   const diamondValue = price * diamondTokens;
   const effFloatTokens = SUPPLY - diamondTokens;
   const effMc = price * effFloatTokens;
@@ -233,14 +233,14 @@ export default function SupplyConviction({ price, isMobile }) {
         </div>
       )}
       <div style={{ display: "flex", gap: isMobile ? 18 : 40, justifyContent: "center", flexWrap: "wrap", marginBottom: 24 }}>
-        <Readout label="DIAMOND SUPPLY" value={(diamondPctTotal * 100).toFixed(0) + "%"} color="#22d3ee" sub={`${fUsd(diamondValue)} · ${(diamondPctClassified * 100).toFixed(0)}% of holder supply`} isMobile={isMobile} />
+        <Readout label="HELD 90 DAYS+" value={(diamondPctTotal * 100).toFixed(0) + "%"} color="#22d3ee" sub={`${fUsd(diamondValue)} · of all supply`} isMobile={isMobile} />
         <Readout label="EFFECTIVE FLOAT" value={fNum(effFloatTokens) + " SPX"} color="#cbd5e1" sub={`${((1 - diamondPctTotal) * 100).toFixed(0)}% of supply`} isMobile={isMobile} />
         <Readout label="EFFECTIVE MARKET CAP" value={fUsd(effMc)} color="#4ade80" sub={`vs ${fUsd(nominalMc)} nominal`} isMobile={isMobile} />
       </div>
 
       <div style={{ display: "flex", gap: isMobile ? 24 : 56, alignItems: "center", justifyContent: "center", flexWrap: "wrap" }}>
         <Donut segments={segments} size={isMobile ? 188 : 220}
-          centerTop={(diamondPctTotal * 100).toFixed(0) + "%"} centerBottom="diamond" />
+          centerTop={(diamondPctTotal * 100).toFixed(0) + "%"} centerBottom="held 90d+" />
         <div style={{ width: isMobile ? "100%" : 360, maxWidth: 420 }}>
           <McBar label="Effective market cap" value={effMc} max={nominalMc} color="#4ade80" />
           <McBar label="Nominal market cap" value={nominalMc} max={nominalMc} color="#64748b" />
@@ -267,9 +267,9 @@ export default function SupplyConviction({ price, isMobile }) {
       </div>
 
       <div style={{ maxWidth: 800, margin: "22px auto 0", fontFamily: SANS, fontSize: 13, color: "#cbd5e1", lineHeight: 1.7, textAlign: "center" }}>
-        Supply grouped by holding time (Holderscan, FIFO). Diamond hands hold <strong style={{ color: "#22d3ee" }}>{fNum(diamondTokens)} SPX ({fUsd(diamondValue)})</strong> —
-        <strong> {(diamondPctTotal * 100).toFixed(0)}% of all supply</strong> — or <strong>{(diamondPctClassified * 100).toFixed(0)}%</strong> if you
-        count only the supply in holder wallets (~{(classifiedPctTotal * 100).toFixed(0)}% of the total; the rest sits on exchanges, in LPs, or in a tail of tiny wallets). Same coins, two views.
+        Supply grouped by how long it&apos;s been held (Holderscan, FIFO). Coins held 90 days+ are
+        <strong style={{ color: "#22d3ee" }}> {(diamondPctTotal * 100).toFixed(0)}% of all SPX6900</strong> ({fNum(diamondTokens)} SPX · {fUsd(diamondValue)}) — the long-term supply that rarely moves.
+        The rest is more recent holders, plus coins on exchanges and in LP pools.
         Treating diamonds as removed leaves an effective float of {fNum(effFloatTokens)} SPX → <strong style={{ color: "#4ade80" }}>{fUsd(effMc)}</strong> effective cap
         vs {fUsd(nominalMc)} nominal. Snapshot, not financial advice.
       </div>

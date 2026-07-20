@@ -1241,19 +1241,19 @@ Up in dollars is easy in a bull market. Up in BTC is the truer scoreboard.`,
   // CLASSIFIED supply, NOT of the full 939M (the marketcap card carries the
   // 60%-of-total figure). Label it clearly so the two never read as contradictory.
   s => s.supply && s.supply.tiers && (() => {
-    const diamondPct = Math.round((s.supply.tiers.diamond / s.supply.classified) * 100);
-    const ofAll = Math.round(s.supply.diamondShare * 100); // same diamond tokens, but ÷ TOTAL supply
+    const ofAll = Math.round(s.supply.diamondShare * 100); // diamond ÷ TOTAL supply — the ONE number
+    const other = Math.max(0, s.supply.totalSupply - s.supply.classified); // exchanges + LPs + smaller wallets
     return {
     id: "distribution",
-    text: ct`💎 ~${diamondPct}% of the SPX6900 in holders' wallets is held 90 days+ — about ~${ofAll}% of all coins in circulation.
-Two views of the same coins: this counts only real holder wallets, not exchanges, LPs or contracts.
-High conviction.`,
+    text: ct`💎 ${ofAll}% of all SPX6900 has been held for over 90 days — the long-term supply that rarely moves.
+The blue slice is that long-term supply; smaller colours are more recent holders; grey is exchanges & LPs.
+Most coins are sitting still — high conviction.`,
     card: { type: "donut", spec: {
-      title: "Holder supply by conviction", headline: `${diamondPct}% held 90d+`, accent: "#22d3ee",
-      footer: `${diamondPct}% of holder supply ≈ ${ofAll}% of all supply · held 90d+ · excludes exchanges, LPs, contracts`,
-      legendUnit: "of holder supply",
-      center: { big: `${diamondPct}%`, small: "of holders" },
-      segments: TIERS.map(([k, label, c]) => ({ label, value: s.supply.tiers[k], color: c })),
+      title: "Supply by how long it's been held", headline: `${ofAll}% held 90 days+`, accent: "#22d3ee",
+      footer: `share of ALL SPX6900 supply by holding time · grey = exchanges & LPs · on-chain`,
+      legendUnit: "of all supply",
+      center: { big: `${ofAll}%`, small: "held 90d+" },
+      segments: [...TIERS.map(([k, label, c]) => ({ label, value: s.supply.tiers[k], color: c })), { label: "Exchanges & LPs", value: other, color: "#3f4657" }],
     } },
     };
   })(),
@@ -1299,16 +1299,15 @@ ${up ? "Most of the float is green and still holding." : "Red and still not sell
     // share of TOTAL supply (~61%); HolderScan headlines diamond as a share of
     // CLASSIFIED holders (~86%, excludes exchanges/LPs/contracts). Same coins, two
     // denominators — say both so 61 vs 86 never reads as a drop.
-    const cpct = s.supply.classified ? Math.round((s.supply.diamondTokens / s.supply.classified) * 100) : null;
     return {
       id: "diamondtrend",
       text: copy("diamondtrend",
-`💎 Coins held in wallets for 90 days+ make up ~{pct}% of all SPX6900 ({value}) — the float that rarely moves.
-Count only the supply in holders' wallets (not exchanges or LPs) and it's ~{cpct}%.
+`💎 {pct}% of all SPX6900 ({value}) hasn't moved in over 90 days.
+That's most of the total supply sitting still — coins held, not traded — the float that rarely moves.
 {trend}.`,
-        { pct: Math.round(nowPct), cpct, value: fMoney(s.supply.diamondValue), trend }),
+        { pct: Math.round(nowPct), value: fMoney(s.supply.diamondValue), trend }),
       card: { type: "line", spec: {
-        title: "Held by wallets 90 days+ — share of supply over time", headline: cpct ? `${Math.round(nowPct)}% of all supply · ${cpct}% of holder supply` : `${Math.round(nowPct)}% held 90d+`, accent: "#22d3ee",
+        title: "Held 90 days+ — share of all supply over time", headline: `${Math.round(nowPct)}% held 90 days+`, accent: "#22d3ee",
         yMin: lo - pad, yMax: hi + pad, yFmt: v => v.toFixed(decimals) + "%",
         series: [{ pts: ds, color: "#22d3ee", width: 3.5, fill: 0.18 }],
         marker: { x: ds.at(-1)[0], y: ds.at(-1)[1], color: "#22d3ee" },
