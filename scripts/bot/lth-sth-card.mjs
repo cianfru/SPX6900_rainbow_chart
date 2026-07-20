@@ -1,5 +1,5 @@
 // "Long vs Short-Term Holders — Supply in Profit/Loss" card. Splits every held coin two
-// ways at once, from the LOCAL FIFO per-lot engine: by AGE (long-term = held >90d = the
+// ways at once, from the LOCAL FIFO per-lot engine: by AGE (long-term = held >155d (Glassnode LTH standard) = the
 // diamond base, vs short-term) and by whether it's in PROFIT or LOSS vs spot. Four stacked
 // bands over the full history. The on-brand read: the long-term block dominates AND much of
 // it sits underwater yet unmoved = conviction, not capitulation. Data: stats.fifo
@@ -60,7 +60,7 @@ export function lthSthSvg(stats, opts = {}) {
 <defs><linearGradient id="lsbg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#0b0b16"/><stop offset="100%" stop-color="#05050e"/></linearGradient></defs>
 <rect width="${W}" height="${H}" fill="url(#lsbg)"/>
 <text x="60" y="58" fill="#f8fafc" font-size="37" font-weight="800" font-family="sans-serif" letter-spacing="1">SPX6900 — LONG vs SHORT-TERM HOLDERS</text>
-<text x="60" y="92" fill="#aab6c8" font-size="22" font-family="sans-serif">Long-term = held over 90 days. Split by profit vs loss. Who's holding, and are they up?</text>
+<text x="60" y="92" fill="#aab6c8" font-size="22" font-family="sans-serif">Long-term = held over 155 days (Glassnode standard). Split by profit vs loss. Who's holding, and are they up?</text>
 <text x="60" y="130" fill="#e2e8f0" font-size="30" font-weight="800" font-family="sans-serif"><tspan fill="#4ade80">${lth.toFixed(0)}% held long-term</tspan> · ${underwater.toFixed(0)}% underwater and holding</text>
 ${grid}${xlab}${ribbons}${legend}
 <text x="60" y="${H - 20}" fill="#8592a6" font-size="18" font-family="sans-serif">${esc("spx6900rainbow.xyz · not financial advice · % of ETH-native supply by holder age and on-chain profit/loss (FIFO)")}</text>

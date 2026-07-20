@@ -530,7 +530,15 @@
         - **Age-based LTH and behavioural illiquid are tightly correlated** (Glassnode says so) — the age+location version is
           the TRANSPARENT, reproducible one (better for our moat than their clustering). OPTIONAL refinement: a per-address
           spend-ratio (outflows÷inflows) score from our transfer data = a lightweight behavioural version, if ever wanted.
-      - **🔲 REDESIGN THE "FREE FLOAT" CARD/CHART → "LIQUID vs ILLIQUID SUPPLY" (greenlit, build next).** Reframe `freefloat`
+      - **✅ BUILT 2026-07-19 — "LIQUID vs ILLIQUID SUPPLY" reframe shipped (card + site chart).** Engine
+        (`build-onchain-local.mjs`) now emits `heldTokens` + `liqEx` (CEX+LP+custody supply, via EXCLUDE_LABELS kinds) per
+        row and bundles at the **155-day** LTH threshold. New shared `src/liquidity.js` (`spxLiquidity` + `btcIlliquid`) —
+        illiquid = LTH>155d holder tokens; liquid = STH holders + liqEx; denom = holders+CEX+LP. Reframed `free-float-card.mjs`
+        (id stays `freefloat`) + `FreeFloatChart.jsx` → SPX vs BTC illiquid %, same age + BTC 24mo forward path. Reveal: **SPX
+        68% illiquid vs BTC 54% at the same age — stickier than the king.** `lthsth` relabelled to 155d (81% now, was 86% @90d).
+        `marketcap` RETIRED (NO_ROTATE — thin-float premise false). Catalog title → "Liquid vs Illiquid Supply". 96 tests green.
+        Remaining (future): the per-address spend-ratio behavioural refinement; Base illiquid (partial-needle, ~12% supply).
+      - **~~🔲 REDESIGN~~ (done above).** Reframe `freefloat`
         (card + `FreeFloatChart.jsx`) around liquid/illiquid: a stacked area over time (illiquid = LTH>155d growing = accumulation/
         conviction; liquid = STH+CEX+LP), SPX vs BTC on the SAME method (BTC illiquid from its HODL/age via the free BigQuery
         UTXO bundle). Headline "~68% illiquid — nearly as sticky as Bitcoin." RETIRE the `marketcap` "22% thin float"/"locked"

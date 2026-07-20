@@ -17,6 +17,7 @@ import { tally as valuationTally } from "./valuation-lenses.mjs";
 import { spxBitcoinStats } from "./spx-bitcoin-card.mjs";
 import { chainRaceData } from "./multichain-card.mjs";
 import { BTC_HODL } from "../../src/btc-hodl-waves.js";
+import { spxLiquidity, btcIlliquid } from "../../src/liquidity.js";
 
 // --- owner-editable post copy ---------------------------------------------
 // EVERY card's tweet text is owner-editable from the control panel. Cards wrap
@@ -945,27 +946,25 @@ Where SPX sits vs alts — a relative read, not a signal.`,
     };
   })(),
 
-  // Free Float — share of supply that's actually liquid (moved in the last 6 months), from
-  // the on-chain HODL age bands, vs Bitcoin on the SAME measure at the SAME age (BTC from the
-  // free BigQuery UTXO reconstruction). The honest reveal: at ~3yr SPX's float is TIGHTER than
-  // BTC's was — supply locked up faster. A holder-behaviour POSITION, not a signal.
+  // Liquid vs Illiquid Supply (id stays `freefloat`). ILLIQUID = long-term holders held >155d
+  // (Glassnode's LTH bar); LIQUID = short-term holders + exchanges + LP. The Glassnode-aligned
+  // "likely to move" metric — NOT "free float" (~88% is technically tradable) or "locked" (self-
+  // custody isn't locked). vs Bitcoin on the same method, same age. Honest reveal: SPX is stickier
+  // than BTC was at this age. A holder-behaviour POSITION, not a signal.
   s => (s.onchain?.length >= 50 && BTC_HODL.length >= 100) && (() => {
-    const DAY = 86400000, YR = 365.25 * DAY, oc = s.onchain.filter(r => Array.isArray(r.age));
-    const ff = Math.round(100 - (oc.at(-1).age[3] + oc.at(-1).age[4]));
-    const lastDay = (Date.parse(oc.at(-1).d) - Date.parse(oc[0].d)) / DAY;
-    const bt0 = Date.parse(BTC_HODL[0][0]);
-    const btcFF = BTC_HODL.map(r => [(Date.parse(r[0]) - bt0) / DAY, 100 - (r[1][3] + r[1][4])]);
-    const at = day => { let b = btcFF[0]; for (const p of btcFF) if (Math.abs(p[0] - day) < Math.abs(b[0] - day)) b = p; return Math.round(b[1]); };
-    const btcFf = at(lastDay); // BTC at SPX's current age
-    // BTC's next-24-months low, to check whether it ever got as tight as SPX is now
-    const fwd = btcFF.filter(p => p[0] >= lastDay && p[0] <= lastDay + 730).map(p => p[1]);
-    const btcFwdLow = fwd.length ? Math.round(Math.min(...fwd)) : btcFf;
-    const neverTighter = ff < btcFwdLow;
+    const DAY = 86400000, oc = s.onchain.filter(r => Number.isFinite(r.heldTokens));
+    const cur = spxLiquidity(oc).at(-1);
+    const illiq = Math.round(cur.illiqPct);
+    const lastDay = (cur.ts - spxLiquidity(oc)[0].ts) / DAY;
+    const btc = btcIlliquid(BTC_HODL); const bt0 = btc[0].ts;
+    const at = day => { let b = btc[0]; for (const p of btc) if (Math.abs((p.ts - bt0) / DAY - day) < Math.abs((b.ts - bt0) / DAY - day)) b = p; return Math.round(b.illiqPct); };
+    const btcIl = at(lastDay);
+    const stickier = illiq > btcIl;
     return {
       id: "freefloat",
-      text: ct`🟡 Only ${ff}% of SPX6900's supply is liquid — the other ${100 - ff}% hasn't moved in 6 months.
-At the same age Bitcoin's free float was ${btcFf}%, and ${neverTighter ? `never got as tight as SPX is now over the next 2 years` : `stayed near ${btcFwdLow}% for the 2 years after`} — supply locked up faster than the king's did.
-A position, not a signal.`,
+      text: ct`💎 ${illiq}% of SPX6900's supply is illiquid — held by long-term holders (155d+), unlikely to move.
+At the same age Bitcoin was ${btcIl}%. SPX's holders are ${stickier ? "stickier than the king's were" : "holding like the king did"} — same measure, same age since launch.
+Not locked, just held. A position, not a signal.`,
       card: { type: "freefloat" },
     };
   })(),
@@ -1061,7 +1060,7 @@ Where they bought, not where they'll sell.`,
     const c = s.fifo.at(-1), lth = c.lthProfit + c.lthLoss, under = c.lthLoss + c.sthLoss;
     return {
       id: "lthsth",
-      text: ct`💎 ${lth.toFixed(0)}% of SPX6900's supply is held long-term — over 90 days, through the whole drawdown.
+      text: ct`💎 ${lth.toFixed(0)}% of SPX6900's supply is held long-term — over 155 days, through the whole drawdown.
 ${under.toFixed(0)}% of it sits underwater and still hasn't moved. Long-term holders aren't the ones selling — they're the ones holding at a loss and waiting.
 Conviction, on-chain.`,
       card: { type: "lthsth" },
@@ -1901,7 +1900,10 @@ const weightOf = id => WEIGHT[id] ?? (BULLISH.has(id) ? 2 : 1);
 // DAILY (auto) while the FIFO series is manual until the BigQuery daily pipeline is built, so
 // HolderScan is the daily-fresh bridge for now. FIFO is the long-term source — migrate these
 // two to FIFO once daily BigQuery lands. (owner call 2026-07-19)
-const NO_ROTATE = new Set(["drawdown", "risk", "kraken", "dcaladder"]);
+// marketcap ("real free-float cap / thin float") is RETIRED — its premise is false: SPX is a
+// fair launch with no lockup, so free float is ~88% (not thin). The honest story is
+// illiquid/liquid supply (the reframed freefloat card), so marketcap is out of the feed.
+const NO_ROTATE = new Set(["drawdown", "risk", "kraken", "dcaladder", "marketcap"]);
 
 // Owner-editable rotation exclusions — cards kept BUILDABLE + visible in the control
 // panel (and hand-postable) but held OUT of the organic daily rotation. Toggled from

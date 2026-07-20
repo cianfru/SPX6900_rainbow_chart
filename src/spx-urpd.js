@@ -1,6 +1,5 @@
-// SPX6900 cost-basis distribution (URPD) — where the held supply was acquired, as a
-// log-spaced histogram of per-lot cost basis from the LOCAL FIFO engine. Each bucket = % of
-// currently-held supply acquired in that price range, flagged in/out of profit vs spot.
+// SPX6900 cost-basis distribution (URPD) — where the held supply was acquired, from the
+// LOCAL FIFO engine. Each bucket = % of held supply acquired in that price range.
 // Snapshot as of 2026-07-20 (spot $0.3819, held 687.7M).
 export const SPX_URPD = { spot:0.381856, updated:"2026-07-20", held:687719422, buckets:[
   { lo:0.001427, hi:0.001698, pct:0.291, inProfit:true },

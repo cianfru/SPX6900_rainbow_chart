@@ -132,6 +132,17 @@ export function replayFifo(transfers, priceAt, sampleTs, opts = {}) {
 
   const recv = t => { if (t.to && !exclude.has(t.to)) { const price = priceAt(t.ts); if (price != null) { const e = get(t.to); e.q.push({ ts: t.ts, price, qty: t.amt }); e.bal += t.amt; } } };
   const send = t => { if (t.from && !exclude.has(t.from)) { const e = wallets.get(t.from); if (e) { const sp = priceAt(t.ts); const { val, cost } = consume(e, t.amt, sp ?? 0); if (sp != null) { winVal += val; winCost += cost; } } } };
+  // Track balances on the EXCLUDED addresses too (they're not "holders", but their kind —
+  // CEX/LP/custody vs bridge/burn — drives the LIQUID vs ILLIQUID supply split). Sum the
+  // "liquid excluded" (cex+lp+custody) supply per sample so liquid supply over time =
+  // short-term-holder supply + liquid-excluded.
+  const exBal = new Map();
+  const exTouch = t => {
+    if (t.to && exclude.has(t.to)) exBal.set(t.to, (exBal.get(t.to) || 0) + t.amt);
+    if (t.from && exclude.has(t.from)) exBal.set(t.from, (exBal.get(t.from) || 0) - t.amt);
+  };
+  const liqKinds = new Set(["cex", "lp", "custody"]);
+  const liqExcluded = () => { let s = 0; for (const [a, b] of exBal) { if (b > EPS && liqKinds.has(EXCLUDE_LABELS[a]?.kind)) s += b; } return s; };
 
   const rows = [];
   let p = 0, winVal = 0, winCost = 0; // per-sample-window spend accumulators (SOPR)
@@ -145,10 +156,11 @@ export function replayFifo(transfers, priceAt, sampleTs, opts = {}) {
     while (p < tx.length && tx[p].ts <= sTs) {
       const ts0 = tx[p].ts, start = p;
       while (p < tx.length && tx[p].ts === ts0) p++;
-      for (let k = start; k < p; k++) recv(tx[k]);
+      for (let k = start; k < p; k++) { exTouch(tx[k]); recv(tx[k]); }
       for (let k = start; k < p; k++) send(tx[k]);
     }
     const row = snapshot(wallets, sTs, priceAt(sTs), thr);
+    row.liqEx = +(liqExcluded() / 1).toFixed(2); // CEX+LP+custody supply (tokens) — the always-liquid excluded bucket
     // SOPR for this window = realized value ÷ cost of all coins that MOVED since the
     // last sample. >1 = holders spending at a profit, <1 = at a loss. null = nothing moved.
     row.sopr = winCost > EPS ? +(winVal / winCost).toFixed(4) : null;
@@ -222,6 +234,7 @@ function snapshot(wallets, sTs, spot, thr) {
     gini: +gini(bals).toFixed(4),
     age: age.map(pct),
     holders: bals.length,
+    heldTokens: +held.toFixed(2), // holder supply in tokens (for the liquid/illiquid split)
     rp: +rp.toFixed(7), mvrv: rp > 0 && spot != null ? +(spot / rp).toFixed(4) : 0,
     spot: spot != null ? +spot.toFixed(7) : 0,
     lthProfit: pct(lthP), lthLoss: pct(lthL), sthProfit: pct(sthP), sthLoss: pct(sthL),
