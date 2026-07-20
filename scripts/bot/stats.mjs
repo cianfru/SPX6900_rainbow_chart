@@ -126,9 +126,16 @@ function loadSupplySnapshot() {
 // Diamond-tier share of TOTAL supply over time (%), for the diamond-supply trend
 // card — grows as daily snapshots accumulate. Same basis as diamondShare above.
 function loadSupplyHistory() {
+  // Diamond hands as a share of TRACKED HOLDERS (HolderScan's basis: the top ~1,000 holder
+  // wallets, exchanges & LPs excluded) — i.e. diamond ÷ classified supply, ~85%. This is
+  // HolderScan's own "diamond hands" number and matches earlier posts; NOT diamond ÷ total
+  // supply (~61%), which mixes in exchanges/LPs/bridge and confused people.
   try {
     const arr = JSON.parse(readFileSync(new URL("../../public/history.json", import.meta.url), "utf8"));
-    return arr.filter(r => r.sup && r.sup.diamond != null).map(r => [Date.parse(r.d), (r.sup.diamond / SUPPLY) * 100]);
+    return arr.filter(r => r.sup && r.sup.diamond != null).map(r => {
+      const classified = Object.values(r.sup).reduce((a, b) => a + b, 0);
+      return [Date.parse(r.d), classified > 0 ? (r.sup.diamond / classified) * 100 : 0];
+    });
   } catch { return []; }
 }
 

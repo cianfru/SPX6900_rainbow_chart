@@ -1241,19 +1241,18 @@ Up in dollars is easy in a bull market. Up in BTC is the truer scoreboard.`,
   // CLASSIFIED supply, NOT of the full 939M (the marketcap card carries the
   // 60%-of-total figure). Label it clearly so the two never read as contradictory.
   s => s.supply && s.supply.tiers && (() => {
-    const ofAll = Math.round(s.supply.diamondShare * 100); // diamond ÷ TOTAL supply — the ONE number
-    const other = Math.max(0, s.supply.totalSupply - s.supply.classified); // exchanges + LPs + smaller wallets
+    const diamondPct = Math.round((s.supply.tiers.diamond / s.supply.classified) * 100); // of tracked holders (~87%)
     return {
     id: "distribution",
-    text: ct`💎 ${ofAll}% of all SPX6900 has been held for over 90 days — the long-term supply that rarely moves.
-The blue slice is that long-term supply; smaller colours are more recent holders; grey is exchanges & LPs.
-Most coins are sitting still — high conviction.`,
+    text: ct`💎 ${diamondPct}% of SPX6900's tracked holders are diamond hands — they've held for over 90 days.
+The top holder wallets HolderScan follows — exchanges and LP pools excluded — split by how long they've held.
+High conviction.`,
     card: { type: "donut", spec: {
-      title: "Supply by how long it's been held", headline: `${ofAll}% held 90 days+`, accent: "#22d3ee",
-      footer: `share of ALL SPX6900 supply by holding time · grey = exchanges & LPs · on-chain`,
-      legendUnit: "of all supply",
-      center: { big: `${ofAll}%`, small: "held 90d+" },
-      segments: [...TIERS.map(([k, label, c]) => ({ label, value: s.supply.tiers[k], color: c })), { label: "Exchanges & LPs", value: other, color: "#3f4657" }],
+      title: "Holder conviction — tracked wallets", headline: `${diamondPct}% diamond hands`, accent: "#22d3ee",
+      footer: `${diamondPct}% held 90 days+ · of tracked holders (top wallets, exchanges & LPs excluded)`,
+      legendUnit: "of tracked holders",
+      center: { big: `${diamondPct}%`, small: "diamond hands" },
+      segments: TIERS.map(([k, label, c]) => ({ label, value: s.supply.tiers[k], color: c })),
     } },
     };
   })(),
@@ -1286,28 +1285,27 @@ ${up ? "Most of the float is green and still holding." : "Red and still not sell
   // "diamond" tier, over time (grows as daily snapshots accumulate). The bot
   // companion to the website's "Diamond supply over time" chart.
   s => s.supply && s.supply.diamondSeries && s.supply.diamondSeries.length >= 2 && (() => {
-    const ds = s.supply.diamondSeries;
+    const ds = s.supply.diamondSeries; // diamond ÷ classified (~85%) — HolderScan's tracked-holder basis
     const nowPct = ds.at(-1)[1], startPct = ds[0][1], delta = nowPct - startPct;
     const dv = ds.map(p => p[1]);
     const lo = Math.min(...dv), hi = Math.max(...dv);
     const range = hi - lo, pad = Math.max(range * 0.3, 0.3);
     const decimals = (range + 2 * pad) >= 8 ? 0 : 1;
-    const trend = Math.abs(delta) < 0.2
-      ? `Rock steady near ${nowPct.toFixed(decimals)}% across every snapshot we've taken`
-      : `${delta > 0 ? "Up" : "Down"} from ${startPct.toFixed(decimals)}% to ${nowPct.toFixed(decimals)}% since we started tracking`;
-    // Bridge the two diamond numbers that confuse people: this trend is diamond as a
-    // share of TOTAL supply (~61%); HolderScan headlines diamond as a share of
-    // CLASSIFIED holders (~86%, excludes exchanges/LPs/contracts). Same coins, two
-    // denominators — say both so 61 vs 86 never reads as a drop.
+    const nearHigh = nowPct >= hi - Math.max(0.3, range * 0.15);
+    const trend = nearHigh && range > 0.5
+      ? `More keep crossing in, near its highest yet`
+      : Math.abs(delta) < 0.2
+        ? `Rock steady across every snapshot`
+        : `${delta > 0 ? "Up" : "Down"} from ${startPct.toFixed(decimals)}% since we started tracking`;
     return {
       id: "diamondtrend",
       text: copy("diamondtrend",
-`💎 {pct}% of all SPX6900 ({value}) hasn't moved in over 90 days.
-That's most of the total supply sitting still — coins held, not traded — the float that rarely moves.
-{trend}.`,
-        { pct: Math.round(nowPct), value: fMoney(s.supply.diamondValue), trend }),
+`💎 {pct}% of SPX6900's tracked holders are diamond hands — held 90 days+.
+The real holder base — top wallets HolderScan tracks, exchanges and LPs excluded. {trend}.
+Conviction, wallet by wallet.`,
+        { pct: Math.round(nowPct), trend }),
       card: { type: "line", spec: {
-        title: "Held 90 days+ — share of all supply over time", headline: `${Math.round(nowPct)}% held 90 days+`, accent: "#22d3ee",
+        title: "Diamond hands (90 days+) — share of tracked holders over time", headline: `${Math.round(nowPct)}% diamond hands`, accent: "#22d3ee",
         yMin: lo - pad, yMax: hi + pad, yFmt: v => v.toFixed(decimals) + "%",
         series: [{ pts: ds, color: "#22d3ee", width: 3.5, fill: 0.18 }],
         marker: { x: ds.at(-1)[0], y: ds.at(-1)[1], color: "#22d3ee" },
