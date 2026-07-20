@@ -513,6 +513,7 @@ export default function App() {
     params.delete("tab"); // legacy param — superseded by ?chart=
     params.delete("view"); params.delete("chart"); params.delete("rel");
     if (r === "gallery") params.set("view", "charts");
+    else if (r === "aeon") params.set("view", "aeon");
     else if (r === "chart" && id) {
       params.set("chart", id);
       if (id === "relative" && rel && rel !== "BTC") params.set("rel", rel);
@@ -524,6 +525,7 @@ export default function App() {
   };
   const goHome = () => { setRoute("home"); syncUrl("home"); window.scrollTo({ top: 0, behavior: "smooth" }); };
   const openGallery = () => { setRoute("gallery"); syncUrl("gallery"); window.scrollTo({ top: 0, behavior: "smooth" }); };
+  const openAeon = () => { setRoute("aeon"); syncUrl("aeon"); window.scrollTo({ top: 0, behavior: "smooth" }); };
   const goChart = (id, relOverride) => {
     if (id === "rainbow") { goHome(); return; }
     if (!CHART_IDS.has(id)) { openGallery(); return; }
@@ -553,6 +555,7 @@ export default function App() {
       if (rel && REL_IDS.has(rel)) setRelWhich(rel);
       const id = p.get("chart") || p.get("tab"); // ?tab= kept for old shared links
       if (p.get("view") === "charts") setRoute("gallery");
+      else if (p.get("view") === "aeon") setRoute("aeon");
       else if (id && CHART_IDS.has(id)) { setRoute("chart"); setTab(id); }
       else setRoute("home");
     };
@@ -691,6 +694,12 @@ export default function App() {
               </svg>
               <span>Charts</span>
             </button>
+            <button className="pill" onClick={openAeon} title="Project Aeon — NFT analytics (coming soon)" style={navPill(route === "aeon", "#f472b6")}>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, color: "#f472b6" }}>
+                <path d="M12 2 4 7v10l8 5 8-5V7z" /><path d="M12 22V12" /><path d="M4 7l8 5 8-5" />
+              </svg>
+              <span>Project Aeon</span>
+            </button>
           </div>
           {navActions}
         </div>
@@ -704,6 +713,25 @@ export default function App() {
         <Suspense fallback={<div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Loading charts…</div>}>
           <ChartsGallery isMobile={isMobile} onOpen={goChart} onHome={goHome} renderPreview={id => chartEl(id, { preview: true })} />
         </Suspense>
+      )}
+
+      {/* Project Aeon — NFT analytics, coming soon. The "Coming Soon" text uses the same
+          animated rainbow shimmer as the site title. */}
+      {route === "aeon" && (
+        <div style={{ maxWidth: 760, margin: "0 auto", padding: isMobile ? "56px 16px" : "96px 20px", textAlign: "center" }}>
+          <div style={{ fontFamily: MONO, fontSize: 12.5, letterSpacing: 2, textTransform: "uppercase", color: "#f472b6", marginBottom: 16 }}>Project Aeon · NFT analytics</div>
+          <h1 style={{
+            fontFamily: SANS, fontSize: isMobile ? 44 : 76, fontWeight: 800, margin: 0, letterSpacing: "-0.02em", lineHeight: 1.05,
+            background: "linear-gradient(90deg,#6366f1,#3b82f6,#06b6d4,#22c55e,#84cc16,#f59e0b,#ea580c,#dc2626,#8b0000,#6366f1)",
+            backgroundSize: "200% auto", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
+            animation: "title-shimmer 8s ease-in-out infinite alternate",
+          }}>Coming Soon</h1>
+          <p style={{ fontFamily: SANS, fontSize: isMobile ? 15 : 17, color: "#94a3b8", lineHeight: 1.7, margin: "22px auto 0", maxWidth: 560 }}>
+            The same on-chain depth we bring to the coin — floor price, holders, HODL waves, holder age, concentration —
+            reframed for the <strong style={{ color: "#e2e8f0" }}>Project Aeon</strong> NFT collection. Every number checkable, on-chain, and reproducible.
+          </p>
+          <button className="pill" onClick={goHome} style={{ ...navPill(false, "#a78bfa"), marginTop: 30, display: "inline-flex" }}>← Back to the Rainbow</button>
+        </div>
       )}
 
       {/* Home — the Rainbow hero + its rainbow-specific sections */}

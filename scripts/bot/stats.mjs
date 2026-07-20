@@ -212,6 +212,20 @@ function loadUrpd() {
   return SPX_URPD;
 }
 
+// Crypto Fear & Greed line: the bundled FNG_HISTORY (past) MERGED with the daily `fng` the
+// snapshot cron banks into history.json, so the fngtrend line reaches TODAY instead of freezing
+// at the last re-bundle (same staleness fix as the S&P line). [[ts, value], …] ascending.
+function fngSeries() {
+  const byTs = new Map(FNG_HISTORY.map(([ts, v]) => [ts, v]));
+  try {
+    const hist = JSON.parse(readFileSync(new URL("../../public/history.json", import.meta.url), "utf8"));
+    for (const r of (Array.isArray(hist) ? hist : [])) {
+      if (r && r.d && Number.isFinite(r.fng)) byTs.set(Date.parse(r.d + "T00:00:00Z"), r.fng);
+    }
+  } catch { /* bundle-only */ }
+  return [...byTs.entries()].sort((a, b) => a[0] - b[0]);
+}
+
 // BTC + ETH free float (liquid supply %) vs days-since-inception — Coin Metrics community,
 // banked by the freefloat-peers workflow. { btc: [[days, ff]], eth: [[days, ff]] } or empty.
 function loadFreeFloatPeers() {
@@ -447,7 +461,7 @@ export function computeStats(price, dateStr = new Date().toISOString().slice(0, 
       price: RAW.map(r => [Date.parse(r.date), r.price]),
       resid: thinSeries(RAW.map(r => [Date.parse(r.date), Math.log(r.price) - m.predict(M.dayN(r.date))])),
       risk: riskSeries.map(r => [r.ts, r.risk]),
-      fng: FNG_HISTORY,
+      fng: fngSeries(), // bundled history + daily-banked fng → the fngtrend line stays fresh
       drawdown: ddSeries.map(r => [r.ts, r.dd]),
       strategy: stratCyc ? stratCyc.rows.map(r => [r.ts, r.strat, r.hodl]) : null,
       bandCounts,
