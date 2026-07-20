@@ -500,10 +500,19 @@
         its age wherever it sits; (b) **Liquid/Illiquid Supply** (Glassnode's float metric) classifies entities by spend
         behaviour → **exchanges = "highly liquid" = float** (BTC ~75% illiquid / ~25% liquid+highly-liquid); (c) free-float /
         index methodologies (Bitwise/MVIS) → float = circulating − provably-lost/dormant, **exchange coins ARE float, lost
-        coins (~3-4M BTC) EXCLUDED**. So a PROPER SPX free float = **CEX + LP + recently-moved holder supply**, EXCLUDING
-        burned (0x0/0xdead) and treating bridge-locked separately → lands ~**40%**, not 22% (the ~243M CEX/LP moves to float).
-        Buildable but a more sophisticated calc than the age-band shortcut (needs the exclude-set split into CEX/LP vs
-        burn/bridge).
+        coins EXCLUDED**.
+      - **⭐ REAL NUMBERS COMPUTED 2026-07-19 (from the FIFO extract + owner Etherscan-tagging the excluded addrs).** SPX is a
+        FAIR LAUNCH — no team/VC lockup — so free float is HIGH, not thin. Supply breakdown of the 931M circulating (1B
+        minted − 69M burned): **holders 687.7M (74%) · CEX+unlabeled 118.6M (13%) · Wormhole bridge 111.5M (12%, backs
+        Base/Solana) · Uniswap LP 13.2M (1%) · burn ~0 beyond the 69M**. **The ONLY burn is `0x…dead` = 69.01M** (received-
+        only, matches 1B−69M exactly); `0x0` is the MINT source (sent 1B, never received). The 3 previously-"unlabeled"
+        received-only sinks were owner-tagged: **`0xdc154f…` = BitGo multi-sig custody (WalletSimple, 7.25M, float-eligible)**,
+        **`0xf35a6b…` = CoinSpot (CEX)**, **`0x6d6cc6…` = KuCoin (CEX)** — none are burns. All 16 excluded addrs now classified
+        in **`EXCLUDE_LABELS`** (build-onchain-local.mjs) with a `kind` (null/burn/bridge/lp/cex/custody). **TRUE FREE FLOAT =
+        circulating − burn − bridge = 819.5M ≈ 88% (ETH-native); ~99% multi-chain (only the 69M burn is truly out).** So the
+        `marketcap` "22% thin float" story is WRONG by the standard — the honest read is **~88% free float, but LOW TURNOVER
+        (~78% hasn't moved in 6mo)**: liquid on paper, tightly held in practice. LTH numbers computed too:
+        **@90d 86.5% · @155d (Glassnode standard) 80.8% · @1y 52.9%** of holder supply.
       - **TODOs for the conversation (do NOT act yet):** (1) pick the LTH standard (155d recommended) + relabel consistently;
         (2) rebuild `marketcap` free float to count CEX/LP as float, exclude burn/bridge (the accurate tradable float ~40%);
         (3) decide whether the age-based freefloat card (22%, no CEX adjustment — fine for the age comparison vs BTC) and the
