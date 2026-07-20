@@ -589,6 +589,36 @@
     - **Refresh:** re-run `node scripts/build-onchain-local.mjs --transfers=X.csv --prices=<from spx-daily.js>` on a
       fresh extract → re-bundle spx-fifo.js/spx-urpd.js. $0, no Dune, no key. For EXACT intra-block ordering on a future
       extract, add `block_number`+`log_index` to the SQL and sort by them (drops the receives-first heuristic).
+    - **✅ DIAMOND-HANDS HISTORY EXTENDED TO LAUNCH via FIFO (owner asked "can we extend past the HolderScan banking
+      start + reconcile?", 2026-07-20 — YES, shipped).** HolderScan only banks `sup.diamond` since we started snapshotting
+      (~2026-06, 47 pts), but the FIFO reconstruction carries the SAME number back to launch: **diamond (held >90d) = age
+      bands 3-6m + 6-12m + 1y+** (age[2]+age[3]+age[4]) as a share of held supply. RECONCILED across the full overlap:
+      **mean |Δ| 0.2pp, max 0.7pp** (both supply-weighted + exclude CEX/LP, so HolderScan's top-1,000-wallet restriction
+      barely moves it). `stats.mjs` `loadSupplyHistory()` now splices: **FIFO backbone (launch → HolderScan's first day)
+      + HolderScan's own daily points since** — so history shows the full **0%→~87% maturation** (with the visible 2024-
+      drawdown dip) while the recent trend + live "now" stay HolderScan's verifiable numbers. No rebase (0.7pp seam is
+      invisible; keeps launch at exactly 0%). Both the `diamondtrend` card AND the `SupplyConviction` site chart use it
+      (site fetches onchain.json via loadOnchain + SPX_ONCHAIN fallback). Card title trimmed + y-axis floored at 0.
+    - **🔲 EXCHANGE-FLOW / CEX NETFLOW CARD — engine groundwork SHIPPED, waiting on the next free extract (owner greenlit
+      2026-07-20).** The BTC-world metric: coins flowing ONTO exchanges = sell-side pressure, OFF = accumulation/self-
+      custody. **Our edge vs BTC on-chain analytics: we also have LP (Uniswap) balances**, so we can SPLIT liquidity depth
+      from exchange sell-side instead of lumping them. `build-onchain-local.mjs` already tracks per-ADDRESS balances on the
+      tagged excluded addresses (`exBal` Map, by `kind`); it now emits **`cexBal`** (Σ kind=cex) + **`lpBal`** (Σ kind=lp)
+      separately per weekly row (was only the combined `liqEx`). Populates on the next extract run.
+      - **GRANULARITY (owner asked "you just have an aggregate?"):** we have per-ADDRESS balances (11 CEX addrs tracked
+        individually) — enough for total-CEX balance + **weekly netflow = week-over-week Δ**. We do NOT reliably have WHICH
+        named venue each addr is (only 2 of 11 named: CoinSpot, KuCoin; other 9 = generic `kind:"cex"`). Names aren't needed
+        for the aggregate signal; only for a per-venue breakdown. The REAL accuracy lever is **COVERAGE** (only top-holder
+        CEX addrs are tagged → total CEX balance is a floor, flow through untagged deposit/hot wallets is missed).
+      - **⭐ OWNER OFFERED to Etherscan-tag the CEX wallets to specific venues (~10 min) — ACCEPTED as worth it.** Not for
+        the aggregate signal, but because it (a) VERIFIES the 9 generic "exchange" tags are really CEX, (b) is the moment to
+        catch ADDITIONAL untagged CEX addrs (coverage = the accuracy lever), (c) unlocks a per-venue breakdown angle. Owner
+        sends an address→venue map → fold into `EXCLUDE_LABELS` (add real `name`s; keep `kind:"cex"`).
+      - **TO BUILD (when the Google BigQuery free tier resets — owner will re-run then):** re-run
+        `bigquery/spx6900_raw_transfers.sql` → send CSV → `build-onchain-local.mjs` → re-bundle → build the exchange-flow
+        card (weekly netflow bars + CEX balance line, **LP shown as its own liquidity-depth line**). Honesty caveats to bake
+        in: known-addresses-only (undercount), netflow ≠ guaranteed buy/sell (OTC / internal moves / MM rebalancing), SPX is
+        thin so single transfers dominate → weekly smoothing + framed as a POSITION/behaviour read, not a signal.
 
 ## Dune credit discipline — HARD-WON, read before writing/running ANY Dune query (2026-07-16)
 - **The 2,500/mo free tier got blown in a WEEK, ~88% on ~5 heavy debugging runs.** The credit CSV was unambiguous:
