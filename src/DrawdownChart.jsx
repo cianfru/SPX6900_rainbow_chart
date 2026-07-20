@@ -178,7 +178,7 @@ export default function DrawdownChart({ series, isMobile }) {
         </div>
       )}
 
-      <div style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 14, lineHeight: 1.6, maxWidth: 880, marginInline: "auto" }}>
+      <div className="chart-caption" style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 14, lineHeight: 1.6, maxWidth: 880, marginInline: "auto" }}>
         {mode === "underwater"
           ? <>How far price sits below its running <strong style={{ color: "#f87171" }}>all-time high</strong> at every date — the red “underwater” area — with <span style={{ color: "#38bdf8" }}>price</span> on the right. Deep, long red patches are the brutal drawdowns; back to 0% = a fresh ATH. Not financial advice.</>
           : <>Each line traces how far price fell after an all-time high, vs. days since that peak. The thesis: as SPX6900 matures, drawdowns get <em>shallower and longer</em> — flatter lines that stretch further right. Not financial advice.</>}

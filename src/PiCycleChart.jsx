@@ -105,7 +105,7 @@ export default function PiCycleChart({ series, isMobile, preview = false }) {
         </ResponsiveContainer>
       </div>
 
-      <div style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.65, maxWidth: 900, marginInline: "auto" }}>
+      <div className="chart-caption" style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.65, maxWidth: 900, marginInline: "auto" }}>
         The <strong style={{ color: PC }}>Pi Cycle ratio</strong> — the 111-day MA over the 350-day MA × 2 (350/111 ≈ π), from Bitcoin&apos;s Pi Cycle Top indicator.
         Below <strong style={{ color: "#38bdf8" }}>0.5</strong> has historically been an accumulation zone (it transfers cleanly — SPX sits there about as often as Bitcoin).
         SPX runs hotter than Bitcoin, though, so the <strong style={{ color: "#f87171" }}>top</strong> is tuned to SPX&apos;s own range (<strong style={{ color: "#f87171" }}>{fR(z.top)}</strong>, vs Bitcoin&apos;s 1.0). It peaked at SPX&apos;s 2025 top and now sits at <strong style={{ color: st.color }}>{fR(cur.ratio)}</strong> ({st.label}).

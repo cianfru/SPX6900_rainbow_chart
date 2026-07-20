@@ -102,7 +102,7 @@ export default function ModelChart({ series, m, isMobile }) {
         </ComposedChart>
       </ResponsiveContainer>
 
-      <div style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.65, maxWidth: 880, marginInline: "auto" }}>
+      <div className="chart-caption" style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.65, maxWidth: 880, marginInline: "auto" }}>
         Each dot is a sampled close (~weekly), plotted as its <strong style={{ color: "#cbd5e1" }}>residual</strong> — how far above (red zone)
         or below (blue zone) the log-regression fit (dashed line) it sat. The colored bands are percentile slices of exactly these
         residuals, so the rainbow is descriptive of history, not a prediction. R² {m.r2.toFixed(3)} means the trend explains{" "}

@@ -166,7 +166,7 @@ export default function BtcCycleChart({ series, isMobile }) {
         </ComposedChart>
       </ResponsiveContainer>
 
-      <div style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.6 }}>
+      <div className="chart-caption" style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.6 }}>
         <span style={{ color: "#4ade80" }}>■</span> SPX6900 (left axis) &nbsp;·&nbsp; <span style={{ color: "#f7931a" }}>■</span> Bitcoin's real last cycle, amplitude-anchored (right axis) &nbsp;·&nbsp; <span style={{ color: "#f7931a" }}>┄</span> beta-scaled projection (shaded = range) &nbsp;·&nbsp; <span style={{ color: "#a78bfa" }}>┄</span> bubble / <span style={{ color: "#38bdf8" }}>┄</span> fire-sale band.
         <br /><b style={{ color: "#cbd5e1" }}>Why "≈ BTC {fMonY(stats.btcFrom.getTime())}"?</b> Line the two cycles up in time and SPX has retraced Bitcoin's <b>2021 double top</b> (Apr &amp; Nov) → 2022 bottom — the peaks landing within weeks on the aligned clock, which is why today maps to BTC's post-top low. Both are drawn on the <b style={{ color: "#cbd5e1" }}>same log scale, anchored at that shared low</b>, so Bitcoin shows its <i>true</i> relative amplitude — its 2021 run (~3.4× off the low) was actually smaller than SPX's (~6×), so it sits below SPX rather than towering over it. From the low, BTC went to a new ATH — the dashed line beta-scales that path to a top near <span style={{ color: "#fbbf24" }}>{fP(stats.peak)}</span> ({fP(stats.peakLo)}–{fP(stats.peakHi)}) around {stats.peakDate.toLocaleDateString("en-US", { month: "short", year: "numeric" })}. A for-fun <i>what-if</i>, NOT a forecast or financial advice.
       </div>

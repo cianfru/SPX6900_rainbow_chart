@@ -104,7 +104,7 @@ export default function SoprChart({ isMobile, preview = false }) {
         </ResponsiveContainer>
       </div>
 
-      <div style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.65, maxWidth: 900, marginInline: "auto" }}>
+      <div className="chart-caption" style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.65, maxWidth: 900, marginInline: "auto" }}>
         <strong style={{ color: GRN }}>SOPR</strong> — realized value ÷ cost of the coins that moved each week, reconstructed on-chain from every lot&apos;s FIFO cost basis.
         Above 1 = holders selling in profit; below 1 = selling at a loss, which bottoms cluster around. A behaviour position, not a signal. Drag to zoom. Not financial advice.
       </div>

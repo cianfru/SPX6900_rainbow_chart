@@ -108,7 +108,7 @@ export default function LthSthChart({ isMobile, preview = false }) {
         ))}
       </div>
 
-      <div style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.65, maxWidth: 900, marginInline: "auto" }}>
+      <div className="chart-caption" style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.65, maxWidth: 900, marginInline: "auto" }}>
         <strong style={{ color: "#4ade80" }}>Long vs short-term holders</strong> — SPX6900&apos;s ETH-native supply split by holder age (over/under 155 days) and on-chain profit/loss, reconstructed per-lot (FIFO).
         The long-term block dominates and much of it is underwater yet unmoved — the conviction story. Drag to zoom. Not financial advice.
       </div>

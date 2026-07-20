@@ -127,7 +127,7 @@ export default function OnchainValueChart({ isMobile, preview = false }) {
         </ResponsiveContainer>
       </div>
 
-      <div style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.65, maxWidth: 900, marginInline: "auto" }}>
+      <div className="chart-caption" style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.65, maxWidth: 900, marginInline: "auto" }}>
         On-chain valuation from the crowd&apos;s <strong style={{ color: COST }}>realized price</strong> (avg cost basis).
         <strong style={{ color: "#cbd5e1" }}> Realized price</strong>: price vs cost basis — above = holders in profit; the <strong style={{ color: FLOOR }}>0.8×</strong>/<strong style={{ color: DEEP }}>0.5×</strong> bands are the historical floor zone.
         <strong style={{ color: "#cbd5e1" }}> MVRV</strong>: price ÷ cost (1× = break-even, high = frothy). <strong style={{ color: "#cbd5e1" }}>Z-score</strong>: MVRV normalized.

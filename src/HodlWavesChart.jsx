@@ -100,7 +100,7 @@ export default function HodlWavesChart({ isMobile, preview = false }) {
         </ResponsiveContainer>
       </div>
 
-      <div style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.65, maxWidth: 900, marginInline: "auto" }}>
+      <div className="chart-caption" style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.65, maxWidth: 900, marginInline: "auto" }}>
         <strong style={{ color: BANDS[4].c }}>HODL waves</strong> — SPX6900&apos;s ETH-native supply split by how long each coin has been held.
         Fresh coins sit at the bottom (warm), long-held coins on top (cool). Watch the cool bands grow: at launch everything was fresh; now a third of supply hasn&apos;t moved in over a year. Drag to zoom. Not financial advice.
       </div>

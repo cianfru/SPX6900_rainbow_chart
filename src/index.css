@@ -186,3 +186,9 @@ body { margin: 0; overflow-x: clip; }
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 3px; }
+
+/* Gallery preview tiles: hide the chart's Explain description + zoom-hint line so the
+   scaled-down tile shows the actual chart (consistent across all previews). */
+.chart-preview .chart-explain,
+.chart-preview .chart-zoombar,
+.chart-preview .chart-caption { display: none !important; }

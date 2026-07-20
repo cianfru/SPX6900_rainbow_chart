@@ -35,7 +35,7 @@ const LIGHT = { "#38bdf8": "#7dd3fc", "#a78bfa": "#c4b5fd" };
 // reading an axis. `q` = the plain question; children = the plain answer.
 export function Explain({ q, accent = "#38bdf8", children }) {
   return (
-    <div style={{ maxWidth: 820, margin: "0 auto 18px", background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.07)", borderLeft: `3px solid ${accent}`, borderRadius: 10, padding: "13px 18px", fontFamily: SANS, fontSize: 14, color: "#cbd5e1", lineHeight: 1.6 }}>
+    <div className="chart-explain" style={{ maxWidth: 820, margin: "0 auto 18px", background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.07)", borderLeft: `3px solid ${accent}`, borderRadius: 10, padding: "13px 18px", fontFamily: SANS, fontSize: 14, color: "#cbd5e1", lineHeight: 1.6 }}>
       {q && <div style={{ fontWeight: 700, color: "#f8fafc", marginBottom: 3 }}>{q}</div>}
       {children}
     </div>
@@ -53,7 +53,7 @@ export function ZoomResetButton({ onReset, accent = "#38bdf8", fontSize = 12, pa
 // The status row above a zoomable chart: hint text + reset button when zoomed.
 export function ZoomBar({ zoomed, onReset, accent = "#38bdf8", viewing = "Viewing a selected window." }) {
   return (
-    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12, marginBottom: 10 }}>
+    <div className="chart-zoombar" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12, marginBottom: 10 }}>
       <span style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b" }}>{zoomed ? viewing : "Drag across the chart to zoom into any period."}</span>
       {zoomed && <ZoomResetButton onReset={onReset} accent={accent} />}
     </div>

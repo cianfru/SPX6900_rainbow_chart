@@ -117,7 +117,7 @@ export default function HoldersPriceChart({ isMobile, preview = false }) {
         <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontFamily: SANS, fontSize: 13, color: "#cbd5e1" }}><span style={{ width: 14, height: 3, borderRadius: 2, background: PRICE }} />SPX price (right)</span>
       </div>
 
-      <div style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.65, maxWidth: 880, marginInline: "auto" }}>
+      <div className="chart-caption" style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.65, maxWidth: 880, marginInline: "auto" }}>
         The holder base (<span style={{ color: HOLDERS }}>green, left</span>) against <span style={{ color: PRICE }}>SPX price</span> (right) over time. The story to watch:
         whether accumulation <strong style={{ color: "#cbd5e1" }}>keeps climbing through price swings</strong> — conviction shows when holders grow on red days.
         Daily on-chain snapshots (banked recently, so it fills in as it accumulates). <strong style={{ color: "#7dd3fc" }}>Drag to zoom.</strong> Not financial advice.

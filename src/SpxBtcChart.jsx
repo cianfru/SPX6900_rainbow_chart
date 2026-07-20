@@ -117,7 +117,7 @@ export default function SpxBtcChart({ series, isMobile }) {
         </ComposedChart>
       </ResponsiveContainer>
 
-      <div style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.6 }}>
+      <div className="chart-caption" style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.6 }}>
         SPX6900 priced in Bitcoin (satoshis), log scale. Rising = SPX outperforming BTC; falling = Bitcoin winning. Not financial advice.
       </div>
     </div>

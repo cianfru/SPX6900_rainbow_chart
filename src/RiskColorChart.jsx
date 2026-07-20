@@ -95,7 +95,7 @@ export default function RiskColorChart({ series, m, isMobile }) {
         </ComposedChart>
       </ResponsiveContainer>
 
-      <div style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.65, maxWidth: 880, marginInline: "auto" }}>
+      <div className="chart-caption" style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.65, maxWidth: 880, marginInline: "auto" }}>
         The price line recoloured by its <strong style={{ color: "#cbd5e1" }}>valuation z-score</strong> — how many standard deviations the log-price sits
         from the power-law <span style={{ color: "#cbd5e1" }}>fair value</span> (dashed). <span style={{ color: "#2563eb" }}>Blue</span> = cheap, below trend;
         <span style={{ color: "#ef4444" }}> red</span> = stretched, above trend. A long-term statistical read, distinct from the short-term 20-week heat. Not financial advice.

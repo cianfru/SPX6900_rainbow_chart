@@ -88,7 +88,7 @@ export default function AmICheapDashboard({ series, isMobile, preview = false })
         })}
       </div>
 
-      <div style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 16, lineHeight: 1.65 }}>
+      <div className="chart-caption" style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 16, lineHeight: 1.65 }}>
         Each lens is an <strong style={{ color: "#cbd5e1" }}>independent</strong> read on valuation, scored 1–10 for cheapness. The <strong style={{ color: gr.color }}>convergence</strong> is the signal — one metric can mislead, several aligning is stronger. A valuation position, not a timing call or a bottom. Not financial advice.
       </div>
     </div>

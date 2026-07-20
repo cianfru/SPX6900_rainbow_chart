@@ -179,7 +179,7 @@ export default function RelativeChart({ series, isMobile, which, setWhich }) {
             </ComposedChart>
           </ResponsiveContainer>
 
-          <div style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.6 }}>
+          <div className="chart-caption" style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.6 }}>
             How rich/cheap SPX6900 is {which === "BASKET" ? "vs an equal-weight BTC/ETH/SOL basket" : "vs " + which}, measured over its full history
             ({metric === "z" ? "standard deviations from the mean of log-ratio" : "percentile of the historical range"}).
             Relative value mean-reverts, so this is framed as a range — not a trend. Not financial advice.

@@ -93,7 +93,7 @@ export default function HolderConcentrationChart({ isMobile, preview = false }) 
         </ResponsiveContainer>
       </div>
 
-      <div style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.65, maxWidth: 900, marginInline: "auto" }}>
+      <div className="chart-caption" style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.65, maxWidth: 900, marginInline: "auto" }}>
         <strong style={{ color: A100 }}>Holder concentration</strong> — the share of ETH-native supply held by the largest wallets (contracts, pools and exchanges excluded).
         Both lines have drifted down since launch: the float keeps spreading into more hands — SPX6900 is decentralising. Drag to zoom. Not financial advice.
       </div>

@@ -96,7 +96,7 @@ export default function WalletGrowthChart({ isMobile, preview = false }) {
         </ResponsiveContainer>
       </div>
 
-      <div style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.65, maxWidth: 900, marginInline: "auto" }}>
+      <div className="chart-caption" style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.65, maxWidth: 900, marginInline: "auto" }}>
         <strong style={{ color: "#4ade80" }}>Wallet growth</strong> — wallets holding SPX6900 on <span style={{ color: CH[0].c }}>Ethereum</span>, <span style={{ color: CH[1].c }}>Base</span> and <span style={{ color: CH[2].c }}>Solana</span>, from launch.
         Headcount is multi-chain (Base &amp; Solana lead on wallets, Ethereum on value). Wallets, not people — and the Base step is a real airdrop distribution. Drag to zoom. Not financial advice.
       </div>

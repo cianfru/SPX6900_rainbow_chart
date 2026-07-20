@@ -115,7 +115,7 @@ export default function RoadmapChart({ series, m, isMobile, preview = false }) {
         </ResponsiveContainer>
       </div>
 
-      <div style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.65, maxWidth: 880, marginInline: "auto" }}>
+      <div className="chart-caption" style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.65, maxWidth: 880, marginInline: "auto" }}>
         The power-law <span style={{ color: "#84cc16" }}>fair-value line</span> run forward — the same fit as the rainbow, extrapolated — stamped with the dates the trend
         crosses <strong style={{ color: "#cbd5e1" }}>$6.90 / $69 / $690</strong>. It's the trend extended, <strong style={{ color: "#cbd5e1" }}>not a vibes target</strong>;
         the dates shift if the model is ever re-fit. <strong style={{ color: "#c4b5fd" }}>Drag to zoom.</strong> Not financial advice.

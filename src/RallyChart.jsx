@@ -169,7 +169,7 @@ export default function RallyChart({ series, m, isMobile }) {
         ))}
       </div>
 
-      <div style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.6 }}>
+      <div className="chart-caption" style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.6 }}>
         {anchor === "firesale"
           ? "Each line traces the climb (× from the low, log scale) after price entered the cheapest “Fire Sale” valuation band, vs. days since that low — i.e. how capitulation-band entries have paid off. Not financial advice."
           : "The mirror of the drawdown chart: each line traces the climb (× from the low, log scale) after a major cycle bottom, vs. days since that low. Log makes cycles of very different size comparable — note each recovery has run a smaller multiple than the last as SPX6900 matures. Not financial advice."}

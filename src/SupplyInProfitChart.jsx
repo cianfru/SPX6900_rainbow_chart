@@ -101,7 +101,7 @@ export default function SupplyInProfitChart({ isMobile, preview = false }) {
         </ResponsiveContainer>
       </div>
 
-      <div style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.65, maxWidth: 900, marginInline: "auto" }}>
+      <div className="chart-caption" style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.65, maxWidth: 900, marginInline: "auto" }}>
         <strong style={{ color: GRN }}>Supply in Profit</strong> — the share of ETH-native supply whose wallet sits above its on-chain cost basis, reconstructed from the transfer history.
         It ran to ~100% at every price peak (everyone green — frothy) and bottomed near 2% at the lows (nearly all underwater — cheap). A valuation position, not a signal. Drag to zoom. Not financial advice.
       </div>

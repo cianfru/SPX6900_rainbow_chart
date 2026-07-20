@@ -98,7 +98,7 @@ export default function QuantileFanChart({ series, isMobile, preview = false }) 
       </ResponsiveContainer>
 
       {!preview && (
-        <div style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.65, maxWidth: 900, marginInline: "auto" }}>
+        <div className="chart-caption" style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.65, maxWidth: 900, marginInline: "auto" }}>
           Seven <strong style={{ color: "#e2e8f0" }}>quantile</strong> curves (1st → 99th percentile) fit independently to log-price and projected forward — a probabilistic
           price cone. <span style={{ color: "#dc2626" }}>Red</span> = the frothy top decile, <span style={{ color: "#22c55e" }}>green</span> = the cheap tail; the fatter upper
           tail is SPX's real asymmetry (rare huge spikes, rarer deep crashes). Distinct from the rainbow's symmetric bands.

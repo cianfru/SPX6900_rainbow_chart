@@ -105,7 +105,7 @@ export default function AltMarketChart({ isMobile, preview = false }) {
         </ResponsiveContainer>
       </div>
 
-      <div style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.65, maxWidth: 900, marginInline: "auto" }}>
+      <div className="chart-caption" style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.65, maxWidth: 900, marginInline: "auto" }}>
         <strong style={{ color: MID }}>SPX ÷ the alt market</strong> (TOTAL3ES — ex-BTC/ETH/stables), detrended: <strong style={{ color: HOT }}>above</strong> = rich vs the sector, <strong style={{ color: COOL }}>below</strong> = cheap.
         0 = SPX&apos;s own trend strength vs alts (not parity — SPX has structurally outperformed the sector {cur.rr.toFixed(0)}× since launch). A relative-valuation position, not a signal. Drag to zoom. Not financial advice.
       </div>

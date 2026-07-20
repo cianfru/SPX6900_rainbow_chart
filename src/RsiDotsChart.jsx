@@ -115,7 +115,7 @@ export default function RsiDotsChart({ series, isMobile }) {
         </div>
       </div>
 
-      <div style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.65, maxWidth: 880, marginInline: "auto" }}>
+      <div className="chart-caption" style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.65, maxWidth: 880, marginInline: "auto" }}>
         The monthly price line and dots <strong style={{ color: "#cbd5e1" }}>coloured by RSI</strong> — <span style={{ color: "#2563eb" }}>blue</span> oversold/cold,
         <span style={{ color: "#ef4444" }}> red</span> overbought/hot — over a thin <span style={{ color: "#94a3b8" }}>geometric moving average</span>. A faithful homage to the
         Bitcoin RSI chart by @100trillionUSD (PlanB), down to the vertical RSI scale. RSI(6) on monthly closes, short because SPX6900 is young. Not financial advice.

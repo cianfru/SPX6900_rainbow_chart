@@ -206,7 +206,7 @@ export default function SeasonalityGrid({ series, isMobile }) {
         <span>· deeper color = bigger move</span>
       </div>
 
-      <div style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.6 }}>
+      <div className="chart-caption" style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.6 }}>
         {isBtc
           ? <>Each cell is that month&apos;s return with SPX6900 <strong style={{ color: "#cbd5e1" }}>priced in Bitcoin</strong> — green means SPX beat BTC that month, red means Bitcoin won. The <strong style={{ color: "#cbd5e1" }}>Year</strong> column compounds the months; <strong style={{ color: "#cbd5e1" }}>Avg</strong> is the typical month across years. Not financial advice.</>
           : <>Each cell is that month&apos;s return (last close vs. the prior month&apos;s). The <strong style={{ color: "#cbd5e1" }}>Year</strong> column compounds the months into an annual figure; <strong style={{ color: "#cbd5e1" }}>Avg</strong> is the typical return for that calendar month across all years — the seasonality. Tail months can run into the thousands of percent (shown compactly, e.g. +8.9k%). Not financial advice.</>}

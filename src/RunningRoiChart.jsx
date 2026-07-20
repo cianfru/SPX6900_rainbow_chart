@@ -125,7 +125,7 @@ export default function RunningRoiChart({ series, isMobile, preview = false }) {
       </ResponsiveContainer>
       </div>
 
-      <div style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.65, maxWidth: 880, marginInline: "auto" }}>
+      <div className="chart-caption" style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.65, maxWidth: 880, marginInline: "auto" }}>
         Growth measured from the <strong style={{ color: "#cbd5e1" }}>start of the window</strong> — the <span style={{ color: GROWTH }}>gold line</span> begins at
         1× on the left edge (<span style={{ color: "#4ade80" }}>green 1× = back to the starting price</span>), with <span style={{ color: PRICE }}>price</span> on the left axis.
         <strong style={{ color: "#7dd3fc" }}> Drag to select any period</strong> and the chart zooms in and rebases to it. Not financial advice.

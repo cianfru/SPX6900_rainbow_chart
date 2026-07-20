@@ -100,7 +100,7 @@ export default function NuplChart({ isMobile, preview = false }) {
         </ResponsiveContainer>
       </div>
 
-      <div style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.65, maxWidth: 900, marginInline: "auto" }}>
+      <div className="chart-caption" style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.65, maxWidth: 900, marginInline: "auto" }}>
         NUPL = 1 − realized price ÷ price, from the on-chain cost basis. SPX is more volatile than Bitcoin, so it overshoots the classic zones — the axis is clipped at −1 for readability (its true low was deeper). A valuation position, not a signal. Drag to zoom. Not financial advice.
       </div>
     </div>

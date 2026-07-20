@@ -33,7 +33,9 @@ function LivePreview({ render }) {
         <div style={{ position: "absolute", top: 0, left: 0, width: BASE_W, transformOrigin: "top left", transform: `scale(${scale})` }}>
           <ErrorBoundary>
             <Suspense fallback={<div style={{ height: CONTENT_H, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: MONO, fontSize: 26, color: "#475569" }}>loading…</div>}>
-              {render()}
+              {/* .chart-preview hides the Explain description + zoom hint so the tile shows the
+                  actual chart, consistent across every preview (see index.css). */}
+              <div className="chart-preview">{render()}</div>
             </Suspense>
           </ErrorBoundary>
         </div>

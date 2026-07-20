@@ -102,7 +102,7 @@ export default function UrpdChart({ isMobile, preview = false, price = null }) {
         </ResponsiveContainer>
       </div>
 
-      <div style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.65, maxWidth: 900, marginInline: "auto" }}>
+      <div className="chart-caption" style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.65, maxWidth: 900, marginInline: "auto" }}>
         <strong style={{ color: GRN }}>Cost basis distribution</strong> — SPX6900&apos;s held supply grouped by the price each coin was bought at, reconstructed per-lot (FIFO) from the on-chain transfer history.
         Green = bought below spot (in profit), red = above (underwater). The tall bars are the walls where the bags sit. A holder-cost position, not a signal. Not financial advice.
       </div>

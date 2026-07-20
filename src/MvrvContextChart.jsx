@@ -191,7 +191,7 @@ export default function MvrvContextChart({ isMobile, preview = false }) {
           {matchYears && <> Bitcoin last traded this cheap at its <strong style={{ color: MATCH }}>{matchYears}</strong> cycle bottoms <span style={{ color: MATCH }}>●</span>.</>}
         </div>
       )}
-      <div style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 10, lineHeight: 1.65, maxWidth: 900, marginInline: "auto" }}>
+      <div className="chart-caption" style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 10, lineHeight: 1.65, maxWidth: 900, marginInline: "auto" }}>
         <strong style={{ color: BTC }}>Bitcoin&apos;s MVRV</strong> over its whole history (market-cap ÷ realized-cap — unitless, so it&apos;s comparable across coins);
         the <strong style={{ color: SPX }}>SPX6900 band</strong> marks where its MVRV sits today, and the <strong style={{ color: MATCH }}>dots</strong> are the Bitcoin weeks at that same level.
         The zones are Bitcoin&apos;s own MVRV quantiles — a reference, not a target. SPX6900 has ~one cycle of MVRV vs Bitcoin&apos;s decade, so read it as a rhyme, not a forecast. Drag to zoom. Not financial advice.

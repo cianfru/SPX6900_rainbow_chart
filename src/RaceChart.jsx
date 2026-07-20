@@ -224,7 +224,7 @@ export default function RaceChart({ series, isMobile, fetchCoins, coins, basketL
         </div>
       )}
 
-      <div style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 14, lineHeight: 1.65, maxWidth: 880, marginInline: "auto" }}>
+      <div className="chart-caption" style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 14, lineHeight: 1.65, maxWidth: 880, marginInline: "auto" }}>
         A clean same-start race: every line begins at <strong style={{ color: "#cbd5e1" }}>1×</strong> on the window&apos;s first day, so you read pure relative
         performance. Log axis, so SPX6900&apos;s big run and the peers stay legible together. <strong style={{ color: "#cbd5e1" }}>Click a coin in the legend to show/hide it</strong>, drag to zoom, or switch the window above. Not financial advice.
       </div>

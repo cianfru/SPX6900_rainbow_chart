@@ -120,7 +120,7 @@ export default function FreeFloatChart({ isMobile, preview = false }) {
         </ResponsiveContainer>
       </div>
 
-      <div style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.65, maxWidth: 900, marginInline: "auto" }}>
+      <div className="chart-caption" style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.65, maxWidth: 900, marginInline: "auto" }}>
         <strong style={{ color: SPX }}>Illiquid supply</strong> — coins held by long-term holders (over 155 days), unlikely to move; liquid = short-term holders + exchanges + LP.
         SPX vs <strong style={{ color: BTC }}>Bitcoin</strong> on the same on-chain method, aligned by age; the dashed line carries Bitcoin 24 months past SPX&apos;s current age. At the same age SPX is stickier than Bitcoin was. A holder-behaviour position, not a signal. Drag to zoom. Not financial advice.
       </div>

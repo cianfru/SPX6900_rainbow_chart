@@ -126,7 +126,7 @@ export default function RiskHeatChart({ series, isMobile }) {
         <span style={{ color: "#64748b" }}>· zones = SPX's own percentiles</span>
       </div>
 
-      <div style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.65, maxWidth: 880, marginInline: "auto" }}>
+      <div className="chart-caption" style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.65, maxWidth: 880, marginInline: "auto" }}>
         The <span style={{ color: "#38bdf8" }}>price line</span> over a colour-coded histogram of how far it sits from its
         <strong style={{ color: "#f59e0b" }}> 20-week moving average</strong> (the mean it reverts to). Bars rise
         <span style={{ color: "#ef4444" }}> hot</span> when price runs above the MA, <span style={{ color: "#2563eb" }}>cold</span> when below,

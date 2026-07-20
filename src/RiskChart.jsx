@@ -141,7 +141,7 @@ export default function RiskChart({ series, m, isMobile }) {
         </ComposedChart>
       </ResponsiveContainer>
 
-      <div style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 10, lineHeight: 1.6 }}>
+      <div className="chart-caption" style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 10, lineHeight: 1.6 }}>
         Risk = how stretched price is above (red) or below (blue) the model, normalized 0–1 over SPX6900&apos;s history.
         Lower is historically cheaper. Not financial advice.
         {showFng && <><br /><span style={{ color: FNG_COLOR, fontWeight: 700 }}>Dashed line</span> = crypto Fear &amp; Greed index (0–100, rescaled to 0–1) — the market&apos;s mood vs SPX6900&apos;s own valuation.</>}

@@ -131,7 +131,7 @@ export default function LongShortChart({ series, isMobile }) {
         </ComposedChart>
       </ResponsiveContainer>
 
-      <div style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.65, maxWidth: 880, marginInline: "auto" }}>
+      <div className="chart-caption" style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.65, maxWidth: 880, marginInline: "auto" }}>
         On-chain perp <strong style={{ color: "#e2e8f0" }}>funding rate</strong> from <strong>Hyperliquid</strong>, annualised and <strong>normalised to its neutral baseline</strong>
         (~{Math.round(neutral)}% APR — what longs pay even in a balanced book). <span style={{ color: LONG }}>Green</span> = above neutral (extra demand to be long),
         <span style={{ color: SHORT }}> red</span> = below (leaning short). On-chain and <em>unmanipulable</em>. Extremes are a contrarian tell, not a timing signal.
