@@ -1171,14 +1171,14 @@ Same data, canonical contracts, method published. Check it yourself.`,
   // (refresh on re-bundle), hand-postable (NO_ROTATE). See dune/spx6900_cex_lp_balances.sql.
   s => ({
     id: "cexsupply",
-    text: ct`~85M SPX now sits on exchanges, ~13M in the Uniswap LP.
+    text: ct`~109M SPX now sits on exchanges, ~13M in the Uniswap LP.
 SPX launched fully DEX-native — every coin in the pool. As exchanges listed it through 2024-25, the tradable float shifted onto CEXs while the LP thinned.
 Where the supply lives — on-chain, reproducible.`,
     card: { type: "cexsupply" },
   }),
   s => ({
     id: "cexflow",
-    text: ct`Strip the one-time listing fills, and net −15M SPX has actually LEFT exchanges.
+    text: ct`Strip the one-time listing fills, and net −14M SPX has actually LEFT exchanges.
 The big 2025 "inflows" were new wallets filling up — listings, not selling. Underneath, the flow leans to withdrawal.
 Self-custody, not distribution. One cycle of data — not a forecast.`,
     card: { type: "cexflow" },

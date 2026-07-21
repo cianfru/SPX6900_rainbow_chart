@@ -39,9 +39,8 @@ export const EXCLUDE = new Set([
 // flow cards. Owner venue-tagged all 13 via Etherscan (2026-07-21). `kind` decides float vs not:
 //   burn/null  → OUT of supply (0xdead holds the ONE real 69M burn; 0x0 is the mint source)
 //   bridge     → ETH-locked backing Base/Solana supply → NOT ETH-native float (tradable on those chains)
-//   lp/cex/custody → FLOAT (liquid / tradable). cex = named CEX hot wallets (the exchange-flow cards).
-//   other      → excluded from the holder set (not a person) but NOT counted as CEX/LP/liquid — used
-//                for unlabeled non-exchange contracts (an MM-style trading wallet, an unknown proxy).
+//   lp/cex/custody → FLOAT (liquid / tradable). cex = named CEX hot wallets (the exchange-flow cards);
+//                    custody = BitGo-style multisig (WalletSimple proxy clones).
 export const EXCLUDE_LABELS = {
   "0x0000000000000000000000000000000000000000": { name: "null / mint source", kind: "null" },
   "0x000000000000000000000000000000000000dead": { name: "burn", kind: "burn" },              // 69.01M burned
@@ -57,10 +56,8 @@ export const EXCLUDE_LABELS = {
   "0x9b0c45d46d386cedd98873168c36efd0dcba8d46": { name: "Revolut 3", kind: "cex" },
   "0x3cc936b795a188f0e246cbb2d74c5bd190aecf18": { name: "MEXC 3", kind: "cex" },
   "0xa9d1e08c7793af67e9d92fe308d5697fb81d3e43": { name: "Coinbase 10", kind: "cex" },
-  // Owner-flagged as NOT a named exchange/LP: a Kraken-funded wallet that trades almost only with the
-  // SPX contract (MM-style), and an unlabeled minimal-proxy clone. Excluded from holders, not CEX.
-  "0xdf5e3a1ed0c14a53eee240022301ecb9d267671b": { name: "Kraken-funded trading wallet (unlabeled)", kind: "other" },
-  "0x73d8bd54f7cf5fab43fe4ef40a62d390644946db": { name: "unlabeled proxy clone", kind: "other" },
+  "0xdf5e3a1ed0c14a53eee240022301ecb9d267671b": { name: "Kraken-linked", kind: "cex" },        // Kraken-funded, trades the SPX contract
+  "0x73d8bd54f7cf5fab43fe4ef40a62d390644946db": { name: "BitGo multi-sig (WalletSimple)", kind: "custody" }, // another WalletSimple proxy clone
 };
 
 // age (days) → band index: [<1m, 1-3m, 3-6m, 6-12m, 1y+]

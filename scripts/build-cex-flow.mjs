@@ -54,7 +54,15 @@ for (const r of rows) {
   else if (r.k === "cex") { if (isOnboarding(r)) perDay[r.d].cexOnb += r.n; else perDay[r.d].cexOrg += r.n; }
 }
 
+// Price context: prefer public/price-history.json (the dense, CI-cleaned series the main charts
+// use — SPX_DAILY has noisy/mis-levelled daily prints in the volatile drawdown that the main app
+// overrides). Fall back to SPX_DAILY for any date it doesn't cover.
 const price = new Map(SPX_DAILY);
+try {
+  const ph = JSON.parse(readFileSync(join(root, "public/price-history.json"), "utf8"));
+  const arr = Array.isArray(ph) ? ph : (ph.prices || ph.data || []);
+  for (const x of arr) { const d = x.date ?? x[0], p = x.price ?? x[1]; if (d && p > 0) price.set(d, +p); }
+} catch { /* SPX_DAILY only */ }
 const allDays = Object.keys(perDay).sort();
 // walk a continuous daily grid from first to last flow day → cumulative balances + forward-filled price
 let cexBal = 0, lpBal = 0, custBal = 0, lastP = null;
