@@ -619,6 +619,15 @@
         card (weekly netflow bars + CEX balance line, **LP shown as its own liquidity-depth line**). Honesty caveats to bake
         in: known-addresses-only (undercount), netflow ≠ guaranteed buy/sell (OTC / internal moves / MM rebalancing), SPX is
         thin so single transfers dominate → weekly smoothing + framed as a POSITION/behaviour read, not a signal.
+      - **⭐ DUNE PATH — INDEPENDENT OF BIGQUERY, kick off NOW (2026-07-21).** CEX/LP balances DON'T need the full raw-
+        transfer extract — they're just the balances of the ~13 tagged addresses. **`dune/spx6900_cex_lp_balances.sql`**
+        (drafted): daily SIGNED net flow (+in/−out) per tagged CEX/LP/custody address, HARD-BOUNDED to the SPX token +
+        those addresses (a few GB / few credits, no timeout — matches the local engine's `exBal` exactly so they never
+        drift). Owner runs it via the terminal Dune MCP (SIZE/SCHEMA-first free calls → bounded 90-day test on `free`
+        tier → full run), sends the CSV (`day,address,kind,net_tokens`). Then a local `build-cex-flow.mjs`: cumsum per
+        address → balance; sum by kind → cexBal/lpBal/custody over time; weekly resample; netflow = Δ. **Build the card
+        only AFTER the CSV lands** (validate the signal + visuals against real numbers — don't build blind, per project
+        rule). This session (cloud) has NO Dune MCP — draft here, owner runs on the terminal.
 
 ## Dune credit discipline — HARD-WON, read before writing/running ANY Dune query (2026-07-16)
 - **The 2,500/mo free tier got blown in a WEEK, ~88% on ~5 heavy debugging runs.** The credit CSV was unambiguous:
