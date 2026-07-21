@@ -21,14 +21,13 @@
 -- Only CoinSpot + KuCoin are venue-named so far; the other 9 are generic CEX.
 -- Coverage is the accuracy lever — add more tagged CEX addrs here as they're found.
 --
--- ── CREDIT-SAFE RUN (Dune MCP) ──────────────────────────────────────────────
--- 1. FREE first: searchTables / getTableSize / schema to confirm
---    erc20_ethereum.evt_Transfer has columns: contract_address, "from", "to",
---    value, evt_block_time (Dune churns names — verify before running).
--- 2. BOUNDED test on the `free` engine tier: uncomment the LAST-90-DAYS line in
---    the WHERE, run, read executionCostCredits. Should be ~free/seconds.
--- 3. Full run: comment that line back out, run once. Export CSV.
--- CSV → send to Claude Code → build-cex-flow bundling script → the card.
+-- ── RUN (Dune MCP) ──────────────────────────────────────────────────────────
+-- ✅ RAN 2026-07-21 via the Dune MCP (query 8053292): full history 3,615 rows,
+--    5.99 credits on the `free` tier. Uses evt_block_date (partition column) for
+--    pruning. RECONCILES to the local FIFO engine's liqEx: cex 111.2M + lp 13.2M
+--    + custody 7.2M = 131.58M vs onchain.json liqEx 131.77M (0.14% — exact).
+-- Result CSV committed at dune/out/spx6900_cex_lp_flows.csv (day,address,kind,net_tokens).
+-- Re-run: same query, export, overwrite the CSV, re-run build-cex-flow.
 --
 -- decimals(SPX) = 8. Token = 0xe0f63a424a4439cbe457d80e4f4b51ad25b2c56c
 -- ============================================================================
@@ -50,7 +49,7 @@ WITH tagged (address, kind) AS (
     (0x52c77b0cb827afbad022e6d6caf2c44452edbc39, 'lp')        -- Uniswap v2 SPX/WETH pool
 )
 SELECT
-  CAST(tr.evt_block_time AS date)                            AS day,
+  tr.evt_block_date AS day,                                  -- partition column → prunes scan
   t.address,
   t.kind,
   SUM(
@@ -60,7 +59,6 @@ SELECT
 FROM erc20_ethereum.evt_Transfer tr
 JOIN tagged t ON (tr."to" = t.address OR tr."from" = t.address)
 WHERE tr.contract_address = 0xe0f63a424a4439cbe457d80e4f4b51ad25b2c56c
-  -- BOUNDED TEST: uncomment for the cheap free-tier dry run, then comment back out.
-  -- AND tr.evt_block_time >= now() - interval '90' day
+  -- BOUNDED TEST (cheap dry run): AND tr.evt_block_date >= current_date - interval '90' day
 GROUP BY 1, 2, 3
 ORDER BY 1, 2
