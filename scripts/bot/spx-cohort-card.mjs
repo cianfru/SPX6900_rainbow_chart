@@ -72,8 +72,39 @@ export function spxCohortStats() {
 
 export function spxCohortSvg(opts = {}) {
   const { anchor, coins: S } = spxCohortStats();
-  const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 128, mR = 108;
-  const pT = 168, pB = H - 108, footY = H - 24, pW = W - mL - mR;
+  const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 132, mR = 108;
+  const pW = W - mL - mR;
+
+  // Legend — computed FIRST because it flows onto as many rows as needed, and the plot
+  // starts below it. Big, readable type (no cramming 5 items into one row); greedy-wrap
+  // items into centered rows that fit the width at any aspect ratio.
+  const legFont = Math.max(24, Math.round(W / 40));
+  const swatchW = 34, swatchGap = 13, itemGap = 44;
+  const label = s => s.hero ? `${s.key}  ref` : `${s.key}  r ${s.partial.toFixed(2)}`;
+  const itemW = s => swatchW + swatchGap + label(s).length * legFont * 0.57;
+  const rows = [[]]; let rowW = 0;
+  for (const s of S) {
+    const w = itemW(s);
+    if (rowW > 0 && rowW + w > pW) { rows.push([]); rowW = 0; }
+    rows[rows.length - 1].push(s); rowW += w + itemGap;
+  }
+  const rowH = legFont + 22, legTop = 118;
+  let legend = "";
+  rows.forEach((row, ri) => {
+    const totalW = row.reduce((a, s) => a + itemW(s), 0) + itemGap * (row.length - 1);
+    let cx = mL + (pW - totalW) / 2;
+    const yy = legTop + ri * rowH;
+    for (const s of row) {
+      const tag = s.hero
+        ? `<tspan dx="10" fill="#94a3b8" font-weight="500">ref</tspan>`
+        : `<tspan dx="10" fill="#94a3b8" font-weight="500">r</tspan><tspan dx="8" fill="#e2e8f0" font-weight="800">${s.partial.toFixed(2)}</tspan>`;
+      legend += `<line x1="${cx.toFixed(1)}" y1="${(yy - 8).toFixed(1)}" x2="${(cx + swatchW).toFixed(1)}" y2="${(yy - 8).toFixed(1)}" stroke="${s.c}" stroke-width="6" stroke-linecap="round"/>`
+        + `<text x="${(cx + swatchW + swatchGap).toFixed(1)}" y="${yy.toFixed(1)}" fill="${s.c}" font-size="${legFont}" font-weight="800" font-family="sans-serif">${esc(s.key)}${tag}</text>`;
+      cx += itemW(s) + itemGap;
+    }
+  });
+  const pT = legTop + rows.length * rowH + 20, pB = H - 106, footY = H - 24;
+
   const t0 = Math.min(...S.map(s => s.series[0].ts)), t1 = Math.max(...S.map(s => s.lastTs));
   const x = t => mL + ((t - t0) / ((t1 - t0) || 1)) * pW;
 
@@ -88,13 +119,13 @@ export function spxCohortSvg(opts = {}) {
     if (m < mMin || m > mMax) continue;
     const yy = y(m).toFixed(1), is1 = m === 1;
     grid += `<line x1="${mL}" y1="${yy}" x2="${W - mR}" y2="${yy}" stroke="${is1 ? "#f8fafc" : "rgba(255,255,255,0.09)"}" stroke-width="${is1 ? 1.8 : 1}" ${is1 ? 'stroke-dasharray="7 6" stroke-opacity="0.85"' : ""}/>`
-      + `<text x="${mL - 16}" y="${(+yy + 8).toFixed(1)}" fill="${is1 ? "#e2e8f0" : "#aab6cc"}" font-size="24" text-anchor="end" font-family="sans-serif" font-weight="600">${fMult(m)}</text>`;
+      + `<text x="${mL - 16}" y="${(+yy + 9).toFixed(1)}" fill="${is1 ? "#e2e8f0" : "#aab6cc"}" font-size="27" text-anchor="end" font-family="sans-serif" font-weight="600">${fMult(m)}</text>`;
   }
 
   let xlab = "";
   for (let yr = new Date(t0).getUTCFullYear(); yr <= new Date(t1).getUTCFullYear(); yr++) {
     const t = Date.UTC(yr, 0, 1); if (t < t0 || t > t1) continue;
-    xlab += `<text x="${x(t).toFixed(1)}" y="${pB + 44}" fill="#aab6cc" font-size="24" text-anchor="middle" font-family="sans-serif" font-weight="600">${yr}</text>`;
+    xlab += `<text x="${x(t).toFixed(1)}" y="${pB + 48}" fill="#aab6cc" font-size="27" text-anchor="middle" font-family="sans-serif" font-weight="600">${yr}</text>`;
   }
 
   let lines = "", ends = "";
@@ -106,22 +137,6 @@ export function spxCohortSvg(opts = {}) {
     ends += `<circle cx="${x(s.lastTs).toFixed(1)}" cy="${y(s.now).toFixed(1)}" r="${s.hero ? 9 : 6.5}" fill="${s.c}" stroke="#06070f" stroke-width="2.5"/>`;
   });
   ends += `<circle cx="${x(t0).toFixed(1)}" cy="${y(1).toFixed(1)}" r="5.5" fill="#e2e8f0"/>`;
-
-  // horizontal legend strip under the title (never overlaps the plot): swatch · name · r (or "ref").
-  // Auto-size the label font so the widest item fits its slot at any aspect ratio.
-  const slotW = pW / S.length;
-  const labelLen = s => s.key.length + (s.hero ? 4 : 8); // "  ref" / "  r 0.00"
-  let lf = 23; while (lf > 14 && !S.every(s => 40 + labelLen(s) * lf * 0.58 <= slotW - 8)) lf--;
-  const lgY = 128;
-  let legend = "";
-  S.forEach((s, i) => {
-    const cx = mL + i * slotW;
-    const tag = s.hero
-      ? `<tspan dx="8" fill="#94a3b8" font-weight="500">ref</tspan>`
-      : `<tspan dx="8" fill="#94a3b8" font-weight="500">r</tspan><tspan dx="6" fill="#e2e8f0" font-weight="800">${s.partial.toFixed(2)}</tspan>`;
-    legend += `<line x1="${cx}" y1="${lgY - 6}" x2="${cx + 26}" y2="${lgY - 6}" stroke="${s.c}" stroke-width="5" stroke-linecap="round"/>`
-      + `<text x="${cx + 38}" y="${lgY}" fill="${s.c}" font-size="${lf}" font-weight="800" font-family="sans-serif">${esc(s.key)}${tag}</text>`;
-  });
 
   const aLabel = new Date(Date.parse(anchor)).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });
   return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
@@ -135,10 +150,10 @@ export function spxCohortSvg(opts = {}) {
 <rect width="${W}" height="${H}" fill="url(#chvig)"/>
 <rect width="${W}" height="${H}" fill="url(#chaccent)"/>
 <rect x="16" y="16" width="${W - 32}" height="${H - 32}" rx="24" fill="none" stroke="rgba(255,255,255,0.09)" stroke-width="1.5"/>
-<text x="60" y="70" font-size="40" font-weight="800" font-family="sans-serif" letter-spacing="1.2"><tspan fill="#5eead4">SPX6900</tspan><tspan fill="#f1f5f9"> &amp; ITS MEMECOIN COHORT</tspan></text>
+<text x="60" y="74" font-size="46" font-weight="800" font-family="sans-serif" letter-spacing="1.2"><tspan fill="#5eead4">SPX6900</tspan><tspan fill="#f1f5f9"> &amp; ITS MEMECOIN COHORT</tspan></text>
 ${grid}${xlab}
 ${lines}${ends}${legend}
-<text x="60" y="${footY}" fill="#94a3b8" font-size="17" font-family="sans-serif" textLength="${W - 96}" lengthAdjust="spacingAndGlyphs">${esc(`spx6900rainbow.xyz · Dune prices.day · partial daily-return corr, ETH removed (raw co-move ~0.7) · indexed to 1× on ${aLabel}`)}</text>
+<text x="60" y="${footY}" fill="#94a3b8" font-size="18" font-family="sans-serif" textLength="${W - 96}" lengthAdjust="spacingAndGlyphs">${esc(`spx6900rainbow.xyz · Dune prices.day · partial daily-return corr, ETH removed (raw co-move ~0.7) · indexed to 1× on ${aLabel}`)}</text>
 </svg>`;
 }
 
