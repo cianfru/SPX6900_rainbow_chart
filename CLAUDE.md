@@ -645,11 +645,24 @@
           area LP/exchanges/custody, the DEX-native→CEX-listed shift (LP 50M→13M, CEX 0→111M). **`cexflow`** (LOOK dual) =
           "On exchanges — flow vs price" — two-panel, weekly organic netflow (red deposits/green withdrawals) with listing
           weeks greyed, price on top. Cropped to the CEX era (2024-10→now).
-        - **🔲 OWNER venue-tagging IN PROGRESS:** 0x7dafba1d=Kraken, 0xdf5e3a1e=Kraken/MM confirmed (these two + likely
-          0xd2dd7b59 drove the Sep-2025 listing inflow = Kraken listing SPX). When the full address→venue map lands, fold
-          real `name`s into `EXCLUDE_LABELS` (build-onchain-local.mjs) + re-run the Dune query + re-bundle. Coverage
-          (untagged CEX addrs) is the accuracy lever. NOTE if 0xdf5e3a1e is really an MM, its flows are rebalancing not
-          retail (doesn't change totals). MCP credit note: this run + the peer study = ~42 of 2,500 this period.
+        - **✅ VENUE-TAGGING DONE (owner sent all 13, 2026-07-21).** Folded into `EXCLUDE_LABELS` (now the SINGLE SOURCE
+          OF TRUTH — `build-cex-flow.mjs` reads `kind` from it, so re-tagging needs NO Dune re-run): Kraken 245/246, Bybit 56,
+          Bitpanda 18, MEXC 3, Revolut 3, CoinSpot, KuCoin, Coinbase 10 (= 9 CEX) · Uniswap V2 (lp) · BitGo WalletSimple
+          (custody). **Two owner-flagged as NOT exchanges → `kind:"other"`** (excluded from holders, NOT counted as CEX):
+          `0xdf5e3a1e` (Kraken-funded MM-style trading wallet, 23M) + `0x73d8bd54` (unlabeled proxy, 2.6M). **Impact:
+          exchange balance 111M→85.5M, organic net −11.5M→−15M**; card copy updated. (Flip `0xdf5e3a1e` back to `cex` if the
+          Kraken-MM inventory should read as exchange-side — one-line kind change + re-bundle.) NOTE onchain.json's liqEx is
+          briefly stale on this (still counts the 2 as cex) until the FIFO engine re-runs with the new labels.
+      - **🔲 WEEKLY DUNE REFRESH for the FIFO on-chain suite — designed, BLOCKED on `DUNE_API_KEY` secret (owner, 2026-07-21).**
+        Keeps URPD/LTH-STH/SOPR/HODL/concentration/supply-in-profit/diamond FRESH (they're frozen at the last extract). **Use
+        WEEKLY-FULL, not incremental:** the raw-transfer scan filtered to the SPX token is CHEAP (~6-15 credits, like the CEX
+        query's 6) — no need for incremental append-storage complexity. Plan: a weekly GH Action executes `dune/spx6900_raw_
+        transfers.sql` via the Dune API (execute→poll→`/results/csv`), generates a price CSV from `src/spx-daily.js`, runs
+        `build-onchain-local.mjs --transfers --prices --out=public/onchain.json --urpd=public/urpd.json`, commits + redeploys
+        (mirror snapshot.yml's deploy job). **BLOCKERS:** (1) owner sets `DUNE_API_KEY` repo secret — Claude CANNOT extract the
+        MCP key (the connector never exposes the raw string); it's the same Dune account key, from dune.com→Settings→API. (2)
+        Save the raw-transfer query in Dune for a stable query ID (Claude does via MCP) + cost-check it first (SIZE/bounded).
+        Build + TEST it once the secret's set (validate first run reconciles: rp ~$0.53, ~49.5k ETH holders) — don't ship blind.
         - **✅ DAILY PULSE + FRESHNESS (owner: "weekly too sparse", 2026-07-21).** (1) **Resolution:** raw daily flow for a
           thin token is pure noise (2-3 spikes drown everything) → the `cexflow` card + `CexFlowChart` plot a **7-DAY ROLLING**
           organic net (clean daily-cadence pulse, listings as grey bands). `src/cex-flow.js` rebuilt DAILY (1071 days).
