@@ -13,7 +13,7 @@ const fM = t => (t / 1e6);
 const fMlab = t => t >= 1e6 ? Math.round(t / 1e6) + "M" : Math.round(t / 1e3) + "K";
 
 // [d, cexBal, lpBal, custBal, org, onb, price]
-const W_ = CEX_FLOW.weeks.map(r => ({ t: Date.parse(r[0]), cex: r[1], lp: r[2], cust: r[3] }));
+const W_ = CEX_FLOW.days.map(r => ({ t: Date.parse(r[0]), cex: r[1], lp: r[2], cust: r[3] }));
 
 export function cexSupplyStats() {
   const last = W_.at(-1);

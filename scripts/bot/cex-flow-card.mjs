@@ -12,18 +12,28 @@ import { CEX_FLOW } from "../../src/cex-flow.js";
 
 const png = (svg, w) => new Resvg(svg, { fitTo: { mode: "width", value: w }, font: FONT }).render().asPng();
 const fSign = t => (t >= 0 ? "+" : "−") + Math.abs(t / 1e6).toFixed(1) + "M";
-// [d, cexBal, lpBal, custBal, org, onb, price]
-const ALL = CEX_FLOW.weeks.map(r => ({ t: Date.parse(r[0]), org: r[4], onb: r[5], p: r[6] }));
+// [d, cexBal, lpBal, custBal, org, onb, price] — DAILY. A thin token's daily flow is pure
+// noise, so we plot a 7-DAY ROLLING organic net (a clean daily-cadence pulse), listings stripped.
+const ROLL = 7;
+const ALL = CEX_FLOW.days.map(r => ({ t: Date.parse(r[0]), org: r[4], onb: r[5], p: r[6] }));
+// 7-day rolling sums of organic + onboarding (each day = sum of the trailing week)
+for (let i = 0; i < ALL.length; i++) {
+  let ro = 0, rn = 0; for (let j = Math.max(0, i - ROLL + 1); j <= i; j++) { ro += ALL[j].org; rn += ALL[j].onb; }
+  ALL[i].rOrg = ro; ALL[i].rOnb = rn;
+}
 // Crop to the exchange era — SPX had zero CEX balance until listings (~2024-10); before that
-// there's no flow to show and the launch-era price (~$0.001) would blow out the log axis.
-const START = Math.max(0, ALL.findIndex(r => r.onb !== 0 || r.org !== 0) - 2);
+// there's no flow and the launch-era price (~$0.001) would blow out the log axis.
+const START = Math.max(0, ALL.findIndex(r => r.onb !== 0 || r.org !== 0) - 7);
 const WK = ALL.slice(START);
-const ONB_MARK = 3e6; // weeks with >3M onboarding = a listing/distribution event
+const ONB_MARK = 3e6; // a rolling week with >3M onboarding = a listing/distribution event
 
 export function cexFlowStats() {
-  const org = WK.reduce((a, r) => a + r.org, 0);
-  const onb = WK.reduce((a, r) => a + r.onb, 0);
-  return { organicNet: org, onboarding: onb, listings: WK.filter(r => r.onb > ONB_MARK).length };
+  const org = ALL.reduce((a, r) => a + r.org, 0);
+  const onb = ALL.reduce((a, r) => a + r.onb, 0);
+  // count distinct listing episodes (rolling onboarding crossing the mark, de-duped by gaps)
+  let listings = 0, inEp = false;
+  for (const r of WK) { const hot = r.rOnb > ONB_MARK; if (hot && !inEp) listings++; inEp = hot; }
+  return { organicNet: org, onboarding: onb, listings };
 }
 
 export function cexFlowSvg(opts = {}) {
@@ -35,22 +45,30 @@ export function cexFlowSvg(opts = {}) {
   const flowTop = priceBot + gap, flowBot = pB;
   const t0 = WK[0].t, t1 = WK.at(-1).t;
   const x = t => mL + ((t - t0) / ((t1 - t0) || 1)) * pW;
-  const orgMax = Math.max(...WK.map(r => Math.abs(r.org))) * 1.08;
+  const orgMax = Math.max(...WK.map(r => Math.abs(r.rOrg))) * 1.08;
   const y0 = (flowTop + flowBot) / 2, half = (flowBot - flowTop) / 2;
-  const yN = v => y0 - (v / orgMax) * half;
+  const yN = v => y0 - (Math.max(-orgMax, Math.min(orgMax, v)) / orgMax) * half;
+
+  // 7-day rolling organic net as a signed area: red above zero (deposits), green below (withdrawals).
+  const pts = WK.map(r => `${x(r.t).toFixed(1)},${yN(r.rOrg).toFixed(1)}`).join(" ");
+  const areaUp = `M ${x(WK[0].t).toFixed(1)},${y0.toFixed(1)} L ${pts} L ${x(WK.at(-1).t).toFixed(1)},${y0.toFixed(1)} Z`;
+  let flow = `<defs>
+<clipPath id="cfabove"><rect x="${mL}" y="${flowTop}" width="${pW}" height="${(y0 - flowTop).toFixed(1)}"/></clipPath>
+<clipPath id="cfbelow"><rect x="${mL}" y="${y0.toFixed(1)}" width="${pW}" height="${(flowBot - y0).toFixed(1)}"/></clipPath></defs>
+<path d="${areaUp}" fill="#fb7185" fill-opacity="0.5" clip-path="url(#cfabove)"/>
+<path d="${areaUp}" fill="#4ade80" fill-opacity="0.5" clip-path="url(#cfbelow)"/>
+<polyline points="${pts}" fill="none" stroke="#e2e8f0" stroke-width="2.4" stroke-opacity="0.85" stroke-linejoin="round"/>`;
+
+  // listing episodes: shade the date span where rolling onboarding is hot (grey), so viewers see
+  // the big fills were listings (excluded from the organic line above).
+  let marks = ""; let epStart = null;
+  for (let i = 0; i <= WK.length; i++) {
+    const hot = i < WK.length && WK[i].rOnb > ONB_MARK;
+    if (hot && epStart == null) epStart = WK[i].t;
+    if (!hot && epStart != null) { marks += `<rect x="${x(epStart).toFixed(1)}" y="${flowTop}" width="${Math.max(2, x(WK[i - 1].t) - x(epStart)).toFixed(1)}" height="${(flowBot - flowTop).toFixed(1)}" fill="#64748b" fill-opacity="0.16"/>`; epStart = null; }
+  }
   const ps = WK.map(r => r.p).filter(Boolean); const pmin = Math.min(...ps), pmax = Math.max(...ps);
   const yP = v => { const lo = Math.log(pmin * 0.9), hi = Math.log(pmax * 1.1); return priceBot - ((Math.log(v) - lo) / (hi - lo)) * (priceBot - priceTop); };
-  const bw = (pW / WK.length) * 0.62;
-
-  let bars = "", marks = "";
-  for (const r of WK) {
-    const cx = x(r.t);
-    if (Math.abs(r.org) > 1e4) {
-      const yy = yN(r.org), h = Math.abs(yy - y0), col = r.org >= 0 ? "#fb7185" : "#4ade80";
-      bars += `<rect x="${(cx - bw / 2).toFixed(1)}" y="${(r.org >= 0 ? yy : y0).toFixed(1)}" width="${bw.toFixed(1)}" height="${Math.max(1, h).toFixed(1)}" rx="1.5" fill="${col}" fill-opacity="0.92"/>`;
-    }
-    if (r.onb > ONB_MARK) marks += `<circle cx="${cx.toFixed(1)}" cy="${(flowTop - 12).toFixed(1)}" r="6" fill="#64748b"/>`;
-  }
   const pl = WK.filter(r => r.p).map(r => `${x(r.t).toFixed(1)},${yP(r.p).toFixed(1)}`).join(" ");
 
   // price panel axis (right) + flow panel axis (left, ± around zero)
@@ -69,12 +87,12 @@ export function cexFlowSvg(opts = {}) {
 <rect width="${W}" height="${H}" fill="url(#cfbg)"/><rect width="${W}" height="${H}" fill="url(#cfacc)"/>
 <rect x="16" y="16" width="${W - 32}" height="${H - 32}" rx="24" fill="none" stroke="rgba(255,255,255,0.09)" stroke-width="1.5"/>
 <text x="60" y="66" font-size="38" font-weight="800" font-family="sans-serif" letter-spacing="0.5"><tspan fill="#4ade80">SPX6900</tspan><tspan fill="#f1f5f9"> ON EXCHANGES — FLOW vs PRICE</tspan></text>
-<text x="60" y="98" font-size="20" font-family="sans-serif" fill="#94a3b8">Weekly net flow with one-time listing fills stripped out (grey marks the listing weeks)</text>
+<text x="60" y="98" font-size="20" font-family="sans-serif" fill="#94a3b8">7-day rolling net flow, one-time listing fills stripped out (grey bands = listing periods)</text>
 ${sw(60, "#fb7185")}<text x="94" y="132" fill="#fb7185" font-size="21" font-weight="700" font-family="sans-serif">deposits (sell-side)</text>
-${sw(340, "#4ade80")}<text x="374" y="132" fill="#4ade80" font-size="21" font-weight="700" font-family="sans-serif">withdrawals (accumulation)</text>
-<circle cx="712" cy="127" r="6" fill="#64748b"/><text x="726" y="132" fill="#94a3b8" font-size="21" font-weight="700" font-family="sans-serif">listing (excluded)</text>
-<line x1="905" y1="127" x2="941" y2="127" stroke="#fbbf24" stroke-width="4"/><text x="949" y="132" fill="#fbbf24" font-size="21" font-weight="700" font-family="sans-serif">price</text>
-${ax}${xl}${marks}${bars}<polyline points="${pl}" fill="none" stroke="#fbbf24" stroke-width="3.2"/>
+${sw(360, "#4ade80")}<text x="394" y="132" fill="#4ade80" font-size="21" font-weight="700" font-family="sans-serif">withdrawals (accumulation)</text>
+${sw(742, "#64748b")}<text x="776" y="132" fill="#94a3b8" font-size="21" font-weight="700" font-family="sans-serif">listing</text>
+<line x1="880" y1="127" x2="916" y2="127" stroke="#fbbf24" stroke-width="4"/><text x="924" y="132" fill="#fbbf24" font-size="21" font-weight="700" font-family="sans-serif">price</text>
+${ax}${xl}${marks}${flow}<polyline points="${pl}" fill="none" stroke="#fbbf24" stroke-width="3.2"/>
 <text x="60" y="${H - 22}" fill="#94a3b8" font-size="17" font-family="sans-serif" textLength="${W - 96}" lengthAdjust="spacingAndGlyphs">${esc(`spx6900rainbow.xyz · on-chain (Dune) · organic net = flow minus listing fills · known exchange addresses · one cycle of data — behaviour, not a forecast`)}</text>
 </svg>`;
 }

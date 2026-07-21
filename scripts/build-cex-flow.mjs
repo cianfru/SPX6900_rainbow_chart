@@ -41,44 +41,44 @@ const isOnboarding = r => {
   return age >= 0 && age < ONBOARD_DAYS;
 };
 
-// weekly buckets (Monday key)
-const monday = ds => { const dt = new Date(ds + "T00:00:00Z"); const m = new Date(dt); m.setUTCDate(dt.getUTCDate() - ((dt.getUTCDay() + 6) % 7)); return m.toISOString().slice(0, 10); };
-const wk = {}; // key -> {cexOrg, cexOnb, lp, cust}
+// daily buckets: net per kind per day (with the onboarding split for CEX)
+const perDay = {}; // day -> {cexOrg, cexOnb, lp, cust}
 for (const r of rows) {
-  const k = monday(r.d); (wk[k] ??= { cexOrg: 0, cexOnb: 0, lp: 0, cust: 0 });
-  if (r.k === "lp") wk[k].lp += r.n;
-  else if (r.k === "custody") wk[k].cust += r.n;
-  else if (r.k === "cex") { if (isOnboarding(r)) wk[k].cexOnb += r.n; else wk[k].cexOrg += r.n; }
+  (perDay[r.d] ??= { cexOrg: 0, cexOnb: 0, lp: 0, cust: 0 });
+  if (r.k === "lp") perDay[r.d].lp += r.n;
+  else if (r.k === "custody") perDay[r.d].cust += r.n;
+  else if (r.k === "cex") { if (isOnboarding(r)) perDay[r.d].cexOnb += r.n; else perDay[r.d].cexOrg += r.n; }
 }
 
 const price = new Map(SPX_DAILY);
-const keys = Object.keys(wk).sort();
-// cumulative balances + forward-filled weekly price
+const allDays = Object.keys(perDay).sort();
+// walk a continuous daily grid from first to last flow day → cumulative balances + forward-filled price
 let cexBal = 0, lpBal = 0, custBal = 0, lastP = null;
-const weeks = keys.map(k => {
-  const w = wk[k];
+const days = [];
+for (let t = Date.parse(allDays[0]); t <= Date.parse(allDays.at(-1)); t += 86400000) {
+  const d = new Date(t).toISOString().slice(0, 10);
+  const w = perDay[d] || { cexOrg: 0, cexOnb: 0, lp: 0, cust: 0 };
   cexBal += w.cexOrg + w.cexOnb; lpBal += w.lp; custBal += w.cust;
-  // price as of the Friday of that week (or last known)
-  for (let i = 0; i <= 6; i++) { const ds = new Date(Date.parse(k) + i * 86400000).toISOString().slice(0, 10); if (price.has(ds)) lastP = price.get(ds); }
-  return [k,
-    +cexBal.toFixed(0), +lpBal.toFixed(0), +custBal.toFixed(0), // balances (tokens)
-    +(w.cexOrg).toFixed(0), +(w.cexOnb).toFixed(0),             // weekly organic net / onboarding net
-    lastP == null ? null : +lastP.toFixed(6)];                  // weekly price
-});
+  if (price.has(d)) lastP = price.get(d);
+  days.push([d, +cexBal.toFixed(0), +lpBal.toFixed(0), +custBal.toFixed(0), +w.cexOrg.toFixed(0), +w.cexOnb.toFixed(0), lastP == null ? null : +lastP.toFixed(6)]);
+}
 
 const updated = rows.at(-1).d;
-const out = `// SPX6900 — CEX / LP / custody supply + flow, weekly. Built by scripts/build-cex-flow.mjs
+const org = days.reduce((a, r) => a + r[4], 0), onb = days.reduce((a, r) => a + r[5], 0);
+const out = `// SPX6900 — CEX / LP / custody supply + flow, DAILY. Built by scripts/build-cex-flow.mjs
 // from the Dune extract (dune/spx6900_cex_lp_balances.sql). Reconciles to the local FIFO
-// engine's liqEx. Row = [mondayISO, cexBal, lpBal, custodyBal, cexOrganicNet, cexOnboardNet, price].
-// Balances are cumulative tokens; net columns are that week's signed flow (+in/-out). Onboarding
-// = a new address's first ${ONBOARD_DAYS} days (listing/distribution fill), split out from organic
-// behaviour so the netflow card can grey it. Frozen at the extract; re-run to refresh.
+// engine's liqEx. Row = [dayISO, cexBal, lpBal, custodyBal, cexOrganicNet, cexOnboardNet, price].
+// Balances are cumulative tokens; net columns are that day's signed flow (+in/-out). Onboarding
+// = a new address's first ${ONBOARD_DAYS} days (listing/distribution fill), split from organic
+// behaviour so the flow card can strip it. Cards read daily + apply a 7-day rolling sum (a thin
+// token is too noisy raw). Frozen at the extract; re-run to refresh (or bank daily balances forward).
 export const CEX_FLOW = {
   updated: ${JSON.stringify(updated)},
   onboardDays: ${ONBOARD_DAYS},
-  weeks: ${JSON.stringify(weeks)}
+  days: ${JSON.stringify(days)}
 };
 `;
 writeFileSync(join(root, "src/cex-flow.js"), out);
-console.log(`wrote src/cex-flow.js — ${weeks.length} weeks, ${updated}`);
+console.log(`wrote src/cex-flow.js — ${days.length} days, ${updated}`);
 console.log(`latest: cex ${(cexBal/1e6).toFixed(1)}M · lp ${(lpBal/1e6).toFixed(1)}M · custody ${(custBal/1e6).toFixed(1)}M`);
+console.log(`organic net ${(org/1e6).toFixed(1)}M · onboarding ${(onb/1e6).toFixed(1)}M`);
