@@ -79,7 +79,7 @@ export function cexFlowSvg(opts = {}) {
   // price panel axis (right) + flow panel axis (left, ± around zero)
   let ax = `<line x1="${mL}" y1="${y0.toFixed(1)}" x2="${W - mR}" y2="${y0.toFixed(1)}" stroke="rgba(255,255,255,0.4)" stroke-width="1.5"/>`;
   for (const v of [orgMax * 0.66, -orgMax * 0.66]) ax += `<text x="${mL - 14}" y="${(yN(v) + 8).toFixed(1)}" fill="#cbd5e1" font-size="21" text-anchor="end" font-family="sans-serif" font-weight="600">${v >= 0 ? "+" : "−"}${Math.abs(v / 1e6).toFixed(0)}M</text>`;
-  for (const pv of [0.05, 0.1, 0.2, 0.5, 1, 1.5]) { if (pv < pmin * 0.9 || pv > pmax * 1.1) continue; ax += `<text x="${W - mR + 12}" y="${(yP(pv) + 7).toFixed(1)}" fill="#fbbf24" font-size="21" font-family="sans-serif" font-weight="700">$${pv}</text>`; }
+  for (const pv of [0.05, 0.1, 0.2, 0.5, 1, 2, 3]) { if (pv < pmin * 0.9 || pv > pmax * 1.1) continue; ax += `<text x="${W - mR + 12}" y="${(yP(pv) + 7).toFixed(1)}" fill="#fbbf24" font-size="21" font-family="sans-serif" font-weight="700">$${pv}</text>`; }
   let xl = "";
   for (let yr = 2024; yr <= 2026; yr++) for (const mo of [1, 7]) { const t = Date.UTC(yr, mo - 1, 1); if (t < t0 || t > t1) continue; xl += `<line x1="${x(t).toFixed(1)}" y1="${priceTop}" x2="${x(t).toFixed(1)}" y2="${flowBot}" stroke="rgba(255,255,255,0.05)"/><text x="${x(t).toFixed(1)}" y="${(flowBot + 40).toFixed(1)}" fill="#94a3b8" font-size="20" text-anchor="middle" font-family="sans-serif">${yr}-${String(mo).padStart(2, "0")}</text>`; }
 
