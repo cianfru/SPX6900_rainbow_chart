@@ -680,6 +680,17 @@
         commit; needs a GCP service-account key `GCP_SA_KEY` as a repo secret). Until that's built, refresh stays MANUAL (owner
         runs `bigquery/spx6900_raw_transfers.sql`, sends the CSV, Claude re-bundles). NOTE the auto-created Dune query 8055773
         is a leftover temp query (harmless; delete in the Dune UI if wanted).
+      - **✅ BIGQUERY WEEKLY REFRESH BUILT 2026-07-21 (owner made the GCP SA) — pending secret + first-run validation.**
+        `.github/workflows/onchain-bigquery.yml` (Mon 06:37 UTC + dispatch): GH Actions Google auth (`GCP_SA_KEY` secret, the
+        SA JSON) + `bq` CLI → keeps an OWN append-only table **`goog-fltx.spx_onchain.eth_transfers`**, incrementally appends
+        only new transfers (`block_timestamp > MAX(time)` → partition-pruned, cheap; FIRST run backfills ~546 GB once, inside
+        the 1 TB/mo free tier), exports the table to CSV, runs `build-onchain-local.mjs --threshold=155` → onchain.json +
+        urpd.json, sanity-checks (holders 40-60k, rp 0.3-0.8), commits + redeploys. Project GOOG-FLTX, SA
+        `spx-onchain-ci@goog-fltx.iam.gserviceaccount.com`. **BigQuery export is FREE — no 402 like Dune.** 🔲 Owner: add
+        `GCP_SA_KEY` repo secret (the JSON) + dispatch "Weekly on-chain FIFO refresh (BigQuery)"; Claude reads the run logs to
+        validate reconciliation (rp ~$0.53, ~49.5k holders). Watch on first run: bq `--format=csv` for 2.6M rows (if it caps/
+        slows, switch to `bq extract` → GCS); the TIMESTAMP + BIGNUMERIC CSV formats parse via the FIFO engine's Date.parse/
+        Number (proven on synthetic). Migrate to Workload Identity Federation later (more secure than the static JSON key).
       - **~~✅ WEEKLY DUNE REFRESH BUILT~~ (superseded by the DEAD-END note above).** Keeps
         URPD/LTH-STH/SOPR/HODL/concentration/supply-in-profit/diamond FRESH without a manual BigQuery export. **WEEKLY-FULL,
         not incremental** (the token-filtered raw-transfer scan is ~6 credits). `scripts/build-onchain-refresh.mjs`: executes
