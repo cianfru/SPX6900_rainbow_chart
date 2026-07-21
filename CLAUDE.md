@@ -669,16 +669,19 @@
           SPX_DAILY with **`public/price-history.json`** (dense, CI-cleaned). Fixed `build-cex-flow.mjs` to read price from
           price-history.json (SPX_DAILY fallback) → the line now matches history (top→bottom→recovery, no cliff). Any future
           price-context chart should use price-history.json, not raw SPX_DAILY.
-      - **🔲 WEEKLY DUNE REFRESH for the FIFO on-chain suite — designed, BLOCKED on `DUNE_API_KEY` secret (owner, 2026-07-21).**
-        Keeps URPD/LTH-STH/SOPR/HODL/concentration/supply-in-profit/diamond FRESH (they're frozen at the last extract). **Use
-        WEEKLY-FULL, not incremental:** the raw-transfer scan filtered to the SPX token is CHEAP (~6-15 credits, like the CEX
-        query's 6) — no need for incremental append-storage complexity. Plan: a weekly GH Action executes `dune/spx6900_raw_
-        transfers.sql` via the Dune API (execute→poll→`/results/csv`), generates a price CSV from `src/spx-daily.js`, runs
-        `build-onchain-local.mjs --transfers --prices --out=public/onchain.json --urpd=public/urpd.json`, commits + redeploys
-        (mirror snapshot.yml's deploy job). **BLOCKERS:** (1) owner sets `DUNE_API_KEY` repo secret — Claude CANNOT extract the
-        MCP key (the connector never exposes the raw string); it's the same Dune account key, from dune.com→Settings→API. (2)
-        Save the raw-transfer query in Dune for a stable query ID (Claude does via MCP) + cost-check it first (SIZE/bounded).
-        Build + TEST it once the secret's set (validate first run reconciles: rp ~$0.53, ~49.5k ETH holders) — don't ship blind.
+      - **✅ WEEKLY DUNE REFRESH BUILT 2026-07-21 (owner set `DUNE_API_KEY`) — pending first-run validation.** Keeps
+        URPD/LTH-STH/SOPR/HODL/concentration/supply-in-profit/diamond FRESH without a manual BigQuery export. **WEEKLY-FULL,
+        not incremental** (the token-filtered raw-transfer scan is ~6 credits). `scripts/build-onchain-refresh.mjs`: executes
+        the raw-transfer dump via the Dune API (execute→poll→`/results/csv`, ~2.6M rows), generates a price CSV from
+        **public/price-history.json** (SPX_DAILY fallback), runs the local FIFO engine (`build-onchain-local.mjs --threshold=155`)
+        → public/onchain.json + urpd.json. Workflow `.github/workflows/onchain-refresh.yml` (Mon 05:23 UTC + dispatch): runs
+        it, sanity-checks reconciliation (holders 40-60k, rp 0.3-0.8), commits + redeploys (mirrors snapshot.yml deploy job).
+        Local parts SMOKE-TESTED (prices gen + FIFO spawn + Dune-CSV column/timestamp parsing all verified on synthetic data).
+        **Query id:** `DUNE_RAW_TRANSFERS_QUERY_ID` repo var if set, else the script auto-creates the query on first run (logs
+        the new id). **🔲 VALIDATION (Claude CAN'T dispatch — GH MCP is read-only for Actions; Claude CAN read run logs):**
+        owner dispatches the "Weekly on-chain FIFO refresh" workflow → if the auto-create-query step 403s (some Dune plans
+        block API query creation), save `dune/spx6900_raw_transfers.sql` as a Dune query + set `DUNE_RAW_TRANSFERS_QUERY_ID`
+        repo var + re-run. Confirm the reconcile line: rp ~$0.53, ~49.5k holders, top100 ~58%.
         - **✅ DAILY PULSE + FRESHNESS (owner: "weekly too sparse", 2026-07-21).** (1) **Resolution:** raw daily flow for a
           thin token is pure noise (2-3 spikes drown everything) → the `cexflow` card + `CexFlowChart` plot a **7-DAY ROLLING**
           organic net (clean daily-cadence pulse, listings as grey bands). `src/cex-flow.js` rebuilt DAILY (1071 days).
