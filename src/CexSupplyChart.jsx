@@ -23,7 +23,6 @@ function Tip({ active, payload }) {
     <TipBox title={new Date(d.ts).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}>
       <div style={{ color: CEX }}>Exchanges: <span style={{ fontFamily: MONO }}>{fMlab(d.cex)}</span></div>
       <div style={{ color: LP }}>Uniswap LP: <span style={{ fontFamily: MONO }}>{fMlab(d.lp)}</span></div>
-      <div style={{ color: CUST }}>Custody: <span style={{ fontFamily: MONO }}>{fMlab(d.cust)}</span></div>
     </TipBox>
   );
 }
@@ -59,7 +58,6 @@ export default function CexSupplyChart({ isMobile, preview = false }) {
       <div style={{ display: "flex", gap: isMobile ? 14 : 28, justifyContent: "center", marginBottom: 14, flexWrap: "wrap" }}>
         <Metric label="on exchanges" value={fMlab(cur.cex)} color={CEX} sub="tradable / sell-side" />
         <Metric label="in the LP" value={fMlab(cur.lp)} color={LP} sub="Uniswap depth" />
-        <Metric label="in custody" value={fMlab(cur.cust)} color={CUST} sub="BitGo multi-sig" />
       </div>
       <ZoomBar zoomed={zoomed} onReset={() => setZoom(null)} accent={CEX} />
       <div style={{ position: "relative" }}>
@@ -76,7 +74,6 @@ export default function CexSupplyChart({ isMobile, preview = false }) {
             <Tooltip content={<Tip />} cursor={{ stroke: "rgba(255,255,255,0.2)" }} />
             <Area type="monotone" dataKey="lp" stackId="1" stroke={LP} fill={LP} fillOpacity={0.5} strokeWidth={1.5} isAnimationActive={false} name="Uniswap LP" />
             <Area type="monotone" dataKey="cex" stackId="1" stroke={CEX} fill={CEX} fillOpacity={0.5} strokeWidth={1.5} isAnimationActive={false} name="Exchanges" />
-            <Area type="monotone" dataKey="cust" stackId="1" stroke={CUST} fill={CUST} fillOpacity={0.5} strokeWidth={1.5} isAnimationActive={false} name="Custody" />
             {selL != null && selR != null && selL !== selR && (
               <ReferenceArea x1={selL} x2={selR} strokeOpacity={0.4} stroke="#e2e8f0" fill="#e2e8f0" fillOpacity={0.1} />
             )}

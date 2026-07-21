@@ -34,7 +34,6 @@ export function cexSupplySvg(opts = {}) {
   const bands = [
     { key: "Exchanges", c: "#fb7185", val: st.cex },
     { key: "Uniswap LP", c: "#38bdf8", val: st.lp },
-    { key: "Custody", c: "#a78bfa", val: st.cust },
   ];
   const legFont = Math.max(24, Math.round(W / 40));
   const label = b => `${b.key}  ${fMlab(b.val)}`;
@@ -61,7 +60,7 @@ export function cexSupplySvg(opts = {}) {
 
   // stacked areas: LP (bottom) → Exchanges → Custody
   const stackAreas = () => {
-    const order = [{ c: "#38bdf8", get: r => r.lp }, { c: "#fb7185", get: r => r.cex }, { c: "#a78bfa", get: r => r.cust }];
+    const order = [{ c: "#38bdf8", get: r => r.lp }, { c: "#fb7185", get: r => r.cex }];
     let base = W_.map(() => 0), out = "";
     for (const s of order) {
       const top = W_.map((r, i) => base[i] + s.get(r));
@@ -90,7 +89,7 @@ export function cexSupplySvg(opts = {}) {
 <text x="60" y="66" font-size="40" font-weight="800" font-family="sans-serif" letter-spacing="1"><tspan fill="#fb7185">WHERE SPX6900'S</tspan><tspan fill="#f1f5f9"> TRADABLE SUPPLY SITS</tspan></text>
 <text x="60" y="98" font-size="20" font-family="sans-serif" fill="#94a3b8">Launched DEX-native (all in the LP); exchange-held supply grew as listings landed</text>
 ${grid}${xl}${stackAreas()}${legend}
-<text x="60" y="${H - 22}" fill="#94a3b8" font-size="17" font-family="sans-serif" textLength="${W - 96}" lengthAdjust="spacingAndGlyphs">${esc(`spx6900rainbow.xyz · on-chain (Dune) · supply on tagged exchange/LP/custody addresses · known addresses only · a location map, not a signal`)}</text>
+<text x="60" y="${H - 22}" fill="#94a3b8" font-size="17" font-family="sans-serif" textLength="${W - 96}" lengthAdjust="spacingAndGlyphs">${esc(`spx6900rainbow.xyz · on-chain (Dune) · supply on tagged exchange & LP addresses · known addresses only · a location map, not a signal`)}</text>
 </svg>`;
 }
 

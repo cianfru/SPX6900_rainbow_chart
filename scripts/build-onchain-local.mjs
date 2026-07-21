@@ -48,7 +48,7 @@ export const EXCLUDE_LABELS = {
   "0x3ee18b2214aff97000d974cf647e7c347e8fa585": { name: "Wormhole bridge", kind: "bridge" }, // backs Base/Solana
   "0xf35a6bd6e0459a4b53a27862c51a2a7292b383d1": { name: "CoinSpot", kind: "cex" },
   "0x6d6cc65e2060d0a280fcd47b6c22ec5636797fec": { name: "KuCoin", kind: "cex" },
-  "0xdc154fcee1babb560e8528c3a7791527f01423df": { name: "BitGo multi-sig (WalletSimple)", kind: "custody" },
+  "0xdc154fcee1babb560e8528c3a7791527f01423df": { name: "BitGo custody (WalletSimple)", kind: "cex" }, // institutional custody → exchange-side
   "0x7dafba1d69f6c01ae7567ffd7b046ca03b706f83": { name: "Kraken 245", kind: "cex" },
   "0xd2dd7b597fd2435b6db61ddf48544fd931e6869f": { name: "Kraken 246", kind: "cex" },
   "0x651641299c7ec0aa44ad7ed9b7e12702fed2022f": { name: "Bybit 56", kind: "cex" },
@@ -57,7 +57,7 @@ export const EXCLUDE_LABELS = {
   "0x3cc936b795a188f0e246cbb2d74c5bd190aecf18": { name: "MEXC 3", kind: "cex" },
   "0xa9d1e08c7793af67e9d92fe308d5697fb81d3e43": { name: "Coinbase 10", kind: "cex" },
   "0xdf5e3a1ed0c14a53eee240022301ecb9d267671b": { name: "Kraken-linked", kind: "cex" },        // Kraken-funded, trades the SPX contract
-  "0x73d8bd54f7cf5fab43fe4ef40a62d390644946db": { name: "BitGo multi-sig (WalletSimple)", kind: "custody" }, // another WalletSimple proxy clone
+  "0x73d8bd54f7cf5fab43fe4ef40a62d390644946db": { name: "BitGo custody (WalletSimple)", kind: "cex" }, // another WalletSimple proxy → exchange-side
 };
 
 // age (days) → band index: [<1m, 1-3m, 3-6m, 6-12m, 1y+]
