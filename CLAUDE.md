@@ -628,6 +628,27 @@
         address → balance; sum by kind → cexBal/lpBal/custody over time; weekly resample; netflow = Δ. **Build the card
         only AFTER the CSV lands** (validate the signal + visuals against real numbers — don't build blind, per project
         rule). This session (cloud) has NO Dune MCP — draft here, owner runs on the terminal.
+      - **✅✅ RAN & TWO CARDS SHIPPED 2026-07-21 — the Dune MCP got wired into THIS session (custom connector + network
+        policy opened for api.dune.com).** Ran `dune/spx6900_cex_lp_balances.sql` directly (query 8053292, full history
+        3,615 rows, **5.99 credits**, free tier) → CSV banked `dune/out/spx6900_cex_lp_flows.csv`. RECONCILES to the FIFO
+        engine's liqEx to 0.14% (cex 111.2M + lp 13.2M + custody 7.2M = 131.58M). `scripts/build-cex-flow.mjs` → bundle
+        `src/cex-flow.js` (weekly balance + **organic-vs-onboarding netflow split**: an address's first 21 days = one-time
+        listing fill, split from behavioural flow).
+        - **⭐ THE KEY FINDING (why the split matters):** the two biggest "inflows" were **new wallets ramping zero→20-27M
+          in days = exchange LISTINGS** (owner tagged them **Kraken**, Sep-2025 — 0x7dafba1d + 0xdf5e3a1e + likely 0xd2dd7b59;
+          0x65164129 = the Jul-2025 driver). Strip the listings and **organic net = −11.5M (net WITHDRAWAL off exchanges)** vs
+          +122.7M onboarding — the OPPOSITE of the naive "supply piling onto exchanges = sell pressure" read. Self-custody
+          leaning, not distribution. Cycle-timing is only *suggestive* (deposits near the 2025 top, withdrawals near lows) —
+          one cycle, lumpy/listing-driven → framed as behaviour, NOT a signal.
+        - **Two cards** (`scripts/bot/cex-supply-card.mjs` + `cex-flow-card.mjs`, both NO_ROTATE hand-postable, wired
+          charts/posts/LOOK/test, 96 green): **`cexsupply`** (LOOK stack) = "Where SPX6900's tradable supply sits" — stacked
+          area LP/exchanges/custody, the DEX-native→CEX-listed shift (LP 50M→13M, CEX 0→111M). **`cexflow`** (LOOK dual) =
+          "On exchanges — flow vs price" — two-panel, weekly organic netflow (red deposits/green withdrawals) with listing
+          weeks greyed, price on top. Cropped to the CEX era (2024-10→now).
+        - **🔲 OWNER venue-tagging IN PROGRESS:** 0x7dafba1d=Kraken, 0xdf5e3a1e=Kraken/MM confirmed. When the full
+          address→venue map lands, fold real `name`s into `EXCLUDE_LABELS` (build-onchain-local.mjs) + re-run the Dune query
+          + re-bundle. Coverage (untagged CEX addrs) is the accuracy lever. NOTE if 0xdf5e3a1e is really an MM, its flows are
+          rebalancing not retail (doesn't change totals). MCP credit note: this run + the peer study = ~42 of 2,500 this period.
 
 ## Dune credit discipline — HARD-WON, read before writing/running ANY Dune query (2026-07-16)
 - **The 2,500/mo free tier got blown in a WEEK, ~88% on ~5 heavy debugging runs.** The credit CSV was unambiguous:
