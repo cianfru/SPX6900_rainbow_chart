@@ -32,3 +32,6 @@ bot-preview*.mp4
 # recap), never committed. --dry-run writes these throwaway PNGs locally.
 recap-preview-*.png
 public/recap/
+
+# local card preview renders (keep dune/out/*.csv as provenance)
+dune/out/*.png
