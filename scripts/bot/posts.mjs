@@ -1158,7 +1158,7 @@ Same heartbeat, opposite fate — correlation isn't destiny.`,
   // card computes the live per-peer r itself. No "$SPX6900" cashtag — the footer spends the one.
   s => ({
     id: "spxcohort",
-    text: ct`Which coins actually trade like SPX6900? We measured it.
+    text: ct`🔍 Which coins actually trade like SPX6900? We measured it.
 We correlated SPX's daily returns against every token we could price on-chain, then stripped out the market (ETH) to isolate the real link.
 No single "twin" — but a clear memecoin cohort: FARTCOIN, WIF, BRETT, BITCOIN — still tracks SPX at r ≈ 0.4 beyond the market. Same daily heartbeat.
 The twist: they moved together day-to-day, yet fates split. SPX and FARTCOIN held ~half; WIF, BRETT and BITCOIN bled 95%+. Correlated returns ≠ shared fate.
@@ -1171,16 +1171,16 @@ Same data, canonical contracts, method published. Check it yourself.`,
   // (refresh on re-bundle), hand-postable (NO_ROTATE). See dune/spx6900_cex_lp_balances.sql.
   s => ({
     id: "cexsupply",
-    text: ct`~118M SPX now sits on exchanges, ~13M in the Uniswap LP.
+    text: ct`🏦 ~118M SPX now sits on exchanges, ~13M in the Uniswap LP.
 SPX launched fully DEX-native — every coin in the pool. As exchanges listed it through 2024-25, the tradable float shifted onto CEXs while the LP thinned.
 Where the supply lives — on-chain, reproducible.`,
     card: { type: "cexsupply" },
   }),
   s => ({
     id: "cexflow",
-    text: ct`Strip the one-time listing fills, and net −7M SPX has actually LEFT exchanges.
-The big 2025 "inflows" were new wallets filling up — listings, not selling. Underneath, the flow leans to withdrawal.
-Self-custody, not distribution. One cycle of data — not a forecast.`,
+    text: ct`📤 SPX6900 holders are moving coins OFF exchanges — not loading up to sell.
+Here's the catch most miss: when an exchange lists a token, its wallet fills with millions of coins overnight. That looks like a huge "inflow," but it's the venue going live — not people depositing to sell. Strip those one-time listing fills out, and the real behaviour is net −7M SPX leaving exchanges.
+Coins moving to self-custody is holding, not distribution. One cycle of on-chain data — a read on the crowd, not a forecast.`,
     card: { type: "cexflow" },
   }),
 
@@ -1940,7 +1940,7 @@ const NO_ROTATE = new Set(["drawdown", "risk", "kraken", "dcaladder", "marketcap
 // 290 instant-read ceiling (see the post-length test). Default stays 290 for EVERY other card;
 // these opt into a higher xLen cap, accepting X's in-timeline "See more" fold because the reader
 // of a deep-dive WANTS the detail. Keep this list tiny — most cards must read at a glance.
-export const LONGFORM = { spxcohort: 700 };
+export const LONGFORM = { spxcohort: 700, cexflow: 600 };
 
 // Owner-editable rotation exclusions — cards kept BUILDABLE + visible in the control
 // panel (and hand-postable) but held OUT of the organic daily rotation. Toggled from

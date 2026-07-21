@@ -50,7 +50,11 @@ export function cexFlowSvg(opts = {}) {
   const flowTop = priceBot + gap, flowBot = pB;
   const t0 = WK[0].t, t1 = WK.at(-1).t;
   const x = t => mL + ((t - t0) / ((t1 - t0) || 1)) * pW;
-  const orgMax = Math.max(...WK.map(r => Math.abs(r.rOrg))) * 1.08;
+  // Scale the flow panel to ~the 94th percentile of |rolling net|, NOT the max — a couple of
+  // extreme listing-era spikes would otherwise flatten the whole oscillator into an empty strip.
+  // The handful of bigger moves clip at the panel edge (yN clamps), still reading as "maxed out".
+  const absR = WK.map(r => Math.abs(r.rOrg)).sort((a, b) => a - b);
+  const orgMax = Math.max(1, (absR[Math.floor(absR.length * 0.94)] || 1) * 1.35);
   const y0 = (flowTop + flowBot) / 2, half = (flowBot - flowTop) / 2;
   const yN = v => y0 - (Math.max(-orgMax, Math.min(orgMax, v)) / orgMax) * half;
 

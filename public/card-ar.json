@@ -70,5 +70,6 @@
   "lthsth": "landscape",
   "sopr": "square",
   "spxcohort": "square",
-  "cexflow": "landscape"
+  "cexflow": "landscape",
+  "cexsupply": "landscape"
 }

@@ -649,8 +649,20 @@
           OF TRUTH — `build-cex-flow.mjs` reads `kind` from it, so re-tagging needs NO Dune re-run): Kraken 245/246, Bybit 56,
           Bitpanda 18, MEXC 3, Revolut 3, CoinSpot, KuCoin, Coinbase 10 (= 9 CEX) · Uniswap V2 (lp) · BitGo WalletSimple
           (custody). **The 2 initially-"other" wallets are BOTH INCLUDED (owner corrected):** `0xdf5e3a1e` = Kraken-linked
-          (`cex`, Kraken-funded, trades the SPX contract), `0x73d8bd54` = another BitGo WalletSimple proxy clone (`custody`).
-          Final: exchanges ~109M · custody 9.9M · lp 13.2M; organic net −14M. (No `kind:"other"` in use now.)
+          (`cex`, Kraken-funded, trades the SPX contract), `0x73d8bd54` = another BitGo WalletSimple proxy clone.
+        - **✅ CUSTODY FOLDED INTO EXCHANGES (owner, 2026-07-21): "custody is too specific."** Both BitGo WalletSimple
+          proxies (0xdc154fce, 0x73d8bd54) → `kind:"cex"`. No more `custody`/`other` kinds in use. Exchanges now **~118M** ·
+          lp 13.2M; organic net **−7M**. Supply card/site dropped the custody band (2 bands: exchanges + LP). Card copy updated.
+        - **🔲 COVERAGE — owner found 27 exchange-related wallets (2026-07-21, PENDING his list).** Our set only had ~11 CEX
+          addresses → undercount. When he sends the ~27 (address→venue): (1) add to `EXCLUDE_LABELS` + the CEX query VALUES,
+          (2) **RE-RUN the Dune query** (`dune/spx6900_cex_lp_balances.sql`, ~6 credits — NEW addresses aren't in the current
+          CSV, so unlike re-tagging this needs a fresh extract) → new `dune/out/spx6900_cex_lp_flows.csv`, (3) re-bundle
+          (`build-cex-flow.mjs --bundle`). Coverage is THE accuracy lever for the exchange balance/flow.
+        - **✅ CARD POLISH (owner, 2026-07-21, end of day):** (a) all today's post COPY got emojis (🏦 cexsupply, 📤 cexflow,
+          🔍 spxcohort) — house style. (b) `cexflow` copy REWRITTEN clearer (was a "conversation résumé"): now plainly explains
+          listing-fills-≠-selling for a fresh reader; added to `LONGFORM` (600). (c) `cexflow`+`cexsupply` set to `landscape`
+          in card-ar.json (were defaulting square → empty). (d) cexflow oscillator y-scale → ~p94 of |rolling net| (was max),
+          so the typical ±5M oscillation FILLS the panel (extreme listing spikes clip at the edge) — no longer looks empty.
         - **✅ PRICE-LINE FIX (owner caught it, 2026-07-21).** The cexflow card/site price line had a wrong one-day cliff:
           it used **`SPX_DAILY`**, whose bundled CoinGecko daily prints are NOISY + MIS-LEVELLED in the 2026 drawdown
           (e.g. Mar-2026 zig-zags ±90% at ~$0.50, while the true price was a smooth ~$0.30). The MAIN charts override
