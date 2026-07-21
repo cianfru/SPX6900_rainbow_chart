@@ -1166,6 +1166,24 @@ Same data, canonical contracts, method published. Check it yourself.`,
     card: { type: "spxcohort" },
   }),
 
+  // SPX6900 exchange supply (structural) + exchange flow (behavioural) — from the Dune
+  // CEX/LP reconstruction (reconciles to the FIFO engine). Both frozen-study cards
+  // (refresh on re-bundle), hand-postable (NO_ROTATE). See dune/spx6900_cex_lp_balances.sql.
+  s => ({
+    id: "cexsupply",
+    text: ct`~111M SPX now sits on exchanges, ~13M in the Uniswap LP.
+SPX launched fully DEX-native — every coin in the pool. As exchanges listed it through 2024-25, the tradable float shifted onto CEXs while the LP thinned.
+Where the supply lives — on-chain, reproducible.`,
+    card: { type: "cexsupply" },
+  }),
+  s => ({
+    id: "cexflow",
+    text: ct`Strip the one-time listing fills, and net −11.5M SPX has actually LEFT exchanges.
+The big 2025 "inflows" were new wallets filling up — listings, not selling. Underneath, the flow leans to withdrawal.
+Self-custody, not distribution. One cycle of data — not a forecast.`,
+    card: { type: "cexflow" },
+  }),
+
   // (removed 2026-06-28) two cards pulled as not landing with the audience:
   //   • "strategy vs HODL (perfect hindsight)" — dry + buy-the-top-hype framing.
   //   • "volatility / how wild is it" (3-bar SPX vs BTC vs S&P) — owner: a bar of
@@ -1916,7 +1934,7 @@ const weightOf = id => WEIGHT[id] ?? (BULLISH.has(id) ? 2 : 1);
 // marketcap ("real free-float cap / thin float") is RETIRED — its premise is false: SPX is a
 // fair launch with no lockup, so free float is ~88% (not thin). The honest story is
 // illiquid/liquid supply (the reframed freefloat card), so marketcap is out of the feed.
-const NO_ROTATE = new Set(["drawdown", "risk", "kraken", "dcaladder", "marketcap", "spxcohort"]);
+const NO_ROTATE = new Set(["drawdown", "risk", "kraken", "dcaladder", "marketcap", "spxcohort", "cexsupply", "cexflow"]);
 
 // LONG-FORM cards — the few methodology / teaching posts that genuinely need more than the
 // 290 instant-read ceiling (see the post-length test). Default stays 290 for EVERY other card;
@@ -1966,7 +1984,7 @@ const LOOK = {
   whatnext: "race",
   // — Tier B: flavourful / distinct looks (used to break up the green lines) —
   riskcolor: "colorline", risklevels: "colorline", rsidots: "colorline",
-  riskheat: "dual", runningroi: "dual", cycle: "dual", longshort: "dual", underwater: "dual", goldencross: "dual", holdergrowth: "dual", holdersprice: "dual", mvrvbtc: "dual", mvrvtrend: "dual", supplyprofit: "dual", floormodel: "dual", altmarket: "dual", freefloat: "dual", nupl: "dual", concentration: "dual", picycle: "dual", spxbitcoin: "dual", spxcohort: "dual", sopr: "dual",
+  riskheat: "dual", runningroi: "dual", cycle: "dual", longshort: "dual", underwater: "dual", goldencross: "dual", holdergrowth: "dual", holdersprice: "dual", mvrvbtc: "dual", mvrvtrend: "dual", supplyprofit: "dual", floormodel: "dual", altmarket: "dual", freefloat: "dual", nupl: "dual", concentration: "dual", picycle: "dual", spxbitcoin: "dual", spxcohort: "dual", cexflow: "dual", cexsupply: "stack", sopr: "dual",
   firesalerally: "fanlines",
   model: "scatter",
   monthlyreturns: "heatmap", monthlyreturnssp: "heatmap", monthlyreturnsbtc: "heatmap",
