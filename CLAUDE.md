@@ -648,11 +648,15 @@
         - **✅ VENUE-TAGGING DONE (owner sent all 13, 2026-07-21).** Folded into `EXCLUDE_LABELS` (now the SINGLE SOURCE
           OF TRUTH — `build-cex-flow.mjs` reads `kind` from it, so re-tagging needs NO Dune re-run): Kraken 245/246, Bybit 56,
           Bitpanda 18, MEXC 3, Revolut 3, CoinSpot, KuCoin, Coinbase 10 (= 9 CEX) · Uniswap V2 (lp) · BitGo WalletSimple
-          (custody). **Two owner-flagged as NOT exchanges → `kind:"other"`** (excluded from holders, NOT counted as CEX):
-          `0xdf5e3a1e` (Kraken-funded MM-style trading wallet, 23M) + `0x73d8bd54` (unlabeled proxy, 2.6M). **Impact:
-          exchange balance 111M→85.5M, organic net −11.5M→−15M**; card copy updated. (Flip `0xdf5e3a1e` back to `cex` if the
-          Kraken-MM inventory should read as exchange-side — one-line kind change + re-bundle.) NOTE onchain.json's liqEx is
-          briefly stale on this (still counts the 2 as cex) until the FIFO engine re-runs with the new labels.
+          (custody). **The 2 initially-"other" wallets are BOTH INCLUDED (owner corrected):** `0xdf5e3a1e` = Kraken-linked
+          (`cex`, Kraken-funded, trades the SPX contract), `0x73d8bd54` = another BitGo WalletSimple proxy clone (`custody`).
+          Final: exchanges ~109M · custody 9.9M · lp 13.2M; organic net −14M. (No `kind:"other"` in use now.)
+        - **✅ PRICE-LINE FIX (owner caught it, 2026-07-21).** The cexflow card/site price line had a wrong one-day cliff:
+          it used **`SPX_DAILY`**, whose bundled CoinGecko daily prints are NOISY + MIS-LEVELLED in the 2026 drawdown
+          (e.g. Mar-2026 zig-zags ±90% at ~$0.50, while the true price was a smooth ~$0.30). The MAIN charts override
+          SPX_DAILY with **`public/price-history.json`** (dense, CI-cleaned). Fixed `build-cex-flow.mjs` to read price from
+          price-history.json (SPX_DAILY fallback) → the line now matches history (top→bottom→recovery, no cliff). Any future
+          price-context chart should use price-history.json, not raw SPX_DAILY.
       - **🔲 WEEKLY DUNE REFRESH for the FIFO on-chain suite — designed, BLOCKED on `DUNE_API_KEY` secret (owner, 2026-07-21).**
         Keeps URPD/LTH-STH/SOPR/HODL/concentration/supply-in-profit/diamond FRESH (they're frozen at the last extract). **Use
         WEEKLY-FULL, not incremental:** the raw-transfer scan filtered to the SPX token is CHEAP (~6-15 credits, like the CEX
