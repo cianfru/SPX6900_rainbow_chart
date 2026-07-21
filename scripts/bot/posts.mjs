@@ -1158,10 +1158,10 @@ Same heartbeat, opposite fate — correlation isn't destiny.`,
   // card computes the live per-peer r itself. No "$SPX6900" cashtag — the footer spends the one.
   s => ({
     id: "spxcohort",
-    text: ct`Which coins actually trade like SPX6900? We measured it
-We correlated SPX's daily returns against every token on every chain.
-No single "twin." But a clear memecoin cohort: BRETT, WIF, FARTCOIN, BITCOIN — that still tracks SPX at r ≈ 0.4. Same daily heartbeat.
-The twist: since Dec 2024 they moved together day-to-day, yet SPX held ~half its value while the rest bled 95%+. Correlated returns ≠ shared fate.
+    text: ct`Which coins actually trade like SPX6900? We measured it.
+We correlated SPX's daily returns against every token we could price on-chain, then stripped out the market (ETH) to isolate the real link.
+No single "twin" — but a clear memecoin cohort: FARTCOIN, WIF, BRETT, BITCOIN — still tracks SPX at r ≈ 0.4 beyond the market. Same daily heartbeat.
+The twist: they moved together day-to-day, yet fates split. SPX and FARTCOIN held ~half; WIF, BRETT and BITCOIN bled 95%+. Correlated returns ≠ shared fate.
 Same data, canonical contracts, method published. Check it yourself.`,
     card: { type: "spxcohort" },
   }),

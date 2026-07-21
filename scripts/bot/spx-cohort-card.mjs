@@ -71,9 +71,9 @@ export function spxCohortStats() {
 }
 
 export function spxCohortSvg(opts = {}) {
-  const { anchor, coins: S, avgPartial } = spxCohortStats();
-  const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 84, mR = 96;
-  const pT = 122, pB = H - 96, footY = H - 16, pW = W - mL - mR;
+  const { anchor, coins: S } = spxCohortStats();
+  const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 128, mR = 108;
+  const pT = 168, pB = H - 108, footY = H - 24, pW = W - mL - mR;
   const t0 = Math.min(...S.map(s => s.series[0].ts)), t1 = Math.max(...S.map(s => s.lastTs));
   const x = t => mL + ((t - t0) / ((t1 - t0) || 1)) * pW;
 
@@ -87,50 +87,58 @@ export function spxCohortSvg(opts = {}) {
   for (const m of [0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1, 2, 5]) {
     if (m < mMin || m > mMax) continue;
     const yy = y(m).toFixed(1), is1 = m === 1;
-    grid += `<line x1="${mL}" y1="${yy}" x2="${W - mR}" y2="${yy}" stroke="${is1 ? "#e2e8f0" : "rgba(255,255,255,0.07)"}" stroke-width="${is1 ? 1.6 : 1}" ${is1 ? 'stroke-dasharray="6 5" stroke-opacity="0.8"' : ""}/>`
-      + `<text x="${mL - 12}" y="${(+yy + 6).toFixed(1)}" fill="${is1 ? "#cbd5e1" : "#8b95a7"}" font-size="${is1 ? 19 : 20}" text-anchor="end" font-family="sans-serif">${fMult(m)}</text>`;
+    grid += `<line x1="${mL}" y1="${yy}" x2="${W - mR}" y2="${yy}" stroke="${is1 ? "#f8fafc" : "rgba(255,255,255,0.09)"}" stroke-width="${is1 ? 1.8 : 1}" ${is1 ? 'stroke-dasharray="7 6" stroke-opacity="0.85"' : ""}/>`
+      + `<text x="${mL - 16}" y="${(+yy + 8).toFixed(1)}" fill="${is1 ? "#e2e8f0" : "#aab6cc"}" font-size="24" text-anchor="end" font-family="sans-serif" font-weight="600">${fMult(m)}</text>`;
   }
 
   let xlab = "";
   for (let yr = new Date(t0).getUTCFullYear(); yr <= new Date(t1).getUTCFullYear(); yr++) {
     const t = Date.UTC(yr, 0, 1); if (t < t0 || t > t1) continue;
-    xlab += `<text x="${x(t).toFixed(1)}" y="${pB + 34}" fill="#8b95a7" font-size="20" text-anchor="middle" font-family="sans-serif">${yr}</text>`;
+    xlab += `<text x="${x(t).toFixed(1)}" y="${pB + 44}" fill="#aab6cc" font-size="24" text-anchor="middle" font-family="sans-serif" font-weight="600">${yr}</text>`;
   }
 
   let lines = "", ends = "";
   S.forEach(s => {
     const pline = s.series.map(p => `${x(p.ts).toFixed(1)},${y(p.m).toFixed(1)}`).join(" ");
-    const sw = s.hero ? 3.4 : 2.2, op = s.hero ? 1 : 0.92;
-    lines += `<polyline points="${pline}" fill="none" stroke="${s.c}" stroke-width="${s.hero ? 8 : 6}" stroke-opacity="0.14" stroke-linejoin="round" filter="url(#chglow)"/>`
+    const sw = s.hero ? 4.6 : 3, op = s.hero ? 1 : 0.97;
+    lines += `<polyline points="${pline}" fill="none" stroke="${s.c}" stroke-width="${s.hero ? 12 : 8}" stroke-opacity="0.18" stroke-linejoin="round" filter="url(#chglow)"/>`
       + `<polyline points="${pline}" fill="none" stroke="${s.c}" stroke-width="${sw}" stroke-opacity="${op}" stroke-linejoin="round" stroke-linecap="round"/>`;
-    ends += `<circle cx="${x(s.lastTs).toFixed(1)}" cy="${y(s.now).toFixed(1)}" r="${s.hero ? 8 : 6}" fill="${s.c}" stroke="#05050e" stroke-width="2"/>`;
+    ends += `<circle cx="${x(s.lastTs).toFixed(1)}" cy="${y(s.now).toFixed(1)}" r="${s.hero ? 9 : 6.5}" fill="${s.c}" stroke="#06070f" stroke-width="2.5"/>`;
   });
-  ends += `<circle cx="${x(t0).toFixed(1)}" cy="${y(1).toFixed(1)}" r="5" fill="#e2e8f0"/>`;
+  ends += `<circle cx="${x(t0).toFixed(1)}" cy="${y(1).toFixed(1)}" r="5.5" fill="#e2e8f0"/>`;
 
-  // horizontal legend strip under the title (never overlaps the plot): swatch · name · r (or "ref")
-  const lgY = 92, slotW = pW / S.length;
+  // horizontal legend strip under the title (never overlaps the plot): swatch · name · r (or "ref").
+  // Auto-size the label font so the widest item fits its slot at any aspect ratio.
+  const slotW = pW / S.length;
+  const labelLen = s => s.key.length + (s.hero ? 4 : 8); // "  ref" / "  r 0.00"
+  let lf = 23; while (lf > 14 && !S.every(s => 40 + labelLen(s) * lf * 0.58 <= slotW - 8)) lf--;
+  const lgY = 128;
   let legend = "";
   S.forEach((s, i) => {
     const cx = mL + i * slotW;
     const tag = s.hero
-      ? `<tspan fill="#8b95a7" font-weight="400"> · ref</tspan>`
-      : `<tspan fill="#8b95a7" font-weight="400"> · r </tspan>${s.partial.toFixed(2)}`;
-    legend += `<line x1="${cx}" y1="${lgY - 5}" x2="${cx + 22}" y2="${lgY - 5}" stroke="${s.c}" stroke-width="4"/>`
-      + `<text x="${cx + 30}" y="${lgY}" fill="${s.c}" font-size="17" font-weight="800" font-family="sans-serif">${esc(s.key)}${tag}</text>`;
+      ? `<tspan dx="8" fill="#94a3b8" font-weight="500">ref</tspan>`
+      : `<tspan dx="8" fill="#94a3b8" font-weight="500">r</tspan><tspan dx="6" fill="#e2e8f0" font-weight="800">${s.partial.toFixed(2)}</tspan>`;
+    legend += `<line x1="${cx}" y1="${lgY - 6}" x2="${cx + 26}" y2="${lgY - 6}" stroke="${s.c}" stroke-width="5" stroke-linecap="round"/>`
+      + `<text x="${cx + 38}" y="${lgY}" fill="${s.c}" font-size="${lf}" font-weight="800" font-family="sans-serif">${esc(s.key)}${tag}</text>`;
   });
 
   const aLabel = new Date(Date.parse(anchor)).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });
-  const hero = S[0];
   return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
 <defs>
-<linearGradient id="chbg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#0b0b16"/><stop offset="100%" stop-color="#05050e"/></linearGradient>
-<filter id="chglow" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="4"/></filter>
+<linearGradient id="chbg" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#171f42"/><stop offset="52%" stop-color="#0c1122"/><stop offset="100%" stop-color="#06070f"/></linearGradient>
+<radialGradient id="chaccent" cx="18%" cy="4%" r="78%"><stop offset="0%" stop-color="#5eead4" stop-opacity="0.13"/><stop offset="46%" stop-color="#5eead4" stop-opacity="0"/><stop offset="100%" stop-color="#5eead4" stop-opacity="0"/></radialGradient>
+<radialGradient id="chvig" cx="82%" cy="100%" r="80%"><stop offset="0%" stop-color="#000000" stop-opacity="0.35"/><stop offset="60%" stop-color="#000000" stop-opacity="0"/></radialGradient>
+<filter id="chglow" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="5"/></filter>
 </defs>
 <rect width="${W}" height="${H}" fill="url(#chbg)"/>
-<text x="60" y="56" fill="#e2e8f0" font-size="34" font-weight="800" font-family="sans-serif" letter-spacing="1">SPX6900 &amp; ITS MEMECOIN COHORT</text>
+<rect width="${W}" height="${H}" fill="url(#chvig)"/>
+<rect width="${W}" height="${H}" fill="url(#chaccent)"/>
+<rect x="16" y="16" width="${W - 32}" height="${H - 32}" rx="24" fill="none" stroke="rgba(255,255,255,0.09)" stroke-width="1.5"/>
+<text x="60" y="70" font-size="40" font-weight="800" font-family="sans-serif" letter-spacing="1.2"><tspan fill="#5eead4">SPX6900</tspan><tspan fill="#f1f5f9"> &amp; ITS MEMECOIN COHORT</tspan></text>
 ${grid}${xlab}
 ${lines}${ends}${legend}
-<text x="60" y="${footY}" fill="#5b6577" font-size="15" font-family="sans-serif">${esc(`spx6900rainbow.xyz · Dune prices.day · partial daily-return corr, ETH removed (raw co-move ~0.7) · indexed to 1× on ${aLabel}`)}</text>
+<text x="60" y="${footY}" fill="#94a3b8" font-size="17" font-family="sans-serif" textLength="${W - 96}" lengthAdjust="spacingAndGlyphs">${esc(`spx6900rainbow.xyz · Dune prices.day · partial daily-return corr, ETH removed (raw co-move ~0.7) · indexed to 1× on ${aLabel}`)}</text>
 </svg>`;
 }
 
