@@ -635,8 +635,16 @@
   `day_of_week(d)=1`, monthly for deep history). (4) FILTER token FIRST + fewer columns + partition-prune on block_time.
   (5) STAGE intermediates as saved queries (run once → cached → free reads). (6) DEVELOP on a `LIMIT 1000` / 30-day
   slice so a mistake costs ~nothing; remove the limit only for the ONE proven full run.
-- **Claude CANNOT run Dune (sandbox blocks it)** — draft SQL, owner runs it. So drafts must be RIGHT before running
-  (verify columns in Dune's schema browser, free) — a failed run is real money.
+- **Claude CANNOT run Dune from the SANDBOX (egress-blocked)** — draft SQL, owner runs it. So drafts must be RIGHT
+  before running (verify columns in Dune's schema browser, free) — a failed run is real money.
+  - **⭐ EXCEPTION — a wired DUNE MCP (Claude Code CLI session) lets Claude run Dune DIRECTLY (added 2026-07-21).**
+    When the session has the Dune MCP, Claude executes queries itself. `getTableSize` / `searchTables` /
+    `searchTablesByContractAddress` / `searchDocs` are FREE metadata calls; only executions cost credits. Discipline
+    unchanged, now enforced precisely: SIZE-first + SCHEMA-first (all free) → BOUNDED run on the `free` engine tier
+    (`performance:"free"`, LIMIT/short window) → read `executionCostCredits` → only then the full run. A COMPILE error
+    scans nothing (~0 credits) — the killer is still heavy/cancelled scans. Big MCP results save to a tool-results file;
+    process with `jq`, don't dump into context. **NOTE: the MCP's Dune key is SEPARATE from the pipeline's `DUNE_API_KEY`
+    — running MCP queries does NOT un-freeze the cron's key.** (A full multi-stage peer study cost ~36 of 2,500 credits.)
 - **What's Dune-gated vs free:** free/daily (never stale) = price/rainbow/holder-counts/wallet-growth/realized-price/
   MVRV/floor/break-even (the snapshot cron + HolderScan `be`). Dune-gated (frozen at bundle between refreshes) =
   supply-in-profit %, concentration, gini, HODL waves — BUT these are the SLOWEST-moving metrics AND refresh for only
@@ -1573,7 +1581,14 @@
         trades idiosyncratically ("does its own thing") — the honest, flattering finding.** PEPE is dead on BOTH
         tests. Don't force a resemblance/peer card; the BTC/ETH/SOL same-age cards stand on their own. Thread CLOSED
         (the rigorous market-residual version would just confirm the null — not worth the credits).
-    - **✅✅ RESEMBLANCE STUDY — CLOSED, no action left (owner confirmed 2026-07-16).** The Dune correlation
+    - **⭐ REFINED 2026-07-21 — no UNIQUE twin, but SPX MOVES WITH A MEMECOIN COHORT (see the `spxcohort` card
+      resolution in the movers-card thread).** A proper MARKET-ADJUSTED (partial, ETH-beta removed) multi-chain study
+      DID run — and the old "the market-residual version would just confirm the null, not worth the credits" call was
+      WRONG. Raw corr ~0.7 is mostly shared ETH beta (the trap); after removing ETH, BRETT/WIF/FARTCOIN/BITCOIN still
+      track SPX at **partial r ~0.4**. So: no 1:1 twin (correct), but SPX is clearly part of the memecoin cohort. Also
+      **AIXBT is NOT a peer** — the old "AIXBT 0.57" was ETH-only and almost certainly a DIFFERENT ETH token (real AIXBT
+      is on Base); dropped.
+    - **✅✅ RESEMBLANCE STUDY — CLOSED, no action left (owner confirmed 2026-07-16) — superseded by the refinement above.** The Dune correlation
       approach (above) already ANSWERED it: **SPX has no twin** — AIXBT (0.57) and BITCOIN-the-memecoin/HPOS10I
       (0.58) came up mildly but sit on the market-beta floor; SPX trades idiosyncratically. So the whole "run the
       study / pick a peer / build a peer card" thread is DONE — do NOT run `find-resemblance.mjs`, do NOT build a
@@ -2088,6 +2103,26 @@
       (Nov-2024→now, all 3 starting at 1× together — a one-line change offered). Contract addrs for the
       Dune query: BITCOIN=HPOS10I (find its ETH pool), AIXBT (Base/ETH — check chain). Experiment is
       GOOD, just needs honest data.
+    - **✅✅ RESOLVED & SHIPPED 2026-07-21 — Dune MCP reconstruction → NEW `spxcohort` card (AIXBT dropped, cohort found).**
+      Done in a Claude Code CLI session with the Dune MCP (Claude ran the queries directly — see the Dune-MCP note in the
+      credit-discipline section). Total spend ~36 of 2,500 credits.
+      - **True from-launch prices via `dex.trades`** (bounded-first, `free` tier): AIXBT (Base `0x4f9f…a825`) true first
+        swap 2024-11-02 @ ~$0.0003 — CoinGecko started 2024-11-19 @ $0.035, so the CG anchor was ~110× too high; BITCOIN/
+        HPOS10I (eth `0x72e4…eea9`) first swap 2023-05-10 (CG started 2023-05-15, ~49× too high). CSVs banked in `dune/out/`.
+        This is WHY the old `spx-movers-card` looked like "both movers round-tripped" — the CG-listing anchor was wrong.
+      - **⭐ AIXBT IS NOT A PEER — the old "AIXBT #2 0.57" was almost certainly a DIFFERENT ETH token.** The original study
+        was ETH-only, but this AIXBT is on BASE, so it literally couldn't have been in it. A market-adjusted (partial,
+        ETH-removed) multi-chain corr over `prices.day` puts real Base AIXBT nowhere near the top (two methods agree). DROP IT.
+      - **⭐ NEW CARD `spxcohort`** (`scripts/bot/spx-cohort-card.mjs`, LOOK "dual", `card-ar.json` "square") — "SPX6900 &
+        its memecoin cohort": SPX + BRETT/WIF/FARTCOIN/BITCOIN indexed to 1× on their shared start (Dec-2024 = FARTCOIN's
+        launch), annotated with the MARKET-ADJUSTED r (partial, ETH removed) computed AT RENDER TIME from the plotted series
+        (ETH control lives in the bundle `src/cohort-daily.js`, everything from `prices.day`, same source). Reveal: same
+        daily heartbeat (partial r ~0.4 beyond the market) but SPX survived (~0.55×) while the memecoins bled 95%+. Clean
+        chart, explanation in the tweet. **`NO_ROTATE`** (hand-postable — a 479-char teaching post shouldn't surprise the
+        feed). The old `spx-movers-card.mjs` (AIXBT, own-launch anchor) is SUPERSEDED. Local check: `scripts/verify-peer-correlation.mjs`.
+      - **⭐ NEW MECHANISM — `LONGFORM` allowlist (`posts.mjs`, exported).** Per-card opt-in past the 290 instant-read
+        ceiling for the FEW teaching cards that need it (accepts X's "See more" fold); default stays 290 for every other
+        card. The post-length test reads `LONGFORM[id] ?? 290`. `spxcohort` is the first entry (700). Keep the list TINY.
 - **ALTERNATING look order (owner, 2026-06-29): the feed must not spam the same
   green log-scale line day after day.** Every card has a visual `LOOK` family,
   split into two TIERS: **A** = the line-on-log "chart" looks (`rainbow`/`channel`/
