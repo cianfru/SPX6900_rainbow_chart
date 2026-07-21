@@ -1,6 +1,15 @@
+// ❌ DORMANT — does NOT work on Dune's FREE tier (confirmed 2026-07-21). The query creates +
+// executes fine (~6 credits), but GET /execution/{id}/results/csv returns **402 Payment Required**
+// when fetching the full ~2.6M-row raw-transfer export — result reads that large are a PAID Dune
+// feature (small results like the 3.6k-row CEX query are free). So the weekly-full-via-Dune-API
+// approach is a dead end on free; the workflow was removed to stop wasting ~6 credits/run on the
+// scan-then-402. Kept as REFERENCE — it would work on a paid Dune plan. The FREE auto-refresh path
+// is the BigQuery incremental pipeline (needs a GCP service-account key) — see the OWNER TODO note
+// in CLAUDE.md. Until then, refresh via the manual BigQuery extract (owner runs it, sends the CSV).
+//
 // Weekly FIFO on-chain refresh — keeps URPD / LTH-STH / SOPR / HODL waves / concentration /
-// supply-in-profit / diamond history FRESH without a manual BigQuery export. Runs in CI
-// (.github/workflows/onchain-refresh.yml), NOT the dev sandbox (Dune is egress-blocked there).
+// supply-in-profit / diamond history FRESH without a manual BigQuery export. Runs in CI,
+// NOT the dev sandbox (Dune is egress-blocked there).
 //
 // WEEKLY-FULL, not incremental: filtering evt_Transfer to the SPX token prunes the scan to a
 // handful of credits (the CEX query proved it — ~6), so re-running the whole raw-transfer dump

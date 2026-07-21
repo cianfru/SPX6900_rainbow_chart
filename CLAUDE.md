@@ -669,7 +669,18 @@
           SPX_DAILY with **`public/price-history.json`** (dense, CI-cleaned). Fixed `build-cex-flow.mjs` to read price from
           price-history.json (SPX_DAILY fallback) → the line now matches history (top→bottom→recovery, no cliff). Any future
           price-context chart should use price-history.json, not raw SPX_DAILY.
-      - **✅ WEEKLY DUNE REFRESH BUILT 2026-07-21 (owner set `DUNE_API_KEY`) — pending first-run validation.** Keeps
+      - **❌ WEEKLY DUNE REFRESH — DEAD END on the free tier (ran it 2026-07-21, owner set `DUNE_API_KEY`).** The workflow
+        dispatched, auto-created the query, executed the raw-transfer scan (~6 credits) — then **`/results/csv` returned 402
+        Payment Required**: fetching the full **2.6M-row** export exceeds Dune's free-tier result-read (datapoints) allowance
+        (small results are free — the 3.6k-row CEX query worked; 2.6M does not). Pagination doesn't help (total datapoints
+        gate). So **weekly-full-via-Dune-API is not viable on free** — and each run wastes ~6 credits on the scan before the
+        402. REMOVED `.github/workflows/onchain-refresh.yml`; `scripts/build-onchain-refresh.mjs` kept DORMANT (would work on
+        a PAID Dune plan). **PIVOT — the free auto-refresh path is the BigQuery incremental pipeline** (the parked "OWNER TODO
+        — AUTO-UPDATE via BigQuery" note above: incremental daily query → own append-only BQ table → export → local FIFO →
+        commit; needs a GCP service-account key `GCP_SA_KEY` as a repo secret). Until that's built, refresh stays MANUAL (owner
+        runs `bigquery/spx6900_raw_transfers.sql`, sends the CSV, Claude re-bundles). NOTE the auto-created Dune query 8055773
+        is a leftover temp query (harmless; delete in the Dune UI if wanted).
+      - **~~✅ WEEKLY DUNE REFRESH BUILT~~ (superseded by the DEAD-END note above).** Keeps
         URPD/LTH-STH/SOPR/HODL/concentration/supply-in-profit/diamond FRESH without a manual BigQuery export. **WEEKLY-FULL,
         not incremental** (the token-filtered raw-transfer scan is ~6 credits). `scripts/build-onchain-refresh.mjs`: executes
         the raw-transfer dump via the Dune API (execute→poll→`/results/csv`, ~2.6M rows), generates a price CSV from
