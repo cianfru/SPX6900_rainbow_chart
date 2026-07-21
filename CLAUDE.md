@@ -645,10 +645,29 @@
           area LP/exchanges/custody, the DEX-native→CEX-listed shift (LP 50M→13M, CEX 0→111M). **`cexflow`** (LOOK dual) =
           "On exchanges — flow vs price" — two-panel, weekly organic netflow (red deposits/green withdrawals) with listing
           weeks greyed, price on top. Cropped to the CEX era (2024-10→now).
-        - **🔲 OWNER venue-tagging IN PROGRESS:** 0x7dafba1d=Kraken, 0xdf5e3a1e=Kraken/MM confirmed. When the full
-          address→venue map lands, fold real `name`s into `EXCLUDE_LABELS` (build-onchain-local.mjs) + re-run the Dune query
-          + re-bundle. Coverage (untagged CEX addrs) is the accuracy lever. NOTE if 0xdf5e3a1e is really an MM, its flows are
-          rebalancing not retail (doesn't change totals). MCP credit note: this run + the peer study = ~42 of 2,500 this period.
+        - **🔲 OWNER venue-tagging IN PROGRESS:** 0x7dafba1d=Kraken, 0xdf5e3a1e=Kraken/MM confirmed (these two + likely
+          0xd2dd7b59 drove the Sep-2025 listing inflow = Kraken listing SPX). When the full address→venue map lands, fold
+          real `name`s into `EXCLUDE_LABELS` (build-onchain-local.mjs) + re-run the Dune query + re-bundle. Coverage
+          (untagged CEX addrs) is the accuracy lever. NOTE if 0xdf5e3a1e is really an MM, its flows are rebalancing not
+          retail (doesn't change totals). MCP credit note: this run + the peer study = ~42 of 2,500 this period.
+        - **✅ DAILY PULSE + FRESHNESS (owner: "weekly too sparse", 2026-07-21).** (1) **Resolution:** raw daily flow for a
+          thin token is pure noise (2-3 spikes drown everything) → the `cexflow` card + `CexFlowChart` plot a **7-DAY ROLLING**
+          organic net (clean daily-cadence pulse, listings as grey bands). `src/cex-flow.js` rebuilt DAILY (1071 days).
+          (2) **Site charts** `CexFlowChart.jsx` (rolling flow vs price, drag-zoom) + `CexSupplyChart.jsx` (stacked LP/CEX/
+          custody), On-Chain group, browser-verified. (3) **Freshness = keyless snapshot-forward, NO Dune:** `snapshot.mjs`
+          banks the 13 tagged addresses' balances daily via a public ETH RPC (eth_call balanceOf batch, `ETH_RPC` override,
+          soft-fails) → `build-cex-flow.mjs` splices them forward onto the Dune baseline (seam-rebased) → `public/cex-flow.json`
+          (cron step); cards/site prefer that over the bundle. ⚠ RPC untested in-sandbox — verify the first cron's cexBal
+          ~111M / lpBal ~13M. **The `src/cex-flow.js` bundle is the frozen Dune baseline (regenerate with `--bundle` on a
+          fresh extract); public/cex-flow.json is baseline+forward.**
+        - **⭐ FIFO / DUNE / BIGQUERY — corrected the record (owner asked 2026-07-21).** Myth: "Dune resets a wallet's balance
+          to zero when it receives more." FALSE — Dune tracks balances correctly (the CEX balances reconstructed FROM Dune
+          reconcile to the BigQuery-fed FIFO engine within 0.14%). What was real: the old Dune MASTER QUERY used a per-ADDRESS
+          reconstruction where holding AGE reset to "fresh" on any receive (a whale top-up flipped its whole balance to 0-1m,
+          under-counting LTH 38% vs the true 53%) — an AGE/method limitation, NOT a balance bug and NOT fundamental to Dune.
+          Fix was per-LOT FIFO (local Node), independent of source. **BigQuery is preferred for the raw-transfer EXTRACT on
+          COST, not correctness** (546 GB free on BigQuery's 1 TB/mo vs Dune credits for a full-history scan); the FIFO math
+          runs locally regardless of source, so either source gives the same answer — use the cheapest dump.
 
 ## Dune credit discipline — HARD-WON, read before writing/running ANY Dune query (2026-07-16)
 - **The 2,500/mo free tier got blown in a WEEK, ~88% on ~5 heavy debugging runs.** The credit CSV was unambiguous:
