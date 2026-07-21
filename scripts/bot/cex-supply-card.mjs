@@ -3,17 +3,22 @@
 // exchange-held supply ramped while the LP shrank. Stacked area of on-venue supply (LP +
 // exchanges + custody) over time, tokens. Data: src/cex-flow.js (Dune, reconciles to the
 // FIFO engine). A supply-location map, not a signal.
+import { readFileSync } from "node:fs";
 import { Resvg } from "@resvg/resvg-js";
 import { FONT } from "./font.mjs";
 import { esc } from "./svg-util.mjs";
 import { CEX_FLOW } from "../../src/cex-flow.js";
 
 const png = (svg, w) => new Resvg(svg, { fitTo: { mode: "width", value: w }, font: FONT }).render().asPng();
-const fM = t => (t / 1e6);
 const fMlab = t => t >= 1e6 ? Math.round(t / 1e6) + "M" : Math.round(t / 1e3) + "K";
 
-// [d, cexBal, lpBal, custBal, org, onb, price]
-const W_ = CEX_FLOW.days.map(r => ({ t: Date.parse(r[0]), cex: r[1], lp: r[2], cust: r[3] }));
+// Prefer the CI-refreshed public/cex-flow.json (Dune baseline + daily snapshot-forward); fall
+// back to the frozen bundle. [d, cexBal, lpBal, custBal, org, onb, price].
+function cexDays() {
+  try { const o = JSON.parse(readFileSync(new URL("../../public/cex-flow.json", import.meta.url), "utf8")); if (o?.days?.length) return o.days; } catch { /* fall back */ }
+  return CEX_FLOW.days;
+}
+const W_ = cexDays().map(r => ({ t: Date.parse(r[0]), cex: r[1], lp: r[2], cust: r[3] }));
 
 export function cexSupplyStats() {
   const last = W_.at(-1);

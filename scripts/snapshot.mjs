@@ -5,8 +5,10 @@ import { detectSignals } from "./bot/signals.mjs";
 import { computeAngles, cardRecencyPenalty } from "./bot/quant.mjs";
 import { computeStats, fetchMajors } from "./bot/stats.mjs";
 import { DEFAULT_RAW } from "../src/data.js";
+import { EXCLUDE_LABELS } from "./build-onchain-local.mjs";
 
 const CONTRACT = "0xe0f63a424a4439cbe457d80e4f4b51ad25b2c56c";
+const ETH_RPC = process.env.ETH_RPC || "https://eth.llamarpc.com"; // override if the public node rate-limits
 const HS = `https://api.holderscan.com/v0/eth/tokens/${CONTRACT}`;
 const POOL = "0x52c77b0cb827afbad022e6d6caf2c44452edbc39";
 const KEY = process.env.HOLDERSCAN_KEY;
@@ -188,13 +190,44 @@ async function total3es() {
   } catch (e) { console.warn("total3es:", e.message); return null; }
 }
 
+// CEX / LP / custody balances — the SPX held on the tagged exchange/LP/custody addresses
+// (EXCLUDE_LABELS), read keyless via a public ETH RPC (eth_call balanceOf, one JSON-RPC batch).
+// This keeps the exchange-flow cards' pulse fresh DAILY without touching Dune: build-cex-flow
+// splices these forward onto the Dune reconstruction (past). Sums per kind; decimals(SPX)=8.
+// Soft-fails to null (never breaks the snapshot). Set ETH_RPC if the public node rate-limits.
+async function cexLpBalances() {
+  try {
+    const addrs = Object.entries(EXCLUDE_LABELS).filter(([, v]) => v.kind === "cex" || v.kind === "lp" || v.kind === "custody");
+    const batch = addrs.map(([a], i) => ({
+      jsonrpc: "2.0", id: i, method: "eth_call",
+      params: [{ to: CONTRACT, data: "0x70a08231" + a.replace(/^0x/, "").padStart(64, "0") }, "latest"],
+    }));
+    const r = await fetch(ETH_RPC, {
+      method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify(batch), signal: AbortSignal.timeout(20000),
+    });
+    if (!r.ok) throw new Error(`${r.status}`);
+    const res = await r.json();
+    if (!Array.isArray(res)) throw new Error("non-array");
+    const by = { cex: 0, lp: 0, custody: 0 };
+    for (const row of res) {
+      if (row?.error || !row?.result || row.result === "0x") continue;
+      const kind = EXCLUDE_LABELS[addrs[row.id][0]].kind;
+      by[kind] += Number(BigInt(row.result)) / 1e8;
+    }
+    // require the LP + at least one CEX read to have landed, else treat as a failed pull
+    if (!(by.lp > 0) || !(by.cex >= 0)) throw new Error("empty");
+    return { cexBal: Math.round(by.cex), lpBal: Math.round(by.lp), custBal: Math.round(by.custody) };
+  } catch (e) { console.warn("cex/lp balances:", e.message); return null; }
+}
+
 async function main() {
   if (!KEY) throw new Error("Missing HOLDERSCAN_KEY env (set it as a repo secret)");
 
   const sup = await hs("/stats/supply-breakdown"); // required
-  const [p, stats, pnl, breakdowns, fearGreed, spx500, baseH, solH, baseSup, solSup, t3es] = await Promise.all([
+  const [p, stats, pnl, breakdowns, fearGreed, spx500, baseH, solH, baseSup, solSup, t3es, cexLp] = await Promise.all([
     price(), softHs("/stats"), softHs("/stats/pnl"), softHs("/holders/breakdowns"), fng(), sp500(),
-    baseHolders(), solHolders(), baseSupply(), solSupply(), total3es(),
+    baseHolders(), solHolders(), baseSupply(), solSupply(), total3es(), cexLpBalances(),
   ]);
 
   const rec = {
@@ -212,6 +245,9 @@ async function main() {
     fng: fearGreed,
     sp: spx500, // latest S&P 500 close, for the SPX-vs-S&P cards
     t3es, // TOTAL3ES (alt market ex-BTC/ETH/stables), keyless reconstruction — feeds the alt-market chart forward
+    cexBal: cexLp?.cexBal ?? null, // SPX on tagged exchange addresses (keyless RPC) — exchange-flow cards, forward
+    lpBal: cexLp?.lpBal ?? null,   // SPX in the Uniswap LP
+    custBal: cexLp?.custBal ?? null, // SPX in custody (BitGo)
     sup,
   };
 

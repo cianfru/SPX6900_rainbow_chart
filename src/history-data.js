@@ -100,6 +100,19 @@ export function loadUrpd() {
   return urpdPromise;
 }
 
+// Shared, cached loader for /cex-flow.json — daily CEX/LP/custody balances + flow (Dune baseline
+// + daily snapshot-forward). Resolves to null on failure so callers fall back to src/cex-flow.js.
+let cexFlowPromise = null;
+export function loadCexFlow() {
+  if (!cexFlowPromise) {
+    cexFlowPromise = fetch("/cex-flow.json", { cache: "no-store" })
+      .then(r => (r.ok ? r.json() : null))
+      .then(d => (d && Array.isArray(d.days) && d.days.length ? d : null))
+      .catch(() => null);
+  }
+  return cexFlowPromise;
+}
+
 // Shared, cached loader for /chain-wallets.json — multi-chain weekly wallet counts
 // (ETH+Base+Solana), refreshed by chain-wallets.yml. Resolves to null on any failure so
 // callers fall back to the bundled src/chain-wallets.js.

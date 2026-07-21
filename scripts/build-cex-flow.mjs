@@ -63,22 +63,59 @@ for (let t = Date.parse(allDays[0]); t <= Date.parse(allDays.at(-1)); t += 86400
   days.push([d, +cexBal.toFixed(0), +lpBal.toFixed(0), +custBal.toFixed(0), +w.cexOrg.toFixed(0), +w.cexOnb.toFixed(0), lastP == null ? null : +lastP.toFixed(6)]);
 }
 
-const updated = rows.at(-1).d;
-const org = days.reduce((a, r) => a + r[4], 0), onb = days.reduce((a, r) => a + r[5], 0);
-const out = `// SPX6900 — CEX / LP / custody supply + flow, DAILY. Built by scripts/build-cex-flow.mjs
-// from the Dune extract (dune/spx6900_cex_lp_balances.sql). Reconciles to the local FIFO
-// engine's liqEx. Row = [dayISO, cexBal, lpBal, custodyBal, cexOrganicNet, cexOnboardNet, price].
-// Balances are cumulative tokens; net columns are that day's signed flow (+in/-out). Onboarding
-// = a new address's first ${ONBOARD_DAYS} days (listing/distribution fill), split from organic
-// behaviour so the flow card can strip it. Cards read daily + apply a 7-day rolling sum (a thin
-// token is too noisy raw). Frozen at the extract; re-run to refresh (or bank daily balances forward).
+// ── SNAPSHOT-FORWARD: splice daily-banked balances (public/history.json cexBal/lpBal/custBal,
+// keyless RPC via snapshot.mjs) onto the Dune baseline, so the cards' pulse stays fresh daily
+// without re-running Dune. The banked balances are the SAME 13 addresses, so the seam offset is
+// ~0; we still rebase each chain by the measured seam gap so no definitional jump draws. Forward
+// daily net = balance delta (onboarding can't be split from aggregate balances → all in organic).
+function extendForward(base) {
+  let hist = [];
+  try { hist = JSON.parse(readFileSync(join(root, "public/history.json"), "utf8")); } catch { return base; }
+  const seam = base.at(-1);
+  const fwd = hist
+    .filter(r => r.cexBal != null && r.lpBal != null && r.d > seam[0])
+    .sort((a, b) => a.d.localeCompare(b.d));
+  if (!fwd.length) return base;
+  const off = { cex: seam[1] - fwd[0].cexBal, lp: seam[2] - fwd[0].lpBal, cust: seam[3] - (fwd[0].custBal ?? 0) };
+  const priceMap = new Map(SPX_DAILY);
+  let prev = { cex: seam[1], lp: seam[2], cust: seam[3] };
+  const rows = [];
+  for (const r of fwd) {
+    const cb = Math.round(r.cexBal + off.cex), lb = Math.round(r.lpBal + off.lp), cu = Math.round((r.custBal ?? 0) + off.cust);
+    const p = r.p ?? priceMap.get(r.d) ?? null;
+    rows.push([r.d, cb, lb, cu, cb - prev.cex, 0, p == null ? null : +Number(p).toFixed(6)]);
+    prev = { cex: cb, lp: lb, cust: cu };
+  }
+  return [...base, ...rows];
+}
+
+const merged = extendForward(days);
+const updated = merged.at(-1)[0];
+const bundleUpdated = rows.at(-1).d;
+const org = merged.reduce((a, r) => a + r[4], 0), onb = merged.reduce((a, r) => a + r[5], 0);
+
+// public/cex-flow.json = baseline + daily forward (regenerated in CI). This is what the cards/site
+// read; the src bundle is the frozen Dune baseline fallback.
+writeFileSync(join(root, "public/cex-flow.json"), JSON.stringify({ updated, onboardDays: ONBOARD_DAYS, days: merged }));
+console.log(`wrote public/cex-flow.json — ${merged.length} days (${merged.length - days.length} forward), ${updated}`);
+
+// src/cex-flow.js = the Dune baseline bundle. Only rewrite it on an explicit --bundle run (a fresh
+// extract); CI must NOT rewrite a source file.
+if (process.argv.includes("--bundle")) {
+  const out = `// SPX6900 — CEX / LP / custody supply + flow, DAILY (Dune baseline). Built by
+// scripts/build-cex-flow.mjs --bundle from dune/spx6900_cex_lp_balances.sql. Reconciles to the
+// local FIFO engine's liqEx. Row = [dayISO, cexBal, lpBal, custodyBal, cexOrganicNet, cexOnboardNet,
+// price]. Cards/site prefer public/cex-flow.json (baseline + daily snapshot-forward) and fall back
+// to this bundle. Onboarding = a new address's first ${ONBOARD_DAYS} days (listing fill). Re-run on a
+// fresh extract to refresh the baseline.
 export const CEX_FLOW = {
-  updated: ${JSON.stringify(updated)},
+  updated: ${JSON.stringify(bundleUpdated)},
   onboardDays: ${ONBOARD_DAYS},
   days: ${JSON.stringify(days)}
 };
 `;
-writeFileSync(join(root, "src/cex-flow.js"), out);
-console.log(`wrote src/cex-flow.js — ${days.length} days, ${updated}`);
-console.log(`latest: cex ${(cexBal/1e6).toFixed(1)}M · lp ${(lpBal/1e6).toFixed(1)}M · custody ${(custBal/1e6).toFixed(1)}M`);
+  writeFileSync(join(root, "src/cex-flow.js"), out);
+  console.log(`wrote src/cex-flow.js baseline — ${days.length} days, ${bundleUpdated}`);
+}
+console.log(`latest: cex ${(merged.at(-1)[1]/1e6).toFixed(1)}M · lp ${(merged.at(-1)[2]/1e6).toFixed(1)}M · custody ${(merged.at(-1)[3]/1e6).toFixed(1)}M`);
 console.log(`organic net ${(org/1e6).toFixed(1)}M · onboarding ${(onb/1e6).toFixed(1)}M`);

@@ -5,17 +5,22 @@
 // listings are removed, SPX has seen NET WITHDRAWAL off exchanges (self-custody / accumulation),
 // the opposite of the naive "supply piling onto exchanges" read. Data: src/cex-flow.js (Dune).
 // One cycle of data — a behaviour read, not a forecast.
+import { readFileSync } from "node:fs";
 import { Resvg } from "@resvg/resvg-js";
 import { FONT } from "./font.mjs";
 import { esc } from "./svg-util.mjs";
 import { CEX_FLOW } from "../../src/cex-flow.js";
 
 const png = (svg, w) => new Resvg(svg, { fitTo: { mode: "width", value: w }, font: FONT }).render().asPng();
-const fSign = t => (t >= 0 ? "+" : "−") + Math.abs(t / 1e6).toFixed(1) + "M";
-// [d, cexBal, lpBal, custBal, org, onb, price] — DAILY. A thin token's daily flow is pure
-// noise, so we plot a 7-DAY ROLLING organic net (a clean daily-cadence pulse), listings stripped.
+// Prefer the CI-refreshed public/cex-flow.json (Dune baseline + daily snapshot-forward); fall back
+// to the frozen bundle. [d, cexBal, lpBal, custBal, org, onb, price] — DAILY. A thin token's daily
+// flow is pure noise, so we plot a 7-DAY ROLLING organic net (a clean daily pulse), listings stripped.
 const ROLL = 7;
-const ALL = CEX_FLOW.days.map(r => ({ t: Date.parse(r[0]), org: r[4], onb: r[5], p: r[6] }));
+function cexDays() {
+  try { const o = JSON.parse(readFileSync(new URL("../../public/cex-flow.json", import.meta.url), "utf8")); if (o?.days?.length) return o.days; } catch { /* fall back */ }
+  return CEX_FLOW.days;
+}
+const ALL = cexDays().map(r => ({ t: Date.parse(r[0]), org: r[4], onb: r[5], p: r[6] }));
 // 7-day rolling sums of organic + onboarding (each day = sum of the trailing week)
 for (let i = 0; i < ALL.length; i++) {
   let ro = 0, rn = 0; for (let j = Math.max(0, i - ROLL + 1); j <= i; j++) { ro += ALL[j].org; rn += ALL[j].onb; }

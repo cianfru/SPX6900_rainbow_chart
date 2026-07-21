@@ -1,8 +1,9 @@
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 import {
   ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid, ReferenceArea,
 } from "recharts";
 import { CEX_FLOW } from "./cex-flow.js";
+import { loadCexFlow } from "./history-data.js";
 import ChartZoomHint from "./ChartZoomHint.jsx";
 import { SANS, MONO, MAX_W, Metric, TipBox, ZoomBar, Explain } from "./chart-ui.jsx";
 import { useDragZoom } from "./use-drag-zoom.js";
@@ -12,7 +13,8 @@ const fShort = t => new Date(t).toLocaleDateString("en-US", { month: "short", ye
 const fMlab = t => t >= 1e6 ? (t / 1e6).toFixed(1) + "M" : (t / 1e3).toFixed(0) + "K";
 
 // [d, cexBal, lpBal, custBal, ...] — daily cumulative balances.
-const ROWS = CEX_FLOW.days.map(r => ({ ts: Date.parse(r[0]), cex: r[1], lp: r[2], cust: r[3] })).filter(r => Number.isFinite(r.ts));
+const build = days => days.map(r => ({ ts: Date.parse(r[0]), cex: r[1], lp: r[2], cust: r[3] })).filter(r => Number.isFinite(r.ts));
+const BUNDLE = build(CEX_FLOW.days);
 
 function Tip({ active, payload }) {
   if (!active || !payload?.length) return null;
@@ -29,7 +31,8 @@ function Tip({ active, payload }) {
 // Where the tradable float sits — SPX launched DEX-native (all in the LP); exchange-held
 // supply grew as listings landed. Stacked area of on-venue supply over time.
 export default function CexSupplyChart({ isMobile, preview = false }) {
-  const all = ROWS;
+  const [all, setAll] = useState(BUNDLE);
+  useEffect(() => { let c = false; loadCexFlow().then(d => { if (!c && d?.days?.length) setAll(build(d.days)); }); return () => { c = true; }; }, []);
   const { zoom, setZoom, selL, selR, onDown, onMove, onUp, zoomed } = useDragZoom(
     (a, b) => all.filter(r => r.ts >= a && r.ts <= b).length >= 2);
 
