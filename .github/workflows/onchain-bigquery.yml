@@ -1,0 +1,135 @@
+name: Weekly on-chain FIFO refresh (BigQuery)
+
+on:
+  schedule:
+    - cron: "37 6 * * 1"   # ~Mon 06:37 UTC (weekly; slow-moving metrics)
+  workflow_dispatch: {}     # manual runs (use this to validate the first run)
+
+permissions:
+  contents: write
+  id-token: write           # for google-github-actions/auth
+
+concurrency:
+  group: onchain-bigquery
+  cancel-in-progress: false
+
+env:
+  GCP_PROJECT: goog-fltx
+  BQ_DATASET: spx_onchain
+  BQ_TABLE: eth_transfers
+  SPX_TOKEN: "0xe0f63a424a4439cbe457d80e4f4b51ad25b2c56c"
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    outputs:
+      deploy: ${{ steps.commit.outputs.deploy }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+      - id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+      - uses: google-github-actions/setup-gcloud@v2
+
+      - name: Ensure append table exists
+        # Own append-only table in the user's project. Reading/exporting it later is cheap;
+        # only the incremental append below scans the (large) public dataset.
+        run: |
+          bq --project_id="$GCP_PROJECT" mk --dataset --location=US "$GCP_PROJECT:$BQ_DATASET" 2>/dev/null || true
+          bq --project_id="$GCP_PROJECT" query --use_legacy_sql=false --format=none \
+            "CREATE TABLE IF NOT EXISTS \`$GCP_PROJECT.$BQ_DATASET.$BQ_TABLE\` (sender STRING, receiver STRING, time TIMESTAMP, value BIGNUMERIC)"
+
+      - name: Incremental append (only new transfers → partition-pruned, cheap)
+        # First run: table empty → COALESCE floors to 2000 → full backfill (~546 GB, one-time,
+        # inside the 1 TB/mo free tier). Later runs: block_timestamp > last → only recent
+        # date partitions scanned (a few GB).
+        run: |
+          bq --project_id="$GCP_PROJECT" query --use_legacy_sql=false --format=none \
+            "INSERT INTO \`$GCP_PROJECT.$BQ_DATASET.$BQ_TABLE\` (sender, receiver, time, value)
+             SELECT from_address, to_address, block_timestamp, CAST(value AS BIGNUMERIC)
+             FROM \`bigquery-public-data.crypto_ethereum.token_transfers\`
+             WHERE token_address = '$SPX_TOKEN'
+               AND block_timestamp > (SELECT COALESCE(MAX(time), TIMESTAMP '2000-01-01 00:00:00 UTC')
+                                      FROM \`$GCP_PROJECT.$BQ_DATASET.$BQ_TABLE\`)"
+
+      - name: Export the table → transfers.csv (reading own table is cheap)
+        run: |
+          bq --project_id="$GCP_PROJECT" query --use_legacy_sql=false --format=csv --max_rows=5000000 \
+            "SELECT sender, receiver, time, value FROM \`$GCP_PROJECT.$BQ_DATASET.$BQ_TABLE\` ORDER BY time" > transfers.csv
+          echo "transfers rows: $(( $(wc -l < transfers.csv) - 1 ))"
+
+      - name: Prices CSV (from the CI-cleaned price-history.json)
+        run: |
+          node -e '
+            const fs=require("fs");
+            let rows=[];
+            try { const a=JSON.parse(fs.readFileSync("public/price-history.json","utf8"));
+              const arr=Array.isArray(a)?a:(a.prices||a.data||[]);
+              rows=arr.map(x=>[x.date??x[0],x.price??x[1]]).filter(([d,p])=>d&&p>0); } catch {}
+            fs.writeFileSync("prices.csv","date,price\n"+rows.map(([d,p])=>d+","+p).join("\n")+"\n");
+            console.log("price days:",rows.length);
+          '
+
+      - name: Run local FIFO engine → onchain.json + urpd.json
+        run: |
+          node scripts/build-onchain-local.mjs \
+            --transfers=transfers.csv --prices=prices.csv \
+            --out=public/onchain.json --urpd=public/urpd.json --threshold=155
+
+      - name: Sanity check (reconcile to the known extract)
+        run: |
+          node -e '
+            const o=JSON.parse(require("fs").readFileSync("public/onchain.json","utf8"));
+            const last=o.at(-1); console.log("latest:",JSON.stringify(last));
+            if(!(last.holders>40000&&last.holders<60000)){console.error("holders off — expected ~49.5k");process.exit(1);}
+            if(!(last.rp>0.3&&last.rp<0.8)){console.error("realized price off — expected ~0.53");process.exit(1);}
+            console.log("reconciles: rp",last.rp,"holders",last.holders,"top100",last.top100);
+          '
+
+      - name: Commit if changed
+        id: commit
+        run: |
+          DEPLOY_CHANGED=""
+          [[ -n "$(git status --porcelain public/onchain.json public/urpd.json)" ]] && DEPLOY_CHANGED=1
+          if [[ -n "$DEPLOY_CHANGED" ]]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add public/onchain.json public/urpd.json
+            git commit -m "chore: on-chain FIFO refresh (BigQuery) $(date -u +%F)"
+            git push
+          else
+            echo "No change to commit"
+          fi
+          [[ -n "$DEPLOY_CHANGED" ]] && echo "deploy=true" >> "$GITHUB_OUTPUT" || echo "deploy=false" >> "$GITHUB_OUTPUT"
+
+  deploy:
+    needs: refresh
+    if: needs.refresh.outputs.deploy == 'true'
+    runs-on: ubuntu-latest
+    concurrency:
+      group: vercel-production
+      cancel-in-progress: true
+    env:
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install --global vercel@latest
+      - run: vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      - run: vercel build --prod --token="$VERCEL_TOKEN"
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      - run: vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN"
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
