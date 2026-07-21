@@ -14,13 +14,17 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { SPX_DAILY } from "../src/spx-daily.js";
+import { EXCLUDE_LABELS } from "./build-onchain-local.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const ONBOARD_DAYS = 21; // an address's first 21 days of activity = one-time listing/onboarding fill
 
+// Kind comes from EXCLUDE_LABELS (the single source of truth — re-tag there, no Dune re-run). The
+// CSV's own kind column is a fallback. Addresses tagged `other` (unlabeled non-exchange, e.g. an
+// MM-style wallet) fall through the cex/lp/custody buckets → excluded from the exchange-flow cards.
 const rows = readFileSync(join(root, "dune/out/spx6900_cex_lp_flows.csv"), "utf8")
   .trim().split("\n").slice(1)
-  .map(l => { const [d, a, k, n] = l.split(","); return { d, a, k, n: +n }; })
+  .map(l => { const [d, a, k, n] = l.split(","); return { d, a, k: EXCLUDE_LABELS[a]?.kind ?? k, n: +n }; })
   .filter(r => r.d && r.k && Number.isFinite(r.n));
 
 // per-address first-active date (first day its cumulative balance goes positive)

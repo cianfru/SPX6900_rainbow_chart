@@ -35,29 +35,32 @@ export const EXCLUDE = new Set([
   "0x73d8bd54f7cf5fab43fe4ef40a62d390644946db", "0xdc154fcee1babb560e8528c3a7791527f01423df",
 ]);
 
-// Classification of the excluded addresses, for the entity-based FREE-FLOAT calc (owner-tagged
-// via Etherscan, 2026-07-19). `kind` decides float vs not-float:
+// Classification of the excluded addresses, for the entity-based FREE-FLOAT calc + the exchange-
+// flow cards. Owner venue-tagged all 13 via Etherscan (2026-07-21). `kind` decides float vs not:
 //   burn/null  → OUT of supply (0xdead holds the ONE real 69M burn; 0x0 is the mint source)
 //   bridge     → ETH-locked backing Base/Solana supply → NOT ETH-native float (tradable on those chains)
-//   lp/cex/custody → FLOAT (liquid / tradable). So free float (ETH-native) = circulating − burn − bridge ≈ 88%.
-// Only a handful are name-confirmed; the rest were CEX-classified in the exclude-list work, so kind:"cex".
+//   lp/cex/custody → FLOAT (liquid / tradable). cex = named CEX hot wallets (the exchange-flow cards).
+//   other      → excluded from the holder set (not a person) but NOT counted as CEX/LP/liquid — used
+//                for unlabeled non-exchange contracts (an MM-style trading wallet, an unknown proxy).
 export const EXCLUDE_LABELS = {
   "0x0000000000000000000000000000000000000000": { name: "null / mint source", kind: "null" },
   "0x000000000000000000000000000000000000dead": { name: "burn", kind: "burn" },              // 69.01M burned
-  "0x52c77b0cb827afbad022e6d6caf2c44452edbc39": { name: "Uniswap v2 pool", kind: "lp" },
+  "0x52c77b0cb827afbad022e6d6caf2c44452edbc39": { name: "Uniswap V2: SPX", kind: "lp" },
   "0x3ee18b2214aff97000d974cf647e7c347e8fa585": { name: "Wormhole bridge", kind: "bridge" }, // backs Base/Solana
   "0xf35a6bd6e0459a4b53a27862c51a2a7292b383d1": { name: "CoinSpot", kind: "cex" },
   "0x6d6cc65e2060d0a280fcd47b6c22ec5636797fec": { name: "KuCoin", kind: "cex" },
   "0xdc154fcee1babb560e8528c3a7791527f01423df": { name: "BitGo multi-sig (WalletSimple)", kind: "custody" },
-  "0x7dafba1d69f6c01ae7567ffd7b046ca03b706f83": { name: "exchange", kind: "cex" },
-  "0xd2dd7b597fd2435b6db61ddf48544fd931e6869f": { name: "exchange", kind: "cex" },
-  "0xdf5e3a1ed0c14a53eee240022301ecb9d267671b": { name: "exchange", kind: "cex" },
-  "0x651641299c7ec0aa44ad7ed9b7e12702fed2022f": { name: "exchange", kind: "cex" },
-  "0x0529ea5885702715e83923c59746ae8734c553b7": { name: "exchange", kind: "cex" },
-  "0x9b0c45d46d386cedd98873168c36efd0dcba8d46": { name: "exchange", kind: "cex" },
-  "0x3cc936b795a188f0e246cbb2d74c5bd190aecf18": { name: "exchange", kind: "cex" },
-  "0xa9d1e08c7793af67e9d92fe308d5697fb81d3e43": { name: "exchange", kind: "cex" },
-  "0x73d8bd54f7cf5fab43fe4ef40a62d390644946db": { name: "exchange", kind: "cex" },
+  "0x7dafba1d69f6c01ae7567ffd7b046ca03b706f83": { name: "Kraken 245", kind: "cex" },
+  "0xd2dd7b597fd2435b6db61ddf48544fd931e6869f": { name: "Kraken 246", kind: "cex" },
+  "0x651641299c7ec0aa44ad7ed9b7e12702fed2022f": { name: "Bybit 56", kind: "cex" },
+  "0x0529ea5885702715e83923c59746ae8734c553b7": { name: "Bitpanda 18", kind: "cex" },
+  "0x9b0c45d46d386cedd98873168c36efd0dcba8d46": { name: "Revolut 3", kind: "cex" },
+  "0x3cc936b795a188f0e246cbb2d74c5bd190aecf18": { name: "MEXC 3", kind: "cex" },
+  "0xa9d1e08c7793af67e9d92fe308d5697fb81d3e43": { name: "Coinbase 10", kind: "cex" },
+  // Owner-flagged as NOT a named exchange/LP: a Kraken-funded wallet that trades almost only with the
+  // SPX contract (MM-style), and an unlabeled minimal-proxy clone. Excluded from holders, not CEX.
+  "0xdf5e3a1ed0c14a53eee240022301ecb9d267671b": { name: "Kraken-funded trading wallet (unlabeled)", kind: "other" },
+  "0x73d8bd54f7cf5fab43fe4ef40a62d390644946db": { name: "unlabeled proxy clone", kind: "other" },
 };
 
 // age (days) → band index: [<1m, 1-3m, 3-6m, 6-12m, 1y+]
