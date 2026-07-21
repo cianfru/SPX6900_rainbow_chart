@@ -5,7 +5,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { DEFAULT_RAW } from "../src/data.js";
 import { computeStats } from "../scripts/bot/stats.mjs";
-import { buildPost, allIds } from "../scripts/bot/posts.mjs";
+import { buildPost, allIds, LONGFORM } from "../scripts/bot/posts.mjs";
 
 const last = DEFAULT_RAW.at(-1);
 const stats = computeStats(last.price, last.date);
@@ -45,7 +45,7 @@ test("every available post builds non-empty text + a renderable card", () => {
     assert.equal(typeof p.text, "string");
     assert.ok(p.text.trim().length > 0 && p.text.length < 4000, `text length sane for ${id}`);
     assert.ok(p.text.includes("#spx6900"), `branded footer present for ${id}`);
-    assert.ok(p.card && ["rainbow", "channel", "riskcolor", "risklevels", "riskheat", "runningroi", "longshort", "firesalerally", "underwater", "goldencross", "holdergrowth", "multichain", "chainrace", "holderspair", "mvrvbtc", "mvrvtrend", "supplyprofit", "floormodel", "altmarket", "freefloat", "nupl", "concentration", "hodlwaves", "hodlcompare", "urpd", "lthsth", "sopr", "amicheap", "walletgrowth", "picycle", "spxbitcoin", "cyclesync", "cycleclock", "rsidots", "monthcompare", "line", "bar", "mbars", "donut", "stack", "model", "cube", "scale", "gauge", "fngdial", "heatmap", "dca", "dcaladder", "kraken"].includes(p.card.type), `valid card type for ${id}`);
+    assert.ok(p.card && ["rainbow", "channel", "riskcolor", "risklevels", "riskheat", "runningroi", "longshort", "firesalerally", "underwater", "goldencross", "holdergrowth", "multichain", "chainrace", "holderspair", "mvrvbtc", "mvrvtrend", "supplyprofit", "floormodel", "altmarket", "freefloat", "nupl", "concentration", "hodlwaves", "hodlcompare", "urpd", "lthsth", "sopr", "amicheap", "walletgrowth", "picycle", "spxbitcoin", "spxcohort", "cyclesync", "cycleclock", "rsidots", "monthcompare", "line", "bar", "mbars", "donut", "stack", "model", "cube", "scale", "gauge", "fngdial", "heatmap", "dca", "dcaladder", "kraken"].includes(p.card.type), `valid card type for ${id}`);
   }
 });
 
@@ -60,7 +60,8 @@ test("every post fits X's visible preview (no \"See more\" barrier)", () => {
   for (const st of [statsCoins, computeStats(0.05, last.date), computeStats(12, last.date)]) {
     for (const id of allIds(st)) {
       const len = xLen(buildPost(st, new Date(), id).text);
-      assert.ok(len <= 290, `post "${id}" is ${len} chars at $${st.price} (${st.band.l}) — over the 290 visible ceiling`);
+      const cap = LONGFORM[id] ?? 290; // long-form teaching cards opt into a higher ceiling
+      assert.ok(len <= cap, `post "${id}" is ${len} chars at $${st.price} (${st.band.l}) — over the ${cap} ceiling`);
     }
   }
 });

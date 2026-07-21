@@ -1150,6 +1150,22 @@ Same heartbeat, opposite fate — correlation isn't destiny.`,
     };
   })(),
 
+  // SPX6900 & its memecoin cohort — the market-adjusted (partial) correlation study. LONG-FORM
+  // (methodology deep-dive; exempt from the 290 instant-read ceiling via LONGFORM below — a
+  // "See more" is acceptable here because the reader wants the detail). Default OUT of auto-
+  // rotation (NO_ROTATE) since a 479-char teaching post shouldn't surprise the daily feed;
+  // hand-postable via override/queue. Copy is fixed prose (numbers are stable roundings); the
+  // card computes the live per-peer r itself. No "$SPX6900" cashtag — the footer spends the one.
+  s => ({
+    id: "spxcohort",
+    text: ct`Which coins actually trade like SPX6900? We measured it
+We correlated SPX's daily returns against every token on every chain.
+No single "twin." But a clear memecoin cohort: BRETT, WIF, FARTCOIN, BITCOIN — that still tracks SPX at r ≈ 0.4. Same daily heartbeat.
+The twist: since Dec 2024 they moved together day-to-day, yet SPX held ~half its value while the rest bled 95%+. Correlated returns ≠ shared fate.
+Same data, canonical contracts, method published. Check it yourself.`,
+    card: { type: "spxcohort" },
+  }),
+
   // (removed 2026-06-28) two cards pulled as not landing with the audience:
   //   • "strategy vs HODL (perfect hindsight)" — dry + buy-the-top-hype framing.
   //   • "volatility / how wild is it" (3-bar SPX vs BTC vs S&P) — owner: a bar of
@@ -1900,7 +1916,13 @@ const weightOf = id => WEIGHT[id] ?? (BULLISH.has(id) ? 2 : 1);
 // marketcap ("real free-float cap / thin float") is RETIRED — its premise is false: SPX is a
 // fair launch with no lockup, so free float is ~88% (not thin). The honest story is
 // illiquid/liquid supply (the reframed freefloat card), so marketcap is out of the feed.
-const NO_ROTATE = new Set(["drawdown", "risk", "kraken", "dcaladder", "marketcap"]);
+const NO_ROTATE = new Set(["drawdown", "risk", "kraken", "dcaladder", "marketcap", "spxcohort"]);
+
+// LONG-FORM cards — the few methodology / teaching posts that genuinely need more than the
+// 290 instant-read ceiling (see the post-length test). Default stays 290 for EVERY other card;
+// these opt into a higher xLen cap, accepting X's in-timeline "See more" fold because the reader
+// of a deep-dive WANTS the detail. Keep this list tiny — most cards must read at a glance.
+export const LONGFORM = { spxcohort: 700 };
 
 // Owner-editable rotation exclusions — cards kept BUILDABLE + visible in the control
 // panel (and hand-postable) but held OUT of the organic daily rotation. Toggled from
@@ -1944,7 +1966,7 @@ const LOOK = {
   whatnext: "race",
   // — Tier B: flavourful / distinct looks (used to break up the green lines) —
   riskcolor: "colorline", risklevels: "colorline", rsidots: "colorline",
-  riskheat: "dual", runningroi: "dual", cycle: "dual", longshort: "dual", underwater: "dual", goldencross: "dual", holdergrowth: "dual", holdersprice: "dual", mvrvbtc: "dual", mvrvtrend: "dual", supplyprofit: "dual", floormodel: "dual", altmarket: "dual", freefloat: "dual", nupl: "dual", concentration: "dual", picycle: "dual", spxbitcoin: "dual", sopr: "dual",
+  riskheat: "dual", runningroi: "dual", cycle: "dual", longshort: "dual", underwater: "dual", goldencross: "dual", holdergrowth: "dual", holdersprice: "dual", mvrvbtc: "dual", mvrvtrend: "dual", supplyprofit: "dual", floormodel: "dual", altmarket: "dual", freefloat: "dual", nupl: "dual", concentration: "dual", picycle: "dual", spxbitcoin: "dual", spxcohort: "dual", sopr: "dual",
   firesalerally: "fanlines",
   model: "scatter",
   monthlyreturns: "heatmap", monthlyreturnssp: "heatmap", monthlyreturnsbtc: "heatmap",
