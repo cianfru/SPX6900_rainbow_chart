@@ -22,13 +22,14 @@ export const INDICATORS = [
 export const WEIGHT = Object.fromEntries(INDICATORS.map(i => [i.key, i.weight]));
 const WK = 7 * 86400000;
 
-// Over/under-valued zones on the 0..1 composite.
+// Over/under-valued zones on the 0..1 composite. Bright, high-contrast, clearly
+// distinct across the green→yellow→red valuation spectrum (the HODL-waves recipe).
 export const ZONES = [
-  { max: 0.20, label: "Deeply undervalued", color: "#22c55e" },
-  { max: 0.40, label: "Undervalued", color: "#84cc16" },
-  { max: 0.60, label: "Fair value", color: "#fbbf24" },
-  { max: 0.80, label: "Overvalued", color: "#fb923c" },
-  { max: 1.01, label: "Deeply overvalued", color: "#f87171" },
+  { max: 0.20, label: "Deeply undervalued", color: "#00e676" }, // vivid green
+  { max: 0.40, label: "Undervalued", color: "#a3e635" },        // lime
+  { max: 0.60, label: "Fair value", color: "#ffd60a" },         // gold
+  { max: 0.80, label: "Overvalued", color: "#ff8c00" },         // orange
+  { max: 1.01, label: "Deeply overvalued", color: "#ff2d55" },  // vivid red
 ];
 export const zoneOf = v => ZONES.find(z => v < z.max) || ZONES.at(-1);
 

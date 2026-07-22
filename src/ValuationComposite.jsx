@@ -77,18 +77,21 @@ export default function ValuationComposite({ isMobile, preview = false }) {
           <ComposedChart data={view.vis} margin={{ top: 10, right: isMobile ? 8 : 20, bottom: 24, left: isMobile ? 0 : 12 }}
             onMouseDown={onDown} onMouseMove={onMove} onMouseUp={onUp} onMouseLeave={onUp} style={{ cursor: "crosshair", userSelect: "none" }}>
             <defs>
-              <linearGradient id="valfill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#f8fafc" stopOpacity={0.16} /><stop offset="100%" stopColor="#f8fafc" stopOpacity={0} /></linearGradient>
+              <linearGradient id="valfill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#f8fafc" stopOpacity={0.18} /><stop offset="100%" stopColor="#f8fafc" stopOpacity={0} /></linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="2 8" stroke="rgba(255,255,255,0.06)" />
+            {/* Bright, distinctive zone bands — vivid at the deep edges, calmer at fair value */}
             {zones.map((z, i) => (
-              <ReferenceArea key={z.label} y1={i === 0 ? 0 : zones[i - 1].max} y2={Math.min(z.max, 1)} fill={z.color} fillOpacity={0.12} stroke="none" label={zLbl(z.label, z.color)} />
+              <ReferenceArea key={z.label} y1={i === 0 ? 0 : zones[i - 1].max} y2={Math.min(z.max, 1)} fill={z.color} fillOpacity={i === 0 || i === zones.length - 1 ? 0.3 : i === 2 ? 0.16 : 0.22} stroke={z.color} strokeOpacity={0.28} label={zLbl(z.label, z.color)} />
             ))}
             <XAxis dataKey="ts" type="number" domain={view.xDomain} ticks={view.xTicks} scale="time" allowDataOverflow
               tickFormatter={fShort} tick={{ fill: "#cbd5e1", fontSize: isMobile ? 10 : 12, fontFamily: MONO }} axisLine={{ stroke: "rgba(255,255,255,0.15)" }} tickLine={false} />
             <YAxis type="number" domain={[0, 1]} ticks={[0, 0.2, 0.4, 0.6, 0.8, 1]} allowDataOverflow
               tickFormatter={v => `${(v * 100).toFixed(0)}%`} tick={{ fill: "#cbd5e1", fontSize: isMobile ? 10 : 12, fontFamily: MONO }} axisLine={{ stroke: "rgba(255,255,255,0.15)" }} tickLine={false} width={isMobile ? 40 : 50} />
             <Tooltip content={p => Tip(p, zones)} cursor={{ stroke: "rgba(255,255,255,0.2)" }} />
-            <Area type="monotone" dataKey="v" stroke="#f8fafc" strokeWidth={2.6} fill="url(#valfill)" dot={false} isAnimationActive={false} name="composite" />
+            {/* dark halo underlay so the white line stays crisp over bright bands */}
+            <Area type="monotone" dataKey="v" stroke="#03040a" strokeWidth={5.5} strokeOpacity={0.5} fill="none" dot={false} isAnimationActive={false} legendType="none" />
+            <Area type="monotone" dataKey="v" stroke="#ffffff" strokeWidth={3} fill="url(#valfill)" dot={false} isAnimationActive={false} name="composite" />
             {selL != null && selR != null && selL !== selR && (
               <ReferenceArea x1={selL} x2={selR} strokeOpacity={0.4} stroke="#a78bfa" fill="#a78bfa" fillOpacity={0.12} />
             )}
