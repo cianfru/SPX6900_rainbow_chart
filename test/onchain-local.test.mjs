@@ -97,6 +97,22 @@ test("URPD buckets held supply by acquisition cost and flags in/out of profit", 
   assert.ok(under.buckets.every(b => !b.inProfit));
 });
 
+test("URPD splits each cost-basis bucket by holding age (same price, different ages)", () => {
+  const DAY = 86400000, now = Date.parse("2026-07-20");
+  // two lots at the SAME price $0.40: one 2 years old (1y+), one 10 days old (0-1m)
+  const wallets = new Map([["w", { bal: 200, head: 0, q: [
+    { ts: now - 730 * DAY, price: 0.4, qty: 100 },
+    { ts: now - 10 * DAY, price: 0.4, qty: 100 },
+  ] }]]);
+  const u = computeUrpd(wallets, 0.37, "2026-07-20", 8);
+  const bkt = u.buckets.filter(b => b.pct > 0);
+  assert.equal(bkt.length, 1, "same price → one bucket");
+  const age = bkt[0].age;
+  near(age.reduce((s, x) => s + x, 0), bkt[0].pct);  // age split sums to the bucket total
+  near(age[0], 50); near(age[4], 50);                // 50% fresh (0-1m) + 50% old (1y+)
+  near(age[1] + age[2] + age[3], 0);                 // nothing in the middle bands
+});
+
 test("gini, price forward-fill, and the Monday grid", () => {
   near(gini([50, 50]), 0);
   near(gini([1, 99]), 0.49);

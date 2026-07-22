@@ -184,6 +184,14 @@ export function replayFifo(transfers, priceAt, sampleTs, opts = {}) {
 // currently-held supply grouped by the PRICE each coin was acquired at (its FIFO lot cost).
 // The classic Glassnode/ITC "where are the bags" histogram — the walls of supply. Buckets
 // are log-spaced across the held cost range; each is flagged in/out of profit vs current spot.
+//
+// Each lot ALSO carries its acquisition timestamp, so we split every cost-basis bucket by
+// HOLDING AGE (the same 5 bands as HODL waves: 0-1m/1-3m/3-6m/6-12m/1y+). That gives the joint
+// cost-basis × age distribution — for a round-tripping asset like SPX the SAME price bucket holds
+// coins of very different ages (bought on the way up vs on the way down), which the 1D histogram
+// can't show. `bucket.age` is that split (each entry = % of ALL held supply, so they sum to
+// bucket.pct); a 2D "cost basis × age" heatmap reads straight off it, and the 1D URPD is unchanged.
+const URPD_AGE_DAYS = [30, 90, 180, 365]; // band cutoffs → [0-1m, 1-3m, 3-6m, 6-12m, 1y+]
 export function computeUrpd(wallets, spot, updated, nBuckets = 42) {
   const lots = [];
   let held = 0;
@@ -195,22 +203,31 @@ export function computeUrpd(wallets, spot, updated, nBuckets = 42) {
     }
   }
   if (!lots.length || held <= 0) return { spot: spot ?? 0, updated, held: 0, buckets: [] };
+  // "now" for age = the snapshot date (fall back to the newest lot if `updated` won't parse).
+  let nowTs = Date.parse(updated);
+  if (!Number.isFinite(nowTs)) { nowTs = -Infinity; for (const l of lots) if (l.ts > nowTs) nowTs = l.ts; }
+  const ageBand = ts => { const d = (nowTs - ts) / DAY; let a = 0; while (a < URPD_AGE_DAYS.length && d >= URPD_AGE_DAYS[a]) a++; return a; };
   let pmin = Infinity, pmax = -Infinity;
   for (const l of lots) { if (l.price < pmin) pmin = l.price; if (l.price > pmax) pmax = l.price; }
   if (pmin === pmax) pmax = pmin * 1.0001; // degenerate guard
   const lo = Math.log(pmin), hi = Math.log(pmax), span = hi - lo || 1;
   const b = Array.from({ length: nBuckets }, () => 0);
+  const bAge = Array.from({ length: nBuckets }, () => [0, 0, 0, 0, 0]); // qty per (bucket, age band)
   for (const l of lots) {
     let k = Math.floor(((Math.log(l.price) - lo) / span) * nBuckets);
     if (k < 0) k = 0; if (k >= nBuckets) k = nBuckets - 1;
-    b[k] += l.qty;
+    b[k] += l.qty; bAge[k][ageBand(l.ts)] += l.qty;
   }
   const edge = k => Math.exp(lo + (span * k) / nBuckets);
   const buckets = b.map((qty, k) => {
     const e0 = edge(k), e1 = edge(k + 1), mid = Math.sqrt(e0 * e1);
-    return { lo: +e0.toFixed(7), hi: +e1.toFixed(7), pct: +(100 * qty / held).toFixed(3), inProfit: spot != null && mid <= spot };
+    return {
+      lo: +e0.toFixed(7), hi: +e1.toFixed(7), pct: +(100 * qty / held).toFixed(3),
+      inProfit: spot != null && mid <= spot,
+      age: bAge[k].map(q => +(100 * q / held).toFixed(4)), // % of held per age band (sums to pct)
+    };
   });
-  return { spot: spot != null ? +spot.toFixed(7) : 0, updated, held: +held.toFixed(2), buckets };
+  return { spot: spot != null ? +spot.toFixed(7) : 0, updated, held: +held.toFixed(2), ageBands: ["0-1m", "1-3m", "3-6m", "6-12m", "1y+"], buckets };
 }
 
 function snapshot(wallets, sTs, spot, thr) {
