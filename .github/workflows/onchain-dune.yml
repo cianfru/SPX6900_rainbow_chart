@@ -1,0 +1,120 @@
+name: Weekly on-chain FIFO refresh (Dune incremental)
+
+# Hands-off weekly refresh with NO BigQuery / NO GCP — uses the Dune credits the account
+# already has. The full raw-transfer history lives in a GitHub RELEASE ASSET (transfers.csv.gz);
+# each run downloads it, pulls only the WEEKLY DELTA from Dune (cheap: ~17k rows, no 402),
+# merges, re-runs the LOCAL FIFO engine → onchain.json + urpd.json, then re-uploads the grown
+# archive. SEED ONCE before the first run (see below).
+#
+# 🔲 ONE-TIME SEED (owner): upload the existing 2.6M-row raw-transfer extract as the release
+#    asset — the full history CANNOT be pulled from Dune (that's the 402 export). e.g.:
+#      gzip -c full_transfers.csv > transfers.csv.gz
+#      gh release create onchain-archive transfers.csv.gz -t "On-chain transfer archive" -n "FIFO base"
+#    (or `gh release upload onchain-archive transfers.csv.gz --clobber` if the release exists).
+# 🔲 SECRETS/VARS: DUNE_API_KEY (secret). Optional DUNE_INCREMENTAL_QUERY_ID (var) — set after the
+#    first run logs the created query id, to reuse it instead of creating a new one each week.
+
+on:
+  schedule:
+    - cron: "23 5 * * 1"   # ~Mon 05:23 UTC (weekly; slow-moving metrics)
+  workflow_dispatch: {}     # manual runs (use this to validate the first run)
+
+permissions:
+  contents: write           # release download/upload + commit
+
+concurrency:
+  group: onchain-dune
+  cancel-in-progress: false
+
+env:
+  ARCHIVE_TAG: onchain-archive
+  ARCHIVE_ASSET: transfers.csv.gz
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    outputs:
+      deploy: ${{ steps.commit.outputs.deploy }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+
+      - name: Download the transfer archive (release asset)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if ! gh release download "$ARCHIVE_TAG" --pattern "$ARCHIVE_ASSET" --dir . 2>/dev/null; then
+            echo "::error::No '$ARCHIVE_ASSET' on release '$ARCHIVE_TAG'. SEED it first — upload the full 2.6M-row extract (see the workflow header)."
+            exit 1
+          fi
+          gunzip -f "$ARCHIVE_ASSET"
+          echo "archive rows: $(( $(wc -l < transfers.csv) - 1 ))"
+
+      - name: Pull Dune delta → merge → run FIFO engine
+        env:
+          DUNE_API_KEY: ${{ secrets.DUNE_API_KEY }}
+          DUNE_INCREMENTAL_QUERY_ID: ${{ vars.DUNE_INCREMENTAL_QUERY_ID }}
+        run: node scripts/build-onchain-dune-refresh.mjs --archive=transfers.csv
+
+      - name: Sanity check (reconcile to the known extract)
+        run: |
+          node -e '
+            const o=JSON.parse(require("fs").readFileSync("public/onchain.json","utf8"));
+            const last=o.at(-1); console.log("latest:",JSON.stringify(last));
+            if(!(last.holders>40000&&last.holders<60000)){console.error("holders off — expected ~49.5k");process.exit(1);}
+            if(!(last.rp>0.3&&last.rp<0.8)){console.error("realized price off — expected ~0.53");process.exit(1);}
+            console.log("reconciles: rp",last.rp,"holders",last.holders,"top100",last.top100);
+          '
+
+      - name: Re-upload the grown archive
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gzip -f transfers.csv
+          gh release upload "$ARCHIVE_TAG" "$ARCHIVE_ASSET" --clobber
+
+      - name: Commit if changed
+        id: commit
+        run: |
+          DEPLOY_CHANGED=""
+          [[ -n "$(git status --porcelain public/onchain.json public/urpd.json)" ]] && DEPLOY_CHANGED=1
+          if [[ -n "$DEPLOY_CHANGED" ]]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add public/onchain.json public/urpd.json
+            git commit -m "chore: on-chain FIFO refresh (Dune) $(date -u +%F)"
+            git push
+          else
+            echo "No change to commit"
+          fi
+          [[ -n "$DEPLOY_CHANGED" ]] && echo "deploy=true" >> "$GITHUB_OUTPUT" || echo "deploy=false" >> "$GITHUB_OUTPUT"
+
+  deploy:
+    needs: refresh
+    if: needs.refresh.outputs.deploy == 'true'
+    runs-on: ubuntu-latest
+    concurrency:
+      group: vercel-production
+      cancel-in-progress: true
+    env:
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install --global vercel@latest
+      - run: vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      - run: vercel build --prod --token="$VERCEL_TOKEN"
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      - run: vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN"
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}

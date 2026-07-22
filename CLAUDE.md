@@ -728,13 +728,24 @@
           Dune delta via API → appends → re-runs the LOCAL FIFO engine ($0, full recompute keeps today's proven correctness, no
           engine refactor) → commits onchain.json + urpd.json + re-uploads the grown archive. (Alt = checkpoint the FIFO lot-state
           ~few MB in-repo, but that needs a resumable-engine refactor + more correctness risk — prefer the archive.)
-        - **SO THE TWO HANDS-OFF PATHS ARE EQUIVALENT ON COST, differ on setup:** (A) **BigQuery** — built (onchain-bigquery.yml),
-          BQ append table = free persistence, blocker = `GCP_SA_KEY` + `bq load` seed. (B) **Dune incremental** — no GCP, uses the
-          Dune credits the owner already has, blocker = persist the archive (seed it once from the existing 2.6M-row extract as a
-          release asset) + a `build-onchain-dune-refresh.mjs` that downloads-archive→delta→append→FIFO. Both are cheap and correct;
-          B avoids GCP entirely (owner's preference). Either way the CEX-flow small query stays on Dune. **Claude can BUILD path B
-          but can't validate it from THIS session (Dune connector still `enabledInChat:false` — mid-session toggle doesn't hot-load;
-          needs a NEW chat with Dune enabled, OR the owner runs the incremental query once + sends the small delta CSV to test).**
+        - **✅✅ DUNE INCREMENTAL PIPELINE BUILT 2026-07-22 (owner: "build dune pipeline and lets go hands off") — PRIMARY path now.**
+          `scripts/build-onchain-dune-refresh.mjs` + `.github/workflows/onchain-dune.yml` (weekly Mon 05:23 UTC + dispatch).
+          Mechanism: the full raw-transfer history lives in a **GitHub RELEASE ASSET** `transfers.csv.gz` (tag `onchain-archive`);
+          each run (1) downloads it, (2) finds the last day present → cutoff, (3) pulls the Dune DELTA `WHERE evt_block_time >=
+          cutoff` (PATCHes a saved query's SQL then execute→poll→`/results/csv`; ~17k rows → no 402, ~few credits), (4) MERGES
+          (base rows strictly before cutoff + the whole delta → the boundary day is cleanly REPLACED, no dupes/gaps, canonical
+          `sender,receiver,time,value`), (5) re-runs the LOCAL FIFO engine → onchain.json + urpd.json, (6) re-uploads the grown
+          archive, commits + deploys. Pure helpers (colIdx/cutoffDay/archiveMaxTime/mergeArchive) UNIT-TESTED (`test/onchain-dune-
+          refresh.test.mjs`, 5 cases, incl. BigQuery↔Dune header aliasing + boundary-day replacement) + merge smoke-tested. The
+          BigQuery workflow (onchain-bigquery.yml) is now **dispatch-ONLY (dormant fallback)** so the two don't both commit onchain.json.
+        - **🔲 TO GO LIVE (owner, 2 one-time steps — then fully hands-off):** (1) **SEED the archive**: upload the existing
+          2.6M-row raw-transfer extract (the one already run) as the release asset — the full history CANNOT come from Dune (402):
+          `gzip -c full_transfers.csv > transfers.csv.gz && gh release create onchain-archive transfers.csv.gz -t "On-chain transfer
+          archive" -n "FIFO base"`. Any header works (from_address/to_address/block_timestamp/value OR sender/receiver/time/value —
+          the script aliases both). (2) Ensure the `DUNE_API_KEY` repo secret is set (already added for the earlier attempt). Optional:
+          after the first run logs the created query id, set repo var `DUNE_INCREMENTAL_QUERY_ID` to reuse it. Then dispatch once →
+          Claude reads the run logs to validate (rp ~$0.53, ~49.5k holders, top100 ~58%). **"send me the delta CSV" was NOT needed**
+          — merge/parse logic is unit-tested offline; the only manual piece is the ONE-TIME archive seed.
         - **⭐ CSV VERIFICATION 2026-07-22 (owner sent 4, asked "are these correct?"): NONE are newer/better than what's already
           bundled; 2 are problematic. Don't need them — the missing piece is the automated pipeline, not more manual CSVs.**
           • `51238759-spx6900_valuation_distribution_weekly.csv` = the Dune per-ADDRESS master query (152 wks → 2026-07-13),

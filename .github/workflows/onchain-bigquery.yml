@@ -1,9 +1,12 @@
 name: Weekly on-chain FIFO refresh (BigQuery)
 
+# ⚠ DORMANT FALLBACK (2026-07-22): the owner chose the Dune-incremental pipeline
+# (.github/workflows/onchain-dune.yml) as the primary hands-off refresh — no GCP needed.
+# This BigQuery path is kept dispatch-ONLY so the two don't both commit onchain.json.
+# Re-enable the schedule here ONLY if the Dune path is retired (and disable Dune's schedule).
+
 on:
-  schedule:
-    - cron: "37 6 * * 1"   # ~Mon 06:37 UTC (weekly; slow-moving metrics)
-  workflow_dispatch: {}     # manual runs (use this to validate the first run)
+  workflow_dispatch: {}     # manual runs only (dormant fallback — see note above)
 
 permissions:
   contents: write
