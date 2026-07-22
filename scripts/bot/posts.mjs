@@ -14,6 +14,8 @@ import { fNum } from "./svg-util.mjs";
 import { currentChainHolders } from "./stats.mjs";
 import { buildAltRainbow } from "../../src/alt-rainbow.js";
 import { valuationComposite, zoneOf as valZoneOf, INDICATORS as VAL_INDICATORS } from "./valuation-composite.mjs";
+import { cexVenuesStats } from "./cex-venues-card.mjs";
+import { cexVenFlowStats } from "./cex-venflow-card.mjs";
 import { spxBitcoinStats } from "./spx-bitcoin-card.mjs";
 import { chainRaceData } from "./multichain-card.mjs";
 import { BTC_HODL } from "../../src/btc-hodl-waves.js";
@@ -1201,6 +1203,36 @@ Here's the catch most miss: when an exchange lists a token, its wallet fills wit
 Coins moving to self-custody is holding, not distribution. One cycle of on-chain data — a read on the crowd, not a forecast.`,
     card: { type: "cexflow" },
   }),
+  // Exchange supply split BY VENUE (Kraken vs Bybit vs Coinbase …), from the FIFO engine's
+  // per-address balances. The honest finding: Kraken leads, Binance/Coinbase hold almost none.
+  // Colored dots match the card's band colours (rank 0/1/2 = orange/red/purple). NO_ROTATE.
+  s => (() => {
+    const V = cexVenuesStats(s);
+    if (!V) return null;
+    const dot = ["🟠", "🔴", "🟣"];
+    const line = V.venues.slice(0, 3).map((v, i) => `${dot[i]} ${v} ${Math.round(100 * (V.cur[v] || 0) / V.total)}%`).join(" · ");
+    return {
+      id: "cexvenues",
+      text: ct`🏦 Where SPX6900 sits on exchanges, by venue.
+${line} — concentrated on Kraken and the mid-tier EU/Asia venues.
+The surprise: Binance and Coinbase, the two giants, hold almost none. Every wallet tagged on-chain.`,
+      card: { type: "cexvenues" },
+    };
+  })(),
+  // Per-VENUE net flow — which exchanges gained vs bled SPX over ~90d. Only possible because
+  // every venue's wallets are tagged. Behaviour read, not a signal. NO_ROTATE.
+  s => (() => {
+    const F = cexVenFlowStats(s);
+    if (!F) return null;
+    const fM = t => (t >= 0 ? "+" : "−") + (Math.abs(t) >= 1e6 ? (Math.abs(t) / 1e6).toFixed(1) + "M" : Math.round(Math.abs(t) / 1e3) + "K");
+    return {
+      id: "cexvenflow",
+      text: ct`📊 Which exchanges gained SPX6900, and which bled it — last 90 days.
+${F.up.venue} ${fM(F.up.flow)} led inflows, ${F.down.venue} ${fM(F.down.flow)} the outflows. Tagging each venue's wallets shows WHERE it moves, not just that it did.
+Net flow isn't proof of buying or selling — behaviour, not a signal.`,
+      card: { type: "cexvenflow" },
+    };
+  })(),
 
   // (removed 2026-06-28) two cards pulled as not landing with the audience:
   //   • "strategy vs HODL (perfect hindsight)" — dry + buy-the-top-hype framing.
@@ -1952,7 +1984,7 @@ const weightOf = id => WEIGHT[id] ?? (BULLISH.has(id) ? 2 : 1);
 // marketcap ("real free-float cap / thin float") is RETIRED — its premise is false: SPX is a
 // fair launch with no lockup, so free float is ~88% (not thin). The honest story is
 // illiquid/liquid supply (the reframed freefloat card), so marketcap is out of the feed.
-const NO_ROTATE = new Set(["drawdown", "risk", "kraken", "dcaladder", "marketcap", "spxcohort", "cexsupply", "cexflow"]);
+const NO_ROTATE = new Set(["drawdown", "risk", "kraken", "dcaladder", "marketcap", "spxcohort", "cexsupply", "cexflow", "cexvenues", "cexvenflow"]);
 
 // LONG-FORM cards — the few methodology / teaching posts that genuinely need more than the
 // 290 instant-read ceiling (see the post-length test). Default stays 290 for EVERY other card;
@@ -2006,8 +2038,8 @@ const LOOK = {
   firesalerally: "fanlines",
   model: "scatter",
   monthlyreturns: "heatmap", monthlyreturnssp: "heatmap", monthlyreturnsbtc: "heatmap",
-  hodlwaves: "stack", hodlcompare: "stack", walletgrowth: "stack", lthsth: "stack", valband: "dual",
-  timeinband: "bars", monthlybars: "bars", monthcompare: "bars", multichain: "bars", urpd: "bars", urpdage: "bars",
+  hodlwaves: "stack", hodlcompare: "stack", walletgrowth: "stack", lthsth: "stack", valband: "dual", cexvenues: "stack",
+  timeinband: "bars", monthlybars: "bars", monthcompare: "bars", multichain: "bars", urpd: "bars", urpdage: "bars", cexvenflow: "bars",
   fngdial: "round", distribution: "round",
   marketcap: "blocks", milestones: "blocks", sp500: "blocks",
   dca: "dca",

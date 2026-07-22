@@ -33,6 +33,8 @@ import { renderMonthlyCompareCard } from "./monthly-compare-card.mjs";
 import { renderSpxBitcoinCard } from "./spx-bitcoin-card.mjs";
 import { renderSpxCohortCard } from "./spx-cohort-card.mjs";
 import { renderCexSupplyCard } from "./cex-supply-card.mjs";
+import { renderCexVenuesCard } from "./cex-venues-card.mjs";
+import { renderCexVenFlowCard } from "./cex-venflow-card.mjs";
 import { renderCexFlowCard } from "./cex-flow-card.mjs";
 import { renderHodlCompareCard } from "./hodl-compare-card.mjs";
 import { renderUrpdCard } from "./urpd-card.mjs";
@@ -876,6 +878,8 @@ export function renderPostCard(post, stats, opts = {}) {
   if (type === "spxcohort") return renderSpxCohortCard(dims);
   if (type === "cexsupply") return renderCexSupplyCard(dims);
   if (type === "cexflow") return renderCexFlowCard(dims);
+  if (type === "cexvenues") return renderCexVenuesCard(stats, dims);
+  if (type === "cexvenflow") return renderCexVenFlowCard(stats, dims);
   if (type === "hodlcompare") return renderHodlCompareCard(stats, dims);
   if (type === "cyclesync") return renderCycleSyncCard(stats, dims);
   if (type === "cycleclock") return renderCycleClockCard(stats, dims);
