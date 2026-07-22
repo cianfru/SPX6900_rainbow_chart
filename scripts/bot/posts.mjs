@@ -1053,6 +1053,25 @@ Where they bought, not where they'll sell.`,
     };
   })(),
 
+  // Cost-basis × holding AGE — the same URPD walls, coloured by how long each coin has been held
+  // (FIFO per-lot age split, bucket.age). Reveals that the SAME price bucket holds coins of very
+  // different ages (bought on the way up vs down). Data-gated on the age field → dormant until the
+  // next extract populates it.
+  s => (s.urpd?.buckets?.some(b => Array.isArray(b.age))) && (() => {
+    const bk = s.urpd.buckets.filter(b => b.pct > 0 && Array.isArray(b.age) && b.age.length === 5);
+    if (bk.length < 6) return false;
+    const old1y = Math.round(bk.reduce((a, b) => a + b.age[4], 0));
+    let w = bk[0]; for (const b of bk) if (b.pct > w.pct) w = b;
+    const fresh = Math.round((w.age[0] + w.age[1]) / w.pct * 100);
+    return {
+      id: "urpdage",
+      text: ct`🧊 ${old1y}% of SPX6900's supply hasn't moved in over a year — bought, then held.
+By holder age: the cheap launch-era coins are almost all old diamonds, while the wall nearest today's price is ${fresh}% fresh buyers.
+Same cost basis, very different conviction.`,
+      card: { type: "urpdage" },
+    };
+  })(),
+
   // Long vs short-term holders, supply in profit/loss (FIFO per-lot). The conviction read:
   // the long-term block dominates AND much of it is underwater yet unmoved. A holder-
   // behaviour POSITION, not a signal. Gloomy-leaning → owner curates via the exclude toggle.
@@ -1989,7 +2008,7 @@ const LOOK = {
   model: "scatter",
   monthlyreturns: "heatmap", monthlyreturnssp: "heatmap", monthlyreturnsbtc: "heatmap",
   hodlwaves: "stack", hodlcompare: "stack", walletgrowth: "stack", lthsth: "stack", amicheap: "gauges",
-  timeinband: "bars", monthlybars: "bars", monthcompare: "bars", multichain: "bars", urpd: "bars",
+  timeinband: "bars", monthlybars: "bars", monthcompare: "bars", multichain: "bars", urpd: "bars", urpdage: "bars",
   fngdial: "round", distribution: "round",
   marketcap: "blocks", milestones: "blocks", sp500: "blocks",
   dca: "dca",

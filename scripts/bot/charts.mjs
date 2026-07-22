@@ -36,6 +36,7 @@ import { renderCexSupplyCard } from "./cex-supply-card.mjs";
 import { renderCexFlowCard } from "./cex-flow-card.mjs";
 import { renderHodlCompareCard } from "./hodl-compare-card.mjs";
 import { renderUrpdCard } from "./urpd-card.mjs";
+import { renderUrpdAgeCard } from "./urpd-age-card.mjs";
 import { renderLthSthCard } from "./lth-sth-card.mjs";
 import { renderSoprCard } from "./sopr-card.mjs";
 import { logoMark } from "./logos.mjs";
@@ -865,6 +866,7 @@ export function renderPostCard(post, stats, opts = {}) {
   if (type === "concentration") return renderConcentrationCard(stats, dims);
   if (type === "hodlwaves") return renderHodlWavesCard(stats, dims);
   if (type === "urpd") return renderUrpdCard(stats, dims);
+  if (type === "urpdage") return renderUrpdAgeCard(stats, dims);
   if (type === "lthsth") return renderLthSthCard(stats, dims);
   if (type === "sopr") return renderSoprCard(stats, dims);
   if (type === "amicheap") return renderAmICheapCard(stats, dims);

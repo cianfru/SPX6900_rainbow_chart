@@ -49,6 +49,7 @@ const SupplyInProfitChart = lazy(() => import("./SupplyInProfitChart.jsx"));
 const HodlWavesChart = lazy(() => import("./HodlWavesChart.jsx"));
 const HolderConcentrationChart = lazy(() => import("./HolderConcentrationChart.jsx"));
 const UrpdChart = lazy(() => import("./UrpdChart.jsx"));
+const UrpdAgeChart = lazy(() => import("./UrpdAgeChart.jsx"));
 const LthSthChart = lazy(() => import("./LthSthChart.jsx"));
 const SoprChart = lazy(() => import("./SoprChart.jsx"));
 const CexSupplyChart = lazy(() => import("./CexSupplyChart.jsx"));
@@ -175,6 +176,7 @@ function TabIcon({ name }) {
     case "hodlwaves": return (<svg {...p}><path d="M3 18h18" /><path d="M3 14h18" strokeOpacity="0.75" /><path d="M3 10h18" strokeOpacity="0.5" /><path d="M3 6h18" strokeOpacity="0.3" /></svg>);
     case "concentration": return (<svg {...p}><path d="M3 8c4 0 6-3 9-3s5 3 9 3" /><path d="M3 18c4 0 6-2 9-2s5 2 9 2" strokeOpacity="0.7" /></svg>);
     case "urpd": return (<svg {...p}><path d="M4 20V14M7 20V10M10 20V6M13 20V11M16 20V8M19 20V13" /><line x1="11.5" y1="4" x2="11.5" y2="21" strokeDasharray="2 2" strokeOpacity="0.8" /></svg>);
+    case "urpdage": return (<svg {...p}><rect x="3" y="4" width="18" height="16" rx="1" /><path d="M9 4v16M15 4v16M3 9.3h18M3 14.6h18" strokeOpacity="0.7" /></svg>);
     case "lthsth": return (<svg {...p}><path d="M3 20h18" /><path d="M3 20V13c4 0 5-4 9-4s5 3 9 3v8z" strokeOpacity="0.55" /><path d="M3 20v-3c4 0 5-2 9-2s5 1 9 1v4z" /></svg>);
     case "sopr": return (<svg {...p}><path d="M3 14c2 0 3-6 5-6s2 8 4 8 3-9 5-9 2 5 4 5" /><line x1="3" y1="11" x2="21" y2="11" strokeDasharray="3 2" strokeOpacity="0.7" /></svg>);
     case "cexsupply": return (<svg {...p}><path d="M3 20V15c4 0 5-2 9-2s5 1 9 1v6z" strokeOpacity="0.55" /><path d="M3 20v-3c4 0 5-6 9-6s5 4 9 4v5z" /><path d="M3 20h18" /></svg>);
@@ -599,6 +601,7 @@ export default function App() {
       case "hodlwaves": return <HodlWavesChart isMobile={mob} preview={preview} />;
       case "concentration": return <HolderConcentrationChart isMobile={mob} preview={preview} />;
       case "urpd": return <UrpdChart isMobile={mob} preview={preview} price={last?.price} />;
+      case "urpdage": return <UrpdAgeChart isMobile={mob} preview={preview} price={last?.price} />;
       case "lthsth": return <LthSthChart isMobile={mob} preview={preview} />;
       case "sopr": return <SoprChart isMobile={mob} preview={preview} />;
       case "cexsupply": return <CexSupplyChart isMobile={mob} preview={preview} />;
