@@ -751,6 +751,16 @@
           logs the created query id, set repo var `DUNE_INCREMENTAL_QUERY_ID` to reuse it. Then dispatch → Claude validates the logs
           (rp ~$0.53, ~49.5k holders, top100 ~58%). The `--seed` Dune path (~6 credits) is the ALT if the owner would rather not touch
           BigQuery. **"send me the delta CSV" was NOT needed** — merge/parse is unit-tested offline; the only manual piece is the seed.
+        - **✅ SEEDED + FIRST RUN DIAGNOSED 2026-07-22.** Owner uploaded the 5 BigQuery transfer shards (verified: 2,645,958 rows,
+          header `sender,receiver,time,value`, launch→2026-07-18; local FIFO reconciles rp $0.528 / 49,566 holders / top100 58.1% /
+          age1y+ 52.9%) → seeded release `onchain-archive` asset `transfers.csv.gz` (67 MB, on GitHub ✅). Run #1 (owner dispatched)
+          FAILED — but NOT credits: log showed archive downloaded (2,645,958 rows ✅), `DUNE_API_KEY` valid (created query **8071845**),
+          then `execute 400 {"error":"Invalid performance tier"}` — my execute sent `performance:"medium"` (a PAID engine). FIXED
+          (commit 33ea6db): omit `performance` → runs on the free/community engine. 🔲 Owner: re-dispatch; optional set repo var
+          `DUNE_INCREMENTAL_QUERY_ID=8071845` to reuse that query (else it creates a new one each run). NOTE: Dune `getUsage` (MCP key's
+          account) read **2500/2500** used this period (resets 2026-07-30) — if the repo `DUNE_API_KEY` is that same account, the fixed
+          execute may hit a quota error until the reset (delta is ~1 credit; runs fine once credits exist). GH MCP can't dispatch (403)
+          — owner clicks Run; Claude reads logs to validate.
         - **⭐ CSV VERIFICATION 2026-07-22 (owner sent 4, asked "are these correct?"): NONE are newer/better than what's already
           bundled; 2 are problematic. Don't need them — the missing piece is the automated pipeline, not more manual CSVs.**
           • `51238759-spx6900_valuation_distribution_weekly.csv` = the Dune per-ADDRESS master query (152 wks → 2026-07-13),
