@@ -91,9 +91,9 @@ export function cexVenuesSvg(stats, opts = {}) {
 <rect width="${W}" height="${H}" fill="url(#cvbg)"/>
 <rect x="16" y="16" width="${W - 32}" height="${H - 32}" rx="24" fill="none" stroke="rgba(255,255,255,0.09)" stroke-width="1.5"/>
 <text x="60" y="66" font-size="39" font-weight="800" font-family="sans-serif" letter-spacing="0.5"><tspan fill="#f1f5f9">SPX6900 on exchanges — </tspan><tspan fill="${color(0)}">by venue</tspan></text>
-<text x="60" y="98" font-size="20" font-family="sans-serif" fill="#94a3b8">${fMlab(S.total)} tokens across ${Object.keys(S.cur).length} tagged venues, and how the mix shifted as listings landed</text>
+<text x="60" y="98" font-size="20" font-family="sans-serif" fill="#94a3b8">${fMlab(S.total)} tokens across ${Object.keys(S.cur).length} venues — Kraken leads, while Binance &amp; Coinbase hold almost none</text>
 ${grid}${xl}${areas}${legend}
-<text x="60" y="${H - 22}" fill="#94a3b8" font-size="16.5" font-family="sans-serif" textLength="${W - 96}" lengthAdjust="spacingAndGlyphs">${esc(`spx6900rainbow.xyz · shares are among TAGGED wallets — coverage varies by venue (Binance/Coinbase under-tagged), so this is a floor, not a ranking`)}</text>
+<text x="60" y="${H - 22}" fill="#94a3b8" font-size="16.5" font-family="sans-serif" textLength="${W - 96}" lengthAdjust="spacingAndGlyphs">${esc(`spx6900rainbow.xyz · on-chain supply on tagged exchange wallets (comprehensive Dune sweep) · Ethereum-native only · a location map, not a signal`)}</text>
 </svg>`;
 }
 

@@ -60,7 +60,8 @@ WITH tagged (address, kind) AS (
     (0xcc282e2004428939ee5149a9e7872f0b4d5d5ec7, 'cex'),      -- Kraken 3
     (0x21a31ee1afc51d94c2efccaa2092ad1028285549, 'cex'),      -- Binance
     (0x33a64dcdfa041befebc9161a3e0c6180cd94fa89, 'cex'),      -- CoinSpot 2
-    (0x548054687ef6c56c6d82e8269e5fd93d8b88fcb2, 'cex'),      -- Coined
+    (0x548054687ef6c56c6d82e8269e5fd93d8b88fcb2, 'cex'),      -- CoinEx
+    (0x0d0707963952f2fba59dd06f2b425ace40b492fe, 'cex'),      -- Gate.io 1
     (0x52c77b0cb827afbad022e6d6caf2c44452edbc39, 'lp')        -- Uniswap v2 SPX/WETH pool
 )
 SELECT
