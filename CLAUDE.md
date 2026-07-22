@@ -662,11 +662,15 @@
         - **✅ CUSTODY FOLDED INTO EXCHANGES (owner, 2026-07-21): "custody is too specific."** Both BitGo WalletSimple
           proxies (0xdc154fce, 0x73d8bd54) → `kind:"cex"`. No more `custody`/`other` kinds in use. Exchanges now **~118M** ·
           lp 13.2M; organic net **−7M**. Supply card/site dropped the custody band (2 bands: exchanges + LP). Card copy updated.
-        - **🔲 COVERAGE — owner found 27 exchange-related wallets (2026-07-21, PENDING his list).** Our set only had ~11 CEX
-          addresses → undercount. When he sends the ~27 (address→venue): (1) add to `EXCLUDE_LABELS` + the CEX query VALUES,
-          (2) **RE-RUN the Dune query** (`dune/spx6900_cex_lp_balances.sql`, ~6 credits — NEW addresses aren't in the current
-          CSV, so unlike re-tagging this needs a fresh extract) → new `dune/out/spx6900_cex_lp_flows.csv`, (3) re-bundle
-          (`build-cex-flow.mjs --bundle`). Coverage is THE accuracy lever for the exchange balance/flow.
+        - **🔲 COVERAGE — owner has ~15 MORE exchange wallets to add (2026-07-22; ~14 tagged already → ~29 total; earlier he
+          said "27").** Owner offered to send the remaining ~15 (address→venue) — ACCEPTED, waiting on the list. When he sends
+          them: (1) add to `EXCLUDE_LABELS` (+ the CEX query VALUES), (2) **RE-RUN the Dune query** (`dune/spx6900_cex_lp_balances.sql`,
+          ~6 credits — NEW addresses aren't in the current CSV, so unlike re-tagging this needs a fresh extract) → new
+          `dune/out/spx6900_cex_lp_flows.csv`, (3) re-bundle (`build-cex-flow.mjs --bundle`). Coverage is THE accuracy lever for
+          the exchange balance/flow. **Owner's angle (2026-07-22): venue tags also give GEOGRAPHY of activity — Coinbase ≈ US/West,
+          Bybit/Binance ≈ Asia, Revolut/Bitpanda ≈ Europe → a "where in the world is SPX trading" read once coverage is good.**
+          NOTE: re-running this Dune query needs the Dune connector ENABLED IN THIS CHAT (see the Dune-connector note) or the owner
+          runs it on a machine where the MCP is on.
         - **✅ CARD POLISH (owner, 2026-07-21, end of day):** (a) all today's post COPY got emojis (🏦 cexsupply, 📤 cexflow,
           🔍 spxcohort) — house style. (b) `cexflow` copy REWRITTEN clearer (was a "conversation résumé"): now plainly explains
           listing-fills-≠-selling for a fresh reader; added to `LONGFORM` (600). (c) `cexflow`+`cexsupply` set to `landscape`
@@ -700,6 +704,31 @@
         validate reconciliation (rp ~$0.53, ~49.5k holders). Watch on first run: bq `--format=csv` for 2.6M rows (if it caps/
         slows, switch to `bq extract` → GCS); the TIMESTAMP + BIGNUMERIC CSV formats parse via the FIFO engine's Date.parse/
         Number (proven on synthetic). Migrate to Workload Identity Federation later (more secure than the static JSON key).
+        - **⭐ STATUS 2026-07-22 — THIS IS THE "hands-off DB/table for FIFO" the owner keeps asking for; it's BUILT, the ONLY
+          blocker is the `GCP_SA_KEY` secret (owner already generated the JSON: `goog-fltx-82a3fd6bc648.json`, "not in gh yet").**
+          Steps to go live: (1) add `GCP_SA_KEY` repo secret (paste the JSON); (2) **SEED the append table once via `bq load`
+          from the raw-transfer CSV the owner already has on desktop** → this HONORS the owner's "why waste GBs re-scanning?"
+          (the empty-table first run would otherwise backfill 546 GB from genesis; a `bq load` is FREE, no scan, so seed then let
+          the weekly incremental only scan recent partitions); (3) dispatch the workflow → Claude reads the run logs to validate
+          (rp ~$0.53, ~49.5k holders). Claude CANNOT run BigQuery from the sandbox (egress-blocked) or dispatch Actions (GH MCP
+          read-only) — owner does 1-3, Claude validates logs.
+        - **⭐ WHY NOT "just use the Dune API" for this (owner asked 2026-07-22):** Dune's free tier `/results/csv` returns **402
+          on the 2.6M-row raw-transfer export** (proven — the deleted onchain-refresh.yml). FIFO NEEDS the raw transfers, so
+          Dune-API-for-FIFO is dead on free. Dune API DOES work for SMALL pre-aggregated results (the CEX-flow query 3.6k rows;
+          the per-ADDRESS master query 7991307 = 152 rows) — but the per-address master query gives the INFERIOR age (resets on
+          receive → 1y+ 37.7% vs FIFO's true 52.9%), which the owner deliberately moved away from. So: **BigQuery = the free
+          mechanism for hands-off FIFO; Dune API stays for CEX flow only.** Same "hands off" goal, correct method.
+        - **⭐ CSV VERIFICATION 2026-07-22 (owner sent 4, asked "are these correct?"): NONE are newer/better than what's already
+          bundled; 2 are problematic. Don't need them — the missing piece is the automated pipeline, not more manual CSVs.**
+          • `51238759-spx6900_valuation_distribution_weekly.csv` = the Dune per-ADDRESS master query (152 wks → 2026-07-13),
+            age_gt12m **37.7%** = the OLD method. onchain.json is already the FIFO per-lot rebuild (age 1y+ **52.9%**, to 2026-07-20,
+            49,566 holders). Using this CSV would REGRESS the age. ⚠ Don't overwrite onchain.json with it.
+          • `5b8f0646-spx6900_mvrv_history.csv` = daily realized-price/MVRV (1063 rows → 2026-07-15) — SAME as the current
+            `src/spx-mvrv.js` bundle (already have it). ✅ format correct, not newer.
+          • `491e71a6-spx6900_weekly_wallets_query_7991945.csv` = Solana CURRENT holders weekly (→2026-07-13, latest 65,968) —
+            matches `chain-wallets.js` sol exactly. ✅ correct, already bundled.
+          • `527d26b4-spx6900_holders_query_7991945.csv` = CUMULATIVE-ever wallets (monotonic → 363,052). ❌ WRONG metric (the
+            known-bad cumulative query, not a current-holder count). Do not use.
       - **~~✅ WEEKLY DUNE REFRESH BUILT~~ (superseded by the DEAD-END note above).** Keeps
         URPD/LTH-STH/SOPR/HODL/concentration/supply-in-profit/diamond FRESH without a manual BigQuery export. **WEEKLY-FULL,
         not incremental** (the token-filtered raw-transfer scan is ~6 credits). `scripts/build-onchain-refresh.mjs`: executes
@@ -757,6 +786,12 @@
     scans nothing (~0 credits) — the killer is still heavy/cancelled scans. Big MCP results save to a tool-results file;
     process with `jq`, don't dump into context. **NOTE: the MCP's Dune key is SEPARATE from the pipeline's `DUNE_API_KEY`
     — running MCP queries does NOT un-freeze the cron's key.** (A full multi-stage peer study cost ~36 of 2,500 credits.)
+    - **⭐ CONNECTOR STATE IS PER-CHAT (found 2026-07-22, owner rotates 3 machines).** The Dune connector is installed +
+      authenticated at the claude.ai ORG level (persists across machines), BUT each chat has its own `enabledInChat` toggle.
+      In THIS session `ListConnectors` shows Dune `connected:true, enabledInChat:false` → the tools are NOT loaded, so Claude
+      canNOT run Dune here until the owner **enables Dune in this chat's connector settings** (the ⚙/connector menu of the
+      conversation). Once toggled on, `ToolSearch` surfaces the Dune tools and Claude runs queries directly. So "can you use
+      Dune from this machine?" → YES once enabled-in-chat; it's a per-conversation toggle, not a per-machine reinstall.
 - **What's Dune-gated vs free:** free/daily (never stale) = price/rainbow/holder-counts/wallet-growth/realized-price/
   MVRV/floor/break-even (the snapshot cron + HolderScan `be`). Dune-gated (frozen at bundle between refreshes) =
   supply-in-profit %, concentration, gini, HODL waves — BUT these are the SLOWEST-moving metrics AND refresh for only
@@ -934,7 +969,18 @@
         in the dev sandbox). **❌ DEAD-END on the FREE tier (confirmed via 2 CI runs 2026-07-17):** `SplyActive180d` → 400
         (wrong ID), `SplyAct180d` → **403 "not available with supplied credentials"** = the RIGHT metric ID but active
         supply is GATED behind a paid/keyed Coin Metrics tier (only MVRV etc. are free on the anonymous community API).
-        So the open-source-free route does NOT pan out. **Left DORMANT + key-ready:** builder honours `COINMETRICS_KEY`
+        So the open-source-free route does NOT pan out. **✅ RE-CONFIRMED 2026-07-22 (owner asked to check again + look at their
+        GH repo):** the community API is STILL 403 from the sandbox, AND their public GitHub CSV dataset (`coinmetrics/data`,
+        `csv/eth.csv`) header has NO active-supply column — it carries `SplyCur`, `SplyExNtv`/`SplyExUSD` (EXCHANGE supply),
+        `FlowInExNtv`/`FlowOutExNtv`, `CapMVRVCur`, prices — but NOT `SplyAct180d`/anything "moved-in-window". So the free-float
+        (age-based "moved in 180d") metric is genuinely paywalled and NOT in the free repo either. **The honest takeaways:**
+        (1) For SPX-vs-peers free float we ALREADY ship SPX-vs-BTC (BTC via our OWN free BigQuery UTXO HODL reconstruction,
+        `src/btc-hodl-waves.js`) — no Coin Metrics needed; ETH was intentionally dropped (account-based, needs its own heavier
+        reconstruction). (2) If ETH is ever wanted, the free path is a Dune/BigQuery ETH reconstruction, NOT Coin Metrics. (3) A
+        DIFFERENT, FREE angle IS available from their community CSV: `SplyExNtv` = exchange-held supply (a LOCATION-based liquid
+        proxy) — but that's a different definition than our AGE-based illiquid metric, so mixing them breaks the same-method
+        honesty (don't blend). Recommendation: leave free-float as SPX-vs-BTC; don't chase ETH via Coin Metrics.
+        **Left DORMANT + key-ready:** builder honours `COINMETRICS_KEY`
         (hits the authenticated endpoint when set), workflow is dispatch-ONLY (no monthly schedule, so no auto-fail),
         seed stays empty → **the Free Float card + chart render SPX-ONLY** (already shipped, transparent). To enable
         BTC/ETH later: (a) a Coin Metrics key with active-supply access → set `COINMETRICS_KEY` secret + run — but CM
@@ -1561,6 +1607,16 @@
       alts and Fear & Greed — each ranked over its full history`). Honesty rail kept: a valuation POSITION over time, NOT a
       buy/sell signal. **To re-tune:** edit the `INDICATORS` weights — the one knob. The convergence-over-time IS the
       proprietary angle — our own composite, reproducible from the 6 published lenses.
+    - **🔲 ADD MORE INDICATORS TO THE COMPOSITE — owner flagged (2026-07-22).** The basket is deliberately extensible:
+      adding a lens = one entry in `INDICATORS` (key/label/group/weight, re-balance weights to 100) + one line in
+      `lensSeries(s)` returning its `[{ts, v}]` oriented HIGHER = MORE EXPENSIVE (it's auto percentile-ranked + weighted +
+      forward-filled from there — no other code changes; card + site both pick it up). CANDIDATES already computable from
+      stats/bundles (no new data): **NUPL** (`1 − 1/mvrv`, sentiment — though correlated with MVRV so weight it low or fold
+      in), **20-week heat / z-score** (`riskheat`/`zScoreSeries` — short-term extension, a faster horizon than the rainbow
+      power-law), **Pi Cycle** already in, **SOPR** (`onchain[].sopr`, spend-profit — but sparse/null when nothing moves),
+      **RSI** (`rsiNow`/monthly), **realized-price ratio** (price÷rp, ≈ MVRV so skip). Keep lenses INDEPENDENT (avoid double-
+      counting MVRV/NUPL/realized which are ~the same signal) and each must have enough history to rank (`arr.length>=10`).
+      When the owner is back, discuss which to add + the re-weighting (the weights are the editorial call).
   - **⭐ "AM I CHEAP?" VALUATION DASHBOARD — greenlit for memory (owner, 2026-07-08).** A view/card
     that flags when MULTIPLE INDEPENDENT valuation gauges AGREE that SPX is cheap/heated — the
     corroboration is the signal (one metric can mislead; three aligning is stronger + honest). The
