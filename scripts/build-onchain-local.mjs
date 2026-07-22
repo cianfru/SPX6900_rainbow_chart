@@ -68,6 +68,11 @@ export const EXCLUDE_LABELS = {
 // but still counted as holders + missing from the CEX balance). One source of truth now.
 export const EXCLUDE = new Set(Object.keys(EXCLUDE_LABELS));
 
+// Canonical venue for a labelled CEX address — collapses the per-address suffixes
+// ("Kraken 245"/"Kraken 246"/"Kraken 3"/"Kraken-linked" → "Kraken"; "KuCoin 2" → "KuCoin";
+// "BitGo custody (WalletSimple)" → "BitGo") so per-venue balances aggregate correctly.
+export const canonVenue = name => name.replace(/\s+custody \(WalletSimple\)/i, "").replace(/-linked/i, "").replace(/\s+\d+$/, "").trim();
+
 // age (days) → band index: [<1m, 1-3m, 3-6m, 6-12m, 1y+]
 export function ageBand(days) {
   if (days < 30) return 0;
@@ -156,6 +161,15 @@ export function replayFifo(transfers, priceAt, sampleTs, opts = {}) {
   // week-over-week DELTA is the netflow. LP balance is Uniswap liquidity depth (a different
   // story — providing liquidity, not selling), which BTC on-chain analytics can't isolate.
   const kindBal = kind => { let s = 0; for (const [a, b] of exBal) { if (b > EPS && EXCLUDE_LABELS[a]?.kind === kind) s += b; } return s; };
+  // Per-VENUE cex balance (Coinbase vs Binance vs Kraken …) — the CEX total split by exchange,
+  // so the supply curve can be stacked by venue + a current market-share donut drawn. Only
+  // venues with a positive balance are emitted.
+  const cexByVenue = () => {
+    const v = {};
+    for (const [a, b] of exBal) { if (b > EPS && EXCLUDE_LABELS[a]?.kind === "cex") { const name = canonVenue(EXCLUDE_LABELS[a].name); v[name] = (v[name] || 0) + b; } }
+    for (const k of Object.keys(v)) v[k] = +v[k].toFixed(2);
+    return v;
+  };
 
   const rows = [];
   let p = 0, winVal = 0, winCost = 0; // per-sample-window spend accumulators (SOPR)
@@ -175,6 +189,7 @@ export function replayFifo(transfers, priceAt, sampleTs, opts = {}) {
     const row = snapshot(wallets, sTs, priceAt(sTs), thr);
     row.liqEx = +(liqExcluded() / 1).toFixed(2); // CEX+LP+custody supply (tokens) — the always-liquid excluded bucket
     row.cexBal = +kindBal("cex").toFixed(2);     // SPX on tagged CEX addresses — exchange-flow / sell-side proxy
+    row.cexVenues = cexByVenue();                // that CEX total split by exchange (Kraken/Bybit/Coinbase/…)
     row.lpBal = +kindBal("lp").toFixed(2);       // SPX in Uniswap LP — liquidity depth (our edge vs BTC on-chain)
     // SOPR for this window = realized value ÷ cost of all coins that MOVED since the
     // last sample. >1 = holders spending at a profit, <1 = at a loss. null = nothing moved.
