@@ -685,6 +685,23 @@
           Upbit/Indodax/MEXC/Gate≈Asia, Revolut/Bitpanda/Bitvavo≈Europe, CoinSpot≈AU. A "where in the world" read once coverage
           firms up. For the CEX-FLOW cards (cex-flow.json) to reflect these, re-run `dune/spx6900_cex_lp_balances.sql` when credits
           allow (they hold ~0 so it barely moves the flow, but keeps the two sources in sync).
+        - **✅✅ FINAL CEX WALLET LIST + PER-VENUE CARDS & SITE CHARTS SHIPPED 2026-07-22.** Owner ran a full Dune sweep →
+          `2ede19be-spx6900_cex_wallets.csv`: **27 CEX wallets, total 138.6M = 13.86% of supply**, matching our tags 1:1 (2 deltas
+          applied: `0x548054…`=**CoinEx** not "Coined"; added Gate.io `0x0d0707…` +~3M). **KEY FINDING (owner verified): Binance &
+          Coinbase genuinely hold almost NONE** (~0.7M / 0.66M each) — NOT a coverage gap; the big untagged whales aren't them.
+          So the venue split is REPRESENTATIVE, not an artifact → the honest on-brand story is "Kraken 43% leads, the two giants
+          custody almost none." The engine (`build-onchain-local.mjs`) now emits **`row.cexVenues`** (CEX total split by exchange via
+          `cexByVenue()` + `canonVenue()` which collapses "Kraken 245/246/3/-linked"→"Kraken" etc.). **Two cards** (both NO_ROTATE,
+          hand-postable): **`cexvenues`** (`cex-venues-card.mjs`, stacked-area-by-venue; copy uses 🟠🔴🟣 dots matching the band
+          colours for the top 3) + **`cexvenflow`** (`cex-venflow-card.mjs`, diverging tornado of per-venue net flow over ~90d,
+          "who gained vs bled"). **Two site charts** (On-Chain group): **`CexVenuesChart.jsx`** (stacked area + current market-share
+          DONUT) + **`CexVenFlowChart.jsx`** (tornado + 30d/90d/180d/1y window selector). Both read `onchain.json` (loadOnchain) →
+          **DATA-GATED until the next Dune pipeline run populates `cexVenues`, then fully hands-off weekly** (rides onchain-dune.yml).
+          Browser-verified. **⭐ OWNER-VERIFIED INSIGHT: Bybit is the dominant swing venue** — its big drops coincide ~1:1 with total
+          exchange outflows (Aug-2025: Bybit −25.3M ≈ the entire week's −24.3M exchange outflow). The recent Bybit drop the owner saw
+          is post-2026-07-20 (after the current archive) → shows once the pipeline ingests fresh data. **🔲 0x73d8bd54 ambiguity:**
+          owner's CSV flags it "BitGo custody 2 (Dune: sushiswap?)" — if it's a SushiSwap pool it should be `lp` not `cex` (kept as
+          cex for now; 2.6M). To make all this live NOW instead of Monday: dispatch the Dune pipeline.
         - **✅ CARD POLISH (owner, 2026-07-21, end of day):** (a) all today's post COPY got emojis (🏦 cexsupply, 📤 cexflow,
           🔍 spxcohort) — house style. (b) `cexflow` copy REWRITTEN clearer (was a "conversation résumé"): now plainly explains
           listing-fills-≠-selling for a fresh reader; added to `LONGFORM` (600). (c) `cexflow`+`cexsupply` set to `landscape`
