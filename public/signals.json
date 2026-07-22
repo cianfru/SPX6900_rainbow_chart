@@ -1,25 +1,15 @@
 {
-  "date": "2026-07-21",
+  "date": "2026-07-22",
   "signals": [
     {
       "type": "underwater-holding",
       "emoji": "💎",
-      "title": "Holders ~33% underwater — and still not selling",
-      "detail": "MVRV 0.67: price is 33% below the crowd's avg on-chain cost basis ($0.536). Yet 62% of supply is in the longest-held tier — the float isn't moving.",
+      "title": "Holders ~31% underwater — and still not selling",
+      "detail": "MVRV 0.69: price is 31% below the crowd's avg on-chain cost basis ($0.535). Yet 62% of supply is in the longest-held tier — the float isn't moving.",
       "framing": "Maximum financial pain, minimal capitulation — conviction being tested and, so far, holding.",
       "note": "Describe the divergence, NOT a bottom call. \"Not selling\", not \"buy\".",
       "card": "breakeven",
-      "score": 1.8507106289302833
-    },
-    {
-      "type": "capitulation-cluster",
-      "emoji": "🧊",
-      "title": "-81% below trend AND fear at 25",
-      "detail": "Deep in the Fire Sale band (-81% vs the power-law fair value $1.866) with Fear & Greed at 25. Valuation and sentiment bottoming together.",
-      "framing": "Where value and fear overlap — historically the account's best-resonating zone.",
-      "note": "Honest \"cheap + fearful\", never \"guaranteed bounce\".",
-      "card": "riskcolor",
-      "score": 1.5181912359123848
+      "score": 1.8174112393590305
     },
     {
       "type": "drawdown",
@@ -30,6 +20,16 @@
       "note": "It's deep and unrecovered NOW; don't imply it always recovers.",
       "card": "underwater",
       "score": 1.5
+    },
+    {
+      "type": "diamond-trend",
+      "emoji": "💠",
+      "title": "Diamond tier grew 2.1pp in ~30d → 86.6% of supply",
+      "detail": "Supply in the longest-held tier rose 84.5%→86.6% over ~30 days — a cohort maturing into diamond.",
+      "framing": "Float tightening as coins age into the strongest-held tier.",
+      "note": "HELD, not BOUGHT — diamond grows by aging; frame it as maturing/held.",
+      "card": "diamondtrend",
+      "score": 1.4
     }
   ]
 }
