@@ -738,14 +738,19 @@
           archive, commits + deploys. Pure helpers (colIdx/cutoffDay/archiveMaxTime/mergeArchive) UNIT-TESTED (`test/onchain-dune-
           refresh.test.mjs`, 5 cases, incl. BigQuery↔Dune header aliasing + boundary-day replacement) + merge smoke-tested. The
           BigQuery workflow (onchain-bigquery.yml) is now **dispatch-ONLY (dormant fallback)** so the two don't both commit onchain.json.
-        - **🔲 TO GO LIVE (owner, 2 one-time steps — then fully hands-off):** (1) **SEED the archive**: upload the existing
-          2.6M-row raw-transfer extract (the one already run) as the release asset — the full history CANNOT come from Dune (402):
-          `gzip -c full_transfers.csv > transfers.csv.gz && gh release create onchain-archive transfers.csv.gz -t "On-chain transfer
-          archive" -n "FIFO base"`. Any header works (from_address/to_address/block_timestamp/value OR sender/receiver/time/value —
-          the script aliases both). (2) Ensure the `DUNE_API_KEY` repo secret is set (already added for the earlier attempt). Optional:
-          after the first run logs the created query id, set repo var `DUNE_INCREMENTAL_QUERY_ID` to reuse it. Then dispatch once →
-          Claude reads the run logs to validate (rp ~$0.53, ~49.5k holders, top100 ~58%). **"send me the delta CSV" was NOT needed**
-          — merge/parse logic is unit-tested offline; the only manual piece is the ONE-TIME archive seed.
+        - **⭐ CREDIT SAFETY (owner worried the seed would bust 2,500, 2026-07-22 — addressed):** only the WEEKLY DELTA touches
+          Dune (~a few credits/run). The SEED (full history) **NEVER runs automatically** — the workflow FAILS fast if the archive
+          asset is missing (won't silently full-scan). The script's `--seed` (chunked full-history pull, monthly windows split on 402)
+          exists but is EXPLICIT-ONLY. The full SPX transfer scan was ~6 credits on the owner's prior run, so chunked seed ≈ similar
+          (partition-pruned), but **Claude can't verify cost from the sandbox** → prefer the ZERO-credit seed.
+        - **🔲 TO GO LIVE (owner, 2 one-time steps — then fully hands-off):** (1) **SEED the archive, ZERO Dune credits**: re-run the
+          FREE BigQuery extract (`bigquery/spx6900_raw_transfers.sql`, 546 GB inside BigQuery's free 1 TB/mo — NOT Dune) OR reuse the
+          CSV already generated, then `gzip -c full_transfers.csv > transfers.csv.gz && gh release create onchain-archive
+          transfers.csv.gz -t "On-chain transfer archive" -n "FIFO base"`. Any header works (from_address/… OR sender/… — the script
+          aliases both). (2) Ensure `DUNE_API_KEY` repo secret is set (already added for the earlier attempt). Optional: after run 1
+          logs the created query id, set repo var `DUNE_INCREMENTAL_QUERY_ID` to reuse it. Then dispatch → Claude validates the logs
+          (rp ~$0.53, ~49.5k holders, top100 ~58%). The `--seed` Dune path (~6 credits) is the ALT if the owner would rather not touch
+          BigQuery. **"send me the delta CSV" was NOT needed** — merge/parse is unit-tested offline; the only manual piece is the seed.
         - **⭐ CSV VERIFICATION 2026-07-22 (owner sent 4, asked "are these correct?"): NONE are newer/better than what's already
           bundled; 2 are problematic. Don't need them — the missing piece is the automated pipeline, not more manual CSVs.**
           • `51238759-spx6900_valuation_distribution_weekly.csv` = the Dune per-ADDRESS master query (152 wks → 2026-07-13),

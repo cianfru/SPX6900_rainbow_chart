@@ -6,11 +6,18 @@ name: Weekly on-chain FIFO refresh (Dune incremental)
 # merges, re-runs the LOCAL FIFO engine → onchain.json + urpd.json, then re-uploads the grown
 # archive. SEED ONCE before the first run (see below).
 #
-# 🔲 ONE-TIME SEED (owner): upload the existing 2.6M-row raw-transfer extract as the release
-#    asset — the full history CANNOT be pulled from Dune (that's the 402 export). e.g.:
-#      gzip -c full_transfers.csv > transfers.csv.gz
-#      gh release create onchain-archive transfers.csv.gz -t "On-chain transfer archive" -n "FIFO base"
-#    (or `gh release upload onchain-archive transfers.csv.gz --clobber` if the release exists).
+# CREDITS: only the WEEKLY DELTA touches Dune (~a few credits/run, ~tens/month — nowhere near the
+# 2,500 budget). The SEED (full history) is a ONE-TIME step and does NOT run here automatically.
+#
+# 🔲 ONE-TIME SEED (owner) — pick the ZERO-CREDIT path:
+#    • PREFERRED (0 Dune credits): re-run the FREE BigQuery extract (bigquery/spx6900_raw_transfers.sql,
+#      546 GB inside BigQuery's free 1 TB/mo — NOT Dune) — or reuse the CSV you already have — then:
+#        gzip -c full_transfers.csv > transfers.csv.gz
+#        gh release create onchain-archive transfers.csv.gz -t "On-chain transfer archive" -n "FIFO base"
+#    • ALT (Dune, ~6 credits one-time, watch the meter): run locally
+#        node scripts/build-onchain-dune-refresh.mjs --archive=transfers.csv --seed
+#      then gzip + `gh release create onchain-archive transfers.csv.gz …`.
+#    This workflow FAILS fast if the asset is missing — it will NOT auto-seed / spend credits.
 # 🔲 SECRETS/VARS: DUNE_API_KEY (secret). Optional DUNE_INCREMENTAL_QUERY_ID (var) — set after the
 #    first run logs the created query id, to reuse it instead of creating a new one each week.
 

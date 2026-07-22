@@ -59,27 +59,30 @@ function H() {
   return { "X-Dune-API-Key": key, "Content-Type": "application/json" };
 }
 
-// The incremental SQL, cutoff interpolated (partition-pruned + token-filtered → cheap, small result).
-const incSql = since => `SELECT "from" AS sender, "to" AS receiver, evt_block_time AS time, value AS value
+// Token-filtered raw-transfer SQL. Incremental = open-ended (>= since); range = a bounded
+// [since, until) window used to SEED the full history in chunks small enough to dodge the 402.
+const COLS = `SELECT "from" AS sender, "to" AS receiver, evt_block_time AS time, value AS value
 FROM erc20_ethereum.evt_Transfer
-WHERE contract_address = 0xe0f63a424a4439cbe457d80e4f4b51ad25b2c56c
-  AND evt_block_time >= DATE '${since}'
-ORDER BY evt_block_time`;
+WHERE contract_address = 0xe0f63a424a4439cbe457d80e4f4b51ad25b2c56c`;
+const incSql = since => `${COLS}\n  AND evt_block_time >= DATE '${since}'\nORDER BY evt_block_time`;
+const rangeSql = (since, until) => `${COLS}\n  AND evt_block_time >= DATE '${since}' AND evt_block_time < DATE '${until}'\nORDER BY evt_block_time`;
 
-// Resolve + set the query SQL: PATCH the saved query if we have an id, else create one.
-async function ensureQuery(since) {
+// Set the query SQL: PATCH the saved query if we have an id, else create one (logged once).
+async function ensureQuery(sql) {
   const id = process.env.DUNE_INCREMENTAL_QUERY_ID;
   if (id) {
-    const r = await fetch(`${BASE}/query/${id}`, { method: "PATCH", headers: H(), body: JSON.stringify({ query_sql: incSql(since) }) });
+    const r = await fetch(`${BASE}/query/${id}`, { method: "PATCH", headers: H(), body: JSON.stringify({ query_sql: sql }) });
     if (!r.ok) throw new Error(`patch query ${r.status}: ${await r.text()}`);
     return id;
   }
-  const r = await fetch(`${BASE}/query`, { method: "POST", headers: H(), body: JSON.stringify({ name: "SPX6900 raw transfers (incremental FIFO)", query_sql: incSql(since), is_private: false }) });
+  const r = await fetch(`${BASE}/query`, { method: "POST", headers: H(), body: JSON.stringify({ name: "SPX6900 raw transfers (incremental FIFO)", query_sql: sql, is_private: false }) });
   if (!r.ok) throw new Error(`create query ${r.status}: ${await r.text()} — set DUNE_INCREMENTAL_QUERY_ID`);
   const nid = (await r.json())?.query_id;
   console.log(`created query ${nid} — set repo var DUNE_INCREMENTAL_QUERY_ID=${nid} to reuse it`);
   return nid;
 }
+
+class HttpError extends Error { constructor(status, msg) { super(msg); this.status = status; } }
 
 async function runToCsv(id) {
   const ex = await fetch(`${BASE}/query/${id}/execute`, { method: "POST", headers: H(), body: JSON.stringify({ performance: "medium" }) });
@@ -87,7 +90,7 @@ async function runToCsv(id) {
   const execution_id = (await ex.json())?.execution_id;
   if (!execution_id) throw new Error("no execution_id");
   let state = "";
-  for (let i = 0; i < 120; i++) {
+  for (let i = 0; i < 150; i++) {
     await sleep(4000);
     const st = await fetch(`${BASE}/execution/${execution_id}/status`, { headers: H() });
     if (!st.ok) throw new Error(`status ${st.status}`);
@@ -98,8 +101,52 @@ async function runToCsv(id) {
   }
   if (state !== "QUERY_STATE_COMPLETED") throw new Error(`timed out (last state ${state})`);
   const res = await fetch(`${BASE}/execution/${execution_id}/results/csv`, { headers: { "X-Dune-API-Key": process.env.DUNE_API_KEY } });
-  if (!res.ok) throw new Error(`results/csv ${res.status}${res.status === 402 ? " — delta too large? (should be tiny)" : ""}`);
+  if (!res.ok) throw new HttpError(res.status, `results/csv ${res.status}`);
   return res.text();
+}
+
+// ── SEED (one-time bootstrap) — build the full-history archive from Dune in chunks ───────────
+// The full 2.6M-row history 402s in ONE export, but each bounded window is a small result.
+// Walk month-by-month from launch; if a window still 402s (a hot month), split it in half and
+// recurse. Writes canonical rows to `out`. ~35 months → ~35-70 cheap credits, one-time.
+const LAUNCH = "2023-08-01";
+const addDays = (iso, n) => { const d = new Date(`${iso}T00:00:00Z`); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
+const addMonth = iso => { const d = new Date(`${iso}T00:00:00Z`); d.setUTCMonth(d.getUTCMonth() + 1); return d.toISOString().slice(0, 10); };
+const midDay = (a, b) => addDays(a, Math.max(1, Math.floor((Date.parse(b) - Date.parse(a)) / 86400000 / 2)));
+
+async function fetchWindow(since, until) {          // returns data rows (no header), splitting on 402
+  try {
+    const id = await ensureQuery(rangeSql(since, until));
+    const csv = await runToCsv(id);
+    const lines = csv.split(/\r?\n/).filter(l => l.trim());
+    if (!lines.length) return [];
+    const idx = colIdx(splitCsv(lines[0]));
+    return lines.slice(1).map(l => { const c = splitCsv(l); return `${c[idx.from]},${c[idx.to]},${c[idx.time]},${c[idx.value]}`; });
+  } catch (e) {
+    if (e.status === 402 && addDays(since, 1) < until) {   // too big → split the window
+      const mid = midDay(since, until);
+      console.log(`  window ${since}→${until} 402'd; splitting at ${mid}`);
+      return [...await fetchWindow(since, mid), ...await fetchWindow(mid, until)];
+    }
+    throw e;
+  }
+}
+
+async function seedArchive(out, fromISO) {
+  const today = new Date().toISOString().slice(0, 10);
+  const w = createWriteStream(out);
+  w.write("sender,receiver,time,value\n");
+  let total = 0;
+  for (let s = fromISO; s < today; s = addMonth(s)) {
+    const u = addMonth(s) < today ? addMonth(s) : today;
+    const rows = await fetchWindow(s, u);
+    for (const r of rows) w.write(r + "\n");
+    total += rows.length;
+    console.log(`seeded ${s}→${u}: +${rows.length} (total ${total})`);
+  }
+  await new Promise((res, rej) => w.end(err => (err ? rej(err) : res())));
+  if (!total) throw new Error("seed produced 0 rows — check the token address / Dune access");
+  return total;
 }
 
 // Stream the base archive → find the max time (last day = cutoff). One pass, no full load.
@@ -171,16 +218,37 @@ function runFifo(tPath, pPath) {
 async function main() {
   const args = Object.fromEntries(process.argv.slice(2).map(a => { const [k, v] = a.replace(/^--/, "").split("="); return [k, v ?? true]; }));
   const archive = args.archive || join(root, "transfers.csv");
-  if (!existsSync(archive) || statSync(archive).size < 100) {
-    throw new Error(`no archive at ${archive} — SEED first: upload the full 2.6M-row extract as the release asset (transfers.csv.gz)`);
+  const pPath = join(root, "tmp-prices.csv");
+  const haveArchive = existsSync(archive) && statSync(archive).size >= 100;
+
+  // SEED MODE — EXPLICIT ONLY (--seed). Rebuilds the full history from Dune in monthly chunks
+  // (each split on 402). This is a full-history SCAN — one-time and ~cheap (the owner's prior full
+  // SPX scan was ~6 credits), but it is NEVER triggered automatically, so a missing archive can't
+  // silently spend credits. PREFERRED zero-credit seed = re-run the FREE BigQuery extract + upload
+  // (see the workflow header). Use --seed only if you'd rather Dune rebuild it (watch the meter).
+  if (args.seed) {
+    const from = typeof args.from === "string" ? args.from : LAUNCH;
+    console.log(`SEED (explicit): building full archive from Dune, ${from} → today (monthly chunks, split on 402)…`);
+    const total = await seedArchive(archive, from);            // writes canonical archive in place
+    console.log(`seed complete: ${total} transfers → ${archive}`);
+    await writeFile(pPath, await pricesCsv());
+    await runFifo(archive, pPath);
+    return;
   }
+  if (!haveArchive) {
+    throw new Error(`no archive at ${archive} — SEED it ONCE first (won't auto-seed, to protect Dune credits):\n` +
+      `  • preferred (0 credits): re-run the FREE BigQuery extract → gzip → 'gh release create onchain-archive transfers.csv.gz …'\n` +
+      `  • or (Dune, ~6 credits one-time): run this script locally with --seed`);
+  }
+
+  // INCREMENTAL MODE — archive exists: pull only the weekly delta, merge, FIFO.
   const maxT = await archiveMaxTime(archive);
   const cutoff = cutoffDay(maxT);
   console.log(`archive last transfer ${maxT} → pulling Dune delta from ${cutoff}…`);
-  const id = await ensureQuery(cutoff);
+  const id = await ensureQuery(incSql(cutoff));
   const deltaCsv = await runToCsv(id);
   console.log(`delta: ${deltaCsv.split("\n").length - 2} rows · merging…`);
-  const merged = join(root, "tmp-transfers.csv"), pPath = join(root, "tmp-prices.csv");
+  const merged = join(root, "tmp-transfers.csv");
   const stats = await mergeArchive(archive, deltaCsv, cutoff, merged);
   console.log(`merged: kept ${stats.kept} + added ${stats.added} (replaced ${stats.dropped} on/after ${cutoff})`);
   await writeFile(archive, readFileSync(merged)); // grown archive back to the asset path
