@@ -428,9 +428,13 @@
         different ages (launch-era = old diamonds; the wall at spot = fresh buyers + old on-the-way-up holders). **Card
         `urpdage`** (`urpd-age-card.mjs`, LOOK "bars", landscape) = the URPD walls stacked by age (fresh #fb7185 → old
         #22d3ee), headline "N% held 1y+". **Site `UrpdAgeChart.jsx`** = the price×age HEATMAP (magma ramp, hover cell). Both
-        DATA-GATED on `bucket.age` → dormant until the next extract populates it (current urpd.json has no age), then live
-        automatically. Card style approved via mockups (owner: A=card, B=site; chose 2D over 3D — occlusion/angle problems).
-        Wired charts/posts/LOOK/card-ar/catalog/App; 97 tests green. NOT a new reconstruction — same FIFO run, extra axis.
+        was DATA-GATED on `bucket.age`. **✅ NOW LIVE 2026-07-22** — the Dune weekly pipeline's first green run regenerated
+        urpd.json WITH the age split (`ageBands` + per-bucket `age[5]`), so both card + heatmap render live automatically (no
+        code change needed). Verified on real data: card headline **"55% held 1y+ · biggest wall 62% fresh (<3m)"** — launch-era
+        buckets all 1y+ cyan (diamonds), the wall at spot mostly warm (fresh buyers); site heatmap shows the same joint
+        distribution (1y+ row lit at cheap prices + fresh cells clustered at spot). Card style approved via mockups (owner:
+        A=card, B=site; chose 2D over 3D — occlusion/angle problems). Wired charts/posts/LOOK/card-ar/catalog/App; 97 tests
+        green. NOT a new reconstruction — same FIFO run, extra axis. It also refreshes weekly now (rides the Dune pipeline).
     - **`lthsth`** (`scripts/bot/lth-sth-card.mjs`, LOOK "stack") — long vs short-term holders in profit/loss over time,
       4-band stacked area. Today: **86% held long-term, 55% underwater and unmoved** (conviction). ROTATION-EXCLUDED by
       default (gloomy-leaning; owner curates via the ⊘ toggle).
