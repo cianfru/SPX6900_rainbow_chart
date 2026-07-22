@@ -422,6 +422,15 @@
       `stats.price`; site `UrpdChart` takes a `price` prop (App passes `last.price`) → daily-snapshot fallback → frozen
       spot last resort; each bucket's in-profit = midpoint(lo·hi) < spot (recomputed, `urpd.json`'s baked `inProfit` flag
       is ignored). Keep it live on any future edit.
+      - **✅ COST BASIS × HOLDING AGE — engine + card + heatmap BUILT 2026-07-21 (owner idea, data-gated).** `computeUrpd`
+        now also splits each cost-basis bucket by holder AGE (`bucket.age` = 5 HODL bands 0-1m..1y+, % of held; free — the
+        FIFO lots already carry acquisition ts + price). Reveals the round-trip: the SAME price bucket holds coins of very
+        different ages (launch-era = old diamonds; the wall at spot = fresh buyers + old on-the-way-up holders). **Card
+        `urpdage`** (`urpd-age-card.mjs`, LOOK "bars", landscape) = the URPD walls stacked by age (fresh #fb7185 → old
+        #22d3ee), headline "N% held 1y+". **Site `UrpdAgeChart.jsx`** = the price×age HEATMAP (magma ramp, hover cell). Both
+        DATA-GATED on `bucket.age` → dormant until the next extract populates it (current urpd.json has no age), then live
+        automatically. Card style approved via mockups (owner: A=card, B=site; chose 2D over 3D — occlusion/angle problems).
+        Wired charts/posts/LOOK/card-ar/catalog/App; 97 tests green. NOT a new reconstruction — same FIFO run, extra axis.
     - **`lthsth`** (`scripts/bot/lth-sth-card.mjs`, LOOK "stack") — long vs short-term holders in profit/loss over time,
       4-band stacked area. Today: **86% held long-term, 55% underwater and unmoved** (conviction). ROTATION-EXCLUDED by
       default (gloomy-leaning; owner curates via the ⊘ toggle).
