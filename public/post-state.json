@@ -1,6 +1,6 @@
 {
-  "lastPostedDate": "2026-07-21",
-  "lastId": "urpd",
+  "lastPostedDate": "2026-07-22",
+  "lastId": "whatnext",
   "recent": [
     {
       "date": "2026-07-08",
@@ -53,6 +53,10 @@
     {
       "date": "2026-07-21",
       "id": "urpd"
+    },
+    {
+      "date": "2026-07-22",
+      "id": "whatnext"
     }
   ]
 }
