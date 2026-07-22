@@ -668,12 +668,20 @@
           lp 13.2M; organic net **−7M**. Supply card/site dropped the custody band (2 bands: exchanges + LP). Card copy updated.
         - **✅ COVERAGE BATCH ADDED 2026-07-22 — owner sent 15 more CEX wallets (14 new + 1 dup of Coinbase 10).** Added to
           `EXCLUDE_LABELS` (single source of truth) + the CEX query VALUES (commit 13f3251): Upbit, Crypto.com (×2), Bitvavo,
-          Gate.io, Bybit 2, KuCoin 2/3, Indodax, MEXC 2, Kraken 3, Binance, CoinSpot 2, Coined. **All 14 are REAL SPX participants
-          (verified in the archive — some very active, MEXC 2 = 17,864 transfers) but PASS-THROUGH deposit/hot wallets holding ~0
-          at rest → current holders/top100/cexBal UNCHANGED** (Δ 0.00). Tagging still matters: keeps them from ever being
-          miscounted as holders, and feeds the geography angle. onchain.json picks them up on the next weekly Dune pipeline run
-          (no manual re-run needed — the FIFO engine computes cexBal from the archive via EXCLUDE_LABELS). **✅ Names CONFIRMED by
-          owner 2026-07-22: "upbeat"=Upbit, "finance"=Binance, "coined"=Coined (all as labelled).** **Owner's geography angle: venue tags → WHERE SPX trades** — Coinbase≈US, Bybit/Binance/
+          Gate.io, Bybit 2, KuCoin 2/3, Indodax, MEXC 2, Kraken 3, Binance, CoinSpot 2, Coined. Names CONFIRMED by owner:
+          "upbeat"=Upbit, "finance"=Binance, "coined"=Coined. **⚠ They HOLD REAL SPX — 16.56M total** (Upbit 2.3M, Crypto.com 1.8M,
+          Bitvavo 1.5M, …; owner saw them in the top-200). My first "pass-through, hold ~0 / Δ 0.00" claim was WRONG — a bad
+          before/after comparison.
+        - **✅✅ ROOT-CAUSE BUG FIXED 2026-07-22 (owner caught it — "those wallets have spx"): EXCLUDE vs EXCLUDE_LABELS DRIFT.**
+          `build-onchain-local.mjs` had TWO structures: `EXCLUDE` (a hardcoded Set — what the FIFO engine actually excludes from
+          holder reconstruction, via `recv/send/exTouch`) and `EXCLUDE_LABELS` (names/kinds for classification). I added the 14
+          only to `EXCLUDE_LABELS`, so they were classified but NOT excluded → still counted as holders, their 16.56M MISSING from
+          cexBal. FIX (commit 673c5c0): **`EXCLUDE = new Set(Object.keys(EXCLUDE_LABELS))`** — derived, one source of truth, can't
+          drift again. Corrected impact (same 07-18 archive): **CEX supply 118.6M→135.1M (+16.56M, +14%)**, held-by-holders
+          687.7M→671.2M, top100 58.13→**59.08%**, holders −14, sip +0.29. So the live onchain.json (pre-fix pipeline run)
+          UNDER-COUNTS CEX supply by ~16.5M until the pipeline re-runs. **🔲 Owner: dispatch "Weekly on-chain FIFO refresh (Dune
+          incremental)" to regenerate onchain.json with the fix (fresh Run workflow, not re-run) → Claude validates.** The CEX-flow
+          cards (cex-flow.json) still need the Dune CEX query re-run to reflect these 14 (they now hold real balance there too). **Owner's geography angle: venue tags → WHERE SPX trades** — Coinbase≈US, Bybit/Binance/
           Upbit/Indodax/MEXC/Gate≈Asia, Revolut/Bitpanda/Bitvavo≈Europe, CoinSpot≈AU. A "where in the world" read once coverage
           firms up. For the CEX-FLOW cards (cex-flow.json) to reflect these, re-run `dune/spx6900_cex_lp_balances.sql` when credits
           allow (they hold ~0 so it barely moves the flow, but keeps the two sources in sync).
