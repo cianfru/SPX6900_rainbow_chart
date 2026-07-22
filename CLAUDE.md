@@ -757,10 +757,18 @@
           FAILED — but NOT credits: log showed archive downloaded (2,645,958 rows ✅), `DUNE_API_KEY` valid (created query **8071845**),
           then `execute 400 {"error":"Invalid performance tier"}` — my execute sent `performance:"medium"` (a PAID engine). FIXED
           (commit 33ea6db): omit `performance` → runs on the free/community engine. 🔲 Owner: re-dispatch; optional set repo var
-          `DUNE_INCREMENTAL_QUERY_ID=8071845` to reuse that query (else it creates a new one each run). NOTE: Dune `getUsage` (MCP key's
-          account) read **2500/2500** used this period (resets 2026-07-30) — if the repo `DUNE_API_KEY` is that same account, the fixed
-          execute may hit a quota error until the reset (delta is ~1 credit; runs fine once credits exist). GH MCP can't dispatch (403)
-          — owner clicks Run; Claude reads logs to validate.
+          `DUNE_INCREMENTAL_QUERY_ID` to reuse that query (else it creates a new one each run). GH MCP can't dispatch (403) — owner
+          clicks Run; Claude reads logs to validate.
+        - **✅✅✅ PIPELINE LIVE & GREEN 2026-07-22 (run #2, fresh dispatch on the fixed commit).** Full flow succeeded end-to-end:
+          downloaded archive (2,645,958 rows) → pulled Dune delta from 2026-07-18 = **7,085 rows** (execute SUCCEEDED → the repo
+          `DUNE_API_KEY` HAS credits; the 2500/2500 was a DIFFERENT account, so that worry is moot) → merged (kept 2,644,749 + added
+          7,085, replaced 1,209 boundary-day rows — exactly as designed) → FIFO reconciled (**rp $0.527 · holders 49,578 · top100
+          58.07% · age1y+ 54.6%**) → re-uploaded grown archive (2,651,834 rows) → committed onchain.json+urpd.json (979af43) →
+          deployed to Vercel. **The on-chain suite is now fully hands-off — weekly Mon 05:23 UTC.** GOTCHA that cost 2 failed runs:
+          (1) my execute sent `performance:"medium"` (paid tier → 400) — fixed by omitting it; (2) "Re-run jobs" replays the OLD
+          commit, so after a code fix the owner must do a fresh "Run workflow", not re-run. 🔲 OPTIONAL cleanup: set repo var
+          `DUNE_INCREMENTAL_QUERY_ID=8071932` so it reuses that query instead of creating a new one weekly; delete leftover temp
+          queries 8071845/8071932(dupes) in the Dune UI if wanted (harmless).
         - **⭐ CSV VERIFICATION 2026-07-22 (owner sent 4, asked "are these correct?"): NONE are newer/better than what's already
           bundled; 2 are problematic. Don't need them — the missing piece is the automated pipeline, not more manual CSVs.**
           • `51238759-spx6900_valuation_distribution_weekly.csv` = the Dune per-ADDRESS master query (152 wks → 2026-07-13),
