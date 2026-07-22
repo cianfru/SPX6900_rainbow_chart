@@ -666,15 +666,19 @@
         - **✅ CUSTODY FOLDED INTO EXCHANGES (owner, 2026-07-21): "custody is too specific."** Both BitGo WalletSimple
           proxies (0xdc154fce, 0x73d8bd54) → `kind:"cex"`. No more `custody`/`other` kinds in use. Exchanges now **~118M** ·
           lp 13.2M; organic net **−7M**. Supply card/site dropped the custody band (2 bands: exchanges + LP). Card copy updated.
-        - **🔲 COVERAGE — owner has ~15 MORE exchange wallets to add (2026-07-22; ~14 tagged already → ~29 total; earlier he
-          said "27").** Owner offered to send the remaining ~15 (address→venue) — ACCEPTED, waiting on the list. When he sends
-          them: (1) add to `EXCLUDE_LABELS` (+ the CEX query VALUES), (2) **RE-RUN the Dune query** (`dune/spx6900_cex_lp_balances.sql`,
-          ~6 credits — NEW addresses aren't in the current CSV, so unlike re-tagging this needs a fresh extract) → new
-          `dune/out/spx6900_cex_lp_flows.csv`, (3) re-bundle (`build-cex-flow.mjs --bundle`). Coverage is THE accuracy lever for
-          the exchange balance/flow. **Owner's angle (2026-07-22): venue tags also give GEOGRAPHY of activity — Coinbase ≈ US/West,
-          Bybit/Binance ≈ Asia, Revolut/Bitpanda ≈ Europe → a "where in the world is SPX trading" read once coverage is good.**
-          NOTE: re-running this Dune query needs the Dune connector ENABLED IN THIS CHAT (see the Dune-connector note) or the owner
-          runs it on a machine where the MCP is on.
+        - **✅ COVERAGE BATCH ADDED 2026-07-22 — owner sent 15 more CEX wallets (14 new + 1 dup of Coinbase 10).** Added to
+          `EXCLUDE_LABELS` (single source of truth) + the CEX query VALUES (commit 13f3251): Upbit, Crypto.com (×2), Bitvavo,
+          Gate.io, Bybit 2, KuCoin 2/3, Indodax, MEXC 2, Kraken 3, Binance, CoinSpot 2, Coined. **All 14 are REAL SPX participants
+          (verified in the archive — some very active, MEXC 2 = 17,864 transfers) but PASS-THROUGH deposit/hot wallets holding ~0
+          at rest → current holders/top100/cexBal UNCHANGED** (Δ 0.00). Tagging still matters: keeps them from ever being
+          miscounted as holders, and feeds the geography angle. onchain.json picks them up on the next weekly Dune pipeline run
+          (no manual re-run needed — the FIFO engine computes cexBal from the archive via EXCLUDE_LABELS). **⚠ 3 venue names are
+          my best-guess from the owner's shorthand — CONFIRM: "upbeat"→Upbit, "finance"→Binance, "coined"→Coined(? maybe Coinone).**
+          The `kind:"cex"` is certain (what matters for exclusion); only the display name is uncertain (matters only for the future
+          per-venue/geography breakdown). **Owner's geography angle: venue tags → WHERE SPX trades** — Coinbase≈US, Bybit/Binance/
+          Upbit/Indodax/MEXC/Gate≈Asia, Revolut/Bitpanda/Bitvavo≈Europe, CoinSpot≈AU. A "where in the world" read once coverage
+          firms up. For the CEX-FLOW cards (cex-flow.json) to reflect these, re-run `dune/spx6900_cex_lp_balances.sql` when credits
+          allow (they hold ~0 so it barely moves the flow, but keeps the two sources in sync).
         - **✅ CARD POLISH (owner, 2026-07-21, end of day):** (a) all today's post COPY got emojis (🏦 cexsupply, 📤 cexflow,
           🔍 spxcohort) — house style. (b) `cexflow` copy REWRITTEN clearer (was a "conversation résumé"): now plainly explains
           listing-fills-≠-selling for a fresh reader; added to `LONGFORM` (600). (c) `cexflow`+`cexsupply` set to `landscape`
