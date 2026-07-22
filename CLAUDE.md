@@ -672,10 +672,8 @@
           (verified in the archive — some very active, MEXC 2 = 17,864 transfers) but PASS-THROUGH deposit/hot wallets holding ~0
           at rest → current holders/top100/cexBal UNCHANGED** (Δ 0.00). Tagging still matters: keeps them from ever being
           miscounted as holders, and feeds the geography angle. onchain.json picks them up on the next weekly Dune pipeline run
-          (no manual re-run needed — the FIFO engine computes cexBal from the archive via EXCLUDE_LABELS). **⚠ 3 venue names are
-          my best-guess from the owner's shorthand — CONFIRM: "upbeat"→Upbit, "finance"→Binance, "coined"→Coined(? maybe Coinone).**
-          The `kind:"cex"` is certain (what matters for exclusion); only the display name is uncertain (matters only for the future
-          per-venue/geography breakdown). **Owner's geography angle: venue tags → WHERE SPX trades** — Coinbase≈US, Bybit/Binance/
+          (no manual re-run needed — the FIFO engine computes cexBal from the archive via EXCLUDE_LABELS). **✅ Names CONFIRMED by
+          owner 2026-07-22: "upbeat"=Upbit, "finance"=Binance, "coined"=Coined (all as labelled).** **Owner's geography angle: venue tags → WHERE SPX trades** — Coinbase≈US, Bybit/Binance/
           Upbit/Indodax/MEXC/Gate≈Asia, Revolut/Bitpanda/Bitvavo≈Europe, CoinSpot≈AU. A "where in the world" read once coverage
           firms up. For the CEX-FLOW cards (cex-flow.json) to reflect these, re-run `dune/spx6900_cex_lp_balances.sql` when credits
           allow (they hold ~0 so it barely moves the flow, but keeps the two sources in sync).
