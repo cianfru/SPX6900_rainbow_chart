@@ -58,6 +58,21 @@ export const EXCLUDE_LABELS = {
   "0xa9d1e08c7793af67e9d92fe308d5697fb81d3e43": { name: "Coinbase 10", kind: "cex" },
   "0xdf5e3a1ed0c14a53eee240022301ecb9d267671b": { name: "Kraken-linked", kind: "cex" },        // Kraken-funded, trades the SPX contract
   "0x73d8bd54f7cf5fab43fe4ef40a62d390644946db": { name: "BitGo custody (WalletSimple)", kind: "cex" }, // another WalletSimple proxy → exchange-side
+  // ── Owner-tagged CEX coverage batch, 2026-07-22 (Etherscan). More venues + extra hot wallets. ──
+  "0x377b8ce04761754e8ac153b47805a9cf6b190873": { name: "Upbit", kind: "cex" },                // owner wrote "upbeat" — confirm
+  "0xcffad3200574698b78f32232aa9d63eabd290703": { name: "Crypto.com", kind: "cex" },
+  "0xab782bc7d4a2b306825de5a7730034f8f63ee1bc": { name: "Bitvavo", kind: "cex" },
+  "0xa023f08c70a23abc7edfc5b6b5e171d78dfc947e": { name: "Crypto.com 2", kind: "cex" },
+  "0xc882b111a75c0c657fc507c04fbfcd2cc984f071": { name: "Gate.io", kind: "cex" },
+  "0x93228d328c9c74c2bfe9f97638bbb5ef322f2bd5": { name: "Bybit 2", kind: "cex" },
+  "0xdd276dc5223d0120f9bf1776f38957cc8da23cb0": { name: "KuCoin 2", kind: "cex" },
+  "0x91dca37856240e5e1906222ec79278b16420dc92": { name: "Indodax", kind: "cex" },
+  "0x9642b23ed1e01df1092b92641051881a322f5d4e": { name: "MEXC 2", kind: "cex" },
+  "0xe8c15aad9d4cd3f59c9dfa18828b91a8b2c49596": { name: "KuCoin 3", kind: "cex" },
+  "0xcc282e2004428939ee5149a9e7872f0b4d5d5ec7": { name: "Kraken 3", kind: "cex" },
+  "0x21a31ee1afc51d94c2efccaa2092ad1028285549": { name: "Binance", kind: "cex" },              // owner wrote "finance" — confirm
+  "0x33a64dcdfa041befebc9161a3e0c6180cd94fa89": { name: "CoinSpot 2", kind: "cex" },
+  "0x548054687ef6c56c6d82e8269e5fd93d8b88fcb2": { name: "Coined", kind: "cex" },               // owner wrote "coined" — confirm
 };
 
 // age (days) → band index: [<1m, 1-3m, 3-6m, 6-12m, 1y+]

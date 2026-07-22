@@ -43,9 +43,24 @@ WITH tagged (address, kind) AS (
     (0x0529ea5885702715e83923c59746ae8734c553b7, 'cex'),      -- exchange
     (0x9b0c45d46d386cedd98873168c36efd0dcba8d46, 'cex'),      -- exchange
     (0x3cc936b795a188f0e246cbb2d74c5bd190aecf18, 'cex'),      -- exchange
-    (0xa9d1e08c7793af67e9d92fe308d5697fb81d3e43, 'cex'),      -- exchange
+    (0xa9d1e08c7793af67e9d92fe308d5697fb81d3e43, 'cex'),      -- Coinbase
     (0x73d8bd54f7cf5fab43fe4ef40a62d390644946db, 'cex'),      -- exchange
     (0xdc154fcee1babb560e8528c3a7791527f01423df, 'custody'),  -- BitGo multi-sig (WalletSimple)
+    -- Owner-tagged CEX coverage batch, 2026-07-22 (mostly pass-through deposit wallets):
+    (0x377b8ce04761754e8ac153b47805a9cf6b190873, 'cex'),      -- Upbit
+    (0xcffad3200574698b78f32232aa9d63eabd290703, 'cex'),      -- Crypto.com
+    (0xab782bc7d4a2b306825de5a7730034f8f63ee1bc, 'cex'),      -- Bitvavo
+    (0xa023f08c70a23abc7edfc5b6b5e171d78dfc947e, 'cex'),      -- Crypto.com 2
+    (0xc882b111a75c0c657fc507c04fbfcd2cc984f071, 'cex'),      -- Gate.io
+    (0x93228d328c9c74c2bfe9f97638bbb5ef322f2bd5, 'cex'),      -- Bybit 2
+    (0xdd276dc5223d0120f9bf1776f38957cc8da23cb0, 'cex'),      -- KuCoin 2
+    (0x91dca37856240e5e1906222ec79278b16420dc92, 'cex'),      -- Indodax
+    (0x9642b23ed1e01df1092b92641051881a322f5d4e, 'cex'),      -- MEXC 2
+    (0xe8c15aad9d4cd3f59c9dfa18828b91a8b2c49596, 'cex'),      -- KuCoin 3
+    (0xcc282e2004428939ee5149a9e7872f0b4d5d5ec7, 'cex'),      -- Kraken 3
+    (0x21a31ee1afc51d94c2efccaa2092ad1028285549, 'cex'),      -- Binance
+    (0x33a64dcdfa041befebc9161a3e0c6180cd94fa89, 'cex'),      -- CoinSpot 2
+    (0x548054687ef6c56c6d82e8269e5fd93d8b88fcb2, 'cex'),      -- Coined
     (0x52c77b0cb827afbad022e6d6caf2c44452edbc39, 'lp')        -- Uniswap v2 SPX/WETH pool
 )
 SELECT
