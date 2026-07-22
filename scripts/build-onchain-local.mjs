@@ -23,18 +23,6 @@ import { createInterface } from "node:readline";
 const EPS = 1e-9;
 const DAY = 86400000;
 
-// 16-address exclude list — kept in sync with dune/spx6900_onchain_snapshot.sql.
-export const EXCLUDE = new Set([
-  "0x0000000000000000000000000000000000000000", "0x000000000000000000000000000000000000dead",
-  "0x52c77b0cb827afbad022e6d6caf2c44452edbc39", "0x3ee18b2214aff97000d974cf647e7c347e8fa585",
-  "0x7dafba1d69f6c01ae7567ffd7b046ca03b706f83", "0xd2dd7b597fd2435b6db61ddf48544fd931e6869f",
-  "0xdf5e3a1ed0c14a53eee240022301ecb9d267671b", "0x651641299c7ec0aa44ad7ed9b7e12702fed2022f",
-  "0x0529ea5885702715e83923c59746ae8734c553b7", "0xf35a6bd6e0459a4b53a27862c51a2a7292b383d1",
-  "0x9b0c45d46d386cedd98873168c36efd0dcba8d46", "0x3cc936b795a188f0e246cbb2d74c5bd190aecf18",
-  "0x6d6cc65e2060d0a280fcd47b6c22ec5636797fec", "0xa9d1e08c7793af67e9d92fe308d5697fb81d3e43",
-  "0x73d8bd54f7cf5fab43fe4ef40a62d390644946db", "0xdc154fcee1babb560e8528c3a7791527f01423df",
-]);
-
 // Classification of the excluded addresses, for the entity-based FREE-FLOAT calc + the exchange-
 // flow cards. Owner venue-tagged all 13 via Etherscan (2026-07-21). `kind` decides float vs not:
 //   burn/null  → OUT of supply (0xdead holds the ONE real 69M burn; 0x0 is the mint source)
@@ -74,6 +62,11 @@ export const EXCLUDE_LABELS = {
   "0x33a64dcdfa041befebc9161a3e0c6180cd94fa89": { name: "CoinSpot 2", kind: "cex" },
   "0x548054687ef6c56c6d82e8269e5fd93d8b88fcb2": { name: "Coined", kind: "cex" },
 };
+
+// The set the FIFO engine excludes from holder reconstruction — DERIVED from EXCLUDE_LABELS so
+// the two can NEVER drift (a prior bug: addresses added only to EXCLUDE_LABELS were classified
+// but still counted as holders + missing from the CEX balance). One source of truth now.
+export const EXCLUDE = new Set(Object.keys(EXCLUDE_LABELS));
 
 // age (days) → band index: [<1m, 1-3m, 3-6m, 6-12m, 1y+]
 export function ageBand(days) {
