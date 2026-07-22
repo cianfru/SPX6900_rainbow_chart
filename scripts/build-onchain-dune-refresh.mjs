@@ -85,7 +85,9 @@ async function ensureQuery(sql) {
 class HttpError extends Error { constructor(status, msg) { super(msg); this.status = status; } }
 
 async function runToCsv(id) {
-  const ex = await fetch(`${BASE}/query/${id}/execute`, { method: "POST", headers: H(), body: JSON.stringify({ performance: "medium" }) });
+  // No `performance` tier — that opts into a PAID engine ("medium"/"large" → 400 on the free/
+  // community tier). Omitting it runs on the default free engine (the small delta needs nothing more).
+  const ex = await fetch(`${BASE}/query/${id}/execute`, { method: "POST", headers: H() });
   if (!ex.ok) throw new Error(`execute ${ex.status}: ${await ex.text()}`);
   const execution_id = (await ex.json())?.execution_id;
   if (!execution_id) throw new Error("no execution_id");
