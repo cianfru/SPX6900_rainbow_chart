@@ -712,12 +712,29 @@
           the weekly incremental only scan recent partitions); (3) dispatch the workflow → Claude reads the run logs to validate
           (rp ~$0.53, ~49.5k holders). Claude CANNOT run BigQuery from the sandbox (egress-blocked) or dispatch Actions (GH MCP
           read-only) — owner does 1-3, Claude validates logs.
-        - **⭐ WHY NOT "just use the Dune API" for this (owner asked 2026-07-22):** Dune's free tier `/results/csv` returns **402
-          on the 2.6M-row raw-transfer export** (proven — the deleted onchain-refresh.yml). FIFO NEEDS the raw transfers, so
-          Dune-API-for-FIFO is dead on free. Dune API DOES work for SMALL pre-aggregated results (the CEX-flow query 3.6k rows;
-          the per-ADDRESS master query 7991307 = 152 rows) — but the per-address master query gives the INFERIOR age (resets on
-          receive → 1y+ 37.7% vs FIFO's true 52.9%), which the owner deliberately moved away from. So: **BigQuery = the free
-          mechanism for hands-off FIFO; Dune API stays for CEX flow only.** Same "hands off" goal, correct method.
+        - **⭐⭐ DUNE *CAN* DO WEEKLY FIFO CHEAPLY — owner was RIGHT, my earlier "Dune can't" was too broad (corrected 2026-07-22).**
+          The 402 was ONLY on exporting the FULL 2.6M-row history in one shot (a result-SIZE / datapoints read-limit, NOT a
+          scan/credit limit). The **INCREMENTAL delta** — new transfers since last run (`WHERE evt_block_time > {{since}}`,
+          token-filtered, partition-pruned; `dune/spx6900_raw_transfers_incremental.sql`) — is ~17k rows/week (SPX ≈2,500
+          transfers/day): ~68k datapoints (≈0.7% of the free read allowance → **NO 402**) and a few-GB scan (**a handful of
+          credits/run, ~tens/month vs the 2,500 budget → nowhere near busting it**). Credit math: the blowout that killed 2,500
+          in a week was HEAVY as-of/non-equi joins (10.5 TB Solana = 654 cr) + cancelled/timed-out runs, NEVER a bounded transfer
+          dump. So a weekly bounded delta is squarely the CHEAP pattern.
+        - **⭐ THE REAL CONSTRAINT IS PERSISTENCE, NOT DUNE (this is what was "not clear"):** FIFO needs the FULL transfer history
+          to compute per-lot ages back to launch, and Dune only hands us the delta — so WE must persist the growing base between
+          runs. BigQuery was chosen because it DOUBLES as that store (a free append-only table). On pure-Dune we store the
+          accumulating archive ourselves. Cleanest = **the full raw-transfer CSV as a GitHub RELEASE ASSET** (up to 2 GB; ~2.6M
+          rows ≈ ~300 MB raw / ~80 MB gz — too big for a normal git file, fine as a release asset): CI downloads it → pulls the
+          Dune delta via API → appends → re-runs the LOCAL FIFO engine ($0, full recompute keeps today's proven correctness, no
+          engine refactor) → commits onchain.json + urpd.json + re-uploads the grown archive. (Alt = checkpoint the FIFO lot-state
+          ~few MB in-repo, but that needs a resumable-engine refactor + more correctness risk — prefer the archive.)
+        - **SO THE TWO HANDS-OFF PATHS ARE EQUIVALENT ON COST, differ on setup:** (A) **BigQuery** — built (onchain-bigquery.yml),
+          BQ append table = free persistence, blocker = `GCP_SA_KEY` + `bq load` seed. (B) **Dune incremental** — no GCP, uses the
+          Dune credits the owner already has, blocker = persist the archive (seed it once from the existing 2.6M-row extract as a
+          release asset) + a `build-onchain-dune-refresh.mjs` that downloads-archive→delta→append→FIFO. Both are cheap and correct;
+          B avoids GCP entirely (owner's preference). Either way the CEX-flow small query stays on Dune. **Claude can BUILD path B
+          but can't validate it from THIS session (Dune connector still `enabledInChat:false` — mid-session toggle doesn't hot-load;
+          needs a NEW chat with Dune enabled, OR the owner runs the incremental query once + sends the small delta CSV to test).**
         - **⭐ CSV VERIFICATION 2026-07-22 (owner sent 4, asked "are these correct?"): NONE are newer/better than what's already
           bundled; 2 are problematic. Don't need them — the missing piece is the automated pipeline, not more manual CSVs.**
           • `51238759-spx6900_valuation_distribution_weekly.csv` = the Dune per-ADDRESS master query (152 wks → 2026-07-13),
