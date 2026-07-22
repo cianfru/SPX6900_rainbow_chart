@@ -127,6 +127,21 @@ export function loadChainWallets() {
   return chainWalletsPromise;
 }
 
+// Shared, cached loader for /valuation.json — the weighted valuation composite
+// (over/under-valued oscillator + today's weighted lens breakdown), regenerated
+// daily by the snapshot cron. Resolves to null on any failure so the chart can
+// show a graceful "being computed" state.
+let valuationPromise = null;
+export function loadValuation() {
+  if (!valuationPromise) {
+    valuationPromise = fetch("/valuation.json", { cache: "no-store" })
+      .then(r => (r.ok ? r.json() : null))
+      .then(d => (d && Array.isArray(d.series) && d.series.length ? d : null))
+      .catch(() => null);
+  }
+  return valuationPromise;
+}
+
 // Friendly copy for live-API failures. The raw error (JSON parse noise, proxy
 // statuses) is meaningless to visitors — never show it in the UI.
 export const LIVE_DATA_DOWN = "Live data is temporarily unavailable — try again in a minute.";

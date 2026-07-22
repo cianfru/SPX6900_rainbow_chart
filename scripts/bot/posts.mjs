@@ -13,7 +13,7 @@ import { rsiNow } from "./rsi-card.mjs";
 import { fNum } from "./svg-util.mjs";
 import { currentChainHolders } from "./stats.mjs";
 import { buildAltRainbow } from "../../src/alt-rainbow.js";
-import { tally as valuationTally } from "./valuation-lenses.mjs";
+import { valuationComposite, zoneOf as valZoneOf, INDICATORS as VAL_INDICATORS } from "./valuation-composite.mjs";
 import { spxBitcoinStats } from "./spx-bitcoin-card.mjs";
 import { chainRaceData } from "./multichain-card.mjs";
 import { BTC_HODL } from "../../src/btc-hodl-waves.js";
@@ -1100,21 +1100,20 @@ Behaviour, on-chain — not a signal.`,
     };
   })(),
 
-  // "Am I Cheap?" convergence — how many independent valuation lenses (rainbow band,
-  // MVRV, supply-in-profit, Pi Cycle, alt-market, F&G) agree on where SPX sits. The
-  // corroboration is the point; a valuation POSITION, never a timing call. Verdict adapts.
+  // Valuation Composite — a weighted basket of six independent lenses (rainbow power-law,
+  // MVRV cost basis, supply-in-profit, Pi Cycle, alt-market, F&G), each percentile-ranked
+  // over its own history and weighted into one over/under-valued oscillator. A valuation
+  // POSITION over time, never a timing call.
   s => (() => {
-    const t = valuationTally(s);
-    if (t.total < 4) return null;
-    const head = t.verdict === "cheap" ? `${t.cheap} of ${t.total} independent valuation lenses say SPX6900 is cheap right now`
-      : t.verdict === "rich" ? `${t.rich} of ${t.total} independent valuation lenses say SPX6900 is rich right now`
-      : `SPX6900's valuation lenses are mixed right now — ${t.cheap} cheap, ${t.rich} rich of ${t.total}`;
+    const { series, cur } = valuationComposite(s);
+    if (!series || series.length < 40 || !cur) return null;
+    const pct = Math.round(cur.composite * 100), z = valZoneOf(cur.composite);
     return {
-      id: "amicheap",
-      text: ct`🌈 ${head}.
-Rainbow band, cost basis, supply-in-profit, Pi Cycle, alt market and Fear & Greed — one metric can mislead, several agreeing is the honest read.
-Where it sits across the data — not a timing call.`,
-      card: { type: "amicheap" },
+      id: "valband",
+      text: ct`📊 SPX6900 valuation composite: ${pct}% — ${z.label.toLowerCase()} vs its own history.
+Six lenses weighted into one — rainbow, MVRV, supply in profit, Pi Cycle, alts and Fear & Greed — each ranked over its full history.
+Where it sits across everything, not a timing call.`,
+      card: { type: "valband" },
     };
   })(),
 
@@ -2007,7 +2006,7 @@ const LOOK = {
   firesalerally: "fanlines",
   model: "scatter",
   monthlyreturns: "heatmap", monthlyreturnssp: "heatmap", monthlyreturnsbtc: "heatmap",
-  hodlwaves: "stack", hodlcompare: "stack", walletgrowth: "stack", lthsth: "stack", amicheap: "gauges",
+  hodlwaves: "stack", hodlcompare: "stack", walletgrowth: "stack", lthsth: "stack", valband: "dual",
   timeinband: "bars", monthlybars: "bars", monthcompare: "bars", multichain: "bars", urpd: "bars", urpdage: "bars",
   fngdial: "round", distribution: "round",
   marketcap: "blocks", milestones: "blocks", sp500: "blocks",

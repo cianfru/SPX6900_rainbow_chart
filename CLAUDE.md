@@ -1532,17 +1532,35 @@
     deliberately NOT an A-F / buy-sell grade (would read as advice); guardrail caption kept. Today: **Deeply Cheap ·
     8.3/10**. Shared `grade()` so card + site agree. This gauge IS the site page's reason to exist (owner had
     questioned the plain dashboard) — kept as a deliberate exception to the card-only-infographic principle.
-  - **🔲 TURN "AM I CHEAP?" INTO A TIME-SERIES COMPOSITE CHART (owner, 2026-07-19 — greenlit, build next).** Both the
-    card AND the site should become a **proprietary valuation OSCILLATOR over time**: combine the SAME 6 lenses (rainbow
-    band · MVRV cost basis · supply-in-profit · Pi Cycle · alt-market · F&G) into ONE composite score per day and plot it
-    as a line that swings from **extremely expensive → extremely cheap** across history. The current snapshot gauge/chips
-    become the "today" point on that line. Build plan: extend `valuation-lenses.mjs` so each lens exposes a HISTORICAL
-    normalised series (0=expensive…1=cheap) — most already have the inputs (model band from priceData, MVRV from
-    mvrvSeries, supply-in-profit + everything on-chain from stats.onchain, Pi Cycle from piCycleRatio, alt-market from
-    buildAltRainbow, F&G from FNG_HISTORY) — average them per day into a composite, plot with cheap/expensive zones +
-    a "today" marker (like nupl/picycle). Card = `amicheap` reworked to LOOK "dual"; site = `AmICheapDashboard` becomes a
-    real chart. Keep the honesty guardrail (a valuation POSITION over time, NOT a buy/sell signal). The convergence-over-
-    time IS the proprietary angle — our own composite, fully reproducible from the 6 published lenses.
+  - **✅✅ SHIPPED 2026-07-22 — "AM I CHEAP?" REPLACED BY THE TIME-SERIES VALUATION COMPOSITE (owner: "build a custom
+    valuation band based on all the indicators, weight them clearly-labelled, remove the am-i-cheap card/website").** The
+    snapshot gauge/chips became a **proprietary valuation OSCILLATOR over history**. Fully reproducible (the honesty moat):
+    - **`scripts/bot/valuation-composite.mjs` (the engine, no Resvg so posts/tests/site all import it):** 6 CLEARLY-LABELLED
+      + WEIGHTED lenses (`INDICATORS`, weights sum 100) — **Rainbow power-law 22 · MVRV cost basis 22 · Supply in profit 16 ·
+      Pi Cycle trend 16 · vs Alt market 12 · Fear & Greed 12**. Each lens series is oriented HIGHER = MORE EXPENSIVE, then
+      **percentile-ranked over its OWN full history** (`ranker`, empirical pct 0..1), forward-filled onto a weekly grid, and
+      **weighted-averaged** → `composite` 0..1 = "weighted percentile of expensiveness across everything we track." `ZONES`
+      (0.20 Deeply undervalued green → 1.01 Deeply overvalued red), `zoneOf`. `lensSeries(s)` pulls straight from stats:
+      `series.risk` (rainbow), `mvrvSeries`, `onchain[].sip`, `piCycleRatio(drawn).rows`, `buildAltRainbow(history).series.z`,
+      `series.fng`. VALIDATED: **86% overvalued at the Jan-2025 top, ~79% at the Jul-2025 ATH, 16-18% at the 2024 bottom,
+      ~19% deeply-undervalued now** (today's byLens: rainbow 7% · mvrv 18% · sip 29% · picycle 21% · alt 10% · fng 33%).
+    - **Card `valband`** (`scripts/bot/valuation-band-card.mjs`, LOOK "dual", `card-ar.json` landscape, data-gated
+      `series.length<40`→null) — the oscillator over history with 5 horizontal zone bands + gridlines + white glow line +
+      today dot coloured by zone; headline "N% · <zone>", subtitle lists the weighted basket. Rendered clean.
+    - **Site `src/ValuationComposite.jsx`** (catalog id `valuation`, Valuation group, `loadValuation()` reads
+      `/valuation.json`) — recharts oscillator + zone ReferenceAreas + drag-zoom + `<Explain>` + **today's weighted lens
+      breakdown grid** (each lens: weight% · label · colored percentile bar · pct). Browser-verified (6/6, 19% deeply
+      undervalued).
+    - **Data:** `scripts/build-valuation.mjs` writes `public/valuation.json` (`{updated,indicators,zones,series:[[ts,comp,n]],
+      cur:{composite,byLens}}`); runs as a step in **snapshot.yml** (after cex-flow, before commit) so it ticks daily +
+      rides the same commit/deploy — keyless, zero cost (pure transform of already-banked price+on-chain+sentiment). The CARD
+      recomputes from `stats` directly (og.js), so it needs no includeFiles entry; only the SITE fetches valuation.json.
+    - **REMOVED:** `am-i-cheap-card.mjs`, `valuation-lenses.mjs`, `src/AmICheapDashboard.jsx`, the `amicheap` post entry +
+      charts.mjs dispatch + LOOK + catalog + App.jsx wiring + card-ar entry. `valband` wired everywhere; 97 tests green,
+      build clean. Copy tightened to fit 290 (`Six lenses weighted into one — rainbow, MVRV, supply in profit, Pi Cycle,
+      alts and Fear & Greed — each ranked over its full history`). Honesty rail kept: a valuation POSITION over time, NOT a
+      buy/sell signal. **To re-tune:** edit the `INDICATORS` weights — the one knob. The convergence-over-time IS the
+      proprietary angle — our own composite, reproducible from the 6 published lenses.
   - **⭐ "AM I CHEAP?" VALUATION DASHBOARD — greenlit for memory (owner, 2026-07-08).** A view/card
     that flags when MULTIPLE INDEPENDENT valuation gauges AGREE that SPX is cheap/heated — the
     corroboration is the signal (one metric can mislead; three aligning is stronger + honest). The

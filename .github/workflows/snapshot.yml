@@ -54,17 +54,21 @@ jobs:
         # Splices today's CEX/LP/custody balances (just banked in history.json) onto the Dune
         # reconstruction baseline → public/cex-flow.json. Zero credits, keyless.
         run: node scripts/build-cex-flow.mjs
+      - name: Rebuild valuation composite (no Dune, free)
+        # Recomputes the weighted valuation composite from today's stats → public/valuation.json.
+        # Pure transform of already-banked data (price + on-chain + sentiment). Keyless, zero cost.
+        run: node scripts/build-valuation.mjs
       - name: Commit if changed
         id: commit
         run: |
           # history.json + chain-wallets.json are rendered by the deployed site + og.js
           # card, so a change to either must redeploy. signals.json is deploy-ignored.
           DEPLOY_CHANGED=""
-          [[ -n "$(git status --porcelain public/history.json public/chain-wallets.json public/cex-flow.json)" ]] && DEPLOY_CHANGED=1
-          if [[ -n "$(git status --porcelain public/history.json public/signals.json public/chain-wallets.json public/cex-flow.json)" ]]; then
+          [[ -n "$(git status --porcelain public/history.json public/chain-wallets.json public/cex-flow.json public/valuation.json)" ]] && DEPLOY_CHANGED=1
+          if [[ -n "$(git status --porcelain public/history.json public/signals.json public/chain-wallets.json public/cex-flow.json public/valuation.json)" ]]; then
             git config user.name "github-actions[bot]"
             git config user.email "github-actions[bot]@users.noreply.github.com"
-            git add public/history.json public/signals.json public/chain-wallets.json public/cex-flow.json
+            git add public/history.json public/signals.json public/chain-wallets.json public/cex-flow.json public/valuation.json
             git commit -m "chore: supply snapshot $(date -u +%F)"
             git push
           else

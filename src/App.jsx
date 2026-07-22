@@ -59,7 +59,7 @@ const MvrvContextChart = lazy(() => import("./MvrvContextChart.jsx"));
 const PiCycleChart = lazy(() => import("./PiCycleChart.jsx"));
 const LongShortChart = lazy(() => import("./LongShortChart.jsx"));
 const AltMarketChart = lazy(() => import("./AltMarketChart.jsx"));
-const AmICheapDashboard = lazy(() => import("./AmICheapDashboard.jsx"));
+const ValuationComposite = lazy(() => import("./ValuationComposite.jsx"));
 const FreeFloatChart = lazy(() => import("./FreeFloatChart.jsx"));
 const NuplChart = lazy(() => import("./NuplChart.jsx"));
 const QuantileFanChart = lazy(() => import("./QuantileFanChart.jsx"));
@@ -184,7 +184,7 @@ function TabIcon({ name }) {
     case "walletgrowth": return (<svg {...p}><path d="M3 20v-3c4 0 5-6 9-6s5 4 9 4v5z" /><path d="M3 20h18" /></svg>);
     case "mvrvbtc": return (<svg {...p}><path d="M3 16c3 1 4-8 7-8s3 7 6 5 3-6 5-7" /><line x1="3" y1="11" x2="21" y2="11" strokeDasharray="3 2" strokeOpacity="0.8" /></svg>);
     case "altmarket": return (<svg {...p}><line x1="3" y1="12" x2="21" y2="12" /><path d="M3 12c2 0 3-6 5-6s2 10 4 10 3-8 5-8 2 4 4 4" /></svg>);
-    case "amicheap": return (<svg {...p}><rect x="3" y="6" width="4" height="4" rx="1" /><rect x="9" y="6" width="4" height="4" rx="1" /><rect x="15" y="6" width="4" height="4" rx="1" /><rect x="3" y="14" width="4" height="4" rx="1" /><rect x="9" y="14" width="4" height="4" rx="1" /></svg>);
+    case "valuation": return (<svg {...p}><path d="M3 16c2 0 3-9 5-9s2 7 4 7 3-11 5-11 2 6 4 6" /><line x1="3" y1="12" x2="21" y2="12" strokeDasharray="3 2" strokeOpacity="0.5" /></svg>);
     case "freefloat": return (<svg {...p}><path d="M3 6c4 0 6 4 9 6s5 5 9 6" /><path d="M3 20h18" strokeOpacity="0.4" /></svg>);
     case "nupl": return (<svg {...p}><path d="M3 8c3 0 4-3 6-3s3 6 5 6 3-5 7-5" /><line x1="3" y1="14" x2="21" y2="14" strokeDasharray="3 2" strokeOpacity="0.6" /><path d="M3 20c3 0 4-2 6-2s3 3 5 3 3-2 7-2" strokeOpacity="0.5" /></svg>);
     case "longshort": return (<svg {...p}><line x1="3" y1="12" x2="21" y2="12" strokeDasharray="2 3" /><rect x="5" y="6" width="3" height="6" /><rect x="11" y="12" width="3" height="5" /><rect x="17" y="8" width="3" height="4" /></svg>);
@@ -609,7 +609,7 @@ export default function App() {
       case "walletgrowth": return <WalletGrowthChart isMobile={mob} preview={preview} />;
       case "mvrvbtc": return <MvrvContextChart isMobile={mob} preview={preview} />;
       case "altmarket": return <AltMarketChart isMobile={mob} preview={preview} />;
-      case "amicheap": return <AmICheapDashboard series={priceData} isMobile={mob} preview={preview} />;
+      case "valuation": return <ValuationComposite isMobile={mob} preview={preview} />;
       case "freefloat": return <FreeFloatChart isMobile={mob} preview={preview} />;
       case "nupl": return <NuplChart isMobile={mob} preview={preview} />;
       case "longshort": return <LongShortChart series={priceData} isMobile={mob} />;

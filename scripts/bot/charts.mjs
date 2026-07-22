@@ -24,7 +24,7 @@ import { renderFreeFloatCard } from "./free-float-card.mjs";
 import { renderNuplCard } from "./nupl-card.mjs";
 import { renderConcentrationCard } from "./concentration-card.mjs";
 import { renderHodlWavesCard } from "./hodl-waves-card.mjs";
-import { renderAmICheapCard } from "./am-i-cheap-card.mjs";
+import { renderValuationBandCard } from "./valuation-band-card.mjs";
 import { renderWalletGrowthCard } from "./wallet-growth-card.mjs";
 import { renderPiCycleCard } from "./picycle-card.mjs";
 import { renderHoldersPriceCard } from "./holders-price-card.mjs";
@@ -869,7 +869,7 @@ export function renderPostCard(post, stats, opts = {}) {
   if (type === "urpdage") return renderUrpdAgeCard(stats, dims);
   if (type === "lthsth") return renderLthSthCard(stats, dims);
   if (type === "sopr") return renderSoprCard(stats, dims);
-  if (type === "amicheap") return renderAmICheapCard(stats, dims);
+  if (type === "valband") return renderValuationBandCard(stats, dims);
   if (type === "walletgrowth") return renderWalletGrowthCard(stats, dims);
   if (type === "picycle") return renderPiCycleCard(stats, dims);
   if (type === "spxbitcoin") return renderSpxBitcoinCard(dims);
