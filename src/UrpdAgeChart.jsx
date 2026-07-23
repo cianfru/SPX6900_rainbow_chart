@@ -111,7 +111,7 @@ export default function UrpdAgeChart({ isMobile, preview = false, price = null }
       {view === "3d" && !preview ? (
         <div>
           <Suspense fallback={<div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Loading 3D…</div>}>
-            <Urpd3D buckets={buckets} isMobile={isMobile} />
+            <Urpd3D buckets={buckets} spot={spot} isMobile={isMobile} />
           </Suspense>
           <div style={{ display: "flex", gap: 16, justifyContent: "center", flexWrap: "wrap", marginTop: 12 }}>
             {AGE_L.map((l, a) => <span key={l} style={{ display: "flex", alignItems: "center", gap: 6, fontFamily: SANS, fontSize: 13, color: "#cbd5e1" }}><span style={{ width: 12, height: 12, borderRadius: 3, background: AGE_C[a] }} />{l}</span>)}
