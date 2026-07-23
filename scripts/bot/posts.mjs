@@ -1214,8 +1214,8 @@ Coins moving to self-custody is holding, not distribution. One cycle of on-chain
     return {
       id: "cexvenues",
       text: ct`🏦 Where SPX6900 sits on exchanges, by venue.
-${line} — Kraken leads, with the rest spread across the mid-tier EU/Asia venues.
-A comprehensive on-chain sweep, every venue's wallets tagged. Where the supply sits — reproducible, not a signal.`,
+${line} — ${V.venues[0]} leads, the rest spread across the mid-tier venues.
+A full on-chain sweep, every wallet tagged. Where supply sits — reproducible, not a signal.`,
       card: { type: "cexvenues" },
     };
   })(),
