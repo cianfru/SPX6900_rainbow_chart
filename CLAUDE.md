@@ -435,6 +435,14 @@
         distribution (1y+ row lit at cheap prices + fresh cells clustered at spot). Card style approved via mockups (owner:
         A=card, B=site; chose 2D over 3D — occlusion/angle problems). Wired charts/posts/LOOK/card-ar/catalog/App; 97 tests
         green. NOT a new reconstruction — same FIFO run, extra axis. It also refreshes weekly now (rides the Dune pipeline).
+        - **✅ SITE CHART RE-DONE 3 WAYS 2026-07-23 (owner: heatmap reads hard; explored angles).** `UrpdAgeChart.jsx` now has a
+          **Ridgeline / Heatmap / 3D** toggle. **Ridgeline is the DEFAULT** (one age band per row, fresh top → 1y+ bottom — reads the
+          round-trip story without decoding colour: 0-1m spikes AT spot, mid-age below/above, 1y+ spread across cheap launch prices).
+          Heatmap kept as an option. **3D = new `Urpd3D.jsx`** — an orbitable **three.js** bar field (x=cost basis, z=age, y=supply%;
+          drag/scroll, auto-rotate). **three.js is code-split into its own on-demand chunk** (~135KB gzip) via `vite.config.js`
+          manualChunks (`return 'three'`), so it NEVER loads unless the 3D tab is opened — base bundle untouched. Browser-verified all
+          three. **Owner loved the 3D → also generated static matplotlib 3D renders (`scratchpad/render3d*.py`) for a DEDICATED TWEET**
+          (posted manually — the Node card pipeline can't run Python/3D, so the rotating bot card stays 2D; the 3D is site + hand-posted).
     - **`lthsth`** (`scripts/bot/lth-sth-card.mjs`, LOOK "stack") — long vs short-term holders in profit/loss over time,
       4-band stacked area. Today: **86% held long-term, 55% underwater and unmoved** (conviction). ROTATION-EXCLUDED by
       default (gloomy-leaning; owner curates via the ⊘ toggle).
