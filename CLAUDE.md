@@ -443,6 +443,18 @@
           manualChunks (`return 'three'`), so it NEVER loads unless the 3D tab is opened — base bundle untouched. Browser-verified all
           three. **Owner loved the 3D → also generated static matplotlib 3D renders (`scratchpad/render3d*.py`) for a DEDICATED TWEET**
           (posted manually — the Node card pipeline can't run Python/3D, so the rotating bot card stays 2D; the 3D is site + hand-posted).
+        - **🔲 SIDE PROJECT — 3D SHOWCASE RENDERS (owner: "put it in memory as a little side project", 2026-07-23).** A Python
+          renderer for eye-catching 3D charts for HAND-POSTED tweets (the Node/Resvg bot pipeline can't do 3D). **`tools/3d/render_3d.py`**
+          (committed, re-runnable; reads `public/onchain.json` + `public/urpd.json`; deps `matplotlib numpy pillow imageio imageio-ffmpeg`;
+          `out/` gitignored). Renders three, all from real data + a `--spin` 360° MP4/GIF helper: **cba** (cost basis × age, also the
+          `Urpd3D.jsx` site chart), **hodl** (⭐ HODL Waves in 3D = time×age×supply — the STANDOUT: the red fresh-wave collapses while the
+          cyan 1y+ diamond band swells 0→56%, the maturation story made physical), **ven** (exchange supply by venue over time — the
+          Kraken ridge rising as it listed). Owner LOVED the renders. Rule of thumb baked into the README: 3D only earns its keep with
+          THREE genuine dims (two axes + magnitude) — good for these joint-distribution/surface-over-time datasets, NOT for single
+          series/ratios (rainbow, MVRV, NUPL, SOPR, valuation composite → stay 2D). **Backlog ideas (not built):** URPD *terrain over
+          time* (needs the FIFO engine to emit WEEKLY URPD history, not just current-state), seasonality 3D calendar (year×month×return,
+          data ready in src/data.js). Any can become a rotating MP4. Parked as a fun side project — resume when the owner wants a
+          showcase tweet.
     - **`lthsth`** (`scripts/bot/lth-sth-card.mjs`, LOOK "stack") — long vs short-term holders in profit/loss over time,
       4-band stacked area. Today: **86% held long-term, 55% underwater and unmoved** (conviction). ROTATION-EXCLUDED by
       default (gloomy-leaning; owner curates via the ⊘ toggle).
