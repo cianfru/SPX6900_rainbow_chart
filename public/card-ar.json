@@ -72,7 +72,7 @@
   "spxcohort": "square",
   "cexflow": "square",
   "cexsupply": "square",
-  "cexvenues": "landscape",
+  "cexvenues": "square",
   "cexvenflow": "landscape",
   "urpdage": "square"
 }
