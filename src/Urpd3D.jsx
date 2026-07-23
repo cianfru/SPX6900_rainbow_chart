@@ -50,8 +50,9 @@ export default function Urpd3D({ buckets, isMobile }) {
     });
     scene.add(group);
 
+    const zc = ((A - 1) * 2.4) / 2 - cz;              // geometric z-centre of the bar field (bars span -cz..(A-1)*2.4-cz)
     const controls = new OrbitControls(cam, renderer.domElement);
-    controls.target.set(0, 4, 0); controls.enableDamping = true; controls.dampingFactor = 0.08;
+    controls.target.set(0, 5, zc); controls.enableDamping = true; controls.dampingFactor = 0.08;
     controls.minDistance = 18; controls.maxDistance = 90; controls.maxPolarAngle = Math.PI * 0.49;
     controls.autoRotate = true; controls.autoRotateSpeed = 0.7;
     const stop = () => { controls.autoRotate = false; };
