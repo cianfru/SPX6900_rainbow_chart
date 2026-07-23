@@ -1204,7 +1204,7 @@ Coins moving to self-custody is holding, not distribution. One cycle of on-chain
     card: { type: "cexflow" },
   }),
   // Exchange supply split BY VENUE (Kraken vs Bybit vs Coinbase …), from the FIFO engine's
-  // per-address balances. The honest finding: Kraken leads, Binance/Coinbase hold almost none.
+  // per-address balances. Neutral location map (venue holdings change over time).
   // Colored dots match the card's band colours (rank 0/1/2 = orange/red/purple). NO_ROTATE.
   s => (() => {
     const V = cexVenuesStats(s);
@@ -1214,8 +1214,8 @@ Coins moving to self-custody is holding, not distribution. One cycle of on-chain
     return {
       id: "cexvenues",
       text: ct`🏦 Where SPX6900 sits on exchanges, by venue.
-${line} — concentrated on Kraken and the mid-tier EU/Asia venues.
-The surprise: Binance and Coinbase, the two giants, hold almost none. Every wallet tagged on-chain.`,
+${line} — Kraken leads, with the rest spread across the mid-tier EU/Asia venues.
+A comprehensive on-chain sweep, every venue's wallets tagged. Where the supply sits — reproducible, not a signal.`,
       card: { type: "cexvenues" },
     };
   })(),
