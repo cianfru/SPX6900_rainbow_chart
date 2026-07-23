@@ -339,7 +339,7 @@ async function main() {
   const grid = args.daily
     ? Array.from({ length: Math.floor((t1 - t0) / DAY) + 2 }, (_, i) => dayFloor(t0) + i * DAY)
     : mondays(t0, t1);
-  const { rows, urpd } = replayFifo(transfers, priceAt, grid, { thresholdDays: Number(args.threshold ?? 90), collectUrpd: true });
+  const { rows, urpd } = replayFifo(transfers, priceAt, grid, { thresholdDays: Number(args.threshold ?? 90), collectUrpd: true, urpdBuckets: Number(args.buckets ?? 72) });
   const clean = rows.filter(r => r.holders > 0);
   const out = args.out || "public/onchain.json";
   await writeFile(out, JSON.stringify(clean));

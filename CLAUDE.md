@@ -435,13 +435,17 @@
         distribution (1y+ row lit at cheap prices + fresh cells clustered at spot). Card style approved via mockups (owner:
         A=card, B=site; chose 2D over 3D — occlusion/angle problems). Wired charts/posts/LOOK/card-ar/catalog/App; 97 tests
         green. NOT a new reconstruction — same FIFO run, extra axis. It also refreshes weekly now (rides the Dune pipeline).
-        - **✅ SITE CHART RE-DONE 3 WAYS 2026-07-23 (owner: heatmap reads hard; explored angles).** `UrpdAgeChart.jsx` now has a
-          **Ridgeline / Heatmap / 3D** toggle. **Ridgeline is the DEFAULT** (one age band per row, fresh top → 1y+ bottom — reads the
-          round-trip story without decoding colour: 0-1m spikes AT spot, mid-age below/above, 1y+ spread across cheap launch prices).
-          Heatmap kept as an option. **3D = new `Urpd3D.jsx`** — an orbitable **three.js** bar field (x=cost basis, z=age, y=supply%;
-          drag/scroll, auto-rotate). **three.js is code-split into its own on-demand chunk** (~135KB gzip) via `vite.config.js`
-          manualChunks (`return 'three'`), so it NEVER loads unless the 3D tab is opened — base bundle untouched. Browser-verified all
-          three. **Owner loved the 3D → also generated static matplotlib 3D renders (`scratchpad/render3d*.py`) for a DEDICATED TWEET**
+        - **✅ SITE CHART RE-DONE 2026-07-23 — `UrpdAgeChart.jsx` = Bars / Heatmap / 3D toggle.** Iterated with the owner: first tried
+          a **Ridgeline** default → owner said "not clear," wanted "the card reproduced with more bars." So the **DEFAULT is now BARS**
+          (the `urpdage` card reproduced interactively — each price bucket a stacked bar coloured by age, fresh red base → 1y+ cyan top,
+          y-axis %, hover tooltips, spot line, age legend). Ridgeline DROPPED. Heatmap kept as an option. **More granularity: URPD
+          buckets bumped 42→72** (`build-onchain-local.mjs` main now passes `urpdBuckets: args.buckets ?? 72`; `computeUrpd` default
+          stays 42 for tests). Both the card AND the site read the finer 72 buckets; regenerated `public/urpd.json` with 72 (pipeline
+          uses 72 going forward). **3D = `Urpd3D.jsx`** — orbitable **three.js** bar field (x=cost basis, z=age, y=supply%; drag/scroll,
+          auto-rotate) **with axis REFERENCE VALUES** (owner asked): a % of supply axis + gridlines, cost-basis price ticks, age labels,
+          and a spot marker — via three.js `CSS2DRenderer`. **three.js is code-split into its own on-demand chunk** (~135KB gzip) via
+          `vite.config.js` manualChunks (`return 'three'`), so it NEVER loads unless the 3D tab is opened — base bundle untouched.
+          Browser-verified all views. **Owner loved the 3D → also generated static matplotlib 3D renders (`scratchpad/render3d*.py`) for a DEDICATED TWEET**
           (posted manually — the Node card pipeline can't run Python/3D, so the rotating bot card stays 2D; the 3D is site + hand-posted).
         - **🔲 SIDE PROJECT — 3D SHOWCASE RENDERS (owner: "put it in memory as a little side project", 2026-07-23).** A Python
           renderer for eye-catching 3D charts for HAND-POSTED tweets (the Node/Resvg bot pipeline can't do 3D). **`tools/3d/render_3d.py`**

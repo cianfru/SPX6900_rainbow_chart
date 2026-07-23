@@ -26,7 +26,7 @@ function ramp(t) {
 export default function UrpdAgeChart({ isMobile, preview = false, price = null }) {
   const [live, setLive] = useState(null);
   const [px, setPx] = useState(null);
-  const [view, setView] = useState("ridge");
+  const [view, setView] = useState("bars");
   useEffect(() => {
     let c = false;
     loadUrpd().then(d => { if (!c && d) setLive(d); });
@@ -54,18 +54,28 @@ export default function UrpdAgeChart({ isMobile, preview = false, price = null }
   const xticks = [0.003, 0.01, 0.03, 0.1, 0.3, 1, 2].filter(p => p >= pmin && p <= pmax);
   const maxV = Math.max(...buckets.flatMap(b => b.age), 1e-9);
 
-  // ── RIDGELINE — one filled curve per age band, offset vertically (fresh top → old bottom) ──
-  const ridge = () => {
-    const rh = (pB - pT) / 5, amp = rh * 1.5 / maxV; // let peaks overlap the row above
+  // ── BARS — the card reproduced: each price bucket a stacked bar coloured by age ──
+  const bars = () => {
+    const bw = (pW / buckets.length) * 0.84;
+    const ymax = Math.max(...buckets.map(b => b.pct)) * 1.08 || 1;
+    const Y = v => pB - (v / ymax) * (pB - pT);
     const out = [];
-    for (let a = 0; a < 5; a++) {
-      const base = pT + (a + 1) * rh;
-      let d = `M ${mL.toFixed(1)} ${base.toFixed(1)}`;
-      buckets.forEach((b, i) => { d += ` L ${Xi(i).toFixed(1)} ${(base - b.age[a] * amp).toFixed(1)}`; });
-      d += ` L ${(mL + pW).toFixed(1)} ${base.toFixed(1)} Z`;
-      out.push(<path key={a} d={d} fill={AGE_C[a]} fillOpacity="0.82" stroke="#0a0e1c" strokeWidth="0.7" />);
-      out.push(<text key={"l" + a} x={mL - 12} y={(base - rh * 0.3).toFixed(1)} fill={AGE_C[a]} fontSize="16" fontWeight="800" textAnchor="end" fontFamily={SANS}>{AGE_L[a]}</text>);
+    // y-axis ticks (% of supply per price bucket)
+    for (let g = 0; g <= 4; g++) {
+      const v = (ymax * g) / 4;
+      out.push(<line key={"g" + g} x1={mL} y1={Y(v).toFixed(1)} x2={mL + pW} y2={Y(v).toFixed(1)} stroke="rgba(255,255,255,0.06)" />);
+      out.push(<text key={"gt" + g} x={mL - 10} y={(Y(v) + 5).toFixed(1)} fill="#8b95a7" fontSize="14" textAnchor="end" fontFamily={MONO}>{v.toFixed(1)}%</text>);
     }
+    buckets.forEach((b, i) => {
+      const cx = Xi(i); let base = 0;
+      for (let a = 0; a < 5; a++) {
+        const seg = b.age[a]; if (seg <= 0) continue;
+        const y0 = Y(base), y1 = Y(base + seg);
+        out.push(<rect key={`${i}-${a}`} x={(cx - bw / 2).toFixed(1)} y={y1.toFixed(1)} width={bw.toFixed(1)} height={Math.max(0.5, y0 - y1).toFixed(1)} fill={AGE_C[a]} fillOpacity="0.94">
+          <title>{`${fp(b.lo)}–${fp(b.hi)} · ${AGE_L[a]}: ${seg.toFixed(2)}% of supply`}</title></rect>);
+        base += seg;
+      }
+    });
     return out;
   };
 
@@ -88,7 +98,11 @@ export default function UrpdAgeChart({ isMobile, preview = false, price = null }
     </>);
   };
 
-  const TABS = [["ridge", "Ridgeline"], ["heat", "Heatmap"], ["3d", "3D"]];
+  const legend = () => AGE_L.map((l, a) => {
+    const lx = mL + a * (pW / 5.2);
+    return (<g key={"lg" + a}><rect x={lx} y="10" width="18" height="12" rx="3" fill={AGE_C[a]} /><text x={lx + 24} y="20" fill="#cbd5e1" fontSize="15" fontWeight="700" fontFamily={SANS}>{l}</text></g>);
+  });
+  const TABS = [["bars", "Bars"], ["heat", "Heatmap"], ["3d", "3D"]];
   const tbtn = active => ({
     padding: "5px 14px", borderRadius: 8, fontFamily: SANS, fontSize: 13, cursor: "pointer",
     border: "1px solid " + (active ? "rgba(167,139,250,0.55)" : "rgba(255,255,255,0.12)"),
@@ -123,7 +137,8 @@ export default function UrpdAgeChart({ isMobile, preview = false, price = null }
       ) : (
         <div style={{ position: "relative", width: "100%" }}>
           <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{ display: "block" }}>
-            {view === "heat" ? heat() : ridge()}
+            {view === "bars" && legend()}
+            {view === "heat" ? heat() : bars()}
             {xticks.map(p => (
               <text key={p} x={X(p).toFixed(1)} y={pB + 26} fill="#aab6cc" fontSize="15" textAnchor="middle" fontFamily={MONO}>{fp(p)}</text>
             ))}
@@ -141,7 +156,7 @@ export default function UrpdAgeChart({ isMobile, preview = false, price = null }
 
       <div className="chart-caption" style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.65, maxWidth: 900, marginInline: "auto" }}>
         Cost basis × holding age, reconstructed on-chain from every coin&apos;s FIFO per-lot acquisition price and time.
-        {view === "ridge" && " One age band per row — fresh (top) to diamond 1y+ (bottom)."}
+        {view === "bars" && " Each price bucket stacked by holder age — fresh (red) at the base to diamond 1y+ (cyan) on top. Hover a segment for the exact share."}
         {view === "heat" && " Brighter = more supply at that price and age. Hover a cell for the exact number."}
         {view === "3d" && " Each bar = supply held at a given price and age. Orbit to explore."}
         {" "}A holder-composition position, not a signal.
