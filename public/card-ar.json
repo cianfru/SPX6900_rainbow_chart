@@ -73,6 +73,6 @@
   "cexflow": "square",
   "cexsupply": "square",
   "cexvenues": "square",
-  "cexvenflow": "landscape",
+  "cexvenflow": "square",
   "urpdage": "square"
 }
