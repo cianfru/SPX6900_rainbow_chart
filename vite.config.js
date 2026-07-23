@@ -13,6 +13,9 @@ export default defineConfig({
         manualChunks(id) {
           if (!id.includes('node_modules')) return;
           if (/[\\/]node_modules[\\/](react|react-dom|scheduler|react-is)[\\/]/.test(id)) return 'react';
+          // three.js only feeds the lazy 3D chart — keep it in its own chunk so it
+          // loads on demand (when the 3D tab is opened), NOT in the eager vendor bundle.
+          if (/[\\/]node_modules[\\/]three[\\/]/.test(id)) return 'three';
           return 'vendor';
         },
       },
