@@ -177,10 +177,20 @@
   for floor/owners/volume; a local ERC-721 reconstruction for HODL/age (from a BigQuery extract); cards + a new
   "Project Aeon" site gallery group reusing the existing card/chart primitives (line/stack/dual/donut/bars). The
   **freshness tags + control-panel rows extend to it automatically** (add aeon files to FRESH_SOURCES/SOURCES).
-- **🔲 BLOCKER — need from owner to start:** (1) Aeon **contract address + chain** (ETH? Base?); (2) preferred
-  floor/holders source — a free **Reservoir API key** for the daily CI banker is cleanest; (3) for HODL/age,
-  either wire the same BigQuery ERC-721 extract or owner runs it once + sends the CSV. Then Claude scaffolds the
-  aeon data layer + first cards (floor, owners, HODL waves).
+- **✅ KICKED OFF 2026-07-23 — address + chain confirmed.** Collection = **Project AEON**, ERC-721 on **Ethereum
+  mainnet**, contract **`0xc374a204334d4Edd4C6a62f0867C752d65E9579c`**, **3,333 supply**, live on OpenSea/Highlight/
+  Magic Eden/Rarible (Reservoir-supported). Sci-fi/quantum theme ("3333 Aeons"). **Data-source decision: for a small
+  collection, the transfer history (age/concentration) is only a few thousand rows → pull the WHOLE history each refresh,
+  no archive/incremental complexity (much simpler than the coin).** Two transfer queries drafted:
+  **`dune/aeon_transfers.sql`** (primary — `erc721_ethereum.evt_Transfer`, decoded tokenId, tiny/cheap) +
+  **`bigquery/aeon_transfers.sql`** (FREE fallback — decodes ERC-721 Transfer from `crypto_ethereum.logs` via a hexToInt
+  UDF + the ARRAY_LENGTH(topics)=4 filter to exclude ERC-20). Both output `from_address,to_address,token_id,time`.
+  **🔲 OWNER — 2 actions to unblock the first cards:** (1) free **Reservoir API key** (reservoir.tools) → repo secret
+  `RESERVOIR_KEY` (unlocks the daily floor/owners/volume banker). (2) run **one** transfers query (Dune or BigQuery) →
+  send the CSV → Claude builds `build-aeon-onchain.mjs` (per-token current owner = last `to`; holder age = now − last
+  transfer; top-N concentration; holders-by-count donut) + the first cards (floor, owners, HODL waves), VALIDATED against
+  real numbers (don't build blind). NFT holder-age is CLEANER than the coin (no FIFO/lots). Cost ≈ $0, daily granularity
+  easy (Reservoir free + tiny transfer query).
 
 ## Backlog / decisions
 - **⭐ MULTI-CHAIN WALLET GROWTH + OUR-OWN-METRICS (owner, 2026-07-16) — in progress.** Two linked asks:
