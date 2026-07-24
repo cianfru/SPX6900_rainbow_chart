@@ -136,15 +136,23 @@ function main() {
     const iA = h.indexOf("address"), iS = h.indexOf("spx");
     for (let i = 1; i < ls.length; i++) { const c = ls[i].split(","); const v = Number(c[iS]); if (c[iA] && v > 0) spxBal.set(c[iA].toLowerCase(), v); }
   }
-  const holders = [...wallet.entries()]
-    .map(([a, w]) => {
-      const r = { a, n: w.n, days: Math.round((now - w.oldest) / DAY), since: new Date(w.oldest).toISOString().slice(0, 10) };
-      if (spxBal.has(a)) r.spx = Math.round(spxBal.get(a));
-      return r;
-    })
-    .sort((x, y) => y.n - x.n || y.days - x.days)
+  // Build ALL current holders, merge SPX, then rank. When SPX is present, rank by the
+  // COMBINED conviction score (AEON + SPX rescaled to the same axis, × holding duration)
+  // across every holder — so a low-NFT / high-SPX wallet can still make the skyline — and
+  // only then take the top 120 for display. Without SPX, rank by AEON count (as before).
+  const all = [...wallet.entries()].map(([a, w]) => {
+    const r = { a, n: w.n, days: Math.round((now - w.oldest) / DAY), since: new Date(w.oldest).toISOString().slice(0, 10) };
+    if (spxBal.has(a)) r.spx = Math.round(spxBal.get(a));
+    return r;
+  });
+  const maxN = Math.max(...all.map(h => h.n), 1);
+  const maxSpx = Math.max(...all.map(h => h.spx || 0), 0);
+  const maxDays = Math.max(...all.map(h => h.days), 1);
+  const combined = h => (h.n + (maxSpx > 0 ? (h.spx || 0) / maxSpx * maxN : 0)) * (0.45 + 0.55 * (h.days / maxDays));
+  const holders = all
+    .sort((x, y) => maxSpx > 0 ? combined(y) - combined(x) : (y.n - x.n || y.days - x.days))
     .slice(0, 120);
-  if (spxArg) console.log(`  spx: joined coin balances for ${holders.filter(h => h.spx).length}/${holders.length} skyline wallets`);
+  if (spxArg) console.log(`  spx: joined coin balances for ${holders.filter(h => h.spx).length}/${holders.length} skyline wallets · biggest ${Math.max(...holders.map(h => h.spx || 0)).toLocaleString()} SPX`);
 
   const out = {
     updated: new Date(now).toISOString().slice(0, 10),
