@@ -1,0 +1,95 @@
+// ============================================================================
+// PROJECT AEON — active listings × rarity (the "underpriced rare" deal finder)
+// ============================================================================
+// Pulls every active listing from OpenSea (api v2), joins each to the token's rarity
+// (from public/aeon-rarity.json) + its image, and writes public/aeon-listings.json —
+// the feed for the rarity-vs-price chart that flags rare pieces listed below their
+// rarity-implied fair value.
+//
+//   node scripts/build-aeon-listings.mjs
+//
+// Requires OPENSEA_KEY (a free OpenSea API key — backend only). NO key → soft-skip.
+// Reservoir (our first plan) shut down 2025-10; OpenSea is the standard listings source.
+// Claude can't reach OpenSea from the sandbox → runs in CI (aeon.yml, daily — listings
+// change constantly). VALIDATE first run: a plausible listing count, prices in ETH,
+// ranks joined for most.
+//
+// VERIFY on first run (OpenSea response shapes evolve): a listing carries the token id at
+// protocol_data.parameters.offer[0].identifierOrCriteria and price at price.current.{value,
+// decimals,currency}. The collection slug is resolved from the contract, or set AEON_OS_SLUG.
+// ============================================================================
+import { readFileSync, writeFileSync } from "node:fs";
+
+const CONTRACT = (process.env.AEON_CONTRACT || "0xc374a204334d4Edd4C6a62f0867C752d65E9579c").toLowerCase();
+const KEY = (process.env.OPENSEA_KEY || "").trim();
+const CHAIN = process.env.AEON_OS_CHAIN || "ethereum";
+const OUT = "public/aeon-listings.json";
+const RARITY = "public/aeon-rarity.json";
+const BASE = "https://api.opensea.io/api/v2";
+
+async function os(path) {
+  let lastErr;
+  for (let attempt = 0; attempt < 4; attempt++) {
+    if (attempt) await new Promise(r => setTimeout(r, 1500 * 2 ** (attempt - 1)));
+    try {
+      const res = await fetch(`${BASE}/${path}`, { headers: { accept: "application/json", "x-api-key": KEY } });
+      if (res.status === 401 || res.status === 403) throw new Error(`auth ${res.status} — check OPENSEA_KEY`);
+      if (res.status === 429) throw new Error("rate limited (429)");
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return await res.json();
+    } catch (e) { lastErr = e; console.error(`aeon-listings: ${path.split("?")[0]} — ${e.message}`); }
+  }
+  throw lastErr;
+}
+
+const num = v => { const n = Number(v); return Number.isFinite(n) ? n : null; };
+
+async function main() {
+  if (!KEY) { console.log("aeon-listings: no OPENSEA_KEY — soft-skipping"); return; }
+
+  // rarity join table (rank/score/img by token id)
+  let rar = {};
+  try { const r = JSON.parse(readFileSync(RARITY, "utf8")); for (const t of r.tokens) rar[t.id] = { rank: t.rank, score: t.score, img: t.img }; }
+  catch { console.error("aeon-listings: no aeon-rarity.json — rank/img won't be joined"); }
+  const total = Object.keys(rar).length || 3333;
+
+  // resolve the collection slug from the contract (or AEON_OS_SLUG override)
+  let slug = process.env.AEON_OS_SLUG;
+  if (!slug) { const c = await os(`chain/${CHAIN}/contract/${CONTRACT}`); slug = c?.collection; }
+  if (!slug) throw new Error("could not resolve OpenSea collection slug (set AEON_OS_SLUG)");
+
+  // page through all active listings
+  const best = new Map();   // token id -> lowest ETH ask
+  let next, pages = 0;
+  do {
+    const j = await os(`listings/collection/${slug}/all?limit=100${next ? `&next=${encodeURIComponent(next)}` : ""}`);
+    for (const L of (j.listings || [])) {
+      const cur = L.price?.current || {};
+      if (cur.currency && !["ETH", "WETH"].includes(cur.currency)) continue;      // ETH-denominated only
+      const price = num(cur.value) != null ? Number(cur.value) / 10 ** (num(cur.decimals) ?? 18) : null;
+      const offer = L.protocol_data?.parameters?.offer?.[0];
+      const id = offer ? Number(offer.identifierOrCriteria) : null;
+      if (!(price > 0) || id == null || !Number.isFinite(id)) continue;
+      if (!best.has(id) || price < best.get(id)) best.set(id, price);            // cheapest listing per token
+    }
+    next = j.next;
+  } while (next && ++pages < 200);
+
+  const listings = [...best.entries()].map(([id, price]) => ({
+    id, price: +price.toFixed(4), rank: rar[id]?.rank ?? null, score: rar[id]?.score ?? null, img: rar[id]?.img ?? null,
+  })).filter(l => l.rank != null).sort((a, b) => a.rank - b.rank);
+
+  writeFileSync(OUT, JSON.stringify({
+    updated: new Date().toISOString().slice(0, 10), contract: CONTRACT, slug, total, count: listings.length, listings,
+  }) + "\n");
+
+  const cheapest = [...listings].sort((a, b) => a.price - b.price)[0];
+  const rarestListed = listings[0];
+  console.log(
+    `aeon-listings: ${listings.length} active listings (${slug})\n` +
+    `  floor listing ${cheapest?.price} ETH (#${cheapest?.id}, rank ${cheapest?.rank})\n` +
+    `  rarest listed #${rarestListed?.id} rank ${rarestListed?.rank} at ${rarestListed?.price} ETH`
+  );
+}
+
+main().catch(e => { console.error("aeon-listings: failed —", e.message); process.exitCode = 1; });

@@ -127,6 +127,19 @@ export function loadAeonRarity() {
   return aeonRarityPromise;
 }
 
+// Shared, cached loader for /aeon-listings.json — active OpenSea listings joined to
+// rarity (the deal-finder feed). Null on failure so the chart shows an empty state.
+let aeonListPromise = null;
+export function loadAeonListings() {
+  if (!aeonListPromise) {
+    aeonListPromise = fetch("/aeon-listings.json", { cache: "no-store" })
+      .then(r => (r.ok ? r.json() : null))
+      .then(d => (d && Array.isArray(d.listings) && d.listings.length ? d : null))
+      .catch(() => null);
+  }
+  return aeonListPromise;
+}
+
 // Shared, cached loader for /urpd.json — the cost-basis distribution snapshot (URPD)
 // from the local FIFO engine. Resolves to null on failure so the caller falls back to
 // the bundled src/spx-urpd.js.

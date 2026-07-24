@@ -35,15 +35,22 @@ jobs:
           ALCHEMY_NETWORK: ${{ vars.ALCHEMY_NETWORK }}
           AEON_CONTRACT: ${{ vars.AEON_CONTRACT }}
         run: node scripts/build-aeon-rarity.mjs
+      - name: Fetch active listings × rarity (OpenSea)
+        # Soft-skips without OPENSEA_KEY. Daily — listings change constantly.
+        env:
+          OPENSEA_KEY: ${{ secrets.OPENSEA_KEY }}
+          AEON_CONTRACT: ${{ vars.AEON_CONTRACT }}
+          AEON_OS_SLUG: ${{ vars.AEON_OS_SLUG }}       # optional (else resolved from the contract)
+        run: node scripts/build-aeon-listings.mjs
       - name: Commit if changed
         id: commit
         run: |
           DEPLOY_CHANGED=""
-          [[ -n "$(git status --porcelain public/aeon.json public/aeon-history.json public/aeon-rarity.json)" ]] && DEPLOY_CHANGED=1
+          [[ -n "$(git status --porcelain public/aeon.json public/aeon-history.json public/aeon-rarity.json public/aeon-listings.json)" ]] && DEPLOY_CHANGED=1
           if [[ -n "$DEPLOY_CHANGED" ]]; then
             git config user.name "github-actions[bot]"
             git config user.email "github-actions[bot]@users.noreply.github.com"
-            git add public/aeon.json public/aeon-history.json public/aeon-rarity.json
+            git add public/aeon.json public/aeon-history.json public/aeon-rarity.json public/aeon-listings.json
             git commit -m "chore: aeon banker $(date -u +%F)"
             git push
           else
