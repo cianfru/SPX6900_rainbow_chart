@@ -23,17 +23,68 @@ const TIERS = [
 export const tierOf = (rank, total) => TIERS.find(t => rank / total <= t.max) || TIERS.at(-1);
 const fEth = v => (v < 0.1 ? v.toFixed(3) : v.toFixed(2)) + "Ξ";
 
-/** Fetch the token art and return a data URI resvg can draw. Null on any failure. */
-export async function fetchArt(url, fetchImpl = fetch) {
-  if (!url) return null;
-  try {
-    const res = await fetchImpl(url, { headers: { accept: "image/*" } });
-    if (!res.ok) return null;
-    const buf = Buffer.from(await res.arrayBuffer());
-    if (!buf.length) return null;
-    const type = res.headers?.get?.("content-type") || "image/png";
-    return `data:${type.split(";")[0]};base64,${buf.toString("base64")}`;
-  } catch { return null; }
+// The piece IS the post, so the art is not optional — the watcher refuses to publish
+// without it. Servers mislabel content-type often enough that we sniff magic bytes
+// instead of trusting the header: resvg needs to know what it is actually decoding.
+const MAGIC = [
+  { type: "image/png", test: b => b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47 },
+  { type: "image/jpeg", test: b => b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff },
+  { type: "image/gif", test: b => b[0] === 0x47 && b[1] === 0x49 && b[2] === 0x46 },
+  // WEBP = "RIFF"…"WEBP". resvg cannot decode it, so it is rejected and we try the next
+  // candidate URL (Alchemy's thumbnail is usually PNG/JPEG).
+  { type: null, test: b => b[0] === 0x52 && b[1] === 0x49 && b[2] === 0x46 && b[3] === 0x46 && b[8] === 0x57 },
+];
+const sniff = buf => {
+  for (const m of MAGIC) if (buf.length > 12 && m.test(buf)) return m.type;
+  const head = buf.slice(0, 200).toString("utf8").trimStart();
+  if (head.startsWith("<svg") || head.startsWith("<?xml")) return "image/svg+xml";
+  return null;
+};
+
+/** Fetch one URL → data URI resvg can draw, or null. */
+async function tryArt(url, fetchImpl, tries = 3) {
+  for (let i = 0; i < tries; i++) {
+    if (i) await new Promise(r => setTimeout(r, 600 * 2 ** (i - 1)));
+    try {
+      const res = await fetchImpl(url, { headers: { accept: "image/*" } });
+      if (!res.ok) { if (res.status === 404 || res.status === 410) return null; continue; }
+      const buf = Buffer.from(await res.arrayBuffer());
+      if (buf.length < 128) continue;                       // truncated / placeholder body
+      const type = sniff(buf);
+      if (!type) return null;                               // decodable-by-resvg check failed
+      return `data:${type};base64,${buf.toString("base64")}`;
+    } catch { /* retry */ }
+  }
+  return null;
+}
+
+/**
+ * Resolve the token art, trying every source we have before giving up:
+ *   1. the URL cached in aeon-rarity.json
+ *   2. a FRESH pull of the token's metadata from Alchemy (cachedUrl → thumbnail → original)
+ * Returns a data URI, or null if every source failed.
+ */
+export async function fetchArt(url, { fetchImpl = fetch, key, tokenId, contract, network = "eth-mainnet" } = {}) {
+  const candidates = [];
+  if (url) candidates.push(url);
+  if (key && tokenId != null && contract) {
+    try {
+      const meta = await fetchImpl(
+        `https://${network}.g.alchemy.com/nft/v3/${key}/getNFTMetadata?contractAddress=${contract}&tokenId=${tokenId}&refreshCache=false`,
+        { headers: { accept: "application/json" } });
+      if (meta.ok) {
+        const j = await meta.json();
+        for (const u of [j?.image?.cachedUrl, j?.image?.thumbnailUrl, j?.image?.pngUrl, j?.image?.originalUrl]) {
+          if (u && !candidates.includes(u)) candidates.push(u);
+        }
+      }
+    } catch { /* fall through to whatever we already have */ }
+  }
+  for (const c of candidates) {
+    const art = await tryArt(c, fetchImpl);
+    if (art) return art;
+  }
+  return null;
 }
 
 /** Traits for a token, rarest first, from public/aeon-rarity.json. */

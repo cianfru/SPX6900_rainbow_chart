@@ -26,12 +26,17 @@ import { fileURLToPath } from "node:url";
 import { renderAeonSaleCard, fetchArt, traitsFor, tierOf } from "./aeon-sale-card.mjs";
 import { postWithMedia } from "./media.mjs";
 import { lanePostedToday, recordLanePost } from "./posts.mjs";
+import { fetchLiveSales } from "./aeon-live-sales.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "../..");
 const MARKET = join(ROOT, "public/aeon-market.json");
 const STATE = join(ROOT, "public/aeon-sale-state.json");
 const RARITY = join(ROOT, "public/aeon-rarity.json");
 const LANE = "aeonsale";
+const ALCHEMY = (process.env.ALCHEMY_KEY || "").trim();
+const NETWORK = process.env.ALCHEMY_NETWORK || "eth-mainnet";
+const CONTRACT = (process.env.AEON_CONTRACT || "0xc374a204334d4Edd4C6a62f0867C752d65E9579c").toLowerCase();
+const LIVE_HOURS = Number(process.env.AEON_SALE_HOURS || 48);
 
 const NOTABLE_DAYS = 3;      // only fire on a genuinely FRESH sale
 const STEAL_DISC = 0.20;     // >=20% under what that rarity trades at
@@ -92,6 +97,32 @@ export function saleCopy({ sale, kind }, { total, tier, traits }) {
   return `${head}\n${body}\n${tail}`;
 }
 
+/**
+ * Live Alchemy sales → the same shape pickNotable expects, by joining rank/art from
+ * aeon-rarity.json and "typical for this rarity" from the daily fairModel. Pure given
+ * its inputs, so it is unit-tested.
+ */
+export function joinLiveSales(live, { rarityTokens, fairModel, level }) {
+  const byId = new Map((rarityTokens || []).map(t => [t.id, t]));
+  const factor = fairModel
+    ? rank => Math.exp(fairModel.a + fairModel.b * Math.log(rank))
+    : () => 1;
+  const lvl = fairModel?.level || level || 0;
+  const out = [];
+  for (const s of live || []) {
+    const tk = byId.get(s.id);
+    if (!tk?.rank) continue;                       // unknown token → cannot judge it
+    const exp = lvl > 0 ? lvl * factor(tk.rank) : null;
+    if (!(exp > 0)) continue;
+    out.push({
+      id: s.id, price: s.price, rank: tk.rank, img: tk.img ?? null,
+      exp: +exp.toFixed(3), disc: +((exp - s.price) / exp).toFixed(3),
+      d: s.d, mkt: s.mkt, tx: s.tx,
+    });
+  }
+  return out;
+}
+
 async function main() {
   const market = readJson(MARKET, null);
   if (!market?.recentSales?.length) { console.log("aeon-sale: no recentSales in aeon-market.json — nothing to do"); return; }
@@ -100,13 +131,29 @@ async function main() {
   const today = (market.updated || new Date().toISOString().slice(0, 10));
   const level = market.levelNow || market.fairModel?.level || 0;
 
-  const pick = pickNotable(market.recentSales, { level, today, posted: force ? new Set() : posted });
+  // LIVE feed first (Alchemy getNFTSales) so the post lands while the trade is still
+  // news; the daily Dune-derived recentSales is the fallback when there is no key or the
+  // call fails. Rarity + fair value come from the banked files either way.
+  let candidates = market.recentSales, source = "dune-daily";
+  if (ALCHEMY) {
+    try {
+      const live = await fetchLiveSales({ key: ALCHEMY, hours: LIVE_HOURS, contract: CONTRACT });
+      const rarity = readJson(RARITY, null);
+      const joined = joinLiveSales(live, { rarityTokens: rarity?.tokens, fairModel: market.fairModel, level });
+      console.log(`aeon-sale: live feed returned ${live.length} sale(s) in ${LIVE_HOURS}h, ${joined.length} joined to rarity`);
+      if (joined.length) { candidates = joined; source = "alchemy-live"; }
+    } catch (e) { console.error(`aeon-sale: live feed failed (${e.message}) — falling back to the daily Dune pull`); }
+  }
+  // Live sales are dated from the chain, so judge freshness against NOW, not the
+  // market file's build date (which lags by up to a day).
+  const asOf = source === "alchemy-live" ? new Date().toISOString().slice(0, 10) : today;
+  const pick = pickNotable(candidates, { level, today: asOf, posted: force ? new Set() : posted });
   if (!pick) {
-    console.log(`aeon-sale: nothing notable in the last ${NOTABLE_DAYS} days (checked ${market.recentSales.length} sales) — no post.`);
+    console.log(`aeon-sale: nothing notable in the last ${NOTABLE_DAYS} days (checked ${candidates.length} sales from ${source}) — no post.`);
     return;
   }
   const { sale, kind } = pick;
-  console.log(`aeon-sale: ${kind} — #${sale.id} at ${sale.price}Ξ (rank ${sale.rank}, ${(sale.disc * 100).toFixed(0)}% vs typical) on ${sale.d}`);
+  console.log(`aeon-sale: ${kind} [${source}] — #${sale.id} at ${sale.price}Ξ (rank ${sale.rank}, ${(sale.disc * 100).toFixed(0)}% vs typical) on ${sale.d}`);
 
   if (!force && lanePostedToday(LANE)) {
     console.log(`aeon-sale: lane "${LANE}" already posted today — skipping (one notable sale per day).`);
@@ -115,8 +162,15 @@ async function main() {
 
   const { traits, total } = traitsFor(sale.id, RARITY);
   const tier = tierOf(sale.rank, total);
-  const art = await fetchArt(sale.img);
-  if (!art) console.error("aeon-sale: art fetch failed — rendering the placeholder card");
+  // The piece IS the post. Try the cached URL, then a fresh Alchemy metadata pull; if
+  // every source fails, DON'T publish a placeholder — skip and let the next run retry
+  // (nothing is recorded as posted, so the sale stays eligible).
+  const art = await fetchArt(sale.img, { key: ALCHEMY, tokenId: sale.id, contract: CONTRACT, network: NETWORK });
+  if (!art && !dryRun) {
+    console.error(`aeon-sale: could not fetch art for #${sale.id} from any source — skipping the post rather than publishing a card without the piece. Nothing recorded, so the next run retries it.`);
+    return;
+  }
+  if (!art) console.error("aeon-sale: art unavailable here (sandboxed egress?) — dry-run renders the placeholder so the layout is still reviewable; a REAL run would skip.");
   const png = renderAeonSaleCard(sale, { traits, total, art });
   const text = saleCopy(pick, { total, tier, traits });
   console.log(`--- copy (${[...text].length} chars) ---\n${text}\n---`);

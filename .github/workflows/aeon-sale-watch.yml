@@ -1,0 +1,83 @@
+name: AEON notable-sale watcher
+
+# Hourly: post to X when a genuinely notable Project AEON sale lands — a steal, a rare
+# piece changing hands, or a trade well above what that rarity fetches.
+#
+# Sales come LIVE from Alchemy (getNFTSales), so this fires while the trade is still news
+# rather than waiting for the daily Dune pull. Rarity/art come from public/aeon-rarity.json
+# and "typical for this rarity" from aeon-market.json's fair model — both banked daily, so
+# this job needs no Dune and no OpenSea.
+#
+# It posts on its OWN lane, so it never consumes the daily rotation's slot (see
+# lanePostedToday/recordLanePost in posts.mjs). Still capped at one notable sale per day.
+# Manual runs default to dry-run: detect + render the card, post nothing.
+
+on:
+  schedule:
+    - cron: "23 * * * *" # hourly at :23 (off the hour, so it doesn't collide with band-watch)
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Detect + render only, do not post"
+        type: boolean
+        default: true
+      hours:
+        description: "How far back to look for sales"
+        type: string
+        default: "48"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: aeon-sale-watch
+  cancel-in-progress: false
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - name: Watch for a notable AEON sale + maybe post
+        env:
+          # Repo var AEON_SALE_DRY_RUN=1 keeps the schedule in watch-only mode.
+          DRY_RUN: ${{ (github.event_name == 'workflow_dispatch' && inputs.dry_run) && '1' || vars.AEON_SALE_DRY_RUN }}
+          AEON_SALE_HOURS: ${{ inputs.hours || '48' }}
+          ALCHEMY_KEY: ${{ secrets.ALCHEMY_KEY }}
+          ALCHEMY_NETWORK: ${{ vars.ALCHEMY_NETWORK }}
+          AEON_CONTRACT: ${{ vars.AEON_CONTRACT }}
+          X_API_KEY: ${{ secrets.X_API_KEY }}
+          X_API_SECRET: ${{ secrets.X_API_SECRET }}
+          X_ACCESS_TOKEN: ${{ secrets.X_ACCESS_TOKEN }}
+          X_ACCESS_SECRET: ${{ secrets.X_ACCESS_SECRET }}
+        run: node scripts/bot/aeon-sale-watch.mjs
+
+      - name: Commit sale + post state if changed
+        run: |
+          # aeon-sale-state.json remembers which sales already fired; post-state.json
+          # carries this lane's once-a-day record. Both are deploy-ignored.
+          if [[ -n "$(git status --porcelain public/aeon-sale-state.json public/post-state.json)" ]]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add public/aeon-sale-state.json public/post-state.json
+            git commit -m "chore: aeon sale state $(date -u +%FT%TZ)"
+            git push
+          else
+            echo "No sale/post-state change to commit"
+          fi
+
+      - name: Upload card preview (dry-run)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: aeon-sale-preview
+          path: aeon-sale-preview.png
+          if-no-files-found: ignore

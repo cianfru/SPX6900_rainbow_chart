@@ -59,3 +59,54 @@ test("copy leads with the number, names the rarity, and stays in the instant-rea
   assert.equal(txt.split("\n").length, 3, "house style is exactly 3 lines");
   assert.ok([...txt].length <= 600, `copy too long: ${[...txt].length}`);
 });
+
+// ── art resolution ───────────────────────────────────────────────────────────
+// The piece IS the post, so these cover the fallback chain and the formats resvg
+// can actually decode. Fetch is injected; nothing hits the network.
+import { fetchArt } from "../scripts/bot/aeon-sale-card.mjs";
+
+const PNG = Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), Buffer.alloc(200, 7)]);
+const WEBP = Buffer.concat([Buffer.from("RIFF"), Buffer.alloc(4), Buffer.from("WEBP"), Buffer.alloc(200, 3)]);
+const ok = buf => ({ ok: true, status: 200, arrayBuffer: async () => buf, headers: { get: () => "application/octet-stream" } });
+const fail = status => ({ ok: false, status });
+
+test("art: embeds a PNG as a data URI regardless of a wrong content-type header", async () => {
+  const art = await fetchArt("https://cdn/a.png", { fetchImpl: async () => ok(PNG) });
+  assert.match(art, /^data:image\/png;base64,/);
+});
+
+test("art: recognises an SVG body", async () => {
+  const svg = Buffer.from('<svg xmlns="http://www.w3.org/2000/svg"></svg>'.padEnd(300, " "));
+  const art = await fetchArt("https://cdn/a.svg", { fetchImpl: async () => ok(svg) });
+  assert.match(art, /^data:image\/svg\+xml;base64,/);
+});
+
+test("art: rejects WEBP (resvg cannot decode it) and moves to the next candidate", async () => {
+  const seen = [];
+  const fetchImpl = async (url) => {
+    seen.push(url);
+    if (url.includes("getNFTMetadata")) {
+      return { ok: true, status: 200, json: async () => ({ image: { cachedUrl: "https://cdn/good.png" } }) };
+    }
+    return ok(url.includes("good") ? PNG : WEBP);
+  };
+  const art = await fetchArt("https://cdn/bad.webp", { fetchImpl, key: "k", tokenId: 1, contract: "0xc" });
+  assert.match(art, /^data:image\/png;base64,/);
+  assert.ok(seen.some(u => u.includes("getNFTMetadata")), "should have asked Alchemy for a fresh URL");
+});
+
+test("art: falls back to fresh Alchemy metadata when the cached URL 404s", async () => {
+  const fetchImpl = async (url) => {
+    if (url.includes("getNFTMetadata")) {
+      return { ok: true, status: 200, json: async () => ({ image: { thumbnailUrl: "https://cdn/thumb.png" } }) };
+    }
+    return url.includes("thumb") ? ok(PNG) : fail(404);
+  };
+  const art = await fetchArt("https://cdn/dead.png", { fetchImpl, key: "k", tokenId: 7, contract: "0xc" });
+  assert.match(art, /^data:image\/png;base64,/);
+});
+
+test("art: returns null when every source fails, so the watcher can refuse to post", async () => {
+  const art = await fetchArt("https://cdn/x.png", { fetchImpl: async () => fail(404) });
+  assert.equal(art, null);
+});
