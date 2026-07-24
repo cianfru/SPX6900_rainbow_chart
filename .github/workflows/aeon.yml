@@ -42,7 +42,22 @@ jobs:
           AEON_CONTRACT: ${{ vars.AEON_CONTRACT }}
           AEON_OS_SLUG: ${{ vars.AEON_OS_SLUG }}       # optional (else resolved from the contract)
         run: node scripts/build-aeon-listings.mjs
-      - name: Rebuild Aeon market valuation + trader P&L (keyless, from committed extracts)
+      - name: Refresh transfers + sales from Dune (whole history, daily)
+        # Re-pulls the entire transfer + sale history (tiny for a 3,333 collection → a few
+        # credits, no timeout). Soft-skips without DUNE_API_KEY; soft-fails on any Dune hiccup
+        # so the floor/owners banker stays green (reconstructions then use the committed CSVs).
+        env:
+          DUNE_API_KEY: ${{ secrets.DUNE_API_KEY }}
+          AEON_TRANSFERS_QUERY_ID: ${{ vars.AEON_TRANSFERS_QUERY_ID }}   # optional (else created + logged)
+          AEON_SALES_QUERY_ID: ${{ vars.AEON_SALES_QUERY_ID }}           # optional (else created + logged)
+        run: node scripts/build-aeon-dune-refresh.mjs
+      - name: Rebuild transfer + sales reconstructions
+        # onchain (holders/HODL-age/concentration/flow/skyline) + sales (floor/volume) from the
+        # freshly-pulled CSVs. SPX balances stay the committed set (refreshed occasionally).
+        run: |
+          node scripts/build-aeon-onchain.mjs --transfers=dune/out/aeon_transfers.csv --spx=dune/out/aeon_spx_balances.csv
+          node scripts/build-aeon-sales.mjs --sales=dune/out/aeon_sales.csv
+      - name: Rebuild Aeon market valuation + trader P&L (keyless)
         # MVRV / supply-in-profit / URPD / deals / biggest sales / trait premiums, and the
         # wallet P&L leaderboard — from dune/out/*.csv + rarity + the live floor. No key.
         run: |
@@ -52,11 +67,11 @@ jobs:
         id: commit
         run: |
           DEPLOY_CHANGED=""
-          [[ -n "$(git status --porcelain public/aeon.json public/aeon-history.json public/aeon-rarity.json public/aeon-listings.json public/aeon-market.json public/aeon-traders.json)" ]] && DEPLOY_CHANGED=1
+          [[ -n "$(git status --porcelain public/aeon.json public/aeon-history.json public/aeon-onchain.json public/aeon-sales.json public/aeon-rarity.json public/aeon-listings.json public/aeon-market.json public/aeon-traders.json)" ]] && DEPLOY_CHANGED=1
           if [[ -n "$DEPLOY_CHANGED" ]]; then
             git config user.name "github-actions[bot]"
             git config user.email "github-actions[bot]@users.noreply.github.com"
-            git add public/aeon.json public/aeon-history.json public/aeon-rarity.json public/aeon-listings.json public/aeon-market.json public/aeon-traders.json
+            git add public/aeon.json public/aeon-history.json public/aeon-onchain.json public/aeon-sales.json public/aeon-rarity.json public/aeon-listings.json public/aeon-market.json public/aeon-traders.json
             git commit -m "chore: aeon banker $(date -u +%F)"
             git push
           else
