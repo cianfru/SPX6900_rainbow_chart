@@ -77,7 +77,7 @@ function snapshot(ownerOf, lastMove, asOf) {
   const owners = counts.length;
   const share = n => held ? +(counts.slice(0, n).reduce((s, v) => s + v, 0) / held * 100).toFixed(2) : 0;
   const ageShare = age.map(v => held ? +(v / held * 100).toFixed(2) : 0);
-  return { owners, held, age: ageShare, top10: share(10), top50: share(50), counts };
+  return { owners, held, age: ageShare, top10: share(10), top50: share(50), counts, dist: distribution(counts) };
 }
 
 function distribution(counts) {
@@ -95,12 +95,21 @@ function main() {
   const grid = mondayGrid(rows[0].t, now);
 
   const ownerOf = Object.create(null), lastMove = Object.create(null);
+  const bal = new Map();  // wallet → live token count (0-crossings = enter/exit the holder base)
   const series = [];
   let p = 0;
   for (const wk of grid) {
-    for (; p < rows.length && rows[p].t <= wk; p++) { ownerOf[rows[p].id] = rows[p].to; lastMove[rows[p].id] = rows[p].t; }
+    // Behaviour flow: wallets crossing into (entered) / out of (exited) holding this week.
+    // Mints (from 0x0) still count the recipient as a new holder; burns don't count as an exit target.
+    let entered = 0, exited = 0;
+    for (; p < rows.length && rows[p].t <= wk; p++) {
+      const r = rows[p];
+      ownerOf[r.id] = r.to; lastMove[r.id] = r.t;
+      if (!isBurn(r.to)) { const b = bal.get(r.to) || 0; if (b === 0) entered++; bal.set(r.to, b + 1); }
+      if (!isBurn(r.from) && r.from !== ZERO) { const b = (bal.get(r.from) || 0) - 1; bal.set(r.from, b); if (b <= 0) exited++; }
+    }
     const s = snapshot(ownerOf, lastMove, wk);
-    series.push({ d: new Date(wk).toISOString().slice(0, 10), owners: s.owners, held: s.held, age: s.age, top10: s.top10, top50: s.top50 });
+    series.push({ d: new Date(wk).toISOString().slice(0, 10), owners: s.owners, held: s.held, age: s.age, top10: s.top10, top50: s.top50, dist: s.dist, entered, exited });
   }
 
   // Current state = replay everything, snapshot at `now`.
