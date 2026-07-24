@@ -36,8 +36,17 @@ export default function AeonValueChart({ isMobile }) {
       const r = Math.exp(Math.log(1) + (Math.log(data.total) - Math.log(1)) * i / 47);
       return { rank: r, fair: +expected(r).toFixed(4) };
     }) : [];
+    // AEON priced in SPX — the denominator that actually explains its price (see builder).
+    // Lets an ask be placed on AEON's own valuation history instead of only against a
+    // trailing ETH median, which on its own reads far harsher than the data warrants.
+    const sv = market.empty ? null : market.spxValue;
+    const inSpx = sv?.ethUsd && sv?.spxNow ? eth => (eth * sv.ethUsd) / sv.spxNow : null;
+    const pctOf = sv?.ladder?.length ? v => sv.ladder.filter(x => x <= v).length / sv.ladder.length * 100 : null;
+    if (inSpx && pctOf) for (const l of scored) { l.spx = inSpx(l.price); l.spxPct = pctOf(l.spx); }
+    const cheapest = scored.reduce((m, l) => (m && m.price <= l.price ? m : l), null);
     return {
       scored, deals, dealIds, closest, line, level, r2: fm?.r2 ?? null, nFit: fm?.n ?? 0,
+      sv, cheapestPct: cheapest?.spxPct ?? null,
       total: data.total, count: data.count, updated: data.updated, parked: data.parked || 0, cap: data.cap || 0,
     };
   }, [data, market]);
@@ -52,7 +61,8 @@ export default function AeonValueChart({ isMobile }) {
     </div>
   );
 
-  const { scored, deals, dealIds, closest, line, level, r2, nFit, total, count, updated, parked, cap } = model;
+  const { scored, deals, dealIds, closest, line, level, r2, nFit, sv, cheapestPct, total, count, updated, parked, cap } = model;
+  const ord = n => { const r = Math.round(n); const s2 = ['th','st','nd','rd'], v = r % 100; return r + (s2[(v - 20) % 10] || s2[v] || s2[0]); };
   // No priced listings → bail before Math.min(...[]) yields Infinity and the log axis blows up.
   if (!scored.length) return (
     <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>No active listings right now.</div>
@@ -90,6 +100,7 @@ export default function AeonValueChart({ isMobile }) {
           <div style={{ color: "#94a3b8" }}>rank {d.rank} of {total}</div>
           <div style={{ fontFamily: MONO }}><span style={{ color: "#f59e0b", fontWeight: 700 }}>{fEth(d.price)}</span> · fair {fEth(d.exp)}</div>
           {d.disc > 0.1 && <div style={{ color: "#34d399", fontWeight: 700 }}>{(d.disc * 100).toFixed(0)}% below fair value</div>}
+          {d.spx != null && <div style={{ color: "#c084fc", fontFamily: MONO }}>{Math.round(d.spx).toLocaleString()} SPX · {ord(d.spxPct)} pct</div>}
         </div>
       </div>
     );
@@ -109,6 +120,7 @@ export default function AeonValueChart({ isMobile }) {
         <div style={{ textAlign: "center" }}><div style={{ fontSize: 22, fontWeight: 800, color: deals.length ? "#34d399" : "#7c8a9e", fontFamily: MONO }}>{deals.length}</div><div style={{ fontSize: 12, color: "#7c8a9e" }}>below market</div></div>
         <div style={{ textAlign: "center" }}><div style={{ fontSize: 22, fontWeight: 800, color: "#f59e0b", fontFamily: MONO }}>{fEth(priceMin)}</div><div style={{ fontSize: 12, color: "#7c8a9e" }}>cheapest ask</div></div>
         <div style={{ textAlign: "center" }}><div style={{ fontSize: 22, fontWeight: 800, color: "#38bdf8", fontFamily: MONO }}>{fEth(level)}</div><div style={{ fontSize: 12, color: "#7c8a9e" }}>recent market</div></div>
+        {cheapestPct != null && <div style={{ textAlign: "center" }}><div style={{ fontSize: 22, fontWeight: 800, color: "#c084fc", fontFamily: MONO }}>{ord(cheapestPct)}</div><div style={{ fontSize: 12, color: "#7c8a9e" }}>floor ask vs SPX history</div></div>}
       </div>
 
       <ResponsiveContainer width="100%" height={isMobile ? 380 : 500}>
@@ -132,9 +144,15 @@ export default function AeonValueChart({ isMobile }) {
           <div style={{ fontFamily: SANS, fontSize: 14.5, fontWeight: 700, color: "#f59e0b", textAlign: "center", marginBottom: 4 }}>
             Nothing is currently listed below market
           </div>
-          <div style={{ fontFamily: SANS, fontSize: 12.5, color: "#94a3b8", textAlign: "center", marginBottom: 12, maxWidth: 620, marginInline: "auto", lineHeight: 1.6 }}>
-            Every live ask sits above what comparable pieces have been selling for. That is a normal
-            spread for a thinly traded collection — sellers ask high and wait. These are the closest to market.
+          <div style={{ fontFamily: SANS, fontSize: 12.5, color: "#94a3b8", textAlign: "center", marginBottom: 12, maxWidth: 660, marginInline: "auto", lineHeight: 1.6 }}>
+            Every live ask sits above what comparable pieces have been selling for in ETH. That is a normal
+            spread for a thinly traded collection — sellers ask high and wait.
+            {sv && cheapestPct != null && <>
+              {" "}<strong style={{ color: "#cbd5e1" }}>But measured in SPX — the denominator that actually tracks AEON — that is
+              less damning than it sounds:</strong> the floor ask sits at the {ord(cheapestPct)} percentile of AEON&rsquo;s own
+              valuation history, against the {ord(sv.pctNow)} percentile for the most recent trades. Recent sales were
+              themselves historically cheap, so &ldquo;above market&rdquo; is not the same as expensive.
+            </>}
           </div>
           <div style={{ display: "grid", gridTemplateColumns: `repeat(auto-fill, minmax(${isMobile ? 130 : 150}px, 1fr))`, gap: 12 }}>
             {closest.map(d => (
@@ -177,6 +195,9 @@ export default function AeonValueChart({ isMobile }) {
         {nFit ? " " + nFit.toLocaleString() : " all "} realized sales. It is measured from what pieces actually
         <em> sold</em> for, never from the asking prices on this chart — fitting the asks would just measure what sellers hope for.
         {r2 != null && <> <strong style={{ color: "#94a3b8" }}>Rarity is a weak price driver here: it explains only {(r2 * 100).toFixed(0)}% of the variation in sale prices</strong>, so treat the line as a rough centre of gravity, not a valuation.</>}
+        {sv && <> {" "}The <strong style={{ color: "#c084fc" }}>SPX percentile</strong> prices each ask in SPX6900 ({sv.ethUsd ? "ETH ≈ $" + sv.ethUsd.toLocaleString() + ", " : ""}SPX ${sv.spxNow}) and places it on {sv.n} weeks
+        of AEON&rsquo;s own history — AEON tracks SPX far more closely than it tracks ETH, so that is the more honest
+        yardstick for dear-versus-cheap. See <em>AEON Floor vs SPX</em> for the full series.</>}
         {" "}Tap any piece for OpenSea. Listings from OpenSea, sales from on-chain marketplace trades, rarity from on-chain metadata.
         {parked > 0 && <> {parked} listing{parked === 1 ? " was" : "s were"} parked above {cap ? cap.toFixed(0) : "the cap"}Ξ (asks like 69 or 6900Ξ that exist so a piece shows as listed but can never sell) and are excluded — they aren&rsquo;t real offers and would flatten the whole scale.</>}
       </div>

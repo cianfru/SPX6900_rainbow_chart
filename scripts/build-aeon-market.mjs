@@ -59,6 +59,58 @@ function fit(pairs) {  // log(y)=a+b·log(rank), plus R² so callers can judge t
   return { a, b, n, r2: sst > 0 ? 1 - sse / sst : 0, expected: r => Math.exp(a + b * Math.log(r)) };
 }
 
+// ── AEON PRICED IN SPX ───────────────────────────────────────────────────────────
+// AEON's price tracks SPX far more than it tracks ETH (weekly log-return correlation
+// ~0.53 vs ~0.36), and SPX explains ~28% of AEON's variance against rarity's ~5% — so
+// SPX is the denominator that actually says whether AEON is dear or cheap.
+//
+// Judging asks only against a trailing ETH median is misleading on its own: it reported
+// "everything is over market" while, priced in SPX, those same recent trades sat at the
+// 9th-50th percentile of AEON's own history, i.e. historically CHEAP. This emits the
+// SPX-denominated ladder so any surface can place a price on that history.
+function spxValuation(salesDaily) {
+  const spx = new Map();
+  try {
+    const ph = JSON.parse(readFileSync("public/price-history.json", "utf8"));
+    for (const r of (Array.isArray(ph) ? ph : ph.points || [])) if (r?.date && r.price > 0) spx.set(r.date, r.price);
+  } catch { /* fall through to history.json only */ }
+  try {   // fresher tail from the daily snapshot cron
+    for (const r of JSON.parse(readFileSync("public/history.json", "utf8"))) if (r?.d && r.p > 0) spx.set(r.d, r.p);
+  } catch { /* bundle-only is fine */ }
+  if (!spx.size) return null;
+
+  // weekly median AEON sale in USD, joined to SPX that week
+  const wk = new Map();
+  for (const r of salesDaily) {
+    if (!(r.sales > 0) || !(r.avgEth > 0) || !(r.floorEth > 0) || !(r.floorUsd > 0)) continue;
+    const t = Date.parse(r.d), w = new Date(t - ((new Date(t).getUTCDay() + 6) % 7) * DAY).toISOString().slice(0, 10);
+    if (!wk.has(w)) wk.set(w, { a: [], e: [] });
+    wk.get(w).a.push(r.avgEth); wk.get(w).e.push(r.floorUsd / r.floorEth);
+  }
+  const ratios = [];
+  for (const [w, v] of [...wk.entries()].sort()) {
+    const p = spx.get(w); if (!(p > 0)) continue;
+    const usd = median(v.a) * median(v.e);
+    if (usd > 0) ratios.push({ d: w, r: usd / p });   // how many SPX one AEON costs
+  }
+  if (ratios.length < 20) return null;
+
+  const ladder = ratios.map(x => x.r).sort((a, b) => a - b);
+  const spxDates = [...spx.keys()].sort();
+  const spxNow = spx.get(spxDates[spxDates.length - 1]);
+  const lastDaily = [...salesDaily].reverse().find(r => r.floorEth > 0 && r.floorUsd > 0);
+  const ethUsd = lastDaily ? lastDaily.floorUsd / lastDaily.floorEth : null;
+  const ratioNow = ratios[ratios.length - 1].r;
+  const pct = v => ladder.filter(x => x <= v).length / ladder.length;
+  return {
+    spxNow: +spxNow.toFixed(6), ethUsd: ethUsd ? Math.round(ethUsd) : null,
+    ratioNow: Math.round(ratioNow), pctNow: +(pct(ratioNow) * 100).toFixed(1),
+    median: Math.round(median(ladder)), n: ladder.length,
+    // sorted ladder (rounded) so any client can place an arbitrary price on this history
+    ladder: ladder.map(v => Math.round(v)),
+  };
+}
+
 // ── MARKET LEVEL over time ───────────────────────────────────────────────────────
 // AEON's market moves fast (median sale 0.35Ξ over 180d but 0.60Ξ over the last 30d),
 // so one static fit over 180 days scores every OLD sale as a "steal" purely because the
@@ -185,6 +237,7 @@ function main() {
       ? { a: rarityFit.a, b: rarityFit.b, r2: +rarityFit.r2.toFixed(4), n: rarityFit.n, level: +levelNow.toFixed(4), method: "sales-detrended" }
       : null,
     levelNow: +levelNow.toFixed(4),
+    spxValue: (() => { try { return spxValuation(JSON.parse(readFileSync("public/aeon-sales.json", "utf8")).daily || []); } catch { return null; } })(),
     salesScatter, scatterImgs, deals, biggest, traitPremiums,
   };
   writeFileSync(OUT, JSON.stringify(out) + "\n");
