@@ -20,7 +20,7 @@ import {
   whenHitsCenter, whenHitsBand,
 } from "./models.js";
 import { CRYPTO_MILESTONES } from "./milestones.js";
-import { CHART_META, CHART_IDS } from "./charts-catalog.js";
+import { CHART_META, CHART_IDS, AEON_GROUPS } from "./charts-catalog.js";
 import ChartFreshness from "./ChartFreshness.jsx";
 import BandStats from "./BandStats.jsx";
 // Secondary tab charts are lazy-loaded so their code only ships when the tab is opened.
@@ -714,14 +714,14 @@ export default function App() {
               <span style={{ color: "#a78bfa", display: "inline-flex" }}><TabIcon name="rainbow" /></span>
               <span>Rainbow</span>
             </button>
-            <button className="pill" onClick={openGallery} title="Browse all charts" style={navPill(route !== "home", "#22d3ee")}>
+            <button className="pill" onClick={openGallery} title="Browse all charts" style={navPill(route === "gallery" || (route === "chart" && CHART_META[tab]?.group !== "Project Aeon"), "#22d3ee")}>
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, color: "#22d3ee" }}>
                 <rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" />
                 <rect x="3" y="14" width="7" height="7" rx="1" /><rect x="14" y="14" width="7" height="7" rx="1" />
               </svg>
               <span>Charts</span>
             </button>
-            <button className="pill" onClick={openAeon} title="Project Aeon — NFT analytics (coming soon)" style={navPill(route === "aeon", "#f472b6")}>
+            <button className="pill" onClick={openAeon} title="Project Aeon — NFT analytics" style={navPill(route === "aeon", "#f472b6")}>
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, color: "#f472b6" }}>
                 <path d="M12 2 4 7v10l8 5 8-5V7z" /><path d="M12 22V12" /><path d="M4 7l8 5 8-5" />
               </svg>
@@ -742,23 +742,17 @@ export default function App() {
         </Suspense>
       )}
 
-      {/* Project Aeon — NFT analytics, coming soon. The "Coming Soon" text uses the same
-          animated rainbow shimmer as the site title. */}
+      {/* Project Aeon — its own tab: the NFT collection's on-chain charts, kept
+          separate from the SPX charts gallery. */}
       {route === "aeon" && (
-        <div style={{ maxWidth: 760, margin: "0 auto", padding: isMobile ? "56px 16px" : "96px 20px", textAlign: "center" }}>
-          <div style={{ fontFamily: MONO, fontSize: 12.5, letterSpacing: 2, textTransform: "uppercase", color: "#f472b6", marginBottom: 16 }}>Project Aeon · NFT analytics</div>
-          <h1 style={{
-            fontFamily: SANS, fontSize: isMobile ? 44 : 76, fontWeight: 800, margin: 0, letterSpacing: "-0.02em", lineHeight: 1.05,
-            background: "linear-gradient(90deg,#6366f1,#3b82f6,#06b6d4,#22c55e,#84cc16,#f59e0b,#ea580c,#dc2626,#8b0000,#6366f1)",
-            backgroundSize: "200% auto", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
-            animation: "title-shimmer 8s ease-in-out infinite alternate",
-          }}>Coming Soon</h1>
-          <p style={{ fontFamily: SANS, fontSize: isMobile ? 15 : 17, color: "#94a3b8", lineHeight: 1.7, margin: "22px auto 0", maxWidth: 560 }}>
-            The same on-chain depth we bring to the coin — floor price, holders, HODL waves, holder age, concentration —
-            reframed for the <strong style={{ color: "#e2e8f0" }}>Project Aeon</strong> NFT collection. Every number checkable, on-chain, and reproducible.
-          </p>
-          <button className="pill" onClick={goHome} style={{ ...navPill(false, "#a78bfa"), marginTop: 30, display: "inline-flex" }}>← Back to the Rainbow</button>
-        </div>
+        <Suspense fallback={<div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Loading charts…</div>}>
+          <ChartsGallery
+            isMobile={isMobile} onOpen={goChart} onHome={goHome} renderPreview={id => chartEl(id, { preview: true })}
+            groups={AEON_GROUPS} showFeatured={false} title="Project Aeon"
+            titleGradient="linear-gradient(90deg,#2dd4bf,#3b82f6,#a855f7,#f472b6)"
+            subtitle="On-chain analytics for the Project AEON NFT collection — 3,333 on Ethereum. Every number checkable, reproducible."
+          />
+        </Suspense>
       )}
 
       {/* Home — the Rainbow hero + its rainbow-specific sections */}
@@ -1266,11 +1260,13 @@ export default function App() {
       <div style={{ maxWidth: MAX_W, margin: "0 auto" }}>
         {/* page header: back · category · title · description · share */}
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12, flexWrap: "wrap" }}>
-          <button className="pill" onClick={openGallery} title="Back to all charts" style={{
+          {(() => { const aeon = CHART_META[tab]?.group === "Project Aeon"; return (
+          <button className="pill" onClick={aeon ? openAeon : openGallery} title={aeon ? "Back to Project Aeon" : "Back to all charts"} style={{
             display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 8, cursor: "pointer",
             background: "transparent", border: "1px solid transparent", color: "#cbd5e1",
             fontFamily: SANS, fontSize: 13, fontWeight: 600, "--glow": "rgba(148,163,184,0.6)",
-          }}>← All charts</button>
+          }}>← {aeon ? "Project Aeon" : "All charts"}</button>
+          ); })()}
           <span style={{ fontFamily: SANS, fontSize: 12, fontWeight: 700, letterSpacing: 1.2, textTransform: "uppercase", color: CHART_META[tab]?.color }}>{CHART_META[tab]?.group}</span>
           <button className="pill" onClick={shareChart} title="Share this chart"
             style={{
@@ -1300,7 +1296,7 @@ export default function App() {
       </div>
       )}{/* end chart page */}
 
-      {route !== "gallery" && (
+      {route !== "gallery" && route !== "aeon" && (
       <div style={{
         maxWidth: MAX_W, margin: "16px auto 0", fontFamily: SANS, fontSize: 12,
         color: "#7c8a9e", textAlign: "center", lineHeight: 1.6,

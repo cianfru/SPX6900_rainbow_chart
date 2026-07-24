@@ -68,23 +68,29 @@ function Tile({ item, color, onOpen, renderPreview }) {
   );
 }
 
-export default function ChartsGallery({ isMobile, onOpen, onHome, renderPreview }) {
-  const total = CHART_GROUPS.reduce((n, g) => n + g.charts.length, 0) + 1; // +1 = Rainbow hero
+export default function ChartsGallery({
+  isMobile, onOpen, onHome, renderPreview,
+  groups = CHART_GROUPS, title = "Charts", titleGradient = "linear-gradient(90deg,#a78bfa,#22d3ee,#4ade80,#fbbf24,#f7931a)",
+  subtitle, showFeatured = true,
+}) {
+  const total = groups.reduce((n, g) => n + g.charts.length, 0) + (showFeatured ? 1 : 0);
+  const sub = subtitle ?? `${total} interactive ways to look at SPX6900 — tap any chart to open it.`;
 
   return (
     <div style={{ padding: isMobile ? "8px 4px 48px" : "16px 8px 60px" }}>
       <div style={{ maxWidth: MAX_W, margin: "0 auto 26px", textAlign: "center" }}>
         <h2 style={{
           fontFamily: SANS, fontSize: isMobile ? 26 : 36, fontWeight: 800, margin: "0 0 8px", letterSpacing: "-0.02em",
-          background: "linear-gradient(90deg,#a78bfa,#22d3ee,#4ade80,#fbbf24,#f7931a)",
+          background: titleGradient,
           WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
-        }}>Charts</h2>
+        }}>{title}</h2>
         <div style={{ fontFamily: SANS, fontSize: isMobile ? 14 : 16, color: "#94a3b8" }}>
-          {total} interactive ways to look at SPX6900 — tap any chart to open it.
+          {sub}
         </div>
       </div>
 
-      {/* Featured: the Rainbow hero (lives on the home page) */}
+      {/* Featured: the Rainbow hero (lives on the home page) — SPX gallery only */}
+      {showFeatured && (
       <div style={{ maxWidth: MAX_W, margin: "0 auto 38px" }}>
         <button
           className="pill" onClick={onHome} title="Open the Rainbow chart"
@@ -108,8 +114,9 @@ export default function ChartsGallery({ isMobile, onOpen, onHome, renderPreview 
           </svg>
         </button>
       </div>
+      )}
 
-      {CHART_GROUPS.map(group => (
+      {groups.map(group => (
         <div key={group.title} style={{ maxWidth: MAX_W, margin: "0 auto 38px" }}>
           <div style={{ display: "flex", alignItems: "baseline", gap: 12, marginBottom: 14, flexWrap: "wrap" }}>
             <span style={{ width: 10, height: 10, borderRadius: 3, background: group.color, boxShadow: `0 0 10px ${group.color}` }} />

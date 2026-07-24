@@ -81,6 +81,11 @@ export const CHART_GROUPS = [
       { id: "vsmemekings", title: "SPX vs Memekings", post: "memecoins", desc: "Rebased race vs DOGE, SHIB and PEPE — YTD, 12mo or since launch." },
     ],
   },
+];
+
+// Project Aeon lives under its OWN tab (route === "aeon"), NOT in the SPX charts
+// gallery — kept as a separate group set so the two never mix.
+export const AEON_GROUPS = [
   {
     title: "Project Aeon",
     color: "#2dd4bf",
@@ -94,9 +99,10 @@ export const CHART_GROUPS = [
   },
 ];
 
-// id -> { id, title, post, desc, color, group } for O(1) lookup on chart pages.
+// id -> { id, title, post, desc, color, group } for O(1) lookup on chart pages —
+// spans BOTH the SPX gallery and the Aeon tab so every chart page resolves.
 export const CHART_META = Object.fromEntries(
-  CHART_GROUPS.flatMap(g => g.charts.map(c => [c.id, { ...c, color: g.color, group: g.title }]))
+  [...CHART_GROUPS, ...AEON_GROUPS].flatMap(g => g.charts.map(c => [c.id, { ...c, color: g.color, group: g.title }]))
 );
 
 export const CHART_IDS = new Set(Object.keys(CHART_META));
