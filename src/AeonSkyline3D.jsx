@@ -29,9 +29,14 @@ export default function AeonSkyline3D({ holders, isMobile }) {
   const mount = useRef(null);
   useEffect(() => {
     const el = mount.current; if (!el || !holders?.length) return;
+    const maxDays = Math.max(...holders.map(x => x.days), 1);
+    const maxN = Math.max(...holders.map(x => x.n), 1);
+    const maxSpx = Math.max(...holders.map(x => x.spx || 0), 0);
+    // conviction "units": AEON count + SPX balance rescaled onto the same 0..maxN axis
+    // (so both dimensions weigh comparably), then weighted by holding duration.
+    const units = h => h.n + (maxSpx > 0 ? (h.spx || 0) / maxSpx * maxN : 0);
+    const scoreOf = h => units(h) * (0.45 + 0.55 * (h.days / maxDays));
     const H = holders.slice().sort((a, b) => scoreOf(b) - scoreOf(a));
-    const maxDays = Math.max(...H.map(h => h.days), 1);
-    function scoreOf(h) { const t = h.days / Math.max(...holders.map(x => x.days), 1); return h.n * (0.45 + 0.55 * t); }
     const maxScore = Math.max(...H.map(scoreOf), 1);
 
     const W = el.clientWidth, VH = isMobile ? 420 : 560;
@@ -113,7 +118,7 @@ export default function AeonSkyline3D({ holders, isMobile }) {
         controls.autoRotate = false;
         tip.style.display = "block"; tip.style.left = px + "px"; tip.style.top = py + "px";
         tip.innerHTML = `<b style="color:#5eead4">${short(h.a)}</b> · click to open in Zerion<br>` +
-          `<span style="color:#94a3b8">${h.n} AEON · held ${h.days} days (since ${h.since})</span>`;
+          `<span style="color:#94a3b8">${h.n} AEON${h.spx ? ` · ${h.spx.toLocaleString()} SPX` : ""} · held ${h.days} days (since ${h.since})</span>`;
       } else { setHover(null); tip.style.display = "none"; }
     };
     const onDown = () => { moved = false; };

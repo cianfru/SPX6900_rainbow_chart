@@ -126,10 +126,25 @@ function main() {
     const w = wallet.get(o) || { n: 0, oldest: Infinity };
     w.n++; w.oldest = Math.min(w.oldest, lastMove[id]); wallet.set(o, w);
   }
+  // Optional: join per-wallet SPX6900 coin balances (dune/aeon_spx_balances.sql →
+  // --spx=balances.csv, columns address,spx) so the skyline can rank on AEON + SPX.
+  const spxArg = arg("spx");
+  const spxBal = new Map();
+  if (spxArg) {
+    const ls = readFileSync(spxArg, "utf8").split(/\r?\n/).filter(Boolean);
+    const h = ls[0].split(",").map(s => s.trim().toLowerCase());
+    const iA = h.indexOf("address"), iS = h.indexOf("spx");
+    for (let i = 1; i < ls.length; i++) { const c = ls[i].split(","); const v = Number(c[iS]); if (c[iA] && v > 0) spxBal.set(c[iA].toLowerCase(), v); }
+  }
   const holders = [...wallet.entries()]
-    .map(([a, w]) => ({ a, n: w.n, days: Math.round((now - w.oldest) / DAY), since: new Date(w.oldest).toISOString().slice(0, 10) }))
+    .map(([a, w]) => {
+      const r = { a, n: w.n, days: Math.round((now - w.oldest) / DAY), since: new Date(w.oldest).toISOString().slice(0, 10) };
+      if (spxBal.has(a)) r.spx = Math.round(spxBal.get(a));
+      return r;
+    })
     .sort((x, y) => y.n - x.n || y.days - x.days)
     .slice(0, 120);
+  if (spxArg) console.log(`  spx: joined coin balances for ${holders.filter(h => h.spx).length}/${holders.length} skyline wallets`);
 
   const out = {
     updated: new Date(now).toISOString().slice(0, 10),
