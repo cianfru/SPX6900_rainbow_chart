@@ -900,6 +900,8 @@ const aeonStatus = (msg, cls = "") => { const e = $("#aeonStatus"); e.textConten
 // Aeon posting cards: preview image (via /api/og?aeon=id) + a tweet drafted live from
 // the same aeon-*.json the overview loads. For MANUAL posting to the Aeon account.
 const AEON_POSTS = [
+  { id: "aeonskyline", title: "Holder Skyline", copy: (o) => o
+    ? `🏙 The Project AEON holder skyline.\n\nEvery tower is a wallet — height = how much AEON${o.holders?.some(h => h.spx > 0) ? " + SPX6900" : ""} it holds, and for how long. The tallest are the most committed holders.\n\nExplore it live, on-chain.` : "" },
   { id: "aeonfloor", title: "Floor & Sales", copy: (o, s) => s
     ? `🏛 Project AEON floor: ${s.current.floorEth} ETH${s.current.floorUsd ? ` ($${s.current.floorUsd.toLocaleString()})` : ""}.\n\n${s.totalSales.toLocaleString()} sales · ${Math.round(s.totalVolEth).toLocaleString()} ETH ($${(s.totalVolUsd / 1e6).toFixed(1)}M) all-time volume, most of it on ${Object.keys(s.marketplaces || { blur: 1 })[0]}.\n\nFloor and volume, reconstructed on-chain.` : "" },
   { id: "aeonhodl", title: "Holder Age", copy: (o) => o

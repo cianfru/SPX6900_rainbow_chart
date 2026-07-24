@@ -15,15 +15,18 @@ import { FONT, FONT_DIAG } from "../scripts/bot/font.mjs";
 import { renderAeonFloorCard } from "../scripts/bot/aeon-floor-card.mjs";
 import { renderAeonHodlCard } from "../scripts/bot/aeon-hodl-card.mjs";
 import { renderAeonOwnersCard, renderAeonConcentrationCard, renderAeonBehaviourCard } from "../scripts/bot/aeon-cards.mjs";
+import { renderAeonSkylineCard } from "../scripts/bot/aeon-skyline-card.mjs";
 
-// Project Aeon cards render from the committed aeon-*.json (not stats). ?aeon=<id>.
+// Project Aeon cards render from the committed aeon-*.json (not stats), all at 1:1. ?aeon=<id>.
 const readAeon = p => { try { return JSON.parse(readFileSync(join(process.cwd(), p), "utf8")); } catch { return null; } };
+const SQ = { W: 1080, H: 1080 };
 const AEON_CARD = {
-  aeonfloor: () => { const s = readAeon("public/aeon-sales.json"); return s && renderAeonFloorCard(s); },
-  aeonhodl: () => { const d = readAeon("public/aeon-onchain.json"); return d && renderAeonHodlCard(d); },
-  aeonowners: () => { const d = readAeon("public/aeon-onchain.json"); return d && renderAeonOwnersCard(d); },
-  aeonconcentration: () => { const d = readAeon("public/aeon-onchain.json"); return d && renderAeonConcentrationCard(d); },
-  aeonbehaviour: () => { const d = readAeon("public/aeon-onchain.json"); return d && renderAeonBehaviourCard(d); },
+  aeonfloor: () => { const s = readAeon("public/aeon-sales.json"); return s && renderAeonFloorCard(s, SQ); },
+  aeonskyline: () => { const d = readAeon("public/aeon-onchain.json"); return d && renderAeonSkylineCard(d, SQ); },
+  aeonhodl: () => { const d = readAeon("public/aeon-onchain.json"); return d && renderAeonHodlCard(d, SQ); },
+  aeonowners: () => { const d = readAeon("public/aeon-onchain.json"); return d && renderAeonOwnersCard(d, SQ); },
+  aeonconcentration: () => { const d = readAeon("public/aeon-onchain.json"); return d && renderAeonConcentrationCard(d, SQ); },
+  aeonbehaviour: () => { const d = readAeon("public/aeon-onchain.json"); return d && renderAeonBehaviourCard(d, SQ); },
 };
 
 // Nav tab id -> the rotating post whose card best represents that tab.
