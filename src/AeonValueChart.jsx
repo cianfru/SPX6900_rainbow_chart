@@ -73,13 +73,20 @@ export default function AeonValueChart({ isMobile }) {
   };
   const Tip = ({ active, payload }) => {
     if (!active || !payload?.length) return null;
-    const d = payload[0].payload;
+    // A ComposedChart tooltip can resolve to the fair-value LINE, which has no token id —
+    // take the first payload entry that is an actual listing.
+    const d = (payload.find(p => p?.payload?.id != null) || payload[0]).payload;
+    if (d.id == null) return null;
     return (
-      <div style={{ background: "#0a0e1c", border: "1px solid #234", borderRadius: 8, padding: "8px 11px", fontFamily: SANS, fontSize: 12.5 }}>
-        <div style={{ color: "#e2e8f0", fontWeight: 700 }}>AEON #{d.id}</div>
-        <div style={{ color: "#94a3b8" }}>rarity rank {d.rank} of {total}</div>
-        <div style={{ fontFamily: MONO }}><span style={{ color: "#f59e0b" }}>{fEth(d.price)}</span> · fair {fEth(d.exp)}</div>
-        {d.disc > 0.1 && <div style={{ color: "#34d399", fontWeight: 700 }}>{(d.disc * 100).toFixed(0)}% below fair value</div>}
+      <div style={{ background: "#0a0e1c", border: "1px solid #234", borderRadius: 10, padding: 8, fontFamily: SANS, fontSize: 12.5, display: "flex", gap: 9, alignItems: "center", boxShadow: "0 8px 26px rgba(0,0,0,0.55)" }}>
+        {d.img && <img src={d.img} alt={"AEON #" + d.id} width={76} height={76}
+          style={{ width: 76, height: 76, borderRadius: 7, objectFit: "cover", display: "block", background: "#05050e", flexShrink: 0, border: "1px solid rgba(255,255,255,0.10)" }} />}
+        <div style={{ minWidth: 0 }}>
+          <div style={{ color: "#e2e8f0", fontWeight: 700 }}>AEON #{d.id}</div>
+          <div style={{ color: "#94a3b8" }}>rank {d.rank} of {total}</div>
+          <div style={{ fontFamily: MONO }}><span style={{ color: "#f59e0b", fontWeight: 700 }}>{fEth(d.price)}</span> · fair {fEth(d.exp)}</div>
+          {d.disc > 0.1 && <div style={{ color: "#34d399", fontWeight: 700 }}>{(d.disc * 100).toFixed(0)}% below fair value</div>}
+        </div>
       </div>
     );
   };

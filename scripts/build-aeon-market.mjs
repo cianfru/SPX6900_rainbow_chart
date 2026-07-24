@@ -102,6 +102,11 @@ function main() {
   // downsampled scatter for the chart (keep every sale up to ~500)
   const sstep = Math.max(1, Math.ceil(scored.length / 500));
   const salesScatter = scored.filter((_, i) => i % sstep === 0).map(({ img, exp, ...r }) => r);
+  // Art for the hover tooltip. Keyed by token (not repeated per sale) — a token that traded
+  // 5 times would otherwise carry 5 copies of the same URL. ~196 entries vs 351 points, and
+  // far cheaper than the site loading the 1.3 MB rarity file just to resolve images.
+  const scatterImgs = {};
+  for (const p of salesScatter) { const im = R.get(p.id)?.img; if (im && !scatterImgs[p.id]) scatterImgs[p.id] = im; }
   // ONE ROW PER TOKEN. A token that traded repeatedly has several sale records, and the raw
   // list showed the same piece 3× in the gallery (#863 at 48/39/38% off) — which reads as a
   // rendering bug, not as history. Keep each token's single best (deepest-discount) sale.
@@ -138,7 +143,7 @@ function main() {
     },
     urpd: urpd.map(b => ({ lo: +b.lo.toFixed(4), hi: +b.hi.toFixed(4), n: b.n, prof: b.prof })),
     fairModel: fair ? { a: fair.a, b: fair.b } : null,
-    salesScatter, deals, biggest, traitPremiums,
+    salesScatter, scatterImgs, deals, biggest, traitPremiums,
   };
   writeFileSync(OUT, JSON.stringify(out) + "\n");
 

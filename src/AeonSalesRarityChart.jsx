@@ -19,21 +19,31 @@ export default function AeonSalesRarityChart({ isMobile }) {
     const pmin = Math.min(...pts.map(p => p.price)), pmax = Math.max(...pts.map(p => p.price));
     const fm = data.fairModel;
     const line = fm ? Array.from({ length: 40 }, (_, i) => { const r = Math.exp(Math.log(rmin) + (Math.log(rmax) - Math.log(rmin)) * i / 39); return { rank: r, fair: Math.exp(fm.a + fm.b * Math.log(r)) }; }) : [];
-    return { pts, rmin, rmax, pmin, pmax, line };
+    return { pts, rmin, rmax, pmin, pmax, line, imgs: data.scatterImgs || {} };
   }, [data]);
 
   if (!data) return <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Loading sales…</div>;
   if (data.empty || !model) return <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Sales data is being reconstructed.</div>;
 
-  let { pts, rmin, rmax, pmin, pmax, line } = model;
+  let { pts, rmin, rmax, pmin, pmax, line, imgs } = model;
   if (!(pmin > 0)) pmin = 0.001;                     // log scale cannot start at 0
   if (!(pmax > pmin)) pmax = pmin * 2;               // single sale → give the axis room
   const Tip = ({ active, payload }) => {
-    if (!active || !payload?.length) return null; const d = payload[0].payload;
-    return (<div style={{ background: "#0a0e1c", border: "1px solid #234", borderRadius: 8, padding: "7px 10px", fontFamily: SANS, fontSize: 12.5 }}>
-      <div style={{ color: "#e2e8f0", fontWeight: 700 }}>AEON #{d.id}</div>
-      <div style={{ color: "#94a3b8", fontFamily: MONO }}>rank {d.rank} · sold {fEth(d.price)}</div>
-      {d.disc > 0.2 && <div style={{ color: "#34d399", fontWeight: 700 }}>{(d.disc * 100).toFixed(0)}% below fair</div>}
+    if (!active || !payload?.length) return null;
+    // A ComposedChart tooltip can resolve to the fair-value LINE, which has no token id —
+    // take the first payload entry that is an actual sale.
+    const d = (payload.find(p => p?.payload?.id != null) || payload[0]).payload;
+    if (d.id == null) return null;
+    const art = imgs[d.id];
+    return (<div style={{ background: "#0a0e1c", border: "1px solid #234", borderRadius: 10, padding: 8, fontFamily: SANS, fontSize: 12.5, display: "flex", gap: 9, alignItems: "center", boxShadow: "0 8px 26px rgba(0,0,0,0.55)" }}>
+      {art && <img src={art} alt={"AEON #" + d.id} width={76} height={76}
+        style={{ width: 76, height: 76, borderRadius: 7, objectFit: "cover", display: "block", background: "#05050e", flexShrink: 0, border: "1px solid rgba(255,255,255,0.10)" }} />}
+      <div style={{ minWidth: 0 }}>
+        <div style={{ color: "#e2e8f0", fontWeight: 700 }}>AEON #{d.id}</div>
+        <div style={{ color: "#94a3b8", fontFamily: MONO }}>rank {d.rank}</div>
+        <div style={{ color: "#f59e0b", fontFamily: MONO, fontWeight: 700 }}>sold {fEth(d.price)}</div>
+        {d.disc > 0.2 && <div style={{ color: "#34d399", fontWeight: 700 }}>{(d.disc * 100).toFixed(0)}% below fair</div>}
+      </div>
     </div>);
   };
   const gallery = (items, accent, tag) => (
