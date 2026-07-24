@@ -14,6 +14,7 @@
 //   node scripts/build-aeon-market.mjs --sales=dune/out/aeon_sales.csv --transfers=dune/out/aeon_transfers.csv
 // ============================================================================
 import { readFileSync, writeFileSync } from "node:fs";
+import { liveTail, describeTail } from "./aeon-live-tail.mjs";
 
 const arg = k => { const a = process.argv.find(s => s.startsWith(`--${k}=`)); return a ? a.slice(k.length + 3) : null; };
 const SALES = arg("sales") || "dune/out/aeon_sales.csv";
@@ -137,7 +138,14 @@ function marketLevelAt(sorted, t, halfWin = 30 * DAY, minN = 12) {
 }
 
 function main() {
-  const sales = parseSales(SALES);
+  const duneSales = parseSales(SALES);
+  // Splice the free Alchemy bank onto the weekly Dune baseline so the market LEVEL — and
+  // therefore fair value, the listings verdict and the sale-alert threshold — stays current
+  // between pulls. Rows strictly newer than the last Dune sale, so no double-counting.
+  const tail = liveTail(duneSales.length ? duneSales[duneSales.length - 1].t : 0);
+  console.log(describeTail(tail, "aeon-market"));
+  const sales = [...duneSales, ...tail.map(r => ({ t: r.t, id: r.id, price: r.price, buyer: r.buyer, seller: r.seller, mkt: r.mkt }))]
+    .sort((a, b) => a.t - b.t);
   const owners = currentOwners(TRANSFERS);
   const rar = JSON.parse(readFileSync("public/aeon-rarity.json", "utf8"));
   const R = new Map(rar.tokens.map(t => [t.id, t]));

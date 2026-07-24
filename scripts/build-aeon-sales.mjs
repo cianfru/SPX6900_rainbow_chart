@@ -17,6 +17,7 @@
 // the historical SALE-based floor (a proxy — lowest actual trade, not lowest listing).
 // ============================================================================
 import { readFileSync, writeFileSync } from "node:fs";
+import { liveTail, impliedEthUsd, describeTail } from "./aeon-live-tail.mjs";
 
 const arg = k => { const a = process.argv.find(s => s.startsWith(`--${k}=`)); return a ? a.slice(k.length + 3) : null; };
 const SALES = arg("sales");
@@ -48,7 +49,16 @@ function parseCsv(path) {
 
 function main() {
   if (!SALES) { console.error("usage: --sales=sales.csv [--out=public/aeon-sales.json]"); process.exit(1); }
-  const rows = parseCsv(SALES);
+  const duneRows = parseCsv(SALES);
+  // Splice the free Alchemy bank onto the weekly Dune baseline, so daily volume and sale
+  // counts stay current between pulls. USD for the tail uses the ETH/USD implied by the
+  // most recent Dune row — at most days old, which is fine for a volume series.
+  const seam = duneRows.length ? duneRows[duneRows.length - 1].t : 0;
+  const tail = liveTail(seam);
+  const rate = impliedEthUsd(duneRows);
+  console.log(describeTail(tail, "aeon-sales"));
+  const rows = [...duneRows, ...tail.map(r => ({ t: r.t, eth: r.price, usd: rate ? r.price * rate : 0, mkt: r.mkt }))]
+    .sort((a, b) => a.t - b.t);
   if (!rows.length) throw new Error("no ETH-denominated sales parsed");
 
   // Daily aggregation.
