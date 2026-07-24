@@ -100,6 +100,19 @@ export function loadAeon() {
   return aeonPromise;
 }
 
+// Shared, cached loader for /aeon-sales.json — the Aeon marketplace floor/volume series
+// (daily floor ETH+USD, volume, per-sale scatter). Null on failure → bundled AEON_SALES.
+let aeonSalesPromise = null;
+export function loadAeonSales() {
+  if (!aeonSalesPromise) {
+    aeonSalesPromise = fetch("/aeon-sales.json", { cache: "no-store" })
+      .then(r => (r.ok ? r.json() : null))
+      .then(d => (d && Array.isArray(d.daily) && d.daily.length ? d : null))
+      .catch(() => null);
+  }
+  return aeonSalesPromise;
+}
+
 // Shared, cached loader for /urpd.json — the cost-basis distribution snapshot (URPD)
 // from the local FIFO engine. Resolves to null on failure so the caller falls back to
 // the bundled src/spx-urpd.js.

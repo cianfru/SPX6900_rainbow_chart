@@ -91,6 +91,7 @@ export const AEON_GROUPS = [
     color: "#2dd4bf",
     desc: "On-chain analytics for the Project AEON NFT collection (3,333 · Ethereum).",
     charts: [
+      { id: "aeonfloor", title: "Floor & Sales", desc: "Floor price (ETH & USD) and trading volume since mint." },
       { id: "aeonhodl", title: "Holder Age", desc: "Each AEON by how long since it last changed hands — the maturation story." },
       { id: "aeonowners", title: "Owners Over Time", desc: "The holder base since mint, split by how many tokens each wallet holds." },
       { id: "aeonconcentration", title: "Concentration", desc: "The largest wallets' share of the collection over time." },
