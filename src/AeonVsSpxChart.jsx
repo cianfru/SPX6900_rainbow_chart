@@ -1,42 +1,37 @@
 import { useMemo, useState, useEffect } from "react";
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid, ReferenceLine, ReferenceArea } from "recharts";
-import { SPX_DAILY } from "./spx-daily.js";
-import { loadAeonSales } from "./history-data.js";
-import { AEON_SALES } from "./aeon-sales.js";
+import { loadAeonMarket } from "./history-data.js";
+import { zStats, ordinal } from "./aeon-spx-value.js";
 import { SANS, MONO, MAX_W, Metric, TipBox, Explain } from "./chart-ui.jsx";
 
 const fShort = t => new Date(t).toLocaleDateString("en-US", { month: "short", year: "2-digit" });
-const median = a => { if (!a.length) return null; const s = [...a].sort((x, y) => x - y); const m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; };
 const fmt = v => v >= 1000 ? (v / 1000).toFixed(1) + "k" : Math.round(v);
 
 // Project Aeon — floor price expressed IN SPX6900 (how many SPX coins buy one AEON floor),
 // vs its own baseline. Below the baseline = the AEON floor is CHEAP relative to SPX; above
 // = EXPENSIVE. Ties the two projects: if you hold SPX, is AEON cheap right now?
+//
+// The ratio series is computed ONCE in build-aeon-market.mjs (`spxValue.floorSeries`) and
+// the verdict math lives in aeon-spx-value.js, both shared with the listings chart — this
+// page used to rebuild the ratio itself off the SPX_DAILY bundle, which meant two
+// implementations, two SPX sources, and a standing chance of the two disagreeing on air.
 export default function AeonVsSpxChart({ isMobile }) {
-  const [sales, setSales] = useState(AEON_SALES);
-  useEffect(() => { let c = false; loadAeonSales().then(d => { if (!c && d) setSales(d); }); return () => { c = true; }; }, []);
+  const [market, setMarket] = useState(null);
+  useEffect(() => { let c = false; loadAeonMarket().then(d => { if (!c) setMarket(d || { empty: true }); }); return () => { c = true; }; }, []);
 
   const model = useMemo(() => {
-    // SPX daily USD price map, and AEON daily floor (USD, 7-day median to de-spike)
-    const spx = new Map(SPX_DAILY.map(([d, p]) => [d, p]));
-    const daily = (sales.daily || []).filter(r => r.floorUsd > 0).map(r => ({ ...r, ts: Date.parse(r.d) })).sort((a, b) => a.ts - b.ts);
-    const rollFloor = daily.map((_, i) => median(daily.slice(Math.max(0, i - 6), i + 1).map(r => r.floorUsd)));
-    const rows = [];
-    daily.forEach((r, i) => { const p = spx.get(r.d); if (p > 0 && rollFloor[i] > 0) rows.push({ ts: r.ts, ratio: rollFloor[i] / p }); });
-    if (rows.length < 20) return null;
-    const ratios = rows.map(r => r.ratio);
-    const base = median(ratios);
-    const logs = ratios.map(Math.log), lm = logs.reduce((s, v) => s + v, 0) / logs.length;
-    const sd = Math.sqrt(logs.reduce((s, v) => s + (v - lm) ** 2, 0) / logs.length);
-    const cur = rows.at(-1).ratio, z = (Math.log(cur) - lm) / (sd || 1);
-    const band = k => Math.exp(lm + k * sd);
-    const state = z < -0.5 ? { t: "cheap", c: "#34d399" } : z > 0.5 ? { t: "expensive", c: "#fb7185" } : { t: "fair", c: "#fbbf24" };
-    const rmax = Math.max(...ratios), rmin = Math.min(...ratios);
-    return { rows, base, cur, z, band, state, rmin, rmax, pctVsBase: (cur / base - 1) * 100 };
-  }, [sales]);
+    const sv = market && !market.empty ? market.spxValue : null;
+    const series = sv?.floorSeries;
+    if (!series?.length) return null;
+    const st = zStats(series);
+    if (!st) return null;
+    const rows = series.map(([d, r]) => ({ ts: Date.parse(d), ratio: r }));
+    return { rows, ...st, rmin: st.min, rmax: st.max, sv };
+  }, [market]);
 
+  if (!market) return <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Loading…</div>;
   if (!model) return <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Not enough overlapping price data yet.</div>;
-  const { rows, base, cur, z, band, state, rmin, rmax, pctVsBase } = model;
+  const { rows, base, cur, z, band, state, rmin, rmax, pctVsBase, pct, sv } = model;
   const step = Math.max(1, Math.round(rows.length / 6));
   const xTicks = rows.filter((_, i) => i % step === 0 || i === rows.length - 1).map(r => r.ts);
 
@@ -59,6 +54,7 @@ export default function AeonVsSpxChart({ isMobile }) {
         <Metric label="AEON floor now" value={fmt(cur) + " SPX"} color="#2dd4bf" />
         <Metric label="vs baseline" value={(pctVsBase >= 0 ? "+" : "") + pctVsBase.toFixed(0) + "%"} color={state.c} sub={fmt(base) + " SPX typical"} />
         <Metric label="right now" value={state.t.toUpperCase()} color={state.c} sub={(z >= 0 ? "+" : "") + z.toFixed(1) + "σ"} />
+        {pct != null && <Metric label="vs own history" value={ordinal(pct)} color="#c084fc" sub="percentile" />}
       </div>
 
       <ResponsiveContainer width="100%" height={isMobile ? 380 : 500}>
@@ -80,7 +76,7 @@ export default function AeonVsSpxChart({ isMobile }) {
       </ResponsiveContainer>
 
       <div className="chart-caption" style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.65, maxWidth: 900, marginInline: "auto" }}>
-        AEON floor (USD, 7-day median) ÷ SPX6900 price = the floor priced in SPX coins. Baseline is the full-history median; the green/red bands are ±0.5σ of the log-ratio. A relative-value read across the two projects — not a forecast. Floor from on-chain sales, SPX price from the daily series.
+        AEON floor (USD, 7-day median) ÷ SPX6900 price = the floor priced in SPX coins. Baseline is the full-history median; the green/red bands are ±0.5σ of the log-ratio. A relative-value read across the two projects — not a forecast. Floor from on-chain sales, SPX from the cleaned daily price series. The same ratio and the same verdict math feed the listings page, so the two can never disagree.
       </div>
     </div>
   );

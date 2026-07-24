@@ -87,27 +87,38 @@ function spxValuation(salesDaily) {
     if (!wk.has(w)) wk.set(w, { a: [], e: [] });
     wk.get(w).a.push(r.avgEth); wk.get(w).e.push(r.floorUsd / r.floorEth);
   }
-  const ratios = [];
+  // saleSeries — weekly median SALE in SPX. The benchmark for "is this ask dear?", since
+  // a typical trade is the right comparison for a listing.
+  const saleSeries = [];
   for (const [w, v] of [...wk.entries()].sort()) {
     const p = spx.get(w); if (!(p > 0)) continue;
     const usd = median(v.a) * median(v.e);
-    if (usd > 0) ratios.push({ d: w, r: usd / p });   // how many SPX one AEON costs
+    if (usd > 0) saleSeries.push([w, Math.round(usd / p)]);   // how many SPX one AEON costs
   }
-  if (ratios.length < 20) return null;
+  if (saleSeries.length < 20) return null;
 
-  const ladder = ratios.map(x => x.r).sort((a, b) => a - b);
+  // floorSeries — daily FLOOR in SPX (7-day median, de-spiked). A different question from
+  // saleSeries (cheapest entry vs typical trade), so both are emitted rather than merged;
+  // what matters is that ONE place computes them, off one SPX source, with one convention.
+  const dailyFloor = salesDaily.filter(r => r.floorUsd > 0).map(r => ({ d: r.d, usd: r.floorUsd }));
+  const floorSeries = [];
+  dailyFloor.forEach((r, i) => {
+    const p = spx.get(r.d); if (!(p > 0)) return;
+    const roll = median(dailyFloor.slice(Math.max(0, i - 6), i + 1).map(x => x.usd));
+    if (roll > 0) floorSeries.push([r.d, Math.round(roll / p)]);
+  });
+
   const spxDates = [...spx.keys()].sort();
   const spxNow = spx.get(spxDates[spxDates.length - 1]);
   const lastDaily = [...salesDaily].reverse().find(r => r.floorEth > 0 && r.floorUsd > 0);
   const ethUsd = lastDaily ? lastDaily.floorUsd / lastDaily.floorEth : null;
-  const ratioNow = ratios[ratios.length - 1].r;
-  const pct = v => ladder.filter(x => x <= v).length / ladder.length;
+  const ladder = saleSeries.map(x => x[1]).sort((a, b) => a - b);
+  const ratioNow = saleSeries[saleSeries.length - 1][1];
   return {
     spxNow: +spxNow.toFixed(6), ethUsd: ethUsd ? Math.round(ethUsd) : null,
-    ratioNow: Math.round(ratioNow), pctNow: +(pct(ratioNow) * 100).toFixed(1),
+    ratioNow, pctNow: +(ladder.filter(x => x <= ratioNow).length / ladder.length * 100).toFixed(1),
     median: Math.round(median(ladder)), n: ladder.length,
-    // sorted ladder (rounded) so any client can place an arbitrary price on this history
-    ladder: ladder.map(v => Math.round(v)),
+    saleSeries, floorSeries,
   };
 }
 
