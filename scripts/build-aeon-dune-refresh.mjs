@@ -66,7 +66,13 @@ async function pull(sqlPath, outPath, name, idEnv) {
   if (rows < 10) throw new Error(`only ${rows} rows back — refusing to overwrite ${outPath}`);
   writeFileSync(outPath, csv.endsWith("\n") ? csv : csv + "\n");
   const dp = meta?.datapoint_count ? ` · ${meta.datapoint_count.toLocaleString()} datapoints` : "";
-  console.log(`  ${outPath}: ${rows.toLocaleString()} rows${dp}`);
+  // Surface the CREDIT cost so the monthly budget is observable rather than estimated.
+  // Dune has moved this field around between API versions, so probe the likely names and
+  // dump the metadata keys when none match — the next run then tells us what to read.
+  const cost = meta?.execution_cost_credits ?? meta?.credits_used ?? meta?.total_credits ?? null;
+  console.log(`  ${outPath}: ${rows.toLocaleString()} rows${dp}`
+    + (cost != null ? ` · ${cost} credits` : ""));
+  if (cost == null && meta) console.log(`    (no credit field; metadata keys: ${Object.keys(meta).join(", ")})`);
   return rows;
 }
 

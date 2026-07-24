@@ -42,10 +42,22 @@ jobs:
           AEON_CONTRACT: ${{ vars.AEON_CONTRACT }}
           AEON_OS_SLUG: ${{ vars.AEON_OS_SLUG }}       # optional (else resolved from the contract)
         run: node scripts/build-aeon-listings.mjs
-      - name: Refresh transfers + sales from Dune (whole history, daily)
+      # Dune is the ONLY metered thing in this workflow, so it runs WEEKLY while everything
+      # else here stays daily. What it feeds — holder age, concentration, holder flow, the
+      # 180-day fair model, trader P&L — moves in months, not days. The genuinely timely
+      # surfaces no longer depend on it: floor/owners/supply come from Alchemy in the step
+      # above, and notable sales come from Alchemy live in aeon-sale-watch.yml (hourly).
+      # Daily was the right call only while the sale alert rode this pull.
+      - name: Is it the weekly Dune day?
+        id: dow
+        run: echo "day=$(date -u +%u)" >> "$GITHUB_OUTPUT"
+
+      - name: Refresh transfers + sales from Dune (whole history, weekly)
         # Re-pulls the entire transfer + sale history (tiny for a 3,333 collection → a few
         # credits, no timeout). Soft-skips without DUNE_API_KEY; soft-fails on any Dune hiccup
         # so the floor/owners banker stays green (reconstructions then use the committed CSVs).
+        # Monday only on the schedule; a manual dispatch always runs it.
+        if: steps.dow.outputs.day == '1' || github.event_name == 'workflow_dispatch'
         env:
           DUNE_API_KEY: ${{ secrets.DUNE_API_KEY }}
           AEON_TRANSFERS_QUERY_ID: ${{ vars.AEON_TRANSFERS_QUERY_ID }}   # optional (else created + logged)
