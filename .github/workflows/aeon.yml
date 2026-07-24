@@ -1,0 +1,75 @@
+name: Project Aeon NFT banker
+
+on:
+  schedule:
+    - cron: "37 1 * * *"   # ~01:37 UTC daily (after the supply snapshot)
+  workflow_dispatch: {}     # allow manual runs
+
+permissions:
+  contents: write
+
+concurrency:
+  group: aeon-banker
+  cancel-in-progress: false
+
+jobs:
+  aeon:
+    runs-on: ubuntu-latest
+    outputs:
+      deploy: ${{ steps.commit.outputs.deploy }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+      - name: Bank Aeon floor / owners / volume (Reservoir)
+        env:
+          RESERVOIR_KEY: ${{ secrets.RESERVOIR_KEY }}
+          AEON_CONTRACT: ${{ vars.AEON_CONTRACT }}   # optional override
+        run: node scripts/build-aeon.mjs
+      - name: Commit if changed
+        id: commit
+        run: |
+          DEPLOY_CHANGED=""
+          [[ -n "$(git status --porcelain public/aeon.json public/aeon-history.json)" ]] && DEPLOY_CHANGED=1
+          if [[ -n "$DEPLOY_CHANGED" ]]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add public/aeon.json public/aeon-history.json
+            git commit -m "chore: aeon banker $(date -u +%F)"
+            git push
+          else
+            echo "No change to commit"
+          fi
+          # GITHUB_TOKEN commits can't trigger deploy.yml (recursion guard) → signal below.
+          [[ -n "$DEPLOY_CHANGED" ]] && echo "deploy=true" >> "$GITHUB_OUTPUT" || echo "deploy=false" >> "$GITHUB_OUTPUT"
+
+  # Redeploy so the fresh aeon.json reaches the site (charts + freshness tag).
+  # Mirrors snapshot.yml's deploy job; shares the vercel-production concurrency group.
+  deploy:
+    needs: aeon
+    if: needs.aeon.outputs.deploy == 'true'
+    runs-on: ubuntu-latest
+    concurrency:
+      group: vercel-production
+      cancel-in-progress: true
+    env:
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install --global vercel@latest
+      - run: vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      - run: vercel build --prod --token="$VERCEL_TOKEN"
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      - run: vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN"
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
