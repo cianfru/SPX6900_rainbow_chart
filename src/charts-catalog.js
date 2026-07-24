@@ -81,6 +81,17 @@ export const CHART_GROUPS = [
       { id: "vsmemekings", title: "SPX vs Memekings", post: "memecoins", desc: "Rebased race vs DOGE, SHIB and PEPE — YTD, 12mo or since launch." },
     ],
   },
+  {
+    title: "Project Aeon",
+    color: "#2dd4bf",
+    desc: "On-chain analytics for the Project AEON NFT collection (3,333 · Ethereum).",
+    charts: [
+      { id: "aeonhodl", title: "Holder Age", desc: "Each AEON by how long since it last changed hands — the maturation story." },
+      { id: "aeonowners", title: "Owners Over Time", desc: "The holder base since mint, split by how many tokens each wallet holds." },
+      { id: "aeonconcentration", title: "Concentration", desc: "The largest wallets' share of the collection over time." },
+      { id: "aeonbehaviour", title: "Holder Flow", desc: "Wallets entering (buying) vs exiting (selling) the collection each month." },
+    ],
+  },
 ];
 
 // id -> { id, title, post, desc, color, group } for O(1) lookup on chart pages.

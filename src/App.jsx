@@ -48,6 +48,10 @@ const OnchainValueChart = lazy(() => import("./OnchainValueChart.jsx"));
 const SupplyInProfitChart = lazy(() => import("./SupplyInProfitChart.jsx"));
 const HodlWavesChart = lazy(() => import("./HodlWavesChart.jsx"));
 const HolderConcentrationChart = lazy(() => import("./HolderConcentrationChart.jsx"));
+const AeonHodlChart = lazy(() => import("./AeonHodlChart.jsx"));
+const AeonOwnersChart = lazy(() => import("./AeonOwnersChart.jsx"));
+const AeonConcentrationChart = lazy(() => import("./AeonConcentrationChart.jsx"));
+const AeonBehaviourChart = lazy(() => import("./AeonBehaviourChart.jsx"));
 const UrpdChart = lazy(() => import("./UrpdChart.jsx"));
 const UrpdAgeChart = lazy(() => import("./UrpdAgeChart.jsx"));
 const LthSthChart = lazy(() => import("./LthSthChart.jsx"));
@@ -176,6 +180,10 @@ function TabIcon({ name }) {
     case "mvrv": return (<svg {...p}><path d="M3 15l5-3 4 1 5-6 4 2" /><path d="M3 18l5-1 4 0 5-3 4 1" strokeDasharray="2 3" strokeOpacity="0.7" /></svg>);
     case "supplyprofit": return (<svg {...p}><path d="M3 16c3 1 5-8 8-8s4 7 10 3" /><line x1="3" y1="12" x2="21" y2="12" strokeDasharray="3 2" strokeOpacity="0.7" /></svg>);
     case "hodlwaves": return (<svg {...p}><path d="M3 18h18" /><path d="M3 14h18" strokeOpacity="0.75" /><path d="M3 10h18" strokeOpacity="0.5" /><path d="M3 6h18" strokeOpacity="0.3" /></svg>);
+    case "aeonhodl": return (<svg {...p}><path d="M3 18h18" /><path d="M3 13h18" strokeOpacity="0.7" /><path d="M3 8h18" strokeOpacity="0.4" /></svg>);
+    case "aeonowners": return (<svg {...p}><circle cx="9" cy="7" r="3" /><circle cx="17" cy="9" r="2.4" /><path d="M3 20v-1a5 5 0 0 1 5-5h2a5 5 0 0 1 5 5v1" /><path d="M15 20v-1a4 4 0 0 1 4-4h0a3 3 0 0 1 3 3v2" strokeOpacity="0.6" /></svg>);
+    case "aeonconcentration": return (<svg {...p}><path d="M3 8c4 0 6-3 9-3s5 3 9 3" /><path d="M3 18c4 0 6-2 9-2s5 2 9 2" strokeOpacity="0.7" /></svg>);
+    case "aeonbehaviour": return (<svg {...p}><line x1="3" y1="12" x2="21" y2="12" strokeOpacity="0.4" /><rect x="5" y="6" width="3" height="6" /><rect x="11" y="12" width="3" height="5" /><rect x="17" y="7" width="3" height="5" /></svg>);
     case "concentration": return (<svg {...p}><path d="M3 8c4 0 6-3 9-3s5 3 9 3" /><path d="M3 18c4 0 6-2 9-2s5 2 9 2" strokeOpacity="0.7" /></svg>);
     case "urpd": return (<svg {...p}><path d="M4 20V14M7 20V10M10 20V6M13 20V11M16 20V8M19 20V13" /><line x1="11.5" y1="4" x2="11.5" y2="21" strokeDasharray="2 2" strokeOpacity="0.8" /></svg>);
     case "urpdage": return (<svg {...p}><rect x="3" y="4" width="18" height="16" rx="1" /><path d="M9 4v16M15 4v16M3 9.3h18M3 14.6h18" strokeOpacity="0.7" /></svg>);
@@ -621,6 +629,10 @@ export default function App() {
       case "longshort": return <LongShortChart series={priceData} isMobile={mob} />;
       case "quantilefan": return <QuantileFanChart series={priceData} isMobile={mob} preview={preview} />;
       case "model": return <ModelChart series={priceData} m={m} isMobile={mob} />;
+      case "aeonhodl": return <AeonHodlChart isMobile={mob} />;
+      case "aeonowners": return <AeonOwnersChart isMobile={mob} />;
+      case "aeonconcentration": return <AeonConcentrationChart isMobile={mob} />;
+      case "aeonbehaviour": return <AeonBehaviourChart isMobile={mob} />;
       default: return null;
     }
   };

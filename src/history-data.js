@@ -86,6 +86,20 @@ export function loadOnchain() {
   return onchainPromise;
 }
 
+// Shared, cached loader for /aeon-onchain.json — the Project Aeon NFT holder
+// reconstruction (owners, holder-age/HODL waves, concentration, flow), an OBJECT
+// { updated, supply, current, series }. Null on failure → bundled AEON_ONCHAIN.
+let aeonPromise = null;
+export function loadAeon() {
+  if (!aeonPromise) {
+    aeonPromise = fetch("/aeon-onchain.json", { cache: "no-store" })
+      .then(r => (r.ok ? r.json() : null))
+      .then(d => (d && Array.isArray(d.series) && d.series.length ? d : null))
+      .catch(() => null);
+  }
+  return aeonPromise;
+}
+
 // Shared, cached loader for /urpd.json — the cost-basis distribution snapshot (URPD)
 // from the local FIFO engine. Resolves to null on failure so the caller falls back to
 // the bundled src/spx-urpd.js.
