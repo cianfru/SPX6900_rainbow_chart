@@ -9,7 +9,7 @@
 // no post (writes bandchange-preview.png so you can eyeball the card).
 import { readFileSync, writeFileSync } from "node:fs";
 import { fetchLivePrice, fetchHistory, computeStats } from "./stats.mjs";
-import { buildBandChangePost, bandPostDecision, confirmBandCrossing, MARQUEE_BANDS, BAND_CONFIRM_READINGS } from "./posts.mjs";
+import { buildBandChangePost, bandPostDecision, confirmBandCrossing, MARQUEE_BANDS, BAND_CONFIRM_READINGS, lanePostedToday, recordLanePost } from "./posts.mjs";
 import { buildMedia, postWithMedia } from "./media.mjs";
 import { DEFAULT_RAW } from "../../src/data.js";
 
@@ -99,7 +99,9 @@ try {
   // Disarm on a real post: no more band alerts until price returns to a calm band.
   writeState({ band: bi, ts: nowIso(), lastPostTs: nowIso(), armed: false, pendingBand: null, pendingCount: 0 });
   // Claim the day's single post slot so the daily rotation skips today.
-  writeFileSync(POST_STATE, JSON.stringify({ lastPostedDate: today(), lastId: "bandchange" }, null, 2) + "\n");
+  // Own lane, MERGED in: overwriting post-state used to wipe the daily's `recent` log and
+  // claim the day's only slot. Lanes fire independently now.
+  recordLanePost("band", "bandchange");
   console.log(`Posted band-change ✓ (${from} -> ${bi}, ${media.kind}) tweet ${id}`);
 } catch (e) {
   console.error(`POST FAILED ✗ — ${JSON.stringify(e.data?.errors ?? e.data ?? e.message)}`);

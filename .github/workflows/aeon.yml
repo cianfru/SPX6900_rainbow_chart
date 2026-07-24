@@ -63,15 +63,33 @@ jobs:
         run: |
           node scripts/build-aeon-market.mjs
           node scripts/build-aeon-traders.mjs
+      - name: Post a notable AEON sale (own lane — does not consume the daily slot)
+        # Fires only when a fresh sale clears a notability bar (a steal, a rare piece
+        # trading, or a sale well above what that rarity fetches). Silent otherwise.
+        # Soft-fails: a posting hiccup must not fail the banker or block the commit.
+        continue-on-error: true
+        env:
+          X_API_KEY: ${{ secrets.X_API_KEY }}
+          X_API_SECRET: ${{ secrets.X_API_SECRET }}
+          X_ACCESS_TOKEN: ${{ secrets.X_ACCESS_TOKEN }}
+          X_ACCESS_SECRET: ${{ secrets.X_ACCESS_SECRET }}
+          DRY_RUN: ${{ vars.AEON_SALE_DRY_RUN }}   # set to 1 to watch without posting
+        run: node scripts/bot/aeon-sale-watch.mjs
+
       - name: Commit if changed
         id: commit
         run: |
+          # Deploy only for DATA the site serves. aeon-sale-state.json and post-state.json
+          # are runtime bookkeeping (deploy-ignored) — they must still be committed so the
+          # sale watcher remembers what it posted and its lane survives to the next run,
+          # but on their own they should not spend a Vercel deploy.
           DEPLOY_CHANGED=""
-          [[ -n "$(git status --porcelain public/aeon*.json)" ]] && DEPLOY_CHANGED=1
-          if [[ -n "$DEPLOY_CHANGED" ]]; then
+          DATA_CHANGED="$(git status --porcelain public/aeon*.json | grep -v 'aeon-sale-state.json' || true)"
+          [[ -n "$DATA_CHANGED" ]] && DEPLOY_CHANGED=1
+          if [[ -n "$(git status --porcelain public/aeon*.json public/post-state.json)" ]]; then
             git config user.name "github-actions[bot]"
             git config user.email "github-actions[bot]@users.noreply.github.com"
-            git add public/aeon*.json
+            git add public/aeon*.json public/post-state.json
             git commit -m "chore: aeon banker $(date -u +%F)"
             git push
           else

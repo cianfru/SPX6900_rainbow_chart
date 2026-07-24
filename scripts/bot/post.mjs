@@ -169,9 +169,11 @@ if (dryRun) {
   process.exit(0);
 }
 
-// Once-per-day guard: if a real post already went out today (cron or control
-// page), don't post again. Only applies to real runs (dry-runs never reach here).
-// --force (BOT_FORCE=1) overrides it for an intentional manual post.
+// Once-per-day guard for the DAILY LANE only. `lastPostedDate` is written by this
+// rotation alone — the event watchers (band / milestone / notable AEON sale) record
+// their own lanes in `lanes.*` and no longer claim this slot, so a real event can fire
+// on a day the rotation has already gone out. Only applies to real runs (dry-runs never
+// reach here). --force (BOT_FORCE=1) overrides it for an intentional manual post.
 const today = new Date().toISOString().slice(0, 10);
 const state = readJson(STATE_FILE, {});
 if (state.lastPostedDate === today && !force) {

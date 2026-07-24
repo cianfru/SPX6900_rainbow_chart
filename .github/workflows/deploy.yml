@@ -25,6 +25,7 @@ on:
       - "public/recap-pending.json"
       - "public/rotation-excludes.json"
       - "public/signals.json"
+      - "public/aeon-sale-state.json"
   workflow_dispatch: {}
 
 # Cancel an in-flight deploy if a newer commit lands, so the queue can never pile up.

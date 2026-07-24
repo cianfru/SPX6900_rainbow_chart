@@ -250,6 +250,11 @@ function main() {
     levelNow: +levelNow.toFixed(4),
     spxValue: (() => { try { return spxValuation(JSON.parse(readFileSync("public/aeon-sales.json", "utf8")).daily || []); } catch { return null; } })(),
     salesScatter, scatterImgs, deals, biggest, traitPremiums,
+    // Fresh sales feed for the notable-sale watcher (aeon-sale-watch.mjs). Kept separate
+    // from `deals` because a sale can be newsworthy for being RARE or BIG, not only cheap.
+    recentSales: scored.filter(s => Date.parse(s.d) >= now - 14 * DAY)
+      .sort((a, b) => Date.parse(b.d) - Date.parse(a.d))
+      .map(s => ({ id: s.id, price: s.price, rank: s.rank, exp: s.exp, disc: s.disc, img: s.img, d: s.d })),
   };
   writeFileSync(OUT, JSON.stringify(out) + "\n");
 

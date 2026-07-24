@@ -1,7 +1,7 @@
 // Rotating "daily pill" posts. Each entry turns the live stats into an
 // informative blurb + a chart card (line/bar/rainbow). The bot rotates through
 // them by day so followers get a different, visual angle each day.
-import { readFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import * as M from "../../src/models.js";
 import { DEFAULT_RAW } from "../../src/data.js";
 import { CRYPTO_MILESTONES } from "../../src/milestones.js";
@@ -2193,6 +2193,39 @@ export function bandPostDecision({ bi, state, dailyPostedToday = false, now = Da
   const cooled = !state?.lastPostTs || now - Date.parse(state.lastPostTs) >= cooldownMs;
   const shouldPost = changed && extreme && armed && cooled;
   return { calm, armed, extreme, changed, cooled, shouldPost };
+}
+
+// ── POST LANES ───────────────────────────────────────────────────────────────
+// The bot used to enforce ONE post per day across everything: post-state.json carried a
+// single `lastPostedDate`, and each watcher OVERWROTE the whole file to claim the day.
+// Two problems. A real event (a band crossing, a notable NFT sale) had to wait for
+// tomorrow if the rotation had already gone out — losing the moment, which is the entire
+// point of an event post. And the overwrite silently discarded the `recent` log the
+// control panel uses to avoid repeating cards.
+//
+// Each publisher now owns a LANE with its own once-a-day budget, so lanes fire
+// independently while none can spam. `lastPostedDate` keeps its old meaning — the DAILY
+// rotation posted today — because band-watch reads it to suppress BUY/SELL announcements
+// that would stack on the daily.
+export const POST_STATE_FILE = new URL("../../public/post-state.json", import.meta.url);
+export const readPostState = () => { try { return JSON.parse(readFileSync(POST_STATE_FILE, "utf8")); } catch { return {}; } };
+const utcDay = () => new Date().toISOString().slice(0, 10);
+
+/** Has THIS lane already posted today? Other lanes are irrelevant. */
+export function lanePostedToday(lane, now = utcDay()) {
+  const s = readPostState();
+  if (lane === "daily") return s.lastPostedDate === now;          // legacy field is the daily lane
+  return s.lanes?.[lane] === now;
+}
+
+/** Record a lane post by MERGING into post-state — never clobber another lane or `recent`. */
+export function recordLanePost(lane, id, { now = utcDay(), write = true } = {}) {
+  const s = readPostState();
+  const next = { ...s, lanes: { ...(s.lanes || {}), [lane]: now } };
+  if (lane === "daily") { next.lastPostedDate = now; next.lastId = id ?? next.lastId; }
+  else { next.lastEventId = id ?? next.lastEventId; next.lastEventAt = new Date().toISOString(); }
+  if (write) writeFileSync(POST_STATE_FILE, JSON.stringify(next, null, 2) + "\n");
+  return next;
 }
 
 // Pure decision for the DAILY-slot band announcement (BUY / SELL). Confirmation

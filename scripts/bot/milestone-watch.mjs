@@ -9,6 +9,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { fetchLivePrice, fetchHistory, computeStats } from "./stats.mjs";
 import { buildMilestonePost } from "./posts.mjs";
 import { buildMedia, postWithMedia } from "./media.mjs";
+import { lanePostedToday, recordLanePost } from "./posts.mjs";
 import { CRYPTO_MILESTONES } from "../../src/milestones.js";
 import { DEFAULT_RAW } from "../../src/data.js";
 
@@ -60,7 +61,7 @@ if (cur <= state.highest) { console.log(`No new milestone (still at ${state.high
 // SPX flipped one or more new giants since last seen — celebrate the highest one.
 const from = state.highest;
 const cooled = !state.lastPostTs || Date.now() - Date.parse(state.lastPostTs) >= COOLDOWN_MS;
-const postedToday = dailyPostedToday();
+const postedToday = lanePostedToday("milestone");
 const shouldPost = cooled && !postedToday;
 console.log(`New milestone ${from} -> ${cur} (${curLabel}) | cooled=${cooled} dailyPostedToday=${postedToday} => ${shouldPost ? "POST" : "skip"}`);
 
@@ -87,7 +88,7 @@ try {
   const id = await postWithMedia(client, post, stats, media);
   writeState({ highest: cur, label: curLabel, ts: nowIso(), lastPostTs: nowIso() }); // advance cooldown only on a real post
   // Claim the day's single post slot so the daily rotation skips today.
-  writeFileSync(POST_STATE, JSON.stringify({ lastPostedDate: today(), lastId: "milestonecross" }, null, 2) + "\n");
+  recordLanePost("milestone", "milestonecross");
   console.log(`Posted milestone ✓ (${from} -> ${cur}, ${curLabel}) tweet ${id}`);
 } catch (e) {
   console.error(`POST FAILED ✗ — ${JSON.stringify(e.data?.errors ?? e.data ?? e.message)}`);
