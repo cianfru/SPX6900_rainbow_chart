@@ -42,15 +42,21 @@ jobs:
           AEON_CONTRACT: ${{ vars.AEON_CONTRACT }}
           AEON_OS_SLUG: ${{ vars.AEON_OS_SLUG }}       # optional (else resolved from the contract)
         run: node scripts/build-aeon-listings.mjs
+      - name: Rebuild Aeon market valuation + trader P&L (keyless, from committed extracts)
+        # MVRV / supply-in-profit / URPD / deals / biggest sales / trait premiums, and the
+        # wallet P&L leaderboard — from dune/out/*.csv + rarity + the live floor. No key.
+        run: |
+          node scripts/build-aeon-market.mjs
+          node scripts/build-aeon-traders.mjs
       - name: Commit if changed
         id: commit
         run: |
           DEPLOY_CHANGED=""
-          [[ -n "$(git status --porcelain public/aeon.json public/aeon-history.json public/aeon-rarity.json public/aeon-listings.json)" ]] && DEPLOY_CHANGED=1
+          [[ -n "$(git status --porcelain public/aeon.json public/aeon-history.json public/aeon-rarity.json public/aeon-listings.json public/aeon-market.json public/aeon-traders.json)" ]] && DEPLOY_CHANGED=1
           if [[ -n "$DEPLOY_CHANGED" ]]; then
             git config user.name "github-actions[bot]"
             git config user.email "github-actions[bot]@users.noreply.github.com"
-            git add public/aeon.json public/aeon-history.json public/aeon-rarity.json public/aeon-listings.json
+            git add public/aeon.json public/aeon-history.json public/aeon-rarity.json public/aeon-listings.json public/aeon-market.json public/aeon-traders.json
             git commit -m "chore: aeon banker $(date -u +%F)"
             git push
           else

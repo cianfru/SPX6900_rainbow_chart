@@ -140,6 +140,19 @@ export function loadAeonListings() {
   return aeonListPromise;
 }
 
+// Aeon market valuation (MVRV / supply-in-profit / URPD / deals / biggest sales / trait premiums).
+let aeonMktPromise = null;
+export function loadAeonMarket() {
+  if (!aeonMktPromise) aeonMktPromise = fetch("/aeon-market.json", { cache: "no-store" }).then(r => r.ok ? r.json() : null).then(d => d && d.valuation ? d : null).catch(() => null);
+  return aeonMktPromise;
+}
+// Aeon trader intelligence (wallet P&L leaderboard).
+let aeonTradersPromise = null;
+export function loadAeonTraders() {
+  if (!aeonTradersPromise) aeonTradersPromise = fetch("/aeon-traders.json", { cache: "no-store" }).then(r => r.ok ? r.json() : null).then(d => d && Array.isArray(d.top) ? d : null).catch(() => null);
+  return aeonTradersPromise;
+}
+
 // Shared, cached loader for /urpd.json — the cost-basis distribution snapshot (URPD)
 // from the local FIFO engine. Resolves to null on failure so the caller falls back to
 // the bundled src/spx-urpd.js.
