@@ -28,15 +28,22 @@ jobs:
           ALCHEMY_NETWORK: ${{ vars.ALCHEMY_NETWORK }}   # optional (default eth-mainnet)
           AEON_CONTRACT: ${{ vars.AEON_CONTRACT }}        # optional override
         run: node scripts/build-aeon.mjs
+      - name: Compute trait rarity (once — traits are immutable)
+        # Skips automatically if public/aeon-rarity.json already exists (add --force to re-pull).
+        env:
+          ALCHEMY_KEY: ${{ secrets.ALCHEMY_KEY }}
+          ALCHEMY_NETWORK: ${{ vars.ALCHEMY_NETWORK }}
+          AEON_CONTRACT: ${{ vars.AEON_CONTRACT }}
+        run: node scripts/build-aeon-rarity.mjs
       - name: Commit if changed
         id: commit
         run: |
           DEPLOY_CHANGED=""
-          [[ -n "$(git status --porcelain public/aeon.json public/aeon-history.json)" ]] && DEPLOY_CHANGED=1
+          [[ -n "$(git status --porcelain public/aeon.json public/aeon-history.json public/aeon-rarity.json)" ]] && DEPLOY_CHANGED=1
           if [[ -n "$DEPLOY_CHANGED" ]]; then
             git config user.name "github-actions[bot]"
             git config user.email "github-actions[bot]@users.noreply.github.com"
-            git add public/aeon.json public/aeon-history.json
+            git add public/aeon.json public/aeon-history.json public/aeon-rarity.json
             git commit -m "chore: aeon banker $(date -u +%F)"
             git push
           else
