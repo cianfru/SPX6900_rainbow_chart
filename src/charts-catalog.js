@@ -93,6 +93,7 @@ export const AEON_GROUPS = [
     charts: [
       { id: "aeonfloor", title: "Floor & Sales", desc: "Floor price (ETH & USD) and trading volume since mint." },
       { id: "aeonskyline", title: "Holder Skyline (3D)", desc: "A 3D city of wallets — height = biggest + longest-term holders. Click a tower to open it in Zerion." },
+      { id: "aeonrarity", title: "Rarity — Where Does It Sit?", desc: "Look up any AEON — its rarity rank, tier and traits, on the collection's rarity curve." },
       { id: "aeonhodl", title: "Holder Age", desc: "Each AEON by how long since it last changed hands — the maturation story." },
       { id: "aeonowners", title: "Owners Over Time", desc: "The holder base since mint, split by how many tokens each wallet holds." },
       { id: "aeonconcentration", title: "Concentration", desc: "The largest wallets' share of the collection over time." },

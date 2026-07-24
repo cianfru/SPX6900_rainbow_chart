@@ -113,6 +113,20 @@ export function loadAeonSales() {
   return aeonSalesPromise;
 }
 
+// Shared, cached loader for /aeon-rarity.json — the Project Aeon trait-rarity data
+// (per-token rank/score/traits + trait-frequency tables). ~1.35MB → fetch-only (not
+// bundled); the rarity chart is lazy-loaded so it never touches the base bundle.
+let aeonRarityPromise = null;
+export function loadAeonRarity() {
+  if (!aeonRarityPromise) {
+    aeonRarityPromise = fetch("/aeon-rarity.json", { cache: "force-cache" })
+      .then(r => (r.ok ? r.json() : null))
+      .then(d => (d && Array.isArray(d.tokens) && d.tokens.length ? d : null))
+      .catch(() => null);
+  }
+  return aeonRarityPromise;
+}
+
 // Shared, cached loader for /urpd.json — the cost-basis distribution snapshot (URPD)
 // from the local FIFO engine. Resolves to null on failure so the caller falls back to
 // the bundled src/spx-urpd.js.
