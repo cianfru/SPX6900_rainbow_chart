@@ -1,30 +1,35 @@
 -- ============================================================================
 -- SPX6900 balance per wallet  →  cross-holder axis for the Aeon Holder Skyline
 -- ============================================================================
--- Returns every wallet's current SPX6900 (Ethereum) balance. build-aeon-onchain.mjs
--- --spx=this.csv joins it to the AEON holders, so the skyline tower height can combine
--- AEON held + SPX held (× holding duration) — the tallest tower = biggest AEON *and*
--- SPX holder, longest. Cheap: a single-token balance read (pre-computed balance table,
--- NOT a transfer scan) → a few GB, no timeout, the cheap pattern.
+-- Returns every wallet's current SPX6900 (Ethereum) balance = net of all transfers
+-- (received − sent) for the ONE token. build-aeon-onchain.mjs --spx=this.csv joins it
+-- to the AEON holders so a skyline tower can combine AEON held + SPX held (× duration)
+-- — the tallest tower = biggest AEON *and* SPX holder, longest.
+--
+-- ⭐ CHEAP PATTERN (the earlier tokens_ethereum.balances_daily version TIMED OUT — that
+-- table is every token × address × day, enormous). This scans only the SPX contract's
+-- own evt_Transfer partition (~2.6M rows, a few GB, a handful of credits — the SAME
+-- bounded pattern as the raw-transfer dump, no 2-min-timeout risk) and GROUPs to a
+-- current balance. Output ~49k rows (well under the result-size limit). A plain
+-- filter + UNION + GROUP BY — NO joins, NO window functions, NO balances_daily.
 --
 -- SPX6900 ERC-20: 0xE0f63A424a4439cBE457d80e4f4b51ad25b2c56C · decimals 8.
---
--- VERIFY on first run (Dune balance-table names churn): tokens_ethereum.balances_daily
--- should expose address · token_address · balance · day. If it errors, the older
--- vintage is `erc20_ethereum.evt_Transfer`-derived — prefer the pre-computed balances
--- table over re-summing transfers (transfers = the expensive pattern). Output columns:
--- address, spx  (human units).  Only wallets with a non-dust balance are returned.
+-- VERIFY columns on first run: erc20_ethereum.evt_Transfer exposes contract_address ·
+-- "from" · "to" · value. Output columns: address, spx (human units).
 -- ============================================================================
-WITH latest AS (
-  SELECT address, balance
-  FROM tokens_ethereum.balances_daily
-  WHERE token_address = 0xe0f63a424a4439cbe457d80e4f4b51ad25b2c56c
-    AND day = (SELECT max(day) FROM tokens_ethereum.balances_daily
-               WHERE token_address = 0xe0f63a424a4439cbe457d80e4f4b51ad25b2c56c)
+WITH flows AS (
+  SELECT "to"   AS address,  CAST(value AS DOUBLE) AS v
+  FROM erc20_ethereum.evt_Transfer
+  WHERE contract_address = 0xe0f63a424a4439cbe457d80e4f4b51ad25b2c56c
+  UNION ALL
+  SELECT "from" AS address, -CAST(value AS DOUBLE) AS v
+  FROM erc20_ethereum.evt_Transfer
+  WHERE contract_address = 0xe0f63a424a4439cbe457d80e4f4b51ad25b2c56c
 )
 SELECT
   address,
-  CAST(balance AS DOUBLE) / 1e8 AS spx
-FROM latest
-WHERE balance > 100000000            -- ≥ 1 SPX (8 decimals); drop dust
-ORDER BY balance DESC;
+  SUM(v) / 1e8 AS spx
+FROM flows
+GROUP BY address
+HAVING SUM(v) > 100000000        -- ≥ 1 SPX (8 decimals); drops dust + the zero-net churn
+ORDER BY spx DESC;
