@@ -22,10 +22,11 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: 24
-      - name: Bank Aeon floor / owners / volume (Reservoir)
+      - name: Bank Aeon floor / owners / supply (Alchemy NFT API)
         env:
-          RESERVOIR_KEY: ${{ secrets.RESERVOIR_KEY }}
-          AEON_CONTRACT: ${{ vars.AEON_CONTRACT }}   # optional override
+          ALCHEMY_KEY: ${{ secrets.ALCHEMY_KEY }}
+          ALCHEMY_NETWORK: ${{ vars.ALCHEMY_NETWORK }}   # optional (default eth-mainnet)
+          AEON_CONTRACT: ${{ vars.AEON_CONTRACT }}        # optional override
         run: node scripts/build-aeon.mjs
       - name: Commit if changed
         id: commit
