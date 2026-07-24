@@ -1,12 +1,17 @@
 // ============================================================================
-// PROJECT AEON — daily whole-history Dune refresh (transfers + sales)
+// PROJECT AEON — whole-history Dune refresh (transfers + sales, scheduled apart)
 // ============================================================================
 // Re-pulls the ENTIRE transfer + sale history from Dune each run and overwrites the
 // CSVs the reconstructions read. No archive / no incremental / no drift — the whole
 // history for a 3,333 collection is only ~25k + ~17k rows (a few credits, no timeout,
 // no 402), so re-pulling everything is simpler AND always correct (see CLAUDE.md).
 //
-//   node scripts/build-aeon-dune-refresh.mjs
+//   node scripts/build-aeon-dune-refresh.mjs [--only=transfers|sales]
+//
+// CADENCE: transfers twice weekly (Mon+Thu), sales weekly (Mon). Transfers drive holder
+// age / concentration / holder flow, which nothing free covers. The sales tail is already
+// carried free by the Alchemy bank (build-aeon-live-bank.mjs), so its pull only has to keep
+// the deep full-history reconstruction current.
 //
 // ENV: DUNE_API_KEY (repo secret). Optional repo vars AEON_TRANSFERS_QUERY_ID /
 // AEON_SALES_QUERY_ID — saved queries whose SQL this PATCHes each run; if unset it
@@ -78,9 +83,15 @@ async function pull(sqlPath, outPath, name, idEnv) {
 
 async function main() {
   if (!process.env.DUNE_API_KEY) { console.log("aeon-dune: no DUNE_API_KEY — soft-skipping (reconstructions use the committed CSVs)"); return; }
-  console.log("aeon-dune: refreshing whole-history transfers + sales from Dune…");
-  await pull("dune/aeon_transfers.sql", "dune/out/aeon_transfers.csv", "Project AEON — transfers (auto)", "AEON_TRANSFERS_QUERY_ID");
-  await pull("dune/aeon_sales.sql", "dune/out/aeon_sales.csv", "Project AEON — sales (auto)", "AEON_SALES_QUERY_ID");
+  // The two pulls are scheduled INDEPENDENTLY. Transfers feed holder age / concentration /
+  // holder flow, which is the half worth refreshing more often. Sales feed the full-history
+  // reconstruction (trader P&L, cost basis, MVRV) — and its recent tail is already carried
+  // free by the Alchemy bank, so it does not need the extra run.
+  const only = (process.argv.find(a => a.startsWith("--only=")) || "").split("=")[1] || "";
+  const want = k => !only || only === k;
+  console.log(`aeon-dune: refreshing ${only || "transfers + sales"} from Dune…`);
+  if (want("transfers")) await pull("dune/aeon_transfers.sql", "dune/out/aeon_transfers.csv", "Project AEON — transfers (auto)", "AEON_TRANSFERS_QUERY_ID");
+  if (want("sales")) await pull("dune/aeon_sales.sql", "dune/out/aeon_sales.csv", "Project AEON — sales (auto)", "AEON_SALES_QUERY_ID");
   console.log("aeon-dune: done · exact credit cost is in the Dune dashboard (per-execution).");
 }
 

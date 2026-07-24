@@ -52,17 +52,27 @@ jobs:
         id: dow
         run: echo "day=$(date -u +%u)" >> "$GITHUB_OUTPUT"
 
-      - name: Refresh transfers + sales from Dune (whole history, weekly)
+      - name: Refresh SALES from Dune (weekly — Monday)
         # Re-pulls the entire transfer + sale history (tiny for a 3,333 collection → a few
         # credits, no timeout). Soft-skips without DUNE_API_KEY; soft-fails on any Dune hiccup
         # so the floor/owners banker stays green (reconstructions then use the committed CSVs).
-        # Monday only on the schedule; a manual dispatch always runs it.
+        # Weekly is enough: the recent tail is already carried free by the Alchemy bank, so
+        # this pull only has to keep the deep full-history reconstruction (trader P&L, cost
+        # basis, MVRV) current. Monday on the schedule; a manual dispatch always runs it.
         if: steps.dow.outputs.day == '1' || github.event_name == 'workflow_dispatch'
         env:
           DUNE_API_KEY: ${{ secrets.DUNE_API_KEY }}
-          AEON_TRANSFERS_QUERY_ID: ${{ vars.AEON_TRANSFERS_QUERY_ID }}   # optional (else created + logged)
           AEON_SALES_QUERY_ID: ${{ vars.AEON_SALES_QUERY_ID }}           # optional (else created + logged)
-        run: node scripts/build-aeon-dune-refresh.mjs
+        run: node scripts/build-aeon-dune-refresh.mjs --only=sales
+
+      - name: Refresh TRANSFERS from Dune (twice weekly — Monday + Thursday)
+        # Transfers drive holder age, concentration, holder flow and the skyline. Nothing
+        # free covers those, so this is the half that gets the extra run.
+        if: steps.dow.outputs.day == '1' || steps.dow.outputs.day == '4' || github.event_name == 'workflow_dispatch'
+        env:
+          DUNE_API_KEY: ${{ secrets.DUNE_API_KEY }}
+          AEON_TRANSFERS_QUERY_ID: ${{ vars.AEON_TRANSFERS_QUERY_ID }}   # optional (else created + logged)
+        run: node scripts/build-aeon-dune-refresh.mjs --only=transfers
       - name: Rebuild transfer + sales reconstructions
         # onchain (holders/HODL-age/concentration/flow/skyline) + sales (floor/volume) from the
         # freshly-pulled CSVs. SPX balances stay the committed set (refreshed occasionally).
