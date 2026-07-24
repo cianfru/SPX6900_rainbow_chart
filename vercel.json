@@ -1,6 +1,6 @@
 {
   "functions": {
-    "api/og.js": { "includeFiles": "{scripts/bot/**,public/history.json,public/onchain.json,public/chain-wallets.json,public/cex-flow.json,public/freefloat-peers.json,public/rotation-excludes.json,public/aeon-onchain.json,public/aeon-sales.json}" },
+    "api/og.js": { "includeFiles": "{scripts/bot/**,public/history.json,public/onchain.json,public/chain-wallets.json,public/cex-flow.json,public/freefloat-peers.json,public/rotation-excludes.json,public/aeon-onchain.json,public/aeon-sales.json,public/aeon-market.json,public/aeon-traders.json}" },
     "api/recap.js": { "includeFiles": "{scripts/bot/**,public/history.json,public/onchain.json,public/chain-wallets.json,public/cex-flow.json,public/freefloat-peers.json,public/rotation-excludes.json}" },
     "api/agent.js": { "includeFiles": "{scripts/bot/**,public/history.json,public/onchain.json,public/chain-wallets.json,public/cex-flow.json,public/freefloat-peers.json,public/rotation-excludes.json}" }
   },

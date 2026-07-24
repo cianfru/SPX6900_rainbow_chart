@@ -29,12 +29,12 @@ export function aeonSkylineSvg(data, opts = {}) {
   const maxDays = Math.max(...holders.map(h => h.days), 1);
   const units = h => h.n + (maxSpx > 0 ? (h.spx || 0) / maxSpx * maxN : 0);
   const score = h => units(h) * (0.45 + 0.55 * (h.days / maxDays));
-  const H = holders.slice().sort((a, b) => score(b) - score(a)).slice(0, 49);
+  const H = holders.slice().sort((a, b) => score(b) - score(a)).slice(0, 81);
   const maxScore = Math.max(...H.map(score), 1);
   const champ = H[0], both = holders.filter(h => h.spx > 0).length;
 
   const W = opts.W ?? 1080, HT = opts.H ?? 1080;
-  const A = 44, B = 25, MAXH = 300;                 // iso half-width, quarter-depth, tallest tower px
+  const A = 34, B = 19, MAXH = 300;                 // iso half-width, quarter-depth, tallest tower px
   const SY = MAXH / maxScore;
   const cells = spiral(H.length);
   const cx = W / 2, cy = HT * 0.66;                 // floor centre

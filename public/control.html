@@ -902,6 +902,12 @@ const aeonStatus = (msg, cls = "") => { const e = $("#aeonStatus"); e.textConten
 const AEON_POSTS = [
   { id: "aeonskyline", title: "Holder Skyline", copy: (o) => o
     ? `🏙 The Project AEON holder skyline.\n\nEvery tower is a wallet — height = how much AEON${o.holders?.some(h => h.spx > 0) ? " + SPX6900" : ""} it holds, and for how long. The tallest are the most committed holders.\n\nExplore it live, on-chain.` : "" },
+  { id: "aeonvaluation", title: "MVRV & Supply in Profit", copy: (o, s, m) => m
+    ? `📊 ${m.valuation.supplyInProfitPct}% of Project AEON is held in profit.\n\nMVRV ${m.valuation.mvrv}× — the floor sits right around the crowd's cost basis. The SPX valuation playbook, on the NFT.\n\nOn-chain, reproducible.` : "" },
+  { id: "aeontraders", title: "Top Traders", copy: (o, s, m, t) => t
+    ? `🏆 Who's made money trading Project AEON?\n\nTop trader: +${t.top[0].realized} ETH realized${t.top[0].winRate ? ", " + Math.round(t.top[0].winRate * 100) + "% win" : ""}. Reconstructed on-chain by matching every wallet's buys to its sells.\n\nTrader intelligence.` : "" },
+  { id: "aeontraits", title: "Trait Values", copy: (o, s, m) => m && m.traitPremiums?.length
+    ? `🎨 Which Project AEON traits are worth paying up for?\n\nMedian sale price per trait, from real on-chain sales — ${m.traitPremiums[0].trait.split(" · ").pop()} leads at ${m.traitPremiums[0].median} ETH.\n\nOn-chain.` : "" },
   { id: "aeonfloor", title: "Floor & Sales", copy: (o, s) => s
     ? `🏛 Project AEON floor: ${s.current.floorEth} ETH${s.current.floorUsd ? ` ($${s.current.floorUsd.toLocaleString()})` : ""}.\n\n${s.totalSales.toLocaleString()} sales · ${Math.round(s.totalVolEth).toLocaleString()} ETH ($${(s.totalVolUsd / 1e6).toFixed(1)}M) all-time volume, most of it on ${Object.keys(s.marketplaces || { blur: 1 })[0]}.\n\nFloor and volume, reconstructed on-chain.` : "" },
   { id: "aeonhodl", title: "Holder Age", copy: (o) => o
@@ -913,10 +919,10 @@ const AEON_POSTS = [
   { id: "aeonbehaviour", title: "Holder Flow", copy: (o) => o
     ? `🔄 Project AEON holder flow.\n\nWallets entering (buying) vs exiting (selling to zero) each month — the base settling into strong hands as activity quieted.\n\nOn-chain.` : "" },
 ];
-function renderAeonCards(onchain, sales) {
+function renderAeonCards(onchain, sales, market, traders) {
   const g = $("#aeonGrid"); g.innerHTML = "";
   AEON_POSTS.forEach(p => {
-    const txt = p.copy(onchain, sales);
+    const txt = p.copy(onchain, sales, market, traders);
     const el = document.createElement("div");
     el.className = "card";
     el.innerHTML =
@@ -944,7 +950,7 @@ const fmtSpxC = v => v >= 1e6 ? (v / 1e6).toFixed(1) + "M" : v >= 1e3 ? (v / 1e3
 async function loadAeon() {
   aeonStatus("Loading Project Aeon data…");
   const raw = p => fetch(`https://raw.githubusercontent.com/${OWNER}/${REPO}/${BRANCH}/${p}?t=${Date.now()}`, { cache: "no-store" }).then(r => r.ok ? r.json() : null).catch(() => null);
-  const [snap, onchain, sales] = await Promise.all([raw("public/aeon.json"), raw("public/aeon-onchain.json"), raw("public/aeon-sales.json")]);
+  const [snap, onchain, sales, market, traders] = await Promise.all([raw("public/aeon.json"), raw("public/aeon-onchain.json"), raw("public/aeon-sales.json"), raw("public/aeon-market.json"), raw("public/aeon-traders.json")]);
   if (!onchain && !snap) { aeonStatus("No Aeon data yet — run the Project Aeon banker + reconstruction.", "err"); return; }
 
   const floorEth = sales?.current?.floorEth ?? snap?.floor;
@@ -959,7 +965,7 @@ async function loadAeon() {
   $("#aeonLinks").innerHTML = "<div style='font-size:12px;color:#64748b;margin-bottom:6px'>Interactive charts (site)</div>" +
     AEON_CHARTS.map(([t, id]) => `<a href="${SITE}/?chart=${id}" target="_blank" rel="noopener" style="display:inline-block;margin:0 6px 6px 0;padding:6px 12px;border-radius:8px;background:#0b0b18;border:1px solid #234;color:#93c5fd;text-decoration:none;font-size:13px">${t} ↗</a>`).join("");
 
-  renderAeonCards(onchain, sales);
+  renderAeonCards(onchain, sales, market, traders);
 
   if (onchain?.holders?.length) {
     const rows = onchain.holders.slice(0, 20).map((h, i) => `<tr style="border-top:1px solid #16202e">

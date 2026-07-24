@@ -215,6 +215,18 @@
   wire its creds + a posting workflow → the control tab gets real Queue/Post-now. Contract
   `0xc374a204334d4Edd4C6a62f0867C752d65E9579c`. To refresh on-chain: re-run the free BigQuery/Dune transfers extract →
   `build-aeon-onchain.mjs`. **RARITY MODEL BACKLOG:** floor-by-rarity, a rarity tweet card, per-token last-sale-vs-rarity.
+- **✅✅ AEON "STEROIDS" — MARKET + TRADER INTELLIGENCE BUILT 2026-07-24 (all KEYLESS, from the raw sales+transfers we
+  already have — no OpenSea key needed).** Two engines off `dune/out/aeon_sales.csv` + `aeon_transfers.csv` + rarity + live
+  floor, run daily in aeon.yml: **`build-aeon-market.mjs`** → `aeon-market.json` (NFT **MVRV** = floor÷realized ≈ 1.01×,
+  realized price 0.42Ξ, **supply-in-profit 62%** of priced-held, **URPD** cost-basis histogram, recent-fit fair-value model +
+  rarity-vs-sale scatter + **deals** (steals sold >20% under fair), **biggest sales** #1798→20Ξ, **trait premiums** median
+  price/trait) · **`build-aeon-traders.mjs`** → `aeon-traders.json` (per-wallet **realized P&L** by matching each token's
+  buy↔sell chain — top **+39Ξ / 98% win**, 976Ξ net across 2,994 traders, winners/losers/by-volume). Realized P&L counts
+  ROUND-TRIPS ONLY (mint cost + free transfers unknown → excluded = honest "trading P&L"). Site charts (Project Aeon tab):
+  **Trader Leaderboard · MVRV & Supply-in-Profit · Rarity vs Sale Price (steals + record sales with art) · Trait Values**.
+  Tab is now ~13 charts. **🔲 NEEDS THOUGHT (owner parked, optional standalones):** a **Trait Explorer** (browse-by-trait
+  gallery of the art) + a **Cross-holder value board** (the 346 AEON+SPX dual-holders ranked by combined value). Folded-in
+  already: diamond-vs-paper (hold time/win rate/losses tab) + biggest-sales gallery.
 
 ## Backlog / decisions
 - **⭐ MULTI-CHAIN WALLET GROWTH + OUR-OWN-METRICS (owner, 2026-07-16) — in progress.** Two linked asks:
