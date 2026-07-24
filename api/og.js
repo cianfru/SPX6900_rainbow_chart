@@ -2,6 +2,8 @@
 // the rainbow card; with ?tab=<id> it renders that tab's card using the SAME
 // pipeline as the X bot (stats → post spec → resvg), so a shared deep link gets
 // a matching preview. Always falls back to the rainbow card on any error.
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { Resvg } from "@resvg/resvg-js";
 import { DEFAULT_RAW } from "../src/data.js";
 import { rainbowSvg } from "../src/rainbow-svg.js";
@@ -10,6 +12,19 @@ import { buildPost } from "../scripts/bot/posts.mjs";
 import { renderPostCard } from "../scripts/bot/charts.mjs";
 import { staticImageFor, dimsForAR } from "../scripts/bot/card-format.mjs";
 import { FONT, FONT_DIAG } from "../scripts/bot/font.mjs";
+import { renderAeonFloorCard } from "../scripts/bot/aeon-floor-card.mjs";
+import { renderAeonHodlCard } from "../scripts/bot/aeon-hodl-card.mjs";
+import { renderAeonOwnersCard, renderAeonConcentrationCard, renderAeonBehaviourCard } from "../scripts/bot/aeon-cards.mjs";
+
+// Project Aeon cards render from the committed aeon-*.json (not stats). ?aeon=<id>.
+const readAeon = p => { try { return JSON.parse(readFileSync(join(process.cwd(), p), "utf8")); } catch { return null; } };
+const AEON_CARD = {
+  aeonfloor: () => { const s = readAeon("public/aeon-sales.json"); return s && renderAeonFloorCard(s); },
+  aeonhodl: () => { const d = readAeon("public/aeon-onchain.json"); return d && renderAeonHodlCard(d); },
+  aeonowners: () => { const d = readAeon("public/aeon-onchain.json"); return d && renderAeonOwnersCard(d); },
+  aeonconcentration: () => { const d = readAeon("public/aeon-onchain.json"); return d && renderAeonConcentrationCard(d); },
+  aeonbehaviour: () => { const d = readAeon("public/aeon-onchain.json"); return d && renderAeonBehaviourCard(d); },
+};
 
 // Nav tab id -> the rotating post whose card best represents that tab.
 const TAB_POST = {
@@ -48,6 +63,20 @@ export default async function handler(req, res) {
     res.setHeader("Content-Type", "application/json");
     res.status(200).end(JSON.stringify(out, null, 2));
     return;
+  }
+
+  // ?aeon=<id> — render a Project Aeon card from the committed aeon-*.json.
+  const aeonId = params.get("aeon");
+  if (aeonId && AEON_CARD[aeonId]) {
+    try {
+      const card = AEON_CARD[aeonId]();
+      if (card) {
+        res.setHeader("Content-Type", "image/png");
+        res.setHeader("Cache-Control", "s-maxage=30, stale-while-revalidate=300");
+        res.status(200).end(card);
+        return;
+      }
+    } catch { /* fall through to default */ }
   }
 
   const tab = params.get("tab");
