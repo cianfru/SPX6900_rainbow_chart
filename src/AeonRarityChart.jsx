@@ -1,6 +1,6 @@
 import { useMemo, useState, useEffect } from "react";
-import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid, ReferenceDot } from "recharts";
 import { loadAeonRarity } from "./history-data.js";
+import AeonRarityCloud from "./AeonRarityCloud.jsx";
 import { SANS, MONO, MAX_W, Explain } from "./chart-ui.jsx";
 
 // Rarity tiers by rank percentile (rank 1 = rarest).
@@ -24,13 +24,6 @@ export default function AeonRarityChart({ isMobile }) {
   useEffect(() => { setImgBroken(false); }, [sel]);
 
   const byId = useMemo(() => { const m = new Map(); (data?.tokens || []).forEach(t => m.set(t.id, t)); return m; }, [data]);
-  // rarity curve: score vs rank, downsampled for the line
-  const curve = useMemo(() => {
-    if (!data) return [];
-    const toks = data.tokens; const step = Math.max(1, Math.floor(toks.length / 240));
-    const out = toks.filter((_, i) => i % step === 0 || i === toks.length - 1).map(t => ({ rank: t.rank, score: t.score }));
-    return out;
-  }, [data]);
 
   if (!data) return <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Loading rarity…</div>;
 
@@ -96,21 +89,19 @@ export default function AeonRarityChart({ isMobile }) {
         </div>
       </div>
 
-      {/* rarity curve with the token marked */}
-      <div style={{ fontFamily: SANS, fontSize: 13, color: "#94a3b8", textAlign: "center", marginBottom: 4 }}>The collection&apos;s rarity curve — #{token.id} marked</div>
-      <ResponsiveContainer width="100%" height={isMobile ? 240 : 300}>
-        <AreaChart data={curve} margin={{ top: 8, right: 16, bottom: 20, left: 6 }}>
-          <defs><linearGradient id="rarG" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#f59e0b" stopOpacity={0.45} /><stop offset="100%" stopColor="#f59e0b" stopOpacity={0.03} /></linearGradient></defs>
-          <CartesianGrid strokeDasharray="2 8" stroke="rgba(255,255,255,0.06)" />
-          <XAxis dataKey="rank" type="number" domain={[1, total]} tick={{ fill: "#cbd5e1", fontSize: 11, fontFamily: MONO }}
-            tickFormatter={v => v === 1 ? "rarest" : v.toLocaleString()} axisLine={{ stroke: "rgba(255,255,255,0.15)" }} tickLine={false} />
-          <YAxis type="number" tick={{ fill: "#cbd5e1", fontSize: 11, fontFamily: MONO }} axisLine={{ stroke: "rgba(255,255,255,0.15)" }} tickLine={false} width={46} />
-          <Tooltip contentStyle={{ background: "#0a0e1c", border: "1px solid #234", borderRadius: 8, fontFamily: MONO, fontSize: 12 }}
-            labelFormatter={v => "rank " + v.toLocaleString()} formatter={v => [v.toFixed(0), "score"]} />
-          <Area type="monotone" dataKey="score" stroke="#f59e0b" strokeWidth={2} fill="url(#rarG)" dot={false} isAnimationActive={false} />
-          <ReferenceDot x={token.rank} y={token.score} r={6} fill={tier.c} stroke="#05050e" strokeWidth={2} />
-        </AreaChart>
-      </ResponsiveContainer>
+      {/* every token on the curve — hover for its art, click to pin it */}
+      <div style={{ fontFamily: SANS, fontSize: 13, color: "#94a3b8", textAlign: "center", marginBottom: 4 }}>
+        All {total.toLocaleString()} AEON on the rarity curve — <span style={{ color: "#cbd5e1" }}>hover any dot to see it</span>, click to pin it above
+      </div>
+      <div style={{ display: "flex", gap: 14, justifyContent: "center", flexWrap: "wrap", marginBottom: 6 }}>
+        {TIERS.map(t => (
+          <span key={t.name} style={{ display: "inline-flex", alignItems: "center", gap: 6, fontFamily: SANS, fontSize: 12, color: "#94a3b8" }}>
+            <span style={{ width: 9, height: 9, borderRadius: 9, background: t.c, display: "inline-block" }} />{t.name}
+          </span>
+        ))}
+      </div>
+      <AeonRarityCloud tokens={data.tokens} total={total} tiers={TIERS} tierOf={tierOf}
+        selId={token.id} onSelect={setSel} height={isMobile ? 300 : 380} isMobile={isMobile} />
 
       <div className="chart-caption" style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.65, maxWidth: 900, marginInline: "auto" }}>
         <strong style={{ color: "#f59e0b" }}>Rarity</strong> = the sum, over each of a token&apos;s traits, of how uncommon that trait is (statistical rarity + a trait-count factor). Higher score = rarer. Computed from on-chain metadata across all {total.toLocaleString()} tokens — reproducible, no black box.
