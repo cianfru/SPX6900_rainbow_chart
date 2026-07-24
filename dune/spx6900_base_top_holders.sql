@@ -26,9 +26,20 @@
 -- columns address / token_address / balance / day. An older vintage uses
 -- erc20_base.view_token_balances_daily with wallet_address / amount.
 --
+-- BEFORE RUNNING (Claude cannot price this — no Dune access from the sandbox, and the
+-- connector is toggled off per-chat, so these numbers have to come from you):
+--   1. getTableSize on tokens_base.balances_daily — free metadata call, no credits.
+--   2. Run it once as-is on the `free` engine tier. It is already bounded to ONE token on
+--      ONE day and returns 50 rows, so it should land in the 1-3 credit range like the
+--      other current-state queries in this repo — but read executionCostCredits and
+--      confirm rather than trusting that estimate.
+--   3. If it somehow reads high, the fallback is to add `AND day = <a fixed recent date>`
+--      instead of the max(day) subquery, which removes one pass over the table.
+--
 -- NEXT STEP after running: label the top ~40 on Basescan, add the non-person ones to an
 -- EXCLUDE set (mirroring EXCLUDE_LABELS in build-onchain-local.mjs), and publish the
--- honest top-10 / top-100 share.
+-- honest top-10 / top-100 share. Expect the raw 49.6%/68% to fall substantially, as the
+-- equivalent ETH exercise moved top-100 from 68% to 58%.
 -- ============================================================================
 
 WITH params AS (
