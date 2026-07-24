@@ -35,7 +35,7 @@ export default function AeonValueChart({ isMobile }) {
     const dealIds = new Set(deals.map(d => d.id));
     const line = fair ? [...rows].sort((a, b) => a.rank - b.rank).filter((_, i, arr) => i % Math.max(1, Math.round(arr.length / 60)) === 0 || i === arr.length - 1)
       .map(r => ({ rank: r.rank, fair: +fair.expected(r.rank).toFixed(4) })) : [];
-    return { scored, deals, dealIds, line, total: data.total, count: data.count, updated: data.updated };
+    return { scored, deals, dealIds, line, total: data.total, count: data.count, updated: data.updated, parked: data.parked || 0, cap: data.cap || 0 };
   }, [data]);
 
   if (!data) return <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Loading listings…</div>;
@@ -48,16 +48,22 @@ export default function AeonValueChart({ isMobile }) {
     </div>
   );
 
-  const { scored, deals, dealIds, line, total, count, updated } = model;
+  const { scored, deals, dealIds, line, total, count, updated, parked, cap } = model;
+  // No priced listings → bail before Math.min(...[]) yields Infinity and the log axis blows up.
+  if (!scored.length) return (
+    <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>No active listings right now.</div>
+  );
   const nonDeals = scored.filter(l => !dealIds.has(l.id));
   const dealPts = scored.filter(l => dealIds.has(l.id));
-  const priceMin = Math.min(...scored.map(l => l.price)), priceMax = Math.max(...scored.map(l => l.price));
+  let priceMin = Math.min(...scored.map(l => l.price)), priceMax = Math.max(...scored.map(l => l.price));
+  if (!(priceMin > 0)) priceMin = 0.001;                       // log scale cannot start at 0
+  if (!(priceMax > priceMin)) priceMax = priceMin * 2;         // single listing → give the axis room
 
   // custom points: NFT thumbnail for deals, small dot for the rest
-  const Dot = ({ cx, cy, payload }) => cx == null ? null : <circle cx={cx} cy={cy} r={4} fill="#64748b" fillOpacity={0.55} stroke="#0a0e1c" />;
+  const Dot = ({ cx, cy, payload }) => cx == null ? null : <circle cx={cx} cy={cy} r={isMobile ? 5 : 4} fill="#64748b" fillOpacity={0.55} stroke="#0a0e1c" />;
   const DealDot = ({ cx, cy, payload }) => {
     if (cx == null) return null;
-    const s = 30;
+    const s = isMobile ? 22 : 30;
     return (
       <g>
         {payload.img && <image href={payload.img} x={cx - s / 2} y={cy - s / 2} width={s} height={s} preserveAspectRatio="xMidYMid slice" clipPath="inset(0 round 5px)" />}
@@ -96,11 +102,11 @@ export default function AeonValueChart({ isMobile }) {
         <ComposedChart margin={{ top: 10, right: 20, bottom: 26, left: 6 }}>
           <CartesianGrid strokeDasharray="2 8" stroke="rgba(255,255,255,0.06)" />
           <XAxis dataKey="rank" type="number" scale="log" domain={[1, total]} allowDataOverflow
-            ticks={[1, 10, 100, 1000, total]} tickFormatter={v => v === 1 ? "rarest" : v >= 1000 ? (v / 1000).toFixed(v === total ? 1 : 0) + "k" : v}
-            tick={{ fill: "#cbd5e1", fontSize: 11, fontFamily: MONO }} axisLine={{ stroke: "rgba(255,255,255,0.15)" }} tickLine={false}
-            label={{ value: "← rarer      rarity rank      more common →", position: "insideBottom", offset: -14, fill: "#64748b", fontSize: 12, fontFamily: SANS }} />
+            ticks={isMobile ? [1, 100, total] : [1, 10, 100, 1000, total]} tickFormatter={v => v === 1 ? "rarest" : v >= 1000 ? (v / 1000).toFixed(v === total ? 1 : 0) + "k" : v}
+            tick={{ fill: "#cbd5e1", fontSize: isMobile ? 10 : 11, fontFamily: MONO }} axisLine={{ stroke: "rgba(255,255,255,0.15)" }} tickLine={false}
+            label={{ value: isMobile ? "← rarer          more common →" : "← rarer      rarity rank      more common →", position: "insideBottom", offset: -14, fill: "#64748b", fontSize: isMobile ? 10.5 : 12, fontFamily: SANS }} />
           <YAxis dataKey="price" type="number" scale="log" domain={[priceMin * 0.8, priceMax * 1.15]} allowDataOverflow
-            tickFormatter={fEth} tick={{ fill: "#cbd5e1", fontSize: 11, fontFamily: MONO }} axisLine={{ stroke: "rgba(255,255,255,0.15)" }} tickLine={false} width={54} />
+            tickFormatter={fEth} tick={{ fill: "#cbd5e1", fontSize: isMobile ? 10 : 11, fontFamily: MONO }} axisLine={{ stroke: "rgba(255,255,255,0.15)" }} tickLine={false} width={isMobile ? 44 : 54} />
           <Tooltip content={<Tip />} cursor={{ stroke: "rgba(255,255,255,0.15)" }} />
           <Line data={line} dataKey="fair" stroke="#94a3b8" strokeWidth={2} strokeDasharray="6 5" dot={false} isAnimationActive={false} type="monotone" />
           <Scatter data={nonDeals} shape={<Dot />} isAnimationActive={false} />
@@ -128,6 +134,7 @@ export default function AeonValueChart({ isMobile }) {
 
       <div className="chart-caption" style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 18, lineHeight: 1.65, maxWidth: 900, marginInline: "auto" }}>
         Fair value is a log-log fit of ask price vs rarity rank across all live listings — a rough guide, not a promise. &ldquo;Deals&rdquo; are listings sitting below it; tap one to view it on OpenSea. Listings + prices from OpenSea, rarity reconstructed from on-chain metadata.
+        {parked > 0 && <> {parked} listing{parked === 1 ? " was" : "s were"} parked above {cap ? cap.toFixed(0) : "the cap"}Ξ (asks like 69 or 6900Ξ that exist so a piece shows as listed but can never sell) and are excluded — they aren&rsquo;t real offers and would flatten the whole scale.</>}
       </div>
     </div>
   );

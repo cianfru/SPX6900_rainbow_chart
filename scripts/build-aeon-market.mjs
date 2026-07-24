@@ -102,13 +102,25 @@ function main() {
   // downsampled scatter for the chart (keep every sale up to ~500)
   const sstep = Math.max(1, Math.ceil(scored.length / 500));
   const salesScatter = scored.filter((_, i) => i % sstep === 0).map(({ img, exp, ...r }) => r);
-  const deals = scored.filter(d => d.disc > 0.2).sort((a, b) => b.disc - a.disc).slice(0, 24);
+  // ONE ROW PER TOKEN. A token that traded repeatedly has several sale records, and the raw
+  // list showed the same piece 3× in the gallery (#863 at 48/39/38% off) — which reads as a
+  // rendering bug, not as history. Keep each token's single best (deepest-discount) sale.
+  const bestPerToken = (rows, better) => {
+    const m = new Map();
+    for (const r of rows) { const p = m.get(r.id); if (!p || better(r, p)) m.set(r.id, r); }
+    return [...m.values()];
+  };
+  const deals = bestPerToken(scored.filter(d => d.disc > 0.2), (a, b) => a.disc > b.disc)
+    .sort((a, b) => b.disc - a.disc).slice(0, 24);
 
-  // ── BIGGEST SALES ──
-  const biggest = [...sales].sort((a, b) => b.price - a.price).slice(0, 24).map(s => ({
-    id: s.id, price: +s.price.toFixed(3), rank: R.get(s.id)?.rank ?? null, img: R.get(s.id)?.img ?? null,
-    buyer: s.buyer, seller: s.seller, mkt: s.mkt, d: new Date(s.t).toISOString().slice(0, 10),
-  }));
+  // ── BIGGEST SALES ── (also one row per token — its highest-ever sale)
+  const biggest = bestPerToken(
+    sales.map(s => ({
+      id: s.id, price: +s.price.toFixed(3), rank: R.get(s.id)?.rank ?? null, img: R.get(s.id)?.img ?? null,
+      buyer: s.buyer, seller: s.seller, mkt: s.mkt, d: new Date(s.t).toISOString().slice(0, 10),
+    })),
+    (a, b) => a.price > b.price,
+  ).sort((a, b) => b.price - a.price).slice(0, 24);
 
   // ── TRAIT PREMIUMS: median recent sale price per trait value ──
   const recent = sales.filter(s => s.t >= now - 180 * DAY && R.has(s.id));

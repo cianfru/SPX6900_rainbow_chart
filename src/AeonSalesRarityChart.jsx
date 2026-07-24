@@ -25,7 +25,9 @@ export default function AeonSalesRarityChart({ isMobile }) {
   if (!data) return <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Loading sales…</div>;
   if (data.empty || !model) return <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Sales data is being reconstructed.</div>;
 
-  const { pts, rmin, rmax, pmin, pmax, line } = model;
+  let { pts, rmin, rmax, pmin, pmax, line } = model;
+  if (!(pmin > 0)) pmin = 0.001;                     // log scale cannot start at 0
+  if (!(pmax > pmin)) pmax = pmin * 2;               // single sale → give the axis room
   const Tip = ({ active, payload }) => {
     if (!active || !payload?.length) return null; const d = payload[0].payload;
     return (<div style={{ background: "#0a0e1c", border: "1px solid #234", borderRadius: 8, padding: "7px 10px", fontFamily: SANS, fontSize: 12.5 }}>
@@ -59,10 +61,10 @@ export default function AeonSalesRarityChart({ isMobile }) {
       <ResponsiveContainer width="100%" height={isMobile ? 360 : 470}>
         <ComposedChart margin={{ top: 10, right: 20, bottom: 26, left: 6 }}>
           <CartesianGrid strokeDasharray="2 8" stroke="rgba(255,255,255,0.06)" />
-          <XAxis dataKey="rank" type="number" scale="log" domain={[rmin, rmax]} allowDataOverflow ticks={[1, 10, 100, 1000, rmax]}
-            tickFormatter={v => v === 1 ? "rarest" : v >= 1000 ? (v / 1000).toFixed(v === rmax ? 1 : 0) + "k" : v} tick={{ fill: "#cbd5e1", fontSize: 11, fontFamily: MONO }} axisLine={{ stroke: "rgba(255,255,255,0.15)" }} tickLine={false}
-            label={{ value: "← rarer      rarity rank      more common →", position: "insideBottom", offset: -14, fill: "#64748b", fontSize: 12, fontFamily: SANS }} />
-          <YAxis dataKey="price" type="number" scale="log" domain={[pmin * 0.8, pmax * 1.15]} allowDataOverflow tickFormatter={fEth} tick={{ fill: "#cbd5e1", fontSize: 11, fontFamily: MONO }} axisLine={{ stroke: "rgba(255,255,255,0.15)" }} tickLine={false} width={54} />
+          <XAxis dataKey="rank" type="number" scale="log" domain={[rmin, rmax]} allowDataOverflow ticks={isMobile ? [1, 100, rmax] : [1, 10, 100, 1000, rmax]}
+            tickFormatter={v => v === 1 ? "rarest" : v >= 1000 ? (v / 1000).toFixed(v === rmax ? 1 : 0) + "k" : v} tick={{ fill: "#cbd5e1", fontSize: isMobile ? 10 : 11, fontFamily: MONO }} axisLine={{ stroke: "rgba(255,255,255,0.15)" }} tickLine={false}
+            label={{ value: isMobile ? "← rarer          more common →" : "← rarer      rarity rank      more common →", position: "insideBottom", offset: -14, fill: "#64748b", fontSize: isMobile ? 10.5 : 12, fontFamily: SANS }} />
+          <YAxis dataKey="price" type="number" scale="log" domain={[pmin * 0.8, pmax * 1.15]} allowDataOverflow tickFormatter={fEth} tick={{ fill: "#cbd5e1", fontSize: isMobile ? 10 : 11, fontFamily: MONO }} axisLine={{ stroke: "rgba(255,255,255,0.15)" }} tickLine={false} width={isMobile ? 44 : 54} />
           <Tooltip content={<Tip />} cursor={{ stroke: "rgba(255,255,255,0.15)" }} />
           <Line data={line} dataKey="fair" stroke="#94a3b8" strokeWidth={2} strokeDasharray="6 5" dot={false} isAnimationActive={false} type="monotone" />
           <Scatter data={pts} isAnimationActive={false}>

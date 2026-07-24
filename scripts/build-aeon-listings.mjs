@@ -75,20 +75,36 @@ async function main() {
     next = j.next;
   } while (next && ++pages < 200);
 
-  const listings = [...best.entries()].map(([id, price]) => ({
+  const all = [...best.entries()].map(([id, price]) => ({
     id, price: +price.toFixed(4), rank: rar[id]?.rank ?? null, score: rar[id]?.score ?? null, img: rar[id]?.img ?? null,
   })).filter(l => l.rank != null).sort((a, b) => a.rank - b.rank);
 
+  // ── Drop "not really for sale" asks ──────────────────────────────────────────
+  // NFT holders routinely park an absurd ask (69, 690, 6900, 69000, even 1e9 ETH) so a
+  // piece shows as listed but can never sell. Those aren't offers, and on a log axis a
+  // single 1e9 ask spans 9 orders of magnitude — it flattens every real listing into an
+  // invisible sliver AND poisons the log-log fair-value fit (huge leverage point).
+  // Rule: keep asks within MAX_FLOOR_MULT× the cheapest listing. It's a real gap, not a
+  // slice through a continuum (Jul-2026: real asks stop at 10Ξ, the joke tier starts at
+  // 69Ξ), and it's reported below + on the chart rather than silently dropped.
+  const MAX_FLOOR_MULT = 25;
+  const floorAsk = Math.min(...all.map(l => l.price));
+  const cap = floorAsk * MAX_FLOOR_MULT;
+  const listings = all.filter(l => l.price <= cap);
+  const parked = all.filter(l => l.price > cap);
+
   writeFileSync(OUT, JSON.stringify({
-    updated: new Date().toISOString().slice(0, 10), contract: CONTRACT, slug, total, count: listings.length, listings,
+    updated: new Date().toISOString().slice(0, 10), contract: CONTRACT, slug, total,
+    count: listings.length, parked: parked.length, cap: +cap.toFixed(4), floorMult: MAX_FLOOR_MULT, listings,
   }) + "\n");
 
   const cheapest = [...listings].sort((a, b) => a.price - b.price)[0];
   const rarestListed = listings[0];
   console.log(
-    `aeon-listings: ${listings.length} active listings (${slug})\n` +
+    `aeon-listings: ${listings.length} genuine listings (${slug}) · ${parked.length} parked above ${cap.toFixed(2)} ETH excluded\n` +
     `  floor listing ${cheapest?.price} ETH (#${cheapest?.id}, rank ${cheapest?.rank})\n` +
-    `  rarest listed #${rarestListed?.id} rank ${rarestListed?.rank} at ${rarestListed?.price} ETH`
+    `  rarest listed #${rarestListed?.id} rank ${rarestListed?.rank} at ${rarestListed?.price} ETH` +
+    (parked.length ? `\n  parked asks: ${parked.slice(0, 5).map(p => p.price).join(", ")}${parked.length > 5 ? "…" : ""}` : "")
   );
 }
 
