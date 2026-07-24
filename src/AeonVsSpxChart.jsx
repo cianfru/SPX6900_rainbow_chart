@@ -1,5 +1,5 @@
 import { useMemo, useState, useEffect } from "react";
-import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid, ReferenceLine, ReferenceArea } from "recharts";
+import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
 import { loadAeonMarket } from "./history-data.js";
 import { zStats, ordinal } from "./aeon-spx-value.js";
 import { SANS, MONO, MAX_W, Metric, TipBox, Explain } from "./chart-ui.jsx";
@@ -25,13 +25,17 @@ export default function AeonVsSpxChart({ isMobile }) {
     if (!series?.length) return null;
     const st = zStats(series);
     if (!st) return null;
-    const rows = series.map(([d, r]) => ({ ts: Date.parse(d), ratio: r }));
+    const baseAt = new Map(st.baseSeries);
+    const rows = series.map(([d, r]) => {
+      const b = baseAt.get(d);
+      return { ts: Date.parse(d), ratio: r, base: b, hi: b * st.bandMult(0.5), lo: b * st.bandMult(-0.5) };
+    });
     return { rows, ...st, rmin: st.min, rmax: st.max, sv };
   }, [market]);
 
   if (!market) return <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Loading…</div>;
   if (!model) return <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Not enough overlapping price data yet.</div>;
-  const { rows, base, cur, z, band, state, rmin, rmax, pctVsBase, pct, sv } = model;
+  const { rows, base, cur, z, state, rmin, rmax, pctVsBase, pct, sv } = model;
   const step = Math.max(1, Math.round(rows.length / 6));
   const xTicks = rows.filter((_, i) => i % step === 0 || i === rows.length - 1).map(r => r.ts);
 
@@ -40,6 +44,7 @@ export default function AeonVsSpxChart({ isMobile }) {
     const d = payload[0].payload;
     return (<TipBox title={new Date(d.ts).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}>
       <div><span style={{ color: "#2dd4bf" }}>AEON floor</span> = <span style={{ fontFamily: MONO }}>{fmt(d.ratio)} SPX</span></div>
+      {d.base > 0 && <div style={{ color: "#94a3b8" }}>baseline <span style={{ fontFamily: MONO }}>{fmt(d.base)}</span> · <span style={{ fontFamily: MONO, color: d.ratio >= d.base ? "#fb7185" : "#34d399" }}>{(d.ratio / d.base - 1 >= 0 ? "+" : "") + ((d.ratio / d.base - 1) * 100).toFixed(0)}%</span></div>}
     </TipBox>);
   };
 
@@ -60,9 +65,6 @@ export default function AeonVsSpxChart({ isMobile }) {
       <ResponsiveContainer width="100%" height={isMobile ? 380 : 500}>
         <AreaChart data={rows} margin={{ top: 10, right: isMobile ? 10 : 20, bottom: 24, left: isMobile ? 4 : 14 }}>
           <defs><linearGradient id="axsG" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={state.c} stopOpacity={0.28} /><stop offset="100%" stopColor={state.c} stopOpacity={0.03} /></linearGradient></defs>
-          {/* cheap / expensive zones */}
-          <ReferenceArea y1={band(0.5)} y2={rmax * 1.05} fill="#fb7185" fillOpacity={0.07} />
-          <ReferenceArea y1={rmin * 0.95} y2={band(-0.5)} fill="#34d399" fillOpacity={0.07} />
           <CartesianGrid strokeDasharray="2 8" stroke="rgba(255,255,255,0.06)" />
           <XAxis dataKey="ts" type="number" domain={["dataMin", "dataMax"]} ticks={xTicks} scale="time"
             tickFormatter={fShort} tick={{ fill: "#cbd5e1", fontSize: isMobile ? 10 : 12, fontFamily: MONO }} axisLine={{ stroke: "rgba(255,255,255,0.15)" }} tickLine={false} />
@@ -70,13 +72,16 @@ export default function AeonVsSpxChart({ isMobile }) {
             tick={{ fill: "#cbd5e1", fontSize: isMobile ? 10 : 12, fontFamily: MONO }} axisLine={{ stroke: "rgba(255,255,255,0.15)" }} tickLine={false} width={isMobile ? 44 : 56}
             label={{ value: "AEON floor (SPX coins)", angle: -90, position: "insideLeft", fill: "#64748b", fontSize: 12, fontFamily: SANS, style: { textAnchor: "middle" } }} />
           <Tooltip content={<Tip />} cursor={{ stroke: "rgba(255,255,255,0.2)" }} />
-          <ReferenceLine y={base} stroke="#94a3b8" strokeDasharray="6 5" strokeWidth={1.5} label={{ value: "baseline", position: "insideTopRight", fill: "#94a3b8", fontSize: 11, fontFamily: SANS }} />
+          {/* Bands track the trailing baseline rather than spanning all history — see aeon-spx-value.js */}
+          <Area type="monotone" dataKey="hi" stroke="#fb7185" strokeOpacity={0.5} strokeWidth={1} strokeDasharray="5 5" fill="none" dot={false} isAnimationActive={false} />
+          <Area type="monotone" dataKey="lo" stroke="#34d399" strokeOpacity={0.5} strokeWidth={1} strokeDasharray="5 5" fill="none" dot={false} isAnimationActive={false} />
+          <Area type="monotone" dataKey="base" stroke="#94a3b8" strokeWidth={1.8} strokeDasharray="7 5" fill="none" dot={false} isAnimationActive={false} />
           <Area type="monotone" dataKey="ratio" stroke={state.c} strokeWidth={2.5} fill="url(#axsG)" dot={false} isAnimationActive={false} />
         </AreaChart>
       </ResponsiveContainer>
 
       <div className="chart-caption" style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.65, maxWidth: 900, marginInline: "auto" }}>
-        AEON floor (USD, 7-day median) ÷ SPX6900 price = the floor priced in SPX coins. Baseline is the full-history median; the green/red bands are ±0.5σ of the log-ratio. A relative-value read across the two projects — not a forecast. Floor from on-chain sales, SPX from the cleaned daily price series. The same ratio and the same verdict math feed the listings page, so the two can never disagree.
+        AEON floor (USD, 7-day median) ÷ SPX6900 price = the floor priced in SPX coins. Baseline is the TRAILING 12-month median, not a flat full-history line: the ratio fell structurally from ~45,800 SPX in late 2023 to ~2,100 now because SPX itself appreciated ~130×, so averaging across that would compare today against a regime that cannot recur (and flattered — it read the floor ask at the 59th percentile when against the last year it is the 98th). Bands are ±0.5σ of the deviation from that baseline, so they track the regime. A relative-value read across the two projects — not a forecast. Floor from on-chain sales, SPX from the cleaned daily price series. The same ratio and the same verdict math feed the listings page, so the two can never disagree.
       </div>
     </div>
   );

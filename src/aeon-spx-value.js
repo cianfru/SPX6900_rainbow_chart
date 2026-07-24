@@ -46,27 +46,67 @@ export function ordinal(n) {
   return r + (s[(v - 20) % 10] || s[v] || s[0]);
 }
 
+// ── WHY THE BASELINE MOVES ───────────────────────────────────────────────────
+// A flat full-history baseline is wrong for this ratio. AEON-in-SPX has collapsed
+// structurally — median ~45,800 SPX in late 2023 against ~2,100 now — not because
+// AEON fell but because SPX appreciated ~130x from a fraction of a cent. Averaging
+// across that compares today to a regime that cannot recur, and it flatters: it put
+// the floor ask at the 59th percentile when against the last year it is the 98th.
+// Full-history sigma is also so wide (the ratio spans two orders of magnitude) that
+// the chart could only ever say "fair".
+//
+// So baseline and percentile are both TRAILING: judged against the recent regime,
+// which adapts on its own and needs no hardcoded break date.
+export const WINDOW_DAYS = 365;
+const DAY = 86400e3;
+
+/** Trailing median of the ratio → [[date, baseline]]. Expands until it has minN points. */
+export function rollingBaseline(series, days = WINDOW_DAYS, minN = 30) {
+  const pts = (series || []).map(([d, r]) => ({ t: Date.parse(d), d, r })).filter(p => p.r > 0);
+  return pts.map((p, i) => {
+    let w = pts.filter(q => q.t <= p.t && q.t >= p.t - days * DAY).map(q => q.r);
+    if (w.length < minN) w = pts.slice(0, i + 1).map(q => q.r);   // early history: expanding
+    return [p.d, median(w)];
+  });
+}
+
+/** Values from the trailing window only — the ladder a price should be judged against. */
+export function recentLadder(series, days = WINDOW_DAYS, minN = 30) {
+  const pts = (series || []).filter(r => r[1] > 0);
+  if (!pts.length) return [];
+  const end = Date.parse(pts[pts.length - 1][0]);
+  let w = pts.filter(r => Date.parse(r[0]) >= end - days * DAY).map(r => r[1]);
+  if (w.length < minN) w = pts.map(r => r[1]);
+  return w.sort((a, b) => a - b);
+}
+
 /**
- * Baseline, log-σ bands and verdict for a ratio series.
- * Log space because the ratio is a multiplicative quantity spanning orders of magnitude.
- * ±0.5σ is the cheap/expensive threshold — deliberately wide, so ordinary drift is
- * called "fair" rather than dressed up as a signal.
+ * Deviation from the TRAILING baseline, in log space (the ratio is multiplicative).
+ * sigma is measured on those deviations, not on the raw level, so the bands track the
+ * regime instead of spanning all of history. ±0.5σ is deliberately wide — ordinary
+ * drift should read "fair", not be dressed up as a signal.
  */
-export function zStats(series) {
+export function zStats(series, days = WINDOW_DAYS) {
   const vals = ladderOf(series);
   if (vals.length < 20) return null;
-  const base = median(vals);
-  const logs = vals.map(Math.log);
-  const lm = logs.reduce((s, v) => s + v, 0) / logs.length;
-  const sd = Math.sqrt(logs.reduce((s, v) => s + (v - lm) ** 2, 0) / logs.length) || 1;
+  const baseSeries = rollingBaseline(series, days);
+  const baseAt = new Map(baseSeries);
+  const devs = series.map(([d, r]) => (r > 0 && baseAt.get(d) > 0 ? Math.log(r / baseAt.get(d)) : null)).filter(v => v != null);
+  const dm = devs.reduce((s, v) => s + v, 0) / devs.length;
+  const sd = Math.sqrt(devs.reduce((s, v) => s + (v - dm) ** 2, 0) / devs.length) || 1;
   const cur = series[series.length - 1][1];
-  const z = (Math.log(cur) - lm) / sd;
+  const base = baseSeries[baseSeries.length - 1][1];
+  const z = (Math.log(cur / base) - dm) / sd;
   const state = z < -0.5 ? { t: "cheap", c: "#34d399" } : z > 0.5 ? { t: "expensive", c: "#fb7185" } : { t: "fair", c: "#fbbf24" };
+  const ladder = recentLadder(series, days);
   return {
-    base, cur, z, state, sd,
-    band: k => Math.exp(lm + k * sd),
+    base, cur, z, state, sd, baseSeries,
+    // band multiplier applied to the baseline at each point → curved, regime-tracking bands
+    bandMult: k => Math.exp(dm + k * sd),
     min: vals[0], max: vals[vals.length - 1],
     pctVsBase: (cur / base - 1) * 100,
-    pct: percentileOf(vals, cur),
+    pct: percentileOf(ladder, cur),          // vs the recent regime, not all history
+    pctAll: percentileOf(vals, cur),
+    windowDays: days, nWindow: ladder.length,
   };
 }

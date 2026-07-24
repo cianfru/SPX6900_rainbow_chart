@@ -1,6 +1,7 @@
 import { useMemo, useState, useEffect } from "react";
 import { ResponsiveContainer, ComposedChart, Scatter, Line, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
 import { loadAeonListings, loadAeonMarket } from "./history-data.js";
+import { recentLadder, percentileOf, ordinal, WINDOW_DAYS } from "./aeon-spx-value.js";
 import { SANS, MONO, MAX_W, Explain } from "./chart-ui.jsx";
 
 const fEth = v => (v < 0.1 ? v.toFixed(3) : v.toFixed(2)) + "Ξ";
@@ -41,12 +42,16 @@ export default function AeonValueChart({ isMobile }) {
     // trailing ETH median, which on its own reads far harsher than the data warrants.
     const sv = market.empty ? null : market.spxValue;
     const inSpx = sv?.ethUsd && sv?.spxNow ? eth => (eth * sv.ethUsd) / sv.spxNow : null;
-    const pctOf = sv?.ladder?.length ? v => sv.ladder.filter(x => x <= v).length / sv.ladder.length * 100 : null;
-    if (inSpx && pctOf) for (const l of scored) { l.spx = inSpx(l.price); l.spxPct = pctOf(l.spx); }
+    // TRAILING window, matching AeonVsSpxChart. Full history would compare today against the
+    // 2023-24 regime (ratio ~45,800 SPX vs ~2,100 now, because SPX itself ran ~130x) and badly
+    // flatter — that read the floor ask at the 59th percentile when against the last year it is
+    // the 98th.
+    const ladder = sv?.saleSeries ? recentLadder(sv.saleSeries) : [];
+    if (inSpx && ladder.length) for (const l of scored) { l.spx = inSpx(l.price); l.spxPct = percentileOf(ladder, l.spx); }
     const cheapest = scored.reduce((m, l) => (m && m.price <= l.price ? m : l), null);
     return {
       scored, deals, dealIds, closest, line, level, r2: fm?.r2 ?? null, nFit: fm?.n ?? 0,
-      sv, cheapestPct: cheapest?.spxPct ?? null,
+      sv, cheapestPct: cheapest?.spxPct ?? null, nWindow: ladder.length,
       total: data.total, count: data.count, updated: data.updated, parked: data.parked || 0, cap: data.cap || 0,
     };
   }, [data, market]);
@@ -61,8 +66,8 @@ export default function AeonValueChart({ isMobile }) {
     </div>
   );
 
-  const { scored, deals, dealIds, closest, line, level, r2, nFit, sv, cheapestPct, total, count, updated, parked, cap } = model;
-  const ord = n => { const r = Math.round(n); const s2 = ['th','st','nd','rd'], v = r % 100; return r + (s2[(v - 20) % 10] || s2[v] || s2[0]); };
+  const { scored, deals, dealIds, closest, line, level, r2, nFit, sv, cheapestPct, nWindow, total, count, updated, parked, cap } = model;
+  const ord = ordinal;
   // No priced listings → bail before Math.min(...[]) yields Infinity and the log axis blows up.
   if (!scored.length) return (
     <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>No active listings right now.</div>
@@ -150,8 +155,8 @@ export default function AeonValueChart({ isMobile }) {
             {sv && cheapestPct != null && <>
               {" "}<strong style={{ color: "#cbd5e1" }}>But measured in SPX — the denominator that actually tracks AEON — that is
               less damning than it sounds:</strong> the floor ask sits at the {ord(cheapestPct)} percentile of AEON&rsquo;s own
-              valuation history, against the {ord(sv.pctNow)} percentile for the most recent trades. Recent sales were
-              themselves historically cheap, so &ldquo;above market&rdquo; is not the same as expensive.
+              valuation history, measured against the last {Math.round(WINDOW_DAYS / 30)} months of trading. Judged against all history it would
+              look far cheaper, but the 2023-24 ratios came from an era when SPX cost a fraction of a cent — a regime that cannot recur.
             </>}
           </div>
           <div style={{ display: "grid", gridTemplateColumns: `repeat(auto-fill, minmax(${isMobile ? 130 : 150}px, 1fr))`, gap: 12 }}>
@@ -195,8 +200,8 @@ export default function AeonValueChart({ isMobile }) {
         {nFit ? " " + nFit.toLocaleString() : " all "} realized sales. It is measured from what pieces actually
         <em> sold</em> for, never from the asking prices on this chart — fitting the asks would just measure what sellers hope for.
         {r2 != null && <> <strong style={{ color: "#94a3b8" }}>Rarity is a weak price driver here: it explains only {(r2 * 100).toFixed(0)}% of the variation in sale prices</strong>, so treat the line as a rough centre of gravity, not a valuation.</>}
-        {sv && <> {" "}The <strong style={{ color: "#c084fc" }}>SPX percentile</strong> prices each ask in SPX6900 ({sv.ethUsd ? "ETH ≈ $" + sv.ethUsd.toLocaleString() + ", " : ""}SPX ${sv.spxNow}) and places it on {sv.n} weeks
-        of AEON&rsquo;s own history — AEON tracks SPX far more closely than it tracks ETH, so that is the more honest
+        {sv && <> {" "}The <strong style={{ color: "#c084fc" }}>SPX percentile</strong> prices each ask in SPX6900 ({sv.ethUsd ? "ETH ≈ $" + sv.ethUsd.toLocaleString() + ", " : ""}SPX ${sv.spxNow}) and places it on the last {nWindow} weeks
+        of AEON&rsquo;s own trading — AEON tracks SPX far more closely than it tracks ETH, so that is the more honest
         yardstick for dear-versus-cheap. See <em>AEON Floor vs SPX</em> for the full series.</>}
         {" "}Tap any piece for OpenSea. Listings from OpenSea, sales from on-chain marketplace trades, rarity from on-chain metadata.
         {parked > 0 && <> {parked} listing{parked === 1 ? " was" : "s were"} parked above {cap ? cap.toFixed(0) : "the cap"}Ξ (asks like 69 or 6900Ξ that exist so a piece shows as listed but can never sell) and are excluded — they aren&rsquo;t real offers and would flatten the whole scale.</>}
