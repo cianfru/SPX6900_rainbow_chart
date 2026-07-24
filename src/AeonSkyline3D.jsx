@@ -25,16 +25,17 @@ function spiral(n) {
   return pts;
 }
 
-export default function AeonSkyline3D({ holders, isMobile }) {
+export default function AeonSkyline3D({ holders, isMobile, useSpx = true }) {
   const mount = useRef(null);
   useEffect(() => {
     const el = mount.current; if (!el || !holders?.length) return;
     const maxDays = Math.max(...holders.map(x => x.days), 1);
     const maxN = Math.max(...holders.map(x => x.n), 1);
     const maxSpx = Math.max(...holders.map(x => x.spx || 0), 0);
-    // conviction "units": AEON count + SPX balance rescaled onto the same 0..maxN axis
-    // (so both dimensions weigh comparably), then weighted by holding duration.
-    const units = h => h.n + (maxSpx > 0 ? (h.spx || 0) / maxSpx * maxN : 0);
+    const spxOn = useSpx && maxSpx > 0;
+    // conviction "units": AEON count + (optionally) SPX balance rescaled onto the same
+    // 0..maxN axis (so both weigh comparably), then weighted by holding duration.
+    const units = h => h.n + (spxOn ? (h.spx || 0) / maxSpx * maxN : 0);
     const scoreOf = h => units(h) * (0.45 + 0.55 * (h.days / maxDays));
     const H = holders.slice().sort((a, b) => scoreOf(b) - scoreOf(a));
     const maxScore = Math.max(...H.map(scoreOf), 1);
@@ -118,7 +119,7 @@ export default function AeonSkyline3D({ holders, isMobile }) {
         controls.autoRotate = false;
         tip.style.display = "block"; tip.style.left = px + "px"; tip.style.top = py + "px";
         tip.innerHTML = `<b style="color:#5eead4">${short(h.a)}</b> · click to open in Zerion<br>` +
-          `<span style="color:#94a3b8">${h.n} AEON${h.spx ? ` · ${h.spx.toLocaleString()} SPX` : ""} · held ${h.days} days (since ${h.since})</span>`;
+          `<span style="color:#94a3b8">${h.n} AEON${spxOn && h.spx ? ` · ${h.spx.toLocaleString()} SPX` : ""} · held ${h.days} days (since ${h.since})</span>`;
       } else { setHover(null); tip.style.display = "none"; }
     };
     const onDown = () => { moved = false; };
@@ -149,7 +150,7 @@ export default function AeonSkyline3D({ holders, isMobile }) {
       controls.dispose(); geo.dispose(); towers.forEach(m => m.material.dispose());
       renderer.dispose(); el.removeChild(renderer.domElement); el.removeChild(labelR.domElement); el.removeChild(tip);
     };
-  }, [holders, isMobile]);
+  }, [holders, isMobile, useSpx]);
 
   return <div ref={mount} style={{ position: "relative", width: "100%", borderRadius: 12, overflow: "hidden", cursor: "grab" }} />;
 }
