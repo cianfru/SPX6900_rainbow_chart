@@ -95,6 +95,7 @@ export const AEON_GROUPS = [
       { id: "aeonskyline", title: "Holder Skyline (3D)", desc: "A 3D city of wallets — height = biggest + longest-term holders. Click a tower to open it in Zerion." },
       { id: "aeonrarity", title: "Rarity — Where Does It Sit?", desc: "Look up any AEON — its rarity rank, tier and traits, on the collection's rarity curve." },
       { id: "aeonvalue", title: "Rarity vs Price — Deals", desc: "Every listing by rarity vs ask — the rare pieces listed below fair value, with their art." },
+      { id: "aeonvsspx", title: "AEON Floor vs SPX", desc: "The NFT floor priced in SPX6900 — cheap or expensive versus its baseline." },
       { id: "aeonhodl", title: "Holder Age", desc: "Each AEON by how long since it last changed hands — the maturation story." },
       { id: "aeonowners", title: "Owners Over Time", desc: "The holder base since mint, split by how many tokens each wallet holds." },
       { id: "aeonconcentration", title: "Concentration", desc: "The largest wallets' share of the collection over time." },

@@ -12,8 +12,11 @@ const short = a => a.slice(0, 6) + "…" + a.slice(-4);
 export default function AeonSkylineChart({ isMobile, preview = false }) {
   const [data, setData] = useState(AEON_ONCHAIN);
   const [useSpx, setUseSpx] = useState(true);
+  const [multiOnly, setMultiOnly] = useState(false);
   useEffect(() => { let c = false; loadAeon().then(d => { if (!c && d) setData(d); }); return () => { c = true; }; }, []);
-  const holders = useMemo(() => (data.holders || []).filter(h => h.a && h.n > 0), [data]);
+  const all = useMemo(() => (data.holders || []).filter(h => h.a && h.n > 0), [data]);
+  const holders = useMemo(() => multiOnly ? all.filter(h => h.n > 1) : all, [all, multiOnly]);
+  const singleCount = useMemo(() => all.filter(h => h.n === 1).length, [all]);
   if (holders.length < 4) return <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Not enough holder data yet.</div>;
 
   const champ = holders[0];
@@ -57,8 +60,8 @@ export default function AeonSkylineChart({ isMobile, preview = false }) {
         <Metric label="held since mint" value={holders.filter(h => h.days > 900).length} color="#22d3ee" sub="900+ days" />
       </div>
 
-      {hasSpx && (
-        <div style={{ display: "flex", justifyContent: "center", marginBottom: 10 }}>
+      <div style={{ display: "flex", justifyContent: "center", gap: 10, marginBottom: 10, flexWrap: "wrap", alignItems: "center" }}>
+        {hasSpx && (
           <div style={{ display: "inline-flex", borderRadius: 9, overflow: "hidden", border: "1px solid rgba(167,139,250,0.35)" }}>
             {[["AEON + SPX", true], ["AEON only", false]].map(([lbl, v]) => (
               <button key={lbl} onClick={() => setUseSpx(v)} style={{
@@ -68,8 +71,14 @@ export default function AeonSkylineChart({ isMobile, preview = false }) {
               }}>{lbl}</button>
             ))}
           </div>
-        </div>
-      )}
+        )}
+        <button onClick={() => setMultiOnly(m => !m)} title="Hide wallets that hold just one AEON" style={{
+          padding: "6px 16px", borderRadius: 9, fontFamily: SANS, fontSize: 13, cursor: "pointer",
+          border: "1px solid " + (multiOnly ? "rgba(45,212,191,0.5)" : "rgba(255,255,255,0.14)"),
+          background: multiOnly ? "rgba(45,212,191,0.16)" : "transparent", color: multiOnly ? "#5eead4" : "#94a3b8",
+        }}>{multiOnly ? "✓ " : ""}Exclude single-NFT wallets</button>
+        <span style={{ fontFamily: MONO, fontSize: 12.5, color: "#7c8a9e" }}>{holders.length} towers{!multiOnly && singleCount ? ` · ${singleCount} single-NFT` : ""}</span>
+      </div>
       <Suspense fallback={<div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Loading 3D…</div>}>
         <AeonSkyline3D holders={holders} isMobile={isMobile} useSpx={useSpx} />
       </Suspense>
