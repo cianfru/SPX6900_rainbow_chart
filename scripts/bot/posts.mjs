@@ -1990,7 +1990,7 @@ const NO_ROTATE = new Set(["drawdown", "risk", "kraken", "dcaladder", "marketcap
 // 290 instant-read ceiling (see the post-length test). Default stays 290 for EVERY other card;
 // these opt into a higher xLen cap, accepting X's in-timeline "See more" fold because the reader
 // of a deep-dive WANTS the detail. Keep this list tiny — most cards must read at a glance.
-export const LONGFORM = { spxcohort: 700, cexflow: 600 };
+export const LONGFORM = { spxcohort: 700, cexflow: 600, hodlcompare: 340 };
 
 // Owner-editable rotation exclusions — cards kept BUILDABLE + visible in the control
 // panel (and hand-postable) but held OUT of the organic daily rotation. Toggled from
