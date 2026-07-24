@@ -59,8 +59,14 @@ export function aeonSkylineSvg(data, opts = {}) {
 
   const fmtSpx = v => v >= 1e6 ? (v / 1e6).toFixed(1) + "M" : v >= 1e3 ? (v / 1e3).toFixed(0) + "k" : "" + v;
   return `<svg width="${W}" height="${HT}" viewBox="0 0 ${W} ${HT}" xmlns="http://www.w3.org/2000/svg">
-<defs><radialGradient id="skg" cx="50%" cy="60%" r="70%"><stop offset="0%" stop-color="#0e1326"/><stop offset="100%" stop-color="#05050e"/></radialGradient></defs>
+<defs>
+<radialGradient id="skg" cx="50%" cy="58%" r="72%"><stop offset="0%" stop-color="#101a2e"/><stop offset="100%" stop-color="#05060d"/></radialGradient>
+<radialGradient id="skgC" cx="20%" cy="14%" r="60%"><stop offset="0%" stop-color="#22d3ee" stop-opacity="0.22"/><stop offset="60%" stop-color="#22d3ee" stop-opacity="0.04"/><stop offset="100%" stop-color="#22d3ee" stop-opacity="0"/></radialGradient>
+<radialGradient id="skgA" cx="86%" cy="90%" r="58%"><stop offset="0%" stop-color="#f59e0b" stop-opacity="0.2"/><stop offset="60%" stop-color="#f59e0b" stop-opacity="0.03"/><stop offset="100%" stop-color="#f59e0b" stop-opacity="0"/></radialGradient>
+</defs>
 <rect width="${W}" height="${HT}" fill="url(#skg)"/>
+<rect width="${W}" height="${HT}" fill="url(#skgC)"/>
+<rect width="${W}" height="${HT}" fill="url(#skgA)"/>
 <text x="60" y="70" fill="#e2e8f0" font-size="42" font-weight="800" font-family="${F}" letter-spacing="1">PROJECT AEON</text>
 <text x="60" y="112" fill="#5eead4" font-size="30" font-weight="800" font-family="${F}">The Holder Skyline</text>
 <text x="60" y="150" fill="#94a3b8" font-size="21" font-family="${F}">${esc(maxSpx > 0 ? "One tower per wallet — height = AEON + SPX held, × how long held." : "One tower per wallet — height = AEON held, × how long held.")}</text>
