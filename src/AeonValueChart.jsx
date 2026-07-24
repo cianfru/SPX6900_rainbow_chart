@@ -41,11 +41,9 @@ export default function AeonValueChart({ isMobile }) {
   if (!data) return <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Loading listings…</div>;
   if (data.empty) return (
     <div style={{ maxWidth: MAX_W, margin: "0 auto" }}>
-      <Explain q="Which rare AEON are listed too cheap?" accent="#34d399">
-        This maps every <strong style={{ color: "#e2e8f0" }}>active listing</strong> against its <strong style={{ color: "#f59e0b" }}>rarity</strong> and flags the ones priced below their rarity-implied fair value.
-      </Explain>
-      <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 50, lineHeight: 1.7 }}>
-        Live listings feed isn&apos;t connected yet — add an OpenSea API key (repo secret <code style={{ color: "#93c5fd" }}>OPENSEA_KEY</code>) and run the Aeon banker. The chart lights up automatically.
+      <div style={{ textAlign: "center", fontFamily: SANS, color: "#94a3b8", padding: "80px 20px" }}>
+        <div style={{ fontSize: 40, marginBottom: 14 }}>🚧</div>
+        <div style={{ fontSize: 22, fontWeight: 700, color: "#cbd5e1" }}>Under construction</div>
       </div>
     </div>
   );
