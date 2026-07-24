@@ -14,6 +14,7 @@ import { fileURLToPath } from "node:url";
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
 import { REGULAR_B64, BOLD_B64 } from "./font-data.js";
+import { SERIF_REGULAR_B64, SERIF_BOLD_B64 } from "./font-data-serif.js";
 
 let here = "";
 try { here = dirname(fileURLToPath(import.meta.url)); } catch { /* bundled */ }
@@ -36,13 +37,22 @@ const materialize = (b64, name) => {
 const fontFiles = [
   materialize(REGULAR_B64, "DejaVuSans.ttf"),
   materialize(BOLD_B64, "DejaVuSans-Bold.ttf"),
+  materialize(SERIF_REGULAR_B64, "DejaVuSerif.ttf"),
+  materialize(SERIF_BOLD_B64, "DejaVuSerif-Bold.ttf"),
 ].filter(Boolean);
 
+// ⭐ HOUSE TYPEFACE (2026-07-24): the cards render in DejaVu SERIF, not the default
+// sans — an editorial serif that's visibly OURS and distinct from the generic-sans
+// look every other crypto card (and the copycats) use. The cards all ask for the
+// generic "sans-serif" family, so mapping that family to the serif restyles all
+// ~60 cards from this one file — no per-card edits. DejaVu Sans stays bundled as a
+// fallback (and for anything that explicitly asks for a sans family).
 export const FONT = {
   loadSystemFonts: fontFiles.length === 0, // bundled files are enough → skip the system scan
   fontFiles,
-  defaultFontFamily: "DejaVu Sans",
-  sansSerifFamily: "DejaVu Sans", // the cards all use font-family="sans-serif"
+  defaultFontFamily: "DejaVu Serif",
+  serifFamily: "DejaVu Serif",
+  sansSerifFamily: "DejaVu Serif", // generic "sans-serif" in the cards now → the house serif
 };
 
 // Diagnostics surfaced by /api/og?debug=font.
