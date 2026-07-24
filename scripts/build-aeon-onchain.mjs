@@ -118,6 +118,19 @@ function main() {
   const minted = new Set(rows.map(r => r.id)).size;
   const burned = minted - cur.held;
 
+  // Per-wallet holdings for the holder skyline (3D): tokens held + how long the wallet
+  // has held (age of its OLDEST still-held token = when it first became a holder).
+  const wallet = new Map();  // owner → { n, oldest }
+  for (const id in ownerOf) {
+    const o = ownerOf[id]; if (isBurn(o)) continue;
+    const w = wallet.get(o) || { n: 0, oldest: Infinity };
+    w.n++; w.oldest = Math.min(w.oldest, lastMove[id]); wallet.set(o, w);
+  }
+  const holders = [...wallet.entries()]
+    .map(([a, w]) => ({ a, n: w.n, days: Math.round((now - w.oldest) / DAY), since: new Date(w.oldest).toISOString().slice(0, 10) }))
+    .sort((x, y) => y.n - x.n || y.days - x.days)
+    .slice(0, 120);
+
   const out = {
     updated: new Date(now).toISOString().slice(0, 10),
     contract: "0xc374a204334d4edd4c6a62f0867c752d65e9579c",
@@ -126,6 +139,7 @@ function main() {
       owners: cur.owners, age: cur.age, top10: cur.top10, top50: cur.top50,
       top1: cur.counts[0] || 0, distribution: distribution(cur.counts),
     },
+    holders,
     series,
   };
   writeFileSync(OUT, JSON.stringify(out) + "\n");
