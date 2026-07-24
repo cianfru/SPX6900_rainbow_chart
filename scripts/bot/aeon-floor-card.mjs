@@ -6,6 +6,7 @@
 import { Resvg } from "@resvg/resvg-js";
 import { FONT } from "./font.mjs";
 import { esc } from "./svg-util.mjs";
+import { aeonBgDefs, aeonBgRects } from "./aeon-card-bg.mjs";
 
 const png = (svg, w) => new Resvg(svg, { fitTo: { mode: "width", value: w }, font: FONT }).render().asPng();
 const F = "sans-serif";
@@ -58,13 +59,13 @@ export function aeonFloorSvg(data, opts = {}) {
   const volEthTot = (data.totalVolEth ?? 0), volUsdTot = data.totalVolUsd ?? 0;
   return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
 <defs>
-<linearGradient id="afbg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#0b0b16"/><stop offset="100%" stop-color="#05050e"/></linearGradient>
+${aeonBgDefs("af", ["#2dd4bf", "#fbbf24"])}
 <filter id="afglow" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
 </defs>
-<rect width="${W}" height="${H}" fill="url(#afbg)"/>
+${aeonBgRects(W, H, "af")}
 <text x="60" y="56" fill="#e2e8f0" font-size="36" font-weight="800" font-family="${F}" letter-spacing="1">PROJECT AEON — FLOOR &amp; SALES</text>
 <text x="60" y="90" fill="#94a3b8" font-size="21" font-family="${F}">Floor price and trading volume since mint. Floor = 7-day median of daily lows.</text>
-<text x="60" y="128" fill="#2dd4bf" font-size="28" font-weight="800" font-family="${F}">${esc(`${cur.floorEth}Ξ floor ($${cur.floorUsd.toLocaleString()}) · ${Math.round(volEthTot).toLocaleString()}Ξ traded ($${(volUsdTot / 1e6).toFixed(1)}M)`)}</text>
+<text x="60" y="128" fill="#5eead4" font-size="30" font-weight="800" font-family="${F}" filter="url(#afGlow)">${esc(`${cur.floorEth}Ξ floor ($${cur.floorUsd.toLocaleString()}) · ${Math.round(volEthTot).toLocaleString()}Ξ traded ($${(volUsdTot / 1e6).toFixed(1)}M)`)}</text>
 ${volBars}
 <polyline points="${path(fUsd, yU)}" fill="none" stroke="#fbbf24" stroke-width="2.4" stroke-opacity="0.85"/>
 <polyline points="${path(fEth, yE)}" fill="none" stroke="#2dd4bf" stroke-width="3.4" filter="url(#afglow)"/>

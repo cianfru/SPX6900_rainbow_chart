@@ -7,6 +7,7 @@
 import { Resvg } from "@resvg/resvg-js";
 import { FONT } from "./font.mjs";
 import { esc } from "./svg-util.mjs";
+import { aeonBgDefs, aeonBgRects } from "./aeon-card-bg.mjs";
 
 const png = (svg, w) => new Resvg(svg, { fitTo: { mode: "width", value: w }, font: FONT }).render().asPng();
 // bottom → top = youngest → oldest (warm → cool); oldest = the long-held tier.
@@ -62,11 +63,10 @@ export function aeonHodlSvg(data, opts = {}) {
   }
 
   return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
-<defs><linearGradient id="awbg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#0b0b16"/><stop offset="100%" stop-color="#05050e"/></linearGradient></defs>
-<rect width="${W}" height="${H}" fill="url(#awbg)"/>
+<defs>${aeonBgDefs("aw", ["#818cf8", "#22d3ee"])}</defs>${aeonBgRects(W, H, "aw")}
 <text x="60" y="56" fill="#e2e8f0" font-size="36" font-weight="800" font-family="sans-serif" letter-spacing="1">PROJECT AEON — HOLDER AGE</text>
 <text x="60" y="90" fill="#94a3b8" font-size="21" font-family="sans-serif">How long since each AEON last changed hands? Cool bands = held longer.</text>
-<text x="60" y="128" fill="${BANDS[4].c}" font-size="28" font-weight="800" font-family="sans-serif">${oldPct.toFixed(0)}% of the collection hasn't changed hands in over a year</text>
+<text x="60" y="128" fill="#a5b4fc" font-size="30" font-weight="800" font-family="sans-serif" filter="url(#awGlow)">${oldPct.toFixed(0)}% of the collection hasn't changed hands in over a year</text>
 ${ribbons}${yl}${xlab}${legend}
 <text x="60" y="${H - 20}" fill="#6b7688" font-size="18" font-family="sans-serif">${esc(`on-chain · ${supply.toLocaleString()} AEON · holder age = time since last transfer · older = held longer`)}</text>
 </svg>`;
