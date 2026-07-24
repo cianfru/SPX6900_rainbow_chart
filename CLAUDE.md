@@ -215,6 +215,59 @@
   wire its creds + a posting workflow → the control tab gets real Queue/Post-now. Contract
   `0xc374a204334d4Edd4C6a62f0867C752d65E9579c`. To refresh on-chain: re-run the free BigQuery/Dune transfers extract →
   `build-aeon-onchain.mjs`. **RARITY MODEL BACKLOG:** floor-by-rarity, a rarity tweet card, per-token last-sale-vs-rarity.
+- **✅✅ AEON VALUATION CORRECTED 2026-07-24 — the deal finder was advertising fake bargains.** Four linked fixes, all
+  from one owner challenge ("are these listed NFTs cheap or expensive by our logic?"):
+  - **JOKE LISTINGS STRIPPED.** One ask sat at **1,000,000,000 Ξ**; others at 69/690/6900/69000/2222. Holders park a meme
+    price so a piece shows as listed but can never sell. On a log axis that spans 9 orders of magnitude → the 60 real
+    listings collapsed into an invisible sliver AND the log-log fit was dominated by that one leverage point.
+    `build-aeon-listings.mjs` now keeps asks within **25× the cheapest listing** (lands in a real gap: genuine asks stop
+    at 10Ξ, the joke tier starts at 69Ξ). 60 of 71 kept; the excluded count is disclosed on the chart, never silently dropped.
+  - **⭐ FAIR VALUE FITS ON SALES, NEVER ON ASKS (the core bug).** The chart fitted "fair value" on the asking prices it was
+    plotting — circular; it measured cheap-vs-what-other-sellers-hope-for. It called #1011 "61% off" at 1.22Ξ when **no AEON
+    had fetched above 1.10Ξ in 90 days**. Now: `fair(rank,t) = market level at t × rarity factor`, the rarity factor fitted on
+    **17,040 realized sales with the market trend divided out** (rolling median level; a static 180d fit scored old sales as
+    steals purely for being old, since median sale went 0.347Ξ/180d → 0.595Ξ/30d). Emitted as `fairModel {a,b,r2,n,level,method}`.
+  - **⚠ RARITY IS A WEAK PRICE DRIVER HERE — publish that, don't hide it.** R² = **0.05**; the slope wanders 1.3–2.4× depending
+    on the window. Left where the data puts it (**1.90×** rarest-vs-commonest, vs the ask-fit's fake 2.9×) and `r2`/`n` are
+    published so the chart states plainly that rarity explains ~5% of price. Chart retitled "Live Listings vs What They Sell For"
+    ("Buy Now — Underpriced Listings" promised deals that don't exist). Honest result: **0 of 60 listings below market**.
+  - **⭐⭐ SPX IS THE RIGHT DENOMINATOR (owner's call, and he was right).** AEON weekly returns correlate **0.53–0.57 with SPX**
+    vs 0.36 with ETH → **SPX explains ~28% of AEON's price variance against rarity's 5%** (a ~5× better predictor). `spxValue`
+    in aeon-market.json carries `saleSeries` (weekly median sale in SPX) + `floorSeries` (daily 7d-median floor in SPX);
+    `src/aeon-spx-value.js` owns the math (ladderOf/percentileOf/zStats). Both the listings chart and `AeonVsSpxChart` read
+    them, so the two pages can't drift.
+  - **⭐ BASELINE IS TRAILING, NOT FLAT FULL-HISTORY (owner caught this too).** AEON-in-SPX fell structurally from ~45,800 SPX
+    (late 2023) to ~2,100 now — **not** because AEON dropped but because SPX itself ran ~130× off a fraction of a cent. A
+    full-history median compares today to a regime that cannot recur, and it FLATTERS: floor ask read **59th percentile** on
+    all history vs **88th** since Oct-24 vs **98th** on the last 12m. Full-history σ was also so wide the chart could only ever
+    print "fair". Now: trailing 12-month median baseline, σ measured on deviations FROM it (curved, regime-tracking bands) →
+    reads **EXPENSIVE, +45% vs baseline, 93rd percentile**. `WINDOW_DAYS = 365` is the one knob.
+  - **LESSON for any future valuation surface:** never fit a benchmark on the same quantity you're judging, and never average
+    across a structural regime change. Both errors flattered the numbers, which is exactly the direction the honesty moat can't afford.
+- **✅ RARITY CURVE REBUILT ON CANVAS 2026-07-24 (owner: "pretty much useless… show every NFT when hovering").** The old chart drew a
+  **240-point downsampled line**, so most tokens weren't on it and hover could only report a rank + score. Now all **3,333 tokens**
+  are plotted, coloured by tier, hover shows the actual art + id + tier + rank, click pins it into the detail card.
+  **`src/AeonRarityCloud.jsx` = CANVAS, not recharts** — the SVG version measured **18s to first paint and ~1s per hover** (3,333 DOM
+  nodes + recharts rescanning every series on mousemove). Canvas = one node, hit-testing via per-pixel-column buckets (rank is dense
+  and monotonic, ~3 tokens/px). **Rank on a LOG axis** — statistical rarity is heavy-tailed, so linear rank collapsed the Legendary/Epic
+  end into the left edge. Any future 1k+ point scatter in this repo should start from this component, not recharts.
+- **⭐⭐ POST LANES REPLACED THE GLOBAL ONE-PER-DAY GATE 2026-07-24 (owner: "two things should fire in a timely manner").** `post-state.json`
+  used to carry a single `lastPostedDate`, and band-watch/milestone-watch each **OVERWROTE the whole file** to claim the day — so a real
+  event had to wait for tomorrow if the rotation had posted (losing the moment, the whole point of an event post), and the overwrite
+  silently wiped the `recent` log the control panel uses. Now each publisher owns a **LANE** (`daily` / `band` / `milestone` / `aeonsale`)
+  with its own once-a-day budget, recorded by **MERGING** into post-state (`lanePostedToday` / `recordLanePost` in posts.mjs). Lanes fire
+  independently; none can spam. `lastPostedDate` keeps its old meaning (**the daily rotation posted today**) because band-watch reads it to
+  stop BUY/SELL stacking on the daily. **To add a publisher: pick a lane name, gate on `lanePostedToday(lane)`, call `recordLanePost(lane, id)`
+  — never write post-state directly.**
+- **✅ NOTABLE-SALE EVENT POST BUILT 2026-07-24 (owner request).** `scripts/bot/aeon-sale-watch.mjs` + `aeon-sale-card.mjs` — posts a fresh
+  notable AEON sale showing **the piece itself**, what it fetched, and how that compares to what its rarity actually trades at, plus the
+  rarest traits. Notable = a **steal** (≥20% under that rarity's going rate) OR a **rare piece** (rank ≤150) trading at all OR a **big sale**
+  (≥2× market level); steal > rare > big, since the deal is the story. Posted token/date pairs remembered in `public/aeon-sale-state.json`
+  (deploy-ignored). **The card embeds art as a DATA URI — resvg does NOT resolve remote hrefs**, so `<image href="https://…">` renders as
+  nothing; failed fetch → placeholder, never a failed post. Runs in aeon.yml after the market rebuild, `continue-on-error`. Repo var
+  `AEON_SALE_DRY_RUN=1` watches without posting. **🔲 LATENCY LIMIT:** detection rides the DAILY Dune pull, so a sale can be ~a day old when
+  it fires (3-day freshness window covers it). Sub-day would need a live feed (**Alchemy `getNFTSales`**, key already set) — NOT wired
+  because it can't be validated from the sandbox. Wire it there if the owner wants band-watch-like immediacy.
 - **✅✅ AEON "STEROIDS" — MARKET + TRADER INTELLIGENCE BUILT 2026-07-24 (all KEYLESS, from the raw sales+transfers we
   already have — no OpenSea key needed).** Two engines off `dune/out/aeon_sales.csv` + `aeon_transfers.csv` + rarity + live
   floor, run daily in aeon.yml: **`build-aeon-market.mjs`** → `aeon-market.json` (NFT **MVRV** = floor÷realized ≈ 1.01×,
