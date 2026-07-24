@@ -67,11 +67,11 @@ jobs:
         id: commit
         run: |
           DEPLOY_CHANGED=""
-          [[ -n "$(git status --porcelain public/aeon.json public/aeon-history.json public/aeon-onchain.json public/aeon-sales.json public/aeon-rarity.json public/aeon-listings.json public/aeon-market.json public/aeon-traders.json)" ]] && DEPLOY_CHANGED=1
+          [[ -n "$(git status --porcelain public/aeon*.json)" ]] && DEPLOY_CHANGED=1
           if [[ -n "$DEPLOY_CHANGED" ]]; then
             git config user.name "github-actions[bot]"
             git config user.email "github-actions[bot]@users.noreply.github.com"
-            git add public/aeon.json public/aeon-history.json public/aeon-onchain.json public/aeon-sales.json public/aeon-rarity.json public/aeon-listings.json public/aeon-market.json public/aeon-traders.json
+            git add public/aeon*.json
             git commit -m "chore: aeon banker $(date -u +%F)"
             git push
           else
