@@ -255,8 +255,9 @@
     <h1>SPX6900 · post control <span style="color:#475569;font-size:13px">(hidden)</span></h1>
     <div class="sub">Preview every card and pick what posts next. Queue one for the scheduled run, or post it now. Pick nothing and the daily auto-rotation runs as normal.</div>
     <div class="tabs">
-      <button id="tabDaily" class="tab active">🗓 Daily posts</button>
-      <button id="tabRecap" class="tab">📅 Monthly recap</button>
+      <button id="tabDaily" class="tab active">🗓 SPX6900 · Daily posts</button>
+      <button id="tabRecap" class="tab">📅 SPX6900 · Recap</button>
+      <button id="tabAeon" class="tab">🌌 Project Aeon</button>
     </div>
   </header>
   <div class="wrap">
@@ -296,6 +297,18 @@
       </div>
       <div class="status" id="recapStatus">Open this tab to render the recap preview.</div>
       <div class="grid" id="recapGrid"></div>
+    </div>
+
+    <!-- Project Aeon tab -->
+    <div id="aeonView" style="display:none">
+      <div class="bar">
+        <button id="aeonRefresh">↻ Refresh</button>
+        <span style="margin-left:auto;color:#64748b;font-size:12px">NFT analytics · read-only overview</span>
+      </div>
+      <div class="status" id="aeonStatus">Open this tab to load the Project Aeon overview.</div>
+      <div id="aeonStats" style="display:flex;gap:10px;flex-wrap:wrap;margin:12px 0"></div>
+      <div id="aeonLinks" style="margin:6px 0 16px"></div>
+      <div id="aeonHolders"></div>
     </div>
 
     <p><a class="home" href="/">← back to site</a></p>
@@ -863,12 +876,60 @@ const recapStatus = (msg, cls = "") => { const e = $("#recapStatus"); e.textCont
 function recapErr(e) { recapStatus(e.message, "err"); if (e.status === 401) lock(); }
 
 function showTab(which) {
-  const daily = which === "daily";
-  $("#dailyView").style.display = daily ? "block" : "none";
-  $("#recapView").style.display = daily ? "none" : "block";
-  $("#tabDaily").classList.toggle("active", daily);
-  $("#tabRecap").classList.toggle("active", !daily);
-  if (!daily && !recapLoaded) loadRecap();
+  $("#dailyView").style.display = which === "daily" ? "block" : "none";
+  $("#recapView").style.display = which === "recap" ? "block" : "none";
+  $("#aeonView").style.display = which === "aeon" ? "block" : "none";
+  $("#tabDaily").classList.toggle("active", which === "daily");
+  $("#tabRecap").classList.toggle("active", which === "recap");
+  $("#tabAeon").classList.toggle("active", which === "aeon");
+  if (which === "recap" && !recapLoaded) loadRecap();
+  if (which === "aeon" && !aeonLoaded) loadAeon();
+}
+
+// ---- Project Aeon tab — read-only NFT analytics overview (no posting bot yet) ----
+const SITE = "https://spx6900rainbow.xyz";
+const AEON_CHARTS = [
+  ["Floor & Sales", "aeonfloor"], ["Holder Skyline (3D)", "aeonskyline"], ["Holder Age", "aeonhodl"],
+  ["Owners Over Time", "aeonowners"], ["Concentration", "aeonconcentration"], ["Holder Flow", "aeonbehaviour"],
+];
+let aeonLoaded = false;
+const aeonStatus = (msg, cls = "") => { const e = $("#aeonStatus"); e.textContent = msg; e.className = "status " + cls; };
+const stat = (label, value, sub) => `<div style="flex:1;min-width:130px;background:#0b0b18;border:1px solid #1e293b;border-radius:10px;padding:12px 14px">
+  <div style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#64748b">${label}</div>
+  <div style="font-size:22px;font-weight:800;color:#e2e8f0;margin-top:3px">${value}</div>${sub ? `<div style="font-size:12px;color:#7c8a9e;margin-top:2px">${sub}</div>` : ""}</div>`;
+const shortAddr = a => a.slice(0, 6) + "…" + a.slice(-4);
+const fmtSpxC = v => v >= 1e6 ? (v / 1e6).toFixed(1) + "M" : v >= 1e3 ? (v / 1e3).toFixed(0) + "k" : "" + v;
+
+async function loadAeon() {
+  aeonStatus("Loading Project Aeon data…");
+  const raw = p => fetch(`https://raw.githubusercontent.com/${OWNER}/${REPO}/${BRANCH}/${p}?t=${Date.now()}`, { cache: "no-store" }).then(r => r.ok ? r.json() : null).catch(() => null);
+  const [snap, onchain, sales] = await Promise.all([raw("public/aeon.json"), raw("public/aeon-onchain.json"), raw("public/aeon-sales.json")]);
+  if (!onchain && !snap) { aeonStatus("No Aeon data yet — run the Project Aeon banker + reconstruction.", "err"); return; }
+
+  const floorEth = sales?.current?.floorEth ?? snap?.floor;
+  const cards = [];
+  if (floorEth != null) cards.push(stat("Floor", floorEth + " Ξ", sales?.current?.floorUsd ? "$" + sales.current.floorUsd.toLocaleString() : (snap?.floorUsd ? "$" + snap.floorUsd.toLocaleString() : "")));
+  cards.push(stat("Owners", (onchain?.current?.owners ?? snap?.owners ?? "—").toLocaleString(), "of " + (onchain?.supply ?? snap?.tokens ?? 3333).toLocaleString() + " supply"));
+  if (sales) cards.push(stat("All-time volume", Math.round(sales.totalVolEth).toLocaleString() + " Ξ", "$" + (sales.totalVolUsd / 1e6).toFixed(1) + "M · " + sales.totalSales.toLocaleString() + " sales"));
+  if (onchain?.current) cards.push(stat("Held 1y+", onchain.current.age[4].toFixed(0) + "%", "of the collection"));
+  if (onchain?.holders?.length) { const both = onchain.holders.filter(h => h.spx > 0).length; cards.push(stat("Top holder", onchain.holders[0].n + " AEON", both + " of " + onchain.holders.length + " hold SPX too")); }
+  $("#aeonStats").innerHTML = cards.join("");
+
+  $("#aeonLinks").innerHTML = "<div style='font-size:12px;color:#64748b;margin-bottom:6px'>Interactive charts (site)</div>" +
+    AEON_CHARTS.map(([t, id]) => `<a href="${SITE}/?chart=${id}" target="_blank" rel="noopener" style="display:inline-block;margin:0 6px 6px 0;padding:6px 12px;border-radius:8px;background:#0b0b18;border:1px solid #234;color:#93c5fd;text-decoration:none;font-size:13px">${t} ↗</a>`).join("");
+
+  if (onchain?.holders?.length) {
+    const rows = onchain.holders.slice(0, 20).map((h, i) => `<tr style="border-top:1px solid #16202e">
+      <td style="padding:5px 8px;color:#64748b;font-variant-numeric:tabular-nums">${i + 1}</td>
+      <td style="padding:5px 8px"><a href="https://app.zerion.io/${h.a}/overview" target="_blank" rel="noopener" style="color:${i === 0 ? "#5eead4" : "#cbd5e1"};text-decoration:none;font-family:ui-monospace,monospace">${i === 0 ? "👑 " : ""}${shortAddr(h.a)} ↗</a></td>
+      <td style="padding:5px 8px;text-align:right;color:#e2e8f0;font-variant-numeric:tabular-nums">${h.n} AEON</td>
+      <td style="padding:5px 8px;text-align:right;color:${h.spx > 0 ? "#a78bfa" : "#3a4152"};font-variant-numeric:tabular-nums">${h.spx > 0 ? fmtSpxC(h.spx) + " SPX" : "—"}</td>
+      <td style="padding:5px 8px;text-align:right;color:#7c8a9e;font-variant-numeric:tabular-nums">${h.days}d</td></tr>`).join("");
+    $("#aeonHolders").innerHTML = `<div style="font-size:12px;color:#64748b;margin:6px 0">Top holders · tap to open in Zerion</div>
+      <table style="width:100%;border-collapse:collapse;font-size:13px"><tbody>${rows}</tbody></table>`;
+  }
+  aeonLoaded = true;
+  aeonStatus("Project Aeon — floor/owners live via the Alchemy banker; holders + skyline from the on-chain reconstruction.", "ok");
 }
 
 async function loadRecap() {
@@ -905,6 +966,8 @@ async function loadRecap() {
 
 $("#tabDaily").onclick = () => showTab("daily");
 $("#tabRecap").onclick = () => showTab("recap");
+$("#tabAeon").onclick = () => showTab("aeon");
+$("#aeonRefresh").onclick = () => { aeonLoaded = false; loadAeon(); };
 $("#recapReload").onclick = () => { recapLoaded = false; loadRecap(); };
 $("#recapPost").onclick = async () => {
   const month = $("#recapMonth").value.trim();
