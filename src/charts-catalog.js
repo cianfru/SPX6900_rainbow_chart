@@ -94,7 +94,7 @@ export const AEON_GROUPS = [
       { id: "aeonfloor", title: "Floor & Sales", desc: "Floor price (ETH & USD) and trading volume since mint." },
       { id: "aeonskyline", title: "Holder Skyline (3D)", desc: "A 3D city of wallets — height = biggest + longest-term holders. Click a tower to open it in Zerion." },
       { id: "aeonrarity", title: "Rarity — Where Does It Sit?", desc: "Look up any AEON — its rarity rank, tier and traits, on the collection's rarity curve." },
-      { id: "aeonvalue", title: "Buy Now — Underpriced Listings", desc: "What is on sale RIGHT NOW: every live ask vs its rarity, and which rare pieces are listed below fair value." },
+      { id: "aeonvalue", title: "Live Listings vs What They Sell For", desc: "Every active ask measured against what comparable pieces actually fetch — what is cheap, and what is over market." },
       { id: "aeonvsspx", title: "AEON Floor vs SPX", desc: "The NFT floor priced in SPX6900 — cheap or expensive versus its baseline." },
       { id: "aeontraders", title: "Trader Leaderboard", desc: "Who made money trading AEON — realized P&L, hold time and win rate per wallet." },
       { id: "aeonvaluation", title: "MVRV & Supply in Profit", desc: "NFT MVRV and the cost-basis distribution — are holders in profit vs the floor?" },

@@ -1,44 +1,48 @@
 import { useMemo, useState, useEffect } from "react";
 import { ResponsiveContainer, ComposedChart, Scatter, Line, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
-import { loadAeonListings } from "./history-data.js";
+import { loadAeonListings, loadAeonMarket } from "./history-data.js";
 import { SANS, MONO, MAX_W, Explain } from "./chart-ui.jsx";
 
 const fEth = v => (v < 0.1 ? v.toFixed(3) : v.toFixed(2)) + "Ξ";
 
-// least-squares fit of log(price) = a + b·log(rank) → fair value as a function of rarity
-function fitFair(rows) {
-  const pts = rows.filter(r => r.price > 0 && r.rank > 0);
-  const n = pts.length; if (n < 4) return null;
-  let sx = 0, sy = 0, sxx = 0, sxy = 0;
-  for (const r of pts) { const x = Math.log(r.rank), y = Math.log(r.price); sx += x; sy += y; sxx += x * x; sxy += x * y; }
-  const b = (n * sxy - sx * sy) / (n * sxx - sx * sx || 1), a = (sy - b * sx) / n;
-  return { a, b, expected: rank => Math.exp(a + b * Math.log(rank)) };
-}
-
-// Project Aeon — rarity vs price. Plots every active listing by rarity rank vs its ask,
-// fits a fair-value curve, and flags rare pieces listed BELOW it (underpriced deals),
-// rendering the NFT art at the best ones.
+// Project Aeon — asking prices vs what pieces actually SELL for.
+//
+// Fair value comes from realized sales (aeon-market.json `fairModel`), NOT from the asks
+// on this chart. Fitting the asks was circular — it only measured "cheap versus what other
+// sellers are hoping for", which flagged #1011 as "61% off" at 1.22Ξ when no AEON had
+// fetched above 1.10Ξ in 90 days. The sales model is: market level now × rarity factor.
 export default function AeonValueChart({ isMobile }) {
   const [data, setData] = useState(null);
+  const [market, setMarket] = useState(null);
   useEffect(() => { let c = false; loadAeonListings().then(d => { if (!c) setData(d || { empty: true }); }); return () => { c = true; }; }, []);
+  useEffect(() => { let c = false; loadAeonMarket().then(d => { if (!c) setMarket(d || { empty: true }); }); return () => { c = true; }; }, []);
 
   const model = useMemo(() => {
-    if (!data || data.empty) return null;
+    if (!data || data.empty || !market) return null;
+    const fm = market.empty ? null : market.fairModel;
+    const level = fm?.level || market.levelNow || 0;
     const rows = data.listings.filter(l => l.rank > 0 && l.price > 0);
-    const fair = fitFair(rows);
+    // fair(rank) = current market level × the rarity factor measured on realized sales
+    const expected = rank => (fm && level > 0 ? level * Math.exp(fm.a + fm.b * Math.log(rank)) : null);
     const scored = rows.map(l => {
-      const exp = fair ? fair.expected(l.rank) : l.price;
-      const disc = (exp - l.price) / exp;          // >0 = below fair value = deal
-      return { ...l, exp, disc };
+      const exp = expected(l.rank);
+      return { ...l, exp: exp ?? l.price, disc: exp ? (exp - l.price) / exp : 0, mult: exp ? l.price / exp : null };
     });
     const deals = [...scored].filter(l => l.disc > 0.1).sort((a, b) => b.disc - a.disc).slice(0, 12);
     const dealIds = new Set(deals.map(d => d.id));
-    const line = fair ? [...rows].sort((a, b) => a.rank - b.rank).filter((_, i, arr) => i % Math.max(1, Math.round(arr.length / 60)) === 0 || i === arr.length - 1)
-      .map(r => ({ rank: r.rank, fair: +fair.expected(r.rank).toFixed(4) })) : [];
-    return { scored, deals, dealIds, line, total: data.total, count: data.count, updated: data.updated, parked: data.parked || 0, cap: data.cap || 0 };
-  }, [data]);
+    // closest-to-market listings — what to show when nothing is genuinely below fair value
+    const closest = [...scored].filter(l => l.mult != null).sort((a, b) => a.mult - b.mult).slice(0, 8);
+    const line = expected(1) ? Array.from({ length: 48 }, (_, i) => {
+      const r = Math.exp(Math.log(1) + (Math.log(data.total) - Math.log(1)) * i / 47);
+      return { rank: r, fair: +expected(r).toFixed(4) };
+    }) : [];
+    return {
+      scored, deals, dealIds, closest, line, level, r2: fm?.r2 ?? null, nFit: fm?.n ?? 0,
+      total: data.total, count: data.count, updated: data.updated, parked: data.parked || 0, cap: data.cap || 0,
+    };
+  }, [data, market]);
 
-  if (!data) return <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Loading listings…</div>;
+  if (!data || !market) return <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Loading listings…</div>;
   if (data.empty) return (
     <div style={{ maxWidth: MAX_W, margin: "0 auto" }}>
       <div style={{ textAlign: "center", fontFamily: SANS, color: "#94a3b8", padding: "80px 20px" }}>
@@ -48,7 +52,7 @@ export default function AeonValueChart({ isMobile }) {
     </div>
   );
 
-  const { scored, deals, dealIds, line, total, count, updated, parked, cap } = model;
+  const { scored, deals, dealIds, closest, line, level, r2, nFit, total, count, updated, parked, cap } = model;
   // No priced listings → bail before Math.min(...[]) yields Infinity and the log axis blows up.
   if (!scored.length) return (
     <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>No active listings right now.</div>
@@ -93,16 +97,18 @@ export default function AeonValueChart({ isMobile }) {
 
   return (
     <div style={{ maxWidth: MAX_W, margin: "0 auto" }}>
-      <Explain q="Which rare AEON are listed too cheap?" accent="#34d399">
-        Every <strong style={{ color: "#e2e8f0" }}>active listing</strong> plotted by <strong style={{ color: "#f59e0b" }}>rarity</strong> (rarer → left) vs its <strong style={{ color: "#e2e8f0" }}>ask price</strong>.
-        The dashed line is <strong style={{ color: "#94a3b8" }}>fair value</strong> for that rarity; listings sitting <strong style={{ color: "#34d399" }}>below it are underpriced</strong> — the deals, shown with their art.
+      <Explain q="Is anything on the board actually cheap?" accent="#34d399">
+        Every <strong style={{ color: "#e2e8f0" }}>active listing</strong> plotted by <strong style={{ color: "#f59e0b" }}>rarity</strong> (rarer → left) vs its <strong style={{ color: "#e2e8f0" }}>ask</strong>.
+        The dashed line is what pieces of that rarity <strong style={{ color: "#94a3b8" }}>actually sell for</strong> — measured from realized sales, not from the asks themselves.
+        Listings <strong style={{ color: "#34d399" }}>below the line are cheap</strong>; above it you are paying over market.
         {updated === "MOCK" && <em style={{ color: "#f472b6" }}> (Preview data — connect the live OpenSea feed.)</em>}
       </Explain>
 
       <div style={{ display: "flex", gap: isMobile ? 16 : 30, justifyContent: "center", marginBottom: 12, flexWrap: "wrap", fontFamily: SANS }}>
         <div style={{ textAlign: "center" }}><div style={{ fontSize: 22, fontWeight: 800, color: "#e2e8f0", fontFamily: MONO }}>{count}</div><div style={{ fontSize: 12, color: "#7c8a9e" }}>active listings</div></div>
-        <div style={{ textAlign: "center" }}><div style={{ fontSize: 22, fontWeight: 800, color: "#34d399", fontFamily: MONO }}>{deals.length}</div><div style={{ fontSize: 12, color: "#7c8a9e" }}>under fair value</div></div>
-        <div style={{ textAlign: "center" }}><div style={{ fontSize: 22, fontWeight: 800, color: "#f59e0b", fontFamily: MONO }}>{fEth(priceMin)}</div><div style={{ fontSize: 12, color: "#7c8a9e" }}>floor listing</div></div>
+        <div style={{ textAlign: "center" }}><div style={{ fontSize: 22, fontWeight: 800, color: deals.length ? "#34d399" : "#7c8a9e", fontFamily: MONO }}>{deals.length}</div><div style={{ fontSize: 12, color: "#7c8a9e" }}>below market</div></div>
+        <div style={{ textAlign: "center" }}><div style={{ fontSize: 22, fontWeight: 800, color: "#f59e0b", fontFamily: MONO }}>{fEth(priceMin)}</div><div style={{ fontSize: 12, color: "#7c8a9e" }}>cheapest ask</div></div>
+        <div style={{ textAlign: "center" }}><div style={{ fontSize: 22, fontWeight: 800, color: "#38bdf8", fontFamily: MONO }}>{fEth(level)}</div><div style={{ fontSize: 12, color: "#7c8a9e" }}>recent market</div></div>
       </div>
 
       <ResponsiveContainer width="100%" height={isMobile ? 380 : 500}>
@@ -121,9 +127,36 @@ export default function AeonValueChart({ isMobile }) {
         </ComposedChart>
       </ResponsiveContainer>
 
+      {deals.length === 0 && closest.length > 0 && (
+        <div style={{ marginTop: 20 }}>
+          <div style={{ fontFamily: SANS, fontSize: 14.5, fontWeight: 700, color: "#f59e0b", textAlign: "center", marginBottom: 4 }}>
+            Nothing is currently listed below market
+          </div>
+          <div style={{ fontFamily: SANS, fontSize: 12.5, color: "#94a3b8", textAlign: "center", marginBottom: 12, maxWidth: 620, marginInline: "auto", lineHeight: 1.6 }}>
+            Every live ask sits above what comparable pieces have been selling for. That is a normal
+            spread for a thinly traded collection — sellers ask high and wait. These are the closest to market.
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: `repeat(auto-fill, minmax(${isMobile ? 130 : 150}px, 1fr))`, gap: 12 }}>
+            {closest.map(d => (
+              <a key={d.id} href={`https://opensea.io/assets/ethereum/${data.contract}/${d.id}`} target="_blank" rel="noopener noreferrer"
+                style={{ textDecoration: "none", background: "rgba(13,15,28,0.6)", border: "1px solid rgba(245,158,11,0.35)", borderRadius: 12, overflow: "hidden" }}>
+                {d.img && <img src={d.img} alt={"AEON #" + d.id} loading="lazy" style={{ width: "100%", aspectRatio: "1", objectFit: "cover", display: "block", background: "#05050e" }} />}
+                <div style={{ padding: "8px 10px" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontFamily: SANS, fontSize: 13 }}>
+                    <span style={{ color: "#e2e8f0", fontWeight: 700 }}>#{d.id}</span>
+                    <span style={{ color: "#f59e0b", fontWeight: 700 }}>{d.mult.toFixed(1)}× market</span>
+                  </div>
+                  <div style={{ fontFamily: MONO, fontSize: 12.5, color: "#94a3b8", marginTop: 2 }}>{fEth(d.price)} · rank {d.rank}</div>
+                </div>
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
+
       {deals.length > 0 && (
         <div style={{ marginTop: 20 }}>
-          <div style={{ fontFamily: SANS, fontSize: 14, fontWeight: 700, color: "#34d399", textAlign: "center", marginBottom: 10 }}>Best deals — rare, listed below fair value</div>
+          <div style={{ fontFamily: SANS, fontSize: 14, fontWeight: 700, color: "#34d399", textAlign: "center", marginBottom: 10 }}>Listed below what comparable pieces sell for</div>
           <div style={{ display: "grid", gridTemplateColumns: `repeat(auto-fill, minmax(${isMobile ? 130 : 150}px, 1fr))`, gap: 12 }}>
             {deals.slice(0, 8).map(d => (
               <a key={d.id} href={`https://opensea.io/assets/ethereum/${data.contract}/${d.id}`} target="_blank" rel="noopener noreferrer"
@@ -140,7 +173,11 @@ export default function AeonValueChart({ isMobile }) {
       )}
 
       <div className="chart-caption" style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 18, lineHeight: 1.65, maxWidth: 900, marginInline: "auto" }}>
-        Fair value is a log-log fit of ask price vs rarity rank across all live listings — a rough guide, not a promise. &ldquo;Deals&rdquo; are listings sitting below it; tap one to view it on OpenSea. Listings + prices from OpenSea, rarity reconstructed from on-chain metadata.
+        Fair value = the recent market level ({fEth(level)}, the rolling median sale) × a rarity factor fitted on
+        {nFit ? " " + nFit.toLocaleString() : " all "} realized sales. It is measured from what pieces actually
+        <em> sold</em> for, never from the asking prices on this chart — fitting the asks would just measure what sellers hope for.
+        {r2 != null && <> <strong style={{ color: "#94a3b8" }}>Rarity is a weak price driver here: it explains only {(r2 * 100).toFixed(0)}% of the variation in sale prices</strong>, so treat the line as a rough centre of gravity, not a valuation.</>}
+        {" "}Tap any piece for OpenSea. Listings from OpenSea, sales from on-chain marketplace trades, rarity from on-chain metadata.
         {parked > 0 && <> {parked} listing{parked === 1 ? " was" : "s were"} parked above {cap ? cap.toFixed(0) : "the cap"}Ξ (asks like 69 or 6900Ξ that exist so a piece shows as listed but can never sell) and are excluded — they aren&rsquo;t real offers and would flatten the whole scale.</>}
       </div>
     </div>

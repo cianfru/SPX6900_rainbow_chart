@@ -49,12 +49,28 @@ function currentOwners(path) {
   return owner;
 }
 
-function fit(pairs) {  // log(price)=a+b·log(rank)
+function fit(pairs) {  // log(y)=a+b·log(rank), plus R² so callers can judge the fit
   const n = pairs.length; if (n < 8) return null;
   let sx = 0, sy = 0, sxx = 0, sxy = 0;
   for (const [rank, price] of pairs) { const x = Math.log(rank), y = Math.log(price); sx += x; sy += y; sxx += x * x; sxy += x * y; }
   const b = (n * sxy - sx * sy) / (n * sxx - sx * sx || 1), a = (sy - b * sx) / n;
-  return { a, b, expected: r => Math.exp(a + b * Math.log(r)) };
+  const my = sy / n; let sst = 0, sse = 0;
+  for (const [rank, price] of pairs) { const y = Math.log(price); sst += (y - my) ** 2; sse += (y - (a + b * Math.log(rank))) ** 2; }
+  return { a, b, n, r2: sst > 0 ? 1 - sse / sst : 0, expected: r => Math.exp(a + b * Math.log(r)) };
+}
+
+// ── MARKET LEVEL over time ───────────────────────────────────────────────────────
+// AEON's market moves fast (median sale 0.35Ξ over 180d but 0.60Ξ over the last 30d),
+// so one static fit over 180 days scores every OLD sale as a "steal" purely because the
+// market was cheaper then, and understates today's fair value. Level is therefore a
+// rolling median of nearby sales, widening the window until it has a usable sample.
+function marketLevelAt(sorted, t, halfWin = 30 * DAY, minN = 12) {
+  for (let w = halfWin; w <= 180 * DAY; w *= 2) {
+    const v = [];
+    for (const s of sorted) { if (s.t >= t - w && s.t <= t + w) v.push(s.price); }
+    if (v.length >= minN) return median(v);
+  }
+  return median(sorted.map(s => s.price));
 }
 
 function main() {
@@ -91,12 +107,32 @@ function main() {
   const urpd = Array.from({ length: nb }, (_, i) => ({ lo: Math.exp(ll + span * i / nb), hi: Math.exp(ll + span * (i + 1) / nb), n: 0, prof: 0 }));
   for (const c of bases) { let bi = Math.min(nb - 1, Math.floor((Math.log(c) - ll) / span * nb)); if (bi < 0) bi = 0; urpd[bi].n++; if (floor >= c) urpd[bi].prof++; }
 
-  // ── FAIR VALUE (fit on RECENT sales = current market) + rarity-vs-price scatter + deals ──
+  // ── FAIR VALUE ───────────────────────────────────────────────────────────────
+  // Fit the RARITY effect on realized sales with the market trend divided out, then
+  // price any piece as: market level at that moment × the rarity factor for its rank.
+  //
+  // Two biases this removes, both of which were making the site lie:
+  //  1. The listings chart used to fit fair value on the ASKS themselves — circular. It
+  //     measured "cheap vs what other sellers wish for", so it called #1011 (rank 152)
+  //     "61% off" at 1.22Ξ when no AEON had fetched more than 1.10Ξ in 90 days.
+  //  2. A single 180-day fit is stale-low in a rising market, so old sales scored as
+  //     steals just for being old.
+  // Rarity turns out to be a WEAK price driver here (see r2 below) — the fitted slope is
+  // shallow on purpose because that is what the sales say; it is not forced flat.
+  const rankOf = s => R.get(s.id)?.rank;
+  const priced = sales.filter(s => rankOf(s) > 0).sort((a, b) => a.t - b.t);
+  const levelCache = new Map();
+  const levelAt = t => { const k = Math.round(t / DAY); if (!levelCache.has(k)) levelCache.set(k, marketLevelAt(priced, t)); return levelCache.get(k); };
+  // detrended: price ÷ market level at that sale's own date → isolates rarity from timing
+  const rarityFit = fit(priced.map(s => [rankOf(s), s.price / (levelAt(s.t) || 1)]));
+  const levelNow = levelAt(now);
+  const rarityFactor = r => (rarityFit ? Math.exp(rarityFit.a + rarityFit.b * Math.log(r)) : 1);
+  const fairAt = (rank, t) => (levelAt(t) || levelNow) * rarityFactor(rank);
+
   const cutoff = now - 180 * DAY;
   const recentSales = sales.filter(s => s.t >= cutoff && R.has(s.id));
-  const fair = fit(recentSales.map(s => [R.get(s.id).rank, s.price]));
   const scored = recentSales.map(s => {
-    const rank = R.get(s.id).rank, exp = fair ? fair.expected(rank) : s.price, disc = (exp - s.price) / exp;
+    const rank = R.get(s.id).rank, exp = fairAt(rank, s.t), disc = (exp - s.price) / exp;
     return { id: s.id, price: +s.price.toFixed(3), rank, exp: +exp.toFixed(3), disc: +disc.toFixed(3), img: R.get(s.id).img, d: new Date(s.t).toISOString().slice(0, 10) };
   });
   // downsampled scatter for the chart (keep every sale up to ~500)
@@ -142,7 +178,13 @@ function main() {
       heldPriced, supplyInProfitPct: heldPriced ? +(inProfit / heldPriced * 100).toFixed(1) : null,
     },
     urpd: urpd.map(b => ({ lo: +b.lo.toFixed(4), hi: +b.hi.toFixed(4), n: b.n, prof: b.prof })),
-    fairModel: fair ? { a: fair.a, b: fair.b } : null,
+    // a/b describe the RARITY factor only (detrended); multiply by `level` for a price.
+    // r2 is deliberately published — it is low (~0.05), i.e. rarity explains very little of
+    // AEON's price, and any surface using this must say so rather than imply precision.
+    fairModel: rarityFit
+      ? { a: rarityFit.a, b: rarityFit.b, r2: +rarityFit.r2.toFixed(4), n: rarityFit.n, level: +levelNow.toFixed(4), method: "sales-detrended" }
+      : null,
+    levelNow: +levelNow.toFixed(4),
     salesScatter, scatterImgs, deals, biggest, traitPremiums,
   };
   writeFileSync(OUT, JSON.stringify(out) + "\n");
