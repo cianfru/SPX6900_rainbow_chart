@@ -15,7 +15,7 @@ const tierOf = (rank, total) => TIERS.find(t => rank / total <= t.max) || TIERS.
 
 // Project Aeon — trait rarity. "Where does this NFT sit?" Look up any token → its rank,
 // tier, traits (each with how rare it is), and where it lands on the collection's rarity curve.
-export default function AeonRarityChart({ isMobile }) {
+export default function AeonRarityChart({ isMobile, preview = false }) {
   const [data, setData] = useState(null);
   const [q, setQ] = useState("");
   const [sel, setSel] = useState(null);       // selected token id
@@ -26,6 +26,17 @@ export default function AeonRarityChart({ isMobile }) {
   const byId = useMemo(() => { const m = new Map(); (data?.tokens || []).forEach(t => m.set(t.id, t)); return m; }, [data]);
 
   if (!data) return <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Loading rarity…</div>;
+
+  // ── PREVIEW: the CURVE is the chart ──────────────────────────────────────────
+  // The tile used to render the whole page — lookup box, token card, trait table — and at
+  // tile scale a browsing user saw a form, not a chart. Show only the rarity cloud: all
+  // 3,333 tokens graded Legendary→Common, which says what this is in one glance.
+  if (preview) return (
+    <div style={{ maxWidth: MAX_W, margin: "0 auto" }}>
+      <AeonRarityCloud tokens={data.tokens} total={data.total} tiers={TIERS} tierOf={tierOf}
+        selId={null} onSelect={() => {}} height={680} isMobile={false} />
+    </div>
+  );
 
   const total = data.total;
   const token = byId.get(sel) || data.tokens[0];

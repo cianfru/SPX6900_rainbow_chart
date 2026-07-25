@@ -649,7 +649,7 @@ export default function App() {
       case "model": return <ModelChart series={priceData} m={m} isMobile={mob} />;
       case "aeonfloor": return <AeonFloorChart isMobile={mob} />;
       case "aeonskyline": return <AeonSkylineChart isMobile={mob} preview={preview} />;
-      case "aeonrarity": return <AeonRarityChart isMobile={mob} />;
+      case "aeonrarity": return <AeonRarityChart isMobile={mob} preview={preview} />;
       case "aeonvalue": return <AeonValueChart isMobile={mob} />;
       case "aeonvsspx": return <AeonVsSpxChart isMobile={mob} />;
       case "aeontraders": return <AeonTradersChart isMobile={mob} />;

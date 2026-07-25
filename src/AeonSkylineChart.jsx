@@ -23,6 +23,7 @@ export default function AeonSkylineChart({ isMobile, preview = false }) {
   const maxN = Math.max(...holders.map(h => h.n));
   const hasSpx = holders.some(h => h.spx > 0);
   const both = holders.filter(h => h.spx > 0).length;
+  const maxDays = Math.max(1, ...holders.map(h => h.days || 0));
   const fmtSpx = v => v >= 1e6 ? (v / 1e6).toFixed(1) + "M" : v >= 1e3 ? (v / 1e3).toFixed(0) + "k" : "" + v;
 
   // top-holders bar list (also the preview stand-in — 3D is heavy)
@@ -45,7 +46,43 @@ export default function AeonSkylineChart({ isMobile, preview = false }) {
     </div>
   );
 
-  if (preview) return <div style={{ maxWidth: MAX_W, margin: "0 auto", paddingTop: 20 }}>{list}</div>;
+  // ── PREVIEW: draw the CITY, not a spreadsheet ────────────────────────────────
+  // The gallery tile used to show the top-holders bar list because the real view is
+  // WebGL and too heavy to mount once per tile. But a table tells a browsing user
+  // nothing about what this chart IS, and the tile is the only thing deciding whether
+  // they click. This is a cheap 2D silhouette of the same towers — pure SVG, no WebGL,
+  // same data and the same amber→cyan age ramp, so it reads as the city at a glance.
+  if (preview) {
+    const N = 46;                                   // enough to read as a skyline
+    const towers = holders.slice(0, N);
+    const maxH = Math.max(...towers.map(h => h.n * (0.45 + 0.55 * (h.days / maxDays))));
+    const bw = 100 / N;
+    return (
+      <div style={{ maxWidth: MAX_W, margin: "0 auto" }}>
+        <svg viewBox="0 0 100 46" preserveAspectRatio="none" style={{ width: "100%", height: 680, display: "block" }}>
+          <defs>
+            <linearGradient id="skyPrevBg" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#0b1020" /><stop offset="100%" stopColor="#05070f" />
+            </linearGradient>
+          </defs>
+          <rect width="100" height="46" fill="url(#skyPrevBg)" />
+          {towers.map((h, i) => {
+            const score = h.n * (0.45 + 0.55 * (h.days / maxDays));
+            const ht = Math.max(1.5, (score / maxH) * 38);
+            const age = Math.min(1, h.days / maxDays);          // 0 = new, 1 = since mint
+            const c = age > 0.66 ? "#22d3ee" : age > 0.33 ? "#5eead4" : "#f59e0b";
+            return (
+              <g key={h.a}>
+                <rect x={i * bw + bw * 0.16} y={42 - ht} width={bw * 0.68} height={ht} fill={c} fillOpacity={0.85} rx={0.3} />
+                <rect x={i * bw + bw * 0.16} y={42 - ht} width={bw * 0.68} height={Math.min(ht, 0.8)} fill="#f8fafc" fillOpacity={0.5} />
+              </g>
+            );
+          })}
+          <rect y="42" width="100" height="0.25" fill="rgba(255,255,255,0.18)" />
+        </svg>
+      </div>
+    );
+  }
 
   return (
     <div style={{ maxWidth: MAX_W, margin: "0 auto" }}>
