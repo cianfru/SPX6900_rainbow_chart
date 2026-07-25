@@ -20,6 +20,10 @@ const TIERS = [
   { name: "Uncommon", max: 0.40, c: "#22d3ee" },
   { name: "Common", max: 1.01, c: "#64748b" },
 ];
+// Tier colour is for CHROME only — chip fill, borders, glows. Card TEXT is white:
+// Common (#64748b) is a dim slate that vanishes on the dark background, and Common is
+// most of any collection, so tier-coloured text was least readable exactly where it
+// mattered most. The chip keeps its tinted fill and border, so the tier still reads.
 export const tierOf = (rank, total) => TIERS.find(t => rank / total <= t.max) || TIERS.at(-1);
 const fEth = v => (v < 0.1 ? v.toFixed(3) : v.toFixed(2)) + "Ξ";
 
@@ -145,12 +149,12 @@ ${artBlock}
 <rect x="${artX}" y="${artY}" width="${artS}" height="${artS}" rx="18" fill="none" stroke="${tier.c}" stroke-width="3" stroke-opacity="0.75"/>
 <text x="${rightX}" y="${artY + 52}" fill="#f1f5f9" font-size="46" font-weight="800" font-family="sans-serif">AEON #${sale.id}</text>
 <rect x="${rightX}" y="${artY + 76}" width="${Math.min(rightW, 210)}" height="42" rx="10" fill="${tier.c}" fill-opacity="0.16" stroke="${tier.c}" stroke-opacity="0.7"/>
-<text x="${rightX + 18}" y="${artY + 105}" fill="${tier.c}" font-size="24" font-weight="700" font-family="sans-serif">${esc(tier.name)}</text>
+<text x="${rightX + 18}" y="${artY + 105}" fill="#f8fafc" font-size="24" font-weight="700" font-family="sans-serif">${esc(tier.name)}</text>
 <text x="${rightX}" y="${artY + 190}" fill="#7c8a9e" font-size="22" font-family="sans-serif">sold for</text>
 <text x="${rightX}" y="${artY + 254}" fill="#f8fafc" font-size="64" font-weight="800" font-family="sans-serif">${esc(fEth(sale.price))}</text>
 <text x="${rightX}" y="${artY + 306}" fill="#94a3b8" font-size="23" font-family="sans-serif">vs ${esc(fEth(sale.exp))} typical for this rarity</text>
 <text x="${rightX}" y="${artY + 372}" fill="#7c8a9e" font-size="22" font-family="sans-serif">rarity rank</text>
-<text x="${rightX}" y="${artY + 424}" fill="${tier.c}" font-size="46" font-weight="800" font-family="sans-serif">#${sale.rank.toLocaleString()}</text>
+<text x="${rightX}" y="${artY + 424}" fill="#f8fafc" font-size="46" font-weight="800" font-family="sans-serif">#${sale.rank.toLocaleString()}</text>
 <text x="${rightX}" y="${artY + 462}" fill="#7c8a9e" font-size="23" font-family="sans-serif">of ${total.toLocaleString()} · rarer than ${(100 * (1 - (sale.rank - 1) / total)).toFixed(0)}%</text>
 <text x="${P}" y="${artY + artS + 56}" fill="#cbd5e1" font-size="25" font-weight="700" font-family="sans-serif">What makes it rare — rarest traits first</text>
 ${traitRows}
