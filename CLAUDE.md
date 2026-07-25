@@ -487,6 +487,35 @@
     - **Method worth reusing:** render `node scripts/bot/post.mjs --all`, build 4-up contact sheets, then scan the
       PNGs programmatically for ink in the first/last few pixel columns — that catches clipped labels far more
       reliably than eyeballing 74 cards.
+  - **⭐⭐ ROUND 2 — "MORE CHART, LESS WRITING" (owner, 2026-07-25, iterated on `supplyprofit` then rolled to all 74).**
+    Three conventions came out of it. **Any new card must follow them; do not reintroduce what they removed.**
+    - **NO NEON UNDERLAYS.** 28 cards drew a 6–12px blurred copy of each line at low opacity beneath the real one
+      (the old "line-only cards ship with glow + fading fill" recipe). Owner: *"makes the card not very readable"* —
+      and he was right: every peak had a halo bleeding into the zone colours and the line lost its own edges. All
+      line underlays are gone; the crisp line carries ~1.2px more weight instead. **KEEP** marker/dot halos, the
+      multichain donut gloss and the RSI dot bloom — those are the mark itself, not a smear behind one. The FADING
+      AREA FILLS were never the problem and stay. `lineCardSvg`'s `glow: true` flag now just thickens the line, so
+      the ~10 cards that opt in keep the intent. ⚠ Several blur filters were NOT named `*glow*` (`#ug`, `#hgG`,
+      `#cyGlow`…), so grep on the filter NAME misses them — match on `<filter>` defs containing `feGaussianBlur`.
+    - **AXIS VALUES ARE REFERENCE, NOT CONTENT: 22px, regular weight, `#94a3b8`.** They were bold near-white at
+      26–30px, i.e. the same treatment as the hero. Smaller ticks also need a narrower `mL`, which is free plot
+      width — trim each card's margins to what ITS gutters actually need (cards with real right-hand legends —
+      hodlwaves, walletgrowth, floormodel, risklevels — can't give back the same width as a card with an empty one).
+    - **A SUBTITLE ONLY EARNS ITS PLACE WHERE THE HERO IS STILL JARGON.** Cut on 11 cards where the hero already
+      says it in plain words ("44% in profit — most of the float is underwater" doesn't need "How many coins are
+      held above what they cost?" above it). KEPT on `picycle`/`sopr`/`nupl` (hero is a bare number, so the subtitle
+      is the only plain-English gloss — this is the part of the 2026-07-17 plain-language sweep that still holds),
+      `mvrvbtc` (the subtitle IS the card's question), `firesalerally` (it defines the axes), `holdergrowth` (carries
+      the mind-the-scale warning), `multichain` (no hero at all). Also delete in-plot labels that restate a gridline
+      the axis already labels (`supplyprofit`'s "half in profit" vs the 50% tick).
+    - **Net:** `supplyprofit`'s plot went 51% → 60% of the card. **Header layout was NOT changed** — the owner
+      explicitly kept the two bold lines (title 39 / hero 32) over a quieter-kicker-plus-bigger-number variant:
+      *"I want more charts and less writings."* Don't re-litigate the header.
+    - **Layout constraints found the hard way (all three printed on top of each other before they were caught):**
+      the shared headline's descenders reach y≈180, so the generic builder's `mT` cannot go below **186**; the
+      bottom y-tick's descenders reach into the x-tick row unless `mB` ≥ **84**; and anchoring an edge x-tick inward
+      (a fix for 30px labels) becomes HARMFUL at 22px — it merged roadmap's first two years into "20242025", so it
+      was removed. At 22px the ticks clear the y-axis column on their own.
 - **✅ FULL PROJECT AUDIT (Fable-5 review, 2026-07-18) — 3 defects found & FIXED, roster verdict good.**
   Rendered all 60+ cards (zero failures), reviewed copy + visuals. Fixed: (1) **`model` copy hit 292 xLen live**
   (band-label variance; the length test only checked fixed values) → trimmed the template ~12 chars AND the
