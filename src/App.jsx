@@ -25,6 +25,7 @@ import ChartFreshness from "./ChartFreshness.jsx";
 import BandStats from "./BandStats.jsx";
 // Secondary tab charts are lazy-loaded so their code only ships when the tab is opened.
 import ErrorBoundary from "./ErrorBoundary.jsx";
+import BandHistory from "./BandHistory.jsx";
 import { SANS, MONO, MAX_W } from "./chart-ui.jsx";
 const HolderscanDashboard = lazy(() => import("./HolderscanDashboard.jsx"));
 const RiskChart = lazy(() => import("./RiskChart.jsx"));
@@ -145,19 +146,6 @@ const fT = v => {
 // Socials & donations
 const X_URL = "https://x.com/SPX6900Rainbow";
 
-// Example DCA / risk framework, keyed to band index (0 = Fire Sale … 8 = Max Bubble).
-const SCALE_PLAN = [
-  { side: "buy",  action: "Accumulate aggressively", note: "Deploy ~25% of dry powder" },
-  { side: "buy",  action: "Accumulate",              note: "Deploy ~20% of dry powder" },
-  { side: "buy",  action: "Keep accumulating",       note: "Deploy ~15% of dry powder" },
-  { side: "buy",  action: "Light DCA buys",          note: "Deploy ~10% of dry powder" },
-  { side: "hold", action: "Hold — fair value",       note: "Sit tight, no action" },
-  { side: "sell", action: "Start trimming",          note: "Sell ~10% of your stack" },
-  { side: "sell", action: "Take profit",             note: "Sell ~20% of your stack" },
-  { side: "sell", action: "Take profit",             note: "Sell ~35% of your stack" },
-  { side: "sell", action: "De-risk hard",            note: "Sell ~50% of your stack" },
-];
-
 const fD = s => new Date(s).toLocaleDateString("en-US", { month: "short", year: "2-digit" });
 const dateToTs = dateStr => new Date(dateStr).getTime();
 const fW = w => w ? w.dt.toLocaleDateString("en-US", { month: "short", year: "numeric" }) : ">50 yr";
@@ -245,7 +233,6 @@ export default function App() {
   const [hi, setHi] = useState(1); // default 10Y
   const [tg, setTg] = useState(new Set([0, 1, 2, 4])); // includes $6,900 by default
   const [showMilestones, setShowMilestones] = useState(true);
-  const [showDry, setShowDry] = useState(false);
   const [showAbout, setShowAbout] = useState(false);
   const [tab, setTab] = useState("risk");
   // route: "home" = the Rainbow hero (landing) · "gallery" = the Charts grid ·
@@ -677,7 +664,8 @@ export default function App() {
   // lives inside the gallery now, not in a crowded top strip.
   const navPill = (active, c) => ({
     display: "inline-flex", alignItems: "center", gap: 7, whiteSpace: "nowrap", flexShrink: 0, cursor: "pointer",
-    fontFamily: SANS, fontSize: 14, fontWeight: 700, padding: "8px 15px", borderRadius: 9, background: active ? `${c}1f` : "transparent",
+    fontFamily: SANS, fontSize: isMobile ? 13.5 : 14, fontWeight: 700,
+    padding: isMobile ? "8px 10px" : "8px 15px", borderRadius: 9, background: active ? `${c}1f` : "transparent",
     border: `1px solid ${active ? c + "cc" : "transparent"}`, boxShadow: active ? `0 0 14px ${c}55` : "none",
     color: active ? "#f8fafc" : "#94a3b8", "--glow": c,
   });
@@ -738,30 +726,37 @@ export default function App() {
           display: "flex", alignItems: "center", gap: 10,
         }}>
           <div style={{
-            display: "flex", gap: 8, alignItems: "center",
-            flex: 1, justifyContent: "center", flexWrap: "nowrap", padding: "9px 2px",
+            display: "flex", gap: isMobile ? 6 : 8, alignItems: "center",
+            flex: 1, justifyContent: isMobile ? "flex-start" : "center", flexWrap: "nowrap",
+            padding: "9px 2px", overflowX: "auto", scrollbarWidth: "none", WebkitOverflowScrolling: "touch",
           }}>
             <button className="pill" onClick={goHome} title="Rainbow chart (home)" style={navPill(route === "home", "#a78bfa")}>
-              <span style={{ color: "#a78bfa", display: "inline-flex" }}><TabIcon name="rainbow" /></span>
+              {!isMobile && <span style={{ color: "#a78bfa", display: "inline-flex" }}><TabIcon name="rainbow" /></span>}
               <span>Rainbow</span>
             </button>
             <button className="pill" onClick={openGallery} title="Browse all charts" style={navPill(route === "gallery" || (route === "chart" && CHART_META[tab]?.group !== "Project Aeon"), "#22d3ee")}>
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, color: "#22d3ee" }}>
+              {!isMobile && (
+<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, color: "#22d3ee" }}>
                 <rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" />
                 <rect x="3" y="14" width="7" height="7" rx="1" /><rect x="14" y="14" width="7" height="7" rx="1" />
               </svg>
+)}
               <span>Charts</span>
             </button>
             <button className="pill" onClick={openAeon} title="Project Aeon — NFT analytics" style={navPill(route === "aeon", "#f472b6")}>
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, color: "#f472b6" }}>
+              {!isMobile && (
+<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, color: "#f472b6" }}>
                 <path d="M12 2 4 7v10l8 5 8-5V7z" /><path d="M12 22V12" /><path d="M4 7l8 5 8-5" />
               </svg>
-              <span>Project Aeon</span>
+)}
+              <span>{isMobile ? "Aeon" : "Project Aeon"}</span>
             </button>
             <button className="pill" onClick={openMethods} title="How every number on this site is computed" style={navPill(route === "methods", "#94a3b8")}>
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, color: "#94a3b8" }}>
+              {!isMobile && (
+<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, color: "#94a3b8" }}>
                 <path d="M4 19.5V5a2 2 0 0 1 2-2h13v18H6a2 2 0 0 1-2-1.5z" /><path d="M8 7h8" /><path d="M8 11h5" />
               </svg>
+)}
               <span>Methods</span>
             </button>
           </div>
@@ -1213,75 +1208,7 @@ export default function App() {
         </div>
       )}
 
-      {/* Scale-in / scale-out plan */}
-      <div style={{ maxWidth: MAX_W, margin: "32px auto 0" }}>
-        <div style={{
-          fontFamily: SANS, fontSize: 14, fontWeight: 700, color: "#cbd5e1", marginBottom: 4,
-          letterSpacing: 1.2, textTransform: "uppercase",
-        }}>
-          Scale-In / Scale-Out Plan
-        </div>
-        <div style={{ fontFamily: SANS, fontSize: 12.5, color: "#7c8a9e", marginBottom: 12, display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8 }}>
-          <span>Example risk framework — buy more when it&apos;s historically cheap, take profit when it&apos;s hot. Not financial advice.</span>
-          <button onClick={() => setShowDry(v => !v)} style={{
-            fontFamily: SANS, fontSize: 12, fontWeight: 600, color: "#93c5fd", cursor: "pointer",
-            background: "rgba(59,130,246,0.10)", border: "1px solid rgba(59,130,246,0.3)", borderRadius: 6, padding: "2px 9px",
-          }}>
-            {showDry ? "Hide" : "What's “dry powder”?"}
-          </button>
-        </div>
-        {showDry && (
-          <div style={{
-            ...glass("59, 130, 246", 0.08), borderRadius: 10, padding: "11px 15px", marginBottom: 12,
-            fontFamily: SANS, fontSize: 13, color: "#cbd5e1", lineHeight: 1.6,
-          }}>
-            <strong style={{ color: "#f1f5f9" }}>Dry powder</strong> = the cash or stablecoins you&apos;ve set aside specifically to buy dips. So &ldquo;deploy ~25% of dry powder&rdquo; means putting a quarter of <em>that reserve</em> to work — not a quarter of everything you own.
-          </div>
-        )}
-        <div style={{ ...glass("255, 255, 255", 0.04), borderRadius: 12, padding: isMobile ? "6px 8px" : "8px 12px" }}>
-          {BAND_LABELS.map((_, i) => i).reverse().map((i, pos, arr) => {
-            const bl = BAND_LABELS[i];
-            const p = SCALE_PLAN[i];
-            const isNow = i === bIdx;
-            const sc = p.side === "buy" ? "#4ade80" : p.side === "sell" ? "#f87171" : "#94a3b8";
-            const sideLabel = p.side === "buy" ? "BUY" : p.side === "sell" ? "SELL" : "HOLD";
-            return (
-              <div key={i} style={{
-                display: "flex", alignItems: "center", gap: isMobile ? 10 : 16,
-                padding: isMobile ? "10px 8px" : "11px 12px",
-                borderRadius: 9,
-                background: isNow ? `${bl.c}24` : "transparent",
-                border: `1px solid ${isNow ? bl.c + "80" : "transparent"}`,
-                borderBottom: isNow ? `1px solid ${bl.c}80` : (pos < arr.length - 1 ? "1px solid rgba(255,255,255,0.05)" : "1px solid transparent"),
-              }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 9, minWidth: isMobile ? 92 : 150, flexShrink: 0 }}>
-                  <span style={{
-                    width: 11, height: 11, borderRadius: 3, background: bl.c, flexShrink: 0,
-                    boxShadow: isNow ? `0 0 8px ${bl.c}` : "none",
-                  }} />
-                  <span style={{ fontFamily: SANS, fontSize: isMobile ? 13 : 14, fontWeight: isNow ? 700 : 600, color: isNow ? "#f1f5f9" : "#cbd5e1" }}>
-                    {bl.l}
-                  </span>
-                </div>
-                <div style={{ flex: 1, fontFamily: SANS, fontSize: isMobile ? 12.5 : 14, color: "#cbd5e1", minWidth: 0 }}>
-                  {p.action}
-                  <span style={{ display: isMobile ? "block" : "inline", color: "#7c8a9e", fontSize: 12.5, marginLeft: isMobile ? 0 : 8 }}>
-                    {p.note}
-                  </span>
-                </div>
-                <span style={{
-                  fontFamily: SANS, fontSize: 12, fontWeight: 700, letterSpacing: 0.6, whiteSpace: "nowrap",
-                  color: sc, background: `${sc}1f`, border: `1px solid ${sc}55`,
-                  padding: "3px 9px", borderRadius: 6, flexShrink: 0,
-                  boxShadow: isNow ? `0 0 10px ${sc}55` : "none",
-                }}>
-                  {isNow ? `${sideLabel} · NOW` : sideLabel}
-                </span>
-              </div>
-            );
-          })}
-        </div>
-      </div>
+      <BandHistory m={m} series={priceData} isMobile={isMobile} />
 
       {/* Model details footer */}
       <div style={{ maxWidth: MAX_W, margin: "24px auto 0", display: "flex", gap: 10, flexWrap: "wrap" }}>
