@@ -8,10 +8,10 @@
 //
 //   node scripts/build-aeon-dune-refresh.mjs [--only=transfers|sales]
 //
-// CADENCE: transfers twice weekly (Mon+Thu), sales weekly (Mon). Transfers drive holder
-// age / concentration / holder flow, which nothing free covers. The sales tail is already
-// carried free by the Alchemy bank (build-aeon-live-bank.mjs), so its pull only has to keep
-// the deep full-history reconstruction current.
+// CADENCE: DAILY (both). Measured 2026-07-25 — transfers 0.163 credits/execution, sales
+// 0.378, so a full refresh is 0.54 and daily costs ~16/month against a 2,500 quota. An
+// earlier version throttled this to Mon/Thu on a guess of ~50 credits per pull, which was
+// wrong by two orders of magnitude. Do not re-throttle without measuring first.
 //
 // ENV: DUNE_API_KEY (repo secret). Optional repo vars AEON_TRANSFERS_QUERY_ID /
 // AEON_SALES_QUERY_ID — saved queries whose SQL this PATCHes each run; if unset it
@@ -58,26 +58,38 @@ async function runToCsv(id) {
     if (state === "QUERY_STATE_FAILED" || state === "QUERY_STATE_CANCELLED") throw new Error(`execution ${state}: ${JSON.stringify(j?.error || {})}`);
   }
   if (state !== "QUERY_STATE_COMPLETED") throw new Error(`timed out (last state ${state})`);
+  // The credit cost is NOT on /status — its result_metadata carries only row/byte counts.
+  // It lives on the RESULTS endpoint, so ask for one row purely to read the metadata. Cheap
+  // (limit=1), and it turns the monthly budget from an estimate into a measurement.
+  let credits = null;
+  try {
+    const m = await fetch(`${BASE}/execution/${eid}/results?limit=1`, { headers: H() });
+    if (m.ok) {
+      const j = await m.json();
+      const md = j?.result?.metadata || {};
+      credits = md.execution_cost_credits ?? md.executionCostCredits ?? null;
+      if (credits == null) console.log(`    (no credit field on results; keys: ${Object.keys(md).join(", ")})`);
+    }
+  } catch { /* cost is nice-to-have; never fail the pull over it */ }
   const res = await fetch(`${BASE}/execution/${eid}/results/csv`, { headers: { "X-Dune-API-Key": process.env.DUNE_API_KEY } });
   if (!res.ok) throw new Error(`results/csv ${res.status}: ${await res.text()}`);
-  return { csv: await res.text(), meta };
+  return { csv: await res.text(), meta, credits };
 }
 
 async function pull(sqlPath, outPath, name, idEnv) {
   const sql = readFileSync(sqlPath, "utf8");
   const id = await ensureQuery(sql, name, idEnv);
-  const { csv, meta } = await runToCsv(id);
+  const { csv, meta, credits } = await runToCsv(id);
   const rows = csv.split(/\r?\n/).filter(Boolean).length - 1;
   if (rows < 10) throw new Error(`only ${rows} rows back — refusing to overwrite ${outPath}`);
   writeFileSync(outPath, csv.endsWith("\n") ? csv : csv + "\n");
   const dp = meta?.datapoint_count ? ` · ${meta.datapoint_count.toLocaleString()} datapoints` : "";
-  // Surface the CREDIT cost so the monthly budget is observable rather than estimated.
-  // Dune has moved this field around between API versions, so probe the likely names and
-  // dump the metadata keys when none match — the next run then tells us what to read.
-  const cost = meta?.execution_cost_credits ?? meta?.credits_used ?? meta?.total_credits ?? null;
+  // Credit cost comes from runToCsv (the RESULTS endpoint, not /status). Measured
+  // 2026-07-25: transfers 0.163, sales 0.378 — a full refresh is ~0.54 credits, so the
+  // daily pull is ~16/month against a 2,500 quota. Logged every run so the budget stays a
+  // measurement; see the credit-discipline note in CLAUDE.md for why estimating is banned.
   console.log(`  ${outPath}: ${rows.toLocaleString()} rows${dp}`
-    + (cost != null ? ` · ${cost} credits` : ""));
-  if (cost == null && meta) console.log(`    (no credit field; metadata keys: ${Object.keys(meta).join(", ")})`);
+    + (credits != null ? ` · ${credits} credits` : ""));
   return rows;
 }
 
@@ -92,7 +104,7 @@ async function main() {
   console.log(`aeon-dune: refreshing ${only || "transfers + sales"} from Dune…`);
   if (want("transfers")) await pull("dune/aeon_transfers.sql", "dune/out/aeon_transfers.csv", "Project AEON — transfers (auto)", "AEON_TRANSFERS_QUERY_ID");
   if (want("sales")) await pull("dune/aeon_sales.sql", "dune/out/aeon_sales.csv", "Project AEON — sales (auto)", "AEON_SALES_QUERY_ID");
-  console.log("aeon-dune: done · exact credit cost is in the Dune dashboard (per-execution).");
+  console.log("aeon-dune: done.");
 }
 
 main().catch(e => {
