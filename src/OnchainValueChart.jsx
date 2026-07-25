@@ -3,7 +3,7 @@ import {
   ResponsiveContainer, ComposedChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, ReferenceLine, ReferenceArea,
 } from "recharts";
 import { SUPPLY } from "./data.js";
-import { loadHistory } from "./history-data.js";
+import { loadHistory, loadPriceHistory } from "./history-data.js";
 import { mvrvHistory } from "./mvrv-data.js";
 import ChartZoomHint from "./ChartZoomHint.jsx";
 import { SANS, MONO, MAX_W, Metric, TipBox, ZoomBar, Explain } from "./chart-ui.jsx";
@@ -31,22 +31,27 @@ function Tip({ active, payload, mode }) {
 // realized price (avg cost basis), MVRV (price ÷ cost), and its Z-score.
 export default function OnchainValueChart({ isMobile, preview = false }) {
   const [history, setHistory] = useState(null);
+  // The dense CI-cleaned price series. Without it the numerator comes from the bundled
+  // CoinGecko export, which is mis-levelled through the 2026 drawdown and draws an 87%
+  // spike and a vertical cliff into March.
+  const [px, setPx] = useState(null);
   useEffect(() => {
     let cancelled = false;
     loadHistory().then(d => { if (!cancelled) setHistory(d); });
+    loadPriceHistory().then(d => { if (!cancelled) setPx(d); });
     return () => { cancelled = true; };
   }, []);
 
   const all = useMemo(() => {
     if (!history) return null;
-    const rows = mvrvHistory(history).map(r => ({ ts: r.ts, price: r.p, be: r.be, f08: r.be * 0.8, f05: r.be * 0.5, mvrv: r.p / r.be, mcap: r.p * SUPPLY, rcap: r.be * SUPPLY }));
+    const rows = mvrvHistory(history, px).map(r => ({ ts: r.ts, price: r.p, be: r.be, f08: r.be * 0.8, f05: r.be * 0.5, mvrv: r.p / r.be, mcap: r.p * SUPPLY, rcap: r.be * SUPPLY }));
     if (rows.length) {
       const mc = rows.map(r => r.mcap), mean = mc.reduce((s, x) => s + x, 0) / mc.length;
       const std = Math.sqrt(mc.reduce((s, x) => s + (x - mean) ** 2, 0) / mc.length) || 1;
       for (const r of rows) r.z = (r.mcap - r.rcap) / std;
     }
     return rows;
-  }, [history]);
+  }, [history, px]);
 
   const [mode, setMode] = useState("realized");
   const { zoom, setZoom, selL, selR, onDown, onMove, onUp, zoomed } = useDragZoom(

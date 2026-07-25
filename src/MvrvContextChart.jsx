@@ -2,7 +2,7 @@ import { useMemo, useState, useEffect } from "react";
 import {
   ResponsiveContainer, ComposedChart, Line, Scatter, XAxis, YAxis, Tooltip, CartesianGrid, ReferenceLine, ReferenceArea,
 } from "recharts";
-import { loadHistory, loadBtcMvrv } from "./history-data.js";
+import { loadHistory, loadBtcMvrv, loadPriceHistory } from "./history-data.js";
 import { mvrvHistory } from "./mvrv-data.js";
 import ChartZoomHint from "./ChartZoomHint.jsx";
 import { SANS, MONO, MAX_W, Metric, TipBox, ZoomBar, Explain } from "./chart-ui.jsx";
@@ -44,10 +44,12 @@ function Tip({ active, payload }) {
 export default function MvrvContextChart({ isMobile, preview = false }) {
   const [btc, setBtc] = useState(null);
   const [spxHist, setSpxHist] = useState(null);
+  const [px, setPx] = useState(null);   // CI-cleaned dense price — see mvrv-data.js
   useEffect(() => {
     let cancelled = false;
     loadBtcMvrv().then(d => { if (!cancelled) setBtc(d?.points || []); });
     loadHistory().then(d => { if (!cancelled) setSpxHist(d); });
+    loadPriceHistory().then(d => { if (!cancelled) setPx(d); });
     return () => { cancelled = true; };
   }, []);
 
@@ -76,8 +78,8 @@ export default function MvrvContextChart({ isMobile, preview = false }) {
   // extending the tail — drawn on BTC's timeline at its real dates (recent/right region).
   const spxSeries = useMemo(() => {
     if (!spxHist) return [];
-    return mvrvHistory(spxHist).map(r => ({ ts: r.ts, mvrv: r.p / r.be }));
-  }, [spxHist]);
+    return mvrvHistory(spxHist, px).map(r => ({ ts: r.ts, mvrv: r.p / r.be }));
+  }, [spxHist, px]);
   const spx = spxSeries.length ? { mvrv: spxSeries.at(-1).mvrv, ts: spxSeries.at(-1).ts } : null;
 
   // "See the similarities": the Bitcoin moments when BTC's MVRV was within ±band of

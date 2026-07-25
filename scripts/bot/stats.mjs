@@ -274,7 +274,13 @@ function loadHistoryRaw() {
 function loadMvrvSeries() {
   let hist = [];
   try { hist = JSON.parse(readFileSync(new URL("../../public/history.json", import.meta.url), "utf8")); } catch { /* bundle-only */ }
-  return mvrvHistory(hist).map(r => ({ ts: r.ts, price: r.p, be: r.be, mvrv: r.p / r.be }));
+  // Pass the CI-cleaned dense price series. Without it MVRV's numerator comes from the
+  // bundled CoinGecko export, whose 2026 drawdown prints are mis-levelled — March reads
+  // 87% high — and that lands in mvrvtrend, the MVRV-vs-Bitcoin card AND the valuation
+  // composite's MVRV lens. See the warning in src/mvrv-data.js.
+  let px = [];
+  try { px = JSON.parse(readFileSync(new URL("../../public/price-history.json", import.meta.url), "utf8")); } catch { /* bundle-only */ }
+  return mvrvHistory(hist, px).map(r => ({ ts: r.ts, price: r.p, be: r.be, mvrv: r.p / r.be }));
 }
 
 // Bitcoin's ~decade of MVRV (banked monthly by the btc-mvrv workflow) — the CONTEXT

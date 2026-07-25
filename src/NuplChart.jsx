@@ -2,7 +2,7 @@ import { useMemo, useState, useEffect } from "react";
 import {
   ResponsiveContainer, ComposedChart, Area, XAxis, YAxis, Tooltip, CartesianGrid, ReferenceLine, ReferenceArea,
 } from "recharts";
-import { loadHistory } from "./history-data.js";
+import { loadHistory, loadPriceHistory } from "./history-data.js";
 import { mvrvHistory } from "./mvrv-data.js";
 import ChartZoomHint from "./ChartZoomHint.jsx";
 import { SANS, MONO, MAX_W, Metric, TipBox, ZoomBar, Explain } from "./chart-ui.jsx";
@@ -30,12 +30,19 @@ function Tip({ active, payload }) {
 // sentiment oscillator. A valuation position, not a signal.
 export default function NuplChart({ isMobile, preview = false }) {
   const [history, setHistory] = useState(null);
-  useEffect(() => { let off = false; loadHistory().then(d => { if (!off) setHistory(d); }); return () => { off = true; }; }, []);
+  // NUPL is 1 − 1/MVRV, so a bad price in the MVRV numerator lands here too.
+  const [px, setPx] = useState(null);
+  useEffect(() => {
+    let off = false;
+    loadHistory().then(d => { if (!off) setHistory(d); });
+    loadPriceHistory().then(d => { if (!off) setPx(d); });
+    return () => { off = true; };
+  }, []);
 
   const all = useMemo(() => {
     if (!history) return null;
-    return mvrvHistory(history).map(r => ({ ts: r.ts, nupl: 1 - 1 / (r.p / r.be) })).filter(r => Number.isFinite(r.ts) && Number.isFinite(r.nupl)).sort((a, b) => a.ts - b.ts);
-  }, [history]);
+    return mvrvHistory(history, px).map(r => ({ ts: r.ts, nupl: 1 - 1 / (r.p / r.be) })).filter(r => Number.isFinite(r.ts) && Number.isFinite(r.nupl)).sort((a, b) => a.ts - b.ts);
+  }, [history, px]);
 
   const { zoom, setZoom, selL, selR, onDown, onMove, onUp, zoomed } = useDragZoom(
     (a, b) => all && all.filter(r => r.ts >= a && r.ts <= b).length >= 2);
