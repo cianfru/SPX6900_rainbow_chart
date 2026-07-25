@@ -461,6 +461,32 @@
   8 on-chain cards toward it (edge-bright gradient zones — vivid at the outer extreme, fading toward the middle
   so the line stays clean; vivid #fb7185/#38bdf8; ~26px near-white axis labels weight 600; every label clear of
   the data lines). `supply-profit-card.mjs` is the template of that recipe.
+  - **✅✅ ROSTER-WIDE VISUAL PASS 2026-07-25 (owner: "improve the look of all the cards … apply style that
+    increases quality/design").** Rendered all 74, reviewed them on contact sheets. The finding was that the roster
+    had split into **two header systems** roughly 50/50 — the generic builder's small wordmark + date stamp
+    (`chromeSvg` in charts.mjs, ~35 cards) vs a big folded-in ALL-CAPS headline (the hand-built on-chain cards,
+    ~38). Unifying the headers would have meant rewriting 40 layouts, and the bold-headline style IS the north
+    star, so the fix was the opposite: give every card **ONE shared signature** and leave each headline alone.
+    - **⭐ `scripts/bot/chrome.mjs` is now the live brand helper** (it used to be dead code proposing unembedded
+      fonts). `brandStripe(H)` = a rainbow stripe down the left edge, painted in the rainbow chart's OWN band
+      colours (`BAND_LABELS` order, red top → indigo bottom, minus the near-black Max Bubble step). It emits its
+      own `<defs>`, so adding it to a card is ONE line right after the background rects — no gradient wiring.
+      It survives thumbnailing, costs no layout, and matches the Aeon cards' teal→violet stripe so the two tracks
+      read as siblings. **Any new card must include it.**
+    - **Y-AXIS LABELS WERE CLIPPING OFF THE LEFT EDGE on ~15 cards** (floormodel printed "$0.0030" as ".0030";
+      btcage's "1,000×" lost its leading 1). Two fixes: the shared builder's `mL` went 120→136 AND
+      **`fitAxisFont`** now measures the widest tick label and shrinks the type just enough to clear the stripe
+      (so a card can't regress by adding a wider label); the bespoke cards got individually-measured `mL` bumps.
+      `xAnchor` also anchors an edge x-tick inward so it can't print through the y-axis column (sp500ytd was
+      drawing "2026" straight over "-60%").
+    - Also: right-gutter legends clipping (`risklevels` "$4.64"→"$4.6", `walletgrowth` "49.6k"→"49.6l",
+      `hodlwaves` "24%") → `mR` bumps; overflowing subtitles trimmed (`lthsth`, `freefloat`); a two-text collision
+      fixed (`underwater` right-hand note folded into the subtitle); axis tick ink lifted #64748b→#8b98ad (the old
+      slate was barely legible on #05050e); generic title #e2e8f0/700 → #f1f5f9/800; the 26px footer dropped to
+      21px so it stops competing with the x-axis labels.
+    - **Method worth reusing:** render `node scripts/bot/post.mjs --all`, build 4-up contact sheets, then scan the
+      PNGs programmatically for ink in the first/last few pixel columns — that catches clipped labels far more
+      reliably than eyeballing 74 cards.
 - **✅ FULL PROJECT AUDIT (Fable-5 review, 2026-07-18) — 3 defects found & FIXED, roster verdict good.**
   Rendered all 60+ cards (zero failures), reviewed copy + visuals. Fixed: (1) **`model` copy hit 292 xLen live**
   (band-label variance; the length test only checked fixed values) → trimmed the template ~12 chars AND the

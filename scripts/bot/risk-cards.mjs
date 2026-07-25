@@ -9,6 +9,7 @@ import { DEFAULT_RAW } from "../../src/data.js";
 import * as M from "../../src/models.js";
 import { FONT } from "./font.mjs";
 import { esc } from "./svg-util.mjs";
+import { brandStripe } from "./chrome.mjs";
 
 const fP = p => (p >= 1 ? "$" + p.toFixed(2) : "$" + p.toFixed(p < 0.001 ? 5 : p < 0.01 ? 4 : p < 0.1 ? 3 : 2));
 const png = (svg, w) => new Resvg(svg, { fitTo: { mode: "width", value: w }, font: FONT }).render().asPng();
@@ -36,7 +37,8 @@ function auroraBg(W, H, glow) {
 </defs>
 <rect width="${W}" height="${H}" fill="url(#auViolet)"/>
 <rect width="${W}" height="${H}" fill="url(#auWarm)"/>
-<rect width="${W}" height="${H}" fill="url(#auTop)"/>`;
+<rect width="${W}" height="${H}" fill="url(#auTop)"/>
+${brandStripe(H)}`;
 }
 
 // log-residual range used to normalise risk to 0..1 (same basis as buildRiskSeries)
@@ -73,7 +75,7 @@ export function riskColorSvg(price, dateStr = new Date().toISOString().slice(0, 
   const curZ = (curRawZ - mean) / std;
   const dc = colorOf(curRawZ);
 
-  const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 104, mR = 40, mT = 76, mB = 64, pW = W - mL - mR, pH = H - mT - mB;
+  const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 124, mR = 40, mT = 76, mB = 64, pW = W - mL - mR, pH = H - mT - mB;
   const xMin = pts[0].ts, xMax = pts.at(-1).ts;
   let yMin = Infinity, yMax = -Infinity;
   for (const r of pts) { if (r.price < yMin) yMin = r.price; if (r.price > yMax) yMax = r.price; }
@@ -135,7 +137,7 @@ export function riskLevelsSvg(price, dateStr = new Date().toISOString().slice(0,
   const RAW = (opts.series && opts.series.length) ? opts.series : DEFAULT_RAW;
   const recent = RAW.slice(-60).map(r => ({ ts: new Date(r.date).getTime(), price: r.price }));
 
-  const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 104, mR = 168, mT = 76, mB = 68, pW = W - mL - mR, pH = H - mT - mB;
+  const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 124, mR = 200, mT = 76, mB = 68, pW = W - mL - mR, pH = H - mT - mB;
   const xMin = recent[0].ts, xMax = recent.at(-1).ts;
   // Anchor the y-axis to the LEVELS so all the risk bands fill the FULL card height
   // (the point of the card) instead of bunching at the top; expand only if the
@@ -205,7 +207,7 @@ export function riskHeatSvg(price, dateStr = new Date().toISOString().slice(0, 1
   const colN = i => 0.5 + 0.5 * Math.max(-1, Math.min(1, ext[i] / maxAbs));
   const fRatio = r => (r >= 10 ? r.toFixed(0) : r.toFixed(r < 1 ? 2 : 1)) + "×";
 
-  const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 104, mR = 96, mT = 76, mB = 64;
+  const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 124, mR = 96, mT = 76, mB = 64;
   const innerTop = mT, innerBot = H - mB, innerH = innerBot - innerTop;
   // DISPLAY a recent window (short-term signal; a 3-yr log view buries the current
   // read under the launch era). Default ~18 months; opts.windowDays overrides.

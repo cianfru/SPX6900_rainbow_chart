@@ -9,6 +9,7 @@ import { Resvg } from "@resvg/resvg-js";
 import { FONT } from "./font.mjs";
 import { esc } from "./svg-util.mjs";
 import { BTC_HODL } from "../../src/btc-hodl-waves.js";
+import { brandStripe } from "./chrome.mjs";
 
 const png = (svg, w) => new Resvg(svg, { fitTo: { mode: "width", value: w }, font: FONT }).render().asPng();
 const YR = 365.25 * 86400000;
@@ -86,6 +87,7 @@ export function hodlCompareSvg(stats, opts = {}) {
   return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
 <defs><linearGradient id="hcbg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#0b0b16"/><stop offset="100%" stop-color="#05050e"/></linearGradient></defs>
 <rect width="${W}" height="${H}" fill="url(#hcbg)"/>
+${brandStripe(H)}
 <text x="60" y="58" fill="#f8fafc" font-size="35" font-weight="800" font-family="sans-serif" letter-spacing="1">HODL WAVES — SPX6900 vs BITCOIN, SAME AGE</text>
 ${panels}${xax}${legend}
 <text x="60" y="${H - 16}" fill="#8592a6" font-size="17" font-family="sans-serif">${esc("spx6900rainbow.xyz · not financial advice · supply by holding age, years since launch · on-chain, reproducible")}</text>

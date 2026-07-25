@@ -10,6 +10,7 @@ import { DEFAULT_RAW } from "../../src/data.js";
 import { btcCycleProjection, BTC_CYCLE } from "../../src/btc-cycle.js";
 import { logoMark } from "./logos.mjs";
 import { FONT } from "./font.mjs";
+import { brandStripe } from "./chrome.mjs";
 
 const png = (svg, w) => new Resvg(svg, { fitTo: { mode: "width", value: w }, font: FONT }).render().asPng();
 const fMon = ts => new Date(ts).toLocaleDateString("en-US", { month: "short", year: "2-digit" });
@@ -31,7 +32,7 @@ export function cycleSyncSvg(price, dateStr = new Date().toISOString().slice(0, 
   // coin sits on the live dot at the end of the green line, not weeks behind it.
   const nowTs = spx.at(-1).ts, nowPrice = spx.at(-1).price;
 
-  const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 104, mR = 92, mT = 92, mB = 70, pW = W - mL - mR, pH = H - mT - mB;
+  const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 124, mR = 92, mT = 92, mB = 70, pW = W - mL - mR, pH = H - mT - mB;
   const xMin = SPX0, xMax = c.histFwd.at(-1)?.[0] ?? anchorTs;
   const x = t => mL + ((t - xMin) / ((xMax - xMin) || 1)) * pW;
 
@@ -108,6 +109,7 @@ export function cycleSyncSvg(price, dateStr = new Date().toISOString().slice(0, 
 <rect width="${W}" height="${H}" fill="#05050e"/>
 <rect width="${W}" height="${H}" fill="url(#cyG)"/>
 <rect width="${W}" height="${H}" fill="url(#cyTop)"/>
+${brandStripe(H)}
 ${grid}${guides}
 <polygon points="${spxArea}" fill="url(#cySpxFill)"/>
 <polyline points="${btcSolid}" fill="none" stroke="#f7931a" stroke-width="9" stroke-opacity="0.18" filter="url(#cyGlow)"/>
@@ -149,7 +151,7 @@ export function cycleClockSvg(price, dateStr = new Date().toISOString().slice(0,
   const hist = src.map(r => ({ ts: new Date(r.date).getTime(), price: r.price })).filter(p => p.ts <= nowTs).sort((a, b) => a.ts - b.ts);
   if (!hist.length || hist.at(-1).ts < nowTs) hist.push({ ts: nowTs, price });
 
-  const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 104, mR = 96, mT = 96, mB = 150;
+  const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 124, mR = 96, mT = 96, mB = 150;
   const plotBot = H - mB, pW = W - mL - mR, pH = plotBot - mT;
   const xMin = hist[0].ts, xMax = c.projPts.at(-1)[0];
   const x = t => mL + ((t - xMin) / ((xMax - xMin) || 1)) * pW;
@@ -219,6 +221,7 @@ export function cycleClockSvg(price, dateStr = new Date().toISOString().slice(0,
 </defs>
 <rect width="${W}" height="${H}" fill="#05050e"/>
 <rect width="${W}" height="${H}" fill="url(#ccTop)"/>
+${brandStripe(H)}
 ${grid}${tgt}${xlab}
 ${cone}
 <polyline points="${projLine}" fill="none" stroke="#f7931a" stroke-width="9" stroke-opacity="0.18" filter="url(#ccGlow)"/>

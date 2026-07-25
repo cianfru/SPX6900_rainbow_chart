@@ -8,6 +8,7 @@
 import { Resvg } from "@resvg/resvg-js";
 import { FONT } from "./font.mjs";
 import { esc } from "./svg-util.mjs";
+import { brandStripe } from "./chrome.mjs";
 
 const png = (svg, w) => new Resvg(svg, { fitTo: { mode: "width", value: w }, font: FONT }).render().asPng();
 const GRN = "#34d399", RED = "#fb7185";
@@ -28,7 +29,7 @@ export function urpdSvg(stats, opts = {}) {
   // biggest wall
   let wall = b[0]; for (const x of b) if (x.pct > wall.pct) wall = x;
 
-  const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 80, mR = 56, mT = 150, mB = 96, pW = W - mL - mR, pH = H - mT - mB;
+  const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 102, mR = 56, mT = 150, mB = 96, pW = W - mL - mR, pH = H - mT - mB;
   const lo = Math.log(b[0].lo), hi = Math.log(b.at(-1).hi);
   const x = p => mL + ((Math.log(p) - lo) / (hi - lo || 1)) * pW;
   const maxPct = Math.max(...b.map(z => z.pct)) || 1;
@@ -65,6 +66,7 @@ export function urpdSvg(stats, opts = {}) {
 <linearGradient id="upR" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="${RED}" stop-opacity="0.95"/><stop offset="100%" stop-color="${RED}" stop-opacity="0.4"/></linearGradient>
 </defs>
 <rect width="${W}" height="${H}" fill="url(#upbg)"/>
+${brandStripe(H)}
 <text x="60" y="58" fill="#f8fafc" font-size="39" font-weight="800" font-family="sans-serif" letter-spacing="1">SPX6900 — COST BASIS DISTRIBUTION</text>
 <text x="60" y="92" fill="#aab6c8" font-size="22" font-family="sans-serif">Where every held coin was bought — green in profit, red underwater. Where are the bags?</text>
 <text x="60" y="130" fill="#e2e8f0" font-size="30" font-weight="800" font-family="sans-serif"><tspan fill="${GRN}">${inProfit.toFixed(0)}% in profit</tspan> · biggest wall ${fp(wall.lo)}–${fp(wall.hi)} (${wall.pct.toFixed(0)}%)</text>

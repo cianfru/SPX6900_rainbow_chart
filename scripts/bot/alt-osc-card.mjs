@@ -8,6 +8,7 @@ import { Resvg } from "@resvg/resvg-js";
 import { FONT } from "./font.mjs";
 import { esc } from "./svg-util.mjs";
 import { buildAltRainbow } from "../../src/alt-rainbow.js";
+import { brandStripe } from "./chrome.mjs";
 
 const png = (svg, w) => new Resvg(svg, { fitTo: { mode: "width", value: w }, font: FONT }).render().asPng();
 const RICH = "#f87171", CHEAP = "#38bdf8", MID = "#cbd5e1";
@@ -65,6 +66,7 @@ export function altOscSvg(stats, opts = {}) {
 <filter id="aoglow" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="4"/></filter>
 </defs>
 <rect width="${W}" height="${H}" fill="url(#aobg)"/>
+${brandStripe(H)}
 <text x="60" y="56" fill="#e2e8f0" font-size="35" font-weight="800" font-family="sans-serif" letter-spacing="1">SPX6900 vs THE ALT MARKET</text>
 <text x="60" y="90" fill="#94a3b8" font-size="21" font-family="sans-serif">Is SPX running hot or cheap vs every coin but BTC &amp; ETH? Above 0 = hot.</text>
 <text x="60" y="130" fill="${zoneC}" font-size="27" font-weight="800" font-family="sans-serif">${esc("rich or cheap vs the alt sector — now " + zone)}</text>

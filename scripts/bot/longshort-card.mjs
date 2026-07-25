@@ -5,6 +5,7 @@
 // overlaid. On-chain and unmanipulable — SPX's CEX futures geo-block our collection.
 import { Resvg } from "@resvg/resvg-js";
 import { FONT } from "./font.mjs";
+import { brandStripe } from "./chrome.mjs";
 
 const png = (svg, w) => new Resvg(svg, { fitTo: { mode: "width", value: w }, font: FONT }).render().asPng();
 const fPct = v => `${v >= 0 ? "+" : ""}${Math.round(v)}%`;
@@ -77,6 +78,7 @@ export function longShortSvg(stats, opts = {}) {
 <rect width="${W}" height="${H}" fill="#05050e"/>
 <radialGradient id="lsV" cx="50%" cy="0%" r="90%"><stop offset="0%" stop-color="${dc}" stop-opacity="0.14"/><stop offset="60%" stop-color="${dc}" stop-opacity="0"/></radialGradient>
 <rect width="${W}" height="${H}" fill="url(#lsV)"/>
+${brandStripe(H)}
 ${grid}
 ${bars}${pivot}
 <polyline points="${priceLine}" fill="none" stroke="${PRICE}" stroke-width="9" stroke-opacity="0.16" filter="url(#lsGlow)"/>

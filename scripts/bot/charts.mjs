@@ -44,12 +44,36 @@ import { renderSoprCard } from "./sopr-card.mjs";
 import { logoMark } from "./logos.mjs";
 import { FONT } from "./font.mjs";
 import { esc, monotonePath } from "./svg-util.mjs";
+import { brandStripe } from "./chrome.mjs";
 
-const W = 1200, H = 800, mL = 120, mR = 48, mT = 188, mB = 76; // landscape card is 3:2 (mL gives room for the bigger axis labels)
+// Landscape card is 3:2. mL has to clear the WIDEST y-axis label at 30px — "1,000×" and
+// "+1000%" both run ~100px, and at the old 120 the leading digit was clipped off the left
+// edge of the card (visible on btcage/ethage/chainrace).
+const W = 1200, H = 800, mL = 136, mR = 48, mT = 188, mB = 76;
 const pW = W - mL - mR, pH = H - mT - mB;
 // Per-card canvas geometry. Defaults to the 3:2 landscape; callers (e.g. the OG
 // link-unfurl endpoint) can pass {W,H} to render the same card at another size.
 const geom = (o = {}) => { const DW = o.W ?? W, DH = o.H ?? H; return { DW, DH, PW: DW - mL - mR, PH: DH - mT - mB }; };
+
+// ── y-axis label fitting ─────────────────────────────────────────────────────
+// The y labels are right-anchored at mL-12, so a wide one ("$0.0030", "+1500%",
+// "1,000×") ran off the left edge of the card and lost its leading character. Rather
+// than widen mL for the worst case on every chart, measure the widest label and shrink
+// the type just enough to clear the brand stripe. Advances are DejaVu (the bundled
+// face) at ~0.64em per digit; close enough to size a margin against.
+const ADV = ch => ch === "." ? 0.32 : ch === "," ? 0.34 : ch === "%" ? 0.95 : ch === "×" ? 0.84
+  : ch === "-" || ch === "−" ? 0.42 : ch === " " ? 0.32 : 0.64;
+const textW = (s, f) => f * [...String(s)].reduce((a, c) => a + ADV(c), 0);
+const AXIS_GAP = 12;      // label right edge → plot left edge
+const AXIS_INSET = 14;    // clearance kept between the label and the brand stripe
+const fitAxisFont = (labels, base = 30, min = 20) => {
+  const avail = mL - AXIS_GAP - AXIS_INSET;
+  const widest = Math.max(0, ...labels.map(l => textW(l, base)));
+  return widest <= avail ? base : Math.max(min, Math.floor(base * (avail / widest)));
+};
+// An x tick sitting on the plot edge, centred, spills into the y-axis label column
+// (sp500ytd printed "2026" straight through "-60%"). Anchor the end ticks inward.
+const xAnchor = (px, DW, given) => given || (px - mL < 34 ? "start" : DW - mR - px < 34 ? "end" : "middle");
 const png = (svg, w = W) => new Resvg(svg, { fitTo: { mode: "width", value: w }, font: FONT }).render().asPng();
 
 // "[logo] vs [logo] = result" header — sharp + colorful, replaces the wordy title.
@@ -75,7 +99,7 @@ function chromeSvg(spec, inner, extraDefs = "", dims) {
   const hlFont = spec.headline ? Math.min(58, Math.floor((DW - 128) / (spec.headline.length * 0.6))) : 58;
   const header = spec.logoHeader
     ? logoHeaderSvg(spec.logoHeader, accent)
-    : `<text x="64" y="112" fill="#e2e8f0" font-size="38" font-weight="700" font-family="sans-serif">${esc(spec.title)}</text>`
+    : `<text x="64" y="112" fill="#f1f5f9" font-size="38" font-weight="800" font-family="sans-serif">${esc(spec.title)}</text>`
       + (spec.headline ? `<text x="64" y="166" fill="${accent}" font-size="${hlFont}" font-weight="800" font-family="sans-serif">${esc(spec.headline)}</text>` : "");
   return `<svg width="${DW}" height="${DH}" viewBox="0 0 ${DW} ${DH}" xmlns="http://www.w3.org/2000/svg">
 <defs>
@@ -86,11 +110,12 @@ function chromeSvg(spec, inner, extraDefs = "", dims) {
 </defs>
 <rect width="${DW}" height="${DH}" fill="#05050e"/>
 <rect width="${DW}" height="${DH}" fill="url(#g)"/>
-<text x="64" y="52" fill="#94a3b8" font-size="30" font-weight="700" letter-spacing="3" font-family="sans-serif">SPX6900</text>
-<text x="${DW - 64}" y="52" fill="#475569" font-size="24" text-anchor="end" font-family="sans-serif">${esc(spec.date || "")}</text>
+${brandStripe(DH)}
+<text x="64" y="52" fill="#cbd5e1" font-size="30" font-weight="800" letter-spacing="3" font-family="sans-serif">SPX6900</text>
+<text x="${DW - 64}" y="52" fill="#64748b" font-size="23" text-anchor="end" font-family="sans-serif">${esc(spec.date || "")}</text>
 ${header}
 ${inner}
-<text x="64" y="${DH - 22}" fill="#475569" font-size="26" font-family="sans-serif">${esc(footer)}</text>
+<text x="64" y="${DH - 24}" fill="#5b6577" font-size="21" font-family="sans-serif">${esc(footer)}</text>
 </svg>`;
 }
 const chrome = (spec, inner, extraDefs = "", dims) => png(chromeSvg(spec, inner, extraDefs, dims), dims?.W ?? W);
@@ -211,11 +236,12 @@ export function lineCardSvg(spec, opts = {}) {
   // usable ticks (e.g. decade ticks came up empty for a sub-decade range).
   let grid = "";
   const yTicks = (spec.yTicks && spec.yTicks.length >= 2) ? spec.yTicks : niceTicks(yMin, yMax, spec.yLog, spec.yFmt);
+  const yFs = fitAxisFont(yTicks.map(t => t.label));
   for (const t of yTicks) {
     if (t.v < Math.min(yMin, yMax) || t.v > Math.max(yMin, yMax)) continue;
     const yy = Y(t.v).toFixed(1);
     grid += `<line x1="${mL}" y1="${yy}" x2="${DW - mR}" y2="${yy}" stroke="rgba(255,255,255,0.07)"/>`;
-    grid += `<text x="${mL - 12}" y="${(+yy + 6).toFixed(1)}" fill="#64748b" font-size="30" text-anchor="end" font-family="sans-serif">${esc(t.label)}</text>`;
+    grid += `<text x="${mL - AXIS_GAP}" y="${(+yy + 6).toFixed(1)}" fill="#8b98ad" font-size="${yFs}" text-anchor="end" font-family="sans-serif">${esc(t.label)}</text>`;
   }
   // x-axis ticks: calendar (timeTicks) by default, or caller-supplied {x,label}
   // for non-time axes like "age since launch" (the SPX-vs-BTC overlay).
@@ -223,7 +249,7 @@ export function lineCardSvg(spec, opts = {}) {
     ? spec.xTicks.map(t => ({ x: t.x, label: t.label, anchor: t.anchor }))
     : timeTicks(xMin, xMax).map(t => ({ x: t.ts, label: t.label, anchor: t.anchor }));
   for (const t of xticks) {
-    grid += `<text x="${X(t.x).toFixed(1)}" y="${DH - 50}" fill="#64748b" font-size="30" text-anchor="${t.anchor || "middle"}" font-family="sans-serif">${esc(t.label)}</text>`;
+    grid += `<text x="${X(t.x).toFixed(1)}" y="${DH - 50}" fill="#8b98ad" font-size="30" text-anchor="${xAnchor(X(t.x), DW, t.anchor)}" font-family="sans-serif">${esc(t.label)}</text>`;
   }
 
   // Horizontal valuation-band strips (e.g. the rainbow bands a rally climbed
@@ -462,10 +488,13 @@ export function renderMonthBars(spec, opts = {}) {
   const niceStep = m => { const raw = m / 4, mag = 10 ** Math.floor(Math.log10(raw)), nn = raw / mag; return (nn < 1.5 ? 1 : nn < 3 ? 2 : nn < 7 ? 5 : 10) * mag; };
   const step = niceStep(posMax);
   let grid = "";
-  for (let v = step; v <= posMax + 1e-9; v += step) {
+  const pctLabels = [];
+  for (let v = step; v <= posMax + 1e-9; v += step) pctLabels.push(`+${Math.round(v * 100)}%`);
+  const barFs = fitAxisFont(pctLabels);
+  for (let v = step, i = 0; v <= posMax + 1e-9; v += step, i++) {
     const yy = (zeroY - v * k).toFixed(1);
     grid += `<line x1="${mL}" y1="${yy}" x2="${DW - mR}" y2="${yy}" stroke="rgba(255,255,255,0.06)"/>`;
-    grid += `<text x="${mL - 12}" y="${(+yy + 6).toFixed(1)}" fill="#64748b" font-size="30" text-anchor="end" font-family="sans-serif">+${Math.round(v * 100)}%</text>`;
+    grid += `<text x="${mL - AXIS_GAP}" y="${(+yy + 6).toFixed(1)}" fill="#8b98ad" font-size="${barFs}" text-anchor="end" font-family="sans-serif">${pctLabels[i]}</text>`;
   }
 
   let body = "";
@@ -497,13 +526,13 @@ export function renderMonthBars(spec, opts = {}) {
   const xLabelY = (mT + PH + 30).toFixed(1);
   let years = "";
   if (bars.some(b => b.label)) {
-    bars.forEach((b, i) => { if (b.label) years += `<text x="${(mL + slot * i + slot / 2).toFixed(1)}" y="${xLabelY}" fill="#64748b" font-size="26" text-anchor="middle" font-family="sans-serif">${esc(b.label)}</text>`; });
+    bars.forEach((b, i) => { if (b.label) years += `<text x="${(mL + slot * i + slot / 2).toFixed(1)}" y="${xLabelY}" fill="#8b98ad" font-size="26" text-anchor="middle" font-family="sans-serif">${esc(b.label)}</text>`; });
   } else {
     let seen = -1;
     bars.forEach((b, i) => {
       if (b.year === seen) return;
       seen = b.year;
-      years += `<text x="${(mL + slot * i + slot / 2).toFixed(1)}" y="${xLabelY}" fill="#64748b" font-size="26" text-anchor="middle" font-family="sans-serif">${b.year}</text>`;
+      years += `<text x="${(mL + slot * i + slot / 2).toFixed(1)}" y="${xLabelY}" fill="#8b98ad" font-size="26" text-anchor="middle" font-family="sans-serif">${b.year}</text>`;
     });
   }
 
@@ -613,13 +642,14 @@ export function renderDca(spec, opts = {}) {
     for (let e = 1; e <= 8; e++) { const v = 10 ** e; if (v >= yMin && v <= yMax) gridVals.push(v); }
   }
   let grid = "";
+  const stackFs = fitAxisFont(gridVals.map(fK));
   for (const v of gridVals) {
     const yy = Y(v).toFixed(1);
     grid += `<line x1="${mL}" y1="${yy}" x2="${DW - mR}" y2="${yy}" stroke="rgba(255,255,255,0.07)"/>`;
-    grid += `<text x="${mL - 12}" y="${(+yy + 6).toFixed(1)}" fill="#64748b" font-size="30" text-anchor="end" font-family="sans-serif">${fK(v)}</text>`;
+    grid += `<text x="${mL - AXIS_GAP}" y="${(+yy + 6).toFixed(1)}" fill="#8b98ad" font-size="${stackFs}" text-anchor="end" font-family="sans-serif">${fK(v)}</text>`;
   }
   for (const t of timeTicks(xMin, xMax)) {
-    grid += `<text x="${X(t.ts).toFixed(1)}" y="${DH - 50}" fill="#64748b" font-size="30" text-anchor="${t.anchor || "middle"}" font-family="sans-serif">${esc(t.label)}</text>`;
+    grid += `<text x="${X(t.ts).toFixed(1)}" y="${DH - 50}" fill="#8b98ad" font-size="30" text-anchor="${xAnchor(X(t.ts), DW, t.anchor)}" font-family="sans-serif">${esc(t.label)}</text>`;
   }
 
   // invested area (amber, to baseline) — the "what you put in" floor
@@ -957,7 +987,7 @@ export function renderModelCard(spec, opts = {}) {
     grid += `<line x1="${mL}" y1="${yy}" x2="${DW - mR}" y2="${yy}" stroke="rgba(255,255,255,0.06)"/>`;
     grid += `<text x="${mL - 12}" y="${(+yy + 6).toFixed(1)}" fill="#94a3b8" font-size="30" text-anchor="end" font-family="sans-serif">${pct(v)}</text>`;
   }
-  for (const t of yearTicks(xMin, xMax)) grid += `<text x="${X(t.ts).toFixed(1)}" y="${DH - 50}" fill="#64748b" font-size="30" text-anchor="middle" font-family="sans-serif">${t.label}</text>`;
+  for (const t of yearTicks(xMin, xMax)) grid += `<text x="${X(t.ts).toFixed(1)}" y="${DH - 50}" fill="#8b98ad" font-size="30" text-anchor="middle" font-family="sans-serif">${t.label}</text>`;
 
   const zy = Y(0).toFixed(1);
   const zero = `<line x1="${mL}" y1="${zy}" x2="${DW - mR}" y2="${zy}" stroke="rgba(255,255,255,0.75)" stroke-width="2" stroke-dasharray="6 5"/><text x="${mL + 8}" y="${(+zy - 9).toFixed(1)}" fill="#f1f5f9" font-size="30" font-weight="700" font-family="sans-serif">trend line</text>`;

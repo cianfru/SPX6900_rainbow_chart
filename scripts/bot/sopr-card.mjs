@@ -8,6 +8,7 @@
 import { Resvg } from "@resvg/resvg-js";
 import { FONT } from "./font.mjs";
 import { esc } from "./svg-util.mjs";
+import { brandStripe } from "./chrome.mjs";
 
 const png = (svg, w) => new Resvg(svg, { fitTo: { mode: "width", value: w }, font: FONT }).render().asPng();
 const GRN = "#34d399", RED = "#fb7185";
@@ -18,7 +19,7 @@ export function soprSvg(stats, opts = {}) {
   if (raw.length < 50) return null;
   const cur = raw.at(-1), sopr = cur.v;
 
-  const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 96, mR = 92, mT = 152, mB = 92, pW = W - mL - mR, pH = H - mT - mB;
+  const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 116, mR = 92, mT = 152, mB = 92, pW = W - mL - mR, pH = H - mT - mB;
   const t0 = raw[0].ts, t1 = cur.ts;
   // clamp the display so a single spike doesn't flatten the 1.0 line; center on 1.0
   const vals = raw.map(r => r.v);
@@ -59,6 +60,7 @@ export function soprSvg(stats, opts = {}) {
 <filter id="soglow" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="5"/></filter>
 </defs>
 <rect width="${W}" height="${H}" fill="url(#sobg)"/>
+${brandStripe(H)}
 <text x="60" y="58" fill="#f8fafc" font-size="39" font-weight="800" font-family="sans-serif" letter-spacing="1">SPX6900 — SOPR</text>
 <text x="60" y="92" fill="#aab6c8" font-size="22" font-family="sans-serif">When coins move, are they sold at a profit or a loss? Above 1 = profit, below 1 = loss.</text>
 <text x="60" y="130" fill="${col}" font-size="32" font-weight="800" font-family="sans-serif">${sopr.toFixed(2)} — ${state}</text>

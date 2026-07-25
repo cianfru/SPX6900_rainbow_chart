@@ -5,6 +5,7 @@
 import { Resvg } from "@resvg/resvg-js";
 import { DEFAULT_RAW } from "../../src/data.js";
 import { FONT } from "./font.mjs";
+import { brandStripe } from "./chrome.mjs";
 
 const png = (svg, w) => new Resvg(svg, { fitTo: { mode: "width", value: w }, font: FONT }).render().asPng();
 const YEAR = 365 * 86400000;
@@ -64,6 +65,7 @@ export function runningRoiSvg(price, dateStr = new Date().toISOString().slice(0,
 <rect width="${W}" height="${H}" fill="#05050e"/>
 <rect width="${W}" height="${H}" fill="url(#roiV)"/>
 <rect width="${W}" height="${H}" fill="url(#roiTop)"/>
+${brandStripe(H)}
 ${grid}${rtick}${beLine}
 <polygon points="${priceArea}" fill="url(#roiPxFill)"/>
 <polygon points="${roiArea}" fill="url(#roiFill)"/>

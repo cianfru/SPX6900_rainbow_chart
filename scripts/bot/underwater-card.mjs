@@ -5,6 +5,7 @@
 import { Resvg } from "@resvg/resvg-js";
 import { FONT } from "./font.mjs";
 import { drawdownSummary } from "../../src/models.js";
+import { brandStripe } from "./chrome.mjs";
 
 const png = (svg, w) => new Resvg(svg, { fitTo: { mode: "width", value: w }, font: FONT }).render().asPng();
 const esc = t => String(t).replace(/&/g, "&amp;").replace(/</g, "&lt;");
@@ -17,7 +18,7 @@ export function underwaterSvg(stats, opts = {}) {
   const { series: dd, current, deepest, athCount } = drawdownSummary(stats.drawn || [], stats.ath > 0 ? { price: stats.ath, date: stats.athDate } : null);
   if (dd.length < 2) return null;
 
-  const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 92, mR = 96, mT = 118, mB = 70, pW = W - mL - mR, pH = H - mT - mB;
+  const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 112, mR = 96, mT = 118, mB = 70, pW = W - mL - mR, pH = H - mT - mB;
   const t0 = dd[0].ts, t1 = dd.at(-1).ts;
   const x = t => mL + ((t - t0) / ((t1 - t0) || 1)) * pW;
   const yD = v => mT + (-v) * pH;                 // v in [-1,0] → [mT+pH .. mT]
@@ -55,6 +56,7 @@ export function underwaterSvg(stats, opts = {}) {
 <rect width="${W}" height="${H}" fill="#05050e"/>
 <radialGradient id="uwV" cx="50%" cy="100%" r="90%"><stop offset="0%" stop-color="#ef4444" stop-opacity="0.12"/><stop offset="60%" stop-color="#ef4444" stop-opacity="0"/></radialGradient>
 <rect width="${W}" height="${H}" fill="url(#uwV)"/>
+${brandStripe(H)}
 ${grid}${xlab}
 <polygon points="${areaPoly}" fill="url(#uw)"/>
 <polyline points="${priceLine}" fill="none" stroke="#38bdf8" stroke-width="8" stroke-opacity="0.16" filter="url(#ug)"/>
@@ -64,8 +66,7 @@ ${grid}${xlab}
 <circle cx="${cx.toFixed(1)}" cy="${cyD.toFixed(1)}" r="7" fill="#ef4444" stroke="#05050e" stroke-width="2"/>
 <text x="64" y="50" fill="#e2e8f0" font-size="30" font-weight="800" font-family="sans-serif" letter-spacing="1">SPX6900 — UNDERWATER</text>
 <text x="${W - 60}" y="46" fill="#f87171" font-size="30" font-weight="800" font-family="sans-serif" text-anchor="end">NOW ${fPct0(current)}</text>
-<text x="${W - 60}" y="78" fill="#94a3b8" font-size="20" font-family="sans-serif" text-anchor="end">from the all-time high (${fPrice(stats.ath)})</text>
-<text x="64" y="86" fill="#94a3b8" font-size="22" font-family="sans-serif">% below the running ATH · ${athCount} fresh highs so far · deepest valley ${fPct0(deepest)}</text>
+<text x="64" y="86" fill="#94a3b8" font-size="22" font-family="sans-serif">% below the running ATH (${fPrice(stats.ath)}) · deepest valley ${fPct0(deepest)} · ${athCount} fresh highs</text>
 <text x="64" y="${H - 16}" fill="#64748b" font-size="19" font-family="sans-serif">${esc("spx6900rainbow.xyz · ")}<tspan fill="#f87171" font-weight="700">drawdown from ATH</tspan> · <tspan fill="#38bdf8" font-weight="700">price (log)</tspan></text>
 </svg>`;
 }
