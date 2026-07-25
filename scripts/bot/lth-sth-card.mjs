@@ -26,7 +26,7 @@ export function lthSthSvg(stats, opts = {}) {
   const cur = rows.at(-1);
   const lth = cur.v[0] + cur.v[1], underwater = cur.v[1] + cur.v[3];
 
-  const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 102, mR = 254, mT = 150, mB = 92, pW = W - mL - mR, pH = H - mT - mB;
+  const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 84, mR = 254, mT = 120, mB = 92, pW = W - mL - mR, pH = H - mT - mB;
   const t0 = rows[0].ts, t1 = cur.ts;
   const x = t => mL + ((t - t0) / ((t1 - t0) || 1)) * pW;
   const y = v => mT + (1 - v / 100) * pH;
@@ -42,12 +42,12 @@ export function lthSthSvg(stats, opts = {}) {
   let grid = "";
   for (const v of [0, 25, 50, 75, 100]) {
     const yy = y(v).toFixed(1);
-    grid += `<text x="${mL - 14}" y="${(+yy + 8).toFixed(1)}" fill="#e2e8f0" font-size="24" font-weight="600" text-anchor="end" font-family="sans-serif">${v}</text>`;
+    grid += `<text x="${mL - 14}" y="${(+yy + 8).toFixed(1)}" fill="#94a3b8" font-size="22" text-anchor="end" font-family="sans-serif">${v}</text>`;
   }
   let xlab = "";
   for (let yr = new Date(t0).getUTCFullYear(); yr <= new Date(t1).getUTCFullYear(); yr++) {
     const t = Date.UTC(yr, 0, 1); if (t < t0 || t > t1) continue;
-    xlab += `<text x="${x(t).toFixed(1)}" y="${H - 46}" fill="#cbd5e1" font-size="24" font-weight="600" text-anchor="middle" font-family="sans-serif">${yr}</text>`;
+    xlab += `<text x="${x(t).toFixed(1)}" y="${H - 46}" fill="#94a3b8" font-size="22" text-anchor="middle" font-family="sans-serif">${yr}</text>`;
   }
   // legend (right gutter), top → bottom mirrors visual stack (STH on top)
   let legend = "";
@@ -62,8 +62,7 @@ export function lthSthSvg(stats, opts = {}) {
 <rect width="${W}" height="${H}" fill="url(#lsbg)"/>
 ${brandStripe(H)}
 <text x="60" y="58" fill="#f8fafc" font-size="37" font-weight="800" font-family="sans-serif" letter-spacing="1">SPX6900 — LONG vs SHORT-TERM HOLDERS</text>
-<text x="60" y="92" fill="#aab6c8" font-size="22" font-family="sans-serif">Long-term = held 155 days+ (Glassnode standard) · split by profit vs loss</text>
-<text x="60" y="130" fill="#e2e8f0" font-size="30" font-weight="800" font-family="sans-serif"><tspan fill="#4ade80">${lth.toFixed(0)}% held long-term</tspan> · ${underwater.toFixed(0)}% underwater and holding</text>
+<text x="60" y="102" fill="#e2e8f0" font-size="30" font-weight="800" font-family="sans-serif"><tspan fill="#4ade80">${lth.toFixed(0)}% held long-term</tspan> · ${underwater.toFixed(0)}% underwater and holding</text>
 ${grid}${xlab}${ribbons}${legend}
 <text x="60" y="${H - 20}" fill="#8592a6" font-size="18" font-family="sans-serif">${esc("spx6900rainbow.xyz · not financial advice · % of ETH-native supply by holder age and on-chain profit/loss (FIFO)")}</text>
 </svg>`;

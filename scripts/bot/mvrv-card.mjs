@@ -37,7 +37,7 @@ export function mvrvBtcSvg(stats, opts = {}) {
   for (const r of hits) { const last = periods.at(-1); if (!last || r.ts - last.end > 120 * 86400000) periods.push({ start: r.ts, end: r.ts }); else last.end = r.ts; }
   const years = [...new Set(periods.map(p => fYr(p.start)))];
 
-  const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 116, mR = 92, mT = 150, mB = 96, pW = W - mL - mR, pH = H - mT - mB;
+  const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 96, mR = 92, mT = 150, mB = 96, pW = W - mL - mR, pH = H - mT - mB;
   const t0 = pts[0].ts, t1 = pts.at(-1).ts;
   const x = t => mL + ((t - t0) / ((t1 - t0) || 1)) * pW;
   const ymin = Math.min(sorted[0], spxMvrv) * 0.9, ymax = sorted.at(-1) * 1.05;
@@ -54,10 +54,10 @@ export function mvrvBtcSvg(stats, opts = {}) {
   let grid = "";
   for (const v of [0.5, 1, 2, 3, 5, 7].filter(v => v >= ymin && v <= ymax)) {
     const yy = y(v).toFixed(1);
-    grid += `<line x1="${mL}" y1="${yy}" x2="${W - mR}" y2="${yy}" stroke="rgba(255,255,255,0.12)"/><text x="${mL - 12}" y="${(+yy + 8).toFixed(1)}" fill="#e2e8f0" font-size="25" font-weight="600" text-anchor="end" font-family="sans-serif">${fMvrv(v)}</text>`;
+    grid += `<line x1="${mL}" y1="${yy}" x2="${W - mR}" y2="${yy}" stroke="rgba(255,255,255,0.12)"/><text x="${mL - 12}" y="${(+yy + 8).toFixed(1)}" fill="#94a3b8" font-size="22" text-anchor="end" font-family="sans-serif">${fMvrv(v)}</text>`;
   }
   let xlab = "";
-  for (let yr = fYr(t0); yr <= fYr(t1); yr += 2) { const t = Date.UTC(yr, 0, 1); if (t < t0 || t > t1) continue; xlab += `<text x="${x(t).toFixed(1)}" y="${H - 50}" fill="#cbd5e1" font-size="24" font-weight="600" text-anchor="middle" font-family="sans-serif">${yr}</text>`; }
+  for (let yr = fYr(t0); yr <= fYr(t1); yr += 2) { const t = Date.UTC(yr, 0, 1); if (t < t0 || t > t1) continue; xlab += `<text x="${x(t).toFixed(1)}" y="${H - 50}" fill="#94a3b8" font-size="22" text-anchor="middle" font-family="sans-serif">${yr}</text>`; }
 
   // SPX marker band + line, and the match dots on BTC's line.
   const dots = hits.map(r => `<circle cx="${x(r.ts).toFixed(1)}" cy="${y(r.v).toFixed(1)}" r="7" fill="${MATCH_C}" stroke="#05050e" stroke-width="1.5"/>`).join("");

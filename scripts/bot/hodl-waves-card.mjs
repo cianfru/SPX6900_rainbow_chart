@@ -25,7 +25,7 @@ export function hodlWavesSvg(stats, opts = {}) {
   raw.sort((a, b) => a.ts - b.ts);
   const cur = raw.at(-1), oldPct = cur.age[4];
 
-  const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 98, mR = 152, mT = 152, mB = 92, pW = W - mL - mR, pH = H - mT - mB;
+  const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 94, mR = 152, mT = 122, mB = 92, pW = W - mL - mR, pH = H - mT - mB;
   const t0 = raw[0].ts, t1 = cur.ts;
   const x = t => mL + ((t - t0) / ((t1 - t0) || 1)) * pW;
   const y = v => mT + (1 - v / 100) * pH; // 0–100% stacked
@@ -48,7 +48,7 @@ export function hodlWavesSvg(stats, opts = {}) {
   let xlab = "";
   for (let yr = new Date(t0).getUTCFullYear(); yr <= new Date(t1).getUTCFullYear(); yr++) {
     const t = Date.UTC(yr, 0, 1); if (t < t0 || t > t1) continue;
-    xlab += `<text x="${x(t).toFixed(1)}" y="${H - 48}" fill="#a3aec0" font-size="24" text-anchor="middle" font-family="sans-serif">${yr}</text>`;
+    xlab += `<text x="${x(t).toFixed(1)}" y="${H - 48}" fill="#94a3b8" font-size="22" text-anchor="middle" font-family="sans-serif">${yr}</text>`;
   }
 
   // Right-edge legend: each band's current share, positioned at its ribbon's mid-height.
@@ -65,8 +65,7 @@ export function hodlWavesSvg(stats, opts = {}) {
 <rect width="${W}" height="${H}" fill="url(#hwbg)"/>
 ${brandStripe(H)}
 <text x="60" y="56" fill="#e2e8f0" font-size="36" font-weight="800" font-family="sans-serif" letter-spacing="1">SPX6900 — HODL WAVES</text>
-<text x="60" y="90" fill="#94a3b8" font-size="21" font-family="sans-serif">How long has supply been sitting still? Cool bands = held longer.</text>
-<text x="60" y="128" fill="${BANDS[4].c}" font-size="28" font-weight="800" font-family="sans-serif">${oldPct.toFixed(0)}% of supply hasn't moved in over a year</text>
+<text x="60" y="100" fill="${BANDS[4].c}" font-size="28" font-weight="800" font-family="sans-serif">${oldPct.toFixed(0)}% of supply hasn't moved in over a year</text>
 ${ribbons}${yl}${xlab}${legend}
 <text x="60" y="${H - 20}" fill="#6b7688" font-size="18" font-family="sans-serif">${esc("spx6900rainbow.xyz · not financial advice · supply by holding age (ETH-native) · older = held longer")}</text>
 </svg>`;

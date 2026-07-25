@@ -24,7 +24,7 @@ export function mvrvTrendSvg(stats, opts = {}) {
   const q = f => sorted[Math.min(sorted.length - 1, Math.floor(f * sorted.length))];
   const peak = raw.reduce((m, r) => r.mvrv > m.mvrv ? r : m, raw[0]);
 
-  const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 116, mR = 92, mT = 152, mB = 92, pW = W - mL - mR, pH = H - mT - mB;
+  const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 96, mR = 92, mT = 122, mB = 92, pW = W - mL - mR, pH = H - mT - mB;
   const t0 = raw[0].ts, t1 = cur.ts;
   const x = t => mL + ((t - t0) / ((t1 - t0) || 1)) * pW;
   const ymin = Math.min(sorted[0], mvrv) * 0.9, ymax = sorted.at(-1) * 1.05;
@@ -47,12 +47,12 @@ export function mvrvTrendSvg(stats, opts = {}) {
   let grid = "";
   for (const v of [0.25, 0.5, 1, 2, 3, 5].filter(v => v >= ymin && v <= ymax)) {
     const yy = y(v).toFixed(1);
-    grid += `<line x1="${mL}" y1="${yy}" x2="${W - mR}" y2="${yy}" stroke="rgba(255,255,255,0.12)"/><text x="${mL - 14}" y="${(+yy + 8).toFixed(1)}" fill="#e2e8f0" font-size="27" font-weight="600" text-anchor="end" font-family="sans-serif">${fMvrv(v)}</text>`;
+    grid += `<line x1="${mL}" y1="${yy}" x2="${W - mR}" y2="${yy}" stroke="rgba(255,255,255,0.12)"/><text x="${mL - 14}" y="${(+yy + 8).toFixed(1)}" fill="#94a3b8" font-size="22" text-anchor="end" font-family="sans-serif">${fMvrv(v)}</text>`;
   }
   let xlab = "";
   for (let yr = new Date(t0).getUTCFullYear(); yr <= new Date(t1).getUTCFullYear(); yr++) {
     const t = Date.UTC(yr, 0, 1); if (t < t0 || t > t1) continue;
-    xlab += `<text x="${x(t).toFixed(1)}" y="${H - 46}" fill="#cbd5e1" font-size="26" font-weight="600" text-anchor="middle" font-family="sans-serif">${yr}</text>`;
+    xlab += `<text x="${x(t).toFixed(1)}" y="${H - 46}" fill="#94a3b8" font-size="22" text-anchor="middle" font-family="sans-serif">${yr}</text>`;
   }
 
   // MVRV line + area fill (glow underlay for punch, per the card visual-impact pass).
@@ -76,14 +76,12 @@ export function mvrvTrendSvg(stats, opts = {}) {
 <rect width="${W}" height="${H}" fill="url(#mtbg)"/>
 ${brandStripe(H)}
 <text x="60" y="56" fill="#e2e8f0" font-size="36" font-weight="800" font-family="sans-serif" letter-spacing="1">SPX6900 — MVRV OVER TIME</text>
-<text x="60" y="90" fill="#94a3b8" font-size="21" font-family="sans-serif">Is the average holder up or down on what they paid? Below 1× = underwater.</text>
-<text x="60" y="128" fill="${SPX_C}" font-size="28" font-weight="800" font-family="sans-serif">${fMvrv(mvrv)} — ${state}</text>
+<text x="60" y="100" fill="${SPX_C}" font-size="28" font-weight="800" font-family="sans-serif">${fMvrv(mvrv)} — ${state}</text>
 ${zones}${grid}${xlab}${zoneLabels}
 <polygon points="${area}" fill="url(#mtfill)"/>
 <line x1="${mL}" y1="${beY}" x2="${W - mR}" y2="${beY}" stroke="#4ade80" stroke-width="2" stroke-opacity="0.9" stroke-dasharray="7 6"/>
 <text x="${W - mR - 8}" y="${(+beY - 10).toFixed(1)}" fill="#86efac" font-size="20" font-weight="700" text-anchor="end" font-family="sans-serif">break-even 1×</text>
-<polyline points="${line}" fill="none" stroke="${SPX_C}" stroke-width="9" stroke-opacity="0.22" stroke-linejoin="round" stroke-linecap="round" filter="url(#mtglow)"/>
-<polyline points="${line}" fill="none" stroke="#c4b5fd" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="${line}" fill="none" stroke="#c4b5fd" stroke-width="4.2" stroke-linejoin="round" stroke-linecap="round"/>
 <circle cx="${peakX.toFixed(1)}" cy="${peakY.toFixed(1)}" r="7" fill="${HOT_C}" stroke="#05050e" stroke-width="1.5"/>
 <text x="${peakX.toFixed(1)}" y="${(peakY < mT + 40 ? peakY + 36 : peakY - 16).toFixed(1)}" fill="#fca5a5" font-size="21" font-weight="800" text-anchor="middle" font-family="sans-serif">peak ${fMvrv(peak.mvrv)} · ${esc(fMon(peak.ts))}</text>
 <circle cx="${curX.toFixed(1)}" cy="${curY.toFixed(1)}" r="9" fill="#c4b5fd" stroke="#05050e" stroke-width="2"/>

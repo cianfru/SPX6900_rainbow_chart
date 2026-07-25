@@ -80,9 +80,9 @@ export function cexVenuesSvg(stats, opts = {}) {
 
   let grid = "";
   const step = yMax > 100e6 ? 25e6 : yMax > 40e6 ? 10e6 : 5e6;
-  for (let v = 0; v <= yMax; v += step) grid += `<line x1="${mL}" y1="${y(v).toFixed(1)}" x2="${W - mR}" y2="${y(v).toFixed(1)}" stroke="rgba(255,255,255,0.08)"/><text x="${mL - 14}" y="${(y(v) + 8).toFixed(1)}" fill="#aab6cc" font-size="23" text-anchor="end" font-family="sans-serif" font-weight="600">${fMlab(v)}</text>`;
+  for (let v = 0; v <= yMax; v += step) grid += `<line x1="${mL}" y1="${y(v).toFixed(1)}" x2="${W - mR}" y2="${y(v).toFixed(1)}" stroke="rgba(255,255,255,0.08)"/><text x="${mL - 14}" y="${(y(v) + 8).toFixed(1)}" fill="#94a3b8" font-size="22" text-anchor="end" font-family="sans-serif" font-weight="600">${fMlab(v)}</text>`;
   let xl = "";
-  for (let yr = new Date(t0).getUTCFullYear(); yr <= new Date(t1).getUTCFullYear(); yr++) { const t = Date.UTC(yr, 0, 1); if (t < t0 || t > t1) continue; xl += `<text x="${x(t).toFixed(1)}" y="${pB + 46}" fill="#aab6cc" font-size="24" text-anchor="middle" font-family="sans-serif" font-weight="600">${yr}</text>`; }
+  for (let yr = new Date(t0).getUTCFullYear(); yr <= new Date(t1).getUTCFullYear(); yr++) { const t = Date.UTC(yr, 0, 1); if (t < t0 || t > t1) continue; xl += `<text x="${x(t).toFixed(1)}" y="${pB + 46}" fill="#94a3b8" font-size="22" text-anchor="middle" font-family="sans-serif" font-weight="600">${yr}</text>`; }
 
   const [topName, topVal] = S.top;
   return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">

@@ -48,7 +48,7 @@ export function holdersPriceSvg(spec, opts = {}) {
   let xlab = "";
   const n = Math.max(holders.length, price.length), src = holders.length >= price.length ? holders : price;
   const every = Math.max(1, Math.round(src.length / 5));
-  src.forEach((p, i) => { if (i % every === 0 && i <= src.length - 1 - Math.floor(every / 2)) xlab += `<text x="${X(p[0]).toFixed(1)}" y="${H - mB + 38}" fill="#64748b" font-size="26" text-anchor="middle" font-family="sans-serif">${fMon(p[0])}</text>`; });
+  src.forEach((p, i) => { if (i % every === 0 && i <= src.length - 1 - Math.floor(every / 2)) xlab += `<text x="${X(p[0]).toFixed(1)}" y="${H - mB + 38}" fill="#94a3b8" font-size="22" text-anchor="middle" font-family="sans-serif">${fMon(p[0])}</text>`; });
 
   const hPts = holders.map(p => [X(p[0]), Yh(p[1])]);
   const pPts = price.map(p => [X(p[0]), Yp(p[1])]);

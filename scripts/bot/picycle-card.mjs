@@ -20,7 +20,7 @@ export function piCycleSvg(stats, opts = {}) {
   const sorted = rows.map(r => r.ratio).sort((a, b) => a - b);
   const pct = Math.round(sorted.filter(v => v <= cur.ratio).length / sorted.length * 100);
 
-  const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 106, mR = 184, mT = 140, mB = 70, pW = W - mL - mR, pH = H - mT - mB;
+  const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 88, mR = 184, mT = 140, mB = 70, pW = W - mL - mR, pH = H - mT - mB;
   const t0 = rows[0].ts, t1 = rows.at(-1).ts;
   const x = t => mL + ((t - t0) / ((t1 - t0) || 1)) * pW;
   const ymax = Math.max(z.top * 1.08, peak.ratio * 1.05), ymin = 0;
@@ -37,12 +37,12 @@ export function piCycleSvg(stats, opts = {}) {
   let gy = "";
   for (const v of [0.2, 0.4, 0.5, 0.75, 1, 1.25, 1.5].filter(v => v <= ymax)) {
     const yy = y(v).toFixed(1);
-    gy += `<line x1="${mL}" y1="${yy}" x2="${W - mR}" y2="${yy}" stroke="rgba(255,255,255,0.12)"/><text x="${mL - 12}" y="${(+yy + 8).toFixed(1)}" fill="#e2e8f0" font-size="25" font-weight="600" text-anchor="end" font-family="sans-serif">${v.toFixed(2)}</text>`;
+    gy += `<line x1="${mL}" y1="${yy}" x2="${W - mR}" y2="${yy}" stroke="rgba(255,255,255,0.12)"/><text x="${mL - 12}" y="${(+yy + 8).toFixed(1)}" fill="#94a3b8" font-size="22" text-anchor="end" font-family="sans-serif">${v.toFixed(2)}</text>`;
   }
   let gx = "";
   for (let yr = new Date(t0).getUTCFullYear(); yr <= new Date(t1).getUTCFullYear(); yr++) for (const mo of [0, 6]) {
     const t = Date.UTC(yr, mo, 1); if (t < t0 || t > t1) continue;
-    gx += `<text x="${x(t).toFixed(1)}" y="${H - 40}" fill="#cbd5e1" font-size="23" font-weight="600" text-anchor="middle" font-family="sans-serif">${fMon(t)}</text>`;
+    gx += `<text x="${x(t).toFixed(1)}" y="${H - 40}" fill="#94a3b8" font-size="22" text-anchor="middle" font-family="sans-serif">${fMon(t)}</text>`;
   }
   const thr = (v, c, lab) => `<line x1="${mL}" y1="${y(v).toFixed(1)}" x2="${W - mR}" y2="${y(v).toFixed(1)}" stroke="${c}" stroke-width="1.8" stroke-dasharray="6 4"/>`
     + `<text x="${W - mR - 6}" y="${(y(v) - 10).toFixed(1)}" fill="${c}" font-size="20" font-weight="700" text-anchor="end" font-family="sans-serif">${lab}</text>`;
@@ -64,8 +64,7 @@ ${zones}${gy}${gx}
 ${thr(z.top, "#f87171", `SPX top ▸ ${z.top.toFixed(2)}`)}
 ${thr(z.accum, "#38bdf8", "accumulation ▸ 0.5")}
 <polygon points="${area}" fill="url(#pcf)"/>
-<polyline points="${line}" fill="none" stroke="#a78bfa" stroke-width="10" stroke-opacity="0.16" filter="url(#pcg)"/>
-<polyline points="${line}" fill="none" stroke="#a78bfa" stroke-width="4.5" stroke-linejoin="round"/>
+<polyline points="${line}" fill="none" stroke="#a78bfa" stroke-width="5.7" stroke-linejoin="round"/>
 <circle cx="${x(peak.ts).toFixed(1)}" cy="${y(peak.ratio).toFixed(1)}" r="7" fill="#fb7185"/>
 <text x="${x(peak.ts).toFixed(1)}" y="${(y(peak.ratio) - 20).toFixed(1)}" fill="#fda4af" font-size="19" font-weight="700" text-anchor="middle" font-family="sans-serif">peak ${peak.ratio.toFixed(2)} · ${fMon(peak.ts)}</text>
 <circle cx="${x(cur.ts).toFixed(1)}" cy="${y(cur.ratio).toFixed(1)}" r="8" fill="${st.color}" stroke="#05050e" stroke-width="2"/>

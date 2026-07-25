@@ -33,7 +33,7 @@ export function freeFloatSvg(stats, opts = {}) {
   const multi = btcAll.length > 20;
   const btcSameAge = at(btcAll, spxLastDay);
 
-  const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 114, mR = 60, mT = 132, mB = 96, pW = W - mL - mR, pH = H - mT - mB;
+  const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 94, mR = 60, mT = 132, mB = 96, pW = W - mL - mR, pH = H - mT - mB;
   const YR = 365.25;
   const d1 = multi ? spxLastDay + FWD : (spxLastDay || 1);
   const x = d => mL + (d / d1) * pW, y = v => mT + ((100 - v) / 100) * pH; // y: 0..100%
@@ -41,11 +41,11 @@ export function freeFloatSvg(stats, opts = {}) {
   let grid = "";
   for (const v of [0, 25, 50, 75, 100]) {
     const yy = y(v).toFixed(1);
-    grid += `<line x1="${mL}" y1="${yy}" x2="${W - mR}" y2="${yy}" stroke="rgba(255,255,255,0.1)"/><text x="${mL - 14}" y="${(+yy + 8).toFixed(1)}" fill="#e2e8f0" font-size="26" font-weight="600" text-anchor="end" font-family="sans-serif">${v}%</text>`;
+    grid += `<line x1="${mL}" y1="${yy}" x2="${W - mR}" y2="${yy}" stroke="rgba(255,255,255,0.1)"/><text x="${mL - 14}" y="${(+yy + 8).toFixed(1)}" fill="#94a3b8" font-size="22" text-anchor="end" font-family="sans-serif">${v}%</text>`;
   }
   const xAxisY = mT + pH + 32;
   let xlab = "";
-  for (let yr = 0; yr * YR <= d1 + 15; yr++) xlab += `<text x="${x(yr * YR).toFixed(1)}" y="${xAxisY.toFixed(1)}" fill="#cbd5e1" font-size="23" font-weight="600" text-anchor="middle" font-family="sans-serif">${yr === 0 ? "launch" : yr + "yr"}</text>`;
+  for (let yr = 0; yr * YR <= d1 + 15; yr++) xlab += `<text x="${x(yr * YR).toFixed(1)}" y="${xAxisY.toFixed(1)}" fill="#94a3b8" font-size="22" text-anchor="middle" font-family="sans-serif">${yr === 0 ? "launch" : yr + "yr"}</text>`;
 
   const poly = (series, color, w, dash) => `<polyline points="${series.map(p => `${x(p[0]).toFixed(1)},${y(p[1]).toFixed(1)}`).join(" ")}" fill="none" stroke="${color}" stroke-width="${w}" stroke-linejoin="round" stroke-linecap="round"${dash ? ` stroke-dasharray="${dash}" stroke-opacity="0.85"` : ""}/>`;
   const area = `${mL},${(mT + pH).toFixed(1)} ${spx.map(p => `${x(p[0]).toFixed(1)},${y(p[1]).toFixed(1)}`).join(" ")} ${x(spxLastDay).toFixed(1)},${(mT + pH).toFixed(1)}`;
@@ -61,7 +61,7 @@ export function freeFloatSvg(stats, opts = {}) {
     const be = btcFwd.at(-1)?.[1];
     if (be != null) legend += `<text x="${(x(btcFwd.at(-1)[0]) - 6).toFixed(1)}" y="${(y(be) - 14).toFixed(1)}" fill="${BTC}" font-size="19" font-weight="700" text-anchor="end" font-family="sans-serif">+2yr: ${be.toFixed(0)}%</text>`;
   }
-  lines += `<polyline points="${spx.map(p => `${x(p[0]).toFixed(1)},${y(p[1]).toFixed(1)}`).join(" ")}" fill="none" stroke="${SPX}" stroke-width="12" stroke-opacity="0.28" stroke-linejoin="round" filter="url(#ilglow)"/>` + poly(spx, SPX, 4.5);
+  lines += poly(spx, SPX, 5.6);
 
   const chip = (i, c, t) => `<rect x="${W - mR - 285 + i * 150}" y="120" width="16" height="16" rx="3" fill="${c}"/><text x="${W - mR - 285 + i * 150 + 22}" y="133" fill="#e2e8f0" font-size="21" font-weight="700" font-family="sans-serif">${t}</text>`;
   if (multi) legend += chip(0, SPX, "SPX6900") + chip(1, BTC, "Bitcoin");

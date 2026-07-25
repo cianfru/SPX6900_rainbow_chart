@@ -34,7 +34,7 @@ export function runningRoiSvg(price, dateStr = new Date().toISOString().slice(0,
   for (const t of [0.0001, 0.001, 0.01, 0.1, 1, 10].filter(v => v >= pMin && v <= pMax)) {
     const yy = yP(t).toFixed(1);
     grid += `<line x1="${mL}" y1="${yy}" x2="${mL + pW}" y2="${yy}" stroke="rgba(255,255,255,0.05)"/>`;
-    grid += `<text x="${mL - 10}" y="${(+yy + 5).toFixed(1)}" fill="#64748b" font-size="26" text-anchor="end" font-family="sans-serif">$${t < 1 ? t : t.toLocaleString()}</text>`;
+    grid += `<text x="${mL - 10}" y="${(+yy + 5).toFixed(1)}" fill="#94a3b8" font-size="22" text-anchor="end" font-family="sans-serif">$${t < 1 ? t : t.toLocaleString()}</text>`;
   }
   let rtick = "";
   for (const v of [0.1, 0.2, 0.5, 1, 2, 5, 10, 20, 50, 100, 200, 500, 1000].filter(v => v >= rMin && v <= rMax)) {
@@ -49,7 +49,7 @@ export function runningRoiSvg(price, dateStr = new Date().toISOString().slice(0,
   let xlab = "";
   for (let yr = new Date(xMin).getFullYear(); yr <= new Date(xMax).getFullYear(); yr++) {
     const d = Date.parse(`${yr}-01-01`); if (d < xMin || d > xMax) continue;
-    xlab += `<text x="${x(d).toFixed(1)}" y="${H - 44}" fill="#64748b" font-size="26" text-anchor="middle" font-family="sans-serif">${yr}</text>`;
+    xlab += `<text x="${x(d).toFixed(1)}" y="${H - 44}" fill="#94a3b8" font-size="22" text-anchor="middle" font-family="sans-serif">${yr}</text>`;
   }
   const dc = curRoi >= 1 ? "#4ade80" : "#f87171";
   const pct = Math.round((curRoi - 1) * 100);
@@ -69,10 +69,8 @@ ${brandStripe(H)}
 ${grid}${rtick}${beLine}
 <polygon points="${priceArea}" fill="url(#roiPxFill)"/>
 <polygon points="${roiArea}" fill="url(#roiFill)"/>
-<polyline points="${priceLine}" fill="none" stroke="#38bdf8" stroke-width="9" stroke-opacity="0.18" filter="url(#roiGlow)"/>
-<polyline points="${priceLine}" fill="none" stroke="#38bdf8" stroke-width="3.4" stroke-opacity="0.95" stroke-linejoin="round"/>
-<polyline points="${roiLine}" fill="none" stroke="#f87171" stroke-width="10" stroke-opacity="0.24" filter="url(#roiGlow)"/>
-<polyline points="${roiLine}" fill="none" stroke="#f87171" stroke-width="4.2" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="${priceLine}" fill="none" stroke="#38bdf8" stroke-width="4.6" stroke-opacity="0.95" stroke-linejoin="round"/>
+<polyline points="${roiLine}" fill="none" stroke="#f87171" stroke-width="5.4" stroke-linejoin="round" stroke-linecap="round"/>
 ${xlab}
 <text x="64" y="42" fill="#e2e8f0" font-size="29" font-weight="700" font-family="sans-serif" letter-spacing="1.5">SPX6900 — 365D RUNNING ROI</text>
 <text x="${W - mR}" y="42" fill="${dc}" font-size="27" font-weight="800" font-family="sans-serif" text-anchor="end">${curRoi.toFixed(2)}× · ${pct >= 0 ? "+" : ""}${pct}% (1yr)</text>

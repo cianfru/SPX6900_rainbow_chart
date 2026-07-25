@@ -39,7 +39,7 @@ export function monthlyCompareSvg(price, dateStr = new Date().toISOString().slic
   for (const mo of months) for (const v of [mo.old, mo.now]) if (v != null) maxAbs = Math.max(maxAbs, Math.abs(v));
   const R = Math.ceil(maxAbs / 0.2) * 0.2; // symmetric range, rounded to 20%
 
-  const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 112, mR = 34, mT = 100, mB = 76, pW = W - mL - mR, pH = H - mT - mB;
+  const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 92, mR = 34, mT = 100, mB = 76, pW = W - mL - mR, pH = H - mT - mB;
   const y0 = mT + pH / 2;
   const y = v => mT + ((R - v) / (2 * R)) * pH;
   const groupW = pW / 12;
@@ -52,14 +52,14 @@ export function monthlyCompareSvg(price, dateStr = new Date().toISOString().slic
     if (Math.abs(v) < 1e-9) continue;
     const gy = y(v).toFixed(1);
     grid += `<line x1="${mL}" y1="${gy}" x2="${W - mR}" y2="${gy}" stroke="rgba(255,255,255,0.06)"/>`;
-    grid += `<text x="${mL - 10}" y="${(+gy + 5).toFixed(1)}" fill="#64748b" font-size="24" text-anchor="end" font-family="sans-serif">${v > 0 ? "+" : ""}${Math.round(v * 100)}%</text>`;
+    grid += `<text x="${mL - 10}" y="${(+gy + 5).toFixed(1)}" fill="#94a3b8" font-size="22" text-anchor="end" font-family="sans-serif">${v > 0 ? "+" : ""}${Math.round(v * 100)}%</text>`;
   }
 
   // bars + value labels + month labels
   let bars = "", labels = "", xlab = "";
   months.forEach((mo, i) => {
     const cx = mL + (i + 0.5) * groupW;
-    xlab += `<text x="${cx.toFixed(1)}" y="${H - 44}" fill="#94a3b8" font-size="26" text-anchor="middle" font-family="sans-serif">${mo.name}</text>`;
+    xlab += `<text x="${cx.toFixed(1)}" y="${H - 44}" fill="#94a3b8" font-size="22" text-anchor="middle" font-family="sans-serif">${mo.name}</text>`;
     const draw = (v, bx, color) => {
       if (v == null) return;
       const yv = y(v), top = Math.min(yv, y0), h = Math.max(2, Math.abs(yv - y0));

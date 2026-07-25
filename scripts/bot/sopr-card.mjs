@@ -19,7 +19,7 @@ export function soprSvg(stats, opts = {}) {
   if (raw.length < 50) return null;
   const cur = raw.at(-1), sopr = cur.v;
 
-  const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 116, mR = 92, mT = 152, mB = 92, pW = W - mL - mR, pH = H - mT - mB;
+  const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 96, mR = 92, mT = 152, mB = 92, pW = W - mL - mR, pH = H - mT - mB;
   const t0 = raw[0].ts, t1 = cur.ts;
   // clamp the display so a single spike doesn't flatten the 1.0 line; center on 1.0
   const vals = raw.map(r => r.v);
@@ -38,13 +38,13 @@ export function soprSvg(stats, opts = {}) {
   let grid = "";
   for (const v of [lo, (lo + 1) / 2, 1, (1 + hi) / 2, hi]) {
     const yy = y(v).toFixed(1), is1 = Math.abs(v - 1) < 1e-9;
-    grid += `<text x="${mL - 14}" y="${(+yy + 8).toFixed(1)}" fill="#e2e8f0" font-size="25" font-weight="600" text-anchor="end" font-family="sans-serif">${v.toFixed(2)}</text>`;
+    grid += `<text x="${mL - 14}" y="${(+yy + 8).toFixed(1)}" fill="#94a3b8" font-size="22" text-anchor="end" font-family="sans-serif">${v.toFixed(2)}</text>`;
     if (!is1) grid += `<line x1="${mL}" y1="${yy}" x2="${W - mR}" y2="${yy}" stroke="rgba(255,255,255,0.09)"/>`;
   }
   let xlab = "";
   for (let yr = new Date(t0).getUTCFullYear(); yr <= new Date(t1).getUTCFullYear(); yr++) {
     const t = Date.UTC(yr, 0, 1); if (t < t0 || t > t1) continue;
-    xlab += `<text x="${x(t).toFixed(1)}" y="${H - 46}" fill="#cbd5e1" font-size="26" font-weight="600" text-anchor="middle" font-family="sans-serif">${yr}</text>`;
+    xlab += `<text x="${x(t).toFixed(1)}" y="${H - 46}" fill="#94a3b8" font-size="22" text-anchor="middle" font-family="sans-serif">${yr}</text>`;
   }
 
   const line = raw.map(r => `${x(r.ts).toFixed(1)},${y(r.v).toFixed(1)}`).join(" ");
@@ -67,8 +67,7 @@ ${brandStripe(H)}
 ${zones}${grid}${xlab}${zoneLabels}
 <line x1="${mL}" y1="${oneY.toFixed(1)}" x2="${W - mR}" y2="${oneY.toFixed(1)}" stroke="#f8fafc" stroke-width="2.5" stroke-dasharray="7 6"/>
 <text x="${W - mR - 8}" y="${(oneY - 12).toFixed(1)}" fill="#f8fafc" font-size="22" font-weight="600" text-anchor="end" font-family="sans-serif">break-even 1.0</text>
-<polyline points="${line}" fill="none" stroke="#cbd5e1" stroke-width="11" stroke-opacity="0.22" stroke-linejoin="round" stroke-linecap="round" filter="url(#soglow)"/>
-<polyline points="${line}" fill="none" stroke="#e2e8f0" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="${line}" fill="none" stroke="#e2e8f0" stroke-width="5.2" stroke-linejoin="round" stroke-linecap="round"/>
 <circle cx="${curX.toFixed(1)}" cy="${curY.toFixed(1)}" r="12" fill="${col}" stroke="#05050e" stroke-width="3"/>
 <text x="60" y="${H - 20}" fill="#8592a6" font-size="18" font-family="sans-serif">${esc("spx6900rainbow.xyz · not financial advice · realized value ÷ cost of coins that moved, weekly (FIFO per-lot)")}</text>
 </svg>`;

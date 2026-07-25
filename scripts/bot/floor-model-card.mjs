@@ -27,7 +27,7 @@ export function floorModelSvg(stats, opts = {}) {
   const rpNow = cur.rp;
   const f08 = rpNow * 0.8, f05 = rpNow * 0.5;
 
-  const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 142, mR = 156, mT = 154, mB = 92, pW = W - mL - mR, pH = H - mT - mB;
+  const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 120, mR = 156, mT = 122, mB = 92, pW = W - mL - mR, pH = H - mT - mB;
   const t0 = raw[0].t, t1 = cur.t;
   const x = t => mL + ((t - t0) / ((t1 - t0) || 1)) * pW;
 
@@ -59,12 +59,12 @@ export function floorModelSvg(stats, opts = {}) {
   let grid = "";
   for (const v of [0.001, 0.003, 0.01, 0.03, 0.1, 0.3, 1].filter(v => v >= lo && v <= hi)) {
     const yy = y(v).toFixed(1);
-    grid += `<line x1="${mL}" y1="${yy}" x2="${W - mR}" y2="${yy}" stroke="rgba(255,255,255,0.10)"/><text x="${mL - 14}" y="${(+yy + 8).toFixed(1)}" fill="#cbd5e1" font-size="26" font-weight="600" text-anchor="end" font-family="sans-serif">${fP(v)}</text>`;
+    grid += `<line x1="${mL}" y1="${yy}" x2="${W - mR}" y2="${yy}" stroke="rgba(255,255,255,0.10)"/><text x="${mL - 14}" y="${(+yy + 8).toFixed(1)}" fill="#94a3b8" font-size="22" text-anchor="end" font-family="sans-serif">${fP(v)}</text>`;
   }
   let xlab = "";
   for (let yr = new Date(t0).getUTCFullYear(); yr <= new Date(t1).getUTCFullYear(); yr++) {
     const t = Date.UTC(yr, 0, 1); if (t < t0 || t > t1) continue;
-    xlab += `<text x="${x(t).toFixed(1)}" y="${H - 46}" fill="#cbd5e1" font-size="26" font-weight="600" text-anchor="middle" font-family="sans-serif">${yr}</text>`;
+    xlab += `<text x="${x(t).toFixed(1)}" y="${H - 46}" fill="#94a3b8" font-size="22" text-anchor="middle" font-family="sans-serif">${yr}</text>`;
   }
 
   const curX = x(t1), curY = y(spotNow);
@@ -100,8 +100,7 @@ export function floorModelSvg(stats, opts = {}) {
 <rect width="${W}" height="${H}" fill="url(#fmcool)"/>
 ${brandStripe(H)}
 <text x="60" y="56" fill="#e2e8f0" font-size="35" font-weight="800" font-family="sans-serif" letter-spacing="1">SPX6900 — REALIZED PRICE &amp; FLOOR</text>
-<text x="60" y="90" fill="#94a3b8" font-size="21" font-family="sans-serif">Where has price kept finding a floor vs what holders paid?</text>
-<text x="60" y="130" fill="${SPOT_C}" font-size="27" font-weight="800" font-family="sans-serif">${fP(spotNow)} spot · ${fP(rpNow)} cost basis — ${esc(state)}</text>
+<text x="60" y="100" fill="${SPOT_C}" font-size="27" font-weight="800" font-family="sans-serif">${fP(spotNow)} spot · ${fP(rpNow)} cost basis — ${esc(state)}</text>
 <polygon points="${richPoly}" fill="url(#fmRich)"/>
 <polygon points="${deepPoly}" fill="url(#fmDeep)"/>
 ${grid}${xlab}
@@ -109,8 +108,7 @@ ${grid}${xlab}
 <polyline points="${up08}" fill="none" stroke="${FLOOR_C}" stroke-width="2.5" stroke-opacity="0.9" stroke-dasharray="6 6"/>
 <polyline points="${up05}" fill="none" stroke="${DEEP_C}" stroke-width="2.5" stroke-opacity="0.85" stroke-dasharray="4 7"/>
 <polyline points="${rpLine}" fill="none" stroke="${RP_C}" stroke-width="3.5" stroke-linejoin="round" stroke-linecap="round"/>
-<polyline points="${spotLine}" fill="none" stroke="${SPOT_C}" stroke-width="8" stroke-opacity="0.20" stroke-linejoin="round" stroke-linecap="round" filter="url(#fmglow)"/>
-<polyline points="${spotLine}" fill="none" stroke="${SPOT_C}" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="${spotLine}" fill="none" stroke="${SPOT_C}" stroke-width="4.2" stroke-linejoin="round" stroke-linecap="round"/>
 ${lbl(rpNow, RP_C, "realized")}
 ${lbl(f08, FLOOR_C, "0.8×")}
 ${lbl(f05, DEEP_C, "0.5× floor")}

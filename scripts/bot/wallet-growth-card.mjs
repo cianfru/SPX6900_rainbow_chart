@@ -25,7 +25,7 @@ export function walletGrowthSvg(stats, opts = {}) {
   const cur = raw.at(-1), total = cur.eth + cur.base + cur.sol, first = raw[0];
   const startTotal = first.eth + first.base + first.sol;
 
-  const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 96, mR = 208, mT = 128, mB = 92, pW = W - mL - mR, pH = H - mT - mB;
+  const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 94, mR = 208, mT = 128, mB = 92, pW = W - mL - mR, pH = H - mT - mB;
   const t0 = raw[0].ts, t1 = cur.ts;
   const x = t => mL + ((t - t0) / ((t1 - t0) || 1)) * pW;
   const yMax = Math.ceil((total * 1.06) / 25000) * 25000; // headroom, round to 25k
@@ -47,7 +47,7 @@ export function walletGrowthSvg(stats, opts = {}) {
   let xlab = "";
   for (let yr = new Date(t0).getUTCFullYear(); yr <= new Date(t1).getUTCFullYear(); yr++) {
     const t = Date.UTC(yr, 0, 1); if (t < t0 || t > t1) continue;
-    xlab += `<text x="${x(t).toFixed(1)}" y="${H - 48}" fill="#a3aec0" font-size="24" text-anchor="middle" font-family="sans-serif">${yr}</text>`;
+    xlab += `<text x="${x(t).toFixed(1)}" y="${H - 48}" fill="#94a3b8" font-size="22" text-anchor="middle" font-family="sans-serif">${yr}</text>`;
   }
   // right-edge legend: current per-chain count at its band mid-height
   let legend = "";

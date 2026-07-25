@@ -254,8 +254,7 @@ export function chainRaceSvg(stats, opts = {}) {
   let lines = "", dots = "", endlab = "";
   for (const s of series) {
     const pts = s.pts.map(p => [x(p.ts), y(p.pct)]);
-    lines += `<path d="${smooth(pts)}" fill="none" stroke="${s.c}" stroke-width="11" stroke-opacity="0.16" filter="url(#crG)"/>`;
-    lines += `<path d="${smooth(pts)}" fill="none" stroke="${s.c}" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"/>`;
+    lines += `<path d="${smooth(pts)}" fill="none" stroke="${s.c}" stroke-width="6.2" stroke-linejoin="round" stroke-linecap="round"/>`;
     const last = pts.at(-1);
     dots += `<circle cx="${last[0].toFixed(1)}" cy="${last[1].toFixed(1)}" r="7" fill="${s.c}" stroke="#05050e" stroke-width="2"/>`;
   }

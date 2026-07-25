@@ -76,8 +76,7 @@ export function spxMoversSvg(opts = {}) {
   let lines = "", ends = "";
   S.forEach(s => {
     const pline = s.pts.map(p => `${x(p.ts).toFixed(1)},${y(p.m).toFixed(1)}`).join(" ");
-    lines += `<polyline points="${pline}" fill="none" stroke="${s.c}" stroke-width="6" stroke-opacity="0.14" stroke-linejoin="round" filter="url(#mvglow)"/>`
-      + `<polyline points="${pline}" fill="none" stroke="${s.c}" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>`;
+    lines += `<polyline points="${pline}" fill="none" stroke="${s.c}" stroke-width="3.4" stroke-linejoin="round" stroke-linecap="round"/>`;
     ends += `<circle cx="${x(s.launchTs).toFixed(1)}" cy="${y(1).toFixed(1)}" r="4" fill="${s.c}" fill-opacity="0.7"/>`
       + `<circle cx="${x(s.peak.ts).toFixed(1)}" cy="${y(s.peak.m).toFixed(1)}" r="4.5" fill="${s.c}" fill-opacity="0.55"/>`
       + `<circle cx="${x(s.lastTs).toFixed(1)}" cy="${y(s.now).toFixed(1)}" r="7" fill="${s.c}" stroke="#05050e" stroke-width="2"/>`;
@@ -102,8 +101,7 @@ export function spxMoversSvg(opts = {}) {
 </defs>
 <rect width="${W}" height="${H}" fill="url(#mvbg)"/>
 <text x="60" y="56" fill="#e2e8f0" font-size="35" font-weight="800" font-family="sans-serif" letter-spacing="1">SPX6900 vs ITS CLOSEST MOVERS</text>
-<text x="60" y="90" fill="#94a3b8" font-size="21" font-family="sans-serif">The two coins that trade most like SPX — one timeline, each from its launch.</text>
-<text x="60" y="128" fill="#f8fafc" font-size="${heroFs}" font-weight="800" font-family="sans-serif">Same daily heartbeat — <tspan fill="${spx.c}">wildly</tspan> different destinies.</text>
+<text x="60" y="100" fill="#f8fafc" font-size="${heroFs}" font-weight="800" font-family="sans-serif">Same daily heartbeat — <tspan fill="${spx.c}">wildly</tspan> different destinies.</text>
 ${grid}${xlab}
 <text x="${W - mR + 8}" y="${(+y1 + 5).toFixed(1)}" fill="#cbd5e1" font-size="15" font-family="sans-serif">launch</text>
 ${lines}${ends}${legend}

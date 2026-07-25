@@ -71,8 +71,7 @@ ${brandStripe(H)}
 ${grid}${xlab}
 <path d="${pPath}" fill="none" stroke="${PRICE}" stroke-width="4.5" stroke-opacity="0.95" stroke-linejoin="round"/>
 <path d="${hArea}" fill="url(#hgFill)"/>
-<path d="${hPath}" fill="none" stroke="${HOLD}" stroke-width="12" stroke-opacity="0.22" filter="url(#hgG)"/>
-<path d="${hPath}" fill="none" stroke="${HOLD}" stroke-width="6" stroke-linejoin="round"/>
+<path d="${hPath}" fill="none" stroke="${HOLD}" stroke-width="7.2" stroke-linejoin="round"/>
 <circle cx="${x(cur.ts).toFixed(1)}" cy="${yH(cur.holders).toFixed(1)}" r="8" fill="${HOLD}" stroke="#05050e" stroke-width="2"/>
 <text x="64" y="50" fill="#e2e8f0" font-size="30" font-weight="800" font-family="sans-serif" letter-spacing="1">SPX6900 — HOLDER GROWTH</text>
 <text x="${W - 60}" y="46" fill="${HOLD}" font-size="28" font-weight="800" font-family="sans-serif" text-anchor="end">${grew >= 0 ? "+" : ""}${grew.toLocaleString()} wallets (${grew >= 0 ? "+" : ""}${(100 * grew / first.holders).toFixed(1)}%)</text>

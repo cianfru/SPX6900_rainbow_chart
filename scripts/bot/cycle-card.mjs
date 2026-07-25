@@ -32,7 +32,7 @@ export function cycleSyncSvg(price, dateStr = new Date().toISOString().slice(0, 
   // coin sits on the live dot at the end of the green line, not weeks behind it.
   const nowTs = spx.at(-1).ts, nowPrice = spx.at(-1).price;
 
-  const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 124, mR = 92, mT = 92, mB = 70, pW = W - mL - mR, pH = H - mT - mB;
+  const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 116, mR = 92, mT = 92, mB = 70, pW = W - mL - mR, pH = H - mT - mB;
   const xMin = SPX0, xMax = c.histFwd.at(-1)?.[0] ?? anchorTs;
   const x = t => mL + ((t - xMin) / ((xMax - xMin) || 1)) * pW;
 
@@ -70,7 +70,7 @@ export function cycleSyncSvg(price, dateStr = new Date().toISOString().slice(0, 
   let xlab = "";
   for (let yr = new Date(xMin).getFullYear(); yr <= new Date(xMax).getFullYear(); yr++) {
     const d = Date.parse(`${yr}-01-01`); if (d < xMin || d > xMax) continue;
-    xlab += `<text x="${x(d).toFixed(1)}" y="${H - 42}" fill="#64748b" font-size="26" text-anchor="middle" font-family="sans-serif">${yr}</text>`;
+    xlab += `<text x="${x(d).toFixed(1)}" y="${H - 42}" fill="#94a3b8" font-size="22" text-anchor="middle" font-family="sans-serif">${yr}</text>`;
   }
 
   // Split BTC solid/dashed at ACTUAL today (not the frozen anchor) so the dashed
@@ -112,12 +112,10 @@ export function cycleSyncSvg(price, dateStr = new Date().toISOString().slice(0, 
 ${brandStripe(H)}
 ${grid}${guides}
 <polygon points="${spxArea}" fill="url(#cySpxFill)"/>
-<polyline points="${btcSolid}" fill="none" stroke="#f7931a" stroke-width="9" stroke-opacity="0.18" filter="url(#cyGlow)"/>
-<polyline points="${btcSolid}" fill="none" stroke="#f7931a" stroke-width="3" stroke-opacity="0.95"/>
+<polyline points="${btcSolid}" fill="none" stroke="#f7931a" stroke-width="4.2" stroke-opacity="0.95"/>
 <polyline points="${btcDash}" fill="none" stroke="#f7931a" stroke-width="3" stroke-opacity="0.85" stroke-dasharray="7 6"/>
 ${dots}
-<polyline points="${spxLine}" fill="none" stroke="#4ade80" stroke-width="10" stroke-opacity="0.2" filter="url(#cyGlow)"/>
-<polyline points="${spxLine}" fill="none" stroke="#4ade80" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="${spxLine}" fill="none" stroke="#4ade80" stroke-width="5.2" stroke-linejoin="round" stroke-linecap="round"/>
 ${endCoin("btc", bx, by, "#f7931a")}
 ${endCoin("spx", sx, sy, "#4ade80")}
 ${xlab}
@@ -151,7 +149,7 @@ export function cycleClockSvg(price, dateStr = new Date().toISOString().slice(0,
   const hist = src.map(r => ({ ts: new Date(r.date).getTime(), price: r.price })).filter(p => p.ts <= nowTs).sort((a, b) => a.ts - b.ts);
   if (!hist.length || hist.at(-1).ts < nowTs) hist.push({ ts: nowTs, price });
 
-  const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 124, mR = 96, mT = 96, mB = 150;
+  const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 116, mR = 96, mT = 96, mB = 150;
   const plotBot = H - mB, pW = W - mL - mR, pH = plotBot - mT;
   const xMin = hist[0].ts, xMax = c.projPts.at(-1)[0];
   const x = t => mL + ((t - xMin) / ((xMax - xMin) || 1)) * pW;
@@ -167,7 +165,7 @@ export function cycleClockSvg(price, dateStr = new Date().toISOString().slice(0,
   for (const t of [0.001, 0.01, 0.1, 1, 10, 100].filter(v => v >= yMin && v <= yMax)) {
     const yy = y(t).toFixed(1);
     grid += `<line x1="${mL}" y1="${yy}" x2="${mL + pW}" y2="${yy}" stroke="rgba(255,255,255,0.05)"/>`;
-    grid += `<text x="${mL - 10}" y="${(+yy + 5).toFixed(1)}" fill="#64748b" font-size="24" text-anchor="end" font-family="sans-serif">${fDollar(t)}</text>`;
+    grid += `<text x="${mL - 10}" y="${(+yy + 5).toFixed(1)}" fill="#94a3b8" font-size="22" text-anchor="end" font-family="sans-serif">${fDollar(t)}</text>`;
   }
   // recognisable meme-target reference lines (scale anchors)
   let tgt = "";
@@ -224,11 +222,9 @@ export function cycleClockSvg(price, dateStr = new Date().toISOString().slice(0,
 ${brandStripe(H)}
 ${grid}${tgt}${xlab}
 ${cone}
-<polyline points="${projLine}" fill="none" stroke="#f7931a" stroke-width="9" stroke-opacity="0.18" filter="url(#ccGlow)"/>
-<polyline points="${projLine}" fill="none" stroke="#f7931a" stroke-width="3.4" stroke-opacity="0.95" stroke-dasharray="9 7" stroke-linecap="round"/>
+<polyline points="${projLine}" fill="none" stroke="#f7931a" stroke-width="4.6" stroke-opacity="0.95" stroke-dasharray="9 7" stroke-linecap="round"/>
 <polygon points="${histArea}" fill="url(#ccHist)"/>
-<polyline points="${histLine}" fill="none" stroke="#4ade80" stroke-width="9" stroke-opacity="0.18" filter="url(#ccGlow)"/>
-<polyline points="${histLine}" fill="none" stroke="#4ade80" stroke-width="3.4" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="${histLine}" fill="none" stroke="#4ade80" stroke-width="4.6" stroke-linejoin="round" stroke-linecap="round"/>
 <line x1="${nx.toFixed(1)}" y1="${mT}" x2="${nx.toFixed(1)}" y2="${plotBot}" stroke="rgba(226,232,240,0.5)" stroke-dasharray="5 5"/>
 <text x="${(nx).toFixed(1)}" y="${(mT - 8).toFixed(1)}" fill="#e2e8f0" font-size="18" font-weight="800" text-anchor="middle" font-family="sans-serif">▼ YOU ARE HERE</text>
 <circle cx="${peakX.toFixed(1)}" cy="${peakY.toFixed(1)}" r="7" fill="#f7931a" stroke="#fff" stroke-width="2"/>

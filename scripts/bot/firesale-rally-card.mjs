@@ -45,7 +45,7 @@ export function fireSaleRallySvg(stats, opts = {}) {
   const step = maxDay > 240 ? 60 : maxDay > 120 ? 30 : 15;
   for (let d = 0; d <= maxDay; d += step) {
     xlab += `<line x1="${x(d).toFixed(1)}" y1="${iB}" x2="${x(d).toFixed(1)}" y2="${iB + 6}" stroke="rgba(255,255,255,0.2)"/>`;
-    xlab += `<text x="${x(d).toFixed(1)}" y="${iB + 34}" fill="#64748b" font-size="23" text-anchor="middle" font-family="sans-serif">${d}d</text>`;
+    xlab += `<text x="${x(d).toFixed(1)}" y="${iB + 34}" fill="#94a3b8" font-size="22" text-anchor="middle" font-family="sans-serif">${d}d</text>`;
   }
 
   let lines = "", dots = "", glow = "";
@@ -53,7 +53,6 @@ export function fireSaleRallySvg(stats, opts = {}) {
     const col = colorFor(i);
     const pts = c.points.map(p => `${x(p.day).toFixed(1)},${y(p.gain + 1).toFixed(1)}`).join(" ");
     const last = c.points.at(-1);
-    if (c.live) glow += `<polyline points="${pts}" fill="none" stroke="${col}" stroke-width="11" stroke-opacity="0.18" filter="url(#fsg)"/>`;
     lines += `<polyline points="${pts}" fill="none" stroke="${col}" stroke-width="${c.live ? 5 : 3.5}" stroke-linejoin="round" stroke-opacity="0.95"/>`;
     dots += `<circle cx="${x(last.day).toFixed(1)}" cy="${y(last.gain + 1).toFixed(1)}" r="6" fill="${col}" stroke="#05050e" stroke-width="2"/>`;
     dots += `<text x="${(x(last.day) + 10).toFixed(1)}" y="${(y(last.gain + 1) + 8).toFixed(1)}" fill="${col}" font-size="21" font-weight="700" font-family="sans-serif">${fMult(last.gain + 1)}</text>`;

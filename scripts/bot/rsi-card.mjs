@@ -81,12 +81,12 @@ export function rsiDotsSvg(price, dateStr = new Date().toISOString().slice(0, 10
   for (const t of [0.0001, 0.001, 0.01, 0.1, 1, 10].filter(v => v >= yMin && v <= yMax)) {
     const yy = y(t).toFixed(1);
     grid += `<line x1="${mL}" y1="${yy}" x2="${W - mR}" y2="${yy}" stroke="rgba(255,255,255,0.06)"/>`;
-    grid += `<text x="${mL - 12}" y="${(+yy + 5).toFixed(1)}" fill="#64748b" font-size="26" text-anchor="end" font-family="sans-serif">$${t < 1 ? t : t.toLocaleString()}</text>`;
+    grid += `<text x="${mL - 12}" y="${(+yy + 5).toFixed(1)}" fill="#94a3b8" font-size="22" text-anchor="end" font-family="sans-serif">$${t < 1 ? t : t.toLocaleString()}</text>`;
   }
   let xlab = "";
   for (let yr = new Date(xMin).getUTCFullYear(); yr <= new Date(xMax).getUTCFullYear(); yr++) {
     const d = Date.UTC(yr, 0, 1); if (d < xMin || d > xMax) continue;
-    xlab += `<text x="${x(d).toFixed(1)}" y="${H - 42}" fill="#64748b" font-size="26" text-anchor="middle" font-family="sans-serif">${yr}</text>`;
+    xlab += `<text x="${x(d).toFixed(1)}" y="${H - 42}" fill="#94a3b8" font-size="22" text-anchor="middle" font-family="sans-serif">${yr}</text>`;
   }
 
   // RSI colour legend (vertical bar, blue bottom → red top), PlanB-style
@@ -101,7 +101,7 @@ export function rsiDotsSvg(price, dateStr = new Date().toISOString().slice(0, 10
   const legend = `<rect x="${lbX}" y="${lbTop}" width="${lbW}" height="${(lbBot - lbTop).toFixed(1)}" fill="url(#rsiBar)" rx="4"/>`
     + `<rect x="${lbX}" y="${lbTop}" width="${lbW}" height="${(lbBot - lbTop).toFixed(1)}" fill="none" stroke="rgba(255,255,255,0.18)" rx="4"/>`
     + legTicks
-    + `<text x="${lbX - 6}" y="${(lbTop + pH / 2).toFixed(1)}" fill="#94a3b8" font-size="23" font-family="sans-serif" text-anchor="middle" transform="rotate(-90 ${lbX - 6} ${(lbTop + pH / 2).toFixed(1)})">RSI (6mo)</text>`;
+    + `<text x="${lbX - 6}" y="${(lbTop + pH / 2).toFixed(1)}" fill="#94a3b8" font-size="22" font-family="sans-serif" text-anchor="middle" transform="rotate(-90 ${lbX - 6} ${(lbTop + pH / 2).toFixed(1)})">RSI (6mo)</text>`;
 
   // faint connector under the dots so the eye follows the monthly path
   const connector = raw.filter(p => p.ts >= xMin).map(p => `${x(p.ts).toFixed(1)},${y(p.price).toFixed(1)}`).join(" ");

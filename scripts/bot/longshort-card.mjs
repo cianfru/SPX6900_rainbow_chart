@@ -50,7 +50,7 @@ export function longShortSvg(stats, opts = {}) {
   }
   // price $ labels (left)
   for (const t of [0.0001, 0.001, 0.01, 0.1, 1, 10].filter(v => v >= pMin && v <= pMax)) {
-    grid += `<text x="${mL - 10}" y="${(yP(t) + 5).toFixed(1)}" fill="#64748b" font-size="24" text-anchor="end" font-family="sans-serif">$${t < 1 ? t : t.toLocaleString()}</text>`;
+    grid += `<text x="${mL - 10}" y="${(yP(t) + 5).toFixed(1)}" fill="#94a3b8" font-size="22" text-anchor="end" font-family="sans-serif">$${t < 1 ? t : t.toLocaleString()}</text>`;
   }
 
   const bw = Math.max(1.2, (W - mL - mR) / (Math.max(2, rows.length) - 1) + 0.6);
@@ -69,7 +69,7 @@ export function longShortSvg(stats, opts = {}) {
   const d0 = new Date(xMin);
   for (let m = new Date(Date.UTC(d0.getUTCFullYear(), d0.getUTCMonth(), 1)); m.getTime() <= xMax; m = new Date(Date.UTC(m.getUTCFullYear(), m.getUTCMonth() + 1, 1))) {
     if (m.getTime() < xMin - 10 * 86400000) continue;
-    xlab += `<text x="${x(m.getTime()).toFixed(1)}" y="${H - 42}" fill="#64748b" font-size="24" text-anchor="middle" font-family="sans-serif">${m.toLocaleDateString("en-US", { month: "short", year: "2-digit" })}</text>`;
+    xlab += `<text x="${x(m.getTime()).toFixed(1)}" y="${H - 42}" fill="#94a3b8" font-size="22" text-anchor="middle" font-family="sans-serif">${m.toLocaleDateString("en-US", { month: "short", year: "2-digit" })}</text>`;
   }
 
   const dc = cur.dev >= 0 ? LONG : SHORT;
@@ -81,8 +81,7 @@ export function longShortSvg(stats, opts = {}) {
 ${brandStripe(H)}
 ${grid}
 ${bars}${pivot}
-<polyline points="${priceLine}" fill="none" stroke="${PRICE}" stroke-width="9" stroke-opacity="0.16" filter="url(#lsGlow)"/>
-<polyline points="${priceLine}" fill="none" stroke="${PRICE}" stroke-width="3.4" stroke-linejoin="round"/>
+<polyline points="${priceLine}" fill="none" stroke="${PRICE}" stroke-width="4.6" stroke-linejoin="round"/>
 ${xlab}
 <text x="64" y="42" fill="#e2e8f0" font-size="29" font-weight="700" font-family="sans-serif" letter-spacing="1.5">SPX6900 — ON-CHAIN POSITIONING</text>
 <text x="${W - mR + 24}" y="42" fill="${dc}" font-size="27" font-weight="800" font-family="sans-serif" text-anchor="end">${fPct(cur.dev)} vs neutral</text>

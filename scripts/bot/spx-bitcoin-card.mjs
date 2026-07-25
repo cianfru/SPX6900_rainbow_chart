@@ -87,12 +87,10 @@ export function spxBitcoinSvg(opts = {}) {
 <rect width="${W}" height="${H}" fill="url(#sbbg)"/>
 ${brandStripe(H)}
 <text x="60" y="56" fill="#e2e8f0" font-size="36" font-weight="800" font-family="sans-serif" letter-spacing="1">SPX6900 <tspan fill="#64748b">×</tspan> BITCOIN</text>
-<text x="60" y="90" fill="#94a3b8" font-size="21" font-family="sans-serif">The coin that moves most like SPX — and where each one ended up.</text>
-<text x="60" y="128" fill="#f8fafc" font-size="${heroFs}" font-weight="800" font-family="sans-serif">Same daily heartbeat — <tspan fill="${GRN}">${sameDir}% of days move together</tspan> — opposite fate.</text>
+<text x="60" y="100" fill="#f8fafc" font-size="${heroFs}" font-weight="800" font-family="sans-serif">Same daily heartbeat — <tspan fill="${GRN}">${sameDir}% of days move together</tspan> — opposite fate.</text>
 
 <polyline points="${lineOf(bV, yB)}" fill="none" stroke="${BTC_C}" stroke-width="2.4" stroke-opacity="0.9" stroke-linejoin="round"/>
-<polyline points="${lineOf(sV, yS)}" fill="none" stroke="${SPX_C}" stroke-width="7" stroke-opacity="0.16" stroke-linejoin="round" filter="url(#sbglow)"/>
-<polyline points="${lineOf(sV, yS)}" fill="none" stroke="${SPX_C}" stroke-width="3" stroke-linejoin="round"/>
+<polyline points="${lineOf(sV, yS)}" fill="none" stroke="${SPX_C}" stroke-width="4.2" stroke-linejoin="round"/>
 
 <!-- legend (top-right, inside panel where both lines sit low) -->
 <line x1="${W - mR - 246}" y1="${pT + 18}" x2="${W - mR - 220}" y2="${pT + 18}" stroke="${SPX_C}" stroke-width="4"/><text x="${W - mR - 214}" y="${pT + 24}" fill="${SPX_C}" font-size="18" font-weight="700" font-family="sans-serif">SPX6900</text>

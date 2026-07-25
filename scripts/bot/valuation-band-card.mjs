@@ -15,7 +15,7 @@ export function valuationBandSvg(stats, opts = {}) {
   const { series, cur } = valuationComposite(stats);
   if (!series || series.length < 40 || !cur) return null;
 
-  const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 92, mR = 196;
+  const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 78, mR = 196;
   const pT = 170, pB = H - 84, pW = W - mL - mR;
   const t0 = series[0].ts, t1 = series.at(-1).ts;
   const X = t => mL + ((t - t0) / ((t1 - t0) || 1)) * pW;
@@ -62,8 +62,7 @@ ${brandStripe(H)}
 <text x="52" y="114" font-size="15.5" font-family="sans-serif" fill="#7c8aa3" textLength="${W - 260}" lengthAdjust="spacingAndGlyphs">${esc(`weighted basket: ${wlist}`)}</text>
 ${bands}${grid}${xl}
 <polyline points="${line}" fill="none" stroke="#000000" stroke-width="7.5" stroke-opacity="0.55" stroke-linejoin="round"/>
-<polyline points="${line}" fill="none" stroke="#ffffff" stroke-width="10" stroke-opacity="0.35" filter="url(#vbglow)"/>
-<polyline points="${line}" fill="none" stroke="#ffffff" stroke-width="3.6" stroke-linejoin="round"/>
+<polyline points="${line}" fill="none" stroke="#ffffff" stroke-width="4.8" stroke-linejoin="round"/>
 <circle cx="${X(t1).toFixed(1)}" cy="${Y(cur.composite).toFixed(1)}" r="11" fill="${z.color}" filter="url(#vbglow)" fill-opacity="0.9"/>
 <circle cx="${X(t1).toFixed(1)}" cy="${Y(cur.composite).toFixed(1)}" r="8.5" fill="${z.color}" stroke="#ffffff" stroke-width="2.5"/>
 <text x="52" y="${H - 22}" fill="#64748b" font-size="16" font-family="sans-serif">spx6900rainbow.xyz · each lens percentile-ranked over its own history, then weighted · a valuation position, not a signal</text>

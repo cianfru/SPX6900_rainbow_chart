@@ -12,7 +12,7 @@ const png = (svg, w) => new Resvg(svg, { fitTo: { mode: "width", value: w }, fon
 const F = "sans-serif";
 const bg = (W, H, id, theme) => `<defs>${aeonBgDefs(id, theme)}</defs>${aeonBgRects(W, H, id)}`;
 const rows = data => (data.series || []).filter(r => r && r.owners > 0).map(r => ({ ...r, ts: Date.parse(r.d) }));
-const yearLabels = (t0, t1, x, yPix) => { let s = ""; for (let yr = new Date(t0).getUTCFullYear(); yr <= new Date(t1).getUTCFullYear(); yr++) { const t = Date.UTC(yr, 0, 1); if (t < t0 || t > t1) continue; s += `<text x="${x(t).toFixed(1)}" y="${yPix}" fill="#a3aec0" font-size="24" text-anchor="middle" font-family="${F}">${yr}</text>`; } return s; };
+const yearLabels = (t0, t1, x, yPix) => { let s = ""; for (let yr = new Date(t0).getUTCFullYear(); yr <= new Date(t1).getUTCFullYear(); yr++) { const t = Date.UTC(yr, 0, 1); if (t < t0 || t > t1) continue; s += `<text x="${x(t).toFixed(1)}" y="${yPix}" fill="#94a3b8" font-size="22" text-anchor="middle" font-family="${F}">${yr}</text>`; } return s; };
 
 // ── Owners over time, stacked by holding tier ──────────────────────────────
 const TIERS = [

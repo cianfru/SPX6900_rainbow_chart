@@ -29,7 +29,7 @@ export function nuplSvg(stats, opts = {}) {
   const pts = raw.map(r => ({ ts: r.ts, nupl: 1 - 1 / r.mvrv }));
   const cur = pts.at(-1), curN = cur.nupl, [, zLabel, zCol] = zoneOf(curN);
 
-  const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 110, mR = 158, mT = 148, mB = 92, pW = W - mL - mR, pH = H - mT - mB;
+  const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 92, mR = 158, mT = 148, mB = 92, pW = W - mL - mR, pH = H - mT - mB;
   const t0 = pts[0].ts, t1 = cur.ts;
   const x = t => mL + ((t - t0) / ((t1 - t0) || 1)) * pW;
   const yMin = -1, yMax = 0.95; // clip the display; SPX overshoots (hero shows true value)
@@ -46,10 +46,10 @@ export function nuplSvg(stats, opts = {}) {
   let grid = "";
   for (const v of [-1, -0.5, 0, 0.5]) {
     const yy = y(v).toFixed(1);
-    grid += `<text x="${mL - 14}" y="${(+yy + 8).toFixed(1)}" fill="#e2e8f0" font-size="27" font-weight="600" text-anchor="end" font-family="sans-serif">${v > 0 ? "+" : ""}${v}</text>`;
+    grid += `<text x="${mL - 14}" y="${(+yy + 8).toFixed(1)}" fill="#94a3b8" font-size="22" text-anchor="end" font-family="sans-serif">${v > 0 ? "+" : ""}${v}</text>`;
   }
   let xlab = "";
-  for (let yr = fYr(t0); yr <= fYr(t1); yr++) { const t = Date.UTC(yr, 0, 1); if (t < t0 || t > t1) continue; xlab += `<text x="${x(t).toFixed(1)}" y="${H - 46}" fill="#cbd5e1" font-size="26" font-weight="600" text-anchor="middle" font-family="sans-serif">${yr}</text>`; }
+  for (let yr = fYr(t0); yr <= fYr(t1); yr++) { const t = Date.UTC(yr, 0, 1); if (t < t0 || t > t1) continue; xlab += `<text x="${x(t).toFixed(1)}" y="${H - 46}" fill="#94a3b8" font-size="22" text-anchor="middle" font-family="sans-serif">${yr}</text>`; }
 
   const line = pts.map(p => `${x(p.ts).toFixed(1)},${y(p.nupl).toFixed(1)}`).join(" ");
   const y0 = y(0).toFixed(1);
@@ -68,8 +68,7 @@ ${brandStripe(H)}
 ${zones}${labels}${grid}${xlab}
 <line x1="${mL}" y1="${y0}" x2="${W - mR}" y2="${y0}" stroke="#e2e8f0" stroke-width="2" stroke-opacity="0.8" stroke-dasharray="6 5"/>
 <text x="${W - mR - 10}" y="${(+y0 - 12).toFixed(1)}" fill="#e2e8f0" font-size="21" font-weight="700" text-anchor="end" font-family="sans-serif">break-even (0)</text>
-<polyline points="${line}" fill="none" stroke="#f8fafc" stroke-width="8" stroke-opacity="0.16" stroke-linejoin="round" filter="url(#nglow)"/>
-<polyline points="${line}" fill="none" stroke="#f8fafc" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="${line}" fill="none" stroke="#f8fafc" stroke-width="4.2" stroke-linejoin="round" stroke-linecap="round"/>
 <circle cx="${curX.toFixed(1)}" cy="${curY.toFixed(1)}" r="9" fill="${zCol}" stroke="#05050e" stroke-width="2"/>
 <text x="${(curX - 16).toFixed(1)}" y="${(curY + (curN < -0.4 ? -16 : 34)).toFixed(1)}" fill="${zCol}" font-size="22" font-weight="800" text-anchor="end" font-family="sans-serif">now</text>
 <text x="60" y="${H - 20}" fill="#6b7688" font-size="17" font-family="sans-serif">${esc("spx6900rainbow.xyz · not financial advice · NUPL = 1 − realized price ÷ price · on-chain · reproducible")}</text>

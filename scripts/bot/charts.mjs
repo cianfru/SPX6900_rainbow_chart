@@ -49,7 +49,7 @@ import { brandStripe } from "./chrome.mjs";
 // Landscape card is 3:2. mL has to clear the WIDEST y-axis label at 30px — "1,000×" and
 // "+1000%" both run ~100px, and at the old 120 the leading digit was clipped off the left
 // edge of the card (visible on btcage/ethage/chainrace).
-const W = 1200, H = 800, mL = 136, mR = 48, mT = 188, mB = 76;
+const W = 1200, H = 800, mL = 122, mR = 48, mT = 186, mB = 84;
 const pW = W - mL - mR, pH = H - mT - mB;
 // Per-card canvas geometry. Defaults to the 3:2 landscape; callers (e.g. the OG
 // link-unfurl endpoint) can pass {W,H} to render the same card at another size.
@@ -66,14 +66,11 @@ const ADV = ch => ch === "." ? 0.32 : ch === "," ? 0.34 : ch === "%" ? 0.95 : ch
 const textW = (s, f) => f * [...String(s)].reduce((a, c) => a + ADV(c), 0);
 const AXIS_GAP = 12;      // label right edge → plot left edge
 const AXIS_INSET = 14;    // clearance kept between the label and the brand stripe
-const fitAxisFont = (labels, base = 30, min = 20) => {
+const fitAxisFont = (labels, base = 22, min = 17) => {
   const avail = mL - AXIS_GAP - AXIS_INSET;
   const widest = Math.max(0, ...labels.map(l => textW(l, base)));
   return widest <= avail ? base : Math.max(min, Math.floor(base * (avail / widest)));
 };
-// An x tick sitting on the plot edge, centred, spills into the y-axis label column
-// (sp500ytd printed "2026" straight through "-60%"). Anchor the end ticks inward.
-const xAnchor = (px, DW, given) => given || (px - mL < 34 ? "start" : DW - mR - px < 34 ? "end" : "middle");
 const png = (svg, w = W) => new Resvg(svg, { fitTo: { mode: "width", value: w }, font: FONT }).render().asPng();
 
 // "[logo] vs [logo] = result" header — sharp + colorful, replaces the wordy title.
@@ -112,7 +109,7 @@ function chromeSvg(spec, inner, extraDefs = "", dims) {
 <rect width="${DW}" height="${DH}" fill="url(#g)"/>
 ${brandStripe(DH)}
 <text x="64" y="52" fill="#cbd5e1" font-size="30" font-weight="800" letter-spacing="3" font-family="sans-serif">SPX6900</text>
-<text x="${DW - 64}" y="52" fill="#64748b" font-size="23" text-anchor="end" font-family="sans-serif">${esc(spec.date || "")}</text>
+<text x="${DW - 64}" y="52" fill="#94a3b8" font-size="22" text-anchor="end" font-family="sans-serif">${esc(spec.date || "")}</text>
 ${header}
 ${inner}
 <text x="64" y="${DH - 24}" fill="#5b6577" font-size="21" font-family="sans-serif">${esc(footer)}</text>
@@ -249,7 +246,7 @@ export function lineCardSvg(spec, opts = {}) {
     ? spec.xTicks.map(t => ({ x: t.x, label: t.label, anchor: t.anchor }))
     : timeTicks(xMin, xMax).map(t => ({ x: t.ts, label: t.label, anchor: t.anchor }));
   for (const t of xticks) {
-    grid += `<text x="${X(t.x).toFixed(1)}" y="${DH - 50}" fill="#8b98ad" font-size="30" text-anchor="${xAnchor(X(t.x), DW, t.anchor)}" font-family="sans-serif">${esc(t.label)}</text>`;
+    grid += `<text x="${X(t.x).toFixed(1)}" y="${DH - 50}" fill="#8b98ad" font-size="22" text-anchor="${t.anchor || "middle"}" font-family="sans-serif">${esc(t.label)}</text>`;
   }
 
   // Horizontal valuation-band strips (e.g. the rainbow bands a rally climbed
@@ -297,9 +294,10 @@ export function lineCardSvg(spec, opts = {}) {
       const base = Y(spec.fillBase ?? yMin).toFixed(1);
       plot += `<path d="${d} L ${X(pts.at(-1)[0]).toFixed(1)},${base} L ${X(pts[0][0]).toFixed(1)},${base} Z" fill="url(#fill${i})"/>`;
     }
-    // optional soft glow underlay (s.glow) so a hero line reads with weight
-    if (s.glow) plot += `<path d="${d}" fill="none" stroke="${s.color}" stroke-width="${(s.width || 3) * 3}" stroke-opacity="0.22" stroke-linejoin="round" stroke-linecap="round" filter="url(#lglow)"/>`;
-    plot += `<path d="${d}" fill="none" stroke="${s.color}" stroke-width="${s.width || 3}" stroke-linejoin="round" stroke-linecap="round"${s.dash ? ` stroke-dasharray="7 7"` : ""}/>`;
+    // `s.glow` used to paint a 3x-wide blurred copy under the line so a hero series
+    // read with weight. It read as neon and smeared the line's own edges, so the flag now
+    // just thickens the line — same intent, legible result.
+    plot += `<path d="${d}" fill="none" stroke="${s.color}" stroke-width="${(s.width || 3) + (s.glow ? 1.2 : 0)}" stroke-linejoin="round" stroke-linecap="round"${s.dash ? ` stroke-dasharray="7 7"` : ""}/>`;
   }
 
   // horizontal reference lines (e.g. price targets, milestones, cost basis) with
@@ -455,7 +453,7 @@ export function renderBarCard(spec, opts = {}) {
       const ls = 34;
       svg += logoMark(b.logo, cx - ls / 2, mT + PH + 2, ls);
     } else {
-      svg += `<text x="${cx.toFixed(1)}" y="${(mT + PH + 32).toFixed(1)}" fill="#94a3b8" font-size="26" text-anchor="middle" font-family="sans-serif">${esc(b.label)}</text>`;
+      svg += `<text x="${cx.toFixed(1)}" y="${(mT + PH + 32).toFixed(1)}" fill="#94a3b8" font-size="22" text-anchor="middle" font-family="sans-serif">${esc(b.label)}</text>`;
     }
   });
   return chrome(spec, svg, defs, { W: DW, H: DH });
@@ -519,20 +517,20 @@ export function renderMonthBars(spec, opts = {}) {
 
   // The 0% axis, drawn brighter than the gridlines and labeled at the left.
   const axis = `<line x1="${mL}" y1="${zeroY.toFixed(1)}" x2="${DW - mR}" y2="${zeroY.toFixed(1)}" stroke="rgba(255,255,255,0.55)" stroke-width="2"/>`
-    + `<text x="${mL - 12}" y="${(zeroY + 6).toFixed(1)}" fill="#cbd5e1" font-size="30" text-anchor="end" font-family="sans-serif">0%</text>`;
+    + `<text x="${mL - AXIS_GAP}" y="${(zeroY + 6).toFixed(1)}" fill="#cbd5e1" font-size="22" text-anchor="end" font-family="sans-serif">0%</text>`;
 
   // x-axis labels: explicit `bar.label`s when supplied (e.g. daily "Jun 4" dates),
   // otherwise the year under the first bar of each calendar year.
   const xLabelY = (mT + PH + 30).toFixed(1);
   let years = "";
   if (bars.some(b => b.label)) {
-    bars.forEach((b, i) => { if (b.label) years += `<text x="${(mL + slot * i + slot / 2).toFixed(1)}" y="${xLabelY}" fill="#8b98ad" font-size="26" text-anchor="middle" font-family="sans-serif">${esc(b.label)}</text>`; });
+    bars.forEach((b, i) => { if (b.label) years += `<text x="${(mL + slot * i + slot / 2).toFixed(1)}" y="${xLabelY}" fill="#94a3b8" font-size="22" text-anchor="middle" font-family="sans-serif">${esc(b.label)}</text>`; });
   } else {
     let seen = -1;
     bars.forEach((b, i) => {
       if (b.year === seen) return;
       seen = b.year;
-      years += `<text x="${(mL + slot * i + slot / 2).toFixed(1)}" y="${xLabelY}" fill="#8b98ad" font-size="26" text-anchor="middle" font-family="sans-serif">${b.year}</text>`;
+      years += `<text x="${(mL + slot * i + slot / 2).toFixed(1)}" y="${xLabelY}" fill="#94a3b8" font-size="22" text-anchor="middle" font-family="sans-serif">${b.year}</text>`;
     });
   }
 
@@ -649,7 +647,7 @@ export function renderDca(spec, opts = {}) {
     grid += `<text x="${mL - AXIS_GAP}" y="${(+yy + 6).toFixed(1)}" fill="#8b98ad" font-size="${stackFs}" text-anchor="end" font-family="sans-serif">${fK(v)}</text>`;
   }
   for (const t of timeTicks(xMin, xMax)) {
-    grid += `<text x="${X(t.ts).toFixed(1)}" y="${DH - 50}" fill="#8b98ad" font-size="30" text-anchor="${xAnchor(X(t.ts), DW, t.anchor)}" font-family="sans-serif">${esc(t.label)}</text>`;
+    grid += `<text x="${X(t.ts).toFixed(1)}" y="${DH - 50}" fill="#8b98ad" font-size="22" text-anchor="${t.anchor || "middle"}" font-family="sans-serif">${esc(t.label)}</text>`;
   }
 
   // invested area (amber, to baseline) — the "what you put in" floor
@@ -704,7 +702,7 @@ export function renderDonut(spec, opts = {}) {
   const c = spec.center || {};
   let center = "";
   if (c.big) center += `<text x="${cx}" y="${cy + 4}" fill="#f8fafc" font-size="62" font-weight="800" text-anchor="middle" font-family="sans-serif">${esc(c.big)}</text>`;
-  if (c.small) center += `<text x="${cx}" y="${cy + 40}" fill="#94a3b8" font-size="24" text-anchor="middle" font-family="sans-serif">${esc(c.small)}</text>`;
+  if (c.small) center += `<text x="${cx}" y="${cy + 40}" fill="#94a3b8" font-size="22" text-anchor="middle" font-family="sans-serif">${esc(c.small)}</text>`;
 
   // legend to the right, value as % of total, vertically centered on the midline
   const lx = cx + outerR + gap;
@@ -737,7 +735,7 @@ export function renderStackBar(spec, opts = {}) {
     body += `<rect x="${(x + 2).toFixed(1)}" y="${barY}" width="${Math.max(0, w - 4).toFixed(1)}" height="${barH}" rx="8" fill="url(#seg${i})"/>`;
     if (w > 120) body += `<text x="${(x + w / 2).toFixed(1)}" y="${barY + barH / 2 + 10}" fill="#05050e" font-size="30" font-weight="800" text-anchor="middle" font-family="sans-serif">${pct}%</text>`;
     body += `<text x="${(x + w / 2).toFixed(1)}" y="${barY - 18}" fill="#e2e8f0" font-size="30" font-weight="700" text-anchor="middle" font-family="sans-serif">${esc(s.text ?? "")}</text>`;
-    body += `<text x="${(x + w / 2).toFixed(1)}" y="${barY + barH + 38}" fill="#94a3b8" font-size="26" text-anchor="middle" font-family="sans-serif">${esc(s.label)}</text>`;
+    body += `<text x="${(x + w / 2).toFixed(1)}" y="${barY + barH + 38}" fill="#94a3b8" font-size="22" text-anchor="middle" font-family="sans-serif">${esc(s.label)}</text>`;
     x += w;
   });
   return chrome(spec, body, defs, { W: DW, H: DH });
@@ -953,7 +951,7 @@ export function renderStatGrid(spec, opts = {}) {
     svg += `<rect ${dims} fill="url(#sgt${i})" stroke="${col}66" stroke-width="1.5"/>`;
     const big = String(t.big), fs = big.length > 9 ? 44 : big.length > 6 ? 56 : 70;
     svg += `<text x="${cx.toFixed(1)}" y="${(y + th * 0.5).toFixed(1)}" fill="${col}" font-size="${fs}" font-weight="800" text-anchor="middle" font-family="sans-serif">${esc(big)}</text>`;
-    svg += `<text x="${cx.toFixed(1)}" y="${(y + th * 0.78).toFixed(1)}" fill="#94a3b8" font-size="26" text-anchor="middle" font-family="sans-serif">${esc(t.label)}</text>`;
+    svg += `<text x="${cx.toFixed(1)}" y="${(y + th * 0.78).toFixed(1)}" fill="#94a3b8" font-size="22" text-anchor="middle" font-family="sans-serif">${esc(t.label)}</text>`;
   });
   return chrome(spec, svg, defs, { W: DW, H: DH });
 }
@@ -985,9 +983,9 @@ export function renderModelCard(spec, opts = {}) {
     const v = bands[i]; if (v < yMin || v > yMax) continue;
     const yy = Y(v).toFixed(1);
     grid += `<line x1="${mL}" y1="${yy}" x2="${DW - mR}" y2="${yy}" stroke="rgba(255,255,255,0.06)"/>`;
-    grid += `<text x="${mL - 12}" y="${(+yy + 6).toFixed(1)}" fill="#94a3b8" font-size="30" text-anchor="end" font-family="sans-serif">${pct(v)}</text>`;
+    grid += `<text x="${mL - AXIS_GAP}" y="${(+yy + 6).toFixed(1)}" fill="#94a3b8" font-size="22" text-anchor="end" font-family="sans-serif">${pct(v)}</text>`;
   }
-  for (const t of yearTicks(xMin, xMax)) grid += `<text x="${X(t.ts).toFixed(1)}" y="${DH - 50}" fill="#8b98ad" font-size="30" text-anchor="middle" font-family="sans-serif">${t.label}</text>`;
+  for (const t of yearTicks(xMin, xMax)) grid += `<text x="${X(t.ts).toFixed(1)}" y="${DH - 50}" fill="#8b98ad" font-size="22" text-anchor="middle" font-family="sans-serif">${t.label}</text>`;
 
   const zy = Y(0).toFixed(1);
   const zero = `<line x1="${mL}" y1="${zy}" x2="${DW - mR}" y2="${zy}" stroke="rgba(255,255,255,0.75)" stroke-width="2" stroke-dasharray="6 5"/><text x="${mL + 8}" y="${(+zy - 9).toFixed(1)}" fill="#f1f5f9" font-size="30" font-weight="700" font-family="sans-serif">trend line</text>`;
@@ -1146,7 +1144,7 @@ export function scaleCardSvg(spec, opts = {}) {
     `<g transform="${cam}">${field}</g>`
     + overlay
     + `<text x="64" y="${DH - 50}" fill="${oc}" font-size="24" font-weight="800" font-family="sans-serif">${esc(spec.originLabel || "SPX6900")} = 1 cube</text>`
-    + `<text x="${DW - 64}" y="${DH - 50}" fill="#cbd5e1" font-size="24" font-weight="700" text-anchor="end" font-family="sans-serif">${esc(spec.fieldLabel || "")}${spec.fieldSub ? `  ·  ${esc(spec.fieldSub)}` : ""}</text>`;
+    + `<text x="${DW - 64}" y="${DH - 50}" fill="#94a3b8" font-size="22" font-weight="700" text-anchor="end" font-family="sans-serif">${esc(spec.fieldLabel || "")}${spec.fieldSub ? `  ·  ${esc(spec.fieldSub)}` : ""}</text>`;
 
   // Title/headline are drawn in the overlay (layered over the field), so suppress
   // the chrome's own title/headline.

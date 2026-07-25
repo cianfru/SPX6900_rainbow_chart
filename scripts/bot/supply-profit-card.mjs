@@ -20,7 +20,7 @@ export function supplyProfitSvg(stats, opts = {}) {
   raw.sort((a, b) => a.ts - b.ts);
   const cur = raw.at(-1), sip = cur.v, under = 100 - sip;
 
-  const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 110, mR = 92, mT = 152, mB = 92, pW = W - mL - mR, pH = H - mT - mB;
+  const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 92, mR = 44, mT = 124, mB = 76, pW = W - mL - mR, pH = H - mT - mB;
   const t0 = raw[0].ts, t1 = cur.ts;
   const x = t => mL + ((t - t0) / ((t1 - t0) || 1)) * pW;
   const y = v => mT + (1 - v / 100) * pH; // linear 0–100%
@@ -39,12 +39,12 @@ export function supplyProfitSvg(stats, opts = {}) {
   for (const v of [0, 25, 50, 75, 100]) {
     const yy = y(v).toFixed(1);
     grid += `<line x1="${mL}" y1="${yy}" x2="${W - mR}" y2="${yy}" stroke="rgba(255,255,255,${v === 50 ? 0 : 0.12})"/>`
-      + `<text x="${mL - 14}" y="${(+yy + 8).toFixed(1)}" fill="#e2e8f0" font-size="27" font-weight="600" text-anchor="end" font-family="sans-serif">${v}%</text>`;
+      + `<text x="${mL - 14}" y="${(+yy + 8).toFixed(1)}" fill="#94a3b8" font-size="22" text-anchor="end" font-family="sans-serif">${v}%</text>`;
   }
   let xlab = "";
   for (let yr = new Date(t0).getUTCFullYear(); yr <= new Date(t1).getUTCFullYear(); yr++) {
     const t = Date.UTC(yr, 0, 1); if (t < t0 || t > t1) continue;
-    xlab += `<text x="${x(t).toFixed(1)}" y="${H - 46}" fill="#cbd5e1" font-size="26" font-weight="600" text-anchor="middle" font-family="sans-serif">${yr}</text>`;
+    xlab += `<text x="${x(t).toFixed(1)}" y="${H - 46}" fill="#94a3b8" font-size="22" text-anchor="middle" font-family="sans-serif">${yr}</text>`;
   }
 
   const line = raw.map(r => `${x(r.ts).toFixed(1)},${y(r.v).toFixed(1)}`).join(" ");
@@ -64,14 +64,11 @@ export function supplyProfitSvg(stats, opts = {}) {
 <rect width="${W}" height="${H}" fill="url(#spbg)"/>
 ${brandStripe(H)}
 <text x="60" y="58" fill="#f8fafc" font-size="39" font-weight="800" font-family="sans-serif" letter-spacing="1">SPX6900 — SUPPLY IN PROFIT</text>
-<text x="60" y="92" fill="#aab6c8" font-size="22" font-family="sans-serif">How many coins are held above what they cost? High = frothy, low = cheap.</text>
-<text x="60" y="130" fill="#4ade80" font-size="32" font-weight="800" font-family="sans-serif">${sip.toFixed(0)}% in profit — ${state}</text>
+<text x="60" y="100" fill="#4ade80" font-size="32" font-weight="800" font-family="sans-serif">${sip.toFixed(0)}% in profit — ${state}</text>
 ${zones}${grid}${xlab}${zoneLabels}
 <polygon points="${area}" fill="url(#spfill)"/>
 <line x1="${mL}" y1="${halfY}" x2="${W - mR}" y2="${halfY}" stroke="#cbd5e1" stroke-width="2" stroke-opacity="0.85" stroke-dasharray="7 6"/>
-<text x="${W - mR - 8}" y="${(+halfY - 12).toFixed(1)}" fill="#e2e8f0" font-size="22" font-weight="600" text-anchor="end" font-family="sans-serif">half in profit</text>
-<polyline points="${line}" fill="none" stroke="${GRN}" stroke-width="12" stroke-opacity="0.30" stroke-linejoin="round" stroke-linecap="round" filter="url(#spglow)"/>
-<polyline points="${line}" fill="none" stroke="#6ee7a0" stroke-width="4.5" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="${line}" fill="none" stroke="#6ee7a0" stroke-width="5.7" stroke-linejoin="round" stroke-linecap="round"/>
 <circle cx="${curX.toFixed(1)}" cy="${curY.toFixed(1)}" r="12" fill="#4ade80" stroke="#05050e" stroke-width="3"/>
 <text x="60" y="${H - 20}" fill="#8592a6" font-size="18" font-family="sans-serif">${esc("spx6900rainbow.xyz · not financial advice · share of ETH-native supply held above its on-chain cost basis")}</text>
 </svg>`;

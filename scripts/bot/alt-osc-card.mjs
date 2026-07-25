@@ -21,7 +21,7 @@ export function altOscSvg(stats, opts = {}) {
   const zone = cur.z >= 1 ? "overbought vs alts" : cur.z <= -1 ? "cheap vs alts" : "fair vs alts";
   const zoneC = cur.z >= 1 ? RICH : cur.z <= -1 ? CHEAP : MID;
 
-  const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 92, mR = 110, mT = 156, mB = 92, pW = W - mL - mR, pH = H - mT - mB;
+  const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 92, mR = 110, mT = 124, mB = 92, pW = W - mL - mR, pH = H - mT - mB;
   const x = ts => mL + ((ts - t0) / ((t1 - t0) || 1)) * pW;
   const zMax = Math.max(2.5, ...series.map(s => Math.abs(s.z))) * 1.06;
   const y = z => mT + ((zMax - z) / (2 * zMax)) * pH;
@@ -45,13 +45,13 @@ export function altOscSvg(stats, opts = {}) {
   for (let zi = -Math.floor(zMax); zi <= Math.floor(zMax); zi++) {
     const yy = y(zi).toFixed(1);
     grid += `<line x1="${mL}" y1="${yy}" x2="${W - mR}" y2="${yy}" stroke="rgba(255,255,255,${zi === 0 || Math.abs(zi) === 1 ? 0 : 0.10})"/>`
-      + `<text x="${mL - 14}" y="${(+yy + 8).toFixed(1)}" fill="#e2e8f0" font-size="26" font-weight="600" text-anchor="end" font-family="sans-serif">${zi > 0 ? "+" + zi + "σ" : zi < 0 ? zi + "σ" : "0"}</text>`;
+      + `<text x="${mL - 14}" y="${(+yy + 8).toFixed(1)}" fill="#94a3b8" font-size="22" text-anchor="end" font-family="sans-serif">${zi > 0 ? "+" + zi + "σ" : zi < 0 ? zi + "σ" : "0"}</text>`;
   }
 
   let xlab = "";
   for (let yr = new Date(t0).getUTCFullYear(); yr <= new Date(t1).getUTCFullYear(); yr++) {
     const t = Date.UTC(yr, 0, 1); if (t < t0 || t > t1) continue;
-    xlab += `<text x="${x(t).toFixed(1)}" y="${H - 46}" fill="#cbd5e1" font-size="26" font-weight="600" text-anchor="middle" font-family="sans-serif">${yr}</text>`;
+    xlab += `<text x="${x(t).toFixed(1)}" y="${H - 46}" fill="#94a3b8" font-size="22" text-anchor="middle" font-family="sans-serif">${yr}</text>`;
   }
   const bandLine = (z, c, txt, dash = "7 6") => `<line x1="${mL}" y1="${y(z).toFixed(1)}" x2="${W - mR}" y2="${y(z).toFixed(1)}" stroke="${c}" stroke-width="2.5" stroke-opacity="0.9" stroke-dasharray="${dash}"/><text x="${W - 8}" y="${(y(z) - 10).toFixed(1)}" fill="${c}" font-size="21" font-weight="800" text-anchor="end" font-family="sans-serif">${esc(txt)}</text>`;
 
@@ -68,16 +68,14 @@ export function altOscSvg(stats, opts = {}) {
 <rect width="${W}" height="${H}" fill="url(#aobg)"/>
 ${brandStripe(H)}
 <text x="60" y="56" fill="#e2e8f0" font-size="35" font-weight="800" font-family="sans-serif" letter-spacing="1">SPX6900 vs THE ALT MARKET</text>
-<text x="60" y="90" fill="#94a3b8" font-size="21" font-family="sans-serif">Is SPX running hot or cheap vs every coin but BTC &amp; ETH? Above 0 = hot.</text>
-<text x="60" y="130" fill="${zoneC}" font-size="27" font-weight="800" font-family="sans-serif">${esc("rich or cheap vs the alt sector — now " + zone)}</text>
+<text x="60" y="100" fill="${zoneC}" font-size="27" font-weight="800" font-family="sans-serif">${esc("rich or cheap vs the alt sector — now " + zone)}</text>
 ${shade}${grid}${xlab}
 ${redArea}${blueArea}
 <line x1="${mL}" y1="${y0.toFixed(1)}" x2="${W - mR}" y2="${y0.toFixed(1)}" stroke="${MID}" stroke-width="2.5" stroke-opacity="0.95"/>
 <text x="${W - 8}" y="${(y0 - 10).toFixed(1)}" fill="${MID}" font-size="21" font-weight="800" text-anchor="end" font-family="sans-serif">fair vs alts</text>
 ${bandLine(1, RICH, "overbought")}
 ${bandLine(-1, CHEAP, "cheap")}
-<polyline points="${line}" fill="none" stroke="#f8fafc" stroke-width="7" stroke-opacity="0.14" stroke-linejoin="round" stroke-linecap="round" filter="url(#aoglow)"/>
-<polyline points="${line}" fill="none" stroke="#f8fafc" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="${line}" fill="none" stroke="#f8fafc" stroke-width="4.2" stroke-linejoin="round" stroke-linecap="round"/>
 <circle cx="${curX.toFixed(1)}" cy="${curY.toFixed(1)}" r="9" fill="${zoneC}" stroke="#05050e" stroke-width="2"/>
 <text x="${(curX - 16).toFixed(1)}" y="${(curY + 34).toFixed(1)}" fill="${zoneC}" font-size="22" font-weight="800" text-anchor="end" font-family="sans-serif">now</text>
 <text x="60" y="${H - 20}" fill="#6b7688" font-size="18" font-family="sans-serif">${esc("spx6900rainbow.xyz · not financial advice · vs TOTAL3ES (alt market ex-BTC/ETH/stables) · 0 = SPX's own trend vs alts")}</text>

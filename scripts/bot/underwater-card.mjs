@@ -18,7 +18,7 @@ export function underwaterSvg(stats, opts = {}) {
   const { series: dd, current, deepest, athCount } = drawdownSummary(stats.drawn || [], stats.ath > 0 ? { price: stats.ath, date: stats.athDate } : null);
   if (dd.length < 2) return null;
 
-  const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 112, mR = 96, mT = 118, mB = 70, pW = W - mL - mR, pH = H - mT - mB;
+  const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 94, mR = 96, mT = 118, mB = 70, pW = W - mL - mR, pH = H - mT - mB;
   const t0 = dd[0].ts, t1 = dd.at(-1).ts;
   const x = t => mL + ((t - t0) / ((t1 - t0) || 1)) * pW;
   const yD = v => mT + (-v) * pH;                 // v in [-1,0] → [mT+pH .. mT]
@@ -39,7 +39,7 @@ export function underwaterSvg(stats, opts = {}) {
   let xlab = "";
   for (let y = new Date(t0).getUTCFullYear(); y <= new Date(t1).getUTCFullYear(); y++) {
     const t = Date.UTC(y, 0, 1); if (t < t0 || t > t1) continue;
-    xlab += `<text x="${x(t).toFixed(1)}" y="${H - 40}" fill="#64748b" font-size="26" text-anchor="middle" font-family="sans-serif">${y}</text>`;
+    xlab += `<text x="${x(t).toFixed(1)}" y="${H - 40}" fill="#94a3b8" font-size="22" text-anchor="middle" font-family="sans-serif">${y}</text>`;
   }
 
   const top = yD(0);
@@ -59,10 +59,8 @@ export function underwaterSvg(stats, opts = {}) {
 ${brandStripe(H)}
 ${grid}${xlab}
 <polygon points="${areaPoly}" fill="url(#uw)"/>
-<polyline points="${priceLine}" fill="none" stroke="#38bdf8" stroke-width="8" stroke-opacity="0.16" filter="url(#ug)"/>
-<polyline points="${priceLine}" fill="none" stroke="#38bdf8" stroke-width="3" stroke-linejoin="round"/>
-<polyline points="${area}" fill="none" stroke="#ef4444" stroke-width="9" stroke-opacity="0.18" filter="url(#ug)"/>
-<polyline points="${area}" fill="none" stroke="#ef4444" stroke-width="3.6" stroke-linejoin="round"/>
+<polyline points="${priceLine}" fill="none" stroke="#38bdf8" stroke-width="4.2" stroke-linejoin="round"/>
+<polyline points="${area}" fill="none" stroke="#ef4444" stroke-width="4.8" stroke-linejoin="round"/>
 <circle cx="${cx.toFixed(1)}" cy="${cyD.toFixed(1)}" r="7" fill="#ef4444" stroke="#05050e" stroke-width="2"/>
 <text x="64" y="50" fill="#e2e8f0" font-size="30" font-weight="800" font-family="sans-serif" letter-spacing="1">SPX6900 — UNDERWATER</text>
 <text x="${W - 60}" y="46" fill="#f87171" font-size="30" font-weight="800" font-family="sans-serif" text-anchor="end">NOW ${fPct0(current)}</text>

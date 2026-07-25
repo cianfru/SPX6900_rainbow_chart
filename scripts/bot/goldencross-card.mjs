@@ -58,10 +58,8 @@ export function goldenCrossSvg(stats, opts = {}) {
 ${brandStripe(H)}
 ${grid}${xlab}
 <polyline points="${poly("p")}" fill="none" stroke="#38bdf8" stroke-width="3" stroke-opacity="0.6"/>
-<polyline points="${poly("ma200")}" fill="none" stroke="#f97316" stroke-width="12" stroke-opacity="0.20" filter="url(#gcg)"/>
-<polyline points="${poly("ma200")}" fill="none" stroke="#f97316" stroke-width="6.5" stroke-linejoin="round"/>
-<polyline points="${poly("ma50")}" fill="none" stroke="#fbbf24" stroke-width="12" stroke-opacity="0.20" filter="url(#gcg)"/>
-<polyline points="${poly("ma50")}" fill="none" stroke="#fbbf24" stroke-width="6.5" stroke-linejoin="round"/>
+<polyline points="${poly("ma200")}" fill="none" stroke="#f97316" stroke-width="7.7" stroke-linejoin="round"/>
+<polyline points="${poly("ma50")}" fill="none" stroke="#fbbf24" stroke-width="7.7" stroke-linejoin="round"/>
 ${marks}
 <circle cx="${x(cur.ts).toFixed(1)}" cy="${y(cur.p).toFixed(1)}" r="7" fill="#38bdf8" stroke="#05050e" stroke-width="2"/>
 <text x="64" y="50" fill="#e2e8f0" font-size="30" font-weight="800" font-family="sans-serif" letter-spacing="1">SPX6900 — GOLDEN / DEATH CROSS</text>

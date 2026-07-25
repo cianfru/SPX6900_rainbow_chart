@@ -73,7 +73,7 @@ export function spxCohortStats() {
 
 export function spxCohortSvg(opts = {}) {
   const { anchor, coins: S } = spxCohortStats();
-  const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 150, mR = 108;
+  const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 140, mR = 108;
   const pW = W - mL - mR;
 
   // Legend — computed FIRST because it flows onto as many rows as needed, and the plot
@@ -126,15 +126,14 @@ export function spxCohortSvg(opts = {}) {
   let xlab = "";
   for (let yr = new Date(t0).getUTCFullYear(); yr <= new Date(t1).getUTCFullYear(); yr++) {
     const t = Date.UTC(yr, 0, 1); if (t < t0 || t > t1) continue;
-    xlab += `<text x="${x(t).toFixed(1)}" y="${pB + 48}" fill="#aab6cc" font-size="27" text-anchor="middle" font-family="sans-serif" font-weight="600">${yr}</text>`;
+    xlab += `<text x="${x(t).toFixed(1)}" y="${pB + 48}" fill="#94a3b8" font-size="22" text-anchor="middle" font-family="sans-serif" font-weight="600">${yr}</text>`;
   }
 
   let lines = "", ends = "";
   S.forEach(s => {
     const pline = s.series.map(p => `${x(p.ts).toFixed(1)},${y(p.m).toFixed(1)}`).join(" ");
-    const sw = s.hero ? 4.6 : 3, op = s.hero ? 1 : 0.97;
-    lines += `<polyline points="${pline}" fill="none" stroke="${s.c}" stroke-width="${s.hero ? 12 : 8}" stroke-opacity="0.18" stroke-linejoin="round" filter="url(#chglow)"/>`
-      + `<polyline points="${pline}" fill="none" stroke="${s.c}" stroke-width="${sw}" stroke-opacity="${op}" stroke-linejoin="round" stroke-linecap="round"/>`;
+    const sw = s.hero ? 5.6 : 3.6, op = s.hero ? 1 : 0.97;
+    lines += `<polyline points="${pline}" fill="none" stroke="${s.c}" stroke-width="${sw}" stroke-opacity="${op}" stroke-linejoin="round" stroke-linecap="round"/>`;
     ends += `<circle cx="${x(s.lastTs).toFixed(1)}" cy="${y(s.now).toFixed(1)}" r="${s.hero ? 9 : 6.5}" fill="${s.c}" stroke="#06070f" stroke-width="2.5"/>`;
   });
   ends += `<circle cx="${x(t0).toFixed(1)}" cy="${y(1).toFixed(1)}" r="5.5" fill="#e2e8f0"/>`;

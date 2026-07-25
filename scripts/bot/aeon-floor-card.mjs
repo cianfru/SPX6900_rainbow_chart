@@ -53,7 +53,7 @@ export function aeonFloorSvg(data, opts = {}) {
   let xlab = "";
   for (let yr = new Date(t0).getUTCFullYear(); yr <= new Date(t1).getUTCFullYear(); yr++) {
     const t = Date.UTC(yr, 0, 1); if (t < t0 || t > t1) continue;
-    xlab += `<text x="${x(t).toFixed(1)}" y="${H - 44}" fill="#a3aec0" font-size="24" text-anchor="middle" font-family="${F}">${yr}</text>`;
+    xlab += `<text x="${x(t).toFixed(1)}" y="${H - 44}" fill="#94a3b8" font-size="22" text-anchor="middle" font-family="${F}">${yr}</text>`;
   }
 
   const volEthTot = (data.totalVolEth ?? 0), volUsdTot = data.totalVolUsd ?? 0;
@@ -68,7 +68,7 @@ ${aeonBgRects(W, H, "af")}
 <text x="60" y="128" fill="#5eead4" font-size="30" font-weight="800" font-family="${F}">${esc(`${cur.floorEth}Ξ floor ($${cur.floorUsd.toLocaleString()}) · ${Math.round(volEthTot).toLocaleString()}Ξ traded ($${(volUsdTot / 1e6).toFixed(1)}M)`)}</text>
 ${volBars}
 <polyline points="${path(fUsd, yU)}" fill="none" stroke="#fbbf24" stroke-width="2.4" stroke-opacity="0.85"/>
-<polyline points="${path(fEth, yE)}" fill="none" stroke="#2dd4bf" stroke-width="3.4" filter="url(#afglow)"/>
+<polyline points="${path(fEth, yE)}" fill="none" stroke="#2dd4bf" stroke-width="4.2"/>
 ${axes}${xlab}
 <text x="${mL}" y="${volTop - 6}" fill="#7c8a9e" font-size="16" font-family="${F}">monthly volume (Ξ)</text>
 <rect x="${W - mR - 250}" y="30" width="13" height="13" rx="3" fill="#2dd4bf"/><text x="${W - mR - 232}" y="41" fill="#cbd5e1" font-size="17" font-family="${F}">floor Ξ</text>
