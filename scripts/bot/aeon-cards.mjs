@@ -42,7 +42,7 @@ export function aeonOwnersSvg(data, opts = {}) {
   return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">${bg(W, H, "aobg", ["#2dd4bf", "#fb7185"])}
 <text x="60" y="56" fill="#e2e8f0" font-size="36" font-weight="800" font-family="${F}" letter-spacing="1">PROJECT AEON — OWNERS OVER TIME</text>
 <text x="60" y="90" fill="#94a3b8" font-size="21" font-family="${F}">Distinct holders since mint, split by how many AEON each holds.</text>
-<text x="60" y="128" fill="#5eead4" font-size="30" font-weight="800" font-family="${F}" filter="url(#aobgGlow)">${cur.owners.toLocaleString()} owners — ${cur.dist.one} hold a single AEON</text>
+<text x="60" y="128" fill="#5eead4" font-size="30" font-weight="800" font-family="${F}">${cur.owners.toLocaleString()} owners — ${cur.dist.one} hold a single AEON</text>
 ${ribbons}${yl}${yearLabels(t0, t1, x, H - 48)}${legend}
 <text x="60" y="${H - 20}" fill="#6b7688" font-size="18" font-family="${F}">${esc("on-chain · distinct current owners by tokens-held tier · reconstructed from transfers")}</text></svg>`;
 }
@@ -67,7 +67,7 @@ export function aeonConcentrationSvg(data, opts = {}) {
   return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">${bg(W, H, "acbg", ["#fbbf24", "#fb7185"])}
 <text x="60" y="56" fill="#e2e8f0" font-size="36" font-weight="800" font-family="${F}" letter-spacing="1">PROJECT AEON — CONCENTRATION</text>
 <text x="60" y="90" fill="#94a3b8" font-size="21" font-family="${F}">Share of the collection held by the biggest wallets, over time.</text>
-<text x="60" y="128" fill="#fcd34d" font-size="30" font-weight="800" font-family="${F}" filter="url(#acbgGlow)">Top 10 wallets hold ${cur.top10.toFixed(0)}% · top 50 hold ${cur.top50.toFixed(0)}%</text>
+<text x="60" y="128" fill="#fcd34d" font-size="30" font-weight="800" font-family="${F}">Top 10 wallets hold ${cur.top10.toFixed(0)}% · top 50 hold ${cur.top50.toFixed(0)}%</text>
 ${line("top50", "#fbbf24", 0.16)}${line("top10", "#fb7185", 0.2)}${yl}${yearLabels(t0, t1, x, H - 48)}${legend}
 <text x="60" y="${H - 20}" fill="#6b7688" font-size="18" font-family="${F}">${esc("on-chain · top-N owners' share of the 3,333 supply · lower = more distributed")}</text></svg>`;
 }
@@ -104,7 +104,7 @@ export function aeonBehaviourSvg(data, opts = {}) {
   return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">${bg(W, H, "abbg", ["#34d399", "#fb7185"])}
 <text x="60" y="56" fill="#e2e8f0" font-size="36" font-weight="800" font-family="${F}" letter-spacing="1">PROJECT AEON — HOLDER FLOW</text>
 <text x="60" y="90" fill="#94a3b8" font-size="21" font-family="${F}">Wallets joining vs leaving the holder base each month (mint excluded).</text>
-<text x="60" y="128" fill="${netTot >= 0 ? "#5eead4" : "#fb7185"}" font-size="30" font-weight="800" font-family="${F}" filter="url(#abbgGlow)">Net ${netTot >= 0 ? "+" : ""}${netTot} wallets since mint · ${cur.entered} in / ${cur.exited} out last month</text>
+<text x="60" y="128" fill="${netTot >= 0 ? "#5eead4" : "#fb7185"}" font-size="30" font-weight="800" font-family="${F}">Net ${netTot >= 0 ? "+" : ""}${netTot} wallets since mint · ${cur.entered} in / ${cur.exited} out last month</text>
 ${bars}${yl}${yearLabels(t0, t1, x, H - 48)}${legend}
 <text x="60" y="${H - 20}" fill="#6b7688" font-size="18" font-family="${F}">${esc("on-chain · a wallet 'enters' when its balance crosses 0→held, 'exits' when it sells to zero")}</text></svg>`;
 }

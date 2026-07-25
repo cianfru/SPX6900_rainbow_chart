@@ -66,7 +66,7 @@ export function aeonHodlSvg(data, opts = {}) {
 <defs>${aeonBgDefs("aw", ["#818cf8", "#22d3ee"])}</defs>${aeonBgRects(W, H, "aw")}
 <text x="60" y="56" fill="#e2e8f0" font-size="36" font-weight="800" font-family="sans-serif" letter-spacing="1">PROJECT AEON — HOLDER AGE</text>
 <text x="60" y="90" fill="#94a3b8" font-size="21" font-family="sans-serif">How long since each AEON last changed hands? Cool bands = held longer.</text>
-<text x="60" y="128" fill="#a5b4fc" font-size="30" font-weight="800" font-family="sans-serif" filter="url(#awGlow)">${oldPct.toFixed(0)}% of the collection hasn't changed hands in over a year</text>
+<text x="60" y="128" fill="#a5b4fc" font-size="30" font-weight="800" font-family="sans-serif">${oldPct.toFixed(0)}% of the collection hasn't changed hands in over a year</text>
 ${ribbons}${yl}${xlab}${legend}
 <text x="60" y="${H - 20}" fill="#6b7688" font-size="18" font-family="sans-serif">${esc(`on-chain · ${supply.toLocaleString()} AEON · holder age = time since last transfer · older = held longer`)}</text>
 </svg>`;

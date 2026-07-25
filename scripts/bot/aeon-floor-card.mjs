@@ -65,7 +65,7 @@ ${aeonBgDefs("af", ["#2dd4bf", "#fbbf24"])}
 ${aeonBgRects(W, H, "af")}
 <text x="60" y="56" fill="#e2e8f0" font-size="36" font-weight="800" font-family="${F}" letter-spacing="1">PROJECT AEON — FLOOR &amp; SALES</text>
 <text x="60" y="90" fill="#94a3b8" font-size="21" font-family="${F}">Floor price and trading volume since mint. Floor = 7-day median of daily lows.</text>
-<text x="60" y="128" fill="#5eead4" font-size="30" font-weight="800" font-family="${F}" filter="url(#afGlow)">${esc(`${cur.floorEth}Ξ floor ($${cur.floorUsd.toLocaleString()}) · ${Math.round(volEthTot).toLocaleString()}Ξ traded ($${(volUsdTot / 1e6).toFixed(1)}M)`)}</text>
+<text x="60" y="128" fill="#5eead4" font-size="30" font-weight="800" font-family="${F}">${esc(`${cur.floorEth}Ξ floor ($${cur.floorUsd.toLocaleString()}) · ${Math.round(volEthTot).toLocaleString()}Ξ traded ($${(volUsdTot / 1e6).toFixed(1)}M)`)}</text>
 ${volBars}
 <polyline points="${path(fUsd, yU)}" fill="none" stroke="#fbbf24" stroke-width="2.4" stroke-opacity="0.85"/>
 <polyline points="${path(fEth, yE)}" fill="none" stroke="#2dd4bf" stroke-width="3.4" filter="url(#afglow)"/>

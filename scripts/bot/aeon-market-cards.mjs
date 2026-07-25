@@ -28,7 +28,7 @@ const shell = (W, H, id, title, sub, hero, heroC, body, foot, theme = ["#2dd4bf"
 <rect x="0" y="0" width="9" height="${H}" fill="url(#${id}stripe)"/>
 <text x="60" y="74" fill="#f4f7fc" font-size="42" font-weight="800" font-family="${F}" letter-spacing="1">${esc(title)}</text>
 <text x="60" y="112" fill="#aeb9cc" font-size="22" font-family="${F}">${esc(sub)}</text>
-<text x="60" y="158" fill="${heroC}" font-size="32" font-weight="800" font-family="${F}" filter="url(#${id}glow)">${esc(hero)}</text>
+<text x="60" y="158" fill="${heroC}" font-size="32" font-weight="800" font-family="${F}">${esc(hero)}</text>
 ${body}
 <text x="60" y="${H - 28}" fill="#6b7688" font-size="18" font-family="${F}">${esc(foot)}</text></svg>`;
 

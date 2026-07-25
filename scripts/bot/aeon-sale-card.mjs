@@ -140,14 +140,14 @@ export function aeonSaleSvg(sale, opts = {}) {
 </defs>${aeonBgRects(W, H, "as")}
 <text x="${P}" y="86" fill="#e2e8f0" font-size="38" font-weight="800" font-family="sans-serif" letter-spacing="1">PROJECT AEON — NOTABLE SALE</text>
 <text x="${P}" y="128" fill="#94a3b8" font-size="22" font-family="sans-serif">${esc(sale.d)} · on-chain marketplace trade</text>
-<text x="${P}" y="182" fill="${verdictC}" font-size="34" font-weight="800" font-family="sans-serif" filter="url(#asGlow)">${esc(verdictTxt)}</text>
+<text x="${P}" y="182" fill="${verdictC}" font-size="34" font-weight="800" font-family="sans-serif">${esc(verdictTxt)}</text>
 ${artBlock}
 <rect x="${artX}" y="${artY}" width="${artS}" height="${artS}" rx="18" fill="none" stroke="${tier.c}" stroke-width="3" stroke-opacity="0.75"/>
 <text x="${rightX}" y="${artY + 52}" fill="#f1f5f9" font-size="46" font-weight="800" font-family="sans-serif">AEON #${sale.id}</text>
 <rect x="${rightX}" y="${artY + 76}" width="${Math.min(rightW, 210)}" height="42" rx="10" fill="${tier.c}" fill-opacity="0.16" stroke="${tier.c}" stroke-opacity="0.7"/>
 <text x="${rightX + 18}" y="${artY + 105}" fill="${tier.c}" font-size="24" font-weight="700" font-family="sans-serif">${esc(tier.name)}</text>
 <text x="${rightX}" y="${artY + 190}" fill="#7c8a9e" font-size="22" font-family="sans-serif">sold for</text>
-<text x="${rightX}" y="${artY + 254}" fill="#f8fafc" font-size="64" font-weight="800" font-family="sans-serif" filter="url(#asGlow)">${esc(fEth(sale.price))}</text>
+<text x="${rightX}" y="${artY + 254}" fill="#f8fafc" font-size="64" font-weight="800" font-family="sans-serif">${esc(fEth(sale.price))}</text>
 <text x="${rightX}" y="${artY + 306}" fill="#94a3b8" font-size="23" font-family="sans-serif">vs ${esc(fEth(sale.exp))} typical for this rarity</text>
 <text x="${rightX}" y="${artY + 372}" fill="#7c8a9e" font-size="22" font-family="sans-serif">rarity rank</text>
 <text x="${rightX}" y="${artY + 424}" fill="${tier.c}" font-size="46" font-weight="800" font-family="sans-serif">#${sale.rank.toLocaleString()}</text>
