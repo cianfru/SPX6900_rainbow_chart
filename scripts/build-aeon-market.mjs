@@ -258,6 +258,42 @@ function main() {
     levelNow: +levelNow.toFixed(4),
     spxValue: (() => { try { return spxValuation(JSON.parse(readFileSync("public/aeon-sales.json", "utf8")).daily || []); } catch { return null; } })(),
     salesScatter, scatterImgs, deals, biggest, traitPremiums,
+    // ── WHERE THE FAIR-VALUE MODEL MAY BE QUOTED ────────────────────────────────
+    // The rarity fit is drawn through the whole sale log, but the top of the curve is
+    // almost empty: rank 1 has TWO comparable sales, rank 5 has fifteen, while rank 1000
+    // has thousands. Quoting a percentage against the fitted line up there implies
+    // precision that does not exist — it is what produced "1860% above what this rarity
+    // trades at" for the rank-1 piece. minRank is the lowest rank at which a neighbourhood
+    // of [rank/2, rank*2] holds at least `threshold` real sales; below it, surfaces should
+    // say something empirical instead. Computed, not hardcoded, so it relaxes on its own as
+    // the sale log grows.
+    rankSupport: (() => {
+      const TOT = rar.total || 3333, cum = new Array(TOT + 2).fill(0);
+      for (const s of sales) { const rk = R.get(s.id)?.rank; if (rk > 0 && rk <= TOT) cum[rk]++; }
+      for (let r = 1; r <= TOT; r++) cum[r] += cum[r - 1];
+      const comp = r => cum[Math.min(TOT, r * 2)] - cum[Math.max(1, Math.ceil(r / 2)) - 1];
+      const threshold = 30;
+      let minRank = 1;
+      for (let r = TOT; r >= 1; r--) if (comp(r) < threshold) { minRank = r + 1; break; }
+      return { threshold, minRank, atRank1: comp(1) };
+    })(),
+    // Empirical superlatives for a big sale — where it actually sits among every realized
+    // sale. No model, no fitting: "the highest this collection has ever traded at" is a
+    // fact, and a far better headline than a percentage against an extrapolated line.
+    priceMilestones: (() => {
+      const priced = sales.filter(s => s.price > 0).sort((a, b) => b.price - a.price);
+      if (!priced.length) return null;
+      const windowHigh = {};
+      for (const d of [30, 90, 180, 365]) {
+        const w = sales.filter(s => s.price > 0 && s.t >= now - d * DAY);
+        if (w.length) windowHigh[d] = +Math.max(...w.map(s => s.price)).toFixed(3);
+      }
+      return {
+        n: priced.length,
+        top: priced.slice(0, 10).map(s => ({ price: +s.price.toFixed(3), id: s.id, d: new Date(s.t).toISOString().slice(0, 10) })),
+        windowHigh,
+      };
+    })(),
     // Fresh sales feed for the notable-sale watcher (aeon-sale-watch.mjs). Kept separate
     // from `deals` because a sale can be newsworthy for being RARE or BIG, not only cheap.
     recentSales: scored.filter(s => Date.parse(s.d) >= now - 14 * DAY)

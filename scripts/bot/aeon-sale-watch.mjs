@@ -85,6 +85,35 @@ export function pickNotable(recentSales, { level, today, posted = new Set(), day
 }
 
 /**
+ * Where this price sits among EVERY realized sale — a fact, not a fitted estimate.
+ * A big sale does not need the rarity model at all, and the model is at its weakest
+ * exactly where big sales happen (rare tokens, almost no comparables).
+ */
+export function superlative(price, milestones) {
+  if (!milestones?.top?.length || !(price > 0)) return null;
+  const above = milestones.top.filter(t => t.price > price + 1e-9).length;
+  if (above === 0) return "the highest price this collection has ever traded at";
+  if (above < 5) {
+    const ord = ["2nd", "3rd", "4th", "5th"][above - 1];
+    return `the ${ord}-highest sale in the collection's history`;
+  }
+  const wh = milestones.windowHigh || {};
+  for (const [days, label] of [[365, "a year"], [180, "six months"], [90, "three months"], [30, "a month"]]) {
+    if (wh[days] != null && price >= wh[days] - 1e-9) return `the highest in ${label}`;
+  }
+  return null;
+}
+
+/**
+ * May we quote a percentage against the fitted line for this rank?
+ * Only where the fit actually has data — see rankSupport in build-aeon-market.mjs.
+ */
+export function mayQuoteModel(rank, rankSupport) {
+  if (!rankSupport?.minRank) return true;          // no support data → behave as before
+  return rank >= rankSupport.minRank;
+}
+
+/**
  * House-style copy: exactly 3 lines, single \n. withFooter() doubles them into airy
  * paragraphs and appends the branded footer — the first live post skipped it and went out
  * as a wall of text, which is the one thing CLAUDE.md says not to do.
@@ -94,20 +123,33 @@ export function pickNotable(recentSales, { level, today, posted = new Set(), day
  * exactly that: it announced a 07-21 sale as "just sold" because the freshness clock was
  * the market file's build date rather than the actual date.
  */
-export function saleCopy({ sale, kind }, { total, tier, traits, asOf }) {
+export function saleCopy({ sale, kind }, { total, tier, traits, asOf, milestones, rankSupport, level }) {
   const rarest = traits?.[0];
   const rareBit = rarest?.pct != null ? ` ${rarest.v} shows on just ${rarest.pct}% of the collection.` : "";
   const pctBelow = Math.round(Math.abs(sale.disc) * 100);
+  const sup = superlative(sale.price, milestones);
+  const quotable = mayQuoteModel(sale.rank, rankSupport);
   const ageDays = Math.floor((Date.parse(asOf || new Date().toISOString().slice(0, 10)) - Date.parse(sale.d)) / 86400e3);
   const sold = ageDays <= 0 ? "just sold" : ageDays === 1 ? "sold yesterday" : `sold on ${sale.d}`;
   const moved = ageDays <= 0 ? "just changed hands" : ageDays === 1 ? "changed hands yesterday" : `changed hands on ${sale.d}`;
   const head = kind === "steal"
-    ? `🖼️ AEON #${sale.id} ${sold} for ${fEth(sale.price)} — ${pctBelow}% under what its rarity normally trades at.`
+    ? (quotable
+      ? `🖼️ AEON #${sale.id} ${sold} for ${fEth(sale.price)} — ${pctBelow}% under what its rarity normally trades at.`
+      : `🖼️ AEON #${sale.id} ${sold} for ${fEth(sale.price)} — well under what the few comparable sales at this rarity have fetched.`)
     : kind === "rare"
       ? `🖼️ AEON #${sale.id} ${moved} for ${fEth(sale.price)} — rank ${sale.rank.toLocaleString()} of ${total.toLocaleString()}, ${tier.name}.`
-      : `🖼️ AEON #${sale.id} ${sold} for ${fEth(sale.price)} — ${pctBelow}% above what its rarity normally trades at.`;
-  const body = `Rank ${sale.rank.toLocaleString()} of ${total.toLocaleString()} (${tier.name}).${rareBit} Pieces at this rarity have been trading around ${fEth(sale.exp)}.`;
-  const tail = `Rarity from on-chain metadata, "typical" from realized sales — both reproducible. Not a valuation.`;
+      // No superlative? Quote the multiple of the MARKET LEVEL — that level is a rolling
+      // median of real sales, so it is empirical, unlike the rarity extrapolation. Vague
+      // filler ("one of the biggest trades") both says nothing and quietly overclaims.
+      : `🖼️ AEON #${sale.id} ${sold} for ${fEth(sale.price)} — ${sup
+          || (level > 0 ? `${(sale.price / level).toFixed(1)}× the going rate across the collection right now` : "well above the going rate")}.`;
+  const body = `Rank ${sale.rank.toLocaleString()} of ${total.toLocaleString()} (${tier.name}).${rareBit}`
+    + (quotable
+      ? ` Pieces at this rarity have been trading around ${fEth(sale.exp)}.`
+      : ` Too few pieces this rare have sold to call a typical price.`);
+  const tail = quotable
+    ? `Rarity from on-chain metadata, "typical" from realized sales — both reproducible. Not a valuation.`
+    : `Rarity from on-chain metadata; the price comparison is measured against all realized sales. Not a valuation.`;
   return `${head}\n${body}\n${tail}`;
 }
 
@@ -186,8 +228,12 @@ async function main() {
     return;
   }
   if (!art) console.error("aeon-sale: art unavailable here (sandboxed egress?) — dry-run renders the placeholder so the layout is still reviewable; a REAL run would skip.");
-  const png = renderAeonSaleCard(sale, { traits, total, art });
-  const text = withFooter(saleCopy(pick, { total, tier, traits, asOf }));
+  const png = renderAeonSaleCard(sale, {
+    traits, total, art,
+    superlative: superlative(sale.price, market.priceMilestones),
+    quotable: mayQuoteModel(sale.rank, market.rankSupport),
+  });
+  const text = withFooter(saleCopy(pick, { total, tier, traits, asOf, milestones: market.priceMilestones, rankSupport: market.rankSupport, level }));
   console.log(`--- copy (${[...text].length} chars) ---\n${text}\n---`);
 
   if (dryRun || !hasCreds) {

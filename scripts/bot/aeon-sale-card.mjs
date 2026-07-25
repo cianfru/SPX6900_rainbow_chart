@@ -111,11 +111,19 @@ export function aeonSaleSvg(sale, opts = {}) {
   const traits = (opts.traits || []).slice(0, 4);
   const disc = sale.disc ?? 0;
   const cheap = disc > 0;
-  // headline framing: cheap vs dear vs simply notable for its rarity
-  const verdictC = cheap ? "#34d399" : "#fb7185";
-  const verdictTxt = Math.abs(disc) < 0.05
-    ? "right at market for its rarity"
-    : `${Math.abs(disc * 100).toFixed(0)}% ${cheap ? "below" : "above"} what this rarity trades at`;
+  // Headline framing. A percentage against the fitted line is only quoted where the fit
+  // has comparables — at the rarest end it has almost none (rank 1 sees ~3 sales), which is
+  // what produced "1860% above what this rarity trades at". `opts.superlative` carries the
+  // empirical alternative ("the highest this collection has ever traded at") and wins when
+  // present, since it is a fact rather than an extrapolation.
+  const verdictC = opts.superlative && !cheap ? "#fbbf24" : cheap ? "#34d399" : "#fb7185";
+  const verdictTxt = opts.superlative && !cheap
+    ? opts.superlative
+    : opts.quotable === false
+      ? (cheap ? "under what comparable pieces have fetched" : "above what comparable pieces have fetched")
+      : Math.abs(disc) < 0.05
+        ? "right at market for its rarity"
+        : `${Math.abs(disc * 100).toFixed(0)}% ${cheap ? "below" : "above"} what this rarity trades at`;
 
   const P = 54;                      // page padding
   const artS = Math.round(W * 0.46); // art square
@@ -152,7 +160,7 @@ ${artBlock}
 <text x="${rightX + 18}" y="${artY + 105}" fill="#f8fafc" font-size="24" font-weight="700" font-family="sans-serif">${esc(tier.name)}</text>
 <text x="${rightX}" y="${artY + 190}" fill="#7c8a9e" font-size="22" font-family="sans-serif">sold for</text>
 <text x="${rightX}" y="${artY + 254}" fill="#f8fafc" font-size="64" font-weight="800" font-family="sans-serif">${esc(fEth(sale.price))}</text>
-<text x="${rightX}" y="${artY + 306}" fill="#94a3b8" font-size="23" font-family="sans-serif">vs ${esc(fEth(sale.exp))} typical for this rarity</text>
+<text x="${rightX}" y="${artY + 306}" fill="#94a3b8" font-size="23" font-family="sans-serif">${opts.quotable === false ? "too few comparables to price it" : `vs ${esc(fEth(sale.exp))} typical for this rarity`}</text>
 <text x="${rightX}" y="${artY + 372}" fill="#7c8a9e" font-size="22" font-family="sans-serif">rarity rank</text>
 <text x="${rightX}" y="${artY + 424}" fill="#f8fafc" font-size="46" font-weight="800" font-family="sans-serif">#${sale.rank.toLocaleString()}</text>
 <text x="${rightX}" y="${artY + 462}" fill="#7c8a9e" font-size="23" font-family="sans-serif">of ${total.toLocaleString()} · rarer than ${(100 * (1 - (sale.rank - 1) / total)).toFixed(0)}%</text>

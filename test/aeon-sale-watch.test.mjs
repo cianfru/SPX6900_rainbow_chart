@@ -129,3 +129,49 @@ test("art: returns null when every source fails, so the watcher can refuse to po
   const art = await fetchArt("https://cdn/x.png", { fetchImpl: async () => fail(404) });
   assert.equal(art, null);
 });
+
+// ── model-quote guard + empirical superlatives ───────────────────────────────
+// The rarity fit is drawn through the whole sale log, but rank 1 has ~3 comparable
+// sales while rank 1000 has thousands. Quoting a percentage against the line up there
+// is precision we do not have — it produced "1860% above what this rarity trades at".
+import { superlative, mayQuoteModel } from "../scripts/bot/aeon-sale-watch.mjs";
+
+const MILE = {
+  n: 17040,
+  top: [{ price: 20 }, { price: 6.9 }, { price: 6.5 }, { price: 5.03 }, { price: 5 }, { price: 5 },
+        { price: 4.7 }, { price: 4.2 }, { price: 4 }, { price: 3.9 }],
+  windowHigh: { 30: 1.21, 90: 1.5, 180: 1.5, 365: 20 },
+};
+
+test("superlative: an all-time high says so, with no model involved", () => {
+  assert.equal(superlative(20, MILE), "the highest price this collection has ever traded at");
+  assert.equal(superlative(25, MILE), "the highest price this collection has ever traded at");
+});
+
+test("superlative: ranks a near-record among all sales", () => {
+  assert.match(superlative(7, MILE), /2nd-highest/);
+  assert.match(superlative(6.6, MILE), /3rd-highest/);
+});
+
+test("superlative: falls back to a recency window, then to nothing", () => {
+  assert.equal(superlative(1.6, MILE), "the highest in six months");
+  assert.equal(superlative(0.4, MILE), null, "an ordinary price gets no superlative");
+});
+
+test("model quote is blocked at the rarest ranks and allowed where data is dense", () => {
+  const rs = { threshold: 30, minRank: 8 };
+  assert.equal(mayQuoteModel(1, rs), false, "rank 1 has ~3 comparable sales");
+  assert.equal(mayQuoteModel(7, rs), false);
+  assert.equal(mayQuoteModel(8, rs), true);
+  assert.equal(mayQuoteModel(2455, rs), true);
+  assert.equal(mayQuoteModel(1, null), true, "no support data → unchanged behaviour");
+});
+
+test("a record sale is framed empirically, never as a percentage against the fit", () => {
+  const txt = saleCopy({ sale: sale({ id: 1798, price: 20, rank: 1, exp: 1.02, disc: -18.6 }), kind: "big" },
+    { total: 3333, tier: tierOf(1, 3333), traits: [], asOf: TODAY, milestones: MILE, rankSupport: { threshold: 30, minRank: 8 } });
+  assert.match(txt, /highest price this collection has ever traded at/);
+  assert.doesNotMatch(txt, /1860%/, "the four-figure percentage must not appear");
+  assert.doesNotMatch(txt, /%\s*above/, "no percentage-against-the-line for a record sale");
+  assert.match(txt, /Too few pieces this rare/, "and it must say the comparison is unsupported");
+});
