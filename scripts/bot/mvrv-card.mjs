@@ -40,9 +40,32 @@ export function mvrvBtcSvg(stats, opts = {}) {
   const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 96, mR = 92, mT = 150, mB = 96, pW = W - mL - mR, pH = H - mT - mB;
   const t0 = pts[0].ts, t1 = pts.at(-1).ts;
   const x = t => mL + ((t - t0) / ((t1 - t0) || 1)) * pW;
-  const ymin = Math.min(sorted[0], spxMvrv) * 0.9, ymax = sorted.at(-1) * 1.05;
+  const spxVals = (stats.mvrvSeries || []).map(r => r.mvrv).filter(v => v > 0);
+  const ymin = Math.min(sorted[0], spxMvrv, ...(spxVals.length ? [Math.min(...spxVals)] : [])) * 0.9;
+  const ymax = Math.max(sorted.at(-1), ...(spxVals.length ? [Math.max(...spxVals)] : [])) * 1.05;
   const y = v => mT + ((Math.log(ymax) - Math.log(Math.max(v, 1e-9))) / ((Math.log(ymax) - Math.log(ymin)) || 1)) * pH;
   const btcLine = pts.map(r => `${x(r.ts).toFixed(1)},${y(r.v).toFixed(1)}`).join(" ");
+  // SPX6900's own MVRV history, drawn on Bitcoin's timeline at its real dates. The card
+  // used to show only a marker for today, which cannot answer "how does its history
+  // compare" — the question it actually gets asked. MVRV is unitless, which is what
+  // makes putting three years next to fifteen a fair comparison rather than a scale trick.
+  const WEEK = 7 * 86400000;
+  const spxRaw = (stats.mvrvSeries || [])
+    .map(r => ({ ts: r.ts, v: r.mvrv }))
+    .filter(r => Number.isFinite(r.ts) && r.v > 0 && r.ts >= t0 && r.ts <= t1)
+    .sort((a, b) => a.ts - b.ts);
+  const buckets = new Map();
+  for (const r of spxRaw) {
+    const k = Math.floor(r.ts / WEEK);
+    (buckets.get(k) || buckets.set(k, []).get(k)).push(r.v);
+  }
+  const spxPts = [...buckets.entries()].sort((a, b) => a[0] - b[0]).map(([k, vs]) => {
+    const srt = vs.slice().sort((a, b) => a - b);
+    return { ts: k * WEEK + WEEK / 2, v: srt[srt.length >> 1] }; // weekly median
+  });
+  const spxLine = spxPts.length > 30
+    ? spxPts.map(r => `${x(r.ts).toFixed(1)},${y(Math.min(Math.max(r.v, ymin), ymax)).toFixed(1)}`).join(" ")
+    : null;
 
   // Zones (BTC's own quantiles) — shade the cheap end where the story lives.
   // Vivid colours at ~0.24 opacity so the bands POP (was a very dim 0.10).
@@ -76,11 +99,12 @@ ${brandStripe(H)}
 <text x="${W - 60}" y="90" fill="#94a3b8" font-size="19" font-family="sans-serif" text-anchor="end">cheaper than ${cheaperThan}% of BTC history</text>
 ${zones}${grid}${xlab}
 <rect x="${mL}" y="${y(hi).toFixed(1)}" width="${pW}" height="${(y(lo) - y(hi)).toFixed(1)}" fill="${SPX_C}" fill-opacity="0.16"/>
+${spxLine ? `<polyline points="${spxLine}" fill="none" stroke="${SPX_C}" stroke-width="3.4" stroke-linejoin="round" stroke-linecap="round"/>` : ""}
 <polyline points="${btcLine}" fill="none" stroke="${BTC_C}" stroke-width="2.8" stroke-linejoin="round"/>
 <line x1="${mL}" y1="${spxY.toFixed(1)}" x2="${W - mR}" y2="${spxY.toFixed(1)}" stroke="${SPX_C}" stroke-width="3.2" stroke-opacity="0.95"/>
 <text x="${W - mR - 6}" y="${(spxY - 12).toFixed(1)}" fill="${SPX_C}" font-size="22" font-weight="800" text-anchor="end" font-family="sans-serif">SPX today ${fMvrv(spxMvrv)}</text>
 ${dots}
-<text x="60" y="${H - 22}" fill="#475569" font-size="18" font-family="sans-serif">${esc("spx6900rainbow.xyz · not financial advice · ")}<tspan fill="${BTC_C}">Bitcoin MVRV</tspan> · <tspan fill="${MATCH_C}">BTC at SPX's level ●</tspan>${yearStr ? ` <tspan fill="#64748b">(${esc(yearStr)} bottoms)</tspan>` : ""}</text>
+<text x="60" y="${H - 22}" fill="#475569" font-size="18" font-family="sans-serif">${esc("spx6900rainbow.xyz · not financial advice · ")}<tspan fill="${BTC_C}">Bitcoin MVRV</tspan> · <tspan fill="${SPX_C}">SPX6900 MVRV</tspan> · <tspan fill="${MATCH_C}">BTC at SPX's level ●</tspan>${yearStr ? ` <tspan fill="#64748b">(${esc(yearStr)} bottoms)</tspan>` : ""}</text>
 </svg>`;
 }
 
