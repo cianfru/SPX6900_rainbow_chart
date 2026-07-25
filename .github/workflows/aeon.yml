@@ -42,37 +42,21 @@ jobs:
           AEON_CONTRACT: ${{ vars.AEON_CONTRACT }}
           AEON_OS_SLUG: ${{ vars.AEON_OS_SLUG }}       # optional (else resolved from the contract)
         run: node scripts/build-aeon-listings.mjs
-      # Dune is the ONLY metered thing in this workflow, so it runs WEEKLY while everything
-      # else here stays daily. What it feeds — holder age, concentration, holder flow, the
-      # 180-day fair model, trader P&L — moves in months, not days. The genuinely timely
-      # surfaces no longer depend on it: floor/owners/supply come from Alchemy in the step
-      # above, and notable sales come from Alchemy live in aeon-sale-watch.yml (hourly).
-      # Daily was the right call only while the sale alert rode this pull.
-      - name: Is it the weekly Dune day?
-        id: dow
-        run: echo "day=$(date -u +%u)" >> "$GITHUB_OUTPUT"
-
-      - name: Refresh SALES from Dune (weekly — Monday)
-        # Re-pulls the entire transfer + sale history (tiny for a 3,333 collection → a few
-        # credits, no timeout). Soft-skips without DUNE_API_KEY; soft-fails on any Dune hiccup
-        # so the floor/owners banker stays green (reconstructions then use the committed CSVs).
-        # Weekly is enough: the recent tail is already carried free by the Alchemy bank, so
-        # this pull only has to keep the deep full-history reconstruction (trader P&L, cost
-        # basis, MVRV) current. Monday on the schedule; a manual dispatch always runs it.
-        if: steps.dow.outputs.day == '1' || github.event_name == 'workflow_dispatch'
-        env:
-          DUNE_API_KEY: ${{ secrets.DUNE_API_KEY }}
-          AEON_SALES_QUERY_ID: ${{ vars.AEON_SALES_QUERY_ID }}           # optional (else created + logged)
-        run: node scripts/build-aeon-dune-refresh.mjs --only=sales
-
-      - name: Refresh TRANSFERS from Dune (twice weekly — Monday + Thursday)
-        # Transfers drive holder age, concentration, holder flow and the skyline. Nothing
-        # free covers those, so this is the half that gets the extra run.
-        if: steps.dow.outputs.day == '1' || steps.dow.outputs.day == '4' || github.event_name == 'workflow_dispatch'
+      # MEASURED 2026-07-25 via the Dune MCP: transfers 0.163 credits/execution, sales
+      # 0.378 — 0.54 for a full refresh. Daily is therefore ~16 credits/month, 0.6% of the
+      # 2,500 quota. An earlier version gated this to Monday/Thursday on a guess that each
+      # pull cost ~50 credits; that guess came from attributing a one-off bulk-download
+      # month to the scheduled jobs, and it was wrong by two orders of magnitude. Do not
+      # re-throttle this without measuring first — getUsage and executionCostCredits are free.
+      - name: Refresh transfers + sales from Dune (whole history, daily)
+        # Soft-skips without DUNE_API_KEY; soft-fails on any Dune hiccup so the floor/owners
+        # banker stays green (reconstructions then use the last committed CSVs).
         env:
           DUNE_API_KEY: ${{ secrets.DUNE_API_KEY }}
           AEON_TRANSFERS_QUERY_ID: ${{ vars.AEON_TRANSFERS_QUERY_ID }}   # optional (else created + logged)
-        run: node scripts/build-aeon-dune-refresh.mjs --only=transfers
+          AEON_SALES_QUERY_ID: ${{ vars.AEON_SALES_QUERY_ID }}           # optional (else created + logged)
+        run: node scripts/build-aeon-dune-refresh.mjs
+
       - name: Rebuild transfer + sales reconstructions
         # onchain (holders/HODL-age/concentration/flow/skyline) + sales (floor/volume) from the
         # freshly-pulled CSVs. SPX balances stay the committed set (refreshed occasionally).

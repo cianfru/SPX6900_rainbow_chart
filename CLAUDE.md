@@ -967,13 +967,22 @@
           runs locally regardless of source, so either source gives the same answer — use the cheapest dump.
 
 ## Dune credit discipline — HARD-WON, read before writing/running ANY Dune query (2026-07-16)
-- **⚠ MEASURED 2026-07-25 (Dune MCP `getUsage`, FREE): 862 of 2,500 credits used in 5 days** (period 2026-07-20→08-20).
-  That is 34.5% of the month gone, and it corrects a bad estimate: Claude had inferred "~65 credits/month" from
-  comparable bounded queries. **Do NOT trust inferred credit costs — call `getUsage`, it is free.** The 862 was
-  build/debug load (SPX archive seeding + ~8 AEON banker dispatches × 2 queries), not steady state, but it means the
-  AEON whole-history pulls are likely **~50 credits each, not ~5**. At the scheduled cadence (transfers Mon+Thu,
-  sales Mon ≈ 13 executions/month) that is ~650/month ≈ 26% of quota — affordable, but an order of magnitude above
-  the earlier guess. Re-check `getUsage` before assuming headroom.
+- **⭐⭐ MEASURED 2026-07-25 via the Dune MCP — the scheduled jobs are essentially FREE; the spend is all one-off work.**
+  `getUsage` (free): **862 of 2,500 used** in period 2026-07-20→08-20. `executionCostCredits` off each query's last
+  execution (also free — read it from `getExecutionResults`, no re-run needed):
+    • **AEON transfers** (`erc721_ethereum.evt_Transfer`, 25,290 rows) = **0.163 credits**
+    • **AEON sales** (`nft.trades` — only 10.9 GB, 17,040 rows) = **0.378 credits**
+    • → a FULL AEON refresh is **0.54 credits**. DAILY = ~16/month = **0.6% of quota**.
+  So the 862 is essentially ALL manual/bulk work (the whole AEON dataset downloaded 2026-07-24, the SPX archive
+  seeding, the CEX wallet sweep), NOT the crons. AEON is back on a DAILY pull.
+  **⚠ THE LESSON — Claude got this wrong TWICE in one session, in both directions:** first inferred "~65/month" from
+  comparable queries, then, seeing 862 used, inferred "~50 credits per AEON execution" by dividing the period's spend
+  by the scheduled executions. That attribution was wrong by **two orders of magnitude** and led to throttling a job
+  that costs a sixth of a credit. **NEVER infer credit cost. Both measurements are FREE:** `getUsage` for the period,
+  and `getExecutionResults(latest_execution_id).resultMetadata.executionCostCredits` for a specific query — the latter
+  reads an EXISTING execution, so it costs nothing and needs no re-run. Measure before throttling anything.
+  **Bounded single-contract queries are ~0.1-0.5 credits.** The budget killers were only ever the heavy patterns
+  (10.5 TB Solana as-of scan = 654; aborted/cancelled runs that still charge).
 - **The 2,500/mo free tier got blown in a WEEK, ~88% on ~5 heavy debugging runs.** The credit CSV was unambiguous:
   one Solana run scanned **10.5 TB → 654 credits**; an *aborted* run charged **966**; a *cancelled* one **441**; a
   *timeout* **43**. The light master query (7991307) cost **1–3 credits**. So the lesson is not "2,500 is too little" —
