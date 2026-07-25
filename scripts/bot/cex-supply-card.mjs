@@ -8,6 +8,7 @@ import { Resvg } from "@resvg/resvg-js";
 import { FONT } from "./font.mjs";
 import { esc } from "./svg-util.mjs";
 import { CEX_FLOW } from "../../src/cex-flow.js";
+import { brandStripe } from "./chrome.mjs";
 
 const png = (svg, w) => new Resvg(svg, { fitTo: { mode: "width", value: w }, font: FONT }).render().asPng();
 const fMlab = t => t >= 1e6 ? Math.round(t / 1e6) + "M" : Math.round(t / 1e3) + "K";
@@ -85,6 +86,7 @@ export function cexSupplySvg(opts = {}) {
 <radialGradient id="csacc" cx="18%" cy="4%" r="78%"><stop offset="0%" stop-color="#fb7185" stop-opacity="0.12"/><stop offset="46%" stop-color="#fb7185" stop-opacity="0"/></radialGradient>
 </defs>
 <rect width="${W}" height="${H}" fill="url(#csbg)"/><rect width="${W}" height="${H}" fill="url(#csacc)"/>
+${brandStripe(H)}
 <rect x="16" y="16" width="${W - 32}" height="${H - 32}" rx="24" fill="none" stroke="rgba(255,255,255,0.09)" stroke-width="1.5"/>
 <text x="60" y="66" font-size="40" font-weight="800" font-family="sans-serif" letter-spacing="1"><tspan fill="#fb7185">WHERE SPX6900'S</tspan><tspan fill="#f1f5f9"> TRADABLE SUPPLY SITS</tspan></text>
 <text x="60" y="98" font-size="20" font-family="sans-serif" fill="#94a3b8">Launched DEX-native (all in the LP); exchange-held supply grew as listings landed</text>

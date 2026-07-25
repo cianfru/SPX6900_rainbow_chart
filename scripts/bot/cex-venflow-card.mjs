@@ -6,6 +6,7 @@
 import { Resvg } from "@resvg/resvg-js";
 import { FONT } from "./font.mjs";
 import { esc } from "./svg-util.mjs";
+import { brandStripe } from "./chrome.mjs";
 
 const png = (svg, w) => new Resvg(svg, { fitTo: { mode: "width", value: w }, font: FONT }).render().asPng();
 const fM = t => (t >= 0 ? "+" : "−") + (Math.abs(t) >= 1e6 ? (Math.abs(t) / 1e6).toFixed(Math.abs(t) >= 1e7 ? 0 : 1) + "M" : Math.round(Math.abs(t) / 1e3) + "K");
@@ -65,6 +66,7 @@ export function cexVenFlowSvg(stats, opts = {}) {
   return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
 <defs><linearGradient id="vfbg" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#171f42"/><stop offset="52%" stop-color="#0c1122"/><stop offset="100%" stop-color="#06070f"/></linearGradient></defs>
 <rect width="${W}" height="${H}" fill="url(#vfbg)"/>
+${brandStripe(H)}
 <rect x="16" y="16" width="${W - 32}" height="${H - 32}" rx="24" fill="none" stroke="rgba(255,255,255,0.09)" stroke-width="1.5"/>
 <text x="60" y="66" font-size="38" font-weight="800" font-family="sans-serif" letter-spacing="0.5"><tspan fill="#f1f5f9">Exchange flow by venue — </tspan><tspan fill="${S.up.flow >= 0 ? POS : NEG}">${esc(S.up.venue)} ${fM(S.up.flow)}</tspan></text>
 <text x="60" y="98" font-size="20" font-family="sans-serif" fill="#94a3b8">Net change in SPX6900 held per exchange, ${esc(fmt(S.from))} → ${esc(fmt(S.to))} · ${esc(S.down.venue)} bled ${fM(S.down.flow)}</text>

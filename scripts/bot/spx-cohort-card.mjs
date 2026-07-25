@@ -11,6 +11,7 @@ import { Resvg } from "@resvg/resvg-js";
 import { FONT } from "./font.mjs";
 import { esc } from "./svg-util.mjs";
 import { COHORT } from "../../src/cohort-daily.js";
+import { brandStripe } from "./chrome.mjs";
 
 const png = (svg, w) => new Resvg(svg, { fitTo: { mode: "width", value: w }, font: FONT }).render().asPng();
 
@@ -72,7 +73,7 @@ export function spxCohortStats() {
 
 export function spxCohortSvg(opts = {}) {
   const { anchor, coins: S } = spxCohortStats();
-  const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 132, mR = 108;
+  const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 150, mR = 108;
   const pW = W - mL - mR;
 
   // Legend — computed FIRST because it flows onto as many rows as needed, and the plot
@@ -149,6 +150,7 @@ export function spxCohortSvg(opts = {}) {
 <rect width="${W}" height="${H}" fill="url(#chbg)"/>
 <rect width="${W}" height="${H}" fill="url(#chvig)"/>
 <rect width="${W}" height="${H}" fill="url(#chaccent)"/>
+${brandStripe(H)}
 <rect x="16" y="16" width="${W - 32}" height="${H - 32}" rx="24" fill="none" stroke="rgba(255,255,255,0.09)" stroke-width="1.5"/>
 <text x="60" y="74" font-size="46" font-weight="800" font-family="sans-serif" letter-spacing="1.2"><tspan fill="#5eead4">SPX6900</tspan><tspan fill="#f1f5f9"> &amp; ITS MEMECOIN COHORT</tspan></text>
 ${grid}${xlab}

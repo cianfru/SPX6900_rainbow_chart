@@ -9,6 +9,7 @@
 import { Resvg } from "@resvg/resvg-js";
 import { FONT } from "./font.mjs";
 import { esc } from "./svg-util.mjs";
+import { brandStripe } from "./chrome.mjs";
 
 const png = (svg, w) => new Resvg(svg, { fitTo: { mode: "width", value: w }, font: FONT }).render().asPng();
 const fYr = t => new Date(t).getUTCFullYear();
@@ -28,7 +29,7 @@ export function nuplSvg(stats, opts = {}) {
   const pts = raw.map(r => ({ ts: r.ts, nupl: 1 - 1 / r.mvrv }));
   const cur = pts.at(-1), curN = cur.nupl, [, zLabel, zCol] = zoneOf(curN);
 
-  const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 88, mR = 158, mT = 148, mB = 92, pW = W - mL - mR, pH = H - mT - mB;
+  const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 110, mR = 158, mT = 148, mB = 92, pW = W - mL - mR, pH = H - mT - mB;
   const t0 = pts[0].ts, t1 = cur.ts;
   const x = t => mL + ((t - t0) / ((t1 - t0) || 1)) * pW;
   const yMin = -1, yMax = 0.95; // clip the display; SPX overshoots (hero shows true value)
@@ -60,6 +61,7 @@ export function nuplSvg(stats, opts = {}) {
 <filter id="nglow" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="4"/></filter>
 </defs>
 <rect width="${W}" height="${H}" fill="url(#nbg)"/>
+${brandStripe(H)}
 <text x="60" y="52" fill="#e2e8f0" font-size="34" font-weight="800" font-family="sans-serif" letter-spacing="1">SPX6900 — NUPL</text>
 <text x="60" y="84" fill="#94a3b8" font-size="21" font-family="sans-serif">Are holders sitting on profit or loss? Below 0 = underwater.</text>
 <text x="60" y="122" fill="${zCol}" font-size="27" font-weight="800" font-family="sans-serif">${curN >= 0 ? "+" : ""}${curN.toFixed(2)} · ${esc(zLabel)} — ${curN >= 0 ? "holders sit on unrealized profit" : "holders are underwater"}</text>

@@ -8,6 +8,7 @@
 import { Resvg } from "@resvg/resvg-js";
 import { FONT } from "./font.mjs";
 import { esc } from "./svg-util.mjs";
+import { brandStripe } from "./chrome.mjs";
 
 const png = (svg, w) => new Resvg(svg, { fitTo: { mode: "width", value: w }, font: FONT }).render().asPng();
 const fMvrv = v => v.toFixed(2) + "×";
@@ -23,7 +24,7 @@ export function mvrvTrendSvg(stats, opts = {}) {
   const q = f => sorted[Math.min(sorted.length - 1, Math.floor(f * sorted.length))];
   const peak = raw.reduce((m, r) => r.mvrv > m.mvrv ? r : m, raw[0]);
 
-  const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 92, mR = 92, mT = 152, mB = 92, pW = W - mL - mR, pH = H - mT - mB;
+  const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 116, mR = 92, mT = 152, mB = 92, pW = W - mL - mR, pH = H - mT - mB;
   const t0 = raw[0].ts, t1 = cur.ts;
   const x = t => mL + ((t - t0) / ((t1 - t0) || 1)) * pW;
   const ymin = Math.min(sorted[0], mvrv) * 0.9, ymax = sorted.at(-1) * 1.05;
@@ -73,6 +74,7 @@ export function mvrvTrendSvg(stats, opts = {}) {
 <filter id="mtglow" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="4.5"/></filter>
 </defs>
 <rect width="${W}" height="${H}" fill="url(#mtbg)"/>
+${brandStripe(H)}
 <text x="60" y="56" fill="#e2e8f0" font-size="36" font-weight="800" font-family="sans-serif" letter-spacing="1">SPX6900 — MVRV OVER TIME</text>
 <text x="60" y="90" fill="#94a3b8" font-size="21" font-family="sans-serif">Is the average holder up or down on what they paid? Below 1× = underwater.</text>
 <text x="60" y="128" fill="${SPX_C}" font-size="28" font-weight="800" font-family="sans-serif">${fMvrv(mvrv)} — ${state}</text>

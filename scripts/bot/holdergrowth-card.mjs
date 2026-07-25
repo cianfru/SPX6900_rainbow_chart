@@ -4,6 +4,7 @@
 // this shows the trend. A foundation card — gentler now, stronger as history banks.
 import { Resvg } from "@resvg/resvg-js";
 import { FONT } from "./font.mjs";
+import { brandStripe } from "./chrome.mjs";
 
 const png = (svg, w) => new Resvg(svg, { fitTo: { mode: "width", value: w }, font: FONT }).render().asPng();
 const fK = n => (n >= 1000 ? (n / 1000).toFixed(1) + "k" : String(n));
@@ -66,6 +67,7 @@ export function holderGrowthSvg(stats, opts = {}) {
 <rect width="${W}" height="${H}" fill="#05050e"/>
 <radialGradient id="hgV" cx="20%" cy="0%" r="90%"><stop offset="0%" stop-color="${HOLD}" stop-opacity="0.12"/><stop offset="60%" stop-color="${HOLD}" stop-opacity="0"/></radialGradient>
 <rect width="${W}" height="${H}" fill="url(#hgV)"/>
+${brandStripe(H)}
 ${grid}${xlab}
 <path d="${pPath}" fill="none" stroke="${PRICE}" stroke-width="4.5" stroke-opacity="0.95" stroke-linejoin="round"/>
 <path d="${hArea}" fill="url(#hgFill)"/>

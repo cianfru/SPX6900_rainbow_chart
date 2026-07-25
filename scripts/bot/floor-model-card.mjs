@@ -8,6 +8,7 @@
 import { Resvg } from "@resvg/resvg-js";
 import { FONT } from "./font.mjs";
 import { esc } from "./svg-util.mjs";
+import { brandStripe } from "./chrome.mjs";
 
 const png = (svg, w) => new Resvg(svg, { fitTo: { mode: "width", value: w }, font: FONT }).render().asPng();
 const fP = v => "$" + (v >= 1 ? v.toFixed(2) : v >= 0.1 ? v.toFixed(3) : v.toFixed(4));
@@ -26,7 +27,7 @@ export function floorModelSvg(stats, opts = {}) {
   const rpNow = cur.rp;
   const f08 = rpNow * 0.8, f05 = rpNow * 0.5;
 
-  const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 96, mR = 156, mT = 154, mB = 92, pW = W - mL - mR, pH = H - mT - mB;
+  const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 142, mR = 156, mT = 154, mB = 92, pW = W - mL - mR, pH = H - mT - mB;
   const t0 = raw[0].t, t1 = cur.t;
   const x = t => mL + ((t - t0) / ((t1 - t0) || 1)) * pW;
 
@@ -42,6 +43,18 @@ export function floorModelSvg(stats, opts = {}) {
   // floor "value zone" = filled band between 0.8× and 0.5× realized (a closed polygon:
   // 0.8× line forward, 0.5× line back). Where spot enters this = a discount to cost basis.
   const bandPoly = up08 + " " + raw.slice().reverse().map(r => `${x(r.t).toFixed(1)},${y(r.rp * 0.5).toFixed(1)}`).join(" ");
+
+  // ── background zones ───────────────────────────────────────────────────────
+  // The card used to sit on flat near-black, which made it the dimmest of the on-chain
+  // set even though its subject is the most colour-coded (in profit / at cost / below the
+  // floor). These are the same edge-bright zones supply-profit and mvrv-trend use — vivid
+  // at the outer extreme, fading toward the lines so the data stays clean — except the
+  // boundaries here are the CURVED realized and 0.5× lines rather than fixed levels.
+  //   above realized  = warm  (spot over what the crowd paid — holders in profit)
+  //   below 0.5× floor = cool (deeper than price has historically gone)
+  const richPoly = `${mL},${mT} ${(mL + pW).toFixed(1)},${mT} `
+    + raw.slice().reverse().map(r => `${x(r.t).toFixed(1)},${y(r.rp).toFixed(1)}`).join(" ");
+  const deepPoly = up05 + ` ${(mL + pW).toFixed(1)},${(mT + pH).toFixed(1)} ${mL},${(mT + pH).toFixed(1)}`;
 
   let grid = "";
   for (const v of [0.001, 0.003, 0.01, 0.03, 0.1, 0.3, 1].filter(v => v >= lo && v <= hi)) {
@@ -61,19 +74,36 @@ export function floorModelSvg(stats, opts = {}) {
     ? `under cost basis · ${toFloor.toFixed(2)}× the 0.5× floor`
     : `${(spotNow / rpNow).toFixed(2)}× cost basis`;
 
-  // right-edge band labels
-  const lbl = (v, c, txt) => `<text x="${W - mR + 8}" y="${(y(v) + 7).toFixed(1)}" fill="${c}" font-size="22" font-weight="700" font-family="sans-serif">${esc(txt)}</text>`;
+  // Right-edge band labels. The three levels are only 0.5–0.8× apart, which on a log axis
+  // spanning three decades puts them within a few pixels of each other — "realized" and
+  // "0.8×" were overprinting. They're always in descending order, so push each at least a
+  // line-height below the one above it.
+  let lastLblY = -Infinity;
+  const lbl = (v, c, txt) => {
+    const yy = Math.max(y(v) + 7, lastLblY + 27);
+    lastLblY = yy;
+    return `<text x="${W - mR + 8}" y="${yy.toFixed(1)}" fill="${c}" font-size="22" font-weight="700" font-family="sans-serif">${esc(txt)}</text>`;
+  };
 
   return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
 <defs>
-<linearGradient id="fmbg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#0b0b16"/><stop offset="100%" stop-color="#05050e"/></linearGradient>
+<linearGradient id="fmbg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#0e0c18"/><stop offset="100%" stop-color="#05050e"/></linearGradient>
+<radialGradient id="fmwarm" cx="14%" cy="4%" r="72%"><stop offset="0%" stop-color="#fbbf24" stop-opacity="0.16"/><stop offset="62%" stop-color="#fbbf24" stop-opacity="0.03"/><stop offset="100%" stop-color="#fbbf24" stop-opacity="0"/></radialGradient>
+<radialGradient id="fmcool" cx="90%" cy="100%" r="70%"><stop offset="0%" stop-color="#22d3ee" stop-opacity="0.17"/><stop offset="65%" stop-color="#22d3ee" stop-opacity="0.03"/><stop offset="100%" stop-color="#22d3ee" stop-opacity="0"/></radialGradient>
+<linearGradient id="fmRich" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#fb7185" stop-opacity="0.26"/><stop offset="70%" stop-color="#fb7185" stop-opacity="0.06"/><stop offset="100%" stop-color="#fb7185" stop-opacity="0.02"/></linearGradient>
+<linearGradient id="fmDeep" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#38bdf8" stop-opacity="0.24"/><stop offset="50%" stop-color="#38bdf8" stop-opacity="0.07"/><stop offset="100%" stop-color="#38bdf8" stop-opacity="0"/></linearGradient>
 <linearGradient id="fmfloor" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="${FLOOR_C}" stop-opacity="0.16"/><stop offset="100%" stop-color="#22d38a" stop-opacity="0.34"/></linearGradient>
 <filter id="fmglow" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="4.5"/></filter>
 </defs>
 <rect width="${W}" height="${H}" fill="url(#fmbg)"/>
+<rect width="${W}" height="${H}" fill="url(#fmwarm)"/>
+<rect width="${W}" height="${H}" fill="url(#fmcool)"/>
+${brandStripe(H)}
 <text x="60" y="56" fill="#e2e8f0" font-size="35" font-weight="800" font-family="sans-serif" letter-spacing="1">SPX6900 — REALIZED PRICE &amp; FLOOR</text>
 <text x="60" y="90" fill="#94a3b8" font-size="21" font-family="sans-serif">Where has price kept finding a floor vs what holders paid?</text>
 <text x="60" y="130" fill="${SPOT_C}" font-size="27" font-weight="800" font-family="sans-serif">${fP(spotNow)} spot · ${fP(rpNow)} cost basis — ${esc(state)}</text>
+<polygon points="${richPoly}" fill="url(#fmRich)"/>
+<polygon points="${deepPoly}" fill="url(#fmDeep)"/>
 ${grid}${xlab}
 <polygon points="${bandPoly}" fill="url(#fmfloor)"/>
 <polyline points="${up08}" fill="none" stroke="${FLOOR_C}" stroke-width="2.5" stroke-opacity="0.9" stroke-dasharray="6 6"/>
@@ -85,8 +115,8 @@ ${lbl(rpNow, RP_C, "realized")}
 ${lbl(f08, FLOOR_C, "0.8×")}
 ${lbl(f05, DEEP_C, "0.5× floor")}
 <circle cx="${curX.toFixed(1)}" cy="${curY.toFixed(1)}" r="9" fill="${SPOT_C}" stroke="#05050e" stroke-width="2"/>
-<text x="${(curX - 16).toFixed(1)}" y="${(curY - 18).toFixed(1)}" fill="${SPOT_C}" font-size="22" font-weight="800" text-anchor="end" font-family="sans-serif">now</text>
-<text x="60" y="${H - 20}" fill="#6b7688" font-size="18" font-family="sans-serif">${esc("spx6900rainbow.xyz · not financial advice · realized price = crowd's on-chain cost basis")}</text>
+<text x="${(curX - 16).toFixed(1)}" y="${(curY + 32).toFixed(1)}" fill="${SPOT_C}" font-size="22" font-weight="800" text-anchor="end" font-family="sans-serif">now</text>
+<text x="60" y="${H - 20}" fill="#6b7688" font-size="18" font-family="sans-serif">${esc("spx6900rainbow.xyz · not financial advice · realized = the crowd's cost basis · above it = in profit")}</text>
 </svg>`;
 }
 

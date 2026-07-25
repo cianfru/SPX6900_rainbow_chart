@@ -7,6 +7,7 @@
 import { Resvg } from "@resvg/resvg-js";
 import { FONT } from "./font.mjs";
 import { buildFireSaleRalliesLive } from "../../src/models.js";
+import { brandStripe } from "./chrome.mjs";
 
 const png = (svg, w) => new Resvg(svg, { fitTo: { mode: "width", value: w }, font: FONT }).render().asPng();
 const fMon = d => { const t = new Date(d); return t.toLocaleString("en-US", { month: "short" }) + " '" + String(t.getFullYear()).slice(2); };
@@ -67,6 +68,7 @@ export function fireSaleRallySvg(stats, opts = {}) {
 <rect width="${W}" height="${H}" fill="#05050e"/>
 <radialGradient id="fsv" cx="30%" cy="0%" r="90%"><stop offset="0%" stop-color="#6366f1" stop-opacity="0.16"/><stop offset="60%" stop-color="#6366f1" stop-opacity="0"/></radialGradient>
 <rect width="${W}" height="${H}" fill="url(#fsv)"/>
+${brandStripe(H)}
 ${grid}${xlab}
 ${glow}${lines}${dots}
 <text x="64" y="50" fill="#e2e8f0" font-size="30" font-weight="800" font-family="sans-serif" letter-spacing="1">SPX6900 — FIRE SALE RALLIES</text>

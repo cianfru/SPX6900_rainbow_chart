@@ -5,6 +5,7 @@
 import { Resvg } from "@resvg/resvg-js";
 import { DEFAULT_RAW } from "../../src/data.js";
 import { FONT } from "./font.mjs";
+import { brandStripe } from "./chrome.mjs";
 
 const png = (svg, w) => new Resvg(svg, { fitTo: { mode: "width", value: w }, font: FONT }).render().asPng();
 const MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -38,7 +39,7 @@ export function monthlyCompareSvg(price, dateStr = new Date().toISOString().slic
   for (const mo of months) for (const v of [mo.old, mo.now]) if (v != null) maxAbs = Math.max(maxAbs, Math.abs(v));
   const R = Math.ceil(maxAbs / 0.2) * 0.2; // symmetric range, rounded to 20%
 
-  const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 92, mR = 34, mT = 100, mB = 76, pW = W - mL - mR, pH = H - mT - mB;
+  const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 112, mR = 34, mT = 100, mB = 76, pW = W - mL - mR, pH = H - mT - mB;
   const y0 = mT + pH / 2;
   const y = v => mT + ((R - v) / (2 * R)) * pH;
   const groupW = pW / 12;
@@ -82,6 +83,7 @@ export function monthlyCompareSvg(price, dateStr = new Date().toISOString().slic
 </defs>
 <rect width="${W}" height="${H}" fill="#05050e"/>
 <rect width="${W}" height="${H}" fill="url(#mcTop)"/>
+${brandStripe(H)}
 ${grid}${bars}${labels}${xlab}${legend}
 <text x="64" y="42" fill="#e2e8f0" font-size="29" font-weight="700" font-family="sans-serif" letter-spacing="1">SPX6900 MONTHLY RETURNS — ${yy(yOld)} vs ${yy(yNew)}</text>
 <text x="${W - mR}" y="42" fill="#fbbf24" font-size="26" font-weight="800" font-family="sans-serif" text-anchor="end">month by month</text>

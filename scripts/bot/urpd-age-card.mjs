@@ -9,6 +9,7 @@
 import { Resvg } from "@resvg/resvg-js";
 import { FONT } from "./font.mjs";
 import { esc } from "./svg-util.mjs";
+import { brandStripe } from "./chrome.mjs";
 
 const png = (svg, w) => new Resvg(svg, { fitTo: { mode: "width", value: w }, font: FONT }).render().asPng();
 const AGE_C = ["#fb7185", "#fb923c", "#fbbf24", "#a78bfa", "#22d3ee"]; // 0-1m fresh → 1y+ old
@@ -60,6 +61,7 @@ export function urpdAgeSvg(stats, opts = {}) {
   return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
 <defs><linearGradient id="uabg" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#0e1430"/><stop offset="55%" stop-color="#0a0d1c"/><stop offset="100%" stop-color="#06070f"/></linearGradient></defs>
 <rect width="${W}" height="${H}" fill="url(#uabg)"/>
+${brandStripe(H)}
 <rect x="16" y="16" width="${W - 32}" height="${H - 32}" rx="22" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="1.5"/>
 <text x="52" y="58" font-size="38" font-weight="800" font-family="sans-serif" letter-spacing="0.5"><tspan fill="#22d3ee">${headline}</tspan></text>
 <text x="52" y="90" font-size="21" font-family="sans-serif" fill="#e2e8f0">${esc(sub)}</text>
