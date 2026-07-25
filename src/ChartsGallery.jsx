@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef, Suspense } from "react";
-import { CHART_GROUPS } from "./charts-catalog.js";
+import { useState, useEffect, useRef, useMemo, Suspense } from "react";
+import { CHART_GROUPS, AEON_GROUPS, METHOD_FAMILIES, METHOD_OF } from "./charts-catalog.js";
 import ErrorBoundary from "./ErrorBoundary.jsx";
 import { SANS, MONO, MAX_W } from "./chart-ui.jsx";
 
@@ -68,13 +68,72 @@ function Tile({ item, color, onOpen, renderPreview }) {
   );
 }
 
+// Match on everything a visitor might type: the chart's name, its description, its
+// group, and the name of the method family it belongs to — so "cost basis" finds the
+// fifteen charts built on the FIFO reconstruction even though only two say those words.
+const haystack = (item, groupTitle) => [
+  item.title, item.desc, groupTitle,
+  METHOD_FAMILIES.find(f => f.id === METHOD_OF[item.id])?.name ?? "",
+].join(" ").toLowerCase();
+
+function SearchBar({ q, setQ, count, total, isMobile }) {
+  const ref = useRef(null);
+  // ⌘K / Ctrl-K focuses the field from anywhere on the page.
+  useEffect(() => {
+    const onKey = e => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") { e.preventDefault(); ref.current?.focus(); ref.current?.select(); }
+      if (e.key === "Escape" && document.activeElement === ref.current) { setQ(""); ref.current?.blur(); }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [setQ]);
+  return (
+    <div style={{
+      display: "flex", alignItems: "center", gap: 11, maxWidth: 560, margin: "0 auto",
+      borderBottom: "1px solid rgba(255,255,255,0.14)", padding: "8px 2px",
+    }}>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7c8a9e" strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0 }}>
+        <circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" />
+      </svg>
+      <input
+        ref={ref} value={q} onChange={e => setQ(e.target.value)} type="search"
+        aria-label="Search charts by name, description or method"
+        placeholder={isMobile ? "Search charts…" : "Search charts — try “cost basis”, “bitcoin”, “rarity”"}
+        style={{
+          flex: 1, background: "transparent", border: "none", outline: "none",
+          fontFamily: SANS, fontSize: 15, color: "#f1f5f9", minWidth: 0,
+        }}
+      />
+      <span style={{ fontFamily: MONO, fontSize: 12, color: "#7c8a9e", flexShrink: 0, whiteSpace: "nowrap" }}>
+        {q ? `${count}/${total}` : (isMobile ? `${total}` : "⌘K")}
+      </span>
+    </div>
+  );
+}
+
 export default function ChartsGallery({
-  isMobile, onOpen, onHome, renderPreview,
+  isMobile, onOpen, onHome, renderPreview, onOther,
   groups = CHART_GROUPS, title = "Charts", titleGradient = "linear-gradient(90deg,#a78bfa,#22d3ee,#4ade80,#fbbf24,#f7931a)",
   subtitle, showFeatured = true,
 }) {
-  const total = groups.reduce((n, g) => n + g.charts.length, 0) + (showFeatured ? 1 : 0);
-  const sub = subtitle ?? `${total} interactive ways to look at SPX6900 — tap any chart to open it.`;
+  const [q, setQ] = useState("");
+  const nq = q.trim().toLowerCase();
+  // Filtered view of the catalog. Groups that lose every chart drop out entirely so
+  // the page never shows an empty heading.
+  const shown = useMemo(() => {
+    if (!nq) return groups;
+    return groups
+      .map(g => ({ ...g, charts: g.charts.filter(c => haystack(c, g.title).includes(nq)) }))
+      .filter(g => g.charts.length);
+  }, [groups, nq]);
+  const total = groups.reduce((n, g) => n + g.charts.length, 0);
+  const found = shown.reduce((n, g) => n + g.charts.length, 0);
+  // The other catalog — Aeon when browsing SPX, SPX when browsing Aeon.
+  const otherGroups = groups === CHART_GROUPS ? AEON_GROUPS : CHART_GROUPS;
+  const otherName = groups === CHART_GROUPS ? "Project Aeon" : "Charts";
+  const otherHits = useMemo(() => !nq ? 0 : otherGroups.reduce(
+    (n, g) => n + g.charts.filter(c => haystack(c, g.title).includes(nq)).length, 0), [otherGroups, nq]);
+  const sub = subtitle ?? `${total + (showFeatured ? 1 : 0)} interactive ways to look at SPX6900 — tap any chart to open it.`;
 
   return (
     <div style={{ padding: isMobile ? "8px 4px 48px" : "16px 8px 60px" }}>
@@ -87,10 +146,13 @@ export default function ChartsGallery({
         <div style={{ fontFamily: SANS, fontSize: isMobile ? 14 : 16, color: "#94a3b8" }}>
           {sub}
         </div>
+        <div style={{ marginTop: 18 }}>
+          <SearchBar q={q} setQ={setQ} count={found} total={total} isMobile={isMobile} />
+        </div>
       </div>
 
       {/* Featured: the Rainbow hero (lives on the home page) — SPX gallery only */}
-      {showFeatured && (
+      {showFeatured && !nq && (
       <div style={{ maxWidth: MAX_W, margin: "0 auto 38px" }}>
         <button
           className="pill" onClick={onHome} title="Open the Rainbow chart"
@@ -116,7 +178,7 @@ export default function ChartsGallery({
       </div>
       )}
 
-      {groups.map(group => (
+      {shown.map(group => (
         <div key={group.title} style={{ maxWidth: MAX_W, margin: "0 auto 38px" }}>
           <div style={{ display: "flex", alignItems: "baseline", gap: 12, marginBottom: 14, flexWrap: "wrap" }}>
             <span style={{ width: 10, height: 10, borderRadius: 3, background: group.color, boxShadow: `0 0 10px ${group.color}` }} />
@@ -130,6 +192,32 @@ export default function ChartsGallery({
           </div>
         </div>
       ))}
+
+      {nq && !found && (
+        <div style={{ maxWidth: MAX_W, margin: "0 auto", textAlign: "center", padding: "40px 20px 24px", fontFamily: SANS }}>
+          <div style={{ fontSize: 17, color: "#cbd5e1", marginBottom: 8 }}>
+            {otherHits ? `Nothing in ${title} matches “${q}”.` : `Nothing matches “${q}”.`}
+          </div>
+          {!otherHits && (
+            <div style={{ fontSize: 14, color: "#7c8a9e" }}>
+              Try a method instead — <em>cost basis</em>, <em>power-law</em>, <em>exchange</em>, <em>races</em>.
+            </div>
+          )}
+        </div>
+      )}
+
+      {nq && otherHits > 0 && onOther && (
+        <div style={{ maxWidth: MAX_W, margin: "0 auto 30px", textAlign: "center" }}>
+          <button className="pill" onClick={onOther} style={{
+            fontFamily: SANS, fontSize: 14, color: "#cbd5e1", cursor: "pointer",
+            background: "rgba(45,212,191,0.08)", border: "1px solid rgba(45,212,191,0.35)",
+            borderRadius: 999, padding: "8px 18px", "--glow": "#2dd4bf",
+          }}>
+            {otherHits} more match{otherHits === 1 ? "" : "es"} in <strong style={{ color: "#f1f5f9" }}>{otherName}</strong> →
+          </button>
+        </div>
+      )}
+
     </div>
   );
 }

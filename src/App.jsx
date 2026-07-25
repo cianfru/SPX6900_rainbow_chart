@@ -775,7 +775,7 @@ export default function App() {
       {/* Browse-all gallery */}
       {route === "gallery" && (
         <Suspense fallback={<div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Loading charts…</div>}>
-          <ChartsGallery isMobile={isMobile} onOpen={goChart} onHome={goHome} renderPreview={id => chartEl(id, { preview: true })} />
+          <ChartsGallery isMobile={isMobile} onOpen={goChart} onHome={goHome} onOther={openAeon} renderPreview={id => chartEl(id, { preview: true })} />
         </Suspense>
       )}
 
@@ -784,7 +784,7 @@ export default function App() {
       {route === "aeon" && (
         <Suspense fallback={<div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Loading charts…</div>}>
           <ChartsGallery
-            isMobile={isMobile} onOpen={goChart} onHome={goHome} renderPreview={id => chartEl(id, { preview: true })}
+            isMobile={isMobile} onOpen={goChart} onHome={goHome} onOther={openGallery} renderPreview={id => chartEl(id, { preview: true })}
             groups={AEON_GROUPS} showFeatured={false} title="Project Aeon"
             titleGradient="linear-gradient(90deg,#2dd4bf,#3b82f6,#a855f7,#f472b6)"
             subtitle="On-chain analytics for the Project AEON NFT collection — 3,333 on Ethereum. Every number checkable, reproducible."
