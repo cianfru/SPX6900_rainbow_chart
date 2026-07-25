@@ -52,12 +52,31 @@ test("never re-posts a sale already recorded", () => {
 test("copy leads with the number, names the rarity, and stays in the instant-read budget", () => {
   const pick = { sale: sale({ id: 2167, price: 0.417, exp: 0.604, rank: 257, disc: 0.31 }), kind: "steal" };
   const traits = [{ t: "Head Accessory", v: "Ultra-Helmet", pct: 0.54 }];
-  const txt = saleCopy(pick, { total: 3333, tier: tierOf(257, 3333), traits });
+  const txt = saleCopy(pick, { total: 3333, tier: tierOf(257, 3333), traits, asOf: TODAY });
   assert.match(txt, /#2167/);
   assert.match(txt, /31% under/);
   assert.match(txt, /0\.54%/);
   assert.equal(txt.split("\n").length, 3, "house style is exactly 3 lines");
   assert.ok([...txt].length <= 600, `copy too long: ${[...txt].length}`);
+});
+
+// The first live post announced a 4-day-old trade as "just sold" — the freshness clock was
+// the market file's build date, not the real one. The tense must track the actual age.
+test("copy says 'just sold' only when the sale is actually today", () => {
+  const mk = d2 => saleCopy({ sale: sale({ id: 1, exp: 0.6, disc: 0.3, d: d2 }), kind: "steal" },
+    { total: 3333, tier: tierOf(1, 3333), traits: [], asOf: TODAY });
+  assert.match(mk(TODAY), /just sold/);
+  assert.match(mk(d(1)), /sold yesterday/);
+  assert.match(mk(d(3)), new RegExp(`sold on ${d(3)}`), "older than a day names the date");
+  assert.doesNotMatch(mk(d(3)), /just sold/);
+});
+
+test("withFooter turns the 3 lines into airy paragraphs and adds the branded footer", async () => {
+  const { withFooter } = await import("../scripts/bot/posts.mjs");
+  const txt = withFooter(saleCopy({ sale: sale({ exp: 0.6, disc: 0.3 }), kind: "steal" },
+    { total: 3333, tier: tierOf(1, 3333), traits: [], asOf: TODAY }));
+  assert.ok(txt.includes("\n\n"), "single newlines must become blank-line separated paragraphs");
+  assert.match(txt, /🌈/, "branded footer missing — the first live post went out without it");
 });
 
 // ── art resolution ───────────────────────────────────────────────────────────

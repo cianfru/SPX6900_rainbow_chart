@@ -25,7 +25,7 @@ import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { renderAeonSaleCard, fetchArt, traitsFor, tierOf } from "./aeon-sale-card.mjs";
 import { postWithMedia } from "./media.mjs";
-import { lanePostedToday, recordLanePost } from "./posts.mjs";
+import { lanePostedToday, recordLanePost, withFooter } from "./posts.mjs";
 import { fetchLiveSales } from "./aeon-live-sales.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "../..");
@@ -84,16 +84,28 @@ export function pickNotable(recentSales, { level, today, posted = new Set(), day
   return best;
 }
 
-/** House-style 3-line copy. Leads with the number, states the method, no advice. */
-export function saleCopy({ sale, kind }, { total, tier, traits }) {
+/**
+ * House-style copy: exactly 3 lines, single \n. withFooter() doubles them into airy
+ * paragraphs and appends the branded footer — the first live post skipped it and went out
+ * as a wall of text, which is the one thing CLAUDE.md says not to do.
+ *
+ * The tense ADAPTS to the sale's real age. "Just sold" describing a four-day-old trade is
+ * the kind of small inaccuracy the honesty moat cannot afford, and the first post did
+ * exactly that: it announced a 07-21 sale as "just sold" because the freshness clock was
+ * the market file's build date rather than the actual date.
+ */
+export function saleCopy({ sale, kind }, { total, tier, traits, asOf }) {
   const rarest = traits?.[0];
   const rareBit = rarest?.pct != null ? ` ${rarest.v} shows on just ${rarest.pct}% of the collection.` : "";
   const pctBelow = Math.round(Math.abs(sale.disc) * 100);
+  const ageDays = Math.floor((Date.parse(asOf || new Date().toISOString().slice(0, 10)) - Date.parse(sale.d)) / 86400e3);
+  const sold = ageDays <= 0 ? "just sold" : ageDays === 1 ? "sold yesterday" : `sold on ${sale.d}`;
+  const moved = ageDays <= 0 ? "just changed hands" : ageDays === 1 ? "changed hands yesterday" : `changed hands on ${sale.d}`;
   const head = kind === "steal"
-    ? `🖼️ AEON #${sale.id} just sold for ${fEth(sale.price)} — ${pctBelow}% under what its rarity normally trades at.`
+    ? `🖼️ AEON #${sale.id} ${sold} for ${fEth(sale.price)} — ${pctBelow}% under what its rarity normally trades at.`
     : kind === "rare"
-      ? `🖼️ AEON #${sale.id} just changed hands for ${fEth(sale.price)} — rank ${sale.rank.toLocaleString()} of ${total.toLocaleString()}, ${tier.name}.`
-      : `🖼️ AEON #${sale.id} just sold for ${fEth(sale.price)} — ${pctBelow}% ABOVE what its rarity normally trades at.`;
+      ? `🖼️ AEON #${sale.id} ${moved} for ${fEth(sale.price)} — rank ${sale.rank.toLocaleString()} of ${total.toLocaleString()}, ${tier.name}.`
+      : `🖼️ AEON #${sale.id} ${sold} for ${fEth(sale.price)} — ${pctBelow}% above what its rarity normally trades at.`;
   const body = `Rank ${sale.rank.toLocaleString()} of ${total.toLocaleString()} (${tier.name}).${rareBit} Pieces at this rarity have been trading around ${fEth(sale.exp)}.`;
   const tail = `Rarity from on-chain metadata, "typical" from realized sales — both reproducible. Not a valuation.`;
   return `${head}\n${body}\n${tail}`;
@@ -146,9 +158,10 @@ async function main() {
       if (joined.length) { candidates = joined; source = "alchemy-live"; }
     } catch (e) { console.error(`aeon-sale: live feed failed (${e.message}) — falling back to the daily Dune pull`); }
   }
-  // Live sales are dated from the chain, so judge freshness against NOW, not the
-  // market file's build date (which lags by up to a day).
-  const asOf = source === "alchemy-live" ? new Date().toISOString().slice(0, 10) : today;
+  // Freshness is judged against the REAL clock on BOTH paths. Using the market file's
+  // build date let a 4-day-old sale through as "just sold" when that file was 2 days
+  // stale. If the data is old, nothing qualifies — which is the correct outcome.
+  const asOf = new Date().toISOString().slice(0, 10);
   const pick = pickNotable(candidates, { level, today: asOf, posted: force ? new Set() : posted });
   if (!pick) {
     console.log(`aeon-sale: nothing notable in the last ${NOTABLE_DAYS} days (checked ${candidates.length} sales from ${source}) — no post.`);
@@ -174,7 +187,7 @@ async function main() {
   }
   if (!art) console.error("aeon-sale: art unavailable here (sandboxed egress?) — dry-run renders the placeholder so the layout is still reviewable; a REAL run would skip.");
   const png = renderAeonSaleCard(sale, { traits, total, art });
-  const text = saleCopy(pick, { total, tier, traits });
+  const text = withFooter(saleCopy(pick, { total, tier, traits, asOf }));
   console.log(`--- copy (${[...text].length} chars) ---\n${text}\n---`);
 
   if (dryRun || !hasCreds) {
