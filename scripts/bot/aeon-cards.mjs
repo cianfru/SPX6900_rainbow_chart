@@ -24,7 +24,7 @@ const TIERS = [
 export function aeonOwnersSvg(data, opts = {}) {
   const r = rows(data); if (r.length < 30) return null;
   const cur = r.at(-1);
-  const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 84, mR = 150, mT = 152, mB = 92, pW = W - mL - mR, pH = H - mT - mB;
+  const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 100, mR = 176, mT = 176, mB = 92, pW = W - mL - mR, pH = H - mT - mB;
   const t0 = r[0].ts, t1 = cur.ts;
   const ymax = Math.max(...r.map(p => p.owners)) * 1.05 || 1;
   const x = t => mL + ((t - t0) / ((t1 - t0) || 1)) * pW;
@@ -52,7 +52,7 @@ export const renderAeonOwnersCard = (data, o = {}) => { const s = aeonOwnersSvg(
 export function aeonConcentrationSvg(data, opts = {}) {
   const r = rows(data); if (r.length < 30) return null;
   const cur = r.at(-1);
-  const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 84, mR = 60, mT = 152, mB = 92, pW = W - mL - mR, pH = H - mT - mB;
+  const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 100, mR = 60, mT = 176, mB = 92, pW = W - mL - mR, pH = H - mT - mB;
   const t0 = r[0].ts, t1 = cur.ts;
   const ymax = Math.min(100, Math.max(...r.map(p => p.top50)) * 1.15 || 50);
   const x = t => mL + ((t - t0) / ((t1 - t0) || 1)) * pW;
@@ -85,7 +85,7 @@ export function aeonBehaviourSvg(data, opts = {}) {
   months = months.filter(m => m.entered < mintMax); // skip the mint-frenzy month
   if (months.length < 6) return null;
   const cur = months.at(-1);
-  const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 70, mR = 60, mT = 152, mB = 92, pW = W - mL - mR, pH = H - mT - mB;
+  const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 96, mR = 60, mT = 176, mB = 92, pW = W - mL - mR, pH = H - mT - mB;
   const t0 = months[0].ts, t1 = cur.ts;
   const amax = Math.max(1, ...months.map(m => Math.max(m.entered, m.exited))) * 1.1;
   const x = t => mL + ((t - t0) / ((t1 - t0) || 1)) * pW;

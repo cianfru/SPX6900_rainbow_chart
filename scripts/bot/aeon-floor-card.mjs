@@ -20,7 +20,7 @@ export function aeonFloorSvg(data, opts = {}) {
   const cur = daily.at(-1);
 
   const W = opts.W ?? 1200, H = opts.H ?? 630;
-  const mL = 84, mR = 96, mT = 150, mB = 88, pW = W - mL - mR;
+  const mL = 104, mR = 112, mT = 176, mB = 88, pW = W - mL - mR;
   const floorH = (H - mT - mB) * 0.66, volH = (H - mT - mB) * 0.24, volTop = mT + floorH + 26;
   const t0 = daily[0].ts, t1 = cur.ts;
   const x = t => mL + ((t - t0) / ((t1 - t0) || 1)) * pW;

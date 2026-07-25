@@ -29,20 +29,34 @@ export function aeonSkylineSvg(data, opts = {}) {
   const maxDays = Math.max(...holders.map(h => h.days), 1);
   const units = h => h.n + (maxSpx > 0 ? (h.spx || 0) / maxSpx * maxN : 0);
   const score = h => units(h) * (0.45 + 0.55 * (h.days / maxDays));
-  const H = holders.slice().sort((a, b) => score(b) - score(a)).slice(0, 81);
+  // 81 towers is a 9x9 diamond — about half the card wide, which is why this read as a
+  // small object floating in an empty frame rather than a skyline. The live 3D chart
+  // draws up to 500 wallets; 289 (a 17x17 diamond) fills the canvas at the same tower
+  // size and is as close to it as an isometric still gets.
+  const H = holders.slice().sort((a, b) => score(b) - score(a)).slice(0, Math.min(holders.length, 289));
   const maxScore = Math.max(...H.map(score), 1);
   const champ = H[0], both = holders.filter(h => h.spx > 0).length;
 
   const W = opts.W ?? 1080, HT = opts.H ?? 1080;
-  const A = 34, B = 19, MAXH = 300;                 // iso half-width, quarter-depth, tallest tower px
-  const SY = MAXH / maxScore;
+  // Iso cell scaled to the actual diamond so the field fills the frame whatever the
+  // tower count: the widest screen span is (2 * ring) cells across each diagonal.
+  const ring = Math.ceil(Math.sqrt(H.length) / 2);
+  const A = Math.max(10, Math.min(34, (W * 0.88) / (4 * ring)));   // iso half-width
+  const B = A * 0.55;                                              // quarter-depth
+  const MAXH = HT * 0.24;                                          // tallest tower px
+  // Height is on a SQUARE-ROOT scale, and the card says so. Linear — what the live 3D
+  // chart uses — is unreadable as a still: one wallet holds 148 AEON against a median of
+  // one, so every tower but a handful collapses to the floor and the card reads as a
+  // tiled plaza rather than a skyline. Orbiting hides that in 3D; a fixed camera cannot.
+  const SY = MAXH / Math.sqrt(maxScore);
+  const hOf = h => Math.max(7, Math.sqrt(score(h)) * SY);
   const cells = spiral(H.length);
-  const cx = W / 2, cy = HT * 0.66;                 // floor centre
+  const cx = W / 2, cy = HT * 0.62;                 // floor centre
 
   // build towers with projected floor point + height, sort back→front for painter's order
   const towers = H.map((h, i) => {
     const gx = cells[i].x, gz = cells[i].z;
-    return { h, sx: cx + (gx - gz) * A, sy: cy + (gx + gz) * B, ht: Math.max(6, score(h) * SY), depth: gx + gz, col: mix(h.days / maxDays), champ: i === 0 };
+    return { h, sx: cx + (gx - gz) * A, sy: cy + (gx + gz) * B, ht: hOf(h), depth: gx + gz, col: mix(h.days / maxDays), champ: i === 0 };
   }).sort((a, b) => a.depth - b.depth);
 
   const box = t => {
@@ -69,7 +83,7 @@ export function aeonSkylineSvg(data, opts = {}) {
 <rect width="${W}" height="${HT}" fill="url(#skgA)"/>
 <text x="60" y="70" fill="#e2e8f0" font-size="42" font-weight="800" font-family="${F}" letter-spacing="1">PROJECT AEON</text>
 <text x="60" y="112" fill="#5eead4" font-size="30" font-weight="800" font-family="${F}">The Holder Skyline</text>
-<text x="60" y="150" fill="#94a3b8" font-size="21" font-family="${F}">${esc(maxSpx > 0 ? "One tower per wallet — height = AEON + SPX held, × how long held." : "One tower per wallet — height = AEON held, × how long held.")}</text>
+<text x="60" y="150" fill="#94a3b8" font-size="21" font-family="${F}">${esc(maxSpx > 0 ? "One tower per wallet — height = AEON + SPX held, × how long held (√ scale)." : "One tower per wallet — height = AEON held, × how long held.")}</text>
 ${towers.map(box).join("")}
 <text x="60" y="${HT - 92}" fill="#cbd5e1" font-size="22" font-family="${F}">★ Top holder ${short(champ.a)} — ${champ.n} AEON${champ.spx ? " · " + fmtSpx(champ.spx) + " SPX" : ""}, held ${champ.days}d</text>
 <text x="60" y="${HT - 58}" fill="#94a3b8" font-size="20" font-family="${F}">${esc(maxSpx > 0 ? `${both} of the top wallets hold both AEON and SPX6900.` : `${holders.length} holders, reconstructed on-chain.`)}</text>

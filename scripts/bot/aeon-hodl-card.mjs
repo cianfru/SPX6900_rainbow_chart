@@ -26,7 +26,7 @@ export function aeonHodlSvg(data, opts = {}) {
   const cur = raw.at(-1), oldPct = cur.age[4];
   const supply = data.supply ?? 3333;
 
-  const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 76, mR = 132, mT = 122, mB = 92, pW = W - mL - mR, pH = H - mT - mB;
+  const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 98, mR = 158, mT = 148, mB = 92, pW = W - mL - mR, pH = H - mT - mB;
   const t0 = raw[0].ts, t1 = cur.ts;
   const x = t => mL + ((t - t0) / ((t1 - t0) || 1)) * pW;
   const y = v => mT + (1 - v / 100) * pH; // 0–100% stacked
