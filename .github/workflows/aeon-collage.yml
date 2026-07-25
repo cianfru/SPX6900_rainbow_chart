@@ -1,0 +1,82 @@
+name: Project Aeon collage
+
+# One-off image builder for announcement posts. Dispatch-only — nothing about it
+# needs to run on a schedule.
+#
+# It lives in CI rather than being run locally because the collection's art is on
+# nft2-cdn.alchemy.com, which the dev sandbox's egress allowlist blocks. Runners
+# have open egress and already talk to Alchemy for the rarity build.
+#
+# The PNG is uploaded as a build artifact (download it straight from the run) and,
+# unless you turn that off, committed to public/ so it also has a shareable URL.
+
+on:
+  workflow_dispatch:
+    inputs:
+      pick:
+        description: "Which tokens — sold (traded pieces), spread (whole rarity range), rare (rarest first)"
+        type: choice
+        options: [sold, spread, rare]
+        default: sold
+      cols:
+        description: "Columns"
+        default: "12"
+      rows:
+        description: "Rows"
+        default: "7"
+      cell:
+        description: "Tile size in px"
+        default: "180"
+      title:
+        description: "Caption headline (leave blank for a bare mosaic)"
+        default: "PROJECT AEON — NOW WATCHED"
+      sub:
+        description: "Caption second line"
+        default: "every notable sale, posted automatically · spx6900rainbow.xyz"
+      commit:
+        description: "Commit to public/aeon-collage.png as well"
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: aeon-collage
+  cancel-in-progress: false
+
+jobs:
+  collage:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+      - run: npm ci
+      - name: Build the collage
+        run: |
+          node scripts/build-aeon-collage.mjs \
+            --pick='${{ inputs.pick }}' \
+            --cols='${{ inputs.cols }}' \
+            --rows='${{ inputs.rows }}' \
+            --cell='${{ inputs.cell }}' \
+            --title='${{ inputs.title }}' \
+            --sub='${{ inputs.sub }}' \
+            --out=public/aeon-collage.png
+          ls -la public/aeon-collage.png
+      - name: Upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: aeon-collage
+          path: public/aeon-collage.png
+          retention-days: 30
+      - name: Commit
+        if: ${{ inputs.commit }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public/aeon-collage.png
+          git diff --cached --quiet && { echo "unchanged"; exit 0; }
+          git commit -m "Rebuild the Project Aeon collage"
+          git push
