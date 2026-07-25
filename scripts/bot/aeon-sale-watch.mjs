@@ -180,12 +180,17 @@ async function main() {
     console.log(dryRun ? "DRY RUN — wrote aeon-sale-preview.png, no post." : "No X creds — wrote aeon-sale-preview.png, no post.");
     return;
   }
-  const res = await postWithMedia(creds, text, png, "image/png");
-  console.log("posted", res?.data?.id || "");
+  // postWithMedia takes (client, post, stats, media) — NOT raw creds. Passing creds made
+  // `client.v2` undefined and the run died on `uploadMedia`. `stats` is only used by the
+  // video-fallback branch, which a PNG never reaches.
+  const { TwitterApi } = await import("twitter-api-v2");
+  const client = new TwitterApi(creds);
+  const tweetId = await postWithMedia(client, { text }, null, { kind: "image", data: png, mediaType: "image/png" });
+  console.log("posted", tweetId || "");
   posted.add(`${sale.id}@${sale.d}`);
   // keep the memory bounded; only recent pairs can ever re-match anyway
   writeFileSync(STATE, JSON.stringify({ posted: [...posted].slice(-200), lastId: sale.id, lastAt: new Date().toISOString() }, null, 2) + "\n");
-  recordLanePost(LANE, res?.data?.id);
+  recordLanePost(LANE, tweetId);
 }
 
 // Only run when invoked directly — importing this module (tests) must not fire a post.

@@ -967,6 +967,13 @@
           runs locally regardless of source, so either source gives the same answer — use the cheapest dump.
 
 ## Dune credit discipline — HARD-WON, read before writing/running ANY Dune query (2026-07-16)
+- **⚠ MEASURED 2026-07-25 (Dune MCP `getUsage`, FREE): 862 of 2,500 credits used in 5 days** (period 2026-07-20→08-20).
+  That is 34.5% of the month gone, and it corrects a bad estimate: Claude had inferred "~65 credits/month" from
+  comparable bounded queries. **Do NOT trust inferred credit costs — call `getUsage`, it is free.** The 862 was
+  build/debug load (SPX archive seeding + ~8 AEON banker dispatches × 2 queries), not steady state, but it means the
+  AEON whole-history pulls are likely **~50 credits each, not ~5**. At the scheduled cadence (transfers Mon+Thu,
+  sales Mon ≈ 13 executions/month) that is ~650/month ≈ 26% of quota — affordable, but an order of magnitude above
+  the earlier guess. Re-check `getUsage` before assuming headroom.
 - **The 2,500/mo free tier got blown in a WEEK, ~88% on ~5 heavy debugging runs.** The credit CSV was unambiguous:
   one Solana run scanned **10.5 TB → 654 credits**; an *aborted* run charged **966**; a *cancelled* one **441**; a
   *timeout* **43**. The light master query (7991307) cost **1–3 credits**. So the lesson is not "2,500 is too little" —

@@ -59,8 +59,12 @@ const legAmount = leg => {
 export function normalizeSales(nftSales, { latestBlock, nowMs, secPerBlock = SEC_PER_BLOCK } = {}) {
   const out = [];
   for (const s of nftSales || []) {
-    const symbol = s?.sellerFee?.symbol || s?.sellerFee?.tokenAddress ? (s?.sellerFee?.symbol || "ETH") : "ETH";
-    if (symbol && !ETHLIKE.has(symbol)) continue;                 // ETH-denominated trades only
+    // FAIL OPEN on the currency check: skip a row only when we positively know it is some
+    // other token. The first version inverted this — an unexpected/absent symbol was enough
+    // to drop the sale, so any shape change silently zeroed the whole feed rather than
+    // surfacing as an error.
+    const sym = (s?.sellerFee?.symbol || s?.protocolFee?.symbol || "").toUpperCase();
+    if (sym && !ETHLIKE.has(sym)) continue;
     const id = Number(s?.tokenId);
     if (!Number.isFinite(id)) continue;
     const price = legAmount(s?.sellerFee) + legAmount(s?.protocolFee) + legAmount(s?.royaltyFee);
@@ -98,7 +102,23 @@ export async function fetchLiveSales({ key, hours = 48, contract = CONTRACT, fet
   const url = `${nftBase(key)}/getNFTSales?contractAddress=${contract}`
     + `&fromBlock=${fromBlock}&toBlock=${latestBlock}&order=desc&limit=${limit}`;
   const j = await getJson(url, { headers: { accept: "application/json" } }, fetchImpl);
-  const sales = normalizeSales(j?.nftSales, { latestBlock });
+  const raw = j?.nftSales;
+  const sales = normalizeSales(raw, { latestBlock });
+  // A silently-empty result is the dangerous case: it reads as "no sales happened" when it
+  // may mean "the response shape moved". Say which, loudly, with enough of the payload to
+  // fix it — the first run of this returned 0 while Dune showed 3 sales in the same window.
+  if (!sales.length) {
+    if (!Array.isArray(raw)) {
+      console.error(`aeon-live-sales: no nftSales array in the response. Top-level keys: ${Object.keys(j || {}).join(", ") || "(none)"}`);
+    } else if (raw.length) {
+      console.error(`aeon-live-sales: ${raw.length} raw sale(s) returned but 0 survived normalisation — the field names have moved.`);
+      console.error(`  sample row keys: ${Object.keys(raw[0]).join(", ")}`);
+      console.error(`  sample row: ${JSON.stringify(raw[0]).slice(0, 600)}`);
+    } else {
+      console.error(`aeon-live-sales: the API returned an EMPTY nftSales array for blocks ${fromBlock}-${latestBlock} (~${hours}h).`
+        + " Either there genuinely were no sales, or a filter param (contractAddress / block range) is not matching.");
+    }
+  }
   return sales;
 }
 
@@ -106,9 +126,28 @@ export async function fetchLiveSales({ key, hours = 48, contract = CONTRACT, fet
 if (process.argv.includes("--probe")) {
   const key = (process.env.ALCHEMY_KEY || "").trim();
   if (!key) { console.error("no ALCHEMY_KEY"); process.exit(1); }
+  const hours = Number(process.env.PROBE_HOURS || 168);
   try {
-    const sales = await fetchLiveSales({ key, hours: Number(process.env.PROBE_HOURS || 168) });
-    console.log(`live sales in window: ${sales.length}`);
-    for (const s of sales.slice(0, 10)) console.log(`  #${s.id} ${s.price}Ξ ${s.d} ${s.mkt || ""} ${s.tx || ""}`);
+    // Hit the endpoint directly so the RAW payload is visible — normalizeSales is exactly
+    // what is in doubt, so a probe that only prints its output proves nothing.
+    const rpc = await getJson(rpcBase(key), {
+      method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "eth_blockNumber", params: [] }),
+    });
+    const latestBlock = parseInt(rpc?.result, 16);
+    const fromBlock = Math.max(0, latestBlock - Math.ceil((hours * 3600) / SEC_PER_BLOCK));
+    const url = `${nftBase(key)}/getNFTSales?contractAddress=${CONTRACT}&fromBlock=${fromBlock}&toBlock=${latestBlock}&order=desc&limit=100`;
+    console.log(`GET ${url.replace(key, "<key>")}`);
+    const j = await getJson(url, { headers: { accept: "application/json" } });
+    console.log(`top-level keys: ${Object.keys(j || {}).join(", ")}`);
+    const raw = j?.nftSales;
+    console.log(`nftSales: ${Array.isArray(raw) ? raw.length + " row(s)" : "NOT AN ARRAY (" + typeof raw + ")"}`);
+    if (Array.isArray(raw) && raw.length) console.log(`first row:\n${JSON.stringify(raw[0], null, 2)}`);
+    console.log(`normalised: ${normalizeSales(raw, { latestBlock }).length} row(s)`);
+    // Same window without the block filter, to isolate whether the range is the problem.
+    const u2 = `${nftBase(key)}/getNFTSales?contractAddress=${CONTRACT}&order=desc&limit=5`;
+    const j2 = await getJson(u2, { headers: { accept: "application/json" } });
+    console.log(`\nno-block-filter probe: ${Array.isArray(j2?.nftSales) ? j2.nftSales.length + " row(s)" : "none"}`);
+    if (j2?.nftSales?.[0]) console.log(`first row:\n${JSON.stringify(j2.nftSales[0], null, 2)}`);
   } catch (e) { console.error("probe failed —", e.message); process.exit(1); }
 }

@@ -25,6 +25,10 @@ on:
         description: "How far back to look for sales"
         type: string
         default: "48"
+      probe:
+        description: "Diagnose the Alchemy feed only — dumps the raw response, posts nothing"
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -46,7 +50,20 @@ jobs:
 
       - run: npm ci
 
+      - name: Probe the Alchemy sales feed (diagnostic only)
+        # The live feed returned 0 sales while Dune showed 3 in the same window, so the
+        # response shape is in doubt. This dumps the RAW payload — with and without the
+        # block filter — so the mismatch is visible rather than inferred.
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.probe }}
+        env:
+          ALCHEMY_KEY: ${{ secrets.ALCHEMY_KEY }}
+          ALCHEMY_NETWORK: ${{ vars.ALCHEMY_NETWORK }}
+          AEON_CONTRACT: ${{ vars.AEON_CONTRACT }}
+          PROBE_HOURS: ${{ inputs.hours || '168' }}
+        run: node scripts/bot/aeon-live-sales.mjs --probe
+
       - name: Bank live sales (free — feeds the daily volume series and the market level)
+        if: ${{ !(github.event_name == 'workflow_dispatch' && inputs.probe) }}
         # Dune runs weekly; this keeps volume, sale counts and the MARKET LEVEL current in
         # between, and market level is what sets fair value for the listings verdict and the
         # alert threshold below. Never throws — a bad fetch leaves the bank as it was.
@@ -57,6 +74,7 @@ jobs:
         run: node scripts/build-aeon-live-bank.mjs
 
       - name: Watch for a notable AEON sale + maybe post
+        if: ${{ !(github.event_name == 'workflow_dispatch' && inputs.probe) }}
         env:
           # Repo var AEON_SALE_DRY_RUN=1 keeps the schedule in watch-only mode.
           DRY_RUN: ${{ (github.event_name == 'workflow_dispatch' && inputs.dry_run) && '1' || vars.AEON_SALE_DRY_RUN }}
