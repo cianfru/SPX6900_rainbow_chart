@@ -1,4 +1,4 @@
-// PROJECT AEON — "dear or cheap in SPX" oscillator card.
+// PROJECT AEON — "expensive or cheap in SPX" oscillator card.
 //
 // SPX is the reference, drawn as the flat line through the middle: zero means an AEON
 // costs exactly what it has typically cost in SPX6900 coins over the trailing year.
@@ -91,7 +91,7 @@ export function aeonSpxOscSvg(market, opts = {}) {
 </defs>
 <rect width="${W}" height="${H}" fill="url(#aobg)"/>
 ${brandStripe(H)}
-${aeonHeader("PROJECT AEON — DEAR OR CHEAP IN SPX", "SPX6900 is the flat line. Above it an AEON costs more SPX than usual; below, less.", `${fSpx(z.cur)} SPX per AEON — ${st.t} vs its own baseline`, st.c, F)}
+${aeonHeader("PROJECT AEON — EXPENSIVE OR CHEAP IN SPX", "SPX6900 is the flat line. Above it an AEON costs more SPX than usual; below, less.", `${fSpx(z.cur)} SPX per AEON — ${st.t} vs its own baseline`, st.c, F)}
 ${zones}${grid}${xlab}
 <polygon points="${areaUp}" fill="url(#aofill)"/>
 <line x1="${mL}" y1="${y0.toFixed(1)}" x2="${W - mR}" y2="${y0.toFixed(1)}" stroke="#f8fafc" stroke-width="2.6" stroke-opacity="0.92"/>

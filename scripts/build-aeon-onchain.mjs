@@ -14,6 +14,8 @@
 //   • age[5]           — HODL waves: share of held supply by time-since-last-transfer
 //                        (0-1m, 1-3m, 3-6m, 6-12m, 1y+) — the maturation story
 //   • top10 / top50    — concentration: top-N owners' share of held supply
+//   • dist.whaleTok    — tokens held by 11+ wallets, so whale SUPPLY can be tracked
+//                        over time rather than just how many whale wallets exist
 // plus a CURRENT snapshot with the holders-by-count distribution (1 / 2-5 / 6-10 / 11+).
 //
 // Output: public/aeon-onchain.json — read by the Aeon cards + site charts.
@@ -81,9 +83,14 @@ function snapshot(ownerOf, lastMove, asOf) {
 }
 
 function distribution(counts) {
-  const bins = { one: 0, small: 0, mid: 0, whale: 0 }; // 1 · 2-5 · 6-10 · 11+
+  // Counts of WALLETS per size bucket, plus `whaleTok` — the tokens those 11+ wallets
+  // actually hold. The wallet count alone hides the story: whale headcount has been flat
+  // at ~40 the whole time while the supply they hold fell from 40% to 31%, which is a
+  // cohort quietly distributing rather than a cohort leaving.
+  const bins = { one: 0, small: 0, mid: 0, whale: 0, whaleTok: 0 };
   for (const c of counts) {
-    if (c === 1) bins.one++; else if (c <= 5) bins.small++; else if (c <= 10) bins.mid++; else bins.whale++;
+    if (c === 1) bins.one++; else if (c <= 5) bins.small++; else if (c <= 10) bins.mid++;
+    else { bins.whale++; bins.whaleTok += c; }
   }
   return bins;
 }

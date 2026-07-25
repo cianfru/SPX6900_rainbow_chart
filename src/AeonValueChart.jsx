@@ -202,7 +202,7 @@ export default function AeonValueChart({ isMobile }) {
         {r2 != null && <> <strong style={{ color: "#94a3b8" }}>Rarity is a weak price driver here: it explains only {(r2 * 100).toFixed(0)}% of the variation in sale prices</strong>, so treat the line as a rough centre of gravity, not a valuation.</>}
         {sv && <> {" "}The <strong style={{ color: "#c084fc" }}>SPX percentile</strong> prices each ask in SPX6900 ({sv.ethUsd ? "ETH ≈ $" + sv.ethUsd.toLocaleString() + ", " : ""}SPX ${sv.spxNow}) and places it on the last {nWindow} weeks
         of AEON&rsquo;s own trading — AEON tracks SPX far more closely than it tracks ETH, so that is the more honest
-        yardstick for dear-versus-cheap. See <em>AEON Floor vs SPX</em> for the full series.</>}
+        yardstick for expensive-versus-cheap. See <em>AEON Floor vs SPX</em> for the full series.</>}
         {" "}Tap any piece for OpenSea. Listings from OpenSea, sales from on-chain marketplace trades, rarity from on-chain metadata.
         {parked > 0 && <> {parked} listing{parked === 1 ? " was" : "s were"} parked above {cap ? cap.toFixed(0) : "the cap"}Ξ (asks like 69 or 6900Ξ that exist so a piece shows as listed but can never sell) and are excluded — they aren&rsquo;t real offers and would flatten the whole scale.</>}
       </div>

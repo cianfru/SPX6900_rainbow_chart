@@ -85,7 +85,7 @@ export function aeonRarityPriceSvg(market, opts = {}) {
 <defs>${aeonBgDefs("rp", ["#f59e0b", "#a855f7"])}</defs>
 ${aeonBgRects(W, H, "rp")}
 ${aeonHeader("PROJECT AEON — DOES RARITY SET THE PRICE?",
-  `Every realized sale by rarity rank. Rarest on the left, dearest at the top.`,
+  `Every realized sale by rarity rank. Rarest on the left, priciest at the top.`,
   `Barely — rarity explains ${pctExplained}% of what a piece sells for`, "#fbbf24", F)}
 ${grid}${xlab}
 <polyline points="${fit.join(" ")}" fill="none" stroke="#f8fafc" stroke-width="2.4" stroke-opacity="0.4" stroke-dasharray="7 7"/>
