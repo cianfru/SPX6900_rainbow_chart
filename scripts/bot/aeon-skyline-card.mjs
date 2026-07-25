@@ -5,6 +5,7 @@
 import { Resvg } from "@resvg/resvg-js";
 import { FONT } from "./font.mjs";
 import { esc } from "./svg-util.mjs";
+import { aeonHeader } from "./aeon-card-bg.mjs";
 
 const png = (svg, w) => new Resvg(svg, { fitTo: { mode: "width", value: w }, font: FONT }).render().asPng();
 const F = "sans-serif";
@@ -81,9 +82,7 @@ export function aeonSkylineSvg(data, opts = {}) {
 <rect width="${W}" height="${HT}" fill="url(#skg)"/>
 <rect width="${W}" height="${HT}" fill="url(#skgC)"/>
 <rect width="${W}" height="${HT}" fill="url(#skgA)"/>
-<text x="60" y="70" fill="#e2e8f0" font-size="42" font-weight="800" font-family="${F}" letter-spacing="1">PROJECT AEON</text>
-<text x="60" y="112" fill="#5eead4" font-size="30" font-weight="800" font-family="${F}">The Holder Skyline</text>
-<text x="60" y="150" fill="#94a3b8" font-size="21" font-family="${F}">${esc(maxSpx > 0 ? "One tower per wallet — height = AEON + SPX held, × how long held (√ scale)." : "One tower per wallet — height = AEON held, × how long held.")}</text>
+${aeonHeader("PROJECT AEON — THE HOLDER SKYLINE", maxSpx > 0 ? "One tower per wallet — height = AEON + SPX held, × how long held (√ scale)." : "One tower per wallet — height = AEON held, × how long held (√ scale).", null, "#5eead4", F)}
 ${towers.map(box).join("")}
 <text x="60" y="${HT - 92}" fill="#cbd5e1" font-size="22" font-family="${F}">★ Top holder ${short(champ.a)} — ${champ.n} AEON${champ.spx ? " · " + fmtSpx(champ.spx) + " SPX" : ""}, held ${champ.days}d</text>
 <text x="60" y="${HT - 58}" fill="#94a3b8" font-size="20" font-family="${F}">${esc(maxSpx > 0 ? `${both} of the top wallets hold both AEON and SPX6900.` : `${holders.length} holders, reconstructed on-chain.`)}</text>

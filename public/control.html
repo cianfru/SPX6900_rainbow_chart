@@ -918,6 +918,8 @@ const AEON_POSTS = [
     ? `📊 Project AEON: the top 10 wallets hold ${o.current.top10.toFixed(0)}%, the top 50 hold ${o.current.top50.toFixed(0)}%.\n\nNot whale-captured — the largest wallets' grip eased as the holder base grew.\n\nConcentration, on-chain.` : "" },
   { id: "aeonbehaviour", title: "Holder Flow", copy: (o) => o
     ? `🔄 Project AEON holder flow.\n\nWallets entering (buying) vs exiting (selling to zero) each month — the base settling into strong hands as activity quieted.\n\nOn-chain.` : "" },
+  { id: "aeonrarityprice", title: "Does Rarity Set the Price?", copy: (o, s, m) => m?.fairModel
+    ? `🎲 Does rarity price an AEON?\n\nBarely. Across ${m.fairModel.n.toLocaleString()} sales, rarity rank explains ${Math.round(m.fairModel.r2 * 100)}% of what a piece sold for. The rarest one did set the record — below the very top, rank and price come apart.\n\nEvery collection sells rarity as value. This is what it's actually worth here.` : "" },
   { id: "aeonspxosc", title: "Dear or Cheap in SPX", copy: (o, s, m) => m?.spxValue
     ? `📐 An AEON costs ${Math.round(m.spxValue.ratioNow).toLocaleString()} SPX6900 right now.\n\nSPX is the flat line — above it AEON is dear against the coin, below it cheap. It sits at the ${Math.round(m.spxValue.pctNow)}th percentile of the last year.\n\nWe price it in SPX because SPX tracks AEON better than ETH does: r ~0.55 vs ~0.36.` : "" },
 ];

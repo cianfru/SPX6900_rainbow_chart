@@ -6,7 +6,7 @@
 import { Resvg } from "@resvg/resvg-js";
 import { FONT } from "./font.mjs";
 import { esc } from "./svg-util.mjs";
-import { aeonBgDefs, aeonBgRects } from "./aeon-card-bg.mjs";
+import { aeonBgDefs, aeonBgRects, aeonHeader } from "./aeon-card-bg.mjs";
 
 const png = (svg, w) => new Resvg(svg, { fitTo: { mode: "width", value: w }, font: FONT }).render().asPng();
 const F = "sans-serif";
@@ -20,7 +20,7 @@ export function aeonFloorSvg(data, opts = {}) {
   const cur = daily.at(-1);
 
   const W = opts.W ?? 1200, H = opts.H ?? 630;
-  const mL = 104, mR = 112, mT = 176, mB = 88, pW = W - mL - mR;
+  const mL = 104, mR = 112, mT = 196, mB = 88, pW = W - mL - mR;
   const floorH = (H - mT - mB) * 0.66, volH = (H - mT - mB) * 0.24, volTop = mT + floorH + 26;
   const t0 = daily[0].ts, t1 = cur.ts;
   const x = t => mL + ((t - t0) / ((t1 - t0) || 1)) * pW;
@@ -63,9 +63,7 @@ ${aeonBgDefs("af", ["#2dd4bf", "#fbbf24"])}
 <filter id="afglow" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
 </defs>
 ${aeonBgRects(W, H, "af")}
-<text x="60" y="56" fill="#e2e8f0" font-size="36" font-weight="800" font-family="${F}" letter-spacing="1">PROJECT AEON — FLOOR &amp; SALES</text>
-<text x="60" y="90" fill="#94a3b8" font-size="21" font-family="${F}">Floor price and trading volume since mint. Floor = 7-day median of daily lows.</text>
-<text x="60" y="128" fill="#5eead4" font-size="30" font-weight="800" font-family="${F}">${esc(`${cur.floorEth}Ξ floor ($${cur.floorUsd.toLocaleString()}) · ${Math.round(volEthTot).toLocaleString()}Ξ traded ($${(volUsdTot / 1e6).toFixed(1)}M)`)}</text>
+${aeonHeader("PROJECT AEON — FLOOR & SALES", "Floor price and trading volume since mint. Floor = 7-day median of daily lows.", `${cur.floorEth}Ξ floor ($${cur.floorUsd.toLocaleString()}) · ${Math.round(volEthTot).toLocaleString()}Ξ traded ($${(volUsdTot / 1e6).toFixed(1)}M)`, "#5eead4", F)}
 ${volBars}
 <polyline points="${path(fUsd, yU)}" fill="none" stroke="#fbbf24" stroke-width="2.4" stroke-opacity="0.85"/>
 <polyline points="${path(fEth, yE)}" fill="none" stroke="#2dd4bf" stroke-width="4.2"/>

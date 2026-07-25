@@ -5,6 +5,7 @@
 import { Resvg } from "@resvg/resvg-js";
 import { FONT } from "./font.mjs";
 import { esc } from "./svg-util.mjs";
+import { aeonHeader } from "./aeon-card-bg.mjs";
 
 const png = (svg, w) => new Resvg(svg, { fitTo: { mode: "width", value: w }, font: FONT }).render().asPng();
 const F = "sans-serif";
@@ -26,9 +27,7 @@ const shell = (W, H, id, title, sub, hero, heroC, body, foot, theme = ["#2dd4bf"
 <rect width="${W}" height="${H}" fill="url(#${id}g1)"/>
 <rect width="${W}" height="${H}" fill="url(#${id}g2)"/>
 <rect x="0" y="0" width="9" height="${H}" fill="url(#${id}stripe)"/>
-<text x="60" y="74" fill="#f4f7fc" font-size="42" font-weight="800" font-family="${F}" letter-spacing="1">${esc(title)}</text>
-<text x="60" y="112" fill="#aeb9cc" font-size="22" font-family="${F}">${esc(sub)}</text>
-<text x="60" y="158" fill="${heroC}" font-size="32" font-weight="800" font-family="${F}">${esc(hero)}</text>
+${aeonHeader(title, sub, hero, heroC, F)}
 ${body}
 <text x="60" y="${H - 28}" fill="#6b7688" font-size="18" font-family="${F}">${esc(foot)}</text></svg>`;
 

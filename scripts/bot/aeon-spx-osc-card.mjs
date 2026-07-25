@@ -18,6 +18,7 @@ import { FONT } from "./font.mjs";
 import { esc } from "./svg-util.mjs";
 import { brandStripe } from "./chrome.mjs";
 import { zStats, ordinal } from "../../src/aeon-spx-value.js";
+import { aeonHeader } from "./aeon-card-bg.mjs";
 
 const png = (svg, w) => new Resvg(svg, { fitTo: { mode: "width", value: w }, font: FONT }).render().asPng();
 const F = "sans-serif";
@@ -41,7 +42,7 @@ export function aeonSpxOscSvg(market, opts = {}) {
   if (pts.length < 60) return null;
 
   const W = opts.W ?? 1200, H = opts.H ?? 1200;
-  const mL = 104, mR = 96, mT = 200, mB = 104;
+  const mL = 104, mR = 96, mT = 196, mB = 104;
   const pW = W - mL - mR, pH = H - mT - mB;
   const t0 = pts[0].t, t1 = pts.at(-1).t;
   const x = t => mL + ((t - t0) / ((t1 - t0) || 1)) * pW;
@@ -90,9 +91,7 @@ export function aeonSpxOscSvg(market, opts = {}) {
 </defs>
 <rect width="${W}" height="${H}" fill="url(#aobg)"/>
 ${brandStripe(H)}
-<text x="60" y="60" fill="#f1f5f9" font-size="38" font-weight="700" font-family="${F}" letter-spacing="0.5">PROJECT AEON — DEAR OR CHEAP IN SPX</text>
-<text x="60" y="102" fill="#94a3b8" font-size="22" font-family="${F}">SPX6900 is the flat line. Above it an AEON costs more SPX than usual; below, less.</text>
-<text x="60" y="150" fill="${st.c}" font-size="34" font-weight="700" font-family="${F}">${esc(`${fSpx(z.cur)} SPX per AEON — ${st.t} vs its own baseline`)}</text>
+${aeonHeader("PROJECT AEON — DEAR OR CHEAP IN SPX", "SPX6900 is the flat line. Above it an AEON costs more SPX than usual; below, less.", `${fSpx(z.cur)} SPX per AEON — ${st.t} vs its own baseline`, st.c, F)}
 ${zones}${grid}${xlab}
 <polygon points="${areaUp}" fill="url(#aofill)"/>
 <line x1="${mL}" y1="${y0.toFixed(1)}" x2="${W - mR}" y2="${y0.toFixed(1)}" stroke="#f8fafc" stroke-width="2.6" stroke-opacity="0.92"/>

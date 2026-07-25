@@ -17,6 +17,7 @@ import { renderAeonHodlCard } from "../scripts/bot/aeon-hodl-card.mjs";
 import { renderAeonOwnersCard, renderAeonConcentrationCard, renderAeonBehaviourCard } from "../scripts/bot/aeon-cards.mjs";
 import { renderAeonSkylineCard } from "../scripts/bot/aeon-skyline-card.mjs";
 import { renderAeonSpxOscCard } from "../scripts/bot/aeon-spx-osc-card.mjs";
+import { renderAeonRarityPriceCard } from "../scripts/bot/aeon-rarity-price-card.mjs";
 import { renderAeonTradersCard, renderAeonValuationCard, renderAeonTraitsCard } from "../scripts/bot/aeon-market-cards.mjs";
 
 // Project Aeon cards render from the committed aeon-*.json (not stats), all at 1:1. ?aeon=<id>.
@@ -33,6 +34,7 @@ const AEON_CARD = {
   aeonconcentration: () => { const d = readAeon("public/aeon-onchain.json"); return d && renderAeonConcentrationCard(d, SQ); },
   aeonbehaviour: () => { const d = readAeon("public/aeon-onchain.json"); return d && renderAeonBehaviourCard(d, SQ); },
   aeonspxosc: () => { const d = readAeon("public/aeon-market.json"); return d && renderAeonSpxOscCard(d, SQ); },
+  aeonrarityprice: () => { const d = readAeon("public/aeon-market.json"); return d && renderAeonRarityPriceCard(d, SQ); },
 };
 
 // Nav tab id -> the rotating post whose card best represents that tab.

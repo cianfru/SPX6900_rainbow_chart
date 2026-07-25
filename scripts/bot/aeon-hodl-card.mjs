@@ -7,7 +7,7 @@
 import { Resvg } from "@resvg/resvg-js";
 import { FONT } from "./font.mjs";
 import { esc } from "./svg-util.mjs";
-import { aeonBgDefs, aeonBgRects } from "./aeon-card-bg.mjs";
+import { aeonBgDefs, aeonBgRects, aeonHeader } from "./aeon-card-bg.mjs";
 
 const png = (svg, w) => new Resvg(svg, { fitTo: { mode: "width", value: w }, font: FONT }).render().asPng();
 // bottom → top = youngest → oldest (warm → cool); oldest = the long-held tier.
@@ -26,7 +26,7 @@ export function aeonHodlSvg(data, opts = {}) {
   const cur = raw.at(-1), oldPct = cur.age[4];
   const supply = data.supply ?? 3333;
 
-  const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 98, mR = 158, mT = 148, mB = 92, pW = W - mL - mR, pH = H - mT - mB;
+  const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 98, mR = 158, mT = 196, mB = 92, pW = W - mL - mR, pH = H - mT - mB;
   const t0 = raw[0].ts, t1 = cur.ts;
   const x = t => mL + ((t - t0) / ((t1 - t0) || 1)) * pW;
   const y = v => mT + (1 - v / 100) * pH; // 0–100% stacked
@@ -64,8 +64,7 @@ export function aeonHodlSvg(data, opts = {}) {
 
   return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
 <defs>${aeonBgDefs("aw", ["#818cf8", "#22d3ee"])}</defs>${aeonBgRects(W, H, "aw")}
-<text x="60" y="56" fill="#e2e8f0" font-size="36" font-weight="800" font-family="sans-serif" letter-spacing="1">PROJECT AEON — HOLDER AGE</text>
-<text x="60" y="100" fill="#a5b4fc" font-size="30" font-weight="800" font-family="sans-serif">${oldPct.toFixed(0)}% of the collection hasn't changed hands in over a year</text>
+${aeonHeader("PROJECT AEON — HOLDER AGE", "How long since each AEON last changed hands. Cool bands = held longer.", `${oldPct.toFixed(0)}% of the collection hasn't changed hands in over a year`, "#a5b4fc")}
 ${ribbons}${yl}${xlab}${legend}
 <text x="60" y="${H - 20}" fill="#6b7688" font-size="18" font-family="sans-serif">${esc(`on-chain · ${supply.toLocaleString()} AEON · holder age = time since last transfer · older = held longer`)}</text>
 </svg>`;
