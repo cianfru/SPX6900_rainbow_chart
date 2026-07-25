@@ -790,7 +790,7 @@ export default function App() {
       {/* Methods — how every number on the site is computed. Static, no fetching. */}
       {route === "methods" && (
         <Suspense fallback={<div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Loading…</div>}>
-          <MethodsPage isMobile={isMobile} onOpen={goChart} />
+          <MethodsPage isMobile={isMobile} />
         </Suspense>
       )}
 
