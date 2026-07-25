@@ -6,6 +6,7 @@
 //   node scripts/build-aeon-collage.mjs [--pick=sold|spread|rare] [--cols=] [--rows=]
 //                                       [--cell=] [--out=] [--title=] [--sub=]
 //                                       [--anchor=top|center|bottom]  [--mock]
+//   …--header --w=2500 --h=1000 --title=… --sub=…      (full-bleed article header)
 //
 // BEHIND THE SANDBOX PROXY, RUN IT AS: NODE_USE_ENV_PROXY=1 node scripts/…
 // Node's built-in fetch does not read HTTPS_PROXY on its own, so every request comes
@@ -123,6 +124,45 @@ async function gather(pool, need, { mock = false, conc = 8 } = {}) {
   return out.slice(0, need);
 }
 
+// ── article header ──────────────────────────────────────────────────────────
+// A grid with a caption bar under it is a card, not a header. This bleeds the mosaic
+// across the whole canvas, crops whatever overflows, then lays a left-to-right scrim
+// over it so the title has somewhere quiet to sit. Sized to an exact canvas (5:2 for
+// an article hero) rather than falling out of the tile maths.
+function headerSvg(cells, { W, H, cell, gap, title, sub, anchor }) {
+  const cols = Math.ceil((W + gap) / (cell + gap));
+  const rows = Math.ceil((H + gap) / (cell + gap));
+  let tiles = "", defs = "";
+  for (let i = 0; i < cols * rows; i++) {
+    const c = cells[i % cells.length];
+    if (!c?.art) continue;
+    const cx = (i % cols) * (cell + gap), cy = Math.floor(i / cols) * (cell + gap);
+    defs += `<clipPath id="h${i}"><rect x="${cx}" y="${cy}" width="${cell}" height="${cell}"/></clipPath>`;
+    tiles += `<image href="${c.art}" x="${cx}" y="${cy}" width="${cell}" height="${cell}" preserveAspectRatio="${anchor} slice" clip-path="url(#h${i})"/>`;
+  }
+  const tSize = Math.round(H * 0.105), sSize = Math.round(H * 0.045);
+  const left = Math.round(W * 0.055);
+  const baseY = sub ? Math.round(H * 0.56) : Math.round(H * 0.56);
+  return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
+<defs>${defs}
+<linearGradient id="scrim" x1="0" y1="0" x2="1" y2="0">
+  <stop offset="0%" stop-color="#05050b" stop-opacity="0.97"/><stop offset="45%" stop-color="#05050b" stop-opacity="0.93"/>
+  <stop offset="72%" stop-color="#05050b" stop-opacity="0.62"/><stop offset="100%" stop-color="#05050b" stop-opacity="0.15"/>
+</linearGradient>
+<linearGradient id="vig" x1="0" y1="0" x2="0" y2="1">
+  <stop offset="0%" stop-color="#05050b" stop-opacity="0.55"/><stop offset="45%" stop-color="#05050b" stop-opacity="0"/>
+  <stop offset="100%" stop-color="#05050b" stop-opacity="0.7"/></linearGradient>
+</defs>
+<rect width="${W}" height="${H}" fill="#05050b"/>
+${tiles}
+<rect width="${W}" height="${H}" fill="url(#scrim)"/>
+<rect width="${W}" height="${H}" fill="url(#vig)"/>
+${brandStripe(H, { w: Math.max(7, Math.round(H * 0.011)) })}
+<text x="${left}" y="${baseY}" fill="#f8fafc" font-size="${tSize}" font-weight="700" font-family="sans-serif" letter-spacing="0.5">${esc(title)}</text>
+${sub ? `<text x="${left}" y="${baseY + Math.round(tSize * 0.82)}" fill="#a9b4c6" font-size="${sSize}" font-family="sans-serif">${esc(sub)}</text>` : ""}
+</svg>`;
+}
+
 // ── compose ─────────────────────────────────────────────────────────────────
 function collageSvg(cells, { cols, rows, cell, gap, title, sub, anchor = "xMidYMid" }) {
   const gridW = cols * cell + (cols - 1) * gap;
@@ -171,7 +211,10 @@ async function main() {
   const cells = await gather(pool, need, { mock: flag("mock") });
   if (cells.length < need) console.log(`  only ${cells.length}/${need} tiles resolved — grid will be short`);
 
-  const svg = collageSvg(cells, { cols, rows, cell, gap, title, sub, anchor: ANCHOR[arg("anchor", "center")] || "xMidYMid" });
+  const anchor = ANCHOR[arg("anchor", "center")] || "xMidYMid";
+  const svg = flag("header")
+    ? headerSvg(cells, { W: num("w", 2500), H: num("h", 1000), cell, gap, title, sub, anchor })
+    : collageSvg(cells, { cols, rows, cell, gap, title, sub, anchor });
   const png = new Resvg(svg, { font: FONT }).render().asPng();
   mkdirSync(dirname(out), { recursive: true });
   writeFileSync(out, png);
