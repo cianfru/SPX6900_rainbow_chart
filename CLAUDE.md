@@ -211,10 +211,21 @@
   **🔲 OWNER PENDING (deal-finder is the ONLY thing waiting on data):** get an **OpenSea API key** → repo secret
   `OPENSEA_KEY` (or swap to **Magic Eden** EVM API — Claude can wire either) → dispatch the Aeon banker; the Rarity-vs-Price
   chart flips from its empty state to live deals (re-fetches daily). Owner "will get one or the other soon".
-  **🔲 PARKED (owner call):** a **separate Aeon X account** — until then NO auto-post pipeline (manual only). When ready,
-  wire its creds + a posting workflow → the control tab gets real Queue/Post-now. Contract
-  `0xc374a204334d4Edd4C6a62f0867C752d65E9579c`. To refresh on-chain: re-run the free BigQuery/Dune transfers extract →
-  `build-aeon-onchain.mjs`. **RARITY MODEL BACKLOG:** floor-by-rarity, a rarity tweet card, per-token last-sale-vs-rarity.
+  **✅ DECIDED 2026-07-25 — ONE ACCOUNT, NO SEPARATE AEON HANDLE (owner call). Do NOT relitigate or add a cadence cap.**
+  Everything posts from @SPX6900Rainbow. Two facts settled it: (1) **the verified long-form is load-bearing** — the AEON
+  sale post is **331 chars** and an unverified account caps at 280, and `spxcohort` (700) / `cexflow` (600) /
+  `hodlcompare` (340) are already over too, so a second handle would mean stripping the honest-methodology tails that ARE
+  the moat; (2) **a dedicated account has a ceiling of ~1,173 people** (total AEON owners) starting from zero, and the
+  repo's own engagement analysis found likes↔impressions r=0.94 — reach IS follower count, so it would be structurally
+  low-reach permanently, not just slow to start. Dilution risk is real (AEON owners are **0.48%** of the ~243k SPX holder
+  base) but the owner explicitly **declined a lane cap**: engagement is at a seasonal low (dead price, summer), so a few
+  NFT sale posts on the timeline cost nothing and add signal. The `aeonsale` lane keeps its 1/day budget. **The honest
+  bridge when framing AEON for an SPX audience: 346 of 1,173 AEON holders (29%) also hold SPX, and AEON's weekly returns
+  correlate 0.53-0.57 with SPX** — so the Holder Skyline and AEON-vs-SPX charts are genuinely SPX content, not NFT content
+  in disguise. Revisit only if AEON grows its own following; lanes/cards/data are already fully separated, so spinning out
+  later is a switch, not a rebuild. Contract `0xc374a204334d4Edd4C6a62f0867C752d65E9579c`. To refresh on-chain: re-run the
+  free BigQuery/Dune transfers extract → `build-aeon-onchain.mjs`.
+  **RARITY MODEL BACKLOG:** floor-by-rarity, a rarity tweet card, per-token last-sale-vs-rarity.
 - **✅✅ AEON VALUATION CORRECTED 2026-07-24 — the deal finder was advertising fake bargains.** Four linked fixes, all
   from one owner challenge ("are these listed NFTs cheap or expensive by our logic?"):
   - **JOKE LISTINGS STRIPPED.** One ask sat at **1,000,000,000 Ξ**; others at 69/690/6900/69000/2222. Holders park a meme
