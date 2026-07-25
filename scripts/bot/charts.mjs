@@ -18,6 +18,7 @@ import { renderCycleSyncCard, renderCycleClockCard } from "./cycle-card.mjs";
 import { renderMvrvBtcCard } from "./mvrv-card.mjs";
 import { renderMvrvTrendCard } from "./mvrv-trend-card.mjs";
 import { renderSupplyProfitCard } from "./supply-profit-card.mjs";
+import { renderWhalesCard } from "./whales-card.mjs";
 import { renderFloorModelCard } from "./floor-model-card.mjs";
 import { renderAltOscCard } from "./alt-osc-card.mjs";
 import { renderFreeFloatCard } from "./free-float-card.mjs";
@@ -889,6 +890,7 @@ export function renderPostCard(post, stats, opts = {}) {
   if (type === "mvrvbtc") return renderMvrvBtcCard(stats, dims);
   if (type === "mvrvtrend") return renderMvrvTrendCard(stats, dims);
   if (type === "supplyprofit") return renderSupplyProfitCard(stats, dims);
+  if (type === "whales") return renderWhalesCard(stats, dims);
   if (type === "floormodel") return renderFloorModelCard(stats, dims);
   if (type === "altmarket") return renderAltOscCard(stats, dims);
   if (type === "freefloat") return renderFreeFloatCard(stats, dims);

@@ -273,12 +273,22 @@ function snapshot(wallets, sTs, spot, thr) {
   }
   bals.sort((a, b) => b - a);
   const topN = n => held > 0 ? +(100 * bals.slice(0, n).reduce((s, x) => s + x, 0) / held).toFixed(2) : 0;
+  // The WHALE COHORT, defined by size rather than by rank. top10/top100 is a fixed
+  // headcount, so its share falling only ever says "concentration eased". A size
+  // threshold lets the count and the share move independently, which is where the
+  // finding lives: the count has been flat near 175 for two years while the share fell
+  // from 82% to 66%. Same wallets, steadily less of the float — something HODL waves
+  // cannot show, since long-held supply says nothing about WHO holds it.
+  const whaleThr = held / 1000;                       // 0.1% of holder supply
+  const whales = bals.filter(b => b >= whaleThr);
   const pct = q => held > 0 ? +(100 * q / held).toFixed(2) : 0;
   const rp = held > 0 ? rcap / held : 0;
   return {
     d: iso(sTs),
     sip: pct(profitQty),
     top10: topN(10), top100: topN(100),
+    whaleN: whales.length,
+    whalePct: held > 0 ? +(100 * whales.reduce((a, b) => a + b, 0) / held).toFixed(2) : 0,
     gini: +gini(bals).toFixed(4),
     age: age.map(pct),
     holders: bals.length,

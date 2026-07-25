@@ -914,6 +914,23 @@ ${under ? "Most holders are red — and still holding." : "Most of the float is 
     };
   })(),
 
+  // What the whale COHORT did — the question HODL waves get asked and cannot answer.
+  // Waves say supply sat still; they say nothing about who ended up holding it. Data-
+  // gated on the whale fields the FIFO reconstruction emits.
+  s => (s.onchain?.length >= 50) && (() => {
+    const r = s.onchain.filter(x => x?.whalePct > 0 && x?.holders > 1000);
+    if (r.length < 40) return null;
+    const cur = r.at(-1), peak = r.reduce((a, b) => (b.whalePct > a.whalePct ? b : a));
+    const fK = n => (n >= 1000 ? Math.round(n / 1000) + "k" : String(n));
+    return {
+      id: "whales",
+      text: ct`🐋 SPX6900's whales hold ${cur.whalePct.toFixed(0)}% of supply — down from ${peak.whalePct.toFixed(0)}%.
+There are still ${cur.whaleN} of them. The same cohort, a steadily smaller slice, while holders went ${fK(r[0].holders)} → ${fK(cur.holders)}.
+Supply sitting still tells you nothing about who is holding it.`,
+      card: { type: "whales" },
+    };
+  })(),
+
   // Realized Price & Floor Model — spot vs the crowd's on-chain cost basis, with the
   // 0.5–0.8× multiplier "floor zone" beneath. Same bundled realized-price series as MVRV
   // (no new Dune). Valuation POSITION (bands are historical support, not a guarantee).
@@ -2034,7 +2051,7 @@ const LOOK = {
   whatnext: "race",
   // — Tier B: flavourful / distinct looks (used to break up the green lines) —
   riskcolor: "colorline", risklevels: "colorline", rsidots: "colorline",
-  riskheat: "dual", runningroi: "dual", cycle: "dual", longshort: "dual", underwater: "dual", goldencross: "dual", holdergrowth: "dual", holdersprice: "dual", mvrvbtc: "dual", mvrvtrend: "dual", supplyprofit: "dual", floormodel: "dual", altmarket: "dual", freefloat: "dual", nupl: "dual", concentration: "dual", picycle: "dual", spxbitcoin: "dual", spxcohort: "dual", cexflow: "dual", cexsupply: "stack", sopr: "dual",
+  riskheat: "dual", runningroi: "dual", cycle: "dual", longshort: "dual", underwater: "dual", goldencross: "dual", holdergrowth: "dual", holdersprice: "dual", mvrvbtc: "dual", mvrvtrend: "dual", supplyprofit: "dual", whales: "dual", floormodel: "dual", altmarket: "dual", freefloat: "dual", nupl: "dual", concentration: "dual", picycle: "dual", spxbitcoin: "dual", spxcohort: "dual", cexflow: "dual", cexsupply: "stack", sopr: "dual",
   firesalerally: "fanlines",
   model: "scatter",
   monthlyreturns: "heatmap", monthlyreturnssp: "heatmap", monthlyreturnsbtc: "heatmap",
