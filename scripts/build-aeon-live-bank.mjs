@@ -24,7 +24,7 @@ import { fetchLiveSales } from "./bot/aeon-live-sales.mjs";
 
 const OUT = "public/aeon-live-sales.json";
 const KEEP_DAYS = 120;                  // enough to cover any plausible Dune outage
-const HOURS = Number(process.env.AEON_LIVE_HOURS || 72);   // overlap so nothing slips through
+const HOURS = Number(process.env.AEON_LIVE_HOURS || 168);  // a week of overlap — the collection is thin and the bank dedupes
 
 const readJson = (p, d) => { try { return JSON.parse(readFileSync(p, "utf8")); } catch { return d; } };
 

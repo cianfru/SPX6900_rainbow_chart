@@ -90,7 +90,7 @@ export function normalizeSales(nftSales, { latestBlock, nowMs, secPerBlock = SEC
 }
 
 /** Pull sales from the last `hours`. Returns [] on any failure (caller falls back). */
-export async function fetchLiveSales({ key, hours = 48, contract = CONTRACT, fetchImpl = fetch, limit = 100 } = {}) {
+export async function fetchLiveSales({ key, hours = 168, contract = CONTRACT, fetchImpl = fetch, limit = 100 } = {}) {
   if (!key) return [];
   const rpc = await getJson(rpcBase(key), {
     method: "POST", headers: { "content-type": "application/json" },
@@ -99,8 +99,12 @@ export async function fetchLiveSales({ key, hours = 48, contract = CONTRACT, fet
   const latestBlock = parseInt(rpc?.result, 16);
   if (!Number.isFinite(latestBlock)) throw new Error("could not read latest block");
   const fromBlock = Math.max(0, latestBlock - Math.ceil((hours * 3600) / SEC_PER_BLOCK));
+  // NO `order` param: Alchemy does NOT honour order=desc here. A probe on 2026-07-25 asked
+  // for desc and got block 19,629,897 back first while the chain head was 25,607,310 — i.e.
+  // results arrive OLDEST-first regardless. Relying on it would have fed 2-year-old trades
+  // to the alert. The block range is what bounds the set; normalizeSales sorts locally.
   const url = `${nftBase(key)}/getNFTSales?contractAddress=${contract}`
-    + `&fromBlock=${fromBlock}&toBlock=${latestBlock}&order=desc&limit=${limit}`;
+    + `&fromBlock=${fromBlock}&toBlock=${latestBlock}&limit=${limit}`;
   const j = await getJson(url, { headers: { accept: "application/json" } }, fetchImpl);
   const raw = j?.nftSales;
   const sales = normalizeSales(raw, { latestBlock });
@@ -115,8 +119,19 @@ export async function fetchLiveSales({ key, hours = 48, contract = CONTRACT, fet
       console.error(`  sample row keys: ${Object.keys(raw[0]).join(", ")}`);
       console.error(`  sample row: ${JSON.stringify(raw[0]).slice(0, 600)}`);
     } else {
-      console.error(`aeon-live-sales: the API returned an EMPTY nftSales array for blocks ${fromBlock}-${latestBlock} (~${hours}h).`
-        + " Either there genuinely were no sales, or a filter param (contractAddress / block range) is not matching.");
+      // Empty inside the window is ambiguous: a thin collection genuinely goes days without
+      // a trade, but a broken block filter looks identical. One unfiltered call settles it —
+      // if the contract has sales AT ALL, the filter is what is failing. The rows are only
+      // ever REPORTED, never used as data: without a working `order` they are the oldest.
+      let verdict = "could not verify";
+      try {
+        const probe = await getJson(`${nftBase(key)}/getNFTSales?contractAddress=${contract}&limit=1`,
+          { headers: { accept: "application/json" } }, fetchImpl, 1);
+        verdict = probe?.nftSales?.length
+          ? "the contract DOES return sales unfiltered, so the block range is the suspect"
+          : "the contract returns NO sales even unfiltered — check contractAddress/network";
+      } catch { /* keep the default verdict */ }
+      console.error(`aeon-live-sales: no sales in blocks ${fromBlock}-${latestBlock} (~${hours}h). ${verdict}.`);
     }
   }
   return sales;
@@ -136,7 +151,7 @@ if (process.argv.includes("--probe")) {
     });
     const latestBlock = parseInt(rpc?.result, 16);
     const fromBlock = Math.max(0, latestBlock - Math.ceil((hours * 3600) / SEC_PER_BLOCK));
-    const url = `${nftBase(key)}/getNFTSales?contractAddress=${CONTRACT}&fromBlock=${fromBlock}&toBlock=${latestBlock}&order=desc&limit=100`;
+    const url = `${nftBase(key)}/getNFTSales?contractAddress=${CONTRACT}&fromBlock=${fromBlock}&toBlock=${latestBlock}&limit=100`;
     console.log(`GET ${url.replace(key, "<key>")}`);
     const j = await getJson(url, { headers: { accept: "application/json" } });
     console.log(`top-level keys: ${Object.keys(j || {}).join(", ")}`);
@@ -145,7 +160,7 @@ if (process.argv.includes("--probe")) {
     if (Array.isArray(raw) && raw.length) console.log(`first row:\n${JSON.stringify(raw[0], null, 2)}`);
     console.log(`normalised: ${normalizeSales(raw, { latestBlock }).length} row(s)`);
     // Same window without the block filter, to isolate whether the range is the problem.
-    const u2 = `${nftBase(key)}/getNFTSales?contractAddress=${CONTRACT}&order=desc&limit=5`;
+    const u2 = `${nftBase(key)}/getNFTSales?contractAddress=${CONTRACT}&limit=5`;
     const j2 = await getJson(u2, { headers: { accept: "application/json" } });
     console.log(`\nno-block-filter probe: ${Array.isArray(j2?.nftSales) ? j2.nftSales.length + " row(s)" : "none"}`);
     if (j2?.nftSales?.[0]) console.log(`first row:\n${JSON.stringify(j2.nftSales[0], null, 2)}`);

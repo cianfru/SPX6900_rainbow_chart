@@ -36,7 +36,9 @@ const LANE = "aeonsale";
 const ALCHEMY = (process.env.ALCHEMY_KEY || "").trim();
 const NETWORK = process.env.ALCHEMY_NETWORK || "eth-mainnet";
 const CONTRACT = (process.env.AEON_CONTRACT || "0xc374a204334d4Edd4C6a62f0867C752d65E9579c").toLowerCase();
-const LIVE_HOURS = Number(process.env.AEON_SALE_HOURS || 48);
+// AEON is thin — 1-3 sales on a busy day, some days none — so a 48h window routinely
+// returns nothing. Fetch a week; NOTABLE_DAYS still bounds what is fresh enough to post.
+const LIVE_HOURS = Number(process.env.AEON_SALE_HOURS || 168);
 
 const NOTABLE_DAYS = 3;      // only fire on a genuinely FRESH sale
 const STEAL_DISC = 0.20;     // >=20% under what that rarity trades at

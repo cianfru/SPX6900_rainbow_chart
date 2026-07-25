@@ -24,7 +24,7 @@ on:
       hours:
         description: "How far back to look for sales"
         type: string
-        default: "48"
+        default: "168"
       probe:
         description: "Diagnose the Alchemy feed only — dumps the raw response, posts nothing"
         type: boolean
@@ -78,7 +78,7 @@ jobs:
         env:
           # Repo var AEON_SALE_DRY_RUN=1 keeps the schedule in watch-only mode.
           DRY_RUN: ${{ (github.event_name == 'workflow_dispatch' && inputs.dry_run) && '1' || vars.AEON_SALE_DRY_RUN }}
-          AEON_SALE_HOURS: ${{ inputs.hours || '48' }}
+          AEON_SALE_HOURS: ${{ inputs.hours || '168' }}
           ALCHEMY_KEY: ${{ secrets.ALCHEMY_KEY }}
           ALCHEMY_NETWORK: ${{ vars.ALCHEMY_NETWORK }}
           AEON_CONTRACT: ${{ vars.AEON_CONTRACT }}
