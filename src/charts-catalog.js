@@ -115,3 +115,69 @@ export const CHART_META = Object.fromEntries(
 );
 
 export const CHART_IDS = new Set(Object.keys(CHART_META));
+
+// ── Method families ─────────────────────────────────────────────────────────
+// Every chart is computed one of seven ways. The GROUPS above answer "what is this
+// about"; these answer "how is this worked out", which is the question the Methods
+// page exists for. A chart belongs to exactly one family, and `chartsIn()` derives
+// the counts from the catalog rather than hardcoding them — a stated count that
+// silently goes stale is exactly the thing this project cannot afford.
+export const METHOD_FAMILIES = [
+  {
+    id: "01", name: "Power-law fit",
+    spine: "Bundled weekly closes since launch (DEFAULT_RAW)",
+    what: "A log-log regression of price against age. The residual spread around that fit is divided into the nine rainbow bands.",
+    caveat: "The fit is FROZEN on the bundled history — live price extends the drawn line but never re-fits the model. Re-fitting to make today look better is the one thing that would make every band meaningless.",
+    charts: ["channel", "roadmap", "quantilefan", "risk", "riskcolor", "model", "valuation"],
+  },
+  {
+    id: "02", name: "Borrowed frameworks",
+    spine: "The same price series, plus Bitcoin's history where a chart overlays it",
+    what: "Indicators built for Bitcoin — Pi Cycle, RSI, the 20-week extension, the halving-cycle overlay — applied to SPX for context.",
+    caveat: "These were calibrated on an asset with four cycles of history. SPX has roughly one. They are shown as a rhyme, never as a signal, and thresholds are re-derived from SPX's own quantiles where the borrowed ones plainly do not fit.",
+    charts: ["picycle", "rsidots", "riskheat", "btccycle"],
+  },
+  {
+    id: "03", name: "Return arithmetic",
+    spine: "Daily closes",
+    what: "Plain price maths — drawdown from the running high, growth over a window, rallies measured off each low, month-over-month returns.",
+    caveat: "Close-based throughout, so intraday wicks are not counted. The one exception is the all-time high, which uses the true intraday print.",
+    charts: ["rally", "drawdown", "runningroi", "monthly"],
+  },
+  {
+    id: "04", name: "Cost basis & holder behaviour",
+    spine: "Every SPX transfer on Ethereum since launch (2.6M+), replayed locally",
+    what: "Each wallet is rebuilt as a queue of lots. A send consumes the earliest lots first, so every held coin keeps its true age and the price it was acquired at. Realized price, supply in profit, HODL waves, concentration and SOPR all fall out of that one reconstruction.",
+    caveat: "Ethereum-native only — cost basis is not reconstructable across the bridges. Sixteen infrastructure addresses (bridge, LP, exchange, burn) are excluded from the holder set; that exclusion list is the single biggest lever on these numbers and it is published in the repo.",
+    charts: ["supply", "holders", "holdersprice", "supplyprofit", "hodlwaves", "freefloat", "concentration",
+             "urpd", "urpdage", "lthsth", "sopr", "walletgrowth", "mvrv", "nupl", "mvrvbtc"],
+  },
+  {
+    id: "05", name: "Exchange & venue balances",
+    spine: "Balances of the tagged exchange, LP and custody addresses",
+    what: "Where the tradable float sits and how it moves — per-venue balances over time, and weekly net flow on and off exchanges.",
+    caveat: "Known addresses only, so the totals are a floor rather than a census. Net flow is a behaviour read, not a buy/sell signal: internal rebalancing and OTC settlement look identical on-chain.",
+    charts: ["cexsupply", "cexflow", "cexvenues", "cexvenflow", "longshort"],
+  },
+  {
+    id: "06", name: "Relative value & races",
+    spine: "SPX priced against another asset or index",
+    what: "Ratios and rebased races — versus Bitcoin, the majors, the memecoins, and the alt market excluding BTC, ETH and stablecoins.",
+    caveat: "A ratio moves when either side moves. Races are anchored to a shared start date, so the choice of start changes the answer — which is why the window is yours to pick.",
+    charts: ["spxbtc", "relative", "altmarket", "vsmajors", "vsmemekings"],
+  },
+  {
+    id: "07", name: "NFT collection analytics",
+    spine: "Project AEON transfers and marketplace trades on Ethereum",
+    what: "Per-token ownership, holding age, rarity from on-chain metadata, and realized trader P&L matched buy-to-sell.",
+    caveat: "Floor price is a thin statistic — one listing sets it. Rarity explains only about 5% of price variance in this collection, which is published on the chart rather than hidden. Realized P&L counts round-trips only, since mint cost and free transfers are unknown.",
+    charts: AEON_GROUPS[0].charts.map(c => c.id),
+  },
+];
+
+// id -> family, so a chart page can name how it was worked out.
+export const METHOD_OF = Object.fromEntries(
+  METHOD_FAMILIES.flatMap(f => f.charts.map(id => [id, f.id]))
+);
+// Count derived from the catalog, never stated by hand.
+export const chartsIn = famId => METHOD_FAMILIES.find(f => f.id === famId)?.charts.length ?? 0;

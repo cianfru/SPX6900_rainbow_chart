@@ -79,6 +79,7 @@ const FreeFloatChart = lazy(() => import("./FreeFloatChart.jsx"));
 const NuplChart = lazy(() => import("./NuplChart.jsx"));
 const QuantileFanChart = lazy(() => import("./QuantileFanChart.jsx"));
 const ChartsGallery = lazy(() => import("./ChartsGallery.jsx"));
+const MethodsPage = lazy(() => import("./MethodsPage.jsx"));
 
 // Basket rosters for the performance-race charts (keys match the /api endpoints).
 const MAJORS_META = [
@@ -550,6 +551,7 @@ export default function App() {
     params.delete("view"); params.delete("chart"); params.delete("rel");
     if (r === "gallery") params.set("view", "charts");
     else if (r === "aeon") params.set("view", "aeon");
+    else if (r === "methods") params.set("view", "methods");
     else if (r === "chart" && id) {
       params.set("chart", id);
       if (id === "relative" && rel && rel !== "BTC") params.set("rel", rel);
@@ -562,6 +564,7 @@ export default function App() {
   const goHome = () => { setRoute("home"); syncUrl("home"); window.scrollTo({ top: 0, behavior: "smooth" }); };
   const openGallery = () => { setRoute("gallery"); syncUrl("gallery"); window.scrollTo({ top: 0, behavior: "smooth" }); };
   const openAeon = () => { setRoute("aeon"); syncUrl("aeon"); window.scrollTo({ top: 0, behavior: "smooth" }); };
+  const openMethods = () => { setRoute("methods"); syncUrl("methods"); window.scrollTo({ top: 0, behavior: "smooth" }); };
   const goChart = (id, relOverride) => {
     if (id === "rainbow") { goHome(); return; }
     if (!CHART_IDS.has(id)) { openGallery(); return; }
@@ -592,6 +595,7 @@ export default function App() {
       const id = p.get("chart") || p.get("tab"); // ?tab= kept for old shared links
       if (p.get("view") === "charts") setRoute("gallery");
       else if (p.get("view") === "aeon") setRoute("aeon");
+      else if (p.get("view") === "methods") setRoute("methods");
       else if (id && CHART_IDS.has(id)) { setRoute("chart"); setTab(id); }
       else setRoute("home");
     };
@@ -754,6 +758,12 @@ export default function App() {
               </svg>
               <span>Project Aeon</span>
             </button>
+            <button className="pill" onClick={openMethods} title="How every number on this site is computed" style={navPill(route === "methods", "#94a3b8")}>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, color: "#94a3b8" }}>
+                <path d="M4 19.5V5a2 2 0 0 1 2-2h13v18H6a2 2 0 0 1-2-1.5z" /><path d="M8 7h8" /><path d="M8 11h5" />
+              </svg>
+              <span>Methods</span>
+            </button>
           </div>
           {navActions}
         </div>
@@ -779,6 +789,13 @@ export default function App() {
             titleGradient="linear-gradient(90deg,#2dd4bf,#3b82f6,#a855f7,#f472b6)"
             subtitle="On-chain analytics for the Project AEON NFT collection — 3,333 on Ethereum. Every number checkable, reproducible."
           />
+        </Suspense>
+      )}
+
+      {/* Methods — how every number on the site is computed. Static, no fetching. */}
+      {route === "methods" && (
+        <Suspense fallback={<div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Loading…</div>}>
+          <MethodsPage isMobile={isMobile} onOpen={goChart} />
         </Suspense>
       )}
 
