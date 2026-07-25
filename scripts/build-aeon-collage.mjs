@@ -5,12 +5,14 @@
 //
 //   node scripts/build-aeon-collage.mjs [--pick=sold|spread|rare] [--cols=] [--rows=]
 //                                       [--cell=] [--out=] [--title=] [--sub=]
+//                                       [--anchor=top|center|bottom]  [--mock]
 //
-// WHY IT RUNS IN CI, NOT LOCALLY: the art lives on `nft2-cdn.alchemy.com`, which is
-// not in the dev sandbox's egress allowlist (403 "Host not in allowlist"). GitHub
-// Actions has open egress and already talks to Alchemy for the rarity build, so this
-// runs there. Locally, `--mock` composes the same layout from flat colour tiles so
-// the geometry can be checked without the network.
+// BEHIND THE SANDBOX PROXY, RUN IT AS: NODE_USE_ENV_PROXY=1 node scripts/…
+// Node's built-in fetch does not read HTTPS_PROXY on its own, so every request comes
+// back 403 "Host not in allowlist" even when the host IS allowed — the denial is the
+// proxy answering a request that never carried the tunnel. curl works unset, which is
+// the giveaway. `--mock` composes the same layout from flat colour tiles with no
+// network at all, for checking geometry.
 //
 // The art is embedded as data URIs because resvg does not resolve remote hrefs — the
 // same constraint the sale card hit. Fetches are sniffed by magic bytes rather than
@@ -29,6 +31,7 @@ const arg = (k, d) => {
 };
 const flag = k => process.argv.includes(`--${k}`);
 const num = (k, d) => { const v = +arg(k, NaN); return Number.isFinite(v) ? v : d; };
+const ANCHOR = { top: "xMidYMin", center: "xMidYMid", bottom: "xMidYMax" };
 const readJson = p => { try { return JSON.parse(readFileSync(p, "utf8")); } catch { return null; } };
 
 // ── selection ───────────────────────────────────────────────────────────────
@@ -116,11 +119,12 @@ async function gather(pool, need, { mock = false, conc = 8 } = {}) {
   };
   await Promise.all(Array.from({ length: conc }, worker));
   if (misses) console.log(`  ${misses} art fetch${misses === 1 ? "" : "es"} missed — backfilled from the pool`);
+  if (!out.length) console.log("  no art resolved at all — behind a proxy, re-run with NODE_USE_ENV_PROXY=1");
   return out.slice(0, need);
 }
 
 // ── compose ─────────────────────────────────────────────────────────────────
-function collageSvg(cells, { cols, rows, cell, gap, title, sub }) {
+function collageSvg(cells, { cols, rows, cell, gap, title, sub, anchor = "xMidYMid" }) {
   const gridW = cols * cell + (cols - 1) * gap;
   const gridH = rows * cell + (rows - 1) * gap;
   const pad = Math.round(cell * 0.22);
@@ -133,7 +137,7 @@ function collageSvg(cells, { cols, rows, cell, gap, title, sub }) {
     const cy = pad + Math.floor(i / cols) * (cell + gap);
     if (c.art) {
       defs += `<clipPath id="c${i}"><rect x="${cx}" y="${cy}" width="${cell}" height="${cell}"/></clipPath>`;
-      tiles += `<image href="${c.art}" x="${cx}" y="${cy}" width="${cell}" height="${cell}" preserveAspectRatio="xMidYMid slice" clip-path="url(#c${i})"/>`;
+      tiles += `<image href="${c.art}" x="${cx}" y="${cy}" width="${cell}" height="${cell}" preserveAspectRatio="${anchor} slice" clip-path="url(#c${i})"/>`;
     } else {
       tiles += `<rect x="${cx}" y="${cy}" width="${cell}" height="${cell}" fill="${c.mock || "#12121a"}" fill-opacity="0.85"/>`;
     }
@@ -167,7 +171,7 @@ async function main() {
   const cells = await gather(pool, need, { mock: flag("mock") });
   if (cells.length < need) console.log(`  only ${cells.length}/${need} tiles resolved — grid will be short`);
 
-  const svg = collageSvg(cells, { cols, rows, cell, gap, title, sub });
+  const svg = collageSvg(cells, { cols, rows, cell, gap, title, sub, anchor: ANCHOR[arg("anchor", "center")] || "xMidYMid" });
   const png = new Resvg(svg, { font: FONT }).render().asPng();
   mkdirSync(dirname(out), { recursive: true });
   writeFileSync(out, png);

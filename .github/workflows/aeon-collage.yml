@@ -3,9 +3,10 @@ name: Project Aeon collage
 # One-off image builder for announcement posts. Dispatch-only — nothing about it
 # needs to run on a schedule.
 #
-# It lives in CI rather than being run locally because the collection's art is on
-# nft2-cdn.alchemy.com, which the dev sandbox's egress allowlist blocks. Runners
-# have open egress and already talk to Alchemy for the rarity build.
+# Runs here so the image can be rebuilt without a local checkout. It also runs fine
+# locally against an environment whose egress allows nft2-cdn.alchemy.com — but Node's
+# built-in fetch needs NODE_USE_ENV_PROXY=1 behind a proxy, or every request comes back
+# 403 from the proxy even when the host is permitted.
 #
 # The PNG is uploaded as a build artifact (download it straight from the run) and,
 # unless you turn that off, committed to public/ so it also has a shareable URL.
@@ -33,6 +34,11 @@ on:
       sub:
         description: "Caption second line"
         default: "every notable sale, posted automatically · spx6900rainbow.xyz"
+      anchor:
+        description: "Square crop anchor — center reads best on this collection"
+        type: choice
+        options: [center, top, bottom]
+        default: center
       commit:
         description: "Commit to public/aeon-collage.png as well"
         type: boolean
@@ -63,6 +69,7 @@ jobs:
             --cell='${{ inputs.cell }}' \
             --title='${{ inputs.title }}' \
             --sub='${{ inputs.sub }}' \
+            --anchor='${{ inputs.anchor }}' \
             --out=public/aeon-collage.png
           ls -la public/aeon-collage.png
       - name: Upload
