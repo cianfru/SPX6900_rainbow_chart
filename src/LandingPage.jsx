@@ -134,8 +134,9 @@ export default function LandingPage({ isMobile, priceData }) {
     return { price, mc: MONf(price * SUPPLY), when: hit?.dt ? fMonYr(hit.dt) : "beyond model" };
   }), [m]);
 
-  // "What this band has meant" — how price has historically behaved from the current band:
-  // share of life in it, forward 90-day return distribution, and how long a typical visit lasts.
+  // "What this band has meant" — purely descriptive (no forward-return promise, owner call:
+  // over ~1 cycle deep-value always recovered, so returns would read as a moonshot edge they
+  // aren't). Share of life in the band, typical length of a visit, and how many visits.
   const bandStats = useMemo(() => {
     const pts = px.filter(p => p.price > 0);
     const bands = pts.map(p => bandIndex(m, p.price, dayN(new Date(p.date))));
@@ -143,14 +144,7 @@ export default function LandingPage({ isMobile, priceData }) {
     let inBand = 0; const runs = []; let run = 0;
     for (let i = 0; i < pts.length; i++) { if (bands[i] === bIdx) { inBand++; run++; } else { if (run) runs.push(run); run = 0; } }
     if (run) runs.push(run);
-    const rets = [];
-    for (let i = 0; i < pts.length; i++) {
-      if (bands[i] !== bIdx) continue;
-      const target = Date.parse(pts[i].date) + 90 * 864e5; let j = i;
-      while (j < pts.length && Date.parse(pts[j].date) < target) j++;
-      if (j < pts.length) rets.push(pts[j].price / pts[i].price - 1);
-    }
-    return { share: pts.length ? inBand / pts.length : 0, stay: med(runs), episodes: runs.length, medRet: med(rets), worstRet: rets.length ? Math.min(...rets) : null, n: rets.length };
+    return { share: pts.length ? inBand / pts.length : 0, stay: med(runs), episodes: runs.length };
   }, [px, m, bIdx]);
 
   const fT = (v) => (v >= 1 ? `$${v}` : `$${v.toFixed(2)}`);
@@ -280,20 +274,19 @@ export default function LandingPage({ isMobile, priceData }) {
             </div>
             <div>
               <div style={{ fontSize: isMobile ? 20 : 22, fontWeight: 800, letterSpacing: "-0.02em" }}>What this band has meant</div>
-              <div style={sub}>Described, not prescribed — how price has behaved from the {band.l} band, historically</div>
+              <div style={sub}>Described, not prescribed — how often price has visited the {band.l} band and how long it stays</div>
               {[
-                ["Share of life in this band", `${(bandStats.share * 100).toFixed(0)}%`, "#f3f5f8"],
-                ["Median 90-day return", bandStats.medRet != null ? `${bandStats.medRet >= 0 ? "+" : ""}${(bandStats.medRet * 100).toFixed(0)}%` : "—", bandStats.medRet >= 0 ? "#25e07d" : "#ff5470"],
-                ["Worst 90-day return", bandStats.worstRet != null ? `${bandStats.worstRet >= 0 ? "+" : ""}${(bandStats.worstRet * 100).toFixed(0)}%` : "—", bandStats.worstRet >= 0 ? "#25e07d" : "#ff5470"],
-                ["Typical stay", bandStats.stay != null ? `${Math.round(bandStats.stay)} days` : "—", "#f3f5f8"],
-              ].map(([k, v, c], i) => (
+                ["Share of life in this band", `${(bandStats.share * 100).toFixed(0)}%`],
+                ["Typical stay", bandStats.stay != null ? `${Math.round(bandStats.stay)} days` : "—"],
+                ["Times price has been here", `${bandStats.episodes}`],
+              ].map(([k, v], i) => (
                 <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", padding: "12px 0", borderBottom: "1px solid #1b1f29", fontFamily: MONO }}>
                   <span style={{ color: "#727d90", textTransform: "uppercase", letterSpacing: "0.08em", fontSize: 11 }}>{k}</span>
-                  <span style={{ color: c, fontSize: 15, fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>{v}</span>
+                  <span style={{ color: "#f3f5f8", fontSize: 15, fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>{v}</span>
                 </div>
               ))}
               <div style={{ fontFamily: MONO, fontSize: 10.5, color: "#5b6577", marginTop: 12, lineHeight: 1.6 }}>
-                {bandStats.episodes} stays across ~1 cycle of history — deep-band returns lean heavily on the launch recovery, so read them as description, not a repeatable edge.
+                Over ~1 cycle since the Aug-2023 launch. No forward-return figures — one cycle of deep-value recoveries isn't a repeatable edge.
               </div>
             </div>
           </div>
