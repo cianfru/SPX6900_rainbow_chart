@@ -86,6 +86,7 @@ const NuplChart = lazy(() => import("./NuplChart.jsx"));
 const QuantileFanChart = lazy(() => import("./QuantileFanChart.jsx"));
 const ChartsGallery = lazy(() => import("./ChartsGallery.jsx"));
 const MethodsPage = lazy(() => import("./MethodsPage.jsx"));
+const LandingPage = lazy(() => import("./LandingPage.jsx")); // dark-committed landing (staging at ?view=next)
 
 // Basket rosters for the performance-race charts (keys match the /api endpoints).
 const MAJORS_META = [
@@ -549,6 +550,7 @@ export default function App() {
     if (r === "gallery") params.set("view", "charts");
     else if (r === "aeon") params.set("view", "aeon");
     else if (r === "methods") params.set("view", "methods");
+    else if (r === "next") params.set("view", "next");
     else if (r === "chart" && id) {
       params.set("chart", id);
       if (id === "relative" && rel && rel !== "BTC") params.set("rel", rel);
@@ -593,6 +595,7 @@ export default function App() {
       if (p.get("view") === "charts") setRoute("gallery");
       else if (p.get("view") === "aeon") setRoute("aeon");
       else if (p.get("view") === "methods") setRoute("methods");
+      else if (p.get("view") === "next") setRoute("next");
       else if (id && CHART_IDS.has(id)) { setRoute("chart"); setTab(id); }
       else setRoute("home");
     };
@@ -807,6 +810,13 @@ export default function App() {
       {route === "methods" && (
         <Suspense fallback={<div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Loading…</div>}>
           <MethodsPage m={m} isMobile={isMobile} />
+        </Suspense>
+      )}
+
+      {/* Landing redesign (dark-committed) — staged at ?view=next; swaps into home when ready. */}
+      {route === "next" && (
+        <Suspense fallback={<div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Loading…</div>}>
+          <LandingPage isMobile={isMobile} priceData={priceData} />
         </Suspense>
       )}
 
