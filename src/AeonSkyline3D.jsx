@@ -57,12 +57,49 @@ export default function AeonSkyline3D({ holders, isMobile, useSpx = true }) {
     el.appendChild(labelR.domElement);
 
     // cursor-following tooltip (plain HTML overlay)
+    // The hover card. Three things, in the order they identify a wallet: who it is (the
+    // ENS name and its avatar, which for most named wallets is their NFT pfp), what it
+    // holds HERE, and then Zerion's own portfolio preview so the click-through is
+    // previewed rather than promised.
+    //
+    // Zerion publishes render.zerion.io/preview as the og:image for a wallet page, so it
+    // is the same card any link unfurl already shows — public by their design, not
+    // something being surfaced that was not. It carries a portfolio VALUE, though, so it
+    // loads only on hover and only for the wallet being pointed at.
+    const zerionSeen = new Set();
+    const walletCard = (h, spxOn) => {
+      const name = h.ens || short(h.a);
+      const avatar = h.ens
+        ? `<img src="https://metadata.ens.domains/mainnet/avatar/${encodeURIComponent(h.ens)}" alt=""
+             onerror="this.style.display='none'"
+             style="width:30px;height:30px;border-radius:50%;object-fit:cover;flex:0 0 auto;background:#131a2c"/>`
+        : "";
+      const held = `${h.n} AEON${spxOn && h.spx ? ` · ${h.spx.toLocaleString()} SPX` : ""}`;
+      // The preview is ~30KB; only ask for it once per wallet per session.
+      zerionSeen.add(h.a);
+      return `
+        <div style="display:flex;align-items:center;gap:9px;padding:11px 13px 9px">
+          ${avatar}
+          <div style="min-width:0">
+            <div style="color:#5eead4;font-weight:700;font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${name}</div>
+            <div style="color:#94a3b8;font-size:11.5px;white-space:nowrap">${held}</div>
+          </div>
+        </div>
+        <div style="padding:0 13px 9px;color:#7c8a9e;font-size:11.5px;white-space:nowrap">
+          held ${h.days} days · since ${h.since}
+        </div>
+        <img src="https://render.zerion.io/preview?address=${h.a}" alt=""
+             onerror="this.style.display='none'"
+             style="display:block;width:100%;border-top:1px solid rgba(255,255,255,0.08)"/>
+        <div style="padding:7px 13px;color:#64748b;font-size:11px;letter-spacing:0.04em">click to open in Zerion →</div>`;
+    };
+
     const tip = document.createElement("div");
     Object.assign(tip.style, {
-      position: "absolute", pointerEvents: "none", padding: "9px 12px", borderRadius: "10px", display: "none",
-      background: "rgba(10,14,26,0.94)", border: "1px solid rgba(45,212,191,0.4)", color: "#e2e8f0",
-      font: "500 12.5px 'Space Grotesk', system-ui, sans-serif", whiteSpace: "nowrap", zIndex: "5",
-      boxShadow: "0 8px 30px rgba(0,0,0,0.5)", transform: "translate(-50%, -115%)",
+      position: "absolute", pointerEvents: "none", padding: "0", borderRadius: "12px", display: "none",
+      background: "rgba(8,11,20,0.97)", border: "1px solid rgba(45,212,191,0.4)", color: "#e2e8f0",
+      font: "500 12.5px 'Space Grotesk', system-ui, sans-serif", zIndex: "5", overflow: "hidden",
+      boxShadow: "0 10px 34px rgba(0,0,0,0.6)", transform: "translate(-50%, -108%)", width: "268px",
     });
     el.appendChild(tip);
 
@@ -118,8 +155,7 @@ export default function AeonSkyline3D({ holders, isMobile, useSpx = true }) {
         setHover(hit.object); const h = hit.object.userData.h;
         controls.autoRotate = false;
         tip.style.display = "block"; tip.style.left = px + "px"; tip.style.top = py + "px";
-        tip.innerHTML = `<b style="color:#5eead4">${h.ens || short(h.a)}</b> · click to open in Zerion<br>` +
-          `<span style="color:#94a3b8">${h.n} AEON${spxOn && h.spx ? ` · ${h.spx.toLocaleString()} SPX` : ""} · held ${h.days} days (since ${h.since})</span>`;
+        tip.innerHTML = walletCard(h, spxOn);
       } else { setHover(null); tip.style.display = "none"; }
     };
     const onDown = () => { moved = false; };
