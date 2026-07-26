@@ -4,6 +4,17 @@
     "api/recap.js": { "includeFiles": "{scripts/bot/**,public/history.json,public/onchain.json,public/chain-wallets.json,public/cex-flow.json,public/freefloat-peers.json,public/rotation-excludes.json}" },
     "api/agent.js": { "includeFiles": "{scripts/bot/**,public/history.json,public/onchain.json,public/chain-wallets.json,public/cex-flow.json,public/freefloat-peers.json,public/rotation-excludes.json}" }
   },
+  "headers": [
+    {
+      "//": "The HTML shell and the runtime JSON must never be served from an edge cache without asking the origin first. Vercel was holding `/` at the edge for the better part of an hour (x-vercel-cache: HIT, age: 3409) and a query string does not change the cache key for a static file, so a stale entry survives both a hard refresh and a cache-buster. Because the shell names the content-hashed bundle, one stale copy of it serves an entire old app off assets that are still around. max-age=0 only governs the browser; s-maxage=0 is what tells the CDN to revalidate. /assets/* is deliberately untouched — it is content-addressed, so it is safe to cache forever and that is where the caching actually pays.",
+      "source": "/(index.html)?",
+      "headers": [{ "key": "Cache-Control", "value": "public, max-age=0, s-maxage=0, must-revalidate" }]
+    },
+    {
+      "source": "/(.*\\.(?:html|json))",
+      "headers": [{ "key": "Cache-Control", "value": "public, max-age=0, s-maxage=0, must-revalidate" }]
+    }
+  ],
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api/$1" },
     { "source": "/share", "destination": "/api/share" },
