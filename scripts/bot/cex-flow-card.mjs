@@ -33,13 +33,34 @@ const START = Math.max(0, ALL.findIndex(r => r.onb !== 0 || r.org !== 0) - 7);
 const WK = ALL.slice(START);
 const ONB_MARK = 3e6; // a rolling week with >3M onboarding = a listing/distribution event
 
-export function cexFlowStats() {
+// Balances live in columns the flow view drops, and the RECENT window needs them: the
+// chart shows the whole exchange era, but a reader wants to know what happened lately.
+const BAL = cexDays().map(r => ({ d: r[0], cex: r[1] + r[3], lp: r[2], p: r[6] }));
+
+/**
+ * Whole-history totals PLUS a trailing window, because the two can disagree and the copy
+ * should say which it means. They do disagree right now: cumulatively coins have left
+ * exchanges, while over the last 30 days a couple of million went back on. Writing the
+ * cumulative number as if it were the current behaviour is how a card goes quietly stale.
+ */
+export function cexFlowStats({ windowDays = 30 } = {}) {
   const org = ALL.reduce((a, r) => a + r.org, 0);
   const onb = ALL.reduce((a, r) => a + r.onb, 0);
   // count distinct listing episodes (rolling onboarding crossing the mark, de-duped by gaps)
   let listings = 0, inEp = false;
   for (const r of WK) { const hot = r.rOnb > ONB_MARK; if (hot && !inEp) listings++; inEp = hot; }
-  return { organicNet: org, onboarding: onb, listings };
+
+  const win = ALL.slice(-windowDays), b = BAL.slice(-(windowDays + 1));
+  const recent = {
+    days: win.length,
+    organic: win.reduce((a, r) => a + r.org, 0),
+    onboarding: win.reduce((a, r) => a + r.onb, 0),
+    from: b[0]?.d, to: b.at(-1)?.d,
+    cexFrom: b[0]?.cex, cexTo: b.at(-1)?.cex,
+    lpTo: b.at(-1)?.lp,
+    priceFrom: b[0]?.p, priceTo: b.at(-1)?.p,
+  };
+  return { organicNet: org, onboarding: onb, listings, recent };
 }
 
 export function cexFlowSvg(opts = {}) {

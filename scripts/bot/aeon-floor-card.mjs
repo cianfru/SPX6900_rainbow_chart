@@ -69,8 +69,8 @@ ${volBars}
 <polyline points="${path(fEth, yE)}" fill="none" stroke="#2dd4bf" stroke-width="4.2"/>
 ${axes}${xlab}
 <text x="${mL}" y="${volTop - 6}" fill="#7c8a9e" font-size="16" font-family="${F}">monthly volume (Ξ)</text>
-<rect x="${W - mR - 250}" y="30" width="13" height="13" rx="3" fill="#2dd4bf"/><text x="${W - mR - 232}" y="41" fill="#cbd5e1" font-size="17" font-family="${F}">floor Ξ</text>
-<rect x="${W - mR - 150}" y="30" width="13" height="13" rx="3" fill="#fbbf24"/><text x="${W - mR - 132}" y="41" fill="#cbd5e1" font-size="17" font-family="${F}">floor $</text>
+<rect x="${mL + pW - 158}" y="${volTop - 17}" width="13" height="13" rx="3" fill="#2dd4bf"/><text x="${mL + pW - 89}" y="${volTop - 6}" fill="#cbd5e1" font-size="16" text-anchor="end" font-family="${F}">floor Ξ</text>
+<rect x="${mL + pW - 69}" y="${volTop - 17}" width="13" height="13" rx="3" fill="#fbbf24"/><text x="${mL + pW}" y="${volTop - 6}" fill="#cbd5e1" font-size="16" text-anchor="end" font-family="${F}">floor $</text>
 <text x="60" y="${H - 18}" fill="#6b7688" font-size="18" font-family="${F}">${esc(`on-chain marketplace sales · ${data.totalSales?.toLocaleString?.() || ""} trades · floor = lowest sale (7d median), a proxy for the listing floor`)}</text>
 </svg>`;
 }

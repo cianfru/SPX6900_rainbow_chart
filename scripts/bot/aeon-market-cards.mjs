@@ -58,9 +58,19 @@ export function renderAeonValuationCard(data, opts = {}) {
   const buckets = (data.urpd || []).filter(b => b.n > 0).map(b => ({ mid: Math.sqrt(b.lo * b.hi), n: b.n, prof: Math.sqrt(b.lo * b.hi) <= v.floor }));
   const mL = 90, mR = 50, pT = 360, pB = H - 150, pW = W - mL - mR;
   const lo = Math.min(...buckets.map(b => b.mid)), hi = Math.max(...buckets.map(b => b.mid)), ll = Math.log(lo), lsp = (Math.log(hi) - ll) || 1;
-  const maxN = Math.max(...buckets.map(b => b.n), 1), bw = pW / buckets.length * 0.82;
+  const maxN = Math.max(...buckets.map(b => b.n), 1);
   const X = m => mL + (Math.log(m) - ll) / lsp * pW, Y = n => pB - n / maxN * (pB - pT);
-  const bars = `<g filter="url(#avalglow)">` + buckets.map(b => `<rect x="${(X(b.mid) - bw / 2).toFixed(1)}" y="${Y(b.n).toFixed(1)}" width="${bw.toFixed(1)}" height="${(pB - Y(b.n)).toFixed(1)}" fill="${b.prof ? "#34d399" : "#fb7185"}" fill-opacity="0.9"/>`).join("") + `</g>`;
+  // Bar width from the SMALLEST gap between neighbouring bars, not from pW/count. The
+  // buckets are log-spaced and the empty ones are filtered out first, so the count no
+  // longer matches the grid the bars actually sit on — dividing by it made every bar
+  // slightly wider than its slot and the histogram fused into one block.
+  const xs = buckets.map(b => X(b.mid)).sort((a, b) => a - b);
+  let step = pW;
+  for (let i = 1; i < xs.length; i++) step = Math.min(step, xs[i] - xs[i - 1]);
+  const bw = Math.max(3, step - 4);            // a real 4px gap between neighbours
+  // No glow on the bars: a 5px blur bleeds past each edge and closes the gap again, which
+  // is what made them read as a solid mass. Crisp edges are the point of a histogram.
+  const bars = buckets.map(b => `<rect x="${(X(b.mid) - bw / 2).toFixed(1)}" y="${Y(b.n).toFixed(1)}" width="${bw.toFixed(1)}" height="${(pB - Y(b.n)).toFixed(1)}" fill="${b.prof ? "#34d399" : "#fb7185"}" fill-opacity="0.92"/>`).join("");
   const fx = X(v.floor);
   const stat = (x, lbl, val, c) => `<text x="${x}" y="230" fill="#8a95a8" font-size="16" font-family="${F}">${esc(lbl)}</text><text x="${x}" y="266" fill="${c}" font-size="32" font-weight="800" font-family="${F}">${esc(val)}</text>`;
   const body = stat(60, "FLOOR", fEth(v.floor), "#2dd4bf") + stat(300, "REALIZED", fEth(v.realizedPrice), "#a78bfa") + stat(540, "MVRV", v.mvrv.toFixed(2) + "×", "#fbbf24") + stat(760, "IN PROFIT", v.supplyInProfitPct + "%", "#34d399") +

@@ -21,6 +21,7 @@ import { chainRaceData } from "./multichain-card.mjs";
 import { BTC_HODL } from "../../src/btc-hodl-waves.js";
 import { spxLiquidity, btcIlliquid } from "../../src/liquidity.js";
 import { wealthWavesStats } from "./wealth-waves-card.mjs";
+import { cexFlowStats } from "./cex-flow-card.mjs";
 
 // --- owner-editable post copy ---------------------------------------------
 // EVERY card's tweet text is owner-editable from the control panel. Cards wrap
@@ -1245,13 +1246,26 @@ SPX launched fully DEX-native — every coin in the pool. As exchanges listed it
 Where the supply lives — on-chain, reproducible.`,
     card: { type: "cexsupply" },
   }),
-  s => ({
-    id: "cexflow",
-    text: ct`📤 SPX6900 holders are moving coins OFF exchanges — not loading up to sell.
-Here's the catch most miss: when an exchange lists a token, its wallet fills with millions of coins overnight. That looks like a huge "inflow," but it's the venue going live — not people depositing to sell. Strip those one-time listing fills out, and the real behaviour is net −7M SPX leaving exchanges.
-Coins moving to self-custody is holding, not distribution. One cycle of on-chain data — a read on the crowd, not a forecast.`,
-    card: { type: "cexflow" },
-  }),
+  // The CHART shows the whole exchange era; the COPY describes the last 30 days, computed
+  // live. Hardcoding the cumulative number went stale the moment the recent window turned
+  // the other way — it read "coins are leaving exchanges" through a month of them arriving.
+  s => (() => {
+    const F = cexFlowStats({ windowDays: 30 });
+    const r = F.recent;
+    if (!r?.days || r.cexTo == null) return null;
+    const m = v => `${(Math.abs(v) / 1e6).toFixed(1)}M`;
+    const mon = d => new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
+    const onto = r.organic >= 0;
+    const px = v => `$${v < 1 ? v.toFixed(3) : v.toFixed(2)}`;
+    const share = (100 * r.cexTo / 931e6).toFixed(1);
+    return {
+      id: "cexflow",
+      text: ct`📤 Over the last 30 days ${m(r.organic)} SPX moved ${onto ? "ONTO" : "OFF"} exchanges${r.onboarding === 0 ? " — no new listings in the window, so this is holders, not a venue filling up" : ""}.
+That lifts exchange-held supply from ${m(r.cexFrom)} to ${m(r.cexTo)} — about ${share}% of all SPX — while price went ${px(r.priceFrom)} → ${px(r.priceTo)} (${mon(r.from)}–${mon(r.to)}). The chart runs the full exchange era behind it, with the one-time listing fills that flatter every "inflow" number greyed out.
+${onto ? "Coins on an exchange can be sold, but do not have to be" : "Coins moving to self-custody is holding, not distribution"} — a read on the crowd, not a forecast.`,
+      card: { type: "cexflow" },
+    };
+  })(),
   // Exchange supply split BY VENUE (Kraken vs Bybit vs Coinbase …), from the FIFO engine's
   // per-address balances. Neutral location map (venue holdings change over time).
   // Colored dots match the card's band colours (rank 0/1/2 = orange/red/purple). NO_ROTATE.
