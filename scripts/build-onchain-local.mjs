@@ -131,21 +131,28 @@ export function replayFifo(transfers, priceAt, sampleTs, opts = {}) {
 
   const wallets = new Map(); // addr -> {q:[{ts,price,qty}], head, bal}
   const get = a => { let e = wallets.get(a); if (!e) { e = { q: [], head: 0, bal: 0 }; wallets.set(a, e); } return e; };
-  // FIFO consume; returns the realized VALUE (qty×send price) and COST (qty×lot price)
-  // of the spent coins — the raw material for SOPR (spent-output profit ratio).
-  const consume = (e, amount, sendPrice) => {
-    let need = amount, val = 0, cost = 0;
+  // FIFO consume; returns, for the spent coins:
+  //   val/cost   — realized VALUE (qty×send price) and COST (qty×lot price) → SOPR + realized P/L
+  //   profit/loss — realized gain and realized loss in USD, split per lot (a spend can consume
+  //                 lots above AND below the send price) → Net Realized Profit/Loss (NRPL)
+  //   cdd        — COIN-DAYS DESTROYED: qty × how long each lot was held → dormancy / liveliness
+  //   moved      — qty actually consumed (< amount only on an oversell)
+  const consume = (e, amount, sendPrice, sendTs) => {
+    let need = amount, val = 0, cost = 0, profit = 0, loss = 0, cdd = 0;
     while (need > EPS && e.head < e.q.length) {
       const lot = e.q[e.head], take = Math.min(lot.qty, need);
       lot.qty -= take; e.bal -= take; need -= take;
       val += take * sendPrice; cost += take * lot.price;
+      profit += take * Math.max(0, sendPrice - lot.price);
+      loss += take * Math.max(0, lot.price - sendPrice);
+      cdd += take * (sendTs - lot.ts) / DAY;
       if (lot.qty <= EPS) { e.q[e.head] = null; e.head++; }
     }
-    return { val, cost };
+    return { val, cost, profit, loss, cdd, moved: amount - need };
   };
 
   const recv = t => { if (t.to && !exclude.has(t.to)) { const price = priceAt(t.ts); if (price != null) { const e = get(t.to); e.q.push({ ts: t.ts, price, qty: t.amt }); e.bal += t.amt; } } };
-  const send = t => { if (t.from && !exclude.has(t.from)) { const e = wallets.get(t.from); if (e) { const sp = priceAt(t.ts); const { val, cost } = consume(e, t.amt, sp ?? 0); if (sp != null) { winVal += val; winCost += cost; } } } };
+  const send = t => { if (t.from && !exclude.has(t.from)) { const e = wallets.get(t.from); if (e) { const sp = priceAt(t.ts); const r = consume(e, t.amt, sp ?? 0, t.ts); winCDD += r.cdd; winVol += r.moved; if (sp != null) { winVal += r.val; winCost += r.cost; winProfit += r.profit; winLoss += r.loss; } } } };
   // Track balances on the EXCLUDED addresses too (they're not "holders", but their kind —
   // CEX/LP/custody vs bridge/burn — drives the LIQUID vs ILLIQUID supply split). Sum the
   // "liquid excluded" (cex+lp+custody) supply per sample so liquid supply over time =
@@ -173,7 +180,9 @@ export function replayFifo(transfers, priceAt, sampleTs, opts = {}) {
   };
 
   const rows = [];
-  let p = 0, winVal = 0, winCost = 0; // per-sample-window spend accumulators (SOPR)
+  // per-sample-window spend accumulators (SOPR + NRPL + dormancy) and the running total
+  // of coin-days destroyed (for liveliness, which is cumulative by definition).
+  let p = 0, winVal = 0, winCost = 0, winProfit = 0, winLoss = 0, winCDD = 0, winVol = 0, cumCDD = 0;
   for (const sTs of sampleTs) {
     // Replay up to this sample, ONE BLOCK (same timestamp) at a time — applying every
     // RECEIVE before every SEND in the block. block_timestamp is per-block, second-
@@ -195,8 +204,21 @@ export function replayFifo(transfers, priceAt, sampleTs, opts = {}) {
     // SOPR for this window = realized value ÷ cost of all coins that MOVED since the
     // last sample. >1 = holders spending at a profit, <1 = at a loss. null = nothing moved.
     row.sopr = winCost > EPS ? +(winVal / winCost).toFixed(4) : null;
+    // NET REALIZED PROFIT/LOSS — the DOLLAR magnitude of gains vs losses locked in this
+    // window (SOPR is the ratio; this is the size). Big red = capitulation, big green = profit-taking.
+    row.nrplProfit = +winProfit.toFixed(2);
+    row.nrplLoss = +winLoss.toFixed(2);
+    row.nrpl = +(winProfit - winLoss).toFixed(2);
+    // DORMANCY — average age (days) of the coins that moved this window (coin-days destroyed ÷
+    // volume). LIVELINESS — cumulative coin-days destroyed ÷ coin-days ever created; the created
+    // total is exactly destroyed + still-alive, and `row.coinDays` is the still-alive sum at this
+    // sample. Rises when old coins spend (distribution), falls when the base sits still (HODLing).
+    row.cdd = +winCDD.toFixed(2);
+    row.dormancy = winVol > EPS ? +(winCDD / winVol).toFixed(2) : null;
+    cumCDD += winCDD;
+    row.liveliness = (cumCDD + row.coinDays) > EPS ? +(cumCDD / (cumCDD + row.coinDays)).toFixed(4) : null;
     rows.push(row);
-    winVal = 0; winCost = 0;
+    winVal = 0; winCost = 0; winProfit = 0; winLoss = 0; winCDD = 0; winVol = 0;
   }
   // URPD (cost-basis distribution) is a CURRENT-STATE histogram — compute it for the
   // final wallet state only, returned alongside the rows when requested.
@@ -256,7 +278,7 @@ export function computeUrpd(wallets, spot, updated, nBuckets = 42) {
 
 function snapshot(wallets, sTs, spot, thr) {
   const bals = [];
-  let held = 0, rcap = 0, profitQty = 0;
+  let held = 0, rcap = 0, profitQty = 0, coinDays = 0;
   const age = [0, 0, 0, 0, 0];
   let lthP = 0, lthL = 0, sthP = 0, sthL = 0;
   for (const e of wallets.values()) {
@@ -264,8 +286,10 @@ function snapshot(wallets, sTs, spot, thr) {
     bals.push(e.bal); held += e.bal;
     for (let i = e.head; i < e.q.length; i++) {
       const lot = e.q[i]; if (!lot || lot.qty <= EPS) continue;
+      const ageD = (sTs - lot.ts) / DAY;
       rcap += lot.qty * lot.price;
-      age[ageBand((sTs - lot.ts) / DAY)] += lot.qty;
+      coinDays += lot.qty * ageD;            // still-alive coin-days (for liveliness)
+      age[ageBand(ageD)] += lot.qty;
       const lth = (sTs - lot.ts) >= thr, inProfit = spot != null && spot >= lot.price;
       if (inProfit) { profitQty += lot.qty; if (lth) lthP += lot.qty; else sthP += lot.qty; }
       else { if (lth) lthL += lot.qty; else sthL += lot.qty; }
@@ -321,6 +345,7 @@ function snapshot(wallets, sTs, spot, thr) {
 
     gini: +gini(bals).toFixed(4),
     age: age.map(pct),
+    coinDays: +coinDays.toFixed(2),         // still-alive coin-days at this sample (liveliness denominator)
     holders: bals.length,
     heldTokens: +held.toFixed(2), // holder supply in tokens (for the liquid/illiquid split)
     rp: +rp.toFixed(7), mvrv: rp > 0 && spot != null ? +(spot / rp).toFixed(4) : 0,

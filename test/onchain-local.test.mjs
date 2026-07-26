@@ -123,3 +123,44 @@ test("gini, price forward-fill, and the Monday grid", () => {
   assert.ok(grid.every(t => new Date(t).getUTCDay() === 1), "every sample is a Monday");
   assert.equal(grid[1] - grid[0], 7 * DAY);
 });
+
+test("NRPL splits realized profit and loss; SOPR is their ratio", () => {
+  // w1 buys 100 @ $1, then sends 60 @ $2 → all 60 in profit ($1 gain each).
+  // w2 buys 100 @ $3, then sends 50 @ $2 → all 50 at a loss ($1 loss each).
+  const price = makePriceAt([[d(0), 1], [d(5), 3], [d(10), 2]]);
+  const tx = [
+    { from: ZERO, to: "w1", ts: d(0), amt: 100 },
+    { from: ZERO, to: "w2", ts: d(5), amt: 100 },
+    { from: "w1", to: POOL, ts: d(10), amt: 60 },   // realized profit 60×$1 = 60
+    { from: "w2", to: POOL, ts: d(10), amt: 50 },   // realized loss   50×$1 = 50
+  ];
+  const [r] = replayFifo(tx, price, [d(10)]);
+  near(r.nrplProfit, 60); near(r.nrplLoss, 50); near(r.nrpl, 10);
+  // SOPR = value/cost = (60·2 + 50·2) / (60·1 + 50·3) = 220/210
+  near(r.sopr, 220 / 210, 0.001);
+});
+
+test("coin-days destroyed drives dormancy and liveliness", () => {
+  // Buy 100 @ $1 on day 0; send 40 @ $2 on day 10.
+  const price = makePriceAt([[d(0), 1], [d(10), 2]]);
+  const tx = [
+    { from: ZERO, to: "w1", ts: d(0), amt: 100 },
+    { from: "w1", to: "w2", ts: d(10), amt: 40 },
+  ];
+  const [r] = replayFifo(tx, price, [d(10)]);
+  near(r.cdd, 400);            // 40 coins × 10 days
+  near(r.dormancy, 10);        // avg age of moved coins
+  // alive coin-days at the sample: w1 60×10 + w2 40×0 = 600 → liveliness 400/(400+600)
+  near(r.coinDays, 600);
+  near(r.liveliness, 0.4, 0.001);
+});
+
+test("dormancy is null in a window where nothing moves", () => {
+  const price = makePriceAt([[d(0), 1]]);
+  const tx = [{ from: ZERO, to: "w1", ts: d(0), amt: 100 }];
+  const [r] = replayFifo(tx, price, [d(30)]);
+  assert.equal(r.dormancy, null);
+  assert.equal(r.cdd, 0);
+  assert.equal(r.nrpl, 0);
+  assert.equal(r.liveliness, 0); // nothing destroyed yet
+});
