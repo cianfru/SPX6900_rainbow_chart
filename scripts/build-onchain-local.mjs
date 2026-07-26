@@ -281,6 +281,18 @@ function snapshot(wallets, sTs, spot, thr) {
   // cannot show, since long-held supply says nothing about WHO holds it.
   const whaleThr = held / 1000;                       // 0.1% of holder supply
   const whales = bals.filter(b => b >= whaleThr);
+  // The same supply split by WALLET SIZE, in absolute tokens — the tier equivalent of
+  // HODL waves. One threshold can only say the whale cohort shed 21 points; the ladder
+  // says where those points landed, which turns out to be the two tiers immediately
+  // below rather than dust. Absolute bands rather than % of float because "holds a
+  // million SPX" is a thing a person can picture, and it is how Bitcoin's own wallet-
+  // size waves are cut.
+  const TIER_EDGES = [1e3, 1e4, 1e5, 1e6];          // <1k · 1k-10k · 10k-100k · 100k-1M · 1M+
+  const tierTok = new Array(TIER_EDGES.length + 1).fill(0);
+  for (const b of bals) {
+    let i = 0; while (i < TIER_EDGES.length && b >= TIER_EDGES[i]) i++;
+    tierTok[i] += b;
+  }
   const pct = q => held > 0 ? +(100 * q / held).toFixed(2) : 0;
   const rp = held > 0 ? rcap / held : 0;
   return {
@@ -289,6 +301,7 @@ function snapshot(wallets, sTs, spot, thr) {
     top10: topN(10), top100: topN(100),
     whaleN: whales.length,
     whalePct: held > 0 ? +(100 * whales.reduce((a, b) => a + b, 0) / held).toFixed(2) : 0,
+    tiers: tierTok.map(v => (held > 0 ? +(100 * v / held).toFixed(2) : 0)),
     gini: +gini(bals).toFixed(4),
     age: age.map(pct),
     holders: bals.length,
