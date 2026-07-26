@@ -87,12 +87,15 @@ export function aeonBehaviourSvg(data, opts = {}) {
   const x = t => mL + ((t - t0) / ((t1 - t0) || 1)) * pW;
   const y0 = mT + pH / 2;                       // zero line (buyers up, sellers down)
   const half = pH / 2, hOf = v => (v / amax) * half;
-  const bw = Math.max(3, pW / months.length * 0.4);
+  // Both bars for a month sit on the SAME x, one up one down. They used to be drawn at
+  // cx-bw and cx, which put the month's inflow and its outflow side by side — reading as
+  // two different months rather than one month's two halves.
+  const bw = Math.max(3, pW / months.length * 0.55);
   let bars = "";
   for (const m of months) {
-    const cx = x(m.ts);
-    bars += `<rect x="${(cx - bw).toFixed(1)}" y="${(y0 - hOf(m.entered)).toFixed(1)}" width="${bw.toFixed(1)}" height="${hOf(m.entered).toFixed(1)}" fill="#34d399" fill-opacity="0.9"/>`;
-    bars += `<rect x="${cx.toFixed(1)}" y="${y0.toFixed(1)}" width="${bw.toFixed(1)}" height="${hOf(m.exited).toFixed(1)}" fill="#fb7185" fill-opacity="0.9"/>`;
+    const bx = (x(m.ts) - bw / 2).toFixed(1);
+    bars += `<rect x="${bx}" y="${(y0 - hOf(m.entered)).toFixed(1)}" width="${bw.toFixed(1)}" height="${hOf(m.entered).toFixed(1)}" fill="#34d399" fill-opacity="0.9"/>`;
+    bars += `<rect x="${bx}" y="${y0.toFixed(1)}" width="${bw.toFixed(1)}" height="${hOf(m.exited).toFixed(1)}" fill="#fb7185" fill-opacity="0.9"/>`;
   }
   const netTot = months.reduce((s, m) => s + m.entered - m.exited, 0);
   let yl = ""; for (const [v, yy] of [[amax, y0 - half], [0, y0], [amax, y0 + half]]) { yl += `<line x1="${mL}" y1="${yy.toFixed(1)}" x2="${mL + pW}" y2="${yy.toFixed(1)}" stroke="rgba(255,255,255,${yy === y0 ? 0.25 : 0.06})"/><text x="${mL - 10}" y="${(yy + 6).toFixed(1)}" fill="#a3aec0" font-size="19" text-anchor="end" font-family="${F}">${Math.round(v)}</text>`; }
