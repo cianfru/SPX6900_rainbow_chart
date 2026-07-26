@@ -1,6 +1,6 @@
 {
-  "lastPostedDate": "2026-07-24",
-  "lastId": "hodlcompare",
+  "lastPostedDate": "2026-07-25",
+  "lastId": "concentration",
   "recent": [
     {
       "date": "2026-07-08",
@@ -65,11 +65,10 @@
     {
       "date": "2026-07-24",
       "id": "hodlcompare"
+    },
+    {
+      "date": "2026-07-25",
+      "id": "concentration"
     }
-  ],
-  "lanes": {
-    "aeonsale": "2026-07-25"
-  },
-  "lastEventId": "2080861544234017199",
-  "lastEventAt": "2026-07-25T03:43:47.732Z"
+  ]
 }
