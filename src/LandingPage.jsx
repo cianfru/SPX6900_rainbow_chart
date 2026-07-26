@@ -16,14 +16,13 @@ const SUPPLY = 939_000_000;
 const fMonYr = (d) => (d ? new Date(d).toLocaleDateString("en-US", { month: "short", year: "numeric" }) : "—");
 const zoneOf = (v) => ZONES.find(z => v < z.max) || ZONES.at(-1);
 const LENS_LABEL = Object.fromEntries(INDICATORS.map(i => [i.key, i.label.replace(/ ·.*/, "")]));
-const LENS_ORDER = ["rainbow", "mvrv", "sip", "picycle", "alt", "fng"];
 
-// ── the "six measures, one scale" strip plot ─────────────────────────────────────────────────
-function StripPlot({ byLens, composite, isMobile }) {
-  const rows = LENS_ORDER.filter(k => byLens?.[k] != null).map(k => ({ key: k, label: LENS_LABEL[k] || k, pct: byLens[k] }));
+// ── the "axes, one scale" strip plot — the FOUR de-duplicated axes we agreed on ──────────────
+function StripPlot({ axes, byAxis, composite, isMobile }) {
+  const rows = (axes || []).map(a => ({ key: a.key, label: a.label, weight: a.weight, pct: byAxis?.[a.key] })).filter(r => r.pct != null);
   const comp = Math.round(composite * 100);
   return (
-    <div style={{ display: "grid", gridTemplateColumns: isMobile ? "108px 1fr" : "168px 1fr", gap: isMobile ? "0 14px" : "0 24px" }}>
+    <div style={{ display: "grid", gridTemplateColumns: isMobile ? "128px 1fr" : "200px 1fr", gap: isMobile ? "0 14px" : "0 24px" }}>
       <div style={{ gridColumn: 2, position: "relative", height: 0 }}>
         <div style={{ position: "absolute", left: `${comp}%`, top: -2, transform: "translateX(-50%)", fontFamily: MONO, fontSize: 10.5, letterSpacing: "0.1em", textTransform: "uppercase", color: "#25e07d", whiteSpace: "nowrap" }}>◆ composite {comp}</div>
       </div>
@@ -31,9 +30,12 @@ function StripPlot({ byLens, composite, isMobile }) {
         const z = zoneOf(r.pct), x = r.pct * 100, annLeft = x > 60;
         return (
           <div key={r.key} style={{ display: "contents" }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "7px 0", borderTop: "1px solid #14161c" }}>
-              <span style={{ fontSize: isMobile ? 12.5 : 13.5, color: "#aeb7c6" }}>{r.label}</span>
-              <span style={{ fontFamily: MONO, fontSize: 17, fontWeight: 700, color: z.color, fontVariantNumeric: "tabular-nums" }}>{Math.round(r.pct * 100)}</span>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "10px 0", borderTop: "1px solid #14161c" }}>
+              <span style={{ display: "flex", alignItems: "baseline", gap: 7, minWidth: 0 }}>
+                <span style={{ fontSize: isMobile ? 13 : 15, color: "#e2e8f0", fontWeight: 500 }}>{r.label}</span>
+                <span style={{ fontFamily: MONO, fontSize: 10.5, color: "#5b6577" }}>{r.weight}%</span>
+              </span>
+              <span style={{ fontFamily: MONO, fontSize: 18, fontWeight: 700, color: z.color, fontVariantNumeric: "tabular-nums" }}>{Math.round(r.pct * 100)}</span>
             </div>
             <div style={{ position: "relative", borderTop: "1px solid #14161c", display: "flex", alignItems: "center", minHeight: 33 }}>
               <div style={{ position: "absolute", left: 0, right: 0, height: 1, background: "#2a303d" }} />
@@ -100,11 +102,11 @@ export default function LandingPage({ isMobile, priceData }) {
   const heads = useMemo(() => {
     if (!cur) return null;
     const z = zoneOf(cur.composite), pctl = Math.round(cur.composite * 100);
-    const vals = LENS_ORDER.map(k => cur.byLens?.[k]).filter(v => v != null);
-    const cheap = vals.filter(v => v < 0.4).length, rich = vals.filter(v => v >= 0.6).length;
-    const tail = cheap === vals.length ? "every measure agrees" : `${cheap} of ${vals.length} measures read cheap${rich ? `, ${rich} ${rich > 1 ? "have" : "has"} turned` : ""}`;
-    return { z, pctl, cheap, total: vals.length, line2: cheap >= vals.length - 1 ? "and nearly everything agrees" : `${cheap} of ${vals.length} read cheap`, tail };
-  }, [cur]);
+    const vals = (val?.axes || []).map(a => cur.byAxis?.[a.key]).filter(v => v != null);
+    const n = vals.length || 4, cheap = vals.filter(v => v < 0.4).length, rich = vals.filter(v => v >= 0.6).length;
+    const tail = cheap === n ? "every axis agrees" : `${cheap} of ${n} axes read cheap${rich ? `, ${rich} ${rich > 1 ? "have" : "has"} turned` : ""}`;
+    return { z, pctl, line2: cheap === n ? "and every axis agrees" : cheap >= n - 1 ? "and nearly every axis agrees" : `${cheap} of ${n} axes read cheap`, tail };
+  }, [cur, val]);
 
   const chart = useMemo(() => {
     const priceByDate = new Map(px.filter(p => p.price > 0).map(p => [p.date, p.price]));
@@ -143,7 +145,7 @@ export default function LandingPage({ isMobile, priceData }) {
         {/* HERO — composite headline (left) + the price CARD (right) */}
         <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1.35fr .8fr", gap: isMobile ? 28 : 44, padding: isMobile ? "28px 0 22px" : "44px 0 30px", alignItems: "start" }}>
           <div>
-            <div style={kicker}>Valuation composite · six measures</div>
+            <div style={kicker}>Valuation composite · four axes</div>
             <h1 style={{ fontSize: isMobile ? 36 : 58, lineHeight: 0.98, letterSpacing: "-0.035em", fontWeight: 800, margin: "14px 0 16px", textWrap: "balance" }}>
               {heads ? <>{heads.z.label}.<br /><span style={{ color: heads.z.color }}>{heads.line2}.</span></> : <>Loading the composite<span style={{ color: "#25e07d" }}>…</span></>}
             </h1>
@@ -176,10 +178,13 @@ export default function LandingPage({ isMobile, priceData }) {
           </div>
         </div>
 
-        {/* SIX MEASURES — compact strip */}
+        {/* FOUR AXES — the agreed de-duplicated composite, one scale */}
         <section style={{ borderTop: "1px solid #1b1f29", paddingTop: 26 }}>
-          <div style={{ ...kicker, marginBottom: 16 }}>Six measures, one scale · ranked over history, weighted into four axes, anchored to Bitcoin</div>
-          {cur ? <StripPlot byLens={cur.byLens} composite={cur.composite} isMobile={isMobile} />
+          <div style={{ ...kicker, marginBottom: 4 }}>Four independent axes, one scale</div>
+          <div style={{ fontFamily: MONO, fontSize: 11, color: "#5b6577", marginBottom: 18 }}>
+            Correlated lenses combined so each signal votes once — Valuation = rainbow · MVRV · supply-in-profit · anchored to Bitcoin's decade
+          </div>
+          {cur && val?.axes ? <StripPlot axes={val.axes} byAxis={cur.byAxis} composite={cur.composite} isMobile={isMobile} />
             : <div style={{ color: "#64748b", fontFamily: MONO, fontSize: 13, padding: "20px 0" }}>Loading composite…</div>}
         </section>
 
