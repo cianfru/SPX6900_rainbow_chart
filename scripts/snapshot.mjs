@@ -18,6 +18,28 @@ const ETH_RPCS = [
   "https://eth.drpc.org",
   "https://rpc.flashbots.net",
 ].filter(Boolean);
+// Keyless public endpoints answer 429 or a transient 5xx often enough that a single
+// attempt loses roughly a third of days — t3es banked 10 of the last 14, the Base and
+// Solana counts 14 of 30. Every one of those gaps was a soft-fail to null that nothing
+// reported. Retry with a widening pause, and say out loud what came back, so a feed
+// degrading shows up in the run log instead of only in the audit weeks later.
+async function getJson(url, { tries = 3, label = url, ...init } = {}) {
+  for (let i = 0; i < tries; i++) {
+    try {
+      const r = await fetch(url, { signal: AbortSignal.timeout(20000), ...init });
+      if (r.ok) return await r.json();
+      // 4xx that is not rate limiting will not fix itself on a retry.
+      if (r.status !== 429 && r.status < 500) { console.warn(`${label}: HTTP ${r.status}, not retrying`); return null; }
+      console.warn(`${label}: HTTP ${r.status} (attempt ${i + 1}/${tries})`);
+    } catch (e) {
+      console.warn(`${label}: ${e.message} (attempt ${i + 1}/${tries})`);
+    }
+    if (i < tries - 1) await new Promise(r => setTimeout(r, 1500 * (i + 1)));
+  }
+  console.warn(`${label}: gave up after ${tries} attempts — this field banks null today`);
+  return null;
+}
+
 const HS = `https://api.holderscan.com/v0/eth/tokens/${CONTRACT}`;
 const POOL = "0x52c77b0cb827afbad022e6d6caf2c44452edbc39";
 const KEY = process.env.HOLDERSCAN_KEY;
@@ -74,9 +96,9 @@ const SPL_TOKEN_PROGRAM = "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA";
 // (comma-separated addresses) pins any the is_contract flag misses.
 async function baseHolders() {
   try {
-    const r = await fetch(`https://base.blockscout.com/api/v2/tokens/${BASE_SPX}`, { headers: { Accept: "application/json" } });
-    if (!r.ok) throw new Error(`${r.status}`);
-    const j = await r.json();
+    const j = await getJson(`https://base.blockscout.com/api/v2/tokens/${BASE_SPX}`,
+      { label: "base holders", headers: { Accept: "application/json" } });
+    if (!j) return null;
     let n = parseInt(j?.holders ?? j?.holders_count, 10);
     if (!(Number.isFinite(n) && n > 0)) return null;
 
@@ -103,9 +125,9 @@ async function baseHolders() {
 // (total_supply + decimals). × price = the VALUE on Base, for the value-by-chain donut.
 async function baseSupply() {
   try {
-    const r = await fetch(`https://base.blockscout.com/api/v2/tokens/${BASE_SPX}`, { headers: { Accept: "application/json" } });
-    if (!r.ok) throw new Error(`${r.status}`);
-    const j = await r.json();
+    const j = await getJson(`https://base.blockscout.com/api/v2/tokens/${BASE_SPX}`,
+      { label: "base supply", headers: { Accept: "application/json" } });
+    if (!j) return null;
     const raw = j?.total_supply, dec = parseInt(j?.decimals, 10);
     if (raw == null || !Number.isFinite(dec)) return null;
     const v = Number(raw) / 10 ** dec;
@@ -117,14 +139,12 @@ async function baseSupply() {
 // on the mint; uiAmount is the decimal-adjusted total. × price = the VALUE on Solana.
 async function solSupply() {
   try {
-    const r = await fetch(SOL_RPC, {
-      method: "POST",
+    const j = await getJson(SOL_RPC, {
+      label: "sol supply", method: "POST",
       headers: { "Content-Type": "application/json", Accept: "application/json" },
       body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "getTokenSupply", params: [SOL_SPX] }),
-      signal: AbortSignal.timeout(20000),
     });
-    if (!r.ok) throw new Error(`${r.status}`);
-    const j = await r.json();
+    if (!j) return null;
     const v = j?.result?.value?.uiAmount;
     return (typeof v === "number" && v > 0) ? v : null;
   } catch (e) { console.warn("sol supply:", e.message); return null; }
@@ -145,14 +165,13 @@ async function solHolders() {
         filters: [{ dataSize: 165 }, { memcmp: { offset: 0, bytes: SOL_SPX } }],
       }],
     };
-    const r = await fetch(SOL_RPC, {
-      method: "POST",
+    const j = await getJson(SOL_RPC, {
+      label: "sol holders", method: "POST",
       headers: { "Content-Type": "application/json", Accept: "application/json" },
       body: JSON.stringify(payload),
       signal: AbortSignal.timeout(45000),
     });
-    if (!r.ok) throw new Error(`${r.status}`);
-    const j = await r.json();
+    if (!j) return null;
     if (j?.error) throw new Error(j.error.message || "rpc error");
     if (!Array.isArray(j?.result)) throw new Error("no result");
     let active = 0;
@@ -185,14 +204,16 @@ async function sp500() {
 // definitional offset vs TV washes out — only the daily deltas carry. Soft-fails to null.
 async function total3es() {
   try {
-    const g = await fetch("https://api.coingecko.com/api/v3/global", { headers: { Accept: "application/json" } });
-    if (!g.ok) return null;
-    const gd = (await g.json())?.data;
+    const gd = (await getJson("https://api.coingecko.com/api/v3/global",
+      { label: "total3es/coingecko", headers: { Accept: "application/json" } }))?.data;
+    if (!gd) return null;
     const total = gd?.total_market_cap?.usd, btc = gd?.market_cap_percentage?.btc, eth = gd?.market_cap_percentage?.eth;
     if (!(total > 0) || !(btc >= 0) || !(eth >= 0)) return null;
-    const s = await fetch("https://stablecoins.llama.fi/stablecoins?includePrices=false", { headers: { Accept: "application/json" } });
-    if (!s.ok) return null; // require stables too, so the series stays consistent day to day
-    const stables = ((await s.json())?.peggedAssets || []).reduce((sum, a) => sum + (Number(a?.circulating?.peggedUSD) || 0), 0);
+    // Require stables too, so the series keeps one definition day to day.
+    const sj = await getJson("https://stablecoins.llama.fi/stablecoins?includePrices=false",
+      { label: "total3es/llama", headers: { Accept: "application/json" } });
+    if (!sj) return null;
+    const stables = (sj?.peggedAssets || []).reduce((sum, a) => sum + (Number(a?.circulating?.peggedUSD) || 0), 0);
     if (!(stables > 0)) return null;
     const v = total * (1 - (btc + eth) / 100) - stables;
     return (v > 20e9 && v < 5000e9) ? Math.round(v) : null; // sanity: a few hundred B, not absurd
