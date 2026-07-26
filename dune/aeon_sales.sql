@@ -8,10 +8,12 @@
 --   • sales volume         = SUM(amount_usd) / SUM(eth) per day
 --   • per-sale scatter     = every trade, ETH + USD
 --
--- Bounded to ONE collection → a few thousand rows, cheap, no timeout (the cheap
--- pattern, not a full-table scan). VERIFY on first run (Dune spellbook columns
--- churn): nft.trades should expose blockchain · nft_contract_address · token_id ·
--- amount_original · amount_usd · currency_symbol · project · block_time · buyer/seller.
+-- ⚠ FULL-HISTORY form (seed / manual). The daily CI job PATCHes in `AND block_time >= <archive's
+-- last day>` via build-aeon-dune-refresh.mjs and pulls only the delta — re-downloading all ~17k
+-- sales daily cost ~73 credits/day in Dune's "API Result Read" charge (by datapoints, separate
+-- from the cheap execution). VERIFY on first run (Dune spellbook columns churn): nft.trades should
+-- expose blockchain · nft_contract_address · token_id · amount_original · amount_usd ·
+-- currency_symbol · project · block_time · buyer/seller.
 --
 -- Export CSV → build-aeon-sales.mjs (daily floor/volume + per-sale, ETH & USD).
 -- ============================================================================

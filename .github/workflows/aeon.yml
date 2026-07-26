@@ -42,13 +42,16 @@ jobs:
           AEON_CONTRACT: ${{ vars.AEON_CONTRACT }}
           AEON_OS_SLUG: ${{ vars.AEON_OS_SLUG }}       # optional (else resolved from the contract)
         run: node scripts/build-aeon-listings.mjs
-      # MEASURED 2026-07-25 via the Dune MCP: transfers 0.163 credits/execution, sales
-      # 0.378 — 0.54 for a full refresh. Daily is therefore ~16 credits/month, 0.6% of the
-      # 2,500 quota. An earlier version gated this to Monday/Thursday on a guess that each
-      # pull cost ~50 credits; that guess came from attributing a one-off bulk-download
-      # month to the scheduled jobs, and it was wrong by two orders of magnitude. Do not
-      # re-throttle this without measuring first — getUsage and executionCostCredits are free.
-      - name: Refresh transfers + sales from Dune (whole history, daily)
+      # COST (corrected 2026-07-26): the 2026-07-25 "0.54 credits/refresh" measurement read
+      # executionCostCredits ONLY — the QUERY EXECUTION line. It MISSED Dune's separate "API
+      # Result Read" charge, which bills the RESULT DOWNLOAD by datapoints. Re-downloading the
+      # whole 25,289-row transfer + 17,040-row sales history every day cost ~62 + ~73 = ~135
+      # credits/day (~4,050/mo — OVER the 2,500 quota), almost all of it in that result read.
+      # build-aeon-dune-refresh.mjs is now INCREMENTAL: the full history is committed in
+      # dune/out/*.csv, so it pulls only rows since the archive's last day (a handful) and
+      # merges → the result read drops to ~0 credits. Daily is fine again. Lesson: measure the
+      # API Result Read too, not just executionCostCredits.
+      - name: Refresh transfers + sales from Dune (incremental delta, daily)
         # Soft-skips without DUNE_API_KEY; soft-fails on any Dune hiccup so the floor/owners
         # banker stays green (reconstructions then use the last committed CSVs).
         env:

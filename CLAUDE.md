@@ -1033,22 +1033,34 @@
           runs locally regardless of source, so either source gives the same answer — use the cheapest dump.
 
 ## Dune credit discipline — HARD-WON, read before writing/running ANY Dune query (2026-07-16)
-- **⭐⭐ MEASURED 2026-07-25 via the Dune MCP — the scheduled jobs are essentially FREE; the spend is all one-off work.**
-  `getUsage` (free): **862 of 2,500 used** in period 2026-07-20→08-20. `executionCostCredits` off each query's last
-  execution (also free — read it from `getExecutionResults`, no re-run needed):
-    • **AEON transfers** (`erc721_ethereum.evt_Transfer`, 25,290 rows) = **0.163 credits**
-    • **AEON sales** (`nft.trades` — only 10.9 GB, 17,040 rows) = **0.378 credits**
-    • → a FULL AEON refresh is **0.54 credits**. DAILY = ~16/month = **0.6% of quota**.
-  So the 862 is essentially ALL manual/bulk work (the whole AEON dataset downloaded 2026-07-24, the SPX archive
-  seeding, the CEX wallet sweep), NOT the crons. AEON is back on a DAILY pull.
-  **⚠ THE LESSON — Claude got this wrong TWICE in one session, in both directions:** first inferred "~65/month" from
-  comparable queries, then, seeing 862 used, inferred "~50 credits per AEON execution" by dividing the period's spend
-  by the scheduled executions. That attribution was wrong by **two orders of magnitude** and led to throttling a job
-  that costs a sixth of a credit. **NEVER infer credit cost. Both measurements are FREE:** `getUsage` for the period,
-  and `getExecutionResults(latest_execution_id).resultMetadata.executionCostCredits` for a specific query — the latter
-  reads an EXISTING execution, so it costs nothing and needs no re-run. Measure before throttling anything.
-  **Bounded single-contract queries are ~0.1-0.5 credits.** The budget killers were only ever the heavy patterns
-  (10.5 TB Solana as-of scan = 654; aborted/cancelled runs that still charge).
+- **⭐⭐⭐ CORRECTED 2026-07-26 — DUNE BILLS TWO THINGS, AND WE ONLY MEASURED ONE. The AEON daily pull was
+  ~135 credits/DAY (~4,050/mo — OVER the 2,500 quota), NOT "0.6% of quota".** Owner caught it from the credit log:
+  each daily run had a cheap **Query Execution** row (0.20–0.47 credits) AND a separate **API Result Read** row of
+  **62 (transfers) + 73 (sales)** credits. The result-read is billed by DATAPOINTS on the RESULT DOWNLOAD — a wholly
+  separate charge from execution. Re-downloading the full 25,289-transfer + 17,040-sale history every day is what cost
+  the 135; the query execution was never the problem.
+  - **THE MEASUREMENT MISTAKE:** the 2026-07-25 note below read `executionCostCredits` (= the Query Execution line,
+    ~0.2) and declared "a full AEON refresh is 0.54 credits · 0.6% of quota." It **never accounted for the API Result
+    Read**, which was ~250× larger. `getUsage` said 862/2,500 used and that got attributed to "one-off bulk work" — but
+    a big slice was actually these daily full-history reads.
+  - **THE FIX (shipped):** `build-aeon-dune-refresh.mjs` is now **INCREMENTAL** — the full history is committed in
+    `dune/out/*.csv`, so it PATCHes `AND <block_time> >= <archive's last day>` into the saved query and pulls only the
+    delta (~6 transfers + ~3 sales/day). The result read drops to ~0 credits (like the `limit=1` meta read that showed
+    `0` in the log). Merge is boundary-day-replace (base rows < cutoff + the whole re-pulled day), unit-tested in
+    `test/aeon-dune-refresh.test.mjs` and round-trip-validated against the real CSVs (25,289→25,289, no shrink/dupes).
+    Same pattern as the SPX `build-onchain-dune-refresh.mjs`.
+  - **⚠⚠ THE REAL LESSON (supersedes the "never INFER cost" one below — that was right but incomplete): when you DO
+    measure, measure BOTH charges.** `executionCostCredits` is only the execution. The download is billed separately as
+    "API Result Read" and does not appear in that field — you only see it in the account credit LOG (getUsage
+    line-items), never in a single query's execution metadata. A cheap query whose RESULT is large is NOT a cheap job.
+    Any pipeline that downloads a big result on a schedule must go incremental, not full-pull, no matter how cheap the
+    execution reads. Both the SPX and AEON pipelines now do.
+  - Original (now-corrected) 2026-07-25 note kept for the record: *"MEASURED via the Dune MCP — scheduled jobs are
+    essentially FREE; getUsage 862/2,500; AEON transfers 0.163 + sales 0.378 = 0.54/refresh, daily ~16/mo = 0.6% of
+    quota."* — the 0.54 was execution-only; the true daily cost was ~135 until the incremental fix.
+  **Bounded single-contract queries EXECUTE for ~0.1-0.5 credits — but READING a big result is a separate, larger
+  bill.** The budget killers: heavy scans (10.5 TB Solana as-of = 654; aborted/cancelled runs that still charge) AND,
+  now known, repeated full-result downloads on a schedule.
 - **The 2,500/mo free tier got blown in a WEEK, ~88% on ~5 heavy debugging runs.** The credit CSV was unambiguous:
   one Solana run scanned **10.5 TB → 654 credits**; an *aborted* run charged **966**; a *cancelled* one **441**; a
   *timeout* **43**. The light master query (7991307) cost **1–3 credits**. So the lesson is not "2,500 is too little" —

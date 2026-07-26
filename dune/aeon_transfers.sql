@@ -5,10 +5,12 @@
 -- NFTs are CLEAN vs the coin: each tokenId has ONE owner + ONE last-transfer time,
 -- so holder-age / concentration / ownership need NO FIFO — just the transfer log.
 --
--- The whole collection is only a few thousand transfers → the ENTIRE history exports
--- cheaply (well under Dune's result-size limit, a handful of credits). Downstream, a
--- local Node reconstruction (build-aeon-onchain.mjs) derives per-token current owner +
--- age → HODL waves, holder-age bands, top-N concentration, holders-by-count distribution.
+-- ⚠ This is the FULL-HISTORY form (for seeding / manual runs). The daily CI job does NOT run
+-- it as-is — build-aeon-dune-refresh.mjs PATCHes in `AND evt_block_time >= <archive's last day>`
+-- so it pulls only the delta. Re-downloading all ~25k rows daily cost ~62 credits/day in Dune's
+-- "API Result Read" charge (billed by datapoints, separate from the cheap query execution).
+-- Downstream, a local Node reconstruction (build-aeon-onchain.mjs) derives per-token current
+-- owner + age → HODL waves, holder-age bands, top-N concentration, holders-by-count distribution.
 --
 -- VERIFY on first run (Dune column names churn): erc721_ethereum.evt_Transfer should expose
 -- "from" · "to" · tokenId · evt_block_time · contract_address. If tokenId errors, try `id`.

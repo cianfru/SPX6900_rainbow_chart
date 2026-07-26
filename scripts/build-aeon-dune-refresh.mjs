@@ -1,17 +1,23 @@
 // ============================================================================
-// PROJECT AEON — whole-history Dune refresh (transfers + sales, scheduled apart)
+// PROJECT AEON — INCREMENTAL Dune refresh (transfers + sales)
 // ============================================================================
-// Re-pulls the ENTIRE transfer + sale history from Dune each run and overwrites the
-// CSVs the reconstructions read. No archive / no incremental / no drift — the whole
-// history for a 3,333 collection is only ~25k + ~17k rows (a few credits, no timeout,
-// no 402), so re-pulling everything is simpler AND always correct (see CLAUDE.md).
+// Pulls only the transfers/sales SINCE the archive's last day and merges them into the
+// committed dune/out/*.csv the reconstructions read. The full history is already in-repo,
+// so the delta is a handful of rows/day.
+//
+// WHY NOT re-pull the whole history (what this used to do): Dune bills TWO things — the
+// QUERY EXECUTION and, separately, an "API Result Read" per download (by datapoints). The
+// whole-history pull's EXECUTION was cheap (~0.2 credits) but its RESULT READ of all 25,289
+// transfers + 17,040 sales was ~62 + ~73 credits — every day, twice ⇒ ~135/day, ~4,050/mo,
+// OVER the 2,500 quota. The 2026-07-25 "0.54 credits" measurement read executionCostCredits
+// only and never saw the result-read charge. Incremental drops that read to ~0.
 //
 //   node scripts/build-aeon-dune-refresh.mjs [--only=transfers|sales]
 //
-// CADENCE: DAILY (both). Measured 2026-07-25 — transfers 0.163 credits/execution, sales
-// 0.378, so a full refresh is 0.54 and daily costs ~16/month against a 2,500 quota. An
-// earlier version throttled this to Mon/Thu on a guess of ~50 credits per pull, which was
-// wrong by two orders of magnitude. Do not re-throttle without measuring first.
+// MECHANISM (mirrors build-onchain-dune-refresh.mjs): read the committed CSV → find its last
+// day → PATCH the saved query with `AND <block_time col> >= that day` → execute (small delta)
+// → merge (archive rows strictly before the day + the whole re-pulled day) → write. The
+// boundary day is cleanly replaced, so no gap and no duplicate.
 //
 // ENV: DUNE_API_KEY (repo secret). Optional repo vars AEON_TRANSFERS_QUERY_ID /
 // AEON_SALES_QUERY_ID — saved queries whose SQL this PATCHes each run; if unset it
@@ -20,10 +26,68 @@
 // the reconstructions then just run off the last committed CSVs.
 // ============================================================================
 import { readFileSync, writeFileSync } from "node:fs";
+import { pathToFileURL } from "node:url";
 
 const BASE = "https://api.dune.com/api/v1";
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const H = () => { const k = process.env.DUNE_API_KEY; if (!k) throw new Error("no DUNE_API_KEY"); return { "X-Dune-API-Key": k, "Content-Type": "application/json" }; };
+
+// ── pure helpers (unit-tested in test/aeon-dune-refresh.test.mjs) ─────────────────────────────
+// WHY INCREMENTAL: Dune bills an "API Result Read" per download by datapoints. Re-pulling the
+// WHOLE 25,289-row transfer history (+17,040 sales) every day cost ~62 + ~73 = ~135 credits/day
+// (≈4,050/mo — over the 2,500 quota) even though the query EXECUTION was only ~0.2 credits. The
+// full history is already committed in dune/out/*.csv, so we pull only rows since the last day
+// present (a handful) and merge — the delta read is ~0 credits, like the limit=1 meta read.
+export const splitCsv = line => line.split(",").map(s => s.trim().replace(/^"|"$/g, ""));
+export const findTimeIdx = hdr =>
+  hdr.findIndex(h => ["time", "evt_block_time", "block_time", "block_timestamp"].includes(h.toLowerCase().trim()));
+
+// Midnight (UTC) of the day of the archive's newest row → the cutoff we re-pull from, so the
+// boundary day is cleanly REPLACED (no partial-day gap or duplicate).
+export function cutoffDay(maxIso) {
+  const t = Date.parse(maxIso);
+  if (!Number.isFinite(t)) throw new Error(`archive max time unparseable: ${maxIso}`);
+  const d = new Date(t);
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`;
+}
+export function archiveMaxTime(csvText) {
+  const lines = csvText.split(/\r?\n/).filter(l => l.trim());
+  if (lines.length < 2) throw new Error("archive has no data rows");
+  const ti = findTimeIdx(splitCsv(lines[0]));
+  if (ti < 0) throw new Error(`archive header missing a time column: ${lines[0]}`);
+  let max = "";
+  for (const line of lines.slice(1)) { const t = splitCsv(line)[ti]; if (t > max) max = t; } // ISO/space ts sort lexicographically
+  return max;
+}
+// Add `AND <dbTimeCol> >= TIMESTAMP '<cutoff> 00:00:00'` before the trailing ORDER BY.
+export function injectSince(sql, dbTimeCol, cutoff) {
+  const clause = `AND ${dbTimeCol} >= TIMESTAMP '${cutoff} 00:00:00'`;
+  const noSemi = sql.replace(/;\s*$/, "");
+  const m = /\bORDER\s+BY\b/i.exec(noSemi);
+  if (!m) return `${noSemi.trimEnd()}\n  ${clause}`;
+  return `${noSemi.slice(0, m.index).trimEnd()}\n  ${clause}\n${noSemi.slice(m.index)}`;
+}
+// Merge base (rows strictly before the cutoff day) + the whole delta (>= cutoff) → canonical
+// CSV, preserving every column verbatim. base<cutoff and delta>=cutoff never overlap → no dupes.
+export function mergeCsv(baseText, deltaText, cutoff) {
+  const cutoffMs = Date.parse(`${cutoff}T00:00:00Z`);
+  const baseLines = baseText.split(/\r?\n/).filter(l => l.trim());
+  const deltaLines = deltaText.split(/\r?\n/).filter(l => l.trim());
+  if (baseLines.length < 1) throw new Error("empty base archive");
+  const header = baseLines[0];
+  const ti = findTimeIdx(splitCsv(header));
+  if (ti < 0) throw new Error(`base header missing a time column: ${header}`);
+  const dti = deltaLines.length ? findTimeIdx(splitCsv(deltaLines[0])) : -1;
+  if (dti < 0) throw new Error("delta header missing a time column (no rows back?)");
+  const out = [header];
+  let kept = 0, dropped = 0, added = 0;
+  for (const line of baseLines.slice(1)) {
+    const t = Date.parse(splitCsv(line)[ti]);
+    if (Number.isFinite(t) && t < cutoffMs) { out.push(line); kept++; } else dropped++;
+  }
+  for (const line of deltaLines.slice(1)) { out.push(line); added++; }
+  return { csv: out.join("\n") + "\n", kept, dropped, added };
+}
 
 // PATCH the saved query if we have an id, else create one (logged once).
 async function ensureQuery(sql, name, idEnv) {
@@ -76,21 +140,25 @@ async function runToCsv(id) {
   return { csv: await res.text(), meta, credits };
 }
 
-async function pull(sqlPath, outPath, name, idEnv) {
-  const sql = readFileSync(sqlPath, "utf8");
+// INCREMENTAL pull: read the committed archive, re-pull only rows since its last day, merge.
+// dbTimeCol = the SOURCE column the SQL filters on (evt_block_time for transfers, block_time
+// for sales) — distinct from the aliased output column, which is always `time`.
+async function pull(sqlPath, outPath, name, idEnv, dbTimeCol) {
+  const baseText = readFileSync(outPath, "utf8");        // the archive is committed in-repo
+  const baseRows = baseText.split(/\r?\n/).filter(Boolean).length - 1;
+  const cutoff = cutoffDay(archiveMaxTime(baseText));
+  const sql = injectSince(readFileSync(sqlPath, "utf8"), dbTimeCol, cutoff);
   const id = await ensureQuery(sql, name, idEnv);
-  const { csv, meta, credits } = await runToCsv(id);
-  const rows = csv.split(/\r?\n/).filter(Boolean).length - 1;
-  if (rows < 10) throw new Error(`only ${rows} rows back — refusing to overwrite ${outPath}`);
-  writeFileSync(outPath, csv.endsWith("\n") ? csv : csv + "\n");
-  const dp = meta?.datapoint_count ? ` · ${meta.datapoint_count.toLocaleString()} datapoints` : "";
-  // Credit cost comes from runToCsv (the RESULTS endpoint, not /status). Measured
-  // 2026-07-25: transfers 0.163, sales 0.378 — a full refresh is ~0.54 credits, so the
-  // daily pull is ~16/month against a 2,500 quota. Logged every run so the budget stays a
-  // measurement; see the credit-discipline note in CLAUDE.md for why estimating is banned.
-  console.log(`  ${outPath}: ${rows.toLocaleString()} rows${dp}`
+  const { csv: deltaCsv, credits } = await runToCsv(id); // small result → ~0-credit result read
+  const { csv, kept, dropped, added } = mergeCsv(baseText, deltaCsv, cutoff);
+  // The delta re-pulls the whole boundary day it replaces, so it must at least reproduce those
+  // rows. Fewer means a short/failed read — keep the committed archive rather than truncate it.
+  if (added < dropped) throw new Error(`delta short: ${added} new vs ${dropped} replaced (>= ${cutoff}) — keeping ${outPath}`);
+  writeFileSync(outPath, csv);
+  const total = kept + added;
+  console.log(`  ${outPath}: +${(added - dropped).toLocaleString()} new since ${cutoff} → ${total.toLocaleString()} rows (was ${baseRows.toLocaleString()})`
     + (credits != null ? ` · ${credits} credits` : ""));
-  return rows;
+  return total;
 }
 
 async function main() {
@@ -102,12 +170,16 @@ async function main() {
   const only = (process.argv.find(a => a.startsWith("--only=")) || "").split("=")[1] || "";
   const want = k => !only || only === k;
   console.log(`aeon-dune: refreshing ${only || "transfers + sales"} from Dune…`);
-  if (want("transfers")) await pull("dune/aeon_transfers.sql", "dune/out/aeon_transfers.csv", "Project AEON — transfers (auto)", "AEON_TRANSFERS_QUERY_ID");
-  if (want("sales")) await pull("dune/aeon_sales.sql", "dune/out/aeon_sales.csv", "Project AEON — sales (auto)", "AEON_SALES_QUERY_ID");
+  if (want("transfers")) await pull("dune/aeon_transfers.sql", "dune/out/aeon_transfers.csv", "Project AEON — transfers (auto)", "AEON_TRANSFERS_QUERY_ID", "evt_block_time");
+  if (want("sales")) await pull("dune/aeon_sales.sql", "dune/out/aeon_sales.csv", "Project AEON — sales (auto)", "AEON_SALES_QUERY_ID", "block_time");
   console.log("aeon-dune: done.");
 }
 
-main().catch(e => {
-  // Soft-fail: keep the daily banker green; the reconstructions fall back to the committed CSVs.
-  console.error("aeon-dune: refresh failed (using last committed CSVs) —", e.message);
-});
+// Only run when invoked directly (`node build-aeon-dune-refresh.mjs`), not when the pure helpers
+// are imported by the tests — importing must not fire a Dune refresh.
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  main().catch(e => {
+    // Soft-fail: keep the daily banker green; the reconstructions fall back to the committed CSVs.
+    console.error("aeon-dune: refresh failed (using last committed CSVs) —", e.message);
+  });
+}
