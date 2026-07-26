@@ -63,6 +63,16 @@ jobs:
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
 
+      # WHY vercel.json PINS s-maxage=0 ON THE HTML AND JSON (the reasoning cannot live in
+      # vercel.json — its schema rejects unknown keys, including a "//" comment):
+      # Vercel was holding `/` at the edge for the better part of an hour, measured on the
+      # live domain as x-vercel-cache: HIT with age 3409. A query string is not part of the
+      # cache key for a static file, so a stale entry survives both a hard refresh and a
+      # manual cache-buster. And because the shell names the content-hashed bundle, and old
+      # hashed assets stay served, ONE stale copy of index.html hands back a complete and
+      # perfectly coherent old app. max-age=0 only governs the browser; s-maxage=0 is what
+      # tells the CDN to revalidate. /assets/* is deliberately left cacheable — it is
+      # content-addressed, so it is safe forever and it is where the caching actually pays.
       - name: Deploy prebuilt output to production
         run: vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN"
         env:
