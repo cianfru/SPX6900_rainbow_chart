@@ -1,0 +1,61 @@
+name: Feed check (read-only)
+
+# A dry run of every upstream the daily snapshot depends on, on demand, committing
+# nothing. The point is to find out whether a feed works WITHOUT waiting for
+# 00:17 UTC and without a bad run writing a day of nulls into history.json.
+#
+# It does three things in order:
+#   1. reaches every upstream and prints what came back, one line per feed
+#   2. re-runs the field-level audit against whatever is currently committed
+#   3. fails the job if a required upstream is unreachable, so the red X means
+#      something rather than needing the log read
+#
+# Nothing here writes to the repo. `snapshot.mjs` is never invoked — it appends to
+# history.json, and a manual probe should not be able to corrupt the series.
+
+on:
+  workflow_dispatch:
+    inputs:
+      probe_alchemy:
+        description: "Also probe the Alchemy live-sales feed (needs ALCHEMY_KEY)"
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: feed-check
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+      - run: npm ci
+
+      - name: Reach every upstream and report
+        env:
+          HOLDERSCAN_KEY: ${{ secrets.VITE_HOLDERSCAN_KEY }}
+          BASE_SPX: ${{ vars.BASE_SPX }}
+          BASE_EXCLUDE: ${{ vars.BASE_EXCLUDE }}
+          SOL_SPX: ${{ vars.SOL_SPX }}
+          SOL_RPC: ${{ vars.SOL_RPC }}
+          ETH_RPC: ${{ vars.ETH_RPC }}
+        run: node scripts/check-feeds.mjs
+
+      - name: Audit what is currently committed
+        # Reports only — a late cron is not a reason to fail the probe, and the
+        # upstream check above is what this run is actually asking about.
+        run: node scripts/audit-feeds.mjs --warn
+
+      - name: Probe the Alchemy live-sales feed
+        if: ${{ inputs.probe_alchemy }}
+        continue-on-error: true
+        env:
+          ALCHEMY_KEY: ${{ secrets.ALCHEMY_KEY }}
+        run: node scripts/bot/aeon-live-sales.mjs --probe

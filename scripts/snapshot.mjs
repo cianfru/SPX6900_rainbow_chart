@@ -1,6 +1,7 @@
 // Daily snapshot of SPX6900 on-chain conviction data → public/history.json.
 // Run by .github/workflows/snapshot.yml. Append-only, one record per day.
 import { readFile, writeFile } from "node:fs/promises";
+import { pathToFileURL } from "node:url";
 import { detectSignals } from "./bot/signals.mjs";
 import { computeAngles, cardRecencyPenalty } from "./bot/quant.mjs";
 import { computeStats, fetchMajors } from "./bot/stats.mjs";
@@ -23,7 +24,7 @@ const ETH_RPCS = [
 // Solana counts 14 of 30. Every one of those gaps was a soft-fail to null that nothing
 // reported. Retry with a widening pause, and say out loud what came back, so a feed
 // degrading shows up in the run log instead of only in the audit weeks later.
-async function getJson(url, { tries = 3, label = url, ...init } = {}) {
+export async function getJson(url, { tries = 3, label = url, ...init } = {}) {
   for (let i = 0; i < tries; i++) {
     try {
       const r = await fetch(url, { signal: AbortSignal.timeout(20000), ...init });
@@ -46,16 +47,16 @@ const KEY = process.env.HOLDERSCAN_KEY;
 const FILE = "public/history.json";
 const SIGNALS_FILE = "public/signals.json";
 
-async function hs(path) {
+export async function hs(path) {
   const r = await fetch(`${HS}${path}`, { headers: { "x-api-key": KEY, Accept: "application/json" } });
   if (!r.ok) throw new Error(`Holderscan ${path} → ${r.status}`);
   return r.json();
 }
-async function softHs(path) {
+export async function softHs(path) {
   try { return await hs(path); } catch (e) { console.warn(e.message); return null; }
 }
 
-async function price() {
+export async function price() {
   try {
     const r = await fetch(`https://api.geckoterminal.com/api/v2/networks/eth/pools/${POOL}`, { headers: { Accept: "application/json" } });
     if (r.ok) { const j = await r.json(); const p = parseFloat(j?.data?.attributes?.base_token_price_usd); if (p > 0) return p; }
@@ -69,7 +70,7 @@ async function price() {
 
 // Crypto Fear & Greed Index (alternative.me, free/no-key). Reachable from CI even
 // though it's blocked in some sandboxes. limit=1 = today's value (0..100).
-async function fng() {
+export async function fng() {
   try {
     const r = await fetch("https://api.alternative.me/fng/?limit=1", { headers: { Accept: "application/json" } });
     if (!r.ok) return null;
@@ -94,7 +95,7 @@ const SPL_TOKEN_PROGRAM = "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA";
 // addresses (the Wormhole bridge lock, LP pools, routers) — they're not people, and they
 // are always the LARGEST holders, so scanning the top pages catches them. BASE_EXCLUDE
 // (comma-separated addresses) pins any the is_contract flag misses.
-async function baseHolders() {
+export async function baseHolders() {
   try {
     const j = await getJson(`https://base.blockscout.com/api/v2/tokens/${BASE_SPX}`,
       { label: "base holders", headers: { Accept: "application/json" } });
@@ -123,7 +124,7 @@ async function baseHolders() {
 
 // Base SPX supply (tokens bridged to Base) — from the SAME Blockscout token endpoint
 // (total_supply + decimals). × price = the VALUE on Base, for the value-by-chain donut.
-async function baseSupply() {
+export async function baseSupply() {
   try {
     const j = await getJson(`https://base.blockscout.com/api/v2/tokens/${BASE_SPX}`,
       { label: "base supply", headers: { Accept: "application/json" } });
@@ -137,7 +138,7 @@ async function baseSupply() {
 
 // Solana SPX supply (tokens bridged to Solana) — one lightweight RPC call getTokenSupply
 // on the mint; uiAmount is the decimal-adjusted total. × price = the VALUE on Solana.
-async function solSupply() {
+export async function solSupply() {
   try {
     const j = await getJson(SOL_RPC, {
       label: "sol supply", method: "POST",
@@ -155,7 +156,7 @@ async function solSupply() {
 // at offset 64) so the payload stays tiny, and we count accounts with balance > 0 (= active
 // holders). It's a heavy call: the public node may rate-limit/refuse it — set SOL_RPC to a
 // dedicated endpoint (Helius/QuickNode) if so. Soft-skips (null) on any failure.
-async function solHolders() {
+export async function solHolders() {
   try {
     const payload = {
       jsonrpc: "2.0", id: 1, method: "getProgramAccounts",
@@ -187,7 +188,7 @@ async function solHolders() {
 
 // S&P 500 latest close (Yahoo, no key). Reachable from CI even where it's blocked
 // in sandboxes. Keeps the SPX-vs-S&P cards current without bundling a fresh CSV.
-async function sp500() {
+export async function sp500() {
   try {
     const r = await fetch("https://query1.finance.yahoo.com/v8/finance/chart/%5EGSPC?interval=1d&range=1d", { headers: { Accept: "application/json", "User-Agent": "spx6900-rainbow" } });
     if (!r.ok) return null;
@@ -202,7 +203,7 @@ async function sp500() {
 // total×(1 − (btc%+eth%)/100) − stables. Reachable from CI (blocked in the dev sandbox).
 // The alt-market chart REBASES this to the TradingView bundle's level at the seam, so the
 // definitional offset vs TV washes out — only the daily deltas carry. Soft-fails to null.
-async function total3es() {
+export async function total3es() {
   try {
     const gd = (await getJson("https://api.coingecko.com/api/v3/global",
       { label: "total3es/coingecko", headers: { Accept: "application/json" } }))?.data;
@@ -225,7 +226,7 @@ async function total3es() {
 // This keeps the exchange-flow cards' pulse fresh DAILY without touching Dune: build-cex-flow
 // splices these forward onto the Dune reconstruction (past). Sums per kind; decimals(SPX)=8.
 // Soft-fails to null (never breaks the snapshot). Set ETH_RPC if the public node rate-limits.
-async function cexLpBalances() {
+export async function cexLpBalances() {
   const addrs = Object.entries(EXCLUDE_LABELS).filter(([, v]) => v.kind === "cex" || v.kind === "lp" || v.kind === "custody");
   const batch = addrs.map(([a], i) => ({
     jsonrpc: "2.0", id: i, method: "eth_call",
@@ -339,4 +340,9 @@ async function main() {
   } catch (e) { console.warn("signals:", e.message); }
 }
 
-main().catch(e => { console.error(e); process.exit(1); });
+// Guarded so the fetchers above can be imported by the read-only feed check without
+// this module appending a day to history.json as a side effect of the import.
+// (argv[1] is undefined under `node -e`, which is an import, not a direct run.)
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  main().catch(e => { console.error(e); process.exit(1); });
+}
