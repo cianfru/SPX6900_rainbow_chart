@@ -8,7 +8,16 @@ import { DEFAULT_RAW } from "../src/data.js";
 import { EXCLUDE_LABELS } from "./build-onchain-local.mjs";
 
 const CONTRACT = "0xe0f63a424a4439cbe457d80e4f4b51ad25b2c56c";
-const ETH_RPC = process.env.ETH_RPC || "https://eth.llamarpc.com"; // override if the public node rate-limits
+// Public ETH RPCs, tried in order. eth.llamarpc.com was the sole default and answered
+// 521 for the whole life of this field — 0 of 52 days banked a balance — so the
+// exchange-flow forward-fill silently never ran. One host is a single point of failure
+// for a keyless endpoint; ETH_RPC still overrides and is tried first when set.
+const ETH_RPCS = [
+  process.env.ETH_RPC,
+  "https://ethereum-rpc.publicnode.com",
+  "https://eth.drpc.org",
+  "https://rpc.flashbots.net",
+].filter(Boolean);
 const HS = `https://api.holderscan.com/v0/eth/tokens/${CONTRACT}`;
 const POOL = "0x52c77b0cb827afbad022e6d6caf2c44452edbc39";
 const KEY = process.env.HOLDERSCAN_KEY;
@@ -196,29 +205,39 @@ async function total3es() {
 // splices these forward onto the Dune reconstruction (past). Sums per kind; decimals(SPX)=8.
 // Soft-fails to null (never breaks the snapshot). Set ETH_RPC if the public node rate-limits.
 async function cexLpBalances() {
-  try {
-    const addrs = Object.entries(EXCLUDE_LABELS).filter(([, v]) => v.kind === "cex" || v.kind === "lp" || v.kind === "custody");
-    const batch = addrs.map(([a], i) => ({
-      jsonrpc: "2.0", id: i, method: "eth_call",
-      params: [{ to: CONTRACT, data: "0x70a08231" + a.replace(/^0x/, "").padStart(64, "0") }, "latest"],
-    }));
-    const r = await fetch(ETH_RPC, {
-      method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" },
-      body: JSON.stringify(batch), signal: AbortSignal.timeout(20000),
-    });
-    if (!r.ok) throw new Error(`${r.status}`);
-    const res = await r.json();
-    if (!Array.isArray(res)) throw new Error("non-array");
-    const by = { cex: 0, lp: 0, custody: 0 };
-    for (const row of res) {
-      if (row?.error || !row?.result || row.result === "0x") continue;
-      const kind = EXCLUDE_LABELS[addrs[row.id][0]].kind;
-      by[kind] += Number(BigInt(row.result)) / 1e8;
-    }
-    // require the LP + at least one CEX read to have landed, else treat as a failed pull
-    if (!(by.lp > 0) || !(by.cex >= 0)) throw new Error("empty");
-    return { cexBal: Math.round(by.cex), lpBal: Math.round(by.lp), custBal: Math.round(by.custody) };
-  } catch (e) { console.warn("cex/lp balances:", e.message); return null; }
+  const addrs = Object.entries(EXCLUDE_LABELS).filter(([, v]) => v.kind === "cex" || v.kind === "lp" || v.kind === "custody");
+  const batch = addrs.map(([a], i) => ({
+    jsonrpc: "2.0", id: i, method: "eth_call",
+    params: [{ to: CONTRACT, data: "0x70a08231" + a.replace(/^0x/, "").padStart(64, "0") }, "latest"],
+  }));
+  const tried = [];
+  for (const url of ETH_RPCS) {
+    try {
+      const r = await fetch(url, {
+        method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify(batch), signal: AbortSignal.timeout(20000),
+      });
+      if (!r.ok) { tried.push(`${url} → ${r.status}`); continue; }
+      const res = await r.json();
+      // Not every public node honours a BATCHED eth_call: some answer a single object,
+      // some return an array of errors. Validate the tally here rather than after the
+      // loop, so a host that answers uselessly falls through to the next one.
+      if (!Array.isArray(res)) { tried.push(`${url} → non-array (no batch support)`); continue; }
+      const by = { cex: 0, lp: 0, custody: 0 };
+      let reads = 0;
+      for (const row of res) {
+        if (row?.error || !row?.result || row.result === "0x") continue;
+        by[EXCLUDE_LABELS[addrs[row.id][0]].kind] += Number(BigInt(row.result)) / 1e8;
+        reads++;
+      }
+      // The LP pool always holds SPX, so a zero there means the reads did not land.
+      if (!(by.lp > 0) || reads < addrs.length / 2) { tried.push(`${url} → ${reads}/${addrs.length} reads`); continue; }
+      return { cexBal: Math.round(by.cex), lpBal: Math.round(by.lp), custBal: Math.round(by.custody) };
+    } catch (e) { tried.push(`${url} → ${e.message}`); }
+  }
+  // A silent null here is what let this go unnoticed for 52 days. Say so loudly.
+  console.error("⚠ cex/lp balances FAILED — exchange-flow cards will not advance today:", tried.join(" · "));
+  return null;
 }
 
 async function main() {
