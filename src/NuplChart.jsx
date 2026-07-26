@@ -9,6 +9,14 @@ import { SANS, MONO, MAX_W, Metric, TipBox, ZoomBar, Explain } from "./chart-ui.
 import { useDragZoom } from "./use-drag-zoom.js";
 
 const fShort = t => new Date(t).toLocaleDateString("en-US", { month: "short", year: "2-digit" });
+// NUPL = 1 − 1/MVRV has a fat NEGATIVE tail for SPX (MVRV fell to ~0.24 at the launch bottom →
+// NUPL −3.8), so a hard clip at −1 flatlines the deep dips. Instead the axis is LINEAR in the
+// normal [−1, +1] zone range and COMPRESSED below −1 (each unit takes 1/K of the space), so the
+// capitulation extremes curve gracefully into the floor without clipping. Ticks are labelled at
+// their TRUE values, so nothing is misread. Same idea as the riskheat oscillator.
+const K = 3;
+const squash = v => (v >= -1 ? v : -1 + (v + 1) / K);
+const unsquash = s => (s >= -1 ? s : -1 + (s + 1) * K);
 const ZONES = [
   [0.75, "euphoria", "#f87171"], [0.5, "belief", "#fb923c"], [0.25, "optimism", "#fbbf24"],
   [0, "hope", "#38bdf8"], [-Infinity, "capitulation", "#6366f1"],
@@ -41,7 +49,7 @@ export default function NuplChart({ isMobile, preview = false }) {
 
   const all = useMemo(() => {
     if (!history) return null;
-    return mvrvHistory(history, px).map(r => ({ ts: r.ts, nupl: 1 - 1 / (r.p / r.be) })).filter(r => Number.isFinite(r.ts) && Number.isFinite(r.nupl)).sort((a, b) => a.ts - b.ts);
+    return mvrvHistory(history, px).map(r => { const nupl = 1 - 1 / (r.p / r.be); return { ts: r.ts, nupl, sq: squash(nupl) }; }).filter(r => Number.isFinite(r.ts) && Number.isFinite(r.nupl)).sort((a, b) => a.ts - b.ts);
   }, [history, px]);
 
   const { zoom, setZoom, selL, selR, onDown, onMove, onUp, zoomed } = useDragZoom(
@@ -55,7 +63,12 @@ export default function NuplChart({ isMobile, preview = false }) {
     if (vis.length < 2) return null;
     const step = Math.max(1, Math.round(vis.length / 6));
     const xTicks = vis.filter((_, i) => i % step === 0 || i === vis.length - 1).map(r => r.ts);
-    return { vis, xDomain: [x0, x1], xTicks, cur: all.at(-1) };
+    // fit the (squashed) domain to the visible data — never clips, always shows the true low
+    const sqs = vis.map(r => r.sq);
+    const lo = Math.min(-1.05, Math.min(...sqs) - 0.05);
+    const hi = Math.max(0.9, Math.max(...sqs) + 0.03);
+    const yTicks = [0.5, 0, -0.5, -1, -2, -3, -4, -5].map(squash).filter(s => s >= lo - 1e-9 && s <= hi);
+    return { vis, xDomain: [x0, x1], xTicks, yDomain: [lo, hi], yTicks, cur: all.at(-1) };
   }, [all, zoom]);
 
   if (all == null) return <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Loading on-chain data…</div>;
@@ -92,14 +105,14 @@ export default function NuplChart({ isMobile, preview = false }) {
             <ReferenceArea y1={0.5} y2={0.75} fill="#fb923c" fillOpacity={0.13} stroke="none" label={zLbl(0.5, 0.75, "belief", "#fdba74")} />
             <ReferenceArea y1={0.25} y2={0.5} fill="#fbbf24" fillOpacity={0.12} stroke="none" label={zLbl(0.25, 0.5, "optimism", "#fcd34d")} />
             <ReferenceArea y1={0} y2={0.25} fill="#38bdf8" fillOpacity={0.12} stroke="none" label={zLbl(0, 0.25, "hope", "#7dd3fc")} />
-            <ReferenceArea y1={-1} y2={0} fill="#6366f1" fillOpacity={0.14} stroke="none" label={zLbl(-1, 0, "capitulation", "#a5b4fc")} />
+            <ReferenceArea y1={view.yDomain[0]} y2={0} fill="#6366f1" fillOpacity={0.14} stroke="none" label={zLbl(-1, 0, "capitulation", "#a5b4fc")} />
             <XAxis dataKey="ts" type="number" domain={view.xDomain} ticks={view.xTicks} scale="time" allowDataOverflow
               tickFormatter={fShort} tick={{ fill: "#cbd5e1", fontSize: isMobile ? 10 : 12, fontFamily: MONO }} axisLine={{ stroke: "rgba(255,255,255,0.15)" }} tickLine={false} />
-            <YAxis type="number" domain={[-1, 0.95]} ticks={[-1, -0.5, 0, 0.5]} allowDataOverflow
-              tickFormatter={v => (v > 0 ? "+" : "") + v} tick={{ fill: "#cbd5e1", fontSize: isMobile ? 10 : 12, fontFamily: MONO }} axisLine={{ stroke: "rgba(255,255,255,0.15)" }} tickLine={false} width={isMobile ? 40 : 50} />
+            <YAxis type="number" domain={view.yDomain} ticks={view.yTicks} allowDataOverflow
+              tickFormatter={s => { const v = Math.round(unsquash(s) * 10) / 10; return (v > 0 ? "+" : "") + v; }} tick={{ fill: "#cbd5e1", fontSize: isMobile ? 10 : 12, fontFamily: MONO }} axisLine={{ stroke: "rgba(255,255,255,0.15)" }} tickLine={false} width={isMobile ? 40 : 50} />
             <ReferenceLine y={0} stroke="#e2e8f0" strokeWidth={1.5} strokeDasharray="5 5" label={preview ? undefined : { value: "break-even", position: "insideBottomLeft", fill: "#94a3b8", fontSize: 10.5, fontFamily: MONO }} />
             <Tooltip content={<Tip />} cursor={{ stroke: "rgba(255,255,255,0.2)" }} />
-            <Area type="monotone" dataKey="nupl" stroke="#f8fafc" strokeWidth={2.4} fill="url(#nuplfill)" dot={false} isAnimationActive={false} name="NUPL" />
+            <Area type="monotone" dataKey="sq" stroke="#f8fafc" strokeWidth={2.4} fill="url(#nuplfill)" dot={false} isAnimationActive={false} name="NUPL" />
             {selL != null && selR != null && selL !== selR && (
               <ReferenceArea x1={selL} x2={selR} strokeOpacity={0.4} stroke="#6366f1" fill="#6366f1" fillOpacity={0.12} />
             )}
@@ -108,7 +121,7 @@ export default function NuplChart({ isMobile, preview = false }) {
       </div>
 
       <div className="chart-caption" style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.65, maxWidth: 900, marginInline: "auto" }}>
-        NUPL = 1 − realized price ÷ price, from the on-chain cost basis. SPX is more volatile than Bitcoin, so it overshoots the classic zones — the axis is clipped at −1 for readability (its true low was deeper). A valuation position, not a signal. Drag to zoom. Not financial advice.
+        NUPL = 1 − realized price ÷ price, from the on-chain cost basis. SPX is more volatile than Bitcoin, so it overshoots the classic zones — below −1 the axis compresses (ticks stay at their true values) so the deep capitulation lows show without flattening the rest. A valuation position, not a signal. Drag to zoom. Not financial advice.
       </div>
     </div>
   );

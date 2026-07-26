@@ -3,9 +3,10 @@
 // 1 − realized price / price = 1 − 1/MVRV — so it's a pure transform of data we already
 // have (stats.mvrvSeries), NO new Dune, NO paywall. Positive = holders sit on unrealized
 // PROFIT, negative = unrealized LOSS. Standard sentiment zones (capitulation → hope →
-// optimism → belief → euphoria). SPX is more volatile than BTC so it overshoots the
-// classic bands — the display clips the extremes, the hero shows the true value. A
-// valuation POSITION, not a signal.
+// optimism → belief → euphoria). SPX is more volatile than BTC so it overshoots the classic
+// bands — the axis is linear in [−1, +1] and COMPRESSED below −1, so the deep capitulation
+// lows curve into the floor (labelled at true values) instead of clipping flat. A valuation
+// POSITION, not a signal.
 import { Resvg } from "@resvg/resvg-js";
 import { FONT } from "./font.mjs";
 import { esc } from "./svg-util.mjs";
@@ -32,19 +33,23 @@ export function nuplSvg(stats, opts = {}) {
   const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 92, mR = 158, mT = 148, mB = 92, pW = W - mL - mR, pH = H - mT - mB;
   const t0 = pts[0].ts, t1 = cur.ts;
   const x = t => mL + ((t - t0) / ((t1 - t0) || 1)) * pW;
-  const yMin = -1, yMax = 0.95; // clip the display; SPX overshoots (hero shows true value)
-  const y = v => mT + ((yMax - Math.max(yMin, Math.min(yMax, v))) / (yMax - yMin)) * pH;
+  // NUPL has a fat negative tail (MVRV → ~0.24 at the launch bottom → NUPL −3.8), so the axis is
+  // LINEAR in the [−1, +1] zone range and COMPRESSED below −1 — deep capitulation curves into the
+  // floor instead of clipping flat. Grid labels stay at TRUE values. (Matches the site chart.)
+  const K = 3, squash = v => (v >= -1 ? v : -1 + (v + 1) / K), unsquash = s => (s >= -1 ? s : -1 + (s + 1) * K);
+  const yHi = 0.95, yLo = Math.min(-1.05, Math.min(...pts.map(p => squash(p.nupl))) - 0.05), floorN = unsquash(yLo);
+  const y = v => mT + ((yHi - Math.max(yLo, Math.min(yHi, squash(v)))) / (yHi - yLo)) * pH;
 
   // sentiment zone bands (fixed thresholds). Discrete bands → keep them flat but raise
   // the opacity + use vivid colours so each sentiment tier POPS behind the line. Right-
   // edge labels sit in the margin, clear of the line.
   const band = (a, b, c) => `<rect x="${mL}" y="${y(b).toFixed(1)}" width="${pW}" height="${(y(a) - y(b)).toFixed(1)}" fill="${c}" fill-opacity="0.28"/>`;
-  const zones = band(0.75, 0.95, "#fb7185") + band(0.5, 0.75, "#fb923c") + band(0.25, 0.5, "#fbbf24") + band(0, 0.25, "#38bdf8") + band(-1, 0, "#818cf8");
+  const zones = band(0.75, 0.95, "#fb7185") + band(0.5, 0.75, "#fb923c") + band(0.25, 0.5, "#fbbf24") + band(0, 0.25, "#38bdf8") + band(floorN, 0, "#818cf8");
   const zlab = (a, b, t, c) => `<text x="${W - mR + 12}" y="${((y(a) + y(b)) / 2 + 7).toFixed(1)}" fill="${c}" font-size="21" font-weight="800" font-family="sans-serif">${esc(t)}</text>`;
   const labels = zlab(0.75, 0.95, "euphoria", "#fecaca") + zlab(0.5, 0.75, "belief", "#fed7aa") + zlab(0.25, 0.5, "optimism", "#fde68a") + zlab(0, 0.25, "hope", "#bae6fd") + zlab(-1, 0, "capitulation", "#c7d2fe");
 
   let grid = "";
-  for (const v of [-1, -0.5, 0, 0.5]) {
+  for (const v of [0.5, 0, -0.5, -1, -2, -3, -4].filter(v => squash(v) >= yLo - 1e-9)) {
     const yy = y(v).toFixed(1);
     grid += `<text x="${mL - 14}" y="${(+yy + 8).toFixed(1)}" fill="#94a3b8" font-size="22" text-anchor="end" font-family="sans-serif">${v > 0 ? "+" : ""}${v}</text>`;
   }
