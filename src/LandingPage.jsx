@@ -31,15 +31,15 @@ function StripPlot({ byLens, composite, isMobile }) {
         const z = zoneOf(r.pct), x = r.pct * 100, annLeft = x > 60;
         return (
           <div key={r.key} style={{ display: "contents" }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "13px 0", borderTop: "1px solid #14161c" }}>
-              <span style={{ fontSize: isMobile ? 13 : 14.5, color: "#aeb7c6" }}>{r.label}</span>
-              <span style={{ fontFamily: MONO, fontSize: 22, fontWeight: 700, color: z.color, fontVariantNumeric: "tabular-nums" }}>{Math.round(r.pct * 100)}</span>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "7px 0", borderTop: "1px solid #14161c" }}>
+              <span style={{ fontSize: isMobile ? 12.5 : 13.5, color: "#aeb7c6" }}>{r.label}</span>
+              <span style={{ fontFamily: MONO, fontSize: 17, fontWeight: 700, color: z.color, fontVariantNumeric: "tabular-nums" }}>{Math.round(r.pct * 100)}</span>
             </div>
-            <div style={{ position: "relative", borderTop: "1px solid #14161c", display: "flex", alignItems: "center", minHeight: 48 }}>
+            <div style={{ position: "relative", borderTop: "1px solid #14161c", display: "flex", alignItems: "center", minHeight: 33 }}>
               <div style={{ position: "absolute", left: 0, right: 0, height: 1, background: "#2a303d" }} />
               <div style={{ position: "absolute", left: "50%", top: 0, bottom: 0, width: 1, background: "rgba(255,255,255,0.05)" }} />
-              <div style={{ position: "absolute", left: `${x}%`, top: "50%", transform: "translate(-50%,-50%)", width: 13, height: 13, borderRadius: "50%", background: z.color, boxShadow: `0 0 0 3px #07080b, 0 0 12px -1px ${z.color}`, zIndex: 2 }} />
-              <div style={{ position: "absolute", top: "50%", transform: "translateY(-50%)", fontFamily: MONO, fontSize: 11.5, color: "#aeb7c6", whiteSpace: "nowrap", [annLeft ? "right" : "left"]: `calc(${annLeft ? 100 - x : x}% + 20px)` }}>{z.label.toLowerCase()}</div>
+              <div style={{ position: "absolute", left: `${x}%`, top: "50%", transform: "translate(-50%,-50%)", width: 11, height: 11, borderRadius: "50%", background: z.color, boxShadow: `0 0 0 3px #07080b, 0 0 9px -1px ${z.color}`, zIndex: 2 }} />
+              <div style={{ position: "absolute", top: "50%", transform: "translateY(-50%)", fontFamily: MONO, fontSize: 10.5, color: "#8b98ad", whiteSpace: "nowrap", [annLeft ? "right" : "left"]: `calc(${annLeft ? 100 - x : x}% + 18px)` }}>{z.label.toLowerCase()}</div>
             </div>
           </div>
         );
@@ -84,6 +84,13 @@ export default function LandingPage({ isMobile, priceData }) {
   const band = BAND_LABELS[bIdx];
   const fair = bandVal(m, nowDay, 4);
   const vsFair = (last.price / fair - 1) * 100;
+  // price-card extras: 24h change, how long price has sat in this band, and the band's edges.
+  const prevP = px.length > 1 ? px[px.length - 2].price : last.price;
+  const chg = (last.price / prevP - 1) * 100;
+  let daysHeld = 0;
+  for (let i = px.length - 1; i >= 0; i--) { if (bandIndex(m, px[i].price, dayN(new Date(px[i].date))) === bIdx) daysHeld++; else break; }
+  const ceil = bandVal(m, nowDay, Math.min(bIdx + 1, m.bands.length - 1)), floor = bandVal(m, nowDay, bIdx);
+  const ceilPct = (ceil / last.price - 1) * 100, floorPct = (floor / last.price - 1) * 100;
 
   const [val, setVal] = useState(null);
   useEffect(() => { let off = false; loadValuation().then(d => { if (!off) setVal(d || false); }); return () => { off = true; }; }, []);
@@ -133,26 +140,45 @@ export default function LandingPage({ isMobile, priceData }) {
     <div style={{ background: "#07080b", color: "#f3f5f8", fontFamily: SANS }}>
       <div style={{ maxWidth: 1120, margin: "0 auto", padding: isMobile ? "0 20px 60px" : "0 32px 80px" }}>
 
-        {/* TOP ROW — kicker left, price ticker right */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", padding: isMobile ? "26px 0 20px" : "40px 0 26px", flexWrap: "wrap", gap: 10 }}>
-          <div style={kicker}>Valuation composite · six measures</div>
-          <div style={{ fontFamily: MONO, fontSize: 14, color: "#aeb7c6", display: "flex", alignItems: "center", gap: 10 }}>
-            <span style={{ color: "#f3f5f8", fontWeight: 700, fontSize: 16, fontVariantNumeric: "tabular-nums" }}>${last.price.toFixed(4)}</span>
-            <span style={{ width: 8, height: 8, borderRadius: 2, background: band.c, display: "inline-block" }} />
-            <span style={{ color: band.c, fontWeight: 700, letterSpacing: "0.04em", textTransform: "uppercase", fontSize: 12 }}>{band.l}</span>
+        {/* HERO — composite headline (left) + the price CARD (right) */}
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1.35fr .8fr", gap: isMobile ? 28 : 44, padding: isMobile ? "28px 0 22px" : "44px 0 30px", alignItems: "start" }}>
+          <div>
+            <div style={kicker}>Valuation composite · six measures</div>
+            <h1 style={{ fontSize: isMobile ? 36 : 58, lineHeight: 0.98, letterSpacing: "-0.035em", fontWeight: 800, margin: "14px 0 16px", textWrap: "balance" }}>
+              {heads ? <>{heads.z.label}.<br /><span style={{ color: heads.z.color }}>{heads.line2}.</span></> : <>Loading the composite<span style={{ color: "#25e07d" }}>…</span></>}
+            </h1>
+            {heads && (
+              <p style={{ fontSize: isMobile ? 15.5 : 16.5, color: "#aeb7c6", maxWidth: "44ch", lineHeight: 1.6, margin: 0 }}>
+                SPX6900 sits in the <b style={{ color: "#f3f5f8" }}>{heads.pctl}th percentile</b> of its own history — cheaper than <b style={{ color: "#f3f5f8" }}>{100 - heads.pctl}%</b> of the days it has ever traded. {heads.tail[0].toUpperCase() + heads.tail.slice(1)}.
+              </p>
+            )}
+          </div>
+          {/* PRICE CARD */}
+          <div style={{ borderLeft: isMobile ? "none" : "1px solid #1b1f29", paddingLeft: isMobile ? 0 : 26 }}>
+            <div style={kicker}>Spot</div>
+            <div style={{ fontWeight: 800, fontSize: isMobile ? 44 : 54, letterSpacing: "-0.03em", lineHeight: 1, margin: "8px 0 8px", fontVariantNumeric: "tabular-nums" }}>${last.price.toFixed(4)}</div>
+            <div style={{ fontFamily: MONO, fontSize: 12.5, color: "#aeb7c6" }}>
+              <span style={{ color: chg >= 0 ? "#25e07d" : "#ff5470" }}>{chg >= 0 ? "+" : ""}{chg.toFixed(2)}%</span> today · mcap {MONf(last.price * SUPPLY)}
+            </div>
+            <div style={{ ...kicker, marginTop: 18 }}>Band {String(bIdx + 1).padStart(2, "0")} / 09 · {daysHeld} days held</div>
+            <div style={{ display: "flex", gap: 2, margin: "8px 0 10px" }}>
+              {BAND_LABELS.map((b, i) => (<span key={i} style={{ height: 12, flex: 1, borderRadius: 1, background: b.c, opacity: i === bIdx ? 1 : 0.32, boxShadow: i === bIdx ? `0 0 10px -1px ${b.c}` : "none" }} />))}
+            </div>
+            <div style={{ fontWeight: 800, fontSize: 19, color: band.c, letterSpacing: "0.02em" }}>{band.l.toUpperCase()}</div>
+            <div style={{ marginTop: 14, borderTop: "1px solid #1b1f29" }}>
+              {[["Ceiling", ceil, ceilPct], ["Floor", floor, floorPct]].map(([k, v, pc], i) => (
+                <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", padding: "9px 0", borderBottom: "1px solid #14161c", fontFamily: MONO, fontSize: 13 }}>
+                  <span style={{ color: "#727d90", textTransform: "uppercase", letterSpacing: "0.08em", fontSize: 11 }}>{k}</span>
+                  <span><span style={{ color: "#f3f5f8", fontVariantNumeric: "tabular-nums" }}>{v.toFixed(v < 1 ? 4 : 2)}</span> <span style={{ color: pc >= 0 ? "#25e07d" : "#ff5470", marginLeft: 6 }}>{pc >= 0 ? "+" : ""}{pc.toFixed(0)}%</span></span>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
 
-        {/* HERO — the composite is the card */}
-        <section>
-          <h1 style={{ fontSize: isMobile ? 38 : 62, lineHeight: 0.98, letterSpacing: "-0.035em", fontWeight: 800, margin: "0 0 18px", textWrap: "balance" }}>
-            {heads ? <>{heads.z.label}.<br /><span style={{ color: heads.z.color }}>{heads.line2}.</span></> : <>Loading the composite<span style={{ color: "#25e07d" }}>…</span></>}
-          </h1>
-          {heads && (
-            <p style={{ fontSize: isMobile ? 15.5 : 17, color: "#aeb7c6", maxWidth: "52ch", lineHeight: 1.6, margin: "0 0 26px" }}>
-              SPX6900 sits in the <b style={{ color: "#f3f5f8" }}>{heads.pctl}th percentile</b> of its own history — cheaper than <b style={{ color: "#f3f5f8" }}>{100 - heads.pctl}%</b> of the days it has ever traded. {heads.tail[0].toUpperCase() + heads.tail.slice(1)}.
-            </p>
-          )}
+        {/* SIX MEASURES — compact strip */}
+        <section style={{ borderTop: "1px solid #1b1f29", paddingTop: 26 }}>
+          <div style={{ ...kicker, marginBottom: 16 }}>Six measures, one scale · ranked over history, weighted into four axes, anchored to Bitcoin</div>
           {cur ? <StripPlot byLens={cur.byLens} composite={cur.composite} isMobile={isMobile} />
             : <div style={{ color: "#64748b", fontFamily: MONO, fontSize: 13, padding: "20px 0" }}>Loading composite…</div>}
         </section>
