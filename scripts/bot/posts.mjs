@@ -1181,10 +1181,9 @@ Conviction, on-chain — not a signal.`,
     };
   })(),
 
-  // Valuation Composite — a weighted basket of six independent lenses (rainbow power-law,
-  // MVRV cost basis, supply-in-profit, Pi Cycle, alt-market, F&G), each percentile-ranked
-  // over its own history and weighted into one over/under-valued oscillator. A valuation
-  // POSITION over time, never a timing call.
+  // Valuation Composite — FOUR independent axes (Valuation / Trend / Relative / Sentiment),
+  // de-duplicated so correlated lenses vote once, the unitless ones anchored against Bitcoin's
+  // decade, weighted into one over/under-valued oscillator. A valuation POSITION, never a timing call.
   s => (() => {
     const { series, cur } = valuationComposite(s);
     if (!series || series.length < 40 || !cur) return null;
@@ -1192,7 +1191,7 @@ Conviction, on-chain — not a signal.`,
     return {
       id: "valband",
       text: ct`📊 SPX6900 valuation composite: ${pct}% — ${z.label.toLowerCase()} vs its own history.
-Six lenses weighted into one — rainbow, MVRV, supply in profit, Pi Cycle, alts and Fear & Greed — each ranked over its full history.
+Four independent axes — valuation, trend, alts, sentiment — correlated lenses grouped so each votes once, MVRV anchored to Bitcoin's decade.
 Where it sits across everything, not a timing call.`,
       card: { type: "valband" },
     };

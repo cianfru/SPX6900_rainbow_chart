@@ -6,7 +6,7 @@
 import { Resvg } from "@resvg/resvg-js";
 import { FONT } from "./font.mjs";
 import { esc } from "./svg-util.mjs";
-import { valuationComposite, ZONES, zoneOf, INDICATORS } from "./valuation-composite.mjs";
+import { valuationComposite, ZONES, zoneOf, AXES } from "./valuation-composite.mjs";
 import { brandStripe } from "./chrome.mjs";
 
 const png = (svg, w) => new Resvg(svg, { fitTo: { mode: "width", value: w }, font: FONT }).render().asPng();
@@ -47,7 +47,7 @@ export function valuationBandSvg(stats, opts = {}) {
   let xl = "";
   for (let yr = new Date(t0).getUTCFullYear(); yr <= new Date(t1).getUTCFullYear(); yr++) { const t = Date.UTC(yr, 0, 1); if (t < t0 || t > t1) continue; xl += `<text x="${X(t).toFixed(1)}" y="${pB + 34}" fill="#aab6cc" font-size="21" text-anchor="middle" font-family="sans-serif" font-weight="600">${yr}</text>`; }
 
-  const wlist = INDICATORS.map(i => i.label).join(" · ");
+  const wlist = AXES.map(a => `${a.label} ${a.weight}%`).join(" · ");
   return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
 <defs>
 <linearGradient id="vbbg" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#080a18"/><stop offset="55%" stop-color="#05060f"/><stop offset="100%" stop-color="#020308"/></linearGradient>

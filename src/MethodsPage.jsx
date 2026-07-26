@@ -6,7 +6,7 @@
 // same frozen model the home page draws, and the family counts + composite weights come
 // straight from the catalog and the composite engine, so nothing here can silently drift.
 import { METHOD_FAMILIES } from "./charts-catalog.js";
-import { INDICATORS } from "../scripts/bot/valuation-composite.mjs";
+import { AXES } from "../scripts/bot/valuation-composite.mjs";
 import { SANS, MONO } from "./chart-ui.jsx";
 
 const DIM = "#7c8a9e", BODY = "#9aa7bb", NEAR = "#cbd5e1", TEXT = "#f1f5f9";
@@ -92,13 +92,15 @@ export default function MethodsPage({ m, isMobile }) {
 
       <Head>The valuation composite</Head>
       <P>
-        The single reading on the home page is not a new metric. It takes six of the measures below, ranks
-        each against its <Strong>own full history</Strong> — 0 is the cheapest that measure has ever been,
-        100 the most expensive — and averages them by weight. The weights are the only editorial choice in
-        it, so they are published:
+        The single reading on the home page is not a new metric. It groups the measures below into four
+        <Strong> independent axes</Strong> — because several of them (rainbow, MVRV, supply-in-profit) are
+        0.7–0.85 correlated, so left flat they'd count one signal three times. Correlated lenses are combined
+        so each axis votes once; each is ranked against its <Strong>own history</Strong> (0 = cheapest it's
+        been, 100 = dearest), with the unitless ones also anchored against Bitcoin's decade. The axis weights
+        are the only editorial choice, so they are published:
       </P>
-      {INDICATORS.map(i => (
-        <Row key={i.key} name={i.label} note={i.group} right={`${i.weight}%`} w={200} />
+      {AXES.map(a => (
+        <Row key={a.key} name={a.label} note={a.members.map(m => m.label).join(" · ")} right={`${a.weight}%`} w={140} />
       ))}
 
       <Head>The seven families</Head>

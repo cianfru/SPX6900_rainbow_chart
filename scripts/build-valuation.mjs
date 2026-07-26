@@ -6,7 +6,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { computeStats } from "./bot/stats.mjs";
-import { valuationComposite, INDICATORS, ZONES } from "./bot/valuation-composite.mjs";
+import { valuationComposite, ZONES } from "./bot/valuation-composite.mjs";
 import { DEFAULT_RAW } from "../src/data.js";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -19,15 +19,17 @@ try {
 } catch { /* use bundle */ }
 
 const s = computeStats(price, date);
-const { series, cur, indicators } = valuationComposite(s);
+// Feed Bitcoin's MVRV history for the cross-asset anchor (falls back to SPX-only if absent).
+if (!s.btcMvrv) { try { s.btcMvrv = JSON.parse(readFileSync(join(root, "public/btc-mvrv.json"), "utf8")); } catch { /* SPX-only */ } }
+const { series, cur, axes } = valuationComposite(s);
 if (!series.length || !cur) { console.error("no composite series produced"); process.exit(1); }
 
 const out = {
   updated: date,
-  indicators: indicators.map(i => ({ key: i.key, label: i.label, group: i.group, weight: i.weight })),
+  axes: axes.map(a => ({ key: a.key, label: a.label, weight: a.weight, blurb: a.blurb, members: a.members.map(m => ({ key: m.key, label: m.label, crossAsset: !!m.crossAsset })) })),
   zones: ZONES,
   series: series.map(p => [p.ts, p.composite, p.n]),
-  cur: { composite: cur.composite, byLens: cur.byLens },
+  cur: { composite: cur.composite, byAxis: cur.byAxis, byLens: cur.byLens },
 };
 writeFileSync(join(root, "public/valuation.json"), JSON.stringify(out));
 const z = ZONES.find(z => cur.composite < z.max) || ZONES.at(-1);

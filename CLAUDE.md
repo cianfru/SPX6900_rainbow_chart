@@ -1943,6 +1943,25 @@
     deliberately NOT an A-F / buy-sell grade (would read as advice); guardrail caption kept. Today: **Deeply Cheap ·
     8.3/10**. Shared `grade()` so card + site agree. This gauge IS the site page's reason to exist (owner had
     questioned the plain dashboard) — kept as a deliberate exception to the card-only-infographic principle.
+  - **✅✅ COMPOSITE v2 — INDEPENDENT AXES, DE-DUPLICATED, CROSS-ASSET ANCHORED (owner agreed 2026-07-26, "the one we
+    have can be improved"). This is the composite the landing redesign is built around.** MEASURED the flaw first
+    (`scripts/bot/valuation-composite.mjs` rewritten): the old flat 6-lens basket was mostly ONE factor — rainbow/MVRV/
+    supply-in-profit correlate **0.69–0.85** (all "price vs a cost/value anchor"), and SOPR is **0.85** with MVRV, so
+    weighting them 60% triple-counted one signal. Only concentration was orthogonal (−0.3 to −0.56). **v2 = four
+    INDEPENDENT AXES**, correlated lenses combined WITHIN an axis so each votes once, then weighted ACROSS:
+    **Valuation 45** (rainbow · MVRV · supply-in-profit, averaged) · **Trend 25** (Pi Cycle) · **Relative 20** (vs alt
+    market) · **Sentiment 10** (Fear & Greed, kept as LIGHT context, labelled crypto-wide). **Cross-asset anchor:** the
+    unitless lenses (MVRV, Pi Cycle) blend own-history percentile 50/50 with their rank against BITCOIN's decade
+    (`btcRefs` from `btc-mvrv.json` + BTC Pi Cycle off `BTC_HISTORY`) — so SPX isn't judged on one ~3-yr cycle
+    (`ANCHOR=0.5` knob). VALIDATED on real data: 2024 bottom **2%**, Jan-2025 top **90%**, Jul ATH **75%**, now **15%
+    Deeply undervalued** — and MVRV 0.71× reads 20th pct on SPX's own history but **2nd pct vs BTC's decade** → the anchor
+    correctly says "extraordinarily cheap even by BTC standards." Axes stay independent (at the Jul ATH valuation was 88
+    but trend had cooled to 45). `valuationComposite(s)` now returns `{series:[{ts,composite,byAxis,byLens,n}], cur, axes,
+    indicators}`; `valuation.json` carries `axes`+`cur.byAxis`. Consumers updated to axes: `ValuationComposite.jsx`
+    (byAxis breakdown, back-compat fallback to old shape), `MethodsPage.jsx`, `valuation-band-card.mjs` (subtitle = axes),
+    `posts.mjs` valband copy (288 xLen). **Candidate 5th axis (behaviour/flow: exchange netflow, liveliness) admitted ONLY
+    when CI measures |r|<~0.5 vs valuation** — not assumed. Publish the correlation matrix on Methods = the moat (turns
+    "is this just price dressed up?" into a checkable answer). To retune: axis weights + `ANCHOR`. 164 tests green.
   - **✅✅ SHIPPED 2026-07-22 — "AM I CHEAP?" REPLACED BY THE TIME-SERIES VALUATION COMPOSITE (owner: "build a custom
     valuation band based on all the indicators, weight them clearly-labelled, remove the am-i-cheap card/website").** The
     snapshot gauge/chips became a **proprietary valuation OSCILLATOR over history**. Fully reproducible (the honesty moat):

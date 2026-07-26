@@ -16,7 +16,7 @@ function Tip({ active, payload }, zones) {
   return (
     <TipBox title={new Date(d.ts).toLocaleDateString("en-US", { month: "long", year: "numeric" })}>
       <div><span style={{ fontFamily: MONO, color: z.color, fontWeight: 700 }}>{(d.v * 100).toFixed(0)}%</span> <span style={{ color: "#94a3b8" }}>({z.label})</span></div>
-      <div style={{ color: "#64748b", fontSize: 11, marginTop: 2 }}>{d.n} of 6 lenses</div>
+      <div style={{ color: "#64748b", fontSize: 11, marginTop: 2 }}>{d.n} independent axes</div>
     </TipBox>
   );
 }
@@ -52,21 +52,25 @@ export default function ValuationComposite({ isMobile, preview = false }) {
   if (data === false || !all || !view) return <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>The valuation composite is being computed — check back shortly.</div>;
 
   const zones = data.zones, cur = data.cur, curZone = zoneOf(zones, cur.composite);
-  const indByKey = Object.fromEntries(data.indicators.map(i => [i.key, i]));
-  const order = data.indicators.map(i => i.key);
+  // v2 = independent AXES (data.axes + cur.byAxis). Fall back to the old flat lens list if an
+  // older valuation.json is still deployed, so the page never breaks mid-rollout.
+  const breakdown = (data.axes
+    ? data.axes.map(a => ({ key: a.key, label: a.label, weight: a.weight, pct: cur.byAxis?.[a.key] }))
+    : (data.indicators || []).map(i => ({ key: i.key, label: i.label, weight: i.weight, pct: cur.byLens?.[i.key] }))
+  ).filter(b => b.pct != null);
   const zLbl = (txt, col) => preview ? undefined : { value: txt, position: "insideRight", fill: col, fontSize: 10.5, fontFamily: MONO, opacity: 0.95 };
 
   return (
     <div style={{ maxWidth: MAX_W, margin: "0 auto" }}>
       <Explain q="Is SPX6900 cheap or expensive right now, across everything we track?" accent="#a78bfa">
-        The <strong style={{ color: "#e2e8f0" }}>Valuation Composite</strong> blends six independent lenses — on-chain, technical and sentiment — into one number.
-        Each lens is ranked against <em>its own</em> history (0 = the cheapest it's ever been, 100 = the most expensive), then weighted and averaged.
-        <strong style={{ color: "#4ade80" }}> Low / green</strong> = undervalued vs its past; <strong style={{ color: "#f87171" }}>high / red</strong> = overvalued. A valuation position over time — not a buy signal.
+        The <strong style={{ color: "#e2e8f0" }}>Valuation Composite</strong> combines four <em>independent</em> axes — Valuation, Trend, Relative and Sentiment — into one number.
+        Correlated lenses are grouped so each signal votes once (no double-counting); the unitless ones are also anchored against Bitcoin's decade. Each is ranked so 0 = the cheapest it's been, 100 = the most expensive.
+        <strong style={{ color: "#4ade80" }}> Low / green</strong> = undervalued; <strong style={{ color: "#f87171" }}>high / red</strong> = overvalued. A valuation position over time — not a buy signal.
       </Explain>
 
       <div style={{ display: "flex", gap: isMobile ? 16 : 30, justifyContent: "center", marginBottom: 14, flexWrap: "wrap" }}>
         <Metric label="composite" value={`${(cur.composite * 100).toFixed(0)}%`} color={curZone.color} sub={curZone.label} />
-        <Metric label="lenses" value={`${cur.byLens ? Object.keys(cur.byLens).length : 6} of 6`} color="#a78bfa" sub="weighted" />
+        <Metric label="axes" value={`${breakdown.length}`} color="#a78bfa" sub="weighted, independent" />
       </div>
 
       <ZoomBar zoomed={zoomed} onReset={() => setZoom(null)} accent="#a78bfa" />
@@ -102,18 +106,17 @@ export default function ValuationComposite({ isMobile, preview = false }) {
       {/* Today's weighted lens breakdown — clearly labelled, with weight and where each sits */}
       <div style={{ maxWidth: 900, margin: "20px auto 0" }}>
         <div style={{ fontFamily: SANS, fontSize: 13, color: "#94a3b8", textAlign: "center", marginBottom: 10 }}>
-          Today's basket — each lens ranked over its own history (0 = cheapest, 100 = most expensive), weighted:
+          Today's axes — each ranked so 0 = cheapest it's been, 100 = most expensive, then weighted:
         </div>
         <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 8 }}>
-          {order.map(k => {
-            const ind = indByKey[k], pct = cur.byLens?.[k];
-            if (pct == null) return null;
+          {breakdown.map(b => {
+            const pct = b.pct;
             const z = zoneOf(zones, pct);
             return (
-              <div key={k} style={{ display: "flex", alignItems: "center", gap: 10, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 10, padding: "8px 12px" }}>
-                <div style={{ flex: "0 0 auto", fontFamily: MONO, fontSize: 11, color: "#64748b", width: 34 }}>{ind.weight}%</div>
+              <div key={b.key} style={{ display: "flex", alignItems: "center", gap: 10, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 10, padding: "8px 12px" }}>
+                <div style={{ flex: "0 0 auto", fontFamily: MONO, fontSize: 11, color: "#64748b", width: 34 }}>{b.weight}%</div>
                 <div style={{ flex: "1 1 auto", minWidth: 0 }}>
-                  <div style={{ fontFamily: SANS, fontSize: 13, color: "#e2e8f0", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{ind.label}</div>
+                  <div style={{ fontFamily: SANS, fontSize: 13, color: "#e2e8f0", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{b.label}</div>
                   <div style={{ height: 5, background: "rgba(255,255,255,0.08)", borderRadius: 3, marginTop: 4, overflow: "hidden" }}>
                     <div style={{ height: "100%", width: `${(pct * 100).toFixed(0)}%`, background: z.color, borderRadius: 3 }} />
                   </div>
@@ -126,7 +129,7 @@ export default function ValuationComposite({ isMobile, preview = false }) {
       </div>
 
       <div className="chart-caption" style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 16, lineHeight: 1.65, maxWidth: 900, marginInline: "auto" }}>
-        Weighted percentile of expensiveness across the basket — Rainbow power-law, MVRV cost basis, supply in profit, Pi Cycle trend, vs the alt market and Fear &amp; Greed. Each is oriented so higher = more expensive, ranked over its own full history, then averaged by weight. Fully reproducible. A valuation position over time, not a signal. Drag to zoom. Not financial advice.
+        Weighted percentile of expensiveness across four independent axes — Valuation (rainbow, MVRV, supply-in-profit, combined so they vote once), Trend (Pi Cycle), Relative (vs the alt market) and Sentiment (Fear &amp; Greed). Unitless lenses are anchored against Bitcoin's decade. Fully reproducible. A valuation position over time, not a signal. Drag to zoom. Not financial advice.
       </div>
     </div>
   );
