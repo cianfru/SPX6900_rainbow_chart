@@ -164,5 +164,40 @@ if (process.argv.includes("--probe")) {
     const j2 = await getJson(u2, { headers: { accept: "application/json" } });
     console.log(`\nno-block-filter probe: ${Array.isArray(j2?.nftSales) ? j2.nftSales.length + " row(s)" : "none"}`);
     if (j2?.nftSales?.[0]) console.log(`first row:\n${JSON.stringify(j2.nftSales[0], null, 2)}`);
+
+    // HOW FAR DOES ALCHEMY'S INDEX ACTUALLY REACH? Everything else is now ruled out and
+    // this is the last question standing. The block window is right (checked against the
+    // chain head), the marketplaces are right (Dune says the recent trades are opensea and
+    // blur, both of which this endpoint covers), `order=desc` is ignored, and `limit` is
+    // honoured — yet the window returns 0 while Dune shows dozens of sales inside it.
+    //
+    // That leaves an index that stops somewhere. Results come oldest-first, so the only
+    // way to see the newest sale Alchemy holds is to walk pageKey to the end. Bounded, and
+    // a probe-only path: nothing in the hourly watcher pages like this.
+    let pageKey = null, pages = 0, seen = 0, newest = 0, newestRow = null;
+    const MAX_PAGES = 40;                          // 40 × 1000 clears the ~17k known sales
+    do {
+      const u3 = `${nftBase(key)}/getNFTSales?contractAddress=${CONTRACT}&limit=1000`
+        + (pageKey ? `&pageKey=${encodeURIComponent(pageKey)}` : "");
+      const j3 = await getJson(u3, { headers: { accept: "application/json" } });
+      const rows = j3?.nftSales || [];
+      seen += rows.length;
+      for (const r of rows) {
+        const b = Number(r?.blockNumber);
+        if (Number.isFinite(b) && b > newest) { newest = b; newestRow = r; }
+      }
+      pageKey = j3?.pageKey || null;
+      pages++;
+    } while (pageKey && pages < MAX_PAGES);
+
+    const behind = latestBlock - newest;
+    const days = (behind * SEC_PER_BLOCK) / 86400;
+    console.log(`\nindex reach: ${seen} sale(s) over ${pages} page(s)${pageKey ? " (stopped at the page cap)" : ""}`);
+    console.log(`  newest block Alchemy holds: ${newest.toLocaleString()} · chain head ${latestBlock.toLocaleString()}`);
+    console.log(`  → its most recent AEON sale is ~${days.toFixed(1)} day(s) behind the chain`);
+    if (newestRow) console.log(`  newest row: token ${newestRow.tokenId} on ${newestRow.marketplace}`);
+    console.log(days > 2
+      ? "  VERDICT: the index is stale for this contract — no choice of params fixes that, so the live path cannot beat the daily Dune pull."
+      : "  VERDICT: the index is current, so the block-range query is at fault — that is a bug on our side.");
   } catch (e) { console.error("probe failed —", e.message); process.exit(1); }
 }
