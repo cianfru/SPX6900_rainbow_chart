@@ -1,0 +1,10 @@
+{
+ "updated": "2026-07-26",
+ "window": 4,
+ "cooldownWeeks": 8,
+ "thresholds": {
+  "spx": 2.5,
+  "aeon": 2
+ },
+ "signals": []
+}

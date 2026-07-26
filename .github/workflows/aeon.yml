@@ -69,6 +69,12 @@ jobs:
         run: |
           node scripts/build-aeon-market.mjs
           node scripts/build-aeon-traders.mjs
+      - name: Refresh ENS names for displayed wallets (cached, incremental)
+        continue-on-error: true
+        run: node scripts/build-ens.mjs --limit=600
+      - name: Whale watch (both tracks — writes candidates, posts nothing)
+        continue-on-error: true
+        run: node scripts/bot/whale-watch.mjs
       - name: Commit if changed
         id: commit
         run: |

@@ -118,7 +118,7 @@ export default function AeonSkyline3D({ holders, isMobile, useSpx = true }) {
         setHover(hit.object); const h = hit.object.userData.h;
         controls.autoRotate = false;
         tip.style.display = "block"; tip.style.left = px + "px"; tip.style.top = py + "px";
-        tip.innerHTML = `<b style="color:#5eead4">${short(h.a)}</b> · click to open in Zerion<br>` +
+        tip.innerHTML = `<b style="color:#5eead4">${h.ens || short(h.a)}</b> · click to open in Zerion<br>` +
           `<span style="color:#94a3b8">${h.n} AEON${spxOn && h.spx ? ` · ${h.spx.toLocaleString()} SPX` : ""} · held ${h.days} days (since ${h.since})</span>`;
       } else { setHover(null); tip.style.display = "none"; }
     };

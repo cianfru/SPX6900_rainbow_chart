@@ -26,6 +26,8 @@ on:
       - "public/rotation-excludes.json"
       - "public/signals.json"
       - "public/aeon-sale-state.json"
+      - "public/whale-signals.json"
+      - "public/whale-state.json"
       - "public/aeon-live-sales.json"
   workflow_dispatch: {}
 

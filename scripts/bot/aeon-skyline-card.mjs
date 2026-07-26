@@ -4,12 +4,21 @@
 // Champion crowned. Data: public/aeon-onchain.json → holders[{a,n,days,spx?}].
 import { Resvg } from "@resvg/resvg-js";
 import { FONT } from "./font.mjs";
+import { readFileSync } from "node:fs";
 import { esc } from "./svg-util.mjs";
 import { aeonHeader } from "./aeon-card-bg.mjs";
 
 const png = (svg, w) => new Resvg(svg, { fitTo: { mode: "width", value: w }, font: FONT }).render().asPng();
 const F = "sans-serif";
 const short = a => a.slice(0, 6) + "…" + a.slice(-4);
+// public/ens.json is a cached address -> name map built by scripts/build-ens.mjs.
+// A name identifies a wallet; 0xa4c3…5c9f identifies nobody.
+let ENS = null;
+const ensOf = a => {
+  if (ENS === null) { try { ENS = JSON.parse(readFileSync("public/ens.json", "utf8")).names || {}; } catch { ENS = {}; } }
+  return ENS[String(a).toLowerCase()] || null;
+};
+const who = a => ensOf(a) || short(a);
 // amber (#f59e0b) → teal (#22d3ee) lerp by t
 const lerp = (a, b, t) => Math.round(a + (b - a) * t);
 const mix = t => `rgb(${lerp(245, 34, t)},${lerp(158, 211, t)},${lerp(11, 238, t)})`;
@@ -84,7 +93,7 @@ export function aeonSkylineSvg(data, opts = {}) {
 <rect width="${W}" height="${HT}" fill="url(#skgA)"/>
 ${aeonHeader("PROJECT AEON — THE HOLDER SKYLINE", maxSpx > 0 ? "One tower per wallet — height = AEON + SPX held, × how long held (√ scale)." : "One tower per wallet — height = AEON held, × how long held (√ scale).", null, "#5eead4", F)}
 ${towers.map(box).join("")}
-<text x="60" y="${HT - 92}" fill="#cbd5e1" font-size="22" font-family="${F}">★ Top holder ${short(champ.a)} — ${champ.n} AEON${champ.spx ? " · " + fmtSpx(champ.spx) + " SPX" : ""}, held ${champ.days}d</text>
+<text x="60" y="${HT - 92}" fill="#cbd5e1" font-size="22" font-family="${F}">★ Top holder ${esc(who(champ.a))} — ${champ.n} AEON${champ.spx ? " · " + fmtSpx(champ.spx) + " SPX" : ""}, held ${champ.days}d</text>
 <text x="60" y="${HT - 58}" fill="#94a3b8" font-size="20" font-family="${F}">${esc(maxSpx > 0 ? `${both} of the top wallets hold both AEON and SPX6900.` : `${holders.length} holders, reconstructed on-chain.`)}</text>
 <rect x="60" y="${HT - 34}" width="14" height="14" rx="3" fill="#f59e0b"/><text x="80" y="${HT - 22}" fill="#7c8a9e" font-size="17" font-family="${F}">newer</text>
 <rect x="150" y="${HT - 34}" width="14" height="14" rx="3" fill="#22d3ee"/><text x="170" y="${HT - 22}" fill="#7c8a9e" font-size="17" font-family="${F}">held since mint · on-chain</text>

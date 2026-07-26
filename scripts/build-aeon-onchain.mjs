@@ -161,6 +161,16 @@ function main() {
     .slice(0, 500);   // skyline shows the top slice; the site can filter (e.g. exclude single-NFT wallets)
   if (spxArg) console.log(`  spx: joined coin balances for ${holders.filter(h => h.spx).length}/${holders.length} skyline wallets · biggest ${Math.max(...holders.map(h => h.spx || 0)).toLocaleString()} SPX`);
 
+  // ENS names, from the cache scripts/build-ens.mjs maintains. Joined onto the top slice
+  // only — those are the wallets any surface actually displays — so the skyline hover and
+  // the champion line can name a wallet instead of showing a hex stub.
+  let ensHit = 0;
+  try {
+    const names = JSON.parse(readFileSync("public/ens.json", "utf8")).names || {};
+    for (const h of holders) { const n = names[h.a]; if (n) { h.ens = n; ensHit++; } }
+  } catch { /* no cache yet — the field is simply absent */ }
+  if (ensHit) console.log(`  ens: named ${ensHit}/${holders.length} skyline wallets`);
+
   const out = {
     updated: new Date(now).toISOString().slice(0, 10),
     contract: "0xc374a204334d4edd4c6a62f0867c752d65e9579c",
