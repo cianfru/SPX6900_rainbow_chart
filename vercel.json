@@ -1,23 +1,69 @@
 {
   "functions": {
-    "api/og.js": { "includeFiles": "{scripts/bot/**,public/history.json,public/onchain.json,public/chain-wallets.json,public/cex-flow.json,public/freefloat-peers.json,public/rotation-excludes.json,public/aeon-*.json}" },
-    "api/recap.js": { "includeFiles": "{scripts/bot/**,public/history.json,public/onchain.json,public/chain-wallets.json,public/cex-flow.json,public/freefloat-peers.json,public/rotation-excludes.json}" },
-    "api/agent.js": { "includeFiles": "{scripts/bot/**,public/history.json,public/onchain.json,public/chain-wallets.json,public/cex-flow.json,public/freefloat-peers.json,public/rotation-excludes.json}" }
+    "api/og.js": {
+      "includeFiles": "{scripts/bot/**,public/history.json,public/onchain.json,public/chain-wallets.json,public/cex-flow.json,public/freefloat-peers.json,public/rotation-excludes.json,public/aeon-*.json}"
+    },
+    "api/recap.js": {
+      "includeFiles": "{scripts/bot/**,public/history.json,public/onchain.json,public/chain-wallets.json,public/cex-flow.json,public/freefloat-peers.json,public/rotation-excludes.json}"
+    },
+    "api/agent.js": {
+      "includeFiles": "{scripts/bot/**,public/history.json,public/onchain.json,public/chain-wallets.json,public/cex-flow.json,public/freefloat-peers.json,public/rotation-excludes.json}"
+    }
   },
   "headers": [
     {
-      "source": "/(index.html)?",
-      "headers": [{ "key": "Cache-Control", "value": "public, max-age=0, s-maxage=0, must-revalidate" }]
+      "source": "/",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, s-maxage=0, must-revalidate"
+        }
+      ]
+    },
+    {
+      "source": "/index.html",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, s-maxage=0, must-revalidate"
+        }
+      ]
     },
     {
       "source": "/(.*\\.(?:html|json))",
-      "headers": [{ "key": "Cache-Control", "value": "public, max-age=0, s-maxage=0, must-revalidate" }]
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, s-maxage=0, must-revalidate"
+        }
+      ]
+    },
+    {
+      "source": "/assets/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
     }
   ],
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api/$1" },
-    { "source": "/share", "destination": "/api/share" },
-    { "source": "/control", "destination": "/control.html" },
-    { "source": "/(.*)", "destination": "/index.html" }
+    {
+      "source": "/api/(.*)",
+      "destination": "/api/$1"
+    },
+    {
+      "source": "/share",
+      "destination": "/api/share"
+    },
+    {
+      "source": "/control",
+      "destination": "/control.html"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
   ]
 }

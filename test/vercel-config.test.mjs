@@ -55,9 +55,21 @@ test("the HTML shell and runtime JSON are not left cacheable at the edge", () =>
   // while every deploy reports success. max-age alone does not prevent it — the CDN obeys
   // s-maxage, so that is the property worth asserting.
   const rules = cfg.headers || [];
-  const shell = rules.find(r => r.source === "/(index.html)?");
-  assert.ok(shell, "expected a Cache-Control rule covering the HTML shell");
+  // Explicitly "/" — a "/(index.html)?" pattern was tried first and did NOT match the bare
+  // root on Vercel, so control.html got the rule and the one page that matters most did not.
+  const shell = rules.find(r => r.source === "/");
+  assert.ok(shell, "expected a Cache-Control rule on the bare / path");
   const cc = shell.headers.find(h => h.key.toLowerCase() === "cache-control");
   assert.ok(cc, "the shell rule must set Cache-Control");
   assert.match(cc.value, /s-maxage=0/, "the shell must set s-maxage=0 or the CDN can serve it stale");
+});
+
+test("content-hashed assets stay cacheable", () => {
+  // The other half of getting caching right: /assets/* filenames change whenever the bytes
+  // do, so caching them forever is free correctness. Without this they were being served
+  // max-age=0 and refetched on every load.
+  const a = (cfg.headers || []).find(r => r.source.startsWith("/assets/"));
+  assert.ok(a, "expected an /assets/* Cache-Control rule");
+  const cc = a.headers.find(h => h.key.toLowerCase() === "cache-control");
+  assert.match(cc.value, /immutable/, "hashed assets should be immutable");
 });
