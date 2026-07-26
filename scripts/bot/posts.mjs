@@ -20,6 +20,7 @@ import { spxBitcoinStats } from "./spx-bitcoin-card.mjs";
 import { chainRaceData } from "./multichain-card.mjs";
 import { BTC_HODL } from "../../src/btc-hodl-waves.js";
 import { spxLiquidity, btcIlliquid } from "../../src/liquidity.js";
+import { wealthWavesStats } from "./wealth-waves-card.mjs";
 
 // --- owner-editable post copy ---------------------------------------------
 // EVERY card's tweet text is owner-editable from the control panel. Cards wrap
@@ -943,6 +944,22 @@ Supply sitting still tells you nothing about who is holding it.`,
 Of those ${(a[4] - b[4]).toFixed(0)} points, ${(b[2] - a[2]).toFixed(0)} landed in 10k-100k wallets and ${(b[3] - a[3]).toFixed(0)} in 100k-1M. Under 1k took ${(b[0] - a[0]).toFixed(1)}.
 Supply walked down the ladder. It did not scatter into dust.`,
       card: { type: "walletwaves" },
+    };
+  })(),
+
+  // The same wallets, priced. Deliberately a HEADCOUNT per dollar bracket rather than a
+  // share of supply: brackets of supply would be ~83% the coin's 150× price move dressed
+  // up as redistribution. How many wallets are worth over $100k is honestly a price story
+  // and reads as one.
+  s => (s.onchain?.length >= 50) && (() => {
+    const S = wealthWavesStats(s);
+    if (!S) return null;
+    return {
+      id: "wealthwaves",
+      text: ct`💰 ${S.nowRich.toLocaleString("en-US")} SPX6900 wallets are worth over $100k today. At the ${S.peakMonth} top, ${S.peakRich.toLocaleString("en-US")} were.
+Wallets over $10k went ${S.peakOver10k.toLocaleString("en-US")} to ${S.nowOver10k.toLocaleString("en-US")} across the same stretch, out of ${S.now.n.toLocaleString("en-US")} holders.
+The ladder is the same. The rungs moved with the price.`,
+      card: { type: "wealthwaves" },
     };
   })(),
 
@@ -2066,7 +2083,7 @@ const LOOK = {
   whatnext: "race",
   // — Tier B: flavourful / distinct looks (used to break up the green lines) —
   riskcolor: "colorline", risklevels: "colorline", rsidots: "colorline",
-  riskheat: "dual", runningroi: "dual", cycle: "dual", longshort: "dual", underwater: "dual", goldencross: "dual", holdergrowth: "dual", holdersprice: "dual", mvrvbtc: "dual", mvrvtrend: "dual", supplyprofit: "dual", whales: "dual", walletwaves: "stack", floormodel: "dual", altmarket: "dual", freefloat: "dual", nupl: "dual", concentration: "dual", picycle: "dual", spxbitcoin: "dual", spxcohort: "dual", cexflow: "dual", cexsupply: "stack", sopr: "dual",
+  riskheat: "dual", runningroi: "dual", cycle: "dual", longshort: "dual", underwater: "dual", goldencross: "dual", holdergrowth: "dual", holdersprice: "dual", mvrvbtc: "dual", mvrvtrend: "dual", supplyprofit: "dual", whales: "dual", walletwaves: "stack", wealthwaves: "stack", floormodel: "dual", altmarket: "dual", freefloat: "dual", nupl: "dual", concentration: "dual", picycle: "dual", spxbitcoin: "dual", spxcohort: "dual", cexflow: "dual", cexsupply: "stack", sopr: "dual",
   firesalerally: "fanlines",
   model: "scatter",
   monthlyreturns: "heatmap", monthlyreturnssp: "heatmap", monthlyreturnsbtc: "heatmap",

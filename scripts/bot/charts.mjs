@@ -20,6 +20,7 @@ import { renderMvrvTrendCard } from "./mvrv-trend-card.mjs";
 import { renderSupplyProfitCard } from "./supply-profit-card.mjs";
 import { renderWhalesCard } from "./whales-card.mjs";
 import { renderWalletWavesCard } from "./wallet-waves-card.mjs";
+import { renderWealthWavesCard } from "./wealth-waves-card.mjs";
 import { renderFloorModelCard } from "./floor-model-card.mjs";
 import { renderAltOscCard } from "./alt-osc-card.mjs";
 import { renderFreeFloatCard } from "./free-float-card.mjs";
@@ -867,8 +868,29 @@ export function renderDcaLadder(spec, opts = {}) {
   return chrome(spec, svg, defs, { W: DW, H: DH });
 }
 
+// Every card type the dispatch below knows. It exists because the dispatch ENDS in a
+// fallthrough to the generic line card, so a typo in a post's `card.type` used to
+// render a blank chart rather than fail — and the guard against that was a hand-copied
+// whitelist in the test suite, which drifted the moment a card was added. Derived from
+// the dispatch instead: unknown types throw, here and in production, immediately.
+export const CARD_TYPES = new Set([
+  "rainbow", "channel", "riskcolor", "risklevels", "riskheat", "runningroi", "longshort",
+  "firesalerally", "underwater", "goldencross", "holdergrowth", "multichain", "chainrace",
+  "holderspair", "mvrvbtc", "mvrvtrend", "supplyprofit", "floormodel", "altmarket",
+  "freefloat", "nupl", "concentration", "hodlwaves", "hodlcompare", "urpd", "urpdage",
+  "lthsth", "sopr", "valband", "walletgrowth", "picycle", "spxbitcoin", "spxcohort",
+  "cexsupply", "cexflow", "cexvenues", "cexvenflow", "whales", "walletwaves", "wealthwaves",
+  "cyclesync", "cycleclock", "rsidots", "monthcompare",
+  // spec-driven generics
+  "line", "bar", "mbars", "donut", "stack", "model", "cube", "scale", "gauge", "fngdial",
+  "heatmap", "dca", "dcaladder", "statgrid", "kraken",
+]);
+
 export function renderPostCard(post, stats, opts = {}) {
   const { type, spec } = post.card;
+  if (type != null && !CARD_TYPES.has(type)) {
+    throw new Error(`unknown card type "${type}" — add it to CARD_TYPES and the dispatch in charts.mjs`);
+  }
   // Portrait for the supported cards; otherwise landscape — 3:2 by default, but a
   // caller (the OG link-unfurl endpoint) can pass opts.landscape={W,H} to render
   // the same card at another size (e.g. 1.91:1 so X doesn't crop shared links).
@@ -893,6 +915,7 @@ export function renderPostCard(post, stats, opts = {}) {
   if (type === "supplyprofit") return renderSupplyProfitCard(stats, dims);
   if (type === "whales") return renderWhalesCard(stats, dims);
   if (type === "walletwaves") return renderWalletWavesCard(stats, dims);
+  if (type === "wealthwaves") return renderWealthWavesCard(stats, dims);
   if (type === "floormodel") return renderFloorModelCard(stats, dims);
   if (type === "altmarket") return renderAltOscCard(stats, dims);
   if (type === "freefloat") return renderFreeFloatCard(stats, dims);

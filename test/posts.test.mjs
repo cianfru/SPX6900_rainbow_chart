@@ -3,9 +3,11 @@
 // can't draw — without needing network or X credentials.
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { DEFAULT_RAW } from "../src/data.js";
 import { computeStats } from "../scripts/bot/stats.mjs";
 import { buildPost, allIds, LONGFORM } from "../scripts/bot/posts.mjs";
+import { CARD_TYPES } from "../scripts/bot/charts.mjs";
 
 const last = DEFAULT_RAW.at(-1);
 const stats = computeStats(last.price, last.date);
@@ -45,7 +47,8 @@ test("every available post builds non-empty text + a renderable card", () => {
     assert.equal(typeof p.text, "string");
     assert.ok(p.text.trim().length > 0 && p.text.length < 4000, `text length sane for ${id}`);
     assert.ok(p.text.includes("#spx6900"), `branded footer present for ${id}`);
-    assert.ok(p.card && ["rainbow", "channel", "riskcolor", "risklevels", "riskheat", "runningroi", "longshort", "firesalerally", "underwater", "goldencross", "holdergrowth", "multichain", "chainrace", "holderspair", "mvrvbtc", "mvrvtrend", "supplyprofit", "floormodel", "altmarket", "freefloat", "nupl", "concentration", "hodlwaves", "hodlcompare", "urpd", "urpdage", "lthsth", "sopr", "valband", "walletgrowth", "picycle", "spxbitcoin", "spxcohort", "cexsupply", "cexflow", "cexvenues", "cexvenflow", "cyclesync", "cycleclock", "rsidots", "monthcompare", "line", "bar", "mbars", "donut", "stack", "model", "cube", "scale", "gauge", "fngdial", "heatmap", "dca", "dcaladder", "kraken"].includes(p.card.type), `valid card type for ${id}`);
+    // CARD_TYPES comes from charts.mjs, so adding a card cannot leave this list stale.
+    assert.ok(p.card && CARD_TYPES.has(p.card.type), `valid card type for ${id} (got "${p.card?.type}")`);
   }
 });
 
@@ -101,4 +104,18 @@ test("bullish cards are weighted to appear more often than neutral ones", () => 
   assert.equal(count.drawdown || 0, 0, "drawdown is excluded from the daily rotation");
   assert.equal(count.risk || 0, 0, "risk is excluded from the daily rotation");
   assert.equal(count.riskdial || 0, 0, "riskdial is removed entirely");
+});
+
+test("CARD_TYPES stays in step with the dispatch it guards", () => {
+  // The set is hand-written but the dispatch is the truth, so read the source and
+  // check them against each other. A card wired into charts.mjs but left out of the
+  // set would throw at render time in production; this catches it in CI instead.
+  const src = readFileSync("scripts/bot/charts.mjs", "utf8");
+  const dispatched = [...src.matchAll(/if \(type === "([a-z0-9]+)"\)/g)].map(m => m[1]);
+  assert.ok(dispatched.length > 40, "the dispatch regex still matches");
+  const missing = dispatched.filter(t => !CARD_TYPES.has(t));
+  assert.deepEqual(missing, [], `dispatched but missing from CARD_TYPES: ${missing.join(", ")}`);
+  // "line" is the fallthrough default and so is never dispatched by name.
+  const orphan = [...CARD_TYPES].filter(t => t !== "line" && !dispatched.includes(t));
+  assert.deepEqual(orphan, [], `in CARD_TYPES but nothing renders them: ${orphan.join(", ")}`);
 });
