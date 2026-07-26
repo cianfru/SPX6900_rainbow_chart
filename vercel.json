@@ -30,6 +30,15 @@
       ]
     },
     {
+      "source": "/control",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, s-maxage=0, must-revalidate"
+        }
+      ]
+    },
+    {
       "source": "/(.*\\.(?:html|json))",
       "headers": [
         {

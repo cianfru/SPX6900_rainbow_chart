@@ -64,6 +64,17 @@ test("the HTML shell and runtime JSON are not left cacheable at the edge", () =>
   assert.match(cc.value, /s-maxage=0/, "the shell must set s-maxage=0 or the CDN can serve it stale");
 });
 
+test("the /control panel is not left cacheable at the edge", () => {
+  // The control panel is served via the `/control` rewrite, which ends in neither .html nor
+  // .json — so the generic HTML/JSON no-cache rule does NOT match it. Without its own rule the
+  // edge held /control for up to an hour, so newly added cards (e.g. the 3 newest Aeon cards)
+  // kept not showing. It needs an explicit /control rule.
+  const rule = (cfg.headers || []).find(r => r.source === "/control");
+  assert.ok(rule, "expected a Cache-Control rule on /control");
+  const cc = rule.headers.find(h => h.key.toLowerCase() === "cache-control");
+  assert.match(cc.value, /s-maxage=0/, "/control must set s-maxage=0 or the panel goes stale at the edge");
+});
+
 test("content-hashed assets stay cacheable", () => {
   // The other half of getting caching right: /assets/* filenames change whenever the bytes
   // do, so caching them forever is free correctness. Without this they were being served
