@@ -454,6 +454,25 @@
   data. (2) **Cost-basis distribution / URPD** histogram ("where the bags are") — flagship, from FIFO per-lot cost. (3)
   **FIFO LTH/STH profit-loss** — SQL already drafted + engine emits the fields. (4) **SOPR** — spent-output profit ratio,
   needs the FIFO engine to track spends. All SPX-native, all reconstructable, none gated. Build these for the Cowen-deep feel.
+- **✅ NRPL + LIVELINESS/DORMANCY SHIPPED 2026-07-26 (CoreCharts gap-fill — owner: "nothing to lose").** Looked at
+  corecharts.com (a checkonchain-style BTC on-chain terminal) for metrics we DIDN'T have. Verdict: we already match most
+  (MVRV/MVRV-Z/NUPL/SOPR/realized price/supply-in-profit/HODL waves/URPD/concentration/exchange flows). The genuine gaps,
+  all pure transforms of what the FIFO engine already replays: **Net Realized Profit/Loss** (we had SOPR the ratio, not the
+  dollar magnitude) and the **coin-days family** (had none). Built off `build-onchain-local.mjs`:
+  - **Engine:** `consume()` now also returns realized profit/loss (split per lot — one spend can eat lots above AND below
+    the send price) + coin-days destroyed (qty × lot age). Per weekly window it emits `nrplProfit`/`nrplLoss`/`nrpl` (USD),
+    `cdd`, `dormancy` (avg age of moved coins); `snapshot()` sums still-alive `coinDays` so `liveliness = cumCDD ÷ (cumCDD +
+    coinDays)` — no second pass. Hand-verified + unit-tested (`test/onchain-local.test.mjs`: profit/loss split, coin-days
+    math, nothing-moved null). All fields flow straight into onchain.json (main writes the rows verbatim).
+  - **Cards** (`nrpl-card.mjs` diverging green/red bars around zero; `liveliness-card.mjs` a 0-1 line, rising=distribution/
+    falling=accumulation) — `NO_ROTATE` hand-postable like sopr (techy), wired charts/posts/LOOK/card-ar, copy ≤290,
+    render-verified landscape+portrait. **Site charts** `NrplChart.jsx` + `LivelinessChart.jsx` (On-Chain group, recharts,
+    drag-zoom, `<Explain>`) — catalog + App + METHOD_FAMILIES(04); build clean, browser-verified (graceful data-gated state).
+  - **🔲 DATA-GATED until the next reconstruction:** the LIVE onchain.json + the bundle predate these fields, so cards/charts
+    show empty until `onchain-dune.yml` runs the engine again (weekly Mon, or dispatch it). Owner validates the real numbers
+    then (NRPL magnitudes, liveliness ~0.4-0.6). The archive is a private release asset so it couldn't be regenerated in-sandbox.
+  - **Considered + skipped as off-moat:** active addresses (noisy on a thin token), SMA50/200 · Bollinger · Mayer (generic TA;
+    we already have riskheat/riskcolor). Possible follow-up: STH/LTH realized-price cost-basis LINES (cohort support levels).
 - **✅ NUPL CARD SHIPPED 2026-07-17 — the immediate no-wall win.** `scripts/bot/nupl-card.mjs` (type `nupl`, LOOK "dual",
   data-gated `mvrvSeries.length>=100`). Net Unrealized Profit/Loss = (mcap−rcap)/mcap = **1 − 1/MVRV** → a PURE TRANSFORM
   of `stats.mvrvSeries` (no new Dune, no paywall). Classic Glassnode/ITC sentiment oscillator with capitulation→hope→

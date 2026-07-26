@@ -69,6 +69,8 @@ const UrpdChart = lazy(() => import("./UrpdChart.jsx"));
 const UrpdAgeChart = lazy(() => import("./UrpdAgeChart.jsx"));
 const LthSthChart = lazy(() => import("./LthSthChart.jsx"));
 const SoprChart = lazy(() => import("./SoprChart.jsx"));
+const NrplChart = lazy(() => import("./NrplChart.jsx"));
+const LivelinessChart = lazy(() => import("./LivelinessChart.jsx"));
 const CexSupplyChart = lazy(() => import("./CexSupplyChart.jsx"));
 const CexFlowChart = lazy(() => import("./CexFlowChart.jsx"));
 const CexVenuesChart = lazy(() => import("./CexVenuesChart.jsx"));
@@ -202,6 +204,8 @@ function TabIcon({ name }) {
     case "urpdage": return (<svg {...p}><rect x="3" y="4" width="18" height="16" rx="1" /><path d="M9 4v16M15 4v16M3 9.3h18M3 14.6h18" strokeOpacity="0.7" /></svg>);
     case "lthsth": return (<svg {...p}><path d="M3 20h18" /><path d="M3 20V13c4 0 5-4 9-4s5 3 9 3v8z" strokeOpacity="0.55" /><path d="M3 20v-3c4 0 5-2 9-2s5 1 9 1v4z" /></svg>);
     case "sopr": return (<svg {...p}><path d="M3 14c2 0 3-6 5-6s2 8 4 8 3-9 5-9 2 5 4 5" /><line x1="3" y1="11" x2="21" y2="11" strokeDasharray="3 2" strokeOpacity="0.7" /></svg>);
+    case "nrpl": return (<svg {...p}><line x1="3" y1="12" x2="21" y2="12" /><rect x="5" y="6" width="3" height="6" /><rect x="10" y="12" width="3" height="5" /><rect x="15" y="8" width="3" height="4" /></svg>);
+    case "liveliness": return (<svg {...p}><path d="M3 12h3l2-5 3 10 2-7 2 4h5" /></svg>);
     case "cexsupply": return (<svg {...p}><path d="M3 20V15c4 0 5-2 9-2s5 1 9 1v6z" strokeOpacity="0.55" /><path d="M3 20v-3c4 0 5-6 9-6s5 4 9 4v5z" /><path d="M3 20h18" /></svg>);
     case "cexflow": return (<svg {...p}><line x1="3" y1="12" x2="21" y2="12" strokeDasharray="3 2" strokeOpacity="0.7" /><path d="M5 9v-3M5 6l-2 2M5 6l2 2" /><path d="M12 15v3M12 18l-2-2M12 18l2-2" /><path d="M19 9v-3M19 6l-2 2M19 6l2 2" /></svg>);
     case "cexvenues": return (<svg {...p}><path d="M3 20v-4c4 0 5-1 9-1s5 1 9 1v4z" strokeOpacity="0.5" /><path d="M3 20v-7c4 0 5-2 9-2s5 1 9 1v8z" strokeOpacity="0.8" /><path d="M3 20v-10c4 0 5 1 9 1s5-2 9-2v11z" /></svg>);
@@ -634,6 +638,8 @@ export default function App() {
       case "urpdage": return <UrpdAgeChart isMobile={mob} preview={preview} price={last?.price} />;
       case "lthsth": return <LthSthChart isMobile={mob} preview={preview} />;
       case "sopr": return <SoprChart isMobile={mob} preview={preview} />;
+      case "nrpl": return <NrplChart isMobile={mob} preview={preview} />;
+      case "liveliness": return <LivelinessChart isMobile={mob} preview={preview} />;
       case "cexsupply": return <CexSupplyChart isMobile={mob} preview={preview} />;
       case "cexflow": return <CexFlowChart isMobile={mob} preview={preview} />;
       case "cexvenues": return <CexVenuesChart isMobile={mob} preview={preview} />;
