@@ -134,6 +134,25 @@ export default function LandingPage({ isMobile, priceData }) {
     return { price, mc: MONf(price * SUPPLY), when: hit?.dt ? fMonYr(hit.dt) : "beyond model" };
   }), [m]);
 
+  // "What this band has meant" — how price has historically behaved from the current band:
+  // share of life in it, forward 90-day return distribution, and how long a typical visit lasts.
+  const bandStats = useMemo(() => {
+    const pts = px.filter(p => p.price > 0);
+    const bands = pts.map(p => bandIndex(m, p.price, dayN(new Date(p.date))));
+    const med = arr => { if (!arr.length) return null; const s = [...arr].sort((a, b) => a - b), h = s.length >> 1; return s.length % 2 ? s[h] : (s[h - 1] + s[h]) / 2; };
+    let inBand = 0; const runs = []; let run = 0;
+    for (let i = 0; i < pts.length; i++) { if (bands[i] === bIdx) { inBand++; run++; } else { if (run) runs.push(run); run = 0; } }
+    if (run) runs.push(run);
+    const rets = [];
+    for (let i = 0; i < pts.length; i++) {
+      if (bands[i] !== bIdx) continue;
+      const target = Date.parse(pts[i].date) + 90 * 864e5; let j = i;
+      while (j < pts.length && Date.parse(pts[j].date) < target) j++;
+      if (j < pts.length) rets.push(pts[j].price / pts[i].price - 1);
+    }
+    return { share: pts.length ? inBand / pts.length : 0, stay: med(runs), episodes: runs.length, medRet: med(rets), worstRet: rets.length ? Math.min(...rets) : null, n: rets.length };
+  }, [px, m, bIdx]);
+
   const fT = (v) => (v >= 1 ? `$${v}` : `$${v.toFixed(2)}`);
   const kicker = { fontFamily: MONO, fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", color: "#727d90" };
   const h2 = { fontSize: isMobile ? 22 : 26, fontWeight: 800, letterSpacing: "-0.02em" };
@@ -240,22 +259,44 @@ export default function LandingPage({ isMobile, priceData }) {
             : <div style={{ color: "#64748b", fontFamily: MONO, fontSize: 13, padding: "20px 0" }}>Loading history…</div>}
         </section>
 
-        {/* IF THE TREND HOLDS — real crossing dates */}
+        {/* BOTTOM — trend targets (left) + what this band has meant (right) */}
         <section style={{ borderTop: "1px solid #1b1f29", paddingTop: 30, marginTop: 44 }}>
-          <div style={{ fontSize: isMobile ? 20 : 22, fontWeight: 800, letterSpacing: "-0.02em" }}>If the trend holds</div>
-          <div style={sub}>When the frozen centre line reaches each target — extrapolation, not a forecast</div>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: MONO, fontSize: 14, maxWidth: 520 }}>
-            <thead><tr>{["Target", "Market cap", "Centre line"].map((h, i) => (
-              <th key={i} style={{ textAlign: i ? "right" : "left", fontWeight: 400, fontSize: 10, letterSpacing: "0.12em", textTransform: "uppercase", color: "#727d90", padding: "0 0 10px", borderBottom: "1px solid #1b1f29" }}>{h}</th>
-            ))}</tr></thead>
-            <tbody>{targets.map((t, i) => (
-              <tr key={i}>
-                <td style={{ padding: "11px 0", borderBottom: "1px solid #1b1f29", color: "#f3f5f8", fontSize: 15 }}>${t.price.toFixed(2)}</td>
-                <td style={{ padding: "11px 0", borderBottom: "1px solid #1b1f29", textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{t.mc}</td>
-                <td style={{ padding: "11px 0", borderBottom: "1px solid #1b1f29", textAlign: "right", color: "#aeb7c6" }}>{t.when}</td>
-              </tr>
-            ))}</tbody>
-          </table>
+          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: isMobile ? 36 : 52 }}>
+            <div>
+              <div style={{ fontSize: isMobile ? 20 : 22, fontWeight: 800, letterSpacing: "-0.02em" }}>If the trend holds</div>
+              <div style={sub}>Dates the centre line crosses each target — extrapolation, not a forecast</div>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: MONO, fontSize: 14 }}>
+                <thead><tr>{["Target", "Market cap", "Centre line"].map((h, i) => (
+                  <th key={i} style={{ textAlign: i ? "right" : "left", fontWeight: 400, fontSize: 10, letterSpacing: "0.12em", textTransform: "uppercase", color: "#727d90", padding: "0 0 10px", borderBottom: "1px solid #1b1f29" }}>{h}</th>
+                ))}</tr></thead>
+                <tbody>{targets.map((t, i) => (
+                  <tr key={i}>
+                    <td style={{ padding: "12px 0", borderBottom: "1px solid #1b1f29", color: "#f3f5f8", fontSize: 15 }}>${t.price.toFixed(2)}</td>
+                    <td style={{ padding: "12px 0", borderBottom: "1px solid #1b1f29", textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{t.mc}</td>
+                    <td style={{ padding: "12px 0", borderBottom: "1px solid #1b1f29", textAlign: "right", color: "#aeb7c6" }}>{t.when}</td>
+                  </tr>
+                ))}</tbody>
+              </table>
+            </div>
+            <div>
+              <div style={{ fontSize: isMobile ? 20 : 22, fontWeight: 800, letterSpacing: "-0.02em" }}>What this band has meant</div>
+              <div style={sub}>Described, not prescribed — how price has behaved from the {band.l} band, historically</div>
+              {[
+                ["Share of life in this band", `${(bandStats.share * 100).toFixed(0)}%`, "#f3f5f8"],
+                ["Median 90-day return", bandStats.medRet != null ? `${bandStats.medRet >= 0 ? "+" : ""}${(bandStats.medRet * 100).toFixed(0)}%` : "—", bandStats.medRet >= 0 ? "#25e07d" : "#ff5470"],
+                ["Worst 90-day return", bandStats.worstRet != null ? `${bandStats.worstRet >= 0 ? "+" : ""}${(bandStats.worstRet * 100).toFixed(0)}%` : "—", bandStats.worstRet >= 0 ? "#25e07d" : "#ff5470"],
+                ["Typical stay", bandStats.stay != null ? `${Math.round(bandStats.stay)} days` : "—", "#f3f5f8"],
+              ].map(([k, v, c], i) => (
+                <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", padding: "12px 0", borderBottom: "1px solid #1b1f29", fontFamily: MONO }}>
+                  <span style={{ color: "#727d90", textTransform: "uppercase", letterSpacing: "0.08em", fontSize: 11 }}>{k}</span>
+                  <span style={{ color: c, fontSize: 15, fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>{v}</span>
+                </div>
+              ))}
+              <div style={{ fontFamily: MONO, fontSize: 10.5, color: "#5b6577", marginTop: 12, lineHeight: 1.6 }}>
+                {bandStats.episodes} stays across ~1 cycle of history — deep-band returns lean heavily on the launch recovery, so read them as description, not a repeatable edge.
+              </div>
+            </div>
+          </div>
         </section>
 
         <div style={{ marginTop: 34, fontFamily: MONO, fontSize: 10.5, letterSpacing: "0.06em", textTransform: "uppercase", color: "#4b5567", lineHeight: 1.7 }}>
