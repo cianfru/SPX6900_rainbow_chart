@@ -9,7 +9,7 @@ import BtcAnalogExplorer from './BtcAnalogExplorer.jsx'
 // answered from the console without a round trip, and matched against /version.json.
 if (typeof __BUILD__ !== 'undefined') {
   const b = __BUILD__
-  console.log(`%c SPX6900 %c build ${b.sha} · ${b.ref} · ${b.builtAt} `,
+  console.log(`%c SPX6900 %c build ${b.sha} · ${b.ref} `,
     'background:#818cf8;color:#0b0b18;font-weight:700;border-radius:3px 0 0 3px',
     'background:#1e293b;color:#cbd5e1;border-radius:0 3px 3px 0')
   window.__BUILD__ = b

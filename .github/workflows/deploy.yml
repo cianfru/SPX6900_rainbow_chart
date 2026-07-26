@@ -67,3 +67,23 @@ jobs:
         run: vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN"
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+
+      - name: Verify the live domain is serving this commit
+        # A green deploy step only proves Vercel accepted the upload. It does not prove the
+        # production alias moved, and "the site is stale while the deploy says success" has
+        # come up more than once. The build stamps its commit into /version.json, so this
+        # asks the real domain what it is serving and fails if it is not this build —
+        # turning a silent alias problem into a red X instead of a puzzle days later.
+        run: |
+          WANT="${GITHUB_SHA:0:7}"
+          echo "expecting sha $WANT at https://spx6900rainbow.xyz/version.json"
+          for i in $(seq 1 12); do
+            GOT=$(curl -fsS --max-time 10 "https://spx6900rainbow.xyz/version.json?cb=$RANDOM" 2>/dev/null \
+                  | sed -n 's/.*"sha": *"\([^"]*\)".*/\1/p')
+            if [ "$GOT" = "$WANT" ]; then echo "✓ live domain is serving $GOT"; exit 0; fi
+            echo "  attempt $i: live=${GOT:-<none>} want=$WANT — waiting"
+            sleep 10
+          done
+          echo "::error::The deploy succeeded but https://spx6900rainbow.xyz is still serving '${GOT:-<nothing>}' instead of $WANT after ~2 minutes."
+          echo "The upload worked, so the alias or the edge cache is the suspect — check the Vercel dashboard for which deployment holds the production alias."
+          exit 1

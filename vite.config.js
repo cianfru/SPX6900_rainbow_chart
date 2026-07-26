@@ -28,7 +28,11 @@ function versionStamp() {
   const info = buildInfo();
   return {
     name: 'version-stamp',
-    config: () => ({ define: { __BUILD__: JSON.stringify(info) } }),
+    // sha + ref only in the DEFINE. builtAt changes on every run, and baking it into the
+    // bundle would change the content hash even when the code is byte-identical, so a
+    // redeploy of the same commit would needlessly bust every visitor's cached chunk.
+    // The timestamp still goes in version.json, which is not content-hashed.
+    config: () => ({ define: { __BUILD__: JSON.stringify({ sha: info.sha, ref: info.ref }) } }),
     generateBundle() {
       this.emitFile({ type: 'asset', fileName: 'version.json', source: JSON.stringify(info, null, 1) + '\n' });
     },
