@@ -72,8 +72,11 @@ export const FEEDS = [
   { file: "aeon-history.json", cadence: 2, by: "aeon.yml", what: "AEON floor and owners over time",
     window: 3, fields: ["floor", "owners"] },
   { file: "aeon-onchain.json", cadence: 3, by: "aeon.yml", what: "AEON ownership, holder age, concentration",
-    // not `held` — AEON is a fixed 3,333 supply, so a constant there is correct, not frozen.
-    window: 6, fields: ["owners", "dist", "age", "top10"], nonEmpty: ["holders"] },
+    // Not `held` (AEON is a fixed 3,333 supply) and not `top10` (checked: the same ten
+    // wallets have held 17.56% for ten straight weeks — real, they simply have not
+    // traded). `owners` moves every week, so it proves liveness without a standing warn
+    // that would train us to ignore this row.
+    window: 6, fields: ["owners", "dist", "age"], nonEmpty: ["holders"] },
   { file: "aeon-market.json", cadence: 3, by: "aeon.yml", what: "AEON MVRV, URPD, fair value, deals",
     require: ["floor", "levelNow"], nonEmpty: ["urpd", "salesScatter", "biggest", "traitPremiums"] },
   { file: "aeon-sales.json", cadence: 3, by: "aeon.yml", what: "AEON marketplace trades",
