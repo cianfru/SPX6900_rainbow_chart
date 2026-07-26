@@ -293,6 +293,21 @@ function snapshot(wallets, sTs, spot, thr) {
     let i = 0; while (i < TIER_EDGES.length && b >= TIER_EDGES[i]) i++;
     tierTok[i] += b;
   }
+  // The same wallets binned by what they were WORTH that week, in dollars. Deliberately
+  // HEADCOUNT, not share of supply: a dollar band's share of supply is ~85% just the coin
+  // price moving (measured — hold the price fixed and only 17% of the movement survives),
+  // which would dress a price chart up as a distribution chart. How many wallets sit in
+  // each bracket is the honest question the dollar axis can answer, and it is the one
+  // people actually ask.
+  const USD_EDGES = [100, 1e3, 1e4, 1e5];           // <$100 · $100-1k · $1k-10k · $10k-100k · $100k+
+  const wealthN = new Array(USD_EDGES.length + 1).fill(0);
+  if (spot != null && spot > 0) {
+    for (const b of bals) {
+      const usd = b * spot;
+      let i = 0; while (i < USD_EDGES.length && usd >= USD_EDGES[i]) i++;
+      wealthN[i]++;
+    }
+  }
   const pct = q => held > 0 ? +(100 * q / held).toFixed(2) : 0;
   const rp = held > 0 ? rcap / held : 0;
   return {
@@ -302,6 +317,8 @@ function snapshot(wallets, sTs, spot, thr) {
     whaleN: whales.length,
     whalePct: held > 0 ? +(100 * whales.reduce((a, b) => a + b, 0) / held).toFixed(2) : 0,
     tiers: tierTok.map(v => (held > 0 ? +(100 * v / held).toFixed(2) : 0)),
+    wealth: wealthN,                                  // wallet COUNT per USD bracket
+
     gini: +gini(bals).toFixed(4),
     age: age.map(pct),
     holders: bals.length,

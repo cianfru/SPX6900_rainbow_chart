@@ -58,6 +58,14 @@ jobs:
         # Recomputes the weighted valuation composite from today's stats → public/valuation.json.
         # Pure transform of already-banked data (price + on-chain + sentiment). Keyless, zero cost.
         run: node scripts/build-valuation.mjs
+      - name: Audit every feed (field-level, not just file dates)
+        # The failure that actually happens is a green workflow writing a file whose
+        # date looks perfect while one field inside it stopped arriving — cexBal was
+        # null for 53 straight days that way. This checks the fields the cards read,
+        # every day, and banks the verdict for the control panel. Never blocks the
+        # snapshot: a late upstream should not stop today's price from being recorded.
+        continue-on-error: true
+        run: node scripts/audit-feeds.mjs --warn --out=public/feed-health.json
       - name: Commit if changed
         id: commit
         run: |
@@ -65,10 +73,10 @@ jobs:
           # card, so a change to either must redeploy. signals.json is deploy-ignored.
           DEPLOY_CHANGED=""
           [[ -n "$(git status --porcelain public/history.json public/chain-wallets.json public/cex-flow.json public/valuation.json)" ]] && DEPLOY_CHANGED=1
-          if [[ -n "$(git status --porcelain public/history.json public/signals.json public/chain-wallets.json public/cex-flow.json public/valuation.json)" ]]; then
+          if [[ -n "$(git status --porcelain public/history.json public/signals.json public/chain-wallets.json public/cex-flow.json public/valuation.json public/feed-health.json)" ]]; then
             git config user.name "github-actions[bot]"
             git config user.email "github-actions[bot]@users.noreply.github.com"
-            git add public/history.json public/signals.json public/chain-wallets.json public/cex-flow.json public/valuation.json
+            git add public/history.json public/signals.json public/chain-wallets.json public/cex-flow.json public/valuation.json public/feed-health.json
             git commit -m "chore: supply snapshot $(date -u +%F)"
             git push
           else
