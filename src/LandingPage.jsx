@@ -56,17 +56,18 @@ function StripPlot({ axes, byAxis, composite, isMobile }) {
 }
 
 // ── valuation band history — the composite over time (its own chart) ─────────────────────────
-function BandHistory({ series, zones, isMobile }) {
+// Coloured with the rainbow's OWN band palette (BAND_LABELS, Fire Sale bottom → Max Bubble top),
+// so the composite band history reads as the same instrument as the rainbow, not a separate scale.
+function BandHistory({ series, isMobile }) {
   const data = useMemo(() => (series || []).map(([ts, v]) => ({ ts, v })).filter(r => Number.isFinite(r.ts) && Number.isFinite(r.v)), [series]);
   if (data.length < 2) return <div style={{ color: "#64748b", fontFamily: MONO, fontSize: 13, padding: "20px 0" }}>Loading history…</div>;
   const yr = (ts) => new Date(ts).getUTCFullYear();
   const xT = []; for (let y = yr(data[0].ts); y <= yr(data.at(-1).ts); y++) xT.push(Date.UTC(y, 0, 1));
-  let prev = 0;
   return (
     <ResponsiveContainer width="100%" height={isMobile ? 260 : 320}>
       <ComposedChart data={data} margin={{ top: 6, right: isMobile ? 8 : 16, bottom: 18, left: isMobile ? 0 : 8 }}>
         <CartesianGrid strokeDasharray="2 8" stroke="rgba(255,255,255,0.05)" vertical={false} />
-        {(zones || ZONES).map((z, i) => { const a = <ReferenceArea key={i} y1={prev} y2={z.max} fill={z.color} fillOpacity={0.12} stroke="none" />; prev = z.max; return a; })}
+        {BAND_LABELS.map((b, i) => (<ReferenceArea key={i} y1={i / 9} y2={(i + 1) / 9} fill={b.c} fillOpacity={0.42} stroke="none" />))}
         <XAxis dataKey="ts" type="number" scale="time" domain={["dataMin", "dataMax"]} ticks={xT}
           tickFormatter={yr} tick={{ fill: "#94a3b8", fontSize: 11, fontFamily: MONO }} axisLine={{ stroke: "rgba(255,255,255,0.12)" }} tickLine={false} />
         <YAxis type="number" domain={[0, 1]} ticks={[0, 0.25, 0.5, 0.75, 1]} tickFormatter={v => `${v * 100}`}
@@ -234,8 +235,8 @@ export default function LandingPage({ isMobile, priceData }) {
         {/* VALUATION BAND HISTORY — the composite over time */}
         <section style={{ borderTop: "1px solid #1b1f29", paddingTop: 30, marginTop: 44 }}>
           <div style={h2}>Valuation band history</div>
-          <div style={sub}>The composite over time — 0 = the cheapest it's been, 100 = the dearest · green low, red high</div>
-          {val && val.series ? <BandHistory series={val.series} zones={val.zones} isMobile={isMobile} />
+          <div style={sub}>The composite over time — 0 = the cheapest it's been, 100 = the dearest · coloured by the rainbow bands, Fire Sale to Max Bubble</div>
+          {val && val.series ? <BandHistory series={val.series} isMobile={isMobile} />
             : <div style={{ color: "#64748b", fontFamily: MONO, fontSize: 13, padding: "20px 0" }}>Loading history…</div>}
         </section>
 
