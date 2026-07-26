@@ -1152,6 +1152,35 @@ Behaviour, on-chain — not a signal.`,
     };
   })(),
 
+  // Net Realized Profit/Loss — the DOLLAR size of gains vs losses locked in when coins move
+  // (SOPR is the ratio; this is the magnitude). From the FIFO per-lot engine. Behaviour, not a signal.
+  s => (s.fifo?.length >= 50 && Number.isFinite(s.fifo.at(-1)?.nrpl)) && (() => {
+    const v = s.fifo.at(-1).nrpl, a = Math.abs(v);
+    const money = a >= 1e6 ? `$${(a / 1e6).toFixed(1)}M` : a >= 1e3 ? `$${(a / 1e3).toFixed(0)}k` : `$${a.toFixed(0)}`;
+    return {
+      id: "nrpl",
+      text: ct`💵 SPX6900 holders ${v >= 0 ? "realised a net profit" : "realised net losses"} of ${money} last week.
+When coins actually move on-chain, this is the dollar profit or loss they lock in — green weeks are profit-taking, red weeks are capitulation.
+On-chain behaviour, not a signal.`,
+      card: { type: "nrpl" },
+    };
+  })(),
+
+  // Liveliness — cumulative coin-days destroyed ÷ created; rises when long-held coins move
+  // (distribution), falls when the base sits tight (accumulation). FIFO per-lot. Behaviour, not a signal.
+  s => (s.fifo?.length >= 50 && Number.isFinite(s.fifo.at(-1)?.liveliness)) && (() => {
+    const arr = s.fifo.filter(r => Number.isFinite(r.liveliness));
+    const v = arr.at(-1).liveliness, back = arr[Math.max(0, arr.length - 14)].liveliness;
+    const rising = v > back + 0.002;
+    return {
+      id: "liveliness",
+      text: ct`🫀 SPX6900's liveliness is ${v.toFixed(2)} and ${rising ? "rising" : "easing"} — ${rising ? "long-held coins are waking up" : "the base is sitting tight"}.
+It's the share of all the coin-days ever built up that have been spent — falling as holders accumulate and hold, rising as old coins move.
+Conviction, on-chain — not a signal.`,
+      card: { type: "liveliness" },
+    };
+  })(),
+
   // Valuation Composite — a weighted basket of six independent lenses (rainbow power-law,
   // MVRV cost basis, supply-in-profit, Pi Cycle, alt-market, F&G), each percentile-ranked
   // over its own history and weighted into one over/under-valued oscillator. A valuation
@@ -2047,7 +2076,7 @@ const weightOf = id => WEIGHT[id] ?? (BULLISH.has(id) ? 2 : 1);
 // marketcap ("real free-float cap / thin float") is RETIRED — its premise is false: SPX is a
 // fair launch with no lockup, so free float is ~88% (not thin). The honest story is
 // illiquid/liquid supply (the reframed freefloat card), so marketcap is out of the feed.
-const NO_ROTATE = new Set(["drawdown", "risk", "kraken", "dcaladder", "marketcap", "spxcohort", "cexsupply", "cexflow", "cexvenues", "cexvenflow"]);
+const NO_ROTATE = new Set(["drawdown", "risk", "kraken", "dcaladder", "marketcap", "spxcohort", "cexsupply", "cexflow", "cexvenues", "cexvenflow", "nrpl", "liveliness"]);
 
 // LONG-FORM cards — the few methodology / teaching posts that genuinely need more than the
 // 290 instant-read ceiling (see the post-length test). Default stays 290 for EVERY other card;
@@ -2097,7 +2126,7 @@ const LOOK = {
   whatnext: "race",
   // — Tier B: flavourful / distinct looks (used to break up the green lines) —
   riskcolor: "colorline", risklevels: "colorline", rsidots: "colorline",
-  riskheat: "dual", runningroi: "dual", cycle: "dual", longshort: "dual", underwater: "dual", goldencross: "dual", holdergrowth: "dual", holdersprice: "dual", mvrvbtc: "dual", mvrvtrend: "dual", supplyprofit: "dual", whales: "dual", walletwaves: "stack", wealthwaves: "stack", floormodel: "dual", altmarket: "dual", freefloat: "dual", nupl: "dual", concentration: "dual", picycle: "dual", spxbitcoin: "dual", spxcohort: "dual", cexflow: "dual", cexsupply: "stack", sopr: "dual",
+  riskheat: "dual", runningroi: "dual", cycle: "dual", longshort: "dual", underwater: "dual", goldencross: "dual", holdergrowth: "dual", holdersprice: "dual", mvrvbtc: "dual", mvrvtrend: "dual", supplyprofit: "dual", whales: "dual", walletwaves: "stack", wealthwaves: "stack", floormodel: "dual", altmarket: "dual", freefloat: "dual", nupl: "dual", concentration: "dual", picycle: "dual", spxbitcoin: "dual", spxcohort: "dual", cexflow: "dual", cexsupply: "stack", sopr: "dual", nrpl: "dual", liveliness: "dual",
   firesalerally: "fanlines",
   model: "scatter",
   monthlyreturns: "heatmap", monthlyreturnssp: "heatmap", monthlyreturnsbtc: "heatmap",

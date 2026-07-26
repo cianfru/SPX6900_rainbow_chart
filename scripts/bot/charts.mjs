@@ -44,6 +44,8 @@ import { renderUrpdCard } from "./urpd-card.mjs";
 import { renderUrpdAgeCard } from "./urpd-age-card.mjs";
 import { renderLthSthCard } from "./lth-sth-card.mjs";
 import { renderSoprCard } from "./sopr-card.mjs";
+import { renderNrplCard } from "./nrpl-card.mjs";
+import { renderLivelinessCard } from "./liveliness-card.mjs";
 import { logoMark } from "./logos.mjs";
 import { FONT } from "./font.mjs";
 import { esc, monotonePath } from "./svg-util.mjs";
@@ -878,7 +880,7 @@ export const CARD_TYPES = new Set([
   "firesalerally", "underwater", "goldencross", "holdergrowth", "multichain", "chainrace",
   "holderspair", "mvrvbtc", "mvrvtrend", "supplyprofit", "floormodel", "altmarket",
   "freefloat", "nupl", "concentration", "hodlwaves", "hodlcompare", "urpd", "urpdage",
-  "lthsth", "sopr", "valband", "walletgrowth", "picycle", "spxbitcoin", "spxcohort",
+  "lthsth", "sopr", "nrpl", "liveliness", "valband", "walletgrowth", "picycle", "spxbitcoin", "spxcohort",
   "cexsupply", "cexflow", "cexvenues", "cexvenflow", "whales", "walletwaves", "wealthwaves",
   "cyclesync", "cycleclock", "rsidots", "monthcompare",
   // spec-driven generics
@@ -926,6 +928,8 @@ export function renderPostCard(post, stats, opts = {}) {
   if (type === "urpdage") return renderUrpdAgeCard(stats, dims);
   if (type === "lthsth") return renderLthSthCard(stats, dims);
   if (type === "sopr") return renderSoprCard(stats, dims);
+  if (type === "nrpl") return renderNrplCard(stats, dims);
+  if (type === "liveliness") return renderLivelinessCard(stats, dims);
   if (type === "valband") return renderValuationBandCard(stats, dims);
   if (type === "walletgrowth") return renderWalletGrowthCard(stats, dims);
   if (type === "picycle") return renderPiCycleCard(stats, dims);
