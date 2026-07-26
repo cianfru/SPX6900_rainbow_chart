@@ -1,6 +1,6 @@
 import { useMemo, useState, useEffect } from "react";
 import {
-  ResponsiveContainer, ComposedChart, Area, Line, XAxis, YAxis, ReferenceLine, CartesianGrid,
+  ResponsiveContainer, ComposedChart, Area, Line, XAxis, YAxis, ReferenceLine, ReferenceArea, CartesianGrid,
 } from "recharts";
 import { buildModel, BAND_LABELS, dayN, ds, bandVal, bandIndex, whenHitsCenter } from "./models.js";
 import { DEFAULT_RAW } from "./data.js";
@@ -8,9 +8,9 @@ import { INDICATORS, ZONES } from "../scripts/bot/valuation-composite.mjs";
 import { loadValuation } from "./history-data.js";
 import { SANS, MONO } from "./chart-ui.jsx";
 
-// Dark-committed editorial landing. The RAINBOW is the anchor (owner ruling: brand + denominator),
-// the valuation composite a "six measures, one scale" strip plot below it — every number live off
-// the frozen model + valuation.json, no placeholders.
+// Dark-committed editorial landing. Flow (owner, in steps): composite is the hero (six-measures
+// strip), price sits top-right, the rainbow is the anchor, and the composite-over-time
+// ("valuation band history") is its own chart underneath. Every number live off the model + valuation.json.
 const MONf = (n) => (n >= 1e9 ? `$${(n / 1e9).toFixed(1)}B` : n >= 1e6 ? `$${(n / 1e6).toFixed(0)}M` : `$${n.toLocaleString()}`);
 const SUPPLY = 939_000_000;
 const fMonYr = (d) => (d ? new Date(d).toLocaleDateString("en-US", { month: "short", year: "numeric" }) : "—");
@@ -18,13 +18,12 @@ const zoneOf = (v) => ZONES.find(z => v < z.max) || ZONES.at(-1);
 const LENS_LABEL = Object.fromEntries(INDICATORS.map(i => [i.key, i.label.replace(/ ·.*/, "")]));
 const LENS_ORDER = ["rainbow", "mvrv", "sip", "picycle", "alt", "fng"];
 
-// ── the horizontal "six measures, one scale" strip plot ──────────────────────────────────────
+// ── the "six measures, one scale" strip plot ─────────────────────────────────────────────────
 function StripPlot({ byLens, composite, isMobile }) {
   const rows = LENS_ORDER.filter(k => byLens?.[k] != null).map(k => ({ key: k, label: LENS_LABEL[k] || k, pct: byLens[k] }));
   const comp = Math.round(composite * 100);
   return (
-    <div style={{ display: "grid", gridTemplateColumns: isMobile ? "108px 1fr" : "170px 1fr", gap: isMobile ? "0 14px" : "0 24px" }}>
-      {/* composite marker across the plot column */}
+    <div style={{ display: "grid", gridTemplateColumns: isMobile ? "108px 1fr" : "168px 1fr", gap: isMobile ? "0 14px" : "0 24px" }}>
       <div style={{ gridColumn: 2, position: "relative", height: 0 }}>
         <div style={{ position: "absolute", left: `${comp}%`, top: -2, transform: "translateX(-50%)", fontFamily: MONO, fontSize: 10.5, letterSpacing: "0.1em", textTransform: "uppercase", color: "#25e07d", whiteSpace: "nowrap" }}>◆ composite {comp}</div>
       </div>
@@ -54,6 +53,28 @@ function StripPlot({ byLens, composite, isMobile }) {
   );
 }
 
+// ── valuation band history — the composite over time (its own chart) ─────────────────────────
+function BandHistory({ series, zones, isMobile }) {
+  const data = useMemo(() => (series || []).map(([ts, v]) => ({ ts, v })).filter(r => Number.isFinite(r.ts) && Number.isFinite(r.v)), [series]);
+  if (data.length < 2) return <div style={{ color: "#64748b", fontFamily: MONO, fontSize: 13, padding: "20px 0" }}>Loading history…</div>;
+  const yr = (ts) => new Date(ts).getUTCFullYear();
+  const xT = []; for (let y = yr(data[0].ts); y <= yr(data.at(-1).ts); y++) xT.push(Date.UTC(y, 0, 1));
+  let prev = 0;
+  return (
+    <ResponsiveContainer width="100%" height={isMobile ? 260 : 320}>
+      <ComposedChart data={data} margin={{ top: 6, right: isMobile ? 8 : 16, bottom: 18, left: isMobile ? 0 : 8 }}>
+        <CartesianGrid strokeDasharray="2 8" stroke="rgba(255,255,255,0.05)" vertical={false} />
+        {(zones || ZONES).map((z, i) => { const a = <ReferenceArea key={i} y1={prev} y2={z.max} fill={z.color} fillOpacity={0.12} stroke="none" />; prev = z.max; return a; })}
+        <XAxis dataKey="ts" type="number" scale="time" domain={["dataMin", "dataMax"]} ticks={xT}
+          tickFormatter={yr} tick={{ fill: "#94a3b8", fontSize: 11, fontFamily: MONO }} axisLine={{ stroke: "rgba(255,255,255,0.12)" }} tickLine={false} />
+        <YAxis type="number" domain={[0, 1]} ticks={[0, 0.25, 0.5, 0.75, 1]} tickFormatter={v => `${v * 100}`}
+          tick={{ fill: "#94a3b8", fontSize: 11, fontFamily: MONO }} axisLine={{ stroke: "rgba(255,255,255,0.12)" }} tickLine={false} width={isMobile ? 30 : 40} />
+        <Line type="monotone" dataKey="v" stroke="#ffffff" strokeWidth={2.2} dot={false} isAnimationActive={false} />
+      </ComposedChart>
+    </ResponsiveContainer>
+  );
+}
+
 export default function LandingPage({ isMobile, priceData }) {
   const m = useMemo(() => buildModel(DEFAULT_RAW), []);
   const px = priceData && priceData.length ? priceData : DEFAULT_RAW;
@@ -66,9 +87,18 @@ export default function LandingPage({ isMobile, priceData }) {
 
   const [val, setVal] = useState(null);
   useEffect(() => { let off = false; loadValuation().then(d => { if (!off) setVal(d || false); }); return () => { off = true; }; }, []);
-  const [fwd, setFwd] = useState(540); // forward projection horizon (days)
+  const [fwd, setFwd] = useState(540);
+  const cur = val && val.cur;
 
-  // ---- rainbow: DISTINCT band ribbons ([lo,hi] per band) + price line ----
+  const heads = useMemo(() => {
+    if (!cur) return null;
+    const z = zoneOf(cur.composite), pctl = Math.round(cur.composite * 100);
+    const vals = LENS_ORDER.map(k => cur.byLens?.[k]).filter(v => v != null);
+    const cheap = vals.filter(v => v < 0.4).length, rich = vals.filter(v => v >= 0.6).length;
+    const tail = cheap === vals.length ? "every measure agrees" : `${cheap} of ${vals.length} measures read cheap${rich ? `, ${rich} ${rich > 1 ? "have" : "has"} turned` : ""}`;
+    return { z, pctl, cheap, total: vals.length, line2: cheap >= vals.length - 1 ? "and nearly everything agrees" : `${cheap} of ${vals.length} read cheap`, tail };
+  }, [cur]);
+
   const chart = useMemo(() => {
     const priceByDate = new Map(px.filter(p => p.price > 0).map(p => [p.date, p.price]));
     const t0 = dayN(new Date(px[0].date)), tEnd = nowDay + fwd;
@@ -95,63 +125,49 @@ export default function LandingPage({ isMobile, priceData }) {
   }), [m]);
 
   const fT = (v) => (v >= 1 ? `$${v}` : `$${v.toFixed(2)}`);
-  const cur = val && val.cur;
+  const kicker = { fontFamily: MONO, fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", color: "#727d90" };
+  const h2 = { fontSize: isMobile ? 22 : 26, fontWeight: 800, letterSpacing: "-0.02em" };
+  const sub = { ...kicker, margin: "6px 0 16px" };
 
   return (
     <div style={{ background: "#07080b", color: "#f3f5f8", fontFamily: SANS }}>
       <div style={{ maxWidth: 1120, margin: "0 auto", padding: isMobile ? "0 20px 60px" : "0 32px 80px" }}>
 
-        {/* HERO */}
-        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1.4fr .82fr", gap: isMobile ? 26 : 40, padding: isMobile ? "34px 0 26px" : "48px 0 30px" }}>
-          <div>
-            <div style={{ fontFamily: MONO, fontSize: 11, letterSpacing: "0.18em", textTransform: "uppercase", color: "#727d90" }}>The rainbow · valuation composite</div>
-            <h1 style={{ fontSize: isMobile ? 40 : 68, lineHeight: 0.96, letterSpacing: "-0.035em", fontWeight: 800, margin: "16px 0 18px", textWrap: "balance" }}>
-              {band.l.replace(/!$/, "")}.<br /><span style={{ color: band.c }}>Band {bIdx + 1} of 9.</span>
-            </h1>
-            <p style={{ fontSize: isMobile ? 16 : 17, color: "#aeb7c6", maxWidth: "46ch", lineHeight: 1.6 }}>
-              At <b style={{ color: "#f3f5f8" }}>${last.price.toFixed(4)}</b> SPX6900 sits in the <b style={{ color: "#f3f5f8" }}>{band.l}</b> band —
-              the model's fair value is near <b style={{ color: "#f3f5f8" }}>{fT(+fair.toFixed(2))}</b>, so price is <b style={{ color: vsFair < 0 ? "#25e07d" : "#ff5470" }}>{vsFair >= 0 ? "+" : ""}{vsFair.toFixed(0)}%</b> against it. The composite below weighs everything into one read.
-            </p>
-          </div>
-          <div>
-            <div style={{ fontFamily: MONO, fontSize: 10.5, letterSpacing: "0.16em", textTransform: "uppercase", color: "#727d90" }}>Spot</div>
-            <div style={{ fontWeight: 800, fontSize: isMobile ? 46 : 56, letterSpacing: "-0.03em", lineHeight: 1, margin: "8px 0 8px", fontVariantNumeric: "tabular-nums" }}>${last.price.toFixed(4)}</div>
-            <div style={{ fontFamily: MONO, fontSize: 12.5, color: "#aeb7c6" }}>mcap {MONf(last.price * SUPPLY)}</div>
-            <div style={{ display: "flex", gap: 2, margin: "18px 0 8px" }}>
-              {BAND_LABELS.map((b, i) => (<span key={i} style={{ height: 12, flex: 1, borderRadius: 1, background: b.c, opacity: i === bIdx ? 1 : 0.3, boxShadow: i === bIdx ? `0 0 10px -1px ${b.c}` : "none" }} />))}
-            </div>
-            <div style={{ fontWeight: 800, fontSize: 18, color: band.c }}>{band.l.toUpperCase()}</div>
-            {cur && (
-              <div style={{ display: "flex", justifyContent: "space-between", borderTop: "1px solid #1b1f29", padding: "9px 0", marginTop: 10, fontFamily: MONO, fontSize: 12.5 }}>
-                <span style={{ color: "#727d90" }}>Composite</span><span style={{ color: zoneOf(cur.composite).color, fontWeight: 700 }}>{Math.round(cur.composite * 100)} · {zoneOf(cur.composite).label.toLowerCase()}</span>
-              </div>
-            )}
+        {/* TOP ROW — kicker left, price ticker right */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", padding: isMobile ? "26px 0 20px" : "40px 0 26px", flexWrap: "wrap", gap: 10 }}>
+          <div style={kicker}>Valuation composite · six measures</div>
+          <div style={{ fontFamily: MONO, fontSize: 14, color: "#aeb7c6", display: "flex", alignItems: "center", gap: 10 }}>
+            <span style={{ color: "#f3f5f8", fontWeight: 700, fontSize: 16, fontVariantNumeric: "tabular-nums" }}>${last.price.toFixed(4)}</span>
+            <span style={{ width: 8, height: 8, borderRadius: 2, background: band.c, display: "inline-block" }} />
+            <span style={{ color: band.c, fontWeight: 700, letterSpacing: "0.04em", textTransform: "uppercase", fontSize: 12 }}>{band.l}</span>
           </div>
         </div>
 
-        {/* THE COMPOSITE — six measures, one scale */}
-        <section style={{ borderTop: "1px solid #1b1f29", paddingTop: 30 }}>
-          <div style={{ fontSize: isMobile ? 22 : 26, fontWeight: 800, letterSpacing: "-0.02em" }}>Six measures, one scale</div>
-          <div style={{ fontFamily: MONO, fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", color: "#727d90", margin: "6px 0 22px" }}>
-            Each ranked over its own history · combined into four weighted axes · anchored to Bitcoin
-          </div>
+        {/* HERO — the composite is the card */}
+        <section>
+          <h1 style={{ fontSize: isMobile ? 38 : 62, lineHeight: 0.98, letterSpacing: "-0.035em", fontWeight: 800, margin: "0 0 18px", textWrap: "balance" }}>
+            {heads ? <>{heads.z.label}.<br /><span style={{ color: heads.z.color }}>{heads.line2}.</span></> : <>Loading the composite<span style={{ color: "#25e07d" }}>…</span></>}
+          </h1>
+          {heads && (
+            <p style={{ fontSize: isMobile ? 15.5 : 17, color: "#aeb7c6", maxWidth: "52ch", lineHeight: 1.6, margin: "0 0 26px" }}>
+              SPX6900 sits in the <b style={{ color: "#f3f5f8" }}>{heads.pctl}th percentile</b> of its own history — cheaper than <b style={{ color: "#f3f5f8" }}>{100 - heads.pctl}%</b> of the days it has ever traded. {heads.tail[0].toUpperCase() + heads.tail.slice(1)}.
+            </p>
+          )}
           {cur ? <StripPlot byLens={cur.byLens} composite={cur.composite} isMobile={isMobile} />
             : <div style={{ color: "#64748b", fontFamily: MONO, fontSize: 13, padding: "20px 0" }}>Loading composite…</div>}
         </section>
 
-        {/* THE RAINBOW — the anchor */}
-        <section style={{ borderTop: "1px solid #1b1f29", paddingTop: 30, marginTop: 40 }}>
+        {/* THE RAINBOW — the anchor (unchanged) */}
+        <section style={{ borderTop: "1px solid #1b1f29", paddingTop: 30, marginTop: 44 }}>
           <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", flexWrap: "wrap", gap: 10 }}>
-            <div style={{ fontSize: isMobile ? 22 : 26, fontWeight: 800, letterSpacing: "-0.02em" }}>The rainbow</div>
-            <div style={{ display: "flex", gap: 4, fontFamily: MONO, fontSize: 11, letterSpacing: "0.06em", textTransform: "uppercase" }}>
+            <div style={h2}>The rainbow</div>
+            <div style={{ display: "flex", gap: 4 }}>
               {[["History", 90], ["+5Y", 1825], ["+10Y", 3650], ["Max", 4600]].map(([lbl, d]) => (
                 <button key={lbl} onClick={() => setFwd(d)} style={{ background: "none", border: "none", cursor: "pointer", padding: "3px 6px", color: fwd === d ? "#f3f5f8" : "#727d90", borderBottom: fwd === d ? "1px solid #25e07d" : "1px solid transparent", fontFamily: MONO, fontSize: 11, letterSpacing: "0.06em", textTransform: "uppercase" }}>{lbl}</button>
               ))}
             </div>
           </div>
-          <div style={{ fontFamily: MONO, fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", color: "#727d90", margin: "6px 0 16px" }}>
-            The denominator — everything is measured against this · frozen power-law · R² {m.r2.toFixed(2)}
-          </div>
+          <div style={sub}>The denominator — everything is measured against this · frozen power-law · R² {m.r2.toFixed(2)}</div>
           <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 150px", gap: 18 }}>
             <div>
               <ResponsiveContainer width="100%" height={isMobile ? 340 : 460}>
@@ -184,12 +200,18 @@ export default function LandingPage({ isMobile, priceData }) {
           </div>
         </section>
 
+        {/* VALUATION BAND HISTORY — the composite over time */}
+        <section style={{ borderTop: "1px solid #1b1f29", paddingTop: 30, marginTop: 44 }}>
+          <div style={h2}>Valuation band history</div>
+          <div style={sub}>The composite over time — 0 = the cheapest it's been, 100 = the dearest · green low, red high</div>
+          {val && val.series ? <BandHistory series={val.series} zones={val.zones} isMobile={isMobile} />
+            : <div style={{ color: "#64748b", fontFamily: MONO, fontSize: 13, padding: "20px 0" }}>Loading history…</div>}
+        </section>
+
         {/* IF THE TREND HOLDS — real crossing dates */}
-        <section style={{ borderTop: "1px solid #1b1f29", paddingTop: 30, marginTop: 40 }}>
+        <section style={{ borderTop: "1px solid #1b1f29", paddingTop: 30, marginTop: 44 }}>
           <div style={{ fontSize: isMobile ? 20 : 22, fontWeight: 800, letterSpacing: "-0.02em" }}>If the trend holds</div>
-          <div style={{ fontFamily: MONO, fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", color: "#727d90", margin: "6px 0 16px" }}>
-            When the frozen centre line reaches each target — extrapolation, not a forecast
-          </div>
+          <div style={sub}>When the frozen centre line reaches each target — extrapolation, not a forecast</div>
           <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: MONO, fontSize: 14, maxWidth: 520 }}>
             <thead><tr>{["Target", "Market cap", "Centre line"].map((h, i) => (
               <th key={i} style={{ textAlign: i ? "right" : "left", fontWeight: 400, fontSize: 10, letterSpacing: "0.12em", textTransform: "uppercase", color: "#727d90", padding: "0 0 10px", borderBottom: "1px solid #1b1f29" }}>{h}</th>
