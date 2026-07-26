@@ -1,9 +1,43 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import { execSync } from 'node:child_process'
+
+// WHAT IS ACTUALLY DEPLOYED RIGHT NOW.
+//
+// "The site looks stale" has come up more than once, and each time answering it meant
+// diffing bytes by hand against the repo. That is a slow way to settle a question with a
+// factual answer, and it cannot be done at all from a phone. So the build stamps the
+// commit it was built from into /version.json and into the console banner.
+//
+// Now the check is: open spx6900rainbow.xyz/version.json. If the sha matches the newest
+// commit, the deploy is fine and anything stale on screen is a cache between you and the
+// edge. If it does not match, the deploy genuinely did not land, and the sha it reports
+// says exactly which build is being served — which is the thing worth knowing.
+//
+// GITHUB_SHA is set in CI; git is the fallback for a local build.
+function buildInfo() {
+  const sh = c => { try { return execSync(c, { stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim(); } catch { return ''; } };
+  return {
+    sha: (process.env.GITHUB_SHA || sh('git rev-parse HEAD') || 'unknown').slice(0, 7),
+    ref: process.env.GITHUB_REF_NAME || sh('git rev-parse --abbrev-ref HEAD') || 'unknown',
+    builtAt: new Date().toISOString(),
+  };
+}
+
+function versionStamp() {
+  const info = buildInfo();
+  return {
+    name: 'version-stamp',
+    config: () => ({ define: { __BUILD__: JSON.stringify(info) } }),
+    generateBundle() {
+      this.emitFile({ type: 'asset', fileName: 'version.json', source: JSON.stringify(info, null, 1) + '\n' });
+    },
+  };
+}
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), versionStamp()],
   build: {
     rollupOptions: {
       output: {

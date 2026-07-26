@@ -252,7 +252,8 @@
 
 <div id="app">
   <header>
-    <h1>SPX6900 · post control <span style="color:#475569;font-size:13px">(hidden)</span></h1>
+    <h1>SPX6900 · post control <span style="color:#475569;font-size:13px">(hidden)</span>
+      <span id="buildTag" style="color:#475569;font-size:12px;font-weight:400"></span></h1>
     <div class="sub">Preview every card and pick what posts next. Queue one for the scheduled run, or post it now. Pick nothing and the daily auto-rotation runs as normal.</div>
     <div class="tabs">
       <button id="tabDaily" class="tab active">🗓 SPX6900 · Daily posts</button>
@@ -894,6 +895,15 @@ const AEON_CHARTS = [
   ["Floor & Sales", "aeonfloor"], ["Holder Skyline (3D)", "aeonskyline"], ["Holder Age", "aeonhodl"],
   ["Owners Over Time", "aeonowners"], ["Concentration", "aeonconcentration"], ["Holder Flow", "aeonbehaviour"],
 ];
+// Which build is serving this panel. "I only see 9 cards" turned out to be a caching
+// question twice; this answers it on sight rather than by counting features.
+fetch("/version.json", { cache: "no-store" }).then(r => r.ok ? r.json() : null).then(v => {
+  if (!v) return;
+  const age = Math.round((Date.now() - Date.parse(v.builtAt)) / 60000);
+  const when = age < 1 ? "just now" : age < 90 ? `${age}m ago` : `${Math.round(age / 60)}h ago`;
+  $("#buildTag").textContent = `· build ${v.sha} (${when})`;
+}).catch(() => {});
+
 let aeonLoaded = false;
 const aeonStatus = (msg, cls = "") => { const e = $("#aeonStatus"); e.textContent = msg; e.className = "status " + cls; };
 
