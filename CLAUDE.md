@@ -293,6 +293,41 @@
   already: diamond-vs-paper (hold time/win rate/losses tab) + biggest-sales gallery.
 
 ## Backlog / decisions
+- **⭐⭐ NEXT WORK — PROFESSIONAL LANDING-PAGE REDESIGN, RAINBOW-ANCHORED (owner, 2026-07-26).** Owner is iterating a
+  more professional/editorial homepage (dark data-terminal look: near-black ground, bold grotesque display, single green
+  accent, mono for data, uppercase micro-labels, rainbow hairline). Design direction is PINNED by the owner's mock — follow
+  it, don't reinvent. **Two owner rulings that are load-bearing:**
+  1. **The RAINBOW is the brand + the DENOMINATOR — it must be the ANCHOR of the page** (owner corrected a first pass that
+     demoted it to a decorative gradient ribbon: *"The rainbow is still our brand and main denominator. Need to keep that in
+     mind."*). It's the first + largest visual: the REAL frozen power-law bands (9, Fire Sale→Max Bubble) with the dense price
+     line woven through, NOW marker, band legend, target lines. Built from the repo's own model (`buildModel`+`bandVal`+
+     `BAND_LABELS`+`dayN` in src/models.js) — NOT a fake ribbon.
+  2. **The valuation COMPOSITE is a prominent supporting read below the rainbow** (owner: *"I like the composite valuation on
+     the landing page"*) — a "Six measures, one scale" strip plot: all six lenses on ONE 0→100 axis (cheapest→dearest), placed
+     by their real percentile, colored by valuation zone AND labeled (never color-alone), with a composite marker. Data =
+     `valuation.json` `cur.composite` + `cur.byLens` + `zones` + `indicators` (weights: rainbow 22 · mvrv 22 · sip 16 ·
+     picycle 16 · alt 12 · fng 12).
+  - **PREVIEW BUILT (hosted Claude artifact, live snapshot 2026-07-26):**
+    https://claude.ai/code/artifact/794fb526-2d70-4634-bbb4-a8ed3bd60b97 — source working copy in the SESSION scratchpad
+    (`valuation-landing.html`, NOT committed — it's a design intermediary, the deliverable is the site route). Wired to real
+    numbers: composite **15th pct (Deeply undervalued), all six lenses cheap**, price **$0.336 deep in the FIRE SALE band**
+    (model fair value ~$2–4 up the curve), R² 0.742. The owner mock's numbers were placeholders (it showed $1.42 / "Still
+    Cheap · Band 04/09" / F&G greed 66) — the LIVE story is stronger and must be what ships.
+  - **THREE FIXES applied to the mock (keep them):** (a) clean price NUMERAL, not the skeuomorphic segment-display "1.42.13"
+    (unreadable — reads like a timestamp); (b) the six measures on ONE axis (strip plot), not scattered dots; (c) EVERY number
+    derives from a single source (`valuation.json`/the model) so nothing can drift — this repo's known mvrvbtc-vs-mvrvtrend
+    drift trap. Also: "one has turned" / band labels must be DERIVED live, never hand-written (goes stale).
+  - **🔲 TO SHIP (the actual next-work list):**
+    1. **Wire the crossing-date solver for REAL target dates** — `whenHitsCenter(m, price)` already exists in models.js; the
+       preview's target YEARS (~2027/2031/2038) are rounded placeholders. Solve $6.90/$69/$690 crossings for real.
+    2. **Implement as a REACT route in the real app** (not a static artifact) behind a preview path (e.g. `?view=next`) reading
+       live `valuation.json` + the model — reuses `ValuationComposite.jsx` + `build-valuation.mjs` (data already banked) + the
+       rainbow model. Then decide whether to promote it to the homepage.
+    3. **Reconsider the 5Y/10Y/20Y/30Y range toggles** — SPX is ~3yr old; 20Y/30Y either render empty or imply nonexistent
+       history. Keep AUTO + a real recent window; label any forward span as PROJECTION, not lookback.
+    4. **Theme decision:** the preview is dark-COMMITTED (matches the mock); the site's chart pages are theme-aware. Decide
+       deliberately — landing goes dark-committed, or give it dual-theme like the charts (no seam when clicking into a chart).
+  - Honesty rail throughout (the moat): label live vs illustrative; never fake band geometry or crossing dates.
 - **⭐ MULTI-CHAIN WALLET GROWTH + OUR-OWN-METRICS (owner, 2026-07-16) — in progress.** Two linked asks:
   (1) **Ditch HolderScan's confusing "classified/total supply" framing** — it burned us (86%-of-classified vs
   61%-of-supply diamond mess). FIX = we already own transparent replacements from the Dune reconstruction: **HODL
