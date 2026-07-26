@@ -293,6 +293,18 @@
   already: diamond-vs-paper (hold time/win rate/losses tab) + biggest-sales gallery.
 
 ## Backlog / decisions
+- **✅ METHODS PAGE — RESTORED 2026-07-26 (owner asked for it back; do NOT delete it again).** History: built (`b6ac1c4`),
+  trimmed for density (`246d69e`), then I DELETED it (`79cb1cf`) on my own reasoning — that was reversed. Owner: *"we can
+  have a methods page with the data. Design must be simple and not feeling AI generated. Keep the same visual styling as the
+  rest of the website."* `src/MethodsPage.jsx` is the trimmed one-column rules-and-text layout (no pills/cards/boxes/
+  gradients — pill grids were the AI-tell that killed v1), reusing the site's `SANS`/`MONO` from chart-ui. **"With the data" =
+  the numbers that CAN be live ARE:** the rainbow's equation/R²/σ come from the live `m` model (matches the home receipt,
+  `App.jsx` passes `m={m}`); the seven family counts come from `METHOD_FAMILIES[].charts.length`; the composite weights come
+  from `INDICATORS` (scripts/bot/valuation-composite.mjs — browser-safe, only imports src/models + alt-rainbow). Nav is a 4th
+  peer at `?view=methods` (the 6 App.jsx wirings the delete removed are back: lazy import, syncUrl, openMethods, popstate,
+  nav pill, render case). Sections: the rainbow (frozen-fit explainer + live receipt) · the valuation composite (six weighted
+  lenses, ranked over own history) · the seven families · what none of it can tell you (5 limits) · sources + cadence.
+  Browser-verified. If ever cutting it again, that's an OWNER call, not a Claude call.
 - **⭐⭐ NEXT WORK — PROFESSIONAL LANDING-PAGE REDESIGN, RAINBOW-ANCHORED (owner, 2026-07-26).** Owner is iterating a
   more professional/editorial homepage (dark data-terminal look: near-black ground, bold grotesque display, single green
   accent, mono for data, uppercase micro-labels, rainbow hairline). Design direction is PINNED by the owner's mock — follow
