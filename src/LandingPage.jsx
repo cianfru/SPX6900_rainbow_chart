@@ -23,8 +23,8 @@ function StripPlot({ axes, byAxis, composite, isMobile }) {
   const comp = Math.round(composite * 100);
   return (
     <div style={{ display: "grid", gridTemplateColumns: isMobile ? "128px 1fr" : "200px 1fr", gap: isMobile ? "0 14px" : "0 24px" }}>
-      <div style={{ gridColumn: 2, position: "relative", height: 0 }}>
-        <div style={{ position: "absolute", left: `${comp}%`, top: -2, transform: "translateX(-50%)", fontFamily: MONO, fontSize: 10.5, letterSpacing: "0.1em", textTransform: "uppercase", color: "#25e07d", whiteSpace: "nowrap" }}>◆ composite {comp}</div>
+      <div style={{ gridColumn: 2, position: "relative", height: 22 }}>
+        <div style={{ position: "absolute", left: `min(max(${comp}%, 34px), calc(100% - 34px))`, top: 3, transform: "translateX(-50%)", fontFamily: MONO, fontSize: 10.5, letterSpacing: "0.1em", textTransform: "uppercase", color: "#25e07d", whiteSpace: "nowrap" }}>◆ composite {comp}</div>
       </div>
       {rows.map(r => {
         const z = zoneOf(r.pct), x = r.pct * 100, annLeft = x > 60;
