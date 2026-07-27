@@ -17,7 +17,7 @@ import * as M from "../../src/models.js";
 import { buildAltRainbow } from "../../src/alt-rainbow.js";
 import { BTC_HISTORY, BTC_FIRST_DATE } from "../../src/btc-history.js";
 
-const WK = 7 * 86400000, DAY = 86400000;
+const DAY = 86400000;
 const ANCHOR = 0.5; // cross-asset blend: 0 = SPX-only, 1 = BTC-only; 0.5 = half each
 
 // ── The axes. weight sums to 100 across axes; members are averaged WITHIN an axis. ───────────
@@ -106,7 +106,8 @@ export function valuationComposite(s) {
   const cursor = {}; for (const k of Object.keys(pct)) cursor[k] = ff(pct[k]);
 
   const series = [];
-  for (let ts = t0 - (t0 % WK); ts <= t1 + WK; ts += WK) {
+  // DAILY grid (was weekly) — every lens is daily-capable, so the composite is a daily series.
+  for (let ts = t0 - (t0 % DAY); ts <= t1 + DAY; ts += DAY) {
     const byLens = {};
     for (const k of Object.keys(pct)) { const p = cursor[k](ts); if (p != null) byLens[k] = +p.toFixed(4); }
     // combine WITHIN each axis (mean of its available members), then weight ACROSS axes

@@ -33,4 +33,4 @@ const out = {
 };
 writeFileSync(join(root, "public/valuation.json"), JSON.stringify(out));
 const z = ZONES.find(z => cur.composite < z.max) || ZONES.at(-1);
-console.log(`wrote public/valuation.json — ${series.length} weeks · today ${(cur.composite * 100).toFixed(0)}% (${z.label})`);
+console.log(`wrote public/valuation.json — ${series.length} days · today ${(cur.composite * 100).toFixed(0)}% (${z.label})`);
