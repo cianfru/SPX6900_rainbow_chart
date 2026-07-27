@@ -3,6 +3,7 @@ import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { CSS2DRenderer, CSS2DObject } from "three/examples/jsm/renderers/CSS2DRenderer.js";
 import { placeCity, cityScale, CITY_LENGTH, ISLAND_RING, PARK_RINGS, BACKDROP, ISLETS, streetGrid } from "./city-map.js";
+import { chainOf } from "./city-messages.js";
 
 // A 3D CITY of wallets — shared by the AEON holder skyline and the SPX whale watcher.
 //
@@ -488,15 +489,27 @@ export default function Skyline3D({
       const wrap = document.createElement("div");
       wrap.style.position = "relative";
       const d = document.createElement("div");
+      const ch = chainOf(m.chain);
       Object.assign(d.style, {
         position: "absolute", left: "50%", bottom: "22px", transform: "translateX(-50%)",
-        width: "180px", padding: "5px 9px", borderRadius: "9px", textAlign: "center",
-        background: "rgba(10,14,26,0.92)", border: "1px solid rgba(255,255,255,0.22)",
+        width: "180px", padding: "5px 9px 6px", borderRadius: "9px", textAlign: "center",
+        background: "rgba(10,14,26,0.93)", border: `1px solid ${ch.colour}`,
         color: "#e2e8f0", font: "600 11.5px 'Space Grotesk', system-ui, sans-serif",
         lineHeight: "1.45", whiteSpace: "pre-wrap", wordBreak: "break-word",
-        boxShadow: "0 6px 20px rgba(0,0,0,0.55)", pointerEvents: "none",
+        boxShadow: `0 6px 20px rgba(0,0,0,0.55), 0 0 0 3px ${ch.tint}`, pointerEvents: "none",
+        opacity: m.pending ? "0.75" : "1",
       });
       d.textContent = m.text;
+      // The chain in writing as well as in colour. The Ethereum grey is near-neutral by design, so
+      // colour alone would be a distinction plenty of people can't make — and "which chain is this
+      // note on" is the whole question the colour is there to answer.
+      const tag = document.createElement("div");
+      Object.assign(tag.style, {
+        marginTop: "4px", font: "700 8.5px 'Space Grotesk', system-ui, sans-serif",
+        letterSpacing: "0.09em", color: ch.colour, opacity: "0.95",
+      });
+      tag.textContent = m.pending ? `${ch.short} · CONFIRMING` : ch.short;
+      d.appendChild(tag);
       wrap.appendChild(d);
       const o = new CSS2DObject(wrap);
       o.position.set(home.x, home.h + 3, home.z);   // same anchor as the crown; the 22px lifts it clear

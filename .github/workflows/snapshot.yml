@@ -58,6 +58,15 @@ jobs:
         # Recomputes the weighted valuation composite from today's stats → public/valuation.json.
         # Pure transform of already-banked data (price + on-chain + sentiment). Keyless, zero cost.
         run: node scripts/build-valuation.mjs
+      - name: Read the on-chain city noticeboard
+        # Notes on buildings live on-chain (CityNotes.sol), not with us. This caches the logs into
+        # public/city-notes.json so the site doesn't need an RPC key in the browser. Skips cleanly
+        # while the contract is undeployed, and never blocks the snapshot — a missing noticeboard
+        # costs nothing, a missing price snapshot costs a day of history.
+        continue-on-error: true
+        env:
+          ALCHEMY_KEY: ${{ secrets.ALCHEMY_KEY }}
+        run: node scripts/build-city-notes.mjs
       - name: Audit every feed (field-level, not just file dates)
         # The failure that actually happens is a green workflow writing a file whose
         # date looks perfect while one field inside it stopped arriving — cexBal was
@@ -72,11 +81,11 @@ jobs:
           # history.json + chain-wallets.json are rendered by the deployed site + og.js
           # card, so a change to either must redeploy. signals.json is deploy-ignored.
           DEPLOY_CHANGED=""
-          [[ -n "$(git status --porcelain public/history.json public/chain-wallets.json public/cex-flow.json public/valuation.json)" ]] && DEPLOY_CHANGED=1
-          if [[ -n "$(git status --porcelain public/history.json public/signals.json public/chain-wallets.json public/cex-flow.json public/valuation.json public/feed-health.json)" ]]; then
+          [[ -n "$(git status --porcelain public/history.json public/chain-wallets.json public/cex-flow.json public/valuation.json public/city-notes.json)" ]] && DEPLOY_CHANGED=1
+          if [[ -n "$(git status --porcelain public/history.json public/signals.json public/chain-wallets.json public/cex-flow.json public/valuation.json public/city-notes.json public/feed-health.json)" ]]; then
             git config user.name "github-actions[bot]"
             git config user.email "github-actions[bot]@users.noreply.github.com"
-            git add public/history.json public/signals.json public/chain-wallets.json public/cex-flow.json public/valuation.json public/feed-health.json
+            git add public/history.json public/signals.json public/chain-wallets.json public/cex-flow.json public/valuation.json public/city-notes.json public/feed-health.json
             git commit -m "chore: supply snapshot $(date -u +%F)"
             git push
           else

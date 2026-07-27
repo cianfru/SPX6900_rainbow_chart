@@ -6,7 +6,7 @@ import WalletCard from "./WalletCard.jsx";
 import CityControls from "./CityControls.jsx";
 import CityWallet from "./CityWallet.jsx";
 import CityGate from "./CityGate.jsx";
-import { store } from "./city-messages.js";
+import { loadNotes } from "./city-messages.js";
 
 const Skyline3D = lazy(() => import("./Skyline3D.jsx"));
 const short = a => a.slice(0, 6) + "…" + a.slice(-4);
@@ -24,7 +24,7 @@ export default function AeonSkylineChart({ isMobile, preview = false }) {
   const [shownN, setShownN] = useState(600);
   const [msgs, setMsgs] = useState(null);
   useEffect(() => { let c = false; loadAeon().then(d => { if (!c && d) setData(d); }); return () => { c = true; }; }, []);
-  useEffect(() => { let c = false; store.list("aeon").then(m => { if (!c) setMsgs(m); }); return () => { c = true; }; }, []);
+  useEffect(() => { let c = false; loadNotes("aeon").then(m => { if (!c) setMsgs(m); }); return () => { c = true; }; }, []);
   const all = useMemo(() => (data.holders || []).filter(h => h.a && h.n > 0), [data]);
   const holders = useMemo(() => multiOnly ? all.filter(h => h.n > 1) : all, [all, multiOnly]);
   const singleCount = useMemo(() => all.filter(h => h.n === 1).length, [all]);
@@ -156,7 +156,7 @@ export default function AeonSkylineChart({ isMobile, preview = false }) {
         has={a => visible.some(t => (t.a || "").toLowerCase() === a)}
         onFocus={a => { setFocus(a); const m = visible.find(t => (t.a || "").toLowerCase() === a); if (m) setSel(m); }} />
 
-      <CityWallet city="aeon" accent="#5eead4" isMobile={isMobile} messages={msgs} onChange={setMsgs}
+      <CityWallet city="aeon" accent="#5eead4" isMobile={isMobile} notes={msgs} onNotes={setMsgs}
         owns={a => visible.some(t => (t.a || "").toLowerCase() === a)}
         onFocus={a => { setFocus(a); const m = visible.find(t => (t.a || "").toLowerCase() === a); if (m) setSel(m); }} />
 
