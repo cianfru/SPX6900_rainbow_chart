@@ -125,7 +125,15 @@ export default function Skyline3D({
     const maxScore = Math.max(...T.map(t => t.score), 1e-9);
     const maxFlow = Math.max(...T.map(t => Math.abs(t.flow || 0)), 1e-9);
 
-    const W = el.clientWidth, VH = isMobile ? 440 : 580;
+    // CINEMA MODE (?cinema=1) — the canvas takes the whole window, page chrome and all. It exists
+    // for tools/render-city-video.mjs: the first cut of that tool forced the canvas full-bleed with
+    // injected CSS instead, which took it out of flow, left `el.clientWidth` at 0, and rendered
+    // every frame into a zero-width buffer. The video came out as 28 seconds of flat background.
+    // Sizing from the window here means the renderer and the layout agree by construction.
+    const cine = typeof location !== "undefined" && new URLSearchParams(location.search).get("cinema") === "1";
+    const W = cine ? window.innerWidth : el.clientWidth;
+    const VH = cine ? window.innerHeight : (isMobile ? 440 : 580);
+    if (cine) Object.assign(el.style, { position: "fixed", inset: "0", width: "100vw", height: "100vh", zIndex: "9999", borderRadius: "0" });
     // Height uses a SQUARE-ROOT scale. Holdings are power-law (the top wallet here is ~100x the
     // median), so a linear axis renders one lonely spike over a field of paving slabs. The root
     // keeps the ordering exact and lets the archetypes actually spread across the city — the
@@ -437,7 +445,11 @@ export default function Skyline3D({
       controls.update(); renderer.render(scene, cam); labelR.render(scene, cam);
     };
     loop();
-    const onResize = () => { const w = el.clientWidth; cam.aspect = w / VH; cam.updateProjectionMatrix(); renderer.setSize(w, VH); labelR.setSize(w, VH); };
+    const onResize = () => {
+      const w = cine ? window.innerWidth : el.clientWidth, h = cine ? window.innerHeight : VH;
+      if (!w || !h) return;                       // a zero-size buffer renders nothing at all
+      cam.aspect = w / h; cam.updateProjectionMatrix(); renderer.setSize(w, h); labelR.setSize(w, h);
+    };
     window.addEventListener("resize", onResize);
 
     return () => {

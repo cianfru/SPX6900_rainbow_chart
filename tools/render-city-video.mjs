@@ -26,17 +26,21 @@ const browser = await chromium.launch({ executablePath: "/opt/pw-browsers/chromi
 const page = await browser.newPage({ viewport: { width: W, height: H }, deviceScaleFactor: 1 });
 // skip the dev gate + the first-visit explainer so the frame is pure city
 await page.addInitScript(() => { try { localStorage.setItem("spx-city-dev", "1"); localStorage.setItem("spx-city-dev-intro", "1"); } catch {} });
-await page.goto(`http://localhost:${PORT}/?chart=${CHART}`, { waitUntil: "domcontentloaded", timeout: 60000 });
+// ?cinema=1 makes the city take the whole window — page chrome and all — sized from the viewport.
+// Do NOT go back to injecting full-bleed CSS: that took the canvas out of flow, the component read
+// its container as zero-width, and every frame rendered into a zero-size buffer (a flat-colour video).
+await page.goto(`http://localhost:${PORT}/?chart=${CHART}&cinema=1`, { waitUntil: "domcontentloaded", timeout: 60000 });
 await page.waitForFunction(() => window.__cityReady === true, { timeout: 180000 });
-// full-bleed canvas: hide the page chrome so the video is just the city
-await page.addStyleTag({ content: `body>*:not(:has(canvas)){display:none!important}
-  canvas{position:fixed!important;inset:0!important;width:100vw!important;height:100vh!important;z-index:9999}` });
 await page.waitForTimeout(1500);
 
-const canvas = await page.$("canvas");
+// Guard the failure that produced a blank film once already: if the drawing buffer isn't the size
+// we asked for, stop now rather than spending twenty minutes rendering nothing.
+const buf = await page.evaluate(() => { const c = document.querySelector("canvas"); return c ? [c.width, c.height] : null; });
+if (!buf || buf[0] < W * 0.9 || buf[1] < H * 0.9) throw new Error(`canvas is ${buf} but the video is ${W}x${H} — the city didn't size to the window`);
+
 for (let i = 0; i < FRAMES; i++) {
   await page.evaluate(u => window.__citySeek(u), i / (FRAMES - 1));
-  await canvas.screenshot({ path: join(dir, `f${String(i).padStart(5, "0")}.png`) });
+  await page.screenshot({ path: join(dir, `f${String(i).padStart(5, "0")}.png`) });
   if (i % 24 === 0) process.stdout.write(`\r  frame ${i}/${FRAMES}`);
 }
 console.log(`\r  frame ${FRAMES}/${FRAMES} — encoding…`);
