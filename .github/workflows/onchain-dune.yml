@@ -1,4 +1,4 @@
-name: Weekly on-chain FIFO refresh (Dune incremental)
+name: Daily on-chain FIFO refresh (Dune incremental)
 
 # Hands-off weekly refresh with NO BigQuery / NO GCP — uses the Dune credits the account
 # already has. The full raw-transfer history lives in a GitHub RELEASE ASSET (transfers.csv.gz);
