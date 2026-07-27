@@ -150,8 +150,8 @@ export default function AeonSkylineChart({ isMobile, preview = false }) {
         has={a => visible.some(t => (t.a || "").toLowerCase() === a)}
         onFocus={a => { setFocus(a); const m = visible.find(t => (t.a || "").toLowerCase() === a); if (m) setSel(m); }} />
 
-      <div style={{ display: "flex", gap: 16, alignItems: "flex-start", flexDirection: isMobile ? "column" : "row" }}>
-        <div style={{ flex: "1 1 auto", minWidth: 0, width: "100%" }}>
+      <div style={{ position: "relative" }}>
+        <div style={{ width: "100%" }}>
           <Suspense fallback={<div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Loading 3D…</div>}>
             <Skyline3D towers={visible} isMobile={isMobile} onSelect={setSel} cardHtml={aeonCard}
               crownLabel="👑 top holder" accent="rgba(45,212,191,0.45)" bodyFrom={0xb45309} bodyTo={0x22d3ee}
@@ -159,12 +159,14 @@ export default function AeonSkylineChart({ isMobile, preview = false }) {
           </Suspense>
         </div>
         {!preview && cur && (
+          <div style={isMobile ? { marginTop: 12 } : { position: "absolute", top: 12, right: 12, zIndex: 3, width: 250, pointerEvents: "auto" }}>
           <WalletCard w={cur} flow={cur.flow} flowUnit=" AEON" accent="#5eead4" isMobile={isMobile}
             lines={[`${cur.n} AEON${spxOn && cur.spx ? ` · ${fmtSpx(cur.spx)} SPX` : ""}`, `held ${cur.days} days${cur.hood ? ` · ${cur.hood.name}` : ""}`]} />
+          </div>
         )}
       </div>
       <div style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 8 }}>
-        Drag to orbit · scroll to zoom · hover for the wallet · click a tower to inspect it in Zerion. {hasSpx && (useSpx ? "Height = AEON + SPX × time held." : "Height = AEON × time held.")}
+        Drag to orbit · scroll to zoom · hover a building for the wallet · click to pin it.{layout === "city" && " Every holder has a home address in Aeon City."}
       </div>
 
       <div style={{ marginTop: 26 }}>

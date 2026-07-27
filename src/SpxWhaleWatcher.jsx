@@ -107,8 +107,8 @@ export default function SpxWhaleWatcher({ isMobile, preview = false }) {
         has={a => visible.some(t => (t.a || "").toLowerCase() === a)}
         onFocus={a => { setFocus(a); const m = visible.find(t => (t.a || "").toLowerCase() === a); if (m) setSel(m); }} />
 
-      <div style={{ display: "flex", gap: 16, alignItems: "flex-start", flexDirection: isMobile ? "column" : "row" }}>
-        <div style={{ flex: "1 1 auto", minWidth: 0, width: "100%" }}>
+      <div style={{ position: "relative" }}>
+        <div style={{ width: "100%" }}>
           <Suspense fallback={<div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Loading 3D…</div>}>
             <Skyline3D towers={visible} isMobile={isMobile} onSelect={setSel} cardHtml={cardHtml}
               crownLabel="🐋 biggest whale" accent="rgba(167,139,250,0.45)" bodyFrom={0x3b3560} bodyTo={0xa78bfa}
@@ -119,8 +119,10 @@ export default function SpxWhaleWatcher({ isMobile, preview = false }) {
           </div>
         </div>
         {!preview && cur && (
+          <div style={isMobile ? { marginTop: 12 } : { position: "absolute", top: 12, right: 12, zIndex: 3, width: 250, pointerEvents: "auto" }}>
           <WalletCard w={cur} flow={cur.flow} flowUnit=" SPX" accent="#c4b5fd" isMobile={isMobile}
             lines={[`${fmt(cur.bal)} SPX${stats.spot ? ` · ~$${Math.round(cur.bal * stats.spot).toLocaleString()}` : ""}`, `held ${cur.days} days${cur.hood ? ` · ${cur.hood.name}` : ""}`]} />
+          </div>
         )}
       </div>
 

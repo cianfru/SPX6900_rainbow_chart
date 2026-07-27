@@ -138,3 +138,53 @@ export function lookupHome(address) {
   const lot = lotFor(a, hood, 0);
   return { a, hood, x: lot.x, z: lot.z - CITY_LENGTH / 2 };
 }
+
+// ── The rest of New York ──────────────────────────────────────────────────────────────────────
+// Manhattan alone, floating in black, reads as a submarine. What makes the shape recognisable is
+// everything AROUND it: the two rivers, Jersey to the west, Brooklyn and Queens to the east, the
+// Bronx to the north, and the bridges stitching them together. These are backdrop only — no
+// wallet is ever placed on them — so they're coarse outlines, not a map.
+export const BOROUGHS = [
+  { id: "nj", name: "New Jersey", poly: [[-90, -40], [-19, -40], [-20, 90], [-24, 150], [-30, 260], [-90, 260]] },
+  { id: "bk", name: "Brooklyn", poly: [[15, -40], [90, -40], [90, 52], [22, 58], [14, 20]] },
+  { id: "qn", name: "Queens", poly: [[22, 58], [90, 52], [90, 150], [26, 150], [17, 100]] },
+  { id: "bx", name: "The Bronx", poly: [[8, 158], [90, 150], [90, 260], [-8, 260], [-2, 196]] },
+];
+
+// Small islands in the East River — cheap detail that sells the geography.
+export const ISLETS = [
+  { name: "Roosevelt Island", poly: [[13.5, 62], [15.2, 62], [15.6, 96], [14.0, 96]] },
+  { name: "Governors Island", poly: [[5.5, -12], [10.5, -12], [10.5, -6], [5.5, -6]] },
+];
+
+// Bridges, as thick line segments from a Manhattan anchor to the far bank.
+export const BRIDGES = [
+  { name: "Brooklyn Bridge", from: [4.5, 7], to: [17, 3] },
+  { name: "Manhattan Bridge", from: [5.5, 11], to: [18, 8] },
+  { name: "Williamsburg Bridge", from: [8.5, 24], to: [20, 27] },
+  { name: "Queensboro Bridge", from: [11.5, 60], to: [22, 63] },
+  { name: "Triborough", from: [9, 148], to: [24, 152] },
+  { name: "George Washington", from: [-12.5, 176], to: [-26, 178] },
+];
+
+// Manhattan's street grid — avenues run north-south, streets east-west. Returned as segment
+// pairs clipped to the island so the grid stops at the waterfront.
+export function streetGrid(k = 1, avenueStep = 2.6, streetStep = 3.4) {
+  const segs = [];
+  for (let z = 4; z < CITY_LENGTH - 6; z += streetStep) {            // cross-streets
+    const [w, e] = islandEdges(z * k, k);
+    if (e - w < 1) continue;
+    segs.push([w, z * k, e, z * k]);
+  }
+  const [wMax, eMax] = [-14, 12];
+  for (let x = wMax; x <= eMax; x += avenueStep) {                    // avenues
+    let start = null;
+    for (let z = 0; z <= CITY_LENGTH; z += 2) {
+      const [w, e] = islandEdges(z * k, k);
+      const inside = x * k > w + 0.3 && x * k < e - 0.3;
+      if (inside && start === null) start = z * k;
+      if ((!inside || z >= CITY_LENGTH) && start !== null) { segs.push([x * k, start, x * k, z * k]); start = null; }
+    }
+  }
+  return segs;
+}
