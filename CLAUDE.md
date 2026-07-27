@@ -1387,11 +1387,17 @@
       unit-testable (import guard on main). **🔲 OWNER ACTION: add `DUNE_API_KEY` as a repo secret + Vercel env**
       (mirror CRYPTOCOMPARE_KEY — GH Actions for the cron, Vercel for any live use); optional repo var
       `DUNE_ONCHAIN_QUERY_ID` (default 7991307). Without the key the workflow soft-fails and the bundle keeps serving.
-    - **🔲 DAILY GRANULARITY — owner wants it EVENTUALLY (not now, 2026-07-15).** Deepen the series from weekly to
-      daily: change the Stage-2 query's `day_of_week(d)=1` sample to ALL days (drop the filter). It's the heavy
-      non-equi panel join, so daily is ~7× the rows/credits per run (watch the 2,500/mo budget — maybe keep the
-      auto-refresh weekly but run a one-off daily backfill, or move to a paid tier). The bundle/loader/card/chart
-      all already handle arbitrary row counts, so it's purely a Dune-side sampling change + re-bundle.
+    - **✅ DAILY GRANULARITY — SHIPPED 2026-08 (owner: "max granularity").** The old note below assumed daily meant a
+      heavier DUNE query (~7× credits). That's moot now — the series is reconstructed LOCALLY by the FIFO engine, so
+      granularity is just the sample-grid choice, NOT a Dune cost: the incremental delta pulled from Dune is identical
+      weekly or daily. Flipped by adding **`--daily`** to the `runFifo` spawn in `build-onchain-dune-refresh.mjs` (the
+      engine already had the `--daily` flag → `mondays()` grid becomes all-days). Cost is purely local: onchain.json
+      ~155→~1085 rows (110KB→~780KB, ~150KB gzipped) + ~7× snapshots (still minutes, $0). Reading side is row-count-
+      agnostic; urpd.json is current-state (unaffected). NRPL/SOPR/liveliness now per-day (where the resolution helps);
+      slow metrics (age/concentration/MVRV) just get denser. Live onchain.json goes daily on the next onchain-dune.yml
+      run; the src/spx-onchain.js bundle stays weekly (fallback only — can't regenerate in-sandbox without the archive).
+    - ~~🔲 DAILY GRANULARITY — owner wants it EVENTUALLY~~ (SUPERSEDED above; the "daily = ~7× Dune credits" premise died
+      when the reconstruction moved local). Old note: "change the Stage-2 query's `day_of_week(d)=1` sample to ALL days."
     - **WIRING when the CSV/query-id lands:** bundle like src/spx-mvrv.js (or fetch cached results via
       `DUNE_API_KEY` → `/api/v1/query/{id}/results`, mirror CRYPTOCOMPARE_KEY: GH secret + Vercel env). Build
       **Supply in Profit %** card first (flagship), then holder-concentration + HODL-wave backfills off the same feed.

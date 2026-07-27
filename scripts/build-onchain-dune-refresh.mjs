@@ -212,6 +212,8 @@ function runFifo(tPath, pPath) {
       `--transfers=${tPath}`, `--prices=${pPath}`,
       `--out=${join(root, "public/onchain.json")}`, `--urpd=${join(root, "public/urpd.json")}`,
       `--threshold=${THRESHOLD}`,
+      "--daily", // DAILY granularity (was weekly). Free — it's a local sample-grid choice, not a
+                 // Dune cost; the incremental delta pulled from Dune is identical either way.
     ], { stdio: "inherit" });
     p.on("close", c => (c === 0 ? resolve() : reject(new Error(`FIFO engine exited ${c}`))));
   });
