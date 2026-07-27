@@ -2,6 +2,7 @@ import { useRef, useEffect } from "react";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { CSS2DRenderer, CSS2DObject } from "three/examples/jsm/renderers/CSS2DRenderer.js";
+import { placeCity, islandOutline, PARK, CITY_LENGTH, cityScale } from "./city-map.js";
 
 // A 3D CITY of wallets — shared by the AEON holder skyline and the SPX whale watcher.
 //
@@ -107,8 +108,11 @@ function archetype(h, r, landmark) {
 export default function Skyline3D({
   towers, isMobile, onSelect, cardHtml, crownLabel = "👑 biggest", accent = "rgba(45,212,191,0.4)",
   bodyFrom = 0x334063, bodyTo = 0x8fa6d8,   // body colour ramp across holding age (new → old)
+  layout = "city",                          // "city" = laid out on Manhattan · "grid" = the raw skyline
+  focus = null,                             // an address to fly the camera to
 }) {
   const mount = useRef(null);
+  const api = useRef(null);                 // { cam, controls, homes } for the focus effect
   const selectRef = useRef(onSelect); selectRef.current = onSelect;
   const cardRef = useRef(cardHtml); cardRef.current = cardHtml;
 
@@ -124,14 +128,21 @@ export default function Skyline3D({
     // keeps the ordering exact and lets the archetypes actually spread across the city — the
     // caption says so, and the exact figure is always one hover away.
     const HMAX = 21;
-    const { pts, blockW, blockD, blocks } = cityPlots(T.length);
+    const city = layout === "city";
+    // City: real Manhattan lots (biggest holders in the tower districts). Grid: the plain block
+    // skyline, kept as an option because it compares sizes far better than a scattered map does.
+    const K = cityScale(T.length);
+    const LEN = CITY_LENGTH * K;
+    const placed = city ? placeCity(T, K) : null;
+    const grid = city ? null : cityPlots(T.length);
+    const pts = city ? placed.map(p => ({ x: p.x, z: p.z })) : grid.pts;
 
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x05070f);
-    scene.fog = new THREE.Fog(0x05070f, 40, 190);
+    scene.fog = new THREE.Fog(0x05070f, city ? LEN * 0.55 : 40, city ? LEN * 2.4 : 190);
     const cam = new THREE.PerspectiveCamera(46, W / VH, 0.1, 3000);
-    const span = Math.sqrt(T.length) * 2.0;
-    cam.position.set(span * 0.95, 20, span * 1.28);
+    const span = city ? LEN * 0.5 : Math.sqrt(T.length) * 2.0;
+    if (city) cam.position.set(LEN * 0.52, LEN * 0.30, LEN * 0.16); else cam.position.set(span * 0.95, 20, span * 1.28);
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setPixelRatio(Math.min(devicePixelRatio, 2)); renderer.setSize(W, VH);
     el.appendChild(renderer.domElement);
@@ -153,18 +164,42 @@ export default function Skyline3D({
     const d1 = new THREE.DirectionalLight(0xffffff, 0.85); d1.position.set(30, 60, 20); scene.add(d1);
     const d2 = new THREE.DirectionalLight(0x7f9dff, 0.45); d2.position.set(-25, 25, -15); scene.add(d2);
 
-    // ── the streets: asphalt ground + a lighter pad per block, so the gaps read as avenues ──
-    const groundSize = Math.max(blocks.length * 2, 60) * 4;
-    const ground = new THREE.Mesh(new THREE.PlaneGeometry(groundSize, groundSize),
-      new THREE.MeshLambertMaterial({ color: 0x0a0e1a }));
-    ground.rotation.x = -Math.PI / 2; ground.position.y = -0.02; scene.add(ground);
+    // ── the ground. City: the rivers, the island itself and Central Park. Grid: block pads. ──
+    const groundBits = [];
+    let pads = null;
+    if (city) {
+      const water = new THREE.Mesh(new THREE.PlaneGeometry(LEN * 2.6, LEN * 2.0),
+        new THREE.MeshLambertMaterial({ color: 0x060b1c }));
+      water.rotation.x = -Math.PI / 2; water.position.y = -0.25; scene.add(water); groundBits.push(water);
 
-    const padGeo = new THREE.BoxGeometry(BW * PLOT + 0.5, 0.12, BD * PLOT + 0.5);
-    const padMat = new THREE.MeshLambertMaterial({ color: 0x161c2c });
-    const pads = new THREE.InstancedMesh(padGeo, padMat, blocks.length);
-    const mtx = new THREE.Matrix4();
-    blocks.forEach((b, i) => { mtx.makeTranslation(b.x * blockW, 0.04, b.z * blockD); pads.setMatrixAt(i, mtx); });
-    pads.instanceMatrix.needsUpdate = true; scene.add(pads);
+      const shape = new THREE.Shape();
+      const ring = islandOutline(K);
+      shape.moveTo(ring[0][0], ring[0][1] - LEN / 2);
+      for (const [x, z] of ring.slice(1)) shape.lineTo(x, z - LEN / 2);
+      shape.closePath();
+      const land = new THREE.Mesh(new THREE.ShapeGeometry(shape),
+        new THREE.MeshLambertMaterial({ color: 0x121826, side: THREE.DoubleSide }));
+      land.rotation.x = Math.PI / 2; scene.add(land); groundBits.push(land);
+
+      const park = new THREE.Mesh(new THREE.PlaneGeometry((PARK.x1 - PARK.x0) * K, (PARK.z1 - PARK.z0) * K),
+        new THREE.MeshLambertMaterial({ color: 0x14351f, side: THREE.DoubleSide }));
+      park.rotation.x = -Math.PI / 2;
+      park.position.set(((PARK.x0 + PARK.x1) / 2) * K, 0.06, ((PARK.z0 + PARK.z1) / 2) * K - LEN / 2);
+      scene.add(park); groundBits.push(park);
+    } else {
+      const groundSize = Math.max(grid.blocks.length * 2, 60) * 4;
+      const ground = new THREE.Mesh(new THREE.PlaneGeometry(groundSize, groundSize),
+        new THREE.MeshLambertMaterial({ color: 0x0a0e1a }));
+      ground.rotation.x = -Math.PI / 2; ground.position.y = -0.02; scene.add(ground); groundBits.push(ground);
+
+      const padGeo = new THREE.BoxGeometry(BW * PLOT + 0.5, 0.12, BD * PLOT + 0.5);
+      const padMat = new THREE.MeshLambertMaterial({ color: 0x161c2c });
+      pads = new THREE.InstancedMesh(padGeo, padMat, grid.blocks.length);
+      const mtx = new THREE.Matrix4();
+      grid.blocks.forEach((b, i) => { mtx.makeTranslation(b.x * grid.blockW, 0.04, b.z * grid.blockD); pads.setMatrixAt(i, mtx); });
+      pads.instanceMatrix.needsUpdate = true; scene.add(pads);
+      groundBits.push({ dispose: () => { padGeo.dispose(); padMat.dispose(); } });
+    }
 
     // shared geometry + per-height-bin window textures + one shared roof material
     const box = new THREE.BoxGeometry(1, 1, 1);
@@ -172,9 +207,31 @@ export default function Skyline3D({
     const haloGeo = new THREE.CircleGeometry(1.05, 20);
     const BINS = 6, texes = Array.from({ length: BINS }, (_, i) => windowTexture(2 + i * 3));
     const roofMat = new THREE.MeshLambertMaterial({ color: 0x11172a });
-    const disposables = [box, spireGeo, haloGeo, padGeo, padMat, roofMat, ground.geometry, ground.material, ...texes];
+    const disposables = [box, spireGeo, haloGeo, roofMat, ...texes];  // ground/pads are disposed via groundBits
 
-    const hitMeshes = [], ownMats = [];
+    const hitMeshes = [], ownMats = [], homes = new Map();
+    // Materials are SHARED across buildings, binned by (age, flow) — a unique material per
+    // building meant thousands of state changes per frame and the city crawled. Hover no longer
+    // recolours a material (that would light every building in the bin); it moves an outline box.
+    const matBin = new Map();
+    const AGE_BINS = 5, FLOW_BINS = 7;
+    const materialFor = (ageT, f) => {
+      const ai = Math.min(AGE_BINS - 1, Math.floor((ageT ?? 0.5) * AGE_BINS));
+      const fi = Math.max(0, Math.min(FLOW_BINS - 1, Math.round((Math.max(-1, Math.min(1, f)) + 1) / 2 * (FLOW_BINS - 1))));
+      const key = ai * FLOW_BINS + fi;
+      let m = matBin.get(key);
+      if (!m) {
+        const aT = (ai + 0.5) / AGE_BINS, fT = (fi / (FLOW_BINS - 1)) * 2 - 1;
+        const mag = Math.min(1, Math.abs(fT) * 1.6);
+        const flowCol = fT > 0.05 ? GREEN : fT < -0.05 ? RED : null;
+        const age = mix(new THREE.Color(bodyFrom), new THREE.Color(bodyTo), aT);
+        const body = flowCol ? mix(age, flowCol, 0.30 + 0.45 * mag) : age;
+        const glow = flowCol ? mix(WARM, flowCol, Math.min(1, 0.35 + mag)) : WARM;
+        m = { side: null, glow, intensity: 0.45 + (flowCol ? 0.75 * mag : 0), flowCol };
+        matBin.set(key, m);
+      }
+      return m;
+    };
     T.forEach((t, i) => {
       const h = Math.max(0.6, Math.sqrt(Math.max(0, t.score) / maxScore) * HMAX);
       const p = pts[i], r = hash01(t.a || String(i));
@@ -183,17 +240,21 @@ export default function Skyline3D({
       const flowCol = f > 0.02 ? GREEN : f < -0.02 ? RED : null;
 
       // Facade tints toward the flow colour, so the WHOLE building reads green/red — not just
-      // its windows. Neutral wallets keep the age ramp.
-      const age = mix(new THREE.Color(bodyFrom), new THREE.Color(bodyTo), t.ageT ?? 0.5);
-      const body = flowCol ? mix(age, flowCol, 0.30 + 0.45 * mag) : age;
-      const glow = flowCol ? mix(WARM, flowCol, Math.min(1, 0.35 + mag)) : WARM;
-      const tex = texes[Math.min(BINS - 1, Math.floor((h / 21) * BINS))];
-      const emissiveIntensity = 0.45 + (flowCol ? 0.75 * mag : 0);
-
-      // sides get windows, roof does not (face order: +X, −X, +Y, −Y, +Z, −Z)
-      const sideMat = new THREE.MeshLambertMaterial({ color: body, emissive: glow, emissiveMap: tex, emissiveIntensity });
+      // its windows. Neutral wallets keep the age ramp. Material comes from the shared bin.
+      const bin = materialFor(t.ageT, f);
+      const ti = Math.min(BINS - 1, Math.floor((h / 21) * BINS));
+      if (!bin.side) bin.side = [];
+      let sideMat = bin.side[ti];
+      if (!sideMat) {
+        const aT = 0.5;
+        sideMat = new THREE.MeshLambertMaterial({
+          color: bin.flowCol ? mix(mix(new THREE.Color(bodyFrom), new THREE.Color(bodyTo), aT), bin.flowCol, 0.5) : mix(new THREE.Color(bodyFrom), new THREE.Color(bodyTo), aT),
+          emissive: bin.glow, emissiveMap: texes[ti], emissiveIntensity: bin.intensity,
+        });
+        bin.side[ti] = sideMat; ownMats.push(sideMat);
+      }
       const faces = [sideMat, sideMat, roofMat, roofMat, sideMat, sideMat];
-      ownMats.push(sideMat);
+      const emissiveIntensity = bin.intensity;
 
       const { parts, spire, crownW } = archetype(h, r, i < 3);
       const group = [];
@@ -204,7 +265,7 @@ export default function Skyline3D({
         scene.add(m); hitMeshes.push(m); group.push(m);
       }
       if (spire > 0) {
-        const sMat = new THREE.MeshBasicMaterial({ color: flowCol ? glow : 0xdbeafe });
+        const sMat = new THREE.MeshBasicMaterial({ color: flowCol ? bin.glow : 0xdbeafe });
         const s = new THREE.Mesh(spireGeo, sMat);
         s.scale.set(1, spire, 1); s.position.set(p.x, h + spire / 2, p.z);
         scene.add(s); ownMats.push(sMat);
@@ -217,6 +278,7 @@ export default function Skyline3D({
         halo.scale.setScalar(0.6 + 0.5 * mag);
         scene.add(halo); ownMats.push(hMat);
       }
+      if (city) { t.hood = placed[i].hood; homes.set((t.a || "").toLowerCase(), { x: p.x, z: p.z, h: h + spire, mat: sideMat, base: emissiveIntensity }); }
       if (i === 0) group[0].userData.isChamp = { x: p.x, z: p.z, h: h + spire };
     });
 
@@ -230,19 +292,34 @@ export default function Skyline3D({
     }
 
     const controls = new OrbitControls(cam, renderer.domElement);
-    controls.target.set(0, 7, 0); controls.enableDamping = true; controls.dampingFactor = 0.08;
-    controls.minDistance = 12; controls.maxDistance = span * 4 + 60; controls.maxPolarAngle = Math.PI * 0.492;
-    controls.autoRotate = true; controls.autoRotateSpeed = 0.5;
+    controls.target.set(0, city ? 4 : 7, 0); controls.enableDamping = true; controls.dampingFactor = 0.08;
+    controls.minDistance = 8; controls.maxDistance = city ? LEN * 2.4 : span * 4 + 60; controls.maxPolarAngle = Math.PI * 0.492;
+    controls.autoRotate = !city; controls.autoRotateSpeed = 0.5;
+    const pulseMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.5 });
+    const pulseBox = new THREE.Mesh(box, pulseMat); pulseBox.visible = false; scene.add(pulseBox); ownMats.push(pulseMat);
+    const pulse = home => {
+      pulseBox.visible = true;
+      pulseBox.scale.set(1.5, home.h, 1.5); pulseBox.position.set(home.x, home.h / 2, home.z);
+      let n = 0;
+      const id = setInterval(() => { pulseMat.opacity = n % 2 ? 0.5 : 0.08; if (++n > 7) { clearInterval(id); pulseBox.visible = false; } }, 240);
+      return () => { clearInterval(id); pulseBox.visible = false; };
+    };
+    api.current = { cam, controls, homes, pulse };
 
     const ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
     let hovered = null, px = 0, py = 0, moved = false;
+    // hover marker — a bright wireframe cage placed over the hovered building
+    const cageMat = new THREE.MeshBasicMaterial({ color: 0xffffff, wireframe: true, transparent: true, opacity: 0.55 });
+    const cage = new THREE.Mesh(box, cageMat); cage.visible = false; scene.add(cage); ownMats.push(cageMat);
     const setHover = m => {
-      const mat = m?.userData.mat ?? null, prev = hovered?.userData.mat ?? null;
-      if (mat === prev) return;
-      if (prev) prev.emissiveIntensity = hovered.userData.base;
+      if (hovered === m) return;
       hovered = m;
-      if (mat) { mat.emissiveIntensity = 1.5; renderer.domElement.style.cursor = "pointer"; }
-      else renderer.domElement.style.cursor = "grab";
+      if (m) {
+        cage.visible = true;
+        cage.scale.copy(m.scale).multiplyScalar(1.06);
+        cage.position.copy(m.position);
+        renderer.domElement.style.cursor = "pointer";
+      } else { cage.visible = false; renderer.domElement.style.cursor = "grab"; }
     };
     const pick = e => {
       const r = renderer.domElement.getBoundingClientRect();
@@ -286,10 +363,23 @@ export default function Skyline3D({
       controls.dispose();
       disposables.forEach(d => d.dispose());
       ownMats.forEach(m => m.dispose());
-      pads.dispose();
+      groundBits.forEach(g => { if (g.dispose) g.dispose(); else { g.geometry?.dispose(); g.material?.dispose(); } });
+      pads?.dispose();
       renderer.dispose(); el.removeChild(renderer.domElement); el.removeChild(labelR.domElement); el.removeChild(tip);
     };
-  }, [towers, isMobile, crownLabel, accent, bodyFrom, bodyTo]);
+  }, [towers, isMobile, crownLabel, accent, bodyFrom, bodyTo, layout]);
+
+  // Fly to a searched wallet and flash its building, without rebuilding the scene.
+  useEffect(() => {
+    const a = api.current; if (!a || !focus) return;
+    const home = a.homes.get(String(focus).toLowerCase());
+    if (!home) return;
+    a.controls.autoRotate = false;
+    a.controls.target.set(home.x, Math.min(home.h * 0.6, 14), home.z);
+    a.cam.position.set(home.x + 16, home.h * 0.9 + 12, home.z + 20);
+    a.controls.update();
+    if (a.pulse) return a.pulse(home);   // flash the building so the eye lands on it
+  }, [focus]);
 
   return <div ref={mount} style={{ position: "relative", width: "100%", borderRadius: 12, overflow: "hidden", cursor: "grab" }} />;
 }

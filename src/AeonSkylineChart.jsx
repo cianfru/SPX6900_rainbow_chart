@@ -3,6 +3,7 @@ import { AEON_ONCHAIN } from "./aeon-onchain.js";
 import { loadAeon } from "./history-data.js";
 import { SANS, MONO, MAX_W, Metric, Explain } from "./chart-ui.jsx";
 import WalletCard from "./WalletCard.jsx";
+import CityControls from "./CityControls.jsx";
 
 const Skyline3D = lazy(() => import("./Skyline3D.jsx"));
 const short = a => a.slice(0, 6) + "…" + a.slice(-4);
@@ -15,6 +16,9 @@ export default function AeonSkylineChart({ isMobile, preview = false }) {
   const [useSpx, setUseSpx] = useState(true);
   const [multiOnly, setMultiOnly] = useState(false);
   const [sel, setSel] = useState(null);
+  const [layout, setLayout] = useState("city");
+  const [focus, setFocus] = useState(null);
+  const [shownN, setShownN] = useState(600);
   useEffect(() => { let c = false; loadAeon().then(d => { if (!c && d) setData(d); }); return () => { c = true; }; }, []);
   const all = useMemo(() => (data.holders || []).filter(h => h.a && h.n > 0), [data]);
   const holders = useMemo(() => multiOnly ? all.filter(h => h.n > 1) : all, [all, multiOnly]);
@@ -38,7 +42,9 @@ export default function AeonSkylineChart({ isMobile, preview = false }) {
     return { ...h, score: units * (0.45 + 0.55 * ((h.days || 0) / maxDays)), ageT: (h.days || 0) / maxDays, flow: h.f30 || 0 };
   });
   const adding = towers.filter(t => t.flow > 0).length, shedding = towers.filter(t => t.flow < 0).length;
-  const cur = sel || towers.slice().sort((a, b) => b.score - a.score)[0];
+  // render the biggest N (a building is ~3 draw calls); all holders stay searchable
+  const visible = towers.slice().sort((a, b) => b.score - a.score).slice(0, shownN);
+  const cur = sel || visible[0];
   const aeonCard = t => `
       <div style="padding:11px 13px 8px">
         <div style="color:#5eead4;font-weight:700;font-size:13.5px">${t.ens || short(t.a)}</div>
@@ -138,18 +144,23 @@ export default function AeonSkylineChart({ isMobile, preview = false }) {
           border: "1px solid " + (multiOnly ? "rgba(45,212,191,0.5)" : "rgba(255,255,255,0.14)"),
           background: multiOnly ? "rgba(45,212,191,0.16)" : "transparent", color: multiOnly ? "#5eead4" : "#94a3b8",
         }}>{multiOnly ? "✓ " : ""}Exclude single-NFT wallets</button>
-        <span style={{ fontFamily: MONO, fontSize: 12.5, color: "#7c8a9e" }}>{holders.length} towers{!multiOnly && singleCount ? ` · ${singleCount} single-NFT` : ""}</span>
+        <span style={{ fontFamily: MONO, fontSize: 12.5, color: "#7c8a9e" }}>{visible.length} of {holders.length} shown{!multiOnly && singleCount ? ` · ${singleCount} single-NFT` : ""}</span>
       </div>
+      <CityControls layout={layout} onLayout={setLayout} accent="#5eead4" isMobile={isMobile} unit="holder"
+        has={a => visible.some(t => (t.a || "").toLowerCase() === a)}
+        onFocus={a => { setFocus(a); const m = visible.find(t => (t.a || "").toLowerCase() === a); if (m) setSel(m); }} />
+
       <div style={{ display: "flex", gap: 16, alignItems: "flex-start", flexDirection: isMobile ? "column" : "row" }}>
         <div style={{ flex: "1 1 auto", minWidth: 0, width: "100%" }}>
           <Suspense fallback={<div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Loading 3D…</div>}>
-            <Skyline3D towers={towers} isMobile={isMobile} onSelect={setSel} cardHtml={aeonCard}
-              crownLabel="👑 top holder" accent="rgba(45,212,191,0.45)" bodyFrom={0xb45309} bodyTo={0x22d3ee} />
+            <Skyline3D towers={visible} isMobile={isMobile} onSelect={setSel} cardHtml={aeonCard}
+              crownLabel="👑 top holder" accent="rgba(45,212,191,0.45)" bodyFrom={0xb45309} bodyTo={0x22d3ee}
+              layout={layout} focus={focus} />
           </Suspense>
         </div>
         {!preview && cur && (
           <WalletCard w={cur} flow={cur.flow} flowUnit=" AEON" accent="#5eead4" isMobile={isMobile}
-            lines={[`${cur.n} AEON${spxOn && cur.spx ? ` · ${fmtSpx(cur.spx)} SPX` : ""}`, `held ${cur.days} days · since ${cur.since}`]} />
+            lines={[`${cur.n} AEON${spxOn && cur.spx ? ` · ${fmtSpx(cur.spx)} SPX` : ""}`, `held ${cur.days} days${cur.hood ? ` · ${cur.hood.name}` : ""}`]} />
         )}
       </div>
       <div style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 8 }}>

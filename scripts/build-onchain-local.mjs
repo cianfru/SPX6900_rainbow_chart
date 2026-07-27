@@ -241,7 +241,7 @@ export function replayFifo(transfers, priceAt, sampleTs, opts = {}) {
       arr.push({ a, bal: e.bal, oldest });
     }
     arr.sort((x, y) => y.bal - x.bal);
-    return arr.slice(0, opts.whaleTop ?? 300).map(w => {
+    return arr.slice(0, opts.whaleTop ?? 1500).map(w => {
       const o = { a: w.a, bal: +w.bal.toFixed(2), days: Number.isFinite(w.oldest) ? Math.round((lastTs - w.oldest) / DAY) : 0 };
       // delta vs each checkpoint. A wallet absent from the snapshot was empty then, so the
       // delta is its whole balance — a genuinely NEW whale, which is exactly what we want to show.
@@ -439,7 +439,7 @@ async function main() {
   const grid = args.daily
     ? Array.from({ length: Math.floor((t1 - t0) / DAY) + 2 }, (_, i) => dayFloor(t0) + i * DAY)
     : mondays(t0, t1);
-  const { rows, urpd, whales } = replayFifo(transfers, priceAt, grid, { thresholdDays: Number(args.threshold ?? 90), collectUrpd: true, urpdBuckets: Number(args.buckets ?? 72), collectWhales: true });
+  const { rows, urpd, whales } = replayFifo(transfers, priceAt, grid, { thresholdDays: Number(args.threshold ?? 90), collectUrpd: true, urpdBuckets: Number(args.buckets ?? 72), collectWhales: true, whaleTop: Number(args.whales_top ?? 1500) });
   const clean = rows.filter(r => r.holders > 0);
   const out = args.out || "public/onchain.json";
   await writeFile(out, JSON.stringify(clean));

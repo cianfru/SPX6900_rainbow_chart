@@ -174,7 +174,7 @@ function main() {
   const combined = h => (h.n + (maxSpx > 0 ? (h.spx || 0) / maxSpx * maxN : 0)) * (0.45 + 0.55 * (h.days / maxDays));
   const holders = all
     .sort((x, y) => maxSpx > 0 ? combined(y) - combined(x) : (y.n - x.n || y.days - x.days))
-    .slice(0, 500);   // skyline shows the top slice; the site can filter (e.g. exclude single-NFT wallets)
+    .slice(0, 1200);  // skyline shows the top slice; the site can filter (e.g. exclude single-NFT wallets)
   if (spxArg) console.log(`  spx: joined coin balances for ${holders.filter(h => h.spx).length}/${holders.length} skyline wallets · biggest ${Math.max(...holders.map(h => h.spx || 0)).toLocaleString()} SPX`);
 
   // ENS names, from the cache scripts/build-ens.mjs maintains. Joined onto the top slice

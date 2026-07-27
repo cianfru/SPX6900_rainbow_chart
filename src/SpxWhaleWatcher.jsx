@@ -1,6 +1,7 @@
 import { useMemo, useState, useEffect, lazy, Suspense } from "react";
 import { loadWhales } from "./history-data.js";
 import WalletCard, { shortAddr } from "./WalletCard.jsx";
+import CityControls from "./CityControls.jsx";
 import { SANS, MONO, MAX_W, Metric, Explain } from "./chart-ui.jsx";
 
 const Skyline3D = lazy(() => import("./Skyline3D.jsx"));
@@ -18,6 +19,9 @@ export default function SpxWhaleWatcher({ isMobile, preview = false }) {
   const [data, setData] = useState(null);
   const [win, setWin] = useState(30);
   const [sel, setSel] = useState(null);
+  const [layout, setLayout] = useState("city");
+  const [focus, setFocus] = useState(null);
+  const [shown, setShown] = useState(600);   // how many buildings to RENDER (all are searchable)
   useEffect(() => { let off = false; loadWhales().then(d => { if (!off) setData(d ?? false); }); return () => { off = true; }; }, []);
 
   const towers = useMemo(() => {
@@ -40,7 +44,10 @@ export default function SpxWhaleWatcher({ isMobile, preview = false }) {
     return { add: add.length, cut: cut.length, net, spot: data?.spot ?? 0 };
   }, [towers, data]);
 
-  const cur = sel || towers?.slice().sort((a, b) => b.score - a.score)[0];
+  // The city renders the biggest `shown` wallets — a building is ~3 draw calls, so the whole
+  // set can outrun a modest GPU. Every tracked wallet stays searchable either way.
+  const visible = useMemo(() => (towers ? towers.slice().sort((a, b) => b.score - a.score).slice(0, shown) : null), [towers, shown]);
+  const cur = sel || visible?.[0];
 
   if (data == null) return <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Loading whale data…</div>;
   if (data === false || !towers) return <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Whale data is being reconstructed — check back after the next on-chain refresh.</div>;
@@ -85,21 +92,35 @@ export default function SpxWhaleWatcher({ isMobile, preview = false }) {
             color: win === w ? "#c4b5fd" : "#94a3b8",
           }}>{w}-day flow</button>
         ))}
+        <span style={{ width: 10 }} />
+        {[300, 600, 1500].map(n => (
+          <button key={n} onClick={() => setShown(n)} title="How many buildings to render" style={{
+            padding: "5px 11px", borderRadius: 8, cursor: "pointer", fontFamily: MONO, fontSize: 12,
+            background: shown === n ? "rgba(167,139,250,0.18)" : "transparent",
+            border: `1px solid ${shown === n ? "rgba(167,139,250,0.5)" : "rgba(255,255,255,0.12)"}`,
+            color: shown === n ? "#c4b5fd" : "#94a3b8",
+          }}>{n >= (towers?.length ?? 0) ? "all" : n} buildings</button>
+        ))}
       </div>
+
+      <CityControls layout={layout} onLayout={setLayout} accent="#c4b5fd" isMobile={isMobile} unit="whale"
+        has={a => visible.some(t => (t.a || "").toLowerCase() === a)}
+        onFocus={a => { setFocus(a); const m = visible.find(t => (t.a || "").toLowerCase() === a); if (m) setSel(m); }} />
 
       <div style={{ display: "flex", gap: 16, alignItems: "flex-start", flexDirection: isMobile ? "column" : "row" }}>
         <div style={{ flex: "1 1 auto", minWidth: 0, width: "100%" }}>
           <Suspense fallback={<div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Loading 3D…</div>}>
-            <Skyline3D towers={towers} isMobile={isMobile} onSelect={setSel} cardHtml={cardHtml}
-              crownLabel="🐋 biggest whale" accent="rgba(167,139,250,0.45)" bodyFrom={0x3b3560} bodyTo={0xa78bfa} />
+            <Skyline3D towers={visible} isMobile={isMobile} onSelect={setSel} cardHtml={cardHtml}
+              crownLabel="🐋 biggest whale" accent="rgba(167,139,250,0.45)" bodyFrom={0x3b3560} bodyTo={0xa78bfa}
+              layout={layout} focus={focus} />
           </Suspense>
           <div style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 8 }}>
-            Drag to orbit · scroll to zoom · hover a building for the wallet · click to pin it.
+            Drag to orbit · scroll to zoom · hover a building for the wallet · click to pin it.{layout === "city" && " Every wallet has a home address in Whale City."}
           </div>
         </div>
         {!preview && cur && (
           <WalletCard w={cur} flow={cur.flow} flowUnit=" SPX" accent="#c4b5fd" isMobile={isMobile}
-            lines={[`${fmt(cur.bal)} SPX${stats.spot ? ` · ~$${Math.round(cur.bal * stats.spot).toLocaleString()}` : ""}`, `held ${cur.days} days`]} />
+            lines={[`${fmt(cur.bal)} SPX${stats.spot ? ` · ~$${Math.round(cur.bal * stats.spot).toLocaleString()}` : ""}`, `held ${cur.days} days${cur.hood ? ` · ${cur.hood.name}` : ""}`]} />
         )}
       </div>
 
