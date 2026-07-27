@@ -1,19 +1,13 @@
-name: Daily on-chain FIFO refresh (BigQuery)
+name: On-chain FIFO reconstruction (BigQuery — one-time / backup)
 
-# PRIMARY daily on-chain refresh (owner, 2026-07-27): reconstructs the FULL FIFO suite at DAILY
-# granularity from an own append-only BigQuery table. The incremental append scans only the new
-# date partitions (~a few GB/day, inside BigQuery's free 1 TB/mo), so Dune is untouched — the
-# 2,500 Dune credits stay reserved for one-time work. The Dune pipeline (onchain-dune.yml) is now
-# a manual BACKUP (schedule removed) so the two never both commit onchain.json.
-#
-# WIRED + WAITING: until the GCP_SA_KEY secret is set (and BigQuery's monthly 1 TB free tier has
-# reset ~1 Aug), every run SKIPS CLEANLY (green no-op) via the "Gate" step below — no red failures.
-# Add the secret + seed the table once (bq load from the raw-transfer CSV — free, no scan) and it
-# goes live daily automatically. First seeded run backfills ~546 GB once (inside the free tier).
+# DISPATCH-ONLY (owner, 2026-07-27): Dune (onchain-dune.yml) is the PRIMARY daily refresh + the
+# single source of truth. BigQuery is kept here for ONE-TIME reconstructions — re-seeding the
+# transfer archive, or big backfills (BTC/ETH free-float, Base on-chain) — and as an emergency
+# backup if Dune is unavailable. It is NEVER scheduled, so it can't race Dune to commit onchain.json.
+# Free (BigQuery 1 TB/mo). Runs the FIFO engine at --daily granularity; the Gate step skips cleanly
+# if GCP_SA_KEY isn't set. To use: add the secret + seed the table, then dispatch manually.
 
 on:
-  schedule:
-    - cron: "37 6 * * *"    # ~06:37 UTC daily (after the 00:17 snapshot)
   workflow_dispatch: {}
 
 permissions:

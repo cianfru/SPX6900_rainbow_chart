@@ -979,18 +979,20 @@
         commit; needs a GCP service-account key `GCP_SA_KEY` as a repo secret). Until that's built, refresh stays MANUAL (owner
         runs `bigquery/spx6900_raw_transfers.sql`, sends the CSV, Claude re-bundles). NOTE the auto-created Dune query 8055773
         is a leftover temp query (harmless; delete in the Dune UI if wanted).
-      - **⭐⭐ BIGQUERY IS NOW THE PRIMARY DAILY ON-CHAIN REFRESH (owner, 2026-07-27: "market heartbeat within budget").**
-        Key realisation: the FIFO engine computes the WHOLE suite in ONE pass, so refreshing slow charts (hodl/conc) costs
-        NOTHING extra — the only cost is the transfer-delta pull. And daily granularity is free (a local sample-grid choice,
-        not a Dune cost). So `onchain-bigquery.yml` was flipped to **DAILY (`cron 37 6 * * *`) + `--daily`** on the FIFO engine
-        → the full FIFO suite (NRPL/SOPR/liveliness/sip/hodl/conc/URPD) refreshes DAILY at **$0 Dune** (BigQuery incremental
-        append = new partitions only, ~a few GB/day inside the free 1 TB/mo). The **Dune pipeline (onchain-dune.yml) is DEMOTED
-        to manual BACKUP** (schedule removed) so they never both commit onchain.json — the 2,500 Dune credits now stay reserved
-        for one-time work (BTC/ETH free-float, Base on-chain). **WIRED + WAITING (owner adds 2 things):** every run SKIPS CLEANLY
-        (green no-op via the "Gate" step, no red failures) until the `GCP_SA_KEY` secret is set AND BigQuery's 1 TB/mo free tier
-        resets (~1 Aug — the owner's is currently spent). Then: add the secret + seed the table once (`bq load` from the
-        raw-transfer CSV — free, no scan; or let the first run backfill ~546 GB, one-time inside the free tier) → it goes daily
-        automatically. Other daily-free surfaces (price/holders/MVRV/CEX-flow/composite/F&G) already come from the snapshot cron.
+      - **⭐⭐ DUNE-INCREMENTAL IS THE PRIMARY DAILY ON-CHAIN REFRESH + SINGLE SOURCE OF TRUTH (owner, 2026-07-27, FINAL —
+        chose Dune over BigQuery for one source).** Two realisations set the design: (1) the FIFO engine computes the WHOLE
+        suite in ONE pass, so refreshing slow charts (hodl/conc) costs NOTHING extra — the only cost is the transfer-delta pull;
+        and daily granularity is free (a local sample-grid choice, `--daily`, not a Dune cost). (2) Dune's "result read" bills by
+        ROWS not RUNS, so daily ≈ weekly ≈ **~150-180 credits/mo (~7% of 2,500)** — daily is basically free upside. So
+        `onchain-dune.yml` is now **DAILY (`cron 23 5 * * *`)**, pulling the incremental delta over the GitHub release-asset
+        archive → local FIFO `--daily` → the full suite (NRPL/SOPR/liveliness/sip/hodl/conc/URPD) refreshes daily. **ONE source
+        of truth:** GitHub archive + Dune delta + local engine, self-contained in the repo, no GCP dependency, live NOW (no
+        waiting on a month reset). **BigQuery (`onchain-bigquery.yml`) is DISPATCH-ONLY** — kept for ONE-TIME reconstructions
+        (re-seed the archive, BTC/ETH free-float, Base on-chain) + emergency backup; never scheduled so it can't race Dune to
+        commit onchain.json (it has a Gate step that skips cleanly without `GCP_SA_KEY`). Weighed BigQuery-daily ($0 Dune) and
+        rejected it: it adds a GCP dependency + a 2nd archive in a BQ table + waiting for the free-tier reset, to save ~170
+        credits/mo that the budget doesn't miss. Other daily-free surfaces (price/holders/MVRV/CEX-flow/composite/F&G) already
+        come from the snapshot cron. Net: everything on the site is now a daily heartbeat, one source, ~7% of the Dune budget.
       - **✅ BIGQUERY WEEKLY REFRESH BUILT 2026-07-21 (owner made the GCP SA) — pending secret + first-run validation.**
         `.github/workflows/onchain-bigquery.yml` (~~Mon 06:37 UTC~~ now DAILY, see the note above; + dispatch): GH Actions Google auth (`GCP_SA_KEY` secret, the
         SA JSON) + `bq` CLI → keeps an OWN append-only table **`goog-fltx.spx_onchain.eth_transfers`**, incrementally appends
