@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { lookupHome } from "./city-map.js";
+import { TIMES } from "./city-render.js";
 import { SANS, MONO } from "./chart-ui.jsx";
 
 // "Where do you live?" — the game layer. Paste any wallet and the city tells you your
@@ -8,7 +9,7 @@ import { SANS, MONO } from "./chart-ui.jsx";
 // It answers for ANY valid address, holder or not, because the neighbourhood is a property of the
 // address itself (a hash), not of the holdings. When the wallet isn't in the tracked set we say so
 // plainly rather than inventing a building for it — the address is play, the buildings are data.
-export default function CityControls({ layout, onLayout, onFocus, has, accent = "#5eead4", isMobile, unit = "holder" }) {
+export default function CityControls({ layout, onLayout, onFocus, has, accent = "#5eead4", isMobile, unit = "holder", time = "dusk", onTime }) {
   const [q, setQ] = useState("");
   const [msg, setMsg] = useState(null);
 
@@ -51,6 +52,13 @@ export default function CityControls({ layout, onLayout, onFocus, has, accent = 
             <button key={v} onClick={() => onLayout(v)} style={btn(layout === v)}>{lbl}</button>
           ))}
         </div>
+        {onTime && (
+          <div style={{ display: "flex", gap: 4 }}>
+            {Object.entries(TIMES).map(([k, v]) => (
+              <button key={k} onClick={() => onTime(k)} style={btn(time === k)}>{v.label}</button>
+            ))}
+          </div>
+        )}
       </div>
       {msg && (
         <div style={{

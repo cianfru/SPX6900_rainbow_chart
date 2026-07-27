@@ -3,7 +3,9 @@ import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { CSS2DRenderer, CSS2DObject } from "three/examples/jsm/renderers/CSS2DRenderer.js";
 import { placeCity, cityScale, CITY_LENGTH, ISLAND_RING, PARK_RINGS, BACKDROP, ISLETS, streetGrid } from "./city-map.js";
+import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { chainOf } from "./city-messages.js";
+import { TIMES, FAMILIES, skyEnv, facadeTexture, wallGeometry, roofGeometry, archetype } from "./city-render.js";
 
 // A 3D CITY of wallets — shared by the AEON holder skyline and the SPX whale watcher.
 //
@@ -53,59 +55,6 @@ function cityPlots(n) {
   return { pts, blockW, blockD, blocks };
 }
 
-// Lit-window facade. Applied to the SIDES only (never the roof — a BoxGeometry maps the same
-// texture to all six faces, which is why the first pass looked like windows on the rooftops).
-function windowTexture(rows) {
-  const cell = 8, cols = 4, W = cols * cell, H = Math.max(2, rows) * cell;
-  const c = document.createElement("canvas"); c.width = W; c.height = H;
-  const g = c.getContext("2d");
-  g.fillStyle = "#000"; g.fillRect(0, 0, W, H);
-  for (let y = 0; y < Math.max(2, rows); y++) {
-    for (let x = 0; x < cols; x++) {
-      if (Math.random() < 0.24) continue;                    // a dark window — nobody home
-      g.fillStyle = `rgba(255,255,255,${(0.5 + Math.random() * 0.5).toFixed(2)})`;
-      g.fillRect(x * cell + 2, y * cell + 2, cell - 4, cell - 4);
-    }
-  }
-  const t = new THREE.CanvasTexture(c);
-  t.magFilter = THREE.NearestFilter; t.minFilter = THREE.LinearMipmapLinearFilter;
-  return t;
-}
-
-// The archetypes. Each returns stacked boxes {w,d,h,y} in local space, plus whether it gets a
-// spire. Silhouette is the point: a townhouse should never be mistaken for a skyscraper.
-function archetype(h, r, landmark) {
-  const P = [];
-  if (landmark) {                                   // Empire-State-ish: broad base, tiered setbacks, spire
-    const base = h * 0.52, mid = h * 0.26, top = h * 0.16;
-    P.push({ w: 1.00, d: 1.00, h: base, y: base / 2 });
-    P.push({ w: 0.74, d: 0.74, h: mid, y: base + mid / 2 });
-    P.push({ w: 0.48, d: 0.48, h: top, y: base + mid + top / 2 });
-    return { parts: P, spire: h * 0.16, crownW: 0.48 };
-  }
-  if (h >= 9) {                                     // skyscraper: shaft + setback crown
-    const base = h * 0.72, top = h * 0.28;
-    P.push({ w: 0.92, d: 0.92, h: base, y: base / 2 });
-    P.push({ w: 0.62, d: 0.62, h: top, y: base + top / 2 });
-    return { parts: P, spire: r > 0.5 ? h * 0.12 : 0, crownW: 0.62 };
-  }
-  if (h >= 4) {                                     // tower: single slim setback
-    const base = h * 0.85, cap = h * 0.15;
-    P.push({ w: 0.86, d: 0.86, h: base, y: base / 2 });
-    P.push({ w: 0.66, d: 0.66, h: cap, y: base + cap / 2 });
-    return { parts: P, spire: 0, crownW: 0.66 };
-  }
-  if (h >= 1.8) {                                   // condo block: squat, full-width parapet
-    P.push({ w: 0.94, d: 0.94, h: h * 0.92, y: h * 0.46 });
-    P.push({ w: 0.99, d: 0.99, h: h * 0.08, y: h * 0.96 });
-    return { parts: P, spire: 0, crownW: 0.99 };
-  }
-  // townhouse / brownstone: wide, low, with a cornice
-  P.push({ w: 1.02, d: 0.86, h: h * 0.88, y: h * 0.44 });
-  P.push({ w: 1.08, d: 0.92, h: h * 0.12, y: h * 0.94 });
-  return { parts: P, spire: 0, crownW: 1.08 };
-}
-
 export default function Skyline3D({
   towers, isMobile, onSelect, cardHtml, crownLabel = "👑 biggest", accent = "rgba(45,212,191,0.4)",
   bodyFrom = 0x334063, bodyTo = 0x8fa6d8,   // body colour ramp across holding age (new → old)
@@ -114,6 +63,7 @@ export default function Skyline3D({
   intro = true,                             // play the arrival fly-through on mount
   onIntroDone,
   messages = null,                          // { address: { text, ts } } — signs hung over buildings
+  time = "dusk",                            // "day" | "dusk" | "night"
 }) {
   const mount = useRef(null);
   const api = useRef(null);                 // { cam, controls, homes } for the focus effect
@@ -149,15 +99,24 @@ export default function Skyline3D({
     const grid = city ? null : cityPlots(T.length);
     const pts = city ? placed.map(p => ({ x: p.x, z: p.z })) : grid.pts;
 
+    const TOD = TIMES[time] || TIMES.dusk;
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x1b2740);
-    scene.fog = new THREE.Fog(0x1b2740, city ? LEN * 1.1 : 40, city ? LEN * 3.2 : 190);
+    scene.fog = new THREE.Fog(new THREE.Color(TOD.horizon), city ? LEN * 1.2 : 55, city ? LEN * 3.4 : 230);
     const cam = new THREE.PerspectiveCamera(46, W / VH, 0.1, 3000);
     const span = city ? LEN * 0.5 : Math.sqrt(T.length) * 2.0;
     if (city) cam.position.set(LEN * 0.34, LEN * 0.66, LEN * 0.50); else cam.position.set(span * 0.95, 20, span * 1.28);
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setPixelRatio(Math.min(devicePixelRatio, 2)); renderer.setSize(W, VH);
+    // Filmic tone mapping is not a nicety here: without it the bright emissive windows clip to
+    // flat white and the age ramp — the whole point of the colour — disappears at the top end.
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = TOD.exposure;
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     el.appendChild(renderer.domElement);
+    const { env, sky } = skyEnv(renderer, TOD);
+    scene.environment = env; scene.background = sky;
 
     const labelR = new CSS2DRenderer(); labelR.setSize(W, VH);
     Object.assign(labelR.domElement.style, { position: "absolute", top: "0", left: "0", pointerEvents: "none" });
@@ -172,9 +131,26 @@ export default function Skyline3D({
     });
     el.appendChild(tip);
 
-    scene.add(new THREE.AmbientLight(0xffffff, 0.95));
-    const d1 = new THREE.DirectionalLight(0xfff2df, 1.15); d1.position.set(30, 60, 20); scene.add(d1);
-    const d2 = new THREE.DirectionalLight(0x9dc4ff, 0.6); d2.position.set(-25, 25, -15); scene.add(d2);
+    scene.add(new THREE.AmbientLight(0xffffff, TOD.amb));
+    // A hemisphere light is what stops the top-down view going black. The city is mostly looked at
+    // from ABOVE, where the sky env contributes almost nothing to a horizontal surface and every
+    // roof and street falls into shadow — this lights upward-facing faces with the sky's own colour.
+    // The owner's brief is explicit that the map must be readable in a bright room, so brightness
+    // here is a requirement, not a taste setting.
+    scene.add(new THREE.HemisphereLight(new THREE.Color(TOD.top), new THREE.Color(TOD.ground), TOD.hemi));
+    const sun = new THREE.DirectionalLight(TOD.sun, TOD.sunI);
+    sun.position.set(LEN * 0.4, LEN * 0.6, LEN * 0.3);
+    sun.castShadow = true;
+    sun.shadow.mapSize.set(2048, 2048);
+    sun.shadow.bias = -0.0006;
+    // The shadow camera FOLLOWS the view rather than covering the whole island. One map stretched
+    // over the full city would be so coarse that shadows read as noise; a tight box around wherever
+    // you're looking is crisp, and buildings far enough away to fall outside it are too small for
+    // a missing shadow to be visible.
+    const SHADOW_SPAN = Math.max(30, LEN * 0.16);
+    Object.assign(sun.shadow.camera, { left: -SHADOW_SPAN, right: SHADOW_SPAN, top: SHADOW_SPAN, bottom: -SHADOW_SPAN, near: 1, far: LEN * 2.6 });
+    scene.add(sun); scene.add(sun.target);
+    let champInfo = null;
 
     // ── the ground. City: the rivers, the island itself and Central Park. Grid: block pads. ──
     const groundBits = [];
@@ -194,18 +170,20 @@ export default function Skyline3D({
       const flat = (rings, colour, y) => {
         if (!rings?.length) return;
         const m = new THREE.Mesh(new THREE.ShapeGeometry(ringShape(rings)),
-          new THREE.MeshLambertMaterial({ color: colour, side: THREE.DoubleSide }));
+          new THREE.MeshStandardMaterial({ color: colour, roughness: 0.95, side: THREE.DoubleSide }));
         m.rotation.x = Math.PI / 2; m.position.y = y; scene.add(m); groundBits.push(m);
       };
 
-      const water = new THREE.Mesh(new THREE.PlaneGeometry(LEN * 3.0, LEN * 3.0),
-        new THREE.MeshLambertMaterial({ color: 0x2a6a92 }));
+      // Water is the one genuinely reflective surface in frame, so it gets a low roughness and
+      // picks up the sky — which is most of why the island now reads as sitting IN something.
+      const water = new THREE.Mesh(new THREE.PlaneGeometry(LEN * 4.0, LEN * 4.0),
+        new THREE.MeshStandardMaterial({ color: TOD.water, roughness: 0.42, metalness: 0.06 }));
       water.rotation.x = -Math.PI / 2; water.position.y = -0.3; scene.add(water); groundBits.push(water);
 
-      for (const b of BACKDROP) flat(b.rings, 0x46527a, -0.08);   // Brooklyn / Queens / Bronx / Jersey
-      for (const i of ISLETS) flat(i.rings, 0x4d5a85, -0.04);     // Roosevelt Island
-      flat([ISLAND_RING], 0x59668f, 0);                            // Manhattan
-      flat(PARK_RINGS, 0x2f7a45, 0.06);                            // Central Park
+      for (const b of BACKDROP) flat(b.rings, TOD.back, -0.08);   // Brooklyn / Queens / Bronx / Jersey
+      for (const i of ISLETS) flat(i.rings, TOD.back, -0.04);     // Roosevelt Island
+      flat([ISLAND_RING], TOD.land, 0);                            // Manhattan
+      flat(PARK_RINGS, TOD.park, 0.06);                            // Central Park
 
       // The street grid — what actually says "Manhattan" at a glance
       const segs = streetGrid(K);
@@ -221,11 +199,11 @@ export default function Skyline3D({
     } else {
       const groundSize = Math.max(grid.blocks.length * 2, 60) * 4;
       const ground = new THREE.Mesh(new THREE.PlaneGeometry(groundSize, groundSize),
-        new THREE.MeshLambertMaterial({ color: 0x0a0e1a }));
+        new THREE.MeshStandardMaterial({ color: 0x1a2033, roughness: 0.95 }));
       ground.rotation.x = -Math.PI / 2; ground.position.y = -0.02; scene.add(ground); groundBits.push(ground);
 
       const padGeo = new THREE.BoxGeometry(BW * PLOT + 0.5, 0.12, BD * PLOT + 0.5);
-      const padMat = new THREE.MeshLambertMaterial({ color: 0x161c2c });
+      const padMat = new THREE.MeshStandardMaterial({ color: 0x262d42, roughness: 0.9 });
       pads = new THREE.InstancedMesh(padGeo, padMat, grid.blocks.length);
       const mtx = new THREE.Matrix4();
       grid.blocks.forEach((b, i) => { mtx.makeTranslation(b.x * grid.blockW, 0.04, b.z * grid.blockD); pads.setMatrixAt(i, mtx); });
@@ -233,89 +211,145 @@ export default function Skyline3D({
       groundBits.push({ dispose: () => { padGeo.dispose(); padMat.dispose(); } });
     }
 
-    // shared geometry + per-height-bin window textures + one shared roof material
+    // ── the buildings, MERGED ─────────────────────────────────────────────────────────────────
+    // One mesh per (family × age × flow) bucket rather than per building. The old renderer issued
+    // 6,836 draw calls to push 14,908 triangles — every box carried a 6-material array and three.js
+    // emits one call per material group — so the city was CPU-bound on state changes while the GPU
+    // sat idle. Merging is what pays for the shadows and materials below.
+    // A plain unit cube kept for the two markers that are NOT buildings — the hover cage and the
+    // search pulse. Buildings themselves no longer use one; they're merged geometry.
     const box = new THREE.BoxGeometry(1, 1, 1);
     const spireGeo = new THREE.CylinderGeometry(0.035, 0.075, 1, 6);
     const haloGeo = new THREE.CircleGeometry(1.05, 20);
-    const BINS = 6, texes = Array.from({ length: BINS }, (_, i) => windowTexture(2 + i * 3));
-    const roofMat = new THREE.MeshLambertMaterial({ color: 0x2b3350 });
-    const disposables = [box, spireGeo, haloGeo, roofMat, ...texes];  // ground/pads are disposed via groundBits
+    const texes = Object.fromEntries(Object.keys(FAMILIES).map(f => [f, facadeTexture(f)]));
+    const roofMat = new THREE.MeshStandardMaterial({ color: 0x3b3f4a, roughness: 0.88 });
+    const woodMat = new THREE.MeshStandardMaterial({ color: 0x6b4a35, roughness: 0.95 });
+    const metalMat = new THREE.MeshStandardMaterial({ color: 0x8a9099, roughness: 0.5, metalness: 0.7 });
+    const disposables = [box, spireGeo, haloGeo, roofMat, woodMat, metalMat, ...Object.values(texes)];
 
-    const hitMeshes = [], ownMats = [], homes = new Map();
-    // Materials are SHARED across buildings, binned by (age, flow) — a unique material per
-    // building meant thousands of state changes per frame and the city crawled. Hover no longer
-    // recolours a material (that would light every building in the bin); it moves an outline box.
-    const matBin = new Map();
-    const AGE_BINS = 8, FLOW_BINS = 7;
-    const materialFor = (ageT, f) => {
-      const ai = Math.min(AGE_BINS - 1, Math.floor((ageT ?? 0.5) * AGE_BINS));
-      const fi = Math.max(0, Math.min(FLOW_BINS - 1, Math.round((Math.max(-1, Math.min(1, f)) + 1) / 2 * (FLOW_BINS - 1))));
-      const key = ai * FLOW_BINS + fi;
-      let m = matBin.get(key);
-      if (!m) {
-        const aT = (ai + 0.5) / AGE_BINS, fT = (fi / (FLOW_BINS - 1)) * 2 - 1;
-        const mag = Math.min(1, Math.abs(fT) * 1.6);
-        const flowCol = fT > 0.05 ? GREEN : fT < -0.05 ? RED : null;
-        const age = mix(new THREE.Color(bodyFrom), new THREE.Color(bodyTo), aT);
-        const body = flowCol ? mix(age, flowCol, 0.22 + 0.40 * mag) : age;
-        const glow = flowCol ? mix(WARM, flowCol, Math.min(1, 0.35 + mag)) : WARM;
-        m = { side: null, body, glow, intensity: 0.5 + (flowCol ? 0.8 * mag : 0), flowCol };
-        matBin.set(key, m);
-      }
-      return m;
+    const ownMats = [], homes = new Map(), picks = [];
+    const wallBuckets = new Map();          // key -> { mat, geos: [] }
+    const roofGeos = [], woodGeos = [], metalGeos = [], spireGeos = [];
+    const AGE_BINS = 6, FLOW_BINS = 5;
+    const matFor = (family, ai, fi) => {
+      const key = `${family}|${ai}|${fi}`;
+      let b = wallBuckets.get(key);
+      if (b) return b;
+      const aT = (ai + 0.5) / AGE_BINS, fT = (fi / (FLOW_BINS - 1)) * 2 - 1;
+      const mag = Math.min(1, Math.abs(fT) * 1.6);
+      const flowCol = fT > 0.05 ? GREEN : fT < -0.05 ? RED : null;
+      const ageHue = mix(new THREE.Color(bodyFrom), new THREE.Color(bodyTo), aT);
+      const F = FAMILIES[family];
+      // STONE AND LIGHT: the albedo is the real material with only a whisper of the age hue, so
+      // brick still looks like brick. The data lives at full strength in the emissive windows,
+      // where it reads better anyway because they are the brightest thing on the facade.
+      const albedo = mix(new THREE.Color(F.colour), ageHue, 0.12);
+      const winCol = flowCol ? mix(ageHue, flowCol, Math.min(1, 0.45 + mag)) : ageHue;
+      const mat = new THREE.MeshStandardMaterial({
+        color: albedo, roughness: F.roughness, metalness: F.metalness,
+        emissive: winCol, emissiveMap: texes[family],
+        emissiveIntensity: TOD.win * (flowCol ? 1 + 0.9 * mag : 1),
+        envMapIntensity: F.env,
+      });
+      ownMats.push(mat);
+      b = { mat, geos: [] };
+      wallBuckets.set(key, b);
+      return b;
     };
+
+    const M = new THREE.Matrix4();
     T.forEach((t, i) => {
       const h = Math.max(0.6, Math.sqrt(Math.max(0, t.score) / maxScore) * HMAX);
       const p = pts[i], r = hash01(t.a || String(i));
       const f = (t.flow || 0) / maxFlow;                     // -1..1
-      const mag = Math.min(1, Math.abs(f) * 3.0);            // how loudly to shout the flow
+      const mag = Math.min(1, Math.abs(f) * 3.0);
       const flowCol = f > 0.02 ? GREEN : f < -0.02 ? RED : null;
+      const ai = Math.min(AGE_BINS - 1, Math.floor((t.ageT ?? 0.5) * AGE_BINS));
+      const fi = Math.max(0, Math.min(FLOW_BINS - 1, Math.round((Math.max(-1, Math.min(1, f)) + 1) / 2 * (FLOW_BINS - 1))));
 
-      // Facade tints toward the flow colour, so the WHOLE building reads green/red — not just
-      // its windows. Neutral wallets keep the age ramp. Material comes from the shared bin.
-      const bin = materialFor(t.ageT ?? 0.5, f);
-      const ti = Math.min(BINS - 1, Math.floor((h / 21) * BINS));
-      if (!bin.side) bin.side = [];
-      let sideMat = bin.side[ti];
-      if (!sideMat) {
-        // bin.body already carries the AGE ramp for this bin — warm for fresh wallets, cyan for
-        // long-held. Using a fixed midpoint here is what flattened every building to one colour.
-        sideMat = new THREE.MeshLambertMaterial({
-          color: bin.body, emissive: bin.glow, emissiveMap: texes[ti], emissiveIntensity: bin.intensity,
-        });
-        bin.side[ti] = sideMat; ownMats.push(sideMat);
-      }
-      const faces = [sideMat, sideMat, roofMat, roofMat, sideMat, sideMat];
-      const emissiveIntensity = bin.intensity;
-
-      const { parts, spire, crownW } = archetype(h, r, i < 3);
-      const group = [];
+      const { parts, spire, family } = archetype(h, r, i < 3);
+      const bucket = matFor(family, ai, fi);
+      let widest = 0;
       for (const q of parts) {
-        const m = new THREE.Mesh(box, faces);
-        m.scale.set(q.w, q.h, q.d); m.position.set(p.x, q.y, p.z);
-        m.userData = { t, mat: sideMat, base: emissiveIntensity };
-        scene.add(m); hitMeshes.push(m); group.push(m);
+        M.makeTranslation(p.x, q.y, p.z);
+        const wall = wallGeometry(q.w, q.d, q.h); wall.applyMatrix4(M); bucket.geos.push(wall);
+        const roof = roofGeometry(q.w, q.d);
+        roof.translate(p.x, q.y + q.h / 2, p.z); roofGeos.push(roof);
+        widest = Math.max(widest, q.w, q.d);
       }
       if (spire > 0) {
-        const sMat = new THREE.MeshBasicMaterial({ color: flowCol ? bin.glow : 0xdbeafe });
-        const s = new THREE.Mesh(spireGeo, sMat);
-        s.scale.set(1, spire, 1); s.position.set(p.x, h + spire / 2, p.z);
-        scene.add(s); ownMats.push(sMat);
+        const g = spireGeo.clone(); g.scale(1, spire, 1); g.translate(p.x, h + spire / 2, p.z);
+        spireGeos.push(g);
       }
-      // street-level halo — the flow signal spilling onto the pavement, visible from above
+
+      // Roof life. A water tower is the most New York thing available for four triangles, and the
+      // HVAC boxes stop every rooftop reading as a flat lid from above — which is the angle this
+      // city is mostly viewed from.
+      const top = parts[parts.length - 1], roofY = top.y + top.h / 2, rw = top.w;
+      if (family === "masonry" && r > 0.25) {
+        const tx = p.x + rw * 0.2, tz = p.z - rw * 0.15;
+        const tank = new THREE.CylinderGeometry(0.17, 0.17, 0.42, 8); tank.translate(tx, roofY + 0.36, tz);
+        const cap = new THREE.ConeGeometry(0.2, 0.18, 8); cap.translate(tx, roofY + 0.66, tz);
+        woodGeos.push(tank, cap);
+        for (const [dx, dz] of [[-0.1, -0.1], [0.1, -0.1], [-0.1, 0.1], [0.1, 0.1]]) {
+          const leg = new THREE.BoxGeometry(0.03, 0.16, 0.03); leg.translate(tx + dx, roofY + 0.08, tz + dz);
+          woodGeos.push(leg);
+        }
+      } else if (h > 1.2) {
+        const n = 1 + Math.floor(r * 2);
+        for (let k = 0; k < n; k++) {
+          const s2 = 0.14 + hash01((t.a || i) + "s" + k) * 0.18;
+          const hv = new THREE.BoxGeometry(s2 * rw, 0.12 + hash01((t.a || i) + "h" + k) * 0.18, s2 * rw);
+          hv.translate(p.x + (hash01((t.a || i) + "x" + k) - 0.5) * rw * 0.6, roofY + 0.09,
+            p.z + (hash01((t.a || i) + "z" + k) - 0.5) * rw * 0.6);
+          metalGeos.push(hv);
+        }
+      }
+
+      // The flow signal spilling onto the pavement — kept as its own mesh because additive
+      // blending has to draw after everything else.
       if (flowCol && mag > 0.12) {
-        const hMat = new THREE.MeshBasicMaterial({ color: flowCol, transparent: true, opacity: 0.10 + 0.30 * mag, blending: THREE.AdditiveBlending, depthWrite: false });
+        const hMat = new THREE.MeshBasicMaterial({ color: flowCol, transparent: true, opacity: 0.12 + 0.32 * mag, blending: THREE.AdditiveBlending, depthWrite: false });
         const halo = new THREE.Mesh(haloGeo, hMat);
-        halo.rotation.x = -Math.PI / 2; halo.position.set(p.x, 0.12, p.z);
+        halo.rotation.x = -Math.PI / 2; halo.position.set(p.x, 0.14, p.z);
         halo.scale.setScalar(0.6 + 0.5 * mag);
         scene.add(halo); ownMats.push(hMat);
       }
-      if (city) { t.hood = placed[i].hood; homes.set((t.a || "").toLowerCase(), { x: p.x, z: p.z, h: h + spire, mat: sideMat, base: emissiveIntensity }); }
-      if (i === 0) group[0].userData.isChamp = { x: p.x, z: p.z, h: h + spire };
+
+      // Merged geometry has no per-building mesh to hover, so picking rides an invisible instanced
+      // box per building — one draw call for the whole city, and it gives back an instanceId.
+      picks.push({ t, x: p.x, z: p.z, w: widest * 1.02, h: h + spire });
+      if (city) { t.hood = placed[i].hood; homes.set((t.a || "").toLowerCase(), { x: p.x, z: p.z, h: h + spire }); }
+      if (i === 0) champInfo = { x: p.x, z: p.z, h: h + spire };
     });
 
+    const addMerged = (geos, mat, shadow = true) => {
+      if (!geos.length) return;
+      const merged = mergeGeometries(geos, false);
+      geos.forEach(g => g.dispose());
+      if (!merged) return;
+      const m = new THREE.Mesh(merged, mat);
+      m.castShadow = shadow; m.receiveShadow = shadow;
+      scene.add(m); disposables.push(merged);
+    };
+    for (const b of wallBuckets.values()) addMerged(b.geos, b.mat);
+    addMerged(roofGeos, roofMat);
+    addMerged(woodGeos, woodMat);
+    addMerged(metalGeos, metalMat);
+    addMerged(spireGeos, metalMat);
+
+    // invisible pick volumes — one InstancedMesh, so hovering costs nothing to draw
+    const pickGeo = new THREE.BoxGeometry(1, 1, 1);
+    const pickMat = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false });
+    const pickMesh = new THREE.InstancedMesh(pickGeo, pickMat, picks.length);
+    picks.forEach((q, i) => {
+      M.compose(new THREE.Vector3(q.x, q.h / 2, q.z), new THREE.Quaternion(), new THREE.Vector3(q.w, q.h, q.w));
+      pickMesh.setMatrixAt(i, M);
+    });
+    pickMesh.instanceMatrix.needsUpdate = true;
+    scene.add(pickMesh); disposables.push(pickGeo, pickMat);
+
     // crown the #1
-    const champInfo = hitMeshes.find(m => m.userData.isChamp)?.userData.isChamp;
     if (champInfo) {
       const d = document.createElement("div");
       d.textContent = crownLabel;
@@ -375,13 +409,14 @@ export default function Skyline3D({
     // hover marker — a bright wireframe cage placed over the hovered building
     const cageMat = new THREE.MeshBasicMaterial({ color: 0xffffff, wireframe: true, transparent: true, opacity: 0.55 });
     const cage = new THREE.Mesh(box, cageMat); cage.visible = false; scene.add(cage); ownMats.push(cageMat);
-    const setHover = m => {
-      if (hovered === m) return;
-      hovered = m;
-      if (m) {
+    const setHover = id => {
+      if (hovered === id) return;
+      hovered = id;
+      const q = id == null ? null : picks[id];
+      if (q) {
         cage.visible = true;
-        cage.scale.copy(m.scale).multiplyScalar(1.06);
-        cage.position.copy(m.position);
+        cage.scale.set(q.w * 1.06, q.h * 1.02, q.w * 1.06);
+        cage.position.set(q.x, q.h / 2, q.z);
         renderer.domElement.style.cursor = "pointer";
       } else { cage.visible = false; renderer.domElement.style.cursor = "grab"; }
     };
@@ -389,24 +424,24 @@ export default function Skyline3D({
       const r = renderer.domElement.getBoundingClientRect();
       ndc.x = ((e.clientX - r.left) / r.width) * 2 - 1; ndc.y = -((e.clientY - r.top) / r.height) * 2 + 1;
       ray.setFromCamera(ndc, cam);
-      return ray.intersectObjects(hitMeshes, false)[0];
+      return ray.intersectObject(pickMesh, false)[0];
     };
     const onMove = e => {
       const r = renderer.domElement.getBoundingClientRect();
       px = e.clientX - r.left; py = e.clientY - r.top; moved = true;
       const hit = pick(e);
       if (hit) {
-        setHover(hit.object);
+        setHover(hit.instanceId);
         controls.autoRotate = false;
         tip.style.display = "block"; tip.style.left = px + "px"; tip.style.top = py + "px";
-        tip.innerHTML = cardRef.current?.(hit.object.userData.t) ?? "";
+        tip.innerHTML = cardRef.current?.(picks[hit.instanceId].t) ?? "";
       } else { setHover(null); tip.style.display = "none"; }
     };
     const onDown = () => { moved = false; };
     const onUp = e => {
       if (moved) return;                                  // was a drag, not a click
       const hit = pick(e);
-      if (hit) selectRef.current?.(hit.object.userData.t);
+      if (hit) selectRef.current?.(picks[hit.instanceId].t);
     };
     renderer.domElement.addEventListener("pointermove", onMove);
     renderer.domElement.addEventListener("pointerdown", onDown);
@@ -437,7 +472,7 @@ export default function Skyline3D({
     // here has only ever been measured on a software rasteriser, so the building caps are caution
     // rather than measurement. Exposed so that can be answered from any device's console.
     window.__cityStats = () => ({
-      buildings: T.length, meshes: hitMeshes.length,
+      buildings: T.length, meshes: scene.children.length,
       drawCalls: renderer.info.render.calls, triangles: renderer.info.render.triangles,
       programs: renderer.info.programs?.length, geometries: renderer.info.memory.geometries,
       textures: renderer.info.memory.textures,
@@ -452,7 +487,11 @@ export default function Skyline3D({
         cam.position.set(p[0], p[1], p[2]); controls.target.set(t[0], t[1], t[2]);
         if (u >= 1) stopFlight();
       }
-      controls.update(); renderer.render(scene, cam); labelR.render(scene, cam);
+      controls.update();
+      sun.target.position.copy(controls.target);
+      sun.position.set(controls.target.x + LEN * 0.22, controls.target.y + LEN * 0.34, controls.target.z + LEN * 0.17);
+      sun.target.updateMatrixWorld(); sun.shadow.camera.updateProjectionMatrix();
+      renderer.render(scene, cam); labelR.render(scene, cam);
     };
     loop();
     const onResize = () => {
@@ -470,14 +509,14 @@ export default function Skyline3D({
       renderer.domElement.removeEventListener("pointerdown", stopFlight);
       removeEventListener("wheel", stopFlight);
       controls.dispose();
-      disposables.forEach(d => d.dispose());
+      disposables.forEach(d => d.dispose()); env.dispose(); sky.dispose();
       ownMats.forEach(m => m.dispose());
       groundBits.forEach(g => { if (g.dispose) g.dispose(); else { g.geometry?.dispose(); g.material?.dispose(); } });
       pads?.dispose();
       delete window.__citySeek; delete window.__cityReady; delete window.__cityStats;
       renderer.dispose(); el.removeChild(renderer.domElement); el.removeChild(labelR.domElement); el.removeChild(tip);
     };
-  }, [towers, isMobile, crownLabel, accent, bodyFrom, bodyTo, layout, intro]);
+  }, [towers, isMobile, crownLabel, accent, bodyFrom, bodyTo, layout, intro, time]);
 
   // ── messages hung over buildings ───────────────────────────────────────────────────────────
   // Own a building, leave a note on it. Signs are CSS2D labels rather than 3D text so they stay
@@ -528,7 +567,7 @@ export default function Skyline3D({
       // CSS2DRenderer only detaches elements it still knows about, so pull the DOM node too.
       for (const o of [...g.children]) { o.element?.remove(); g.remove(o); }
     };
-  }, [messages, towers, layout]);
+  }, [messages, towers, layout, time]);
 
   // Fly to a searched wallet and flash its building, without rebuilding the scene.
   useEffect(() => {

@@ -23,6 +23,7 @@ export default function AeonSkylineChart({ isMobile, preview = false }) {
   const [focus, setFocus] = useState(null);
   const [shownN, setShownN] = useState(600);
   const [msgs, setMsgs] = useState(null);
+  const [time, setTime] = useState("dusk");
   useEffect(() => { let c = false; loadAeon().then(d => { if (!c && d) setData(d); }); return () => { c = true; }; }, []);
   useEffect(() => { let c = false; loadNotes("aeon").then(m => { if (!c) setMsgs(m); }); return () => { c = true; }; }, []);
   const all = useMemo(() => (data.holders || []).filter(h => h.a && h.n > 0), [data]);
@@ -152,7 +153,7 @@ export default function AeonSkylineChart({ isMobile, preview = false }) {
         }}>{multiOnly ? "✓ " : ""}Exclude single-NFT wallets</button>
         <span style={{ fontFamily: MONO, fontSize: 12.5, color: "#7c8a9e" }}>{visible.length} of {holders.length} shown{!multiOnly && singleCount ? ` · ${singleCount} single-NFT` : ""}</span>
       </div>
-      <CityControls layout={layout} onLayout={setLayout} accent="#5eead4" isMobile={isMobile} unit="holder"
+      <CityControls layout={layout} onLayout={setLayout} time={time} onTime={setTime} accent="#5eead4" isMobile={isMobile} unit="holder"
         has={a => visible.some(t => (t.a || "").toLowerCase() === a)}
         onFocus={a => { setFocus(a); const m = visible.find(t => (t.a || "").toLowerCase() === a); if (m) setSel(m); }} />
 
@@ -165,7 +166,7 @@ export default function AeonSkylineChart({ isMobile, preview = false }) {
           <Suspense fallback={<div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Loading 3D…</div>}>
             <Skyline3D towers={visible} isMobile={isMobile} onSelect={setSel} cardHtml={aeonCard}
               crownLabel="👑 top holder" accent="rgba(45,212,191,0.45)" bodyFrom={0xd97706} bodyTo={0x22d3ee}
-              layout={layout} focus={focus} messages={msgs} />
+              layout={layout} focus={focus} messages={msgs} time={time} />
           </Suspense>
         </div>
         {!preview && cur && (

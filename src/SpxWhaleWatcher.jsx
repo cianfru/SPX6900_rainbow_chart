@@ -26,6 +26,7 @@ export default function SpxWhaleWatcher({ isMobile, preview = false }) {
   const [focus, setFocus] = useState(null);
   const [shown, setShown] = useState(600);   // how many buildings to RENDER (all are searchable)
   const [msgs, setMsgs] = useState(null);
+  const [time, setTime] = useState("dusk");
   useEffect(() => { let off = false; loadWhales().then(d => { if (!off) setData(d ?? false); }); return () => { off = true; }; }, []);
   useEffect(() => { let off = false; loadNotes("whale").then(m => { if (!off) setMsgs(m); }); return () => { off = true; }; }, []);
 
@@ -109,7 +110,7 @@ export default function SpxWhaleWatcher({ isMobile, preview = false }) {
         ))}
       </div>
 
-      <CityControls layout={layout} onLayout={setLayout} accent="#c4b5fd" isMobile={isMobile} unit="whale"
+      <CityControls layout={layout} onLayout={setLayout} time={time} onTime={setTime} accent="#c4b5fd" isMobile={isMobile} unit="whale"
         has={a => visible.some(t => (t.a || "").toLowerCase() === a)}
         onFocus={a => { setFocus(a); const m = visible.find(t => (t.a || "").toLowerCase() === a); if (m) setSel(m); }} />
 
@@ -122,7 +123,7 @@ export default function SpxWhaleWatcher({ isMobile, preview = false }) {
           <Suspense fallback={<div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Loading 3D…</div>}>
             <Skyline3D towers={visible} isMobile={isMobile} onSelect={setSel} cardHtml={cardHtml}
               crownLabel="🐋 biggest whale" accent="rgba(167,139,250,0.45)" bodyFrom={0xf59e0b} bodyTo={0x22d3ee}
-              layout={layout} focus={focus} messages={msgs} />
+              layout={layout} focus={focus} messages={msgs} time={time} />
           </Suspense>
           <div style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 8 }}>
             Drag to orbit · scroll to zoom · hover a building for the wallet · click to pin it.{layout === "city" && " Every wallet has a home address in Whale City."}
