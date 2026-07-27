@@ -386,6 +386,72 @@
   - **🔲 OWNER — 2 steps to go live:** (1) deploy `CityNotes.sol` to **Base** (and mainnet if wanted), verify on the
     explorer; (2) paste the addresses into **`CONTRACTS`** in `src/city-messages.js`. Until then every surface says
     "not deployed yet" rather than half-working. Claude can't deploy (needs a funded key).
+- **⭐⭐ GREENLIT 2026-07-27 — "SPX CITY": EXPAND THE CITY INTO THE WHOLE TOKEN, NOT JUST ETH HOLDERS.** Owner:
+  *"I love the idea of expanding the city and making it representing all the parts of the puzzle. The chains, the
+  cexes and all you have proposed."* The city stops being a map of Ethereum holders and becomes the entire supply
+  in one place. Every element below is a number ALREADY in the repo — nothing is invented:
+  - **The boroughs become the other chains.** Brooklyn = **Base (~114.5k wallets)**, Queens = **Solana (~66k)**,
+    Manhattan = **Ethereum (~49.5k)**. The striking, true image: **Base has more than 2× Manhattan's population
+    while Manhattan holds ~94% of the VALUE** — all the people are across the river, all the money is on the island.
+    Currently those boroughs are dead scenery, so this fills them with the most under-told story in the project.
+  - **Real bridges** spanning to them, thickness = the **111.5M Wormhole bridged supply** that actually backs
+    Base/Solana.
+  - **An exchange district in the harbour** — the **27 tagged CEX wallets / 138.6M (13.9% of supply)** as docks and
+    warehouses, sized per venue. **Kraken ~43% dwarfs everything; Binance and Coinbase hold ~0.7M each** — that
+    counterintuitive finding deserves a shape. Uses `cexVenues` + `EXCLUDE_LABELS`, already built.
+  - **The burn as a monument** — the 69.01M at `0x…dead`, standing alone in the bay. Provably gone, never moves.
+  - **Uniswap LP (13.2M)** as its own small district — the DEX-native origin.
+  - Same honesty framing as the street addresses: **the populations, supplies and bridges are REAL; which borough
+    gets which chain is a game.** Say it on the page.
+  - **⚠⚠ THE BLOCKER, OWNER-FLAGGED: BASE AND SOLANA HAVE NO PER-WALLET DATA.** We only have **headcounts**
+    (`chain-wallets.json`, daily). There is no per-wallet balance/age/flow reconstruction for either chain, so their
+    boroughs CANNOT have real individual buildings yet. Do NOT fake them. Two honest options until the data lands:
+    (a) render them as **massed low-rise built from the true headcount + supply** (density is real, individuals
+    aren't) and label it plainly, or (b) leave them as outlines with a "population 114,652 — not yet reconstructed"
+    marker. Getting real buildings needs a **Base ERC-20 transfer extract through the SAME FIFO engine** (see the
+    parked "BASE ON-CHAIN RECONSTRUCTION" note — Base SPX `0x50dA645f…bb2C`, decimals 8, plus a Base
+    `EXCLUDE_LABELS` set for bridge/LP/CEX/airdrop). Solana needs an SPL equivalent, which is fiddlier.
+- **📐 HOW MANY BUILDINGS CAN THE CITY AFFORD (measured 2026-07-27) — LAND is the binding constraint, not the GPU.**
+  - **Manhattan holds exactly 2,561 lots** at full scale (`hoodLots` over all ten neighbourhoods at k=1; Midtown 501,
+    Harlem 467, UWS 290 … FiDi only 91). `cityScale` caps k at 1 for n≥1400, so **beyond ~2,561 wallets `placeCity`
+    runs out and parks the overflow off the east shore.** The 600 default is caution, NOT a measured limit.
+  - **After the merge refactor, DRAW CALLS ARE CONSTANT (~50-90) regardless of building count** — they're per
+    (family × age × flow) bucket, not per building. That is the whole reason the ceiling moved.
+  - Measured cost per building: **~200 triangles** (600 buildings = 109,558 tris) and **~0.5 ms of blocking CPU
+    build time** on this sandbox's slow single core. Water towers are the expensive detail (~90 tris each).
+  - So the ceilings are: **triangles** (10k buildings ≈ 2.1M tris — fine on desktop, borderline on older phones),
+    **memory** (non-indexed geometry ≈ 19 KB/building → 10k ≈ 190 MB, the real mobile wall), and **startup freeze**
+    (linear, blocking). Halving memory is easy if needed: index `wallGeometry` and cheapen the water towers.
+  - Practical guidance: **~2,500 today (all of Manhattan), ~5,000 mobile / 20,000+ desktop once the boroughs add
+    land.** ⚠ STILL UNMEASURED ON A REAL GPU — run `window.__cityStats()` on a phone before raising the default.
+  - **⭐ THE CITY CAN NEVER SHOW EVERYONE — say so.** ETH 49.5k + Base 114.5k + Solana 66k ≈ **230k wallets**; at
+    ~200 tris each that's 46M triangles and there isn't the land either. The city is inherently a **top-N view**
+    and must be labelled as one. A meaningful, honest cutoff exists anyway: a large share of Base wallets are dust
+    from the Dec-2024 airdrop (+50,246 in one week), so "every wallet above X" is both a rendering necessity and a
+    defensible filter.
+- **🔲 OTHER 3D CANDIDATES PROPOSED (owner liked the set, 2026-07-27) — the test is THREE genuine dims (two axes +
+  a magnitude); single series/ratios stay 2D (rainbow, MVRV, NUPL, SOPR, composite — a third axis adds occlusion
+  and subtracts clarity, which Urpd3D already proved).**
+  - **⭐ URPD TERRAIN OVER TIME** — cost basis × time × supply as a landscape that deforms week by week, price
+    cutting through it as a moving plane. The strongest unbuilt analytics object; nobody animates this. Needs the
+    FIFO engine to emit **weekly URPD history** rather than current-state only (one loop change).
+  - **The cycle helix** — wrap time into a spiral so each cycle stacks above the last and the "rhyme" becomes a
+    shape instead of a caption. Pure reprojection of price history already in the repo; smallest job of the set.
+  - **A globe of where SPX trades** — the 27 venue tags carry geography (Coinbase US · Bybit/Binance/Upbit/Gate/
+    MEXC/Indodax Asia · Bitpanda/Bitvavo/Revolut Europe · CoinSpot AU); arcs sized by supply. Nobody else has the
+    wallet tags to answer "where in the world is SPX held".
+  - **The AEON museum** — walk 3,333 pieces arranged by rarity, rarest in the deepest room. The art is the only
+    visual asset the project owns outright and it currently only ever appears as a thumbnail.
+  - Also proposed and worth keeping: **the city through TIME** (a launch→today slider; the FIFO engine can already
+    reconstruct any wallet at any date, so buildings appear the week a wallet first bought and a red wave washes
+    through the crash), **weather from the composite** (the sky IS the valuation — Fire Sale = storm/night, Max
+    Bubble = blown-out noon; nearly free and gives the bot a daily post that's never the same), and **residency
+    cards** ("resident since Aug 2023 · held through −83% · never sold" — retrospective facts only).
+  - **⚠ THE LINE FOR ANY GAMIFICATION:** celebrate **tenure and behaviour**, never score a person's entry price or
+    P&L. That's what got the "grade my entry" report card parked in the first place (cringe risk with a community
+    already sensitive about the daily posting). The city changed it from JUDGING someone to PLACING them — keep it
+    there. And **no price-prediction/leaderboard mechanics**: it reads as gambling and it's the one idea that would
+    actually cost the honesty position.
 - **🔲 OPEN:** real-GPU perf is UNMEASURED (only a CPU software renderer here) so the 600-building default is
   caution, not measurement — the "all buildings" toggle needs a real device; borough tones are still dim; bridges
   were dropped when the real geometry landed. Intro fly-through doubles as the video path (`tools/render-city-video.mjs`

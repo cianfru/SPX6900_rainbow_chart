@@ -72,6 +72,7 @@ export default function Skyline3D({
 
   useEffect(() => {
     const el = mount.current; if (!el || !towers?.length) return;
+    const t0 = performance.now();
     const T = towers.slice().sort((a, b) => b.score - a.score);
     const maxScore = Math.max(...T.map(t => t.score), 1e-9);
     const maxFlow = Math.max(...T.map(t => Math.abs(t.flow || 0)), 1e-9);
@@ -355,6 +356,8 @@ export default function Skyline3D({
     pickMesh.instanceMatrix.needsUpdate = true;
     scene.add(pickMesh); disposables.push(pickGeo, pickMat);
 
+    const buildMs = performance.now() - t0;
+
     // crown the #1
     if (champInfo) {
       const d = document.createElement("div");
@@ -486,7 +489,7 @@ export default function Skyline3D({
       buildings: T.length, meshes: scene.children.length,
       drawCalls: renderer.info.render.calls, triangles: renderer.info.render.triangles,
       programs: renderer.info.programs?.length, geometries: renderer.info.memory.geometries,
-      k: K, cam: [+cam.position.x.toFixed(1), +cam.position.y.toFixed(1), +cam.position.z.toFixed(1)],
+      k: K, buildMs: +buildMs.toFixed(0), cam: [+cam.position.x.toFixed(1), +cam.position.y.toFixed(1), +cam.position.z.toFixed(1)],
       textures: renderer.info.memory.textures,
     });
     if (flying) { controls.enabled = false; renderer.domElement.addEventListener("pointerdown", stopFlight, { once: true }); addEventListener("wheel", stopFlight, { once: true, passive: true }); }
