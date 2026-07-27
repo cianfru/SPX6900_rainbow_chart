@@ -979,8 +979,20 @@
         commit; needs a GCP service-account key `GCP_SA_KEY` as a repo secret). Until that's built, refresh stays MANUAL (owner
         runs `bigquery/spx6900_raw_transfers.sql`, sends the CSV, Claude re-bundles). NOTE the auto-created Dune query 8055773
         is a leftover temp query (harmless; delete in the Dune UI if wanted).
+      - **⭐⭐ BIGQUERY IS NOW THE PRIMARY DAILY ON-CHAIN REFRESH (owner, 2026-07-27: "market heartbeat within budget").**
+        Key realisation: the FIFO engine computes the WHOLE suite in ONE pass, so refreshing slow charts (hodl/conc) costs
+        NOTHING extra — the only cost is the transfer-delta pull. And daily granularity is free (a local sample-grid choice,
+        not a Dune cost). So `onchain-bigquery.yml` was flipped to **DAILY (`cron 37 6 * * *`) + `--daily`** on the FIFO engine
+        → the full FIFO suite (NRPL/SOPR/liveliness/sip/hodl/conc/URPD) refreshes DAILY at **$0 Dune** (BigQuery incremental
+        append = new partitions only, ~a few GB/day inside the free 1 TB/mo). The **Dune pipeline (onchain-dune.yml) is DEMOTED
+        to manual BACKUP** (schedule removed) so they never both commit onchain.json — the 2,500 Dune credits now stay reserved
+        for one-time work (BTC/ETH free-float, Base on-chain). **WIRED + WAITING (owner adds 2 things):** every run SKIPS CLEANLY
+        (green no-op via the "Gate" step, no red failures) until the `GCP_SA_KEY` secret is set AND BigQuery's 1 TB/mo free tier
+        resets (~1 Aug — the owner's is currently spent). Then: add the secret + seed the table once (`bq load` from the
+        raw-transfer CSV — free, no scan; or let the first run backfill ~546 GB, one-time inside the free tier) → it goes daily
+        automatically. Other daily-free surfaces (price/holders/MVRV/CEX-flow/composite/F&G) already come from the snapshot cron.
       - **✅ BIGQUERY WEEKLY REFRESH BUILT 2026-07-21 (owner made the GCP SA) — pending secret + first-run validation.**
-        `.github/workflows/onchain-bigquery.yml` (Mon 06:37 UTC + dispatch): GH Actions Google auth (`GCP_SA_KEY` secret, the
+        `.github/workflows/onchain-bigquery.yml` (~~Mon 06:37 UTC~~ now DAILY, see the note above; + dispatch): GH Actions Google auth (`GCP_SA_KEY` secret, the
         SA JSON) + `bq` CLI → keeps an OWN append-only table **`goog-fltx.spx_onchain.eth_transfers`**, incrementally appends
         only new transfers (`block_timestamp > MAX(time)` → partition-pruned, cheap; FIRST run backfills ~546 GB once, inside
         the 1 TB/mo free tier), exports the table to CSV, runs `build-onchain-local.mjs --threshold=155` → onchain.json +

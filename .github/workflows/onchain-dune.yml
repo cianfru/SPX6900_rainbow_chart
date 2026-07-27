@@ -22,9 +22,11 @@ name: Weekly on-chain FIFO refresh (Dune incremental)
 #    first run logs the created query id, to reuse it instead of creating a new one each week.
 
 on:
-  schedule:
-    - cron: "23 5 * * 1"   # ~Mon 05:23 UTC (weekly; slow-moving metrics)
-  workflow_dispatch: {}     # manual runs (use this to validate the first run)
+  # DEMOTED TO MANUAL BACKUP (2026-07-27): the BigQuery pipeline (onchain-bigquery.yml) is now the
+  # PRIMARY daily refresh — free, and it keeps the Dune budget for one-time work. The weekly Dune
+  # schedule is removed so the two never both commit onchain.json. Dispatch this ONLY if BigQuery
+  # is unavailable (no GCP key / month not reset) and you need a manual on-chain refresh via Dune.
+  workflow_dispatch: {}
 
 permissions:
   contents: write           # release download/upload + commit

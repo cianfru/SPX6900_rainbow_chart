@@ -1,12 +1,20 @@
-name: Weekly on-chain FIFO refresh (BigQuery)
+name: Daily on-chain FIFO refresh (BigQuery)
 
-# ⚠ DORMANT FALLBACK (2026-07-22): the owner chose the Dune-incremental pipeline
-# (.github/workflows/onchain-dune.yml) as the primary hands-off refresh — no GCP needed.
-# This BigQuery path is kept dispatch-ONLY so the two don't both commit onchain.json.
-# Re-enable the schedule here ONLY if the Dune path is retired (and disable Dune's schedule).
+# PRIMARY daily on-chain refresh (owner, 2026-07-27): reconstructs the FULL FIFO suite at DAILY
+# granularity from an own append-only BigQuery table. The incremental append scans only the new
+# date partitions (~a few GB/day, inside BigQuery's free 1 TB/mo), so Dune is untouched — the
+# 2,500 Dune credits stay reserved for one-time work. The Dune pipeline (onchain-dune.yml) is now
+# a manual BACKUP (schedule removed) so the two never both commit onchain.json.
+#
+# WIRED + WAITING: until the GCP_SA_KEY secret is set (and BigQuery's monthly 1 TB free tier has
+# reset ~1 Aug), every run SKIPS CLEANLY (green no-op) via the "Gate" step below — no red failures.
+# Add the secret + seed the table once (bq load from the raw-transfer CSV — free, no scan) and it
+# goes live daily automatically. First seeded run backfills ~546 GB once (inside the free tier).
 
 on:
-  workflow_dispatch: {}     # manual runs only (dormant fallback — see note above)
+  schedule:
+    - cron: "37 6 * * *"    # ~06:37 UTC daily (after the 00:17 snapshot)
+  workflow_dispatch: {}
 
 permissions:
   contents: write
@@ -32,13 +40,29 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: 24
+
+      - name: Gate — skip cleanly until GCP_SA_KEY is set
+        id: gate
+        env:
+          KEY: ${{ secrets.GCP_SA_KEY }}
+        run: |
+          if [ -z "$KEY" ]; then
+            echo "GCP_SA_KEY not set yet — pipeline is wired and waiting (add the secret + seed the table, and it goes live daily). Skipping cleanly."
+            echo "go=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "go=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - id: auth
+        if: steps.gate.outputs.go == 'true'
         uses: google-github-actions/auth@v2
         with:
           credentials_json: ${{ secrets.GCP_SA_KEY }}
-      - uses: google-github-actions/setup-gcloud@v2
+      - if: steps.gate.outputs.go == 'true'
+        uses: google-github-actions/setup-gcloud@v2
 
       - name: Ensure append table exists
+        if: steps.gate.outputs.go == 'true'
         # Own append-only table in the user's project. Reading/exporting it later is cheap;
         # only the incremental append below scans the (large) public dataset.
         run: |
@@ -47,6 +71,7 @@ jobs:
             "CREATE TABLE IF NOT EXISTS \`$GCP_PROJECT.$BQ_DATASET.$BQ_TABLE\` (sender STRING, receiver STRING, time TIMESTAMP, value BIGNUMERIC)"
 
       - name: Incremental append (only new transfers → partition-pruned, cheap)
+        if: steps.gate.outputs.go == 'true'
         # First run: table empty → COALESCE floors to 2000 → full backfill (~546 GB, one-time,
         # inside the 1 TB/mo free tier). Later runs: block_timestamp > last → only recent
         # date partitions scanned (a few GB).
@@ -60,12 +85,14 @@ jobs:
                                       FROM \`$GCP_PROJECT.$BQ_DATASET.$BQ_TABLE\`)"
 
       - name: Export the table → transfers.csv (reading own table is cheap)
+        if: steps.gate.outputs.go == 'true'
         run: |
           bq --project_id="$GCP_PROJECT" query --use_legacy_sql=false --format=csv --max_rows=5000000 \
             "SELECT sender, receiver, time, value FROM \`$GCP_PROJECT.$BQ_DATASET.$BQ_TABLE\` ORDER BY time" > transfers.csv
           echo "transfers rows: $(( $(wc -l < transfers.csv) - 1 ))"
 
       - name: Prices CSV (from the CI-cleaned price-history.json)
+        if: steps.gate.outputs.go == 'true'
         run: |
           node -e '
             const fs=require("fs");
@@ -77,13 +104,15 @@ jobs:
             console.log("price days:",rows.length);
           '
 
-      - name: Run local FIFO engine → onchain.json + urpd.json
+      - name: Run local FIFO engine → onchain.json + urpd.json (DAILY granularity)
+        if: steps.gate.outputs.go == 'true'
         run: |
           node scripts/build-onchain-local.mjs \
             --transfers=transfers.csv --prices=prices.csv \
-            --out=public/onchain.json --urpd=public/urpd.json --threshold=155
+            --out=public/onchain.json --urpd=public/urpd.json --threshold=155 --daily
 
       - name: Sanity check (reconcile to the known extract)
+        if: steps.gate.outputs.go == 'true'
         run: |
           node -e '
             const o=JSON.parse(require("fs").readFileSync("public/onchain.json","utf8"));
@@ -95,6 +124,7 @@ jobs:
 
       - name: Commit if changed
         id: commit
+        if: steps.gate.outputs.go == 'true'
         run: |
           DEPLOY_CHANGED=""
           [[ -n "$(git status --porcelain public/onchain.json public/urpd.json)" ]] && DEPLOY_CHANGED=1
