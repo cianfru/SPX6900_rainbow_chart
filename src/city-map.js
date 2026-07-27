@@ -1,72 +1,87 @@
-// AEON CITY / WHALE CITY — a reconstruction of Manhattan that wallets are laid out on.
+// AEON CITY / WHALE CITY — wallets laid out on the real Manhattan.
 //
-// WHAT IS REAL AND WHAT IS PLAY. The building itself is data: its size is the wallet's holding,
-// its glow is that wallet's recent buying or selling. The ADDRESS is a game — a neighbourhood
-// derived deterministically from the wallet's own hash, so every wallet always lands on the same
-// lot and can be looked up, but it says nothing about where anyone actually is. That framing is
-// the whole point: fun on top, never a claim the data can't make.
+// WHAT IS REAL AND WHAT IS PLAY. The building is data: its size is the wallet's holding, its glow
+// is that wallet's recent buying or selling. The ADDRESS is a game — the neighbourhood comes from
+// the wallet's own hash, so a wallet always lands on the same lot and can be looked up, but it
+// says nothing about where anyone actually is. Fun on top, never a claim the data can't make.
 //
-// The island is hand-authored as west/east edges sampled south→north (Battery at z=0, Inwood at
-// z≈216, ~1 unit ≈ 100m), which is enough to read as Manhattan without shipping a map dependency,
-// an API key, or per-load tile costs.
+// The island itself is REAL: src/nyc-geo.js is a one-time bake of OpenStreetMap's coastline
+// (© OpenStreetMap contributors, ODbL), so the shape, the tilt, Central Park and the surrounding
+// boroughs are true geometry rather than a sketch — with no map dependency, key or per-load cost.
+import { NYC } from "./nyc-geo.js";
 
-// west edge, east edge at each z (south → north)
-const EDGES = [
-  [0, -3.5, 3.5], [6, -6, 5.5], [12, -8.5, 7.5], [20, -10.5, 9], [28, -11.5, 9.5],
-  [36, -12, 10.5], [46, -12.5, 11], [56, -13, 11.5], [68, -13.5, 12], [80, -14, 12],
-  [92, -13.5, 11.5], [104, -13, 11], [116, -12.5, 10.5], [128, -12, 9.5], [140, -11, 8.5],
-  [152, -10, 7], [164, -9, 5.5], [176, -8, 4], [188, -6.5, 2.5], [200, -5, 1],
-  [210, -3.5, -0.5], [216, -2.5, -1.5],
-];
+const MANHATTAN = NYC.manhattan[0];
 
-export const CITY_LENGTH = 216;
+// ── island axis ───────────────────────────────────────────────────────────────────────────────
+// Manhattan runs about 29° off north, and that tilt is most of what makes it recognisable. Rather
+// than straighten it, everything downstream works in AXIS space: `t` runs 0 (Battery) → 1 (Inwood)
+// along the island's length, `u` runs across its width. Neighbourhoods are bands of `t`.
+const AXIS = (() => {
+  let cx = 0, cz = 0;
+  for (const [x, z] of MANHATTAN) { cx += x; cz += z; }
+  cx /= MANHATTAN.length; cz /= MANHATTAN.length;
+  // principal axis via the covariance of the outline
+  let sxx = 0, szz = 0, sxz = 0;
+  for (const [x, z] of MANHATTAN) { const dx = x - cx, dz = z - cz; sxx += dx * dx; szz += dz * dz; sxz += dx * dz; }
+  const theta = 0.5 * Math.atan2(2 * sxz, sxx - szz);
+  let ax = Math.cos(theta), az = Math.sin(theta);
+  // orient south → north
+  if (az < 0) { ax = -ax; az = -az; }
+  let lo = Infinity, hi = -Infinity;
+  for (const [x, z] of MANHATTAN) { const p = (x - cx) * ax + (z - cz) * az; if (p < lo) lo = p; if (p > hi) hi = p; }
+  return { cx, cz, ax, az, lo, hi, len: hi - lo };
+})();
 
-// Manhattan at full size swallows a few hundred buildings — the island reads empty. Scale the
-// whole coordinate system to the population (lot spacing stays fixed) so the city looks built-up
-// whether it's holding 180 whales or 500 holders. Purely cosmetic: it changes nothing about who
-// lives where, since the neighbourhood still comes from the address hash.
-export const cityScale = n => Math.min(1, Math.max(0.36, Math.sqrt((n || 1) / 900)));
+export const CITY_LENGTH = AXIS.len;
+export const toAxis = (x, z) => {
+  const dx = x - AXIS.cx, dz = z - AXIS.cz;
+  return { t: ((dx * AXIS.ax + dz * AXIS.az) - AXIS.lo) / AXIS.len, u: -dx * AXIS.az + dz * AXIS.ax };
+};
+export const fromAxis = (t, u) => {
+  const p = AXIS.lo + t * AXIS.len;
+  return { x: AXIS.cx + p * AXIS.ax - u * AXIS.az, z: AXIS.cz + p * AXIS.az + u * AXIS.ax };
+};
 
-// linear interpolation of the island's width at any z
-export function islandEdges(z, k = 1) {
-  z = z / k;
-  if (z <= EDGES[0][0]) return [EDGES[0][1] * k, EDGES[0][2] * k];
-  if (z >= EDGES.at(-1)[0]) return [EDGES.at(-1)[1] * k, EDGES.at(-1)[2] * k];
-  for (let i = 1; i < EDGES.length; i++) {
-    if (z <= EDGES[i][0]) {
-      const [z0, w0, e0] = EDGES[i - 1], [z1, w1, e1] = EDGES[i];
-      const t = (z - z0) / (z1 - z0);
-      return [(w0 + (w1 - w0) * t) * k, (e0 + (e1 - e0) * t) * k];
-    }
+// ── geometry helpers ──────────────────────────────────────────────────────────────────────────
+export function pointInRing(x, z, ring) {
+  let inside = false;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const [xi, zi] = ring[i], [xj, zj] = ring[j];
+    if ((zi > z) !== (zj > z) && x < ((xj - xi) * (z - zi)) / (zj - zi + 1e-12) + xi) inside = !inside;
   }
-  return [0, 0];
+  return inside;
 }
+const inManhattan = (x, z) => pointInRing(x, z, MANHATTAN);
+const PARK_RING = NYC.centralpark?.[0];
+const inPark = (x, z) => (PARK_RING ? pointInRing(x, z, PARK_RING) : false);
 
-// The island outline as a closed ring (west edge north-bound, east edge south-bound).
-export function islandOutline(k = 1) {
-  const west = [], east = [];
-  for (const [z, w, e] of EDGES) { west.push([w * k, z * k]); east.push([e * k, z * k]); }
-  return [...west, ...east.reverse()];
-}
-
-// Central Park — 59th to 110th, between the two park-side avenues.
-export const PARK = { z0: 84, z1: 122, x0: -7.5, x1: -1.5 };
-
-// Neighbourhoods, south → north. `towers` marks the districts where real skyscrapers cluster,
-// so the biggest holders land where tall buildings actually belong and the skyline reads as NY.
+// ── neighbourhoods ────────────────────────────────────────────────────────────────────────────
+// Bands along the island axis, with a POPULATION WEIGHT. Weighting matters: an even spread put as
+// many buildings in Inwood as in Midtown, which is why the city read as detached clusters rather
+// than a place. These roughly track where density and towers actually are.
 export const NEIGHBOURHOODS = [
-  { id: "fidi", name: "Financial District", z0: 0, z1: 14, towers: true },
-  { id: "tribeca", name: "Tribeca & SoHo", z0: 14, z1: 28 },
-  { id: "village", name: "Greenwich Village", z0: 28, z1: 40 },
-  { id: "chelsea", name: "Chelsea & Flatiron", z0: 40, z1: 52 },
-  { id: "midtown", name: "Midtown", z0: 52, z1: 82, towers: true },
-  { id: "ues", name: "Upper East Side", z0: 84, z1: 122, side: "east" },
-  { id: "uws", name: "Upper West Side", z0: 84, z1: 122, side: "west" },
-  { id: "harlem", name: "Harlem", z0: 124, z1: 156 },
-  { id: "heights", name: "Washington Heights", z0: 156, z1: 190 },
-  { id: "inwood", name: "Inwood", z0: 190, z1: 214 },
+  { id: "fidi", name: "Financial District", t0: 0.00, t1: 0.075, weight: 10, towers: true },
+  { id: "tribeca", name: "Tribeca & SoHo", t0: 0.075, t1: 0.14, weight: 8 },
+  { id: "village", name: "Greenwich Village", t0: 0.14, t1: 0.20, weight: 9 },
+  { id: "chelsea", name: "Chelsea & Flatiron", t0: 0.20, t1: 0.26, weight: 9 },
+  { id: "midtown", name: "Midtown", t0: 0.26, t1: 0.40, weight: 18, towers: true },
+  { id: "ues", name: "Upper East Side", t0: 0.40, t1: 0.58, weight: 13, side: "east" },
+  { id: "uws", name: "Upper West Side", t0: 0.40, t1: 0.58, weight: 11, side: "west" },
+  { id: "harlem", name: "Harlem", t0: 0.58, t1: 0.75, weight: 10 },
+  { id: "heights", name: "Washington Heights", t0: 0.75, t1: 0.90, weight: 8 },
+  { id: "inwood", name: "Inwood", t0: 0.90, t1: 1.00, weight: 4 },
 ];
 export const HOOD_BY_ID = Object.fromEntries(NEIGHBOURHOODS.map(n => [n.id, n]));
+
+// weighted pick from a 0..1 hash
+const TOTAL_W = NEIGHBOURHOODS.reduce((s, n) => s + n.weight, 0);
+const TOWER_HOODS = NEIGHBOURHOODS.filter(n => n.towers);
+const TOWER_W = TOWER_HOODS.reduce((s, n) => s + n.weight, 0);
+function weightedPick(list, total, h) {
+  let acc = 0;
+  for (const n of list) { acc += n.weight / total; if (h <= acc) return n; }
+  return list[list.length - 1];
+}
 
 // deterministic 0..1 from an address — the same wallet always gets the same home
 export const hash01 = s => {
@@ -75,141 +90,118 @@ export const hash01 = s => {
   for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); }
   return (h >>> 0) / 4294967296;
 };
-// a second, independent stream from the same address (for the lot within a neighbourhood)
-const hash01b = s => hash01("lot:" + s);
 
-const TOWER_HOODS = NEIGHBOURHOODS.filter(n => n.towers);
-
-// Which neighbourhood a wallet lives in. Derived from the address hash, EXCEPT that the biggest
-// holders are drawn from the skyscraper districts — otherwise the towers scatter into Inwood and
-// the city stops looking like New York. `bigT` is 0..1, the wallet's size rank (1 = biggest).
+// Which neighbourhood a wallet lives in — its own hash, weighted by how built-up each district is.
+// The biggest holders are drawn from the tower districts, or the skyscrapers scatter into Inwood
+// and the skyline stops reading as New York. `bigT` is 0..1, the size rank (1 = biggest).
 export function neighbourhoodFor(address, bigT = 0) {
   const h = hash01(address);
-  if (bigT > 0.9) return TOWER_HOODS[Math.floor(h * TOWER_HOODS.length) % TOWER_HOODS.length];
-  return NEIGHBOURHOODS[Math.floor(h * NEIGHBOURHOODS.length) % NEIGHBOURHOODS.length];
+  return bigT > 0.9 ? weightedPick(TOWER_HOODS, TOWER_W, h) : weightedPick(NEIGHBOURHOODS, TOTAL_W, h);
 }
 
-// Every buildable lot in a neighbourhood, on a fixed street grid clipped to the waterfront (and
-// to the park edge for the two Upper Sides). Enumerating the lots up front is what guarantees no
-// two buildings share one: the earlier version probed with a stride of seq*7 / seq*3, and whenever
-// a neighbourhood's row or column count shared a factor with those, every retry handed back the
-// SAME lot — and the loop stored it anyway, stacking wallets on top of each other.
-// Lot pitch. Tight on purpose: at 2.4 x 2.0 the island only had ~700 lots, so a 1,500-wallet
-// city ran out of room and the overflow piled onto one another. Real Manhattan blocks are dense;
-// this gives ~1,800 lots at full scale while still clearing the widest footprint (1.08 x 0.92).
-const AVENUE = 1.5, STREET = 1.25;
+// ── lots ──────────────────────────────────────────────────────────────────────────────────────
+// A street grid in AXIS space, clipped to the real coastline (and to Central Park, which is not
+// buildable). Avenues run along the island, streets across it — the same way Manhattan is laid out.
+const AVENUE = 1.45, STREET = 1.25, SHORE = 1.0;
 export function hoodLots(hood, k = 1) {
   const lots = [];
-  const z0 = hood.z0 * k, z1 = hood.z1 * k;
-  for (let z = z0 + 1; z <= z1 - 1; z += STREET) {
-    let [w, e] = islandEdges(z, k);
-    w += 1.1; e -= 1.1;                                            // keep off the waterfront
-    if (hood.side === "east") w = Math.max(w, PARK.x1 * k + 0.9);   // east of Central Park
-    if (hood.side === "west") e = Math.min(e, PARK.x0 * k - 0.9);   // west of Central Park
-    if (e - w < 0.4) continue;
-    for (let x = w; x <= e + 1e-6; x += AVENUE) lots.push({ x, z });
+  const t0 = hood.t0, t1 = hood.t1;
+  const halfW = 22;                                   // scan wider than the island; clipping trims it
+  const dt = STREET / (AXIS.len * k);
+  for (let t = t0 + dt * 0.5; t < t1; t += dt) {
+    for (let u = -halfW; u <= halfW; u += AVENUE) {
+      const { x, z } = fromAxis(t, u / k);             // lots sit on the real island at scale k
+      const X = x * k, Z = z * k;
+      if (!inManhattan(x, z)) continue;               // test in real coords, place in scaled ones
+      if (inPark(x, z)) continue;                     // no building in Central Park
+      // keep a margin off the waterfront so buildings don't hang over the edge
+      if (!inManhattan(x + SHORE, z) || !inManhattan(x - SHORE, z) ||
+          !inManhattan(x, z + SHORE) || !inManhattan(x, z - SHORE)) continue;
+      if (hood.side === "east" && u < 0) continue;     // east of the park
+      if (hood.side === "west" && u > 0) continue;     // west of the park
+      lots.push({ x: X, z: Z });
+    }
   }
   return lots;
 }
 
-// One lot per wallet. The address hash picks the starting lot (so a wallet keeps the same home
-// whenever the set is unchanged); if it's occupied we walk to the next free one, and if the whole
-// neighbourhood is full we spill to the nearest neighbourhood with room rather than double-book.
+// Scale the whole city to the population so it always looks built-up rather than empty.
+export const cityScale = n => Math.min(1, Math.max(0.4, Math.sqrt((n || 1) / 1400)));
+
+// One lot per wallet, never two. The hash picks a starting lot; if taken, walk to the next free
+// one; if the whole neighbourhood is full, spill to one that has room.
 export function placeCity(items, k = 1) {
   const n = items.length;
-  const cache = new Map();                       // hood id → { lots, used:Set }
+  const cache = new Map();
   const lotsOf = h => {
     let e = cache.get(h.id);
     if (!e) { e = { lots: hoodLots(h, k), used: new Set() }; cache.set(h.id, e); }
     return e;
   };
-  const claim = h => {
-    const { lots, used } = lotsOf(h);
-    if (!lots.length || used.size >= lots.length) return null;
-    return { lots, used };
-  };
+  const free = h => { const e = lotsOf(h); return e.used.size < e.lots.length ? e : null; };
 
   return items.map((it, i) => {
     const bigT = n > 1 ? 1 - i / (n - 1) : 1;
     let hood = neighbourhoodFor(it.a, bigT);
-    let slot = claim(hood);
-    if (!slot) {                                  // full — find any neighbourhood with space
-      const alt = NEIGHBOURHOODS.find(h => claim(h));
-      if (alt) { hood = alt; slot = claim(alt); }
-    }
+    let slot = free(hood);
+    if (!slot) { const alt = NEIGHBOURHOODS.find(h => free(h)); if (alt) { hood = alt; slot = free(alt); } }
     let lot = null;
     if (slot) {
       const { lots, used } = slot;
-      let idx = Math.floor(hash01(it.a) * lots.length) % lots.length;
-      for (let step = 0; step < lots.length; step++) {
-        const j = (idx + step) % lots.length;
+      const start = Math.floor(hash01(it.a) * lots.length) % lots.length;
+      for (let s = 0; s < lots.length; s++) {
+        const j = (start + s) % lots.length;
         if (!used.has(j)) { used.add(j); lot = lots[j]; break; }
       }
     }
-    // Genuinely nowhere left (more wallets than lots): put it on a pier off the east shore rather
-    // than stack it on someone else's roof — visibly overflow, never silently overlap.
-    if (!lot) { const [, e] = islandEdges(hood.z0 * k, k); lot = { x: e + 2 + (i % 5) * 1.4, z: (hood.z0 + (i % 9)) * k }; }
-    // centre the island on the origin so the camera framing stays simple
-    return { ...it, hood, x: lot.x, z: lot.z - (CITY_LENGTH * k) / 2 };
+    // Genuinely out of room: park it off the east shore rather than stack it on a roof.
+    if (!lot) { const p = fromAxis((i % 100) / 100, 26 + (i % 4) * 1.4); lot = { x: p.x * k, z: p.z * k }; }
+    return { ...it, hood, x: lot.x, z: lot.z };
   });
 }
 
-// "Where do you live?" — answers for ANY address, whether or not it holds. That's deliberate:
-// the lookup is a property of the address itself, so anyone can find their block.
+// "Where do you live?" — answers for ANY address, holder or not: the neighbourhood is a property
+// of the address itself, so anyone can find their block.
 export function lookupHome(address) {
   const a = String(address || "").trim().toLowerCase();
   if (!/^0x[0-9a-f]{40}$/.test(a)) return null;
   const hood = neighbourhoodFor(a, 0);
   const lots = hoodLots(hood, 1);
-  const lot = lots.length ? lots[Math.floor(hash01(a) * lots.length) % lots.length] : { x: 0, z: hood.z0 };
-  return { a, hood, x: lot.x, z: lot.z - CITY_LENGTH / 2 };
+  const lot = lots.length ? lots[Math.floor(hash01(a) * lots.length) % lots.length] : fromAxis((hood.t0 + hood.t1) / 2, 0);
+  return { a, hood, x: lot.x, z: lot.z };
 }
 
-// ── The rest of New York ──────────────────────────────────────────────────────────────────────
-// Manhattan alone, floating in black, reads as a submarine. What makes the shape recognisable is
-// everything AROUND it: the two rivers, Jersey to the west, Brooklyn and Queens to the east, the
-// Bronx to the north, and the bridges stitching them together. These are backdrop only — no
-// wallet is ever placed on them — so they're coarse outlines, not a map.
-export const BOROUGHS = [
-  { id: "nj", name: "New Jersey", poly: [[-90, -40], [-19, -40], [-20, 90], [-24, 150], [-30, 260], [-90, 260]] },
-  { id: "bk", name: "Brooklyn", poly: [[15, -40], [90, -40], [90, 52], [22, 58], [14, 20]] },
-  { id: "qn", name: "Queens", poly: [[22, 58], [90, 52], [90, 150], [26, 150], [17, 100]] },
-  { id: "bx", name: "The Bronx", poly: [[8, 158], [90, 150], [90, 260], [-8, 260], [-2, 196]] },
+// Backdrop geography (scenery only — no wallet is ever placed on it).
+export const BACKDROP = [
+  { id: "brooklyn", rings: NYC.brooklyn || [] },
+  { id: "queens", rings: NYC.queens || [] },
+  { id: "bronx", rings: NYC.bronx || [] },
+  { id: "jersey", rings: NYC.jersey || [] },
 ];
+export const ISLETS = [{ id: "roosevelt", rings: NYC.roosevelt || [] }];
+export const ISLAND_RING = MANHATTAN;
+export const PARK_RINGS = PARK_RING ? [PARK_RING] : [];
 
-// Small islands in the East River — cheap detail that sells the geography.
-export const ISLETS = [
-  { name: "Roosevelt Island", poly: [[13.5, 62], [15.2, 62], [15.6, 96], [14.0, 96]] },
-  { name: "Governors Island", poly: [[5.5, -12], [10.5, -12], [10.5, -6], [5.5, -6]] },
-];
-
-// Bridges, as thick line segments from a Manhattan anchor to the far bank.
-export const BRIDGES = [
-  { name: "Brooklyn Bridge", from: [4.5, 7], to: [17, 3] },
-  { name: "Manhattan Bridge", from: [5.5, 11], to: [18, 8] },
-  { name: "Williamsburg Bridge", from: [8.5, 24], to: [20, 27] },
-  { name: "Queensboro Bridge", from: [11.5, 60], to: [22, 63] },
-  { name: "Triborough", from: [9, 148], to: [24, 152] },
-  { name: "George Washington", from: [-12.5, 176], to: [-26, 178] },
-];
-
-// Manhattan's street grid — avenues run north-south, streets east-west. Returned as segment
-// pairs clipped to the island so the grid stops at the waterfront.
-export function streetGrid(k = 1, avenueStep = 2.6, streetStep = 3.4) {
+// Manhattan's street grid, clipped to the coastline — avenues along the island, streets across.
+export function streetGrid(k = 1) {
   const segs = [];
-  for (let z = 4; z < CITY_LENGTH - 6; z += streetStep) {            // cross-streets
-    const [w, e] = islandEdges(z * k, k);
-    if (e - w < 1) continue;
-    segs.push([w, z * k, e, z * k]);
+  const dt = 2.2 / AXIS.len, halfW = 22;
+  for (let t = 0.004; t < 1; t += dt) {                       // cross-streets
+    let run = null;
+    for (let u = -halfW; u <= halfW; u += 0.4) {
+      const { x, z } = fromAxis(t, u);
+      const on = inManhattan(x, z) && !inPark(x, z);
+      if (on && !run) run = [x * k, z * k];
+      else if (!on && run) { segs.push([run[0], run[1], x * k, z * k]); run = null; }
+    }
   }
-  const [wMax, eMax] = [-14, 12];
-  for (let x = wMax; x <= eMax; x += avenueStep) {                    // avenues
-    let start = null;
-    for (let z = 0; z <= CITY_LENGTH; z += 2) {
-      const [w, e] = islandEdges(z * k, k);
-      const inside = x * k > w + 0.3 && x * k < e - 0.3;
-      if (inside && start === null) start = z * k;
-      if ((!inside || z >= CITY_LENGTH) && start !== null) { segs.push([x * k, start, x * k, z * k]); start = null; }
+  for (let u = -halfW; u <= halfW; u += 1.9) {                // avenues
+    let run = null;
+    for (let t = 0; t <= 1; t += 0.004) {
+      const { x, z } = fromAxis(t, u);
+      const on = inManhattan(x, z) && !inPark(x, z);
+      if (on && !run) run = [x * k, z * k];
+      else if (!on && run) { segs.push([run[0], run[1], x * k, z * k]); run = null; }
     }
   }
   return segs;

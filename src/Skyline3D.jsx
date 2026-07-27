@@ -2,7 +2,7 @@ import { useRef, useEffect } from "react";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { CSS2DRenderer, CSS2DObject } from "three/examples/jsm/renderers/CSS2DRenderer.js";
-import { placeCity, islandOutline, PARK, CITY_LENGTH, cityScale, BOROUGHS, ISLETS, BRIDGES, streetGrid } from "./city-map.js";
+import { placeCity, cityScale, CITY_LENGTH, ISLAND_RING, PARK_RINGS, BACKDROP, ISLETS, streetGrid } from "./city-map.js";
 
 // A 3D CITY of wallets — shared by the AEON holder skyline and the SPX whale watcher.
 //
@@ -168,62 +168,43 @@ export default function Skyline3D({
     const groundBits = [];
     let pads = null;
     if (city) {
-      const water = new THREE.Mesh(new THREE.PlaneGeometry(LEN * 2.6, LEN * 2.0),
-        new THREE.MeshLambertMaterial({ color: 0x08172b }));
-      water.rotation.x = -Math.PI / 2; water.position.y = -0.25; scene.add(water); groundBits.push(water);
-
-      const shape = new THREE.Shape();
-      const ring = islandOutline(K);
-      shape.moveTo(ring[0][0], ring[0][1] - LEN / 2);
-      for (const [x, z] of ring.slice(1)) shape.lineTo(x, z - LEN / 2);
-      shape.closePath();
-      const land = new THREE.Mesh(new THREE.ShapeGeometry(shape),
-        new THREE.MeshLambertMaterial({ color: 0x222b45, side: THREE.DoubleSide }));
-      land.rotation.x = Math.PI / 2; scene.add(land); groundBits.push(land);
-
-      const park = new THREE.Mesh(new THREE.PlaneGeometry((PARK.x1 - PARK.x0) * K, (PARK.z1 - PARK.z0) * K),
-        new THREE.MeshLambertMaterial({ color: 0x1c4a2a, side: THREE.DoubleSide }));
-      park.rotation.x = -Math.PI / 2;
-      park.position.set(((PARK.x0 + PARK.x1) / 2) * K, 0.07, ((PARK.z0 + PARK.z1) / 2) * K - LEN / 2);
-      scene.add(park); groundBits.push(park);
-
-      // The rest of New York — backdrop only, dimmer than Manhattan so the data stays the subject.
-      const flatShape = (poly, colour, y) => {
+      // Real OpenStreetMap geometry: the island, Central Park, the surrounding boroughs and the
+      // rivers between them. Three separated tones — water, backdrop land, island — because at
+      // near-identical values the rivers disappeared and the whole thing read as one blob.
+      const ringShape = rings => {
         const sh = new THREE.Shape();
-        sh.moveTo(poly[0][0] * K, poly[0][1] * K - LEN / 2);
-        for (const [x, z] of poly.slice(1)) sh.lineTo(x * K, z * K - LEN / 2);
+        const r0 = rings[0];
+        sh.moveTo(r0[0][0] * K, r0[0][1] * K);
+        for (const [x, z] of r0.slice(1)) sh.lineTo(x * K, z * K);
         sh.closePath();
-        const m = new THREE.Mesh(new THREE.ShapeGeometry(sh),
-          new THREE.MeshLambertMaterial({ color: colour, side: THREE.DoubleSide }));
-        m.rotation.x = Math.PI / 2; m.position.y = y; scene.add(m); groundBits.push(m); return m;
+        return sh;
       };
-      for (const b of BOROUGHS) flatShape(b.poly, 0x151d33, -0.06);
-      for (const i of ISLETS) flatShape(i.poly, 0x1b2440, -0.04);
+      const flat = (rings, colour, y) => {
+        if (!rings?.length) return;
+        const m = new THREE.Mesh(new THREE.ShapeGeometry(ringShape(rings)),
+          new THREE.MeshLambertMaterial({ color: colour, side: THREE.DoubleSide }));
+        m.rotation.x = Math.PI / 2; m.position.y = y; scene.add(m); groundBits.push(m);
+      };
 
-      // Bridges across the rivers
-      const brMat = new THREE.MeshBasicMaterial({ color: 0x3d4a6b });
-      for (const br of BRIDGES) {
-        const a = new THREE.Vector3(br.from[0] * K, 0.1, br.from[1] * K - LEN / 2);
-        const b2 = new THREE.Vector3(br.to[0] * K, 0.1, br.to[1] * K - LEN / 2);
-        const len = a.distanceTo(b2);
-        const g = new THREE.BoxGeometry(len, 0.06, 0.32 * Math.max(0.6, K));
-        const m = new THREE.Mesh(g, brMat);
-        m.position.copy(a).add(b2).multiplyScalar(0.5);
-        m.rotation.y = -Math.atan2(b2.z - a.z, b2.x - a.x);
-        scene.add(m); groundBits.push(m);
-      }
-      groundBits.push({ dispose: () => brMat.dispose() });
+      const water = new THREE.Mesh(new THREE.PlaneGeometry(LEN * 3.0, LEN * 3.0),
+        new THREE.MeshLambertMaterial({ color: 0x08172b }));
+      water.rotation.x = -Math.PI / 2; water.position.y = -0.3; scene.add(water); groundBits.push(water);
+
+      for (const b of BACKDROP) flat(b.rings, 0x151d33, -0.08);   // Brooklyn / Queens / Bronx / Jersey
+      for (const i of ISLETS) flat(i.rings, 0x1b2440, -0.04);     // Roosevelt Island
+      flat([ISLAND_RING], 0x222b45, 0);                            // Manhattan
+      flat(PARK_RINGS, 0x1c4a2a, 0.06);                            // Central Park
 
       // The street grid — what actually says "Manhattan" at a glance
       const segs = streetGrid(K);
       const gp = new Float32Array(segs.length * 6);
       segs.forEach((sg, i) => {
-        gp[i * 6] = sg[0]; gp[i * 6 + 1] = 0.09; gp[i * 6 + 2] = sg[1] - LEN / 2;
-        gp[i * 6 + 3] = sg[2]; gp[i * 6 + 4] = 0.09; gp[i * 6 + 5] = sg[3] - LEN / 2;
+        gp[i * 6] = sg[0]; gp[i * 6 + 1] = 0.09; gp[i * 6 + 2] = sg[1];
+        gp[i * 6 + 3] = sg[2]; gp[i * 6 + 4] = 0.09; gp[i * 6 + 5] = sg[3];
       });
       const gg = new THREE.BufferGeometry();
       gg.setAttribute("position", new THREE.BufferAttribute(gp, 3));
-      const gm = new THREE.LineBasicMaterial({ color: 0x3d4a6e, transparent: true, opacity: 0.55 });
+      const gm = new THREE.LineBasicMaterial({ color: 0x3d4a6e, transparent: true, opacity: 0.5 });
       const gl = new THREE.LineSegments(gg, gm); scene.add(gl); groundBits.push(gl);
     } else {
       const groundSize = Math.max(grid.blocks.length * 2, 60) * 4;
