@@ -1,25 +1,15 @@
 {
-  "date": "2026-07-26",
+  "date": "2026-07-27",
   "signals": [
     {
       "type": "underwater-holding",
       "emoji": "💎",
-      "title": "Holders ~37% underwater — and still not selling",
-      "detail": "MVRV 0.63: price is 37% below the crowd's avg on-chain cost basis ($0.536). Yet 62% of supply is in the longest-held tier — the float isn't moving. MVRV has risen 0.59→0.63 over ~30d.",
+      "title": "Holders ~36% underwater — and still not selling",
+      "detail": "MVRV 0.64: price is 36% below the crowd's avg on-chain cost basis ($0.535). Yet 62% of supply is in the longest-held tier — the float isn't moving.",
       "framing": "Maximum financial pain, minimal capitulation — conviction being tested and, so far, holding.",
       "note": "Describe the divergence, NOT a bottom call. \"Not selling\", not \"buy\".",
       "card": "breakeven",
-      "score": 1.9151580892844238
-    },
-    {
-      "type": "capitulation-cluster",
-      "emoji": "🧊",
-      "title": "-82% below trend AND fear at 26",
-      "detail": "Deep in the Fire Sale band (-82% vs the power-law fair value $1.899) with Fear & Greed at 26. Valuation and sentiment bottoming together.",
-      "framing": "Where value and fear overlap — historically the account's best-resonating zone.",
-      "note": "Honest \"cheap + fearful\", never \"guaranteed bounce\".",
-      "card": "riskcolor",
-      "score": 1.5258410728167193
+      "score": 1.898918126567762
     },
     {
       "type": "drawdown",
@@ -30,6 +20,16 @@
       "note": "It's deep and unrecovered NOW; don't imply it always recovers.",
       "card": "underwater",
       "score": 1.5
+    },
+    {
+      "type": "diamond-trend",
+      "emoji": "💠",
+      "title": "Diamond tier grew 2.7pp in ~30d → 87.4% of supply",
+      "detail": "Supply in the longest-held tier rose 84.7%→87.4% over ~30 days — a cohort maturing into diamond.",
+      "framing": "Float tightening as coins age into the strongest-held tier.",
+      "note": "HELD, not BOUGHT — diamond grows by aging; frame it as maturing/held.",
+      "card": "diamondtrend",
+      "score": 1.4
     }
   ]
 }

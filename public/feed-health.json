@@ -1,0 +1,232 @@
+{
+ "checked": "2026-07-27",
+ "ok": 18,
+ "warn": 1,
+ "fail": 2,
+ "untracked": [],
+ "feeds": [
+  {
+   "file": "history.json",
+   "by": "snapshot.yml",
+   "what": "daily price, holders, cost basis, sentiment",
+   "status": "warn",
+   "age": 0,
+   "cadence": 2,
+   "date": "2026-07-27",
+   "notes": [
+    "t3es: 3 of 14 recent rows null",
+    "cexBal: 13 of 14 recent rows null",
+    "lpBal: 13 of 14 recent rows null"
+   ]
+  },
+  {
+   "file": "chain-wallets.json",
+   "by": "snapshot.yml (step)",
+   "what": "wallet growth across ETH/Base/Solana",
+   "status": "ok",
+   "age": 0,
+   "cadence": 2,
+   "date": "2026-07-27",
+   "notes": []
+  },
+  {
+   "file": "valuation.json",
+   "by": "snapshot.yml (step)",
+   "what": "the weighted valuation composite",
+   "status": "ok",
+   "age": 0,
+   "cadence": 2,
+   "date": "2026-07-27",
+   "notes": []
+  },
+  {
+   "file": "signals.json",
+   "by": "snapshot.yml (step)",
+   "what": "the anomaly detector's daily candidates",
+   "status": "ok",
+   "age": 0,
+   "cadence": 2,
+   "date": "2026-07-27",
+   "notes": []
+  },
+  {
+   "file": "cex-flow.json",
+   "by": "snapshot.yml (step)",
+   "what": "exchange balances and net flow",
+   "status": "fail",
+   "age": 0,
+   "cadence": 3,
+   "date": "2026-07-27",
+   "notes": [
+    "cex: never populated",
+    "lp: never populated"
+   ]
+  },
+  {
+   "file": "onchain.json",
+   "by": "onchain-dune.yml",
+   "what": "the whole FIFO on-chain suite",
+   "status": "ok",
+   "age": 0,
+   "cadence": 9,
+   "date": "2026-07-27",
+   "notes": []
+  },
+  {
+   "file": "urpd.json",
+   "by": "onchain-dune.yml",
+   "what": "the cost-basis histogram",
+   "status": "ok",
+   "age": 0,
+   "cadence": 9,
+   "date": "2026-07-27",
+   "notes": []
+  },
+  {
+   "file": "price-history.json",
+   "by": "price-history.yml",
+   "what": "the dense daily price line",
+   "status": "ok",
+   "age": 7,
+   "cadence": 9,
+   "date": "2026-07-20",
+   "notes": []
+  },
+  {
+   "file": "longshort.json",
+   "by": "longshort.yml",
+   "what": "Hyperliquid funding and open interest",
+   "status": "ok",
+   "age": 1,
+   "cadence": 3,
+   "date": "2026-07-26",
+   "notes": []
+  },
+  {
+   "file": "btc-mvrv.json",
+   "by": "btc-mvrv.yml",
+   "what": "Bitcoin's MVRV, for the comparison chart",
+   "status": "ok",
+   "age": 20,
+   "cadence": 40,
+   "date": "2026-07-07",
+   "notes": []
+  },
+  {
+   "file": "aeon.json",
+   "by": "aeon.yml",
+   "what": "AEON floor, owners, supply",
+   "status": "ok",
+   "age": 1,
+   "cadence": 2,
+   "date": "2026-07-26",
+   "notes": []
+  },
+  {
+   "file": "aeon-history.json",
+   "by": "aeon.yml",
+   "what": "AEON floor and owners over time",
+   "status": "ok",
+   "age": 1,
+   "cadence": 2,
+   "date": "2026-07-26",
+   "notes": []
+  },
+  {
+   "file": "aeon-onchain.json",
+   "by": "aeon.yml",
+   "what": "AEON ownership, holder age, concentration",
+   "status": "fail",
+   "age": 4,
+   "cadence": 3,
+   "date": "2026-07-23",
+   "notes": [
+    "4d old, cadence allows 3d"
+   ]
+  },
+  {
+   "file": "aeon-market.json",
+   "by": "aeon.yml",
+   "what": "AEON MVRV, URPD, fair value, deals",
+   "status": "ok",
+   "age": 2,
+   "cadence": 3,
+   "date": "2026-07-25",
+   "notes": []
+  },
+  {
+   "file": "aeon-sales.json",
+   "by": "aeon.yml",
+   "what": "AEON marketplace trades",
+   "status": "ok",
+   "age": 2,
+   "cadence": 3,
+   "date": "2026-07-25",
+   "notes": []
+  },
+  {
+   "file": "aeon-traders.json",
+   "by": "aeon.yml",
+   "what": "AEON per-wallet realized P&L",
+   "status": "ok",
+   "age": 2,
+   "cadence": 3,
+   "date": "2026-07-25",
+   "notes": []
+  },
+  {
+   "file": "aeon-listings.json",
+   "by": "aeon.yml",
+   "what": "live AEON listings for the deal finder",
+   "status": "ok",
+   "age": 1,
+   "cadence": 3,
+   "date": "2026-07-26",
+   "notes": []
+  },
+  {
+   "file": "aeon-rarity.json",
+   "by": "aeon.yml (once)",
+   "what": "AEON trait rarity (static once built)",
+   "status": "ok",
+   "age": 3,
+   "cadence": 400,
+   "date": "2026-07-24",
+   "notes": []
+  },
+  {
+   "file": "aeon-live-sales.json",
+   "by": "aeon-sale-watch.yml",
+   "what": "sub-day AEON sales from Alchemy",
+   "status": "ok",
+   "age": 0,
+   "cadence": 2,
+   "date": "2026-07-27",
+   "notes": [
+    "sales: empty (allowed, but worth knowing)"
+   ]
+  },
+  {
+   "file": "ens.json",
+   "by": "aeon.yml (step)",
+   "what": "ENS names for the wallets we display",
+   "status": "ok",
+   "age": 1,
+   "cadence": 9,
+   "date": "2026-07-26",
+   "notes": []
+  },
+  {
+   "file": "whale-signals.json",
+   "by": "onchain-dune.yml (step)",
+   "what": "whale-cohort move candidates",
+   "status": "ok",
+   "age": 1,
+   "cadence": 9,
+   "date": "2026-07-26",
+   "notes": [
+    "signals: empty (allowed, but worth knowing)"
+   ]
+  }
+ ]
+}
