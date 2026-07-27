@@ -103,6 +103,10 @@ export const STATE = new Set([
   "recap-pending.json", "aeon-sale-state.json", "whale-state.json",
   "freefloat-peers.json", "resemblance.json",       // deliberately dormant, see CLAUDE.md
   "feed-health.json",                                // written by this script
+  // A cache of the on-chain noticeboard, not a feed: it is legitimately EMPTY until the contract
+  // is deployed, and legitimately UNCHANGED for as long as nobody writes a note. Auditing it for
+  // freshness would raise an alarm about people not chatting, which is not a data problem.
+  "city-notes.json",
 ]);
 
 const readJson = p => { try { return JSON.parse(readFileSync(p, "utf8")); } catch { return undefined; } };
