@@ -2,6 +2,7 @@ import { useMemo, useState, useEffect, lazy, Suspense } from "react";
 import { loadWhales } from "./history-data.js";
 import WalletCard, { shortAddr } from "./WalletCard.jsx";
 import CityControls from "./CityControls.jsx";
+import CityGate from "./CityGate.jsx";
 import { SANS, MONO, MAX_W, Metric, Explain } from "./chart-ui.jsx";
 
 const Skyline3D = lazy(() => import("./Skyline3D.jsx"));
@@ -69,6 +70,7 @@ export default function SpxWhaleWatcher({ isMobile, preview = false }) {
   };
 
   return (
+    <CityGate title="Whale City" unit="whale" accent="#c4b5fd">
     <div style={{ maxWidth: MAX_W, margin: "0 auto" }}>
       <Explain q="Which big SPX6900 holders are actually buying — and which are selling?" accent="#a78bfa">
         Every building is one of the largest wallets. Height is <strong style={{ color: "#e2e8f0" }}>how much it holds × how long it&apos;s held</strong>, and the windows
@@ -111,7 +113,7 @@ export default function SpxWhaleWatcher({ isMobile, preview = false }) {
         <div style={{ width: "100%" }}>
           <Suspense fallback={<div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Loading 3D…</div>}>
             <Skyline3D towers={visible} isMobile={isMobile} onSelect={setSel} cardHtml={cardHtml}
-              crownLabel="🐋 biggest whale" accent="rgba(167,139,250,0.45)" bodyFrom={0x3b3560} bodyTo={0xa78bfa}
+              crownLabel="🐋 biggest whale" accent="rgba(167,139,250,0.45)" bodyFrom={0xf59e0b} bodyTo={0x22d3ee}
               layout={layout} focus={focus} />
           </Suspense>
           <div style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 8 }}>
@@ -131,5 +133,6 @@ export default function SpxWhaleWatcher({ isMobile, preview = false }) {
         Glow = net position change over the window; building height is a √ scale of size × holding time (holdings are power-law, so a linear axis would be one spike over a car park) — hover for the exact figure. Wallets are addresses, not people: one person can hold several. A behaviour read, not a signal. Not financial advice.
       </div>
     </div>
+    </CityGate>
   );
 }

@@ -110,6 +110,8 @@ export default function Skyline3D({
   bodyFrom = 0x334063, bodyTo = 0x8fa6d8,   // body colour ramp across holding age (new → old)
   layout = "city",                          // "city" = laid out on Manhattan · "grid" = the raw skyline
   focus = null,                             // an address to fly the camera to
+  intro = true,                             // play the arrival fly-through on mount
+  onIntroDone,
 }) {
   const mount = useRef(null);
   const api = useRef(null);                 // { cam, controls, homes } for the focus effect
@@ -138,8 +140,8 @@ export default function Skyline3D({
     const pts = city ? placed.map(p => ({ x: p.x, z: p.z })) : grid.pts;
 
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x05070f);
-    scene.fog = new THREE.Fog(0x05070f, city ? LEN * 1.1 : 40, city ? LEN * 3.2 : 190);
+    scene.background = new THREE.Color(0x1b2740);
+    scene.fog = new THREE.Fog(0x1b2740, city ? LEN * 1.1 : 40, city ? LEN * 3.2 : 190);
     const cam = new THREE.PerspectiveCamera(46, W / VH, 0.1, 3000);
     const span = city ? LEN * 0.5 : Math.sqrt(T.length) * 2.0;
     if (city) cam.position.set(LEN * 0.34, LEN * 0.66, LEN * 0.50); else cam.position.set(span * 0.95, 20, span * 1.28);
@@ -160,9 +162,9 @@ export default function Skyline3D({
     });
     el.appendChild(tip);
 
-    scene.add(new THREE.AmbientLight(0xffffff, 0.55));
-    const d1 = new THREE.DirectionalLight(0xffffff, 0.85); d1.position.set(30, 60, 20); scene.add(d1);
-    const d2 = new THREE.DirectionalLight(0x7f9dff, 0.45); d2.position.set(-25, 25, -15); scene.add(d2);
+    scene.add(new THREE.AmbientLight(0xffffff, 0.95));
+    const d1 = new THREE.DirectionalLight(0xfff2df, 1.15); d1.position.set(30, 60, 20); scene.add(d1);
+    const d2 = new THREE.DirectionalLight(0x9dc4ff, 0.6); d2.position.set(-25, 25, -15); scene.add(d2);
 
     // ── the ground. City: the rivers, the island itself and Central Park. Grid: block pads. ──
     const groundBits = [];
@@ -187,13 +189,13 @@ export default function Skyline3D({
       };
 
       const water = new THREE.Mesh(new THREE.PlaneGeometry(LEN * 3.0, LEN * 3.0),
-        new THREE.MeshLambertMaterial({ color: 0x08172b }));
+        new THREE.MeshLambertMaterial({ color: 0x2a6a92 }));
       water.rotation.x = -Math.PI / 2; water.position.y = -0.3; scene.add(water); groundBits.push(water);
 
-      for (const b of BACKDROP) flat(b.rings, 0x151d33, -0.08);   // Brooklyn / Queens / Bronx / Jersey
-      for (const i of ISLETS) flat(i.rings, 0x1b2440, -0.04);     // Roosevelt Island
-      flat([ISLAND_RING], 0x222b45, 0);                            // Manhattan
-      flat(PARK_RINGS, 0x1c4a2a, 0.06);                            // Central Park
+      for (const b of BACKDROP) flat(b.rings, 0x46527a, -0.08);   // Brooklyn / Queens / Bronx / Jersey
+      for (const i of ISLETS) flat(i.rings, 0x4d5a85, -0.04);     // Roosevelt Island
+      flat([ISLAND_RING], 0x59668f, 0);                            // Manhattan
+      flat(PARK_RINGS, 0x2f7a45, 0.06);                            // Central Park
 
       // The street grid — what actually says "Manhattan" at a glance
       const segs = streetGrid(K);
@@ -204,7 +206,7 @@ export default function Skyline3D({
       });
       const gg = new THREE.BufferGeometry();
       gg.setAttribute("position", new THREE.BufferAttribute(gp, 3));
-      const gm = new THREE.LineBasicMaterial({ color: 0x3d4a6e, transparent: true, opacity: 0.5 });
+      const gm = new THREE.LineBasicMaterial({ color: 0x8fa4cc, transparent: true, opacity: 0.55 });
       const gl = new THREE.LineSegments(gg, gm); scene.add(gl); groundBits.push(gl);
     } else {
       const groundSize = Math.max(grid.blocks.length * 2, 60) * 4;
@@ -226,7 +228,7 @@ export default function Skyline3D({
     const spireGeo = new THREE.CylinderGeometry(0.035, 0.075, 1, 6);
     const haloGeo = new THREE.CircleGeometry(1.05, 20);
     const BINS = 6, texes = Array.from({ length: BINS }, (_, i) => windowTexture(2 + i * 3));
-    const roofMat = new THREE.MeshLambertMaterial({ color: 0x11172a });
+    const roofMat = new THREE.MeshLambertMaterial({ color: 0x2b3350 });
     const disposables = [box, spireGeo, haloGeo, roofMat, ...texes];  // ground/pads are disposed via groundBits
 
     const hitMeshes = [], ownMats = [], homes = new Map();
@@ -234,7 +236,7 @@ export default function Skyline3D({
     // building meant thousands of state changes per frame and the city crawled. Hover no longer
     // recolours a material (that would light every building in the bin); it moves an outline box.
     const matBin = new Map();
-    const AGE_BINS = 5, FLOW_BINS = 7;
+    const AGE_BINS = 8, FLOW_BINS = 7;
     const materialFor = (ageT, f) => {
       const ai = Math.min(AGE_BINS - 1, Math.floor((ageT ?? 0.5) * AGE_BINS));
       const fi = Math.max(0, Math.min(FLOW_BINS - 1, Math.round((Math.max(-1, Math.min(1, f)) + 1) / 2 * (FLOW_BINS - 1))));
@@ -245,9 +247,9 @@ export default function Skyline3D({
         const mag = Math.min(1, Math.abs(fT) * 1.6);
         const flowCol = fT > 0.05 ? GREEN : fT < -0.05 ? RED : null;
         const age = mix(new THREE.Color(bodyFrom), new THREE.Color(bodyTo), aT);
-        const body = flowCol ? mix(age, flowCol, 0.30 + 0.45 * mag) : age;
+        const body = flowCol ? mix(age, flowCol, 0.22 + 0.40 * mag) : age;
         const glow = flowCol ? mix(WARM, flowCol, Math.min(1, 0.35 + mag)) : WARM;
-        m = { side: null, glow, intensity: 0.45 + (flowCol ? 0.75 * mag : 0), flowCol };
+        m = { side: null, body, glow, intensity: 0.5 + (flowCol ? 0.8 * mag : 0), flowCol };
         matBin.set(key, m);
       }
       return m;
@@ -261,15 +263,15 @@ export default function Skyline3D({
 
       // Facade tints toward the flow colour, so the WHOLE building reads green/red — not just
       // its windows. Neutral wallets keep the age ramp. Material comes from the shared bin.
-      const bin = materialFor(t.ageT, f);
+      const bin = materialFor(t.ageT ?? 0.5, f);
       const ti = Math.min(BINS - 1, Math.floor((h / 21) * BINS));
       if (!bin.side) bin.side = [];
       let sideMat = bin.side[ti];
       if (!sideMat) {
-        const aT = 0.5;
+        // bin.body already carries the AGE ramp for this bin — warm for fresh wallets, cyan for
+        // long-held. Using a fixed midpoint here is what flattened every building to one colour.
         sideMat = new THREE.MeshLambertMaterial({
-          color: bin.flowCol ? mix(mix(new THREE.Color(bodyFrom), new THREE.Color(bodyTo), aT), bin.flowCol, 0.5) : mix(new THREE.Color(bodyFrom), new THREE.Color(bodyTo), aT),
-          emissive: bin.glow, emissiveMap: texes[ti], emissiveIntensity: bin.intensity,
+          color: bin.body, emissive: bin.glow, emissiveMap: texes[ti], emissiveIntensity: bin.intensity,
         });
         bin.side[ti] = sideMat; ownMats.push(sideMat);
       }
@@ -310,6 +312,34 @@ export default function Skyline3D({
       Object.assign(d.style, { color: "#fde68a", font: "700 12px 'Space Grotesk', system-ui, sans-serif", textShadow: "0 1px 4px #000", whiteSpace: "nowrap" });
       const o = new CSS2DObject(d); o.position.set(champInfo.x, champInfo.h + 3, champInfo.z); scene.add(o);
     }
+
+    // ── the arrival flight ────────────────────────────────────────────────────────────────────
+    // A scripted approach: come in low over the harbour, climb the length of the island through
+    // the towers, then pull back into the overview. It shows the whole city the way a person
+    // would want to see it first — the tall/short mix, the colour ramp, the green and red
+    // buildings — instead of dropping you into a static wide shot. Any input cancels it.
+    const overview = cam.position.clone();
+    const flight = city && intro ? (() => {
+      const half = LEN / 2;
+      const keys = [
+        { p: [LEN * 0.16, LEN * 0.055, -half - LEN * 0.30], t: [0, LEN * 0.02, -half + LEN * 0.05] }, // over the harbour
+        { p: [LEN * 0.10, LEN * 0.035, -half + LEN * 0.06], t: [0, LEN * 0.03, -half + LEN * 0.22] }, // into downtown
+        { p: [LEN * 0.055, LEN * 0.045, -half + LEN * 0.34], t: [0, LEN * 0.035, -half + LEN * 0.52] }, // up through midtown
+        { p: [-LEN * 0.05, LEN * 0.075, -half + LEN * 0.62], t: [0, LEN * 0.02, -half + LEN * 0.80] }, // past the park
+        { p: [LEN * 0.20, LEN * 0.26, LEN * 0.18], t: [0, 0, 0] },                                      // rise
+        { p: [overview.x, overview.y, overview.z], t: [0, 4, 0] },                                       // settle
+      ];
+      return { keys, dur: 13000, start: performance.now() };
+    })() : null;
+    const easeInOut = x => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2);
+    // Catmull-Rom through the keyframes, so the path curves instead of snapping corner to corner.
+    const spline = (arr, u) => {
+      const n = arr.length - 1, i = Math.min(n - 1, Math.floor(u * n)), f = u * n - i;
+      const p0 = arr[Math.max(0, i - 1)], p1 = arr[i], p2 = arr[i + 1], p3 = arr[Math.min(n, i + 2)];
+      return [0, 1, 2].map(k => 0.5 * ((2 * p1[k]) + (-p0[k] + p2[k]) * f +
+        (2 * p0[k] - 5 * p1[k] + 4 * p2[k] - p3[k]) * f * f +
+        (-p0[k] + 3 * p1[k] - 3 * p2[k] + p3[k]) * f * f * f));
+    };
 
     const controls = new OrbitControls(cam, renderer.domElement);
     controls.target.set(0, city ? 4 : 7, 0); controls.enableDamping = true; controls.dampingFactor = 0.08;
@@ -369,8 +399,25 @@ export default function Skyline3D({
     renderer.domElement.addEventListener("pointerup", onUp);
     renderer.domElement.addEventListener("pointerleave", () => { setHover(null); tip.style.display = "none"; });
 
-    let raf;
-    const loop = () => { raf = requestAnimationFrame(loop); controls.update(); renderer.render(scene, cam); labelR.render(scene, cam); };
+    let raf, flying = !!flight;
+    const stopFlight = () => {
+      if (!flying) return;
+      flying = false; controls.enabled = true; controls.autoRotate = false;
+      cam.position.copy(overview); controls.target.set(0, city ? 4 : 7, 0); controls.update();
+      onIntroDone?.();
+    };
+    if (flying) { controls.enabled = false; renderer.domElement.addEventListener("pointerdown", stopFlight, { once: true }); addEventListener("wheel", stopFlight, { once: true, passive: true }); }
+    const loop = () => {
+      raf = requestAnimationFrame(loop);
+      if (flying) {
+        const u = Math.min(1, (performance.now() - flight.start) / flight.dur);
+        const e = easeInOut(u);
+        const p = spline(flight.keys.map(k => k.p), e), t = spline(flight.keys.map(k => k.t), e);
+        cam.position.set(p[0], p[1], p[2]); controls.target.set(t[0], t[1], t[2]);
+        if (u >= 1) stopFlight();
+      }
+      controls.update(); renderer.render(scene, cam); labelR.render(scene, cam);
+    };
     loop();
     const onResize = () => { const w = el.clientWidth; cam.aspect = w / VH; cam.updateProjectionMatrix(); renderer.setSize(w, VH); labelR.setSize(w, VH); };
     window.addEventListener("resize", onResize);
@@ -380,6 +427,8 @@ export default function Skyline3D({
       renderer.domElement.removeEventListener("pointermove", onMove);
       renderer.domElement.removeEventListener("pointerdown", onDown);
       renderer.domElement.removeEventListener("pointerup", onUp);
+      renderer.domElement.removeEventListener("pointerdown", stopFlight);
+      removeEventListener("wheel", stopFlight);
       controls.dispose();
       disposables.forEach(d => d.dispose());
       ownMats.forEach(m => m.dispose());
@@ -387,7 +436,7 @@ export default function Skyline3D({
       pads?.dispose();
       renderer.dispose(); el.removeChild(renderer.domElement); el.removeChild(labelR.domElement); el.removeChild(tip);
     };
-  }, [towers, isMobile, crownLabel, accent, bodyFrom, bodyTo, layout]);
+  }, [towers, isMobile, crownLabel, accent, bodyFrom, bodyTo, layout, intro]);
 
   // Fly to a searched wallet and flash its building, without rebuilding the scene.
   useEffect(() => {

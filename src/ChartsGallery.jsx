@@ -120,13 +120,14 @@ export default function ChartsGallery({
   const nq = q.trim().toLowerCase();
   // Filtered view of the catalog. Groups that lose every chart drop out entirely so
   // the page never shows an empty heading.
-  const shown = useMemo(() => {
-    if (!nq) return groups;
-    return groups
-      .map(g => ({ ...g, charts: g.charts.filter(c => haystack(c, g.title).includes(nq)) }))
-      .filter(g => g.charts.length);
-  }, [groups, nq]);
-  const total = groups.reduce((n, g) => n + g.charts.length, 0);
+  const shown = useMemo(() => groups
+    // `dev` charts are in-development: still reachable by direct link (and password-gated there),
+    // but never listed here — the no-search path returned `groups` untouched, which leaked them.
+    .map(g => ({ ...g, charts: g.charts.filter(c => !c.dev && (!nq || haystack(c, g.title).includes(nq))) }))
+    .filter(g => g.charts.length), [groups, nq]);
+  // `dev` charts are in-development: routable by direct link (and password-gated there) but
+  // deliberately absent from the library so they aren't stumbled on before they're ready.
+  const total = groups.reduce((n, g) => n + g.charts.filter(c => !c.dev).length, 0);
   const found = shown.reduce((n, g) => n + g.charts.length, 0);
   // The other catalog — Aeon when browsing SPX, SPX when browsing Aeon.
   const otherGroups = groups === CHART_GROUPS ? AEON_GROUPS : CHART_GROUPS;

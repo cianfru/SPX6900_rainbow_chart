@@ -4,6 +4,7 @@ import { loadAeon } from "./history-data.js";
 import { SANS, MONO, MAX_W, Metric, Explain } from "./chart-ui.jsx";
 import WalletCard from "./WalletCard.jsx";
 import CityControls from "./CityControls.jsx";
+import CityGate from "./CityGate.jsx";
 
 const Skyline3D = lazy(() => import("./Skyline3D.jsx"));
 const short = a => a.slice(0, 6) + "…" + a.slice(-4);
@@ -114,6 +115,7 @@ export default function AeonSkylineChart({ isMobile, preview = false }) {
   }
 
   return (
+    <CityGate title="Aeon City" unit="holder" accent="#5eead4">
     <div style={{ maxWidth: MAX_W, margin: "0 auto" }}>
       <Explain q="Who are the biggest, most committed holders?" accent="#2dd4bf">
         A 3D skyline — <strong style={{ color: "#e2e8f0" }}>one tower per wallet</strong>. Height combines <strong style={{ color: "#5eead4" }}>AEON held</strong>{hasSpx && <> + <strong style={{ color: "#a78bfa" }}>SPX6900 coins held</strong></>} with <strong style={{ color: "#22d3ee" }}>how long it&apos;s held</strong>, so the tallest tower is the biggest, most committed holder{hasSpx && <> across both</>}.
@@ -154,7 +156,7 @@ export default function AeonSkylineChart({ isMobile, preview = false }) {
         <div style={{ width: "100%" }}>
           <Suspense fallback={<div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Loading 3D…</div>}>
             <Skyline3D towers={visible} isMobile={isMobile} onSelect={setSel} cardHtml={aeonCard}
-              crownLabel="👑 top holder" accent="rgba(45,212,191,0.45)" bodyFrom={0xb45309} bodyTo={0x22d3ee}
+              crownLabel="👑 top holder" accent="rgba(45,212,191,0.45)" bodyFrom={0xd97706} bodyTo={0x22d3ee}
               layout={layout} focus={focus} />
           </Suspense>
         </div>
@@ -179,5 +181,6 @@ export default function AeonSkylineChart({ isMobile, preview = false }) {
         {hasSpx ? " Wallets that hold both AEON and SPX — long — stand tallest." : ""}
       </div>
     </div>
+    </CityGate>
   );
 }
