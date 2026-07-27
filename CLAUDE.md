@@ -292,6 +292,44 @@
   gallery of the art) + a **Cross-holder value board** (the 346 AEON+SPX dual-holders ranked by combined value). Folded-in
   already: diamond-vs-paper (hold time/win rate/losses tab) + biggest-sales gallery.
 
+## 🏙 AEON CITY / WHALE CITY — the 3D holder cities (built 2026-07-27, IN DEVELOPMENT, gated)
+- Two pages, ONE shared engine (`src/Skyline3D.jsx`): **Aeon City** (`?chart=aeonskyline`, AEON holders) and
+  **Whale City** (`?chart=whalewatch`, the biggest SPX wallets from `public/whales.json`). Every wallet is a
+  BUILDING on real Manhattan geometry — height = size × holding time (√ scale, holdings are power-law), colour
+  ramps warm (new) → cyan (long-held), and the WHOLE building lights **green when the wallet added / red when it
+  reduced** over the window. Archetypes (townhouse → condo → tower → skyscraper → spired landmark) so scale reads
+  from the silhouette. City/Skyline toggle; "Where do you live?" search places ANY address by hash.
+- **Geometry is real**: `src/nyc-geo.js` (baked OSM outlines — island, Central Park, Roosevelt, the boroughs) +
+  `src/city-map.js` (weighted neighbourhoods, lots clipped to the coastline, co-prime-stride placement so blocks
+  scatter instead of clumping). ⚠ Two traps found the hard way: Nominatim "Manhattan" returns the ADMIN boundary
+  (extends into the rivers) — use the natural feature "Manhattan Island"; and RDP simplification degenerates on a
+  CLOSED ring (first==last ⇒ zero-length baseline) — split at the farthest point first.
+- **three.js gotchas baked in:** BoxGeometry maps one texture to ALL six faces (→ windows on the rooftops) so
+  facades use a per-face material array; materials are SHARED, binned by (age × flow), because one material per
+  building meant thousands of state changes/frame — hover therefore moves a wireframe cage, it does NOT recolour a
+  material. three is code-split into its own chunk, so nothing loads until a city is opened.
+- **🔒 DEV-GATED (owner, "needs to be perfect before shipping"):** `src/CityGate.jsx` wraps both — a passphrase
+  (`aeoncity`), an arrival explainer popup with a synthesised pop, and `dev:true` in charts-catalog hides them from
+  the gallery until unlocked (`localStorage["spx-city-dev"]`). **HONEST SCOPE: unlisted + locked, NOT security** —
+  the data behind it is public anyway. Unlocked users DO see them in their Charts library.
+- **✅ CLAIM YOUR BUILDING — wallet messages (owner, 2026-07-27).** Connect an EVM wallet → `personal_sign` a free
+  statement → your note hangs over your building (`src/CityWallet.jsx` + `src/city-messages.js`; signs are CSS2D
+  labels in their own group). Rules, all deliberate: **only wallets that own a building can post** (the city is a
+  map of holders, so a note on it should mean somebody is really there); **one message per wallet, replaceable**
+  (no flood, no thread to moderate); the signature binds **wallet + city + text** so it can't be lifted onto
+  another message or replayed in the other city; validation caps length, blocks **links** (the city stays
+  unshillable) and strips control + **bidi-override** characters (an override renders a harmless string as
+  something else). Tested in `test/city-messages.test.mjs`.
+  - **🔲 STORAGE IS STUBBED — localStorage, so notes are visible to NOBODY ELSE yet** (the UI says so in amber).
+    `remoteStore` in city-messages.js is a same-shape drop-in: switch `store` + add `/api/city-messages`. **When
+    that lands the server MUST re-verify the signature AND re-run `validateMessage` AND re-check building
+    ownership** — anything a browser asserts about itself can be forged. Owner chose "build it stubbed, decide the
+    datastore later."
+- **🔲 OPEN:** real-GPU perf is UNMEASURED (only a CPU software renderer here) so the 600-building default is
+  caution, not measurement — the "all buildings" toggle needs a real device; borough tones are still dim; bridges
+  were dropped when the real geometry landed. Intro fly-through doubles as the video path (`tools/render-city-video.mjs`
+  drives `window.__citySeek(u)` frame-by-frame → H.264, so capture is exact however slowly it renders).
+
 ## Backlog / decisions
 - **✅ METHODS PAGE — RESTORED 2026-07-26 (owner asked for it back; do NOT delete it again).** History: built (`b6ac1c4`),
   trimmed for density (`246d69e`), then I DELETED it (`79cb1cf`) on my own reasoning — that was reversed. Owner: *"we can
