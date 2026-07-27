@@ -183,6 +183,11 @@ export function replayFifo(transfers, priceAt, sampleTs, opts = {}) {
   // per-sample-window spend accumulators (SOPR + NRPL + dormancy) and the running total
   // of coin-days destroyed (for liveliness, which is cumulative by definition).
   let p = 0, winVal = 0, winCost = 0, winProfit = 0, winLoss = 0, winCDD = 0, winVol = 0, cumCDD = 0;
+  // WHALE WATCHER: snapshot every wallet's balance at a few lookback checkpoints, so the final
+  // state can be diffed against them → who has been ADDING vs SHEDDING. `wallets` already
+  // excludes CEX/LP/bridge/burn (EXCLUDE), so these are real holders, not infrastructure.
+  const lastTs = sampleTs.at(-1);
+  const checkpoints = (opts.whaleLookback || [7, 30]).map(d => ({ d, target: lastTs - d * DAY, snap: null }));
   for (const sTs of sampleTs) {
     // Replay up to this sample, ONE BLOCK (same timestamp) at a time — applying every
     // RECEIVE before every SEND in the block. block_timestamp is per-block, second-
@@ -218,11 +223,41 @@ export function replayFifo(transfers, priceAt, sampleTs, opts = {}) {
     cumCDD += winCDD;
     row.liveliness = (cumCDD + row.coinDays) > EPS ? +(cumCDD / (cumCDD + row.coinDays)).toFixed(4) : null;
     rows.push(row);
+    // capture the balance map the first time we reach each lookback checkpoint
+    for (const c of checkpoints) {
+      if (!c.snap && sTs >= c.target) { const m = new Map(); for (const [a, e] of wallets) if (e.bal > EPS) m.set(a, e.bal); c.snap = m; }
+    }
     winVal = 0; winCost = 0; winProfit = 0; winLoss = 0; winCDD = 0; winVol = 0;
   }
+  // WHALE WATCHER: the biggest CURRENT holders, each with how much they've added or shed over
+  // the lookback windows and how long their oldest still-held lot has sat. One row per wallet —
+  // the raw material for the 3D skyline (tower = size × conviction, colour = accumulating/shedding).
+  const buildWhales = () => {
+    const arr = [];
+    for (const [a, e] of wallets) {
+      if (e.bal <= EPS) continue;
+      let oldest = Infinity;
+      for (let i = e.head; i < e.q.length; i++) { const lot = e.q[i]; if (lot && lot.qty > EPS && lot.ts < oldest) oldest = lot.ts; }
+      arr.push({ a, bal: e.bal, oldest });
+    }
+    arr.sort((x, y) => y.bal - x.bal);
+    return arr.slice(0, opts.whaleTop ?? 300).map(w => {
+      const o = { a: w.a, bal: +w.bal.toFixed(2), days: Number.isFinite(w.oldest) ? Math.round((lastTs - w.oldest) / DAY) : 0 };
+      // delta vs each checkpoint. A wallet absent from the snapshot was empty then, so the
+      // delta is its whole balance — a genuinely NEW whale, which is exactly what we want to show.
+      for (const c of checkpoints) if (c.snap) o[`d${c.d}`] = +(w.bal - (c.snap.get(w.a) || 0)).toFixed(2);
+      return o;
+    });
+  };
+
   // URPD (cost-basis distribution) is a CURRENT-STATE histogram — compute it for the
   // final wallet state only, returned alongside the rows when requested.
-  if (opts.collectUrpd) return { rows, urpd: computeUrpd(wallets, priceAt(sampleTs.at(-1)), iso(sampleTs.at(-1)), opts.urpdBuckets ?? 42) };
+  if (opts.collectUrpd || opts.collectWhales) {
+    const out = { rows };
+    if (opts.collectUrpd) out.urpd = computeUrpd(wallets, priceAt(sampleTs.at(-1)), iso(sampleTs.at(-1)), opts.urpdBuckets ?? 42);
+    if (opts.collectWhales) out.whales = { updated: iso(lastTs), spot: priceAt(lastTs) ?? 0, lookback: checkpoints.map(c => c.d), wallets: buildWhales() };
+    return out;
+  }
   return rows;
 }
 
@@ -404,16 +439,21 @@ async function main() {
   const grid = args.daily
     ? Array.from({ length: Math.floor((t1 - t0) / DAY) + 2 }, (_, i) => dayFloor(t0) + i * DAY)
     : mondays(t0, t1);
-  const { rows, urpd } = replayFifo(transfers, priceAt, grid, { thresholdDays: Number(args.threshold ?? 90), collectUrpd: true, urpdBuckets: Number(args.buckets ?? 72) });
+  const { rows, urpd, whales } = replayFifo(transfers, priceAt, grid, { thresholdDays: Number(args.threshold ?? 90), collectUrpd: true, urpdBuckets: Number(args.buckets ?? 72), collectWhales: true });
   const clean = rows.filter(r => r.holders > 0);
   const out = args.out || "public/onchain.json";
   await writeFile(out, JSON.stringify(clean));
   // URPD histogram is a small current-state companion file (default sibling of `out`).
   const urpdOut = args.urpd || out.replace(/[^/]+$/, "urpd.json");
   await writeFile(urpdOut, JSON.stringify(urpd));
+  // Whale watcher companion (top current holders + how much they've added/shed).
+  const whalesOut = args.whales || out.replace(/[^/]+$/, "whales.json");
+  await writeFile(whalesOut, JSON.stringify(whales));
   const c = clean.at(-1);
   console.log(`Wrote ${out}: ${clean.length} rows. Latest ${c.d}: rp $${c.rp} · mvrv ${c.mvrv}× · sip ${c.sip}% · sopr ${c.sopr} · holders ${c.holders} · top100 ${c.top100}% · age ${c.age.join("/")}`);
   console.log(`Wrote ${urpdOut}: URPD ${urpd.buckets.length} buckets · held ${urpd.held} · spot $${urpd.spot}`);
+  const wAdd = whales.wallets.filter(w => (w.d30 ?? 0) > 0).length, wCut = whales.wallets.filter(w => (w.d30 ?? 0) < 0).length;
+  console.log(`Wrote ${whalesOut}: ${whales.wallets.length} whales · ${wAdd} adding / ${wCut} shedding (30d) · biggest ${whales.wallets[0]?.bal.toLocaleString()} SPX`);
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {

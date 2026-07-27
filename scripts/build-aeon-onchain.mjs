@@ -147,9 +147,25 @@ function main() {
   // COMBINED conviction score (AEON + SPX rescaled to the same axis, × holding duration)
   // across every holder — so a low-NFT / high-SPX wallet can still make the skyline — and
   // only then take the top 120 for display. Without SPX, rank by AEON count (as before).
+  // RECENT FLOW per wallet: NFTs received minus sent over each lookback window. Drives the
+  // skyline's accumulating (green) / distributing (red) glow — who is actually buying vs
+  // selling right now, which a static holdings snapshot can't show. Mints/burns count as flow
+  // (a mint IS an acquisition); wallet-to-wallet moves net out across the two sides.
+  const FLOW_WINDOWS = [7, 30];
+  const flow = new Map();  // addr → { f7, f30 }
+  const bump = (a, k, v) => { if (!a || isBurn(a)) return; const e = flow.get(a) || { f7: 0, f30: 0 }; e[k] += v; flow.set(a, e); };
+  for (const r of rows) {
+    for (const w of FLOW_WINDOWS) {
+      if (now - r.t > w * DAY) continue;
+      const k = `f${w}`;
+      bump(r.to, k, 1);
+      bump(r.from, k, -1);
+    }
+  }
   const all = [...wallet.entries()].map(([a, w]) => {
     const r = { a, n: w.n, days: Math.round((now - w.oldest) / DAY), since: new Date(w.oldest).toISOString().slice(0, 10) };
     if (spxBal.has(a)) r.spx = Math.round(spxBal.get(a));
+    const f = flow.get(a); if (f) { if (f.f7) r.f7 = f.f7; if (f.f30) r.f30 = f.f30; }
     return r;
   });
   const maxN = Math.max(...all.map(h => h.n), 1);

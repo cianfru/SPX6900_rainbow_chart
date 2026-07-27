@@ -2,8 +2,9 @@ import { useMemo, useState, useEffect, lazy, Suspense } from "react";
 import { AEON_ONCHAIN } from "./aeon-onchain.js";
 import { loadAeon } from "./history-data.js";
 import { SANS, MONO, MAX_W, Metric, Explain } from "./chart-ui.jsx";
+import WalletCard from "./WalletCard.jsx";
 
-const AeonSkyline3D = lazy(() => import("./AeonSkyline3D.jsx"));
+const Skyline3D = lazy(() => import("./Skyline3D.jsx"));
 const short = a => a.slice(0, 6) + "…" + a.slice(-4);
 
 // Project Aeon — the Holder Skyline. A 3D city of towers, one per wallet; height combines
@@ -13,6 +14,7 @@ export default function AeonSkylineChart({ isMobile, preview = false }) {
   const [data, setData] = useState(AEON_ONCHAIN);
   const [useSpx, setUseSpx] = useState(true);
   const [multiOnly, setMultiOnly] = useState(false);
+  const [sel, setSel] = useState(null);
   useEffect(() => { let c = false; loadAeon().then(d => { if (!c && d) setData(d); }); return () => { c = true; }; }, []);
   const all = useMemo(() => (data.holders || []).filter(h => h.a && h.n > 0), [data]);
   const holders = useMemo(() => multiOnly ? all.filter(h => h.n > 1) : all, [all, multiOnly]);
@@ -25,6 +27,27 @@ export default function AeonSkylineChart({ isMobile, preview = false }) {
   const both = holders.filter(h => h.spx > 0).length;
   const maxDays = Math.max(1, ...holders.map(h => h.days || 0));
   const fmtSpx = v => v >= 1e6 ? (v / 1e6).toFixed(1) + "M" : v >= 1e3 ? (v / 1e3).toFixed(0) + "k" : "" + v;
+
+  // Normalise for the shared 3D skyline: score = holdings (AEON, optionally + SPX rescaled onto
+  // the same axis) weighted by holding duration; flow = net NFTs in/out over 30 days, which is
+  // what makes a building glow green (accumulating) or red (distributing).
+  const maxSpxV = Math.max(0, ...holders.map(h => h.spx || 0));
+  const spxOn = useSpx && maxSpxV > 0;
+  const towers = holders.map(h => {
+    const units = h.n + (spxOn ? (h.spx || 0) / maxSpxV * maxN : 0);
+    return { ...h, score: units * (0.45 + 0.55 * ((h.days || 0) / maxDays)), ageT: (h.days || 0) / maxDays, flow: h.f30 || 0 };
+  });
+  const adding = towers.filter(t => t.flow > 0).length, shedding = towers.filter(t => t.flow < 0).length;
+  const cur = sel || towers.slice().sort((a, b) => b.score - a.score)[0];
+  const aeonCard = t => `
+      <div style="padding:11px 13px 8px">
+        <div style="color:#5eead4;font-weight:700;font-size:13.5px">${t.ens || short(t.a)}</div>
+        <div style="color:#94a3b8;font-size:11.5px">${t.n} AEON${spxOn && t.spx ? ` · ${fmtSpx(t.spx)} SPX` : ""} · held ${t.days}d</div>
+      </div>
+      ${t.flow ? `<div style="margin:0 13px 9px;padding:6px 9px;border-radius:7px;font-size:11.5px;color:${t.flow > 0 ? "#4ade80" : "#fb7185"};background:${t.flow > 0 ? "rgba(74,222,128,0.10)" : "rgba(251,113,133,0.10)"}">${t.flow > 0 ? `+${t.flow} bought` : `${t.flow} sold`} · 30d</div>` : ""}
+      <img src="https://render.zerion.io/preview?address=${t.a}" alt="" onerror="this.style.display='none'"
+           style="display:block;width:100%;border-top:1px solid rgba(255,255,255,0.08)"/>
+      <div style="padding:7px 13px;color:#64748b;font-size:11px">click to pin this wallet →</div>`;
 
   // top-holders bar list (also the preview stand-in — 3D is heavy)
   const list = (
@@ -88,10 +111,11 @@ export default function AeonSkylineChart({ isMobile, preview = false }) {
     <div style={{ maxWidth: MAX_W, margin: "0 auto" }}>
       <Explain q="Who are the biggest, most committed holders?" accent="#2dd4bf">
         A 3D skyline — <strong style={{ color: "#e2e8f0" }}>one tower per wallet</strong>. Height combines <strong style={{ color: "#5eead4" }}>AEON held</strong>{hasSpx && <> + <strong style={{ color: "#a78bfa" }}>SPX6900 coins held</strong></>} with <strong style={{ color: "#22d3ee" }}>how long it&apos;s held</strong>, so the tallest tower is the biggest, most committed holder{hasSpx && <> across both</>}.
-        Colour ramps <span style={{ color: "#f59e0b" }}>amber (newer)</span> → <span style={{ color: "#22d3ee" }}>cyan (held since mint)</span>. <strong style={{ color: "#e2e8f0" }}>Drag to orbit, hover a tower, click it to open the wallet in Zerion.</strong>
+        Colour ramps <span style={{ color: "#f59e0b" }}>amber (newer)</span> → <span style={{ color: "#22d3ee" }}>cyan (held since mint)</span>. Windows glow <span style={{ color: "#4ade80" }}>green when a wallet bought</span> and <span style={{ color: "#fb7185" }}>red when it sold</span> in the last 30 days. <strong style={{ color: "#e2e8f0" }}>Drag to orbit, hover a tower, click to pin its wallet.</strong>
       </Explain>
       <div style={{ display: "flex", gap: isMobile ? 16 : 30, justifyContent: "center", marginBottom: 14, flexWrap: "wrap" }}>
-        <Metric label="top holder" value={champ.n + " AEON"} color="#5eead4" sub={champ.spx > 0 ? fmtSpx(champ.spx) + " SPX" : `held ${champ.days}d`} />
+        <Metric label="accumulating" value={adding} color="#4ade80" sub="bought in 30d" />
+        <Metric label="distributing" value={shedding} color="#fb7185" sub="sold in 30d" />
         <Metric label="wallets shown" value={holders.length} color="#2dd4bf" />
         {hasSpx && <Metric label="hold AEON + SPX" value={both} color="#a78bfa" sub="cross-holders" />}
         <Metric label="held since mint" value={holders.filter(h => h.days > 900).length} color="#22d3ee" sub="900+ days" />
@@ -116,9 +140,18 @@ export default function AeonSkylineChart({ isMobile, preview = false }) {
         }}>{multiOnly ? "✓ " : ""}Exclude single-NFT wallets</button>
         <span style={{ fontFamily: MONO, fontSize: 12.5, color: "#7c8a9e" }}>{holders.length} towers{!multiOnly && singleCount ? ` · ${singleCount} single-NFT` : ""}</span>
       </div>
-      <Suspense fallback={<div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Loading 3D…</div>}>
-        <AeonSkyline3D holders={holders} isMobile={isMobile} useSpx={useSpx} />
-      </Suspense>
+      <div style={{ display: "flex", gap: 16, alignItems: "flex-start", flexDirection: isMobile ? "column" : "row" }}>
+        <div style={{ flex: "1 1 auto", minWidth: 0, width: "100%" }}>
+          <Suspense fallback={<div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Loading 3D…</div>}>
+            <Skyline3D towers={towers} isMobile={isMobile} onSelect={setSel} cardHtml={aeonCard}
+              crownLabel="👑 top holder" accent="rgba(45,212,191,0.45)" bodyFrom={0xb45309} bodyTo={0x22d3ee} />
+          </Suspense>
+        </div>
+        {!preview && cur && (
+          <WalletCard w={cur} flow={cur.flow} flowUnit=" AEON" accent="#5eead4" isMobile={isMobile}
+            lines={[`${cur.n} AEON${spxOn && cur.spx ? ` · ${fmtSpx(cur.spx)} SPX` : ""}`, `held ${cur.days} days · since ${cur.since}`]} />
+        )}
+      </div>
       <div style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 8 }}>
         Drag to orbit · scroll to zoom · hover for the wallet · click a tower to inspect it in Zerion. {hasSpx && (useSpx ? "Height = AEON + SPX × time held." : "Height = AEON × time held.")}
       </div>
