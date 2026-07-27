@@ -179,7 +179,13 @@ export function placeCity(items, k = 1) {
         while (slot.next < lots.length && used.has(slot.next)) slot.next++;   // pack from the core
         if (slot.next < lots.length) { used.add(slot.next); lot = lots[slot.next]; }
       } else {
-        let j = Math.floor(hash01(it.a) * lots.length) % lots.length;
+        // ⚠ THE LOT HASH MUST BE INDEPENDENT OF THE NEIGHBOURHOOD HASH. Using hash01(it.a) for both
+        // is what caused the visible clumping: neighbourhoods are picked by comparing that hash
+        // against cumulative weights, so every wallet in Midtown had a hash inside Midtown's slice
+        // (~0.36-0.54), and feeding the same number back in as a lot index put them all in the same
+        // ~18% strip of a row-major lot list. Whole districts piled into one band with dead space
+        // either side. A salted second hash is uniform over 0..1 whichever district you landed in.
+        let j = Math.floor(hash01(it.a + "|lot") * lots.length) % lots.length;
         for (let s = 0; s < lots.length; s++) {
           if (!used.has(j)) { used.add(j); lot = lots[j]; break; }
           j = (j + stride) % lots.length;                                     // scatter, don't clump
@@ -188,7 +194,11 @@ export function placeCity(items, k = 1) {
     }
     // Genuinely out of room: park it off the east shore rather than stack it on a roof.
     if (!lot) { const p = fromAxis((i % 100) / 100, 26 + (i % 4) * 1.4); lot = { x: p.x * k, z: p.z * k }; }
-    return { ...it, hood, x: lot.x, z: lot.z };
+    // A whisper of setback variation. Manhattan IS a grid, so this stays small — enough that the
+    // blocks don't read as a printed lattice, far short of letting two buildings touch (lots are
+    // 1.45 x 1.25 apart and the widest footprint is ~1.08).
+    const jx = (hash01(it.a + "|jx") - 0.5) * 0.16, jz = (hash01(it.a + "|jz") - 0.5) * 0.11;
+    return { ...it, hood, x: lot.x + jx, z: lot.z + jz };
   });
 }
 
@@ -202,6 +212,51 @@ export function lookupHome(address) {
   const lot = lots.length ? lots[Math.floor(hash01(a) * lots.length) % lots.length] : fromAxis((hood.t0 + hood.t1) / 2, 0);
   return { a, hood, x: lot.x, z: lot.z };
 }
+
+// ── open water ────────────────────────────────────────────────────────────────────────────────
+// ⚠ THE BOROUGH OUTLINES ARE ADMINISTRATIVE BOUNDARIES, NOT COASTLINES. In New York those run out
+// into open water by definition — Brooklyn's county line crosses the middle of the Upper Bay — so
+// drawing them as land pours concrete over the harbour and the island ends up sitting in a puddle
+// with a thin moat around it. This is the SAME trap already documented for Manhattan, where the
+// admin relation was swapped for the natural "Manhattan Island" feature; the boroughs were never
+// re-fetched.
+//
+// The proper fix is to re-fetch each borough's natural coastline. Overpass is unreachable from the
+// build sandbox (the network policy 504s it), so instead of inventing shorelines we paint the KNOWN
+// water bodies back on TOP of the boroughs, traced from real coordinates. Honest scope: these are
+// hand-entered and are SCENERY ONLY — no wallet is ever placed on or near them, and nothing is
+// measured from them. 🔲 Replace with real coastlines when OSM is reachable.
+//
+// ONLY the harbour is patched, deliberately. A first pass also blocked in the Lower Bay and Jamaica
+// Bay as rectangles, and they rendered as exactly that — hard straight edges across the sea, which
+// looked more wrong than the error they were fixing. The harbour survives because it is traced
+// along real shorelines on both banks and lands where the eye already expects water. Distance haze
+// handles everything further out, which is honest: it hides the far geography rather than
+// inventing it.
+//
+// Projection matches nyc-geo.js exactly: equirectangular about (40.7808, -73.9665), 1 unit = 100 m.
+const LAT0 = 40.7808, LON0 = -73.9665, M = 1113.2, LONS = Math.cos(LAT0 * Math.PI / 180) * M;
+const ll = ([lat, lon]) => [(lon - LON0) * LONS, (lat - LAT0) * M];
+
+export const WATER = [
+  {
+    id: "harbour", name: "The Hudson, the Upper Bay and the East River",
+    // Traced along the REAL shorelines on either side — the New Jersey waterfront from Weehawken
+    // down past Liberty State Park and Bayonne, across the Narrows, then back up Brooklyn's
+    // waterfront through Red Hook and DUMBO to Long Island City. Everything between is water that
+    // the borough boundaries claim as land.
+    //
+    // It deliberately runs UNDER Manhattan: the island is drawn after the water, so overlapping is
+    // free and the alternative — trying to trace the harbour's northern edge along the island's own
+    // coastline by hand — would introduce a seam that has to be maintained.
+    ring: [
+      [40.7520, -74.0270], [40.7520, -73.9560], [40.7350, -73.9590], [40.7200, -73.9670],
+      [40.7030, -73.9880], [40.6980, -73.9985], [40.6760, -74.0170], [40.6540, -74.0190],
+      [40.6330, -74.0270], [40.6050, -74.0330], [40.6080, -74.0580], [40.6420, -74.0760],
+      [40.6680, -74.0740], [40.6900, -74.0500], [40.7150, -74.0370], [40.7400, -74.0290],
+    ].map(ll),
+  },
+];
 
 // Backdrop geography (scenery only — no wallet is ever placed on it).
 export const BACKDROP = [

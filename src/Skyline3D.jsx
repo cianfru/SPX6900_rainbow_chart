@@ -2,7 +2,7 @@ import { useRef, useEffect } from "react";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { CSS2DRenderer, CSS2DObject } from "three/examples/jsm/renderers/CSS2DRenderer.js";
-import { placeCity, cityScale, CITY_LENGTH, ISLAND_RING, PARK_RINGS, BACKDROP, ISLETS, streetGrid } from "./city-map.js";
+import { placeCity, cityScale, CITY_LENGTH, ISLAND_RING, PARK_RINGS, BACKDROP, ISLETS, WATER, streetGrid } from "./city-map.js";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { chainOf } from "./city-messages.js";
 import { TIMES, FAMILIES, skyEnv, facadeTexture, wallGeometry, roofGeometry, archetype } from "./city-render.js";
@@ -101,7 +101,9 @@ export default function Skyline3D({
 
     const TOD = TIMES[time] || TIMES.dusk;
     const scene = new THREE.Scene();
-    scene.fog = new THREE.Fog(new THREE.Color(TOD.horizon), city ? LEN * 1.2 : 55, city ? LEN * 3.4 : 230);
+    // Haze, tuned between two failures: too far and the borough ADMIN boundaries pave the whole
+    // frame as flat land; too near and the top-down overview washes out to sky colour.
+    scene.fog = new THREE.Fog(new THREE.Color(TOD.horizon), city ? LEN * 0.95 : 55, city ? LEN * 3.0 : 230);
     const cam = new THREE.PerspectiveCamera(46, W / VH, 0.1, 3000);
     const span = city ? LEN * 0.5 : Math.sqrt(T.length) * 2.0;
     if (city) cam.position.set(LEN * 0.34, LEN * 0.66, LEN * 0.50); else cam.position.set(span * 0.95, 20, span * 1.28);
@@ -176,12 +178,16 @@ export default function Skyline3D({
 
       // Water is the one genuinely reflective surface in frame, so it gets a low roughness and
       // picks up the sky — which is most of why the island now reads as sitting IN something.
-      const water = new THREE.Mesh(new THREE.PlaneGeometry(LEN * 4.0, LEN * 4.0),
+      const water = new THREE.Mesh(new THREE.PlaneGeometry(LEN * 8.0, LEN * 8.0),
         new THREE.MeshStandardMaterial({ color: TOD.water, roughness: 0.42, metalness: 0.06 }));
-      water.rotation.x = -Math.PI / 2; water.position.y = -0.3; scene.add(water); groundBits.push(water);
+      water.rotation.x = -Math.PI / 2; water.position.y = -0.42; scene.add(water); groundBits.push(water);
 
-      for (const b of BACKDROP) flat(b.rings, TOD.back, -0.08);   // Brooklyn / Queens / Bronx / Jersey
-      for (const i of ISLETS) flat(i.rings, TOD.back, -0.04);     // Roosevelt Island
+      for (const b of BACKDROP) flat(b.rings, TOD.back, -0.30);   // Brooklyn / Queens / Bronx / Jersey
+      // The harbour, painted back OVER the boroughs — their outlines are administrative boundaries
+      // that legally cross open water, so without this Brooklyn paves the Upper Bay and Manhattan
+      // sits in a puddle. See the WATER note in city-map.js.
+      for (const w of WATER) flat([w.ring], TOD.water, -0.16);
+      for (const i of ISLETS) flat(i.rings, TOD.back, -0.06);     // Roosevelt Island
       flat([ISLAND_RING], TOD.land, 0);                            // Manhattan
       flat(PARK_RINGS, TOD.park, 0.06);                            // Central Park
 
@@ -366,8 +372,13 @@ export default function Skyline3D({
     const flight = city && intro ? (() => {
       const half = LEN / 2;
       const keys = [
-        { p: [LEN * 0.16, LEN * 0.055, -half - LEN * 0.30], t: [0, LEN * 0.02, -half + LEN * 0.05] }, // over the harbour
-        { p: [LEN * 0.10, LEN * 0.035, -half + LEN * 0.06], t: [0, LEN * 0.03, -half + LEN * 0.22] }, // into downtown
+        // Comes up the HUDSON rather than in over Brooklyn. Partly because it's the classic approach
+        // to Manhattan, but mostly because the water west of the island is genuinely water in the
+        // data — the flight used to open on a flat plain, which is the borough ADMIN boundary
+        // pretending to be land where the harbour should be. Flying over real water needed no
+        // invented coastline.
+        { p: [-LEN * 0.32, LEN * 0.055, -half - LEN * 0.30], t: [0, LEN * 0.02, -half + LEN * 0.05] }, // in off the bay
+        { p: [-LEN * 0.25, LEN * 0.035, -half + LEN * 0.06], t: [0, LEN * 0.03, -half + LEN * 0.22] }, // up past downtown
         { p: [LEN * 0.055, LEN * 0.045, -half + LEN * 0.34], t: [0, LEN * 0.035, -half + LEN * 0.52] }, // up through midtown
         { p: [-LEN * 0.05, LEN * 0.075, -half + LEN * 0.62], t: [0, LEN * 0.02, -half + LEN * 0.80] }, // past the park
         { p: [LEN * 0.20, LEN * 0.26, LEN * 0.18], t: [0, 0, 0] },                                      // rise
@@ -475,6 +486,7 @@ export default function Skyline3D({
       buildings: T.length, meshes: scene.children.length,
       drawCalls: renderer.info.render.calls, triangles: renderer.info.render.triangles,
       programs: renderer.info.programs?.length, geometries: renderer.info.memory.geometries,
+      k: K, cam: [+cam.position.x.toFixed(1), +cam.position.y.toFixed(1), +cam.position.z.toFixed(1)],
       textures: renderer.info.memory.textures,
     });
     if (flying) { controls.enabled = false; renderer.domElement.addEventListener("pointerdown", stopFlight, { once: true }); addEventListener("wheel", stopFlight, { once: true, passive: true }); }
