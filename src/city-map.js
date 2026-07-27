@@ -237,6 +237,8 @@ export function lookupHome(address) {
 // Projection matches nyc-geo.js exactly: equirectangular about (40.7808, -73.9665), 1 unit = 100 m.
 const LAT0 = 40.7808, LON0 = -73.9665, M = 1113.2, LONS = Math.cos(LAT0 * Math.PI / 180) * M;
 const ll = ([lat, lon]) => [(lon - LON0) * LONS, (lat - LAT0) * M];
+// Exported so the infrastructure layer can place things at their REAL coordinates too.
+export const fromLatLon = (lat, lon) => { const [x, z] = ll([lat, lon]); return { x, z }; };
 
 export const WATER = [
   {

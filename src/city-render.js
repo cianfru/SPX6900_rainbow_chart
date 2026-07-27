@@ -154,3 +154,103 @@ export function archetype(h, r, landmark) {
   P.push({ w: 1.08, d: 0.92, h: h * 0.12, y: h * 0.94 });
   return { parts: P, spire: 0, family: "masonry" };
 }
+
+// ── the infrastructure ────────────────────────────────────────────────────────────────────────
+// Everything in the harbour: the exchange docks, the bridge to the other chains, and the monument.
+// All returned as geometry arrays to be MERGED like the buildings, so the entire port costs a
+// handful of draw calls rather than one per crate.
+
+// A warehouse on a pier. Deliberately squat and wide — nothing here should be mistaken for a
+// holder's building, because none of these coins belong to a person.
+export function berthGeometry(b) {
+  const out = [];
+  const pier = new THREE.BoxGeometry(b.wide * 1.5, 0.18, b.len * 1.1);
+  pier.translate(b.x, 0.09, b.z); out.push({ g: pier, mat: "pier" });
+  const shed = new THREE.BoxGeometry(b.wide, b.tall, b.len * 0.82);
+  shed.translate(b.x, b.tall / 2 + 0.18, b.z); out.push({ g: shed, mat: "shed" });
+  // A pitched roof ridge, so a warehouse reads as a warehouse from above rather than as a slab.
+  const ridge = new THREE.BoxGeometry(b.wide * 0.55, b.tall * 0.22, b.len * 0.84);
+  ridge.translate(b.x, b.tall + 0.2, b.z); out.push({ g: ridge, mat: "shed" });
+  // Gantry cranes, one per ~8% of exchange supply — Kraken gets a row of them and Binance gets none,
+  // which is exactly the point of the chart.
+  const cranes = Math.min(5, Math.floor(b.share / 0.08));
+  for (let i = 0; i < cranes; i++) {
+    const cz = b.z - b.len * 0.35 + (b.len * 0.7 * (i + 0.5)) / Math.max(1, cranes);
+    const leg = new THREE.BoxGeometry(0.09, b.tall * 1.5, 0.09);
+    leg.translate(b.x + b.wide * 0.85, b.tall * 0.75, cz); out.push({ g: leg, mat: "steel" });
+    const arm = new THREE.BoxGeometry(b.wide * 1.6, 0.11, 0.11);
+    arm.translate(b.x + b.wide * 0.2, b.tall * 1.5, cz); out.push({ g: arm, mat: "steel" });
+  }
+  return out;
+}
+
+// The bridge. Deck, two towers, and the cables — a suspension silhouette, because that is what
+// makes a bridge read as the Brooklyn Bridge rather than as a plank.
+export function bridgeGeometry({ ax, az, bx, bz }, thickness = 1) {
+  const out = [];
+  const dx = bx - ax, dz = bz - az, len = Math.hypot(dx, dz), ang = Math.atan2(dx, dz);
+  const mx = (ax + bx) / 2, mz = (az + bz) / 2;
+  const w = Math.max(0.5, 1.1 * thickness);            // deck width carries the bridged supply
+  const place = (g, x, y, z) => { g.rotateY(ang); g.translate(x, y, z); out.push(g); };
+
+  const deck = new THREE.BoxGeometry(w, 0.16, len);
+  place(deck, mx, 1.9, mz);
+  for (const f of [0.28, 0.72]) {                       // two towers, at the classic quarter points
+    const tx = ax + dx * f, tz = az + dz * f;
+    const tower = new THREE.BoxGeometry(w * 0.42, 5.4, w * 0.42);
+    place(tower, tx, 2.7, tz);
+    const arch = new THREE.BoxGeometry(w * 1.05, 0.5, w * 0.36);
+    place(arch, tx, 4.4, tz);
+  }
+  // Cables as thin sagging segments. Cheap, and without them the towers read as two random posts.
+  const N = 14;
+  for (let i = 0; i < N; i++) {
+    const f = (i + 0.5) / N;
+    const sag = Math.abs(Math.sin(f * Math.PI * 2)) * 1.5;
+    const cx = ax + dx * f, cz = az + dz * f;
+    for (const side of [-1, 1]) {
+      const c = new THREE.BoxGeometry(0.05, 0.05, len / N);
+      const off = new THREE.Matrix4().makeTranslation(side * w * 0.45, 0, 0);
+      c.applyMatrix4(off);
+      place(c, cx, 3.6 + sag * 0.5, cz);
+    }
+  }
+  return out;
+}
+
+// The monument on Liberty Island. A silhouette, not a sculpture — at the distance this is viewed
+// from, the outline is the whole recognition, and the outline is pedestal + figure + raised arm +
+// torch. The torch is emissive on purpose: 69M coins burned, a flame that cannot go out.
+export function monumentGeometry(x, z, scale = 1) {
+  const s = scale, out = [];
+  const add = (g, mat) => out.push({ g, mat });
+  const base = new THREE.BoxGeometry(3.2 * s, 1.1 * s, 3.2 * s); base.translate(x, 0.55 * s, z);
+  add(base, "stone");
+  const plinth = new THREE.BoxGeometry(2.2 * s, 2.6 * s, 2.2 * s); plinth.translate(x, 2.4 * s, z);
+  add(plinth, "stone");
+  const shoulder = new THREE.BoxGeometry(2.6 * s, 0.3 * s, 2.6 * s); shoulder.translate(x, 3.85 * s, z);
+  add(shoulder, "stone");
+  // The figure: a tapered column, which is what the robe reads as in silhouette.
+  const body = new THREE.CylinderGeometry(0.42 * s, 0.95 * s, 4.2 * s, 8);
+  body.translate(x, 6.1 * s, z); add(body, "copper");
+  const head = new THREE.CylinderGeometry(0.3 * s, 0.34 * s, 0.62 * s, 8);
+  head.translate(x, 8.5 * s, z); add(head, "copper");
+  // The crown — seven points, which is the detail people actually count.
+  for (let i = 0; i < 7; i++) {
+    const a = (i / 7) * Math.PI * 2 - Math.PI / 2;
+    const spike = new THREE.ConeGeometry(0.07 * s, 0.6 * s, 4);
+    spike.rotateZ(-Math.cos(a) * 0.5); spike.rotateX(Math.sin(a) * 0.5);
+    spike.translate(x + Math.cos(a) * 0.4 * s, 9.05 * s, z + Math.sin(a) * 0.4 * s);
+    add(spike, "copper");
+  }
+  const arm = new THREE.BoxGeometry(0.22 * s, 2.0 * s, 0.22 * s);
+  arm.rotateZ(0.22); arm.translate(x + 0.75 * s, 8.9 * s, z); add(arm, "copper");
+  const torch = new THREE.CylinderGeometry(0.3 * s, 0.16 * s, 0.42 * s, 8);
+  torch.translate(x + 1.2 * s, 10.0 * s, z); add(torch, "gold");
+  const flame = new THREE.ConeGeometry(0.26 * s, 0.85 * s, 8);
+  flame.translate(x + 1.2 * s, 10.6 * s, z); add(flame, "flame");
+  // The tablet in the other arm — small, but it fixes the pose so the figure isn't just a column.
+  const tablet = new THREE.BoxGeometry(0.5 * s, 0.75 * s, 0.14 * s);
+  tablet.rotateZ(-0.35); tablet.translate(x - 0.6 * s, 7.2 * s, z + 0.3 * s); add(tablet, "stone");
+  return out;
+}

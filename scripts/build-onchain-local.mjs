@@ -204,6 +204,12 @@ export function replayFifo(transfers, priceAt, sampleTs, opts = {}) {
     const row = snapshot(wallets, sTs, priceAt(sTs), thr);
     row.liqEx = +(liqExcluded() / 1).toFixed(2); // CEX+LP+custody supply (tokens) — the always-liquid excluded bucket
     row.cexBal = +kindBal("cex").toFixed(2);     // SPX on tagged CEX addresses — exchange-flow / sell-side proxy
+    // The other two pieces of the non-holder supply, so the city's harbour reads them live instead
+    // of from documented constants: the Wormhole bridge (what actually backs Base and Solana) and
+    // the burn. The burn is fixed by definition — 0x…dead is receive-only — but emitting it means
+    // nothing downstream has to hardcode a number that could silently go stale.
+    row.bridgeBal = +kindBal("bridge").toFixed(2);
+    row.burnBal = +kindBal("burn").toFixed(2);
     row.cexVenues = cexByVenue();                // that CEX total split by exchange (Kraken/Bybit/Coinbase/…)
     row.lpBal = +kindBal("lp").toFixed(2);       // SPX in Uniswap LP — liquidity depth (our edge vs BTC on-chain)
     // SOPR for this window = realized value ÷ cost of all coins that MOVED since the

@@ -1,5 +1,5 @@
 import { useMemo, useState, useEffect, lazy, Suspense } from "react";
-import { loadWhales } from "./history-data.js";
+import { loadWhales, loadOnchain } from "./history-data.js";
 import WalletCard, { shortAddr } from "./WalletCard.jsx";
 import CityControls from "./CityControls.jsx";
 import CityWallet from "./CityWallet.jsx";
@@ -27,8 +27,10 @@ export default function SpxWhaleWatcher({ isMobile, preview = false }) {
   const [shown, setShown] = useState(600);   // how many buildings to RENDER (all are searchable)
   const [msgs, setMsgs] = useState(null);
   const [time, setTime] = useState("dusk");
+  const [infra, setInfra] = useState(null);   // the harbour: exchanges, bridge, LP, burn
   useEffect(() => { let off = false; loadWhales().then(d => { if (!off) setData(d ?? false); }); return () => { off = true; }; }, []);
   useEffect(() => { let off = false; loadNotes("whale").then(m => { if (!off) setMsgs(m); }); return () => { off = true; }; }, []);
+  useEffect(() => { let off = false; loadOnchain().then(r => { if (!off && r?.length) setInfra(r[r.length - 1]); }); return () => { off = true; }; }, []);
 
   const towers = useMemo(() => {
     const ws = data?.wallets; if (!ws?.length) return null;
@@ -123,7 +125,7 @@ export default function SpxWhaleWatcher({ isMobile, preview = false }) {
           <Suspense fallback={<div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Loading 3D…</div>}>
             <Skyline3D towers={visible} isMobile={isMobile} onSelect={setSel} cardHtml={cardHtml}
               crownLabel="🐋 biggest whale" accent="rgba(167,139,250,0.45)" bodyFrom={0xf59e0b} bodyTo={0x22d3ee}
-              layout={layout} focus={focus} messages={msgs} time={time} />
+              layout={layout} focus={focus} messages={msgs} time={time} infra={infra} />
           </Suspense>
           <div style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 8 }}>
             Drag to orbit · scroll to zoom · hover a building for the wallet · click to pin it.{layout === "city" && " Every wallet has a home address in Whale City."}

@@ -5,7 +5,9 @@ import { CSS2DRenderer, CSS2DObject } from "three/examples/jsm/renderers/CSS2DRe
 import { placeCity, cityScale, CITY_LENGTH, ISLAND_RING, PARK_RINGS, BACKDROP, ISLETS, WATER, streetGrid } from "./city-map.js";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { chainOf } from "./city-messages.js";
-import { TIMES, FAMILIES, skyEnv, facadeTexture, wallGeometry, roofGeometry, archetype } from "./city-render.js";
+import { TIMES, FAMILIES, skyEnv, facadeTexture, wallGeometry, roofGeometry, archetype,
+         berthGeometry, bridgeGeometry, monumentGeometry } from "./city-render.js";
+import { infraFrom, portBerths, siteAt, bridgeSpan, SITES } from "./city-infra.js";
 
 // A 3D CITY of wallets — shared by the AEON holder skyline and the SPX whale watcher.
 //
@@ -64,6 +66,7 @@ export default function Skyline3D({
   onIntroDone,
   messages = null,                          // { address: { text, ts } } — signs hung over buildings
   time = "dusk",                            // "day" | "dusk" | "night"
+  infra = null,                             // latest on-chain row → the harbour: docks, bridge, monument
 }) {
   const mount = useRef(null);
   const api = useRef(null);                 // { cam, controls, homes } for the focus effect
@@ -264,6 +267,17 @@ export default function Skyline3D({
       return b;
     };
 
+    const addMerged = (geos, mat, shadow = true) => {
+      if (!geos.length) return;
+      const merged = mergeGeometries(geos, false);
+      geos.forEach(g => g.dispose());
+      if (!merged) return;
+      const m = new THREE.Mesh(merged, mat);
+      m.castShadow = shadow; m.receiveShadow = shadow;
+      scene.add(m); disposables.push(merged);
+    };
+
+    const haloUp = [], haloDown = [];
     const M = new THREE.Matrix4();
     T.forEach((t, i) => {
       const h = Math.max(0.6, Math.sqrt(Math.max(0, t.score) / maxScore) * HMAX);
@@ -316,11 +330,10 @@ export default function Skyline3D({
       // The flow signal spilling onto the pavement — kept as its own mesh because additive
       // blending has to draw after everything else.
       if (flowCol && mag > 0.12) {
-        const hMat = new THREE.MeshBasicMaterial({ color: flowCol, transparent: true, opacity: 0.12 + 0.32 * mag, blending: THREE.AdditiveBlending, depthWrite: false });
-        const halo = new THREE.Mesh(haloGeo, hMat);
-        halo.rotation.x = -Math.PI / 2; halo.position.set(p.x, 0.14, p.z);
-        halo.scale.setScalar(0.6 + 0.5 * mag);
-        scene.add(halo); ownMats.push(hMat);
+        const g = haloGeo.clone();
+        const r2 = 0.6 + 0.5 * mag;
+        g.scale(r2, r2, 1); g.rotateX(-Math.PI / 2); g.translate(p.x, 0.14, p.z);
+        (f > 0 ? haloUp : haloDown).push(g);
       }
 
       // Merged geometry has no per-building mesh to hover, so picking rides an invisible instanced
@@ -330,20 +343,62 @@ export default function Skyline3D({
       if (i === 0) champInfo = { x: p.x, z: p.z, h: h + spire };
     });
 
-    const addMerged = (geos, mat, shadow = true) => {
-      if (!geos.length) return;
-      const merged = mergeGeometries(geos, false);
-      geos.forEach(g => g.dispose());
-      if (!merged) return;
-      const m = new THREE.Mesh(merged, mat);
-      m.castShadow = shadow; m.receiveShadow = shadow;
-      scene.add(m); disposables.push(merged);
-    };
     for (const b of wallBuckets.values()) addMerged(b.geos, b.mat);
     addMerged(roofGeos, roofMat);
     addMerged(woodGeos, woodMat);
     addMerged(metalGeos, metalMat);
     addMerged(spireGeos, metalMat);
+    // Additive glow, so it must draw after everything and never write depth.
+    for (const [geos, col] of [[haloUp, GREEN], [haloDown, RED]]) {
+      const hm = new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.3, blending: THREE.AdditiveBlending, depthWrite: false });
+      ownMats.push(hm); addMerged(geos, hm, false);
+    }
+
+    // ── the harbour: everything that isn't a holder ──────────────────────────────────────────
+    // Exchanges, the bridge that backs Base and Solana, the Uniswap pool and the burn. Together
+    // these are ~264M of the 931M supply — a quarter of the token that the holder map alone can
+    // never show. Merged into their own buckets, so the whole port is a few draw calls.
+    if (city && infra) {
+      const I = infraFrom(infra);
+      const infraMats = {
+        pier:   new THREE.MeshStandardMaterial({ color: 0x6b6f78, roughness: 0.95 }),
+        shed:   new THREE.MeshStandardMaterial({ color: 0xb1b6c0, roughness: 0.7, metalness: 0.15 }),
+        steel:  new THREE.MeshStandardMaterial({ color: 0xd08a3a, roughness: 0.5, metalness: 0.6 }),
+        stone:  new THREE.MeshStandardMaterial({ color: 0x9aa1ac, roughness: 0.9 }),
+        // Weathered copper, because that is what the real one is and it reads instantly.
+        copper: new THREE.MeshStandardMaterial({ color: 0x5fbfa6, roughness: 0.55, metalness: 0.35 }),
+        gold:   new THREE.MeshStandardMaterial({ color: 0xf0c46a, roughness: 0.25, metalness: 0.9 }),
+        flame:  new THREE.MeshStandardMaterial({ color: 0xffb347, emissive: 0xff8a1f, emissiveIntensity: 2.4, roughness: 0.4 }),
+      };
+      Object.values(infraMats).forEach(m => ownMats.push(m));
+      const buckets = Object.fromEntries(Object.keys(infraMats).map(k2 => [k2, []]));
+
+      for (const b of portBerths(I.venues, K)) for (const part of berthGeometry(b)) buckets[part.mat].push(part.g);
+
+      // Deck width carries the bridged supply — the 111.5M that actually backs Base and Solana.
+      const span = bridgeSpan(K);
+      const thick = Math.max(0.6, Math.min(2.2, I.bridge / 60e6));
+      for (const g of bridgeGeometry(span, thick * K)) buckets.steel.push(g);
+
+      const mon = siteAt(SITES.monument, K);
+      for (const part of monumentGeometry(mon.x, mon.z, K * 1.25)) buckets[part.mat].push(part.g);
+
+      // The Uniswap pool on its own island — the oldest coins here, since SPX launched on a DEX.
+      const lp = siteAt(SITES.lp, K);
+      const lpN = Math.max(3, Math.round(I.lp / 2.2e6));
+      for (let i = 0; i < lpN; i++) {
+        const a = (i / lpN) * Math.PI * 2, r = 1.5 * K;
+        const g = new THREE.BoxGeometry(0.75 * K, (0.9 + (i % 3) * 0.5) * K, 0.75 * K);
+        g.translate(lp.x + Math.cos(a) * r, (0.45 + (i % 3) * 0.25) * K, lp.z + Math.sin(a) * r);
+        buckets.shed.push(g);
+      }
+
+      for (const [k2, geos] of Object.entries(buckets)) addMerged(geos, infraMats[k2], k2 !== "flame");
+      // The flame is a light as well as a shape, so the monument reads at night from across the bay.
+      const fire = new THREE.PointLight(0xff9a3c, 40 * K * K, 60 * K);
+      fire.position.set(mon.x + 0.75 * K, 6.6 * K, mon.z);
+      scene.add(fire);
+    }
 
     // invisible pick volumes — one InstancedMesh, so hovering costs nothing to draw
     const pickGeo = new THREE.BoxGeometry(1, 1, 1);
@@ -531,7 +586,7 @@ export default function Skyline3D({
       delete window.__citySeek; delete window.__cityReady; delete window.__cityStats;
       renderer.dispose(); el.removeChild(renderer.domElement); el.removeChild(labelR.domElement); el.removeChild(tip);
     };
-  }, [towers, isMobile, crownLabel, accent, bodyFrom, bodyTo, layout, intro, time]);
+  }, [towers, isMobile, crownLabel, accent, bodyFrom, bodyTo, layout, intro, time, infra]);
 
   // ── messages hung over buildings ───────────────────────────────────────────────────────────
   // Own a building, leave a note on it. Signs are CSS2D labels rather than 3D text so they stay
