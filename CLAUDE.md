@@ -304,10 +304,48 @@
   scatter instead of clumping). ⚠ Two traps found the hard way: Nominatim "Manhattan" returns the ADMIN boundary
   (extends into the rivers) — use the natural feature "Manhattan Island"; and RDP simplification degenerates on a
   CLOSED ring (first==last ⇒ zero-length baseline) — split at the farthest point first.
-- **three.js gotchas baked in:** BoxGeometry maps one texture to ALL six faces (→ windows on the rooftops) so
-  facades use a per-face material array; materials are SHARED, binned by (age × flow), because one material per
-  building meant thousands of state changes/frame — hover therefore moves a wireframe cage, it does NOT recolour a
-  material. three is code-split into its own chunk, so nothing loads until a city is opened.
+- **✅✅ REALISM PASS 2026-07-27 (owner: "can you improve colors and building quality… there's a website with free
+  hi-def buildings"). MEASURE FIRST — it changed the answer.** `window.__cityStats()` (exposed on both cities) showed
+  **6,836 draw calls to push 14,908 triangles** — ~2 tris/call. Cause: every box carried a **6-material array** (the
+  windows-on-rooftops fix) and three.js emits **one draw call per material group**. So the city was CPU-bound on state
+  changes while the GPU idled — NOT short of geometry budget, just wasting it.
+  - **❌ DOWNLOADED HI-DEF MODELS ARE THE WRONG TOOL HERE (measured, not opinion):** one hi-def building is typically
+    50k–500k tris = **3–30× the ENTIRE current city, for one building**; 600 of them = 30–300M tris. They also can't
+    stretch (our heights come from holdings) and are 2–20MB each vs a site shipping ~600KB of three. **Where such a
+    site DOES pay: an HDRI env map, CC0 façade/roof textures, and 3–5 hero landmark models for the top wallets only.**
+  - **THE FIX = MERGING → `src/city-render.js`** (shared by both cities + the lab so they can't drift). Walls and roofs
+    are SEPARATE single-material geometries (`wallGeometry` = 4 side quads, `roofGeometry` = a lid), so hundreds of
+    buildings merge into ONE mesh per **(family × age × flow)** bucket via `mergeGeometries`. **Per-building floor
+    counts survive because the window pattern is UV SCALE, not a per-building texture** — a 20-storey tower gets 20 rows,
+    a brownstone 3, sharing one tileable texture per family. **Result: 6,836 → 85 draw calls with 7× the geometry
+    (109,444 tris).** Prettier AND much cheaper.
+  - **⭐⭐ THE DESIGN RULE — "STONE AND LIGHT": realism goes into FORM, MATERIAL and LIGHTING; the DATA stays in the
+    LIGHT.** Albedo is the real material with only ~12% age hue (brick still looks like brick); age + flow live at FULL
+    strength in the **emissive windows + street glow**. That's how a real city reads at dusk (building = stone, windows =
+    light), so believability and legibility stop competing. **If a future change starts tinting facades by data again it
+    will look worse AND say less.**
+  - **What the budget bought:** PBR `MeshStandardMaterial`, a **procedural sky** used as BOTH environment map and visible
+    background (`skyEnv`), ACES filmic tone mapping (without it bright windows clip to white and the age ramp dies at the
+    top end), a **sun casting real shadows** whose shadow camera FOLLOWS `controls.target` (one map over the whole island
+    would be too coarse to read), material FAMILIES by archetype (glass / concrete / masonry), and **roof life — NYC
+    water towers + HVAC + parapets** (the detail that says New York, ~free once merged).
+  - **⚠ TWO THINGS ONLY LOOKING AT IT CAUGHT:** (1) the top-down overview went nearly BLACK — from above, the sky env
+    contributes almost nothing to a horizontal surface, so every roof/street fell into shadow. **Fix = a
+    `HemisphereLight`** (+ brighter land/water tones). Brightness is a stated owner requirement, not a taste setting.
+    (2) a flat background colour left a hard seam where the ground plane ended and the whole thing read as a **diorama on
+    a table** — the sky gradient is now the actual background, ground extended, fog set to the horizon colour.
+  - **Picking had to change with the geometry** (merged meshes have no per-building object): an **invisible InstancedMesh**
+    of bounding boxes, one draw call, returns `instanceId` → building. Hover still moves a wireframe cage.
+  - **Day / Dusk / Night** toggle in `CityControls`, default **dusk** (night is prettiest but too dark to read outdoors;
+    day is most realistic and least informative — sunlight washes emissive windows out, so day pushes `win` intensity).
+  - **`?chart=citylab` (`src/CityLab.jsx`, dev-gated) = the A/B page** — the same 12 wallets drawn both ways with one
+    camera driving both panels. Keep it: it's how the next look change gets judged before it touches a working city.
+- **three.js gotchas baked in:** BoxGeometry maps one texture to ALL six faces (→ windows on the rooftops); the ORIGINAL
+  fix was a per-face material array, which is exactly what caused the 6,836-draw-call problem — the real fix is separate
+  wall/roof geometry (above). Materials are SHARED and binned, so hover moves a wireframe cage rather than recolouring a
+  material (that would light every building in the bin). three is code-split into its own chunk, so nothing loads until a
+  city is opened. **`window.__cityStats()` is the perf probe — run it on a REAL device; everything here has only ever
+  been measured on a CPU software rasteriser.**
 - **🔒 DEV-GATED (owner, "needs to be perfect before shipping"):** `src/CityGate.jsx` wraps both — a passphrase
   (`aeoncity`), an arrival explainer popup with a synthesised pop, and `dev:true` in charts-catalog hides them from
   the gallery until unlocked (`localStorage["spx-city-dev"]`). **HONEST SCOPE: unlisted + locked, NOT security** —
