@@ -330,7 +330,9 @@ export default function Skyline3D({
         { p: [LEN * 0.20, LEN * 0.26, LEN * 0.18], t: [0, 0, 0] },                                      // rise
         { p: [overview.x, overview.y, overview.z], t: [0, 4, 0] },                                       // settle
       ];
-      return { keys, dur: 13000, start: performance.now() };
+      // Slow and cinematic on purpose — at half this it read as a rush past the buildings rather
+      // than a look at them. Any click, drag or scroll cancels it, so it never holds anyone up.
+      return { keys, dur: 26000, start: performance.now() };
     })() : null;
     const easeInOut = x => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2);
     // Catmull-Rom through the keyframes, so the path curves instead of snapping corner to corner.

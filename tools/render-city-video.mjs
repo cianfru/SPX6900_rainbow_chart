@@ -1,10 +1,12 @@
 // Render the city fly-through to an MP4 you can post.
 //
 //   node tools/render-city-video.mjs [--chart=whalewatch|aeonskyline] [--w=1280] [--h=720]
-//                                    [--secs=14] [--fps=24] [--out=city.mp4] [--port=4699]
+//                                    [--secs=28] [--fps=24] [--out=city.mp4] [--port=4699]
 //
 // Frames are driven by window.__citySeek(progress) rather than wall-clock, so the path is
 // frame-accurate no matter how slow the renderer is — which matters here, since CI has no GPU.
+// It also means --secs sets the SPEED, not just the length: the same path is sampled at more
+// points, so a bigger number is a slower, calmer flight rather than a longer one.
 // Requires a built site (npm run build) and a preview server on --port.
 import { chromium } from "playwright";
 import { spawn } from "node:child_process";
@@ -14,7 +16,7 @@ import { join } from "node:path";
 
 const arg = (k, d) => { const a = process.argv.find(s => s.startsWith(`--${k}=`)); return a ? a.split("=")[1] : d; };
 const CHART = arg("chart", "whalewatch"), W = +arg("w", 1280), H = +arg("h", 720);
-const SECS = +arg("secs", 14), FPS = +arg("fps", 24), OUT = arg("out", "city.mp4"), PORT = +arg("port", 4699);
+const SECS = +arg("secs", 28), FPS = +arg("fps", 24), OUT = arg("out", "city.mp4"), PORT = +arg("port", 4699);
 const FRAMES = Math.round(SECS * FPS);
 
 const dir = mkdtempSync(join(tmpdir(), "cityvid-"));
