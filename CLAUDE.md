@@ -320,11 +320,34 @@
   another message or replayed in the other city; validation caps length, blocks **links** (the city stays
   unshillable) and strips control + **bidi-override** characters (an override renders a harmless string as
   something else). Tested in `test/city-messages.test.mjs`.
-  - **🔲 STORAGE IS STUBBED — localStorage, so notes are visible to NOBODY ELSE yet** (the UI says so in amber).
-    `remoteStore` in city-messages.js is a same-shape drop-in: switch `store` + add `/api/city-messages`. **When
-    that lands the server MUST re-verify the signature AND re-run `validateMessage` AND re-check building
-    ownership** — anything a browser asserts about itself can be forged. Owner chose "build it stubbed, decide the
-    datastore later."
+  - **✅✅ NOW ON-CHAIN — NO BACKEND AT ALL (owner, 2026-07-27): "so we don't store anything but just what the
+    blockchain stores?" Yes, and it's strictly better.** A note is a tx to **`contracts/CityNotes.sol`** (one
+    function, one event, NO storage/owner/admin/payable — nothing to seize, nothing to hold value). We keep no DB,
+    no endpoint, no key; anyone can read the same logs and rebuild the board. **KEY WIN: the signature became
+    REDUNDANT** — `msg.sender` can't be forged, so the "a server must re-verify what the browser claims" problem
+    DISAPPEARS instead of being deferred (that was the weakest part of the stub).
+  - **BOTH CHAINS, COLOUR + LABEL (owner's explicit ask: "make sure those messages can be clearly identified if
+    left on base or MN by color differentiation").** Mainnet = where the holdings are, real gas (~$0.50-4/note, so
+    it's a statement); **Base = fractions of a cent, the default** (its cost is why people will actually post).
+    Colours reuse the repo's per-chain convention (**Ethereum #98a2b7 grey · Base #3b82f6 blue**, from
+    multichain-card) on the sign border + a written `MAINNET`/`BASE` chip. **The chip is NOT optional** — the ETH
+    grey is near-neutral by design (the palette validator FAILs it on chroma while PASSing separation ΔE 16), so
+    colour alone is a distinction many readers can't make.
+  - **⭐ WHAT PERMANENCE COSTS (say it, don't hide it):** nobody can delete a note, us included. So `validateMessage`
+    is now a **DISPLAY FILTER, not a gate** (applied both when posting AND when rendering, and in the log reader) —
+    anyone can write a link on-chain, the city just won't draw it. Likewise **ownership is checked at RENDER time**
+    (the contract can't know who holds AEON/SPX): anyone may write, the city shows its residents.
+  - **NO web3 DEPENDENCY** — ethers/viem are ~100KB for one call + one decode. **`src/evm.js`** hand-rolls keccak256
+    + the ABI encode/decode. ⚠ **Node's `sha3-256` is NOT keccak256** (different padding) — it would yield
+    valid-looking topics no node agrees with, which is why it's implemented, tested against the published vectors
+    AND cross-checked against the known `transfer(address,uint256)` = `0xa9059cbb`.
+  - **Reading = snapshot-forward, same as everything else:** `scripts/build-city-notes.mjs` (daily step in
+    snapshot.yml, `ALCHEMY_KEY`, `continue-on-error`) walks logs per chain from the last head → `public/city-notes.json`
+    (latest note per city+wallet wins = the "one replaceable message" rule, applied by the READER). A local echo shows
+    your own note on confirmation instead of tomorrow; it self-expires in 7d so a dropped tx can't leave a ghost sign.
+  - **🔲 OWNER — 2 steps to go live:** (1) deploy `CityNotes.sol` to **Base** (and mainnet if wanted), verify on the
+    explorer; (2) paste the addresses into **`CONTRACTS`** in `src/city-messages.js`. Until then every surface says
+    "not deployed yet" rather than half-working. Claude can't deploy (needs a funded key).
 - **🔲 OPEN:** real-GPU perf is UNMEASURED (only a CPU software renderer here) so the 600-building default is
   caution, not measurement — the "all buildings" toggle needs a real device; borough tones are still dim; bridges
   were dropped when the real geometry landed. Intro fly-through doubles as the video path (`tools/render-city-video.mjs`
