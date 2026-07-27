@@ -4,7 +4,9 @@ import { loadAeon } from "./history-data.js";
 import { SANS, MONO, MAX_W, Metric, Explain } from "./chart-ui.jsx";
 import WalletCard from "./WalletCard.jsx";
 import CityControls from "./CityControls.jsx";
+import CityWallet from "./CityWallet.jsx";
 import CityGate from "./CityGate.jsx";
+import { store } from "./city-messages.js";
 
 const Skyline3D = lazy(() => import("./Skyline3D.jsx"));
 const short = a => a.slice(0, 6) + "…" + a.slice(-4);
@@ -20,7 +22,9 @@ export default function AeonSkylineChart({ isMobile, preview = false }) {
   const [layout, setLayout] = useState("city");
   const [focus, setFocus] = useState(null);
   const [shownN, setShownN] = useState(600);
+  const [msgs, setMsgs] = useState(null);
   useEffect(() => { let c = false; loadAeon().then(d => { if (!c && d) setData(d); }); return () => { c = true; }; }, []);
+  useEffect(() => { let c = false; store.list("aeon").then(m => { if (!c) setMsgs(m); }); return () => { c = true; }; }, []);
   const all = useMemo(() => (data.holders || []).filter(h => h.a && h.n > 0), [data]);
   const holders = useMemo(() => multiOnly ? all.filter(h => h.n > 1) : all, [all, multiOnly]);
   const singleCount = useMemo(() => all.filter(h => h.n === 1).length, [all]);
@@ -152,12 +156,16 @@ export default function AeonSkylineChart({ isMobile, preview = false }) {
         has={a => visible.some(t => (t.a || "").toLowerCase() === a)}
         onFocus={a => { setFocus(a); const m = visible.find(t => (t.a || "").toLowerCase() === a); if (m) setSel(m); }} />
 
+      <CityWallet city="aeon" accent="#5eead4" isMobile={isMobile} messages={msgs} onChange={setMsgs}
+        owns={a => visible.some(t => (t.a || "").toLowerCase() === a)}
+        onFocus={a => { setFocus(a); const m = visible.find(t => (t.a || "").toLowerCase() === a); if (m) setSel(m); }} />
+
       <div style={{ position: "relative" }}>
         <div style={{ width: "100%" }}>
           <Suspense fallback={<div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Loading 3D…</div>}>
             <Skyline3D towers={visible} isMobile={isMobile} onSelect={setSel} cardHtml={aeonCard}
               crownLabel="👑 top holder" accent="rgba(45,212,191,0.45)" bodyFrom={0xd97706} bodyTo={0x22d3ee}
-              layout={layout} focus={focus} />
+              layout={layout} focus={focus} messages={msgs} />
           </Suspense>
         </div>
         {!preview && cur && (

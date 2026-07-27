@@ -112,6 +112,7 @@ export default function Skyline3D({
   focus = null,                             // an address to fly the camera to
   intro = true,                             // play the arrival fly-through on mount
   onIntroDone,
+  messages = null,                          // { address: { text, ts } } — signs hung over buildings
 }) {
   const mount = useRef(null);
   const api = useRef(null);                 // { cam, controls, homes } for the focus effect
@@ -354,7 +355,9 @@ export default function Skyline3D({
       const id = setInterval(() => { pulseMat.opacity = n % 2 ? 0.5 : 0.08; if (++n > 7) { clearInterval(id); pulseBox.visible = false; } }, 240);
       return () => { clearInterval(id); pulseBox.visible = false; };
     };
-    api.current = { cam, controls, homes, pulse };
+    // Signs live in their own group so messages can be re-hung without touching the buildings.
+    const signs = new THREE.Group(); scene.add(signs);
+    api.current = { cam, controls, homes, pulse, signs, scene };
 
     const ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
     let hovered = null, px = 0, py = 0, moved = false;
@@ -451,6 +454,45 @@ export default function Skyline3D({
       renderer.dispose(); el.removeChild(renderer.domElement); el.removeChild(labelR.domElement); el.removeChild(tip);
     };
   }, [towers, isMobile, crownLabel, accent, bodyFrom, bodyTo, layout, intro]);
+
+  // ── messages hung over buildings ───────────────────────────────────────────────────────────
+  // Own a building, leave a note on it. Signs are CSS2D labels rather than 3D text so they stay
+  // legible at every zoom, and they live in their own group so a new message re-hangs one sign
+  // instead of rebuilding four thousand meshes. Runs after the scene effect (declared later,
+  // shares its deps) so a scene rebuild re-hangs everything.
+  useEffect(() => {
+    const a = api.current; if (!a?.signs) return;
+    const g = a.signs;
+    const entries = Object.entries(messages || {});
+    for (const [addr, m] of entries) {
+      const home = a.homes.get(String(addr).toLowerCase());
+      if (!home || !m?.text) continue;
+      // Two nested divs on purpose: CSS2DRenderer overwrites the outer element's transform every
+      // frame, so the bubble is offset on the INNER one. That offset is in SCREEN pixels, which is
+      // what keeps it clear of the crown label at every zoom — a world-space gap shrinks as you
+      // pull back and the two labels end up on top of each other.
+      const wrap = document.createElement("div");
+      wrap.style.position = "relative";
+      const d = document.createElement("div");
+      Object.assign(d.style, {
+        position: "absolute", left: "50%", bottom: "22px", transform: "translateX(-50%)",
+        width: "180px", padding: "5px 9px", borderRadius: "9px", textAlign: "center",
+        background: "rgba(10,14,26,0.92)", border: "1px solid rgba(255,255,255,0.22)",
+        color: "#e2e8f0", font: "600 11.5px 'Space Grotesk', system-ui, sans-serif",
+        lineHeight: "1.45", whiteSpace: "pre-wrap", wordBreak: "break-word",
+        boxShadow: "0 6px 20px rgba(0,0,0,0.55)", pointerEvents: "none",
+      });
+      d.textContent = m.text;
+      wrap.appendChild(d);
+      const o = new CSS2DObject(wrap);
+      o.position.set(home.x, home.h + 3, home.z);   // same anchor as the crown; the 22px lifts it clear
+      g.add(o);
+    }
+    return () => {
+      // CSS2DRenderer only detaches elements it still knows about, so pull the DOM node too.
+      for (const o of [...g.children]) { o.element?.remove(); g.remove(o); }
+    };
+  }, [messages, towers, layout]);
 
   // Fly to a searched wallet and flash its building, without rebuilding the scene.
   useEffect(() => {

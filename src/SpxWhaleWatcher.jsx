@@ -2,7 +2,9 @@ import { useMemo, useState, useEffect, lazy, Suspense } from "react";
 import { loadWhales } from "./history-data.js";
 import WalletCard, { shortAddr } from "./WalletCard.jsx";
 import CityControls from "./CityControls.jsx";
+import CityWallet from "./CityWallet.jsx";
 import CityGate from "./CityGate.jsx";
+import { store } from "./city-messages.js";
 import { SANS, MONO, MAX_W, Metric, Explain } from "./chart-ui.jsx";
 
 const Skyline3D = lazy(() => import("./Skyline3D.jsx"));
@@ -23,7 +25,9 @@ export default function SpxWhaleWatcher({ isMobile, preview = false }) {
   const [layout, setLayout] = useState("city");
   const [focus, setFocus] = useState(null);
   const [shown, setShown] = useState(600);   // how many buildings to RENDER (all are searchable)
+  const [msgs, setMsgs] = useState(null);
   useEffect(() => { let off = false; loadWhales().then(d => { if (!off) setData(d ?? false); }); return () => { off = true; }; }, []);
+  useEffect(() => { let off = false; store.list("whale").then(m => { if (!off) setMsgs(m); }); return () => { off = true; }; }, []);
 
   const towers = useMemo(() => {
     const ws = data?.wallets; if (!ws?.length) return null;
@@ -109,12 +113,16 @@ export default function SpxWhaleWatcher({ isMobile, preview = false }) {
         has={a => visible.some(t => (t.a || "").toLowerCase() === a)}
         onFocus={a => { setFocus(a); const m = visible.find(t => (t.a || "").toLowerCase() === a); if (m) setSel(m); }} />
 
+      <CityWallet city="whale" accent="#c4b5fd" isMobile={isMobile} messages={msgs} onChange={setMsgs}
+        owns={a => visible.some(t => (t.a || "").toLowerCase() === a)}
+        onFocus={a => { setFocus(a); const m = visible.find(t => (t.a || "").toLowerCase() === a); if (m) setSel(m); }} />
+
       <div style={{ position: "relative" }}>
         <div style={{ width: "100%" }}>
           <Suspense fallback={<div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Loading 3D…</div>}>
             <Skyline3D towers={visible} isMobile={isMobile} onSelect={setSel} cardHtml={cardHtml}
               crownLabel="🐋 biggest whale" accent="rgba(167,139,250,0.45)" bodyFrom={0xf59e0b} bodyTo={0x22d3ee}
-              layout={layout} focus={focus} />
+              layout={layout} focus={focus} messages={msgs} />
           </Suspense>
           <div style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 8 }}>
             Drag to orbit · scroll to zoom · hover a building for the wallet · click to pin it.{layout === "city" && " Every wallet has a home address in Whale City."}
