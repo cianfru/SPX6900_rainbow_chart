@@ -3,20 +3,26 @@ import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { CSS2DRenderer, CSS2DObject } from "three/examples/jsm/renderers/CSS2DRenderer.js";
 
-// Interactive 3D HOLDER SKYLINE — shared by the AEON holder skyline and the SPX whale watcher.
-// Each building is a wallet: height = a conviction score (how much × how long held), body colour
-// ramps by holding age, and the WINDOWS glow by recent FLOW — green if the wallet has been
-// accumulating over the lookback window, red if it's been shedding, warm amber if it sat still.
-// That last channel is the point: a holdings snapshot says who is big, the glow says who is
-// actually buying or selling right now.
+// A 3D CITY of wallets — shared by the AEON holder skyline and the SPX whale watcher.
+//
+// Every wallet is a building on a Manhattan-style block grid: the biggest, longest-held
+// positions cluster in "midtown" and the rest spread out through the boroughs. Size picks the
+// ARCHETYPE — townhouse → condo → tower → skyscraper, with a spired landmark for the top few —
+// so scale reads instantly from the silhouette rather than from a bar height.
+//
+// The flow signal (bought/sold over the lookback window) lights the WHOLE building: the facade
+// tints toward green or red, the windows glow that colour, and a halo pad spills onto the street
+// so an accumulating or distributing wallet is obvious from any angle and any zoom.
 //
 // Caller supplies already-normalised towers so this stays asset-agnostic:
 //   { a, score, ageT (0..1), flow (signed, 0 = flat), ...anything the card renderer wants }
 const lerp = (a, b, t) => a + (b - a) * t;
 const mix = (c1, c2, t) => new THREE.Color(lerp(c1.r, c2.r, t), lerp(c1.g, c2.g, t), lerp(c1.b, c2.b, t));
-const GREEN = new THREE.Color(0x22c55e), RED = new THREE.Color(0xef4444), AMBER = new THREE.Color(0xffcf7a);
+const GREEN = new THREE.Color(0x22c55e), RED = new THREE.Color(0xf43f5e), WARM = new THREE.Color(0xffcf7a);
+// deterministic per-wallet variation, so a given address always gets the same building
+const hash01 = s => { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return (h >>> 0) / 4294967296; };
 
-// square-spiral integer coords, index 0 at centre
+// square-spiral integer coords, index 0 at centre — used for BLOCKS, so the tallest fill midtown
 function spiral(n) {
   const pts = []; let x = 0, z = 0, dx = 0, dz = -1;
   for (let i = 0; i < n; i++) {
@@ -27,9 +33,26 @@ function spiral(n) {
   return pts;
 }
 
-// A facade of lit windows, drawn once per height bin and shared by every building in that bin.
-// Used as an emissiveMap, so the material's `emissive` colour decides what the windows glow —
-// which is how the green/red flow signal reads from across the scene.
+// Manhattan-ish plots: blocks of BW×BD lots, separated by streets (and wider avenues N-S).
+const BW = 3, BD = 2, PLOT = 1.5, STREET = 1.7, AVENUE = 2.5;
+function cityPlots(n) {
+  const blockW = BW * PLOT + AVENUE, blockD = BD * PLOT + STREET;
+  const blocks = spiral(Math.ceil(n / (BW * BD)));
+  const pts = [];
+  for (const b of blocks) {
+    for (let i = 0; i < BW * BD && pts.length < n; i++) {
+      pts.push({
+        x: b.x * blockW + (i % BW - (BW - 1) / 2) * PLOT,
+        z: b.z * blockD + (Math.floor(i / BW) - (BD - 1) / 2) * PLOT,
+        bx: b.x * blockW, bz: b.z * blockD,
+      });
+    }
+  }
+  return { pts, blockW, blockD, blocks };
+}
+
+// Lit-window facade. Applied to the SIDES only (never the roof — a BoxGeometry maps the same
+// texture to all six faces, which is why the first pass looked like windows on the rooftops).
 function windowTexture(rows) {
   const cell = 8, cols = 4, W = cols * cell, H = Math.max(2, rows) * cell;
   const c = document.createElement("canvas"); c.width = W; c.height = H;
@@ -37,7 +60,7 @@ function windowTexture(rows) {
   g.fillStyle = "#000"; g.fillRect(0, 0, W, H);
   for (let y = 0; y < Math.max(2, rows); y++) {
     for (let x = 0; x < cols; x++) {
-      if (Math.random() < 0.26) continue;                    // a dark window — nobody home
+      if (Math.random() < 0.24) continue;                    // a dark window — nobody home
       g.fillStyle = `rgba(255,255,255,${(0.5 + Math.random() * 0.5).toFixed(2)})`;
       g.fillRect(x * cell + 2, y * cell + 2, cell - 4, cell - 4);
     }
@@ -45,6 +68,40 @@ function windowTexture(rows) {
   const t = new THREE.CanvasTexture(c);
   t.magFilter = THREE.NearestFilter; t.minFilter = THREE.LinearMipmapLinearFilter;
   return t;
+}
+
+// The archetypes. Each returns stacked boxes {w,d,h,y} in local space, plus whether it gets a
+// spire. Silhouette is the point: a townhouse should never be mistaken for a skyscraper.
+function archetype(h, r, landmark) {
+  const P = [];
+  if (landmark) {                                   // Empire-State-ish: broad base, tiered setbacks, spire
+    const base = h * 0.52, mid = h * 0.26, top = h * 0.16;
+    P.push({ w: 1.00, d: 1.00, h: base, y: base / 2 });
+    P.push({ w: 0.74, d: 0.74, h: mid, y: base + mid / 2 });
+    P.push({ w: 0.48, d: 0.48, h: top, y: base + mid + top / 2 });
+    return { parts: P, spire: h * 0.16, crownW: 0.48 };
+  }
+  if (h >= 9) {                                     // skyscraper: shaft + setback crown
+    const base = h * 0.72, top = h * 0.28;
+    P.push({ w: 0.92, d: 0.92, h: base, y: base / 2 });
+    P.push({ w: 0.62, d: 0.62, h: top, y: base + top / 2 });
+    return { parts: P, spire: r > 0.5 ? h * 0.12 : 0, crownW: 0.62 };
+  }
+  if (h >= 4) {                                     // tower: single slim setback
+    const base = h * 0.85, cap = h * 0.15;
+    P.push({ w: 0.86, d: 0.86, h: base, y: base / 2 });
+    P.push({ w: 0.66, d: 0.66, h: cap, y: base + cap / 2 });
+    return { parts: P, spire: 0, crownW: 0.66 };
+  }
+  if (h >= 1.8) {                                   // condo block: squat, full-width parapet
+    P.push({ w: 0.94, d: 0.94, h: h * 0.92, y: h * 0.46 });
+    P.push({ w: 0.99, d: 0.99, h: h * 0.08, y: h * 0.96 });
+    return { parts: P, spire: 0, crownW: 0.99 };
+  }
+  // townhouse / brownstone: wide, low, with a cornice
+  P.push({ w: 1.02, d: 0.86, h: h * 0.88, y: h * 0.44 });
+  P.push({ w: 1.08, d: 0.92, h: h * 0.12, y: h * 0.94 });
+  return { parts: P, spire: 0, crownW: 1.08 };
 }
 
 export default function Skyline3D({
@@ -61,14 +118,20 @@ export default function Skyline3D({
     const maxScore = Math.max(...T.map(t => t.score), 1e-9);
     const maxFlow = Math.max(...T.map(t => Math.abs(t.flow || 0)), 1e-9);
 
-    const W = el.clientWidth, VH = isMobile ? 420 : 560;
-    const SP = 1.7, SY = 19 / maxScore, FOOT = 0.9;
-    const cells = spiral(T.length);
+    const W = el.clientWidth, VH = isMobile ? 440 : 580;
+    // Height uses a SQUARE-ROOT scale. Holdings are power-law (the top wallet here is ~100x the
+    // median), so a linear axis renders one lonely spike over a field of paving slabs. The root
+    // keeps the ordering exact and lets the archetypes actually spread across the city — the
+    // caption says so, and the exact figure is always one hover away.
+    const HMAX = 21;
+    const { pts, blockW, blockD, blocks } = cityPlots(T.length);
 
-    const scene = new THREE.Scene(); scene.background = new THREE.Color(0x080b16);
-    const cam = new THREE.PerspectiveCamera(48, W / VH, 0.1, 2000);
-    const span = Math.sqrt(T.length) * SP;
-    cam.position.set(span * 1.15, 26, span * 1.5);
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x05070f);
+    scene.fog = new THREE.Fog(0x05070f, 40, 190);
+    const cam = new THREE.PerspectiveCamera(46, W / VH, 0.1, 3000);
+    const span = Math.sqrt(T.length) * 2.0;
+    cam.position.set(span * 0.95, 20, span * 1.28);
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setPixelRatio(Math.min(devicePixelRatio, 2)); renderer.setSize(W, VH);
     el.appendChild(renderer.domElement);
@@ -86,81 +149,106 @@ export default function Skyline3D({
     });
     el.appendChild(tip);
 
-    scene.add(new THREE.AmbientLight(0xffffff, 0.66));
-    const d1 = new THREE.DirectionalLight(0xffffff, 0.9); d1.position.set(30, 50, 20); scene.add(d1);
-    const d2 = new THREE.DirectionalLight(0x8899ff, 0.4); d2.position.set(-25, 25, -15); scene.add(d2);
-    const grid = new THREE.GridHelper(span * 2.4, 24, 0x1e2a44, 0x141c30); scene.add(grid);
+    scene.add(new THREE.AmbientLight(0xffffff, 0.55));
+    const d1 = new THREE.DirectionalLight(0xffffff, 0.85); d1.position.set(30, 60, 20); scene.add(d1);
+    const d2 = new THREE.DirectionalLight(0x7f9dff, 0.45); d2.position.set(-25, 25, -15); scene.add(d2);
 
-    // shared geometry + one window texture per height bin (cheap: ~6 textures for N buildings)
+    // ── the streets: asphalt ground + a lighter pad per block, so the gaps read as avenues ──
+    const groundSize = Math.max(blocks.length * 2, 60) * 4;
+    const ground = new THREE.Mesh(new THREE.PlaneGeometry(groundSize, groundSize),
+      new THREE.MeshLambertMaterial({ color: 0x0a0e1a }));
+    ground.rotation.x = -Math.PI / 2; ground.position.y = -0.02; scene.add(ground);
+
+    const padGeo = new THREE.BoxGeometry(BW * PLOT + 0.5, 0.12, BD * PLOT + 0.5);
+    const padMat = new THREE.MeshLambertMaterial({ color: 0x161c2c });
+    const pads = new THREE.InstancedMesh(padGeo, padMat, blocks.length);
+    const mtx = new THREE.Matrix4();
+    blocks.forEach((b, i) => { mtx.makeTranslation(b.x * blockW, 0.04, b.z * blockD); pads.setMatrixAt(i, mtx); });
+    pads.instanceMatrix.needsUpdate = true; scene.add(pads);
+
+    // shared geometry + per-height-bin window textures + one shared roof material
     const box = new THREE.BoxGeometry(1, 1, 1);
-    const antennaGeo = new THREE.CylinderGeometry(0.045, 0.045, 1, 6);
-    const BINS = 6, texes = Array.from({ length: BINS }, (_, i) => windowTexture(3 + i * 3));
-    const disposables = [box, antennaGeo, ...texes];
+    const spireGeo = new THREE.CylinderGeometry(0.035, 0.075, 1, 6);
+    const haloGeo = new THREE.CircleGeometry(1.05, 20);
+    const BINS = 6, texes = Array.from({ length: BINS }, (_, i) => windowTexture(2 + i * 3));
+    const roofMat = new THREE.MeshLambertMaterial({ color: 0x11172a });
+    const disposables = [box, spireGeo, haloGeo, padGeo, padMat, roofMat, ground.geometry, ground.material, ...texes];
 
-    const towersMeshes = [], extras = [], extraMats = [];
+    const hitMeshes = [], ownMats = [];
     T.forEach((t, i) => {
-      const h = Math.max(0.5, t.score * SY);
-      const px = cells[i].x * SP, pz = cells[i].z * SP;
-      // body colour = holding age (caller's ageT); windows = flow signal
-      const body = mix(new THREE.Color(bodyFrom), new THREE.Color(bodyTo), t.ageT ?? 0.5);
+      const h = Math.max(0.6, Math.sqrt(Math.max(0, t.score) / maxScore) * HMAX);
+      const p = pts[i], r = hash01(t.a || String(i));
       const f = (t.flow || 0) / maxFlow;                     // -1..1
-      const glow = f > 0.02 ? mix(AMBER, GREEN, Math.min(1, f * 3.2))
-        : f < -0.02 ? mix(AMBER, RED, Math.min(1, -f * 3.2)) : AMBER;
-      const strength = 0.42 + Math.min(0.85, Math.abs(f) * 2.6);
-      const tex = texes[Math.min(BINS - 1, Math.floor((h / 20) * BINS))];
+      const mag = Math.min(1, Math.abs(f) * 3.0);            // how loudly to shout the flow
+      const flowCol = f > 0.02 ? GREEN : f < -0.02 ? RED : null;
 
-      const mat = new THREE.MeshLambertMaterial({ color: body, emissive: glow, emissiveMap: tex, emissiveIntensity: strength });
-      const m = new THREE.Mesh(box, mat);
-      m.scale.set(FOOT, h, FOOT); m.position.set(px, h / 2, pz);
-      m.userData = { t, parts: [], baseEmissive: strength };
-      scene.add(m); towersMeshes.push(m);
+      // Facade tints toward the flow colour, so the WHOLE building reads green/red — not just
+      // its windows. Neutral wallets keep the age ramp.
+      const age = mix(new THREE.Color(bodyFrom), new THREE.Color(bodyTo), t.ageT ?? 0.5);
+      const body = flowCol ? mix(age, flowCol, 0.30 + 0.45 * mag) : age;
+      const glow = flowCol ? mix(WARM, flowCol, Math.min(1, 0.35 + mag)) : WARM;
+      const tex = texes[Math.min(BINS - 1, Math.floor((h / 21) * BINS))];
+      const emissiveIntensity = 0.45 + (flowCol ? 0.75 * mag : 0);
 
-      // setback crown on the taller buildings, and an antenna on the tallest few — the bits
-      // that make these read as buildings rather than bars.
-      if (h > 3) {
-        const capH = Math.min(1.6, h * 0.14);
-        const cap = new THREE.Mesh(box, mat);
-        cap.scale.set(FOOT * 0.62, capH, FOOT * 0.62); cap.position.set(px, h + capH / 2, pz);
-        scene.add(cap); extras.push(cap); m.userData.parts.push(cap);
+      // sides get windows, roof does not (face order: +X, −X, +Y, −Y, +Z, −Z)
+      const sideMat = new THREE.MeshLambertMaterial({ color: body, emissive: glow, emissiveMap: tex, emissiveIntensity });
+      const faces = [sideMat, sideMat, roofMat, roofMat, sideMat, sideMat];
+      ownMats.push(sideMat);
+
+      const { parts, spire, crownW } = archetype(h, r, i < 3);
+      const group = [];
+      for (const q of parts) {
+        const m = new THREE.Mesh(box, faces);
+        m.scale.set(q.w, q.h, q.d); m.position.set(p.x, q.y, p.z);
+        m.userData = { t, mat: sideMat, base: emissiveIntensity };
+        scene.add(m); hitMeshes.push(m); group.push(m);
       }
-      if (i < 6) {
-        const aH = 1.6 + (1 - i / 6) * 1.6;
-        const aMat = new THREE.MeshBasicMaterial({ color: glow });
-        const a = new THREE.Mesh(antennaGeo, aMat);
-        a.scale.set(1, aH, 1); a.position.set(px, h + aH / 2 + Math.min(1.6, h * 0.14), pz);
-        scene.add(a); extras.push(a); extraMats.push(aMat);
+      if (spire > 0) {
+        const sMat = new THREE.MeshBasicMaterial({ color: flowCol ? glow : 0xdbeafe });
+        const s = new THREE.Mesh(spireGeo, sMat);
+        s.scale.set(1, spire, 1); s.position.set(p.x, h + spire / 2, p.z);
+        scene.add(s); ownMats.push(sMat);
       }
+      // street-level halo — the flow signal spilling onto the pavement, visible from above
+      if (flowCol && mag > 0.12) {
+        const hMat = new THREE.MeshBasicMaterial({ color: flowCol, transparent: true, opacity: 0.10 + 0.30 * mag, blending: THREE.AdditiveBlending, depthWrite: false });
+        const halo = new THREE.Mesh(haloGeo, hMat);
+        halo.rotation.x = -Math.PI / 2; halo.position.set(p.x, 0.12, p.z);
+        halo.scale.setScalar(0.6 + 0.5 * mag);
+        scene.add(halo); ownMats.push(hMat);
+      }
+      if (i === 0) group[0].userData.isChamp = { x: p.x, z: p.z, h: h + spire };
     });
 
     // crown the #1
-    const champ = towersMeshes[0];
-    const crown = (() => {
+    const champInfo = hitMeshes.find(m => m.userData.isChamp)?.userData.isChamp;
+    if (champInfo) {
       const d = document.createElement("div");
       d.textContent = crownLabel;
       Object.assign(d.style, { color: "#fde68a", font: "700 12px 'Space Grotesk', system-ui, sans-serif", textShadow: "0 1px 4px #000", whiteSpace: "nowrap" });
-      const o = new CSS2DObject(d); o.position.set(champ.position.x, champ.scale.y + 3.4, champ.position.z); return o;
-    })();
-    scene.add(crown);
+      const o = new CSS2DObject(d); o.position.set(champInfo.x, champInfo.h + 3, champInfo.z); scene.add(o);
+    }
 
     const controls = new OrbitControls(cam, renderer.domElement);
-    controls.target.set(0, 8.5, 0); controls.enableDamping = true; controls.dampingFactor = 0.08;
-    controls.minDistance = 14; controls.maxDistance = span * 4 + 40; controls.maxPolarAngle = Math.PI * 0.49;
-    controls.autoRotate = true; controls.autoRotateSpeed = 0.6;
+    controls.target.set(0, 7, 0); controls.enableDamping = true; controls.dampingFactor = 0.08;
+    controls.minDistance = 12; controls.maxDistance = span * 4 + 60; controls.maxPolarAngle = Math.PI * 0.492;
+    controls.autoRotate = true; controls.autoRotateSpeed = 0.5;
 
     const ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
     let hovered = null, px = 0, py = 0, moved = false;
     const setHover = m => {
-      if (hovered === m) return;
-      if (hovered) hovered.material.emissiveIntensity = hovered.userData.baseEmissive;
+      const mat = m?.userData.mat ?? null, prev = hovered?.userData.mat ?? null;
+      if (mat === prev) return;
+      if (prev) prev.emissiveIntensity = hovered.userData.base;
       hovered = m;
-      if (hovered) { hovered.material.emissiveIntensity = 1.35; renderer.domElement.style.cursor = "pointer"; }
+      if (mat) { mat.emissiveIntensity = 1.5; renderer.domElement.style.cursor = "pointer"; }
       else renderer.domElement.style.cursor = "grab";
     };
     const pick = e => {
       const r = renderer.domElement.getBoundingClientRect();
       ndc.x = ((e.clientX - r.left) / r.width) * 2 - 1; ndc.y = -((e.clientY - r.top) / r.height) * 2 + 1;
       ray.setFromCamera(ndc, cam);
-      return ray.intersectObjects(towersMeshes, false)[0];
+      return ray.intersectObjects(hitMeshes, false)[0];
     };
     const onMove = e => {
       const r = renderer.domElement.getBoundingClientRect();
@@ -197,8 +285,8 @@ export default function Skyline3D({
       renderer.domElement.removeEventListener("pointerup", onUp);
       controls.dispose();
       disposables.forEach(d => d.dispose());
-      towersMeshes.forEach(m => m.material.dispose());   // setback caps share their tower's material
-      extraMats.forEach(m => m.dispose());
+      ownMats.forEach(m => m.dispose());
+      pads.dispose();
       renderer.dispose(); el.removeChild(renderer.domElement); el.removeChild(labelR.domElement); el.removeChild(tip);
     };
   }, [towers, isMobile, crownLabel, accent, bodyFrom, bodyTo]);
