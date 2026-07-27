@@ -1,6 +1,6 @@
 {
-  "lastPostedDate": "2026-07-26",
-  "lastId": "walletgrowth",
+  "lastPostedDate": "2026-07-27",
+  "lastId": "goldencross",
   "recent": [
     {
       "date": "2026-07-08",
@@ -73,6 +73,10 @@
     {
       "date": "2026-07-26",
       "id": "walletgrowth"
+    },
+    {
+      "date": "2026-07-27",
+      "id": "goldencross"
     }
   ]
 }
