@@ -128,14 +128,41 @@ export function hoodLots(hood, k = 1) {
 // Scale the whole city to the population so it always looks built-up rather than empty.
 export const cityScale = n => Math.min(1, Math.max(0.4, Math.sqrt((n || 1) / 1400)));
 
-// One lot per wallet, never two. The hash picks a starting lot; if taken, walk to the next free
-// one; if the whole neighbourhood is full, spill to one that has room.
+// One lot per wallet, never two.
+//
+// Two behaviours on purpose. Residential districts SCATTER: the address hash picks a lot, and if
+// it's taken we step by a large stride co-prime with the lot count instead of +1. Probing by +1
+// makes every collision pile onto the next lot, which is what produced solid rectangular blocks
+// with dead space between them. A co-prime stride visits the whole neighbourhood, so the same
+// number of buildings spreads out like a real residential street instead of clumping.
+//
+// The TOWER districts do the opposite and cluster on purpose — downtown should read as a dense
+// core, so their lots are ordered from the centre of the district outward and filled from the
+// middle. That's the "unless it's the financial part" case.
+const gcd = (a, b) => (b ? gcd(b, a % b) : a);
+function strideFor(n) {
+  if (n < 3) return 1;
+  let s = Math.max(2, Math.floor(n * 0.618));      // golden-ratio step spreads probes evenly
+  while (gcd(s, n) !== 1) s++;                     // co-prime ⇒ the probe visits every lot
+  return s % n || 1;
+}
+
 export function placeCity(items, k = 1) {
   const n = items.length;
   const cache = new Map();
   const lotsOf = h => {
     let e = cache.get(h.id);
-    if (!e) { e = { lots: hoodLots(h, k), used: new Set() }; cache.set(h.id, e); }
+    if (!e) {
+      let lots = hoodLots(h, k);
+      if (h.towers && lots.length) {                // downtown: fill from the core outward
+        let cx = 0, cz = 0;
+        for (const l of lots) { cx += l.x; cz += l.z; }
+        cx /= lots.length; cz /= lots.length;
+        lots = lots.slice().sort((a, b) => ((a.x - cx) ** 2 + (a.z - cz) ** 2) - ((b.x - cx) ** 2 + (b.z - cz) ** 2));
+      }
+      e = { lots, used: new Set(), stride: strideFor(lots.length), dense: !!h.towers, next: 0 };
+      cache.set(h.id, e);
+    }
     return e;
   };
   const free = h => { const e = lotsOf(h); return e.used.size < e.lots.length ? e : null; };
@@ -147,11 +174,16 @@ export function placeCity(items, k = 1) {
     if (!slot) { const alt = NEIGHBOURHOODS.find(h => free(h)); if (alt) { hood = alt; slot = free(alt); } }
     let lot = null;
     if (slot) {
-      const { lots, used } = slot;
-      const start = Math.floor(hash01(it.a) * lots.length) % lots.length;
-      for (let s = 0; s < lots.length; s++) {
-        const j = (start + s) % lots.length;
-        if (!used.has(j)) { used.add(j); lot = lots[j]; break; }
+      const { lots, used, stride, dense } = slot;
+      if (dense) {
+        while (slot.next < lots.length && used.has(slot.next)) slot.next++;   // pack from the core
+        if (slot.next < lots.length) { used.add(slot.next); lot = lots[slot.next]; }
+      } else {
+        let j = Math.floor(hash01(it.a) * lots.length) % lots.length;
+        for (let s = 0; s < lots.length; s++) {
+          if (!used.has(j)) { used.add(j); lot = lots[j]; break; }
+          j = (j + stride) % lots.length;                                     // scatter, don't clump
+        }
       }
     }
     // Genuinely out of room: park it off the east shore rather than stack it on a roof.
