@@ -55,6 +55,7 @@ export const CHART_GROUPS = [
       { id: "sopr", title: "SOPR", post: "sopr", desc: "When coins move, are they sold at a profit or a loss?" },
       { id: "nrpl", title: "Net Realized Profit/Loss", post: "nrpl", desc: "The dollar size of gains vs losses locked in when coins move." },
       { id: "liveliness", title: "Liveliness", post: "liveliness", desc: "Are long-held coins waking up, or is the base sitting tight?" },
+      { id: "citylab", title: "City Lab (3D)", dev: true, desc: "The same block drawn two ways \u2014 comparing the current look against a more realistic one." },
       { id: "whalewatch", title: "Whale City (3D)", post: "whalewatch", dev: true, desc: "The biggest holders as a city — find your neighbourhood, see who is adding or selling." },
       { id: "cexsupply", title: "Supply on Exchanges", post: "cexsupply", desc: "Where the tradable float sits — exchanges, LP and custody, from DEX-native to CEX-listed." },
       { id: "cexflow", title: "Exchange Flow", post: "cexflow", desc: "Daily net flow on/off exchanges vs price — deposits, withdrawals, listings stripped." },
@@ -145,7 +146,7 @@ export const METHOD_FAMILIES = [
     id: "04", name: "Cost basis & holder behaviour",
     charts: ["supply", "holders", "holdersprice", "supplyprofit", "hodlwaves", "freefloat", "concentration",
              "whales", "walletwaves", "wealthwaves",
-             "urpd", "urpdage", "lthsth", "sopr", "nrpl", "liveliness", "whalewatch", "walletgrowth", "mvrv", "nupl", "mvrvbtc"],
+             "urpd", "urpdage", "lthsth", "sopr", "nrpl", "liveliness", "whalewatch", "citylab", "walletgrowth", "mvrv", "nupl", "mvrvbtc"],
   },
   {
     id: "05", name: "Exchange & venue balances",

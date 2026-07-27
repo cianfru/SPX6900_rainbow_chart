@@ -433,6 +433,15 @@ export default function Skyline3D({
       };
       window.__cityReady = true;
     }
+    // Perf probe. The open question on these pages is what they cost on a REAL GPU — everything
+    // here has only ever been measured on a software rasteriser, so the building caps are caution
+    // rather than measurement. Exposed so that can be answered from any device's console.
+    window.__cityStats = () => ({
+      buildings: T.length, meshes: hitMeshes.length,
+      drawCalls: renderer.info.render.calls, triangles: renderer.info.render.triangles,
+      programs: renderer.info.programs?.length, geometries: renderer.info.memory.geometries,
+      textures: renderer.info.memory.textures,
+    });
     if (flying) { controls.enabled = false; renderer.domElement.addEventListener("pointerdown", stopFlight, { once: true }); addEventListener("wheel", stopFlight, { once: true, passive: true }); }
     const loop = () => {
       raf = requestAnimationFrame(loop);
@@ -465,7 +474,7 @@ export default function Skyline3D({
       ownMats.forEach(m => m.dispose());
       groundBits.forEach(g => { if (g.dispose) g.dispose(); else { g.geometry?.dispose(); g.material?.dispose(); } });
       pads?.dispose();
-      delete window.__citySeek; delete window.__cityReady;
+      delete window.__citySeek; delete window.__cityReady; delete window.__cityStats;
       renderer.dispose(); el.removeChild(renderer.domElement); el.removeChild(labelR.domElement); el.removeChild(tip);
     };
   }, [towers, isMobile, crownLabel, accent, bodyFrom, bodyTo, layout, intro]);
