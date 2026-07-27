@@ -89,41 +89,66 @@ export function neighbourhoodFor(address, bigT = 0) {
   return NEIGHBOURHOODS[Math.floor(h * NEIGHBOURHOODS.length) % NEIGHBOURHOODS.length];
 }
 
-// A lot inside a neighbourhood, snapped to a street grid so buildings line up along blocks
-// instead of scattering. `seq` disambiguates wallets that hash into the same cell.
-const AVENUE = 2.4, STREET = 2.0;
-export function lotFor(address, hood, seq = 0, k = 1) {
-  const ha = hash01(address), hb = hash01b(address);
-  const z0 = hood.z0 * k, z1 = hood.z1 * k, depth = z1 - z0;
-  const rows = Math.max(1, Math.round(depth / STREET));
-  const row = (Math.floor(hb * rows) + seq * 7) % rows;
-  const z = z0 + 1 + row * Math.max(0, depth - 2) / Math.max(1, rows - 1 || 1);
-
-  let [w, e] = islandEdges(z, k);
-  w += 1.1; e -= 1.1;                                   // keep off the waterfront
-  if (hood.side === "east") w = Math.max(w, PARK.x1 * k + 0.9);   // east of Central Park
-  if (hood.side === "west") e = Math.min(e, PARK.x0 * k - 0.9);   // west of Central Park
-  const cols = Math.max(1, Math.round((e - w) / AVENUE));
-  const col = (Math.floor(ha * cols) + seq * 3) % cols;
-  const x = cols <= 1 ? (w + e) / 2 : w + col * (e - w) / (cols - 1);
-  return { x, z };
+// Every buildable lot in a neighbourhood, on a fixed street grid clipped to the waterfront (and
+// to the park edge for the two Upper Sides). Enumerating the lots up front is what guarantees no
+// two buildings share one: the earlier version probed with a stride of seq*7 / seq*3, and whenever
+// a neighbourhood's row or column count shared a factor with those, every retry handed back the
+// SAME lot — and the loop stored it anyway, stacking wallets on top of each other.
+// Lot pitch. Tight on purpose: at 2.4 x 2.0 the island only had ~700 lots, so a 1,500-wallet
+// city ran out of room and the overflow piled onto one another. Real Manhattan blocks are dense;
+// this gives ~1,800 lots at full scale while still clearing the widest footprint (1.08 x 0.92).
+const AVENUE = 1.5, STREET = 1.25;
+export function hoodLots(hood, k = 1) {
+  const lots = [];
+  const z0 = hood.z0 * k, z1 = hood.z1 * k;
+  for (let z = z0 + 1; z <= z1 - 1; z += STREET) {
+    let [w, e] = islandEdges(z, k);
+    w += 1.1; e -= 1.1;                                            // keep off the waterfront
+    if (hood.side === "east") w = Math.max(w, PARK.x1 * k + 0.9);   // east of Central Park
+    if (hood.side === "west") e = Math.min(e, PARK.x0 * k - 0.9);   // west of Central Park
+    if (e - w < 0.4) continue;
+    for (let x = w; x <= e + 1e-6; x += AVENUE) lots.push({ x, z });
+  }
+  return lots;
 }
 
-// Full placement for a set of wallets. Sorted by score so size rank drives the tower districts;
-// collisions are nudged to a free lot so no two buildings share a plot.
+// One lot per wallet. The address hash picks the starting lot (so a wallet keeps the same home
+// whenever the set is unchanged); if it's occupied we walk to the next free one, and if the whole
+// neighbourhood is full we spill to the nearest neighbourhood with room rather than double-book.
 export function placeCity(items, k = 1) {
   const n = items.length;
-  const taken = new Set();
+  const cache = new Map();                       // hood id → { lots, used:Set }
+  const lotsOf = h => {
+    let e = cache.get(h.id);
+    if (!e) { e = { lots: hoodLots(h, k), used: new Set() }; cache.set(h.id, e); }
+    return e;
+  };
+  const claim = h => {
+    const { lots, used } = lotsOf(h);
+    if (!lots.length || used.size >= lots.length) return null;
+    return { lots, used };
+  };
+
   return items.map((it, i) => {
     const bigT = n > 1 ? 1 - i / (n - 1) : 1;
-    const hood = neighbourhoodFor(it.a, bigT);
-    let lot, key, seq = 0;
-    do {
-      lot = lotFor(it.a, hood, seq, k);
-      key = `${lot.x.toFixed(2)}:${lot.z.toFixed(2)}`;
-      seq++;
-    } while (taken.has(key) && seq < 40);
-    taken.add(key);
+    let hood = neighbourhoodFor(it.a, bigT);
+    let slot = claim(hood);
+    if (!slot) {                                  // full — find any neighbourhood with space
+      const alt = NEIGHBOURHOODS.find(h => claim(h));
+      if (alt) { hood = alt; slot = claim(alt); }
+    }
+    let lot = null;
+    if (slot) {
+      const { lots, used } = slot;
+      let idx = Math.floor(hash01(it.a) * lots.length) % lots.length;
+      for (let step = 0; step < lots.length; step++) {
+        const j = (idx + step) % lots.length;
+        if (!used.has(j)) { used.add(j); lot = lots[j]; break; }
+      }
+    }
+    // Genuinely nowhere left (more wallets than lots): put it on a pier off the east shore rather
+    // than stack it on someone else's roof — visibly overflow, never silently overlap.
+    if (!lot) { const [, e] = islandEdges(hood.z0 * k, k); lot = { x: e + 2 + (i % 5) * 1.4, z: (hood.z0 + (i % 9)) * k }; }
     // centre the island on the origin so the camera framing stays simple
     return { ...it, hood, x: lot.x, z: lot.z - (CITY_LENGTH * k) / 2 };
   });
@@ -135,7 +160,8 @@ export function lookupHome(address) {
   const a = String(address || "").trim().toLowerCase();
   if (!/^0x[0-9a-f]{40}$/.test(a)) return null;
   const hood = neighbourhoodFor(a, 0);
-  const lot = lotFor(a, hood, 0);
+  const lots = hoodLots(hood, 1);
+  const lot = lots.length ? lots[Math.floor(hash01(a) * lots.length) % lots.length] : { x: 0, z: hood.z0 };
   return { a, hood, x: lot.x, z: lot.z - CITY_LENGTH / 2 };
 }
 
