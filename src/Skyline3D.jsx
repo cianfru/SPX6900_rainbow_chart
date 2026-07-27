@@ -406,6 +406,19 @@ export default function Skyline3D({
       cam.position.copy(overview); controls.target.set(0, city ? 4 : 7, 0); controls.update();
       onIntroDone?.();
     };
+    // Frame-accurate seek for offline video capture (tools/render-city-video.mjs). Driving the
+    // path by progress rather than wall-clock means every frame lands exactly where intended,
+    // however slowly the renderer is running.
+    if (flight) {
+      window.__citySeek = u => {
+        flying = false; controls.enabled = false;
+        const e = easeInOut(Math.max(0, Math.min(1, u)));
+        const pp = spline(flight.keys.map(kk => kk.p), e), tt = spline(flight.keys.map(kk => kk.t), e);
+        cam.position.set(pp[0], pp[1], pp[2]); controls.target.set(tt[0], tt[1], tt[2]);
+        controls.update(); renderer.render(scene, cam); labelR.render(scene, cam);
+      };
+      window.__cityReady = true;
+    }
     if (flying) { controls.enabled = false; renderer.domElement.addEventListener("pointerdown", stopFlight, { once: true }); addEventListener("wheel", stopFlight, { once: true, passive: true }); }
     const loop = () => {
       raf = requestAnimationFrame(loop);
@@ -434,6 +447,7 @@ export default function Skyline3D({
       ownMats.forEach(m => m.dispose());
       groundBits.forEach(g => { if (g.dispose) g.dispose(); else { g.geometry?.dispose(); g.material?.dispose(); } });
       pads?.dispose();
+      delete window.__citySeek; delete window.__cityReady;
       renderer.dispose(); el.removeChild(renderer.domElement); el.removeChild(labelR.domElement); el.removeChild(tip);
     };
   }, [towers, isMobile, crownLabel, accent, bodyFrom, bodyTo, layout, intro]);
