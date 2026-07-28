@@ -6,6 +6,9 @@ description: Every sale drawn from the seller's roof to the buyer's.
 
 **In [AEON mode](../modes.md), a sale is drawn as an arc from the seller's building to the buyer's.**
 
+Arcs are **off when the city loads**. 111 lines over a city whose own signal is its buildings crowds
+the sky, so they are something you ask for rather than something you have to clear away.
+
 Violet, because age is amber→cyan and [flow](flow.md) is green/red — a trade is a third kind of fact
 and needs a channel of its own. Thickness carries the price, and the three largest trades in the
 window are labelled with what they went for and which token moved.
@@ -21,6 +24,18 @@ what [flow beams](flow.md) are.
 
 An NFT sale has no such gap. It is one wallet to another, with the price, the token and both parties
 written into the same transaction. Nothing is hidden, so nothing has to be inferred.
+
+## Three settings
+
+| Setting | Shows | |
+| --- | --- | --- |
+| **No arcs** | nothing | how the city arrives |
+| **Traced trades** | the 38 connecting two standing buildings | the clean, followable picture |
+| **All trades** | all 111, departures included | the honest total |
+
+The middle setting is the one that matters. A plain on/off forces a choice between a busy sky and
+hiding two thirds of the market; splitting the set by whether you can actually follow it gives you
+both.
 
 ## Arcs that run off the map
 

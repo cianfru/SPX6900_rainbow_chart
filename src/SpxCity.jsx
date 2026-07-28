@@ -47,7 +47,13 @@ export default function SpxCity({ isMobile, preview = false, initialMode = "spx"
   const [time, setTime] = useState("dusk");
   const [infra, setInfra] = useState(null);
   const [sales, setSales] = useState(null);
-  const [showArcs, setShowArcs] = useState(true);
+  // ⭐ ARCS ARRIVE OFF, AND HAVE A MIDDLE SETTING. Drawn all at once they crowd the sky — 111 lines
+  // over a city whose own signal is the buildings — so the city has to open calm and let the arcs be
+  // asked for. The middle setting exists because the two halves of the set are not equally
+  // readable: "traced" is only the trades connecting two standing buildings, which is the clean
+  // picture you can actually follow, while "all" adds the departures whose counterparty has left.
+  // A plain on/off would have forced a choice between a busy sky and hiding two thirds of the market.
+  const [arcMode, setArcMode] = useState("off");
 
   const M = MODES.find(m => m.id === mode) || MODES[0];
 
@@ -115,7 +121,16 @@ export default function SpxCity({ isMobile, preview = false, initialMode = "spx"
   // and its price; a token transfer normally ends at an exchange, where the counterparty is a hot
   // wallet and the trade it stands for is invisible. So the coin modes have no honest equivalent
   // to draw, and the toggle only appears where the data actually supports it.
-  const arcs = useMemo(() => (mode === "aeon" && showArcs ? sales?.trades || null : null), [mode, showArcs, sales]);
+  const arcs = useMemo(() => {
+    if (mode !== "aeon" || arcMode === "off") return null;
+    const tr = sales?.trades;
+    if (!tr?.length || !towers) return null;
+    if (arcMode === "all") return tr;
+    // "traced" keeps only the trades with a building at BOTH ends — the ones you can follow from
+    // seller to buyer without being told where the other half went.
+    const here = new Set(towers.map(t => (t.a || "").toLowerCase()));
+    return tr.filter(t => here.has(t.f) && here.has(t.to));
+  }, [mode, arcMode, sales, towers]);
   const arcStat = useMemo(() => {
     const tr = sales?.trades;
     if (!tr?.length || !towers) return null;
@@ -215,9 +230,9 @@ export default function SpxCity({ isMobile, preview = false, initialMode = "spx"
         {isNft && sales?.trades?.length ? (
           <>
             <span style={{ width: 10 }} />
-            <button onClick={() => setShowArcs(v => !v)} style={btn(showArcs, "#a78bfa")}>
-              {showArcs ? "◉" : "○"} trade arcs
-            </button>
+            {[["off", "no arcs"], ["traced", "traced trades"], ["all", "all trades"]].map(([v, lbl]) => (
+              <button key={v} onClick={() => setArcMode(v)} style={btn(arcMode === v, "#a78bfa")}>{lbl}</button>
+            ))}
           </>
         ) : null}
       </div>
@@ -225,12 +240,14 @@ export default function SpxCity({ isMobile, preview = false, initialMode = "spx"
       {/* The count is stated rather than implied. Some arcs have a counterparty who has since sold
           out and left the city, and those are drawn running off the map instead of being dropped —
           so the number of trades and the number of arcs you can trace between two roofs differ. */}
-      {isNft && showArcs && arcStat && (
+      {isNft && arcMode !== "off" && arcStat && (
         <div style={{ textAlign: "center", fontFamily: SANS, fontSize: 12.5, color: "#94a3b8", marginBottom: 12, lineHeight: 1.6 }}>
           <strong style={{ color: "#c4b5fd" }}>{arcStat.total} trades</strong> over the last {arcStat.days} days
           — {arcStat.eth.toFixed(1)} ETH between wallets.{" "}
           <span style={{ color: "#64748b" }}>
-            {arcStat.both} connect two buildings; {arcStat.one + arcStat.gone} have a counterparty who has since left the city, and run off the map.
+            {arcMode === "traced"
+              ? `Showing the ${arcStat.both} that connect two buildings. The other ${arcStat.one + arcStat.gone} have a counterparty who has since left the city — switch to all trades to see them.`
+              : `${arcStat.both} connect two buildings; ${arcStat.one + arcStat.gone} have a counterparty who has since left the city, and run off the map.`}
           </span>
         </div>
       )}
