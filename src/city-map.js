@@ -79,6 +79,39 @@ const inManhattan = (x, z) => pointInRing(x, z, MANHATTAN);
 const PARK_RING = NYC.centralpark?.[0];
 const inPark = (x, z) => (PARK_RING ? pointInRing(x, z, PARK_RING) : false);
 
+// ⭐ THE BRIDGE NEEDS AN APPROACH, AND THE LOT GRID HAS TO KNOW ABOUT IT.
+//
+// The span's Manhattan end lands in the Financial District — a dense tower district — so the grid
+// happily issued the lot the roadway comes down on and the deck drove straight into a building.
+// A real bridge has a plaza at its foot; this is that plaza, and it is subtracted from the
+// buildable land exactly the way Central Park is.
+//
+// ⚠ THE LINE LIVES HERE, not in city-infra, because the lot grid needs it and city-infra already
+// imports this module — a second copy of the coordinates is precisely the drift that would let the
+// road and the cleared strip part company. city-infra reads BRIDGE_LINE for SITES.bridge.
+export const BRIDGE_LINE = { from: [40.7115, -74.0038], to: [40.7003, -73.9903] };
+// Half-width of the cleared strip. The deck is ~0.5 out, a building reaches ~0.55 from its centre,
+// and the setback jitter can pull a lot ~0.1 back toward the road after it passes this test — so
+// this is sized well past the point of contact rather than exactly at it.
+const BRIDGE_CLEAR = 2.5;        // world units either side of the roadway's centre line
+const BRIDGE_APPROACH = 3.0;     // and beyond each end, where the deck ramps down to grade
+const bridgeAxis = () => {
+  const a = fromLatLon(...BRIDGE_LINE.from), b = fromLatLon(...BRIDGE_LINE.to);
+  return { a, b, dx: b.x - a.x, dz: b.z - a.z };
+};
+// Distance from the segment, but with the ends EXTENDED — the ramp occupies ground past the
+// abutment, which is exactly where the first version still let a building through.
+const underBridge = (x, z) => {
+  const { a, dx, dz } = bridgeAxis();
+  const len2 = dx * dx + dz * dz;
+  if (!len2) return false;
+  const t = ((x - a.x) * dx + (z - a.z) * dz) / len2;
+  const ext = BRIDGE_APPROACH / Math.sqrt(len2);
+  if (t < -ext || t > 1 + ext) return false;
+  const cl = Math.max(0, Math.min(1, t));
+  return Math.hypot(x - (a.x + dx * cl), z - (a.z + dz * cl)) < BRIDGE_CLEAR;
+};
+
 // ── neighbourhoods ────────────────────────────────────────────────────────────────────────────
 // Bands along the island axis, with a POPULATION WEIGHT. Weighting matters: an even spread put as
 // many buildings in Inwood as in Midtown, which is why the city read as detached clusters rather
@@ -232,7 +265,7 @@ export function hoodGrid(hood, k = 1) {
         for (let lu = 0; lu < GRID.blkU; lu++) {
           const u = bu * PERIOD_U + (lu + 0.5 - GRID.blkU / 2) * GRID.lotU;
           const { x, z } = fromAxis(t, u / k);     // lots sit on the real island at scale k
-          if (!inManhattan(x, z) || inPark(x, z)) continue;
+          if (!inManhattan(x, z) || inPark(x, z) || underBridge(x, z)) continue;
           // keep a margin off the waterfront so buildings don't hang over the edge
           if (!inManhattan(x + SHORE, z) || !inManhattan(x - SHORE, z) ||
               !inManhattan(x, z + SHORE) || !inManhattan(x, z - SHORE)) continue;
@@ -453,6 +486,9 @@ export function boroughLots(k = 1) {
           if (inManhattan(x, z)) continue;                       // the island has its own grid
           if (wet.some(r => pointInRing(x, z, r))) continue;      // never in the harbour
           if (inChannel(x, z)) continue;                         // nor in the rivers
+          // ⚠ The bridge lands on BOTH shores. Clearing only Manhattan's grid left the Brooklyn
+          // abutment building on top of the ramp — which is the end the roadway visibly drove into.
+          if (underBridge(x, z)) continue;
           const home = rings.find(r => pointInRing(x, z, r.ring));
           if (!home) continue;
           out.push({ x: x * k, z: z * k, hood: { id: home.id, name: home.name } });

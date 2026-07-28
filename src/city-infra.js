@@ -1,4 +1,4 @@
-import { fromLatLon } from "./city-map.js";
+import { fromLatLon, BRIDGE_LINE } from "./city-map.js";
 
 // THE REST OF THE TOKEN — everything that isn't a holder.
 //
@@ -26,7 +26,10 @@ export const SITES = {
   lp: { lat: 40.6892, lon: -74.0165, name: "Governors Island" },
   // The Brooklyn Bridge's real line. Manhattan (Ethereum) to Brooklyn (Base) — the Wormhole bridge
   // is what actually backs the supply on the other chains, so the span carries a real number.
-  bridge: { from: [40.7115, -74.0038], to: [40.7003, -73.9903], name: "Brooklyn Bridge" },
+  // ⚠ The line itself comes from city-map (BRIDGE_LINE), which needs it to clear the lots the
+  // roadway lands on. One copy: a second would let the deck and its plaza drift apart, which is
+  // how the road came to end inside a building in the first place.
+  bridge: { ...BRIDGE_LINE, name: "Brooklyn Bridge" },
   // Red Hook: New York's container port. The exchange district goes in the water off it.
   // In the WATER off Red Hook, not on it — the first pass ran the berths inland across Brooklyn.
   port: { lat: 40.6700, lon: -74.0300, along: 0.0200, across: 0.0080, name: "Red Hook" },

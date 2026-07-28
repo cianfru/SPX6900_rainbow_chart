@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { placeCity, hoodLots, NEIGHBOURHOODS, cityScale } from "../src/city-map.js";
+import { bridgeSpan } from "../src/city-infra.js";
 
 // Placement is the half of the city that is openly a game — a wallet's street address comes from
 // its own hash, and the page says so. That freedom is exactly why it needs guarding: nothing about
@@ -62,6 +63,22 @@ test("the big holders spread across more than one district", () => {
   const P = placeCity(residents(), 1);
   const hoods = new Set(P.slice(0, 120).map(p => p.hood?.id || p.hood));
   assert.ok(hoods.size >= 3, `top 120 towers landed in only ${hoods.size} district(s)`);
+});
+
+test("nothing is built under the bridge or its ramps", () => {
+  // The roadway used to drive straight into a building. Manhattan's grid and the borough grid are
+  // built separately, and only the island's was cleared — so the BROOKLYN abutment kept its
+  // building. Both shores are checked here for that reason.
+  const P = placeCity(residents(), 1);
+  const s = bridgeSpan(1);
+  const dx = s.bx - s.ax, dz = s.bz - s.az, L2 = dx * dx + dz * dz, len = Math.sqrt(L2);
+  for (const p of P) {
+    const t = ((p.x - s.ax) * dx + (p.z - s.az) * dz) / L2;
+    if (t < -3 / len || t > 1 + 3 / len) continue;          // clear of the span and its approaches
+    const c = Math.max(0, Math.min(1, t));
+    const d = Math.hypot(p.x - (s.ax + dx * c), p.z - (s.az + dz * c));
+    assert.ok(d > 1.6, `a building sits ${d.toFixed(2)} from the roadway centre line (${p.hood?.id || p.hood})`);
+  }
 });
 
 test("every resident gets a home on the map", () => {

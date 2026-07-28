@@ -379,6 +379,16 @@
       because the nearest-neighbour sweep printed 0.03 units; it would never show up as an error.
       `test/city-place.test.mjs` pins no-duplicate-lots, no-coincident-buildings, landmark separation, and multi-district
       spread. **Lesson: measure the nearest-neighbour distance after ANY placement change — geometry bugs are silent.**
+  - **⭐ THE BRIDGE NEEDS AN APPROACH (owner, 2026-07-28: "the bridge's road lands in a building").** The span's line
+    is now `BRIDGE_LINE` in **city-map.js** (NOT city-infra — the lot grid needs it, and city-infra already imports
+    city-map, so a second copy of the coordinates is exactly the drift that put the deck through a facade).
+    `underBridge()` subtracts a 2.5-unit corridor along the roadway **plus 3.0 units of ramp beyond each end** from
+    the buildable land, the same way Central Park is subtracted; `SITES.bridge` spreads `BRIDGE_LINE`. Costs 9 of
+    Manhattan's lots (1,692 → 1,683). **⚠ THE CATCH: the bridge lands on BOTH shores, and Manhattan's grid and
+    `boroughLots` are built separately — clearing only the island left the BROOKLYN abutment building sitting on the
+    ramp, which was the end that visibly drove into a building.** Both grids call `underBridge` now. Also size the
+    corridor past the point of contact, not at it: the post-placement setback jitter can pull a lot ~0.1 back toward
+    the road AFTER it passes the test. Pinned in `test/city-place.test.mjs` (both shores).
   - **⭐⭐ THE DESIGN RULE — "STONE AND LIGHT": realism goes into FORM, MATERIAL and LIGHTING; the DATA stays in the
     LIGHT.** Albedo is the real material with only ~12% age hue (brick still looks like brick); age + flow live at FULL
     strength in the **emissive windows + street glow**. That's how a real city reads at dusk (building = stone, windows =
