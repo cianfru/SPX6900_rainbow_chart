@@ -242,6 +242,9 @@ export const AXIS_ANGLE = Math.atan2(AXIS.az, AXIS.ax);
 // each block holds three buildings in a big empty rectangle, which reads as suburbia; too tight and
 // the placer runs out of island. Manhattan blocks are solid — the space in a real city is in the
 // streets between blocks, not inside them, which is why the grid gaps do this job now instead.
+// Manhattan stays at TRUE scale — it never inflates past the real island. Growing it to fit was
+// the other option and it's worse: the island's proportions are the one thing anyone can check.
+// Overflow goes to the outer boroughs instead, which are real land already drawn and doing nothing.
 export const cityScale = n => Math.min(1, Math.max(0.4, Math.sqrt((n || 1) / 1450)));
 
 // One lot per wallet, never two.
@@ -283,7 +286,28 @@ export function placeCity(items, k = 1) {
   };
   const free = h => { const e = lotsOf(h); return e.used.size < e.lots.length ? e : null; };
 
+  // ⭐ WHEN MANHATTAN IS FULL, THE NEWEST WALLETS MOVE OUT TO THE BOROUGHS. Which is both how the
+  // real city grew and the honest ordering: the island is finite, so somebody has to be across the
+  // river, and picking by TENURE means nobody is pushed out by a price move or a partial sale —
+  // only by having arrived later than the people already there.
+  const manCap = NEIGHBOURHOODS.reduce((s, h) => s + lotsOf(h).lots.length, 0);
+  let outer = null, boro = null;
+  if (n > manCap) {
+    const byAge = items.map((it, i) => ({ i, age: it.ageT ?? 0.5 })).sort((a, b) => a.age - b.age);
+    outer = new Set(byAge.slice(0, n - manCap).map(o => o.i));
+    const lots = boroughLots(k);
+    boro = { lots, used: new Set(), stride: strideFor(lots.length) };
+  }
+
   return items.map((it, i) => {
+    if (outer?.has(i) && boro?.lots.length) {
+      let j = Math.floor(hash01(it.a + "|boro") * boro.lots.length) % boro.lots.length;
+      for (let sN = 0; sN < boro.lots.length; sN++) {
+        if (!boro.used.has(j)) { boro.used.add(j); const l = boro.lots[j];
+          return { ...it, hood: l.hood, x: l.x, z: l.z }; }
+        j = (j + boro.stride) % boro.lots.length;
+      }
+    }
     const bigT = n > 1 ? 1 - i / (n - 1) : 1;
     let hood = neighbourhoodFor(it.a, bigT);
     let slot = free(hood);
@@ -325,6 +349,62 @@ export function placeCity(items, k = 1) {
     const jx = (hash01(it.a + "|jx") - 0.5) * 0.16, jz = (hash01(it.a + "|jz") - 0.5) * 0.11;
     return { ...it, hood, x: lot.x + jx, z: lot.z + jz };
   });
+}
+
+// ── the outer boroughs ────────────────────────────────────────────────────────────────────────
+// Manhattan holds 1,693 buildings at full scale. Past that the city expands the way the real one
+// did — across the river — rather than by inflating the island, which would break the one
+// proportion anyone can check against a map.
+//
+// ⚠ THE BOROUGH OUTLINES ARE ADMIN BOUNDARIES and legally cross open water, so a naive grid over
+// them drops buildings into the harbour. Lots are therefore rejected inside the WATER rings, and
+// held within reach of the waterfront so nobody is housed in the middle of the Atlantic where
+// Queens' boundary nominally reaches.
+export const BOROUGHS = [
+  { id: "brooklyn", name: "Brooklyn" },
+  { id: "queens", name: "Queens" },
+  { id: "bronx", name: "The Bronx" },
+  { id: "jersey", name: "Jersey City" },
+];
+const BOROUGH_U = 46;          // how far across from the island's centre line to build
+const BOROUGH_T = [-0.22, 1.22];
+// Keep clear of the water between the island and the far bank. Carving the WATER rings is not
+// enough on its own: the East River above Long Island City and the whole Harlem River are narrower
+// than 400 m and are covered by the borough boundaries, so a grid over those boundaries drops
+// buildings mid-channel. Anything this close to Manhattan's coastline is in a river, not on land.
+const CHANNEL = 4;
+// The FULL outline, not a subsample: sampling every third point left buildings in the channel
+// wherever the coastline turns sharply between samples. It is computed once and cached.
+const COAST = MANHATTAN;
+const inChannel = (x, z) => COAST.some(([cx, cz]) => (cx - x) ** 2 + (cz - z) ** 2 < CHANNEL * CHANNEL);
+
+let BORO_CACHE = null, BORO_K = null;
+export function boroughLots(k = 1) {
+  if (BORO_CACHE && BORO_K === k) return BORO_CACHE;
+  const out = [];
+  const perT = PERIOD_T / (AXIS.len * k), lotT = GRID.lotT / (AXIS.len * k);
+  const rings = BOROUGHS.flatMap(b => (NYC[b.id] || []).map(r => ({ id: b.id, name: b.name, ring: r })));
+  const wet = WATER.map(w => w.ring);
+  for (let t = BOROUGH_T[0]; t < BOROUGH_T[1]; t += perT) {
+    for (let li = 0; li < GRID.blkT; li++) {
+      const tt = t + (li + 0.5) * lotT;
+      for (let bu = -Math.ceil(BOROUGH_U / PERIOD_U); bu <= Math.ceil(BOROUGH_U / PERIOD_U); bu++) {
+        for (let lu = 0; lu < GRID.blkU; lu++) {
+          const u = bu * PERIOD_U + (lu + 0.5 - GRID.blkU / 2) * GRID.lotU;
+          if (Math.abs(u) > BOROUGH_U) continue;
+          const { x, z } = fromAxis(tt, u / k);
+          if (inManhattan(x, z)) continue;                       // the island has its own grid
+          if (wet.some(r => pointInRing(x, z, r))) continue;      // never in the harbour
+          if (inChannel(x, z)) continue;                         // nor in the rivers
+          const home = rings.find(r => pointInRing(x, z, r.ring));
+          if (!home) continue;
+          out.push({ x: x * k, z: z * k, hood: { id: home.id, name: home.name } });
+        }
+      }
+    }
+  }
+  BORO_CACHE = out; BORO_K = k;
+  return out;
 }
 
 // "Where do you live?" — answers for ANY address, holder or not: the neighbourhood is a property

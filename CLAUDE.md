@@ -411,24 +411,35 @@
     marker. Getting real buildings needs a **Base ERC-20 transfer extract through the SAME FIFO engine** (see the
     parked "BASE ON-CHAIN RECONSTRUCTION" note — Base SPX `0x50dA645f…bb2C`, decimals 8, plus a Base
     `EXCLUDE_LABELS` set for bridge/LP/CEX/airdrop). Solana needs an SPL equivalent, which is fiddlier.
-- **📐 HOW MANY BUILDINGS CAN THE CITY AFFORD (measured 2026-07-27) — LAND is the binding constraint, not the GPU.**
-  - **Manhattan holds exactly 2,561 lots** at full scale (`hoodLots` over all ten neighbourhoods at k=1; Midtown 501,
-    Harlem 467, UWS 290 … FiDi only 91). `cityScale` caps k at 1 for n≥1400, so **beyond ~2,561 wallets `placeCity`
-    runs out and parks the overflow off the east shore.** The 600 default is caution, NOT a measured limit.
-  - **After the merge refactor, DRAW CALLS ARE CONSTANT (~50-90) regardless of building count** — they're per
-    (family × age × flow) bucket, not per building. That is the whole reason the ceiling moved.
-  - Measured cost per building: **~200 triangles** (600 buildings = 109,558 tris) and **~0.5 ms of blocking CPU
-    build time** on this sandbox's slow single core. Water towers are the expensive detail (~90 tris each).
-  - So the ceilings are: **triangles** (10k buildings ≈ 2.1M tris — fine on desktop, borderline on older phones),
-    **memory** (non-indexed geometry ≈ 19 KB/building → 10k ≈ 190 MB, the real mobile wall), and **startup freeze**
-    (linear, blocking). Halving memory is easy if needed: index `wallGeometry` and cheapen the water towers.
-  - Practical guidance: **~2,500 today (all of Manhattan), ~5,000 mobile / 20,000+ desktop once the boroughs add
-    land.** ⚠ STILL UNMEASURED ON A REAL GPU — run `window.__cityStats()` on a phone before raising the default.
-  - **⭐ THE CITY CAN NEVER SHOW EVERYONE — say so.** ETH 49.5k + Base 114.5k + Solana 66k ≈ **230k wallets**; at
-    ~200 tris each that's 46M triangles and there isn't the land either. The city is inherently a **top-N view**
-    and must be labelled as one. A meaningful, honest cutoff exists anyway: a large share of Base wallets are dust
-    from the Dec-2024 airdrop (+50,246 in one week), so "every wallet above X" is both a rendering necessity and a
-    defensible filter.
+- **📐 HOW MANY BUILDINGS CAN THE CITY AFFORD (re-measured 2026-07-28, supersedes the earlier note).**
+  - **Manhattan holds 1,693 lots** at full scale — not the 2,561 measured before the block grid, because
+    real streets and avenues take about a third of the island. `cityScale` caps k at 1 deliberately: the
+    island's proportions are the one thing anyone can check against a map, so it never inflates.
+  - **⭐ OVERFLOW GOES TO THE OUTER BOROUGHS, and the NEWEST wallets are the ones who move** (owner:
+    *"it would be ok to expand the city outside of manhattan for the newer wallets"*). `boroughLots()`
+    grids Brooklyn / Queens / the Bronx / Jersey on the same rotated street bearing → **+4,582 lots, so
+    total capacity is 6,275.** AEON's worst case (all 3,333 tokens in different hands) fits with room.
+    Picking by TENURE means nobody is displaced by a price move or a partial sale — only by having
+    arrived later than the people already on the island. Verified: Manhattan mean tenure 0.745 vs
+    boroughs 0.244.
+  - **⚠ TWO TRAPS in the borough grid, both fixed, both would put buildings in the water:** the borough
+    outlines are ADMIN boundaries that legally cross open water (so lots are rejected inside the WATER
+    rings), and the East River above Long Island City plus the whole Harlem River are NARROWER than
+    400 m and fully inside those boundaries — so a lot within `CHANNEL = 4` units of Manhattan's
+    coastline is in a river, not on land. Subsampling the coastline for that test left 22 buildings
+    mid-channel where the shore turns sharply between samples; it uses the FULL outline now (274 ms,
+    cached). Check after any change: **0 borough lots within 4 units of the shoreline.**
+  - **After the merge refactor DRAW CALLS ARE CONSTANT** — 63 at 600 buildings and 63 at 1,172, because
+    they are per (family × age × flow) bucket, not per building. ~200 tris and ~0.4 ms of blocking build
+    per building. So the ceilings are triangles, memory (~19 KB/building, non-indexed — the real mobile
+    wall) and startup freeze, none of which bite until far beyond the land.
+  - ⚠ **3,333 buildings could not be rendered in this sandbox** — ~660k triangles on a CPU software
+    rasteriser takes minutes per frame, so `waitForFunction` times out. That is a rasteriser limit and
+    says nothing about a real GPU. The geometry pipeline itself is fast (boroughLots 274 ms, placeCity
+    142 ms, hoodGrid ×10 62 ms). **STILL UNMEASURED ON REAL HARDWARE — run `window.__cityStats()` there.**
+  - **⭐ THE CITY CAN NEVER SHOW EVERYONE ON THE COIN SIDE — say so.** ETH 49.5k + Base 114.5k + Solana
+    66k ≈ **230k wallets** against 6,275 lots. Whale City is inherently a **top-N view** and must be
+    labelled as one; the AEON side, at 3,333 tokens, genuinely fits.
 - **🔲 OTHER 3D CANDIDATES PROPOSED (owner liked the set, 2026-07-27) — the test is THREE genuine dims (two axes +
   a magnitude); single series/ratios stay 2D (rainbow, MVRV, NUPL, SOPR, composite — a third axis adds occlusion
   and subtracts clarity, which Urpd3D already proved).**
