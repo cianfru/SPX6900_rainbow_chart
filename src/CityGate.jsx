@@ -45,11 +45,16 @@ const Row = ({ swatch, children }) => (
   </div>
 );
 
-export default function CityGate({ title, accent = "#5eead4", unit = "holder", children }) {
+// `locked` picks the framing. Default (City Lab) is the "under construction, quiet way in" sign:
+// unlisted, passphrase tucked behind a toggle. `locked` (SPX City) is the opposite intent — the
+// page is LISTED in the gallery and this is an openly-declared password wall, so the field is shown
+// straight away and the copy says "password protected" rather than "not ready". Same gate, same
+// honest scope (client-side, not real security); only the presentation differs.
+export default function CityGate({ title, accent = "#5eead4", unit = "holder", locked = false, children }) {
   const [ok, setOk] = useState(() => { try { return localStorage.getItem(KEY) === "1"; } catch { return false; } });
   const [pw, setPw] = useState("");
   const [bad, setBad] = useState(false);
-  const [reveal, setReveal] = useState(false);
+  const [reveal, setReveal] = useState(locked);   // a declared password wall shows the field at once
   const [intro, setIntro] = useState(false);
   const shown = useRef(false);
 
@@ -78,12 +83,12 @@ export default function CityGate({ title, accent = "#5eead4", unit = "holder", c
   if (!ok) {
     return (
       <div style={{ maxWidth: 560, margin: "60px auto", padding: "0 20px", fontFamily: SANS, textAlign: "center" }}>
-        <div style={{ fontSize: 42, marginBottom: 10 }}>🚧</div>
+        <div style={{ fontSize: 42, marginBottom: 10 }}>{locked ? "🔒" : "🚧"}</div>
         <h2 style={{ fontSize: 26, fontWeight: 800, color: "#f1f5f9", margin: "0 0 8px", letterSpacing: "-0.02em" }}>
-          {title} is under construction
+          {locked ? title : `${title} is under construction`}
         </h2>
         <p style={{ color: "#94a3b8", fontSize: 14.5, lineHeight: 1.65, margin: "0 0 26px" }}>
-          Still being built. Check back soon.
+          {locked ? "Password protected — enter the passphrase to explore the city." : "Still being built. Check back soon."}
         </p>
 
         {/* The passphrase is for the people building it. Tucked behind a toggle so the page reads as a sign

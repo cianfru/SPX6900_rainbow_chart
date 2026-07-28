@@ -204,7 +204,7 @@ export default function SpxCity({ isMobile, preview = false, initialMode = "spx"
   });
 
   return (
-    <CityGate title="SPX City" unit={M.unit} accent={M.accent}>
+    <CityGate title="SPX City" unit={M.unit} accent={M.accent} locked>
     <div style={{ maxWidth: MAX_W, margin: "0 auto" }}>
       <Explain q="Who actually holds SPX6900 — and which of them are buying or selling?" accent={M.accent}>
         Every building is one wallet. Height is <strong style={{ color: "#e2e8f0" }}>how much it holds × how long it&apos;s held</strong>, and the windows

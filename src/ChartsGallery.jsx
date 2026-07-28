@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef, useMemo, Suspense } from "react";
 import { CHART_GROUPS, AEON_GROUPS, METHOD_FAMILIES, METHOD_OF } from "./charts-catalog.js";
 import ErrorBoundary from "./ErrorBoundary.jsx";
-import { CITY_KEY } from "./city-gate-key.js";
 import { SANS, MONO, MAX_W } from "./chart-ui.jsx";
 
 // The browse-all "Charts" gallery — an ITC-style grid of preview tiles. Every
@@ -45,10 +44,34 @@ function LivePreview({ render }) {
   );
 }
 
+// A locked chart shows this instead of a live preview: a clean lock over a faint, generic
+// silhouette. Deliberately NOT the real render — the point of `locked` is that you don't see the
+// city until you're in — and it never mounts the chart, so the gallery pays no three.js cost for it.
+function LockedCover({ color }) {
+  return (
+    <div style={{
+      position: "relative", width: "100%", aspectRatio: "1180 / 700", overflow: "hidden",
+      background: "radial-gradient(130% 130% at 50% 20%, #101a33 0%, #05050e 72%)",
+      display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 9,
+    }}>
+      {/* generic skyline, not the data — just enough to say "a city" without previewing it */}
+      <svg viewBox="0 0 120 34" preserveAspectRatio="none" aria-hidden="true"
+        style={{ position: "absolute", left: 0, right: 0, bottom: 0, width: "100%", height: "44%", opacity: 0.16 }}>
+        {[[6,14],[14,22],[22,9],[30,27],[40,17],[49,31],[60,12],[69,24],[80,19],[90,29],[101,15],[110,23]].map(([x, h], i) => (
+          <rect key={i} x={x} y={34 - h} width="7" height={h} fill={color} />
+        ))}
+      </svg>
+      <div style={{ position: "relative", fontSize: 30, lineHeight: 1 }}>🔒</div>
+      <div style={{ position: "relative", fontFamily: MONO, fontSize: 11.5, letterSpacing: ".16em", textTransform: "uppercase", color }}>Password&nbsp;protected</div>
+    </div>
+  );
+}
+
 function Tile({ item, color, onOpen, renderPreview }) {
   return (
     <button
-      className="pill" onClick={() => onOpen(item.id)} title={`Open the interactive ${item.title} chart`}
+      className="pill" onClick={() => onOpen(item.id)}
+      title={item.locked ? `${item.title} — password protected` : `Open the interactive ${item.title} chart`}
       style={{
         display: "flex", flexDirection: "column", textAlign: "left", padding: 0, cursor: "pointer",
         borderRadius: 14, overflow: "hidden", background: "rgba(13,15,28,0.55)",
@@ -57,7 +80,9 @@ function Tile({ item, color, onOpen, renderPreview }) {
         "--glow": color,
       }}
     >
-      <LivePreview render={() => renderPreview(item.id)} />
+      {item.locked
+        ? <LockedCover color={color} />
+        : <LivePreview render={() => renderPreview(item.id)} />}
       <div style={{ padding: "13px 15px 15px", borderTop: `1px solid ${color}26` }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 5 }}>
           <span style={{ width: 8, height: 8, borderRadius: 2, background: color, flexShrink: 0, boxShadow: `0 0 8px ${color}` }} />
@@ -121,16 +146,15 @@ export default function ChartsGallery({
   const nq = q.trim().toLowerCase();
   // Filtered view of the catalog. Groups that lose every chart drop out entirely so
   // the page never shows an empty heading.
-  // `dev` charts are in-development. They're hidden from the library for everyone EXCEPT someone
-  // who has already unlocked them with the passphrase — otherwise the only way back in is to
-  // remember the URL, which is a silly thing to ask of the person building them.
-  const unlocked = (() => { try { return localStorage.getItem(CITY_KEY) === "1"; } catch { return false; } })();
+  // `dev` charts (City Lab) are internal: reachable by direct link, password-gated there, and NEVER
+  // listed here. They used to surface once someone passed the city passphrase — but now that SPX
+  // City is a listed, shared-password page, that flag would leak the internal lab to every
+  // password-holder. So dev stays strictly direct-link-only. `locked` charts (SPX City) ARE listed;
+  // the tile just wears a lock (see Tile) and entry hits the passphrase wall.
   const shown = useMemo(() => groups
-    .map(g => ({ ...g, charts: g.charts.filter(c => (unlocked || !c.dev) && (!nq || haystack(c, g.title).includes(nq))) }))
-    .filter(g => g.charts.length), [groups, nq, unlocked]);
-  // `dev` charts are in-development: routable by direct link (and password-gated there) but
-  // deliberately absent from the library so they aren't stumbled on before they're ready.
-  const total = groups.reduce((n, g) => n + g.charts.filter(c => unlocked || !c.dev).length, 0);
+    .map(g => ({ ...g, charts: g.charts.filter(c => !c.dev && (!nq || haystack(c, g.title).includes(nq))) }))
+    .filter(g => g.charts.length), [groups, nq]);
+  const total = groups.reduce((n, g) => n + g.charts.filter(c => !c.dev).length, 0);
   const found = shown.reduce((n, g) => n + g.charts.length, 0);
   // The other catalog — Aeon when browsing SPX, SPX when browsing Aeon.
   const otherGroups = groups === CHART_GROUPS ? AEON_GROUPS : CHART_GROUPS;

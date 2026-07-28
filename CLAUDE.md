@@ -416,10 +416,17 @@
   material (that would light every building in the bin). three is code-split into its own chunk, so nothing loads until a
   city is opened. **`window.__cityStats()` is the perf probe — run it on a REAL device; everything here has only ever
   been measured on a CPU software rasteriser.**
-- **🔒 DEV-GATED (owner, "needs to be perfect before shipping"):** `src/CityGate.jsx` wraps both — a passphrase
-  (`aeoncity`), an arrival explainer popup with a synthesised pop, and `dev:true` in charts-catalog hides them from
-  the gallery until unlocked (`localStorage["spx-city-dev"]`). **HONEST SCOPE: unlisted + locked, NOT security** —
-  the data behind it is public anyway. Unlocked users DO see them in their Charts library.
+- **🔒 GATING — SPX City is LISTED-BUT-LOCKED, City Lab stays DEV-HIDDEN (owner, 2026-07-28).** `src/CityGate.jsx`
+  wraps both with the passphrase (`aeoncity`) + arrival explainer + synthesised pop. Two distinct catalog flags now:
+  **`locked:true`** (SPX City) = LISTED in the gallery for everyone, but the tile shows a **lock cover instead of a
+  live preview** (`LockedCover` in ChartsGallery — a 🔒 over a faint generic skyline, never mounts three.js) and
+  opening it hits the passphrase wall; CityGate's `locked` prop swaps the framing from "under construction / check
+  back soon" to "🔒 Password protected" with the field shown straight away. **`dev:true`** (City Lab) = never listed,
+  direct-link-only (`?chart=citylab`), still password-gated there. **⚠ DECOUPLED the gallery's dev-reveal from the
+  gate-pass:** it used to reveal ALL `dev` charts once `localStorage[CITY_KEY]` was set (passing any city gate) — but
+  now that SPX City is a listed, shared-password page, that would leak the internal City Lab to every password-holder,
+  so `dev` charts are strictly direct-link-only regardless of the gate. **HONEST SCOPE unchanged: listed+locked, NOT
+  security** — passphrase is in this file + hashed in the bundle (public repo), the underlying data is public anyway.
 - **✅ CLAIM YOUR BUILDING — wallet messages (owner, 2026-07-27).** Connect an EVM wallet → `personal_sign` a free
   statement → your note hangs over your building (`src/CityWallet.jsx` + `src/city-messages.js`; signs are CSS2D
   labels in their own group). Rules, all deliberate: **only wallets that own a building can post** (the city is a
