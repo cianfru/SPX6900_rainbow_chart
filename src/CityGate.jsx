@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { SANS, MONO } from "./chart-ui.jsx";
+import { CITY_KEY as KEY } from "./city-gate-key.js";
 
 // DEVELOPMENT GATE + the arrival explainer for Aeon City / Whale City.
 //
@@ -8,7 +9,11 @@ import { SANS, MONO } from "./chart-ui.jsx";
 // determined can read the bundle. It is "unlisted and locked", not security. Nothing secret is
 // behind it (the underlying JSON is public data), so that trade is fine; just don't treat it as
 // protection for anything that actually needs protecting.
-const KEY = "spx-city-dev";
+//
+// Concretely: the repo is PUBLIC and the passphrase is written down in CLAUDE.md, so the lock stops
+// a passer-by and nobody else. That is the intended job — the page is a "not ready yet" sign, and
+// the gate only stops someone wandering in by accident. If anything ever DOES need to be private,
+// it cannot live behind this.
 // FNV-1a of the passphrase — so the literal string isn't sitting in the bundle in plain sight.
 const HASH = 3343087233;
 const fnv = s => { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; };
@@ -44,6 +49,7 @@ export default function CityGate({ title, accent = "#5eead4", unit = "holder", c
   const [ok, setOk] = useState(() => { try { return localStorage.getItem(KEY) === "1"; } catch { return false; } });
   const [pw, setPw] = useState("");
   const [bad, setBad] = useState(false);
+  const [reveal, setReveal] = useState(false);
   const [intro, setIntro] = useState(false);
   const shown = useRef(false);
 
@@ -71,26 +77,40 @@ export default function CityGate({ title, accent = "#5eead4", unit = "holder", c
 
   if (!ok) {
     return (
-      <div style={{ maxWidth: 520, margin: "60px auto", padding: "0 20px", fontFamily: SANS, textAlign: "center" }}>
-        <div style={{ fontSize: 42, marginBottom: 10 }}>🏙</div>
-        <h2 style={{ fontSize: 26, fontWeight: 800, color: "#f1f5f9", margin: "0 0 8px", letterSpacing: "-0.02em" }}>{title}</h2>
-        <p style={{ color: "#94a3b8", fontSize: 14.5, lineHeight: 1.6, margin: "0 0 22px" }}>
-          Still in development — not public yet. Enter the passphrase to take a look.
+      <div style={{ maxWidth: 560, margin: "60px auto", padding: "0 20px", fontFamily: SANS, textAlign: "center" }}>
+        <div style={{ fontSize: 42, marginBottom: 10 }}>🚧</div>
+        <h2 style={{ fontSize: 26, fontWeight: 800, color: "#f1f5f9", margin: "0 0 8px", letterSpacing: "-0.02em" }}>
+          {title} is under construction
+        </h2>
+        <p style={{ color: "#94a3b8", fontSize: 14.5, lineHeight: 1.65, margin: "0 0 26px" }}>
+          Still being built. Check back soon.
         </p>
-        <form onSubmit={submit} style={{ display: "flex", gap: 8, justifyContent: "center" }}>
-          <input type="password" value={pw} autoFocus onChange={e => { setPw(e.target.value); setBad(false); }}
-            placeholder="passphrase"
-            style={{
-              width: 220, padding: "9px 13px", borderRadius: 9, fontFamily: MONO, fontSize: 13,
-              background: "rgba(255,255,255,0.05)", border: `1px solid ${bad ? "#fb7185" : "rgba(255,255,255,0.16)"}`,
-              color: "#e2e8f0", outline: "none",
-            }} />
-          <button type="submit" style={{
-            padding: "9px 18px", borderRadius: 9, cursor: "pointer", fontFamily: MONO, fontSize: 13,
-            background: "rgba(255,255,255,0.08)", border: `1px solid ${accent}`, color: accent,
-          }}>Enter</button>
-        </form>
-        {bad && <div style={{ color: "#fb7185", fontSize: 13, marginTop: 12 }}>Not that one.</div>}
+
+        {/* The passphrase is for the people building it. Tucked behind a toggle so the page reads as a sign
+            rather than as a locked door — the point is to say "not ready", not to advertise a way in. */}
+        {!reveal ? (
+          <button onClick={() => setReveal(true)} style={{
+            background: "none", border: "none", cursor: "pointer", fontFamily: MONO, fontSize: 12,
+            color: "#64748b", textDecoration: "underline", textUnderlineOffset: 3, padding: 6,
+          }}>I&apos;m working on it</button>
+        ) : (
+          <>
+            <form onSubmit={submit} style={{ display: "flex", gap: 8, justifyContent: "center" }}>
+              <input type="password" value={pw} autoFocus onChange={e => { setPw(e.target.value); setBad(false); }}
+                placeholder="passphrase"
+                style={{
+                  width: 220, padding: "9px 13px", borderRadius: 9, fontFamily: MONO, fontSize: 13,
+                  background: "rgba(255,255,255,0.05)", border: `1px solid ${bad ? "#fb7185" : "rgba(255,255,255,0.16)"}`,
+                  color: "#e2e8f0", outline: "none",
+                }} />
+              <button type="submit" style={{
+                padding: "9px 18px", borderRadius: 9, cursor: "pointer", fontFamily: MONO, fontSize: 13,
+                background: "rgba(255,255,255,0.08)", border: `1px solid ${accent}`, color: accent,
+              }}>Enter</button>
+            </form>
+            {bad && <div style={{ color: "#fb7185", fontSize: 13, marginTop: 12 }}>Not that one.</div>}
+          </>
+        )}
       </div>
     );
   }
