@@ -8,7 +8,7 @@ import { heightOf, archetype } from "../src/city-render.js";
 // these pin the failure that produced the curve in the first place: a median building shorter than
 // it was wide, because a square root can't compress a power law on its own.
 
-const HMIN = 1.6, HMAX = 21, FOOT = 0.92;
+const HMIN = 1.0, HMAX = 21, FOOT = 0.92;
 const scores = () => {
   const W = JSON.parse(readFileSync("public/whales.json", "utf8")).wallets;
   const maxBal = Math.max(...W.map(w => w.bal)), maxDays = Math.max(...W.map(w => w.days || 0));
@@ -46,8 +46,11 @@ test("no building is wider than it is tall", () => {
   const S = scores(), lo = S.at(-1), hi = S[0];
   const h = S.map(s => heightOf(s, lo, hi, HMIN, HMAX));
   assert.ok(Math.min(...h) > FOOT, "the shortest building must still stand taller than its plot");
+  // 2.5:1 is deliberately well below where the curve currently sits (~3.1:1). This guards against a
+  // regression to the square root — which put the median at 0.67:1 — not against ordinary drift in
+  // the holder set, so it must not sit so close to the live value that a normal day trips it.
   const med = h[Math.floor(h.length / 2)];
-  assert.ok(med / FOOT > 3, `median aspect ratio ${(med / FOOT).toFixed(1)}:1 is too squat for Manhattan`);
+  assert.ok(med / FOOT > 2.5, `median aspect ratio ${(med / FOOT).toFixed(1)}:1 is too squat for Manhattan`);
 });
 
 test("the tallest tower stays within a believable slenderness", () => {

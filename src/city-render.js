@@ -142,7 +142,7 @@ export function heightOf(score, minScore, maxScore, hmin, hmax) {
   const usable = minScore > 0 && maxScore > minScore;
   const lg = usable ? (Math.log(s) - Math.log(minScore)) / (Math.log(maxScore) - Math.log(minScore)) : 0;
   const rt = maxScore > 0 ? Math.sqrt(Math.max(0, s) / maxScore) : 0;
-  const u = usable ? 0.70 * lg + 0.30 * rt : rt;
+  const u = usable ? 0.50 * lg + 0.50 * rt : rt;
   return hmin + (hmax - hmin) * Math.max(0, Math.min(1, u));
 }
 

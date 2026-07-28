@@ -100,7 +100,7 @@ export default function Skyline3D({
     // Height range. The CURVE between them lives in heightOf (city-render.js) — see the note there
     // for why it is mostly logarithmic. HMIN is the floor: the smallest resident cleared the
     // residency bar, so nothing in this city is a one-storey shed.
-    const HMIN = 1.6, HMAX = 21;
+    const HMIN = 1.0, HMAX = 21;
     const city = layout === "city";
     // City: real Manhattan lots (biggest holders in the tower districts). Grid: the plain block
     // skyline, kept as an option because it compares sizes far better than a scattered map does.

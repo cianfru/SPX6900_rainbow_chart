@@ -325,20 +325,34 @@
     a building WIDER THAN IT WAS TALL**, with 78% of the city under two units. A square root simply cannot compress a
     power law that spans ~2,800× between the smallest resident and the biggest whale: you get one needle over a field
     of doormats, which is exactly what the screenshot showed. **Fix = `heightOf()` in `city-render.js` (shared by the
-    building geometry AND the district labels so they can't drift): `HMIN + (HMAX-HMIN) × (0.70·lognorm + 0.30·sqrt)`,
-    HMIN 1.6 / HMAX 21.** Mostly log because that's the right scale for a power law (and what every price chart here
-    already uses); a little root mixed back in because PURE log flattens the top until a 14M-token wallet is barely
-    twice the median. HMIN is not decoration — the smallest resident cleared 5,000 tokens held 90+ days, and nothing
-    in Manhattan is one storey. **Ordering stays exact**, so the honesty rail holds; the caption says "mostly-
+    building geometry AND the district labels so they can't drift): `HMIN + (HMAX-HMIN) × (0.50·lognorm + 0.50·sqrt)`,
+    HMIN 1.0 / HMAX 21.** Log because that's the right scale for a power law (and what every price chart here already
+    uses); the root half mixed back in because PURE log flattens the top until a 14M-token wallet is barely twice the
+    median. HMIN is not decoration — the smallest resident cleared 5,000 tokens held 90+ days, and nothing in
+    Manhattan is one storey. **Ordering stays exact**, so the honesty rail holds; the caption says "mostly-
     logarithmic… the ranking is exact, the spacing is compressed" and the real figure is one hover away.
+    - **⚠⚠ THE SECOND MISTAKE, AND THE MORE USEFUL LESSON: 0.70·log / HMIN 1.6 OVERSHOT into "too busy" (owner,
+      same day). Fixing a flat city by raising the floor produces a UNIFORM city, which is just as unreadable.**
+      At 0.70/1.6 Manhattan's p50 was 6.5 and p95 12.9 — everything tall, so nothing read as tall, and the
+      foreground became a packed slab of near-identical grey towers with no negative space.
+      **Measure the INTERQUARTILE RANGE, not the median.** It barely moves across every candidate curve (2.6 → 2.1
+      units from 0.70·log down to 0.40·log), because **the uniformity is IN THE DATA** — Manhattan's middle half
+      genuinely holds within a narrow band of each other. So curve tuning can NEVER spread the middle; it only
+      slides the whole slab up or down. **Contrast has to come from the peaks standing clear of a LOW mass**, which
+      is why the fix was lowering the mass (p50 6.5 → 4.9, boroughs 3.2 → 2.4) rather than spreading it. If more
+      silhouette variety is ever wanted, vary FOOTPRINT/setbacks by wallet hash — footprint encodes nothing, so
+      that's free; height encodes the data and must not be jittered.
     - **⚠ ARCHETYPE THRESHOLDS ARE CALIBRATED TO THE CURVE — retune them TOGETHER, never one alone.** They were
       1.8/4/9 for the old squashed range; left unchanged on the log curve, every building in the city becomes glass.
-      Now **3.5 / 6 / 11**, which yields Manhattan 8% glass towers · 53% concrete mid-rise · 39% masonry, and the
-      boroughs 60% low-rise with ZERO towers. **That tall-island/low-borough split falls out of the DATA** (Manhattan
-      already takes the top 1,693 by conviction rank), not from a per-district rule — so it's a real finding, not set dressing.
+      Now **3.5 / 6 / 11**, which yields Manhattan 5% glass towers · 24% concrete mid-rise · 71% masonry, and the
+      boroughs 97% low-rise with ZERO towers. **That tall-island/low-borough split falls out of the DATA** (Manhattan
+      already takes the top 1,693 by conviction rank), not from a per-district rule — so it's a real finding, not set
+      dressing. The warm brick mass is also what gives the eye somewhere to rest — it's load-bearing, not decoration.
     - **Slenderness is the sanity check nobody thinks to run:** a building's aspect ratio is `h / 0.92`. Real supertalls
-      reach ~24:1 and that's the ceiling (HMAX 21 ⇒ 22.8:1); the old median was 0.67:1. `test/city-height.test.mjs`
-      pins monotonicity, the range, "no building wider than tall", median ≥ 3:1, that all four families still occur,
+      reach ~24:1 and that's the ceiling (HMAX 21 ⇒ 22.8:1); the old median was 0.67:1, now ~3.1:1.
+      `test/city-height.test.mjs` pins monotonicity, the range, "no building wider than tall", median ≥ 2.5:1
+      (set well below the live 3.1 deliberately — it guards the sqrt regression, not ordinary holder drift),
+      that all four families still occur,
       and that degenerate inputs (single wallet, zero min) return a number — a NaN here silently poisons a merged
       geometry bucket and takes a whole material group off screen. Draw calls are unaffected (82 at 4,893 buildings).
   - **⭐⭐ THE DESIGN RULE — "STONE AND LIGHT": realism goes into FORM, MATERIAL and LIGHTING; the DATA stays in the
