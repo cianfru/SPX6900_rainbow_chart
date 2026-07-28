@@ -56,7 +56,7 @@ export const chainOf = id => CHAINS[id] || CHAINS.base;
 // and both reading and writing light up, on the site and in the daily reader.
 export const CONTRACTS = {
   ethereum: "",
-  base: "",
+  base: "0xa167867B9E2117dce603A929dc1322864C282262",
 };
 export const isLive = id => !!CONTRACTS[id];
 export const anyLive = () => CHAIN_IDS.some(isLive);
