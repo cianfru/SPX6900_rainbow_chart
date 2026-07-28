@@ -97,13 +97,31 @@ export const NEIGHBOURHOODS = [
 ];
 export const HOOD_BY_ID = Object.fromEntries(NEIGHBOURHOODS.map(n => [n.id, n]));
 
-// weighted pick from a 0..1 hash
-const TOTAL_W = NEIGHBOURHOODS.reduce((s, n) => s + n.weight, 0);
+// ⭐ DISTRICTS ARE WEIGHTED BY THE LAND THEY ACTUALLY HAVE, not by a hand-set number.
+//
+// The weights above are how built-up each district feels, and they did not match how many lots the
+// geography yields: Harlem came out with 123 lots and 60 wallets — half empty, whole blocks of bare
+// pavement in the middle of the island — while the Financial District was oversubscribed almost
+// threefold and spilled its overflow elsewhere. Density now comes from area, so every district
+// fills to about the same level and no block is left paved and vacant.
+//
+// The skyline's character does NOT depend on these weights: the biggest holders are still drawn
+// into the tower districts by the bigT rule below, which is what actually puts the towers downtown.
+// Measured once at k=1; the relative proportions barely move with scale.
+let LOT_W = null;
+const lotWeights = () => {
+  if (!LOT_W) {
+    LOT_W = new Map();
+    for (const h of NEIGHBOURHOODS) LOT_W.set(h.id, Math.max(1, hoodGrid(h, 1).lots.length));
+  }
+  return LOT_W;
+};
 const TOWER_HOODS = NEIGHBOURHOODS.filter(n => n.towers);
-const TOWER_W = TOWER_HOODS.reduce((s, n) => s + n.weight, 0);
-function weightedPick(list, total, h) {
+function weightedPick(list, h) {
+  const w = lotWeights();
+  const total = list.reduce((s, n) => s + w.get(n.id), 0);
   let acc = 0;
-  for (const n of list) { acc += n.weight / total; if (h <= acc) return n; }
+  for (const n of list) { acc += w.get(n.id) / total; if (h <= acc) return n; }
   return list[list.length - 1];
 }
 
@@ -120,7 +138,7 @@ export const hash01 = s => {
 // and the skyline stops reading as New York. `bigT` is 0..1, the size rank (1 = biggest).
 export function neighbourhoodFor(address, bigT = 0) {
   const h = hash01(address);
-  return bigT > 0.9 ? weightedPick(TOWER_HOODS, TOWER_W, h) : weightedPick(NEIGHBOURHOODS, TOTAL_W, h);
+  return bigT > 0.9 ? weightedPick(TOWER_HOODS, h) : weightedPick(NEIGHBOURHOODS, h);
 }
 
 // ── lots ──────────────────────────────────────────────────────────────────────────────────────
@@ -258,7 +276,16 @@ export function placeCity(items, k = 1) {
     const bigT = n > 1 ? 1 - i / (n - 1) : 1;
     let hood = neighbourhoodFor(it.a, bigT);
     let slot = free(hood);
-    if (!slot) { const alt = NEIGHBOURHOODS.find(h => free(h)); if (alt) { hood = alt; slot = free(alt); } }
+    if (!slot) {
+      // Spill into the EMPTIEST district. Taking the first with space just piled the overflow into
+      // whichever district happened to head the list.
+      let best = null, bestFree = 0;
+      for (const h of NEIGHBOURHOODS) {
+        const e = lotsOf(h), room = e.lots.length - e.used.size;
+        if (room > bestFree) { bestFree = room; best = h; }
+      }
+      if (best) { hood = best; slot = free(best); }
+    }
     let lot = null;
     if (slot) {
       const { lots, used, stride, dense } = slot;
