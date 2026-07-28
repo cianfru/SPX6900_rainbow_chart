@@ -286,15 +286,22 @@ export function placeCity(items, k = 1) {
   };
   const free = h => { const e = lotsOf(h); return e.used.size < e.lots.length ? e : null; };
 
-  // ⭐ WHEN MANHATTAN IS FULL, THE NEWEST WALLETS MOVE OUT TO THE BOROUGHS. Which is both how the
-  // real city grew and the honest ordering: the island is finite, so somebody has to be across the
-  // river, and picking by TENURE means nobody is pushed out by a price move or a partial sale —
-  // only by having arrived later than the people already there.
+  // ⭐ MANHATTAN IS THE HIGHEST-CONVICTION WALLETS; everyone else is across the river.
+  //
+  // This used to pick by TENURE alone, which read wrong: a large holder who had been in for a few
+  // months landed in the Bronx, so lone towers stood over low-rise while the island missed the
+  // buildings people most want to look at. `items` arrives sorted by the conviction score — size
+  // weighted by holding time — so taking the tail keeps BOTH ideas: big gets you the island, and
+  // holding longer gets you there on less.
+  //
+  // The cost, stated plainly: the boundary is now sensitive to balance, so a wallet near rank 1,693
+  // can cross the river when it trades. That is real churn, but it is a MOVE rather than an
+  // eviction — the building still exists and is still searchable — and it only touches the middle
+  // of the distribution, never the big holders who are the reason anyone opens the page.
   const manCap = NEIGHBOURHOODS.reduce((s, h) => s + lotsOf(h).lots.length, 0);
   let outer = null, boro = null;
   if (n > manCap) {
-    const byAge = items.map((it, i) => ({ i, age: it.ageT ?? 0.5 })).sort((a, b) => a.age - b.age);
-    outer = new Set(byAge.slice(0, n - manCap).map(o => o.i));
+    outer = new Set(items.map((_, i) => i).slice(manCap));
     const lots = boroughLots(k);
     boro = { lots, used: new Set(), stride: strideFor(lots.length) };
   }
