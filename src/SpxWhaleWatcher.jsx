@@ -1,6 +1,6 @@
 import { useMemo, useState, useEffect, lazy, Suspense } from "react";
 import { loadWhales, loadOnchain } from "./history-data.js";
-import WalletCard, { shortAddr } from "./WalletCard.jsx";
+import { shortAddr } from "./WalletCard.jsx";
 import CityControls from "./CityControls.jsx";
 import CityWallet from "./CityWallet.jsx";
 import CityGate from "./CityGate.jsx";
@@ -62,6 +62,19 @@ export default function SpxWhaleWatcher({ isMobile, preview = false }) {
   if (data == null) return <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Loading whale data…</div>;
   if (data === false || !towers) return <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Whale data is being reconstructed — check back after the next on-chain refresh.</div>;
 
+  const pinCard = t => `
+      <div style="padding:9px 12px 7px">
+        ${t.hood ? `<div style="color:#c4b5fd;font:700 10.5px 'Space Grotesk',system-ui;letter-spacing:.18em;text-transform:uppercase">${t.hood.name}</div>` : ""}
+        <div style="color:#e2e8f0;font-weight:700;font-size:13px;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${t.ens || shortAddr(t.a)}</div>
+        <div style="color:#94a3b8;font-size:11.5px">${fmt(t.bal)} SPX · held ${t.days}d</div>
+      </div>
+      ${t.flow ? `<div style="margin:0 12px 8px;padding:5px 8px;border-radius:7px;font-size:11px;color:${t.flow > 0 ? "#4ade80" : "#fb7185"};background:${t.flow > 0 ? "rgba(74,222,128,0.12)" : "rgba(251,113,133,0.12)"}">${t.flow > 0 ? "+" : "−"}${Math.abs(t.flow).toLocaleString(undefined, { maximumFractionDigits: 0 })} SPX · ${win}d</div>` : ""}
+      <a href="https://app.zerion.io/${t.a}/overview" target="_blank" rel="noopener noreferrer" style="display:block;text-decoration:none">
+        <img src="https://render.zerion.io/preview?address=${t.a}" alt="" onerror="this.style.display='none'"
+             style="display:block;width:100%;border-top:1px solid rgba(255,255,255,0.08)"/>
+        <div style="padding:7px 12px;color:#c4b5fd;font-size:11px">open in Zerion →</div>
+      </a>`;
+
   const cardHtml = t => {
     const f = t.flow || 0;
     const col = f > 0 ? "#4ade80" : f < 0 ? "#fb7185" : "#94a3b8";
@@ -122,20 +135,13 @@ export default function SpxWhaleWatcher({ isMobile, preview = false }) {
         owns={a => visible.some(t => (t.a || "").toLowerCase() === a)}
         onFocus={a => { goTo(a); const m = visible.find(t => (t.a || "").toLowerCase() === a); if (m) setSel(m); }} />
 
-      {!preview && cur && (
-        <div style={{ marginBottom: 10 }}>
-          <WalletCard w={cur} flow={cur.flow} flowUnit=" SPX" accent="#c4b5fd" isMobile={isMobile} wide
-            lines={[`${fmt(cur.bal)} SPX${stats.spot ? ` · ~$${Math.round(cur.bal * stats.spot).toLocaleString()}` : ""}`, `held ${cur.days} days${cur.hood ? ` · ${cur.hood.name}` : ""}`]} />
-        </div>
-      )}
-
       <div style={{ position: "relative" }}>
         <div style={{ width: "100%" }}>
           <Suspense fallback={<div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Loading 3D…</div>}>
             <Skyline3D towers={visible} isMobile={isMobile} cardHtml={cardHtml}
               onSelect={t => { setSel(t); goTo(t.a); }}
               crownLabel="🐋 biggest whale" accent="rgba(167,139,250,0.45)" bodyFrom={0xf2cf8a} bodyTo={0x22d3ee}
-              layout={layout} focus={focus} focusNonce={focusN} messages={msgs} time={time} infra={infra} />
+              layout={layout} focus={focus} focusNonce={focusN} pinned={preview ? null : cur} pinnedHtml={pinCard} messages={msgs} time={time} infra={infra} />
           </Suspense>
           <div style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 8 }}>
             Drag to orbit · scroll to zoom · hover a building for the wallet · click to pin it.{layout === "city" && " Every wallet has a home address in Whale City."}

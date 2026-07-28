@@ -2,7 +2,6 @@ import { useMemo, useState, useEffect, lazy, Suspense } from "react";
 import { AEON_ONCHAIN } from "./aeon-onchain.js";
 import { loadAeon } from "./history-data.js";
 import { SANS, MONO, MAX_W, Metric, Explain } from "./chart-ui.jsx";
-import WalletCard from "./WalletCard.jsx";
 import CityControls from "./CityControls.jsx";
 import CityWallet from "./CityWallet.jsx";
 import CityGate from "./CityGate.jsx";
@@ -31,10 +30,8 @@ export default function AeonSkylineChart({ isMobile, preview = false }) {
   const all = useMemo(() => (data.holders || []).filter(h => h.a && h.n > 0), [data]);
   const holders = useMemo(() => multiOnly ? all.filter(h => h.n > 1) : all, [all, multiOnly]);
   const singleCount = useMemo(() => all.filter(h => h.n === 1).length, [all]);
-  if (holders.length < 4) return <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Not enough holder data yet.</div>;
-
   const champ = holders[0];
-  const maxN = Math.max(...holders.map(h => h.n));
+  const maxN = Math.max(1, ...holders.map(h => h.n));
   const hasSpx = holders.some(h => h.spx > 0);
   const both = holders.filter(h => h.spx > 0).length;
   const maxDays = Math.max(1, ...holders.map(h => h.days || 0));
@@ -56,7 +53,28 @@ export default function AeonSkylineChart({ isMobile, preview = false }) {
   const adding = towers.filter(t => t.flow > 0).length, shedding = towers.filter(t => t.flow < 0).length;
   // render the biggest N (all holders stay searchable)
   const visible = useMemo(() => towers.slice().sort((a, b) => b.score - a.score).slice(0, shownN), [towers, shownN]);
+
+  // Every hook above this line runs on EVERY render. The bail-out has to come after them all —
+  // React counts hooks by call order, so returning early from the middle changes the count between
+  // renders and throws.
+  if (holders.length < 4) return <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Not enough holder data yet.</div>;
   const cur = sel || visible[0];
+  // The card that hangs over the selected building. Leads with the NEIGHBOURHOOD, because that is
+  // the part people react to — an address tells you nothing, "Upper East Side" tells you where you
+  // live. The Zerion link is the only clickable thing in the 3D scene.
+  const pinCard = t => `
+      <div style="padding:9px 12px 7px">
+        ${t.hood ? `<div style="color:#5eead4;font:700 10.5px 'Space Grotesk',system-ui;letter-spacing:.18em;text-transform:uppercase">${t.hood.name}</div>` : ""}
+        <div style="color:#e2e8f0;font-weight:700;font-size:13px;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${t.ens || short(t.a)}</div>
+        <div style="color:#94a3b8;font-size:11.5px">${t.n} AEON${spxOn && t.spx ? ` · ${fmtSpx(t.spx)} SPX` : ""} · held ${t.days}d</div>
+      </div>
+      ${t.flow ? `<div style="margin:0 12px 8px;padding:5px 8px;border-radius:7px;font-size:11px;color:${t.flow > 0 ? "#4ade80" : "#fb7185"};background:${t.flow > 0 ? "rgba(74,222,128,0.12)" : "rgba(251,113,133,0.12)"}">${t.flow > 0 ? `+${t.flow} bought` : `${t.flow} sold`} · 30d</div>` : ""}
+      <a href="https://app.zerion.io/${t.a}/overview" target="_blank" rel="noopener noreferrer" style="display:block;text-decoration:none">
+        <img src="https://render.zerion.io/preview?address=${t.a}" alt="" onerror="this.style.display='none'"
+             style="display:block;width:100%;border-top:1px solid rgba(255,255,255,0.08)"/>
+        <div style="padding:7px 12px;color:#5eead4;font-size:11px">open in Zerion →</div>
+      </a>`;
+
   const aeonCard = t => `
       <div style="padding:11px 13px 8px">
         <div style="color:#5eead4;font-weight:700;font-size:13.5px">${t.ens || short(t.a)}</div>
@@ -167,20 +185,13 @@ export default function AeonSkylineChart({ isMobile, preview = false }) {
         owns={a => visible.some(t => (t.a || "").toLowerCase() === a)}
         onFocus={a => { goTo(a); const m = visible.find(t => (t.a || "").toLowerCase() === a); if (m) setSel(m); }} />
 
-      {!preview && cur && (
-        <div style={{ marginBottom: 10 }}>
-          <WalletCard w={cur} flow={cur.flow} flowUnit=" AEON" accent="#5eead4" isMobile={isMobile} wide
-            lines={[`${cur.n} AEON${spxOn && cur.spx ? ` · ${fmtSpx(cur.spx)} SPX` : ""}`, `held ${cur.days} days${cur.hood ? ` · ${cur.hood.name}` : ""}`]} />
-        </div>
-      )}
-
       <div style={{ position: "relative" }}>
         <div style={{ width: "100%" }}>
           <Suspense fallback={<div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Loading 3D…</div>}>
             <Skyline3D towers={visible} isMobile={isMobile} cardHtml={aeonCard}
               onSelect={t => { setSel(t); goTo(t.a); }}
               crownLabel="👑 top holder" accent="rgba(45,212,191,0.45)" bodyFrom={0xf2cf8a} bodyTo={0x22d3ee}
-              layout={layout} focus={focus} focusNonce={focusN} messages={msgs} time={time} />
+              layout={layout} focus={focus} focusNonce={focusN} pinned={preview ? null : cur} pinnedHtml={pinCard} messages={msgs} time={time} />
           </Suspense>
         </div>
 

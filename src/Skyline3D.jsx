@@ -64,6 +64,8 @@ export default function Skyline3D({
   layout = "city",                          // "city" = laid out on Manhattan · "grid" = the raw skyline
   focus = null,                             // an address to move the camera to
   focusNonce = 0,                           // bump to re-trigger a move to the SAME address
+  pinned = null,                            // the selected tower — its card hangs over its roof
+  pinnedHtml = null,                        // (tower) => HTML for that card
   intro = true,                             // play the arrival fly-through on mount
   onIntroDone,
   messages = null,                          // { address: { text, ts } } — signs hung over buildings
@@ -74,6 +76,7 @@ export default function Skyline3D({
   const api = useRef(null);                 // { cam, controls, homes } for the focus effect
   const selectRef = useRef(onSelect); selectRef.current = onSelect;
   const cardRef = useRef(cardHtml); cardRef.current = cardHtml;
+  const pinRef = useRef(pinnedHtml); pinRef.current = pinnedHtml;
 
   useEffect(() => {
     const el = mount.current; if (!el || !towers?.length) return;
@@ -175,10 +178,15 @@ export default function Skyline3D({
         sh.closePath();
         return sh;
       };
-      const flat = (rings, colour, y) => {
+      // `wet` matters: the harbour patches are WATER and have to match the sea plane's material,
+      // not the matte one the land polygons use. Painted with the land material they came out as
+      // flat pale shapes that took no sun at all, so the bay looked like concrete beside a river
+      // that sparkled.
+      const flat = (rings, colour, y, wet = false) => {
         if (!rings?.length) return;
         const m = new THREE.Mesh(new THREE.ShapeGeometry(ringShape(rings)),
-          new THREE.MeshStandardMaterial({ color: colour, roughness: 0.95, side: THREE.DoubleSide }));
+          wet ? new THREE.MeshStandardMaterial({ color: colour, roughness: 0.42, metalness: 0.06, side: THREE.DoubleSide })
+              : new THREE.MeshStandardMaterial({ color: colour, roughness: 0.95, side: THREE.DoubleSide }));
         m.rotation.x = Math.PI / 2; m.position.y = y; scene.add(m); groundBits.push(m);
       };
 
@@ -192,7 +200,7 @@ export default function Skyline3D({
       // The harbour, painted back OVER the boroughs — their outlines are administrative boundaries
       // that legally cross open water, so without this Brooklyn paves the Upper Bay and Manhattan
       // sits in a puddle. See the WATER note in city-map.js.
-      for (const w of WATER) flat([w.ring], TOD.water, -0.16);
+      for (const w of WATER) flat([w.ring], TOD.water, -0.16, true);
       for (const i of ISLETS) flat(i.rings, TOD.back, -0.06);     // Roosevelt Island
       flat([ISLAND_RING], TOD.road, 0);   // the island reads as the road surface; blocks sit above it                            // Manhattan
       flat(PARK_RINGS, TOD.park, 0.06);                            // Central Park
@@ -309,6 +317,7 @@ export default function Skyline3D({
       scene.add(m); disposables.push(merged);
     };
 
+    const labelBits = [];
     const haloUp = [], haloDown = [], beamUp = [], beamDown = [];
     // ⚠ BUILDINGS MUST WEAR THE GRID'S ROTATION. They were axis-aligned boxes dropped onto blocks
     // that are rotated to the street bearing, so every building sat askew on its own plot. With a
@@ -473,6 +482,40 @@ export default function Skyline3D({
     scene.add(pickMesh); disposables.push(pickGeo, pickMat);
 
     const buildMs = performance.now() - t0;
+
+    // ── district names, laid on the city like a map ─────────────────────────────────────────
+    // The neighbourhood is one of the nicest things the city knows and it was buried in the second
+    // line of a card. Written across the districts it becomes the thing you read first — and it is
+    // what makes the place navigable, because "Harlem" tells you where you are and a wallet address
+    // never will. Positioned from the buildings actually placed there, so a label can never float
+    // over water or over a district that came out empty.
+    if (city) {
+      const agg = new Map();
+      T.forEach((t, i) => {
+        const h = placed[i]?.hood; if (!h) return;
+        const a = agg.get(h.id) || { name: h.name, x: 0, z: 0, n: 0, top: 0 };
+        a.x += pts[i].x; a.z += pts[i].z; a.n++;
+        a.top = Math.max(a.top, Math.sqrt(Math.max(0, t.score) / maxScore) * HMAX);
+        agg.set(h.id, a);
+      });
+      // Stagger the heights. Downtown's districts are small and perspective compresses the far end
+      // of the island, so at a single height four labels pile onto the same twenty pixels.
+      let li = 0;
+      for (const a of agg.values()) {
+        if (a.n < 3) continue;
+        const lift = [0, 7, 14][li++ % 3];
+        const d = document.createElement("div");
+        d.textContent = a.name;
+        Object.assign(d.style, {
+          color: "rgba(226,232,240,0.72)", font: "600 12px 'Space Grotesk', system-ui, sans-serif",
+          letterSpacing: "0.22em", textTransform: "uppercase", whiteSpace: "nowrap",
+          textShadow: "0 2px 10px rgba(0,0,0,0.9), 0 0 3px rgba(0,0,0,0.8)", pointerEvents: "none",
+        });
+        const o = new CSS2DObject(d);
+        o.position.set(a.x / a.n, Math.max(a.top * 1.15, 9) + lift, a.z / a.n);
+        scene.add(o); labelBits.push(o);
+      }
+    }
 
     // crown the #1
     if (champInfo) {
@@ -645,6 +688,7 @@ export default function Skyline3D({
       ownMats.forEach(m => m.dispose());
       groundBits.forEach(g => { if (g.dispose) g.dispose(); else { g.geometry?.dispose(); g.material?.dispose(); } });
       pads?.dispose();
+      labelBits.forEach(o => { o.element?.remove(); scene.remove(o); });
       delete window.__citySeek; delete window.__cityReady; delete window.__cityStats;
       renderer.dispose(); el.removeChild(renderer.domElement); el.removeChild(labelR.domElement); el.removeChild(tip);
     };
@@ -700,6 +744,31 @@ export default function Skyline3D({
       for (const o of [...g.children]) { o.element?.remove(); g.remove(o); }
     };
   }, [messages, towers, layout, time]);
+
+  // The selected wallet's card, hung over its own roof rather than parked above the map. It sits
+  // where the thing it describes is, which is the whole argument for a map; and it is the one label
+  // here with pointer events, so the Zerion link is reachable with a finger.
+  useEffect(() => {
+    const a = api.current; if (!a?.signs || !pinned || !pinRef.current) return;
+    const home = a.homes.get(String(pinned.a || "").toLowerCase());
+    if (!home) return;
+    const wrap = document.createElement("div");
+    wrap.style.position = "relative";
+    const d = document.createElement("div");
+    Object.assign(d.style, {
+      position: "absolute", left: "50%", bottom: "26px", transform: "translateX(-50%)",
+      width: "216px", borderRadius: "12px", overflow: "hidden",
+      background: "rgba(8,11,20,0.95)", border: `1px solid ${accent}`,
+      boxShadow: "0 12px 34px rgba(0,0,0,0.65)", pointerEvents: "auto", cursor: "default",
+    });
+    d.innerHTML = pinRef.current(pinned) ?? "";
+    wrap.appendChild(d);
+    const o = new CSS2DObject(wrap);
+    // clear of the spire, and above where a note would hang
+    o.position.set(home.x, home.h + 1.5, home.z);
+    a.scene.add(o);
+    return () => { d.remove(); wrap.remove(); a.scene.remove(o); };
+  }, [pinned, towers, layout, time, accent]);
 
   // Move to a building, without rebuilding the scene. A tween rather than a jump: teleporting
   // between towers is disorienting because you lose all sense of where you went, and the whole
