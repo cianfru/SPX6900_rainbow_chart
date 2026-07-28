@@ -35,3 +35,12 @@ public/recap/
 
 # local card preview renders (keep dune/out/*.csv as provenance)
 dune/out/*.png
+
+# Throwaway Playwright/render probes written to the repo root while debugging the 3D city.
+# They are scratch, never part of the build, and one slipped into a commit once already.
+v.mjs
+dbg*.mjs
+meas.mjs
+chk*.mjs
+check*.mjs
+lab.mjs
