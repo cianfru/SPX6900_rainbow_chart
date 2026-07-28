@@ -247,7 +247,33 @@ export function replayFifo(transfers, priceAt, sampleTs, opts = {}) {
       arr.push({ a, bal: e.bal, oldest });
     }
     arr.sort((x, y) => y.bal - x.bal);
-    return arr.slice(0, opts.whaleTop ?? 1500).map(w => {
+
+    // ⭐ RESIDENCY, not a top-N. A wallet earns a building by holding a real position for a real
+    // length of time — 5,000 SPX for 90 days — rather than by beating 1,499 others on a leaderboard.
+    // Two reasons that is the better rule. A rank cutoff makes the city churn every time the order
+    // shuffles, and it silently changes meaning as the holder base grows; a fixed bar means being in
+    // the city always says exactly the same thing about you.
+    //
+    // DENOMINATED IN TOKENS, NEVER DOLLARS. A USD bar would evict a chunk of the city on a week when
+    // nobody sold anything — the price moved, that's all. Token balances change only when someone
+    // actually acts, which is what the city is a map of.
+    //
+    // HYSTERESIS: once resident you keep your building until you fall below 0.8x the bar. Without
+    // it every wallet sitting near 5,000 blinks in and out week to week, which reads as a rendering
+    // fault rather than as anything true.
+    const MIN_TOKENS = Number(opts.minTokens ?? 5000);
+    const MIN_DAYS = Number(opts.minDays ?? 90);
+    const KEEP = 0.8;
+    const resident = new Set(opts.previousResidents || []);
+    const CAP = Number(opts.whaleTop ?? 8000);   // a backstop against pathological data, not a rank
+
+    const qualifies = w => {
+      const days = Number.isFinite(w.oldest) ? Math.round((lastTs - w.oldest) / DAY) : 0;
+      if (days < MIN_DAYS) return false;
+      return w.bal >= MIN_TOKENS || (resident.has(w.a) && w.bal >= MIN_TOKENS * KEEP);
+    };
+
+    return arr.filter(qualifies).slice(0, CAP).map(w => {
       const o = { a: w.a, bal: +w.bal.toFixed(2), days: Number.isFinite(w.oldest) ? Math.round((lastTs - w.oldest) / DAY) : 0 };
       // delta vs each checkpoint. A wallet absent from the snapshot was empty then, so the
       // delta is its whole balance — a genuinely NEW whale, which is exactly what we want to show.
@@ -445,7 +471,19 @@ async function main() {
   const grid = args.daily
     ? Array.from({ length: Math.floor((t1 - t0) / DAY) + 2 }, (_, i) => dayFloor(t0) + i * DAY)
     : mondays(t0, t1);
-  const { rows, urpd, whales } = replayFifo(transfers, priceAt, grid, { thresholdDays: Number(args.threshold ?? 90), collectUrpd: true, urpdBuckets: Number(args.buckets ?? 72), collectWhales: true, whaleTop: Number(args.whales_top ?? 1500) });
+  // Who lived here last run. Hysteresis needs it: a resident keeps their building down to 0.8x the
+  // bar, so nobody near the threshold blinks in and out week to week. Missing file on the first run
+  // simply means nobody is grandfathered, which is correct.
+  const whalesPath = args.whales || (args.out || "public/onchain.json").replace(/[^/]+$/, "whales.json");
+  let prevResidents = [];
+  try { prevResidents = (JSON.parse(await readFile(whalesPath, "utf8")).wallets || []).map(w => w.a); }
+  catch { /* first run */ }
+
+  const { rows, urpd, whales } = replayFifo(transfers, priceAt, grid, { thresholdDays: Number(args.threshold ?? 90), collectUrpd: true, urpdBuckets: Number(args.buckets ?? 72), collectWhales: true,
+    whaleTop: Number(args.whales_top ?? 8000),
+    minTokens: Number(args.whale_min ?? 5000),
+    minDays: Number(args.whale_days ?? 90),
+    previousResidents: prevResidents });
   const clean = rows.filter(r => r.holders > 0);
   const out = args.out || "public/onchain.json";
   await writeFile(out, JSON.stringify(clean));
@@ -453,7 +491,7 @@ async function main() {
   const urpdOut = args.urpd || out.replace(/[^/]+$/, "urpd.json");
   await writeFile(urpdOut, JSON.stringify(urpd));
   // Whale watcher companion (top current holders + how much they've added/shed).
-  const whalesOut = args.whales || out.replace(/[^/]+$/, "whales.json");
+  const whalesOut = whalesPath;
   await writeFile(whalesOut, JSON.stringify(whales));
   const c = clean.at(-1);
   console.log(`Wrote ${out}: ${clean.length} rows. Latest ${c.d}: rp $${c.rp} · mvrv ${c.mvrv}× · sip ${c.sip}% · sopr ${c.sopr} · holders ${c.holders} · top100 ${c.top100}% · age ${c.age.join("/")}`);
