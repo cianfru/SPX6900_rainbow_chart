@@ -102,31 +102,67 @@ export function neighbourhoodFor(address, bigT = 0) {
 // ── lots ──────────────────────────────────────────────────────────────────────────────────────
 // A street grid in AXIS space, clipped to the real coastline (and to Central Park, which is not
 // buildable). Avenues run along the island, streets across it — the same way Manhattan is laid out.
-const AVENUE = 1.45, STREET = 1.25, SHORE = 1.0;
+// ⭐ ONE GRID DRIVES BOTH THE LOTS AND THE STREETS. They used to be independent: lots were a solid
+// lattice with no gaps at 1.45 x 1.25, while the painted street lines were drawn on unrelated
+// 1.9 x 2.2 spacing. So buildings abutted each other in an unbroken carpet AND the streets ran
+// underneath them — the city had no blocks and no avenues, just a field of towers with decorative
+// lines painted under it.
+//
+// Now lots are grouped into BLOCKS with real gaps between them, and streetGrid draws down the
+// middle of those gaps, so the corridors you see are the corridors the buildings left.
+//
+// The proportions are Manhattan's: blocks are LONG across the island (avenue to avenue, ~274 m in
+// reality) and SHORT along it (street to street, ~80 m). Buildings nearly touch inside a block —
+// which is correct, that's a city block — and the space is all in the streets between them.
+export const GRID = {
+  lotU: 1.15,      // lot width across the island
+  lotT: 1.15,      // lot depth along the island
+  blkU: 5,         // lots per block across — the long side
+  blkT: 2,         // lots per block along — the short side
+  street: 1.20,    // gap between blocks along the island
+  avenue: 2.10,    // gap between block columns — wider, these are the avenues
+};
+const PERIOD_U = GRID.blkU * GRID.lotU + GRID.avenue;
+const PERIOD_T = GRID.blkT * GRID.lotT + GRID.street;
+const SHORE = 1.0;
+
+// Block columns are indexed from the island's centre line, so every district lands on the SAME
+// grid. Letting each neighbourhood start its own lattice made the avenues jog at every boundary.
+const COLS = Math.ceil(24 / PERIOD_U);
+
 export function hoodLots(hood, k = 1) {
   const lots = [];
-  const t0 = hood.t0, t1 = hood.t1;
-  const halfW = 22;                                   // scan wider than the island; clipping trims it
-  const dt = STREET / (AXIS.len * k);
-  for (let t = t0 + dt * 0.5; t < t1; t += dt) {
-    for (let u = -halfW; u <= halfW; u += AVENUE) {
-      const { x, z } = fromAxis(t, u / k);             // lots sit on the real island at scale k
-      const X = x * k, Z = z * k;
-      if (!inManhattan(x, z)) continue;               // test in real coords, place in scaled ones
-      if (inPark(x, z)) continue;                     // no building in Central Park
-      // keep a margin off the waterfront so buildings don't hang over the edge
-      if (!inManhattan(x + SHORE, z) || !inManhattan(x - SHORE, z) ||
-          !inManhattan(x, z + SHORE) || !inManhattan(x, z - SHORE)) continue;
-      if (hood.side === "east" && u < 0) continue;     // east of the park
-      if (hood.side === "west" && u > 0) continue;     // west of the park
-      lots.push({ x: X, z: Z });
+  const perT = PERIOD_T / (AXIS.len * k);          // one block row, in t units
+  const lotT = GRID.lotT / (AXIS.len * k);
+  const first = Math.ceil(hood.t0 / perT);         // snap to the global row grid
+  for (let bi = first; bi * perT < hood.t1; bi++) {
+    for (let li = 0; li < GRID.blkT; li++) {
+      const t = bi * perT + (li + 0.5) * lotT;
+      if (t >= hood.t1) break;
+      for (let bu = -COLS; bu <= COLS; bu++) {
+        for (let lu = 0; lu < GRID.blkU; lu++) {
+          const u = bu * PERIOD_U + (lu + 0.5 - GRID.blkU / 2) * GRID.lotU;
+          const { x, z } = fromAxis(t, u / k);     // lots sit on the real island at scale k
+          if (!inManhattan(x, z) || inPark(x, z)) continue;
+          // keep a margin off the waterfront so buildings don't hang over the edge
+          if (!inManhattan(x + SHORE, z) || !inManhattan(x - SHORE, z) ||
+              !inManhattan(x, z + SHORE) || !inManhattan(x, z - SHORE)) continue;
+          if (hood.side === "east" && u < 0) continue;
+          if (hood.side === "west" && u > 0) continue;
+          lots.push({ x: x * k, z: z * k });
+        }
+      }
     }
   }
   return lots;
 }
 
-// Scale the whole city to the population so it always looks built-up rather than empty.
-export const cityScale = n => Math.min(1, Math.max(0.4, Math.sqrt((n || 1) / 1400)));
+// Scale the whole city to the population so it always looks built-up rather than empty. The
+// divisor is tuned so blocks come out ~85% FULL. Two failures either side of that: too sparse and
+// each block holds three buildings in a big empty rectangle, which reads as suburbia; too tight and
+// the placer runs out of island. Manhattan blocks are solid — the space in a real city is in the
+// streets between blocks, not inside them, which is why the grid gaps do this job now instead.
+export const cityScale = n => Math.min(1, Math.max(0.4, Math.sqrt((n || 1) / 1450)));
 
 // One lot per wallet, never two.
 //
@@ -274,24 +310,33 @@ export const PARK_RINGS = PARK_RING ? [PARK_RING] : [];
 // Manhattan's street grid, clipped to the coastline — avenues along the island, streets across.
 export function streetGrid(k = 1) {
   const segs = [];
-  const dt = 2.2 / AXIS.len, halfW = 22;
-  for (let t = 0.004; t < 1; t += dt) {                       // cross-streets
+  const halfW = 24;
+  const perT = PERIOD_T / (AXIS.len * k);
+  const lotT = GRID.lotT / (AXIS.len * k);
+  const gapT = (GRID.street / 2) / (AXIS.len * k);
+  // Trace a line only where it is actually on the island, so streets stop at the water rather than
+  // running out over it.
+  const trace = (pt, steps, step) => {
     let run = null;
-    for (let u = -halfW; u <= halfW; u += 0.4) {
-      const { x, z } = fromAxis(t, u);
+    for (let i = 0; i <= steps; i++) {
+      const { x, z } = pt(i * step);
       const on = inManhattan(x, z) && !inPark(x, z);
       if (on && !run) run = [x * k, z * k];
       else if (!on && run) { segs.push([run[0], run[1], x * k, z * k]); run = null; }
     }
+    if (run) { const { x, z } = pt(steps * step); segs.push([run[0], run[1], x * k, z * k]); }
+  };
+  // cross-streets: down the middle of the gap between block rows
+  for (let bi = 0; bi * perT < 1; bi++) {
+    const t = bi * perT + GRID.blkT * lotT + gapT;
+    if (t >= 1) break;
+    trace(u => fromAxis(t, (u - halfW) / k), 120, halfW * 2 / 120);
   }
-  for (let u = -halfW; u <= halfW; u += 1.9) {                // avenues
-    let run = null;
-    for (let t = 0; t <= 1; t += 0.004) {
-      const { x, z } = fromAxis(t, u);
-      const on = inManhattan(x, z) && !inPark(x, z);
-      if (on && !run) run = [x * k, z * k];
-      else if (!on && run) { segs.push([run[0], run[1], x * k, z * k]); run = null; }
-    }
+  // avenues: down the middle of the gap between block columns
+  for (let bu = -COLS; bu < COLS; bu++) {
+    const u = (bu + 0.5) * PERIOD_U;
+    trace(t => fromAxis(t, u / k), 260, 1 / 260);
   }
   return segs;
 }
+
