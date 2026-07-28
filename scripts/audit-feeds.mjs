@@ -60,6 +60,10 @@ export const FEEDS = [
     fields: ["sip", "top100", "holders", "rp", "mvrv", "age", "tiers", "wealth", "whalePct", "whaleN", "heldTokens"],
     soft: ["sopr", "cexBal", "lpBal", "cexVenues", "liqEx"] },
   { file: "urpd.json", cadence: 9, by: "onchain-dune.yml", what: "the cost-basis histogram" },
+  // A FEED, not state: Whale City reads it and it is refreshed by the same daily pipeline. Audited
+  // for freshness on purpose — if the pipeline stops, the city silently shows a stale population
+  // rather than nothing, which is the failure mode this audit exists to catch.
+  { file: "whales.json", cadence: 9, by: "onchain-dune.yml", what: "the wallets resident in Whale City" },
 
   // ── other schedules ─────────────────────────────────────────────────────────
   { file: "price-history.json", cadence: 9, by: "price-history.yml", what: "the dense daily price line" },

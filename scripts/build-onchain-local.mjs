@@ -47,6 +47,11 @@ export const EXCLUDE_LABELS = {
   "0xdf5e3a1ed0c14a53eee240022301ecb9d267671b": { name: "Kraken-linked", kind: "cex" },        // Kraken-funded, trades the SPX contract
   "0x73d8bd54f7cf5fab43fe4ef40a62d390644946db": { name: "BitGo custody (WalletSimple)", kind: "cex" }, // another WalletSimple proxy → exchange-side
   // ── Owner-tagged CEX coverage batch, 2026-07-22 (Etherscan). More venues + extra hot wallets. ──
+  // Owner-spotted 2026-07-28: showing as the 13th largest HOLDER at 9.4M SPX (~1% of supply) while
+  // actually being an exchange. Untagged infrastructure is the most expensive kind of error here —
+  // it invents a resident, inflates the holder count, distorts top-10/top-100 concentration, and
+  // subtracts its balance from the venue it really belongs to.
+  "0xb0a3a2b60e969afd26561429aa4c1444c57e4411": { name: "MEXC", kind: "cex" },
   "0x377b8ce04761754e8ac153b47805a9cf6b190873": { name: "Upbit", kind: "cex" },
   "0xcffad3200574698b78f32232aa9d63eabd290703": { name: "Crypto.com", kind: "cex" },
   "0xab782bc7d4a2b306825de5a7730034f8f63ee1bc": { name: "Bitvavo", kind: "cex" },
