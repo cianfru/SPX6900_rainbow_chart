@@ -205,7 +205,7 @@ export default function Skyline3D({
           // NOT scaled by K: lot pitch is already in final world units (hoodLots divides u by k
           // before projecting, then multiplies back), so scaling here shrinks every slab under its
           // own buildings and the pavement vanishes.
-          const g = new THREE.BoxGeometry(b.d * 1.06, 0.17, b.w * 1.03);
+          const g = new THREE.BoxGeometry(b.d, 0.17, b.w);   // already sized to its lots + kerb
           g.rotateY(-AXIS_ANGLE); g.translate(b.x, 0.085, b.z);
           slabs.push(g);
         }

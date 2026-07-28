@@ -20,10 +20,34 @@ const AXIS = (() => {
   let cx = 0, cz = 0;
   for (const [x, z] of MANHATTAN) { cx += x; cz += z; }
   cx /= MANHATTAN.length; cz /= MANHATTAN.length;
-  // principal axis via the covariance of the outline
-  let sxx = 0, szz = 0, sxz = 0;
-  for (const [x, z] of MANHATTAN) { const dx = x - cx, dz = z - cz; sxx += dx * dx; szz += dz * dz; sxz += dx * dz; }
-  const theta = 0.5 * Math.atan2(2 * sxz, sxx - szz);
+  // ⭐ THE GRID ANGLE COMES FROM CENTRAL PARK, NOT FROM THE ISLAND'S SHAPE.
+  //
+  // This used to be the principal axis of the coastline via covariance, which is a reasonable guess
+  // at "which way does Manhattan point" and is about 8 degrees off the thing that actually matters.
+  // The Commissioners' grid — the real avenues and streets — runs at its own bearing, and Central
+  // Park is a precise rectangle aligned to it. So a street grid built on the coastline sat visibly
+  // skewed against the park, which is what gives the game away: the park looked crooked when it was
+  // the streets that were.
+  //
+  // The park's own long edge IS the grid bearing, measured from real geometry we already hold, so
+  // it costs nothing and cannot drift from the park it has to line up with.
+  const park = NYC.centralpark?.[0];
+  let theta;
+  if (park?.length >= 4) {
+    // longest edge of the park outline — its length, which runs 110th to 59th along the avenues
+    let best = -1, bx = 1, bz = 0;
+    for (let i = 0; i < park.length; i++) {
+      const a = park[i], b = park[(i + 1) % park.length];
+      const dx = b[0] - a[0], dz = b[1] - a[1], d2 = dx * dx + dz * dz;
+      if (d2 > best) { best = d2; bx = dx; bz = dz; }
+    }
+    theta = Math.atan2(bz, bx);
+  } else {
+    // fallback: principal axis of the coastline via covariance
+    let sxx = 0, szz = 0, sxz = 0;
+    for (const [x, z] of MANHATTAN) { const dx = x - cx, dz = z - cz; sxx += dx * dx; szz += dz * dz; sxz += dx * dz; }
+    theta = 0.5 * Math.atan2(2 * sxz, sxx - szz);
+  }
   let ax = Math.cos(theta), az = Math.sin(theta);
   // orient south → north
   if (az < 0) { ax = -ax; az = -az; }
@@ -141,22 +165,15 @@ export function hoodGrid(hood, k = 1) {
   const lotT = GRID.lotT / (AXIS.len * k);
   const first = Math.ceil(hood.t0 / perT);         // snap to the global row grid
   for (let bi = first; bi * perT < hood.t1; bi++) {
-    // One slab per block, emitted only where the block actually has buildable land — otherwise
-    // pavement juts out over the river wherever a block is clipped by the coastline.
     for (let bu = -COLS; bu <= COLS; bu++) {
-      const tMid = bi * perT + (GRID.blkT / 2) * lotT;
-      const uMid = bu * PERIOD_U;
-      if (tMid >= hood.t1) continue;
-      if (hood.side === "east" && uMid < 0) continue;
-      if (hood.side === "west" && uMid > 0) continue;
-      const c = fromAxis(tMid, uMid / k);
-      if (!inManhattan(c.x, c.z) || inPark(c.x, c.z)) continue;
-      blocks.push({ x: c.x * k, z: c.z * k, w: GRID.blkU * GRID.lotU, d: GRID.blkT * GRID.lotT });
-    }
-    for (let li = 0; li < GRID.blkT; li++) {
-      const t = bi * perT + (li + 0.5) * lotT;
-      if (t >= hood.t1) break;
-      for (let bu = -COLS; bu <= COLS; bu++) {
+      // Collect this block's buildable lots FIRST, then size the pavement to them. Sizing the slab
+      // to the nominal block instead — and testing only its centre for land — hung full slabs out
+      // over the river all down the waterfront, because a block can sit on land while half its
+      // footprint is water. Fitting the slab to real lots makes an overhang impossible.
+      const mine = [];
+      for (let li = 0; li < GRID.blkT; li++) {
+        const t = bi * perT + (li + 0.5) * lotT;
+        if (t >= hood.t1) break;
         for (let lu = 0; lu < GRID.blkU; lu++) {
           const u = bu * PERIOD_U + (lu + 0.5 - GRID.blkU / 2) * GRID.lotU;
           const { x, z } = fromAxis(t, u / k);     // lots sit on the real island at scale k
@@ -166,9 +183,20 @@ export function hoodGrid(hood, k = 1) {
               !inManhattan(x, z + SHORE) || !inManhattan(x, z - SHORE)) continue;
           if (hood.side === "east" && u < 0) continue;
           if (hood.side === "west" && u > 0) continue;
-          lots.push({ x: x * k, z: z * k });
+          mine.push({ t, u, x: x * k, z: z * k });
         }
       }
+      if (!mine.length) continue;
+      for (const l of mine) lots.push({ x: l.x, z: l.z });
+
+      const tMin = Math.min(...mine.map(l => l.t)), tMax = Math.max(...mine.map(l => l.t));
+      const uMin = Math.min(...mine.map(l => l.u)), uMax = Math.max(...mine.map(l => l.u));
+      const c = fromAxis((tMin + tMax) / 2, ((uMin + uMax) / 2) / k);
+      blocks.push({
+        x: c.x * k, z: c.z * k,
+        w: (uMax - uMin) + GRID.lotU * 1.05,                      // across, plus a kerb margin
+        d: (tMax - tMin) * AXIS.len * k + GRID.lotT * 1.05,       // along, back into world units
+      });
     }
   }
   return { lots, blocks };
