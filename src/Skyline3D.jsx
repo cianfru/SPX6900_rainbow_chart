@@ -8,7 +8,7 @@ import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js
 import { chainOf } from "./city-messages.js";
 import { TIMES, FAMILIES, skyEnv, facadeTexture, wallGeometry, roofGeometry, archetype,
          berthGeometry, bridgeGeometry, monumentGeometry } from "./city-render.js";
-import { infraFrom, portBerths, siteAt, bridgeSpan, SITES } from "./city-infra.js";
+import { infraFrom, portBerths, siteAt, bridgeSpan, SITES, fmtTokens } from "./city-infra.js";
 
 // A 3D CITY of wallets — shared by the AEON holder skyline and the SPX whale watcher.
 //
@@ -328,7 +328,7 @@ export default function Skyline3D({
       scene.add(m); disposables.push(merged);
     };
 
-    const labelBits = [];
+    const labelBits = [];          // { obj, prio } — prio decides who survives a collision
     const haloUp = [], haloDown = [], beamUp = [], beamDown = [];
     // ⚠ BUILDINGS MUST WEAR THE GRID'S ROTATION. They were axis-aligned boxes dropped onto blocks
     // that are rotated to the street bearing, so every building sat askew on its own plot. With a
@@ -457,7 +457,7 @@ export default function Skyline3D({
       // Deck width carries the bridged supply — the 111.5M that actually backs Base and Solana.
       const span = bridgeSpan(K);
       const thick = Math.max(0.6, Math.min(2.2, I.bridge / 60e6));
-      for (const g of bridgeGeometry(span, thick * K)) buckets.steel.push(g);
+      for (const part of bridgeGeometry(span, thick * K)) buckets[part.mat].push(part.g);
 
       const mon = siteAt(SITES.monument, K);
       for (const part of monumentGeometry(mon.x, mon.z, K * 1.25)) buckets[part.mat].push(part.g);
@@ -470,6 +470,42 @@ export default function Skyline3D({
         const g = new THREE.BoxGeometry(0.75 * K, (0.9 + (i % 3) * 0.5) * K, 0.75 * K);
         g.translate(lp.x + Math.cos(a) * r, (0.45 + (i % 3) * 0.25) * K, lp.z + Math.sin(a) * r);
         buckets.shed.push(g);
+      }
+
+      // ── tags ────────────────────────────────────────────────────────────────────────────────
+      // The harbour is the only part of the city that ISN'T a person, and without saying so it
+      // reads as decoration. Each piece gets its name and its number, so the quarter of the supply
+      // that no holder owns is legible rather than merely present.
+      const tag = (x, y, z, title, value, sub, colour) => {
+        const d = document.createElement("div");
+        Object.assign(d.style, { textAlign: "center", pointerEvents: "none", whiteSpace: "nowrap",
+          textShadow: "0 2px 10px rgba(0,0,0,0.95), 0 0 3px rgba(0,0,0,0.9)" });
+        d.innerHTML =
+          `<div style="color:${colour};font:700 10.5px 'Space Grotesk',system-ui;letter-spacing:.2em">${title}</div>` +
+          `<div style="color:#f1f5f9;font:700 13px 'Space Grotesk',system-ui">${value}</div>` +
+          (sub ? `<div style="color:#94a3b8;font:500 10px 'Space Grotesk',system-ui">${sub}</div>` : "");
+        const o = new CSS2DObject(d);
+        o.position.set(x, y, z);
+        // The harbour carries the numbers no holder owns, so it outranks a district name.
+        scene.add(o); labelBits.push({ obj: o, prio: title ? 100 : 50 });
+      };
+
+      // clear of the torch, which tops out around 11 units at this scale
+      tag(mon.x, 14.5 * K, mon.z, "THE BURN", fmtTokens(I.burn) + " SPX", "gone for good · 0x…dead", "#ffb347");
+      const lpP = siteAt(SITES.lp, K);
+      tag(lpP.x, 5 * K, lpP.z, "UNISWAP POOL", fmtTokens(I.lp) + " SPX", "where SPX started", "#ff77c8");
+      const midX = (span.ax + span.bx) / 2, midZ = (span.az + span.bz) / 2;
+      tag(midX, 11 * K, midZ, "WORMHOLE BRIDGE", fmtTokens(I.bridge) + " SPX", "backs Base &amp; Solana", "#3b82f6");
+      // the port: a heading, plus the biggest venues named on their own sheds
+      const berths = portBerths(I.venues, K);
+      if (berths.length) {
+        const cx = berths.reduce((a, b) => a + b.x, 0) / berths.length;
+        const cz = berths.reduce((a, b) => a + b.z, 0) / berths.length;
+        tag(cx, 9 * K, cz, "EXCHANGES", fmtTokens(I.cex) + " SPX",
+          I.held ? Math.round(I.cex / (I.held + I.cex) * 100) + "% of tradable supply" : "", "#d08a3a");
+        for (const b of berths.slice(0, 4)) {
+          tag(b.x, b.tall + 1.6, b.z, "", b.name, fmtTokens(b.tokens) + " SPX", "#d08a3a");
+        }
       }
 
       for (const [k2, geos] of Object.entries(buckets)) addMerged(geos, infraMats[k2], k2 !== "flame");
@@ -524,7 +560,7 @@ export default function Skyline3D({
         });
         const o = new CSS2DObject(d);
         o.position.set(a.x / a.n, Math.max(a.top * 1.15, 9) + lift, a.z / a.n);
-        scene.add(o); labelBits.push(o);
+        scene.add(o); labelBits.push({ obj: o, prio: 10 + a.n / 1000 });   // busier districts win
       }
     }
 
@@ -533,7 +569,8 @@ export default function Skyline3D({
       const d = document.createElement("div");
       d.textContent = crownLabel;
       Object.assign(d.style, { color: "#fde68a", font: "700 12px 'Space Grotesk', system-ui, sans-serif", textShadow: "0 1px 4px #000", whiteSpace: "nowrap" });
-      const o = new CSS2DObject(d); o.position.set(champInfo.x, champInfo.h + 3, champInfo.z); scene.add(o);
+      const o = new CSS2DObject(d); o.position.set(champInfo.x, champInfo.h + 3, champInfo.z);
+      scene.add(o); labelBits.push({ obj: o, prio: 200 });   // the crown outranks everything
     }
 
     // ── the arrival flight ────────────────────────────────────────────────────────────────────
@@ -588,6 +625,33 @@ export default function Skyline3D({
     const signs = new THREE.Group(); scene.add(signs);
     const frameCbs = [];
     api.current = { cam, controls, homes, pulse, signs, scene, picks, frameCbs, el, size: () => [el.clientWidth || W, VH] };
+
+    // ⭐ SCREEN-SPACE DECLUTTER, the way a real map does it. Fourteen districts plus the harbour
+    // tags plus the crown all project into a small area at certain angles, and stacking them was
+    // making the most valuable labels unreadable. Each frame: project every label, walk them in
+    // priority order, and hide any whose box overlaps one already placed. Raising heights only ever
+    // moved the pile around; this removes it at every zoom.
+    if (labelBits.length) {
+      const vv = new THREE.Vector3();
+      const declutter = () => {
+        const W2 = el.clientWidth || W, H2 = cine ? window.innerHeight : VH;
+        const placedBoxes = [];
+        const cand = labelBits.map(({ obj, prio }) => {
+          vv.copy(obj.position).project(cam);
+          const behind = vv.z > 1;
+          return { obj, prio, behind, x: (vv.x * 0.5 + 0.5) * W2, y: (-vv.y * 0.5 + 0.5) * H2 };
+        }).sort((a, b) => b.prio - a.prio);
+        for (const c of cand) {
+          const e = c.obj.element; if (!e) continue;
+          if (c.behind || c.x < -80 || c.x > W2 + 80 || c.y < -40 || c.y > H2 + 40) { e.style.visibility = "hidden"; continue; }
+          const w2 = (e.offsetWidth || 90) / 2 + 5, h2 = (e.offsetHeight || 14) / 2 + 4;
+          const hit = placedBoxes.some(b => Math.abs(b.x - c.x) < b.w + w2 && Math.abs(b.y - c.y) < b.h + h2);
+          e.style.visibility = hit ? "hidden" : "visible";
+          if (!hit) placedBoxes.push({ x: c.x, y: c.y, w: w2, h: h2 });
+        }
+      };
+      frameCbs.push(declutter);
+    }
 
     const ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
     let hovered = null, px = 0, py = 0, moved = false;
@@ -703,7 +767,7 @@ export default function Skyline3D({
       ownMats.forEach(m => m.dispose());
       groundBits.forEach(g => { if (g.dispose) g.dispose(); else { g.geometry?.dispose(); g.material?.dispose(); } });
       pads?.dispose();
-      labelBits.forEach(o => { o.element?.remove(); scene.remove(o); });
+      labelBits.forEach(({ obj }) => { obj.element?.remove(); scene.remove(obj); });
       delete window.__citySeek; delete window.__cityReady; delete window.__cityStats;
       renderer.dispose(); el.removeChild(renderer.domElement); el.removeChild(labelR.domElement); el.removeChild(tip);
     };

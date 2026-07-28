@@ -184,35 +184,79 @@ export function berthGeometry(b) {
   return out;
 }
 
-// The bridge. Deck, two towers, and the cables — a suspension silhouette, because that is what
-// makes a bridge read as the Brooklyn Bridge rather than as a plank.
+// The Brooklyn Bridge. What makes it recognisable is not "a bridge" — it is two stone towers with
+// POINTED GOTHIC ARCHES, a catenary main cable, and the fan of diagonal stays that no other
+// suspension bridge has. The first pass had a deck, two posts and a sine wave, which read as a
+// plank. Returned as {g, mat} so the towers can be stone while the cables are steel.
 export function bridgeGeometry({ ax, az, bx, bz }, thickness = 1) {
   const out = [];
   const dx = bx - ax, dz = bz - az, len = Math.hypot(dx, dz), ang = Math.atan2(dx, dz);
-  const mx = (ax + bx) / 2, mz = (az + bz) / 2;
-  const w = Math.max(0.5, 1.1 * thickness);            // deck width carries the bridged supply
-  const place = (g, x, y, z) => { g.rotateY(ang); g.translate(x, y, z); out.push(g); };
+  const w = Math.max(0.5, 1.1 * thickness);          // deck width carries the bridged supply
+  const DECK = 2.2, TOWER = 7.2;                     // deck height, tower height above it
+  // place a geometry in bridge-local space: x across, z along, origin at the midpoint
+  const put = (g, mat, lx, y, lz) => {
+    g.rotateY(ang);
+    g.translate(ax + dx * (0.5 + lz / len) + Math.cos(ang) * lx,
+                y,
+                az + dz * (0.5 + lz / len) - Math.sin(ang) * lx);
+    out.push({ g, mat });
+  };
 
-  const deck = new THREE.BoxGeometry(w, 0.16, len);
-  place(deck, mx, 1.9, mz);
-  for (const f of [0.28, 0.72]) {                       // two towers, at the classic quarter points
-    const tx = ax + dx * f, tz = az + dz * f;
-    const tower = new THREE.BoxGeometry(w * 0.42, 5.4, w * 0.42);
-    place(tower, tx, 2.7, tz);
-    const arch = new THREE.BoxGeometry(w * 1.05, 0.5, w * 0.36);
-    place(arch, tx, 4.4, tz);
+  const deck = new THREE.BoxGeometry(w, 0.18, len);
+  put(deck, "stone", 0, DECK, 0);
+  for (const side of [-1, 1]) {                      // parapets, so the deck has an edge
+    const r = new THREE.BoxGeometry(0.08, 0.22, len);
+    put(r, "steel", side * w * 0.5, DECK + 0.2, 0);
   }
-  // Cables as thin sagging segments. Cheap, and without them the towers read as two random posts.
-  const N = 14;
-  for (let i = 0; i < N; i++) {
-    const f = (i + 0.5) / N;
-    const sag = Math.abs(Math.sin(f * Math.PI * 2)) * 1.5;
-    const cx = ax + dx * f, cz = az + dz * f;
+
+  const towerZ = [-len * 0.22, len * 0.22];
+  for (const tz of towerZ) {
+    // two piers with a gap between them — that gap IS the arch, read as a silhouette
     for (const side of [-1, 1]) {
-      const c = new THREE.BoxGeometry(0.05, 0.05, len / N);
-      const off = new THREE.Matrix4().makeTranslation(side * w * 0.45, 0, 0);
-      c.applyMatrix4(off);
-      place(c, cx, 3.6 + sag * 0.5, cz);
+      const pier = new THREE.BoxGeometry(w * 0.26, TOWER + DECK, w * 0.34);
+      put(pier, "stone", side * w * 0.3, (TOWER + DECK) / 2, tz);
+    }
+    // the pointed arch: a lintel plus a cap, which is what turns two posts into a gothic opening
+    const lintel = new THREE.BoxGeometry(w * 0.9, 0.42, w * 0.34);
+    put(lintel, "stone", 0, DECK + TOWER * 0.42, tz);
+    const cap = new THREE.BoxGeometry(w * 0.9, 0.5, w * 0.38);
+    put(cap, "stone", 0, DECK + TOWER * 0.93, tz);
+    const spire = new THREE.ConeGeometry(w * 0.16, 0.9, 4);
+    put(spire, "stone", 0, DECK + TOWER + 0.6, tz);
+  }
+
+  // Main cables: a real catenary through the tower tops, sagging to mid-span and running down to
+  // the anchorages at each end.
+  const topY = DECK + TOWER * 0.86, midY = DECK + 1.1, endY = DECK + 0.5;
+  const cableY = t => {                              // t is -0.5..0.5 along the span
+    const a = Math.abs(t);
+    if (a <= 0.22) { const u = a / 0.22; return midY + (topY - midY) * u * u; }
+    const u = (a - 0.22) / 0.28;
+    return topY + (endY - topY) * u * u;
+  };
+  const N = 26;
+  for (const side of [-1, 1]) {
+    for (let i = 0; i < N; i++) {
+      const t0 = -0.5 + i / N, t1 = -0.5 + (i + 1) / N;
+      const y0 = cableY(t0), y1 = cableY(t1);
+      const seg = new THREE.BoxGeometry(0.07, Math.hypot(y1 - y0, len / N), 0.07);
+      seg.rotateX(Math.atan2(len / N, y1 - y0) - Math.PI / 2);
+      put(seg, "steel", side * w * 0.45, (y0 + y1) / 2, ((t0 + t1) / 2) * len);
+      // hangers down to the deck — the vertical comb that says "suspension"
+      if (i % 2 === 0 && Math.abs(t0) < 0.44) {
+        const h = Math.max(0.2, y0 - DECK);
+        const hang = new THREE.BoxGeometry(0.045, h, 0.045);
+        put(hang, "steel", side * w * 0.45, DECK + h / 2, t0 * len);
+      }
+    }
+    // the diagonal stays — the fan unique to this bridge
+    for (const tz of towerZ) {
+      for (let i = 1; i <= 5; i++) {
+        const reach = len * 0.055 * i, dyy = topY - DECK;
+        const seg = new THREE.BoxGeometry(0.05, Math.hypot(dyy, reach), 0.05);
+        seg.rotateX(Math.atan2(reach, dyy) * (tz < 0 ? -1 : 1));
+        put(seg, "steel", side * w * 0.42, DECK + dyy / 2, tz + (tz < 0 ? -reach / 2 : reach / 2));
+      }
     }
   }
   return out;
