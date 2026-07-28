@@ -725,7 +725,19 @@ export default function Skyline3D({
     // Perf probe. The open question on these pages is what they cost on a REAL GPU — everything
     // here has only ever been measured on a software rasteriser, so the building caps are caution
     // rather than measurement. Exposed so that can be answered from any device's console.
+    // Park the camera anywhere and render one frame. __citySeek only walks the fixed intro path,
+    // which is the wrong tool for a still: a good frame is almost never a point on that spline.
+    // Coordinates are world units; `len` from __cityStats is the island's length, so a caller can
+    // express a vantage relative to the city instead of guessing absolute numbers.
+    window.__cityCam = (p, t) => {
+      flying = false; controls.enabled = false; controls.autoRotate = false;
+      cam.position.set(p[0], p[1], p[2]);
+      controls.target.set(t[0], t[1], t[2]);
+      cam.updateProjectionMatrix(); controls.update();
+      renderer.render(scene, cam); labelR.render(scene, cam);
+    };
     window.__cityStats = () => ({
+      len: LEN,
       buildings: T.length, meshes: scene.children.length,
       drawCalls: renderer.info.render.calls, triangles: renderer.info.render.triangles,
       programs: renderer.info.programs?.length, geometries: renderer.info.memory.geometries,
@@ -770,7 +782,7 @@ export default function Skyline3D({
       groundBits.forEach(g => { if (g.dispose) g.dispose(); else { g.geometry?.dispose(); g.material?.dispose(); } });
       pads?.dispose();
       labelBits.forEach(({ obj }) => { obj.element?.remove(); scene.remove(obj); });
-      delete window.__citySeek; delete window.__cityReady; delete window.__cityStats;
+      delete window.__citySeek; delete window.__cityReady; delete window.__cityStats; delete window.__cityCam;
       renderer.dispose(); el.removeChild(renderer.domElement); el.removeChild(labelR.domElement); el.removeChild(tip);
     };
   }, [towers, isMobile, crownLabel, accent, bodyFrom, bodyTo, layout, intro, time, infra]);

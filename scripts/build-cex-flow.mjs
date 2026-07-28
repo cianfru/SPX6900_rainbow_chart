@@ -27,6 +27,12 @@ const rows = readFileSync(join(root, "dune/out/spx6900_cex_lp_flows.csv"), "utf8
   .map(l => { const [d, a, k, n] = l.split(","); return { d, a, k: EXCLUDE_LABELS[a]?.kind ?? k, n: +n }; })
   .filter(r => r.d && r.k && Number.isFinite(r.n));
 
+// How many addresses the banked CSV actually covers, vs how many are tagged today. The gap between
+// these two numbers is the whole failure mode the seam check below looks for.
+const CSV_ADDRS = new Set(rows.map(r => r.a)).size;
+const TAGGED_ADDRS = Object.values(EXCLUDE_LABELS)
+  .filter(v => v.kind === "cex" || v.kind === "lp" || v.kind === "custody").length;
+
 // per-address first-active date (first day its cumulative balance goes positive)
 const firstActive = {};
 {
@@ -77,9 +83,19 @@ for (let t = Date.parse(allDays[0]); t <= Date.parse(allDays.at(-1)); t += 86400
 
 // ── SNAPSHOT-FORWARD: splice daily-banked balances (public/history.json cexBal/lpBal/custBal,
 // keyless RPC via snapshot.mjs) onto the Dune baseline, so the cards' pulse stays fresh daily
-// without re-running Dune. The banked balances are the SAME 13 addresses, so the seam offset is
-// ~0; we still rebase each chain by the measured seam gap so no definitional jump draws. Forward
-// daily net = balance delta (onboarding can't be split from aggregate balances → all in organic).
+// without re-running Dune. Each series is rebased by the seam gap so no definitional jump draws.
+// Forward daily net = balance delta (onboarding can't be split from aggregate balances → all in
+// organic).
+//
+// ⚠ THE REBASE HIDES A STALE BASELINE, SO CHECK THE OFFSET, NOT JUST THE CHART. This used to say
+// the offset was "~0 because it's the SAME 13 addresses" — and that stopped being true the moment
+// wallets were added to EXCLUDE_LABELS without re-running the Dune query. snapshot.mjs derives its
+// address list from EXCLUDE_LABELS at runtime, so the FORWARD side picks up a new wallet the next
+// day, while the baseline CSV keeps whatever set it was queried with. The rebase then quietly drags
+// the correct live level DOWN onto the stale one: in Jul-2026 the CSV still held 13 addresses
+// against 29 tagged, and these charts read 118M of exchange supply against a true 163M — a 28%
+// understatement with a perfectly smooth line. The shape stays right, which is exactly why it went
+// unnoticed. If `off.cex` is not near zero, the CSV is behind: re-run dune/spx6900_cex_lp_balances.sql.
 function extendForward(base) {
   let hist = [];
   try { hist = JSON.parse(readFileSync(join(root, "public/history.json"), "utf8")); } catch { return base; }
@@ -89,6 +105,16 @@ function extendForward(base) {
     .sort((a, b) => a.d.localeCompare(b.d));
   if (!fwd.length) return base;
   const off = { cex: seam[1] - fwd[0].cexBal, lp: seam[2] - fwd[0].lpBal, cust: seam[3] - (fwd[0].custBal ?? 0) };
+  // A seam gap is meant to be a rounding-scale definitional nudge. Anything bigger means the two
+  // sides are measuring different address SETS, and the rebase is about to bury that difference in
+  // a smooth line — so say it out loud rather than let it publish silently.
+  const drift = seam[1] > 0 ? Math.abs(off.cex) / seam[1] : 0;
+  if (drift > 0.02) {
+    console.warn(`⚠ CEX seam offset is ${(off.cex / 1e6).toFixed(1)}M (${(drift * 100).toFixed(1)}% of the ` +
+      `${(seam[1] / 1e6).toFixed(1)}M baseline at ${seam[0]}). The Dune CSV covers ` +
+      `${CSV_ADDRS} addresses; EXCLUDE_LABELS now tags ${TAGGED_ADDRS}. ` +
+      `Re-run dune/spx6900_cex_lp_balances.sql — these charts are understating the level until you do.`);
+  }
   const priceMap = new Map(SPX_DAILY);
   let prev = { cex: seam[1], lp: seam[2], cust: seam[3] };
   const rows = [];
