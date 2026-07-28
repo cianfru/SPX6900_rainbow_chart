@@ -208,9 +208,20 @@ export default function Skyline3D({
       // Raised pavement, one slab per block. This is what makes the gaps read as ROADS rather than
       // as blank ground with lines painted on it — a kerb you can see is worth more than a brighter
       // line. Per-block, never per-building: see hoodGrid.
+      // Only pave a block something actually stands on. A slab with nothing on it reads as a
+      // missing building rather than as undeveloped land, which is what sent us looking for a
+      // bug the last two times. Density is even now, so this catches one block at the northern
+      // tip — but it makes the failure impossible rather than unlikely.
+      const cosB = Math.cos(-AXIS_ANGLE), sinB = Math.sin(-AXIS_ANGLE);
+      const built = b => placed.some(q => {
+        const dx = q.x - b.x, dz = q.z - b.z;
+        return Math.abs(dx * cosB + dz * sinB) <= b.d / 2 + 0.05 &&
+               Math.abs(-dx * sinB + dz * cosB) <= b.w / 2 + 0.05;
+      });
       const slabs = [];
       for (const h of NEIGHBOURHOODS) {
         for (const b of hoodGrid(h, K).blocks) {
+          if (!built(b)) continue;
           // NOT scaled by K: lot pitch is already in final world units (hoodLots divides u by k
           // before projecting, then multiplies back), so scaling here shrinks every slab under its
           // own buildings and the pavement vanishes.
