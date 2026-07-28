@@ -50,3 +50,16 @@ Nobody can delete a note. Us included.
 So the filter is applied when **rendering**, not only when posting. Anyone can write a link
 on-chain; the city simply won't draw it. Ownership is checked at render time too, since the contract
 cannot know who holds what.
+
+## Who counts as a resident
+
+The city has [three modes](modes.md) and **one noticeboard**. Citizenship is the **union**: hold
+either asset and you live here, so you can write a note from whichever mode you happen to be looking
+at.
+
+Gating it on the current toggle would have meant an AEON collector was a citizen on one screen and a
+stranger on the next, having done nothing. It also ignores the buildings-to-render control — a real
+holder outside the top 600 is still a resident.
+
+Your note hangs on **your building**, so it appears in the modes where you have one. A wallet that
+holds AEON but not enough SPX writes its note from anywhere and sees it in AEON mode.

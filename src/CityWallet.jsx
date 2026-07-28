@@ -19,7 +19,13 @@ import {
 // The chain is a real choice with a real cost, so it's presented as one rather than hidden.
 const short = a => (a ? a.slice(0, 6) + "…" + a.slice(-4) : "");
 
-export default function CityWallet({ city, owns, notes, onNotes, onFocus, accent = "#5eead4", isMobile }) {
+// `owns` and `inView` are deliberately two different questions, because the city has one
+// noticeboard and three populations. Whether you MAY leave a note is citizenship — you hold either
+// asset, so you live here — while whether you can be FLOWN to is about the mode currently on
+// screen, since a building that isn't drawn cannot be visited. Collapsing them, as this did while
+// there was only one population, silently made your right to post depend on which toggle you were
+// holding, and on how many buildings you had chosen to render.
+export default function CityWallet({ city, owns, inView, notes, onNotes, onFocus, accent = "#5eead4", isMobile }) {
   const [addr, setAddr] = useState(null);
   const [chain, setChain] = useState("base");
   const [text, setText] = useState("");
@@ -30,6 +36,8 @@ export default function CityWallet({ city, owns, notes, onNotes, onFocus, accent
 
   const mine = addr ? notes?.[addr] : null;
   const hasHome = addr ? !!owns?.(addr) : false;
+  // Defaults to hasHome so a caller that only passes `owns` behaves exactly as before.
+  const here = addr ? (inView ? !!inView(addr) : hasHome) : false;
   const live = isLive(chain);
 
   // Pick the existing note back up, so editing is the default rather than a blank box.
@@ -42,7 +50,9 @@ export default function CityWallet({ city, owns, notes, onNotes, onFocus, accent
       setAddr(a); setOpen(true);
       const c = await currentChain();
       if (c) setChain(c);                          // meet them where their wallet already is
-      if (owns?.(a)) onFocus?.(a);
+      // Fly there only if it is actually on screen — a citizen whose building belongs to another
+      // mode has nothing here to fly to, and the camera would lurch off to an empty lot.
+      if (inView ? inView(a) : owns?.(a)) onFocus?.(a);
     } catch (e) { setErr(e?.message || "Could not connect."); }
     finally { setBusy(null); }
   };
@@ -103,16 +113,23 @@ export default function CityWallet({ city, owns, notes, onNotes, onFocus, accent
       <div style={{ display: "flex", gap: 8, alignItems: "center", justifyContent: "center", flexWrap: "wrap" }}>
         <span style={{ fontFamily: MONO, fontSize: 12, color: accent }}>{short(addr)}</span>
         <span style={{ fontFamily: SANS, fontSize: 12, color: hasHome ? "#94a3b8" : "#fbbf24" }}>
-          {hasHome ? "you own a building here" : "no building here yet"}
+          {hasHome ? (here ? "you own a building here" : "you live here — not in this view") : "no building here yet"}
         </span>
         {hasHome && <button onClick={() => setOpen(o => !o)} style={btn(false, false)}>{open ? "Close" : mine ? "Edit note" : "Leave a note"}</button>}
-        {hasHome && <button onClick={() => onFocus?.(addr)} style={btn(false, false)}>Go to it</button>}
+        {here && <button onClick={() => onFocus?.(addr)} style={btn(false, false)}>Go to it</button>}
       </div>
 
       {!hasHome && (
         <div style={{ fontFamily: SANS, fontSize: 12.5, color: "#94a3b8", textAlign: "center", marginTop: 8, lineHeight: 1.6 }}>
           Only wallets with a building get a sign — the city is a map of holders, so a note on it
           should mean someone is really there.
+        </div>
+      )}
+
+      {hasHome && !here && (
+        <div style={{ fontFamily: SANS, fontSize: 12.5, color: "#94a3b8", textAlign: "center", marginTop: 8, lineHeight: 1.6 }}>
+          Your building stands in another mode, so your sign hangs there. You can still write it from
+          here — a note belongs to the wallet, not to the view.
         </div>
       )}
 

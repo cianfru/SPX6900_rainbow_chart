@@ -109,6 +109,21 @@ export default function SpxCity({ isMobile, preview = false, initialMode = "spx"
     }));
   }, [mode, whales, aeon, aeonBy, win]);
 
+  // ⭐ CITIZENSHIP IS THE UNION OF EVERY MODE, NOT WHATEVER IS ON SCREEN. There is one city and one
+  // noticeboard, so holding either asset makes you a resident — gating the right to post on the
+  // toggle you happen to be holding would mean an AEON collector was a citizen on Tuesday and a
+  // stranger on Wednesday for no reason they did anything about.
+  //
+  // It reads the FULL populations rather than `visible`, because `visible` is also cut by the
+  // buildings-to-render control — which would otherwise have made a genuine holder's right to leave
+  // a note depend on a performance setting.
+  const citizens = useMemo(() => {
+    const s = new Set();
+    for (const w of whales?.wallets || []) if (w.a) s.add(w.a.toLowerCase());
+    for (const h of aeon?.holders || []) if (h.a && h.n > 0) s.add(h.a.toLowerCase());
+    return s;
+  }, [whales, aeon]);
+
   const stats = useMemo(() => {
     if (!towers) return null;
     const add = towers.filter(t => t.flow > 0).length, cut = towers.filter(t => t.flow < 0).length;
@@ -257,7 +272,8 @@ export default function SpxCity({ isMobile, preview = false, initialMode = "spx"
         onFocus={a => { goTo(a); const m = visible.find(t => (t.a || "").toLowerCase() === a); if (m) setSel(m); }} />
 
       <CityWallet city="spx" accent={M.accent} isMobile={isMobile} notes={msgs} onNotes={setMsgs}
-        owns={a => visible.some(t => (t.a || "").toLowerCase() === a)}
+        owns={a => citizens.has(a)}
+        inView={a => visible.some(t => (t.a || "").toLowerCase() === a)}
         onFocus={a => { goTo(a); const m = visible.find(t => (t.a || "").toLowerCase() === a); if (m) setSel(m); }} />
 
       <div style={{ position: "relative" }}>
