@@ -304,6 +304,13 @@ export default function Skyline3D({
     };
 
     const haloUp = [], haloDown = [];
+    // ⚠ BUILDINGS MUST WEAR THE GRID'S ROTATION. They were axis-aligned boxes dropped onto blocks
+    // that are rotated to the street bearing, so every building sat askew on its own plot. With a
+    // near-square footprint the error reads as "a few degrees" rather than the full 60.9°, because
+    // a square looks the same every quarter turn — which is exactly why it survived this long.
+    const A = AXIS_ANGLE, cosA = Math.cos(A), sinA = Math.sin(A);
+    // rotate a roof-local offset into world space, so rooftop clutter lands ON the roof
+    const off = (dx, dz) => [dx * cosA - dz * sinA, dx * sinA + dz * cosA];
     const M = new THREE.Matrix4();
     T.forEach((t, i) => {
       const h = Math.max(0.6, Math.sqrt(Math.max(0, t.score) / maxScore) * HMAX);
@@ -315,17 +322,20 @@ export default function Skyline3D({
       const fi = Math.max(0, Math.min(FLOW_BINS - 1, Math.round((Math.max(-1, Math.min(1, f)) + 1) / 2 * (FLOW_BINS - 1))));
 
       const { parts, spire, family } = archetype(h, r, i < 3);
+      // Anchor to where the building ACTUALLY ends. Only the landmark archetype's stack falls short
+      // of h (0.52 + 0.26 + 0.16), which is why just the tallest few had floating antennas.
+      const roofTop = Math.max(...parts.map(q => q.y + q.h / 2));
       const bucket = matFor(family, ai, fi);
       let widest = 0;
       for (const q of parts) {
         M.makeTranslation(p.x, q.y, p.z);
-        const wall = wallGeometry(q.w, q.d, q.h); wall.applyMatrix4(M); bucket.geos.push(wall);
-        const roof = roofGeometry(q.w, q.d);
+        const wall = wallGeometry(q.w, q.d, q.h); wall.rotateY(-A); wall.applyMatrix4(M); bucket.geos.push(wall);
+        const roof = roofGeometry(q.w, q.d); roof.rotateY(-A);
         roof.translate(p.x, q.y + q.h / 2, p.z); roofGeos.push(roof);
         widest = Math.max(widest, q.w, q.d);
       }
       if (spire > 0) {
-        const g = spireGeo.clone(); g.scale(1, spire, 1); g.translate(p.x, h + spire / 2, p.z);
+        const g = spireGeo.clone(); g.scale(1, spire, 1); g.translate(p.x, roofTop + spire / 2, p.z);
         spireGeos.push(g);
       }
 
@@ -334,12 +344,15 @@ export default function Skyline3D({
       // city is mostly viewed from.
       const top = parts[parts.length - 1], roofY = top.y + top.h / 2, rw = top.w;
       if (family === "masonry" && r > 0.25) {
-        const tx = p.x + rw * 0.2, tz = p.z - rw * 0.15;
+        const [tox, toz] = off(rw * 0.2, -rw * 0.15);
+        const tx = p.x + tox, tz = p.z + toz;
         const tank = new THREE.CylinderGeometry(0.17, 0.17, 0.42, 8); tank.translate(tx, roofY + 0.36, tz);
         const cap = new THREE.ConeGeometry(0.2, 0.18, 8); cap.translate(tx, roofY + 0.66, tz);
         woodGeos.push(tank, cap);
         for (const [dx, dz] of [[-0.1, -0.1], [0.1, -0.1], [-0.1, 0.1], [0.1, 0.1]]) {
-          const leg = new THREE.BoxGeometry(0.03, 0.16, 0.03); leg.translate(tx + dx, roofY + 0.08, tz + dz);
+          const [lx, lz] = off(dx, dz);
+          const leg = new THREE.BoxGeometry(0.03, 0.16, 0.03); leg.rotateY(-A);
+          leg.translate(tx + lx, roofY + 0.08, tz + lz);
           woodGeos.push(leg);
         }
       } else if (h > 1.2) {
@@ -347,8 +360,10 @@ export default function Skyline3D({
         for (let k = 0; k < n; k++) {
           const s2 = 0.14 + hash01((t.a || i) + "s" + k) * 0.18;
           const hv = new THREE.BoxGeometry(s2 * rw, 0.12 + hash01((t.a || i) + "h" + k) * 0.18, s2 * rw);
-          hv.translate(p.x + (hash01((t.a || i) + "x" + k) - 0.5) * rw * 0.6, roofY + 0.09,
-            p.z + (hash01((t.a || i) + "z" + k) - 0.5) * rw * 0.6);
+          hv.rotateY(-A);
+          const [hx, hz] = off((hash01((t.a || i) + "x" + k) - 0.5) * rw * 0.6,
+                               (hash01((t.a || i) + "z" + k) - 0.5) * rw * 0.6);
+          hv.translate(p.x + hx, roofY + 0.09, p.z + hz);
           metalGeos.push(hv);
         }
       }
@@ -431,7 +446,9 @@ export default function Skyline3D({
     const pickMat = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false });
     const pickMesh = new THREE.InstancedMesh(pickGeo, pickMat, picks.length);
     picks.forEach((q, i) => {
-      M.compose(new THREE.Vector3(q.x, q.h / 2, q.z), new THREE.Quaternion(), new THREE.Vector3(q.w, q.h, q.w));
+      M.compose(new THREE.Vector3(q.x, q.h / 2, q.z),
+        new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), -A),
+        new THREE.Vector3(q.w, q.h, q.w));
       pickMesh.setMatrixAt(i, M);
     });
     pickMesh.instanceMatrix.needsUpdate = true;
@@ -503,7 +520,8 @@ export default function Skyline3D({
     let hovered = null, px = 0, py = 0, moved = false;
     // hover marker — a bright wireframe cage placed over the hovered building
     const cageMat = new THREE.MeshBasicMaterial({ color: 0xffffff, wireframe: true, transparent: true, opacity: 0.55 });
-    const cage = new THREE.Mesh(box, cageMat); cage.visible = false; scene.add(cage); ownMats.push(cageMat);
+    const cage = new THREE.Mesh(box, cageMat); cage.visible = false; cage.rotation.y = -AXIS_ANGLE;
+    scene.add(cage); ownMats.push(cageMat);
     const setHover = id => {
       if (hovered === id) return;
       hovered = id;
