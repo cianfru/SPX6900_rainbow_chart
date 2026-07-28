@@ -52,12 +52,12 @@ export const EXCLUDE_LABELS = {
   // it invents a resident, inflates the holder count, distorts top-10/top-100 concentration, and
   // subtracts its balance from the venue it really belongs to.
   "0xb0a3a2b60e969afd26561429aa4c1444c57e4411": { name: "MEXC", kind: "cex" },
-  // Owner-flagged 2026-07-28. THE LARGEST BALANCE IN THE CITY — 14.67M SPX, and it was wearing the
-  // crown. Funded by the Revolut hot wallet and definitively not a personal wallet; the owner
-  // suspects Kraken but could not confirm it. Named for what we KNOW rather than what we suspect:
-  // putting "Kraken" on a wallet we cannot identify would be exactly the kind of confident guess
-  // this project cannot afford, and the venue chart would carry it as fact.
-  "0x15da7556d5ed888306839bed06f868aeaedcb0d7": { name: "Unidentified exchange", kind: "cex" },
+  // Owner-confirmed REVOLUT 2026-07-28. The largest balance in the city at 14.67M SPX, and it was
+  // wearing the "biggest whale" crown. Funded by the Revolut hot wallet; first suspected Kraken,
+  // then confirmed as Revolut by the owner. "-linked" is the existing convention for a hot wallet
+  // funded by, and trading for, a venue — canonVenue strips it, so this aggregates into Revolut
+  // rather than inventing a venue of its own.
+  "0x15da7556d5ed888306839bed06f868aeaedcb0d7": { name: "Revolut-linked", kind: "cex" },
   "0x377b8ce04761754e8ac153b47805a9cf6b190873": { name: "Upbit", kind: "cex" },
   "0xcffad3200574698b78f32232aa9d63eabd290703": { name: "Crypto.com", kind: "cex" },
   "0xab782bc7d4a2b306825de5a7730034f8f63ee1bc": { name: "Bitvavo", kind: "cex" },
