@@ -57,7 +57,7 @@ export default function SpxWhaleWatcher({ isMobile, preview = false }) {
   // The city renders the biggest `shown` wallets — a building is ~3 draw calls, so the whole
   // set can outrun a modest GPU. Every tracked wallet stays searchable either way.
   const visible = useMemo(() => (towers ? towers.slice().sort((a, b) => b.score - a.score).slice(0, shown) : null), [towers, shown]);
-  const cur = sel || visible?.[0];
+  const cur = sel;   // nothing pinned until you hover or click — no card on arrival
 
   if (data == null) return <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Loading whale data…</div>;
   if (data === false || !towers) return <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Whale data is being reconstructed — check back after the next on-chain refresh.</div>;
@@ -139,7 +139,7 @@ export default function SpxWhaleWatcher({ isMobile, preview = false }) {
         <div style={{ width: "100%" }}>
           <Suspense fallback={<div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Loading 3D…</div>}>
             <Skyline3D towers={visible} isMobile={isMobile} cardHtml={cardHtml}
-              onSelect={t => { setSel(t); goTo(t.a); }}
+              onSelect={t => { setSel(t); if (t) goTo(t.a); }}
               crownLabel="🐋 biggest whale" accent="rgba(167,139,250,0.45)" bodyFrom={0xf2cf8a} bodyTo={0x22d3ee}
               layout={layout} focus={focus} focusNonce={focusN} pinned={preview ? null : cur} pinnedHtml={pinCard} messages={msgs} time={time} infra={infra} />
           </Suspense>

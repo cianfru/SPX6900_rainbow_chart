@@ -58,7 +58,7 @@ export default function AeonSkylineChart({ isMobile, preview = false }) {
   // React counts hooks by call order, so returning early from the middle changes the count between
   // renders and throws.
   if (holders.length < 4) return <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Not enough holder data yet.</div>;
-  const cur = sel || visible[0];
+  const cur = sel;   // nothing pinned until you hover or click — no card on arrival
   // The card that hangs over the selected building. Leads with the NEIGHBOURHOOD, because that is
   // the part people react to — an address tells you nothing, "Upper East Side" tells you where you
   // live. The Zerion link is the only clickable thing in the 3D scene.
@@ -189,7 +189,7 @@ export default function AeonSkylineChart({ isMobile, preview = false }) {
         <div style={{ width: "100%" }}>
           <Suspense fallback={<div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Loading 3D…</div>}>
             <Skyline3D towers={visible} isMobile={isMobile} cardHtml={aeonCard}
-              onSelect={t => { setSel(t); goTo(t.a); }}
+              onSelect={t => { setSel(t); if (t) goTo(t.a); }}
               crownLabel="👑 top holder" accent="rgba(45,212,191,0.45)" bodyFrom={0xf2cf8a} bodyTo={0x22d3ee}
               layout={layout} focus={focus} focusNonce={focusN} pinned={preview ? null : cur} pinnedHtml={pinCard} messages={msgs} time={time} />
           </Suspense>

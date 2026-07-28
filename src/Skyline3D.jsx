@@ -575,7 +575,8 @@ export default function Skyline3D({
     };
     // Signs live in their own group so messages can be re-hung without touching the buildings.
     const signs = new THREE.Group(); scene.add(signs);
-    api.current = { cam, controls, homes, pulse, signs, scene, picks };
+    const frameCbs = [];
+    api.current = { cam, controls, homes, pulse, signs, scene, picks, frameCbs, el, size: () => [el.clientWidth || W, VH] };
 
     const ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
     let hovered = null, px = 0, py = 0, moved = false;
@@ -615,7 +616,9 @@ export default function Skyline3D({
     const onUp = e => {
       if (moved) return;                                  // was a drag, not a click
       const hit = pick(e);
-      if (hit) selectRef.current?.(picks[hit.instanceId].t);
+      // Clicking nothing clears the pin — otherwise the only way to dismiss a card is to pin a
+      // different one, and there is no way back to just looking at the city.
+      selectRef.current?.(hit ? picks[hit.instanceId].t : null);
     };
     renderer.domElement.addEventListener("pointermove", onMove);
     renderer.domElement.addEventListener("pointerdown", onDown);
@@ -663,6 +666,7 @@ export default function Skyline3D({
         if (u >= 1) stopFlight();
       }
       controls.update();
+      for (const cb of frameCbs) cb();
       sun.target.position.copy(controls.target);
       sun.position.set(controls.target.x + LEN * 0.22, controls.target.y + LEN * 0.34, controls.target.z + LEN * 0.17);
       sun.target.updateMatrixWorld(); sun.shadow.camera.updateProjectionMatrix();
@@ -745,29 +749,46 @@ export default function Skyline3D({
     };
   }, [messages, towers, layout, time]);
 
-  // The selected wallet's card, hung over its own roof rather than parked above the map. It sits
-  // where the thing it describes is, which is the whole argument for a map; and it is the one label
-  // here with pointer events, so the Zerion link is reachable with a finger.
+  // The selected wallet's card, tracking its own building.
+  //
+  // Positioned in SCREEN space rather than as a world-anchored label: anchored in the world it
+  // clipped off the top of the canvas the moment you zoomed in, which is exactly when you most
+  // want to read it. Projecting the building each frame and clamping to the viewport means the
+  // card follows its building while it is visible and stays fully readable when it isn't.
   useEffect(() => {
-    const a = api.current; if (!a?.signs || !pinned || !pinRef.current) return;
+    const a = api.current; if (!a?.frameCbs || !pinned || !pinRef.current) return;
     const home = a.homes.get(String(pinned.a || "").toLowerCase());
     if (!home) return;
-    const wrap = document.createElement("div");
-    wrap.style.position = "relative";
+
     const d = document.createElement("div");
     Object.assign(d.style, {
-      position: "absolute", left: "50%", bottom: "26px", transform: "translateX(-50%)",
-      width: "216px", borderRadius: "12px", overflow: "hidden",
-      background: "rgba(8,11,20,0.95)", border: `1px solid ${accent}`,
-      boxShadow: "0 12px 34px rgba(0,0,0,0.65)", pointerEvents: "auto", cursor: "default",
+      position: "absolute", width: "216px", borderRadius: "12px", overflow: "hidden",
+      background: "rgba(8,11,20,0.95)", border: `1px solid ${accent}`, zIndex: "6",
+      boxShadow: "0 12px 34px rgba(0,0,0,0.65)", pointerEvents: "auto",
+      font: "500 12.5px 'Space Grotesk', system-ui, sans-serif", color: "#e2e8f0",
     });
+    d.setAttribute("data-city-pin", "");     // so tests can assert on the card, not on any text
     d.innerHTML = pinRef.current(pinned) ?? "";
-    wrap.appendChild(d);
-    const o = new CSS2DObject(wrap);
-    // clear of the spire, and above where a note would hang
-    o.position.set(home.x, home.h + 1.5, home.z);
-    a.scene.add(o);
-    return () => { d.remove(); wrap.remove(); a.scene.remove(o); };
+    a.el.appendChild(d);
+
+    const v = new THREE.Vector3();
+    const track = () => {
+      const [W2, H2] = a.size();
+      v.set(home.x, home.h + 1.2, home.z).project(a.cam);
+      const cw = d.offsetWidth || 216, ch = d.offsetHeight || 200, pad = 8;
+      let x = (v.x * 0.5 + 0.5) * W2 - cw / 2;
+      let y = (-v.y * 0.5 + 0.5) * H2 - ch - 14;      // sit above the anchor
+      // Behind the camera projects to a mirrored point — park it rather than flip it across.
+      if (v.z > 1) { x = W2 - cw - pad; y = pad; }
+      d.style.left = Math.max(pad, Math.min(W2 - cw - pad, x)) + "px";
+      d.style.top = Math.max(pad, Math.min(H2 - ch - pad, y)) + "px";
+    };
+    track();
+    a.frameCbs.push(track);
+    return () => {
+      const i = a.frameCbs.indexOf(track); if (i >= 0) a.frameCbs.splice(i, 1);
+      d.remove();
+    };
   }, [pinned, towers, layout, time, accent]);
 
   // Move to a building, without rebuilding the scene. A tween rather than a jump: teleporting
