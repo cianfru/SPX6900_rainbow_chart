@@ -6,7 +6,7 @@ import { placeCity, cityScale, CITY_LENGTH, ISLAND_RING, PARK_RINGS, BACKDROP, I
          streetGrid, hoodGrid, NEIGHBOURHOODS, AXIS_ANGLE } from "./city-map.js";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { chainOf } from "./city-messages.js";
-import { TIMES, FAMILIES, skyEnv, facadeTexture, wallGeometry, roofGeometry, archetype,
+import { TIMES, FAMILIES, skyEnv, facadeTexture, wallGeometry, roofGeometry, archetype, heightOf,
          berthGeometry, bridgeGeometry, monumentGeometry } from "./city-render.js";
 import { infraFrom, portBerths, siteAt, bridgeSpan, SITES, fmtTokens } from "./city-infra.js";
 
@@ -83,6 +83,9 @@ export default function Skyline3D({
     const t0 = performance.now();
     const T = towers.slice().sort((a, b) => b.score - a.score);
     const maxScore = Math.max(...T.map(t => t.score), 1e-9);
+    // heightOf is log-based, so it needs the bottom of the range as well as the top. Zero and
+    // negative scores can't sit on a log axis; they fall back to the smallest positive one.
+    const minScore = Math.max(1e-12, Math.min(...T.map(t => t.score).filter(s => s > 0)));
     const maxFlow = Math.max(...T.map(t => Math.abs(t.flow || 0)), 1e-9);
 
     // CINEMA MODE (?cinema=1) — the canvas takes the whole window, page chrome and all. It exists
@@ -94,11 +97,10 @@ export default function Skyline3D({
     const W = cine ? window.innerWidth : el.clientWidth;
     const VH = cine ? window.innerHeight : (isMobile ? 440 : 580);
     if (cine) Object.assign(el.style, { position: "fixed", inset: "0", width: "100vw", height: "100vh", zIndex: "9999", borderRadius: "0" });
-    // Height uses a SQUARE-ROOT scale. Holdings are power-law (the top wallet here is ~100x the
-    // median), so a linear axis renders one lonely spike over a field of paving slabs. The root
-    // keeps the ordering exact and lets the archetypes actually spread across the city — the
-    // caption says so, and the exact figure is always one hover away.
-    const HMAX = 21;
+    // Height range. The CURVE between them lives in heightOf (city-render.js) — see the note there
+    // for why it is mostly logarithmic. HMIN is the floor: the smallest resident cleared the
+    // residency bar, so nothing in this city is a one-storey shed.
+    const HMIN = 1.6, HMAX = 21;
     const city = layout === "city";
     // City: real Manhattan lots (biggest holders in the tower districts). Grid: the plain block
     // skyline, kept as an option because it compares sizes far better than a scattered map does.
@@ -339,7 +341,7 @@ export default function Skyline3D({
     const off = (dx, dz) => [dx * cosA - dz * sinA, dx * sinA + dz * cosA];
     const M = new THREE.Matrix4();
     T.forEach((t, i) => {
-      const h = Math.max(0.6, Math.sqrt(Math.max(0, t.score) / maxScore) * HMAX);
+      const h = heightOf(t.score, minScore, maxScore, HMIN, HMAX);
       const p = pts[i], r = hash01(t.a || String(i));
       const f = (t.flow || 0) / maxFlow;                     // -1..1
       const mag = Math.min(1, Math.abs(f) * 3.0);
@@ -542,7 +544,7 @@ export default function Skyline3D({
         const h = placed[i]?.hood; if (!h) return;
         const a = agg.get(h.id) || { name: h.name, x: 0, z: 0, n: 0, top: 0 };
         a.x += pts[i].x; a.z += pts[i].z; a.n++;
-        a.top = Math.max(a.top, Math.sqrt(Math.max(0, t.score) / maxScore) * HMAX);
+        a.top = Math.max(a.top, heightOf(t.score, minScore, maxScore, HMIN, HMAX));
         agg.set(h.id, a);
       });
       // Stagger the heights. Downtown's districts are small and perspective compresses the far end

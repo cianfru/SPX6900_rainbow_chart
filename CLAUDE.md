@@ -319,6 +319,28 @@
     counts survive because the window pattern is UV SCALE, not a per-building texture** — a 20-storey tower gets 20 rows,
     a brownstone 3, sharing one tileable texture per family. **Result: 6,836 → 85 draw calls with 7× the geometry
     (109,444 tris).** Prettier AND much cheaper.
+  - **⭐⭐ HEIGHT IS MOSTLY LOG, AND HAS A FLOOR (owner, 2026-07-28: "manhattan is famous for tall buildings… those
+    small condos should be higher"). He was right, and it was worse than it looked.** Height was
+    `sqrt(score/maxScore) * HMAX` — and against a 0.92-unit footprint that put the MEDIAN resident at **0.62 units,
+    a building WIDER THAN IT WAS TALL**, with 78% of the city under two units. A square root simply cannot compress a
+    power law that spans ~2,800× between the smallest resident and the biggest whale: you get one needle over a field
+    of doormats, which is exactly what the screenshot showed. **Fix = `heightOf()` in `city-render.js` (shared by the
+    building geometry AND the district labels so they can't drift): `HMIN + (HMAX-HMIN) × (0.70·lognorm + 0.30·sqrt)`,
+    HMIN 1.6 / HMAX 21.** Mostly log because that's the right scale for a power law (and what every price chart here
+    already uses); a little root mixed back in because PURE log flattens the top until a 14M-token wallet is barely
+    twice the median. HMIN is not decoration — the smallest resident cleared 5,000 tokens held 90+ days, and nothing
+    in Manhattan is one storey. **Ordering stays exact**, so the honesty rail holds; the caption says "mostly-
+    logarithmic… the ranking is exact, the spacing is compressed" and the real figure is one hover away.
+    - **⚠ ARCHETYPE THRESHOLDS ARE CALIBRATED TO THE CURVE — retune them TOGETHER, never one alone.** They were
+      1.8/4/9 for the old squashed range; left unchanged on the log curve, every building in the city becomes glass.
+      Now **3.5 / 6 / 11**, which yields Manhattan 8% glass towers · 53% concrete mid-rise · 39% masonry, and the
+      boroughs 60% low-rise with ZERO towers. **That tall-island/low-borough split falls out of the DATA** (Manhattan
+      already takes the top 1,693 by conviction rank), not from a per-district rule — so it's a real finding, not set dressing.
+    - **Slenderness is the sanity check nobody thinks to run:** a building's aspect ratio is `h / 0.92`. Real supertalls
+      reach ~24:1 and that's the ceiling (HMAX 21 ⇒ 22.8:1); the old median was 0.67:1. `test/city-height.test.mjs`
+      pins monotonicity, the range, "no building wider than tall", median ≥ 3:1, that all four families still occur,
+      and that degenerate inputs (single wallet, zero min) return a number — a NaN here silently poisons a merged
+      geometry bucket and takes a whole material group off screen. Draw calls are unaffected (82 at 4,893 buildings).
   - **⭐⭐ THE DESIGN RULE — "STONE AND LIGHT": realism goes into FORM, MATERIAL and LIGHTING; the DATA stays in the
     LIGHT.** Albedo is the real material with only ~12% age hue (brick still looks like brick); age + flow live at FULL
     strength in the **emissive windows + street glow**. That's how a real city reads at dusk (building = stone, windows =

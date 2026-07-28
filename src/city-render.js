@@ -122,8 +122,35 @@ export function roofGeometry(w, d) {
   return g;
 }
 
+// ⭐ HOW TALL A WALLET STANDS. Holdings are power-law — the top wallet is ~2,800× the smallest
+// resident — so the SHAPE of this curve decides whether the city reads as Manhattan or as a car
+// park. A square root (what this used to be) is not nearly enough compression: it put the median
+// resident at 0.62 units against a 0.92-unit footprint, i.e. a building WIDER THAN IT WAS TALL,
+// with 78% of the city under two units. One needle over a field of doormats.
+//
+// So: mostly LOG (the right scale for a power law, and the scale every price chart in this repo
+// already uses) with a little root mixed back in, which buys the whales their separation again —
+// pure log flattens the top end until a 14M-token wallet is barely twice the median.
+//
+// HMIN is not decoration. The smallest resident here cleared 5,000 tokens held 90+ days; nothing
+// in Manhattan is one storey, and neither is anyone who got in. The ordering stays exact either
+// way — this only ever restates the same ranking on a scale you can see.
+export function heightOf(score, minScore, maxScore, hmin, hmax) {
+  const s = Math.max(Number.isFinite(score) ? score : 0, minScore);
+  // Degenerate inputs (one wallet, or a min at zero) fall back to the root alone rather than
+  // returning NaN and dropping the whole geometry bucket on the floor.
+  const usable = minScore > 0 && maxScore > minScore;
+  const lg = usable ? (Math.log(s) - Math.log(minScore)) / (Math.log(maxScore) - Math.log(minScore)) : 0;
+  const rt = maxScore > 0 ? Math.sqrt(Math.max(0, s) / maxScore) : 0;
+  const u = usable ? 0.70 * lg + 0.30 * rt : rt;
+  return hmin + (hmax - hmin) * Math.max(0, Math.min(1, u));
+}
+
 // The archetypes. Silhouette carries scale, so a townhouse is never mistaken for a skyscraper —
 // and the family it returns is what decides whether it's glass, concrete or brick.
+// ⚠ The thresholds below are calibrated to heightOf's output range (HMIN..HMAX, currently
+// 1.6..21). They were 1.8/4/9 back when the curve dumped three quarters of the city under two
+// units; on the log curve that made every building glass. Retune them WITH the curve, never alone.
 export function archetype(h, r, landmark) {
   const P = [];
   if (landmark) {
@@ -133,19 +160,19 @@ export function archetype(h, r, landmark) {
     P.push({ w: 0.48, d: 0.48, h: top, y: base + mid + top / 2 });
     return { parts: P, spire: h * 0.16, family: "glass" };
   }
-  if (h >= 9) {
+  if (h >= 11) {
     const base = h * 0.72, top = h * 0.28;
     P.push({ w: 0.92, d: 0.92, h: base, y: base / 2 });
     P.push({ w: 0.62, d: 0.62, h: top, y: base + top / 2 });
     return { parts: P, spire: r > 0.5 ? h * 0.12 : 0, family: "glass" };
   }
-  if (h >= 4) {
+  if (h >= 6) {
     const base = h * 0.85, cap = h * 0.15;
     P.push({ w: 0.86, d: 0.86, h: base, y: base / 2 });
     P.push({ w: 0.66, d: 0.66, h: cap, y: base + cap / 2 });
     return { parts: P, spire: 0, family: "concrete" };
   }
-  if (h >= 1.8) {
+  if (h >= 3.5) {
     P.push({ w: 0.94, d: 0.94, h: h * 0.92, y: h * 0.46 });
     P.push({ w: 0.99, d: 0.99, h: h * 0.08, y: h * 0.96 });
     return { parts: P, spire: 0, family: "masonry" };

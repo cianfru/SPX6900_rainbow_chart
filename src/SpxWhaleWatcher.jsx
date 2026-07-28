@@ -155,7 +155,7 @@ export default function SpxWhaleWatcher({ isMobile, preview = false }) {
 
       <div className="chart-caption" style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 18, lineHeight: 1.65, maxWidth: 900, marginInline: "auto" }}>
         <strong style={{ color: "#a78bfa" }}>Whale watcher</strong> — the biggest real holders, reconstructed per wallet from every SPX transfer on Ethereum (FIFO, exchange/LP/bridge excluded).
-        Glow = net position change over the window; building height is a √ scale of size × holding time (holdings are power-law, so a linear axis would be one spike over a car park) — hover for the exact figure. Wallets are addresses, not people: one person can hold several. A behaviour read, not a signal. Not financial advice.
+        Glow = net position change over the window; building height is a mostly-logarithmic scale of size × holding time (holdings are power-law, so a linear axis would be one spike over a car park) — the ranking is exact, the spacing is compressed, and the real figure is one hover away. Wallets are addresses, not people: one person can hold several. A behaviour read, not a signal. Not financial advice.
       </div>
     </div>
     </CityGate>

@@ -218,7 +218,7 @@ export default function AeonSkylineChart({ isMobile, preview = false }) {
       </div>
 
       <div className="chart-caption" style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 18, lineHeight: 1.65, maxWidth: 900, marginInline: "auto" }}>
-        Tower height = a conviction score combining AEON held{hasSpx ? ", SPX6900 coins held," : ""} and holding duration, reconstructed on-chain from every transfer{hasSpx ? " (SPX from wallet balances)" : ""}.
+        Tower height = a conviction score combining AEON held{hasSpx ? ", SPX6900 coins held," : ""} and holding duration, reconstructed on-chain from every transfer{hasSpx ? " (SPX from wallet balances)" : ""}, drawn on a mostly-logarithmic scale so the ranking is exact but the spacing is compressed.
         {hasSpx ? " Wallets that hold both AEON and SPX — long — stand tallest." : ""}
       </div>
     </div>
