@@ -149,7 +149,7 @@ export function heightOf(score, minScore, maxScore, hmin, hmax) {
 // The archetypes. Silhouette carries scale, so a townhouse is never mistaken for a skyscraper —
 // and the family it returns is what decides whether it's glass, concrete or brick.
 // ⚠ The thresholds below are calibrated to heightOf's output range (HMIN..HMAX, currently
-// 1.6..21). They were 1.8/4/9 back when the curve dumped three quarters of the city under two
+// 1.0..21). They were 1.8/4/9 back when the curve dumped three quarters of the city under two
 // units; on the log curve that made every building glass. Retune them WITH the curve, never alone.
 export function archetype(h, r, landmark) {
   const P = [];
