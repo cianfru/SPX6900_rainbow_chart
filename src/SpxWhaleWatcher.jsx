@@ -26,7 +26,10 @@ export default function SpxWhaleWatcher({ isMobile, preview = false }) {
   const [focus, setFocus] = useState(null);
   const [focusN, setFocusN] = useState(0);   // bumped so re-picking the same building still moves
   const goTo = a => { setFocus(a); setFocusN(n => n + 1); };
-  const [shown, setShown] = useState(600);   // how many buildings to RENDER (all are searchable)
+  // Everyone who qualifies. The 600 cap here was caution from before the merge refactor, and it
+  // quietly capped the city below Manhattan's own capacity — so the borough expansion could never
+  // trigger no matter how many residents there were. Draw calls don't move with building count.
+  const [shown, setShown] = useState(Infinity);
   const [msgs, setMsgs] = useState(null);
   const [time, setTime] = useState("dusk");
   const [infra, setInfra] = useState(null);   // the harbour: exchanges, bridge, LP, burn
@@ -117,13 +120,13 @@ export default function SpxWhaleWatcher({ isMobile, preview = false }) {
           }}>{w}-day flow</button>
         ))}
         <span style={{ width: 10 }} />
-        {[300, 600, 1500].map(n => (
+        {[600, 2000, Infinity].map(n => (
           <button key={n} onClick={() => setShown(n)} title="How many buildings to render" style={{
             padding: "5px 11px", borderRadius: 8, cursor: "pointer", fontFamily: MONO, fontSize: 12,
             background: shown === n ? "rgba(167,139,250,0.18)" : "transparent",
             border: `1px solid ${shown === n ? "rgba(167,139,250,0.5)" : "rgba(255,255,255,0.12)"}`,
             color: shown === n ? "#c4b5fd" : "#94a3b8",
-          }}>{n >= (towers?.length ?? 0) ? "all" : n} buildings</button>
+          }}>{n === Infinity ? "all" : n} buildings</button>
         ))}
       </div>
 
