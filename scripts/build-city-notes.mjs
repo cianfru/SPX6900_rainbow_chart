@@ -23,6 +23,12 @@ const KEY = process.env.ALCHEMY_KEY || "";
 // few requests and thousands.
 const SPAN = { ethereum: 100_000, base: 500_000 };      // Base blocks are 2s, mainnet 12s
 
+// The block each CityNotes was deployed at. The first run starts here instead of block 0 — nothing
+// exists before the contract, so scanning genesis→deploy is pure waste (~60 empty Base windows).
+// After the first run the saved head takes over and this is moot. Fill one in when a chain goes
+// live; a chain with no entry falls back to 0 (correct, just slower on run one).
+const DEPLOY_BLOCK = { base: 49_240_526 };              // 0xa167867B…C282262, Jul 2026
+
 async function rpc(chain, method, params) {
   const r = await fetch(CHAINS[chain].rpc + KEY, {
     method: "POST", headers: { "Content-Type": "application/json" },
@@ -89,9 +95,10 @@ async function main() {
 
   const notes = [], heads = { ...prev.heads };
   for (const chain of live) {
-    // Resume from the last block we read. Re-reading the last block is harmless (latest-wins), and
-    // it means a reorg at the tip self-corrects on the next run.
-    const from = Math.max(0, (prev.heads?.[chain] ?? 0));
+    // Resume from the last block we read, but never before the contract's own deploy block. Re-
+    // reading the last block is harmless (latest-wins), and it means a reorg at the tip self-
+    // corrects on the next run.
+    const from = Math.max(DEPLOY_BLOCK[chain] ?? 0, prev.heads?.[chain] ?? 0);
     const { notes: n, head } = await readChain(chain, from);
     notes.push(...n);
     heads[chain] = head;
