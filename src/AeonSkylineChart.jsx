@@ -21,6 +21,8 @@ export default function AeonSkylineChart({ isMobile, preview = false }) {
   const [sel, setSel] = useState(null);
   const [layout, setLayout] = useState("city");
   const [focus, setFocus] = useState(null);
+  const [focusN, setFocusN] = useState(0);   // bumped so re-picking the same building still moves
+  const goTo = a => { setFocus(a); setFocusN(n => n + 1); };
   const [shownN, setShownN] = useState(600);
   const [msgs, setMsgs] = useState(null);
   const [time, setTime] = useState("dusk");
@@ -43,13 +45,17 @@ export default function AeonSkylineChart({ isMobile, preview = false }) {
   // what makes a building glow green (accumulating) or red (distributing).
   const maxSpxV = Math.max(0, ...holders.map(h => h.spx || 0));
   const spxOn = useSpx && maxSpxV > 0;
-  const towers = holders.map(h => {
+  // ⚠ THESE MUST BE MEMOISED. Skyline3D rebuilds its whole scene when `towers` changes identity,
+  // and a rebuild replays the arrival flight from the top. Built inline, they were new arrays on
+  // every render — so clicking a building (which only sets state) tore the city down and flew you
+  // back out over the bay. The array contents never changed; only their identity did.
+  const towers = useMemo(() => holders.map(h => {
     const units = h.n + (spxOn ? (h.spx || 0) / maxSpxV * maxN : 0);
     return { ...h, score: units * (0.45 + 0.55 * ((h.days || 0) / maxDays)), ageT: (h.days || 0) / maxDays, flow: h.f30 || 0 };
-  });
+  }), [holders, spxOn, maxSpxV, maxN, maxDays]);
   const adding = towers.filter(t => t.flow > 0).length, shedding = towers.filter(t => t.flow < 0).length;
-  // render the biggest N (a building is ~3 draw calls); all holders stay searchable
-  const visible = towers.slice().sort((a, b) => b.score - a.score).slice(0, shownN);
+  // render the biggest N (all holders stay searchable)
+  const visible = useMemo(() => towers.slice().sort((a, b) => b.score - a.score).slice(0, shownN), [towers, shownN]);
   const cur = sel || visible[0];
   const aeonCard = t => `
       <div style="padding:11px 13px 8px">
@@ -124,7 +130,7 @@ export default function AeonSkylineChart({ isMobile, preview = false }) {
     <div style={{ maxWidth: MAX_W, margin: "0 auto" }}>
       <Explain q="Who are the biggest, most committed holders?" accent="#2dd4bf">
         A 3D skyline — <strong style={{ color: "#e2e8f0" }}>one tower per wallet</strong>. Height combines <strong style={{ color: "#5eead4" }}>AEON held</strong>{hasSpx && <> + <strong style={{ color: "#a78bfa" }}>SPX6900 coins held</strong></>} with <strong style={{ color: "#22d3ee" }}>how long it&apos;s held</strong>, so the tallest tower is the biggest, most committed holder{hasSpx && <> across both</>}.
-        Colour ramps <span style={{ color: "#f59e0b" }}>amber (newer)</span> → <span style={{ color: "#22d3ee" }}>cyan (held since mint)</span>. Windows glow <span style={{ color: "#4ade80" }}>green when a wallet bought</span> and <span style={{ color: "#fb7185" }}>red when it sold</span> in the last 30 days. <strong style={{ color: "#e2e8f0" }}>Drag to orbit, hover a tower, click to pin its wallet.</strong>
+        Colour ramps <span style={{ color: "#f2cf8a" }}>pale gold (newer)</span> → <span style={{ color: "#22d3ee" }}>cyan (held since mint)</span>. Windows glow <span style={{ color: "#4ade80" }}>green when a wallet bought</span> and <span style={{ color: "#fb7185" }}>red when it sold</span> in the last 30 days. <strong style={{ color: "#e2e8f0" }}>Drag to orbit, hover a tower, click to pin its wallet.</strong>
       </Explain>
       <div style={{ display: "flex", gap: isMobile ? 16 : 30, justifyContent: "center", marginBottom: 14, flexWrap: "wrap" }}>
         <Metric label="accumulating" value={adding} color="#4ade80" sub="bought in 30d" />
@@ -155,26 +161,29 @@ export default function AeonSkylineChart({ isMobile, preview = false }) {
       </div>
       <CityControls layout={layout} onLayout={setLayout} time={time} onTime={setTime} accent="#5eead4" isMobile={isMobile} unit="holder"
         has={a => visible.some(t => (t.a || "").toLowerCase() === a)}
-        onFocus={a => { setFocus(a); const m = visible.find(t => (t.a || "").toLowerCase() === a); if (m) setSel(m); }} />
+        onFocus={a => { goTo(a); const m = visible.find(t => (t.a || "").toLowerCase() === a); if (m) setSel(m); }} />
 
       <CityWallet city="aeon" accent="#5eead4" isMobile={isMobile} notes={msgs} onNotes={setMsgs}
         owns={a => visible.some(t => (t.a || "").toLowerCase() === a)}
-        onFocus={a => { setFocus(a); const m = visible.find(t => (t.a || "").toLowerCase() === a); if (m) setSel(m); }} />
+        onFocus={a => { goTo(a); const m = visible.find(t => (t.a || "").toLowerCase() === a); if (m) setSel(m); }} />
+
+      {!preview && cur && (
+        <div style={{ marginBottom: 10 }}>
+          <WalletCard w={cur} flow={cur.flow} flowUnit=" AEON" accent="#5eead4" isMobile={isMobile} wide
+            lines={[`${cur.n} AEON${spxOn && cur.spx ? ` · ${fmtSpx(cur.spx)} SPX` : ""}`, `held ${cur.days} days${cur.hood ? ` · ${cur.hood.name}` : ""}`]} />
+        </div>
+      )}
 
       <div style={{ position: "relative" }}>
         <div style={{ width: "100%" }}>
           <Suspense fallback={<div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Loading 3D…</div>}>
-            <Skyline3D towers={visible} isMobile={isMobile} onSelect={setSel} cardHtml={aeonCard}
-              crownLabel="👑 top holder" accent="rgba(45,212,191,0.45)" bodyFrom={0xd97706} bodyTo={0x22d3ee}
-              layout={layout} focus={focus} messages={msgs} time={time} />
+            <Skyline3D towers={visible} isMobile={isMobile} cardHtml={aeonCard}
+              onSelect={t => { setSel(t); goTo(t.a); }}
+              crownLabel="👑 top holder" accent="rgba(45,212,191,0.45)" bodyFrom={0xf2cf8a} bodyTo={0x22d3ee}
+              layout={layout} focus={focus} focusNonce={focusN} messages={msgs} time={time} />
           </Suspense>
         </div>
-        {!preview && cur && (
-          <div style={isMobile ? { marginTop: 12 } : { position: "absolute", top: 12, right: 12, zIndex: 3, width: 250, pointerEvents: "auto" }}>
-          <WalletCard w={cur} flow={cur.flow} flowUnit=" AEON" accent="#5eead4" isMobile={isMobile}
-            lines={[`${cur.n} AEON${spxOn && cur.spx ? ` · ${fmtSpx(cur.spx)} SPX` : ""}`, `held ${cur.days} days${cur.hood ? ` · ${cur.hood.name}` : ""}`]} />
-          </div>
-        )}
+
       </div>
       <div style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 8 }}>
         Drag to orbit · scroll to zoom · hover a building for the wallet · click to pin it.{layout === "city" && " Every holder has a home address in Aeon City."}

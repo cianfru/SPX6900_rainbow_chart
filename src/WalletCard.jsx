@@ -9,7 +9,10 @@ import { SANS, MONO } from "./chart-ui.jsx";
 // value, so it loads only for the one wallet being displayed, never for the whole set.
 export const shortAddr = a => a.slice(0, 6) + "…" + a.slice(-4);
 
-export default function WalletCard({ w, lines = [], flow, flowUnit = "", accent = "#5eead4", isMobile }) {
+// `wide` lays it out as a horizontal strip for sitting ABOVE the map rather than on top of it.
+// Overlaying the map cost a quarter of the viewport on a phone — the surface the page exists to
+// show — and the card is mostly whitespace when it's a column anyway.
+export default function WalletCard({ w, lines = [], flow, flowUnit = "", accent = "#5eead4", isMobile, wide = false }) {
   if (!w) return null;
   const name = w.ens || shortAddr(w.a);
   const f = flow ?? 0;
@@ -18,10 +21,15 @@ export default function WalletCard({ w, lines = [], flow, flowUnit = "", accent 
   const amount = f === 0 ? "" : `${f > 0 ? "+" : "−"}${Math.abs(f).toLocaleString(undefined, { maximumFractionDigits: 0 })}${flowUnit}`;
 
   return (
-    <div style={{
+    <div style={wide ? {
+      background: "rgba(8,11,20,0.9)", border: "1px solid rgba(255,255,255,0.09)", borderRadius: 12,
+      overflow: "hidden", width: "100%", fontFamily: SANS,
+      display: "flex", alignItems: "stretch", gap: 0, flexWrap: isMobile ? "wrap" : "nowrap",
+    } : {
       background: "rgba(8,11,20,0.9)", border: "1px solid rgba(255,255,255,0.09)", borderRadius: 12,
       overflow: "hidden", width: isMobile ? "100%" : 268, flex: "0 0 auto", fontFamily: SANS,
     }}>
+      <div style={wide ? { flex: "1 1 auto", minWidth: 0, display: "flex", alignItems: "center", gap: 14, padding: "0 4px 0 0", flexWrap: "wrap" } : {}}>
       <div style={{ display: "flex", alignItems: "center", gap: 9, padding: "11px 13px 9px" }}>
         {w.ens && (
           <img src={`https://metadata.ens.domains/mainnet/avatar/${encodeURIComponent(w.ens)}`} alt=""
@@ -33,12 +41,12 @@ export default function WalletCard({ w, lines = [], flow, flowUnit = "", accent 
           {lines[0] && <div style={{ color: "#94a3b8", fontSize: 11.5, whiteSpace: "nowrap" }}>{lines[0]}</div>}
         </div>
       </div>
-      {lines[1] && <div style={{ padding: "0 13px 9px", color: "#7c8a9e", fontSize: 11.5 }}>{lines[1]}</div>}
+      {lines[1] && <div style={{ padding: wide ? "0 4px" : "0 13px 9px", color: "#7c8a9e", fontSize: 11.5 }}>{lines[1]}</div>}
 
       {/* the flow verdict — the thing the skyline's green/red glow is encoding */}
       <div style={{
         display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 8,
-        margin: "0 13px 10px", padding: "7px 10px", borderRadius: 8,
+        margin: wide ? "0 4px" : "0 13px 10px", padding: "7px 10px", borderRadius: 8, flex: "0 0 auto",
         background: f > 0 ? "rgba(74,222,128,0.10)" : f < 0 ? "rgba(251,113,133,0.10)" : "rgba(255,255,255,0.04)",
         border: `1px solid ${f > 0 ? "rgba(74,222,128,0.28)" : f < 0 ? "rgba(251,113,133,0.28)" : "rgba(255,255,255,0.08)"}`,
       }}>
@@ -46,13 +54,16 @@ export default function WalletCard({ w, lines = [], flow, flowUnit = "", accent 
         {amount && <span style={{ fontFamily: MONO, fontSize: 13, fontWeight: 700, color: col }}>{amount}</span>}
       </div>
 
+        <a href={`https://app.zerion.io/${w.a}/overview`} target="_blank" rel="noopener noreferrer"
+          style={{ padding: wide ? "0 8px" : "8px 13px", color: "#64748b", fontSize: 11, letterSpacing: "0.04em", textDecoration: "none", whiteSpace: "nowrap" }}>
+          open in Zerion →
+        </a>
+      </div>
       <img src={`https://render.zerion.io/preview?address=${w.a}`} alt=""
         onError={e => { e.currentTarget.style.display = "none"; }}
-        style={{ display: "block", width: "100%", borderTop: "1px solid rgba(255,255,255,0.08)" }} />
-      <a href={`https://app.zerion.io/${w.a}/overview`} target="_blank" rel="noopener noreferrer"
-        style={{ display: "block", padding: "8px 13px", color: "#64748b", fontSize: 11, letterSpacing: "0.04em", textDecoration: "none" }}>
-        open in Zerion →
-      </a>
+        style={wide
+          ? { display: "block", height: 96, width: "auto", maxWidth: isMobile ? "100%" : 320, objectFit: "cover", borderLeft: "1px solid rgba(255,255,255,0.08)" }
+          : { display: "block", width: "100%", borderTop: "1px solid rgba(255,255,255,0.08)" }} />
     </div>
   );
 }

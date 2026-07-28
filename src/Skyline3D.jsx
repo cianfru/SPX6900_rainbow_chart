@@ -62,7 +62,8 @@ export default function Skyline3D({
   towers, isMobile, onSelect, cardHtml, crownLabel = "👑 biggest", accent = "rgba(45,212,191,0.4)",
   bodyFrom = 0x334063, bodyTo = 0x8fa6d8,   // body colour ramp across holding age (new → old)
   layout = "city",                          // "city" = laid out on Manhattan · "grid" = the raw skyline
-  focus = null,                             // an address to fly the camera to
+  focus = null,                             // an address to move the camera to
+  focusNonce = 0,                           // bump to re-trigger a move to the SAME address
   intro = true,                             // play the arrival fly-through on mount
   onIntroDone,
   messages = null,                          // { address: { text, ts } } — signs hung over buildings
@@ -280,7 +281,12 @@ export default function Skyline3D({
       // brick still looks like brick. The data lives at full strength in the emissive windows,
       // where it reads better anyway because they are the brightest thing on the facade.
       const albedo = mix(new THREE.Color(F.colour), ageHue, 0.12);
-      const winCol = flowCol ? mix(ageHue, flowCol, Math.min(1, 0.45 + mag)) : ageHue;
+      // ⚠ FLOW MUST WIN OUTRIGHT, NOT BLEND. The age ramp's fresh end is amber and the selling
+      // colour is rose — mixing them half and half made "new holder" and "sold" land on the same
+      // orange, which is the one confusion this page cannot afford: one is neutral, the other is
+      // the actual signal. Any wallet with real flow now shows essentially pure green or red, and
+      // age is read from the wallets that AREN'T moving.
+      const winCol = flowCol ? mix(ageHue, flowCol, Math.min(1, 0.82 + 0.18 * mag)) : ageHue;
       const mat = new THREE.MeshStandardMaterial({
         color: albedo, roughness: F.roughness, metalness: F.metalness,
         emissive: winCol, emissiveMap: texes[family],
@@ -683,17 +689,42 @@ export default function Skyline3D({
     };
   }, [messages, towers, layout, time]);
 
-  // Fly to a searched wallet and flash its building, without rebuilding the scene.
+  // Move to a building, without rebuilding the scene. A tween rather than a jump: teleporting
+  // between towers is disorienting because you lose all sense of where you went, and the whole
+  // point of a city is knowing where you are in it. Any drag cancels, so it never fights you.
   useEffect(() => {
     const a = api.current; if (!a || !focus) return;
     const home = a.homes.get(String(focus).toLowerCase());
     if (!home) return;
     a.controls.autoRotate = false;
-    a.controls.target.set(home.x, Math.min(home.h * 0.6, 14), home.z);
-    a.cam.position.set(home.x + 16, home.h * 0.9 + 12, home.z + 20);
-    a.controls.update();
-    if (a.pulse) return a.pulse(home);   // flash the building so the eye lands on it
-  }, [focus]);
+
+    const from = a.cam.position.clone(), fromT = a.controls.target.clone();
+    // Stand off by the building's own height, so a townhouse is framed as tightly as a tower.
+    const dist = Math.max(11, home.h * 1.5);
+    const to = new THREE.Vector3(home.x + dist * 0.62, home.h * 0.85 + dist * 0.45, home.z + dist * 0.78);
+    const toT = new THREE.Vector3(home.x, Math.min(home.h * 0.55, 14), home.z);
+
+    let raf, cancelled = false;
+    const stop = () => { cancelled = true; };
+    a.controls.domElement?.addEventListener("pointerdown", stop, { once: true });
+    const t0 = performance.now(), DUR = 800;
+    const ease = x => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2);
+    const step = () => {
+      if (cancelled) return;
+      const e = ease(Math.min(1, (performance.now() - t0) / DUR));
+      a.cam.position.lerpVectors(from, to, e);
+      a.controls.target.lerpVectors(fromT, toT, e);
+      a.controls.update();
+      if (e < 1) raf = requestAnimationFrame(step);
+    };
+    step();
+    const clearPulse = a.pulse ? a.pulse(home) : null;   // flash it so the eye lands on it
+    return () => {
+      cancelled = true; cancelAnimationFrame(raf);
+      a.controls.domElement?.removeEventListener("pointerdown", stop);
+      clearPulse?.();
+    };
+  }, [focus, focusNonce]);
 
   return <div ref={mount} style={{ position: "relative", width: "100%", borderRadius: 12, overflow: "hidden", cursor: "grab" }} />;
 }

@@ -24,6 +24,8 @@ export default function SpxWhaleWatcher({ isMobile, preview = false }) {
   const [sel, setSel] = useState(null);
   const [layout, setLayout] = useState("city");
   const [focus, setFocus] = useState(null);
+  const [focusN, setFocusN] = useState(0);   // bumped so re-picking the same building still moves
+  const goTo = a => { setFocus(a); setFocusN(n => n + 1); };
   const [shown, setShown] = useState(600);   // how many buildings to RENDER (all are searchable)
   const [msgs, setMsgs] = useState(null);
   const [time, setTime] = useState("dusk");
@@ -114,29 +116,32 @@ export default function SpxWhaleWatcher({ isMobile, preview = false }) {
 
       <CityControls layout={layout} onLayout={setLayout} time={time} onTime={setTime} accent="#c4b5fd" isMobile={isMobile} unit="whale"
         has={a => visible.some(t => (t.a || "").toLowerCase() === a)}
-        onFocus={a => { setFocus(a); const m = visible.find(t => (t.a || "").toLowerCase() === a); if (m) setSel(m); }} />
+        onFocus={a => { goTo(a); const m = visible.find(t => (t.a || "").toLowerCase() === a); if (m) setSel(m); }} />
 
       <CityWallet city="whale" accent="#c4b5fd" isMobile={isMobile} notes={msgs} onNotes={setMsgs}
         owns={a => visible.some(t => (t.a || "").toLowerCase() === a)}
-        onFocus={a => { setFocus(a); const m = visible.find(t => (t.a || "").toLowerCase() === a); if (m) setSel(m); }} />
+        onFocus={a => { goTo(a); const m = visible.find(t => (t.a || "").toLowerCase() === a); if (m) setSel(m); }} />
+
+      {!preview && cur && (
+        <div style={{ marginBottom: 10 }}>
+          <WalletCard w={cur} flow={cur.flow} flowUnit=" SPX" accent="#c4b5fd" isMobile={isMobile} wide
+            lines={[`${fmt(cur.bal)} SPX${stats.spot ? ` · ~$${Math.round(cur.bal * stats.spot).toLocaleString()}` : ""}`, `held ${cur.days} days${cur.hood ? ` · ${cur.hood.name}` : ""}`]} />
+        </div>
+      )}
 
       <div style={{ position: "relative" }}>
         <div style={{ width: "100%" }}>
           <Suspense fallback={<div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Loading 3D…</div>}>
-            <Skyline3D towers={visible} isMobile={isMobile} onSelect={setSel} cardHtml={cardHtml}
-              crownLabel="🐋 biggest whale" accent="rgba(167,139,250,0.45)" bodyFrom={0xf59e0b} bodyTo={0x22d3ee}
-              layout={layout} focus={focus} messages={msgs} time={time} infra={infra} />
+            <Skyline3D towers={visible} isMobile={isMobile} cardHtml={cardHtml}
+              onSelect={t => { setSel(t); goTo(t.a); }}
+              crownLabel="🐋 biggest whale" accent="rgba(167,139,250,0.45)" bodyFrom={0xf2cf8a} bodyTo={0x22d3ee}
+              layout={layout} focus={focus} focusNonce={focusN} messages={msgs} time={time} infra={infra} />
           </Suspense>
           <div style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 8 }}>
             Drag to orbit · scroll to zoom · hover a building for the wallet · click to pin it.{layout === "city" && " Every wallet has a home address in Whale City."}
           </div>
         </div>
-        {!preview && cur && (
-          <div style={isMobile ? { marginTop: 12 } : { position: "absolute", top: 12, right: 12, zIndex: 3, width: 250, pointerEvents: "auto" }}>
-          <WalletCard w={cur} flow={cur.flow} flowUnit=" SPX" accent="#c4b5fd" isMobile={isMobile}
-            lines={[`${fmt(cur.bal)} SPX${stats.spot ? ` · ~$${Math.round(cur.bal * stats.spot).toLocaleString()}` : ""}`, `held ${cur.days} days${cur.hood ? ` · ${cur.hood.name}` : ""}`]} />
-          </div>
-        )}
+
       </div>
 
       <div className="chart-caption" style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 18, lineHeight: 1.65, maxWidth: 900, marginInline: "auto" }}>
