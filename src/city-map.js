@@ -181,8 +181,19 @@ export function hoodGrid(hood, k = 1) {
   const lots = [], blocks = [];
   const perT = PERIOD_T / (AXIS.len * k);          // one block row, in t units
   const lotT = GRID.lotT / (AXIS.len * k);
-  const first = Math.ceil(hood.t0 / perT);         // snap to the global row grid
-  for (let bi = first; bi * perT < hood.t1; bi++) {
+  // ⚠ EACH ROW BELONGS TO EXACTLY ONE DISTRICT — decided by its MIDPOINT.
+  //
+  // Districts used to snap their own start with ceil(t0 / perT) and stop at `< t1`, which loses a
+  // whole row wherever a boundary lands on a row edge: Chelsea ends and Midtown begins at t=0.260,
+  // but 0.260 / perT evaluates to 10.0000001, so ceil sent Midtown to row 11 while Chelsea's test
+  // excluded row 10. Nobody claimed it, and a bare band ran clean across the island.
+  //
+  // Testing the midpoint makes coverage exhaustive by construction: every row falls inside exactly
+  // one district's t-range, so none can be dropped and none double-claimed, whatever the floats do.
+  const nRows = Math.ceil(1 / perT) + 1;
+  for (let bi = 0; bi < nRows; bi++) {
+    const mid = bi * perT + (GRID.blkT / 2) * lotT;
+    if (mid < hood.t0 || mid >= hood.t1) continue;
     for (let bu = -COLS; bu <= COLS; bu++) {
       // Collect this block's buildable lots FIRST, then size the pavement to them. Sizing the slab
       // to the nominal block instead — and testing only its centre for land — hung full slabs out
@@ -191,7 +202,7 @@ export function hoodGrid(hood, k = 1) {
       const mine = [];
       for (let li = 0; li < GRID.blkT; li++) {
         const t = bi * perT + (li + 0.5) * lotT;
-        if (t >= hood.t1) break;
+        if (t >= 1) break;
         for (let lu = 0; lu < GRID.blkU; lu++) {
           const u = bu * PERIOD_U + (lu + 0.5 - GRID.blkU / 2) * GRID.lotU;
           const { x, z } = fromAxis(t, u / k);     // lots sit on the real island at scale k
