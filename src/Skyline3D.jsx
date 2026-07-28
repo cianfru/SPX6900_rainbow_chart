@@ -729,10 +729,16 @@ export default function Skyline3D({
     // which is the wrong tool for a still: a good frame is almost never a point on that spline.
     // Coordinates are world units; `len` from __cityStats is the island's length, so a caller can
     // express a vantage relative to the city instead of guessing absolute numbers.
-    window.__cityCam = (p, t) => {
+    // An optional third argument sets the field of view. It matters more than it sounds: the beams
+    // are spread along a two-kilometre island, and a wide lens from far enough back to hold them all
+    // renders them small and separate. A long lens from further out compresses that depth, so the
+    // forest reads as one mass — which is the thing worth looking at.
+    const baseFov = cam.fov;
+    window.__cityCam = (p, t, fov) => {
       flying = false; controls.enabled = false; controls.autoRotate = false;
       cam.position.set(p[0], p[1], p[2]);
       controls.target.set(t[0], t[1], t[2]);
+      cam.fov = fov || baseFov;
       cam.updateProjectionMatrix(); controls.update();
       renderer.render(scene, cam); labelR.render(scene, cam);
     };
