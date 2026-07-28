@@ -11,6 +11,7 @@ A building tells you five things.
 | **Height** | Position size weighted by conviction |
 | **Colour** | Holding age |
 | **Beam** | Net buying or selling |
+| **Arc** | A sale, seller to buyer — [AEON mode](../modes.md) only |
 | **Crown** | Largest holder |
 | **Location** | Stable hashed address — a game only |
 

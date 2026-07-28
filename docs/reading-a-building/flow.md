@@ -46,6 +46,9 @@ Beams read best at **night**. In daylight the additive glow of hundreds of overl
 toward white, and red stops looking red.
 {% endhint %}
 
+On the NFT side the counterparty is knowable, so a sale can be drawn end to end — see
+[Trade Arcs](trade-arcs.md).
+
 {% hint style="danger" %}
 **Flow is not intent.**
 

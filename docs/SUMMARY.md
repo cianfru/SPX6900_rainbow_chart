@@ -11,6 +11,7 @@
 * [Architecture](reading-a-building/architecture.md)
 * [Colour](reading-a-building/colour.md)
 * [Flow](reading-a-building/flow.md)
+* [Trade Arcs](reading-a-building/trade-arcs.md)
 
 ## Reading the City
 

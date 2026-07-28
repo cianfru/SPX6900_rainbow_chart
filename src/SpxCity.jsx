@@ -1,5 +1,5 @@
 import { useMemo, useState, useEffect, lazy, Suspense } from "react";
-import { loadWhales, loadOnchain, loadAeon } from "./history-data.js";
+import { loadWhales, loadOnchain, loadAeon, loadAeonSales } from "./history-data.js";
 import { AEON_ONCHAIN } from "./aeon-onchain.js";
 import { shortAddr } from "./WalletCard.jsx";
 import CityControls from "./CityControls.jsx";
@@ -46,6 +46,8 @@ export default function SpxCity({ isMobile, preview = false, initialMode = "spx"
   const [msgs, setMsgs] = useState(null);
   const [time, setTime] = useState("dusk");
   const [infra, setInfra] = useState(null);
+  const [sales, setSales] = useState(null);
+  const [showArcs, setShowArcs] = useState(true);
 
   const M = MODES.find(m => m.id === mode) || MODES[0];
 
@@ -55,6 +57,11 @@ export default function SpxCity({ isMobile, preview = false, initialMode = "spx"
   // Notes are per-city, and the city is now one — so they all live under "spx" rather than staying
   // split across the two old boards.
   useEffect(() => { let off = false; loadNotes("spx").then(m => { if (!off) setMsgs(m); }); return () => { off = true; }; }, []);
+  // Trades are only fetched for the mode that can draw them.
+  useEffect(() => {
+    if (mode !== "aeon" || sales) return;
+    let off = false; loadAeonSales().then(d => { if (!off && d) setSales(d); }); return () => { off = true; };
+  }, [mode, sales]);
 
   // AEON holdings by address, so BOTH mode can filter the SPX city and the card can show the count.
   const aeonBy = useMemo(() => {
@@ -103,6 +110,24 @@ export default function SpxCity({ isMobile, preview = false, initialMode = "spx"
   }, [towers]);
 
   const visible = useMemo(() => (towers ? towers.slice().sort((a, b) => b.score - a.score).slice(0, shown) : null), [towers, shown]);
+
+  // ⭐ ARCS ARE AN NFT-ONLY FACT, NOT A MISSING FEATURE ELSEWHERE. An NFT sale names both wallets
+  // and its price; a token transfer normally ends at an exchange, where the counterparty is a hot
+  // wallet and the trade it stands for is invisible. So the coin modes have no honest equivalent
+  // to draw, and the toggle only appears where the data actually supports it.
+  const arcs = useMemo(() => (mode === "aeon" && showArcs ? sales?.trades || null : null), [mode, showArcs, sales]);
+  const arcStat = useMemo(() => {
+    const tr = sales?.trades;
+    if (!tr?.length || !towers) return null;
+    const here = new Set(towers.map(t => (t.a || "").toLowerCase()));
+    let both = 0, one = 0;
+    for (const t of tr) {
+      const f = here.has(t.f), b = here.has(t.to);
+      if (f && b) both++; else if (f || b) one++;
+    }
+    return { total: tr.length, both, one, gone: tr.length - both - one, days: sales.arcDays ?? 30,
+      eth: tr.reduce((s, t) => s + (t.eth || 0), 0) };
+  }, [sales, towers]);
 
   if (whales == null && mode !== "aeon") return <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Loading city…</div>;
   if (!towers) return <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Data is being reconstructed — check back after the next on-chain refresh.</div>;
@@ -187,7 +212,28 @@ export default function SpxCity({ isMobile, preview = false, initialMode = "spx"
             {n === Infinity ? "all" : n} buildings
           </button>
         ))}
+        {isNft && sales?.trades?.length ? (
+          <>
+            <span style={{ width: 10 }} />
+            <button onClick={() => setShowArcs(v => !v)} style={btn(showArcs, "#a78bfa")}>
+              {showArcs ? "◉" : "○"} trade arcs
+            </button>
+          </>
+        ) : null}
       </div>
+
+      {/* The count is stated rather than implied. Some arcs have a counterparty who has since sold
+          out and left the city, and those are drawn running off the map instead of being dropped —
+          so the number of trades and the number of arcs you can trace between two roofs differ. */}
+      {isNft && showArcs && arcStat && (
+        <div style={{ textAlign: "center", fontFamily: SANS, fontSize: 12.5, color: "#94a3b8", marginBottom: 12, lineHeight: 1.6 }}>
+          <strong style={{ color: "#c4b5fd" }}>{arcStat.total} trades</strong> over the last {arcStat.days} days
+          — {arcStat.eth.toFixed(1)} ETH between wallets.{" "}
+          <span style={{ color: "#64748b" }}>
+            {arcStat.both} connect two buildings; {arcStat.one + arcStat.gone} have a counterparty who has since left the city, and run off the map.
+          </span>
+        </div>
+      )}
 
       <CityControls layout={layout} onLayout={setLayout} time={time} onTime={setTime} accent={M.accent} isMobile={isMobile} unit={M.unit}
         has={a => visible.some(t => (t.a || "").toLowerCase() === a)}
@@ -205,7 +251,7 @@ export default function SpxCity({ isMobile, preview = false, initialMode = "spx"
               crownLabel={isNft ? "👑 biggest collector" : "🐋 biggest whale"} accent={`${M.accent}73`}
               bodyFrom={0xf2cf8a} bodyTo={0x22d3ee}
               layout={layout} focus={focus} focusNonce={focusN} pinned={preview ? null : sel} pinnedHtml={pinCard}
-              messages={msgs} time={time} infra={isNft ? null : infra} />
+              messages={msgs} time={time} infra={isNft ? null : infra} arcs={arcs} />
           </Suspense>
           <div style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 8 }}>
             Drag to orbit · scroll to zoom · hover a building for the wallet · click to pin it.{layout === "city" && " Every wallet has a home address in SPX City."}

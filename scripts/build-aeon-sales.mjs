@@ -33,6 +33,10 @@ function parseCsv(path) {
   const head = lines[0].split(",").map(h => h.trim().toLowerCase());
   const ix = n => head.indexOf(n);
   const iT = ix("time"), iP = ix("price"), iC = ix("currency_symbol"), iU = ix("price_usd"), iM = ix("marketplace");
+  // Both ends of the trade. NFT sales are wallet to wallet with no exchange in the middle, so
+  // unlike a token transfer the counterparty is a real, nameable holder — which is what lets the
+  // city draw the trade as an arc between two buildings rather than a glow on one.
+  const iB = ix("buyer"), iS = ix("seller"), iK = ix("token_id");
   if (Math.min(iT, iP, iU) < 0) throw new Error(`unexpected header: ${head.join(",")}`);
   const rows = [];
   for (let i = 1; i < lines.length; i++) {
@@ -41,7 +45,12 @@ function parseCsv(path) {
     if (cur && !ETHLIKE.has(cur)) continue;              // keep ETH-denominated sales only
     const eth = Number(c[iP]), usd = Number(c[iU]);
     if (!(eth > 0) || !(usd > 0)) continue;
-    rows.push({ t: parseTime(c[iT]), eth, usd, mkt: (c[iM] || "other").trim() });
+    rows.push({
+      t: parseTime(c[iT]), eth, usd, mkt: (c[iM] || "other").trim(),
+      buyer: iB >= 0 ? (c[iB] || "").trim().toLowerCase() : "",
+      seller: iS >= 0 ? (c[iS] || "").trim().toLowerCase() : "",
+      token: iK >= 0 ? Number(c[iK]) : null,
+    });
   }
   rows.sort((a, b) => a.t - b.t);
   return rows;
@@ -92,6 +101,27 @@ function main() {
   const stepS = Math.max(1, Math.ceil(rows.length / SCATTER_CAP));
   const scatter = rows.filter((_, i) => i % stepS === 0).map(r => ({ d: new Date(r.t).toISOString().slice(0, 10), eth: +r.eth.toFixed(4), usd: Math.round(r.usd) }));
 
+  // ── TRADE ARCS ────────────────────────────────────────────────────────────────────────────
+  // Every sale, seller and buyer both named. The city draws these as arcs between the two
+  // buildings, which is only possible on the NFT side: a token transfer usually ends at an
+  // exchange address and the counterparty is unknowable, whereas an NFT sale is one wallet to
+  // another with the price attached.
+  //
+  // ⚠ A WINDOW IS REQUIRED, AND THE REASON IS CHURN, NOT VOLUME. A building only exists for a
+  // wallet that still holds, so an arc can only land if both parties are still holders. Measured
+  // over the real data that is 34% of trades at 30 days, 22% at 90 and 3% over all time — so an
+  // unbounded set would be mostly arcs with nowhere to go. The window is emitted alongside the
+  // trades and the page states how many are shown, rather than quietly drawing the ones that fit.
+  const lastT = rows.length ? rows.at(-1).t : Date.now();
+  const arcDays = Number(arg("arc-days") || 30);
+  const since = lastT - arcDays * 864e5;
+  const trades = rows
+    .filter(r => r.t >= since && r.buyer && r.seller && r.buyer !== r.seller)
+    .map(r => ({
+      f: r.seller, to: r.buyer, eth: +r.eth.toFixed(4), usd: Math.round(r.usd),
+      token: r.token, d: new Date(r.t).toISOString().slice(0, 10),
+    }));
+
   const cur = daily.at(-1);
   const out = {
     updated: cur.d,
@@ -104,6 +134,8 @@ function main() {
     current: { floorEth: cur.floorEth, floorUsd: cur.floorUsd, avgEth: cur.avgEth, sales: cur.sales },
     daily,
     scatter,
+    arcDays,
+    trades,
   };
   writeFileSync(OUT, JSON.stringify(out) + "\n");
 
@@ -111,7 +143,8 @@ function main() {
     `aeon-sales: ${out.updated} · ${rows.length} sales · ${out.totalVolEth} ETH ($${(out.totalVolUsd / 1e6).toFixed(1)}M) total\n` +
     `  floor today ${cur.floorEth} ETH ($${cur.floorUsd}) · avg ${cur.avgEth} ETH · ${cur.sales} sales that day\n` +
     `  venues: ${Object.entries(marketplaces).slice(0, 4).map(([k, v]) => `${k} ${v}`).join(" · ")} ETH\n` +
-    `  daily ${daily.length} days ${daily[0].d} → ${cur.d} · scatter ${scatter.length} pts`
+    `  daily ${daily.length} days ${daily[0].d} → ${cur.d} · scatter ${scatter.length} pts\n` +
+    `  trades ${trades.length} over the last ${arcDays}d (for the city arcs)`
   );
 }
 
