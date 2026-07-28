@@ -1,7 +1,8 @@
 # Table of contents
 
-* [Whale City](README.md)
+* [SPX City](README.md)
 * [Design Principles](design-principles.md)
+* [Modes](modes.md)
 
 ## Reading a Building
 
@@ -21,7 +22,6 @@
 
 * [Infrastructure](infrastructure.md)
 * [Claim Your Building](claim-your-building.md)
-* [Aeon City](aeon-city.md)
 
 ## Reference
 

@@ -1,10 +1,10 @@
 ---
-description: A city built entirely from on-chain data, where every building is a wallet.
+description: One city built entirely from on-chain data, where every building is a wallet.
 ---
 
-# Whale City
+# SPX City
 
-**Whale City turns blockchain data into a city.**
+**SPX City turns blockchain data into a city.**
 
 Every building represents a single wallet.
 
@@ -18,8 +18,9 @@ disappearing into tables.
 Every visible feature corresponds to a measurable property of the blockchain. If something exists
 only to make the city look better, it is labelled as a game or it does not exist.
 
-Whale City and Aeon City use exactly the same rendering engine. The only difference is the
-underlying dataset: fungible token balances for Whale City, NFT ownership for [Aeon City](aeon-city.md).
+There is one city, and it has three modes — SPX holders, AEON collectors, and the wallets that
+qualify on both. Each mode is its own population under its own rule, and height always measures the
+asset that mode is about. See [Modes](modes.md).
 
 ## How a wallet becomes a building
 
@@ -46,6 +47,7 @@ flowchart TD
 | Why the skyline is shaped the way it is | [Height](reading-a-building/height.md) |
 | Who is buying and who is selling | [Flow](reading-a-building/flow.md) |
 | What the statue, the bridge and the docks mean | [Infrastructure](infrastructure.md) |
+| Why there are three cities behind one door | [Modes](modes.md) |
 | What the city gets wrong, or can't say | [Limitations](limitations.md) |
 | The rules the whole thing is built on | [Design Principles](design-principles.md) |
 

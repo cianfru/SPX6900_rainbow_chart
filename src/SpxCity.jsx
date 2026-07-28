@@ -1,0 +1,225 @@
+import { useMemo, useState, useEffect, lazy, Suspense } from "react";
+import { loadWhales, loadOnchain, loadAeon } from "./history-data.js";
+import { AEON_ONCHAIN } from "./aeon-onchain.js";
+import { shortAddr } from "./WalletCard.jsx";
+import CityControls from "./CityControls.jsx";
+import CityWallet from "./CityWallet.jsx";
+import CityGate from "./CityGate.jsx";
+import { loadNotes } from "./city-messages.js";
+import { SANS, MONO, MAX_W, Metric, Explain } from "./chart-ui.jsx";
+
+const Skyline3D = lazy(() => import("./Skyline3D.jsx"));
+
+// SPX CITY — one city, three populations. Formerly two separate pages (Whale City and Aeon City)
+// that shared an engine but duplicated a wrapper.
+//
+// ⭐ THE RULE THAT MADE THE MERGE POSSIBLE: ONE RESIDENCY RULE PER MODE, AND HEIGHT ALWAYS COMES
+// FROM THE ASSET THE MODE IS ABOUT. The old Aeon page had an "AEON + SPX" toggle that folded a
+// wallet's SPX balance into its height by rescaling it onto the NFT axis. That was a presentational
+// choice, not a measurement — there is no honest exchange rate between "148 NFTs" and "14M tokens".
+// It was defensible as a labelled overlay on a dedicated page; it is not defensible sitting next to
+// two modes that mean something.
+//
+// So BOTH mode is a FILTER, never a blend: it is the SPX city, restricted to the residents who also
+// collect AEON. Height means exactly what it means in SPX mode. That keeps the promise the whole
+// city rests on — being in it always says the same thing about you — true inside every mode, which
+// a blended axis would have quietly broken.
+const MODES = [
+  { id: "spx",  label: "SPX",  unit: "holder",   accent: "#c4b5fd", asset: "SPX" },
+  { id: "both", label: "Both", unit: "resident", accent: "#5eead4", asset: "SPX + AEON" },
+  { id: "aeon", label: "AEON", unit: "collector", accent: "#5eead4", asset: "AEON" },
+];
+
+const fmt = n => (Math.abs(n) >= 1e6 ? (n / 1e6).toFixed(1) + "M" : Math.abs(n) >= 1e3 ? (n / 1e3).toFixed(0) + "k" : String(Math.round(n)));
+
+export default function SpxCity({ isMobile, preview = false, initialMode = "spx" }) {
+  const [mode, setMode] = useState(initialMode);
+  const [whales, setWhales] = useState(null);
+  const [aeon, setAeon] = useState(AEON_ONCHAIN);
+  const [win, setWin] = useState(30);
+  const [sel, setSel] = useState(null);
+  const [layout, setLayout] = useState("city");
+  const [focus, setFocus] = useState(null);
+  const [focusN, setFocusN] = useState(0);   // bumped so re-picking the same building still moves
+  const goTo = a => { setFocus(a); setFocusN(n => n + 1); };
+  const [shown, setShown] = useState(Infinity);
+  const [msgs, setMsgs] = useState(null);
+  const [time, setTime] = useState("dusk");
+  const [infra, setInfra] = useState(null);
+
+  const M = MODES.find(m => m.id === mode) || MODES[0];
+
+  useEffect(() => { let off = false; loadWhales().then(d => { if (!off) setWhales(d ?? false); }); return () => { off = true; }; }, []);
+  useEffect(() => { let off = false; loadAeon().then(d => { if (!off && d) setAeon(d); }); return () => { off = true; }; }, []);
+  useEffect(() => { let off = false; loadOnchain().then(r => { if (!off && r?.length) setInfra(r[r.length - 1]); }); return () => { off = true; }; }, []);
+  // Notes are per-city, and the city is now one — so they all live under "spx" rather than staying
+  // split across the two old boards.
+  useEffect(() => { let off = false; loadNotes("spx").then(m => { if (!off) setMsgs(m); }); return () => { off = true; }; }, []);
+
+  // AEON holdings by address, so BOTH mode can filter the SPX city and the card can show the count.
+  const aeonBy = useMemo(() => {
+    const m = new Map();
+    for (const h of aeon?.holders || []) if (h.a && h.n > 0) m.set(h.a.toLowerCase(), h);
+    return m;
+  }, [aeon]);
+
+  // ⚠ MEMOISED DELIBERATELY. Skyline3D rebuilds its entire scene when `towers` changes identity, and
+  // a rebuild replays the arrival flight. Built inline these were new arrays every render, so
+  // clicking a building flew you back out over the bay.
+  const towers = useMemo(() => {
+    if (mode === "aeon") {
+      const hs = (aeon?.holders || []).filter(h => h.a && h.n > 0);
+      if (!hs.length) return null;
+      const maxN = Math.max(1, ...hs.map(h => h.n));
+      const maxDays = Math.max(1, ...hs.map(h => h.days || 0));
+      return hs.map(h => ({
+        ...h,
+        score: (h.n / maxN) * (0.45 + 0.55 * ((h.days || 0) / maxDays)),
+        ageT: (h.days || 0) / maxDays,
+        flow: h.f30 || 0,
+      }));
+    }
+    const ws = whales?.wallets;
+    if (!ws?.length) return null;
+    const pool = mode === "both" ? ws.filter(w => aeonBy.has((w.a || "").toLowerCase())) : ws;
+    if (!pool.length) return [];
+    // Scale within the mode's own population, so a filtered city still uses its full height range
+    // rather than squashing every collector against the one whale who happens to own an NFT.
+    const maxDays = Math.max(...pool.map(w => w.days), 1);
+    const maxBal = Math.max(...pool.map(w => w.bal), 1);
+    return pool.map(w => ({
+      ...w,
+      aeonN: aeonBy.get((w.a || "").toLowerCase())?.n || 0,
+      score: (w.bal / maxBal) * (0.45 + 0.55 * (w.days / maxDays)),
+      ageT: w.days / maxDays,
+      flow: w[`d${win}`] ?? 0,
+    }));
+  }, [mode, whales, aeon, aeonBy, win]);
+
+  const stats = useMemo(() => {
+    if (!towers) return null;
+    const add = towers.filter(t => t.flow > 0).length, cut = towers.filter(t => t.flow < 0).length;
+    return { add, cut, net: towers.reduce((s, t) => s + t.flow, 0) };
+  }, [towers]);
+
+  const visible = useMemo(() => (towers ? towers.slice().sort((a, b) => b.score - a.score).slice(0, shown) : null), [towers, shown]);
+
+  if (whales == null && mode !== "aeon") return <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Loading city…</div>;
+  if (!towers) return <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Data is being reconstructed — check back after the next on-chain refresh.</div>;
+
+  const isNft = mode === "aeon";
+  const sizeOf = t => (isNft ? `${t.n} AEON` : `${fmt(t.bal)} SPX`);
+  const flowUnit = isNft ? "AEON" : "SPX";
+  const flowWin = isNft ? 30 : win;
+
+  const pinCard = t => `
+      <div style="padding:9px 12px 7px">
+        ${t.hood ? `<div style="color:${M.accent};font:700 10.5px 'Space Grotesk',system-ui;letter-spacing:.18em;text-transform:uppercase">${t.hood.name}</div>` : ""}
+        <div style="color:#e2e8f0;font-weight:700;font-size:13px;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${t.ens || shortAddr(t.a)}</div>
+        <div style="color:#94a3b8;font-size:11.5px">${sizeOf(t)}${t.aeonN ? ` · ${t.aeonN} AEON` : ""} · held ${t.days}d</div>
+      </div>
+      ${t.flow ? `<div style="margin:0 12px 8px;padding:5px 8px;border-radius:7px;font-size:11px;color:${t.flow > 0 ? "#4ade80" : "#fb7185"};background:${t.flow > 0 ? "rgba(74,222,128,0.12)" : "rgba(251,113,133,0.12)"}">${t.flow > 0 ? "+" : "−"}${Math.abs(t.flow).toLocaleString(undefined, { maximumFractionDigits: 0 })} ${flowUnit} · ${flowWin}d</div>` : ""}
+      <a href="https://app.zerion.io/${t.a}/overview" target="_blank" rel="noopener noreferrer" style="display:block;text-decoration:none">
+        <img src="https://render.zerion.io/preview?address=${t.a}" alt="" onerror="this.style.display='none'"
+             style="display:block;width:100%;border-top:1px solid rgba(255,255,255,0.08)"/>
+        <div style="padding:7px 12px;color:${M.accent};font-size:11px">open in Zerion →</div>
+      </a>`;
+
+  const cardHtml = t => {
+    const f = t.flow || 0;
+    const col = f > 0 ? "#4ade80" : f < 0 ? "#fb7185" : "#94a3b8";
+    const note = f > 0 ? `added +${fmt(f)}` : f < 0 ? `reduced −${fmt(Math.abs(f))}` : "unchanged";
+    return `
+      <div style="padding:11px 13px 8px">
+        <div style="color:${M.accent};font-weight:700;font-size:13.5px">${t.ens || shortAddr(t.a)}</div>
+        <div style="color:#94a3b8;font-size:11.5px">${sizeOf(t)}${t.aeonN ? ` · ${t.aeonN} AEON` : ""} · held ${t.days}d</div>
+      </div>
+      <div style="margin:0 13px 9px;padding:6px 9px;border-radius:7px;color:${col};font-size:11.5px;
+                  background:${f > 0 ? "rgba(74,222,128,0.10)" : f < 0 ? "rgba(251,113,133,0.10)" : "rgba(255,255,255,0.04)"}">${note} · ${flowWin}d</div>
+      <img src="https://render.zerion.io/preview?address=${t.a}" alt="" onerror="this.style.display='none'"
+           style="display:block;width:100%;border-top:1px solid rgba(255,255,255,0.08)"/>
+      <div style="padding:7px 13px;color:#64748b;font-size:11px">click to pin this wallet →</div>`;
+  };
+
+  const btn = (active, accent) => ({
+    padding: "5px 13px", borderRadius: 8, cursor: "pointer", fontFamily: MONO, fontSize: 12,
+    background: active ? `${accent}2e` : "transparent",
+    border: `1px solid ${active ? accent + "80" : "rgba(255,255,255,0.12)"}`,
+    color: active ? accent : "#94a3b8",
+  });
+
+  return (
+    <CityGate title="SPX City" unit={M.unit} accent={M.accent}>
+    <div style={{ maxWidth: MAX_W, margin: "0 auto" }}>
+      <Explain q="Who actually holds SPX6900 — and which of them are buying or selling?" accent={M.accent}>
+        Every building is one wallet. Height is <strong style={{ color: "#e2e8f0" }}>how much it holds × how long it&apos;s held</strong>, and the windows
+        glow <strong style={{ color: "#4ade80" }}>green when it has been adding</strong> and <strong style={{ color: "#fb7185" }}>red when it&apos;s been shedding</strong>.
+        Switch the city between SPX holders, AEON collectors, and the wallets that qualify on both. Exchange, LP and bridge addresses are excluded, so these are real holders.
+      </Explain>
+
+      {/* Mode is the first control because it decides which city you are looking at, not just how
+          it is drawn — each mode is a different population under its own residency rule. */}
+      <div style={{ display: "flex", gap: 6, justifyContent: "center", marginBottom: 10, flexWrap: "wrap" }}>
+        {MODES.map(m => (
+          <button key={m.id} onClick={() => { setMode(m.id); setSel(null); }} style={btn(mode === m.id, m.accent)}>{m.label}</button>
+        ))}
+      </div>
+      <div style={{ textAlign: "center", fontFamily: SANS, fontSize: 12.5, color: "#64748b", marginBottom: 14 }}>
+        {mode === "spx" && "Every wallet holding 5,000 SPX for 90 days or more."}
+        {mode === "both" && "Wallets that clear the SPX bar and also collect AEON. Height is the SPX position — the same measure as SPX mode, filtered."}
+        {mode === "aeon" && "Every wallet holding at least one Project AEON. Height is NFTs held × holding time."}
+      </div>
+
+      <div style={{ display: "flex", gap: isMobile ? 14 : 28, justifyContent: "center", marginBottom: 14, flexWrap: "wrap" }}>
+        <Metric label={isNft ? "collectors" : "residents"} value={towers.length} color={M.accent} sub={M.asset} />
+        <Metric label="adding" value={stats.add} color="#4ade80" sub={`over ${flowWin} days`} />
+        <Metric label="reducing" value={stats.cut} color="#fb7185" sub={`over ${flowWin} days`} />
+        <Metric label="net flow" value={(stats.net >= 0 ? "+" : "−") + fmt(Math.abs(stats.net))} color={stats.net >= 0 ? "#4ade80" : "#fb7185"} sub={flowUnit} />
+      </div>
+
+      <div style={{ display: "flex", gap: 6, justifyContent: "center", marginBottom: 12, flexWrap: "wrap" }}>
+        {!isNft && [7, 30].map(w => (
+          <button key={w} onClick={() => setWin(w)} style={btn(win === w, M.accent)}>{w}-day flow</button>
+        ))}
+        {!isNft && <span style={{ width: 10 }} />}
+        {[600, 2000, Infinity].map(n => (
+          <button key={n} onClick={() => setShown(n)} title="How many buildings to render" style={btn(shown === n, M.accent)}>
+            {n === Infinity ? "all" : n} buildings
+          </button>
+        ))}
+      </div>
+
+      <CityControls layout={layout} onLayout={setLayout} time={time} onTime={setTime} accent={M.accent} isMobile={isMobile} unit={M.unit}
+        has={a => visible.some(t => (t.a || "").toLowerCase() === a)}
+        onFocus={a => { goTo(a); const m = visible.find(t => (t.a || "").toLowerCase() === a); if (m) setSel(m); }} />
+
+      <CityWallet city="spx" accent={M.accent} isMobile={isMobile} notes={msgs} onNotes={setMsgs}
+        owns={a => visible.some(t => (t.a || "").toLowerCase() === a)}
+        onFocus={a => { goTo(a); const m = visible.find(t => (t.a || "").toLowerCase() === a); if (m) setSel(m); }} />
+
+      <div style={{ position: "relative" }}>
+        <div style={{ width: "100%" }}>
+          <Suspense fallback={<div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Loading 3D…</div>}>
+            <Skyline3D towers={visible} isMobile={isMobile} cardHtml={cardHtml}
+              onSelect={t => { setSel(t); if (t) goTo(t.a); }}
+              crownLabel={isNft ? "👑 biggest collector" : "🐋 biggest whale"} accent={`${M.accent}73`}
+              bodyFrom={0xf2cf8a} bodyTo={0x22d3ee}
+              layout={layout} focus={focus} focusNonce={focusN} pinned={preview ? null : sel} pinnedHtml={pinCard}
+              messages={msgs} time={time} infra={isNft ? null : infra} />
+          </Suspense>
+          <div style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 8 }}>
+            Drag to orbit · scroll to zoom · hover a building for the wallet · click to pin it.{layout === "city" && " Every wallet has a home address in SPX City."}
+          </div>
+        </div>
+      </div>
+
+      <div className="chart-caption" style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 18, lineHeight: 1.65, maxWidth: 900, marginInline: "auto" }}>
+        <strong style={{ color: M.accent }}>SPX City</strong> — holders reconstructed per wallet from every transfer on Ethereum (FIFO, exchange/LP/bridge excluded).
+        Glow = net position change over the window; building height is a mostly-logarithmic scale of size × holding time (holdings are power-law, so a linear axis would be one spike over a car park) — the ranking is exact, the spacing is compressed, and the real figure is one hover away.
+        Each mode is its own population under its own residency rule, and height always measures the asset that mode is about — never a blend of the two.
+        Wallets are addresses, not people: one person can hold several. A behaviour read, not a signal. Not financial advice.
+      </div>
+    </div>
+    </CityGate>
+  );
+}

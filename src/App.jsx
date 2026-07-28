@@ -21,6 +21,12 @@ import {
 } from "./models.js";
 import { CRYPTO_MILESTONES } from "./milestones.js";
 import { CHART_META, CHART_IDS, AEON_GROUPS } from "./charts-catalog.js";
+
+// Whale City and Aeon City became one page. Their old ids are no longer in the catalog, so they
+// would fail the CHART_IDS check and dump the visitor on the gallery — these send them to the city
+// instead, opened on the mode that id used to be.
+const ALIAS = { whalewatch: "spxcity", aeonskyline: "spxcity" };
+const resolveId = id => ALIAS[id] || id;
 import ChartFreshness from "./ChartFreshness.jsx";
 import BandStats from "./BandStats.jsx";
 // Secondary tab charts are lazy-loaded so their code only ships when the tab is opened.
@@ -53,7 +59,6 @@ const WalletWavesChart = lazy(() => import("./OwnershipCharts.jsx").then(m => ({
 const WealthWavesChart = lazy(() => import("./OwnershipCharts.jsx").then(m => ({ default: m.WealthWavesChart })));
 const HolderConcentrationChart = lazy(() => import("./HolderConcentrationChart.jsx"));
 const AeonFloorChart = lazy(() => import("./AeonFloorChart.jsx"));
-const AeonSkylineChart = lazy(() => import("./AeonSkylineChart.jsx"));
 const AeonRarityChart = lazy(() => import("./AeonRarityChart.jsx"));
 const AeonValueChart = lazy(() => import("./AeonValueChart.jsx"));
 const AeonVsSpxChart = lazy(() => import("./AeonVsSpxChart.jsx"));
@@ -71,7 +76,7 @@ const LthSthChart = lazy(() => import("./LthSthChart.jsx"));
 const SoprChart = lazy(() => import("./SoprChart.jsx"));
 const NrplChart = lazy(() => import("./NrplChart.jsx"));
 const LivelinessChart = lazy(() => import("./LivelinessChart.jsx"));
-const SpxWhaleWatcher = lazy(() => import("./SpxWhaleWatcher.jsx"));
+const SpxCity = lazy(() => import("./SpxCity.jsx"));
 const CityLab = lazy(() => import("./CityLab.jsx"));
 const CexSupplyChart = lazy(() => import("./CexSupplyChart.jsx"));
 const CexFlowChart = lazy(() => import("./CexFlowChart.jsx"));
@@ -196,7 +201,7 @@ function TabIcon({ name }) {
     case "aeonvsspx": return (<svg {...p}><path d="M3 14c3 0 4-6 7-6s4 8 4 8 3-9 7-9" /><line x1="3" y1="11" x2="21" y2="11" strokeDasharray="3 2" strokeOpacity="0.7" /></svg>);
     case "aeonvalue": return (<svg {...p}><circle cx="6" cy="16" r="1.6" /><circle cx="10" cy="12" r="1.6" /><circle cx="15" cy="14" r="1.6" /><circle cx="19" cy="7" r="1.6" /><path d="M3 18 21 6" strokeDasharray="3 3" strokeOpacity="0.7" /></svg>);
     case "aeonrarity": return (<svg {...p}><polygon points="12 3 14.5 9 21 9.5 16 14 17.5 20.5 12 17 6.5 20.5 8 14 3 9.5 9.5 9" /></svg>);
-    case "aeonskyline": return (<svg {...p}><rect x="4" y="10" width="3" height="10" /><rect x="9" y="5" width="3" height="15" /><rect x="14" y="12" width="3" height="8" /><rect x="19" y="8" width="2.5" height="12" strokeOpacity="0.7" /></svg>);
+    case "spxcity": return (<svg {...p}><rect x="4" y="10" width="3" height="10" /><rect x="9" y="5" width="3" height="15" /><rect x="14" y="12" width="3" height="8" /><rect x="19" y="8" width="2.5" height="12" strokeOpacity="0.7" /></svg>);
     case "aeonfloor": return (<svg {...p}><path d="M3 15l4-5 4 3 6-8" /><path d="M3 20h18" strokeOpacity="0.4" /><rect x="4" y="17" width="2" height="3" strokeOpacity="0.5" /><rect x="11" y="16" width="2" height="4" strokeOpacity="0.5" /><rect x="18" y="18" width="2" height="2" strokeOpacity="0.5" /></svg>);
     case "aeonhodl": return (<svg {...p}><path d="M3 18h18" /><path d="M3 13h18" strokeOpacity="0.7" /><path d="M3 8h18" strokeOpacity="0.4" /></svg>);
     case "aeonowners": return (<svg {...p}><circle cx="9" cy="7" r="3" /><circle cx="17" cy="9" r="2.4" /><path d="M3 20v-1a5 5 0 0 1 5-5h2a5 5 0 0 1 5 5v1" /><path d="M15 20v-1a4 4 0 0 1 4-4h0a3 3 0 0 1 3 3v2" strokeOpacity="0.6" /></svg>);
@@ -568,6 +573,7 @@ export default function App() {
   const openMethods = () => { setRoute("methods"); syncUrl("methods"); window.scrollTo({ top: 0, behavior: "smooth" }); };
   const goChart = (id, relOverride) => {
     if (id === "rainbow") { goHome(); return; }
+    id = resolveId(id);
     if (!CHART_IDS.has(id)) { openGallery(); return; }
     setRoute("chart"); setTab(id);
     syncUrl("chart", id, id === "relative" ? (relOverride || relWhich) : null);
@@ -598,7 +604,7 @@ export default function App() {
       else if (p.get("view") === "aeon") setRoute("aeon");
       else if (p.get("view") === "methods") setRoute("methods");
       else if (p.get("view") === "next") setRoute("next");
-      else if (id && CHART_IDS.has(id)) { setRoute("chart"); setTab(id); }
+      else if (id && CHART_IDS.has(resolveId(id))) { setRoute("chart"); setTab(resolveId(id)); }
       else setRoute("home");
     };
     apply();
@@ -645,7 +651,7 @@ export default function App() {
       case "sopr": return <SoprChart isMobile={mob} preview={preview} />;
       case "nrpl": return <NrplChart isMobile={mob} preview={preview} />;
       case "liveliness": return <LivelinessChart isMobile={mob} preview={preview} />;
-      case "whalewatch": return <SpxWhaleWatcher isMobile={mob} preview={preview} />;
+      case "spxcity": return <SpxCity isMobile={mob} preview={preview} initialMode="spx" />;
       case "citylab": return <CityLab isMobile={mob} />;
       case "cexsupply": return <CexSupplyChart isMobile={mob} preview={preview} />;
       case "cexflow": return <CexFlowChart isMobile={mob} preview={preview} />;
@@ -661,7 +667,7 @@ export default function App() {
       case "quantilefan": return <QuantileFanChart series={priceData} isMobile={mob} preview={preview} />;
       case "model": return <ModelChart series={priceData} m={m} isMobile={mob} />;
       case "aeonfloor": return <AeonFloorChart isMobile={mob} />;
-      case "aeonskyline": return <AeonSkylineChart isMobile={mob} preview={preview} />;
+
       case "aeonrarity": return <AeonRarityChart isMobile={mob} preview={preview} />;
       case "aeonvalue": return <AeonValueChart isMobile={mob} />;
       case "aeonvsspx": return <AeonVsSpxChart isMobile={mob} />;

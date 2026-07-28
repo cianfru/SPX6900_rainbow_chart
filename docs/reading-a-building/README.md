@@ -43,5 +43,5 @@ live in [the harbour](../infrastructure.md) instead.
 
 ## The crown
 
-A small marker floats over the single largest holder — **"biggest whale"** in Whale City, the top
-collector in Aeon City. It moves when the ranking does.
+A small marker floats over the single largest holder — **"biggest whale"** in the SPX modes, the
+top collector in [AEON mode](../modes.md). It moves when the ranking does.

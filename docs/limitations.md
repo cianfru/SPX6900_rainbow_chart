@@ -15,8 +15,8 @@ as a headcount of humans.
 
 Ethereum, Base and Solana together hold roughly **230,000 wallets**. The city has **6,275 lots**.
 
-Whale City is inherently a view of the largest holders. [Aeon City](aeon-city.md), at 3,333 tokens,
-genuinely fits everyone.
+In [SPX and Both modes](modes.md) the city is inherently a view of the largest holders. AEON mode,
+at 3,333 tokens across 1,176 wallets, is the one mode where everyone fits.
 
 ## Street addresses mean nothing
 

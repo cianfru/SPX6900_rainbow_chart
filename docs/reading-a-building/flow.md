@@ -4,9 +4,9 @@ description: Who is accumulating, and who is distributing.
 
 # Flow
 
-**Flow is the reason Whale City exists.**
+**Flow is the reason SPX City exists.**
 
-**Rich lists tell you who is large. Whale City tells you who is acting.**
+**Rich lists tell you who is large. SPX City tells you who is acting.**
 
 A wallet that has held 10M tokens untouched for two years and a wallet that is shedding 10M this
 week occupy the same row of a rich list. In the city they are unmistakable from across the water.
