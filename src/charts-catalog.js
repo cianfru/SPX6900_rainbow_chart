@@ -56,7 +56,7 @@ export const CHART_GROUPS = [
       { id: "nrpl", title: "Net Realized Profit/Loss", post: "nrpl", desc: "The dollar size of gains vs losses locked in when coins move." },
       { id: "liveliness", title: "Liveliness", post: "liveliness", desc: "Are long-held coins waking up, or is the base sitting tight?" },
       { id: "citylab", title: "City Lab (3D)", dev: true, desc: "The same block drawn two ways \u2014 comparing the current look against a more realistic one." },
-      { id: "whalewatch", title: "Whale City (3D)", post: "whalewatch", dev: true, desc: "The biggest holders as a city — find your neighbourhood, see who is adding or selling." },
+      { id: "spxcity", title: "SPX City (3D)", post: "whalewatch", dev: true, desc: "Every holder is a building — switch between SPX holders, AEON collectors, and the wallets that qualify on both." },
       { id: "cexsupply", title: "Supply on Exchanges", post: "cexsupply", desc: "Where the tradable float sits — exchanges, LP and custody, from DEX-native to CEX-listed." },
       { id: "cexflow", title: "Exchange Flow", post: "cexflow", desc: "Daily net flow on/off exchanges vs price — deposits, withdrawals, listings stripped." },
       { id: "cexvenues", title: "Exchange Supply by Venue", post: "cexvenues", desc: "SPX on each exchange over time — how the venue mix shifted as listings landed." },
@@ -99,7 +99,6 @@ export const AEON_GROUPS = [
     desc: "On-chain analytics for the Project AEON NFT collection (3,333 · Ethereum).",
     charts: [
       { id: "aeonfloor", title: "Floor & Sales", desc: "Floor price (ETH & USD) and trading volume since mint." },
-      { id: "aeonskyline", title: "Aeon City (3D)", dev: true, desc: "Every holder is a building in Manhattan — find your neighbourhood, see who is buying or selling." },
       { id: "aeonrarity", title: "Rarity — Where Does It Sit?", desc: "Look up any AEON — its rarity rank, tier and traits, on the collection's rarity curve." },
       { id: "aeonvalue", title: "Live Listings vs What They Sell For", desc: "Every active ask measured against what comparable pieces actually fetch — what is cheap, and what is over market." },
       { id: "aeonvsspx", title: "AEON Floor vs SPX", desc: "The NFT floor priced in SPX6900 — cheap or expensive versus its baseline." },
@@ -146,7 +145,7 @@ export const METHOD_FAMILIES = [
     id: "04", name: "Cost basis & holder behaviour",
     charts: ["supply", "holders", "holdersprice", "supplyprofit", "hodlwaves", "freefloat", "concentration",
              "whales", "walletwaves", "wealthwaves",
-             "urpd", "urpdage", "lthsth", "sopr", "nrpl", "liveliness", "whalewatch", "citylab", "walletgrowth", "mvrv", "nupl", "mvrvbtc"],
+             "urpd", "urpdage", "lthsth", "sopr", "nrpl", "liveliness", "spxcity", "citylab", "walletgrowth", "mvrv", "nupl", "mvrvbtc"],
   },
   {
     id: "05", name: "Exchange & venue balances",

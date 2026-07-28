@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useMemo, Suspense } from "react";
 import { CHART_GROUPS, AEON_GROUPS, METHOD_FAMILIES, METHOD_OF } from "./charts-catalog.js";
 import ErrorBoundary from "./ErrorBoundary.jsx";
+import { CITY_KEY } from "./city-gate-key.js";
 import { SANS, MONO, MAX_W } from "./chart-ui.jsx";
 
 // The browse-all "Charts" gallery — an ITC-style grid of preview tiles. Every
@@ -123,7 +124,7 @@ export default function ChartsGallery({
   // `dev` charts are in-development. They're hidden from the library for everyone EXCEPT someone
   // who has already unlocked them with the passphrase — otherwise the only way back in is to
   // remember the URL, which is a silly thing to ask of the person building them.
-  const unlocked = (() => { try { return localStorage.getItem("spx-city-dev") === "1"; } catch { return false; } })();
+  const unlocked = (() => { try { return localStorage.getItem(CITY_KEY) === "1"; } catch { return false; } })();
   const shown = useMemo(() => groups
     .map(g => ({ ...g, charts: g.charts.filter(c => (unlocked || !c.dev) && (!nq || haystack(c, g.title).includes(nq))) }))
     .filter(g => g.charts.length), [groups, nq, unlocked]);

@@ -71,6 +71,7 @@ export default function Skyline3D({
   messages = null,                          // { address: { text, ts } } — signs hung over buildings
   time = "dusk",                            // "day" | "dusk" | "night"
   infra = null,                             // latest on-chain row → the harbour: docks, bridge, monument
+  arcs = null,                              // [{ f, to, eth, usd, token, d }] — trades, drawn wallet to wallet
 }) {
   const mount = useRef(null);
   const api = useRef(null);                 // { cam, controls, homes } for the focus effect
@@ -566,6 +567,88 @@ export default function Skyline3D({
       }
     }
 
+    // ── TRADE ARCS ────────────────────────────────────────────────────────────────────────────
+    // A sale drawn as a curve from the seller's roof to the buyer's. This is the one thing the NFT
+    // side can show that the coin side cannot: a token transfer usually ends at an exchange and the
+    // counterparty is unknowable, while an NFT sale is one wallet to another with a price attached.
+    //
+    // VIOLET, deliberately. Age is amber→cyan and flow is green/red; a trade is a third kind of
+    // fact and needs a channel of its own, or it reads as a strange building.
+    //
+    // ⚠ AN ARC WITH ONE END MISSING IS STILL A TRUE STATEMENT, so it is drawn rather than dropped.
+    // A building only exists for a wallet that still holds, so a seller who sold out has no roof to
+    // leave from. Those arcs run out past the coastline instead — which is what actually happened:
+    // they sold and left. Silently keeping only the arcs that happened to fit would have hidden two
+    // thirds of the trades and made the market look far quieter than it was.
+    if (city && arcs?.length) {
+      const joinGeos = [], leaveGeos = [];
+      const priced = arcs.filter(a => a.eth > 0);
+      const maxEth = Math.max(...priced.map(a => a.eth), 0.0001);
+      // ⚠ A DEPARTED COUNTERPARTY GETS A SHORT STUB, NOT A CABLE TO THE HORIZON. The first version
+      // put them on a ring around the whole map, so two thirds of the trades became full-length
+      // arcs crossing the sky in every direction — the 38 real building-to-building trades, which
+      // are the entire point, vanished under the noise. A departure only needs to read as "this
+      // one left", so it leaves its own roof and stops just past the shoreline.
+      const leaveDir = addr => {
+        let h = 2166136261;
+        for (let i = 0; i < addr.length; i++) { h ^= addr.charCodeAt(i); h = Math.imul(h, 16777619); }
+        const ang = ((h >>> 0) % 3600) / 3600 * Math.PI * 2;
+        return { dx: Math.cos(ang), dz: Math.sin(ang) };
+      };
+      const drawn = [];
+      for (const a of priced) {
+        const fh = homes.get(a.f), th = homes.get(a.to);
+        if (!fh && !th) continue;                     // nothing left to anchor it to
+        const anchor = fh || th;
+        let s, e;
+        if (fh && th) {
+          s = new THREE.Vector3(fh.x, fh.h + 1.2, fh.z);
+          e = new THREE.Vector3(th.x, th.h + 1.2, th.z);
+        } else {
+          const d = leaveDir(fh ? a.to : a.f);
+          const reach = LEN * 0.07;
+          s = new THREE.Vector3(anchor.x, anchor.h + 1.2, anchor.z);
+          e = new THREE.Vector3(anchor.x + d.dx * reach, 0.4, anchor.z + d.dz * reach);
+          if (!fh) { const t = s; s = e; e = t; }      // keep the direction seller → buyer
+        }
+        const span = s.distanceTo(e);
+        if (span < 0.01) continue;
+        // Apex rises with distance so a trade across the island clears the skyline, but capped —
+        // uncapped, the longest arcs left the frame entirely.
+        const mid = s.clone().add(e).multiplyScalar(0.5);
+        mid.y = Math.max(s.y, e.y) + 2 + Math.min(span * 0.22, 7);
+        const curve = new THREE.QuadraticBezierCurve3(s, mid, e);
+        const t = Math.min(1, a.eth / maxEth);
+        const rad = 0.05 + 0.14 * Math.sqrt(t);       // thickness carries the price
+        const geo = new THREE.TubeGeometry(curve, 22, rad, 5, false);
+        (fh && th ? joinGeos : leaveGeos).push(geo);
+        if (fh && th) drawn.push({ ...a, mid });      // only label trades you can actually trace
+      }
+      // Two weights, because they are two different statements. A trade between two standing
+      // buildings is the readable one and gets the brighter line; a departure is context.
+      for (const [geos, op] of [[leaveGeos, 0.20], [joinGeos, 0.5]]) {
+        if (!geos.length) continue;
+        const am = new THREE.MeshBasicMaterial({
+          color: 0xa78bfa, transparent: true, opacity: op,
+          blending: THREE.AdditiveBlending, depthWrite: false,
+        });
+        ownMats.push(am); addMerged(geos, am, false);
+      }
+      // Label only the largest few. Every arc labelled is an unreadable mess, and the question a
+      // viewer actually has — what was the big one — is answered by three.
+      drawn.sort((x, y) => y.eth - x.eth);
+      for (const a of drawn.slice(0, 3)) {
+        const d = document.createElement("div");
+        d.textContent = `${a.eth} ETH${a.token != null ? ` · #${a.token}` : ""}`;
+        Object.assign(d.style, {
+          color: "#c4b5fd", font: "700 11px 'Space Grotesk', system-ui, sans-serif",
+          textShadow: "0 1px 4px #000", whiteSpace: "nowrap",
+        });
+        const o = new CSS2DObject(d); o.position.copy(a.mid);
+        scene.add(o); labelBits.push({ obj: o, prio: 150 });
+      }
+    }
+
     // crown the #1
     if (champInfo) {
       const d = document.createElement("div");
@@ -725,7 +808,25 @@ export default function Skyline3D({
     // Perf probe. The open question on these pages is what they cost on a REAL GPU — everything
     // here has only ever been measured on a software rasteriser, so the building caps are caution
     // rather than measurement. Exposed so that can be answered from any device's console.
+    // Park the camera anywhere and render one frame. __citySeek only walks the fixed intro path,
+    // which is the wrong tool for a still: a good frame is almost never a point on that spline.
+    // Coordinates are world units; `len` from __cityStats is the island's length, so a caller can
+    // express a vantage relative to the city instead of guessing absolute numbers.
+    // An optional third argument sets the field of view. It matters more than it sounds: the beams
+    // are spread along a two-kilometre island, and a wide lens from far enough back to hold them all
+    // renders them small and separate. A long lens from further out compresses that depth, so the
+    // forest reads as one mass — which is the thing worth looking at.
+    const baseFov = cam.fov;
+    window.__cityCam = (p, t, fov) => {
+      flying = false; controls.enabled = false; controls.autoRotate = false;
+      cam.position.set(p[0], p[1], p[2]);
+      controls.target.set(t[0], t[1], t[2]);
+      cam.fov = fov || baseFov;
+      cam.updateProjectionMatrix(); controls.update();
+      renderer.render(scene, cam); labelR.render(scene, cam);
+    };
     window.__cityStats = () => ({
+      len: LEN,
       buildings: T.length, meshes: scene.children.length,
       drawCalls: renderer.info.render.calls, triangles: renderer.info.render.triangles,
       programs: renderer.info.programs?.length, geometries: renderer.info.memory.geometries,
@@ -770,10 +871,10 @@ export default function Skyline3D({
       groundBits.forEach(g => { if (g.dispose) g.dispose(); else { g.geometry?.dispose(); g.material?.dispose(); } });
       pads?.dispose();
       labelBits.forEach(({ obj }) => { obj.element?.remove(); scene.remove(obj); });
-      delete window.__citySeek; delete window.__cityReady; delete window.__cityStats;
+      delete window.__citySeek; delete window.__cityReady; delete window.__cityStats; delete window.__cityCam;
       renderer.dispose(); el.removeChild(renderer.domElement); el.removeChild(labelR.domElement); el.removeChild(tip);
     };
-  }, [towers, isMobile, crownLabel, accent, bodyFrom, bodyTo, layout, intro, time, infra]);
+  }, [towers, isMobile, crownLabel, accent, bodyFrom, bodyTo, layout, intro, time, infra, arcs]);
 
   // ── messages hung over buildings ───────────────────────────────────────────────────────────
   // Own a building, leave a note on it. Signs are CSS2D labels rather than 3D text so they stay
