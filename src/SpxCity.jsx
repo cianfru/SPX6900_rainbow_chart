@@ -42,7 +42,6 @@ export default function SpxCity({ isMobile, preview = false, initialMode = "spx"
   const [focus, setFocus] = useState(null);
   const [focusN, setFocusN] = useState(0);   // bumped so re-picking the same building still moves
   const goTo = a => { setFocus(a); setFocusN(n => n + 1); };
-  const [shown, setShown] = useState(Infinity);
   const [msgs, setMsgs] = useState(null);
   const [time, setTime] = useState("dusk");
   const [infra, setInfra] = useState(null);
@@ -130,7 +129,9 @@ export default function SpxCity({ isMobile, preview = false, initialMode = "spx"
     return { add, cut, net: towers.reduce((s, t) => s + t.flow, 0) };
   }, [towers]);
 
-  const visible = useMemo(() => (towers ? towers.slice().sort((a, b) => b.score - a.score).slice(0, shown) : null), [towers, shown]);
+  // Every resident is rendered — the building-count control is gone (the city handles the full set,
+  // and picking a number was clutter). Still sorted biggest-first so the crown lands on #1.
+  const visible = useMemo(() => (towers ? towers.slice().sort((a, b) => b.score - a.score) : null), [towers]);
 
   // ⭐ ARCS ARE AN NFT-ONLY FACT, NOT A MISSING FEATURE ELSEWHERE. An NFT sale names both wallets
   // and its price; a token transfer normally ends at an exchange, where the counterparty is a hot
@@ -196,11 +197,15 @@ export default function SpxCity({ isMobile, preview = false, initialMode = "spx"
       <div style="padding:7px 13px;color:#64748b;font-size:11px">click to pin this wallet →</div>`;
   };
 
-  const btn = (active, accent) => ({
-    padding: "5px 13px", borderRadius: 8, cursor: "pointer", fontFamily: MONO, fontSize: 12,
-    background: active ? `${accent}2e` : "transparent",
-    border: `1px solid ${active ? accent + "80" : "rgba(255,255,255,0.12)"}`,
-    color: active ? accent : "#94a3b8",
+  // The site's shared neon toggle (.neon-pill in index.css): flat at rest, backlit accent glow when
+  // hovered/active, driven by --glow. Returns spread-able props so every panel button matches the
+  // rest of the site rather than the old flat grey pills.
+  const neon = (active, glow = M.accent) => ({
+    className: `neon-pill${active ? " active" : ""}`,
+    style: {
+      padding: "6px 14px", borderRadius: 8, fontFamily: MONO, fontSize: 12,
+      color: active ? "#f8fafc" : "#94a3b8", "--glow": glow,
+    },
   });
 
   return (
@@ -216,7 +221,7 @@ export default function SpxCity({ isMobile, preview = false, initialMode = "spx"
           it is drawn — each mode is a different population under its own residency rule. */}
       <div style={{ display: "flex", gap: 6, justifyContent: "center", marginBottom: 10, flexWrap: "wrap" }}>
         {MODES.map(m => (
-          <button key={m.id} onClick={() => { setMode(m.id); setSel(null); }} style={btn(mode === m.id, m.accent)}>{m.label}</button>
+          <button key={m.id} onClick={() => { setMode(m.id); setSel(null); }} {...neon(mode === m.id, m.accent)}>{m.label}</button>
         ))}
       </div>
       <div style={{ textAlign: "center", fontFamily: SANS, fontSize: 12.5, color: "#64748b", marginBottom: 14 }}>
@@ -232,25 +237,18 @@ export default function SpxCity({ isMobile, preview = false, initialMode = "spx"
         <Metric label="net flow" value={(stats.net >= 0 ? "+" : "−") + fmt(Math.abs(stats.net))} color={stats.net >= 0 ? "#4ade80" : "#fb7185"} sub={flowUnit} />
       </div>
 
-      <div style={{ display: "flex", gap: 6, justifyContent: "center", marginBottom: 12, flexWrap: "wrap" }}>
-        {!isNft && [7, 30].map(w => (
-          <button key={w} onClick={() => setWin(w)} style={btn(win === w, M.accent)}>{w}-day flow</button>
-        ))}
-        {!isNft && <span style={{ width: 10 }} />}
-        {[600, 2000, Infinity].map(n => (
-          <button key={n} onClick={() => setShown(n)} title="How many buildings to render" style={btn(shown === n, M.accent)}>
-            {n === Infinity ? "all" : n} buildings
-          </button>
-        ))}
-        {isNft && sales?.trades?.length ? (
-          <>
-            <span style={{ width: 10 }} />
-            {[["off", "no arcs"], ["traced", "traced trades"], ["all", "all trades"]].map(([v, lbl]) => (
-              <button key={v} onClick={() => setArcMode(v)} style={btn(arcMode === v, "#a78bfa")}>{lbl}</button>
-            ))}
-          </>
-        ) : null}
-      </div>
+      {(!isNft || (sales?.trades?.length)) && (
+        <div style={{ display: "flex", gap: 6, justifyContent: "center", marginBottom: 12, flexWrap: "wrap" }}>
+          {!isNft && [7, 30].map(w => (
+            <button key={w} onClick={() => setWin(w)} {...neon(win === w)}>{w}-day flow</button>
+          ))}
+          {isNft && sales?.trades?.length ? (
+            [["off", "no arcs"], ["traced", "traced trades"], ["all", "all trades"]].map(([v, lbl]) => (
+              <button key={v} onClick={() => setArcMode(v)} {...neon(arcMode === v, "#a78bfa")}>{lbl}</button>
+            ))
+          ) : null}
+        </div>
+      )}
 
       {/* The count is stated rather than implied. Some arcs have a counterparty who has since sold
           out and left the city, and those are drawn running off the map instead of being dropped —

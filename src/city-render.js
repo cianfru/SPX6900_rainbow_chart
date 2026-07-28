@@ -314,12 +314,18 @@ export function monumentGeometry(x, z, scale = 1) {
     spike.translate(x + Math.cos(a) * 0.4 * s, 9.05 * s, z + Math.sin(a) * 0.4 * s);
     add(spike, "copper");
   }
-  const arm = new THREE.BoxGeometry(0.22 * s, 2.0 * s, 0.22 * s);
-  arm.rotateZ(0.22); arm.translate(x + 0.75 * s, 8.9 * s, z); add(arm, "copper");
+  // The raised right arm. It has to actually MEET the shoulder and carry the torch in one straight
+  // line, or the torch floats off to the side — which is exactly what the old numbers did: the base
+  // sat at x≈0.97 (outside the body's ~0.45 radius up here) and rotateZ(+0.22) leaned the top back
+  // toward the head while the torch sat further OUT at x+1.2, so nothing joined up. Now the base
+  // tucks just inside the body's top edge and the arm tilts OUT (negative Z leans the top toward
+  // +x), so shoulder → arm → torch → flame is one continuous diagonal.
+  const arm = new THREE.BoxGeometry(0.24 * s, 2.1 * s, 0.24 * s);
+  arm.rotateZ(-0.3); arm.translate(x + 0.58 * s, 8.95 * s, z); add(arm, "copper");
   const torch = new THREE.CylinderGeometry(0.3 * s, 0.16 * s, 0.42 * s, 8);
-  torch.translate(x + 1.2 * s, 10.0 * s, z); add(torch, "gold");
+  torch.translate(x + 0.89 * s, 10.15 * s, z); add(torch, "gold");
   const flame = new THREE.ConeGeometry(0.26 * s, 0.85 * s, 8);
-  flame.translate(x + 1.2 * s, 10.6 * s, z); add(flame, "flame");
+  flame.translate(x + 0.89 * s, 10.75 * s, z); add(flame, "flame");
   // The tablet in the other arm — small, but it fixes the pose so the figure isn't just a column.
   const tablet = new THREE.BoxGeometry(0.5 * s, 0.75 * s, 0.14 * s);
   tablet.rotateZ(-0.35); tablet.translate(x - 0.6 * s, 7.2 * s, z + 0.3 * s); add(tablet, "stone");

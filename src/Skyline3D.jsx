@@ -697,6 +697,16 @@ export default function Skyline3D({
     controls.target.set(0, city ? 4 : 7, 0); controls.enableDamping = true; controls.dampingFactor = 0.08;
     controls.minDistance = 8; controls.maxDistance = city ? LEN * 2.4 : span * 4 + 60; controls.maxPolarAngle = Math.PI * 0.492;
     controls.autoRotate = !city; controls.autoRotateSpeed = 0.5;
+    // NAVIGATION — drag moves the map, two-finger scroll orbits, pinch zooms.
+    // Left-drag used to ROTATE around the (invisible) target, which is the "moves around an
+    // unidentifiable point" feeling on a trackpad. Now left-drag PANS along the ground so the city
+    // slides under the cursor with no focal point, and orbiting is a deliberate two-finger (or
+    // right-drag) gesture around whatever you're looking at. Wheel is taken over below.
+    controls.mouseButtons = { LEFT: THREE.MOUSE.PAN, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.ROTATE };
+    controls.touches = { ONE: THREE.TOUCH.PAN, TWO: THREE.TOUCH.DOLLY_ROTATE };
+    controls.screenSpacePanning = false;   // pan across the ground plane — the "drag a map" feel
+    controls.panSpeed = 0.9;
+    controls.enableZoom = false;           // wheel handled by onWheel so two-finger scroll can orbit
     const pulseMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.5 });
     const pulseBox = new THREE.Mesh(box, pulseMat); pulseBox.visible = false; scene.add(pulseBox); ownMats.push(pulseMat);
     const pulse = home => {
@@ -792,6 +802,31 @@ export default function Skyline3D({
       cam.position.copy(overview); controls.target.set(0, city ? 4 : 7, 0); controls.update();
       onIntroDone?.();
     };
+
+    // Trackpad-first wheel. A browser reports a trackpad PINCH as ctrl+wheel, and a classic MOUSE
+    // wheel as line-mode deltas (deltaMode ≠ 0) or big discrete pixel jumps — all of those mean
+    // ZOOM. A gentle two-finger trackpad SCROLL is a stream of small pixel deltas, often with a
+    // horizontal component: that ORBITS around the target ("two fingers around a focal point").
+    // Everything clamps to the same limits OrbitControls uses, so the two paths can't disagree.
+    const _sph = new THREE.Spherical(), _off = new THREE.Vector3();
+    const onWheel = e => {
+      if (flying || !controls.enabled) return;
+      e.preventDefault();
+      _off.copy(cam.position).sub(controls.target);
+      const zoom = e.ctrlKey || e.deltaMode !== 0 || (e.deltaX === 0 && Math.abs(e.deltaY) >= 40);
+      if (zoom) {
+        const d = THREE.MathUtils.clamp(_off.length() * Math.pow(0.95, -e.deltaY * 0.02), controls.minDistance, controls.maxDistance);
+        _off.setLength(d);
+      } else {
+        _sph.setFromVector3(_off);
+        _sph.theta -= e.deltaX * 0.005;
+        _sph.phi = THREE.MathUtils.clamp(_sph.phi + e.deltaY * 0.005, 0.12, controls.maxPolarAngle);
+        _off.setFromSpherical(_sph);
+      }
+      cam.position.copy(controls.target).add(_off);
+      controls.update();
+    };
+    renderer.domElement.addEventListener("wheel", onWheel, { passive: false });
     // Frame-accurate seek for offline video capture (tools/render-city-video.mjs). Driving the
     // path by progress rather than wall-clock means every frame lands exactly where intended,
     // however slowly the renderer is running.
@@ -864,6 +899,7 @@ export default function Skyline3D({
       renderer.domElement.removeEventListener("pointerdown", onDown);
       renderer.domElement.removeEventListener("pointerup", onUp);
       renderer.domElement.removeEventListener("pointerdown", stopFlight);
+      renderer.domElement.removeEventListener("wheel", onWheel);
       removeEventListener("wheel", stopFlight);
       controls.dispose();
       disposables.forEach(d => d.dispose()); env.dispose(); sky.dispose();

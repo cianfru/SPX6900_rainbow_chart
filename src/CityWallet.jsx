@@ -19,6 +19,15 @@ import {
 // The chain is a real choice with a real cost, so it's presented as one rather than hidden.
 const short = a => (a ? a.slice(0, 6) + "…" + a.slice(-4) : "");
 
+// A small drawn key — replaces the emoji on "Claim your building" so it inherits the button colour.
+// Module scope so it isn't re-created every render.
+const KeyIcon = () => (
+  <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2"
+    strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 6, verticalAlign: "-2px" }}>
+    <circle cx="7.5" cy="15.5" r="4" /><path d="M10.3 12.7 20 3M16.5 6.5l2.5 2.5M14.5 8.5l2 2" />
+  </svg>
+);
+
 // `owns` and `inView` are deliberately two different questions, because the city has one
 // noticeboard and three populations. Whether you MAY leave a note is citizenship — you hold either
 // asset, so you live here — while whether you can be FLOWN to is about the mode currently on
@@ -75,12 +84,15 @@ export default function CityWallet({ city, owns, inView, notes, onNotes, onFocus
     } finally { setBusy(null); }
   };
 
+  // The site's shared neon toggle, matched to the rest of the city panel. `primary` reads as the
+  // active/accent state; disabled dims and blocks it.
   const btn = (primary, disabled) => ({
-    padding: "6px 14px", borderRadius: 8, fontFamily: MONO, fontSize: 12,
-    cursor: disabled ? "not-allowed" : "pointer", opacity: disabled ? 0.45 : 1,
-    background: primary ? `${accent}22` : "transparent",
-    border: `1px solid ${primary ? accent : "rgba(255,255,255,0.14)"}`,
-    color: primary ? accent : "#94a3b8",
+    className: `neon-pill${primary && !disabled ? " active" : ""}`,
+    style: {
+      padding: "6px 14px", borderRadius: 8, fontFamily: MONO, fontSize: 12,
+      cursor: disabled ? "not-allowed" : "pointer", opacity: disabled ? 0.45 : 1,
+      color: primary ? "#f8fafc" : "#94a3b8", "--glow": accent,
+    },
   });
 
   // Not deployed anywhere yet — say so plainly instead of offering a button that can't work.
@@ -96,8 +108,8 @@ export default function CityWallet({ city, owns, inView, notes, onNotes, onFocus
   if (!addr) {
     return (
       <div style={{ textAlign: "center", marginBottom: 12 }}>
-        <button onClick={connect} disabled={busy} style={btn(true, !!busy)}>
-          {busy === "connecting" ? "Connecting…" : "🔑 Claim your building"}
+        <button onClick={connect} disabled={busy} {...btn(true, !!busy)}>
+          {busy === "connecting" ? "Connecting…" : <><KeyIcon />Claim your building</>}
         </button>
         <div style={{ fontFamily: SANS, fontSize: 12, color: err ? "#fb7185" : "#64748b", marginTop: 7 }}>
           {err || (hasWallet()
@@ -115,8 +127,8 @@ export default function CityWallet({ city, owns, inView, notes, onNotes, onFocus
         <span style={{ fontFamily: SANS, fontSize: 12, color: hasHome ? "#94a3b8" : "#fbbf24" }}>
           {hasHome ? (here ? "you own a building here" : "you live here — not in this view") : "no building here yet"}
         </span>
-        {hasHome && <button onClick={() => setOpen(o => !o)} style={btn(false, false)}>{open ? "Close" : mine ? "Edit note" : "Leave a note"}</button>}
-        {here && <button onClick={() => onFocus?.(addr)} style={btn(false, false)}>Go to it</button>}
+        {hasHome && <button onClick={() => setOpen(o => !o)} {...btn(false, false)}>{open ? "Close" : mine ? "Edit note" : "Leave a note"}</button>}
+        {here && <button onClick={() => onFocus?.(addr)} {...btn(false, false)}>Go to it</button>}
       </div>
 
       {!hasHome && (
@@ -171,7 +183,7 @@ export default function CityWallet({ city, owns, inView, notes, onNotes, onFocus
             <span style={{ fontFamily: MONO, fontSize: 11.5, color: text.trim().length > MAX_LEN ? "#fb7185" : "#64748b" }}>
               {text.trim().length}/{MAX_LEN}
             </span>
-            <button onClick={post} disabled={!!busy || !live} style={btn(true, !!busy || !live)}>
+            <button onClick={post} disabled={!!busy || !live} {...btn(true, !!busy || !live)}>
               {busy === "posting" ? "Waiting for wallet…" : `Post on ${chainOf(chain).label}`}
             </button>
           </div>
