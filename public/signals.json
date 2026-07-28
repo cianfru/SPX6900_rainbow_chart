@@ -1,20 +1,20 @@
 {
-  "date": "2026-07-27",
+  "date": "2026-07-28",
   "signals": [
     {
       "type": "underwater-holding",
       "emoji": "💎",
-      "title": "Holders ~36% underwater — and still not selling",
-      "detail": "MVRV 0.64: price is 36% below the crowd's avg on-chain cost basis ($0.535). Yet 62% of supply is in the longest-held tier — the float isn't moving.",
+      "title": "Holders ~40% underwater — and still not selling",
+      "detail": "MVRV 0.6: price is 40% below the crowd's avg on-chain cost basis ($0.535). Yet 62% of supply is in the longest-held tier — the float isn't moving. MVRV has slipped 0.63→0.6 over ~30d.",
       "framing": "Maximum financial pain, minimal capitulation — conviction being tested and, so far, holding.",
       "note": "Describe the divergence, NOT a bottom call. \"Not selling\", not \"buy\".",
       "card": "breakeven",
-      "score": 1.898918126567762
+      "score": 1.9615032284846592
     },
     {
       "type": "drawdown",
       "emoji": "📉",
-      "title": "-85% below its all-time high",
+      "title": "-86% below its all-time high",
       "detail": "Deepest drawdown on record was -92%; it has made new highs after every prior one so far.",
       "framing": "Deep drawdowns are the toll — it's paid them before (no recovery promise).",
       "note": "It's deep and unrecovered NOW; don't imply it always recovers.",
@@ -22,14 +22,14 @@
       "score": 1.5
     },
     {
-      "type": "diamond-trend",
-      "emoji": "💠",
-      "title": "Diamond tier grew 2.7pp in ~30d → 87.4% of supply",
-      "detail": "Supply in the longest-held tier rose 84.7%→87.4% over ~30 days — a cohort maturing into diamond.",
-      "framing": "Float tightening as coins age into the strongest-held tier.",
-      "note": "HELD, not BOUGHT — diamond grows by aging; frame it as maturing/held.",
-      "card": "diamondtrend",
-      "score": 1.4
+      "type": "capitulation-cluster",
+      "emoji": "🧊",
+      "title": "-83% below trend AND fear at 29",
+      "detail": "Deep in the Fire Sale band (-83% vs the power-law fair value $1.912) with Fear & Greed at 29. Valuation and sentiment bottoming together.",
+      "framing": "Where value and fear overlap — historically the account's best-resonating zone.",
+      "note": "Honest \"cheap + fearful\", never \"guaranteed bounce\".",
+      "card": "riskcolor",
+      "score": 1.4844583906233504
     }
   ]
 }
