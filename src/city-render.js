@@ -24,9 +24,9 @@ const WINDOW_W = 0.46;            // world units per window column
 // physically right and exactly wrong for a page whose whole point is the colour of those windows.
 // Day compensates by pushing window intensity rather than pretending the problem isn't there.
 export const TIMES = {
-  day:   { label: "Day",   top: "#7fb2e6", horizon: "#dce9f5", ground: "#8f9bb0", sun: 0xfff6e8, sunI: 2.6, amb: 0.85, hemi: 1.05, exposure: 1.0,  win: 0.62, water: 0x3f8fcc, land: 0x8a94ad, back: 0x6c7a68, park: 0x4f9a5c },
-  dusk:  { label: "Dusk",  top: "#22304f", horizon: "#e8a06a", ground: "#4a4a58", sun: 0xffb877, sunI: 2.0, amb: 0.78, hemi: 0.95, exposure: 1.05, win: 1.0,  water: 0x35789f, land: 0x6f7591, back: 0x4b5749, park: 0x3f8452 },
-  night: { label: "Night", top: "#080e1c", horizon: "#2a3d63", ground: "#141a2c", sun: 0x9fbfff, sunI: 0.7,  amb: 0.55, hemi: 0.7,  exposure: 1.2,  win: 1.7,  water: 0x1e4a74, land: 0x3d456a, back: 0x2b3330, park: 0x275f3a },
+  day:   { label: "Day",   top: "#7fb2e6", horizon: "#dce9f5", ground: "#8f9bb0", sun: 0xfff6e8, sunI: 2.6, amb: 0.85, hemi: 1.05, exposure: 1.0,  win: 0.62, water: 0x3f8fcc, land: 0x8a94ad, road: 0x59616f, pave: 0xafb7c6, back: 0x6c7a68, park: 0x4f9a5c },
+  dusk:  { label: "Dusk",  top: "#22304f", horizon: "#e8a06a", ground: "#4a4a58", sun: 0xffb877, sunI: 2.0, amb: 0.78, hemi: 0.95, exposure: 1.05, win: 1.0,  water: 0x35789f, land: 0x6f7591, road: 0x3f4a63, pave: 0x8e97ae, back: 0x4b5749, park: 0x3f8452 },
+  night: { label: "Night", top: "#080e1c", horizon: "#2a3d63", ground: "#141a2c", sun: 0x9fbfff, sunI: 0.7,  amb: 0.55, hemi: 0.7,  exposure: 1.2,  win: 1.7,  water: 0x1e4a74, land: 0x3d456a, road: 0x1e2436, pave: 0x4c5470, back: 0x2b3330, park: 0x275f3a },
 };
 
 // ── the sky ───────────────────────────────────────────────────────────────────────────────────

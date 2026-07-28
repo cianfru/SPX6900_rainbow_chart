@@ -2,7 +2,8 @@ import { useRef, useEffect } from "react";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { CSS2DRenderer, CSS2DObject } from "three/examples/jsm/renderers/CSS2DRenderer.js";
-import { placeCity, cityScale, CITY_LENGTH, ISLAND_RING, PARK_RINGS, BACKDROP, ISLETS, WATER, streetGrid } from "./city-map.js";
+import { placeCity, cityScale, CITY_LENGTH, ISLAND_RING, PARK_RINGS, BACKDROP, ISLETS, WATER,
+         streetGrid, hoodGrid, NEIGHBOURHOODS, AXIS_ANGLE } from "./city-map.js";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { chainOf } from "./city-messages.js";
 import { TIMES, FAMILIES, skyEnv, facadeTexture, wallGeometry, roofGeometry, archetype,
@@ -192,8 +193,33 @@ export default function Skyline3D({
       // sits in a puddle. See the WATER note in city-map.js.
       for (const w of WATER) flat([w.ring], TOD.water, -0.16);
       for (const i of ISLETS) flat(i.rings, TOD.back, -0.06);     // Roosevelt Island
-      flat([ISLAND_RING], TOD.land, 0);                            // Manhattan
+      flat([ISLAND_RING], TOD.road, 0);   // the island reads as the road surface; blocks sit above it                            // Manhattan
       flat(PARK_RINGS, TOD.park, 0.06);                            // Central Park
+
+      // Raised pavement, one slab per block. This is what makes the gaps read as ROADS rather than
+      // as blank ground with lines painted on it — a kerb you can see is worth more than a brighter
+      // line. Per-block, never per-building: see hoodGrid.
+      const slabs = [];
+      for (const h of NEIGHBOURHOODS) {
+        for (const b of hoodGrid(h, K).blocks) {
+          // NOT scaled by K: lot pitch is already in final world units (hoodLots divides u by k
+          // before projecting, then multiplies back), so scaling here shrinks every slab under its
+          // own buildings and the pavement vanishes.
+          const g = new THREE.BoxGeometry(b.d * 1.06, 0.17, b.w * 1.03);
+          g.rotateY(-AXIS_ANGLE); g.translate(b.x, 0.085, b.z);
+          slabs.push(g);
+        }
+      }
+      if (slabs.length) {
+        const merged = mergeGeometries(slabs, false);
+        slabs.forEach(g => g.dispose());
+        if (merged) {
+          const pmat = new THREE.MeshStandardMaterial({ color: TOD.pave, roughness: 0.92 });
+          const m = new THREE.Mesh(merged, pmat);
+          m.receiveShadow = true; m.castShadow = true;
+          scene.add(m); groundBits.push(m);
+        }
+      }
 
       // The street grid — what actually says "Manhattan" at a glance
       const segs = streetGrid(K);

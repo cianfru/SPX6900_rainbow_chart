@@ -130,12 +130,29 @@ const SHORE = 1.0;
 // grid. Letting each neighbourhood start its own lattice made the avenues jog at every boundary.
 const COLS = Math.ceil(24 / PERIOD_U);
 
-export function hoodLots(hood, k = 1) {
-  const lots = [];
+// The grid, as both the lots buildings stand on AND the block slabs they stand on top of. The
+// pavement is per BLOCK, never per building: one tile each would need roughly double the pitch in
+// both axes to fit a road around it, which is a quarter of the capacity and turns Manhattan into an
+// office park. Buildings share a block the way they share a street — the road is the gap BETWEEN
+// blocks, which the grid already leaves.
+export function hoodGrid(hood, k = 1) {
+  const lots = [], blocks = [];
   const perT = PERIOD_T / (AXIS.len * k);          // one block row, in t units
   const lotT = GRID.lotT / (AXIS.len * k);
   const first = Math.ceil(hood.t0 / perT);         // snap to the global row grid
   for (let bi = first; bi * perT < hood.t1; bi++) {
+    // One slab per block, emitted only where the block actually has buildable land — otherwise
+    // pavement juts out over the river wherever a block is clipped by the coastline.
+    for (let bu = -COLS; bu <= COLS; bu++) {
+      const tMid = bi * perT + (GRID.blkT / 2) * lotT;
+      const uMid = bu * PERIOD_U;
+      if (tMid >= hood.t1) continue;
+      if (hood.side === "east" && uMid < 0) continue;
+      if (hood.side === "west" && uMid > 0) continue;
+      const c = fromAxis(tMid, uMid / k);
+      if (!inManhattan(c.x, c.z) || inPark(c.x, c.z)) continue;
+      blocks.push({ x: c.x * k, z: c.z * k, w: GRID.blkU * GRID.lotU, d: GRID.blkT * GRID.lotT });
+    }
     for (let li = 0; li < GRID.blkT; li++) {
       const t = bi * perT + (li + 0.5) * lotT;
       if (t >= hood.t1) break;
@@ -154,8 +171,14 @@ export function hoodLots(hood, k = 1) {
       }
     }
   }
-  return lots;
+  return { lots, blocks };
 }
+
+// Lots only — the shape every existing caller expects.
+export function hoodLots(hood, k = 1) { return hoodGrid(hood, k).lots; }
+
+// The whole grid is rotated to the island's true tilt, so slabs need the same angle.
+export const AXIS_ANGLE = Math.atan2(AXIS.az, AXIS.ax);
 
 // Scale the whole city to the population so it always looks built-up rather than empty. The
 // divisor is tuned so blocks come out ~85% FULL. Two failures either side of that: too sparse and
