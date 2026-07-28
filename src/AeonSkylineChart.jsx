@@ -22,7 +22,7 @@ export default function AeonSkylineChart({ isMobile, preview = false }) {
   const [focus, setFocus] = useState(null);
   const [focusN, setFocusN] = useState(0);   // bumped so re-picking the same building still moves
   const goTo = a => { setFocus(a); setFocusN(n => n + 1); };
-  const [shownN, setShownN] = useState(600);
+  const [shownN, setShownN] = useState(Infinity);   // everyone — the city grows to fit
   const [msgs, setMsgs] = useState(null);
   const [time, setTime] = useState("dusk");
   useEffect(() => { let c = false; loadAeon().then(d => { if (!c && d) setData(d); }); return () => { c = true; }; }, []);
@@ -175,6 +175,18 @@ export default function AeonSkylineChart({ isMobile, preview = false }) {
           border: "1px solid " + (multiOnly ? "rgba(45,212,191,0.5)" : "rgba(255,255,255,0.14)"),
           background: multiOnly ? "rgba(45,212,191,0.16)" : "transparent", color: multiOnly ? "#5eead4" : "#94a3b8",
         }}>{multiOnly ? "✓ " : ""}Exclude single-NFT wallets</button>
+        {/* Render count. Every holder fits — the island scales with the population — so this exists
+            only as an escape hatch for a device that struggles, not because the land runs out. */}
+        <div style={{ display: "inline-flex", gap: 4 }}>
+          {[400, 800, Infinity].map(n => (
+            <button key={n} onClick={() => setShownN(n)} title="How many buildings to render" style={{
+              padding: "5px 11px", borderRadius: 8, cursor: "pointer", fontFamily: MONO, fontSize: 12,
+              background: shownN === n ? "rgba(45,212,191,0.16)" : "transparent",
+              border: `1px solid ${shownN === n ? "#5eead4" : "rgba(255,255,255,0.12)"}`,
+              color: shownN === n ? "#5eead4" : "#94a3b8",
+            }}>{n === Infinity ? "all" : n}</button>
+          ))}
+        </div>
         <span style={{ fontFamily: MONO, fontSize: 12.5, color: "#7c8a9e" }}>{visible.length} of {holders.length} shown{!multiOnly && singleCount ? ` · ${singleCount} single-NFT` : ""}</span>
       </div>
       <CityControls layout={layout} onLayout={setLayout} time={time} onTime={setTime} accent="#5eead4" isMobile={isMobile} unit="holder"
