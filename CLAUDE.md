@@ -355,6 +355,30 @@
       that all four families still occur,
       and that degenerate inputs (single wallet, zero min) return a number — a NaN here silently poisons a merged
       geometry bucket and takes a whole material group off screen. Draw calls are unaffected (82 at 4,893 buildings).
+  - **⭐⭐ TOWERS NEED ROOM — CLEARANCE IS A PLACEMENT RULE, NEVER A HEIGHT RULE (owner, 2026-07-28: "buildings south
+    of central park all bonded together… not like this!").** Dense districts filled from the core outward in
+    CONVICTION ORDER, so ranks 1,2,3… took adjacent innermost lots — **the tallest buildings in the city were
+    neighbours by construction**. At 21 units on a 1.15 lot pitch they merged into one dark slab over Midtown (which
+    IS "south of Central Park"): not a skyline, a wall.
+    - **The owner proposed capping a tower's neighbours ("if there is a glasstower, other highraises can only be of a
+      certain height"). DON'T — that changes a wallet's height because of where it happens to sit, which is the one
+      thing the city cannot lie about.** The same visual comes free from PLACEMENT, which is already declared a game
+      (the street address is hash-derived and the page says so). So the tall cohort claims a RADIUS and the mid-rise
+      fills in around it: `clearanceFor(rank)` in city-map.js — 5.2 units for the top 8, 3.6 to rank 40, 2.6 to 120,
+      1.8 to 320, then 0. Both placement branches honour it (dense = nearest core lot that clears; scattered = two
+      passes, clearance then anything free), always falling back to the nearest free lot — a district can genuinely
+      run out of clear space, and a homeless wallet is worse than a close one. Result: top-8 separation 5.6+, top-40
+      3.6+, and the towers punctuate instead of fusing.
+    - **`prime: true` on the Upper East/West Side** makes the Central Park frontage tower-ELIGIBLE (in `TOWER_HOODS`)
+      without being core-packed, so big holders who don't fit downtown scatter along the park — previously overflow
+      went to "the emptiest district", i.e. lone skyscrapers in Inwood. Top 120 now spread Midtown 52 · UWS 36 ·
+      UES 17 · FiDi 15.
+    - **⚠ A PRE-EXISTING BUG THE MEASUREMENT FLUSHED OUT: UES and UWS were both handed the lot on the centre line.**
+      They share a t-band split east/west, and the tests were `u < 0` / `u > 0` — so `u === 0` passed BOTH and the lot
+      was issued twice, two wallets in the identical spot drawn as one fused building. West is now `u >= 0`. Found only
+      because the nearest-neighbour sweep printed 0.03 units; it would never show up as an error.
+      `test/city-place.test.mjs` pins no-duplicate-lots, no-coincident-buildings, landmark separation, and multi-district
+      spread. **Lesson: measure the nearest-neighbour distance after ANY placement change — geometry bugs are silent.**
   - **⭐⭐ THE DESIGN RULE — "STONE AND LIGHT": realism goes into FORM, MATERIAL and LIGHTING; the DATA stays in the
     LIGHT.** Albedo is the real material with only ~12% age hue (brick still looks like brick); age + flow live at FULL
     strength in the **emissive windows + street glow**. That's how a real city reads at dusk (building = stone, windows =

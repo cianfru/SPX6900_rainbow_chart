@@ -89,8 +89,11 @@ export const NEIGHBOURHOODS = [
   { id: "village", name: "Greenwich Village", t0: 0.14, t1: 0.20, weight: 9 },
   { id: "chelsea", name: "Chelsea & Flatiron", t0: 0.20, t1: 0.26, weight: 9 },
   { id: "midtown", name: "Midtown", t0: 0.26, t1: 0.40, weight: 18, towers: true },
-  { id: "ues", name: "Upper East Side", t0: 0.40, t1: 0.58, weight: 13, side: "east" },
-  { id: "uws", name: "Upper West Side", t0: 0.40, t1: 0.58, weight: 11, side: "west" },
+  // `prime` = Central Park frontage. Tower-ELIGIBLE but not core-packed, so the big holders who
+  // don't fit downtown scatter along the park the way the real ones do, instead of spilling into
+  // whichever district happens to be emptiest — which was putting lone skyscrapers in Inwood.
+  { id: "ues", name: "Upper East Side", t0: 0.40, t1: 0.58, weight: 13, side: "east", prime: true },
+  { id: "uws", name: "Upper West Side", t0: 0.40, t1: 0.58, weight: 11, side: "west", prime: true },
   { id: "harlem", name: "Harlem", t0: 0.58, t1: 0.75, weight: 10 },
   { id: "heights", name: "Washington Heights", t0: 0.75, t1: 0.90, weight: 8 },
   { id: "inwood", name: "Inwood", t0: 0.90, t1: 1.00, weight: 4 },
@@ -116,7 +119,30 @@ const lotWeights = () => {
   }
   return LOT_W;
 };
-const TOWER_HOODS = NEIGHBOURHOODS.filter(n => n.towers);
+const TOWER_HOODS = NEIGHBOURHOODS.filter(n => n.towers || n.prime);
+
+// ⭐⭐ TOWERS NEED ROOM, OR THEY STOP BEING TOWERS.
+//
+// Dense districts fill from the core outward in conviction order, so ranks 1,2,3… used to take
+// adjacent innermost lots — the tallest buildings in the city were neighbours BY CONSTRUCTION.
+// At 21 units tall on a 1.15 pitch they merged into one dark slab south of Central Park with no
+// sky between them: not a skyline, a wall.
+//
+// The honest lever here is PLACEMENT, not height. Where a wallet lives is already declared a game
+// (the address comes from its own hash, and the page says so), while height is the data and must
+// never be touched — capping a tower because a taller one stands nearby would be a lie about that
+// wallet. So the tall cohort simply claims a radius, and the mid-rise fills in around it.
+//
+// Lots sit 1.15 apart inside a block: 2.6 leaves a clear lot between towers, 5.2 leaves a block.
+function clearanceFor(rank) {
+  if (rank < 8) return 5.2;     // the landmarks — a block of sky each
+  if (rank < 40) return 3.6;
+  if (rank < 120) return 2.6;   // roughly the glass cohort
+  if (rank < 320) return 1.8;
+  return 0;                     // everyone else packs normally; the mass IS the city
+}
+const clears = (towers, x, z, need) =>
+  need <= 0 || !towers.some(p => (p.x - x) ** 2 + (p.z - z) ** 2 < need * need);
 function weightedPick(list, h) {
   const w = lotWeights();
   const total = list.reduce((s, n) => s + w.get(n.id), 0);
@@ -210,8 +236,11 @@ export function hoodGrid(hood, k = 1) {
           // keep a margin off the waterfront so buildings don't hang over the edge
           if (!inManhattan(x + SHORE, z) || !inManhattan(x - SHORE, z) ||
               !inManhattan(x, z + SHORE) || !inManhattan(x, z - SHORE)) continue;
+          // ⚠ The boundary must belong to exactly ONE side. These were `u < 0` and `u > 0`, so the
+          // lot sitting exactly on the centre line passed both tests and was handed out twice —
+          // two wallets standing in the identical spot, rendering as one fused building.
           if (hood.side === "east" && u < 0) continue;
-          if (hood.side === "west" && u > 0) continue;
+          if (hood.side === "west" && u >= 0) continue;
           mine.push({ t, u, x: x * k, z: z * k });
         }
       }
@@ -279,7 +308,7 @@ export function placeCity(items, k = 1) {
         cx /= lots.length; cz /= lots.length;
         lots = lots.slice().sort((a, b) => ((a.x - cx) ** 2 + (a.z - cz) ** 2) - ((b.x - cx) ** 2 + (b.z - cz) ** 2));
       }
-      e = { lots, used: new Set(), stride: strideFor(lots.length), dense: !!h.towers, next: 0 };
+      e = { lots, used: new Set(), stride: strideFor(lots.length), dense: !!h.towers, next: 0, towers: [] };
       cache.set(h.id, e);
     }
     return e;
@@ -331,9 +360,20 @@ export function placeCity(items, k = 1) {
     let lot = null;
     if (slot) {
       const { lots, used, stride, dense } = slot;
+      const need = clearanceFor(i) * k;
       if (dense) {
         while (slot.next < lots.length && used.has(slot.next)) slot.next++;   // pack from the core
-        if (slot.next < lots.length) { used.add(slot.next); lot = lots[slot.next]; }
+        // Nearest free lot to the core that still leaves the taller neighbours their room. Falling
+        // back to the plain nearest one matters: a district can genuinely run out of clear space,
+        // and a building with nowhere to stand is worse than one standing a little close.
+        let j = -1;
+        for (let q = slot.next; q < lots.length; q++) {
+          if (used.has(q)) continue;
+          if (!clears(slot.towers, lots[q].x, lots[q].z, need)) continue;
+          j = q; break;
+        }
+        if (j < 0 && slot.next < lots.length) j = slot.next;
+        if (j >= 0) { used.add(j); lot = lots[j]; }
       } else {
         // ⚠ THE LOT HASH MUST BE INDEPENDENT OF THE NEIGHBOURHOOD HASH. Using hash01(it.a) for both
         // is what caused the visible clumping: neighbourhoods are picked by comparing that hash
@@ -342,11 +382,21 @@ export function placeCity(items, k = 1) {
         // ~18% strip of a row-major lot list. Whole districts piled into one band with dead space
         // either side. A salted second hash is uniform over 0..1 whichever district you landed in.
         let j = Math.floor(hash01(it.a + "|lot") * lots.length) % lots.length;
-        for (let s = 0; s < lots.length; s++) {
-          if (!used.has(j)) { used.add(j); lot = lots[j]; break; }
-          j = (j + stride) % lots.length;                                     // scatter, don't clump
+        // Two passes: the first honours the tower clearance, the second takes anything free. The
+        // scattered districts need this too — a big holder landing on the park is still a tower,
+        // and two of them on neighbouring lots read as one building just the same.
+        let found = -1;
+        for (let pass = 0; pass < 2 && found < 0; pass++) {
+          let c = j;
+          for (let s = 0; s < lots.length; s++) {
+            if (!used.has(c) && (pass === 1 || clears(slot.towers, lots[c].x, lots[c].z, need))) { found = c; break; }
+            c = (c + stride) % lots.length;                                   // scatter, don't clump
+          }
+          if (need <= 0) break;                                               // no clearance asked, no second pass
         }
+        if (found >= 0) { used.add(found); lot = lots[found]; }
       }
+      if (lot && need > 0) slot.towers.push({ x: lot.x, z: lot.z });
     }
     // Genuinely out of room: park it off the east shore rather than stack it on a roof.
     if (!lot) { const p = fromAxis((i % 100) / 100, 26 + (i % 4) * 1.4); lot = { x: p.x * k, z: p.z * k }; }
