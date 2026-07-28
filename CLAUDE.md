@@ -1159,16 +1159,24 @@
         chose Dune over BigQuery for one source).** Two realisations set the design: (1) the FIFO engine computes the WHOLE
         suite in ONE pass, so refreshing slow charts (hodl/conc) costs NOTHING extra — the only cost is the transfer-delta pull;
         and daily granularity is free (a local sample-grid choice, `--daily`, not a Dune cost). (2) Dune's "result read" bills by
-        ROWS not RUNS, so daily ≈ weekly ≈ **~150-180 credits/mo (~7% of 2,500)** — daily is basically free upside. So
+        ROWS not RUNS, so daily ≈ weekly on the READ side — daily is cheap upside. So
         `onchain-dune.yml` is now **DAILY (`cron 23 5 * * *`)**, pulling the incremental delta over the GitHub release-asset
         archive → local FIFO `--daily` → the full suite (NRPL/SOPR/liveliness/sip/hodl/conc/URPD) refreshes daily. **ONE source
         of truth:** GitHub archive + Dune delta + local engine, self-contained in the repo, no GCP dependency, live NOW (no
         waiting on a month reset). **BigQuery (`onchain-bigquery.yml`) is DISPATCH-ONLY** — kept for ONE-TIME reconstructions
         (re-seed the archive, BTC/ETH free-float, Base on-chain) + emergency backup; never scheduled so it can't race Dune to
         commit onchain.json (it has a Gate step that skips cleanly without `GCP_SA_KEY`). Weighed BigQuery-daily ($0 Dune) and
-        rejected it: it adds a GCP dependency + a 2nd archive in a BQ table + waiting for the free-tier reset, to save ~170
-        credits/mo that the budget doesn't miss. Other daily-free surfaces (price/holders/MVRV/CEX-flow/composite/F&G) already
-        come from the snapshot cron. Net: everything on the site is now a daily heartbeat, one source, ~7% of the Dune budget.
+        rejected it: it adds a GCP dependency + a 2nd archive in a BQ table + waiting for the free-tier reset.
+        Other daily-free surfaces (price/holders/MVRV/CEX-flow/composite/F&G) already come from the snapshot cron.
+        - **⚠ ACTUAL COST MEASURED 2026-07-28 — ~18 CREDITS/RUN, i.e. ~540/mo ≈ 22% of the 2,500 quota, NOT the ~7% first
+          estimated here.** Owner read it off the incremental query in Dune. The estimate above was too low because it reasoned
+          about the RESULT READ (genuinely ~0 — one day is ~2,500 rows / ~10k datapoints, the cheap tier) and under-counted the
+          **QUERY EXECUTION**: `erc20_ethereum.evt_Transfer` is partition-scanned per run regardless of how few rows come back.
+          **So the only lever is CADENCE, not the window** — `>= DATE '<yesterday>'` is already the floor; every-other-day ≈ 270/mo,
+          weekly ≈ 78/mo. **DECISION: KEEP IT DAILY.** 540/mo buys the entire on-chain suite (the one pipeline that isn't keyless)
+          with ~1,900 credits/mo still free for one-off reconstructions. Revisit only if a second heavy consumer lands on the meter.
+          Same lesson as the AEON overspend, from the other side: measure BOTH charges — there the READ was the surprise, here the
+          EXECUTION is. Net: everything on the site is a daily heartbeat, one source, ~22% of the Dune budget.
       - **✅ BIGQUERY WEEKLY REFRESH BUILT 2026-07-21 (owner made the GCP SA) — pending secret + first-run validation.**
         `.github/workflows/onchain-bigquery.yml` (~~Mon 06:37 UTC~~ now DAILY, see the note above; + dispatch): GH Actions Google auth (`GCP_SA_KEY` secret, the
         SA JSON) + `bq` CLI → keeps an OWN append-only table **`goog-fltx.spx_onchain.eth_transfers`**, incrementally appends
