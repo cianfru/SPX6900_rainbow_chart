@@ -309,7 +309,7 @@ export default function Skyline3D({
       scene.add(m); disposables.push(merged);
     };
 
-    const haloUp = [], haloDown = [];
+    const haloUp = [], haloDown = [], beamUp = [], beamDown = [];
     // ⚠ BUILDINGS MUST WEAR THE GRID'S ROTATION. They were axis-aligned boxes dropped onto blocks
     // that are rotated to the street bearing, so every building sat askew on its own plot. With a
     // near-square footprint the error reads as "a few degrees" rather than the full 60.9°, because
@@ -381,6 +381,14 @@ export default function Skyline3D({
         const r2 = 0.6 + 0.5 * mag;
         g.scale(r2, r2, 1); g.rotateX(-Math.PI / 2); g.translate(p.x, 0.14, p.z);
         (f > 0 ? haloUp : haloDown).push(g);
+        // ⭐ A SHAFT OF LIGHT, not a ring on the pavement. The ground halo only reads from above,
+        // and the city is mostly looked at from street level where the pavement is hidden behind
+        // the buildings in front of it. A beam clears the roofline, so who is buying and who is
+        // selling is legible from any angle and at any zoom — which is the whole signal here.
+        const beamH = roofTop * 0.35 + 3.5 + 9 * mag;
+        const bg = new THREE.CylinderGeometry(0.10 + 0.06 * mag, 0.16 + 0.10 * mag, beamH, 6, 1, true);
+        bg.translate(p.x, roofTop + spire + beamH / 2 + 0.6, p.z);
+        (f > 0 ? beamUp : beamDown).push(bg);
       }
 
       // Merged geometry has no per-building mesh to hover, so picking rides an invisible instanced
@@ -396,8 +404,12 @@ export default function Skyline3D({
     addMerged(metalGeos, metalMat);
     addMerged(spireGeos, metalMat);
     // Additive glow, so it must draw after everything and never write depth.
-    for (const [geos, col] of [[haloUp, GREEN], [haloDown, RED]]) {
-      const hm = new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.3, blending: THREE.AdditiveBlending, depthWrite: false });
+    for (const [geos, col, op] of [[haloUp, GREEN, 0.34], [haloDown, RED, 0.34],
+                                   [beamUp, GREEN, 0.5], [beamDown, RED, 0.5]]) {
+      const hm = new THREE.MeshBasicMaterial({
+        color: col, transparent: true, opacity: op, blending: THREE.AdditiveBlending,
+        depthWrite: false, side: THREE.DoubleSide,
+      });
       ownMats.push(hm); addMerged(geos, hm, false);
     }
 
@@ -520,7 +532,7 @@ export default function Skyline3D({
     };
     // Signs live in their own group so messages can be re-hung without touching the buildings.
     const signs = new THREE.Group(); scene.add(signs);
-    api.current = { cam, controls, homes, pulse, signs, scene };
+    api.current = { cam, controls, homes, pulse, signs, scene, picks };
 
     const ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
     let hovered = null, px = 0, py = 0, moved = false;
@@ -701,8 +713,46 @@ export default function Skyline3D({
     const from = a.cam.position.clone(), fromT = a.controls.target.clone();
     // Stand off by the building's own height, so a townhouse is framed as tightly as a tower.
     const dist = Math.max(11, home.h * 1.5);
-    const to = new THREE.Vector3(home.x + dist * 0.62, home.h * 0.85 + dist * 0.45, home.z + dist * 0.78);
     const toT = new THREE.Vector3(home.x, Math.min(home.h * 0.55, 14), home.z);
+
+    // ⭐ PICK AN APPROACH WITH A CLEAR VIEW. A fixed offset meant the camera always arrived from the
+    // same corner, so any taller neighbour on that side hid the building you just asked to see —
+    // and in a city, roughly half your neighbours are on the wrong side. This tests candidate
+    // bearings against the actual skyline and takes the least obstructed, breaking ties toward
+    // wherever the camera already is so the move stays short.
+    const EL = 0.42;                                        // elevation of the approach, radians
+    const near = a.picks.filter(q => {
+      const d = Math.hypot(q.x - home.x, q.z - home.z);
+      return d > 1.2 && d < dist + 6 && q.h > 1.5;          // skip the subject and anything tiny
+    });
+    const blockage = ang => {
+      const dx = Math.cos(ang), dz = Math.sin(ang);
+      let bad = 0;
+      for (let i = 1; i <= 7; i++) {                        // sample along the line of sight
+        const f2 = i / 8, r = dist * f2;
+        const sx = home.x + dx * r * Math.cos(EL), sz = home.z + dz * r * Math.cos(EL);
+        const sy = toT.y + (home.h * 0.85 + dist * 0.45 - toT.y) * f2;
+        for (const q of near) {
+          if (q.h < sy) continue;                           // too short to be in the way
+          if (Math.abs(q.x - sx) < q.w * 0.75 && Math.abs(q.z - sz) < q.w * 0.75) { bad++; break; }
+        }
+      }
+      return bad;
+    };
+    const curAng = Math.atan2(from.z - home.z, from.x - home.x);
+    let bestAng = curAng, bestScore = Infinity;
+    for (let i = 0; i < 16; i++) {
+      const ang = curAng + (i / 16) * Math.PI * 2;
+      // a whole turn away is worth about one blocked sample — clear sightline wins, but not by
+      // swinging the camera across the city when a near-side approach is nearly as good
+      const score = blockage(ang) + Math.abs(((ang - curAng + Math.PI) % (Math.PI * 2)) - Math.PI) / Math.PI;
+      if (score < bestScore) { bestScore = score; bestAng = ang; }
+    }
+    const to = new THREE.Vector3(
+      home.x + Math.cos(bestAng) * dist * Math.cos(EL),
+      home.h * 0.85 + dist * 0.45,
+      home.z + Math.sin(bestAng) * dist * Math.cos(EL),
+    );
 
     let raf, cancelled = false;
     const stop = () => { cancelled = true; };
