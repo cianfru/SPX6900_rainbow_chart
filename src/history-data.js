@@ -226,3 +226,18 @@ export function loadValuation() {
 // Friendly copy for live-API failures. The raw error (JSON parse noise, proxy
 // statuses) is meaningless to visitors — never show it in the UI.
 export const LIVE_DATA_DOWN = "Live data is temporarily unavailable — try again in a minute.";
+
+// City time-machine data: weekly per-wallet balances (sparse change-points), one file per asset.
+// BIG (SPX ~3MB) and only wanted when someone opens the slider, so it is fetched lazily with the
+// browser's default caching (Vercel etags make revisits a 304, and the file changes only daily).
+const timelinePromises = {};
+export function loadCityTimeline(asset) {
+  const f = asset === "aeon" ? "/aeon-timeline.json" : "/spx-timeline.json";
+  if (!timelinePromises[f]) {
+    timelinePromises[f] = fetch(f)
+      .then(r => (r.ok ? r.json() : null))
+      .then(d => (d && Array.isArray(d.wallets) && d.n > 0 ? d : null))
+      .catch(() => null);
+  }
+  return timelinePromises[f];
+}

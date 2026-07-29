@@ -547,15 +547,30 @@
   **Owner hardware note (2026-07-29): iPhone 13 Pro Max + MacBook Air M1 + 27" iMac all run the full city at full
   res with no issues** — so the floor is fine on decent hardware; the tail risk is visitors' low-end Androids,
   which the adaptive resolution below now covers.
-- **⭐⭐ GREENLIT 2026-07-29 — THE TIME SLIDER IS THE NEXT BIG CITY FEATURE (owner: "Amazing idea").** The
-  launch→today slider: buildings appear the week each wallet first bought, the 2024/2026 crashes wash red through
-  the streets, the skyline turns cyan as wallets age into conviction. **Ships as BOTH:** (a) an interactive slider
-  in the city itself (the magical version — visitors scrub it), and (b) a rendered video export via the existing
-  `render-city-video.mjs` path for pinning on the site header/X posts ("three years of SPX6900, as a city").
-  Data plan: AEON side is fully local (`dune/out/aeon_transfers.csv`, 25k rows → per-wallet weekly replay is
-  trivial); SPX side needs the FIFO engine to emit per-wallet WEEKLY snapshots (sparse/delta-encoded — most wallets
-  don't move most weeks) from the transfers archive (GitHub release asset `onchain-archive`, downloadable —
-  public repo). One new builder output + a scene that lerps between weekly states.
+- **✅✅ TIME MACHINE SHIPPED 2026-07-29 (the greenlit "time slider"; owner: "Amazing idea").** The launch→today
+  replay is LIVE in SPX City: a **Time machine** toggle (SPX + AEON modes; hidden in BOTH — an honest historical
+  join of the two assets isn't built) opens a violet slider; scrub it and the city rebuilds at that week —
+  **Jan-2024 = 579 buildings → Apr-2025 peak ≈ 4,427 → today 4,894 (far right = the LIVE data, richer fields)**.
+  Verified end-to-end in-browser.
+  - **Data:** `scripts/build-city-timeline.mjs` — a NET-BALANCE weekly replay (deliberately NOT the FIFO engine;
+    balance is a plain sum, so the slider can't destabilise the cost-basis pipeline). Sparse change-points
+    `p:[[weekIdx,bal],…]` on a Monday grid (`week0`+`n`); helpers unit-tested (`test/city-timeline.test.mjs`).
+    Outputs `public/spx-timeline.json` (~3MB, 26,484 wallets ever ≥5,000 SPX, 155 wks) + `aeon-timeline.json`
+    (0.3MB, 3,728 wallets, 142 wks); both REGENERATE DAILY (onchain-dune.yml rides the already-downloaded archive;
+    aeon.yml rides dune/out) and are declared in the audit-feeds registry. Lazy-loaded only when the toggle opens.
+  - **⭐⭐ THE CAP LESSON (a real finding): churn is enormous.** A first cut kept the top 9,000 wallets by PEAK
+    balance — and reproduced only 1,279 of the 4,894 residents standing today, because **7,397 of the 9,000
+    biggest-ever wallets have since sold out entirely**; today's city is mostly wallets that never had huge peaks.
+    Ranking by any one moment's size silently rewrites every other week → NO CAP, everyone who ever cleared the
+    bar ships. (That churn is itself a story the slider makes visible.)
+  - **Client:** `loadCityTimeline()` (history-data.js) + `histTowers` in SpxCity — same residency bar as live
+    (5,000 held 90d, "held" = weeks since last zero; AEON ≥1), flow = Δ vs 4 weeks earlier, 250ms-debounced
+    rebuild, `intro={week==null}` so scrubs skip the arrival flight, trade arcs hidden mid-replay (they're a
+    last-30d fact), caption states the replay method. Seam note: timeline last week ≈5.5k vs live 4,894 — the
+    live city's FIFO day-counting is finer; slider far-right therefore SWITCHES to the live towers.
+  - **🔲 STILL TO DO (debug phase):** the rendered VIDEO export ("three years of SPX6900, as a city" — wire a
+    `__cityWeek(u)` hook into `render-city-video.mjs` like `__citySeek`); a play button; possibly per-week
+    tween/lerp instead of hard rebuilds.
 - **⭐⭐ GREENLIT 2026-07-29 — VISUAL "WOW" PASS before launch (owner: "must be a wow factor").** The scoped list,
   judged via City Lab A/B before touching the live city: **HDRI sky** (biggest believability win, ~free) ·
   **animated water** (harbour is a flat plane today) · **bloom at dusk/night** (emissive windows + the torch

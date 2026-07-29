@@ -71,6 +71,9 @@ jobs:
           DUNE_API_KEY: ${{ secrets.DUNE_API_KEY }}
           DUNE_INCREMENTAL_QUERY_ID: ${{ vars.DUNE_INCREMENTAL_QUERY_ID }}
         run: node scripts/build-onchain-dune-refresh.mjs --archive=transfers.csv
+      - name: Rebuild the city time-machine (weekly per-wallet balances)
+        # rides the same merged archive — no extra pull; feeds the launch→today slider
+        run: node scripts/build-city-timeline.mjs --spx=transfers.csv --out=public/spx-timeline.json
 
       - name: Sanity check (reconcile to the known extract)
         run: |
@@ -93,11 +96,11 @@ jobs:
         id: commit
         run: |
           DEPLOY_CHANGED=""
-          [[ -n "$(git status --porcelain public/onchain.json public/urpd.json public/whales.json)" ]] && DEPLOY_CHANGED=1
+          [[ -n "$(git status --porcelain public/onchain.json public/urpd.json public/whales.json public/spx-timeline.json)" ]] && DEPLOY_CHANGED=1
           if [[ -n "$DEPLOY_CHANGED" ]]; then
             git config user.name "github-actions[bot]"
             git config user.email "github-actions[bot]@users.noreply.github.com"
-            git add public/onchain.json public/urpd.json public/whales.json
+            git add public/onchain.json public/urpd.json public/whales.json public/spx-timeline.json
             git commit -m "chore: on-chain FIFO refresh (Dune) $(date -u +%F)"
             git push
           else

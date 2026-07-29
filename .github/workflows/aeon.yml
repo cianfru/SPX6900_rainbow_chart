@@ -66,6 +66,7 @@ jobs:
         run: |
           node scripts/build-aeon-onchain.mjs --transfers=dune/out/aeon_transfers.csv --spx=dune/out/aeon_spx_balances.csv
           node scripts/build-aeon-sales.mjs --sales=dune/out/aeon_sales.csv
+          node scripts/build-city-timeline.mjs --aeon=dune/out/aeon_transfers.csv --out=public/aeon-timeline.json
       - name: Rebuild Aeon market valuation + trader P&L (keyless)
         # MVRV / supply-in-profit / URPD / deals / biggest sales / trait premiums, and the
         # wallet P&L leaderboard — from dune/out/*.csv + rarity + the live floor. No key.
