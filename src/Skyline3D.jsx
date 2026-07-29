@@ -1,13 +1,17 @@
 import { useRef, useEffect } from "react";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
+import { EffectComposer } from "three/examples/jsm/postprocessing/EffectComposer.js";
+import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass.js";
+import { UnrealBloomPass } from "three/examples/jsm/postprocessing/UnrealBloomPass.js";
+import { OutputPass } from "three/examples/jsm/postprocessing/OutputPass.js";
 import { CSS2DRenderer, CSS2DObject } from "three/examples/jsm/renderers/CSS2DRenderer.js";
 import { placeCity, cityScale, CITY_LENGTH, ISLAND_RING, PARK_RINGS, BACKDROP, ISLETS, WATER,
          streetGrid, hoodGrid, NEIGHBOURHOODS, AXIS_ANGLE } from "./city-map.js";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { chainOf } from "./city-messages.js";
 import { makeDrs } from "./city-drs.js";
-import { TIMES, FAMILIES, skyEnv, facadeTexture, wallGeometry, roofGeometry, archetype, heightOf,
+import { TIMES, FAMILIES, skyEnv, facadeTexture, wallGeometry, roofGeometry, archetype, heightOf, waterMaterials,
          berthGeometry, bridgeGeometry, monumentGeometry } from "./city-render.js";
 import { infraFrom, portBerths, siteAt, bridgeSpan, SITES, fmtTokens } from "./city-infra.js";
 
@@ -133,6 +137,21 @@ export default function Skyline3D({
     const { env, sky } = skyEnv(renderer, TOD);
     scene.environment = env; scene.background = sky;
 
+    // ── bloom (dusk + night only) ────────────────────────────────────────────────────────────
+    // The "stone and light" rule finally glows: the composer renders into a half-float target so
+    // the emissive windows and the torch flame (the only things over the threshold) bleed light,
+    // while facades and sky stay untouched. Day skips the composer entirely — sunlight washes
+    // emissive light out, so bloom would only cost frames and blur. OutputPass applies the same
+    // ACES tone mapping the plain path uses, so toggling time-of-day can't shift the grade.
+    let composer = null;
+    if (time !== "day") {
+      composer = new EffectComposer(renderer);
+      composer.addPass(new RenderPass(scene, cam));
+      composer.addPass(new UnrealBloomPass(new THREE.Vector2(W, VH), time === "night" ? 0.55 : 0.3, 0.5, 0.92));
+      composer.addPass(new OutputPass());
+    }
+    const draw = () => { if (composer) composer.render(); else renderer.render(scene, cam); labelR.render(scene, cam); };
+
     const labelR = new CSS2DRenderer(); labelR.setSize(W, VH);
     Object.assign(labelR.domElement.style, { position: "absolute", top: "0", left: "0", pointerEvents: "none" });
     el.appendChild(labelR.domElement);
@@ -169,6 +188,7 @@ export default function Skyline3D({
 
     // ── the ground. City: the rivers, the island itself and Central Park. Grid: block pads. ──
     const groundBits = [];
+    let waterTick = null;                    // set by the city's water block, ticked in the render loop
     let pads = null;
     if (city) {
       // Real OpenStreetMap geometry: the island, Central Park, the surrounding boroughs and the
@@ -182,6 +202,17 @@ export default function Skyline3D({
         sh.closePath();
         return sh;
       };
+      // ── animated water ──────────────────────────────────────────────────────────────────────
+      // One material pair for EVERY wet surface — the sea plane, its chop overlay, and the river
+      // patches — so the whole harbour moves together and can never disagree with itself. The tick
+      // scrolls the two normal fields against each other each frame (see city-render.js).
+      // DoubleSide because the river patches are rotated face-DOWN (see flat()); bookkeeping rides
+      // groundBits + waterTick since ownMats/frameCbs are declared further down this effect.
+      const wm = waterMaterials(TOD);
+      wm.base.side = THREE.DoubleSide;
+      waterTick = wm.tick;
+      groundBits.push({ dispose: () => { wm.textures.forEach(t => t.dispose()); wm.base.dispose(); wm.over.dispose(); } });
+
       // `wet` matters: the harbour patches are WATER and have to match the sea plane's material,
       // not the matte one the land polygons use. Painted with the land material they came out as
       // flat pale shapes that took no sun at all, so the bay looked like concrete beside a river
@@ -189,16 +220,17 @@ export default function Skyline3D({
       const flat = (rings, colour, y, wet = false) => {
         if (!rings?.length) return;
         const m = new THREE.Mesh(new THREE.ShapeGeometry(ringShape(rings)),
-          wet ? new THREE.MeshStandardMaterial({ color: colour, roughness: 0.42, metalness: 0.06, side: THREE.DoubleSide })
+          wet ? wm.base
               : new THREE.MeshStandardMaterial({ color: colour, roughness: 0.95, side: THREE.DoubleSide }));
         m.rotation.x = Math.PI / 2; m.position.y = y; scene.add(m); groundBits.push(m);
       };
 
       // Water is the one genuinely reflective surface in frame, so it gets a low roughness and
       // picks up the sky — which is most of why the island now reads as sitting IN something.
-      const water = new THREE.Mesh(new THREE.PlaneGeometry(LEN * 8.0, LEN * 8.0),
-        new THREE.MeshStandardMaterial({ color: TOD.water, roughness: 0.42, metalness: 0.06 }));
+      const water = new THREE.Mesh(new THREE.PlaneGeometry(LEN * 8.0, LEN * 8.0), wm.base);
       water.rotation.x = -Math.PI / 2; water.position.y = -0.42; scene.add(water); groundBits.push(water);
+      const chop = new THREE.Mesh(new THREE.PlaneGeometry(LEN * 8.0, LEN * 8.0), wm.over);
+      chop.rotation.x = -Math.PI / 2; chop.position.y = -0.40; scene.add(chop); groundBits.push(chop);
 
       for (const b of BACKDROP) flat(b.rings, TOD.back, -0.30);   // Brooklyn / Queens / Bronx / Jersey
       // The harbour, painted back OVER the boroughs — their outlines are administrative boundaries
@@ -351,7 +383,7 @@ export default function Skyline3D({
       const ai = Math.min(AGE_BINS - 1, Math.floor((t.ageT ?? 0.5) * AGE_BINS));
       const fi = Math.max(0, Math.min(FLOW_BINS - 1, Math.round((Math.max(-1, Math.min(1, f)) + 1) / 2 * (FLOW_BINS - 1))));
 
-      const { parts, spire, family } = archetype(h, r, i < 3);
+      const { parts, spire, family } = archetype(h, r, i < 3 ? i : -1);
       // Anchor to where the building ACTUALLY ends. Only the landmark archetype's stack falls short
       // of h (0.52 + 0.26 + 0.16), which is why just the tallest few had floating antennas.
       const roofTop = Math.max(...parts.map(q => q.y + q.h / 2));
@@ -847,7 +879,7 @@ export default function Skyline3D({
         const e = easeInOut(Math.max(0, Math.min(1, u)));
         const pp = spline(flight.keys.map(kk => kk.p), e), tt = spline(flight.keys.map(kk => kk.t), e);
         cam.position.set(pp[0], pp[1], pp[2]); controls.target.set(tt[0], tt[1], tt[2]);
-        controls.update(); renderer.render(scene, cam); labelR.render(scene, cam);
+        controls.update(); draw();
       };
       window.__cityReady = true;
     }
@@ -869,7 +901,7 @@ export default function Skyline3D({
       controls.target.set(t[0], t[1], t[2]);
       cam.fov = fov || baseFov;
       cam.updateProjectionMatrix(); controls.update();
-      renderer.render(scene, cam); labelR.render(scene, cam);
+      draw();
     };
     window.__cityStats = () => ({
       len: LEN,
@@ -892,13 +924,15 @@ export default function Skyline3D({
     const sizeNow = () => [cine ? window.innerWidth : el.clientWidth, cine ? window.innerHeight : VH];
     const drs = makeDrs({
       maxRatio: MAXR, minRatio: MINR,
-      apply: r => { renderer.setPixelRatio(r); const [w, h] = sizeNow(); if (w && h) renderer.setSize(w, h); },
+      apply: r => { renderer.setPixelRatio(r); composer?.setPixelRatio(r); const [w, h] = sizeNow(); if (w && h) { renderer.setSize(w, h); composer?.setSize(w, h); } },
     });
     const adapt = now => drs.tick(now);
 
     const loop = () => {
       raf = requestAnimationFrame(loop);
-      adapt(performance.now());
+      const nowT = performance.now();
+      adapt(nowT);
+      waterTick?.(nowT);
       if (flying) {
         const u = Math.min(1, (performance.now() - flight.start) / flight.dur);
         const e = easeInOut(u);
@@ -911,13 +945,13 @@ export default function Skyline3D({
       sun.target.position.copy(controls.target);
       sun.position.set(controls.target.x + LEN * 0.22, controls.target.y + LEN * 0.34, controls.target.z + LEN * 0.17);
       sun.target.updateMatrixWorld(); sun.shadow.camera.updateProjectionMatrix();
-      renderer.render(scene, cam); labelR.render(scene, cam);
+      draw();
     };
     loop();
     const onResize = () => {
       const [w, h] = sizeNow();
       if (!w || !h) return;                       // a zero-size buffer renders nothing at all
-      cam.aspect = w / h; cam.updateProjectionMatrix(); renderer.setSize(w, h); labelR.setSize(w, h);
+      cam.aspect = w / h; cam.updateProjectionMatrix(); renderer.setSize(w, h); composer?.setSize(w, h); labelR.setSize(w, h);
     };
     window.addEventListener("resize", onResize);
 
@@ -929,7 +963,7 @@ export default function Skyline3D({
       renderer.domElement.removeEventListener("pointerdown", stopFlight);
       renderer.domElement.removeEventListener("wheel", onWheel);
       removeEventListener("wheel", stopFlight);
-      controls.dispose();
+      controls.dispose(); composer?.dispose();
       disposables.forEach(d => d.dispose()); env.dispose(); sky.dispose();
       ownMats.forEach(m => m.dispose());
       groundBits.forEach(g => { if (g.dispose) g.dispose(); else { g.geometry?.dispose(); g.material?.dispose(); } });

@@ -24,9 +24,12 @@ const WINDOW_W = 0.46;            // world units per window column
 // physically right and exactly wrong for a page whose whole point is the colour of those windows.
 // Day compensates by pushing window intensity rather than pretending the problem isn't there.
 export const TIMES = {
-  day:   { label: "Day",   top: "#7fb2e6", horizon: "#dce9f5", ground: "#8f9bb0", sun: 0xfff6e8, sunI: 2.6, amb: 0.85, hemi: 1.05, exposure: 1.0,  win: 0.62, water: 0x3f8fcc, land: 0x8a94ad, road: 0x59616f, pave: 0x9fa9bd, back: 0x6c7a68, park: 0x4f9a5c },
-  dusk:  { label: "Dusk",  top: "#22304f", horizon: "#e8a06a", ground: "#4a4a58", sun: 0xffb877, sunI: 2.0, amb: 0.78, hemi: 0.95, exposure: 1.05, win: 1.0,  water: 0x35789f, land: 0x6f7591, road: 0x3f4a63, pave: 0x707f9c, back: 0x4b5749, park: 0x3f8452 },
-  night: { label: "Night", top: "#080e1c", horizon: "#2a3d63", ground: "#141a2c", sun: 0x9fbfff, sunI: 0.7,  amb: 0.55, hemi: 0.7,  exposure: 1.2,  win: 1.7,  water: 0x1e4a74, land: 0x3d456a, road: 0x1e2436, pave: 0x414b66, back: 0x2b3330, park: 0x275f3a },
+  day:   { label: "Day",   top: "#7fb2e6", horizon: "#dce9f5", ground: "#8f9bb0", sun: 0xfff6e8, sunI: 2.6, amb: 0.85, hemi: 1.05, exposure: 1.0,  win: 0.62, water: 0x3f8fcc, land: 0x8a94ad, road: 0x59616f, pave: 0x9fa9bd, back: 0x6c7a68, park: 0x4f9a5c,
+           sunV: 0.14, sunCol: "#fff7e0", glow: 0.30, clouds: 0.55, stars: 0 },
+  dusk:  { label: "Dusk",  top: "#22304f", horizon: "#e8a06a", ground: "#4a4a58", sun: 0xffb877, sunI: 2.0, amb: 0.78, hemi: 0.95, exposure: 1.05, win: 1.0,  water: 0x35789f, land: 0x6f7591, road: 0x3f4a63, pave: 0x707f9c, back: 0x4b5749, park: 0x3f8452,
+           sunV: 0.43, sunCol: "#ffcf8a", glow: 0.55, clouds: 0.38, stars: 0 },
+  night: { label: "Night", top: "#080e1c", horizon: "#2a3d63", ground: "#141a2c", sun: 0x9fbfff, sunI: 0.7,  amb: 0.55, hemi: 0.7,  exposure: 1.2,  win: 1.7,  water: 0x1e4a74, land: 0x3d456a, road: 0x1e2436, pave: 0x414b66, back: 0x2b3330, park: 0x275f3a,
+           sunV: 0.16, sunCol: "#e8eeff", glow: 0.10, clouds: 0, stars: 320 },
 };
 
 // ── the sky ───────────────────────────────────────────────────────────────────────────────────
@@ -34,13 +37,68 @@ export const TIMES = {
 // glass — a material with nothing to reflect reads as plastic however good its roughness is. The
 // same gradient is ALSO the visible background; a flat background colour left a hard seam where
 // the ground ended and the whole city read as a model on a table.
-export function skyEnv(renderer, { top, horizon, ground }) {
-  const c = document.createElement("canvas"); c.width = 16; c.height = 256;
+//
+// v2 (the wow pass): the gradient gains a painted SUN with its glow (a moon at night), soft cloud
+// banks at day/dusk, and a star field at night. Everything is deterministic (seeded LCG), drawn on
+// one canvas, and PMREM-blurred into the environment — so the sun disc is also what the glass
+// towers and the water actually reflect. Clouds keep clear of the u=0/1 seam because the texture
+// wraps horizontally, and a cloud cut in half at the seam is exactly the kind of tell that breaks
+// the sky illusion.
+export function skyEnv(renderer, tod) {
+  const { top, horizon, ground } = tod;
+  const W = 1024, H = 512;
+  const c = document.createElement("canvas"); c.width = W; c.height = H;
   const g = c.getContext("2d");
-  const grad = g.createLinearGradient(0, 0, 0, 256);
+  const grad = g.createLinearGradient(0, 0, 0, H);
   grad.addColorStop(0, top); grad.addColorStop(0.47, horizon);
   grad.addColorStop(0.53, ground); grad.addColorStop(1, ground);
-  g.fillStyle = grad; g.fillRect(0, 0, 16, 256);
+  g.fillStyle = grad; g.fillRect(0, 0, W, H);
+
+  let s = 20260729;
+  const rnd = () => ((s = (s * 1664525 + 1013904223) >>> 0) / 4294967296);
+
+  // stars first, so clouds and glow sit over them
+  for (let i = 0; i < (tod.stars || 0); i++) {
+    const x = rnd() * W, y = rnd() * H * 0.44, m = rnd();
+    g.fillStyle = `rgba(255,255,255,${(0.25 + m * 0.6).toFixed(2)})`;
+    g.fillRect(x, y, m > 0.92 ? 2 : 1, m > 0.92 ? 2 : 1);
+  }
+
+  // the sun (or moon): a hard disc inside a wide radial glow, at a fixed azimuth that roughly
+  // matches the directional light so reflections and shadows agree about where the light lives
+  const su = 0.615 * W, sv = (tod.sunV ?? 0.2) * H;
+  const glowR = (tod.glow ?? 0.3) * H;
+  if (glowR > 0) {
+    const halo = g.createRadialGradient(su, sv, 0, su, sv, glowR);
+    halo.addColorStop(0, tod.sunCol + "e6"); halo.addColorStop(0.25, tod.sunCol + "55");
+    halo.addColorStop(1, tod.sunCol + "00");
+    g.fillStyle = halo; g.fillRect(su - glowR, sv - glowR, glowR * 2, glowR * 2);
+  }
+  g.fillStyle = tod.sunCol;
+  g.beginPath(); g.arc(su, sv, tod.stars ? 9 : 13, 0, Math.PI * 2); g.fill();
+  if (tod.stars) {                                   // bite a crescent out of the moon
+    g.fillStyle = top;
+    g.beginPath(); g.arc(su - 5, sv - 3, 10, 0, Math.PI * 2); g.fill();
+  }
+
+  // cloud banks: clusters of soft low-alpha puffs, kept off the wrap seam
+  if (tod.clouds > 0) {
+    const nBank = 7;
+    for (let b = 0; b < nBank; b++) {
+      const cx = W * (0.08 + rnd() * 0.84), cy = H * (0.16 + rnd() * 0.24);
+      const wBank = W * (0.05 + rnd() * 0.08), warm = rnd() < 0.4 && tod.sunV > 0.3;
+      for (let p = 0; p < 12; p++) {
+        const px = cx + (rnd() - 0.5) * wBank * 2, py = cy + (rnd() - 0.5) * wBank * 0.4;
+        const pr = wBank * (0.14 + rnd() * 0.2);
+        const puff = g.createRadialGradient(px, py, 0, px, py, pr);
+        const tint = warm ? "255,214,170" : "255,255,255";
+        puff.addColorStop(0, `rgba(${tint},${(tod.clouds * (0.10 + rnd() * 0.08)).toFixed(3)})`);
+        puff.addColorStop(1, `rgba(${tint},0)`);
+        g.fillStyle = puff; g.beginPath(); g.arc(px, py, pr, 0, Math.PI * 2); g.fill();
+      }
+    }
+  }
+
   const sky = new THREE.CanvasTexture(c);
   sky.mapping = THREE.EquirectangularReflectionMapping;
   sky.colorSpace = THREE.SRGBColorSpace;
@@ -48,6 +106,66 @@ export function skyEnv(renderer, { top, horizon, ground }) {
   const env = pmrem.fromEquirectangular(sky).texture;
   pmrem.dispose();
   return { env, sky };
+}
+
+// ── the water ─────────────────────────────────────────────────────────────────────────────────
+// A tileable normal map from summed integer-cycle sinusoids (integer wave counts are what makes it
+// tile), worn by two layers: the sea plane, and a translucent overlay at a different scale drifting
+// the other way. Two counter-scrolling normal fields read as chop; one alone reads as a conveyor
+// belt. Done as two ordinary MeshStandardMaterials rather than shader surgery — onBeforeCompile
+// against three's normal-map chunk breaks on version bumps, and two draw calls for the entire
+// harbour is nothing.
+export function waterNormalTexture(size = 256) {
+  const c = document.createElement("canvas"); c.width = size; c.height = size;
+  const g = c.getContext("2d");
+  const img = g.createImageData(size, size);
+  const waves = [];
+  let s = 96900;
+  const rnd = () => ((s = (s * 1664525 + 1013904223) >>> 0) / 4294967296);
+  for (let i = 0; i < 7; i++) {
+    waves.push({ nx: Math.round(1 + rnd() * 5), ny: Math.round(1 + rnd() * 5), a: 0.4 + rnd() * 0.6, p: rnd() * Math.PI * 2 });
+  }
+  const hAt = (x, y) => {
+    let h = 0;
+    for (const w of waves) h += w.a * Math.sin((x * w.nx + y * w.ny) * Math.PI * 2 / size + w.p);
+    return h;
+  };
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      const dx = hAt(x + 1, y) - hAt(x - 1, y), dy = hAt(x, y + 1) - hAt(x, y - 1);
+      const inv = 1 / Math.hypot(dx * 0.9, dy * 0.9, 2);
+      const o = (y * size + x) * 4;
+      img.data[o] = 128 + (-dx * 0.9 * inv) * 127;
+      img.data[o + 1] = 128 + (-dy * 0.9 * inv) * 127;
+      img.data[o + 2] = 128 + (2 * inv) * 127;
+      img.data[o + 3] = 255;
+    }
+  }
+  g.putImageData(img, 0, 0);
+  const t = new THREE.CanvasTexture(c);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  return t;
+}
+
+export function waterMaterials(tod) {
+  const t1 = waterNormalTexture(), t2 = waterNormalTexture();
+  t1.repeat.set(38, 38); t2.repeat.set(97, 97);
+  const base = new THREE.MeshStandardMaterial({
+    color: tod.water, roughness: 0.3, metalness: 0.06,
+    normalMap: t1, normalScale: new THREE.Vector2(0.75, 0.75), envMapIntensity: 1.15,
+  });
+  const over = new THREE.MeshStandardMaterial({
+    color: tod.water, transparent: true, opacity: 0.4, depthWrite: false,
+    roughness: 0.2, metalness: 0.06,
+    normalMap: t2, normalScale: new THREE.Vector2(0.5, 0.5), envMapIntensity: 1.35,
+  });
+  // slow, slightly divergent drift — the relative motion is what sells it
+  const tick = now => {
+    const t = now * 0.001;
+    t1.offset.set(t * 0.012, t * 0.007);
+    t2.offset.set(-t * 0.016, t * 0.010);
+  };
+  return { base, over, tick, textures: [t1, t2] };
 }
 
 // ── facades ───────────────────────────────────────────────────────────────────────────────────
@@ -151,34 +269,67 @@ export function heightOf(score, minScore, maxScore, hmin, hmax) {
 // ⚠ The thresholds below are calibrated to heightOf's output range (HMIN..HMAX, currently
 // 1.0..21). They were 1.8/4/9 back when the curve dumped three quarters of the city under two
 // units; on the log curve that made every building glass. Retune them WITH the curve, never alone.
-export function archetype(h, r, landmark) {
+// Footprint and setback VARIETY comes from the wallet hash — footprint encodes nothing (height is
+// the data), so it is free silhouette diversity. `r` is the wallet's own hash01; two decorrelated
+// follow-ons derive from it so width, depth and setback don't all move together. Heights are never
+// jittered: the ordering promise holds.
+const fract = x => x - Math.floor(x);
+
+// `landmark` is the top-wallet INDEX (0, 1, 2) or -1. The top three wear three DIFFERENT hero
+// silhouettes — a spired setback tower, a slender flat-top, and a tapering antenna mast — so the
+// crown of the skyline reads as landmarks, not as three copies of the same big box.
+export function archetype(h, r, landmark = -1) {
   const P = [];
-  if (landmark) {
+  const v1 = fract(r * 7.1317), v2 = fract(r * 13.077);
+  if (landmark === 0) {                                // spired setback crown (the Empire pose)
     const base = h * 0.52, mid = h * 0.26, top = h * 0.16;
     P.push({ w: 1.00, d: 1.00, h: base, y: base / 2 });
     P.push({ w: 0.74, d: 0.74, h: mid, y: base + mid / 2 });
     P.push({ w: 0.48, d: 0.48, h: top, y: base + mid + top / 2 });
     return { parts: P, spire: h * 0.16, family: "glass" };
   }
+  if (landmark === 1) {                                // slender flat-top (the 432 Park pose)
+    P.push({ w: 1.02, d: 1.02, h: h * 0.06, y: h * 0.03 });
+    P.push({ w: 0.60, d: 0.60, h: h * 0.97, y: h * 0.515 });
+    return { parts: P, spire: 0, family: "glass" };
+  }
+  if (landmark === 2) {                                // tapering mast (the One WTC pose)
+    const b = h * 0.34, m = h * 0.36, t = h * 0.30;
+    P.push({ w: 0.98, d: 0.98, h: b, y: b / 2 });
+    P.push({ w: 0.78, d: 0.78, h: m, y: b + m / 2 });
+    P.push({ w: 0.56, d: 0.56, h: t, y: b + m + t / 2 });
+    return { parts: P, spire: h * 0.22, family: "glass" };
+  }
   if (h >= 11) {
-    const base = h * 0.72, top = h * 0.28;
-    P.push({ w: 0.92, d: 0.92, h: base, y: base / 2 });
-    P.push({ w: 0.62, d: 0.62, h: top, y: base + top / 2 });
+    const setback = 0.62 + (v1 - 0.5) * 0.16;          // where the shaft steps in
+    const split = 0.66 + (v2 - 0.5) * 0.16;            // how far up the step happens
+    const w = 0.86 + v1 * 0.16, base = h * split, top = h * (1 - split);
+    P.push({ w, d: w, h: base, y: base / 2 });
+    P.push({ w: w * setback, d: w * setback, h: top, y: base + top / 2 });
+    if (v2 > 0.72) {                                   // a second setback for a few — wedding-cake
+      const cap = top * 0.4;
+      P[1].h = top - cap; P[1].y = base + (top - cap) / 2;
+      P.push({ w: w * setback * 0.68, d: w * setback * 0.68, h: cap, y: h - cap / 2 });
+    }
     return { parts: P, spire: r > 0.5 ? h * 0.12 : 0, family: "glass" };
   }
   if (h >= 6) {
+    const w = 0.78 + v1 * 0.16, d = 0.78 + v2 * 0.16;  // rectangular slabs, not just squares
     const base = h * 0.85, cap = h * 0.15;
-    P.push({ w: 0.86, d: 0.86, h: base, y: base / 2 });
-    P.push({ w: 0.66, d: 0.66, h: cap, y: base + cap / 2 });
+    P.push({ w, d, h: base, y: base / 2 });
+    P.push({ w: w * 0.78, d: d * 0.78, h: cap, y: base + cap / 2 });
     return { parts: P, spire: 0, family: "concrete" };
   }
   if (h >= 3.5) {
-    P.push({ w: 0.94, d: 0.94, h: h * 0.92, y: h * 0.46 });
-    P.push({ w: 0.99, d: 0.99, h: h * 0.08, y: h * 0.96 });
+    const w = 0.88 + v1 * 0.12, d = 0.88 + v2 * 0.12;
+    P.push({ w, d, h: h * 0.92, y: h * 0.46 });
+    P.push({ w: w + 0.05, d: d + 0.05, h: h * 0.08, y: h * 0.96 });  // the cornice
     return { parts: P, spire: 0, family: "masonry" };
   }
-  P.push({ w: 1.02, d: 0.86, h: h * 0.88, y: h * 0.44 });
-  P.push({ w: 1.08, d: 0.92, h: h * 0.12, y: h * 0.94 });
+  // low-rise: some face the avenue, some the street — the swap costs nothing and breaks the grid
+  const w = v1 > 0.5 ? 1.02 : 0.86, d = v1 > 0.5 ? 0.86 : 1.02;
+  P.push({ w, d, h: h * 0.88, y: h * 0.44 });
+  P.push({ w: w + 0.06, d: d + 0.06, h: h * 0.12, y: h * 0.94 });
   return { parts: P, spire: 0, family: "masonry" };
 }
 
