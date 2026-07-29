@@ -697,16 +697,24 @@ export default function Skyline3D({
     controls.target.set(0, city ? 4 : 7, 0); controls.enableDamping = true; controls.dampingFactor = 0.08;
     controls.minDistance = 8; controls.maxDistance = city ? LEN * 2.4 : span * 4 + 60; controls.maxPolarAngle = Math.PI * 0.492;
     controls.autoRotate = !city; controls.autoRotateSpeed = 0.5;
-    // NAVIGATION — drag moves the map, two-finger scroll orbits, pinch zooms.
-    // Left-drag used to ROTATE around the (invisible) target, which is the "moves around an
-    // unidentifiable point" feeling on a trackpad. Now left-drag PANS along the ground so the city
-    // slides under the cursor with no focal point, and orbiting is a deliberate two-finger (or
-    // right-drag) gesture around whatever you're looking at. Wheel is taken over below.
+    // NAVIGATION.
+    // ⚠ THE DESKTOP CHANGES MUST NOT TOUCH MOBILE. The trackpad ask (drag to pan, two-finger scroll
+    // to orbit, pinch to zoom) is a MOUSE/WHEEL story. An earlier version also rewrote `touches` and
+    // set enableZoom=false globally — which on a phone swapped one-finger-orbit for one-finger-pan
+    // AND killed pinch-to-zoom (enableZoom gates the touch pinch too). The mobile defaults were fine;
+    // only the pointer devices needed changing. So: mouse mapping always (it can't affect touch),
+    // touch mapping stays the OrbitControls default, and the wheel takeover is desktop-only.
+    const coarse = typeof matchMedia !== "undefined" && matchMedia("(pointer: coarse)").matches;
+    // Mouse: left-drag PANS the map (it used to rotate around the invisible target — the "moves
+    // around an unidentifiable point" feeling); orbiting moves to right-drag / two-finger scroll.
     controls.mouseButtons = { LEFT: THREE.MOUSE.PAN, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.ROTATE };
-    controls.touches = { ONE: THREE.TOUCH.PAN, TWO: THREE.TOUCH.DOLLY_ROTATE };
-    controls.screenSpacePanning = false;   // pan across the ground plane — the "drag a map" feel
+    // Touch: the default that was fine — one finger orbits, two fingers pinch-zoom + pan.
+    controls.touches = { ONE: THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.DOLLY_PAN };
     controls.panSpeed = 0.9;
-    controls.enableZoom = false;           // wheel handled by onWheel so two-finger scroll can orbit
+    if (!coarse) {
+      controls.screenSpacePanning = false;   // desktop: pan across the ground plane — the "drag a map" feel
+      controls.enableZoom = false;           // desktop: wheel handled by onWheel so two-finger scroll can orbit
+    }
     const pulseMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.5 });
     const pulseBox = new THREE.Mesh(box, pulseMat); pulseBox.visible = false; scene.add(pulseBox); ownMats.push(pulseMat);
     const pulse = home => {
@@ -826,7 +834,9 @@ export default function Skyline3D({
       cam.position.copy(controls.target).add(_off);
       controls.update();
     };
-    renderer.domElement.addEventListener("wheel", onWheel, { passive: false });
+    // Desktop only. On touch, OrbitControls keeps enableZoom (pinch) and owns the gesture; attaching
+    // this too would double-handle any wheel a hybrid device emits.
+    if (!coarse) renderer.domElement.addEventListener("wheel", onWheel, { passive: false });
     // Frame-accurate seek for offline video capture (tools/render-city-video.mjs). Driving the
     // path by progress rather than wall-clock means every frame lands exactly where intended,
     // however slowly the renderer is running.
