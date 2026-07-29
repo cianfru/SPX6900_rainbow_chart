@@ -544,6 +544,38 @@
   caution, not measurement — the "all buildings" toggle needs a real device; borough tones are still dim; bridges
   were dropped when the real geometry landed. Intro fly-through doubles as the video path (`tools/render-city-video.mjs`
   drives `window.__citySeek(u)` frame-by-frame → H.264, so capture is exact however slowly it renders).
+  **Owner hardware note (2026-07-29): iPhone 13 Pro Max + MacBook Air M1 + 27" iMac all run the full city at full
+  res with no issues** — so the floor is fine on decent hardware; the tail risk is visitors' low-end Androids,
+  which the adaptive resolution below now covers.
+- **⭐⭐ GREENLIT 2026-07-29 — THE TIME SLIDER IS THE NEXT BIG CITY FEATURE (owner: "Amazing idea").** The
+  launch→today slider: buildings appear the week each wallet first bought, the 2024/2026 crashes wash red through
+  the streets, the skyline turns cyan as wallets age into conviction. **Ships as BOTH:** (a) an interactive slider
+  in the city itself (the magical version — visitors scrub it), and (b) a rendered video export via the existing
+  `render-city-video.mjs` path for pinning on the site header/X posts ("three years of SPX6900, as a city").
+  Data plan: AEON side is fully local (`dune/out/aeon_transfers.csv`, 25k rows → per-wallet weekly replay is
+  trivial); SPX side needs the FIFO engine to emit per-wallet WEEKLY snapshots (sparse/delta-encoded — most wallets
+  don't move most weeks) from the transfers archive (GitHub release asset `onchain-archive`, downloadable —
+  public repo). One new builder output + a scene that lerps between weekly states.
+- **⭐⭐ GREENLIT 2026-07-29 — VISUAL "WOW" PASS before launch (owner: "must be a wow factor").** The scoped list,
+  judged via City Lab A/B before touching the live city: **HDRI sky** (biggest believability win, ~free) ·
+  **animated water** (harbour is a flat plane today) · **bloom at dusk/night** (emissive windows + the torch
+  flame want it; the "stone and light" rule finally glows) · **CC0 façade textures** + **3–5 hero landmark
+  models for the top wallets only** (never wholesale downloaded buildings) · better building variety
+  (footprint/setback by hash — footprint encodes nothing, so it's free; height stays data). Bloom/water are the
+  GPU-costly two — the adaptive resolution safety net (below) is what makes shipping them safe.
+- **✅ ADAPTIVE RESOLUTION SHIPPED 2026-07-29 (owner asked for mid/low-tier throttling; implemented as MEASURED
+  dynamic resolution scaling, not device sniffing — a UA list rots, a frame-time meter is true on hardware that
+  doesn't exist yet).** `src/city-drs.js` (`makeDrs`): EMA of frame time; ~0.8s of sustained jank (TIME-based, so
+  2 catastrophic frames trigger as fast as 20 mildly slow ones) → pixel ratio ×0.8 steps down to a floor
+  (0.4×DPR, ≥0.55); ~4s of at-vsync headroom → ×1.2 creeps back up (quick down, slow up — can't oscillate).
+  Single hitches (GC pause) are clamped out; >2s gaps = tab switch, skipped; on step-down the EMA RESETS so the
+  new resolution is judged on its own frames (without that it double-stepped during recovery — a unit test
+  caught it). CSS2D labels are DOM → text stays sharp at any render scale.
+  **⚠ THE SANDBOX CANNOT EXERCISE THIS LIVE — the lesson of the session:** headless rAF fires at ~0.7Hz and a
+  SwiftShader frame takes seconds (slower than the tab-switch cutoff), so two in-page versions sat silently
+  dead while "passing." The controller is a pure module with 7 unit tests (`test/city-drs.test.mjs`) feeding
+  synthetic frame sequences — that is the ONLY valid verification path for frame-pacing logic in this repo.
+  Observability: `window.__cityStats()` now reports `pixelRatio` + `frameMs` — check them on real hardware.
 
 ## Backlog / decisions
 - **✅ METHODS PAGE — RESTORED 2026-07-26 (owner asked for it back; do NOT delete it again).** History: built (`b6ac1c4`),

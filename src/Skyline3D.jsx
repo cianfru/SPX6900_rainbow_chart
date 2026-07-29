@@ -6,6 +6,7 @@ import { placeCity, cityScale, CITY_LENGTH, ISLAND_RING, PARK_RINGS, BACKDROP, I
          streetGrid, hoodGrid, NEIGHBOURHOODS, AXIS_ANGLE } from "./city-map.js";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { chainOf } from "./city-messages.js";
+import { makeDrs } from "./city-drs.js";
 import { TIMES, FAMILIES, skyEnv, facadeTexture, wallGeometry, roofGeometry, archetype, heightOf,
          berthGeometry, bridgeGeometry, monumentGeometry } from "./city-render.js";
 import { infraFrom, portBerths, siteAt, bridgeSpan, SITES, fmtTokens } from "./city-infra.js";
@@ -877,10 +878,27 @@ export default function Skyline3D({
       programs: renderer.info.programs?.length, geometries: renderer.info.memory.geometries,
       k: K, buildMs: +buildMs.toFixed(0), cam: [+cam.position.x.toFixed(1), +cam.position.y.toFixed(1), +cam.position.z.toFixed(1)],
       textures: renderer.info.memory.textures,
+      pixelRatio: +renderer.getPixelRatio().toFixed(2), frameMs: drs.frameMs,
     });
     if (flying) { controls.enabled = false; renderer.domElement.addEventListener("pointerdown", stopFlight, { once: true }); addEventListener("wheel", stopFlight, { once: true, passive: true }); }
+
+    // ── adaptive resolution ──────────────────────────────────────────────────────────────────
+    // Full pixel ratio where the GPU keeps up, stepping the render buffer down where it doesn't —
+    // measured, not device-sniffed. The controller lives in city-drs.js and is UNIT-TESTED there;
+    // it cannot be exercised live in the dev sandbox (headless rAF ~0.7Hz, frames slower than the
+    // tab-switch cutoff), which let two earlier in-page versions sit silently dead. CSS2D labels
+    // are DOM and untouched — text stays sharp at any render scale.
+    const MAXR = Math.min(devicePixelRatio, 2), MINR = Math.max(0.55, MAXR * 0.4);
+    const sizeNow = () => [cine ? window.innerWidth : el.clientWidth, cine ? window.innerHeight : VH];
+    const drs = makeDrs({
+      maxRatio: MAXR, minRatio: MINR,
+      apply: r => { renderer.setPixelRatio(r); const [w, h] = sizeNow(); if (w && h) renderer.setSize(w, h); },
+    });
+    const adapt = now => drs.tick(now);
+
     const loop = () => {
       raf = requestAnimationFrame(loop);
+      adapt(performance.now());
       if (flying) {
         const u = Math.min(1, (performance.now() - flight.start) / flight.dur);
         const e = easeInOut(u);
@@ -897,7 +915,7 @@ export default function Skyline3D({
     };
     loop();
     const onResize = () => {
-      const w = cine ? window.innerWidth : el.clientWidth, h = cine ? window.innerHeight : VH;
+      const [w, h] = sizeNow();
       if (!w || !h) return;                       // a zero-size buffer renders nothing at all
       cam.aspect = w / h; cam.updateProjectionMatrix(); renderer.setSize(w, h); labelR.setSize(w, h);
     };
