@@ -1,6 +1,6 @@
 import { useMemo, useState, useEffect } from "react";
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, ReferenceArea, ReferenceLine, ReferenceDot } from "recharts";
-import { loadAeonSales } from "./history-data.js";
+import { loadAeonSales, loadPriceHistory } from "./history-data.js";
 import { SPX_DAILY } from "./spx-daily.js";
 import { ETH_HISTORY } from "./eth-history.js";
 import { SANS, MONO, MAX_W, Metric, TipBox, Explain } from "./chart-ui.jsx";
@@ -29,13 +29,14 @@ const dstr = (t) => new Date(t).toISOString().slice(0, 10);
 function ffillDaily(map, d0, d1) {
   // seed with the last value at/before d0
   const keys = [...map.keys()].sort();
-  let last = null;
+  const lastReal = keys.at(-1);         // never carry a value PAST the series' real end — a stale
+  let last = null;                      // bundle (ETH) must read as null there, not fabricated flat
   for (const k of keys) { if (k <= d0) last = map.get(k); else break; }
   const out = [];
   for (let t = Date.parse(d0); t <= Date.parse(d1); t += 864e5) {
     const k = dstr(t);
     if (map.has(k)) last = map.get(k);
-    out.push(last);
+    out.push(lastReal && k <= lastReal ? last : null);
   }
   return out;                            // array aligned to the daily calendar [d0..d1]
 }
@@ -78,17 +79,24 @@ function xcorrAt(A, S, L) {
 
 export default function AeonLeadLagChart({ isMobile }) {
   const [sales, setSales] = useState(null);
-  const [metric, setMetric] = useState("floor");   // "floor" | "volume"
+  const [price, setPrice] = useState(null);         // live daily SPX (/price-history.json)
+  const [metric, setMetric] = useState("floor");    // "floor" | "volume"
   useEffect(() => { let c = false; loadAeonSales().then(d => { if (!c) setSales(d || { empty: true }); }); return () => { c = true; }; }, []);
+  useEffect(() => { let c = false; loadPriceHistory().then(d => { if (!c) setPrice(d || []); }); return () => { c = true; }; }, []);
 
   const model = useMemo(() => {
     if (!sales || sales.empty || !sales.daily?.length) return null;
-    const spxM = toMap(SPX_DAILY), ethM = toMap(ETH_HISTORY);
+    // SPX from the live, CI-refreshed price feed so the analysis stays current; bundle as fallback.
+    const spxSrc = price?.length ? price.map(r => [r.date, r.price]) : SPX_DAILY;
+    const spxM = toMap(spxSrc), ethM = toMap(ETH_HISTORY);
     const floorM = toMap(sales.daily.map(r => [r.d, r.floorUsd]));
     const volM = toMap(sales.daily.map(r => [r.d, r.volUsd]));
-    const starts = [spxM, ethM, floorM].map(m => [...m.keys()].sort()[0]);
-    const ends = [spxM, ethM, floorM].map(m => [...m.keys()].sort().at(-1));
-    const d0 = starts.sort().at(-1), d1 = ends.sort()[0];
+    const firstOf = m => [...m.keys()].sort()[0], lastOf = m => [...m.keys()].sort().at(-1);
+    // Start where all three overlap. End at the fresher of SPX/AEON — ETH does NOT cap the window;
+    // it's a slow bundle, so it just isn't available for the market-adjusted line past its own end
+    // (ffill returns null there), while the raw AEON-vs-SPX line runs right up to today.
+    const d0 = [firstOf(spxM), firstOf(ethM), firstOf(floorM)].sort().at(-1);
+    const d1 = [lastOf(spxM), lastOf(floorM)].sort()[0];
     if (!d0 || !d1 || d0 >= d1) return null;
 
     const spx = ffillDaily(spxM, d0, d1);
@@ -116,7 +124,7 @@ export default function AeonLeadLagChart({ isMobile }) {
     // the best case for "AEON leads SPX": the largest correlation anywhere on the positive-lag side
     const bestPos = rows.filter(r => r.lag > 0 && r.adj != null).reduce((p, r) => (r.adj > (p.adj ?? -1) ? r : p), { adj: null });
     return { rows, sig, peak, at0, bestPos, indepWeeks, d0, d1 };
-  }, [sales, metric]);
+  }, [sales, price, metric]);
 
   if (!sales) return <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Loading…</div>;
   if (!model) return <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Not enough overlapping price data yet.</div>;
@@ -191,7 +199,7 @@ export default function AeonLeadLagChart({ isMobile }) {
       <div className="chart-caption" style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 16, lineHeight: 1.65, maxWidth: 820, marginInline: "auto" }}>
         Short-run (3-day) returns cross-correlated at daily lag resolution — the AEON {metric === "floor" ? "floor" : "sales volume"} (USD) against SPX6900 (USD), over {d0} → {d1}. The market-adjusted line removes the shared ETH beta. The whole hump is centred on the
         <strong style={{ color: led ? "#5eead4" : "#a78bfa" }}> {led ? "SPX-leads" : "AEON-leads"} side</strong>; what little spills past zero is the shoulder of that
-        same peak — about 3× weaker and barely clearing the noise floor, not a separate signal. So the collection <strong style={{ color: "#e2e8f0" }}>follows the coin, it doesn't lead it</strong>.
+        same peak — {weaker ? `about ${weaker.toFixed(1)}× weaker` : "far weaker"} and close to the noise floor, not a separate signal. So the collection <strong style={{ color: "#e2e8f0" }}>follows the coin, it doesn't lead it</strong>.
         A relationship, not a trading signal. Not financial advice.
       </div>
     </div>
