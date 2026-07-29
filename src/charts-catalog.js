@@ -105,6 +105,7 @@ export const AEON_GROUPS = [
       { id: "aeonrarity", title: "Rarity — Where Does It Sit?", desc: "Look up any AEON — its rarity rank, tier and traits, on the collection's rarity curve." },
       { id: "aeonvalue", title: "Live Listings vs What They Sell For", desc: "Every active ask measured against what comparable pieces actually fetch — what is cheap, and what is over market." },
       { id: "aeonvsspx", title: "AEON Floor vs SPX", desc: "The NFT floor priced in SPX6900 — cheap or expensive versus its baseline." },
+      { id: "aeonleadlag", title: "Does the Floor Lead the Coin?", desc: "Lead/lag test of AEON's floor and sales against SPX6900 — which one moves first." },
       { id: "aeontraders", title: "Trader Leaderboard", desc: "Who made money trading AEON — realized P&L, hold time and win rate per wallet." },
       { id: "aeonvaluation", title: "MVRV & Supply in Profit", desc: "NFT MVRV and the cost-basis distribution — are holders in profit vs the floor?" },
       { id: "aeonsalesrarity", title: "What Actually Sold — Rarity vs Price", desc: "Completed sales history: what each piece really fetched vs its rarity — the steals and the record sales." },

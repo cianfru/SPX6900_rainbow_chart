@@ -62,6 +62,7 @@ const AeonFloorChart = lazy(() => import("./AeonFloorChart.jsx"));
 const AeonRarityChart = lazy(() => import("./AeonRarityChart.jsx"));
 const AeonValueChart = lazy(() => import("./AeonValueChart.jsx"));
 const AeonVsSpxChart = lazy(() => import("./AeonVsSpxChart.jsx"));
+const AeonLeadLagChart = lazy(() => import("./AeonLeadLagChart.jsx"));
 const AeonTradersChart = lazy(() => import("./AeonTradersChart.jsx"));
 const AeonValuationChart = lazy(() => import("./AeonValuationChart.jsx"));
 const AeonSalesRarityChart = lazy(() => import("./AeonSalesRarityChart.jsx"));
@@ -199,6 +200,7 @@ function TabIcon({ name }) {
     case "aeonsalesrarity": return (<svg {...p}><circle cx="6" cy="16" r="1.5"/><circle cx="11" cy="11" r="1.5"/><circle cx="16" cy="13" r="1.5"/><circle cx="20" cy="7" r="1.5"/><path d="M3 18 21 6" strokeDasharray="3 3" strokeOpacity="0.7"/></svg>);
     case "aeontraits": return (<svg {...p}><path d="M4 7h10M4 12h14M4 17h7" /></svg>);
     case "aeonvsspx": return (<svg {...p}><path d="M3 14c3 0 4-6 7-6s4 8 4 8 3-9 7-9" /><line x1="3" y1="11" x2="21" y2="11" strokeDasharray="3 2" strokeOpacity="0.7" /></svg>);
+    case "aeonleadlag": return (<svg {...p}><path d="M3 16c2 0 3-8 6-8s3 4 3 4" /><line x1="12" y1="4" x2="12" y2="20" strokeDasharray="3 2" strokeOpacity="0.7" /><path d="M12 12c2 0 3 1 3 1s2 0 3 0" /></svg>);
     case "aeonvalue": return (<svg {...p}><circle cx="6" cy="16" r="1.6" /><circle cx="10" cy="12" r="1.6" /><circle cx="15" cy="14" r="1.6" /><circle cx="19" cy="7" r="1.6" /><path d="M3 18 21 6" strokeDasharray="3 3" strokeOpacity="0.7" /></svg>);
     case "aeonrarity": return (<svg {...p}><polygon points="12 3 14.5 9 21 9.5 16 14 17.5 20.5 12 17 6.5 20.5 8 14 3 9.5 9.5 9" /></svg>);
     case "spxcity": return (<svg {...p}><rect x="4" y="10" width="3" height="10" /><rect x="9" y="5" width="3" height="15" /><rect x="14" y="12" width="3" height="8" /><rect x="19" y="8" width="2.5" height="12" strokeOpacity="0.7" /></svg>);
@@ -671,6 +673,7 @@ export default function App() {
       case "aeonrarity": return <AeonRarityChart isMobile={mob} preview={preview} />;
       case "aeonvalue": return <AeonValueChart isMobile={mob} />;
       case "aeonvsspx": return <AeonVsSpxChart isMobile={mob} />;
+      case "aeonleadlag": return <AeonLeadLagChart isMobile={mob} />;
       case "aeontraders": return <AeonTradersChart isMobile={mob} />;
       case "aeonvaluation": return <AeonValuationChart isMobile={mob} />;
       case "aeonsalesrarity": return <AeonSalesRarityChart isMobile={mob} />;

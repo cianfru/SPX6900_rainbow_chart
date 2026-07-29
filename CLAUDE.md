@@ -2306,11 +2306,24 @@
     - **Meta:** ITC's library is large and much of it (these + supertrend + pi-cycle) is
       generic price-derived TA. Off the SPX6900 moat (honest VALUATION: rainbow, realized
       price, risk, S&P flex). Don't rebuild their whole TA suite; favor valuation/on-chain.
-  - **⭐ WHAT LANDS WITH THE AUDIENCE (owner, 2026-06-28) — read before building cards.**
+  - **⭐⭐ UPDATED 2026-07-29 — "TECHY STATS DON'T LAND" IS RETIRED (owner: "I have enough data to prove
+    otherwise").** The 2026-06-28 note below said analytical/techy content lands weakly and the account
+    should stick to aspirational X-multiple cards. **The owner now has engagement data showing techy /
+    analytical content CAN land**, so that blanket bar is LIFTED. Techy charts and cards (correlation,
+    on-chain, cross-asset studies, lead/lag, etc.) are fair game — build them when the finding is real
+    and interesting; they no longer need to be justified against "but will a general holder decode it."
+    The moat (honest, reproducible, checkable numbers) is the through-line, and analytical depth SERVES
+    that moat. Two things from the OLD note that still hold and are NOT overturned: (1) a visual should
+    still be as legible as it can be — keep the plain-language `<Explain>`/subtitle gloss on techy
+    surfaces (that sweep stays good practice, it's about clarity, not about avoiding the topic); (2)
+    aspirational X-multiple cards still land great — this widens the menu, it doesn't replace them.
+    NET: judge a new card/chart on "is it a real, interesting, honest finding," not on "is it too
+    techy." (The old caution is kept below for history; treat it as superseded.)
+  - **⭐ WHAT LANDS WITH THE AUDIENCE (owner, 2026-06-28) — SUPERSEDED by the 2026-07-29 update above; kept for history.**
     The best-received cards are ALL **price-TARGET / "how many X it's run"** cards — the
     aspirational growth-multiple framing: `targets`, `milestones`, `memecoins`, `btcgrade`,
-    `dogeclock`, `roadmap`, `alltime`, `hundred`, and the S&P-500 flexes. **"Techy" stats
-    land WEAKLY** — volatility, correlation, RSI, z-score, etc.: the average holder doesn't
+    `dogeclock`, `roadmap`, `alltime`, `hundred`, and the S&P-500 flexes. ~~**"Techy" stats
+    land WEAKLY**~~ (RETIRED — owner has data showing otherwise) — volatility, correlation, RSI, z-score, etc.: the average holder doesn't
     decode them at a glance, which is a barrier to entry (this is why `volatility` was
     removed and `correlation` never built). **A visual must tell its story at first glance**
     — if you have to read the axis to get it, it's too techy. So for any NEW card: favour
