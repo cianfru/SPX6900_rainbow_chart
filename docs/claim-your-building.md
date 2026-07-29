@@ -6,9 +6,10 @@ description: Hang a note over your building, stored on-chain and nowhere else.
 
 Connect a wallet, sign a short message, and a note hangs over your building.
 
-{% hint style="warning" %}
-**Not live yet.** The contract has not been deployed, so this surface says so rather than
-half-working.
+{% hint style="success" %}
+**Live on Base.** The `CityNotes` contract is deployed at
+`0xa167867B9E2117dce603A929dc1322864C282262` and verified on Basescan and Sourcify — no owner, no
+admin, no pause, no upgrade path. Read the source and check every claim on this page for yourself.
 {% endhint %}
 
 ## There is no database
