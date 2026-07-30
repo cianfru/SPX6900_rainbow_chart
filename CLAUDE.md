@@ -605,8 +605,8 @@
     input modes so the logic is validatable offline:** `--transfers=` (daily, CI) + `--timeline=` (weekly, from the
     committed spx-timeline.json) — the weekly mode reconciles EXACTLY to cohort-survival (21,008 left, 71% profit), which
     is how the crossing logic is unit-tested (`test/exit-flow.test.mjs`) and how the local seed is generated. Card + site
-    render a rolled STACKED AREA (green profit + red loss over the price line — 14-day trailing sum for daily, 2 for weekly,
-    so it reads as waves not noise). Seeded WEEKLY now (renders immediately); the first onchain-dune run upgrades it to daily
+    render RAW STACKED BARS (one bar per day/week, green profit + red loss over the price line — NO smoothing; owner:
+    "I dont want waves. I want daily bars"). Seeded WEEKLY now (renders immediately); the first onchain-dune run upgrades it to daily
     (owner validates totals reconcile ~21k/71%, same as other archive pipelines). ⚠ vercel.json includeFiles was ALSO missing
     `cohort-survival.json` (so survivorship/supplyera had been rendering null in og.js) — added it + exit-flow.json to all
     three fns. Registered in audit-feeds. A departure = a wallet ever ≥5k now below it; exit day = its last day ≥5k; profit =

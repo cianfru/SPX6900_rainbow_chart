@@ -28,12 +28,11 @@ export function exitMapSvg(stats, opts = {}) {
   const now = stats.price;
 
   const W = opts.W ?? 1200, H = opts.H ?? 675, mL = 90, mR = 58, F = FONT[0] || "sans-serif";
-  // roll the departure series into readable waves — a trailing sum whose window matches the resolution
-  const daily = flow.res === "daily", win = daily ? 14 : 2;
+  // raw per-period departures — one stacked bar each (green profit / red loss); NO smoothing
+  const daily = flow.res === "daily";
   const pts = flow.days.map(([d, pr, ls]) => ({ t: Date.parse(d), pr, ls })).filter(r => Number.isFinite(r.t)).sort((a, b) => a.t - b.t);
-  const roll = pts.map((_, i) => { let pr = 0, ls = 0; for (let j = Math.max(0, i - win + 1); j <= i; j++) { pr += pts[j].pr; ls += pts[j].ls; } return { t: pts[i].t, pr, ls }; });
 
-  const t0 = line[0].t, t1 = Math.max(line.at(-1).t, roll.at(-1).t);
+  const t0 = line[0].t, t1 = Math.max(line.at(-1).t, pts.at(-1).t);
   const pW = W - mL - mR, x = t => mL + ((t - t0) / (t1 - t0)) * pW;
 
   const aT = 214, aH = 236, aB = aT + aH;                 // price panel
@@ -42,7 +41,7 @@ export function exitMapSvg(stats, opts = {}) {
   const pMin = Math.max(0.0005, pFloor * 0.85), pMax = Math.max(...line.map(r => r.p), now) * 1.15;
   const lg = v => Math.log(Math.max(v, pMin));
   const yP = v => aT + (1 - (lg(v) - lg(pMin)) / (lg(pMax) - lg(pMin))) * aH;
-  const maxN = Math.max(...roll.map(r => r.pr + r.ls), 1);
+  const maxN = Math.max(...pts.map(r => r.pr + r.ls), 1);
   const yB = n => bB - (n / maxN) * bH;
 
   // price gridlines
@@ -74,16 +73,16 @@ export function exitMapSvg(stats, opts = {}) {
     + `<line x1="${mL}" y1="${yn}" x2="${mL + pW}" y2="${yn}" stroke="#e2e8f0" stroke-width="1.4" stroke-dasharray="2 6" opacity="0.55"/>`
     + `<text x="${mL + pW + 6}" y="${(+yn + 5).toFixed(1)}" fill="#e2e8f0" font-size="18" font-family="${F}">${fmtP(now)}</text>`;
 
-  // departure waves — stacked area: green (profit) from the baseline, red (loss) stacked on top
-  const xy = (t, v) => `${x(t).toFixed(1)},${yB(v).toFixed(1)}`;
-  const baseR = roll.slice().reverse();
-  const greenArea = `${x(roll[0].t).toFixed(1)},${bB.toFixed(1)} ` + roll.map(r => xy(r.t, r.pr)).join(" ") + ` ${x(roll.at(-1).t).toFixed(1)},${bB.toFixed(1)}`;
-  const redArea = roll.map(r => xy(r.t, r.pr + r.ls)).join(" ") + " " + baseR.map(r => xy(r.t, r.pr)).join(" ");
-  const waves = `<polygon points="${greenArea}" fill="${GRN}" fill-opacity="0.7"/>`
-    + `<polygon points="${redArea}" fill="${RED}" fill-opacity="0.78"/>`
-    + `<polyline points="${roll.map(r => xy(r.t, r.pr + r.ls)).join(" ")}" fill="none" stroke="${RED}" stroke-width="1.4" stroke-opacity="0.6"/>`;
+  // departure bars — one stacked bar per period: green (profit) from the baseline, red (loss) on top
+  const bw = Math.max(daily ? 0.8 : 3, (pW / pts.length) * 0.84);
+  let waves = "";
+  for (const p of pts) {
+    const cx = x(p.t), yProf = yB(p.pr), yTot = yB(p.pr + p.ls);
+    waves += `<rect x="${(cx - bw / 2).toFixed(2)}" y="${yProf.toFixed(1)}" width="${bw.toFixed(2)}" height="${(bB - yProf).toFixed(1)}" fill="${GRN}" fill-opacity="0.85"/>`;
+    if (p.ls > 0) waves += `<rect x="${(cx - bw / 2).toFixed(2)}" y="${yTot.toFixed(1)}" width="${bw.toFixed(2)}" height="${(yProf - yTot).toFixed(1)}" fill="${RED}" fill-opacity="0.88"/>`;
+  }
 
-  const panelLab = daily ? "wallets leaving · 14-day rolling" : "wallets leaving each week";
+  const panelLab = daily ? "wallets leaving each day" : "wallets leaving each week";
 
   return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
 <defs><linearGradient id="exbg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#0d0b18"/><stop offset="100%" stop-color="#05050e"/></linearGradient></defs>
