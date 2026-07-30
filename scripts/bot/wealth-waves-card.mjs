@@ -52,15 +52,25 @@ export function wealthWavesStats(stats) {
     .filter(r => Number.isFinite(r.t) && r.n > 0);
   if (rows.length < 40) return null;
   const cur = rows.at(-1);
-  // The high-water mark for the top bracket, which is where the drawdown reads from.
+  // ⭐ PEAK = the highest SHARE of holders in the top bracket, NOT the raw count. The chart is
+  // share-normalised (each week ÷ its own holder count), so the top band you SEE peaks here — in
+  // late 2024, when the community was most concentrated in wealth. The absolute COUNT of $100k+
+  // wallets peaks ~10 months LATER, at the price ATH, only because the holder base was ~5× bigger
+  // by then; marking that put the line where the visible band is thin (owner caught it 2026-07-30).
+  // Concentration is the honest story on a distribution chart; headcount is just the price ATH.
+  const share = r => r.w[4] / r.n;
   let peak = rows[0];
-  for (const r of rows) if (r.w[4] > peak.w[4]) peak = r;
+  for (const r of rows) if (share(r) > share(peak)) peak = r;
+  const pct = r => (100 * r.w[4] / r.n);
   const rich = r => r.w[3] + r.w[4];
+  const richPct = r => (100 * (r.w[3] + r.w[4]) / r.n);
   return {
     rows,
     now: cur, peak,
     nowRich: cur.w[4], peakRich: peak.w[4],
+    nowPct: pct(cur), peakPct: pct(peak),
     nowOver10k: rich(cur), peakOver10k: rich(peak),
+    nowOver10kPct: richPct(cur), peakOver10kPct: richPct(peak),
     peakMonth: new Date(peak.t).toLocaleDateString("en-US", { month: "short", year: "numeric", timeZone: "UTC" }),
   };
 }
@@ -116,13 +126,13 @@ export function wealthWavesSvg(stats, opts = {}) {
       + `<text x="${mL + pW + 34}" y="${(ly + 24).toFixed(1)}" fill="#64748b" font-size="18" font-family="${F}">${esc(`${kfmt(now.w[ORDER[b]])} wallets`)}</text>`;
   }
 
-  // A marker at the high-water mark, since the whole card is a story about that peak.
-  // Anchored away from whichever edge it is nearer, so the label cannot run off.
+  // A marker at the peak SHARE — the top band's own high point, which is what this line has to sit
+  // on to be honest on a share chart. Anchored away from whichever edge it is nearer.
   const px = x(peak.t), rightHalf = px > mL + pW * 0.55;
   const marker = peak.t > t0 && peak.t < t1
     ? `<line x1="${px.toFixed(1)}" y1="${mT}" x2="${px.toFixed(1)}" y2="${mT + pH}" stroke="#f8fafc" stroke-opacity="0.5" stroke-width="2" stroke-dasharray="7 6"/>`
       + `<text x="${(px + (rightHalf ? -12 : 12)).toFixed(1)}" y="${mT + 30}" fill="#f1f5f9" font-size="20" font-family="${F}"`
-      + ` text-anchor="${rightHalf ? "end" : "start"}">${esc(`${S.peakMonth} top · ${S.peakRich.toLocaleString("en-US")} over $100k`)}</text>`
+      + ` text-anchor="${rightHalf ? "end" : "start"}">${esc(`${S.peakMonth} peak · ${S.peakPct.toFixed(1)}% over $100k`)}</text>`
     : "";
 
   return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
@@ -131,7 +141,7 @@ export function wealthWavesSvg(stats, opts = {}) {
 ${brandStripe(H)}
 <text x="60" y="58" fill="#f1f5f9" font-size="38" font-weight="700" font-family="${F}" letter-spacing="0.5">SPX6900 — THE WEALTH LADDER</text>
 <text x="60" y="100" fill="#94a3b8" font-size="22" font-family="${F}">How many holders sit in each dollar bracket, week by week.</text>
-<text x="60" y="148" fill="#818cf8" font-size="34" font-weight="700" font-family="${F}">${esc(`${S.nowRich.toLocaleString("en-US")} wallets hold over $100k — ${S.peakRich.toLocaleString("en-US")} did at the top`)}</text>
+<text x="60" y="148" fill="#818cf8" font-size="34" font-weight="700" font-family="${F}">${esc(`${S.peakPct.toFixed(1)}% of holders topped $100k in ${S.peakMonth} — ${S.nowPct.toFixed(1)}% now`)}</text>
 ${ribbons}${grid}${marker}${xlab}${legend}
 <text x="60" y="${H - 18}" fill="#5b6577" font-size="21" font-family="${F}">${esc("share of holders by wallet value · brackets move with price · exchanges and contracts excluded")}</text>
 </svg>`;

@@ -957,8 +957,8 @@ Supply walked down the ladder. It did not scatter into dust.`,
     if (!S) return null;
     return {
       id: "wealthwaves",
-      text: ct`💰 ${S.nowRich.toLocaleString("en-US")} SPX6900 wallets are worth over $100k today. At the ${S.peakMonth} top, ${S.peakRich.toLocaleString("en-US")} were.
-Wallets over $10k went ${S.peakOver10k.toLocaleString("en-US")} to ${S.nowOver10k.toLocaleString("en-US")} across the same stretch, out of ${S.now.n.toLocaleString("en-US")} holders.
+      text: ct`💰 ${S.peakPct.toFixed(1)}% of SPX6900 holders were worth over $100k at the ${S.peakMonth} peak. Today it's ${S.nowPct.toFixed(1)}%.
+That's ${S.peakRich.toLocaleString("en-US")} wallets then vs ${S.nowRich.toLocaleString("en-US")} now — a thinner slice of a crowd that grew to ${S.now.n.toLocaleString("en-US")} holders.
 The ladder is the same. The rungs moved with the price.`,
       card: { type: "wealthwaves" },
     };
