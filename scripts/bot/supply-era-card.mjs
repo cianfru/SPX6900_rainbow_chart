@@ -59,6 +59,14 @@ export function supplyEraSvg(stats, opts = {}) {
   const y = v => mT + (1 - (lg(v) - lg(pMin)) / (lg(pMax) - lg(pMin))) * pH;
   const r = s => 7 + 43 * Math.sqrt(s / maxS);
 
+  // diverging valuation zones (edge-bright, like the other on-chain cards): everything ABOVE the
+  // "now" line bought higher than today = underwater (warm, vivid at the top); everything BELOW is
+  // in profit (cool green, vivid at the bottom). The background now carries the same profit story as
+  // the bubble rings, so a cohort's zone AND ring agree at a glance.
+  const yNow = y(now);
+  const zones = `<rect x="${mL}" y="${mT}" width="${pW}" height="${(yNow - mT).toFixed(1)}" fill="url(#seUp)"/>`
+    + `<rect x="${mL}" y="${yNow.toFixed(1)}" width="${pW}" height="${(mT + pH - yNow).toFixed(1)}" fill="url(#seDn)"/>`;
+
   // price y-axis gridlines at decade-ish steps
   let grid = "";
   for (const v of [0.005, 0.01, 0.05, 0.1, 0.5, 1, 2]) {
@@ -77,7 +85,7 @@ export function supplyEraSvg(stats, opts = {}) {
 
   // the real price line
   const path = line.map((r2, i) => `${i ? "L" : "M"}${x(r2.t).toFixed(1)} ${y(r2.p).toFixed(1)}`).join(" ");
-  const priceLine = `<path d="${path}" fill="none" stroke="#3f4a63" stroke-width="2"/>`;
+  const priceLine = `<path d="${path}" fill="none" stroke="#aab6cc" stroke-width="2.2" stroke-opacity="0.9"/>`;
 
   // "now" reference
   const yn = y(now).toFixed(1);
@@ -102,18 +110,22 @@ export function supplyEraSvg(stats, opts = {}) {
   });
 
   return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
-<defs><linearGradient id="sebg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#0d0b18"/><stop offset="100%" stop-color="#05050e"/></linearGradient></defs>
+<defs>
+<linearGradient id="sebg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#0d0b18"/><stop offset="100%" stop-color="#05050e"/></linearGradient>
+<linearGradient id="seUp" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#fb7185" stop-opacity="0.42"/><stop offset="100%" stop-color="#fb7185" stop-opacity="0.03"/></linearGradient>
+<linearGradient id="seDn" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#4ade80" stop-opacity="0.03"/><stop offset="100%" stop-color="#4ade80" stop-opacity="0.4"/></linearGradient>
+</defs>
 <rect width="${W}" height="${H}" fill="url(#sebg)"/>
 ${brandStripe(H)}
 <text x="60" y="58" fill="#f1f5f9" font-size="38" font-weight="700" font-family="${F}" letter-spacing="0.5">SPX6900 — WHERE TODAY'S FLOAT BOUGHT IN</text>
 <text x="60" y="98" fill="#94a3b8" font-size="22" font-family="${F}">Every surviving holder placed on the price curve, at the price they first paid.</text>
 <text x="60" y="150" fill="#818cf8" font-size="33" font-weight="700" font-family="${F}">${esc(`${underPct}% of the float held today is underwater — and hasn't sold.`)}</text>
 <text x="60" y="188" fill="#22d3ee" font-size="24" font-weight="700" font-family="${F}">${esc(`The biggest bag, ${fmtM(biggest.supplyNow)} SPX, bought near ${fmtP(biggest.medPrice)} (${plLabel(biggest.medPrice, now)}). Still here.`)}</text>
-${grid}${priceLine}${nowLine}
-<!-- profit/underwater legend, inside the plot's empty upper-left -->
-<circle cx="${mL + 24}" cy="${mT + 26}" r="9" fill="none" stroke="#4ade80" stroke-width="3"/><text x="${mL + 40}" y="${mT + 32}" fill="#94a3b8" font-size="19" font-family="${F}">in profit</text>
-<circle cx="${mL + 24}" cy="${mT + 56}" r="9" fill="none" stroke="#f43f5e" stroke-width="3"/><text x="${mL + 40}" y="${mT + 62}" fill="#94a3b8" font-size="19" font-family="${F}">underwater</text>
-${dots}
+${zones}${grid}
+<!-- zone labels: the background bands carry the same profit story as the bubble rings -->
+<text x="${mL + 16}" y="${mT + 30}" fill="#fca5a5" font-size="20" font-weight="700" font-family="${F}">underwater — bought above today</text>
+<text x="${mL + pW - 14}" y="${mT + pH - 14}" fill="#86efac" font-size="20" font-weight="700" text-anchor="end" font-family="${F}">in profit — bought below today</text>
+${priceLine}${nowLine}${dots}
 <text x="60" y="${H - 18}" fill="#5b6577" font-size="19" font-family="${F}">${esc("coins held by current ≥5,000-SPX holders, placed at their era's median entry price · self-custody · not a forecast")}</text>
 </svg>`;
 }
