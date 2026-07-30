@@ -1003,8 +1003,8 @@ Old wallets left; the survivors are holding through the drawdown.`,
   // 71% left in PROFIT (cashing out into strength), and the loss-exits cluster only in the recent
   // drawdown. Counterintuitive + honest: the churn wasn't capitulation. Distinct from NUPL (unrealized,
   // current holders) — this is the realized exit of who's gone.
-  s => (s.cohorts?.exits?.left > 0) && (() => {
-    const ex = s.cohorts.exits;
+  s => ((s.exitFlow?.overall?.left || s.cohorts?.exits?.left) > 0) && (() => {
+    const ex = s.exitFlow?.overall ?? s.cohorts.exits;
     return {
       id: "exitmap",
       text: ct`🚪 Of the ${ex.left.toLocaleString("en-US")} wallets that ever held ≥5,000 SPX6900 and later left, ${ex.profitPct}% sold in profit.

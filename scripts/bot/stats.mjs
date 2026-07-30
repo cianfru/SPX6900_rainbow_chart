@@ -211,6 +211,14 @@ function loadChainWalletsSeries() {
 }
 
 // Cohort survival — who still holds SPX by arrival era (built daily from the city timeline).
+function loadExitFlow() {
+  try {
+    const o = JSON.parse(readFileSync(new URL("../../public/exit-flow.json", import.meta.url), "utf8"));
+    if (o?.overall?.left > 0 && Array.isArray(o.days)) return o;
+  } catch { /* data-gated until the pipeline writes it */ }
+  return null;
+}
+
 function loadCohortSurvival() {
   try {
     const o = JSON.parse(readFileSync(new URL("../../public/cohort-survival.json", import.meta.url), "utf8"));
@@ -500,6 +508,7 @@ export function computeStats(price, dateStr = new Date().toISOString().slice(0, 
     urpd: loadUrpd(), // cost-basis distribution snapshot (where held supply was acquired)
     chainWallets: loadChainWalletsSeries(), // multi-chain weekly wallet counts (ETH+Base+Solana), live JSON or bundle
     cohorts: loadCohortSurvival(), // wallet survival by arrival era (from the city time-machine)
+    exitFlow: loadExitFlow(), // daily/weekly departures split by profit/loss (who's selling, at what price)
     altHistory: loadAltHistory(), // DOGE/PEPE/SHIB age-indexed history for the memecoin age cards
     series: {
       price: RAW.map(r => [Date.parse(r.date), r.price]),

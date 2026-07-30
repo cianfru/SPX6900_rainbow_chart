@@ -1,13 +1,13 @@
 {
   "functions": {
     "api/og.js": {
-      "includeFiles": "{scripts/bot/**,public/history.json,public/onchain.json,public/chain-wallets.json,public/cex-flow.json,public/freefloat-peers.json,public/rotation-excludes.json,public/aeon-*.json}"
+      "includeFiles": "{scripts/bot/**,public/history.json,public/onchain.json,public/chain-wallets.json,public/cex-flow.json,public/freefloat-peers.json,public/rotation-excludes.json,public/cohort-survival.json,public/exit-flow.json,public/aeon-*.json}"
     },
     "api/recap.js": {
-      "includeFiles": "{scripts/bot/**,public/history.json,public/onchain.json,public/chain-wallets.json,public/cex-flow.json,public/freefloat-peers.json,public/rotation-excludes.json}"
+      "includeFiles": "{scripts/bot/**,public/history.json,public/onchain.json,public/chain-wallets.json,public/cex-flow.json,public/freefloat-peers.json,public/rotation-excludes.json,public/cohort-survival.json,public/exit-flow.json}"
     },
     "api/agent.js": {
-      "includeFiles": "{scripts/bot/**,public/history.json,public/onchain.json,public/chain-wallets.json,public/cex-flow.json,public/freefloat-peers.json,public/rotation-excludes.json}"
+      "includeFiles": "{scripts/bot/**,public/history.json,public/onchain.json,public/chain-wallets.json,public/cex-flow.json,public/freefloat-peers.json,public/rotation-excludes.json,public/cohort-survival.json,public/exit-flow.json}"
     }
   },
   "headers": [

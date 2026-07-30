@@ -20,30 +20,32 @@ const fmtP = p => p == null ? "" : p < 0.01 ? "$" + p.toFixed(4) : "$" + p.toFix
 const fmtN = n => n >= 1000 ? (n / 1000).toFixed(1) + "k" : String(n);
 
 export function exitMapSvg(stats, opts = {}) {
-  const ex = stats.cohorts?.exits;
-  if (!ex?.byPeriod?.length || !ex.left) return null;
-  const per = ex.byPeriod;
-  const week0 = Date.parse(stats.cohorts.week0), DAY = 864e5, N = stats.cohorts.n;
+  const flow = stats.exitFlow;
+  const ov = flow?.overall ?? stats.cohorts?.exits;
+  if (!flow?.days?.length || !ov?.left) return null;
   const line = (stats.drawn || []).map(r => ({ t: Date.parse(r.date), p: +r.price })).filter(r => Number.isFinite(r.t) && r.p > 0).sort((a, b) => a.t - b.t);
   if (line.length < 20) return null;
   const now = stats.price;
 
   const W = opts.W ?? 1200, H = opts.H ?? 675, mL = 90, mR = 58, F = FONT[0] || "sans-serif";
-  const t0 = week0, t1 = Math.max(line.at(-1).t, week0 + N * 7 * DAY);
-  const x = t => mL + ((t - t0) / (t1 - t0)) * (W - mL - mR);
-  const pW = W - mL - mR;
+  // roll the departure series into readable waves — a trailing sum whose window matches the resolution
+  const daily = flow.res === "daily", win = daily ? 14 : 2;
+  const pts = flow.days.map(([d, pr, ls]) => ({ t: Date.parse(d), pr, ls })).filter(r => Number.isFinite(r.t)).sort((a, b) => a.t - b.t);
+  const roll = pts.map((_, i) => { let pr = 0, ls = 0; for (let j = Math.max(0, i - win + 1); j <= i; j++) { pr += pts[j].pr; ls += pts[j].ls; } return { t: pts[i].t, pr, ls }; });
 
-  // top panel — price (log); bottom panel — exit counts (linear)
+  const t0 = line[0].t, t1 = Math.max(line.at(-1).t, roll.at(-1).t);
+  const pW = W - mL - mR, x = t => mL + ((t - t0) / (t1 - t0)) * pW;
+
   const aT = 214, aH = 236, aB = aT + aH;                 // price panel
   const bT = aB + 52, bH = 150, bB = bT + bH;             // exits panel
   const pFloor = Math.min(...line.map(r => r.p));
   const pMin = Math.max(0.0005, pFloor * 0.85), pMax = Math.max(...line.map(r => r.p), now) * 1.15;
   const lg = v => Math.log(Math.max(v, pMin));
   const yP = v => aT + (1 - (lg(v) - lg(pMin)) / (lg(pMax) - lg(pMin))) * aH;
-  const maxN = Math.max(...per.map(p => p.n));
-  const yB = n => bB - (n / maxN) * bH;                   // bar top for a stacked count
+  const maxN = Math.max(...roll.map(r => r.pr + r.ls), 1);
+  const yB = n => bB - (n / maxN) * bH;
 
-  // price gridlines + panel labels
+  // price gridlines
   let grid = "";
   for (const v of [0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1, 2]) {
     if (v < pMin || v > pMax) continue;
@@ -72,17 +74,16 @@ export function exitMapSvg(stats, opts = {}) {
     + `<line x1="${mL}" y1="${yn}" x2="${mL + pW}" y2="${yn}" stroke="#e2e8f0" stroke-width="1.4" stroke-dasharray="2 6" opacity="0.55"/>`
     + `<text x="${mL + pW + 6}" y="${(+yn + 5).toFixed(1)}" fill="#e2e8f0" font-size="18" font-family="${F}">${fmtP(now)}</text>`;
 
-  // exit bars — stacked profit (green, bottom) + loss (red, top), height = departures that quarter
-  const slot = pW / 13, bw = Math.min(slot * 0.62, (pW / per.length) * 0.66);
-  let bars = "";
-  for (const p of per) {
-    const mid = week0 + (p.startWk + 6.5) * 7 * DAY, cx = x(mid);
-    const yProf = yB(p.profit), yTot = yB(p.n);
-    // green (profit) from baseline up
-    bars += `<rect x="${(cx - bw / 2).toFixed(1)}" y="${yProf.toFixed(1)}" width="${bw.toFixed(1)}" height="${(bB - yProf).toFixed(1)}" fill="${GRN}" fill-opacity="0.82"/>`;
-    // red (loss) stacked on top
-    if (p.loss > 0) bars += `<rect x="${(cx - bw / 2).toFixed(1)}" y="${yTot.toFixed(1)}" width="${bw.toFixed(1)}" height="${(yProf - yTot).toFixed(1)}" fill="${RED}" fill-opacity="0.85"/>`;
-  }
+  // departure waves — stacked area: green (profit) from the baseline, red (loss) stacked on top
+  const xy = (t, v) => `${x(t).toFixed(1)},${yB(v).toFixed(1)}`;
+  const baseR = roll.slice().reverse();
+  const greenArea = `${x(roll[0].t).toFixed(1)},${bB.toFixed(1)} ` + roll.map(r => xy(r.t, r.pr)).join(" ") + ` ${x(roll.at(-1).t).toFixed(1)},${bB.toFixed(1)}`;
+  const redArea = roll.map(r => xy(r.t, r.pr + r.ls)).join(" ") + " " + baseR.map(r => xy(r.t, r.pr)).join(" ");
+  const waves = `<polygon points="${greenArea}" fill="${GRN}" fill-opacity="0.7"/>`
+    + `<polygon points="${redArea}" fill="${RED}" fill-opacity="0.78"/>`
+    + `<polyline points="${roll.map(r => xy(r.t, r.pr + r.ls)).join(" ")}" fill="none" stroke="${RED}" stroke-width="1.4" stroke-opacity="0.6"/>`;
+
+  const panelLab = daily ? "wallets leaving · 14-day rolling" : "wallets leaving each week";
 
   return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
 <defs><linearGradient id="exbg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#0d0b18"/><stop offset="100%" stop-color="#05050e"/></linearGradient></defs>
@@ -90,14 +91,14 @@ export function exitMapSvg(stats, opts = {}) {
 ${brandStripe(H)}
 <text x="60" y="58" fill="#f1f5f9" font-size="38" font-weight="700" font-family="${F}" letter-spacing="0.5">SPX6900 — HOW HOLDERS LEFT</text>
 <text x="60" y="98" fill="#94a3b8" font-size="22" font-family="${F}">Every wallet that dropped below 5,000 SPX — when it left, and whether it sold green or red.</text>
-<text x="60" y="150" fill="#4ade80" font-size="33" font-weight="700" font-family="${F}">${esc(`${ex.profitPct}% of the ${fmtN(ex.left)} wallets that left sold in profit.`)}</text>
-<text x="60" y="188" fill="#f87171" font-size="24" font-weight="700" font-family="${F}">Profit-taking, not capitulation — red exits only in the recent drawdown.</text>
+<text x="60" y="150" fill="#4ade80" font-size="33" font-weight="700" font-family="${F}">${esc(`${ov.profitPct}% of the ${fmtN(ov.left)} wallets that left sold in profit.`)}</text>
+<text x="60" y="188" fill="#f87171" font-size="24" font-weight="700" font-family="${F}">Profit-taking, not capitulation — red exits swell only in the drawdown.</text>
 <text x="${mL}" y="${aT - 8}" fill="#8592a6" font-size="18" font-family="${F}">price</text>
-<!-- legend, top-right of the exits panel (the recent bars there are short, so the space is empty) -->
+<!-- legend, top-right of the exits panel -->
 <rect x="${mL + pW - 156}" y="${bT + 8}" width="15" height="15" rx="3" fill="${GRN}" fill-opacity="0.85"/><text x="${mL + pW - 134}" y="${bT + 21}" fill="#94a3b8" font-size="19" font-family="${F}">left in profit</text>
 <rect x="${mL + pW - 156}" y="${bT + 36}" width="15" height="15" rx="3" fill="${RED}" fill-opacity="0.85"/><text x="${mL + pW - 134}" y="${bT + 49}" fill="#94a3b8" font-size="19" font-family="${F}">left at a loss</text>
-<text x="${mL}" y="${bT - 8}" fill="#8592a6" font-size="18" font-family="${F}">wallets that left each quarter</text>
-${grid}${priceEls}${bars}${xlab}
+<text x="${mL}" y="${bT - 8}" fill="#8592a6" font-size="18" font-family="${F}">${panelLab}</text>
+${grid}${priceEls}${waves}${xlab}
 <text x="60" y="${H - 18}" fill="#5b6577" font-size="18" font-family="${F}">${esc("departures = wallets that fell below 5,000 SPX · profit/loss ≈ price when they crossed the bar · self-custody · not a forecast")}</text>
 </svg>`;
 }

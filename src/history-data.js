@@ -31,6 +31,17 @@ export function loadCohortSurvival() {
   return cohortPromise;
 }
 
+let exitFlowPromise = null;
+export function loadExitFlow() {
+  if (!exitFlowPromise) {
+    exitFlowPromise = fetch("/exit-flow.json")
+      .then(r => (r.ok ? r.json() : null))
+      .then(d => (d?.overall?.left > 0 && Array.isArray(d.days) ? d : null))
+      .catch(() => null);
+  }
+  return exitFlowPromise;
+}
+
 let pricePromise = null;
 export function loadPriceHistory() {
   if (!pricePromise) {

@@ -91,6 +91,8 @@ export const FEEDS = [
     require: ["week0", "n"], nonEmpty: ["wallets"] },
   { file: "cohort-survival.json", cadence: 3, by: "onchain-dune.yml", what: "wallet survival by arrival era",
     require: ["overall", "week0"], nonEmpty: ["cohorts", "weekly"] },
+  { file: "exit-flow.json", cadence: 3, by: "onchain-dune.yml", what: "daily departures split by profit/loss",
+    require: ["overall", "res"], nonEmpty: ["days"] },
   { file: "aeon-traders.json", cadence: 3, by: "aeon.yml", what: "AEON per-wallet realized P&L",
     require: ["traders"], nonEmpty: ["top", "byVolume"] },
   { file: "aeon-listings.json", cadence: 3, by: "aeon.yml", what: "live AEON listings for the deal finder",

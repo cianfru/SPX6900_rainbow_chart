@@ -597,6 +597,20 @@
   ComposedChart, stacked green/red exit bars (left count axis) + that quarter's median price (right log axis). Reads
   `stats.cohorts.exits` + `stats.drawn`. The suite is now who's-here / survival / cost-basis (where they bought) / who-left
   (where they sold) — all off the one time-machine reconstruction.
+  - **⭐ MADE DAILY 2026-07-30 (owner: "increase granularity — daily. if SPX runs I want to know who's selling on a daily
+    TF; NUPL is daily").** Quarterly buckets smear the very capitulation-vs-profit-taking spikes you'd watch live, so
+    `exitmap` now rides a DAILY departure series. `scripts/build-exit-flow.mjs` streams the raw transfer ARCHIVE (real
+    per-transfer timestamps → exact exit DAY per wallet) → `public/exit-flow.json` (`{res, overall:{left,profit,loss,
+    profitPct}, days:[[date,profit,loss]]}`), run in onchain-dune.yml after the archive download (daily, keyless). **Two
+    input modes so the logic is validatable offline:** `--transfers=` (daily, CI) + `--timeline=` (weekly, from the
+    committed spx-timeline.json) — the weekly mode reconciles EXACTLY to cohort-survival (21,008 left, 71% profit), which
+    is how the crossing logic is unit-tested (`test/exit-flow.test.mjs`) and how the local seed is generated. Card + site
+    render a rolled STACKED AREA (green profit + red loss over the price line — 14-day trailing sum for daily, 2 for weekly,
+    so it reads as waves not noise). Seeded WEEKLY now (renders immediately); the first onchain-dune run upgrades it to daily
+    (owner validates totals reconcile ~21k/71%, same as other archive pipelines). ⚠ vercel.json includeFiles was ALSO missing
+    `cohort-survival.json` (so survivorship/supplyera had been rendering null in og.js) — added it + exit-flow.json to all
+    three fns. Registered in audit-feeds. A departure = a wallet ever ≥5k now below it; exit day = its last day ≥5k; profit =
+    price(exit) ≥ price(entry), both ≈ price when it crossed the bar (realized-P/L proxy, stated on-surface).
 - **✅✅ TIME MACHINE SHIPPED 2026-07-29 (the greenlit "time slider"; owner: "Amazing idea").** The launch→today
   replay is LIVE in SPX City: a **Time machine** toggle (SPX + AEON modes; hidden in BOTH — an honest historical
   join of the two assets isn't built) opens a violet slider; scrub it and the city rebuilds at that week —
