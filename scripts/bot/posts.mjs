@@ -971,8 +971,8 @@ The ladder is the same. The rungs moved with the price.`,
     const C = s.cohorts, launch = C.cohorts.find(c => c.arrived > 0);
     return {
       id: "survivorship",
-      text: ct`🪦 ${C.overall.gonePct}% of the wallets that ever held SPX6900 are gone. Of the ${launch?.label} launch crowd, ${launch?.survivalPct}% remain.
-But the ones still here barely flinched: ${C.overall.diamondPct}% of today's ${C.overall.holdNow.toLocaleString("en-US")} holders never once sold to zero.
+      text: ct`🪦 Of every wallet that ever held ≥5,000 SPX6900, ${C.overall.gonePct}% are gone. Of the ${launch?.label} launch crowd, just ${launch?.survivalPct}% remain.
+But the survivors barely flinched — ${C.overall.diamondPct}% of those still holding never once sold to zero.
 Most who bought, sold. The ones who kept, kept everything.`,
       card: { type: "survivorship" },
     };
