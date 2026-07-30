@@ -1,0 +1,128 @@
+import { useMemo, useState, useEffect } from "react";
+import { ResponsiveContainer, AreaChart, Area, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, Cell } from "recharts";
+import { loadCohortSurvival } from "./history-data.js";
+import { SANS, MONO, MAX_W, Metric, TipBox, Explain } from "./chart-ui.jsx";
+
+// SPX6900 SURVIVORSHIP — who is still holding, by when they first bought. Two reads off one file:
+//   "Who's here" — the living holder base over time, stacked by arrival vintage (each cohort rises,
+//                  then thins as it leaves). The launch band balloons in 2023 and shrinks to a sliver.
+//   "Survival"   — the plain retention bar per cohort: 4% of the launch crowd remain, ~64% of the
+//                  newest. Recent cohorts read high partly because they haven't had time to leave —
+//                  right-censoring, stated on the page.
+// The honest twist: enormous churn AND extreme survivor conviction at once.
+
+const hx = c => [parseInt(c.slice(1, 3), 16), parseInt(c.slice(3, 5), 16), parseInt(c.slice(5, 7), 16)];
+const mix = (a, b, t) => { const A = hx(a), B = hx(b); return `#${[0, 1, 2].map(i => Math.round(A[i] + (B[i] - A[i]) * t).toString(16).padStart(2, "0")).join("")}`; };
+const vintage = (i, n) => mix("#22d3ee", "#f6a23c", n <= 1 ? 0 : i / (n - 1));   // old cyan → fresh amber
+const shortLab = l => l.replace(" H1", " H1").replace("20", "'");
+const fmtN = n => (n >= 1000 ? (n / 1000).toFixed(n >= 100000 ? 0 : 1) + "k" : String(n));
+
+export default function SurvivorshipChart({ isMobile }) {
+  const [data, setData] = useState(null);
+  const [view, setView] = useState("who");   // "who" | "survival"
+  useEffect(() => { let off = false; loadCohortSurvival().then(d => { if (!off) setData(d || { empty: true }); }); return () => { off = true; }; }, []);
+
+  const model = useMemo(() => {
+    if (!data || data.empty) return null;
+    const cohorts = data.cohorts.filter(c => c.arrived > 0);
+    const nC = cohorts.length;
+    const colOf = c => data.cohorts.indexOf(c);
+    const week0 = Date.parse(data.week0);
+    // stacked area rows: one per week, a key per vintage
+    const rows = data.weekly.map((wk, i) => {
+      const o = { ts: week0 + i * 7 * 864e5 };
+      cohorts.forEach((c, k) => { o[`v${k}`] = wk[colOf(c)]; });
+      return o;
+    });
+    const bars = cohorts.map((c, k) => ({ label: shortLab(c.label), survivalPct: c.survivalPct, arrived: c.arrived, holdNow: c.holdNow, supplyM: c.supplyNow / 1e6, colour: vintage(k, nC) }));
+    return { cohorts, nC, rows, bars };
+  }, [data]);
+
+  if (!data) return <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Loading…</div>;
+  if (!model) return <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Being reconstructed — check back after the next on-chain refresh.</div>;
+  const { cohorts, nC, rows, bars } = model;
+  const O = data.overall, launch = cohorts[0];
+  const fDate = ts => new Date(ts).toLocaleDateString("en-US", { month: "short", year: "2-digit" });
+
+  const btn = (active) => ({
+    className: `neon-pill${active ? " active" : ""}`,
+    style: { padding: "6px 14px", borderRadius: 8, fontFamily: MONO, fontSize: 12, color: active ? "#f8fafc" : "#94a3b8", "--glow": "#22d3ee" },
+  });
+
+  return (
+    <div style={{ maxWidth: MAX_W, margin: "0 auto" }}>
+      <Explain q="Of everyone who ever held SPX6900, who is still here?" accent="#22d3ee">
+        Every wallet is placed by the era it <strong style={{ color: "#e2e8f0" }}>first bought</strong> and coloured for it —
+        <strong style={{ color: "#22d3ee" }}> cyan for the launch crowd</strong>, <strong style={{ color: "#f6a23c" }}>amber for the newest</strong>.
+        The launch band balloons in 2023 and shrinks to a sliver: <strong style={{ color: "#f43f5e" }}>{O.gonePct}% of everyone who ever held has left</strong>.
+        But the survivors barely flinched — <strong style={{ color: "#22d3ee" }}>{O.diamondPct}% of today's holders never once sold</strong>. Huge churn, iron survivors.
+      </Explain>
+
+      <div style={{ display: "flex", gap: 6, justifyContent: "center", marginBottom: 6, flexWrap: "wrap" }}>
+        {[["who", "Who's here"], ["survival", "Survival by cohort"]].map(([id, lbl]) => (
+          <button key={id} onClick={() => setView(id)} {...btn(view === id)}>{lbl}</button>
+        ))}
+      </div>
+
+      <div style={{ display: "flex", gap: isMobile ? 16 : 30, justifyContent: "center", margin: "10px 0 14px", flexWrap: "wrap" }}>
+        <Metric label="ever held ≥5k" value={fmtN(O.everHeld)} color="#94a3b8" sub="all time" />
+        <Metric label="still hold" value={fmtN(O.holdNow)} color="#22d3ee" sub="today" />
+        <Metric label="gone" value={O.gonePct + "%"} color="#f43f5e" sub="churned out" />
+        <Metric label="never sold" value={O.diamondPct + "%"} color="#4ade80" sub="of today's holders" />
+      </div>
+
+      {view === "who" ? (
+        <ResponsiveContainer width="100%" height={isMobile ? 300 : 380}>
+          <AreaChart data={rows} margin={{ top: 8, right: 16, left: 6, bottom: 6 }}>
+            <CartesianGrid stroke="rgba(255,255,255,0.06)" vertical={false} />
+            <XAxis dataKey="ts" type="number" scale="time" domain={["dataMin", "dataMax"]} tickFormatter={fDate}
+              tick={{ fill: "#94a3b8", fontFamily: MONO, fontSize: 12 }} tickLine={false} axisLine={{ stroke: "rgba(255,255,255,0.12)" }} />
+            <YAxis tickFormatter={fmtN} tick={{ fill: "#94a3b8", fontFamily: MONO, fontSize: 12 }} tickLine={false} axisLine={false} width={48} />
+            <Tooltip content={({ active, payload, label }) => {
+              if (!active || !payload?.length) return null;
+              const total = payload.reduce((s, p) => s + (p.value || 0), 0);
+              return <TipBox><div style={{ fontFamily: MONO, fontSize: 12 }}>
+                <div style={{ color: "#e2e8f0", marginBottom: 3 }}>{fDate(label)} · {fmtN(total)} holders</div>
+                {payload.slice().reverse().filter(p => p.value > 0).map((p, i) => {
+                  const k = +p.dataKey.slice(1);
+                  return <div key={i} style={{ color: vintage(k, nC) }}>{shortLab(cohorts[k].label)}: {fmtN(p.value)}</div>;
+                })}
+              </div></TipBox>;
+            }} />
+            {cohorts.map((c, k) => (
+              <Area key={k} type="monotone" dataKey={`v${k}`} stackId="1" stroke="#05050e" strokeWidth={0.5}
+                fill={vintage(k, nC)} fillOpacity={0.9} isAnimationActive={false} />
+            ))}
+          </AreaChart>
+        </ResponsiveContainer>
+      ) : (
+        <ResponsiveContainer width="100%" height={isMobile ? 300 : 380}>
+          <BarChart data={bars} margin={{ top: 8, right: 16, left: 6, bottom: 6 }}>
+            <CartesianGrid stroke="rgba(255,255,255,0.06)" vertical={false} />
+            <XAxis dataKey="label" tick={{ fill: "#94a3b8", fontFamily: MONO, fontSize: 12 }} tickLine={false} axisLine={{ stroke: "rgba(255,255,255,0.12)" }} />
+            <YAxis unit="%" domain={[0, 100]} ticks={[0, 25, 50, 75, 100]} tick={{ fill: "#94a3b8", fontFamily: MONO, fontSize: 12 }} tickLine={false} axisLine={false} width={44} />
+            <Tooltip content={({ active, payload }) => {
+              if (!active || !payload?.length) return null;
+              const b = payload[0].payload;
+              return <TipBox><div style={{ fontFamily: MONO, fontSize: 12 }}>
+                <div style={{ color: b.colour, marginBottom: 3 }}>{b.label}</div>
+                <div style={{ color: "#e2e8f0" }}>{b.survivalPct}% still hold</div>
+                <div style={{ color: "#94a3b8" }}>{fmtN(b.holdNow)} of {fmtN(b.arrived)} · {b.supplyM.toFixed(1)}M SPX</div>
+              </div></TipBox>;
+            }} />
+            <Bar dataKey="survivalPct" radius={[5, 5, 0, 0]}>
+              {bars.map((b, i) => <Cell key={i} fill={b.colour} />)}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+      )}
+
+      <div className="chart-caption" style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 16, lineHeight: 1.65, maxWidth: 840, marginInline: "auto" }}>
+        {view === "who"
+          ? <>Living holders of ≥5,000 SPX over time, stacked by the era each wallet first bought. Old vintages thin out as they sell; the base today is mostly the {shortLab(cohorts[2]?.label || "2024")}–{shortLab(cohorts[cohorts.length - 2]?.label || "2025")} cohorts who <strong style={{ color: "#e2e8f0" }}>accumulated through the drawdown</strong>.</>
+          : <>Share of each arrival cohort still holding ≥5,000 SPX today. Retention decays with tenure — the {shortLab(launch.label)} launch crowd is down to <strong style={{ color: "#f43f5e" }}>{launch.survivalPct}%</strong>. Recent cohorts read high partly because they <strong style={{ color: "#e2e8f0" }}>haven't had time to leave</strong> (right-censoring).</>}
+        <br />Self-custody only; exchanges, LP and bridge addresses excluded. Survivorship, not a forecast.
+      </div>
+    </div>
+  );
+}

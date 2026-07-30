@@ -547,6 +547,20 @@
   **Owner hardware note (2026-07-29): iPhone 13 Pro Max + MacBook Air M1 + 27" iMac all run the full city at full
   res with no issues** — so the floor is fine on decent hardware; the tail risk is visitors' low-end Androids,
   which the adaptive resolution below now covers.
+- **✅ SURVIVORSHIP / COHORT ANALYSIS SHIPPED 2026-07-29 (owner asked to mine the time-machine finding).** The
+  slider revealed enormous churn; this quantifies it. `scripts/build-cohort-survival.mjs` re-slices
+  spx-timeline.json → `public/cohort-survival.json` (~5KB, daily via onchain-dune.yml, audit-registered):
+  per arrival half-year {arrived, holdNow, supplyNow, survivalPct}, overall {everHeld 26,484, holdNow 5,489,
+  gonePct 79, diamondPct 91}, top-peak survival, and a weekly living-holders-by-vintage series. **THE FINDING:
+  79% of every wallet that ever held ≥5k SPX is gone; the 2023 launch crowd is down to 4% — YET 91% of today's
+  holders never once sold to zero.** Huge churn + iron survivors, both true (survivorship). The base today is
+  the 2024-H2/2025 cohorts who accumulated through the drawdown, not the launch crowd. **Card `survivorship`**
+  (stacked living-holders-by-vintage — launch band balloons then thins; NO_ROTATE not set, in rotation, LOOK
+  stack, landscape) + **site chart `Who's Still Here`** (On-Chain group; "Who's here" vintage area + "Survival
+  by cohort" bars, right-censoring caveat stated). ⚠ Reconciles WITH the diamond-hands cards, doesn't contradict:
+  those measure CURRENT holders' conviction (high); this measures all-time churn (high) — survivorship. Honesty
+  caveats on-surface: right-censoring (recent cohorts read high), "gone" = balance fell below the bar. **Possible
+  2nd card (offered, not built): the "built during the drawdown" composition angle — supply-held-today by cohort.**
 - **✅✅ TIME MACHINE SHIPPED 2026-07-29 (the greenlit "time slider"; owner: "Amazing idea").** The launch→today
   replay is LIVE in SPX City: a **Time machine** toggle (SPX + AEON modes; hidden in BOTH — an honest historical
   join of the two assets isn't built) opens a violet slider; scrub it and the city rebuilds at that week —

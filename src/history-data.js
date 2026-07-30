@@ -18,6 +18,19 @@ export function loadHistory() {
 // (built in CI from all price sources, weekly-refreshed) the charts draw from,
 // so the early history isn't the ~weekly cadence of the model-fit bundle. Same
 // []-on-failure contract; the drawn line falls back to the bundle if it's absent.
+let cohortPromise = null;
+// Cohort survival summary (a few KB, built daily from the city timeline) — who still holds SPX by
+// arrival era. Read by the Survivorship chart; small enough to fetch eagerly on that page.
+export function loadCohortSurvival() {
+  if (!cohortPromise) {
+    cohortPromise = fetch("/cohort-survival.json")
+      .then(r => (r.ok ? r.json() : null))
+      .then(d => (d?.overall?.everHeld > 0 && Array.isArray(d.cohorts) ? d : null))
+      .catch(() => null);
+  }
+  return cohortPromise;
+}
+
 let pricePromise = null;
 export function loadPriceHistory() {
   if (!pricePromise) {
