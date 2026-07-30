@@ -62,14 +62,24 @@ export function survivorshipSvg(stats, opts = {}) {
     xlab += `<text x="${x(wk).toFixed(1)}" y="${H - 42}" fill="#94a3b8" font-size="21" text-anchor="middle" font-family="${FONT[0] || "sans-serif"}">${yr}</text>`;
   }
 
-  // legend: each vintage + how many of it survive
+  // legend: each vintage + how many of it survive. Adaptive so it always fits the plot height —
+  // two-line rows for a handful of cohorts, compact one-line ("'26 Q3 · 86%") once there are many
+  // (quarterly = 13), so the newest/oldest never spill into the footer.
+  const LF = FONT[0] || "sans-serif";
+  const twoLine = nC <= 9;
+  const rowH = twoLine ? 47 : Math.min(40, (pH - 6) / nC);
   let legend = "", ly = mT + 6;
   for (let k = nC - 1; k >= 0; k--) {                       // newest at top of the legend
     const c = cohorts[k];
-    legend += `<rect x="${mL + pW + 16}" y="${(ly - 11).toFixed(1)}" width="13" height="13" rx="3" fill="${vintageColour(k, nC)}"/>`
-      + `<text x="${mL + pW + 36}" y="${ly.toFixed(1)}" fill="#cbd5e1" font-size="19" font-family="${FONT[0] || "sans-serif"}">${esc(shortLab(c.label))}</text>`
-      + `<text x="${mL + pW + 36}" y="${(ly + 21).toFixed(1)}" fill="#64748b" font-size="17" font-family="${FONT[0] || "sans-serif"}">${esc(`${c.survivalPct}% still hold`)}</text>`;
-    ly += 47;
+    legend += `<rect x="${mL + pW + 16}" y="${(ly - 11).toFixed(1)}" width="13" height="13" rx="3" fill="${vintageColour(k, nC)}"/>`;
+    if (twoLine) {
+      legend += `<text x="${mL + pW + 36}" y="${ly.toFixed(1)}" fill="#cbd5e1" font-size="19" font-family="${LF}">${esc(shortLab(c.label))}</text>`
+        + `<text x="${mL + pW + 36}" y="${(ly + 21).toFixed(1)}" fill="#64748b" font-size="17" font-family="${LF}">${esc(`${c.survivalPct}% still hold`)}</text>`;
+    } else {
+      legend += `<text x="${mL + pW + 36}" y="${(ly + 3).toFixed(1)}" fill="#cbd5e1" font-size="18" font-family="${LF}">${esc(shortLab(c.label))}</text>`
+        + `<text x="${W - 20}" y="${(ly + 3).toFixed(1)}" fill="#94a3b8" font-size="18" text-anchor="end" font-family="${LF}">${esc(`${c.survivalPct}%`)}</text>`;
+    }
+    ly += rowH;
   }
 
   const F = FONT[0] || "sans-serif";

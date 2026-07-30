@@ -9,7 +9,7 @@
 // censoring, "gone" = balance fell below the bar) live on the surfaces that show it.
 //
 // Emits:
-//   cohorts[]     — arrival half-year: { label, startWk, arrived, holdNow, supplyNow }
+//   cohorts[]     — arrival quarter: { label, startWk, arrived, holdNow, supplyNow, survivalPct, medPrice }
 //   overall       — { everHeld, holdNow, gonePct, diamondPct }   (diamond = still holds AND never
 //                    returned to zero since arrival)
 //   topPeak[]     — of the biggest-EVER wallets by peak balance, how many have since gone
@@ -24,7 +24,9 @@ const arg = (k) => { const a = process.argv.find(s => s.startsWith(`--${k}=`)); 
 const DAY = 864e5;
 
 // arrival half-year label + a stable ordering key
-const halfOf = (t) => `${t.getUTCFullYear()} H${t.getUTCMonth() < 6 ? 1 : 2}`;
+// arrival period label — QUARTERLY (the sweet spot: ~2× the resolution of half-years while the
+// bubble/vintage views stay readable and each cohort keeps enough wallets for a stable survival %).
+const halfOf = (t) => `${t.getUTCFullYear()} Q${Math.floor(t.getUTCMonth() / 3) + 1}`;
 
 export function cohortSurvival(tl, prices = null) {
   const W = tl.n - 1, BAR = tl.threshold;

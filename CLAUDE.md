@@ -573,6 +573,17 @@
   the third toggle ("Cost basis") in the `Who's Still Here` chart (recharts ComposedChart: price Line + custom-shape
   Scatter, log y, loadPriceHistory), alongside "Who's here" + "Survival by cohort". Not a "bought the bottom" story — a
   "the float turned over and the survivors are sitting through it" one. Honest: still-held ≥5k self-custody only.
+  - **⭐ COHORTS ARE QUARTERLY (2026-07-30, owner: "increase granularity, maybe monthly?").** Was half-year (7 cohorts);
+    my call was QUARTERLY as the sweet spot (13 cohorts) — ~2× resolution while the bubble/vintage views stay readable and
+    each cohort keeps enough wallets for a stable survival %. Rejected MONTHLY (~35): the who's-here vintage ramp becomes
+    indistinguishable hue steps, the cost-basis bubbles overlap badly, and small monthly cohorts make survival % noisy.
+    One knob: `halfOf` in build-cohort-survival.mjs (→ quarter label). Quarterly surfaced the sharper find — the biggest
+    surviving bag is **2025-Q3, 100M bought at the ~$1.46 ATH quarter (−77%), still held**. The survivorship card's
+    right-edge legend went ADAPTIVE (compact one-line "'26 Q3 · 86%" rows once nC>9) so 13 entries never spill into the footer.
+  - **⚠ FRAME FIX (2026-07-30, owner caught it): the price line fell BELOW the lower frame.** SPX genuinely spent ~21 days
+    sub-$0.004 at launch (true min $0.00067); the card clamped that flat against the bottom and the site (allowDataOverflow)
+    drew it off-frame. Both now floor the log y-axis at `max(0.0005, min(price,medPrice)×0.85)` so the real launch dip stays
+    in frame (added a $0.001 gridline). Any future price-vs-log-axis card: set the floor from the data min, don't hard-code it.
 - **✅✅ TIME MACHINE SHIPPED 2026-07-29 (the greenlit "time slider"; owner: "Amazing idea").** The launch→today
   replay is LIVE in SPX City: a **Time machine** toggle (SPX + AEON modes; hidden in BOTH — an honest historical
   join of the two assets isn't built) opens a violet slider; scrub it and the city rebuilds at that week —

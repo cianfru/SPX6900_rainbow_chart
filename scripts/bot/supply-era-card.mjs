@@ -54,7 +54,10 @@ export function supplyEraSvg(stats, opts = {}) {
   const F = FONT[0] || "sans-serif";
   const t0 = week0, t1 = Math.max(line.at(-1).t, ...bubbles.map(b => b.midT));
   const x = t => mL + ((t - t0) / (t1 - t0)) * pW;
-  const pMin = 0.004, pMax = Math.max(...line.map(r => r.p), ...co.map(c => c.medPrice), now) * 1.18;
+  // floor the log axis just under the true launch low so the sub-cent dip stays IN frame (SPX spent
+  // ~3 weeks below $0.004 at launch) — never clamped flat against the bottom or drawn off-card.
+  const pFloor = Math.min(...line.map(r => r.p), ...co.map(c => c.medPrice));
+  const pMin = Math.max(0.0005, pFloor * 0.85), pMax = Math.max(...line.map(r => r.p), ...co.map(c => c.medPrice), now) * 1.18;
   const lg = v => Math.log(Math.max(v, pMin));
   const y = v => mT + (1 - (lg(v) - lg(pMin)) / (lg(pMax) - lg(pMin))) * pH;
   const r = s => 7 + 43 * Math.sqrt(s / maxS);
@@ -69,7 +72,7 @@ export function supplyEraSvg(stats, opts = {}) {
 
   // price y-axis gridlines at decade-ish steps
   let grid = "";
-  for (const v of [0.005, 0.01, 0.05, 0.1, 0.5, 1, 2]) {
+  for (const v of [0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1, 2]) {
     if (v < pMin || v > pMax) continue;
     const yy = y(v).toFixed(1);
     grid += `<line x1="${mL}" y1="${yy}" x2="${mL + pW}" y2="${yy}" stroke="rgba(255,255,255,0.06)"/>`

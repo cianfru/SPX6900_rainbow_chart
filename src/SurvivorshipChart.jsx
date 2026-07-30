@@ -59,6 +59,9 @@ export default function SurvivorshipChart({ isMobile }) {
       });
       const uw = priced.filter(c => c.medPrice > now).reduce((s, c) => s + c.supplyNow, 0);
       underPct = Math.round(100 * uw / totalSupply);
+      // floor just under the true launch low so the sub-cent dip stays in frame (never off the bottom)
+      const pFloor = Math.min(...line.map(r => r.p), ...priced.map(c => c.medPrice));
+      pMin = Math.max(0.0005, pFloor * 0.85);
       pMax = Math.max(...line.map(r => r.p), ...priced.map(c => c.medPrice), now) * 1.18;
     }
     return { cohorts, nC, rows, bars, totalSupply, launchPct, line, bubbles, now, pMin, pMax, t0, t1, underPct, maxSupM };
@@ -165,7 +168,7 @@ export default function SurvivorshipChart({ isMobile }) {
             <CartesianGrid stroke="rgba(255,255,255,0.05)" />
             <XAxis dataKey="t" type="number" scale="time" domain={[t0, t1]} ticks={[2024, 2025, 2026].map(y => Date.UTC(y, 0, 1)).filter(t => t >= t0 && t <= t1)} tickFormatter={fYear}
               tick={{ fill: "#94a3b8", fontFamily: MONO, fontSize: 12 }} tickLine={false} axisLine={{ stroke: "rgba(255,255,255,0.12)" }} allowDuplicatedCategory={false} />
-            <YAxis dataKey="p" type="number" scale="log" domain={[pMin, pMax]} allowDataOverflow ticks={[0.005, 0.01, 0.05, 0.1, 0.5, 1, 2].filter(v => v >= pMin && v <= pMax)} tickFormatter={fmtP}
+            <YAxis dataKey="p" type="number" scale="log" domain={[pMin, pMax]} allowDataOverflow ticks={[0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1, 2].filter(v => v >= pMin && v <= pMax)} tickFormatter={fmtP}
               tick={{ fill: "#94a3b8", fontFamily: MONO, fontSize: 12 }} tickLine={false} axisLine={false} width={54} />
             <ReferenceArea y1={now} y2={pMax} fill="#fb7185" fillOpacity={0.11} ifOverflow="hidden" />
             <ReferenceArea y1={pMin} y2={now} fill="#4ade80" fillOpacity={0.1} ifOverflow="hidden" />
