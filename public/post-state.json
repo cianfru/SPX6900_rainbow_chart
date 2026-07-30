@@ -1,11 +1,7 @@
 {
-  "lastPostedDate": "2026-07-29",
-  "lastId": "mvrvtrend",
+  "lastPostedDate": "2026-07-30",
+  "lastId": "survivorship",
   "recent": [
-    {
-      "date": "2026-07-08",
-      "id": "model"
-    },
     {
       "date": "2026-07-09",
       "id": "underwater"
@@ -81,6 +77,10 @@
     {
       "date": "2026-07-29",
       "id": "mvrvtrend"
+    },
+    {
+      "date": "2026-07-30",
+      "id": "survivorship"
     }
   ]
 }
