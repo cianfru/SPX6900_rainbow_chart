@@ -22,6 +22,7 @@ import { renderWhalesCard } from "./whales-card.mjs";
 import { renderWalletWavesCard } from "./wallet-waves-card.mjs";
 import { renderWealthWavesCard } from "./wealth-waves-card.mjs";
 import { renderSurvivorshipCard } from "./survivorship-card.mjs";
+import { renderSupplyEraCard } from "./supply-era-card.mjs";
 import { renderFloorModelCard } from "./floor-model-card.mjs";
 import { renderAltOscCard } from "./alt-osc-card.mjs";
 import { renderFreeFloatCard } from "./free-float-card.mjs";
@@ -882,7 +883,7 @@ export const CARD_TYPES = new Set([
   "holderspair", "mvrvbtc", "mvrvtrend", "supplyprofit", "floormodel", "altmarket",
   "freefloat", "nupl", "concentration", "hodlwaves", "hodlcompare", "urpd", "urpdage",
   "lthsth", "sopr", "nrpl", "liveliness", "valband", "walletgrowth", "picycle", "spxbitcoin", "spxcohort",
-  "cexsupply", "cexflow", "cexvenues", "cexvenflow", "whales", "walletwaves", "wealthwaves", "survivorship",
+  "cexsupply", "cexflow", "cexvenues", "cexvenflow", "whales", "walletwaves", "wealthwaves", "survivorship", "supplyera",
   "cyclesync", "cycleclock", "rsidots", "monthcompare",
   // spec-driven generics
   "line", "bar", "mbars", "donut", "stack", "model", "cube", "scale", "gauge", "fngdial",
@@ -920,6 +921,7 @@ export function renderPostCard(post, stats, opts = {}) {
   if (type === "walletwaves") return renderWalletWavesCard(stats, dims);
   if (type === "wealthwaves") return renderWealthWavesCard(stats, dims);
   if (type === "survivorship") return renderSurvivorshipCard(stats, dims);
+  if (type === "supplyera") return renderSupplyEraCard(stats, dims);
   if (type === "floormodel") return renderFloorModelCard(stats, dims);
   if (type === "altmarket") return renderAltOscCard(stats, dims);
   if (type === "freefloat") return renderFreeFloatCard(stats, dims);

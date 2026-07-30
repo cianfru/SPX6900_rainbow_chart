@@ -26,10 +26,19 @@ const DAY = 864e5;
 // arrival half-year label + a stable ordering key
 const halfOf = (t) => `${t.getUTCFullYear()} H${t.getUTCMonth() < 6 ? 1 : 2}`;
 
-export function cohortSurvival(tl) {
+export function cohortSurvival(tl, prices = null) {
   const W = tl.n - 1, BAR = tl.threshold;
   const week0 = Date.parse(tl.week0);
   const dateOf = (wk) => new Date(week0 + wk * 7 * DAY);
+  // median SPX price during a [wk, wkEnd) window — the era's typical entry price, so the "where the
+  // float came from" surfaces can say a cohort arrived cheap or near the top without re-fetching.
+  const px = Array.isArray(prices) ? prices.map(r => ({ t: Date.parse(r.date), p: +r.price })).filter(r => Number.isFinite(r.t) && r.p > 0) : [];
+  const medPrice = (wk0, wk1) => {
+    if (!px.length) return null;
+    const t0 = week0 + wk0 * 7 * DAY, t1 = week0 + wk1 * 7 * DAY;
+    const v = px.filter(r => r.t >= t0 && r.t < t1).map(r => r.p).sort((a, b) => a - b);
+    return v.length ? +v[v.length >> 1].toFixed(4) : null;
+  };
 
   // fixed cohort spine (every half-year present in the grid), so empty ones still render as zero
   const labels = [];
@@ -85,7 +94,11 @@ export function cohortSurvival(tl) {
       everHeld, holdNow, gonePct: +(100 * (everHeld - holdNow) / everHeld).toFixed(0),
       diamondPct: holdNow ? +(100 * diamond / holdNow).toFixed(0) : 0,
     },
-    cohorts: cohorts.map(c => ({ ...c, supplyNow: Math.round(c.supplyNow), survivalPct: c.arrived ? +(100 * c.holdNow / c.arrived).toFixed(0) : 0 })),
+    cohorts: cohorts.map((c, i) => ({
+      ...c, supplyNow: Math.round(c.supplyNow),
+      survivalPct: c.arrived ? +(100 * c.holdNow / c.arrived).toFixed(0) : 0,
+      medPrice: medPrice(c.startWk, i + 1 < cohorts.length ? cohorts[i + 1].startWk : tl.n),
+    })),
     topPeak,
     launch: { ...launch, supplyNow: Math.round(launch.supplyNow), pct: launch.arrived ? +(100 * launch.holdNow / launch.arrived).toFixed(0) : 0 },
     weekly,
@@ -95,9 +108,12 @@ export function cohortSurvival(tl) {
 function main() {
   const inp = arg("in") || "public/spx-timeline.json";
   const out = arg("out") || "public/cohort-survival.json";
+  const pricesPath = arg("prices") || "public/price-history.json";
   const tl = JSON.parse(readFileSync(inp, "utf8"));
   if (!Array.isArray(tl.wallets) || !tl.n) { console.error("bad timeline input"); process.exit(1); }
-  const o = cohortSurvival(tl);
+  let prices = null;
+  try { prices = JSON.parse(readFileSync(pricesPath, "utf8")); } catch { /* era prices optional */ }
+  const o = cohortSurvival(tl, prices);
   writeFileSync(out, JSON.stringify(o));
   const c = o.cohorts.find(x => x.arrived > 0);
   console.log(`cohort-survival: ${o.overall.everHeld} ever held → ${o.overall.holdNow} today (${o.overall.gonePct}% gone) · ` +

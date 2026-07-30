@@ -34,13 +34,15 @@ export default function SurvivorshipChart({ isMobile }) {
       cohorts.forEach((c, k) => { o[`v${k}`] = wk[colOf(c)]; });
       return o;
     });
-    const bars = cohorts.map((c, k) => ({ label: shortLab(c.label), survivalPct: c.survivalPct, arrived: c.arrived, holdNow: c.holdNow, supplyM: c.supplyNow / 1e6, colour: vintage(k, nC) }));
-    return { cohorts, nC, rows, bars };
+    const totalSupply = cohorts.reduce((s, c) => s + c.supplyNow, 0);
+    const bars = cohorts.map((c, k) => ({ label: shortLab(c.label), survivalPct: c.survivalPct, arrived: c.arrived, holdNow: c.holdNow, supplyM: c.supplyNow / 1e6, supplyPct: Math.round(100 * c.supplyNow / totalSupply), medPrice: c.medPrice, colour: vintage(k, nC) }));
+    const launchPct = Math.round(100 * cohorts.slice(0, 2).reduce((s, c) => s + c.supplyNow, 0) / totalSupply);
+    return { cohorts, nC, rows, bars, totalSupply, launchPct };
   }, [data]);
 
   if (!data) return <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Loading…</div>;
   if (!model) return <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Being reconstructed — check back after the next on-chain refresh.</div>;
-  const { cohorts, nC, rows, bars } = model;
+  const { cohorts, nC, rows, bars, launchPct } = model;
   const O = data.overall, launch = cohorts[0];
   const fDate = ts => new Date(ts).toLocaleDateString("en-US", { month: "short", year: "2-digit" });
 
@@ -59,7 +61,7 @@ export default function SurvivorshipChart({ isMobile }) {
       </Explain>
 
       <div style={{ display: "flex", gap: 6, justifyContent: "center", marginBottom: 6, flexWrap: "wrap" }}>
-        {[["who", "Who's here"], ["survival", "Survival by cohort"]].map(([id, lbl]) => (
+        {[["who", "Who's here"], ["survival", "Survival by cohort"], ["supply", "Supply held"]].map(([id, lbl]) => (
           <button key={id} onClick={() => setView(id)} {...btn(view === id)}>{lbl}</button>
         ))}
       </div>
@@ -95,7 +97,7 @@ export default function SurvivorshipChart({ isMobile }) {
             ))}
           </AreaChart>
         </ResponsiveContainer>
-      ) : (
+      ) : view === "survival" ? (
         <ResponsiveContainer width="100%" height={isMobile ? 300 : 380}>
           <BarChart data={bars} margin={{ top: 8, right: 16, left: 6, bottom: 6 }}>
             <CartesianGrid stroke="rgba(255,255,255,0.06)" vertical={false} />
@@ -115,12 +117,34 @@ export default function SurvivorshipChart({ isMobile }) {
             </Bar>
           </BarChart>
         </ResponsiveContainer>
+      ) : (
+        <ResponsiveContainer width="100%" height={isMobile ? 300 : 380}>
+          <BarChart data={bars} margin={{ top: 8, right: 16, left: 6, bottom: 6 }}>
+            <CartesianGrid stroke="rgba(255,255,255,0.06)" vertical={false} />
+            <XAxis dataKey="label" tick={{ fill: "#94a3b8", fontFamily: MONO, fontSize: 12 }} tickLine={false} axisLine={{ stroke: "rgba(255,255,255,0.12)" }} />
+            <YAxis tickFormatter={v => v + "M"} tick={{ fill: "#94a3b8", fontFamily: MONO, fontSize: 12 }} tickLine={false} axisLine={false} width={48} />
+            <Tooltip content={({ active, payload }) => {
+              if (!active || !payload?.length) return null;
+              const b = payload[0].payload;
+              return <TipBox><div style={{ fontFamily: MONO, fontSize: 12 }}>
+                <div style={{ color: b.colour, marginBottom: 3 }}>{b.label}</div>
+                <div style={{ color: "#e2e8f0" }}>{b.supplyM.toFixed(1)}M SPX · {b.supplyPct}% of held supply</div>
+                <div style={{ color: "#94a3b8" }}>{fmtN(b.holdNow)} holders{b.medPrice != null ? ` · era ~$${b.medPrice < 0.01 ? b.medPrice.toFixed(4) : b.medPrice.toFixed(2)}` : ""}</div>
+              </div></TipBox>;
+            }} />
+            <Bar dataKey="supplyM" radius={[5, 5, 0, 0]}>
+              {bars.map((b, i) => <Cell key={i} fill={b.colour} />)}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
       )}
 
       <div className="chart-caption" style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 16, lineHeight: 1.65, maxWidth: 840, marginInline: "auto" }}>
         {view === "who"
           ? <>Living holders of ≥5,000 SPX over time, stacked by the era each wallet first bought. Old vintages thin out as they sell; the base today is mostly the {shortLab(cohorts[2]?.label || "2024")}–{shortLab(cohorts[cohorts.length - 2]?.label || "2025")} cohorts who <strong style={{ color: "#e2e8f0" }}>accumulated through the drawdown</strong>.</>
-          : <>Share of each arrival cohort still holding ≥5,000 SPX today. Retention decays with tenure — the {shortLab(launch.label)} launch crowd is down to <strong style={{ color: "#f43f5e" }}>{launch.survivalPct}%</strong>. Recent cohorts read high partly because they <strong style={{ color: "#e2e8f0" }}>haven't had time to leave</strong> (right-censoring).</>}
+          : view === "survival"
+          ? <>Share of each arrival cohort still holding ≥5,000 SPX today. Retention decays with tenure — the {shortLab(launch.label)} launch crowd is down to <strong style={{ color: "#f43f5e" }}>{launch.survivalPct}%</strong>. Recent cohorts read high partly because they <strong style={{ color: "#e2e8f0" }}>haven't had time to leave</strong> (right-censoring).</>
+          : <>SPX held <strong style={{ color: "#e2e8f0" }}>today</strong>, grouped by the era each holder first bought. Because the old wallets left, only <strong style={{ color: "#22d3ee" }}>{launchPct}%</strong> of the coins held now are launch-era bags — the other <strong style={{ color: "#f6a23c" }}>{100 - launchPct}%</strong> was accumulated across the cycle. The float turned over; it's not one crowd sitting still.</>}
         <br />Self-custody only; exchanges, LP and bridge addresses excluded. Survivorship, not a forecast.
       </div>
     </div>
