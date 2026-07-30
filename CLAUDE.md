@@ -611,6 +611,26 @@
     `cohort-survival.json` (so survivorship/supplyera had been rendering null in og.js) — added it + exit-flow.json to all
     three fns. Registered in audit-feeds. A departure = a wallet ever ≥5k now below it; exit day = its last day ≥5k; profit =
     price(exit) ≥ price(entry), both ≈ price when it crossed the bar (realized-P/L proxy, stated on-surface).
+- **✅✅ SMART MONEY COHORT SHIPPED 2026-07-30 (owner: "smart money cohort is a strong part to develop").** A "Live Smart
+  Money" desk — the aggregate behaviour of proven top-timers vs price, so you see WHEN they distributed. The definition was
+  hammered out with the owner across several rounds, and the journey IS the lesson:
+  - **$ realized was the WRONG spine** (owner: "a wallet with 10M that pulls 1M profit ≠ one that bought 100k and sold 1M").
+    A whale nets big $ on mediocre %; the metric must be **ROI (realized ÷ capital deployed)**, with a **capital floor** so
+    it's real money not $50 lottery tickets. ROI *alone* is too loose (the token 500×'d — 1,800+ wallets cleared 5×).
+  - **A qualifying wallet must be STILL TRACKABLE** (owner: "otherwise what's the point? we don't know if they'll buy again
+    or use a different wallet"). So a zeroed-out wallet is DROPPED — a ghost tells us nothing forward. Cohort = **invested
+    ≥ $25k · realized ROI ≥ 5× · still holds ≥ 50k SPX → 26 wallets** (median 11×, banked $33M, hold ~$10M). **Recomputed
+    every run** so it's a living desk: dumps-to-zero drop, new proven+live winners join automatically (grows in run-ups when
+    people sell tops). ⚠ Qualification needs a REALIZED sell, so a wallet quietly accumulating the bottom is invisible until
+    it sells; and on-chain has no identity (fresh wallet resets) — both stated on-surface.
+  - **AGGREGATE ONLY, NEVER a wallet named** (owner: keep it off the city, "people can start following them"). The honest
+    read today: they accumulated ~76M under $0.03, distributed into the run-up, hold 30M now, and are **NOT buying** (12w
+    net −3.7%, 21/26 flat, 0 adding). The **net-flow view is the forward signal — it flips green the week they buy again**;
+    it hasn't. `scripts/build-smart-money.mjs` (`smartMoney(tl,prices)`, unit-tested) → `public/smart-money.json` (aggregate
+    weekly held + net-flow + price + cohort stats), runs in onchain-dune.yml off spx-timeline.json (weekly, keyless). Card
+    `smart-money-card.mjs` (`smartmoney`, LOOK dual, flow-aware headline) + site `SmartMoneyChart.jsx` (Holdings-vs-price /
+    Net-flow toggle, On-Chain group). avg-cost proxy (not FIFO), caveated everywhere. This is exactly the "edge" the owner
+    flagged for eventual gating — kept OPEN for now (building audience), but the #1 candidate for the future held/paid tier.
 - **✅✅ TIME MACHINE SHIPPED 2026-07-29 (the greenlit "time slider"; owner: "Amazing idea").** The launch→today
   replay is LIVE in SPX City: a **Time machine** toggle (SPX + AEON modes; hidden in BOTH — an honest historical
   join of the two assets isn't built) opens a violet slider; scrub it and the city rebuilds at that week —

@@ -79,6 +79,8 @@ jobs:
       - name: Rebuild exit flow (DAILY departures split by profit/loss — who's selling, at what price)
         # straight off the raw archive → exact per-day exit, finer than the weekly timeline
         run: node scripts/build-exit-flow.mjs --transfers=transfers.csv --prices=public/price-history.json --out=public/exit-flow.json
+      - name: Rebuild smart-money cohort (proven top-timers, aggregate)
+        run: node scripts/build-smart-money.mjs --in=public/spx-timeline.json --prices=public/price-history.json --out=public/smart-money.json
 
       - name: Sanity check (reconcile to the known extract)
         run: |
@@ -101,11 +103,11 @@ jobs:
         id: commit
         run: |
           DEPLOY_CHANGED=""
-          [[ -n "$(git status --porcelain public/onchain.json public/urpd.json public/whales.json public/spx-timeline.json public/cohort-survival.json public/exit-flow.json)" ]] && DEPLOY_CHANGED=1
+          [[ -n "$(git status --porcelain public/onchain.json public/urpd.json public/whales.json public/spx-timeline.json public/cohort-survival.json public/exit-flow.json public/smart-money.json)" ]] && DEPLOY_CHANGED=1
           if [[ -n "$DEPLOY_CHANGED" ]]; then
             git config user.name "github-actions[bot]"
             git config user.email "github-actions[bot]@users.noreply.github.com"
-            git add public/onchain.json public/urpd.json public/whales.json public/spx-timeline.json public/cohort-survival.json public/exit-flow.json
+            git add public/onchain.json public/urpd.json public/whales.json public/spx-timeline.json public/cohort-survival.json public/exit-flow.json public/smart-money.json
             git commit -m "chore: on-chain FIFO refresh (Dune) $(date -u +%F)"
             git push
           else

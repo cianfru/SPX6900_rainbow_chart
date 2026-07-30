@@ -1014,6 +1014,21 @@ Most who left, left green.`,
     };
   })(),
 
+  // Smart Money — the live cohort of proven top-timers (ROI ≥5×, real capital in, still holding),
+  // aggregate holdings vs price. They accumulated cheap and distributed into the run-up; the flow-aware
+  // line tells the truth today (holding, not buying). No wallet named — nothing to follow.
+  s => (s.smartMoney?.cohortSize > 0) && (() => {
+    const S = s.smartMoney, um = v => v >= 1e6 ? "$" + (v / 1e6).toFixed(1) + "M" : "$" + Math.round(v / 1e3) + "k";
+    const doing = S.flow.w12 > 2 ? "buying again" : S.flow.w12 < -1 ? "holding, trimming, not buying" : "holding, not buying";
+    return {
+      id: "smartmoney",
+      text: ct`🧠 SPX6900 smart money: ${S.cohortSize} wallets that turned real capital into ${S.medianRoi}× by selling into strength — still holding ${um(S.heldUsd)}.
+Accumulated cheap, distributed into the run-up. Right now: ${doing}.
+Aggregate only — no wallet named, nothing to follow.`,
+      card: { type: "smartmoney" },
+    };
+  })(),
+
   // Realized Price & Floor Model — spot vs the crowd's on-chain cost basis, with the
   // 0.5–0.8× multiplier "floor zone" beneath. Same bundled realized-price series as MVRV
   // (no new Dune). Valuation POSITION (bands are historical support, not a guarantee).
@@ -2175,7 +2190,7 @@ const LOOK = {
   whatnext: "race",
   // — Tier B: flavourful / distinct looks (used to break up the green lines) —
   riskcolor: "colorline", risklevels: "colorline", rsidots: "colorline",
-  riskheat: "dual", runningroi: "dual", cycle: "dual", longshort: "dual", underwater: "dual", goldencross: "dual", holdergrowth: "dual", holdersprice: "dual", mvrvbtc: "dual", mvrvtrend: "dual", supplyprofit: "dual", whales: "dual", walletwaves: "stack", wealthwaves: "stack", survivorship: "stack", supplyera: "dual", exitmap: "dual", floormodel: "dual", altmarket: "dual", freefloat: "dual", nupl: "dual", concentration: "dual", picycle: "dual", spxbitcoin: "dual", spxcohort: "dual", cexflow: "dual", cexsupply: "stack", sopr: "dual", nrpl: "dual", liveliness: "dual",
+  riskheat: "dual", runningroi: "dual", cycle: "dual", longshort: "dual", underwater: "dual", goldencross: "dual", holdergrowth: "dual", holdersprice: "dual", mvrvbtc: "dual", mvrvtrend: "dual", supplyprofit: "dual", whales: "dual", walletwaves: "stack", wealthwaves: "stack", survivorship: "stack", supplyera: "dual", exitmap: "dual", smartmoney: "dual", floormodel: "dual", altmarket: "dual", freefloat: "dual", nupl: "dual", concentration: "dual", picycle: "dual", spxbitcoin: "dual", spxcohort: "dual", cexflow: "dual", cexsupply: "stack", sopr: "dual", nrpl: "dual", liveliness: "dual",
   firesalerally: "fanlines",
   model: "scatter",
   monthlyreturns: "heatmap", monthlyreturnssp: "heatmap", monthlyreturnsbtc: "heatmap",

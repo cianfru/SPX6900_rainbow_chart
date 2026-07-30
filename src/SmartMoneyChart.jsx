@@ -1,0 +1,115 @@
+import { useMemo, useState, useEffect } from "react";
+import { ResponsiveContainer, ComposedChart, Area, Bar, Line, XAxis, YAxis, Tooltip, CartesianGrid, ReferenceLine, Cell } from "recharts";
+import { loadSmartMoney } from "./history-data.js";
+import { SANS, MONO, MAX_W, Metric, TipBox, Explain } from "./chart-ui.jsx";
+
+// SMART MONEY — the live cohort of proven top-timers (ROI ≥5×, real capital in, still holding),
+// recomputed every refresh so it's never a frozen list. Two reads:
+//   "Holdings" — aggregate SPX they hold over time vs price (they accumulated cheap, sold the run-up).
+//   "Net flow" — weekly accumulate (green) / distribute (red); this is the forward signal — it flips
+//                green the week the proven timers start buying again. Right now it hasn't.
+// Aggregate only — no wallet is ever named, so there is nothing to blindly follow.
+
+const GOLD = "#f6a23c", GRN = "#4ade80", RED = "#f43f5e";
+const fmtM = v => Math.abs(v) >= 1e6 ? (v / 1e6).toFixed(1) + "M" : (v / 1e3).toFixed(0) + "k";
+const fmtP = v => v == null ? "" : v < 0.01 ? "$" + v.toFixed(4) : "$" + v.toFixed(2);
+const usd = v => v >= 1e6 ? "$" + (v / 1e6).toFixed(1) + "M" : "$" + Math.round(v / 1e3) + "k";
+
+export default function SmartMoneyChart({ isMobile }) {
+  const [data, setData] = useState(null);
+  const [view, setView] = useState("holdings");   // "holdings" | "flow"
+  useEffect(() => { let off = false; loadSmartMoney().then(d => { if (!off) setData(d || { empty: true }); }); return () => { off = true; }; }, []);
+
+  const model = useMemo(() => {
+    if (!data || data.empty) return null;
+    const rows = data.weeks.map(([d, held, flow, price]) => ({ d, t: Date.parse(d), held, heldM: held / 1e6, flow, flowK: flow / 1e3, price })).filter(r => Number.isFinite(r.t));
+    const pxs = rows.map(r => r.price).filter(p => p > 0);
+    const pMin = Math.max(0.0015, Math.min(...pxs) * 0.85), pMax = Math.max(...pxs) * 1.15;
+    const yearTicks = (() => { const seen = new Set(), out = []; for (const r of rows) { const y = r.d.slice(0, 4); if (!seen.has(y)) { seen.add(y); out.push(r.d); } } return out; })();
+    return { rows, pMin, pMax, yearTicks };
+  }, [data]);
+
+  if (!data) return <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Loading…</div>;
+  if (!model) return <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Being reconstructed — check back after the next on-chain refresh.</div>;
+  const { rows, pMin, pMax, yearTicks } = model;
+  const S = data;
+  const fDate = ts => new Date(ts).toLocaleDateString("en-US", { month: "short", year: "2-digit" });
+  const fDay = ts => new Date(ts).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "2-digit" });
+  const flowVerb = S.flow.w12 > 2 ? { t: "buying again", c: GRN } : S.flow.w12 < -1 ? { t: "trimming, not buying", c: "#f59e0b" } : { t: "holding, not buying", c: "#94a3b8" };
+
+  const btn = (active) => ({ className: `neon-pill${active ? " active" : ""}`, style: { padding: "6px 14px", borderRadius: 8, fontFamily: MONO, fontSize: 12, color: active ? "#f8fafc" : "#94a3b8", "--glow": "#f6a23c" } });
+
+  return (
+    <div style={{ maxWidth: MAX_W, margin: "0 auto" }}>
+      <Explain q="What is SPX6900's smart money doing?" accent="#f6a23c">
+        The <strong style={{ color: "#f6a23c" }}>proven top-timers</strong> — wallets that put in real capital (≥$25k), booked a <strong style={{ color: "#e2e8f0" }}>≥5× return by actually selling</strong>, and still hold a bag.
+        They <strong style={{ color: "#e2e8f0" }}>accumulated cheap and distributed into the run-up</strong>. Recomputed every refresh, so it's a living desk — and <strong style={{ color: "#e2e8f0" }}>aggregate only, no wallet named</strong>.
+        Right now they're <strong style={{ color: flowVerb.c }}>{flowVerb.t}</strong>; the net-flow flips green the week they start buying again.
+      </Explain>
+
+      <div style={{ display: "flex", gap: 6, justifyContent: "center", marginBottom: 6, flexWrap: "wrap" }}>
+        {[["holdings", "Holdings vs price"], ["flow", "Net flow"]].map(([id, lbl]) => (
+          <button key={id} onClick={() => setView(id)} {...btn(view === id)}>{lbl}</button>
+        ))}
+      </div>
+
+      <div style={{ display: "flex", gap: isMobile ? 16 : 30, justifyContent: "center", margin: "10px 0 14px", flexWrap: "wrap" }}>
+        <Metric label="live wallets" value={S.cohortSize} color="#f6a23c" sub="proven timers" />
+        <Metric label="still hold" value={usd(S.heldUsd)} color="#e2e8f0" sub={fmtM(S.heldNow) + " SPX"} />
+        <Metric label="median return" value={S.medianRoi + "×"} color="#4ade80" sub="realized" />
+        <Metric label="banked" value={usd(S.realizedTotal)} color="#94a3b8" sub="realized profit" />
+      </div>
+
+      {view === "holdings" ? (
+        <ResponsiveContainer width="100%" height={isMobile ? 320 : 400}>
+          <ComposedChart data={rows} margin={{ top: 12, right: 56, left: 6, bottom: 6 }}>
+            <defs><linearGradient id="smhold" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={GOLD} stopOpacity={0.5} /><stop offset="100%" stopColor={GOLD} stopOpacity={0.04} /></linearGradient></defs>
+            <CartesianGrid stroke="rgba(255,255,255,0.05)" vertical={false} />
+            <XAxis dataKey="d" ticks={yearTicks} tickFormatter={d => d.slice(0, 4)} tick={{ fill: "#94a3b8", fontFamily: MONO, fontSize: 12 }} tickLine={false} axisLine={{ stroke: "rgba(255,255,255,0.12)" }} />
+            <YAxis yAxisId="h" tickFormatter={v => v + "M"} tick={{ fill: "#e0a94b", fontFamily: MONO, fontSize: 12 }} tickLine={false} axisLine={false} width={48} />
+            <YAxis yAxisId="p" orientation="right" scale="log" domain={[pMin, pMax]} allowDataOverflow ticks={[0.001, 0.01, 0.1, 1].filter(v => v >= pMin && v <= pMax)} tickFormatter={fmtP} tick={{ fill: "#8592a6", fontFamily: MONO, fontSize: 11 }} tickLine={false} axisLine={false} width={50} />
+            <Tooltip content={({ active, payload }) => {
+              if (!active || !payload?.length) return null; const r = payload[0].payload;
+              return <TipBox><div style={{ fontFamily: MONO, fontSize: 12 }}>
+                <div style={{ color: "#e2e8f0", marginBottom: 3 }}>{fDate(r.t)}</div>
+                <div style={{ color: GOLD }}>{fmtM(r.held)} SPX held</div>
+                <div style={{ color: "#94a3b8" }}>price {fmtP(r.price)}</div>
+              </div></TipBox>;
+            }} />
+            <Area yAxisId="h" dataKey="heldM" type="monotone" stroke={GOLD} strokeWidth={2} fill="url(#smhold)" isAnimationActive={false} />
+            <Line yAxisId="p" dataKey="price" type="monotone" dot={false} stroke="#aab6cc" strokeWidth={1.6} strokeOpacity={0.85} isAnimationActive={false} />
+          </ComposedChart>
+        </ResponsiveContainer>
+      ) : (
+        <ResponsiveContainer width="100%" height={isMobile ? 320 : 400}>
+          <ComposedChart data={rows} margin={{ top: 12, right: 56, left: 6, bottom: 6 }}>
+            <CartesianGrid stroke="rgba(255,255,255,0.05)" vertical={false} />
+            <XAxis dataKey="d" ticks={yearTicks} tickFormatter={d => d.slice(0, 4)} tick={{ fill: "#94a3b8", fontFamily: MONO, fontSize: 12 }} tickLine={false} axisLine={{ stroke: "rgba(255,255,255,0.12)" }} />
+            <YAxis yAxisId="f" tickFormatter={v => (v > 0 ? "+" : "") + v / 1000 + "M"} tick={{ fill: "#94a3b8", fontFamily: MONO, fontSize: 12 }} tickLine={false} axisLine={false} width={52} />
+            <YAxis yAxisId="p" orientation="right" scale="log" domain={[pMin, pMax]} allowDataOverflow ticks={[0.001, 0.01, 0.1, 1].filter(v => v >= pMin && v <= pMax)} tickFormatter={fmtP} tick={{ fill: "#8592a6", fontFamily: MONO, fontSize: 11 }} tickLine={false} axisLine={false} width={50} />
+            <ReferenceLine yAxisId="f" y={0} stroke="rgba(255,255,255,0.25)" />
+            <Tooltip cursor={{ fill: "rgba(255,255,255,0.06)" }} content={({ active, payload }) => {
+              if (!active || !payload?.length) return null; const r = payload.find(p => p.payload?.flow != null)?.payload; if (!r) return null;
+              return <TipBox><div style={{ fontFamily: MONO, fontSize: 12 }}>
+                <div style={{ color: "#e2e8f0", marginBottom: 3 }}>{fDay(r.t)}</div>
+                <div style={{ color: r.flow >= 0 ? GRN : RED }}>{r.flow >= 0 ? "+" : ""}{fmtM(r.flow)} SPX {r.flow >= 0 ? "accumulated" : "distributed"}</div>
+                <div style={{ color: "#94a3b8" }}>price {fmtP(r.price)}</div>
+              </div></TipBox>;
+            }} />
+            <Bar yAxisId="f" dataKey="flowK" isAnimationActive={false}>
+              {rows.map((r, i) => <Cell key={i} fill={r.flow >= 0 ? GRN : RED} fillOpacity={0.85} />)}
+            </Bar>
+            <Line yAxisId="p" dataKey="price" type="monotone" dot={false} stroke="#aab6cc" strokeWidth={1.4} strokeOpacity={0.8} isAnimationActive={false} />
+          </ComposedChart>
+        </ResponsiveContainer>
+      )}
+
+      <div className="chart-caption" style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 16, lineHeight: 1.65, maxWidth: 840, marginInline: "auto" }}>
+        {view === "holdings"
+          ? <>SPX held over time by the {S.cohortSize} live smart-money wallets (gold) vs price (pale). They peaked at <strong style={{ color: "#f6a23c" }}>{fmtM(S.peak)}</strong> when SPX was ~{fmtP(S.peakPrice)} and distributed into the run-up — now <strong style={{ color: "#e2e8f0" }}>{fmtM(S.heldNow)}</strong>.</>
+          : <>Weekly net position change of the cohort — <strong style={{ color: "#4ade80" }}>green = accumulating</strong>, <strong style={{ color: "#f43f5e" }}>red = distributing</strong>. This is the forward signal: it turns green the week the proven timers start buying again. Last quarter: <strong style={{ color: flowVerb.c }}>{S.flow.w12 > 0 ? "+" : ""}{S.flow.w12}%</strong>.</>}
+        <br />Qualifies on realized (sold) profit only, so a wallet quietly accumulating the bottom is invisible until it sells; average-cost proxy; on-chain has no identity (a fresh wallet resets). Not a signal.
+      </div>
+    </div>
+  );
+}

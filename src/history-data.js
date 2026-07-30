@@ -42,6 +42,17 @@ export function loadExitFlow() {
   return exitFlowPromise;
 }
 
+let smartMoneyPromise = null;
+export function loadSmartMoney() {
+  if (!smartMoneyPromise) {
+    smartMoneyPromise = fetch("/smart-money.json")
+      .then(r => (r.ok ? r.json() : null))
+      .then(d => (d?.cohortSize > 0 && Array.isArray(d.weeks) ? d : null))
+      .catch(() => null);
+  }
+  return smartMoneyPromise;
+}
+
 let pricePromise = null;
 export function loadPriceHistory() {
   if (!pricePromise) {

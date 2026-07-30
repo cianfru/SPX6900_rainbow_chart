@@ -219,6 +219,14 @@ function loadExitFlow() {
   return null;
 }
 
+function loadSmartMoney() {
+  try {
+    const o = JSON.parse(readFileSync(new URL("../../public/smart-money.json", import.meta.url), "utf8"));
+    if (o?.cohortSize > 0 && Array.isArray(o.weeks)) return o;
+  } catch { /* data-gated until the pipeline writes it */ }
+  return null;
+}
+
 function loadCohortSurvival() {
   try {
     const o = JSON.parse(readFileSync(new URL("../../public/cohort-survival.json", import.meta.url), "utf8"));
@@ -509,6 +517,7 @@ export function computeStats(price, dateStr = new Date().toISOString().slice(0, 
     chainWallets: loadChainWalletsSeries(), // multi-chain weekly wallet counts (ETH+Base+Solana), live JSON or bundle
     cohorts: loadCohortSurvival(), // wallet survival by arrival era (from the city time-machine)
     exitFlow: loadExitFlow(), // daily/weekly departures split by profit/loss (who's selling, at what price)
+    smartMoney: loadSmartMoney(), // live cohort of proven top-timers — aggregate holdings + net-flow
     altHistory: loadAltHistory(), // DOGE/PEPE/SHIB age-indexed history for the memecoin age cards
     series: {
       price: RAW.map(r => [Date.parse(r.date), r.price]),

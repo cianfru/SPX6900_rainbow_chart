@@ -48,6 +48,7 @@ export const CHART_GROUPS = [
       { id: "concentration", title: "Holder Concentration", post: "concentration", desc: "The largest wallets' share of supply over time." },
       { id: "whales", title: "Whale Supply", post: "whales", desc: "What the biggest wallets hold, and whether there are more of them." },
       { id: "survivorship", title: "Who's Still Here", post: "survivorship", desc: "Of everyone who ever held SPX, who remains — by the era they first bought." },
+      { id: "smartmoney", title: "Smart Money", post: "smartmoney", desc: "The live cohort of proven top-timers (ROI ≥5×, still holding) — aggregate holdings and net-flow." },
       { id: "walletwaves", title: "Wallet-Size Waves", post: "walletwaves", desc: "Supply by how big the wallet is — HODL waves cut by size, not age." },
       { id: "wealthwaves", title: "The Wealth Ladder", post: "wealthwaves", desc: "How many holders sit in each dollar bracket, week by week." },
       { id: "urpd", title: "Cost Basis Distribution", post: "urpd", desc: "Where every held coin was bought — the walls of supply." },
@@ -149,7 +150,7 @@ export const METHOD_FAMILIES = [
   {
     id: "04", name: "Cost basis & holder behaviour",
     charts: ["supply", "holders", "holdersprice", "supplyprofit", "hodlwaves", "freefloat", "concentration",
-             "whales", "survivorship", "walletwaves", "wealthwaves",
+             "whales", "survivorship", "smartmoney", "walletwaves", "wealthwaves",
              "urpd", "urpdage", "lthsth", "sopr", "nrpl", "liveliness", "spxcity", "citylab", "walletgrowth", "mvrv", "nupl", "mvrvbtc"],
   },
   {
