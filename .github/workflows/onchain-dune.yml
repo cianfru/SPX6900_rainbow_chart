@@ -79,8 +79,9 @@ jobs:
       - name: Rebuild exit flow (DAILY departures split by profit/loss — who's selling, at what price)
         # straight off the raw archive → exact per-day exit, finer than the weekly timeline
         run: node scripts/build-exit-flow.mjs --transfers=transfers.csv --prices=public/price-history.json --out=public/exit-flow.json
-      - name: Rebuild smart-money cohort (proven top-timers, aggregate)
-        run: node scripts/build-smart-money.mjs --in=public/spx-timeline.json --prices=public/price-history.json --out=public/smart-money.json
+      - name: Rebuild smart-money cohort (DAILY, proven top-timers, aggregate + new qualifiers)
+        # off the raw archive → real per-transfer timestamps, daily net-flow (finer than the weekly timeline)
+        run: node scripts/build-smart-money.mjs --transfers=transfers.csv --prices=public/price-history.json --out=public/smart-money.json
 
       - name: Sanity check (reconcile to the known extract)
         run: |

@@ -626,11 +626,20 @@
   - **AGGREGATE ONLY, NEVER a wallet named** (owner: keep it off the city, "people can start following them"). The honest
     read today: they accumulated ~76M under $0.03, distributed into the run-up, hold 30M now, and are **NOT buying** (12w
     net −3.7%, 21/26 flat, 0 adding). The **net-flow view is the forward signal — it flips green the week they buy again**;
-    it hasn't. `scripts/build-smart-money.mjs` (`smartMoney(tl,prices)`, unit-tested) → `public/smart-money.json` (aggregate
-    weekly held + net-flow + price + cohort stats), runs in onchain-dune.yml off spx-timeline.json (weekly, keyless). Card
-    `smart-money-card.mjs` (`smartmoney`, LOOK dual, flow-aware headline) + site `SmartMoneyChart.jsx` (Holdings-vs-price /
-    Net-flow toggle, On-Chain group). avg-cost proxy (not FIFO), caveated everywhere. This is exactly the "edge" the owner
-    flagged for eventual gating — kept OPEN for now (building audience), but the #1 candidate for the future held/paid tier.
+    it hasn't. `scripts/build-smart-money.mjs` → `public/smart-money.json` (aggregate held + net-flow + price + cohort stats),
+    runs in onchain-dune.yml. Card `smart-money-card.mjs` (`smartmoney`, LOOK dual, flow-aware headline) + site
+    `SmartMoneyChart.jsx` (On-Chain group). avg-cost proxy (not FIFO), caveated everywhere. This is exactly the "edge" the
+    owner flagged for eventual gating — kept OPEN for now (building audience), but the #1 candidate for the future held/paid tier.
+  - **⭐ DAILY + NEW-QUALIFIERS (owner, 2026-07-30: "need daily. That must be the north star. We have the data. Lets leverage
+    it always." + "build it!" re new qualifiers).** Two input modes like exit-flow: **`--transfers=` (DAILY, from the raw
+    archive — real per-transfer timestamps, the north star; two passes: account per-wallet → qualify the live cohort → sum the
+    cohort's balance forward into a daily grid → daily net-flow)** and `--timeline=` (weekly, from spx-timeline.json — offline-
+    validatable + the seed; reconciles to 26/30.2M/11×). Both exported + unit-tested (`test/smart-money.test.mjs`). CI runs
+    `--transfers`; seeded weekly now, first onchain-dune run upgrades it to daily. **NEW QUALIFIERS**: the builder also emits
+    `newQualifiers` [[date,count]] — wallets FIRST crossing the ROI+capital bar each period (counts even if they later left;
+    it's the act of *minting* = selling a top at profit). A burst = distribution starting. Site 3rd toggle "New timers" (bars
+    vs price) + a `new (90d)` metric (turns red >3). Today **1 in 90d** (nobody minting in a dead market; historical spikes
+    cluster at the 2024 launch pump + the 2025 top). `newQual90` in the JSON.
 - **✅✅ TIME MACHINE SHIPPED 2026-07-29 (the greenlit "time slider"; owner: "Amazing idea").** The launch→today
   replay is LIVE in SPX City: a **Time machine** toggle (SPX + AEON modes; hidden in BOTH — an honest historical
   join of the two assets isn't built) opens a violet slider; scrub it and the city rebuilds at that week —

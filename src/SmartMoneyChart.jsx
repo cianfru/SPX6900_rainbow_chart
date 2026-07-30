@@ -26,13 +26,17 @@ export default function SmartMoneyChart({ isMobile }) {
     const pxs = rows.map(r => r.price).filter(p => p > 0);
     const pMin = Math.max(0.0015, Math.min(...pxs) * 0.85), pMax = Math.max(...pxs) * 1.15;
     const yearTicks = (() => { const seen = new Set(), out = []; for (const r of rows) { const y = r.d.slice(0, 4); if (!seen.has(y)) { seen.add(y); out.push(r.d); } } return out; })();
-    return { rows, pMin, pMax, yearTicks };
+    // new-qualifiers series joined to the price at each qualification date (bars where a wallet minted itself)
+    const priceAt = (t) => { let b = pxs[0]; for (const r of rows) { if (r.t <= t) b = r.price; else break; } return b; };
+    const newQ = (data.newQualifiers || []).map(([d, c]) => ({ d, t: Date.parse(d), n: c, price: priceAt(Date.parse(d)) })).filter(r => Number.isFinite(r.t));
+    return { rows, pMin, pMax, yearTicks, newQ };
   }, [data]);
 
   if (!data) return <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Loading…</div>;
   if (!model) return <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Being reconstructed — check back after the next on-chain refresh.</div>;
-  const { rows, pMin, pMax, yearTicks } = model;
+  const { rows, pMin, pMax, yearTicks, newQ } = model;
   const S = data;
+  const newQYearTicks = (() => { const seen = new Set(), out = []; for (const r of newQ) { const y = r.d.slice(0, 4); if (!seen.has(y)) { seen.add(y); out.push(r.d); } } return out; })();
   const fDate = ts => new Date(ts).toLocaleDateString("en-US", { month: "short", year: "2-digit" });
   const fDay = ts => new Date(ts).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "2-digit" });
   const flowVerb = S.flow.w12 > 2 ? { t: "buying again", c: GRN } : S.flow.w12 < -1 ? { t: "trimming, not buying", c: "#f59e0b" } : { t: "holding, not buying", c: "#94a3b8" };
@@ -48,7 +52,7 @@ export default function SmartMoneyChart({ isMobile }) {
       </Explain>
 
       <div style={{ display: "flex", gap: 6, justifyContent: "center", marginBottom: 6, flexWrap: "wrap" }}>
-        {[["holdings", "Holdings vs price"], ["flow", "Net flow"]].map(([id, lbl]) => (
+        {[["holdings", "Holdings vs price"], ["flow", "Net flow"], ...(newQ.length ? [["newq", "New timers"]] : [])].map(([id, lbl]) => (
           <button key={id} onClick={() => setView(id)} {...btn(view === id)}>{lbl}</button>
         ))}
       </div>
@@ -57,7 +61,7 @@ export default function SmartMoneyChart({ isMobile }) {
         <Metric label="live wallets" value={S.cohortSize} color="#f6a23c" sub="proven timers" />
         <Metric label="still hold" value={usd(S.heldUsd)} color="#e2e8f0" sub={fmtM(S.heldNow) + " SPX"} />
         <Metric label="median return" value={S.medianRoi + "×"} color="#4ade80" sub="realized" />
-        <Metric label="banked" value={usd(S.realizedTotal)} color="#94a3b8" sub="realized profit" />
+        <Metric label="new (90d)" value={S.newQual90 ?? 0} color={S.newQual90 > 3 ? "#f43f5e" : "#94a3b8"} sub="minted top-sellers" />
       </div>
 
       {view === "holdings" ? (
@@ -80,7 +84,7 @@ export default function SmartMoneyChart({ isMobile }) {
             <Line yAxisId="p" dataKey="price" type="monotone" dot={false} stroke="#aab6cc" strokeWidth={1.6} strokeOpacity={0.85} isAnimationActive={false} />
           </ComposedChart>
         </ResponsiveContainer>
-      ) : (
+      ) : view === "flow" ? (
         <ResponsiveContainer width="100%" height={isMobile ? 320 : 400}>
           <ComposedChart data={rows} margin={{ top: 12, right: 56, left: 6, bottom: 6 }}>
             <CartesianGrid stroke="rgba(255,255,255,0.05)" vertical={false} />
@@ -102,12 +106,33 @@ export default function SmartMoneyChart({ isMobile }) {
             <Line yAxisId="p" dataKey="price" type="monotone" dot={false} stroke="#aab6cc" strokeWidth={1.4} strokeOpacity={0.8} isAnimationActive={false} />
           </ComposedChart>
         </ResponsiveContainer>
+      ) : (
+        <ResponsiveContainer width="100%" height={isMobile ? 320 : 400}>
+          <ComposedChart data={newQ} margin={{ top: 12, right: 56, left: 6, bottom: 6 }}>
+            <CartesianGrid stroke="rgba(255,255,255,0.05)" vertical={false} />
+            <XAxis dataKey="d" ticks={newQYearTicks} tickFormatter={d => d.slice(0, 4)} tick={{ fill: "#94a3b8", fontFamily: MONO, fontSize: 12 }} tickLine={false} axisLine={{ stroke: "rgba(255,255,255,0.12)" }} />
+            <YAxis yAxisId="n" allowDecimals={false} tick={{ fill: "#94a3b8", fontFamily: MONO, fontSize: 12 }} tickLine={false} axisLine={false} width={40} />
+            <YAxis yAxisId="p" orientation="right" scale="log" domain={[pMin, pMax]} allowDataOverflow ticks={[0.001, 0.01, 0.1, 1].filter(v => v >= pMin && v <= pMax)} tickFormatter={fmtP} tick={{ fill: "#8592a6", fontFamily: MONO, fontSize: 11 }} tickLine={false} axisLine={false} width={50} />
+            <Tooltip cursor={{ fill: "rgba(255,255,255,0.06)" }} content={({ active, payload }) => {
+              if (!active || !payload?.length) return null; const r = payload.find(p => p.payload?.n != null)?.payload; if (!r) return null;
+              return <TipBox><div style={{ fontFamily: MONO, fontSize: 12 }}>
+                <div style={{ color: "#e2e8f0", marginBottom: 3 }}>{fDay(r.t)}</div>
+                <div style={{ color: "#f6a23c" }}>{r.n} wallet{r.n > 1 ? "s" : ""} first hit 5×</div>
+                <div style={{ color: "#94a3b8" }}>price {fmtP(r.price)}</div>
+              </div></TipBox>;
+            }} />
+            <Bar yAxisId="n" dataKey="n" fill="#f6a23c" fillOpacity={0.85} isAnimationActive={false} />
+            <Line yAxisId="p" dataKey="price" type="monotone" dot={false} stroke="#aab6cc" strokeWidth={1.4} strokeOpacity={0.8} isAnimationActive={false} />
+          </ComposedChart>
+        </ResponsiveContainer>
       )}
 
       <div className="chart-caption" style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 16, lineHeight: 1.65, maxWidth: 840, marginInline: "auto" }}>
         {view === "holdings"
           ? <>SPX held over time by the {S.cohortSize} live smart-money wallets (gold) vs price (pale). They peaked at <strong style={{ color: "#f6a23c" }}>{fmtM(S.peak)}</strong> when SPX was ~{fmtP(S.peakPrice)} and distributed into the run-up — now <strong style={{ color: "#e2e8f0" }}>{fmtM(S.heldNow)}</strong>.</>
-          : <>Weekly net position change of the cohort — <strong style={{ color: "#4ade80" }}>green = accumulating</strong>, <strong style={{ color: "#f43f5e" }}>red = distributing</strong>. This is the forward signal: it turns green the week the proven timers start buying again. Last quarter: <strong style={{ color: flowVerb.c }}>{S.flow.w12 > 0 ? "+" : ""}{S.flow.w12}%</strong>.</>}
+          : view === "flow"
+          ? <>Net position change of the cohort — <strong style={{ color: "#4ade80" }}>green = accumulating</strong>, <strong style={{ color: "#f43f5e" }}>red = distributing</strong>. This is the forward signal: it turns green the week the proven timers start buying again. Last quarter: <strong style={{ color: flowVerb.c }}>{S.flow.w12 > 0 ? "+" : ""}{S.flow.w12}%</strong>.</>
+          : <>Wallets <strong style={{ color: "#f6a23c" }}>first crossing the bar</strong> (≥$25k in, realized ≥5×) each period — the moment a wallet mints itself as a proven top-seller. Spikes cluster at price tops: a <strong style={{ color: "#e2e8f0" }}>burst of new qualifiers = distribution starting</strong>. Last 90 days: <strong style={{ color: S.newQual90 > 3 ? "#f43f5e" : "#e2e8f0" }}>{S.newQual90 ?? 0}</strong>. Counts every wallet that crossed, even if it later left.</>}
         <br />Qualifies on realized (sold) profit only, so a wallet quietly accumulating the bottom is invisible until it sells; average-cost proxy; on-chain has no identity (a fresh wallet resets). Not a signal.
       </div>
     </div>
