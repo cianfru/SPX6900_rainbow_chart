@@ -559,8 +559,20 @@
   stack, landscape) + **site chart `Who's Still Here`** (On-Chain group; "Who's here" vintage area + "Survival
   by cohort" bars, right-censoring caveat stated). ⚠ Reconciles WITH the diamond-hands cards, doesn't contradict:
   those measure CURRENT holders' conviction (high); this measures all-time churn (high) — survivorship. Honesty
-  caveats on-surface: right-censoring (recent cohorts read high), "gone" = balance fell below the bar. **Possible
-  2nd card (offered, not built): the "built during the drawdown" composition angle — supply-held-today by cohort.**
+  caveats on-surface: right-censoring (recent cohorts read high), "gone" = balance fell below the bar.
+- **✅ 2ND CARD — "WHERE TODAY'S FLOAT BOUGHT IN" (supplyera) SHIPPED 2026-07-30 (owner: "couple it with price, tower
+  charts aren't interesting").** First built as 7 vintage-coloured supply bars (the boring version); owner rightly
+  pushed for a price-coupled representation. Now `scripts/bot/supply-era-card.mjs` places each surviving cohort ON the
+  real SPX price curve at the price it first paid (era median), bubble-sized by SPX still held today, with a **green ring
+  = in profit / red ring = underwater** vs a dashed "now" line, and a ±% / ×-multiple label per bubble. The story the
+  towers hid: **~40-48% of the float held today bought ABOVE today's price and still hasn't sold** — the single biggest
+  bag (166M) came in near the $1.08 top (−69%) and never moved, while 164M bought at $0.22 (+51%). Conviction through the
+  drawdown, coupled with price. `build-cohort-survival.mjs` emits per-era `medPrice` (median SPX during the era window,
+  from price-history.json) for the bubble y-positions. Card reads `stats.cohorts` + `stats.drawn` + `stats.price` (spot
+  is LIVE, not frozen). LOOK "dual", landscape, in rotation, copy ≤290. **Site**: the same cost-basis bubble-on-price is
+  the third toggle ("Cost basis") in the `Who's Still Here` chart (recharts ComposedChart: price Line + custom-shape
+  Scatter, log y, loadPriceHistory), alongside "Who's here" + "Survival by cohort". Not a "bought the bottom" story — a
+  "the float turned over and the survivors are sitting through it" one. Honest: still-held ≥5k self-custody only.
 - **✅✅ TIME MACHINE SHIPPED 2026-07-29 (the greenlit "time slider"; owner: "Amazing idea").** The launch→today
   replay is LIVE in SPX City: a **Time machine** toggle (SPX + AEON modes; hidden in BOTH — an honest historical
   join of the two assets isn't built) opens a violet slider; scrub it and the city rebuilds at that week —

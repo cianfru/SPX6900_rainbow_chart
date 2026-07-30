@@ -978,19 +978,23 @@ Most who bought, sold. The ones who kept, kept everything.`,
     };
   })(),
 
-  // Where the float came from — the flip side of survivorship. The old wallets left, so today's
-  // supply is mostly NOT launch bags: 74% arrived after the launch year, accumulated across the
-  // cycle. Honest: not "bought the bottom" (2025 buyers came in near the top) — "the float turned over".
-  s => (s.cohorts?.cohorts?.length >= 4) && (() => {
-    const cs = s.cohorts.cohorts.filter(c => c.arrived > 0 && c.supplyNow > 0);
+  // Where today's float bought in — survivorship coupled with price. Each surviving cohort sits on
+  // the price curve at the price it first paid, sized by SPX still held. The story a bar chart hides:
+  // ~40%+ of the float bought ABOVE today's price and still hasn't sold (conviction), while the
+  // biggest bag came in near the top. Honest: not "bought the bottom" — "the float turned over and
+  // the survivors are sitting through the drawdown".
+  s => (s.cohorts?.cohorts?.length >= 4) && s.price > 0 && (() => {
+    const cs = s.cohorts.cohorts.filter(c => c.arrived > 0 && c.supplyNow > 0 && c.medPrice > 0);
     const total = cs.reduce((a, c) => a + c.supplyNow, 0);
-    const launchPct = Math.round(100 * cs.slice(0, 2).reduce((a, c) => a + c.supplyNow, 0) / total);
+    const now = s.price;
+    const underPct = Math.round(100 * cs.filter(c => c.medPrice > now).reduce((a, c) => a + c.supplyNow, 0) / total);
     const big = cs.slice().sort((a, b) => b.supplyNow - a.supplyNow)[0];
+    const pm = p => p < 1 ? "$" + p.toFixed(2) : "$" + p.toFixed(2);
     return {
       id: "supplyera",
-      text: ct`📦 Only ${launchPct}% of the SPX6900 held today is launch-era bags. The other ${100 - launchPct}% was accumulated after the first year.
-The single biggest slice — ${Math.round(100 * big.supplyNow / total)}% of the float — is held by wallets that first bought in ${big.label}, around ${big.medPrice < 1 ? "$" + big.medPrice.toFixed(2) : "$" + big.medPrice.toFixed(2)}.
-Old wallets left. The float turned over.`,
+      text: ct`📦 Every SPX6900 holder placed on the price curve at the price they first paid.
+${underPct}% of the float held today is underwater and hasn't sold — the biggest bag bought near ${pm(big.medPrice)}, now ~${pm(now)}.
+Old wallets left; the survivors are holding through the drawdown.`,
       card: { type: "supplyera" },
     };
   })(),
@@ -2156,7 +2160,7 @@ const LOOK = {
   whatnext: "race",
   // — Tier B: flavourful / distinct looks (used to break up the green lines) —
   riskcolor: "colorline", risklevels: "colorline", rsidots: "colorline",
-  riskheat: "dual", runningroi: "dual", cycle: "dual", longshort: "dual", underwater: "dual", goldencross: "dual", holdergrowth: "dual", holdersprice: "dual", mvrvbtc: "dual", mvrvtrend: "dual", supplyprofit: "dual", whales: "dual", walletwaves: "stack", wealthwaves: "stack", survivorship: "stack", supplyera: "bars", floormodel: "dual", altmarket: "dual", freefloat: "dual", nupl: "dual", concentration: "dual", picycle: "dual", spxbitcoin: "dual", spxcohort: "dual", cexflow: "dual", cexsupply: "stack", sopr: "dual", nrpl: "dual", liveliness: "dual",
+  riskheat: "dual", runningroi: "dual", cycle: "dual", longshort: "dual", underwater: "dual", goldencross: "dual", holdergrowth: "dual", holdersprice: "dual", mvrvbtc: "dual", mvrvtrend: "dual", supplyprofit: "dual", whales: "dual", walletwaves: "stack", wealthwaves: "stack", survivorship: "stack", supplyera: "dual", floormodel: "dual", altmarket: "dual", freefloat: "dual", nupl: "dual", concentration: "dual", picycle: "dual", spxbitcoin: "dual", spxcohort: "dual", cexflow: "dual", cexsupply: "stack", sopr: "dual", nrpl: "dual", liveliness: "dual",
   firesalerally: "fanlines",
   model: "scatter",
   monthlyreturns: "heatmap", monthlyreturnssp: "heatmap", monthlyreturnsbtc: "heatmap",
