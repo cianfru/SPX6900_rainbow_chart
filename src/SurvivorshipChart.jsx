@@ -64,12 +64,21 @@ export default function SurvivorshipChart({ isMobile }) {
       pMin = Math.max(0.0005, pFloor * 0.85);
       pMax = Math.max(...line.map(r => r.p), ...priced.map(c => c.medPrice), now) * 1.18;
     }
-    return { cohorts, nC, rows, bars, totalSupply, launchPct, line, bubbles, now, pMin, pMax, t0, t1, underPct, maxSupM };
+    // WHO LEFT — per exit-quarter profit/loss counts, joined to that quarter's median price
+    let exits = [], exOverall = null;
+    if (data.exits?.byPeriod?.length) {
+      const medBy = new Map(data.cohorts.map(c => [c.label, c.medPrice]));
+      exits = data.exits.byPeriod.map(p => ({ label: shortLab(p.label), profit: p.profit, loss: p.loss, n: p.n, profitPct: Math.round(100 * p.profit / p.n), price: medBy.get(p.label) ?? null }));
+      exOverall = data.exits;
+    }
+    return { cohorts, nC, rows, bars, totalSupply, launchPct, line, bubbles, now, pMin, pMax, t0, t1, underPct, maxSupM, exits, exOverall };
   }, [data, px]);
 
   if (!data) return <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Loading…</div>;
   if (!model) return <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Being reconstructed — check back after the next on-chain refresh.</div>;
-  const { cohorts, nC, rows, bars, launchPct, line, bubbles, now, pMin, pMax, t0, t1, underPct, maxSupM } = model;
+  const { cohorts, nC, rows, bars, launchPct, line, bubbles, now, pMin, pMax, t0, t1, underPct, maxSupM, exits, exOverall } = model;
+  const exPx = exits.filter(e => e.price > 0).map(e => e.price);
+  const exPMin = exPx.length ? Math.min(...exPx) * 0.7 : 0.001, exPMax = exPx.length ? Math.max(...exPx) * 1.3 : 2;
   const O = data.overall, launch = cohorts[0];
   const fDate = ts => new Date(ts).toLocaleDateString("en-US", { month: "short", year: "2-digit" });
   const fYear = ts => new Date(ts).getUTCFullYear();
@@ -104,7 +113,7 @@ export default function SurvivorshipChart({ isMobile }) {
       </Explain>
 
       <div style={{ display: "flex", gap: 6, justifyContent: "center", marginBottom: 6, flexWrap: "wrap" }}>
-        {[["who", "Who's here"], ["survival", "Survival by cohort"], ["supply", "Cost basis"]].map(([id, lbl]) => (
+        {[["who", "Who's here"], ["survival", "Survival by cohort"], ["supply", "Cost basis"], ...(exits.length ? [["exits", "Who left"]] : [])].map(([id, lbl]) => (
           <button key={id} onClick={() => setView(id)} {...btn(view === id)}>{lbl}</button>
         ))}
       </div>
@@ -160,6 +169,27 @@ export default function SurvivorshipChart({ isMobile }) {
             </Bar>
           </BarChart>
         </ResponsiveContainer>
+      ) : view === "exits" ? (
+        <ResponsiveContainer width="100%" height={isMobile ? 320 : 400}>
+          <ComposedChart data={exits} margin={{ top: 12, right: 54, left: 6, bottom: 6 }}>
+            <CartesianGrid stroke="rgba(255,255,255,0.05)" vertical={false} />
+            <XAxis dataKey="label" interval={0} tick={{ fill: "#94a3b8", fontFamily: MONO, fontSize: 11 }} tickLine={false} axisLine={{ stroke: "rgba(255,255,255,0.12)" }} angle={isMobile ? -45 : 0} textAnchor={isMobile ? "end" : "middle"} height={isMobile ? 46 : 24} />
+            <YAxis yAxisId="cnt" tickFormatter={fmtN} tick={{ fill: "#94a3b8", fontFamily: MONO, fontSize: 12 }} tickLine={false} axisLine={false} width={46} />
+            <YAxis yAxisId="px" orientation="right" scale="log" domain={[exPMin, exPMax]} allowDataOverflow tickFormatter={fmtP} tick={{ fill: "#8592a6", fontFamily: MONO, fontSize: 11 }} tickLine={false} axisLine={false} width={52} />
+            <Tooltip content={({ active, payload }) => {
+              if (!active || !payload?.length) return null;
+              const d = payload[0].payload;
+              return <TipBox><div style={{ fontFamily: MONO, fontSize: 12 }}>
+                <div style={{ color: "#e2e8f0", marginBottom: 3 }}>{d.label} · {fmtN(d.n)} left</div>
+                <div style={{ color: "#4ade80" }}>{d.profitPct}% sold in profit</div>
+                <div style={{ color: "#94a3b8" }}>{fmtN(d.profit)} green · {fmtN(d.loss)} red{d.price ? ` · ~${fmtP(d.price)}` : ""}</div>
+              </div></TipBox>;
+            }} />
+            <Bar yAxisId="cnt" dataKey="profit" stackId="e" fill="#4ade80" fillOpacity={0.82} isAnimationActive={false} />
+            <Bar yAxisId="cnt" dataKey="loss" stackId="e" fill="#f43f5e" fillOpacity={0.85} radius={[3, 3, 0, 0]} isAnimationActive={false} />
+            <Line yAxisId="px" dataKey="price" type="monotone" stroke="#aab6cc" strokeWidth={2} dot={{ r: 2.5, fill: "#aab6cc" }} isAnimationActive={false} />
+          </ComposedChart>
+        </ResponsiveContainer>
       ) : !line.length ? (
         <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 120 }}>Loading price…</div>
       ) : (
@@ -195,6 +225,8 @@ export default function SurvivorshipChart({ isMobile }) {
           ? <>Living holders of ≥5,000 SPX over time, stacked by the era each wallet first bought. Old vintages thin out as they sell; the base today is mostly the {shortLab(cohorts[2]?.label || "2024")}–{shortLab(cohorts[cohorts.length - 2]?.label || "2025")} cohorts who <strong style={{ color: "#e2e8f0" }}>accumulated through the drawdown</strong>.</>
           : view === "survival"
           ? <>Share of each arrival cohort still holding ≥5,000 SPX today. Retention decays with tenure — the {shortLab(launch.label)} launch crowd is down to <strong style={{ color: "#f43f5e" }}>{launch.survivalPct}%</strong>. Recent cohorts read high partly because they <strong style={{ color: "#e2e8f0" }}>haven't had time to leave</strong> (right-censoring).</>
+          : view === "exits"
+          ? <>Wallets that dropped below 5,000 SPX, by the quarter they left — <strong style={{ color: "#4ade80" }}>green sold in profit</strong>, <strong style={{ color: "#f43f5e" }}>red at a loss</strong> (vs the price when they crossed the bar); the line is that quarter's median price. Of the {exOverall?.left.toLocaleString("en-US")} that left, <strong style={{ color: "#4ade80" }}>{exOverall?.profitPct}% sold green</strong> — the churn was mostly profit-taking, and the loss-exits cluster only in the recent drawdown. Not NUPL (that's unrealized P/L of who's still here) — this is who's gone.</>
           : <>Each surviving cohort placed on the real price curve at the price it first paid — bubble size = SPX still held, <strong style={{ color: "#4ade80" }}>green ring in profit</strong> / <strong style={{ color: "#f43f5e" }}>red underwater</strong>. <strong style={{ color: "#e2e8f0" }}>{underPct}% of the float held today is underwater</strong> and still hasn't sold — the biggest bag bought near the top. The float turned over; the survivors are sitting through the drawdown.</>}
         <br />Self-custody only; exchanges, LP and bridge addresses excluded. Survivorship, not a forecast.
       </div>

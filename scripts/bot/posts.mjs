@@ -999,6 +999,21 @@ Old wallets left; the survivors are holding through the drawdown.`,
     };
   })(),
 
+  // How holders left — the mirror of survivorship. Of the ~21k wallets that dropped below the 5k bar,
+  // 71% left in PROFIT (cashing out into strength), and the loss-exits cluster only in the recent
+  // drawdown. Counterintuitive + honest: the churn wasn't capitulation. Distinct from NUPL (unrealized,
+  // current holders) — this is the realized exit of who's gone.
+  s => (s.cohorts?.exits?.left > 0) && (() => {
+    const ex = s.cohorts.exits;
+    return {
+      id: "exitmap",
+      text: ct`🚪 Of the ${ex.left.toLocaleString("en-US")} wallets that ever held ≥5,000 SPX6900 and later left, ${ex.profitPct}% sold in profit.
+The churn wasn't capitulation — most cashed out into strength. The forced, red exits only clustered in the recent drawdown.
+Most who left, left green.`,
+      card: { type: "exitmap" },
+    };
+  })(),
+
   // Realized Price & Floor Model — spot vs the crowd's on-chain cost basis, with the
   // 0.5–0.8× multiplier "floor zone" beneath. Same bundled realized-price series as MVRV
   // (no new Dune). Valuation POSITION (bands are historical support, not a guarantee).
@@ -2160,7 +2175,7 @@ const LOOK = {
   whatnext: "race",
   // — Tier B: flavourful / distinct looks (used to break up the green lines) —
   riskcolor: "colorline", risklevels: "colorline", rsidots: "colorline",
-  riskheat: "dual", runningroi: "dual", cycle: "dual", longshort: "dual", underwater: "dual", goldencross: "dual", holdergrowth: "dual", holdersprice: "dual", mvrvbtc: "dual", mvrvtrend: "dual", supplyprofit: "dual", whales: "dual", walletwaves: "stack", wealthwaves: "stack", survivorship: "stack", supplyera: "dual", floormodel: "dual", altmarket: "dual", freefloat: "dual", nupl: "dual", concentration: "dual", picycle: "dual", spxbitcoin: "dual", spxcohort: "dual", cexflow: "dual", cexsupply: "stack", sopr: "dual", nrpl: "dual", liveliness: "dual",
+  riskheat: "dual", runningroi: "dual", cycle: "dual", longshort: "dual", underwater: "dual", goldencross: "dual", holdergrowth: "dual", holdersprice: "dual", mvrvbtc: "dual", mvrvtrend: "dual", supplyprofit: "dual", whales: "dual", walletwaves: "stack", wealthwaves: "stack", survivorship: "stack", supplyera: "dual", exitmap: "dual", floormodel: "dual", altmarket: "dual", freefloat: "dual", nupl: "dual", concentration: "dual", picycle: "dual", spxbitcoin: "dual", spxcohort: "dual", cexflow: "dual", cexsupply: "stack", sopr: "dual", nrpl: "dual", liveliness: "dual",
   firesalerally: "fanlines",
   model: "scatter",
   monthlyreturns: "heatmap", monthlyreturnssp: "heatmap", monthlyreturnsbtc: "heatmap",

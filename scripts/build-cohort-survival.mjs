@@ -34,13 +34,15 @@ export function cohortSurvival(tl, prices = null) {
   const dateOf = (wk) => new Date(week0 + wk * 7 * DAY);
   // median SPX price during a [wk, wkEnd) window — the era's typical entry price, so the "where the
   // float came from" surfaces can say a cohort arrived cheap or near the top without re-fetching.
-  const px = Array.isArray(prices) ? prices.map(r => ({ t: Date.parse(r.date), p: +r.price })).filter(r => Number.isFinite(r.t) && r.p > 0) : [];
+  const px = Array.isArray(prices) ? prices.map(r => ({ t: Date.parse(r.date), p: +r.price })).filter(r => Number.isFinite(r.t) && r.p > 0).sort((a, b) => a.t - b.t) : [];
   const medPrice = (wk0, wk1) => {
     if (!px.length) return null;
     const t0 = week0 + wk0 * 7 * DAY, t1 = week0 + wk1 * 7 * DAY;
     const v = px.filter(r => r.t >= t0 && r.t < t1).map(r => r.p).sort((a, b) => a - b);
     return v.length ? +v[v.length >> 1].toFixed(4) : null;
   };
+  // price at (or just before) a given week — the wallet's entry/exit price proxy for the leavers map
+  const priceAt = (wk) => { if (!px.length) return null; const t = week0 + wk * 7 * DAY; let best = px[0].p; for (const r of px) { if (r.t <= t) best = r.p; else break; } return best; };
 
   // fixed cohort spine (every half-year present in the grid), so empty ones still render as zero
   const labels = [];
@@ -53,6 +55,11 @@ export function cohortSurvival(tl, prices = null) {
 
   let everHeld = 0, holdNow = 0, diamond = 0;
   const byPeak = [];
+  // the leavers map: for each wallet that has since dropped below the bar, WHEN it left (the last week
+  // it was above) and whether it left in profit (exit price ≥ entry price, both = price when it crossed
+  // the bar). One row per arrival period → a diverging profit/loss exit-count series over time.
+  const exitP = labels.map((label, i) => ({ label, startWk: startWk[i], n: 0, profit: 0, loss: 0 }));
+  let leftTot = 0, leftProfit = 0;
 
   for (const w of tl.wallets) {
     // arrival = first week at/above the bar
@@ -64,11 +71,11 @@ export function cohortSurvival(tl, prices = null) {
     cohorts[ci].arrived++;
     byPeak.push({ peak: Math.max(...w.p.map(x => x[1])), now: balanceAt(w.p, W) });
 
-    // living-by-vintage series: walk the sparse points, hold between them
-    let pi = 0, bal = 0;
+    // living-by-vintage series: walk the sparse points, hold between them (track the last week above bar)
+    let pi = 0, bal = 0, lastAbove = arr;
     for (let wk = arr; wk < tl.n; wk++) {
       while (pi < w.p.length && w.p[pi][0] <= wk) bal = w.p[pi++][1];
-      if (bal >= BAR) weekly[wk][ci]++;
+      if (bal >= BAR) { weekly[wk][ci]++; lastAbove = wk; }
     }
 
     const nowBal = balanceAt(w.p, W);
@@ -78,6 +85,12 @@ export function cohortSurvival(tl, prices = null) {
       let sold = false;
       for (const [wk, b] of w.p) { if (wk > arr && b === 0) { sold = true; break; } }
       if (!sold) diamond++;
+    } else if (px.length) {
+      // it LEFT — bucket by the quarter of its exit, split by profit vs loss at the crossing
+      const ei = idxOf.get(halfOf(dateOf(lastAbove)));
+      const inProfit = priceAt(lastAbove) >= priceAt(arr);
+      exitP[ei].n++; leftTot++;
+      if (inProfit) { exitP[ei].profit++; leftProfit++; } else exitP[ei].loss++;
     }
   }
 
@@ -103,6 +116,11 @@ export function cohortSurvival(tl, prices = null) {
     })),
     topPeak,
     launch: { ...launch, supplyNow: Math.round(launch.supplyNow), pct: launch.arrived ? +(100 * launch.holdNow / launch.arrived).toFixed(0) : 0 },
+    exits: px.length ? {
+      left: leftTot, profit: leftProfit, loss: leftTot - leftProfit,
+      profitPct: leftTot ? +(100 * leftProfit / leftTot).toFixed(0) : 0,
+      byPeriod: exitP.filter(p => p.n > 0),
+    } : null,
     weekly,
   };
 }

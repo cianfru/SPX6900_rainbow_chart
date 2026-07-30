@@ -584,6 +584,19 @@
     sub-$0.004 at launch (true min $0.00067); the card clamped that flat against the bottom and the site (allowDataOverflow)
     drew it off-frame. Both now floor the log y-axis at `max(0.0005, min(price,medPrice)×0.85)` so the real launch dip stays
     in frame (added a $0.001 gridline). Any future price-vs-log-axis card: set the floor from the data min, don't hard-code it.
+- **✅ 3RD CARD — "HOW HOLDERS LEFT" (exitmap) SHIPPED 2026-07-30 (owner: "what about who left? where and at what price?
+  we have NUPL — not sure it overlaps").** It does NOT overlap NUPL (that's UNREALIZED P/L of who's STILL here); this is the
+  REALIZED exit of who's GONE — the mirror of survivorship. `build-cohort-survival.mjs` now also emits `exits` (per-quarter
+  {n, profit, loss} + overall {left, profitPct}): for each departed wallet, the quarter of its LAST week above the 5k bar,
+  split by whether exit price ≥ entry price (both ≈ price when it crossed the bar — a realized-P/L proxy, stated on-surface).
+  **THE COUNTERINTUITIVE FINDING: of the 21,008 wallets that left, 71% sold in PROFIT (76% of departing supply). The churn
+  was profit-taking, NOT capitulation — exits ran 77-89% green right through the 2023-2025 run; loss-exits only cluster in
+  the recent drawdown (2026 Q1-Q3, ~63-75% red).** Card `exit-map-card.mjs` = two panels sharing a time axis (price curve on
+  top for the "at what price" context + per-quarter departure bars below, green profit / red loss stacked), LOOK "dual",
+  landscape, in rotation, copy ≤290. **Site**: 4th toggle ("Who left") in the `Who's Still Here` chart — recharts
+  ComposedChart, stacked green/red exit bars (left count axis) + that quarter's median price (right log axis). Reads
+  `stats.cohorts.exits` + `stats.drawn`. The suite is now who's-here / survival / cost-basis (where they bought) / who-left
+  (where they sold) — all off the one time-machine reconstruction.
 - **✅✅ TIME MACHINE SHIPPED 2026-07-29 (the greenlit "time slider"; owner: "Amazing idea").** The launch→today
   replay is LIVE in SPX City: a **Time machine** toggle (SPX + AEON modes; hidden in BOTH — an honest historical
   join of the two assets isn't built) opens a violet slider; scrub it and the city rebuilds at that week —
