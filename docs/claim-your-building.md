@@ -44,6 +44,15 @@ alone is not a distinction every reader can make.
 * **No control or bidi-override characters** — an override can render a harmless string as something
   else entirely.
 
+## What it looks like, and when
+
+Your note hangs in a small bubble tied to your building by a thin gold tether and a gold ring — so
+it reads as *planted on that building*, never floating over the district. The tether is a quiet gold
+on purpose, so it can't be mistaken for the green/red flow beams that mean buying and selling.
+
+You see your own note the instant the transaction is signed. **Everyone else sees it within about a
+day** — the city reads the chain once daily and redraws the board, rather than watching it live.
+
 ## What permanence costs
 
 Nobody can delete a note. Us included.

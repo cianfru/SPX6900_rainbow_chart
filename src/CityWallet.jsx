@@ -191,9 +191,10 @@ export default function CityWallet({ city, owns, inView, notes, onNotes, onFocus
           {err && <div style={{ fontFamily: SANS, fontSize: 12.5, color: "#fb7185", marginTop: 8 }}>{err}</div>}
           {sent && (
             <div style={{ fontFamily: SANS, fontSize: 12.5, color: "#4ade80", marginTop: 8, lineHeight: 1.55 }}>
-              Sent. Your sign is up as soon as the transaction confirms —{" "}
+              Sent — it's on-chain now, and you can see your own sign here straight away. Everyone else
+              sees it within about a day, when the city next reads the chain.{" "}
               <a href={chainOf(sent.chain).explorer + sent.tx} target="_blank" rel="noopener noreferrer"
-                style={{ color: chainOf(sent.chain).colour }}>check it on {chainOf(sent.chain).label}</a>.
+                style={{ color: chainOf(sent.chain).colour }}>Check the transaction on {chainOf(sent.chain).label}</a>.
             </div>
           )}
           <div style={{ fontFamily: SANS, fontSize: 11.5, color: "#7c8a9e", marginTop: 9, lineHeight: 1.55 }}>
