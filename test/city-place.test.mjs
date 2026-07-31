@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { placeCity, hoodLots, NEIGHBOURHOODS, cityScale,
-         streetGrid, avenueMedians, parkFeatures, pointInRing, ROAD_W, GRID } from "../src/city-map.js";
+         streetGrid, avenueMedians, crosswalks, parkFeatures, waterfrontPiers, pointInRing, ROAD_W, GRID } from "../src/city-map.js";
 import { bridgeSpan } from "../src/city-infra.js";
 import { NYC } from "../src/nyc-geo.js";
 
@@ -146,4 +146,29 @@ test("Central Park's interior features all sit inside the park", () => {
     for (const r of sets)
       for (const [x, z] of r)
         assert.ok(inside(x, z), `${kind} point (${x.toFixed(2)}, ${z.toFixed(2)}) escaped the park`);
+});
+
+test("every waterfront pier reaches into open water, not onto land", () => {
+  const R = NYC.manhattan[0];
+  const boroughs = [NYC.brooklyn, NYC.queens, NYC.bronx, NYC.jersey].map(b => b[0]);
+  const inWater = (x, z) => !pointInRing(x, z, R) && !boroughs.some(b => pointInRing(x, z, b));
+  const piers = waterfrontPiers();
+  assert.ok(piers.length > 20, "both river shores grow piers");
+  for (const ring of piers) {
+    // the outer (tip) edge midpoint — the far end that the inWater guard is supposed to protect
+    const [p1, p2, p3, p4] = ring;
+    const tx = (p3[0] + p4[0]) / 2, tz = (p3[1] + p4[1]) / 2;
+    assert.ok(inWater(tx, tz), `pier tip (${tx.toFixed(1)}, ${tz.toFixed(1)}) landed on land`);
+  }
+});
+
+test("crosswalks land on the roadway — on the island, never in the park", () => {
+  const R = NYC.manhattan[0], park = NYC.centralpark[0];
+  const walks = crosswalks(1);
+  assert.ok(walks.length > 40, "the grid has crossings");
+  for (const w of walks) {
+    const mx = (w.x1 + w.x2) / 2, mz = (w.z1 + w.z2) / 2;
+    assert.ok(pointInRing(mx, mz, R), "crosswalk is on the island");
+    assert.ok(!pointInRing(mx, mz, park), "crosswalk is not inside the park");
+  }
 });

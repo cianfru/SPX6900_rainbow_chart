@@ -7,7 +7,7 @@ import { UnrealBloomPass } from "three/examples/jsm/postprocessing/UnrealBloomPa
 import { OutputPass } from "three/examples/jsm/postprocessing/OutputPass.js";
 import { CSS2DRenderer, CSS2DObject } from "three/examples/jsm/renderers/CSS2DRenderer.js";
 import { placeCity, cityScale, CITY_LENGTH, ISLAND_RING, PARK_RINGS, BACKDROP, ISLETS, WATER,
-         streetGrid, ROAD_W, avenueMedians, parkFeatures, hoodGrid, NEIGHBOURHOODS, AXIS_ANGLE } from "./city-map.js";
+         streetGrid, ROAD_W, avenueMedians, crosswalks, parkFeatures, waterfrontPiers, hoodGrid, NEIGHBOURHOODS, AXIS_ANGLE } from "./city-map.js";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { chainOf } from "./city-messages.js";
 import { makeDrs } from "./city-drs.js";
@@ -264,6 +264,22 @@ export default function Skyline3D({
       for (const r of park.roads) flat([r], parkPath, 0.085);
       for (const r of park.water) flat([r], TOD.water, 0.10, true);      // reservoir/lake/pond as real water
 
+      // The waterfront piers — the finger decks that make the island's edge serrated instead of a
+      // smooth traced line. Merged into ONE mesh (a couple hundred flat quads → one draw call) and
+      // laid just above the water at the shore. See waterfrontPiers for why they hug the rivers only.
+      const pierRings = waterfrontPiers();
+      if (pierRings.length) {
+        const geos = pierRings.map(ring => new THREE.ShapeGeometry(ringShape([ring])));
+        const merged = mergeGeometries(geos, false);
+        geos.forEach(g => g.dispose());
+        if (merged) {
+          const pm = new THREE.Mesh(merged, new THREE.MeshStandardMaterial({
+            color: new THREE.Color(TOD.pave).multiplyScalar(0.5), roughness: 0.9, side: THREE.DoubleSide }));
+          pm.rotation.x = Math.PI / 2; pm.position.y = -0.07;
+          pm.receiveShadow = true; scene.add(pm); groundBits.push(pm);
+        }
+      }
+
       // Raised pavement, one slab per block. This is what makes the gaps read as ROADS rather than
       // as blank ground with lines painted on it — a kerb you can see is worth more than a brighter
       // line. Per-block, never per-building: see hoodGrid.
@@ -389,6 +405,19 @@ export default function Skyline3D({
             color: new THREE.Color(TOD.park).multiplyScalar(0.7), roughness: 0.95 }));
           m.receiveShadow = true; scene.add(m); groundBits.push(m);
         }
+      }
+
+      // Crosswalks — a pale band across each avenue at its cross-streets. Kept faint on purpose:
+      // it's the read at close range, and at a distance it must fade into the tarmac rather than
+      // pepper the island with dots. Same coplanar decal treatment as the centre lines.
+      const walks = crosswalks(K);
+      if (walks.length) {
+        const m = new THREE.Mesh(ribbon(walks, 0.11, 0.093),
+          new THREE.MeshStandardMaterial({
+            color: 0xaeb7c7, emissive: 0xaeb7c7, emissiveIntensity: 0.12, roughness: 0.85,
+            side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -4,
+          }));
+        scene.add(m); groundBits.push(m);
       }
     } else {
       const groundSize = Math.max(grid.blocks.length * 2, 60) * 4;
