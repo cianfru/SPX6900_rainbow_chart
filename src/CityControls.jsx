@@ -3,8 +3,11 @@ import { lookupHome } from "./city-map.js";
 import { TIMES } from "./city-render.js";
 import { SANS, MONO } from "./chart-ui.jsx";
 
-// Where the "how to read the city" instructions live — the docs book in the public repo.
-const DOCS_URL = "https://github.com/cianfru/spx6900_rainbow_chart/tree/main/docs";
+// Where the "how to read the city" instructions live — the published manual. The pages are authored
+// in docs/ in this repo and mirrored to GitBook by Git Sync, so the book can never drift from what
+// shipped. Pointing at the published site rather than the repo folder also means the link survives
+// the repo's visibility changing.
+const DOCS_URL = "https://andrea-cianfruglia.gitbook.io/spx6900-rainbow-charts/";
 
 // Line icons for the time-of-day toggle — drawn, not emoji, so they inherit the button colour and
 // sit cleanly with the rest of the site. Ordered dark → light (moon · sunrise · sun) so the control
