@@ -26,11 +26,17 @@ const Skyline3D = lazy(() => import("./Skyline3D.jsx"));
 // a blended axis would have quietly broken.
 const MODES = [
   { id: "spx",  label: "SPX",  unit: "holder",   accent: "#c4b5fd", asset: "SPX" },
-  { id: "both", label: "Both", unit: "resident", accent: "#5eead4", asset: "SPX + AEON" },
+  { id: "both", label: "Both", unit: "resident", accent: "#7dd3fc", asset: "SPX + AEON" },
   { id: "aeon", label: "AEON", unit: "collector", accent: "#5eead4", asset: "AEON" },
 ];
 
 const fmt = n => (Math.abs(n) >= 1e6 ? (n / 1e6).toFixed(1) + "M" : Math.abs(n) >= 1e3 ? (n / 1e3).toFixed(0) + "k" : String(Math.round(n)));
+
+// Each control group glows in the colour of the THING IT CONTROLS, so the panel reads as a set of
+// distinct instruments rather than one monochrome strip: flow cyan (the 7/30-day beams), arcs violet
+// (the trade beams are literally 0xa78bfa in the scene), time amber (the replay), and each mode its
+// own accent. Nothing here is decorative — the colour is the mapping.
+const GLOW = { flow: "#22d3ee", arcs: "#a78bfa", time: "#fbbf24", reset: "#94a3b8", full: "#f472b6" };
 
 // Landmark moments on the time-machine slider, so you can pinpoint a timeframe instead of scrubbing
 // blind. Dates are the real price-history extrema (see build note); the slider maps each to its week.
@@ -76,6 +82,30 @@ export default function SpxCity({ isMobile, preview = false, initialMode = "spx"
   const [week, setWeek] = useState(null);
   const [pend, setPend] = useState(null);
   const tmTimer = useRef(null);
+  // 🖥 VIEWPORT. The city used to sit in a fixed 580px letterbox, which is a small window onto a
+  // two-kilometre island. It now takes a generous share of the screen by default and can go full
+  // screen outright. Fullscreen is done as a fixed overlay rather than the Fullscreen API because
+  // iOS Safari refuses requestFullscreen on anything that isn't a <video>; the overlay behaves the
+  // same everywhere, and Esc still exits.
+  const [full, setFull] = useState(false);
+  const [winH, setWinH] = useState(() => (typeof window === "undefined" ? 800 : window.innerHeight));
+  useEffect(() => {
+    const onR = () => setWinH(window.innerHeight);
+    window.addEventListener("resize", onR);
+    return () => window.removeEventListener("resize", onR);
+  }, []);
+  useEffect(() => {
+    if (!full) return;
+    const onKey = e => { if (e.key === "Escape") setFull(false); };
+    // stop the page scrolling behind the overlay
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", onKey);
+    return () => { window.removeEventListener("keydown", onKey); document.body.style.overflow = prev; };
+  }, [full]);
+  // Full screen leaves room for the hint + exit button; inline is a big share of the window, floored
+  // so a short laptop screen still gets a usable city.
+  const viewH = full ? Math.max(320, winH - 52) : Math.max(isMobile ? 460 : 620, Math.round(winH * (isMobile ? 0.62 : 0.78)));
 
   const M = MODES.find(m => m.id === mode) || MODES[0];
 
@@ -303,11 +333,11 @@ export default function SpxCity({ isMobile, preview = false, initialMode = "spx"
       {(!isNft || (sales?.trades?.length)) && (
         <div style={{ display: "flex", gap: 6, justifyContent: "center", marginBottom: 12, flexWrap: "wrap" }}>
           {!isNft && [7, 30].map(w => (
-            <button key={w} onClick={() => setWin(w)} {...neon(win === w)}>{w}-day flow</button>
+            <button key={w} onClick={() => setWin(w)} {...neon(win === w, GLOW.flow)}>{w}-day flow</button>
           ))}
           {isNft && sales?.trades?.length ? (
             [["off", "no arcs"], ["traced", "traced trades"], ["all", "all trades"]].map(([v, lbl]) => (
-              <button key={v} onClick={() => setArcMode(v)} {...neon(arcMode === v, "#a78bfa")}>{lbl}</button>
+              <button key={v} onClick={() => setArcMode(v)} {...neon(arcMode === v, GLOW.arcs)}>{lbl}</button>
             ))
           ) : null}
         </div>
@@ -315,7 +345,7 @@ export default function SpxCity({ isMobile, preview = false, initialMode = "spx"
 
       {mode !== "both" && (
         <div style={{ display: "flex", gap: 10, alignItems: "center", justifyContent: "center", marginBottom: 12, paddingBottom: tmOn && tl ? 20 : 0, flexWrap: "wrap" }}>
-          <button onClick={() => { setTmOn(v => !v); setWeek(null); setPend(null); }} {...neon(tmOn, "#a78bfa")}>Time machine</button>
+          <button onClick={() => { setTmOn(v => !v); setWeek(null); setPend(null); }} {...neon(tmOn, GLOW.time)}>Time machine</button>
           {tmOn && !tl && <span style={{ fontFamily: MONO, fontSize: 12, color: "#64748b" }}>loading the archive…</span>}
           {tmOn && tl && (
             <>
@@ -330,7 +360,7 @@ export default function SpxCity({ isMobile, preview = false, initialMode = "spx"
                     // debounce the 5,000-building rebuild; the far right edge means NOW (live data)
                     tmTimer.current = setTimeout(() => { setWeek(v >= tl.n - 1 ? null : v); setPend(null); }, 250);
                   }}
-                  style={{ width: "100%", accentColor: "#a78bfa", display: "block" }} />
+                  style={{ width: "100%", accentColor: GLOW.time, display: "block" }} />
                 {(TM_EVENTS[tl.asset] || []).map(ev => {
                   const wk = Math.round((Date.parse(ev.d) - Date.parse(tl.week0)) / (7 * 864e5));
                   if (wk < 0 || wk >= tl.n) return null;
@@ -340,18 +370,18 @@ export default function SpxCity({ isMobile, preview = false, initialMode = "spx"
                       title={`${ev.label} · ${new Date(Date.parse(ev.d)).toLocaleDateString("en-US", { month: "short", year: "numeric" })} — click to jump`}
                       onClick={() => { setPend(wk); clearTimeout(tmTimer.current); tmTimer.current = setTimeout(() => { setWeek(wk >= tl.n - 1 ? null : wk); setPend(null); }, 120); }}
                       style={{ position: "absolute", left: `${pct}%`, top: "100%", transform: "translateX(-50%)", cursor: "pointer", textAlign: "center", pointerEvents: "auto", zIndex: 2 }}>
-                      <div style={{ width: 2, height: 6, background: "#c4b5fd", opacity: 0.85, margin: "0 auto" }} />
+                      <div style={{ width: 2, height: 6, background: GLOW.time, opacity: 0.9, margin: "0 auto" }} />
                       <div style={{ fontFamily: MONO, fontSize: 9.5, color: "#a5a5c0", whiteSpace: "nowrap", marginTop: 1 }}>{ev.label}</div>
                     </div>
                   );
                 })}
               </div>
-              <span style={{ fontFamily: MONO, fontSize: 12, color: week != null || pend != null ? "#c4b5fd" : "#94a3b8", minWidth: 96, textAlign: "left" }}>
+              <span style={{ fontFamily: MONO, fontSize: 12, color: week != null || pend != null ? GLOW.time : "#94a3b8", minWidth: 96, textAlign: "left" }}>
                 {(pend ?? week) != null && (pend ?? week) < tl.n - 1
                   ? new Date(Date.parse(tl.week0) + (pend ?? week) * 7 * 864e5).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
                   : "now"}
               </span>
-              {week != null && <button onClick={() => { setWeek(null); setPend(null); }} {...neon(false)}>Back to now</button>}
+              {week != null && <button onClick={() => { setWeek(null); setPend(null); }} {...neon(false, GLOW.reset)}>Back to now</button>}
             </>
           )}
         </div>
@@ -389,8 +419,10 @@ export default function SpxCity({ isMobile, preview = false, initialMode = "spx"
         inView={a => visible.some(t => (t.a || "").toLowerCase() === a)}
         onFocus={a => { goTo(a); const m = visible.find(t => (t.a || "").toLowerCase() === a); if (m) setSel(m); }} />
 
-      <div style={{ position: "relative" }}>
-        <div style={{ width: "100%" }}>
+      <div style={full
+        ? { position: "fixed", inset: 0, zIndex: 9999, background: "#05050e", display: "flex", flexDirection: "column" }
+        : { position: "relative" }}>
+        <div style={{ width: "100%", flex: full ? 1 : undefined, minHeight: 0 }}>
           <Suspense fallback={<div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Loading 3D…</div>}>
             <Skyline3D towers={visible} isMobile={isMobile} cardHtml={cardHtml}
               onSelect={t => { setSel(t); if (t) goTo(t.a); }}
@@ -398,10 +430,15 @@ export default function SpxCity({ isMobile, preview = false, initialMode = "spx"
               bodyFrom={0xf2cf8a} bodyTo={0x22d3ee}
               layout={layout} focus={focus} focusNonce={focusN} pinned={preview ? null : sel} pinnedHtml={pinCard}
               intro={week == null}
-              messages={msgs} time={time} infra={isNft ? null : infra} arcs={arcs} />
+              messages={msgs} time={time} infra={isNft ? null : infra} arcs={arcs} viewH={viewH} />
           </Suspense>
-          <div style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 8 }}>
-            Drag to move · scroll to zoom · right-drag to rotate · hover to peek, click a building to open it.{layout === "city" && " Every wallet has a home address in SPX City."}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12, marginTop: 8, flexWrap: "wrap" }}>
+            <span style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center" }}>
+              Drag to move · two-finger scroll to orbit · pinch to zoom · click a building to open it and spin around it.
+            </span>
+            <button onClick={() => setFull(v => !v)} {...neon(full, GLOW.full)}>
+              {full ? "Exit full screen" : "Full screen"}
+            </button>
           </div>
         </div>
       </div>

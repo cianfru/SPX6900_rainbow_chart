@@ -95,8 +95,16 @@ body { margin: 0; overflow-x: clip; }
   cursor: pointer;
   transition: color .18s ease, border-color .18s ease, box-shadow .18s ease, background-color .18s ease, transform .18s ease;
 }
+/* Hover lights the pill up in its OWN colour — a real aura, not a hint of one: a tight inner ring,
+   a wide outer bloom, and a faint wash inside the border. `color` needs !important because every
+   caller sets its resting colour inline, and inline beats a class rule. */
 .neon-pill:hover {
-  box-shadow: 0 0 14px color-mix(in srgb, var(--glow, #6366f1) 50%, transparent);
+  color: #f1f5f9 !important;
+  border-color: color-mix(in srgb, var(--glow, #6366f1) 60%, transparent);
+  background: color-mix(in srgb, var(--glow, #6366f1) 9%, transparent);
+  box-shadow: 0 0 20px color-mix(in srgb, var(--glow, #6366f1) 72%, transparent),
+              0 0 42px color-mix(in srgb, var(--glow, #6366f1) 34%, transparent),
+              inset 0 0 14px color-mix(in srgb, var(--glow, #6366f1) 14%, transparent);
   transform: translateY(-1px);
 }
 .neon-pill.active {
@@ -106,6 +114,17 @@ body { margin: 0; overflow-x: clip; }
   box-shadow: 0 0 16px color-mix(in srgb, var(--glow, #6366f1) 48%, transparent),
               inset 0 0 12px color-mix(in srgb, var(--glow, #6366f1) 16%, transparent);
 }
+/* Already lit — hovering the active pill pushes it brighter still, so the control never feels dead
+   once selected. */
+.neon-pill.active:hover {
+  border-color: color-mix(in srgb, var(--glow, #6366f1) 92%, transparent);
+  background: color-mix(in srgb, var(--glow, #6366f1) 18%, transparent);
+  box-shadow: 0 0 26px color-mix(in srgb, var(--glow, #6366f1) 80%, transparent),
+              0 0 54px color-mix(in srgb, var(--glow, #6366f1) 40%, transparent),
+              inset 0 0 16px color-mix(in srgb, var(--glow, #6366f1) 22%, transparent);
+}
+/* Anchors carrying .neon-pill (the city's Manual link) shouldn't gain an underline on hover. */
+a.neon-pill:hover { text-decoration: none; }
 .neon-pill:active {
   transform: translateY(0);
 }

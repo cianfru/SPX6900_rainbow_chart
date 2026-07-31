@@ -77,9 +77,14 @@ export default function Skyline3D({
   time = "dusk",                            // "day" | "dusk" | "night"
   infra = null,                             // latest on-chain row → the harbour: docks, bridge, monument
   arcs = null,                              // [{ f, to, eth, usd, token, d }] — trades, drawn wallet to wallet
+  viewH = 0,                                // viewport height in px; 0 = the built-in default
 }) {
   const mount = useRef(null);
   const api = useRef(null);                 // { cam, controls, homes } for the focus effect
+  // Height can change WITHOUT rebuilding the scene (going fullscreen, or the window resizing while
+  // fullscreen). The renderer reads it through a ref at resize time, so a 5,000-building city is
+  // never torn down and re-merged just because the frame got bigger.
+  const viewHRef = useRef(viewH); viewHRef.current = viewH;
   const selectRef = useRef(onSelect); selectRef.current = onSelect;
   const cardRef = useRef(cardHtml); cardRef.current = cardHtml;
   const pinRef = useRef(pinnedHtml); pinRef.current = pinnedHtml;
@@ -101,7 +106,7 @@ export default function Skyline3D({
     // Sizing from the window here means the renderer and the layout agree by construction.
     const cine = typeof location !== "undefined" && new URLSearchParams(location.search).get("cinema") === "1";
     const W = cine ? window.innerWidth : el.clientWidth;
-    const VH = cine ? window.innerHeight : (isMobile ? 440 : 580);
+    const VH = cine ? window.innerHeight : (viewHRef.current || (isMobile ? 440 : 580));
     if (cine) Object.assign(el.style, { position: "fixed", inset: "0", width: "100vw", height: "100vh", zIndex: "9999", borderRadius: "0" });
     // Height range. The CURVE between them lives in heightOf (city-render.js) — see the note there
     // for why it is mostly logarithmic. HMIN is the floor: the smallest resident cleared the
@@ -746,11 +751,19 @@ export default function Skyline3D({
     controls.panSpeed = 0.9;
     if (!coarse) {
       controls.screenSpacePanning = false;   // desktop: pan across the ground plane — the "drag a map" feel
+      controls.enableZoom = false;           // desktop: the wheel is split below (orbit vs zoom)
     }
-    // ⭐ MAP-STYLE ZOOM (owner pick 2026-07-31): wheel AND pinch both ZOOM, handled by OrbitControls
-    // natively (enableZoom stays true). The earlier desktop takeover made a two-finger SCROLL orbit
-    // around a focal point — "moving laterally anchored to a reference point". Removed. Rotate/tilt is
-    // right-drag; click-drag still pans the map. Touch is untouched (default one-finger orbit + pinch).
+    // ⭐ TWO-FINGER ORBIT AROUND THE PIVOT (owner ask 2026-07-31: "spinning around a position like a
+    // building is missing"). On a trackpad both gestures arrive as wheel events, and they are
+    // distinguishable: a PINCH comes through as ctrl+wheel, a real MOUSE wheel as line-mode deltas or
+    // big discrete jumps — those ZOOM. A gentle two-finger SLIDE is a stream of small pixel deltas,
+    // often with a horizontal component — that ORBITS.
+    //
+    // What makes it orbit around a BUILDING rather than an abstract centre: clicking a building
+    // already flies the camera to it and sets controls.target to it, so the pivot is whatever you
+    // last chose. Panning moves that pivot with the map, which is why lateral movement no longer
+    // feels anchored — the earlier complaint was that orbit was the ONLY gesture, not that it existed.
+    // Shift+scroll is an escape hatch for anyone who wants zoom on the wheel. Touch is untouched.
     const pulseMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.5 });
     const pulseBox = new THREE.Mesh(box, pulseMat); pulseBox.visible = false; scene.add(pulseBox); ownMats.push(pulseMat);
     const pulse = home => {
@@ -851,6 +864,29 @@ export default function Skyline3D({
       onIntroDone?.();
     };
 
+    const _sph = new THREE.Spherical(), _off = new THREE.Vector3();
+    const onWheel = e => {
+      if (flying || !controls.enabled) return;
+      e.preventDefault();
+      _off.copy(cam.position).sub(controls.target);
+      // pinch, a real mouse wheel, or shift-held → zoom; a two-finger slide → orbit
+      const zoom = e.ctrlKey || e.shiftKey || e.deltaMode !== 0 || (e.deltaX === 0 && Math.abs(e.deltaY) >= 40);
+      if (zoom) {
+        const d = THREE.MathUtils.clamp(_off.length() * Math.pow(0.95, -e.deltaY * 0.02), controls.minDistance, controls.maxDistance);
+        _off.setLength(d);
+      } else {
+        _sph.setFromVector3(_off);
+        _sph.theta -= e.deltaX * 0.005;
+        _sph.phi = THREE.MathUtils.clamp(_sph.phi + e.deltaY * 0.005, 0.12, controls.maxPolarAngle);
+        _off.setFromSpherical(_sph);
+      }
+      cam.position.copy(controls.target).add(_off);
+      controls.update();
+    };
+    // Desktop only. On touch, OrbitControls keeps enableZoom (pinch) and owns the gesture; attaching
+    // this too would double-handle any wheel a hybrid device emits.
+    if (!coarse) renderer.domElement.addEventListener("wheel", onWheel, { passive: false });
+
     // Frame-accurate seek for offline video capture (tools/render-city-video.mjs). Driving the
     // path by progress rather than wall-clock means every frame lands exactly where intended,
     // however slowly the renderer is running.
@@ -902,7 +938,8 @@ export default function Skyline3D({
     // tab-switch cutoff), which let two earlier in-page versions sit silently dead. CSS2D labels
     // are DOM and untouched — text stays sharp at any render scale.
     const MAXR = Math.min(devicePixelRatio, 2), MINR = Math.max(0.55, MAXR * 0.4);
-    const sizeNow = () => [cine ? window.innerWidth : el.clientWidth, cine ? window.innerHeight : VH];
+    const sizeNow = () => [cine ? window.innerWidth : el.clientWidth,
+      cine ? window.innerHeight : (viewHRef.current || VH)];
     const drs = makeDrs({
       maxRatio: MAXR, minRatio: MINR,
       apply: r => { renderer.setPixelRatio(r); composer?.setPixelRatio(r); const [w, h] = sizeNow(); if (w && h) { renderer.setSize(w, h); composer?.setSize(w, h); } },
@@ -934,6 +971,7 @@ export default function Skyline3D({
       if (!w || !h) return;                       // a zero-size buffer renders nothing at all
       cam.aspect = w / h; cam.updateProjectionMatrix(); renderer.setSize(w, h); composer?.setSize(w, h); labelR.setSize(w, h);
     };
+    if (api.current) api.current.onResize = onResize;   // parent calls this when viewH changes
     window.addEventListener("resize", onResize);
 
     return () => {
@@ -942,6 +980,7 @@ export default function Skyline3D({
       renderer.domElement.removeEventListener("pointerdown", onDown);
       renderer.domElement.removeEventListener("pointerup", onUp);
       renderer.domElement.removeEventListener("pointerdown", stopFlight);
+      renderer.domElement.removeEventListener("wheel", onWheel);
       removeEventListener("wheel", stopFlight);
       controls.dispose(); composer?.dispose();
       disposables.forEach(d => d.dispose()); env.dispose(); sky.dispose();
@@ -1121,6 +1160,10 @@ export default function Skyline3D({
       clearPulse?.();
     };
   }, [focus, focusNonce]);
+
+  // Resize the renderer in place when the frame changes size (fullscreen in/out, or a window resize
+  // while fullscreen). Never rebuilds the scene.
+  useEffect(() => { api.current?.onResize?.(); }, [viewH]);
 
   return <div ref={mount} style={{ position: "relative", width: "100%", borderRadius: 12, overflow: "hidden", cursor: "grab" }} />;
 }

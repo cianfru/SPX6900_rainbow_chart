@@ -12,13 +12,19 @@ controls for looking at it.
 | You want to | Desktop / trackpad | Phone or tablet |
 | --- | --- | --- |
 | **Move across the map** | drag with the left button | drag with one finger |
-| **Zoom in and out** | scroll, or pinch on a trackpad | pinch with two fingers |
+| **Spin around what you are looking at** | slide two fingers | drag with two fingers |
+| **Zoom in and out** | pinch, mouse wheel, or shift-scroll | pinch with two fingers |
 | **Rotate and tilt** | drag with the right button | drag with two fingers |
 | **Look at one wallet** | hover it, then click | tap it |
+| **Fill the screen** | the **Full screen** button · Esc to leave | the **Full screen** button |
 
 Dragging moves the city **like a map** — the ground follows your cursor. It does not swing the
 camera around a hidden centre point, which is the thing that makes 3D scenes feel like they are
 anchored to somewhere you did not choose.
+
+Sliding two fingers **orbits around the point you are looking at**, and that point is yours to
+choose: click a building and the camera settles on it, so two fingers then circle that building.
+Panning carries the pivot with you, so the thing you orbit is always the thing in front of you.
 
 Zoom is limited at both ends: close enough to stand in a street, far enough to hold the whole island
 and the boroughs in one frame. The tilt stops just short of the horizon, because a camera below the
