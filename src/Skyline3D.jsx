@@ -873,7 +873,6 @@ export default function Skyline3D({
     };
 
     const _sph = new THREE.Spherical(), _off = new THREE.Vector3();
-    const _ground = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), _hit = new THREE.Vector3();
     const onWheel = e => {
       if (flying || !controls.enabled) return;
       e.preventDefault();
@@ -881,28 +880,16 @@ export default function Skyline3D({
       // pinch, a real mouse wheel, or shift-held → zoom; a two-finger slide → orbit
       const zoom = e.ctrlKey || e.shiftKey || e.deltaMode !== 0 || (e.deltaX === 0 && Math.abs(e.deltaY) >= 40);
       if (zoom) {
-        // ⭐ ZOOM IS PROPORTIONAL, AND THE THREE INPUTS ARE ON DIFFERENT SCALES. A trackpad PINCH
-        // arrives as a stream of tiny deltas (±1-10), a wheel in line mode as ±3, and a wheel in
-        // pixel mode as ±100. The old single 0.95^(-dy*0.02) curve was tuned for the last of those,
-        // so a pinch moved ~0.5% per event — crossing the 8→2,000 unit range took hundreds of
-        // events, i.e. "several gestures to zoom into a building". Each input gets its own gain.
-        const dy = e.deltaMode !== 0 ? e.deltaY * 16 : e.deltaY;      // line mode → ~pixels
-        const gain = e.ctrlKey ? 0.018 : 0.0024;                      // pinch deltas are ~10× smaller
-        const dist = _off.length();
-        const d = THREE.MathUtils.clamp(dist * Math.exp(dy * gain), controls.minDistance, controls.maxDistance);
+        // ZOOM TOWARD THE TARGET — the plain dolly (scale the camera→target distance; the pivot
+        // never moves). The mouse wheel keeps its EXACT old curve; only the trackpad PINCH is sped
+        // up, ~4×, because that was the one that crawled (a pinch delta is far smaller than a wheel
+        // notch, so the shared 0.02 curve barely moved it). NO cursor-follow pivot — re-aiming the
+        // target on every zoom is what made it "go all over the place".
+        const factor = e.ctrlKey
+          ? Math.exp(e.deltaY * 0.004)              // pinch: responsive but still toward the target
+          : Math.pow(0.95, -e.deltaY * 0.02);       // mouse wheel: unchanged from before
+        const d = THREE.MathUtils.clamp(_off.length() * factor, controls.minDistance, controls.maxDistance);
         _off.setLength(d);
-        // Zooming IN pulls the pivot toward whatever is under the cursor — buildings first, the
-        // ground plane otherwise — so you close in on the thing you are pointing at instead of
-        // whatever the camera happened to be centred on. That is most of the "responsiveness".
-        if (d < dist) {
-          const r = renderer.domElement.getBoundingClientRect();
-          ndc.x = ((e.clientX - r.left) / r.width) * 2 - 1;
-          ndc.y = -((e.clientY - r.top) / r.height) * 2 + 1;
-          ray.setFromCamera(ndc, cam);
-          const b = ray.intersectObject(pickMesh, false)[0];
-          const p = b ? b.point : (ray.ray.intersectPlane(_ground, _hit) ? _hit : null);
-          if (p) controls.target.lerp(p, 0.15);
-        }
       } else {
         // BOTH AXES INVERTED (owner, 2026-07-31). The gesture now reads as pushing the CITY around
         // under your fingers rather than swinging the camera against them — which is the same
