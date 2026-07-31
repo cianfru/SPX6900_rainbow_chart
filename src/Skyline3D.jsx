@@ -126,7 +126,11 @@ export default function Skyline3D({
     // Haze, tuned between two failures: too far and the borough ADMIN boundaries pave the whole
     // frame as flat land; too near and the top-down overview washes out to sky colour.
     scene.fog = new THREE.Fog(new THREE.Color(TOD.horizon), city ? LEN * 0.95 : 55, city ? LEN * 3.0 : 230);
-    const cam = new THREE.PerspectiveCamera(46, W / VH, 0.1, 3000);
+    // ⚠ NEAR PLANE 0.5, NOT 0.1. Depth precision is governed by the far:near RATIO, and 3000:0.1 is
+    // 30,000:1 — so little precision is left at distance that near-coplanar ground sheets round to
+    // the same depth and flicker. 0.5 buys ~5× precision across the whole scene and cannot clip
+    // anything: OrbitControls holds the camera at least 8 units from its target.
+    const cam = new THREE.PerspectiveCamera(46, W / VH, 0.5, 3000);
     const span = city ? LEN * 0.5 : Math.sqrt(T.length) * 2.0;
     if (city) cam.position.set(LEN * 0.34, LEN * 0.66, LEN * 0.50); else cam.position.set(span * 0.95, 20, span * 1.28);
     const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -235,7 +239,9 @@ export default function Skyline3D({
       const water = new THREE.Mesh(new THREE.PlaneGeometry(LEN * 8.0, LEN * 8.0), wm.base);
       water.rotation.x = -Math.PI / 2; water.position.y = -0.42; scene.add(water); groundBits.push(water);
       const chop = new THREE.Mesh(new THREE.PlaneGeometry(LEN * 8.0, LEN * 8.0), wm.over);
-      chop.rotation.x = -Math.PI / 2; chop.position.y = -0.40; scene.add(chop); groundBits.push(chop);
+      // 0.06 above the base rather than 0.02 — margin on top of the polygon offset, still far too
+      // small to read as two separate sheets.
+      chop.rotation.x = -Math.PI / 2; chop.position.y = -0.36; scene.add(chop); groundBits.push(chop);
 
       for (const b of BACKDROP) flat(b.rings, TOD.back, -0.30);   // Brooklyn / Queens / Bronx / Jersey
       // The harbour, painted back OVER the boroughs — their outlines are administrative boundaries
@@ -865,6 +871,7 @@ export default function Skyline3D({
     };
 
     const _sph = new THREE.Spherical(), _off = new THREE.Vector3();
+    const _ground = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), _hit = new THREE.Vector3();
     const onWheel = e => {
       if (flying || !controls.enabled) return;
       e.preventDefault();
@@ -872,12 +879,35 @@ export default function Skyline3D({
       // pinch, a real mouse wheel, or shift-held → zoom; a two-finger slide → orbit
       const zoom = e.ctrlKey || e.shiftKey || e.deltaMode !== 0 || (e.deltaX === 0 && Math.abs(e.deltaY) >= 40);
       if (zoom) {
-        const d = THREE.MathUtils.clamp(_off.length() * Math.pow(0.95, -e.deltaY * 0.02), controls.minDistance, controls.maxDistance);
+        // ⭐ ZOOM IS PROPORTIONAL, AND THE THREE INPUTS ARE ON DIFFERENT SCALES. A trackpad PINCH
+        // arrives as a stream of tiny deltas (±1-10), a wheel in line mode as ±3, and a wheel in
+        // pixel mode as ±100. The old single 0.95^(-dy*0.02) curve was tuned for the last of those,
+        // so a pinch moved ~0.5% per event — crossing the 8→2,000 unit range took hundreds of
+        // events, i.e. "several gestures to zoom into a building". Each input gets its own gain.
+        const dy = e.deltaMode !== 0 ? e.deltaY * 16 : e.deltaY;      // line mode → ~pixels
+        const gain = e.ctrlKey ? 0.018 : 0.0024;                      // pinch deltas are ~10× smaller
+        const dist = _off.length();
+        const d = THREE.MathUtils.clamp(dist * Math.exp(dy * gain), controls.minDistance, controls.maxDistance);
         _off.setLength(d);
+        // Zooming IN pulls the pivot toward whatever is under the cursor — buildings first, the
+        // ground plane otherwise — so you close in on the thing you are pointing at instead of
+        // whatever the camera happened to be centred on. That is most of the "responsiveness".
+        if (d < dist) {
+          const r = renderer.domElement.getBoundingClientRect();
+          ndc.x = ((e.clientX - r.left) / r.width) * 2 - 1;
+          ndc.y = -((e.clientY - r.top) / r.height) * 2 + 1;
+          ray.setFromCamera(ndc, cam);
+          const b = ray.intersectObject(pickMesh, false)[0];
+          const p = b ? b.point : (ray.ray.intersectPlane(_ground, _hit) ? _hit : null);
+          if (p) controls.target.lerp(p, 0.15);
+        }
       } else {
+        // BOTH AXES INVERTED (owner, 2026-07-31). The gesture now reads as pushing the CITY around
+        // under your fingers rather than swinging the camera against them — which is the same
+        // convention as dragging to pan, so the two gestures agree instead of fighting each other.
         _sph.setFromVector3(_off);
-        _sph.theta -= e.deltaX * 0.005;
-        _sph.phi = THREE.MathUtils.clamp(_sph.phi + e.deltaY * 0.005, 0.12, controls.maxPolarAngle);
+        _sph.theta += e.deltaX * 0.005;
+        _sph.phi = THREE.MathUtils.clamp(_sph.phi - e.deltaY * 0.005, 0.12, controls.maxPolarAngle);
         _off.setFromSpherical(_sph);
       }
       cam.position.copy(controls.target).add(_off);

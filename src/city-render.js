@@ -154,9 +154,16 @@ export function waterMaterials(tod) {
     color: tod.water, roughness: 0.3, metalness: 0.06,
     normalMap: t1, normalScale: new THREE.Vector2(0.75, 0.75), envMapIntensity: 1.15,
   });
+  // ⚠ THE CHOP OVERLAY MUST BE BIASED OUT OF THE BASE PLANE'S DEPTH, NOT JUST FLOATED ABOVE IT.
+  // Both sheets span LEN×8 — thousands of units — so at any distance the depth buffer cannot resolve
+  // the couple of centimetres between them, and the pair z-fights: the sea flickers as the camera
+  // moves. depthWrite:false alone does not fix it, because the overlay is still depth-TESTED against
+  // a base that rounds to the same value. polygonOffset shifts the overlay's depth toward the camera
+  // at every distance, which a fixed y-gap cannot do.
   const over = new THREE.MeshStandardMaterial({
     color: tod.water, transparent: true, opacity: 0.4, depthWrite: false,
     roughness: 0.2, metalness: 0.06,
+    polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2,
     normalMap: t2, normalScale: new THREE.Vector2(0.5, 0.5), envMapIntensity: 1.35,
   });
   // slow, slightly divergent drift — the relative motion is what sells it
