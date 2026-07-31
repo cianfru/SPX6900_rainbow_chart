@@ -569,7 +569,59 @@ export const ISLETS = [{ id: "roosevelt", rings: NYC.roosevelt || [] }];
 export const ISLAND_RING = MANHATTAN;
 export const PARK_RINGS = PARK_RING ? [PARK_RING] : [];
 
+// ⭐ HOW WIDE A ROAD MAY BE DRAWN, derived from the gaps the lot grid actually leaves — never
+// hardcoded. A ribbon wider than its gap runs under the buildings either side, which is the exact
+// bug ("streets painted under the towers") that made the lots and the streets share one grid in the
+// first place. The fractions leave a visible kerb of bare block edge on both sides.
+export const ROAD_W = {
+  avenue: GRID.avenue * 0.74,   // ~1.55 — the long corridors
+  street: GRID.street * 0.72,   // ~0.86 — the cross-streets between them
+};
+
+// Is this block column one of the grand avenues? Shared by the grid and the medians so the two can
+// never disagree about which avenue is which.
+const isGrand = bu => ((bu % 3) + 3) % 3 === 0;
+
+// ⭐ THE PLANTED MEDIANS DOWN THE GRAND AVENUES — one planter per BLOCK, broken at every
+// cross-street, exactly as Park Avenue is. Drawn as ONE unbroken ribbon it was a continuous green
+// strip running the whole island, which read as a corridor of parkland rather than as a road, and
+// at a distance joined up with Central Park itself. Breaking it at the streets fixes the misread
+// and is what a median actually looks like.
+//
+// The block extents are computed HERE, in the same t-space the cross-streets come from, so the gaps
+// land on the intersections instead of drifting out of phase with them.
+export function avenueMedians(k = 1) {
+  const out = [];
+  const perT = PERIOD_T / (AXIS.len * k);
+  const blkTt = (GRID.blkT * GRID.lotT) / (AXIS.len * k);
+  const on = (x, z) => inManhattan(x, z) && !inPark(x, z);
+  for (let bu = -COLS; bu < COLS; bu++) {
+    if (!isGrand(bu)) continue;
+    const u = (bu + 0.5) * PERIOD_U;
+    for (let bi = 0; bi * perT < 1; bi++) {
+      const t0 = bi * perT, t1 = t0 + blkTt;
+      if (t1 >= 1) break;
+      const a = fromAxis(t0, u / k), b = fromAxis(t1, u / k);
+      // Both ends AND the middle, or a planter juts out over the water where the shore cuts across.
+      const mid = fromAxis((t0 + t1) / 2, u / k);
+      if (!on(a.x, a.z) || !on(b.x, b.z) || !on(mid.x, mid.z)) continue;
+      out.push({ x1: a.x * k, z1: a.z * k, x2: b.x * k, z2: b.z * k });
+    }
+  }
+  return out;
+}
+
 // Manhattan's street grid, clipped to the coastline — avenues along the island, streets across.
+//
+// ⭐ AVENUES AND STREETS ARE DIFFERENT ROADS, and the grid now says which is which. Every segment
+// used to come back in one undifferentiated bag and get drawn as the same hairline, so the island
+// read as graph paper — when the whole ground-level signature of Manhattan is that a dozen long
+// avenues run its full length and the cross-streets are minor beside them. Tagging here lets the
+// renderer give each its real width and markings without re-deriving the geometry.
+//
+// `major` marks every third avenue — the grand ones. They deliberately are NOT drawn wider: the lot
+// grid leaves one fixed gap, so extra width would pave over the buildings. They get a planted
+// median instead, which is what makes Park Avenue read as Park Avenue anyway.
 export function streetGrid(k = 1) {
   const segs = [];
   const halfW = 24;
@@ -578,26 +630,27 @@ export function streetGrid(k = 1) {
   const gapT = (GRID.street / 2) / (AXIS.len * k);
   // Trace a line only where it is actually on the island, so streets stop at the water rather than
   // running out over it.
-  const trace = (pt, steps, step) => {
+  const trace = (pt, steps, step, kind, major = false) => {
     let run = null;
+    const put = (x, z) => segs.push({ x1: run[0], z1: run[1], x2: x * k, z2: z * k, kind, major });
     for (let i = 0; i <= steps; i++) {
       const { x, z } = pt(i * step);
       const on = inManhattan(x, z) && !inPark(x, z);
       if (on && !run) run = [x * k, z * k];
-      else if (!on && run) { segs.push([run[0], run[1], x * k, z * k]); run = null; }
+      else if (!on && run) { put(x, z); run = null; }
     }
-    if (run) { const { x, z } = pt(steps * step); segs.push([run[0], run[1], x * k, z * k]); }
+    if (run) { const { x, z } = pt(steps * step); put(x, z); }
   };
   // cross-streets: down the middle of the gap between block rows
   for (let bi = 0; bi * perT < 1; bi++) {
     const t = bi * perT + GRID.blkT * lotT + gapT;
     if (t >= 1) break;
-    trace(u => fromAxis(t, (u - halfW) / k), 120, halfW * 2 / 120);
+    trace(u => fromAxis(t, (u - halfW) / k), 120, halfW * 2 / 120, "street");
   }
   // avenues: down the middle of the gap between block columns
   for (let bu = -COLS; bu < COLS; bu++) {
     const u = (bu + 0.5) * PERIOD_U;
-    trace(t => fromAxis(t, u / k), 260, 1 / 260);
+    trace(t => fromAxis(t, u / k), 260, 1 / 260, "avenue", isGrand(bu));
   }
   return segs;
 }

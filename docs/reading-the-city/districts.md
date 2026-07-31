@@ -65,3 +65,8 @@ buildings apart costs nothing true; shortening them would have cost everything.
 Blocks, avenues and streets come from one grid, so the corridors you see are the corridors the
 buildings actually left. Central Park is not buildable, and neither is the ground the bridge lands
 on.
+
+Avenues and cross-streets are not the same road. Avenues run the length of the island at nearly
+twice the width, carry a painted centre line, and every third one has a planted median broken at
+each cross-street. None of them may be drawn wider than the gap its blocks left — a road that
+overflowed its gap would simply be paved under the buildings either side.
