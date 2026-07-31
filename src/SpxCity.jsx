@@ -388,6 +388,26 @@ export default function SpxCity({ isMobile, preview = false, initialMode = "spx"
                   ? new Date(Date.parse(tl.week0) + (pend ?? week) * 7 * 864e5).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
                   : "now"}
               </span>
+              {/* Jump to an exact date. The replay is WEEKLY, so a picked day snaps to its nearest Monday
+                  grid week; min/max clamp to the archive so an out-of-range date can't be chosen. The
+                  native picker renders in the viewer's locale (DD/MM/YYYY in most of the world). */}
+              <input type="date" aria-label="Jump to a date"
+                min={new Date(Date.parse(tl.week0)).toISOString().slice(0, 10)}
+                max={new Date(Date.parse(tl.week0) + (tl.n - 1) * 7 * 864e5).toISOString().slice(0, 10)}
+                value={new Date(Date.parse(tl.week0) + (pend ?? week ?? tl.n - 1) * 7 * 864e5).toISOString().slice(0, 10)}
+                onChange={e => {
+                  const t = Date.parse(e.target.value);
+                  if (Number.isNaN(t)) return;                 // cleared field
+                  const wk = Math.max(0, Math.min(tl.n - 1, Math.round((t - Date.parse(tl.week0)) / (7 * 864e5))));
+                  setPend(wk);
+                  clearTimeout(tmTimer.current);
+                  tmTimer.current = setTimeout(() => { setWeek(wk >= tl.n - 1 ? null : wk); setPend(null); }, 120);
+                }}
+                style={{
+                  fontFamily: MONO, fontSize: 12, color: "#e2e8f0", colorScheme: "dark",
+                  background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.16)",
+                  borderRadius: 8, padding: "5px 9px", outline: "none",
+                }} />
               {week != null && <button onClick={() => { setWeek(null); setPend(null); }} {...neon(false, GLOW.reset)}>Back to now</button>}
             </>
           )}
