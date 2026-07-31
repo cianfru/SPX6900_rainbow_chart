@@ -7,7 +7,7 @@ import { UnrealBloomPass } from "three/examples/jsm/postprocessing/UnrealBloomPa
 import { OutputPass } from "three/examples/jsm/postprocessing/OutputPass.js";
 import { CSS2DRenderer, CSS2DObject } from "three/examples/jsm/renderers/CSS2DRenderer.js";
 import { placeCity, cityScale, CITY_LENGTH, ISLAND_RING, PARK_RINGS, BACKDROP, ISLETS, WATER,
-         streetGrid, hoodGrid, NEIGHBOURHOODS, AXIS_ANGLE } from "./city-map.js";
+         streetGrid, ROAD_W, avenueMedians, hoodGrid, NEIGHBOURHOODS, AXIS_ANGLE } from "./city-map.js";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { chainOf } from "./city-messages.js";
 import { makeDrs } from "./city-drs.js";
@@ -289,17 +289,96 @@ export default function Skyline3D({
         }
       }
 
-      // The street grid — what actually says "Manhattan" at a glance
+      // ── the roads ────────────────────────────────────────────────────────────────────────────
+      // ⭐ AVENUES ARE BUILT, NOT PAINTED. This was one set of 1px hairlines in a single colour, so
+      // every road on the island looked identical and the city read as graph paper laid under a
+      // field of towers. Manhattan's signature at ground level is a dozen long avenues running its
+      // whole length with minor cross-streets between them, so avenues now get real asphalt at
+      // nearly twice the width, a painted centre line, and — on every third one — a planted median.
+      //
+      // Widths come from the lot grid's own gaps (ROAD_W), so a road can never be drawn wider than
+      // the space the buildings actually left it. Everything merges by kind, so the entire road
+      // network is four draw calls however much of it is on screen.
       const segs = streetGrid(K);
-      const gp = new Float32Array(segs.length * 6);
-      segs.forEach((sg, i) => {
-        gp[i * 6] = sg[0]; gp[i * 6 + 1] = 0.09; gp[i * 6 + 2] = sg[1];
-        gp[i * 6 + 3] = sg[2]; gp[i * 6 + 4] = 0.09; gp[i * 6 + 5] = sg[3];
+
+      // A flat ribbon down each segment: two triangles, normals up. Built straight into typed
+      // arrays because this runs over every road on the island on every scene rebuild.
+      const ribbon = (list, halfW, y) => {
+        const pos = new Float32Array(list.length * 12);
+        const nor = new Float32Array(list.length * 12);
+        const idx = new Uint32Array(list.length * 6);
+        list.forEach((s, i) => {
+          const dx = s.x2 - s.x1, dz = s.z2 - s.z1, L = Math.hypot(dx, dz) || 1;
+          const nx = (-dz / L) * halfW, nz = (dx / L) * halfW;   // sideways, half a road wide
+          pos.set([s.x1 + nx, y, s.z1 + nz, s.x1 - nx, y, s.z1 - nz,
+                   s.x2 - nx, y, s.z2 - nz, s.x2 + nx, y, s.z2 + nz], i * 12);
+          for (let q = 0; q < 4; q++) nor[i * 12 + q * 3 + 1] = 1;
+          idx.set([i * 4, i * 4 + 1, i * 4 + 2, i * 4, i * 4 + 2, i * 4 + 3], i * 6);
+        });
+        const g = new THREE.BufferGeometry();
+        g.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+        g.setAttribute("normal", new THREE.BufferAttribute(nor, 3));
+        g.setIndex(new THREE.BufferAttribute(idx, 1));
+        return g;
+      };
+
+      // Asphalt is darker than the island beneath it, which is what turns the gaps between the
+      // block slabs into visible roadway instead of leftover ground.
+      const asphalt = new THREE.Color(TOD.road).multiplyScalar(0.7);
+      const aves = segs.filter(s => s.kind === "avenue");
+      const stsg = segs.filter(s => s.kind === "street");
+      // Avenues sit a hair above the cross-streets so an avenue reads as running THROUGH the
+      // intersection rather than being interrupted by it. Both stay well under the 0.17 slab top,
+      // so the kerb still reads.
+      for (const [list, w, y] of [[stsg, ROAD_W.street, 0.075], [aves, ROAD_W.avenue, 0.09]]) {
+        if (!list.length) continue;
+        const m = new THREE.Mesh(ribbon(list, w / 2, y),
+          new THREE.MeshStandardMaterial({ color: asphalt, roughness: 0.95, side: THREE.DoubleSide }));
+        m.receiveShadow = true; scene.add(m); groundBits.push(m);
+      }
+
+      // Centre markings. A wide strip of asphalt only reads as an AVENUE once it carries the line
+      // down the middle — that, more than the width, is what the eye uses to tell a thoroughfare
+      // from a gap. Grand avenues take a planted median instead of paint.
+      const dashes = [];
+      for (const s of aves) {
+        if (s.major) continue;                       // grand avenues carry a median instead of paint
+        const dx = s.x2 - s.x1, dz = s.z2 - s.z1, L = Math.hypot(dx, dz);
+        if (L < 0.8) continue;                       // a stub at the shoreline, not a road
+        const ux = dx / L, uz = dz / L;
+        for (let d = 0.45; d < L - 0.95; d += 1.15)
+          dashes.push({ x1: s.x1 + ux * d, z1: s.z1 + uz * d, x2: s.x1 + ux * (d + 0.5), z2: s.z1 + uz * (d + 0.5) });
+      }
+      // One kerbed planter per block, broken at every cross-street (see avenueMedians).
+      const medians = avenueMedians(K).map(s => {
+        const dx = s.x2 - s.x1, dz = s.z2 - s.z1;
+        const g = new THREE.BoxGeometry(0.3, 0.1, Math.hypot(dx, dz));
+        g.rotateY(Math.atan2(dx, dz));               // lay the box's length along the avenue
+        g.translate((s.x1 + s.x2) / 2, 0.14, (s.z1 + s.z2) / 2);
+        return g;
       });
-      const gg = new THREE.BufferGeometry();
-      gg.setAttribute("position", new THREE.BufferAttribute(gp, 3));
-      const gm = new THREE.LineBasicMaterial({ color: 0x8fa4cc, transparent: true, opacity: 0.55 });
-      const gl = new THREE.LineSegments(gg, gm); scene.add(gl); groundBits.push(gl);
+      if (dashes.length) {
+        // A decal on the road surface: polygonOffset rather than a height gap, because the two
+        // sheets ARE meant to be coplanar and only a depth bias settles that deterministically.
+        // Slightly emissive so the markings survive night, when nothing else lights the tarmac.
+        const m = new THREE.Mesh(ribbon(dashes, 0.05, 0.092),
+          new THREE.MeshStandardMaterial({
+            color: 0xd8c489, emissive: 0xd8c489, emissiveIntensity: 0.22, roughness: 0.8,
+            side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -4,
+          }));
+        scene.add(m); groundBits.push(m);
+      }
+      if (medians.length) {
+        const merged = mergeGeometries(medians, false);
+        medians.forEach(g => g.dispose());
+        if (merged) {
+          // Darker than the park's lawn: a planted island reads as street furniture, and at a
+          // distance a park-green median is exactly what got mistaken for parkland.
+          const m = new THREE.Mesh(merged, new THREE.MeshStandardMaterial({
+            color: new THREE.Color(TOD.park).multiplyScalar(0.7), roughness: 0.95 }));
+          m.receiveShadow = true; scene.add(m); groundBits.push(m);
+        }
+      }
     } else {
       const groundSize = Math.max(grid.blocks.length * 2, 60) * 4;
       const ground = new THREE.Mesh(new THREE.PlaneGeometry(groundSize, groundSize),

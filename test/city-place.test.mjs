@@ -1,7 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { placeCity, hoodLots, NEIGHBOURHOODS, cityScale } from "../src/city-map.js";
+import { placeCity, hoodLots, NEIGHBOURHOODS, cityScale,
+         streetGrid, avenueMedians, ROAD_W, GRID } from "../src/city-map.js";
 import { bridgeSpan } from "../src/city-infra.js";
 
 // Placement is the half of the city that is openly a game — a wallet's street address comes from
@@ -86,5 +87,48 @@ test("every resident gets a home on the map", () => {
   assert.equal(P.length, R.length);
   for (const p of P) {
     assert.ok(Number.isFinite(p.x) && Number.isFinite(p.z), `${p.a} has no position`);
+  }
+});
+
+// ── the roads ────────────────────────────────────────────────────────────────────────────────
+// Avenues and streets are drawn as real ribbons of asphalt now, not hairlines, so their WIDTH has
+// consequences: a ribbon wider than the gap the lot grid left runs underneath the buildings either
+// side. That is the original "streets painted under the towers" bug, and it is invisible from any
+// angle a person is likely to look from — the tarmac just quietly disappears beneath a block.
+test("a road never spills out of the gap the buildings left it", () => {
+  assert.ok(ROAD_W.avenue < GRID.avenue, "avenue ribbon must fit its gap");
+  assert.ok(ROAD_W.street < GRID.street, "street ribbon must fit its gap");
+  // And leave a real kerb rather than filling the gap to the last millimetre.
+  assert.ok(GRID.avenue - ROAD_W.avenue > 0.3, "avenue needs a visible kerb either side");
+  assert.ok(GRID.street - ROAD_W.street > 0.2, "street needs a visible kerb either side");
+  // The avenues are the corridors that carry the island; they must read as the major road.
+  assert.ok(ROAD_W.avenue > ROAD_W.street * 1.5, "avenues must be clearly wider than cross-streets");
+});
+
+test("the grid tags avenues and streets, and only every third avenue is grand", () => {
+  const segs = streetGrid(cityScale(1200));
+  const aves = segs.filter(s => s.kind === "avenue");
+  const sts = segs.filter(s => s.kind === "street");
+  assert.ok(aves.length > 0 && sts.length > 0, "both kinds are drawn");
+  assert.equal(segs.length, aves.length + sts.length, "every segment is tagged");
+  assert.ok(sts.every(s => !s.major), "cross-streets are never grand");
+  // Grand avenues are a minority — they carry a median, so if this ever became most of them the
+  // island would read as parkland rather than as a city.
+  const grand = new Set(aves.filter(s => s.major).map(s => Math.round(s.x1 * 100)));
+  assert.ok(grand.size > 0, "some avenues are grand");
+  assert.ok(aves.filter(s => s.major).length < aves.length / 2, "grand avenues stay a minority");
+});
+
+test("avenue medians break at the cross-streets and stay on the island", () => {
+  const k = cityScale(1200);
+  const med = avenueMedians(k);
+  assert.ok(med.length > 0, "grand avenues carry medians");
+  // Each planter is one BLOCK long — never the whole avenue. A median drawn as one unbroken ribbon
+  // read as a corridor of parkland joined onto Central Park, which is what this guards.
+  const blockLen = GRID.blkT * GRID.lotT;
+  for (const m of med) {
+    const L = Math.hypot(m.x2 - m.x1, m.z2 - m.z1);
+    assert.ok(L > 0 && L < blockLen * 1.5,
+      `median ${L.toFixed(2)} should be about one block (${blockLen.toFixed(2)}), not a whole avenue`);
   }
 });
