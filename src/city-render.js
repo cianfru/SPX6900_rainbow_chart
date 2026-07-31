@@ -206,6 +206,66 @@ export function facadeTexture(family) {
   return t;
 }
 
+// ⭐ FACADE ALBEDO — the free upgrade. The walls used to carry ONLY the emissive window map, so an
+// unlit surface was a flat tinted box: all the detail was the glowing dots. This paints the actual
+// surface — mullions, spandrels, coursing, per-panel tonal variation — on the SAME 8×8 window grid,
+// applied through the material's `map`. It costs nothing that matters: no draw calls, no triangles,
+// it rides UVs the geometry already has, and it registers with the emissive map so lit windows land
+// inside their glass panel. Values sit high (multiply darkens), so the city keeps its brightness;
+// the detail is in the darker mullions and the light/shade between panels. Family = different build:
+// glass is curtain wall, concrete is punched windows in a slab, masonry is brick with stone trim.
+export function facadeAlbedo(family) {
+  const cell = 24, cols = 8, rows = 8, W = cols * cell, H = rows * cell;
+  const c = document.createElement("canvas"); c.width = W; c.height = H;
+  const g = c.getContext("2d");
+  let s = family === "glass" ? 9001 : family === "concrete" ? 313 : 5521;
+  const rnd = () => ((s = (s * 1664525 + 1013904223) >>> 0) / 4294967296);
+  const wall = family === "glass" ? "#e8eef7" : family === "concrete" ? "#d8dade" : "#dcccbf";
+  g.fillStyle = wall; g.fillRect(0, 0, W, H);
+
+  // fine surface noise so a plain wall isn't dead-flat under raking light
+  for (let i = 0; i < (family === "glass" ? 220 : 900); i++) {
+    g.fillStyle = `rgba(0,0,0,${(rnd() * 0.05).toFixed(3)})`;
+    g.fillRect((rnd() * W) | 0, (rnd() * H) | 0, 1, 1);
+  }
+  if (family === "masonry") {                              // brick coursing — faint horizontal lines
+    g.strokeStyle = "rgba(120,80,60,0.18)"; g.lineWidth = 1;
+    for (let y = 3; y < H; y += 4) { g.beginPath(); g.moveTo(0, y + 0.5); g.lineTo(W, y + 0.5); g.stroke(); }
+  }
+
+  for (let y = 0; y < rows; y++) {
+    for (let x = 0; x < cols; x++) {
+      const ox = x * cell, oy = y * cell;
+      if (family === "glass") {
+        // curtain wall: glass fills the cell, thin mullions frame it, panels vary slightly
+        const tone = 0.86 + rnd() * 0.14;
+        g.fillStyle = `rgba(150,170,200,${(0.5 * tone).toFixed(2)})`;
+        g.fillRect(ox + 1, oy + 1, cell - 2, cell - 2);
+        g.fillStyle = "rgba(40,52,70,0.55)";               // mullions (dark recessed frame)
+        g.fillRect(ox, oy, cell, 2); g.fillRect(ox, oy, 2, cell);
+      } else if (family === "concrete") {
+        // punched window: smaller opening centred in the concrete, a pale sill under it
+        g.fillStyle = "rgba(70,80,96,0.72)";
+        g.fillRect(ox + 6, oy + 5, cell - 12, cell - 11);
+        g.fillStyle = "rgba(255,255,255,0.16)";            // sill catches light
+        g.fillRect(ox + 5, oy + cell - 6, cell - 10, 2);
+      } else {
+        // masonry: small window, warm stone lintel above
+        g.fillStyle = "rgba(58,60,74,0.7)";
+        g.fillRect(ox + 7, oy + 7, cell - 14, cell - 13);
+        g.fillStyle = "rgba(226,214,196,0.5)";             // lintel + sill in stone
+        g.fillRect(ox + 6, oy + 5, cell - 12, 2);
+        g.fillRect(ox + 6, oy + cell - 5, cell - 12, 2);
+      }
+    }
+  }
+  const t = new THREE.CanvasTexture(c);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  t.anisotropy = 4;                                        // crisper at the grazing angles facades live at — cheap
+  t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+}
+
 export const FAMILIES = {
   glass:    { colour: 0x7d92b5, roughness: 0.14, metalness: 0.85, env: 1.35 },
   concrete: { colour: 0x9aa0a8, roughness: 0.78, metalness: 0.04, env: 0.55 },

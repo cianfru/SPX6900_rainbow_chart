@@ -394,6 +394,16 @@
     strength in the **emissive windows + street glow**. That's how a real city reads at dusk (building = stone, windows =
     light), so believability and legibility stop competing. **If a future change starts tinting facades by data again it
     will look worse AND say less.**
+    - **✅ FACADE ALBEDO ADDED 2026-07-31 (owner: "improve the buildings without affecting performance").** The walls
+      carried ONLY the emissive window map, so an unlit surface was a flat tinted box. `facadeAlbedo(family)` in
+      city-render.js now paints the actual SURFACE — mullions, spandrels, brick coursing, per-panel tone — on the SAME 8×8
+      window grid, applied via the material's `map` (so lit windows register inside their glass panel). **ZERO frame cost,
+      verified: geometry buckets 50→50, draw calls/triangles unchanged, buildMs ~1600 either way; only +3 textures (a few
+      KB).** This is the "detail into MATERIAL, not geometry" rule paying out — the merge means a texture is free where a
+      mullion made of triangles would not be. Values sit high (map multiplies, so it darkens) to keep the city's required
+      brightness; the detail is in the darker mullions/shade. Per family: glass = curtain wall, concrete = punched windows,
+      masonry = brick + stone trim. anisotropy 4 (facades are always at grazing angles — the one cheap filtering win).
+      ⚠ Look UNVERIFIED on real GPU (sandbox is a software rasteriser); brightness/mullion strength are texture-only tweaks.
   - **What the budget bought:** PBR `MeshStandardMaterial`, a **procedural sky** used as BOTH environment map and visible
     background (`skyEnv`), ACES filmic tone mapping (without it bright windows clip to white and the age ramp dies at the
     top end), a **sun casting real shadows** whose shadow camera FOLLOWS `controls.target` (one map over the whole island

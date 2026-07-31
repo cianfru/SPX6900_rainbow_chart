@@ -11,7 +11,7 @@ import { placeCity, cityScale, CITY_LENGTH, ISLAND_RING, PARK_RINGS, BACKDROP, I
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { chainOf } from "./city-messages.js";
 import { makeDrs } from "./city-drs.js";
-import { TIMES, FAMILIES, skyEnv, facadeTexture, wallGeometry, roofGeometry, archetype, heightOf, waterMaterials,
+import { TIMES, FAMILIES, skyEnv, facadeTexture, facadeAlbedo, wallGeometry, roofGeometry, archetype, heightOf, waterMaterials,
          berthGeometry, bridgeGeometry, monumentGeometry } from "./city-render.js";
 import { infraFrom, portBerths, siteAt, bridgeSpan, SITES, fmtTokens } from "./city-infra.js";
 
@@ -325,10 +325,11 @@ export default function Skyline3D({
     const spireGeo = new THREE.CylinderGeometry(0.035, 0.075, 1, 6);
     const haloGeo = new THREE.CircleGeometry(1.05, 20);
     const texes = Object.fromEntries(Object.keys(FAMILIES).map(f => [f, facadeTexture(f)]));
+    const albedos = Object.fromEntries(Object.keys(FAMILIES).map(f => [f, facadeAlbedo(f)]));   // surface, not just windows
     const roofMat = new THREE.MeshStandardMaterial({ color: 0x3b3f4a, roughness: 0.88 });
     const woodMat = new THREE.MeshStandardMaterial({ color: 0x6b4a35, roughness: 0.95 });
     const metalMat = new THREE.MeshStandardMaterial({ color: 0x8a9099, roughness: 0.5, metalness: 0.7 });
-    const disposables = [box, spireGeo, haloGeo, roofMat, woodMat, metalMat, ...Object.values(texes)];
+    const disposables = [box, spireGeo, haloGeo, roofMat, woodMat, metalMat, ...Object.values(texes), ...Object.values(albedos)];
 
     const ownMats = [], homes = new Map(), picks = [];
     const wallBuckets = new Map();          // key -> { mat, geos: [] }
@@ -354,7 +355,8 @@ export default function Skyline3D({
       // age is read from the wallets that AREN'T moving.
       const winCol = flowCol ? mix(ageHue, flowCol, Math.min(1, 0.82 + 0.18 * mag)) : ageHue;
       const mat = new THREE.MeshStandardMaterial({
-        color: albedo, roughness: F.roughness, metalness: F.metalness,
+        color: albedo, map: albedos[family],
+        roughness: F.roughness, metalness: F.metalness,
         emissive: winCol, emissiveMap: texes[family],
         emissiveIntensity: TOD.win * (flowCol ? 1 + 0.9 * mag : 1),
         envMapIntensity: F.env,
