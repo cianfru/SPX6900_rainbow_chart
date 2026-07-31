@@ -43,7 +43,9 @@ flowchart TD
 
 | If you want to know… | Read |
 | --- | --- |
+| How to move around, and what clicking does | [Navigating](navigating.md) |
 | What a single building is telling you | [Reading a Building](reading-a-building/README.md) |
+| How to replay the city from launch to today | [The Time Machine](time-machine.md) |
 | Why the skyline is shaped the way it is | [Height](reading-a-building/height.md) |
 | Who is buying and who is selling | [Flow](reading-a-building/flow.md) |
 | What the statue, the bridge and the docks mean | [Infrastructure](infrastructure.md) |

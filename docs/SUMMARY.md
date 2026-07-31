@@ -3,6 +3,7 @@
 * [SPX City](README.md)
 * [Design Principles](design-principles.md)
 * [Modes](modes.md)
+* [Navigating](navigating.md)
 
 ## Reading a Building
 
@@ -22,6 +23,7 @@
 ## The City Itself
 
 * [Infrastructure](infrastructure.md)
+* [The Time Machine](time-machine.md)
 * [Claim Your Building](claim-your-building.md)
 
 ## Reference

@@ -25,7 +25,8 @@ Three things are readable without touching anything:
 | **Building count** | How many to render, for weaker devices |
 | **Where do you live?** | Paste any address to fly to its building |
 
-Hover a building for the wallet, click to pin it, and open it in Zerion from the card.
+Hover a building for a quick look at the wallet; click it to pin the full card and open the address
+elsewhere. See [Navigating](../navigating.md) for the controls.
 
 {% hint style="info" %}
 Every wallet that qualifies has a permanent home, whether or not it is currently being rendered.
