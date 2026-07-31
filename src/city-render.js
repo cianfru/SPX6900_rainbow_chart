@@ -150,8 +150,17 @@ export function waterNormalTexture(size = 256) {
 export function waterMaterials(tod) {
   const t1 = waterNormalTexture(), t2 = waterNormalTexture();
   t1.repeat.set(38, 38); t2.repeat.set(97, 97);
+  // ⭐ THE SEA IS THE BOTTOM LAYER, SO BIAS IT TO ALWAYS LOSE. The base plane spans LEN×8 (~1,600
+  // units) and sits only ~0.12 units under the borough land, so at distance the depth buffer can't
+  // separate them and the sea sometimes wins the pixel — Brooklyn floats on water. This is real
+  // z-fighting, GPU-precision-dependent, which is why a CPU rasteriser (the dev sandbox) can't
+  // reproduce it. A POSITIVE polygonOffset pushes the sea's depth AWAY from the camera, so any land
+  // stacked above it wins deterministically, at every distance and on every GPU. It only ever draws
+  // where there is genuinely nothing above it — i.e. open water. (Contrast the chop OVERLAY: it must
+  // NOT get an offset, because pulling that one toward the camera drew water over the land.)
   const base = new THREE.MeshStandardMaterial({
     color: tod.water, roughness: 0.3, metalness: 0.06,
+    polygonOffset: true, polygonOffsetFactor: 2, polygonOffsetUnits: 4,
     normalMap: t1, normalScale: new THREE.Vector2(0.75, 0.75), envMapIntensity: 1.15,
   });
   // The chop rides just above the base sea plane. Their flicker (both span LEN×8, so at distance the
