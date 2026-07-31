@@ -7,7 +7,9 @@ description: What happens when there are more holders than there is island.
 Manhattan holds **1,693 lots**. There are currently **4,893 residents**.
 
 The overflow builds in **Brooklyn, Queens, the Bronx and Jersey City** — another 4,582 lots, laid on
-the same street bearing as the island.
+the same street bearing as the island, with the same blocks, kerbed pavement and avenues Manhattan
+has, so the far bank reads as a continuation of the city rather than a green field with buildings
+dropped on it.
 
 ## Who moves
 

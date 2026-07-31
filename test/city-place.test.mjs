@@ -2,7 +2,8 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { placeCity, hoodLots, NEIGHBOURHOODS, cityScale,
-         streetGrid, avenueMedians, crosswalks, parkFeatures, waterfrontPiers, pointInRing, ROAD_W, GRID } from "../src/city-map.js";
+         streetGrid, avenueMedians, crosswalks, parkFeatures, waterfrontPiers,
+         boroughGrid, boroughLots, boroughStreets, pointInRing, ROAD_W, GRID } from "../src/city-map.js";
 import { bridgeSpan } from "../src/city-infra.js";
 import { NYC } from "../src/nyc-geo.js";
 
@@ -171,4 +172,23 @@ test("crosswalks land on the roadway — on the island, never in the park", () =
     assert.ok(pointInRing(mx, mz, R), "crosswalk is on the island");
     assert.ok(!pointInRing(mx, mz, park), "crosswalk is not inside the park");
   }
+});
+
+test("borough streets stay on borough land — never on the island or in the water", () => {
+  const R = NYC.manhattan[0];
+  const streets = boroughStreets(1);
+  assert.ok(streets.length > 20, "the boroughs get a street grid");
+  const boro = [NYC.brooklyn, NYC.queens, NYC.bronx, NYC.jersey].map(b => b[0]);
+  for (const s of streets) {
+    const mx = (s.x1 + s.x2) / 2, mz = (s.z1 + s.z2) / 2;
+    assert.ok(!pointInRing(mx, mz, R), "a borough street ran onto Manhattan");
+    assert.ok(boro.some(b => pointInRing(mx, mz, b)), "a borough street ran off all borough land");
+  }
+});
+
+test("borough blocks are only paved where lots landed, and match the lot set", () => {
+  const g = boroughGrid(1);
+  assert.equal(g.lots.length, boroughLots(1).length, "boroughLots is boroughGrid's lots");
+  assert.ok(g.blocks.length > 100 && g.blocks.length < g.lots.length, "blocks group the lots");
+  for (const b of g.blocks) assert.ok(b.w > 0 && b.d > 0, "every block has a real footprint");
 });

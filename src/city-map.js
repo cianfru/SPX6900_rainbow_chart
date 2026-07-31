@@ -468,36 +468,97 @@ const CHANNEL = 4;
 const COAST = MANHATTAN;
 const inChannel = (x, z) => COAST.some(([cx, cz]) => (cx - x) ** 2 + (cz - z) ** 2 < CHANNEL * CHANNEL);
 
+// A single point's borough, or null if it isn't buildable borough land — the shared predicate for
+// lots, blocks and streets so all three agree on exactly where a borough is.
+const boroughAt = (() => {
+  let rings = null;
+  return (x, z) => {
+    if (!rings) rings = BOROUGHS.flatMap(b => (NYC[b.id] || []).map(r => ({ id: b.id, name: b.name, ring: r })));
+    if (inManhattan(x, z)) return null;                     // the island has its own grid
+    if (WATER.some(w => pointInRing(x, z, w.ring))) return null;   // never in the harbour
+    if (inChannel(x, z)) return null;                       // nor in the rivers
+    if (underBridge(x, z)) return null;                     // nor on the bridge ramp (both shores)
+    const home = rings.find(r => pointInRing(x, z, r.ring));
+    return home ? { id: home.id, name: home.name } : null;
+  };
+})();
+
 let BORO_CACHE = null, BORO_K = null;
-export function boroughLots(k = 1) {
+// The boroughs as BLOCKS, the same as Manhattan's hoodGrid — lots grouped into blocks with a slab
+// sized to the lots that actually landed on land, so the outer boroughs get real streets and kerbed
+// pavement instead of buildings scattered on a bare green field.
+export function boroughGrid(k = 1) {
   if (BORO_CACHE && BORO_K === k) return BORO_CACHE;
-  const out = [];
+  const lots = [], blocks = [];
   const perT = PERIOD_T / (AXIS.len * k), lotT = GRID.lotT / (AXIS.len * k);
-  const rings = BOROUGHS.flatMap(b => (NYC[b.id] || []).map(r => ({ id: b.id, name: b.name, ring: r })));
-  const wet = WATER.map(w => w.ring);
+  const uCols = Math.ceil(BOROUGH_U / PERIOD_U);
   for (let t = BOROUGH_T[0]; t < BOROUGH_T[1]; t += perT) {
-    for (let li = 0; li < GRID.blkT; li++) {
-      const tt = t + (li + 0.5) * lotT;
-      for (let bu = -Math.ceil(BOROUGH_U / PERIOD_U); bu <= Math.ceil(BOROUGH_U / PERIOD_U); bu++) {
+    for (let bu = -uCols; bu <= uCols; bu++) {
+      const mine = [];                                      // this block's buildable lots
+      for (let li = 0; li < GRID.blkT; li++) {
+        const tt = t + (li + 0.5) * lotT;
         for (let lu = 0; lu < GRID.blkU; lu++) {
           const u = bu * PERIOD_U + (lu + 0.5 - GRID.blkU / 2) * GRID.lotU;
           if (Math.abs(u) > BOROUGH_U) continue;
           const { x, z } = fromAxis(tt, u / k);
-          if (inManhattan(x, z)) continue;                       // the island has its own grid
-          if (wet.some(r => pointInRing(x, z, r))) continue;      // never in the harbour
-          if (inChannel(x, z)) continue;                         // nor in the rivers
-          // ⚠ The bridge lands on BOTH shores. Clearing only Manhattan's grid left the Brooklyn
-          // abutment building on top of the ramp — which is the end the roadway visibly drove into.
-          if (underBridge(x, z)) continue;
-          const home = rings.find(r => pointInRing(x, z, r.ring));
-          if (!home) continue;
-          out.push({ x: x * k, z: z * k, hood: { id: home.id, name: home.name } });
+          const hood = boroughAt(x, z);
+          if (!hood) continue;
+          mine.push({ tt, u, x: x * k, z: z * k, hood });
         }
       }
+      if (!mine.length) continue;
+      for (const l of mine) lots.push({ x: l.x, z: l.z, hood: l.hood });
+      const tMin = Math.min(...mine.map(l => l.tt)), tMax = Math.max(...mine.map(l => l.tt));
+      const uMin = Math.min(...mine.map(l => l.u)), uMax = Math.max(...mine.map(l => l.u));
+      const c = fromAxis((tMin + tMax) / 2, ((uMin + uMax) / 2) / k);
+      blocks.push({
+        x: c.x * k, z: c.z * k,
+        w: (uMax - uMin) + GRID.lotU * 1.05,
+        d: (tMax - tMin) * AXIS.len * k + GRID.lotT * 1.05,
+      });
     }
   }
-  BORO_CACHE = out; BORO_K = k;
-  return out;
+  BORO_CACHE = { lots, blocks };
+  BORO_K = k;
+  return BORO_CACHE;
+}
+
+// Lots only — the shape placeCity expects.
+export function boroughLots(k = 1) { return boroughGrid(k).lots; }
+
+// The borough street grid — the same avenues-and-streets ribbons as the island, clipped to borough
+// land through the SAME boroughAt predicate so a street can't run over water or across a channel.
+export function boroughStreets(k = 1) {
+  const segs = [];
+  const perT = PERIOD_T / (AXIS.len * k);
+  const lotT = GRID.lotT / (AXIS.len * k);
+  const gapT = (GRID.street / 2) / (AXIS.len * k);
+  const uCols = Math.ceil(BOROUGH_U / PERIOD_U);
+  const trace = (pt, steps, step, kind, major = false) => {
+    let run = null;
+    const put = (x, z) => segs.push({ x1: run[0], z1: run[1], x2: x * k, z2: z * k, kind, major });
+    for (let i = 0; i <= steps; i++) {
+      const { x, z } = pt(i * step);
+      const on = !!boroughAt(x, z);
+      if (on && !run) run = [x * k, z * k];
+      else if (!on && run) { put(x, z); run = null; }
+    }
+    if (run) { const { x, z } = pt(steps * step); put(x, z); }
+  };
+  const t0 = BOROUGH_T[0], t1 = BOROUGH_T[1], span = t1 - t0;
+  // cross-streets: down the gap between block rows
+  for (let t = t0; t < t1; t += perT) {
+    const tt = t + GRID.blkT * lotT + gapT;
+    if (tt >= t1) break;
+    trace(uu => fromAxis(tt, (uu - BOROUGH_U) / k), 160, (BOROUGH_U * 2) / 160, "street");
+  }
+  // avenues: down the gap between block columns, walked across the whole borough t-range
+  for (let bu = -uCols; bu < uCols; bu++) {
+    const u = (bu + 0.5) * PERIOD_U;
+    if (Math.abs(u) > BOROUGH_U) continue;
+    trace(tt => fromAxis(t0 + tt * span, u / k), 300, 1 / 300, "avenue", isGrand(bu));
+  }
+  return segs;
 }
 
 // "Where do you live?" — answers for ANY address, holder or not: the neighbourhood is a property
