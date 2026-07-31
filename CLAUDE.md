@@ -700,6 +700,20 @@
     rebuild, `intro={week==null}` so scrubs skip the arrival flight, trade arcs hidden mid-replay (they're a
     last-30d fact), caption states the replay method. Seam note: timeline last week ≈5.5k vs live 4,894 — the
     live city's FIFO day-counting is finer; slider far-right therefore SWITCHES to the live towers.
+  - **⚠ EMPTY-EARLY-WEEK FREEZE FIXED 2026-07-31 (owner: "time machine doesn't work at First pump, mobile + mac").**
+    The live bar is "5,000 held 90 days", but launch is timeline week 0, so for the first ~13 weeks NOBODY can
+    have held 90 days yet → `histTowers` returned an EMPTY set → Skyline3D's `if (!towers?.length) return;` early-
+    returns AFTER React ran the previous effect's cleanup, so the scene tore down and never rebuilt = a frozen/blank
+    city (the "First pump doesn't work" bug; "First pump" = week 10 = 0 strict residents). FIX in `histTowers`
+    (SpxCity.jsx): the SPX days bar is **`Math.min(90, W*7)`** — you can't be asked to hold longer than the token
+    has existed. Now week 0 = 849 launch-pump buyers, thinning to ~129 diehards by First pump, then the real base
+    builds — an HONEST launch-churn story, not a dead zone. AEON was never affected (its bar is just ≥1 token, mint
+    week 0 already has 930). Verified in-browser: First pump rebuilds to 129 buildings (was frozen). **LESSON: any
+    replay bar that references a duration must clamp to the asset's age, or the earliest frames are unsatisfiable.**
+  - **⚠ MOBILE SETTINGS POPOVER FIXED (same report):** the gear's `position:absolute; right:0` menu (236px) ran off
+    the LEFT edge on a phone (anchored to the gear's right edge with no room to its left). Now on `isMobile` it's a
+    `position:fixed` bottom sheet (`left/right:12, bottom:16`, maxHeight 70vh) — always fully on-screen; desktop keeps
+    the dropdown. `src/CityControls.jsx`.
   - **🔲 STILL TO DO (debug phase):** the rendered VIDEO export ("three years of SPX6900, as a city" — wire a
     `__cityWeek(u)` hook into `render-city-video.mjs` like `__citySeek`); a play button; possibly per-week
     tween/lerp instead of hard rebuilds.
