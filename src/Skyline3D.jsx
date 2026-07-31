@@ -7,7 +7,8 @@ import { UnrealBloomPass } from "three/examples/jsm/postprocessing/UnrealBloomPa
 import { OutputPass } from "three/examples/jsm/postprocessing/OutputPass.js";
 import { CSS2DRenderer, CSS2DObject } from "three/examples/jsm/renderers/CSS2DRenderer.js";
 import { placeCity, cityScale, CITY_LENGTH, ISLAND_RING, PARK_RINGS, BACKDROP, ISLETS, WATER,
-         streetGrid, ROAD_W, avenueMedians, crosswalks, parkFeatures, waterfrontPiers, hoodGrid, NEIGHBOURHOODS, AXIS_ANGLE } from "./city-map.js";
+         streetGrid, ROAD_W, avenueMedians, crosswalks, parkFeatures, waterfrontPiers,
+         boroughGrid, boroughStreets, hoodGrid, NEIGHBOURHOODS, AXIS_ANGLE } from "./city-map.js";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { chainOf } from "./city-messages.js";
 import { makeDrs } from "./city-drs.js";
@@ -418,6 +419,59 @@ export default function Skyline3D({
             side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -4,
           }));
         scene.add(m); groundBits.push(m);
+      }
+
+      // ── the outer boroughs, brought up to the island's finish ────────────────────────────────
+      // Brooklyn/Queens/Bronx/Jersey were buildings scattered on a bare green field while Manhattan
+      // got streets, kerbs and markings — so the far bank read as unfinished next to the island.
+      // They now get the SAME block-and-street grid. The one wrinkle is height: borough buildings
+      // stand at y=0 but the borough land is the backdrop at y=-0.30, so each block slab is a
+      // PLATFORM that bridges the gap — its top carries the 0.17 kerb the buildings rise from, its
+      // base meets the green — and the streets run in the slots between the platforms.
+      const boro = boroughGrid(K);
+      const BORO_GROUND = -0.30, KERB = 0.17;
+      if (boro.blocks.length) {
+        const slabs = boro.blocks.filter(built).map(b => {
+          const g = new THREE.BoxGeometry(b.d, KERB - BORO_GROUND, b.w);
+          g.rotateY(-AXIS_ANGLE); g.translate(b.x, (KERB + BORO_GROUND) / 2, b.z);
+          return g;
+        });
+        if (slabs.length) {
+          const merged = mergeGeometries(slabs, false);
+          slabs.forEach(g => g.dispose());
+          if (merged) {
+            const m = new THREE.Mesh(merged, new THREE.MeshStandardMaterial({ color: TOD.pave, roughness: 0.92 }));
+            m.receiveShadow = true; m.castShadow = true; scene.add(m); groundBits.push(m);
+          }
+        }
+      }
+      // Borough roads: asphalt in the slots at the top of the platforms, centre lines on the avenues.
+      const bsegs = boroughStreets(K);
+      if (bsegs.length) {
+        const baves = bsegs.filter(s => s.kind === "avenue"), bsts = bsegs.filter(s => s.kind === "street");
+        for (const [list, w, y] of [[bsts, ROAD_W.street, 0.10], [baves, ROAD_W.avenue, 0.11]]) {
+          if (!list.length) continue;
+          const m = new THREE.Mesh(ribbon(list, w / 2, y),
+            new THREE.MeshStandardMaterial({ color: asphalt, roughness: 0.95, side: THREE.DoubleSide }));
+          m.receiveShadow = true; scene.add(m); groundBits.push(m);
+        }
+        const bdash = [];
+        for (const s of baves) {
+          if (s.major) continue;
+          const dx = s.x2 - s.x1, dz = s.z2 - s.z1, L = Math.hypot(dx, dz);
+          if (L < 0.8) continue;
+          const ux = dx / L, uz = dz / L;
+          for (let d = 0.45; d < L - 0.95; d += 1.15)
+            bdash.push({ x1: s.x1 + ux * d, z1: s.z1 + uz * d, x2: s.x1 + ux * (d + 0.5), z2: s.z1 + uz * (d + 0.5) });
+        }
+        if (bdash.length) {
+          const m = new THREE.Mesh(ribbon(bdash, 0.05, 0.112),
+            new THREE.MeshStandardMaterial({
+              color: 0xd8c489, emissive: 0xd8c489, emissiveIntensity: 0.22, roughness: 0.8,
+              side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -4,
+            }));
+          scene.add(m); groundBits.push(m);
+        }
       }
     } else {
       const groundSize = Math.max(grid.blocks.length * 2, 60) * 4;
