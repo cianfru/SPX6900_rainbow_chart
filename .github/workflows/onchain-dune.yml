@@ -116,7 +116,16 @@ jobs:
             git config user.email "github-actions[bot]@users.noreply.github.com"
             git add public/onchain.json public/urpd.json public/whales.json public/spx-timeline.json public/cohort-survival.json public/exit-flow.json public/smart-money.json
             git commit -m "chore: on-chain FIFO refresh (Dune) $(date -u +%F)"
-            git push
+            # This job takes ~2-3 min; a human (or another cron) can push to main inside that window,
+            # which used to reject our push with a non-fast-forward and fail the whole daily refresh.
+            # We only touch generated public/*.json, so rebasing onto the newer main is always clean —
+            # pull --rebase then push, retried a few times against a busy branch.
+            for i in 1 2 3 4 5; do
+              git push && break
+              echo "push rejected (attempt $i) — rebasing on the latest main and retrying"
+              git pull --rebase --autostash origin main || exit 1
+              sleep $((i * 3))
+            done
           else
             echo "No change to commit"
           fi

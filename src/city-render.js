@@ -154,16 +154,15 @@ export function waterMaterials(tod) {
     color: tod.water, roughness: 0.3, metalness: 0.06,
     normalMap: t1, normalScale: new THREE.Vector2(0.75, 0.75), envMapIntensity: 1.15,
   });
-  // ⚠ THE CHOP OVERLAY MUST BE BIASED OUT OF THE BASE PLANE'S DEPTH, NOT JUST FLOATED ABOVE IT.
-  // Both sheets span LEN×8 — thousands of units — so at any distance the depth buffer cannot resolve
-  // the couple of centimetres between them, and the pair z-fights: the sea flickers as the camera
-  // moves. depthWrite:false alone does not fix it, because the overlay is still depth-TESTED against
-  // a base that rounds to the same value. polygonOffset shifts the overlay's depth toward the camera
-  // at every distance, which a fixed y-gap cannot do.
+  // The chop rides just above the base sea plane. Their flicker (both span LEN×8, so at distance the
+  // depth buffer couldn't tell them apart) is handled by the camera's near plane — raised from 0.1 to
+  // 0.5, ~5× more depth precision everywhere — plus a wider y-gap on the meshes. ⚠ DO NOT use
+  // polygonOffset here: it biases this huge plane's depth toward the camera at EVERY distance, which
+  // makes the transparent water draw OVER the borough land (Brooklyn sat on the sea). The near-plane
+  // fix is depth-correct; the offset was a coplanar hack that broke the shoreline.
   const over = new THREE.MeshStandardMaterial({
     color: tod.water, transparent: true, opacity: 0.4, depthWrite: false,
     roughness: 0.2, metalness: 0.06,
-    polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2,
     normalMap: t2, normalScale: new THREE.Vector2(0.5, 0.5), envMapIntensity: 1.35,
   });
   // slow, slightly divergent drift — the relative motion is what sells it

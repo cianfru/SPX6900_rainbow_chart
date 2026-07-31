@@ -891,12 +891,12 @@ export default function Skyline3D({
         const d = THREE.MathUtils.clamp(_off.length() * factor, controls.minDistance, controls.maxDistance);
         _off.setLength(d);
       } else {
-        // BOTH AXES INVERTED (owner, 2026-07-31). The gesture now reads as pushing the CITY around
-        // under your fingers rather than swinging the camera against them — which is the same
-        // convention as dragging to pan, so the two gestures agree instead of fighting each other.
+        // Standard orbit, the Google-Earth convention (owner, 2026-07-31, after trying inverted):
+        // two fingers up tilts toward the horizon, two fingers sideways swings around. Same signs as
+        // OrbitControls' own touch-orbit, so the trackpad and a phone agree.
         _sph.setFromVector3(_off);
-        _sph.theta += e.deltaX * 0.005;
-        _sph.phi = THREE.MathUtils.clamp(_sph.phi - e.deltaY * 0.005, 0.12, controls.maxPolarAngle);
+        _sph.theta -= e.deltaX * 0.005;
+        _sph.phi = THREE.MathUtils.clamp(_sph.phi + e.deltaY * 0.005, 0.12, controls.maxPolarAngle);
         _off.setFromSpherical(_sph);
       }
       cam.position.copy(controls.target).add(_off);
