@@ -78,6 +78,7 @@ export default function Skyline3D({
   infra = null,                             // latest on-chain row → the harbour: docks, bridge, monument
   arcs = null,                              // [{ f, to, eth, usd, token, d }] — trades, drawn wallet to wallet
   viewH = 0,                                // viewport height in px; 0 = the built-in default
+  beamAll = false,                          // false = beams only for DECISIVE movers · true = anyone who moved
 }) {
   const mount = useRef(null);
   const api = useRef(null);                 // { cam, controls, homes } for the focus effect
@@ -392,7 +393,11 @@ export default function Skyline3D({
       const p = pts[i], r = hash01(t.a || String(i));
       const f = (t.flow || 0) / maxFlow;                     // -1..1
       const mag = Math.min(1, Math.abs(f) * 3.0);
-      const flowCol = f > 0.02 ? GREEN : f < -0.02 ? RED : null;
+      // A beam shows when |flow| clears the cutoff (a fraction of the biggest mover). Default 2% =
+      // decisive moves only; "all movers" drops it to ~0 so anyone who moved at all gets a beam. Most
+      // of the city has ZERO flow either way, so this only ever adds the marginal movers.
+      const beamCut = beamAll ? 0.0006 : 0.02;
+      const flowCol = f > beamCut ? GREEN : f < -beamCut ? RED : null;
       const ai = Math.min(AGE_BINS - 1, Math.floor((t.ageT ?? 0.5) * AGE_BINS));
       const fi = Math.max(0, Math.min(FLOW_BINS - 1, Math.round((Math.max(-1, Math.min(1, f)) + 1) / 2 * (FLOW_BINS - 1))));
 
@@ -1010,7 +1015,7 @@ export default function Skyline3D({
       delete window.__citySeek; delete window.__cityReady; delete window.__cityStats; delete window.__cityCam;
       renderer.dispose(); el.removeChild(renderer.domElement); el.removeChild(labelR.domElement); el.removeChild(tip);
     };
-  }, [towers, isMobile, crownLabel, accent, bodyFrom, bodyTo, layout, intro, time, infra, arcs]);
+  }, [towers, isMobile, crownLabel, accent, bodyFrom, bodyTo, layout, intro, time, infra, arcs, beamAll]);
 
   // ── messages hung over buildings ───────────────────────────────────────────────────────────
   // Own a building, leave a note on it. Signs are CSS2D labels rather than 3D text so they stay

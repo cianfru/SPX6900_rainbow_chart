@@ -88,6 +88,7 @@ export default function SpxCity({ isMobile, preview = false, initialMode = "spx"
   // iOS Safari refuses requestFullscreen on anything that isn't a <video>; the overlay behaves the
   // same everywhere, and Esc still exits.
   const [full, setFull] = useState(false);
+  const [beamAll, setBeamAll] = useState(false);   // flow-beam cutoff: false = decisive movers only
   const [winH, setWinH] = useState(() => (typeof window === "undefined" ? 800 : window.innerHeight));
   useEffect(() => {
     const onR = () => setWinH(window.innerHeight);
@@ -411,6 +412,7 @@ export default function SpxCity({ isMobile, preview = false, initialMode = "spx"
       )}
 
       <CityControls layout={layout} onLayout={setLayout} time={time} onTime={setTime} accent={M.accent} isMobile={isMobile} unit={M.unit}
+        beamAll={beamAll} onBeamAll={setBeamAll}
         has={a => visible.some(t => (t.a || "").toLowerCase() === a)}
         onFocus={a => { goTo(a); const m = visible.find(t => (t.a || "").toLowerCase() === a); if (m) setSel(m); }} />
 
@@ -430,7 +432,7 @@ export default function SpxCity({ isMobile, preview = false, initialMode = "spx"
               bodyFrom={0xf2cf8a} bodyTo={0x22d3ee}
               layout={layout} focus={focus} focusNonce={focusN} pinned={preview ? null : sel} pinnedHtml={pinCard}
               intro={week == null}
-              messages={msgs} time={time} infra={isNft ? null : infra} arcs={arcs} viewH={viewH} />
+              messages={msgs} time={time} infra={isNft ? null : infra} arcs={arcs} viewH={viewH} beamAll={beamAll} />
           </Suspense>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12, marginTop: 8, flexWrap: "wrap" }}>
             <span style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center" }}>

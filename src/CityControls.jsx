@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { lookupHome } from "./city-map.js";
 import { TIMES } from "./city-render.js";
 import { SANS, MONO } from "./chart-ui.jsx";
@@ -54,15 +54,37 @@ function TimeToggle({ time, onTime, accent }) {
   );
 }
 
+// One labelled row inside the settings popover: a small caps label (+ optional hint) over its control.
+function SettingRow({ label, hint, children }) {
+  return (
+    <div style={{ marginBottom: 12 }}>
+      <div style={{ fontFamily: SANS, fontSize: 10.5, letterSpacing: "0.14em", textTransform: "uppercase", color: "#8894a8", marginBottom: 6 }}>{label}</div>
+      {children}
+      {hint && <div style={{ fontFamily: SANS, fontSize: 11, color: "#64748b", marginTop: 5, lineHeight: 1.4 }}>{hint}</div>}
+    </div>
+  );
+}
+
 // "Where do you live?" — the game layer. Paste any wallet and the city tells you your
 // neighbourhood, then flies to your building if you own one.
 //
 // It answers for ANY valid address, holder or not, because the neighbourhood is a property of the
 // address itself (a hash), not of the holdings. When the wallet isn't in the tracked set we say so
 // plainly rather than inventing a building for it — the address is play, the buildings are data.
-export default function CityControls({ layout, onLayout, onFocus, has, accent = "#5eead4", isMobile, unit = "holder", time = "dusk", onTime }) {
+export default function CityControls({ layout, onLayout, onFocus, has, accent = "#5eead4", isMobile, unit = "holder", time = "dusk", onTime, beamAll = false, onBeamAll }) {
   const [q, setQ] = useState("");
   const [msg, setMsg] = useState(null);
+  const [open, setOpen] = useState(false);   // the settings popover
+  const gearRef = useRef(null);
+  // close the popover on an outside click or Escape — standard menu behaviour
+  useEffect(() => {
+    if (!open) return;
+    const onDoc = e => { if (gearRef.current && !gearRef.current.contains(e.target)) setOpen(false); };
+    const onKey = e => { if (e.key === "Escape") setOpen(false); };
+    document.addEventListener("mousedown", onDoc);
+    window.addEventListener("keydown", onKey);
+    return () => { document.removeEventListener("mousedown", onDoc); window.removeEventListener("keydown", onKey); };
+  }, [open]);
 
   const submit = e => {
     e.preventDefault();
@@ -100,12 +122,50 @@ export default function CityControls({ layout, onLayout, onFocus, has, accent = 
             }} />
           <button type="submit" {...neon(true)}>Find</button>
         </form>
-        <div style={{ display: "flex", gap: 4 }}>
-          {[["City", "city"], ["Skyline", "grid"]].map(([lbl, v]) => (
-            <button key={v} onClick={() => onLayout(v)} {...neon(layout === v)}>{lbl}</button>
-          ))}
+        {/* ⚙ SETTINGS — the display toggles that aren't the primary controls (which stay visible:
+            mode, flow window, time machine). The panel was growing a new pill per option; a wheel
+            keeps the row clean and gives them room to grow. */}
+        <div style={{ position: "relative" }} ref={gearRef}>
+          <button onClick={() => setOpen(v => !v)} title="Display settings" aria-expanded={open}
+            {...neon(open)} style={{ ...neon(open).style, display: "inline-flex", alignItems: "center", gap: 7 }}>
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2"
+              strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="3" />
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+            </svg>
+            Settings
+          </button>
+          {open && (
+            <div role="menu" style={{
+              position: "absolute", top: "calc(100% + 8px)", right: 0, zIndex: 30, width: 236, textAlign: "left",
+              padding: "12px 14px", borderRadius: 12, background: "rgba(10,12,20,0.96)",
+              border: "1px solid rgba(255,255,255,0.12)", boxShadow: "0 12px 40px rgba(0,0,0,0.5)",
+              backdropFilter: "blur(8px)",
+            }}>
+              <SettingRow label="View">
+                <div style={{ display: "flex", gap: 4 }}>
+                  {[["City", "city"], ["Skyline", "grid"]].map(([lbl, v]) => (
+                    <button key={v} onClick={() => onLayout(v)} {...neon(layout === v)}>{lbl}</button>
+                  ))}
+                </div>
+              </SettingRow>
+              {onTime && (
+                <SettingRow label="Time of day">
+                  <TimeToggle time={time} onTime={onTime} accent={accent} />
+                </SettingRow>
+              )}
+              {onBeamAll && (
+                <SettingRow label="Flow beams" hint="Which movers get a green/red beam.">
+                  <div style={{ display: "flex", gap: 4 }}>
+                    {[["Decisive", false], ["All movers", true]].map(([lbl, v]) => (
+                      <button key={lbl} onClick={() => onBeamAll(v)} {...neon(beamAll === v, "#22d3ee")}>{lbl}</button>
+                    ))}
+                  </div>
+                </SettingRow>
+              )}
+            </div>
+          )}
         </div>
-        {onTime && <TimeToggle time={time} onTime={onTime} accent={accent} />}
         {/* The manual, on this site. An open-book mark rather than a vendor logo — it is our own
             page now. Opens in a new tab so it never navigates away from the city. */}
         <a href={DOCS_URL} target="_blank" rel="noopener noreferrer" title="How to read the city — the manual"
