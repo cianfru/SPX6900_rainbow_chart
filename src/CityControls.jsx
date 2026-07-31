@@ -3,11 +3,10 @@ import { lookupHome } from "./city-map.js";
 import { TIMES } from "./city-render.js";
 import { SANS, MONO } from "./chart-ui.jsx";
 
-// Where the "how to read the city" instructions live — the published manual. The pages are authored
-// in docs/ in this repo and mirrored to GitBook by Git Sync, so the book can never drift from what
-// shipped. Pointing at the published site rather than the repo folder also means the link survives
-// the repo's visibility changing.
-const DOCS_URL = "https://andrea-cianfruglia.gitbook.io/spx6900-rainbow-charts/";
+// Where the "how to read the city" instructions live — the manual, hosted on this site. The pages
+// are authored as markdown in docs/ and pre-rendered into the bundle at build time, so the book
+// can't drift from what shipped and carries no third-party branding, author name or repo metadata.
+const DOCS_URL = "?view=docs";
 
 // Line icons for the time-of-day toggle — drawn, not emoji, so they inherit the button colour and
 // sit cleanly with the rest of the site. Ordered dark → light (moon · sunrise · sun) so the control
@@ -107,17 +106,18 @@ export default function CityControls({ layout, onLayout, onFocus, has, accent = 
           ))}
         </div>
         {onTime && <TimeToggle time={time} onTime={onTime} accent={accent} />}
-        {/* The instructions live in the repo's docs book — a GitHub-marked link rather than a wall of
-            in-page help. Opens in a new tab so it never navigates away from the city. */}
-        <a href={DOCS_URL} target="_blank" rel="noopener noreferrer" title="How to read the city — documentation"
+        {/* The manual, on this site. An open-book mark rather than a vendor logo — it is our own
+            page now. Opens in a new tab so it never navigates away from the city. */}
+        <a href={DOCS_URL} target="_blank" rel="noopener noreferrer" title="How to read the city — the manual"
           className="neon-pill" style={{
             display: "inline-flex", alignItems: "center", gap: 7, textDecoration: "none",
             padding: "6px 13px", borderRadius: 8, fontFamily: MONO, fontSize: 12, color: "#94a3b8", "--glow": accent,
           }}>
-          <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor" aria-hidden="true">
-            <path d="M8 0C3.58 0 0 3.58 0 8a8 8 0 0 0 5.47 7.59c.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.6 7.6 0 0 1 2-.27c.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8 8 0 0 0 16 8c0-4.42-3.58-8-8-8z" />
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2"
+            strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M3 20V8l5-3 4 2.5L16 5l5 2.5V19l-5-2.5-4 2.5-4-2.5z" /><path d="M8 5v12" /><path d="M16 6.5v12" />
           </svg>
-          Docs
+          Manual
         </a>
       </div>
       {msg && (

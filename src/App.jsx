@@ -96,6 +96,7 @@ const NuplChart = lazy(() => import("./NuplChart.jsx"));
 const QuantileFanChart = lazy(() => import("./QuantileFanChart.jsx"));
 const ChartsGallery = lazy(() => import("./ChartsGallery.jsx"));
 const MethodsPage = lazy(() => import("./MethodsPage.jsx"));
+const DocsPage = lazy(() => import("./DocsPage.jsx"));
 const LandingPage = lazy(() => import("./LandingPage.jsx")); // dark-committed landing (staging at ?view=next)
 
 // Basket rosters for the performance-race charts (keys match the /api endpoints).
@@ -262,6 +263,7 @@ export default function App() {
   // route: "home" = the Rainbow hero (landing) · "gallery" = the Charts grid ·
   // "chart" = a dedicated interactive chart page (which one = `tab`).
   const [route, setRoute] = useState("home");
+  const [docSlug, setDocSlug] = useState("index"); // which page of the manual (?view=docs&p=…)
   const [copied, setCopied] = useState(false);  // "Share" → link copied confirmation
   const [relWhich, setRelWhich] = useState("BTC"); // Relative chart asset (its own in-chart selector)
   const navRef = useRef(null);
@@ -559,10 +561,12 @@ export default function App() {
     if (typeof window === "undefined") return;
     const params = new URLSearchParams(window.location.search);
     params.delete("tab"); // legacy param — superseded by ?chart=
-    params.delete("view"); params.delete("chart"); params.delete("rel");
+    params.delete("view"); params.delete("chart"); params.delete("rel"); params.delete("p");
     if (r === "gallery") params.set("view", "charts");
     else if (r === "aeon") params.set("view", "aeon");
     else if (r === "methods") params.set("view", "methods");
+    // the manual carries its page in ?p= so any page in the book is directly linkable
+    else if (r === "docs") { params.set("view", "docs"); if (id) params.set("p", id); }
     else if (r === "next") params.set("view", "next");
     else if (r === "chart" && id) {
       params.set("chart", id);
@@ -577,6 +581,7 @@ export default function App() {
   const openGallery = () => { setRoute("gallery"); syncUrl("gallery"); window.scrollTo({ top: 0, behavior: "smooth" }); };
   const openAeon = () => { setRoute("aeon"); syncUrl("aeon"); window.scrollTo({ top: 0, behavior: "smooth" }); };
   const openMethods = () => { setRoute("methods"); syncUrl("methods"); window.scrollTo({ top: 0, behavior: "smooth" }); };
+  const openDocs = (slug = "index") => { setDocSlug(slug); setRoute("docs"); syncUrl("docs", slug); window.scrollTo({ top: 0, behavior: "smooth" }); };
   const goChart = (id, relOverride) => {
     if (id === "rainbow") { goHome(); return; }
     id = resolveId(id);
@@ -609,6 +614,7 @@ export default function App() {
       if (p.get("view") === "charts") setRoute("gallery");
       else if (p.get("view") === "aeon") setRoute("aeon");
       else if (p.get("view") === "methods") setRoute("methods");
+      else if (p.get("view") === "docs") { setRoute("docs"); setDocSlug(p.get("p") || "index"); }
       else if (p.get("view") === "next") setRoute("next");
       else if (id && CHART_IDS.has(resolveId(id))) { setRoute("chart"); setTab(resolveId(id)); }
       else setRoute("home");
@@ -788,6 +794,14 @@ export default function App() {
 )}
               <span>{isMobile ? "Aeon" : "Project Aeon"}</span>
             </button>
+            <button className="pill" onClick={() => openDocs("index")} title="The SPX City manual — how to read the city" style={navPill(route === "docs", "#94a3b8")}>
+              {!isMobile && (
+<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, color: "#94a3b8" }}>
+                <path d="M3 20V8l5-3 4 2.5L16 5l5 2.5V19l-5-2.5-4 2.5-4-2.5z" /><path d="M8 5v12" /><path d="M16 6.5v12" />
+              </svg>
+)}
+              <span>Manual</span>
+            </button>
             <button className="pill" onClick={openMethods} title="How every number on this site is computed" style={navPill(route === "methods", "#94a3b8")}>
               {!isMobile && (
 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, color: "#94a3b8" }}>
@@ -824,6 +838,13 @@ export default function App() {
         </Suspense>
       )}
 
+
+      {/* The manual — docs/*.md pre-rendered at build time, hosted here rather than linked out. */}
+      {route === "docs" && (
+        <Suspense fallback={<div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Loading…</div>}>
+          <DocsPage isMobile={isMobile} slug={docSlug} onNavigate={openDocs} />
+        </Suspense>
+      )}
 
       {/* Methods — how every number on the site is computed. Static, reads the live model. */}
       {route === "methods" && (

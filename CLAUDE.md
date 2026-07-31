@@ -686,6 +686,31 @@
   Observability: `window.__cityStats()` now reports `pixelRatio` + `frameMs` — check them on real hardware.
 
 ## Backlog / decisions
+- **✅✅ THE MANUAL IS HOSTED ON THE SITE — `?view=docs` (owner, 2026-07-31). GitBook is now a MIRROR, not the destination.**
+  The city manual (18 pages) lives in `docs/*.md`, still GitBook-shaped (`SUMMARY.md` = table of contents, `.gitbook.yaml`
+  = root). It was published via GitBook Git Sync at `andrea-cianfruglia.gitbook.io` — **and that URL carries the owner's
+  REAL NAME on every page**, next to a pseudonymous @SPX6900Rainbow brand. Owner: *"Definitely an issue… best thing is to
+  change the way we doc. Probably a custom page within the same website."* Also found: **GitBook embeds the synced repo in
+  the published page source** (`"gitSync":{...,"repoName":"cianfru/SPX6900_rainbow_chart"}`) — not a visible link, but one
+  view-source away, so Git Sync defeats "nobody can identify the repo" by design.
+  - **`scripts/build-docs.mjs` pre-renders `docs/` → `src/docs-content.js` at BUILD time** (wired into `npm run build`;
+    `npm run build:docs` alone). `marked` is a **devDependency — it never reaches the browser**. Handles GitBook syntax:
+    front-matter `description:` → page subtitle, `{% hint style=x %}` → styled callout, relative `.md` links → `?view=docs&p=<slug>`,
+    external links → `target=_blank`. Strips the leading `<h1>` (the page renders the title from SUMMARY, so it'd show twice)
+    and any heading orphaned by a stripped block.
+  - **`src/DocsPage.jsx`** — sidebar grouped exactly as SUMMARY orders it, prev/next, deep-linkable per page, mobile nav at
+    the foot. Styled like MethodsPage (one column, rules not boxes, no pills/gradients). **Code-split: ~19 KB gzipped, zero
+    main-bundle cost.** Nav pill "Manual" + the city's Docs button both point here (button's GitHub logo → open-book mark).
+  - **⚠ NO MERMAID ON THE SITE** — pulling in mermaid (~500 KB) for one diagram is a bad trade, so `dropMermaid` strips the
+    fences. The one flowchart in `docs/README.md` was **rewritten as prose + a table** so it renders everywhere and nothing
+    is lost; there are now zero mermaid blocks. If the book ever leans on diagrams, render them properly instead.
+  - **Editing rules:** `docs/*.md` is the single source. GitBook Git Sync is **bidirectional** — prose edited in GitBook
+    lands as a commit on `main`, and the next build regenerates the site copy. Don't edit the same page in both at once.
+    `src/docs-content.js` is GENERATED and committed (same convention as the other generated bundles) — never hand-edit it.
+  - **🔲 OWNER, still open:** the GitBook subdomain still carries the real name. Either rename the site, point a custom
+    domain at it (`docs.spx6900rainbow.xyz`), or retire the GitBook space now the site hosts the book. Separately,
+    `docs/x-bot-plan.md` is a stale internal planning doc in the published folder (claims "no bot code committed yet");
+    it's not in SUMMARY so it isn't a page — delete or relocate on the owner's word.
 - **✅ METHODS PAGE — RESTORED 2026-07-26 (owner asked for it back; do NOT delete it again).** History: built (`b6ac1c4`),
   trimmed for density (`246d69e`), then I DELETED it (`79cb1cf`) on my own reasoning — that was reversed. Owner: *"we can
   have a methods page with the data. Design must be simple and not feeling AI generated. Keep the same visual styling as the

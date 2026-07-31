@@ -24,20 +24,19 @@ asset that mode is about. See [Modes](modes.md).
 
 ## How a wallet becomes a building
 
-```mermaid
-flowchart TD
-  W[Wallet] --> E{5,000 SPX<br/>held 90 days?}
-  E -- no --> X[Not rendered<br/>still searchable]
-  E -- yes --> P[ ]
-  P --> H[Height<br/>size x conviction]
-  P --> C[Colour<br/>holding age]
-  P --> F[Flow<br/>buying or selling]
-  P --> D[District<br/>hashed address]
-  H --> B[Building]
-  C --> B
-  F --> B
-  D --> B
-```
+A wallet is drawn only if it clears the mode's bar — for SPX, **5,000 tokens held for 90 days**.
+Wallets below the bar are never rendered, but they stay searchable: every address has a permanent
+home whether or not anyone is currently standing on it.
+
+Once a wallet qualifies, four independent properties are read off the chain, and together they are
+the building:
+
+| Property | What it is read from |
+| --- | --- |
+| **Height** | position size × how long it has been held |
+| **Colour** | holding age — warm when new, cool when long-held |
+| **Flow** | whether the wallet added or reduced over the window |
+| **District** | derived from the address itself |
 
 ## Start here
 
