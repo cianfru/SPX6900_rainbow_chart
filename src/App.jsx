@@ -794,14 +794,6 @@ export default function App() {
 )}
               <span>{isMobile ? "Aeon" : "Project Aeon"}</span>
             </button>
-            <button className="pill" onClick={() => openDocs("index")} title="The SPX City manual — how to read the city" style={navPill(route === "docs", "#94a3b8")}>
-              {!isMobile && (
-<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, color: "#94a3b8" }}>
-                <path d="M3 20V8l5-3 4 2.5L16 5l5 2.5V19l-5-2.5-4 2.5-4-2.5z" /><path d="M8 5v12" /><path d="M16 6.5v12" />
-              </svg>
-)}
-              <span>Manual</span>
-            </button>
             <button className="pill" onClick={openMethods} title="How every number on this site is computed" style={navPill(route === "methods", "#94a3b8")}>
               {!isMobile && (
 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, color: "#94a3b8" }}>
