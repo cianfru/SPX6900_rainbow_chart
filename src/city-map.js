@@ -655,6 +655,32 @@ export function streetGrid(k = 1) {
   return segs;
 }
 
+// ⭐ CROSSWALKS at the avenue/street intersections — the pale bands across the roadway that read as
+// a city seen from above once the eye is close enough to make out an intersection. One band per
+// crossing, spanning the AVENUE's width at the cross-street line, computed in the same t-space the
+// streets and medians come from so the bands land exactly on the intersections. Avenues only: the
+// cross-streets are too narrow at this scale for a second set to be anything but noise.
+export function crosswalks(k = 1) {
+  const out = [];
+  const perT = PERIOD_T / (AXIS.len * k);
+  const lotT = GRID.lotT / (AXIS.len * k);
+  const gapT = (GRID.street / 2) / (AXIS.len * k);
+  const halfU = ROAD_W.avenue / 2;
+  const on = (x, z) => inManhattan(x, z) && !inPark(x, z);
+  for (let bu = -COLS; bu < COLS; bu++) {
+    const u = (bu + 0.5) * PERIOD_U;
+    for (let bi = 0; bi * perT < 1; bi++) {
+      const t = bi * perT + GRID.blkT * lotT + gapT;
+      if (t >= 1) break;
+      const mid = fromAxis(t, u / k);
+      if (!on(mid.x, mid.z)) continue;               // off the island, or in the park — no crossing
+      const a = fromAxis(t, (u - halfU) / k), b = fromAxis(t, (u + halfU) / k);
+      out.push({ x1: a.x * k, z1: a.z * k, x2: b.x * k, z2: b.z * k });
+    }
+  }
+  return out;
+}
+
 // ⭐ CENTRAL PARK'S INTERIOR. The park is the single largest unbroken surface in the city — it fills
 // a huge share of every wide shot — and it was ONE flat green polygon, which is the first thing that
 // reads as unfinished from above. These are the features a person actually recognises Manhattan by
@@ -710,5 +736,51 @@ export function parkFeatures() {
     ],
     roads: [cross(0.13), cross(0.39), cross(0.53), cross(0.75)],
   };
+}
+
+// ⭐ THE WATERFRONT PIERS. Manhattan's edge is famously serrated — the finger piers of the Hudson
+// and East River are as much of its outline from above as the street grid is — and ours was a
+// perfectly smooth coastline, which is the tell that the shape is traced rather than lived on.
+//
+// A pier is a flat deck reaching out from the shore into open water. They go along the long river
+// shores only (an edge running roughly parallel to the island's axis), never around the tips, and
+// every one is checked to make sure its far end lands in WATER — the Harlem River and the East River
+// above Long Island City are narrow enough that a pier there would drive into Brooklyn or the Bronx,
+// exactly the trap the borough lot-grid hit. Decks come back as world-coordinate rings and render
+// through the same flat() path as the shoreline, so they sit on the water at any city scale.
+export function waterfrontPiers() {
+  const R = MANHATTAN;
+  let cx = 0, cz = 0;
+  for (const [x, z] of R) { cx += x; cz += z; }
+  cx /= R.length; cz /= R.length;
+  const ax = AXIS.ax, az = AXIS.az;
+  const boroughs = [NYC.brooklyn, NYC.queens, NYC.bronx, NYC.jersey].filter(Boolean).map(b => b[0]);
+  // Open water = off the island AND not inside a borough. Both shores are checked so a pier can't
+  // reach across a narrow channel onto land.
+  const inWater = (x, z) => !pointInRing(x, z, R) && !boroughs.some(b => pointInRing(x, z, b));
+  const piers = [];
+  let acc = 0;
+  const GAP = 3.4;                                   // arc-length between piers along the shore
+  for (let i = 0; i < R.length; i++) {
+    const a = R[i], b = R[(i + 1) % R.length];
+    const dx = b[0] - a[0], dz = b[1] - a[1], L = Math.hypot(dx, dz);
+    acc += L;
+    if (acc < GAP || L < 1e-6) continue;
+    const ux = dx / L, uz = dz / L;                  // along the shore
+    if (Math.abs(ux * ax + uz * az) < 0.55) continue; // a tip or a corner — not a river shore
+    // outward normal, pointing away from the island's centre
+    let nx = -uz, nz = ux;
+    if ((a[0] - cx) * nx + (a[1] - cz) * nz < 0) { nx = -nx; nz = -nz; }
+    const len = 1.5 + hash01(`pier${i}`) * 1.5, hw = (0.5 + hash01(`pw${i}`) * 0.45) / 2;
+    const bx = a[0] - nx * 0.25, bz = a[1] - nz * 0.25;         // start a touch inland to meet the shore
+    const p1 = [bx + ux * hw, bz + uz * hw], p2 = [bx - ux * hw, bz - uz * hw];
+    const p3 = [bx - ux * hw + nx * len, bz - uz * hw + nz * len], p4 = [bx + ux * hw + nx * len, bz + uz * hw + nz * len];
+    // The far end must land in OPEN water — both outer corners, not just the centreline, or a
+    // concave stretch of coast lets one corner curve back onto land while the middle clears.
+    if (!inWater(p3[0], p3[1]) || !inWater(p4[0], p4[1]) || !inWater((p3[0] + p4[0]) / 2, (p3[1] + p4[1]) / 2)) continue;
+    acc = 0;
+    piers.push([p1, p2, p3, p4]);
+  }
+  return piers;
 }
 

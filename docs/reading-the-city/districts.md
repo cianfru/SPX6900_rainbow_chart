@@ -70,3 +70,8 @@ Avenues and cross-streets are not the same road. Avenues run the length of the i
 twice the width, carry a painted centre line, and every third one has a planted median broken at
 each cross-street. None of them may be drawn wider than the gap its blocks left — a road that
 overflowed its gap would simply be paved under the buildings either side.
+
+Central Park carries its real interior — the Reservoir, the Great Lawn, the Lake and the transverse
+roads — and the waterfront grows finger piers along the two river shores. All of it is placed from
+the drawn geography's own outline, so the reservoir sits inside the park and a pier only ever reaches
+into open water, never across a channel onto Brooklyn or the Bronx.
