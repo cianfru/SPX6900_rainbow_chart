@@ -137,10 +137,16 @@ export default function CityControls({ layout, onLayout, onFocus, has, accent = 
           </button>
           {open && (
             <div role="menu" style={{
-              position: "absolute", top: "calc(100% + 8px)", right: 0, zIndex: 30, width: 236, textAlign: "left",
+              zIndex: 40, textAlign: "left",
               padding: "12px 14px", borderRadius: 12, background: "rgba(10,12,20,0.96)",
               border: "1px solid rgba(255,255,255,0.12)", boxShadow: "0 12px 40px rgba(0,0,0,0.5)",
               backdropFilter: "blur(8px)",
+              // On mobile the panel is wider than the room to the left of the gear, so an absolute
+              // dropdown anchored to its right edge runs off the screen. Pin it to the viewport as a
+              // bottom sheet instead — always fully on-screen and reachable. Desktop keeps the dropdown.
+              ...(isMobile
+                ? { position: "fixed", left: 12, right: 12, bottom: 16, width: "auto", maxHeight: "70vh", overflowY: "auto" }
+                : { position: "absolute", top: "calc(100% + 8px)", right: 0, width: 236 }),
             }}>
               <SettingRow label="View">
                 <div style={{ display: "flex", gap: 4 }}>

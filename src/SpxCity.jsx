@@ -190,7 +190,13 @@ export default function SpxCity({ isMobile, preview = false, initialMode = "spx"
         else if (atZero) { runStart = wk; atZero = false; }
       }
       const days = runStart == null ? 0 : (W - runStart) * 7;
-      if (tl.asset === "SPX" && days < 90) continue;
+      // ⭐ You can't be asked to hold longer than the token has existed. The live city's bar is
+      // "5,000 held 90 days", but for the first ~13 weeks of the replay NOBODY can have held 90 days
+      // yet (launch was week 0), so a strict bar returned an EMPTY set — and an empty rebuild makes
+      // Skyline3D early-return and FREEZE on the last frame (the "First pump doesn't work" bug). So
+      // before the token is 90 days old the bar is "held since it was possible" = min(90, age). This
+      // also makes the launch era a real story: the pump's 849 buyers thinning to the ~129 who held.
+      if (tl.asset === "SPX" && days < Math.min(90, W * 7)) continue;
       rows.push({ a: w.a, bal, n: bal, days, flow: bal - balAt(w.p, W - 4) });
     }
     const maxBal = Math.max(1, ...rows.map(r => r.bal));
