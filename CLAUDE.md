@@ -498,6 +498,35 @@
     marker. Getting real buildings needs a **Base ERC-20 transfer extract through the SAME FIFO engine** (see the
     parked "BASE ON-CHAIN RECONSTRUCTION" note — Base SPX `0x50dA645f…bb2C`, decimals 8, plus a Base
     `EXCLUDE_LABELS` set for bridge/LP/CEX/airdrop). Solana needs an SPL equivalent, which is fiddlier.
+  - **⭐⭐ EXPANSION PLAN LOCKED-IN 2026-07-31 (owner scoped it from Basescan/Solscan; extract due Aug 1).**
+    Owner eyeballed the real per-chain qualifying sets at the ≥5,000-SPX residency bar:
+    - **Base ≈ ~500 gross → ~400 real** after stripping the Wormhole bridge, LP, Coinbase (native on Base,
+      likely the biggest single wallet) and other CEX hot wallets. **Mostly infrastructure, not people.**
+    - **Solana ≈ ~2,000, and WELL DISTRIBUTED** — a genuine retail community, ~5× Base. **THIS is the real
+      story: the people live on Solana.** So **SOLANA IS THE PRIORITY chain to reconstruct**, not Base.
+    - **⭐ THE TECHNical SHAPE (Solana is SPL, does NOT reuse the ETH FIFO engine — but doesn't need to):**
+      the city only needs per-wallet **{balance, holding-age, flow}**, NOT FIFO cost basis. **Balance is
+      already FREE** — we pull it keylessly from the Solana RPC (`getProgramAccounts` on the SPX mint) for the
+      daily headcount. So the extract only has to supply **age + recent net-flow** from the SPL transfer
+      history → join to the live RPC balances → ~2,000 Queens buildings. Lighter than the ETH reconstruction.
+    - **⚠ RUN IT ON BIGQUERY, NOT DUNE.** The last Solana as-of reconstruction on Dune scanned 10.5 TB and
+      burned ~650 credits in one shot (the credit-blowout of record). Scope the BigQuery query to the SPX mint
+      FIRST and it sits inside the free 1 TB/mo tier. (Owner runs BigQuery Aug 1 for ONE chain → Solana.)
+    - **⚠⚠ CAPACITY TENSION — Solana's 2,000 puts us OVER the land for the first time.** ETH 4,895 + Solana
+      ~2,000 + Base ~400 ≈ **7,300 qualifying wallets vs 6,259 lots** (current: Manhattan 1,680 + boroughs
+      4,579; ETH alone already fills 4,895 and spills 3,215 into the boroughs). So "boroughs = chains" can't
+      fit everyone at a flat 5k bar. THREE levers, decide against the REAL count once the extract lands:
+      (a) extend the borough grid further out (coastline left); (b) **raise ETH's own threshold** so
+      Manhattan's 4,895 thins toward the 1,680 island, freeing the boroughs for Base+Solana; (c) accept
+      top-N per chain + cap. **Owner's lean (Claude concurred): Solana → Queens, Base → a slice of Brooklyn,
+      ETH bar nudged up just enough to fit the existing land — no geometry gamble, every borough populated.**
+    - **⚠ ~7,300 buildings is PAST what's been tested** (current ~4,895). Draw calls stay constant (bucketed),
+      but memory ≈ 19 KB/building → ~140 MB — fine on the owner's M1/iMac/iPhone 13 Pro Max, tail risk is
+      low-end Android. **Needs a real-device `window.__cityStats()` check before shipping the 3-chain city.**
+    - **Keep the honesty rail:** the flat 5k bar means Base-as-Brooklyn is ~400 REAL buildings under a
+      "114,900 wallets on Base" headcount LABEL — do NOT bend to a chain-relative threshold to inflate it
+      (that breaks "height means the same thing in every borough," the promise the city rests on). The
+      contrast — few buildings, huge headcount, all the value on the island — IS the story.
 - **📐 HOW MANY BUILDINGS CAN THE CITY AFFORD (re-measured 2026-07-28, supersedes the earlier note).**
   - **Manhattan holds 1,693 lots** at full scale — not the 2,561 measured before the block grid, because
     real streets and avenues take about a third of the island. `cityScale` caps k at 1 deliberately: the
@@ -674,6 +703,39 @@
   - **🔲 STILL TO DO (debug phase):** the rendered VIDEO export ("three years of SPX6900, as a city" — wire a
     `__cityWeek(u)` hook into `render-city-video.mjs` like `__citySeek`); a play button; possibly per-week
     tween/lerp instead of hard rebuilds.
+- **✅✅ GROUND-LEVEL FINISH PASS SHIPPED 2026-07-31 (owner: "these cost nearly nothing and upgrade the look").**
+  A run of coastline/street detail, all the SAME cheap CLASS — flat geometry / merged meshes riding the existing
+  render paths, ~free (the merge refactor is what makes surface/material detail cost nothing; per-object geometry
+  is the expensive kind we DON'T add). Each verified by screenshot (the only valid check — a profiler can't see a
+  green median that reads as parkland). Order shipped:
+  - **REAL AVENUES, not painted hairlines** (`streetGrid` now TAGS each segment avenue/street; renderer builds
+    asphalt ribbons — avenues ~2× width + dashed centre line, every 3rd a planted MEDIAN broken at each cross-street
+    via `avenueMedians`). Widths derive from the lot grid's own gaps (`ROAD_W`) so a road can NEVER be paved under
+    the buildings — the original "streets under towers" bug. Median was first drawn as one ribbon → read as a green
+    corridor joined to Central Park; fixed to per-block planters.
+  - **CENTRAL PARK INTERIOR** (`parkFeatures()`): Reservoir + Lake + Pond as real water, Great Lawn + southern lawns,
+    the 4 transverse roads. Built from the drawn park's own axis-space bbox as fractions of its length (59th=0,
+    110th=1) so features can only land inside the green; test pins no point escapes the 9-point park polygon.
+  - **WATERFRONT PIERS** (`waterfrontPiers()`): finger decks along the two river shores (edge parallel to the axis),
+    each checked so BOTH outer corners land in open water — never across a channel onto Brooklyn/Bronx. Merged, 1 draw call.
+  - **CROSSWALKS** (`crosswalks()`): faint pale band across each avenue at its cross-streets, same t-space as the
+    streets. Deliberately subtle — reads at close range, fades at distance.
+  - **⭐ THE BOROUGHS BROUGHT UP TO THE ISLAND'S FINISH** (owner: "the other areas look unfinished in comparison" —
+    correct). Brooklyn/Queens/Bronx/Jersey were buildings on a bare green backdrop while Manhattan had streets/kerbs.
+    `boroughLots` refactored → **`boroughGrid` (lots + blocks, mirroring `hoodGrid`)** with a shared **`boroughAt`**
+    predicate so lots/blocks/streets all agree where a borough is; **`boroughStreets`** traces the same ribbons
+    clipped through it. **THE HEIGHT WRINKLE:** borough buildings stand at y=0 but borough land is the backdrop at
+    y=-0.30, so each block slab is a **PLATFORM bridging -0.30→0.17** (top carries the kerb the buildings rise from,
+    base meets the green, streets run in the slots between). Refactor preserves the lot set EXACTLY (4,579 lots, same
+    per-borough split: brooklyn 731 · queens 434 · bronx 2,517 · jersey 897). Tests pin borough streets never run
+    onto the island or into water. **This is the borough grid the Base/Solana chains will drop into.**
+  - **NOTE-MARKER SIMPLIFIED (same session):** a claimed-building note first got a gold ring-on-a-tether connector —
+    owner found it a "weird yellow beam." Replaced: the note bubble is now **click-to-select the building** (pins the
+    card + flies there, same as clicking the building), plus a small caret. Also made the ~day visibility honest
+    (your own note shows instantly via local echo; everyone else sees it after the daily chain read).
+  - **All in `src/city-map.js` + `src/Skyline3D.jsx`; docs in `docs/reading-the-city/districts.md` + `boroughs.md`.**
+    The REMAINING upgrades are the expensive tier (bloom / animated water / HDRI sky) — GPU-costly and UNVERIFIABLE
+    in this CPU-rasteriser sandbox, so they need a real-device eye (the WOW-pass list below).
 - **⭐⭐ GREENLIT 2026-07-29 — VISUAL "WOW" PASS before launch (owner: "must be a wow factor").** The scoped list,
   judged via City Lab A/B before touching the live city: **HDRI sky** (biggest believability win, ~free) ·
   **animated water** (harbour is a flat plane today) · **bloom at dusk/night** (emissive windows + the torch
@@ -696,6 +758,20 @@
   Observability: `window.__cityStats()` now reports `pixelRatio` + `frameMs` — check them on real hardware.
 
 ## Backlog / decisions
+- **🔲🔲 DUE AUG 1 — MONTHLY RECAP (July), UPGRADED (owner, 2026-07-31: "after four weeks of intense work we can give a
+  better recap. Real intel while selecting the best cards").** The recap engine is `scripts/bot/recap-thread.mjs`
+  `buildRecapPost(month, history)` → ONE long-form X post + up to 4 image cards; last month's fixed set was **Hero
+  scorecard · Rainbow · SPX vs the field · Diamond supply** (preview via `api/recap.js` → the control panel's "Monthly
+  recap" tab; runner `recap-run.mjs`). **OWNER WANTS BETTER THAN THE STOCK 4:** July was a huge build month, so CURATE
+  the best cards from what actually shipped/landed rather than defaulting to the same four. **"Real intel"** = pick with
+  the honest engagement + data signal, not vibes: the repo's own analysis (likes↔impressions r=0.94, aspirational
+  X-multiple/target cards land best, techy content is NO LONGER barred per owner 2026-07-29) plus the month's genuine
+  NEW findings — this month shipped the **valuation composite (`valband`)**, **survivorship / cost-basis / exit-flow /
+  smart-money** cohort suite, **NRPL + liveliness**, **CEX venue flows**, and the whole **SPX City** ground-up build.
+  Candidate recap angles with real intel: the composite's "deeply undervalued" read, the survivorship finding (79% of
+  ever-holders gone / 91% of today's holders never sold to zero), smart-money "not buying yet," and SPX City as the
+  month's flagship. **Plan tomorrow:** review the month's real numbers → propose a curated card lineup (keep it ≤4
+  images/post, X's cap) → owner picks. X caps 4 images/post, so if the story needs more, it's a short THREAD, not one post.
 - **✅✅ THE MANUAL IS HOSTED ON THE SITE — `?view=docs` (owner, 2026-07-31). GitBook is now a MIRROR, not the destination.**
   The city manual (18 pages) lives in `docs/*.md`, still GitBook-shaped (`SUMMARY.md` = table of contents, `.gitbook.yaml`
   = root). It was published via GitBook Git Sync at `andrea-cianfruglia.gitbook.io` — **and that URL carries the owner's
