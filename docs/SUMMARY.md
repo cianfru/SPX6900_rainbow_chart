@@ -1,6 +1,6 @@
 # Table of contents
 
-* [SPX City](README.md)
+* [Aeon City](README.md)
 * [Design Principles](design-principles.md)
 * [Modes](modes.md)
 * [Navigating](navigating.md)
