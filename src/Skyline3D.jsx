@@ -789,23 +789,7 @@ export default function Skyline3D({
     // Signs live in their own group so messages can be re-hung without touching the buildings.
     const signs = new THREE.Group(); scene.add(signs);
     const frameCbs = [];
-    // ⭐ CLAIMED-BUILDING MARKER + CONNECTOR. A gold ring on a thin gold stem that plants the note's
-    // sign onto ONE specific building — without it the floating bubble reads as belonging to nowhere
-    // (a real note showed the bug: the sign hung mid-city, unattached). Deliberately NOT a beam: the
-    // flow signal is a tall VERTICAL green/red line, so this is a short GOLD stem capped by a
-    // HORIZONTAL-ish ring — different shape, different colour, different height, unmistakable for
-    // buying/selling. The stem spans roof→sign-anchor (a constant 3 units, since both are relative to
-    // the building height), so ONE shared geometry serves every claimed building. Ring tilted so it
-    // reads from the elevated view angle; both emissive to catch the bloom at dusk/night. Geometry +
-    // material are shared and disposed with the scene.
-    const markerGeo = new THREE.TorusGeometry(0.62, 0.11, 6, 22);
-    const stemGeo = new THREE.CylinderGeometry(0.05, 0.05, 3, 6);   // roof → sign anchor, 3 units
-    const markerMat = new THREE.MeshStandardMaterial({ color: 0x3a2a0c, emissive: 0xffc23a, emissiveIntensity: 1.7, roughness: 0.35, metalness: 0.25 });
-    // The tether is deliberately DIM — a thin quiet pole, not a searchlight. The ring is the bright
-    // gold badge; a bright emissive stem would bloom into a vertical column too close to a flow beam.
-    const stemMat = new THREE.MeshStandardMaterial({ color: 0x6b5220, emissive: 0xffc23a, emissiveIntensity: 0.35, roughness: 0.6, metalness: 0.2 });
-    disposables.push(markerGeo, stemGeo, markerMat, stemMat);
-    api.current = { cam, controls, homes, pulse, signs, scene, picks, frameCbs, el, markerGeo, stemGeo, markerMat, stemMat, size: () => [el.clientWidth || W, VH] };
+    api.current = { cam, controls, homes, pulse, signs, scene, picks, frameCbs, el, size: () => [el.clientWidth || W, VH] };
 
     // ⭐ SCREEN-SPACE DECLUTTER, the way a real map does it. Fourteen districts plus the harbour
     // tags plus the crown all project into a small area at certain angles, and stacking them was
@@ -1042,23 +1026,13 @@ export default function Skyline3D({
     const a = api.current; if (!a?.signs) return;
     const g = a.signs;
     const entries = Object.entries(messages || {});
-    const markers = [];                                  // gold rings hovering over claimed buildings
+    // Address → tower, so clicking a sign can select its building exactly like clicking the building.
+    const towerOf = new Map((towers || []).map(t => [String(t.a || "").toLowerCase(), t]));
     for (const [addr, m] of entries) {
-      const home = a.homes.get(String(addr).toLowerCase());
+      const key = String(addr).toLowerCase();
+      const home = a.homes.get(key);
       if (!home || !m?.text) continue;
-      if (a.markerGeo) {                                 // the "this building is claimed" marker + connector
-        // The stem: a thin gold pole from the rooftop up to the sign anchor, so the note is visibly
-        // planted on THIS building rather than floating over the district.
-        const stem = new THREE.Mesh(a.stemGeo, a.stemMat);
-        stem.position.set(home.x, home.h + 1.5, home.z); // centre of the 3-unit pole (roof → anchor)
-        g.add(stem);
-        // The ring: a collar where the sign attaches to the top of the stem. Spins in place.
-        const ring = new THREE.Mesh(a.markerGeo, a.markerMat);
-        ring.rotation.x = Math.PI / 2 - 0.5;             // tilted, so the spin reads from the view angle
-        ring.position.set(home.x, home.h + 3, home.z);   // top of the stem = the sign anchor
-        g.add(ring);
-        markers.push({ ring, seed: (home.x + home.z) });
-      }
+      const tower = towerOf.get(key);
       // Two nested divs on purpose: CSS2DRenderer overwrites the outer element's transform every
       // frame, so the bubble is offset on the INNER one. That offset is in SCREEN pixels, which is
       // what keeps it clear of the crown label at every zoom — a world-space gap shrinks as you
@@ -1067,16 +1041,27 @@ export default function Skyline3D({
       wrap.style.position = "relative";
       const d = document.createElement("div");
       const ch = chainOf(m.chain);
+      // The sign IS the connector: clicking it selects the building (pins its card + flies there),
+      // the same as clicking the building itself — so which note belongs to which tower is answered by
+      // the interaction rather than by a beam or a marker cluttering the skyline. pointerEvents:auto
+      // lets the bubble take the click (the label layer is otherwise click-through).
       Object.assign(d.style, {
         position: "absolute", left: "50%", bottom: "22px", transform: "translateX(-50%)",
         width: "180px", padding: "5px 9px 6px", borderRadius: "9px", textAlign: "center",
         background: "rgba(10,14,26,0.93)", border: `1px solid ${ch.colour}`,
         color: "#e2e8f0", font: "600 11.5px 'Space Grotesk', system-ui, sans-serif",
         lineHeight: "1.45", whiteSpace: "pre-wrap", wordBreak: "break-word",
-        boxShadow: `0 6px 20px rgba(0,0,0,0.55), 0 0 0 3px ${ch.tint}`, pointerEvents: "none",
-        opacity: m.pending ? "0.75" : "1",
+        boxShadow: `0 6px 20px rgba(0,0,0,0.55), 0 0 0 3px ${ch.tint}`,
+        pointerEvents: tower ? "auto" : "none", cursor: tower ? "pointer" : "default",
+        opacity: m.pending ? "0.75" : "1", transition: "box-shadow .15s ease, transform .15s ease",
       });
-      d.textContent = m.text;
+      if (tower) {
+        d.title = "Select this building";
+        d.onclick = () => selectRef.current?.(tower);
+        d.onpointerenter = () => { d.style.boxShadow = `0 8px 26px rgba(0,0,0,0.6), 0 0 0 3px ${ch.colour}`; d.style.transform = "translateX(-50%) translateY(-1px)"; };
+        d.onpointerleave = () => { d.style.boxShadow = `0 6px 20px rgba(0,0,0,0.55), 0 0 0 3px ${ch.tint}`; d.style.transform = "translateX(-50%)"; };
+      }
+      d.appendChild(document.createTextNode(m.text));
       // The chain in writing as well as in colour. The Ethereum grey is near-neutral by design, so
       // colour alone would be a distinction plenty of people can't make — and "which chain is this
       // note on" is the whole question the colour is there to answer.
@@ -1087,13 +1072,12 @@ export default function Skyline3D({
       });
       tag.textContent = m.pending ? `${ch.short} · CONFIRMING` : ch.short;
       d.appendChild(tag);
-      // A small caret at the bubble's foot, pointing down at the gold ring/stem below — closes the
-      // last gap between the floating sign and the building it's planted on.
+      // A small caret at the bubble's foot, a light tie between the sign and the tower below it.
       const caret = document.createElement("div");
       Object.assign(caret.style, {
         position: "absolute", left: "50%", bottom: "-6px", transform: "translateX(-50%)",
         width: "0", height: "0", borderLeft: "6px solid transparent", borderRight: "6px solid transparent",
-        borderTop: `7px solid ${ch.colour}`,
+        borderTop: `7px solid ${ch.colour}`, pointerEvents: "none",
       });
       d.appendChild(caret);
       wrap.appendChild(d);
@@ -1101,19 +1085,8 @@ export default function Skyline3D({
       o.position.set(home.x, home.h + 3, home.z);   // same anchor as the crown; the 22px lifts it clear
       g.add(o);
     }
-    // Spin + bob the markers each frame. One callback for all of them; removed on cleanup.
-    let anim = null;
-    if (markers.length) {
-      anim = () => {
-        const t = performance.now() * 0.001;
-        for (const mk of markers) mk.ring.rotation.z = t * 0.8 + mk.seed;   // spin the collar in place
-      };
-      a.frameCbs.push(anim);
-    }
     return () => {
-      if (anim) { const i = a.frameCbs.indexOf(anim); if (i >= 0) a.frameCbs.splice(i, 1); }
-      // CSS2DRenderer only detaches elements it still knows about, so pull the DOM node too. Marker
-      // meshes share the scene-owned geometry/material, so they only need detaching, not disposing.
+      // CSS2DRenderer only detaches elements it still knows about, so pull the DOM node too.
       for (const o of [...g.children]) { o.element?.remove(); g.remove(o); }
     };
   }, [messages, towers, layout, time]);

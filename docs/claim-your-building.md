@@ -46,9 +46,9 @@ alone is not a distinction every reader can make.
 
 ## What it looks like, and when
 
-Your note hangs in a small bubble tied to your building by a thin gold tether and a gold ring — so
-it reads as *planted on that building*, never floating over the district. The tether is a quiet gold
-on purpose, so it can't be mistaken for the green/red flow beams that mean buying and selling.
+Your note hangs in a small bubble over your building. **Click the note to select that building** —
+it pins the building's card and flies the camera to it, exactly like clicking the building itself —
+so which note belongs to which tower is answered by the tap, without a marker cluttering the skyline.
 
 You see your own note the instant the transaction is signed. **Everyone else sees it within about a
 day** — the city reads the chain once daily and redraws the board, rather than watching it live.
