@@ -655,3 +655,60 @@ export function streetGrid(k = 1) {
   return segs;
 }
 
+// ⭐ CENTRAL PARK'S INTERIOR. The park is the single largest unbroken surface in the city — it fills
+// a huge share of every wide shot — and it was ONE flat green polygon, which is the first thing that
+// reads as unfinished from above. These are the features a person actually recognises Manhattan by
+// after the coastline: the Reservoir (the big water oval), the Great Lawn, the Lake, the Pond, and
+// the transverse roads that cut across.
+//
+// Everything is built from the DRAWN park's own axis-space bounding box, so it can only ever land
+// inside the green — the park is aligned to the grid bearing (that alignment is why the bearing is
+// measured from the park in the first place), so in axis space it is very nearly a rectangle, and a
+// fraction (fL along its length from the south end, fW across its width) maps cleanly onto it.
+//
+// Positions are the real ones as fractions of the park: 59th St is fL 0, 110th St is fL 1. The
+// Reservoir sits ~86th–96th, the Great Lawn ~79th–85th, the Lake ~71st–74th, the transverses at
+// 65/79/86/97. Rings come back in the SAME world coordinates as PARK_RING, so they render through
+// the exact `flat()` path that draws the park and cannot drift from it.
+export function parkFeatures() {
+  if (!PARK_RING) return { water: [], lawn: [], roads: [] };
+  let tlo = Infinity, thi = -Infinity, ulo = Infinity, uhi = -Infinity;
+  for (const [x, z] of PARK_RING) {
+    const { t, u } = toAxis(x, z);
+    if (t < tlo) tlo = t; if (t > thi) thi = t;
+    if (u < ulo) ulo = u; if (u > uhi) uhi = u;
+  }
+  const dt = thi - tlo, du = uhi - ulo;
+  const T = fL => tlo + fL * dt, U = fW => ulo + fW * du;
+  // An oval feature: centre at park-fraction (fL, fW), radii as fractions of the park's own length
+  // and width, sampled into a world-coordinate ring. A gentle per-point wobble keeps the water from
+  // reading as a machined ellipse.
+  const oval = (fL, fW, rL, rW, n = 30, wob = 0.12) => {
+    const ring = [];
+    for (let i = 0; i < n; i++) {
+      const a = (i / n) * Math.PI * 2;
+      const r = 1 + Math.sin(a * 3 + fL * 9) * wob;
+      const { x, z } = fromAxis(T(fL) + Math.cos(a) * rL * dt * r, U(fW) + Math.sin(a) * rW * du * r);
+      ring.push([x, z]);
+    }
+    return ring;
+  };
+  // A transverse road: a thin band across the whole width at a length-fraction, as a 4-point ring.
+  const cross = (fL, halfL = 0.006, inset = 0.04) => {
+    const c = [[fL - halfL, inset], [fL - halfL, 1 - inset], [fL + halfL, 1 - inset], [fL + halfL, inset]];
+    return c.map(([l, w]) => { const { x, z } = fromAxis(T(l), U(w)); return [x, z]; });
+  };
+  return {
+    water: [
+      oval(0.63, 0.50, 0.11, 0.34, 34, 0.05),   // the Reservoir — the one everyone knows
+      oval(0.325, 0.40, 0.05, 0.22, 24, 0.22),  // the Lake
+      oval(0.09, 0.80, 0.035, 0.12, 18, 0.28),  // the Pond, south-east corner
+    ],
+    lawn: [
+      oval(0.45, 0.50, 0.065, 0.26, 26, 0.06),  // the Great Lawn
+      oval(0.20, 0.55, 0.05, 0.28, 22, 0.16),   // Sheep Meadow / the southern lawns
+    ],
+    roads: [cross(0.13), cross(0.39), cross(0.53), cross(0.75)],
+  };
+}
+

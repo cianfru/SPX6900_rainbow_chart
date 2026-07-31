@@ -2,8 +2,9 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { placeCity, hoodLots, NEIGHBOURHOODS, cityScale,
-         streetGrid, avenueMedians, ROAD_W, GRID } from "../src/city-map.js";
+         streetGrid, avenueMedians, parkFeatures, pointInRing, ROAD_W, GRID } from "../src/city-map.js";
 import { bridgeSpan } from "../src/city-infra.js";
+import { NYC } from "../src/nyc-geo.js";
 
 // Placement is the half of the city that is openly a game — a wallet's street address comes from
 // its own hash, and the page says so. That freedom is exactly why it needs guarding: nothing about
@@ -131,4 +132,18 @@ test("avenue medians break at the cross-streets and stay on the island", () => {
     assert.ok(L > 0 && L < blockLen * 1.5,
       `median ${L.toFixed(2)} should be about one block (${blockLen.toFixed(2)}), not a whole avenue`);
   }
+});
+
+test("Central Park's interior features all sit inside the park", () => {
+  // The reservoir, lawns, lake and transverse roads are placed from the park's axis-space bounding
+  // box, which is not a perfect rectangle — the park is a 9-point polygon. So the real guard is that
+  // nothing pokes out of the actual green into the surrounding blocks, at any point of any ring.
+  const f = parkFeatures();
+  assert.ok(f.water.length >= 3 && f.lawn.length >= 2 && f.roads.length === 4, "the expected feature set is built");
+  const ring = NYC.centralpark[0];
+  const inside = (x, z) => pointInRing(x, z, ring);
+  for (const [kind, sets] of [["water", f.water], ["lawn", f.lawn], ["roads", f.roads]])
+    for (const r of sets)
+      for (const [x, z] of r)
+        assert.ok(inside(x, z), `${kind} point (${x.toFixed(2)}, ${z.toFixed(2)}) escaped the park`);
 });
