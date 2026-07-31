@@ -7,7 +7,7 @@ import { UnrealBloomPass } from "three/examples/jsm/postprocessing/UnrealBloomPa
 import { OutputPass } from "three/examples/jsm/postprocessing/OutputPass.js";
 import { CSS2DRenderer, CSS2DObject } from "three/examples/jsm/renderers/CSS2DRenderer.js";
 import { placeCity, cityScale, CITY_LENGTH, ISLAND_RING, PARK_RINGS, BACKDROP, ISLETS, WATER,
-         streetGrid, ROAD_W, avenueMedians, hoodGrid, NEIGHBOURHOODS, AXIS_ANGLE } from "./city-map.js";
+         streetGrid, ROAD_W, avenueMedians, parkFeatures, hoodGrid, NEIGHBOURHOODS, AXIS_ANGLE } from "./city-map.js";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { chainOf } from "./city-messages.js";
 import { makeDrs } from "./city-drs.js";
@@ -252,6 +252,17 @@ export default function Skyline3D({
       for (const i of ISLETS) flat(i.rings, TOD.back, -0.06);     // Roosevelt Island
       flat([ISLAND_RING], TOD.road, 0);   // the island reads as the road surface; blocks sit above it                            // Manhattan
       flat(PARK_RINGS, TOD.park, 0.06);                            // Central Park
+
+      // Central Park's interior — the reservoir, lawns, lake and transverse roads. All ride the same
+      // `flat()` path as the park itself so they sit exactly inside the green at any city scale; each
+      // is lifted a hair above the layer below to keep the coplanar shapes from fighting for depth.
+      // A dozen extra flat meshes, no per-object geometry — the free kind of detail.
+      const park = parkFeatures();
+      const parkLawn = new THREE.Color(TOD.park).multiplyScalar(1.16);   // mown lawn, a touch brighter
+      const parkPath = new THREE.Color(TOD.road).multiplyScalar(0.72);   // the transverse roads
+      for (const r of park.lawn) flat([r], parkLawn, 0.075);
+      for (const r of park.roads) flat([r], parkPath, 0.085);
+      for (const r of park.water) flat([r], TOD.water, 0.10, true);      // reservoir/lake/pond as real water
 
       // Raised pavement, one slab per block. This is what makes the gaps read as ROADS rather than
       // as blank ground with lines painted on it — a kerb you can see is worth more than a brighter
