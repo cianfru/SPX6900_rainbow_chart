@@ -839,8 +839,12 @@ export default function Skyline3D({
     let raf, flying = !!flight;
     const stopFlight = () => {
       if (!flying) return;
-      flying = false; controls.enabled = true; controls.autoRotate = false;
-      cam.position.copy(overview); controls.target.set(0, city ? 4 : 7, 0); controls.update();
+      // FREEZE IN PLACE — do not teleport to the overview. The flight loop already set cam.position and
+      // controls.target to the current (interpolated) values, so handing control over from exactly here
+      // is seamless. The old hard-snap to `overview` was the "closing the intro popup jerks the camera
+      // to the north of the city" bug: any interaction (incl. dismissing the gate) cancels the flight,
+      // and snapping to a fixed point read as a reset. Cancel = take the wheel from where you are.
+      flying = false; controls.enabled = true; controls.autoRotate = false; controls.update();
       onIntroDone?.();
     };
 

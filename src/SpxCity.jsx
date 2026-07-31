@@ -32,6 +32,17 @@ const MODES = [
 
 const fmt = n => (Math.abs(n) >= 1e6 ? (n / 1e6).toFixed(1) + "M" : Math.abs(n) >= 1e3 ? (n / 1e3).toFixed(0) + "k" : String(Math.round(n)));
 
+// Landmark moments on the time-machine slider, so you can pinpoint a timeframe instead of scrubbing
+// blind. Dates are the real price-history extrema (see build note); the slider maps each to its week.
+const TM_EVENTS = {
+  SPX: [
+    { d: "2023-10-25", label: "First pump" },
+    { d: "2025-07-27", label: "ATH" },
+    { d: "2026-02-05", label: "Capitulation" },
+  ],
+  AEON: [],
+};
+
 // Balance at week W from sparse change-points — the client twin of the builder's balanceAt
 // (test/city-timeline.test.mjs pins the semantics: zero before the first point, hold between).
 const balAt = (p, w) => { let lo = 0, hi = p.length - 1, ans = 0; while (lo <= hi) { const m = (lo + hi) >> 1; if (p[m][0] <= w) { ans = p[m][1]; lo = m + 1; } else hi = m - 1; } return ans; };
@@ -232,20 +243,21 @@ export default function SpxCity({ isMobile, preview = false, initialMode = "spx"
         <div style="padding:7px 12px;color:${M.accent};font-size:11px">open in Zerion →</div>
       </a>`;
 
+  // HOVER tooltip — deliberately LIGHT. The city is dense, so the cursor is always over a building;
+  // a heavy card (esp. the remote Zerion preview image) popping on every mouseover was noise + a
+  // network fetch per hover. Hover now shows a one-glance text label only; the full card with the
+  // Zerion preview + link is the CLICK-pinned card (zerionCard). Fixes "hovering opens a Zerion card".
   const cardHtml = t => {
     const f = t.flow || 0;
     const col = f > 0 ? "#4ade80" : f < 0 ? "#fb7185" : "#94a3b8";
-    const note = f > 0 ? `added +${fmt(f)}` : f < 0 ? `reduced −${fmt(Math.abs(f))}` : "unchanged";
+    const note = f > 0 ? `▲ added ${fmt(f)}` : f < 0 ? `▼ reduced ${fmt(Math.abs(f))}` : "unchanged";
     return `
-      <div style="padding:11px 13px 8px">
-        <div style="color:${M.accent};font-weight:700;font-size:13.5px">${t.ens || shortAddr(t.a)}</div>
-        <div style="color:#94a3b8;font-size:11.5px">${sizeOf(t)}${t.aeonN ? ` · ${t.aeonN} AEON` : ""} · held ${t.days}d</div>
-      </div>
-      <div style="margin:0 13px 9px;padding:6px 9px;border-radius:7px;color:${col};font-size:11.5px;
-                  background:${f > 0 ? "rgba(74,222,128,0.10)" : f < 0 ? "rgba(251,113,133,0.10)" : "rgba(255,255,255,0.04)"}">${note} · ${flowWin}d</div>
-      <img src="https://render.zerion.io/preview?address=${t.a}" alt="" onerror="this.style.display='none'"
-           style="display:block;width:100%;border-top:1px solid rgba(255,255,255,0.08)"/>
-      <div style="padding:7px 13px;color:#64748b;font-size:11px">click to pin this wallet →</div>`;
+      <div style="padding:9px 12px 8px">
+        <div style="color:${M.accent};font-weight:700;font-size:13px">${t.ens || shortAddr(t.a)}</div>
+        <div style="color:#94a3b8;font-size:11px;margin-top:1px">${sizeOf(t)}${t.aeonN ? ` · ${t.aeonN} AEON` : ""} · held ${t.days}d</div>
+        <div style="color:${col};font-size:11px;margin-top:3px">${note}${f ? ` · ${flowWin}d` : ""}</div>
+        <div style="color:#64748b;font-size:10px;margin-top:5px">click to open →</div>
+      </div>`;
   };
 
   // The site's shared neon toggle (.neon-pill in index.css): flat at rest, backlit accent glow when
@@ -302,22 +314,38 @@ export default function SpxCity({ isMobile, preview = false, initialMode = "spx"
       )}
 
       {mode !== "both" && (
-        <div style={{ display: "flex", gap: 10, alignItems: "center", justifyContent: "center", marginBottom: 12, flexWrap: "wrap" }}>
+        <div style={{ display: "flex", gap: 10, alignItems: "center", justifyContent: "center", marginBottom: 12, paddingBottom: tmOn && tl ? 20 : 0, flexWrap: "wrap" }}>
           <button onClick={() => { setTmOn(v => !v); setWeek(null); setPend(null); }} {...neon(tmOn, "#a78bfa")}>Time machine</button>
           {tmOn && !tl && <span style={{ fontFamily: MONO, fontSize: 12, color: "#64748b" }}>loading the archive…</span>}
           {tmOn && tl && (
             <>
-              <input type="range" min={0} max={tl.n - 1}
-                value={pend ?? week ?? tl.n - 1}
-                aria-label="Week of the replay"
-                onChange={e => {
-                  const v = +e.target.value;
-                  setPend(v);
-                  clearTimeout(tmTimer.current);
-                  // debounce the 5,000-building rebuild; the far right edge means NOW (live data)
-                  tmTimer.current = setTimeout(() => { setWeek(v >= tl.n - 1 ? null : v); setPend(null); }, 250);
-                }}
-                style={{ width: isMobile ? "78%" : 380, accentColor: "#a78bfa" }} />
+              <div style={{ position: "relative", width: isMobile ? "78%" : 380 }}>
+                <input type="range" min={0} max={tl.n - 1}
+                  value={pend ?? week ?? tl.n - 1}
+                  aria-label="Week of the replay"
+                  onChange={e => {
+                    const v = +e.target.value;
+                    setPend(v);
+                    clearTimeout(tmTimer.current);
+                    // debounce the 5,000-building rebuild; the far right edge means NOW (live data)
+                    tmTimer.current = setTimeout(() => { setWeek(v >= tl.n - 1 ? null : v); setPend(null); }, 250);
+                  }}
+                  style={{ width: "100%", accentColor: "#a78bfa", display: "block" }} />
+                {(TM_EVENTS[tl.asset] || []).map(ev => {
+                  const wk = Math.round((Date.parse(ev.d) - Date.parse(tl.week0)) / (7 * 864e5));
+                  if (wk < 0 || wk >= tl.n) return null;
+                  const pct = (wk / (tl.n - 1)) * 100;
+                  return (
+                    <div key={ev.d}
+                      title={`${ev.label} · ${new Date(Date.parse(ev.d)).toLocaleDateString("en-US", { month: "short", year: "numeric" })} — click to jump`}
+                      onClick={() => { setPend(wk); clearTimeout(tmTimer.current); tmTimer.current = setTimeout(() => { setWeek(wk >= tl.n - 1 ? null : wk); setPend(null); }, 120); }}
+                      style={{ position: "absolute", left: `${pct}%`, top: "100%", transform: "translateX(-50%)", cursor: "pointer", textAlign: "center", pointerEvents: "auto", zIndex: 2 }}>
+                      <div style={{ width: 2, height: 6, background: "#c4b5fd", opacity: 0.85, margin: "0 auto" }} />
+                      <div style={{ fontFamily: MONO, fontSize: 9.5, color: "#a5a5c0", whiteSpace: "nowrap", marginTop: 1 }}>{ev.label}</div>
+                    </div>
+                  );
+                })}
+              </div>
               <span style={{ fontFamily: MONO, fontSize: 12, color: week != null || pend != null ? "#c4b5fd" : "#94a3b8", minWidth: 96, textAlign: "left" }}>
                 {(pend ?? week) != null && (pend ?? week) < tl.n - 1
                   ? new Date(Date.parse(tl.week0) + (pend ?? week) * 7 * 864e5).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
