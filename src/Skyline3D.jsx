@@ -746,8 +746,11 @@ export default function Skyline3D({
     controls.panSpeed = 0.9;
     if (!coarse) {
       controls.screenSpacePanning = false;   // desktop: pan across the ground plane — the "drag a map" feel
-      controls.enableZoom = false;           // desktop: wheel handled by onWheel so two-finger scroll can orbit
     }
+    // ⭐ MAP-STYLE ZOOM (owner pick 2026-07-31): wheel AND pinch both ZOOM, handled by OrbitControls
+    // natively (enableZoom stays true). The earlier desktop takeover made a two-finger SCROLL orbit
+    // around a focal point — "moving laterally anchored to a reference point". Removed. Rotate/tilt is
+    // right-drag; click-drag still pans the map. Touch is untouched (default one-finger orbit + pinch).
     const pulseMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.5 });
     const pulseBox = new THREE.Mesh(box, pulseMat); pulseBox.visible = false; scene.add(pulseBox); ownMats.push(pulseMat);
     const pulse = home => {
@@ -848,32 +851,6 @@ export default function Skyline3D({
       onIntroDone?.();
     };
 
-    // Trackpad-first wheel. A browser reports a trackpad PINCH as ctrl+wheel, and a classic MOUSE
-    // wheel as line-mode deltas (deltaMode ≠ 0) or big discrete pixel jumps — all of those mean
-    // ZOOM. A gentle two-finger trackpad SCROLL is a stream of small pixel deltas, often with a
-    // horizontal component: that ORBITS around the target ("two fingers around a focal point").
-    // Everything clamps to the same limits OrbitControls uses, so the two paths can't disagree.
-    const _sph = new THREE.Spherical(), _off = new THREE.Vector3();
-    const onWheel = e => {
-      if (flying || !controls.enabled) return;
-      e.preventDefault();
-      _off.copy(cam.position).sub(controls.target);
-      const zoom = e.ctrlKey || e.deltaMode !== 0 || (e.deltaX === 0 && Math.abs(e.deltaY) >= 40);
-      if (zoom) {
-        const d = THREE.MathUtils.clamp(_off.length() * Math.pow(0.95, -e.deltaY * 0.02), controls.minDistance, controls.maxDistance);
-        _off.setLength(d);
-      } else {
-        _sph.setFromVector3(_off);
-        _sph.theta -= e.deltaX * 0.005;
-        _sph.phi = THREE.MathUtils.clamp(_sph.phi + e.deltaY * 0.005, 0.12, controls.maxPolarAngle);
-        _off.setFromSpherical(_sph);
-      }
-      cam.position.copy(controls.target).add(_off);
-      controls.update();
-    };
-    // Desktop only. On touch, OrbitControls keeps enableZoom (pinch) and owns the gesture; attaching
-    // this too would double-handle any wheel a hybrid device emits.
-    if (!coarse) renderer.domElement.addEventListener("wheel", onWheel, { passive: false });
     // Frame-accurate seek for offline video capture (tools/render-city-video.mjs). Driving the
     // path by progress rather than wall-clock means every frame lands exactly where intended,
     // however slowly the renderer is running.
@@ -965,7 +942,6 @@ export default function Skyline3D({
       renderer.domElement.removeEventListener("pointerdown", onDown);
       renderer.domElement.removeEventListener("pointerup", onUp);
       renderer.domElement.removeEventListener("pointerdown", stopFlight);
-      renderer.domElement.removeEventListener("wheel", onWheel);
       removeEventListener("wheel", stopFlight);
       controls.dispose(); composer?.dispose();
       disposables.forEach(d => d.dispose()); env.dispose(); sky.dispose();

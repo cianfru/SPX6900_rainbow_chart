@@ -401,7 +401,7 @@ export default function SpxCity({ isMobile, preview = false, initialMode = "spx"
               messages={msgs} time={time} infra={isNft ? null : infra} arcs={arcs} />
           </Suspense>
           <div style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 8 }}>
-            Drag to orbit · scroll to zoom · hover a building for the wallet · click to pin it.{layout === "city" && " Every wallet has a home address in SPX City."}
+            Drag to move · scroll to zoom · right-drag to rotate · hover to peek, click a building to open it.{layout === "city" && " Every wallet has a home address in SPX City."}
           </div>
         </div>
       </div>
