@@ -314,6 +314,7 @@ export default function SpxCity({ isMobile, preview = false, initialMode = "spx"
       <Explain q="Who actually holds SPX6900 — and which of them are buying or selling?" accent={M.accent}>
         Every building is one wallet. Height is <strong style={{ color: "#e2e8f0" }}>how much it holds × how long it&apos;s held</strong>, and the windows
         glow <strong style={{ color: "#4ade80" }}>green when it has been adding</strong> and <strong style={{ color: "#fb7185" }}>red when it&apos;s been shedding</strong>.
+        Steady holders show no green or red — instead their windows carry their <strong style={{ color: "#e2e8f0" }}>age</strong>: <strong style={{ color: "#ffcf7a" }}>amber when new</strong>, <strong style={{ color: "#22d3ee" }}>cyan when long-held</strong>.
         Switch the city between SPX holders, AEON collectors, and the wallets that qualify on both. Exchange, LP and bridge addresses are excluded, so these are real holders.
       </Explain>
 
