@@ -40,6 +40,11 @@ const CSS = `
 .doc-body td strong { color: ${NEAR}; }
 .doc-body blockquote { margin: 0 0 16px; padding-left: 14px; border-left: 2px solid ${HEADRULE}; color: ${DIM}; }
 .doc-body hr { border: 0; border-top: 1px solid ${RULE}; margin: 30px 0; }
+.doc-body img { display: block; width: 100%; height: auto; border-radius: 10px;
+  border: 1px solid ${RULE}; margin: 20px 0 6px; }
+/* A lone italic line right under an image reads as its caption. */
+.doc-body img + em, .doc-body p > img + em { display: block; font-size: 12.5px; color: ${DIM};
+  text-align: center; margin: 0 0 20px; font-style: normal; }
 .doc-body .doc-hint { border-left: 2px solid ${ACCENT}; background: rgba(94,234,212,0.05);
   padding: 12px 14px; border-radius: 0 8px 8px 0; margin: 0 0 18px; font-size: 14.5px; }
 .doc-body .doc-hint p:last-child { margin-bottom: 0; }

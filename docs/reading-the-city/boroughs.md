@@ -11,6 +11,9 @@ the same street bearing as the island, with the same blocks, kerbed pavement and
 has, so the far bank reads as a continuation of the city rather than a green field with buildings
 dropped on it.
 
+![Brooklyn, gridded like the island](/manual/boroughs.jpg)
+*The boroughs are low-rise by nature — the tall, long-held wallets already claimed the island — but they carry the same streets and kerbs, so they read as a real neighbourhood, not overflow parking.*
+
 ## Who moves
 
 **The newest wallets are the ones who cross the river.**

@@ -14,6 +14,9 @@ Rather than tinting the entire building, most of the colour appears in windows a
 Real cities are defined by illuminated windows at dusk, so placing information in the light keeps
 the city believable while making holding age readable from a distance.
 
+![Window colour by holding age and flow](/manual/colour.jpg)
+*The light carries the data: amber windows are newer holders, cyan are long-held. A wallet that has just been buying overrides its age and glows green (selling glows red) — so the age you read is from the buildings that are sitting still.*
+
 ## Why not just colour the buildings
 
 An earlier version tinted whole facades by holding age. It looked worse *and* said less: brick

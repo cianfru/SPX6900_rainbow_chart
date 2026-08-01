@@ -11,6 +11,9 @@ its position since launch stands taller than one of the same size that arrived l
 
 That is the entire idea. Everything below is implementation.
 
+![The height range, towers to low-rise](/manual/height.jpg)
+*Height is size × conviction, so the tallest towers are big positions held since launch. The ordering is exact; the spacing is compressed (mostly-logarithmic) so one whale doesn't dwarf the rest into a car park.*
+
 ## The scale
 
 Heights run from **1.0** for the smallest resident to **21.0** for the largest.
