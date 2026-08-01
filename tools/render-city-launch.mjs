@@ -61,10 +61,13 @@ function camAt(u) {
 // the bloom/reflections/crisp look. Pass --soft to force the software rasteriser (the sandbox has no
 // GPU, so it must; a real machine should NOT). executablePath falls back to Playwright's own
 // Chromium when the sandbox's pre-installed one isn't present.
-const SOFT = arg("soft", false);
+// --headed opens a real window. On macOS this is the reliable way to get true GPU rendering —
+// headless Chromium often falls back to software there, which would hand you the same flat look as
+// the sandbox. So for the launch cut: run headed on the Mac. --soft forces software (sandbox only).
+const SOFT = arg("soft", false), HEADED = arg("headed", false);
 const exe = existsSync("/opt/pw-browsers/chromium") ? "/opt/pw-browsers/chromium" : undefined;
 const browser = await chromium.launch({
-  executablePath: exe,
+  executablePath: exe, headless: !HEADED,
   args: SOFT ? ["--use-gl=swiftshader", "--enable-unsafe-swiftshader"] : ["--use-gl=angle", "--use-angle=default", "--ignore-gpu-blocklist"],
 });
 const page = await browser.newPage({ viewport: { width: W, height: H }, deviceScaleFactor: 1 });
