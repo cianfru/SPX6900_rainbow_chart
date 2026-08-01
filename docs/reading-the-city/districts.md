@@ -16,6 +16,9 @@ A wallet's district comes from a hash of its own address. It is stable — you w
 yourself in the same place — and it is arbitrary. Your neighbours are not related to you. Living in
 Harlem rather than Tribeca says nothing whatsoever.
 
+![Central Park, avenues and blocks](/manual/park.jpg)
+*The streets, blocks and Central Park — the Reservoir, lawns and lake — are real Manhattan geometry. Where a wallet lives is a game; the geometry it lives on is not.*
+
 The address exists so the city can be navigated and so people can find themselves in it. That is
 all it is for.
 
@@ -75,3 +78,6 @@ Central Park carries its real interior — the Reservoir, the Great Lawn, the La
 roads — and the waterfront grows finger piers along the two river shores. All of it is placed from
 the drawn geography's own outline, so the reservoir sits inside the park and a pier only ever reaches
 into open water, never across a channel onto Brooklyn or the Bronx.
+
+![Finger piers along the waterfront](/manual/piers.jpg)
+*The finger piers give the island its serrated edge — each one checked so it reaches into open water and never lands on the far shore.*

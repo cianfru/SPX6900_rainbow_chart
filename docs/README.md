@@ -13,6 +13,9 @@ Green and red beams show who is accumulating and who is distributing. Even the h
 exchanges, liquidity pools, bridges and burned tokens become physical landmarks instead of
 disappearing into tables.
 
+![SPX City at dusk](/manual/hero.jpg)
+*Manhattan at dusk. Towers are the largest, longest-held wallets; green beams mark wallets that have been buying.*
+
 ## Nothing is decorative
 
 Every visible feature corresponds to a measurable property of the blockchain. If something exists

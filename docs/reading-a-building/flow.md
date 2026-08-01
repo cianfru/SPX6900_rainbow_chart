@@ -11,6 +11,9 @@ description: Who is accumulating, and who is distributing.
 A wallet that has held 10M tokens untouched for two years and a wallet that is shedding 10M this
 week occupy the same row of a rich list. In the city they are unmistakable from across the water.
 
+![Green and red flow beams](/manual/flow.jpg)
+*Green marks wallets that added over the window, red marks wallets that sold. The beams (and the window glow) read from across the water — the buildings without either are the ones sitting still.*
+
 ## The beams
 
 * **Green beam** — the wallet **added** over the window.

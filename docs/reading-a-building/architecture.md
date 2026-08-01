@@ -13,6 +13,9 @@ description: Why scale is readable before you hover over anything.
 The architecture isn't aesthetic. It gives scale immediate visual meaning before the user ever
 hovers over a building.
 
+![Glass towers, concrete mid-rises and brick low-rise](/manual/architecture.jpg)
+*Glass towers are the largest holders, concrete mid-rises the next tier, brick the majority. You can read the size distribution from the silhouette alone, before hovering anything.*
+
 ## The four types
 
 Type follows directly from [height](height.md). There is no separate rule.

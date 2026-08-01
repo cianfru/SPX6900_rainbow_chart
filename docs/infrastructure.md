@@ -16,6 +16,9 @@ Centralized exchanges become **warehouses along the docks**.
 
 These structures don't represent people. They represent the infrastructure supporting the ecosystem.
 
+![The harbour — Statue of Liberty, docks and bridge](/manual/harbour.jpg)
+*The 69M burned tokens stand as the Statue of Liberty; the tagged exchanges (Kraken, Revolut and the rest) are warehouses on the docks, sized by how much each holds; the Wormhole bridge that backs Base and Solana runs the Brooklyn Bridge's line. Every figure is real supply.*
+
 ***
 
 ## The Statue of Liberty — the burn
