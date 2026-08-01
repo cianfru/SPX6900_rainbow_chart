@@ -158,10 +158,16 @@ export function waterMaterials(tod) {
   // stacked above it wins deterministically, at every distance and on every GPU. It only ever draws
   // where there is genuinely nothing above it — i.e. open water. (Contrast the chop OVERLAY: it must
   // NOT get an offset, because pulling that one toward the camera drew water over the land.)
+  // ⭐ ROUGH ENOUGH THAT THE SUN DOESN'T BLOW IT OUT. At roughness 0.3 + envMapIntensity 1.15 the
+  // sea was a near-mirror, so on a real GPU the sun's reflection clipped to a flat white sheet across
+  // the whole harbour under ACES tone mapping (the sandbox's software renderer can't show env
+  // reflections, so this only appeared on the Mac). Higher roughness spreads that specular into a
+  // soft sheen instead of a blown streak, and a lower env lets the water's own blue read through — it
+  // still reflects (that's what keeps it reading as water, not concrete), just doesn't overexpose.
   const base = new THREE.MeshStandardMaterial({
-    color: tod.water, roughness: 0.3, metalness: 0.06,
+    color: tod.water, roughness: 0.5, metalness: 0.06,
     polygonOffset: true, polygonOffsetFactor: 2, polygonOffsetUnits: 4,
-    normalMap: t1, normalScale: new THREE.Vector2(0.75, 0.75), envMapIntensity: 1.15,
+    normalMap: t1, normalScale: new THREE.Vector2(0.6, 0.6), envMapIntensity: 0.7,
   });
   // The chop rides just above the base sea plane. Their flicker (both span LEN×8, so at distance the
   // depth buffer couldn't tell them apart) is handled by the camera's near plane — raised from 0.1 to
@@ -170,9 +176,9 @@ export function waterMaterials(tod) {
   // makes the transparent water draw OVER the borough land (Brooklyn sat on the sea). The near-plane
   // fix is depth-correct; the offset was a coplanar hack that broke the shoreline.
   const over = new THREE.MeshStandardMaterial({
-    color: tod.water, transparent: true, opacity: 0.4, depthWrite: false,
-    roughness: 0.2, metalness: 0.06,
-    normalMap: t2, normalScale: new THREE.Vector2(0.5, 0.5), envMapIntensity: 1.35,
+    color: tod.water, transparent: true, opacity: 0.34, depthWrite: false,
+    roughness: 0.42, metalness: 0.06,
+    normalMap: t2, normalScale: new THREE.Vector2(0.42, 0.42), envMapIntensity: 0.7,
   });
   // slow, slightly divergent drift — the relative motion is what sells it
   const tick = now => {
