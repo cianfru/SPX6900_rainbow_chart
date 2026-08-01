@@ -139,18 +139,6 @@ export async function buildRecapPost(month, history) {
     title: `${R.label} — day by day`, headline: `${greenDays}/${dayBars.length} green days · best ${fPct(R.bestDay.ret)}`, accent: "#38bdf8", bars: dayBars,
   } } : null;
 
-  // --- holder growth over the month: the "+X new holders" as a rising line ----
-  // Holder growth vs SPX price — dual axis, so you can see whether accumulation
-  // held through the month's price swings (the honest "conviction through the
-  // chop" read, not a correlation claim).
-  const hser = R.holderSeries;
-  let holdersCard = null;
-  if (hser && hser.length >= 2 && R.holders) {
-    holdersCard = { type: "holderspair", spec: {
-      title: `Holders vs price — ${R.label}`, headline: `${R.holders.delta >= 0 ? "+" : ""}${fNum(R.holders.delta)} new holders`, accent: "#4ade80",
-      holders: hser, price: R.priceSeries,
-    } };
-  }
 
   // --- the image cards, ALL month-focused: Rainbow (where the month closed on the
   // bands) · SPX vs the field (the month's return race) · day-by-day (the month's
@@ -167,8 +155,12 @@ export async function buildRecapPost(month, history) {
   const cards = [{ type: "rainbow" }];
   if (fieldCard) cards.push(fieldCard);        // the month's return race
   if (dailyCard) cards.push(dailyCard);        // the month, day by day
-  if (holdersCard) cards.push(holdersCard);    // holders vs price, this month
-  // If a month lacks the field or holder data, keep the post full with the diamond-
+  // The RSI dots — the one NATIVELY monthly card: one dot per monthly close. Rendered
+  // through the recap's endStats (as-of the month-end), and monthlyCloses now drops any
+  // month past that date, so the final dot IS this month's close — the monthly RSI print
+  // the recap exists to report, not an unfinished current month.
+  cards.push({ type: "rsidots" });
+  // If a month lacks the field or day-by-day data, keep the post full with the diamond-
   // supply line (still a monthly movement) rather than shipping short.
   if (cards.length < 4 && diamondCard) cards.push(diamondCard);
   while (cards.length > 4) cards.pop(); // X hard-caps a post at 4 images

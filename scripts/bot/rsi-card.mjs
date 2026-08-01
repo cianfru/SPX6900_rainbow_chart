@@ -35,15 +35,18 @@ const fP = p => (p >= 1 ? "$" + p.toFixed(2) : "$" + p.toFixed(p < 0.001 ? 5 : p
 
 export const RSI_PERIOD = 6, GMA_MONTHS = 6;
 
-// MONTHLY closes (last close per calendar month), with the current month overridden
-// by the live price so the latest dot is month-to-date.
+// MONTHLY closes (last close per calendar month) AS OF dateStr, with dateStr's own
+// month overridden by `price` so the latest dot is month-to-date. Months AFTER
+// dateStr are dropped — the series is only ever "closes up to this date", so a
+// caller asking as of a month-end (e.g. the monthly recap at Jul 31) gets that
+// month as the final dot, not whatever partial month the drawn series runs into.
 export function monthlyCloses(price, dateStr, series = DEFAULT_RAW) {
   const raw = (series && series.length) ? series : DEFAULT_RAW;
   const byM = new Map();
   for (const r of raw) { const d = new Date(r.date); byM.set(d.getUTCFullYear() * 12 + d.getUTCMonth(), { ts: new Date(r.date).getTime(), price: r.price }); }
   const cd = new Date(dateStr), key = cd.getUTCFullYear() * 12 + cd.getUTCMonth(), cur = byM.get(key);
   byM.set(key, { ts: cur ? cur.ts : cd.getTime(), price });
-  return [...byM.keys()].sort((a, b) => a - b).map(k => byM.get(k));
+  return [...byM.keys()].filter(k => k <= key).sort((a, b) => a - b).map(k => byM.get(k));
 }
 
 // Current monthly RSI(6) — shared with the post so its headline matches the card.
