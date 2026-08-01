@@ -11,6 +11,7 @@
 import { fNum } from "./svg-util.mjs";
 import { computeMonthlyRecap } from "./recap.mjs";
 import { computeStats } from "./stats.mjs";
+import { rsiNow } from "./rsi-card.mjs";
 import { DEFAULT_RAW } from "../../src/data.js";
 
 // --- tiny formatters (kept local so the thread module is self-contained) ---
@@ -173,6 +174,13 @@ export async function buildRecapPost(month, history) {
     `📈 Path: opened ${fPrice(R.open)}, ran to ${fPrice(R.high)} (${fMon(R.highDate)}), closed ${fPrice(R.close)}. Best day ${fPct(R.bestDay.ret)}, worst ${fPct(R.worstDay.ret)} — ${greenDays}/${dayBars.length} days green.`,
   ];
   if (fieldLines.length >= 2) segs.push(`🏁 vs the field: SPX ${fPct(R.change)} raced BTC/ETH/SOL + the meme kings 🐕🐸 (DOGE/SHIB/PEPE) — chart.`);
+  // The monthly RSI close — one print per month, so this IS a monthly datapoint. Reads off the
+  // same as-of-month-end series as the dots card, so text and card can't disagree.
+  const rsiClose = Math.round(rsiNow(R.close, R.endDate, endStats.drawn));
+  const rsiWord = rsiClose < 40 ? "cold and oversold, the value end of the range"
+    : rsiClose < 50 ? "cool, below neutral" : rsiClose < 60 ? "neutral"
+    : rsiClose < 70 ? "warm" : "hot, overbought";
+  segs.push(`📉 Monthly RSI close: ${rsiClose} — ${rsiWord}. A homage to the Bitcoin RSI chart by @100trillionUSD.`);
   if (fngPts.length >= 2) segs.push(`🧭 Mood vs value: Crypto Fear & Greed ${fngPts.at(-1)[1]} (${fngLabel(fngPts.at(-1)[1])}) while SPX model risk sat ${riskNow}/100 (${riskLabel}).`);
   const holderSeg = R.holders ? `Holders ${fNum(R.holders.start)} → ${fNum(R.holders.end)} (${R.holders.delta >= 0 ? "+" : ""}${fNum(R.holders.delta)}).` : "";
   if (diamondSeg || holderSeg) segs.push([diamondSeg, holderSeg].filter(Boolean).join(" "));
