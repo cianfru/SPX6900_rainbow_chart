@@ -1,10 +1,13 @@
-// Build the monthly-recap post — ONE long-form X post + up to 4 image cards
-// (Hero scorecard, Rainbow, SPX vs the field, Diamond supply). Single source of
-// truth shared by the runner (recap-run.mjs, renders/posts) and the control
-// preview API (api/recap.js). Does the live CoinGecko + crypto Fear&Greed
-// fetches itself and degrades gracefully — the vs-field / diamond cards drop if
-// their data can't be reached (price-path + sentiment ride in the text, not as
-// images, since X caps a post at 4). Never throws.
+// Build the monthly-recap post — ONE long-form X post + up to 4 image cards, all
+// MONTH-focused: Rainbow (where the month closed on the bands), SPX vs the field
+// (the month's return race), day-by-day (the month's daily returns) and Holders
+// vs price (accumulation through the month). NO tile scorecard and no lifetime/
+// current-state cards — a monthly recap shows THE MONTH; its summary numbers ride
+// in the post text. Single source of truth shared by the runner (recap-run.mjs,
+// renders/posts) and the control preview API (api/recap.js). Does the live
+// CoinGecko + crypto Fear&Greed fetches itself and degrades gracefully — the
+// vs-field card drops (and the diamond line fills in) if its data can't be
+// reached. Never throws.
 import { fNum } from "./svg-util.mjs";
 import { computeMonthlyRecap } from "./recap.mjs";
 import { computeStats } from "./stats.mjs";
@@ -17,7 +20,6 @@ const fPct = x => `${x >= 0 ? "+" : ""}${(x * 100).toFixed(Math.abs(x) < 0.1 ? 1
 // Recap-card price convention (tiered decimals). posts.mjs tweet text uses a
 // flat 4-decimal rule — per-surface on purpose; don't unify blindly.
 const fPrice = p => p >= 1 ? "$" + p.toFixed(2) : "$" + p.toFixed(p < 0.001 ? 5 : p < 0.01 ? 4 : p < 0.1 ? 3 : 2);
-const fMult = x => Math.round(x) + "×";
 
 async function coinGeckoSeries(id) {
   try {
@@ -55,17 +57,6 @@ export async function buildRecapPost(month, history) {
   const merged = [...DEFAULT_RAW, ...history.map(r => ({ date: r.d, price: r.p })).filter(p => p.date > lastBundled && p.price > 0)];
   const endStats = computeStats(R.close, R.endDate, { history: merged });
 
-  // On-brand rainbow palette across the tiles — the price change keeps its green/
-  // red (up/down) meaning, the rest spread across the spectrum.
-  const green = R.change >= 0 ? "#4ade80" : "#f87171";
-  const heroTiles = [
-    { big: fPct(R.change), label: "price · this month", color: green },
-    { big: fPrice(R.high), label: "high · " + fMon(R.highDate), color: "#fbbf24" },
-    { big: fPrice(R.low), label: "low · " + fMon(R.lowDate), color: "#38bdf8" },
-    { big: (R.holders ? (R.holders.delta >= 0 ? "+" : "") + fNum(R.holders.delta) : "—"), label: "new holders", color: "#a78bfa" },
-    { big: R.diamondOfTotal != null ? Math.round(R.diamondOfTotal * 100) + "%" : "—", label: "diamond hands", color: "#22d3ee" },
-    { big: fMult(R.allTimeReturn), label: "since launch", color: "#fb7185" },
-  ];
 
   // --- monthly performance vs the field (majors + meme kings) ---------------
   // All six fetched uniformly from CoinGecko. Each asset's CUMULATIVE return
@@ -161,24 +152,25 @@ export async function buildRecapPost(month, history) {
     } };
   }
 
-  // --- the 4 image cards: Hero scorecard, Rainbow, SPX vs the field, day-by-day.
-  // X caps a post at 4 images; the price-path + sentiment charts are dropped here
-  // and folded into the post text instead (the two most summarizable in words).
-  const cards = [
-    { type: "statgrid", spec: { title: `SPX6900 — ${R.label} in review`, accent: "#38bdf8", tiles: heroTiles } },
-    { type: "rainbow" },
-  ];
-  if (fieldLines.length >= 2) cards.push({ type: "line", spec: {
+  // --- the image cards, ALL month-focused: Rainbow (where the month closed on the
+  // bands) · SPX vs the field (the month's return race) · day-by-day (the month's
+  // daily rhythm) · Holders vs price (accumulation through the month). The statgrid
+  // scorecard was dropped on purpose — a monthly recap leads with charts of THE
+  // MONTH, not a tile of lifetime/current-state stats; its numbers ride in the post
+  // text instead. X caps a post at 4 images.
+  const fieldCard = fieldLines.length >= 2 ? { type: "line", spec: {
     title: `SPX6900 vs the field — ${R.label}`, headline: `${fPct(R.change)} on the month`, accent: "#38bdf8",
     yFmt: v => `${v >= 0 ? "+" : ""}${Math.round(v * 100)}%`,
     hlines: [{ y: 0, label: "0%", color: "#475569" }],
     series: fieldLines.map(f => ({ pts: f.pts, color: f.color, width: f.width, logo: f.logo })),
-  } });
-  // 4th card: holder growth (positive, on-brand). Falls back to the day-by-day
-  // returns, then the diamond-supply line, if a month lacks the data.
-  if (holdersCard) cards.push(holdersCard);
-  else if (dailyCard) cards.push(dailyCard);
-  else if (diamondCard) cards.push(diamondCard);
+  } } : null;
+  const cards = [{ type: "rainbow" }];
+  if (fieldCard) cards.push(fieldCard);        // the month's return race
+  if (dailyCard) cards.push(dailyCard);        // the month, day by day
+  if (holdersCard) cards.push(holdersCard);    // holders vs price, this month
+  // If a month lacks the field or holder data, keep the post full with the diamond-
+  // supply line (still a monthly movement) rather than shipping short.
+  if (cards.length < 4 && diamondCard) cards.push(diamondCard);
   while (cards.length > 4) cards.pop(); // X hard-caps a post at 4 images
 
   // --- the single long-form post (no URL in the body — links throttle reach and
@@ -186,7 +178,7 @@ export async function buildRecapPost(month, history) {
   const segs = [
     `📊 SPX6900 — ${R.label} in review.`,
     `${fPct(R.change)} on the month, closed in the ${R.endBand.l} band (${fPct(R.vsCenter)} vs the model's fair value ${fPrice(R.center)}).`,
-    `📈 Path: opened ${fPrice(R.open)}, ran to ${fPrice(R.high)} (${fMon(R.highDate)}), closed ${fPrice(R.close)}. Best day ${fPct(R.bestDay.ret)}, worst ${fPct(R.worstDay.ret)}.`,
+    `📈 Path: opened ${fPrice(R.open)}, ran to ${fPrice(R.high)} (${fMon(R.highDate)}), closed ${fPrice(R.close)}. Best day ${fPct(R.bestDay.ret)}, worst ${fPct(R.worstDay.ret)} — ${greenDays}/${dayBars.length} days green.`,
   ];
   if (fieldLines.length >= 2) segs.push(`🏁 vs the field: SPX ${fPct(R.change)} raced BTC/ETH/SOL + the meme kings 🐕🐸 (DOGE/SHIB/PEPE) — chart.`);
   if (fngPts.length >= 2) segs.push(`🧭 Mood vs value: Crypto Fear & Greed ${fngPts.at(-1)[1]} (${fngLabel(fngPts.at(-1)[1])}) while SPX model risk sat ${riskNow}/100 (${riskLabel}).`);
