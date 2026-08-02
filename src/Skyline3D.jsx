@@ -1117,6 +1117,20 @@ export default function Skyline3D({
       cam.updateProjectionMatrix(); controls.update();
       draw();
     };
+    // Frame ONE resident's building for a close-up — the shot the weekly recap points at ("this
+    // wallet's tower just rose a tier"). Returns false if the address owns no building here, so a
+    // caller (the render tool) can fail loudly instead of screenshotting an empty street. Stands back
+    // ~the tower's own height and a touch above its middle, looking straight at it.
+    window.__cityFocus = (addr, opts = {}) => {
+      const home = homes.get(String(addr || "").toLowerCase());
+      if (!home) return false;
+      const { x, z, h } = home;
+      const dist = (opts.dist ?? 1) * (h * 1.7 + 9);
+      const ang = opts.angle ?? Math.PI * 0.28;      // azimuth around the tower
+      window.__cityCam([x + Math.cos(ang) * dist, h * 0.8 + 5, z + Math.sin(ang) * dist],
+        [x, h * 0.45, z], opts.fov ?? 40);
+      return true;
+    };
     window.__cityStats = () => ({
       len: LEN,
       buildings: T.length, meshes: scene.children.length,
@@ -1185,7 +1199,7 @@ export default function Skyline3D({
       groundBits.forEach(g => { if (g.dispose) g.dispose(); else { g.geometry?.dispose(); g.material?.dispose(); } });
       pads?.dispose();
       labelBits.forEach(({ obj }) => { obj.element?.remove(); scene.remove(obj); });
-      delete window.__citySeek; delete window.__cityReady; delete window.__cityStats; delete window.__cityCam;
+      delete window.__citySeek; delete window.__cityReady; delete window.__cityStats; delete window.__cityCam; delete window.__cityFocus;
       renderer.dispose(); el.removeChild(renderer.domElement); el.removeChild(labelR.domElement); el.removeChild(tip);
     };
   }, [towers, isMobile, crownLabel, accent, bodyFrom, bodyTo, layout, intro, time, infra, arcs, beamAll]);
