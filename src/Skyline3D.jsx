@@ -1201,6 +1201,9 @@ export default function Skyline3D({
     const entries = Object.entries(messages || {});
     // Address → tower, so clicking a sign can select its building exactly like clicking the building.
     const towerOf = new Map((towers || []).map(t => [String(t.a || "").toLowerCase(), t]));
+    // Only one note reads out at a time — otherwise tapping through a crowded district would leave a
+    // trail of open bubbles, the very mess this redesign exists to avoid.
+    let openNow = null;
     for (const [addr, m] of entries) {
       const key = String(addr).toLowerCase();
       const home = a.homes.get(key);
@@ -1210,31 +1213,46 @@ export default function Skyline3D({
       // frame, so the bubble is offset on the INNER one. That offset is in SCREEN pixels, which is
       // what keeps it clear of the crown label at every zoom — a world-space gap shrinks as you
       // pull back and the two labels end up on top of each other.
+      const ch = chainOf(m.chain);
       const wrap = document.createElement("div");
       wrap.style.position = "relative";
-      const d = document.createElement("div");
-      const ch = chainOf(m.chain);
-      // The sign IS the connector: clicking it selects the building (pins its card + flies there),
-      // the same as clicking the building itself — so which note belongs to which tower is answered by
-      // the interaction rather than by a beam or a marker cluttering the skyline. pointerEvents:auto
-      // lets the bubble take the click (the label layer is otherwise click-through).
-      Object.assign(d.style, {
-        position: "absolute", left: "50%", bottom: "22px", transform: "translateX(-50%)",
-        width: "180px", padding: "5px 9px 6px", borderRadius: "9px", textAlign: "center",
-        background: "rgba(10,14,26,0.93)", border: `1px solid ${ch.colour}`,
+
+      // ── the resting marker: a small, quiet pin ────────────────────────────────────────────────
+      // At rest a note is just a chain-coloured dot floating over its building, so a hundred of them
+      // read as a scattering of pins rather than a hundred billboards blacking out the skyline. The
+      // full text is one hover (desktop) or tap (mobile) away — displayed, but never in your face.
+      const pin = document.createElement("div");
+      Object.assign(pin.style, {
+        position: "absolute", left: "50%", bottom: "8px", transform: "translateX(-50%)",
+        width: "15px", height: "15px", borderRadius: "50%",
+        background: "rgba(8,12,22,0.62)", border: `1.5px solid ${ch.colour}`,
+        display: "flex", alignItems: "center", justifyContent: "center",
+        boxShadow: `0 1px 5px rgba(0,0,0,0.4)`, boxSizing: "border-box",
+        opacity: m.pending ? "0.5" : "0.82", cursor: tower ? "pointer" : "default",
+        pointerEvents: tower ? "auto" : "none",
+        transition: "opacity .15s ease, transform .15s ease, box-shadow .15s ease",
+      });
+      const dot = document.createElement("div");
+      Object.assign(dot.style, { width: "4.5px", height: "4.5px", borderRadius: "50%", background: ch.colour });
+      pin.appendChild(dot);
+
+      // ── the popover: the readable bubble, shown on demand ─────────────────────────────────────
+      const pop = document.createElement("div");
+      Object.assign(pop.style, {
+        position: "absolute", left: "50%", bottom: "28px", transform: "translateX(-50%) scale(0.96)",
+        transformOrigin: "50% 100%",
+        width: "170px", padding: "5px 9px 6px", borderRadius: "9px", textAlign: "center",
+        background: "rgba(10,14,26,0.94)", border: `1px solid ${ch.colour}`,
         color: "#e2e8f0", font: "600 11.5px 'Space Grotesk', system-ui, sans-serif",
         lineHeight: "1.45", whiteSpace: "pre-wrap", wordBreak: "break-word",
-        boxShadow: `0 6px 20px rgba(0,0,0,0.55), 0 0 0 3px ${ch.tint}`,
-        pointerEvents: tower ? "auto" : "none", cursor: tower ? "pointer" : "default",
-        opacity: m.pending ? "0.75" : "1", transition: "box-shadow .15s ease, transform .15s ease",
+        boxShadow: `0 8px 24px rgba(0,0,0,0.55), 0 0 0 3px ${ch.tint}`,
+        opacity: "0", visibility: "hidden",
+        // On desktop the popover is a pure hover preview (click the PIN to select), so it never needs
+        // pointer events. On touch there is no hover, so the popover itself is the "go to building" tap.
+        pointerEvents: isMobile && tower ? "auto" : "none", cursor: tower ? "pointer" : "default",
+        transition: "opacity .16s ease, transform .16s ease, visibility .16s",
       });
-      if (tower) {
-        d.title = "Select this building";
-        d.onclick = () => selectRef.current?.(tower);
-        d.onpointerenter = () => { d.style.boxShadow = `0 8px 26px rgba(0,0,0,0.6), 0 0 0 3px ${ch.colour}`; d.style.transform = "translateX(-50%) translateY(-1px)"; };
-        d.onpointerleave = () => { d.style.boxShadow = `0 6px 20px rgba(0,0,0,0.55), 0 0 0 3px ${ch.tint}`; d.style.transform = "translateX(-50%)"; };
-      }
-      d.appendChild(document.createTextNode(m.text));
+      pop.appendChild(document.createTextNode(m.text));
       // The chain in writing as well as in colour. The Ethereum grey is near-neutral by design, so
       // colour alone would be a distinction plenty of people can't make — and "which chain is this
       // note on" is the whole question the colour is there to answer.
@@ -1243,8 +1261,8 @@ export default function Skyline3D({
         marginTop: "4px", font: "700 8.5px 'Space Grotesk', system-ui, sans-serif",
         letterSpacing: "0.09em", color: ch.colour, opacity: "0.95",
       });
-      tag.textContent = m.pending ? `${ch.short} · CONFIRMING` : ch.short;
-      d.appendChild(tag);
+      tag.textContent = m.pending ? `${ch.short} · CONFIRMING` : (isMobile && tower ? `${ch.short} · TAP TO VISIT` : ch.short);
+      pop.appendChild(tag);
       // A small caret at the bubble's foot, a light tie between the sign and the tower below it.
       const caret = document.createElement("div");
       Object.assign(caret.style, {
@@ -1252,17 +1270,46 @@ export default function Skyline3D({
         width: "0", height: "0", borderLeft: "6px solid transparent", borderRight: "6px solid transparent",
         borderTop: `7px solid ${ch.colour}`, pointerEvents: "none",
       });
-      d.appendChild(caret);
-      wrap.appendChild(d);
+      pop.appendChild(caret);
+
+      const show = () => {
+        if (openNow && openNow !== hide) openNow();          // close whoever else was open
+        openNow = hide;
+        pop.style.opacity = "1"; pop.style.visibility = "visible"; pop.style.transform = "translateX(-50%) scale(1)";
+        pin.style.opacity = "1"; pin.style.transform = "translateX(-50%) scale(1.15)";
+        pin.style.boxShadow = `0 2px 8px rgba(0,0,0,0.5), 0 0 0 3px ${ch.tint}`;
+      };
+      function hide() {
+        if (openNow === hide) openNow = null;
+        pop.style.opacity = "0"; pop.style.visibility = "hidden"; pop.style.transform = "translateX(-50%) scale(0.96)";
+        pin.style.opacity = m.pending ? "0.5" : "0.82"; pin.style.transform = "translateX(-50%)";
+        pin.style.boxShadow = `0 1px 5px rgba(0,0,0,0.4)`;
+      }
+      if (tower) {
+        if (isMobile) {
+          // Touch: tap the pin to reveal (and close any other), tap the bubble to fly to the building.
+          pin.onclick = e => { e.stopPropagation(); (openNow === hide ? hide : show)(); };
+          pop.onclick = e => { e.stopPropagation(); selectRef.current?.(tower); };
+          pop.title = "Visit this building";
+        } else {
+          // Desktop: hover the pin to read, click it to fly to the building.
+          pin.onpointerenter = show;
+          pin.onpointerleave = hide;
+          pin.onclick = e => { e.stopPropagation(); selectRef.current?.(tower); };
+          pin.title = "Click to visit this building";
+        }
+      }
+      wrap.appendChild(pop);
+      wrap.appendChild(pin);
       const o = new CSS2DObject(wrap);
-      o.position.set(home.x, home.h + 3, home.z);   // same anchor as the crown; the 22px lifts it clear
+      o.position.set(home.x, home.h + 3, home.z);   // same anchor as the crown; the pin lifts clear
       g.add(o);
     }
     return () => {
       // CSS2DRenderer only detaches elements it still knows about, so pull the DOM node too.
       for (const o of [...g.children]) { o.element?.remove(); g.remove(o); }
     };
-  }, [messages, towers, layout, time]);
+  }, [messages, towers, layout, time, isMobile]);
 
   // The selected wallet's card, tracking its own building.
   //
