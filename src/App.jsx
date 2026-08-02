@@ -573,13 +573,17 @@ export default function App() {
       if (id === "relative" && rel && rel !== "BTC") params.set("rel", rel);
     }
     const qs = params.toString();
-    const next = window.location.pathname + (qs ? "?" + qs : "") + window.location.hash;
+    // SPX City gets a clean path of its own (/city); every other route lives at "/" with a query,
+    // so leaving the city resets the pathname back to root rather than stranding ?view= on /city.
+    const path = r === "city" ? "/city" : "/";
+    const next = path + (qs ? "?" + qs : "") + window.location.hash;
     const cur = window.location.pathname + window.location.search + window.location.hash;
     if (next !== cur) window.history.pushState(null, "", next);
   };
   const goHome = () => { setRoute("home"); syncUrl("home"); window.scrollTo({ top: 0, behavior: "smooth" }); };
   const openGallery = () => { setRoute("gallery"); syncUrl("gallery"); window.scrollTo({ top: 0, behavior: "smooth" }); };
   const openAeon = () => { setRoute("aeon"); syncUrl("aeon"); window.scrollTo({ top: 0, behavior: "smooth" }); };
+  const openCity = () => { setRoute("city"); syncUrl("city"); window.scrollTo({ top: 0, behavior: "smooth" }); };
   const openMethods = () => { setRoute("methods"); syncUrl("methods"); window.scrollTo({ top: 0, behavior: "smooth" }); };
   const openDocs = (slug = "index") => { setDocSlug(slug); setRoute("docs"); syncUrl("docs", slug); window.scrollTo({ top: 0, behavior: "smooth" }); };
   const goChart = (id, relOverride) => {
@@ -607,6 +611,8 @@ export default function App() {
   // interactive chart, otherwise the Rainbow hero.
   useEffect(() => {
     const apply = () => {
+      // SPX City is a path (/city), not a query — check it first.
+      if (window.location.pathname === "/city") { setRoute("city"); return; }
       const p = new URLSearchParams(window.location.search);
       const rel = p.get("rel");
       if (rel && REL_IDS.has(rel)) setRelWhich(rel);
@@ -786,6 +792,10 @@ export default function App() {
 )}
               <span>Charts</span>
             </button>
+            <button className="pill" onClick={openCity} title="SPX City — every holder a building (3D)" style={navPill(route === "city", "#7dd3fc")}>
+              {!isMobile && <span style={{ color: "#7dd3fc", display: "inline-flex" }}><TabIcon name="spxcity" /></span>}
+              <span>City</span>
+            </button>
             <button className="pill" onClick={openAeon} title="Project Aeon — NFT analytics" style={navPill(route === "aeon", "#f472b6")}>
               {!isMobile && (
 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, color: "#f472b6" }}>
@@ -794,14 +804,8 @@ export default function App() {
 )}
               <span>{isMobile ? "Aeon" : "Project Aeon"}</span>
             </button>
-            <button className="pill" onClick={openMethods} title="How every number on this site is computed" style={navPill(route === "methods", "#94a3b8")}>
-              {!isMobile && (
-<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, color: "#94a3b8" }}>
-                <path d="M4 19.5V5a2 2 0 0 1 2-2h13v18H6a2 2 0 0 1-2-1.5z" /><path d="M8 7h8" /><path d="M8 11h5" />
-              </svg>
-)}
-              <span>Methods</span>
-            </button>
+            {/* Methods is buried for now (still in dev — new charts landing). The page stays reachable
+                at ?view=methods, it's just not a nav tab. */}
           </div>
           {navActions}
         </div>
@@ -830,6 +834,14 @@ export default function App() {
         </Suspense>
       )}
 
+
+      {/* SPX City — its own top-level tab at /city (every holder a building). Rendered directly
+          rather than through the charts gallery so it gets a clean path and first-class billing. */}
+      {route === "city" && (
+        <Suspense fallback={<div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Loading the city…</div>}>
+          <SpxCity isMobile={isMobile} initialMode="spx" />
+        </Suspense>
+      )}
 
       {/* The manual — docs/*.md pre-rendered at build time, hosted here rather than linked out. */}
       {route === "docs" && (
