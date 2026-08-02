@@ -1,19 +1,21 @@
-// Render a CLOSE-UP of the city's "hero" building for the weekly/monthly recap — the shot that says
-// "this wallet's tower just rose a tier". Reads public/city-recap.json for the hero wallet, flies the
-// real 3D city's camera onto that building via window.__cityFocus, and screenshots it.
+// Render the FULL 3D city for the weekly/monthly recap and (with --card) composite the finished card
+// in one command. Frames the recap's "hero" building via window.__cityFocus — the shot that says
+// "this wallet's tower rose a tier" — falling back to the tallest tower if the named hero has left
+// the live set. Defaults to the LIVE site, so no local server is needed.
 //
-// The full skyline needs a real GPU (a GPU-less renderer chokes on ~4,800 buildings), so run this on
-// your Mac HEADED — that's what gives the true materials/lighting. The sandbox / CI can only do the
-// software renderer (--soft), which is flatter; a reduced-scene variant for hands-off CI comes next.
+// THE ONE COMMAND (real GPU on your Mac; keep the window frontmost while it renders):
+//   node tools/render-city-recap.mjs --headed --card --period=monthly
+//   → writes ~/spx-city-monthly-card.png (and ~/spx-city-weekly-card.png for --period=weekly)
 //
-//   1) npm run dev        (serves the site on :5173)
-//   2) node tools/render-city-recap.mjs --headed --period=monthly --out=/tmp/city-recap.png
+// The full ~4,900-building skyline needs a real GPU (a GPU-less runner renders it sparse/slow), which
+// is why this runs on your machine rather than CI. --port=NNNN / --url=… point at a local build.
 //
-// Flags: --period=weekly|monthly (default monthly) · --wallet=0x… (override the hero) ·
-//        --time=dusk|day|night · --out=PATH · --port=5173 · --w/--h (viewport) ·
-//        --angle/--dist/--fov (camera framing) · --headed (real GPU) · --soft (software, sandbox only).
+// Flags: --period=weekly|monthly · --card [--cardOut=PATH] · --wallet=0x… (override hero) ·
+//        --time=dusk|day|night · --out=PATH (raw shot) · --url=… / --port=NNNN (default: live site) ·
+//        --w/--h (viewport) · --angle/--dist/--fov (framing) · --headed (real GPU) · --soft (software).
 import { chromium } from "playwright";
 import { existsSync, readFileSync } from "node:fs";
+import { spawnSync } from "node:child_process";
 
 const arg = (k, d) => {
   const hit = process.argv.find(s => s === `--${k}` || s.startsWith(`--${k}=`));
@@ -29,6 +31,12 @@ const SOFT = arg("soft", false), HEADED = arg("headed", false);
 // --recap caps the scene to the top-N buildings so it renders on a GPU-less runner (CI). Omit it on
 // a real GPU (your Mac) to shoot the full skyline. Hero is always a top wallet, so it survives the cap.
 const RECAP = arg("recap", false), RECAPN = num("recapN", 500);
+// Default to the LIVE site (full city, real GPU on your Mac) so no local server is needed — one
+// command and you're done. Pass --port=NNNN (or --url=…) to point at a local dev/preview build.
+const URL_BASE = arg("url", null) || (process.argv.some(s => s.startsWith("--port")) ? `http://localhost:${PORT}` : "https://spx6900rainbow.xyz");
+// --card also composites the recap card (screenshot + stats overlay) right after the render, so a
+// single command yields the finished card.
+const CARD = arg("card", false), CARD_OUT = arg("cardOut", `${process.env.HOME || "."}/spx-city-${PERIOD}-card.png`);
 
 // Pick the hero wallet: explicit --wallet wins, else the recap's chosen hero for the period.
 let wallet = arg("wallet", null), heroNote = "";
@@ -50,7 +58,8 @@ const browser = await chromium.launch({
 const page = await browser.newPage({ viewport: { width: W, height: H }, deviceScaleFactor: 1 });
 await page.addInitScript(() => { try { localStorage.setItem("spx-city-dev2", "1"); localStorage.setItem("spx-city-dev2-intro", "1"); } catch {} });
 const recapQ = RECAP ? `&recap=1&recapN=${RECAPN}&focusHero=${encodeURIComponent(wallet)}` : "";
-await page.goto(`http://localhost:${PORT}/?chart=whalewatch&cinema=1${recapQ}`, { waitUntil: "domcontentloaded", timeout: 60000 });
+console.log(`loading ${URL_BASE} (full city)…`);
+await page.goto(`${URL_BASE}/?chart=whalewatch&cinema=1${recapQ}`, { waitUntil: "domcontentloaded", timeout: 60000 });
 await page.waitForFunction(() => window.__cityReady === true, { timeout: 180000 });
 await page.waitForTimeout(1500);
 
@@ -74,5 +83,12 @@ if (framed === false) {
 
 await page.waitForTimeout(1200);            // let materials/shadows settle
 await page.screenshot({ path: OUT });
-console.log(`✓ close-up → ${OUT}`);
+console.log(`✓ render → ${OUT}`);
 await browser.close();
+
+// One command → finished card: composite the overlay right after the render.
+if (CARD) {
+  const r = spawnSync(process.execPath, ["tools/city-recap-card.mjs", `--image=${OUT}`, `--period=${PERIOD}`, `--out=${CARD_OUT}`], { stdio: "inherit" });
+  if (r.status !== 0) { console.error("✗ card compositor failed"); process.exit(r.status || 1); }
+  console.log(`✓ card → ${CARD_OUT}`);
+}
