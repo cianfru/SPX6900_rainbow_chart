@@ -15,8 +15,8 @@ on:
   workflow_dispatch:
     inputs:
       recapN:
-        description: "Buildings to render (top-N by score). Lower if it times out."
-        default: "500"
+        description: "Buildings to render (top-N by score). The focused hero is always kept regardless."
+        default: "250"
 
 permissions:
   contents: write
@@ -50,16 +50,20 @@ jobs:
           for i in $(seq 1 40); do curl -sf "http://localhost:5173/" >/dev/null && break; sleep 1; done
           curl -sf "http://localhost:5173/city-recap.json" >/dev/null || { echo "::error::city-recap.json not served — did onchain-dune.yml run?"; exit 1; }
 
+      # continue-on-error so one period's hiccup never blocks the other's card, the artifact, or the
+      # commit — whatever renders cleanly still ships.
       - name: Render + compose the MONTHLY card
+        continue-on-error: true
         env:
-          RECAPN: ${{ github.event.inputs.recapN || '500' }}
+          RECAPN: ${{ github.event.inputs.recapN || '250' }}
         run: |
           node tools/render-city-recap.mjs --soft --recap --recapN="$RECAPN" --period=monthly --port=5173 --out=/tmp/city-monthly.png
           node tools/city-recap-card.mjs --image=/tmp/city-monthly.png --period=monthly --out=public/city-recap-card.png
 
       - name: Render + compose the WEEKLY card
+        continue-on-error: true
         env:
-          RECAPN: ${{ github.event.inputs.recapN || '500' }}
+          RECAPN: ${{ github.event.inputs.recapN || '250' }}
         run: |
           node tools/render-city-recap.mjs --soft --recap --recapN="$RECAPN" --period=weekly --port=5173 --out=/tmp/city-weekly.png
           node tools/city-recap-card.mjs --image=/tmp/city-weekly.png --period=weekly --out=public/city-recap-week-card.png

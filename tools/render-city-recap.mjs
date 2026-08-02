@@ -49,7 +49,7 @@ const browser = await chromium.launch({
 });
 const page = await browser.newPage({ viewport: { width: W, height: H }, deviceScaleFactor: 1 });
 await page.addInitScript(() => { try { localStorage.setItem("spx-city-dev2", "1"); localStorage.setItem("spx-city-dev2-intro", "1"); } catch {} });
-const recapQ = RECAP ? `&recap=1&recapN=${RECAPN}` : "";
+const recapQ = RECAP ? `&recap=1&recapN=${RECAPN}&focusHero=${encodeURIComponent(wallet)}` : "";
 await page.goto(`http://localhost:${PORT}/?chart=whalewatch&cinema=1${recapQ}`, { waitUntil: "domcontentloaded", timeout: 60000 });
 await page.waitForFunction(() => window.__cityReady === true, { timeout: 180000 });
 await page.waitForTimeout(1500);

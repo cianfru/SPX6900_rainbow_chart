@@ -232,16 +232,25 @@ export default function SpxCity({ isMobile, preview = false, initialMode = "spx"
   // the hands-off weekly card is shot from a capped skyline: ?recap caps to the top-N by score
   // (default 500 — a real downtown of the biggest holders, and the hero building is always a top
   // wallet so it's included). Only affects the automated CI render; the live site never sets ?recap.
-  const recapCap = useMemo(() => {
-    if (typeof window === "undefined") return 0;
+  const recapOpts = useMemo(() => {
+    if (typeof window === "undefined") return { cap: 0, hero: null };
     const p = new URLSearchParams(window.location.search);
-    return p.has("recap") ? Math.max(50, Number(p.get("recapN") || 500) || 500) : 0;
+    if (!p.has("recap")) return { cap: 0, hero: null };
+    return { cap: Math.max(50, Number(p.get("recapN") || 500) || 500), hero: (p.get("focusHero") || "").toLowerCase() || null };
   }, []);
   const visible = useMemo(() => {
     if (!towers) return null;
     const sorted = towers.slice().sort((a, b) => b.score - a.score);
-    return recapCap ? sorted.slice(0, recapCap) : sorted;
-  }, [towers, recapCap]);
+    if (!recapOpts.cap) return sorted;
+    const capped = sorted.slice(0, recapOpts.cap);
+    // ALWAYS keep the focused hero in frame — a low cap for fast rendering must never drop the very
+    // building the shot is about (the hero can rank well below the cap; e.g. a weekly riser at #335).
+    if (recapOpts.hero && !capped.some(t => String(t.a || "").toLowerCase() === recapOpts.hero)) {
+      const h = sorted.find(t => String(t.a || "").toLowerCase() === recapOpts.hero);
+      if (h) capped.push(h);
+    }
+    return capped;
+  }, [towers, recapOpts]);
 
   // ⭐ ARCS ARE AN NFT-ONLY FACT, NOT A MISSING FEATURE ELSEWHERE. An NFT sale names both wallets
   // and its price; a token transfer normally ends at an exchange, where the counterparty is a hot
