@@ -13,10 +13,17 @@ const CONTRACT = "0xe0f63a424a4439cbe457d80e4f4b51ad25b2c56c";
 // 521 for the whole life of this field — 0 of 52 days banked a balance — so the
 // exchange-flow forward-fill silently never ran. One host is a single point of failure
 // for a keyless endpoint; ETH_RPC still overrides and is tried first when set.
+// All of these were measured (2026-08) serving a BATCHED eth_call balanceOf keyless; publicnode +
+// drpc alone (the old pair that worked) once left cexBal null for a week when both blipped, so the
+// pool is widened to five proven batch hosts. flashbots is last — it answered the batch but not the
+// read, so it only ever helps if every real host is down.
 const ETH_RPCS = [
   process.env.ETH_RPC,
   "https://ethereum-rpc.publicnode.com",
   "https://eth.drpc.org",
+  "https://eth.meowrpc.com",
+  "https://1rpc.io/eth",
+  "https://rpc.mevblocker.io",
   "https://rpc.flashbots.net",
 ].filter(Boolean);
 // Keyless public endpoints answer 429 or a transient 5xx often enough that a single
@@ -233,29 +240,35 @@ export async function cexLpBalances() {
     params: [{ to: CONTRACT, data: "0x70a08231" + a.replace(/^0x/, "").padStart(64, "0") }, "latest"],
   }));
   const tried = [];
-  for (const url of ETH_RPCS) {
-    try {
-      const r = await fetch(url, {
-        method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" },
-        body: JSON.stringify(batch), signal: AbortSignal.timeout(20000),
-      });
-      if (!r.ok) { tried.push(`${url} → ${r.status}`); continue; }
-      const res = await r.json();
-      // Not every public node honours a BATCHED eth_call: some answer a single object,
-      // some return an array of errors. Validate the tally here rather than after the
-      // loop, so a host that answers uselessly falls through to the next one.
-      if (!Array.isArray(res)) { tried.push(`${url} → non-array (no batch support)`); continue; }
-      const by = { cex: 0, lp: 0, custody: 0 };
-      let reads = 0;
-      for (const row of res) {
-        if (row?.error || !row?.result || row.result === "0x") continue;
-        by[EXCLUDE_LABELS[addrs[row.id][0]].kind] += Number(BigInt(row.result)) / 1e8;
-        reads++;
-      }
-      // The LP pool always holds SPX, so a zero there means the reads did not land.
-      if (!(by.lp > 0) || reads < addrs.length / 2) { tried.push(`${url} → ${reads}/${addrs.length} reads`); continue; }
-      return { cexBal: Math.round(by.cex), lpBal: Math.round(by.lp), custBal: Math.round(by.custody) };
-    } catch (e) { tried.push(`${url} → ${e.message}`); }
+  // Two passes over the whole pool with a pause between: a keyless host that 429s or times out on
+  // the first sweep has usually recovered by the second, which is cheaper insurance than losing the
+  // day. One good host anywhere in either pass returns immediately.
+  for (let pass = 0; pass < 2; pass++) {
+    for (const url of ETH_RPCS) {
+      try {
+        const r = await fetch(url, {
+          method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" },
+          body: JSON.stringify(batch), signal: AbortSignal.timeout(15000),
+        });
+        if (!r.ok) { tried.push(`${url} → ${r.status}`); continue; }
+        const res = await r.json();
+        // Not every public node honours a BATCHED eth_call: some answer a single object,
+        // some return an array of errors. Validate the tally here rather than after the
+        // loop, so a host that answers uselessly falls through to the next one.
+        if (!Array.isArray(res)) { tried.push(`${url} → non-array (no batch support)`); continue; }
+        const by = { cex: 0, lp: 0, custody: 0 };
+        let reads = 0;
+        for (const row of res) {
+          if (row?.error || !row?.result || row.result === "0x") continue;
+          by[EXCLUDE_LABELS[addrs[row.id][0]].kind] += Number(BigInt(row.result)) / 1e8;
+          reads++;
+        }
+        // The LP pool always holds SPX, so a zero there means the reads did not land.
+        if (!(by.lp > 0) || reads < addrs.length / 2) { tried.push(`${url} → ${reads}/${addrs.length} reads`); continue; }
+        return { cexBal: Math.round(by.cex), lpBal: Math.round(by.lp), custBal: Math.round(by.custody) };
+      } catch (e) { tried.push(`${url} → ${e.message}`); }
+    }
+    if (pass === 0) await new Promise(r => setTimeout(r, 2000));
   }
   // A silent null here is what let this go unnoticed for 52 days. Say so loudly.
   console.error("⚠ cex/lp balances FAILED — exchange-flow cards will not advance today:", tried.join(" · "));
