@@ -1,5 +1,16 @@
 {
-  "updated": null,
-  "heads": {},
-  "cities": {}
+  "updated": "2026-08-02",
+  "heads": {
+    "base": 49440787
+  },
+  "cities": {
+    "spx": {
+      "0x3d4dc94d978b5600f44d3c4d8183896aae123fed": {
+        "text": "Persist Forever",
+        "chain": "base",
+        "block": 49351232,
+        "tx": "0xf58167078051eab1175c6d21097a96f5b4aecc92b08f9f7305254ef86f56e581"
+      }
+    }
+  }
 }

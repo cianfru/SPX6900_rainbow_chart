@@ -58,10 +58,9 @@ export const CHART_GROUPS = [
       { id: "nrpl", title: "Net Realized Profit/Loss", post: "nrpl", desc: "The dollar size of gains vs losses locked in when coins move." },
       { id: "liveliness", title: "Liveliness", post: "liveliness", desc: "Are long-held coins waking up, or is the base sitting tight?" },
       { id: "citylab", title: "City Lab (3D)", dev: true, desc: "The same block drawn two ways \u2014 comparing the current look against a more realistic one." },
-      // `locked` (not `dev`): LISTED in the gallery for everyone, but the tile shows a lock cover
-      // instead of a live preview, and opening it hits the passphrase wall (CityGate). `dev` hides a
-      // chart entirely; `locked` advertises it and gates entry. City Lab stays `dev` — it's internal.
-      { id: "spxcity", title: "SPX City (3D)", post: "whalewatch", desc: "Every holder is a building — switch between SPX holders, AEON collectors, and the wallets that qualify on both." },
+      // City Lab stays `dev` (hidden, direct-link only) — the internal A/B page. SPX City itself is
+      // no longer a gallery tile: it has its own top-level tab (/city). Legacy ?chart=whalewatch /
+      // ?chart=spxcity links redirect to /city (see App.jsx apply()).
       { id: "cexsupply", title: "Supply on Exchanges", post: "cexsupply", desc: "Where the tradable float sits — exchanges, LP and custody, from DEX-native to CEX-listed." },
       { id: "cexflow", title: "Exchange Flow", post: "cexflow", desc: "Daily net flow on/off exchanges vs price — deposits, withdrawals, listings stripped." },
       { id: "cexvenues", title: "Exchange Supply by Venue", post: "cexvenues", desc: "SPX on each exchange over time — how the venue mix shifted as listings landed." },
@@ -151,7 +150,7 @@ export const METHOD_FAMILIES = [
     id: "04", name: "Cost basis & holder behaviour",
     charts: ["supply", "holders", "holdersprice", "supplyprofit", "hodlwaves", "freefloat", "concentration",
              "whales", "survivorship", "smartmoney", "walletwaves", "wealthwaves",
-             "urpd", "urpdage", "lthsth", "sopr", "nrpl", "liveliness", "spxcity", "citylab", "walletgrowth", "mvrv", "nupl", "mvrvbtc"],
+             "urpd", "urpdage", "lthsth", "sopr", "nrpl", "liveliness", "citylab", "walletgrowth", "mvrv", "nupl", "mvrvbtc"],
   },
   {
     id: "05", name: "Exchange & venue balances",

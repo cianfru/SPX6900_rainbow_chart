@@ -622,6 +622,9 @@ export default function App() {
       else if (p.get("view") === "methods") setRoute("methods");
       else if (p.get("view") === "docs") { setRoute("docs"); setDocSlug(p.get("p") || "index"); }
       else if (p.get("view") === "next") setRoute("next");
+      // SPX City left the gallery for its own /city tab. Old shared links (?chart=whalewatch /
+      // spxcity / aeonskyline) still resolve — send them to the city instead of dropping to home.
+      else if (id && resolveId(id) === "spxcity") setRoute("city");
       else if (id && CHART_IDS.has(resolveId(id))) { setRoute("chart"); setTab(resolveId(id)); }
       else setRoute("home");
     };

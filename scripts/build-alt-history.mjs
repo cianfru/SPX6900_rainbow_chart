@@ -42,7 +42,13 @@ async function fullHistory(sym, launchTs) {
 }
 
 async function build() {
-  if (!CC_KEY) console.warn("⚠ No CRYPTOCOMPARE_KEY set — CryptoCompare will 401. Add a free key as a repo secret.\n");
+  // Dormant feed: nothing consumes alt-history.json today, and CryptoCompare histoday
+  // is key-gated. With no key every coin 401s, so skip cleanly (exit 0) instead of
+  // failing the daily workflow — a missing optional feed must not turn the run red.
+  if (!CC_KEY) {
+    console.warn("⚠ No CRYPTOCOMPARE_KEY set — skipping peer price history (dormant feed, nothing consumes it). Add a free key as a repo secret to enable.");
+    return;
+  }
   const result = {};
   for (const c of COINS) {
     const launchTs = Date.parse(c.launch + "T00:00:00Z");
