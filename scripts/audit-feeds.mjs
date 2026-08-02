@@ -51,19 +51,27 @@ export const FEEDS = [
   { file: "valuation.json", cadence: 2, by: "snapshot.yml (step)", what: "the weighted valuation composite" },
   { file: "signals.json", cadence: 2, by: "snapshot.yml (step)", what: "the anomaly detector's daily candidates",
     mayBeEmpty: ["signals"] },
+  // Rows are positional tuples [date, cex, lp, custody, organicNet, onboardNet, price], not objects,
+  // so the field checks read by column index via `cols`.
   { file: "cex-flow.json", cadence: 3, by: "snapshot.yml (step)", what: "exchange balances and net flow",
-    window: 8, fields: ["cex", "lp"] },
+    window: 8, fields: ["cex", "lp"], cols: { cex: 1, lp: 2 } },
 
   // ── weekly on-chain FIFO rebuild (Mon 05:23 UTC) ─────────────────────────────
   { file: "onchain.json", cadence: 9, by: "onchain-dune.yml", what: "the whole FIFO on-chain suite",
     window: 6,
     fields: ["sip", "top100", "holders", "rp", "mvrv", "age", "tiers", "wealth", "whalePct", "whaleN", "heldTokens"],
+    // whaleN is a THRESHOLD count (wallets ≥0.1% of supply), not a top-N: it legitimately sits
+    // flat for weeks (a wallet crossing 0.1% is rare), so a constant value is healthy, not stale —
+    // whalePct next to it moves daily and is what proves the cohort is being recomputed.
+    allowConstant: ["whaleN"],
     soft: ["sopr", "cexBal", "lpBal", "cexVenues", "liqEx"] },
   { file: "urpd.json", cadence: 9, by: "onchain-dune.yml", what: "the cost-basis histogram" },
   // A FEED, not state: Whale City reads it and it is refreshed by the same daily pipeline. Audited
   // for freshness on purpose — if the pipeline stops, the city silently shows a stale population
-  // rather than nothing, which is the failure mode this audit exists to catch.
-  { file: "whales.json", cadence: 9, by: "onchain-dune.yml", what: "the wallets resident in Whale City" },
+  // rather than nothing, which is the failure mode this audit exists to catch. Its rows live under
+  // `.wallets` (not a shape rowsOf knows), so nonEmpty is what confirms the population is there.
+  { file: "whales.json", cadence: 9, by: "onchain-dune.yml", what: "the wallets resident in Whale City",
+    nonEmpty: ["wallets"] },
 
   // ── other schedules ─────────────────────────────────────────────────────────
   { file: "price-history.json", cadence: 9, by: "price-history.yml", what: "the dense daily price line" },
@@ -190,17 +198,20 @@ export function auditFeed(spec, doc, today) {
   }
 
   const win = rows.slice(-(spec.window ?? 6));
+  // Rows may be objects (r.field) or positional tuples (r[index]); `cols` maps a field name to its
+  // column index for the tuple feeds, so the same checks work on both shapes.
+  const get = (r, f) => (spec.cols && f in spec.cols) ? r?.[spec.cols[f]] : r?.[f];
   const check = (names, hard) => {
     for (const f of names ?? []) {
-      const vals = win.map(r => r?.[f]).filter(v => v != null && v !== "");
-      const everSeen = rows.some(r => r?.[f] != null);
+      const vals = win.map(r => get(r, f)).filter(v => v != null && v !== "");
+      const everSeen = rows.some(r => get(r, f) != null);
       if (!vals.length) {
         const msg = everSeen ? `${f}: stopped arriving` : `${f}: never populated`;
         hard ? fail(msg) : warn(msg);
         continue;
       }
       if (vals.length < win.length) warn(`${f}: ${win.length - vals.length} of ${win.length} recent rows null`);
-      else if (win.length >= 5 && new Set(vals.map(v => JSON.stringify(v))).size === 1) {
+      else if (win.length >= 5 && !spec.allowConstant?.includes(f) && new Set(vals.map(v => JSON.stringify(v))).size === 1) {
         warn(`${f}: identical across ${win.length} rows — frozen or forward-filled?`);
       }
     }
