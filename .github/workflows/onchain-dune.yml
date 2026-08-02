@@ -74,6 +74,10 @@ jobs:
       - name: Rebuild the city time-machine (weekly per-wallet balances)
         # rides the same merged archive — no extra pull; feeds the launch→today slider
         run: node scripts/build-city-timeline.mjs --spx=transfers.csv --out=public/spx-timeline.json
+      - name: Rebuild the city recap (weekly/monthly: new residents, buildings that rose a tier)
+        # pure diff of the timeline just built — no data pull; feeds the City report card + panel
+        continue-on-error: true
+        run: node scripts/build-city-recap.mjs --timeline=public/spx-timeline.json --out=public/city-recap.json
       - name: Rebuild cohort survival (who still holds, by arrival era)
         run: node scripts/build-cohort-survival.mjs --in=public/spx-timeline.json --out=public/cohort-survival.json
       - name: Rebuild exit flow (DAILY departures split by profit/loss — who's selling, at what price)
@@ -110,11 +114,11 @@ jobs:
         id: commit
         run: |
           DEPLOY_CHANGED=""
-          [[ -n "$(git status --porcelain public/onchain.json public/urpd.json public/whales.json public/spx-timeline.json public/cohort-survival.json public/exit-flow.json public/smart-money.json)" ]] && DEPLOY_CHANGED=1
+          [[ -n "$(git status --porcelain public/onchain.json public/urpd.json public/whales.json public/spx-timeline.json public/cohort-survival.json public/exit-flow.json public/smart-money.json public/city-recap.json)" ]] && DEPLOY_CHANGED=1
           if [[ -n "$DEPLOY_CHANGED" ]]; then
             git config user.name "github-actions[bot]"
             git config user.email "github-actions[bot]@users.noreply.github.com"
-            git add public/onchain.json public/urpd.json public/whales.json public/spx-timeline.json public/cohort-survival.json public/exit-flow.json public/smart-money.json
+            git add public/onchain.json public/urpd.json public/whales.json public/spx-timeline.json public/cohort-survival.json public/exit-flow.json public/smart-money.json public/city-recap.json
             git commit -m "chore: on-chain FIFO refresh (Dune) $(date -u +%F)"
             # This job takes ~2-3 min; a human (or another cron) can push to main inside that window,
             # which used to reject our push with a non-fast-forward and fail the whole daily refresh.
