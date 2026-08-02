@@ -11,13 +11,27 @@ import { renderPostCard } from "../scripts/bot/charts.mjs";
 
 const OWNER = "cianfru", REPO = "SPX6900_rainbow_chart", BRANCH = "main";
 
+// Read a committed file with GH_PAT (so it still works once the repo is private) and fall back to
+// public raw while the repo is public / no token is set. Returns the fetch Response; caller checks ok.
+async function ghGet(path) {
+  const pat = process.env.GH_PAT;
+  const tries = [];
+  if (pat) tries.push([`https://api.github.com/repos/${OWNER}/${REPO}/contents/${path}?ref=${BRANCH}`,
+    { Accept: "application/vnd.github.raw", Authorization: "Bearer " + pat, "User-Agent": "spx6900-recap" }]);
+  tries.push([`https://raw.githubusercontent.com/${OWNER}/${REPO}/${BRANCH}/${path}?t=${Date.now()}`, {}]);
+  let last = null;
+  for (const [url, headers] of tries) {
+    try { const r = await fetch(url, { headers, cache: "no-store" }); if (r.ok) return r; last = r; } catch { /* next */ }
+  }
+  return last;
+}
+
 // The raw snapshot rows (d/p/holders/fng/…) the recap is computed from. Pulled
 // from the committed history.json so the shape is guaranteed (fetchHistory()
 // returns a different {date,price} shape). Kept current by the snapshot cron.
 async function loadHistory() {
-  const url = `https://raw.githubusercontent.com/${OWNER}/${REPO}/${BRANCH}/public/history.json?t=${Date.now()}`;
-  const r = await fetch(url, { cache: "no-store" });
-  if (!r.ok) throw new Error("history.json fetch failed (" + r.status + ")");
+  const r = await ghGet("public/history.json");
+  if (!r || !r.ok) throw new Error("history.json fetch failed (" + (r ? r.status : "no response") + ")");
   return r.json();
 }
 

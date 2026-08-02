@@ -23,15 +23,28 @@ import { topAngles } from "../scripts/bot/quant.mjs";
 import { chat, draftCopy } from "../scripts/bot/llm-copy.mjs";
 
 const OWNER = "cianfru", REPO = "SPX6900_rainbow_chart", BRANCH = "main";
-const RAW = `https://raw.githubusercontent.com/${OWNER}/${REPO}/${BRANCH}/public`;
+// Read a committed file with GH_PAT (so it still works once the repo is private) and fall back to
+// public raw while the repo is public / no token is set. Returns the fetch Response; caller checks ok.
+async function ghGet(path) {
+  const pat = process.env.GH_PAT;
+  const tries = [];
+  if (pat) tries.push([`https://api.github.com/repos/${OWNER}/${REPO}/contents/${path}?ref=${BRANCH}`,
+    { Accept: "application/vnd.github.raw", Authorization: "Bearer " + pat, "User-Agent": "spx6900-agent" }]);
+  tries.push([`https://raw.githubusercontent.com/${OWNER}/${REPO}/${BRANCH}/${path}?t=${Math.floor(Date.now() / 60000)}`, {}]);
+  let last = null;
+  for (const [url, headers] of tries) {
+    try { const r = await fetch(url, { headers, cache: "no-store" }); if (r.ok) return r; last = r; } catch { /* next */ }
+  }
+  return last;
+}
 
 // Best-effort read of a committed public JSON file (signals / queue / state). These
 // are deploy-ignored runtime files served via raw, never bundled — so we fetch them
 // live. Any miss degrades to the fallback rather than failing the whole request.
 async function rawJson(name, fallback = null) {
   try {
-    const r = await fetch(`${RAW}/${name}?t=${Math.floor(Date.now() / 60000)}`);
-    if (!r.ok) return fallback;
+    const r = await ghGet(`public/${name}`);
+    if (!r || !r.ok) return fallback;
     return await r.json();
   } catch { return fallback; }
 }
