@@ -61,7 +61,7 @@ export const CHART_GROUPS = [
       // `locked` (not `dev`): LISTED in the gallery for everyone, but the tile shows a lock cover
       // instead of a live preview, and opening it hits the passphrase wall (CityGate). `dev` hides a
       // chart entirely; `locked` advertises it and gates entry. City Lab stays `dev` — it's internal.
-      { id: "spxcity", title: "SPX City (3D)", post: "whalewatch", locked: true, desc: "Every holder is a building — switch between SPX holders, AEON collectors, and the wallets that qualify on both." },
+      { id: "spxcity", title: "SPX City (3D)", post: "whalewatch", desc: "Every holder is a building — switch between SPX holders, AEON collectors, and the wallets that qualify on both." },
       { id: "cexsupply", title: "Supply on Exchanges", post: "cexsupply", desc: "Where the tradable float sits — exchanges, LP and custody, from DEX-native to CEX-listed." },
       { id: "cexflow", title: "Exchange Flow", post: "cexflow", desc: "Daily net flow on/off exchanges vs price — deposits, withdrawals, listings stripped." },
       { id: "cexvenues", title: "Exchange Supply by Venue", post: "cexvenues", desc: "SPX on each exchange over time — how the venue mix shifted as listings landed." },

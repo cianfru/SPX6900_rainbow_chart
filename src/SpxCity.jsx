@@ -4,7 +4,6 @@ import { AEON_ONCHAIN } from "./aeon-onchain.js";
 import { shortAddr } from "./WalletCard.jsx";
 import CityControls from "./CityControls.jsx";
 import CityWallet from "./CityWallet.jsx";
-import CityGate from "./CityGate.jsx";
 import { loadNotes } from "./city-messages.js";
 import { SANS, MONO, MAX_W, Metric, Explain } from "./chart-ui.jsx";
 
@@ -309,7 +308,6 @@ export default function SpxCity({ isMobile, preview = false, initialMode = "spx"
   });
 
   return (
-    <CityGate title="SPX City" unit={M.unit} accent={M.accent} locked>
     <div style={{ maxWidth: MAX_W, margin: "0 auto" }}>
       <Explain q="Who actually holds SPX6900 — and which of them are buying or selling?" accent={M.accent}>
         Every building is one wallet. Height is <strong style={{ color: "#e2e8f0" }}>how much it holds × how long it&apos;s held</strong>, and the windows
@@ -494,6 +492,5 @@ export default function SpxCity({ isMobile, preview = false, initialMode = "spx"
         Wallets are addresses, not people: one person can hold several. A behaviour read, not a signal. Not financial advice.
       </div>
     </div>
-    </CityGate>
   );
 }
