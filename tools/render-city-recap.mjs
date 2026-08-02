@@ -64,8 +64,13 @@ if (TIME !== "dusk") {
 
 const framed = await page.evaluate(({ w, o }) => (window.__cityFocus ? window.__cityFocus(w, o) : null),
   { w: wallet, o: { angle: num("angle", undefined), dist: num("dist", undefined), fov: num("fov", undefined) } });
-if (framed === false) { console.error(`✗ ${wallet} owns no building in this view — is it a current resident?`); await browser.close(); process.exit(1); }
 if (framed === null) { console.error("✗ __cityFocus missing — is this the city page build with the focus hook?"); await browser.close(); process.exit(1); }
+if (framed === false) {
+  // The named hero comes from the weekly timeline and may no longer be a live resident — don't fail
+  // the render, just frame the tallest current tower so the card still ships (the text tells the story).
+  console.warn(`⚠ ${wallet} is not a current resident — framing the tallest tower instead`);
+  await page.evaluate(() => window.__cityFocusBest && window.__cityFocusBest());
+}
 
 await page.waitForTimeout(1200);            // let materials/shadows settle
 await page.screenshot({ path: OUT });

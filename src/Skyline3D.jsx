@@ -1121,14 +1121,24 @@ export default function Skyline3D({
     // wallet's tower just rose a tier"). Returns false if the address owns no building here, so a
     // caller (the render tool) can fail loudly instead of screenshotting an empty street. Stands back
     // ~the tower's own height and a touch above its middle, looking straight at it.
+    const frameHome = ({ x, z, h }, opts = {}) => {
+      const dist = (opts.dist ?? 1) * (h * 1.7 + 9);
+      const ang = opts.angle ?? Math.PI * 0.28;      // azimuth around the tower
+      window.__cityCam([x + Math.cos(ang) * dist, h * 0.8 + 5, z + Math.sin(ang) * dist], [x, h * 0.45, z], opts.fov ?? 40);
+    };
     window.__cityFocus = (addr, opts = {}) => {
       const home = homes.get(String(addr || "").toLowerCase());
       if (!home) return false;
-      const { x, z, h } = home;
-      const dist = (opts.dist ?? 1) * (h * 1.7 + 9);
-      const ang = opts.angle ?? Math.PI * 0.28;      // azimuth around the tower
-      window.__cityCam([x + Math.cos(ang) * dist, h * 0.8 + 5, z + Math.sin(ang) * dist],
-        [x, h * 0.45, z], opts.fov ?? 40);
+      frameHome(home, opts);
+      return true;
+    };
+    // Fallback for the recap render: the named hero comes from the weekly timeline and may no longer
+    // be a live resident, so if it isn't here, frame the tallest current tower instead of failing.
+    window.__cityFocusBest = (opts = {}) => {
+      let best = null, bh = -Infinity;
+      for (const [, v] of homes) if (v.h > bh) { bh = v.h; best = v; }
+      if (!best) return false;
+      frameHome(best, opts);
       return true;
     };
     window.__cityStats = () => ({
@@ -1199,7 +1209,7 @@ export default function Skyline3D({
       groundBits.forEach(g => { if (g.dispose) g.dispose(); else { g.geometry?.dispose(); g.material?.dispose(); } });
       pads?.dispose();
       labelBits.forEach(({ obj }) => { obj.element?.remove(); scene.remove(obj); });
-      delete window.__citySeek; delete window.__cityReady; delete window.__cityStats; delete window.__cityCam; delete window.__cityFocus;
+      delete window.__citySeek; delete window.__cityReady; delete window.__cityStats; delete window.__cityCam; delete window.__cityFocus; delete window.__cityFocusBest;
       renderer.dispose(); el.removeChild(renderer.domElement); el.removeChild(labelR.domElement); el.removeChild(tip);
     };
   }, [towers, isMobile, crownLabel, accent, bodyFrom, bodyTo, layout, intro, time, infra, arcs, beamAll]);
