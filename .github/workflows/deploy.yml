@@ -39,6 +39,13 @@ concurrency:
 
 jobs:
   deploy:
+    # Opt OUT of a deploy for work-in-progress pushes: put [skip deploy] anywhere in the commit
+    # message and this job is skipped entirely (0 runner minutes, no Vercel deployment created), so a
+    # heavy dev burst no longer spends one of Vercel's 100 daily deploys — nor a GitHub Actions
+    # minute — on every intermediate commit. The final, UNFLAGGED "ship it" commit deploys as normal,
+    # and a manual "Run workflow" (workflow_dispatch) always deploys. GitHub's native [skip ci] also
+    # works and skips the whole run, but it's broader (suppresses every workflow on that push).
+    if: ${{ !contains(github.event.head_commit.message, '[skip deploy]') }}
     runs-on: ubuntu-latest
     env:
       VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}

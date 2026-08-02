@@ -3142,6 +3142,15 @@
 - **Keep it under control:** batch commits where practical (each code push = 1 deploy);
   only files the DEPLOYED SITE serves (src, api, scripts/bot via includeFiles, public
   assets, `history.json` which the site fetches client-side) need to trigger a deploy.
+- **⭐ `[skip deploy]` OPT-OUT (added 2026-08-02, owner hits the 100/day cap in heavy sessions).**
+  deploy.yml's deploy job is gated `if: !contains(head_commit.message, '[skip deploy]')`, so a
+  work-in-progress push with `[skip deploy]` anywhere in the message is skipped ENTIRELY — 0 runner
+  minutes, 0 Vercel deployments. During a heavy burst, tag the intermediate commits and let only the
+  final unflagged "ship it" commit deploy; a manual "Run workflow" always deploys. This is the lever
+  that keeps BOTH limits in check — Vercel's 100 deploys/day AND, if the repo ever goes private,
+  GitHub's 2,000 Actions-min/month (each deploy ≈ 2 min). GitHub's native `[skip ci]` also works but
+  is broader (kills the whole run, every workflow). **When making many commits in one session, prefer
+  `[skip deploy]` on all but the last.**
 - The MCP GitHub integration is READ-ONLY for Actions (can't dispatch/rerun) — to force
   a deploy, push a commit touching a non-ignored file (or hit "Run workflow" in the UI).
 
