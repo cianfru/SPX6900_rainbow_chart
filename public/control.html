@@ -378,7 +378,7 @@ $("#lock").onclick = lock;
 
 // ---- Dashboard ----
 async function loadState() {
-  const raw = p => fetch(`/api/state?f=${encodeURIComponent(p)}&t=${Date.now()}`, { cache: "no-store" })
+  const raw = p => fetch(`/api/control?f=${encodeURIComponent(p)}&t=${Date.now()}`, { cache: "no-store" })
     .then(r => r.ok ? r.json() : null).catch(() => null);
   const [q, st, ov, arov, sg, ex] = await Promise.all([raw(QUEUE_PATH), raw(STATE_PATH), raw("public/post-copy.json"), raw("public/card-ar.json"), raw("public/signals.json"), raw("public/rotation-excludes.json")]);
   OVERRIDES = ov && typeof ov === "object" ? ov : {};
@@ -417,7 +417,7 @@ const FRESH_SOURCES = [
 ];
 
 async function loadFreshness() {
-  const raw = p => fetch(`/api/state?f=${encodeURIComponent(p)}&t=${Date.now()}`, { cache: "no-store" }).then(r => r.ok ? r.json() : null).catch(() => null);
+  const raw = p => fetch(`/api/control?f=${encodeURIComponent(p)}&t=${Date.now()}`, { cache: "no-store" }).then(r => r.ok ? r.json() : null).catch(() => null);
   const now = Date.now();
   return Promise.all(FRESH_SOURCES.map(async s => {
     const data = await raw(s.file);
@@ -978,7 +978,7 @@ const fmtSpxC = v => v >= 1e6 ? (v / 1e6).toFixed(1) + "M" : v >= 1e3 ? (v / 1e3
 
 async function loadAeon() {
   aeonStatus("Loading Project Aeon data…");
-  const raw = p => fetch(`/api/state?f=${encodeURIComponent(p)}&t=${Date.now()}`, { cache: "no-store" }).then(r => r.ok ? r.json() : null).catch(() => null);
+  const raw = p => fetch(`/api/control?f=${encodeURIComponent(p)}&t=${Date.now()}`, { cache: "no-store" }).then(r => r.ok ? r.json() : null).catch(() => null);
   const [snap, onchain, sales, market, traders] = await Promise.all([raw("public/aeon.json"), raw("public/aeon-onchain.json"), raw("public/aeon-sales.json"), raw("public/aeon-market.json"), raw("public/aeon-traders.json")]);
   if (!onchain && !snap) { aeonStatus("No Aeon data yet — run the Project Aeon banker + reconstruction.", "err"); return; }
 

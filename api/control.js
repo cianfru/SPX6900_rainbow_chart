@@ -31,7 +31,37 @@ async function readBody(req) {
   try { return JSON.parse(raw || "{}"); } catch { return {}; }
 }
 
+// GET ?f=public/<name>.json — read-only proxy for the deploy-ignored runtime files the control
+// panel reads (signals / post-state / post-copy / card-ar / rotation-excludes / next-post / the aeon
+// + freshness JSON). Folded into THIS function rather than its own api/state.js so the deployment
+// stays under the Vercel Hobby plan's 12-serverless-function cap. Served with GH_PAT server-side so
+// the panel keeps working once the repo goes private — no token in the browser — and STRICTLY
+// whitelisted to a flat public/<name>.json so it can never read anything else. No password: these
+// files are read-only and already world-readable today (via raw / the deployed site).
+const STATE_OK = /^public\/[A-Za-z0-9._-]+\.json$/;   // one level under public/, .json, no traversal
+async function serveState(req, res) {
+  const f = String((req.query && req.query.f) || "");
+  if (!STATE_OK.test(f)) { res.status(400).json({ error: "bad file" }); return; }
+  res.setHeader("Cache-Control", "no-store");
+  const attempts = [];
+  if (process.env.GH_PAT) attempts.push({
+    url: `https://api.github.com/repos/${OWNER}/${REPO}/contents/${f}?ref=${BRANCH}`,
+    headers: { Accept: "application/vnd.github.raw", Authorization: "Bearer " + process.env.GH_PAT, "User-Agent": "spx6900-control" },
+  });
+  attempts.push({ url: `https://raw.githubusercontent.com/${OWNER}/${REPO}/${BRANCH}/${f}?t=${Date.now()}`, headers: {} });
+  let last = 502;
+  for (const a of attempts) {
+    try {
+      const r = await fetch(a.url, { headers: a.headers, cache: "no-store" });
+      if (r.ok) { res.setHeader("Content-Type", "application/json; charset=utf-8"); res.status(200).send(await r.text()); return; }
+      last = r.status;
+    } catch { /* try the next source */ }
+  }
+  res.status(last === 404 ? 404 : 502).json(null);
+}
+
 export default async function handler(req, res) {
+  if (req.method === "GET") { await serveState(req, res); return; }
   if (req.method !== "POST") { res.status(405).json({ error: "POST only" }); return; }
   if (!process.env.GH_PAT || !process.env.CONTROL_PASSWORD) {
     res.status(500).json({ error: "Server not configured: set CONTROL_PASSWORD and GH_PAT in Vercel." });
