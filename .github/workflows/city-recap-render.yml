@@ -1,0 +1,85 @@
+name: City recap card (weekly, hands-off)
+
+# Fully automatic weekly/monthly City recap CARD — numbers + rendered picture, no computer.
+# The full ~4,900-building city is too heavy for a GPU-less runner, so this renders a CAPPED skyline
+# (?recap → top-500 by score, which still holds the hero tower) on the software rasteriser, then
+# composites the recap overlay from public/city-recap.json (rebuilt daily by onchain-dune.yml).
+#
+# ⚠ FIRST RUN IS THE VISUAL TEST: software-GPU output can't be previewed anywhere else, so eyeball
+# the uploaded artifact on run 1. If the render times out, lower recapN. Nothing posts here — it just
+# generates + commits the card image; wiring the auto-post is a separate step.
+
+on:
+  schedule:
+    - cron: "0 14 * * 0"     # Sunday 14:00 UTC
+  workflow_dispatch:
+    inputs:
+      recapN:
+        description: "Buildings to render (top-N by score). Lower if it times out."
+        default: "500"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: city-recap-render
+  cancel-in-progress: false
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Install deps + build the site
+        run: |
+          npm install
+          npm run build
+
+      - name: Install Playwright Chromium
+        run: |
+          npm install playwright
+          npx playwright install --with-deps chromium
+
+      - name: Serve the built site
+        run: |
+          npm run preview -- --port 5173 &
+          for i in $(seq 1 40); do curl -sf "http://localhost:5173/" >/dev/null && break; sleep 1; done
+          curl -sf "http://localhost:5173/city-recap.json" >/dev/null || { echo "::error::city-recap.json not served — did onchain-dune.yml run?"; exit 1; }
+
+      - name: Render + compose the MONTHLY card
+        env:
+          RECAPN: ${{ github.event.inputs.recapN || '500' }}
+        run: |
+          node tools/render-city-recap.mjs --soft --recap --recapN="$RECAPN" --period=monthly --port=5173 --out=/tmp/city-monthly.png
+          node tools/city-recap-card.mjs --image=/tmp/city-monthly.png --period=monthly --out=public/city-recap-card.png
+
+      - name: Render + compose the WEEKLY card
+        env:
+          RECAPN: ${{ github.event.inputs.recapN || '500' }}
+        run: |
+          node tools/render-city-recap.mjs --soft --recap --recapN="$RECAPN" --period=weekly --port=5173 --out=/tmp/city-weekly.png
+          node tools/city-recap-card.mjs --image=/tmp/city-weekly.png --period=weekly --out=public/city-recap-week-card.png
+
+      - name: Upload cards for review (verify run 1 here)
+        uses: actions/upload-artifact@v4
+        with:
+          name: city-recap-cards
+          path: |
+            public/city-recap-card.png
+            public/city-recap-week-card.png
+
+      - name: Commit the cards
+        run: |
+          if [[ -n "$(git status --porcelain public/city-recap-card.png public/city-recap-week-card.png)" ]]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add public/city-recap-card.png public/city-recap-week-card.png
+            git commit -m "chore: city recap cards $(date -u +%F) [skip deploy]"
+            git push || { for i in 1 2 3 4 5; do git pull --rebase --autostash origin main && git push && break; sleep $((i*3)); done; }
+          else
+            echo "No card change to commit"
+          fi

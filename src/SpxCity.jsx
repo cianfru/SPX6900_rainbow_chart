@@ -228,7 +228,20 @@ export default function SpxCity({ isMobile, preview = false, initialMode = "spx"
 
   // Every resident is rendered — the building-count control is gone (the city handles the full set,
   // and picking a number was clutter). Still sorted biggest-first so the crown lands on #1.
-  const visible = useMemo(() => (towers ? towers.slice().sort((a, b) => b.score - a.score) : null), [towers]);
+  // ⭐ RECAP RENDER CAP. The full city (~4,900 buildings) can't be rendered on a GPU-less runner, so
+  // the hands-off weekly card is shot from a capped skyline: ?recap caps to the top-N by score
+  // (default 500 — a real downtown of the biggest holders, and the hero building is always a top
+  // wallet so it's included). Only affects the automated CI render; the live site never sets ?recap.
+  const recapCap = useMemo(() => {
+    if (typeof window === "undefined") return 0;
+    const p = new URLSearchParams(window.location.search);
+    return p.has("recap") ? Math.max(50, Number(p.get("recapN") || 500) || 500) : 0;
+  }, []);
+  const visible = useMemo(() => {
+    if (!towers) return null;
+    const sorted = towers.slice().sort((a, b) => b.score - a.score);
+    return recapCap ? sorted.slice(0, recapCap) : sorted;
+  }, [towers, recapCap]);
 
   // ⭐ ARCS ARE AN NFT-ONLY FACT, NOT A MISSING FEATURE ELSEWHERE. An NFT sale names both wallets
   // and its price; a token transfer normally ends at an exchange, where the counterparty is a hot

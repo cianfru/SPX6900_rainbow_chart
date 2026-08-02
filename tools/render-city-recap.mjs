@@ -26,6 +26,9 @@ const PORT = num("port", 5173), W = num("w", 1200), H = num("h", 750);
 const PERIOD = arg("period", "monthly"), TIME = arg("time", "dusk");
 const OUT = arg("out", "/tmp/city-recap.png");
 const SOFT = arg("soft", false), HEADED = arg("headed", false);
+// --recap caps the scene to the top-N buildings so it renders on a GPU-less runner (CI). Omit it on
+// a real GPU (your Mac) to shoot the full skyline. Hero is always a top wallet, so it survives the cap.
+const RECAP = arg("recap", false), RECAPN = num("recapN", 500);
 
 // Pick the hero wallet: explicit --wallet wins, else the recap's chosen hero for the period.
 let wallet = arg("wallet", null), heroNote = "";
@@ -46,7 +49,8 @@ const browser = await chromium.launch({
 });
 const page = await browser.newPage({ viewport: { width: W, height: H }, deviceScaleFactor: 1 });
 await page.addInitScript(() => { try { localStorage.setItem("spx-city-dev2", "1"); localStorage.setItem("spx-city-dev2-intro", "1"); } catch {} });
-await page.goto(`http://localhost:${PORT}/?chart=whalewatch&cinema=1`, { waitUntil: "domcontentloaded", timeout: 60000 });
+const recapQ = RECAP ? `&recap=1&recapN=${RECAPN}` : "";
+await page.goto(`http://localhost:${PORT}/?chart=whalewatch&cinema=1${recapQ}`, { waitUntil: "domcontentloaded", timeout: 60000 });
 await page.waitForFunction(() => window.__cityReady === true, { timeout: 180000 });
 await page.waitForTimeout(1500);
 
