@@ -116,6 +116,24 @@ function diff(tl, then, now, weekDate) {
   };
 }
 
+// The standard recap tweet, baked into city-recap.json so the control panel can show it with a Copy
+// button and it stays in sync with the numbers. House style: hook, then airy lines, plain closing.
+function recapTweet(r, period) {
+  const f = n => { const a = Math.abs(n); return a >= 1e6 ? (n / 1e6).toFixed(2) + "M" : a >= 1e3 ? Math.round(n / 1e3) + "k" : "" + n; };
+  const per = period === "weekly" ? "week" : "month";
+  const held = (r.heldDelta >= 0 ? "+" : "") + f(r.heldDelta);
+  const move = `${r.newResidents} moved in, ${r.departed} moved out — ${r.upgraded} building${r.upgraded === 1 ? "" : "s"} rose a tier as holders grew and aged in.`;
+  const hero = r.hero && r.hero.fromFamily
+    ? `A rank #${r.hero.rank} holder's tower went from ${FAMILY_LABEL[r.hero.fromFamily]} to ${FAMILY_LABEL[r.hero.family]}.`
+    : `${r.yearHeldMilestones} wallet${r.yearHeldMilestones === 1 ? "" : "s"} crossed a year held.`;
+  return [
+    `🏙 This ${per} in SPX City`,
+    move,
+    `${hero} ${held} SPX now stands across ${r.residents.toLocaleString("en-US")} residents.`,
+    `Every building is a real wallet — reproducible on-chain.`,
+  ].join("\n\n");
+}
+
 function main() {
   const file = arg("timeline", "public/spx-timeline.json");
   const out = arg("out", "public/city-recap.json");
@@ -125,6 +143,8 @@ function main() {
   const now = tl.n - 1;
   const weekly = diff(tl, Math.max(0, now - 1), now, wkDate(now));
   const monthly = diff(tl, Math.max(0, now - 4), now, wkDate(now));
+  weekly.tweet = recapTweet(weekly, "weekly");
+  monthly.tweet = recapTweet(monthly, "monthly");
 
   const doc = { v: 1, updated: tl.updated || wkDate(now), asset: tl.asset, week0: tl.week0, n: tl.n, weekly, monthly };
   mkdirSync(dirname(out), { recursive: true });

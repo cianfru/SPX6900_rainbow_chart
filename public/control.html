@@ -75,6 +75,16 @@
   .fresh .fwhen { color: #94a3b8; white-space: nowrap; font-variant-numeric: tabular-nums; }
   .fresh .fcad { color: #64748b; font-size: 11.5px; white-space: nowrap; min-width: 96px; text-align: right; }
   @media (max-width: 640px) { .fresh .fcad { display: none; } .fresh .flabel { white-space: normal; } }
+  .cityrecap { margin: 12px 0 4px; background: #0b0b18; border: 1px solid rgba(255,255,255,.08); border-radius: 12px; padding: 11px 14px; }
+  .cityrecap h3 { margin: 0 0 8px; font-size: 13px; font-weight: 600; color: #cbd5e1; }
+  .cityrecap .crblock { border-top: 1px solid rgba(255,255,255,.06); padding-top: 10px; margin-top: 10px; }
+  .cityrecap .crblock:first-of-type { border-top: none; padding-top: 0; margin-top: 0; }
+  .cityrecap .crhd { font-size: 13px; font-weight: 600; color: #7dd3fc; margin-bottom: 4px; }
+  .cityrecap .crhd span { color: #64748b; font-weight: 400; }
+  .cityrecap .crstats { font-size: 12px; color: #93a3b8; margin-bottom: 6px; font-variant-numeric: tabular-nums; }
+  .cityrecap .crtweet { white-space: pre-wrap; font-family: inherit; font-size: 13px; color: #e2e8f0; background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.07); border-radius: 8px; padding: 9px 11px; margin: 0 0 8px; line-height: 1.42; }
+  .cityrecap .crbar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .cityrecap .crnote { font-size: 11.5px; color: #64748b; }
   .signals { margin: 12px 0 4px; }
   .sighdr { font-size: 13px; font-weight: 700; color: #fcd34d; margin-bottom: 8px; }
   .sighdr span { color: #64748b; font-weight: 400; font-size: 12px; }
@@ -275,6 +285,7 @@
       <div class="status" id="status">Loading…</div>
       <div class="sched" id="sched"></div>
       <div class="fresh" id="fresh"></div>
+      <div class="cityrecap" id="cityRecap"></div>
       <div class="signals" id="signals"></div>
       <div class="agent">
         <div class="agenthdr">🤖 Ask the agent <span>· consults OpenRouter over today's real numbers — stats, the rotation pick, "Notable today" & the full card catalog</span></div>
@@ -445,6 +456,35 @@ function renderFreshness(rows) {
     + `<span class="fcad">${esc(r.cad)}</span></div>`).join("");
 }
 
+// 🏙 City recap — the standard weekly/monthly tweet, computed daily into city-recap.json (numbers
+// stay live). The IMAGE is the full-city card you render on your Mac (node tools/render-city-recap.mjs
+// --headed --card --period=…), so this is Copy-the-text + attach-your-render, not an auto-post.
+function loadCityRecap() {
+  return fetch(`/api/control?f=public/city-recap.json&t=${Date.now()}`, { cache: "no-store" })
+    .then(r => (r.ok ? r.json() : null)).catch(() => null);
+}
+function renderCityRecap(doc) {
+  const el = $("#cityRecap");
+  if (!doc || (!doc.monthly?.tweet && !doc.weekly?.tweet)) { el.innerHTML = ""; return; }
+  const fmt = n => { const a = Math.abs(n); return (n < 0 ? "-" : "+") + (a >= 1e6 ? (a / 1e6).toFixed(2) + "M" : a >= 1e3 ? Math.round(a / 1e3) + "k" : a); };
+  const block = (r, key, label) => {
+    if (!r?.tweet) return "";
+    const stats = `${r.newResidents} in · ${r.departed} out · ${r.upgraded} rose a tier · ${fmt(r.heldDelta)} SPX · ${r.residents.toLocaleString()} residents`;
+    return `<div class="crblock">`
+      + `<div class="crhd">${label} <span>· to ${esc(r.toDate)}</span></div>`
+      + `<div class="crstats">${esc(stats)}</div>`
+      + `<pre class="crtweet" id="crt-${key}">${esc(r.tweet)}</pre>`
+      + `<div class="crbar"><button class="crcopy" data-t="crt-${key}">📋 Copy tweet</button>`
+      + `<span class="crnote">attach the card you rendered on your Mac</span></div></div>`;
+  };
+  el.innerHTML = `<h3>🏙 City recap <span style="color:#94a3b8">· standard tweet · image = your Mac render</span></h3>`
+    + block(doc.monthly, "month", "This month") + block(doc.weekly, "week", "This week");
+  el.querySelectorAll(".crcopy").forEach(b => b.onclick = () => {
+    const t = document.getElementById(b.dataset.t)?.textContent || "";
+    navigator.clipboard.writeText(t).then(() => { const o = b.textContent; b.textContent = "✓ Copied"; setTimeout(() => { b.textContent = o; }, 1500); }, () => {});
+  });
+}
+
 function renderSignals() {
   const el = $("#signals");
   if (!el) return;
@@ -610,6 +650,7 @@ async function refresh() {
     renderSignals();
     renderGrid();
     loadFreshness().then(renderFreshness).catch(() => {}); // non-blocking freshness strip
+    loadCityRecap().then(renderCityRecap).catch(() => {}); // 🏙 city recap tweet strip
     status(`${IDS.length} cards. ${QUEUED ? `Queued: ${QUEUED}.` : "No override — auto rotation."}`, "ok");
   } catch (e) { status(e.message, "err"); }
 }
