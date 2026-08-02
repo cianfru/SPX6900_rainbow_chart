@@ -95,6 +95,8 @@ export const FEEDS = [
     require: ["totalSales", "totalVolEth"], nonEmpty: ["daily", "scatter"] },
   { file: "aeon-timeline.json", cadence: 3, by: "aeon.yml", what: "city time-machine (AEON weekly balances)",
     require: ["week0", "n"], nonEmpty: ["wallets"] },
+  { file: "city-recap.json", cadence: 3, by: "onchain-dune.yml", what: "weekly/monthly city changes (new residents, tier upgrades)",
+    require: ["weekly", "monthly"] },
   { file: "spx-timeline.json", cadence: 3, by: "onchain-dune.yml", what: "city time-machine (SPX weekly balances)",
     require: ["week0", "n"], nonEmpty: ["wallets"] },
   { file: "cohort-survival.json", cadence: 3, by: "onchain-dune.yml", what: "wallet survival by arrival era",

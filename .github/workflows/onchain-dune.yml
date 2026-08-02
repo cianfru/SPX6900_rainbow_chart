@@ -74,7 +74,7 @@ jobs:
       - name: Rebuild the city time-machine (weekly per-wallet balances)
         # rides the same merged archive — no extra pull; feeds the launch→today slider
         run: node scripts/build-city-timeline.mjs --spx=transfers.csv --out=public/spx-timeline.json
-      - name: Rebuild the city recap (weekly/monthly: new residents, buildings that rose a tier)
+      - name: "Rebuild the city recap (weekly/monthly — new residents, tier upgrades)"
         # pure diff of the timeline just built — no data pull; feeds the City report card + panel
         continue-on-error: true
         run: node scripts/build-city-recap.mjs --timeline=public/spx-timeline.json --out=public/city-recap.json
