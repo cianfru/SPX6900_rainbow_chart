@@ -1217,13 +1217,25 @@ export default function Skyline3D({
       const wrap = document.createElement("div");
       wrap.style.position = "relative";
 
+      // ── a fine stem tying the pin to its rooftop ──────────────────────────────────────────────
+      // A 1px thread from the pin down to the building's anchor, so which tower a note belongs to is
+      // obvious at a glance — the light version of the old gold beam that read as too much. Anchored
+      // at the wrap origin (the building top), it points straight down at the roof.
+      const stem = document.createElement("div");
+      Object.assign(stem.style, {
+        position: "absolute", left: "50%", bottom: "2px", transform: "translateX(-50%)",
+        width: "1px", height: "18px", background: ch.colour, borderRadius: "1px",
+        opacity: m.pending ? "0.35" : "0.5", pointerEvents: "none",
+        transition: "opacity .15s ease, height .15s ease",
+      });
+
       // ── the resting marker: a small, quiet pin ────────────────────────────────────────────────
       // At rest a note is just a chain-coloured dot floating over its building, so a hundred of them
       // read as a scattering of pins rather than a hundred billboards blacking out the skyline. The
       // full text is one hover (desktop) or tap (mobile) away — displayed, but never in your face.
       const pin = document.createElement("div");
       Object.assign(pin.style, {
-        position: "absolute", left: "50%", bottom: "8px", transform: "translateX(-50%)",
+        position: "absolute", left: "50%", bottom: "19px", transform: "translateX(-50%)",
         width: "15px", height: "15px", borderRadius: "50%",
         background: "rgba(8,12,22,0.62)", border: `1.5px solid ${ch.colour}`,
         display: "flex", alignItems: "center", justifyContent: "center",
@@ -1239,7 +1251,7 @@ export default function Skyline3D({
       // ── the popover: the readable bubble, shown on demand ─────────────────────────────────────
       const pop = document.createElement("div");
       Object.assign(pop.style, {
-        position: "absolute", left: "50%", bottom: "28px", transform: "translateX(-50%) scale(0.96)",
+        position: "absolute", left: "50%", bottom: "40px", transform: "translateX(-50%) scale(0.96)",
         transformOrigin: "50% 100%",
         width: "170px", padding: "5px 9px 6px", borderRadius: "9px", textAlign: "center",
         background: "rgba(10,14,26,0.94)", border: `1px solid ${ch.colour}`,
@@ -1278,12 +1290,14 @@ export default function Skyline3D({
         pop.style.opacity = "1"; pop.style.visibility = "visible"; pop.style.transform = "translateX(-50%) scale(1)";
         pin.style.opacity = "1"; pin.style.transform = "translateX(-50%) scale(1.15)";
         pin.style.boxShadow = `0 2px 8px rgba(0,0,0,0.5), 0 0 0 3px ${ch.tint}`;
+        stem.style.opacity = "0.85";
       };
       function hide() {
         if (openNow === hide) openNow = null;
         pop.style.opacity = "0"; pop.style.visibility = "hidden"; pop.style.transform = "translateX(-50%) scale(0.96)";
         pin.style.opacity = m.pending ? "0.5" : "0.82"; pin.style.transform = "translateX(-50%)";
         pin.style.boxShadow = `0 1px 5px rgba(0,0,0,0.4)`;
+        stem.style.opacity = m.pending ? "0.35" : "0.5";
       }
       if (tower) {
         if (isMobile) {
@@ -1300,6 +1314,7 @@ export default function Skyline3D({
         }
       }
       wrap.appendChild(pop);
+      wrap.appendChild(stem);
       wrap.appendChild(pin);
       const o = new CSS2DObject(wrap);
       o.position.set(home.x, home.h + 3, home.z);   // same anchor as the crown; the pin lifts clear
