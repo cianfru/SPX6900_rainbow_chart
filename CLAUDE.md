@@ -581,6 +581,26 @@
   - **⭐ THE CITY CAN NEVER SHOW EVERYONE ON THE COIN SIDE — say so.** ETH 49.5k + Base 114.5k + Solana
     66k ≈ **230k wallets** against 6,275 lots. Whale City is inherently a **top-N view** and must be
     labelled as one; the AEON side, at 3,333 tokens, genuinely fits.
+- **⭐⭐ GREENLIT TO BUILD — "WHALES WATCHING" 3D (owner, 2026-08-03).** A whale-activity monitor: at a glance, see
+  WHO IS BUYING OR SELLING BY WALLET SIZE. Distinct from Whale City (which is a realistic city of the biggest
+  wallets) — this is deliberately ABSTRACT and about BEHAVIOUR, not geography.
+  - **Scope: only wallets ≥ 100k SPX.** The real whales. (Whale City's bar is lower / top-N; this is a hard 100k floor.)
+  - **Slice into CATEGORIES / COHORTS** (size tiers — e.g. 100k–250k / 250k–1M / 1M–5M / 5M+ — and/or arrival cohort)
+    and GROUP the towers by cohort on the ground plane, so each cohort is a visually distinct cluster.
+  - **CUBES, not buildings — strip the "city" look.** Reuse the Skyline3D engine but render plain cubes (no
+    archetypes/façades/roof-life). Height = holding size (√/log as elsewhere). KEEP THE COLOUR RAMP (age/hold-time
+    warm→cyan, same as the cities) so tenure still reads.
+  - **BEAMS ON TOP = per-wallet ACTION over the window: BUY / SELL / FLAT.** A vertical beam above each cube — green
+    beam = accumulating, red = distributing, none/dim = flat (net-flow sign over the trailing window, same flow
+    signal the cities already compute). So each individual tower shows what THAT whale is doing right now.
+  - **COHORT OVERALL SENTIMENT under/over each cluster** — an aggregate buy/sell readout per cohort (e.g. a coloured
+    slab/ring beneath the group, or a floating label: "1M+ cohort: net selling"), so the group-level story reads
+    before you zoom into individuals.
+  - **THE POINT:** one glance answers "are the big wallets accumulating or distributing, and which SIZE band is
+    moving?" — buy/sell pressure segmented by wallet size, live. Data is all in hand (per-wallet balance + flow from
+    the FIFO/cohort reconstructions). Build on the shared `city-render.js` + `Skyline3D.jsx` (cube geometry path +
+    beams as thin emissive columns; cohort grouping via the placement layer). Gate it like the other city pages.
+
 - **🔲 OTHER 3D CANDIDATES PROPOSED (owner liked the set, 2026-07-27) — the test is THREE genuine dims (two axes +
   a magnitude); single series/ratios stay 2D (rainbow, MVRV, NUPL, SOPR, composite — a third axis adds occlusion
   and subtracts clarity, which Urpd3D already proved).**
