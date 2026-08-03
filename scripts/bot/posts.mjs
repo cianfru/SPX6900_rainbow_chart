@@ -934,6 +934,20 @@ Value one place, conviction everywhere.`,
     };
   },
 
+  // Concentration by chain — how much of each chain's ≥5k supply the biggest wallets hold.
+  // Solana most decentralised, Base whale-dominated (one ENS whale ~41%). Distribution POSITION.
+  () => {
+    const d = ethSol2026Data();
+    if (!d?.base?.conc) return null;
+    return {
+      id: "chainconc",
+      text: ct`🐋 How concentrated is SPX6900 on each chain? Very different stories.
+The biggest single wallet holds ${d.eth.conc[0].toFixed(0)}% of Ethereum's 5k+ supply, ${d.sol.conc[0].toFixed(0)}% of Solana's — but ${d.base.conc[0].toFixed(0)}% of Base's (one ENS whale). Top 50 wallets: Ethereum ${d.eth.conc[2].toFixed(0)}%, Solana ${d.sol.conc[2].toFixed(0)}%, Base ${d.base.conc[2].toFixed(0)}%.
+Solana is the most spread — the retail chain. Base rides on a whale.`,
+      card: { type: "chainconc" },
+    };
+  },
+
   // What the whale COHORT did — the question HODL waves get asked and cannot answer.
   // Waves say supply sat still; they say nothing about who ended up holding it. Data-
   // gated on the whale fields the FIFO reconstruction emits.
@@ -2217,7 +2231,7 @@ const LOOK = {
   model: "scatter",
   monthlyreturns: "heatmap", monthlyreturnssp: "heatmap", monthlyreturnsbtc: "heatmap",
   hodlwaves: "stack", hodlcompare: "stack", walletgrowth: "stack", lthsth: "stack", valband: "dual", cexvenues: "stack",
-  timeinband: "bars", monthlybars: "bars", monthcompare: "bars", multichain: "bars", urpd: "bars", urpdage: "bars", cexvenflow: "bars", ethsol: "bars",
+  timeinband: "bars", monthlybars: "bars", monthcompare: "bars", multichain: "bars", urpd: "bars", urpdage: "bars", cexvenflow: "bars", ethsol: "bars", chainconc: "bars",
   fngdial: "round", distribution: "round",
   marketcap: "blocks", milestones: "blocks", sp500: "blocks",
   dca: "dca",
