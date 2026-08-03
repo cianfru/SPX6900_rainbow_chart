@@ -1,11 +1,7 @@
 {
   "lastPostedDate": "2026-08-03",
-  "lastId": "manual-skip",
+  "lastId": "walletwaves",
   "recent": [
-    {
-      "date": "2026-07-10",
-      "id": "monthlyreturnssp"
-    },
     {
       "date": "2026-07-11",
       "id": "dcaladder"
@@ -81,6 +77,10 @@
     {
       "date": "2026-07-31",
       "id": "whales"
+    },
+    {
+      "date": "2026-08-03",
+      "id": "walletwaves"
     }
   ]
 }
