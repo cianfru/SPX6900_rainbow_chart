@@ -52,19 +52,19 @@ test("every available post builds non-empty text + a renderable card", () => {
   }
 });
 
-test("every post fits X's visible preview (no \"See more\" barrier)", () => {
-  // Hook + description + closing + branded footer must stay within X's visible
-  // budget so the whole post reads in the timeline. 290 is the safe ceiling;
-  // most land 250–280. Promo (kraken) included; its referral URL counts as 23.
-  // Copy length is VALUE-DEPENDENT (band labels like "Fire Sale", big % strings),
-  // so also check at extreme prices spanning the deepest and hottest bands —
-  // otherwise live drift can push a card over the ceiling while the fixed-price
-  // test stays green (the `model` card did exactly this at 292).
+test("every post stays within a sane long-form ceiling (verified account)", () => {
+  // The account is VERIFIED (X Premium long-form) — the moat is honest, data-rich
+  // content, so we do NOT cap posts at the ~290 "See more" barrier anymore (owner
+  // call: "remove the limit"). This is now just a SANITY ceiling that catches a
+  // runaway bug (an unterminated template, a value blowing up) rather than a style
+  // rule. Copy length is VALUE-DEPENDENT (band labels, big % strings), so we still
+  // check at extreme prices spanning the deepest and hottest bands.
+  const CEILING = 2000;   // generous; real cards land ~250–700, X's hard limit is 25k
   for (const st of [statsCoins, computeStats(0.05, last.date), computeStats(12, last.date)]) {
     for (const id of allIds(st)) {
       const len = xLen(buildPost(st, new Date(), id).text);
-      const cap = LONGFORM[id] ?? 290; // long-form teaching cards opt into a higher ceiling
-      assert.ok(len <= cap, `post "${id}" is ${len} chars at $${st.price} (${st.band.l}) — over the ${cap} ceiling`);
+      const cap = LONGFORM[id] ?? CEILING;
+      assert.ok(len <= cap, `post "${id}" is ${len} chars at $${st.price} (${st.band.l}) — over the ${cap} sanity ceiling`);
     }
   }
 });

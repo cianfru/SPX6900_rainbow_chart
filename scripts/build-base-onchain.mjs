@@ -28,10 +28,16 @@ const arg = (k, d) => { const a = process.argv.find(s => s.startsWith(`--${k}=`)
 // 🔲 OWNER — verify on Basescan (EOAs, so no contract name to auto-detect): the #1 holder
 //    0x9ab9ced0… (9.23M ≈ 30% of ≥5k supply) and 0x69ce7509… (1.69M). If either is a Coinbase/bridge
 //    hot wallet, add it here (kind:"cex"/"bridge"); if a whale, leave it. It swings "held" a lot.
+// Verified via a full-cohort Blockscout scan (2026-08): the ONLY infra in the ≥5k cohort is these
+// AMM/LP pools. The 9.23M top wallet is a REAL WHALE (ENS queenmarierose.eth, buys off Uniswap — not
+// a CEX/bridge). No CEX/bridge hot wallet appears in the cohort. Every other contract holder is a
+// smart wallet (EIP-7702 / Coinbase Smart Wallet / Safe / Gnosis) = a real person, kept.
 export const BASE_EXCLUDE = {
   "0xe96a4e9ea3a2c6db214174738a19eb7dbb8a3069": { kind: "lp", name: "Aerodrome vAMM WETH/SPX" },
   "0x037818b04ac34ea8b54b6683b79ef24d23c0e7cb": { kind: "lp", name: "Uniswap V3 SPX" },
   "0x4ba1e3e9280facbacafa7baf4ae0b78bea60beca": { kind: "lp", name: "Aerodrome CLPool SPX" },
+  "0xa6d44d25f22115e7b88646c5acaf0370753eb1e9": { kind: "lp", name: "Uniswap V3 pool 2" },
+  "0xbc1a0ae0f487ff025dd8c86e7ceadb691744364f": { kind: "lp", name: "Uniswap V3 pool 3" },
 };
 
 // Streaming reconstruction. `rows` is any iterable of {from,to,value(BigInt),ts} — a generator over the
