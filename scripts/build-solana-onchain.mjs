@@ -1,0 +1,87 @@
+// Reconstruct the SPX-on-Solana RESIDENT set (Queens borough) from a Dune solana_utils.daily_balances
+// CSV — the ≥5k cohort's balance-change rows (owner, balance, day). Phase 1: current balance + holder
+// age + net-flow, the three things the city needs. Phase 2 (later, full history) adds exit/cohort
+// survival, which needs the ever-≥5k owners' FULL path (below-bar rows too) — not this ≥5k slice.
+//
+//   node scripts/build-solana-onchain.mjs --in=dune/out/spx6900_solana_balances.csv \
+//        --out=public/solana-onchain.json [--decimals=8|--scale=1] [--threshold=5000] [--now=YYYY-MM-DD]
+//
+// balance UNIT: Dune's token_balance may be raw base units or human. --decimals=N divides by 10^N
+// (SPX Solana = 8); --scale=1 if already human. Auto-warns if values look mis-scaled.
+import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
+import { dirname } from "node:path";
+import { fileURLToPath } from "node:url";
+
+const arg = (k, d) => { const a = process.argv.find(s => s.startsWith(`--${k}=`)); return a ? a.split("=")[1] : (process.argv.includes(`--${k}`) ? true : d); };
+const DAY = 86400000;
+
+// Tolerant CSV parse → [{owner, bal, ts}]. Finds columns by header name so column order can't bite.
+export function parseBalances(text, scale) {
+  const lines = text.replace(/^﻿/, "").trim().split(/\r?\n/);
+  if (lines.length < 2) return [];
+  const head = lines[0].toLowerCase().split(",").map(s => s.trim().replace(/^"|"$/g, ""));
+  const oi = head.findIndex(h => h.includes("owner")) ?? head.indexOf("owner");
+  const bi = head.findIndex(h => h.includes("balance"));
+  const di = head.findIndex(h => h === "day" || h.includes("day") || h.includes("time") || h.includes("date"));
+  if (oi < 0 || bi < 0 || di < 0) throw new Error(`CSV header missing owner/balance/day: ${lines[0]}`);
+  const rows = [];
+  for (let i = 1; i < lines.length; i++) {
+    const c = lines[i].split(",");
+    if (c.length <= Math.max(oi, bi, di)) continue;
+    const owner = c[oi].trim().replace(/^"|"$/g, "");
+    const bal = Number(c[bi]) * scale;
+    const ts = Date.parse(c[di].trim().replace(/^"|"$/g, "").replace(" ", "T").replace(/(\+00:?00| UTC)$/i, "Z"));
+    if (!owner || !Number.isFinite(bal) || !Number.isFinite(ts)) continue;
+    rows.push({ owner, bal, ts });
+  }
+  return rows;
+}
+
+// Per-owner resident record: latest balance, holder age (since first appearance in the ≥5k data),
+// and net-flow over the trailing window. Owners whose latest balance is below the bar are dropped
+// (they've since exited; the live RPC balance is the source of truth for "current" anyway).
+export function residents(rows, { threshold = 5000, nowTs, flowDays = 30 } = {}) {
+  const byOwner = new Map();
+  for (const r of rows) { let a = byOwner.get(r.owner); if (!a) { a = []; byOwner.set(r.owner, a); } a.push(r); }
+  const flowCut = nowTs - flowDays * DAY;
+  const out = [];
+  for (const [owner, rs] of byOwner) {
+    rs.sort((a, b) => a.ts - b.ts);
+    const bal = rs[rs.length - 1].bal;
+    if (bal < threshold) continue;
+    const days = Math.max(0, Math.round((nowTs - rs[0].ts) / DAY));  // ⚠ floored by the slice's start until full history lands
+    let past = 0; for (const r of rs) { if (r.ts <= flowCut) past = r.bal; else break; }
+    out.push({ a: owner, bal: Math.round(bal), days, flow: Math.round(bal - past) });
+  }
+  out.sort((a, b) => b.bal - a.bal);
+  return out;
+}
+
+function main() {
+  const inPath = arg("in", "dune/out/spx6900_solana_balances.csv");
+  const outPath = arg("out", "public/solana-onchain.json");
+  const decimals = arg("decimals", null);
+  const scale = arg("scale", null) != null ? Number(arg("scale")) : (decimals != null ? 1 / 10 ** Number(decimals) : 1e-8);
+  const threshold = Number(arg("threshold", 5000));
+  const now = arg("now", null) ? Date.parse(arg("now")) : Date.now();
+
+  const rows = parseBalances(readFileSync(inPath, "utf8"), scale);
+  if (!rows.length) throw new Error("no rows parsed — check the CSV / column names");
+  const med = rows.map(r => r.bal).sort((a, b) => a - b)[Math.floor(rows.length / 2)];
+  if (med > 1e7 || med < 1e-2) console.warn(`⚠ median balance ${med} looks mis-scaled — check --decimals/--scale against a known wallet`);
+
+  const wallets = residents(rows, { threshold, nowTs: now, flowDays: 30 });
+  const firstDay = new Date(Math.min(...rows.map(r => r.ts))).toISOString().slice(0, 10);
+  const doc = {
+    v: 1, updated: new Date(now).toISOString().slice(0, 10), chain: "solana", source: "dune solana_utils.daily_balances",
+    threshold, sliceFrom: firstDay, note: "phase-1 residents (≥5k); ages floored by sliceFrom until full history",
+    wallets,
+  };
+  mkdirSync(dirname(outPath), { recursive: true });
+  writeFileSync(outPath, JSON.stringify(doc));
+  const held = wallets.reduce((s, w) => s + w.bal, 0);
+  console.log(`✓ ${outPath} — ${wallets.length} residents ≥${threshold} · held ${(held / 1e6).toFixed(1)}M SPX · slice from ${firstDay}`);
+  console.log(`  top: ${wallets.slice(0, 3).map(w => `${w.a.slice(0, 4)}…=${(w.bal / 1e3).toFixed(0)}k`).join(" · ")}`);
+}
+
+if (process.argv[1] === fileURLToPath(import.meta.url)) main();

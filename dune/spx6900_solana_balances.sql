@@ -22,8 +22,16 @@
 --    if it's human (5000) or raw base units (5000e8; SPX Solana decimals = 8). Set THRESH accordingly.
 --    Columns (free metadata): token_balance_owner · token_balance · day · token_mint_address · month.
 --
--- ── RUN AS ~11 CHUNKS on the FRESH company key, paginate reads to disk (32k rows/page), concat ─────
---   month+day windows from 2023-12-15 → today (see the table the terminal built for the 11 pairs).
+-- ── ⭐ PHASE 1 — RUN THE 2026 SLICE FIRST, validate, THEN dig into history ───────────────────────
+--   One chunk: {{month_lo}}=2026-01-01 {{month_hi}}=2026-10-01 {{day_lo}}=2026-01-01 {{day_hi}}=today.
+--   With the ≥5k filter this returns only the 2026 ≥5k cohort → small read. Canary it (measure read
+--   cost), then:  node scripts/build-solana-onchain.mjs --in=dune/out/spx6900_solana_balances.csv
+--   → public/solana-onchain.json (residents + age + flow). ⚠ ages are floored by the slice start
+--   (2026-01-01) until full history lands — expected, that's the phase-2 job.
+--
+-- ── PHASE 2 — full history for cohort survival/exits (later): pull the ever-≥5k owners' FULL path ──
+--   (drop the token_balance≥5k line; instead restrict to owners the phase-1 pass found ≥5k), so the
+--   below-bar rows exist and exits become visible. Chunk month+day windows 2023-12-15 → today.
 SELECT
   token_balance_owner  AS owner,
   token_balance        AS balance,
