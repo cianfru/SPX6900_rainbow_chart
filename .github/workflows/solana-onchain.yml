@@ -1,18 +1,21 @@
 name: Daily SPX-on-Solana refresh (Dune daily_balances)
 
-# The Solana sibling of onchain-dune.yml. The full ≥5k daily-balance history lives as a GitHub
-# release asset (solana-balances.csv.gz); each run pulls only the DAILY DELTA from Dune
-# (WHERE day >= last day in archive), merges it, and re-runs the local reconstruction →
-# public/solana-onchain.json. The delta is a handful of days of ≥5k rows, so both execution and the
-# result-read are cheap (the bulk history read is the expensive part — that's why the archive is
-# SEEDED once, not rebuilt here).
+# The Solana sibling of onchain-dune.yml (ETH). Same LOGIC — pull only the DAILY DELTA from Dune
+# (WHERE day >= last day in the archive), merge it, re-run the local reconstruction →
+# public/solana-onchain.json — but the archive is a COMMITTED file, not a release asset. The ≥5k
+# Solana cohort is tiny (~2 MB, and dune/out/*.csv are already tracked as provenance), so it lives
+# in the repo: self-seeding, versioned, no manual `gh release` upload. ETH stays a release asset
+# only because its 2.6M raw transfers (67 MB) can't sit in git.
 #
-# 🔲 ONE-TIME SEED (owner): pull full history in ~90-day chunks (dune/spx6900_solana_balances.sql,
-#    PHASE 2 — NEVER a full year, it times out at the 2-min wall and still charges) + the 2026 CSV,
-#    concat → solana-balances.csv → gzip → `gh release create solana-archive solana-balances.csv.gz`.
-#    This workflow FAILS FAST if the asset is missing — it will not silently full-scan.
-# 🔲 SECRETS/VARS: DUNE_API_KEY (secret, the fresh pipeline key). Optional DUNE_SOLANA_QUERY_ID (var,
-#    set after run 1 logs the created query id, to reuse it instead of creating one each day).
+# SEEDED: dune/out/spx6900_solana_balances.csv (2026-01-01 → 2026-08-03, the committed 2026 slice).
+#   The daily delta appends forward from its last day. Holder AGES are floored at 2026-01-01 until
+#   the full-history backfill lands (the 9 quarterly chunks in dune/spx6900_solana_balances.sql,
+#   PHASE 2 — concat into this file to correct ages; a one-time step, not needed for the feed).
+#
+# CREDITS: only the daily DELTA touches Dune (~1 partition, a few hundred ≥5k rows → cheap execution
+#   AND cheap result-read). The ≥5k filter is what keeps the read small (see the SQL header).
+# SECRETS/VARS: DUNE_API_KEY (secret, shared with the ETH pipeline). Optional DUNE_SOLANA_QUERY_ID
+#   (var) — set after run 1 logs the created query id, to reuse it instead of creating one each day.
 
 on:
   schedule:
@@ -27,8 +30,7 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  ARCHIVE_TAG: solana-archive
-  ARCHIVE_ASSET: solana-balances.csv.gz
+  ARCHIVE: dune/out/spx6900_solana_balances.csv
 
 jobs:
   refresh:
@@ -39,46 +41,41 @@ jobs:
         with:
           node-version: 24
 
-      - name: Download the Solana balance archive (release asset)
-        env:
-          GH_TOKEN: ${{ github.token }}
+      - name: Guard — the committed archive must exist (never a silent full scan)
         run: |
-          if ! gh release download "$ARCHIVE_TAG" --pattern "$ARCHIVE_ASSET" --dir . 2>/dev/null; then
-            echo "::error::No '$ARCHIVE_ASSET' on release '$ARCHIVE_TAG'. SEED it first (see the workflow header)."
+          if [[ ! -s "$ARCHIVE" ]]; then
+            echo "::error::Missing $ARCHIVE — the committed Solana seed. Restore it before running."
             exit 1
           fi
-          gunzip -f "$ARCHIVE_ASSET"
-          echo "archive rows: $(( $(wc -l < solana-balances.csv) - 1 ))"
+          echo "archive rows: $(( $(wc -l < "$ARCHIVE") - 1 ))"
 
       - name: Pull Dune daily delta → merge → rebuild residents
         env:
           DUNE_API_KEY: ${{ secrets.DUNE_API_KEY }}
           DUNE_SOLANA_QUERY_ID: ${{ vars.DUNE_SOLANA_QUERY_ID }}
-        run: node scripts/build-solana-dune-refresh.mjs --archive=solana-balances.csv
+        run: node scripts/build-solana-dune-refresh.mjs --archive="$ARCHIVE"
 
       - name: Sanity check
         run: |
           node -e '
             const d=JSON.parse(require("fs").readFileSync("public/solana-onchain.json","utf8"));
-            const n=d.wallets.length; console.log("residents:",n,"| excluded:",d.excluded);
+            const n=d.wallets.length; console.log("residents:",n,"| excluded:",d.excluded,"| updated:",d.updated);
             if(!(n>500&&n<20000)){console.error("resident count off — expected ~2k");process.exit(1);}
           '
 
-      - name: Re-upload the grown archive
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          gzip -f solana-balances.csv
-          gh release upload "$ARCHIVE_TAG" "$ARCHIVE_ASSET" --clobber
-
       - name: Commit if changed
         run: |
-          if [[ -n "$(git status --porcelain public/solana-onchain.json)" ]]; then
+          if [[ -n "$(git status --porcelain public/solana-onchain.json "$ARCHIVE")" ]]; then
             git config user.name "github-actions[bot]"
             git config user.email "github-actions[bot]@users.noreply.github.com"
-            git add public/solana-onchain.json
+            git add public/solana-onchain.json "$ARCHIVE"
             git commit -m "chore: solana on-chain refresh $(date -u +%F) [skip deploy]"
-            git push || { for i in 1 2 3 4 5; do git pull --rebase --autostash origin main && git push && break; sleep $((i*3)); done; }
+            for i in 1 2 3 4 5; do
+              git push && break
+              echo "push rejected (attempt $i) — rebasing on the latest main and retrying"
+              git pull --rebase --autostash origin main || exit 1
+              sleep $((i * 3))
+            done
           else
             echo "No change to commit"
           fi
