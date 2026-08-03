@@ -17,7 +17,9 @@ const arg = (k, d) => { const a = process.argv.find(s => s.startsWith(`--${k}=`)
 
 // Parse the cohort CSV → {holders:[...], exits:[...]} with infra stripped. Pure → unit-tested.
 export function parseCohort(text, { threshold = 5000, nowTs, exclude = BASE_EXCLUDE } = {}) {
-  const lines = text.replace(/^﻿/, "").trim().split(/\r?\n/);
+  const all = text.replace(/^﻿/, "").trim().split(/\r?\n/).filter(l => !l.startsWith("#"));  // skip "# lastBlock=" header
+  const hi = all.findIndex(l => l.toLowerCase().startsWith("address,"));
+  const lines = all.slice(hi < 0 ? 0 : hi);
   const head = lines[0].toLowerCase().split(",").map(s => s.trim());
   const ci = { a: head.indexOf("address"), bal: head.indexOf("balance"), st: head.indexOf("status"), first: head.indexOf("first_5k_day"), since: head.indexOf("since_5k_day"), exit: head.indexOf("exit_day") };
   const holders = [], exits = []; let exBal = 0;

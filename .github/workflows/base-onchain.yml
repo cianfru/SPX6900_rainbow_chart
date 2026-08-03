@@ -1,19 +1,27 @@
-name: Daily SPX-on-Base refresh (Blockscout ≥5k snapshot)
+name: Daily SPX-on-Base cohort refresh (Alchemy)
 
-# The Base sibling of solana-onchain.yml. Base's ~114k headcount is ~99% airdrop dust — only ~800
-# wallets hold ≥5k — so instead of a 6M-transfer pull we snapshot the ≥5k cohort straight from
-# Blockscout's holders endpoint (balances sorted DESC, page until below the bar, ~16 pages), keyless
-# and dust-immune. Appends today's snapshot to the committed archive (dune/out/spx6900_base_balances.csv)
-# and reconstructs residents. CURRENT membership = today's snapshot; holder AGE = first ≥5k day in the
-# archive (accruing forward until the one-time targeted history seed backfills real ages).
+# The Base sibling of solana-onchain.yml / onchain-dune.yml. Keeps the Alchemy ≥5k COHORT current
+# (dune/out/spx6900_base_cohort.csv: address, balance, status, first_5k_day, since_5k_day, exit_day) —
+# the authoritative Alchemy transfer reconstruction: holders + everyone who ever crossed 5k and left,
+# with real ages/exits/survival (full ETH/Solana parity). Each run pulls the transfer DELTA since the
+# cohort's lastBlock via alchemy_getAssetTransfers, replays it onto per-wallet balances, updates the
+# cohort (new crossings, exits), and regenerates public/base-onchain.json.
 #
-# ZERO credits (no Dune, no key). The archive is committed (small — ~800 rows/day, like Solana).
-# 🔲 The daily feed gives forward-only ages; run the targeted ≥5k history seed once for back-dated ages.
+# SELF-SEEDING: the first run (cohort has no '# lastBlock=' header yet) auto-does a FULL rebuild from
+# genesis to establish the exact state + lastBlock; every run after is a cheap daily delta. A weekly
+# --full dispatch self-heals the narrow sub-5k-accumulator gap.
+# NEEDS: ALCHEMY_KEY (the AEON key). No key → soft-skip (no write). The Blockscout snapshot
+# (build-base-snapshot.mjs) stays as a keyless fallback.
 
 on:
   schedule:
     - cron: "51 5 * * *"   # ~05:51 UTC daily (after solana-onchain at 05:41)
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      full:
+        description: "Force a full rebuild from genesis (weekly self-heal / reseed)"
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -31,24 +39,26 @@ jobs:
         with:
           node-version: 24
 
-      - name: Snapshot ≥5k holders (Blockscout) → merge → rebuild residents
-        run: node scripts/build-base-snapshot.mjs --out=public/base-onchain.json
+      - name: Alchemy delta → replay → update cohort → rebuild base-onchain.json
+        env:
+          ALCHEMY_KEY: ${{ secrets.ALCHEMY_KEY }}
+        run: node scripts/build-base-alchemy.mjs ${{ (github.event.inputs.full == 'true') && '--full' || '' }}
 
       - name: Sanity check
         run: |
           node -e '
             const d=JSON.parse(require("fs").readFileSync("public/base-onchain.json","utf8"));
-            const n=d.wallets.length; console.log("residents:",n,"| excluded:",d.excluded,"| updated:",d.updated);
-            if(!(n>200&&n<5000)){console.error("resident count off — expected ~800");process.exit(1);}
+            console.log("holders:",d.holders,"| exited:",d.exited,"| survival:",d.survivalPct+"% | updated:",d.updated);
+            if(!(d.holders>200&&d.holders<3000)){console.error("holder count off — expected ~500");process.exit(1);}
           '
 
       - name: Commit if changed
         run: |
-          if [[ -n "$(git status --porcelain public/base-onchain.json dune/out/spx6900_base_balances.csv)" ]]; then
+          if [[ -n "$(git status --porcelain public/base-onchain.json dune/out/spx6900_base_cohort.csv)" ]]; then
             git config user.name "github-actions[bot]"
             git config user.email "github-actions[bot]@users.noreply.github.com"
-            git add public/base-onchain.json dune/out/spx6900_base_balances.csv
-            git commit -m "chore: base on-chain refresh $(date -u +%F) [skip deploy]"
+            git add public/base-onchain.json dune/out/spx6900_base_cohort.csv
+            git commit -m "chore: base cohort refresh $(date -u +%F) [skip deploy]"
             for i in 1 2 3 4 5; do
               git push && break
               echo "push rejected (attempt $i) — rebasing on the latest main and retrying"
