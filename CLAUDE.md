@@ -512,6 +512,31 @@
     - **⚠ RUN IT ON BIGQUERY, NOT DUNE.** The last Solana as-of reconstruction on Dune scanned 10.5 TB and
       burned ~650 credits in one shot (the credit-blowout of record). Scope the BigQuery query to the SPX mint
       FIRST and it sits inside the free 1 TB/mo tier. (Owner runs BigQuery Aug 1 for ONE chain → Solana.)
+    - **⭐⭐ DUNE DRY-RUN 2026-08-03 — MEASURED the two Dune paths; the "must use BigQuery" rule is HALF wrong.**
+      Probed via the Dune MCP (bounded free-tier COUNTs, SPX Wormhole mint `J3NKxx…3KFr`, ~23 credits total for
+      the whole investigation). Two findings that UPDATE the plan:
+      - **❌ RAW `tokens_solana.transfers` IS the ~4,000-credit trap — never do the full extract on Dune.** The
+        table is **~32 TB** (the SPL slice holding SPX is **~16 TB**), the spell declares **no partitioning**, and
+        `token_mint_address` does NOT prune (mint isn't a sort key) — so a mint extract reads the ENTIRE time range
+        of a 16 TB table. Measured: a **2-day** COUNT filtered to SPX = **8.47 credits** (time-pruning DOES work, so
+        it's not the full 16 TB, but the cost scales with DAYS scanned, not SPX rows). Extrapolated to ~975 days of
+        SPX history ≈ **~4,100 credits** — over the whole monthly quota. Chunking does NOT help: it dodges the 2-min
+        wall but the TOTAL scan cost is unchanged. This is why the transfers table stays a BigQuery job.
+      - **✅ `solana_utils.daily_balances` CHUNKED IS VIABLE ON DUNE — ~24 credits for full history.** It's **1.36 TB**
+        and the mint ALSO doesn't prune (a one-shot full scan **timed out at the 2-min wall** — this is why the older
+        `spx6900_solana_wallets.sql` "runs in seconds" claim is now stale: the table grew), **BUT it prunes on `day`**:
+        a 7-day window = **0.177 credits**, an early launch slice (→Feb-2024) = **1.78 credits** — a stable **~0.025
+        credits/day** anywhere in history. So full history reconstructs from ~11 × ~90-day CHUNKS (~24 credits, each
+        under the 2-min wall), concatenated OFFLINE — the disciplined pattern. Earliest SPX Solana balance day
+        **confirmed 2023-12-20** (launch).
+      - **THE RECIPE for the Queens buildings:** `daily_balances` gives per-owner balance-state-on-change → current
+        balance, **holder age** (first `day`), **net-flow** (balance deltas). And since current balance is ALREADY
+        free-live from the RPC (`getProgramAccounts` in snapshot.mjs), Dune only needs **age + recent flow** → even
+        cheaper. Build = a parameterized ~90-day-chunk `daily_balances` query + a local `build-solana-onchain.mjs`
+        (age/flow reconstruction offline, mirrors the ETH local-engine pattern) → join to live RPC balances.
+        Semantics caveat UNCHANGED: Wormhole-minted, so cost-basis/MVRV/realized-price are NOT honest on Solana —
+        but the city only needs balance+age+flow, which this delivers cleanly. **NET: use daily_balances-chunked on
+        Dune for the city; keep transfers on BigQuery (or skip it — daily_balances covers the city's needs).**
     - **⚠⚠ CAPACITY TENSION — Solana's 2,000 puts us OVER the land for the first time.** ETH 4,895 + Solana
       ~2,000 + Base ~400 ≈ **7,300 qualifying wallets vs 6,259 lots** (current: Manhattan 1,680 + boroughs
       4,579; ETH alone already fills 4,895 and spills 3,215 into the boroughs). So "boroughs = chains" can't
