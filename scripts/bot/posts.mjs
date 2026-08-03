@@ -925,13 +925,12 @@ ${under ? "Most holders are red — and still holding." : "Most of the float is 
   () => {
     const d = ethSol2026Data();
     if (!d) return null;
-    const solX = (d.solHeld.at(-1) / d.solHeld[0]).toFixed(1), solW = (d.solCnt.at(-1) / d.solCnt[0]).toFixed(1);
-    const solM = Math.round(d.solHeld.at(-1) / 1e6), ethM = Math.round(d.ethHeld.at(-1) / 1e6);
+    const solVal = (d.sol.held / (d.eth.held + d.sol.held) * 100).toFixed(1);
     return {
       id: "ethsol",
-      text: ct`⚖️ SPX6900 in 2026: Ethereum holds flat, Solana runs +${solX}×.
-Among 5k+ SPX wallets, Ethereum sat still — ${ethM}M held, ${d.ethCnt.at(-1).toLocaleString()} wallets, ~94% of value. Solana grew to ${solM}M across ${d.solCnt.at(-1).toLocaleString()} wallets, +${solW}× more.
-Value lives on Ethereum. Growth is on Solana.`,
+      text: ct`⚖️ On SPX6900, Solana's holders are as diamond-handed as Ethereum's.
+Smaller base — ${d.sol.n.toLocaleString()} wallets over 5k SPX vs ${d.eth.n.toLocaleString()}, just ${solVal}% of value — but they hold longer: median ${d.sol.medAge}d vs ${d.eth.medAge}d, ${d.sol.ageBands[3]}% held 1-2y vs ${d.eth.ageBands[3]}%.
+Value on Ethereum. Conviction on both.`,
       card: { type: "ethsol" },
     };
   },
@@ -2204,7 +2203,7 @@ const LOOK = {
   // — Tier A: the green log-line family (visually similar; spread them out) —
   valuation: "rainbow", channel: "channel",
   targets: "ladder", memecoins: "ladder", btcgrade: "ladder", dogeclock: "ladder", majorcaps: "ladder",
-  spxvssp: "race", majors: "race", ytd: "race", sp500ytd: "race", sp500roll12: "race", btc: "race", chainrace: "race", ethsol: "race",
+  spxvssp: "race", majors: "race", ytd: "race", sp500ytd: "race", sp500roll12: "race", btc: "race", chainrace: "race",
   roadmap: "trend", rally: "trend", alltime: "trend", breakeven: "trend", diamondtrend: "trend",
   cycleclock: "trend", fngtrend: "trend", btcage: "trend", ethage: "trend", solage: "trend",
   whatnext: "race",
@@ -2215,7 +2214,7 @@ const LOOK = {
   model: "scatter",
   monthlyreturns: "heatmap", monthlyreturnssp: "heatmap", monthlyreturnsbtc: "heatmap",
   hodlwaves: "stack", hodlcompare: "stack", walletgrowth: "stack", lthsth: "stack", valband: "dual", cexvenues: "stack",
-  timeinband: "bars", monthlybars: "bars", monthcompare: "bars", multichain: "bars", urpd: "bars", urpdage: "bars", cexvenflow: "bars",
+  timeinband: "bars", monthlybars: "bars", monthcompare: "bars", multichain: "bars", urpd: "bars", urpdage: "bars", cexvenflow: "bars", ethsol: "bars",
   fngdial: "round", distribution: "round",
   marketcap: "blocks", milestones: "blocks", sp500: "blocks",
   dca: "dca",
