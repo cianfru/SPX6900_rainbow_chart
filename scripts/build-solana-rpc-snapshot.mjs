@@ -2,9 +2,16 @@
 // One getProgramAccounts call fetches every SPX SPL token account (base64 + dataSlice, the same
 // lean transport snapshot.mjs already uses to COUNT holders), sums balances by OWNER, keeps the
 // ≥5k cohort, and APPENDS today's rows to the committed archive (dune/out/spx6900_solana_balances.csv).
-// Holder AGE + net-FLOW then build up FORWARD from the accumulating daily snapshots — no history
-// walk needed (a point-in-time RPC can't reach the past; that's what the Dune 2026 base + the
-// one-time PHASE-2 backfill are for). Reconstruction (build-solana-onchain.mjs) runs at the end.
+//
+// The archive is the FULL ≥5k history since launch (Dune daily_balances, 2023-12 → seam). Each day's
+// dense RPC snapshot defines CURRENT residency (a wallet is a resident iff it's in the latest snapshot
+// — a ≥5k change-log can't record drops BELOW the bar, so latest-snapshot membership is the only
+// honest current set); holder AGE comes from the full history (true first ≥5k day), so a long-quiet
+// holder reads its real age, not 0. Reconstruction (build-solana-onchain.mjs) runs at the end.
+//
+// ⚠ ARCHIVE GROWTH: the dense daily snapshot (~2k rows/day) accumulates. Fine for a good while
+// (private repo, [skip deploy]); eventual optimisation = an anchor-preserving prune (keep the sparse
+// history + a rolling recent window + each owner's earliest ≥5k row). Not urgent.
 //
 //   node scripts/build-solana-rpc-snapshot.mjs [--archive=… --now=YYYY-MM-DD --out=…]
 //

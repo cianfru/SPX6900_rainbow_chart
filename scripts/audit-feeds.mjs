@@ -74,8 +74,8 @@ export const FEEDS = [
     nonEmpty: ["wallets"] },
   // SPX-on-Solana ≥5k residents (age/flow). Daily via solana-onchain.yml: a keyless public-RPC
   // snapshot (getProgramAccounts) appended to the committed archive dune/out/spx6900_solana_balances.csv
-  // (Dune 2026 base), then reconstructed. cadence 9 mirrors ETH onchain.json — daily cron with a
-  // buffer for missed runs. Its rows live under `.wallets`, so nonEmpty confirms the population.
+  // (FULL ≥5k history since launch → true holder ages). Residency = latest dense snapshot; age = first
+  // ≥5k day. cadence 9 mirrors ETH onchain.json. Rows live under `.wallets`, so nonEmpty confirms it.
   { file: "solana-onchain.json", cadence: 9, by: "solana-onchain.yml", what: "SPX-on-Solana ≥5k residents (age/flow)",
     nonEmpty: ["wallets"] },
 

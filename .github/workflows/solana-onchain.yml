@@ -11,10 +11,9 @@ name: Daily SPX-on-Solana refresh (free public RPC)
 # dune/out/*.csv are tracked as provenance), so it self-seeds from the repo. ETH stays a release
 # asset only because its 2.6M raw transfers (67 MB) can't sit in git.
 #
-# SEEDED: dune/out/spx6900_solana_balances.csv (Dune daily_balances 2026-01-01 → 2026-08-03). The RPC
-#   snapshot appends forward from there. Holder AGES are floored at the seed's start (2026-01-01)
-#   until the one-time full-history backfill (dune/spx6900_solana_balances.sql PHASE 2, 9 quarterly
-#   chunks) is concat'd in — a one-time step, NOT needed for the feed.
+# SEEDED: dune/out/spx6900_solana_balances.csv — the FULL ≥5k history since launch (Dune
+#   daily_balances, 2023-12-21 → seam). CURRENT residency = the latest dense RPC snapshot; holder AGE
+#   = true first ≥5k day from the full history (so a long-quiet holder reads its real age, not 0).
 #
 # DUNE is now only the one-time history backfill / dormant fallback (build-solana-dune-refresh.mjs) —
 #   the daily cron touches NO Dune. A point-in-time RPC can't reach the past, which is why the 2026

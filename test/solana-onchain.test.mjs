@@ -37,3 +37,23 @@ test("residents: sub-threshold-only owners produce nothing", () => {
   const rows = parseBalances("owner,balance,day\nZZZ,100000000000,2026-05-01 00:00:00", 1e-8); // 1k
   assert.equal(residents(rows, { threshold: 5000, nowTs: Date.parse("2026-09-01") }).length, 0);
 });
+
+// currentDay (dense-snapshot membership): a wallet is a resident iff it appears in the latest dense
+// snapshot — NOT if its last ≥5k row is old (that wallet exited; a ≥5k change-log never records the
+// drop). Age still comes from the FULL history (first ≥5k day), so a long-quiet holder reads true age.
+test("residents: currentDay membership excludes exited wallets, keeps true age", () => {
+  const CSV = [
+    "owner,balance,day",
+    "OLD,600000000000,2024-02-01 00:00:00",   // OLD first hit 6k in Feb 2024
+    "OLD,900000000000,2026-08-03 00:00:00",   // …still ≥5k in today's dense snapshot (9k)
+    "GONE,700000000000,2024-05-01 00:00:00",  // GONE was 7k in 2024…
+    "GONE,650000000000,2025-06-01 00:00:00",  // …last seen 6.5k in 2025, ABSENT from today's snapshot
+    "NEW,500000000000,2026-08-03 00:00:00",   // NEW first appears today at 5k
+  ].join("\n");
+  const res = residents(parseBalances(CSV, 1e-8), { threshold: 5000, currentDay: "2026-08-03" });
+  assert.deepEqual(res.map(r => r.a), ["OLD", "NEW"]);           // GONE excluded (not in today's snapshot)
+  const OLD = res.find(r => r.a === "OLD"), NEW = res.find(r => r.a === "NEW");
+  assert.equal(OLD.bal, 9000);                                   // current = today's snapshot balance
+  assert.ok(Math.abs(OLD.days - 914) < 3);                       // age from Feb 2024, not from today
+  assert.equal(NEW.days, 0);                                     // genuinely new today
+});
