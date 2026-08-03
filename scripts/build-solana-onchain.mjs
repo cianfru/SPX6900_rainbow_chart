@@ -49,6 +49,9 @@ export const SOLANA_EXCLUDE = {
   "MfDuWeqSHEqTFVYZ7LoexgAK9dxk7cy4DFJWjWMGVWa": { kind: "mm", name: "Wintermute" },
   "DMe3ddj7awSR3LFC64rjmCPexsrSv33QAxFoJux4vGH3": { kind: "cex", name: "SwissBorg" },
   "9SLPTL41SPsYkgdsMzdfJsxymEANKr5bYoBsQzJyKpKS": { kind: "mm", name: "hypernuit" },
+  // Untagged but infra by behaviour (owner call): Coinbase-hot-wallet funded, holds 3M JTO too,
+  // TX pattern reads as infra not a person. The one inferred-not-labelled exclusion — noted as such.
+  "5E2d6Z5FRe4584RTmJpyjg8yRtHG1YeorKbFSA1BpkPq": { kind: "infra", name: "untagged infra (Coinbase-funded, by TX pattern)" },
 };
 
 // Per-owner resident record: latest balance, holder age (since first appearance in the ≥5k data),
