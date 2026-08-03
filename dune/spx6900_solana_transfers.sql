@@ -1,3 +1,10 @@
+-- ❌❌ SUPERSEDED — DO NOT USE. Measured via the Dune MCP 2026-08-03: Dune's tokens_solana.transfers
+-- is ALSO a trap — ~16 TB, NOT partitioned/clustered by mint, so token_mint_address does NOT prune;
+-- a 2-day SPX COUNT = 8.47 credits → full history ≈ ~4,100 credits (over the monthly quota). My "Dune
+-- transfers is mint-indexed" assumption was wrong; the owner's dry-run disproved it. → Use
+-- dune/spx6900_solana_balances.sql instead (solana_utils.daily_balances, prunes on `day`, ~24 credits
+-- full history). Kept only as the record of why the transfers table is the wrong tool on BOTH platforms.
+--
 -- SPX6900 on SOLANA — SPL transfer history for the city (holder AGE + recent NET-FLOW).
 -- Balance stays FREE from the Solana RPC (getProgramAccounts on the mint, the daily headcount); this
 -- only supplies age (last move per wallet) + net-flow (Δ over a window). Output is tiny (SPX only).
