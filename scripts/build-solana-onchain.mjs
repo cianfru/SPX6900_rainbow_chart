@@ -93,7 +93,7 @@ function main() {
   const wallets = residents(rows, { threshold, nowTs: now, flowDays: 30 });
   const firstDay = new Date(Math.min(...rows.map(r => r.ts))).toISOString().slice(0, 10);
   const doc = {
-    v: 1, updated: new Date(now).toISOString().slice(0, 10), chain: "solana", source: "dune solana_utils.daily_balances",
+    v: 1, updated: new Date(now).toISOString().slice(0, 10), chain: "solana", source: "public Solana RPC snapshot-forward + Dune daily_balances base",
     threshold, sliceFrom: firstDay, excludedSupply: wallets.excludedSupply, excluded: Object.keys(SOLANA_EXCLUDE).length,
     note: "phase-1 residents (≥5k); ages floored by sliceFrom until full history",
     wallets,

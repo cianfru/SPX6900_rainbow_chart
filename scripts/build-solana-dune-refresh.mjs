@@ -1,8 +1,9 @@
-// Daily SPX-on-Solana refresh — the Solana sibling of build-onchain-dune-refresh.mjs (ETH). Same
-// logic: pull only the DAILY DELTA from Dune (`WHERE day >= <last day in archive>`), merge it into
-// the archive, and re-run the local reconstruction → public/solana-onchain.json. The delta is a
-// handful of days of ≥5k rows, so both the execution (~1 partition, ~0.03 cr) and the result-READ
-// (a few hundred rows) are cheap — the ≥5k filter keeps the read small (the whole point).
+// SPX-on-Solana Dune refresh — the DORMANT FALLBACK / one-time backfill path. The DAILY feed is now
+// build-solana-rpc-snapshot.mjs (keyless public RPC, zero Dune credits); this script stays for two
+// jobs: (1) a fallback if the public RPC proves unreliable, (2) pulling history the RPC can't reach.
+// Same mechanics: pull the DELTA from Dune (`WHERE day >= <last day in archive>`), merge into the
+// archive, re-run the reconstruction → public/solana-onchain.json. The ≥5k filter keeps the
+// result-read cheap (a few hundred rows). NOT wired into solana-onchain.yml anymore.
 //
 //   node scripts/build-solana-dune-refresh.mjs --archive=dune/out/spx6900_solana_balances.csv
 //

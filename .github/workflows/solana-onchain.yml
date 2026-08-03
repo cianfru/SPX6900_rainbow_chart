@@ -1,21 +1,27 @@
-name: Daily SPX-on-Solana refresh (Dune daily_balances)
+name: Daily SPX-on-Solana refresh (free public RPC)
 
-# The Solana sibling of onchain-dune.yml (ETH). Same LOGIC — pull only the DAILY DELTA from Dune
-# (WHERE day >= last day in the archive), merge it, re-run the local reconstruction →
-# public/solana-onchain.json — but the archive is a COMMITTED file, not a release asset. The ≥5k
-# Solana cohort is tiny (~2 MB, and dune/out/*.csv are already tracked as provenance), so it lives
-# in the repo: self-seeding, versioned, no manual `gh release` upload. ETH stays a release asset
-# only because its 2.6M raw transfers (67 MB) can't sit in git.
+# The Solana sibling of onchain-dune.yml (ETH). The daily feed is KEYLESS + ZERO Dune credits: one
+# getProgramAccounts call to a free public Solana RPC snapshots every SPX token account, sums by
+# owner, keeps the ≥5k cohort, and APPENDS today's balances to the committed archive
+# (dune/out/spx6900_solana_balances.csv). Holder AGE + net-FLOW build up FORWARD from the
+# accumulating daily snapshots — the repo's "snapshot-forward" pattern (same as chain-wallets /
+# cex-flow). The reconstruction (build-solana-onchain.mjs) then rebuilds public/solana-onchain.json.
 #
-# SEEDED: dune/out/spx6900_solana_balances.csv (2026-01-01 → 2026-08-03, the committed 2026 slice).
-#   The daily delta appends forward from its last day. Holder AGES are floored at 2026-01-01 until
-#   the full-history backfill lands (the 9 quarterly chunks in dune/spx6900_solana_balances.sql,
-#   PHASE 2 — concat into this file to correct ages; a one-time step, not needed for the feed).
+# The archive is a COMMITTED file (not a release asset like ETH): the ≥5k cohort is tiny (~2 MB, and
+# dune/out/*.csv are tracked as provenance), so it self-seeds from the repo. ETH stays a release
+# asset only because its 2.6M raw transfers (67 MB) can't sit in git.
 #
-# CREDITS: only the daily DELTA touches Dune (~1 partition, a few hundred ≥5k rows → cheap execution
-#   AND cheap result-read). The ≥5k filter is what keeps the read small (see the SQL header).
-# SECRETS/VARS: DUNE_API_KEY (secret, shared with the ETH pipeline). Optional DUNE_SOLANA_QUERY_ID
-#   (var) — set after run 1 logs the created query id, to reuse it instead of creating one each day.
+# SEEDED: dune/out/spx6900_solana_balances.csv (Dune daily_balances 2026-01-01 → 2026-08-03). The RPC
+#   snapshot appends forward from there. Holder AGES are floored at the seed's start (2026-01-01)
+#   until the one-time full-history backfill (dune/spx6900_solana_balances.sql PHASE 2, 9 quarterly
+#   chunks) is concat'd in — a one-time step, NOT needed for the feed.
+#
+# DUNE is now only the one-time history backfill / dormant fallback (build-solana-dune-refresh.mjs) —
+#   the daily cron touches NO Dune. A point-in-time RPC can't reach the past, which is why the 2026
+#   Dune base + the PHASE-2 backfill still supply the historical ages.
+# SECRETS/VARS: none required (public node). Optional SOL_RPC (secret) — a free Helius/QuickNode URL
+#   if the public node rate-limits the heavy getProgramAccounts; the script fails safe (won't
+#   overwrite the archive) if it gets a short/refused response.
 
 on:
   schedule:
@@ -49,11 +55,10 @@ jobs:
           fi
           echo "archive rows: $(( $(wc -l < "$ARCHIVE") - 1 ))"
 
-      - name: Pull Dune daily delta → merge → rebuild residents
+      - name: Snapshot ≥5k balances via public Solana RPC → merge → rebuild residents
         env:
-          DUNE_API_KEY: ${{ secrets.DUNE_API_KEY }}
-          DUNE_SOLANA_QUERY_ID: ${{ vars.DUNE_SOLANA_QUERY_ID }}
-        run: node scripts/build-solana-dune-refresh.mjs --archive="$ARCHIVE"
+          SOL_RPC: ${{ secrets.SOL_RPC }}   # optional free Helius/QuickNode URL; blank → public mainnet-beta
+        run: node scripts/build-solana-rpc-snapshot.mjs --archive="$ARCHIVE"
 
       - name: Sanity check
         run: |
