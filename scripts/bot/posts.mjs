@@ -948,6 +948,20 @@ Solana is the most spread — the retail chain. Base rides on a whale.`,
     };
   },
 
+  // Illiquid supply by chain — the store-of-value headline. % of each chain's ≥5k self-custody
+  // supply held >155d (the LTH line). SPX is 90-97% illiquid everywhere. Distribution POSITION.
+  () => {
+    const d = ethSol2026Data();
+    if (d?.base?.illiquid == null) return null;
+    return {
+      id: "illiquid",
+      text: ct`💎 90-97% of SPX6900's held supply hasn't moved in five months — on every chain.
+Illiquid supply (self-custody, held over 155 days — the long-term-holder line): Ethereum ${d.eth.illiquid}%, Solana ${d.sol.illiquid}%, Base ${d.base.illiquid}%. On all three, roughly two-thirds to 86% of supply has sat over a YEAR.
+Barely anyone is selling. That's a store-of-value profile, not a trade.`,
+      card: { type: "illiquid" },
+    };
+  },
+
   // What the whale COHORT did — the question HODL waves get asked and cannot answer.
   // Waves say supply sat still; they say nothing about who ended up holding it. Data-
   // gated on the whale fields the FIFO reconstruction emits.
@@ -2231,7 +2245,7 @@ const LOOK = {
   model: "scatter",
   monthlyreturns: "heatmap", monthlyreturnssp: "heatmap", monthlyreturnsbtc: "heatmap",
   hodlwaves: "stack", hodlcompare: "stack", walletgrowth: "stack", lthsth: "stack", valband: "dual", cexvenues: "stack",
-  timeinband: "bars", monthlybars: "bars", monthcompare: "bars", multichain: "bars", urpd: "bars", urpdage: "bars", cexvenflow: "bars", ethsol: "bars", chainconc: "bars",
+  timeinband: "bars", monthlybars: "bars", monthcompare: "bars", multichain: "bars", urpd: "bars", urpdage: "bars", cexvenflow: "bars", ethsol: "bars", chainconc: "bars", illiquid: "stack",
   fngdial: "round", distribution: "round",
   marketcap: "blocks", milestones: "blocks", sp500: "blocks",
   dca: "dca",
