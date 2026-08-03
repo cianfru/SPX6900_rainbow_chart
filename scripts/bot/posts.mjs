@@ -924,13 +924,12 @@ ${under ? "Most holders are red — and still holding." : "Most of the float is 
   // gated off until it has ≥8 weekly points. In rotation so it doesn't get lost.
   () => {
     const d = ethSol2026Data();
-    if (!d) return null;
-    const solVal = (d.sol.held / (d.eth.held + d.sol.held) * 100).toFixed(1);
+    if (!d?.base) return null;
     return {
       id: "ethsol",
-      text: ct`⚖️ On SPX6900, Solana's holders are as diamond-handed as Ethereum's.
-Smaller base — ${d.sol.n.toLocaleString()} wallets over 5k SPX vs ${d.eth.n.toLocaleString()}, just ${solVal}% of value — but they hold longer: median ${d.sol.medAge}d vs ${d.eth.medAge}d, ${d.sol.ageBands[3]}% held 1-2y vs ${d.eth.ageBands[3]}%.
-Value on Ethereum. Conviction on both.`,
+      text: ct`⚖️ SPX6900 across three chains: value on Ethereum, conviction everywhere.
+${d.eth.n.toLocaleString()} ETH wallets hold 5k+ SPX (~89% of value), Solana ${d.sol.n.toLocaleString()}, Base ${d.base.n}. All three holder-age curves peak at 18mo-2y — the drawdown survivors held on, every chain.
+Value one place, conviction everywhere.`,
       card: { type: "ethsol" },
     };
   },
@@ -2165,6 +2164,10 @@ const NO_ROTATE = new Set(["drawdown", "risk", "kraken", "dcaladder", "marketcap
 // 290 instant-read ceiling (see the post-length test). Default stays 290 for EVERY other card;
 // these opt into a higher xLen cap, accepting X's in-timeline "See more" fold because the reader
 // of a deep-dive WANTS the detail. Keep this list tiny — most cards must read at a glance.
+// NOTE (owner, 2026-08): the ~290 "See more" cap was REMOVED — the account is verified (X Premium
+// long-form), and rich/honest copy is the moat. The post-length test now only enforces a generous
+// 2000-char SANITY ceiling. This map is kept for documentation of the genuinely long teaching cards;
+// it no longer needs new entries just to clear a style cap.
 export const LONGFORM = { spxcohort: 700, cexflow: 600, hodlcompare: 340 };
 
 // Owner-editable rotation exclusions — cards kept BUILDABLE + visible in the control
