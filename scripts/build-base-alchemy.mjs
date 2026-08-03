@@ -48,15 +48,19 @@ export function applyTransfers(cohort, transfers, { threshold = THRESH } = {}) {
 }
 
 // ---- Alchemy fetch ----
+const sleep = ms => new Promise(res => setTimeout(res, ms));
+const PAGE_MS = Number(process.env.BASE_PAGE_MS || 500);   // throttle between pages to stay under Alchemy's ~330 CU/s
+// getAssetTransfers ≈ 150 CU, so ≤ ~2 req/s. A full-history pull is ~6k pages → slow but never 429.
 async function rpc(method, params) {
-  for (let a = 0; a < 6; a++) {
+  for (let a = 0; a < 8; a++) {
     try {
       const r = await fetch(RPC(), { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: 1, jsonrpc: "2.0", method, params }) });
-      if (r.status === 429 || r.status >= 500) throw new Error(`http ${r.status}`);
+      if (r.status === 429) throw Object.assign(new Error("http 429"), { rl: true });
+      if (r.status >= 500) throw new Error(`http ${r.status}`);
       const j = await r.json();
       if (j.error) throw new Error(j.error.message || "rpc error");
       return j.result;
-    } catch (e) { if (a === 5) throw e; await new Promise(res => setTimeout(res, 400 * 2 ** a)); }
+    } catch (e) { if (a === 7) throw e; await sleep(e.rl ? Math.min(30000, 2000 * 2 ** a) : 500 * 2 ** a); }  // longer backoff on rate-limit
   }
 }
 
@@ -82,6 +86,7 @@ async function streamTransfers(fromBlock, onBatch, onPage) {
     for (const t of (res?.transfers || [])) { const d = decodeTransfer(t); if (d) { batch.push(d); if (d.block > maxBlock) maxBlock = d.block; } }
     onBatch(batch); total += batch.length;
     pageKey = res?.pageKey; onPage?.(++pages, total);
+    if (pageKey) await sleep(PAGE_MS);   // throttle so a big --full pull never trips Alchemy's 429
   } while (pageKey);
   return { maxBlock, total };
 }
