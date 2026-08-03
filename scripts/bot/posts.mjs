@@ -962,6 +962,48 @@ Barely anyone is selling. That's a store-of-value profile, not a trade.`,
     };
   },
 
+  // Do bigger holders hold longer? Median holding age by balance tier, per chain.
+  () => {
+    const d = ethSol2026Data();
+    if (!d?.eth?.tiers) return null;
+    const mo = c => Math.round(c.tiers[3][1] / 30);
+    return {
+      id: "baltier",
+      text: ct`📊 Do bigger SPX6900 wallets hold longer? Mostly yes — conviction climbs with position size.
+Median holding age of the 1M+ tier: ${mo(d.base)} months on Base, ${mo(d.eth)} on Ethereum. Across the board the biggest wallets have held the longest — the whales are the diamond hands.
+Size and conviction move together.`,
+      card: { type: "baltier" },
+    };
+  },
+
+  // The cross-chain maxis — wallets holding ≥5k SPX on BOTH Ethereum and Base.
+  () => {
+    const d = ethSol2026Data();
+    if (!d?.dual?.n) return null;
+    const fM = n => n >= 1e6 ? (n / 1e6).toFixed(1) + "M" : Math.round(n / 1e3) + "k";
+    return {
+      id: "dualholders",
+      text: ct`🔗 ${d.dual.n} wallets hold 5k+ SPX6900 on BOTH Ethereum and Base — the cross-chain maxis.
+The same people, doubling down across chains: ${fM(d.dual.ethHeld)} on Ethereum + ${fM(d.dual.baseHeld)} on Base between them. Ethereum and Base share address space, so we can prove it's literally the same wallets.
+Conviction that spans chains.`,
+      card: { type: "dualholders" },
+    };
+  },
+
+  // Base survivorship — how many of the ever-≥5k Base cohort are left, and when the rest walked.
+  () => {
+    const d = ethSol2026Data();
+    if (!d?.baseSurv?.exitTimeline?.length) return null;
+    const s = d.baseSurv, ever = s.holders + s.exited;
+    return {
+      id: "basesurv",
+      text: ct`🪦 ${(100 - s.survivalPct).toFixed(0)}% of the wallets that ever held 5k+ SPX6900 on Base have left — ${s.survivalPct.toFixed(0)}% held on.
+${s.exited.toLocaleString()} of ${ever.toLocaleString()} ever-5k Base wallets dropped below the bar. Enormous churn, a small iron core — the same survivorship the diamond-hands cards show, now on Base.
+Most leave. The few who stay, stay hard.`,
+      card: { type: "basesurv" },
+    };
+  },
+
   // What the whale COHORT did — the question HODL waves get asked and cannot answer.
   // Waves say supply sat still; they say nothing about who ended up holding it. Data-
   // gated on the whale fields the FIFO reconstruction emits.
@@ -2245,7 +2287,7 @@ const LOOK = {
   model: "scatter",
   monthlyreturns: "heatmap", monthlyreturnssp: "heatmap", monthlyreturnsbtc: "heatmap",
   hodlwaves: "stack", hodlcompare: "stack", walletgrowth: "stack", lthsth: "stack", valband: "dual", cexvenues: "stack",
-  timeinband: "bars", monthlybars: "bars", monthcompare: "bars", multichain: "bars", urpd: "bars", urpdage: "bars", cexvenflow: "bars", ethsol: "bars", chainconc: "bars", illiquid: "stack",
+  timeinband: "bars", monthlybars: "bars", monthcompare: "bars", multichain: "bars", urpd: "bars", urpdage: "bars", cexvenflow: "bars", ethsol: "bars", chainconc: "bars", illiquid: "stack", baltier: "bars", dualholders: "stack", basesurv: "bars",
   fngdial: "round", distribution: "round",
   marketcap: "blocks", milestones: "blocks", sp500: "blocks",
   dca: "dca",

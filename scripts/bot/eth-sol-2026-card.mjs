@@ -115,10 +115,12 @@ if (process.argv[1] && import.meta.url.endsWith(process.argv[1].split("/").pop()
     const LTH = 155;   // Glassnode long-term-holder / illiquid threshold (days)
     const med = a => { const s = [...a].sort((x, y) => x - y); return s[Math.floor(s.length / 2)]; };
     // Per-chain wallet list [{bal,days}] → every metric derived uniformly.
+    const TIERS = [[5e3, 25e3], [25e3, 1e5], [1e5, 1e6], [1e6, 1e12]];   // 5-25k, 25-100k, 100k-1M, 1M+
+    const tiersOf = W => TIERS.map(([lo, hi]) => { const t = W.filter(w => w.bal >= lo && w.bal < hi); return [t.length, t.length ? med(t.map(w => w.days)) : 0]; });
     const tl = JSON.parse(readFileSync(new URL("public/spx-timeline.json", root), "utf8"));
     const lastW = tl.n - 1; const ethW = [];
-    for (const w of tl.wallets) { const b = balanceAt(w.p, lastW); if (b < 5000) continue; let f = lastW; for (let k = 0; k < tl.n; k++) { if (balanceAt(w.p, k) >= 5000) { f = k; break; } } ethW.push({ bal: b, days: (lastW - f) * 7 }); }
-    const jsonW = file => { const d = JSON.parse(readFileSync(new URL(`public/${file}`, root), "utf8")); return { W: d.wallets.map(w => ({ bal: w.bal, days: w.days })), updated: d.updated }; };
+    for (const w of tl.wallets) { const b = balanceAt(w.p, lastW); if (b < 5000) continue; let f = lastW; for (let k = 0; k < tl.n; k++) { if (balanceAt(w.p, k) >= 5000) { f = k; break; } } ethW.push({ a: w.a.toLowerCase(), bal: b, days: (lastW - f) * 7 }); }
+    const jsonW = file => { const d = JSON.parse(readFileSync(new URL(`public/${file}`, root), "utf8")); return { doc: d, W: d.wallets.map(w => ({ a: w.a.toLowerCase(), bal: w.bal, days: w.days })), updated: d.updated }; };
     const solD = jsonW("solana-onchain.json"), baseD = jsonW("base-onchain.json");
     const metrics = W => {
       const held = W.reduce((s, w) => s + w.bal, 0), tot = held || 1, ages = W.map(w => w.days);
@@ -126,13 +128,19 @@ if (process.argv[1] && import.meta.url.endsWith(process.argv[1].split("/").pop()
       const bySupply = pred => +(W.filter(pred).reduce((s, w) => s + w.bal, 0) / tot * 100).toFixed(1);
       const conc = [1, 10, 50].map(k => +([...W].sort((a, b) => b.bal - a.bal).slice(0, k).reduce((s, w) => s + w.bal, 0) / tot * 100).toFixed(1));
       return { n: W.length, held: Math.round(held), medAge: med(ages), hist: hist.map(n => +(n / W.length * 100).toFixed(2)),
-        conc, waves: WBANDS.map(([lo, hi]) => bySupply(w => w.days >= lo && w.days < hi)), illiquid: bySupply(w => w.days >= LTH) };
+        conc, waves: WBANDS.map(([lo, hi]) => bySupply(w => w.days >= lo && w.days < hi)), illiquid: bySupply(w => w.days >= LTH), tiers: tiersOf(W) };
     };
     const eth = metrics(ethW), sol = metrics(solD.W), base = metrics(baseD.W);
-    const line = (k, m) => `  ${k}: { n: ${m.n}, held: ${m.held}, medAge: ${m.medAge}, illiquid: ${m.illiquid}, hist: ${JSON.stringify(m.hist)}, conc: ${JSON.stringify(m.conc)}, waves: ${JSON.stringify(m.waves)} },`;
-    const body = `// GENERATED - SPX6900 holders across ETH/Solana/Base (current snapshot + true holder ages).\n// ETH from spx-timeline.json; Solana from solana-onchain.json; Base from base-onchain.json (Alchemy cohort).\n// Regenerate: node scripts/bot/eth-sol-2026-card.mjs --bundle · hist=% per ${BIN}-day age bin · conc=[top1,10,50]%\n// · waves=[0-1m,1-3m,3-6m,6-12m,1y+]% of ≥5k SUPPLY by age · illiquid=% of supply held >${LTH}d (LTH).\nexport const ETH_SOL_2026 = {\n  updated: ${JSON.stringify(baseD.updated)}, binDays: ${BIN}, wbands: ["<1m","1-3m","3-6m","6-12m","1y+"],\n${line("eth", eth)}\n${line("sol", sol)}\n${line("base", base)}\n};\n`;
+    // ETH ∩ Base dual-holders (shared EVM address space) — the cross-chain maxis
+    const ethMap = new Map(ethW.map(w => [w.a, w.bal]));
+    const dl = baseD.W.filter(w => ethMap.has(w.a)).map(w => ({ a: w.a, eth: ethMap.get(w.a), base: w.bal })).sort((a, b) => (b.eth + b.base) - (a.eth + a.base));
+    const dual = { n: dl.length, ethHeld: Math.round(dl.reduce((s, d) => s + d.eth, 0)), baseHeld: Math.round(dl.reduce((s, d) => s + d.base, 0)), top: dl.slice(0, 6).map(d => [d.a, Math.round(d.eth), Math.round(d.base)]) };
+    // Base survival/exits straight from the cohort doc
+    const bs = baseD.doc, baseSurv = { holders: bs.holders, exited: bs.exited, survivalPct: bs.survivalPct, exitTimeline: bs.exitTimeline || [] };
+    const line = (k, m) => `  ${k}: { n: ${m.n}, held: ${m.held}, medAge: ${m.medAge}, illiquid: ${m.illiquid}, hist: ${JSON.stringify(m.hist)}, conc: ${JSON.stringify(m.conc)}, waves: ${JSON.stringify(m.waves)}, tiers: ${JSON.stringify(m.tiers)} },`;
+    const body = `// GENERATED - SPX6900 holders across ETH/Solana/Base (current snapshot + true holder ages).\n// ETH from spx-timeline.json; Solana from solana-onchain.json; Base from base-onchain.json (Alchemy cohort).\n// Regenerate: node scripts/bot/eth-sol-2026-card.mjs --bundle · hist=% per ${BIN}-day age bin · conc=[top1,10,50]%\n// · waves=% of ≥5k SUPPLY by age · illiquid=% held >${LTH}d · tiers=[[n,medAge]] by balance band · dual=ETH∩Base maxis.\nexport const ETH_SOL_2026 = {\n  updated: ${JSON.stringify(baseD.updated)}, binDays: ${BIN}, wbands: ["<1m","1-3m","3-6m","6-12m","1y+"], tierBands: ["5-25k","25-100k","100k-1M","1M+"],\n${line("eth", eth)}\n${line("sol", sol)}\n${line("base", base)}\n  dual: ${JSON.stringify(dual)},\n  baseSurv: ${JSON.stringify(baseSurv)},\n};\n`;
     writeFileSync(new URL("scripts/bot/eth-sol-2026.js", root), body);
-    console.log(`bundle: illiquid ETH ${eth.illiquid}% · SOL ${sol.illiquid}% · BASE ${base.illiquid}%`);
+    console.log(`bundle: illiquid ETH ${eth.illiquid}% · dual-holders ${dual.n} · base survival ${baseSurv.survivalPct}%`);
   }
   if (arg.out) { writeFileSync(arg.out, renderEthSol2026Card({})); console.log("rendered", arg.out); }
 }
