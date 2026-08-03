@@ -37,23 +37,34 @@ export function parseBalances(text, scale) {
   return rows;
 }
 
+// LP / CEX / bridge / treasury addresses to EXCLUDE — same idea as ETH's EXCLUDE_LABELS: "residents"
+// must be people, not Raydium/Orca pools or exchange hot wallets. Fill from Solscan
+// (solscan.io/account/<addr>); the ≥5k CSV's big + high-churn wallets are the prime suspects (LPs and
+// CEX hot wallets churn constantly). kind ∈ cex | lp | bridge | treasury.
+export const SOLANA_EXCLUDE = {
+  // "5Q544fKrFoe6tsEbD7S8EmxGTJYAKtTVhAW5Q5pge4j1": { kind: "cex", name: "" },
+};
+
 // Per-owner resident record: latest balance, holder age (since first appearance in the ≥5k data),
 // and net-flow over the trailing window. Owners whose latest balance is below the bar are dropped
-// (they've since exited; the live RPC balance is the source of truth for "current" anyway).
-export function residents(rows, { threshold = 5000, nowTs, flowDays = 30 } = {}) {
+// (they've since exited; the live RPC balance is the source of truth for "current" anyway), and
+// tagged LP/CEX/bridge/treasury owners are stripped so the borough is only real holders.
+export function residents(rows, { threshold = 5000, nowTs, flowDays = 30, exclude = SOLANA_EXCLUDE } = {}) {
   const byOwner = new Map();
   for (const r of rows) { let a = byOwner.get(r.owner); if (!a) { a = []; byOwner.set(r.owner, a); } a.push(r); }
   const flowCut = nowTs - flowDays * DAY;
-  const out = [];
+  const out = []; let exBal = 0;
   for (const [owner, rs] of byOwner) {
     rs.sort((a, b) => a.ts - b.ts);
     const bal = rs[rs.length - 1].bal;
+    if (exclude[owner]) { exBal += bal >= threshold ? bal : 0; continue; }   // LP/CEX/bridge — not a resident
     if (bal < threshold) continue;
     const days = Math.max(0, Math.round((nowTs - rs[0].ts) / DAY));  // ⚠ floored by the slice's start until full history lands
     let past = 0; for (const r of rs) { if (r.ts <= flowCut) past = r.bal; else break; }
     out.push({ a: owner, bal: Math.round(bal), days, flow: Math.round(bal - past) });
   }
   out.sort((a, b) => b.bal - a.bal);
+  out.excludedSupply = Math.round(exBal);   // ≥5k supply stripped as LP/CEX/bridge (for transparency)
   return out;
 }
 
@@ -74,13 +85,15 @@ function main() {
   const firstDay = new Date(Math.min(...rows.map(r => r.ts))).toISOString().slice(0, 10);
   const doc = {
     v: 1, updated: new Date(now).toISOString().slice(0, 10), chain: "solana", source: "dune solana_utils.daily_balances",
-    threshold, sliceFrom: firstDay, note: "phase-1 residents (≥5k); ages floored by sliceFrom until full history",
+    threshold, sliceFrom: firstDay, excludedSupply: wallets.excludedSupply, excluded: Object.keys(SOLANA_EXCLUDE).length,
+    note: "phase-1 residents (≥5k); ages floored by sliceFrom until full history",
     wallets,
   };
   mkdirSync(dirname(outPath), { recursive: true });
   writeFileSync(outPath, JSON.stringify(doc));
   const held = wallets.reduce((s, w) => s + w.bal, 0);
-  console.log(`✓ ${outPath} — ${wallets.length} residents ≥${threshold} · held ${(held / 1e6).toFixed(1)}M SPX · slice from ${firstDay}`);
+  console.log(`✓ ${outPath} — ${wallets.length} residents ≥${threshold} · held ${(held / 1e6).toFixed(1)}M SPX · slice from ${firstDay}`
+    + (wallets.excludedSupply ? ` · excluded ${(wallets.excludedSupply / 1e6).toFixed(1)}M (${Object.keys(SOLANA_EXCLUDE).length} LP/CEX)` : ""));
   console.log(`  top: ${wallets.slice(0, 3).map(w => `${w.a.slice(0, 4)}…=${(w.bal / 1e3).toFixed(0)}k`).join(" · ")}`);
 }
 
