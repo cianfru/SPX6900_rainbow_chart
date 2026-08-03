@@ -78,10 +78,10 @@ export const FEEDS = [
   // ≥5k day. cadence 9 mirrors ETH onchain.json. Rows live under `.wallets`, so nonEmpty confirms it.
   { file: "solana-onchain.json", cadence: 9, by: "solana-onchain.yml", what: "SPX-on-Solana ≥5k residents (age/flow)",
     nonEmpty: ["wallets"] },
-  // SPX-on-Base ≥5k residents. Daily via base-onchain.yml: a keyless Blockscout holders-endpoint
-  // snapshot (dust-immune ≥5k cohort) appended to the committed archive; ages accrue forward until the
-  // targeted history seed backfills. cadence 9 mirrors the others. Rows under `.wallets`.
-  { file: "base-onchain.json", cadence: 9, by: "base-onchain.yml", what: "SPX-on-Base ≥5k residents",
+  // SPX-on-Base ≥5k cohort (holders + exits + real ages/survival). Daily via base-onchain.yml: an
+  // Alchemy getAssetTransfers DELTA replayed onto the committed cohort (dune/out/spx6900_base_cohort.csv),
+  // full ETH/Solana parity. cadence 9 mirrors the others. Current holders under `.wallets`.
+  { file: "base-onchain.json", cadence: 9, by: "base-onchain.yml", what: "SPX-on-Base ≥5k cohort (ages/exits/survival)",
     nonEmpty: ["wallets"] },
 
   // ── other schedules ─────────────────────────────────────────────────────────
