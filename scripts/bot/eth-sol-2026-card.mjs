@@ -127,7 +127,8 @@ if (process.argv[1] && import.meta.url.endsWith(process.argv[1].split("/").pop()
       const hist = new Array(NBINS).fill(0); for (const d of ages) hist[Math.min(NBINS - 1, Math.floor(d / BIN))]++;
       const bySupply = pred => +(W.filter(pred).reduce((s, w) => s + w.bal, 0) / tot * 100).toFixed(1);
       const conc = [1, 10, 50].map(k => +([...W].sort((a, b) => b.bal - a.bal).slice(0, k).reduce((s, w) => s + w.bal, 0) / tot * 100).toFixed(1));
-      const curve = Array.from({ length: NBINS + 1 }, (_, i) => bySupply(w => w.days >= i * BIN));   // % of supply held ≥ i·30 days
+      const CBIN = 7, CN = Math.ceil(1100 / CBIN) + 1;   // weekly steps → a smooth tenure curve
+      const curve = Array.from({ length: CN }, (_, i) => bySupply(w => w.days >= i * CBIN));   // % of supply in ≥5k wallets whose tenure ≥ i·7 days
       return { n: W.length, held: Math.round(held), medAge: med(ages), hist: hist.map(n => +(n / W.length * 100).toFixed(2)),
         conc, waves: WBANDS.map(([lo, hi]) => bySupply(w => w.days >= lo && w.days < hi)), illiquid: bySupply(w => w.days >= LTH), tiers: tiersOf(W), curve };
     };
@@ -139,7 +140,7 @@ if (process.argv[1] && import.meta.url.endsWith(process.argv[1].split("/").pop()
     // Base survival/exits straight from the cohort doc
     const bs = baseD.doc, baseSurv = { holders: bs.holders, exited: bs.exited, survivalPct: bs.survivalPct, exitTimeline: bs.exitTimeline || [] };
     const line = (k, m) => `  ${k}: { n: ${m.n}, held: ${m.held}, medAge: ${m.medAge}, illiquid: ${m.illiquid}, hist: ${JSON.stringify(m.hist)}, conc: ${JSON.stringify(m.conc)}, waves: ${JSON.stringify(m.waves)}, tiers: ${JSON.stringify(m.tiers)}, curve: ${JSON.stringify(m.curve)} },`;
-    const body = `// GENERATED - SPX6900 holders across ETH/Solana/Base (current snapshot + true holder ages).\n// ETH from spx-timeline.json; Solana from solana-onchain.json; Base from base-onchain.json (Alchemy cohort).\n// Regenerate: node scripts/bot/eth-sol-2026-card.mjs --bundle · hist=% per ${BIN}-day age bin · conc=[top1,10,50]%\n// · waves=% of ≥5k SUPPLY by age · illiquid=% held >${LTH}d · tiers=[[n,medAge]] by balance band · dual=ETH∩Base maxis.\nexport const ETH_SOL_2026 = {\n  updated: ${JSON.stringify(baseD.updated)}, binDays: ${BIN}, wbands: ["<1m","1-3m","3-6m","6-12m","1y+"], tierBands: ["5-25k","25-100k","100k-1M","1M+"],\n${line("eth", eth)}\n${line("sol", sol)}\n${line("base", base)}\n  dual: ${JSON.stringify(dual)},\n  baseSurv: ${JSON.stringify(baseSurv)},\n};\n`;
+    const body = `// GENERATED - SPX6900 holders across ETH/Solana/Base (current snapshot + true holder ages).\n// ETH from spx-timeline.json; Solana from solana-onchain.json; Base from base-onchain.json (Alchemy cohort).\n// Regenerate: node scripts/bot/eth-sol-2026-card.mjs --bundle · hist=% per ${BIN}-day age bin · conc=[top1,10,50]%\n// · waves=% of ≥5k SUPPLY by age · illiquid=% held >${LTH}d · tiers=[[n,medAge]] by balance band · dual=ETH∩Base maxis.\nexport const ETH_SOL_2026 = {\n  updated: ${JSON.stringify(baseD.updated)}, binDays: ${BIN}, curveDays: 7, wbands: ["<1m","1-3m","3-6m","6-12m","1y+"], tierBands: ["5-25k","25-100k","100k-1M","1M+"],\n${line("eth", eth)}\n${line("sol", sol)}\n${line("base", base)}\n  dual: ${JSON.stringify(dual)},\n  baseSurv: ${JSON.stringify(baseSurv)},\n};\n`;
     writeFileSync(new URL("scripts/bot/eth-sol-2026.js", root), body);
     console.log(`bundle: illiquid ETH ${eth.illiquid}% · dual-holders ${dual.n} · base survival ${baseSurv.survivalPct}%`);
   }
