@@ -26,7 +26,11 @@ const addrFromTopic = t => "0x" + String(t).slice(-40).toLowerCase();   // last 
 // value kept RAW (BigInt string, exact); time as ISO. Pure → unit-tested.
 export function decodeLog(log) {
   const topics = log?.topics;
-  if (!Array.isArray(topics) || topics.length !== 3 || String(topics[0]).toLowerCase() !== TRANSFER) return null;
+  // Blockscout returns a 4-slot topics array null-padded: ERC-20 Transfer = [sig, from, to, null];
+  // ERC-721 = [sig, from, to, tokenId]. So require sig + from + to, and reject a non-null topics[3].
+  if (!Array.isArray(topics) || topics.length < 3) return null;
+  if (String(topics[0]).toLowerCase() !== TRANSFER || topics[1] == null || topics[2] == null) return null;
+  if (topics[3] != null) return null;   // ERC-721 (indexed tokenId) — not our ERC-20
   let value; try { value = BigInt(log.data).toString(); } catch { return null; }
   const tsNum = Number(log.timeStamp);                    // Blockscout returns hex "0x.." or decimal — Number handles both
   if (!Number.isFinite(tsNum)) return null;
