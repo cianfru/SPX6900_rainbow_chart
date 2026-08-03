@@ -1,8 +1,8 @@
-// "SPX6900 — illiquid supply by chain" — the store-of-value headline. Each chain's ≥5k supply split by
-// holder age (HODL-wave bands, fresh→old), with the ILLIQUID share (held >155d, the Glassnode LTH
-// standard) called out. The finding: SPX is 90-97% illiquid on EVERY chain — barely any of the
-// self-custody supply has moved in over 5 months. Base is highest (whale + long-term holders). A
-// distribution POSITION, not a signal. Reads the shared ETH_SOL_2026 bundle (waves[] + illiquid).
+// "SPX6900 — long-term holder supply by chain" — the store-of-value headline. Each chain's ≥5k supply
+// split by holding TENURE (HODL-wave bands, fresh→old), with the long-term-holder share (wallets that
+// have held a ≥5k position >155d, the Glassnode LTH threshold) called out. NOTE: this is TENURE (time
+// since a wallet first crossed 5k), NOT coin dormancy — a long-tenure wallet may still trade within the
+// tier. 90-97% on every chain (Base highest: whale + old holders). Reads ETH_SOL_2026 (waves[] + illiquid).
 import { Resvg } from "@resvg/resvg-js";
 import { FONT } from "./font.mjs";
 import { esc } from "./svg-util.mjs";
@@ -37,7 +37,7 @@ export function chainIlliquidSvg(d, opts = {}) {
     });
     // illiquid callout above the bar + chain label below
     bars += `<text x="${bx + bw / 2}" y="${mT - 46}" fill="#22d3ee" font-size="40" font-weight="800" text-anchor="middle" font-family="sans-serif">${c.illiquid.toFixed(0)}%</text>`
-      + `<text x="${bx + bw / 2}" y="${mT - 22}" fill="#8ea3b8" font-size="17" text-anchor="middle" font-family="sans-serif">illiquid</text>`
+      + `<text x="${bx + bw / 2}" y="${mT - 22}" fill="#8ea3b8" font-size="17" text-anchor="middle" font-family="sans-serif">held 155d+</text>`
       + `<text x="${bx + bw / 2}" y="${(mT + pH + 34).toFixed(1)}" fill="#e2e8f0" font-size="23" font-weight="700" text-anchor="middle" font-family="sans-serif">${esc(c.label)}</text>`
       + `<text x="${bx + bw / 2}" y="${(mT + pH + 58).toFixed(1)}" fill="#8592a6" font-size="16" text-anchor="middle" font-family="sans-serif">${(c.held / 1e6).toFixed(0)}M · ${c.n.toLocaleString()} wallets</text>`;
   });
@@ -48,9 +48,9 @@ export function chainIlliquidSvg(d, opts = {}) {
 <defs><linearGradient id="ilbg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#0b0b16"/><stop offset="100%" stop-color="#05050e"/></linearGradient></defs>
 <rect width="${W}" height="${H}" fill="url(#ilbg)"/>
 ${brandStripe(H)}
-<text x="60" y="56" fill="#f8fafc" font-size="38" font-weight="800" font-family="sans-serif" letter-spacing="1">SPX6900 — ILLIQUID SUPPLY BY CHAIN</text>
-<text x="60" y="98" fill="#22d3ee" font-size="27" font-weight="800" font-family="sans-serif">90-97% of supply hasn't moved in 5 months — on every chain</text>
-<text x="60" y="130" fill="#93a3b8" font-size="19" font-family="sans-serif">${esc("each chain's 5k+ self-custody supply by holder age · illiquid = held over 155 days (the LTH line)")}</text>
+<text x="60" y="56" fill="#f8fafc" font-size="36" font-weight="800" font-family="sans-serif" letter-spacing="1">SPX6900 — LONG-TERM HOLDER SUPPLY BY CHAIN</text>
+<text x="60" y="98" fill="#22d3ee" font-size="27" font-weight="800" font-family="sans-serif">90-97% of supply sits with long-term holders — on every chain</text>
+<text x="60" y="130" fill="#93a3b8" font-size="19" font-family="sans-serif">${esc("each chain's 5k+ self-custody supply by holding tenure · LTH = held a 5k+ position over 155 days")}</text>
 ${bars}${legend}
 <text x="60" y="${H - 20}" fill="#8592a6" font-size="18" font-family="sans-serif">${esc("spx6900rainbow.xyz · not financial advice · wallets over 5,000 SPX, self-custody · infra excluded")}</text>
 </svg>`;

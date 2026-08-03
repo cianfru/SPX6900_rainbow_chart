@@ -14,7 +14,7 @@ const CHAINS = [{ key: "eth", label: "Ethereum", color: "#98a2b7" }, { key: "sol
 export function supplyCurveData() { const d = ETH_SOL_2026; return d && CHAINS.every(c => d[c.key]?.curve?.length > 12) ? d : null; }
 
 export function supplyCurveSvg(d, opts = {}) {
-  const bin = d.binDays || 30;
+  const bin = d.curveDays || d.binDays || 30;
   const chains = CHAINS.map(c => ({ ...c, curve: d[c.key].curve, illiquid: d[c.key].illiquid }));
   const nP = Math.max(...chains.map(c => c.curve.length));
   const maxD = (nP - 1) * bin;
@@ -27,7 +27,7 @@ export function supplyCurveSvg(d, opts = {}) {
   for (const [dys, l] of [[0, "0"], [180, "6m"], [365, "1y"], [548, "18m"], [730, "2y"], [913, "30m"], [1095, "3y"]]) { if (dys > maxD) continue; xlab += `<line x1="${x(dys).toFixed(1)}" y1="${mT}" x2="${x(dys).toFixed(1)}" y2="${(mT + pH).toFixed(1)}" stroke="rgba(255,255,255,0.05)"/><text x="${x(dys).toFixed(1)}" y="${(mT + pH + 32).toFixed(1)}" fill="#94a3b8" font-size="21" text-anchor="middle" font-family="sans-serif">${l}</text>`; }
   // 155-day LTH / illiquid marker
   const lx = x(155);
-  const marker = `<line x1="${lx.toFixed(1)}" y1="${mT}" x2="${lx.toFixed(1)}" y2="${(mT + pH).toFixed(1)}" stroke="#22d3ee" stroke-width="1.5" stroke-dasharray="5 5" stroke-opacity="0.7"/><text x="${(lx + 6).toFixed(1)}" y="${(mT + 20).toFixed(1)}" fill="#22d3ee" font-size="16" font-family="sans-serif">155d — illiquid line</text>`;
+  const marker = `<line x1="${lx.toFixed(1)}" y1="${mT}" x2="${lx.toFixed(1)}" y2="${(mT + pH).toFixed(1)}" stroke="#22d3ee" stroke-width="1.5" stroke-dasharray="5 5" stroke-opacity="0.7"/><text x="${(lx + 6).toFixed(1)}" y="${(mT + 20).toFixed(1)}" fill="#22d3ee" font-size="16" font-family="sans-serif">155d · long-term</text>`;
 
   const lines = chains.map(c => {
     const pts = c.curve.map((v, i) => `${x(i * bin).toFixed(1)},${y(v).toFixed(1)}`).join(" ");
@@ -39,11 +39,11 @@ export function supplyCurveSvg(d, opts = {}) {
 <defs><linearGradient id="scbg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#0b0b16"/><stop offset="100%" stop-color="#05050e"/></linearGradient></defs>
 <rect width="${W}" height="${H}" fill="url(#scbg)"/>
 ${brandStripe(H)}
-<text x="60" y="56" fill="#f8fafc" font-size="37" font-weight="800" font-family="sans-serif" letter-spacing="1">SPX6900 — HOW STICKY IS THE SUPPLY</text>
-<text x="60" y="98" fill="#22d3ee" font-size="29" font-weight="800" font-family="sans-serif">90-97% held past the 155-day line — Base stays stickiest longest</text>
-<text x="60" y="130" fill="#93a3b8" font-size="19" font-family="sans-serif">${esc("% of each chain's 5k+ supply held AT LEAST this long · every chain starts at 100% and declines with age")}</text>
+<text x="60" y="56" fill="#f8fafc" font-size="38" font-weight="800" font-family="sans-serif" letter-spacing="1">SPX6900 — SUPPLY BY HOLDING TENURE</text>
+<text x="60" y="98" fill="#22d3ee" font-size="29" font-weight="800" font-family="sans-serif">90-97% of supply is in holders past the 155-day mark — Base longest</text>
+<text x="60" y="130" fill="#93a3b8" font-size="19" font-family="sans-serif">${esc("% of each chain's 5k+ supply in wallets that have held the tier at least this long · holding tenure, not dormancy")}</text>
 ${grid}${xlab}${marker}${lines}${legend}
-<text x="60" y="${H - 20}" fill="#8592a6" font-size="18" font-family="sans-serif">${esc("spx6900rainbow.xyz · not financial advice · wallets over 5,000 SPX, self-custody · infra excluded · younger chains cut off sooner")}</text>
+<text x="60" y="${H - 20}" fill="#8592a6" font-size="18" font-family="sans-serif">${esc("spx6900rainbow.xyz · not financial advice · ≥5k self-custody · infra excluded · tenure = time since first crossing 5k")}</text>
 </svg>`;
 }
 export function renderSupplyCurveCard(_stats, opts = {}) { const d = supplyCurveData(); return d ? png(supplyCurveSvg(d, { W: opts.W, H: opts.H }), opts.W ?? 1200) : null; }

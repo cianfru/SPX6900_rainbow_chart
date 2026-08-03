@@ -955,9 +955,9 @@ Solana is the most spread — the retail chain. Base rides on a whale.`,
     if (d?.base?.illiquid == null) return null;
     return {
       id: "illiquid",
-      text: ct`💎 90-97% of SPX6900's held supply hasn't moved in five months — on every chain.
-Illiquid supply (self-custody, held over 155 days — the long-term-holder line): Ethereum ${d.eth.illiquid}%, Solana ${d.sol.illiquid}%, Base ${d.base.illiquid}%. On all three, roughly two-thirds to 86% of supply has sat over a YEAR.
-Barely anyone is selling. That's a store-of-value profile, not a trade.`,
+      text: ct`💎 90-97% of SPX6900's supply sits with long-term holders — on every chain.
+Long-term-holder supply (self-custody wallets that have held a 5k+ position over 155 days): Ethereum ${d.eth.illiquid}%, Solana ${d.sol.illiquid}%, Base ${d.base.illiquid}%. On all three, roughly two-thirds to 86% has held the tier over a YEAR.
+Deep, patient conviction — a store-of-value profile.`,
       card: { type: "illiquid" },
     };
   },
@@ -1010,9 +1010,9 @@ Most leave. The few who stay, stay hard.`,
     if (!d?.base?.curve) return null;
     return {
       id: "supplycurve",
-      text: ct`⏳ How sticky is SPX6900's supply? At every age, most of it is still held.
-The curve tracks the % of each chain's 5k+ supply held at least that long. All three sit at 90-97% past the 155-day long-term-holder line, and Base stays the stickiest deepest into age — its supply barely turns over.
-Held, and held, and held.`,
+      text: ct`⏳ How long has SPX6900's supply been held? At every tenure, most of it is still there.
+The curve tracks the % of each chain's 5k+ supply in wallets that have held the tier at least that long. All three sit at 90-97% past the 155-day long-term-holder mark, and Base's holders have held longest of all.
+Deep tenure, every chain.`,
       card: { type: "supplycurve" },
     };
   },
