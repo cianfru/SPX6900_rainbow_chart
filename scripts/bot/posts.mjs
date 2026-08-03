@@ -1004,6 +1004,19 @@ Most leave. The few who stay, stay hard.`,
     };
   },
 
+  // Supply age curve — the line-chart form of illiquid (% of supply held ≥ each age), 3 chains.
+  () => {
+    const d = ethSol2026Data();
+    if (!d?.base?.curve) return null;
+    return {
+      id: "supplycurve",
+      text: ct`⏳ How sticky is SPX6900's supply? At every age, most of it is still held.
+The curve tracks the % of each chain's 5k+ supply held at least that long. All three sit at 90-97% past the 155-day long-term-holder line, and Base stays the stickiest deepest into age — its supply barely turns over.
+Held, and held, and held.`,
+      card: { type: "supplycurve" },
+    };
+  },
+
   // What the whale COHORT did — the question HODL waves get asked and cannot answer.
   // Waves say supply sat still; they say nothing about who ended up holding it. Data-
   // gated on the whale fields the FIFO reconstruction emits.
@@ -2287,7 +2300,7 @@ const LOOK = {
   model: "scatter",
   monthlyreturns: "heatmap", monthlyreturnssp: "heatmap", monthlyreturnsbtc: "heatmap",
   hodlwaves: "stack", hodlcompare: "stack", walletgrowth: "stack", lthsth: "stack", valband: "dual", cexvenues: "stack",
-  timeinband: "bars", monthlybars: "bars", monthcompare: "bars", multichain: "bars", urpd: "bars", urpdage: "bars", cexvenflow: "bars", ethsol: "bars", chainconc: "bars", illiquid: "stack", baltier: "bars", dualholders: "stack", basesurv: "bars",
+  timeinband: "bars", monthlybars: "bars", monthcompare: "bars", multichain: "bars", urpd: "bars", urpdage: "bars", cexvenflow: "bars", ethsol: "bars", chainconc: "bars", illiquid: "stack", baltier: "bars", dualholders: "stack", basesurv: "bars", supplycurve: "race",
   fngdial: "round", distribution: "round",
   marketcap: "blocks", milestones: "blocks", sp500: "blocks",
   dca: "dca",
