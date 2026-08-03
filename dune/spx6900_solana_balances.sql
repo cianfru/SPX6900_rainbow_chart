@@ -29,9 +29,17 @@
 --   → public/solana-onchain.json (residents + age + flow). ⚠ ages are floored by the slice start
 --   (2026-01-01) until full history lands — expected, that's the phase-2 job.
 --
--- ── PHASE 2 — full history for cohort survival/exits (later): pull the ever-≥5k owners' FULL path ──
---   (drop the token_balance≥5k line; instead restrict to owners the phase-1 pass found ≥5k), so the
---   below-bar rows exist and exits become visible. Chunk month+day windows 2023-12-15 → today.
+-- ── PHASE 2 — FULL HISTORY for correct holder-AGES (backfill; we already have 2026) ──────────────
+-- ⚠⚠ 2-MINUTE EXECUTION WALL: daily_balances is 1.36 TB; a window that scans too many partitions runs
+--    past the 2-min free-engine wall → TIMES OUT *and still charges* (measured: a full-YEAR 2025 pull
+--    timed out and burned credits). QUARTERS (~90 days) stay under the wall; never a year. Run these 9
+--    chunks (LO→HI into {{month_lo/hi}} + {{day_lo/hi}}), each ~2-3 credits, download each via the
+--    browser, then CONCAT with the 2026 CSV you already have:
+--      2023-12-15→2024-03-15 · →06-15 · →09-15 · →12-15 · 2024-12-15→2025-03-15 · →06-15 · →09-15
+--      · →12-15 · 2025-12-15→2026-01-01
+--   Concatenated (with 2026) → build-solana-onchain.mjs → real ages across the full lifespan, and it
+--   SEEDS the daily-pipeline archive (solana-onchain.yml). PHASE 3 (exits/cohort survival) later needs
+--   the ever-≥5k owners' below-bar path — see the SUB-5k TAIL note at the bottom.
 SELECT
   token_balance_owner  AS owner,
   token_balance        AS balance,
