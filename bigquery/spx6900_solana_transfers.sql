@@ -1,3 +1,10 @@
+-- ❌❌ SUPERSEDED — DO NOT USE. Measured against the real table 2026-08: crypto_solana_mainnet_us's
+-- transfers table (real name `Token Transfers`, backtick-quoted) is NOT clustered by mint, so a mint
+-- filter prunes nothing — full-history dry-run = 30.62 TB. It also forces a block_timestamp filter and
+-- exposes ATAs (source/destination), not owner wallets. Even column-pruned + date-chunked it's several
+-- paid months. → Use Dune instead: dune/spx6900_solana_transfers.sql (mint-indexed + owner-resolved).
+-- Kept only as the record of why BigQuery is the wrong tool for a Solana mint-scoped extract.
+--
 -- SPX6900 on SOLANA — SPL transfer history for the city (holder AGE + recent NET-FLOW).
 -- Balance is NOT reconstructed here: we already pull per-wallet balances FREE from the Solana RPC
 -- (getProgramAccounts on the SPX mint, the daily headcount). So this query only supplies the two
