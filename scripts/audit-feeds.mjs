@@ -72,6 +72,10 @@ export const FEEDS = [
   // `.wallets` (not a shape rowsOf knows), so nonEmpty is what confirms the population is there.
   { file: "whales.json", cadence: 9, by: "onchain-dune.yml", what: "the wallets resident in Whale City",
     nonEmpty: ["wallets"] },
+  // SPX-on-Solana ≥5k residents (age/flow), reconstructed from Dune solana_utils.daily_balances.
+  // cadence 35 while it's still a manual pull; tightens to daily once solana-onchain.yml is seeded+live.
+  { file: "solana-onchain.json", cadence: 35, by: "solana-onchain.yml", what: "SPX-on-Solana ≥5k residents (age/flow)",
+    nonEmpty: ["wallets"] },
 
   // ── other schedules ─────────────────────────────────────────────────────────
   { file: "price-history.json", cadence: 9, by: "price-history.yml", what: "the dense daily price line" },
