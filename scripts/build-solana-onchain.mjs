@@ -54,26 +54,42 @@ export const SOLANA_EXCLUDE = {
   "5E2d6Z5FRe4584RTmJpyjg8yRtHG1YeorKbFSA1BpkPq": { kind: "infra", name: "untagged infra (Coinbase-funded, by TX pattern)" },
 };
 
-// Per-owner resident record: latest balance, holder age (since first appearance in the ≥5k data),
-// and net-flow over the trailing window. Owners whose latest balance is below the bar are dropped
-// (they've since exited; the live RPC balance is the source of truth for "current" anyway), and
-// tagged LP/CEX/bridge/treasury owners are stripped so the borough is only real holders.
-export function residents(rows, { threshold = 5000, nowTs, flowDays = 30, exclude = SOLANA_EXCLUDE } = {}) {
+// Per-owner resident record: current balance, holder age (since first ≥threshold day), net-flow.
+//
+// TWO membership models. A ≥5k change-log NEVER records a drop BELOW the bar (that row is filtered
+// out at the source), so "latest balance forward-filled" would count everyone who was EVER ≥5k and
+// last recorded ≥5k — a big overcount of exiters. So when the archive's latest day is a DENSE
+// snapshot (the daily public-RPC pull records EVERY current ≥5k owner), pass `currentDay`: a wallet
+// is a resident iff it appears in that snapshot. Age still comes from the FULL history (first ≥5k
+// day), so a long-quiet holder reads its true age, not 0. Without `currentDay` the legacy forward-
+// fill applies (used by the unit fixtures). Tagged LP/CEX/MM owners are always stripped.
+export function residents(rows, { threshold = 5000, nowTs, flowDays = 30, exclude = SOLANA_EXCLUDE, currentDay = null } = {}) {
   const byOwner = new Map();
   for (const r of rows) { let a = byOwner.get(r.owner); if (!a) { a = []; byOwner.set(r.owner, a); } a.push(r); }
-  const flowCut = nowTs - flowDays * DAY;
+  const dayStr = ts => new Date(ts).toISOString().slice(0, 10);
+  const curDayStr = currentDay ? String(currentDay).slice(0, 10) : null;
+  const refTs = curDayStr ? Date.parse(curDayStr) : nowTs;   // age/flow measured as of the snapshot day
+  const flowCut = refTs - flowDays * DAY;
   const out = []; let exBal = 0;
   for (const [owner, rs] of byOwner) {
     rs.sort((a, b) => a.ts - b.ts);
-    const bal = rs[rs.length - 1].bal;
-    if (exclude[owner]) { exBal += bal >= threshold ? bal : 0; continue; }   // LP/CEX/bridge — not a resident
+    let bal;
+    if (curDayStr) {
+      const onDay = rs.filter(r => dayStr(r.ts) === curDayStr);   // membership: present in the dense snapshot
+      if (!onDay.length) continue;                                // absent → not ≥5k now (exited)
+      bal = onDay[onDay.length - 1].bal;
+    } else {
+      bal = rs[rs.length - 1].bal;                                // legacy forward-fill
+    }
+    if (exclude[owner]) { exBal += bal >= threshold ? bal : 0; continue; }   // LP/CEX/MM — not a resident
     if (bal < threshold) continue;
-    const days = Math.max(0, Math.round((nowTs - rs[0].ts) / DAY));  // ⚠ floored by the slice's start until full history lands
+    const firstQual = rs.find(r => r.bal >= threshold) || rs[0];  // true first ≥threshold day = holder age anchor
+    const days = Math.max(0, Math.round((refTs - firstQual.ts) / DAY));
     let past = 0; for (const r of rs) { if (r.ts <= flowCut) past = r.bal; else break; }
     out.push({ a: owner, bal: Math.round(bal), days, flow: Math.round(bal - past) });
   }
   out.sort((a, b) => b.bal - a.bal);
-  out.excludedSupply = Math.round(exBal);   // ≥5k supply stripped as LP/CEX/bridge (for transparency)
+  out.excludedSupply = Math.round(exBal);   // ≥5k supply stripped as LP/CEX/MM (for transparency)
   return out;
 }
 
@@ -90,12 +106,15 @@ function main() {
   const med = rows.map(r => r.bal).sort((a, b) => a - b)[Math.floor(rows.length / 2)];
   if (med > 1e7 || med < 1e-2) console.warn(`⚠ median balance ${med} looks mis-scaled — check --decimals/--scale against a known wallet`);
 
-  const wallets = residents(rows, { threshold, nowTs: now, flowDays: 30 });
+  // Latest day in the archive = the dense RPC snapshot → current residency; full history → ages.
+  const maxDay = rows.reduce((m, r) => { const d = new Date(r.ts).toISOString().slice(0, 10); return d > m ? d : m; }, "");
+  const currentDay = arg("current", null) || maxDay;
+  const wallets = residents(rows, { threshold, nowTs: now, flowDays: 30, currentDay });
   const firstDay = new Date(Math.min(...rows.map(r => r.ts))).toISOString().slice(0, 10);
   const doc = {
-    v: 1, updated: new Date(now).toISOString().slice(0, 10), chain: "solana", source: "public Solana RPC snapshot-forward + Dune daily_balances base",
+    v: 1, updated: currentDay, chain: "solana", source: "public Solana RPC snapshot (residency) + Dune daily_balances (full ≥5k history for ages)",
     threshold, sliceFrom: firstDay, excludedSupply: wallets.excludedSupply, excluded: Object.keys(SOLANA_EXCLUDE).length,
-    note: "phase-1 residents (≥5k); ages floored by sliceFrom until full history",
+    note: "residents = latest dense RPC snapshot; holder age = first ≥5k day over full history since launch",
     wallets,
   };
   mkdirSync(dirname(outPath), { recursive: true });
