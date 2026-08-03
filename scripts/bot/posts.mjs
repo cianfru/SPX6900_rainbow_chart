@@ -22,6 +22,7 @@ import { BTC_HODL } from "../../src/btc-hodl-waves.js";
 import { spxLiquidity, btcIlliquid } from "../../src/liquidity.js";
 import { wealthWavesStats } from "./wealth-waves-card.mjs";
 import { ethSol2026Data } from "./eth-sol-2026-card.mjs";
+import { whaleCensusStats } from "./whale-census-card.mjs";
 import { cexFlowStats } from "./cex-flow-card.mjs";
 
 // --- owner-editable post copy ---------------------------------------------
@@ -1014,6 +1015,20 @@ Most leave. The few who stay, stay hard.`,
 The curve tracks the % of each chain's 5k+ supply in wallets that have held the tier at least that long. All three sit at 90-97% past the 155-day long-term-holder mark, and Base's holders have held longest of all.
 Deep tenure, every chain.`,
       card: { type: "supplycurve" },
+    };
+  },
+
+  // The whale census — the city's population by size cohort (how many, how much, how long held).
+  () => {
+    const c = whaleCensusStats();
+    if (!c) return null;
+    const big = c.rows.at(-1), mid = c.rows.at(-2);
+    return {
+      id: "whalecensus",
+      text: ct`🐋 SPX6900's whale census: ${c.totN.toLocaleString()} wallets over 5k SPX, and the supply piles up at the top.
+Just ${c.mega.n} wallets (over 1M SPX each) hold ${(c.mega.s / 1e6).toFixed(0)}M — ${(c.mega.s / c.totSup * 100).toFixed(0)}% of all whale supply. The ${big.n} biggest (5M+) have held ${Math.round(big.medAge / 30)} months on average — the mega-whales are the oldest, stickiest hands.
+Few wallets, most of the weight.`,
+      card: { type: "whalecensus" },
     };
   },
 
@@ -2300,7 +2315,7 @@ const LOOK = {
   model: "scatter",
   monthlyreturns: "heatmap", monthlyreturnssp: "heatmap", monthlyreturnsbtc: "heatmap",
   hodlwaves: "stack", hodlcompare: "stack", walletgrowth: "stack", lthsth: "stack", valband: "dual", cexvenues: "stack",
-  timeinband: "bars", monthlybars: "bars", monthcompare: "bars", multichain: "bars", urpd: "bars", urpdage: "bars", cexvenflow: "bars", ethsol: "bars", chainconc: "bars", illiquid: "stack", baltier: "bars", dualholders: "stack", basesurv: "bars", supplycurve: "race",
+  timeinband: "bars", monthlybars: "bars", monthcompare: "bars", multichain: "bars", urpd: "bars", urpdage: "bars", cexvenflow: "bars", ethsol: "bars", chainconc: "bars", illiquid: "stack", baltier: "bars", dualholders: "stack", basesurv: "bars", supplycurve: "race", whalecensus: "bars",
   fngdial: "round", distribution: "round",
   marketcap: "blocks", milestones: "blocks", sp500: "blocks",
   dca: "dca",
