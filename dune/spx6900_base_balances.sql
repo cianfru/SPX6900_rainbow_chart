@@ -2,6 +2,10 @@
 -- of dune/spx6900_solana_balances.sql). Output shape is IDENTICAL: owner, balance, day → feeds the
 -- same reconstruction (build-*-onchain.mjs → residents: current balance, holder age, net-flow).
 --
+-- ⭐ PREFER THE FREE BIGQUERY TWIN: bigquery/spx6900_base_balances.sql does the same job on the public
+--   Base dataset for $0 (BigQuery's 1 TB/mo free scan) — no Dune credits. Base is EVM, so BigQuery is
+--   the natural cheap path (same as the ETH extract). This Dune version is the alternative/fallback.
+--
 -- ⭐ WHY THIS STAYS CHEAP (read the Solana header first — same credit lesson). tokens_base.balances_daily
 -- is DENSE (Dune carries every wallet's balance FORWARD to every day). A naive "≥5k, all days" pull is
 -- the RESULT-READ trap: ~2k ≥5k wallets × ~600 days ≈ 1.2M rows ≈ thousands of read-credits. The FIX is
