@@ -78,6 +78,11 @@ export const FEEDS = [
   // ≥5k day. cadence 9 mirrors ETH onchain.json. Rows live under `.wallets`, so nonEmpty confirms it.
   { file: "solana-onchain.json", cadence: 9, by: "solana-onchain.yml", what: "SPX-on-Solana ≥5k residents (age/flow)",
     nonEmpty: ["wallets"] },
+  // SPX-on-Base ≥5k residents. Daily via base-onchain.yml: a keyless Blockscout holders-endpoint
+  // snapshot (dust-immune ≥5k cohort) appended to the committed archive; ages accrue forward until the
+  // targeted history seed backfills. cadence 9 mirrors the others. Rows under `.wallets`.
+  { file: "base-onchain.json", cadence: 9, by: "base-onchain.yml", what: "SPX-on-Base ≥5k residents",
+    nonEmpty: ["wallets"] },
 
   // ── other schedules ─────────────────────────────────────────────────────────
   { file: "price-history.json", cadence: 9, by: "price-history.yml", what: "the dense daily price line" },

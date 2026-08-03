@@ -18,11 +18,20 @@ const DAY = 86400000;
 const ZERO = "0x0000000000000000000000000000000000000000";
 const arg = (k, d) => { const a = process.argv.find(s => s.startsWith(`--${k}=`)); return a ? a.split("=")[1] : (process.argv.includes(`--${k}`) ? true : d); };
 
-// LP / bridge / CEX / airdrop infra to EXCLUDE — NOT residents. Populate from Basescan after the first
-// run surfaces the top holders (same workflow as ETH/Solana). Keys must be lowercase. kind ∈ bridge|lp|cex|airdrop.
+// LP / bridge / CEX / airdrop infra to EXCLUDE — NOT residents. Keys lowercase. kind ∈ bridge|lp|cex|airdrop.
+//
+// ⚠ ON BASE, "is a contract" does NOT mean infra — account abstraction is everywhere. EIP-7702 proxies,
+// Coinbase Smart Wallet, and Safe/Gnosis multisigs are all REAL HOLDERS (a person's smart wallet), and
+// must NOT be excluded. Only true AMM/LP pools (+ bridge/CEX hot wallets) are infra. The three LP pools
+// below were confirmed via Blockscout contract names; the rest of the top holders are EOAs or smart wallets.
+//
+// 🔲 OWNER — verify on Basescan (EOAs, so no contract name to auto-detect): the #1 holder
+//    0x9ab9ced0… (9.23M ≈ 30% of ≥5k supply) and 0x69ce7509… (1.69M). If either is a Coinbase/bridge
+//    hot wallet, add it here (kind:"cex"/"bridge"); if a whale, leave it. It swings "held" a lot.
 export const BASE_EXCLUDE = {
-  // e.g. "0x…": { kind: "bridge", name: "Wormhole" }, "0x…": { kind: "lp", name: "Aerodrome" },
-  //      "0x…": { kind: "cex", name: "Coinbase" },   "0x…": { kind: "airdrop", name: "distributor" },
+  "0xe96a4e9ea3a2c6db214174738a19eb7dbb8a3069": { kind: "lp", name: "Aerodrome vAMM WETH/SPX" },
+  "0x037818b04ac34ea8b54b6683b79ef24d23c0e7cb": { kind: "lp", name: "Uniswap V3 SPX" },
+  "0x4ba1e3e9280facbacafa7baf4ae0b78bea60beca": { kind: "lp", name: "Aerodrome CLPool SPX" },
 };
 
 // Streaming reconstruction. `rows` is any iterable of {from,to,value(BigInt),ts} — a generator over the
