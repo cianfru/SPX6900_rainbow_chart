@@ -8,9 +8,11 @@
 //   node scripts/build-base-alchemy.mjs --full        # exact rebuild from genesis (seed / weekly self-heal)
 //
 // ENV: ALCHEMY_KEY (the AEON key), ALCHEMY_BASE_NETWORK (default base-mainnet), BASE_SPX.
-// lastBlock is stored in the cohort CSV header comment. Seed once with --full (establishes lastBlock),
-// then the daily cron runs incremental. Narrow gap: a wallet accumulating to ≥5k from an untracked
-// sub-5k balance across the seam is caught by the periodic --full, not the daily delta.
+// lastBlock lives in the cohort CSV header. First run FAST-SEEDS (stamps lastBlock = chain head,
+// trusts the committed CSV — no 6M-transfer re-pull, so it can't OOM/time-out); every run after is a
+// cheap daily delta. `--full` does a STREAMING genesis rebuild (applies page-by-page, never hoards) —
+// use it occasionally to self-heal the narrow sub-5k-accumulator gap. `--from=<block>` seeds an exact
+// block if you know the CSV's fetch height.
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { dirname, join } from "node:path";
@@ -66,18 +68,22 @@ export function decodeTransfer(t) {
   return { from: (t.from || "").toLowerCase(), to: (t.to || "").toLowerCase(), value, day, block };
 }
 
-async function fetchTransfers(fromBlock, onPage) {
-  const out = []; let pageKey, maxBlock = fromBlock, pages = 0;
+// STREAM transfers page-by-page and apply each batch immediately (a full history is ~6M rows — never
+// hold them all in memory, that OOMs). onBatch(transfers) applies to the cohort; we keep only the Map.
+async function streamTransfers(fromBlock, onBatch, onPage) {
+  let pageKey, maxBlock = fromBlock, pages = 0, total = 0;
   do {
     const res = await rpc("alchemy_getAssetTransfers", [{
       fromBlock: "0x" + fromBlock.toString(16), toBlock: "latest",
       contractAddresses: [SPX], category: ["erc20"], order: "asc", withMetadata: true,
       maxCount: "0x3e8", ...(pageKey ? { pageKey } : {}),
     }]);
-    for (const t of (res?.transfers || [])) { const d = decodeTransfer(t); if (d) { out.push(d); if (d.block > maxBlock) maxBlock = d.block; } }
-    pageKey = res?.pageKey; onPage?.(++pages, out.length);
+    const batch = [];
+    for (const t of (res?.transfers || [])) { const d = decodeTransfer(t); if (d) { batch.push(d); if (d.block > maxBlock) maxBlock = d.block; } }
+    onBatch(batch); total += batch.length;
+    pageKey = res?.pageKey; onPage?.(++pages, total);
   } while (pageKey);
-  return { transfers: out, maxBlock };
+  return { maxBlock, total };
 }
 
 // ---- cohort CSV I/O (with a lastBlock header comment) ----
@@ -105,17 +111,28 @@ async function main() {
   const args = Object.fromEntries(process.argv.slice(2).map(s => { const [k, ...v] = s.replace(/^--/, "").split("="); return [k, v.length ? v.join("=") : true]; }));
   if (!KEY) { console.log("base-alchemy: no ALCHEMY_KEY — soft-skipping (no write)"); return; }
   const csv = args.cohort || join(root, "dune/out/spx6900_base_cohort.csv");
-  let cohort = new Map(), lastBlock = 0, full = !!args.full;
-  if (!full && existsSync(csv)) ({ cohort, lastBlock } = loadCohort(readFileSync(csv, "utf8")));
-  if (!full && !lastBlock) { console.log("no '# lastBlock=' yet — auto-seeding with a FULL rebuild"); full = true; cohort = new Map(); }
-  const from = full ? 0 : lastBlock + 1;
-  console.log(`base-alchemy: ${full ? "FULL rebuild" : `incremental from block ${from}`}`);
-  const { transfers, maxBlock } = await fetchTransfers(from, (p, n) => { if (p % 20 === 0) console.log(`  …${p} pages · ${n} transfers`); });
-  console.log(`  ${transfers.length} transfers to block ${maxBlock}`);
-  applyTransfers(cohort, transfers);
-  const newLast = Math.max(lastBlock, maxBlock);
+  const full = !!args.full;
+  let cohort = new Map(), lastBlock = 0;
+  if (existsSync(csv)) ({ cohort, lastBlock } = loadCohort(readFileSync(csv, "utf8")));
+  // FAST SEED: no lastBlock yet (and not an explicit --full) → trust the current cohort CSV and just
+  // stamp lastBlock = the chain head (or --from). Avoids re-pulling ~6M transfers on first run. The
+  // only cost is a tiny seam gap (transfers between the CSV's fetch and now); a weekly --full heals it.
+  const seed = args.seed || (!full && !lastBlock);
   mkdirSync(dirname(csv), { recursive: true });
-  writeFileSync(csv, dumpCohort(cohort, newLast));
+  let newLast;
+  if (seed) {
+    newLast = args.from ? Number(args.from) : parseInt(await rpc("eth_blockNumber", []), 16);
+    console.log(`base-alchemy: SEED — stamping lastBlock=${newLast}, trusting the current cohort (no transfer pull)`);
+    writeFileSync(csv, dumpCohort(cohort, newLast));
+  } else {
+    if (full) cohort = new Map();
+    const from = full ? 0 : lastBlock + 1;
+    console.log(`base-alchemy: ${full ? "FULL streaming rebuild from genesis" : `incremental from block ${from}`}`);
+    const { maxBlock, total } = await streamTransfers(from, batch => applyTransfers(cohort, batch), (p, n) => { if (p % 25 === 0) console.log(`  …${p} pages · ${n} transfers`); });
+    console.log(`  applied ${total} transfers to block ${maxBlock}`);
+    newLast = Math.max(lastBlock, maxBlock);
+    writeFileSync(csv, dumpCohort(cohort, newLast));
+  }
 
   const holders = [...cohort.values()].filter(r => r.status === "holder" && r.bal >= THRESH).length;
   console.log(`✓ cohort ${csv} — ${holders} holders · lastBlock ${newLast}`);
