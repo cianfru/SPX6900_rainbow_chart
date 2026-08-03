@@ -42,7 +42,13 @@ export function parseBalances(text, scale) {
 // (solscan.io/account/<addr>); the ≥5k CSV's big + high-churn wallets are the prime suspects (LPs and
 // CEX hot wallets churn constantly). kind ∈ cex | lp | bridge | treasury.
 export const SOLANA_EXCLUDE = {
-  // "5Q544fKrFoe6tsEbD7S8EmxGTJYAKtTVhAW5Q5pge4j1": { kind: "cex", name: "" },
+  // Tagged infrastructure (Solscan, owner-verified 2026-08). Only IDENTIFIED infra is stripped —
+  // untagged "system program" wallets are ordinary user wallets and stay, even if high-churn.
+  "5Q544fKrFoe6tsEbD7S8EmxGTJYAKtTVhAW5Q5pge4j1": { kind: "lp", name: "Raydium" },
+  "AgeSxtVWWMojFWYNrXKnVp9cFuC5CQ7M4rzmrseLxfUj": { kind: "lp", name: "Orca" },
+  "MfDuWeqSHEqTFVYZ7LoexgAK9dxk7cy4DFJWjWMGVWa": { kind: "mm", name: "Wintermute" },
+  "DMe3ddj7awSR3LFC64rjmCPexsrSv33QAxFoJux4vGH3": { kind: "cex", name: "SwissBorg" },
+  "9SLPTL41SPsYkgdsMzdfJsxymEANKr5bYoBsQzJyKpKS": { kind: "mm", name: "hypernuit" },
 };
 
 // Per-owner resident record: latest balance, holder age (since first appearance in the ≥5k data),
