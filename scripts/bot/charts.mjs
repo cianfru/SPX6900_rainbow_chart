@@ -45,6 +45,9 @@ import { renderCexVenFlowCard } from "./cex-venflow-card.mjs";
 import { renderEthSol2026Card } from "./eth-sol-2026-card.mjs";
 import { renderChainConcCard } from "./chain-conc-card.mjs";
 import { renderChainIlliquidCard } from "./chain-illiquid-card.mjs";
+import { renderBalanceTierCard } from "./balance-tier-card.mjs";
+import { renderDualHolderCard } from "./dual-holder-card.mjs";
+import { renderBaseSurvCard } from "./base-survival-card.mjs";
 import { renderCexFlowCard } from "./cex-flow-card.mjs";
 import { renderHodlCompareCard } from "./hodl-compare-card.mjs";
 import { renderUrpdCard } from "./urpd-card.mjs";
@@ -889,7 +892,7 @@ export const CARD_TYPES = new Set([
   "freefloat", "nupl", "concentration", "hodlwaves", "hodlcompare", "urpd", "urpdage",
   "lthsth", "sopr", "nrpl", "liveliness", "valband", "walletgrowth", "picycle", "spxbitcoin", "spxcohort",
   "cexsupply", "cexflow", "cexvenues", "cexvenflow", "whales", "walletwaves", "wealthwaves", "survivorship", "supplyera", "exitmap", "smartmoney",
-  "cyclesync", "cycleclock", "rsidots", "monthcompare", "ethsol", "chainconc", "illiquid",
+  "cyclesync", "cycleclock", "rsidots", "monthcompare", "ethsol", "chainconc", "illiquid", "baltier", "dualholders", "basesurv",
   // spec-driven generics
   "line", "bar", "mbars", "donut", "stack", "model", "cube", "scale", "gauge", "fngdial",
   "heatmap", "dca", "dcaladder", "statgrid", "kraken",
@@ -925,6 +928,9 @@ export function renderPostCard(post, stats, opts = {}) {
   if (type === "ethsol") return renderEthSol2026Card(stats, dims);
   if (type === "chainconc") return renderChainConcCard(stats, dims);
   if (type === "illiquid") return renderChainIlliquidCard(stats, dims);
+  if (type === "baltier") return renderBalanceTierCard(stats, dims);
+  if (type === "dualholders") return renderDualHolderCard(stats, dims);
+  if (type === "basesurv") return renderBaseSurvCard(stats, dims);
   if (type === "whales") return renderWhalesCard(stats, dims);
   if (type === "walletwaves") return renderWalletWavesCard(stats, dims);
   if (type === "wealthwaves") return renderWealthWavesCard(stats, dims);
