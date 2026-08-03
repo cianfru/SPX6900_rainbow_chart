@@ -72,9 +72,11 @@ export const FEEDS = [
   // `.wallets` (not a shape rowsOf knows), so nonEmpty is what confirms the population is there.
   { file: "whales.json", cadence: 9, by: "onchain-dune.yml", what: "the wallets resident in Whale City",
     nonEmpty: ["wallets"] },
-  // SPX-on-Solana ≥5k residents (age/flow), reconstructed from Dune solana_utils.daily_balances.
-  // cadence 35 while it's still a manual pull; tightens to daily once solana-onchain.yml is seeded+live.
-  { file: "solana-onchain.json", cadence: 35, by: "solana-onchain.yml", what: "SPX-on-Solana ≥5k residents (age/flow)",
+  // SPX-on-Solana ≥5k residents (age/flow). Daily via solana-onchain.yml: a keyless public-RPC
+  // snapshot (getProgramAccounts) appended to the committed archive dune/out/spx6900_solana_balances.csv
+  // (Dune 2026 base), then reconstructed. cadence 9 mirrors ETH onchain.json — daily cron with a
+  // buffer for missed runs. Its rows live under `.wallets`, so nonEmpty confirms the population.
+  { file: "solana-onchain.json", cadence: 9, by: "solana-onchain.yml", what: "SPX-on-Solana ≥5k residents (age/flow)",
     nonEmpty: ["wallets"] },
 
   // ── other schedules ─────────────────────────────────────────────────────────

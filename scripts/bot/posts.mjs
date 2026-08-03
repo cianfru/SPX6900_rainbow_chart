@@ -21,6 +21,7 @@ import { chainRaceData } from "./multichain-card.mjs";
 import { BTC_HODL } from "../../src/btc-hodl-waves.js";
 import { spxLiquidity, btcIlliquid } from "../../src/liquidity.js";
 import { wealthWavesStats } from "./wealth-waves-card.mjs";
+import { ethSol2026Data } from "./eth-sol-2026-card.mjs";
 import { cexFlowStats } from "./cex-flow-card.mjs";
 
 // --- owner-editable post copy ---------------------------------------------
@@ -915,6 +916,25 @@ ${under ? "Most holders are red — and still holding." : "Most of the float is 
       card: { type: "supplyprofit" },
     };
   })(),
+
+  // Ethereum vs Solana in 2026 — the ≥5k cohort's divergence across SPX's two biggest
+  // chains: ETH holds flat (the mature vault, ~94% of value), Solana runs +5.6× held /
+  // +7× wallets (the growth frontier). A distribution/adoption POSITION, not a signal.
+  // Data is a frozen bundle (eth-sol-2026.js), regenerated when fresh Solana data lands;
+  // gated off until it has ≥8 weekly points. In rotation so it doesn't get lost.
+  () => {
+    const d = ethSol2026Data();
+    if (!d) return null;
+    const solX = (d.solHeld.at(-1) / d.solHeld[0]).toFixed(1), solW = (d.solCnt.at(-1) / d.solCnt[0]).toFixed(1);
+    const solM = Math.round(d.solHeld.at(-1) / 1e6), ethM = Math.round(d.ethHeld.at(-1) / 1e6);
+    return {
+      id: "ethsol",
+      text: ct`⚖️ SPX6900 in 2026: Ethereum holds flat, Solana runs +${solX}×.
+Among 5k+ SPX wallets, Ethereum sat still — ${ethM}M held, ${d.ethCnt.at(-1).toLocaleString()} wallets, ~94% of value. Solana grew to ${solM}M across ${d.solCnt.at(-1).toLocaleString()} wallets, +${solW}× more.
+Value lives on Ethereum. Growth is on Solana.`,
+      card: { type: "ethsol" },
+    };
+  },
 
   // What the whale COHORT did — the question HODL waves get asked and cannot answer.
   // Waves say supply sat still; they say nothing about who ended up holding it. Data-
@@ -2184,7 +2204,7 @@ const LOOK = {
   // — Tier A: the green log-line family (visually similar; spread them out) —
   valuation: "rainbow", channel: "channel",
   targets: "ladder", memecoins: "ladder", btcgrade: "ladder", dogeclock: "ladder", majorcaps: "ladder",
-  spxvssp: "race", majors: "race", ytd: "race", sp500ytd: "race", sp500roll12: "race", btc: "race", chainrace: "race",
+  spxvssp: "race", majors: "race", ytd: "race", sp500ytd: "race", sp500roll12: "race", btc: "race", chainrace: "race", ethsol: "race",
   roadmap: "trend", rally: "trend", alltime: "trend", breakeven: "trend", diamondtrend: "trend",
   cycleclock: "trend", fngtrend: "trend", btcage: "trend", ethage: "trend", solage: "trend",
   whatnext: "race",

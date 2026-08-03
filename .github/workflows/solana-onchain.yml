@@ -1,18 +1,27 @@
-name: Daily SPX-on-Solana refresh (Dune daily_balances)
+name: Daily SPX-on-Solana refresh (free public RPC)
 
-# The Solana sibling of onchain-dune.yml. The full ≥5k daily-balance history lives as a GitHub
-# release asset (solana-balances.csv.gz); each run pulls only the DAILY DELTA from Dune
-# (WHERE day >= last day in archive), merges it, and re-runs the local reconstruction →
-# public/solana-onchain.json. The delta is a handful of days of ≥5k rows, so both execution and the
-# result-read are cheap (the bulk history read is the expensive part — that's why the archive is
-# SEEDED once, not rebuilt here).
+# The Solana sibling of onchain-dune.yml (ETH). The daily feed is KEYLESS + ZERO Dune credits: one
+# getProgramAccounts call to a free public Solana RPC snapshots every SPX token account, sums by
+# owner, keeps the ≥5k cohort, and APPENDS today's balances to the committed archive
+# (dune/out/spx6900_solana_balances.csv). Holder AGE + net-FLOW build up FORWARD from the
+# accumulating daily snapshots — the repo's "snapshot-forward" pattern (same as chain-wallets /
+# cex-flow). The reconstruction (build-solana-onchain.mjs) then rebuilds public/solana-onchain.json.
 #
-# 🔲 ONE-TIME SEED (owner): pull full history in ~90-day chunks (dune/spx6900_solana_balances.sql,
-#    PHASE 2 — NEVER a full year, it times out at the 2-min wall and still charges) + the 2026 CSV,
-#    concat → solana-balances.csv → gzip → `gh release create solana-archive solana-balances.csv.gz`.
-#    This workflow FAILS FAST if the asset is missing — it will not silently full-scan.
-# 🔲 SECRETS/VARS: DUNE_API_KEY (secret, the fresh pipeline key). Optional DUNE_SOLANA_QUERY_ID (var,
-#    set after run 1 logs the created query id, to reuse it instead of creating one each day).
+# The archive is a COMMITTED file (not a release asset like ETH): the ≥5k cohort is tiny (~2 MB, and
+# dune/out/*.csv are tracked as provenance), so it self-seeds from the repo. ETH stays a release
+# asset only because its 2.6M raw transfers (67 MB) can't sit in git.
+#
+# SEEDED: dune/out/spx6900_solana_balances.csv (Dune daily_balances 2026-01-01 → 2026-08-03). The RPC
+#   snapshot appends forward from there. Holder AGES are floored at the seed's start (2026-01-01)
+#   until the one-time full-history backfill (dune/spx6900_solana_balances.sql PHASE 2, 9 quarterly
+#   chunks) is concat'd in — a one-time step, NOT needed for the feed.
+#
+# DUNE is now only the one-time history backfill / dormant fallback (build-solana-dune-refresh.mjs) —
+#   the daily cron touches NO Dune. A point-in-time RPC can't reach the past, which is why the 2026
+#   Dune base + the PHASE-2 backfill still supply the historical ages.
+# SECRETS/VARS: none required (public node). Optional SOL_RPC (secret) — a free Helius/QuickNode URL
+#   if the public node rate-limits the heavy getProgramAccounts; the script fails safe (won't
+#   overwrite the archive) if it gets a short/refused response.
 
 on:
   schedule:
@@ -27,8 +36,7 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  ARCHIVE_TAG: solana-archive
-  ARCHIVE_ASSET: solana-balances.csv.gz
+  ARCHIVE: dune/out/spx6900_solana_balances.csv
 
 jobs:
   refresh:
@@ -39,46 +47,40 @@ jobs:
         with:
           node-version: 24
 
-      - name: Download the Solana balance archive (release asset)
-        env:
-          GH_TOKEN: ${{ github.token }}
+      - name: Guard — the committed archive must exist (never a silent full scan)
         run: |
-          if ! gh release download "$ARCHIVE_TAG" --pattern "$ARCHIVE_ASSET" --dir . 2>/dev/null; then
-            echo "::error::No '$ARCHIVE_ASSET' on release '$ARCHIVE_TAG'. SEED it first (see the workflow header)."
+          if [[ ! -s "$ARCHIVE" ]]; then
+            echo "::error::Missing $ARCHIVE — the committed Solana seed. Restore it before running."
             exit 1
           fi
-          gunzip -f "$ARCHIVE_ASSET"
-          echo "archive rows: $(( $(wc -l < solana-balances.csv) - 1 ))"
+          echo "archive rows: $(( $(wc -l < "$ARCHIVE") - 1 ))"
 
-      - name: Pull Dune daily delta → merge → rebuild residents
+      - name: Snapshot ≥5k balances via public Solana RPC → merge → rebuild residents
         env:
-          DUNE_API_KEY: ${{ secrets.DUNE_API_KEY }}
-          DUNE_SOLANA_QUERY_ID: ${{ vars.DUNE_SOLANA_QUERY_ID }}
-        run: node scripts/build-solana-dune-refresh.mjs --archive=solana-balances.csv
+          SOL_RPC: ${{ secrets.SOL_RPC }}   # optional free Helius/QuickNode URL; blank → public mainnet-beta
+        run: node scripts/build-solana-rpc-snapshot.mjs --archive="$ARCHIVE"
 
       - name: Sanity check
         run: |
           node -e '
             const d=JSON.parse(require("fs").readFileSync("public/solana-onchain.json","utf8"));
-            const n=d.wallets.length; console.log("residents:",n,"| excluded:",d.excluded);
+            const n=d.wallets.length; console.log("residents:",n,"| excluded:",d.excluded,"| updated:",d.updated);
             if(!(n>500&&n<20000)){console.error("resident count off — expected ~2k");process.exit(1);}
           '
 
-      - name: Re-upload the grown archive
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          gzip -f solana-balances.csv
-          gh release upload "$ARCHIVE_TAG" "$ARCHIVE_ASSET" --clobber
-
       - name: Commit if changed
         run: |
-          if [[ -n "$(git status --porcelain public/solana-onchain.json)" ]]; then
+          if [[ -n "$(git status --porcelain public/solana-onchain.json "$ARCHIVE")" ]]; then
             git config user.name "github-actions[bot]"
             git config user.email "github-actions[bot]@users.noreply.github.com"
-            git add public/solana-onchain.json
+            git add public/solana-onchain.json "$ARCHIVE"
             git commit -m "chore: solana on-chain refresh $(date -u +%F) [skip deploy]"
-            git push || { for i in 1 2 3 4 5; do git pull --rebase --autostash origin main && git push && break; sleep $((i*3)); done; }
+            for i in 1 2 3 4 5; do
+              git push && break
+              echo "push rejected (attempt $i) — rebasing on the latest main and retrying"
+              git pull --rebase --autostash origin main || exit 1
+              sleep $((i * 3))
+            done
           else
             echo "No change to commit"
           fi

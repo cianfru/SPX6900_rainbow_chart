@@ -1,15 +1,17 @@
-// Daily SPX-on-Solana refresh — the Solana sibling of build-onchain-dune-refresh.mjs (ETH). The full
-// ≥5k daily-balance history lives as a GitHub RELEASE ASSET (solana-balances.csv.gz); each run pulls
-// only the DAILY DELTA from Dune (`WHERE day >= <last day in archive>`), merges it in, and re-runs the
-// local reconstruction → public/solana-onchain.json. The delta is a handful of days of ≥5k rows, so
-// both the execution (~1 partition, ~0.03 cr) and the result-READ (a few hundred rows) are cheap —
-// unlike the one-time bulk history pull, which is why the archive is SEEDED, not rebuilt each run.
+// SPX-on-Solana Dune refresh — the DORMANT FALLBACK / one-time backfill path. The DAILY feed is now
+// build-solana-rpc-snapshot.mjs (keyless public RPC, zero Dune credits); this script stays for two
+// jobs: (1) a fallback if the public RPC proves unreliable, (2) pulling history the RPC can't reach.
+// Same mechanics: pull the DELTA from Dune (`WHERE day >= <last day in archive>`), merge into the
+// archive, re-run the reconstruction → public/solana-onchain.json. The ≥5k filter keeps the
+// result-read cheap (a few hundred rows). NOT wired into solana-onchain.yml anymore.
 //
-//   node scripts/build-solana-dune-refresh.mjs --archive=solana-balances.csv
+//   node scripts/build-solana-dune-refresh.mjs --archive=dune/out/spx6900_solana_balances.csv
 //
-// SEED (one-time, owner): pull full history in ~90-day chunks (dune/spx6900_solana_balances.sql PHASE 2)
-// + the 2026 CSV, concat → solana-balances.csv → gzip → `gh release create solana-archive
-// solana-balances.csv.gz`. This script FAILS FAST if the archive is missing (never a silent full scan).
+// The archive is a COMMITTED file (dune/out/spx6900_solana_balances.csv) — not a release asset like
+// ETH's — because the ≥5k cohort is tiny (~2 MB, and dune/out/*.csv are tracked as provenance). So
+// it self-seeds from the repo; the workflow commits the grown archive back each day. FAILS FAST if
+// the archive is missing (never a silent full scan). Holder ages are floored at the seed's start
+// (2026-01-01) until the full-history backfill (dune/spx6900_solana_balances.sql PHASE 2) is concat'd.
 // ENV: DUNE_API_KEY (repo secret). DUNE_SOLANA_QUERY_ID (repo var) — a saved query PATCHed each run.
 import { readFileSync, writeFileSync, createReadStream } from "node:fs";
 import { spawnSync } from "node:child_process";
@@ -100,7 +102,7 @@ export function mergeArchive(baseText, deltaCsv, cutoff) {
 }
 
 async function main() {
-  const archive = args.archive || join(root, "solana-balances.csv");
+  const archive = args.archive || join(root, "dune/out/spx6900_solana_balances.csv");
   const maxDay = await archiveMaxDay(archive);
   const cutoff = cutoffDay(maxDay);
   console.log(`archive last day ${maxDay} → pulling delta from ${cutoff}`);
