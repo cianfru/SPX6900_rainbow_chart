@@ -29,9 +29,12 @@ const FLOOR_COL = 0x0e1526;   // one unified ground colour (fog matches it)
 const PAD_COL = 0x1a2440;     // cohort tiles — same for every cohort, a touch above the floor
 const kM = v => v >= 1e6 ? (v / 1e6 % 1 ? (v / 1e6).toFixed(1) : v / 1e6) + "M" : Math.round(v / 1e3) + "k";
 
-function buildScene(el, data, { onlyMovers, isMobile }) {
-  const wallets = onlyMovers ? data.wallets.filter(w => (w.d30 || 0) !== 0) : data.wallets;
-  const model = buildCohorts(wallets);
+function buildScene(el, data, { onlyMovers, isMobile, flowWin = 30 }) {
+  const flowKey = "d" + flowWin;                       // "d30" | "d7" | "d1"
+  const winLbl = flowWin === 1 ? "24h" : flowWin + "d";
+  const flowOf = w => { const v = w[flowKey]; return Number.isFinite(v) ? v : (w.d30 || 0); };
+  const wallets = onlyMovers ? data.wallets.filter(w => (flowOf(w) || 0) !== 0) : data.wallets;
+  const model = buildCohorts(wallets, { flowKey });
   const cohorts = model.cohorts;
   const { minBal, maxBal, bounds } = model;
   const lnLo = Math.log(minBal), lnHi = Math.log(Math.max(maxBal, minBal * 1.0001));
@@ -137,7 +140,7 @@ function buildScene(el, data, { onlyMovers, isMobile }) {
     cubeBins[Math.min(AGE_BINS - 1, Math.round(w.ageU * (AGE_BINS - 1)))].push(g);
     picks.push({ x: w.x, z: w.z, h, ref: w });
     if (w.flow !== "flat") {
-      const mag = Math.min(1, Math.abs(w.d30) / Math.max(1, w.bal) * 6);
+      const mag = Math.min(1, Math.abs(w.net) / Math.max(1, w.bal) * 6);
       const bh = 2 + 5 * mag;
       const bg = new THREE.BoxGeometry(0.2, bh, 0.2); bg.translate(w.x, h + 0.4 + bh / 2, w.z);
       (w.flow === "buy" ? beamBuy : beamSell).push(bg);
@@ -203,9 +206,9 @@ function buildScene(el, data, { onlyMovers, isMobile }) {
     hovered = id;
     if (id < 0) { tip.style.display = "none"; cage.visible = false; return; }
     const p = picks[id], w = p.ref, rgb = ageRamp(w.ageU).hex;
-    const flowTxt = w.flow === "buy" ? `<span style="color:#4ade80">+${Math.round(w.d30).toLocaleString()} added (30d)</span>`
-      : w.flow === "sell" ? `<span style="color:#fb7185">${Math.round(w.d30).toLocaleString()} sold (30d)</span>`
-      : `<span style="color:#94a3b8">flat (30d)</span>`;
+    const flowTxt = w.flow === "buy" ? `<span style="color:#4ade80">+${Math.round(w.net).toLocaleString()} added (${winLbl})</span>`
+      : w.flow === "sell" ? `<span style="color:#fb7185">${Math.round(w.net).toLocaleString()} sold (${winLbl})</span>`
+      : `<span style="color:#94a3b8">flat (${winLbl})</span>`;
     tip.innerHTML =
       `<div style="font-family:${MONO};font-size:11px;color:#94a3b8">${w.a.slice(0, 6)}…${w.a.slice(-4)}</div>` +
       `<div style="font-weight:800;font-size:15px;margin:2px 0"><span style="color:${rgb}">${kM(w.bal)}</span> SPX · ${w.cohort}</div>` +
@@ -252,7 +255,7 @@ function buildScene(el, data, { onlyMovers, isMobile }) {
 const GUIDE = [
   { swatch: "linear-gradient(90deg,#d97706,#22d3ee)", title: "Colour is age", text: "warm amber for wallets that arrived recently, cyan for the ones that have held longest." },
   { swatch: "#94a3b8", title: "Height is size", text: "each bar sits on a log SPX axis — 100k at the floor, the multi-million whales towering above." },
-  { swatch: "#22c55e", title: "A green beam = buying", text: "the wallet added over the last 30 days. Taller beam, bigger move." },
+  { swatch: "#22c55e", title: "A green beam = buying", text: "the wallet added over the chosen window (30d / 1w / 1d). Taller beam, bigger move." },
   { swatch: "#f43f5e", title: "A red beam = selling", text: "the wallet reduced its position. No beam means it sat still." },
 ];
 
@@ -266,27 +269,58 @@ function Toggle({ on, onClick, children }) {
   );
 }
 
+// Flow-window options, longest first. The buttons shown are the intersection of these with the
+// windows the data actually carries (whales.json `lookback`), so "1 day" only appears once the
+// daily on-chain refresh has banked a d1 delta — no dead button before then.
+const WINDOWS = [{ d: 30, label: "30 days" }, { d: 7, label: "1 week" }, { d: 1, label: "1 day" }];
+
 function Watcher({ isMobile }) {
   const host = useRef(null);
   const [data, setData] = useState(null);     // null=loading, false=failed, object=ok
   const [onlyMovers, setOnlyMovers] = useState(false);
+  const [flowWin, setFlowWin] = useState(30); // net-flow lookback the beams read
 
   useEffect(() => { let off = false; loadWhales().then(d => { if (!off) setData(d ?? false); }); return () => { off = true; }; }, []);
+
+  const windows = WINDOWS.filter(w => (data?.lookback || [7, 30]).includes(w.d));
+  // If the current selection isn't offered by this data, fall back to the longest available.
+  useEffect(() => {
+    if (data && windows.length && !windows.some(w => w.d === flowWin)) setFlowWin(windows[0].d);
+  }, [data]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!data || !host.current) return;
     let cleanup = () => {};
-    try { cleanup = buildScene(host.current, data, { onlyMovers, isMobile }); }
+    try { cleanup = buildScene(host.current, data, { onlyMovers, isMobile, flowWin }); }
     catch (e) { console.error("WhalesWatching:", e); }
     return () => cleanup();
-  }, [data, onlyMovers, isMobile]);
+  }, [data, onlyMovers, isMobile, flowWin]);
 
   const total = data && data.wallets ? data.wallets.filter(w => w.bal >= 1e5).length : 0;
 
   return (
     <div style={{ maxWidth: 1180, margin: "0 auto", padding: "0 14px", fontFamily: SANS }}>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "center", justifyContent: "space-between", margin: "6px 0 12px" }}>
-        <Toggle on={onlyMovers} onClick={() => setOnlyMovers(v => !v)}>Only movers</Toggle>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "center" }}>
+          <Toggle on={onlyMovers} onClick={() => setOnlyMovers(v => !v)}>Only movers</Toggle>
+          {windows.length > 1 && (
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <span style={{ fontFamily: MONO, fontSize: 11, color: "#64748b", textTransform: "uppercase", letterSpacing: 0.5 }}>flow over</span>
+              <div style={{ display: "inline-flex", borderRadius: 8, overflow: "hidden", border: "1px solid rgba(255,255,255,0.14)" }}>
+                {windows.map((w, i) => {
+                  const on = flowWin === w.d;
+                  return (
+                    <button key={w.d} onClick={() => setFlowWin(w.d)} style={{
+                      padding: "6px 12px", cursor: "pointer", fontFamily: SANS, fontSize: 13, fontWeight: 600, border: "none",
+                      borderLeft: i ? "1px solid rgba(255,255,255,0.12)" : "none",
+                      background: on ? "rgba(94,234,212,0.16)" : "transparent", color: on ? "#5eead4" : "#94a3b8",
+                    }}>{w.label}</button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
         {data && <div style={{ fontFamily: MONO, fontSize: 12, color: "#64748b" }}>{total.toLocaleString()} whales ≥100k · drag to orbit · {data.updated}</div>}
       </div>
 
@@ -309,8 +343,8 @@ function Watcher({ isMobile }) {
       </div>
       <p style={{ fontSize: 12.5, color: "#7c8a9e", lineHeight: 1.6, margin: "6px 2px 0" }}>
         Every bar is one wallet holding ≥100,000 SPX, grouped into four size cohorts along the floor. The slab and
-        label under each cluster read its overall 30-day flow. Cost basis and infra (exchanges, LP, bridge) are
-        excluded — these are real self-custody holders. A distribution snapshot, not a signal.
+        label under each cluster read its overall net flow over the window you pick above ({windows.find(w => w.d === flowWin)?.label || "30 days"}).
+        Cost basis and infra (exchanges, LP, bridge) are excluded — these are real self-custody holders. A distribution snapshot, not a signal.
       </p>
     </div>
   );
@@ -331,7 +365,7 @@ const GUIDE_INTRO = {
   rows: [
     { swatch: "linear-gradient(90deg,#d97706,#22d3ee)", title: "Colour is age", text: "warm amber for wallets that arrived recently, cyan for the ones that have held longest." },
     { swatch: "#94a3b8", title: "Height is size", text: "each bar sits on a log SPX axis — 100k to the multi-million whales." },
-    { swatch: "#22c55e", title: "Green beam = buying", text: "the wallet added over the last 30 days." },
+    { swatch: "#22c55e", title: "Green beam = buying", text: "the wallet added over the window you pick — 30 days, 1 week or 1 day." },
     { swatch: "#f43f5e", title: "Red beam = selling", text: "it reduced its position. No beam means it sat still." },
   ],
   footer: "Bars are grouped into four size cohorts; the label under each cluster reads its overall flow. Real data, self-custody holders only.",

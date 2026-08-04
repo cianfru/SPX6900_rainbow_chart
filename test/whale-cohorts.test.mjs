@@ -94,6 +94,28 @@ test("buildCohorts: synthetic set reconciles and places cleanly", () => {
   assert.equal(tallest.bal, 6_000_000);
 });
 
+test("buildCohorts flowKey selects the net-flow window (30d / 7d / 1d)", () => {
+  // A wallet that added over 30 days but SHED over the last day — the beam must flip with the window.
+  const wallets = [
+    { a: "0xa", bal: 6_000_000, days: 800, d30: 300_000, d7: 100_000, d1: -80_000 },
+    { a: "0xb", bal: 5_500_000, days: 120, d30: -400_000, d7: -50_000, d1: 60_000 },
+  ];
+  const win = key => buildCohorts(wallets, { flowKey: key }).cohorts[3];      // both are 5M+
+  const d30 = win("d30"), d7 = win("d7"), d1 = win("d1");
+  // 30d: a buys (+300k), b sells (-400k) → one of each, net = the sum of d30s
+  assert.equal(d30.buy, 1); assert.equal(d30.sell, 1);
+  assert.equal(d30.net, 300_000 - 400_000);
+  // 1d flips both: a now selling, b now buying → net is the sum of d1s
+  assert.equal(d1.net, -80_000 + 60_000);
+  assert.equal(d1.wallets.find(w => w.a === "0xa").flow, "sell");
+  assert.equal(d1.wallets.find(w => w.a === "0xb").flow, "buy");
+  // 7d is its own window
+  assert.equal(d7.net, 100_000 - 50_000);
+  // missing key → falls back to d30 (old data safety), never NaN
+  const noKey = buildCohorts([{ a: "0xc", bal: 2_000_000, days: 500, d30: 20_000 }], { flowKey: "d1" }).cohorts[2];
+  assert.equal(noKey.net, 20_000);
+});
+
 test("buildCohorts against the live whales.json", () => {
   let doc; try { doc = JSON.parse(readFileSync("public/whales.json", "utf8")); } catch { return; }
   const r = buildCohorts(doc.wallets);

@@ -65,7 +65,7 @@ export default function SmartMoneyChart({ isMobile }) {
       </div>
 
       {view === "holdings" ? (
-        <ResponsiveContainer width="100%" height={isMobile ? 320 : 400}>
+        <ResponsiveContainer width="100%" height={isMobile ? 400 : 560}>
           <ComposedChart data={rows} margin={{ top: 12, right: 56, left: 6, bottom: 6 }}>
             <defs><linearGradient id="smhold" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={GOLD} stopOpacity={0.5} /><stop offset="100%" stopColor={GOLD} stopOpacity={0.04} /></linearGradient></defs>
             <CartesianGrid stroke="rgba(255,255,255,0.05)" vertical={false} />
@@ -85,7 +85,7 @@ export default function SmartMoneyChart({ isMobile }) {
           </ComposedChart>
         </ResponsiveContainer>
       ) : view === "flow" ? (
-        <ResponsiveContainer width="100%" height={isMobile ? 320 : 400}>
+        <ResponsiveContainer width="100%" height={isMobile ? 400 : 560}>
           <ComposedChart data={rows} margin={{ top: 12, right: 56, left: 6, bottom: 6 }}>
             <CartesianGrid stroke="rgba(255,255,255,0.05)" vertical={false} />
             <XAxis dataKey="d" ticks={yearTicks} tickFormatter={d => d.slice(0, 4)} tick={{ fill: "#94a3b8", fontFamily: MONO, fontSize: 12 }} tickLine={false} axisLine={{ stroke: "rgba(255,255,255,0.12)" }} />
@@ -107,7 +107,7 @@ export default function SmartMoneyChart({ isMobile }) {
           </ComposedChart>
         </ResponsiveContainer>
       ) : (
-        <ResponsiveContainer width="100%" height={isMobile ? 320 : 400}>
+        <ResponsiveContainer width="100%" height={isMobile ? 400 : 560}>
           <ComposedChart data={newQ} margin={{ top: 12, right: 56, left: 6, bottom: 6 }}>
             <CartesianGrid stroke="rgba(255,255,255,0.05)" vertical={false} />
             <XAxis dataKey="d" ticks={newQYearTicks} tickFormatter={d => d.slice(0, 4)} tick={{ fill: "#94a3b8", fontFamily: MONO, fontSize: 12 }} tickLine={false} axisLine={{ stroke: "rgba(255,255,255,0.12)" }} />

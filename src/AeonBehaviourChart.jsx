@@ -54,7 +54,7 @@ export default function AeonBehaviourChart({ isMobile }) {
         <Metric label="exited last month" value={-cur.exitedNeg} color="#fb7185" />
         <Metric label="net since mint" value={(net >= 0 ? "+" : "") + net} color={net >= 0 ? "#34d399" : "#fb7185"} />
       </div>
-      <ResponsiveContainer width="100%" height={isMobile ? 400 : 540}>
+      <ResponsiveContainer width="100%" height={isMobile ? 400 : 560}>
         <BarChart data={months} stackOffset="sign" margin={{ top: 10, right: isMobile ? 8 : 20, bottom: 24, left: isMobile ? 0 : 12 }}>
           <CartesianGrid strokeDasharray="2 8" stroke="rgba(255,255,255,0.06)" />
           <XAxis dataKey="ts" type="number" domain={["dataMin", "dataMax"]} ticks={xTicks} scale="time"

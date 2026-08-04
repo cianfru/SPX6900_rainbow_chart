@@ -160,7 +160,7 @@ export default function AeonLeadLagChart({ isMobile }) {
         <Metric label="coincident" value={at0?.adj?.toFixed(2)} color="#f6a23c" sub="same few days" />
       </div>
 
-      <ResponsiveContainer width="100%" height={isMobile ? 300 : 380}>
+      <ResponsiveContainer width="100%" height={isMobile ? 400 : 560}>
         <LineChart data={rows} margin={{ top: 10, right: 20, left: 6, bottom: 22 }}>
           <CartesianGrid stroke="rgba(255,255,255,0.06)" vertical={false} />
           <ReferenceArea x1={-LAG} x2={0} fill="#5eead4" fillOpacity={0.05} />

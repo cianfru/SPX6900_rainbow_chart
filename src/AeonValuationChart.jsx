@@ -40,7 +40,7 @@ export default function AeonValuationChart({ isMobile }) {
       </div>
 
       <div style={{ fontFamily: SANS, fontSize: 13, color: "#94a3b8", textAlign: "center", marginBottom: 4 }}>Cost-basis distribution — where held pieces were bought (green = in profit vs floor)</div>
-      <ResponsiveContainer width="100%" height={isMobile ? 320 : 420}>
+      <ResponsiveContainer width="100%" height={isMobile ? 400 : 560}>
         <BarChart data={buckets} margin={{ top: 8, right: 16, bottom: 24, left: 6 }}>
           <CartesianGrid strokeDasharray="2 8" stroke="rgba(255,255,255,0.06)" />
           <XAxis dataKey="mid" type="number" scale="log" domain={["dataMin", "dataMax"]} tickFormatter={fEth}

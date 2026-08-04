@@ -68,7 +68,7 @@ export default function AeonSalesRarityChart({ isMobile }) {
         These are <em>realized</em> sales (no live-listings key needed) — the record sales and recent bargains, with their art.
       </Explain>
 
-      <ResponsiveContainer width="100%" height={isMobile ? 360 : 470}>
+      <ResponsiveContainer width="100%" height={isMobile ? 400 : 560}>
         <ComposedChart margin={{ top: 10, right: 20, bottom: 26, left: 6 }}>
           <CartesianGrid strokeDasharray="2 8" stroke="rgba(255,255,255,0.06)" />
           <XAxis dataKey="rank" type="number" scale="log" domain={[rmin, rmax]} allowDataOverflow ticks={isMobile ? [1, 100, rmax] : [1, 10, 100, 1000, rmax]}

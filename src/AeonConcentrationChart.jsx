@@ -41,7 +41,7 @@ export default function AeonConcentrationChart({ isMobile }) {
         <Metric label="top 10 wallets" value={cur.top10.toFixed(1) + "%"} color="#fb7185" />
         <Metric label="top 50 wallets" value={cur.top50.toFixed(1) + "%"} color="#fbbf24" />
       </div>
-      <ResponsiveContainer width="100%" height={isMobile ? 400 : 540}>
+      <ResponsiveContainer width="100%" height={isMobile ? 400 : 560}>
         <AreaChart data={all} margin={{ top: 10, right: isMobile ? 8 : 20, bottom: 24, left: isMobile ? 0 : 12 }}>
           <defs>
             <linearGradient id="aeonC50" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#fbbf24" stopOpacity={0.35} /><stop offset="100%" stopColor="#fbbf24" stopOpacity={0.04} /></linearGradient>

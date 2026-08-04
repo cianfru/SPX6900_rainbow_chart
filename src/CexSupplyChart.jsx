@@ -62,7 +62,7 @@ export default function CexSupplyChart({ isMobile, preview = false }) {
       <ZoomBar zoomed={zoomed} onReset={() => setZoom(null)} accent={CEX} />
       <div style={{ position: "relative" }}>
         {!preview && <ChartZoomHint />}
-        <ResponsiveContainer width="100%" height={isMobile ? 400 : 540}>
+        <ResponsiveContainer width="100%" height={isMobile ? 400 : 560}>
           <AreaChart data={view.vis} margin={{ top: 10, right: isMobile ? 8 : 20, bottom: 24, left: isMobile ? 4 : 16 }}
             onMouseDown={onDown} onMouseMove={onMove} onMouseUp={onUp} onMouseLeave={onUp} style={{ cursor: "crosshair", userSelect: "none" }}>
             <CartesianGrid strokeDasharray="2 8" stroke="rgba(255,255,255,0.06)" vertical={false} />

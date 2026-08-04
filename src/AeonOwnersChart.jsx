@@ -49,7 +49,7 @@ export default function AeonOwnersChart({ isMobile }) {
         <Metric label="hold a single AEON" value={cur.one.toLocaleString()} color="#3b82f6" sub={`${(cur.one / cur.owners * 100).toFixed(0)}% of owners`} />
         <Metric label="whales (11+)" value={cur.whale} color="#fb7185" />
       </div>
-      <ResponsiveContainer width="100%" height={isMobile ? 400 : 540}>
+      <ResponsiveContainer width="100%" height={isMobile ? 400 : 560}>
         <AreaChart data={all} margin={{ top: 10, right: isMobile ? 8 : 20, bottom: 24, left: isMobile ? 0 : 12 }}>
           <CartesianGrid strokeDasharray="2 8" stroke="rgba(255,255,255,0.06)" />
           <XAxis dataKey="ts" type="number" domain={["dataMin", "dataMax"]} ticks={xTicks} scale="time"

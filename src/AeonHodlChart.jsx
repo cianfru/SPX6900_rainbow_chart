@@ -49,7 +49,7 @@ export default function AeonHodlChart({ isMobile }) {
         <Metric label="held 1 year+" value={cur.a4.toFixed(1) + "%"} color={BANDS[4].c} sub="long-held" />
         <Metric label="held under 1 month" value={cur.a0.toFixed(1) + "%"} color={BANDS[0].c} sub="freshly traded" />
       </div>
-      <ResponsiveContainer width="100%" height={isMobile ? 400 : 540}>
+      <ResponsiveContainer width="100%" height={isMobile ? 400 : 560}>
         <AreaChart data={all} margin={{ top: 10, right: isMobile ? 8 : 20, bottom: 24, left: isMobile ? 0 : 12 }}>
           <CartesianGrid strokeDasharray="2 8" stroke="rgba(255,255,255,0.06)" />
           <XAxis dataKey="ts" type="number" domain={["dataMin", "dataMax"]} ticks={xTicks} scale="time"

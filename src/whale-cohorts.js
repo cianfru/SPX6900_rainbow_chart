@@ -65,6 +65,10 @@ export function buildCohorts(wallets, opts = {}) {
   const PAD = opts.pad ?? 2.0;          // platform margin around the grid
   const GAP = opts.gap ?? 7.0;          // empty ground between cohort platforms
   const dead = opts.dead ?? 0.005;
+  // Which net-flow window drives the beams/sentiment: "d30" (default), "d7" or "d1". Falls back
+  // to d30 if a wallet is missing the chosen key (old data), so the card + tests are unaffected.
+  const flowKey = opts.flowKey || "d30";
+  const flowOf = w => { const v = w[flowKey]; return Number.isFinite(v) ? v : (w.d30 || 0); };
 
   const whales = (wallets || []).filter(w => w && w.bal >= WHALE_FLOOR);
   const bals = whales.map(w => w.bal);
@@ -103,11 +107,12 @@ export function buildCohorts(wallets, opts = {}) {
       const row = Math.floor(j / L.cols), col = j % L.cols;
       const x = center.x - L.gridW / 2 + (col + 0.5) * PITCH;
       const z = -L.gridD / 2 + (row + 0.5) * PITCH;
-      const flow = flowState(w.d30, w.bal, dead);
+      const fv = flowOf(w);
+      const flow = flowState(fv, w.bal, dead);
       if (flow === "buy") buy++; else if (flow === "sell") sell++; else flat++;
-      held += w.bal; net += (w.d30 || 0);
+      held += w.bal; net += fv;
       return {
-        a: w.a, bal: w.bal, days: w.days || 0, d30: w.d30 || 0,
+        a: w.a, bal: w.bal, days: w.days || 0, d30: w.d30 || 0, net: fv,
         ageU: ageU(w.days), hU: heightUnit(w.bal, minBal, maxBal), flow, x, z,
       };
     });

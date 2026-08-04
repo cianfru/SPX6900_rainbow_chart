@@ -198,7 +198,7 @@ export function replayFifo(transfers, priceAt, sampleTs, opts = {}) {
   // state can be diffed against them → who has been ADDING vs SHEDDING. `wallets` already
   // excludes CEX/LP/bridge/burn (EXCLUDE), so these are real holders, not infrastructure.
   const lastTs = sampleTs.at(-1);
-  const checkpoints = (opts.whaleLookback || [7, 30]).map(d => ({ d, target: lastTs - d * DAY, snap: null }));
+  const checkpoints = (opts.whaleLookback || [1, 7, 30]).map(d => ({ d, target: lastTs - d * DAY, snap: null }));
   for (const sTs of sampleTs) {
     // Replay up to this sample, ONE BLOCK (same timestamp) at a time — applying every
     // RECEIVE before every SEND in the block. block_timestamp is per-block, second-

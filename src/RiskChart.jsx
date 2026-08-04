@@ -111,7 +111,7 @@ export default function RiskChart({ series, m, isMobile }) {
 
       <ZoomBar zoomed={zoomed} onReset={() => setZoom(null)} accent="#a78bfa" />
 
-      <ResponsiveContainer width="100%" height={isMobile ? 380 : 560}>
+      <ResponsiveContainer width="100%" height={isMobile ? 400 : 560}>
         <ComposedChart data={view?.vis ?? data} margin={{ top: 10, right: isMobile ? 12 : 30, bottom: 24, left: isMobile ? 0 : 12 }}
           onMouseDown={onDown} onMouseMove={onMove} onMouseUp={onUp} onMouseLeave={onUp} style={{ cursor: "crosshair", userSelect: "none" }}>
           <CartesianGrid strokeDasharray="2 8" stroke="rgba(255,255,255,0.07)" vertical={false} />

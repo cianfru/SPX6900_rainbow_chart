@@ -39,7 +39,7 @@ export default function AeonTradersChart({ isMobile }) {
         {TABS.map(([k, l]) => <button key={k} style={tbtn(view === k)} onClick={() => setView(k)}>{l}</button>)}
       </div>
 
-      <ResponsiveContainer width="100%" height={isMobile ? 300 : 360}>
+      <ResponsiveContainer width="100%" height={isMobile ? 400 : 560}>
         <BarChart data={chartData} layout="vertical" margin={{ top: 4, right: 20, bottom: 4, left: isMobile ? 4 : 8 }}>
           <CartesianGrid strokeDasharray="2 8" stroke="rgba(255,255,255,0.06)" horizontal={false} />
           <XAxis type="number" tickFormatter={v => (view === "byVolume" ? v.toFixed(0) + "Ξ" : fE(v))} tick={{ fill: "#cbd5e1", fontSize: 11, fontFamily: MONO }} axisLine={{ stroke: "rgba(255,255,255,0.15)" }} tickLine={false} />

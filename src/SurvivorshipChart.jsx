@@ -127,7 +127,7 @@ export default function SurvivorshipChart({ isMobile }) {
       </div>
 
       {view === "who" ? (
-        <ResponsiveContainer width="100%" height={isMobile ? 300 : 380}>
+        <ResponsiveContainer width="100%" height={isMobile ? 400 : 560}>
           <AreaChart data={rows} margin={{ top: 8, right: 16, left: 6, bottom: 6 }}>
             <CartesianGrid stroke="rgba(255,255,255,0.06)" vertical={false} />
             <XAxis dataKey="ts" type="number" scale="time" domain={["dataMin", "dataMax"]} tickFormatter={fDate}
@@ -151,7 +151,7 @@ export default function SurvivorshipChart({ isMobile }) {
           </AreaChart>
         </ResponsiveContainer>
       ) : view === "survival" ? (
-        <ResponsiveContainer width="100%" height={isMobile ? 300 : 380}>
+        <ResponsiveContainer width="100%" height={isMobile ? 400 : 560}>
           <BarChart data={bars} margin={{ top: 8, right: 16, left: 6, bottom: 6 }}>
             <CartesianGrid stroke="rgba(255,255,255,0.06)" vertical={false} />
             <XAxis dataKey="label" tick={{ fill: "#94a3b8", fontFamily: MONO, fontSize: 12 }} tickLine={false} axisLine={{ stroke: "rgba(255,255,255,0.12)" }} />
@@ -174,7 +174,7 @@ export default function SurvivorshipChart({ isMobile }) {
         !flowRows.length || !line.length ? (
           <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 120 }}>Being reconstructed — check back after the next on-chain refresh.</div>
         ) : (
-        <ResponsiveContainer width="100%" height={isMobile ? 320 : 400}>
+        <ResponsiveContainer width="100%" height={isMobile ? 400 : 560}>
           <ComposedChart data={flowRows} margin={{ top: 12, right: 56, left: 6, bottom: 6 }} barCategoryGap={0} barGap={0}>
             <CartesianGrid stroke="rgba(255,255,255,0.05)" vertical={false} />
             <XAxis dataKey="d" ticks={yearTicks} tickFormatter={d => d.slice(0, 4)} tick={{ fill: "#94a3b8", fontFamily: MONO, fontSize: 12 }} tickLine={false} axisLine={{ stroke: "rgba(255,255,255,0.12)" }} />
@@ -198,7 +198,7 @@ export default function SurvivorshipChart({ isMobile }) {
       ) : !line.length ? (
         <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 120 }}>Loading price…</div>
       ) : (
-        <ResponsiveContainer width="100%" height={isMobile ? 320 : 400}>
+        <ResponsiveContainer width="100%" height={isMobile ? 400 : 560}>
           <ComposedChart margin={{ top: 12, right: 72, left: 6, bottom: 6 }}>
             <CartesianGrid stroke="rgba(255,255,255,0.05)" />
             <XAxis dataKey="t" type="number" scale="time" domain={[t0, t1]} ticks={[2024, 2025, 2026].map(y => Date.UTC(y, 0, 1)).filter(t => t >= t0 && t <= t1)} tickFormatter={fYear}

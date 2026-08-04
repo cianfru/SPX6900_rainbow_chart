@@ -92,7 +92,7 @@ export default function RiskHeatChart({ series, isMobile }) {
 
       <ZoomBar zoomed={zoomed} onReset={() => setZoom(null)} accent="#a78bfa" />
 
-      <ResponsiveContainer width="100%" height={isMobile ? 380 : 520}>
+      <ResponsiveContainer width="100%" height={isMobile ? 400 : 560}>
         <ComposedChart data={rows} margin={{ top: 10, right: rMargin, bottom: 24, left: lMargin }} barCategoryGap={0} {...dragProps}>
           <CartesianGrid strokeDasharray="2 8" stroke="rgba(255,255,255,0.06)" />
           <XAxis dataKey="ts" type="number" domain={xDomain} ticks={xTicks} scale="time" allowDataOverflow

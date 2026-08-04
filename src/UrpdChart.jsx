@@ -78,7 +78,7 @@ export default function UrpdChart({ isMobile, preview = false, price = null }) {
       </div>
 
       <div style={{ position: "relative" }}>
-        <ResponsiveContainer width="100%" height={isMobile ? 400 : 540}>
+        <ResponsiveContainer width="100%" height={isMobile ? 400 : 560}>
           <BarChart data={data} margin={{ top: 10, right: isMobile ? 8 : 20, bottom: 24, left: isMobile ? 0 : 12 }} barCategoryGap={1}>
             <defs>
               <linearGradient id="urpdG" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={GRN} stopOpacity={0.95} /><stop offset="100%" stopColor={GRN} stopOpacity={0.4} /></linearGradient>
