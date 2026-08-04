@@ -56,6 +56,7 @@ const SupplyInProfitChart = lazy(() => import("./SupplyInProfitChart.jsx"));
 const HodlWavesChart = lazy(() => import("./HodlWavesChart.jsx"));
 const WhalesChart = lazy(() => import("./OwnershipCharts.jsx").then(m => ({ default: m.WhalesChart })));
 const SurvivorshipChart = lazy(() => import("./SurvivorshipChart.jsx"));
+const ExitFlowChart = lazy(() => import("./ExitFlowChart.jsx"));
 const SmartMoneyChart = lazy(() => import("./SmartMoneyChart.jsx"));
 const WalletWavesChart = lazy(() => import("./OwnershipCharts.jsx").then(m => ({ default: m.WalletWavesChart })));
 const WealthWavesChart = lazy(() => import("./OwnershipCharts.jsx").then(m => ({ default: m.WealthWavesChart })));
@@ -666,6 +667,7 @@ export default function App() {
       case "hodlwaves": return <HodlWavesChart isMobile={mob} preview={preview} />;
       case "whales": return <WhalesChart isMobile={mob} preview={preview} />;
       case "survivorship": return <SurvivorshipChart isMobile={mob} />;
+      case "exitflow": return <ExitFlowChart isMobile={mob} />;
       case "smartmoney": return <SmartMoneyChart isMobile={mob} />;
       case "walletwaves": return <WalletWavesChart isMobile={mob} preview={preview} />;
       case "wealthwaves": return <WealthWavesChart isMobile={mob} preview={preview} />;
