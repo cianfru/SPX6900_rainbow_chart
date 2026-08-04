@@ -50,7 +50,7 @@ const Row = ({ swatch, children }) => (
 // page is LISTED in the gallery and this is an openly-declared password wall, so the field is shown
 // straight away and the copy says "password protected" rather than "not ready". Same gate, same
 // honest scope (client-side, not real security); only the presentation differs.
-export default function CityGate({ title, accent = "#5eead4", unit = "holder", locked = false, children }) {
+export default function CityGate({ title, accent = "#5eead4", unit = "holder", locked = false, guide = null, children }) {
   const [ok, setOk] = useState(() => { try { return localStorage.getItem(KEY) === "1"; } catch { return false; } });
   const [pw, setPw] = useState("");
   const [bad, setBad] = useState(false);
@@ -134,26 +134,38 @@ export default function CityGate({ title, accent = "#5eead4", unit = "holder", l
             boxShadow: "0 24px 70px rgba(0,0,0,0.6)", animation: "cityPop 220ms cubic-bezier(.2,1.3,.4,1)",
           }}>
             <style>{"@keyframes cityPop{from{opacity:0;transform:scale(.92) translateY(8px)}to{opacity:1;transform:none}}"}</style>
-            <div style={{ fontSize: 30, marginBottom: 6 }}>🏙</div>
+            <div style={{ fontSize: 30, marginBottom: 6 }}>{guide?.emoji || "🏙"}</div>
             <h3 style={{ fontSize: 21, fontWeight: 800, color: "#f1f5f9", margin: "0 0 4px", letterSpacing: "-0.02em" }}>Welcome to {title}</h3>
             <p style={{ color: "#94a3b8", fontSize: 13.5, lineHeight: 1.6, margin: "0 0 16px" }}>
-              Every building is one {unit}&apos;s wallet. Here&apos;s how to read it:
+              {guide?.lead || <>Every building is one {unit}&apos;s wallet. Here&apos;s how to read it:</>}
             </p>
-            <Row swatch="linear-gradient(90deg,#d97706,#22d3ee)">
-              <b style={{ color: "#e2e8f0" }}>Colour is age.</b> Warm amber for wallets that arrived recently, cyan for the ones that have held longest.
-            </Row>
-            <Row swatch="#22c55e">
-              <b style={{ color: "#e2e8f0" }}>Green means buying.</b> The whole building lights green when that wallet added over the window.
-            </Row>
-            <Row swatch="#f43f5e">
-              <b style={{ color: "#e2e8f0" }}>Red means selling.</b> It lights red when the wallet reduced its position.
-            </Row>
-            <Row swatch="#94a3b8">
-              <b style={{ color: "#e2e8f0" }}>Height is size × conviction</b> — how much it holds and how long it&apos;s held. Townhouses to skyscrapers.
-            </Row>
+            {guide
+              ? guide.rows.map((r, i) => (
+                  <Row key={i} swatch={r.swatch}><b style={{ color: "#e2e8f0" }}>{r.title}.</b> {r.text}</Row>
+                ))
+              : (
+                <>
+                  <Row swatch="linear-gradient(90deg,#d97706,#22d3ee)">
+                    <b style={{ color: "#e2e8f0" }}>Colour is age.</b> Warm amber for wallets that arrived recently, cyan for the ones that have held longest.
+                  </Row>
+                  <Row swatch="#22c55e">
+                    <b style={{ color: "#e2e8f0" }}>Green means buying.</b> The whole building lights green when that wallet added over the window.
+                  </Row>
+                  <Row swatch="#f43f5e">
+                    <b style={{ color: "#e2e8f0" }}>Red means selling.</b> It lights red when the wallet reduced its position.
+                  </Row>
+                  <Row swatch="#94a3b8">
+                    <b style={{ color: "#e2e8f0" }}>Height is size × conviction</b> — how much it holds and how long it&apos;s held. Townhouses to skyscrapers.
+                  </Row>
+                </>
+              )}
             <p style={{ color: "#7c8a9e", fontSize: 12.5, lineHeight: 1.6, margin: "14px 0 0" }}>
-              Paste any wallet into <b style={{ color: "#c7d2e4" }}>&ldquo;Where do you live?&rdquo;</b> to find its neighbourhood.
-              The building is real data; the street address is a game — it comes from the wallet&apos;s own hash, not from anywhere real.
+              {guide?.footer || (
+                <>
+                  Paste any wallet into <b style={{ color: "#c7d2e4" }}>&ldquo;Where do you live?&rdquo;</b> to find its neighbourhood.
+                  The building is real data; the street address is a game — it comes from the wallet&apos;s own hash, not from anywhere real.
+                </>
+              )}
             </p>
             <button onClick={dismiss} style={{
               marginTop: 18, width: "100%", padding: "10px 0", borderRadius: 10, cursor: "pointer",

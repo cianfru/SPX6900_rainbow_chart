@@ -81,6 +81,7 @@ const NrplChart = lazy(() => import("./NrplChart.jsx"));
 const LivelinessChart = lazy(() => import("./LivelinessChart.jsx"));
 const SpxCity = lazy(() => import("./SpxCity.jsx"));
 const CityLab = lazy(() => import("./CityLab.jsx"));
+const WhalesWatching = lazy(() => import("./WhalesWatching.jsx"));
 const CexSupplyChart = lazy(() => import("./CexSupplyChart.jsx"));
 const CexFlowChart = lazy(() => import("./CexFlowChart.jsx"));
 const CexVenuesChart = lazy(() => import("./CexVenuesChart.jsx"));
@@ -676,6 +677,7 @@ export default function App() {
       case "liveliness": return <LivelinessChart isMobile={mob} preview={preview} />;
       case "spxcity": return <SpxCity isMobile={mob} preview={preview} initialMode="spx" />;
       case "citylab": return <CityLab isMobile={mob} />;
+      case "whaleswatching": return <WhalesWatching isMobile={mob} />;
       case "cexsupply": return <CexSupplyChart isMobile={mob} preview={preview} />;
       case "cexflow": return <CexFlowChart isMobile={mob} preview={preview} />;
       case "cexvenues": return <CexVenuesChart isMobile={mob} preview={preview} />;
