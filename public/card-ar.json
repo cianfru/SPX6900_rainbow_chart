@@ -70,7 +70,7 @@
   "illiquid": "square",
   "baltier": "square",
   "dualholders": "landscape",
-  "basesurv": "landscape",
+  "basesurv": "square",
   "supplycurve": "landscape",
   "whalecensus": "square",
   "whalebehaviour": "landscape",
