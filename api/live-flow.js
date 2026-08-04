@@ -13,7 +13,9 @@ import { join } from "node:path";
 const SPX = "0xe0f63a424a4439cbe457d80e4f4b51ad25b2c56c"; // SPX6900 ERC-20 (Ethereum), 8 decimals
 const HOURS_DEFAULT = 6, HOURS_MAX = 24;
 const BLOCKS_PER_HOUR = 300;                                // ~12s blocks
-const TOP_N = 250;                                          // watch the biggest N holders for live moves
+const TOP_N = 800;                                          // watch ALL ≥100k holders (~575) — the transfer
+                                                            // window is pulled once and filtered locally, so a
+                                                            // bigger watched set costs nothing extra on Alchemy
 
 // Sum signed net flow per WATCHED wallet from a list of Alchemy transfers. Pure + exported so it
 // can be unit-tested without the network. `value` from getAssetTransfers is already decimal-adjusted
