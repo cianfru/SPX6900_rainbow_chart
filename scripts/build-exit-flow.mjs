@@ -36,34 +36,51 @@ function priceLookup(pricesPath) {
   return (t) => { if (!px.length) return null; let best = px[0].p; for (const r of px) { if (r.t <= t) best = r.p; else break; } return best; };
 }
 
-// aggregate a list of {exitT, entryT} departures into a daily/weekly series + overall totals
+// aggregate a list of {exitT, entryT, spx} departures into a daily/weekly series + overall totals.
+// Each row carries BOTH the wallet COUNT and the SPX AMOUNT that left, split profit/loss — so the
+// chart can read "how many wallets left" or "how much SPX dropped out of strong hands" that day.
+// `spx` = the wallet's holding the moment before it fell below the bar (the position that exited);
+// it's an OUTFLOW PROXY — on-chain can't tell a sale from a plain transfer — and never overstates.
 function summarise(departures, priceAt, res) {
   const byDay = new Map();
-  let left = 0, profit = 0;
+  let left = 0, profit = 0, spxProfit = 0, spxLoss = 0;
   for (const d of departures) {
     const ep = priceAt(d.exitT), ap = priceAt(d.entryT);
     const inProfit = ep != null && ap != null && ep >= ap;
+    const spx = Number.isFinite(d.spx) ? d.spx : 0;
     const key = dayOf(d.exitT);
-    let row = byDay.get(key); if (!row) { row = { profit: 0, loss: 0 }; byDay.set(key, row); }
-    if (inProfit) { row.profit++; profit++; } else row.loss++;
+    let row = byDay.get(key); if (!row) { row = { profit: 0, loss: 0, spxP: 0, spxL: 0 }; byDay.set(key, row); }
+    if (inProfit) { row.profit++; profit++; row.spxP += spx; spxProfit += spx; }
+    else { row.loss++; row.spxL += spx; spxLoss += spx; }
     left++;
   }
-  const days = [...byDay.entries()].sort((a, b) => a[0] < b[0] ? -1 : 1).map(([d, r]) => [d, r.profit, r.loss]);
+  const days = [...byDay.entries()].sort((a, b) => a[0] < b[0] ? -1 : 1)
+    .map(([d, r]) => [d, r.profit, r.loss, Math.round(r.spxP), Math.round(r.spxL)]);
   return { updated: new Date().toISOString().slice(0, 10), bar: 5000, res,
-    overall: { left, profit, loss: left - profit, profitPct: left ? +(100 * profit / left).toFixed(0) : 0 }, days };
+    overall: {
+      left, profit, loss: left - profit, profitPct: left ? +(100 * profit / left).toFixed(0) : 0,
+      spx: Math.round(spxProfit + spxLoss), spxProfit: Math.round(spxProfit), spxLoss: Math.round(spxLoss),
+      spxProfitPct: (spxProfit + spxLoss) ? +(100 * spxProfit / (spxProfit + spxLoss)).toFixed(0) : 0,
+    }, days };
 }
 
 // DAILY — stream the raw transfer archive, track running balance, record each wallet's first/last day above the bar
 async function fromTransfers(src, priceAt) {
   const BAR = 5000;
-  const bal = new Map(), firstT = new Map(), lastAboveT = new Map();
+  // exitT = the transfer that DROPS the wallet below the bar (the actual sell-out day), not its last
+  // transfer while still above — so a one-shot full dump lands on the dump day, not on its prior
+  // activity. lastBal = its holding the moment before that drop = the position that left (the SPX
+  // amount, an outflow proxy).
+  const bal = new Map(), firstT = new Map(), crossT = new Map(), lastBal = new Map();
   let head = null, rows = 0;
   const rl = createInterface({ input: createReadStream(src), crlfDelay: Infinity });
   const touch = (a, d, t) => {
     if (!a || a === ZERO) return;
     a = a.toLowerCase(); if (EXCLUDE.has(a)) return;
-    const nb = Math.max(0, (bal.get(a) || 0) + d); bal.set(a, nb);
-    if (nb >= BAR) { if (!firstT.has(a)) firstT.set(a, t); lastAboveT.set(a, t); }
+    const prev = bal.get(a) || 0;
+    const nb = Math.max(0, prev + d); bal.set(a, nb);
+    if (nb >= BAR) { if (!firstT.has(a)) firstT.set(a, t); lastBal.set(a, nb); }   // still a holder
+    else if (prev >= BAR) { crossT.set(a, t); }                                     // just fell below → exit day
   };
   for await (const line of rl) {
     if (!head) { head = line; continue; }
@@ -74,7 +91,9 @@ async function fromTransfers(src, priceAt) {
     touch(c[0], -qty, t); touch(c[1], qty, t); rows++;
   }
   const departures = [];
-  for (const [a, entryT] of firstT) if ((bal.get(a) || 0) < BAR) departures.push({ entryT, exitT: lastAboveT.get(a) });
+  for (const [a, entryT] of firstT) if ((bal.get(a) || 0) < BAR) {
+    departures.push({ entryT, exitT: crossT.get(a), spx: lastBal.get(a) || 0 });
+  }
   console.error(`exit-flow[daily]: ${rows} transfers → ${departures.length} departures`);
   return summarise(departures, priceAt, "daily");
 }
@@ -89,7 +108,7 @@ function fromTimeline(path, priceAt) {
     let arr = null; for (const [wk, b] of w.p) { if (b >= BAR) { arr = wk; break; } }
     if (arr == null || balanceAt(w.p, W) >= BAR) continue;
     let last = arr; for (let wk = arr; wk <= W; wk++) if (balanceAt(w.p, wk) >= BAR) last = wk;
-    departures.push({ entryT: tOf(arr), exitT: tOf(last) });
+    departures.push({ entryT: tOf(arr), exitT: tOf(last), spx: balanceAt(w.p, last) });
   }
   console.error(`exit-flow[weekly]: ${tl.wallets.length} wallets → ${departures.length} departures`);
   return summarise(departures, priceAt, "weekly");
@@ -107,4 +126,4 @@ async function main() {
 const isMain = process.argv[1] && import.meta.url.endsWith(process.argv[1].split("/").pop());
 if (isMain) main().catch(e => { console.error(e); process.exit(1); });
 
-export { summarise, fromTimeline, priceLookup };
+export { summarise, fromTimeline, fromTransfers, priceLookup };
