@@ -46,17 +46,25 @@ jobs:
           # default public node if it rate-limits. Soft-skips (null) on failure.
           ETH_RPC: ${{ vars.ETH_RPC }}
         run: node scripts/snapshot.mjs
+      # ⚠ These three are SECONDARY re-slices of data already banked in history.json, so none of them
+      # may block committing today's price. continue-on-error: an upstream outage (e.g. HolderScan
+      # 402) can leave a null field today; if a builder chokes on it, its own JSON just forward-fills
+      # while history.json + the deploy still go through. Green-but-stale is caught by the field-level
+      # audit below (feed-health.json), which is exactly what that step exists for.
       - name: Extend multi-chain wallet series (no Dune, free)
         # Appends today's ETH/Base/Solana counts (just banked in history.json) onto the
         # validated historical bundle → public/chain-wallets.json. Zero credits, no Dune.
+        continue-on-error: true
         run: node scripts/build-chain-wallets.mjs
       - name: Extend CEX/LP flow series (no Dune, free)
         # Splices today's CEX/LP/custody balances (just banked in history.json) onto the Dune
         # reconstruction baseline → public/cex-flow.json. Zero credits, keyless.
+        continue-on-error: true
         run: node scripts/build-cex-flow.mjs
       - name: Rebuild valuation composite (no Dune, free)
         # Recomputes the weighted valuation composite from today's stats → public/valuation.json.
         # Pure transform of already-banked data (price + on-chain + sentiment). Keyless, zero cost.
+        continue-on-error: true
         run: node scripts/build-valuation.mjs
       - name: Read the on-chain city noticeboard
         # Notes on buildings live on-chain (CityNotes.sol), not with us. This caches the logs into
