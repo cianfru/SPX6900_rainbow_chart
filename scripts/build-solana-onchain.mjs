@@ -110,7 +110,10 @@ function main() {
   const maxDay = rows.reduce((m, r) => { const d = new Date(r.ts).toISOString().slice(0, 10); return d > m ? d : m; }, "");
   const currentDay = arg("current", null) || maxDay;
   const wallets = residents(rows, { threshold, nowTs: now, flowDays: 30, currentDay });
-  const firstDay = new Date(Math.min(...rows.map(r => r.ts))).toISOString().slice(0, 10);
+  // reduce, NOT Math.min(...rows): spreading 120k+ timestamps into a call overflows the stack
+  // (the same scale bug the ETH FIFO engine hit). maxDay above already uses this pattern.
+  const minTs = rows.reduce((m, r) => (r.ts < m ? r.ts : m), rows[0].ts);
+  const firstDay = new Date(minTs).toISOString().slice(0, 10);
   const doc = {
     v: 1, updated: currentDay, chain: "solana", source: "public Solana RPC snapshot (residency) + Dune daily_balances (full ≥5k history for ages)",
     threshold, sliceFrom: firstDay, excludedSupply: wallets.excludedSupply, excluded: Object.keys(SOLANA_EXCLUDE).length,
