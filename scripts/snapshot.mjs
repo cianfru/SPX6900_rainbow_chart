@@ -278,7 +278,13 @@ export async function cexLpBalances() {
 async function main() {
   if (!KEY) throw new Error("Missing HOLDERSCAN_KEY env (set it as a repo secret)");
 
-  const sup = await hs("/stats/supply-breakdown"); // required
+  // Soft, but LOUD (same lesson as the cex/lp path below): a HolderScan outage — e.g. 402 Payment
+  // Required when the subscription/credits lapse — must NOT take down the entire daily snapshot. Price,
+  // holders, chain balances, valuation and the deploy all ride on this one run, so a single unpaid
+  // endpoint crashing everything is the wrong failure mode. The supply/tier cards forward-fill a
+  // missing day (stats.mjs guards `r.sup`); everything else still banks, commits and deploys.
+  const sup = await softHs("/stats/supply-breakdown");
+  if (!sup) console.error("⚠ HolderScan /stats/supply-breakdown FAILED (402 = credits/subscription lapsed?) — supply & tier cards will not advance today; the rest of the snapshot still banks.");
   const [p, stats, pnl, breakdowns, fearGreed, spx500, baseH, solH, baseSup, solSup, t3es, cexLp] = await Promise.all([
     price(), softHs("/stats"), softHs("/stats/pnl"), softHs("/holders/breakdowns"), fng(), sp500(),
     baseHolders(), solHolders(), baseSupply(), solSupply(), total3es(), cexLpBalances(),
