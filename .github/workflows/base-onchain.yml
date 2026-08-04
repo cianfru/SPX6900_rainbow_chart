@@ -15,12 +15,8 @@ name: Daily SPX-on-Base cohort refresh (Alchemy)
 # (build-base-snapshot.mjs) stays as a keyless fallback.
 
 on:
-  # Daily collection DISABLED 2026-08-04. The per-wallet Base reconstruction is thin (~400 real wallets;
-  # Wormhole-bridged, so no honest cost basis) and tells the same shape of story as the ETH engine while
-  # adding a fragile daily dependency (Alchemy). ETH deep on-chain (onchain-dune.yml) + the cheap
-  # multi-chain HEADCOUNT (in snapshot.yml) stay. Kept as workflow_dispatch for a manual refresh if wanted.
-  # schedule:
-  #   - cron: "51 5 * * *"   # ~05:51 UTC daily (after solana-onchain at 05:41)
+  schedule:
+    - cron: "51 5 * * *"   # ~05:51 UTC daily (after solana-onchain at 05:41)
   workflow_dispatch:
     inputs:
       full:
