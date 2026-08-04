@@ -1,11 +1,7 @@
 {
-  "lastPostedDate": "2026-08-03",
-  "lastId": "walletwaves",
+  "lastPostedDate": "2026-08-04",
+  "lastId": "cexflow",
   "recent": [
-    {
-      "date": "2026-07-11",
-      "id": "dcaladder"
-    },
     {
       "date": "2026-07-12",
       "id": "riskcolor"
@@ -81,6 +77,10 @@
     {
       "date": "2026-08-03",
       "id": "walletwaves"
+    },
+    {
+      "date": "2026-08-04",
+      "id": "cexflow"
     }
   ]
 }
