@@ -2266,7 +2266,12 @@ const weightOf = id => WEIGHT[id] ?? (BULLISH.has(id) ? 2 : 1);
 // marketcap ("real free-float cap / thin float") is RETIRED — its premise is false: SPX is a
 // fair launch with no lockup, so free float is ~88% (not thin). The honest story is
 // illiquid/liquid supply (the reframed freefloat card), so marketcap is out of the feed.
-const NO_ROTATE = new Set(["drawdown", "risk", "kraken", "dcaladder", "marketcap", "spxcohort", "cexsupply", "cexflow", "cexvenues", "cexvenflow", "nrpl", "liveliness"]);
+// The multi-chain per-wallet cards (Base/Solana cohorts) are OUT of the auto-feed as of 2026-08-04:
+// the Base/Solana reconstructions are thin + bridged (no cost basis), tell the same shape of story as
+// the ETH cards, and their daily crons were the fragile part (now disabled). Still buildable + hand-
+// postable; the ETH-native depth carries the on-chain lane. See the tier note in CLAUDE.md.
+const NO_ROTATE = new Set(["drawdown", "risk", "kraken", "dcaladder", "marketcap", "spxcohort", "cexsupply", "cexflow", "cexvenues", "cexvenflow", "nrpl", "liveliness",
+  "ethsol", "chainconc", "illiquid", "baltier", "dualholders", "basesurv", "supplycurve"]);
 
 // LONG-FORM cards — the few methodology / teaching posts that genuinely need more than the
 // 290 instant-read ceiling (see the post-length test). Default stays 290 for EVERY other card;

@@ -23,8 +23,12 @@ name: Daily SPX-on-Solana refresh (free public RPC)
 #   overwrite the archive) if it gets a short/refused response.
 
 on:
-  schedule:
-    - cron: "41 5 * * *"   # ~05:41 UTC daily (after onchain-dune at 05:23)
+  # Daily collection DISABLED 2026-08-04. The per-wallet Solana reconstruction is thin (~2k wallets;
+  # Wormhole-bridged, so no honest cost basis) and tells the same shape of story as the ETH engine while
+  # adding a fragile daily dependency (public Solana RPC). ETH deep on-chain (onchain-dune.yml) + the
+  # cheap multi-chain HEADCOUNT (in snapshot.yml) stay. Kept as workflow_dispatch for a manual refresh.
+  # schedule:
+  #   - cron: "41 5 * * *"   # ~05:41 UTC daily (after onchain-dune at 05:23)
   workflow_dispatch: {}
 
 permissions:
