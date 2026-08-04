@@ -94,8 +94,16 @@ async function ensureQuery(sql, name, idEnv) {
   const id = process.env[idEnv];
   if (id) {
     const r = await fetch(`${BASE}/query/${id}`, { method: "PATCH", headers: H(), body: JSON.stringify({ query_sql: sql }) });
-    if (!r.ok) throw new Error(`patch query ${r.status}: ${await r.text()}`);
-    return id;
+    if (r.ok) return id;
+    // ⭐ SELF-HEAL: a saved query can be DELETED from Dune (or the key loses access to it), which
+    // returns 404 "Query not found" — and that used to throw and stall the whole daily refresh, so
+    // the AEON transfers/sales froze while the workflow stayed green (this is exactly what happened
+    // to queries 8097520/8097522). On 404, fall through and recreate the query instead of dying; the
+    // new query still runs the incremental SQL (cutoff from the committed CSV), so it just pulls the
+    // missing delta. Other errors (auth, rate limit) still throw. Set the repo var to the logged new
+    // id to avoid creating a fresh query each run.
+    if (r.status !== 404) throw new Error(`patch query ${r.status}: ${await r.text()}`);
+    console.warn(`  saved query ${id} (${idEnv}) is gone (404) — recreating it`);
   }
   const r = await fetch(`${BASE}/query`, { method: "POST", headers: H(), body: JSON.stringify({ name, query_sql: sql, is_private: false }) });
   if (!r.ok) throw new Error(`create query ${r.status}: ${await r.text()}`);
