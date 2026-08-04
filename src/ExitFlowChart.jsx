@@ -10,25 +10,22 @@ import { useDragZoom } from "./use-drag-zoom.js";
 const GRN = "#4ade80", RED = "#f43f5e", PRICE = "#94a3b8";
 const fShort = t => new Date(t).toLocaleDateString("en-US", { month: "short", year: "2-digit" });
 const fN = n => n >= 1000 ? (n / 1000).toFixed(1) + "k" : String(n);
+const fSpx = v => v >= 1e6 ? (v / 1e6).toFixed(1) + "M" : v >= 1e3 ? Math.round(v / 1e3) + "k" : String(Math.round(v));
 const fP = p => p == null ? "—" : p < 0.01 ? "$" + p.toFixed(4) : "$" + p.toFixed(2);
 
-function Tip({ active, payload, cumulative }) {
+function Tip({ active, payload, cumulative, spx }) {
   if (!active || !payload?.length) return null;
   const d = payload[0].payload;
+  const unit = spx ? " SPX" : "";
+  const f = spx ? fSpx : (v => v.toLocaleString());
+  const pk = cumulative ? (spx ? "cumSpxP" : "cumProfit") : (spx ? "spxP" : "profit");
+  const lk = cumulative ? (spx ? "cumSpxL" : "cumLoss") : (spx ? "spxL" : "loss");
+  const verb = cumulative ? "left" : "sold";
   return (
     <TipBox title={new Date(d.ts).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}>
-      {cumulative ? (
-        <>
-          <div><span style={{ color: GRN }}>left in profit</span>: <span style={{ fontFamily: MONO }}>{d.cumProfit.toLocaleString()}</span></div>
-          <div><span style={{ color: RED }}>left at a loss</span>: <span style={{ fontFamily: MONO }}>{d.cumLoss.toLocaleString()}</span></div>
-        </>
-      ) : (
-        <>
-          <div><span style={{ color: GRN }}>sold in profit</span>: <span style={{ fontFamily: MONO }}>{d.profit}</span></div>
-          <div><span style={{ color: RED }}>sold at a loss</span>: <span style={{ fontFamily: MONO }}>{d.loss}</span></div>
-          {d.price != null && <div style={{ marginTop: 3, color: "#cbd5e1" }}>price then: <span style={{ fontFamily: MONO }}>{fP(d.price)}</span></div>}
-        </>
-      )}
+      <div><span style={{ color: GRN }}>{verb} in profit</span>: <span style={{ fontFamily: MONO }}>{f(d[pk])}{unit}</span></div>
+      <div><span style={{ color: RED }}>{verb} at a loss</span>: <span style={{ fontFamily: MONO }}>{f(d[lk])}{unit}</span></div>
+      {!cumulative && d.price != null && <div style={{ marginTop: 3, color: "#cbd5e1" }}>price then: <span style={{ fontFamily: MONO }}>{fP(d.price)}</span></div>}
     </TipBox>
   );
 }
@@ -41,6 +38,7 @@ export default function ExitFlowChart({ isMobile }) {
   const [doc, setDoc] = useState(null);
   const [px, setPx] = useState(null);
   const [cumulative, setCumulative] = useState(false);
+  const [metric, setMetric] = useState("wallets");   // "wallets" | "spx"
   useEffect(() => {
     let off = false;
     loadExitFlow().then(d => { if (!off) setDoc(d ?? false); });
@@ -48,17 +46,24 @@ export default function ExitFlowChart({ isMobile }) {
     return () => { off = true; };
   }, []);
 
+  // SPX amounts arrive with the pipeline's 5-tuple rows ([date, profitN, lossN, spxProfit, spxLoss]);
+  // older 3-tuple data has none → the SPX toggle only shows once the data carries it.
+  const hasSpx = !!doc?.days?.some(d => d.length >= 5 && (d[3] || d[4]));
+  const spx = metric === "spx" && hasSpx;
+
   const all = useMemo(() => {
     if (!doc?.days) return [];
     const pmap = new Map((px || []).map(r => [r.date, +r.price]));
-    const rows = doc.days.map(([date, profit, loss]) => ({ ts: Date.parse(date), date, profit, loss, total: profit + loss }))
+    const rows = doc.days.map(([date, profit, loss, spxP = 0, spxL = 0]) =>
+      ({ ts: Date.parse(date), date, profit, loss, total: profit + loss, spxP, spxL }))
       .filter(r => Number.isFinite(r.ts)).sort((a, b) => a.ts - b.ts);
-    // forward-fill price (exit days may not all have a price-history row) + accumulate the running split
-    let lastP = null, cp = 0, cl = 0;
+    // forward-fill price (exit days may not all have a price-history row) + accumulate the running splits
+    let lastP = null, cp = 0, cl = 0, csp = 0, csl = 0;
     for (const r of rows) {
       const p = pmap.get(r.date); if (p > 0) lastP = p;
       r.price = lastP;
       r.cumProfit = (cp += r.profit); r.cumLoss = (cl += r.loss);
+      r.cumSpxP = (csp += r.spxP); r.cumSpxL = (csl += r.spxL);
     }
     return rows;
   }, [doc, px]);
@@ -87,6 +92,10 @@ export default function ExitFlowChart({ isMobile }) {
     background: on ? "rgba(94,234,212,0.16)" : "rgba(255,255,255,0.05)",
     border: `1px solid ${on ? "#5eead4" : "rgba(255,255,255,0.14)"}`, color: on ? "#5eead4" : "#94a3b8",
   });
+  const seg = on => ({
+    padding: "6px 12px", cursor: "pointer", fontFamily: SANS, fontSize: 13, fontWeight: 600, border: "none",
+    background: on ? "rgba(94,234,212,0.16)" : "transparent", color: on ? "#5eead4" : "#94a3b8",
+  });
 
   return (
     <div style={{ maxWidth: MAX_W, margin: "0 auto" }}>
@@ -100,10 +109,17 @@ export default function ExitFlowChart({ isMobile }) {
       <div style={{ display: "flex", gap: isMobile ? 14 : 30, justifyContent: "center", marginBottom: 12, flexWrap: "wrap" }}>
         <Metric label="left in profit" value={(o.profitPct ?? 0) + "%"} color={GRN} sub={`${(o.profit ?? 0).toLocaleString()} wallets`} />
         <Metric label="left at a loss" value={(100 - (o.profitPct ?? 0)) + "%"} color={RED} sub={`${(o.loss ?? 0).toLocaleString()} wallets`} />
-        <Metric label="total departed" value={fN(o.left ?? 0)} color="#cbd5e1" sub="was a holder, now gone" />
+        <Metric label="total departed" value={fN(o.left ?? 0)} color="#cbd5e1" sub="wallets, was a holder now gone" />
+        {hasSpx && <Metric label="of SPX that left" value={(o.spxProfitPct ?? 0) + "%"} color="#5eead4" sub="sold in profit (size-weighted)" />}
       </div>
 
-      <div style={{ display: "flex", gap: 8, justifyContent: "center", marginBottom: 10 }}>
+      <div style={{ display: "flex", gap: 8, justifyContent: "center", marginBottom: 10, flexWrap: "wrap" }}>
+        {hasSpx && (
+          <div style={{ display: "inline-flex", borderRadius: 8, overflow: "hidden", border: "1px solid rgba(255,255,255,0.14)", marginRight: 4 }}>
+            <button onClick={() => setMetric("wallets")} style={{ ...seg(!spx), borderRight: "1px solid rgba(255,255,255,0.12)" }}>Wallets</button>
+            <button onClick={() => setMetric("spx")} style={seg(spx)}>SPX dumped</button>
+          </div>
+        )}
         <button onClick={() => setCumulative(false)} style={btn(!cumulative)}>Per day</button>
         <button onClick={() => setCumulative(true)} style={btn(cumulative)}>Cumulative</button>
       </div>
@@ -121,23 +137,23 @@ export default function ExitFlowChart({ isMobile }) {
               axisLine={{ stroke: "rgba(255,255,255,0.15)" }} tickLine={false} />
             <YAxis yAxisId="n" type="number" allowDataOverflow
               tick={{ fill: "#cbd5e1", fontSize: isMobile ? 10 : 12, fontFamily: MONO }}
-              axisLine={{ stroke: "rgba(255,255,255,0.15)" }} tickLine={false} width={isMobile ? 40 : 52}
-              tickFormatter={fN} />
+              axisLine={{ stroke: "rgba(255,255,255,0.15)" }} tickLine={false} width={isMobile ? 44 : 56}
+              tickFormatter={spx ? fSpx : fN} />
             {!cumulative && (
               <YAxis yAxisId="price" orientation="right" type="number" scale="log" domain={view.pDomain} allowDataOverflow
                 tick={{ fill: PRICE, fontSize: isMobile ? 9 : 11, fontFamily: MONO }} tickFormatter={fP}
                 axisLine={{ stroke: "rgba(255,255,255,0.1)" }} tickLine={false} width={isMobile ? 44 : 56} />
             )}
-            <Tooltip content={<Tip cumulative={cumulative} />} cursor={{ stroke: "rgba(255,255,255,0.2)" }} />
+            <Tooltip content={<Tip cumulative={cumulative} spx={spx} />} cursor={{ stroke: "rgba(255,255,255,0.2)" }} />
             {cumulative ? (
               <>
-                <Area yAxisId="n" type="monotone" dataKey="cumProfit" stackId="c" stroke={GRN} strokeWidth={0.5} fill={GRN} fillOpacity={0.55} dot={false} isAnimationActive={false} name="profit" />
-                <Area yAxisId="n" type="monotone" dataKey="cumLoss" stackId="c" stroke={RED} strokeWidth={0.5} fill={RED} fillOpacity={0.6} dot={false} isAnimationActive={false} name="loss" />
+                <Area yAxisId="n" type="monotone" dataKey={spx ? "cumSpxP" : "cumProfit"} stackId="c" stroke={GRN} strokeWidth={0.5} fill={GRN} fillOpacity={0.55} dot={false} isAnimationActive={false} name="profit" />
+                <Area yAxisId="n" type="monotone" dataKey={spx ? "cumSpxL" : "cumLoss"} stackId="c" stroke={RED} strokeWidth={0.5} fill={RED} fillOpacity={0.6} dot={false} isAnimationActive={false} name="loss" />
               </>
             ) : (
               <>
-                <Bar yAxisId="n" dataKey="profit" stackId="d" fill={GRN} isAnimationActive={false} name="profit" />
-                <Bar yAxisId="n" dataKey="loss" stackId="d" fill={RED} isAnimationActive={false} name="loss" />
+                <Bar yAxisId="n" dataKey={spx ? "spxP" : "profit"} stackId="d" fill={GRN} isAnimationActive={false} name="profit" />
+                <Bar yAxisId="n" dataKey={spx ? "spxL" : "loss"} stackId="d" fill={RED} isAnimationActive={false} name="loss" />
                 <Line yAxisId="price" type="monotone" dataKey="price" stroke={PRICE} strokeWidth={1.6} dot={false} isAnimationActive={false} name="price" opacity={0.7} />
               </>
             )}
@@ -158,8 +174,11 @@ export default function ExitFlowChart({ isMobile }) {
       </div>
 
       <div className="chart-caption" style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.65, maxWidth: 900, marginInline: "auto" }}>
-        <strong style={{ color: GRN }}>How holders left</strong> — {cumulative ? "the running total of departures, green (in profit) vs red (at a loss)" : "one bar per day: departing holders, green if they sold above their entry, red if below, over the price line"}.
-        Profit/loss is exit price vs entry price, both ≈ the price when the wallet crossed the holder bar (self-custody, ≥5,000 SPX; a realized-P/L proxy). Reconstructed on-chain, daily. Drag to zoom. Not financial advice.
+        <strong style={{ color: GRN }}>How holders left</strong> — {spx
+          ? (cumulative ? "the running total of SPX that dropped out of strong hands, green (sold in profit) vs red (at a loss)" : "SPX that left the holder base each day, green if sold above entry, red if below, over the price line")
+          : (cumulative ? "the running total of departures, green (in profit) vs red (at a loss)" : "one bar per day: departing holders, green if they sold above their entry, red if below, over the price line")}.
+        {hasSpx && <> The <strong style={{ color: "#5eead4" }}>SPX dumped</strong> view weights by size — one whale outweighs fifty shrimp — measuring each departing wallet&rsquo;s holding the moment before it fell below 5,000 SPX (the position that left; an outflow proxy, since on-chain can&rsquo;t separate a sale from a transfer).</>}
+        {" "}An exit is dated to the transfer that drops the wallet below the bar. Profit/loss is exit price vs entry price (≈ the price when it crossed the bar; a realized-P/L proxy). Reconstructed on-chain, daily. Drag to zoom. Not financial advice.
       </div>
     </div>
   );
