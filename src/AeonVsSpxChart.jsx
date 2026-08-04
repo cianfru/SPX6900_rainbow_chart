@@ -30,7 +30,16 @@ export default function AeonVsSpxChart({ isMobile }) {
       const b = baseAt.get(d);
       return { ts: Date.parse(d), ratio: r, base: b, hi: b * st.bandMult(0.5), lo: b * st.bandMult(-0.5) };
     });
-    return { rows, ...st, rmin: st.min, rmax: st.max, sv };
+    // Domain must span EVERY drawn series, not just the ratio: the ±0.5σ bands (and the
+    // baseline) can dip below the ratio's own min or poke above its max, and a domain floored
+    // to the ratio alone silently clips the green lower band off the bottom of the chart.
+    let dmin = Infinity, dmax = -Infinity;
+    for (const rw of rows) {
+      for (const v of [rw.ratio, rw.base, rw.hi, rw.lo]) {
+        if (v > 0) { if (v < dmin) dmin = v; if (v > dmax) dmax = v; }
+      }
+    }
+    return { rows, ...st, rmin: dmin, rmax: dmax, sv };
   }, [market]);
 
   if (!market) return <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Loading…</div>;
