@@ -8,6 +8,9 @@
     },
     "api/agent.js": {
       "includeFiles": "{scripts/bot/**,public/{history,onchain,whales,chain-wallets,cex-flow,freefloat-peers,rotation-excludes,cohort-survival,exit-flow,smart-money}.json}"
+    },
+    "api/live-flow.js": {
+      "includeFiles": "public/whales.json"
     }
   },
   "headers": [

@@ -6,6 +6,7 @@ import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js
 import { makeDrs } from "./city-drs.js";
 import { buildCohorts, ageRamp } from "./whale-cohorts.js";
 import { loadWhales } from "./history-data.js";
+import WhaleBoard from "./WhaleBoard.jsx";
 import CityGate from "./CityGate.jsx";
 import { SANS, MONO } from "./chart-ui.jsx";
 
@@ -350,10 +351,31 @@ function Watcher({ isMobile }) {
   );
 }
 
+// Inside the gate: a City (3D skyline) / Live board (2D pulsing grid) switch. Same watched wallets,
+// two lenses — the 3D scene for the landscape, the grid for glanceable live buy/sell.
+function WhalesInner({ isMobile }) {
+  const [mode, setMode] = useState("city");
+  const seg = on => ({
+    padding: "6px 16px", cursor: "pointer", fontFamily: SANS, fontSize: 13, fontWeight: 600, border: "none",
+    background: on ? "rgba(94,234,212,0.16)" : "transparent", color: on ? "#5eead4" : "#94a3b8",
+  });
+  return (
+    <div style={{ maxWidth: 1180, margin: "0 auto", padding: "0 14px" }}>
+      <div style={{ display: "flex", justifyContent: "center", margin: "8px 0 6px" }}>
+        <div style={{ display: "inline-flex", borderRadius: 9, overflow: "hidden", border: "1px solid rgba(255,255,255,0.14)" }}>
+          <button onClick={() => setMode("city")} style={{ ...seg(mode === "city"), borderRight: "1px solid rgba(255,255,255,0.12)" }}>City · 3D</button>
+          <button onClick={() => setMode("board")} style={seg(mode === "board")}>Live board</button>
+        </div>
+      </div>
+      {mode === "city" ? <Watcher isMobile={isMobile} /> : <WhaleBoard isMobile={isMobile} />}
+    </div>
+  );
+}
+
 export default function WhalesWatching({ isMobile }) {
   return (
     <CityGate title="Whales Watching" accent="#5eead4" unit="whale" locked guide={GUIDE_INTRO}>
-      <Watcher isMobile={isMobile} />
+      <WhalesInner isMobile={isMobile} />
     </CityGate>
   );
 }
