@@ -12,6 +12,7 @@ import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { balanceAt } from "./build-city-timeline.mjs";
+import { maxOf, minOf } from "./lib/arr-math.mjs";
 
 const arg = (k, d) => { const a = process.argv.find(s => s.startsWith(`--${k}=`)); return a ? a.split("=")[1] : d; };
 const DAY = 86400000;
@@ -55,11 +56,11 @@ function cityAt(tl, W) {
     rows.push({ a: w.a, bal, days });
   }
   if (!rows.length) return { at: W, byAddr: new Map(), residents: 0, held: 0, familyMix: { masonry: 0, concrete: 0, glass: 0 } };
-  const maxBal = Math.max(1, ...rows.map(r => r.bal));
-  const maxDays = Math.max(1, ...rows.map(r => r.days));
+  // maxOf/minOf, not Math.max(...): rows is the resident set and can grow past the ~125k arg cap.
+  const maxBal = maxOf(rows, r => r.bal, 1);
+  const maxDays = maxOf(rows, r => r.days, 1);
   for (const r of rows) r.score = (r.bal / maxBal) * (0.45 + 0.55 * (r.days / maxDays));
-  const scores = rows.map(r => r.score);
-  const minScore = Math.min(...scores), maxScore = Math.max(...scores);
+  const minScore = minOf(rows, r => r.score), maxScore = maxOf(rows, r => r.score);
   for (const r of rows) { r.height = heightOf(r.score, minScore, maxScore); r.fam = familyOf(r.height); }
   rows.sort((a, b) => b.score - a.score);
   rows.forEach((r, i) => { r.rank = i + 1; });

@@ -81,13 +81,17 @@ jobs:
           DUNE_INCREMENTAL_QUERY_ID: ${{ vars.DUNE_INCREMENTAL_QUERY_ID }}
         run: node scripts/build-onchain-dune-refresh.mjs --archive=transfers.csv
       - name: Rebuild the city time-machine (weekly per-wallet balances)
-        # rides the same merged archive — no extra pull; feeds the launch→today slider
+        # rides the same merged archive — no extra pull; feeds the launch→today slider.
+        # continue-on-error: a secondary transform must never block committing the core onchain.json.
+        continue-on-error: true
         run: node scripts/build-city-timeline.mjs --spx=transfers.csv --out=public/spx-timeline.json
       - name: "Rebuild the city recap (weekly/monthly — new residents, tier upgrades)"
         # pure diff of the timeline just built — no data pull; feeds the City report card + panel
         continue-on-error: true
         run: node scripts/build-city-recap.mjs --timeline=public/spx-timeline.json --out=public/city-recap.json
       - name: Rebuild cohort survival (who still holds, by arrival era)
+        # continue-on-error: secondary re-slice of the timeline — can't be allowed to block onchain.json
+        continue-on-error: true
         run: node scripts/build-cohort-survival.mjs --in=public/spx-timeline.json --out=public/cohort-survival.json
       - name: Rebuild whale-cohort history (DAILY counts in each size cohort)
         # off the raw archive → real per-transfer timestamps, daily membership (finer than the weekly
@@ -121,6 +125,10 @@ jobs:
           '
 
       - name: Re-upload the grown archive
+        # continue-on-error: the ETH data is already computed + sanity-checked, so a transient GitHub
+        # upload hiccup must not cost the day's commit + deploy. The merge is idempotent — if the archive
+        # doesn't grow today, the next run re-pulls the same delta from the same cutoff and recomputes.
+        continue-on-error: true
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
