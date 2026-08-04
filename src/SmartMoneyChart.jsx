@@ -2,6 +2,32 @@ import { useMemo, useState, useEffect } from "react";
 import { ResponsiveContainer, ComposedChart, Area, Bar, Line, XAxis, YAxis, Tooltip, CartesianGrid, ReferenceLine, Cell } from "recharts";
 import { loadSmartMoney } from "./history-data.js";
 import { SANS, MONO, MAX_W, Metric, TipBox, Explain } from "./chart-ui.jsx";
+import { useDailyTier } from "./DailyTier.jsx";
+
+// Coarsen the daily series to one point per calendar month for the free tier: held + price are the
+// month's LAST value (a level), net flow is the month's SUM (a flow). Daily is the members view.
+const toMonthly = rows => {
+  const by = new Map();
+  for (const r of rows) {
+    const k = r.d.slice(0, 7);
+    const g = by.get(k) || { d: r.d, t: r.t, held: r.held, heldM: r.heldM, flow: 0, flowK: 0, price: r.price };
+    g.d = r.d; g.t = r.t; g.held = r.held; g.heldM = r.heldM; g.price = r.price;   // last of month
+    g.flow += r.flow; g.flowK = g.flow / 1e3;                                       // sum of month
+    by.set(k, g);
+  }
+  return [...by.values()];
+};
+const newQMonthly = nq => {
+  const by = new Map();
+  for (const r of nq) {
+    const k = r.d.slice(0, 7);
+    const g = by.get(k) || { d: r.d, t: r.t, n: 0, price: r.price };
+    g.d = r.d; g.t = r.t; g.price = r.price; g.n += r.n;
+    by.set(k, g);
+  }
+  return [...by.values()];
+};
+const yearTicksOf = rows => { const seen = new Set(), out = []; for (const r of rows) { const y = r.d.slice(0, 4); if (!seen.has(y)) { seen.add(y); out.push(r.d); } } return out; };
 
 // SMART MONEY — the live cohort of proven top-timers (ROI ≥5×, real capital in, still holding),
 // recomputed every refresh so it's never a frozen list. Two reads:
@@ -32,11 +58,17 @@ export default function SmartMoneyChart({ isMobile }) {
     return { rows, pMin, pMax, yearTicks, newQ };
   }, [data]);
 
+  // Members tier: the free view is coarsened to MONTHLY, the daily series is behind the passphrase.
+  const { daily, controls } = useDailyTier("#f6a23c");
+
   if (!data) return <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Loading…</div>;
   if (!model) return <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Being reconstructed — check back after the next on-chain refresh.</div>;
-  const { rows, pMin, pMax, yearTicks, newQ } = model;
+  const { pMin, pMax, newQ: newQAll } = model;
   const S = data;
-  const newQYearTicks = (() => { const seen = new Set(), out = []; for (const r of newQ) { const y = r.d.slice(0, 4); if (!seen.has(y)) { seen.add(y); out.push(r.d); } } return out; })();
+  const rows = daily ? model.rows : toMonthly(model.rows);
+  const newQ = daily ? newQAll : newQMonthly(newQAll);
+  const yearTicks = yearTicksOf(rows);
+  const newQYearTicks = yearTicksOf(newQ);
   const fDate = ts => new Date(ts).toLocaleDateString("en-US", { month: "short", year: "2-digit" });
   const fDay = ts => new Date(ts).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "2-digit" });
   const flowVerb = S.flow.w12 > 2 ? { t: "buying again", c: GRN } : S.flow.w12 < -1 ? { t: "trimming, not buying", c: "#f59e0b" } : { t: "holding, not buying", c: "#94a3b8" };
@@ -50,6 +82,8 @@ export default function SmartMoneyChart({ isMobile }) {
         They <strong style={{ color: "#e2e8f0" }}>accumulated cheap and distributed into the run-up</strong>. Recomputed every refresh, so it's a living desk — and <strong style={{ color: "#e2e8f0" }}>aggregate only, no wallet named</strong>.
         Right now they're <strong style={{ color: flowVerb.c }}>{flowVerb.t}</strong>; the net-flow flips green the week they start buying again.
       </Explain>
+
+      {controls}
 
       <div style={{ display: "flex", gap: 6, justifyContent: "center", marginBottom: 6, flexWrap: "wrap" }}>
         {[["holdings", "Holdings vs price"], ["flow", "Net flow"], ...(newQ.length ? [["newq", "New timers"]] : [])].map(([id, lbl]) => (

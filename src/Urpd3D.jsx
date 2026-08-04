@@ -101,7 +101,10 @@ export default function Urpd3D({ buckets, spot = 0, isMobile }) {
     const controls = new OrbitControls(cam, renderer.domElement);
     controls.target.set(0, 5, zc); controls.enableDamping = true; controls.dampingFactor = 0.08;
     controls.minDistance = 18; controls.maxDistance = 90; controls.maxPolarAngle = Math.PI * 0.49;
-    controls.autoRotate = true; controls.autoRotateSpeed = 0.7;
+    // No auto-rotate: a full spin swings the cost-basis axis around to read right→left for half
+    // the rotation, which inverts the price direction and confuses the read. Hold a fixed 3/4 view
+    // (cheap on the left, expensive on the right); the user can still drag to orbit.
+    controls.autoRotate = false;
     const stop = () => { controls.autoRotate = false; };
     renderer.domElement.addEventListener("pointerdown", stop);
 
