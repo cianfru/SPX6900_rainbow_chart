@@ -50,6 +50,7 @@ import { renderDualHolderCard } from "./dual-holder-card.mjs";
 import { renderBaseSurvCard } from "./base-survival-card.mjs";
 import { renderSupplyCurveCard } from "./supply-curve-card.mjs";
 import { renderWhaleCensusCard } from "./whale-census-card.mjs";
+import { renderWhaleBehaviourCard } from "./whale-behaviour-card.mjs";
 import { renderCexFlowCard } from "./cex-flow-card.mjs";
 import { renderHodlCompareCard } from "./hodl-compare-card.mjs";
 import { renderUrpdCard } from "./urpd-card.mjs";
@@ -894,7 +895,7 @@ export const CARD_TYPES = new Set([
   "freefloat", "nupl", "concentration", "hodlwaves", "hodlcompare", "urpd", "urpdage",
   "lthsth", "sopr", "nrpl", "liveliness", "valband", "walletgrowth", "picycle", "spxbitcoin", "spxcohort",
   "cexsupply", "cexflow", "cexvenues", "cexvenflow", "whales", "walletwaves", "wealthwaves", "survivorship", "supplyera", "exitmap", "smartmoney",
-  "cyclesync", "cycleclock", "rsidots", "monthcompare", "ethsol", "chainconc", "illiquid", "baltier", "dualholders", "basesurv", "supplycurve", "whalecensus",
+  "cyclesync", "cycleclock", "rsidots", "monthcompare", "ethsol", "chainconc", "illiquid", "baltier", "dualholders", "basesurv", "supplycurve", "whalecensus", "whalebehaviour",
   // spec-driven generics
   "line", "bar", "mbars", "donut", "stack", "model", "cube", "scale", "gauge", "fngdial",
   "heatmap", "dca", "dcaladder", "statgrid", "kraken",
@@ -935,6 +936,7 @@ export function renderPostCard(post, stats, opts = {}) {
   if (type === "basesurv") return renderBaseSurvCard(stats, dims);
   if (type === "supplycurve") return renderSupplyCurveCard(stats, dims);
   if (type === "whalecensus") return renderWhaleCensusCard(stats, dims);
+  if (type === "whalebehaviour") return renderWhaleBehaviourCard(stats, dims);
   if (type === "whales") return renderWhalesCard(stats, dims);
   if (type === "walletwaves") return renderWalletWavesCard(stats, dims);
   if (type === "wealthwaves") return renderWealthWavesCard(stats, dims);

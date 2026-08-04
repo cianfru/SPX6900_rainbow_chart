@@ -23,6 +23,7 @@ import { spxLiquidity, btcIlliquid } from "../../src/liquidity.js";
 import { wealthWavesStats } from "./wealth-waves-card.mjs";
 import { ethSol2026Data } from "./eth-sol-2026-card.mjs";
 import { whaleCensusStats } from "./whale-census-card.mjs";
+import { whaleBehaviourStats } from "./whale-behaviour-card.mjs";
 import { cexFlowStats } from "./cex-flow-card.mjs";
 
 // --- owner-editable post copy ---------------------------------------------
@@ -1029,6 +1030,21 @@ Deep tenure, every chain.`,
 Just ${c.mega.n} wallets (over 1M SPX each) hold ${(c.mega.s / 1e6).toFixed(0)}M — ${(c.mega.s / c.totSup * 100).toFixed(0)}% of all whale supply. The ${big.n} biggest (5M+) have held ${Math.round(big.medAge / 30)} months on average — the mega-whales are the oldest, stickiest hands.
 Few wallets, most of the weight.`,
       card: { type: "whalecensus" },
+    };
+  },
+
+  // Whale behaviour — who's adding, selling or sitting still over 30 days, by size cohort. The 2D
+  // read behind the 3D "Whales Watching" beams; the story is how FEW of the big wallets move.
+  () => {
+    const b = whaleBehaviourStats();
+    if (!b) return null;
+    const dir = b.netPct >= 0.1 ? "leaning in" : b.netPct <= -0.1 ? "trimming" : "flat on net";
+    return {
+      id: "whalebehaviour",
+      text: ct`🐋 What are SPX6900's whales doing? ${b.r.total} wallets over 100k SPX — and ${b.flatPct}% didn't move a coin in 30 days.
+Among the few that did, ${b.buy} added and ${b.sell} sold — ${dir} (net ${b.netPct >= 0 ? "+" : ""}${b.netPct.toFixed(2)}% of whale supply). The 1M+ cohorts net accumulated; the biggest hands barely twitched.
+Conviction looks like silence.`,
+      card: { type: "whalebehaviour" },
     };
   },
 
@@ -2315,7 +2331,7 @@ const LOOK = {
   model: "scatter",
   monthlyreturns: "heatmap", monthlyreturnssp: "heatmap", monthlyreturnsbtc: "heatmap",
   hodlwaves: "stack", hodlcompare: "stack", walletgrowth: "stack", lthsth: "stack", valband: "dual", cexvenues: "stack",
-  timeinband: "bars", monthlybars: "bars", monthcompare: "bars", multichain: "bars", urpd: "bars", urpdage: "bars", cexvenflow: "bars", ethsol: "bars", chainconc: "bars", illiquid: "stack", baltier: "bars", dualholders: "stack", basesurv: "bars", supplycurve: "race", whalecensus: "bars",
+  timeinband: "bars", monthlybars: "bars", monthcompare: "bars", multichain: "bars", urpd: "bars", urpdage: "bars", cexvenflow: "bars", ethsol: "bars", chainconc: "bars", illiquid: "stack", baltier: "bars", dualholders: "stack", basesurv: "bars", supplycurve: "race", whalecensus: "bars", whalebehaviour: "bars",
   fngdial: "round", distribution: "round",
   marketcap: "blocks", milestones: "blocks", sp500: "blocks",
   dca: "dca",
