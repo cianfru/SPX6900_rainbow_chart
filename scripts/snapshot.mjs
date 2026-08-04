@@ -48,19 +48,31 @@ export async function getJson(url, { tries = 3, label = url, ...init } = {}) {
   return null;
 }
 
-const HS = `https://api.holderscan.com/v0/eth/tokens/${CONTRACT}`;
 const POOL = "0x52c77b0cb827afbad022e6d6caf2c44452edbc39";
-const KEY = process.env.HOLDERSCAN_KEY;
 const FILE = "public/history.json";
 const SIGNALS_FILE = "public/signals.json";
 
-export async function hs(path) {
-  const r = await fetch(`${HS}${path}`, { headers: { "x-api-key": KEY, Accept: "application/json" } });
-  if (!r.ok) throw new Error(`Holderscan ${path} → ${r.status}`);
-  return r.json();
+// HolderScan is GONE (subscription retired 2026-08). Realized price, the ETH holder count, gini and
+// the conviction tiers now come from OUR OWN FIFO reconstruction — public/onchain.json, rebuilt daily
+// by onchain-dune.yml — which already reproduced all of them (and reconciles to what HolderScan gave).
+// We read its latest row here and copy those fields into history.json, so its shape is unchanged and
+// every downstream card + chart keeps working; only the SOURCE moved from a paid API to our own data.
+export async function latestOnchain(path = "public/onchain.json") {
+  try {
+    const parsed = JSON.parse(await readFile(path, "utf8"));
+    const arr = Array.isArray(parsed) ? parsed : parsed?.rows;
+    return Array.isArray(arr) && arr.length ? arr[arr.length - 1] : null;
+  } catch (e) { console.warn("onchain.json read failed:", e.message); return null; }
 }
-export async function softHs(path) {
-  try { return await hs(path); } catch (e) { console.warn(e.message); return null; }
+// The HolderScan `sup` tiers {wood…diamond} were by HOLDING TIME — the SAME thing as our FIFO HODL
+// age bands `age` = [0-1m, 1-3m, 3-6m, 6-12m, 1y+] (NOT onchain `tiers`, which are wallet-SIZE bands).
+// Map them 1:1 into token counts so stats.mjs / SupplyConviction read the object unchanged. The
+// "held 90 days+" headline those surfaces show = silver+gold+diamond (3-6m + 6-12m + 1y+), which
+// reproduces the ~61%-of-supply figure exactly from our own reconstruction.
+export function tiersToSup(oc) {
+  if (!Array.isArray(oc?.age) || oc.age.length !== 5 || !(oc.heldTokens > 0)) return null;
+  const [wood, bronze, silver, gold, diamond] = oc.age.map(p => (p / 100) * oc.heldTokens);
+  return { diamond, gold, silver, bronze, wood };
 }
 
 export async function price() {
@@ -276,44 +288,34 @@ export async function cexLpBalances() {
 }
 
 async function main() {
-  if (!KEY) throw new Error("Missing HOLDERSCAN_KEY env (set it as a repo secret)");
+  // Holder count, realized price, gini + conviction tiers come from our FIFO reconstruction now.
+  const oc = await latestOnchain();
+  if (!oc) console.error("⚠ public/onchain.json missing/empty — holders, realized price, gini and tiers are null today (they forward-fill; onchain-dune.yml rebuilds it daily).");
+  const sup = tiersToSup(oc);
 
-  // Soft, but LOUD (same lesson as the cex/lp path below): a HolderScan outage — e.g. 402 Payment
-  // Required when the subscription/credits lapse — must NOT take down the entire daily snapshot. Price,
-  // holders, chain balances, valuation and the deploy all ride on this one run, so a single unpaid
-  // endpoint crashing everything is the wrong failure mode. The supply/tier cards forward-fill a
-  // missing day (stats.mjs guards `r.sup`); everything else still banks, commits and deploys.
-  const sup = await softHs("/stats/supply-breakdown");
-  if (!sup) console.error("⚠ HolderScan /stats/supply-breakdown FAILED (402 = credits/subscription lapsed?) — supply & tier cards will not advance today; the rest of the snapshot still banks.");
-  const [p, stats, pnl, breakdowns, fearGreed, spx500, baseH, solH, baseSup, solSup, t3es, cexLp] = await Promise.all([
-    price(), softHs("/stats"), softHs("/stats/pnl"), softHs("/holders/breakdowns"), fng(), sp500(),
-    baseHolders(), solHolders(), baseSupply(), solSupply(), total3es(), cexLpBalances(),
+  const [p, fearGreed, spx500, baseH, solH, baseSup, solSup, t3es, cexLp] = await Promise.all([
+    price(), fng(), sp500(), baseHolders(), solHolders(), baseSupply(), solSupply(), total3es(), cexLpBalances(),
   ]);
 
   const rec = {
     d: new Date().toISOString().slice(0, 10),
     p,
-    holders: breakdowns?.total_holders ?? null, // ETH-native (HolderScan) — the supply/tier/MVRV base
+    holders: oc?.holders ?? null, // ETH-native, FIFO reconstruction (was HolderScan) — supply/tier/MVRV base
     holdersBase: baseH, // Base (bridged) headcount, Blockscout
     holdersSol: solH,   // Solana (Wormhole) headcount, public Solana RPC
     supplyBase: baseSup, // SPX tokens bridged to Base (× price = value on Base)
     supplySol: solSup,   // SPX tokens bridged to Solana (× price = value on Solana)
-    be: pnl?.break_even_price ?? null,
-    upnl: pnl?.unrealized_pnl_total ?? null, // aggregate unrealized $ PnL of all holders
-    rpnl: pnl?.realized_pnl_total ?? null,   // aggregate realized $ PnL (booked)
-    gini: stats?.gini ?? null,
+    be: oc?.rp ?? null,   // realized price / avg cost basis — FIFO (was HolderScan break_even)
+    gini: oc?.gini ?? null, // FIFO gini (was HolderScan)
     fng: fearGreed,
     sp: spx500, // latest S&P 500 close, for the SPX-vs-S&P cards
     t3es, // TOTAL3ES (alt market ex-BTC/ETH/stables), keyless reconstruction — feeds the alt-market chart forward
     cexBal: cexLp?.cexBal ?? null, // SPX on tagged exchange addresses (keyless RPC) — exchange-flow cards, forward
     lpBal: cexLp?.lpBal ?? null,   // SPX in the Uniswap LP
     custBal: cexLp?.custBal ?? null, // SPX in custody (BitGo)
-    sup,
+    sup, // conviction tiers as token counts {wood…diamond}, from onchain `tiers` × heldTokens
   };
 
-  // Note: /stats/pnl returns exactly {break_even_price, realized_pnl_total,
-  // unrealized_pnl_total} (verified from the CI logs 2026-07-02) — no percent-in-
-  // profit or cost-basis distribution, so all of it is already banked above.
   let arr = [];
   try { const txt = await readFile(FILE, "utf8"); const parsed = JSON.parse(txt); if (Array.isArray(parsed)) arr = parsed; } catch { /* first run */ }
   arr = arr.filter(x => x.d !== rec.d); // one record per day (replace today's if rerun)
@@ -322,7 +324,7 @@ async function main() {
 
   await writeFile(FILE, JSON.stringify(arr));
   const totalH = [rec.holders, rec.holdersBase, rec.holdersSol].reduce((s, n) => s + (n || 0), 0) || null;
-  console.log(`snapshot ${rec.d} · price ${p} · holders eth ${rec.holders} · base ${rec.holdersBase} · sol ${rec.holdersSol} · total ${totalH} · supply base ${rec.supplyBase} · sol ${rec.supplySol} · upnl ${rec.upnl} · rpnl ${rec.rpnl} · ${arr.length} records total`);
+  console.log(`snapshot ${rec.d} · price ${p} · holders eth ${rec.holders} · base ${rec.holdersBase} · sol ${rec.holdersSol} · total ${totalH} · realized ${rec.be} · gini ${rec.gini} · diamond ${sup ? Math.round(sup.diamond / 1e6) + "M" : "—"} · ${arr.length} records total`);
 
   // Anomaly detector → public/signals.json for the control panel's "Notable
   // today" strip. Human-in-the-loop: it only surfaces candidates + honest framing;

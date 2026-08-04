@@ -17,7 +17,7 @@
 // and the ETH holder numbers are load-bearing for most of the site, while the Base
 // and Solana counts feed two charts that degrade to their bundled history.
 import {
-  price, fng, sp500, softHs, baseHolders, baseSupply, solHolders, solSupply,
+  price, fng, sp500, baseHolders, baseSupply, solHolders, solSupply,
   total3es, cexLpBalances,
 } from "./snapshot.mjs";
 
@@ -29,15 +29,9 @@ const fNum = n => typeof n === "number" ? n.toLocaleString("en-US", { maximumFra
 const CHECKS = [
   { name: "price", req: true, what: "SPX spot (GeckoTerminal → Coinbase)",
     run: price, ok: v => v > 0, expect: "> 0", show: v => `$${v}` },
-  { name: "holders", req: true, what: "ETH holder count (HolderScan)",
-    run: () => softHs("/holders"), ok: v => v?.holder_count > 1000,
-    expect: "> 1,000", show: v => `${fNum(v?.holder_count)} holders` },
-  { name: "pnl", req: true, what: "cost basis + PnL (HolderScan)",
-    run: () => softHs("/stats/pnl"), ok: v => v?.break_even_price > 0,
-    expect: "break-even > 0", show: v => `break-even $${v?.break_even_price}` },
-  { name: "supply", req: true, what: "holder tiers (HolderScan)",
-    run: () => softHs("/stats/supply-breakdown"), ok: v => v != null,
-    expect: "an object", show: v => Object.keys(v || {}).slice(0, 4).join(", ") },
+  // Holder count, realized price, gini and tiers are no longer an upstream API — they come from our
+  // own FIFO reconstruction (public/onchain.json, rebuilt by onchain-dune.yml). Its freshness is
+  // covered by audit-feeds.mjs, so there is nothing to reach for here.
   { name: "fng", req: true, what: "Fear & Greed (alternative.me)",
     run: fng, ok: v => v >= 0 && v <= 100, expect: "0–100", show: v => String(v) },
   { name: "sp500", req: true, what: "S&P 500 close",

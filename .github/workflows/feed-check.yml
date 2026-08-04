@@ -35,7 +35,6 @@ jobs:
 
       - name: Reach every upstream and report
         env:
-          HOLDERSCAN_KEY: ${{ secrets.VITE_HOLDERSCAN_KEY }}
           BASE_SPX: ${{ vars.BASE_SPX }}
           BASE_EXCLUDE: ${{ vars.BASE_EXCLUDE }}
           SOL_SPX: ${{ vars.SOL_SPX }}
