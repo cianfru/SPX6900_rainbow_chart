@@ -89,7 +89,7 @@ export function exitMapSvg(stats, opts = {}) {
 <rect width="${W}" height="${H}" fill="url(#exbg)"/>
 ${brandStripe(H)}
 <text x="60" y="58" fill="#f1f5f9" font-size="38" font-weight="700" font-family="${F}" letter-spacing="0.5">SPX6900 — HOW HOLDERS LEFT</text>
-<text x="60" y="98" fill="#94a3b8" font-size="22" font-family="${F}">Every wallet that dropped below 5,000 SPX — when it left, and whether it sold green or red.</text>
+<text x="60" y="98" fill="#94a3b8" font-size="22" font-family="${F}">Every holder that left the base — when they left, and whether they sold green or red.</text>
 <text x="60" y="150" fill="#4ade80" font-size="33" font-weight="700" font-family="${F}">${esc(`${ov.profitPct}% of the ${fmtN(ov.left)} wallets that left sold in profit.`)}</text>
 <text x="60" y="188" fill="#f87171" font-size="24" font-weight="700" font-family="${F}">Profit-taking, not capitulation — red exits swell only in the drawdown.</text>
 <text x="${mL}" y="${aT - 8}" fill="#8592a6" font-size="18" font-family="${F}">price</text>

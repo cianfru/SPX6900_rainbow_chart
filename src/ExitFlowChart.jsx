@@ -91,7 +91,7 @@ export default function ExitFlowChart({ isMobile }) {
   return (
     <div style={{ maxWidth: MAX_W, margin: "0 auto" }}>
       <Explain q="Who left SPX6900 — and did they sell green or red?" accent={GRN}>
-        Every wallet that dropped below <strong style={{ color: "#e2e8f0" }}>5,000 SPX</strong>, counted on the day it left, split by whether it sold
+        Every wallet that <strong style={{ color: "#e2e8f0" }}>left the holder base</strong>, counted on the day it dropped out, split by whether it sold
         <strong style={{ color: GRN }}> above</strong> or <strong style={{ color: RED }}>below</strong> its entry price.
         The churn was overwhelmingly <strong style={{ color: GRN }}>profit-taking</strong> — {o.profitPct}% left green; losses only cluster in the drawdown.
         Not NUPL (that&apos;s the unrealized P/L of who&apos;s <em>still here</em>) — this is who&apos;s gone.
@@ -100,7 +100,7 @@ export default function ExitFlowChart({ isMobile }) {
       <div style={{ display: "flex", gap: isMobile ? 14 : 30, justifyContent: "center", marginBottom: 12, flexWrap: "wrap" }}>
         <Metric label="left in profit" value={(o.profitPct ?? 0) + "%"} color={GRN} sub={`${(o.profit ?? 0).toLocaleString()} wallets`} />
         <Metric label="left at a loss" value={(100 - (o.profitPct ?? 0)) + "%"} color={RED} sub={`${(o.loss ?? 0).toLocaleString()} wallets`} />
-        <Metric label="total departed" value={fN(o.left ?? 0)} color="#cbd5e1" sub="ever ≥5k, now below" />
+        <Metric label="total departed" value={fN(o.left ?? 0)} color="#cbd5e1" sub="was a holder, now gone" />
       </div>
 
       <div style={{ display: "flex", gap: 8, justifyContent: "center", marginBottom: 10 }}>
@@ -158,8 +158,8 @@ export default function ExitFlowChart({ isMobile }) {
       </div>
 
       <div className="chart-caption" style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.65, maxWidth: 900, marginInline: "auto" }}>
-        <strong style={{ color: GRN }}>How holders left</strong> — {cumulative ? "the running total of departures, green (in profit) vs red (at a loss)" : "one bar per day: wallets that dropped below 5,000 SPX, green if they sold above their entry, red if below, over the price line"}.
-        Profit/loss is exit price vs entry price, both ≈ the price when the wallet crossed the 5k bar (a realized-P/L proxy). Reconstructed on-chain, daily. Drag to zoom. Not financial advice.
+        <strong style={{ color: GRN }}>How holders left</strong> — {cumulative ? "the running total of departures, green (in profit) vs red (at a loss)" : "one bar per day: departing holders, green if they sold above their entry, red if below, over the price line"}.
+        Profit/loss is exit price vs entry price, both ≈ the price when the wallet crossed the holder bar (self-custody, ≥5,000 SPX; a realized-P/L proxy). Reconstructed on-chain, daily. Drag to zoom. Not financial advice.
       </div>
     </div>
   );

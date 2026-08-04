@@ -120,7 +120,7 @@ export default function SurvivorshipChart({ isMobile }) {
       </div>
 
       <div style={{ display: "flex", gap: isMobile ? 16 : 30, justifyContent: "center", margin: "10px 0 14px", flexWrap: "wrap" }}>
-        <Metric label="ever held ≥5k" value={fmtN(O.everHeld)} color="#94a3b8" sub="all time" />
+        <Metric label="ever a holder" value={fmtN(O.everHeld)} color="#94a3b8" sub="all time" />
         <Metric label="still hold" value={fmtN(O.holdNow)} color="#22d3ee" sub="today" />
         <Metric label="gone" value={O.gonePct + "%"} color="#f43f5e" sub="churned out" />
         <Metric label="never sold" value={O.diamondPct + "%"} color="#4ade80" sub="of today's holders" />
@@ -227,13 +227,13 @@ export default function SurvivorshipChart({ isMobile }) {
 
       <div className="chart-caption" style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 16, lineHeight: 1.65, maxWidth: 840, marginInline: "auto" }}>
         {view === "who"
-          ? <>Living holders of ≥5,000 SPX over time, stacked by the era each wallet first bought. Old vintages thin out as they sell; the base today is mostly the {shortLab(cohorts[2]?.label || "2024")}–{shortLab(cohorts[cohorts.length - 2]?.label || "2025")} cohorts who <strong style={{ color: "#e2e8f0" }}>accumulated through the drawdown</strong>.</>
+          ? <>Living holders over time, stacked by the era each wallet first bought. Old vintages thin out as they sell; the base today is mostly the {shortLab(cohorts[2]?.label || "2024")}–{shortLab(cohorts[cohorts.length - 2]?.label || "2025")} cohorts who <strong style={{ color: "#e2e8f0" }}>accumulated through the drawdown</strong>.</>
           : view === "survival"
-          ? <>Share of each arrival cohort still holding ≥5,000 SPX today. Retention decays with tenure — the {shortLab(launch.label)} launch crowd is down to <strong style={{ color: "#f43f5e" }}>{launch.survivalPct}%</strong>. Recent cohorts read high partly because they <strong style={{ color: "#e2e8f0" }}>haven't had time to leave</strong> (right-censoring).</>
+          ? <>Share of each arrival cohort still holding today. Retention decays with tenure — the {shortLab(launch.label)} launch crowd is down to <strong style={{ color: "#f43f5e" }}>{launch.survivalPct}%</strong>. Recent cohorts read high partly because they <strong style={{ color: "#e2e8f0" }}>haven't had time to leave</strong> (right-censoring).</>
           : view === "exits"
-          ? <>Departures {flowRes === "daily" ? "each day" : "each week"} — wallets that dropped below 5,000 SPX, one bar per {flowRes === "daily" ? "day" : "week"}, split <strong style={{ color: "#4ade80" }}>green (sold in profit)</strong> / <strong style={{ color: "#f43f5e" }}>red (at a loss)</strong> vs the price when they crossed the bar; the pale line is price. Of the {flowOverall?.left.toLocaleString("en-US")} that left, <strong style={{ color: "#4ade80" }}>{flowOverall?.profitPct}% sold green</strong> — exits spike at the tops (profit-taking) and turn red only in the drawdown. Not NUPL (that's unrealized P/L of who's still here) — this is who's gone.</>
+          ? <>Departures {flowRes === "daily" ? "each day" : "each week"} — holders that left the base, one bar per {flowRes === "daily" ? "day" : "week"}, split <strong style={{ color: "#4ade80" }}>green (sold in profit)</strong> / <strong style={{ color: "#f43f5e" }}>red (at a loss)</strong> vs the price when they crossed the bar; the pale line is price. Of the {flowOverall?.left.toLocaleString("en-US")} that left, <strong style={{ color: "#4ade80" }}>{flowOverall?.profitPct}% sold green</strong> — exits spike at the tops (profit-taking) and turn red only in the drawdown. Not NUPL (that's unrealized P/L of who's still here) — this is who's gone.</>
           : <>Each surviving cohort placed on the real price curve at the price it first paid — bubble size = SPX still held, <strong style={{ color: "#4ade80" }}>green ring in profit</strong> / <strong style={{ color: "#f43f5e" }}>red underwater</strong>. <strong style={{ color: "#e2e8f0" }}>{underPct}% of the float held today is underwater</strong> and still hasn't sold — the biggest bag bought near the top. The float turned over; the survivors are sitting through the drawdown.</>}
-        <br />Self-custody only; exchanges, LP and bridge addresses excluded. Survivorship, not a forecast.
+        <br />Self-custody holders (≥5,000 SPX); exchanges, LP and bridge addresses excluded. Survivorship, not a forecast.
       </div>
     </div>
   );
