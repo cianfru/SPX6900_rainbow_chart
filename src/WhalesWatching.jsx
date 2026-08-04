@@ -24,7 +24,9 @@ const FOOT = 1.15;               // bar footprint (world units)
 const HMIN = 1.2, HMAX = 18;     // world-height range across the log size axis
 const AGE_BINS = 12;             // age-ramp buckets → one merged mesh + material each
 const GREEN = 0x22c55e, RED = 0xf43f5e;
-const GRID_A = 0x223052, GRID_B = 0x162038, AXIS = 0x2a3550;
+const GRID_A = 0x243258, GRID_B = 0x18223c, AXIS = 0x2a3550;
+const FLOOR_COL = 0x0e1526;   // one unified ground colour (fog matches it)
+const PAD_COL = 0x1a2440;     // cohort tiles — same for every cohort, a touch above the floor
 const kM = v => v >= 1e6 ? (v / 1e6 % 1 ? (v / 1e6).toFixed(1) : v / 1e6) + "M" : Math.round(v / 1e3) + "k";
 
 function buildScene(el, data, { onlyMovers, isMobile }) {
@@ -62,12 +64,20 @@ function buildScene(el, data, { onlyMovers, isMobile }) {
   const d1 = new THREE.DirectionalLight(0xffffff, 0.85); d1.position.set(span * 0.4, span * 0.7, span * 0.3); scene.add(d1);
   const d2 = new THREE.DirectionalLight(0x88aaff, 0.35); d2.position.set(-span * 0.3, span * 0.3, -span * 0.2); scene.add(d2);
 
-  // floor grid
-  const gridSize = Math.max(bounds.width, bounds.depth) * 1.15;
-  const grid = new THREE.GridHelper(gridSize, 16, GRID_A, GRID_B);
-  grid.position.y = 0.01; scene.add(grid);
+  // ── the floor ───────────────────────────────────────────────────────────────
+  // ONE unified ground plane in a single colour, with the grid + cohort tiles sitting on top of it,
+  // so the base reads as a single cohesive floor rather than a patchwork of coloured pads. Sentiment
+  // moves OFF the floor colour (it was tinting each tile green/red) and onto a thin rim + the label.
+  const gridSize = Math.max(bounds.width, bounds.depth) * 1.6;
+  const groundMat = new THREE.MeshLambertMaterial({ color: FLOOR_COL });
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(gridSize * 2, gridSize * 2), groundMat);
+  ground.rotation.x = -Math.PI / 2; scene.add(ground);
+  const grid = new THREE.GridHelper(gridSize, 20, GRID_A, GRID_B);
+  grid.position.y = 0.02; grid.material.transparent = true; grid.material.opacity = 0.5; scene.add(grid);
+  // gentle haze so the far cohorts sink into the ground colour instead of ending on a hard edge
+  scene.fog = new THREE.Fog(new THREE.Color(FLOOR_COL), span * 1.5, span * 3.8);
 
-  const disposables = [grid.geometry, grid.material];
+  const disposables = [ground.geometry, groundMat, grid.geometry, grid.material];
   const ownMats = [];
 
   // ── axis reference: log SIZE gridlines across the back + left walls ──────────
@@ -86,13 +96,22 @@ function buildScene(el, data, { onlyMovers, isMobile }) {
   addLabel("SPX held ↑", xL - 1.4, HMAX + 1.8, zB, "#cbd5e1", 12.5, 700);
   addLabel("size cohorts →", xR - 6, 0.2, zF + 0.6, "#cbd5e1", 12.5, 700);
 
-  // ── cohort sentiment pads + labels ──────────────────────────────────────────
+  // ── cohort tiles (unified colour) + a sentiment rim + label ─────────────────
+  // Every tile is the SAME colour so the floor stays unified; which cohort is accumulating vs
+  // distributing reads from the thin glowing rim around it and from the coloured label above.
+  const padMat = new THREE.MeshLambertMaterial({ color: PAD_COL });
+  ownMats.push(padMat);
   cohorts.forEach(c => {
-    const tint = c.sentiment === "accumulating" ? GREEN : c.sentiment === "distributing" ? RED : 0x334063;
-    const mat = new THREE.MeshLambertMaterial({ color: new THREE.Color(tint).multiplyScalar(c.sentiment === "balanced" ? 0.6 : 0.5) });
-    const pad = new THREE.Mesh(new THREE.BoxGeometry(c.platform.w, 0.14, c.platform.d), mat);
-    pad.position.set(c.center.x, 0.07, 0);
-    scene.add(pad); disposables.push(pad.geometry); ownMats.push(mat);
+    const pad = new THREE.Mesh(new THREE.BoxGeometry(c.platform.w, 0.16, c.platform.d), padMat);
+    pad.position.set(c.center.x, 0.09, 0);
+    scene.add(pad); disposables.push(pad.geometry);
+
+    const rimHex = c.sentiment === "accumulating" ? GREEN : c.sentiment === "distributing" ? RED : 0x5b6784;
+    const hw = c.platform.w / 2, hd = c.platform.d / 2;
+    const ring = [[-hw, -hd], [hw, -hd], [hw, hd], [-hw, hd], [-hw, -hd]].map(([x, z]) => new THREE.Vector3(c.center.x + x, 0.18, z));
+    const rimG = new THREE.BufferGeometry().setFromPoints(ring);
+    const rimM = new THREE.LineBasicMaterial({ color: rimHex, transparent: true, opacity: c.sentiment === "balanced" ? 0.5 : 0.9 });
+    scene.add(new THREE.Line(rimG, rimM)); disposables.push(rimG, rimM);
 
     if (!c.n) return;
     const np = c.netPct >= 0 ? `+${c.netPct.toFixed(2)}%` : `${c.netPct.toFixed(2)}%`;
@@ -131,7 +150,11 @@ function buildScene(el, data, { onlyMovers, isMobile }) {
     if (!merged) return;
     scene.add(new THREE.Mesh(merged, mat)); disposables.push(merged); ownMats.push(mat);
   };
-  cubeBins.forEach((geos, ai) => addMerged(geos, new THREE.MeshLambertMaterial({ color: new THREE.Color(ageRamp(ai / (AGE_BINS - 1)).hex) })));
+  cubeBins.forEach((geos, ai) => {
+    const col = new THREE.Color(ageRamp(ai / (AGE_BINS - 1)).hex);
+    // a whisper of self-illumination so the age colour still reads on a face the sun doesn't hit
+    addMerged(geos, new THREE.MeshLambertMaterial({ color: col, emissive: col, emissiveIntensity: 0.18 }));
+  });
   // beams read as light: a Lambert body with a matching emissive so they glow above the bars
   const beamMat = c => new THREE.MeshLambertMaterial({ color: new THREE.Color(c), emissive: new THREE.Color(c), emissiveIntensity: 0.9 });
   addMerged(beamBuy, beamMat(GREEN));
