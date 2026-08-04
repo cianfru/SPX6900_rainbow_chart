@@ -37,7 +37,9 @@ export default function WhaleBoard({ isMobile }) {
 
   const { cells, buying, selling } = useMemo(() => {
     if (!whales?.wallets) return { cells: [], buying: 0, selling: 0 };
-    const top = whales.wallets.filter(w => w?.a && w.bal >= 1e5).sort((a, b) => b.bal - a.bal).slice(0, isMobile ? 60 : 150);
+    // Show EVERY whale ≥100k (there are ~575), not a tight top-N — the grid is cheap DOM and the
+    // movers float to the top anyway. The 800 is a safety ceiling, not a real cut.
+    const top = whales.wallets.filter(w => w?.a && w.bal >= 1e5).sort((a, b) => b.bal - a.bal).slice(0, 800);
     const moveMap = new Map((live?.moves || []).map(m => [m.a.toLowerCase(), m.net]));
     const days = top.map(w => w.days || 0); const mn = Math.min(...days), mx = Math.max(...days);
     const ageU = d => mx > mn ? ((d || 0) - mn) / (mx - mn) : 0.5;
