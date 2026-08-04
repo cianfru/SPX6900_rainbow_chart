@@ -126,6 +126,13 @@ export const FEEDS = [
     require: ["total"], nonEmpty: ["tokens", "traitTypes"] },
   { file: "aeon-live-sales.json", cadence: 2, by: "aeon-sale-watch.yml", what: "sub-day AEON sales from Alchemy",
     mayBeEmpty: ["sales"] },
+  // ⭐ THE STALL-CATCHER. The AEON transfers/sales come from Dune; if that pull soft-fails (a deleted
+  // query 404'd for two weeks and nothing noticed), the data FREEZES while aeon-*.json keep a run-date
+  // `updated` — so a plain date check on those files is fooled. build-aeon-dune-refresh stamps this
+  // file ONLY on a SUCCESSFUL pull, so its date freezes the instant the pull breaks. cadence 2 = the
+  // daily pull may miss one run, not two, before it's flagged STALE in feed-health / the panel.
+  { file: "aeon-dune-status.json", cadence: 2, by: "aeon.yml", what: "AEON Dune-pull heartbeat (last successful transfers+sales pull)",
+    require: ["updated", "ok"] },
   { file: "ens.json", cadence: 9, by: "aeon.yml (step)", what: "ENS names for the wallets we display",
     require: ["resolved", "named"], nonEmpty: ["names"] },
   { file: "whale-signals.json", cadence: 9, by: "onchain-dune.yml (step)", what: "whale-cohort move candidates",

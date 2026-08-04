@@ -180,6 +180,12 @@ async function main() {
   console.log(`aeon-dune: refreshing ${only || "transfers + sales"} from Dune…`);
   if (want("transfers")) await pull("dune/aeon_transfers.sql", "dune/out/aeon_transfers.csv", "Project AEON — transfers (auto)", "AEON_TRANSFERS_QUERY_ID", "evt_block_time");
   if (want("sales")) await pull("dune/aeon_sales.sql", "dune/out/aeon_sales.csv", "Project AEON — sales (auto)", "AEON_SALES_QUERY_ID", "block_time");
+  // ⭐ HEARTBEAT for the feed audit. Stamp today ONLY here — i.e. only when every pull above
+  // SUCCEEDED, since any Dune failure throws before this line. The AEON data files carry a run-date
+  // `updated` (regenerated daily from the committed CSVs even when frozen), which is exactly what
+  // masked the 2-week stall; this file's date instead FREEZES the moment the pull stops working, so
+  // audit-feeds surfaces the stall in feed-health.json / the control panel. Deploy-ignored.
+  writeFileSync("public/aeon-dune-status.json", JSON.stringify({ updated: new Date().toISOString().slice(0, 10), ok: true, pulled: only || "transfers+sales" }));
   console.log("aeon-dune: done.");
 }
 
