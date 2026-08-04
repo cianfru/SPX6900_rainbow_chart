@@ -438,7 +438,7 @@ export default function SpxCity({ isMobile, preview = false, initialMode = "spx"
       {week != null && (
         <div style={{ textAlign: "center", fontFamily: SANS, fontSize: 12.5, color: "#94a3b8", marginBottom: 12, lineHeight: 1.6, maxWidth: 760, marginInline: "auto" }}>
           Replaying the city from the on-chain transfer history — balances and residency
-          ({tl?.asset === "SPX" ? "5,000 SPX held 90 days" : "owns at least one AEON"}) recomputed at that week.
+          ({tl?.asset === "SPX" ? "a holder, 90 days+" : "owns at least one AEON"}) recomputed at that week.
           Notes and name labels stay current-day; the buildings are the past.
         </div>
       )}
