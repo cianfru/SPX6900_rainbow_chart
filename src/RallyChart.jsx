@@ -124,7 +124,7 @@ export default function RallyChart({ series, m, isMobile }) {
         {ongoing && <Readout label="PEAK THIS CYCLE" value={"+" + (ongoing.maxGain * 100).toFixed(0) + "%"} color="#22d3ee" isMobile={isMobile} />}
       </div>
 
-      <ResponsiveContainer width="100%" height={isMobile ? 380 : 540}>
+      <ResponsiveContainer width="100%" height={isMobile ? 400 : 560}>
         <LineChart data={rows} margin={{ top: 10, right: isMobile ? 14 : 30, bottom: 28, left: isMobile ? 0 : 12 }}>
           <CartesianGrid strokeDasharray="2 8" stroke="rgba(255,255,255,0.07)" />
           <XAxis

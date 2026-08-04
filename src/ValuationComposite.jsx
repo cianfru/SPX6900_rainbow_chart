@@ -77,7 +77,7 @@ export default function ValuationComposite({ isMobile, preview = false }) {
 
       <div style={{ position: "relative" }}>
         {!preview && <ChartZoomHint />}
-        <ResponsiveContainer width="100%" height={isMobile ? 400 : 540}>
+        <ResponsiveContainer width="100%" height={isMobile ? 400 : 560}>
           <ComposedChart data={view.vis} margin={{ top: 10, right: isMobile ? 8 : 20, bottom: 24, left: isMobile ? 0 : 12 }}
             onMouseDown={onDown} onMouseMove={onMove} onMouseUp={onUp} onMouseLeave={onUp} style={{ cursor: "crosshair", userSelect: "none" }}>
             <defs>

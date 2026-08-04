@@ -46,7 +46,7 @@ export default function UrpdAgeChart({ isMobile, preview = false, price = null }
     </div>
   );
 
-  const W = 1200, H = isMobile ? 460 : 540, mL = 92, mR = 40, pT = 40, pB = H - 74, pW = W - mL - mR;
+  const W = 1200, H = isMobile ? 440 : 600, mL = 92, mR = 40, pT = 40, pB = H - 74, pW = W - mL - mR;
   const pmin = buckets[0].lo, pmax = buckets.at(-1).hi;
   const lmin = Math.log(pmin), lspan = Math.log(pmax) - lmin || 1;
   const X = p => mL + ((Math.log(p) - lmin) / lspan) * pW;

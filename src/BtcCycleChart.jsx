@@ -134,7 +134,7 @@ export default function BtcCycleChart({ series, isMobile }) {
         <Stat k="PEAK RANGE" v={`${fP(stats.peakLo)}–${fP(stats.peakHi)}`} c="#f7931a" isMobile={isMobile} />
       </div>
 
-      <ResponsiveContainer width="100%" height={isMobile ? 380 : 540}>
+      <ResponsiveContainer width="100%" height={isMobile ? 400 : 560}>
         <ComposedChart data={data} margin={{ top: 10, right: isMobile ? 14 : 30, bottom: 24, left: isMobile ? 0 : 12 }}>
           <CartesianGrid strokeDasharray="2 8" stroke="rgba(255,255,255,0.07)" vertical={false} />
           <XAxis dataKey="ts" type="number" scale="time" domain={["dataMin", "dataMax"]} tickFormatter={fMon}

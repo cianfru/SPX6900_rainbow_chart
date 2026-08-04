@@ -74,7 +74,7 @@ export default function AeonFloorChart({ isMobile }) {
           {["ETH", "USD"].map(u => <button key={u} style={tbtn(unit === u)} onClick={() => setUnit(u)}>{u}</button>)}
         </div>
       </div>
-      <ResponsiveContainer width="100%" height={isMobile ? 400 : 540}>
+      <ResponsiveContainer width="100%" height={isMobile ? 400 : 560}>
         <ComposedChart data={merged} margin={{ top: 10, right: isMobile ? 8 : 16, bottom: 24, left: isMobile ? 0 : 14 }}>
           <CartesianGrid strokeDasharray="2 8" stroke="rgba(255,255,255,0.06)" />
           <XAxis dataKey="ts" type="number" domain={["dataMin", "dataMax"]} ticks={xTicks} scale="time"

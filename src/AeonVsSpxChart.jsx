@@ -71,7 +71,7 @@ export default function AeonVsSpxChart({ isMobile }) {
         {pct != null && <Metric label="vs own history" value={ordinal(pct)} color="#c084fc" sub="percentile" />}
       </div>
 
-      <ResponsiveContainer width="100%" height={isMobile ? 380 : 500}>
+      <ResponsiveContainer width="100%" height={isMobile ? 400 : 560}>
         <AreaChart data={rows} margin={{ top: 10, right: isMobile ? 10 : 20, bottom: 24, left: isMobile ? 4 : 14 }}>
           <defs><linearGradient id="axsG" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={state.c} stopOpacity={0.28} /><stop offset="100%" stopColor={state.c} stopOpacity={0.03} /></linearGradient></defs>
           <CartesianGrid strokeDasharray="2 8" stroke="rgba(255,255,255,0.06)" />

@@ -138,7 +138,7 @@ export default function AeonValueChart({ isMobile }) {
         {cheapestPct != null && <div style={{ textAlign: "center" }}><div style={{ fontSize: 22, fontWeight: 800, color: "#c084fc", fontFamily: MONO }}>{ord(cheapestPct)}</div><div style={{ fontSize: 12, color: "#7c8a9e" }}>floor ask vs SPX history</div></div>}
       </div>
 
-      <ResponsiveContainer width="100%" height={isMobile ? 380 : 500}>
+      <ResponsiveContainer width="100%" height={isMobile ? 400 : 560}>
         <ComposedChart margin={{ top: 10, right: 20, bottom: 26, left: 6 }}>
           <CartesianGrid strokeDasharray="2 8" stroke="rgba(255,255,255,0.06)" />
           <XAxis dataKey="rank" type="number" scale="log" domain={[1, total]} allowDataOverflow

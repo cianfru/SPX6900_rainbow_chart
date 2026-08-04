@@ -118,7 +118,7 @@ export default function DrawdownChart({ series, isMobile }) {
       {toggle}
 
       {mode === "underwater" ? (
-        <ResponsiveContainer width="100%" height={isMobile ? 380 : 540}>
+        <ResponsiveContainer width="100%" height={isMobile ? 400 : 560}>
           <ComposedChart data={uw.rows} margin={{ top: 10, right: isMobile ? 6 : 18, bottom: 24, left: isMobile ? 0 : 12 }}>
             <defs>
               <linearGradient id="uwFill" x1="0" y1="0" x2="0" y2="1">
@@ -142,7 +142,7 @@ export default function DrawdownChart({ series, isMobile }) {
           </ComposedChart>
         </ResponsiveContainer>
       ) : (
-        <ResponsiveContainer width="100%" height={isMobile ? 380 : 540}>
+        <ResponsiveContainer width="100%" height={isMobile ? 400 : 560}>
           <LineChart data={rows} margin={{ top: 10, right: isMobile ? 14 : 30, bottom: 28, left: isMobile ? 0 : 12 }}>
             <CartesianGrid strokeDasharray="2 8" stroke="rgba(255,255,255,0.07)" />
             <XAxis dataKey="day" type="number" domain={[0, maxDay]} tickFormatter={v => v + "d"}
