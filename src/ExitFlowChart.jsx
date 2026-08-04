@@ -4,6 +4,7 @@ import {
 } from "recharts";
 import { loadExitFlow, loadPriceHistory } from "./history-data.js";
 import ChartZoomHint from "./ChartZoomHint.jsx";
+import LiveFlowStrip from "./LiveFlowStrip.jsx";
 import { SANS, MONO, MAX_W, Metric, TipBox, ZoomBar, Explain } from "./chart-ui.jsx";
 import { useDragZoom } from "./use-drag-zoom.js";
 
@@ -105,6 +106,8 @@ export default function ExitFlowChart({ isMobile }) {
         The churn was overwhelmingly <strong style={{ color: GRN }}>profit-taking</strong> — {o.profitPct}% left green; losses only cluster in the drawdown.
         Not NUPL (that&apos;s the unrealized P/L of who&apos;s <em>still here</em>) — this is who&apos;s gone.
       </Explain>
+
+      <LiveFlowStrip isMobile={isMobile} />
 
       <div style={{ display: "flex", gap: isMobile ? 14 : 30, justifyContent: "center", marginBottom: 12, flexWrap: "wrap" }}>
         <Metric label="left in profit" value={(o.profitPct ?? 0) + "%"} color={GRN} sub={`${(o.profit ?? 0).toLocaleString()} wallets`} />
