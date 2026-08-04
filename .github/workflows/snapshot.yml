@@ -24,7 +24,8 @@ jobs:
           node-version: 24
       - name: Take snapshot
         env:
-          HOLDERSCAN_KEY: ${{ secrets.VITE_HOLDERSCAN_KEY }}
+          # HolderScan is retired — holders/realized-price/gini/tiers now come from our own FIFO
+          # reconstruction (public/onchain.json), so no API key is needed here anymore.
           # Optional: shadow-mode LLM copywriter for the "Notable today" signals.
           # Unset → the control panel shows labelled MOCK drafts. Set the secret to
           # get real OpenRouter drafts. The copywriter tries a free-model fallback

@@ -123,18 +123,6 @@ function loadSupplySnapshot() {
   } catch { return null; }
 }
 
-// HolderScan's own "diamond hands" number over time (%): diamond ÷ classified supply
-// (~87%). HolderScan's basis is the top ~1,000 holder wallets, exchanges & LPs excluded.
-// Daily-fresh, but only banked since we started snapshotting (2026-06).
-function loadHolderscanDiamond() {
-  try {
-    const arr = JSON.parse(readFileSync(new URL("../../public/history.json", import.meta.url), "utf8"));
-    return arr.filter(r => r.sup && r.sup.diamond != null).map(r => {
-      const classified = Object.values(r.sup).reduce((a, b) => a + b, 0);
-      return [Date.parse(r.d), classified > 0 ? (r.sup.diamond / classified) * 100 : 0];
-    });
-  } catch { return []; }
-}
 
 // Diamond-hands share over time (%), for the diamond-trend card. HolderScan only banks
 // back to when we started snapshotting (~2026-06), but our FIFO on-chain reconstruction
@@ -147,17 +135,15 @@ function loadHolderscanDiamond() {
 // The seam offset is only ~0.7pp (invisible on a 3-year 0→87% axis), so we splice the two
 // as-is — no rebase — keeping launch at exactly 0% and leaving both series undistorted.
 function loadSupplyHistory() {
-  const hs = loadHolderscanDiamond().sort((a, b) => a[0] - b[0]);
-  const fifo = loadOnchain()
+  // Held >90d (3-6m + 6-12m + 1y+) as a share of held supply, over the FULL FIFO series — the
+  // reproducible "diamond hands" number from launch → today (onchain.json is daily now). This used
+  // to splice a short HolderScan diamond series on the recent tail; HolderScan is retired, and the
+  // FIFO reconstruction covers the whole span consistently, so there is no seam to bridge.
+  return loadOnchain()
     .filter(r => Array.isArray(r.age) && r.age.length === 5)
     .map(r => [Date.parse(r.d), r.age[2] + r.age[3] + r.age[4]]) // >90d = 3-6m + 6-12m + 1y+
     .filter(p => Number.isFinite(p[0]) && Number.isFinite(p[1]))
     .sort((a, b) => a[0] - b[0]);
-  if (!hs.length) return fifo;
-  if (!fifo.length) return hs;
-  const seamTs = hs[0][0];
-  const backbone = fifo.filter(p => p[0] < seamTs); // FIFO fills launch → HolderScan's first day
-  return [...backbone, ...hs];
 }
 
 // Holder COUNT over time (with the day's price) — for the holder-growth card. Grows
@@ -425,21 +411,34 @@ export function computeStats(price, dateStr = new Date().toISOString().slice(0, 
   let supply = null;
   const snap = loadSupplySnapshot();
   if (snap) {
-    const tiers = snap.sup;
-    const classified = Object.values(tiers).reduce((a, b) => a + b, 0);
+    // Realized price, gini, the ETH holder count and the conviction tiers come from the FIFO
+    // reconstruction (onchain.json — source of truth), NOT the history snapshot, so the numbers are
+    // right the moment onchain.json refreshes rather than waiting on the next daily snapshot. Tiers =
+    // the five HODL age bands as token counts; "diamond" = held >90 days = silver + gold + diamond
+    // (3-6m + 6-12m + 1y+), which reproduces the ~61%-of-supply figure. The history snapshot only
+    // supplies the multi-chain (Base/Solana) headcount + bridged supply, which onchain.json lacks.
+    const ocRows = loadOnchain();
+    const oc = ocRows.length ? ocRows[ocRows.length - 1] : null;
+    const held = oc?.heldTokens || 0;
+    const tiers = oc && Array.isArray(oc.age) && oc.age.length === 5 && held > 0
+      ? { wood: oc.age[0] / 100 * held, bronze: oc.age[1] / 100 * held, silver: oc.age[2] / 100 * held, gold: oc.age[3] / 100 * held, diamond: oc.age[4] / 100 * held }
+      : snap.sup;
+    const classified = tiers ? Object.values(tiers).reduce((a, b) => a + b, 0) : 0;
+    const dia90 = tiers ? (tiers.silver || 0) + (tiers.gold || 0) + (tiers.diamond || 0) : 0;
+    const be = oc?.rp ?? snap.be ?? null;
     supply = {
-      diamondTokens: tiers.diamond, holders: snap.holders, snapDate: snap.d,
+      diamondTokens: dia90, holders: oc?.holders ?? snap.holders, snapDate: snap.d,
       holdersBase: snap.holdersBase ?? null, holdersSol: snap.holdersSol ?? null, // multi-chain headcount (bridged)
       supplyBase: snap.supplyBase ?? null, supplySol: snap.supplySol ?? null,     // SPX tokens on Base/Solana (× price = value)
       totalSupply: SUPPLY,
-      diamondShare: tiers.diamond / SUPPLY,
+      diamondShare: dia90 / SUPPLY,
       nominalMc: price * SUPPLY,
-      floatTokens: SUPPLY - tiers.diamond,
-      floatMc: price * (SUPPLY - tiers.diamond),
-      diamondValue: price * tiers.diamond,
+      floatTokens: SUPPLY - dia90,
+      floatMc: price * (SUPPLY - dia90),
+      diamondValue: price * dia90,
       tiers, classified,
-      breakEven: snap.be, gini: snap.gini,
-      avgHolderPnl: snap.be ? price / snap.be - 1 : null,
+      breakEven: be, gini: oc?.gini ?? snap.gini,
+      avgHolderPnl: be ? price / be - 1 : null,
       diamondSeries: loadSupplyHistory(),
       holderSeries: loadHolderHistory(),
       chainSeries: loadChainHistory(),

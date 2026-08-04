@@ -1607,23 +1607,21 @@ Up in dollars is easy in a bull market. Up in BTC is the truer scoreboard.`,
     } },
   }),
 
-  // 10 — holder distribution (supply tiers donut). NB: HolderScan's conviction
-  // tiers (diamond…wood) only cover *classified holder* supply (~71% of total);
-  // the rest is exchanges, LPs & contracts. So "84% diamond" is a share of the
-  // CLASSIFIED supply, NOT of the full 939M (the marketcap card carries the
-  // 60%-of-total figure). Label it clearly so the two never read as contradictory.
+  // 10 — holder distribution (supply tiers donut). Tiers are the five HODL age bands (from our FIFO
+  // reconstruction now, not HolderScan). The "diamond" tier = the 1-year+ band, so its share matches
+  // the cyan donut segment exactly; the wider ">90 days = ~61% of supply" number lives on diamondtrend.
   s => s.supply && s.supply.tiers && (() => {
-    const diamondPct = Math.round((s.supply.tiers.diamond / s.supply.classified) * 100); // of tracked holders (~87%)
+    const diamondPct = Math.round((s.supply.tiers.diamond / s.supply.classified) * 100); // 1y+ tier (the diamond band)
     return {
     id: "distribution",
-    text: ct`💎 ${diamondPct}% of SPX6900's tracked holders are diamond hands — they've held for over 90 days.
-The top holder wallets HolderScan follows — exchanges and LP pools excluded — split by how long they've held.
+    text: ct`💎 ${diamondPct}% of SPX6900's held supply hasn't moved in over a year — the diamond tier.
+Every wallet's SPX, reconstructed on-chain (FIFO) with exchanges and LP pools excluded — split by how long it's been held.
 High conviction.`,
     card: { type: "donut", spec: {
-      title: "Holder conviction — tracked wallets", headline: `${diamondPct}% diamond hands`, accent: "#22d3ee",
-      footer: `${diamondPct}% held 90 days+ · of tracked holders (top wallets, exchanges & LPs excluded)`,
-      legendUnit: "of tracked holders",
-      center: { big: `${diamondPct}%`, small: "diamond hands" },
+      title: "Holder conviction — by holding age", headline: `${diamondPct}% held 1 year+`, accent: "#22d3ee",
+      footer: `${diamondPct}% held over a year · of held supply · on-chain (FIFO), CEX & LP excluded`,
+      legendUnit: "of held supply",
+      center: { big: `${diamondPct}%`, small: "held 1y+" },
       segments: TIERS.map(([k, label, c]) => ({ label, value: s.supply.tiers[k], color: c })),
     } },
     };
@@ -1653,11 +1651,10 @@ ${up ? "Most of the float is green and still holding." : "Red and still not sell
     };
   })(),
 
-  // 11b — diamond-supply trend: share of TOTAL supply held by the longest-held
-  // "diamond" tier, over time (grows as daily snapshots accumulate). The bot
-  // companion to the website's "Diamond supply over time" chart.
+  // 11b — diamond-supply trend: share of HELD supply held >90 days (3-6m + 6-12m + 1y+), over the
+  // full FIFO reconstruction (launch → today). The bot companion to the website's diamond chart.
   s => s.supply && s.supply.diamondSeries && s.supply.diamondSeries.length >= 2 && (() => {
-    const ds = s.supply.diamondSeries; // diamond ÷ classified (~85%) — HolderScan's tracked-holder basis
+    const ds = s.supply.diamondSeries; // held >90d as % of held supply (~90%), from onchain age bands
     const nowPct = ds.at(-1)[1], startPct = ds[0][1], delta = nowPct - startPct;
     const dv = ds.map(p => p[1]);
     const lo = Math.min(...dv), hi = Math.max(...dv);
@@ -1672,9 +1669,9 @@ ${up ? "Most of the float is green and still holding." : "Red and still not sell
     return {
       id: "diamondtrend",
       text: copy("diamondtrend",
-`💎 {pct}% of SPX6900's tracked holders are diamond hands — held 90 days+.
-The real holder base — top wallets HolderScan tracks, exchanges and LPs excluded. {trend}.
-Conviction, wallet by wallet.`,
+`💎 {pct}% of SPX6900's held supply are diamond hands — held 90 days+.
+Every coin's age, reconstructed on-chain (FIFO) with exchanges and LPs excluded. {trend}.
+Conviction, coin by coin.`,
         { pct: Math.round(nowPct), trend }),
       card: { type: "line", spec: {
         title: "Diamond hands over time · held 90 days+", headline: `${Math.round(nowPct)}% diamond hands`, accent: "#22d3ee",
@@ -2261,14 +2258,11 @@ const weightOf = id => WEIGHT[id] ?? (BULLISH.has(id) ? 2 : 1);
 // the monthly-returns card covers the same honesty without the gloom. The risk
 // line is here because the fngtrend card now plots it next to crypto Fear &
 // Greed, so the standalone is redundant in the feed.
-// NOTE on distribution + diamondtrend (HolderScan "diamond" tier): HolderScan classifies
-// diamond as wallets holding >90 DAYS — the SAME cohort as our FIFO long-term holders (lthsth,
-// >90d) — and the two RECONCILE (~86% of holder supply / ~61% of total). They are NOT in
-// conflict with the FIFO cards; the apparent 61-vs-53 gap was a threshold mismatch (>90d
-// diamond vs the 1-year+ hodlwaves band). KEPT IN ROTATION on purpose: HolderScan pulls
-// DAILY (auto) while the FIFO series is manual until the BigQuery daily pipeline is built, so
-// HolderScan is the daily-fresh bridge for now. FIFO is the long-term source — migrate these
-// two to FIFO once daily BigQuery lands. (owner call 2026-07-19)
+// NOTE on distribution + diamondtrend: both are now on the FIFO reconstruction (onchain.json,
+// daily) — HolderScan was retired 2026-08. `distribution` (donut) shows the five HODL age bands
+// and headlines the 1-year+ "diamond" tier (~60% of held), so the center matches the cyan segment;
+// `diamondtrend` (line) shows the held-supply share held >90 DAYS (3-6m + 6-12m + 1y+, ~90% of held
+// ≈ 61% of total) over the full launch→today series. Two thresholds, both labelled, no conflict.
 // marketcap ("real free-float cap / thin float") is RETIRED — its premise is false: SPX is a
 // fair launch with no lockup, so free float is ~88% (not thin). The honest story is
 // illiquid/liquid supply (the reframed freefloat card), so marketcap is out of the feed.
