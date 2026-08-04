@@ -1,8 +1,13 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
-import { whaleCohortHistory } from "../scripts/build-whale-cohorts.mjs";
+import { readFileSync, writeFileSync, mkdtempSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { whaleCohortHistory, fromTransfers } from "../scripts/build-whale-cohorts.mjs";
 import { COHORTS } from "../src/whale-cohorts.js";
+
+const tmpCsv = (lines) => { const p = join(mkdtempSync(join(tmpdir(), "whc-")), "t.csv"); writeFileSync(p, ["sender,receiver,time,value", ...lines].join("\n")); return p; };
+const raw = (n) => Math.round(n * 1e8);   // 8-decimal on-chain units
 
 // The builder re-slices the weekly timeline into per-cohort counts. These pin the shape and the
 // one behaviour that carries a claim: a wallet is counted in the cohort its balance sits in THAT
@@ -40,6 +45,33 @@ test("sub-whale wallets never count; a wallet dropping below 100k leaves", () =>
   const tot = r => r.slice(1).reduce((s, v) => s + v, 0);
   assert.equal(tot(o.rows[0]), 1);                       // only 0xb
   assert.equal(tot(o.rows[3]), 0);                       // 0xb dropped out; 0xa never counted
+});
+
+test("daily mode: bins by balance, forward-fills quiet days, migrates cohorts, excludes infra", async () => {
+  const Z = "0x0000000000000000000000000000000000000000";
+  const W = "0x000000000000000000000000000000000000000a";       // the whale under test
+  // day 1: mint 150k → cohort 0; day 3: +2M (2.15M total) → cohort 2; day 6: +4M (6.15M) → cohort 3
+  const rows = [
+    `${Z},${W},2024-01-01T12:00:00Z,${raw(150_000)}`,
+    `${Z},${W},2024-01-03T12:00:00Z,${raw(2_000_000)}`,
+    `${Z},${W},2024-01-06T12:00:00Z,${raw(4_000_000)}`,
+  ];
+  const o = await fromTransfers(tmpCsv(rows));
+  assert.equal(o.res, "daily");
+  const byDate = Object.fromEntries(o.rows.map(r => [r[0], r.slice(1)]));
+  assert.deepEqual(byDate["2024-01-01"], [1, 0, 0, 0]);          // cohort 0
+  assert.deepEqual(byDate["2024-01-02"], [1, 0, 0, 0]);          // quiet day → forward-filled
+  assert.deepEqual(byDate["2024-01-03"], [0, 0, 1, 0]);          // migrated to cohort 2
+  assert.deepEqual(byDate["2024-01-05"], [0, 0, 1, 0]);          // still forward-filled
+  assert.deepEqual(byDate["2024-01-06"], [0, 0, 0, 1]);          // migrated to cohort 3
+  assert.equal(o.rows.length, 6);                                // Jan 1..6, no gaps
+});
+
+test("daily mode: an infra wallet (EXCLUDE) is never counted", async () => {
+  // Uniswap V2 SPX/WETH pool — in the EXCLUDE set — receives a whale-sized amount but must not count
+  const LP = "0x52c77b0cb827afbad022e6d6caf2c44452edbc39";
+  const o = await fromTransfers(tmpCsv([`0x0000000000000000000000000000000000000000,${LP},2024-01-01T00:00:00Z,${raw(5_000_000)}`]));
+  assert.deepEqual(o.rows.at(-1).slice(1), [0, 0, 0, 0]);
 });
 
 test("against the live timeline: counts reconcile and stay non-negative", () => {

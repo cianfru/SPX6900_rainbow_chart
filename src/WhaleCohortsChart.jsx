@@ -135,7 +135,7 @@ export default function WhaleCohortsChart({ isMobile }) {
       </div>
 
       <div className="chart-caption" style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.65, maxWidth: 900, marginInline: "auto" }}>
-        <strong style={{ color: "#22d3ee" }}>Whale counts over time</strong> — wallets ≥100k SPX in each size cohort, reconstructed weekly from the on-chain time-machine
+        <strong style={{ color: "#22d3ee" }}>Whale counts over time</strong> — wallets ≥100k SPX in each size cohort, reconstructed {doc?.res === "daily" ? "daily" : "weekly"} from the on-chain archive
         (net balances; infra excluded). A wallet moves between cohorts as it grows or shrinks; the live snapshot counts a touch fewer using finer per-lot ages. Drag to zoom. Not financial advice.
       </div>
     </div>
