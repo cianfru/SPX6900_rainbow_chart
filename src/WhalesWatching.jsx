@@ -3,58 +3,152 @@ import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { CSS2DRenderer, CSS2DObject } from "three/examples/jsm/renderers/CSS2DRenderer.js";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
-import { skyEnv, TIMES } from "./city-render.js";
 import { makeDrs } from "./city-drs.js";
 import { buildCohorts, ageRamp } from "./whale-cohorts.js";
 import { loadWhales } from "./history-data.js";
 import CityGate from "./CityGate.jsx";
 import { SANS, MONO } from "./chart-ui.jsx";
 
-// "WHALES WATCHING" — a deliberately ABSTRACT whale-activity monitor. Every wallet ≥100k SPX is a
-// CUBE, grouped on the ground into four size cohorts. Height = holding size, colour = holder age
-// (warm amber = new → cyan = long-held), and a BEAM over each cube shows 30-day net flow: green =
-// accumulating, red = distributing, none = flat. A slab + label under each cluster reads the
-// cohort's overall sentiment. One glance answers "are the big wallets buying or selling, and which
-// size band is moving?" — NOT the realistic Whale City; this is behaviour, not geography.
+// "WHALES WATCHING" — a whale-activity monitor drawn in the SAME clean data-chart design as the
+// Cost Basis × Age 3D chart (Urpd3D): flat dark ground, a blue grid floor, solid Lambert bars, thin
+// blue axis-reference lines with CSS2D labels, and a slow autorotate that stops on interaction.
+// Every wallet ≥100k SPX is a bar, GROUPED into four size cohorts along X. HEIGHT sits on a log SPX
+// axis (100k → 10M), COLOUR is holder age (warm amber = new → cyan = long-held), and a BEAM over a
+// bar shows 30-day flow (green = buying, red = selling, none = flat). A slab + label under each
+// cluster reads its overall sentiment. A distribution snapshot, not a signal.
 //
-// ⚠ RENDERING IS UNVERIFIED IN THE DEV SANDBOX (CPU software rasteriser). The DATA/layout math lives
-// in ../whale-cohorts.js and is unit-tested; this file mirrors Skyline3D's proven three bootstrap
-// (ACES tone mapping, sky env, hemisphere fill for the top-down view, merged geometry per bucket so
-// draw calls stay flat, adaptive resolution, CSS2D labels). Check window.__whaleStats() on a real GPU.
+// ⚠ GPU render is unverified in the dev sandbox (software rasteriser). The data/layout math is in
+// ../whale-cohorts.js and unit-tested; check window.__whaleStats() on real hardware.
 
-const FOOT = 1.1;               // cube footprint (world units)
-const HMIN = 1.6, HMAX = 17;    // height range for the log/√ size curve
-const AGE_BINS = 12;            // age-ramp buckets → one merged mesh + material each
+const FOOT = 1.15;               // bar footprint (world units)
+const HMIN = 1.2, HMAX = 18;     // world-height range across the log size axis
+const AGE_BINS = 12;             // age-ramp buckets → one merged mesh + material each
 const GREEN = 0x22c55e, RED = 0xf43f5e;
+const GRID_A = 0x223052, GRID_B = 0x162038, AXIS = 0x2a3550;
+const kM = v => v >= 1e6 ? (v / 1e6 % 1 ? (v / 1e6).toFixed(1) : v / 1e6) + "M" : Math.round(v / 1e3) + "k";
 
-function buildScene(el, data, { time, onlyMovers, isMobile, onPick }) {
-  const TOD = TIMES[time] || TIMES.dusk;
+function buildScene(el, data, { onlyMovers, isMobile }) {
   const wallets = onlyMovers ? data.wallets.filter(w => (w.d30 || 0) !== 0) : data.wallets;
   const model = buildCohorts(wallets);
   const cohorts = model.cohorts;
-  const bounds = model.bounds;
+  const { minBal, maxBal, bounds } = model;
+  const lnLo = Math.log(minBal), lnHi = Math.log(Math.max(maxBal, minBal * 1.0001));
+  const heightOf = bal => HMIN + (HMAX - HMIN) * Math.max(0, Math.min(1, (Math.log(bal) - lnLo) / (lnHi - lnLo)));
 
-  const W = el.clientWidth, VH = isMobile ? 460 : 600;
+  const W = el.clientWidth, VH = isMobile ? 440 : 560;
   const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x0a0e1c);         // flat, like Urpd3D — not a sky
   const span = Math.max(bounds.width, bounds.depth, 40);
-  scene.fog = new THREE.Fog(new THREE.Color(TOD.horizon), span * 1.1, span * 3.4);
 
-  const cam = new THREE.PerspectiveCamera(46, W / VH, 0.5, 4000);
-  cam.position.set(span * 0.08, span * 0.42, span * 0.80);
-
+  const cam = new THREE.PerspectiveCamera(46, W / VH, 0.1, 2000);
+  cam.position.set(span * 0.30, span * 0.34, span * 0.62);
   const renderer = new THREE.WebGLRenderer({ antialias: true });
-  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
-  renderer.setSize(W, VH);
-  renderer.outputColorSpace = THREE.SRGBColorSpace;
-  renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = TOD.exposure;
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 2)); renderer.setSize(W, VH);
   el.appendChild(renderer.domElement);
-  const { env, sky } = skyEnv(renderer, TOD);
-  scene.environment = env; scene.background = sky;
 
   const labelR = new CSS2DRenderer(); labelR.setSize(W, VH);
   Object.assign(labelR.domElement.style, { position: "absolute", top: "0", left: "0", pointerEvents: "none" });
   el.appendChild(labelR.domElement);
+  const mkLabel = (text, color, size = 11, weight = 500) => {
+    const d = document.createElement("div");
+    d.textContent = text;
+    Object.assign(d.style, { color, font: `${weight} ${size}px 'Space Grotesk', system-ui, sans-serif`, whiteSpace: "nowrap", textShadow: "0 1px 3px #000", opacity: "0.94" });
+    return new CSS2DObject(d);
+  };
+  const addLabel = (text, x, y, z, color, size, weight) => { const l = mkLabel(text, color, size, weight); l.position.set(x, y, z); scene.add(l); };
+
+  // lights — the same simple rig as Urpd3D (no shadows, no env, no tone mapping)
+  scene.add(new THREE.AmbientLight(0xffffff, 0.78));
+  const d1 = new THREE.DirectionalLight(0xffffff, 0.85); d1.position.set(span * 0.4, span * 0.7, span * 0.3); scene.add(d1);
+  const d2 = new THREE.DirectionalLight(0x88aaff, 0.35); d2.position.set(-span * 0.3, span * 0.3, -span * 0.2); scene.add(d2);
+
+  // floor grid
+  const gridSize = Math.max(bounds.width, bounds.depth) * 1.15;
+  const grid = new THREE.GridHelper(gridSize, 16, GRID_A, GRID_B);
+  grid.position.y = 0.01; scene.add(grid);
+
+  const disposables = [grid.geometry, grid.material];
+  const ownMats = [];
+
+  // ── axis reference: log SIZE gridlines across the back + left walls ──────────
+  const xL = -bounds.width / 2 - 1.5, xR = bounds.width / 2 + 1.5;
+  const zB = -bounds.depth / 2 - 1.2, zF = bounds.depth / 2 + 1.2;
+  const lineMat = new THREE.LineBasicMaterial({ color: AXIS, transparent: true, opacity: 0.6 });
+  disposables.push(lineMat);
+  const seg = (a, b) => { const g = new THREE.BufferGeometry().setFromPoints([a, b]); const l = new THREE.Line(g, lineMat); scene.add(l); disposables.push(g); };
+  const ticks = [1e5, 2.5e5, 5e5, 1e6, 2.5e6, 5e6, 1e7].filter(v => v >= minBal * 0.999 && v <= maxBal * 1.001);
+  ticks.forEach(v => {
+    const y = heightOf(v);
+    seg(new THREE.Vector3(xL, y, zB), new THREE.Vector3(xR, y, zB));   // back wall line
+    seg(new THREE.Vector3(xL, y, zB), new THREE.Vector3(xL, y, zF));   // left wall line
+    addLabel(kM(v), xL - 1.4, y, zB, "#9aa6bd", 11);
+  });
+  addLabel("SPX held ↑", xL - 1.4, HMAX + 1.8, zB, "#cbd5e1", 12.5, 700);
+  addLabel("size cohorts →", xR - 6, 0.2, zF + 0.6, "#cbd5e1", 12.5, 700);
+
+  // ── cohort sentiment pads + labels ──────────────────────────────────────────
+  cohorts.forEach(c => {
+    const tint = c.sentiment === "accumulating" ? GREEN : c.sentiment === "distributing" ? RED : 0x334063;
+    const mat = new THREE.MeshLambertMaterial({ color: new THREE.Color(tint).multiplyScalar(c.sentiment === "balanced" ? 0.6 : 0.5) });
+    const pad = new THREE.Mesh(new THREE.BoxGeometry(c.platform.w, 0.14, c.platform.d), mat);
+    pad.position.set(c.center.x, 0.07, 0);
+    scene.add(pad); disposables.push(pad.geometry); ownMats.push(mat);
+
+    if (!c.n) return;
+    const np = c.netPct >= 0 ? `+${c.netPct.toFixed(2)}%` : `${c.netPct.toFixed(2)}%`;
+    const scol = c.sentiment === "accumulating" ? "#4ade80" : c.sentiment === "distributing" ? "#fb7185" : "#94a3b8";
+    const div = document.createElement("div");
+    div.style.cssText = "text-align:center;pointer-events:none";
+    div.innerHTML =
+      `<div style="font:800 13.5px 'Space Grotesk',sans-serif;color:#e6edf7;letter-spacing:.3px;text-shadow:0 1px 3px #000">${c.label}</div>` +
+      `<div style="font:700 11.5px 'Space Grotesk',sans-serif;color:${scol};text-shadow:0 1px 3px #000">${c.n} · net ${np} · ${c.sentiment}</div>`;
+    const label = new CSS2DObject(div);
+    label.position.set(c.center.x, HMAX * 0.66, zB + 0.4);
+    scene.add(label);
+  });
+
+  // ── bars: one merged mesh per age bin (solid Lambert, like Urpd3D) ──────────
+  const cubeBins = Array.from({ length: AGE_BINS }, () => []);
+  const beamBuy = [], beamSell = [];
+  const picks = [];
+  const all = cohorts.flatMap(c => c.wallets.map(w => ({ ...w, cohort: c.label })));
+  all.forEach(w => {
+    const h = heightOf(w.bal);
+    const g = new THREE.BoxGeometry(FOOT, h, FOOT); g.translate(w.x, h / 2, w.z);
+    cubeBins[Math.min(AGE_BINS - 1, Math.round(w.ageU * (AGE_BINS - 1)))].push(g);
+    picks.push({ x: w.x, z: w.z, h, ref: w });
+    if (w.flow !== "flat") {
+      const mag = Math.min(1, Math.abs(w.d30) / Math.max(1, w.bal) * 6);
+      const bh = 2 + 5 * mag;
+      const bg = new THREE.BoxGeometry(0.2, bh, 0.2); bg.translate(w.x, h + 0.4 + bh / 2, w.z);
+      (w.flow === "buy" ? beamBuy : beamSell).push(bg);
+    }
+  });
+  const addMerged = (geos, mat) => {
+    if (!geos.length) return;
+    const merged = mergeGeometries(geos, false);
+    geos.forEach(g => g.dispose());
+    if (!merged) return;
+    scene.add(new THREE.Mesh(merged, mat)); disposables.push(merged); ownMats.push(mat);
+  };
+  cubeBins.forEach((geos, ai) => addMerged(geos, new THREE.MeshLambertMaterial({ color: new THREE.Color(ageRamp(ai / (AGE_BINS - 1)).hex) })));
+  // beams read as light: a Lambert body with a matching emissive so they glow above the bars
+  const beamMat = c => new THREE.MeshLambertMaterial({ color: new THREE.Color(c), emissive: new THREE.Color(c), emissiveIntensity: 0.9 });
+  addMerged(beamBuy, beamMat(GREEN));
+  addMerged(beamSell, beamMat(RED));
+
+  // ── hover picking: invisible InstancedMesh of the bar boxes ─────────────────
+  const pickGeo = new THREE.BoxGeometry(1, 1, 1);
+  const pickMat = new THREE.MeshBasicMaterial({ visible: false });
+  const pickMesh = new THREE.InstancedMesh(pickGeo, pickMat, Math.max(1, picks.length));
+  const M = new THREE.Matrix4();
+  picks.forEach((p, i) => { M.makeScale(FOOT, p.h, FOOT); M.setPosition(p.x, p.h / 2, p.z); pickMesh.setMatrixAt(i, M); });
+  pickMesh.instanceMatrix.needsUpdate = true;
+  scene.add(pickMesh); disposables.push(pickGeo, pickMat);
+
+  const cageMat = new THREE.MeshBasicMaterial({ color: 0x5eead4, wireframe: true, transparent: true, opacity: 0.9 });
+  const cage = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), cageMat);
+  cage.visible = false; scene.add(cage); disposables.push(cage.geometry, cageMat);
 
   const tip = document.createElement("div");
   Object.assign(tip.style, {
@@ -65,112 +159,13 @@ function buildScene(el, data, { time, onlyMovers, isMobile, onPick }) {
   });
   el.appendChild(tip);
 
-  scene.add(new THREE.AmbientLight(0xffffff, TOD.amb));
-  // Hemisphere fill keeps the top-down view from going black (sky env barely lights a flat top).
-  scene.add(new THREE.HemisphereLight(new THREE.Color(TOD.top), new THREE.Color(TOD.ground), TOD.hemi));
-  const sun = new THREE.DirectionalLight(TOD.sun, TOD.sunI);
-  sun.position.set(span * 0.5, span * 0.8, span * 0.35);
-  scene.add(sun);
-
-  // ── ground ──────────────────────────────────────────────────────────────────
-  const ground = new THREE.Mesh(
-    new THREE.PlaneGeometry(span * 6, span * 6),
-    new THREE.MeshStandardMaterial({ color: new THREE.Color(TOD.ground).multiplyScalar(0.6), roughness: 0.98 }));
-  ground.rotation.x = -Math.PI / 2; ground.position.y = -0.32;
-  scene.add(ground);
-
-  const disposables = [ground.geometry, ground.material];
-  const ownMats = [];
-
-  // ── cohort platforms + sentiment labels ────────────────────────────────────
-  cohorts.forEach(c => {
-    const tint = c.sentiment === "accumulating" ? GREEN : c.sentiment === "distributing" ? RED : 0x475069;
-    const mat = new THREE.MeshStandardMaterial({
-      color: new THREE.Color(tint).multiplyScalar(c.sentiment === "balanced" ? 0.5 : 0.28),
-      emissive: new THREE.Color(tint), emissiveIntensity: c.sentiment === "balanced" ? 0.05 : 0.22,
-      roughness: 0.85, metalness: 0.0,
-    });
-    const slab = new THREE.Mesh(new THREE.BoxGeometry(c.platform.w, 0.3, c.platform.d), mat);
-    slab.position.set(c.center.x, -0.16, 0);
-    scene.add(slab); disposables.push(slab.geometry); ownMats.push(mat);
-
-    if (!c.n) return;
-    const np = c.netPct >= 0 ? `+${c.netPct.toFixed(2)}%` : `${c.netPct.toFixed(2)}%`;
-    const scol = c.sentiment === "accumulating" ? "#4ade80" : c.sentiment === "distributing" ? "#fb7185" : "#94a3b8";
-    const div = document.createElement("div");
-    div.style.cssText = "text-align:center;pointer-events:none;transform:translateY(-6px)";
-    div.innerHTML =
-      `<div style="font:800 14px 'Space Grotesk',sans-serif;color:#e6edf7;letter-spacing:.3px;text-shadow:0 2px 8px #000">${c.label}</div>` +
-      `<div style="font:700 12px 'Space Grotesk',sans-serif;color:${scol};text-shadow:0 2px 8px #000">${c.n} · net ${np} · ${c.sentiment}</div>`;
-    const label = new CSS2DObject(div);
-    label.position.set(c.center.x, HMAX * 0.62, -c.platform.d / 2 - 1.2);
-    scene.add(label);
-  });
-
-  // ── cubes: one merged mesh per age bin ──────────────────────────────────────
-  const cubeBins = Array.from({ length: AGE_BINS }, () => []);
-  const beamBuy = [], beamSell = [];
-  const picks = [];             // { x, z, h, w } per cube, for hover
-  const all = cohorts.flatMap(c => c.wallets.map(w => ({ ...w, cohort: c.label })));
-  all.forEach(w => {
-    const h = HMIN + (HMAX - HMIN) * w.hU;
-    const g = new THREE.BoxGeometry(FOOT, h, FOOT);
-    g.translate(w.x, h / 2, w.z);
-    const ai = Math.min(AGE_BINS - 1, Math.round(w.ageU * (AGE_BINS - 1)));
-    cubeBins[ai].push(g);
-    picks.push({ x: w.x, z: w.z, h, ref: w });
-    // beam: a thin emissive column above movers, taller with bigger relative flow
-    if (w.flow !== "flat") {
-      const mag = Math.min(1, Math.abs(w.d30) / Math.max(1, w.bal) * 6);
-      const bh = 2.4 + 6 * mag;
-      const bg = new THREE.BoxGeometry(0.18, bh, 0.18);
-      bg.translate(w.x, h + 0.5 + bh / 2, w.z);
-      (w.flow === "buy" ? beamBuy : beamSell).push(bg);
-    }
-  });
-
-  const addMerged = (geos, mat) => {
-    if (!geos.length) return;
-    const merged = mergeGeometries(geos, false);
-    geos.forEach(g => g.dispose());
-    if (!merged) return;
-    scene.add(new THREE.Mesh(merged, mat));
-    disposables.push(merged); ownMats.push(mat);
-  };
-
-  cubeBins.forEach((geos, ai) => {
-    const hex = ageRamp(ai / (AGE_BINS - 1)).hex;
-    const col = new THREE.Color(hex);
-    const mat = new THREE.MeshStandardMaterial({
-      color: col.clone().multiplyScalar(0.5), emissive: col, emissiveIntensity: TOD.win * 0.55,
-      roughness: 0.42, metalness: 0.12, envMapIntensity: 0.8,
-    });
-    addMerged(geos, mat);
-  });
-  const beamMat = c => new THREE.MeshStandardMaterial({ color: new THREE.Color(c), emissive: new THREE.Color(c), emissiveIntensity: 1.7, roughness: 0.3 });
-  addMerged(beamBuy, beamMat(GREEN));
-  addMerged(beamSell, beamMat(RED));
-
-  // ── hover picking: one invisible InstancedMesh of the cube boxes ────────────
-  const pickGeo = new THREE.BoxGeometry(1, 1, 1);
-  const pickMat = new THREE.MeshBasicMaterial({ visible: false });
-  const pickMesh = new THREE.InstancedMesh(pickGeo, pickMat, Math.max(1, picks.length));
-  const M = new THREE.Matrix4();
-  picks.forEach((p, i) => { M.makeScale(FOOT, p.h, FOOT); M.setPosition(p.x, p.h / 2, p.z); pickMesh.setMatrixAt(i, M); });
-  pickMesh.instanceMatrix.needsUpdate = true;
-  scene.add(pickMesh);
-  disposables.push(pickGeo, pickMat);
-
-  const cageMat = new THREE.MeshBasicMaterial({ color: 0x5eead4, wireframe: true, transparent: true, opacity: 0.9 });
-  const cage = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), cageMat);
-  cage.visible = false; scene.add(cage);
-  disposables.push(cage.geometry, cageMat);
-
   const controls = new OrbitControls(cam, renderer.domElement);
-  controls.target.set(0, HMAX * 0.42, 0);
+  controls.target.set(0, HMAX * 0.32, 0);
   controls.enableDamping = true; controls.dampingFactor = 0.08;
-  controls.maxPolarAngle = Math.PI * 0.495;   // don't dive under the ground
-  controls.minDistance = 8; controls.maxDistance = span * 3;
+  controls.minDistance = 14; controls.maxDistance = span * 2.6; controls.maxPolarAngle = Math.PI * 0.49;
+  controls.autoRotate = true; controls.autoRotateSpeed = 0.6;
+  const stopSpin = () => { controls.autoRotate = false; };
+  renderer.domElement.addEventListener("pointerdown", stopSpin);
 
   const ray = new THREE.Raycaster(), mouse = new THREE.Vector2();
   let hovered = -1;
@@ -190,34 +185,22 @@ function buildScene(el, data, { time, onlyMovers, isMobile, onPick }) {
       : `<span style="color:#94a3b8">flat (30d)</span>`;
     tip.innerHTML =
       `<div style="font-family:${MONO};font-size:11px;color:#94a3b8">${w.a.slice(0, 6)}…${w.a.slice(-4)}</div>` +
-      `<div style="font-weight:800;font-size:15px;margin:2px 0"><span style="color:${rgb}">${(w.bal / 1e6 >= 1 ? (w.bal / 1e6).toFixed(2) + "M" : Math.round(w.bal / 1e3) + "k")}</span> SPX · ${w.cohort}</div>` +
+      `<div style="font-weight:800;font-size:15px;margin:2px 0"><span style="color:${rgb}">${kM(w.bal)}</span> SPX · ${w.cohort}</div>` +
       `<div style="font-size:12px;color:#c7d2e4">held ${Math.round(w.days / 30)} months · ${flowTxt}</div>`;
     tip.style.display = "block";
     tip.style.left = `${e.clientX - r.left}px`; tip.style.top = `${e.clientY - r.top}px`;
     cage.position.set(p.x, p.h / 2, p.z); cage.scale.set(FOOT + 0.12, p.h + 0.12, FOOT + 0.12); cage.visible = true;
   };
   const onLeave = () => { hovered = -1; tip.style.display = "none"; cage.visible = false; };
-  const onClick = () => { if (hovered >= 0 && onPick) onPick(picks[hovered].ref); };
   renderer.domElement.addEventListener("pointermove", onMove);
   renderer.domElement.addEventListener("pointerleave", onLeave);
-  renderer.domElement.addEventListener("click", onClick);
 
   const drs = makeDrs({ maxRatio: Math.min(devicePixelRatio, 2), minRatio: 0.55, apply: r => renderer.setPixelRatio(r) });
   let raf = 0;
-  const loop = t => {
-    raf = requestAnimationFrame(loop);
-    drs.tick(t);
-    controls.update();
-    renderer.render(scene, cam);
-    labelR.render(scene, cam);
-  };
+  const loop = t => { raf = requestAnimationFrame(loop); drs.tick(t); controls.update(); renderer.render(scene, cam); labelR.render(scene, cam); };
   raf = requestAnimationFrame(loop);
 
-  const onResize = () => {
-    const w = el.clientWidth; if (!w) return;
-    cam.aspect = w / VH; cam.updateProjectionMatrix();
-    renderer.setSize(w, VH); labelR.setSize(w, VH);
-  };
+  const onResize = () => { const w = el.clientWidth; if (!w) return; cam.aspect = w / VH; cam.updateProjectionMatrix(); renderer.setSize(w, VH); labelR.setSize(w, VH); };
   window.addEventListener("resize", onResize);
 
   window.__whaleStats = () => ({
@@ -231,12 +214,11 @@ function buildScene(el, data, { time, onlyMovers, isMobile, onPick }) {
     window.removeEventListener("resize", onResize);
     renderer.domElement.removeEventListener("pointermove", onMove);
     renderer.domElement.removeEventListener("pointerleave", onLeave);
-    renderer.domElement.removeEventListener("click", onClick);
+    renderer.domElement.removeEventListener("pointerdown", stopSpin);
     delete window.__whaleStats;
     controls.dispose();
     disposables.forEach(d => d.dispose?.());
     ownMats.forEach(m => m.dispose?.());
-    env?.dispose?.(); sky?.dispose?.();
     renderer.dispose();
     tip.remove();
     if (labelR.domElement.parentNode) labelR.domElement.parentNode.removeChild(labelR.domElement);
@@ -246,7 +228,7 @@ function buildScene(el, data, { time, onlyMovers, isMobile, onPick }) {
 
 const GUIDE = [
   { swatch: "linear-gradient(90deg,#d97706,#22d3ee)", title: "Colour is age", text: "warm amber for wallets that arrived recently, cyan for the ones that have held longest." },
-  { swatch: "#94a3b8", title: "Height is size", text: "how much the wallet holds — 100k tucked at one end, the multi-million whales towering at the other." },
+  { swatch: "#94a3b8", title: "Height is size", text: "each bar sits on a log SPX axis — 100k at the floor, the multi-million whales towering above." },
   { swatch: "#22c55e", title: "A green beam = buying", text: "the wallet added over the last 30 days. Taller beam, bigger move." },
   { swatch: "#f43f5e", title: "A red beam = selling", text: "the wallet reduced its position. No beam means it sat still." },
 ];
@@ -264,30 +246,25 @@ function Toggle({ on, onClick, children }) {
 function Watcher({ isMobile }) {
   const host = useRef(null);
   const [data, setData] = useState(null);     // null=loading, false=failed, object=ok
-  const [time, setTime] = useState("dusk");
   const [onlyMovers, setOnlyMovers] = useState(false);
-  const [sel, setSel] = useState(null);
 
   useEffect(() => { let off = false; loadWhales().then(d => { if (!off) setData(d ?? false); }); return () => { off = true; }; }, []);
 
   useEffect(() => {
     if (!data || !host.current) return;
     let cleanup = () => {};
-    try { cleanup = buildScene(host.current, data, { time, onlyMovers, isMobile, onPick: setSel }); }
+    try { cleanup = buildScene(host.current, data, { onlyMovers, isMobile }); }
     catch (e) { console.error("WhalesWatching:", e); }
     return () => cleanup();
-  }, [data, time, onlyMovers, isMobile]);
+  }, [data, onlyMovers, isMobile]);
 
   const total = data && data.wallets ? data.wallets.filter(w => w.bal >= 1e5).length : 0;
 
   return (
     <div style={{ maxWidth: 1180, margin: "0 auto", padding: "0 14px", fontFamily: SANS }}>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "center", justifyContent: "space-between", margin: "6px 0 12px" }}>
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          {["day", "dusk", "night"].map(t => <Toggle key={t} on={time === t} onClick={() => setTime(t)}>{TIMES[t].label}</Toggle>)}
-          <Toggle on={onlyMovers} onClick={() => setOnlyMovers(v => !v)}>Only movers</Toggle>
-        </div>
-        {data && <div style={{ fontFamily: MONO, fontSize: 12, color: "#64748b" }}>{total.toLocaleString()} whales ≥100k · {data.updated}</div>}
+        <Toggle on={onlyMovers} onClick={() => setOnlyMovers(v => !v)}>Only movers</Toggle>
+        {data && <div style={{ fontFamily: MONO, fontSize: 12, color: "#64748b" }}>{total.toLocaleString()} whales ≥100k · drag to orbit · {data.updated}</div>}
       </div>
 
       {data === false && (
@@ -295,9 +272,8 @@ function Watcher({ isMobile }) {
           Whale data is being rebuilt — check back after the next on-chain refresh.
         </div>
       )}
-      <div ref={host} style={{ position: "relative", width: "100%", minHeight: isMobile ? 460 : 600, borderRadius: 14, overflow: "hidden", background: "#05060c" }} />
+      <div ref={host} style={{ position: "relative", width: "100%", minHeight: isMobile ? 440 : 560, borderRadius: 12, overflow: "hidden", background: "#0a0e1c", cursor: "grab" }} />
 
-      {/* legend */}
       <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4,1fr)", gap: 12, margin: "14px 0 6px" }}>
         {GUIDE.map((g, i) => (
           <div key={i} style={{ display: "flex", gap: 9, alignItems: "flex-start" }}>
@@ -309,9 +285,9 @@ function Watcher({ isMobile }) {
         ))}
       </div>
       <p style={{ fontSize: 12.5, color: "#7c8a9e", lineHeight: 1.6, margin: "6px 2px 0" }}>
-        Every cube is one wallet holding ≥100,000 SPX, grouped into four size cohorts. The slab and label under each
-        cluster read its overall 30-day flow. Cost basis and infra (exchanges, LP, bridge) are excluded — these are real
-        self-custody holders. A distribution snapshot, not a signal. {sel && <b style={{ color: "#c7d2e4" }}>Selected: {sel.a.slice(0, 6)}…{sel.a.slice(-4)} · {(sel.bal / 1e6 >= 1 ? (sel.bal / 1e6).toFixed(2) + "M" : Math.round(sel.bal / 1e3) + "k")} SPX.</b>}
+        Every bar is one wallet holding ≥100,000 SPX, grouped into four size cohorts along the floor. The slab and
+        label under each cluster read its overall 30-day flow. Cost basis and infra (exchanges, LP, bridge) are
+        excluded — these are real self-custody holders. A distribution snapshot, not a signal.
       </p>
     </div>
   );
@@ -328,12 +304,12 @@ export default function WhalesWatching({ isMobile }) {
 // Cube-appropriate arrival explainer for the gate (the default one talks about buildings/streets).
 const GUIDE_INTRO = {
   emoji: "🐋",
-  lead: "Every cube is one whale — a wallet holding 100,000 SPX or more. Here's how to read it:",
+  lead: "Every bar is one whale — a wallet holding 100,000 SPX or more. Here's how to read it:",
   rows: [
     { swatch: "linear-gradient(90deg,#d97706,#22d3ee)", title: "Colour is age", text: "warm amber for wallets that arrived recently, cyan for the ones that have held longest." },
-    { swatch: "#94a3b8", title: "Height is size", text: "how much the wallet holds — tucked-away 100k to towering multi-million whales." },
+    { swatch: "#94a3b8", title: "Height is size", text: "each bar sits on a log SPX axis — 100k to the multi-million whales." },
     { swatch: "#22c55e", title: "Green beam = buying", text: "the wallet added over the last 30 days." },
     { swatch: "#f43f5e", title: "Red beam = selling", text: "it reduced its position. No beam means it sat still." },
   ],
-  footer: "Cubes are grouped into four size cohorts; the label under each cluster reads its overall flow. Real data, self-custody holders only.",
+  footer: "Bars are grouped into four size cohorts; the label under each cluster reads its overall flow. Real data, self-custody holders only.",
 };
