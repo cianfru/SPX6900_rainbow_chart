@@ -74,17 +74,27 @@ export default function AeonValueChart({ isMobile }) {
   );
   const nonDeals = scored.filter(l => !dealIds.has(l.id));
   const dealPts = scored.filter(l => dealIds.has(l.id));
-  let priceMin = Math.min(...scored.map(l => l.price)), priceMax = Math.max(...scored.map(l => l.price));
+  // Domain must span the listings AND the fair-value line: for common ranks the line dips well
+  // below the cheapest ask, so a floor set to the listings alone clipped it (and the lowest asks)
+  // off the bottom of the chart, invisible.
+  const lineVals = line.map(p => p.fair).filter(v => v > 0);
+  let priceMin = Math.min(...scored.map(l => l.price), ...lineVals);
+  let priceMax = Math.max(...scored.map(l => l.price), ...lineVals);
   if (!(priceMin > 0)) priceMin = 0.001;                       // log scale cannot start at 0
   if (!(priceMax > priceMin)) priceMax = priceMin * 2;         // single listing → give the axis room
 
-  // custom points: NFT thumbnail for deals, small dot for the rest
-  const Dot = ({ cx, cy, payload }) => cx == null ? null : <circle cx={cx} cy={cy} r={isMobile ? 5 : 4} fill="#64748b" fillOpacity={0.55} stroke="#0a0e1c" />;
+  const osUrl = id => `https://opensea.io/assets/ethereum/${data.contract}/${id}`;
+  const openPiece = id => { if (data.contract && id != null) window.open(osUrl(id), "_blank", "noopener"); };
+  // custom points: NFT thumbnail for deals, small dot for the rest. Both open OpenSea on click.
+  const Dot = ({ cx, cy, payload }) => cx == null ? null : (
+    <circle cx={cx} cy={cy} r={isMobile ? 6 : 5} fill="#64748b" fillOpacity={0.6} stroke="#0a0e1c"
+      style={{ cursor: "pointer" }} onClick={() => openPiece(payload.id)} />
+  );
   const DealDot = ({ cx, cy, payload }) => {
     if (cx == null) return null;
     const s = isMobile ? 22 : 30;
     return (
-      <g>
+      <g style={{ cursor: "pointer" }} onClick={() => openPiece(payload.id)}>
         {payload.img && <image href={payload.img} x={cx - s / 2} y={cy - s / 2} width={s} height={s} preserveAspectRatio="xMidYMid slice" clipPath="inset(0 round 5px)" />}
         <rect x={cx - s / 2} y={cy - s / 2} width={s} height={s} rx={5} fill="none" stroke="#34d399" strokeWidth={2} />
       </g>
@@ -135,7 +145,7 @@ export default function AeonValueChart({ isMobile }) {
             ticks={isMobile ? [1, 100, total] : [1, 10, 100, 1000, total]} tickFormatter={v => v === 1 ? "rarest" : v >= 1000 ? (v / 1000).toFixed(v === total ? 1 : 0) + "k" : v}
             tick={{ fill: "#cbd5e1", fontSize: isMobile ? 10 : 11, fontFamily: MONO }} axisLine={{ stroke: "rgba(255,255,255,0.15)" }} tickLine={false}
             label={{ value: isMobile ? "← rarer          more common →" : "← rarer      rarity rank      more common →", position: "insideBottom", offset: -14, fill: "#64748b", fontSize: isMobile ? 10.5 : 12, fontFamily: SANS }} />
-          <YAxis dataKey="price" type="number" scale="log" domain={[priceMin * 0.8, priceMax * 1.15]} allowDataOverflow
+          <YAxis dataKey="price" type="number" scale="log" domain={[priceMin * 0.7, priceMax * 1.2]} allowDataOverflow
             tickFormatter={fEth} tick={{ fill: "#cbd5e1", fontSize: isMobile ? 10 : 11, fontFamily: MONO }} axisLine={{ stroke: "rgba(255,255,255,0.15)" }} tickLine={false} width={isMobile ? 44 : 54} />
           <Tooltip content={<Tip />} cursor={{ stroke: "rgba(255,255,255,0.15)" }} />
           <Line data={line} dataKey="fair" stroke="#94a3b8" strokeWidth={2} strokeDasharray="6 5" dot={false} isAnimationActive={false} type="monotone" />
@@ -203,7 +213,7 @@ export default function AeonValueChart({ isMobile }) {
         {sv && <> {" "}The <strong style={{ color: "#c084fc" }}>SPX percentile</strong> prices each ask in SPX6900 ({sv.ethUsd ? "ETH ≈ $" + sv.ethUsd.toLocaleString() + ", " : ""}SPX ${sv.spxNow}) and places it on the last {nWindow} weeks
         of AEON&rsquo;s own trading — AEON tracks SPX far more closely than it tracks ETH, so that is the more honest
         yardstick for expensive-versus-cheap. See <em>AEON Floor vs SPX</em> for the full series.</>}
-        {" "}Tap any piece for OpenSea. Listings from OpenSea, sales from on-chain marketplace trades, rarity from on-chain metadata.
+        {" "}Click or tap any point to open the piece on OpenSea. Listings from OpenSea, sales from on-chain marketplace trades, rarity from on-chain metadata.
         {parked > 0 && <> {parked} listing{parked === 1 ? " was" : "s were"} parked above {cap ? cap.toFixed(0) : "the cap"}Ξ (asks like 69 or 6900Ξ that exist so a piece shows as listed but can never sell) and are excluded — they aren&rsquo;t real offers and would flatten the whole scale.</>}
       </div>
     </div>
