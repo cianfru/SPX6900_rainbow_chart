@@ -80,6 +80,10 @@ jobs:
         run: node scripts/build-city-recap.mjs --timeline=public/spx-timeline.json --out=public/city-recap.json
       - name: Rebuild cohort survival (who still holds, by arrival era)
         run: node scripts/build-cohort-survival.mjs --in=public/spx-timeline.json --out=public/cohort-survival.json
+      - name: Rebuild whale-cohort history (per-week counts in each size cohort)
+        # pure re-slice of the timeline just built — no data pull; feeds the "Whale Counts Over Time" chart
+        continue-on-error: true
+        run: node scripts/build-whale-cohorts.mjs --in=public/spx-timeline.json --out=public/whale-cohort-history.json
       - name: Rebuild exit flow (DAILY departures split by profit/loss — who's selling, at what price)
         # straight off the raw archive → exact per-day exit, finer than the weekly timeline
         # continue-on-error: a failure here must never block the core onchain.json commit (weekly seed persists)

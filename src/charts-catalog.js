@@ -47,6 +47,7 @@ export const CHART_GROUPS = [
       { id: "freefloat", title: "Liquid vs Illiquid Supply", post: "freefloat", desc: "How much supply is sticky (long-term held) vs likely to move — SPX vs Bitcoin." },
       { id: "concentration", title: "Holder Concentration", post: "concentration", desc: "The largest wallets' share of supply over time." },
       { id: "whales", title: "Whale Supply", post: "whales", desc: "What the biggest wallets hold, and whether there are more of them." },
+      { id: "whalecohorts", title: "Whale Counts Over Time", post: "whalecensus", desc: "How many wallets sit in each size cohort, week by week — the base broadened, the mega-whales thinned." },
       { id: "survivorship", title: "Who's Still Here", post: "survivorship", desc: "Of everyone who ever held SPX, who remains — by the era they first bought." },
       { id: "smartmoney", title: "Smart Money", post: "smartmoney", desc: "The live cohort of proven top-timers (ROI ≥5×, still holding) — aggregate holdings and net-flow." },
       { id: "walletwaves", title: "Wallet-Size Waves", post: "walletwaves", desc: "Supply by how big the wallet is — HODL waves cut by size, not age." },
@@ -150,7 +151,7 @@ export const METHOD_FAMILIES = [
   {
     id: "04", name: "Cost basis & holder behaviour",
     charts: ["supply", "holders", "holdersprice", "supplyprofit", "hodlwaves", "freefloat", "concentration",
-             "whales", "survivorship", "smartmoney", "walletwaves", "wealthwaves",
+             "whales", "whalecohorts", "survivorship", "smartmoney", "walletwaves", "wealthwaves",
              "urpd", "urpdage", "lthsth", "sopr", "nrpl", "liveliness", "whaleswatching", "citylab", "walletgrowth", "mvrv", "nupl", "mvrvbtc"],
   },
   {

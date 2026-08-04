@@ -31,6 +31,19 @@ export function loadCohortSurvival() {
   return cohortPromise;
 }
 
+// Whale-cohort counts over time (a few KB, built daily from the city timeline) — how many wallets
+// sit in each size cohort, week by week. Read by the "Whale Counts Over Time" chart.
+let whaleHistPromise = null;
+export function loadWhaleCohortHistory() {
+  if (!whaleHistPromise) {
+    whaleHistPromise = fetch("/whale-cohort-history.json")
+      .then(r => (r.ok ? r.json() : null))
+      .then(d => (Array.isArray(d?.rows) && d.rows.length && Array.isArray(d.labels) ? d : null))
+      .catch(() => null);
+  }
+  return whaleHistPromise;
+}
+
 let exitFlowPromise = null;
 export function loadExitFlow() {
   if (!exitFlowPromise) {
