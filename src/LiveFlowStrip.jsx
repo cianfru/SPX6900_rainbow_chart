@@ -25,11 +25,12 @@ export default function LiveFlowStrip({ isMobile }) {
     return () => { off = true; clearInterval(timer); clearInterval(t2); };
   }, []);
 
-  const moves = live?.moves || [];
+  // the strip reads the LIVE sub-window (last few hours), not the 7-day earmark
+  const moves = (live?.wallets || []).filter(w => w.live);
   if (!moves.length) return null;                       // nothing to show until the live feed is wired + moving
 
   let buy = 0, sell = 0, nb = 0, ns = 0;
-  for (const m of moves) { if (m.net > 0) { buy += m.net; nb++; } else if (m.net < 0) { sell += -m.net; ns++; } }
+  for (const m of moves) { if (m.live > 0) { buy += m.live; nb++; } else if (m.live < 0) { sell += -m.live; ns++; } }
   const net = buy - sell;
   const dist = net < 0;
   const accent = dist ? "#fb7185" : "#4ade80";
@@ -43,7 +44,7 @@ export default function LiveFlowStrip({ isMobile }) {
     }}>
       <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontFamily: MONO, fontSize: 11, letterSpacing: "0.08em", textTransform: "uppercase", color: accent }}>
         <span style={{ width: 8, height: 8, borderRadius: "50%", background: accent, boxShadow: `0 0 8px ${accent}` }} />
-        Live · {live.hours || 6}h
+        Live · {live.liveHours || 6}h
       </span>
       <span style={{ fontSize: 13.5, color: "#e2e8f0" }}>
         Big holders <strong style={{ color: accent }}>{dist ? "distributing" : "accumulating"}</strong>:{" "}

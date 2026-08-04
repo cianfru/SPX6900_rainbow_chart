@@ -11,28 +11,50 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
 const SPX = "0xe0f63a424a4439cbe457d80e4f4b51ad25b2c56c"; // SPX6900 ERC-20 (Ethereum), 8 decimals
-const HOURS_DEFAULT = 6, HOURS_MAX = 24;
-const BLOCKS_PER_HOUR = 300;                                // ~12s blocks
+const DAYS_DEFAULT = 7, DAYS_MAX = 14;
+const LIVE_HOURS = 6;                                       // the "moving right now" sub-window
+const BLOCKS_PER_HOUR = 300, BLOCKS_PER_DAY = 7200;         // ~12s blocks
 const TOP_N = 800;                                          // watch ALL ≥100k holders (~575) — the transfer
                                                             // window is pulled once and filtered locally, so a
                                                             // bigger watched set costs nothing extra on Alchemy
 
-// Sum signed net flow per WATCHED wallet from a list of Alchemy transfers. Pure + exported so it
-// can be unit-tested without the network. `value` from getAssetTransfers is already decimal-adjusted
-// (token units), so no decimals math here.
-export function aggregateFlow(transfers, watched) {
-  const net = new Map();
+// Per-WATCHED-wallet footprint over the window: net flow, the last-`liveHours` sub-total (the live
+// pulse), and how many distinct days it was active / selling — so a wallet slowly offloading across
+// several days is earmarked and stays listed even on a quiet day, and a repeat sell reads as a
+// pattern. Pure + exported for unit tests. `value` is already decimal-adjusted; `blockNum` is the hex
+// block, which we bucket into days (no per-transfer timestamp fetch needed).
+export function aggregateWindow(transfers, watched, latestBlock, opts = {}) {
+  const liveHours = opts.liveHours ?? LIVE_HOURS;
+  const liveFrom = latestBlock - liveHours * BLOCKS_PER_HOUR;
+  const stat = new Map();    // a -> {net, live, lastBn, days: Map(dayBucket -> net)}
+  const bump = (a, v, bn) => {
+    let s = stat.get(a);
+    if (!s) { s = { net: 0, live: 0, lastBn: 0, days: new Map() }; stat.set(a, s); }
+    s.net += v;
+    if (bn >= liveFrom) s.live += v;
+    if (bn > s.lastBn) s.lastBn = bn;
+    const bucket = Math.floor((latestBlock - bn) / BLOCKS_PER_DAY);
+    s.days.set(bucket, (s.days.get(bucket) || 0) + v);
+  };
   for (const t of transfers || []) {
-    const v = Number(t.value) || 0;
-    if (!v) continue;
+    const v = Number(t.value) || 0; if (!v) continue;
+    const bn = parseInt(t.blockNum, 16); if (!Number.isFinite(bn)) continue;
     const from = (t.from || "").toLowerCase(), to = (t.to || "").toLowerCase();
-    if (watched.has(from)) net.set(from, (net.get(from) || 0) - v);
-    if (watched.has(to)) net.set(to, (net.get(to) || 0) + v);
+    if (watched.has(from)) bump(from, -v, bn);
+    if (watched.has(to)) bump(to, v, bn);
   }
-  return [...net.entries()]
-    .filter(([, n]) => Math.abs(n) >= 1)                    // drop dust
-    .map(([a, n]) => ({ a, net: Math.round(n) }))
-    .sort((x, y) => Math.abs(y.net) - Math.abs(x.net));
+  const out = [];
+  for (const [a, s] of stat) {
+    if (Math.abs(s.net) < 1) continue;                     // net-flat over the window → not earmarked
+    let activeDays = 0, sellDays = 0;
+    for (const dn of s.days.values()) if (Math.abs(dn) >= 1) { activeDays++; if (dn < 0) sellDays++; }
+    out.push({
+      a, net: Math.round(s.net), live: Math.round(s.live),
+      activeDays, sellDays, agoBlocks: Math.max(0, latestBlock - s.lastBn),
+    });
+  }
+  out.sort((x, y) => x.net - y.net);                        // biggest NET SELLERS first
+  return out;
 }
 
 const readJson = p => { try { return JSON.parse(readFileSync(join(process.cwd(), p), "utf8")); } catch { return null; } };
@@ -49,9 +71,11 @@ async function rpc(url, method, params) {
 }
 
 export default async function handler(req, res) {
-  res.setHeader("Cache-Control", "public, max-age=0, s-maxage=60, stale-while-revalidate=180");
+  // A 7-day earmark tolerates a few minutes of lag — cache 3 min so the CDN absorbs the (heavier)
+  // 7-day pull and Alchemy is hit at most ~once per 3 min however many people are watching.
+  res.setHeader("Cache-Control", "public, max-age=0, s-maxage=180, stale-while-revalidate=600");
   const params = new URL(req.url, "http://x").searchParams;
-  const hours = Math.min(HOURS_MAX, Math.max(1, Number(params.get("hours")) || HOURS_DEFAULT));
+  const days = Math.min(DAYS_MAX, Math.max(1, Number(params.get("days")) || DAYS_DEFAULT));
 
   // the watched set = the biggest N holders from the daily reconstruction
   const whales = readJson("public/whales.json");
@@ -60,21 +84,20 @@ export default async function handler(req, res) {
   const watched = new Set(watchedArr);
 
   const key = process.env.ALCHEMY_KEY;
-  const base = { updated: new Date().toISOString(), hours, watched: watched.size };
+  const base = { updated: new Date().toISOString(), days, liveHours: LIVE_HOURS, watched: watched.size };
   if (!key || !watched.size) {
-    return res.status(200).json({ ...base, moves: [], error: key ? "no watched wallets" : "no ALCHEMY_KEY" });
+    return res.status(200).json({ ...base, wallets: [], error: key ? "no watched wallets" : "no ALCHEMY_KEY" });
   }
 
   const url = `https://eth-mainnet.g.alchemy.com/v2/${key}`;
   try {
-    const latestHex = await rpc(url, "eth_blockNumber", []);
-    const latest = parseInt(latestHex, 16);
-    const fromBlock = "0x" + Math.max(0, latest - hours * BLOCKS_PER_HOUR).toString(16);
+    const latest = parseInt(await rpc(url, "eth_blockNumber", []), 16);
+    const fromBlock = "0x" + Math.max(0, latest - days * BLOCKS_PER_DAY).toString(16);
 
-    // page through the window's SPX transfers (a few hundred; cap the paging defensively)
+    // page through the window's SPX transfers. ~2,500/day → a 7-day window is ~18 pages; cap at 25.
     const transfers = [];
     let pageKey;
-    for (let p = 0; p < 6; p++) {
+    for (let p = 0; p < 25; p++) {
       const r = await rpc(url, "alchemy_getAssetTransfers", [{
         fromBlock, toBlock: "latest", contractAddresses: [SPX], category: ["erc20"],
         withMetadata: false, excludeZeroValue: true, maxCount: "0x3e8", ...(pageKey ? { pageKey } : {}),
@@ -84,9 +107,9 @@ export default async function handler(req, res) {
       if (!pageKey) break;
     }
 
-    const moves = aggregateFlow(transfers, watched);
-    return res.status(200).json({ ...base, block: latest, transfers: transfers.length, moves });
+    const wallets = aggregateWindow(transfers, watched, latest, { liveHours: LIVE_HOURS });
+    return res.status(200).json({ ...base, block: latest, transfers: transfers.length, wallets });
   } catch (err) {
-    return res.status(200).json({ ...base, moves: [], error: String(err.message || err) });
+    return res.status(200).json({ ...base, wallets: [], error: String(err.message || err) });
   }
 }
