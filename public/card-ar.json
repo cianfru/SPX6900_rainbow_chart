@@ -73,7 +73,7 @@
   "basesurv": "square",
   "supplycurve": "landscape",
   "whalecensus": "square",
-  "whalebehaviour": "landscape",
+  "whalebehaviour": "square",
   "hodlcompare": "square",
   "urpd": "square",
   "lthsth": "square",
