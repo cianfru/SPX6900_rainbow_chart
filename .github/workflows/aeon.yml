@@ -87,7 +87,9 @@ jobs:
           # sale watcher remembers what it posted and its lane survives to the next run,
           # but on their own they should not spend a Vercel deploy.
           DEPLOY_CHANGED=""
-          DATA_CHANGED="$(git status --porcelain public/aeon*.json | grep -v 'aeon-sale-state.json' || true)"
+          # aeon-sale-state.json (post bookkeeping) + aeon-dune-status.json (the Dune-pull heartbeat
+          # the feed audit reads) are not site data — commit them, but don't spend a deploy on them.
+          DATA_CHANGED="$(git status --porcelain public/aeon*.json | grep -vE 'aeon-sale-state.json|aeon-dune-status.json' || true)"
           [[ -n "$DATA_CHANGED" ]] && DEPLOY_CHANGED=1
           if [[ -n "$(git status --porcelain public/aeon*.json public/post-state.json)" ]]; then
             git config user.name "github-actions[bot]"

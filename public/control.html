@@ -425,6 +425,11 @@ const FRESH_SOURCES = [
   { label: "On-chain FIFO · HODL, supply-in-profit, concentration, SOPR", file: "public/onchain.json", pick: d => Array.isArray(d) ? d.at(-1)?.d : null, cad: "manual · BigQuery", max: 35, manual: true },
   { label: "Cost-basis distribution (URPD)", file: "public/urpd.json", pick: d => d?.updated, cad: "manual · BigQuery", max: 35, manual: true },
   { label: "Bitcoin MVRV context", file: "public/btc-mvrv.json", pick: d => d?.updated, cad: "monthly", max: 40 },
+  { label: "Project AEON · floor, owners (Alchemy)", file: "public/aeon.json", pick: d => d?.updated, cad: "daily", max: 2 },
+  // The stall-catcher: stamped only on a SUCCESSFUL AEON Dune pull, so its date FREEZES the instant
+  // that pull breaks (a deleted-query 404 froze the AEON market/sales/traders data for two weeks while
+  // aeon-*.json kept a run-date `updated`). Daily → turns RED here the moment the pull stops working.
+  { label: "Project AEON · Dune pull (transfers + sales)", file: "public/aeon-dune-status.json", pick: d => d?.updated, cad: "daily", max: 2 },
 ];
 
 async function loadFreshness() {
