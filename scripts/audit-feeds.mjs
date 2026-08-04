@@ -72,16 +72,16 @@ export const FEEDS = [
   // `.wallets` (not a shape rowsOf knows), so nonEmpty is what confirms the population is there.
   { file: "whales.json", cadence: 9, by: "onchain-dune.yml", what: "the wallets resident in Whale City",
     nonEmpty: ["wallets"] },
-  // SPX-on-Solana ≥5k residents (age/flow). Daily via solana-onchain.yml: a keyless public-RPC
-  // snapshot (getProgramAccounts) appended to the committed archive dune/out/spx6900_solana_balances.csv
+  // SPX-on-Solana ≥5k residents (age/flow). Daily via onchain-dune.yml (folded in 2026-08): a keyless
+  // public-RPC snapshot (getProgramAccounts) appended to the committed archive dune/out/spx6900_solana_balances.csv
   // (FULL ≥5k history since launch → true holder ages). Residency = latest dense snapshot; age = first
   // ≥5k day. cadence 9 mirrors ETH onchain.json. Rows live under `.wallets`, so nonEmpty confirms it.
-  { file: "solana-onchain.json", cadence: 9, by: "solana-onchain.yml", what: "SPX-on-Solana ≥5k residents (age/flow)",
+  { file: "solana-onchain.json", cadence: 9, by: "onchain-dune.yml", what: "SPX-on-Solana ≥5k residents (age/flow)",
     nonEmpty: ["wallets"] },
-  // SPX-on-Base ≥5k cohort (holders + exits + real ages/survival). Daily via base-onchain.yml: an
-  // Alchemy getAssetTransfers DELTA replayed onto the committed cohort (dune/out/spx6900_base_cohort.csv),
+  // SPX-on-Base ≥5k cohort (holders + exits + real ages/survival). Daily via onchain-dune.yml (folded in
+  // 2026-08): an Alchemy getAssetTransfers DELTA replayed onto the committed cohort (dune/out/spx6900_base_cohort.csv),
   // full ETH/Solana parity. cadence 9 mirrors the others. Current holders under `.wallets`.
-  { file: "base-onchain.json", cadence: 9, by: "base-onchain.yml", what: "SPX-on-Base ≥5k cohort (ages/exits/survival)",
+  { file: "base-onchain.json", cadence: 9, by: "onchain-dune.yml", what: "SPX-on-Base ≥5k cohort (ages/exits/survival)",
     nonEmpty: ["wallets"] },
 
   // ── other schedules ─────────────────────────────────────────────────────────

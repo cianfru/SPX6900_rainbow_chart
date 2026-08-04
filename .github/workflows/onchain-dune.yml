@@ -1,4 +1,4 @@
-name: Daily on-chain FIFO refresh (Dune incremental)
+name: Daily on-chain refresh (ETH Dune + Solana RPC + Base Alchemy)
 
 # Hands-off weekly refresh with NO BigQuery / NO GCP — uses the Dune credits the account
 # already has. The full raw-transfer history lives in a GitHub RELEASE ASSET (transfers.csv.gz);
@@ -29,9 +29,18 @@ on:
   # not runs, so daily ≈ weekly ≈ ~150-180 credits/mo (~7% of the 2,500 budget). BigQuery
   # (onchain-bigquery.yml) is dispatch-ONLY now — one-time reconstructions + emergency backup — so
   # the two can never both commit onchain.json.
+  # THE SINGLE daily on-chain cron. ETH (Dune incremental → local FIFO) is the primary job; Solana
+  # (keyless public RPC snapshot-forward) and Base (Alchemy ≥5k cohort delta) are folded in as
+  # continue-on-error steps below, so all three chains refresh in ONE run / ONE commit / ONE deploy
+  # instead of three staggered crons. A Solana or Base hiccup can never block the ETH commit + deploy.
   schedule:
-    - cron: "23 5 * * *"   # ~05:23 UTC daily (was Mon-only)
-  workflow_dispatch: {}
+    - cron: "23 5 * * *"   # ~05:23 UTC daily
+  workflow_dispatch:
+    inputs:
+      full:
+        description: "Base: force a full cohort rebuild from genesis (self-heal)"
+        type: boolean
+        default: false
 
 permissions:
   contents: write           # release download/upload + commit
@@ -118,19 +127,49 @@ jobs:
           gzip -f transfers.csv
           gh release upload "$ARCHIVE_TAG" "$ARCHIVE_ASSET" --clobber
 
+      # ── Solana (folded in from the retired solana-onchain.yml) ─────────────────────────────────
+      # Keyless public-RPC snapshot-forward: one getProgramAccounts call snapshots every SPX token
+      # account, sums by owner, keeps the ≥5k cohort, appends to the committed archive, and rebuilds
+      # public/solana-onchain.json. continue-on-error so a Solana hiccup never blocks the ETH commit.
+      - name: Solana — public-RPC snapshot → merge → rebuild residents
+        continue-on-error: true
+        env:
+          SOL_RPC: ${{ secrets.SOL_RPC }}   # optional free Helius/QuickNode URL; blank → public mainnet-beta
+        run: |
+          if [[ -s dune/out/spx6900_solana_balances.csv ]]; then
+            node scripts/build-solana-rpc-snapshot.mjs --archive=dune/out/spx6900_solana_balances.csv
+          else
+            echo "::warning::Solana archive missing — skipping Solana refresh"
+          fi
+
+      # ── Base (folded in from the retired base-onchain.yml) ─────────────────────────────────────
+      # Alchemy ≥5k cohort delta: pulls transfers since lastBlock, replays onto per-wallet balances,
+      # updates the cohort (crossings/exits), rebuilds public/base-onchain.json. continue-on-error.
+      - name: Base — Alchemy delta → replay → rebuild base-onchain.json
+        continue-on-error: true
+        env:
+          ALCHEMY_KEY: ${{ secrets.ALCHEMY_KEY }}
+          NODE_OPTIONS: --max-old-space-size=4096
+        run: node scripts/build-base-alchemy.mjs ${{ (github.event.inputs.full == 'true') && '--full' || '' }}
+
       - name: Commit if changed
         id: commit
         run: |
+          # ETH/site files drive the DEPLOY (the site + og cards read these). Solana/Base files are
+          # bot-only (no site consumer), so they ride along in the same commit but don't force a deploy
+          # on their own. COMMIT if ANY of them changed; DEPLOY only if an ETH/site file changed.
+          ETH_FILES="public/onchain.json public/urpd.json public/whales.json public/spx-timeline.json public/cohort-survival.json public/exit-flow.json public/smart-money.json public/city-recap.json public/whale-cohort-history.json"
+          CHAIN_FILES="public/solana-onchain.json dune/out/spx6900_solana_balances.csv public/base-onchain.json dune/out/spx6900_base_cohort.csv"
           DEPLOY_CHANGED=""
-          [[ -n "$(git status --porcelain public/onchain.json public/urpd.json public/whales.json public/spx-timeline.json public/cohort-survival.json public/exit-flow.json public/smart-money.json public/city-recap.json)" ]] && DEPLOY_CHANGED=1
-          if [[ -n "$DEPLOY_CHANGED" ]]; then
+          [[ -n "$(git status --porcelain $ETH_FILES)" ]] && DEPLOY_CHANGED=1
+          if [[ -n "$(git status --porcelain $ETH_FILES $CHAIN_FILES)" ]]; then
             git config user.name "github-actions[bot]"
             git config user.email "github-actions[bot]@users.noreply.github.com"
-            git add public/onchain.json public/urpd.json public/whales.json public/spx-timeline.json public/cohort-survival.json public/exit-flow.json public/smart-money.json public/city-recap.json
-            git commit -m "chore: on-chain FIFO refresh (Dune) $(date -u +%F)"
+            git add $ETH_FILES $CHAIN_FILES
+            git commit -m "chore: on-chain refresh — ETH/Solana/Base $(date -u +%F)"
             # This job takes ~2-3 min; a human (or another cron) can push to main inside that window,
             # which used to reject our push with a non-fast-forward and fail the whole daily refresh.
-            # We only touch generated public/*.json, so rebasing onto the newer main is always clean —
+            # We only touch generated files, so rebasing onto the newer main is always clean —
             # pull --rebase then push, retried a few times against a busy branch.
             for i in 1 2 3 4 5; do
               git push && break
