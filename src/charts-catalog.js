@@ -59,7 +59,7 @@ export const CHART_GROUPS = [
       { id: "sopr", title: "SOPR", post: "sopr", desc: "When coins move, are they sold at a profit or a loss?" },
       { id: "nrpl", title: "Net Realized Profit/Loss", post: "nrpl", desc: "The dollar size of gains vs losses locked in when coins move." },
       { id: "liveliness", title: "Liveliness", post: "liveliness", desc: "Are long-held coins waking up, or is the base sitting tight?" },
-      { id: "whaleswatching", title: "Whales Watching (3D)", post: "whalebehaviour", locked: true, desc: "Every wallet over 100k SPX as a tower, grouped by size \u2014 who's buying, selling or sitting still, live." },
+      { id: "whaleswatching", title: "Whales Watching", post: "whalebehaviour", locked: true, desc: "Every wallet over 100k SPX \u2014 a 3D city of towers or a live board pulsing green/red as they buy and sell." },
       { id: "citylab", title: "City Lab (3D)", dev: true, desc: "The same block drawn two ways \u2014 comparing the current look against a more realistic one." },
       // City Lab stays `dev` (hidden, direct-link only) — the internal A/B page. SPX City itself is
       // no longer a gallery tile: it has its own top-level tab (/city). Legacy ?chart=whalewatch /
