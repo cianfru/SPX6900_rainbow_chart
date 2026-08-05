@@ -1,8 +1,10 @@
 import { useState, useEffect, useMemo } from "react";
-import { loadWhales, loadWhaleCampaigns } from "./history-data.js";
+import { loadWhales, loadWhaleCampaigns, loadSolanaOnchain } from "./history-data.js";
 import { ageRamp } from "./whale-cohorts.js";
 import WalletCard, { shortAddr } from "./WalletCard.jsx";
 import { SANS, MONO } from "./chart-ui.jsx";
+
+const CHAIN_TAG = { eth: { label: "ETH", c: "#98a2b7" }, base: { label: "BASE", c: "#3b82f6" }, sol: { label: "SOL", c: "#c084fc" } };
 
 // LIVE WHALE BOARD — a persistent sellers' watch. The list is the SELL-CAMPAIGNS from
 // whale-campaigns.json (a daily cron): a wallet enters when it starts moving, ACCUMULATES its whole
@@ -26,6 +28,8 @@ export default function WhaleBoard({ isMobile }) {
   const [whales, setWhales] = useState(null);
   const [camps, setCamps] = useState(null);      // persistent campaigns (primary)
   const [live, setLive] = useState(null);        // on-view live feed (pulse + fallback)
+  const [sol, setSol] = useState(null);
+  const [chain, setChain] = useState("all");   // "all" | "eth" | "sol" | "base"
   const [sel, setSel] = useState(null);
   const [showInfo, setShowInfo] = useState(false);
   const [, setTick] = useState(0);
@@ -34,6 +38,7 @@ export default function WhaleBoard({ isMobile }) {
     let off = false;
     loadWhales().then(d => { if (!off) setWhales(d ?? false); });
     loadWhaleCampaigns().then(d => { if (!off) setCamps(d ?? { wallets: [] }); });
+    loadSolanaOnchain().then(d => { if (!off) setSol(d ?? { wallets: [] }); });
     return () => { off = true; };
   }, []);
   useEffect(() => {
@@ -101,15 +106,30 @@ export default function WhaleBoard({ isMobile }) {
     return { source: "loading", rows: [] };
   }, [camps, live, whales, balOf, liveSet, isMobile]);
 
-  if (whales === false && !camps?.wallets?.length) return <div style={{ textAlign: "center", fontFamily: SANS, color: "#94a3b8", padding: 60 }}>Whale data is being rebuilt — check back after the next on-chain refresh.</div>;
-  if (model.source === "loading") return <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Loading…</div>;
+  const solRaw = (sol?.wallets || []).filter(w => w?.a && w.bal >= 1e5 && w.flow);
+  if (whales === false && !camps?.wallets?.length && !solRaw.length) return <div style={{ textAlign: "center", fontFamily: SANS, color: "#94a3b8", padding: 60 }}>Whale data is being rebuilt — check back after the next on-chain refresh.</div>;
+  if (model.source === "loading" && !solRaw.length) return <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Loading…</div>;
 
-  const { rows, source } = model;
-  const live7 = source === "campaigns" || source === "live";
+  // ── merge chains: ETH (campaigns/live) + Solana (30-day net from the daily reconstruction) ──
+  const ethRows = model.rows.map(r => ({ ...r, chain: "eth" }));
+  const solHue = (() => {
+    const ds = solRaw.map(w => w.days || 0); const mn = Math.min(...ds, 0), mx = Math.max(...ds, 1);
+    return d => ageRamp(mx > mn ? ((d || 0) - mn) / (mx - mn) : 0.5).hex;
+  })();
+  const solRows = solRaw.map(w => ({
+    a: w.a, chain: "sol", bal: w.bal, days: w.days || 0, net: w.flow, hue: solHue(w.days),
+    runDays: 30, sellDays: w.flow < 0 ? 1 : 0, activeDays: 1, reducing: false, liveMove: false, lastLabel: "30d",
+  }));
+  const chainCounts = { all: ethRows.length + solRows.length, eth: ethRows.length, sol: solRows.length };
+  const allRows = [...ethRows, ...solRows].sort((a, b) => Math.abs(b.net) - Math.abs(a.net));
+  const rows = chain === "all" ? allRows : allRows.filter(r => r.chain === chain);
+  const source = model.source;
+  const live7 = source === "campaigns" || source === "live" || solRows.length > 0;
   const buyers = rows.filter(r => r.net > 0).length;
   const sellers = rows.filter(r => r.net < 0).length;
   const netTotal = Math.round(rows.reduce((s, r) => s + (r.net || 0), 0));
   const updated = source === "campaigns" ? camps?.updated : live?.updated;
+  const chainChips = ["all", "eth", "sol"].filter(k => k === "all" || chainCounts[k] > 0);
 
   const Stat = ({ tri, n, label, color }) => (
     <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
@@ -162,9 +182,25 @@ export default function WhaleBoard({ isMobile }) {
         )}
       </div>
 
+      {chainChips.length > 1 && (
+        <div style={{ display: "flex", gap: 6, marginBottom: 14, flexWrap: "wrap" }}>
+          {chainChips.map(k => {
+            const on = chain === k;
+            const t = CHAIN_TAG[k];
+            return (
+              <button key={k} onClick={() => setChain(k)} style={{
+                padding: "5px 12px", borderRadius: 7, cursor: "pointer", fontFamily: MONO, fontSize: 12, fontWeight: 700, letterSpacing: 0.5,
+                background: on ? "rgba(94,234,212,0.14)" : "rgba(255,255,255,0.03)",
+                border: `1px solid ${on ? "#5eead4" : "rgba(255,255,255,0.12)"}`, color: on ? "#5eead4" : (t ? t.c : "#94a3b8"),
+              }}>{k === "all" ? "ALL" : t.label} <span style={{ color: "#5b6675", fontWeight: 500 }}>{chainCounts[k]}</span></button>
+            );
+          })}
+        </div>
+      )}
+
       {sel && (
         <div style={{ marginBottom: 14 }}>
-          <WalletCard w={sel} isMobile={isMobile} accent="#5eead4" flow={sel.net} flowUnit=" SPX"
+          <WalletCard w={sel} chain={sel.chain} isMobile={isMobile} accent="#5eead4" flow={sel.net} flowUnit=" SPX"
             lines={[
               `${kM(sel.bal)} SPX · held ${Math.round((sel.days || 0) / 30)} mo`,
               sel.net ? `over ${sel.runDays || 7}d · ${sel.sellDays || 0} sell day${sel.sellDays === 1 ? "" : "s"}${sel.reducing ? " · slowly reducing" : ""}` : "no recent move",
@@ -188,8 +224,11 @@ export default function WhaleBoard({ isMobile }) {
               }}>
               <span style={{ position: "absolute", top: 0, left: 0, width: "100%", height: 3, background: c.hue, opacity: 0.85 }} />
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginTop: 2, gap: 4 }}>
-                <span style={{ fontFamily: MONO, fontSize: isMobile ? 10 : 11, color: "#cbd5e1" }}>{shortAddr(c.a)}</span>
-                {c.lastLabel && <span style={{ fontFamily: MONO, fontSize: 9.5, color: c.lastLabel === "now" ? "#fb7185" : "#64748b" }}>{c.lastLabel}</span>}
+                <span style={{ display: "inline-flex", alignItems: "baseline", gap: 5, minWidth: 0 }}>
+                  {chain === "all" && CHAIN_TAG[c.chain] && <span style={{ fontFamily: MONO, fontSize: 8, fontWeight: 800, letterSpacing: 0.5, color: CHAIN_TAG[c.chain].c }}>{CHAIN_TAG[c.chain].label}</span>}
+                  <span style={{ fontFamily: MONO, fontSize: isMobile ? 10 : 11, color: "#cbd5e1", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{shortAddr(c.a)}</span>
+                </span>
+                {c.lastLabel && <span style={{ fontFamily: MONO, fontSize: 9.5, color: c.lastLabel === "now" ? "#fb7185" : "#64748b", flex: "0 0 auto" }}>{c.lastLabel}</span>}
               </div>
               <div style={{ fontFamily: MONO, fontSize: isMobile ? 13 : 14, fontWeight: 800, color: "#f1f5f9", marginTop: 1 }}>{kM(c.bal)}</div>
               {c.net !== 0 && (
@@ -210,7 +249,7 @@ export default function WhaleBoard({ isMobile }) {
       <p style={{ fontSize: 12.5, color: "#7c8a9e", lineHeight: 1.6, margin: "14px 2px 0" }}>
         {source === "static"
           ? <>The live-flow feed is offline (needs <b style={{ color: "#c7d2e4" }}>ALCHEMY_KEY</b> in the Vercel env) — showing the biggest holders by size. Once it&rsquo;s wired, this becomes a persistent sellers&rsquo; watch.</>
-          : <>Whales in an active <b>sell campaign</b>, biggest <b style={{ color: "#fb7185" }}>net offloaders</b> first. A wallet is earmarked from its first sale, ACCUMULATES the whole run, and its <b>7-day idle clock resets on every move</b> — so it stays until 7 silent days and a repeat sell reads as a pattern. A tile <b style={{ color: "#fb7185" }}>pulses</b> when it also moved in the last few hours; <b style={{ color: "#fbbf24" }}>◱ REDUCING</b> marks selling across several days. The coloured cap is holder age. Tap a wallet for its Zerion card. Not a signal.</>}
+          : <>Whales that moved, biggest <b style={{ color: "#fb7185" }}>net offloaders</b> first, across chains — <b style={{ color: CHAIN_TAG.eth.c }}>Ethereum</b> earmarked from its first sale (accumulates the whole run, 7-day idle clock <b>resets on every move</b>, so a repeat sell reads as a pattern; a tile <b style={{ color: "#fb7185" }}>pulses</b> when it also moved in the last few hours, <b style={{ color: "#fbbf24" }}>◱ REDUCING</b> = sold across several days) and <b style={{ color: CHAIN_TAG.sol.c }}>Solana</b> by 30-day net from the daily reconstruction. The coloured cap is holder age; tap a wallet for Zerion (ETH) or Solscan (SOL). Cost basis isn&rsquo;t shown on Solana — it&rsquo;s bridged, so only balance + flow are honest there. Not a signal.</>}
       </p>
     </div>
   );
