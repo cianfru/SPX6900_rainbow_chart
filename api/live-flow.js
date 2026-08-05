@@ -87,13 +87,15 @@ async function rpcBatch(url, calls) {
   return out;                                               // distinguish a missing (error) read from a real value:null
 }
 
-async function solanaFlow(key, days, liveHours) {
+async function solanaFlow(key, days, liveHours, diag) {
   const owners = (readJson("public/solana-onchain.json")?.wallets || [])
     .filter(w => w?.a && w.bal >= 1e5).sort((a, b) => b.bal - a.bal).slice(0, TOP_N).map(w => w.a);
+  if (diag) diag.owners = owners.length;
   if (!owners.length) return [];
   const url = `https://solana-mainnet.g.alchemy.com/v2/${key}`;
   const slot = await rpc(url, "getSlot", []);
   const past7 = Math.max(0, slot - days * SOL_SPD), pastLive = Math.max(0, slot - liveHours * SOL_SPH);
+  if (diag) Object.assign(diag, { slot, past7, pastLive });
 
   // current SPX token account + balance per owner
   const cur = await rpcBatch(url, owners.map(o => ({ method: "getTokenAccountsByOwner", params: [o, { mint: SOL_MINT }, { encoding: "jsonParsed" }] })));
@@ -102,6 +104,7 @@ async function solanaFlow(key, days, liveHours) {
     for (const a of cur[i]?.result?.value || []) { const ui = a.account?.data?.parsed?.info?.tokenAmount?.uiAmount || 0; bal += ui; if (!ta || ui > 0) ta = a.pubkey; }
     return { o, ta, bal };
   }).filter(r => r.ta);
+  if (diag) { diag.withTa = rows.length; diag.curErr = cur.filter(c => c?.error).length; diag.curSample = cur[0]; }
   if (!rows.length) return [];
 
   // historical balances at the 7-day and live slots (Account Archive) → diff. A read that ERRORED
@@ -110,14 +113,17 @@ async function solanaFlow(key, days, liveHours) {
   const hist = s => rpcBatch(url, rows.map(r => ({ method: "getAccountInfo", params: [r.ta, { encoding: "base64", dataSlice: { offset: 64, length: 8 }, slot: s }] })));
   const [h7, hL] = await Promise.all([hist(past7), hist(pastLive)]);
   const out = [];
+  let histErr = 0, moved = 0;
   rows.forEach((r, i) => {
-    if (h7[i]?.error) return;                                          // 7-day baseline unknown → no honest net
+    if (h7[i]?.error) { histErr++; return; }                          // 7-day baseline unknown → no honest net
     const p7 = solAmount(h7[i]?.result?.value?.data) ?? 0;
     const pl = hL[i]?.error ? p7 : (solAmount(hL[i]?.result?.value?.data) ?? 0);  // live read failed → assume flat since 7d
     const net = r.bal - p7, live = r.bal - pl;
     if (Math.abs(net) < 1) return;
+    moved++;
     out.push({ a: r.o, chain: "sol", net: Math.round(net), live: Math.round(live), sellDays: net < 0 ? 1 : 0, activeDays: 1 });
   });
+  if (diag) { diag.histErr = histErr; diag.moved = moved; diag.hSample = h7[0]; }
   return out.sort((a, b) => a.net - b.net);
 }
 
@@ -173,12 +179,13 @@ export default async function handler(req, res) {
   // per chain, in parallel + isolated: one chain erroring never kills the others. EVM chains use the
   // getAssetTransfers window; Solana uses Account Archive (historical getAccountInfo) — same key, its
   // own job appended after the EVM loop.
+  const debug = params.get("debug") ? {} : null;             // ?debug → surface why the sol job is empty
   const jobs = [
     ...Object.entries(CHAINS).map(([id, cfg]) => ["evm:" + id, () => chainFlow(id, cfg, key, days)]),
-    ["sol", () => solanaFlow(key, days, LIVE_HOURS)],
+    ["sol", () => solanaFlow(key, days, LIVE_HOURS, debug)],
   ];
   const results = await Promise.allSettled(jobs.map(([, run]) => run()));
   const wallets = results.flatMap(r => (r.status === "fulfilled" ? r.value : []));
   const errors = results.map((r, i) => (r.status === "rejected" ? `${jobs[i][0]}: ${r.reason?.message || r.reason}` : null)).filter(Boolean);
-  return res.status(200).json({ ...meta, wallets, ...(errors.length ? { errors } : {}) });
+  return res.status(200).json({ ...meta, wallets, ...(errors.length ? { errors } : {}), ...(debug ? { solDebug: debug } : {}) });
 }
