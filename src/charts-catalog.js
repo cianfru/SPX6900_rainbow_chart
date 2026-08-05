@@ -53,7 +53,6 @@ export const CHART_GROUPS = [
       { id: "smartmoney", title: "Smart Money", post: "smartmoney", desc: "The live cohort of proven top-timers (ROI ≥5×, still holding) — aggregate holdings and net-flow." },
       { id: "walletwaves", title: "Wallet-Size Waves", post: "walletwaves", desc: "Supply by how big the wallet is — HODL waves cut by size, not age." },
       { id: "wealthwaves", title: "The Wealth Ladder", post: "wealthwaves", desc: "How many holders sit in each dollar bracket, week by week." },
-      { id: "urpd", title: "Cost Basis Distribution", post: "urpd", desc: "Where every held coin was bought — the walls of supply." },
       { id: "bagsprofile", title: "Cost Basis vs Price", desc: "A volume-profile: the price line, and where the bags were bought as bars on the price axis — live." },
       { id: "urpdage", title: "Cost Basis × Age", post: "urpdage", desc: "The walls of supply mapped by holder age — same price, different conviction." },
       { id: "lthsth", title: "Long vs Short-Term Holders", post: "lthsth", desc: "Supply by holder age and profit/loss — who's holding, and are they up?" },
@@ -154,7 +153,7 @@ export const METHOD_FAMILIES = [
     id: "04", name: "Cost basis & holder behaviour",
     charts: ["supply", "holders", "holdersprice", "supplyprofit", "hodlwaves", "freefloat", "concentration",
              "whales", "whalecohorts", "survivorship", "exitflow", "smartmoney", "walletwaves", "wealthwaves",
-             "urpd", "bagsprofile", "urpdage", "lthsth", "sopr", "nrpl", "liveliness", "whaleswatching", "citylab", "walletgrowth", "mvrv", "nupl", "mvrvbtc"],
+             "bagsprofile", "urpdage", "lthsth", "sopr", "nrpl", "liveliness", "whaleswatching", "citylab", "walletgrowth", "mvrv", "nupl", "mvrvbtc"],
   },
   {
     id: "05", name: "Exchange & venue balances",

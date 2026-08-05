@@ -74,7 +74,6 @@ const AeonHodlChart = lazy(() => import("./AeonHodlChart.jsx"));
 const AeonOwnersChart = lazy(() => import("./AeonOwnersChart.jsx"));
 const AeonConcentrationChart = lazy(() => import("./AeonConcentrationChart.jsx"));
 const AeonBehaviourChart = lazy(() => import("./AeonBehaviourChart.jsx"));
-const UrpdChart = lazy(() => import("./UrpdChart.jsx"));
 const CostBasisProfileChart = lazy(() => import("./CostBasisProfileChart.jsx"));
 const UrpdAgeChart = lazy(() => import("./UrpdAgeChart.jsx"));
 const LthSthChart = lazy(() => import("./LthSthChart.jsx"));
@@ -219,7 +218,6 @@ function TabIcon({ name }) {
     case "aeonconcentration": return (<svg {...p}><path d="M3 8c4 0 6-3 9-3s5 3 9 3" /><path d="M3 18c4 0 6-2 9-2s5 2 9 2" strokeOpacity="0.7" /></svg>);
     case "aeonbehaviour": return (<svg {...p}><line x1="3" y1="12" x2="21" y2="12" strokeOpacity="0.4" /><rect x="5" y="6" width="3" height="6" /><rect x="11" y="12" width="3" height="5" /><rect x="17" y="7" width="3" height="5" /></svg>);
     case "concentration": return (<svg {...p}><path d="M3 8c4 0 6-3 9-3s5 3 9 3" /><path d="M3 18c4 0 6-2 9-2s5 2 9 2" strokeOpacity="0.7" /></svg>);
-    case "urpd": return (<svg {...p}><path d="M4 20V14M7 20V10M10 20V6M13 20V11M16 20V8M19 20V13" /><line x1="11.5" y1="4" x2="11.5" y2="21" strokeDasharray="2 2" strokeOpacity="0.8" /></svg>);
     case "bagsprofile": return (<svg {...p}><path d="M3 6h8M3 10h5M3 14h9M3 18h4" /><path d="M14 18l3-5 2 3 2-7" fill="none" /></svg>);
     case "urpdage": return (<svg {...p}><rect x="3" y="4" width="18" height="16" rx="1" /><path d="M9 4v16M15 4v16M3 9.3h18M3 14.6h18" strokeOpacity="0.7" /></svg>);
     case "lthsth": return (<svg {...p}><path d="M3 20h18" /><path d="M3 20V13c4 0 5-4 9-4s5 3 9 3v8z" strokeOpacity="0.55" /><path d="M3 20v-3c4 0 5-2 9-2s5 1 9 1v4z" /></svg>);
@@ -674,7 +672,6 @@ export default function App() {
       case "walletwaves": return <WalletWavesChart isMobile={mob} preview={preview} />;
       case "wealthwaves": return <WealthWavesChart isMobile={mob} preview={preview} />;
       case "concentration": return <HolderConcentrationChart isMobile={mob} preview={preview} />;
-      case "urpd": return <UrpdChart isMobile={mob} preview={preview} price={last?.price} />;
       case "bagsprofile": return <CostBasisProfileChart isMobile={mob} preview={preview} price={last?.price} />;
       case "urpdage": return <UrpdAgeChart isMobile={mob} preview={preview} price={last?.price} />;
       case "lthsth": return <LthSthChart isMobile={mob} preview={preview} />;
