@@ -13,9 +13,9 @@ export default function WalletCard({ w, lines = [], flow, flowUnit = "", accent 
   const col = f > 0 ? "#4ade80" : f < 0 ? "#fb7185" : "#94a3b8";
   const tri = f > 0 ? "▲" : f < 0 ? "▼" : "•";
   const amt = f === 0 ? "flat" : `${f > 0 ? "+" : "−"}${fmt(f)}${flowUnit}`;
-  // Solana is not EVM → Solscan + no Zerion preview (render.zerion.io is EVM-only)
-  const evm = chain !== "sol";
-  const explorer = evm ? `https://app.zerion.io/${w.a}/overview` : `https://solscan.io/account/${w.a}`;
+  // Zerion covers Solana too, so one interface for every chain — the address goes in the path and
+  // the same render.zerion.io preview works. onError hides the preview if a given wallet has none.
+  const explorer = `https://app.zerion.io/${w.a}/overview`;
 
   return (
     <div style={{
@@ -38,19 +38,12 @@ export default function WalletCard({ w, lines = [], flow, flowUnit = "", accent 
           {lines[1] && <span style={{ color: "#64748b", fontSize: 12.5 }}>{lines[1]}</span>}
         </div>
       </div>
-      {evm ? (
-        <a href={explorer} target="_blank" rel="noopener noreferrer" title="open in Zerion"
-          style={{ display: "block", flex: "0 0 auto", borderLeft: isMobile ? "none" : "1px solid rgba(255,255,255,0.09)" }}>
-          <img src={`https://render.zerion.io/preview?address=${w.a}`} alt=""
-            onError={e => { e.currentTarget.parentElement.style.display = "none"; }}
-            style={{ display: "block", height: isMobile ? "auto" : 100, width: isMobile ? "100%" : "auto", maxWidth: isMobile ? "100%" : 340, objectFit: "cover", cursor: "pointer" }} />
-        </a>
-      ) : (
-        <a href={explorer} target="_blank" rel="noopener noreferrer"
-          style={{ flex: "0 0 auto", display: "flex", alignItems: "center", padding: "0 18px", borderLeft: isMobile ? "1px solid rgba(255,255,255,0.09)" : "1px solid rgba(255,255,255,0.09)", color: "#c084fc", fontSize: 12.5, letterSpacing: 0.4, whiteSpace: "nowrap", textDecoration: "none" }}>
-          Solscan →
-        </a>
-      )}
+      <a href={explorer} target="_blank" rel="noopener noreferrer" title="open in Zerion"
+        style={{ display: "block", flex: "0 0 auto", borderLeft: isMobile ? "none" : "1px solid rgba(255,255,255,0.09)" }}>
+        <img src={`https://render.zerion.io/preview?address=${w.a}`} alt=""
+          onError={e => { e.currentTarget.parentElement.style.display = "none"; }}
+          style={{ display: "block", height: isMobile ? "auto" : 100, width: isMobile ? "100%" : "auto", maxWidth: isMobile ? "100%" : 340, objectFit: "cover", cursor: "pointer" }} />
+      </a>
     </div>
   );
 }
