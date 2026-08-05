@@ -69,6 +69,54 @@ export function aggregateWindow(transfers, watched, latestBlock, opts = {}) {
 
 const readJson = p => { try { return JSON.parse(readFileSync(join(process.cwd(), p), "utf8")); } catch { return null; } };
 
+// ── Solana (non-EVM) via Alchemy Account Archive ──────────────────────────────────────────────────
+// getAssetTransfers is EVM-only, but Account Archive answers getAccountInfo at any past slot, so we
+// read each whale's SPX balance NOW and at a past slot and diff → net flow, same Alchemy key. The
+// whale SET is the daily reconstruction (solana-onchain.json, grows as wallets cross 100k); the flow
+// is live. ~3 cheap RPC calls per whale, batched. Solana addresses are base58 (CASE-SENSITIVE — never
+// lowercased). Amount lives at offset 64 (SPL token account: mint 0-32 | owner 32-64 | amount 64-72).
+const SOL_MINT = "J3NKxxXZcnNiMjKw9hYb2K4LUxgwB6t1FtPtQVsv3KFr";
+const SOL_DEC = 8, SOL_SPH = 9000, SOL_SPD = 216000;   // ~2.5 slots/sec → per hour / per day
+const solAmount = d => { try { return Number(Buffer.from(d[0], "base64").readBigUInt64LE(0)) / 10 ** SOL_DEC; } catch { return null; } };
+
+async function rpcBatch(url, calls) {
+  const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(calls.map((c, i) => ({ id: i, jsonrpc: "2.0", method: c.method, params: c.params }))) });
+  if (!res.ok) throw new Error(`batch ${res.status}`);
+  const out = new Array(calls.length);
+  for (const r of await res.json()) out[r.id] = r.result;   // per-call errors → undefined, handled by callers
+  return out;
+}
+
+async function solanaFlow(key, days, liveHours) {
+  const owners = (readJson("public/solana-onchain.json")?.wallets || [])
+    .filter(w => w?.a && w.bal >= 1e5).sort((a, b) => b.bal - a.bal).slice(0, TOP_N).map(w => w.a);
+  if (!owners.length) return [];
+  const url = `https://solana-mainnet.g.alchemy.com/v2/${key}`;
+  const slot = await rpc(url, "getSlot", []);
+  const past7 = Math.max(0, slot - days * SOL_SPD), pastLive = Math.max(0, slot - liveHours * SOL_SPH);
+
+  // current SPX token account + balance per owner
+  const cur = await rpcBatch(url, owners.map(o => ({ method: "getTokenAccountsByOwner", params: [o, { mint: SOL_MINT }, { encoding: "jsonParsed" }] })));
+  const rows = owners.map((o, i) => {
+    let bal = 0, ta = null;
+    for (const a of cur[i]?.value || []) { const ui = a.account?.data?.parsed?.info?.tokenAmount?.uiAmount || 0; bal += ui; if (!ta || ui > 0) ta = a.pubkey; }
+    return { o, ta, bal };
+  }).filter(r => r.ta);
+  if (!rows.length) return [];
+
+  // historical balances at the 7-day and live slots (Account Archive) → diff
+  const hist = s => rpcBatch(url, rows.map(r => ({ method: "getAccountInfo", params: [r.ta, { encoding: "base64", dataSlice: { offset: 64, length: 8 }, slot: s }] })));
+  const [h7, hL] = await Promise.all([hist(past7), hist(pastLive)]);
+  const out = [];
+  rows.forEach((r, i) => {
+    const p7 = solAmount(h7[i]?.value?.data) ?? 0, pl = solAmount(hL[i]?.value?.data) ?? 0;
+    const net = r.bal - p7, live = r.bal - pl;
+    if (Math.abs(net) < 1) return;
+    out.push({ a: r.o, chain: "sol", net: Math.round(net), live: Math.round(live), sellDays: net < 0 ? 1 : 0, activeDays: 1 });
+  });
+  return out.sort((a, b) => a.net - b.net);
+}
+
 async function rpc(url, method, params) {
   const res = await fetch(url, {
     method: "POST", headers: { "Content-Type": "application/json" },
@@ -118,9 +166,15 @@ export default async function handler(req, res) {
   const meta = { updated: new Date().toISOString(), days, liveHours: LIVE_HOURS };
   if (!key) return res.status(200).json({ ...meta, wallets: [], error: "no ALCHEMY_KEY" });
 
-  // per chain, in parallel + isolated: one chain erroring never kills the others
-  const results = await Promise.allSettled(Object.entries(CHAINS).map(([id, cfg]) => chainFlow(id, cfg, key, days)));
+  // per chain, in parallel + isolated: one chain erroring never kills the others. EVM chains use the
+  // getAssetTransfers window; Solana uses Account Archive (historical getAccountInfo) — same key, its
+  // own job appended after the EVM loop.
+  const jobs = [
+    ...Object.entries(CHAINS).map(([id, cfg]) => ["evm:" + id, () => chainFlow(id, cfg, key, days)]),
+    ["sol", () => solanaFlow(key, days, LIVE_HOURS)],
+  ];
+  const results = await Promise.allSettled(jobs.map(([, run]) => run()));
   const wallets = results.flatMap(r => (r.status === "fulfilled" ? r.value : []));
-  const errors = results.map((r, i) => (r.status === "rejected" ? `${Object.keys(CHAINS)[i]}: ${r.reason?.message || r.reason}` : null)).filter(Boolean);
+  const errors = results.map((r, i) => (r.status === "rejected" ? `${jobs[i][0]}: ${r.reason?.message || r.reason}` : null)).filter(Boolean);
   return res.status(200).json({ ...meta, wallets, ...(errors.length ? { errors } : {}) });
 }
