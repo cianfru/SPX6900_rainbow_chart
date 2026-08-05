@@ -83,8 +83,8 @@ async function rpcBatch(url, calls) {
   const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(calls.map((c, i) => ({ id: i, jsonrpc: "2.0", method: c.method, params: c.params }))) });
   if (!res.ok) throw new Error(`batch ${res.status}`);
   const out = new Array(calls.length);
-  for (const r of await res.json()) out[r.id] = r.result;   // per-call errors → undefined, handled by callers
-  return out;
+  for (const r of await res.json()) out[r.id] = r;          // full entry {result, error} — callers must
+  return out;                                               // distinguish a missing (error) read from a real value:null
 }
 
 async function solanaFlow(key, days, liveHours) {
@@ -99,17 +99,21 @@ async function solanaFlow(key, days, liveHours) {
   const cur = await rpcBatch(url, owners.map(o => ({ method: "getTokenAccountsByOwner", params: [o, { mint: SOL_MINT }, { encoding: "jsonParsed" }] })));
   const rows = owners.map((o, i) => {
     let bal = 0, ta = null;
-    for (const a of cur[i]?.value || []) { const ui = a.account?.data?.parsed?.info?.tokenAmount?.uiAmount || 0; bal += ui; if (!ta || ui > 0) ta = a.pubkey; }
+    for (const a of cur[i]?.result?.value || []) { const ui = a.account?.data?.parsed?.info?.tokenAmount?.uiAmount || 0; bal += ui; if (!ta || ui > 0) ta = a.pubkey; }
     return { o, ta, bal };
   }).filter(r => r.ta);
   if (!rows.length) return [];
 
-  // historical balances at the 7-day and live slots (Account Archive) → diff
+  // historical balances at the 7-day and live slots (Account Archive) → diff. A read that ERRORED
+  // (rate limit / transient) is unknown — skip it rather than fabricate a full-balance move; a
+  // successful value:null means the token account didn't exist then = a real zero (new buyer).
   const hist = s => rpcBatch(url, rows.map(r => ({ method: "getAccountInfo", params: [r.ta, { encoding: "base64", dataSlice: { offset: 64, length: 8 }, slot: s }] })));
   const [h7, hL] = await Promise.all([hist(past7), hist(pastLive)]);
   const out = [];
   rows.forEach((r, i) => {
-    const p7 = solAmount(h7[i]?.value?.data) ?? 0, pl = solAmount(hL[i]?.value?.data) ?? 0;
+    if (h7[i]?.error) return;                                          // 7-day baseline unknown → no honest net
+    const p7 = solAmount(h7[i]?.result?.value?.data) ?? 0;
+    const pl = hL[i]?.error ? p7 : (solAmount(hL[i]?.result?.value?.data) ?? 0);  // live read failed → assume flat since 7d
     const net = r.bal - p7, live = r.bal - pl;
     if (Math.abs(net) < 1) return;
     out.push({ a: r.o, chain: "sol", net: Math.round(net), live: Math.round(live), sellDays: net < 0 ? 1 : 0, activeDays: 1 });
