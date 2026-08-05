@@ -109,16 +109,27 @@ export default function WhaleBoard({ isMobile }) {
     return { source: "loading", rows: [] };
   }, [camps, live, whales, balOf, liveSet, isMobile]);
 
-  // Solana: LIVE like the EVM chains — the live feed reads each whale's SPX balance now vs a past slot
-  // via Alchemy Account Archive (same key) → 7-day net + pulse. Joined to solana-onchain.json for
-  // balance + holder age. Solana addresses are base58 (CASE-SENSITIVE — never lowercase the key).
+  // Solana: LIVE when the key can serve Alchemy Account Archive (historical getAccountInfo, PAYG tier)
+  // — the live feed reads each whale's SPX balance now vs a past slot → 7-day net + pulse. On the Free
+  // tier the historical param errors and the live feed returns no sol rows, so we FALL BACK to the
+  // daily 30-day reconstruction (solana-onchain.json flow). Solana addresses are base58 (CASE-SENSITIVE
+  // — never lowercase the key). It auto-upgrades to live the moment the key is on PAYG.
   const solBalOf = new Map((sol?.wallets || []).map(w => [w.a, w]));
   const solLive = (live?.wallets || []).filter(w => w.chain === "sol" && w.net);
-  const solHue = (() => { const ds = solLive.map(w => solBalOf.get(w.a)?.days || 0); const mn = Math.min(...ds, 0), mx = Math.max(...ds, 1); return d => ageRamp(mx > mn ? ((d || 0) - mn) / (mx - mn) : 0.5).hex; })();
-  const solRows = solLive.map(w => {
-    const s = solBalOf.get(w.a) || {};
-    return { a: w.a, chain: "sol", bal: s.bal || 0, days: s.days || 0, net: w.net, hue: solHue(s.days), runDays: live?.days || 7, sellDays: w.sellDays || 0, activeDays: w.activeDays || 1, reducing: w.net < 0 && (w.sellDays || 0) >= 2, liveMove: !!w.live, lastLabel: w.live ? "now" : "7d" };
-  });
+  const solIsLive = solLive.length > 0;
+  const solHueOf = ds => { const mn = Math.min(...ds, 0), mx = Math.max(...ds, 1); return d => ageRamp(mx > mn ? ((d || 0) - mn) / (mx - mn) : 0.5).hex; };
+  let solRows;
+  if (solIsLive) {
+    const hue = solHueOf(solLive.map(w => solBalOf.get(w.a)?.days || 0));
+    solRows = solLive.map(w => {
+      const s = solBalOf.get(w.a) || {};
+      return { a: w.a, chain: "sol", bal: s.bal || 0, days: s.days || 0, net: w.net, hue: hue(s.days), runDays: live?.days || 7, sellDays: w.sellDays || 0, activeDays: w.activeDays || 1, reducing: w.net < 0 && (w.sellDays || 0) >= 2, liveMove: !!w.live, lastLabel: w.live ? "now" : "7d" };
+    });
+  } else {
+    const raw = (sol?.wallets || []).filter(w => w?.a && w.bal >= 1e5 && w.flow);
+    const hue = solHueOf(raw.map(w => w.days || 0));
+    solRows = raw.map(w => ({ a: w.a, chain: "sol", bal: w.bal, days: w.days || 0, net: w.flow, hue: hue(w.days), runDays: 30, sellDays: w.flow < 0 ? 1 : 0, activeDays: 1, reducing: false, liveMove: false, lastLabel: "30d" }));
+  }
 
   // Base: LIVE like Ethereum — 7-day net + pulse from the same Alchemy feed (Base is EVM), joined to
   // base-onchain.json for balance + holder age.
@@ -263,7 +274,7 @@ export default function WhaleBoard({ isMobile }) {
       <p style={{ fontSize: 12.5, color: "#7c8a9e", lineHeight: 1.6, margin: "14px 2px 0" }}>
         {source === "static"
           ? <>The live-flow feed is offline (needs <b style={{ color: "#c7d2e4" }}>ALCHEMY_KEY</b> in the Vercel env) — showing the biggest holders by size. Once it&rsquo;s wired, this becomes a persistent sellers&rsquo; watch.</>
-          : <>Whales that moved, biggest <b style={{ color: "#fb7185" }}>net offloaders</b> first, across chains. All three are <b>live</b> — 7-day net with a <b style={{ color: "#fb7185" }}>pulse</b> when a wallet also moved in the last few hours. <b style={{ color: CHAIN_TAG.eth.c }}>Ethereum</b> and <b style={{ color: CHAIN_TAG.base.c }}>Base</b> read live SPX transfers; <b style={{ color: CHAIN_TAG.sol.c }}>Solana</b> diffs each wallet&rsquo;s balance now vs a past slot (Alchemy Account Archive). ETH earmarks from its first sale, its idle clock resetting on every move (<b style={{ color: "#fbbf24" }}>◱ REDUCING</b> = sold across several days). The coloured cap is holder age; tap any wallet for its Zerion card (Zerion covers all three chains). Cost basis isn&rsquo;t shown on the bridged chains — only balance + flow are honest there. Not a signal.</>}
+          : <>Whales that moved, biggest <b style={{ color: "#fb7185" }}>net offloaders</b> first, across chains. <b style={{ color: CHAIN_TAG.eth.c }}>Ethereum</b> and <b style={{ color: CHAIN_TAG.base.c }}>Base</b> are <b>live</b> — 7-day net with a <b style={{ color: "#fb7185" }}>pulse</b> when a wallet also moved in the last few hours (ETH earmarks from its first sale, its idle clock resetting on every move; <b style={{ color: "#fbbf24" }}>◱ REDUCING</b> = sold across several days). <b style={{ color: CHAIN_TAG.sol.c }}>Solana</b> {solIsLive ? <>is <b>live</b> too — its balance now vs a past slot (Alchemy Account Archive)</> : <>is the 30-day net from the daily reconstruction (its live feed needs Account Archive on a paid Alchemy tier)</>}. The coloured cap is holder age; tap any wallet for its Zerion card (Zerion covers all three chains). Cost basis isn&rsquo;t shown on the bridged chains — only balance + flow are honest there. Not a signal.</>}
       </p>
     </div>
   );
