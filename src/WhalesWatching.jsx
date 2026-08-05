@@ -41,7 +41,8 @@ function buildScene(el, data, { onlyMovers, isMobile, flowWin = 30 }) {
   const lnLo = Math.log(minBal), lnHi = Math.log(Math.max(maxBal, minBal * 1.0001));
   const heightOf = bal => HMIN + (HMAX - HMIN) * Math.max(0, Math.min(1, (Math.log(bal) - lnLo) / (lnHi - lnLo)));
 
-  const W = el.clientWidth, VH = isMobile ? 440 : 560;
+  // fill the container's real height (driven by the CSS vh below) so the scene uses the screen
+  const W = el.clientWidth, VH = el.clientHeight || (isMobile ? 440 : 560);
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0x0a0e1c);         // flat, like Urpd3D — not a sky
   const span = Math.max(bounds.width, bounds.depth, 40);
@@ -227,7 +228,7 @@ function buildScene(el, data, { onlyMovers, isMobile, flowWin = 30 }) {
   const loop = t => { raf = requestAnimationFrame(loop); drs.tick(t); controls.update(); renderer.render(scene, cam); labelR.render(scene, cam); };
   raf = requestAnimationFrame(loop);
 
-  const onResize = () => { const w = el.clientWidth; if (!w) return; cam.aspect = w / VH; cam.updateProjectionMatrix(); renderer.setSize(w, VH); labelR.setSize(w, VH); };
+  const onResize = () => { const w = el.clientWidth, h = el.clientHeight || VH; if (!w) return; cam.aspect = w / h; cam.updateProjectionMatrix(); renderer.setSize(w, h); labelR.setSize(w, h); };
   window.addEventListener("resize", onResize);
 
   window.__whaleStats = () => ({
@@ -330,7 +331,7 @@ function Watcher({ isMobile }) {
           Whale data is being rebuilt — check back after the next on-chain refresh.
         </div>
       )}
-      <div ref={host} style={{ position: "relative", width: "100%", minHeight: isMobile ? 440 : 560, borderRadius: 12, overflow: "hidden", background: "#0a0e1c", cursor: "grab" }} />
+      <div ref={host} style={{ position: "relative", width: "100%", height: isMobile ? "min(66vh, 640px)" : "min(80vh, 920px)", minHeight: isMobile ? 380 : 460, borderRadius: 12, overflow: "hidden", background: "#0a0e1c", cursor: "grab" }} />
 
       <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4,1fr)", gap: 12, margin: "14px 0 6px" }}>
         {GUIDE.map((g, i) => (
