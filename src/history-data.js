@@ -242,8 +242,8 @@ export function loadWhaleCampaigns() {
   return whaleCampaignsPromise;
 }
 
-// Solana ≥5k residents (balance, holder age, 30-day net flow) — daily reconstruction. Used by the
-// whale board's Solana section. Resolves to null on failure (Solana just doesn't show).
+// Solana / Base ≥5k residents (balance, holder age, 30-day net flow) — daily reconstruction. Used by
+// the whale board's per-chain sections. Resolve to null on failure (that chain just doesn't show).
 let solanaOnchainPromise = null;
 export function loadSolanaOnchain() {
   if (!solanaOnchainPromise) {
@@ -253,6 +253,17 @@ export function loadSolanaOnchain() {
       .catch(() => null);
   }
   return solanaOnchainPromise;
+}
+
+let baseOnchainPromise = null;
+export function loadBaseOnchain() {
+  if (!baseOnchainPromise) {
+    baseOnchainPromise = fetch("/base-onchain.json", { cache: "no-store" })
+      .then(r => (r.ok ? r.json() : null))
+      .then(d => (d && Array.isArray(d.wallets) ? d : null))
+      .catch(() => null);
+  }
+  return baseOnchainPromise;
 }
 
 // Shared, cached loader for /cex-flow.json — daily CEX/LP/custody balances + flow (Dune baseline
