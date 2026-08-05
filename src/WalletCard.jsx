@@ -59,11 +59,17 @@ export default function WalletCard({ w, lines = [], flow, flowUnit = "", accent 
           open in Zerion →
         </a>
       </div>
-      <img src={`https://render.zerion.io/preview?address=${w.a}`} alt=""
-        onError={e => { e.currentTarget.style.display = "none"; }}
+      {/* the preview IS a link to the wallet's Zerion page — click the card, not just the small text */}
+      <a href={`https://app.zerion.io/${w.a}/overview`} target="_blank" rel="noopener noreferrer" title="open in Zerion"
         style={wide
-          ? { display: "block", height: 96, width: "auto", maxWidth: isMobile ? "100%" : 320, objectFit: "cover", borderLeft: "1px solid rgba(255,255,255,0.08)" }
-          : { display: "block", width: "100%", borderTop: "1px solid rgba(255,255,255,0.08)" }} />
+          ? { display: "block", flex: "0 0 auto", borderLeft: "1px solid rgba(255,255,255,0.08)" }
+          : { display: "block", borderTop: "1px solid rgba(255,255,255,0.08)" }}>
+        <img src={`https://render.zerion.io/preview?address=${w.a}`} alt=""
+          onError={e => { e.currentTarget.parentElement.style.display = "none"; }}
+          style={wide
+            ? { display: "block", height: 96, width: "auto", maxWidth: isMobile ? "100%" : 320, objectFit: "cover", cursor: "pointer" }
+            : { display: "block", width: "100%", cursor: "pointer" }} />
+      </a>
     </div>
   );
 }
