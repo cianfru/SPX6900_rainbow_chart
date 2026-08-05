@@ -297,7 +297,14 @@ export function replayFifo(transfers, priceAt, sampleTs, opts = {}) {
   // final wallet state only, returned alongside the rows when requested.
   if (opts.collectUrpd || opts.collectWhales) {
     const out = { rows };
-    if (opts.collectUrpd) out.urpd = computeUrpd(wallets, priceAt(sampleTs.at(-1)), iso(sampleTs.at(-1)), opts.urpdBuckets ?? 42);
+    if (opts.collectUrpd) {
+      const s = priceAt(sampleTs.at(-1)), d = iso(sampleTs.at(-1));
+      out.urpd = computeUrpd(wallets, s, d, opts.urpdBuckets ?? 42);
+      // A FINER cost-basis grid for the "Cost Basis vs Price" volume-profile (more price pockets,
+      // better when zoomed). Kept separate from `buckets` so the standard histogram + the cards
+      // (which draw one bar per bucket) stay readable at the coarse count.
+      out.urpd.bucketsFine = computeUrpd(wallets, s, d, opts.urpdFine ?? 160).buckets;
+    }
     if (opts.collectWhales) out.whales = { updated: iso(lastTs), spot: priceAt(lastTs) ?? 0, lookback: checkpoints.map(c => c.d), wallets: buildWhales() };
     return out;
   }
