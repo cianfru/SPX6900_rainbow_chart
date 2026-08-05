@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { loadWhales, loadWhaleCampaigns, loadSolanaOnchain } from "./history-data.js";
+import { loadWhales, loadWhaleCampaigns, loadSolanaOnchain, loadBaseOnchain } from "./history-data.js";
 import { ageRamp } from "./whale-cohorts.js";
 import WalletCard, { shortAddr } from "./WalletCard.jsx";
 import { SANS, MONO } from "./chart-ui.jsx";
@@ -29,6 +29,7 @@ export default function WhaleBoard({ isMobile }) {
   const [camps, setCamps] = useState(null);      // persistent campaigns (primary)
   const [live, setLive] = useState(null);        // on-view live feed (pulse + fallback)
   const [sol, setSol] = useState(null);
+  const [base, setBase] = useState(null);
   const [chain, setChain] = useState("all");   // "all" | "eth" | "sol" | "base"
   const [sel, setSel] = useState(null);
   const [showInfo, setShowInfo] = useState(false);
@@ -39,6 +40,7 @@ export default function WhaleBoard({ isMobile }) {
     loadWhales().then(d => { if (!off) setWhales(d ?? false); });
     loadWhaleCampaigns().then(d => { if (!off) setCamps(d ?? { wallets: [] }); });
     loadSolanaOnchain().then(d => { if (!off) setSol(d ?? { wallets: [] }); });
+    loadBaseOnchain().then(d => { if (!off) setBase(d ?? { wallets: [] }); });
     return () => { off = true; };
   }, []);
   useEffect(() => {
@@ -106,30 +108,32 @@ export default function WhaleBoard({ isMobile }) {
     return { source: "loading", rows: [] };
   }, [camps, live, whales, balOf, liveSet, isMobile]);
 
-  const solRaw = (sol?.wallets || []).filter(w => w?.a && w.bal >= 1e5 && w.flow);
-  if (whales === false && !camps?.wallets?.length && !solRaw.length) return <div style={{ textAlign: "center", fontFamily: SANS, color: "#94a3b8", padding: 60 }}>Whale data is being rebuilt — check back after the next on-chain refresh.</div>;
-  if (model.source === "loading" && !solRaw.length) return <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Loading…</div>;
+  // Solana + Base plug in identically: a daily reconstruction with a 30-day net flow per wallet.
+  // Movers only (nonzero flow). Base uses the same fields; its flow lands after the next Base
+  // reconstruction (the committed file predates the flow field), so it just shows 0 movers until then.
+  const chainRows = (arr, id) => {
+    const raw = (arr || []).filter(w => w?.a && w.bal >= 1e5 && w.flow);
+    const ds = raw.map(w => w.days || 0); const mn = Math.min(...ds, 0), mx = Math.max(...ds, 1);
+    const hue = d => ageRamp(mx > mn ? ((d || 0) - mn) / (mx - mn) : 0.5).hex;
+    return raw.map(w => ({ a: w.a, chain: id, bal: w.bal, days: w.days || 0, net: w.flow, hue: hue(w.days), runDays: 30, sellDays: w.flow < 0 ? 1 : 0, activeDays: 1, reducing: false, liveMove: false, lastLabel: "30d" }));
+  };
+  const solRows = chainRows(sol?.wallets, "sol");
+  const baseRows = chainRows(base?.wallets, "base");
+  const altRows = solRows.length + baseRows.length;
+  if (whales === false && !camps?.wallets?.length && !altRows) return <div style={{ textAlign: "center", fontFamily: SANS, color: "#94a3b8", padding: 60 }}>Whale data is being rebuilt — check back after the next on-chain refresh.</div>;
+  if (model.source === "loading" && !altRows) return <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Loading…</div>;
 
-  // ── merge chains: ETH (campaigns/live) + Solana (30-day net from the daily reconstruction) ──
   const ethRows = model.rows.map(r => ({ ...r, chain: "eth" }));
-  const solHue = (() => {
-    const ds = solRaw.map(w => w.days || 0); const mn = Math.min(...ds, 0), mx = Math.max(...ds, 1);
-    return d => ageRamp(mx > mn ? ((d || 0) - mn) / (mx - mn) : 0.5).hex;
-  })();
-  const solRows = solRaw.map(w => ({
-    a: w.a, chain: "sol", bal: w.bal, days: w.days || 0, net: w.flow, hue: solHue(w.days),
-    runDays: 30, sellDays: w.flow < 0 ? 1 : 0, activeDays: 1, reducing: false, liveMove: false, lastLabel: "30d",
-  }));
-  const chainCounts = { all: ethRows.length + solRows.length, eth: ethRows.length, sol: solRows.length };
-  const allRows = [...ethRows, ...solRows].sort((a, b) => Math.abs(b.net) - Math.abs(a.net));
+  const chainCounts = { all: ethRows.length + baseRows.length + solRows.length, eth: ethRows.length, base: baseRows.length, sol: solRows.length };
+  const allRows = [...ethRows, ...baseRows, ...solRows].sort((a, b) => Math.abs(b.net) - Math.abs(a.net));
   const rows = chain === "all" ? allRows : allRows.filter(r => r.chain === chain);
   const source = model.source;
-  const live7 = source === "campaigns" || source === "live" || solRows.length > 0;
+  const live7 = source === "campaigns" || source === "live" || altRows > 0;
   const buyers = rows.filter(r => r.net > 0).length;
   const sellers = rows.filter(r => r.net < 0).length;
   const netTotal = Math.round(rows.reduce((s, r) => s + (r.net || 0), 0));
   const updated = source === "campaigns" ? camps?.updated : live?.updated;
-  const chainChips = ["all", "eth", "sol"].filter(k => k === "all" || chainCounts[k] > 0);
+  const chainChips = ["all", "eth", "base", "sol"].filter(k => k === "all" || chainCounts[k] > 0);
 
   const Stat = ({ tri, n, label, color }) => (
     <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
@@ -249,7 +253,7 @@ export default function WhaleBoard({ isMobile }) {
       <p style={{ fontSize: 12.5, color: "#7c8a9e", lineHeight: 1.6, margin: "14px 2px 0" }}>
         {source === "static"
           ? <>The live-flow feed is offline (needs <b style={{ color: "#c7d2e4" }}>ALCHEMY_KEY</b> in the Vercel env) — showing the biggest holders by size. Once it&rsquo;s wired, this becomes a persistent sellers&rsquo; watch.</>
-          : <>Whales that moved, biggest <b style={{ color: "#fb7185" }}>net offloaders</b> first, across chains — <b style={{ color: CHAIN_TAG.eth.c }}>Ethereum</b> earmarked from its first sale (accumulates the whole run, 7-day idle clock <b>resets on every move</b>, so a repeat sell reads as a pattern; a tile <b style={{ color: "#fb7185" }}>pulses</b> when it also moved in the last few hours, <b style={{ color: "#fbbf24" }}>◱ REDUCING</b> = sold across several days) and <b style={{ color: CHAIN_TAG.sol.c }}>Solana</b> by 30-day net from the daily reconstruction. The coloured cap is holder age; tap a wallet for Zerion (ETH) or Solscan (SOL). Cost basis isn&rsquo;t shown on Solana — it&rsquo;s bridged, so only balance + flow are honest there. Not a signal.</>}
+          : <>Whales that moved, biggest <b style={{ color: "#fb7185" }}>net offloaders</b> first, across chains — <b style={{ color: CHAIN_TAG.eth.c }}>Ethereum</b> earmarked from its first sale (accumulates the whole run, 7-day idle clock <b>resets on every move</b>, so a repeat sell reads as a pattern; a tile <b style={{ color: "#fb7185" }}>pulses</b> when it also moved in the last few hours, <b style={{ color: "#fbbf24" }}>◱ REDUCING</b> = sold across several days), and <b style={{ color: CHAIN_TAG.base.c }}>Base</b> + <b style={{ color: CHAIN_TAG.sol.c }}>Solana</b> by 30-day net from the daily reconstruction. The coloured cap is holder age; tap a wallet for Zerion (ETH/Base) or Solscan (SOL). Cost basis isn&rsquo;t shown on the bridged chains — only balance + flow are honest there. Not a signal.</>}
       </p>
     </div>
   );
