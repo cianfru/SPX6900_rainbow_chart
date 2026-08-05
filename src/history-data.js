@@ -229,6 +229,19 @@ export function loadWhales() {
   return whalesPromise;
 }
 
+// Persistent whale sell-campaigns (7-day-idle earmark, cumulative footprint) — daily cron.
+// Resolves to null (never throws) so the board falls back to the on-view live feed / static grid.
+let whaleCampaignsPromise = null;
+export function loadWhaleCampaigns() {
+  if (!whaleCampaignsPromise) {
+    whaleCampaignsPromise = fetch("/whale-campaigns.json", { cache: "no-store" })
+      .then(r => (r.ok ? r.json() : null))
+      .then(d => (d && Array.isArray(d.wallets) ? d : null))
+      .catch(() => null);
+  }
+  return whaleCampaignsPromise;
+}
+
 // Shared, cached loader for /cex-flow.json — daily CEX/LP/custody balances + flow (Dune baseline
 // + daily snapshot-forward). Resolves to null on failure so callers fall back to src/cex-flow.js.
 let cexFlowPromise = null;

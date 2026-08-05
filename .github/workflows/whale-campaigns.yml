@@ -1,0 +1,72 @@
+name: Whale sell-campaigns
+
+on:
+  schedule:
+    - cron: "47 4 * * *"    # daily — the persistent per-wallet earmark (the live pulse is on-view)
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: whale-campaigns
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      deploy: ${{ steps.commit.outputs.deploy }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+      - name: Update whale sell-campaigns (Alchemy delta)
+        continue-on-error: true      # a hiccup leaves the last file in place; the board falls back
+        env:
+          ALCHEMY_KEY: ${{ secrets.ALCHEMY_KEY }}
+        run: node scripts/build-whale-campaigns.mjs
+      - name: Commit if changed
+        id: commit
+        run: |
+          if [[ -n "$(git status --porcelain public/whale-campaigns.json)" ]]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add public/whale-campaigns.json
+            git commit -m "chore: whale sell-campaigns $(date -u +%F)"
+            git push || { for i in 1 2 3 4 5; do echo "retry $i"; git pull --rebase --autostash origin "${GITHUB_REF_NAME:-main}" && git push && break; sleep $((i*3)); done; }
+            echo "deploy=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "No change"; echo "deploy=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  # The board fetches /whale-campaigns.json, so the fresh file needs a deploy (a GITHUB_TOKEN commit
+  # can't trigger deploy.yml). Mirrors the other data workflows' deploy job.
+  deploy:
+    needs: build
+    if: needs.build.outputs.deploy == 'true'
+    runs-on: ubuntu-latest
+    concurrency:
+      group: vercel-production
+      cancel-in-progress: true
+    env:
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install --global vercel@latest
+      - run: vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      - run: vercel build --prod --token="$VERCEL_TOKEN"
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      - run: vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN"
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
