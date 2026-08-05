@@ -82,8 +82,9 @@ export default function WhaleBoard({ isMobile }) {
       return { source: "campaigns", rows, sellers: rows.filter(r => r.net < 0).length, sellingNow: rows.filter(r => r.liveMove && r.net < 0).length };
     }
 
-    // FALLBACK 1: the on-view live 7-day feed (no campaign file yet)
-    const lw = (live?.wallets || []);
+    // FALLBACK 1: the on-view live 7-day feed (no campaign file yet). ETH only — Base has its own
+    // rows built from the same live feed in the render body.
+    const lw = (live?.wallets || []).filter(w => (w.chain || "eth") === "eth");
     if (lw.length) {
       const hue = ageHue(lw);
       const rows = lw.map(r => {
@@ -108,17 +109,20 @@ export default function WhaleBoard({ isMobile }) {
     return { source: "loading", rows: [] };
   }, [camps, live, whales, balOf, liveSet, isMobile]);
 
-  // Solana + Base plug in identically: a daily reconstruction with a 30-day net flow per wallet.
-  // Movers only (nonzero flow). Base uses the same fields; its flow lands after the next Base
-  // reconstruction (the committed file predates the flow field), so it just shows 0 movers until then.
-  const chainRows = (arr, id) => {
-    const raw = (arr || []).filter(w => w?.a && w.bal >= 1e5 && w.flow);
-    const ds = raw.map(w => w.days || 0); const mn = Math.min(...ds, 0), mx = Math.max(...ds, 1);
-    const hue = d => ageRamp(mx > mn ? ((d || 0) - mn) / (mx - mn) : 0.5).hex;
-    return raw.map(w => ({ a: w.a, chain: id, bal: w.bal, days: w.days || 0, net: w.flow, hue: hue(w.days), runDays: 30, sellDays: w.flow < 0 ? 1 : 0, activeDays: 1, reducing: false, liveMove: false, lastLabel: "30d" }));
-  };
-  const solRows = chainRows(sol?.wallets, "sol");
-  const baseRows = chainRows(base?.wallets, "base");
+  // Solana: daily reconstruction with a 30-day net flow per wallet, movers only (non-EVM, no live).
+  const solRaw = (sol?.wallets || []).filter(w => w?.a && w.bal >= 1e5 && w.flow);
+  const solHue = (() => { const ds = solRaw.map(w => w.days || 0); const mn = Math.min(...ds, 0), mx = Math.max(...ds, 1); return d => ageRamp(mx > mn ? ((d || 0) - mn) / (mx - mn) : 0.5).hex; })();
+  const solRows = solRaw.map(w => ({ a: w.a, chain: "sol", bal: w.bal, days: w.days || 0, net: w.flow, hue: solHue(w.days), runDays: 30, sellDays: w.flow < 0 ? 1 : 0, activeDays: 1, reducing: false, liveMove: false, lastLabel: "30d" }));
+
+  // Base: LIVE like Ethereum — 7-day net + pulse from the same Alchemy feed (Base is EVM), joined to
+  // base-onchain.json for balance + holder age.
+  const baseBalOf = new Map((base?.wallets || []).map(w => [w.a.toLowerCase(), w]));
+  const baseLive = (live?.wallets || []).filter(w => w.chain === "base" && w.net);
+  const baseHue = (() => { const ds = baseLive.map(w => baseBalOf.get(w.a.toLowerCase())?.days || 0); const mn = Math.min(...ds, 0), mx = Math.max(...ds, 1); return d => ageRamp(mx > mn ? ((d || 0) - mn) / (mx - mn) : 0.5).hex; })();
+  const baseRows = baseLive.map(w => {
+    const b = baseBalOf.get(w.a.toLowerCase()) || {};
+    return { a: w.a, chain: "base", bal: b.bal || 0, days: b.days || 0, net: w.net, hue: baseHue(b.days), runDays: live?.days || 7, sellDays: w.sellDays || 0, activeDays: w.activeDays || 1, reducing: w.net < 0 && (w.sellDays || 0) >= 2, liveMove: !!w.live, lastLabel: w.live ? "now" : "7d" };
+  });
   const altRows = solRows.length + baseRows.length;
   if (whales === false && !camps?.wallets?.length && !altRows) return <div style={{ textAlign: "center", fontFamily: SANS, color: "#94a3b8", padding: 60 }}>Whale data is being rebuilt — check back after the next on-chain refresh.</div>;
   if (model.source === "loading" && !altRows) return <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Loading…</div>;
@@ -253,7 +257,7 @@ export default function WhaleBoard({ isMobile }) {
       <p style={{ fontSize: 12.5, color: "#7c8a9e", lineHeight: 1.6, margin: "14px 2px 0" }}>
         {source === "static"
           ? <>The live-flow feed is offline (needs <b style={{ color: "#c7d2e4" }}>ALCHEMY_KEY</b> in the Vercel env) — showing the biggest holders by size. Once it&rsquo;s wired, this becomes a persistent sellers&rsquo; watch.</>
-          : <>Whales that moved, biggest <b style={{ color: "#fb7185" }}>net offloaders</b> first, across chains — <b style={{ color: CHAIN_TAG.eth.c }}>Ethereum</b> earmarked from its first sale (accumulates the whole run, 7-day idle clock <b>resets on every move</b>, so a repeat sell reads as a pattern; a tile <b style={{ color: "#fb7185" }}>pulses</b> when it also moved in the last few hours, <b style={{ color: "#fbbf24" }}>◱ REDUCING</b> = sold across several days), and <b style={{ color: CHAIN_TAG.base.c }}>Base</b> + <b style={{ color: CHAIN_TAG.sol.c }}>Solana</b> by 30-day net from the daily reconstruction. The coloured cap is holder age; tap a wallet for Zerion (ETH/Base) or Solscan (SOL). Cost basis isn&rsquo;t shown on the bridged chains — only balance + flow are honest there. Not a signal.</>}
+          : <>Whales that moved, biggest <b style={{ color: "#fb7185" }}>net offloaders</b> first, across chains. <b style={{ color: CHAIN_TAG.eth.c }}>Ethereum</b> and <b style={{ color: CHAIN_TAG.base.c }}>Base</b> are <b>live</b> — 7-day net with a <b style={{ color: "#fb7185" }}>pulse</b> when a wallet also moved in the last few hours (ETH also earmarks from its first sale, its idle clock resetting on every move; <b style={{ color: "#fbbf24" }}>◱ REDUCING</b> = sold across several days). <b style={{ color: CHAIN_TAG.sol.c }}>Solana</b> is the 30-day net from the daily reconstruction (non-EVM — no live feed yet). The coloured cap is holder age; tap for Zerion (ETH/Base) or Solscan (SOL). Cost basis isn&rsquo;t shown on the bridged chains — only balance + flow are honest there. Not a signal.</>}
       </p>
     </div>
   );
