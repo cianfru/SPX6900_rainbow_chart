@@ -83,6 +83,8 @@ export default async function handler(req, res) {
     .sort((a, b) => b.bal - a.bal).slice(0, TOP_N).map(w => w.a.toLowerCase());
   const watched = new Set(watchedArr);
 
+  // ALCHEMY_KEY must be set in the VERCEL env (production). A dashboard env change only applies to a
+  // NEW deployment, so adding it requires a redeploy to take effect (it does not hot-apply).
   const key = process.env.ALCHEMY_KEY;
   const base = { updated: new Date().toISOString(), days, liveHours: LIVE_HOURS, watched: watched.size };
   if (!key || !watched.size) {
