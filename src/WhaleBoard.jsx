@@ -27,6 +27,7 @@ export default function WhaleBoard({ isMobile }) {
   const [camps, setCamps] = useState(null);      // persistent campaigns (primary)
   const [live, setLive] = useState(null);        // on-view live feed (pulse + fallback)
   const [sel, setSel] = useState(null);
+  const [showInfo, setShowInfo] = useState(false);
   const [, setTick] = useState(0);
 
   useEffect(() => {
@@ -103,11 +104,23 @@ export default function WhaleBoard({ isMobile }) {
   if (whales === false && !camps?.wallets?.length) return <div style={{ textAlign: "center", fontFamily: SANS, color: "#94a3b8", padding: 60 }}>Whale data is being rebuilt — check back after the next on-chain refresh.</div>;
   if (model.source === "loading") return <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Loading…</div>;
 
-  const { rows, source, sellers, sellingNow } = model;
+  const { rows, source } = model;
   const live7 = source === "campaigns" || source === "live";
-  const status = source === "static" ? "live feed offline — showing holders by size"
-    : source === "campaigns" ? `earmarked since first sale · resets on each move · ${camps?.updated ? "updated " + updAgo(camps.updated) : ""}`
-    : `${live?.days || 7}-day window · updated ${live?.updated ? updAgo(live.updated) : "…"}`;
+  const buyers = rows.filter(r => r.net > 0).length;
+  const sellers = rows.filter(r => r.net < 0).length;
+  const netTotal = Math.round(rows.reduce((s, r) => s + (r.net || 0), 0));
+  const updated = source === "campaigns" ? camps?.updated : live?.updated;
+
+  const Stat = ({ tri, n, label, color }) => (
+    <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
+      <div style={{ display: "flex", alignItems: "baseline", gap: 6, fontFamily: MONO, color, fontWeight: 800, lineHeight: 1 }}>
+        {tri && <span style={{ fontSize: isMobile ? 15 : 18 }}>{tri}</span>}
+        <span style={{ fontSize: isMobile ? 26 : 34, letterSpacing: -1 }}>{n}</span>
+      </div>
+      <span style={{ fontFamily: MONO, fontSize: 10.5, letterSpacing: 1.6, textTransform: "uppercase", color: "#5b6675" }}>{label}</span>
+    </div>
+  );
+  const netColor = netTotal > 0 ? "#4ade80" : netTotal < 0 ? "#fb7185" : "#94a3b8";
 
   return (
     <div style={{ maxWidth: 1180, margin: "0 auto", padding: "0 14px", fontFamily: SANS }}>
@@ -117,29 +130,44 @@ export default function WhaleBoard({ isMobile }) {
         .wb-cell{transition:transform .12s} .wb-cell:hover{transform:translateY(-2px)}
       `}</style>
 
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 12, alignItems: "center", justifyContent: "space-between", margin: "4px 0 12px" }}>
-        <div style={{ display: "flex", gap: 16, alignItems: "center", flexWrap: "wrap" }}>
-          {live7 ? (
-            <>
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontFamily: MONO, fontSize: 13, color: "#fb7185" }}>
-                <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#fb7185", boxShadow: sellingNow ? "0 0 8px #fb7185" : "none" }} />{sellingNow} selling now
-              </span>
-              <span style={{ fontFamily: MONO, fontSize: 13, color: "#fb7185" }}>{sellers} offloading</span>
-              <span style={{ fontFamily: MONO, fontSize: 12, color: "#64748b" }}>{rows.length} whales moving</span>
-            </>
-          ) : (
-            <span style={{ fontFamily: MONO, fontSize: 12, color: "#64748b" }}>{rows.length} whales ≥100k</span>
-          )}
-        </div>
-        <span style={{ fontFamily: MONO, fontSize: 11.5, color: live7 ? "#5eead4" : "#64748b" }}>{status}</span>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: isMobile ? 22 : 40, alignItems: "flex-start", justifyContent: "space-between", margin: "6px 0 16px" }}>
+        {live7 ? (
+          <>
+            <div style={{ display: "flex", gap: isMobile ? 22 : 40, alignItems: "flex-start" }}>
+              <Stat tri="▲" n={buyers} label="buying" color="#4ade80" />
+              <Stat tri="▼" n={sellers} label="selling" color="#fb7185" />
+              <Stat n={(netTotal >= 0 ? "+" : "−") + kM(Math.abs(netTotal))} label="net flow · spx" color={netColor} />
+            </div>
+            {/* the earmark reminder now lives behind (i), off the main readout */}
+            <div style={{ position: "relative", alignSelf: "center" }}
+              onMouseEnter={() => setShowInfo(true)} onMouseLeave={() => setShowInfo(false)}>
+              <button onClick={() => setShowInfo(v => !v)} aria-label="how this works" style={{
+                width: 24, height: 24, borderRadius: "50%", cursor: "pointer", fontFamily: MONO, fontSize: 13, fontWeight: 700,
+                background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.18)", color: "#8b98ad",
+              }}>i</button>
+              {showInfo && (
+                <div style={{
+                  position: "absolute", right: 0, top: 30, zIndex: 10, width: 250, padding: "10px 13px", borderRadius: 8,
+                  background: "#080b14", border: "1px solid rgba(255,255,255,0.14)", boxShadow: "0 10px 30px rgba(0,0,0,0.6)",
+                  fontFamily: SANS, fontSize: 12.5, color: "#c7d2e4", lineHeight: 1.55,
+                }}>
+                  Each wallet is <b>earmarked from its first sale</b> and accumulates the whole run; its 7-day idle clock <b>resets on every move</b>, so it stays until 7 silent days.
+                  {updated && <div style={{ marginTop: 6, fontFamily: MONO, fontSize: 11, color: "#5b6675" }}>updated {updAgo(updated)}</div>}
+                </div>
+              )}
+            </div>
+          </>
+        ) : (
+          <span style={{ fontFamily: MONO, fontSize: 13, color: "#64748b" }}>{rows.length} whales ≥100k · live feed offline</span>
+        )}
       </div>
 
       {sel && (
         <div style={{ marginBottom: 14 }}>
-          <WalletCard w={sel} wide isMobile={isMobile} accent="#5eead4" flow={sel.net} flowUnit=" SPX"
+          <WalletCard w={sel} isMobile={isMobile} accent="#5eead4" flow={sel.net} flowUnit=" SPX"
             lines={[
               `${kM(sel.bal)} SPX · held ${Math.round((sel.days || 0) / 30)} mo`,
-              sel.net ? `${sel.net < 0 ? "sold" : "added"} ${kM(Math.abs(sel.net))}${sel.runDays ? ` over ${sel.runDays}d` : ""} · ${sel.sellDays || 0} sell day${sel.sellDays === 1 ? "" : "s"}${sel.reducing ? " · slowly reducing" : ""}` : "no move in the window",
+              sel.net ? `over ${sel.runDays || 7}d · ${sel.sellDays || 0} sell day${sel.sellDays === 1 ? "" : "s"}${sel.reducing ? " · slowly reducing" : ""}` : "no recent move",
             ]} />
         </div>
       )}
