@@ -72,6 +72,10 @@ export const FEEDS = [
   // `.wallets` (not a shape rowsOf knows), so nonEmpty is what confirms the population is there.
   { file: "whales.json", cadence: 9, by: "onchain-dune.yml", what: "the wallets resident in Whale City",
     nonEmpty: ["wallets"] },
+  // Persistent whale sell-campaigns (7-day-idle earmark, cumulative footprint). Daily via
+  // whale-campaigns.yml (Alchemy delta). Starts empty (seed) and fills once ALCHEMY_KEY is in the
+  // Actions env + wallets start moving, so `wallets` is NOT required non-empty.
+  { file: "whale-campaigns.json", cadence: 2, by: "whale-campaigns.yml", what: "whales in an active sell campaign" },
   // SPX-on-Solana ≥5k residents (age/flow). Daily via onchain-dune.yml (folded in 2026-08): a keyless
   // public-RPC snapshot (getProgramAccounts) appended to the committed archive dune/out/spx6900_solana_balances.csv
   // (FULL ≥5k history since launch → true holder ages). Residency = latest dense snapshot; age = first
