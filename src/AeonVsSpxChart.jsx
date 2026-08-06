@@ -17,7 +17,16 @@ const fmt = v => v >= 1000 ? (v / 1000).toFixed(1) + "k" : Math.round(v);
 // implementations, two SPX sources, and a standing chance of the two disagreeing on air.
 export default function AeonVsSpxChart({ isMobile }) {
   const [market, setMarket] = useState(null);
+  const [spxLive, setSpxLive] = useState(null);
   useEffect(() => { let c = false; loadAeonMarket().then(d => { if (!c) setMarket(d || { empty: true }); }); return () => { c = true; }; }, []);
+  // LIVE SPX price → the AEON floor priced in SPX follows it intraday (the floor in ETH is the daily
+  // Alchemy banker; SPX is the fast-moving side of the ratio, so pulling it live keeps the tip current).
+  useEffect(() => {
+    let off = false, t;
+    const pull = () => fetch("/api/spot").then(r => r.json()).then(d => { if (!off && d?.price > 0) setSpxLive(d.price); }).catch(() => {});
+    pull(); t = setInterval(pull, 60000);
+    return () => { off = true; clearInterval(t); };
+  }, []);
 
   const model = useMemo(() => {
     const sv = market && !market.empty ? market.spxValue : null;
@@ -30,6 +39,19 @@ export default function AeonVsSpxChart({ isMobile }) {
       const b = baseAt.get(d);
       return { ts: Date.parse(d), ratio: r, base: b, hi: b * st.bandMult(0.5), lo: b * st.bandMult(-0.5) };
     });
+    // REAL-TIME tip: recompute the latest floor-in-SPX from the LIVE SPX price. floor(ETH, daily
+    // Alchemy) × ETH/USD (daily) ÷ SPX(live) — so the leading point follows SPX intraday instead of
+    // freezing at the daily close. `cur`/`vs baseline` update with it; the verdict (σ/zone) stays daily.
+    let cur = st.cur, pctVsBase = st.pctVsBase;
+    if (spxLive > 0 && sv.ethUsd > 0 && market.floor > 0 && rows.length) {
+      const live = (market.floor * sv.ethUsd) / spxLive;
+      if (live > 0 && Number.isFinite(live)) {
+        const last = rows[rows.length - 1];
+        rows[rows.length - 1] = { ...last, ratio: live };
+        cur = live;
+        if (last.base > 0) pctVsBase = (live / last.base - 1) * 100;
+      }
+    }
     // Domain must span EVERY drawn series, not just the ratio: the ±0.5σ bands (and the
     // baseline) can dip below the ratio's own min or poke above its max, and a domain floored
     // to the ratio alone silently clips the green lower band off the bottom of the chart.
@@ -39,8 +61,8 @@ export default function AeonVsSpxChart({ isMobile }) {
         if (v > 0) { if (v < dmin) dmin = v; if (v > dmax) dmax = v; }
       }
     }
-    return { rows, ...st, rmin: dmin, rmax: dmax, sv };
-  }, [market]);
+    return { rows, ...st, cur, pctVsBase, rmin: dmin, rmax: dmax, sv };
+  }, [market, spxLive]);
 
   if (!market) return <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Loading…</div>;
   if (!model) return <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Not enough overlapping price data yet.</div>;
