@@ -147,6 +147,24 @@ test("collectUrpdHistory emits fixed-grid weekly slices with a today edge", () =
   assert.equal(urpdHistory.weeks.at(-1).d, "2024-01-15"); // today edge = last sample
 });
 
+test("buildWhales: ≥100k ships at any tenure (res:false); city residents are res:true", () => {
+  // three wallets, sampled 100 days after launch:
+  //  A: 200k acquired 5 days ago  → ≥100k, held <90d → emitted, res:false (watcher-only)
+  //  B: 8k acquired at launch      → ≥5k held 100d    → emitted, res:true (city resident)
+  //  C: 60k acquired 5 days ago    → <100k, held <90d → NOT emitted
+  const tx = [
+    { from: ZERO, to: "a", amt: 200000, ts: d(95) },
+    { from: ZERO, to: "b", amt: 8000, ts: d(0) },
+    { from: ZERO, to: "c", amt: 60000, ts: d(95) },
+  ];
+  const price = makePriceAt([[d(0), 1]]);
+  const { whales } = replayFifo(tx, price, [d(100)], { collectWhales: true, minTokens: 5000, minDays: 90 });
+  const by = Object.fromEntries(whales.wallets.map(w => [w.a, w]));
+  assert.ok(by.a && by.a.res === false, "A: ≥100k fresh whale, res:false");
+  assert.ok(by.b && by.b.res === true, "B: city resident, res:true");
+  assert.equal(by.c, undefined, "C: <100k and <90d → excluded");
+});
+
 test("gini, price forward-fill, and the Monday grid", () => {
   near(gini([50, 50]), 0);
   near(gini([1, 99]), 0.49);
