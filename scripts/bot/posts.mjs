@@ -2414,6 +2414,11 @@ function rotation(built) {
 export function withFooter(text) {
   const body = text
     .replace(/\n?(?:🌈 )?NFA\s*$/u, "")
+    // The footer supplies the ONE cashtag X allows. Owners naturally type "$SPX" in control-panel copy
+    // edits, which then collided with the footer → 2 cashtags → X rejects the post (and CI fails on it).
+    // Strip the $ from any body cashtag ($SPX, $DOGE — a letter after the $, so prices like $0.30/$6.90
+    // are untouched) so the footer is always the sole cashtag, whatever the copy says.
+    .replace(/\$(?=[A-Za-z])/g, "")
     .replace(/\n/g, "\n\n")
     .replace(new RegExp(TIGHT, "g"), "\n");
   return `${body}\n\n🌈 ${CASHTAG} ${HASHTAG}`;
