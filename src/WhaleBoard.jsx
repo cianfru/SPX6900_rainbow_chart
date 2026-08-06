@@ -70,13 +70,15 @@ export default function WhaleBoard({ isMobile }) {
         const w = balOf.get(c.a.toLowerCase()) || {};
         const activeDays = c.days?.length || 1;
         const sellDays = (c.days || []).filter(([, n]) => n < 0).length;
+        const buyDays = (c.days || []).filter(([, n]) => n > 0).length;
         const runDays = Math.max(1, Math.round((c.lastTs - c.firstTs) / DAY) + 1);
         const liveMove = liveSet.has(c.a.toLowerCase());
         return {
           a: c.a, bal: w.bal || 0, days: w.days || 0, hue: hue(w.days), net: c.net,
-          activeDays, sellDays, runDays, firstTs: c.firstTs,
+          activeDays, sellDays, buyDays, runDays, firstTs: c.firstTs,
           liveMove, lastLabel: liveMove ? "now" : agoMs(now - c.lastTs),
           reducing: c.net < 0 && sellDays >= 2,
+          accumulating: c.net > 0 && buyDays >= 2,
         };
       });
       return { source: "campaigns", rows, sellers: rows.filter(r => r.net < 0).length, sellingNow: rows.filter(r => r.liveMove && r.net < 0).length };
@@ -91,9 +93,10 @@ export default function WhaleBoard({ isMobile }) {
         const w = balOf.get(r.a.toLowerCase()) || {};
         return {
           a: r.a, bal: w.bal || 0, days: w.days || 0, hue: hue(w.days), net: r.net,
-          activeDays: r.activeDays, sellDays: r.sellDays, runDays: live?.days || 7, firstTs: null,
+          activeDays: r.activeDays, sellDays: r.sellDays, buyDays: r.buyDays, runDays: live?.days || 7, firstTs: null,
           liveMove: !!r.live, lastLabel: r.agoBlocks != null ? agoMs(r.agoBlocks * 12000) : "",
           reducing: r.net < 0 && r.sellDays >= 2,
+          accumulating: r.net > 0 && (r.buyDays || 0) >= 2,
         };
       });
       return { source: "live", rows, sellers: rows.filter(r => r.net < 0).length, sellingNow: rows.filter(r => r.liveMove && r.net < 0).length };
@@ -138,7 +141,7 @@ export default function WhaleBoard({ isMobile }) {
   const baseHue = (() => { const ds = baseLive.map(w => baseBalOf.get(w.a.toLowerCase())?.days || 0); const mn = Math.min(...ds, 0), mx = Math.max(...ds, 1); return d => ageRamp(mx > mn ? ((d || 0) - mn) / (mx - mn) : 0.5).hex; })();
   const baseRows = baseLive.map(w => {
     const b = baseBalOf.get(w.a.toLowerCase()) || {};
-    return { a: w.a, chain: "base", bal: b.bal || 0, days: b.days || 0, net: w.net, hue: baseHue(b.days), runDays: live?.days || 7, sellDays: w.sellDays || 0, activeDays: w.activeDays || 1, reducing: w.net < 0 && (w.sellDays || 0) >= 2, liveMove: !!w.live, lastLabel: w.live ? "now" : "7d" };
+    return { a: w.a, chain: "base", bal: b.bal || 0, days: b.days || 0, net: w.net, hue: baseHue(b.days), runDays: live?.days || 7, sellDays: w.sellDays || 0, buyDays: w.buyDays || 0, activeDays: w.activeDays || 1, reducing: w.net < 0 && (w.sellDays || 0) >= 2, accumulating: w.net > 0 && (w.buyDays || 0) >= 2, liveMove: !!w.live, lastLabel: w.live ? "now" : "7d" };
   });
   const altRows = solRows.length + baseRows.length;
   if (whales === false && !camps?.wallets?.length && !altRows) return <div style={{ textAlign: "center", fontFamily: SANS, color: "#94a3b8", padding: 60 }}>Whale data is being rebuilt — check back after the next on-chain refresh.</div>;
@@ -264,6 +267,11 @@ export default function WhaleBoard({ isMobile }) {
               {c.reducing && (
                 <div style={{ marginTop: 3, fontFamily: MONO, fontSize: 9.5, fontWeight: 700, color: "#fbbf24", letterSpacing: "0.04em" }}>
                   ◱ REDUCING · {c.sellDays}d
+                </div>
+              )}
+              {c.accumulating && (
+                <div style={{ marginTop: 3, fontFamily: MONO, fontSize: 9.5, fontWeight: 700, color: "#4ade80", letterSpacing: "0.04em" }}>
+                  ◲ ACCUMULATING · {c.buyDays}d
                 </div>
               )}
             </button>

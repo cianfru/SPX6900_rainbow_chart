@@ -56,11 +56,11 @@ export function aggregateWindow(transfers, watched, latestBlock, opts = {}) {
   const out = [];
   for (const [a, s] of stat) {
     if (Math.abs(s.net) < 1) continue;                     // net-flat over the window → not earmarked
-    let activeDays = 0, sellDays = 0;
-    for (const dn of s.days.values()) if (Math.abs(dn) >= 1) { activeDays++; if (dn < 0) sellDays++; }
+    let activeDays = 0, sellDays = 0, buyDays = 0;
+    for (const dn of s.days.values()) if (Math.abs(dn) >= 1) { activeDays++; if (dn < 0) sellDays++; else buyDays++; }
     out.push({
       a, net: Math.round(s.net), live: Math.round(s.live),
-      activeDays, sellDays, agoBlocks: Math.max(0, latestBlock - s.lastBn),
+      activeDays, sellDays, buyDays, agoBlocks: Math.max(0, latestBlock - s.lastBn),
     });
   }
   out.sort((x, y) => x.net - y.net);                        // biggest NET SELLERS first
