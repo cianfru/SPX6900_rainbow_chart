@@ -51,7 +51,17 @@ function buildScene(el, data, { onlyMovers, isMobile, flowWin = 30, onPick }) {
   const span = Math.max(bounds.width, bounds.depth, 40);
 
   const cam = new THREE.PerspectiveCamera(46, W / VH, 0.1, 2000);
-  cam.position.set(span * 0.30, span * 0.34, span * 0.62);
+  // Fit the whole cohort field to the viewport. On PORTRAIT phones the four cohorts spread wider than
+  // a narrow vertical FOV, so a landscape-tuned front view ran them off the right edge. There we view
+  // the row DIAGONALLY (from a corner) so it recedes across the frame's HEIGHT instead of its width;
+  // landscape keeps the wide front view. Either way pull back to whichever of width/height binds.
+  const portrait = (W / VH) < 1;
+  // lower look-at on portrait tilts the camera down so the floor field fills the frame (less sky).
+  const camTarget = new THREE.Vector3(0, HMAX * (portrait ? 0.14 : 0.34), 0);
+  const vFov = 46 * Math.PI / 180, hFov = 2 * Math.atan(Math.tan(vFov / 2) * (W / VH));
+  const dirV = (portrait ? new THREE.Vector3(0.6, 0.98, 0.6) : new THREE.Vector3(0.42, 0.52, 0.86)).normalize();
+  const fitDist = Math.max((span * (portrait ? 0.5 : 0.64)) / Math.tan(hFov / 2), Math.max(span * 0.42, HMAX * 0.9) / Math.tan(vFov / 2)) * 1.05;
+  cam.position.copy(dirV.multiplyScalar(fitDist).add(camTarget));
   const renderer = new THREE.WebGLRenderer({ antialias: true });
   renderer.setPixelRatio(Math.min(devicePixelRatio, 2)); renderer.setSize(W, VH);
   el.appendChild(renderer.domElement);
@@ -191,9 +201,9 @@ function buildScene(el, data, { onlyMovers, isMobile, flowWin = 30, onPick }) {
   el.appendChild(tip);
 
   const controls = new OrbitControls(cam, renderer.domElement);
-  controls.target.set(0, HMAX * 0.32, 0);
+  controls.target.copy(camTarget);
   controls.enableDamping = true; controls.dampingFactor = 0.08;
-  controls.minDistance = 14; controls.maxDistance = span * 2.6; controls.maxPolarAngle = Math.PI * 0.49;
+  controls.minDistance = 14; controls.maxDistance = Math.max(span * 2.6, fitDist * 1.25); controls.maxPolarAngle = Math.PI * 0.49;
   controls.autoRotate = true; controls.autoRotateSpeed = 0.6;
   const stopSpin = () => { controls.autoRotate = false; };
   const ray = new THREE.Raycaster(), mouse = new THREE.Vector2();
@@ -443,7 +453,7 @@ function Watcher({ isMobile }) {
           </div>
         </div>
       ) : (
-        <div ref={host} style={{ position: "relative", width: "100%", height: isMobile ? "min(66vh, 640px)" : "min(80vh, 920px)", minHeight: isMobile ? 380 : 460, borderRadius: 12, overflow: "hidden", background: "#0a0e1c", cursor: "grab" }} />
+        <div ref={host} style={{ position: "relative", width: "100%", height: isMobile ? "min(52vh, 470px)" : "min(80vh, 920px)", minHeight: isMobile ? 340 : 460, borderRadius: 12, overflow: "hidden", background: "#0a0e1c", cursor: "grab" }} />
       )}
 
       {selWhale && (
