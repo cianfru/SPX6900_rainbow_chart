@@ -192,6 +192,16 @@ export function replayFifo(transfers, priceAt, sampleTs, opts = {}) {
   };
 
   const rows = [];
+  // URPD OVER TIME setup: one fixed price grid from the full range of acquisition prices (a cheap
+  // pre-pass over the transfers), then a per-week slice binned into it. `stride` keeps it ~weekly
+  // even when the sample grid is daily, so the terrain stays ~150 slices, not ~1,100.
+  let urpdHist = null, uGrid = null;
+  if (opts.collectUrpdHistory) {
+    let gMin = Infinity, gMax = -Infinity;
+    for (const t of tx) { if (t.to && !exclude.has(t.to)) { const pr = priceAt(t.ts); if (pr > 0) { if (pr < gMin) gMin = pr; if (pr > gMax) gMax = pr; } } }
+    if (Number.isFinite(gMin) && gMax > 0) { uGrid = urpdGrid(gMin, gMax, opts.urpdHistBuckets ?? 40); urpdHist = []; }
+  }
+  const uStride = Math.max(1, opts.urpdHistStride ?? 1);
   // per-sample-window spend accumulators (SOPR + NRPL + dormancy) and the running total
   // of coin-days destroyed (for liveliness, which is cumulative by definition).
   let p = 0, winVal = 0, winCost = 0, winProfit = 0, winLoss = 0, winCDD = 0, winVol = 0, cumCDD = 0;
@@ -241,6 +251,15 @@ export function replayFifo(transfers, priceAt, sampleTs, opts = {}) {
     cumCDD += winCDD;
     row.liveliness = (cumCDD + row.coinDays) > EPS ? +(cumCDD / (cumCDD + row.coinDays)).toFixed(4) : null;
     rows.push(row);
+    // URPD-over-time slice: bin the current held lots into the fixed grid at ~weekly stride (always
+    // include the final sample so the terrain's leading edge is today).
+    if (urpdHist) {
+      const idx = rows.length - 1;
+      if (idx % uStride === 0 || sTs === lastTs) {
+        const { pct } = binHeldSupply(wallets, uGrid);
+        urpdHist.push({ d: iso(sTs), spot: +(priceAt(sTs) ?? 0).toFixed(7), pct });
+      }
+    }
     // capture the balance map the first time we reach each lookback checkpoint
     for (const c of checkpoints) {
       if (!c.snap && sTs >= c.target) { const m = new Map(); for (const [a, e] of wallets) if (e.bal > EPS) m.set(a, e.bal); c.snap = m; }
@@ -296,7 +315,7 @@ export function replayFifo(transfers, priceAt, sampleTs, opts = {}) {
 
   // URPD (cost-basis distribution) is a CURRENT-STATE histogram — compute it for the
   // final wallet state only, returned alongside the rows when requested.
-  if (opts.collectUrpd || opts.collectWhales) {
+  if (opts.collectUrpd || opts.collectWhales || opts.collectUrpdHistory) {
     const out = { rows };
     if (opts.collectUrpd) {
       const s = priceAt(sampleTs.at(-1)), d = iso(sampleTs.at(-1));
@@ -307,6 +326,10 @@ export function replayFifo(transfers, priceAt, sampleTs, opts = {}) {
       out.urpd.bucketsFine = computeUrpd(wallets, s, d, opts.urpdFine ?? 160).buckets;
     }
     if (opts.collectWhales) out.whales = { updated: iso(lastTs), spot: priceAt(lastTs) ?? 0, lookback: checkpoints.map(c => c.d), wallets: buildWhales() };
+    if (urpdHist) out.urpdHistory = {
+      updated: iso(lastTs), pMin: +Math.exp(uGrid.loLog).toFixed(7), pMax: +Math.exp(uGrid.hiLog).toFixed(7),
+      nBuckets: uGrid.nBuckets, edges: uGrid.edges, weeks: urpdHist,
+    };
     return out;
   }
   return rows;
@@ -360,6 +383,32 @@ export function computeUrpd(wallets, spot, updated, nBuckets = 42) {
     };
   });
   return { spot: spot != null ? +spot.toFixed(7) : 0, updated, held: +held.toFixed(2), ageBands: ["0-1m", "1-3m", "3-6m", "6-12m", "1y+"], buckets };
+}
+
+// URPD OVER TIME — a cost-basis histogram per week on a SINGLE FIXED price grid, so the weekly
+// slices stack into a coherent terrain (price × time × supply). computeUrpd re-derives its price
+// range per call, which is right for a one-off histogram but wrong for a surface (every week would
+// sit on a different x-axis). Here the grid is built ONCE from the full range of acquisition prices,
+// then every emitted week bins its currently-held lots into that same grid. Exported for unit tests.
+export function urpdGrid(pMin, pMax, nBuckets) {
+  const loLog = Math.log(pMin), hiLog = Math.log(pMax > pMin ? pMax : pMin * 1.0001);
+  const span = (hiLog - loLog) || 1;
+  const edges = Array.from({ length: nBuckets + 1 }, (_, k) => +Math.exp(loLog + span * k / nBuckets).toFixed(7));
+  return { loLog, hiLog, span, nBuckets, edges };
+}
+export function binHeldSupply(wallets, grid) {
+  const b = Array.from({ length: grid.nBuckets }, () => 0);
+  let held = 0;
+  for (const e of wallets.values()) {
+    if (e.bal <= EPS) continue;
+    for (let i = e.head; i < e.q.length; i++) {
+      const lot = e.q[i]; if (!lot || lot.qty <= EPS || !(lot.price > 0)) continue;
+      let k = Math.floor(((Math.log(lot.price) - grid.loLog) / grid.span) * grid.nBuckets);
+      if (k < 0) k = 0; if (k >= grid.nBuckets) k = grid.nBuckets - 1;
+      b[k] += lot.qty; held += lot.qty;
+    }
+  }
+  return { held: +held.toFixed(2), pct: held > 0 ? b.map(q => +(100 * q / held).toFixed(3)) : b };
 }
 
 function snapshot(wallets, sTs, spot, thr) {
@@ -498,7 +547,8 @@ async function main() {
   try { prevResidents = (JSON.parse(await readFile(whalesPath, "utf8")).wallets || []).map(w => w.a); }
   catch { /* first run */ }
 
-  const { rows, urpd, whales } = replayFifo(transfers, priceAt, grid, { thresholdDays: Number(args.threshold ?? 90), collectUrpd: true, urpdBuckets: Number(args.buckets ?? 72), collectWhales: true,
+  const { rows, urpd, whales, urpdHistory } = replayFifo(transfers, priceAt, grid, { thresholdDays: Number(args.threshold ?? 90), collectUrpd: true, urpdBuckets: Number(args.buckets ?? 72), collectWhales: true,
+    collectUrpdHistory: true, urpdHistBuckets: Number(args.urpdhist_buckets ?? 40), urpdHistStride: args.daily ? 7 : 1,
     whaleTop: Number(args.whales_top ?? 8000),
     minTokens: Number(args.whale_min ?? 5000),
     minDays: Number(args.whale_days ?? 90),
@@ -512,6 +562,12 @@ async function main() {
   // Whale watcher companion (top current holders + how much they've added/shed).
   const whalesOut = whalesPath;
   await writeFile(whalesOut, JSON.stringify(whales));
+  // URPD-over-time companion (weekly cost-basis slices on one fixed grid → the 3D terrain).
+  if (urpdHistory) {
+    const uhOut = out.replace(/[^/]+$/, "urpd-history.json");
+    await writeFile(uhOut, JSON.stringify(urpdHistory));
+    console.log(`Wrote ${uhOut}: URPD history ${urpdHistory.weeks.length} slices × ${urpdHistory.nBuckets} buckets · $${urpdHistory.pMin}–$${urpdHistory.pMax}`);
+  }
   const c = clean.at(-1);
   console.log(`Wrote ${out}: ${clean.length} rows. Latest ${c.d}: rp $${c.rp} · mvrv ${c.mvrv}× · sip ${c.sip}% · sopr ${c.sopr} · holders ${c.holders} · top100 ${c.top100}% · age ${c.age.join("/")}`);
   console.log(`Wrote ${urpdOut}: URPD ${urpd.buckets.length} buckets · held ${urpd.held} · spot $${urpd.spot}`);

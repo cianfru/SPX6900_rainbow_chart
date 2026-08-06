@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { replayFifo, gini, ageBand, makePriceAt, mondays, computeUrpd } from "../scripts/build-onchain-local.mjs";
+import { replayFifo, gini, ageBand, makePriceAt, mondays, computeUrpd, urpdGrid, binHeldSupply } from "../scripts/build-onchain-local.mjs";
 
 const DAY = 86400000;
 const D0 = Date.UTC(2024, 0, 1);
@@ -111,6 +111,40 @@ test("URPD splits each cost-basis bucket by holding age (same price, different a
   near(age.reduce((s, x) => s + x, 0), bkt[0].pct);  // age split sums to the bucket total
   near(age[0], 50); near(age[4], 50);                // 50% fresh (0-1m) + 50% old (1y+)
   near(age[1] + age[2] + age[3], 0);                 // nothing in the middle bands
+});
+
+test("urpdGrid + binHeldSupply: a fixed log grid bins held supply to % (sums to 100)", () => {
+  const g = urpdGrid(0.1, 10, 40);            // 2 decades, 40 log buckets
+  assert.equal(g.edges.length, 41);
+  near(g.edges[0], 0.1); near(g.edges[40], 10);
+  // three lots at different prices → shares of held supply, summing to 100
+  const wallets = new Map([["w", { bal: 400, head: 0, q: [
+    { ts: 0, price: 0.2, qty: 100 }, { ts: 0, price: 1, qty: 100 }, { ts: 0, price: 5, qty: 200 },
+  ] }]]);
+  const { held, pct } = binHeldSupply(wallets, g);
+  near(held, 400);
+  near(pct.reduce((s, x) => s + x, 0), 100);
+  near(pct[Math.floor(((Math.log(5) - g.loLog) / g.span) * 40)], 50); // the $5 lot = 200/400 = 50%
+});
+
+test("collectUrpdHistory emits fixed-grid weekly slices with a today edge", () => {
+  // buys at $1 then $4, sampled at two weeks; grid spans the acquisition range.
+  const tx = [
+    { from: ZERO, to: "w", amt: 100, ts: d(1) },   // priced at $1
+    { from: ZERO, to: "w", amt: 100, ts: d(9) },   // priced at $4
+  ];
+  const price = makePriceAt([[d(0), 1], [d(8), 4]]);
+  const { urpdHistory } = replayFifo(tx, price, [d(7), d(14)], { collectUrpdHistory: true, urpdHistBuckets: 20 });
+  assert.ok(urpdHistory, "history emitted");
+  assert.equal(urpdHistory.nBuckets, 20);
+  assert.equal(urpdHistory.weeks.length, 2);
+  near(urpdHistory.pMin, 1); near(urpdHistory.pMax, 4);
+  // week 1 holds only the $1 lot (100% in one bucket); week 2 holds both ($1 + $4, 50/50)
+  near(urpdHistory.weeks[0].pct.reduce((s, x) => s + x, 0), 100);
+  near(urpdHistory.weeks[1].pct.reduce((s, x) => s + x, 0), 100);
+  assert.equal(urpdHistory.weeks[0].pct.filter(x => x > 0).length, 1);
+  assert.equal(urpdHistory.weeks[1].pct.filter(x => x > 0).length, 2);
+  assert.equal(urpdHistory.weeks.at(-1).d, "2024-01-15"); // today edge = last sample
 });
 
 test("gini, price forward-fill, and the Monday grid", () => {
