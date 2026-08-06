@@ -615,9 +615,17 @@
     inhabitants line is basically whale-cohort-history (total ≥100k per week); the TVL line needs the timeline×price
     join (new, but cheap — a build step like the others). A growing-inhabitants / rising-TVL-through-drawdown story is
     exactly the "adoption decoupled from price" narrative the account already leans on.
-  - Build: a `build-city-tvl.mjs` (timeline × price-history → public/city-tvl.json weekly TVL) + surface both stats on
-    the SPX City page header (current + Δw / Δm) + a line chart (reuse the recharts chart primitives). Register the new
-    feed in audit-feeds. All data already reconstructed; no new pull.
+  - **⭐ DAILY, not weekly (owner, 2026-08-06): "the chart could also be daily given we compute it daily."** Right — the
+    on-chain pipeline runs DAILY, so prefer daily granularity. The weekly spx-timeline is only one option; the cleaner
+    daily source is the **FIFO engine itself** (`build-onchain-local.mjs`) — `onchain.json` is ALREADY a daily series
+    (1087 rows, launch→now). Extend the engine to emit, per daily sample, the **≥100k inhabitant count** (it already
+    holds every wallet's balance at each sample — the whale count is one more reduction, like the age bands) and the
+    **daily TVL** (Σ held balance × that day's price), so both series are daily and reconcile exactly with whales.json
+    (644) at the leading edge. That's better than the weekly timeline join for granularity AND consistency.
+  - Build: extend `build-onchain-local.mjs` to emit daily `inhabitants` + `tvl` into onchain.json (or a small companion
+    `public/city-tvl.json`), riding the same daily onchain-dune run — no new pull, no OOM risk (it's a per-sample
+    reduction, not a re-stream). Surface both stats on the SPX City header (current + Δw / Δm) + a daily line chart
+    (recharts). Register any new feed in audit-feeds.
 
 - **🔲 OTHER 3D CANDIDATES PROPOSED (owner liked the set, 2026-07-27) — the test is THREE genuine dims (two axes +
   a magnitude); single series/ratios stay 2D (rainbow, MVRV, NUPL, SOPR, composite — a third axis adds occlusion
