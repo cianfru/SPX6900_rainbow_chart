@@ -35,29 +35,34 @@ export function whaleMosaicStats() {
   const dust = r => Math.max(1000, r.bal * 0.005);
   let buy = 0, sell = 0, flat = 0;
   for (const r of rows) { const d = dust(r); if (r.net > d) buy++; else if (r.net < -d) sell++; else flat++; }
-  rows.sort((a, b) => b.net - a.net);   // buyers (green) → flat → sellers (red)
-  return (_cache = { rows, buy, sell, flat, total: rows.length, updated: eth?.updated });
+  // The mosaic shows the wallets that MOVED, biggest buyer → biggest seller, so it reads as a clean
+  // green→red gradient. Flat wallets (the quiet majority) are counted in the header, not drawn as a
+  // grey block that swamps the colour. `movers` is the grid; `total`/buy/sell/flat feed the readout.
+  const movers = rows.filter(r => Math.abs(r.net) >= dust(r)).sort((a, b) => b.net - a.net);
+  return (_cache = { movers, buy, sell, flat, total: rows.length, updated: eth?.updated });
 }
 
 export function whaleMosaicSvg(stats, opts = {}) {
-  const { rows, buy, sell, flat, total } = stats;
+  const { movers, buy, sell, flat, total } = stats;
   const W = opts.W ?? 1200, H = opts.H ?? 1200;             // a mosaic reads best square
   const mX = 60, top = Math.round(H * 0.175), bottom = 62;
   const PW = W - mX * 2, PH = H - top - bottom;
-  // pack `total` squares into PW×PH: pick the cell size that fits both dimensions.
-  let cell = Math.max(5, Math.floor(Math.sqrt((PW * PH) / total)));
-  let cols = Math.max(1, Math.floor(PW / cell)), rowsN = Math.ceil(total / cols);
-  while (rowsN * cell > PH && cell > 5) { cell--; cols = Math.floor(PW / cell); rowsN = Math.ceil(total / cols); }
-  const gap = Math.max(1, Math.round(cell * 0.13)), sq = cell - gap;
-  const gridW = cols * cell - gap, gridH = rowsN * cell - gap;
+  const n = Math.max(1, movers.length);
+  // pack the movers into PW×PH: fewer movers → bigger squares (up to a cap so they don't get silly).
+  let cell = Math.min(130, Math.max(14, Math.floor(Math.sqrt((PW * PH) / n))));
+  let cols = Math.max(1, Math.floor(PW / cell)), rowsN = Math.ceil(n / cols);
+  while (rowsN * cell > PH && cell > 8) { cell--; cols = Math.floor(PW / cell); rowsN = Math.ceil(n / cols); }
+  const gap = Math.max(2, Math.round(cell * 0.16)), sq = cell - gap;
+  const gridW = Math.min(cols, n) * cell - gap, gridH = rowsN * cell - gap;
   const ox = mX + (PW - gridW) / 2, oy = top + Math.max(0, (PH - gridH) / 2);
-  const rx = Math.min(3, sq * 0.2).toFixed(1);
+  const rx = Math.min(4, sq * 0.2).toFixed(1);
 
   let cells = "";
-  rows.forEach((r, i) => {
+  movers.forEach((r, i) => {
     const x = ox + (i % cols) * cell, y = oy + Math.floor(i / cols) * cell;
     cells += `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${sq}" height="${sq}" rx="${rx}" fill="${flowColor(r.net, r.bal)}"/>`;
   });
+  if (!movers.length) cells = `<text x="${W / 2}" y="${top + PH / 2}" fill="#5b6675" font-size="26" text-anchor="middle" font-family="sans-serif">no whale moved a coin in 30 days — all holding</text>`;
 
   const cW = W < 1100 ? 0.86 : 1;                            // scale header type down on the smaller square
   return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
@@ -70,7 +75,7 @@ ${brandStripe(H)}
 <text x="${mX + Math.round(300 * cW)}" y="${Math.round(166 * cW)}" fill="#f43f5e" font-size="${Math.round(25 * cW)}" font-weight="800" font-family="sans-serif">${sell} selling</text>
 <text x="${mX + Math.round(500 * cW)}" y="${Math.round(166 * cW)}" fill="#93a3b8" font-size="${Math.round(25 * cW)}" font-weight="800" font-family="sans-serif">${flat.toLocaleString()} flat</text>
 ${cells}
-<text x="${mX}" y="${H - 24}" fill="#8592a6" font-size="18" font-family="sans-serif">${esc("one square per whale · green accumulating · red selling · live across 3 chains · spx6900rainbow.xyz")}</text>
+<text x="${mX}" y="${H - 24}" fill="#8592a6" font-size="18" font-family="sans-serif">${esc("each square is a whale that moved · green accumulating · red selling · the rest are holding · spx6900rainbow.xyz")}</text>
 </svg>`;
 }
 
