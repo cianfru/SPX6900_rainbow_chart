@@ -88,14 +88,30 @@ jobs:
           X_ACCESS_SECRET: ${{ secrets.X_ACCESS_SECRET }}
         run: node scripts/bot/aeon-sale-watch.mjs
 
+      - name: Watch for an AEON fire-sale listing + maybe post
+        if: ${{ !(github.event_name == 'workflow_dispatch' && inputs.probe) }}
+        # A live listing priced below what its rarity sells for → a buy-now card on X. Its own
+        # lane (firesale), one/day, gated on a genuine steal. Same DRY toggle as the sale watcher.
+        env:
+          DRY_RUN: ${{ (github.event_name == 'workflow_dispatch' && inputs.dry_run) && '1' || vars.AEON_SALE_DRY_RUN }}
+          ALCHEMY_KEY: ${{ secrets.ALCHEMY_KEY }}
+          ALCHEMY_NETWORK: ${{ vars.ALCHEMY_NETWORK }}
+          AEON_CONTRACT: ${{ vars.AEON_CONTRACT }}
+          X_API_KEY: ${{ secrets.X_API_KEY }}
+          X_API_SECRET: ${{ secrets.X_API_SECRET }}
+          X_ACCESS_TOKEN: ${{ secrets.X_ACCESS_TOKEN }}
+          X_ACCESS_SECRET: ${{ secrets.X_ACCESS_SECRET }}
+        run: node scripts/bot/aeon-firesale-watch.mjs
+
       - name: Commit bank + sale + post state if changed
         run: |
-          # aeon-sale-state.json remembers which sales already fired; post-state.json
-          # carries this lane's once-a-day record. Both are deploy-ignored.
-          if [[ -n "$(git status --porcelain public/aeon-sale-state.json public/post-state.json public/aeon-live-sales.json)" ]]; then
+          # aeon-sale-state.json / aeon-firesale-state.json remember what already fired;
+          # aeon-firesale.json is the control-panel candidate; post-state.json carries each
+          # lane's once-a-day record. All deploy-ignored (control-panel reads via raw).
+          if [[ -n "$(git status --porcelain public/aeon-sale-state.json public/aeon-firesale-state.json public/aeon-firesale.json public/post-state.json public/aeon-live-sales.json)" ]]; then
             git config user.name "github-actions[bot]"
             git config user.email "github-actions[bot]@users.noreply.github.com"
-            git add public/aeon-sale-state.json public/post-state.json public/aeon-live-sales.json
+            git add public/aeon-sale-state.json public/aeon-firesale-state.json public/aeon-firesale.json public/post-state.json public/aeon-live-sales.json
             git commit -m "chore: aeon sale state $(date -u +%FT%TZ)"
             git push || { for i in 1 2 3 4 5; do echo "push rejected, rebasing (attempt $i)"; git pull --rebase --autostash origin "${GITHUB_REF_NAME:-main}" && git push && break; sleep $((i*3)); done; }
           else
