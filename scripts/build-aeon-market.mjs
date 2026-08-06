@@ -98,21 +98,31 @@ function spxValuation(salesDaily) {
   }
   if (saleSeries.length < 20) return null;
 
-  // floorSeries — daily FLOOR in SPX (7-day median, de-spiked). A different question from
-  // saleSeries (cheapest entry vs typical trade), so both are emitted rather than merged;
-  // what matters is that ONE place computes them, off one SPX source, with one convention.
+  const spxDates = [...spx.keys()].sort();
+  const spxNow = spx.get(spxDates[spxDates.length - 1]);
+  const lastDaily = [...salesDaily].reverse().find(r => r.floorEth > 0 && r.floorUsd > 0);
+  const ethUsd = lastDaily ? lastDaily.floorUsd / lastDaily.floorEth : null;
+
+  // floorSeries — daily FLOOR in SPX (7-day median, de-spiked). A different question from saleSeries
+  // (cheapest entry vs typical trade), so both are emitted rather than merged. History comes from the
+  // sales-derived USD floor (2y deep), but AEON sells rarely so that tail freezes between trades —
+  // EXTEND it with the daily Alchemy LISTING floor (aeon-history.json, floor in ETH) for every day
+  // past the last sale, priced with the most recent ETH/USD (slow-moving). So the series stays
+  // daily-fresh no matter how sparse sales are, which is what makes the chart follow the floor live.
   const dailyFloor = salesDaily.filter(r => r.floorUsd > 0).map(r => ({ d: r.d, usd: r.floorUsd }));
+  const lastFloorDay = dailyFloor.length ? dailyFloor[dailyFloor.length - 1].d : "0000-00-00";
+  if (ethUsd) {
+    try {
+      for (const r of JSON.parse(readFileSync("public/aeon-history.json", "utf8")))
+        if (r?.d && r.d > lastFloorDay && r.floor > 0) dailyFloor.push({ d: r.d, usd: r.floor * ethUsd });
+    } catch { /* listing-floor history optional — the sales-only tail is the fallback */ }
+  }
   const floorSeries = [];
   dailyFloor.forEach((r, i) => {
     const p = spx.get(r.d); if (!(p > 0)) return;
     const roll = median(dailyFloor.slice(Math.max(0, i - 6), i + 1).map(x => x.usd));
     if (roll > 0) floorSeries.push([r.d, Math.round(roll / p)]);
   });
-
-  const spxDates = [...spx.keys()].sort();
-  const spxNow = spx.get(spxDates[spxDates.length - 1]);
-  const lastDaily = [...salesDaily].reverse().find(r => r.floorEth > 0 && r.floorUsd > 0);
-  const ethUsd = lastDaily ? lastDaily.floorUsd / lastDaily.floorEth : null;
   const ladder = saleSeries.map(x => x[1]).sort((a, b) => a - b);
   const ratioNow = saleSeries[saleSeries.length - 1][1];
   return {
@@ -154,7 +164,9 @@ function main() {
     try { const f = JSON.parse(readFileSync("public/aeon.json", "utf8")).floor; if (f > 0) return f; } catch { /* next */ }
     try { return JSON.parse(readFileSync("public/aeon-sales.json", "utf8")).current?.floorEth; } catch { return null; }
   })();
-  const now = sales.at(-1).t;
+  // TODAY, not the last sale — AEON sells rarely, so keying the run off the last trade froze the whole
+  // file (and its `updated` date) between sales. Windows below are relative to now = actual today.
+  const now = Date.now();
 
   // per-token sale chain → current owner's cost basis (last sale where they were buyer)
   const byToken = new Map();
