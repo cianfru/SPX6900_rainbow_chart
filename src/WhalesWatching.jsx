@@ -281,6 +281,7 @@ function Watcher({ isMobile }) {
   const [data, setData] = useState(null);     // null=loading, false=failed, object=ok
   const [onlyMovers, setOnlyMovers] = useState(false);
   const [flowWin, setFlowWin] = useState(30); // net-flow lookback the beams read
+  const [square, setSquare] = useState(false); // 1:1 self-branded frame → screenshot straight to X
 
   useEffect(() => { let off = false; loadWhales().then(d => { if (!off) setData(d ?? false); }); return () => { off = true; }; }, []);
 
@@ -296,7 +297,7 @@ function Watcher({ isMobile }) {
     try { cleanup = buildScene(host.current, data, { onlyMovers, isMobile, flowWin }); }
     catch (e) { console.error("WhalesWatching:", e); }
     return () => cleanup();
-  }, [data, onlyMovers, isMobile, flowWin]);
+  }, [data, onlyMovers, isMobile, flowWin, square]);
 
   const total = data && data.wallets ? data.wallets.filter(w => w.bal >= 1e5).length : 0;
 
@@ -305,6 +306,7 @@ function Watcher({ isMobile }) {
       <div style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "center", justifyContent: "space-between", margin: "6px 0 12px" }}>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "center" }}>
           <Toggle on={onlyMovers} onClick={() => setOnlyMovers(v => !v)}>Only movers</Toggle>
+          <Toggle on={square} onClick={() => setSquare(v => !v)}>1:1 frame</Toggle>
           {windows.length > 1 && (
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <span style={{ fontFamily: MONO, fontSize: 11, color: "#64748b", textTransform: "uppercase", letterSpacing: 0.5 }}>flow over</span>
@@ -331,7 +333,30 @@ function Watcher({ isMobile }) {
           Whale data is being rebuilt — check back after the next on-chain refresh.
         </div>
       )}
-      <div ref={host} style={{ position: "relative", width: "100%", height: isMobile ? "min(66vh, 640px)" : "min(80vh, 920px)", minHeight: isMobile ? 380 : 460, borderRadius: 12, overflow: "hidden", background: "#0a0e1c", cursor: "grab" }} />
+      {square ? (
+        // a self-contained 1:1 card — title + live count + wordmark baked in, so a screenshot of
+        // just this card drops straight into a tweet with nothing to crop.
+        <div style={{
+          width: "min(94vw, 640px)", aspectRatio: "1 / 1", margin: "0 auto", display: "flex", flexDirection: "column",
+          borderRadius: 14, overflow: "hidden", border: "1px solid rgba(94,234,212,0.35)", background: "#0a0e1c",
+          boxShadow: "0 16px 50px rgba(0,0,0,0.5)",
+        }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "11px 15px", borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <span style={{ fontSize: 18 }}>🐋</span>
+              <span style={{ fontFamily: SANS, fontWeight: 800, fontSize: 15.5, color: "#e6edf7", letterSpacing: 0.2 }}>Whales Watching</span>
+            </div>
+            <span style={{ fontFamily: MONO, fontSize: 11.5, fontWeight: 700, color: "#5eead4" }}>{total.toLocaleString()} whales ≥100k</span>
+          </div>
+          <div ref={host} style={{ position: "relative", flex: "1 1 auto", minHeight: 0, background: "#0a0e1c", cursor: "grab" }} />
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "9px 15px", borderTop: "1px solid rgba(255,255,255,0.08)" }}>
+            <span style={{ fontFamily: MONO, fontSize: 10.5, color: "#7c8a9e" }}>{windows.find(w => w.d === flowWin)?.label || "30 days"} flow · self-custody · not a signal</span>
+            <span style={{ fontFamily: MONO, fontSize: 12, fontWeight: 700, color: "#94a3b8", letterSpacing: 0.3 }}>spx6900rainbow.xyz</span>
+          </div>
+        </div>
+      ) : (
+        <div ref={host} style={{ position: "relative", width: "100%", height: isMobile ? "min(66vh, 640px)" : "min(80vh, 920px)", minHeight: isMobile ? 380 : 460, borderRadius: 12, overflow: "hidden", background: "#0a0e1c", cursor: "grab" }} />
+      )}
 
       <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4,1fr)", gap: 12, margin: "14px 0 6px" }}>
         {GUIDE.map((g, i) => (
