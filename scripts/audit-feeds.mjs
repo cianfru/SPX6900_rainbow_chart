@@ -66,6 +66,7 @@ export const FEEDS = [
     allowConstant: ["whaleN"],
     soft: ["sopr", "cexBal", "lpBal", "cexVenues", "liqEx"] },
   { file: "urpd.json", cadence: 9, by: "onchain-dune.yml", what: "the cost-basis histogram" },
+  { file: "urpd-history.json", cadence: 9, by: "onchain-dune.yml", what: "weekly cost-basis slices (the URPD terrain 3D)" },
   // A FEED, not state: Whale City reads it and it is refreshed by the same daily pipeline. Audited
   // for freshness on purpose — if the pipeline stops, the city silently shows a stale population
   // rather than nothing, which is the failure mode this audit exists to catch. Its rows live under
