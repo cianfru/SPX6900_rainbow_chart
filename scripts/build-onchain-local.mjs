@@ -294,18 +294,21 @@ export function replayFifo(transfers, priceAt, sampleTs, opts = {}) {
     // fault rather than as anything true.
     const MIN_TOKENS = Number(opts.minTokens ?? 5000);
     const MIN_DAYS = Number(opts.minDays ?? 90);
+    const WATCH_FLOOR = Number(opts.watchFloor ?? 100000);   // ≥100k whales ship at ANY tenure
     const KEEP = 0.8;
     const resident = new Set(opts.previousResidents || []);
     const CAP = Number(opts.whaleTop ?? 8000);   // a backstop against pathological data, not a rank
 
-    const qualifies = w => {
-      const days = Number.isFinite(w.oldest) ? Math.round((lastTs - w.oldest) / DAY) : 0;
-      if (days < MIN_DAYS) return false;
-      return w.bal >= MIN_TOKENS || (resident.has(w.a) && w.bal >= MIN_TOKENS * KEEP);
-    };
+    const daysOf = w => Number.isFinite(w.oldest) ? Math.round((lastTs - w.oldest) / DAY) : 0;
+    // CITY RESIDENCY: a real position (≥MIN_TOKENS) held for a real time (≥MIN_DAYS), with hysteresis.
+    const isResident = w => daysOf(w) >= MIN_DAYS && (w.bal >= MIN_TOKENS || (resident.has(w.a) && w.bal >= MIN_TOKENS * KEEP));
+    // A wallet is emitted if it's EITHER a city resident OR a ≥100k whale of any tenure — the Whales
+    // Watching monitor wants fresh whales too (to read flows in/out of the ecosystem), so it drops the
+    // 90-day bar the city keeps. `res` records which: the city filters res:true, the watcher takes ≥100k.
+    const qualifies = w => w.bal >= WATCH_FLOOR || isResident(w);
 
     return arr.filter(qualifies).slice(0, CAP).map(w => {
-      const o = { a: w.a, bal: +w.bal.toFixed(2), days: Number.isFinite(w.oldest) ? Math.round((lastTs - w.oldest) / DAY) : 0 };
+      const o = { a: w.a, bal: +w.bal.toFixed(2), days: daysOf(w), res: isResident(w) };
       // delta vs each checkpoint. A wallet absent from the snapshot was empty then, so the
       // delta is its whole balance — a genuinely NEW whale, which is exactly what we want to show.
       for (const c of checkpoints) if (c.snap) o[`d${c.d}`] = +(w.bal - (c.snap.get(w.a) || 0)).toFixed(2);

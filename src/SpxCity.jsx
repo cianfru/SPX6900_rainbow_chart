@@ -154,8 +154,11 @@ export default function SpxCity({ isMobile, preview = false, initialMode = "spx"
         flow: h.f30 || 0,
       }));
     }
-    const ws = whales?.wallets;
-    if (!ws?.length) return null;
+    // The city is its RESIDENTS only. whales.json also carries ≥100k whales of any tenure (for the
+    // Whales Watching monitor), flagged res:false — filter them out here so the city keeps its
+    // 90-day residency rule. `res !== false` keeps older files (no flag) fully populated.
+    const ws = (whales?.wallets || []).filter(w => w.res !== false);
+    if (!ws.length) return null;
     const pool = mode === "both" ? ws.filter(w => aeonBy.has((w.a || "").toLowerCase())) : ws;
     if (!pool.length) return [];
     // Scale within the mode's own population, so a filtered city still uses its full height range
