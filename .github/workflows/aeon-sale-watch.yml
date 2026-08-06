@@ -108,10 +108,16 @@ jobs:
           # aeon-sale-state.json / aeon-firesale-state.json remember what already fired;
           # aeon-firesale.json is the control-panel candidate; post-state.json carries each
           # lane's once-a-day record. All deploy-ignored (control-panel reads via raw).
-          if [[ -n "$(git status --porcelain public/aeon-sale-state.json public/aeon-firesale-state.json public/aeon-firesale.json public/post-state.json public/aeon-live-sales.json)" ]]; then
+          # Some of these only appear once their watcher first fires, so add ONLY the ones
+          # that exist — `git add` aborts (exit 128) on a pathspec that matches no file.
+          present=""
+          for f in public/aeon-sale-state.json public/aeon-firesale-state.json public/aeon-firesale.json public/post-state.json public/aeon-live-sales.json; do
+            [ -e "$f" ] && present="$present $f"
+          done
+          if [[ -n "$present" && -n "$(git status --porcelain -- $present)" ]]; then
             git config user.name "github-actions[bot]"
             git config user.email "github-actions[bot]@users.noreply.github.com"
-            git add public/aeon-sale-state.json public/aeon-firesale-state.json public/aeon-firesale.json public/post-state.json public/aeon-live-sales.json
+            git add -- $present
             git commit -m "chore: aeon sale state $(date -u +%FT%TZ)"
             git push || { for i in 1 2 3 4 5; do echo "push rejected, rebasing (attempt $i)"; git pull --rebase --autostash origin "${GITHUB_REF_NAME:-main}" && git push && break; sleep $((i*3)); done; }
           else
