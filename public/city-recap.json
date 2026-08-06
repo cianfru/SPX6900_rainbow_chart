@@ -11,16 +11,16 @@
     "residents": 4938,
     "residentsThen": 4918,
     "residentsDelta": 20,
-    "heldNow": 587398433,
+    "heldNow": 587455904,
     "heldThen": 585059641,
-    "heldDelta": 2338792,
+    "heldDelta": 2396263,
     "newResidents": 41,
     "departed": 21,
-    "upgraded": 33,
+    "upgraded": 32,
     "downgraded": 4,
     "familyMix": {
-      "masonry": 3060,
-      "concrete": 1791,
+      "masonry": 3061,
+      "concrete": 1790,
       "glass": 87
     },
     "familyMixThen": {
@@ -105,54 +105,54 @@
       {
         "a": "0xdd3d72c53ff982ff59853da71158bf1538b3ceee",
         "short": "0xdd3d…ceee",
-        "bal": 25351,
+        "bal": 24519,
         "days": 651,
-        "rank": 1492,
+        "rank": 1534,
         "family": "concrete",
         "height": 3.9,
         "fromFamily": "masonry",
-        "gained": 7952,
+        "gained": 7120,
         "agedDays": 7,
-        "climbedRanks": 486
-      },
-      {
-        "a": "0x651b2ba365a5293dddc7343b2fbf0e5f8271426b",
-        "short": "0x651b…426b",
-        "bal": 28873,
-        "days": 231,
-        "rank": 1724,
-        "family": "concrete",
-        "height": 3.6,
-        "fromFamily": "masonry",
-        "gained": 20000,
-        "agedDays": 7,
-        "climbedRanks": 2185
+        "climbedRanks": 444
       },
       {
         "a": "0x0dc620b1419778177f302564f8001dc582284167",
         "short": "0x0dc6…4167",
         "bal": 22217,
         "days": 525,
-        "rank": 1763,
+        "rank": 1762,
         "family": "concrete",
         "height": 3.6,
         "fromFamily": "masonry",
         "gained": 1614,
         "agedDays": 7,
-        "climbedRanks": 107
+        "climbedRanks": 108
       },
       {
         "a": "0xc23b2199fd88b071f13f2036f364fddac473b498",
         "short": "0xc23b…b498",
         "bal": 25002,
         "days": 301,
-        "rank": 1847,
+        "rank": 1846,
         "family": "concrete",
         "height": 3.5,
         "fromFamily": "masonry",
         "gained": 0,
         "agedDays": 7,
-        "climbedRanks": -5
+        "climbedRanks": -4
+      },
+      {
+        "a": "0xb32f7a853e03e5dfceb714e514789d76cf681480",
+        "short": "0xb32f…1480",
+        "bal": 27412,
+        "days": 196,
+        "rank": 1848,
+        "family": "concrete",
+        "height": 3.5,
+        "fromFamily": "masonry",
+        "gained": 0,
+        "agedDays": 7,
+        "climbedRanks": -2
       }
     ],
     "topAccumulators": [
@@ -179,12 +179,12 @@
       {
         "a": "0x7c1c4a2cf81d2fc83b89bfd34f4d2c7e90044b32",
         "short": "0x7c1c…4b32",
-        "bal": 310372,
+        "bal": 308644,
         "days": 777,
-        "rank": 223,
+        "rank": 224,
         "family": "concrete",
         "height": 8.1,
-        "gained": 34466
+        "gained": 32738
       },
       {
         "a": "0x765722318d01b6a9f5cbc92e1a55e59735668c7a",
@@ -209,16 +209,6 @@
     ],
     "topClimbers": [
       {
-        "a": "0x651b2ba365a5293dddc7343b2fbf0e5f8271426b",
-        "short": "0x651b…426b",
-        "bal": 28873,
-        "days": 231,
-        "rank": 1724,
-        "family": "concrete",
-        "height": 3.6,
-        "gained": 20000
-      },
-      {
         "a": "0xa3222357a0eccf60c73606170be6c99adecb59b3",
         "short": "0xa322…59b3",
         "bal": 53260,
@@ -237,6 +227,16 @@
         "family": "masonry",
         "height": 2.7,
         "gained": 6246
+      },
+      {
+        "a": "0x651b2ba365a5293dddc7343b2fbf0e5f8271426b",
+        "short": "0x651b…426b",
+        "bal": 16861,
+        "days": 231,
+        "rank": 2506,
+        "family": "masonry",
+        "height": 2.9,
+        "gained": 7988
       },
       {
         "a": "0x439ec01b1ca6107c77f4d7934fcd0a4f25049ba6",
@@ -260,7 +260,7 @@
       }
     ],
     "yearHeldMilestones": 68,
-    "tweet": "🏙 This week in SPX City\n\n41 moved in, 21 moved out — 33 buildings rose a tier as holders grew and aged in.\n\nA rank #894 holder's tower went from brick low-rise to concrete mid-rise. +2.34M SPX now stands across 4,938 residents.\n\nEvery building is a real wallet — reproducible on-chain."
+    "tweet": "🏙 This week in SPX City\n\n41 moved in, 21 moved out — 32 buildings rose a tier as holders grew and aged in.\n\nA rank #894 holder's tower went from brick low-rise to concrete mid-rise. +2.40M SPX now stands across 4,938 residents.\n\nEvery building is a real wallet — reproducible on-chain."
   },
   "monthly": {
     "fromWeek": 151,
@@ -269,16 +269,16 @@
     "residents": 4938,
     "residentsThen": 4932,
     "residentsDelta": 6,
-    "heldNow": 587398433,
+    "heldNow": 587455904,
     "heldThen": 580359758,
-    "heldDelta": 7038675,
+    "heldDelta": 7096146,
     "newResidents": 177,
     "departed": 171,
-    "upgraded": 30,
+    "upgraded": 29,
     "downgraded": 9,
     "familyMix": {
-      "masonry": 3060,
-      "concrete": 1791,
+      "masonry": 3061,
+      "concrete": 1790,
       "glass": 87
     },
     "familyMixThen": {
@@ -457,12 +457,12 @@
       {
         "a": "0x7c706586679af2ba6d1a9fc2da9c6af59883fdd3",
         "short": "0x7c70…fdd3",
-        "bal": 404295,
+        "bal": 404645,
         "days": 686,
         "rank": 183,
         "family": "concrete",
         "height": 8.5,
-        "gained": 144825
+        "gained": 145175
       }
     ],
     "topClimbers": [
@@ -481,7 +481,7 @@
         "short": "0x48ea…8a67",
         "bal": 17983,
         "days": 210,
-        "rank": 2436,
+        "rank": 2435,
         "family": "masonry",
         "height": 3,
         "gained": 12512
@@ -501,7 +501,7 @@
         "short": "0x77d6…afe1",
         "bal": 17829,
         "days": 392,
-        "rank": 2201,
+        "rank": 2200,
         "family": "masonry",
         "height": 3.2,
         "gained": 11074
@@ -511,13 +511,13 @@
         "short": "0x0403…c3f8",
         "bal": 18328,
         "days": 420,
-        "rank": 2139,
+        "rank": 2138,
         "family": "masonry",
         "height": 3.2,
         "gained": 10449
       }
     ],
     "yearHeldMilestones": 234,
-    "tweet": "🏙 This month in SPX City\n\n177 moved in, 171 moved out — 30 buildings rose a tier as holders grew and aged in.\n\nA rank #84 holder's tower went from concrete mid-rise to glass tower. +7.04M SPX now stands across 4,938 residents.\n\nEvery building is a real wallet — reproducible on-chain."
+    "tweet": "🏙 This month in SPX City\n\n177 moved in, 171 moved out — 29 buildings rose a tier as holders grew and aged in.\n\nA rank #84 holder's tower went from concrete mid-rise to glass tower. +7.10M SPX now stands across 4,938 residents.\n\nEvery building is a real wallet — reproducible on-chain."
   }
 }
