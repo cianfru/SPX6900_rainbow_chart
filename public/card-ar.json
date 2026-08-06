@@ -57,7 +57,7 @@
   "concentration": "square",
   "supplyprofit": "square",
   "walletgrowth": "square",
-  "holdersprice": "landscape",
+  "holdersprice": "square",
   "floormodel": "square",
   "valband": "square",
   "altmarket": "square",
