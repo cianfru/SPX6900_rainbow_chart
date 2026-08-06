@@ -93,14 +93,14 @@ jobs:
         # continue-on-error: secondary re-slice of the timeline — can't be allowed to block onchain.json
         continue-on-error: true
         run: node scripts/build-cohort-survival.mjs --in=public/spx-timeline.json --out=public/cohort-survival.json
-      - name: Rebuild whale-cohort history (DAILY counts in each size cohort)
-        # off the raw archive → real per-transfer timestamps, daily membership (finer than the weekly
-        # timeline); feeds the "Whale Counts Over Time" chart. continue-on-error + raised heap (loads +
-        # sorts the full ~2.6M-row archive) so it can't OOM-block the pipeline; weekly seed persists on failure.
+      - name: Rebuild whale-cohort history (WEEKLY counts in each size cohort)
+        # From the lightweight spx-timeline.json (built above), NOT the 2.6M-row archive. The archive
+        # path OOM'd (it loaded + sorted every transfer), so it silently failed under continue-on-error
+        # and left "Whale Counts Over Time" frozen at a stale count while whales.json moved on — the
+        # 644-vs-1026 mismatch. The timeline path is memory-safe AND reconciles EXACTLY to whales.json
+        # (same current-membership counts, same bands), so the chart and the watcher can't drift.
         continue-on-error: true
-        env:
-          NODE_OPTIONS: --max-old-space-size=6144
-        run: node scripts/build-whale-cohorts.mjs --transfers=transfers.csv --out=public/whale-cohort-history.json
+        run: node scripts/build-whale-cohorts.mjs --timeline=public/spx-timeline.json --out=public/whale-cohort-history.json
       - name: Rebuild exit flow (DAILY departures split by profit/loss — who's selling, at what price)
         # straight off the raw archive → exact per-day exit, finer than the weekly timeline
         # continue-on-error: a failure here must never block the core onchain.json commit (weekly seed persists)
