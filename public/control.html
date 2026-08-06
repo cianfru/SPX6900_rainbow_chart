@@ -285,6 +285,14 @@
       <div class="status" id="status">Loading…</div>
       <div class="sched" id="sched"></div>
       <div class="fresh" id="fresh"></div>
+      <div id="vstudio" style="margin:14px 0;padding:12px 14px;border:1px solid #1e293b;border-radius:10px;background:#0b1120">
+        <div style="font-size:13px;font-weight:700;color:#e2e8f0;margin-bottom:9px">🎥 Video studio <span style="font-weight:400;color:#64748b">— renders on your GPU, downloads locally</span></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="vbtn" data-chart="whaleswatching">🐋 Whales orbit</button>
+          <button class="vbtn" data-chart="whaleswatching" data-square="1">◻ Whales orbit · 1:1</button>
+        </div>
+        <div style="font-size:11.5px;color:#64748b;margin-top:9px;line-height:1.5">Opens the scene past the gate with the recorder shown. Orbit to a nice angle, pick 8/12/20s, hit ● Record — the clip downloads when the orbit finishes. MP4 on Chrome/Safari.</div>
+      </div>
       <div class="cityrecap" id="cityRecap"></div>
       <div class="signals" id="signals"></div>
       <div class="agent">
@@ -787,6 +795,18 @@ document.addEventListener("click", e => {
   const g = e.target.closest("[data-goto]");
   if (g) gotoCard(g.dataset.goto);
 });
+// Video studio — same-origin, so setting the gate-bypass + recorder flags here carries into the app
+// tab we open. The recorder itself (client-side MediaRecorder) lives on the chart page behind ?rec=1.
+document.querySelectorAll(".vbtn").forEach(b => b.onclick = () => {
+  try {
+    localStorage.setItem("spx-city-dev2", "1");
+    localStorage.setItem("spx-city-dev2-intro", "1");
+    localStorage.setItem("spx-rec", "1");
+  } catch { /* private mode — the ?rec=1 param still reveals it */ }
+  const sq = b.dataset.square === "1" ? "&sq=1" : "";
+  window.open(`/?chart=${b.dataset.chart}&rec=1${sq}`, "_blank", "noopener");
+});
+
 $("#refresh").onclick = refresh;
 $("#clear").onclick = () => queue(null);
 $("#skiptoday").onclick = skipToday;

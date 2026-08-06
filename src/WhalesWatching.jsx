@@ -4,6 +4,7 @@ import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { CSS2DRenderer, CSS2DObject } from "three/examples/jsm/renderers/CSS2DRenderer.js";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { makeDrs } from "./city-drs.js";
+import { recordCanvas, downloadBlob, recorderSupported } from "./canvas-record.js";
 import { buildCohorts, ageRamp } from "./whale-cohorts.js";
 import { loadWhales } from "./history-data.js";
 import WhaleBoard from "./WhaleBoard.jsx";
@@ -237,6 +238,24 @@ function buildScene(el, data, { onlyMovers, isMobile, flowWin = 30 }) {
     pixelRatio: +renderer.getPixelRatio().toFixed(2), frameMs: drs.frameMs,
   });
 
+  // Owner video export: record one smooth full orbit of the live canvas → downloadable clip, entirely
+  // client-side. Damping + autorotate are paused during the record so the manual azimuth sweep is
+  // exactly one even revolution, then restored. Revealed in the UI only behind ?rec=1.
+  window.__whaleRecord = ({ seconds = 12, fps = 60, onTick } = {}) => {
+    const wasAuto = controls.autoRotate, wasDamp = controls.enableDamping;
+    const startAz = controls.getAzimuthalAngle();
+    controls.autoRotate = false; controls.enableDamping = false;
+    return recordCanvas(renderer.domElement, {
+      seconds, fps,
+      onTick: el => {
+        const e = el < 0.5 ? 2 * el * el : 1 - Math.pow(-2 * el + 2, 2) / 2;   // easeInOutQuad
+        controls.setAzimuthalAngle(startAz + e * Math.PI * 2);
+        controls.update();
+        onTick?.(el);
+      },
+    }).finally(() => { controls.autoRotate = wasAuto; controls.enableDamping = wasDamp; });
+  };
+
   return () => {
     cancelAnimationFrame(raf);
     window.removeEventListener("resize", onResize);
@@ -244,6 +263,7 @@ function buildScene(el, data, { onlyMovers, isMobile, flowWin = 30 }) {
     renderer.domElement.removeEventListener("pointerleave", onLeave);
     renderer.domElement.removeEventListener("pointerdown", stopSpin);
     delete window.__whaleStats;
+    delete window.__whaleRecord;
     controls.dispose();
     disposables.forEach(d => d.dispose?.());
     ownMats.forEach(m => m.dispose?.());
@@ -281,9 +301,43 @@ function Watcher({ isMobile }) {
   const [data, setData] = useState(null);     // null=loading, false=failed, object=ok
   const [onlyMovers, setOnlyMovers] = useState(false);
   const [flowWin, setFlowWin] = useState(30); // net-flow lookback the beams read
-  const [square, setSquare] = useState(false); // 1:1 self-branded frame → screenshot straight to X
+  const [square, setSquare] = useState(() => {   // ?sq=1 (from the control panel) opens straight in 1:1
+    try { return new URLSearchParams(window.location.search).get("sq") === "1"; } catch { return false; }
+  });
+  const [recSecs, setRecSecs] = useState(12);
+  const [rec, setRec] = useState({ state: "idle", pct: 0, msg: "" }); // idle | recording | error
+
+  // Owner-only video export, revealed behind ?rec=1 (or a local flag the control panel sets).
+  const showRec = useState(() => {
+    if (typeof window === "undefined") return false;
+    try {
+      const q = new URLSearchParams(window.location.search).get("rec") === "1";
+      return (q || localStorage.getItem("spx-rec") === "1") && recorderSupported();
+    } catch { return false; }
+  })[0];
 
   useEffect(() => { let off = false; loadWhales().then(d => { if (!off) setData(d ?? false); }); return () => { off = true; }; }, []);
+
+  const doRecord = async () => {
+    if (!window.__whaleRecord || rec.state === "recording") return;
+    setRec({ state: "recording", pct: 0, msg: "" });
+    try {
+      const { blob, ext } = await window.__whaleRecord({ seconds: recSecs, fps: 60, onTick: p => setRec(r => ({ ...r, pct: p })) });
+      downloadBlob(blob, `whales-watching-${(data?.updated || "").slice(0, 10) || "clip"}.${ext}`);
+      setRec({ state: "idle", pct: 0, msg: "" });
+    } catch (e) {
+      setRec({ state: "error", pct: 0, msg: e.message || "recording failed" });
+    }
+  };
+
+  // ?auto=1 → fire one record automatically once the scene has settled (control-panel one-click).
+  useEffect(() => {
+    if (!showRec || !data) return;
+    let cancelled = false;
+    try { if (new URLSearchParams(window.location.search).get("auto") !== "1") return; } catch { return; }
+    const t = setTimeout(() => { if (!cancelled) doRecord(); }, 2800);
+    return () => { cancelled = true; clearTimeout(t); };
+  }, [showRec, data]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const windows = WINDOWS.filter(w => (data?.lookback || [7, 30]).includes(w.d));
   // If the current selection isn't offered by this data, fall back to the longest available.
@@ -307,6 +361,25 @@ function Watcher({ isMobile }) {
         <div style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "center" }}>
           <Toggle on={onlyMovers} onClick={() => setOnlyMovers(v => !v)}>Only movers</Toggle>
           <Toggle on={square} onClick={() => setSquare(v => !v)}>1:1 frame</Toggle>
+          {showRec && (
+            <div style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+              <button onClick={doRecord} disabled={rec.state === "recording"} style={{
+                padding: "6px 12px", borderRadius: 8, cursor: rec.state === "recording" ? "default" : "pointer",
+                fontFamily: SANS, fontSize: 13, fontWeight: 700,
+                background: rec.state === "recording" ? "rgba(251,113,133,0.16)" : "rgba(94,234,212,0.16)",
+                border: `1px solid ${rec.state === "recording" ? "#fb7185" : "#5eead4"}`, color: rec.state === "recording" ? "#fb7185" : "#5eead4",
+              }}>{rec.state === "recording" ? `● Recording ${Math.round(rec.pct * 100)}%` : "🎥 Record"}</button>
+              {rec.state !== "recording" && (
+                <select value={recSecs} onChange={e => setRecSecs(+e.target.value)} style={{
+                  padding: "6px 8px", borderRadius: 8, fontFamily: MONO, fontSize: 12, cursor: "pointer",
+                  background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.14)", color: "#94a3b8",
+                }}>
+                  <option value={8}>8s</option><option value={12}>12s</option><option value={20}>20s</option>
+                </select>
+              )}
+              {rec.state === "error" && <span style={{ fontFamily: MONO, fontSize: 11.5, color: "#fb7185", maxWidth: 220 }}>{rec.msg}</span>}
+            </div>
+          )}
           {windows.length > 1 && (
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <span style={{ fontFamily: MONO, fontSize: 11, color: "#64748b", textTransform: "uppercase", letterSpacing: 0.5 }}>flow over</span>
