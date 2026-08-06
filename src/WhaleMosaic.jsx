@@ -68,18 +68,18 @@ export default function WhaleMosaic({ isMobile }) {
     const dust = r => Math.max(1000, r.bal * 0.005);
     let buying = 0, selling = 0, flat = 0;
     for (const r of rows) { const d = dust(r); if (r.net > d) buying++; else if (r.net < -d) selling++; else flat++; }
-    // GLANCE view: draw only the wallets that MOVED, biggest buyer → biggest seller, so the field is a
-    // punchy green→red gradient you read in a second (is the whale base net buying or selling?). The
-    // flat majority is counted in the header, not drawn — that "complete census" is the Live board's job.
-    const movers = rows.filter(r => Math.abs(r.net) >= dust(r)).sort((a, b) => b.net - a.net);
-    return { movers, buying, selling, flat, total: rows.length, updated: (camps?.updated || live?.updated || whales.updated) };
+    // THE CENSUS: every ≥100k wallet as one square, sorted biggest buyer → dark (holding steady) →
+    // biggest seller. This is the mosaic's whole point — the entire whale base in one image, which
+    // nothing else shows. (The Live board is the movers-only detail view; no need to duplicate it.)
+    rows.sort((a, b) => b.net - a.net);
+    return { rows, buying, selling, flat, total: rows.length, updated: (camps?.updated || live?.updated || whales.updated) };
   }, [whales, camps, base, sol, live]);
 
   if (whales === false) return <div style={{ textAlign: "center", fontFamily: SANS, color: "#94a3b8", padding: 60 }}>Whale data is being rebuilt — check back after the next on-chain refresh.</div>;
   if (!model) return <div style={{ textAlign: "center", fontFamily: MONO, color: "#64748b", padding: 60 }}>Loading…</div>;
 
-  const { movers, buying, selling, flat, total } = model;
-  const sq = isMobile ? 22 : 30;   // movers only → fewer, bigger squares, so the gradient reads at a glance
+  const { rows, buying, selling, flat, total } = model;
+  const sq = isMobile ? 13 : 16;   // one square per ≥100k wallet — small enough to fit the whole cohort
 
   return (
     <div style={{ maxWidth: 1180, margin: "0 auto", padding: "0 14px", fontFamily: SANS }}>
@@ -102,11 +102,10 @@ export default function WhaleMosaic({ isMobile }) {
         {/* the mosaic */}
         <div
           onMouseLeave={() => setHov(null)}
-          onMouseMove={e => { const i = e.target?.dataset?.i; setHov(i != null ? movers[+i] : null); }}
-          onClick={e => { const i = e.target?.dataset?.i; if (i != null) setSel(movers[+i]); }}
-          style={{ display: "flex", flexWrap: "wrap", gap: 3, padding: isMobile ? "4px 14px 14px" : "8px 22px 20px", position: "relative" }}>
-          {movers.length === 0 && <div style={{ color: "#64748b", fontFamily: MONO, fontSize: 13, padding: "24px 2px" }}>No whale moved a coin recently — all holding steady.</div>}
-          {movers.map((r, i) => (
+          onMouseMove={e => { const i = e.target?.dataset?.i; setHov(i != null ? rows[+i] : null); }}
+          onClick={e => { const i = e.target?.dataset?.i; if (i != null) setSel(rows[+i]); }}
+          style={{ display: "flex", flexWrap: "wrap", gap: 2, padding: isMobile ? "4px 14px 14px" : "8px 22px 20px", position: "relative" }}>
+          {rows.map((r, i) => (
             <div key={r.chain + r.a} data-i={i}
               title=""
               style={{ width: sq, height: sq, borderRadius: 4, background: flowColor(r.net, r.bal), cursor: "pointer", outline: sel?.a === r.a && sel?.chain === r.chain ? "1.5px solid #5eead4" : "none" }} />
@@ -143,8 +142,8 @@ export default function WhaleMosaic({ isMobile }) {
       )}
 
       <p style={{ fontSize: 12, color: "#7c8a9e", lineHeight: 1.55, margin: "12px 2px 0" }}>
-        One square per whale that <b>moved</b>, biggest buyer to biggest seller — <b style={{ color: "#22c55e" }}>green</b> accumulating,
-        <b style={{ color: "#ef4444" }}> red</b> distributing, brighter = a bigger share of the bag moved. The {flat.toLocaleString()} of {total.toLocaleString()} holding steady aren&rsquo;t drawn — see the Live board for every wallet. Ethereum &amp; Base are live;
+        Every wallet holding ≥100,000 SPX — one square each, sorted biggest buyer to biggest seller — <b style={{ color: "#22c55e" }}>green</b> accumulating,
+        <b style={{ color: "#ef4444" }}> red</b> distributing, dark = holding steady ({flat.toLocaleString()} of {total.toLocaleString()}); brighter = a bigger share of the bag moved. Ethereum &amp; Base are live;
         Solana is live where available, else its daily reconstruction. Infra (exchanges, LP, bridge) excluded — real self-custody holders. Not a signal.
       </p>
     </div>
