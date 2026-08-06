@@ -24,6 +24,7 @@ import { wealthWavesStats } from "./wealth-waves-card.mjs";
 import { ethSol2026Data } from "./eth-sol-2026-card.mjs";
 import { whaleCensusStats } from "./whale-census-card.mjs";
 import { whaleBehaviourStats } from "./whale-behaviour-card.mjs";
+import { whaleMosaicStats } from "./whale-mosaic-card.mjs";
 import { cexFlowStats } from "./cex-flow-card.mjs";
 
 // --- owner-editable post copy ---------------------------------------------
@@ -1045,6 +1046,21 @@ Few wallets, most of the weight.`,
 Among the few that did, ${b.buy} added and ${b.sell} sold — ${dir} (net ${b.netPct >= 0 ? "+" : ""}${b.netPct.toFixed(2)}% of whale supply). The 1M+ cohorts net accumulated; the biggest hands barely twitched.
 Conviction looks like silence.`,
       card: { type: "whalebehaviour" },
+    };
+  },
+
+  // Whale mosaic — every ≥100k wallet as one square, green accumulating / red selling / dark flat,
+  // across all three chains. The glanceable "who's moving, which way" snapshot. Minimal by design.
+  () => {
+    const m = whaleMosaicStats();
+    if (!m) return null;
+    const lean = m.buy > m.sell ? "more are accumulating than selling" : m.sell > m.buy ? "more are selling than accumulating" : "buyers and sellers are even";
+    return {
+      id: "whalemosaic",
+      text: ct`🐋 Every wallet holding over 100k SPX, one square each — ${m.total.toLocaleString()} whales across 3 chains.
+Right now ${m.buy} are accumulating and ${m.sell} are selling; the rest sit tight — ${lean}. Green is buying, red is selling.
+We watch every wallet, live. Real intel, real numbers.`,
+      card: { type: "whalemosaic" },
     };
   },
 
@@ -2320,7 +2336,7 @@ const LOOK = {
   whatnext: "race",
   // — Tier B: flavourful / distinct looks (used to break up the green lines) —
   riskcolor: "colorline", risklevels: "colorline", rsidots: "colorline",
-  riskheat: "dual", runningroi: "dual", cycle: "dual", longshort: "dual", underwater: "dual", goldencross: "dual", holdergrowth: "dual", holdersprice: "dual", mvrvbtc: "dual", mvrvtrend: "dual", supplyprofit: "dual", whales: "dual", walletwaves: "stack", wealthwaves: "stack", survivorship: "stack", supplyera: "dual", exitmap: "dual", smartmoney: "dual", floormodel: "dual", altmarket: "dual", freefloat: "dual", nupl: "dual", concentration: "dual", picycle: "dual", spxbitcoin: "dual", spxcohort: "dual", cexflow: "dual", cexsupply: "stack", sopr: "dual", nrpl: "dual", liveliness: "dual",
+  riskheat: "dual", runningroi: "dual", cycle: "dual", longshort: "dual", underwater: "dual", goldencross: "dual", holdergrowth: "dual", holdersprice: "dual", mvrvbtc: "dual", mvrvtrend: "dual", supplyprofit: "dual", whales: "dual", whalemosaic: "mosaic", walletwaves: "stack", wealthwaves: "stack", survivorship: "stack", supplyera: "dual", exitmap: "dual", smartmoney: "dual", floormodel: "dual", altmarket: "dual", freefloat: "dual", nupl: "dual", concentration: "dual", picycle: "dual", spxbitcoin: "dual", spxcohort: "dual", cexflow: "dual", cexsupply: "stack", sopr: "dual", nrpl: "dual", liveliness: "dual",
   firesalerally: "fanlines",
   model: "scatter",
   monthlyreturns: "heatmap", monthlyreturnssp: "heatmap", monthlyreturnsbtc: "heatmap",
