@@ -8,6 +8,7 @@ import { recordCanvas, downloadBlob, recorderSupported } from "./canvas-record.j
 import { buildCohorts, ageRamp } from "./whale-cohorts.js";
 import { loadWhales } from "./history-data.js";
 import WhaleBoard from "./WhaleBoard.jsx";
+import WhaleMosaic from "./WhaleMosaic.jsx";
 import WalletCard from "./WalletCard.jsx";
 import CityGate from "./CityGate.jsx";
 import { SANS, MONO } from "./chart-ui.jsx";
@@ -504,10 +505,11 @@ function WhalesInner({ isMobile }) {
       <div style={{ display: "flex", justifyContent: "center", margin: "8px 0 6px" }}>
         <div style={{ display: "inline-flex", borderRadius: 9, overflow: "hidden", border: "1px solid rgba(255,255,255,0.14)" }}>
           <button onClick={() => setMode("city")} style={{ ...seg(mode === "city"), borderRight: "1px solid rgba(255,255,255,0.12)" }}>City · 3D</button>
-          <button onClick={() => setMode("board")} style={seg(mode === "board")}>Live board</button>
+          <button onClick={() => setMode("board")} style={{ ...seg(mode === "board"), borderRight: "1px solid rgba(255,255,255,0.12)" }}>Live board</button>
+          <button onClick={() => setMode("mosaic")} style={seg(mode === "mosaic")}>Mosaic</button>
         </div>
       </div>
-      {mode === "city" ? <Watcher isMobile={isMobile} /> : <WhaleBoard isMobile={isMobile} />}
+      {mode === "city" ? <Watcher isMobile={isMobile} /> : mode === "mosaic" ? <WhaleMosaic isMobile={isMobile} /> : <WhaleBoard isMobile={isMobile} />}
     </div>
   );
 }
