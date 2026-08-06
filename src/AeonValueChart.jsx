@@ -1,5 +1,5 @@
-import { useMemo, useState, useEffect } from "react";
-import { ResponsiveContainer, ComposedChart, Scatter, Line, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
+import { useMemo, useState, useEffect, useRef } from "react";
+import { ResponsiveContainer, ComposedChart, Scatter, Line, XAxis, YAxis, CartesianGrid } from "recharts";
 import { loadAeonListings, loadAeonMarket } from "./history-data.js";
 import { recentLadder, percentileOf, ordinal, WINDOW_DAYS } from "./aeon-spx-value.js";
 import { SANS, MONO, MAX_W, Explain } from "./chart-ui.jsx";
@@ -15,6 +15,10 @@ const fEth = v => (v < 0.1 ? v.toFixed(3) : v.toFixed(2)) + "Ξ";
 export default function AeonValueChart({ isMobile }) {
   const [data, setData] = useState(null);
   const [market, setMarket] = useState(null);
+  const [hover, setHover] = useState(null);   // {d, cx, cy} — the NFT under the crosshair
+  const [cross, setCross] = useState(null);   // {x, y} — the floating pointer
+  const ptsRef = useRef(new Map());           // token id → its plotted pixel {cx, cy, payload}
+  const wrapRef = useRef(null);
   useEffect(() => { let c = false; loadAeonListings().then(d => { if (!c) setData(d || { empty: true }); }); return () => { c = true; }; }, []);
   useEffect(() => { let c = false; loadAeonMarket().then(d => { if (!c) setMarket(d || { empty: true }); }); return () => { c = true; }; }, []);
 
@@ -56,6 +60,11 @@ export default function AeonValueChart({ isMobile }) {
     };
   }, [data, market]);
 
+  // preload every listing's art so the crosshair reveal is instant (no per-hover fetch flicker)
+  useEffect(() => {
+    for (const l of model?.scored || []) if (l.img) { const im = new Image(); im.src = l.img; }
+  }, [model]);
+
   if (!data || !market) return <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Loading listings…</div>;
   if (data.empty) return (
     <div style={{ maxWidth: MAX_W, margin: "0 auto" }}>
@@ -85,13 +94,16 @@ export default function AeonValueChart({ isMobile }) {
 
   const osUrl = id => `https://opensea.io/assets/ethereum/${data.contract}/${id}`;
   const openPiece = id => { if (data.contract && id != null) window.open(osUrl(id), "_blank", "noopener"); };
-  // custom points: NFT thumbnail for deals, small dot for the rest. Both open OpenSea on click.
-  const Dot = ({ cx, cy, payload }) => cx == null ? null : (
-    <circle cx={cx} cy={cy} r={isMobile ? 6 : 5} fill="#64748b" fillOpacity={0.6} stroke="#0a0e1c"
-      style={{ cursor: "pointer" }} onClick={() => openPiece(payload.id)} />
-  );
+  // ⭐ A FLOATING CROSSHAIR drives the reveal (like the rainbow chart), not recharts' axis Tooltip —
+  // the latter fires unreliably on scattered points and re-mounts its content on every mouse move, so
+  // the thumbnail never settles. Each shape RECORDS its plotted pixel into ptsRef; a container-level
+  // mousemove drops the pointer and reveals the NEAREST piece within reach. Click opens it on OpenSea.
+  const recordPt = (cx, cy, payload) => { if (cx != null && payload?.id != null) ptsRef.current.set(payload.id, { cx, cy, payload }); };
+  const Dot = ({ cx, cy, payload }) => { if (cx == null) return null; recordPt(cx, cy, payload); return (
+    <circle cx={cx} cy={cy} r={isMobile ? 6 : 5} fill="#64748b" fillOpacity={0.6} stroke="#0a0e1c" style={{ cursor: "pointer" }} onClick={() => openPiece(payload.id)} />
+  ); };
   const DealDot = ({ cx, cy, payload }) => {
-    if (cx == null) return null;
+    if (cx == null) return null; recordPt(cx, cy, payload);
     const s = isMobile ? 22 : 30;
     return (
       <g style={{ cursor: "pointer" }} onClick={() => openPiece(payload.id)}>
@@ -100,22 +112,38 @@ export default function AeonValueChart({ isMobile }) {
       </g>
     );
   };
-  const Tip = ({ active, payload }) => {
-    if (!active || !payload?.length) return null;
-    // A ComposedChart tooltip can resolve to the fair-value LINE, which has no token id —
-    // take the first payload entry that is an actual listing.
-    const d = (payload.find(p => p?.payload?.id != null) || payload[0]).payload;
-    if (d.id == null) return null;
+  const onMove = e => {
+    const r = wrapRef.current?.getBoundingClientRect(); if (!r) return;
+    const x = e.clientX - r.left, y = e.clientY - r.top;
+    setCross({ x, y });
+    let best = null, bd = Infinity;
+    for (const p of ptsRef.current.values()) { const dd = Math.hypot(p.cx - x, p.cy - y); if (dd < bd) { bd = dd; best = p; } }
+    setHover(best && bd <= 26 ? { d: best.payload, cx: best.cx, cy: best.cy } : null);
+  };
+  const onLeaveChart = () => { setCross(null); setHover(null); };
+  const onClickChart = () => { if (hover) openPiece(hover.d.id); };
+  // The tooltip — big art, positioned at the dot, flipped left/down near the edges so it never clips.
+  const imgS = isMobile ? 104 : 132;
+  const Tip = () => {
+    if (!hover) return null;
+    const d = hover.d;
+    const flipX = hover.cx > 0.62 * (MAX_W || 900), flipY = hover.cy < 180;
     return (
-      <div style={{ background: "#0a0e1c", border: "1px solid #234", borderRadius: 10, padding: 8, fontFamily: SANS, fontSize: 12.5, display: "flex", gap: 9, alignItems: "center", boxShadow: "0 8px 26px rgba(0,0,0,0.55)" }}>
-        {d.img && <img src={d.img} alt={"AEON #" + d.id} width={76} height={76}
-          style={{ width: 76, height: 76, borderRadius: 7, objectFit: "cover", display: "block", background: "#05050e", flexShrink: 0, border: "1px solid rgba(255,255,255,0.10)" }} />}
-        <div style={{ minWidth: 0 }}>
-          <div style={{ color: "#e2e8f0", fontWeight: 700 }}>AEON #{d.id}</div>
-          <div style={{ color: "#94a3b8" }}>rank {d.rank} of {total}</div>
-          <div style={{ fontFamily: MONO }}><span style={{ color: "#f59e0b", fontWeight: 700 }}>{fEth(d.price)}</span> · fair {fEth(d.exp)}</div>
-          {d.disc > 0.1 && <div style={{ color: "#34d399", fontWeight: 700 }}>{(d.disc * 100).toFixed(0)}% below fair value</div>}
-          {d.spx != null && <div style={{ color: "#c084fc", fontFamily: MONO }}>{Math.round(d.spx).toLocaleString()} SPX · {ord(d.spxPct)} pct</div>}
+      <div style={{
+        position: "absolute", left: hover.cx, top: hover.cy, pointerEvents: "none", zIndex: 6,
+        transform: `translate(${flipX ? "-100%" : "0"}, ${flipY ? "14px" : "calc(-100% - 14px)"})`,
+        background: "#0a0e1c", border: "1px solid #2b3a52", borderRadius: 12, padding: 10, display: "flex", gap: 11, alignItems: "center",
+        boxShadow: "0 12px 34px rgba(0,0,0,0.6)", fontFamily: SANS,
+      }}>
+        <img src={d.img} alt={"AEON #" + d.id} width={imgS} height={imgS}
+          style={{ width: imgS, height: imgS, borderRadius: 9, objectFit: "cover", display: "block", background: "#05050e", flexShrink: 0, border: "1px solid rgba(255,255,255,0.12)" }} />
+        <div style={{ minWidth: 0, fontSize: 13 }}>
+          <div style={{ color: "#e2e8f0", fontWeight: 800, fontSize: 15 }}>AEON #{d.id}</div>
+          <div style={{ color: "#94a3b8", marginTop: 1 }}>rank {d.rank} of {total}</div>
+          <div style={{ fontFamily: MONO, marginTop: 4 }}><span style={{ color: "#f59e0b", fontWeight: 700 }}>{fEth(d.price)}</span> · fair {fEth(d.exp)}</div>
+          {d.disc > 0.1 && <div style={{ color: "#34d399", fontWeight: 700, marginTop: 2 }}>{(d.disc * 100).toFixed(0)}% below fair value</div>}
+          {d.spx != null && <div style={{ color: "#c084fc", fontFamily: MONO, marginTop: 2 }}>{Math.round(d.spx).toLocaleString()} SPX · {ord(d.spxPct)} pct</div>}
+          <div style={{ color: "#5b6675", fontSize: 11, marginTop: 4 }}>click → OpenSea</div>
         </div>
       </div>
     );
@@ -138,21 +166,28 @@ export default function AeonValueChart({ isMobile }) {
         {cheapestPct != null && <div style={{ textAlign: "center" }}><div style={{ fontSize: 22, fontWeight: 800, color: "#c084fc", fontFamily: MONO }}>{ord(cheapestPct)}</div><div style={{ fontSize: 12, color: "#7c8a9e" }}>floor ask vs SPX history</div></div>}
       </div>
 
-      <ResponsiveContainer width="100%" height={isMobile ? 400 : 560}>
-        <ComposedChart margin={{ top: 10, right: 20, bottom: 26, left: 6 }}>
-          <CartesianGrid strokeDasharray="2 8" stroke="rgba(255,255,255,0.06)" />
-          <XAxis dataKey="rank" type="number" scale="log" domain={[1, total]} allowDataOverflow
-            ticks={isMobile ? [1, 100, total] : [1, 10, 100, 1000, total]} tickFormatter={v => v === 1 ? "rarest" : v >= 1000 ? (v / 1000).toFixed(v === total ? 1 : 0) + "k" : v}
-            tick={{ fill: "#cbd5e1", fontSize: isMobile ? 10 : 11, fontFamily: MONO }} axisLine={{ stroke: "rgba(255,255,255,0.15)" }} tickLine={false}
-            label={{ value: isMobile ? "← rarer          more common →" : "← rarer      rarity rank      more common →", position: "insideBottom", offset: -14, fill: "#64748b", fontSize: isMobile ? 10.5 : 12, fontFamily: SANS }} />
-          <YAxis dataKey="price" type="number" scale="log" domain={[priceMin * 0.7, priceMax * 1.2]} allowDataOverflow
-            tickFormatter={fEth} tick={{ fill: "#cbd5e1", fontSize: isMobile ? 10 : 11, fontFamily: MONO }} axisLine={{ stroke: "rgba(255,255,255,0.15)" }} tickLine={false} width={isMobile ? 44 : 54} />
-          <Tooltip content={<Tip />} cursor={{ stroke: "rgba(255,255,255,0.15)" }} />
-          <Line data={line} dataKey="fair" stroke="#94a3b8" strokeWidth={2} strokeDasharray="6 5" dot={false} isAnimationActive={false} type="monotone" />
-          <Scatter data={nonDeals} shape={<Dot />} isAnimationActive={false} />
-          <Scatter data={dealPts} shape={<DealDot />} isAnimationActive={false} />
-        </ComposedChart>
-      </ResponsiveContainer>
+      <div ref={wrapRef} onMouseMove={onMove} onMouseLeave={onLeaveChart} onClick={onClickChart}
+        style={{ position: "relative", cursor: hover ? "pointer" : "crosshair" }}>
+        <ResponsiveContainer width="100%" height={isMobile ? 400 : 560}>
+          <ComposedChart margin={{ top: 10, right: 20, bottom: 26, left: 6 }}>
+            <CartesianGrid strokeDasharray="2 8" stroke="rgba(255,255,255,0.06)" />
+            <XAxis dataKey="rank" type="number" scale="log" domain={[1, total]} allowDataOverflow
+              ticks={isMobile ? [1, 100, total] : [1, 10, 100, 1000, total]} tickFormatter={v => v === 1 ? "rarest" : v >= 1000 ? (v / 1000).toFixed(v === total ? 1 : 0) + "k" : v}
+              tick={{ fill: "#cbd5e1", fontSize: isMobile ? 10 : 11, fontFamily: MONO }} axisLine={{ stroke: "rgba(255,255,255,0.15)" }} tickLine={false}
+              label={{ value: isMobile ? "← rarer          more common →" : "← rarer      rarity rank      more common →", position: "insideBottom", offset: -14, fill: "#64748b", fontSize: isMobile ? 10.5 : 12, fontFamily: SANS }} />
+            <YAxis dataKey="price" type="number" scale="log" domain={[priceMin * 0.7, priceMax * 1.2]} allowDataOverflow
+              tickFormatter={fEth} tick={{ fill: "#cbd5e1", fontSize: isMobile ? 10 : 11, fontFamily: MONO }} axisLine={{ stroke: "rgba(255,255,255,0.15)" }} tickLine={false} width={isMobile ? 44 : 54} />
+            <Line data={line} dataKey="fair" stroke="#94a3b8" strokeWidth={2} strokeDasharray="6 5" dot={false} isAnimationActive={false} type="monotone" />
+            <Scatter data={nonDeals} shape={<Dot />} isAnimationActive={false} />
+            <Scatter data={dealPts} shape={<DealDot />} isAnimationActive={false} />
+          </ComposedChart>
+        </ResponsiveContainer>
+        {cross && (<>
+          <div style={{ position: "absolute", left: cross.x, top: 4, bottom: 26, borderLeft: "1px dashed rgba(148,163,184,0.55)", pointerEvents: "none" }} />
+          <div style={{ position: "absolute", top: cross.y, left: 4, right: 4, borderTop: "1px dashed rgba(148,163,184,0.32)", pointerEvents: "none" }} />
+        </>)}
+        <Tip />
+      </div>
 
       {deals.length === 0 && closest.length > 0 && (
         <div style={{ marginTop: 20 }}>
