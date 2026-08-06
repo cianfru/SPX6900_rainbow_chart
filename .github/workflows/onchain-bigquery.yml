@@ -121,11 +121,11 @@ jobs:
         if: steps.gate.outputs.go == 'true'
         run: |
           DEPLOY_CHANGED=""
-          [[ -n "$(git status --porcelain public/onchain.json public/urpd.json)" ]] && DEPLOY_CHANGED=1
+          [[ -n "$(git status --porcelain public/onchain.json public/urpd.json public/urpd-history.json)" ]] && DEPLOY_CHANGED=1
           if [[ -n "$DEPLOY_CHANGED" ]]; then
             git config user.name "github-actions[bot]"
             git config user.email "github-actions[bot]@users.noreply.github.com"
-            git add public/onchain.json public/urpd.json
+            git add public/onchain.json public/urpd.json public/urpd-history.json
             git commit -m "chore: on-chain FIFO refresh (BigQuery) $(date -u +%F)"
             git push
           else

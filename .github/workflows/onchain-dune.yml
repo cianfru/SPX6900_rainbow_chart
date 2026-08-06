@@ -166,7 +166,7 @@ jobs:
           # ETH/site files drive the DEPLOY (the site + og cards read these). Solana/Base files are
           # bot-only (no site consumer), so they ride along in the same commit but don't force a deploy
           # on their own. COMMIT if ANY of them changed; DEPLOY only if an ETH/site file changed.
-          ETH_FILES="public/onchain.json public/urpd.json public/whales.json public/spx-timeline.json public/cohort-survival.json public/exit-flow.json public/smart-money.json public/city-recap.json public/whale-cohort-history.json"
+          ETH_FILES="public/onchain.json public/urpd.json public/urpd-history.json public/whales.json public/spx-timeline.json public/cohort-survival.json public/exit-flow.json public/smart-money.json public/city-recap.json public/whale-cohort-history.json"
           CHAIN_FILES="public/solana-onchain.json dune/out/spx6900_solana_balances.csv public/base-onchain.json dune/out/spx6900_base_cohort.csv"
           DEPLOY_CHANGED=""
           [[ -n "$(git status --porcelain $ETH_FILES)" ]] && DEPLOY_CHANGED=1
