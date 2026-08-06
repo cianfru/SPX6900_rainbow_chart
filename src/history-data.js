@@ -215,6 +215,19 @@ export function loadUrpd() {
   return urpdPromise;
 }
 
+// Shared, cached loader for /urpd-history.json — weekly cost-basis slices on one fixed price grid
+// (the URPD terrain). Resolves null on failure so the 3D chart data-gates until the pipeline banks it.
+let urpdHistPromise = null;
+export function loadUrpdHistory() {
+  if (!urpdHistPromise) {
+    urpdHistPromise = fetch("/urpd-history.json", { cache: "no-store" })
+      .then(r => (r.ok ? r.json() : null))
+      .then(d => (d && Array.isArray(d.weeks) && d.weeks.length ? d : null))
+      .catch(() => null);
+  }
+  return urpdHistPromise;
+}
+
 // Shared, cached loader for /whales.json — the biggest CURRENT holders with how much each has
 // added or shed over the lookback windows (from the FIFO engine; CEX/LP/bridge already excluded,
 // so these are real holders). Resolves to null on failure — the whale watcher then data-gates.

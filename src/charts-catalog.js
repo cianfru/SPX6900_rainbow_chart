@@ -55,6 +55,7 @@ export const CHART_GROUPS = [
       { id: "wealthwaves", title: "The Wealth Ladder", post: "wealthwaves", desc: "How many holders sit in each dollar bracket, week by week." },
       { id: "bagsprofile", title: "Cost Basis vs Price", desc: "A volume-profile: the price line, and where the bags were bought as bars on the price axis — live." },
       { id: "urpdage", title: "Cost Basis × Age", post: "urpdage", desc: "The walls of supply mapped by holder age — same price, different conviction." },
+      { id: "urpdterrain", title: "Cost Basis Terrain (3D)", desc: "The cost-basis distribution as a landscape deforming week by week, with price sweeping through it." },
       { id: "lthsth", title: "Long vs Short-Term Holders", post: "lthsth", desc: "Supply by holder age and profit/loss — who's holding, and are they up?" },
       { id: "sopr", title: "SOPR", post: "sopr", desc: "When coins move, are they sold at a profit or a loss?" },
       { id: "nrpl", title: "Net Realized Profit/Loss", post: "nrpl", desc: "The dollar size of gains vs losses locked in when coins move." },
@@ -153,7 +154,7 @@ export const METHOD_FAMILIES = [
     id: "04", name: "Cost basis & holder behaviour",
     charts: ["supply", "holders", "holdersprice", "supplyprofit", "hodlwaves", "freefloat", "concentration",
              "whales", "whalecohorts", "survivorship", "exitflow", "smartmoney", "walletwaves", "wealthwaves",
-             "bagsprofile", "urpdage", "lthsth", "sopr", "nrpl", "liveliness", "whaleswatching", "citylab", "walletgrowth", "mvrv", "nupl", "mvrvbtc"],
+             "bagsprofile", "urpdage", "urpdterrain", "lthsth", "sopr", "nrpl", "liveliness", "whaleswatching", "citylab", "walletgrowth", "mvrv", "nupl", "mvrvbtc"],
   },
   {
     id: "05", name: "Exchange & venue balances",
