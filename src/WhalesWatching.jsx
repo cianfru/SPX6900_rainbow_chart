@@ -8,6 +8,7 @@ import { recordCanvas, downloadBlob, recorderSupported } from "./canvas-record.j
 import { buildCohorts, ageRamp } from "./whale-cohorts.js";
 import { loadWhales } from "./history-data.js";
 import WhaleBoard from "./WhaleBoard.jsx";
+import WalletCard from "./WalletCard.jsx";
 import CityGate from "./CityGate.jsx";
 import { SANS, MONO } from "./chart-ui.jsx";
 
@@ -31,7 +32,7 @@ const FLOOR_COL = 0x0e1526;   // one unified ground colour (fog matches it)
 const PAD_COL = 0x1a2440;     // cohort tiles — same for every cohort, a touch above the floor
 const kM = v => v >= 1e6 ? (v / 1e6 % 1 ? (v / 1e6).toFixed(1) : v / 1e6) + "M" : Math.round(v / 1e3) + "k";
 
-function buildScene(el, data, { onlyMovers, isMobile, flowWin = 30 }) {
+function buildScene(el, data, { onlyMovers, isMobile, flowWin = 30, onPick }) {
   const flowKey = "d" + flowWin;                       // "d30" | "d7" | "d1"
   const winLbl = flowWin === 1 ? "24h" : flowWin + "d";
   const flowOf = w => { const v = w[flowKey]; return Number.isFinite(v) ? v : (w.d30 || 0); };
@@ -194,9 +195,25 @@ function buildScene(el, data, { onlyMovers, isMobile, flowWin = 30 }) {
   controls.minDistance = 14; controls.maxDistance = span * 2.6; controls.maxPolarAngle = Math.PI * 0.49;
   controls.autoRotate = true; controls.autoRotateSpeed = 0.6;
   const stopSpin = () => { controls.autoRotate = false; };
-  renderer.domElement.addEventListener("pointerdown", stopSpin);
-
   const ray = new THREE.Raycaster(), mouse = new THREE.Vector2();
+  // Click a bar → select that wallet (React shows its Zerion card). We tell a click from an orbit-drag
+  // by the pointer travel between down and up, so dragging to rotate never selects.
+  let downXY = null;
+  const onDown = e => { downXY = [e.clientX, e.clientY]; stopSpin(); };
+  const onUp = e => {
+    if (!downXY) return;
+    const moved = Math.hypot(e.clientX - downXY[0], e.clientY - downXY[1]); downXY = null;
+    if (moved > 6 || !onPick) return;                      // a drag/orbit, not a click
+    const r = renderer.domElement.getBoundingClientRect();
+    mouse.x = ((e.clientX - r.left) / r.width) * 2 - 1;
+    mouse.y = -((e.clientY - r.top) / r.height) * 2 + 1;
+    ray.setFromCamera(mouse, cam);
+    const hit = ray.intersectObject(pickMesh, false)[0];
+    onPick(hit ? picks[hit.instanceId]?.ref || null : null);
+  };
+  renderer.domElement.addEventListener("pointerdown", onDown);
+  renderer.domElement.addEventListener("pointerup", onUp);
+
   let hovered = -1;
   const onMove = e => {
     const r = renderer.domElement.getBoundingClientRect();
@@ -238,22 +255,16 @@ function buildScene(el, data, { onlyMovers, isMobile, flowWin = 30 }) {
     pixelRatio: +renderer.getPixelRatio().toFixed(2), frameMs: drs.frameMs,
   });
 
-  // Owner video export: record one smooth full orbit of the live canvas → downloadable clip, entirely
-  // client-side. Damping + autorotate are paused during the record so the manual azimuth sweep is
-  // exactly one even revolution, then restored. Revealed in the UI only behind ?rec=1.
+  // Owner video export: record a smooth orbit of the live canvas → downloadable clip, entirely
+  // client-side. We drive the orbit with OrbitControls' OWN autoRotate (advanced by the render loop's
+  // controls.update() every frame) rather than setting the azimuth from a second loop — the latter
+  // fought the render loop and left the recording static. Speed is tuned to ~one revolution over the
+  // clip; the previous autoRotate state is restored when done. Revealed in the UI only behind ?rec=1.
   window.__whaleRecord = ({ seconds = 12, fps = 60, onTick } = {}) => {
-    const wasAuto = controls.autoRotate, wasDamp = controls.enableDamping;
-    const startAz = controls.getAzimuthalAngle();
-    controls.autoRotate = false; controls.enableDamping = false;
-    return recordCanvas(renderer.domElement, {
-      seconds, fps,
-      onTick: el => {
-        const e = el < 0.5 ? 2 * el * el : 1 - Math.pow(-2 * el + 2, 2) / 2;   // easeInOutQuad
-        controls.setAzimuthalAngle(startAz + e * Math.PI * 2);
-        controls.update();
-        onTick?.(el);
-      },
-    }).finally(() => { controls.autoRotate = wasAuto; controls.enableDamping = wasDamp; });
+    const wasAuto = controls.autoRotate, wasSpeed = controls.autoRotateSpeed;
+    controls.autoRotate = true; controls.autoRotateSpeed = 60 / seconds;  // ~one orbit over `seconds` at 60fps
+    return recordCanvas(renderer.domElement, { seconds, fps, onTick })
+      .finally(() => { controls.autoRotate = wasAuto; controls.autoRotateSpeed = wasSpeed; });
   };
 
   return () => {
@@ -261,7 +272,8 @@ function buildScene(el, data, { onlyMovers, isMobile, flowWin = 30 }) {
     window.removeEventListener("resize", onResize);
     renderer.domElement.removeEventListener("pointermove", onMove);
     renderer.domElement.removeEventListener("pointerleave", onLeave);
-    renderer.domElement.removeEventListener("pointerdown", stopSpin);
+    renderer.domElement.removeEventListener("pointerdown", onDown);
+    renderer.domElement.removeEventListener("pointerup", onUp);
     delete window.__whaleStats;
     delete window.__whaleRecord;
     controls.dispose();
@@ -306,6 +318,7 @@ function Watcher({ isMobile }) {
   });
   const [recSecs, setRecSecs] = useState(12);
   const [rec, setRec] = useState({ state: "idle", pct: 0, msg: "" }); // idle | recording | error
+  const [selWhale, setSelWhale] = useState(null); // clicked tower → its Zerion card
 
   // Owner-only video export, revealed behind ?rec=1 (or a local flag the control panel sets).
   const showRec = useState(() => {
@@ -348,7 +361,8 @@ function Watcher({ isMobile }) {
   useEffect(() => {
     if (!data || !host.current) return;
     let cleanup = () => {};
-    try { cleanup = buildScene(host.current, data, { onlyMovers, isMobile, flowWin }); }
+    setSelWhale(null);   // the picks change when the scene rebuilds → drop any stale selection
+    try { cleanup = buildScene(host.current, data, { onlyMovers, isMobile, flowWin, onPick: setSelWhale }); }
     catch (e) { console.error("WhalesWatching:", e); }
     return () => cleanup();
   }, [data, onlyMovers, isMobile, flowWin, square]);
@@ -429,6 +443,23 @@ function Watcher({ isMobile }) {
         </div>
       ) : (
         <div ref={host} style={{ position: "relative", width: "100%", height: isMobile ? "min(66vh, 640px)" : "min(80vh, 920px)", minHeight: isMobile ? 380 : 460, borderRadius: 12, overflow: "hidden", background: "#0a0e1c", cursor: "grab" }} />
+      )}
+
+      {selWhale && (
+        <div style={{ margin: "12px 0 2px" }}>
+          <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 6 }}>
+            <button onClick={() => setSelWhale(null)} style={{
+              fontFamily: MONO, fontSize: 11.5, cursor: "pointer", padding: "3px 9px", borderRadius: 6,
+              background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.14)", color: "#94a3b8",
+            }}>× close</button>
+          </div>
+          <WalletCard w={selWhale} isMobile={isMobile} accent="#5eead4"
+            flow={selWhale.net || 0} flowUnit=" SPX"
+            lines={[
+              `${kM(selWhale.bal)} SPX · held ${Math.round((selWhale.days || 0) / 30)} mo${selWhale.cohort ? ` · ${selWhale.cohort}` : ""}`,
+              selWhale.net ? `net over ${flowWin === 1 ? "24h" : flowWin + "d"}` : "no move in this window",
+            ]} />
+        </div>
       )}
 
       <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4,1fr)", gap: 12, margin: "14px 0 6px" }}>
