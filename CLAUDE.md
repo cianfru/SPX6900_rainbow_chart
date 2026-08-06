@@ -601,6 +601,24 @@
     the FIFO/cohort reconstructions). Build on the shared `city-render.js` + `Skyline3D.jsx` (cube geometry path +
     beams as thin emissive columns; cohort grouping via the placement layer). Gate it like the other city pages.
 
+- **🔲🔲 NEXT SESSION — CITY TVL + INHABITANTS, WITH HISTORY (owner, 2026-08-06).** Two headline stats for the city
+  page + a historical line chart of each ("cool to see over time"):
+  - **City TVL** = the total USD value of every wallet in the city (Σ balance × live SPX price), with the **week-over-week
+    and month-over-month +/- change** shown next to it. Data is in hand — whales.json carries per-wallet `bal`, and the
+    live price is `stats.price` / `/api/spot`. The historical TVL series comes from **spx-timeline.json** (weekly
+    per-wallet balances, launch→now) × the SPX price history (price-history.json) → TVL per week.
+  - **Inhabitants tiers** = how many residents sit in each tier — either the archetype tiers (masonry / concrete /
+    glass, from `heightOf`/the city-render cut-offs) or the size cohorts (100–250k / 250k–1M / 1M–5M / 5M+, from
+    whale-cohorts.js). Show the current split + week/month delta. NOTE: the whale-cohort-history.json series (now off
+    the timeline, reconciles to 644) already IS "inhabitants by size cohort over time" — reuse it for the line chart.
+  - **Historical LINE CHART of both** — TVL over time + inhabitants over time (one chart with dual axes, or two). The
+    inhabitants line is basically whale-cohort-history (total ≥100k per week); the TVL line needs the timeline×price
+    join (new, but cheap — a build step like the others). A growing-inhabitants / rising-TVL-through-drawdown story is
+    exactly the "adoption decoupled from price" narrative the account already leans on.
+  - Build: a `build-city-tvl.mjs` (timeline × price-history → public/city-tvl.json weekly TVL) + surface both stats on
+    the SPX City page header (current + Δw / Δm) + a line chart (reuse the recharts chart primitives). Register the new
+    feed in audit-feeds. All data already reconstructed; no new pull.
+
 - **🔲 OTHER 3D CANDIDATES PROPOSED (owner liked the set, 2026-07-27) — the test is THREE genuine dims (two axes +
   a magnitude); single series/ratios stay 2D (rainbow, MVRV, NUPL, SOPR, composite — a third axis adds occlusion
   and subtracts clarity, which Urpd3D already proved).**
