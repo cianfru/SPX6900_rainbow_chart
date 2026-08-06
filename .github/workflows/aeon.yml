@@ -73,13 +73,6 @@ jobs:
         run: |
           node scripts/build-aeon-market.mjs
           node scripts/build-aeon-traders.mjs
-      - name: Fire-sale watch (listings below market → buy-now card candidate)
-        continue-on-error: true
-        # Writes public/aeon-firesale.json + a preview PNG when a listing is priced below what its
-        # rarity sells for. Manual-post for now (Telegram alert is the planned next step).
-        env:
-          ALCHEMY_KEY: ${{ secrets.ALCHEMY_KEY }}
-        run: node scripts/bot/aeon-firesale-watch.mjs
       - name: Refresh ENS names for displayed wallets (cached, incremental)
         continue-on-error: true
         run: node scripts/build-ens.mjs --limit=600
@@ -96,7 +89,7 @@ jobs:
           DEPLOY_CHANGED=""
           # aeon-sale-state.json (post bookkeeping) + aeon-dune-status.json (the Dune-pull heartbeat
           # the feed audit reads) are not site data — commit them, but don't spend a deploy on them.
-          DATA_CHANGED="$(git status --porcelain public/aeon*.json | grep -vE 'aeon-sale-state.json|aeon-dune-status.json|aeon-firesale.json' || true)"
+          DATA_CHANGED="$(git status --porcelain public/aeon*.json | grep -vE 'aeon-sale-state.json|aeon-dune-status.json' || true)"
           [[ -n "$DATA_CHANGED" ]] && DEPLOY_CHANGED=1
           if [[ -n "$(git status --porcelain public/aeon*.json public/post-state.json)" ]]; then
             git config user.name "github-actions[bot]"
