@@ -71,7 +71,7 @@
   "baltier": "landscape",
   "dualholders": "landscape",
   "basesurv": "landscape",
-  "supplycurve": "landscape",
+  "supplycurve": "square",
   "whalecensus": "landscape",
   "whalebehaviour": "landscape",
   "hodlcompare": "square",
