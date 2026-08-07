@@ -95,7 +95,7 @@ ${brandStripe(H)}
 <text x="60" y="130" fill="#93a3b8" font-size="19" font-family="sans-serif">${esc(`holder-age distribution of each chain's 5k+ wallets · Solana & Base peak later than Ethereum — the survivors held`)}</text>
 ${grid}${bars}${xlab}${legend}
 ${chips}
-<text x="60" y="${H - 20}" fill="#8592a6" font-size="18" font-family="sans-serif">${esc("spx6900rainbow.xyz · not financial advice · wallets over 5,000 SPX, self-custody · infra excluded · Base & Solana are younger chains")}</text>
+<text x="60" y="${H - 20}" fill="#8592a6" font-size="18" font-family="sans-serif">${esc("spx6900rainbow.xyz · not financial advice · self-custody holders · infra excluded · Base & Solana are younger chains")}</text>
 </svg>`;
 }
 

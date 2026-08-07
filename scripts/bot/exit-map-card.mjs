@@ -98,7 +98,7 @@ ${brandStripe(H)}
 <rect x="${mL + pW - 156}" y="${bT + 36}" width="15" height="15" rx="3" fill="${RED}" fill-opacity="0.85"/><text x="${mL + pW - 134}" y="${bT + 49}" fill="#94a3b8" font-size="19" font-family="${F}">left at a loss</text>
 <text x="${mL}" y="${bT - 8}" fill="#8592a6" font-size="18" font-family="${F}">${panelLab}</text>
 ${grid}${priceEls}${waves}${xlab}
-<text x="60" y="${H - 18}" fill="#5b6577" font-size="18" font-family="${F}">${esc("departures = wallets that fell below 5,000 SPX · profit/loss ≈ price when they crossed the bar · self-custody · not a forecast")}</text>
+<text x="60" y="${H - 18}" fill="#5b6577" font-size="18" font-family="${F}">${esc("departures = holders who exited · profit/loss ≈ price when they left · self-custody · not a forecast")}</text>
 </svg>`;
 }
 

@@ -54,7 +54,7 @@ ${brandStripe(H)}
 <text x="60" y="98" fill="#c4b5fd" font-size="29" font-weight="800" font-family="sans-serif">Solana is the most spread — Base rides on one whale</text>
 <text x="60" y="130" fill="#93a3b8" font-size="19" font-family="sans-serif">${esc(`share of each chain's 5k+ supply held by the biggest wallets · Ethereum ${chains[0].conc[0].toFixed(0)}% top wallet, Solana ${chains[1].conc[0].toFixed(0)}%, Base ${chains[2].conc[0].toFixed(0)}%`)}</text>
 ${grid}${bars}${xlab}${legend}
-<text x="60" y="${H - 20}" fill="#8592a6" font-size="18" font-family="sans-serif">${esc("spx6900rainbow.xyz · not financial advice · wallets over 5,000 SPX, self-custody · infra (LP/CEX) excluded")}</text>
+<text x="60" y="${H - 20}" fill="#8592a6" font-size="18" font-family="sans-serif">${esc("spx6900rainbow.xyz · not financial advice · self-custody holders · infra (LP/CEX) excluded")}</text>
 </svg>`;
 }
 

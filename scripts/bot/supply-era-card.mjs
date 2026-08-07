@@ -129,7 +129,7 @@ ${zones}${grid}
 <text x="${mL + 16}" y="${mT + 30}" fill="#fca5a5" font-size="20" font-weight="700" font-family="${F}">underwater — bought above today</text>
 <text x="${mL + pW - 14}" y="${mT + pH - 14}" fill="#86efac" font-size="20" font-weight="700" text-anchor="end" font-family="${F}">in profit — bought below today</text>
 ${priceLine}${nowLine}${dots}
-<text x="60" y="${H - 18}" fill="#5b6577" font-size="19" font-family="${F}">${esc("coins held by current ≥5,000-SPX holders, placed at their era's median entry price · self-custody · not a forecast")}</text>
+<text x="60" y="${H - 18}" fill="#5b6577" font-size="19" font-family="${F}">${esc("coins held by current holders, placed at their era's median entry price · self-custody · not a forecast")}</text>
 </svg>`;
 }
 

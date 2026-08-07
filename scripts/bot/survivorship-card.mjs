@@ -93,7 +93,7 @@ ${brandStripe(H)}
 <text x="60" y="150" fill="#f43f5e" font-size="33" font-weight="700" font-family="${F}">${esc(`${S.overall.gonePct}% of wallets that ever held SPX are gone.`)}</text>
 <text x="60" y="188" fill="#22d3ee" font-size="25" font-weight="700" font-family="${F}">${esc(`The ${shortLab(launchLab)} launch crowd: ${cohorts[0]?.survivalPct ?? 0}% remain — yet ${S.overall.diamondPct}% of today's holders never sold.`)}</text>
 ${ribbons}${grid}${xlab}${legend}
-<text x="60" y="${H - 16}" fill="#5b6577" font-size="20" font-family="${F}">${esc("living holders ≥5,000 SPX, by arrival era · self-custody, exchanges & contracts excluded · survivorship, not a forecast")}</text>
+<text x="60" y="${H - 16}" fill="#5b6577" font-size="20" font-family="${F}">${esc("living holders by arrival era · self-custody, exchanges & contracts excluded · survivorship, not a forecast")}</text>
 </svg>`;
 }
 

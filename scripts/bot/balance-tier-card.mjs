@@ -41,7 +41,7 @@ ${brandStripe(H)}
 <text x="60" y="98" fill="#c4b5fd" font-size="30" font-weight="800" font-family="sans-serif">Mostly yes — conviction climbs with size (clearest on Ethereum &amp; Base)</text>
 <text x="60" y="130" fill="#93a3b8" font-size="19" font-family="sans-serif">${esc("median holding age by balance tier · conviction rises with position size")}</text>
 ${grid}${bars}${xlab}${legend}
-<text x="60" y="${H - 20}" fill="#8592a6" font-size="18" font-family="sans-serif">${esc("spx6900rainbow.xyz · not financial advice · wallets over 5,000 SPX, self-custody · infra excluded")}</text>
+<text x="60" y="${H - 20}" fill="#8592a6" font-size="18" font-family="sans-serif">${esc("spx6900rainbow.xyz · not financial advice · self-custody holders · infra (LP/CEX) excluded")}</text>
 </svg>`;
 }
 export function renderBalanceTierCard(_stats, opts = {}) { const d = balanceTierData(); return d ? png(balanceTierSvg(d, { W: opts.W, H: opts.H }), opts.W ?? 1200) : null; }
