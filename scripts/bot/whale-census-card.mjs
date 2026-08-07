@@ -49,7 +49,7 @@ export function whaleCensusSvg(doc, opts = {}) {
 ${brandStripe(H)}
 <text x="60" y="56" fill="#f8fafc" font-size="39" font-weight="800" font-family="sans-serif" letter-spacing="1">SPX6900 — THE WHALE CENSUS</text>
 <text x="60" y="100" fill="#22d3ee" font-size="31" font-weight="800" font-family="sans-serif">${mega.n} wallets hold ${(mega.s / 1e6).toFixed(0)}M — ${(mega.s / totSup * 100).toFixed(0)}% of whale supply</text>
-<text x="60" y="140" fill="#93a3b8" font-size="19" font-family="sans-serif">${esc(`${totN.toLocaleString()} wallets over 5k SPX, by size · supply concentrates in the few — and the biggest have held the longest`)}</text>
+<text x="60" y="140" fill="#93a3b8" font-size="19" font-family="sans-serif">${esc(`${totN.toLocaleString()} wallets by size · supply concentrates in the few — and the biggest have held the longest`)}</text>
 ${bars}
 <text x="60" y="${H - 20}" fill="#8592a6" font-size="18" font-family="sans-serif">${esc("spx6900rainbow.xyz · not financial advice · ETH-native, self-custody · infra excluded · bar = SPX held by the tier")}</text>
 </svg>`;

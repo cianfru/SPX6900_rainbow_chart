@@ -43,7 +43,7 @@ ${brandStripe(H)}
 <text x="60" y="98" fill="#22d3ee" font-size="29" font-weight="800" font-family="sans-serif">90-97% of supply is in holders past the 155-day mark — Base longest</text>
 <text x="60" y="130" fill="#93a3b8" font-size="19" font-family="sans-serif">${esc("% of each chain's 5k+ supply in wallets that have held the tier at least this long · holding tenure, not dormancy")}</text>
 ${grid}${xlab}${marker}${lines}${legend}
-<text x="60" y="${H - 20}" fill="#8592a6" font-size="18" font-family="sans-serif">${esc("spx6900rainbow.xyz · not financial advice · ≥5k self-custody · infra excluded · tenure = time since first crossing 5k")}</text>
+<text x="60" y="${H - 20}" fill="#8592a6" font-size="18" font-family="sans-serif">${esc("spx6900rainbow.xyz · not financial advice · self-custody · infra excluded · tenure = time since first appearing")}</text>
 </svg>`;
 }
 export function renderSupplyCurveCard(_stats, opts = {}) { const d = supplyCurveData(); return d ? png(supplyCurveSvg(d, { W: opts.W, H: opts.H }), opts.W ?? 1200) : null; }

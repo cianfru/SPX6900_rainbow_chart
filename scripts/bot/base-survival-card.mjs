@@ -32,7 +32,7 @@ ${brandStripe(H)}
 <text x="60" y="146" fill="#93a3b8" font-size="19" font-family="sans-serif">${esc(`${s.exited.toLocaleString()} of ${(s.holders + s.exited).toLocaleString()} wallets that ever held 5k+ SPX on Base have since dropped below — the bars show when they left`)}</text>
 <text x="${mL}" y="${mT - 12}" fill="#8ea3b8" font-size="17" font-family="sans-serif">wallets exiting the 5k+ tier per month</text>
 ${grid}${bars}${xlab}
-<text x="60" y="${H - 20}" fill="#8592a6" font-size="18" font-family="sans-serif">${esc("spx6900rainbow.xyz · not financial advice · exit = an ever-≥5k wallet now below the bar · survivorship, not capitulation")}</text>
+<text x="60" y="${H - 20}" fill="#8592a6" font-size="18" font-family="sans-serif">${esc("spx6900rainbow.xyz · not financial advice · exit = a former holder that left · survivorship, not capitulation")}</text>
 </svg>`;
 }
 export function renderBaseSurvCard(_stats, opts = {}) { const d = baseSurvData(); return d ? png(baseSurvSvg(d, { W: opts.W, H: opts.H }), opts.W ?? 1200) : null; }

@@ -33,7 +33,7 @@ ${brandStripe(H)}
 <text x="740" y="230" fill="#7fb0ff" font-size="18" font-weight="700" font-family="sans-serif">Base</text>
 <line x1="80" y1="248" x2="${W - 60}" y2="248" stroke="rgba(255,255,255,0.1)"/>
 ${rows}
-<text x="60" y="${H - 20}" fill="#8592a6" font-size="18" font-family="sans-serif">${esc("spx6900rainbow.xyz · not financial advice · ≥5k SPX self-custody on each chain · Ethereum & Base share address space")}</text>
+<text x="60" y="${H - 20}" fill="#8592a6" font-size="18" font-family="sans-serif">${esc("spx6900rainbow.xyz · not financial advice · self-custody on each chain · Ethereum & Base share address space")}</text>
 </svg>`;
 }
 export function renderDualHolderCard(_stats, opts = {}) { const d = dualHolderData(); return d ? png(dualHolderSvg(d, { W: opts.W, H: opts.H }), opts.W ?? 1200) : null; }
