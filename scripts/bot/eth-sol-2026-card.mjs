@@ -64,7 +64,7 @@ export function ethSol2026Svg(d, opts = {}) {
   for (const c of [...curves].sort((a, b) => Math.max(...b.s) - Math.max(...a.s))) {
     const pts = c.s.map((v, i) => [x((i + 0.5) * BIN_DAYS), y(v)]);
     const line = pts.map(p => `${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(" ");
-    defs += `<linearGradient id="es_${c.key}" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="${c.color}" stop-opacity="0.34"/><stop offset="100%" stop-color="${c.color}" stop-opacity="0.04"/></linearGradient>`;
+    defs += `<linearGradient id="es_${c.key}" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="${c.color}" stop-opacity="0.16"/><stop offset="100%" stop-color="${c.color}" stop-opacity="0.02"/></linearGradient>`;
     areas += `<polygon points="${x(0.5 * BIN_DAYS).toFixed(1)},${(mT + pH).toFixed(1)} ${line} ${x((c.s.length - 0.5) * BIN_DAYS).toFixed(1)},${(mT + pH).toFixed(1)}" fill="url(#es_${c.key})"/>`;
     lines += `<polyline points="${line}" fill="none" stroke="${c.color}" stroke-width="3.4" stroke-linejoin="round"/>`;
     // dot at the chain's peak (median-ish mode)
@@ -91,8 +91,8 @@ export function ethSol2026Svg(d, opts = {}) {
 <rect width="${W}" height="${H}" fill="url(#esbg)"/>
 ${brandStripe(H)}
 <text x="60" y="56" fill="#f8fafc" font-size="37" font-weight="800" font-family="sans-serif" letter-spacing="1">SPX6900 — HOLDERS ACROSS THE CHAINS</text>
-<text x="60" y="98" fill="#c4b5fd" font-size="27" font-weight="800" font-family="sans-serif">The value's on Ethereum — but every chain's survivors held the drawdown</text>
-<text x="60" y="130" fill="#93a3b8" font-size="19" font-family="sans-serif">${esc(`holder-age distribution of each chain's 5k+ wallets · Solana & Base peak later than Ethereum — the survivors held`)}</text>
+<text x="60" y="98" fill="#c4b5fd" font-size="27" font-weight="800" font-family="sans-serif">On every chain, most holders have held 1–2 years</text>
+<text x="60" y="130" fill="#93a3b8" font-size="19" font-family="sans-serif">${esc(`each curve = how long that chain's holders have held · the peak is the drawdown crowd that stayed`)}</text>
 ${grid}${bars}${xlab}${legend}
 ${chips}
 <text x="60" y="${H - 20}" fill="#8592a6" font-size="18" font-family="sans-serif">${esc("spx6900rainbow.xyz · not financial advice · self-custody holders · infra excluded · Base & Solana are younger chains")}</text>
