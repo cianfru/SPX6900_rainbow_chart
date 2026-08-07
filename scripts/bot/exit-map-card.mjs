@@ -27,7 +27,7 @@ export function exitMapSvg(stats, opts = {}) {
   if (line.length < 20) return null;
   const now = stats.price;
 
-  const W = opts.W ?? 1200, H = opts.H ?? 675, mL = 90, mR = 58, F = FONT[0] || "sans-serif";
+  const W = opts.W ?? 1200, H = opts.H ?? 1200, mL = 90, mR = 58, F = FONT[0] || "sans-serif";
   // raw per-period departures — one stacked bar each (green profit / red loss); NO smoothing
   const daily = flow.res === "daily";
   const pts = flow.days.map(([d, pr, ls]) => ({ t: Date.parse(d), pr, ls })).filter(r => Number.isFinite(r.t)).sort((a, b) => a.t - b.t);
@@ -35,8 +35,13 @@ export function exitMapSvg(stats, opts = {}) {
   const t0 = line[0].t, t1 = Math.max(line.at(-1).t, pts.at(-1).t);
   const pW = W - mL - mR, x = t => mL + ((t - t0) / (t1 - t0)) * pW;
 
-  const aT = 214, aH = 236, aB = aT + aH;                 // price panel
-  const bT = aB + 52, bH = 150, bB = bT + bH;             // exits panel
+  // Panels SCALE to fill the frame (so 1:1 / square renders full, not a landscape strip on a void).
+  // aT = below the header block; bB = above the year-tick row + footer. Both panels share what's
+  // between, keeping the price panel's ~61% share; GAP holds the exits-panel label.
+  const aT = 214, GAP = 52, bB = H - 66;                  // price top · inter-panel gap · exits bottom
+  const bodyH = Math.max(200, bB - aT - GAP);             // combined panel height
+  const aH = Math.round(bodyH * (236 / 386)), aB = aT + aH;   // price panel
+  const bT = aB + GAP, bH = bodyH - aH;                   // exits panel
   const pFloor = Math.min(...line.map(r => r.p));
   const pMin = Math.max(0.0005, pFloor * 0.85), pMax = Math.max(...line.map(r => r.p), now) * 1.15;
   const lg = v => Math.log(Math.max(v, pMin));
