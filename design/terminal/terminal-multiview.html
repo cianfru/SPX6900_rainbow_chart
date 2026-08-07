@@ -1,0 +1,392 @@
+<title>SPX6900 // Reserve Terminal — walkthrough</title>
+<style>
+  /* ── A committed CRT world. Two phosphors (amber/green) + a calm READ mode that strips the tube.
+        The nav commands actually switch the main screen, so this walks the whole site, not one page. ── */
+  :root{
+    --bg:#0a0602; --p:#ffb648; --p-hi:#ffe6b8; --p-dim:#b3762c; --p-faint:#4d2f10;
+    --amber:#ffd257; --red:#ff5b6a; --grn:#37d067; --glowc:255,182,72;
+    --mono: ui-monospace,"SF Mono","DejaVu Sans Mono",Menlo,Consolas,monospace;
+  }
+  .crt[data-phosphor="green"]{
+    --bg:#030a06; --p:#35ff8a; --p-hi:#b6ffd5; --p-dim:#1f8a52; --p-faint:#0e4e2e; --glowc:53,255,138;
+  }
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; background:#000; }
+  body{ min-height:100vh; display:flex; align-items:flex-start; justify-content:center;
+    padding:16px; font-family:var(--mono);
+    background:radial-gradient(120% 90% at 50% 30%, #150c04 0%, #0a0602 55%, #030100 100%); }
+  .crt[data-phosphor="green"] ~ 0{}
+
+  .crt{ position:relative; width:100%; max-width:960px; border-radius:26px/34px;
+    padding:clamp(15px,4vw,30px);
+    background:radial-gradient(130% 120% at 50% 0%, rgba(var(--glowc),.055), transparent 55%), var(--bg);
+    box-shadow:inset 0 0 140px rgba(0,0,0,.92), inset 0 0 34px rgba(var(--glowc),.055),
+      0 0 0 2px #170e05, 0 0 0 12px #0b0703, 0 26px 80px rgba(0,0,0,.7), 0 0 90px rgba(var(--glowc),.06);
+    overflow:hidden; isolation:isolate; color:var(--p); animation:flick 7s infinite steps(1); }
+  @keyframes flick{ 0%,100%{filter:none} 48%{filter:brightness(.93)} 49%{filter:brightness(1)} 93%{filter:brightness(.96)} 94%{filter:brightness(1)} }
+  .crt::after{ content:""; position:absolute; inset:0; z-index:5; pointer-events:none;
+    background:repeating-linear-gradient(rgba(0,0,0,.26) 0 1px, transparent 1px 3px); mix-blend-mode:multiply; }
+  .sweep{ position:absolute; left:0; right:0; height:34%; z-index:4; pointer-events:none;
+    background:linear-gradient(rgba(var(--glowc),0), rgba(var(--glowc),.055), rgba(var(--glowc),0));
+    animation:sweep 6.5s linear infinite; }
+  @keyframes sweep{ 0%{top:-34%} 100%{top:100%} }
+  .scr{ position:relative; z-index:3; display:flex; flex-direction:column; gap:clamp(11px,2.2vw,18px); }
+  .phos{ text-shadow:0 0 1px rgba(var(--glowc),.9), 0 0 7px rgba(var(--glowc),.45), 0 0 16px rgba(var(--glowc),.2); }
+
+  .bar{ display:flex; align-items:center; justify-content:space-between; gap:10px;
+    font-size:11px; letter-spacing:.13em; text-transform:uppercase; color:var(--p-dim); }
+  .bar .l{ display:flex; align-items:center; gap:7px; min-width:0; }
+  .bar .l .txt{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .bar b{ color:var(--p); font-weight:600; }
+  .ctrls{ display:flex; gap:6px; flex:none; }
+  .dot{ display:inline-block; width:7px; height:7px; border-radius:50%; background:var(--p);
+    box-shadow:0 0 8px var(--p); animation:blink 1.4s steps(1) infinite; flex:none; }
+  @keyframes blink{ 50%{opacity:.25} }
+  .tbtn{ cursor:pointer; font-family:var(--mono); font-size:10px; letter-spacing:.12em; text-transform:uppercase;
+    color:var(--p); background:rgba(var(--glowc),.08); border:1px solid var(--p-faint); border-radius:5px;
+    padding:5px 9px; transition:.14s; }
+  .tbtn:hover,.tbtn:focus{ border-color:var(--p); box-shadow:0 0 12px rgba(var(--glowc),.2); outline:none; }
+
+  .ticker{ overflow:hidden; border-top:1px solid var(--p-faint); border-bottom:1px solid var(--p-faint);
+    padding:7px 0; -webkit-mask:linear-gradient(90deg,transparent,#000 6%,#000 94%,transparent); }
+  .ticker .run{ display:inline-block; white-space:nowrap; padding-left:100%; animation:tick 28s linear infinite;
+    font-size:12.5px; letter-spacing:.06em; }
+  .ticker .up{ color:var(--p-hi); } .ticker .dn{ color:var(--red); } .ticker .sep{ color:var(--p-faint); }
+  @keyframes tick{ to{ transform:translateX(-100%) } }
+
+  .head{ display:flex; align-items:flex-end; justify-content:space-between; gap:14px; flex-wrap:wrap; }
+  .brand .t{ position:relative; font-weight:800; letter-spacing:-.01em; line-height:.9;
+    font-size:clamp(34px,9vw,66px); color:var(--p); }
+  .brand .t::before,.brand .t::after{ content:attr(data-t); position:absolute; inset:0; pointer-events:none; }
+  .brand .t::before{ color:#ff2e6e; transform:translateX(-1.4px); mix-blend-mode:screen; opacity:.5; }
+  .brand .t::after{ color:#25d4ff; transform:translateX(1.4px); mix-blend-mode:screen; opacity:.45; }
+  .brand .sub{ margin-top:7px; font-size:11.5px; letter-spacing:.2em; text-transform:uppercase; color:var(--p-dim); }
+  .verd{ text-align:right; } .verd .k{ font-size:10.5px; letter-spacing:.2em; text-transform:uppercase; color:var(--p-dim); }
+  .verd .v{ font-size:clamp(14px,3.4vw,19px); font-weight:700; color:var(--p-hi); }
+
+  /* nav = commands */
+  .nav{ display:flex; flex-wrap:wrap; gap:7px 8px; font-size:12px; }
+  .nav a{ color:var(--p); cursor:pointer; text-decoration:none; letter-spacing:.03em;
+    border:1px solid var(--p-faint); border-radius:5px; padding:5px 10px; transition:.14s; user-select:none; }
+  .nav a::before{ content:"› "; color:var(--p-dim); }
+  .nav a:hover,.nav a:focus{ background:rgba(var(--glowc),.1); border-color:var(--p); box-shadow:0 0 12px rgba(var(--glowc),.16); outline:none; }
+  .nav a.on{ background:rgba(var(--glowc),.16); border-color:var(--p); color:var(--p-hi); }
+
+  /* command echo */
+  .echo{ font-size:12.5px; color:var(--p-dim); }
+  .echo .g{ color:var(--p); } .echo .cur{ display:inline-block; width:8px; height:13px; margin-left:2px;
+    vertical-align:-2px; background:var(--p); box-shadow:0 0 8px var(--p); animation:blink 1s steps(1) infinite; }
+
+  /* panels */
+  .panel{ display:none; flex-direction:column; gap:clamp(11px,2.2vw,16px); }
+  .panel.on{ display:flex; }
+  .board{ position:relative; border:1px solid var(--p-faint); border-radius:8px; overflow:hidden;
+    background:linear-gradient(#160c02,#0b0603); box-shadow:inset 0 0 40px rgba(0,0,0,.6); }
+  .crt[data-phosphor="green"] .board{ background:linear-gradient(#04160d,#030b07); }
+  .cap{ display:flex; justify-content:space-between; align-items:center; gap:8px;
+    padding:8px 12px; font-size:11px; letter-spacing:.15em; text-transform:uppercase; color:var(--p-dim);
+    border-bottom:1px solid var(--p-faint); }
+  .cap b{ color:var(--p); }
+  canvas{ display:block; width:100%; }
+
+  .grid{ display:grid; grid-template-columns:repeat(2,1fr); gap:1px;
+    background:var(--p-faint); border:1px solid var(--p-faint); border-radius:8px; overflow:hidden; }
+  @media(min-width:600px){ .grid{ grid-template-columns:repeat(4,1fr); } }
+  .cell{ background:var(--bg); padding:11px 13px; display:flex; flex-direction:column; gap:3px; min-width:0; }
+  .cell .k{ font-size:9.5px; letter-spacing:.15em; text-transform:uppercase; color:var(--p-dim); }
+  .cell .v{ font-size:clamp(16px,4.2vw,21px); font-weight:700; color:var(--p-hi); font-variant-numeric:tabular-nums; }
+  .cell .n{ font-size:10.5px; color:var(--p-dim); }
+  .cell .v.red{ color:var(--red); } .cell .v.amb{ color:var(--amber); } .cell .v.grn{ color:var(--grn); }
+
+  .cli{ border:1px solid var(--p-faint); border-radius:8px; padding:11px 14px; font-size:12.5px;
+    background:#140a02; display:flex; flex-direction:column; gap:5px; }
+  .crt[data-phosphor="green"] .cli{ background:#04120b; }
+  .cli .l{ color:var(--p-dim); } .cli .l .g{ color:var(--p); } .cli .out{ color:var(--p-hi); padding-left:16px; }
+
+  /* mini rows for tables */
+  .rows{ border:1px solid var(--p-faint); border-radius:8px; overflow:hidden; }
+  .row{ display:flex; align-items:center; gap:10px; padding:8px 13px; font-size:12.5px; border-top:1px solid var(--p-faint); }
+  .row:first-child{ border-top:none; }
+  .row .rk{ color:var(--p-dim); width:22px; flex:none; }
+  .row .rn{ color:var(--p); flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .row .rv{ color:var(--p-hi); font-variant-numeric:tabular-nums; text-align:right; }
+  .swatch{ width:10px; height:10px; border-radius:2px; flex:none; }
+
+  /* whale mosaic */
+  .mos{ display:flex; flex-wrap:wrap; gap:2px; padding:12px; border:1px solid var(--p-faint); border-radius:8px; background:#0b0603; }
+  .crt[data-phosphor="green"] .mos{ background:#030b07; }
+  .mq{ width:14px; height:14px; border-radius:3px; }
+
+  /* lens bars */
+  .lens{ display:flex; align-items:center; gap:10px; padding:7px 13px; font-size:12px; border-top:1px solid var(--p-faint); }
+  .lens:first-child{ border-top:none; }
+  .lens .lw{ width:38px; color:var(--p-dim); flex:none; font-size:11px; }
+  .lens .ln{ width:118px; color:var(--p); flex:none; }
+  .lens .lt{ flex:1; height:9px; border-radius:5px; background:rgba(var(--glowc),.08); overflow:hidden; min-width:60px; }
+  .lens .lf{ height:100%; border-radius:5px; }
+  .lens .lp{ width:34px; text-align:right; color:var(--p-hi); flex:none; }
+
+  .stub{ border:1px dashed var(--p-faint); border-radius:8px; padding:20px 16px; }
+  .stub .h{ font-size:14px; color:var(--p-hi); letter-spacing:.04em; }
+  .stub .d{ font-size:12.5px; color:var(--p-dim); margin-top:7px; line-height:1.55; }
+
+  .note{ font-size:11px; color:var(--p-dim); line-height:1.55; }
+  .foot{ font-size:10px; letter-spacing:.13em; text-transform:uppercase; color:var(--p-dim);
+    display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap; padding-top:2px; }
+
+  /* READ mode — strip the tube, calm warm ink */
+  .crt[data-mode="clean"]{ --p:#e9dcc7; --p-hi:#fbf4e8; --p-dim:#9c8a71; --p-faint:#2f2618; --bg:#141009;
+    animation:none; border-radius:16px; background:#100c06; box-shadow:0 0 0 1px #241c10, 0 20px 60px rgba(0,0,0,.55); }
+  .crt[data-mode="clean"]::after,.crt[data-mode="clean"] .sweep{ display:none; }
+  .crt[data-mode="clean"] .phos{ text-shadow:none; }
+  .crt[data-mode="clean"] .brand .t::before,.crt[data-mode="clean"] .brand .t::after{ display:none; }
+  .crt[data-mode="clean"] .brand .t{ color:var(--p-hi); }
+  .crt[data-mode="clean"] .board,.crt[data-mode="clean"] .cli,.crt[data-mode="clean"] .mos{ background:#0d0a05; }
+  .crt[data-mode="clean"] .dot{ box-shadow:none; }
+
+  @media(prefers-reduced-motion:reduce){ .crt{animation:none} .sweep{display:none} .dot,.echo .cur{animation:none} .ticker .run{animation-duration:70s} }
+</style>
+
+<div class="crt" data-mode="crt" data-phosphor="amber">
+  <div class="sweep"></div>
+  <div class="scr">
+
+    <div class="bar phos">
+      <span class="l"><span class="dot"></span> <span class="txt"><b>SPX//6900</b> reserve terminal · v6.900 · ETH·BASE·SOL <b>ONLINE</b></span></span>
+      <span class="ctrls">
+        <button class="tbtn" id="phos" type="button">◐ AMBER</button>
+        <button class="tbtn" id="mode" type="button">◉ CRT</button>
+      </span>
+    </div>
+
+    <div class="ticker phos"><span class="run">
+      $SPX <span class="up">0.336 ▲2.1%</span> <span class="sep">│</span> FAIR VALUE 1.54 <span class="sep">│</span> BAND <span class="dn">FIRE SALE 01/09</span> <span class="sep">│</span> MVRV 0.68× <span class="sep">│</span> NUPL −0.47 CAPITULATION <span class="sep">│</span> F&amp;G 25 FEAR <span class="sep">│</span> HOLDERS 230,341 <span class="sep">│</span> WHALES≥100k 644 <span class="up">+1.5%/30d</span> <span class="sep">│</span> SUPPLY-IN-PROFIT 40% <span class="sep">│</span> COMPOSITE 15%ile <span class="up">DEEPLY UNDERVALUED</span> <span class="sep">│</span> PI-CYCLE 0.27 DEEP ACCUMULATION <span class="sep">│</span> vs S&amp;P500 +497× <span class="sep">│</span>
+    </span></div>
+
+    <div class="head">
+      <div class="brand">
+        <div class="t phos" data-t="SPX//6900">SPX//6900</div>
+        <div class="sub">global reserve terminal · flipping the stock market</div>
+      </div>
+      <div class="verd phos">
+        <div class="k">composite read</div>
+        <div class="v">DEEPLY UNDERVALUED</div>
+        <div class="k" style="margin-top:6px">15th pctile · 6/6 lenses cheap</div>
+      </div>
+    </div>
+
+    <nav class="nav phos" aria-label="terminal commands" id="nav">
+      <a data-cmd="rainbow" class="on">rainbow</a><a data-cmd="valuation">valuation</a><a data-cmd="onchain">on-chain</a><a data-cmd="whales">whales</a><a data-cmd="supply">supply</a><a data-cmd="city">city.3d</a><a data-cmd="aeon">aeon</a><a data-cmd="methods">methods</a>
+    </nav>
+
+    <div class="echo phos" id="echo"><span class="g">SPX&gt;</span> load rainbow<span class="cur"></span></div>
+
+    <!-- RAINBOW -->
+    <section class="panel on" data-view="rainbow">
+      <div class="board">
+        <div class="cap phos"><span>▚ RAINBOW · frozen power-law fit</span><span>R² <b>0.742</b> · exp 4.06 · n=155w</span></div>
+        <canvas id="cv-rainbow"></canvas>
+      </div>
+      <div class="grid phos">
+        <div class="cell"><span class="k">price</span><span class="v">$0.336</span><span class="n">spot · live</span></div>
+        <div class="cell"><span class="k">band</span><span class="v red">FIRE SALE</span><span class="n">01 / 09 · cheapest</span></div>
+        <div class="cell"><span class="k">fair value</span><span class="v">$1.54</span><span class="n">model center · ~4.6× up</span></div>
+        <div class="cell"><span class="k">valuation</span><span class="v amb">15<span style="font-size:.6em"> PCTILE</span></span><span class="n">of its own history</span></div>
+      </div>
+      <div class="rows phos">
+        <div class="row"><span class="swatch" style="background:#e5342f"></span><span class="rn">$6.90 target · center line</span><span class="rv">Oct 2027</span></div>
+        <div class="row"><span class="swatch" style="background:#f0a915"></span><span class="rn">$69 target · center line</span><span class="rv">Dec 2030</span></div>
+        <div class="row"><span class="swatch" style="background:#37d067"></span><span class="rn">$690 target · center line</span><span class="rv">Mar 2036</span></div>
+      </div>
+      <p class="note">The frozen power-law fit — the brand and the denominator. Nine bands, Fire Sale → Max Bubble; the dense price line woven through, extrapolated targets are the trend, not a promise.</p>
+    </section>
+
+    <!-- VALUATION -->
+    <section class="panel" data-view="valuation">
+      <div class="board">
+        <div class="cap phos"><span>▚ COMPOSITE VALUATION · 6 weighted lenses</span><span>ranked over own history</span></div>
+        <canvas id="cv-val"></canvas>
+      </div>
+      <div class="rows phos" style="border:none">
+        <div class="lens"><span class="lw">22%</span><span class="ln">Rainbow power-law</span><span class="lt"><span class="lf" style="width:7%;background:#37d067"></span></span><span class="lp">7</span></div>
+        <div class="lens"><span class="lw">22%</span><span class="ln">MVRV cost basis</span><span class="lt"><span class="lf" style="width:18%;background:#37d067"></span></span><span class="lp">18</span></div>
+        <div class="lens"><span class="lw">16%</span><span class="ln">Supply in profit</span><span class="lt"><span class="lf" style="width:29%;background:#8bd21f"></span></span><span class="lp">29</span></div>
+        <div class="lens"><span class="lw">16%</span><span class="ln">Pi-Cycle trend</span><span class="lt"><span class="lf" style="width:21%;background:#37d067"></span></span><span class="lp">21</span></div>
+        <div class="lens"><span class="lw">12%</span><span class="ln">vs Alt market</span><span class="lt"><span class="lf" style="width:10%;background:#37d067"></span></span><span class="lp">10</span></div>
+        <div class="lens"><span class="lw">12%</span><span class="ln">Fear &amp; Greed</span><span class="lt"><span class="lf" style="width:33%;background:#8bd21f"></span></span><span class="lp">33</span></div>
+      </div>
+      <p class="note">Our own composite — six lenses, each ranked against its full history, weighted into one 0–100 oscillator. 86% at the Jan-2025 top, 15% now. A valuation position over time, not a signal.</p>
+    </section>
+
+    <!-- ON-CHAIN -->
+    <section class="panel" data-view="onchain">
+      <div class="board">
+        <div class="cap phos"><span>▚ MVRV &amp; REALIZED PRICE · FIFO</span><span>crowd cost basis $0.53</span></div>
+        <canvas id="cv-onchain"></canvas>
+      </div>
+      <div class="grid phos">
+        <div class="cell"><span class="k">mvrv</span><span class="v">0.68×</span><span class="n">crowd underwater</span></div>
+        <div class="cell"><span class="k">realized price</span><span class="v">$0.53</span><span class="n">avg cost basis</span></div>
+        <div class="cell"><span class="k">supply in profit</span><span class="v grn">40%</span><span class="n">60% underwater, unmoved</span></div>
+        <div class="cell"><span class="k">held 1y+</span><span class="v grn">53%</span><span class="n">diamond base</span></div>
+      </div>
+      <p class="note">Reconstructed locally from the full ERC-20 transfer history, FIFO per lot — every number reproducible from public chain data. Price below the crowd's cost basis; the float is underwater and still not selling.</p>
+    </section>
+
+    <!-- WHALES -->
+    <section class="panel" data-view="whales">
+      <div class="cap phos" style="border:1px solid var(--p-faint); border-bottom:none; border-radius:8px 8px 0 0">
+        <span>🐋 644 wallets ≥100k SPX · live across 3 chains</span><span><span style="color:var(--grn)">▲118 buying</span> · <span style="color:var(--red)">▼61 selling</span></span>
+      </div>
+      <div class="mos" id="mos" style="border-radius:0 0 8px 8px"></div>
+      <p class="note">Every whale as one square, sorted biggest buyer → holding steady → biggest seller. Green accumulating, red distributing, dark holding. Ethereum &amp; Base live, Solana daily. Real self-custody only — not a signal.</p>
+    </section>
+
+    <!-- stubs: real routes, ported in phase 2 -->
+    <section class="panel" data-view="supply"><div class="stub"><div class="h">▪ SUPPLY MODULE</div><div class="d">Liquid vs illiquid supply, HODL waves, holder survivorship, cost-basis distribution (URPD). Ports straight from the live On-Chain charts into the terminal frame.</div></div></section>
+    <section class="panel" data-view="city"><div class="stub"><div class="h">▪ CITY.3D MODULE — three.js</div><div class="d">SPX City / Whale City / Whales Watching load in their own WebGL surface inside the tube chrome. Heavy chunk, code-split — loads only when this command runs.</div></div></section>
+    <section class="panel" data-view="aeon"><div class="stub"><div class="h">▪ PROJECT AEON MODULE</div><div class="d">Floor, holder skyline, rarity, deal-finder, trader leaderboard. The NFT track keeps its own sub-nav under this command.</div></div></section>
+    <section class="panel" data-view="methods"><div class="stub"><div class="h">▪ METHODS</div><div class="d">The equations, the weights, the sources, and what none of it can tell you. Plain one-column text — the honesty rail, rendered as terminal documentation.</div></div></section>
+
+    <div class="foot phos">
+      <span>every number reproducible · on-chain · self-custody</span>
+      <span>not financial advice</span>
+    </div>
+
+  </div>
+</div>
+
+<script>
+(function(){
+  const root = document.querySelector('.crt');
+  const BANDS = ['#5b2a86','#3b49c9','#1f8fe0','#12c2c2','#37d067','#c7d21f','#f0a915','#f2621b','#e5342f'];
+  const LABELS = ['MAX BUBBLE','','','','FAIR','','','','FIRE SALE'];
+  const isClean = () => root.getAttribute('data-mode')==='clean';
+
+  // ── rainbow board ───────────────────────────────────────────────────────────────────────────
+  function by(t,k,H){ const padT=16,padB=22,u=H-padT-padB;
+    const rise=Math.pow(t,0.85)*0.62, lvl=k/9, spread=0.30+t*0.10;
+    return padT+u*(1-((lvl-0.5)*spread+0.5+rise-0.30)); }
+  function drawRainbow(cv){
+    const ctx=cv.getContext('2d'), DPR=Math.min(devicePixelRatio||1,2);
+    const W=cv.clientWidth, H=cv.clientHeight; cv.width=W*DPR; cv.height=H*DPR; ctx.setTransform(DPR,0,0,DPR,0,0);
+    const clean=isClean();
+    const glowc=getComputedStyle(root).getPropertyValue('--glowc').trim()||'255,182,72';
+    ctx.clearRect(0,0,W,H);
+    ctx.strokeStyle=clean?'rgba(233,220,199,.06)':`rgba(${glowc},.08)`;
+    ctx.lineWidth=1;
+    for(let i=0;i<=6;i++){const x=W*i/6;ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
+    for(let i=0;i<=4;i++){const y=H*i/4;ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+    const N=48;
+    for(let k=0;k<9;k++){ ctx.beginPath();
+      for(let i=0;i<=N;i++){const t=i/N,x=t*W,y=by(t,k+1,H);i?ctx.lineTo(x,y):ctx.moveTo(x,y);}
+      for(let i=N;i>=0;i--){const t=i/N,x=t*W;ctx.lineTo(x,by(t,k,H));}
+      ctx.closePath(); ctx.globalAlpha=clean?0.9:0.82; ctx.fillStyle=BANDS[8-k]; ctx.fill(); ctx.globalAlpha=1; }
+    ctx.font='600 10px '+getComputedStyle(root).fontFamily; ctx.textAlign='right'; ctx.textBaseline='middle';
+    for(let k=0;k<9;k++){ if(!LABELS[8-k])continue; const y=(by(1,k,H)+by(1,k+1,H))/2;
+      ctx.fillStyle='rgba(6,4,2,.9)'; ctx.fillText(LABELS[8-k],W-6,y);
+      ctx.fillStyle='#fff4e6'; ctx.fillText(LABELS[8-k],W-7,y-1); }
+    const pts=[]; for(let i=0;i<=N;i++){const t=i/N,tb=2.6-t*1.4,n=Math.sin(t*22)*.06+Math.sin(t*7)*.05; pts.push([t*W,by(t,tb+n,H)]);}
+    ctx.shadowColor='rgba(255,240,220,.8)'; ctx.shadowBlur=clean?0:8; ctx.strokeStyle='#fff4e6'; ctx.lineWidth=2.2;
+    ctx.beginPath(); pts.forEach((p,i)=>i?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1])); ctx.stroke(); ctx.shadowBlur=0;
+    const last=pts[pts.length-1]; ctx.fillStyle='#fff'; ctx.shadowColor='#fff'; ctx.shadowBlur=clean?4:12;
+    ctx.beginPath(); ctx.arc(last[0]-2,last[1],4,0,7); ctx.fill(); ctx.shadowBlur=0;
+    ctx.font='700 11px '+getComputedStyle(root).fontFamily; ctx.textAlign='right'; ctx.fillStyle='#fff4e6';
+    ctx.fillText('NOW · $0.336',last[0]-8,last[1]-10);
+  }
+
+  // ── composite oscillator ────────────────────────────────────────────────────────────────────
+  function drawOsc(cv){
+    const ctx=cv.getContext('2d'), DPR=Math.min(devicePixelRatio||1,2);
+    const W=cv.clientWidth,H=cv.clientHeight; cv.width=W*DPR;cv.height=H*DPR;ctx.setTransform(DPR,0,0,DPR,0,0);
+    const clean=isClean(); ctx.clearRect(0,0,W,H);
+    const pad=10, u=H-pad*2;
+    // zones: bottom cheap green → top expensive red
+    const ZONES=[[0,.20,'#1f8fe0'],[.20,.40,'#37d067'],[.40,.60,'#c7d21f'],[.60,.80,'#f0a915'],[.80,1,'#e5342f']];
+    for(const [a,b,c] of ZONES){ ctx.globalAlpha=clean?.20:.14; ctx.fillStyle=c;
+      ctx.fillRect(0, pad+u*(1-b), W, u*(b-a)); ctx.globalAlpha=1; }
+    // synthetic composite path: ramp to top (Jan25), ATH, decline to 0.15 now
+    const key=[[0,.16],[.10,.30],[.22,.55],[.36,.90],[.50,.62],[.64,.79],[.80,.45],[.92,.24],[1,.15]];
+    const val=t=>{ for(let i=0;i<key.length-1;i++){const [x0,y0]=key[i],[x1,y1]=key[i+1];
+      if(t>=x0&&t<=x1){const s=(t-x0)/(x1-x0); return y0+(y1-y0)*(s*s*(3-2*s));}} return .15; };
+    const N=140,pts=[];
+    for(let i=0;i<=N;i++){const t=i/N; pts.push([pad+ (W-2*pad)*t, pad+u*(1-val(t))]);}
+    ctx.strokeStyle='#fff4e6'; ctx.lineWidth=2; ctx.shadowColor='rgba(255,240,220,.7)'; ctx.shadowBlur=clean?0:7;
+    ctx.beginPath(); pts.forEach((p,i)=>i?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1])); ctx.stroke(); ctx.shadowBlur=0;
+    const last=pts[pts.length-1]; ctx.fillStyle='#37d067'; ctx.shadowColor='#37d067'; ctx.shadowBlur=clean?3:12;
+    ctx.beginPath(); ctx.arc(last[0],last[1],4.5,0,7); ctx.fill(); ctx.shadowBlur=0;
+    ctx.font='700 11px '+getComputedStyle(root).fontFamily; ctx.textAlign='right'; ctx.fillStyle='#fff4e6';
+    ctx.fillText('NOW · 15%',last[0]-8,last[1]+16);
+  }
+
+  // ── mvrv / realized ─────────────────────────────────────────────────────────────────────────
+  function drawOnchain(cv){
+    const ctx=cv.getContext('2d'), DPR=Math.min(devicePixelRatio||1,2);
+    const W=cv.clientWidth,H=cv.clientHeight; cv.width=W*DPR;cv.height=H*DPR;ctx.setTransform(DPR,0,0,DPR,0,0);
+    const clean=isClean(); ctx.clearRect(0,0,W,H); const pad=12,u=H-pad*2;
+    // break-even line
+    ctx.setLineDash([4,4]); ctx.strokeStyle=clean?'rgba(233,220,199,.35)':'rgba(255,240,220,.4)'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(0,pad+u*.45); ctx.lineTo(W,pad+u*.45); ctx.stroke(); ctx.setLineDash([]);
+    ctx.font='10px '+getComputedStyle(root).fontFamily; ctx.fillStyle=clean?'#9c8a71':'#b3762c'; ctx.textAlign='left';
+    ctx.fillText('realized $0.53',6,pad+u*.45-5);
+    // price path (log-ish): pump over cost basis, crash under
+    const key=[[0,.30],[.14,.62],[.30,.92],[.42,.55],[.55,.78],[.72,.36],[.86,.22],[1,.18]];
+    const val=t=>{for(let i=0;i<key.length-1;i++){const[x0,y0]=key[i],[x1,y1]=key[i+1];
+      if(t>=x0&&t<=x1){const s=(t-x0)/(x1-x0);return y0+(y1-y0)*(s*s*(3-2*s));}}return .18;};
+    const N=140,pts=[]; for(let i=0;i<=N;i++){const t=i/N;pts.push([(W)*t,pad+u*(1-val(t))]);}
+    // fill under, coloured by above/below be
+    ctx.strokeStyle='#5eb0ff'; ctx.lineWidth=2; ctx.shadowColor='rgba(94,176,255,.5)'; ctx.shadowBlur=clean?0:6;
+    ctx.beginPath(); pts.forEach((p,i)=>i?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1])); ctx.stroke(); ctx.shadowBlur=0;
+    const last=pts[pts.length-1]; ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(last[0]-2,last[1],3.5,0,7); ctx.fill();
+    ctx.font='700 10px '+getComputedStyle(root).fontFamily; ctx.textAlign='right'; ctx.fillStyle='#fff4e6';
+    ctx.fillText('$0.336',last[0]-7,last[1]-8);
+  }
+
+  // ── whale mosaic (representative) ────────────────────────────────────────────────────────────
+  function buildMosaic(){
+    const el=document.getElementById('mos'); if(el.childElementCount) return;
+    const cells=[]; const rnd=(s=>()=>((s=(s*9301+49297)%233280)/233280))(7);
+    for(let i=0;i<210;i++){ const r=rnd();
+      let net; if(i<38) net=0.03+r*0.10;          // buyers
+      else if(i>172) net=-(0.03+r*0.10);          // sellers
+      else net=(r-0.5)*0.006;                     // flat
+      cells.push(net); }
+    cells.sort((a,b)=>b-a);
+    const col=n=>{ if(Math.abs(n)<0.006) return '#161d2e';
+      const t=Math.max(.2,Math.min(1,Math.abs(n)/0.11));
+      const L=(a,b)=>Math.round(a+(b-a)*t);
+      return n>0?`rgb(${L(20,34)},${L(83,197)},${L(45,94)})`:`rgb(${L(69,239)},${L(10,68)},${L(10,68)})`; };
+    for(const n of cells){ const d=document.createElement('div'); d.className='mq'; d.style.background=col(n); el.appendChild(d); }
+  }
+
+  const DRAW={ rainbow:()=>drawRainbow(document.getElementById('cv-rainbow')),
+    valuation:()=>drawOsc(document.getElementById('cv-val')),
+    onchain:()=>drawOnchain(document.getElementById('cv-onchain')),
+    whales:()=>buildMosaic() };
+  const HEIGHT={ rainbow:'clamp(230px,44vw,330px)', valuation:'clamp(180px,36vw,250px)', onchain:'clamp(180px,36vw,250px)' };
+
+  let cur='rainbow';
+  function setSize(){ const cv=document.getElementById('cv-'+cur); if(cv){ cv.style.height=HEIGHT[cur]; } }
+  function redraw(){ setSize(); DRAW[cur]&&DRAW[cur](); }
+
+  // nav
+  const nav=document.getElementById('nav'), echo=document.getElementById('echo');
+  nav.addEventListener('click',e=>{ const a=e.target.closest('a[data-cmd]'); if(!a)return;
+    const cmd=a.dataset.cmd; cur=cmd;
+    nav.querySelectorAll('a').forEach(x=>x.classList.toggle('on',x===a));
+    document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('on',p.dataset.view===cmd));
+    echo.innerHTML='<span class="g">SPX&gt;</span> load '+cmd+'<span class="cur"></span>';
+    redraw(); window.scrollTo({top:0,behavior:'smooth'}); });
+
+  // toggles
+  document.getElementById('mode').addEventListener('click',function(){
+    const clean=isClean(); root.setAttribute('data-mode',clean?'crt':'clean');
+    this.textContent=clean?'◉ CRT':'○ READ'; redraw(); });
+  document.getElementById('phos').addEventListener('click',function(){
+    const green=root.getAttribute('data-phosphor')==='green';
+    root.setAttribute('data-phosphor',green?'amber':'green');
+    this.textContent=green?'◐ AMBER':'◑ GREEN'; redraw(); });
+
+  redraw(); window.addEventListener('resize',redraw);
+})();
+</script>
