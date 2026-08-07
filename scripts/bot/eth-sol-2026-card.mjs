@@ -133,13 +133,24 @@ if (process.argv[1] && import.meta.url.endsWith(process.argv[1].split("/").pop()
         conc, waves: WBANDS.map(([lo, hi]) => bySupply(w => w.days >= lo && w.days < hi)), illiquid: bySupply(w => w.days >= LTH), tiers: tiersOf(W), curve };
     };
     const eth = metrics(ethW), sol = metrics(solD.W), base = metrics(baseD.W);
+    // Circulating supply per chain = the HONEST illiquid denominator (includes exchanges + LP).
+    // ETH-native from the FIFO reconstruction (held + CEX + LP); Base/Solana from the snapshot totals.
+    try {
+      const on = JSON.parse(readFileSync(new URL("public/onchain.json", root), "utf8"));
+      const orow = (Array.isArray(on) ? on : (on.rows || on.series)).at(-1);
+      eth.circ = Math.round((orow.heldTokens || 0) + (orow.cexBal || 0) + (orow.lpBal || 0)) || null;
+      const hj = JSON.parse(readFileSync(new URL("public/history.json", root), "utf8"));
+      const hrow = (Array.isArray(hj) ? hj : (hj.rows || hj.history)).at(-1);
+      sol.circ = Math.round(hrow.supplySol || 0) || null;
+      base.circ = Math.round(hrow.supplyBase || 0) || null;
+    } catch (e) { console.warn("bundle: circ read failed (card falls back to self-custody %) —", e.message); }
     // ETH ∩ Base dual-holders (shared EVM address space) — the cross-chain maxis
     const ethMap = new Map(ethW.map(w => [w.a, w.bal]));
     const dl = baseD.W.filter(w => ethMap.has(w.a)).map(w => ({ a: w.a, eth: ethMap.get(w.a), base: w.bal })).sort((a, b) => (b.eth + b.base) - (a.eth + a.base));
     const dual = { n: dl.length, ethHeld: Math.round(dl.reduce((s, d) => s + d.eth, 0)), baseHeld: Math.round(dl.reduce((s, d) => s + d.base, 0)), top: dl.slice(0, 6).map(d => [d.a, Math.round(d.eth), Math.round(d.base)]) };
     // Base survival/exits straight from the cohort doc
     const bs = baseD.doc, baseSurv = { holders: bs.holders, exited: bs.exited, survivalPct: bs.survivalPct, exitTimeline: bs.exitTimeline || [] };
-    const line = (k, m) => `  ${k}: { n: ${m.n}, held: ${m.held}, medAge: ${m.medAge}, illiquid: ${m.illiquid}, hist: ${JSON.stringify(m.hist)}, conc: ${JSON.stringify(m.conc)}, waves: ${JSON.stringify(m.waves)}, tiers: ${JSON.stringify(m.tiers)}, curve: ${JSON.stringify(m.curve)} },`;
+    const line = (k, m) => `  ${k}: { n: ${m.n}, held: ${m.held}, medAge: ${m.medAge}, illiquid: ${m.illiquid}, circ: ${m.circ ?? "null"}, hist: ${JSON.stringify(m.hist)}, conc: ${JSON.stringify(m.conc)}, waves: ${JSON.stringify(m.waves)}, tiers: ${JSON.stringify(m.tiers)}, curve: ${JSON.stringify(m.curve)} },`;
     const body = `// GENERATED - SPX6900 holders across ETH/Solana/Base (current snapshot + true holder ages).\n// ETH from spx-timeline.json; Solana from solana-onchain.json; Base from base-onchain.json (Alchemy cohort).\n// Regenerate: node scripts/bot/eth-sol-2026-card.mjs --bundle · hist=% per ${BIN}-day age bin · conc=[top1,10,50]%\n// · waves=% of ≥5k SUPPLY by age · illiquid=% held >${LTH}d · tiers=[[n,medAge]] by balance band · dual=ETH∩Base maxis.\nexport const ETH_SOL_2026 = {\n  updated: ${JSON.stringify(baseD.updated)}, binDays: ${BIN}, curveDays: 7, wbands: ["<1m","1-3m","3-6m","6-12m","1y+"], tierBands: ["5-25k","25-100k","100k-1M","1M+"],\n${line("eth", eth)}\n${line("sol", sol)}\n${line("base", base)}\n  dual: ${JSON.stringify(dual)},\n  baseSurv: ${JSON.stringify(baseSurv)},\n};\n`;
     writeFileSync(new URL("scripts/bot/eth-sol-2026.js", root), body);
     console.log(`bundle: illiquid ETH ${eth.illiquid}% · dual-holders ${dual.n} · base survival ${baseSurv.survivalPct}%`);
