@@ -11,47 +11,53 @@ import { ETH_SOL_2026 } from "./eth-sol-2026.js";
 
 const png = (svg, w) => new Resvg(svg, { fitTo: { mode: "width", value: w }, font: FONT }).render().asPng();
 const CHAINS = [{ key: "eth", label: "Ethereum" }, { key: "sol", label: "Solana" }, { key: "base", label: "Base" }];
-// HODL-wave age colours: fresh (warm) → old (cyan diamond)
-const BAND_COL = ["#fb7185", "#fb923c", "#fbbf24", "#34d399", "#22d3ee"];
-const BAND_LBL = ["0-1m", "1-3m", "3-6m", "6-12m", "1y+"];
+const ILLIQ = "#22d3ee", LIQ = "#475569";   // held long-term (cyan) vs the liquid remainder (slate)
 
 export function chainIlliquidData() {
   const d = ETH_SOL_2026;
-  return d && CHAINS.every(c => d[c.key]?.waves?.length === 5 && d[c.key]?.illiquid != null) ? d : null;
+  return d && CHAINS.every(c => d[c.key]?.illiquid != null && d[c.key]?.held > 0) ? d : null;
 }
 
 export function chainIlliquidSvg(d, opts = {}) {
-  const chains = CHAINS.map(c => ({ ...c, ...d[c.key] }));
-  const W = opts.W ?? 1200, H = opts.H ?? 630, mT = 200, mB = 150, pH = H - mT - mB;
+  // ic = share of each chain's CIRCULATING supply held long-term (self-custody >155d), so the
+  // denominator INCLUDES exchanges + LP. This is the honest number — the old card divided by
+  // self-custody only (excluding CEX), which flattered it to 90-97%. Falls back to that if the
+  // bundle predates `circ`.
+  const chains = CHAINS.map(c => ({ ...c, ...d[c.key] }))
+    .map(c => ({ ...c, ic: c.circ > 0 ? (c.held * c.illiquid / 100) / c.circ * 100 : c.illiquid }));
+  const W = opts.W ?? 1200, H = opts.H ?? 630, mT = 226, mB = 152, pH = H - mT - mB;
   const bw = 150, slot = (W - 120) / chains.length, x0 = 60;
   const y = pct => mT + pH * (1 - pct / 100);
+  const ics = chains.map(c => c.ic), lo = Math.round(Math.min(...ics)), hi = Math.round(Math.max(...ics));
 
   let bars = "";
   chains.forEach((c, ci) => {
     const bx = x0 + slot * ci + (slot - bw) / 2;
-    let acc = 0;
-    c.waves.forEach((v, bi) => {
-      const yTop = y(acc + v), h = y(acc) - y(acc + v); acc += v;
-      bars += `<rect x="${bx}" y="${yTop.toFixed(1)}" width="${bw}" height="${Math.max(0, h).toFixed(1)}" fill="${BAND_COL[bi]}"/>`;
-      if (v >= 6) bars += `<text x="${bx + bw / 2}" y="${(yTop + h / 2 + 6).toFixed(1)}" fill="#0b0b16" font-size="18" font-weight="800" text-anchor="middle" font-family="sans-serif">${v.toFixed(0)}%</text>`;
-    });
-    // illiquid callout above the bar + chain label below
-    bars += `<text x="${bx + bw / 2}" y="${mT - 46}" fill="#22d3ee" font-size="40" font-weight="800" text-anchor="middle" font-family="sans-serif">${c.illiquid.toFixed(0)}%</text>`
-      + `<text x="${bx + bw / 2}" y="${mT - 22}" fill="#8ea3b8" font-size="17" text-anchor="middle" font-family="sans-serif">held 155d+</text>`
+    const yBase = y(0), yBound = y(c.ic), yTop = y(100);
+    // liquid remainder (bottom, slate) + held-long-term (top, cyan)
+    bars += `<rect x="${bx}" y="${yBound.toFixed(1)}" width="${bw}" height="${(yBase - yBound).toFixed(1)}" fill="${LIQ}"/>`
+      + `<rect x="${bx}" y="${yTop.toFixed(1)}" width="${bw}" height="${(yBound - yTop).toFixed(1)}" fill="${ILLIQ}"/>`;
+    // segment % — the held-long-term share always; the liquid share when it has room
+    bars += `<text x="${bx + bw / 2}" y="${(yTop + (yBound - yTop) / 2 + 8).toFixed(1)}" fill="#04222c" font-size="25" font-weight="800" text-anchor="middle" font-family="sans-serif">${c.ic.toFixed(0)}%</text>`;
+    if (100 - c.ic >= 12) bars += `<text x="${bx + bw / 2}" y="${(yBound + (yBase - yBound) / 2 + 6).toFixed(1)}" fill="#cbd5e1" font-size="18" font-weight="700" text-anchor="middle" font-family="sans-serif">${(100 - c.ic).toFixed(0)}%</text>`;
+    // callout above + chain label + circulating supply below
+    bars += `<text x="${bx + bw / 2}" y="${mT - 46}" fill="${ILLIQ}" font-size="40" font-weight="800" text-anchor="middle" font-family="sans-serif">${c.ic.toFixed(0)}%</text>`
+      + `<text x="${bx + bw / 2}" y="${mT - 22}" fill="#8ea3b8" font-size="17" text-anchor="middle" font-family="sans-serif">held long-term</text>`
       + `<text x="${bx + bw / 2}" y="${(mT + pH + 34).toFixed(1)}" fill="#e2e8f0" font-size="23" font-weight="700" text-anchor="middle" font-family="sans-serif">${esc(c.label)}</text>`
-      + `<text x="${bx + bw / 2}" y="${(mT + pH + 58).toFixed(1)}" fill="#8592a6" font-size="16" text-anchor="middle" font-family="sans-serif">${(c.held / 1e6).toFixed(0)}M · ${c.n.toLocaleString()} wallets</text>`;
+      + `<text x="${bx + bw / 2}" y="${(mT + pH + 58).toFixed(1)}" fill="#8592a6" font-size="16" text-anchor="middle" font-family="sans-serif">${(c.circ / 1e6).toFixed(0)}M circulating</text>`;
   });
-  // age legend (right side)
-  let ly = mT + 6; const legend = BAND_LBL.map((l, i) => { const s = `<rect x="${W - 150}" y="${ly}" width="16" height="16" rx="3" fill="${BAND_COL[4 - i]}"/><text x="${W - 128}" y="${ly + 13}" fill="#cbd5e1" font-size="18" font-family="sans-serif">${esc(BAND_LBL[4 - i])}</text>`; ly += 30; return s; }).join("");
+  // horizontal legend under the headline
+  const legend = `<rect x="60" y="120" width="15" height="15" rx="3" fill="${ILLIQ}"/><text x="81" y="132" fill="#cbd5e1" font-size="18" font-family="sans-serif">held 155d+</text>`
+    + `<rect x="228" y="120" width="15" height="15" rx="3" fill="${LIQ}"/><text x="249" y="132" fill="#cbd5e1" font-size="18" font-family="sans-serif">exchanges + recent buyers</text>`;
 
   return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
 <defs><linearGradient id="ilbg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#0b0b16"/><stop offset="100%" stop-color="#05050e"/></linearGradient></defs>
 <rect width="${W}" height="${H}" fill="url(#ilbg)"/>
 ${brandStripe(H)}
-<text x="60" y="56" fill="#f8fafc" font-size="36" font-weight="800" font-family="sans-serif" letter-spacing="1">SPX6900 — LONG-TERM HOLDER SUPPLY BY CHAIN</text>
-<text x="60" y="98" fill="#22d3ee" font-size="27" font-weight="800" font-family="sans-serif">90-97% of supply sits with long-term holders — on every chain</text>
-${bars}${legend}
-<text x="60" y="${H - 20}" fill="#8592a6" font-size="18" font-family="sans-serif">${esc("spx6900rainbow.xyz · not financial advice · self-custody holders · infra (LP/CEX) excluded")}</text>
+<text x="60" y="56" fill="#f8fafc" font-size="36" font-weight="800" font-family="sans-serif" letter-spacing="1">SPX6900 — HELD LONG-TERM, BY CHAIN</text>
+<text x="60" y="98" fill="#22d3ee" font-size="26" font-weight="800" font-family="sans-serif">${esc(`${lo}–${hi}% of circulating supply is held long-term`)}</text>
+${legend}${bars}
+<text x="60" y="${H - 20}" fill="#8592a6" font-size="18" font-family="sans-serif">${esc("spx6900rainbow.xyz · not financial advice · share of each chain's circulating supply · exchanges & LP = liquid")}</text>
 </svg>`;
 }
 
