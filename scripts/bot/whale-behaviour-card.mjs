@@ -12,8 +12,16 @@ import { buildCohorts } from "../../src/whale-cohorts.js";
 const png = (svg, w) => new Resvg(svg, { fitTo: { mode: "width", value: w }, font: FONT }).render().asPng();
 const BUY = "#22c55e", SELL = "#f43f5e", FLAT = "#3b4256";
 
+// All three chains, so the count matches the mosaic (one whale number everywhere). ETH carries d30/d7;
+// Base & Solana carry a 30d `flow` → mapped to d30. buildCohorts falls back to 0 for any missing flow.
 function loadWhales() {
-  try { return JSON.parse(readFileSync(new URL("../../public/whales.json", import.meta.url), "utf8")); } catch { return null; }
+  const j = f => { try { return JSON.parse(readFileSync(new URL(`../../public/${f}`, import.meta.url), "utf8")); } catch { return null; } };
+  const eth = j("whales.json"), base = j("base-onchain.json"), sol = j("solana-onchain.json");
+  const wallets = [];
+  for (const w of eth?.wallets || []) if (w?.bal >= 1e5) wallets.push({ a: w.a, bal: w.bal, days: w.days, d30: w.d30 ?? 0, d7: w.d7 });
+  for (const w of base?.wallets || []) if (w?.bal >= 1e5) wallets.push({ a: w.a, bal: w.bal, days: w.days, d30: w.flow ?? 0 });
+  for (const w of sol?.wallets || []) if (w?.bal >= 1e5) wallets.push({ a: w.a, bal: w.bal, days: w.days, d30: w.flow ?? 0 });
+  return wallets.length ? { wallets, updated: eth?.updated } : null;
 }
 
 // One aggregate summary, memoised, shared by the SVG and the post copy so they can't drift.
@@ -64,10 +72,10 @@ export function whaleBehaviourSvg(stats, opts = {}) {
 <rect width="${W}" height="${H}" fill="url(#wbbg)"/>
 ${brandStripe(H)}
 <text x="60" y="56" fill="#f8fafc" font-size="39" font-weight="800" font-family="sans-serif" letter-spacing="1">SPX6900 — WHALE BEHAVIOUR</text>
-<text x="60" y="100" fill="#22d3ee" font-size="31" font-weight="800" font-family="sans-serif">${r.total} Ethereum whales — ${flatPct}% held flat for 30 days</text>
-<text x="60" y="140" fill="#93a3b8" font-size="19" font-family="sans-serif">${esc(`≥100k SPX on Ethereum, by size · ${buy} added / ${sell} sold / ${flat} unchanged over 30 days · net ${netStr}`)}</text>
+<text x="60" y="100" fill="#22d3ee" font-size="31" font-weight="800" font-family="sans-serif">${r.total} whales across 3 chains — ${flatPct}% held flat for 30 days</text>
+<text x="60" y="140" fill="#93a3b8" font-size="19" font-family="sans-serif">${esc(`≥100k SPX on ETH, Base & Solana, by size · ${buy} added / ${sell} sold / ${flat} unchanged over 30 days · net ${netStr}`)}</text>
 ${rows}
-<text x="60" y="${H - 20}" fill="#8592a6" font-size="18" font-family="sans-serif">${esc("spx6900rainbow.xyz · not financial advice · ETH-native, self-custody · infra excluded · bar length = wallets in the tier")}</text>
+<text x="60" y="${H - 20}" fill="#8592a6" font-size="18" font-family="sans-serif">${esc("spx6900rainbow.xyz · not financial advice · ETH + Base + Solana, self-custody · infra excluded · bar = wallets in tier")}</text>
 </svg>`;
 }
 
