@@ -8,7 +8,8 @@
 //
 //   node scripts/build-aeon-listings.mjs
 //
-// Requires OPENSEA_KEY (a free OpenSea API key — backend only). NO key → soft-skip.
+// Requires OPENSEA_KEY (a free OpenSea API key — backend only). NO key → soft-skip; a bad/
+// expired key (401) or any OpenSea error → soft-FAIL (keeps last-good listings, banker stays green).
 // Reservoir (our first plan) shut down 2025-10; OpenSea is the standard listings source.
 // Claude can't reach OpenSea from the sandbox → runs in CI (aeon.yml, daily — listings
 // change constantly). VALIDATE first run: a plausible listing count, prices in ETH,
@@ -108,4 +109,11 @@ async function main() {
   );
 }
 
-main().catch(e => { console.error("aeon-listings: failed —", e.message); process.exitCode = 1; });
+main().catch(e => {
+  // The deal-finder listings are an OPTIONAL feature that needs a live OpenSea key. A bad or
+  // expired key (401/403), a rate limit, or any OpenSea hiccup must NOT red the whole daily
+  // banker — floor/owners/rarity/sales have already banked, and the last-good aeon-listings.json
+  // is left untouched (we never wrote over it). Log loudly so a broken key is visible in the run,
+  // then exit clean. Mirrors build-aeon-dune-refresh.mjs's soft-fail. Fix the key → next run heals.
+  console.error("aeon-listings: soft-fail (keeping last-good listings) —", e.message);
+});
