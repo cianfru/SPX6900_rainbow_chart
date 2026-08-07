@@ -72,7 +72,7 @@
   "dualholders": "landscape",
   "basesurv": "landscape",
   "supplycurve": "square",
-  "whalecensus": "landscape",
+  "whalecensus": "square",
   "whalebehaviour": "landscape",
   "hodlcompare": "square",
   "urpd": "square",
