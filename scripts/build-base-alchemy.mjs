@@ -141,8 +141,32 @@ async function main() {
 
   const holders = [...cohort.values()].filter(r => r.status === "holder" && r.bal >= THRESH).length;
   console.log(`✓ cohort ${csv} — ${holders} holders · lastBlock ${newLast}`);
-  // regenerate base-onchain.json from the updated cohort
-  const r = spawnSync(process.execPath, [join(root, "scripts/build-base-cohort.mjs"), `--in=${csv}`, `--out=${join(root, "public/base-onchain.json")}`], { stdio: "inherit" });
+
+  // 30-day per-wallet NET FLOW — a bounded window fetch (Base SPX is low-volume, so this is a handful
+  // of pages). getAssetTransfers returns only SPX transfers regardless of range, so it's cheap. Sum
+  // (received − sent) per wallet over the last 30 days. Soft-fails to no-flow (cards then read 0).
+  let flowArgs = [];
+  try {
+    const head = parseInt(await rpc("eth_blockNumber", []), 16);
+    const FLOW_DAYS = 30, BLOCKS_PER_DAY = 43200;                         // Base ~2s blocks
+    const fromB = Math.max(0, head - (FLOW_DAYS + 5) * BLOCKS_PER_DAY);   // +5d margin, then filter by day
+    const cutoff = new Date(Date.now() - FLOW_DAYS * 86400000).toISOString().slice(0, 10);
+    const flow = new Map();
+    await streamTransfers(fromB, batch => {
+      for (const t of batch) {
+        if (t.day < cutoff) continue;
+        if (t.from && t.from !== "0x0000000000000000000000000000000000000000") flow.set(t.from, (flow.get(t.from) || 0n) - t.value);
+        if (t.to && t.to !== "0x0000000000000000000000000000000000000000") flow.set(t.to, (flow.get(t.to) || 0n) + t.value);
+      }
+    });
+    const flowCsv = join(root, "dune/out/spx6900_base_flow30.csv");
+    writeFileSync(flowCsv, "address,flow30\n" + [...flow].map(([a, v]) => `${a},${rawToStr(v)}`).join("\n") + "\n");
+    flowArgs = [`--flow=${flowCsv}`];
+    console.log(`base-alchemy: 30d net-flow computed for ${flow.size} wallets (since ${cutoff})`);
+  } catch (e) { console.warn("base-alchemy: 30d flow skipped —", e.message); }
+
+  // regenerate base-onchain.json from the updated cohort (+ flow if computed)
+  const r = spawnSync(process.execPath, [join(root, "scripts/build-base-cohort.mjs"), `--in=${csv}`, `--out=${join(root, "public/base-onchain.json")}`, ...flowArgs], { stdio: "inherit" });
   if (r.status !== 0) throw new Error("build-base-cohort failed");
 }
 

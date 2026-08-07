@@ -1042,7 +1042,7 @@ Few wallets, most of the weight.`,
     const dir = b.netPct >= 0.1 ? "leaning in" : b.netPct <= -0.1 ? "trimming" : "flat on net";
     return {
       id: "whalebehaviour",
-      text: ct`🐋 What are SPX6900's whales doing? On Ethereum, ${b.r.total} wallets hold 100k+ SPX — and ${b.flatPct}% didn't move a coin in 30 days.
+      text: ct`🐋 What are SPX6900's whales doing? ${b.r.total} wallets hold 100k+ SPX across 3 chains — and ${b.flatPct}% didn't move a coin in 30 days.
 Among the few that did, ${b.buy} added and ${b.sell} sold — ${dir} (net ${b.netPct >= 0 ? "+" : ""}${b.netPct.toFixed(2)}% of whale supply). The 1M+ cohorts net accumulated; the biggest hands barely twitched.
 Conviction looks like silence.`,
       card: { type: "whalebehaviour" },

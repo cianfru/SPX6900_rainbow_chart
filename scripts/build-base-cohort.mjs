@@ -55,6 +55,14 @@ function main() {
 
   const { holders, exits, excludedSupply } = parseCohort(readFileSync(inPath, "utf8"), { nowTs });
   if (!holders.length) throw new Error("no holders parsed — check the CSV columns");
+  // Optional per-wallet 30-day net flow (address,flow30) — from build-base-alchemy's bounded window
+  // fetch. Lets the behaviour/mosaic cards show Base movers instead of everyone reading flat.
+  const flowPath = arg("flow", null);
+  const flowMap = new Map();
+  if (flowPath) {
+    try { for (const l of readFileSync(flowPath, "utf8").split(/\r?\n/)) { if (!l || l.toLowerCase().startsWith("address")) continue; const [a, v] = l.split(","); if (a) flowMap.set(a.trim().toLowerCase(), Number(v) || 0); } }
+    catch (e) { console.warn(`base-cohort: flow file unreadable (${e.message}) — wallets get flow 0`); }
+  }
   const ages = holders.map(h => h.days);
   const everHeld = holders.length + exits.length;
   // exit timeline by month
@@ -69,8 +77,8 @@ function main() {
     survivalPct: +(holders.length / everHeld * 100).toFixed(1),
     medAge: median(ages), ageBands: bandsOf(ages),
     exitTimeline,
-    note: "current ≥5k holders with real ages (first ≥5k day); exits = ever-≥5k wallets now below the bar",
-    wallets: holders.map(h => ({ a: h.a, bal: h.bal, days: h.days })),
+    note: "current ≥5k holders with real ages (first ≥5k day); exits = ever-≥5k wallets now below the bar; flow = 30d net",
+    wallets: holders.map(h => ({ a: h.a, bal: h.bal, days: h.days, flow: Math.round(flowMap.get(h.a) || 0) })),
   };
   mkdirSync(dirname(outPath), { recursive: true });
   writeFileSync(outPath, JSON.stringify(doc));
