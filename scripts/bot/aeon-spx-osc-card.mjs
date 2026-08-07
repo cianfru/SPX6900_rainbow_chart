@@ -95,9 +95,11 @@ ${aeonHeader("PROJECT AEON — EXPENSIVE OR CHEAP IN SPX", "SPX6900 is the flat 
 ${zones}${grid}${xlab}
 <polygon points="${areaUp}" fill="url(#aofill)"/>
 <line x1="${mL}" y1="${y0.toFixed(1)}" x2="${W - mR}" y2="${y0.toFixed(1)}" stroke="#f8fafc" stroke-width="2.6" stroke-opacity="0.92"/>
-<text x="${mL + 16}" y="${(y0 + 30).toFixed(1)}" fill="#f8fafc" font-size="21" font-weight="700" font-family="${F}">${esc(`SPX baseline — ${fSpx(z.base)} SPX per AEON`)}</text>
 <polyline points="${line}" fill="none" stroke="#f8fafc" stroke-width="3.4" stroke-linejoin="round" stroke-linecap="round"/>
 <circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="11" fill="${st.c}" stroke="#05050b" stroke-width="3"/>
+<!-- baseline label on a chip, drawn on top so the price line can't weave through it -->
+<rect x="${mL + 8}" y="${(y0 + 11).toFixed(1)}" width="354" height="30" rx="8" fill="#0a0e1c" fill-opacity="0.86" stroke="rgba(255,255,255,0.12)"/>
+<text x="${mL + 22}" y="${(y0 + 32).toFixed(1)}" fill="#f8fafc" font-size="20" font-weight="700" font-family="${F}">${esc(`SPX baseline — ${fSpx(z.base)} SPX per AEON`)}</text>
 <text x="${(mL + pW - 16)}" y="${(mT + 34)}" text-anchor="end" fill="#fb7185" fill-opacity="0.85" font-size="21" font-weight="700" font-family="${F}">expensive vs SPX</text>
 <text x="${(mL + pW - 16)}" y="${(mT + pH - 18)}" text-anchor="end" fill="#22d3ee" fill-opacity="0.85" font-size="21" font-weight="700" font-family="${F}">cheap vs SPX</text>
 <text x="60" y="${H - 22}" fill="#6b7688" font-size="19" font-family="${F}">${esc(`floor priced in SPX6900 · baseline = trailing 365-day median · ${pctTxt}`)}</text>
