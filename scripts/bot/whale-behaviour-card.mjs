@@ -64,8 +64,8 @@ export function whaleBehaviourSvg(stats, opts = {}) {
 <rect width="${W}" height="${H}" fill="url(#wbbg)"/>
 ${brandStripe(H)}
 <text x="60" y="56" fill="#f8fafc" font-size="39" font-weight="800" font-family="sans-serif" letter-spacing="1">SPX6900 — WHALE BEHAVIOUR</text>
-<text x="60" y="100" fill="#22d3ee" font-size="31" font-weight="800" font-family="sans-serif">${r.total} whales — ${flatPct}% held flat for 30 days</text>
-<text x="60" y="140" fill="#93a3b8" font-size="19" font-family="sans-serif">${esc(`≥100k SPX, by size · ${buy} added / ${sell} sold / ${flat} unchanged over 30 days · net ${netStr} — the big money sits tight`)}</text>
+<text x="60" y="100" fill="#22d3ee" font-size="31" font-weight="800" font-family="sans-serif">${r.total} Ethereum whales — ${flatPct}% held flat for 30 days</text>
+<text x="60" y="140" fill="#93a3b8" font-size="19" font-family="sans-serif">${esc(`≥100k SPX on Ethereum, by size · ${buy} added / ${sell} sold / ${flat} unchanged over 30 days · net ${netStr}`)}</text>
 ${rows}
 <text x="60" y="${H - 20}" fill="#8592a6" font-size="18" font-family="sans-serif">${esc("spx6900rainbow.xyz · not financial advice · ETH-native, self-custody · infra excluded · bar length = wallets in the tier")}</text>
 </svg>`;
