@@ -21,7 +21,7 @@ export function altOscSvg(stats, opts = {}) {
   const zone = cur.z >= 1 ? "overbought vs alts" : cur.z <= -1 ? "cheap vs alts" : "fair vs alts";
   const zoneC = cur.z >= 1 ? RICH : cur.z <= -1 ? CHEAP : MID;
 
-  const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 92, mR = 110, mT = 124, mB = 92, pW = W - mL - mR, pH = H - mT - mB;
+  const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 92, mR = 168, mT = 124, mB = 92, pW = W - mL - mR, pH = H - mT - mB;
   const x = ts => mL + ((ts - t0) / ((t1 - t0) || 1)) * pW;
   const zMax = Math.max(2.5, ...series.map(s => Math.abs(s.z))) * 1.06;
   const y = z => mT + ((zMax - z) / (2 * zMax)) * pH;
@@ -53,7 +53,7 @@ export function altOscSvg(stats, opts = {}) {
     const t = Date.UTC(yr, 0, 1); if (t < t0 || t > t1) continue;
     xlab += `<text x="${x(t).toFixed(1)}" y="${H - 46}" fill="#94a3b8" font-size="22" text-anchor="middle" font-family="sans-serif">${yr}</text>`;
   }
-  const bandLine = (z, c, txt, dash = "7 6") => `<line x1="${mL}" y1="${y(z).toFixed(1)}" x2="${W - mR}" y2="${y(z).toFixed(1)}" stroke="${c}" stroke-width="2.5" stroke-opacity="0.9" stroke-dasharray="${dash}"/><text x="${W - 8}" y="${(y(z) - 10).toFixed(1)}" fill="${c}" font-size="21" font-weight="800" text-anchor="end" font-family="sans-serif">${esc(txt)}</text>`;
+  const bandLine = (z, c, txt, dash = "7 6") => `<line x1="${mL}" y1="${y(z).toFixed(1)}" x2="${W - mR}" y2="${y(z).toFixed(1)}" stroke="${c}" stroke-width="2.5" stroke-opacity="0.9" stroke-dasharray="${dash}"/><text x="${W - 18}" y="${(y(z) - 10).toFixed(1)}" fill="${c}" font-size="21" font-weight="800" text-anchor="end" font-family="sans-serif">${esc(txt)}</text>`;
 
   const line = series.map((s, i) => `${xs[i]},${y(s.z).toFixed(1)}`).join(" ");
   const curX = x(cur.ts), curY = y(cur.z);
@@ -72,7 +72,7 @@ ${brandStripe(H)}
 ${shade}${grid}${xlab}
 ${redArea}${blueArea}
 <line x1="${mL}" y1="${y0.toFixed(1)}" x2="${W - mR}" y2="${y0.toFixed(1)}" stroke="${MID}" stroke-width="2.5" stroke-opacity="0.95"/>
-<text x="${W - 8}" y="${(y0 - 10).toFixed(1)}" fill="${MID}" font-size="21" font-weight="800" text-anchor="end" font-family="sans-serif">fair vs alts</text>
+<text x="${W - 18}" y="${(y0 - 10).toFixed(1)}" fill="${MID}" font-size="21" font-weight="800" text-anchor="end" font-family="sans-serif">fair vs alts</text>
 ${bandLine(1, RICH, "overbought")}
 ${bandLine(-1, CHEAP, "cheap")}
 <polyline points="${line}" fill="none" stroke="#f8fafc" stroke-width="4.2" stroke-linejoin="round" stroke-linecap="round"/>
