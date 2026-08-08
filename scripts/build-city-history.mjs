@@ -57,35 +57,47 @@ const HOLD_WK = 13;   // ~90 days — SPX City's residency rule is "≥5,000 hel
 // A citizen at week wk = balance ≥ FLOOR AND the wallet hasn't gone to zero in the trailing 13 weeks
 // (≈90 days), clamped to the token's age in the early weeks (you can't hold longer than it has
 // existed). This approximates the live city's per-lot residency, so the count reconciles closely.
+const median = a => { if (!a.length) return 0; const s = [...a].sort((x, y) => x - y); const m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; };
+const quarterOf = ms => { const d = new Date(ms); return `${d.getUTCFullYear()} Q${Math.floor(d.getUTCMonth() / 3) + 1}`; };
+
 export function cityHistory(tl, prices) {
   const n = tl.n, week0 = Date.parse(tl.week0), priceAt = priceLookup(prices);
   const counts = Array.from({ length: n }, () => new Array(NC).fill(0));
   const toks = Array.from({ length: n }, () => new Array(NC).fill(0));
   const arrivals = new Array(n).fill(0), departures = new Array(n).fill(0), foundersAlive = new Array(n).fill(0);
+  const weekBals = Array.from({ length: n }, () => []); // resident balances per week (for the median)
+  const vint = new Map();                               // arrival quarter → {arrived, stillHere}
+  const dateOf = wk => dayOf(week0 + wk * 7 * DAY);
   for (const w of tl.wallets) {
     let peak = 0; for (const pt of w.p) if (pt[1] > peak) peak = pt[1];
     if (peak < FLOOR) continue;                          // never reached the residency floor
-    let pi = 0, bal = 0, streak = 0, prevRes = false, founder = false;
+    let pi = 0, bal = 0, streak = 0, prevRes = false, founder = false, firstResWk = -1, lastRes = false;
     for (let wk = 0; wk < n; wk++) {
       while (pi < w.p.length && w.p[pi][0] <= wk) bal = w.p[pi++][1];
       streak = bal > 0 ? streak + 1 : 0;
       const res = bal >= FLOOR && streak >= Math.min(HOLD_WK, wk + 1);
-      if (res) { const ci = cohortIndex(bal); if (ci >= 0) { counts[wk][ci]++; toks[wk][ci] += bal; } }
+      if (res) { const ci = cohortIndex(bal); if (ci >= 0) { counts[wk][ci]++; toks[wk][ci] += bal; weekBals[wk].push(bal); } if (firstResWk < 0) firstResWk = wk; }
       if (res && !prevRes) arrivals[wk]++;               // crossed into residency this week
       if (!res && prevRes) departures[wk]++;             // dropped out of residency this week
       if (wk === 0) founder = res;                       // a "founder" was a resident in the launch week
       if (founder && res) foundersAlive[wk]++;           // …still here now
-      prevRes = res;
+      prevRes = res; lastRes = res;                      // lastRes holds residency at the final week
+    }
+    if (firstResWk >= 0) {                               // tally this wallet into its arrival vintage
+      const q = quarterOf(week0 + firstResWk * 7 * DAY), v = vint.get(q) || { arrived: 0, stillHere: 0 };
+      v.arrived++; if (lastRes) v.stillHere++; vint.set(q, v);
     }
   }
   const rows = counts.map((c, wk) => {
-    const date = dayOf(week0 + wk * 7 * DAY), price = priceAt(Date.parse(date));
+    const date = dateOf(wk), price = priceAt(Date.parse(date));
     return [date, price, ...c, ...toks[wk].map(t => t * price)];
   });
-  const dateOf = wk => dayOf(week0 + wk * 7 * DAY);
   const flow = arrivals.map((a, wk) => [dateOf(wk), a, departures[wk]]);
   const founders = { n0: foundersAlive[0], series: foundersAlive.map((v, wk) => [dateOf(wk), v]) };
-  return meta(round(rows), "weekly", { flow, founders });
+  const perCapita = weekBals.map((a, wk) => [dateOf(wk), Math.round(median(a))]); // median resident holding (tokens)
+  const vintages = [...vint.entries()].map(([label, v]) => ({ label, arrived: v.arrived, stillHere: v.stillHere, pct: v.arrived ? +(v.stillHere / v.arrived * 100).toFixed(1) : 0 }))
+    .sort((a, b) => a.label.localeCompare(b.label));
+  return meta(round(rows), "weekly", { flow, founders, perCapita, vintages });
 }
 
 // DAILY — stream the raw transfer archive; keep a running per-wallet balance + when each wallet last
@@ -118,15 +130,16 @@ export async function fromTransfers(src, prices) {
     if (nb >= FLOOR) eligible.add(a); else eligible.delete(a);
   };
 
-  const out = [], flow = [];
-  let prev = new Set(), founders = null;                  // founders = the resident set on the first snapshot
+  const out = [], flow = [], perCapita = [];
+  let prev = new Set(), founders = null, lastCur = new Set();   // founders = the resident set on the first snapshot
+  const firstRes = new Map();                             // wallet → day it first became a resident (for vintages)
   const snap = (d) => {
     const dT = Date.parse(d), price = priceAt(dT), need = Math.min(HOLD_MS, dT - launchT);
-    const counts = new Array(NC).fill(0), toks = new Array(NC).fill(0), cur = new Set();
+    const counts = new Array(NC).fill(0), toks = new Array(NC).fill(0), cur = new Set(), resBals = [];
     for (const a of eligible) {
       if (dT - (heldSince.get(a) ?? dT) < need) continue; // not held long enough yet
       const b = bal.get(a), ci = cohortIndex(b);
-      if (ci >= 0) { counts[ci]++; toks[ci] += b; cur.add(a); }
+      if (ci >= 0) { counts[ci]++; toks[ci] += b; cur.add(a); resBals.push(b); if (!firstRes.has(a)) firstRes.set(a, dT); }
     }
     if (!founders) founders = new Set(cur);
     let arr = 0, dep = 0, fAlive = 0;
@@ -135,7 +148,8 @@ export async function fromTransfers(src, prices) {
     for (const a of founders) if (cur.has(a)) fAlive++;
     out.push([d, price, ...counts, ...toks.map(t => t * price)]);
     flow.push([d, arr, dep, fAlive]);
-    prev = cur;
+    perCapita.push([d, Math.round(median(resBals))]);
+    prev = cur; lastCur = cur;
   };
   let curDay = null, curT = 0;
   const flushTo = (nextDay) => { snap(curDay); for (let t = curT + DAY; dayOf(t) < nextDay; t += DAY) snap(dayOf(t)); };
@@ -148,9 +162,17 @@ export async function fromTransfers(src, prices) {
   if (curDay !== null) snap(curDay);
   console.error(`city-history[daily]: ${rows.length} transfers → ${out.length} days`);
   const n0 = flow[0]?.[3] ?? 0;
+  const vint = new Map();                                 // arrival quarter → {arrived, stillHere}
+  for (const [a, dT] of firstRes) {
+    const q = quarterOf(dT), v = vint.get(q) || { arrived: 0, stillHere: 0 };
+    v.arrived++; if (lastCur.has(a)) v.stillHere++; vint.set(q, v);
+  }
+  const vintages = [...vint.entries()].map(([label, v]) => ({ label, arrived: v.arrived, stillHere: v.stillHere, pct: v.arrived ? +(v.stillHere / v.arrived * 100).toFixed(1) : 0 }))
+    .sort((a, b) => a.label.localeCompare(b.label));
   return meta(round(out), "daily", {
     flow: flow.map(f => [f[0], f[1], f[2]]),
     founders: { n0, series: flow.map(f => [f[0], f[3]]) },
+    perCapita, vintages,
   });
 }
 

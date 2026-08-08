@@ -625,7 +625,7 @@ function card(id) {
 }
 
 // City cards live under the SPX City tab, not in the daily grid (they're hand-posted).
-const CITY_CARDS = ["citygrowth", "citychurn"];
+const CITY_CARDS = ["citygrowth", "citychurn", "citypercap", "cityvintage"];
 function renderGrid() {
   const g = $("#grid"); g.innerHTML = "";
   IDS.filter(id => !CITY_CARDS.includes(id)).forEach(id => g.appendChild(card(id)));

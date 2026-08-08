@@ -1,6 +1,6 @@
 import { useMemo, useState, useEffect } from "react";
 import {
-  ResponsiveContainer, ComposedChart, Area, Bar, Line, XAxis, YAxis, Tooltip, CartesianGrid, ReferenceArea, ReferenceLine,
+  ResponsiveContainer, ComposedChart, BarChart, Area, Bar, Line, Cell, XAxis, YAxis, Tooltip, CartesianGrid, ReferenceArea, ReferenceLine,
 } from "recharts";
 import { loadCityHistory } from "./history-data.js";
 import ChartZoomHint from "./ChartZoomHint.jsx";
@@ -32,10 +32,12 @@ export default function CityFlowChart({ isMobile, preview = false }) {
       return [r[0], { price: r[1], cTot, vTot }];
     }));
     const fdr = new Map((data.founders?.series || []).map(([d, v]) => [d, v]));
+    const med = new Map((data.perCapita || []).map(([d, v]) => [d, v]));
     return data.flow.map(([d, arr, dep]) => {
       const row = byDate.get(d) || { price: 0, cTot: 0, vTot: 0 };
-      const avgTok = row.cTot ? (row.price ? row.vTot / row.price : 0) / row.cTot : 0;   // avg holding in SPX
-      return { ts: Date.parse(d), arr, dep: -dep, net: arr - dep, founders: fdr.get(d) ?? null, avg: avgTok, ...row };
+      const meanTok = row.cTot ? (row.price ? row.vTot / row.price : 0) / row.cTot : 0;   // mean holding in SPX
+      const medTok = med.get(d) ?? null;                                                   // median holding in SPX
+      return { ts: Date.parse(d), arr, dep: -dep, net: arr - dep, founders: fdr.get(d) ?? null, mean: meanTok, med: medTok, ...row };
     }).filter(r => Number.isFinite(r.ts)).sort((a, b) => a.ts - b.ts);
   }, [data]);
 
@@ -59,11 +61,22 @@ export default function CityFlowChart({ isMobile, preview = false }) {
   const foundersLeft = data.founders?.series?.at(-1)?.[1] ?? 0;
   const survPct = n0 ? foundersLeft / n0 * 100 : 0;
   const totIn = all.reduce((s, r) => s + r.arr, 0), totOut = all.reduce((s, r) => s - r.dep, 0);
-  const accent = "#22d3ee", green = "#4ade80", red = "#f87171", amber = "#fbbf24";
+  const accent = "#22d3ee", green = "#4ade80", red = "#f87171", amber = "#fbbf24", violet = "#c084fc";
+  const medNow = cur?.med ?? 0, medUsd = medNow * (cur?.price || 0);
+  const med0 = all.find(r => r.med != null)?.med ?? 0;
+  const vintages = (data.vintages || []).filter(v => v.arrived >= 20);   // drop tiny buckets from the noise
+  const survColor = p => p >= 50 ? green : p >= 25 ? amber : red;
+  const isSurvival = view === "survival";
 
   const Tip = ({ active, payload }) => {
     if (!active || !payload?.length) return null;
     const d = payload[0].payload;
+    if (isSurvival) return (
+      <TipBox title={d.label}>
+        <div><span style={{ color: survColor(d.pct) }}>still here</span>: <span style={{ fontFamily: MONO }}>{d.stillHere} / {d.arrived}</span></div>
+        <div><span style={{ color: "#94a3b8" }}>survival</span>: <span style={{ fontFamily: MONO }}>{d.pct.toFixed(1)}%</span></div>
+      </TipBox>
+    );
     return (
       <TipBox title={new Date(d.ts).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}>
         {view === "flow" && <>
@@ -72,7 +85,10 @@ export default function CityFlowChart({ isMobile, preview = false }) {
           <div><span style={{ color: "#e2e8f0" }}>net</span>: <span style={{ fontFamily: MONO }}>{d.net >= 0 ? "+" : ""}{d.net}</span></div>
         </>}
         {view === "founders" && d.founders != null && <div><span style={{ color: amber }}>launch residents left</span>: <span style={{ fontFamily: MONO }}>{d.founders} / {n0}</span></div>}
-        {view === "avg" && <div><span style={{ color: accent }}>avg holding</span>: <span style={{ fontFamily: MONO }}>{fNum(d.avg)} SPX</span></div>}
+        {view === "percap" && <>
+          <div><span style={{ color: violet }}>median</span>: <span style={{ fontFamily: MONO }}>{d.med != null ? fNum(d.med) : "—"} SPX</span></div>
+          <div><span style={{ color: accent }}>mean</span>: <span style={{ fontFamily: MONO }}>{fNum(d.mean)} SPX</span></div>
+        </>}
         <div style={{ marginTop: 4, color: "#94a3b8" }}>SPX <span style={{ fontFamily: MONO }}>${d.price < 0.1 ? d.price.toFixed(4) : d.price.toFixed(3)}</span></div>
       </TipBox>
     );
@@ -93,8 +109,13 @@ export default function CityFlowChart({ isMobile, preview = false }) {
       Of the <strong style={{ color: "#e2e8f0" }}>{n0.toLocaleString()} launch-week residents</strong>, only <strong style={{ color: amber }}>{foundersLeft} remain</strong> — about <strong style={{ color: amber }}>{survPct.toFixed(0)}%</strong>.
       {" "}The city today is almost entirely wallets who arrived <em>after</em> launch and held through the drawdown. Survivorship, not the launch crowd.
     </Explain>,
-    avg: <Explain q="Is the average resident getting bigger?" accent={accent}>
-      The <strong style={{ color: accent }}>average resident&apos;s holding</strong> in SPX over time — how concentrated the typical citizen is, independent of price. Rising = the base is accumulating; falling = new smaller wallets are diluting the average.
+    percap: <Explain q="Is the typical resident a whale or retail?" accent={violet}>
+      The <strong style={{ color: violet }}>median</strong> resident holds about <strong style={{ color: violet }}>{fNum(medNow)} SPX</strong> today — down from <strong style={{ color: "#e2e8f0" }}>{fNum(med0)}</strong> at launch. The city <strong style={{ color: "#e2e8f0" }}>broadened from a handful of whales into a retail base</strong>.
+      {" "}The <strong style={{ color: accent }}>mean</strong> sits far above the median — a few big wallets pull it up. In dollars the median resident is still worth ~<strong style={{ color: green }}>${Math.round(medUsd).toLocaleString()}</strong>.
+    </Explain>,
+    survival: <Explain q="Who's still here, by when they arrived?" accent={green}>
+      Of every wallet that became a resident in a given quarter, the share <strong style={{ color: green }}>still resident today</strong>. The <strong style={{ color: red }}>launch crowd is nearly gone</strong> ({vintages[0]?.pct.toFixed(0)}%); each later cohort reads higher —
+      {" "}partly real conviction, partly <strong style={{ color: "#e2e8f0" }}>right-censoring</strong> (recent arrivals simply haven&apos;t had time to leave yet).
     </Explain>,
   };
 
@@ -105,26 +126,42 @@ export default function CityFlowChart({ isMobile, preview = false }) {
       <div style={{ display: "flex", gap: isMobile ? 16 : 30, justifyContent: "center", marginBottom: 12, flexWrap: "wrap", alignItems: "center" }}>
         <Metric label="arrived (all-time)" value={fNum(totIn)} color={green} />
         <Metric label="left (all-time)" value={fNum(totOut)} color={red} />
+        <Metric label="median resident" value={`${fNum(medNow)} SPX`} color={violet} sub={`~$${Math.round(medUsd).toLocaleString()}`} />
         <Metric label="launch residents left" value={`${foundersLeft} / ${n0}`} color={amber} sub={`${survPct.toFixed(0)}% survive`} />
-        <div style={{ display: "flex", gap: 6 }}>
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
           <button style={tbtn(view === "flow")} onClick={() => setView("flow")}>Net new</button>
           <button style={tbtn(view === "founders")} onClick={() => setView("founders")}>Founders</button>
-          <button style={tbtn(view === "avg")} onClick={() => setView("avg")}>Avg size</button>
+          <button style={tbtn(view === "percap")} onClick={() => setView("percap")}>Per resident</button>
+          <button style={tbtn(view === "survival")} onClick={() => setView("survival")}>Survival</button>
         </div>
       </div>
 
-      <ZoomBar zoomed={zoomed} onReset={() => setZoom(null)} accent={accent} />
+      {!isSurvival && <ZoomBar zoomed={zoomed} onReset={() => setZoom(null)} accent={accent} />}
 
       <div style={{ position: "relative" }}>
-        {!preview && <ChartZoomHint />}
+        {!preview && !isSurvival && <ChartZoomHint />}
         <ResponsiveContainer width="100%" height={isMobile ? 400 : 560}>
+          {isSurvival ? (
+            <BarChart data={vintages} margin={{ top: 20, right: isMobile ? 8 : 20, bottom: 40, left: isMobile ? 4 : 14 }}>
+              <CartesianGrid strokeDasharray="2 8" stroke="rgba(255,255,255,0.06)" vertical={false} />
+              <XAxis dataKey="label" tick={{ fill: "#cbd5e1", fontSize: isMobile ? 9 : 12, fontFamily: MONO }} interval={0} angle={-32} textAnchor="end" height={54}
+                axisLine={{ stroke: "rgba(255,255,255,0.15)" }} tickLine={false} />
+              <YAxis type="number" domain={[0, 100]} ticks={[0, 25, 50, 75, 100]} tickFormatter={v => v + "%"}
+                tick={{ fill: "#cbd5e1", fontSize: isMobile ? 10 : 12, fontFamily: MONO }} axisLine={{ stroke: "rgba(255,255,255,0.15)" }} tickLine={false} width={isMobile ? 40 : 52} />
+              <Tooltip content={<Tip />} cursor={{ fill: "rgba(255,255,255,0.05)" }} />
+              <Bar dataKey="pct" isAnimationActive={false} radius={[3, 3, 0, 0]}>
+                {vintages.map((v, i) => <Cell key={i} fill={survColor(v.pct)} fillOpacity={0.9} />)}
+              </Bar>
+            </BarChart>
+          ) : (
           <ComposedChart data={vw.vis} margin={{ top: 10, right: isMobile ? 8 : 20, bottom: 24, left: isMobile ? 4 : 14 }}
             onMouseDown={onDown} onMouseMove={onMove} onMouseUp={onUp} onMouseLeave={onUp} style={{ cursor: "crosshair", userSelect: "none" }}>
             <CartesianGrid strokeDasharray="2 8" stroke="rgba(255,255,255,0.06)" />
             <XAxis dataKey="ts" type="number" domain={vw.xDomain} ticks={vw.xTicks} scale="time" allowDataOverflow
               tickFormatter={fShort} tick={{ fill: "#cbd5e1", fontSize: isMobile ? 10 : 12, fontFamily: MONO }}
               axisLine={{ stroke: "rgba(255,255,255,0.15)" }} tickLine={false} />
-            <YAxis type="number" domain={view === "avg" ? [0, "auto"] : view === "founders" ? [0, "auto"] : ["auto", "auto"]} allowDataOverflow
+            <YAxis type="number" scale={view === "percap" ? "log" : "linear"}
+              domain={view === "percap" ? [1000, "auto"] : view === "founders" ? [0, "auto"] : ["auto", "auto"]} allowDataOverflow
               tickFormatter={fNum} tick={{ fill: "#cbd5e1", fontSize: isMobile ? 10 : 12, fontFamily: MONO }}
               axisLine={{ stroke: "rgba(255,255,255,0.15)" }} tickLine={false} width={isMobile ? 44 : 56} />
             <Tooltip content={<Tip />} cursor={{ stroke: "rgba(255,255,255,0.2)" }} />
@@ -138,20 +175,21 @@ export default function CityFlowChart({ isMobile, preview = false }) {
               <defs><linearGradient id="fdrfill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={amber} stopOpacity={0.35} /><stop offset="100%" stopColor={amber} stopOpacity={0.02} /></linearGradient></defs>
               <Area type="monotone" dataKey="founders" stroke={amber} strokeWidth={2.4} fill="url(#fdrfill)" dot={false} isAnimationActive={false} connectNulls />
             </>}
-            {view === "avg" && <>
-              <defs><linearGradient id="avgfill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={accent} stopOpacity={0.3} /><stop offset="100%" stopColor={accent} stopOpacity={0.02} /></linearGradient></defs>
-              <Area type="monotone" dataKey="avg" stroke={accent} strokeWidth={2.4} fill="url(#avgfill)" dot={false} isAnimationActive={false} />
+            {view === "percap" && <>
+              <Line type="monotone" dataKey="mean" stroke={accent} strokeWidth={1.6} strokeDasharray="5 4" dot={false} isAnimationActive={false} connectNulls name="mean" />
+              <Line type="monotone" dataKey="med" stroke={violet} strokeWidth={2.8} dot={false} isAnimationActive={false} connectNulls name="median" />
             </>}
             {selL != null && selR != null && selL !== selR && (
               <ReferenceArea x1={selL} x2={selR} strokeOpacity={0.4} stroke="#e2e8f0" fill="#e2e8f0" fillOpacity={0.1} />
             )}
           </ComposedChart>
+          )}
         </ResponsiveContainer>
       </div>
 
       <div className="chart-caption" style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.65, maxWidth: 900, marginInline: "auto" }}>
-        <strong style={{ color: accent }}>City flow</strong> — the churn under the citizen count: {view === "flow" ? "wallets arriving (green) vs leaving (red) each period, with the net" : view === "founders" ? "how many of the launch-week residents are still here" : "the average resident's holding in SPX"}.
-        {" "}A resident = ≥5,000 SPX held 90 days; ETH-native; infra excluded. Reconstructed from the balance timeline. Drag to zoom. Not financial advice.
+        <strong style={{ color: accent }}>City flow</strong> — {view === "flow" ? "wallets arriving (green) vs leaving (red) each period, with the net" : view === "founders" ? "how many of the launch-week residents are still here" : view === "percap" ? "the median resident's holding in SPX (mean dashed) — the base broadened from whales to retail" : "the share of each arrival quarter still resident today (recent cohorts read high — right-censored)"}.
+        {" "}A resident = ≥5,000 SPX held 90 days; ETH-native; infra excluded. Reconstructed from the balance timeline.{isSurvival ? "" : " Drag to zoom."} Not financial advice.
       </div>
     </div>
   );

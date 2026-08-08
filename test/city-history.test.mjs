@@ -58,4 +58,13 @@ test("counts + TVL reconcile; residency needs 90 days held (past the launch clam
   assert.equal(o.flow.reduce((s, f) => s + f[2], 0), 0, "nobody departs in this fixture");
   assert.equal(o.founders.n0, 1, "one founder (A, resident in the launch week)");
   assert.equal(o.founders.series.at(-1)[1], 1, "A is still resident → founder survives");
+
+  // per-capita median + vintages
+  assert.equal(o.perCapita[0][1], 300_000, "week 0 median = the lone resident A (300k)");
+  assert.equal(o.perCapita.at(-1)[1], (300_000 + 6_000_000) / 2, "last week median of A + D");
+  const vQ1 = o.vintages.find(v => v.label === "2024 Q1"), vQ2 = o.vintages.find(v => v.label === "2024 Q2");
+  assert.equal(vQ1.arrived, 1, "A first resident week 0 → 2024 Q1");
+  assert.equal(vQ1.stillHere, 1, "A still here");
+  assert.equal(vQ2.arrived, 1, "D first resident week 13 (~Apr) → 2024 Q2");
+  assert.equal(vQ2.stillHere, 1, "D still here");
 });

@@ -25,6 +25,8 @@ import { ethSol2026Data } from "./eth-sol-2026-card.mjs";
 import { whaleCensusStats } from "./whale-census-card.mjs";
 import { cityGrowthStats } from "./city-growth-card.mjs";
 import { cityChurnStats } from "./city-churn-card.mjs";
+import { cityPercapStats } from "./city-percap-card.mjs";
+import { cityVintageStats } from "./city-vintage-card.mjs";
 import { whaleBehaviourStats } from "./whale-behaviour-card.mjs";
 import { whaleMosaicStats } from "./whale-mosaic-card.mjs";
 import { cexFlowStats } from "./cex-flow-card.mjs";
@@ -1063,6 +1065,35 @@ Every resident a building.`,
 Only ${c.left} of the ${c.n0.toLocaleString()} launch-week residents are still here — about ${c.survPct.toFixed(0)}%. Yet the city is ${c.growth.toFixed(1)}× bigger than at launch.
 Enormous churn, iron survivors.`,
       card: { type: "citychurn" },
+    };
+  },
+
+  // From whales to a retail city — the median resident shrank (in tokens) as the base broadened,
+  // but is worth more in dollars. Democratization, honestly framed. Hand-postable (NO_ROTATE).
+  () => {
+    const c = cityPercapStats();
+    if (!c) return null;
+    const fTok = v => v >= 1e6 ? (v / 1e6).toFixed(1) + "M" : v >= 1e3 ? Math.round(v / 1e3) + "k" : Math.round(v);
+    return {
+      id: "citypercap",
+      text: ct`🏙 SPX City went from whales to a retail crowd. The median resident holds ${fTok(c.medNow)} SPX today — down from ${fTok(c.med0)} at launch, as the base broadened.
+Fewer tokens each, far more of them — the healthy kind of dilution. In dollars the typical resident is still worth about $${Math.round(c.usdNow).toLocaleString()}, roughly ${c.usdGrowth.toFixed(0)}× launch.
+A city, not a whale pond.`,
+      card: { type: "citypercap" },
+    };
+  },
+
+  // Who's still here, by arrival era — survivorship by quarter. Launch crowd nearly gone; later
+  // cohorts higher (right-censored). Hand-postable (NO_ROTATE).
+  () => {
+    const c = cityVintageStats();
+    if (!c) return null;
+    return {
+      id: "cityvintage",
+      text: ct`🏙 Who's still in SPX City, by when they arrived? Of the launch crowd, just ${Math.round(c.launch.pct)}% are still here.
+Each later cohort survives better — partly conviction, partly that recent arrivals simply haven't had time to leave yet (a wallet has to age out to count as gone).
+The city today is its survivors.`,
+      card: { type: "cityvintage" },
     };
   },
 
@@ -2314,7 +2345,7 @@ const weightOf = id => WEIGHT[id] ?? (BULLISH.has(id) ? 2 : 1);
 // marketcap ("real free-float cap / thin float") is RETIRED — its premise is false: SPX is a
 // fair launch with no lockup, so free float is ~88% (not thin). The honest story is
 // illiquid/liquid supply (the reframed freefloat card), so marketcap is out of the feed.
-const NO_ROTATE = new Set(["drawdown", "risk", "kraken", "dcaladder", "marketcap", "spxcohort", "cexsupply", "cexflow", "cexvenues", "cexvenflow", "nrpl", "liveliness", "citygrowth", "citychurn"]);
+const NO_ROTATE = new Set(["drawdown", "risk", "kraken", "dcaladder", "marketcap", "spxcohort", "cexsupply", "cexflow", "cexvenues", "cexvenflow", "nrpl", "liveliness", "citygrowth", "citychurn", "citypercap", "cityvintage"]);
 
 // LONG-FORM cards — the few methodology / teaching posts that genuinely need more than the
 // 290 instant-read ceiling (see the post-length test). Default stays 290 for EVERY other card;
@@ -2372,7 +2403,7 @@ const LOOK = {
   firesalerally: "fanlines",
   model: "scatter",
   monthlyreturns: "heatmap", monthlyreturnssp: "heatmap", monthlyreturnsbtc: "heatmap",
-  hodlwaves: "stack", hodlcompare: "stack", walletgrowth: "stack", lthsth: "stack", valband: "dual", cexvenues: "stack", citygrowth: "stack", citychurn: "bars",
+  hodlwaves: "stack", hodlcompare: "stack", walletgrowth: "stack", lthsth: "stack", valband: "dual", cexvenues: "stack", citygrowth: "stack", citychurn: "bars", citypercap: "dual", cityvintage: "bars",
   timeinband: "bars", monthlybars: "bars", monthcompare: "bars", multichain: "bars", urpd: "bars", urpdage: "bars", cexvenflow: "bars", ethsol: "bars", chainconc: "bars", illiquid: "stack", baltier: "bars", dualholders: "stack", basesurv: "bars", supplycurve: "race", whalecensus: "bars", whalebehaviour: "bars",
   fngdial: "round", distribution: "round",
   marketcap: "blocks", milestones: "blocks", sp500: "blocks",
