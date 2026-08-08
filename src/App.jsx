@@ -20,7 +20,14 @@ import {
   whenHitsCenter, whenHitsBand,
 } from "./models.js";
 import { CRYPTO_MILESTONES } from "./milestones.js";
-import { CHART_META, CHART_IDS, AEON_GROUPS } from "./charts-catalog.js";
+import { CHART_META, CHART_IDS, AEON_GROUPS, CITY_GROUPS } from "./charts-catalog.js";
+
+// City-tab destinations for the nav dropdown: the 3D city (a /city route) + its history charts.
+const CITY_MENU = [
+  { key: "spxcity", label: "SPX City", sub: "the 3D city", route: "city" },
+  ...CITY_GROUPS[0].charts.map(c => ({ key: c.id, label: c.title, sub: c.desc.split("—")[0].trim().toLowerCase(), chart: c.id })),
+];
+const CITY_IDS = new Set(CITY_GROUPS[0].charts.map(c => c.id));
 
 // Whale City and Aeon City became one page. Their old ids are no longer in the catalog, so they
 // would fail the CHART_IDS check and dump the visitor on the gallery — these send them to the city
@@ -86,6 +93,7 @@ const CityLab = lazy(() => import("./CityLab.jsx"));
 const WhalesWatching = lazy(() => import("./WhalesWatching.jsx"));
 const WhaleCohortsChart = lazy(() => import("./WhaleCohortsChart.jsx"));
 const CityHistoryChart = lazy(() => import("./CityHistoryChart.jsx"));
+const CityFlowChart = lazy(() => import("./CityFlowChart.jsx"));
 const CexSupplyChart = lazy(() => import("./CexSupplyChart.jsx"));
 const CexFlowChart = lazy(() => import("./CexFlowChart.jsx"));
 const CexVenuesChart = lazy(() => import("./CexVenuesChart.jsx"));
@@ -272,6 +280,8 @@ export default function App() {
   const [docSlug, setDocSlug] = useState("index"); // which page of the manual (?view=docs&p=…)
   const [copied, setCopied] = useState(false);  // "Share" → link copied confirmation
   const [relWhich, setRelWhich] = useState("BTC"); // Relative chart asset (its own in-chart selector)
+  const [cityMenu, setCityMenu] = useState(false); // City nav dropdown open/closed
+  const [cityMenuPos, setCityMenuPos] = useState({ top: 0, left: 0 }); // fixed-pos anchor (nav clips overflow)
   const navRef = useRef(null);
   const chartBoxRef = useRef(null);   // wrapper div, for measuring the plot area
   // Crosshair elements updated imperatively (no React re-render while moving).
@@ -687,6 +697,7 @@ export default function App() {
       case "whaleswatching": return <WhalesWatching isMobile={mob} />;
       case "whalecohorts": return <WhaleCohortsChart isMobile={mob} />;
       case "citygrowth": return <CityHistoryChart isMobile={mob} preview={preview} />;
+      case "cityflow": return <CityFlowChart isMobile={mob} preview={preview} />;
       case "cexsupply": return <CexSupplyChart isMobile={mob} preview={preview} />;
       case "cexflow": return <CexFlowChart isMobile={mob} preview={preview} />;
       case "cexvenues": return <CexVenuesChart isMobile={mob} preview={preview} />;
@@ -797,7 +808,7 @@ export default function App() {
               {!isMobile && <span style={{ color: "#a78bfa", display: "inline-flex" }}><TabIcon name="rainbow" /></span>}
               <span>Rainbow</span>
             </button>
-            <button className="pill" onClick={openGallery} title="Browse all charts" style={navPill(route === "gallery" || (route === "chart" && CHART_META[tab]?.group !== "Project Aeon"), "#22d3ee")}>
+            <button className="pill" onClick={openGallery} title="Browse all charts" style={navPill(route === "gallery" || (route === "chart" && !["Project Aeon", "SPX City"].includes(CHART_META[tab]?.group)), "#22d3ee")}>
               {!isMobile && (
 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, color: "#22d3ee" }}>
                 <rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" />
@@ -806,10 +817,45 @@ export default function App() {
 )}
               <span>Charts</span>
             </button>
-            <button className="pill" onClick={openCity} title="SPX City — every holder a building (3D)" style={navPill(route === "city", "#7dd3fc")}>
-              {!isMobile && <span style={{ color: "#7dd3fc", display: "inline-flex" }}><TabIcon name="spxcity" /></span>}
-              <span>City</span>
-            </button>
+            <div style={{ flexShrink: 0 }}>
+              <button className="pill" title="SPX City — the 3D city and its history"
+                onClick={(e) => { const r = e.currentTarget.getBoundingClientRect(); setCityMenuPos({ top: r.bottom + 6, left: r.left }); setCityMenu(v => !v); }}
+                style={navPill(route === "city" || (route === "chart" && CITY_IDS.has(tab)), "#7dd3fc")}>
+                {!isMobile && <span style={{ color: "#7dd3fc", display: "inline-flex" }}><TabIcon name="spxcity" /></span>}
+                <span>City</span>
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"
+                  style={{ marginLeft: 1, transition: "transform .15s", transform: cityMenu ? "rotate(180deg)" : "none", opacity: 0.7 }}><path d="M6 9l6 6 6-6" /></svg>
+              </button>
+              {cityMenu && (
+                <>
+                  <div onClick={() => setCityMenu(false)} style={{ position: "fixed", inset: 0, zIndex: 60 }} />
+                  <div style={{
+                    position: "fixed", top: cityMenuPos.top, left: cityMenuPos.left, zIndex: 61, minWidth: 220,
+                    background: "rgba(10,14,26,0.98)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)",
+                    border: "1px solid rgba(125,211,252,0.28)", borderRadius: 12, padding: 6,
+                    boxShadow: "0 16px 40px rgba(0,0,0,0.5)",
+                  }}>
+                    {CITY_MENU.map(m => {
+                      const active = m.route ? route === "city" : (route === "chart" && tab === m.chart);
+                      return (
+                        <button key={m.key} onClick={() => { setCityMenu(false); m.route ? openCity() : goChart(m.chart); }}
+                          style={{
+                            display: "block", width: "100%", textAlign: "left", cursor: "pointer",
+                            padding: "9px 12px", borderRadius: 8, border: "none",
+                            background: active ? "rgba(125,211,252,0.14)" : "transparent",
+                            color: active ? "#bae6fd" : "#e2e8f0", fontFamily: SANS,
+                          }}
+                          onMouseEnter={e => { if (!active) e.currentTarget.style.background = "rgba(255,255,255,0.05)"; }}
+                          onMouseLeave={e => { if (!active) e.currentTarget.style.background = "transparent"; }}>
+                          <div style={{ fontSize: 13.5, fontWeight: 600 }}>{m.label}</div>
+                          <div style={{ fontSize: 11.5, color: "#7c8aa0", marginTop: 1 }}>{m.sub}</div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
+            </div>
             <button className="pill" onClick={openAeon} title="Project Aeon — NFT analytics" style={navPill(route === "aeon", "#f472b6")}>
               {!isMobile && (
 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, color: "#f472b6" }}>
@@ -1315,12 +1361,17 @@ export default function App() {
       <div style={{ maxWidth: MAX_W, margin: "0 auto" }}>
         {/* page header: back · category · title · description · share */}
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12, flexWrap: "wrap" }}>
-          {(() => { const aeon = CHART_META[tab]?.group === "Project Aeon"; return (
-          <button className="pill" onClick={aeon ? openAeon : openGallery} title={aeon ? "Back to Project Aeon" : "Back to all charts"} style={{
+          {(() => {
+            const grp = CHART_META[tab]?.group;
+            const aeon = grp === "Project Aeon", city = grp === "SPX City";
+            const back = aeon ? openAeon : city ? openCity : openGallery;
+            const label = aeon ? "Project Aeon" : city ? "City" : "All charts";
+            return (
+          <button className="pill" onClick={back} title={`Back to ${label}`} style={{
             display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 8, cursor: "pointer",
             background: "transparent", border: "1px solid transparent", color: "#cbd5e1",
             fontFamily: SANS, fontSize: 13, fontWeight: 600, "--glow": "rgba(148,163,184,0.6)",
-          }}>← {aeon ? "Project Aeon" : "All charts"}</button>
+          }}>← {label}</button>
           ); })()}
           <span style={{ fontFamily: SANS, fontSize: 12, fontWeight: 700, letterSpacing: 1.2, textTransform: "uppercase", color: CHART_META[tab]?.color }}>{CHART_META[tab]?.group}</span>
           <button className="pill" onClick={shareChart} title="Share this chart"

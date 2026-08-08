@@ -51,4 +51,11 @@ test("counts + TVL reconcile; residency needs 90 days held (past the launch clam
   assert.equal(cnt(0), 1, "week 0: only the launch holder A (clamp = the token's age)");
   assert.equal(cnt(12), 1, "week 12: D has held 12 weeks → not yet resident");
   assert.equal(cnt(13), 2, "week 13: D clears 13 weeks held → resident");
+
+  // flow + founders
+  assert.equal(o.flow[0][1], 1, "week 0: one arrival (A)");
+  assert.equal(o.flow[13][1], 1, "week 13: one arrival (D graduates)");
+  assert.equal(o.flow.reduce((s, f) => s + f[2], 0), 0, "nobody departs in this fixture");
+  assert.equal(o.founders.n0, 1, "one founder (A, resident in the launch week)");
+  assert.equal(o.founders.series.at(-1)[1], 1, "A is still resident → founder survives");
 });

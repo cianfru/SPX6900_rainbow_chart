@@ -43,10 +43,10 @@ export function priceLookup(prices) {
   };
 }
 
-const meta = (rows, res) => ({
+const meta = (rows, res, extra = {}) => ({
   updated: new Date().toISOString().slice(0, 10), res, floor: FLOOR,
   week0: rows[0]?.[0] ?? null, n: rows.length,
-  labels: COHORTS.map(c => c.label), colors: COHORTS.map(c => c.accent), rows,
+  labels: COHORTS.map(c => c.label), colors: COHORTS.map(c => c.accent), rows, ...extra,
 });
 const round = (rows) => rows.map(r => [r[0], +r[1].toPrecision(6),
   ...r.slice(2, 2 + NC), ...r.slice(2 + NC).map(v => Math.round(v))]);
@@ -61,24 +61,31 @@ export function cityHistory(tl, prices) {
   const n = tl.n, week0 = Date.parse(tl.week0), priceAt = priceLookup(prices);
   const counts = Array.from({ length: n }, () => new Array(NC).fill(0));
   const toks = Array.from({ length: n }, () => new Array(NC).fill(0));
+  const arrivals = new Array(n).fill(0), departures = new Array(n).fill(0), foundersAlive = new Array(n).fill(0);
   for (const w of tl.wallets) {
     let peak = 0; for (const pt of w.p) if (pt[1] > peak) peak = pt[1];
     if (peak < FLOOR) continue;                          // never reached the residency floor
-    let pi = 0, bal = 0, streak = 0;                     // streak = consecutive non-zero weeks (since last zero)
+    let pi = 0, bal = 0, streak = 0, prevRes = false, founder = false;
     for (let wk = 0; wk < n; wk++) {
       while (pi < w.p.length && w.p[pi][0] <= wk) bal = w.p[pi++][1];
       streak = bal > 0 ? streak + 1 : 0;
-      if (bal >= FLOOR && streak >= Math.min(HOLD_WK, wk + 1)) {
-        const ci = cohortIndex(bal);
-        if (ci >= 0) { counts[wk][ci]++; toks[wk][ci] += bal; }
-      }
+      const res = bal >= FLOOR && streak >= Math.min(HOLD_WK, wk + 1);
+      if (res) { const ci = cohortIndex(bal); if (ci >= 0) { counts[wk][ci]++; toks[wk][ci] += bal; } }
+      if (res && !prevRes) arrivals[wk]++;               // crossed into residency this week
+      if (!res && prevRes) departures[wk]++;             // dropped out of residency this week
+      if (wk === 0) founder = res;                       // a "founder" was a resident in the launch week
+      if (founder && res) foundersAlive[wk]++;           // …still here now
+      prevRes = res;
     }
   }
   const rows = counts.map((c, wk) => {
     const date = dayOf(week0 + wk * 7 * DAY), price = priceAt(Date.parse(date));
     return [date, price, ...c, ...toks[wk].map(t => t * price)];
   });
-  return meta(round(rows), "weekly");
+  const dateOf = wk => dayOf(week0 + wk * 7 * DAY);
+  const flow = arrivals.map((a, wk) => [dateOf(wk), a, departures[wk]]);
+  const founders = { n0: foundersAlive[0], series: foundersAlive.map((v, wk) => [dateOf(wk), v]) };
+  return meta(round(rows), "weekly", { flow, founders });
 }
 
 // DAILY — stream the raw transfer archive; keep a running per-wallet balance + when each wallet last
@@ -111,16 +118,24 @@ export async function fromTransfers(src, prices) {
     if (nb >= FLOOR) eligible.add(a); else eligible.delete(a);
   };
 
-  const out = [];
+  const out = [], flow = [];
+  let prev = new Set(), founders = null;                  // founders = the resident set on the first snapshot
   const snap = (d) => {
     const dT = Date.parse(d), price = priceAt(dT), need = Math.min(HOLD_MS, dT - launchT);
-    const counts = new Array(NC).fill(0), toks = new Array(NC).fill(0);
+    const counts = new Array(NC).fill(0), toks = new Array(NC).fill(0), cur = new Set();
     for (const a of eligible) {
       if (dT - (heldSince.get(a) ?? dT) < need) continue; // not held long enough yet
       const b = bal.get(a), ci = cohortIndex(b);
-      if (ci >= 0) { counts[ci]++; toks[ci] += b; }
+      if (ci >= 0) { counts[ci]++; toks[ci] += b; cur.add(a); }
     }
+    if (!founders) founders = new Set(cur);
+    let arr = 0, dep = 0, fAlive = 0;
+    for (const a of cur) if (!prev.has(a)) arr++;
+    for (const a of prev) if (!cur.has(a)) dep++;
+    for (const a of founders) if (cur.has(a)) fAlive++;
     out.push([d, price, ...counts, ...toks.map(t => t * price)]);
+    flow.push([d, arr, dep, fAlive]);
+    prev = cur;
   };
   let curDay = null, curT = 0;
   const flushTo = (nextDay) => { snap(curDay); for (let t = curT + DAY; dayOf(t) < nextDay; t += DAY) snap(dayOf(t)); };
@@ -132,7 +147,11 @@ export async function fromTransfers(src, prices) {
   }
   if (curDay !== null) snap(curDay);
   console.error(`city-history[daily]: ${rows.length} transfers → ${out.length} days`);
-  return meta(round(out), "daily");
+  const n0 = flow[0]?.[3] ?? 0;
+  return meta(round(out), "daily", {
+    flow: flow.map(f => [f[0], f[1], f[2]]),
+    founders: { n0, series: flow.map(f => [f[0], f[3]]) },
+  });
 }
 
 async function main() {
