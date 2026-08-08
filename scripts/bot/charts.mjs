@@ -50,6 +50,8 @@ import { renderDualHolderCard } from "./dual-holder-card.mjs";
 import { renderBaseSurvCard } from "./base-survival-card.mjs";
 import { renderSupplyCurveCard } from "./supply-curve-card.mjs";
 import { renderWhaleCensusCard } from "./whale-census-card.mjs";
+import { renderCityGrowthCard } from "./city-growth-card.mjs";
+import { renderCityChurnCard } from "./city-churn-card.mjs";
 import { renderWhaleBehaviourCard } from "./whale-behaviour-card.mjs";
 import { renderWhaleMosaicCard } from "./whale-mosaic-card.mjs";
 import { renderCexFlowCard } from "./cex-flow-card.mjs";
@@ -896,7 +898,7 @@ export const CARD_TYPES = new Set([
   "freefloat", "nupl", "concentration", "hodlwaves", "hodlcompare", "urpd", "urpdage",
   "lthsth", "sopr", "nrpl", "liveliness", "valband", "walletgrowth", "picycle", "spxbitcoin", "spxcohort",
   "cexsupply", "cexflow", "cexvenues", "cexvenflow", "whales", "walletwaves", "wealthwaves", "survivorship", "supplyera", "exitmap", "smartmoney",
-  "cyclesync", "cycleclock", "rsidots", "monthcompare", "ethsol", "chainconc", "illiquid", "baltier", "dualholders", "basesurv", "supplycurve", "whalecensus", "whalebehaviour", "whalemosaic",
+  "cyclesync", "cycleclock", "rsidots", "monthcompare", "ethsol", "chainconc", "illiquid", "baltier", "dualholders", "basesurv", "supplycurve", "whalecensus", "whalebehaviour", "whalemosaic", "citygrowth", "citychurn",
   // spec-driven generics
   "line", "bar", "mbars", "donut", "stack", "model", "cube", "scale", "gauge", "fngdial",
   "heatmap", "dca", "dcaladder", "statgrid", "kraken",
@@ -929,6 +931,8 @@ export function renderPostCard(post, stats, opts = {}) {
   if (type === "mvrvbtc") return renderMvrvBtcCard(stats, dims);
   if (type === "mvrvtrend") return renderMvrvTrendCard(stats, dims);
   if (type === "supplyprofit") return renderSupplyProfitCard(stats, dims);
+  if (type === "citygrowth") return renderCityGrowthCard(stats, dims);
+  if (type === "citychurn") return renderCityChurnCard(stats, dims);
   if (type === "ethsol") return renderEthSol2026Card(stats, dims);
   if (type === "chainconc") return renderChainConcCard(stats, dims);
   if (type === "illiquid") return renderChainIlliquidCard(stats, dims);

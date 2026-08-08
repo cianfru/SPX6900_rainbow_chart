@@ -93,5 +93,7 @@
   "supplyera": "square",
   "exitmap": "square",
   "smartmoney": "square",
-  "whalemosaic": "square"
+  "whalemosaic": "square",
+  "citygrowth": "landscape",
+  "citychurn": "landscape"
 }

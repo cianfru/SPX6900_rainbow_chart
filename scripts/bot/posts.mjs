@@ -23,6 +23,8 @@ import { spxLiquidity, btcIlliquid } from "../../src/liquidity.js";
 import { wealthWavesStats } from "./wealth-waves-card.mjs";
 import { ethSol2026Data } from "./eth-sol-2026-card.mjs";
 import { whaleCensusStats } from "./whale-census-card.mjs";
+import { cityGrowthStats } from "./city-growth-card.mjs";
+import { cityChurnStats } from "./city-churn-card.mjs";
 import { whaleBehaviourStats } from "./whale-behaviour-card.mjs";
 import { whaleMosaicStats } from "./whale-mosaic-card.mjs";
 import { cexFlowStats } from "./cex-flow-card.mjs";
@@ -1031,6 +1033,36 @@ Deep tenure, every chain.`,
 Just ${c.mega.n} wallets (over 1M SPX each) hold ${(c.mega.s / 1e6).toFixed(0)}M — ${(c.mega.s / c.totSup * 100).toFixed(0)}% of all whale supply. The ${big.n} biggest (5M+) have held ${Math.round(big.medAge / 30)} months on average — the mega-whales are the oldest, stickiest hands.
 Few wallets, most of the weight.`,
       card: { type: "whalecensus" },
+    };
+  },
+
+  // SPX City is growing — citizens (≥5k held 90d) + the city's value over time, by size cohort.
+  // The adoption-decoupled-from-price story, as a rising cityscape. Hand-postable (NO_ROTATE).
+  () => {
+    const c = cityGrowthStats();
+    if (!c) return null;
+    const g = c.growth >= 2 ? `${c.growth.toFixed(1)}×` : `+${Math.round((c.growth - 1) * 100)}%`;
+    const tvl = c.tvl >= 1e6 ? `$${(c.tvl / 1e6).toFixed(0)}M` : `$${Math.round(c.tvl / 1e3)}k`;
+    return {
+      id: "citygrowth",
+      text: ct`🏙 SPX City keeps growing. ${c.citizens.toLocaleString()} wallets now hold 5,000+ SPX (held 90 days) — ${g} more than at launch, worth ${tvl}.
+The city filled up straight through the drawdown: the citizen count kept climbing while price round-tripped. Adoption isn't following the chart.
+Every resident a building.`,
+      card: { type: "citygrowth" },
+    };
+  },
+
+  // The city turns over — arrivals vs departures + launch-resident survivorship. Huge churn, iron
+  // survivors: only a sliver of the launch crowd remains, yet the city multiplied. Hand-postable.
+  () => {
+    const c = cityChurnStats();
+    if (!c) return null;
+    return {
+      id: "citychurn",
+      text: ct`🏙 SPX City is a living city, not a monument. ${(c.totIn / 1e3).toFixed(0)}k wallets have moved in over time and ${(c.totOut / 1e3).toFixed(0)}k moved out.
+Only ${c.left} of the ${c.n0.toLocaleString()} launch-week residents are still here — about ${c.survPct.toFixed(0)}%. Yet the city is ${c.growth.toFixed(1)}× bigger than at launch.
+Enormous churn, iron survivors.`,
+      card: { type: "citychurn" },
     };
   },
 
@@ -2282,7 +2314,7 @@ const weightOf = id => WEIGHT[id] ?? (BULLISH.has(id) ? 2 : 1);
 // marketcap ("real free-float cap / thin float") is RETIRED — its premise is false: SPX is a
 // fair launch with no lockup, so free float is ~88% (not thin). The honest story is
 // illiquid/liquid supply (the reframed freefloat card), so marketcap is out of the feed.
-const NO_ROTATE = new Set(["drawdown", "risk", "kraken", "dcaladder", "marketcap", "spxcohort", "cexsupply", "cexflow", "cexvenues", "cexvenflow", "nrpl", "liveliness"]);
+const NO_ROTATE = new Set(["drawdown", "risk", "kraken", "dcaladder", "marketcap", "spxcohort", "cexsupply", "cexflow", "cexvenues", "cexvenflow", "nrpl", "liveliness", "citygrowth", "citychurn"]);
 
 // LONG-FORM cards — the few methodology / teaching posts that genuinely need more than the
 // 290 instant-read ceiling (see the post-length test). Default stays 290 for EVERY other card;
@@ -2340,7 +2372,7 @@ const LOOK = {
   firesalerally: "fanlines",
   model: "scatter",
   monthlyreturns: "heatmap", monthlyreturnssp: "heatmap", monthlyreturnsbtc: "heatmap",
-  hodlwaves: "stack", hodlcompare: "stack", walletgrowth: "stack", lthsth: "stack", valband: "dual", cexvenues: "stack",
+  hodlwaves: "stack", hodlcompare: "stack", walletgrowth: "stack", lthsth: "stack", valband: "dual", cexvenues: "stack", citygrowth: "stack", citychurn: "bars",
   timeinband: "bars", monthlybars: "bars", monthcompare: "bars", multichain: "bars", urpd: "bars", urpdage: "bars", cexvenflow: "bars", ethsol: "bars", chainconc: "bars", illiquid: "stack", baltier: "bars", dualholders: "stack", basesurv: "bars", supplycurve: "race", whalecensus: "bars", whalebehaviour: "bars",
   fngdial: "round", distribution: "round",
   marketcap: "blocks", milestones: "blocks", sp500: "blocks",

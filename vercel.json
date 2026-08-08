@@ -1,13 +1,13 @@
 {
   "functions": {
     "api/og.js": {
-      "includeFiles": "{scripts/bot/**,public/{history,onchain,whales,chain-wallets,cex-flow,freefloat-peers,rotation-excludes,cohort-survival,exit-flow,smart-money,aeon-*}.json}"
+      "includeFiles": "{scripts/bot/**,public/{history,onchain,whales,chain-wallets,cex-flow,freefloat-peers,rotation-excludes,cohort-survival,exit-flow,smart-money,city-history,aeon-*}.json}"
     },
     "api/recap.js": {
       "includeFiles": "{scripts/bot/**,public/{history,onchain,whales,chain-wallets,cex-flow,freefloat-peers,rotation-excludes,cohort-survival,exit-flow,smart-money}.json}"
     },
     "api/agent.js": {
-      "includeFiles": "{scripts/bot/**,public/{history,onchain,whales,chain-wallets,cex-flow,freefloat-peers,rotation-excludes,cohort-survival,exit-flow,smart-money}.json}"
+      "includeFiles": "{scripts/bot/**,public/{history,onchain,whales,chain-wallets,cex-flow,freefloat-peers,rotation-excludes,cohort-survival,exit-flow,smart-money,city-history}.json}"
     },
     "api/live-flow.js": {
       "includeFiles": "public/{whales,base-onchain,solana-onchain}.json"
