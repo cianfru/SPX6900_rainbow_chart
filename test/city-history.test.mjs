@@ -67,4 +67,9 @@ test("counts + TVL reconcile; residency needs 90 days held (past the launch clam
   assert.equal(vQ1.stillHere, 1, "A still here");
   assert.equal(vQ2.arrived, 1, "D first resident week 13 (~Apr) → 2024 Q2");
   assert.equal(vQ2.stillHere, 1, "D still here");
+
+  // skyline (building types) — reconstructed with the shared heightUnit + archetype cut-offs
+  assert.equal(o.skylineLabels.length, 4, "4 building tiers");
+  assert.equal(o.skyline.at(-1).slice(1).reduce((a, b) => a + b, 0), 2, "skyline total = resident count (A + D)");
+  assert.equal(o.skyline.at(-1)[1], 1, "the 6M whale D is the tallest → a glass tower");
 });

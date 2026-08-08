@@ -24,7 +24,7 @@ function delta(rows, idx, back, pick) {
 // and the value kept rising through the price drawdown — adoption decoupled from price.
 export default function CityHistoryChart({ isMobile, preview = false }) {
   const [data, setData] = useState(null);
-  const [view, setView] = useState("citizens");   // "citizens" | "value"
+  const [view, setView] = useState("citizens");   // "citizens" | "value" | "skyline"
   useEffect(() => {
     let cancelled = false;
     loadCityHistory().then(d => { if (!cancelled && d) setData(d); });
@@ -32,19 +32,27 @@ export default function CityHistoryChart({ isMobile, preview = false }) {
   }, []);
 
   const NC = data?.labels?.length ?? 4;
+  const SN = data?.skylineLabels?.length ?? 0;
   const cohorts = useMemo(
     () => (data?.labels ?? []).map((label, i) => ({ label, c: data.colors[i], ck: "c" + i, vk: "v" + i })),
     [data]);
+  // building-type tiers, drawn bottom→top (low-rise base → glass tower crown) = reverse of the data order
+  const tiers = useMemo(
+    () => (data?.skylineLabels ?? []).map((label, i) => ({ label, c: data.skylineColors[i], sk: "s" + i })).reverse(),
+    [data]);
 
-  // rows: [date, price, c0..c3 (counts), v0..v3 (TVL usd)] → flat objects
+  // rows: [date, price, c0..c5 (counts), v0..v5 (TVL usd)]; skyline: [date, s0..s3] (parallel by index)
   const all = useMemo(() => {
     if (!data) return [];
-    return data.rows.map(r => {
-      const o = { ts: Date.parse(r[0]), price: r[1], cTot: 0, vTot: 0 };
+    const sky = data.skyline || [];
+    return data.rows.map((r, idx) => {
+      const o = { ts: Date.parse(r[0]), price: r[1], cTot: 0, vTot: 0, sTot: 0 };
       for (let i = 0; i < NC; i++) { o["c" + i] = r[2 + i]; o["v" + i] = r[2 + NC + i]; o.cTot += r[2 + i]; o.vTot += r[2 + NC + i]; }
+      const s = sky[idx];
+      for (let i = 0; i < SN; i++) { o["s" + i] = s ? s[1 + i] : 0; o.sTot += o["s" + i]; }
       return o;
     }).filter(r => Number.isFinite(r.ts)).sort((a, b) => a.ts - b.ts);
-  }, [data, NC]);
+  }, [data, NC, SN]);
 
   const { zoom, setZoom, selL, selR, onDown, onMove, onUp, zoomed } = useDragZoom(
     (a, b) => all.filter(r => r.ts >= a && r.ts <= b).length >= 2);
@@ -61,9 +69,10 @@ export default function CityHistoryChart({ isMobile, preview = false }) {
 
   if (!vw) return <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>City history is being built.</div>;
 
-  const isCit = view === "citizens";
+  const isCit = view === "citizens", isSky = view === "skyline";
   const stackKey = isCit ? "c" : "v";
   const accent = "#22d3ee";
+  const towerNow = all[all.length - 1]?.s0 ?? 0;   // s0 = glass towers (data order: tower first)
   const lastIdx = all.length - 1;
   const daily = data.res === "daily";
   const wBack = daily ? 7 : 1, mBack = daily ? 30 : 4;
@@ -72,7 +81,7 @@ export default function CityHistoryChart({ isMobile, preview = false }) {
   const dTvlW = delta(all, lastIdx, wBack, r => r.vTot), dTvlM = delta(all, lastIdx, mBack, r => r.vTot);
   const dW = isCit ? dCitW : dTvlW, dM = isCit ? dCitM : dTvlM;
   const growthCit = first.cTot ? cur.cTot / first.cTot : 0;
-  const fmt = isCit ? fNum : fUsd;
+  const fmt = (isCit || isSky) ? fNum : fUsd;
 
   const signed = (dd) => (dd.up ? "+" : "−") + fmt(Math.abs(dd.d));
   const dChip = (dd) => dd ? <span style={{ color: dd.up ? "#4ade80" : "#f87171" }}>{signed(dd)} ({dd.up ? "+" : "−"}{Math.abs(dd.pct).toFixed(1)}%)</span> : null;
@@ -80,11 +89,12 @@ export default function CityHistoryChart({ isMobile, preview = false }) {
   const Tip = ({ active, payload }) => {
     if (!active || !payload?.length) return null;
     const d = payload[0].payload;
+    const total = isCit ? d.cTot : isSky ? d.sTot : d.vTot;
     return (
       <TipBox title={new Date(d.ts).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}>
-        <div style={{ marginBottom: 4 }}><span style={{ color: accent }}>{isCit ? "citizens" : "TVL"}</span>: <span style={{ fontFamily: MONO }}>{fmt(d[totKey])}</span></div>
-        {cohorts.slice().reverse().map(co => (
-          <div key={co.ck}><span style={{ color: co.c }}>{co.label}</span>: <span style={{ fontFamily: MONO }}>{isCit ? d[co.ck] : fUsd(d[co.vk])}</span></div>
+        <div style={{ marginBottom: 4 }}><span style={{ color: accent }}>{isCit ? "citizens" : isSky ? "buildings" : "TVL"}</span>: <span style={{ fontFamily: MONO }}>{fmt(total)}</span></div>
+        {(isSky ? tiers.slice().reverse() : cohorts.slice().reverse()).map(e => (
+          <div key={e.sk || e.ck}><span style={{ color: e.c }}>{e.label}</span>: <span style={{ fontFamily: MONO }}>{isSky ? d[e.sk] : isCit ? d[e.ck] : fUsd(d[e.vk])}</span></div>
         ))}
         <div style={{ marginTop: 4, color: "#94a3b8" }}>SPX <span style={{ fontFamily: MONO }}>${d.price < 0.1 ? d.price.toFixed(4) : d.price.toFixed(3)}</span></div>
       </TipBox>
@@ -99,24 +109,36 @@ export default function CityHistoryChart({ isMobile, preview = false }) {
 
   return (
     <div style={{ maxWidth: MAX_W, margin: "0 auto" }}>
-      <Explain q="Has the city grown while the price fell?" accent={accent}>
-        A <strong style={{ color: "#e2e8f0" }}>citizen</strong> is any wallet that&apos;s held <strong style={{ color: "#e2e8f0" }}>≥5,000 SPX for 90 days</strong> — SPX City&apos;s residency. The <strong style={{ color: accent }}>citizen count</strong> and the city&apos;s <strong style={{ color: "#a3e635" }}>total value</strong> have
-        {" "}<strong style={{ color: "#4ade80" }}>climbed through the drawdown</strong> — new residents kept arriving while the price round-tripped. Adoption decoupled from price.
-      </Explain>
+      {isSky ? (
+        <Explain q="What does the skyline look like — and how has it changed?" accent="#38bdf8">
+          Every resident is a building whose <strong style={{ color: "#e2e8f0" }}>height = holdings × how long it&apos;s held</strong> (relative to the biggest) — the same rule the 3D city uses, so this matches the towers you see.
+          {" "}As the base broadened, the city <strong style={{ color: "#c2764f" }}>sprawled outward in brick</strong>: <strong style={{ color: "#38bdf8" }}>{towerNow} glass towers</strong> still crown a city that&apos;s now mostly low-rise.
+        </Explain>
+      ) : (
+        <Explain q="Has the city grown while the price fell?" accent={accent}>
+          A <strong style={{ color: "#e2e8f0" }}>citizen</strong> is any wallet that&apos;s held <strong style={{ color: "#e2e8f0" }}>≥5,000 SPX for 90 days</strong> — SPX City&apos;s residency. The <strong style={{ color: accent }}>citizen count</strong> and the city&apos;s <strong style={{ color: "#a3e635" }}>total value</strong> have
+          {" "}<strong style={{ color: "#4ade80" }}>climbed through the drawdown</strong> — new residents kept arriving while the price round-tripped. Adoption decoupled from price.
+        </Explain>
+      )}
 
       <div style={{ display: "flex", gap: isMobile ? 16 : 30, justifyContent: "center", marginBottom: 12, flexWrap: "wrap", alignItems: "center" }}>
         <Metric label="citizens" value={fNum(cur.cTot)} color={accent} sub={dCitM ? `${dCitM.up ? "+" : "−"}${Math.abs(Math.round(dCitM.d))} / mo` : null} />
         <Metric label="city TVL" value={fUsd(cur.vTot)} color="#a3e635" sub={dTvlM ? `${dTvlM.up ? "+" : "−"}${Math.abs(dTvlM.pct).toFixed(0)}% / mo` : null} />
-        <Metric label="citizens since launch" value={growthCit >= 2 ? growthCit.toFixed(1) + "×" : "+" + Math.round((growthCit - 1) * 100) + "%"} color="#f8fafc" sub="grew through the drawdown" />
-        <div style={{ display: "flex", gap: 6 }}>
+        {isSky
+          ? <Metric label="glass towers" value={fNum(towerNow)} color="#38bdf8" sub={`of ${fNum(cur.sTot)} buildings`} />
+          : <Metric label="citizens since launch" value={growthCit >= 2 ? growthCit.toFixed(1) + "×" : "+" + Math.round((growthCit - 1) * 100) + "%"} color="#f8fafc" sub="grew through the drawdown" />}
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
           <button style={tbtn(isCit)} onClick={() => setView("citizens")}>Citizens</button>
-          <button style={tbtn(!isCit)} onClick={() => setView("value")}>Value</button>
+          <button style={tbtn(view === "value")} onClick={() => setView("value")}>Value</button>
+          <button style={tbtn(isSky)} onClick={() => setView("skyline")}>Skyline</button>
         </div>
       </div>
 
-      <div style={{ textAlign: "center", fontFamily: SANS, fontSize: 12.5, color: "#94a3b8", marginBottom: 6 }}>
-        {isCit ? "citizens" : "TVL"} last week: {dChip(dW)} · last month: {dChip(dM)}
-      </div>
+      {!isSky && (
+        <div style={{ textAlign: "center", fontFamily: SANS, fontSize: 12.5, color: "#94a3b8", marginBottom: 6 }}>
+          {isCit ? "citizens" : "TVL"} last week: {dChip(dW)} · last month: {dChip(dM)}
+        </div>
+      )}
 
       <ZoomBar zoomed={zoomed} onReset={() => setZoom(null)} accent={accent} />
 
@@ -136,10 +158,15 @@ export default function CityHistoryChart({ isMobile, preview = false }) {
               tickFormatter={v => "$" + (v < 0.1 ? v.toFixed(3) : v.toFixed(2))} tick={{ fill: "#64748b", fontSize: isMobile ? 9 : 11, fontFamily: MONO }}
               axisLine={false} tickLine={false} width={isMobile ? 42 : 54} />
             <Tooltip content={<Tip />} cursor={{ stroke: "rgba(255,255,255,0.2)" }} />
-            {cohorts.map(co => (
-              <Area key={co.ck} yAxisId="L" type="monotone" dataKey={stackKey + co.ck.slice(1)} stackId="1" stroke={co.c} strokeWidth={0.5}
-                fill={co.c} fillOpacity={0.8} dot={false} isAnimationActive={false} name={co.label} />
-            ))}
+            {isSky
+              ? tiers.map(t => (
+                <Area key={t.sk} yAxisId="L" type="monotone" dataKey={t.sk} stackId="1" stroke={t.c} strokeWidth={0.5}
+                  fill={t.c} fillOpacity={0.85} dot={false} isAnimationActive={false} name={t.label} />
+              ))
+              : cohorts.map(co => (
+                <Area key={co.ck} yAxisId="L" type="monotone" dataKey={stackKey + co.ck.slice(1)} stackId="1" stroke={co.c} strokeWidth={0.5}
+                  fill={co.c} fillOpacity={0.8} dot={false} isAnimationActive={false} name={co.label} />
+              ))}
             <Line yAxisId="P" type="monotone" dataKey="price" stroke="#94a3b8" strokeWidth={1.4} strokeDasharray="5 4" dot={false} isAnimationActive={false} name="SPX price" />
             {selL != null && selR != null && selL !== selR && (
               <ReferenceArea yAxisId="L" x1={selL} x2={selR} strokeOpacity={0.4} stroke="#e2e8f0" fill="#e2e8f0" fillOpacity={0.1} />
@@ -149,8 +176,8 @@ export default function CityHistoryChart({ isMobile, preview = false }) {
       </div>
 
       <div className="chart-caption" style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.65, maxWidth: 900, marginInline: "auto" }}>
-        <strong style={{ color: accent }}>City growth</strong> — {isCit ? "wallets that have held ≥5,000 SPX for 90 days (SPX City residents)" : "the USD value of every resident wallet (balance × SPX price)"}, stacked by size cohort, with the SPX price (dashed, right axis) for context.
-        {" "}A wallet is binned by its balance that week and moves cohorts as it grows or shrinks; ETH-native, infra (exchanges/LP/bridge/burn) excluded. Reconstructed from the weekly balance timeline — the live city counts a touch fewer via finer per-lot ages. Drag to zoom. Not financial advice.
+        <strong style={{ color: accent }}>City growth</strong> — {isSky ? "residents by building type — glass tower / concrete mid-rise / masonry / low-rise — assigned by the same height rule (holdings × hold time, relative to the biggest) the 3D city uses" : isCit ? "wallets that have held ≥5,000 SPX for 90 days (SPX City residents), stacked by size cohort" : "the USD value of every resident wallet (balance × SPX price), stacked by size cohort"}, with the SPX price (dashed, right axis) for context.
+        {" "}ETH-native, infra excluded. Reconstructed from the weekly balance timeline — the live city counts a touch fewer via finer per-lot ages. Drag to zoom. Not financial advice.
       </div>
     </div>
   );

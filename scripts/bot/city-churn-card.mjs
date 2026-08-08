@@ -31,10 +31,11 @@ export function cityChurnSvg(doc, opts = {}) {
   const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 76, mR = 52, mT = 172, mB = 74, pW = W - mL - mR, pH = H - mT - mB;
   const t0 = flow[0].ts, t1 = flow.at(-1).ts;
   const x = t => mL + ((t - t0) / ((t1 - t0) || 1)) * pW;
-  // scale to the ~92nd percentile so the typical weeks FILL the panel; the launch spike clips + is annotated.
-  const vals = flow.flatMap(r => [r.a, r.dp]).filter(v => v > 0).sort((a, b) => a - b);
-  const p92 = vals[Math.floor(vals.length * 0.92)] || 1;
-  const maxV = Math.max(20, p92) * 1.12;
+  // scale to the SECOND-highest week (+ headroom), so ONLY the singular launch spike clips (and it's
+  // annotated). p92 was chopping the whole 2025 accumulation wave (657, 474, 409…) flat against the top.
+  const vals = flow.flatMap(r => [r.a, r.dp]).filter(v => v > 0).sort((a, b) => b - a);
+  const secondMax = vals[1] || vals[0] || 1;
+  const maxV = Math.max(20, secondMax) * 1.12;
   const y0 = mT + pH / 2;                                   // zero line (middle)
   const clamp = v => Math.min(v, maxV);
   const yUp = v => y0 - (clamp(v) / maxV) * (pH / 2);
@@ -49,7 +50,7 @@ export function cityChurnSvg(doc, opts = {}) {
   }
   // annotate the launch spike if it clips the top
   const peak = flow.reduce((m, r) => r.a > m.a ? r : m, flow[0]);
-  const spikeNote = peak.a > maxV ? `<text x="${(x(peak.ts) + 10).toFixed(1)}" y="${(mT + 4).toFixed(1)}" fill="#86efac" font-size="17" font-family="sans-serif">launch +${peak.a}</text>` : "";
+  const spikeNote = peak.a > maxV ? `<text x="${(x(peak.ts) + 16).toFixed(1)}" y="${(mT - 8).toFixed(1)}" fill="#86efac" font-size="17" font-family="sans-serif">launch +${peak.a}</text>` : "";
   // y ticks (arrivals up, departures down) — sparse, placed just inside the axis so they clear the skyline
   let grid = "";
   const stepv = maxV > 160 ? 100 : maxV > 80 ? 50 : maxV > 40 ? 25 : 10;
