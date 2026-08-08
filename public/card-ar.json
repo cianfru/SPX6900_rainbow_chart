@@ -94,7 +94,7 @@
   "exitmap": "square",
   "smartmoney": "square",
   "whalemosaic": "square",
-  "citygrowth": "landscape",
+  "citygrowth": "square",
   "citychurn": "landscape",
   "citypercap": "landscape",
   "cityvintage": "landscape"
