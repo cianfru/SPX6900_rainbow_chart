@@ -150,6 +150,7 @@ export const STATE = new Set([
   "post-state.json", "band-state.json", "daily-band-state.json", "milestone-state.json",
   "next-post.json", "post-copy.json", "card-ar.json", "rotation-excludes.json",
   "recap-pending.json", "aeon-sale-state.json", "aeon-firesale.json", "aeon-firesale-state.json", "whale-state.json",
+  "aeon-listing-alert-state.json",                   // aeon-listing-alert.mjs dedup memory (deploy-ignored)
   "freefloat-peers.json", "resemblance.json",       // deliberately dormant, see CLAUDE.md
   "feed-health.json",                                // written by this script
   // A cache of the on-chain noticeboard, not a feed: it is legitimately EMPTY until the contract
