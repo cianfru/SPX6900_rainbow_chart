@@ -59,6 +59,7 @@ export default function SpxCity({ isMobile, preview = false, initialMode = "spx"
   const [aeon, setAeon] = useState(AEON_ONCHAIN);
   const [win, setWin] = useState(30);
   const [sel, setSel] = useState(null);
+  const [recording, setRecording] = useState(false);   // hide chrome during an orbital screen-record
   const [layout, setLayout] = useState("city");
   const [focus, setFocus] = useState(null);
   const [focusN, setFocusN] = useState(0);   // bumped so re-picking the same building still moves
@@ -462,17 +463,21 @@ export default function SpxCity({ isMobile, preview = false, initialMode = "spx"
         </div>
       )}
 
-      <CityControls layout={layout} onLayout={setLayout} time={time} onTime={setTime} accent={M.accent} isMobile={isMobile} unit={M.unit}
-        beamAll={beamAll} onBeamAll={setBeamAll}
-        has={a => visible.some(t => (t.a || "").toLowerCase() === a)}
-        onFocus={a => { goTo(a); const m = visible.find(t => (t.a || "").toLowerCase() === a); if (m) setSel(m); }} />
+      {/* page chrome — hidden while an orbital record is running so a screen-record is clean.
+          The note SIGNS live in the 3D layer (Skyline3D), not here, so they stay visible. */}
+      <div style={{ opacity: recording ? 0 : 1, pointerEvents: recording ? "none" : "auto", transition: "opacity .18s ease" }}>
+        <CityControls layout={layout} onLayout={setLayout} time={time} onTime={setTime} accent={M.accent} isMobile={isMobile} unit={M.unit}
+          beamAll={beamAll} onBeamAll={setBeamAll}
+          has={a => visible.some(t => (t.a || "").toLowerCase() === a)}
+          onFocus={a => { goTo(a); const m = visible.find(t => (t.a || "").toLowerCase() === a); if (m) setSel(m); }} />
 
-      <CityRecorder accent={M.accent} />
+        <CityWallet city="spx" accent={M.accent} isMobile={isMobile} notes={msgs} onNotes={setMsgs}
+          owns={a => citizens.has(a)}
+          inView={a => visible.some(t => (t.a || "").toLowerCase() === a)}
+          onFocus={a => { goTo(a); const m = visible.find(t => (t.a || "").toLowerCase() === a); if (m) setSel(m); }} />
+      </div>
 
-      <CityWallet city="spx" accent={M.accent} isMobile={isMobile} notes={msgs} onNotes={setMsgs}
-        owns={a => citizens.has(a)}
-        inView={a => visible.some(t => (t.a || "").toLowerCase() === a)}
-        onFocus={a => { goTo(a); const m = visible.find(t => (t.a || "").toLowerCase() === a); if (m) setSel(m); }} />
+      <CityRecorder accent={M.accent} onRecording={setRecording} />
 
       <div style={full
         ? { position: "fixed", inset: 0, zIndex: 9999, background: "#05050e", display: "flex", flexDirection: "column" }

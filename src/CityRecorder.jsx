@@ -11,7 +11,7 @@ import { MONO } from "./chart-ui.jsx";
 // name SIGNS are CSS2D DOM overlays and are NOT in the exported file; screen-record for those.
 const SECS = [4, 6, 8, 10, 12, 16];
 
-export default function CityRecorder({ accent = "#5eead4" }) {
+export default function CityRecorder({ accent = "#5eead4", onRecording }) {
   const enabled = (() => {
     try {
       const q = new URLSearchParams(location.search).get("rec") === "1";
@@ -25,11 +25,13 @@ export default function CityRecorder({ accent = "#5eead4" }) {
   const go = async () => {
     if (rec.state === "recording" || !window.__cityRecord) return;
     setRec({ state: "recording", pct: 0, err: "" });
+    onRecording?.(true);                       // let the page hide its chrome for a clean screen-record
     try {
       const { blob, ext } = await window.__cityRecord({ seconds: secs, fps: 60, onTick: p => setRec(r => ({ ...r, pct: p })) });
       downloadBlob(blob, `spx-city-${new Date().toISOString().slice(0, 10)}.${ext}`);
       setRec({ state: "idle", pct: 0, err: "" });
     } catch (e) { setRec({ state: "idle", pct: 0, err: e.message || "recording failed" }); }
+    finally { onRecording?.(false); }
   };
 
   const chip = active => ({
@@ -39,12 +41,17 @@ export default function CityRecorder({ accent = "#5eead4" }) {
     color: active ? "#eafff7" : "#94a3b8",
   });
 
+  // While recording, the bar hides itself so a simultaneous OS screen-record (the only way to also
+  // capture the DOM note signs) comes out clean — no UI in frame. It stays mounted (the capture is
+  // already running) and reappears when the clip finishes.
+  const recording = rec.state === "recording";
   return (
     <div style={{
       position: "fixed", bottom: 16, left: "50%", transform: "translateX(-50%)", zIndex: 40,
       display: "flex", alignItems: "center", gap: 10, padding: "8px 12px", borderRadius: 12,
       background: "rgba(8,11,20,0.92)", border: "1px solid rgba(255,255,255,0.14)",
       fontFamily: MONO, color: "#cbd5e1", fontSize: 12.5, backdropFilter: "blur(6px)", flexWrap: "wrap", maxWidth: "94vw",
+      opacity: recording ? 0 : 1, pointerEvents: recording ? "none" : "auto", transition: "opacity .18s ease",
     }}>
       <span style={{ color: "#7c8aa0" }}>🎥 click a building to pin</span>
       <span style={{ display: "flex", gap: 4 }}>
