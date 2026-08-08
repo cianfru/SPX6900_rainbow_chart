@@ -503,7 +503,7 @@ export default function SpxCity({ isMobile, preview = false, initialMode = "spx"
               onSelect={t => { setSel(t); if (t) goTo(t.a); }}
               crownLabel={isNft ? "👑 biggest collector" : "🐋 biggest whale"} accent={`${M.accent}73`}
               bodyFrom={0xf2cf8a} bodyTo={0x22d3ee}
-              layout={layout} focus={focus} focusNonce={focusN} pinned={preview ? null : sel} pinnedHtml={pinCard}
+              layout={layout} focus={focus} focusNonce={focusN} pinned={(preview || recording) ? null : sel} pinnedHtml={pinCard}
               intro={week == null}
               messages={msgs} time={time} infra={isNft ? null : infra} arcs={arcs} viewH={viewH} beamAll={beamAll} />
           </Suspense>
