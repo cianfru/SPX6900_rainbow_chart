@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { recorderSupported, downloadBlob } from "./canvas-record.js";
 import { MONO } from "./chart-ui.jsx";
 
@@ -12,6 +12,11 @@ import { MONO } from "./chart-ui.jsx";
 const SECS = [4, 6, 8, 10, 12, 16];
 
 export default function CityRecorder({ accent = "#5eead4", onRecording }) {
+  // ?rec=1 is STICKY: the city is its own tab, so navigating in rewrites the URL and drops the param
+  // — persist it once so the reveal survives. Clear with localStorage.removeItem("spx-rec").
+  useEffect(() => {
+    try { if (new URLSearchParams(location.search).get("rec") === "1") localStorage.setItem("spx-rec", "1"); } catch { /* private mode */ }
+  }, []);
   const enabled = (() => {
     try {
       const q = new URLSearchParams(location.search).get("rec") === "1";
