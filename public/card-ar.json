@@ -97,5 +97,6 @@
   "citygrowth": "square",
   "citychurn": "landscape",
   "citypercap": "landscape",
-  "cityvintage": "landscape"
+  "cityvintage": "landscape",
+  "cityskyline": "landscape"
 }

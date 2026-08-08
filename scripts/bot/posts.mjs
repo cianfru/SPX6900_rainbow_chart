@@ -27,6 +27,7 @@ import { cityGrowthStats } from "./city-growth-card.mjs";
 import { cityChurnStats } from "./city-churn-card.mjs";
 import { cityPercapStats } from "./city-percap-card.mjs";
 import { cityVintageStats } from "./city-vintage-card.mjs";
+import { citySkylineStats } from "./city-skyline-card.mjs";
 import { whaleBehaviourStats } from "./whale-behaviour-card.mjs";
 import { whaleMosaicStats } from "./whale-mosaic-card.mjs";
 import { cexFlowStats } from "./cex-flow-card.mjs";
@@ -1094,6 +1095,20 @@ A city, not a whale pond.`,
 Each later cohort survives better — partly conviction, partly that recent arrivals simply haven't had time to leave yet (a wallet has to age out to count as gone).
 The city today is its survivors.`,
       card: { type: "cityvintage" },
+    };
+  },
+
+  // The changing skyline — residents by building type (glass tower / concrete / masonry / low-rise),
+  // the SAME height rule the 3D city uses. Towers crown a base that sprawled into brick. Hand-postable.
+  () => {
+    const c = citySkylineStats();
+    if (!c) return null;
+    return {
+      id: "cityskyline",
+      text: ct`🏙 SPX City's skyline, over time. Every resident is a building — height = how much it holds × how long it's held, exactly like the 3D city.
+${c.towerNow} glass towers still crown the skyline, but as retail arrived the city sprawled outward in brick: ${Math.round(c.lowShareNow)}% of ${(c.total / 1e3).toFixed(1)}k buildings are now low-rise, up from a taller, whalier start.
+A skyline you can read.`,
+      card: { type: "cityskyline" },
     };
   },
 
@@ -2345,7 +2360,7 @@ const weightOf = id => WEIGHT[id] ?? (BULLISH.has(id) ? 2 : 1);
 // marketcap ("real free-float cap / thin float") is RETIRED — its premise is false: SPX is a
 // fair launch with no lockup, so free float is ~88% (not thin). The honest story is
 // illiquid/liquid supply (the reframed freefloat card), so marketcap is out of the feed.
-const NO_ROTATE = new Set(["drawdown", "risk", "kraken", "dcaladder", "marketcap", "spxcohort", "cexsupply", "cexflow", "cexvenues", "cexvenflow", "nrpl", "liveliness", "citygrowth", "citychurn", "citypercap", "cityvintage"]);
+const NO_ROTATE = new Set(["drawdown", "risk", "kraken", "dcaladder", "marketcap", "spxcohort", "cexsupply", "cexflow", "cexvenues", "cexvenflow", "nrpl", "liveliness", "citygrowth", "citychurn", "citypercap", "cityvintage", "cityskyline"]);
 
 // LONG-FORM cards — the few methodology / teaching posts that genuinely need more than the
 // 290 instant-read ceiling (see the post-length test). Default stays 290 for EVERY other card;
@@ -2403,7 +2418,7 @@ const LOOK = {
   firesalerally: "fanlines",
   model: "scatter",
   monthlyreturns: "heatmap", monthlyreturnssp: "heatmap", monthlyreturnsbtc: "heatmap",
-  hodlwaves: "stack", hodlcompare: "stack", walletgrowth: "stack", lthsth: "stack", valband: "dual", cexvenues: "stack", citygrowth: "stack", citychurn: "bars", citypercap: "dual", cityvintage: "bars",
+  hodlwaves: "stack", hodlcompare: "stack", walletgrowth: "stack", lthsth: "stack", valband: "dual", cexvenues: "stack", citygrowth: "stack", citychurn: "bars", citypercap: "dual", cityvintage: "bars", cityskyline: "stack",
   timeinband: "bars", monthlybars: "bars", monthcompare: "bars", multichain: "bars", urpd: "bars", urpdage: "bars", cexvenflow: "bars", ethsol: "bars", chainconc: "bars", illiquid: "stack", baltier: "bars", dualholders: "stack", basesurv: "bars", supplycurve: "race", whalecensus: "bars", whalebehaviour: "bars",
   fngdial: "round", distribution: "round",
   marketcap: "blocks", milestones: "blocks", sp500: "blocks",

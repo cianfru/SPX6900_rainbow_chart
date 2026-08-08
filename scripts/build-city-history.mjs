@@ -22,7 +22,35 @@ import { readFileSync, writeFileSync, createReadStream } from "node:fs";
 import { createInterface } from "node:readline";
 import { EXCLUDE } from "./build-onchain-local.mjs";
 import { parseTime } from "./build-city-timeline.mjs";
-import { CITY_COHORTS as COHORTS, cityCohortIndex as cohortIndex, CITY_FLOOR as FLOOR } from "../src/whale-cohorts.js";
+import { CITY_COHORTS as COHORTS, cityCohortIndex as cohortIndex, CITY_FLOOR as FLOOR, heightUnit } from "../src/whale-cohorts.js";
+
+// ── Building archetypes over time ─────────────────────────────────────────────────────────────────
+// Reconstruct the SAME building type the 3D city assigns each wallet, so a chart matches the towers
+// people see. A building's height = holding × how long it's held, RELATIVE to the biggest that period:
+//   score  = (bal/maxBal) × (0.45 + 0.55 × days/maxDays)      ← mirrors SpxCity.jsx
+//   height = HMIN + (HMAX-HMIN) × heightUnit(score, minScore, maxScore)  ← heightUnit ≡ city-render heightOf
+//   tier by height: ≥11 glass tower · ≥6 concrete mid-rise · ≥3.5 masonry · else low-rise  ← city-render archetype()
+// ⚠ Keep HMIN/HMAX (Skyline3D.jsx) + the 11/6/3.5 cut-offs (city-render.js archetype) in sync with those files.
+const HMIN = 1.0, HMAX = 21;
+const SKY_TIERS = [
+  { key: "tower", label: "Glass tower", min: 11, colour: "#38bdf8" },
+  { key: "midrise", label: "Concrete mid-rise", min: 6, colour: "#9aa0a8" },
+  { key: "masonry", label: "Masonry", min: 3.5, colour: "#c2764f" },
+  { key: "lowrise", label: "Low-rise", min: 0, colour: "#7c4a37" },
+];
+const tierIdx = h => { for (let i = 0; i < SKY_TIERS.length; i++) if (h >= SKY_TIERS[i].min) return i; return SKY_TIERS.length - 1; };
+// res = [{bal, days}] residents that period → [tower, midrise, masonry, lowrise] counts
+function skylineAt(res) {
+  const c = [0, 0, 0, 0];
+  if (!res.length) return c;
+  let maxBal = 1, maxDays = 1;
+  for (const r of res) { if (r.bal > maxBal) maxBal = r.bal; if (r.days > maxDays) maxDays = r.days; }
+  let minS = Infinity, maxS = -Infinity;
+  const scored = res.map(r => { const s = (r.bal / maxBal) * (0.45 + 0.55 * (r.days / maxDays)); if (s < minS) minS = s; if (s > maxS) maxS = s; return s; });
+  for (const s of scored) c[tierIdx(HMIN + (HMAX - HMIN) * heightUnit(s, minS, maxS))]++;
+  return c;
+}
+const skyMeta = { skylineLabels: SKY_TIERS.map(t => t.label), skylineColors: SKY_TIERS.map(t => t.colour) };
 
 const arg = (k) => { const a = process.argv.find(s => s.startsWith(`--${k}=`)); return a ? a.slice(k.length + 3) : null; };
 const DAY = 864e5;
@@ -66,6 +94,7 @@ export function cityHistory(tl, prices) {
   const toks = Array.from({ length: n }, () => new Array(NC).fill(0));
   const arrivals = new Array(n).fill(0), departures = new Array(n).fill(0), foundersAlive = new Array(n).fill(0);
   const weekBals = Array.from({ length: n }, () => []); // resident balances per week (for the median)
+  const weekRes = Array.from({ length: n }, () => []);  // resident {bal, days} per week (for the skyline)
   const vint = new Map();                               // arrival quarter → {arrived, stillHere}
   const dateOf = wk => dayOf(week0 + wk * 7 * DAY);
   for (const w of tl.wallets) {
@@ -76,7 +105,7 @@ export function cityHistory(tl, prices) {
       while (pi < w.p.length && w.p[pi][0] <= wk) bal = w.p[pi++][1];
       streak = bal > 0 ? streak + 1 : 0;
       const res = bal >= FLOOR && streak >= Math.min(HOLD_WK, wk + 1);
-      if (res) { const ci = cohortIndex(bal); if (ci >= 0) { counts[wk][ci]++; toks[wk][ci] += bal; weekBals[wk].push(bal); } if (firstResWk < 0) firstResWk = wk; }
+      if (res) { const ci = cohortIndex(bal); if (ci >= 0) { counts[wk][ci]++; toks[wk][ci] += bal; weekBals[wk].push(bal); weekRes[wk].push({ bal, days: streak * 7 }); } if (firstResWk < 0) firstResWk = wk; }
       if (res && !prevRes) arrivals[wk]++;               // crossed into residency this week
       if (!res && prevRes) departures[wk]++;             // dropped out of residency this week
       if (wk === 0) founder = res;                       // a "founder" was a resident in the launch week
@@ -95,9 +124,10 @@ export function cityHistory(tl, prices) {
   const flow = arrivals.map((a, wk) => [dateOf(wk), a, departures[wk]]);
   const founders = { n0: foundersAlive[0], series: foundersAlive.map((v, wk) => [dateOf(wk), v]) };
   const perCapita = weekBals.map((a, wk) => [dateOf(wk), Math.round(median(a))]); // median resident holding (tokens)
+  const skyline = weekRes.map((res, wk) => [dateOf(wk), ...skylineAt(res)]);       // building types (glass/concrete/masonry/low-rise)
   const vintages = [...vint.entries()].map(([label, v]) => ({ label, arrived: v.arrived, stillHere: v.stillHere, pct: v.arrived ? +(v.stillHere / v.arrived * 100).toFixed(1) : 0 }))
     .sort((a, b) => a.label.localeCompare(b.label));
-  return meta(round(rows), "weekly", { flow, founders, perCapita, vintages });
+  return meta(round(rows), "weekly", { flow, founders, perCapita, vintages, skyline, ...skyMeta });
 }
 
 // DAILY — stream the raw transfer archive; keep a running per-wallet balance + when each wallet last
@@ -130,16 +160,17 @@ export async function fromTransfers(src, prices) {
     if (nb >= FLOOR) eligible.add(a); else eligible.delete(a);
   };
 
-  const out = [], flow = [], perCapita = [];
+  const out = [], flow = [], perCapita = [], skyline = [];
   let prev = new Set(), founders = null, lastCur = new Set();   // founders = the resident set on the first snapshot
   const firstRes = new Map();                             // wallet → day it first became a resident (for vintages)
   const snap = (d) => {
     const dT = Date.parse(d), price = priceAt(dT), need = Math.min(HOLD_MS, dT - launchT);
-    const counts = new Array(NC).fill(0), toks = new Array(NC).fill(0), cur = new Set(), resBals = [];
+    const counts = new Array(NC).fill(0), toks = new Array(NC).fill(0), cur = new Set(), resBals = [], resArch = [];
     for (const a of eligible) {
-      if (dT - (heldSince.get(a) ?? dT) < need) continue; // not held long enough yet
+      const hs = heldSince.get(a) ?? dT;
+      if (dT - hs < need) continue;                       // not held long enough yet
       const b = bal.get(a), ci = cohortIndex(b);
-      if (ci >= 0) { counts[ci]++; toks[ci] += b; cur.add(a); resBals.push(b); if (!firstRes.has(a)) firstRes.set(a, dT); }
+      if (ci >= 0) { counts[ci]++; toks[ci] += b; cur.add(a); resBals.push(b); resArch.push({ bal: b, days: (dT - hs) / DAY }); if (!firstRes.has(a)) firstRes.set(a, dT); }
     }
     if (!founders) founders = new Set(cur);
     let arr = 0, dep = 0, fAlive = 0;
@@ -149,6 +180,7 @@ export async function fromTransfers(src, prices) {
     out.push([d, price, ...counts, ...toks.map(t => t * price)]);
     flow.push([d, arr, dep, fAlive]);
     perCapita.push([d, Math.round(median(resBals))]);
+    skyline.push([d, ...skylineAt(resArch)]);
     prev = cur; lastCur = cur;
   };
   let curDay = null, curT = 0;
@@ -172,7 +204,7 @@ export async function fromTransfers(src, prices) {
   return meta(round(out), "daily", {
     flow: flow.map(f => [f[0], f[1], f[2]]),
     founders: { n0, series: flow.map(f => [f[0], f[3]]) },
-    perCapita, vintages,
+    perCapita, vintages, skyline, ...skyMeta,
   });
 }
 
