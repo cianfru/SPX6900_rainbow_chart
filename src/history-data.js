@@ -44,6 +44,17 @@ export function loadWhaleCohortHistory() {
   return whaleHistPromise;
 }
 
+let cityHistPromise = null;
+export function loadCityHistory() {
+  if (!cityHistPromise) {
+    cityHistPromise = fetch("/city-history.json")
+      .then(r => (r.ok ? r.json() : null))
+      .then(d => (Array.isArray(d?.rows) && d.rows.length && Array.isArray(d.labels) ? d : null))
+      .catch(() => null);
+  }
+  return cityHistPromise;
+}
+
 let exitFlowPromise = null;
 export function loadExitFlow() {
   if (!exitFlowPromise) {

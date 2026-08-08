@@ -48,6 +48,7 @@ export const CHART_GROUPS = [
       { id: "concentration", title: "Holder Concentration", post: "concentration", desc: "The largest wallets' share of supply over time." },
       { id: "whales", title: "Whale Supply", post: "whales", desc: "What the biggest wallets hold, and whether there are more of them." },
       { id: "whalecohorts", title: "Whale Counts Over Time", post: "whalecensus", desc: "How many wallets sit in each size cohort, week by week — the base broadened, the mega-whales thinned." },
+      { id: "citygrowth", title: "City Growth", desc: "How SPX City grew — citizens (≥5k held 90d) and its total value climbing through the drawdown." },
       { id: "survivorship", title: "Who's Still Here", post: "survivorship", desc: "Of everyone who ever held SPX, who remains — by the era they first bought." },
       { id: "exitflow", title: "How Holders Left", post: "exitmap", desc: "Of everyone who left, when they sold and whether they left in profit or at a loss — over the price." },
       { id: "smartmoney", title: "Smart Money", post: "smartmoney", desc: "The live cohort of proven top-timers (ROI ≥5×, still holding) — aggregate holdings and net-flow." },

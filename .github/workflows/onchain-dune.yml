@@ -113,6 +113,13 @@ jobs:
         env:
           NODE_OPTIONS: --max-old-space-size=6144
         run: node scripts/build-smart-money.mjs --transfers=transfers.csv --prices=public/price-history.json --out=public/smart-money.json
+      - name: Rebuild city history (DAILY citizens + TVL by cohort — how the city grew)
+        # off the raw archive → real per-transfer timestamps, daily residency (≥5k held 90d) + TVL.
+        # continue-on-error + raised heap (loads+sorts the full archive) so it can't OOM-block the pipeline.
+        continue-on-error: true
+        env:
+          NODE_OPTIONS: --max-old-space-size=6144
+        run: node scripts/build-city-history.mjs --transfers=transfers.csv --prices=public/price-history.json --out=public/city-history.json
 
       - name: Sanity check (reconcile to the known extract)
         run: |
@@ -166,7 +173,7 @@ jobs:
           # ETH/site files drive the DEPLOY (the site + og cards read these). Solana/Base files are
           # bot-only (no site consumer), so they ride along in the same commit but don't force a deploy
           # on their own. COMMIT if ANY of them changed; DEPLOY only if an ETH/site file changed.
-          ETH_FILES="public/onchain.json public/urpd.json public/urpd-history.json public/whales.json public/spx-timeline.json public/cohort-survival.json public/exit-flow.json public/smart-money.json public/city-recap.json public/whale-cohort-history.json"
+          ETH_FILES="public/onchain.json public/urpd.json public/urpd-history.json public/whales.json public/spx-timeline.json public/cohort-survival.json public/exit-flow.json public/smart-money.json public/city-recap.json public/whale-cohort-history.json public/city-history.json"
           CHAIN_FILES="public/solana-onchain.json dune/out/spx6900_solana_balances.csv public/base-onchain.json dune/out/spx6900_base_cohort.csv"
           DEPLOY_CHANGED=""
           [[ -n "$(git status --porcelain $ETH_FILES)" ]] && DEPLOY_CHANGED=1

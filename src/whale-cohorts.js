@@ -19,6 +19,26 @@ export function cohortIndex(bal) {
   return -1;
 }
 
+// ── CITY cohorts — the WHOLE city, not just whales ────────────────────────────────────────────────
+// SPX City's residency bar is 5,000 SPX, so a "citizen" is any wallet ≥ 5,000. Six size cohorts span
+// the full city from the residency floor up; the top four boundaries are IDENTICAL to the whale
+// COHORTS above, so the whale slice nests exactly. Warm (small/new) → cool (big) so size reads as
+// colour, same as the 3D city. Used by build-city-history.mjs + CityHistoryChart.jsx.
+export const CITY_FLOOR = 5e3;
+export const CITY_COHORTS = [
+  { key: "c0", lo: 5e3,  hi: 25e3,     label: "5k–25k",    accent: "#f97316" },
+  { key: "c1", lo: 25e3, hi: 1e5,      label: "25k–100k",  accent: "#fbbf24" },
+  { key: "c2", lo: 1e5,  hi: 25e4,     label: "100k–250k", accent: "#a3e635" },
+  { key: "c3", lo: 25e4, hi: 1e6,      label: "250k–1M",   accent: "#34d399" },
+  { key: "c4", lo: 1e6,  hi: 5e6,      label: "1M–5M",     accent: "#22d3ee" },
+  { key: "c5", lo: 5e6,  hi: Infinity, label: "5M+",       accent: "#818cf8" },
+];
+
+export function cityCohortIndex(bal) {
+  for (let i = 0; i < CITY_COHORTS.length; i++) if (bal >= CITY_COHORTS[i].lo && bal < CITY_COHORTS[i].hi) return i;
+  return -1;
+}
+
 // 30-day net flow → behaviour. `d30` is net tokens in/out over the trailing 30 days; the deadzone
 // keeps rounding dust from lighting a beam. Returns "buy" | "sell" | "flat".
 export function flowState(d30, bal, dead = 0.005) {

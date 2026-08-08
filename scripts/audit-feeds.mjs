@@ -119,6 +119,8 @@ export const FEEDS = [
     require: ["overall", "week0"], nonEmpty: ["cohorts", "weekly"] },
   { file: "whale-cohort-history.json", cadence: 3, by: "onchain-dune.yml", what: "per-week whale counts by size cohort",
     require: ["week0", "n"], nonEmpty: ["rows", "labels"] },
+  { file: "city-history.json", cadence: 3, by: "onchain-dune.yml", what: "city citizens + TVL by size cohort over time",
+    require: ["week0", "n", "floor"], nonEmpty: ["rows", "labels"] },
   { file: "exit-flow.json", cadence: 3, by: "onchain-dune.yml", what: "daily departures split by profit/loss",
     require: ["overall", "res"], nonEmpty: ["days"] },
   { file: "smart-money.json", cadence: 3, by: "onchain-dune.yml", what: "live smart-money cohort holdings + net-flow",
