@@ -5,29 +5,31 @@ import { loadAeonSales } from "./history-data.js";
 import { SANS, MONO, MAX_W, Metric, TipBox, Explain } from "./chart-ui.jsx";
 
 const fShort = t => new Date(t).toLocaleDateString("en-US", { month: "short", year: "2-digit" });
+const median = a => { if (!a.length) return null; const s = [...a].sort((x, y) => x - y); const m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; };
 const fmtEth = v => (v < 0.1 ? v.toFixed(3) : v.toFixed(2)) + "Ξ";
 const fmtUsd = v => "$" + (v >= 1000 ? (v / 1000).toFixed(1) + "k" : Math.round(v));
 
 // Project Aeon — floor price (ETH or USD) + monthly trading volume from the marketplace
-// sale log. Floor = the lowest sale of each sale-day (raw daily — AEON is thin, so any
-// smoothing only lags the real floor; see the note in the memo below).
+// sale log. Floor line has two modes (owner toggle): RAW = the lowest sale of each sale-day
+// (tracks step-downs the day they happen — the default), SMOOTH = a 3-sale-day rolling median
+// (filters a single outlier sale, at the cost of a few days' lag on a thin market).
 export default function AeonFloorChart({ isMobile }) {
   const [data, setData] = useState(AEON_SALES);
   const [unit, setUnit] = useState("ETH");
+  const [smooth, setSmooth] = useState(false);   // false = raw daily, true = 3-sale-day median
   useEffect(() => { let c = false; loadAeonSales().then(d => { if (!c && d) setData(d); }); return () => { c = true; }; }, []);
 
   const { rows, months, cur } = useMemo(() => {
     const daily = (data.daily || []).filter(r => r.floorEth > 0).map(r => ({ ...r, ts: Date.parse(r.d) })).sort((a, b) => a.ts - b.ts);
-    // Raw daily floor = the lowest sale of each sale-day. AEON is thin (~3 sales/day), so on a market
-    // this small the floor basically IS the cheapest recent sale — a rolling median only added lag and
-    // buried genuine step-downs (0.63 → 0.53) for days. The occasional one-day dip from a single odd
-    // sale self-corrects the next day, which is honest for a market this quiet.
-    const rows = daily.map(r => ({ ts: r.ts, eth: r.floorEth, usd: r.floorUsd }));
+    // RAW = the day's lowest sale; SMOOTH = a 3-sale-day rolling median (still short — AEON is thin,
+    // so a longer window buries a real step-down for weeks; 3 filters a single fluke without much lag).
+    const at = (i, key) => smooth ? median(daily.slice(Math.max(0, i - 2), i + 1).map(r => r[key])) : daily[i][key];
+    const rows = daily.map((r, i) => ({ ts: r.ts, eth: at(i, "floorEth"), usd: at(i, "floorUsd") }));
     const mon = new Map();
     for (const r of daily) { const k = r.d.slice(0, 7); const g = mon.get(k) || { ve: 0, vu: 0 }; g.ve += r.volEth; g.vu += r.volUsd; mon.set(k, g); }
     const months = [...mon.entries()].map(([k, v]) => ({ ts: Date.parse(k + "-01"), ...v })).sort((a, b) => a.ts - b.ts);
     return { rows, months, cur: data.current || {} };
-  }, [data]);
+  }, [data, smooth]);
 
   if (rows.length < 10) return <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Not enough sales data yet.</div>;
 
@@ -75,6 +77,10 @@ export default function AeonFloorChart({ isMobile }) {
         <div style={{ display: "flex", gap: 6 }}>
           {["ETH", "USD"].map(u => <button key={u} style={tbtn(unit === u)} onClick={() => setUnit(u)}>{u}</button>)}
         </div>
+        <div style={{ display: "flex", gap: 6 }}>
+          <button style={tbtn(!smooth)} onClick={() => setSmooth(false)}>Raw</button>
+          <button style={tbtn(smooth)} onClick={() => setSmooth(true)}>Smoothed</button>
+        </div>
       </div>
       <ResponsiveContainer width="100%" height={isMobile ? 400 : 560}>
         <ComposedChart data={merged} margin={{ top: 10, right: isMobile ? 8 : 16, bottom: 24, left: isMobile ? 0 : 14 }}>
@@ -94,7 +100,7 @@ export default function AeonFloorChart({ isMobile }) {
         </ComposedChart>
       </ResponsiveContainer>
       <div className="chart-caption" style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.65, maxWidth: 900, marginInline: "auto" }}>
-        <strong style={{ color: "#2dd4bf" }}>Floor &amp; sales</strong> — floor (bars = monthly volume) from on-chain marketplace trades (ETH, WETH and Blur-pool ETH). The line is the lowest realized sale each day, updated daily; the <strong style={{ color: "#2dd4bf" }}>floor</strong> readout above is today&apos;s lowest sale.
+        <strong style={{ color: "#2dd4bf" }}>Floor &amp; sales</strong> — floor (bars = monthly volume) from on-chain marketplace trades (ETH, WETH and Blur-pool ETH). The line is {smooth ? "a 3-sale-day median of daily lows (smoothed — filters a single outlier sale)" : "the lowest realized sale each day (raw — tracks step-downs the day they happen)"}; toggle Raw / Smoothed. The <strong style={{ color: "#2dd4bf" }}>floor</strong> readout above is today&apos;s lowest sale.
       </div>
     </div>
   );
