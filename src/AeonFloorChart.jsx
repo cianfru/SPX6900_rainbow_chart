@@ -10,7 +10,8 @@ const fmtEth = v => (v < 0.1 ? v.toFixed(3) : v.toFixed(2)) + "Ξ";
 const fmtUsd = v => "$" + (v >= 1000 ? (v / 1000).toFixed(1) + "k" : Math.round(v));
 
 // Project Aeon — floor price (ETH or USD) + monthly trading volume from the marketplace
-// sale log. Floor = 7-day rolling median of daily lows (one cheap sale ≠ the floor).
+// sale log. Floor = 3-sale-day rolling median of daily lows (one cheap sale ≠ the floor,
+// but AEON is thin so a longer window buries a real step-down for weeks).
 export default function AeonFloorChart({ isMobile }) {
   const [data, setData] = useState(AEON_SALES);
   const [unit, setUnit] = useState("ETH");
@@ -18,8 +19,10 @@ export default function AeonFloorChart({ isMobile }) {
 
   const { rows, months, cur } = useMemo(() => {
     const daily = (data.daily || []).filter(r => r.floorEth > 0).map(r => ({ ...r, ts: Date.parse(r.d) })).sort((a, b) => a.ts - b.ts);
-    // 7-day rolling-median floor
-    const roll = (i, key) => median(daily.slice(Math.max(0, i - 6), i + 1).map(r => r[key]));
+    // Rolling-median floor over the last 3 sale-DAYS (not 7): AEON is thin — a 7-sale-day window spans
+    // ~3 weeks, so a real floor step-down (e.g. 0.63 → 0.53) took far too long to show. 3 still filters a
+    // single outlier sale but tracks a genuine multi-sale move within days.
+    const roll = (i, key) => median(daily.slice(Math.max(0, i - 2), i + 1).map(r => r[key]));
     const rows = daily.map((r, i) => ({ ts: r.ts, eth: roll(i, "floorEth"), usd: roll(i, "floorUsd") }));
     const mon = new Map();
     for (const r of daily) { const k = r.d.slice(0, 7); const g = mon.get(k) || { ve: 0, vu: 0 }; g.ve += r.volEth; g.vu += r.volUsd; mon.set(k, g); }
@@ -62,7 +65,7 @@ export default function AeonFloorChart({ isMobile }) {
   return (
     <div style={{ maxWidth: MAX_W, margin: "0 auto" }}>
       <Explain q="What has the floor done, and how much trades?" accent="#2dd4bf">
-        The <strong style={{ color: "#2dd4bf" }}>floor price</strong> (lowest sale, 7-day median) and monthly <strong style={{ color: "#94a3b8" }}>trading volume</strong> since mint.
+        The <strong style={{ color: "#2dd4bf" }}>floor price</strong> (lowest sale, 3-sale-day median) and monthly <strong style={{ color: "#94a3b8" }}>trading volume</strong> since mint.
         Toggle {isEth ? "to USD" : "to ETH"} — the two diverge when ETH&apos;s own price moves. {data.totalSales?.toLocaleString?.()} sales for {Math.round(data.totalVolEth || 0).toLocaleString()}Ξ (${((data.totalVolUsd || 0) / 1e6).toFixed(1)}M) all-time.
       </Explain>
       <div style={{ display: "flex", gap: isMobile ? 14 : 28, justifyContent: "center", marginBottom: 12, flexWrap: "wrap", alignItems: "center" }}>
@@ -92,7 +95,7 @@ export default function AeonFloorChart({ isMobile }) {
         </ComposedChart>
       </ResponsiveContainer>
       <div className="chart-caption" style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.65, maxWidth: 900, marginInline: "auto" }}>
-        <strong style={{ color: "#2dd4bf" }}>Floor &amp; sales</strong> — floor (bars = monthly volume) from on-chain marketplace trades (ETH, WETH and Blur-pool ETH). The floor is a 7-day median of daily lows — a proxy for the listing floor. The live listing floor is banked daily.
+        <strong style={{ color: "#2dd4bf" }}>Floor &amp; sales</strong> — floor (bars = monthly volume) from on-chain marketplace trades (ETH, WETH and Blur-pool ETH). The line is a 3-sale-day median of daily lows (a realized-sale floor); the <strong style={{ color: "#2dd4bf" }}>floor</strong> readout above is today&apos;s lowest sale, updated daily.
       </div>
     </div>
   );
