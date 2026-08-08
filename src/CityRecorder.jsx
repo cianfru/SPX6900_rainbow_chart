@@ -1,0 +1,61 @@
+import { useState } from "react";
+import { recorderSupported, downloadBlob } from "./canvas-record.js";
+import { MONO } from "./chart-ui.jsx";
+
+// Owner-only in-browser orbital recorder for the 3D cities. Flow: click a building to PIN the spin
+// centre (the city already flies to it + sets controls.target), pick the duration, hit Spin + Record.
+// It sets OrbitControls autoRotate and captures the live WebGL canvas via MediaRecorder (window.
+// __cityRecord, exposed by Skyline3D) — encoded on the viewer's own GPU, downloaded as MP4/WebM.
+// Revealed only behind ?rec=1 (or localStorage spx-rec=1) and where the browser supports capture
+// (hidden on iOS Safari, which lacks canvas.captureStream). ⚠ Captures the 3D view only — the note/
+// name SIGNS are CSS2D DOM overlays and are NOT in the exported file; screen-record for those.
+const SECS = [4, 6, 8, 10, 12, 16];
+
+export default function CityRecorder({ accent = "#5eead4" }) {
+  const enabled = (() => {
+    try {
+      const q = new URLSearchParams(location.search).get("rec") === "1";
+      return (q || localStorage.getItem("spx-rec") === "1") && recorderSupported();
+    } catch { return false; }
+  })();
+  const [secs, setSecs] = useState(8);
+  const [rec, setRec] = useState({ state: "idle", pct: 0, err: "" });
+  if (!enabled) return null;
+
+  const go = async () => {
+    if (rec.state === "recording" || !window.__cityRecord) return;
+    setRec({ state: "recording", pct: 0, err: "" });
+    try {
+      const { blob, ext } = await window.__cityRecord({ seconds: secs, fps: 60, onTick: p => setRec(r => ({ ...r, pct: p })) });
+      downloadBlob(blob, `spx-city-${new Date().toISOString().slice(0, 10)}.${ext}`);
+      setRec({ state: "idle", pct: 0, err: "" });
+    } catch (e) { setRec({ state: "idle", pct: 0, err: e.message || "recording failed" }); }
+  };
+
+  const chip = active => ({
+    cursor: "pointer", padding: "3px 8px", borderRadius: 6, fontFamily: MONO, fontSize: 12,
+    border: `1px solid ${active ? accent : "rgba(255,255,255,0.16)"}`,
+    background: active ? `color-mix(in srgb, ${accent} 22%, transparent)` : "transparent",
+    color: active ? "#eafff7" : "#94a3b8",
+  });
+
+  return (
+    <div style={{
+      position: "fixed", bottom: 16, left: "50%", transform: "translateX(-50%)", zIndex: 40,
+      display: "flex", alignItems: "center", gap: 10, padding: "8px 12px", borderRadius: 12,
+      background: "rgba(8,11,20,0.92)", border: "1px solid rgba(255,255,255,0.14)",
+      fontFamily: MONO, color: "#cbd5e1", fontSize: 12.5, backdropFilter: "blur(6px)", flexWrap: "wrap", maxWidth: "94vw",
+    }}>
+      <span style={{ color: "#7c8aa0" }}>🎥 click a building to pin</span>
+      <span style={{ display: "flex", gap: 4 }}>
+        {SECS.map(s => <button key={s} onClick={() => setSecs(s)} style={chip(s === secs)}>{s}s</button>)}
+      </span>
+      <button onClick={go} disabled={rec.state === "recording"} style={{
+        cursor: rec.state === "recording" ? "default" : "pointer", padding: "5px 13px", borderRadius: 7,
+        border: `1px solid ${accent}`, background: `color-mix(in srgb, ${accent} 20%, transparent)`,
+        color: "#eafff7", fontFamily: MONO, fontWeight: 700, fontSize: 12.5,
+      }}>{rec.state === "recording" ? `● Recording ${Math.round(rec.pct * 100)}%` : "Spin + Record"}</button>
+      {rec.err && <span style={{ color: "#fb7185", maxWidth: 260 }}>{rec.err}</span>}
+    </div>
+  );
+}

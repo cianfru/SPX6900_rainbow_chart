@@ -12,6 +12,7 @@ import { placeCity, cityScale, CITY_LENGTH, ISLAND_RING, PARK_RINGS, BACKDROP, I
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { chainOf } from "./city-messages.js";
 import { makeDrs } from "./city-drs.js";
+import { recordCanvas } from "./canvas-record.js";
 import { TIMES, FAMILIES, skyEnv, facadeTexture, facadeAlbedo, wallGeometry, roofGeometry, archetype, heightOf, waterMaterials,
          berthGeometry, bridgeGeometry, monumentGeometry } from "./city-render.js";
 import { infraFrom, portBerths, siteAt, bridgeSpan, SITES, fmtTokens } from "./city-infra.js";
@@ -1150,6 +1151,19 @@ export default function Skyline3D({
       textures: renderer.info.memory.textures,
       pixelRatio: +renderer.getPixelRatio().toFixed(2), frameMs: drs.frameMs,
     });
+    // Owner-only in-browser orbital video: spin around whatever the camera is currently orbiting
+    // (click a building to pin that centre) and capture the live canvas via MediaRecorder — same path
+    // as Whales Watching. autoRotate is advanced by the render loop's own controls.update(); the prior
+    // state is restored when done. ⚠ captureStream grabs the WEBGL canvas only — the note/name signs
+    // are CSS2D DOM overlays, so they are NOT in the exported file (screen-record for those). Revealed
+    // in the UI only behind ?rec=1.
+    window.__cityRecord = ({ seconds = 10, fps = 60, onTick } = {}) => {
+      flying = false;
+      const wasAuto = controls.autoRotate, wasSpeed = controls.autoRotateSpeed, wasEnabled = controls.enabled;
+      controls.enabled = true; controls.autoRotate = true; controls.autoRotateSpeed = 60 / seconds;   // ~one full orbit over `seconds`
+      return recordCanvas(renderer.domElement, { seconds, fps, onTick })
+        .finally(() => { controls.autoRotate = wasAuto; controls.autoRotateSpeed = wasSpeed; controls.enabled = wasEnabled; });
+    };
     if (flying) { controls.enabled = false; renderer.domElement.addEventListener("pointerdown", stopFlight, { once: true }); addEventListener("wheel", stopFlight, { once: true, passive: true }); }
 
     // ── adaptive resolution ──────────────────────────────────────────────────────────────────
@@ -1209,7 +1223,7 @@ export default function Skyline3D({
       groundBits.forEach(g => { if (g.dispose) g.dispose(); else { g.geometry?.dispose(); g.material?.dispose(); } });
       pads?.dispose();
       labelBits.forEach(({ obj }) => { obj.element?.remove(); scene.remove(obj); });
-      delete window.__citySeek; delete window.__cityReady; delete window.__cityStats; delete window.__cityCam; delete window.__cityFocus; delete window.__cityFocusBest;
+      delete window.__citySeek; delete window.__cityReady; delete window.__cityStats; delete window.__cityCam; delete window.__cityFocus; delete window.__cityFocusBest; delete window.__cityRecord;
       renderer.dispose(); el.removeChild(renderer.domElement); el.removeChild(labelR.domElement); el.removeChild(tip);
     };
   }, [towers, isMobile, crownLabel, accent, bodyFrom, bodyTo, layout, intro, time, infra, arcs, beamAll]);

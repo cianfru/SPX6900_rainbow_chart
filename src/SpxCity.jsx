@@ -3,6 +3,7 @@ import { loadWhales, loadOnchain, loadAeon, loadAeonSales, loadCityTimeline } fr
 import { AEON_ONCHAIN } from "./aeon-onchain.js";
 import { shortAddr } from "./WalletCard.jsx";
 import CityControls from "./CityControls.jsx";
+import CityRecorder from "./CityRecorder.jsx";
 import CityWallet from "./CityWallet.jsx";
 import { loadNotes } from "./city-messages.js";
 import { SANS, MONO, MAX_W, Metric, Explain } from "./chart-ui.jsx";
@@ -465,6 +466,8 @@ export default function SpxCity({ isMobile, preview = false, initialMode = "spx"
         beamAll={beamAll} onBeamAll={setBeamAll}
         has={a => visible.some(t => (t.a || "").toLowerCase() === a)}
         onFocus={a => { goTo(a); const m = visible.find(t => (t.a || "").toLowerCase() === a); if (m) setSel(m); }} />
+
+      <CityRecorder accent={M.accent} />
 
       <CityWallet city="spx" accent={M.accent} isMobile={isMobile} notes={msgs} onNotes={setMsgs}
         owns={a => citizens.has(a)}
