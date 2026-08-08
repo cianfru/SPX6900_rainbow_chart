@@ -268,6 +268,7 @@
     <div class="tabs">
       <button id="tabDaily" class="tab active">🗓 SPX6900 · Daily posts</button>
       <button id="tabRecap" class="tab">📅 SPX6900 · Recap</button>
+      <button id="tabCity" class="tab">🏙 SPX City</button>
       <button id="tabAeon" class="tab">🌌 Project Aeon</button>
     </div>
   </header>
@@ -285,15 +286,6 @@
       <div class="status" id="status">Loading…</div>
       <div class="sched" id="sched"></div>
       <div class="fresh" id="fresh"></div>
-      <div id="vstudio" style="margin:14px 0;padding:12px 14px;border:1px solid #1e293b;border-radius:10px;background:#0b1120">
-        <div style="font-size:13px;font-weight:700;color:#e2e8f0;margin-bottom:9px">🎥 Video studio <span style="font-weight:400;color:#64748b">— renders on your GPU, downloads locally</span></div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap">
-          <button class="vbtn" data-chart="whaleswatching">🐋 Whales orbit</button>
-          <button class="vbtn" data-chart="whaleswatching" data-square="1">◻ Whales orbit · 1:1</button>
-        </div>
-        <div style="font-size:11.5px;color:#64748b;margin-top:9px;line-height:1.5">Opens the scene past the gate with the recorder shown. Orbit to a nice angle, pick 8/12/20s, hit ● Record — the clip downloads when the orbit finishes. MP4 on Chrome/Safari.</div>
-      </div>
-      <div class="cityrecap" id="cityRecap"></div>
       <div class="signals" id="signals"></div>
       <div class="agent">
         <div class="agenthdr">🤖 Ask the agent <span>· consults OpenRouter over today's real numbers — stats, the rotation pick, "Notable today" & the full card catalog</span></div>
@@ -331,6 +323,26 @@
       <div style="font-size:12px;color:#64748b;margin:14px 0 6px">Cards &amp; tweets · copy the text, save the image, post to the Aeon account</div>
       <div class="grid" id="aeonGrid"></div>
       <div id="aeonHolders" style="margin-top:18px"></div>
+    </div>
+
+    <!-- SPX City tab — the city's postable cards, its recap text, and the video studio -->
+    <div id="cityView" style="display:none">
+      <div class="bar">
+        <button id="cityRefresh">↻ Refresh</button>
+        <span style="margin-left:auto;color:#64748b;font-size:12px">City cards · copy the text, save the image, post manually · <a href="https://spx6900rainbow.xyz/city" target="_blank" rel="noopener" style="color:#7dd3fc">open the 3D city →</a></span>
+      </div>
+      <div class="status" id="cityStatus">The city's development story — how it grew, and who's still here.</div>
+      <div class="cityrecap" id="cityRecap"></div>
+      <div style="font-size:12px;color:#64748b;margin:16px 0 6px">🏙 City cards · ready to post (not in the auto-rotation)</div>
+      <div class="grid" id="cityGrid"></div>
+      <div id="vstudio" style="margin:18px 0 4px;padding:12px 14px;border:1px solid #1e293b;border-radius:10px;background:#0b1120">
+        <div style="font-size:13px;font-weight:700;color:#e2e8f0;margin-bottom:9px">🎥 Video studio <span style="font-weight:400;color:#64748b">— renders on your GPU, downloads locally</span></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="vbtn" data-chart="whaleswatching">🐋 Whales orbit</button>
+          <button class="vbtn" data-chart="whaleswatching" data-square="1">◻ Whales orbit · 1:1</button>
+        </div>
+        <div style="font-size:11.5px;color:#64748b;margin-top:9px;line-height:1.5">Opens the scene past the gate with the recorder shown. Orbit to a nice angle, pick 8/12/20s, hit ● Record — the clip downloads when the orbit finishes. MP4 on Chrome/Safari.</div>
+      </div>
     </div>
 
     <p><a class="home" href="/">← back to site</a></p>
@@ -612,9 +624,18 @@ function card(id) {
   return el;
 }
 
+// City cards live under the SPX City tab, not in the daily grid (they're hand-posted).
+const CITY_CARDS = ["citygrowth", "citychurn"];
 function renderGrid() {
   const g = $("#grid"); g.innerHTML = "";
-  IDS.forEach(id => g.appendChild(card(id)));
+  IDS.filter(id => !CITY_CARDS.includes(id)).forEach(id => g.appendChild(card(id)));
+}
+function renderCityGrid() {
+  const g = $("#cityGrid"); if (!g) return;
+  g.innerHTML = "";
+  const ids = CITY_CARDS.filter(id => IDS.includes(id));
+  if (!ids.length) { g.innerHTML = `<div class="status">City cards appear here once the roster loads (Refresh on the Daily tab first).</div>`; return; }
+  ids.forEach(id => g.appendChild(card(id)));
 }
 
 async function queue(id) {
@@ -662,8 +683,8 @@ async function refresh() {
     renderSchedule(META);
     renderSignals();
     renderGrid();
+    if ($("#cityView").style.display !== "none") renderCityGrid(); // keep the City grid live if it's open
     loadFreshness().then(renderFreshness).catch(() => {}); // non-blocking freshness strip
-    loadCityRecap().then(renderCityRecap).catch(() => {}); // 🏙 city recap tweet strip
     status(`${IDS.length} cards. ${QUEUED ? `Queued: ${QUEUED}.` : "No override — auto rotation."}`, "ok");
   } catch (e) { status(e.message, "err"); }
 }
@@ -768,14 +789,16 @@ async function setExclude(id, excluded) {
   }
 }
 
-$("#grid").addEventListener("click", e => {
+function onGridClick(e) {
   const q = e.target.closest("[data-q]"), n = e.target.closest("[data-now]"), ed = e.target.closest("[data-edit]"), a = e.target.closest("[data-ar]"), x = e.target.closest("[data-excl]");
   if (a) { const [id, key] = a.dataset.ar.split(":"); setAR(id, key); return; }
   if (x) { const id = x.dataset.excl; setExclude(id, !EXCLUDES[id]); return; }
   if (ed) { openEditor(ed.dataset.edit); return; }
   if (q) queue(q.dataset.q);
   if (n) postNow(n.dataset.now);
-});
+}
+$("#grid").addEventListener("click", onGridClick);
+$("#cityGrid").addEventListener("click", onGridClick);
 // Tap a rotation chip → smooth-scroll to that card's preview and flash it. Saves
 // hunting through 50+ cards on mobile/PWA. The card grid is always rendered, so the
 // target exists; guard anyway in case a chip references an id not in the grid.
@@ -947,11 +970,14 @@ function recapErr(e) { recapStatus(e.message, "err"); if (e.status === 401) lock
 function showTab(which) {
   $("#dailyView").style.display = which === "daily" ? "block" : "none";
   $("#recapView").style.display = which === "recap" ? "block" : "none";
+  $("#cityView").style.display = which === "city" ? "block" : "none";
   $("#aeonView").style.display = which === "aeon" ? "block" : "none";
   $("#tabDaily").classList.toggle("active", which === "daily");
   $("#tabRecap").classList.toggle("active", which === "recap");
+  $("#tabCity").classList.toggle("active", which === "city");
   $("#tabAeon").classList.toggle("active", which === "aeon");
   if (which === "recap" && !recapLoaded) loadRecap();
+  if (which === "city") { renderCityGrid(); loadCityRecap().then(renderCityRecap).catch(() => {}); }
   if (which === "aeon" && !aeonLoaded) loadAeon();
 }
 
@@ -1110,8 +1136,10 @@ async function loadRecap() {
 
 $("#tabDaily").onclick = () => showTab("daily");
 $("#tabRecap").onclick = () => showTab("recap");
+$("#tabCity").onclick = () => showTab("city");
 $("#tabAeon").onclick = () => showTab("aeon");
 $("#aeonRefresh").onclick = () => { aeonLoaded = false; loadAeon(); };
+$("#cityRefresh").onclick = () => { refresh().then(() => { renderCityGrid(); loadCityRecap().then(renderCityRecap).catch(() => {}); }); };
 $("#recapReload").onclick = () => { recapLoaded = false; loadRecap(); };
 $("#recapPost").onclick = async () => {
   const month = $("#recapMonth").value.trim();
