@@ -75,6 +75,11 @@
   .fresh .fwhen { color: #94a3b8; white-space: nowrap; font-variant-numeric: tabular-nums; }
   .fresh .fcad { color: #64748b; font-size: 11.5px; white-space: nowrap; min-width: 96px; text-align: right; }
   @media (max-width: 640px) { .fresh .fcad { display: none; } .fresh .flabel { white-space: normal; } }
+  .stlab { display: block; font-size: 12px; color: #94a3b8; font-weight: 600; }
+  .stinp { display: block; width: 100%; margin-top: 4px; padding: 8px 10px; border-radius: 8px; border: 1px solid #1e293b; background: #0b1120; color: #e2e8f0; font-size: 14px; box-sizing: border-box; }
+  .stpreset { padding: 5px 12px; border-radius: 7px; border: 1px solid rgba(255,255,255,.12); background: transparent; color: #94a3b8; cursor: pointer; font-size: 13px; }
+  .stpreset.on { border-color: rgba(167,139,250,.55); background: rgba(167,139,250,.16); color: #c4b5fd; }
+  .stnote { font-size: 11.5px; color: #64748b; line-height: 1.5; }
   .cityrecap { margin: 12px 0 4px; background: #0b0b18; border: 1px solid rgba(255,255,255,.08); border-radius: 12px; padding: 11px 14px; }
   .cityrecap h3 { margin: 0 0 8px; font-size: 13px; font-weight: 600; color: #cbd5e1; }
   .cityrecap .crblock { border-top: 1px solid rgba(255,255,255,.06); padding-top: 10px; margin-top: 10px; }
@@ -269,6 +274,7 @@
       <button id="tabDaily" class="tab active">🗓 SPX6900 · Daily posts</button>
       <button id="tabRecap" class="tab">📅 SPX6900 · Recap</button>
       <button id="tabCity" class="tab">🏙 SPX City</button>
+      <button id="tabStudio" class="tab">🎨 Card studio</button>
       <button id="tabAeon" class="tab">🌌 Project Aeon</button>
     </div>
   </header>
@@ -309,6 +315,45 @@
       </div>
       <div class="status" id="recapStatus">Open this tab to render the recap preview.</div>
       <div class="grid" id="recapGrid"></div>
+    </div>
+
+    <!-- Card studio tab — pick a metric, zoom to a window, add a title, download a branded card -->
+    <div id="studioView" style="display:none">
+      <div class="status">Pick a metric, zoom to a window, write a title &amp; subtitle → download a branded card in the house style. Then compose the X post yourself.</div>
+      <div style="display:flex;gap:18px;flex-wrap:wrap;margin-top:12px">
+        <div style="flex:1;min-width:300px;display:flex;flex-direction:column;gap:12px">
+          <label class="stlab">Metric<select id="stSrc" class="stinp"></select></label>
+          <div>
+            <div class="stlab">Window</div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;margin:4px 0 8px">
+              <button class="stpreset" data-days="30">30d</button>
+              <button class="stpreset" data-days="90">90d</button>
+              <button class="stpreset" data-days="180">6m</button>
+              <button class="stpreset" data-days="365">1y</button>
+              <button class="stpreset" data-days="730">2y</button>
+              <button class="stpreset" data-days="0">All</button>
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <label class="stlab" style="flex:1">From<input id="stFrom" class="stinp" type="date" /></label>
+              <label class="stlab" style="flex:1">To<input id="stTo" class="stinp" type="date" /></label>
+            </div>
+          </div>
+          <label class="stlab">Title<input id="stTitle" class="stinp" type="text" maxlength="90" placeholder="e.g. MVRV ran hot into the Jan top" /></label>
+          <label class="stlab">Subtitle<input id="stSub" class="stinp" type="text" maxlength="150" placeholder="one tight line of context" /></label>
+          <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:end">
+            <label class="stlab" style="flex:1">Shape<select id="stAR" class="stinp"><option value="landscape">Landscape 16:9</option><option value="square">Square 1:1</option><option value="portrait">Portrait 4:5</option></select></label>
+            <label class="stlab" style="display:flex;flex-direction:row;align-items:center;gap:6px;padding-bottom:8px"><input id="stLog" type="checkbox" style="width:auto" /> log scale</label>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:2px">
+            <button id="stDownload" class="primary">⬇ Download card</button>
+            <button id="stOpen">Open image ↗</button>
+          </div>
+          <div class="stnote">The image downloads to your machine. Attach it to an X post and write your own copy.</div>
+        </div>
+        <div style="flex:2;min-width:420px">
+          <img id="stPreview" alt="card preview" style="width:100%;border:1px solid #1e293b;border-radius:12px;background:#05050e;display:block" />
+        </div>
+      </div>
     </div>
 
     <!-- Project Aeon tab -->
@@ -971,15 +1016,69 @@ function showTab(which) {
   $("#dailyView").style.display = which === "daily" ? "block" : "none";
   $("#recapView").style.display = which === "recap" ? "block" : "none";
   $("#cityView").style.display = which === "city" ? "block" : "none";
+  $("#studioView").style.display = which === "studio" ? "block" : "none";
   $("#aeonView").style.display = which === "aeon" ? "block" : "none";
   $("#tabDaily").classList.toggle("active", which === "daily");
   $("#tabRecap").classList.toggle("active", which === "recap");
   $("#tabCity").classList.toggle("active", which === "city");
+  $("#tabStudio").classList.toggle("active", which === "studio");
   $("#tabAeon").classList.toggle("active", which === "aeon");
   if (which === "recap" && !recapLoaded) loadRecap();
   if (which === "city") { renderCityGrid(); loadCityRecap().then(renderCityRecap).catch(() => {}); }
+  if (which === "studio") studioInit();
   if (which === "aeon" && !aeonLoaded) loadAeon();
 }
+
+// ---- 🎨 Card studio — pick a metric, zoom to a window, add title/subtitle, download a house-style card ----
+// Sources mirror STUDIO in api/og.js (keep in sync). label + whether log-scale is offered by default.
+const STUDIO_SRC = [
+  ["price", "SPX price", true], ["mvrv", "MVRV", false], ["rprice", "Realized price", true],
+  ["sip", "Supply in profit %", false], ["holders", "Holders", false], ["conc", "Top-100 share %", false],
+  ["nupl", "NUPL", false], ["sopr", "SOPR", false], ["nrpl", "Net realized P/L", false],
+  ["liveliness", "Liveliness", false], ["age1y", "Held 1 year+ %", false], ["gini", "Gini (concentration)", false],
+];
+let studioReady = false;
+function studioInit() {
+  if (studioReady) return;
+  studioReady = true;
+  const sel = $("#stSrc");
+  sel.innerHTML = STUDIO_SRC.map(([id, label]) => `<option value="${id}">${label}</option>`).join("");
+  sel.onchange = () => { const def = STUDIO_SRC.find(s => s[0] === sel.value); $("#stLog").checked = !!(def && def[2]); studioRender(); };
+  $("#stLog").checked = true; // price default
+  ["stTitle", "stSub", "stFrom", "stTo", "stAR"].forEach(id => $("#" + id).addEventListener("input", studioDebounced));
+  $("#stLog").addEventListener("change", studioRender);
+  document.querySelectorAll(".stpreset").forEach(b => b.onclick = () => {
+    document.querySelectorAll(".stpreset").forEach(x => x.classList.remove("on")); b.classList.add("on");
+    const days = +b.dataset.days;
+    if (!days) { $("#stFrom").value = ""; $("#stTo").value = ""; }
+    else { const to = new Date(), from = new Date(Date.now() - days * 864e5); $("#stTo").value = to.toISOString().slice(0, 10); $("#stFrom").value = from.toISOString().slice(0, 10); }
+    studioRender();
+  });
+  document.querySelector('.stpreset[data-days="365"]').classList.add("on");
+  const to = new Date(), from = new Date(Date.now() - 365 * 864e5);
+  $("#stTo").value = to.toISOString().slice(0, 10); $("#stFrom").value = from.toISOString().slice(0, 10);
+  studioRender();
+}
+function studioUrl() {
+  const p = new URLSearchParams({ studio: $("#stSrc").value, ar: $("#stAR").value, log: $("#stLog").checked ? "1" : "0" });
+  const t = $("#stTitle").value.trim(), s = $("#stSub").value.trim();
+  if (t) p.set("title", t); if (s) p.set("sub", s);
+  if ($("#stFrom").value) p.set("from", Date.parse($("#stFrom").value));
+  if ($("#stTo").value) p.set("to", Date.parse($("#stTo").value) + 864e5 - 1); // include the whole to-day
+  return "/api/og?" + p.toString();
+}
+function studioRender() { $("#stPreview").src = studioUrl() + "&cb=" + Date.now(); }
+let studioTmr; function studioDebounced() { clearTimeout(studioTmr); studioTmr = setTimeout(studioRender, 400); }
+$("#stDownload").onclick = async () => {
+  const btn = $("#stDownload"); btn.textContent = "…rendering";
+  try {
+    const r = await fetch(studioUrl(), { cache: "no-store" }); const blob = await r.blob();
+    const a = document.createElement("a"); a.href = URL.createObjectURL(blob);
+    a.download = `spx-${$("#stSrc").value}-${Date.now()}.png`; a.click(); URL.revokeObjectURL(a.href);
+    btn.textContent = "✓ Downloaded"; setTimeout(() => btn.textContent = "⬇ Download card", 1500);
+  } catch { btn.textContent = "⬇ Download card"; alert("Render failed — try again."); }
+};
+$("#stOpen").onclick = () => window.open(studioUrl(), "_blank", "noopener");
 
 // ---- Project Aeon tab — read-only NFT analytics overview (no posting bot yet) ----
 const SITE = "https://spx6900rainbow.xyz";
@@ -1137,6 +1236,7 @@ async function loadRecap() {
 $("#tabDaily").onclick = () => showTab("daily");
 $("#tabRecap").onclick = () => showTab("recap");
 $("#tabCity").onclick = () => showTab("city");
+$("#tabStudio").onclick = () => showTab("studio");
 $("#tabAeon").onclick = () => showTab("aeon");
 $("#aeonRefresh").onclick = () => { aeonLoaded = false; loadAeon(); };
 $("#cityRefresh").onclick = () => { refresh().then(() => { renderCityGrid(); loadCityRecap().then(renderCityRecap).catch(() => {}); }); };
