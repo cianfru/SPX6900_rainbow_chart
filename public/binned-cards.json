@@ -3,5 +3,6 @@
   "holdergrowth": true,
   "chainrace": true,
   "spxbitcoin": true,
-  "spxcohort": true
+  "spxcohort": true,
+  "cexvenues": true
 }
