@@ -1,11 +1,14 @@
-// Valuation composite v2 — INDEPENDENT AXES, de-duplicated, cross-asset anchored.
+// Valuation composite v3 — INDEPENDENT AXES, de-duplicated, cross-asset anchored, now with a
+// behaviour dimension.
 //
-// WHY v2 (measured, published on the Methods page): the old flat basket weighted six lenses,
-// but rainbow / MVRV / supply-in-profit are 0.69–0.85 correlated (all "price vs a cost/value
-// anchor"), and SOPR is 0.85 with MVRV — so the "6-lens" number was really ~one factor counted
-// several times. v2 groups correlated lenses into AXES, combines WITHIN each axis, then weights
-// ACROSS axes, so a signal votes once. The only genuinely independent lens measured so far is
-// distribution/relative — trend overlaps valuation ~0.5–0.8, kept as its own (faster) axis.
+// WHY v3 (measured, published on the Methods page): the old lenses were ALL "where does price SIT"
+// — rainbow / MVRV / supply-in-profit are 0.69–0.85 correlated (one factor), and Pi Cycle was a
+// BORROWED Bitcoin halving indicator on a non-halving asset. v3 drops both weak/redundant lenses
+// (Pi Cycle, supply-in-profit) and adds the dimension they all missed — what holders are DOING:
+//   • Exchange flow (organic netflow) — measured r ≈ 0.03 vs the old composite: genuinely orthogonal.
+//   • Conviction (liveliness) — r ≈ 0.31: are long-held coins waking up or sitting tight?
+// So the six lenses now span six DISTINCT dimensions: valuation (rainbow + MVRV), relative, flow,
+// conviction, sentiment — each votes once. NUPL/SOPR stay out (0.83 / 0.60 = MVRV in disguise).
 //
 // NORMALISATION: each lens is oriented HIGHER = MORE EXPENSIVE and percentile-ranked over its own
 // history. For the UNITLESS lenses (MVRV, Pi Cycle) the percentile is BLENDED 50/50 with its rank
@@ -22,16 +25,17 @@ const ANCHOR = 0.5; // cross-asset blend: 0 = SPX-only, 1 = BTC-only; 0.5 = half
 
 // ── The axes. weight sums to 100 across axes; members are averaged WITHIN an axis. ───────────
 export const AXES = [
-  { key: "valuation", label: "Valuation", weight: 45, blurb: "Price vs the crowd's cost basis and the power-law fair value.",
+  { key: "valuation", label: "Valuation", weight: 40, blurb: "Price vs the power-law fair value and the crowd's cost basis.",
     members: [
       { key: "rainbow", label: "Rainbow power-law" },
       { key: "mvrv", label: "MVRV · cost basis", crossAsset: "mvrv" },
-      { key: "sip", label: "Supply in profit" },
     ] },
-  { key: "trend", label: "Trend", weight: 25, blurb: "How stretched price is from its own trend — a faster horizon.",
-    members: [{ key: "picycle", label: "Pi Cycle trend", crossAsset: "picycle" }] },
-  { key: "relative", label: "vs Alt market", weight: 20, blurb: "SPX priced against the broader altcoin market.",
+  { key: "relative", label: "vs Alt market", weight: 18, blurb: "SPX priced against the broader altcoin market.",
     members: [{ key: "alt", label: "vs Alt market" }] },
+  { key: "flow", label: "Exchange flow", weight: 18, blurb: "Coins moving onto exchanges (distribution) vs into self-custody (accumulation).",
+    members: [{ key: "netflow", label: "Exchange netflow" }] },
+  { key: "conviction", label: "Conviction", weight: 14, blurb: "Are long-held coins waking up (distribution) or sitting tight (holding)?",
+    members: [{ key: "liveliness", label: "Liveliness" }] },
   { key: "sentiment", label: "Sentiment", weight: 10, blurb: "Crypto-wide Fear & Greed — market mood, not SPX-specific.",
     members: [{ key: "fng", label: "Fear & Greed" }] },
 ];
@@ -70,14 +74,32 @@ function btcRefs(s) {
   return refs;
 }
 
+// Exchange flow lens: rolling 30-day ORGANIC net onto exchanges (cex-flow.json col 4 = organic net,
+// listings/onboarding stripped). Positive = net distribution TO exchanges = sell-side = "expensive".
+// Falls back to the 30-day change in raw CEX balance (onchain) if cex-flow isn't loaded (noisier).
+function netflowSeries(s) {
+  const W = 30;
+  const days = s.cexFlow?.days;
+  if (Array.isArray(days) && days.length > W) {
+    const org = days.map(d => ({ ts: Date.parse(d[0]), v: Number(d[4]) || 0 })).filter(p => Number.isFinite(p.ts)).sort((a, b) => a.ts - b.ts);
+    const out = [];
+    for (let i = 0; i < org.length; i++) { let sum = 0; for (let j = Math.max(0, i - W + 1); j <= i; j++) sum += org[j].v; out.push({ ts: org[i].ts, v: sum }); }
+    return out;
+  }
+  const oc = (s.onchain || []).filter(r => Number.isFinite(r.cexBal)).map(r => ({ ts: Date.parse(r.d), v: r.cexBal })).sort((a, b) => a.ts - b.ts);
+  const out = [];
+  for (let i = W; i < oc.length; i++) out.push({ ts: oc[i].ts, v: oc[i].v - oc[i - W].v });
+  return out;
+}
+
 // Assemble each lens as [{ts, v}] oriented HIGHER = MORE EXPENSIVE, straight from stats.
 function lensSeries(s) {
   return {
     rainbow: (s.series?.risk || []).map(([ts, v]) => ({ ts, v })),
     mvrv: (s.mvrvSeries || []).filter(r => r.mvrv > 0).map(r => ({ ts: r.ts, v: r.mvrv })),
-    sip: (s.onchain || []).map(r => ({ ts: Date.parse(r.d), v: r.sip })),
-    picycle: ((M.piCycleRatio(s.drawn || []) || {}).rows || []).map(r => ({ ts: r.ts, v: r.ratio })),
     alt: (((buildAltRainbow(s.history || []) || {}).series) || []).map(r => ({ ts: r.ts, v: r.z })),
+    netflow: netflowSeries(s),                            // higher = net distribution to exchanges = expensive
+    liveliness: (s.onchain || []).filter(r => Number.isFinite(r.liveliness)).map(r => ({ ts: Date.parse(r.d), v: r.liveliness })), // rising = old coins waking up = distribution = expensive
     fng: (s.series?.fng || []).map(([ts, v]) => ({ ts, v })),
   };
 }

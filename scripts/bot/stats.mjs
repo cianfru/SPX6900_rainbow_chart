@@ -205,6 +205,16 @@ function loadExitFlow() {
   return null;
 }
 
+// public/cex-flow.json — days: [date, cexBal, lpBal, custBal, cexOrganicNet, cexOnboardNet, price].
+// The composite reads the ORGANIC net (col 4) as its flow lens (onboarding/listing fills stripped).
+function loadCexFlow() {
+  try {
+    const o = JSON.parse(readFileSync(new URL("../../public/cex-flow.json", import.meta.url), "utf8"));
+    if (Array.isArray(o?.days) && o.days.length) return o;
+  } catch { /* bundle/live absent */ }
+  return null;
+}
+
 function loadSmartMoney() {
   try {
     const o = JSON.parse(readFileSync(new URL("../../public/smart-money.json", import.meta.url), "utf8"));
@@ -517,6 +527,7 @@ export function computeStats(price, dateStr = new Date().toISOString().slice(0, 
     cohorts: loadCohortSurvival(), // wallet survival by arrival era (from the city time-machine)
     exitFlow: loadExitFlow(), // daily/weekly departures split by profit/loss (who's selling, at what price)
     smartMoney: loadSmartMoney(), // live cohort of proven top-timers — aggregate holdings + net-flow
+    cexFlow: loadCexFlow(), // exchange balances + ORGANIC net flow (listings stripped) — the composite's flow lens
     altHistory: loadAltHistory(), // DOGE/PEPE/SHIB age-indexed history for the memecoin age cards
     series: {
       price: RAW.map(r => [Date.parse(r.date), r.price]),

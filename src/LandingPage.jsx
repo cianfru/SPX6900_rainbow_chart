@@ -17,7 +17,7 @@ const fMonYr = (d) => (d ? new Date(d).toLocaleDateString("en-US", { month: "sho
 const zoneOf = (v) => ZONES.find(z => v < z.max) || ZONES.at(-1);
 const LENS_LABEL = Object.fromEntries(INDICATORS.map(i => [i.key, i.label.replace(/ ·.*/, "")]));
 
-// ── the "axes, one scale" strip plot — the FOUR de-duplicated axes we agreed on ──────────────
+// ── the "axes, one scale" strip plot — the de-duplicated composite axes (valuation/relative/flow/conviction/sentiment) ──
 function StripPlot({ axes, byAxis, composite, isMobile }) {
   const rows = (axes || []).map(a => ({ key: a.key, label: a.label, weight: a.weight, pct: byAxis?.[a.key] })).filter(r => r.pct != null);
   const comp = Math.round(composite * 100);
@@ -159,7 +159,7 @@ export default function LandingPage({ isMobile, priceData }) {
         {/* HERO — composite headline (left) + the price CARD (right) */}
         <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1.35fr .8fr", gap: isMobile ? 28 : 44, padding: isMobile ? "28px 0 22px" : "44px 0 30px", alignItems: "start" }}>
           <div>
-            <div style={kicker}>Valuation composite · four axes</div>
+            <div style={kicker}>Valuation composite · {val?.axes?.length ?? 5} axes</div>
             <h1 style={{ fontSize: isMobile ? 36 : 58, lineHeight: 0.98, letterSpacing: "-0.035em", fontWeight: 800, margin: "14px 0 16px", textWrap: "balance" }}>
               {heads ? <>{heads.z.label}.<br /><span style={{ color: heads.z.color }}>{heads.line2}.</span></> : <>Loading the composite<span style={{ color: "#25e07d" }}>…</span></>}
             </h1>
@@ -192,9 +192,9 @@ export default function LandingPage({ isMobile, priceData }) {
           </div>
         </div>
 
-        {/* FOUR AXES — the agreed de-duplicated composite, one scale */}
+        {/* AXES — the de-duplicated composite, one scale */}
         <section style={{ borderTop: "1px solid #1b1f29", paddingTop: 26 }}>
-          <div style={{ ...kicker, marginBottom: 4 }}>Four independent axes, one scale</div>
+          <div style={{ ...kicker, marginBottom: 4 }}>{val?.axes?.length ?? 5} independent axes, one scale</div>
           <div style={{ fontFamily: MONO, fontSize: 11, color: "#5b6577", marginBottom: 18 }}>
             Correlated lenses combined so each signal votes once — Valuation = rainbow · MVRV · supply-in-profit · anchored to Bitcoin's decade
           </div>

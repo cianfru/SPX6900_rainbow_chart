@@ -92,12 +92,15 @@ export default function MethodsPage({ m, isMobile }) {
 
       <Head>The valuation composite</Head>
       <P>
-        The single reading on the home page is not a new metric. It groups the measures below into four
-        <Strong> independent axes</Strong> — because several of them (rainbow, MVRV, supply-in-profit) are
-        0.7–0.85 correlated, so left flat they'd count one signal three times. Correlated lenses are combined
-        so each axis votes once; each is ranked against its <Strong>own history</Strong> (0 = cheapest it's
-        been, 100 = dearest), with the unitless ones also anchored against Bitcoin's decade. The axis weights
-        are the only editorial choice, so they are published:
+        The single reading on the home page is not a new metric. It groups the measures below into five
+        <Strong> independent axes</Strong>. The valuation lenses (rainbow, MVRV, supply-in-profit) are 0.7–0.85
+        correlated — really one signal — so rather than count it three times, the composite keeps rainbow + MVRV
+        as one Valuation axis and drops supply-in-profit; it also drops Pi Cycle, a borrowed Bitcoin halving
+        indicator that doesn&apos;t transfer to a non-halving asset. In their place it adds the dimension those
+        price lenses all miss — <Strong>holder behaviour</Strong>: exchange flow (measured r ≈ 0.03 against the
+        rest — genuinely orthogonal) and conviction (liveliness). Each axis is ranked against its
+        <Strong> own history</Strong> (0 = cheapest it&apos;s been, 100 = dearest), with the unitless ones also
+        anchored against Bitcoin&apos;s decade. The axis weights are the only editorial choice, so they are published:
       </P>
       {AXES.map(a => (
         <Row key={a.key} name={a.label} note={a.members.map(m => m.label).join(" · ")} right={`${a.weight}%`} w={140} />

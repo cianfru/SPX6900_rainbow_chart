@@ -1500,7 +1500,7 @@ Conviction, on-chain — not a signal.`,
     return {
       id: "valband",
       text: ct`📊 SPX6900 valuation composite: ${pct}% — ${z.label.toLowerCase()} vs its own history.
-Four independent axes — valuation, trend, alts, sentiment — correlated lenses grouped so each votes once, MVRV anchored to Bitcoin's decade.
+Five independent axes — valuation, relative, exchange flow, conviction, sentiment — grouped so each votes once; MVRV anchored to Bitcoin's decade.
 Where it sits across everything, not a timing call.`,
       card: { type: "valband" },
     };

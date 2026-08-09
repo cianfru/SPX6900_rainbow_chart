@@ -63,7 +63,7 @@ export default function ValuationComposite({ isMobile, preview = false }) {
   return (
     <div style={{ maxWidth: MAX_W, margin: "0 auto" }}>
       <Explain q="Is SPX6900 cheap or expensive right now, across everything we track?" accent="#a78bfa">
-        The <strong style={{ color: "#e2e8f0" }}>Valuation Composite</strong> combines four <em>independent</em> axes — Valuation, Trend, Relative and Sentiment — into one number.
+        The <strong style={{ color: "#e2e8f0" }}>Valuation Composite</strong> combines five <em>independent</em> axes — Valuation, Relative, Flow, Conviction and Sentiment — into one number.
         Correlated lenses are grouped so each signal votes once (no double-counting); the unitless ones are also anchored against Bitcoin's decade. Each is ranked so 0 = the cheapest it's been, 100 = the most expensive.
         <strong style={{ color: "#4ade80" }}> Low / green</strong> = undervalued; <strong style={{ color: "#f87171" }}>high / red</strong> = overvalued. A valuation position over time — not a buy signal.
       </Explain>
@@ -129,7 +129,7 @@ export default function ValuationComposite({ isMobile, preview = false }) {
       </div>
 
       <div className="chart-caption" style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 16, lineHeight: 1.65, maxWidth: 900, marginInline: "auto" }}>
-        Weighted percentile of expensiveness across four independent axes — Valuation (rainbow, MVRV, supply-in-profit, combined so they vote once), Trend (Pi Cycle), Relative (vs the alt market) and Sentiment (Fear &amp; Greed). Unitless lenses are anchored against Bitcoin's decade. Fully reproducible. A valuation position over time, not a signal. Drag to zoom. Not financial advice.
+        Weighted percentile of expensiveness across five independent axes — Valuation (rainbow + MVRV, combined so they vote once), Relative (vs the alt market), Flow (exchange netflow — coins onto exchanges = distribution), Conviction (liveliness — are long-held coins waking up?) and Sentiment (Fear &amp; Greed). Unitless lenses are anchored against Bitcoin's decade. Fully reproducible. A valuation position over time, not a signal. Drag to zoom. Not financial advice.
       </div>
     </div>
   );
