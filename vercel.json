@@ -1,7 +1,7 @@
 {
   "functions": {
     "api/og.js": {
-      "includeFiles": "{scripts/bot/**,public/{history,onchain,whales,chain-wallets,cex-flow,freefloat-peers,rotation-excludes,cohort-survival,exit-flow,smart-money,city-history,aeon-*}.json}"
+      "includeFiles": "{scripts/bot/**,public/{history,onchain,whales,chain-wallets,cex-flow,freefloat-peers,rotation-excludes,cohort-survival,exit-flow,smart-money,city-history,valuation,aeon-*}.json}"
     },
     "api/recap.js": {
       "includeFiles": "{scripts/bot/**,public/{history,onchain,whales,chain-wallets,cex-flow,freefloat-peers,rotation-excludes,cohort-survival,exit-flow,smart-money}.json}"

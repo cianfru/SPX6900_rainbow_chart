@@ -25,22 +25,43 @@ import { renderAeonTradersCard, renderAeonValuationCard, renderAeonTraitsCard } 
 // Project Aeon cards render from the committed aeon-*.json (not stats), all at 1:1. ?aeon=<id>.
 const readAeon = p => { try { return JSON.parse(readFileSync(join(process.cwd(), p), "utf8")); } catch { return null; } };
 
-// Card Studio sources — each pulls a time-series from onchain.json (the same data the charts plot).
-// The studio (control panel) crops to a window + adds a custom title/subtitle. Add a source = one row.
+// Card Studio sources — each pulls a single time-series (the same data a chart plots), from onchain.json
+// unless `file` says otherwise. The studio (control panel) crops to a window + adds a custom title/
+// subtitle. Add a source = one row. Multi-line / stacked / categorical charts can't be a single line.
 const D = r => Date.parse(r.d);
+const sumN = (a, i, n) => { let s = 0; for (let k = i; k < i + n; k++) s += (a[k] || 0); return s; };
+export const STUDIO_FILE = { oc: "public/onchain.json", cw: "public/chain-wallets.json", ch: "public/city-history.json", val: "public/valuation.json", hist: "public/history.json" };
 export const STUDIO = {
-  price:      { label: "SPX price",            unit: "$", color: "#a78bfa", log: true, get: oc => oc.filter(r => r.spot > 0).map(r => ({ ts: D(r), v: r.spot })) },
-  mvrv:       { label: "MVRV",                 unit: "×", color: "#38bdf8", get: oc => oc.filter(r => r.mvrv > 0).map(r => ({ ts: D(r), v: r.mvrv })) },
-  rprice:     { label: "Realized price",       unit: "$", color: "#f59e0b", log: true, get: oc => oc.filter(r => r.rp > 0).map(r => ({ ts: D(r), v: r.rp })) },
-  sip:        { label: "Supply in profit",     unit: "%", color: "#4ade80", get: oc => oc.filter(r => Number.isFinite(r.sip)).map(r => ({ ts: D(r), v: r.sip })) },
-  holders:    { label: "Holders",              unit: "",  color: "#22d3ee", get: oc => oc.filter(r => r.holders > 0).map(r => ({ ts: D(r), v: r.holders })) },
-  conc:       { label: "Top-100 share",        unit: "%", color: "#fb7185", get: oc => oc.filter(r => r.top100 > 0).map(r => ({ ts: D(r), v: r.top100 })) },
-  nupl:       { label: "NUPL",                 unit: "",  color: "#818cf8", get: oc => oc.filter(r => r.mvrv > 0).map(r => ({ ts: D(r), v: 1 - 1 / r.mvrv })) },
-  sopr:       { label: "SOPR",                 unit: "",  color: "#34d399", get: oc => oc.filter(r => Number.isFinite(r.sopr) && r.sopr > 0).map(r => ({ ts: D(r), v: r.sopr })) },
-  nrpl:       { label: "Net realized P/L",     unit: "$", color: "#f472b6", get: oc => oc.filter(r => Number.isFinite(r.nrpl)).map(r => ({ ts: D(r), v: r.nrpl })) },
-  liveliness: { label: "Liveliness",           unit: "",  color: "#a3e635", get: oc => oc.filter(r => Number.isFinite(r.liveliness)).map(r => ({ ts: D(r), v: r.liveliness })) },
-  age1y:      { label: "Held 1 year+",         unit: "%", color: "#818cf8", get: oc => oc.filter(r => Array.isArray(r.age)).map(r => ({ ts: D(r), v: r.age[4] })) },
-  gini:       { label: "Gini (concentration)", unit: "",  color: "#94a3b8", get: oc => oc.filter(r => r.gini > 0).map(r => ({ ts: D(r), v: r.gini })) },
+  // ── Price & valuation ──
+  price:      { file: "oc", label: "SPX price",            unit: "$", color: "#a78bfa", log: true, get: oc => oc.filter(r => r.spot > 0).map(r => ({ ts: D(r), v: r.spot })) },
+  rprice:     { file: "oc", label: "Realized price",       unit: "$", color: "#f59e0b", log: true, get: oc => oc.filter(r => r.rp > 0).map(r => ({ ts: D(r), v: r.rp })) },
+  mvrv:       { file: "oc", label: "MVRV",                 unit: "×", color: "#38bdf8", get: oc => oc.filter(r => r.mvrv > 0).map(r => ({ ts: D(r), v: r.mvrv })) },
+  nupl:       { file: "oc", label: "NUPL",                 unit: "",  color: "#818cf8", get: oc => oc.filter(r => r.mvrv > 0).map(r => ({ ts: D(r), v: 1 - 1 / r.mvrv })) },
+  valuation:  { file: "val", label: "Valuation composite", unit: "%", color: "#c084fc", get: j => (j.series || []).map(s => ({ ts: s[0], v: s[1] * 100 })) },
+  // ── Supply & holders ──
+  sip:        { file: "oc", label: "Supply in profit",     unit: "%", color: "#4ade80", get: oc => oc.filter(r => Number.isFinite(r.sip)).map(r => ({ ts: D(r), v: r.sip })) },
+  holders:    { file: "oc", label: "Holders",              unit: "",  color: "#22d3ee", get: oc => oc.filter(r => r.holders > 0).map(r => ({ ts: D(r), v: r.holders })) },
+  conc:       { file: "oc", label: "Top-100 share",        unit: "%", color: "#fb7185", get: oc => oc.filter(r => r.top100 > 0).map(r => ({ ts: D(r), v: r.top100 })) },
+  top10:      { file: "oc", label: "Top-10 share",         unit: "%", color: "#f87171", get: oc => oc.filter(r => r.top10 > 0).map(r => ({ ts: D(r), v: r.top10 })) },
+  gini:       { file: "oc", label: "Gini (concentration)", unit: "",  color: "#94a3b8", get: oc => oc.filter(r => r.gini > 0).map(r => ({ ts: D(r), v: r.gini })) },
+  lth:        { file: "oc", label: "Long-term holder supply", unit: "%", color: "#a78bfa", get: oc => oc.filter(r => Number.isFinite(r.lthProfit)).map(r => ({ ts: D(r), v: (r.lthProfit || 0) + (r.lthLoss || 0) })) },
+  age1y:      { file: "oc", label: "Held 1 year+",         unit: "%", color: "#818cf8", get: oc => oc.filter(r => Array.isArray(r.age)).map(r => ({ ts: D(r), v: r.age[4] })) },
+  agefresh:   { file: "oc", label: "Held < 1 month",       unit: "%", color: "#fb923c", get: oc => oc.filter(r => Array.isArray(r.age)).map(r => ({ ts: D(r), v: r.age[0] })) },
+  // ── Holder behaviour ──
+  sopr:       { file: "oc", label: "SOPR",                 unit: "",  color: "#34d399", get: oc => oc.filter(r => Number.isFinite(r.sopr) && r.sopr > 0).map(r => ({ ts: D(r), v: r.sopr })) },
+  nrpl:       { file: "oc", label: "Net realized P/L",     unit: "$", color: "#f472b6", get: oc => oc.filter(r => Number.isFinite(r.nrpl)).map(r => ({ ts: D(r), v: r.nrpl })) },
+  liveliness: { file: "oc", label: "Liveliness",           unit: "",  color: "#a3e635", get: oc => oc.filter(r => Number.isFinite(r.liveliness)).map(r => ({ ts: D(r), v: r.liveliness })) },
+  dormancy:   { file: "oc", label: "Dormancy",             unit: "",  color: "#fbbf24", get: oc => oc.filter(r => Number.isFinite(r.dormancy) && r.dormancy > 0).map(r => ({ ts: D(r), v: r.dormancy })) },
+  cdd:        { file: "oc", label: "Coin-days destroyed",  unit: "",  color: "#fb7185", get: oc => oc.filter(r => Number.isFinite(r.cdd)).map(r => ({ ts: D(r), v: r.cdd })) },
+  // ── Exchanges & chains ──
+  cexsupply:  { file: "oc", label: "SPX on exchanges",     unit: "",  color: "#fbbf24", get: oc => oc.filter(r => r.cexBal > 0).map(r => ({ ts: D(r), v: r.cexBal })) },
+  lpsupply:   { file: "oc", label: "SPX in LP",            unit: "",  color: "#f472b6", get: oc => oc.filter(r => r.lpBal > 0).map(r => ({ ts: D(r), v: r.lpBal })) },
+  chainwallets: { file: "cw", label: "Wallets (all chains)", unit: "", color: "#22d3ee", get: j => j.map(r => ({ ts: Date.parse(r.d), v: (r.eth || 0) + (r.base || 0) + (r.sol || 0) })) },
+  // ── SPX City ──
+  citizens:   { file: "ch", label: "City citizens",        unit: "",  color: "#7dd3fc", get: j => (j.rows || []).map(r => ({ ts: Date.parse(r[0]), v: sumN(r, 2, 6) })) },
+  citytvl:    { file: "ch", label: "City TVL",             unit: "$", color: "#a3e635", get: j => (j.rows || []).map(r => ({ ts: Date.parse(r[0]), v: sumN(r, 8, 6) })) },
+  // ── Sentiment ──
+  fng:        { file: "hist", label: "Fear & Greed",       unit: "",  color: "#f59e0b", get: j => j.filter(r => Number.isFinite(r.fng)).map(r => ({ ts: Date.parse(r.d), v: r.fng })) },
 };
 const SQ = { W: 1080, H: 1080 };
 const AEON_CARD = {
@@ -102,9 +123,9 @@ export default async function handler(req, res) {
   const studioSrc = params.get("studio");
   if (studioSrc && STUDIO[studioSrc]) {
     try {
-      const oc = readAeon("public/onchain.json") || [];
       const src = STUDIO[studioSrc];
-      let pts = src.get(oc).filter(p => Number.isFinite(p.ts) && Number.isFinite(p.v)).sort((a, b) => a.ts - b.ts);
+      const data = readAeon(STUDIO_FILE[src.file] || STUDIO_FILE.oc) || [];
+      let pts = src.get(data).filter(p => Number.isFinite(p.ts) && Number.isFinite(p.v)).sort((a, b) => a.ts - b.ts);
       const from = Number(params.get("from")) || (pts[0]?.ts ?? 0), to = Number(params.get("to")) || (pts.at(-1)?.ts ?? 0);
       pts = pts.filter(p => p.ts >= from && p.ts <= to);
       const dims = dimsForAR(params.get("ar")) || { W: 1200, H: 630 };

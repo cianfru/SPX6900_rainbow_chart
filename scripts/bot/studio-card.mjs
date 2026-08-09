@@ -86,7 +86,6 @@ export function studioCardSvg(opts = {}) {
 ${brandStripe(H)}
 <text x="60" y="66" fill="#f8fafc" font-size="41" font-weight="800" font-family="sans-serif" letter-spacing="0.5">${esc(title || label)}</text>
 ${subtitle ? `<text x="60" y="110" fill="#a5b4c8" font-size="23" font-family="sans-serif">${esc(subtitle)}</text>` : ""}
-${label ? `<text x="${W - mR}" y="66" fill="${color}" font-size="19" font-weight="700" text-anchor="end" font-family="sans-serif">${esc(label)}</text>` : ""}
 ${grid}${xlab}
 <polygon points="${area}" fill="url(#stfill)"/>
 <polyline points="${line}" fill="none" stroke="${color}" stroke-width="7" stroke-opacity="0.28" filter="url(#stglow)"/>
