@@ -25,6 +25,7 @@ on:
       - "public/card-ar.json"
       - "public/recap-pending.json"
       - "public/rotation-excludes.json"
+      - "public/binned-cards.json"
       - "public/signals.json"
       - "public/aeon-sale-state.json"
       - "public/aeon-listing-alert-state.json"

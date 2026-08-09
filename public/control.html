@@ -165,6 +165,11 @@
   .card.queued { border-color: #f59e0b; box-shadow: 0 0 0 1px #f59e0b inset; }
   .card.excluded { border-color: #475569; opacity: .72; }
   .card.excluded img { filter: grayscale(.5) brightness(.82); }
+  .card.binned { border-color: #7f1d1d; opacity: .6; }
+  .card.binned img { filter: grayscale(.7) brightness(.7); }
+  .binbar { margin: 16px 0 8px; font-size: 13px; color: #94a3b8; display: flex; align-items: center; gap: 10px; }
+  .binbar:empty { display: none; }
+  .binbar button { padding: 4px 12px; border-radius: 7px; border: 1px solid rgba(255,255,255,.14); background: transparent; color: #cbd5e1; cursor: pointer; font-size: 13px; }
   /* object-fit: contain so a card whose true AR differs (e.g. the static Kraken
      promo) is letterboxed, never stretched. Landscape cards render at 3:2. */
   .card img { width: 100%; display: block; background: #05050e; aspect-ratio: 1200/800; object-fit: contain; }
@@ -303,6 +308,8 @@
         <div class="asugg" id="asugg"></div>
       </div>
       <div class="grid" id="grid"></div>
+      <div class="binbar" id="binnedBar"></div>
+      <div class="grid" id="binnedGrid" style="display:none"></div>
     </div>
 
     <!-- Monthly recap tab -->
@@ -411,6 +418,8 @@ let SIGNALS = null;                // { date, signals:[…] } from the daily ano
 let DRAFT_TEXT = {};               // per-signal footerized LLM draft, for the 📋 Copy button
 let AR_OVERRIDES = {};             // owner-picked aspect ratio per card: {id: presetKey}
 let EXCLUDES = {};                 // cards held out of the auto rotation: {id: true}
+let BINNED = {};                   // cards hidden from the panel entirely: {id: true}
+let binShown = false;              // whether the "binned" section is expanded
 // AR presets (must mirror scripts/bot/card-format.mjs AR_PRESETS)
 const AR_PRESETS = { landscape: [1200, 800], wide: [1200, 628], square: [1200, 1200], portrait: [1080, 1350] };
 const AR_LABEL = { landscape: "3:2", wide: "1.91:1", square: "1:1", portrait: "4:5" };
@@ -456,10 +465,11 @@ $("#lock").onclick = lock;
 async function loadState() {
   const raw = p => fetch(`/api/control?f=${encodeURIComponent(p)}&t=${Date.now()}`, { cache: "no-store" })
     .then(r => r.ok ? r.json() : null).catch(() => null);
-  const [q, st, ov, arov, sg, ex] = await Promise.all([raw(QUEUE_PATH), raw(STATE_PATH), raw("public/post-copy.json"), raw("public/card-ar.json"), raw("public/signals.json"), raw("public/rotation-excludes.json")]);
+  const [q, st, ov, arov, sg, ex, bn] = await Promise.all([raw(QUEUE_PATH), raw(STATE_PATH), raw("public/post-copy.json"), raw("public/card-ar.json"), raw("public/signals.json"), raw("public/rotation-excludes.json"), raw("public/binned-cards.json")]);
   OVERRIDES = ov && typeof ov === "object" ? ov : {};
   AR_OVERRIDES = arov && typeof arov === "object" ? arov : {};
   EXCLUDES = Array.isArray(ex) ? Object.fromEntries(ex.map(k => [k, true])) : (ex && typeof ex === "object" ? ex : {});
+  BINNED = Array.isArray(bn) ? Object.fromEntries(bn.map(k => [k, true])) : (bn && typeof bn === "object" ? bn : {});
   SIGNALS = sg && typeof sg === "object" ? sg : null;
   QUEUED = q && q.id ? q.id : null;
   const today = new Date().toISOString().slice(0, 10);
@@ -620,10 +630,10 @@ function renderSchedule(meta) {
 function card(id) {
   const isNext = id === NEXT, isQ = id === QUEUED, isVid = MEDIA[id] === "video";
   const isPortrait = ORIENT[id] === "portrait";
-  const isExcl = !!EXCLUDES[id];
+  const isExcl = !!EXCLUDES[id], isBin = !!BINNED[id];
   const el = document.createElement("div");
   el.id = "card-" + id; // anchor target so the rotation chips can jump straight here
-  el.className = "card" + (isExcl ? " excluded" : "") + (isQ ? " queued" : isNext ? " next" : "");
+  el.className = "card" + (isBin ? " binned" : isExcl ? " excluded" : "") + (isQ ? " queued" : isNext ? " next" : "");
   const mediaBadge = isVid ? '<span class="badge video">🎥 video</span>' : '<span class="badge image">🖼 image</span>';
   const orientBadge = isPortrait
     ? '<span class="badge portrait">📱 4:5</span>'
@@ -654,11 +664,12 @@ function card(id) {
       <span class="id">${id}</span>
       ${mediaBadge}
       ${canAR ? `<span class="badge landscape">📐 ${AR_LABEL[curAR]}${AR_OVERRIDES[id] ? "" : " ·default"}</span>` : orientBadge}
-      ${isExcl ? '<span class="badge excluded">⊘ not in rotation</span>' : isQ ? '<span class="badge queued">queued</span>' : isNext ? '<span class="badge next">next auto</span>' : ""}
+      ${isBin ? '<span class="badge excluded">🗑 binned</span>' : isExcl ? '<span class="badge excluded">⊘ not in rotation</span>' : isQ ? '<span class="badge queued">queued</span>' : isNext ? '<span class="badge next">next auto</span>' : ""}
       ${EDITABLE[id] ? `<span class="badge edit" style="background:rgba(190,242,100,.16);color:#bef264">${OVERRIDES[id] ? "edited" : "editable"}</span>` : ""}
       <span class="actions">
         ${EDITABLE[id] ? `<button data-edit="${id}">✎ Edit text</button>` : ""}
         <button data-excl="${id}" title="${isExcl ? "Add back to the daily auto-rotation" : "Keep visible here but hold out of the daily auto-rotation"}">${isExcl ? "↺ Add to rotation" : "⊘ Exclude"}</button>
+        <button data-bin="${id}" title="${isBin ? "Restore this card to the panel" : "Hide this card from the panel (and stop it posting)"}">${isBin ? "♻ Restore" : "🗑 Bin"}</button>
         <button data-q="${id}">Queue</button>
         <button class="primary" data-now="${id}">Post now</button>
       </span>
@@ -673,14 +684,39 @@ function card(id) {
 const CITY_CARDS = ["citygrowth", "citychurn", "cityskyline", "citypercap", "cityvintage"];
 function renderGrid() {
   const g = $("#grid"); g.innerHTML = "";
-  IDS.filter(id => !CITY_CARDS.includes(id)).forEach(id => g.appendChild(card(id)));
+  IDS.filter(id => !CITY_CARDS.includes(id) && !BINNED[id]).forEach(id => g.appendChild(card(id)));
+  renderBinned();
 }
 function renderCityGrid() {
   const g = $("#cityGrid"); if (!g) return;
   g.innerHTML = "";
-  const ids = CITY_CARDS.filter(id => IDS.includes(id));
+  const ids = CITY_CARDS.filter(id => IDS.includes(id) && !BINNED[id]);
   if (!ids.length) { g.innerHTML = `<div class="status">City cards appear here once the roster loads (Refresh on the Daily tab first).</div>`; return; }
   ids.forEach(id => g.appendChild(card(id)));
+}
+// The "binned" drawer: a count + show/hide toggle, and (when shown) the binned cards with ♻ Restore.
+function renderBinned() {
+  const bar = $("#binnedBar"), grid = $("#binnedGrid"); if (!bar) return;
+  const ids = Object.keys(BINNED).filter(id => IDS.includes(id));
+  if (!ids.length) { bar.innerHTML = ""; grid.innerHTML = ""; grid.style.display = "none"; binShown = false; return; }
+  bar.innerHTML = `🗑 <b>${ids.length}</b> card${ids.length > 1 ? "s" : ""} binned <button id="binToggle">${binShown ? "Hide" : "Show"}</button>`;
+  $("#binToggle").onclick = () => { binShown = !binShown; renderBinned(); };
+  grid.style.display = binShown ? "grid" : "none";
+  grid.innerHTML = binShown ? "" : "";
+  if (binShown) ids.forEach(id => grid.appendChild(card(id)));
+}
+async function setBin(id, bin) {
+  const prev = !!BINNED[id];
+  if (bin) BINNED[id] = true; else delete BINNED[id];
+  renderGrid(); if ($("#cityView").style.display !== "none") renderCityGrid();
+  status(bin ? `Binned "${id}" — hidden from the panel.` : `Restored "${id}".`);
+  try {
+    await action({ action: "bin-save", id, binned: bin });
+    status(bin ? `"${id}" binned — hidden here and won't auto-post. Restore it anytime.` : `"${id}" restored to the panel.`, "ok");
+  } catch (e) {
+    if (prev) BINNED[id] = true; else delete BINNED[id]; // revert on failure
+    renderGrid(); handleErr(e);
+  }
 }
 
 async function queue(id) {
@@ -835,8 +871,9 @@ async function setExclude(id, excluded) {
 }
 
 function onGridClick(e) {
-  const q = e.target.closest("[data-q]"), n = e.target.closest("[data-now]"), ed = e.target.closest("[data-edit]"), a = e.target.closest("[data-ar]"), x = e.target.closest("[data-excl]");
+  const q = e.target.closest("[data-q]"), n = e.target.closest("[data-now]"), ed = e.target.closest("[data-edit]"), a = e.target.closest("[data-ar]"), x = e.target.closest("[data-excl]"), bn = e.target.closest("[data-bin]");
   if (a) { const [id, key] = a.dataset.ar.split(":"); setAR(id, key); return; }
+  if (bn) { const id = bn.dataset.bin; setBin(id, !BINNED[id]); return; }
   if (x) { const id = x.dataset.excl; setExclude(id, !EXCLUDES[id]); return; }
   if (ed) { openEditor(ed.dataset.edit); return; }
   if (q) queue(q.dataset.q);
@@ -844,6 +881,7 @@ function onGridClick(e) {
 }
 $("#grid").addEventListener("click", onGridClick);
 $("#cityGrid").addEventListener("click", onGridClick);
+$("#binnedGrid").addEventListener("click", onGridClick);
 // Tap a rotation chip → smooth-scroll to that card's preview and flash it. Saves
 // hunting through 50+ cards on mobile/PWA. The card grid is always rendered, so the
 // target exists; guard anyway in case a chip references an id not in the grid.

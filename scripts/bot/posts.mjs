@@ -2408,6 +2408,18 @@ function loadExcludes() {
   return _excludes;
 }
 
+// Binned cards (public/binned-cards.json) — hidden from the panel AND never auto-posted.
+const BINNED_FILE = new URL("../../public/binned-cards.json", import.meta.url);
+let _binned;
+function loadBinned() {
+  if (_binned) return _binned;
+  try {
+    const j = JSON.parse(readFileSync(BINNED_FILE, "utf8"));
+    _binned = new Set(Array.isArray(j) ? j : Object.keys(j || {}).filter(k => j[k]));
+  } catch { _binned = new Set(); }
+  return _binned;
+}
+
 // Cards kept buildable ONLY to back website OG share images — never auto-posted
 // AND hidden from the control console (so they can't be fired by hand). Drawdown
 // and risk live here: the site's drawdown/risk tabs need their share images, but
@@ -2497,8 +2509,8 @@ function interleave(A, B) {
 // flavour → chart. Length = sum of weights (unchanged), so the per-day index still
 // cycles through everything; higher-weight topics still recur more often.
 function rotation(built) {
-  const excl = loadExcludes();
-  const pool = built.filter(p => !NO_ROTATE.has(p.id) && !excl.has(p.id));
+  const excl = loadExcludes(), binned = loadBinned();
+  const pool = built.filter(p => !NO_ROTATE.has(p.id) && !excl.has(p.id) && !binned.has(p.id));
   const A = spreadByFamily(pool.filter(p => A_FAMILIES.has(lookOf(p.id))));
   const B = spreadByFamily(pool.filter(p => !A_FAMILIES.has(lookOf(p.id))));
   return interleave(A, B);
