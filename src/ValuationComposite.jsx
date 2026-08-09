@@ -106,22 +106,28 @@ export default function ValuationComposite({ isMobile, preview = false }) {
       {/* Today's weighted lens breakdown — clearly labelled, with weight and where each sits */}
       <div style={{ maxWidth: 900, margin: "20px auto 0" }}>
         <div style={{ fontFamily: SANS, fontSize: 13, color: "#94a3b8", textAlign: "center", marginBottom: 10 }}>
-          Today's axes — each ranked so 0 = cheapest it's been, 100 = most expensive, then weighted:
+          Each axis — <strong style={{ color: "#c4b5fd" }}>how much it counts</strong> (weight) and <strong style={{ color: "#e2e8f0" }}>where it reads today</strong> (0 = cheapest it&apos;s been, 100 = most expensive):
         </div>
         <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 8 }}>
           {breakdown.map(b => {
             const pct = b.pct;
             const z = zoneOf(zones, pct);
-            return (
-              <div key={b.key} style={{ display: "flex", alignItems: "center", gap: 10, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 10, padding: "8px 12px" }}>
-                <div style={{ flex: "0 0 auto", fontFamily: MONO, fontSize: 11, color: "#64748b", width: 34 }}>{b.weight}%</div>
-                <div style={{ flex: "1 1 auto", minWidth: 0 }}>
-                  <div style={{ fontFamily: SANS, fontSize: 13, color: "#e2e8f0", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{b.label}</div>
-                  <div style={{ height: 5, background: "rgba(255,255,255,0.08)", borderRadius: 3, marginTop: 4, overflow: "hidden" }}>
-                    <div style={{ height: "100%", width: `${(pct * 100).toFixed(0)}%`, background: z.color, borderRadius: 3 }} />
-                  </div>
+            const bar = (lbl, frac, col, num) => (
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ flex: "0 0 auto", width: 46, fontFamily: MONO, fontSize: 10.5, color: "#64748b" }}>{lbl}</span>
+                <div style={{ flex: "1 1 auto", height: 6, background: "rgba(255,255,255,0.07)", borderRadius: 3, overflow: "hidden" }}>
+                  <div style={{ height: "100%", width: `${frac}%`, background: col, borderRadius: 3 }} />
                 </div>
-                <div style={{ flex: "0 0 auto", fontFamily: MONO, fontSize: 13, fontWeight: 700, color: z.color, width: 42, textAlign: "right" }}>{(pct * 100).toFixed(0)}%</div>
+                <span style={{ flex: "0 0 auto", width: 34, textAlign: "right", fontFamily: MONO, fontSize: 12, fontWeight: 700, color: col }}>{num}</span>
+              </div>
+            );
+            return (
+              <div key={b.key} style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 10, padding: "9px 13px" }}>
+                <div style={{ fontFamily: SANS, fontSize: 13.5, fontWeight: 600, color: "#e2e8f0", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", marginBottom: 7 }}>{b.label}</div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+                  {bar("weight", b.weight, "#a78bfa", `${b.weight}%`)}
+                  {bar("reads", (pct * 100).toFixed(0), z.color, (pct * 100).toFixed(0))}
+                </div>
               </div>
             );
           })}
