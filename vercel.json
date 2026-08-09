@@ -13,6 +13,17 @@
       "includeFiles": "public/{whales,base-onchain,solana-onchain}.json"
     }
   },
+  "redirects": [
+    {
+      "source": "/",
+      "has": [
+        { "type": "query", "key": "chart", "value": "(?<cid>[^&]+)" },
+        { "type": "header", "key": "user-agent", "value": ".*([Bb]ot|facebookexternalhit|WhatsApp|Slack|Telegram|Discord|Twitter|LinkedIn|Pinterest|Embedly|Slurp|redditbot|Applebot|preview|crawler|spider).*" }
+      ],
+      "destination": "/share?chart=:cid",
+      "permanent": false
+    }
+  ],
   "headers": [
     {
       "source": "/",
@@ -81,14 +92,6 @@
     {
       "source": "/control",
       "destination": "/control.html"
-    },
-    {
-      "source": "/",
-      "has": [
-        { "type": "query", "key": "chart" },
-        { "type": "header", "key": "user-agent", "value": ".*([Bb]ot|facebookexternalhit|WhatsApp|Slack|Telegram|Discord|Twitter|LinkedIn|Pinterest|Embedly|Slurp|redditbot|Applebot|preview|crawler|spider).*" }
-      ],
-      "destination": "/api/share"
     },
     {
       "source": "/(.*)",

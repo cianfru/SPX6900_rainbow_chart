@@ -61,8 +61,11 @@ export default function handler(req, res) {
 <meta name="twitter:description" content="${esc(m.d)}">
 <meta name="twitter:image" content="${esc(m.img)}">
 <link rel="canonical" href="${esc(m.app)}">
-<meta http-equiv="refresh" content="0; url=${esc(m.app)}">
 </head><body style="background:#05050e;color:#cbd5e1;font-family:system-ui,sans-serif">
+<!-- Humans are bounced to the app via JS. NO <meta http-equiv="refresh"> on purpose: some link
+     unfurlers FOLLOW a 0-second meta-refresh to the app URL (/?chart=…) and read ITS Open Graph
+     (the static index.html = default rainbow) instead of the per-chart OG above. Crawlers don't run
+     JS, so they stay on this page and read the right card; JS-less humans get the noscript link. -->
 <script>location.replace(${JSON.stringify(m.app)})</script>
 <noscript><a href="${esc(m.app)}" style="color:#a78bfa">View the SPX6900 chart →</a></noscript>
 </body></html>`;
