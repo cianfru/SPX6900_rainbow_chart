@@ -74,9 +74,10 @@ WITH tagged (address, kind) AS (
     (0x1a9d699aee3a56ca49d0cc3b542ae3a37885a3e1, 'cex'),      -- Upbit 2
     (0x7c706586679af2ba6d1a9fc2da9c6af59883fdd3, 'lp'),       -- Uniswap V3 SPX pool
     (0x000000000004444c5dc75cb358380d2e3de08a90, 'lp'),       -- Uniswap V4 PoolManager (singleton)
-    -- Tagged in EXCLUDE_LABELS since early Aug but never added here → the Dune-based flow cards had
-    -- been undercounting it (~$95M, a large exchange balance). Added 2026-08-10 to close the gap.
-    (0x6fe39f2831caf58529779efdb73341aa64df50ab, 'cex')       -- CEX (0x6Fe3)
+    -- Tagged in EXCLUDE_LABELS since early Aug but never added here. Big exchange hot wallet (24.4M
+    -- USDC + 5,336 ETH), but only ~206k SPX (~$66k) — the earlier "$95M" was total wallet value, not
+    -- SPX, so this barely moves the flow cards. USDC-heavy → Coinbase (owner read). Added 2026-08-10.
+    (0x6fe39f2831caf58529779efdb73341aa64df50ab, 'cex')       -- Coinbase-linked
 )
 SELECT
   tr.evt_block_date AS day,                                  -- partition column → prunes scan

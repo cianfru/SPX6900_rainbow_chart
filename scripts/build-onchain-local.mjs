@@ -73,7 +73,10 @@ export const EXCLUDE_LABELS = {
   "0x33a64dcdfa041befebc9161a3e0c6180cd94fa89": { name: "CoinSpot 2", kind: "cex" },
   "0x548054687ef6c56c6d82e8269e5fd93d8b88fcb2": { name: "CoinEx", kind: "cex" },      // owner Dune sweep (was mis-labelled "Coined")
   "0x0d0707963952f2fba59dd06f2b425ace40b492fe": { name: "Gate.io 1", kind: "cex" },   // owner Dune sweep
-  "0x6fe39f2831caf58529779efdb73341aa64df50ab": { name: "CEX (0x6Fe3)", kind: "cex" }, // owner-flagged 2026-08: ~$95M, high daily activity, not a holder
+  // Big exchange hot wallet (24.4M USDC + 5,336 ETH on-chain 2026-08 = tens of $M total), but it holds
+  // only ~206k SPX (~$66k) — the earlier "~$95M" note was the wallet's TOTAL value/throughput, NOT SPX.
+  // USDC-heavy + high activity → Coinbase (owner read); "-linked" so canonVenue aggregates it into Coinbase.
+  "0x6fe39f2831caf58529779efdb73341aa64df50ab": { name: "Coinbase-linked", kind: "cex" },
   // ── Owner-flagged from the whale-watch list, 2026-08-10 (Etherscan-labelled). Each was showing as a
   //    ≥100k "whale" but is infrastructure. DEX pools → lp, real venues → cex (attributed to their
   //    bucket); a market maker and an MEV bot → "mm" (excluded from holders but attributed to no venue —
