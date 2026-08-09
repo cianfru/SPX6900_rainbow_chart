@@ -109,7 +109,10 @@ function main() {
   // Latest day in the archive = the dense RPC snapshot → current residency; full history → ages.
   const maxDay = rows.reduce((m, r) => { const d = new Date(r.ts).toISOString().slice(0, 10); return d > m ? d : m; }, "");
   const currentDay = arg("current", null) || maxDay;
-  const wallets = residents(rows, { threshold, nowTs: now, flowDays: 30, currentDay });
+  // 7-day net flow to match ETH/Base on the Whale Board (both show a ~weekly window). The archive is
+  // refreshed daily, so a 7-day window is well-supported. Override with --flow-days=N.
+  const flowDays = Number(arg("flow-days", 7));
+  const wallets = residents(rows, { threshold, nowTs: now, flowDays, currentDay });
   // reduce, NOT Math.min(...rows): spreading 120k+ timestamps into a call overflows the stack
   // (the same scale bug the ETH FIFO engine hit). maxDay above already uses this pattern.
   const minTs = rows.reduce((m, r) => (r.ts < m ? r.ts : m), rows[0].ts);

@@ -115,7 +115,7 @@ export default function WhaleBoard({ isMobile }) {
   // Solana: LIVE when the key can serve Alchemy Account Archive (historical getAccountInfo, PAYG tier)
   // — the live feed reads each whale's SPX balance now vs a past slot → 7-day net + pulse. On the Free
   // tier the historical param errors and the live feed returns no sol rows, so we FALL BACK to the
-  // daily 30-day reconstruction (solana-onchain.json flow). Solana addresses are base58 (CASE-SENSITIVE
+  // daily reconstruction's 7-day net flow (solana-onchain.json). Solana addresses are base58 (CASE-SENSITIVE
   // — never lowercase the key). It auto-upgrades to live the moment the key is on PAYG.
   const solBalOf = new Map((sol?.wallets || []).map(w => [w.a, w]));
   const solLive = (live?.wallets || []).filter(w => w.chain === "sol" && w.net);
@@ -131,7 +131,7 @@ export default function WhaleBoard({ isMobile }) {
   } else {
     const raw = (sol?.wallets || []).filter(w => w?.a && w.bal >= 1e5 && w.flow);
     const hue = solHueOf(raw.map(w => w.days || 0));
-    solRows = raw.map(w => ({ a: w.a, chain: "sol", bal: w.bal, days: w.days || 0, net: w.flow, hue: hue(w.days), runDays: 30, sellDays: w.flow < 0 ? 1 : 0, activeDays: 1, reducing: false, liveMove: false, lastLabel: "30d" }));
+    solRows = raw.map(w => ({ a: w.a, chain: "sol", bal: w.bal, days: w.days || 0, net: w.flow, hue: hue(w.days), runDays: 7, sellDays: w.flow < 0 ? 1 : 0, activeDays: 1, reducing: false, liveMove: false, lastLabel: "7d" }));
   }
 
   // Base: LIVE like Ethereum — 7-day net + pulse from the same Alchemy feed (Base is EVM), joined to
