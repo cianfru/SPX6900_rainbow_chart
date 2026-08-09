@@ -4,5 +4,6 @@
   "chainrace": true,
   "spxbitcoin": true,
   "spxcohort": true,
-  "model": true
+  "model": true,
+  "alltime": true
 }
