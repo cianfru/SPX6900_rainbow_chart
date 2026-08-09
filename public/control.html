@@ -167,7 +167,7 @@
   .card.excluded img { filter: grayscale(.5) brightness(.82); }
   .card.binned { border-color: #7f1d1d; opacity: .6; }
   .card.binned img { filter: grayscale(.7) brightness(.7); }
-  .binbar { margin: 16px 0 8px; font-size: 13px; color: #94a3b8; display: flex; align-items: center; gap: 10px; }
+  .binbar { margin: 22px 0 10px; padding-top: 16px; border-top: 1px solid rgba(255,255,255,.09); font-size: 13px; color: #94a3b8; display: flex; align-items: center; gap: 9px; flex-wrap: wrap; }
   .binbar:empty { display: none; }
   .binbar button { padding: 4px 12px; border-radius: 7px; border: 1px solid rgba(255,255,255,.14); background: transparent; color: #cbd5e1; cursor: pointer; font-size: 13px; }
   /* object-fit: contain so a card whose true AR differs (e.g. the static Kraken
@@ -419,7 +419,7 @@ let DRAFT_TEXT = {};               // per-signal footerized LLM draft, for the �
 let AR_OVERRIDES = {};             // owner-picked aspect ratio per card: {id: presetKey}
 let EXCLUDES = {};                 // cards held out of the auto rotation: {id: true}
 let BINNED = {};                   // cards hidden from the panel entirely: {id: true}
-let binShown = false;              // whether the "binned" section is expanded
+let binShown = true;               // the "binned" reference section is expanded by default
 // AR presets (must mirror scripts/bot/card-format.mjs AR_PRESETS)
 const AR_PRESETS = { landscape: [1200, 800], wide: [1200, 628], square: [1200, 1200], portrait: [1080, 1350] };
 const AR_LABEL = { landscape: "3:2", wide: "1.91:1", square: "1:1", portrait: "4:5" };
@@ -694,15 +694,18 @@ function renderCityGrid() {
   if (!ids.length) { g.innerHTML = `<div class="status">City cards appear here once the roster loads (Refresh on the Daily tab first).</div>`; return; }
   ids.forEach(id => g.appendChild(card(id)));
 }
-// The "binned" drawer: a count + show/hide toggle, and (when shown) the binned cards with ♻ Restore.
+// The "binned" reference section: a heading + count, the binned cards (each with ♻ Restore),
+// and a Hide/Show toggle. Shown by default so it reads as a reference shelf, not a hidden drawer.
 function renderBinned() {
   const bar = $("#binnedBar"), grid = $("#binnedGrid"); if (!bar) return;
   const ids = Object.keys(BINNED).filter(id => IDS.includes(id));
-  if (!ids.length) { bar.innerHTML = ""; grid.innerHTML = ""; grid.style.display = "none"; binShown = false; return; }
-  bar.innerHTML = `🗑 <b>${ids.length}</b> card${ids.length > 1 ? "s" : ""} binned <button id="binToggle">${binShown ? "Hide" : "Show"}</button>`;
+  if (!ids.length) { bar.innerHTML = ""; grid.innerHTML = ""; grid.style.display = "none"; return; }
+  bar.innerHTML = `<span style="font-size:14px;font-weight:700;color:#e2e8f0">🗑 Binned cards</span>`
+    + `<span style="color:#64748b">· ${ids.length} · for reference — hidden from the feed, restore anytime</span>`
+    + `<button id="binToggle" style="margin-left:auto">${binShown ? "Hide" : "Show"}</button>`;
   $("#binToggle").onclick = () => { binShown = !binShown; renderBinned(); };
   grid.style.display = binShown ? "grid" : "none";
-  grid.innerHTML = binShown ? "" : "";
+  grid.innerHTML = "";
   if (binShown) ids.forEach(id => grid.appendChild(card(id)));
 }
 async function setBin(id, bin) {
