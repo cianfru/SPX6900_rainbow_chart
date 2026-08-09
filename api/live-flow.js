@@ -100,6 +100,16 @@ async function solanaFlow(key, days, liveHours) {
   const slot = await rpc(url, "getSlot", []);
   const past7 = Math.max(0, slot - days * SOL_SPD), pastLive = Math.max(0, slot - liveHours * SOL_SPH);
 
+  // PROBE Account Archive ONCE before the per-whale historical reads. The historical `slot` param is a
+  // paid Alchemy tier; on a Free/non-PAYG key EVERY per-whale getAccountInfo 400s (-32600). Firing all
+  // ~575×2 of them just to swallow the errors floods the Alchemy logs and burns CU for nothing. One
+  // cheap probe on the mint tells us if the tier is available; if not, emit nothing (the board falls
+  // back to the daily reconstruction) — and it auto-upgrades to live the instant the key gets PAYG.
+  let archiveOk = false;
+  try { const pr = await rpcBatch(url, [{ method: "getAccountInfo", params: [SOL_MINT, { encoding: "base64", dataSlice: { offset: 0, length: 8 }, slot: past7 }] }]); archiveOk = !pr[0]?.error; }
+  catch { archiveOk = false; }
+  if (!archiveOk) return [];
+
   // current SPX token account + balance per owner
   const cur = await rpcBatch(url, owners.map(o => ({ method: "getTokenAccountsByOwner", params: [o, { mint: SOL_MINT }, { encoding: "jsonParsed" }] })));
   const rows = owners.map((o, i) => {
