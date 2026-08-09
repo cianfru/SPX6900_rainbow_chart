@@ -877,7 +877,7 @@ export default function App() {
       {/* Browse-all gallery */}
       {route === "gallery" && (
         <Suspense fallback={<div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Loading charts…</div>}>
-          <ChartsGallery isMobile={isMobile} onOpen={goChart} onHome={goHome} onOther={openAeon} renderPreview={id => chartEl(id, { preview: true })} />
+          <ChartsGallery isMobile={isMobile} onOpen={goChart} onHome={goHome} onOther={openAeon} renderPreview={id => chartEl(id, { preview: true })} showFeatured={false} />
         </Suspense>
       )}
 
