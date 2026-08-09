@@ -67,7 +67,13 @@ WITH tagged (address, kind) AS (
     -- holder in the city and was wearing the "biggest whale" crown.
     (0x15da7556d5ed888306839bed06f868aeaedcb0d7, 'cex'),      -- Revolut-linked
     (0xb0a3a2b60e969afd26561429aa4c1444c57e4411, 'cex'),      -- MEXC
-    (0x52c77b0cb827afbad022e6d6caf2c44452edbc39, 'lp')        -- Uniswap v2 SPX/WETH pool
+    (0x52c77b0cb827afbad022e6d6caf2c44452edbc39, 'lp'),       -- Uniswap v2 SPX/WETH pool
+    -- Added 2026-08-10 (owner-flagged off the whale-watch list). MM/MEV-bot addresses are deliberately
+    -- NOT here — they're excluded from holders but attributed to no venue (see EXCLUDE_LABELS kind:"mm").
+    (0xf60c2ea62edbfe808163751dd0d8693dcb30019c, 'cex'),      -- Binance US
+    (0x1a9d699aee3a56ca49d0cc3b542ae3a37885a3e1, 'cex'),      -- Upbit 2
+    (0x7c706586679af2ba6d1a9fc2da9c6af59883fdd3, 'lp'),       -- Uniswap V3 SPX pool
+    (0x000000000004444c5dc75cb358380d2e3de08a90, 'lp')        -- Uniswap V4 PoolManager (singleton)
 )
 SELECT
   tr.evt_block_date AS day,                                  -- partition column → prunes scan
