@@ -13,6 +13,7 @@ const COPY_PATH = "public/post-copy.json"; // owner-edited card-copy overrides
 const AR_PATH = "public/card-ar.json";     // owner-picked aspect ratio per card
 const STATE_PATH = "public/post-state.json"; // last-posted date guard (once-per-day)
 const EXCLUDE_PATH = "public/rotation-excludes.json"; // cards held out of auto-rotation
+const BIN_PATH = "public/binned-cards.json"; // cards hidden from the panel + dropped from rotation
 
 const gh = (path, init = {}) => fetch("https://api.github.com" + path, {
   ...init,
@@ -67,7 +68,7 @@ export default async function handler(req, res) {
     res.status(500).json({ error: "Server not configured: set CONTROL_PASSWORD and GH_PAT in Vercel." });
     return;
   }
-  const { password, action, id, month, template, ar, excluded } = await readBody(req);
+  const { password, action, id, month, template, ar, excluded, binned } = await readBody(req);
   if (password !== process.env.CONTROL_PASSWORD) { res.status(401).json({ error: "Wrong password." }); return; }
 
   // Gate unlock: password already validated above, so just acknowledge.
@@ -223,6 +224,33 @@ export default async function handler(req, res) {
       }
       if (!put.ok) throw new Error("exclude write failed (" + put.status + ") " + body);
       res.status(200).json({ ok: true, id, excluded: keep });
+      return;
+    }
+
+    // Bin/unbin a card → public/binned-cards.json ({id:true} = binned). Binned cards are hidden
+    // from the panel grid AND dropped from the auto rotation; still buildable/hand-postable if needed.
+    if (action === "bin-save") {
+      if (!id) { res.status(400).json({ error: "missing id" }); return; }
+      const keep = !!binned;
+      let put, body;
+      for (let i = 0; i < 3; i++) {
+        let sha, obj = {};
+        const cur = await gh(`/repos/${OWNER}/${REPO}/contents/${BIN_PATH}?ref=${BRANCH}`);
+        if (cur.ok) { const j = await cur.json(); sha = j.sha; try { obj = JSON.parse(Buffer.from(j.content, "base64").toString("utf8")) || {}; } catch { obj = {}; } }
+        if (Array.isArray(obj)) obj = Object.fromEntries(obj.map(k => [k, true]));
+        if (keep) obj[id] = true; else delete obj[id];
+        const content = Buffer.from(JSON.stringify(obj, null, 2) + "\n").toString("base64");
+        put = await gh(`/repos/${OWNER}/${REPO}/contents/${BIN_PATH}`, {
+          method: "PUT",
+          body: JSON.stringify({ message: `control: ${keep ? "bin" : "unbin"} ${id}`, content, branch: BRANCH, ...(sha ? { sha } : {}) }),
+        });
+        if (put.ok) break;
+        body = await put.text();
+        if (put.status !== 409) break;
+        await new Promise(r => setTimeout(r, 400 * (i + 1)));
+      }
+      if (!put.ok) throw new Error("bin write failed (" + put.status + ") " + body);
+      res.status(200).json({ ok: true, id, binned: keep });
       return;
     }
     res.status(400).json({ error: "unknown action" });
