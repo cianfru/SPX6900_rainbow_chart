@@ -615,7 +615,7 @@ export default function App() {
   // meta (so the preview card matches) and bounces to the app. Use the native
   // share sheet on mobile, else copy the link with a "Copied!" confirmation.
   const shareChart = async () => {
-    const q = tab === "relative" && relWhich !== "BTC" ? `?tab=relative&rel=${relWhich}` : `?tab=${tab}`;
+    const q = tab === "relative" && relWhich !== "BTC" ? `?chart=relative&rel=${relWhich}` : `?chart=${tab}`;
     const url = `${window.location.origin}/share${q}`;
     const title = "SPX6900 — " + (CHART_META[tab]?.title ?? "Chart");
     if (navigator.share) { try { await navigator.share({ title, url }); return; } catch { /* cancelled */ } }
