@@ -11,6 +11,7 @@ import { fetchLivePrice, fetchMajors, fetchHistory, computeStats } from "../scri
 import { buildPost } from "../scripts/bot/posts.mjs";
 import { renderPostCard } from "../scripts/bot/charts.mjs";
 import { staticImageFor, dimsForAR } from "../scripts/bot/card-format.mjs";
+import { renderStudioCard } from "../scripts/bot/studio-card.mjs";
 import { FONT, FONT_DIAG } from "../scripts/bot/font.mjs";
 import { renderAeonFloorCard } from "../scripts/bot/aeon-floor-card.mjs";
 import { renderAeonHodlCard } from "../scripts/bot/aeon-hodl-card.mjs";
@@ -23,6 +24,24 @@ import { renderAeonTradersCard, renderAeonValuationCard, renderAeonTraitsCard } 
 
 // Project Aeon cards render from the committed aeon-*.json (not stats), all at 1:1. ?aeon=<id>.
 const readAeon = p => { try { return JSON.parse(readFileSync(join(process.cwd(), p), "utf8")); } catch { return null; } };
+
+// Card Studio sources — each pulls a time-series from onchain.json (the same data the charts plot).
+// The studio (control panel) crops to a window + adds a custom title/subtitle. Add a source = one row.
+const D = r => Date.parse(r.d);
+export const STUDIO = {
+  price:      { label: "SPX price",            unit: "$", color: "#a78bfa", log: true, get: oc => oc.filter(r => r.spot > 0).map(r => ({ ts: D(r), v: r.spot })) },
+  mvrv:       { label: "MVRV",                 unit: "×", color: "#38bdf8", get: oc => oc.filter(r => r.mvrv > 0).map(r => ({ ts: D(r), v: r.mvrv })) },
+  rprice:     { label: "Realized price",       unit: "$", color: "#f59e0b", log: true, get: oc => oc.filter(r => r.rp > 0).map(r => ({ ts: D(r), v: r.rp })) },
+  sip:        { label: "Supply in profit",     unit: "%", color: "#4ade80", get: oc => oc.filter(r => Number.isFinite(r.sip)).map(r => ({ ts: D(r), v: r.sip })) },
+  holders:    { label: "Holders",              unit: "",  color: "#22d3ee", get: oc => oc.filter(r => r.holders > 0).map(r => ({ ts: D(r), v: r.holders })) },
+  conc:       { label: "Top-100 share",        unit: "%", color: "#fb7185", get: oc => oc.filter(r => r.top100 > 0).map(r => ({ ts: D(r), v: r.top100 })) },
+  nupl:       { label: "NUPL",                 unit: "",  color: "#818cf8", get: oc => oc.filter(r => r.mvrv > 0).map(r => ({ ts: D(r), v: 1 - 1 / r.mvrv })) },
+  sopr:       { label: "SOPR",                 unit: "",  color: "#34d399", get: oc => oc.filter(r => Number.isFinite(r.sopr) && r.sopr > 0).map(r => ({ ts: D(r), v: r.sopr })) },
+  nrpl:       { label: "Net realized P/L",     unit: "$", color: "#f472b6", get: oc => oc.filter(r => Number.isFinite(r.nrpl)).map(r => ({ ts: D(r), v: r.nrpl })) },
+  liveliness: { label: "Liveliness",           unit: "",  color: "#a3e635", get: oc => oc.filter(r => Number.isFinite(r.liveliness)).map(r => ({ ts: D(r), v: r.liveliness })) },
+  age1y:      { label: "Held 1 year+",         unit: "%", color: "#818cf8", get: oc => oc.filter(r => Array.isArray(r.age)).map(r => ({ ts: D(r), v: r.age[4] })) },
+  gini:       { label: "Gini (concentration)", unit: "",  color: "#94a3b8", get: oc => oc.filter(r => r.gini > 0).map(r => ({ ts: D(r), v: r.gini })) },
+};
 const SQ = { W: 1080, H: 1080 };
 const AEON_CARD = {
   aeonfloor: () => { const s = readAeon("public/aeon-sales.json"); return s && renderAeonFloorCard(s, SQ); },
@@ -76,6 +95,32 @@ export default async function handler(req, res) {
     res.setHeader("Content-Type", "application/json");
     res.status(200).end(JSON.stringify(out, null, 2));
     return;
+  }
+
+  // ?studio=<src>&from=<ms>&to=<ms>&title=&sub=&ar=&log= — the Card Studio renderer. Plots the
+  // chosen on-chain series cropped to a window with a custom title/subtitle, in the house card style.
+  const studioSrc = params.get("studio");
+  if (studioSrc && STUDIO[studioSrc]) {
+    try {
+      const oc = readAeon("public/onchain.json") || [];
+      const src = STUDIO[studioSrc];
+      let pts = src.get(oc).filter(p => Number.isFinite(p.ts) && Number.isFinite(p.v)).sort((a, b) => a.ts - b.ts);
+      const from = Number(params.get("from")) || (pts[0]?.ts ?? 0), to = Number(params.get("to")) || (pts.at(-1)?.ts ?? 0);
+      pts = pts.filter(p => p.ts >= from && p.ts <= to);
+      const dims = dimsForAR(params.get("ar")) || { W: 1200, H: 630 };
+      const card = renderStudioCard({
+        points: pts, title: (params.get("title") || "").slice(0, 90), subtitle: (params.get("sub") || "").slice(0, 150),
+        unit: src.unit, color: src.color, label: src.label,
+        log: params.has("log") ? params.get("log") === "1" : !!src.log,
+        W: dims.W, H: dims.H,
+      });
+      if (card) {
+        res.setHeader("Content-Type", "image/png");
+        res.setHeader("Cache-Control", "no-store");
+        res.status(200).end(card);
+        return;
+      }
+    } catch { /* fall through to the rainbow default */ }
   }
 
   // ?aeon=<id> — render a Project Aeon card from the committed aeon-*.json.
