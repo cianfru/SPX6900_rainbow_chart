@@ -28,6 +28,7 @@ import { cityChurnStats } from "./city-churn-card.mjs";
 import { cityPercapStats } from "./city-percap-card.mjs";
 import { cityVintageStats } from "./city-vintage-card.mjs";
 import { citySkylineStats } from "./city-skyline-card.mjs";
+import { floatCheckStats } from "./float-check-card.mjs";
 import { whaleBehaviourStats } from "./whale-behaviour-card.mjs";
 import { whaleMosaicStats } from "./whale-mosaic-card.mjs";
 import { cexFlowStats } from "./cex-flow-card.mjs";
@@ -473,6 +474,23 @@ History rhymes — it's not a forecast.`,
 
 // Each builder returns { id, text, card }. card is { type, spec }.
 const POSTS = [
+  // "Is SPX6900's float drying up?" — the honest, reproducible response to the low-float / diamond-hands
+  // thesis. Agrees with the true part (supply locking up, stickier than BTC) and zooms out on the loose
+  // part (~5% is the MONTHLY turnover; ~40% changes hands within a year — held ≠ frozen). Hand-postable
+  // (NO_ROTATE), long-form (verified account). Numbers pulled live from the FIFO reconstruction.
+  stats => {
+    const c = floatCheckStats(stats);
+    if (!c) return null;
+    const btc = c.btcIlliq != null ? `, stickier than Bitcoin was at the same age (Bitcoin was ${Math.round(c.btcIlliq)}%)` : "";
+    return {
+      id: "floatcheck",
+      text: ct`The low-float thesis on SPX6900 is right — supply IS being locked away, and it's all reconstructable on-chain. ${Math.round(c.illiqPct)}% is held long-term (155+ days, self-custody)${btc}.
+But "~5% turning over" is the MONTHLY number. Zoom out and ~${Math.round(c.within1y)}% of supply has changed hands within a year — held isn't frozen. It's self-custody, not a lockup, and rallies reliably pull sellers back.
+The thin-float squeeze is real — but it's a coiled spring, not a locked vault. Every figure here is reconstructed from the chain, and checkable.`,
+      card: { type: "floatcheck" },
+    };
+  },
+
   // 1 — valuation / rainbow
   s => ({
     id: "valuation",
@@ -2360,7 +2378,7 @@ const weightOf = id => WEIGHT[id] ?? (BULLISH.has(id) ? 2 : 1);
 // marketcap ("real free-float cap / thin float") is RETIRED — its premise is false: SPX is a
 // fair launch with no lockup, so free float is ~88% (not thin). The honest story is
 // illiquid/liquid supply (the reframed freefloat card), so marketcap is out of the feed.
-const NO_ROTATE = new Set(["drawdown", "risk", "kraken", "dcaladder", "marketcap", "spxcohort", "cexsupply", "cexflow", "cexvenues", "cexvenflow", "nrpl", "liveliness", "citygrowth", "citychurn", "citypercap", "cityvintage", "cityskyline"]);
+const NO_ROTATE = new Set(["drawdown", "risk", "kraken", "dcaladder", "marketcap", "spxcohort", "cexsupply", "cexflow", "cexvenues", "cexvenflow", "nrpl", "liveliness", "citygrowth", "citychurn", "citypercap", "cityvintage", "cityskyline", "floatcheck"]);
 
 // LONG-FORM cards — the few methodology / teaching posts that genuinely need more than the
 // 290 instant-read ceiling (see the post-length test). Default stays 290 for EVERY other card;
@@ -2370,7 +2388,7 @@ const NO_ROTATE = new Set(["drawdown", "risk", "kraken", "dcaladder", "marketcap
 // long-form), and rich/honest copy is the moat. The post-length test now only enforces a generous
 // 2000-char SANITY ceiling. This map is kept for documentation of the genuinely long teaching cards;
 // it no longer needs new entries just to clear a style cap.
-export const LONGFORM = { spxcohort: 700, cexflow: 600, hodlcompare: 340 };
+export const LONGFORM = { spxcohort: 700, cexflow: 600, hodlcompare: 340, floatcheck: 620 };
 
 // Owner-editable rotation exclusions — cards kept BUILDABLE + visible in the control
 // panel (and hand-postable) but held OUT of the organic daily rotation. Toggled from
@@ -2418,7 +2436,7 @@ const LOOK = {
   firesalerally: "fanlines",
   model: "scatter",
   monthlyreturns: "heatmap", monthlyreturnssp: "heatmap", monthlyreturnsbtc: "heatmap",
-  hodlwaves: "stack", hodlcompare: "stack", walletgrowth: "stack", lthsth: "stack", valband: "dual", cexvenues: "stack", citygrowth: "stack", citychurn: "bars", citypercap: "dual", cityvintage: "bars", cityskyline: "stack",
+  hodlwaves: "stack", hodlcompare: "stack", walletgrowth: "stack", lthsth: "stack", valband: "dual", cexvenues: "stack", citygrowth: "stack", citychurn: "bars", citypercap: "dual", cityvintage: "bars", cityskyline: "stack", floatcheck: "bars",
   timeinband: "bars", monthlybars: "bars", monthcompare: "bars", multichain: "bars", urpd: "bars", urpdage: "bars", cexvenflow: "bars", ethsol: "bars", chainconc: "bars", illiquid: "stack", baltier: "bars", dualholders: "stack", basesurv: "bars", supplycurve: "race", whalecensus: "bars", whalebehaviour: "bars",
   fngdial: "round", distribution: "round",
   marketcap: "blocks", milestones: "blocks", sp500: "blocks",

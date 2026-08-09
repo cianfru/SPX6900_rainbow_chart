@@ -95,8 +95,9 @@
   "smartmoney": "square",
   "whalemosaic": "square",
   "citygrowth": "square",
-  "citychurn": "square",
+  "citychurn": "landscape",
   "citypercap": "landscape",
   "cityvintage": "landscape",
-  "cityskyline": "square"
+  "cityskyline": "landscape",
+  "floatcheck": "landscape"
 }
