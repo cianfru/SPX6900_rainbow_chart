@@ -83,6 +83,14 @@
       "destination": "/control.html"
     },
     {
+      "source": "/",
+      "has": [
+        { "type": "query", "key": "chart" },
+        { "type": "header", "key": "user-agent", "value": ".*([Bb]ot|facebookexternalhit|WhatsApp|Slack|Telegram|Discord|Twitter|LinkedIn|Pinterest|Embedly|Slurp|redditbot|Applebot|preview|crawler|spider).*" }
+      ],
+      "destination": "/api/share"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }
