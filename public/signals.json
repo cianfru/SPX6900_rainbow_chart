@@ -1,15 +1,15 @@
 {
-  "date": "2026-08-09",
+  "date": "2026-08-10",
   "signals": [
     {
       "type": "underwater-holding",
       "emoji": "💎",
-      "title": "Holders ~38% underwater — and still not selling",
-      "detail": "MVRV 0.62: price is 38% below the crowd's avg on-chain cost basis ($0.527). Yet 62% of supply is in the longest-held tier — the float isn't moving. MVRV has slipped 0.71→0.62 over ~30d.",
+      "title": "Holders ~39% underwater — and still not selling",
+      "detail": "MVRV 0.61: price is 39% below the crowd's avg on-chain cost basis ($0.527). Yet 62% of supply is in the longest-held tier — the float isn't moving. MVRV has slipped 0.69→0.61 over ~30d.",
       "framing": "Maximum financial pain, minimal capitulation — conviction being tested and, so far, holding.",
       "note": "Describe the divergence, NOT a bottom call. \"Not selling\", not \"buy\".",
       "card": "breakeven",
-      "score": 1.9310889853894568
+      "score": 1.9352450315285594
     },
     {
       "type": "drawdown",
@@ -24,12 +24,12 @@
     {
       "type": "diamond-trend",
       "emoji": "💠",
-      "title": "Diamond tier grew 2.0pp in ~30d → 90.2% of supply",
+      "title": "Diamond tier grew 2.1pp in ~30d → 90.2% of supply",
       "detail": "Supply in the longest-held tier rose 88.2%→90.2% over ~30 days — a cohort maturing into diamond.",
       "framing": "Float tightening as coins age into the strongest-held tier.",
       "note": "HELD, not BOUGHT — diamond grows by aging; frame it as maturing/held.",
       "card": "diamondtrend",
-      "score": 1.3566666666666662
+      "score": 1.3866666666666674
     }
   ]
 }
