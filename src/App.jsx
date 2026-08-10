@@ -110,7 +110,7 @@ const QuantileFanChart = lazy(() => import("./QuantileFanChart.jsx"));
 const ChartsGallery = lazy(() => import("./ChartsGallery.jsx"));
 const MethodsPage = lazy(() => import("./MethodsPage.jsx"));
 const DocsPage = lazy(() => import("./DocsPage.jsx"));
-const LandingPage = lazy(() => import("./LandingPage.jsx")); // dark-committed landing (staging at ?view=next)
+// LandingPage retired at ?view=next in favour of the terminal landing (public/landing-next.html, full-bleed iframe)
 
 // Basket rosters for the performance-race charts (keys match the /api endpoints).
 const MAJORS_META = [
@@ -919,9 +919,11 @@ export default function App() {
 
       {/* Landing redesign (dark-committed) — staged at ?view=next; swaps into home when ready. */}
       {route === "next" && (
-        <Suspense fallback={<div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Loading…</div>}>
-          <LandingPage isMobile={isMobile} priceData={priceData} />
-        </Suspense>
+        <iframe
+          title="SPX6900 landing preview"
+          src="/landing-next.html"
+          style={{ position: "fixed", inset: 0, width: "100%", height: "100%", border: 0, zIndex: 60, background: "#08090b" }}
+        />
       )}
 
       {/* Home — the Rainbow hero + its rainbow-specific sections */}
