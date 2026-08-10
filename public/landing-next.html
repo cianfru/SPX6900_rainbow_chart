@@ -37,7 +37,7 @@
     background:radial-gradient(100% 60% at 50% -8%, rgba(55,247,160,.045), transparent 60%), var(--bg); -webkit-font-smoothing:antialiased; }
   :root[data-variant="green"] body{ background:radial-gradient(100% 70% at 50% -10%, rgba(45,255,150,.035), transparent 62%), var(--bg); }
   .pix{ font-family:var(--label); -webkit-font-smoothing:none; font-smooth:never; }
-  .wrap{ max-width:1180px; margin:0 auto; padding:10px clamp(16px,3.4vw,34px) 30px; position:relative; z-index:2; }
+  .wrap{ max-width:1680px; margin:0 auto; padding:10px clamp(16px,3.4vw,34px) 30px; position:relative; z-index:2; }
   a{ color:inherit; text-decoration:none; }
 
   .scan{ position:fixed; inset:0; z-index:55; pointer-events:none; display:none; background:repeating-linear-gradient(rgba(0,0,0,.16) 0 1px, transparent 1px 3px); mix-blend-mode:multiply; }
@@ -343,7 +343,7 @@
 
   /* path page */
   .pathpage{ display:none; position:fixed; inset:0; z-index:50; background:var(--bg); overflow:auto; } .pathpage.on{ display:block; }
-  .pp{ max-width:1180px; margin:0 auto; padding:18px clamp(16px,3.4vw,34px) 60px; }
+  .pp{ max-width:1680px; margin:0 auto; padding:18px clamp(16px,3.4vw,34px) 60px; }
   .pp .pathbar{ display:flex; align-items:center; flex-wrap:wrap; min-height:48px; border-bottom:1px solid var(--line); margin-bottom:26px; font-family:var(--label); position:relative; z-index:20; }
   .pp .pathbar .psep{ color:var(--faint); margin:0 9px; }
   .pp .pathbar .pphome{ cursor:pointer; display:inline-flex; align-items:center; font-size:18px; color:var(--tx); }
