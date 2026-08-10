@@ -1,11 +1,7 @@
 {
   "lastPostedDate": "2026-08-10",
-  "lastId": "manual-skip",
+  "lastId": "channel",
   "recent": [
-    {
-      "date": "2026-07-14",
-      "id": "sp500roll12"
-    },
     {
       "date": "2026-07-15",
       "id": "ethage"
@@ -81,12 +77,10 @@
     {
       "date": "2026-08-08",
       "id": "chainrace"
+    },
+    {
+      "date": "2026-08-10",
+      "id": "channel"
     }
-  ],
-  "lanes": {
-    "aeonsale": "2026-08-09",
-    "firesale": "2026-08-10"
-  },
-  "lastEventId": "2086678608886497374",
-  "lastEventAt": "2026-08-10T04:58:43.898Z"
+  ]
 }
