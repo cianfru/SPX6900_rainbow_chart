@@ -185,11 +185,19 @@ export async function fromTransfers(src, prices) {
   };
   let curDay = null, curT = 0;
   const flushTo = (nextDay) => { snap(curDay); for (let t = curT + DAY; dayOf(t) < nextDay; t += DAY) snap(dayOf(t)); };
-  for (const r of rows) {
-    const d = dayOf(r.t);
+  // Replay ONE BLOCK (same timestamp) at a time, applying every RECEIVE before every SEND — the SAME
+  // rule the FIFO engine (build-onchain-local.mjs) uses. block_timestamp is per-block with no intra-block
+  // order, so a send processed before its same-block receive hits an empty balance, the Math.max(0,…)
+  // clamp drops the debit, and the wallet keeps a phantom balance — which inflated the citizen count
+  // (~5.7k vs the live city's ~4.85k). Receives-first fixes it without an ordering column.
+  for (let i = 0; i < rows.length;) {
+    const t0 = rows[i].t, d = dayOf(t0);
     if (curDay === null) { curDay = d; curT = Date.parse(curDay); }
     else if (d !== curDay) { const nd = Date.parse(d); flushTo(d); curDay = d; curT = nd; }
-    touch(r.from, -r.qty, r.t); touch(r.to, r.qty, r.t);
+    let j = i; while (j < rows.length && rows[j].t === t0) j++;
+    for (let k = i; k < j; k++) touch(rows[k].to, rows[k].qty, t0);      // credits first
+    for (let k = i; k < j; k++) touch(rows[k].from, -rows[k].qty, t0);   // then debits
+    i = j;
   }
   if (curDay !== null) snap(curDay);
   console.error(`city-history[daily]: ${rows.length} transfers → ${out.length} days`);
