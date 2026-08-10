@@ -55,8 +55,13 @@ export default function ValuationComposite({ isMobile, preview = false }) {
   // v2 = independent AXES (data.axes + cur.byAxis). Fall back to the old flat lens list if an
   // older valuation.json is still deployed, so the page never breaks mid-rollout.
   const breakdown = (data.axes
-    ? data.axes.map(a => ({ key: a.key, label: a.label, weight: a.weight, pct: cur.byAxis?.[a.key] }))
-    : (data.indicators || []).map(i => ({ key: i.key, label: i.label, weight: i.weight, pct: cur.byLens?.[i.key] }))
+    ? data.axes.map(a => ({
+        key: a.key, label: a.label, weight: a.weight, pct: cur.byAxis?.[a.key],
+        // The lenses that make up the axis, with their own percentile. Shown as sub-rows when an axis
+        // combines more than one (the Valuation axis averages rainbow + MVRV so they vote once).
+        members: (a.members || []).map(m => ({ label: m.label, pct: cur.byLens?.[m.key] })).filter(m => m.pct != null),
+      }))
+    : (data.indicators || []).map(i => ({ key: i.key, label: i.label, weight: i.weight, pct: cur.byLens?.[i.key], members: [] }))
   ).filter(b => b.pct != null);
   const zLbl = (txt, col) => preview ? undefined : { value: txt, position: "insideRight", fill: col, fontSize: 10.5, fontFamily: MONO, opacity: 0.95 };
 
@@ -128,6 +133,25 @@ export default function ValuationComposite({ isMobile, preview = false }) {
                   {bar("weight", b.weight, "#a78bfa", `${b.weight}%`)}
                   {bar("reads", (pct * 100).toFixed(0), z.color, (pct * 100).toFixed(0))}
                 </div>
+                {b.members.length > 1 && (
+                  <div style={{ marginTop: 8, paddingTop: 7, borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+                    <div style={{ fontFamily: MONO, fontSize: 9.5, letterSpacing: "0.08em", textTransform: "uppercase", color: "#64748b", marginBottom: 5 }}>
+                      {b.members.length} lenses · averaged so they vote once
+                    </div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                      {b.members.map(mem => {
+                        const mz = zoneOf(zones, mem.pct);
+                        return (
+                          <div key={mem.label} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 11.5 }}>
+                            <span style={{ flex: "0 0 auto", width: 7, height: 7, borderRadius: 2, background: mz.color }} />
+                            <span style={{ flex: "1 1 auto", fontFamily: SANS, color: "#94a3b8", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{mem.label}</span>
+                            <span style={{ flex: "0 0 auto", fontFamily: MONO, fontWeight: 700, color: mz.color }}>{(mem.pct * 100).toFixed(0)}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
             );
           })}
