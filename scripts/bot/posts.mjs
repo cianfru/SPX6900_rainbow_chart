@@ -24,6 +24,7 @@ import { wealthWavesStats } from "./wealth-waves-card.mjs";
 import { ethSol2026Data } from "./eth-sol-2026-card.mjs";
 import { whaleCensusStats } from "./whale-census-card.mjs";
 import { cityGrowthStats } from "./city-growth-card.mjs";
+import { cityValueStats } from "./city-value-card.mjs";
 import { cityChurnStats } from "./city-churn-card.mjs";
 import { cityPercapStats } from "./city-percap-card.mjs";
 import { cityVintageStats } from "./city-vintage-card.mjs";
@@ -1070,6 +1071,21 @@ Few wallets, most of the weight.`,
 The city filled up straight through the drawdown: the citizen count kept climbing while price round-tripped. Adoption isn't following the chart.
 Every resident a building.`,
       card: { type: "citygrowth" },
+    };
+  },
+
+  // SPX City's total value — the DOLLAR sibling of the growth card. The count held; the value rode
+  // the price cycle (ballooned into the 2025 top, round-tripped back). Hand-postable (NO_ROTATE).
+  () => {
+    const c = cityValueStats();
+    if (!c) return null;
+    const fV = v => v >= 1e9 ? `$${(v / 1e9).toFixed(2)}B` : v >= 1e6 ? `$${(v / 1e6).toFixed(0)}M` : `$${Math.round(v / 1e3)}k`;
+    return {
+      id: "cityvalue",
+      text: ct`🏙 SPX City is worth ${fV(c.value)} today — it peaked at ${fV(c.peak)} in the ${c.peakDate.slice(0, 7)} top, ${(c.drawdown * 100).toFixed(0)}% ago.
+Value is every resident's holdings × price, so it rode the whole cycle up and back — while the citizen count barely dipped. People stayed; the dollars followed the chart.
+The residents didn't leave. The price did.`,
+      card: { type: "cityvalue" },
     };
   },
 
@@ -2378,7 +2394,7 @@ const weightOf = id => WEIGHT[id] ?? (BULLISH.has(id) ? 2 : 1);
 // marketcap ("real free-float cap / thin float") is RETIRED — its premise is false: SPX is a
 // fair launch with no lockup, so free float is ~88% (not thin). The honest story is
 // illiquid/liquid supply (the reframed freefloat card), so marketcap is out of the feed.
-const NO_ROTATE = new Set(["drawdown", "risk", "kraken", "dcaladder", "marketcap", "spxcohort", "cexsupply", "cexflow", "cexvenues", "cexvenflow", "nrpl", "liveliness", "citygrowth", "citychurn", "citypercap", "cityvintage", "cityskyline", "floatcheck"]);
+const NO_ROTATE = new Set(["drawdown", "risk", "kraken", "dcaladder", "marketcap", "spxcohort", "cexsupply", "cexflow", "cexvenues", "cexvenflow", "nrpl", "liveliness", "citygrowth", "cityvalue", "citychurn", "citypercap", "cityvintage", "cityskyline", "floatcheck"]);
 
 // LONG-FORM cards — the few methodology / teaching posts that genuinely need more than the
 // 290 instant-read ceiling (see the post-length test). Default stays 290 for EVERY other card;
@@ -2448,7 +2464,7 @@ const LOOK = {
   firesalerally: "fanlines",
   model: "scatter",
   monthlyreturns: "heatmap", monthlyreturnssp: "heatmap", monthlyreturnsbtc: "heatmap",
-  hodlwaves: "stack", hodlcompare: "stack", walletgrowth: "stack", lthsth: "stack", valband: "dual", cexvenues: "stack", citygrowth: "stack", citychurn: "bars", citypercap: "dual", cityvintage: "bars", cityskyline: "stack", floatcheck: "bars",
+  hodlwaves: "stack", hodlcompare: "stack", walletgrowth: "stack", lthsth: "stack", valband: "dual", cexvenues: "stack", citygrowth: "stack", cityvalue: "stack", citychurn: "bars", citypercap: "dual", cityvintage: "bars", cityskyline: "stack", floatcheck: "bars",
   timeinband: "bars", monthlybars: "bars", monthcompare: "bars", multichain: "bars", urpd: "bars", urpdage: "bars", cexvenflow: "bars", ethsol: "bars", chainconc: "bars", illiquid: "stack", baltier: "bars", dualholders: "stack", basesurv: "bars", supplycurve: "race", whalecensus: "bars", whalebehaviour: "bars",
   fngdial: "round", distribution: "round",
   marketcap: "blocks", milestones: "blocks", sp500: "blocks",

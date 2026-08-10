@@ -51,6 +51,7 @@ import { renderBaseSurvCard } from "./base-survival-card.mjs";
 import { renderSupplyCurveCard } from "./supply-curve-card.mjs";
 import { renderWhaleCensusCard } from "./whale-census-card.mjs";
 import { renderCityGrowthCard } from "./city-growth-card.mjs";
+import { renderCityValueCard } from "./city-value-card.mjs";
 import { renderCityChurnCard } from "./city-churn-card.mjs";
 import { renderCityPercapCard } from "./city-percap-card.mjs";
 import { renderCityVintageCard } from "./city-vintage-card.mjs";
@@ -902,7 +903,7 @@ export const CARD_TYPES = new Set([
   "freefloat", "nupl", "concentration", "hodlwaves", "hodlcompare", "urpd", "urpdage",
   "lthsth", "sopr", "nrpl", "liveliness", "valband", "walletgrowth", "picycle", "spxbitcoin", "spxcohort",
   "cexsupply", "cexflow", "cexvenues", "cexvenflow", "whales", "walletwaves", "wealthwaves", "survivorship", "supplyera", "exitmap", "smartmoney",
-  "cyclesync", "cycleclock", "rsidots", "monthcompare", "ethsol", "chainconc", "illiquid", "baltier", "dualholders", "basesurv", "supplycurve", "whalecensus", "whalebehaviour", "whalemosaic", "citygrowth", "citychurn", "citypercap", "cityvintage", "cityskyline", "floatcheck",
+  "cyclesync", "cycleclock", "rsidots", "monthcompare", "ethsol", "chainconc", "illiquid", "baltier", "dualholders", "basesurv", "supplycurve", "whalecensus", "whalebehaviour", "whalemosaic", "citygrowth", "cityvalue", "citychurn", "citypercap", "cityvintage", "cityskyline", "floatcheck",
   // spec-driven generics
   "line", "bar", "mbars", "donut", "stack", "model", "cube", "scale", "gauge", "fngdial",
   "heatmap", "dca", "dcaladder", "statgrid", "kraken",
@@ -936,6 +937,7 @@ export function renderPostCard(post, stats, opts = {}) {
   if (type === "mvrvtrend") return renderMvrvTrendCard(stats, dims);
   if (type === "supplyprofit") return renderSupplyProfitCard(stats, dims);
   if (type === "citygrowth") return renderCityGrowthCard(stats, dims);
+  if (type === "cityvalue") return renderCityValueCard(stats, dims);
   if (type === "citychurn") return renderCityChurnCard(stats, dims);
   if (type === "citypercap") return renderCityPercapCard(stats, dims);
   if (type === "cityvintage") return renderCityVintageCard(stats, dims);
