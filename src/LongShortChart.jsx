@@ -1,8 +1,9 @@
 import { useMemo, useState, useEffect } from "react";
 import {
-  ResponsiveContainer, ComposedChart, Bar, Cell, Line, XAxis, YAxis, Tooltip, CartesianGrid, ReferenceLine, ReferenceArea,
+  ResponsiveContainer, ComposedChart, Bar, Cell, Line, XAxis, YAxis, Tooltip, CartesianGrid, ReferenceLine, ReferenceArea, ReferenceDot,
 } from "recharts";
 import { loadLongShort } from "./history-data.js";
+import { useHyperliquidLive } from "./hl-live.js";
 import { SANS, MONO, MAX_W, Metric, TipBox, ZoomBar } from "./chart-ui.jsx";
 import { useDragZoom } from "./use-drag-zoom.js";
 
@@ -35,6 +36,9 @@ function Tip({ active, payload, neutral }) {
 export default function LongShortChart({ series, isMobile }) {
   const [ls, setLs] = useState(null);
   useEffect(() => { let c = false; loadLongShort().then(d => { if (!c) setLs(d); }); return () => { c = true; }; }, []);
+  // Live market pulse straight from Hyperliquid's WebSocket (funding / OI / mark price stream in while
+  // the chart is open). The daily banker still owns the history; this only refreshes the leading edge.
+  const live = useHyperliquidLive("SPX");
 
   const priceByDate = useMemo(() => {
     const m = new Map();
@@ -96,12 +100,48 @@ export default function LongShortChart({ series, isMobile }) {
   const pTicks = [0.0001, 0.001, 0.01, 0.1, 1, 10].filter(v => v >= priceDomain[0] && v <= priceDomain[1]);
   const dragProps = { onMouseDown: onDown, onMouseMove: onMove, onMouseUp: onUp, onMouseLeave: onUp, style: { cursor: "crosshair", userSelect: "none" } };
 
+  // LIVE pulse: prefer the streaming Hyperliquid values over the banked daily ones when connected.
+  const liveApr = live.funding != null ? toAPR(live.funding) : null;
+  const isLive = live.connected && liveApr != null;
+  const apr = isLive ? liveApr : cur.apr;
+  const dev = isLive ? liveApr - neutral : cur.dev;
+  const oi = isLive && live.oi != null ? live.oi : curOI;
+  const price = isLive && live.markPx != null ? live.markPx : cur.price;
+  // Pulsing marker at the live price — only when the view still includes the leading edge (not zoomed away).
+  const lastTs = allRows.at(-1).ts;
+  const showLiveDot = isLive && price != null && xDomain[1] >= lastTs - DAY && xDomain[0] <= lastTs;
+  const LivePulse = ({ cx, cy }) => (cx == null || cy == null) ? null : (
+    <g>
+      <circle cx={cx} cy={cy} r={9} fill="none" stroke={PRICE} strokeWidth={1.5}>
+        <animate attributeName="r" values="5;15" dur="1.5s" repeatCount="indefinite" />
+        <animate attributeName="opacity" values="0.7;0" dur="1.5s" repeatCount="indefinite" />
+      </circle>
+      <circle cx={cx} cy={cy} r={4.5} fill={PRICE} stroke="#0b1220" strokeWidth={1.5} />
+    </g>
+  );
+
   return (
     <div style={{ maxWidth: MAX_W, margin: "0 auto" }}>
+      <style>{`@keyframes lsPulse{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(52,211,153,.5)}50%{opacity:.55;box-shadow:0 0 0 5px rgba(52,211,153,0)}}`}</style>
+
+      <div style={{ display: "flex", justifyContent: "center", marginBottom: 12 }}>
+        <span style={{
+          display: "inline-flex", alignItems: "center", gap: 8, fontFamily: MONO, fontSize: 11.5, letterSpacing: "0.06em",
+          padding: "4px 12px", borderRadius: 999,
+          color: isLive ? "#6ee7b7" : "#94a3b8",
+          background: isLive ? "rgba(52,211,153,0.1)" : "rgba(148,163,184,0.08)",
+          border: `1px solid ${isLive ? "rgba(52,211,153,0.4)" : "rgba(148,163,184,0.25)"}`,
+        }}>
+          <span style={{ width: 7, height: 7, borderRadius: "50%", background: isLive ? LONG : "#64748b", animation: isLive ? "lsPulse 1.5s ease-in-out infinite" : "none" }} />
+          {isLive ? "LIVE · Hyperliquid" : "connecting to Hyperliquid…"}
+        </span>
+      </div>
+
       <div style={{ display: "flex", gap: isMobile ? 16 : 30, justifyContent: "center", marginBottom: 14, flexWrap: "wrap" }}>
-        <Metric label="funding (APR)" value={fPct(cur.apr)} color={cur.dev >= 0 ? LONG : SHORT} sub={`${fPct(cur.dev)} vs neutral · ${cur.dev >= 0 ? "long-leaning" : "short-leaning"}`} />
-        {curOI != null && <Metric label="open interest" value={fOI(curOI) + " SPX"} color="#a78bfa" sub="Hyperliquid perp" />}
-        {cur.price != null && <Metric label="price" value={fPrice(cur.price)} color={PRICE} sub="live" />}
+        <Metric label="funding (APR)" value={fPct(apr)} color={dev >= 0 ? LONG : SHORT} sub={`${fPct(dev)} vs neutral · ${dev >= 0 ? "long-leaning" : "short-leaning"}`} />
+        {oi != null && <Metric label="open interest" value={fOI(oi) + " SPX"} color="#a78bfa" sub={isLive ? "live · perp" : "Hyperliquid perp"} />}
+        {price != null && <Metric label="mark price" value={fPrice(price)} color={PRICE} sub={isLive ? "live" : "daily"} />}
+        {isLive && live.vlm != null && <Metric label="24h volume" value={"$" + fOI(live.vlm)} color="#94a3b8" sub="Hyperliquid" />}
       </div>
 
       <ZoomBar zoomed={zoomed} onReset={() => setZoom(null)} accent={LONG} viewing="Viewing a selected window." />
@@ -125,6 +165,9 @@ export default function LongShortChart({ series, isMobile }) {
             {rows.map((r, i) => <Cell key={i} fill={r.dev >= 0 ? LONG : SHORT} fillOpacity={0.85} />)}
           </Bar>
           <Line yAxisId="price" type="monotone" dataKey="price" stroke={PRICE} strokeWidth={2} dot={false} isAnimationActive={false} name="price" connectNulls />
+          {showLiveDot && (
+            <ReferenceDot yAxisId="price" x={lastTs} y={price} shape={LivePulse} ifOverflow="hidden" isFront />
+          )}
           {selL != null && selR != null && selL !== selR && (
             <ReferenceArea yAxisId="price" x1={selL} x2={selR} strokeOpacity={0.3} stroke={LONG} fill={LONG} fillOpacity={0.12} />
           )}
@@ -135,6 +178,7 @@ export default function LongShortChart({ series, isMobile }) {
         On-chain perp <strong style={{ color: "#e2e8f0" }}>funding rate</strong> from <strong>Hyperliquid</strong>, annualised and <strong>normalised to its neutral baseline</strong>
         (~{Math.round(neutral)}% APR — what longs pay even in a balanced book). <span style={{ color: LONG }}>Green</span> = above neutral (extra demand to be long),
         <span style={{ color: SHORT }}> red</span> = below (leaning short). On-chain and <em>unmanipulable</em>. Extremes are a contrarian tell, not a timing signal.
+        The figures up top <strong style={{ color: "#6ee7b7" }}>stream live</strong> from Hyperliquid's WebSocket; the bars are the daily funding history.
         <strong style={{ color: "#7dd3fc" }}> Drag to zoom.</strong> Not financial advice.
       </div>
     </div>
