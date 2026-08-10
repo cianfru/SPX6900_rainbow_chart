@@ -40,8 +40,6 @@ import BandStats from "./BandStats.jsx";
 import ErrorBoundary from "./ErrorBoundary.jsx";
 import BandHistory from "./BandHistory.jsx";
 import { SANS, MONO, MAX_W } from "./chart-ui.jsx";
-import "./terminal.css";
-import TerminalNav from "./TerminalNav.jsx";
 const HolderscanDashboard = lazy(() => import("./HolderscanDashboard.jsx"));
 const RiskChart = lazy(() => import("./RiskChart.jsx"));
 const DrawdownChart = lazy(() => import("./DrawdownChart.jsx"));
@@ -753,21 +751,15 @@ export default function App() {
     </div>
   );
 
-  // Sub-pages (everything but home + the ?view=next landing preview) wear the terminal
-  // shell: near-black ground, Geist type, the DOS cascade nav. Home + the iframe landing
-  // keep their own chrome untouched.
-  const isSub = ["gallery", "chart", "aeon", "city", "methods", "docs"].includes(route);
-
   return (
-    <div className={isSub ? "tzone" : undefined} style={{
+    <div style={{
       position: "relative", isolation: "isolate",
       width: "100%", minHeight: "100vh",
-      background: isSub ? undefined : `radial-gradient(1100px 540px at 50% -8%, ${cb.c}24, transparent 60%), #020208`,
+      background: `radial-gradient(1100px 540px at 50% -8%, ${cb.c}24, transparent 60%), #020208`,
       transition: "background 0.6s ease",
-      fontFamily: isSub ? undefined : SANS, color: isSub ? undefined : "#e2e8f0",
+      fontFamily: SANS, color: "#e2e8f0",
     }}>
-      {/* Rainbow aurora mesh — home chrome only; the terminal shell brings its own ground */}
-      {!isSub && (<>
+      {/* Rainbow aurora mesh */}
       <div aria-hidden="true" style={{
         position: "fixed", inset: 0, zIndex: -2, overflow: "hidden", pointerEvents: "none",
       }}>
@@ -797,15 +789,8 @@ export default function App() {
         ].join(","),
         animation: "star-drift 26s linear infinite",
       }} />
-      </>)}
 
-      {/* Terminal cascade nav for sub-pages; the glass pill nav stays on home + landing preview */}
-      {isSub ? (
-        <nav style={{ position: "sticky", top: 0, zIndex: 50, width: "100%",
-          background: "rgba(8,9,11,0.86)", backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)" }}>
-          <TerminalNav onHome={goHome} openGallery={openGallery} openAeon={openAeon} openCity={openCity} goChart={goChart} />
-        </nav>
-      ) : (
+      {/* Unified sticky nav — minimal */}
       <nav ref={navRef} style={{
         position: "sticky", top: 0, zIndex: 50, width: "100%",
         background: "rgba(6, 8, 18, 0.35)", backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)",
@@ -885,7 +870,6 @@ export default function App() {
           {navActions}
         </div>
       </nav>
-      )}
 
       {/* Content */}
       <div style={{ padding: isMobile ? "16px 12px 40px" : "26px 20px 52px" }}>
