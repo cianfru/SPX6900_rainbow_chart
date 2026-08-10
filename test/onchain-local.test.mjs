@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { replayFifo, gini, ageBand, makePriceAt, mondays, computeUrpd, urpdGrid, binHeldSupply } from "../scripts/build-onchain-local.mjs";
+import { replayFifo, gini, ageBand, makePriceAt, mondays, computeUrpd, urpdGrid, binHeldSupply, detectSelfSplits } from "../scripts/build-onchain-local.mjs";
 
 const DAY = 86400000;
 const D0 = Date.UTC(2024, 0, 1);
@@ -215,4 +215,81 @@ test("dormancy is null in a window where nothing moves", () => {
   assert.equal(r.cdd, 0);
   assert.equal(r.nrpl, 0);
   assert.equal(r.liveliness, 0); // nothing destroyed yet
+});
+
+// ── Self-split detection + age inheritance ─────────────────────────────────────────────────────────
+const ix = arr => arr.map((t, i) => ({ ...t, i }));
+
+test("self-split: a fresh, equal fan-out from an emptying whale is detected", () => {
+  const tx = ix([
+    { from: ZERO, to: "whale", ts: d(0), amt: 5_500_000 },
+    { from: "whale", to: "n1", ts: d(200), amt: 1_100_000 },
+    { from: "whale", to: "n2", ts: d(200), amt: 1_100_000 },
+    { from: "whale", to: "n3", ts: d(200), amt: 1_100_000 },
+    { from: "whale", to: "n4", ts: d(200), amt: 1_100_000 },
+    { from: "whale", to: "n5", ts: d(200), amt: 1_100_000 },
+  ]);
+  const det = detectSelfSplits(tx);
+  assert.equal(det.count, 1);
+  near(det.supply, 5_500_000, 1);
+  assert.equal(det.splitIdx.size, 5);
+  assert.equal(det.linkOf.get("n3"), "whale");
+});
+
+test("self-split: recipients INHERIT the source's coin age (not reset to fresh) and it's not a spend", () => {
+  const price = makePriceAt([[d(0), 1], [d(200), 2]]);
+  const tx = [
+    { from: ZERO, to: "whale", ts: d(0), amt: 5_500_000 },   // bought 200d before the split
+    { from: "whale", to: "n1", ts: d(200), amt: 1_100_000 },
+    { from: "whale", to: "n2", ts: d(200), amt: 1_100_000 },
+    { from: "whale", to: "n3", ts: d(200), amt: 1_100_000 },
+    { from: "whale", to: "n4", ts: d(200), amt: 1_100_000 },
+    { from: "whale", to: "n5", ts: d(200), amt: 1_100_000 },
+  ];
+  const [r] = replayFifo(tx, price, [d(205)]);
+  assert.equal(r.holders, 5);        // whale emptied, 5 recipients remain
+  near(r.age[3], 100);               // 205d old (inherited) → the 6-12m band, NOT fresh
+  near(r.age[0], 0);
+  near(r.lthLoss + r.lthProfit, 100, 0.5); // all long-term (age ≥ 90d), by inheritance
+  near(r.nrpl, 0, 1);                // a relocation, not a realized sale → no P/L
+});
+
+test("self-split OFF (normal transfer path) resets age to fresh — proves the fix does the work", () => {
+  const price = makePriceAt([[d(0), 1], [d(200), 2]]);
+  const tx = [
+    { from: ZERO, to: "whale", ts: d(0), amt: 5_500_000 },
+    { from: "whale", to: "n1", ts: d(200), amt: 1_100_000 },
+    { from: "whale", to: "n2", ts: d(200), amt: 1_100_000 },
+    { from: "whale", to: "n3", ts: d(200), amt: 1_100_000 },
+    { from: "whale", to: "n4", ts: d(200), amt: 1_100_000 },
+    { from: "whale", to: "n5", ts: d(200), amt: 1_100_000 },
+  ];
+  const [r] = replayFifo(tx, price, [d(205)], { detectSplits: false });
+  near(r.age[0], 100);               // without the fix, all 5 read as fresh (5d)
+  near(r.age[3], 0);
+});
+
+test("self-split guards: unequal / non-fresh / partial / too-few / excluded are NOT flagged", () => {
+  const base = { from: ZERO, to: "whale", ts: d(0), amt: 5_500_000 };
+  // unequal amounts
+  assert.equal(detectSelfSplits(ix([base,
+    { from: "whale", to: "a", ts: d(9), amt: 2_000_000 }, { from: "whale", to: "b", ts: d(9), amt: 1_000_000 },
+    { from: "whale", to: "c", ts: d(9), amt: 2_500_000 }])).count, 0);
+  // a recipient already held SPX (not fresh)
+  assert.equal(detectSelfSplits(ix([base, { from: ZERO, to: "a", ts: d(1), amt: 10 },
+    { from: "whale", to: "a", ts: d(9), amt: 1_100_000 }, { from: "whale", to: "b", ts: d(9), amt: 1_100_000 },
+    { from: "whale", to: "c", ts: d(9), amt: 1_100_000 }, { from: "whale", to: "e", ts: d(9), amt: 1_100_000 },
+    { from: "whale", to: "f", ts: d(9), amt: 1_100_000 }])).count, 0);
+  // source keeps most of its balance (doesn't empty)
+  assert.equal(detectSelfSplits(ix([base,
+    { from: "whale", to: "a", ts: d(9), amt: 500_000 }, { from: "whale", to: "b", ts: d(9), amt: 500_000 },
+    { from: "whale", to: "c", ts: d(9), amt: 500_000 }])).count, 0);
+  // too few recipients (2 < 3)
+  assert.equal(detectSelfSplits(ix([base,
+    { from: "whale", to: "a", ts: d(9), amt: 2_750_000 }, { from: "whale", to: "b", ts: d(9), amt: 2_750_000 }])).count, 0);
+  // excluded source (a pool distributing) is never a self-split
+  assert.equal(detectSelfSplits(ix([{ from: ZERO, to: POOL, ts: d(0), amt: 5_500_000 },
+    { from: POOL, to: "a", ts: d(9), amt: 1_100_000 }, { from: POOL, to: "b", ts: d(9), amt: 1_100_000 },
+    { from: POOL, to: "c", ts: d(9), amt: 1_100_000 }, { from: POOL, to: "e", ts: d(9), amt: 1_100_000 },
+    { from: POOL, to: "f", ts: d(9), amt: 1_100_000 }])).count, 0);
 });
