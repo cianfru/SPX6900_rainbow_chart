@@ -166,7 +166,7 @@ export default function LandingPage({ isMobile, priceData }) {
 
   return (
     <div style={{ background: "#07080b", color: "#f3f5f8", fontFamily: SANS }}>
-      <style>{`@keyframes lpPulse{0%,100%{opacity:1}50%{opacity:.35}}`}</style>
+      <style>{`@keyframes lpPulse{0%,100%{opacity:1}50%{opacity:.5}}`}</style>
       <div style={{ maxWidth: 1120, margin: "0 auto", padding: isMobile ? "0 20px 60px" : "0 32px 80px" }}>
 
         {/* HERO — composite headline (left) + the price CARD (right) */}
@@ -186,13 +186,9 @@ export default function LandingPage({ isMobile, priceData }) {
           <div style={{ borderLeft: isMobile ? "none" : "1px solid #1b1f29", paddingLeft: isMobile ? 0 : 26 }}>
             <div style={{ ...kicker, display: "flex", alignItems: "center", gap: 9 }}>
               Spot
-              {liveOn && (
-                <span style={{ display: "inline-flex", alignItems: "center", gap: 5, color: "#25e07d", letterSpacing: "0.1em" }}>
-                  <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#25e07d", animation: "lpPulse 1.5s ease-in-out infinite" }} />LIVE · KRAKEN
-                </span>
-              )}
+              {liveOn && <span style={{ color: "#25e07d", letterSpacing: "0.1em" }}>LIVE · KRAKEN</span>}
             </div>
-            <div style={{ fontWeight: 800, fontSize: isMobile ? 44 : 54, letterSpacing: "-0.03em", lineHeight: 1, margin: "8px 0 8px", fontVariantNumeric: "tabular-nums" }}>${price.toFixed(4)}</div>
+            <div style={{ fontWeight: 800, fontSize: isMobile ? 44 : 54, letterSpacing: "-0.03em", lineHeight: 1, margin: "8px 0 8px", fontVariantNumeric: "tabular-nums", animation: liveOn ? "lpPulse 1.4s ease-in-out infinite" : "none" }}>${price.toFixed(4)}</div>
             <div style={{ fontFamily: MONO, fontSize: 12.5, color: "#aeb7c6" }}>
               <span style={{ color: chgPct >= 0 ? "#25e07d" : "#ff5470" }}>{chgPct >= 0 ? "+" : ""}{chgPct.toFixed(2)}%</span> {liveOn ? "24h" : "today"} · mcap {MONf(price * SUPPLY)}
             </div>
