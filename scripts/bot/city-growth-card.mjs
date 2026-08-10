@@ -10,7 +10,9 @@ import { brandStripe } from "./chrome.mjs";
 import { cityBg } from "./city-card-bg.mjs";
 
 const png = (svg, w) => new Resvg(svg, { fitTo: { mode: "width", value: w }, font: FONT }).render().asPng();
-const fUsd = v => v >= 1e9 ? "$" + (v / 1e9).toFixed(2) + "B" : v >= 1e6 ? "$" + (v / 1e6).toFixed(0) + "M" : "$" + Math.round(v / 1e3) + "k";
+// One decimal on millions to match CityHistoryChart's fUsd exactly, so the card and the site chart
+// can never show a different-looking city TVL ($190.2M on both, not $190M vs $190.2M).
+const fUsd = v => v >= 1e9 ? "$" + (v / 1e9).toFixed(2) + "B" : v >= 1e6 ? "$" + (v / 1e6).toFixed(1) + "M" : "$" + Math.round(v / 1e3) + "k";
 const fNum = v => v >= 1000 ? (v / 1000).toFixed(1) + "k" : Math.round(v).toString();
 
 export function loadCityHistory() {
