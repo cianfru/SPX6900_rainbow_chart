@@ -6,6 +6,7 @@ import { buildModel, BAND_LABELS, dayN, ds, bandVal, bandIndex, whenHitsCenter }
 import { DEFAULT_RAW } from "./data.js";
 import { INDICATORS, ZONES } from "../scripts/bot/valuation-composite.mjs";
 import { loadValuation } from "./history-data.js";
+import { useKrakenLive } from "./kraken-live.js";
 import { SANS, MONO } from "./chart-ui.jsx";
 
 // Dark-committed editorial landing. Flow (owner, in steps): composite is the hero (six-measures
@@ -95,6 +96,17 @@ export default function LandingPage({ isMobile, priceData }) {
   const ceil = bandVal(m, nowDay, Math.min(bIdx + 1, m.bands.length - 1)), floor = bandVal(m, nowDay, bIdx);
   const ceilPct = (ceil / last.price - 1) * 100, floorPct = (floor / last.price - 1) * 100;
 
+  // LIVE spot from Kraken (SPX/USD) — the page's heartbeat. Prefer it over the banked close for the
+  // price card and recompute the card's band readouts from it so the card stays internally consistent
+  // (daysHeld stays a historical count off the banked series). Falls back to the model price off-line.
+  const kr = useKrakenLive("SPX/USD");
+  const liveOn = kr.connected && kr.last != null;
+  const price = liveOn ? kr.last : last.price;
+  const chgPct = liveOn && kr.changePct != null ? kr.changePct : chg;
+  const pIdx = bandIndex(m, price, nowDay), pBand = BAND_LABELS[pIdx];
+  const pCeil = bandVal(m, nowDay, Math.min(pIdx + 1, m.bands.length - 1)), pFloor = bandVal(m, nowDay, pIdx);
+  const pCeilPct = (pCeil / price - 1) * 100, pFloorPct = (pFloor / price - 1) * 100;
+
   const [val, setVal] = useState(null);
   useEffect(() => { let off = false; loadValuation().then(d => { if (!off) setVal(d || false); }); return () => { off = true; }; }, []);
   const [fwd, setFwd] = useState(540);
@@ -154,6 +166,7 @@ export default function LandingPage({ isMobile, priceData }) {
 
   return (
     <div style={{ background: "#07080b", color: "#f3f5f8", fontFamily: SANS }}>
+      <style>{`@keyframes lpPulse{0%,100%{opacity:1}50%{opacity:.35}}`}</style>
       <div style={{ maxWidth: 1120, margin: "0 auto", padding: isMobile ? "0 20px 60px" : "0 32px 80px" }}>
 
         {/* HERO — composite headline (left) + the price CARD (right) */}
@@ -171,18 +184,25 @@ export default function LandingPage({ isMobile, priceData }) {
           </div>
           {/* PRICE CARD */}
           <div style={{ borderLeft: isMobile ? "none" : "1px solid #1b1f29", paddingLeft: isMobile ? 0 : 26 }}>
-            <div style={kicker}>Spot</div>
-            <div style={{ fontWeight: 800, fontSize: isMobile ? 44 : 54, letterSpacing: "-0.03em", lineHeight: 1, margin: "8px 0 8px", fontVariantNumeric: "tabular-nums" }}>${last.price.toFixed(4)}</div>
+            <div style={{ ...kicker, display: "flex", alignItems: "center", gap: 9 }}>
+              Spot
+              {liveOn && (
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 5, color: "#25e07d", letterSpacing: "0.1em" }}>
+                  <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#25e07d", animation: "lpPulse 1.5s ease-in-out infinite" }} />LIVE · KRAKEN
+                </span>
+              )}
+            </div>
+            <div style={{ fontWeight: 800, fontSize: isMobile ? 44 : 54, letterSpacing: "-0.03em", lineHeight: 1, margin: "8px 0 8px", fontVariantNumeric: "tabular-nums" }}>${price.toFixed(4)}</div>
             <div style={{ fontFamily: MONO, fontSize: 12.5, color: "#aeb7c6" }}>
-              <span style={{ color: chg >= 0 ? "#25e07d" : "#ff5470" }}>{chg >= 0 ? "+" : ""}{chg.toFixed(2)}%</span> today · mcap {MONf(last.price * SUPPLY)}
+              <span style={{ color: chgPct >= 0 ? "#25e07d" : "#ff5470" }}>{chgPct >= 0 ? "+" : ""}{chgPct.toFixed(2)}%</span> {liveOn ? "24h" : "today"} · mcap {MONf(price * SUPPLY)}
             </div>
-            <div style={{ ...kicker, marginTop: 18 }}>Band {String(bIdx + 1).padStart(2, "0")} / 09 · {daysHeld} days held</div>
+            <div style={{ ...kicker, marginTop: 18 }}>Band {String(pIdx + 1).padStart(2, "0")} / 09 · {daysHeld} days held</div>
             <div style={{ display: "flex", gap: 2, margin: "8px 0 10px" }}>
-              {BAND_LABELS.map((b, i) => (<span key={i} style={{ height: 12, flex: 1, borderRadius: 1, background: b.c, opacity: i === bIdx ? 1 : 0.32, boxShadow: i === bIdx ? `0 0 10px -1px ${b.c}` : "none" }} />))}
+              {BAND_LABELS.map((b, i) => (<span key={i} style={{ height: 12, flex: 1, borderRadius: 1, background: b.c, opacity: i === pIdx ? 1 : 0.32, boxShadow: i === pIdx ? `0 0 10px -1px ${b.c}` : "none" }} />))}
             </div>
-            <div style={{ fontWeight: 800, fontSize: 19, color: band.c, letterSpacing: "0.02em" }}>{band.l.toUpperCase()}</div>
+            <div style={{ fontWeight: 800, fontSize: 19, color: pBand.c, letterSpacing: "0.02em" }}>{pBand.l.toUpperCase()}</div>
             <div style={{ marginTop: 14, borderTop: "1px solid #1b1f29" }}>
-              {[["Ceiling", ceil, ceilPct], ["Floor", floor, floorPct]].map(([k, v, pc], i) => (
+              {[["Ceiling", pCeil, pCeilPct], ["Floor", pFloor, pFloorPct]].map(([k, v, pc], i) => (
                 <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", padding: "9px 0", borderBottom: "1px solid #14161c", fontFamily: MONO, fontSize: 13 }}>
                   <span style={{ color: "#727d90", textTransform: "uppercase", letterSpacing: "0.08em", fontSize: 11 }}>{k}</span>
                   <span><span style={{ color: "#f3f5f8", fontVariantNumeric: "tabular-nums" }}>{v.toFixed(v < 1 ? 4 : 2)}</span> <span style={{ color: pc >= 0 ? "#25e07d" : "#ff5470", marginLeft: 6 }}>{pc >= 0 ? "+" : ""}{pc.toFixed(0)}%</span></span>
