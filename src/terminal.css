@@ -1,0 +1,82 @@
+/* ─────────────────────────────────────────────────────────────────────────
+   Terminal shell — the ?view=next landing's look, ported for the real sub-pages
+   (gallery / chart / aeon / city / methods). Everything is scoped under .tzone
+   so the untouched home route keeps its current styling. Palette = the landing's
+   CALM variant; fonts = Geist / Geist Mono (loaded in index.html).
+   ───────────────────────────────────────────────────────────────────────── */
+.tzone{
+  --bg:#08090b; --panel:#0e1013; --panel2:#0b0c0f; --line:#1e2128; --line2:#2c303a;
+  --tx:#f4f6f9; --dim:#9aa3b2; --faint:#646b78; --live:#4ee79a;
+  --sans:'Geist','Space Grotesk',system-ui,sans-serif;
+  --mono:'Geist Mono',ui-monospace,'SF Mono',Menlo,Consolas,monospace;
+  /* the rainbow bands as a hairline — the brand rule */
+  --rainbow:linear-gradient(90deg,#7c3aed,#2563eb,#06b6d4,#10b981,#a3e635,#fde047,#fb923c,#ef4444);
+  min-height:100vh; color:var(--tx); font-family:var(--sans);
+  background:radial-gradient(100% 60% at 50% -8%, rgba(78,231,154,.045), transparent 60%), var(--bg);
+}
+.tzone .twrap{ max-width:1680px; margin:0 auto; padding:0 clamp(16px,3.4vw,34px); position:relative; }
+
+/* ── header bar: brand (home) left · system + social right ── */
+.tzone .tbar{
+  display:flex; align-items:center; justify-content:space-between; gap:12px; min-height:50px;
+  font-family:var(--mono); font-size:13px; letter-spacing:.04em; text-transform:uppercase;
+  color:var(--dim); border-bottom:1px solid var(--line);
+}
+.tzone .tbrand{ display:inline-flex; align-items:center; gap:10px; cursor:pointer; background:none; border:none; padding:8px 0; color:var(--dim); }
+.tzone .tbrand .tlogo{ width:28px; height:28px; object-fit:contain; display:block; }
+.tzone .tbrand b{ color:var(--tx); text-transform:none; letter-spacing:.01em; font-size:17px; font-weight:700; font-family:var(--sans); }
+.tzone .tbrand .bcur{ color:var(--live); animation:tblink 1.2s steps(1) infinite; }
+.tzone .tbarright{ display:inline-flex; align-items:center; gap:14px; }
+.tzone .tsys{ display:inline-flex; align-items:center; gap:8px; white-space:nowrap; }
+.tzone .tsys .fdot{ width:7px; height:7px; border-radius:50%; background:var(--live); box-shadow:0 0 8px var(--live); animation:tblink 1.6s steps(1) infinite; }
+.tzone .tsys .onl{ color:var(--live); text-shadow:0 0 8px var(--live); }
+.tzone .tsys .sep{ color:var(--line2); }
+@media(max-width:640px){ .tzone .tsys{ display:none; } }
+.tzone .tsocial{ display:inline-flex; align-items:center; gap:8px; }
+.tzone .siclink{ display:inline-flex; align-items:center; justify-content:center; width:30px; height:30px; border:1px solid var(--line2); border-radius:6px; color:var(--dim); transition:.14s; text-decoration:none; }
+.tzone .siclink:hover{ color:var(--bg); background:var(--tx); border-color:var(--tx); }
+.tzone .siclink svg{ width:14px; height:14px; display:block; fill:currentColor; }
+.tzone .siclink.krk{ background:var(--bg); }
+.tzone .siclink.krk svg{ width:17px; height:17px; fill:#9d5cf8; stroke:none; }
+.tzone .siclink.krk:hover{ background:linear-gradient(135deg,#a055f8,#7132f5); border-color:transparent; box-shadow:0 0 14px rgba(124,58,237,.6); }
+.tzone .siclink.krk:hover svg{ fill:#fff; }
+
+/* ── DOS cascade nav ── */
+.tzone .tmenu{ display:flex; align-items:center; gap:4px; min-height:48px; position:relative; z-index:20; border-bottom:1px solid var(--line); }
+.tzone .mtop{ position:relative; }
+.tzone .mtop > .mhead{ display:inline-flex; align-items:center; gap:8px; padding:9px 14px; cursor:pointer; font-family:var(--mono); font-size:14px; letter-spacing:.05em; text-transform:uppercase; color:var(--tx); border:1px solid transparent; user-select:none; }
+.tzone .mtop > .mhead .car{ font-size:11px; color:var(--dim); }
+.tzone .mtop:hover > .mhead{ background:var(--tx); color:var(--bg); }
+.tzone .mtop:hover > .mhead .car{ color:var(--bg); }
+
+.tzone .drop,.tzone .subdrop{ display:none; position:absolute; z-index:30; min-width:212px; background:var(--bg); border:1px solid var(--line2); padding:4px; box-shadow:0 12px 34px rgba(0,0,0,.6); }
+.tzone .drop{ top:100%; left:0; } .tzone .mtop:hover > .drop{ display:block; }
+.tzone .subdrop{ left:100%; top:-5px; z-index:31; }
+.tzone .mgroup{ position:relative; } .tzone .mgroup:hover > .subdrop{ display:block; }
+.tzone .mtop.flip .subdrop{ left:auto; right:100%; }
+
+.tzone .mitem{ display:flex; align-items:center; justify-content:space-between; gap:16px; padding:7px 11px; cursor:pointer; font-family:var(--mono); font-size:12.5px; letter-spacing:.03em; text-transform:uppercase; color:var(--dim); white-space:nowrap; }
+.tzone .mitem .mk{ color:var(--faint); }
+.tzone .mitem:hover{ background:var(--tx); color:var(--bg); } .tzone .mitem:hover .mk{ color:var(--bg); }
+.tzone .mitem.grouprow{ color:var(--gc,var(--tx)); }
+.tzone .mitem.allrow{ color:var(--tx); border-bottom:1px solid var(--line); margin-bottom:2px; }
+
+/* cascade preview flyout — a live sparkline panel to the right of the chart list */
+.tzone .leafprev{ display:none; position:absolute; left:100%; top:-5px; margin-left:5px; z-index:32; width:262px; background:var(--bg); border:1px solid var(--line2); box-shadow:0 12px 34px rgba(0,0,0,.55); padding:14px 16px 16px; flex-direction:column; }
+.tzone .leafprev.on{ display:flex; }
+.tzone .mtop.flip .leafprev{ left:auto; right:100%; margin-left:0; margin-right:5px; }
+.tzone .leafprev .spk{ width:100%; height:118px; display:block; border:1px solid var(--line2); background:var(--panel2); }
+.tzone .mprev-kick{ font-family:var(--mono); font-size:10px; letter-spacing:.16em; text-transform:uppercase; color:var(--faint); margin-bottom:9px; }
+.tzone .mprev-title{ font-family:var(--sans); font-size:16px; font-weight:600; color:var(--tx); margin:13px 0 6px; }
+.tzone .mprev-desc{ font-family:var(--mono); font-size:12px; line-height:1.55; color:var(--dim); }
+.tzone .mprev-go{ margin-top:12px; font-family:var(--mono); font-size:11px; letter-spacing:.05em; text-transform:uppercase; color:var(--faint); }
+@media(max-width:900px){ .tzone .leafprev{ display:none!important; } }
+
+@keyframes tblink{ 50%{opacity:.3} }
+
+/* mobile: cascade flyouts stack under their group instead of flying off-screen */
+@media(max-width:760px){
+  .tzone .tmenu{ overflow-x:auto; scrollbar-width:none; }
+  .tzone .subdrop{ position:static; left:auto; min-width:0; border:none; box-shadow:none; background:transparent; padding:0 0 2px 14px; }
+  .tzone .leafprev{ display:none!important; }
+}
