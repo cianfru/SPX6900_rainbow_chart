@@ -776,19 +776,20 @@
     const mL=48,mR=16,mT=10,mB=22,PW=W-mL-mR,PH=H-mT-mB;
     const clean=(v==='calm'||v==='site'); const numFont=clean?"12px ui-monospace, monospace":"12px 'PxVGA', monospace";
     const yOf=p=>mT+PH*(1-Math.max(0,Math.min(1,p)));
-    // valuation zone bands — cheap (green) at the bottom, dear (red) at the top
-    const zones=LIVE.zones||[{max:0.2,color:'#00e676'},{max:0.4,color:'#a3e635'},{max:0.6,color:'#ffd60a'},{max:0.8,color:'#ff8c00'},{max:1.01,color:'#ff2d55'}];
-    if(v!=='green'){ let lo=0; ctx.save(); for(const z of zones){ const y0=yOf(Math.min(z.max,1)), y1=yOf(lo); ctx.globalAlpha=0.11; ctx.fillStyle=z.color; ctx.fillRect(mL,y0,PW,y1-y0); lo=z.max; } ctx.globalAlpha=1; ctx.restore(); }
+    const RB=['#5b2a86','#3b49c9','#1f8fe0','#12c2c2','#37d067','#c7d21f','#f0a915','#f2621b','#e5342f']; // cheap(purple) → dear(red)
+    // faint rainbow band-edge gridlines — colour context without heavy bands
+    if(v!=='green'){ const n=RB.length; ctx.save(); ctx.setLineDash([]); ctx.lineCap='butt'; ctx.lineWidth=1;
+      for(let i=1;i<n;i++){ const y=Math.round(mT+PH*(1-i/n))+.5; ctx.globalAlpha=.16; ctx.strokeStyle=RB[i]; ctx.beginPath(); ctx.moveTo(mL,y); ctx.lineTo(mL+PW,y); ctx.stroke(); } ctx.globalAlpha=1; ctx.restore(); }
     // y gridlines + labels (0..100)
     const dotted=!clean; const gridCol=v==='green'?'rgba(140,255,190,0.18)':'rgba(233,238,247,0.12)';
     ctx.font=numFont; ctx.fillStyle=cssv('--faint'); ctx.strokeStyle=gridCol; ctx.lineWidth=dotted?1.4:1; ctx.lineCap=dotted?'round':'butt'; ctx.setLineDash(dotted?[0.5,5]:[]); ctx.textAlign='right'; ctx.textBaseline='middle';
     [['100',1],['75',.75],['50',.5],['25',.25],['0',0]].forEach(([l,ff])=>{ const y=Math.round(yOf(ff))+.5; ctx.beginPath(); ctx.moveTo(mL,y); ctx.lineTo(mL+PW,y); ctx.stroke(); ctx.fillText(l,mL-8,yOf(ff)); });
     ctx.setLineDash([]); ctx.lineCap='butt';
-    // points from the REAL composite series (valuation.json); fallback = a baked decorative curve (artifact/offline)
+    // points from the REAL composite series (valuation.json); fallback = a baked decorative curve
     const S=LIVE.series; let pts;
     if(S&&S.length>1){ const t0=S[0][0], t1=S[S.length-1][0], span=(t1-t0)||1;
       pts=S.map(r=>[mL+PW*((r[0]-t0)/span), yOf(r[1])]);
-      if(LIVE.composite!=null) pts[pts.length-1]=[mL+PW, yOf(LIVE.composite)]; // end on today's precise value
+      if(LIVE.composite!=null) pts[pts.length-1]=[mL+PW, yOf(LIVE.composite)];
       ctx.textAlign='center'; ctx.textBaseline='top';
       const yA=new Date(t0).getUTCFullYear(), yB=new Date(t1).getUTCFullYear();
       for(let yr=yA; yr<=yB; yr++){ const ts=Date.UTC(yr,0,1); if(ts<t0||ts>t1) continue; const x=mL+PW*((ts-t0)/span); ctx.fillText(yr===yA?String(yr):String(yr).slice(2), x, mT+PH+6); }
@@ -798,13 +799,15 @@
       const fn=t=>{ for(let k=0;k<key.length-1;k++){const[x0,y0]=key[k],[x1,y1]=key[k+1]; if(t>=x0&&t<=x1){const u=(t-x0)/(x1-x0);return y0+(y1-y0)*(u*u*(3-2*u));}} return key[key.length-1][1]; };
       const N=150; pts=[]; for(let k=0;k<=N;k++){const t=k/N;pts.push([mL+PW*t,yOf(fn(t))]);}
     }
+    // RAINBOW fill under the curve, clipped to the data shape — vertical gradient (cheap purple bottom → dear red top)
+    ctx.save(); ctx.beginPath(); ctx.moveTo(pts[0][0],mT+PH); for(const p of pts) ctx.lineTo(p[0],p[1]); ctx.lineTo(pts[pts.length-1][0],mT+PH); ctx.closePath(); ctx.clip();
+    { const g=ctx.createLinearGradient(0,mT+PH,0,mT);
+      if(v==='green'){ g.addColorStop(0,'#06301b'); g.addColorStop(1,'#37f7a0'); } else { RB.forEach((c,i)=>g.addColorStop(i/(RB.length-1),c)); }
+      ctx.globalAlpha=v==='calm'?.62:.7; ctx.fillStyle=g; ctx.fillRect(mL,mT,PW,PH); ctx.globalAlpha=1; }
+    ctx.restore();
+    // the composite line (white) + NOW marker
     const lineCol=v==='green'?'#9dffcf':'#ffffff';
-    // subtle area fill under the line
-    ctx.save(); ctx.beginPath(); ctx.moveTo(pts[0][0],mT+PH); for(const p of pts) ctx.lineTo(p[0],p[1]); ctx.lineTo(pts[pts.length-1][0],mT+PH); ctx.closePath();
-    const g=ctx.createLinearGradient(0,mT,0,mT+PH); g.addColorStop(0, v==='green'?'rgba(157,255,207,0.16)':'rgba(255,255,255,0.13)'); g.addColorStop(1,'rgba(255,255,255,0)'); ctx.fillStyle=g; ctx.fill(); ctx.restore();
-    // the composite line
-    ctx.lineJoin='round'; ctx.shadowColor=lineCol; ctx.shadowBlur=v==='green'?10:6; ctx.strokeStyle=lineCol; ctx.lineWidth=2; ctx.beginPath(); pts.forEach((p,k)=>k?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1])); ctx.stroke(); ctx.shadowBlur=0;
-    // NOW marker
+    ctx.lineJoin='round'; ctx.shadowColor=lineCol; ctx.shadowBlur=v==='green'?10:8; ctx.strokeStyle=lineCol; ctx.lineWidth=2; ctx.beginPath(); pts.forEach((p,k)=>k?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1])); ctx.stroke(); ctx.shadowBlur=0;
     const last=pts[pts.length-1], nowVal=LIVE.composite!=null?Math.round(LIVE.composite*100):16;
     ctx.fillStyle=lineCol; ctx.shadowColor=lineCol; ctx.shadowBlur=10; ctx.beginPath(); ctx.arc(last[0],last[1],4,0,7); ctx.fill(); ctx.shadowBlur=0;
     ctx.font=numFont; ctx.textAlign='right'; ctx.textBaseline='middle'; const _t='NOW · '+nowVal, _w=ctx.measureText(_t).width, _lx=last[0]-10, _ly=last[1]-22;
@@ -901,7 +904,6 @@
 </script>
 
 <script>
-/* staging bolt-on: default LOOK = CALM, rewire nav to deep-link into the real site routes. */
 (function(){
   function go(u){ (window.top||window).location.href=u; }
   var MAP={ "CHARTS":"/?view=charts", "SPX_CITY":"/city", "PROJECT_AEON":"/?view=aeon", "RAINBOW":"/" };
@@ -926,7 +928,7 @@
     if(t.closest("[data-home]") || t.closest(".bar .l")){ e.preventDefault(); e.stopImmediatePropagation(); go("/"); return; }
     if(t.closest("#menu") || t.closest(".pathbar")){ var s=sectionOf(t); if(s && MAP[s]){ e.preventDefault(); e.stopImmediatePropagation(); go(MAP[s]); return; } }
   }, true);
-  var c=document.querySelector(".look button[data-v='calm']"); if(c) c.click();
+  var c=document.querySelector(".look button[data-v="+q+"calm"+q+"]"); if(c) c.click();
 })();
 </script>
 </body>
