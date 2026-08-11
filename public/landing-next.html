@@ -620,6 +620,10 @@
     mt.addEventListener('mouseenter',place); place(); }
   // the exact per-section dropdown body (ALL + groups ▸ → leaves) shared by the landing nav AND the breadcrumb section menu
   function topDropHTML(top){
+    // single-group section (SPX_CITY) → the group's items flat in the drop, no "All" + group cascade
+    if(top.groups.length===1){ const gr=top.groups[0], gc=GCOL[0];
+      const h=gr.items.map(it=>mrow(it,{cls:'leafrow',color:gc,mark:'›',data:`data-top="${top.label}" data-grp="${esc(gr.g)}" data-leaf="${esc(it)}" data-name="${esc(it)}"`})).join('');
+      return `<div class="drop drop-flat">`+h+`</div>`; }
     return `<div class="drop">`+mrow('All',{cls:'allrow',color:'var(--tx)',data:'data-all="'+esc(top.label)+'"'})+groupsHTML(top)+`</div>`; }
   // nav icons + title-case labels that mirror the live website's nav pills (shown only in the SITE look)
   const NAV_ICON={
@@ -654,6 +658,10 @@
     mi.addEventListener('mouseenter',()=>{ if(mi._c)mi._c(); mi._c=typeLbl(lbl); });
     mi.addEventListener('mouseleave',()=>{ if(mi._c){mi._c();mi._c=null;} lbl.textContent=lbl.getAttribute('data-t')||''; }); }
   function megaHTML(top){
+    // single-group section (e.g. SPX_CITY) → show the group's ITEMS flat, no "All"/group cascade
+    if(top.groups.length===1){ const gr=top.groups[0], gc=GCOL[0];
+      const flat=gr.items.map(it=>mrow(it,{cls:'chrow',color:gc,mark:'›',data:`data-top="${esc(top.label)}" data-grp="${esc(gr.g)}" data-leaf="${esc(it)}" data-name="${esc(it)}"`})).join('');
+      return `<div class="mega mega-${top.label.toLowerCase()} single"><div class="mcol mcol-groups">`+flat+`</div><div class="mcol mcol-charts"></div><div class="mcol mcol-prev"></div></div>`; }
     const groups=top.groups.map((gr,gi)=>mrow(gr.g,{cls:'grouprow mgrow',color:GCOL[gi%GCOL.length],mark:'▸',data:'data-gi="'+gi+'" data-gtop="'+esc(top.label)+'" data-ggrp="'+esc(gr.g)+'"'})).join('');
     return `<div class="mega mega-${top.label.toLowerCase()}">`
       +`<div class="mcol mcol-groups">`+mrow('All',{cls:'allrow',color:'var(--tx)',data:'data-all="'+esc(top.label)+'"'})+groups+`</div>`
@@ -663,10 +671,16 @@
   function wireMega(mt, top){ const mega=mt.querySelector('.mega'); if(!mega) return;
     const cCh=mega.querySelector('.mcol-charts'), cPv=mega.querySelector('.mcol-prev');
     // col 3 — preview — appears only once a CHART is hovered (the 3rd choice)
-    const showChart=(name,gc,rowEl)=>{ cCh.querySelectorAll('.chrow').forEach(r=>r.classList.toggle('on', r===rowEl));
+    const showChart=(name,gc,rowEl)=>{ mega.querySelectorAll('.chrow').forEach(r=>r.classList.toggle('on', r===rowEl));
       cPv.style.setProperty('--MEGAC',gc);
       cPv.innerHTML=`<div class="mprev-kick">Preview</div>`+prevOf(top.label,name)+`<div class="mprev-title">${name}</div><div class="mprev-desc">${descOf(name)}</div><div class="mprev-go">→ open chart</div>`;
       mega.classList.add('s3'); };
+    // single-group section: the items live in col 1 already — wire them straight to the preview, no group step
+    if(mega.classList.contains('single')){ const gc=GCOL[0];
+      mega.querySelectorAll('.mcol-groups .chrow').forEach(r=>{ wireTypeRow(r); r.addEventListener('mouseenter',()=>showChart(r.dataset.name,gc,r)); });
+      const reset=()=>{ mega.classList.remove('s3'); mega.querySelectorAll('.chrow').forEach(r=>r.classList.remove('on'));
+        const mr=mt.getBoundingClientRect(), vw=innerWidth; let vx=mr.left; if(vx+MEGA_W>vw-12) vx=vw-12-MEGA_W; if(vx<12) vx=12; mega.style.left=(vx-mr.left)+'px'; mega.style.right='auto'; };
+      mt.addEventListener('mouseenter',reset); mt.addEventListener('click',reset); reset(); return; }
     // col 2 — charts — appears when a GROUP is hovered; preview resets (no chart chosen yet)
     const showGroup=(gi)=>{ const gr=top.groups[gi], gc=GCOL[gi%GCOL.length];
       mega.querySelectorAll('.mgrow').forEach(r=>r.classList.toggle('on', +r.dataset.gi===gi));
