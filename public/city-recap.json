@@ -11,9 +11,9 @@
     "residents": 4966,
     "residentsThen": 4923,
     "residentsDelta": 43,
-    "heldNow": 580759404,
+    "heldNow": 580750403,
     "heldThen": 585087891,
-    "heldDelta": -4328487,
+    "heldDelta": -4337488,
     "newResidents": 51,
     "departed": 8,
     "upgraded": 2,
@@ -74,7 +74,7 @@
         "short": "0xaa0a…00a3",
         "bal": 114065,
         "days": 91,
-        "rank": 672,
+        "rank": 671,
         "family": "concrete",
         "height": 5.5
       },
@@ -221,7 +221,7 @@
       }
     ],
     "yearHeldMilestones": 51,
-    "tweet": "🏙 This week in SPX City\n\n51 moved in, 8 moved out — 2 buildings rose a tier as holders grew and aged in.\n\nA rank #1875 holder's tower went from brick low-rise to concrete mid-rise. -4.33M SPX now stands across 4,966 residents.\n\nEvery building is a real wallet — reproducible on-chain."
+    "tweet": "🏙 This week in SPX City\n\n51 moved in, 8 moved out — 2 buildings rose a tier as holders grew and aged in.\n\nA rank #1875 holder's tower went from brick low-rise to concrete mid-rise. -4.34M SPX now stands across 4,966 residents.\n\nEvery building is a real wallet — reproducible on-chain."
   },
   "monthly": {
     "fromWeek": 152,
@@ -230,9 +230,9 @@
     "residents": 4966,
     "residentsThen": 4942,
     "residentsDelta": 24,
-    "heldNow": 580759404,
+    "heldNow": 580750403,
     "heldThen": 581561880,
-    "heldDelta": -802476,
+    "heldDelta": -811477,
     "newResidents": 184,
     "departed": 160,
     "upgraded": 18,
@@ -479,6 +479,6 @@
       }
     ],
     "yearHeldMilestones": 246,
-    "tweet": "🏙 This month in SPX City\n\n184 moved in, 160 moved out — 18 buildings rose a tier as holders grew and aged in.\n\nA rank #981 holder's tower went from brick low-rise to concrete mid-rise. -802k SPX now stands across 4,966 residents.\n\nEvery building is a real wallet — reproducible on-chain."
+    "tweet": "🏙 This month in SPX City\n\n184 moved in, 160 moved out — 18 buildings rose a tier as holders grew and aged in.\n\nA rank #981 holder's tower went from brick low-rise to concrete mid-rise. -811k SPX now stands across 4,966 residents.\n\nEvery building is a real wallet — reproducible on-chain."
   }
 }
