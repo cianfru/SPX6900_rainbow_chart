@@ -136,8 +136,10 @@
   .mtop:hover > .mhead{ background:var(--tx); color:var(--bg); } .mtop:hover > .mhead .car{ color:var(--bg); }
   .drop,.subdrop{ display:none; position:absolute; z-index:30; min-width:210px; background:var(--bg); border:1px solid var(--line2); padding:4px; box-shadow:0 12px 34px rgba(0,0,0,.6); }
   .drop{ top:100%; left:0; } .mtop:hover > .drop{ display:block; }
-  .subdrop{ left:100%; top:-5px; z-index:31; } @media(max-width:640px){ .subdrop{ left:auto; right:100%; } }
-  .mgroup{ position:relative; } .mgroup:hover > .subdrop{ display:block; }
+  .subdrop{ left:calc(100% + 8px); top:-5px; z-index:31; }
+  .subdrop::before{ content:""; position:absolute; top:0; left:-8px; width:8px; height:100%; }
+  @media(max-width:640px){ .subdrop{ left:auto; right:calc(100% + 8px); } .subdrop::before{ left:auto; right:-8px; } }
+  .mgroup{ position:relative; } .mgroup:hover > .subdrop, .subdrop:hover{ display:block; }
   /* section breadcrumb dropdown = the SAME landing menu for the two NOT-selected sections; each flies its menu out to the right */
   .secdrop{ min-width:210px; }
   .secdrop > .mtop{ position:relative; display:block; }
@@ -168,6 +170,16 @@
   .mprev-go{ margin-top:auto; padding-top:12px; font-family:var(--label); font-size:11px; letter-spacing:.05em; text-transform:uppercase; color:var(--faint); }
   :root[data-variant="site"] .mega .mcol{ border-radius:13px; border-color:rgba(255,255,255,.12); }
   :root[data-variant="site"] .mega .spk{ border-radius:9px; }
+  /* ── CASCADE PREVIEW — the chart-leaf flyout carries a live sparkline panel to its right (wide pages only) ── */
+  .leafprev{ display:none; position:absolute; left:100%; top:-5px; margin-left:5px; z-index:32; width:262px;
+    background:var(--bg); border:1px solid var(--line2); box-shadow:0 12px 34px rgba(0,0,0,.55); padding:14px 16px 16px; flex-direction:column; }
+  .leafprev.on{ display:flex; }
+  .leafprev .spk{ width:100%; height:118px; display:block; border:1px solid var(--line2); background:var(--panel2); }
+  .mtop.flip .subdrop{ left:auto; right:100%; }
+  .mtop.flip .leafprev{ left:auto; right:100%; margin-left:0; margin-right:5px; }
+  :root[data-variant="site"] .leafprev{ border-radius:13px; border-color:rgba(255,255,255,.12); }
+  :root[data-variant="site"] .leafprev .spk{ border-radius:9px; }
+  @media(max-width:900px){ .leafprev{ display:none!important; } }
   .mitem{ display:flex; align-items:center; justify-content:space-between; gap:16px; padding:6px 11px; cursor:pointer; font-family:var(--label); font-size:13px; letter-spacing:.03em; text-transform:uppercase; color:var(--dim); white-space:nowrap; }
   .mitem .mk{ color:var(--faint); } .mitem:hover{ background:var(--tx); color:var(--bg); } .mitem:hover .mk{ color:var(--bg); }
   @keyframes blk{ 0%,48%{opacity:1} 49%,100%{opacity:0} }
@@ -587,9 +599,18 @@
   // the groups (▸) → leaf (›) rows for a section — reused by the landing menu, the breadcrumb section menu AND the ALL segment
   function groupsHTML(top){ let h='';
     top.groups.forEach((gr,gi)=>{ const gc=GCOL[gi%GCOL.length];
-      h+=`<div class="mgroup">`+mrow(gr.g,{cls:'grouprow',color:gc,mark:'▸'})+`<div class="subdrop">`;
-      gr.items.forEach(it=> h+=mrow(it,{cls:'leafrow',color:gc,mark:'›',data:`data-top="${top.label}" data-grp="${esc(gr.g)}" data-leaf="${esc(it)}"`})); h+=`</div></div>`; });
+      h+=`<div class="mgroup">`+mrow(gr.g,{cls:'grouprow',color:gc,mark:'▸',data:`data-gtop="${esc(top.label)}" data-ggrp="${esc(gr.g)}"`})+`<div class="subdrop" style="--MEGAC:${gc}">`;
+      gr.items.forEach(it=> h+=mrow(it,{cls:'leafrow',color:gc,mark:'›',data:`data-top="${top.label}" data-grp="${esc(gr.g)}" data-leaf="${esc(it)}" data-name="${esc(it)}"`}));
+      h+=`<div class="leafprev"></div></div></div>`; });
     return h; }
+  // cascade wiring: a chart-leaf hover fills its group's flyout preview; edge-flip mirrors the cascade leftward when it would overflow
+  function wireCascade(mt, top){
+    mt.querySelectorAll('.mgroup').forEach(mg=>{ const prev=mg.querySelector('.leafprev'), sd=mg.querySelector('.subdrop'); if(!prev) return;
+      const fill=name=>{ prev.innerHTML=`<div class="mprev-kick">Preview</div>`+mspark(name)+`<div class="mprev-title">${name}</div><div class="mprev-desc">${descOf(name)}</div><div class="mprev-go">→ open chart</div>`; prev.classList.add('on'); };
+      mg.querySelectorAll('.leafrow').forEach(lr=> lr.addEventListener('mouseenter',()=>fill(lr.dataset.name)));
+      if(sd) sd.addEventListener('mouseleave',()=>{ prev.classList.remove('on'); prev.innerHTML=''; }); });
+    const place=()=>{ const r=mt.getBoundingClientRect(); mt.classList.toggle('flip', r.left+660 > innerWidth-12); };
+    mt.addEventListener('mouseenter',place); place(); }
   // the exact per-section dropdown body (ALL + groups ▸ → leaves) shared by the landing nav AND the breadcrumb section menu
   function topDropHTML(top){
     return `<div class="drop">`+mrow('All',{cls:'allrow',color:'var(--tx)',data:'data-all="'+esc(top.label)+'"'})+groupsHTML(top)+`</div>`; }
@@ -685,10 +706,10 @@
     rbm.innerHTML=`<div class="mhead" data-home="1"><span class="mico">${RAINBOW_ICON}</span><span class="ml-site">Rainbow</span></div>`;
     m.appendChild(rbm);
     NAV.forEach(top=>{ const mt=document.createElement('div'); mt.className='mtop mtop-'+top.label.toLowerCase();
-      mt.innerHTML=`<div class="mhead"><span class="mico">${NAV_ICON[top.label]||''}</span><span class="ml-term">${top.label}</span><span class="ml-site">${NAV_DISP[top.label]||top.label}</span> <span class="car">▾</span></div>`+megaHTML(top); m.appendChild(mt);
+      mt.innerHTML=`<div class="mhead"><span class="mico">${NAV_ICON[top.label]||''}</span><span class="ml-term">${top.label}</span><span class="ml-site">${NAV_DISP[top.label]||top.label}</span> <span class="car">▾</span></div>`+topDropHTML(top); m.appendChild(mt);
       // menu shows STATIC; the writing effect fires per-row, only on the path you hover
       mt.querySelectorAll('.mitem').forEach(wireTypeRow);
-      wireMega(mt, top);
+      wireCascade(mt, top);
     });
     if(withFresh){ const _nf=document.createElement('div'); _nf.className='navfresh'; _nf.id='fresh'; m.appendChild(_nf); }
     m.addEventListener('click',e=>{ if(e.target.closest('[data-home]')){ window.scrollTo({top:0,behavior:'smooth'}); return; }
@@ -902,7 +923,6 @@
   let to; window.addEventListener('resize',()=>{ clearTimeout(to); to=setTimeout(render,120); });
 })();
 </script>
-
 <script>
 (function(){
   function go(u){ (window.top||window).location.href=u; }
