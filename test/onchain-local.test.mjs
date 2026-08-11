@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { replayFifo, gini, ageBand, makePriceAt, mondays, computeUrpd, urpdGrid, binHeldSupply, detectSelfSplits } from "../scripts/build-onchain-local.mjs";
+import { replayFifo, gini, ageBand, makePriceAt, mondays, computeUrpd, urpdGrid, binHeldSupply, detectSelfSplits, detectConsolidations } from "../scripts/build-onchain-local.mjs";
 
 const DAY = 86400000;
 const D0 = Date.UTC(2024, 0, 1);
@@ -292,4 +292,48 @@ test("self-split guards: unequal / non-fresh / partial / too-few / excluded are 
     { from: POOL, to: "a", ts: d(9), amt: 1_100_000 }, { from: POOL, to: "b", ts: d(9), amt: 1_100_000 },
     { from: POOL, to: "c", ts: d(9), amt: 1_100_000 }, { from: POOL, to: "e", ts: d(9), amt: 1_100_000 },
     { from: POOL, to: "f", ts: d(9), amt: 1_100_000 }])).count, 0);
+});
+
+// ── Consolidation (many→1) detection + age inheritance ──────────────────────────────────────────────
+test("consolidation: two emptying whales merging into a fresh wallet is detected", () => {
+  const tx = ix([
+    { from: ZERO, to: "old1", ts: d(0), amt: 3_000_000 },
+    { from: ZERO, to: "old2", ts: d(0), amt: 2_500_000 },
+    { from: "old1", to: "merged", ts: d(200), amt: 3_000_000 },   // old1 empties → fresh wallet
+    { from: "old2", to: "merged", ts: d(200), amt: 2_500_000 },   // old2 empties → same fresh wallet
+  ]);
+  const det = detectConsolidations(tx);
+  assert.equal(det.count, 1);
+  near(det.supply, 5_500_000, 1);
+  assert.equal(det.splitIdx.size, 2);
+  assert.equal(det.linkOf.get("merged"), "old2");
+});
+
+test("consolidation: the merged wallet INHERITS the sources' age (stays a resident, not fresh)", () => {
+  const price = makePriceAt([[d(0), 1], [d(200), 2]]);
+  const tx = [
+    { from: ZERO, to: "old1", ts: d(0), amt: 3_000_000 },
+    { from: ZERO, to: "old2", ts: d(0), amt: 2_500_000 },
+    { from: "old1", to: "merged", ts: d(200), amt: 3_000_000 },
+    { from: "old2", to: "merged", ts: d(200), amt: 2_500_000 },
+  ];
+  const [r] = replayFifo(tx, price, [d(205)]);
+  assert.equal(r.holders, 1);        // old1+old2 emptied → one merged wallet
+  near(r.age[3], 100);               // 205d old (inherited) → 6-12m band, NOT fresh
+  near(r.age[0], 0);
+  near(r.nrpl, 0, 1);                // a merge, not a sale
+});
+
+test("consolidation guards: exchange withdrawal / non-empty source / non-fresh target are NOT flagged", () => {
+  const CEX = "0xa9d1e08c7793af67e9d92fe308d5697fb81d3e43";   // excluded (Coinbase)
+  const seed = [{ from: ZERO, to: "old1", ts: d(0), amt: 3_000_000 }, { from: ZERO, to: "old2", ts: d(0), amt: 2_500_000 }];
+  // one inflow is an exchange WITHDRAWAL (real coins arriving) → not a self-merge
+  assert.equal(detectConsolidations(ix([...seed, { from: ZERO, to: CEX, ts: d(0), amt: 9_000_000 },
+    { from: "old1", to: "merged", ts: d(200), amt: 3_000_000 }, { from: CEX, to: "merged", ts: d(200), amt: 1_000_000 }])).count, 0);
+  // a source keeps most of its balance (doesn't empty)
+  assert.equal(detectConsolidations(ix([...seed,
+    { from: "old1", to: "merged", ts: d(200), amt: 300_000 }, { from: "old2", to: "merged", ts: d(200), amt: 2_500_000 }])).count, 0);
+  // target already held SPX (not fresh)
+  assert.equal(detectConsolidations(ix([...seed, { from: ZERO, to: "merged", ts: d(1), amt: 10 },
+    { from: "old1", to: "merged", ts: d(200), amt: 3_000_000 }, { from: "old2", to: "merged", ts: d(200), amt: 2_500_000 }])).count, 0);
 });

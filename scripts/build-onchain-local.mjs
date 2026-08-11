@@ -186,6 +186,47 @@ export function detectSelfSplits(transfers, opts = {}) {
   return { splitIdx, linkOf, events, count: events.length, supply: events.reduce((s, e) => s + e.supply, 0) };
 }
 
+// ── CONSOLIDATION DETECTION ─────────────────────────────────────────────────────────────────────────
+// The mirror of a split: a holder that MERGES several wallets into one by emptying N≥2 of them, in one
+// block, into a single BRAND-NEW wallet. Without this the merged wallet reads as a fresh whale (age 0)
+// and the person drops out of the city for 90 days despite never having left — so the target INHERITS
+// the sources' coin age via the same lot-move machinery. Conservative on purpose: the target must be
+// fresh, EVERY inflow must come from a non-excluded holder (so exchange withdrawals — a real inflow of
+// coins — never count), and each source must EMPTY. A gift/OTC purchase from many wallets all emptying
+// at once is not a realistic pattern, which is what keeps false positives low. Same-block = same ts.
+export function detectConsolidations(transfers, opts = {}) {
+  const MIN_N = opts.conMinN ?? 2, MAX_N = opts.conMaxN ?? 20;
+  const EMPTY = opts.emptyFrac ?? 0.9;
+  const MIN_TOTAL = opts.conMinTotal ?? 100000;   // the merged position is a real one, not dust
+  const exclude = opts.exclude || EXCLUDE;
+  const tx = [...transfers]
+    .map((t, i) => ({ from: t.from?.toLowerCase(), to: t.to?.toLowerCase(), ts: t.ts, amt: t.amt, i: t.i ?? i }))
+    .filter(t => t.amt > EPS).sort((a, b) => a.ts - b.ts || a.i - b.i);
+  const bal = new Map(), seen = new Set(), splitIdx = new Set(), linkOf = new Map(), events = [];
+  let p = 0;
+  while (p < tx.length) {
+    const ts0 = tx[p].ts, start = p;
+    while (p < tx.length && tx[p].ts === ts0) p++;
+    const byDst = new Map();                   // this block's transfers grouped by RECIPIENT
+    for (let k = start; k < p; k++) { const t = tx[k]; if (!t.from || !t.to) continue; let g = byDst.get(t.to); if (!g) byDst.set(t.to, g = []); g.push(t); }
+    for (const [dst, grp] of byDst) {
+      if (exclude.has(dst)) continue;                                          // target not infra
+      if (seen.has(dst) || (bal.get(dst) || 0) > EPS) continue;                // target is FRESH
+      if (!grp.every(t => t.from && !exclude.has(t.from))) continue;           // every inflow from a real holder (no CEX withdrawal)
+      const sentBySrc = new Map();
+      for (const t of grp) sentBySrc.set(t.from, (sentBySrc.get(t.from) || 0) + t.amt);
+      if (sentBySrc.size < MIN_N || sentBySrc.size > MAX_N) continue;
+      let ok = true, total = 0;
+      for (const [s, sent] of sentBySrc) { const before = bal.get(s) || 0; total += sent; if (before < EPS || sent < EMPTY * before) { ok = false; break; } }
+      if (!ok || total < MIN_TOTAL) continue;                                  // each source empties + a real combined size
+      for (const t of grp) { splitIdx.add(t.i); linkOf.set(dst, t.from); }
+      events.push({ ts: ts0, target: dst, sources: [...sentBySrc.keys()], n: sentBySrc.size, supply: total });
+    }
+    for (let k = start; k < p; k++) { const t = tx[k]; if (t.to) { bal.set(t.to, (bal.get(t.to) || 0) + t.amt); seen.add(t.to); } if (t.from) bal.set(t.from, (bal.get(t.from) || 0) - t.amt); }
+  }
+  return { splitIdx, linkOf, events, count: events.length, supply: events.reduce((s, e) => s + e.supply, 0) };
+}
+
 // Core replay. transfers = [{from,to,ts,amt}] (any order), priceAt(ts)->usd,
 // sampleTs = ascending sample timestamps. Returns the on-chain rows.
 export function replayFifo(transfers, priceAt, sampleTs, opts = {}) {
@@ -195,12 +236,18 @@ export function replayFifo(transfers, priceAt, sampleTs, opts = {}) {
     .map((t, i) => ({ ...t, from: t.from?.toLowerCase(), to: t.to?.toLowerCase(), i }))
     .sort((a, b) => a.ts - b.ts || a.i - b.i);
 
-  // Self-splits (whale → N fresh equal wallets in one block): the pieces INHERIT the source's coin
-  // age instead of resetting to fresh, and the move is NOT counted as an economic spend. Detected
-  // once over the whole history; `splitIdx` is the set of transfer indices to treat as lot-moves.
-  const { splitIdx, events: splitEvents } = opts.detectSplits === false
-    ? { splitIdx: new Set(), events: [] }
-    : detectSelfSplits(tx, opts.splitOpts);
+  // Self-relocations — a holder shuffling wallets, either a SPLIT (→ N fresh equal wallets) or a
+  // CONSOLIDATION (N emptying wallets → 1 fresh). The pieces/target INHERIT the source coin age
+  // instead of resetting to fresh, and the move is NOT counted as an economic spend, so a wallet
+  // move keeps its city standing. Detected once over the whole history; `splitIdx` = the transfer
+  // indices to treat as lot-moves (see moveLots). Disabled with opts.detectSplits === false.
+  let splitIdx, splitEvents;
+  if (opts.detectSplits === false) { splitIdx = new Set(); splitEvents = []; }
+  else {
+    const sp = detectSelfSplits(tx, opts.splitOpts), con = detectConsolidations(tx, opts.splitOpts);
+    splitIdx = new Set([...sp.splitIdx, ...con.splitIdx]);
+    splitEvents = [...sp.events, ...con.events];
+  }
   const splitsByTs = splitEvents.slice().sort((a, b) => a.ts - b.ts);
 
   const wallets = new Map(); // addr -> {q:[{ts,price,qty}], head, bal}
@@ -305,8 +352,8 @@ export function replayFifo(transfers, priceAt, sampleTs, opts = {}) {
     }
     const row = snapshot(wallets, sTs, priceAt(sTs), thr);
     while (splitP < splitsByTs.length && splitsByTs[splitP].ts <= sTs) { splitCumN++; splitCumSup += splitsByTs[splitP].supply; splitP++; }
-    row.splitCount = splitCumN;                    // cumulative detected self-splits to date
-    row.splitSupply = +splitCumSup.toFixed(2);     // supply that has flowed through a self-split
+    row.splitCount = splitCumN;                    // cumulative detected self-relocations (splits + merges)
+    row.splitSupply = +splitCumSup.toFixed(2);     // supply that has flowed through a detected self-move
     row.liqEx = +(liqExcluded() / 1).toFixed(2); // CEX+LP+custody supply (tokens) — the always-liquid excluded bucket
     row.cexBal = +kindBal("cex").toFixed(2);     // SPX on tagged CEX addresses — exchange-flow / sell-side proxy
     // The other two pieces of the non-holder supply, so the city's harbour reads them live instead
