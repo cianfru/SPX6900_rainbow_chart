@@ -11,7 +11,7 @@ export const CHART_GROUPS = [
     color: "#a78bfa",
     desc: "Where the price sits versus its long-term trend.",
     charts: [
-      { id: "channel", title: "Power-Law Channel", post: "channel", desc: "Price inside its log-regression trend channel." },
+      { id: "channel", title: "Rainbow", post: "channel", desc: "The rainbow — price inside its power-law valuation bands, Fire Sale to Max Bubble." },
       { id: "roadmap", title: "Price Roadmap", post: "roadmap", desc: "The trend extrapolated — when it crosses $6.90/$69/$690." },
       { id: "quantilefan", title: "Quantile Fan", desc: "Probabilistic price cone — 1st to 99th percentile, projected." },
       { id: "risk", title: "Risk Bands", post: "risk", desc: "Valuation risk on a 0–1 scale over time." },
