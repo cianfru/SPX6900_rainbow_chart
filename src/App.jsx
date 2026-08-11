@@ -792,7 +792,7 @@ export default function App() {
   // Sub-pages (everything but home + the ?view=next landing preview) wear the terminal
   // shell: near-black ground, Geist type, the DOS cascade nav. Home + the iframe landing
   // keep their own chrome untouched.
-  const isSub = ["gallery", "chart", "aeon", "city", "methods", "docs"].includes(route);
+  const isSub = ["gallery", "chart", "aeon", "city", "methods", "docs", "rainbow"].includes(route);
 
   return (
     <div className={isSub ? "tzone" : undefined} style={{
@@ -981,7 +981,22 @@ export default function App() {
 
       {/* Home — the old Rainbow hero ("Aura"); shown only when HOME_IS_LANDING is off */}
       {(route === "rainbow" || (route === "home" && !HOME_IS_LANDING)) && (<>
-      {/* Header */}
+      {/* Rainbow route: the terminal chart-page header (matches every other chart page) */}
+      {route === "rainbow" && (
+        <div style={{ maxWidth: MAX_W, margin: "0 auto 20px" }}>
+          <div style={{ fontFamily: "var(--mono)", fontSize: 12, letterSpacing: ".04em", color: "var(--live)", marginBottom: 10 }}>
+            <span style={{ color: "var(--faint)" }}>spx6900 ~ %</span> open rainbow
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 13, marginBottom: 2 }}>
+            <span style={{ color: "#a78bfa", display: "inline-flex" }}><TabIcon name="rainbow" /></span>
+            <h2 style={{ fontFamily: "var(--sans)", fontSize: isMobile ? 28 : 42, fontWeight: 800, margin: 0, color: "var(--tx)", letterSpacing: "-0.02em", textTransform: "uppercase", lineHeight: 1 }}>Rainbow</h2>
+          </div>
+          <div style={{ height: 3, borderRadius: 2, background: "var(--rainbow)", margin: "13px 0 14px", maxWidth: 620 }} />
+          <div style={{ fontFamily: "var(--sans)", fontSize: isMobile ? 14.5 : 16, color: "var(--dim)", maxWidth: 980, lineHeight: 1.55 }}><span style={{ color: "#4ade80", fontFamily: "var(--mono)", marginRight: 10, fontWeight: 700 }}>&gt;</span>The foundation chart — SPX6900 price against a frozen logarithmic-regression fair value, banded from Fire Sale (deep discount) to Max Bubble.</div>
+        </div>
+      )}
+      {/* Header (home only — the rainbow route uses the terminal header above) */}
+      {route !== "rainbow" && (
       <div style={{ maxWidth: MAX_W, margin: "0 auto 24px" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: isMobile ? 10 : 18, flexWrap: "nowrap" }}>
           <img
@@ -1027,6 +1042,7 @@ export default function App() {
           </div>
         </div>
       </div>
+      )}
 
       {/* About (collapsible) */}
       <div style={{

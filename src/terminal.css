@@ -56,6 +56,10 @@
 .tzone .mtop > .mhead .car{ font-size:11px; color:var(--dim); }
 .tzone .mtop:hover > .mhead{ background:var(--tx); color:var(--bg); }
 .tzone .mtop:hover > .mhead .car{ color:var(--bg); }
+/* Rainbow tab — in line with the other three (same mono/weight/case/invert), with a restrained
+   rainbow tint on the word as its only distinction (the foundation chart's splash of colour). */
+.tzone .mtop-rainbow .rbword{ background:linear-gradient(90deg,#f87171,#fb923c,#fbbf24,#4ade80,#38bdf8,#a78bfa); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; }
+.tzone .mtop-rainbow:hover > .mhead .rbword{ background:none; -webkit-text-fill-color:var(--bg); color:var(--bg); }
 
 .tzone .drop,.tzone .subdrop{ display:none; position:absolute; z-index:30; min-width:212px; background:var(--bg); border:1px solid var(--line2); padding:4px; box-shadow:0 12px 34px rgba(0,0,0,.6); }
 .tzone .drop{ top:100%; left:0; } .tzone .mtop:hover > .drop{ display:block; }

@@ -191,7 +191,7 @@ export default function TerminalNav({ onHome, openRainbow, openGallery, openAeon
       {/* cascade menu */}
       <div className="tmenu">
         {openRainbow && <div className="mtop mtop-rainbow" onClick={openRainbow} style={{ cursor: "pointer" }} title="The Rainbow — the foundation chart">
-          <div className="mhead"><span style={{ background: "linear-gradient(90deg,#f87171,#fb923c,#fbbf24,#4ade80,#38bdf8,#a78bfa)", WebkitBackgroundClip: "text", backgroundClip: "text", WebkitTextFillColor: "transparent", color: "transparent", fontWeight: 700 }}>RAINBOW</span></div>
+          <div className="mhead"><span className="rbword">RAINBOW</span></div>
         </div>}
         <CascadeTop label="CHARTS" groups={CHART_GROUPS} onSection={openGallery} onLeaf={goChart} renderPreview={renderPreview} />
         <FlatTop label="SPX_CITY" items={cityItems} />

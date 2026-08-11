@@ -118,9 +118,13 @@
   .mtop > .mhead .mico{ display:none; align-items:center; }   /* nav icons appear only in the SITE look */
   .mtop > .mhead .ml-site{ display:none; }                    /* nice title-case labels only in the SITE look */
   .mtop-rainbow{ display:block; }                             /* Rainbow = its own standalone tab (the foundation chart) */
-  .rbterm{ background:linear-gradient(90deg,#f87171,#fb923c,#fbbf24,#4ade80,#38bdf8,#a78bfa); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; color:transparent; font-weight:700; }
-  .mtop-rainbow > .mhead{ border-color:transparent; } .mtop-rainbow:hover > .mhead{ background:rgba(167,139,250,0.14); color:inherit; border-color:rgba(167,139,250,0.5); }
-  .mtop-rainbow:hover > .mhead .rbterm{ -webkit-text-fill-color:transparent; }
+  /* In line with the other three tabs: same mono, weight, case and invert-on-hover — the only
+     difference is a restrained rainbow tint on the word (a nod to the foundation chart, not a loud gradient). */
+  .mtop-rainbow > .mhead{ border-color:transparent; }
+  .mtop-rainbow .lbl{ background:linear-gradient(90deg,#f87171,#fb923c,#fbbf24,#4ade80,#38bdf8,#a78bfa); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; }
+  .mtop-rainbow .cur{ color:var(--curc,var(--tx)); margin-left:0; opacity:0; }   /* cursor rides the writing head only on hover */
+  .mtop-rainbow:hover .cur{ opacity:1; animation:blk 1.05s steps(1,end) infinite; }
+  .mtop-rainbow:hover > .mhead .lbl{ background:none; -webkit-text-fill-color:var(--bg); color:var(--bg); }  /* invert cleanly, exactly like the siblings */
   /* ── SITE look: the top nav becomes the live website's pill buttons — icon · accent border · tint · glow, per section
         (Rainbow violet · Charts cyan · City blue · Project Aeon pink). blend / calm / green keep the terminal nav. ── */
   :root[data-variant="site"] .mtop > .mhead{ text-transform:none; font-weight:700; letter-spacing:.01em; color:#9aa6bb; border-radius:10px;
@@ -501,7 +505,7 @@
       <div class="sh"><span>valuation snapshot</span></div>
       <div class="row" data-snap="price"><span class="k">price</span><span class="v">$0.332</span></div>
       <div class="row" data-snap="composite"><span class="k">composite</span><span class="v g">16%</span></div>
-      <div class="row" data-snap="fair"><span class="k">fair value</span><span class="v">&mdash;</span></div>
+      <div class="row" data-snap="fair"><span class="k">fair value</span><span class="v">$1.99&nbsp;&nbsp;&middot;&nbsp;&nbsp;6.0&times; up</span></div>
       <div class="row" data-snap="val"><span class="k">valuation</span><span class="v g">DEEPLY UNDERVALUED</span></div>
       <div class="smeter"><div class="sbar"></div><div class="smask" id="smask" style="width:84%"></div><div class="snd" id="snd" style="left:16%"></div></div>
       <div class="row" data-snap="range"><span class="k">history · range</span><span class="v">2 &ndash; 90</span></div>
@@ -735,8 +739,8 @@
   function buildMenuInto(m, withFresh){ if(!m) return; m.innerHTML='';
     // Rainbow = home (matches the live site nav; only visible in the SITE look, hidden by CSS elsewhere)
     const rbm=document.createElement('div'); rbm.className='mtop mtop-rainbow';
-    rbm.innerHTML=`<div class="mhead" data-rainbow="1"><span class="mico">${RAINBOW_ICON}</span><span class="ml-term rbterm">RAINBOW</span><span class="ml-site">Rainbow</span></div>`;
-    m.appendChild(rbm);
+    rbm.innerHTML=`<div class="mhead" data-rainbow="1"><span class="lw"><span class="lbl" data-t="RAINBOW">RAINBOW</span><span class="cur" style="--curc:#a78bfa">_</span></span></div>`;
+    m.appendChild(rbm); wireTypeRow(rbm.querySelector('.mhead'));
     NAV.forEach(top=>{ const mt=document.createElement('div'); mt.className='mtop mtop-'+top.label.toLowerCase();
       mt.innerHTML=`<div class="mhead"><span class="mico">${NAV_ICON[top.label]||''}</span><span class="ml-term">${top.label}</span><span class="ml-site">${NAV_DISP[top.label]||top.label}</span> <span class="car">▾</span></div>`+topDropHTML(top); m.appendChild(mt);
       // menu shows STATIC; the writing effect fires per-row, only on the path you hover
@@ -912,6 +916,10 @@
       const bn=LAB[bi][0], bstr=String(bi+1).padStart(2,'0');
       setKpi('price','$'+fmtP(price),'spot · live'); setKpi('band',bn,bstr+' / 09'); setKpi('fair','$'+fair.toFixed(2),(fair/price).toFixed(1)+'× up');
       setSnap('price','$'+fmtP(price)); setSnap('model','$'+fair.toFixed(2));
+      // Fair value = the rainbow power-law model's fair value — the ONE concrete $-anchored yardstick.
+      // (The composite itself is a 0–100 percentile with no natural price, so it can't have a "fair value".)
+      // Sourced here with price so the row is always populated, and identical to the KPI — no two-numbers drift.
+      setSnap('fair','$'+fair.toFixed(2)+(price>0&&fair/price>=1.4?'  ·  '+(fair/price).toFixed(1)+'× up':''));
       const sig=z/STD; setSnap('dev',(sig>=0?'+':'−')+Math.abs(sig).toFixed(2)+'σ');
       T.push(['$SPX','$'+fmtP(price),''],['FAIR VALUE','$'+fair.toFixed(2),''],['BAND',bn+' · '+bstr+'/09','']); }
     if(onc&&onc.length){ const r=onc[onc.length-1]; LIVE.rp = r.rp>0 ? r.rp : (r.mvrv>0 && LIVE.price ? LIVE.price/r.mvrv : 0);
@@ -925,8 +933,6 @@
       const comp=Math.round(val.cur.composite*100), zone=(val.zones||[]).find(z=>val.cur.composite<=z.max);
       setKpi('composite',comp+'%',zone?zone.label.toLowerCase():''); setSnap('composite',comp+'%'); if(zone) setSnap('val',zone.label.toUpperCase());
       if(val.series&&val.series.length){ const cs=val.series.map(r=>Math.round(r[1]*100)); setSnap('range', Math.min(...cs)+' – '+Math.max(...cs)); }
-      // composite fair value: the blend of the composite's two $-anchored lenses (power-law model + on-chain cost basis) — where its value lenses read neutral
-      if(LIVE.fair>0 && LIVE.rp>0) setSnap('fair','$'+fmtP((LIVE.fair+LIVE.rp)/2));
       const mask=$('#smask'), snd=$('#snd'); if(mask) mask.style.width=(100-comp)+'%'; if(snd) snd.style.left=comp+'%';
       const cn=$('#capnow'); if(cn) cn.textContent=comp;
       const cz=$('#capzone'); if(cz&&zone) cz.textContent=zone.label.toLowerCase();
