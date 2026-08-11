@@ -1395,7 +1395,7 @@ export default function App() {
             }}>
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6" /></svg>
             </button>
-            <span style={{ fontFamily: "var(--mono)", fontSize: 12, letterSpacing: ".1em", textTransform: "uppercase", color: gcol, textShadow: `0 0 9px ${gcol}66` }}>{grp}</span>
+            <span style={{ fontFamily: "var(--mono)", fontSize: 12, letterSpacing: ".1em", textTransform: "uppercase", color: gcol, textShadow: `0 0 9px ${gcol}66` }}>{grp} <span className="tgcur" style={{ "--curc": gcol }}>_</span></span>
             <button onClick={shareChart} title="Share this chart" style={{
               marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 7,
               background: "linear-gradient(180deg,var(--panel),var(--panel2))",

@@ -84,3 +84,7 @@
 /* Apple-style round back button on the chart page */
 .tzone .tback{ transition:border-color .14s, color .14s, background .14s; }
 .tzone .tback:hover{ border-color:var(--tx); color:var(--tx); }
+
+/* group identifier cursor — a blinking "_" in the group colour, like the dropdown rows */
+@keyframes tcurblink{ 0%,48%{opacity:1} 49%,100%{opacity:0} }
+.tzone .tgcur{ color:var(--curc,var(--tx)); text-shadow:0 0 6px var(--curc,transparent); animation:tcurblink 1.05s steps(1,end) infinite; }
