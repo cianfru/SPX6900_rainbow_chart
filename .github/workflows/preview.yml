@@ -35,20 +35,38 @@ jobs:
         run: vercel build --token="$VERCEL_TOKEN"
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-      - name: Deploy prebuilt output to a PREVIEW url
+      - name: Deploy prebuilt output to a PREVIEW url + stable alias
         run: |
           URL=$(vercel deploy --prebuilt --token="$VERCEL_TOKEN")
           echo "preview url: $URL"
           echo "PREVIEW_URL=$URL" >> "$GITHUB_ENV"
+          # Point a STABLE, bookmarkable *.vercel.app alias at this deploy so the review
+          # URL never changes between pushes. Non-fatal: if the alias name is taken or
+          # aliasing fails, the unique deploy URL above still works. Production
+          # (spx6900rainbow.xyz) is NEVER aliased here — this only ever touches the
+          # dedicated preview subdomain.
+          ALIAS="${PREVIEW_ALIAS:-spx6900-terminal.vercel.app}"
+          if vercel alias set "$URL" "$ALIAS" --token="$VERCEL_TOKEN" --scope="$VERCEL_ORG_ID"; then
+            echo "aliased to: https://$ALIAS"
+          else
+            echo "alias step failed (name taken?) — use the unique URL above"
+            ALIAS=""
+          fi
           {
-            echo "## 🌈 Terminal preview"
+            echo "## 🌈 Terminal preview (branch — production untouched)"
             echo ""
-            echo "Preview URL (production is untouched): **$URL**"
+            if [ -n "$ALIAS" ]; then
+              echo "**Stable URL (bookmark this): https://$ALIAS**"
+              echo ""
+              echo "- Gallery: https://${ALIAS}/?view=charts"
+              echo "- A chart: https://${ALIAS}/?chart=picycle"
+              echo "- Project Aeon: https://${ALIAS}/?view=aeon"
+              echo "- Landing: https://${ALIAS}/?view=next"
+              echo ""
+            fi
+            echo "This-deploy URL: **$URL**"
             echo ""
-            echo "- Gallery: ${URL}/?view=charts"
-            echo "- A chart: ${URL}/?chart=picycle"
-            echo "- Project Aeon: ${URL}/?view=aeon"
-            echo "- Home (unchanged): ${URL}/"
+            echo "> Private by default (Vercel Deployment Protection). Sign in to Vercel to view."
           } >> "$GITHUB_STEP_SUMMARY"
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
