@@ -958,20 +958,29 @@
   full-bleed as an **iframe** by App.jsx at `?view=next` AND at the home route `/` (**`HOME_IS_LANDING = true`** — so the
   terminal landing IS the homepage now; the old React `LandingPage.jsx` is retired from `/`). The generated nav
   (`@gen-menu` block) is rebuilt from charts-catalog by `scripts/build-landing-nav.mjs` during `npm run build` — DO NOT hand-edit
-  it. Verified desktop + mobile (mobile just needs ~3s for the boot to reveal). **⚠ OPEN, owner-review items (Claude flagged 2026-08-11):**
-  (1) **RAINBOW-ANCHOR TENSION** — the owner's own pinned ruling was "the rainbow must be the ANCHOR / first+largest visual (the
-  real 9-band power-law chart with price woven through)", but the shipped page leads with the **valuation COMPOSITE** as the hero
-  chart and demotes the rainbow to a hairline + the composite's fill colours; the actual power-law rainbow band chart is NOT on the
-  landing. Reconcile: either the direction evolved to composite-first (fine, update the ruling) or add the real rainbow chart as the
-  hero. (2) a **`q is not defined`** runtime ReferenceError fires (rendering survives it — likely a live-data/clock handler; track down).
-  (3) the top **stats ticker clips at the left edge** ("FAIR VALUE"→"AIR VALUE", "BAND"→"ND"). Below = the ORIGINAL 2026-07-26 brief, kept for the honesty/anchor rationale:
+  it. Verified desktop + mobile (mobile just needs ~3s for the boot to reveal). **🔒 The live site is PASSWORD-LOCKED while the
+  owner refines things (2026-08-11) — a locked live site is expected, not a bug.**
+  **⭐⭐ RESOLVED 2026-08-11 — THE COMPOSITE IS THE HERO, THE RAINBOW IS DEMOTED, AND THAT IS DELIBERATE. Do NOT "restore" the
+  rainbow as the anchor.** The 2026-07-26 "rainbow must be the ANCHOR" ruling is SUPERSEDED. Owner's reasoning (and it's the
+  honest call): the frozen power-law model's floor marches up over time, so **price will most likely fall BELOW the Fire Sale
+  floor** — and a hero chart showing the price line sitting under all the bands reads to a first-time visitor as *a model that is
+  inherently broken*, even though analytically it's a real "deeply undervalued" signal. The **composite cannot go below 0**
+  (it's a 0–100 percentile oscillator), so it's an always-valid hero that never looks broken. The site also **outgrew its
+  original "just a rainbow" scope** — it's now a full valuation/on-chain terminal. So the rainbow is downgraded to a CHART (still
+  the FIRST chart you see when you open Charts, not the main-page hero). This does NOT abandon the model-refit hygiene policy
+  below — a durable floor breach is still the trigger that policy watches for; demoting the rainbow from hero just avoids the
+  "broken hero" UX without goal-seeking a reactive re-fit. **⚠ Two bugs still to fix (unrelated to the above):** (1) a
+  **`q is not defined`** runtime ReferenceError fires on load (rendering survives it — likely a live-data/clock handler; track down);
+  (2) the top **stats ticker clips at the left edge** ("FAIR VALUE"→"AIR VALUE", "BAND"→"ND") — needs a lead-in pad. Below = the ORIGINAL 2026-07-26 brief, kept for the honesty rationale (its rainbow-anchor ruling is the part now superseded):
 - **⭐⭐ ORIGINAL BRIEF — PROFESSIONAL LANDING-PAGE REDESIGN, RAINBOW-ANCHORED (owner, 2026-07-26).** Owner is iterating a
   more professional/editorial homepage (dark data-terminal look: near-black ground, bold grotesque display, single green
   accent, mono for data, uppercase micro-labels, rainbow hairline). Design direction is PINNED by the owner's mock — follow
   it, don't reinvent. **Two owner rulings that are load-bearing:**
-  1. **The RAINBOW is the brand + the DENOMINATOR — it must be the ANCHOR of the page** (owner corrected a first pass that
+  1. **~~The RAINBOW must be the ANCHOR of the page~~ — ⛔ SUPERSEDED 2026-08-11 (see the RESOLVED note above): the composite is
+     the hero now, the rainbow is demoted to the first chart in Charts. Reason: price will likely fall below the Fire Sale floor
+     and a rainbow hero would read as "broken"; the composite can't go below 0.** (Kept for history — originally: owner corrected a first pass that
      demoted it to a decorative gradient ribbon: *"The rainbow is still our brand and main denominator. Need to keep that in
-     mind."*). It's the first + largest visual: the REAL frozen power-law bands (9, Fire Sale→Max Bubble) with the dense price
+     mind."* It was to be the first + largest visual: the REAL frozen power-law bands (9, Fire Sale→Max Bubble) with the dense price
      line woven through, NOW marker, band legend, target lines. Built from the repo's own model (`buildModel`+`bandVal`+
      `BAND_LABELS`+`dayN` in src/models.js) — NOT a fake ribbon.
   2. **The valuation COMPOSITE is a prominent supporting read below the rainbow** (owner: *"I like the composite valuation on
