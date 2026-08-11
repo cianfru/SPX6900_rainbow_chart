@@ -578,9 +578,9 @@ export function replayFifo(transfers, priceAt, sampleTs, opts = {}) {
       let held = 0;
       for (const w of wallets.values()) if (w.bal > EPS) held += w.bal;
       for (const e of ent.entities) {
-        let bal = 0, holders = 0;
-        for (const a of e.wallets) { const w = wallets.get(a); if (w && w.bal > EPS) { bal += w.bal; holders++; } }
-        e.bal = +bal.toFixed(2); e.holders = holders;
+        let bal = 0, holders = 0; const wb = {};
+        for (const a of e.wallets) { const w = wallets.get(a); const b = (w && w.bal > EPS) ? w.bal : 0; wb[a] = +b.toFixed(2); if (b > 0) { bal += b; holders++; } }
+        e.bal = +bal.toFixed(2); e.holders = holders; e.walletBal = wb;   // per-wallet balances → sized bubbles in the graph view
       }
       ent.entities.sort((a, b) => b.bal - a.bal || b.size - a.size);   // rank by combined holdings for the explorer
       out.entities = {
