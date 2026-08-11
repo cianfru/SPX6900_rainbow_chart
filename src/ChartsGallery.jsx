@@ -162,19 +162,21 @@ function SearchBar({ q, setQ, count, total, isMobile }) {
 export default function ChartsGallery({
   isMobile, onOpen, onHome, renderPreview, onOther,
   groups = CHART_GROUPS, title = "Charts", titleGradient,
-  subtitle, showFeatured = true,
+  subtitle, showFeatured = true, onlyGroup = null,
 }) {
   const [q, setQ] = useState("");
   const nq = q.trim().toLowerCase();
+  // When a nav group is clicked, restrict the whole page to that one section.
+  const baseGroups = useMemo(() => onlyGroup ? groups.filter(g => g.title === onlyGroup) : groups, [groups, onlyGroup]);
   // Filtered view of the catalog. Groups that lose every chart drop out entirely so
   // the page never shows an empty heading. Each surviving chart carries its group as
   // `cat` so the tile can print the category micro-label.
   // `dev` charts (City Lab) are internal: reachable by direct link, password-gated there, and NEVER
   // listed here. `locked` charts (SPX City) ARE listed; the tile just wears a lock (see Tile).
-  const shown = useMemo(() => groups
+  const shown = useMemo(() => baseGroups
     .map(g => ({ ...g, charts: g.charts.filter(c => !c.dev && (!nq || haystack(c, g.title).includes(nq))).map(c => ({ ...c, cat: g.title })) }))
-    .filter(g => g.charts.length), [groups, nq]);
-  const total = groups.reduce((n, g) => n + g.charts.filter(c => !c.dev).length, 0);
+    .filter(g => g.charts.length), [baseGroups, nq]);
+  const total = baseGroups.reduce((n, g) => n + g.charts.filter(c => !c.dev).length, 0);
   const found = shown.reduce((n, g) => n + g.charts.length, 0);
   // The other catalog — Aeon when browsing SPX, SPX when browsing Aeon.
   const otherGroups = groups === CHART_GROUPS ? AEON_GROUPS : CHART_GROUPS;
@@ -182,7 +184,8 @@ export default function ChartsGallery({
   const otherHits = useMemo(() => !nq ? 0 : otherGroups.reduce(
     (n, g) => n + g.charts.filter(c => haystack(c, g.title).includes(nq)).length, 0), [otherGroups, nq]);
   const sub = subtitle ?? `${total + (showFeatured ? 1 : 0)} interactive ways to look at SPX6900 — tap any chart to open it.`;
-  const cmd = title === "Project Aeon" ? "ls ./aeon --all" : "ls ./charts --all";
+  const scope = title === "Project Aeon" ? "aeon" : "charts";
+  const cmd = onlyGroup ? `ls ./${scope}/${onlyGroup.toLowerCase().replace(/[^a-z0-9]+/g, "-")}` : `ls ./${scope} --all`;
 
   return (
     <div style={{ padding: isMobile ? "8px 4px 48px" : "16px 8px 60px" }}>

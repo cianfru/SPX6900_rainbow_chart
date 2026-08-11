@@ -281,6 +281,7 @@ export default function App() {
   // "chart" = a dedicated interactive chart page (which one = `tab`).
   const [route, setRoute] = useState("home");
   const [docSlug, setDocSlug] = useState("index"); // which page of the manual (?view=docs&p=…)
+  const [galleryGroup, setGalleryGroup] = useState(null); // when a nav group is clicked, show only that section
   const [copied, setCopied] = useState(false);  // "Share" → link copied confirmation
   const [relWhich, setRelWhich] = useState("BTC"); // Relative chart asset (its own in-chart selector)
   const [cityMenu, setCityMenu] = useState(false); // City nav dropdown open/closed
@@ -600,8 +601,9 @@ export default function App() {
     if (next !== cur) window.history.pushState(null, "", next);
   };
   const goHome = () => { setRoute("home"); syncUrl("home"); window.scrollTo({ top: 0, behavior: "smooth" }); };
-  const openGallery = () => { setRoute("gallery"); syncUrl("gallery"); window.scrollTo({ top: 0, behavior: "smooth" }); };
-  const openAeon = () => { setRoute("aeon"); syncUrl("aeon"); window.scrollTo({ top: 0, behavior: "smooth" }); };
+  // A string group filters the gallery to that one section; a click event (or nothing) shows all.
+  const openGallery = (group) => { setGalleryGroup(typeof group === "string" ? group : null); setRoute("gallery"); syncUrl("gallery"); window.scrollTo({ top: 0, behavior: "smooth" }); };
+  const openAeon = (group) => { setGalleryGroup(typeof group === "string" ? group : null); setRoute("aeon"); syncUrl("aeon"); window.scrollTo({ top: 0, behavior: "smooth" }); };
   const openCity = () => { setRoute("city"); syncUrl("city"); window.scrollTo({ top: 0, behavior: "smooth" }); };
   const openMethods = () => { setRoute("methods"); syncUrl("methods"); window.scrollTo({ top: 0, behavior: "smooth" }); };
   const openDocs = (slug = "index") => { setDocSlug(slug); setRoute("docs"); syncUrl("docs", slug); window.scrollTo({ top: 0, behavior: "smooth" }); };
@@ -894,7 +896,7 @@ export default function App() {
       {/* Browse-all gallery */}
       {route === "gallery" && (
         <Suspense fallback={<div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Loading charts…</div>}>
-          <ChartsGallery isMobile={isMobile} onOpen={goChart} onHome={goHome} onOther={openAeon} renderPreview={id => chartEl(id, { preview: true })} showFeatured={false} />
+          <ChartsGallery isMobile={isMobile} onOpen={goChart} onHome={goHome} onOther={openAeon} renderPreview={id => chartEl(id, { preview: true })} showFeatured={false} onlyGroup={galleryGroup} />
         </Suspense>
       )}
 
@@ -904,7 +906,7 @@ export default function App() {
         <Suspense fallback={<div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Loading charts…</div>}>
           <ChartsGallery
             isMobile={isMobile} onOpen={goChart} onHome={goHome} onOther={openGallery} renderPreview={id => chartEl(id, { preview: true })}
-            groups={AEON_GROUPS} showFeatured={false} title="Project Aeon"
+            groups={AEON_GROUPS} showFeatured={false} title="Project Aeon" onlyGroup={galleryGroup}
             titleGradient="linear-gradient(90deg,#2dd4bf,#3b82f6,#a855f7,#f472b6)"
             subtitle="On-chain analytics for the Project AEON NFT collection — 3,333 on Ethereum. Every number checkable, reproducible."
           />

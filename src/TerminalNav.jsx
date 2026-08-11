@@ -7,7 +7,7 @@ import { GCOL } from "./terminal-colors.js";
 // fly-outs with a live preview panel. Built from the real catalog so every leaf
 // carries a live chart id and drives the app's own routing. Scoped under .tzone.
 
-const LOGO = "/spx6900.gif";
+const LOGO = "/logo_rainbow.png";
 const X_URL = "https://x.com/SPX6900Rainbow";
 const KRAKEN_URL = "https://proinvite.kraken.com/9f1e/8985jw0l";
 
@@ -34,7 +34,7 @@ function Spark({ seed, color }) {
 
 // A cascading top: ALL + group rows (▸); hovering a group flies out its chart list, and
 // hovering a chart flies out the preview panel. Groups coloured by the mockup's GCOL.
-function CascadeTop({ label, groups, onAll, onLeaf }) {
+function CascadeTop({ label, groups, onSection, onLeaf }) {
   const [leaf, setLeaf] = useState(null); // {gi, item, color}
   const topRef = useRef(null);
   const onEnter = () => {
@@ -46,10 +46,10 @@ function CascadeTop({ label, groups, onAll, onLeaf }) {
     <div className="mtop" ref={topRef} onMouseEnter={onEnter} onMouseLeave={() => setLeaf(null)}>
       <div className="mhead">{label} <span className="car">▾</span></div>
       <div className="drop">
-        <div className="mitem allrow" onClick={onAll}><span>All<span className="cur" style={{ "--curc": "var(--live)" }}>_</span></span></div>
+        <div className="mitem allrow" onClick={() => onSection()}><span>All<span className="cur" style={{ "--curc": "var(--live)" }}>_</span></span></div>
         {groups.map((g, gi) => { const gc = GCOL[gi % GCOL.length]; return (
           <div className="mgroup" key={g.title} style={{ "--gc": gc }} onMouseLeave={() => setLeaf(l => (l && l.gi === gi ? null : l))}>
-            <div className="mitem grouprow" onClick={onAll}><span>{g.title}<span className="cur" style={{ "--curc": gc }}>_</span></span><span className="mk">▸</span></div>
+            <div className="mitem grouprow" onClick={() => onSection(g.title)}><span>{g.title}<span className="cur" style={{ "--curc": gc }}>_</span></span><span className="mk">▸</span></div>
             <div className="subdrop">
               {g.charts.filter(c => !c.dev).map(item => (
                 <div className="mitem leafrow" key={item.id}
@@ -120,9 +120,9 @@ export default function TerminalNav({ onHome, openGallery, openAeon, openCity, g
       </div>
       {/* cascade menu */}
       <div className="tmenu">
-        <CascadeTop label="CHARTS" groups={CHART_GROUPS} onAll={openGallery} onLeaf={goChart} />
+        <CascadeTop label="CHARTS" groups={CHART_GROUPS} onSection={openGallery} onLeaf={goChart} />
         <FlatTop label="SPX_CITY" items={cityItems} />
-        <CascadeTop label="PROJECT_AEON" groups={AEON_GROUPS} onAll={openAeon} onLeaf={goChart} />
+        <CascadeTop label="PROJECT_AEON" groups={AEON_GROUPS} onSection={openAeon} onLeaf={goChart} />
         {asOfLabel && <div className="tdataas">Data as of {asOfLabel}</div>}
       </div>
     </div>
