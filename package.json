@@ -5,11 +5,12 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "node scripts/build-docs.mjs && vite build",
+    "build": "node scripts/build-docs.mjs && node scripts/build-landing-nav.mjs && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "node --test",
-    "build:docs": "node scripts/build-docs.mjs"
+    "build:docs": "node scripts/build-docs.mjs",
+    "build:landing-nav": "node scripts/build-landing-nav.mjs"
   },
   "dependencies": {
     "@resvg/resvg-js": "^2.6.2",
