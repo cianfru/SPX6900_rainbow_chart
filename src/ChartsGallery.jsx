@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useMemo, Suspense } from "react";
 import { CHART_GROUPS, AEON_GROUPS, METHOD_FAMILIES, METHOD_OF } from "./charts-catalog.js";
+import { gcolFor } from "./terminal-colors.js";
 import ErrorBoundary from "./ErrorBoundary.jsx";
 import { SANS, MONO, MAX_W } from "./chart-ui.jsx";
 
@@ -236,23 +237,23 @@ export default function ChartsGallery({
       </div>
       )}
 
-      {shown.map(group => (
+      {shown.map(group => { const gc = gcolFor(group.title); return (
         <div key={group.title} style={{ maxWidth: MAX_W, margin: "0 auto 40px" }}>
           <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginBottom: 15, flexWrap: "wrap" }}>
             <span style={{
               fontFamily: "var(--mono)", fontSize: 13, letterSpacing: ".14em", textTransform: "uppercase",
               color: T.tx, fontWeight: 600,
-            }}>{group.title}<span className="tgcur" style={{ "--curc": group.color }}>_</span></span>
+            }}>{group.title}<span className="tgcur" style={{ "--curc": gc }}>_</span></span>
             <span style={{ fontFamily: MONO, fontSize: 12, color: T.faint }}>[{group.charts.length}]</span>
             <span style={{ fontFamily: SANS, fontSize: isMobile ? 12.5 : 13.5, color: T.dim }}>{group.desc}</span>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: `repeat(auto-fill, minmax(min(100%, ${isMobile ? 300 : 372}px), 1fr))`, gap: isMobile ? 12 : 15 }}>
             {group.charts.map(item => (
-              <Tile key={item.id} item={item} color={group.color} onOpen={onOpen} renderPreview={renderPreview} />
+              <Tile key={item.id} item={item} color={gc} onOpen={onOpen} renderPreview={renderPreview} />
             ))}
           </div>
         </div>
-      ))}
+      ); })}
 
       {nq && !found && (
         <div style={{ maxWidth: MAX_W, margin: "0 auto", textAlign: "center", padding: "40px 20px 24px", fontFamily: SANS }}>

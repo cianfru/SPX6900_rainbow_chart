@@ -61,7 +61,9 @@ function CascadeTop({ label, groups, onSection, onLeaf }) {
               <div className={"leafprev" + (leaf && leaf.gi === gi ? " on" : "")}>
                 {leaf && leaf.gi === gi && (<>
                   <div className="mprev-kick">Preview</div>
-                  <Spark seed={leaf.item.id + g.title} color={leaf.color} />
+                  {leaf.item.post
+                    ? <img className="spk" src={`/api/og?post=${leaf.item.post}&thumb=1`} alt="" loading="lazy" />
+                    : <Spark seed={leaf.item.id + g.title} color={leaf.color} />}
                   <div className="mprev-title">{leaf.item.title}</div>
                   <div className="mprev-desc">{leaf.item.desc}</div>
                   <div className="mprev-go">→ open chart</div>
@@ -105,7 +107,7 @@ export default function TerminalNav({ onHome, openGallery, openAeon, openCity, g
       <div className="tbar">
         <button className="tbrand" onClick={onHome} title="Home">
           <img className="tlogo" src={LOGO} alt="" />
-          <b>SPX6900/Rainbow</b><span className="bcur">_</span>
+          <b>SPX6900/Rainbow<span className="bcur">_</span></b>
         </button>
         <div className="tbarright">
           <div className="tsocial">
