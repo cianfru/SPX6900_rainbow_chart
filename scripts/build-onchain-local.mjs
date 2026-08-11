@@ -145,6 +145,86 @@ export function mondays(startTs, endTs) {
   return out;
 }
 
+// ── SELF-MOVE DETECTION (splits + consolidations) ───────────────────────────────────────────────────
+// A holder can shuffle wallets in ONE block, either a SPLIT (→ N fresh near-equal wallets) or a
+// CONSOLIDATION (N emptying wallets → 1 fresh). Both read on-chain as "old whale gone + fresh whale(s)
+// appeared", which fakes decentralisation (top-N drops) and fake-freshens the supply (age resets to 0)
+// and drops the person out of the city. We detect the clean, unambiguous cases so the pieces/target
+// INHERIT the source coin age (not fresh) and the move isn't counted as an economic spend. Deliberately
+// CONSERVATIVE — real distributions (airdrops: many, unequal, source keeps a balance) and exchange
+// withdrawals must NOT match, so we never silently erase genuine distribution. No tx hash in the
+// archive, so "same block" = same timestamp. ⚠ MEMORY: this runs over the full ~2.7M-transfer archive,
+// so the core scans an ALREADY-SORTED tx IN PLACE — it must NOT copy the array (a prior version did,
+// twice, and OOM'd the FIFO engine). The exported wrappers copy+sort only for standalone/test use.
+function scanSelfMoves(tx, opts = {}) {
+  const SP_MIN = opts.minN ?? 3, SP_MAX = opts.maxN ?? 20, EQ = opts.eqTol ?? 1.10;
+  const CON_MIN = opts.conMinN ?? 2, CON_MAX = opts.conMaxN ?? 20;
+  const EMPTY = opts.emptyFrac ?? 0.9, MIN_SRC = opts.minSource ?? 100000, MIN_TOTAL = opts.conMinTotal ?? 100000;
+  const exclude = opts.exclude || EXCLUDE;
+  const bal = new Map();                          // per-address running balance (small map)
+  const fresh = a => (bal.get(a) || 0) <= EPS;     // "fresh" = EMPTY right before the move (not "never
+                                                   // received"): wallet-hoppers reuse emptied addresses,
+                                                   // so ever-received was too strict and missed real moves.
+  const splitIdx = new Set(), conIdx = new Set(), splitEvents = [], conEvents = [];
+  let p = 0;
+  while (p < tx.length) {
+    const ts0 = tx[p].ts, start = p;
+    while (p < tx.length && tx[p].ts === ts0) p++;
+    const bySrc = new Map(), byDst = new Map();   // this block's transfers grouped both ways
+    for (let k = start; k < p; k++) {
+      const t = tx[k]; if (!t.from || !t.to) continue;
+      let gs = bySrc.get(t.from); if (!gs) bySrc.set(t.from, gs = []); gs.push(t);
+      let gd = byDst.get(t.to); if (!gd) byDst.set(t.to, gd = []); gd.push(t);
+    }
+    for (const [src, grp] of bySrc) {             // SPLIT: whale → N empty near-equal wallets, empties out
+      if (exclude.has(src)) continue;
+      const n = grp.length; if (n < SP_MIN || n > SP_MAX) continue;
+      if (!grp.every(t => fresh(t.to))) continue;
+      const amts = grp.map(t => t.amt), mn = Math.min(...amts), mx = Math.max(...amts);
+      if (mn <= EPS || mx / mn > EQ) continue;
+      const before = bal.get(src) || 0, sent = amts.reduce((a, b) => a + b, 0);
+      if (before < MIN_SRC || sent < EMPTY * before) continue;
+      for (const t of grp) splitIdx.add(t.i);
+      splitEvents.push({ type: "split", ts: ts0, source: src, recipients: grp.map(t => t.to), each: mn, n, supply: sent });
+    }
+    for (const [dst, grp] of byDst) {             // CONSOLIDATION: N emptying holders → 1 empty wallet
+      if (exclude.has(dst) || !fresh(dst)) continue;
+      if (!grp.every(t => t.from && !exclude.has(t.from))) continue;   // no exchange withdrawal in the mix
+      const sentBySrc = new Map();
+      for (const t of grp) sentBySrc.set(t.from, (sentBySrc.get(t.from) || 0) + t.amt);
+      if (sentBySrc.size < CON_MIN || sentBySrc.size > CON_MAX) continue;
+      let ok = true, total = 0;
+      for (const [s, sent] of sentBySrc) { const before = bal.get(s) || 0; total += sent; if (before < EPS || sent < EMPTY * before) { ok = false; break; } }
+      if (!ok || total < MIN_TOTAL) continue;
+      for (const t of grp) conIdx.add(t.i);
+      conEvents.push({ type: "consolidation", ts: ts0, target: dst, sources: [...sentBySrc.keys()], n: sentBySrc.size, supply: total });
+    }
+    for (let k = start; k < p; k++) { const t = tx[k]; if (t.to) bal.set(t.to, (bal.get(t.to) || 0) + t.amt); if (t.from) bal.set(t.from, (bal.get(t.from) || 0) - t.amt); }
+  }
+  return { splitIdx, conIdx, splitEvents, conEvents };
+}
+
+// prepare raw transfers (copy + normalise + sort) — for STANDALONE callers only (tests). The engine
+// passes its own already-sorted tx straight into scanSelfMoves and never pays for this copy.
+const prepMoves = transfers => [...transfers]
+  .map((t, i) => ({ from: t.from?.toLowerCase(), to: t.to?.toLowerCase(), ts: t.ts, amt: t.amt, i: t.i ?? i }))
+  .filter(t => t.amt > EPS).sort((a, b) => a.ts - b.ts || a.i - b.i);
+
+// Splits only. { splitIdx, linkOf:Map(recipient→source), events, count, supply }.
+export function detectSelfSplits(transfers, opts = {}) {
+  const { splitIdx, splitEvents } = scanSelfMoves(prepMoves(transfers), opts);
+  const linkOf = new Map();
+  for (const e of splitEvents) for (const r of e.recipients) linkOf.set(r, e.source);
+  return { splitIdx, linkOf, events: splitEvents, count: splitEvents.length, supply: splitEvents.reduce((s, e) => s + e.supply, 0) };
+}
+// Consolidations only. { splitIdx, linkOf:Map(target→last source), events, count, supply }.
+export function detectConsolidations(transfers, opts = {}) {
+  const { conIdx, conEvents } = scanSelfMoves(prepMoves(transfers), opts);
+  const linkOf = new Map();
+  for (const e of conEvents) linkOf.set(e.target, e.sources.at(-1));
+  return { splitIdx: conIdx, linkOf, events: conEvents, count: conEvents.length, supply: conEvents.reduce((s, e) => s + e.supply, 0) };
+}
+
 // Core replay. transfers = [{from,to,ts,amt}] (any order), priceAt(ts)->usd,
 // sampleTs = ascending sample timestamps. Returns the on-chain rows.
 export function replayFifo(transfers, priceAt, sampleTs, opts = {}) {
@@ -154,8 +234,36 @@ export function replayFifo(transfers, priceAt, sampleTs, opts = {}) {
     .map((t, i) => ({ ...t, from: t.from?.toLowerCase(), to: t.to?.toLowerCase(), i }))
     .sort((a, b) => a.ts - b.ts || a.i - b.i);
 
+  // Self-relocations — a holder shuffling wallets, either a SPLIT (→ N fresh equal wallets) or a
+  // CONSOLIDATION (N emptying wallets → 1 fresh). The pieces/target INHERIT the source coin age
+  // instead of resetting to fresh, and the move is NOT counted as an economic spend, so a wallet
+  // move keeps its city standing. Detected once over the whole history; `splitIdx` = the transfer
+  // indices to treat as lot-moves (see moveLots). Disabled with opts.detectSplits === false.
+  let splitIdx, splitEvents;
+  if (opts.detectSplits === false) { splitIdx = new Set(); splitEvents = []; }
+  else {
+    // scan the engine's OWN already-sorted tx in place — no array copy (that's what OOM'd on 2.7M rows)
+    const mv = scanSelfMoves(tx, opts.splitOpts);
+    splitIdx = new Set([...mv.splitIdx, ...mv.conIdx]);
+    splitEvents = [...mv.splitEvents, ...mv.conEvents];
+  }
+  const splitsByTs = splitEvents.slice().sort((a, b) => a.ts - b.ts);
+
   const wallets = new Map(); // addr -> {q:[{ts,price,qty}], head, bal}
   const get = a => { let e = wallets.get(a); if (!e) { e = { q: [], head: 0, bal: 0 }; wallets.set(a, e); } return e; };
+  // Move lots from source → recipient PRESERVING their acquisition ts + price (age + cost basis), for
+  // a detected self-split. No realized-P/L / coin-days accounting — it's a relocation, not a sale.
+  const moveLots = (from, to, amount) => {
+    const s = wallets.get(from); if (!s) return;
+    const d = get(to);
+    let need = amount;
+    while (need > EPS && s.head < s.q.length) {
+      const lot = s.q[s.head], take = Math.min(lot.qty, need);
+      lot.qty -= take; s.bal -= take; need -= take;
+      d.q.push({ ts: lot.ts, price: lot.price, qty: take }); d.bal += take;
+      if (lot.qty <= EPS) { s.q[s.head] = null; s.head++; }
+    }
+  };
   // FIFO consume; returns, for the spent coins:
   //   val/cost   — realized VALUE (qty×send price) and COST (qty×lot price) → SOPR + realized P/L
   //   profit/loss — realized gain and realized loss in USD, split per lot (a spend can consume
@@ -176,8 +284,12 @@ export function replayFifo(transfers, priceAt, sampleTs, opts = {}) {
     return { val, cost, profit, loss, cdd, moved: amount - need };
   };
 
-  const recv = t => { if (t.to && !exclude.has(t.to)) { const price = priceAt(t.ts); if (price != null) { const e = get(t.to); e.q.push({ ts: t.ts, price, qty: t.amt }); e.bal += t.amt; } } };
-  const send = t => { if (t.from && !exclude.has(t.from)) { const e = wallets.get(t.from); if (e) { const sp = priceAt(t.ts); const r = consume(e, t.amt, sp ?? 0, t.ts); winCDD += r.cdd; winVol += r.moved; if (sp != null) { winVal += r.val; winCost += r.cost; winProfit += r.profit; winLoss += r.loss; } } } };
+  // A split transfer creates NO fresh lot on receive — the source's aged lots are moved over in send().
+  const recv = t => { if (splitIdx.has(t.i)) return; if (t.to && !exclude.has(t.to)) { const price = priceAt(t.ts); if (price != null) { const e = get(t.to); e.q.push({ ts: t.ts, price, qty: t.amt }); e.bal += t.amt; } } };
+  const send = t => {
+    if (splitIdx.has(t.i)) { if (t.from && !exclude.has(t.from)) moveLots(t.from, t.to, t.amt); return; } // relocation, not a spend
+    if (t.from && !exclude.has(t.from)) { const e = wallets.get(t.from); if (e) { const sp = priceAt(t.ts); const r = consume(e, t.amt, sp ?? 0, t.ts); winCDD += r.cdd; winVol += r.moved; if (sp != null) { winVal += r.val; winCost += r.cost; winProfit += r.profit; winLoss += r.loss; } } }
+  };
   // Track balances on the EXCLUDED addresses too (they're not "holders", but their kind —
   // CEX/LP/custody vs bridge/burn — drives the LIQUID vs ILLIQUID supply split). Sum the
   // "liquid excluded" (cex+lp+custody) supply per sample so liquid supply over time =
@@ -218,6 +330,7 @@ export function replayFifo(transfers, priceAt, sampleTs, opts = {}) {
   // per-sample-window spend accumulators (SOPR + NRPL + dormancy) and the running total
   // of coin-days destroyed (for liveliness, which is cumulative by definition).
   let p = 0, winVal = 0, winCost = 0, winProfit = 0, winLoss = 0, winCDD = 0, winVol = 0, cumCDD = 0;
+  let splitP = 0, splitCumN = 0, splitCumSup = 0;   // cumulative detected self-splits, for disclosure
   // WHALE WATCHER: snapshot every wallet's balance at a few lookback checkpoints, so the final
   // state can be diffed against them → who has been ADDING vs SHEDDING. `wallets` already
   // excludes CEX/LP/bridge/burn (EXCLUDE), so these are real holders, not infrastructure.
@@ -237,6 +350,9 @@ export function replayFifo(transfers, priceAt, sampleTs, opts = {}) {
       for (let k = start; k < p; k++) send(tx[k]);
     }
     const row = snapshot(wallets, sTs, priceAt(sTs), thr);
+    while (splitP < splitsByTs.length && splitsByTs[splitP].ts <= sTs) { splitCumN++; splitCumSup += splitsByTs[splitP].supply; splitP++; }
+    row.splitCount = splitCumN;                    // cumulative detected self-relocations (splits + merges)
+    row.splitSupply = +splitCumSup.toFixed(2);     // supply that has flowed through a detected self-move
     row.liqEx = +(liqExcluded() / 1).toFixed(2); // CEX+LP+custody supply (tokens) — the always-liquid excluded bucket
     row.cexBal = +kindBal("cex").toFixed(2);     // SPX on tagged CEX addresses — exchange-flow / sell-side proxy
     // The other two pieces of the non-holder supply, so the city's harbour reads them live instead
@@ -342,6 +458,15 @@ export function replayFifo(transfers, priceAt, sampleTs, opts = {}) {
       out.urpd.bucketsFine = computeUrpd(wallets, s, d, opts.urpdFine ?? 160).buckets;
     }
     if (opts.collectWhales) out.whales = { updated: iso(lastTs), spot: priceAt(lastTs) ?? 0, lookback: checkpoints.map(c => c.d), wallets: buildWhales() };
+    // The detected self-relocation EVENTS (which wallets, when), newest first — for verification +
+    // a future disclosure surface. Dated + typed (split / consolidation).
+    out.selfMoves = {
+      updated: iso(lastTs), count: splitEvents.length, supply: +splitEvents.reduce((s, e) => s + e.supply, 0).toFixed(2),
+      events: splitEvents.slice().sort((a, b) => b.ts - a.ts).map(e => ({
+        type: e.type, date: iso(e.ts), supply: +e.supply.toFixed(2), n: e.n,
+        ...(e.type === "split" ? { source: e.source, recipients: e.recipients } : { target: e.target, sources: e.sources }),
+      })),
+    };
     if (urpdHist) out.urpdHistory = {
       updated: iso(lastTs), pMin: +Math.exp(uGrid.loLog).toFixed(7), pMax: +Math.exp(uGrid.hiLog).toFixed(7),
       nBuckets: uGrid.nBuckets, edges: uGrid.edges, weeks: urpdHist,
@@ -563,7 +688,7 @@ async function main() {
   try { prevResidents = (JSON.parse(await readFile(whalesPath, "utf8")).wallets || []).map(w => w.a); }
   catch { /* first run */ }
 
-  const { rows, urpd, whales, urpdHistory } = replayFifo(transfers, priceAt, grid, { thresholdDays: Number(args.threshold ?? 90), collectUrpd: true, urpdBuckets: Number(args.buckets ?? 72), collectWhales: true,
+  const { rows, urpd, whales, urpdHistory, selfMoves } = replayFifo(transfers, priceAt, grid, { thresholdDays: Number(args.threshold ?? 90), collectUrpd: true, urpdBuckets: Number(args.buckets ?? 72), collectWhales: true,
     collectUrpdHistory: true, urpdHistBuckets: Number(args.urpdhist_buckets ?? 40), urpdHistStride: args.daily ? 7 : 1,
     whaleTop: Number(args.whales_top ?? 8000),
     minTokens: Number(args.whale_min ?? 5000),
@@ -578,6 +703,12 @@ async function main() {
   // Whale watcher companion (top current holders + how much they've added/shed).
   const whalesOut = whalesPath;
   await writeFile(whalesOut, JSON.stringify(whales));
+  // Self-relocation events companion — which wallets split/merged, when (for verification + disclosure).
+  if (selfMoves) {
+    const smOut = out.replace(/[^/]+$/, "self-moves.json");
+    await writeFile(smOut, JSON.stringify(selfMoves));
+    console.log(`Wrote ${smOut}: ${selfMoves.count} self-moves · ${(selfMoves.supply / 1e6).toFixed(2)}M SPX`);
+  }
   // URPD-over-time companion (weekly cost-basis slices on one fixed grid → the 3D terrain).
   if (urpdHistory) {
     const uhOut = out.replace(/[^/]+$/, "urpd-history.json");
