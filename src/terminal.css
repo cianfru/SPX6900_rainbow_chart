@@ -137,6 +137,10 @@
 .tzone .tmob-all{ color:var(--live); }
 .tzone .tmob-rainbow .tmob-lbl{ background:linear-gradient(90deg,#f87171,#fb923c,#fbbf24,#4ade80,#38bdf8,#a78bfa); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; }
 
+/* Simplify: a chart that carries its own in-chart Explain box doesn't also need the
+   page-level description repeated below it — hide the duplicate. */
+.tzone .tchart:has(.chart-explain) .page-desc{ display:none; }
+
 /* Apple-style round back button on the chart page */
 .tzone .tback{ transition:border-color .14s, color .14s, background .14s; }
 .tzone .tback:hover{ border-color:var(--tx); color:var(--tx); }

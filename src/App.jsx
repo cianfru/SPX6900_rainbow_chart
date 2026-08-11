@@ -1475,9 +1475,10 @@ export default function App() {
             {chartEl(tab)}
           </Suspense>
           </ErrorBoundary>
-          {/* Explanation UNDER the chart, in the site's mono (menu) font */}
+          {/* Explanation UNDER the chart, in the site's mono (menu) font. Auto-hidden by CSS
+              (.tchart:has(.chart-explain)) on charts that already carry their own Explain box. */}
           {CHART_META[tab]?.desc && (
-            <div style={{ fontFamily: "var(--mono)", fontSize: isMobile ? 13.5 : 15, color: "var(--dim)", margin: "22px 0 0", maxWidth: 980, lineHeight: 1.6 }}>
+            <div className="page-desc" style={{ fontFamily: "var(--mono)", fontSize: isMobile ? 13.5 : 15, color: "var(--dim)", margin: "22px 0 0", maxWidth: 980, lineHeight: 1.6 }}>
               <span style={{ color: "#4ade80", marginRight: 10, fontWeight: 700 }}>&gt;</span>{CHART_META[tab].desc}
             </div>
           )}
