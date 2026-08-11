@@ -618,6 +618,8 @@ export default function App() {
   const openCity = () => { setRoute("city"); syncUrl("city"); window.scrollTo({ top: 0, behavior: "smooth" }); };
   const openMethods = () => { setRoute("methods"); syncUrl("methods"); window.scrollTo({ top: 0, behavior: "smooth" }); };
   const openRainbow = () => { setRoute("rainbow"); syncUrl("rainbow"); window.scrollTo({ top: 0, behavior: "smooth" }); };
+  // the 3D city opens into a mode via /city?m=spx|aeon|both (deep-linked from the SPX City menu sub-views)
+  const cityMode = (() => { const m = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("m") : null; return m === "aeon" || m === "both" ? m : "spx"; })();
   const openDocs = (slug = "index") => { setDocSlug(slug); setRoute("docs"); syncUrl("docs", slug); window.scrollTo({ top: 0, behavior: "smooth" }); };
   // goChart(id) opens a chart at its default view; goChart(id, view) deep-links a sub-view.
   // relative keeps its own `rel` asset param (view values BTC/ETH/SOL/BASKET); every other
@@ -949,7 +951,7 @@ export default function App() {
           rather than through the charts gallery so it gets a clean path and first-class billing. */}
       {route === "city" && (
         <Suspense fallback={<div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Loading the city…</div>}>
-          <SpxCity isMobile={isMobile} initialMode="spx" />
+          <SpxCity isMobile={isMobile} initialMode={cityMode} />
         </Suspense>
       )}
 
