@@ -80,6 +80,10 @@ export const CHART_GROUPS = [
       { id: "exitflow", title: "How Holders Left", post: "exitmap", desc: "Of everyone who left, when they sold and whether they left in profit or at a loss — over the price." },
       { id: "smartmoney", title: "Smart Money", post: "smartmoney", desc: "The live cohort of proven top-timers (ROI ≥5×, still holding) — aggregate holdings and net-flow." },
       { id: "whaleswatching", title: "Whales Watching", post: "whalebehaviour", locked: true, desc: "Every wallet over 100k SPX — a 3D city of towers or a live board pulsing green/red as they buy and sell." },
+      // City Lab stays `dev` (hidden, direct-link only ?chart=citylab) — the internal A/B page. It lives in a
+      // gallery group (dev-filtered out of the gallery) rather than CITY_GROUPS, because the City nav (CITY_MENU
+      // in App.jsx) does NOT filter dev — putting it there leaked it into the SPX City dropdown.
+      { id: "citylab", title: "City Lab (3D)", dev: true, desc: "The same block drawn two ways — comparing the current look against a more realistic one." },
     ],
   },
   {
@@ -168,10 +172,6 @@ export const CITY_GROUPS = [
     charts: [
       { id: "citygrowth", title: "City Growth", post: "citygrowth", desc: "How SPX City grew — citizens (≥5k held 90d) and its total value climbing through the drawdown." },
       { id: "cityflow", title: "City Flow", post: "citychurn", desc: "The churn under the count — arrivals vs departures, cohort survivorship, and average holding." },
-      // City Lab stays `dev` (hidden, direct-link only ?chart=citylab) — the internal A/B page that
-      // draws the same block two ways. It lives here rather than the Charts gallery because it's a city
-      // tool; dev charts never render as a gallery tile regardless of group.
-      { id: "citylab", title: "City Lab (3D)", dev: true, desc: "The same block drawn two ways — comparing the current look against a more realistic one." },
     ],
   },
 ];
