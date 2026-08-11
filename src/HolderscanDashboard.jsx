@@ -7,7 +7,7 @@ import { SANS, MONO, MAX_W } from "./chart-ui.jsx";
 // Holder analytics, entirely from OUR OWN on-chain FIFO reconstruction (public/onchain.json, daily)
 // + the whale snapshot (whales.json) + the multi-chain headcount (history.json). This used to proxy
 // HolderScan; that subscription is retired, so everything here is now reproducible from data we bank
-// ourselves — holder count, realized (break-even) price, gini, concentration, supply in profit, the
+// ourselves, holder count, realized (break-even) price, gini, concentration, supply in profit, the
 // wealth ladder, holding-age bands and the top wallets. ETH-native unless labelled otherwise.
 
 const glassCard = {
@@ -18,14 +18,14 @@ const glassCard = {
 };
 
 const fNum = n => {
-  if (n == null || !isFinite(n)) return "—";
+  if (n == null || !isFinite(n)) return "-";
   if (Math.abs(n) >= 1e9) return (n / 1e9).toFixed(2) + "B";
   if (Math.abs(n) >= 1e6) return (n / 1e6).toFixed(2) + "M";
   if (Math.abs(n) >= 1e3) return (n / 1e3).toFixed(1) + "K";
   return n.toLocaleString();
 };
 const fUsd = n => {
-  if (n == null || !isFinite(n)) return "—";
+  if (n == null || !isFinite(n)) return "-";
   const abs = Math.abs(n);
   if (abs >= 1e6) return "$" + (n / 1e6).toFixed(1) + "M";
   if (abs >= 1e3) return "$" + (n / 1e3).toFixed(0) + "K";
@@ -60,7 +60,7 @@ function Bar({ label, count, total, color, note }) {
 
 function TopHolderRow({ holder, index }) {
   const addr = holder.a;
-  const short = addr ? `${addr.slice(0, 8)}...${addr.slice(-6)}` : "—";
+  const short = addr ? `${addr.slice(0, 8)}...${addr.slice(-6)}` : "-";
   return (
     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "9px 0", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
@@ -155,7 +155,7 @@ export default function HolderscanDashboard() {
           <div style={{ padding: "20px 22px", borderRadius: 10, ...glassCard }}>
             <div style={{ fontFamily: SANS, fontSize: 13, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>Top 10 Wallets · SPX held</div>
             {whales.slice(0, 10).map((h, i) => <TopHolderRow key={h.a || i} holder={h} index={i} />)}
-            <div style={{ fontFamily: SANS, fontSize: 11.5, color: "#64748b", marginTop: 8 }}>Largest self-custody holders — exchanges, LP and the bridge excluded.</div>
+            <div style={{ fontFamily: SANS, fontSize: 11.5, color: "#64748b", marginTop: 8 }}>Largest self-custody holders, exchanges, LP and the bridge excluded.</div>
           </div>
         )}
       </div>

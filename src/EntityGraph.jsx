@@ -4,7 +4,7 @@ import { SANS, MONO } from "./chart-ui.jsx";
 // Bubblemaps/Arkham-style view of the entity clusters. Each ENTITY is a bubble sized by its combined
 // holdings; inside it, the wallets one owner controls sit as nodes (sized by their own balance when the
 // engine has emitted per-wallet balances) wired together by the real drain/fund edges. Deterministic
-// layout — no randomness (reproducible, and the sandbox blocks Math.random anyway). Clusters are packed
+// layout, no randomness (reproducible, and the sandbox blocks Math.random anyway). Clusters are packed
 // so the biggest owners read at a glance; hover a wallet for its address + balance, click a cluster to
 // pin its detail. This is the readable companion to the by-wallet list.
 
@@ -110,7 +110,7 @@ export default function EntityGraph({ entities, heldSupply, spot, isMobile, onSe
 
       <div style={{ position: "absolute", top: 10, right: 12, fontFamily: SANS, fontSize: 11.5, color: "#64748b", textAlign: "right", lineHeight: 1.6, pointerEvents: "none" }}>
         <div><span style={{ color: "#a78bfa" }}>●</span> bubble = one owner · size = holdings</div>
-        <div><span style={{ color: kindColor("drain") }}>—</span> drain <span style={{ color: kindColor("fund") }}>—</span> fund · dashed = flagged</div>
+        <div><span style={{ color: kindColor("drain") }}>-</span> drain <span style={{ color: kindColor("fund") }}>-</span> fund · dashed = flagged</div>
       </div>
     </div>
   );

@@ -29,7 +29,7 @@ function Tip({ active, payload, mode }) {
   );
 }
 
-// Whale counts over time — how many wallets sit in each size cohort (100–250k / 250k–1M / 1M–5M /
+// Whale counts over time, how many wallets sit in each size cohort (100–250k / 250k–1M / 1M–5M /
 // 5M+), week by week, reconstructed from the city time-machine. The evolution story: the base
 // broadened while the mega-whales thinned. A holder-structure read, not a signal.
 export default function WhaleCohortsChart({ isMobile, initialView }) {
@@ -66,7 +66,7 @@ export default function WhaleCohortsChart({ isMobile, initialView }) {
     return { vis, xDomain: [x0, x1], xTicks, yMax: Math.ceil(yMax / 50) * 50 || 50 };
   }, [all, zoom, stacked]);
 
-  if (doc === false) return <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Whale history is being rebuilt — check back after the next on-chain refresh.</div>;
+  if (doc === false) return <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Whale history is being rebuilt, check back after the next on-chain refresh.</div>;
   if (!view) return <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Loading whale history…</div>;
 
   const cur = all.at(-1), first = all[0];
@@ -81,7 +81,7 @@ export default function WhaleCohortsChart({ isMobile, initialView }) {
     <div style={{ maxWidth: MAX_W, margin: "0 auto" }}>
       <Explain q="How has SPX6900's whale population changed?" accent="#22d3ee">
         Every wallet over <strong style={{ color: "#e2e8f0" }}>100,000 SPX</strong>, counted week by week and split into four size cohorts.
-        The base <strong style={{ color: BANDS[0].c }}>broadened</strong> — more mid-size whales over time — while the <strong style={{ color: BANDS[3].c }}>biggest hands (5M+) thinned</strong> as early mega-whales split or trimmed. Structure, not price.
+        The base <strong style={{ color: BANDS[0].c }}>broadened</strong>, more mid-size whales over time, while the <strong style={{ color: BANDS[3].c }}>biggest hands (5M+) thinned</strong> as early mega-whales split or trimmed. Structure, not price.
       </Explain>
 
       <div style={{ display: "flex", gap: isMobile ? 14 : 30, justifyContent: "center", marginBottom: 12, flexWrap: "wrap" }}>
@@ -135,7 +135,7 @@ export default function WhaleCohortsChart({ isMobile, initialView }) {
       </div>
 
       <div className="chart-caption" style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.65, maxWidth: 900, marginInline: "auto" }}>
-        <strong style={{ color: "#22d3ee" }}>Whale counts over time</strong> — wallets ≥100k SPX in each size cohort, reconstructed {doc?.res === "daily" ? "daily" : "weekly"} from the on-chain archive
+        <strong style={{ color: "#22d3ee" }}>Whale counts over time</strong>, wallets ≥100k SPX in each size cohort, reconstructed {doc?.res === "daily" ? "daily" : "weekly"} from the on-chain archive
         (net balances; infra excluded). A wallet moves between cohorts as it grows or shrinks; the live snapshot counts a touch fewer using finer per-lot ages. Drag to zoom. Not financial advice.
       </div>
     </div>

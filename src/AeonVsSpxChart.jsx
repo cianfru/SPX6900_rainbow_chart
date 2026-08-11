@@ -7,12 +7,12 @@ import { SANS, MONO, MAX_W, Metric, TipBox, Explain } from "./chart-ui.jsx";
 const fShort = t => new Date(t).toLocaleDateString("en-US", { month: "short", year: "2-digit" });
 const fmt = v => v >= 1000 ? (v / 1000).toFixed(1) + "k" : Math.round(v);
 
-// Project Aeon — floor price expressed IN SPX6900 (how many SPX coins buy one AEON floor),
+// Project Aeon, floor price expressed IN SPX6900 (how many SPX coins buy one AEON floor),
 // vs its own baseline. Below the baseline = the AEON floor is CHEAP relative to SPX; above
 // = EXPENSIVE. Ties the two projects: if you hold SPX, is AEON cheap right now?
 //
 // The ratio series is computed ONCE in build-aeon-market.mjs (`spxValue.floorSeries`) and
-// the verdict math lives in aeon-spx-value.js, both shared with the listings chart — this
+// the verdict math lives in aeon-spx-value.js, both shared with the listings chart, this
 // page used to rebuild the ratio itself off the SPX_DAILY bundle, which meant two
 // implementations, two SPX sources, and a standing chance of the two disagreeing on air.
 export default function AeonVsSpxChart({ isMobile }) {
@@ -40,7 +40,7 @@ export default function AeonVsSpxChart({ isMobile }) {
       return { ts: Date.parse(d), ratio: r, base: b, hi: b * st.bandMult(0.5), lo: b * st.bandMult(-0.5) };
     });
     // REAL-TIME tip: recompute the latest floor-in-SPX from the LIVE SPX price. floor(ETH, daily
-    // Alchemy) × ETH/USD (daily) ÷ SPX(live) — so the leading point follows SPX intraday instead of
+    // Alchemy) × ETH/USD (daily) ÷ SPX(live), so the leading point follows SPX intraday instead of
     // freezing at the daily close. `cur`/`vs baseline` update with it; the verdict (σ/zone) stays daily.
     let cur = st.cur, pctVsBase = st.pctVsBase;
     if (spxLive > 0 && sv.ethUsd > 0 && market.floor > 0 && rows.length) {
@@ -82,7 +82,7 @@ export default function AeonVsSpxChart({ isMobile }) {
   return (
     <div style={{ maxWidth: MAX_W, margin: "0 auto" }}>
       <Explain q="Is the AEON floor cheap or expensive versus SPX6900?" accent={state.c}>
-        The Project&nbsp;AEON floor priced <strong style={{ color: "#e2e8f0" }}>in SPX6900</strong> — how many SPX coins one floor costs — against its own <strong style={{ color: "#94a3b8" }}>baseline</strong>.
+        The Project&nbsp;AEON floor priced <strong style={{ color: "#e2e8f0" }}>in SPX6900</strong>, how many SPX coins one floor costs, against its own <strong style={{ color: "#94a3b8" }}>baseline</strong>.
         <strong style={{ color: "#34d399" }}> Below the baseline = cheap</strong> (the floor buys for fewer SPX than usual); <strong style={{ color: "#fb7185" }}>above = expensive</strong>. A relative-value read for anyone holding both.
       </Explain>
 
@@ -103,7 +103,7 @@ export default function AeonVsSpxChart({ isMobile }) {
             tick={{ fill: "#cbd5e1", fontSize: isMobile ? 10 : 12, fontFamily: MONO }} axisLine={{ stroke: "rgba(255,255,255,0.15)" }} tickLine={false} width={isMobile ? 44 : 56}
             label={{ value: "AEON floor (SPX coins)", angle: -90, position: "insideLeft", fill: "#64748b", fontSize: 12, fontFamily: SANS, style: { textAnchor: "middle" } }} />
           <Tooltip content={<Tip />} cursor={{ stroke: "rgba(255,255,255,0.2)" }} />
-          {/* Bands track the trailing baseline rather than spanning all history — see aeon-spx-value.js */}
+          {/* Bands track the trailing baseline rather than spanning all history, see aeon-spx-value.js */}
           <Area type="monotone" dataKey="hi" stroke="#fb7185" strokeOpacity={0.5} strokeWidth={1} strokeDasharray="5 5" fill="none" dot={false} isAnimationActive={false} />
           <Area type="monotone" dataKey="lo" stroke="#34d399" strokeOpacity={0.5} strokeWidth={1} strokeDasharray="5 5" fill="none" dot={false} isAnimationActive={false} />
           <Area type="monotone" dataKey="base" stroke="#94a3b8" strokeWidth={1.8} strokeDasharray="7 5" fill="none" dot={false} isAnimationActive={false} />
@@ -112,7 +112,7 @@ export default function AeonVsSpxChart({ isMobile }) {
       </ResponsiveContainer>
 
       <div className="chart-caption" style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.65, maxWidth: 900, marginInline: "auto" }}>
-        AEON floor (USD, 7-day median) ÷ SPX6900 price = the floor priced in SPX coins. Baseline is the TRAILING 12-month median, not a flat full-history line: the ratio fell structurally from ~45,800 SPX in late 2023 to ~2,100 now because SPX itself appreciated ~130×, so averaging across that would compare today against a regime that cannot recur (and flattered — it read the floor ask at the 59th percentile when against the last year it is the 98th). Bands are ±0.5σ of the deviation from that baseline, so they track the regime. A relative-value read across the two projects — not a forecast. Floor from on-chain sales, SPX from the cleaned daily price series. The same ratio and the same verdict math feed the listings page, so the two can never disagree.
+        AEON floor (USD, 7-day median) ÷ SPX6900 price = the floor priced in SPX coins. Baseline is the TRAILING 12-month median, not a flat full-history line: the ratio fell structurally from ~45,800 SPX in late 2023 to ~2,100 now because SPX itself appreciated ~130×, so averaging across that would compare today against a regime that cannot recur (and flattered, it read the floor ask at the 59th percentile when against the last year it is the 98th). Bands are ±0.5σ of the deviation from that baseline, so they track the regime. A relative-value read across the two projects, not a forecast. Floor from on-chain sales, SPX from the cleaned daily price series. The same ratio and the same verdict math feed the listings page, so the two can never disagree.
       </div>
     </div>
   );

@@ -1,4 +1,4 @@
-// "What if SPX6900 traces Bitcoin's last cycle?" — overlay Bitcoin's REAL price
+// "What if SPX6900 traces Bitcoin's last cycle?", overlay Bitcoin's REAL price
 // path forward from today (src/btc-cycle.js, shared with the bot cards), anchored
 // at SPX's current price and scaled by amplitude. Drawn over SPX's own rainbow
 // band context. The dashed path is fixed from the anchor; live price runs freely
@@ -73,7 +73,7 @@ export default function BtcCycleChart({ series, isMobile }) {
     const c = btcCycleProjection();
     const endTs = c.projPts.at(-1)[0];
     const endAge = Math.round((endTs - SPX0) / DAY);
-    // BTC's REAL price, time-aligned (its own right axis) — the RHYME that
+    // BTC's REAL price, time-aligned (its own right axis), the RHYME that
     // justifies "≈ BTC Aug '22": SPX retraced BTC's 2021 double top → 2022 bottom.
     const btcReal = [...c.histPts, ...c.histFwd];
 
@@ -101,10 +101,10 @@ export default function BtcCycleChart({ series, isMobile }) {
       };
     });
     // ⭐ ANCHOR THE BTC AXIS TO SPX (past-performance amplitude fix). On an independent
-    // auto-scaled right axis, BTC's 2021 double-top fills its own axis and TOWERS over SPX —
+    // auto-scaled right axis, BTC's 2021 double-top fills its own axis and TOWERS over SPX -
     // a false visual, since BTC's real 2021 move (~3.4× off its cycle low) was actually
     // SMALLER than SPX's (~6×). Pin the BTC axis to the SPX axis at the shared "≈ BTC Aug '22"
-    // anchor, on the SAME log scale, so BTC's real cycle shows at its TRUE relative amplitude —
+    // anchor, on the SAME log scale, so BTC's real cycle shows at its TRUE relative amplitude -
     // it now sits BELOW SPX's peak instead of overshooting it. (Real BTC prices still label the
     // right axis.) The SPX axis is set explicitly here so the two stay locked together.
     let spxLo = Infinity, spxHi = -Infinity;
@@ -168,7 +168,7 @@ export default function BtcCycleChart({ series, isMobile }) {
 
       <div className="chart-caption" style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.6 }}>
         <span style={{ color: "#4ade80" }}>■</span> SPX6900 (left axis) &nbsp;·&nbsp; <span style={{ color: "#f7931a" }}>■</span> Bitcoin's real last cycle, amplitude-anchored (right axis) &nbsp;·&nbsp; <span style={{ color: "#f7931a" }}>┄</span> beta-scaled projection (shaded = range) &nbsp;·&nbsp; <span style={{ color: "#a78bfa" }}>┄</span> bubble / <span style={{ color: "#38bdf8" }}>┄</span> fire-sale band.
-        <br /><b style={{ color: "#cbd5e1" }}>Why "≈ BTC {fMonY(stats.btcFrom.getTime())}"?</b> Line the two cycles up in time and SPX has retraced Bitcoin's <b>2021 double top</b> (Apr &amp; Nov) → 2022 bottom — the peaks landing within weeks on the aligned clock, which is why today maps to BTC's post-top low. Both are drawn on the <b style={{ color: "#cbd5e1" }}>same log scale, anchored at that shared low</b>, so Bitcoin shows its <i>true</i> relative amplitude — its 2021 run (~3.4× off the low) was actually smaller than SPX's (~6×), so it sits below SPX rather than towering over it. From the low, BTC went to a new ATH — the dashed line beta-scales that path to a top near <span style={{ color: "#fbbf24" }}>{fP(stats.peak)}</span> ({fP(stats.peakLo)}–{fP(stats.peakHi)}) around {stats.peakDate.toLocaleDateString("en-US", { month: "short", year: "numeric" })}. A for-fun <i>what-if</i>, NOT a forecast or financial advice.
+        <br /><b style={{ color: "#cbd5e1" }}>Why "≈ BTC {fMonY(stats.btcFrom.getTime())}"?</b> Line the two cycles up in time and SPX has retraced Bitcoin's <b>2021 double top</b> (Apr &amp; Nov) → 2022 bottom, the peaks landing within weeks on the aligned clock, which is why today maps to BTC's post-top low. Both are drawn on the <b style={{ color: "#cbd5e1" }}>same log scale, anchored at that shared low</b>, so Bitcoin shows its <i>true</i> relative amplitude, its 2021 run (~3.4× off the low) was actually smaller than SPX's (~6×), so it sits below SPX rather than towering over it. From the low, BTC went to a new ATH, the dashed line beta-scales that path to a top near <span style={{ color: "#fbbf24" }}>{fP(stats.peak)}</span> ({fP(stats.peakLo)}–{fP(stats.peakHi)}) around {stats.peakDate.toLocaleDateString("en-US", { month: "short", year: "numeric" })}. A for-fun <i>what-if</i>, NOT a forecast or financial advice.
       </div>
     </div>
   );

@@ -109,8 +109,8 @@ export default function RallyChart({ series, m, isMobile, initialView }) {
         {anchorToggle}
         <div style={{ textAlign: "center", fontFamily: SANS, fontSize: 13, color: "#64748b", padding: "40px 0", lineHeight: 1.6 }}>
           {anchor === "firesale"
-            ? "No Fire Sale rallies yet — price hasn't entered the cheapest band, or hasn't rallied 30%+ from it."
-            : "No completed rally cycles yet — a rally is recorded once price climbs at least 30% off a cycle bottom."}
+            ? "No Fire Sale rallies yet, price hasn't entered the cheapest band, or hasn't rallied 30%+ from it."
+            : "No completed rally cycles yet, a rally is recorded once price climbs at least 30% off a cycle bottom."}
         </div>
       </div>
     );
@@ -171,8 +171,8 @@ export default function RallyChart({ series, m, isMobile, initialView }) {
 
       <div className="chart-caption" style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.6 }}>
         {anchor === "firesale"
-          ? "Each line traces the climb (× from the low, log scale) after price entered the cheapest “Fire Sale” valuation band, vs. days since that low — i.e. how capitulation-band entries have paid off. Not financial advice."
-          : "The mirror of the drawdown chart: each line traces the climb (× from the low, log scale) after a major cycle bottom, vs. days since that low. Log makes cycles of very different size comparable — note each recovery has run a smaller multiple than the last as SPX6900 matures. Not financial advice."}
+          ? "Each line traces the climb (× from the low, log scale) after price entered the cheapest “Fire Sale” valuation band, vs. days since that low, i.e. how capitulation-band entries have paid off. Not financial advice."
+          : "The mirror of the drawdown chart: each line traces the climb (× from the low, log scale) after a major cycle bottom, vs. days since that low. Log makes cycles of very different size comparable, note each recovery has run a smaller multiple than the last as SPX6900 matures. Not financial advice."}
       </div>
 
       {strategy && (
@@ -181,7 +181,7 @@ export default function RallyChart({ series, m, isMobile, initialView }) {
             fontFamily: SANS, fontSize: 13, fontWeight: 700, color: "#94a3b8",
             letterSpacing: 1, textTransform: "uppercase", textAlign: "center", marginBottom: 14,
           }}>
-            Buy the {anchor === "firesale" ? "Fire Sale" : "dip"}, sell the peak — vs HODL
+            Buy the {anchor === "firesale" ? "Fire Sale" : "dip"}, sell the peak, vs HODL
           </div>
 
           <div style={{ display: "flex", gap: isMobile ? 24 : 52, justifyContent: "center", marginBottom: 16, flexWrap: "wrap" }}>
@@ -217,7 +217,7 @@ export default function RallyChart({ series, m, isMobile, initialView }) {
 
           <div style={{ fontFamily: SANS, fontSize: 12, color: "#64748b", textAlign: "center", marginTop: 10, lineHeight: 1.6 }}>
             Hindsight strategy with perfect timing (buy each low, sell each peak), compounded from {fMon(strategy.startDate)}, cash between cycles.
-            Log scale. Illustrative only — not achievable in real time, and not financial advice.
+            Log scale. Illustrative only, not achievable in real time, and not financial advice.
           </div>
         </div>
       )}

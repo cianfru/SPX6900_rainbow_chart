@@ -3,11 +3,11 @@ import { loadEntities } from "./history-data.js";
 import { SANS, MONO, MAX_W, Metric, Explain } from "./chart-ui.jsx";
 import EntityGraph from "./EntityGraph.jsx";
 
-// SPX City "who owns what" — the ENTITY view. The by-wallet charts (Holder Concentration, Whales)
+// SPX City "who owns what", the ENTITY view. The by-wallet charts (Holder Concentration, Whales)
 // count every address separately; this second lens links the addresses one owner controls into a
 // single entity, reconstructed from on-chain SPX flows (a wallet emptied into, or a fresh wallet
 // funded by, another plain wallet). It never merges through a CEX/LP/contract, flags anything that
-// looks like a service or an over-merge, and — stated plainly — only sees SPX movements, so a common
+// looks like a service or an over-merge, and, stated plainly, only sees SPX movements, so a common
 // ETH/gas funder that never touched SPX is invisible to it. The raw by-wallet view stays the default;
 // this is the disclosed, reproducible companion.
 
@@ -63,10 +63,10 @@ export default function EntityClustersChart({ isMobile, preview = false }) {
     <div style={{ maxWidth: MAX_W, margin: "0 auto" }}>
       <Explain q="How many wallets does one owner actually control?" accent={accent}>
         The concentration and whale charts count every <strong style={{ color: "#e2e8f0" }}>address</strong> on its own. This links the addresses
-        {" "}<strong style={{ color: accent }}>one owner</strong> moves SPX between — a wallet <strong style={{ color: "#f472b6" }}>emptied into</strong>, or a
-        {" "}<strong style={{ color: "#38bdf8" }}>fresh wallet funded by</strong>, another plain wallet — into a single <strong style={{ color: accent }}>entity</strong>.
+        {" "}<strong style={{ color: accent }}>one owner</strong> moves SPX between, a wallet <strong style={{ color: "#f472b6" }}>emptied into</strong>, or a
+        {" "}<strong style={{ color: "#38bdf8" }}>fresh wallet funded by</strong>, another plain wallet, into a single <strong style={{ color: accent }}>entity</strong>.
         {" "}It never merges through an exchange, pool or contract, and flags anything that looks like a service or an over-merge. It reads
-        {" "}<strong style={{ color: "#e2e8f0" }}>SPX flows only</strong> — a shared ETH/gas funder that never touched SPX is invisible to it — so this is a
+        {" "}<strong style={{ color: "#e2e8f0" }}>SPX flows only</strong>, a shared ETH/gas funder that never touched SPX is invisible to it, so this is a
         {" "}<em>floor</em> on how clustered the base really is, not the last word.
       </Explain>
 
@@ -140,7 +140,7 @@ export default function EntityClustersChart({ isMobile, preview = false }) {
               {isOpen && (
                 <div style={{ padding: isMobile ? "4px 12px 16px" : "6px 18px 18px 70px", display: "flex", flexDirection: "column", gap: 14 }}>
                   {e.flagged && <div style={{ fontFamily: SANS, fontSize: 12.5, color: amber, background: `${amber}12`, border: `1px solid ${amber}33`, borderRadius: 8, padding: "8px 12px" }}>
-                    This cluster is <strong>larger than a normal personal split</strong> — kept here for review but <strong>not trusted</strong> in any metric. It may chain through a not-yet-classified service.
+                    This cluster is <strong>larger than a normal personal split</strong>, kept here for review but <strong>not trusted</strong> in any metric. It may chain through a not-yet-classified service.
                   </div>}
                   <div>
                     <div style={{ fontFamily: SANS, fontSize: 12, color: "#64748b", textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 6 }}>Wallets ({e.wallets.length})</div>
@@ -173,7 +173,7 @@ export default function EntityClustersChart({ isMobile, preview = false }) {
       </>)}
 
       <div className="chart-caption" style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 16, lineHeight: 1.65, maxWidth: 900, marginInline: "auto" }}>
-        <strong style={{ color: accent }}>Wallet clusters</strong> — addresses one owner moves SPX between, linked into a single entity ({data.updated}). Reconstructed from on-chain <strong style={{ color: "#94a3b8" }}>SPX drain/fund flows</strong>; exchanges, pools and contracts are exits, never links. A shared <strong style={{ color: "#94a3b8" }}>ETH funder</strong> that never touched SPX is not seen, so this under-counts, never over-counts. The by-wallet charts stay the default view. Not financial advice.
+        <strong style={{ color: accent }}>Wallet clusters</strong>, addresses one owner moves SPX between, linked into a single entity ({data.updated}). Reconstructed from on-chain <strong style={{ color: "#94a3b8" }}>SPX drain/fund flows</strong>; exchanges, pools and contracts are exits, never links. A shared <strong style={{ color: "#94a3b8" }}>ETH funder</strong> that never touched SPX is not seen, so this under-counts, never over-counts. The by-wallet charts stay the default view. Not financial advice.
       </div>
     </div>
   );

@@ -1,7 +1,7 @@
 // The city manual, hosted here rather than linked out.
 //
 // Pages are authored as markdown in docs/ and pre-rendered to HTML at build time by
-// scripts/build-docs.mjs — so there is no markdown parser in the browser, and the content can't
+// scripts/build-docs.mjs, so there is no markdown parser in the browser, and the content can't
 // drift from the book. Hosting it on-site also keeps the manual free of third-party branding, an
 // author's name in the URL, and Git-sync metadata naming the repo.
 //

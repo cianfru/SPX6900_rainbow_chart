@@ -22,7 +22,7 @@ function Tip({ active, payload }) {
   );
 }
 
-// Supply in Profit % — the share of ETH-native supply whose holder's average cost
+// Supply in Profit %, the share of ETH-native supply whose holder's average cost
 // basis sits below price, reconstructed on-chain from the ERC-20 transfer history
 // (Dune). High near tops (frothy), low near bottoms (cheap). A valuation position.
 export default function SupplyInProfitChart({ isMobile, preview = false }) {
@@ -60,8 +60,8 @@ export default function SupplyInProfitChart({ isMobile, preview = false }) {
   return (
     <div style={{ maxWidth: MAX_W, margin: "0 auto" }}>
       <Explain q="How much of SPX6900's supply is sitting in profit?" accent={GRN}>
-        The share of coins whose holder is <strong style={{ color: "#e2e8f0" }}>above their cost basis</strong> — what they paid, reconstructed from on-chain transfers.
-        It runs near <strong style={{ color: HOT }}>100% at price tops</strong> (everyone green, frothy) and bottoms out near a few percent at the lows (almost everyone underwater — cheap). A valuation read, not a buy signal.
+        The share of coins whose holder is <strong style={{ color: "#e2e8f0" }}>above their cost basis</strong>, what they paid, reconstructed from on-chain transfers.
+        It runs near <strong style={{ color: HOT }}>100% at price tops</strong> (everyone green, frothy) and bottoms out near a few percent at the lows (almost everyone underwater, cheap). A valuation read, not a buy signal.
       </Explain>
       <div style={{ display: "flex", gap: isMobile ? 16 : 30, justifyContent: "center", marginBottom: 14, flexWrap: "wrap" }}>
         <Metric label="supply in profit" value={cur.sip.toFixed(1) + "%"} color={GRN} sub={state} />
@@ -82,8 +82,8 @@ export default function SupplyInProfitChart({ isMobile, preview = false }) {
               </linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="2 8" stroke="rgba(255,255,255,0.06)" />
-            <ReferenceArea y1={66} y2={100} fill={HOT} fillOpacity={0.09} stroke="none" label={zLabel(80, "frothy — most in profit", HOT)} />
-            <ReferenceArea y1={0} y2={34} fill={COOL} fillOpacity={0.09} stroke="none" label={zLabel(17, "cheap — most underwater", COOL)} />
+            <ReferenceArea y1={66} y2={100} fill={HOT} fillOpacity={0.09} stroke="none" label={zLabel(80, "frothy, most in profit", HOT)} />
+            <ReferenceArea y1={0} y2={34} fill={COOL} fillOpacity={0.09} stroke="none" label={zLabel(17, "cheap, most underwater", COOL)} />
             <XAxis dataKey="ts" type="number" domain={view.xDomain} ticks={view.xTicks} scale="time" allowDataOverflow
               tickFormatter={fShort} tick={{ fill: "#cbd5e1", fontSize: isMobile ? 10 : 12, fontFamily: MONO }}
               axisLine={{ stroke: "rgba(255,255,255,0.15)" }} tickLine={false} />
@@ -102,8 +102,8 @@ export default function SupplyInProfitChart({ isMobile, preview = false }) {
       </div>
 
       <div className="chart-caption" style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.65, maxWidth: 900, marginInline: "auto" }}>
-        <strong style={{ color: GRN }}>Supply in Profit</strong> — the share of ETH-native supply whose wallet sits above its on-chain cost basis, reconstructed from the transfer history.
-        It ran to ~100% at every price peak (everyone green — frothy) and bottomed near 2% at the lows (nearly all underwater — cheap). A valuation position, not a signal. Drag to zoom. Not financial advice.
+        <strong style={{ color: GRN }}>Supply in Profit</strong>, the share of ETH-native supply whose wallet sits above its on-chain cost basis, reconstructed from the transfer history.
+        It ran to ~100% at every price peak (everyone green, frothy) and bottomed near 2% at the lows (nearly all underwater, cheap). A valuation position, not a signal. Drag to zoom. Not financial advice.
       </div>
     </div>
   );

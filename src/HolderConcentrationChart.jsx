@@ -22,7 +22,7 @@ function Tip({ active, payload }) {
   );
 }
 
-// Holder concentration — the largest wallets' share of ETH-native supply over time
+// Holder concentration, the largest wallets' share of ETH-native supply over time
 // (contracts/pools/CEX excluded). SPX has DECENTRALISED: the whales' grip loosened as
 // the holder base grew. A distribution-of-ownership read, not a signal.
 export default function HolderConcentrationChart({ isMobile, preview = false }) {
@@ -56,7 +56,7 @@ export default function HolderConcentrationChart({ isMobile, preview = false }) 
     <div style={{ maxWidth: MAX_W, margin: "0 auto" }}>
       <Explain q="Are a few whales holding most of SPX6900, or is it spreading out?" accent={A100}>
         The share of supply held by the <strong style={{ color: "#e2e8f0" }}>biggest wallets</strong> (exchanges, pools and contracts excluded).
-        SPX has <strong style={{ color: "#4ade80" }}>decentralised</strong> over time — the top 100 wallets&apos; grip has loosened as the holder base grew from thousands to ~50k. Falling lines = ownership spreading to more people.
+        SPX has <strong style={{ color: "#4ade80" }}>decentralised</strong> over time, the top 100 wallets&apos; grip has loosened as the holder base grew from thousands to ~50k. Falling lines = ownership spreading to more people.
       </Explain>
       <div style={{ display: "flex", gap: isMobile ? 16 : 30, justifyContent: "center", marginBottom: 14, flexWrap: "wrap" }}>
         <Metric label="top 100 wallets" value={cur.t100.toFixed(1) + "%"} color={A100} sub={`from ${first.t100.toFixed(0)}% at launch`} />
@@ -94,8 +94,8 @@ export default function HolderConcentrationChart({ isMobile, preview = false }) 
       </div>
 
       <div className="chart-caption" style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.65, maxWidth: 900, marginInline: "auto" }}>
-        <strong style={{ color: A100 }}>Holder concentration</strong> — the share of ETH-native supply held by the largest wallets (contracts, pools and exchanges excluded).
-        Both lines have drifted down since launch: the float keeps spreading into more hands — SPX6900 is decentralising. Drag to zoom. Not financial advice.
+        <strong style={{ color: A100 }}>Holder concentration</strong>, the share of ETH-native supply held by the largest wallets (contracts, pools and exchanges excluded).
+        Both lines have drifted down since launch: the float keeps spreading into more hands, SPX6900 is decentralising. Drag to zoom. Not financial advice.
       </div>
     </div>
   );

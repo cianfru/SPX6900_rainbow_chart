@@ -22,7 +22,7 @@ function Tip({ active, payload, zones }) {
   );
 }
 
-// The Pi Cycle ratio — 111-day / (350-day × 2) MA — from Bitcoin's Pi Cycle indicator,
+// The Pi Cycle ratio, 111-day / (350-day × 2) MA, from Bitcoin's Pi Cycle indicator,
 // applied to SPX6900 as a descriptive extension/accumulation gauge (NOT the borrowed
 // binary cross). >1 = top zone, <0.5 = historically an accumulation zone.
 export default function PiCycleChart({ series, isMobile, preview = false }) {
@@ -106,10 +106,10 @@ export default function PiCycleChart({ series, isMobile, preview = false }) {
       </div>
 
       <div className="chart-caption" style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.65, maxWidth: 900, marginInline: "auto" }}>
-        The <strong style={{ color: PC }}>Pi Cycle ratio</strong> — the 111-day MA over the 350-day MA × 2 (350/111 ≈ π), from Bitcoin&apos;s Pi Cycle Top indicator.
-        Below <strong style={{ color: "#38bdf8" }}>0.5</strong> has historically been an accumulation zone (it transfers cleanly — SPX sits there about as often as Bitcoin).
+        The <strong style={{ color: PC }}>Pi Cycle ratio</strong>, the 111-day MA over the 350-day MA × 2 (350/111 ≈ π), from Bitcoin&apos;s Pi Cycle Top indicator.
+        Below <strong style={{ color: "#38bdf8" }}>0.5</strong> has historically been an accumulation zone (it transfers cleanly, SPX sits there about as often as Bitcoin).
         SPX runs hotter than Bitcoin, though, so the <strong style={{ color: "#f87171" }}>top</strong> is tuned to SPX&apos;s own range (<strong style={{ color: "#f87171" }}>{fR(z.top)}</strong>, vs Bitcoin&apos;s 1.0). It peaked at SPX&apos;s 2025 top and now sits at <strong style={{ color: st.color }}>{fR(cur.ratio)}</strong> ({st.label}).
-        A Bitcoin indicator applied to SPX for context — a rhyme, not a signal. Drag to zoom. Not financial advice.
+        A Bitcoin indicator applied to SPX for context, a rhyme, not a signal. Drag to zoom. Not financial advice.
       </div>
     </div>
   );

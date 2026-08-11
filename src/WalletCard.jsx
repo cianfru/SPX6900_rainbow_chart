@@ -1,6 +1,6 @@
 import { MONO } from "./chart-ui.jsx";
 
-// The pinned wallet strip beside the whale board — terminal style: monospace, sharp, high contrast,
+// The pinned wallet strip beside the whale board, terminal style: monospace, sharp, high contrast,
 // no pills. The Zerion preview (render.zerion.io, the wallet's own og:image, public by their design)
 // sits on the right and is the click target; the whole card reads like a readout, not a button.
 export const shortAddr = a => a.slice(0, 6) + "…" + a.slice(-4);
@@ -13,7 +13,7 @@ export default function WalletCard({ w, lines = [], flow, flowUnit = "", accent 
   const col = f > 0 ? "#4ade80" : f < 0 ? "#fb7185" : "#94a3b8";
   const tri = f > 0 ? "▲" : f < 0 ? "▼" : "•";
   const amt = f === 0 ? "flat" : `${f > 0 ? "+" : "−"}${fmt(f)}${flowUnit}`;
-  // Zerion covers Solana too, so one interface for every chain — the address goes in the path and
+  // Zerion covers Solana too, so one interface for every chain, the address goes in the path and
   // the same render.zerion.io preview works. onError hides the preview if a given wallet has none.
   const explorer = `https://app.zerion.io/${w.a}/overview`;
 

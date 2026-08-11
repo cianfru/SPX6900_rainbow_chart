@@ -18,7 +18,7 @@ function Tip({ active, payload }) {
   );
 }
 
-// Project Aeon — holder flow: monthly wallets entering (buying) vs exiting (selling to
+// Project Aeon, holder flow: monthly wallets entering (buying) vs exiting (selling to
 // zero). The mint month is dropped (one-off spike). Positive = accumulation, negative = distribution.
 export default function AeonBehaviourChart({ isMobile }) {
   const [data, setData] = useState(AEON_ONCHAIN);
@@ -69,7 +69,7 @@ export default function AeonBehaviourChart({ isMobile }) {
         </BarChart>
       </ResponsiveContainer>
       <div className="chart-caption" style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.65, maxWidth: 900, marginInline: "auto" }}>
-        <strong style={{ color: "#34d399" }}>Holder flow</strong> — wallets joining vs leaving the base each month (mint excluded). A wallet &ldquo;enters&rdquo; when its balance crosses 0→held, &ldquo;exits&rdquo; when it sells to zero.
+        <strong style={{ color: "#34d399" }}>Holder flow</strong>, wallets joining vs leaving the base each month (mint excluded). A wallet &ldquo;enters&rdquo; when its balance crosses 0→held, &ldquo;exits&rdquo; when it sells to zero.
       </div>
     </div>
   );

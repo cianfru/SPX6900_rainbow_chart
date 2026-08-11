@@ -22,7 +22,7 @@ function Tip({ active, payload }) {
   );
 }
 
-// Liveliness — cumulative coin-days destroyed ÷ created. Rises when long-held coins move
+// Liveliness, cumulative coin-days destroyed ÷ created. Rises when long-held coins move
 // (distribution), falls when the base sits tight (accumulation). From the FIFO per-lot engine.
 export default function LivelinessChart({ isMobile, preview = false }) {
   const [live, setLive] = useState(null);
@@ -52,10 +52,10 @@ export default function LivelinessChart({ isMobile, preview = false }) {
     return { vis, xDomain: [x0, x1], xTicks, yDomain: [lo, hi], cur: all.at(-1), rising: all.at(-1).liveliness > back.liveliness + 0.002 };
   }, [all, zoom]);
 
-  if (!view) return <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Not enough on-chain data yet — this fills in as the reconstruction runs.</div>;
+  if (!view) return <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Not enough on-chain data yet, this fills in as the reconstruction runs.</div>;
 
   const cur = view.cur;
-  const state = view.rising ? "old coins waking up — distribution" : "coins sitting tight — accumulation";
+  const state = view.rising ? "old coins waking up, distribution" : "coins sitting tight, accumulation";
 
   return (
     <div style={{ maxWidth: MAX_W, margin: "0 auto" }}>
@@ -98,7 +98,7 @@ export default function LivelinessChart({ isMobile, preview = false }) {
       </div>
 
       <div className="chart-caption" style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.65, maxWidth: 900, marginInline: "auto" }}>
-        <strong style={{ color: ACC }}>Liveliness</strong> — cumulative coin-days destroyed ÷ coin-days ever created, reconstructed on-chain from each lot&apos;s age when spent.
+        <strong style={{ color: ACC }}>Liveliness</strong>, cumulative coin-days destroyed ÷ coin-days ever created, reconstructed on-chain from each lot&apos;s age when spent.
         Falling = holders accumulating and holding; rising = older coins changing hands. A conviction position, not a signal. Drag to zoom. Not financial advice.
       </div>
     </div>

@@ -116,7 +116,7 @@ export default function RunningRoiChart({ series, isMobile, preview = false }) {
           <ReferenceLine yAxisId="roi" y={1} stroke="#4ade80" strokeWidth={1.6} strokeOpacity={0.85}
             label={{ value: "start · 1×", position: "insideBottomRight", fill: "#4ade80", fontSize: 11, fontFamily: MONO }} />
           <Tooltip content={<Tip />} cursor={{ stroke: "rgba(255,255,255,0.2)" }} />
-          {/* single curve — the left $-axis and right ×-axis both label it */}
+          {/* single curve, the left $-axis and right ×-axis both label it */}
           <Line yAxisId="roi" type="monotone" dataKey="roi" stroke={GROWTH} strokeWidth={2.2} dot={false} isAnimationActive={false} name="growth from start" connectNulls />
           {selL != null && selR != null && selL !== selR && (
             <ReferenceArea yAxisId="price" x1={selL} x2={selR} strokeOpacity={0.4} stroke={PRICE} fill={PRICE} fillOpacity={0.12} />
@@ -126,7 +126,7 @@ export default function RunningRoiChart({ series, isMobile, preview = false }) {
       </div>
 
       <div className="chart-caption" style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.65, maxWidth: 880, marginInline: "auto" }}>
-        Growth measured from the <strong style={{ color: "#cbd5e1" }}>start of the window</strong> — the <span style={{ color: GROWTH }}>gold line</span> begins at
+        Growth measured from the <strong style={{ color: "#cbd5e1" }}>start of the window</strong>, the <span style={{ color: GROWTH }}>gold line</span> begins at
         1× on the left edge (<span style={{ color: "#4ade80" }}>green 1× = back to the starting price</span>), with <span style={{ color: PRICE }}>price</span> on the left axis.
         <strong style={{ color: "#7dd3fc" }}> Drag to select any period</strong> and the chart zooms in and rebases to it. Not financial advice.
       </div>

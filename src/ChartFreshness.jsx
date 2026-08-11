@@ -25,7 +25,7 @@ export default function ChartFreshness({ chartId }) {
   const ago = date == null ? "" : f.days === 0 ? " · today" : f.days === 1 ? " · 1 day ago" : ` · ${f.days} days ago`;
   const txt = date == null ? "data unavailable" : `data as of ${fMon(date)}${ago}`;
   return (
-    <span title={`updates ${f.cad}${f.stale ? " · looks stale — may need a refresh" : ""}`}
+    <span title={`updates ${f.cad}${f.stale ? " · looks stale, may need a refresh" : ""}`}
       style={{ display: "inline-flex", alignItems: "center", gap: 6, fontFamily: SANS, fontSize: 12,
         color: f.stale ? "#fca5a5" : "#94a3b8", background: "rgba(255,255,255,0.03)",
         border: "1px solid rgba(255,255,255,0.08)", borderRadius: 999, padding: "3px 10px", marginBottom: 14 }}>

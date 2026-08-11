@@ -5,7 +5,7 @@ import { SANS } from "./chart-ui.jsx";
 // A one-time animated demo that sits in front of a zoomable chart, looping a
 // drag-to-select gesture so users learn the chart is interactive. It's
 // pointer-transparent (never blocks the real chart) and vanishes the moment the
-// user clicks/taps anywhere — then stays gone (localStorage). Auto-dismisses too.
+// user clicks/taps anywhere, then stays gone (localStorage). Auto-dismisses too.
 export default function ChartZoomHint({ storageKey = "spx-zoom-hint-v2" }) {
   // Read "already seen" once at mount (client-only SPA, no SSR) so we never
   // setState synchronously inside an effect.

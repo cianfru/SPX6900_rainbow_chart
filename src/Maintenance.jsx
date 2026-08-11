@@ -43,7 +43,7 @@ export default function Maintenance({ token }) {
         We&rsquo;re rebuilding.
       </h1>
       <p style={{ fontSize: "clamp(15px, 2.4vw, 18px)", color: "#9aa3b2", maxWidth: 560, lineHeight: 1.6, margin: 0 }}>
-        The SPX6900 Rainbow terminal is getting a major upgrade — deeper on-chain analytics,
+        The SPX6900 Rainbow terminal is getting a major upgrade, deeper on-chain analytics,
         a faster interface, the same honest, reproducible numbers. Back soon.
       </p>
 
@@ -56,7 +56,7 @@ export default function Maintenance({ token }) {
         Follow @SPX6900Rainbow for updates
       </a>
 
-      {/* subtle team-access unlock — owner enters the preview token to view the live redesign */}
+      {/* subtle team-access unlock, owner enters the preview token to view the live redesign */}
       <form onSubmit={submit} style={{ marginTop: 26, display: "inline-flex", gap: 8, alignItems: "center", opacity: 0.85 }}>
         <input
           type="password" value={pw} onChange={(e) => { setPw(e.target.value); setBad(false); }}

@@ -12,7 +12,7 @@ const GRN = "#4ade80", RED = "#f43f5e", PRICE = "#94a3b8";
 const fShort = t => new Date(t).toLocaleDateString("en-US", { month: "short", year: "2-digit" });
 const fN = n => n >= 1000 ? (n / 1000).toFixed(1) + "k" : String(n);
 const fSpx = v => v >= 1e6 ? (v / 1e6).toFixed(1) + "M" : v >= 1e3 ? Math.round(v / 1e3) + "k" : String(Math.round(v));
-const fP = p => p == null ? "—" : p < 0.01 ? "$" + p.toFixed(4) : "$" + p.toFixed(2);
+const fP = p => p == null ? "-" : p < 0.01 ? "$" + p.toFixed(4) : "$" + p.toFixed(2);
 
 function Tip({ active, payload, cumulative, spx }) {
   if (!active || !payload?.length) return null;
@@ -31,10 +31,10 @@ function Tip({ active, payload, cumulative, spx }) {
   );
 }
 
-// "Who left — and did they leave in profit?" The realized exit of everyone who dropped below the
+// "Who left, and did they leave in profit?" The realized exit of everyone who dropped below the
 // 5,000-SPX bar, per day, split green (sold above their entry) / red (below), over the price line.
 // The counterintuitive read: the churn was overwhelmingly profit-taking; losses only cluster in the
-// drawdown. NOT NUPL (that's the unrealized P/L of who's STILL here) — this is who's GONE.
+// drawdown. NOT NUPL (that's the unrealized P/L of who's STILL here), this is who's GONE.
 export default function ExitFlowChart({ isMobile }) {
   const [doc, setDoc] = useState(null);
   const [px, setPx] = useState(null);
@@ -84,7 +84,7 @@ export default function ExitFlowChart({ isMobile }) {
     return { vis, xDomain: [x0, x1], xTicks, pDomain: [pMin * 0.85, pMax * 1.15] };
   }, [all, zoom]);
 
-  if (doc === false) return <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Exit data is being rebuilt — check back after the next on-chain refresh.</div>;
+  if (doc === false) return <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Exit data is being rebuilt, check back after the next on-chain refresh.</div>;
   if (!view) return <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Loading exit history…</div>;
 
   const o = doc.overall || {};
@@ -100,11 +100,11 @@ export default function ExitFlowChart({ isMobile }) {
 
   return (
     <div style={{ maxWidth: MAX_W, margin: "0 auto" }}>
-      <Explain q="Who left SPX6900 — and did they sell green or red?" accent={GRN}>
+      <Explain q="Who left SPX6900, and did they sell green or red?" accent={GRN}>
         Every wallet that <strong style={{ color: "#e2e8f0" }}>left the holder base</strong>, counted on the day it dropped out, split by whether it sold
         <strong style={{ color: GRN }}> above</strong> or <strong style={{ color: RED }}>below</strong> its entry price.
-        The churn was overwhelmingly <strong style={{ color: GRN }}>profit-taking</strong> — {o.profitPct}% left green; losses only cluster in the drawdown.
-        Not NUPL (that&apos;s the unrealized P/L of who&apos;s <em>still here</em>) — this is who&apos;s gone.
+        The churn was overwhelmingly <strong style={{ color: GRN }}>profit-taking</strong>, {o.profitPct}% left green; losses only cluster in the drawdown.
+        Not NUPL (that&apos;s the unrealized P/L of who&apos;s <em>still here</em>), this is who&apos;s gone.
       </Explain>
 
       <LiveFlowStrip isMobile={isMobile} />
@@ -177,10 +177,10 @@ export default function ExitFlowChart({ isMobile }) {
       </div>
 
       <div className="chart-caption" style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.65, maxWidth: 900, marginInline: "auto" }}>
-        <strong style={{ color: GRN }}>How holders left</strong> — {spx
+        <strong style={{ color: GRN }}>How holders left</strong>, {spx
           ? (cumulative ? "the running total of SPX that dropped out of strong hands, green (sold in profit) vs red (at a loss)" : "SPX that left the holder base each day, green if sold above entry, red if below, over the price line")
           : (cumulative ? "the running total of departures, green (in profit) vs red (at a loss)" : "one bar per day: departing holders, green if they sold above their entry, red if below, over the price line")}.
-        {hasSpx && <> The <strong style={{ color: "#5eead4" }}>SPX dumped</strong> view weights by size — one whale outweighs fifty shrimp — measuring each departing wallet&rsquo;s holding the moment before it fell below 5,000 SPX (the position that left; an outflow proxy, since on-chain can&rsquo;t separate a sale from a transfer).</>}
+        {hasSpx && <> The <strong style={{ color: "#5eead4" }}>SPX dumped</strong> view weights by size, one whale outweighs fifty shrimp, measuring each departing wallet&rsquo;s holding the moment before it fell below 5,000 SPX (the position that left; an outflow proxy, since on-chain can&rsquo;t separate a sale from a transfer).</>}
         {" "}An exit is dated to the transfer that drops the wallet below the bar. Profit/loss is exit price vs entry price (≈ the price when it crossed the bar; a realized-P/L proxy). Reconstructed on-chain, daily. Drag to zoom. Not financial advice.
       </div>
     </div>

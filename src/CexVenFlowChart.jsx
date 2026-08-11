@@ -9,7 +9,7 @@ const POS = "#4ade80", NEG = "#f6465d";
 const fM = t => (t >= 0 ? "+" : "−") + (Math.abs(t) >= 1 ? Math.abs(t).toFixed(2) + "M" : Math.round(Math.abs(t) * 1000) + "K");
 const WINDOWS = [{ label: "30d", wk: 4 }, { label: "90d", wk: 13 }, { label: "180d", wk: 26 }, { label: "1y", wk: 52 }];
 
-// Per-venue net flow — which exchanges gained vs bled SPX over a window (diverging bars).
+// Per-venue net flow, which exchanges gained vs bled SPX over a window (diverging bars).
 // Only possible because every venue's wallets are tagged. Behaviour read, not a signal.
 export default function CexVenFlowChart({ isMobile, preview = false, initialView }) {
   const [live, setLive] = useState(null);
@@ -30,7 +30,7 @@ export default function CexVenFlowChart({ isMobile, preview = false, initialView
   }, [oc, wk]);
 
   if (live == null) return <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Loading on-chain data…</div>;
-  if (live === false || !model) return <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Per-venue data is being computed — check back after the next weekly refresh.</div>;
+  if (live === false || !model) return <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Per-venue data is being computed, check back after the next weekly refresh.</div>;
 
   const { rows, from, to, net } = model;
   const mn = Math.min(0, ...rows.map(r => r.flow)), mx = Math.max(0, ...rows.map(r => r.flow));
@@ -51,9 +51,9 @@ export default function CexVenFlowChart({ isMobile, preview = false, initialView
 
   return (
     <div style={{ maxWidth: MAX_W, margin: "0 auto" }}>
-      <Explain q="Which exchanges are gaining SPX6900 — and which are bleeding it?" accent={POS}>
+      <Explain q="Which exchanges are gaining SPX6900, and which are bleeding it?" accent={POS}>
         The net change in SPX held on each exchange over the window. <strong style={{ color: POS }}>Green = gained</strong> (coins flowed onto that venue), <strong style={{ color: NEG }}>red = bled</strong> (flowed off).
-        Because every venue's wallets are tagged, we see <strong style={{ color: "#e2e8f0" }}>where</strong> supply moves, not just that it moved. Net flow ≠ buying or selling — behaviour, not a signal.
+        Because every venue's wallets are tagged, we see <strong style={{ color: "#e2e8f0" }}>where</strong> supply moves, not just that it moved. Net flow ≠ buying or selling, behaviour, not a signal.
       </Explain>
 
       <div style={{ display: "flex", gap: 8, justifyContent: "center", alignItems: "center", marginBottom: 12, flexWrap: "wrap" }}>
@@ -77,7 +77,7 @@ export default function CexVenFlowChart({ isMobile, preview = false, initialView
       </ResponsiveContainer>
 
       <div className="chart-caption" style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 14, lineHeight: 1.65, maxWidth: 900, marginInline: "auto" }}>
-        Net change in SPX6900 held per <strong style={{ color: "#cbd5e1" }}>tagged exchange</strong> over the selected window. Bybit is the dominant swing venue — its big moves drive the aggregate exchange flow. Net flow isn&apos;t proof of buying or selling (OTC, listings, MM rebalancing all move balances). A behaviour read, not a signal. Not financial advice.
+        Net change in SPX6900 held per <strong style={{ color: "#cbd5e1" }}>tagged exchange</strong> over the selected window. Bybit is the dominant swing venue, its big moves drive the aggregate exchange flow. Net flow isn&apos;t proof of buying or selling (OTC, listings, MM rebalancing all move balances). A behaviour read, not a signal. Not financial advice.
       </div>
     </div>
   );

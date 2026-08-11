@@ -5,7 +5,7 @@ import { SANS, MONO, MAX_W, Metric, Explain } from "./chart-ui.jsx";
 
 const fEth = v => (v < 0.1 ? v.toFixed(3) : v.toFixed(2)) + "Ξ";
 
-// Project Aeon — NFT valuation: the SPX MVRV playbook on the collection. Each held token's
+// Project Aeon, NFT valuation: the SPX MVRV playbook on the collection. Each held token's
 // cost basis = what its owner paid; MVRV = floor ÷ realized; supply-in-profit + a cost-basis
 // histogram (URPD) show where the bags are and who's up.
 export default function AeonValuationChart({ isMobile }) {
@@ -27,7 +27,7 @@ export default function AeonValuationChart({ isMobile }) {
 
   return (
     <div style={{ maxWidth: MAX_W, margin: "0 auto" }}>
-      <Explain q="Are AEON holders in profit — and what's it worth vs cost?" accent={mvrvState.c}>
+      <Explain q="Are AEON holders in profit, and what's it worth vs cost?" accent={mvrvState.c}>
         The SPX valuation playbook, on the NFT. Each held token&apos;s <strong style={{ color: "#e2e8f0" }}>cost basis</strong> is what its owner paid; <strong style={{ color: mvrvState.c }}>MVRV</strong> is the floor over that cost.
         <strong style={{ color: "#34d399" }}> Supply in profit</strong> = the share of held pieces now worth more (floor) than they cost. The bars show where everyone bought.
       </Explain>
@@ -39,7 +39,7 @@ export default function AeonValuationChart({ isMobile }) {
         <Metric label="in profit" value={v.supplyInProfitPct + "%"} color="#34d399" sub={`of ${v.heldPriced.toLocaleString()} priced-held`} />
       </div>
 
-      <div style={{ fontFamily: SANS, fontSize: 13, color: "#94a3b8", textAlign: "center", marginBottom: 4 }}>Cost-basis distribution — where held pieces were bought (green = in profit vs floor)</div>
+      <div style={{ fontFamily: SANS, fontSize: 13, color: "#94a3b8", textAlign: "center", marginBottom: 4 }}>Cost-basis distribution, where held pieces were bought (green = in profit vs floor)</div>
       <ResponsiveContainer width="100%" height={isMobile ? 400 : 560}>
         <BarChart data={buckets} margin={{ top: 8, right: 16, bottom: 24, left: 6 }}>
           <CartesianGrid strokeDasharray="2 8" stroke="rgba(255,255,255,0.06)" />
@@ -56,7 +56,7 @@ export default function AeonValuationChart({ isMobile }) {
       </ResponsiveContainer>
 
       <div className="chart-caption" style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 14, lineHeight: 1.65, maxWidth: 900, marginInline: "auto" }}>
-        <strong style={{ color: mvrvState.c }}>MVRV {v.mvrv?.toFixed(2)}×</strong> — floor ({fEth(v.floor)}) vs the crowd&apos;s realized cost basis ({fEth(v.realizedPrice)}). Bars are the cost-basis histogram of every priced, still-held token; green sits below the floor (in profit). Cost basis = each token&apos;s current owner&apos;s last purchase price, from the sale log. A position read, not a signal.
+        <strong style={{ color: mvrvState.c }}>MVRV {v.mvrv?.toFixed(2)}×</strong>, floor ({fEth(v.floor)}) vs the crowd&apos;s realized cost basis ({fEth(v.realizedPrice)}). Bars are the cost-basis histogram of every priced, still-held token; green sits below the floor (in profit). Cost basis = each token&apos;s current owner&apos;s last purchase price, from the sale log. A position read, not a signal.
       </div>
     </div>
   );

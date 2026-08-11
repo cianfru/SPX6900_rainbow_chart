@@ -5,21 +5,21 @@ import { loadOnchain } from "./history-data.js";
 import { SPX_ONCHAIN } from "./spx-onchain.js";
 import { SANS, MONO, MAX_W } from "./chart-ui.jsx";
 
-// Holder conviction — the held supply split by HOLDING AGE, entirely from our own FIFO on-chain
+// Holder conviction, the held supply split by HOLDING AGE, entirely from our own FIFO on-chain
 // reconstruction (public/onchain.json, daily). This used to read HolderScan's proprietary
 // wood→diamond tiers (top ~1,000 wallets); HolderScan is retired, so the five tiers are now the five
 // HODL age bands, and "diamond hands" = held >90 days = 3-6m + 6-12m + 1y+ (the reproducible number,
 // ~61% of total supply). Exchanges, LP and the bridge are excluded upstream, so it's real holders.
 
 const fUsd = n => {
-  if (n == null || !isFinite(n)) return "—";
+  if (n == null || !isFinite(n)) return "-";
   if (n >= 1e9) return "$" + (n / 1e9).toFixed(2) + "B";
   if (n >= 1e6) return "$" + (n / 1e6).toFixed(1) + "M";
   if (n >= 1e3) return "$" + (n / 1e3).toFixed(0) + "K";
   return "$" + n.toFixed(0);
 };
 const fNum = n => {
-  if (n == null || !isFinite(n)) return "—";
+  if (n == null || !isFinite(n)) return "-";
   if (n >= 1e9) return (n / 1e9).toFixed(2) + "B";
   if (n >= 1e6) return (n / 1e6).toFixed(1) + "M";
   if (n >= 1e3) return (n / 1e3).toFixed(0) + "K";
@@ -110,7 +110,7 @@ export default function SupplyConviction({ price, isMobile }) {
   }, [hist]);
 
   if (!onchain && !SPX_ONCHAIN.length) return <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 40 }}>Loading supply data…</div>;
-  if (!model) return <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 40 }}>On-chain data is being rebuilt — check back after the next refresh.</div>;
+  if (!model) return <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 40 }}>On-chain data is being rebuilt, check back after the next refresh.</div>;
 
   const { shareOfHeld, dia90Pct, diamondTokens } = model;
   const diamondPct = dia90Pct * 100;
@@ -143,8 +143,8 @@ export default function SupplyConviction({ price, isMobile }) {
       </div>
 
       <div style={{ maxWidth: 800, margin: "22px auto 0", fontFamily: SANS, fontSize: 13, color: "#cbd5e1", lineHeight: 1.7, textAlign: "center" }}>
-        The real holder base grouped by how long each coin has been held — reconstructed on-chain (FIFO), exchanges and LP pools excluded.
-        <strong style={{ color: "#22d3ee" }}> {diamondPct.toFixed(0)}% of held supply</strong> are diamond hands — held for over 90 days ({fNum(diamondTokens)} SPX · {fUsd(diamondValue)}, {diamondOfTotal.toFixed(0)}% of all supply).
+        The real holder base grouped by how long each coin has been held, reconstructed on-chain (FIFO), exchanges and LP pools excluded.
+        <strong style={{ color: "#22d3ee" }}> {diamondPct.toFixed(0)}% of held supply</strong> are diamond hands, held for over 90 days ({fNum(diamondTokens)} SPX · {fUsd(diamondValue)}, {diamondOfTotal.toFixed(0)}% of all supply).
         The chart below shows the share climbing as more supply crosses the 90-day line. Not financial advice.
       </div>
 

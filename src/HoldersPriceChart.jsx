@@ -27,7 +27,7 @@ function Tip({ active, payload }) {
 }
 
 // ETH holder count (left) vs SPX price (right) over the FULL history (Dune
-// reconstruction, from launch) — does accumulation hold through price swings?
+// reconstruction, from launch), does accumulation hold through price swings?
 // The conviction story: holders climbed to ~49.5k and held flat while price
 // round-tripped through an ~80% drawdown. Prefers the live /onchain.json.
 export default function HoldersPriceChart({ isMobile, preview = false }) {
@@ -70,7 +70,7 @@ export default function HoldersPriceChart({ isMobile, preview = false }) {
   }, [all, zoom]);
 
   if (all == null) return <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Loading holder history…</div>;
-  if (!view) return <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Not enough holder history yet — we started banking daily snapshots recently; this fills in as it accumulates.</div>;
+  if (!view) return <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Not enough holder history yet, we started banking daily snapshots recently; this fills in as it accumulates.</div>;
 
   const pTicks = [0.0001, 0.001, 0.01, 0.1, 0.2, 0.3, 0.5, 1, 2, 5, 10].filter(v => v >= view.pDomain[0] && v <= view.pDomain[1]);
 
@@ -119,7 +119,7 @@ export default function HoldersPriceChart({ isMobile, preview = false }) {
 
       <div className="chart-caption" style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.65, maxWidth: 880, marginInline: "auto" }}>
         The holder base (<span style={{ color: HOLDERS }}>green, left</span>) against <span style={{ color: PRICE }}>SPX price</span> (right) over time. The story to watch:
-        whether accumulation <strong style={{ color: "#cbd5e1" }}>keeps climbing through price swings</strong> — conviction shows when holders grow on red days.
+        whether accumulation <strong style={{ color: "#cbd5e1" }}>keeps climbing through price swings</strong>, conviction shows when holders grow on red days.
         Daily on-chain snapshots (banked recently, so it fills in as it accumulates). <strong style={{ color: "#7dd3fc" }}>Drag to zoom.</strong> Not financial advice.
       </div>
     </div>

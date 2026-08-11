@@ -6,17 +6,17 @@ import { SANS, MONO, MAX_W, Explain } from "./chart-ui.jsx";
 
 const fEth = v => (v < 0.1 ? v.toFixed(3) : v.toFixed(2)) + "Ξ";
 
-// Project Aeon — asking prices vs what pieces actually SELL for.
+// Project Aeon, asking prices vs what pieces actually SELL for.
 //
 // Fair value comes from realized sales (aeon-market.json `fairModel`), NOT from the asks
-// on this chart. Fitting the asks was circular — it only measured "cheap versus what other
+// on this chart. Fitting the asks was circular, it only measured "cheap versus what other
 // sellers are hoping for", which flagged #1011 as "61% off" at 1.22Ξ when no AEON had
 // fetched above 1.10Ξ in 90 days. The sales model is: market level now × rarity factor.
 export default function AeonValueChart({ isMobile }) {
   const [data, setData] = useState(null);
   const [market, setMarket] = useState(null);
-  const [hover, setHover] = useState(null);   // {d, cx, cy} — the NFT under the crosshair
-  const [cross, setCross] = useState(null);   // {x, y} — the floating pointer
+  const [hover, setHover] = useState(null);   // {d, cx, cy}, the NFT under the crosshair
+  const [cross, setCross] = useState(null);   // {x, y}, the floating pointer
   const ptsRef = useRef(new Map());           // token id → its plotted pixel {cx, cy, payload}
   const wrapRef = useRef(null);
   useEffect(() => { let c = false; loadAeonListings().then(d => { if (!c) setData(d || { empty: true }); }); return () => { c = true; }; }, []);
@@ -35,20 +35,20 @@ export default function AeonValueChart({ isMobile }) {
     });
     const deals = [...scored].filter(l => l.disc > 0.1).sort((a, b) => b.disc - a.disc).slice(0, 12);
     const dealIds = new Set(deals.map(d => d.id));
-    // closest-to-market listings — what to show when nothing is genuinely below fair value
+    // closest-to-market listings, what to show when nothing is genuinely below fair value
     const closest = [...scored].filter(l => l.mult != null).sort((a, b) => a.mult - b.mult).slice(0, 8);
     const line = expected(1) ? Array.from({ length: 48 }, (_, i) => {
       const r = Math.exp(Math.log(1) + (Math.log(data.total) - Math.log(1)) * i / 47);
       return { rank: r, fair: +expected(r).toFixed(4) };
     }) : [];
-    // AEON priced in SPX — the denominator that actually explains its price (see builder).
+    // AEON priced in SPX, the denominator that actually explains its price (see builder).
     // Lets an ask be placed on AEON's own valuation history instead of only against a
     // trailing ETH median, which on its own reads far harsher than the data warrants.
     const sv = market.empty ? null : market.spxValue;
     const inSpx = sv?.ethUsd && sv?.spxNow ? eth => (eth * sv.ethUsd) / sv.spxNow : null;
     // TRAILING window, matching AeonVsSpxChart. Full history would compare today against the
     // 2023-24 regime (ratio ~45,800 SPX vs ~2,100 now, because SPX itself ran ~130x) and badly
-    // flatter — that read the floor ask at the 59th percentile when against the last year it is
+    // flatter, that read the floor ask at the 59th percentile when against the last year it is
     // the 98th.
     const ladder = sv?.saleSeries ? recentLadder(sv.saleSeries) : [];
     if (inSpx && ladder.length) for (const l of scored) { l.spx = inSpx(l.price); l.spxPct = percentileOf(ladder, l.spx); }
@@ -94,7 +94,7 @@ export default function AeonValueChart({ isMobile }) {
 
   const osUrl = id => `https://opensea.io/assets/ethereum/${data.contract}/${id}`;
   const openPiece = id => { if (data.contract && id != null) window.open(osUrl(id), "_blank", "noopener"); };
-  // ⭐ A FLOATING CROSSHAIR drives the reveal (like the rainbow chart), not recharts' axis Tooltip —
+  // ⭐ A FLOATING CROSSHAIR drives the reveal (like the rainbow chart), not recharts' axis Tooltip -
   // the latter fires unreliably on scattered points and re-mounts its content on every mouse move, so
   // the thumbnail never settles. Each shape RECORDS its plotted pixel into ptsRef; a container-level
   // mousemove drops the pointer and reveals the NEAREST piece within reach. Click opens it on OpenSea.
@@ -122,7 +122,7 @@ export default function AeonValueChart({ isMobile }) {
   };
   const onLeaveChart = () => { setCross(null); setHover(null); };
   const onClickChart = () => { if (hover) openPiece(hover.d.id); };
-  // The tooltip — big art, positioned at the dot, flipped left/down near the edges so it never clips.
+  // The tooltip, big art, positioned at the dot, flipped left/down near the edges so it never clips.
   const imgS = isMobile ? 104 : 132;
   const Tip = () => {
     if (!hover) return null;
@@ -153,9 +153,9 @@ export default function AeonValueChart({ isMobile }) {
     <div style={{ maxWidth: MAX_W, margin: "0 auto" }}>
       <Explain q="Is anything on the board actually cheap?" accent="#34d399">
         Every <strong style={{ color: "#e2e8f0" }}>active listing</strong> plotted by <strong style={{ color: "#f59e0b" }}>rarity</strong> (rarer → left) vs its <strong style={{ color: "#e2e8f0" }}>ask</strong>.
-        The dashed line is what pieces of that rarity <strong style={{ color: "#94a3b8" }}>actually sell for</strong> — measured from realized sales, not from the asks themselves.
+        The dashed line is what pieces of that rarity <strong style={{ color: "#94a3b8" }}>actually sell for</strong>, measured from realized sales, not from the asks themselves.
         Listings <strong style={{ color: "#34d399" }}>below the line are cheap</strong>; above it you are paying over market.
-        {updated === "MOCK" && <em style={{ color: "#f472b6" }}> (Preview data — connect the live OpenSea feed.)</em>}
+        {updated === "MOCK" && <em style={{ color: "#f472b6" }}> (Preview data, connect the live OpenSea feed.)</em>}
       </Explain>
 
       <div style={{ display: "flex", gap: isMobile ? 16 : 30, justifyContent: "center", marginBottom: 12, flexWrap: "wrap", fontFamily: SANS }}>
@@ -196,12 +196,12 @@ export default function AeonValueChart({ isMobile }) {
           </div>
           <div style={{ fontFamily: SANS, fontSize: 12.5, color: "#94a3b8", textAlign: "center", marginBottom: 12, maxWidth: 660, marginInline: "auto", lineHeight: 1.6 }}>
             Every live ask sits above what comparable pieces have been selling for in ETH. That is a normal
-            spread for a thinly traded collection — sellers ask high and wait.
+            spread for a thinly traded collection, sellers ask high and wait.
             {sv && cheapestPct != null && <>
-              {" "}<strong style={{ color: "#cbd5e1" }}>But measured in SPX — the denominator that actually tracks AEON — that is
+              {" "}<strong style={{ color: "#cbd5e1" }}>But measured in SPX, the denominator that actually tracks AEON, that is
               less damning than it sounds:</strong> the floor ask sits at the {ord(cheapestPct)} percentile of AEON&rsquo;s own
               valuation history, measured against the last {Math.round(WINDOW_DAYS / 30)} months of trading. Judged against all history it would
-              look far cheaper, but the 2023-24 ratios came from an era when SPX cost a fraction of a cent — a regime that cannot recur.
+              look far cheaper, but the 2023-24 ratios came from an era when SPX cost a fraction of a cent, a regime that cannot recur.
             </>}
           </div>
           <div style={{ display: "grid", gridTemplateColumns: `repeat(auto-fill, minmax(${isMobile ? 130 : 150}px, 1fr))`, gap: 12 }}>
@@ -243,13 +243,13 @@ export default function AeonValueChart({ isMobile }) {
       <div className="chart-caption" style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 18, lineHeight: 1.65, maxWidth: 900, marginInline: "auto" }}>
         Fair value = the recent market level ({fEth(level)}, the rolling median sale) × a rarity factor fitted on
         {nFit ? " " + nFit.toLocaleString() : " all "} realized sales. It is measured from what pieces actually
-        <em> sold</em> for, never from the asking prices on this chart — fitting the asks would just measure what sellers hope for.
+        <em> sold</em> for, never from the asking prices on this chart, fitting the asks would just measure what sellers hope for.
         {r2 != null && <> <strong style={{ color: "#94a3b8" }}>Rarity is a weak price driver here: it explains only {(r2 * 100).toFixed(0)}% of the variation in sale prices</strong>, so treat the line as a rough centre of gravity, not a valuation.</>}
         {sv && <> {" "}The <strong style={{ color: "#c084fc" }}>SPX percentile</strong> prices each ask in SPX6900 ({sv.ethUsd ? "ETH ≈ $" + sv.ethUsd.toLocaleString() + ", " : ""}SPX ${sv.spxNow}) and places it on the last {nWindow} weeks
-        of AEON&rsquo;s own trading — AEON tracks SPX far more closely than it tracks ETH, so that is the more honest
+        of AEON&rsquo;s own trading, AEON tracks SPX far more closely than it tracks ETH, so that is the more honest
         yardstick for expensive-versus-cheap. See <em>AEON Floor vs SPX</em> for the full series.</>}
         {" "}Click or tap any point to open the piece on OpenSea. Listings from OpenSea, sales from on-chain marketplace trades, rarity from on-chain metadata.
-        {parked > 0 && <> {parked} listing{parked === 1 ? " was" : "s were"} parked above {cap ? cap.toFixed(0) : "the cap"}Ξ (asks like 69 or 6900Ξ that exist so a piece shows as listed but can never sell) and are excluded — they aren&rsquo;t real offers and would flatten the whole scale.</>}
+        {parked > 0 && <> {parked} listing{parked === 1 ? " was" : "s were"} parked above {cap ? cap.toFixed(0) : "the cap"}Ξ (asks like 69 or 6900Ξ that exist so a piece shows as listed but can never sell) and are excluded, they aren&rsquo;t real offers and would flatten the whole scale.</>}
       </div>
     </div>
   );

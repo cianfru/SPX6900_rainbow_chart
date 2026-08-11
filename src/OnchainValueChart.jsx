@@ -75,7 +75,7 @@ export default function OnchainValueChart({ isMobile, preview = false, initialVi
   }, [all, zoom, mode]);
 
   if (all == null) return <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Loading on-chain data…</div>;
-  if (!view) return <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Not enough on-chain history yet — daily cost-basis snapshots started recently; this fills in as it accumulates.</div>;
+  if (!view) return <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Not enough on-chain history yet, daily cost-basis snapshots started recently; this fills in as it accumulates.</div>;
 
   const cur = view.cur;
   const mvrvLabel = cur.mvrv >= 1.5 ? "hot" : cur.mvrv >= 1 ? "in profit" : "underwater";
@@ -134,7 +134,7 @@ export default function OnchainValueChart({ isMobile, preview = false, initialVi
 
       <div className="chart-caption" style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.65, maxWidth: 900, marginInline: "auto" }}>
         On-chain valuation from the crowd&apos;s <strong style={{ color: COST }}>realized price</strong> (avg cost basis).
-        <strong style={{ color: "#cbd5e1" }}> Realized price</strong>: price vs cost basis — above = holders in profit; the <strong style={{ color: FLOOR }}>0.8×</strong>/<strong style={{ color: DEEP }}>0.5×</strong> bands are the historical floor zone.
+        <strong style={{ color: "#cbd5e1" }}> Realized price</strong>: price vs cost basis, above = holders in profit; the <strong style={{ color: FLOOR }}>0.8×</strong>/<strong style={{ color: DEEP }}>0.5×</strong> bands are the historical floor zone.
         <strong style={{ color: "#cbd5e1" }}> MVRV</strong>: price ÷ cost (1× = break-even, high = frothy). <strong style={{ color: "#cbd5e1" }}>Z-score</strong>: MVRV normalized.
         Cost basis reconstructed on-chain from launch; live HolderScan snapshots extend the tail. Drag to zoom. Not financial advice.
       </div>

@@ -40,11 +40,11 @@ function Tip({ active, payload }) {
 // MVRV in context: overlay SPX6900's (short) MVRV on Bitcoin's ~decade of MVRV history.
 // MVRV is unitless (market-cap ÷ realized-cap), so the two are directly comparable even
 // though BTC has years of it and SPX only weeks. Answers "are we down/heated similarly to
-// some Bitcoin moment?" — SPX's current MVRV is a marker line across BTC's cheap→heated map.
+// some Bitcoin moment?", SPX's current MVRV is a marker line across BTC's cheap→heated map.
 export default function MvrvContextChart({ isMobile, preview = false }) {
   const [btc, setBtc] = useState(null);
   const [spxHist, setSpxHist] = useState(null);
-  const [px, setPx] = useState(null);   // CI-cleaned dense price — see mvrv-data.js
+  const [px, setPx] = useState(null);   // CI-cleaned dense price, see mvrv-data.js
   useEffect(() => {
     let cancelled = false;
     loadBtcMvrv().then(d => { if (!cancelled) setBtc(d?.points || []); });
@@ -61,7 +61,7 @@ export default function MvrvContextChart({ isMobile, preview = false }) {
       .sort((a, b) => a.ts - b.ts);
     if (!rows.length) return { rows: [] };
     const sorted = rows.map(r => r.mvrv).sort((a, b) => a - b);
-    // Zones from BTC's OWN distribution — self-consistent, no hardcoded thresholds.
+    // Zones from BTC's OWN distribution, self-consistent, no hardcoded thresholds.
     const zones = {
       cheap: quantile(sorted, 0.15),
       fair: quantile(sorted, 0.50),
@@ -75,7 +75,7 @@ export default function MvrvContextChart({ isMobile, preview = false }) {
 
   // SPX6900's OWN MVRV trail = price ÷ realized price (avg cost basis). Full launch→now
   // path from the on-chain Dune realized-cost backfill, with the live HolderScan snapshots
-  // extending the tail — drawn on BTC's timeline at its real dates (recent/right region).
+  // extending the tail, drawn on BTC's timeline at its real dates (recent/right region).
   const spxSeries = useMemo(() => {
     if (!spxHist) return [];
     return mvrvHistory(spxHist, px).map(r => ({ ts: r.ts, mvrv: r.p / r.be }));
@@ -83,7 +83,7 @@ export default function MvrvContextChart({ isMobile, preview = false }) {
   const spx = spxSeries.length ? { mvrv: spxSeries.at(-1).mvrv, ts: spxSeries.at(-1).ts } : null;
 
   // "See the similarities": the Bitcoin moments when BTC's MVRV was within ±band of
-  // where SPX6900 sits today — clustered into periods (a >120-day gap starts a new one).
+  // where SPX6900 sits today, clustered into periods (a >120-day gap starts a new one).
   // Answers "Bitcoin last looked this cheap in …" directly.
   const similar = useMemo(() => {
     if (!data?.rows?.length || !spx) return null;
@@ -121,7 +121,7 @@ export default function MvrvContextChart({ isMobile, preview = false }) {
   }, [data, zoom, spx, similar]);
 
   if (btc == null || spxHist == null) return <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Loading MVRV history…</div>;
-  if (!data?.rows?.length) return <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Bitcoin MVRV context is being banked — this fills in once its monthly data build has run.</div>;
+  if (!data?.rows?.length) return <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Bitcoin MVRV context is being banked, this fills in once its monthly data build has run.</div>;
   if (!view) return <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Not enough history in this range.</div>;
 
   const z = data.zones;
@@ -139,10 +139,10 @@ export default function MvrvContextChart({ isMobile, preview = false }) {
     <div style={{ maxWidth: MAX_W, margin: "0 auto" }}>
       <Explain q="Is SPX6900 as cheap as Bitcoin was at its bottoms?" accent="#a78bfa">
         MVRV (price vs holders' average cost) is <em>unitless</em>, so it compares across coins even though their histories differ wildly.
-        This drops SPX's current MVRV onto Bitcoin's whole decade — the <strong style={{ color: "#e879f9" }}>dots</strong> mark the weeks BTC last sat this cheap. A rhyme with history, not a forecast.
+        This drops SPX's current MVRV onto Bitcoin's whole decade, the <strong style={{ color: "#e879f9" }}>dots</strong> mark the weeks BTC last sat this cheap. A rhyme with history, not a forecast.
       </Explain>
       <div style={{ display: "flex", gap: isMobile ? 16 : 30, justifyContent: "center", marginBottom: 14, flexWrap: "wrap" }}>
-        <Metric label="SPX6900 MVRV" value={spx ? fMvrv(spx.mvrv) : "—"} color={SPX} sub={spx ? (spx.mvrv >= 1 ? "in profit" : "underwater") : "banking"} />
+        <Metric label="SPX6900 MVRV" value={spx ? fMvrv(spx.mvrv) : "-"} color={SPX} sub={spx ? (spx.mvrv >= 1 ? "in profit" : "underwater") : "banking"} />
         <Metric label="Bitcoin MVRV" value={fMvrv(data.btcCur)} color={BTC} sub="today" />
         {spxPct != null && <Metric label="on BTC's history" value={ordinal(spxPct)} color="#22d3ee" sub="percentile" />}
       </div>
@@ -168,16 +168,16 @@ export default function MvrvContextChart({ isMobile, preview = false }) {
               axisLine={{ stroke: "rgba(255,255,255,0.15)" }} tickLine={false} width={isMobile ? 52 : 66} />
             <ReferenceLine y={1} stroke="rgba(255,255,255,0.45)" strokeDasharray="5 5"
               label={preview ? undefined : { value: "break-even 1×", position: "insideBottomRight", fill: "#94a3b8", fontSize: 10.5, fontFamily: MONO }} />
-            {/* SPX6900's neighbourhood — the ±band whose crossings are the "similar" BTC moments */}
+            {/* SPX6900's neighbourhood, the ±band whose crossings are the "similar" BTC moments */}
             {similar && <ReferenceArea y1={similar.lo} y2={similar.hi} fill={SPX} fillOpacity={0.14} stroke="none" />}
             {spx && <ReferenceLine y={spx.mvrv} stroke={SPX} strokeWidth={2.2} strokeOpacity={0.95}
               label={preview ? undefined : { value: `SPX today ${fMvrv(spx.mvrv)}`, position: "insideTopRight", fill: SPX, fontSize: 12, fontWeight: 700, fontFamily: MONO }} />}
             <Tooltip content={<Tip />} cursor={{ stroke: "rgba(255,255,255,0.2)" }} />
             <Line type="monotone" dataKey="mvrv" stroke={BTC} strokeWidth={2} dot={false} isAnimationActive={false} name="BTC MVRV" />
-            {/* highlight the Bitcoin points sitting at SPX's level today — the "we've been here" moments */}
+            {/* highlight the Bitcoin points sitting at SPX's level today, the "we've been here" moments */}
             <Scatter dataKey="match" fill={MATCH} isAnimationActive={false} shape="circle" legendType="none" />
             {/* SPX6900's own MVRV path, drawn on Bitcoin's timeline at its real dates. It was
-                pulled once as redundant with the dedicated mvrv page — but the question this
+                pulled once as redundant with the dedicated mvrv page, but the question this
                 chart gets asked is "how does SPX's history compare", and a marker for today
                 cannot answer that. MVRV is unitless, which is what makes the overlay fair. */}
             <Line data={spxSeries} type="monotone" dataKey="mvrv" stroke={SPX} strokeWidth={2.4}
@@ -192,14 +192,14 @@ export default function MvrvContextChart({ isMobile, preview = false }) {
       {spx && (matchYears || cheaperThan != null) && (
         <div style={{ fontFamily: SANS, fontSize: isMobile ? 13 : 14, color: "#cbd5e1", textAlign: "center", marginTop: 14, lineHeight: 1.6, maxWidth: 820, marginInline: "auto" }}>
           At <strong style={{ color: SPX }}>{fMvrv(spx.mvrv)}</strong>, SPX6900&apos;s average holder is <strong style={{ color: spx.mvrv >= 1 ? "#4ade80" : "#f87171" }}>{spx.mvrv >= 1 ? "in profit" : "underwater"}</strong>
-          {cheaperThan != null && <> — cheaper on MVRV than <strong style={{ color: "#22d3ee" }}>{cheaperThan}%</strong> of Bitcoin&apos;s entire history</>}.
+          {cheaperThan != null && <>, cheaper on MVRV than <strong style={{ color: "#22d3ee" }}>{cheaperThan}%</strong> of Bitcoin&apos;s entire history</>}.
           {matchYears && <> Bitcoin last traded this cheap at its <strong style={{ color: MATCH }}>{matchYears}</strong> cycle bottoms <span style={{ color: MATCH }}>●</span>.</>}
         </div>
       )}
       <div className="chart-caption" style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 10, lineHeight: 1.65, maxWidth: 900, marginInline: "auto" }}>
-        <strong style={{ color: BTC }}>Bitcoin&apos;s MVRV</strong> over its whole history (market-cap ÷ realized-cap — unitless, so it&apos;s comparable across coins);
+        <strong style={{ color: BTC }}>Bitcoin&apos;s MVRV</strong> over its whole history (market-cap ÷ realized-cap, unitless, so it&apos;s comparable across coins);
         the <strong style={{ color: SPX }}>SPX6900 band</strong> marks where its MVRV sits today, and the <strong style={{ color: MATCH }}>dots</strong> are the Bitcoin weeks at that same level.
-        The zones are Bitcoin&apos;s own MVRV quantiles — a reference, not a target. SPX6900 has ~one cycle of MVRV vs Bitcoin&apos;s decade, so read it as a rhyme, not a forecast. Drag to zoom. Not financial advice.
+        The zones are Bitcoin&apos;s own MVRV quantiles, a reference, not a target. SPX6900 has ~one cycle of MVRV vs Bitcoin&apos;s decade, so read it as a rhyme, not a forecast. Drag to zoom. Not financial advice.
       </div>
     </div>
   );

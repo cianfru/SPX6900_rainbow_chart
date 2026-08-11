@@ -26,11 +26,11 @@ function PriceTip({ active, payload }) {
 }
 
 // Short-term "bubble risk" à la Cowen (@benjamincowen): how far price is stretched
-// from its 20-week moving average — the line it mean-reverts toward. ITC-style
+// from its 20-week moving average, the line it mean-reverts toward. ITC-style
 // single panel: the price line rides over a colour-coded histogram of the price/20W
 // ratio, bars rising HOT (green→red) when price runs above the MA, DISCOUNT
 // (cyan→blue) when it sits below, pivoting on the 1× (= the MA) line. The zones are
-// SPX-CALIBRATED by percentile — a memecoin trades multiples above its MA, so ITC's
+// SPX-CALIBRATED by percentile, a memecoin trades multiples above its MA, so ITC's
 // fixed ">2× = bubble" would peg SPX permanently red; instead red = the top decile of
 // SPX's OWN history. Full history by default (drag to zoom); the posted card is cropped.
 export default function RiskHeatChart({ series, isMobile }) {

@@ -5,23 +5,23 @@ import { SPX_DAILY } from "./spx-daily.js";
 import { ETH_HISTORY } from "./eth-history.js";
 import { SANS, MONO, MAX_W, Metric, TipBox, Explain } from "./chart-ui.jsx";
 
-// Project Aeon — does AEON's floor/sales LEAD the coin, or follow it? A lead/lag cross-correlation
+// Project Aeon, does AEON's floor/sales LEAD the coin, or follow it? A lead/lag cross-correlation
 // of short-run returns at DAILY resolution: for each lag L, corr(AEON return at t, SPX return at t+L).
 // Positive lag = AEON leads SPX (its floor would predict the coin); negative = SPX leads AEON.
 //
-// The whole thing is computed in the browser from three public series — AEON floor/volume
-// (aeon-sales.json), SPX (SPX_DAILY) and ETH (ETH_HISTORY) — so anyone can check it. The
+// The whole thing is computed in the browser from three public series, AEON floor/volume
+// (aeon-sales.json), SPX (SPX_DAILY) and ETH (ETH_HISTORY), so anyone can check it. The
 // market-adjusted line strips the common crypto beta by regressing ETH out of both sides, which
 // answers "is this a real SPX↔AEON link, or are they just both riding the market?"
 //
 // Returns are SHORT-RUN (3-day) log returns sampled daily, so the lag axis is fine-grained (days)
-// without the bias a long overlapping window introduces — a 7-day window sampled daily smears the
+// without the bias a long overlapping window introduces, a 7-day window sampled daily smears the
 // cross-correlation toward zero AND lifts the wrong-side (AEON-leads) tail, which would overstate a
 // link that isn't there. 3 days keeps the estimate honest. The noise band is drawn from the count of
 // INDEPENDENT windows (defined ÷ WIN), never the raw day count, so it can't overstate significance.
 
 const LAG = 56;                          // ±8 weeks, in days
-const WIN = 3;                           // return horizon (days) — short, to avoid overlap bias
+const WIN = 3;                           // return horizon (days), short, to avoid overlap bias
 
 const toMap = (pairs) => { const m = new Map(); for (const [d, v] of pairs) if (v > 0) m.set(d.slice(0, 10), +v); return m; };
 const dstr = (t) => new Date(t).toISOString().slice(0, 10);
@@ -29,7 +29,7 @@ const dstr = (t) => new Date(t).toISOString().slice(0, 10);
 function ffillDaily(map, d0, d1) {
   // seed with the last value at/before d0
   const keys = [...map.keys()].sort();
-  const lastReal = keys.at(-1);         // never carry a value PAST the series' real end — a stale
+  const lastReal = keys.at(-1);         // never carry a value PAST the series' real end, a stale
   let last = null;                      // bundle (ETH) must read as null there, not fabricated flat
   for (const k of keys) { if (k <= d0) last = map.get(k); else break; }
   const out = [];
@@ -56,7 +56,7 @@ function corr(a, b) {
   return sxx && syy ? sxy / Math.sqrt(sxx * syy) : null;
 }
 
-// residual of y after regressing out x (element-wise, over defined pairs) — removes the ETH-beta component
+// residual of y after regressing out x (element-wise, over defined pairs), removes the ETH-beta component
 function residualize(y, x) {
   const xs = [], ys = [], idx = [];
   for (let i = 0; i < y.length; i++) if (y[i] != null && x[i] != null) { xs.push(x[i]); ys.push(y[i]); idx.push(i); }
@@ -92,7 +92,7 @@ export default function AeonLeadLagChart({ isMobile, initialView }) {
     const floorM = toMap(sales.daily.map(r => [r.d, r.floorUsd]));
     const volM = toMap(sales.daily.map(r => [r.d, r.volUsd]));
     const firstOf = m => [...m.keys()].sort()[0], lastOf = m => [...m.keys()].sort().at(-1);
-    // Start where all three overlap. End at the fresher of SPX/AEON — ETH does NOT cap the window;
+    // Start where all three overlap. End at the fresher of SPX/AEON, ETH does NOT cap the window;
     // it's a slow bundle, so it just isn't available for the market-adjusted line past its own end
     // (ffill returns null there), while the raw AEON-vs-SPX line runs right up to today.
     const d0 = [firstOf(spxM), firstOf(ethM), firstOf(floorM)].sort().at(-1);
@@ -140,12 +140,12 @@ export default function AeonLeadLagChart({ isMobile, initialView }) {
 
   return (
     <div style={{ maxWidth: MAX_W, margin: "0 auto" }}>
-      <Explain q="Does AEON's floor predict SPX6900 — or just follow it?" accent="#a78bfa">
+      <Explain q="Does AEON's floor predict SPX6900, or just follow it?" accent="#a78bfa">
         For every time-shift, we line up <strong style={{ color: "#e2e8f0" }}>AEON's short-run return</strong> against
         <strong style={{ color: "#e2e8f0" }}> SPX's</strong> and measure how well they match. A shift to the
         <strong style={{ color: "#5eead4" }}> left means SPX moved first</strong> and AEON followed; a shift to the
         <strong style={{ color: "#a78bfa" }}> right would mean AEON led the coin</strong>. The purple line strips out the
-        broader crypto market (ETH), so what's left is the genuine SPX↔AEON link. The peak lands on the left — the coin leads.
+        broader crypto market (ETH), so what's left is the genuine SPX↔AEON link. The peak lands on the left, the coin leads.
       </Explain>
 
       <div style={{ display: "flex", gap: 6, justifyContent: "center", marginBottom: 6, flexWrap: "wrap" }}>
@@ -156,7 +156,7 @@ export default function AeonLeadLagChart({ isMobile, initialView }) {
 
       <div style={{ display: "flex", gap: isMobile ? 16 : 30, justifyContent: "center", margin: "10px 0 14px", flexWrap: "wrap" }}>
         <Metric label="strongest link" value={`${led ? "SPX" : "AEON"} leads`} color={led ? "#5eead4" : "#a78bfa"} sub={`by ${Math.abs(peak.lag)} days · r ${peak.adj?.toFixed(2)}`} />
-        <Metric label="best AEON-leads" value={bestPos.adj?.toFixed(2) ?? "—"} color="#fb7185" sub={posWeak ? "≈ noise floor" : `at +${bestPos.lag}d`} />
+        <Metric label="best AEON-leads" value={bestPos.adj?.toFixed(2) ?? "-"} color="#fb7185" sub={posWeak ? "≈ noise floor" : `at +${bestPos.lag}d`} />
         <Metric label="coincident" value={at0?.adj?.toFixed(2)} color="#f6a23c" sub="same few days" />
       </div>
 
@@ -170,7 +170,7 @@ export default function AeonLeadLagChart({ isMobile, initialView }) {
           <ReferenceLine x={0} stroke="#64748b" strokeDasharray="4 3" />
           <XAxis dataKey="lag" type="number" domain={[-LAG, LAG]} ticks={[-56, -42, -28, -14, 0, 14, 28, 42, 56]}
             tick={{ fill: "#94a3b8", fontFamily: MONO, fontSize: 12 }} tickLine={false} axisLine={{ stroke: "rgba(255,255,255,0.12)" }}
-            label={{ value: "lag (days) — negative = SPX leads · positive = AEON leads", position: "bottom", offset: 6, fill: "#64748b", fontFamily: SANS, fontSize: 12 }} />
+            label={{ value: "lag (days), negative = SPX leads · positive = AEON leads", position: "bottom", offset: 6, fill: "#64748b", fontFamily: SANS, fontSize: 12 }} />
           <YAxis domain={[-0.25, 0.55]} ticks={[-0.2, 0, 0.2, 0.4]}
             tick={{ fill: "#94a3b8", fontFamily: MONO, fontSize: 12 }} tickLine={false} axisLine={false}
             label={{ value: "correlation of 3-day returns", angle: -90, position: "insideLeft", offset: 18, fill: "#64748b", fontFamily: SANS, fontSize: 12 }} />
@@ -197,9 +197,9 @@ export default function AeonLeadLagChart({ isMobile, initialView }) {
       </div>
 
       <div className="chart-caption" style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 16, lineHeight: 1.65, maxWidth: 820, marginInline: "auto" }}>
-        Short-run (3-day) returns cross-correlated at daily lag resolution — the AEON {metric === "floor" ? "floor" : "sales volume"} (USD) against SPX6900 (USD), over {d0} → {d1}. The market-adjusted line removes the shared ETH beta. The whole hump is centred on the
+        Short-run (3-day) returns cross-correlated at daily lag resolution, the AEON {metric === "floor" ? "floor" : "sales volume"} (USD) against SPX6900 (USD), over {d0} → {d1}. The market-adjusted line removes the shared ETH beta. The whole hump is centred on the
         <strong style={{ color: led ? "#5eead4" : "#a78bfa" }}> {led ? "SPX-leads" : "AEON-leads"} side</strong>; what little spills past zero is the shoulder of that
-        same peak — {weaker ? `about ${weaker.toFixed(1)}× weaker` : "far weaker"} and close to the noise floor, not a separate signal. So the collection <strong style={{ color: "#e2e8f0" }}>follows the coin, it doesn't lead it</strong>.
+        same peak, {weaker ? `about ${weaker.toFixed(1)}× weaker` : "far weaker"} and close to the noise floor, not a separate signal. So the collection <strong style={{ color: "#e2e8f0" }}>follows the coin, it doesn't lead it</strong>.
         A relationship, not a trading signal. Not financial advice.
       </div>
     </div>

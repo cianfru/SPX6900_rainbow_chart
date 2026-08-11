@@ -19,9 +19,9 @@ function delta(rows, idx, back, pick) {
   return { d, pct, up: d >= 0 };
 }
 
-// SPX City — how the whale city grew over time: INHABITANTS (wallets ≥100k SPX) and the city's
+// SPX City, how the whale city grew over time: INHABITANTS (wallets ≥100k SPX) and the city's
 // TVL (Σ balance × SPX price), both split by the four size cohorts. The point: the citizen count
-// and the value kept rising through the price drawdown — adoption decoupled from price.
+// and the value kept rising through the price drawdown, adoption decoupled from price.
 export default function CityHistoryChart({ isMobile, preview = false, initialView }) {
   const [data, setData] = useState(null);
   const [view, setView] = useState(() => ["citizens", "value", "skyline"].includes(initialView) ? initialView : "citizens");   // "citizens" | "value" | "skyline"
@@ -115,14 +115,14 @@ export default function CityHistoryChart({ isMobile, preview = false, initialVie
   return (
     <div style={{ maxWidth: MAX_W, margin: "0 auto" }}>
       {isSky ? (
-        <Explain q="What does the skyline look like — and how has it changed?" accent="#38bdf8">
-          Every resident is a building whose <strong style={{ color: "#e2e8f0" }}>height = holdings × how long it&apos;s held</strong> (relative to the biggest) — the same rule the 3D city uses, so this matches the towers you see.
+        <Explain q="What does the skyline look like, and how has it changed?" accent="#38bdf8">
+          Every resident is a building whose <strong style={{ color: "#e2e8f0" }}>height = holdings × how long it&apos;s held</strong> (relative to the biggest), the same rule the 3D city uses, so this matches the towers you see.
           {" "}As the base broadened, the city <strong style={{ color: "#c2764f" }}>sprawled outward in brick</strong>: <strong style={{ color: "#38bdf8" }}>{towerNow} glass towers</strong> still crown a city that&apos;s now mostly low-rise.
         </Explain>
       ) : (
         <Explain q="Has the city grown while the price fell?" accent={accent}>
-          A <strong style={{ color: "#e2e8f0" }}>citizen</strong> is any wallet that&apos;s held <strong style={{ color: "#e2e8f0" }}>≥5,000 SPX for 90 days</strong> — SPX City&apos;s residency. The <strong style={{ color: accent }}>citizen count</strong> and the city&apos;s <strong style={{ color: "#a3e635" }}>total value</strong> have
-          {" "}<strong style={{ color: "#4ade80" }}>climbed through the drawdown</strong> — new residents kept arriving while the price round-tripped. Adoption decoupled from price.
+          A <strong style={{ color: "#e2e8f0" }}>citizen</strong> is any wallet that&apos;s held <strong style={{ color: "#e2e8f0" }}>≥5,000 SPX for 90 days</strong>, SPX City&apos;s residency. The <strong style={{ color: accent }}>citizen count</strong> and the city&apos;s <strong style={{ color: "#a3e635" }}>total value</strong> have
+          {" "}<strong style={{ color: "#4ade80" }}>climbed through the drawdown</strong>, new residents kept arriving while the price round-tripped. Adoption decoupled from price.
         </Explain>
       )}
 
@@ -181,8 +181,8 @@ export default function CityHistoryChart({ isMobile, preview = false, initialVie
       </div>
 
       <div className="chart-caption" style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.65, maxWidth: 900, marginInline: "auto" }}>
-        <strong style={{ color: accent }}>City growth</strong> — {isSky ? "residents by building type — glass tower / concrete mid-rise / masonry / low-rise — assigned by the same height rule (holdings × hold time, relative to the biggest) the 3D city uses" : isCit ? "wallets that have held ≥5,000 SPX for 90 days (SPX City residents), stacked by size cohort" : "the USD value of every resident wallet (balance × SPX price), stacked by size cohort"}, with the SPX price (dashed, right axis) for context.
-        {" "}ETH-native, infra excluded. Reconstructed from the weekly balance timeline — the live city counts a touch fewer via finer per-lot ages. Drag to zoom. Not financial advice.
+        <strong style={{ color: accent }}>City growth</strong>, {isSky ? "residents by building type, glass tower / concrete mid-rise / masonry / low-rise, assigned by the same height rule (holdings × hold time, relative to the biggest) the 3D city uses" : isCit ? "wallets that have held ≥5,000 SPX for 90 days (SPX City residents), stacked by size cohort" : "the USD value of every resident wallet (balance × SPX price), stacked by size cohort"}, with the SPX price (dashed, right axis) for context.
+        {" "}ETH-native, infra excluded. Reconstructed from the weekly balance timeline, the live city counts a touch fewer via finer per-lot ages. Drag to zoom. Not financial advice.
       </div>
     </div>
   );

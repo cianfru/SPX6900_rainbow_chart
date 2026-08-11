@@ -1,4 +1,4 @@
-// "What this band has meant" — the replacement for the scale-in / scale-out plan.
+// "What this band has meant", the replacement for the scale-in / scale-out plan.
 //
 // The old section told the visitor to "Sell ~35% of your stack" in the SELL! band,
 // directly above a line saying this is not advice. Every card the project publishes
@@ -7,7 +7,7 @@
 // page.
 //
 // This says what actually happened instead. For every band: how much of SPX's life
-// has been spent there, and what the following 90 days did — median, best and worst.
+// has been spent there, and what the following 90 days did, median, best and worst.
 // Same nine rows, same at-a-glance shape, but every number is measured rather than
 // prescribed, so a reader draws their own conclusion from the record.
 import { useMemo } from "react";
@@ -17,7 +17,7 @@ import { SANS, MONO, MAX_W } from "./chart-ui.jsx";
 const DAY = 86400000;
 const HORIZON = 90;
 
-const pct = v => (v == null ? "—" : `${v >= 0 ? "+" : ""}${Math.round(v * 100)}%`);
+const pct = v => (v == null ? "-" : `${v >= 0 ? "+" : ""}${Math.round(v * 100)}%`);
 const med = a => {
   if (!a.length) return null;
   const s = [...a].sort((x, y) => x - y), h = s.length >> 1;

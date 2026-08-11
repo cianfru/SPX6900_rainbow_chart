@@ -97,7 +97,7 @@ export default function ChannelChart({ series, m, isMobile }) {
       </ResponsiveContainer>
 
       <div className="chart-caption" style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.65, maxWidth: 880, marginInline: "auto" }}>
-        The same power-law model as the rainbow, drawn on <strong style={{ color: "#cbd5e1" }}>log price vs log age</strong> — so fair value (green)
+        The same power-law model as the rainbow, drawn on <strong style={{ color: "#cbd5e1" }}>log price vs log age</strong>, so fair value (green)
         is a straight diagonal and the upper (red) / lower (blue) limits are straight parallel rails. Price (white) rides the channel; where it sits
         between the rails is the same read as the rainbow band. The x-axis is log(age + {m.t0}d), the offset that makes the trend straight. Not financial advice.
       </div>

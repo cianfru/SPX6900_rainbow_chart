@@ -23,7 +23,7 @@ function Tip({ active, payload }) {
   );
 }
 
-// SPX vs the Alt Market — SPX ÷ TOTAL3ES (alt sector ex-BTC/ETH/stables), detrended into
+// SPX vs the Alt Market, SPX ÷ TOTAL3ES (alt sector ex-BTC/ETH/stables), detrended into
 // how far SPX sits above/below its OWN trend strength vs alts. 0 = fair, above = rich/
 // overbought, below = cheap. A relative-valuation position, not a signal.
 export default function AltMarketChart({ isMobile, preview = false }) {
@@ -60,7 +60,7 @@ export default function AltMarketChart({ isMobile, preview = false }) {
   return (
     <div style={{ maxWidth: MAX_W, margin: "0 auto" }}>
       <Explain q="Is SPX6900 rich or cheap versus the whole alt market?" accent="#38bdf8">
-        SPX divided by the alt sector — every coin except Bitcoin, Ethereum and stablecoins — then detrended.
+        SPX divided by the alt sector, every coin except Bitcoin, Ethereum and stablecoins, then detrended.
         <strong style={{ color: "#f87171" }}> Above the line</strong> = SPX is running hot vs alts; <strong style={{ color: "#38bdf8" }}>below</strong> = cheap vs alts. It's about relative strength versus the sector, not price. A position, not a signal.
       </Explain>
       <div style={{ display: "flex", gap: isMobile ? 16 : 30, justifyContent: "center", marginBottom: 14, flexWrap: "wrap" }}>
@@ -106,8 +106,8 @@ export default function AltMarketChart({ isMobile, preview = false }) {
       </div>
 
       <div className="chart-caption" style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.65, maxWidth: 900, marginInline: "auto" }}>
-        <strong style={{ color: MID }}>SPX ÷ the alt market</strong> (TOTAL3ES — ex-BTC/ETH/stables), detrended: <strong style={{ color: HOT }}>above</strong> = rich vs the sector, <strong style={{ color: COOL }}>below</strong> = cheap.
-        0 = SPX&apos;s own trend strength vs alts (not parity — SPX has structurally outperformed the sector {cur.rr.toFixed(0)}× since launch). A relative-valuation position, not a signal. Drag to zoom. Not financial advice.
+        <strong style={{ color: MID }}>SPX ÷ the alt market</strong> (TOTAL3ES, ex-BTC/ETH/stables), detrended: <strong style={{ color: HOT }}>above</strong> = rich vs the sector, <strong style={{ color: COOL }}>below</strong> = cheap.
+        0 = SPX&apos;s own trend strength vs alts (not parity, SPX has structurally outperformed the sector {cur.rr.toFixed(0)}× since launch). A relative-valuation position, not a signal. Drag to zoom. Not financial advice.
       </div>
     </div>
   );

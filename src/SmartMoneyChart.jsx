@@ -29,12 +29,12 @@ const newQMonthly = nq => {
 };
 const yearTicksOf = rows => { const seen = new Set(), out = []; for (const r of rows) { const y = r.d.slice(0, 4); if (!seen.has(y)) { seen.add(y); out.push(r.d); } } return out; };
 
-// SMART MONEY — the live cohort of proven top-timers (ROI ≥5×, real capital in, still holding),
+// SMART MONEY, the live cohort of proven top-timers (ROI ≥5×, real capital in, still holding),
 // recomputed every refresh so it's never a frozen list. Two reads:
-//   "Holdings" — aggregate SPX they hold over time vs price (they accumulated cheap, sold the run-up).
-//   "Net flow" — weekly accumulate (green) / distribute (red); this is the forward signal — it flips
+//   "Holdings", aggregate SPX they hold over time vs price (they accumulated cheap, sold the run-up).
+//   "Net flow", weekly accumulate (green) / distribute (red); this is the forward signal, it flips
 //                green the week the proven timers start buying again. Right now it hasn't.
-// Aggregate only — no wallet is ever named, so there is nothing to blindly follow.
+// Aggregate only, no wallet is ever named, so there is nothing to blindly follow.
 
 const GOLD = "#f6a23c", GRN = "#4ade80", RED = "#f43f5e";
 const fmtM = v => Math.abs(v) >= 1e6 ? (v / 1e6).toFixed(1) + "M" : (v / 1e3).toFixed(0) + "k";
@@ -62,7 +62,7 @@ export default function SmartMoneyChart({ isMobile, initialView }) {
   const { daily, controls } = useDailyTier("#f6a23c");
 
   if (!data) return <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Loading…</div>;
-  if (!model) return <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Being reconstructed — check back after the next on-chain refresh.</div>;
+  if (!model) return <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Being reconstructed, check back after the next on-chain refresh.</div>;
   const { pMin, pMax, newQ: newQAll } = model;
   const S = data;
   const rows = daily ? model.rows : toMonthly(model.rows);
@@ -78,8 +78,8 @@ export default function SmartMoneyChart({ isMobile, initialView }) {
   return (
     <div style={{ maxWidth: MAX_W, margin: "0 auto" }}>
       <Explain q="What is SPX6900's smart money doing?" accent="#f6a23c">
-        The <strong style={{ color: "#f6a23c" }}>proven top-timers</strong> — wallets that put in real capital (≥$25k), booked a <strong style={{ color: "#e2e8f0" }}>≥5× return by actually selling</strong>, and still hold a bag.
-        They <strong style={{ color: "#e2e8f0" }}>accumulated cheap and distributed into the run-up</strong>. Recomputed every refresh, so it's a living desk — and <strong style={{ color: "#e2e8f0" }}>aggregate only, no wallet named</strong>.
+        The <strong style={{ color: "#f6a23c" }}>proven top-timers</strong>, wallets that put in real capital (≥$25k), booked a <strong style={{ color: "#e2e8f0" }}>≥5× return by actually selling</strong>, and still hold a bag.
+        They <strong style={{ color: "#e2e8f0" }}>accumulated cheap and distributed into the run-up</strong>. Recomputed every refresh, so it's a living desk, and <strong style={{ color: "#e2e8f0" }}>aggregate only, no wallet named</strong>.
         Right now they're <strong style={{ color: flowVerb.c }}>{flowVerb.t}</strong>; the net-flow flips green the week they start buying again.
       </Explain>
 
@@ -163,10 +163,10 @@ export default function SmartMoneyChart({ isMobile, initialView }) {
 
       <div className="chart-caption" style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 16, lineHeight: 1.65, maxWidth: 840, marginInline: "auto" }}>
         {view === "holdings"
-          ? <>SPX held over time by the {S.cohortSize} live smart-money wallets (gold) vs price (pale). They peaked at <strong style={{ color: "#f6a23c" }}>{fmtM(S.peak)}</strong> when SPX was ~{fmtP(S.peakPrice)} and distributed into the run-up — now <strong style={{ color: "#e2e8f0" }}>{fmtM(S.heldNow)}</strong>.</>
+          ? <>SPX held over time by the {S.cohortSize} live smart-money wallets (gold) vs price (pale). They peaked at <strong style={{ color: "#f6a23c" }}>{fmtM(S.peak)}</strong> when SPX was ~{fmtP(S.peakPrice)} and distributed into the run-up, now <strong style={{ color: "#e2e8f0" }}>{fmtM(S.heldNow)}</strong>.</>
           : view === "flow"
-          ? <>Net position change of the cohort — <strong style={{ color: "#4ade80" }}>green = accumulating</strong>, <strong style={{ color: "#f43f5e" }}>red = distributing</strong>. This is the forward signal: it turns green the week the proven timers start buying again. Last quarter: <strong style={{ color: flowVerb.c }}>{S.flow.w12 > 0 ? "+" : ""}{S.flow.w12}%</strong>.</>
-          : <>Wallets <strong style={{ color: "#f6a23c" }}>first crossing the bar</strong> (≥$25k in, realized ≥5×) each period — the moment a wallet mints itself as a proven top-seller. Spikes cluster at price tops: a <strong style={{ color: "#e2e8f0" }}>burst of new qualifiers = distribution starting</strong>. Last 90 days: <strong style={{ color: S.newQual90 > 3 ? "#f43f5e" : "#e2e8f0" }}>{S.newQual90 ?? 0}</strong>. Counts every wallet that crossed, even if it later left.</>}
+          ? <>Net position change of the cohort, <strong style={{ color: "#4ade80" }}>green = accumulating</strong>, <strong style={{ color: "#f43f5e" }}>red = distributing</strong>. This is the forward signal: it turns green the week the proven timers start buying again. Last quarter: <strong style={{ color: flowVerb.c }}>{S.flow.w12 > 0 ? "+" : ""}{S.flow.w12}%</strong>.</>
+          : <>Wallets <strong style={{ color: "#f6a23c" }}>first crossing the bar</strong> (≥$25k in, realized ≥5×) each period, the moment a wallet mints itself as a proven top-seller. Spikes cluster at price tops: a <strong style={{ color: "#e2e8f0" }}>burst of new qualifiers = distribution starting</strong>. Last 90 days: <strong style={{ color: S.newQual90 > 3 ? "#f43f5e" : "#e2e8f0" }}>{S.newQual90 ?? 0}</strong>. Counts every wallet that crossed, even if it later left.</>}
         <br />Qualifies on realized (sold) profit only, so a wallet quietly accumulating the bottom is invisible until it sells; average-cost proxy; on-chain has no identity (a fresh wallet resets). Not a signal.
       </div>
     </div>

@@ -65,9 +65,9 @@ export default function LthSthChart({ isMobile, preview = false }) {
 
   return (
     <div style={{ maxWidth: MAX_W, margin: "0 auto" }}>
-      <Explain q="Who's holding SPX6900 — and are they up or down?" accent="#16a34a">
+      <Explain q="Who's holding SPX6900, and are they up or down?" accent="#16a34a">
         Every coin split two ways: by <strong style={{ color: "#e2e8f0" }}>age</strong> (long-term = held over 155 days, the diamond base) and by <strong style={{ color: "#e2e8f0" }}>profit vs loss</strong>.
-        The long-term block <strong style={{ color: "#4ade80" }}>dominates and keeps growing</strong>, and much of it sits <strong style={{ color: "#f87171" }}>underwater yet unmoved</strong> — conviction, not capitulation.
+        The long-term block <strong style={{ color: "#4ade80" }}>dominates and keeps growing</strong>, and much of it sits <strong style={{ color: "#f87171" }}>underwater yet unmoved</strong>, conviction, not capitulation.
       </Explain>
       <div style={{ display: "flex", gap: isMobile ? 16 : 30, justifyContent: "center", marginBottom: 14, flexWrap: "wrap" }}>
         <Metric label="held long-term" value={lth.toFixed(0) + "%"} color="#4ade80" sub="over 155 days" />
@@ -109,8 +109,8 @@ export default function LthSthChart({ isMobile, preview = false }) {
       </div>
 
       <div className="chart-caption" style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.65, maxWidth: 900, marginInline: "auto" }}>
-        <strong style={{ color: "#4ade80" }}>Long vs short-term holders</strong> — SPX6900&apos;s ETH-native supply split by holder age (over/under 155 days) and on-chain profit/loss, reconstructed per-lot (FIFO).
-        The long-term block dominates and much of it is underwater yet unmoved — the conviction story. Drag to zoom. Not financial advice.
+        <strong style={{ color: "#4ade80" }}>Long vs short-term holders</strong>, SPX6900&apos;s ETH-native supply split by holder age (over/under 155 days) and on-chain profit/loss, reconstructed per-lot (FIFO).
+        The long-term block dominates and much of it is underwater yet unmoved, the conviction story. Drag to zoom. Not financial advice.
       </div>
     </div>
   );

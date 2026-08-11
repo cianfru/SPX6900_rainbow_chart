@@ -5,7 +5,7 @@ import { SANS, MONO, MAX_W, Explain } from "./chart-ui.jsx";
 
 const fEth = v => (v < 0.1 ? v.toFixed(3) : v.toFixed(2)) + "Ξ";
 
-// Project Aeon — which traits command a price. Median recent sale price per trait value.
+// Project Aeon, which traits command a price. Median recent sale price per trait value.
 export default function AeonTraitsChart({ isMobile }) {
   const [data, setData] = useState(null);
   useEffect(() => { let c = false; loadAeonMarket().then(d => { if (!c) setData(d || { empty: true }); }); return () => { c = true; }; }, []);
@@ -18,7 +18,7 @@ export default function AeonTraitsChart({ isMobile }) {
   return (
     <div style={{ maxWidth: MAX_W, margin: "0 auto" }}>
       <Explain q="Which traits are worth paying up for?" accent="#a78bfa">
-        The <strong style={{ color: "#e2e8f0" }}>median sale price</strong> over the last 6 months for pieces carrying each trait — the collection&apos;s <strong style={{ color: "#a78bfa" }}>trait premiums</strong>.
+        The <strong style={{ color: "#e2e8f0" }}>median sale price</strong> over the last 6 months for pieces carrying each trait, the collection&apos;s <strong style={{ color: "#a78bfa" }}>trait premiums</strong>.
         A high bar means buyers consistently pay more for that trait. (A trait&apos;s price also reflects the whole piece, not the trait alone.)
       </Explain>
 
@@ -34,7 +34,7 @@ export default function AeonTraitsChart({ isMobile }) {
       </ResponsiveContainer>
 
       <div className="chart-caption" style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 14, lineHeight: 1.65, maxWidth: 900, marginInline: "auto" }}>
-        Median sale price of pieces carrying each trait over the last 180 days (traits with ≥4 sales). It&apos;s a &ldquo;trait floor / premium&rdquo; read like OpenSea&apos;s, computed from real on-chain sales — a trait&apos;s number also carries the rest of the piece, so read it as a lean, not a price tag.
+        Median sale price of pieces carrying each trait over the last 180 days (traits with ≥4 sales). It&apos;s a &ldquo;trait floor / premium&rdquo; read like OpenSea&apos;s, computed from real on-chain sales, a trait&apos;s number also carries the rest of the piece, so read it as a lean, not a price tag.
       </div>
     </div>
   );

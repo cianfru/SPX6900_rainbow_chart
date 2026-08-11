@@ -23,7 +23,7 @@ function Tip({ active, payload }) {
   );
 }
 
-// SOPR — Spent Output Profit Ratio. When coins move on-chain, are they sold at a profit
+// SOPR, Spent Output Profit Ratio. When coins move on-chain, are they sold at a profit
 // (>1) or a loss (<1)? Realized value ÷ cost of the coins that moved, from the local FIFO
 // per-lot engine. The classic oscillator around break-even 1.0. A behaviour position.
 export default function SoprChart({ isMobile, preview = false }) {
@@ -64,7 +64,7 @@ export default function SoprChart({ isMobile, preview = false }) {
     <div style={{ maxWidth: MAX_W, margin: "0 auto" }}>
       <Explain q="When SPX6900 coins move, are they being sold at a profit or a loss?" accent={GRN}>
         SOPR compares what moving coins are <strong style={{ color: "#e2e8f0" }}>worth now</strong> to <strong style={{ color: "#e2e8f0" }}>what they cost</strong>.
-        Above <strong style={{ color: GRN }}>1</strong>, the coins changing hands are in profit; below <strong style={{ color: RED }}>1</strong>, they&apos;re moving at a loss — which clusters at the bottoms, where sellers capitulate cheap. A behaviour read, not a signal.
+        Above <strong style={{ color: GRN }}>1</strong>, the coins changing hands are in profit; below <strong style={{ color: RED }}>1</strong>, they&apos;re moving at a loss, which clusters at the bottoms, where sellers capitulate cheap. A behaviour read, not a signal.
       </Explain>
       <div style={{ display: "flex", gap: isMobile ? 16 : 30, justifyContent: "center", marginBottom: 14, flexWrap: "wrap" }}>
         <Metric label="SOPR now" value={cur.sopr.toFixed(3)} color={up ? GRN : RED} sub={state} />
@@ -105,7 +105,7 @@ export default function SoprChart({ isMobile, preview = false }) {
       </div>
 
       <div className="chart-caption" style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.65, maxWidth: 900, marginInline: "auto" }}>
-        <strong style={{ color: GRN }}>SOPR</strong> — realized value ÷ cost of the coins that moved each week, reconstructed on-chain from every lot&apos;s FIFO cost basis.
+        <strong style={{ color: GRN }}>SOPR</strong>, realized value ÷ cost of the coins that moved each week, reconstructed on-chain from every lot&apos;s FIFO cost basis.
         Above 1 = holders selling in profit; below 1 = selling at a loss, which bottoms cluster around. A behaviour position, not a signal. Drag to zoom. Not financial advice.
       </div>
     </div>

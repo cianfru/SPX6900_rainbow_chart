@@ -3,10 +3,10 @@ import { CHART_GROUPS, AEON_GROUPS, CITY_GROUPS, CHART_VIEWS } from "./charts-ca
 import { GCOL } from "./terminal-colors.js";
 import ErrorBoundary from "./ErrorBoundary.jsx";
 
-// The terminal cascade nav for the sub-pages — mirrors the ?view=next landing menu
+// The terminal cascade nav for the sub-pages, mirrors the ?view=next landing menu
 // EXACTLY: same rainbow-band group colours (GCOL), same ALL row, same group→chart
-// fly-outs, the same per-row TYPEWRITER effect, and — the one thing the landing
-// prototype left to "the React port" — a LIVE render of the real chart in the
+// fly-outs, the same per-row TYPEWRITER effect, and, the one thing the landing
+// prototype left to "the React port", a LIVE render of the real chart in the
 // preview panel (not the tweet card). Built from the real catalog so every leaf
 // carries a live chart id and drives the app's own routing. Scoped under .tzone.
 
@@ -14,10 +14,10 @@ const LOGO = "/logo_rainbow.png";
 const X_URL = "https://x.com/SPX6900Rainbow";
 const KRAKEN_URL = "https://proinvite.kraken.com/9f1e/8985jw0l";
 
-const TYPE_SPEED = 60;   // ms/char — the landing's deliberate terminal cadence
+const TYPE_SPEED = 60;   // ms/char, the landing's deliberate terminal cadence
 const BASE_W = 1180;     // width the real chart renders at before being scaled into the panel
 const CONTENT_H = 620;   // clip height (chart header + body; caption cropped)
-// three.js-heavy charts would re-initialise on every hover — too costly for a fly-out,
+// three.js-heavy charts would re-initialise on every hover, too costly for a fly-out,
 // so these fall back to the deterministic sparkline instead of a live mount.
 const HEAVY = new Set(["urpdterrain"]);
 
@@ -64,7 +64,7 @@ function useTypewriter(text, speed = 45) {
   return { shown, type, reset };
 }
 
-// A section header (label + caret) that types its label out on hover — the trigger is on the
+// A section header (label + caret) that types its label out on hover, the trigger is on the
 // whole header so hovering anywhere over it fires (desktop parity with the landing).
 function TypeHead({ label }) {
   const { shown, type, reset } = useTypewriter(label);
@@ -76,7 +76,7 @@ function TypeHead({ label }) {
 }
 
 // A LIVE, scaled-down render of the real chart component (same approach as the gallery's
-// LivePreview) — this is the "actual look of the chart", not the tweet card.
+// LivePreview), this is the "actual look of the chart", not the tweet card.
 function LeafPreview({ render }) {
   const ref = useRef(null);
   const [scale, setScale] = useState(0.19);
@@ -99,7 +99,7 @@ function LeafPreview({ render }) {
   );
 }
 
-// deterministic sparkline — fallback for locked/heavy charts (same as the landing's mspark)
+// deterministic sparkline, fallback for locked/heavy charts (same as the landing's mspark)
 function Spark({ seed, color }) {
   let s = 2166136261;
   for (let i = 0; i < seed.length; i++) { s ^= seed.charCodeAt(i); s = Math.imul(s, 16777619); }
@@ -185,7 +185,7 @@ function FlatTop({ label, items }) {
   );
 }
 
-// One row of the mobile drill-down — types its label on tap (the landing's sleek effect).
+// One row of the mobile drill-down, types its label on tap (the landing's sleek effect).
 function MobRow({ label, chev, cls = "", onTap }) {
   const { shown, type } = useTypewriter(label);
   return (
@@ -266,7 +266,7 @@ export default function TerminalNav({ onHome, openRainbow, openGallery, openAeon
             <a className="siclink" href={X_URL} target="_blank" rel="noopener noreferrer" title="@SPX6900Rainbow on X" aria-label="SPX6900Rainbow on X">
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24h-6.66l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" /></svg>
             </a>
-            <a className="siclink krk" href={KRAKEN_URL} target="_blank" rel="noopener noreferrer sponsored" title="Trade on Kraken — affiliate" aria-label="Trade on Kraken (affiliate)">
+            <a className="siclink krk" href={KRAKEN_URL} target="_blank" rel="noopener noreferrer sponsored" title="Trade on Kraken, affiliate" aria-label="Trade on Kraken (affiliate)">
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 12 A8.5 8.5 0 0 1 20.5 12 L20.5 19.4 A1.3 1.3 0 0 1 17.9 19.4 L17.9 14 A1.1 1.1 0 0 0 15.7 14 L15.7 19.4 A1.3 1.3 0 0 1 13.1 19.4 L13.1 14 A1.1 1.1 0 0 0 10.9 14 L10.9 19.4 A1.3 1.3 0 0 1 8.3 19.4 L8.3 14 A1.1 1.1 0 0 0 6.1 14 L6.1 19.4 A1.3 1.3 0 0 1 3.5 19.4 Z" /></svg>
             </a>
           </div>
@@ -277,7 +277,7 @@ export default function TerminalNav({ onHome, openRainbow, openGallery, openAeon
       </div>
       {/* cascade menu */}
       <div className="tmenu">
-        {openRainbow && <div className="mtop mtop-rainbow" onClick={openRainbow} style={{ cursor: "pointer" }} title="The Rainbow — the foundation chart">
+        {openRainbow && <div className="mtop mtop-rainbow" onClick={openRainbow} style={{ cursor: "pointer" }} title="The Rainbow, the foundation chart">
           <div className="mhead"><span className="rbword">RAINBOW</span></div>
         </div>}
         <CascadeTop label="CHARTS" groups={CHART_GROUPS} onSection={openGallery} onLeaf={goChart} renderPreview={renderPreview} />

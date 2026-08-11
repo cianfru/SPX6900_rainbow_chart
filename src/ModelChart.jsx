@@ -89,7 +89,7 @@ export default function ModelChart({ series, m, isMobile }) {
             axisLine={{ stroke: "rgba(255,255,255,0.15)" }} tickLine={false} width={isMobile ? 44 : 56}
           />
           <ZAxis range={[7, 7]} />
-          {/* The rainbow bands, flattened into residual space — every band is a
+          {/* The rainbow bands, flattened into residual space, every band is a
               percentile slice of these residuals, so this is literally the fit. */}
           {BAND_LABELS.map((b, i) => (
             <ReferenceArea key={i} y1={m.bands[i]} y2={m.bands[i + 1]} fill={b.c} fillOpacity={0.18} stroke="none" />
@@ -103,7 +103,7 @@ export default function ModelChart({ series, m, isMobile }) {
       </ResponsiveContainer>
 
       <div className="chart-caption" style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.65, maxWidth: 880, marginInline: "auto" }}>
-        Each dot is a sampled close (~weekly), plotted as its <strong style={{ color: "#cbd5e1" }}>residual</strong> — how far above (red zone)
+        Each dot is a sampled close (~weekly), plotted as its <strong style={{ color: "#cbd5e1" }}>residual</strong>, how far above (red zone)
         or below (blue zone) the log-regression fit (dashed line) it sat. The colored bands are percentile slices of exactly these
         residuals, so the rainbow is descriptive of history, not a prediction. R² {m.r2.toFixed(3)} means the trend explains{" "}
         {Math.round(m.r2 * 100)}% of the variation in log-price; the rest is the spread you see here. Not financial advice.

@@ -33,7 +33,7 @@ function Tip({ active, payload }) {
   );
 }
 
-// NUPL — Net Unrealized Profit/Loss = (market cap − realized cap)/market cap = 1 − 1/MVRV.
+// NUPL, Net Unrealized Profit/Loss = (market cap − realized cap)/market cap = 1 − 1/MVRV.
 // Positive = holders in aggregate unrealized profit, negative = underwater. Classic
 // sentiment oscillator. A valuation position, not a signal.
 export default function NuplChart({ isMobile, preview = false }) {
@@ -63,7 +63,7 @@ export default function NuplChart({ isMobile, preview = false }) {
     if (vis.length < 2) return null;
     const step = Math.max(1, Math.round(vis.length / 6));
     const xTicks = vis.filter((_, i) => i % step === 0 || i === vis.length - 1).map(r => r.ts);
-    // fit the (squashed) domain to the visible data — never clips, always shows the true low
+    // fit the (squashed) domain to the visible data, never clips, always shows the true low
     const sqs = vis.map(r => r.sq);
     const lo = Math.min(-1.05, Math.min(...sqs) - 0.05);
     const hi = Math.max(0.9, Math.max(...sqs) + 0.03);
@@ -82,7 +82,7 @@ export default function NuplChart({ isMobile, preview = false }) {
       <Explain q="Are SPX6900 holders sitting on profit or loss right now?" accent="#6366f1">
         <strong style={{ color: "#e2e8f0" }}>NUPL</strong> (Net Unrealized Profit/Loss) compares what all the coins are worth <em>today</em> to what they were worth when they last moved.
         <strong style={{ color: "#4ade80" }}> Above 0</strong> = the average coin is in profit; <strong style={{ color: "#818cf8" }}>below 0</strong> = underwater. It swings from
-        <strong style={{ color: "#f87171" }}> euphoria</strong> at tops to <strong style={{ color: "#818cf8" }}>capitulation</strong> at bottoms — a read on crowd sentiment, not a buy signal.
+        <strong style={{ color: "#f87171" }}> euphoria</strong> at tops to <strong style={{ color: "#818cf8" }}>capitulation</strong> at bottoms, a read on crowd sentiment, not a buy signal.
       </Explain>
 
       <div style={{ display: "flex", gap: isMobile ? 16 : 30, justifyContent: "center", marginBottom: 14, flexWrap: "wrap" }}>
@@ -121,7 +121,7 @@ export default function NuplChart({ isMobile, preview = false }) {
       </div>
 
       <div className="chart-caption" style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.65, maxWidth: 900, marginInline: "auto" }}>
-        NUPL = 1 − realized price ÷ price, from the on-chain cost basis. SPX is more volatile than Bitcoin, so it overshoots the classic zones — below −1 the axis compresses (ticks stay at their true values) so the deep capitulation lows show without flattening the rest. A valuation position, not a signal. Drag to zoom. Not financial advice.
+        NUPL = 1 − realized price ÷ price, from the on-chain cost basis. SPX is more volatile than Bitcoin, so it overshoots the classic zones, below −1 the axis compresses (ticks stay at their true values) so the deep capitulation lows show without flattening the rest. A valuation position, not a signal. Drag to zoom. Not financial advice.
       </div>
     </div>
   );

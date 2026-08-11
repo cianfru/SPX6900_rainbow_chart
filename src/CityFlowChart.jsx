@@ -11,11 +11,11 @@ const fShort = t => new Date(t).toLocaleDateString("en-US", { month: "short", ye
 const fNum = v => Math.abs(v) >= 1000 ? (v / 1000).toFixed(v % 1000 ? 1 : 0) + "k" : Math.round(v).toString();
 const NC_OF = d => d.labels.length;
 
-// SPX City — the flow beneath the citizen count: who ARRIVED vs LEFT each period, the per-arrival-cohort
+// SPX City, the flow beneath the citizen count: who ARRIVED vs LEFT each period, the per-arrival-cohort
 // survivorship (Survival view), and the median/mean resident holding over time (Per resident view).
 // The census (CityHistoryChart) shows the level; this shows the churn and the turnover.
 //
-// NOTE: a "Founders / launch residents" view was removed — residency requires ≥5,000 SPX held for 90
+// NOTE: a "Founders / launch residents" view was removed, residency requires ≥5,000 SPX held for 90
 // DAYS, which nothing can satisfy in the launch week (the token is 0 days old), so the cohort was
 // empty-by-construction (n0=1, degenerate). The Survival view carries the "launch crowd is nearly gone"
 // story honestly instead, with its right-censoring caveat. The builder still emits `founders`; unused.
@@ -86,7 +86,7 @@ export default function CityFlowChart({ isMobile, preview = false, initialView }
           <div><span style={{ color: "#e2e8f0" }}>net</span>: <span style={{ fontFamily: MONO }}>{d.net >= 0 ? "+" : ""}{d.net}</span></div>
         </>}
         {view === "percap" && <>
-          <div><span style={{ color: violet }}>median</span>: <span style={{ fontFamily: MONO }}>{d.med != null ? fNum(d.med) : "—"} SPX</span></div>
+          <div><span style={{ color: violet }}>median</span>: <span style={{ fontFamily: MONO }}>{d.med != null ? fNum(d.med) : "-"} SPX</span></div>
           <div><span style={{ color: accent }}>mean</span>: <span style={{ fontFamily: MONO }}>{fNum(d.mean)} SPX</span></div>
         </>}
         <div style={{ marginTop: 4, color: "#94a3b8" }}>SPX <span style={{ fontFamily: MONO }}>${d.price < 0.1 ? d.price.toFixed(4) : d.price.toFixed(3)}</span></div>
@@ -101,16 +101,16 @@ export default function CityFlowChart({ isMobile, preview = false, initialView }
   });
 
   const explains = {
-    flow: <Explain q="Is the city growing — and how much churn is underneath?" accent={green}>
+    flow: <Explain q="Is the city growing, and how much churn is underneath?" accent={green}>
       Each period&apos;s <strong style={{ color: green }}>arrivals</strong> (up) vs <strong style={{ color: red }}>departures</strong> (down). The count rose steadily, but the turnover beneath is huge:
       {" "}<strong style={{ color: "#e2e8f0" }}>{fNum(totIn)} wallets moved in</strong> over time and <strong style={{ color: "#e2e8f0" }}>{fNum(totOut)} moved out</strong>. A living city, not a static one.
     </Explain>,
     percap: <Explain q="Is the typical resident a whale or retail?" accent={violet}>
-      The <strong style={{ color: violet }}>median</strong> resident holds about <strong style={{ color: violet }}>{fNum(medNow)} SPX</strong> today — down from <strong style={{ color: "#e2e8f0" }}>{fNum(med0)}</strong> at launch. The city <strong style={{ color: "#e2e8f0" }}>broadened from a handful of whales into a retail base</strong>.
-      {" "}The <strong style={{ color: accent }}>mean</strong> sits far above the median — a few big wallets pull it up. In dollars the median resident is still worth ~<strong style={{ color: green }}>${Math.round(medUsd).toLocaleString()}</strong>.
+      The <strong style={{ color: violet }}>median</strong> resident holds about <strong style={{ color: violet }}>{fNum(medNow)} SPX</strong> today, down from <strong style={{ color: "#e2e8f0" }}>{fNum(med0)}</strong> at launch. The city <strong style={{ color: "#e2e8f0" }}>broadened from a handful of whales into a retail base</strong>.
+      {" "}The <strong style={{ color: accent }}>mean</strong> sits far above the median, a few big wallets pull it up. In dollars the median resident is still worth ~<strong style={{ color: green }}>${Math.round(medUsd).toLocaleString()}</strong>.
     </Explain>,
     survival: <Explain q="Who's still here, by when they arrived?" accent={green}>
-      Of every wallet that became a resident in a given quarter, the share <strong style={{ color: green }}>still resident today</strong>. The <strong style={{ color: red }}>launch crowd is nearly gone</strong> ({vintages[0]?.pct.toFixed(0)}%); each later cohort reads higher —
+      Of every wallet that became a resident in a given quarter, the share <strong style={{ color: green }}>still resident today</strong>. The <strong style={{ color: red }}>launch crowd is nearly gone</strong> ({vintages[0]?.pct.toFixed(0)}%); each later cohort reads higher -
       {" "}partly real conviction, partly <strong style={{ color: "#e2e8f0" }}>right-censoring</strong> (recent arrivals simply haven&apos;t had time to leave yet).
     </Explain>,
   };
@@ -178,7 +178,7 @@ export default function CityFlowChart({ isMobile, preview = false, initialView }
       </div>
 
       <div className="chart-caption" style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.65, maxWidth: 900, marginInline: "auto" }}>
-        <strong style={{ color: accent }}>City flow</strong> — {view === "flow" ? "wallets arriving (green) vs leaving (red) each period, with the net" : view === "percap" ? "the median resident's holding in SPX (mean dashed) — the base broadened from whales to retail" : "the share of each arrival quarter still resident today (recent cohorts read high — right-censored)"}.
+        <strong style={{ color: accent }}>City flow</strong>, {view === "flow" ? "wallets arriving (green) vs leaving (red) each period, with the net" : view === "percap" ? "the median resident's holding in SPX (mean dashed), the base broadened from whales to retail" : "the share of each arrival quarter still resident today (recent cohorts read high, right-censored)"}.
         {" "}A resident = ≥5,000 SPX held 90 days; ETH-native; infra excluded. Reconstructed from the balance timeline.{isSurvival ? "" : " Drag to zoom."} Not financial advice.
       </div>
     </div>

@@ -9,9 +9,9 @@ const median = a => { if (!a.length) return null; const s = [...a].sort((x, y) =
 const fmtEth = v => (v < 0.1 ? v.toFixed(3) : v.toFixed(2)) + "Ξ";
 const fmtUsd = v => "$" + (v >= 1000 ? (v / 1000).toFixed(1) + "k" : Math.round(v));
 
-// Project Aeon — floor price (ETH or USD) + monthly trading volume from the marketplace
+// Project Aeon, floor price (ETH or USD) + monthly trading volume from the marketplace
 // sale log. Floor line has two modes (owner toggle): RAW = the lowest sale of each sale-day
-// (tracks step-downs the day they happen — the default), SMOOTH = a 3-sale-day rolling median
+// (tracks step-downs the day they happen, the default), SMOOTH = a 3-sale-day rolling median
 // (filters a single outlier sale, at the cost of a few days' lag on a thin market).
 export default function AeonFloorChart({ isMobile }) {
   const [data, setData] = useState(AEON_SALES);
@@ -21,7 +21,7 @@ export default function AeonFloorChart({ isMobile }) {
 
   const { rows, months, cur } = useMemo(() => {
     const daily = (data.daily || []).filter(r => r.floorEth > 0).map(r => ({ ...r, ts: Date.parse(r.d) })).sort((a, b) => a.ts - b.ts);
-    // RAW = the day's lowest sale; SMOOTH = a 3-sale-day rolling median (still short — AEON is thin,
+    // RAW = the day's lowest sale; SMOOTH = a 3-sale-day rolling median (still short, AEON is thin,
     // so a longer window buries a real step-down for weeks; 3 filters a single fluke without much lag).
     const at = (i, key) => smooth ? median(daily.slice(Math.max(0, i - 2), i + 1).map(r => r[key])) : daily[i][key];
     const rows = daily.map((r, i) => ({ ts: r.ts, eth: at(i, "floorEth"), usd: at(i, "floorUsd") }));
@@ -67,7 +67,7 @@ export default function AeonFloorChart({ isMobile }) {
     <div style={{ maxWidth: MAX_W, margin: "0 auto" }}>
       <Explain q="What has the floor done, and how much trades?" accent="#2dd4bf">
         The <strong style={{ color: "#2dd4bf" }}>floor price</strong> (the lowest sale each day) and monthly <strong style={{ color: "#94a3b8" }}>trading volume</strong> since mint.
-        Toggle {isEth ? "to USD" : "to ETH"} — the two diverge when ETH&apos;s own price moves. {data.totalSales?.toLocaleString?.()} sales for {Math.round(data.totalVolEth || 0).toLocaleString()}Ξ (${((data.totalVolUsd || 0) / 1e6).toFixed(1)}M) all-time.
+        Toggle {isEth ? "to USD" : "to ETH"}, the two diverge when ETH&apos;s own price moves. {data.totalSales?.toLocaleString?.()} sales for {Math.round(data.totalVolEth || 0).toLocaleString()}Ξ (${((data.totalVolUsd || 0) / 1e6).toFixed(1)}M) all-time.
       </Explain>
       <div style={{ display: "flex", gap: isMobile ? 14 : 28, justifyContent: "center", marginBottom: 12, flexWrap: "wrap", alignItems: "center" }}>
         <Metric label="floor" value={isEth ? fmtEth(cur.floorEth) : fmtUsd(cur.floorUsd)} color="#2dd4bf" />
@@ -100,7 +100,7 @@ export default function AeonFloorChart({ isMobile }) {
         </ComposedChart>
       </ResponsiveContainer>
       <div className="chart-caption" style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.65, maxWidth: 900, marginInline: "auto" }}>
-        <strong style={{ color: "#2dd4bf" }}>Floor &amp; sales</strong> — floor (bars = monthly volume) from on-chain marketplace trades (ETH, WETH and Blur-pool ETH). The line is {smooth ? "a 3-sale-day median of daily lows (smoothed — filters a single outlier sale)" : "the lowest realized sale each day (raw — tracks step-downs the day they happen)"}; toggle Raw / Smoothed. The <strong style={{ color: "#2dd4bf" }}>floor</strong> readout above is today&apos;s lowest sale.
+        <strong style={{ color: "#2dd4bf" }}>Floor &amp; sales</strong>, floor (bars = monthly volume) from on-chain marketplace trades (ETH, WETH and Blur-pool ETH). The line is {smooth ? "a 3-sale-day median of daily lows (smoothed, filters a single outlier sale)" : "the lowest realized sale each day (raw, tracks step-downs the day they happen)"}; toggle Raw / Smoothed. The <strong style={{ color: "#2dd4bf" }}>floor</strong> readout above is today&apos;s lowest sale.
       </div>
     </div>
   );
