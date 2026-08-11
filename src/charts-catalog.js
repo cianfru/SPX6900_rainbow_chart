@@ -20,7 +20,6 @@ export const CHART_GROUPS = [
       { id: "picycle", title: "Pi Cycle Ratio", post: "picycle", desc: "Bitcoin's Pi Cycle top/bottom gauge, applied to SPX for context." },
       { id: "rsidots", title: "RSI Dots", post: "rsidots", desc: "Price as dots coloured by RSI, PlanB-style." },
       { id: "valuation", title: "Valuation Composite", post: "valband", desc: "A weighted basket of six indicators — over/undervalued vs its own history, over time." },
-      { id: "model", title: "The Model", post: "model", desc: "How the rainbow bands are fit from the data." },
     ],
   },
   {

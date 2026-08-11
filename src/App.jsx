@@ -623,7 +623,8 @@ export default function App() {
   // relative keeps its own `rel` asset param (view values BTC/ETH/SOL/BASKET); every other
   // toggle chart carries its view in `v`.
   const goChart = (id, view) => {
-    if (id === "rainbow") { goHome(); return; }
+    if (id === "rainbow") { openRainbow(); return; }
+    if (id === "model") { openMethods(); return; }   // The Model moved onto the Methods page
     id = resolveId(id);
     if (!CHART_IDS.has(id)) { openGallery(); return; }
     setRoute("chart"); setTab(id);
@@ -670,6 +671,8 @@ export default function App() {
       // SPX City left the gallery for its own /city tab. Old shared links (?chart=whalewatch /
       // spxcity / aeonskyline) still resolve — send them to the city instead of dropping to home.
       else if (id && resolveId(id) === "spxcity") setRoute("city");
+      else if (id === "model") setRoute("methods");   // The Model moved onto the Methods page
+      else if (id === "rainbow") setRoute("rainbow");
       else if (id && CHART_IDS.has(resolveId(id))) { setRoute("chart"); setTab(resolveId(id)); }
       else setRoute("home");
     };
@@ -960,7 +963,7 @@ export default function App() {
       {/* Methods — how every number on the site is computed. Static, reads the live model. */}
       {route === "methods" && (
         <Suspense fallback={<div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Loading…</div>}>
-          <MethodsPage m={m} isMobile={isMobile} />
+          <MethodsPage m={m} series={priceData} isMobile={isMobile} />
         </Suspense>
       )}
 

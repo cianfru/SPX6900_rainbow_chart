@@ -8,6 +8,7 @@
 import { METHOD_FAMILIES } from "./charts-catalog.js";
 import { AXES } from "../scripts/bot/valuation-composite.mjs";
 import { SANS, MONO } from "./chart-ui.jsx";
+import ModelChart from "./ModelChart.jsx";
 
 const DIM = "#7c8a9e", BODY = "#9aa7bb", NEAR = "#cbd5e1", TEXT = "#f1f5f9";
 const RULE = "#1c1c21", HEADRULE = "#2a2a31";
@@ -39,7 +40,7 @@ const SOURCES = [
   ["Project AEON", "Alchemy, Dune", "daily"],
 ];
 
-export default function MethodsPage({ m, isMobile }) {
+export default function MethodsPage({ m, series, isMobile }) {
   const pad = isMobile ? 18 : 32;
 
   const Head = ({ children }) => (
@@ -87,6 +88,12 @@ export default function MethodsPage({ m, isMobile }) {
         <div style={{ fontFamily: MONO, fontSize: 12.5, color: DIM, lineHeight: 1.7 }}>
           <div style={{ color: NEAR }}>{m.formula}</div>
           <div>R² {m.r2.toFixed(3)} · σ {m.std.toFixed(3)} · frozen on weekly closes since August 2023</div>
+        </div>
+      )}
+      {m && series && series.length > 0 && (
+        <div style={{ marginTop: 22 }}>
+          <div style={{ fontSize: 13, color: DIM, fontFamily: MONO, marginBottom: 8 }}>How the bands are fit — every weekly close, its residual from the trend, and the percentile lines that become the bands:</div>
+          <ModelChart series={series} m={m} isMobile={isMobile} />
         </div>
       )}
 
