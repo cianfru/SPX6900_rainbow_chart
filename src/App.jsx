@@ -114,6 +114,9 @@ const ChartsGallery = lazy(() => import("./ChartsGallery.jsx"));
 const MethodsPage = lazy(() => import("./MethodsPage.jsx"));
 const DocsPage = lazy(() => import("./DocsPage.jsx"));
 // LandingPage retired at ?view=next in favour of the terminal landing (public/landing-next.html, full-bleed iframe)
+// HOME_IS_LANDING: the home route ("/") renders the redesigned terminal landing instead of the old
+// rainbow-hero ("Aura") page. Flip to false to bring the old home back.
+const HOME_IS_LANDING = true;
 
 // Basket rosters for the performance-race charts (keys match the /api endpoints).
 const MAJORS_META = [
@@ -936,17 +939,18 @@ export default function App() {
         </Suspense>
       )}
 
-      {/* Landing redesign (dark-committed) — staged at ?view=next; swaps into home when ready. */}
-      {route === "next" && (
+      {/* Redesigned terminal landing — serves ?view=next AND the home route ("/") when
+          HOME_IS_LANDING. Full-bleed iframe of public/landing-next.html. */}
+      {(route === "next" || (route === "home" && HOME_IS_LANDING)) && (
         <iframe
-          title="SPX6900 landing preview"
+          title="SPX6900 landing"
           src="/landing-next.html"
           style={{ position: "fixed", inset: 0, width: "100%", height: "100%", border: 0, zIndex: 60, background: "#08090b" }}
         />
       )}
 
-      {/* Home — the Rainbow hero + its rainbow-specific sections */}
-      {route === "home" && (<>
+      {/* Home — the old Rainbow hero ("Aura"); shown only when HOME_IS_LANDING is off */}
+      {route === "home" && !HOME_IS_LANDING && (<>
       {/* Header */}
       <div style={{ maxWidth: MAX_W, margin: "0 auto 24px" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: isMobile ? 10 : 18, flexWrap: "nowrap" }}>
