@@ -161,7 +161,10 @@ function scanSelfMoves(tx, opts = {}) {
   const CON_MIN = opts.conMinN ?? 2, CON_MAX = opts.conMaxN ?? 20;
   const EMPTY = opts.emptyFrac ?? 0.9, MIN_SRC = opts.minSource ?? 100000, MIN_TOTAL = opts.conMinTotal ?? 100000;
   const exclude = opts.exclude || EXCLUDE;
-  const bal = new Map(), seen = new Set();       // per-address running balance / ever-received (small)
+  const bal = new Map();                          // per-address running balance (small map)
+  const fresh = a => (bal.get(a) || 0) <= EPS;     // "fresh" = EMPTY right before the move (not "never
+                                                   // received"): wallet-hoppers reuse emptied addresses,
+                                                   // so ever-received was too strict and missed real moves.
   const splitIdx = new Set(), conIdx = new Set(), splitEvents = [], conEvents = [];
   let p = 0;
   while (p < tx.length) {
@@ -173,10 +176,10 @@ function scanSelfMoves(tx, opts = {}) {
       let gs = bySrc.get(t.from); if (!gs) bySrc.set(t.from, gs = []); gs.push(t);
       let gd = byDst.get(t.to); if (!gd) byDst.set(t.to, gd = []); gd.push(t);
     }
-    for (const [src, grp] of bySrc) {             // SPLIT: whale → N fresh near-equal wallets, empties out
+    for (const [src, grp] of bySrc) {             // SPLIT: whale → N empty near-equal wallets, empties out
       if (exclude.has(src)) continue;
       const n = grp.length; if (n < SP_MIN || n > SP_MAX) continue;
-      if (!grp.every(t => !seen.has(t.to) && (bal.get(t.to) || 0) <= EPS)) continue;
+      if (!grp.every(t => fresh(t.to))) continue;
       const amts = grp.map(t => t.amt), mn = Math.min(...amts), mx = Math.max(...amts);
       if (mn <= EPS || mx / mn > EQ) continue;
       const before = bal.get(src) || 0, sent = amts.reduce((a, b) => a + b, 0);
@@ -184,8 +187,8 @@ function scanSelfMoves(tx, opts = {}) {
       for (const t of grp) splitIdx.add(t.i);
       splitEvents.push({ type: "split", ts: ts0, source: src, recipients: grp.map(t => t.to), each: mn, n, supply: sent });
     }
-    for (const [dst, grp] of byDst) {             // CONSOLIDATION: N emptying holders → 1 fresh wallet
-      if (exclude.has(dst) || seen.has(dst) || (bal.get(dst) || 0) > EPS) continue;
+    for (const [dst, grp] of byDst) {             // CONSOLIDATION: N emptying holders → 1 empty wallet
+      if (exclude.has(dst) || !fresh(dst)) continue;
       if (!grp.every(t => t.from && !exclude.has(t.from))) continue;   // no exchange withdrawal in the mix
       const sentBySrc = new Map();
       for (const t of grp) sentBySrc.set(t.from, (sentBySrc.get(t.from) || 0) + t.amt);
@@ -196,7 +199,7 @@ function scanSelfMoves(tx, opts = {}) {
       for (const t of grp) conIdx.add(t.i);
       conEvents.push({ type: "consolidation", ts: ts0, target: dst, sources: [...sentBySrc.keys()], n: sentBySrc.size, supply: total });
     }
-    for (let k = start; k < p; k++) { const t = tx[k]; if (t.to) { bal.set(t.to, (bal.get(t.to) || 0) + t.amt); seen.add(t.to); } if (t.from) bal.set(t.from, (bal.get(t.from) || 0) - t.amt); }
+    for (let k = start; k < p; k++) { const t = tx[k]; if (t.to) bal.set(t.to, (bal.get(t.to) || 0) + t.amt); if (t.from) bal.set(t.from, (bal.get(t.from) || 0) - t.amt); }
   }
   return { splitIdx, conIdx, splitEvents, conEvents };
 }
