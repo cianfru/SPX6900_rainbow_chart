@@ -137,9 +137,13 @@
 .tzone .tmob-all{ color:var(--live); }
 .tzone .tmob-rainbow .tmob-lbl{ background:linear-gradient(90deg,#f87171,#fb923c,#fbbf24,#4ade80,#38bdf8,#a78bfa); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; }
 
-/* Simplify: a chart that carries its own in-chart Explain box doesn't also need the
-   page-level description repeated below it — hide the duplicate. */
-.tzone .tchart:has(.chart-explain) .page-desc{ display:none; }
+/* Explanation layout (owner): the short one-liner sits under the title (in App.jsx); the
+   longer plain-language Explain box belongs UNDER the chart. Charts render Explain above the
+   plot, so the chart root is flexed and the Explain ordered last. The shorter caption is a
+   duplicate wherever an Explain exists, so it's hidden there (kept on caption-only charts). */
+.tzone .tchart > :last-child:has(> .chart-explain){ display:flex; flex-direction:column; }
+.tzone .tchart > :last-child > .chart-explain{ order:99; margin:24px auto 0; }
+.tzone .tchart > :last-child:has(> .chart-explain) .chart-caption{ display:none; }
 
 /* Apple-style round back button on the chart page */
 .tzone .tback{ transition:border-color .14s, color .14s, background .14s; }
