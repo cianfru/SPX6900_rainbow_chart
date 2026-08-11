@@ -51,9 +51,14 @@
 
 .tzone .drop,.tzone .subdrop{ display:none; position:absolute; z-index:30; min-width:212px; background:var(--bg); border:1px solid var(--line2); padding:4px; box-shadow:0 12px 34px rgba(0,0,0,.6); }
 .tzone .drop{ top:100%; left:0; } .tzone .mtop:hover > .drop{ display:block; }
-.tzone .subdrop{ left:100%; top:-5px; z-index:31; }
-.tzone .mgroup{ position:relative; } .tzone .mgroup:hover > .subdrop{ display:block; }
-.tzone .mtop.flip .subdrop{ left:auto; right:100%; }
+/* the chart list flies out to the RIGHT of the group menu with a clean gap so the two
+   panels never touch/overlap; a transparent ::before bridges the gap so hover holds. */
+.tzone .subdrop{ left:calc(100% + 8px); top:-5px; z-index:31; }
+.tzone .subdrop::before{ content:""; position:absolute; top:0; left:-8px; width:8px; height:100%; }
+.tzone .mgroup{ position:relative; }
+.tzone .mgroup:hover > .subdrop, .tzone .subdrop:hover{ display:block; }
+.tzone .mtop.flip .subdrop{ left:auto; right:calc(100% + 8px); }
+.tzone .mtop.flip .subdrop::before{ left:auto; right:-8px; }
 
 .tzone .mitem{ display:flex; align-items:center; justify-content:space-between; gap:16px; padding:7px 11px; cursor:pointer; font-family:var(--mono); font-size:12.5px; letter-spacing:.03em; text-transform:uppercase; color:var(--dim); white-space:nowrap; }
 .tzone .mitem .mk{ color:var(--faint); }
@@ -88,3 +93,7 @@
 /* group identifier cursor — a blinking "_" in the group colour, like the dropdown rows */
 @keyframes tcurblink{ 0%,48%{opacity:1} 49%,100%{opacity:0} }
 .tzone .tgcur{ color:var(--curc,var(--tx)); text-shadow:0 0 6px var(--curc,transparent); animation:tcurblink 1.05s steps(1,end) infinite; }
+
+/* "Data as of …" stamp on the menu line, right-aligned (opposite the sections) */
+.tzone .tdataas{ margin-left:auto; align-self:center; font-family:var(--mono); font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--faint); white-space:nowrap; padding-right:2px; }
+@media(max-width:640px){ .tzone .tdataas{ display:none; } }

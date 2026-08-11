@@ -92,7 +92,8 @@ function FlatTop({ label, items }) {
   );
 }
 
-export default function TerminalNav({ onHome, openGallery, openAeon, openCity, goChart }) {
+export default function TerminalNav({ onHome, openGallery, openAeon, openCity, goChart, asOf }) {
+  const asOfLabel = asOf ? new Date(asOf).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : null;
   const cityColor = CITY_GROUPS[0]?.color || "#7dd3fc";
   const cityItems = [
     { label: "SPX City", color: cityColor, onClick: openCity },
@@ -107,10 +108,6 @@ export default function TerminalNav({ onHome, openGallery, openAeon, openCity, g
           <b>SPX6900/Rainbow</b><span className="bcur">_</span>
         </button>
         <div className="tbarright">
-          <span className="tsys">
-            <span className="fdot" /><span className="onl">ONLINE</span>
-            <span className="sep">/</span><span>ON-CHAIN DATA</span>
-          </span>
           <div className="tsocial">
             <a className="siclink" href={X_URL} target="_blank" rel="noopener noreferrer" title="@SPX6900Rainbow on X" aria-label="SPX6900Rainbow on X">
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24h-6.66l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" /></svg>
@@ -126,6 +123,7 @@ export default function TerminalNav({ onHome, openGallery, openAeon, openCity, g
         <CascadeTop label="CHARTS" groups={CHART_GROUPS} onAll={openGallery} onLeaf={goChart} />
         <FlatTop label="SPX_CITY" items={cityItems} />
         <CascadeTop label="PROJECT_AEON" groups={AEON_GROUPS} onAll={openAeon} onLeaf={goChart} />
+        {asOfLabel && <div className="tdataas">Data as of {asOfLabel}</div>}
       </div>
     </div>
   );
