@@ -185,7 +185,7 @@ function scanSelfMoves(tx, opts = {}) {
       const before = bal.get(src) || 0, sent = amts.reduce((a, b) => a + b, 0);
       if (before < MIN_SRC || sent < EMPTY * before) continue;
       for (const t of grp) splitIdx.add(t.i);
-      splitEvents.push({ type: "split", ts: ts0, source: src, recipients: grp.map(t => t.to), each: mn, n, supply: sent });
+      splitEvents.push({ type: "split", ts: ts0, source: src, recipients: grp.map(t => t.to), each: mn, n, supply: sent, idx: grp.map(t => t.i) });
     }
     for (const [dst, grp] of byDst) {             // CONSOLIDATION: N emptying holders → 1 empty wallet
       if (exclude.has(dst) || !fresh(dst)) continue;
@@ -197,7 +197,7 @@ function scanSelfMoves(tx, opts = {}) {
       for (const [s, sent] of sentBySrc) { const before = bal.get(s) || 0; total += sent; if (before < EPS || sent < EMPTY * before) { ok = false; break; } }
       if (!ok || total < MIN_TOTAL) continue;
       for (const t of grp) conIdx.add(t.i);
-      conEvents.push({ type: "consolidation", ts: ts0, target: dst, sources: [...sentBySrc.keys()], n: sentBySrc.size, supply: total });
+      conEvents.push({ type: "consolidation", ts: ts0, target: dst, sources: [...sentBySrc.keys()], n: sentBySrc.size, supply: total, idx: grp.map(t => t.i) });
     }
     for (let k = start; k < p; k++) { const t = tx[k]; if (t.to) bal.set(t.to, (bal.get(t.to) || 0) + t.amt); if (t.from) bal.set(t.from, (bal.get(t.from) || 0) - t.amt); }
   }
@@ -244,8 +244,17 @@ export function replayFifo(transfers, priceAt, sampleTs, opts = {}) {
   else {
     // scan the engine's OWN already-sorted tx in place — no array copy (that's what OOM'd on 2.7M rows)
     const mv = scanSelfMoves(tx, opts.splitOpts);
-    splitIdx = new Set([...mv.splitIdx, ...mv.conIdx]);
     splitEvents = [...mv.splitEvents, ...mv.conEvents];
+    // PHASE-1 GATE: a self-move that touches an EXTERNAL endpoint (a contract/Safe or a tagged CEX/LP)
+    // is UNVERIFIED — a Safe fan-out could be a treasury distribution, a DEX-settlement inflow isn't a
+    // relocation. We still surface it (for review), but we do NOT re-age it (only EOA-only moves get the
+    // age inheritance). `externalAddrs` is built from the addr-type cache + EXCLUDE_LABELS by main().
+    const ext = opts.externalAddrs || new Set();
+    const touchesExt = e => e.type === "split"
+      ? (ext.has(e.source) || e.recipients.some(a => ext.has(a)))
+      : (ext.has(e.target) || e.sources.some(a => ext.has(a)));
+    splitIdx = new Set();
+    for (const e of splitEvents) { e.unverified = touchesExt(e); if (!e.unverified) for (const i of e.idx) splitIdx.add(i); }
   }
   const splitsByTs = splitEvents.slice().sort((a, b) => a.ts - b.ts);
 
@@ -462,8 +471,10 @@ export function replayFifo(transfers, priceAt, sampleTs, opts = {}) {
     // a future disclosure surface. Dated + typed (split / consolidation).
     out.selfMoves = {
       updated: iso(lastTs), count: splitEvents.length, supply: +splitEvents.reduce((s, e) => s + e.supply, 0).toFixed(2),
+      reAged: splitEvents.filter(e => !e.unverified).length,                                    // EOA-only moves that got the age re-link
+      flagged: splitEvents.filter(e => e.unverified).length,                                    // external-touched → shown, not re-aged
       events: splitEvents.slice().sort((a, b) => b.ts - a.ts).map(e => ({
-        type: e.type, date: iso(e.ts), supply: +e.supply.toFixed(2), n: e.n,
+        type: e.type, date: iso(e.ts), supply: +e.supply.toFixed(2), n: e.n, unverified: !!e.unverified,
         ...(e.type === "split" ? { source: e.source, recipients: e.recipients } : { target: e.target, sources: e.sources }),
       })),
     };
@@ -688,7 +699,17 @@ async function main() {
   try { prevResidents = (JSON.parse(await readFile(whalesPath, "utf8")).wallets || []).map(w => w.a); }
   catch { /* first run */ }
 
-  const { rows, urpd, whales, urpdHistory, selfMoves } = replayFifo(transfers, priceAt, grid, { thresholdDays: Number(args.threshold ?? 90), collectUrpd: true, urpdBuckets: Number(args.buckets ?? 72), collectWhales: true,
+  // PHASE-1 entity foundation: the persistent address-type cache (contract vs EOA), built by
+  // enrich-addr-types.mjs. Addresses typed "contract" are EXTERNAL endpoints (Gnosis Safes, DEX
+  // settlement, routers) — a self-move that touches one is surfaced but NOT re-aged. Missing file →
+  // nothing extra gated (the base engine already excludes tagged CEX/LP), the enrichment fills it in.
+  const externalAddrs = new Set();
+  try {
+    const at = JSON.parse(await readFile(args.addrtypes || (args.out || "public/onchain.json").replace(/[^/]+$/, "addr-types.json"), "utf8"));
+    for (const [a, t] of Object.entries(at.types || {})) if (t === "contract") externalAddrs.add(a.toLowerCase());
+  } catch { /* no cache yet */ }
+
+  const { rows, urpd, whales, urpdHistory, selfMoves } = replayFifo(transfers, priceAt, grid, { externalAddrs, thresholdDays: Number(args.threshold ?? 90), collectUrpd: true, urpdBuckets: Number(args.buckets ?? 72), collectWhales: true,
     collectUrpdHistory: true, urpdHistBuckets: Number(args.urpdhist_buckets ?? 40), urpdHistStride: args.daily ? 7 : 1,
     whaleTop: Number(args.whales_top ?? 8000),
     minTokens: Number(args.whale_min ?? 5000),
