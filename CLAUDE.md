@@ -969,9 +969,15 @@
   original "just a rainbow" scope** — it's now a full valuation/on-chain terminal. So the rainbow is downgraded to a CHART (still
   the FIRST chart you see when you open Charts, not the main-page hero). This does NOT abandon the model-refit hygiene policy
   below — a durable floor breach is still the trigger that policy watches for; demoting the rainbow from hero just avoids the
-  "broken hero" UX without goal-seeking a reactive re-fit. **⚠ Two bugs still to fix (unrelated to the above):** (1) a
-  **`q is not defined`** runtime ReferenceError fires on load (rendering survives it — likely a live-data/clock handler; track down);
-  (2) the top **stats ticker clips at the left edge** ("FAIR VALUE"→"AIR VALUE", "BAND"→"ND") — needs a lead-in pad. Below = the ORIGINAL 2026-07-26 brief, kept for the honesty rationale (its rainbow-anchor ruling is the part now superseded):
+  "broken hero" UX without goal-seeking a reactive re-fit.
+  **✅ FIXED 2026-08-11 — the `q is not defined` load error:** the default-look setter built a selector with an undefined `q`
+  (meant to be a quote char): `[data-v="+q+"calm"+q+"]` → replaced with the literal `.look button[data-v="calm"]`; zero page errors now.
+  **⚖ TASTE CALL (not a bug) — the stats ticker is a ROLLING TAPE, nothing is cut.** Correctly-built seamless marquee (`.tape`
+  translateX 0→-50%, content duplicated) with a 4% edge-fade mask; the "clip" I first flagged was just the tape mid-scroll. A
+  fade-narrowing (4%→1.6%, so words soften ~1 char instead of ~4 at the rim — slightly more readable at the very edge + better for
+  reduced-motion where the tape crawls) was applied then REVERTED to 4% — owner wasn't at a computer to judge. **CURRENTLY 4%
+  (original).** One-line flip in `.ticker` mask if the owner prefers the subtler fade; do NOT treat as a bug either way.
+  Below = the ORIGINAL 2026-07-26 brief, kept for the honesty rationale (its rainbow-anchor ruling is the part now superseded):
 - **⭐⭐ ORIGINAL BRIEF — PROFESSIONAL LANDING-PAGE REDESIGN, RAINBOW-ANCHORED (owner, 2026-07-26).** Owner is iterating a
   more professional/editorial homepage (dark data-terminal look: near-black ground, bold grotesque display, single green
   accent, mono for data, uppercase micro-labels, rainbow hairline). Design direction is PINNED by the owner's mock — follow
