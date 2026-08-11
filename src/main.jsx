@@ -4,6 +4,27 @@ import { Analytics } from '@vercel/analytics/react'
 import './index.css'
 import App from './App.jsx'
 import BtcAnalogExplorer from './BtcAnalogExplorer.jsx'
+import Maintenance from './Maintenance.jsx'
+
+// ── "We're rebuilding" curtain ──────────────────────────────────────────────
+// While the redesign is finished IN production, the public sees the Maintenance
+// page; the owner bypasses with a token. Visit ?preview=<TOKEN> once to persist
+// access (localStorage), then browse normally. Flip MAINTENANCE to false (or delete
+// this block) to launch publicly. TOKEN is a UX curtain, not security.
+const MAINTENANCE = true
+const PREVIEW_TOKEN = 'spx-rebuild-2026'
+function previewUnlocked() {
+  try {
+    const p = new URLSearchParams(window.location.search)
+    if (p.get('preview') === PREVIEW_TOKEN) {
+      localStorage.setItem('spx_preview', PREVIEW_TOKEN)
+      p.delete('preview')
+      const qs = p.toString()
+      window.history.replaceState({}, '', window.location.pathname + (qs ? '?' + qs : '') + window.location.hash)
+    }
+    return localStorage.getItem('spx_preview') === PREVIEW_TOKEN
+  } catch { return false }
+}
 
 // Which build is on screen. Printed on every load so "the site looks stale" can be
 // answered from the console without a round trip, and matched against /version.json.
@@ -17,10 +38,13 @@ if (typeof __BUILD__ !== 'undefined') {
 
 // Hidden, unlinked route for the exploratory BTC analog tool: open #btc-explorer.
 const showExplorer = window.location.hash === '#btc-explorer'
+const gated = MAINTENANCE && !previewUnlocked()
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    {showExplorer ? <BtcAnalogExplorer /> : <App />}
-    <Analytics />
+    {gated
+      ? <Maintenance token={PREVIEW_TOKEN} />
+      : (showExplorer ? <BtcAnalogExplorer /> : <App />)}
+    {!gated && <Analytics />}
   </StrictMode>,
 )
