@@ -1,11 +1,7 @@
 {
-  "lastPostedDate": "2026-08-10",
-  "lastId": "channel",
+  "lastPostedDate": "2026-08-11",
+  "lastId": "lthsth",
   "recent": [
-    {
-      "date": "2026-07-15",
-      "id": "ethage"
-    },
     {
       "date": "2026-07-16",
       "id": "hodlwaves"
@@ -81,11 +77,10 @@
     {
       "date": "2026-08-10",
       "id": "channel"
+    },
+    {
+      "date": "2026-08-11",
+      "id": "lthsth"
     }
-  ],
-  "lanes": {
-    "aeonsale": "2026-08-11"
-  },
-  "lastEventId": "2087037397368188993",
-  "lastEventAt": "2026-08-11T04:44:25.723Z"
+  ]
 }
