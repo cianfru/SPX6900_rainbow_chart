@@ -210,6 +210,103 @@ const prepMoves = transfers => [...transfers]
   .map((t, i) => ({ from: t.from?.toLowerCase(), to: t.to?.toLowerCase(), ts: t.ts, amt: t.amt, i: t.i ?? i }))
   .filter(t => t.amt > EPS).sort((a, b) => a.ts - b.ts || a.i - b.i);
 
+// ── ENTITY CLUSTERING (Phase 2) ──────────────────────────────────────────────────────────────────
+// "Who owns what." A holder splitting into fresh wallets or shuffling funds over days is ONE person
+// moving money around, not decentralisation — Bubblemaps-style. The self-move detector (above) only
+// catches the clean SAME-BLOCK, equal-amount cases; this generalises to unequal amounts across days.
+//
+// THE HONEST RULE the owner set: unless a wallet moves to a CEX / smart contract / DEX pool, an
+// EOA→EOA relocation is the same entity moving funds. But a raw "any EOA→EOA edge = same entity"
+// would fuse unrelated people (a payment, an OTC sale, a friend). So we link ONLY on two directional,
+// specific signals, and NEVER on partial sends between two live wallets (those are payments/sales):
+//   FUND  — recipient was EMPTY before and is seeded with ≥MIN tokens (a fresh wallet being funded)
+//   DRAIN — sender EMPTIES OUT (≥emptyFrac of its balance, ≥MIN) into the recipient (moving on)
+// Both endpoints must be plain EOAs; a leg touching a tagged CEX/LP or a contract (addr-types cache)
+// is an EXIT from the entity, not an internal move, and is never linked.
+//
+// GUARDS (over-merging OVERSTATES concentration — the worse dishonesty, so we err conservative):
+//   • HUB guard — a recipient that ≥MAX_IN distinct wallets fund/drain into is almost certainly an
+//     untagged service/OTC desk (unrelated people), NOT one person. Every edge into it is dropped.
+//   • SIZE cap — a merged cluster over MAX_CLUSTER wallets is FLAGGED (oversized/uncertain), kept in
+//     the output for review, and downstream metrics must treat it as unmerged (never silently fuse).
+// ⚠ MEMORY: runs over the full ~2.7M-transfer archive — scans the ALREADY-SORTED tx IN PLACE (no
+// array copy, the OOM lesson). Edges are RARE (a wallet drains/funds seldom), so collecting them in an
+// array is cheap; the bal/seen maps are bounded by distinct-address count, not transfer count.
+export function clusterEntities(tx, opts = {}) {
+  const exclude = opts.exclude || EXCLUDE;
+  const external = opts.externalAddrs || new Set();       // contract-typed (addr-types cache) = external endpoints
+  const isEndpoint = a => exclude.has(a) || external.has(a);
+  const MIN = opts.minTokens ?? 50000;                     // a meaningful move (tokens) — dust/payments ignored
+  const EMPTY = opts.emptyFrac ?? 0.9;
+  const MAX_IN = opts.maxInDegree ?? 8;                    // > this many funders/drainers = an untagged hub
+  const MAX_CLUSTER = opts.maxCluster ?? 30;               // merged clusters above this are flagged, not trusted
+
+  const bal = new Map();                                   // running balance (bounded by distinct addresses)
+  const seen = new Set();                                  // has ever received (for "fresh")
+  const edges = [];                                        // {from, to, ts, amt, kind} — sparse
+  let p = 0;
+  while (p < tx.length) {
+    const ts0 = tx[p].ts, start = p;
+    while (p < tx.length && tx[p].ts === ts0) p++;
+    // evaluate edges against PRE-BLOCK balances/freshness (same convention as scanSelfMoves), then apply
+    for (let k = start; k < p; k++) {
+      const t = tx[k];
+      if (!t.from || !t.to || t.from === t.to || t.amt < MIN) continue;
+      if (isEndpoint(t.from) || isEndpoint(t.to)) continue;      // internal EOA↔EOA moves only
+      const fresh = !seen.has(t.to) && (bal.get(t.to) || 0) <= EPS;
+      if (fresh) { edges.push({ from: t.from, to: t.to, ts: t.ts, amt: t.amt, kind: "fund" }); continue; }
+      const beforeFrom = bal.get(t.from) || 0;
+      if (beforeFrom > EPS && t.amt >= EMPTY * beforeFrom) edges.push({ from: t.from, to: t.to, ts: t.ts, amt: t.amt, kind: "drain" });
+    }
+    for (let k = start; k < p; k++) { const t = tx[k]; if (t.to) { bal.set(t.to, (bal.get(t.to) || 0) + t.amt); seen.add(t.to); } if (t.from) bal.set(t.from, (bal.get(t.from) || 0) - t.amt); }
+  }
+
+  // HUB guard — drop every edge into a recipient with too many distinct counterparties.
+  const funders = new Map();
+  for (const e of edges) { let s = funders.get(e.to); if (!s) funders.set(e.to, s = new Set()); s.add(e.from); }
+  const hubs = new Set(); for (const [a, s] of funders) if (s.size > MAX_IN) hubs.add(a);
+  const kept = edges.filter(e => !hubs.has(e.to));
+
+  // union-find over the surviving edges → connected components = entities
+  const parent = new Map();
+  const find = a => {
+    let r = a; while (parent.has(r) && parent.get(r) !== r) r = parent.get(r);
+    let c = a; while (parent.has(c) && parent.get(c) !== c) { const n = parent.get(c); parent.set(c, r); c = n; }
+    return r;
+  };
+  const union = (a, b) => {
+    if (!parent.has(a)) parent.set(a, a); if (!parent.has(b)) parent.set(b, b);
+    const ra = find(a), rb = find(b); if (ra !== rb) parent.set(ra, rb);
+  };
+  for (const e of kept) union(e.from, e.to);
+
+  // group members + their linking edges by component root
+  const groups = new Map();
+  for (const a of parent.keys()) { const r = find(a); let g = groups.get(r); if (!g) groups.set(r, g = { wallets: new Set(), edges: [] }); g.wallets.add(a); }
+  for (const e of kept) groups.get(find(e.from)).edges.push(e);
+
+  const EDGE_CAP = opts.edgeCap ?? 200;                    // cap evidence per entity (file size on pathological clusters)
+  const entities = [];
+  let clustered = 0, largest = 0, flagged = 0;
+  for (const g of groups.values()) {
+    if (g.wallets.size < 2) continue;                      // a lone wallet is its own entity — not emitted
+    const wallets = [...g.wallets].sort();
+    const size = wallets.length, oversized = size > MAX_CLUSTER;
+    clustered += size; if (size > largest) largest = size; if (oversized) flagged++;
+    entities.push({
+      id: wallets[0], size, flagged: oversized,
+      wallets,
+      edges: g.edges.slice().sort((a, b) => a.ts - b.ts).slice(0, EDGE_CAP)
+        .map(e => ({ from: e.from, to: e.to, kind: e.kind, date: iso(e.ts), amt: +e.amt.toFixed(2) })),
+    });
+  }
+  entities.sort((a, b) => b.size - a.size);
+  return { entities, hubs: [...hubs], edgeCount: kept.length, stats: { entities: entities.length, clustered, largest, flagged, hubs: hubs.size } };
+}
+
+// Standalone wrapper (copy+sort) — for tests / ad-hoc runs. The engine reuses its own sorted tx.
+export function buildEntities(transfers, opts = {}) { return clusterEntities(prepMoves(transfers), opts); }
+
 // Splits only. { splitIdx, linkOf:Map(recipient→source), events, count, supply }.
 export function detectSelfSplits(transfers, opts = {}) {
   const { splitIdx, splitEvents } = scanSelfMoves(prepMoves(transfers), opts);
@@ -456,8 +553,18 @@ export function replayFifo(transfers, priceAt, sampleTs, opts = {}) {
 
   // URPD (cost-basis distribution) is a CURRENT-STATE histogram — compute it for the
   // final wallet state only, returned alongside the rows when requested.
-  if (opts.collectUrpd || opts.collectWhales || opts.collectUrpdHistory) {
+  if (opts.collectUrpd || opts.collectWhales || opts.collectUrpdHistory || opts.collectEntities) {
     const out = { rows };
+    // Entity clustering (Phase 2) reuses the engine's OWN already-sorted tx — no second 2.7M sort/copy.
+    if (opts.collectEntities) {
+      const ent = clusterEntities(tx, { exclude, externalAddrs: opts.externalAddrs, ...(opts.entityOpts || {}) });
+      out.entities = {
+        updated: iso(lastTs),
+        method: "EOA→EOA drain/fund clustering — a wallet emptied into, or a fresh wallet funded by, another plain wallet is the same entity moving funds. CEX/LP/contract legs are exits, never links. Hubs (many funders) and oversized clusters are flagged, not trusted.",
+        params: { minTokens: opts.entityOpts?.minTokens ?? 50000, emptyFrac: opts.entityOpts?.emptyFrac ?? 0.9, maxInDegree: opts.entityOpts?.maxInDegree ?? 8, maxCluster: opts.entityOpts?.maxCluster ?? 30 },
+        stats: ent.stats, entities: ent.entities,
+      };
+    }
     if (opts.collectUrpd) {
       const s = priceAt(sampleTs.at(-1)), d = iso(sampleTs.at(-1));
       out.urpd = computeUrpd(wallets, s, d, opts.urpdBuckets ?? 42);
@@ -709,7 +816,8 @@ async function main() {
     for (const [a, t] of Object.entries(at.types || {})) if (t === "contract") externalAddrs.add(a.toLowerCase());
   } catch { /* no cache yet */ }
 
-  const { rows, urpd, whales, urpdHistory, selfMoves } = replayFifo(transfers, priceAt, grid, { externalAddrs, thresholdDays: Number(args.threshold ?? 90), collectUrpd: true, urpdBuckets: Number(args.buckets ?? 72), collectWhales: true,
+  const { rows, urpd, whales, urpdHistory, selfMoves, entities } = replayFifo(transfers, priceAt, grid, { externalAddrs, thresholdDays: Number(args.threshold ?? 90), collectUrpd: true, urpdBuckets: Number(args.buckets ?? 72), collectWhales: true,
+    collectEntities: true,
     collectUrpdHistory: true, urpdHistBuckets: Number(args.urpdhist_buckets ?? 40), urpdHistStride: args.daily ? 7 : 1,
     whaleTop: Number(args.whales_top ?? 8000),
     minTokens: Number(args.whale_min ?? 5000),
@@ -729,6 +837,14 @@ async function main() {
     const smOut = out.replace(/[^/]+$/, "self-moves.json");
     await writeFile(smOut, JSON.stringify(selfMoves));
     console.log(`Wrote ${smOut}: ${selfMoves.count} self-moves · ${(selfMoves.supply / 1e6).toFixed(2)}M SPX`);
+  }
+  // Entity clustering companion (Phase 2) — which wallets belong to one owner (drain/fund graph).
+  // The raw by-wallet metrics are UNCHANGED; this is a second, disclosed view (validate before wiring).
+  if (entities) {
+    const enOut = out.replace(/[^/]+$/, "entities.json");
+    await writeFile(enOut, JSON.stringify(entities));
+    const s = entities.stats;
+    console.log(`Wrote ${enOut}: ${s.entities} multi-wallet entities · ${s.clustered} wallets clustered · largest ${s.largest} · flagged ${s.flagged} · ${s.hubs} hubs dropped`);
   }
   // URPD-over-time companion (weekly cost-basis slices on one fixed grid → the 3D terrain).
   if (urpdHistory) {

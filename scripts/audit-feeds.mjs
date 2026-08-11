@@ -127,6 +127,8 @@ export const FEEDS = [
     require: ["cohortSize", "flow"], nonEmpty: ["weeks"] },
   { file: "self-moves.json", cadence: 3, by: "onchain-dune.yml", what: "detected wallet splits/consolidations (self-relocations)",
     require: ["count", "updated"], mayBeEmpty: ["events"] },
+  { file: "entities.json", cadence: 3, by: "onchain-dune.yml", what: "entity clusters (EOA→EOA drain/fund graph — who owns what)",
+    require: ["stats", "updated", "method"], mayBeEmpty: ["entities"] },
   { file: "aeon-traders.json", cadence: 3, by: "aeon.yml", what: "AEON per-wallet realized P&L",
     require: ["traders"], nonEmpty: ["top", "byVolume"] },
   { file: "aeon-listings.json", cadence: 3, by: "aeon.yml", what: "live AEON listings for the deal finder",

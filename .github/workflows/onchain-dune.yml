@@ -80,13 +80,14 @@ jobs:
           DUNE_API_KEY: ${{ secrets.DUNE_API_KEY }}
           DUNE_INCREMENTAL_QUERY_ID: ${{ vars.DUNE_INCREMENTAL_QUERY_ID }}
         run: node scripts/build-onchain-dune-refresh.mjs --archive=transfers.csv
-      - name: "Classify self-move addresses (contract vs EOA — entity foundation)"
-        # eth_getCode over the addresses in the self-moves.json the FIFO run just wrote → grows the
-        # public/addr-types.json cache. The NEXT FIFO run reads it to withhold re-aging from moves that
-        # touch a contract/Safe. Soft by design (exits 0 on any RPC hiccup) so it can't block the commit.
+      - name: "Classify self-move + entity addresses (contract vs EOA — entity foundation)"
+        # eth_getCode over the addresses in the self-moves.json AND entities.json the FIFO run just wrote →
+        # grows the public/addr-types.json cache. The NEXT FIFO run reads it to withhold re-aging from moves
+        # that touch a contract/Safe AND to keep the entity graph from linking wallets THROUGH an untagged
+        # Safe/router. Soft by design (exits 0 on any RPC hiccup) so it can't block the commit.
         continue-on-error: true
         env: { ETH_RPC: "${{ vars.ETH_RPC }}" }
-        run: node scripts/enrich-addr-types.mjs --from=public/self-moves.json --out=public/addr-types.json
+        run: node scripts/enrich-addr-types.mjs --from=public/self-moves.json,public/entities.json --out=public/addr-types.json
       - name: Rebuild the city time-machine (weekly per-wallet balances)
         # rides the same merged archive — no extra pull; feeds the launch→today slider.
         # continue-on-error: a secondary transform must never block committing the core onchain.json.
@@ -180,7 +181,7 @@ jobs:
           # ETH/site files drive the DEPLOY (the site + og cards read these). Solana/Base files are
           # bot-only (no site consumer), so they ride along in the same commit but don't force a deploy
           # on their own. COMMIT if ANY of them changed; DEPLOY only if an ETH/site file changed.
-          ETH_FILES="public/onchain.json public/urpd.json public/urpd-history.json public/whales.json public/self-moves.json public/addr-types.json public/spx-timeline.json public/cohort-survival.json public/exit-flow.json public/smart-money.json public/city-recap.json public/whale-cohort-history.json public/city-history.json"
+          ETH_FILES="public/onchain.json public/urpd.json public/urpd-history.json public/whales.json public/self-moves.json public/entities.json public/addr-types.json public/spx-timeline.json public/cohort-survival.json public/exit-flow.json public/smart-money.json public/city-recap.json public/whale-cohort-history.json public/city-history.json"
           CHAIN_FILES="public/solana-onchain.json dune/out/spx6900_solana_balances.csv public/base-onchain.json dune/out/spx6900_base_cohort.csv"
           DEPLOY_CHANGED=""
           [[ -n "$(git status --porcelain $ETH_FILES)" ]] && DEPLOY_CHANGED=1
