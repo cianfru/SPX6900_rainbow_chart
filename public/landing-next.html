@@ -633,7 +633,7 @@
     if(top.groups.length===1){ const gr=top.groups[0], gc=GCOL[0]; let h='';
       gr.items.forEach(it=>{ const vs=(window.__VIEWS||{})[top.label+'|'+it];
         if(vs&&vs.length){
-          h+=`<div class="mgroup">`+mrow(it,{cls:'leafrow',color:gc,mark:'▾',data:`data-top="${top.label}" data-grp="${esc(gr.g)}" data-leaf="${esc(it)}" data-name="${esc(it)}"`})
+          h+=`<div class="mgroup">`+mrow(it,{cls:'leafrow',color:gc,mark:'▸',data:`data-top="${top.label}" data-grp="${esc(gr.g)}" data-leaf="${esc(it)}" data-name="${esc(it)}"`})
             +`<div class="subdrop">`+vs.map(vw=>mrow(vw.label,{cls:'leafrow subview',color:gc,data:`data-href="${esc(vw.href)}"`})).join('')+`</div></div>`;
         } else {
           h+=mrow(it,{cls:'leafrow',color:gc,mark:'›',data:`data-top="${top.label}" data-grp="${esc(gr.g)}" data-leaf="${esc(it)}" data-name="${esc(it)}"`});
