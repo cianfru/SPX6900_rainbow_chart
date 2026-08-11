@@ -2,8 +2,11 @@
 // re-declared these fonts, the Metric readout, the tooltip container and the
 // drag-to-zoom state machine — this is the single source. Add new charts on top
 // of these pieces instead of copy-pasting a sibling.
-export const SANS = "'Space Grotesk', system-ui, sans-serif";
-export const MONO = "ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace";
+// Fonts follow the landing north star + terminal shell: Geist (sans) / Geist Mono (data,
+// labels, axes). Both are loaded in index.html; kept as literals (not CSS vars) so they
+// also resolve inside recharts' SVG <text>. Changing these two propagates to every chart.
+export const SANS = "'Geist', 'Space Grotesk', system-ui, sans-serif";
+export const MONO = "'Geist Mono', ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace";
 export const MAX_W = 1400;
 
 // Big-number readout shown in the metrics row above a chart.
