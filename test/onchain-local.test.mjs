@@ -337,3 +337,27 @@ test("consolidation guards: exchange withdrawal / non-empty source / non-fresh t
   assert.equal(detectConsolidations(ix([...seed, { from: ZERO, to: "merged", ts: d(1), amt: 10 },
     { from: "old1", to: "merged", ts: d(200), amt: 3_000_000 }, { from: "old2", to: "merged", ts: d(200), amt: 2_500_000 }])).count, 0);
 });
+
+// ── Phase 1: external-endpoint gate (contract/Safe source → flagged, not re-aged) ──────────────────
+test("self-move touching an external endpoint is flagged unverified and NOT re-aged", () => {
+  const price = makePriceAt([[d(0), 1], [d(200), 2]]);
+  const tx = [
+    { from: ZERO, to: "safe", ts: d(0), amt: 5_500_000 },   // "safe" = a contract source
+    { from: "safe", to: "n1", ts: d(200), amt: 1_100_000 },
+    { from: "safe", to: "n2", ts: d(200), amt: 1_100_000 },
+    { from: "safe", to: "n3", ts: d(200), amt: 1_100_000 },
+    { from: "safe", to: "n4", ts: d(200), amt: 1_100_000 },
+    { from: "safe", to: "n5", ts: d(200), amt: 1_100_000 },
+  ];
+  // EOA source → re-aged (age inherited, older band)
+  const eoa = replayFifo(tx, price, [d(205)], { collectWhales: true });
+  near(eoa.rows[0].age[3], 100); near(eoa.rows[0].age[0], 0);
+  assert.equal(eoa.selfMoves.events[0].unverified, false);
+  assert.equal(eoa.selfMoves.reAged, 1);
+  // same move, but "safe" is a known external endpoint → NOT re-aged (recipients read fresh) + flagged
+  const gated = replayFifo(tx, price, [d(205)], { collectWhales: true, externalAddrs: new Set(["safe"]) });
+  near(gated.rows[0].age[0], 100); near(gated.rows[0].age[3], 0);   // fresh, age reset (not inherited)
+  assert.equal(gated.selfMoves.events[0].unverified, true);
+  assert.equal(gated.selfMoves.reAged, 0);
+  assert.equal(gated.selfMoves.flagged, 1);
+});

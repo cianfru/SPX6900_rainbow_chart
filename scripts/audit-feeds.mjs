@@ -161,6 +161,9 @@ export const STATE = new Set([
   // is deployed, and legitimately UNCHANGED for as long as nobody writes a note. Auditing it for
   // freshness would raise an alarm about people not chatting, which is not a data problem.
   "city-notes.json",
+  // Monotonic is-contract cache (entity-graph foundation): only grows when a NEW self-move address
+  // appears, so it legitimately sits unchanged for long stretches — freshness-auditing it would false-alarm.
+  "addr-types.json",
 ]);
 
 const readJson = p => { try { return JSON.parse(readFileSync(p, "utf8")); } catch { return undefined; } };
