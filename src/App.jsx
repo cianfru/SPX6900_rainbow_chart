@@ -118,6 +118,9 @@ const DocsPage = lazy(() => import("./DocsPage.jsx"));
 // HOME_IS_LANDING: the home route ("/") renders the redesigned terminal landing instead of the old
 // rainbow-hero ("Aura") page. Flip to false to bring the old home back.
 const HOME_IS_LANDING = true;
+// Cache-bust the landing iframe per build so menu/content changes always load fresh after a deploy
+// (the static landing-next.html is otherwise cached hard by the browser/CDN).
+const LANDING_SRC = "/landing-next.html" + (typeof __BUILD__ !== "undefined" && __BUILD__?.sha ? `?v=${__BUILD__.sha}` : "");
 
 // Basket rosters for the performance-race charts (keys match the /api endpoints).
 const MAJORS_META = [
@@ -963,7 +966,7 @@ export default function App() {
       {(route === "next" || (route === "home" && HOME_IS_LANDING)) && (
         <iframe
           title="SPX6900 landing"
-          src="/landing-next.html"
+          src={LANDING_SRC}
           style={{ position: "fixed", inset: 0, width: "100%", height: "100%", border: 0, zIndex: 60, background: "#08090b" }}
         />
       )}
