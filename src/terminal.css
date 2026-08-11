@@ -22,14 +22,16 @@
   font-family:var(--mono); font-size:13px; letter-spacing:.04em; text-transform:uppercase;
   color:var(--dim); border-bottom:1px solid var(--line);
 }
-/* the landing brand: rainbow-globe logo + "SPX6900/Rainbow" in the DepartureMono pixel font */
+/* the prototype brand, copied 1:1 — rainbow-globe logo + "SPX6900/Rainbow" in DepartureMono.
+   Prototype values: .brandmark 34px + margin-right 10px · .bar .l b 18px / .01em / DepartureMono,
+   no font-smoothing · .bcur 18px green blink, margin-left 1px. */
 @font-face{ font-family:'DepartureMono'; font-style:normal; font-weight:400; font-display:swap; src:url(/fonts/DepartureMono-Regular.woff2) format('woff2'); }
-.tzone .tbrand{ display:inline-flex; align-items:center; gap:11px; cursor:pointer; background:none; border:none; padding:8px 0; }
+.tzone .tbrand{ display:inline-flex; align-items:center; gap:10px; cursor:pointer; background:none; border:none; padding:8px 0; }
 /* the globe png is bright rainbow on pure black — screen-blend drops the black onto the dark nav */
 .tzone .tbrand .tlogo{ height:34px; width:34px; object-fit:contain; display:block; mix-blend-mode:screen; }
-.tzone .tbrand b{ font-family:'DepartureMono', ui-monospace, monospace; font-weight:400; font-size:21px; letter-spacing:.01em; text-transform:none;
+.tzone .tbrand b{ font-family:'DepartureMono', ui-monospace, monospace; font-weight:400; font-size:18px; letter-spacing:.01em; text-transform:none;
   color:var(--tx); -webkit-font-smoothing:none; font-smooth:never; transition:color .14s; }
-.tzone .tbrand .bcur{ color:var(--live); text-shadow:0 0 6px var(--live); animation:tcurblink 1.05s steps(1,end) infinite; }
+.tzone .tbrand .bcur{ font-family:'DepartureMono', ui-monospace, monospace; font-size:18px; color:var(--live); margin-left:1px; animation:tcurblink 1.05s steps(1,end) infinite; }
 /* hover → the wordmark (and cursor) go green */
 .tzone .tbrand:hover b, .tzone .tbrand:hover .bcur{ color:var(--live); }
 .tzone .tbarright{ display:inline-flex; align-items:center; gap:14px; }
