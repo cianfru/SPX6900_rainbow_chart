@@ -68,6 +68,7 @@ const WhalesChart = lazy(() => import("./OwnershipCharts.jsx").then(m => ({ defa
 const SurvivorshipChart = lazy(() => import("./SurvivorshipChart.jsx"));
 const ExitFlowChart = lazy(() => import("./ExitFlowChart.jsx"));
 const SmartMoneyChart = lazy(() => import("./SmartMoneyChart.jsx"));
+const EntityClustersChart = lazy(() => import("./EntityClustersChart.jsx"));
 const WalletWavesChart = lazy(() => import("./OwnershipCharts.jsx").then(m => ({ default: m.WalletWavesChart })));
 const WealthWavesChart = lazy(() => import("./OwnershipCharts.jsx").then(m => ({ default: m.WealthWavesChart })));
 const HolderConcentrationChart = lazy(() => import("./HolderConcentrationChart.jsx"));
@@ -231,6 +232,7 @@ function TabIcon({ name }) {
     case "aeonconcentration": return (<svg {...p}><path d="M3 8c4 0 6-3 9-3s5 3 9 3" /><path d="M3 18c4 0 6-2 9-2s5 2 9 2" strokeOpacity="0.7" /></svg>);
     case "aeonbehaviour": return (<svg {...p}><line x1="3" y1="12" x2="21" y2="12" strokeOpacity="0.4" /><rect x="5" y="6" width="3" height="6" /><rect x="11" y="12" width="3" height="5" /><rect x="17" y="7" width="3" height="5" /></svg>);
     case "concentration": return (<svg {...p}><path d="M3 8c4 0 6-3 9-3s5 3 9 3" /><path d="M3 18c4 0 6-2 9-2s5 2 9 2" strokeOpacity="0.7" /></svg>);
+    case "entities": return (<svg {...p}><circle cx="6" cy="6" r="2.5" /><circle cx="18" cy="7" r="2.5" /><circle cx="12" cy="18" r="2.5" /><line x1="7.6" y1="7.6" x2="10.6" y2="16" /><line x1="16.6" y1="8.8" x2="13.2" y2="16" /></svg>);
     case "bagsprofile": return (<svg {...p}><path d="M3 6h8M3 10h5M3 14h9M3 18h4" /><path d="M14 18l3-5 2 3 2-7" fill="none" /></svg>);
     case "urpdage": return (<svg {...p}><rect x="3" y="4" width="18" height="16" rx="1" /><path d="M9 4v16M15 4v16M3 9.3h18M3 14.6h18" strokeOpacity="0.7" /></svg>);
     case "urpdterrain": return (<svg {...p}><path d="M3 16l4-4 3 3 4-6 3 4 4-5" fill="none" /><path d="M3 20l4-4 3 3 4-6 3 4 4-5" fill="none" strokeOpacity="0.5" /></svg>);
@@ -690,6 +692,7 @@ export default function App() {
       case "walletwaves": return <WalletWavesChart isMobile={mob} preview={preview} />;
       case "wealthwaves": return <WealthWavesChart isMobile={mob} preview={preview} />;
       case "concentration": return <HolderConcentrationChart isMobile={mob} preview={preview} />;
+      case "entities": return <EntityClustersChart isMobile={mob} preview={preview} />;
       case "bagsprofile": return <CostBasisProfileChart isMobile={mob} preview={preview} price={last?.price} />;
       case "urpdage": return <UrpdAgeChart isMobile={mob} preview={preview} price={last?.price} />;
       case "urpdterrain": return <UrpdTerrain3D isMobile={mob} />;
