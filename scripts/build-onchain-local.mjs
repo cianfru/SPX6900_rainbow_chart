@@ -182,7 +182,7 @@ function scanSelfMoves(tx, opts = {}) {
       const before = bal.get(src) || 0, sent = amts.reduce((a, b) => a + b, 0);
       if (before < MIN_SRC || sent < EMPTY * before) continue;
       for (const t of grp) splitIdx.add(t.i);
-      splitEvents.push({ ts: ts0, source: src, recipients: grp.map(t => t.to), each: mn, n, supply: sent });
+      splitEvents.push({ type: "split", ts: ts0, source: src, recipients: grp.map(t => t.to), each: mn, n, supply: sent });
     }
     for (const [dst, grp] of byDst) {             // CONSOLIDATION: N emptying holders → 1 fresh wallet
       if (exclude.has(dst) || seen.has(dst) || (bal.get(dst) || 0) > EPS) continue;
@@ -194,7 +194,7 @@ function scanSelfMoves(tx, opts = {}) {
       for (const [s, sent] of sentBySrc) { const before = bal.get(s) || 0; total += sent; if (before < EPS || sent < EMPTY * before) { ok = false; break; } }
       if (!ok || total < MIN_TOTAL) continue;
       for (const t of grp) conIdx.add(t.i);
-      conEvents.push({ ts: ts0, target: dst, sources: [...sentBySrc.keys()], n: sentBySrc.size, supply: total });
+      conEvents.push({ type: "consolidation", ts: ts0, target: dst, sources: [...sentBySrc.keys()], n: sentBySrc.size, supply: total });
     }
     for (let k = start; k < p; k++) { const t = tx[k]; if (t.to) { bal.set(t.to, (bal.get(t.to) || 0) + t.amt); seen.add(t.to); } if (t.from) bal.set(t.from, (bal.get(t.from) || 0) - t.amt); }
   }
@@ -455,6 +455,15 @@ export function replayFifo(transfers, priceAt, sampleTs, opts = {}) {
       out.urpd.bucketsFine = computeUrpd(wallets, s, d, opts.urpdFine ?? 160).buckets;
     }
     if (opts.collectWhales) out.whales = { updated: iso(lastTs), spot: priceAt(lastTs) ?? 0, lookback: checkpoints.map(c => c.d), wallets: buildWhales() };
+    // The detected self-relocation EVENTS (which wallets, when), newest first — for verification +
+    // a future disclosure surface. Dated + typed (split / consolidation).
+    out.selfMoves = {
+      updated: iso(lastTs), count: splitEvents.length, supply: +splitEvents.reduce((s, e) => s + e.supply, 0).toFixed(2),
+      events: splitEvents.slice().sort((a, b) => b.ts - a.ts).map(e => ({
+        type: e.type, date: iso(e.ts), supply: +e.supply.toFixed(2), n: e.n,
+        ...(e.type === "split" ? { source: e.source, recipients: e.recipients } : { target: e.target, sources: e.sources }),
+      })),
+    };
     if (urpdHist) out.urpdHistory = {
       updated: iso(lastTs), pMin: +Math.exp(uGrid.loLog).toFixed(7), pMax: +Math.exp(uGrid.hiLog).toFixed(7),
       nBuckets: uGrid.nBuckets, edges: uGrid.edges, weeks: urpdHist,
@@ -676,7 +685,7 @@ async function main() {
   try { prevResidents = (JSON.parse(await readFile(whalesPath, "utf8")).wallets || []).map(w => w.a); }
   catch { /* first run */ }
 
-  const { rows, urpd, whales, urpdHistory } = replayFifo(transfers, priceAt, grid, { thresholdDays: Number(args.threshold ?? 90), collectUrpd: true, urpdBuckets: Number(args.buckets ?? 72), collectWhales: true,
+  const { rows, urpd, whales, urpdHistory, selfMoves } = replayFifo(transfers, priceAt, grid, { thresholdDays: Number(args.threshold ?? 90), collectUrpd: true, urpdBuckets: Number(args.buckets ?? 72), collectWhales: true,
     collectUrpdHistory: true, urpdHistBuckets: Number(args.urpdhist_buckets ?? 40), urpdHistStride: args.daily ? 7 : 1,
     whaleTop: Number(args.whales_top ?? 8000),
     minTokens: Number(args.whale_min ?? 5000),
@@ -691,6 +700,12 @@ async function main() {
   // Whale watcher companion (top current holders + how much they've added/shed).
   const whalesOut = whalesPath;
   await writeFile(whalesOut, JSON.stringify(whales));
+  // Self-relocation events companion — which wallets split/merged, when (for verification + disclosure).
+  if (selfMoves) {
+    const smOut = out.replace(/[^/]+$/, "self-moves.json");
+    await writeFile(smOut, JSON.stringify(selfMoves));
+    console.log(`Wrote ${smOut}: ${selfMoves.count} self-moves · ${(selfMoves.supply / 1e6).toFixed(2)}M SPX`);
+  }
   // URPD-over-time companion (weekly cost-basis slices on one fixed grid → the 3D terrain).
   if (urpdHistory) {
     const uhOut = out.replace(/[^/]+$/, "urpd-history.json");
