@@ -64,10 +64,15 @@ function useTypewriter(text, speed = 45) {
   return { shown, type, reset };
 }
 
-// A section-header label that types itself out on hover (desktop parity with the landing).
-function HeadType({ text }) {
-  const { shown, type, reset } = useTypewriter(text);
-  return <span className="mhead-t" onMouseEnter={type} onMouseLeave={reset}>{shown}</span>;
+// A section header (label + caret) that types its label out on hover — the trigger is on the
+// whole header so hovering anywhere over it fires (desktop parity with the landing).
+function TypeHead({ label }) {
+  const { shown, type, reset } = useTypewriter(label);
+  return (
+    <div className="mhead" onMouseEnter={type} onMouseLeave={reset}>
+      <span className="mhead-t">{shown}</span> <span className="car">▾</span>
+    </div>
+  );
 }
 
 // A LIVE, scaled-down render of the real chart component (same approach as the gallery's
@@ -127,7 +132,7 @@ function CascadeTop({ label, groups, onSection, onLeaf, renderPreview }) {
   };
   return (
     <div className="mtop" ref={topRef} onMouseEnter={onEnter} onMouseLeave={() => setLeaf(null)}>
-      <div className="mhead"><HeadType text={label} /> <span className="car">▾</span></div>
+      <TypeHead label={label} />
       <div className="drop">
         <MenuRow text="All" color="var(--live)" cls="allrow" onClick={() => onSection()} />
         {groups.map((g, gi) => { const gc = GCOL[gi % GCOL.length]; return (
@@ -170,7 +175,7 @@ function CascadeTop({ label, groups, onSection, onLeaf, renderPreview }) {
 function FlatTop({ label, items }) {
   return (
     <div className="mtop">
-      <div className="mhead"><HeadType text={label} /> <span className="car">▾</span></div>
+      <TypeHead label={label} />
       <div className="drop">
         {items.map((it, i) => (
           <MenuRow key={i} text={it.label} color={it.color} mark="›" cls="leafrow" onClick={it.onClick} />
