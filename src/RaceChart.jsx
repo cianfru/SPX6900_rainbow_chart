@@ -16,7 +16,7 @@ const fPct = v => `${v >= 0 ? "+" : ""}${Math.round((v - 1) * 100).toLocaleStrin
 const WINDOWS = [["launch", "Since launch"], ["12m", "12 months"], ["ytd", "YTD"]];
 
 // nearest-price lookup over a {date,price} series (binary search). Returns null
-// BEFORE the series' first data point — never clamps the start — so a peer whose
+// BEFORE the series' first data point, never clamps the start, so a peer whose
 // history doesn't reach back to the window start draws a gap instead of a fake
 // flat line. `.first` exposes that first timestamp. The recent end still clamps to
 // the last known price (today).
@@ -30,7 +30,7 @@ function lookupFn(arr) {
     while (lo <= hi) { const mid = (lo + hi) >> 1; if (m[mid].ts < target) lo = mid + 1; else hi = mid - 1; }
     const a = m[Math.max(0, lo - 1)], b = m[Math.min(m.length - 1, lo)];
     if (a.ts === b.ts || b.ts === a.ts) return a.price;
-    // log-linear interpolation — a straight line on the log axis between anchors,
+    // log-linear interpolation, a straight line on the log axis between anchors,
     // so sampling on a fine grid renders smooth (not blocky) between sparse points.
     const f = (target - a.ts) / (b.ts - a.ts);
     return Math.exp(Math.log(a.price) + (Math.log(b.price) - Math.log(a.price)) * f);
@@ -94,7 +94,7 @@ export default function RaceChart({ series, isMobile, fetchCoins, coins, basketL
     const grid = [];
     for (let t = t0; t < endTs; t += step) grid.push(t);
     grid.push(endTs);
-    // Rebase each line to the window start — or, if a peer's history begins later,
+    // Rebase each line to the window start, or, if a peer's history begins later,
     // to ITS first available date (so it starts at 1× where its data actually
     // begins, rather than clamping to a flat 1× across the gap).
     const baseTs = { spx: t0 }, base = { spx: spxL(t0) };
@@ -153,8 +153,8 @@ export default function RaceChart({ series, isMobile, fetchCoins, coins, basketL
 
       {status === "ok" && (
         <div style={{ display: "flex", gap: isMobile ? 16 : 30, justifyContent: "center", marginBottom: 18, flexWrap: "wrap" }}>
-          <Metric label="SPX6900" value={spxV ? fMult(spxV) : "—"} color="#4ade80" sub={fPct(spxV ?? 1)} />
-          <Metric label="rank" value={spxRank ? `#${spxRank}` : "—"} sub={`of ${standings.length} (${basketLabel})`} />
+          <Metric label="SPX6900" value={spxV ? fMult(spxV) : "-"} color="#4ade80" sub={fPct(spxV ?? 1)} />
+          <Metric label="rank" value={spxRank ? `#${spxRank}` : "-"} sub={`of ${standings.length} (${basketLabel})`} />
           {standings.filter(s => s.key !== "spx").slice(0, 1).map(s => (
             <Metric key={s.key} label="best peer" value={fMult(s.v)} color={s.color} sub={s.label} />
           ))}
@@ -200,7 +200,7 @@ export default function RaceChart({ series, isMobile, fetchCoins, coins, basketL
         </>
       )}
 
-      {/* legend — click a peer to show / hide it */}
+      {/* legend, click a peer to show / hide it */}
       {status === "ok" && (
         <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap", marginTop: 12 }}>
           <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontFamily: SANS, fontSize: 13, fontWeight: 700, color: "#f1f5f9", padding: "5px 6px" }}>

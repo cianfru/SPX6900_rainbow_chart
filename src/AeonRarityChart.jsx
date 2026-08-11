@@ -13,7 +13,7 @@ const TIERS = [
 ];
 const tierOf = (rank, total) => TIERS.find(t => rank / total <= t.max) || TIERS.at(-1);
 
-// Project Aeon — trait rarity. "Where does this NFT sit?" Look up any token → its rank,
+// Project Aeon, trait rarity. "Where does this NFT sit?" Look up any token → its rank,
 // tier, traits (each with how rare it is), and where it lands on the collection's rarity curve.
 export default function AeonRarityChart({ isMobile, preview = false }) {
   const [data, setData] = useState(null);
@@ -28,7 +28,7 @@ export default function AeonRarityChart({ isMobile, preview = false }) {
   if (!data) return <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Loading rarity…</div>;
 
   // ── PREVIEW: the CURVE is the chart ──────────────────────────────────────────
-  // The tile used to render the whole page — lookup box, token card, trait table — and at
+  // The tile used to render the whole page, lookup box, token card, trait table, and at
   // tile scale a browsing user saw a form, not a chart. Show only the rarity cloud: all
   // 3,333 tokens graded Legendary→Common, which says what this is in one glance.
   if (preview) return (
@@ -58,7 +58,7 @@ export default function AeonRarityChart({ isMobile, preview = false }) {
     <div style={{ maxWidth: MAX_W, margin: "0 auto" }}>
       <Explain q="Where does this AEON sit?" accent="#f59e0b">
         Every token scored by <strong style={{ color: "#e2e8f0" }}>how rare its traits are</strong> (rarer trait → higher score), then ranked 1&nbsp;(rarest) to {total.toLocaleString()}.
-        Look up any token to see its <strong style={{ color: "#f59e0b" }}>rank, tier and traits</strong> — and where it lands on the collection&apos;s rarity curve. Fully reproducible from on-chain metadata.
+        Look up any token to see its <strong style={{ color: "#f59e0b" }}>rank, tier and traits</strong>, and where it lands on the collection&apos;s rarity curve. Fully reproducible from on-chain metadata.
       </Explain>
 
       <div style={{ display: "flex", gap: 10, justifyContent: "center", alignItems: "center", marginBottom: 16, flexWrap: "wrap" }}>
@@ -89,20 +89,20 @@ export default function AeonRarityChart({ isMobile, preview = false }) {
 
         {/* trait breakdown */}
         <div style={{ flex: 1, minWidth: isMobile ? "100%" : 320 }}>
-          <div style={{ fontFamily: SANS, fontSize: 13, color: "#94a3b8", marginBottom: 8 }}>Traits — rarest first ({traits.length})</div>
+          <div style={{ fontFamily: SANS, fontSize: 13, color: "#94a3b8", marginBottom: 8 }}>Traits, rarest first ({traits.length})</div>
           {traits.map((tr, i) => (
             <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "5px 0", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
               <span style={{ width: 120, fontFamily: SANS, fontSize: 12, color: "#7c8a9e", flexShrink: 0 }}>{tr.t}</span>
               <span style={{ flex: 1, fontFamily: SANS, fontSize: 14, color: "#e2e8f0" }}>{tr.v}</span>
-              <span style={{ width: 78, textAlign: "right", fontFamily: MONO, fontSize: 12.5, color: tr.pct != null && tr.pct <= 1 ? "#f59e0b" : "#94a3b8" }}>{tr.pct != null ? tr.pct + "%" : "—"}</span>
+              <span style={{ width: 78, textAlign: "right", fontFamily: MONO, fontSize: 12.5, color: tr.pct != null && tr.pct <= 1 ? "#f59e0b" : "#94a3b8" }}>{tr.pct != null ? tr.pct + "%" : "-"}</span>
             </div>
           ))}
         </div>
       </div>
 
-      {/* every token on the curve — hover for its art, click to pin it */}
+      {/* every token on the curve, hover for its art, click to pin it */}
       <div style={{ fontFamily: SANS, fontSize: 13, color: "#94a3b8", textAlign: "center", marginBottom: 4 }}>
-        All {total.toLocaleString()} AEON on the rarity curve — <span style={{ color: "#cbd5e1" }}>hover any dot to see it</span>, click to pin it above
+        All {total.toLocaleString()} AEON on the rarity curve, <span style={{ color: "#cbd5e1" }}>hover any dot to see it</span>, click to pin it above
       </div>
       <div style={{ display: "flex", gap: 14, justifyContent: "center", flexWrap: "wrap", marginBottom: 6 }}>
         {TIERS.map(t => (
@@ -115,7 +115,7 @@ export default function AeonRarityChart({ isMobile, preview = false }) {
         selId={token.id} onSelect={setSel} height={isMobile ? 300 : 380} isMobile={isMobile} />
 
       <div className="chart-caption" style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.65, maxWidth: 900, marginInline: "auto" }}>
-        <strong style={{ color: "#f59e0b" }}>Rarity</strong> = the sum, over each of a token&apos;s traits, of how uncommon that trait is (statistical rarity + a trait-count factor). Higher score = rarer. Computed from on-chain metadata across all {total.toLocaleString()} tokens — reproducible, no black box.
+        <strong style={{ color: "#f59e0b" }}>Rarity</strong> = the sum, over each of a token&apos;s traits, of how uncommon that trait is (statistical rarity + a trait-count factor). Higher score = rarer. Computed from on-chain metadata across all {total.toLocaleString()} tokens, reproducible, no black box.
       </div>
     </div>
   );

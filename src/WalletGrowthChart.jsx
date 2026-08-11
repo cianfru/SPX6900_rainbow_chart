@@ -31,9 +31,9 @@ function Tip({ active, payload }) {
   );
 }
 
-// Multi-chain wallet growth — holder headcount across Ethereum, Base and Solana,
+// Multi-chain wallet growth, holder headcount across Ethereum, Base and Solana,
 // stacked, from launch. Headcount is legitimately multi-chain (holders ≠ value).
-// NOTE: bundled data (src/chain-wallets.js) — refreshed when the per-chain Dune
+// NOTE: bundled data (src/chain-wallets.js), refreshed when the per-chain Dune
 // queries are re-run, not weekly (unlike the /onchain.json cards).
 export default function WalletGrowthChart({ isMobile, preview = false }) {
   const [live, setLive] = useState(null);
@@ -97,8 +97,8 @@ export default function WalletGrowthChart({ isMobile, preview = false }) {
       </div>
 
       <div className="chart-caption" style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.65, maxWidth: 900, marginInline: "auto" }}>
-        <strong style={{ color: "#4ade80" }}>Wallet growth</strong> — wallets holding SPX6900 on <span style={{ color: CH[0].c }}>Ethereum</span>, <span style={{ color: CH[1].c }}>Base</span> and <span style={{ color: CH[2].c }}>Solana</span>, from launch.
-        Headcount is multi-chain (Base &amp; Solana lead on wallets, Ethereum on value). Wallets, not people — and the Base step is a real airdrop distribution. Drag to zoom. Not financial advice.
+        <strong style={{ color: "#4ade80" }}>Wallet growth</strong>, wallets holding SPX6900 on <span style={{ color: CH[0].c }}>Ethereum</span>, <span style={{ color: CH[1].c }}>Base</span> and <span style={{ color: CH[2].c }}>Solana</span>, from launch.
+        Headcount is multi-chain (Base &amp; Solana lead on wallets, Ethereum on value). Wallets, not people, and the Base step is a real airdrop distribution. Drag to zoom. Not financial advice.
       </div>
     </div>
   );

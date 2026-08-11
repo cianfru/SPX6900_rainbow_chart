@@ -14,11 +14,11 @@ import { SANS, MONO } from "./chart-ui.jsx";
 // ("valuation band history") is its own chart underneath. Every number live off the model + valuation.json.
 const MONf = (n) => (n >= 1e9 ? `$${(n / 1e9).toFixed(1)}B` : n >= 1e6 ? `$${(n / 1e6).toFixed(0)}M` : `$${n.toLocaleString()}`);
 const SUPPLY = 939_000_000;
-const fMonYr = (d) => (d ? new Date(d).toLocaleDateString("en-US", { month: "short", year: "numeric" }) : "—");
+const fMonYr = (d) => (d ? new Date(d).toLocaleDateString("en-US", { month: "short", year: "numeric" }) : "-");
 const zoneOf = (v) => ZONES.find(z => v < z.max) || ZONES.at(-1);
 const LENS_LABEL = Object.fromEntries(INDICATORS.map(i => [i.key, i.label.replace(/ ·.*/, "")]));
 
-// ── the "axes, one scale" strip plot — the de-duplicated composite axes (valuation/relative/flow/conviction/sentiment) ──
+// ── the "axes, one scale" strip plot, the de-duplicated composite axes (valuation/relative/flow/conviction/sentiment) ──
 function StripPlot({ axes, byAxis, composite, isMobile }) {
   const rows = (axes || []).map(a => ({ key: a.key, label: a.label, weight: a.weight, pct: byAxis?.[a.key] })).filter(r => r.pct != null);
   const comp = Math.round(composite * 100);
@@ -56,7 +56,7 @@ function StripPlot({ axes, byAxis, composite, isMobile }) {
   );
 }
 
-// ── valuation band history — the composite over time (its own chart) ─────────────────────────
+// ── valuation band history, the composite over time (its own chart) ─────────────────────────
 // Coloured with the rainbow's OWN band palette (BAND_LABELS, Fire Sale bottom → Max Bubble top),
 // so the composite band history reads as the same instrument as the rainbow, not a separate scale.
 function BandHistory({ series, isMobile }) {
@@ -96,7 +96,7 @@ export default function LandingPage({ isMobile, priceData }) {
   const ceil = bandVal(m, nowDay, Math.min(bIdx + 1, m.bands.length - 1)), floor = bandVal(m, nowDay, bIdx);
   const ceilPct = (ceil / last.price - 1) * 100, floorPct = (floor / last.price - 1) * 100;
 
-  // LIVE spot from Kraken (SPX/USD) — the page's heartbeat. Prefer it over the banked close for the
+  // LIVE spot from Kraken (SPX/USD), the page's heartbeat. Prefer it over the banked close for the
   // price card and recompute the card's band readouts from it so the card stays internally consistent
   // (daysHeld stays a historical count off the banked series). Falls back to the model price off-line.
   const kr = useKrakenLive("SPX/USD");
@@ -146,7 +146,7 @@ export default function LandingPage({ isMobile, priceData }) {
     return { price, mc: MONf(price * SUPPLY), when: hit?.dt ? fMonYr(hit.dt) : "beyond model" };
   }), [m]);
 
-  // "What this band has meant" — purely descriptive (no forward-return promise, owner call:
+  // "What this band has meant", purely descriptive (no forward-return promise, owner call:
   // over ~1 cycle deep-value always recovered, so returns would read as a moonshot edge they
   // aren't). Share of life in the band, typical length of a visit, and how many visits.
   const bandStats = useMemo(() => {
@@ -169,7 +169,7 @@ export default function LandingPage({ isMobile, priceData }) {
       <style>{`@keyframes lpPulse{0%,100%{opacity:1}50%{opacity:.5}}`}</style>
       <div style={{ maxWidth: 1120, margin: "0 auto", padding: isMobile ? "0 20px 60px" : "0 32px 80px" }}>
 
-        {/* HERO — composite headline (left) + the price CARD (right) */}
+        {/* HERO, composite headline (left) + the price CARD (right) */}
         <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1.35fr .8fr", gap: isMobile ? 28 : 44, padding: isMobile ? "28px 0 22px" : "44px 0 30px", alignItems: "start" }}>
           <div>
             <div style={kicker}>Valuation composite · {val?.axes?.length ?? 5} axes</div>
@@ -178,7 +178,7 @@ export default function LandingPage({ isMobile, priceData }) {
             </h1>
             {heads && (
               <p style={{ fontSize: isMobile ? 15.5 : 16.5, color: "#aeb7c6", maxWidth: "44ch", lineHeight: 1.6, margin: 0 }}>
-                SPX6900 sits in the <b style={{ color: "#f3f5f8" }}>{heads.pctl}th percentile</b> of its own history — cheaper than <b style={{ color: "#f3f5f8" }}>{100 - heads.pctl}%</b> of the days it has ever traded. {heads.tail[0].toUpperCase() + heads.tail.slice(1)}.
+                SPX6900 sits in the <b style={{ color: "#f3f5f8" }}>{heads.pctl}th percentile</b> of its own history, cheaper than <b style={{ color: "#f3f5f8" }}>{100 - heads.pctl}%</b> of the days it has ever traded. {heads.tail[0].toUpperCase() + heads.tail.slice(1)}.
               </p>
             )}
           </div>
@@ -208,17 +208,17 @@ export default function LandingPage({ isMobile, priceData }) {
           </div>
         </div>
 
-        {/* AXES — the de-duplicated composite, one scale */}
+        {/* AXES, the de-duplicated composite, one scale */}
         <section style={{ borderTop: "1px solid #1b1f29", paddingTop: 26 }}>
           <div style={{ ...kicker, marginBottom: 4 }}>{val?.axes?.length ?? 5} independent axes, one scale</div>
           <div style={{ fontFamily: MONO, fontSize: 11, color: "#5b6577", marginBottom: 18 }}>
-            Correlated lenses combined so each signal votes once — Valuation = rainbow · MVRV · supply-in-profit · anchored to Bitcoin's decade
+            Correlated lenses combined so each signal votes once, Valuation = rainbow · MVRV · supply-in-profit · anchored to Bitcoin's decade
           </div>
           {cur && val?.axes ? <StripPlot axes={val.axes} byAxis={cur.byAxis} composite={cur.composite} isMobile={isMobile} />
             : <div style={{ color: "#64748b", fontFamily: MONO, fontSize: 13, padding: "20px 0" }}>Loading composite…</div>}
         </section>
 
-        {/* THE RAINBOW — the anchor (unchanged) */}
+        {/* THE RAINBOW, the anchor (unchanged) */}
         <section style={{ borderTop: "1px solid #1b1f29", paddingTop: 30, marginTop: 44 }}>
           <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", flexWrap: "wrap", gap: 10 }}>
             <div style={h2}>The rainbow</div>
@@ -228,7 +228,7 @@ export default function LandingPage({ isMobile, priceData }) {
               ))}
             </div>
           </div>
-          <div style={sub}>The denominator — everything is measured against this · frozen power-law · R² {m.r2.toFixed(2)}</div>
+          <div style={sub}>The denominator, everything is measured against this · frozen power-law · R² {m.r2.toFixed(2)}</div>
           <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 150px", gap: 18 }}>
             <div>
               <ResponsiveContainer width="100%" height={isMobile ? 340 : 460}>
@@ -261,20 +261,20 @@ export default function LandingPage({ isMobile, priceData }) {
           </div>
         </section>
 
-        {/* VALUATION BAND HISTORY — the composite over time */}
+        {/* VALUATION BAND HISTORY, the composite over time */}
         <section style={{ borderTop: "1px solid #1b1f29", paddingTop: 30, marginTop: 44 }}>
           <div style={h2}>Valuation band history</div>
-          <div style={sub}>The composite over time — 0 = the cheapest it's been, 100 = the dearest · coloured by the rainbow bands, Fire Sale to Max Bubble</div>
+          <div style={sub}>The composite over time, 0 = the cheapest it's been, 100 = the dearest · coloured by the rainbow bands, Fire Sale to Max Bubble</div>
           {val && val.series ? <BandHistory series={val.series} isMobile={isMobile} />
             : <div style={{ color: "#64748b", fontFamily: MONO, fontSize: 13, padding: "20px 0" }}>Loading history…</div>}
         </section>
 
-        {/* BOTTOM — trend targets (left) + what this band has meant (right) */}
+        {/* BOTTOM, trend targets (left) + what this band has meant (right) */}
         <section style={{ borderTop: "1px solid #1b1f29", paddingTop: 30, marginTop: 44 }}>
           <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: isMobile ? 36 : 52 }}>
             <div>
               <div style={{ fontSize: isMobile ? 20 : 22, fontWeight: 800, letterSpacing: "-0.02em" }}>If the trend holds</div>
-              <div style={sub}>Dates the centre line crosses each target — extrapolation, not a forecast</div>
+              <div style={sub}>Dates the centre line crosses each target, extrapolation, not a forecast</div>
               <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: MONO, fontSize: 14 }}>
                 <thead><tr>{["Target", "Market cap", "Centre line"].map((h, i) => (
                   <th key={i} style={{ textAlign: i ? "right" : "left", fontWeight: 400, fontSize: 10, letterSpacing: "0.12em", textTransform: "uppercase", color: "#727d90", padding: "0 0 10px", borderBottom: "1px solid #1b1f29" }}>{h}</th>
@@ -290,10 +290,10 @@ export default function LandingPage({ isMobile, priceData }) {
             </div>
             <div>
               <div style={{ fontSize: isMobile ? 20 : 22, fontWeight: 800, letterSpacing: "-0.02em" }}>What this band has meant</div>
-              <div style={sub}>Described, not prescribed — how often price has visited the {band.l} band and how long it stays</div>
+              <div style={sub}>Described, not prescribed, how often price has visited the {band.l} band and how long it stays</div>
               {[
                 ["Share of life in this band", `${(bandStats.share * 100).toFixed(0)}%`],
-                ["Typical stay", bandStats.stay != null ? `${Math.round(bandStats.stay)} days` : "—"],
+                ["Typical stay", bandStats.stay != null ? `${Math.round(bandStats.stay)} days` : "-"],
                 ["Times price has been here", `${bandStats.episodes}`],
               ].map(([k, v], i) => (
                 <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", padding: "12px 0", borderBottom: "1px solid #1b1f29", fontFamily: MONO }}>
@@ -302,7 +302,7 @@ export default function LandingPage({ isMobile, priceData }) {
                 </div>
               ))}
               <div style={{ fontFamily: MONO, fontSize: 10.5, color: "#5b6577", marginTop: 12, lineHeight: 1.6 }}>
-                Over ~1 cycle since the Aug-2023 launch. No forward-return figures — one cycle of deep-value recoveries isn't a repeatable edge.
+                Over ~1 cycle since the Aug-2023 launch. No forward-return figures, one cycle of deep-value recoveries isn't a repeatable edge.
               </div>
             </div>
           </div>

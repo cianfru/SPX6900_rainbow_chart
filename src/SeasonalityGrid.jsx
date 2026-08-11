@@ -7,7 +7,7 @@ import { SANS, MONO, MAX_W } from "./chart-ui.jsx";
 // each year's compounded return, and an "Avg" footer row shows the typical
 // return per calendar month (seasonality). A USD / BTC toggle switches the whole
 // table between dollar returns and returns measured in Bitcoin (SPX priced in
-// BTC). Returns are month-over-month on each month's last close — same
+// BTC). Returns are month-over-month on each month's last close, same
 // definition the bot's monthly-returns cards use.
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
@@ -190,7 +190,7 @@ export default function SeasonalityGrid({ series, isMobile, initialView }) {
               {cell(yearTotal.get(y), y + "-yr", true, true)}
             </div>
           ))}
-          {/* seasonality average — separated by a rule + brighter framed cells */}
+          {/* seasonality average, separated by a rule + brighter framed cells */}
           <div style={{ display: "grid", gridTemplateColumns: cols, gap: 4, marginTop: 12, borderTop: "1px solid rgba(255,255,255,0.12)", paddingTop: 10 }}>
             <div style={{ fontFamily: MONO, fontSize: isMobile ? 10 : 12, color: "#cbd5e1", fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "flex-end", paddingRight: 6 }}>Avg</div>
             {monthAvg.map((r, m) => cell(r, "avg-" + m, false, true))}
@@ -208,8 +208,8 @@ export default function SeasonalityGrid({ series, isMobile, initialView }) {
 
       <div className="chart-caption" style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.6 }}>
         {isBtc
-          ? <>Each cell is that month&apos;s return with SPX6900 <strong style={{ color: "#cbd5e1" }}>priced in Bitcoin</strong> — green means SPX beat BTC that month, red means Bitcoin won. The <strong style={{ color: "#cbd5e1" }}>Year</strong> column compounds the months; <strong style={{ color: "#cbd5e1" }}>Avg</strong> is the typical month across years. Not financial advice.</>
-          : <>Each cell is that month&apos;s return (last close vs. the prior month&apos;s). The <strong style={{ color: "#cbd5e1" }}>Year</strong> column compounds the months into an annual figure; <strong style={{ color: "#cbd5e1" }}>Avg</strong> is the typical return for that calendar month across all years — the seasonality. Tail months can run into the thousands of percent (shown compactly, e.g. +8.9k%). Not financial advice.</>}
+          ? <>Each cell is that month&apos;s return with SPX6900 <strong style={{ color: "#cbd5e1" }}>priced in Bitcoin</strong>, green means SPX beat BTC that month, red means Bitcoin won. The <strong style={{ color: "#cbd5e1" }}>Year</strong> column compounds the months; <strong style={{ color: "#cbd5e1" }}>Avg</strong> is the typical month across years. Not financial advice.</>
+          : <>Each cell is that month&apos;s return (last close vs. the prior month&apos;s). The <strong style={{ color: "#cbd5e1" }}>Year</strong> column compounds the months into an annual figure; <strong style={{ color: "#cbd5e1" }}>Avg</strong> is the typical return for that calendar month across all years, the seasonality. Tail months can run into the thousands of percent (shown compactly, e.g. +8.9k%). Not financial advice.</>}
       </div>
     </div>
   );

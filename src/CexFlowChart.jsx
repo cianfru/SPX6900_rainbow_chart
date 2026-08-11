@@ -13,7 +13,7 @@ const ROLL = 7, ONB_MARK = 3e6;
 const fShort = t => new Date(t).toLocaleDateString("en-US", { month: "short", year: "2-digit" });
 const fM = v => (v >= 0 ? "+" : "−") + Math.abs(v / 1e6).toFixed(2) + "M";
 
-// [d, cexBal, lpBal, custBal, org, onb, price] — daily. Plot a 7-day rolling ORGANIC net
+// [d, cexBal, lpBal, custBal, org, onb, price], daily. Plot a 7-day rolling ORGANIC net
 // (listings excluded) as the pulse; a thin token's raw daily flow is pure noise.
 const build = days => {
   const a = days.map(r => ({ ts: Date.parse(r[0]), org: r[4], onb: r[5], price: r[6] }));
@@ -39,7 +39,7 @@ function Tip({ active, payload }) {
   );
 }
 
-// Exchange flow — coins moving on/off exchanges. Onto = potential sell-side, off = accumulation.
+// Exchange flow, coins moving on/off exchanges. Onto = potential sell-side, off = accumulation.
 // Listing fills (new exchange wallets filling up) are stripped so only organic behaviour shows.
 export default function CexFlowChart({ isMobile, preview = false }) {
   const [all, setAll] = useState(BUNDLE);
@@ -70,7 +70,7 @@ export default function CexFlowChart({ isMobile, preview = false }) {
     <div style={{ maxWidth: MAX_W, margin: "0 auto" }}>
       <Explain q="Are coins moving onto exchanges (to sell) or off them (into self-custody)?" accent={GRN}>
         Coins flowing <strong style={{ color: RED }}>onto</strong> exchanges are potential sell-side; flowing <strong style={{ color: GRN }}>off</strong> means holders are pulling into self-custody.
-        We strip out one-time <strong style={{ color: "#cbd5e1" }}>listing fills</strong> (a new exchange wallet filling up) and show only the organic 7-day pulse. One cycle of data — behaviour, not a signal.
+        We strip out one-time <strong style={{ color: "#cbd5e1" }}>listing fills</strong> (a new exchange wallet filling up) and show only the organic 7-day pulse. One cycle of data, behaviour, not a signal.
       </Explain>
       <div style={{ display: "flex", gap: isMobile ? 16 : 30, justifyContent: "center", marginBottom: 14, flexWrap: "wrap" }}>
         <Metric label="7d net flow" value={fM(cur.roll)} color={cur.roll >= 0 ? RED : GRN} sub={cur.roll >= 0 ? "onto exchanges" : "off exchanges"} />
@@ -104,7 +104,7 @@ export default function CexFlowChart({ isMobile, preview = false }) {
         </ResponsiveContainer>
       </div>
       <div className="chart-caption" style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.65, maxWidth: 900, marginInline: "auto" }}>
-        <strong style={{ color: GRN }}>Exchange flow</strong> — 7-day rolling net of SPX moving on/off tagged exchange addresses, reconstructed on-chain (Dune). Listing fills (grey) excluded.
+        <strong style={{ color: GRN }}>Exchange flow</strong>, 7-day rolling net of SPX moving on/off tagged exchange addresses, reconstructed on-chain (Dune). Listing fills (grey) excluded.
         Known addresses only; netflow isn&apos;t a guaranteed buy/sell. Drag to zoom. Not financial advice.
       </div>
     </div>

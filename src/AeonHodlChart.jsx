@@ -25,7 +25,7 @@ function Tip({ active, payload }) {
   );
 }
 
-// Project Aeon — Holder Age / HODL waves. Each of the 3,333 tokens coloured by how long
+// Project Aeon, Holder Age / HODL waves. Each of the 3,333 tokens coloured by how long
 // since it last changed hands. Warm (fresh) at the bottom, cool (long-held) on top.
 export default function AeonHodlChart({ isMobile }) {
   const [data, setData] = useState(AEON_ONCHAIN);
@@ -42,7 +42,7 @@ export default function AeonHodlChart({ isMobile }) {
   return (
     <div style={{ maxWidth: MAX_W, margin: "0 auto" }}>
       <Explain q="How long has each AEON been sitting with its owner?" accent={BANDS[4].c}>
-        Every token coloured by <strong style={{ color: "#e2e8f0" }}>time since it last changed hands</strong> — warm (bottom) = freshly traded, cool (top) = held over a year.
+        Every token coloured by <strong style={{ color: "#e2e8f0" }}>time since it last changed hands</strong>, warm (bottom) = freshly traded, cool (top) = held over a year.
         The collection started <strong style={{ color: "#f87171" }}>all fresh</strong> at the Nov-2023 mint and has matured: <strong style={{ color: "#818cf8" }}>{cur.a4.toFixed(0)}% now sits in the 1-year+ tier</strong>.
       </Explain>
       <div style={{ display: "flex", gap: isMobile ? 16 : 30, justifyContent: "center", marginBottom: 14, flexWrap: "wrap" }}>
@@ -66,7 +66,7 @@ export default function AeonHodlChart({ isMobile }) {
         </AreaChart>
       </ResponsiveContainer>
       <div className="chart-caption" style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.65, maxWidth: 900, marginInline: "auto" }}>
-        <strong style={{ color: BANDS[4].c }}>Holder age</strong> — the {data.supply?.toLocaleString?.() || "3,333"} AEON split by how long each has been held. Reconstructed on-chain from the transfer log. A holding-behaviour read, not a signal.
+        <strong style={{ color: BANDS[4].c }}>Holder age</strong>, the {data.supply?.toLocaleString?.() || "3,333"} AEON split by how long each has been held. Reconstructed on-chain from the transfer log. A holding-behaviour read, not a signal.
       </div>
     </div>
   );

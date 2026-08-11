@@ -56,6 +56,10 @@
 .tzone .mtop > .mhead .car{ font-size:11px; color:var(--dim); }
 .tzone .mtop:hover > .mhead{ background:var(--tx); color:var(--bg); }
 .tzone .mtop:hover > .mhead .car{ color:var(--bg); }
+/* Rainbow tab — in line with the other three (same mono/weight/case/invert), with a restrained
+   rainbow tint on the word as its only distinction (the foundation chart's splash of colour). */
+.tzone .mtop-rainbow .rbword{ background:linear-gradient(90deg,#f87171,#fb923c,#fbbf24,#4ade80,#38bdf8,#a78bfa); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; }
+.tzone .mtop-rainbow:hover > .mhead .rbword{ background:none; -webkit-text-fill-color:var(--bg); color:var(--bg); }
 
 .tzone .drop,.tzone .subdrop{ display:none; position:absolute; z-index:30; min-width:212px; background:var(--bg); border:1px solid var(--line2); padding:4px; box-shadow:0 12px 34px rgba(0,0,0,.6); }
 .tzone .drop{ top:100%; left:0; } .tzone .mtop:hover > .drop{ display:block; }
@@ -81,7 +85,7 @@
 .tzone .mitem:hover .cur{ animation:tcurblink 1.05s steps(1,end) infinite; }
 .tzone .mitem.allrow{ border-bottom:1px solid var(--line); margin-bottom:2px; }
 /* a toggle chart's sub-views, indented under its row (the parent row carries a ▾) */
-.tzone .mitem.subview{ padding-top:4px; padding-bottom:4px; padding-left:28px; gap:10px; font-size:11px; color:var(--dim); }
+.tzone .mitem.subview{ padding-top:5px; padding-bottom:5px; padding-left:11px; gap:10px; font-size:12px; color:var(--dim); }  /* flush-left, in line with the leaf rows */
 .tzone .mitem.subview .lbl{ letter-spacing:.02em; }
 .tzone .mitem.subview .cur{ font-size:11px; }
 
@@ -101,12 +105,41 @@
 
 @keyframes tblink{ 50%{opacity:.3} }
 
-/* mobile: cascade flyouts stack under their group instead of flying off-screen */
+/* mobile: the hover cascade is replaced by a full-screen, tap-driven menu (the ☰ hamburger) */
+.tmobtog{ display:none; }
+.tmobmenu{ display:none; }
 @media(max-width:760px){
-  .tzone .tmenu{ overflow-x:auto; scrollbar-width:none; }
-  .tzone .subdrop{ position:static; left:auto; min-width:0; border:none; box-shadow:none; background:transparent; padding:0 0 2px 14px; }
-  .tzone .leafprev{ display:none!important; }
+  .tzone .tmenu{ display:none; }
+  .tzone .tmobtog{ display:inline-flex; align-items:center; justify-content:center; width:40px; height:40px; flex:none; margin-left:8px;
+    border:1px solid var(--line2); border-radius:8px; background:var(--panel); color:var(--tx); cursor:pointer; }
+  .tzone .tmobtog svg{ width:22px; height:22px; }
+  /* NB: the sticky sub-page nav has backdrop-filter, which makes it the containing block for
+     position:fixed descendants — so inset:0 would fill the 51px bar, not the screen. The nav is
+     pinned at the top, so viewport units (top/left 0 + 100vw/100dvh) fill the real viewport. */
+  .tzone .tmobmenu{ display:flex; flex-direction:column; position:fixed; top:0; left:0; width:100vw; height:100vh; height:100dvh; z-index:300; background:var(--bg);
+    transform:translateX(100%); transition:transform .22s ease; }
+  .tzone .tmobmenu.open{ transform:none; }
 }
+.tzone .tmobhead{ display:flex; align-items:center; justify-content:space-between; padding:15px 16px; border-bottom:1px solid var(--line); flex:none; }
+.tzone .tmobtitle{ font-family:var(--mono); text-transform:uppercase; letter-spacing:.18em; font-size:13px; color:var(--dim); }
+.tzone .tmobclose{ width:42px; height:42px; display:inline-flex; align-items:center; justify-content:center; border:1px solid var(--line2); border-radius:8px; background:var(--panel); color:var(--tx); cursor:pointer; }
+.tzone .tmobclose svg{ width:22px; height:22px; }
+.tzone .tmobbody{ flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; padding-bottom:48px; }
+.tzone .tmob-row{ display:flex; align-items:center; justify-content:space-between; gap:12px; width:100%; text-align:left; cursor:pointer;
+  padding:16px; background:transparent; border:none; border-bottom:1px solid var(--line);
+  font-family:var(--mono); font-size:16px; text-transform:uppercase; letter-spacing:.04em; color:var(--tx); }
+.tzone .tmob-row:active{ background:var(--panel); }
+.tzone .tmob-chev{ color:var(--dim); font-size:12px; }
+.tzone .tmob-cur{ color:var(--live); margin-left:1px; }
+.tzone .tmob-sub{ background:rgba(255,255,255,.02); }
+.tzone .tmob-sub > .tmob-row{ padding-left:28px; font-size:15px; }
+.tzone .tmob-sub2 > .tmob-row{ padding-left:42px; font-size:14px; color:var(--dim); text-transform:none; letter-spacing:.01em; }
+.tzone .tmob-all{ color:var(--live); }
+.tzone .tmob-rainbow .tmob-lbl{ background:linear-gradient(90deg,#f87171,#fb923c,#fbbf24,#4ade80,#38bdf8,#a78bfa); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; }
+
+/* Simplify: a chart that carries its own in-chart Explain box doesn't also need the
+   page-level description repeated below it — hide the duplicate. */
+.tzone .tchart:has(.chart-explain) .page-desc{ display:none; }
 
 /* Apple-style round back button on the chart page */
 .tzone .tback{ transition:border-color .14s, color .14s, background .14s; }

@@ -25,7 +25,7 @@ function Tip({ active, payload }) {
   );
 }
 
-// Project Aeon — Owners over time, stacked by how many tokens each wallet holds.
+// Project Aeon, Owners over time, stacked by how many tokens each wallet holds.
 export default function AeonOwnersChart({ isMobile }) {
   const [data, setData] = useState(AEON_ONCHAIN);
   useEffect(() => { let c = false; loadAeon().then(d => { if (!c && d) setData(d); }); return () => { c = true; }; }, []);
@@ -40,7 +40,7 @@ export default function AeonOwnersChart({ isMobile }) {
 
   return (
     <div style={{ maxWidth: MAX_W, margin: "0 auto" }}>
-      <Explain q="How has the holder base grown — and who holds?" accent="#2dd4bf">
+      <Explain q="How has the holder base grown, and who holds?" accent="#2dd4bf">
         Distinct owners since the mint, split by <strong style={{ color: "#e2e8f0" }}>how many AEON each wallet holds</strong>.
         The base broadened into <strong style={{ color: "#2dd4bf" }}>{cur.one} single-token collectors</strong>, with a small tail of <strong style={{ color: "#fb7185" }}>{cur.whale} whales</strong> (11+).
       </Explain>
@@ -65,7 +65,7 @@ export default function AeonOwnersChart({ isMobile }) {
         </AreaChart>
       </ResponsiveContainer>
       <div className="chart-caption" style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.65, maxWidth: 900, marginInline: "auto" }}>
-        <strong style={{ color: "#2dd4bf" }}>Owners over time</strong> — distinct current holders, banded by tokens held. Reconstructed on-chain from every transfer.
+        <strong style={{ color: "#2dd4bf" }}>Owners over time</strong>, distinct current holders, banded by tokens held. Reconstructed on-chain from every transfer.
       </div>
     </div>
   );

@@ -21,7 +21,7 @@ function ramp(t) {
   return "rgb(252,253,191)";
 }
 
-// Cost basis × holding age — the joint distribution of held supply, three ways:
+// Cost basis × holding age, the joint distribution of held supply, three ways:
 // Ridgeline (default, one age band per row), Heatmap, and an interactive 3D field.
 export default function UrpdAgeChart({ isMobile, preview = false, price = null, initialView }) {
   const [live, setLive] = useState(null);
@@ -41,7 +41,7 @@ export default function UrpdAgeChart({ isMobile, preview = false, price = null, 
   if (buckets.length < 6) return (
     <div style={{ maxWidth: MAX_W, margin: "0 auto" }}>
       <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60, lineHeight: 1.6 }}>
-        The cost-basis × age map fills in with the next on-chain refresh — the FIFO engine now records every coin&apos;s acquisition age alongside its cost basis.
+        The cost-basis × age map fills in with the next on-chain refresh, the FIFO engine now records every coin&apos;s acquisition age alongside its cost basis.
       </div>
     </div>
   );
@@ -54,7 +54,7 @@ export default function UrpdAgeChart({ isMobile, preview = false, price = null, 
   const xticks = [0.003, 0.01, 0.03, 0.1, 0.3, 1, 2].filter(p => p >= pmin && p <= pmax);
   const maxV = Math.max(...buckets.flatMap(b => b.age), 1e-9);
 
-  // ── BARS — the card reproduced: each price bucket a stacked bar coloured by age ──
+  // ── BARS, the card reproduced: each price bucket a stacked bar coloured by age ──
   const bars = () => {
     const bw = (pW / buckets.length) * 0.84;
     const ymax = Math.max(...buckets.map(b => b.pct)) * 1.08 || 1;
@@ -79,7 +79,7 @@ export default function UrpdAgeChart({ isMobile, preview = false, price = null, 
     return out;
   };
 
-  // ── HEATMAP — the original grid ──
+  // ── HEATMAP, the original grid ──
   const heat = () => {
     const rh = (pB - pT) / 5, bw = pW / buckets.length, cells = [];
     buckets.forEach((b, i) => {
@@ -111,9 +111,9 @@ export default function UrpdAgeChart({ isMobile, preview = false, price = null, 
 
   return (
     <div style={{ maxWidth: MAX_W, margin: "0 auto" }}>
-      <Explain q="Where were the bags bought — and how long have they been held?" accent="#a78bfa">
+      <Explain q="Where were the bags bought, and how long have they been held?" accent="#a78bfa">
         Every held coin, placed by <strong style={{ color: "#e2e8f0" }}>what it cost</strong> and <strong style={{ color: "#e2e8f0" }}>how long it&apos;s been held</strong>.
-        The launch-era coins are <strong style={{ color: "#22d3ee" }}>old (1y+)</strong> and cheap; the wall near today&apos;s price mixes <strong style={{ color: "#fb7185" }}>fresh buyers</strong> with mid-age holders — same price, very different conviction.
+        The launch-era coins are <strong style={{ color: "#22d3ee" }}>old (1y+)</strong> and cheap; the wall near today&apos;s price mixes <strong style={{ color: "#fb7185" }}>fresh buyers</strong> with mid-age holders, same price, very different conviction.
       </Explain>
 
       {!preview && (
@@ -156,7 +156,7 @@ export default function UrpdAgeChart({ isMobile, preview = false, price = null, 
 
       <div className="chart-caption" style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.65, maxWidth: 900, marginInline: "auto" }}>
         Cost basis × holding age, reconstructed on-chain from every coin&apos;s FIFO per-lot acquisition price and time.
-        {view === "bars" && " Each price bucket stacked by holder age — fresh (red) at the base to diamond 1y+ (cyan) on top. Hover a segment for the exact share."}
+        {view === "bars" && " Each price bucket stacked by holder age, fresh (red) at the base to diamond 1y+ (cyan) on top. Hover a segment for the exact share."}
         {view === "heat" && " Brighter = more supply at that price and age. Hover a cell for the exact number."}
         {view === "3d" && " Each bar = supply held at a given price and age. Orbit to explore."}
         {" "}A holder-composition position, not a signal.

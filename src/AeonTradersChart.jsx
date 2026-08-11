@@ -6,7 +6,7 @@ import { SANS, MONO, MAX_W, Metric, Explain } from "./chart-ui.jsx";
 const short = a => a.slice(0, 6) + "…" + a.slice(-4);
 const fE = v => (v >= 0 ? "+" : "") + v.toFixed(1) + "Ξ";
 
-// Project Aeon — trader intelligence. Every wallet's realized P&L from matching its
+// Project Aeon, trader intelligence. Every wallet's realized P&L from matching its
 // buys to its sells across the whole sale log. Winners, paper hands, and the flippers.
 export default function AeonTradersChart({ isMobile, initialView }) {
   const [data, setData] = useState(null);
@@ -26,8 +26,8 @@ export default function AeonTradersChart({ isMobile, initialView }) {
   return (
     <div style={{ maxWidth: MAX_W, margin: "0 auto" }}>
       <Explain q="Who's actually made money trading AEON?" accent="#34d399">
-        Every wallet&apos;s <strong style={{ color: "#e2e8f0" }}>realized profit</strong> — reconstructed by matching each token&apos;s <strong style={{ color: "#34d399" }}>buy</strong> to its later <strong style={{ color: "#fb7185" }}>sell</strong> across all {data.totalSales.toLocaleString()} sales.
-        Mint cost and free transfers are unknown so they&apos;re excluded — this is <strong style={{ color: "#e2e8f0" }}>trading</strong> P&amp;L, not total return.
+        Every wallet&apos;s <strong style={{ color: "#e2e8f0" }}>realized profit</strong>, reconstructed by matching each token&apos;s <strong style={{ color: "#34d399" }}>buy</strong> to its later <strong style={{ color: "#fb7185" }}>sell</strong> across all {data.totalSales.toLocaleString()} sales.
+        Mint cost and free transfers are unknown so they&apos;re excluded, this is <strong style={{ color: "#e2e8f0" }}>trading</strong> P&amp;L, not total return.
       </Explain>
 
       <div style={{ display: "flex", gap: isMobile ? 16 : 30, justifyContent: "center", marginBottom: 12, flexWrap: "wrap" }}>
@@ -65,8 +65,8 @@ export default function AeonTradersChart({ isMobile, initialView }) {
                 <td style={{ padding: "5px 8px" }}><span style={{ color: "#64748b" }}>{i + 1}</span> <a href={`https://app.zerion.io/${t.a}/overview`} target="_blank" rel="noopener noreferrer" style={{ color: "#cbd5e1", textDecoration: "none" }}>{short(t.a)} ↗</a></td>
                 <td style={{ padding: "5px 8px", textAlign: "right", color: t.realized >= 0 ? "#34d399" : "#fb7185", fontWeight: 700 }}>{fE(t.realized)}</td>
                 <td style={{ padding: "5px 8px", textAlign: "right", color: "#94a3b8" }}>{t.bought}/{t.sold}</td>
-                <td style={{ padding: "5px 8px", textAlign: "right", color: "#94a3b8" }}>{t.avgHold != null ? t.avgHold + "d" : "—"}</td>
-                <td style={{ padding: "5px 8px", textAlign: "right", color: "#94a3b8" }}>{t.winRate != null ? Math.round(t.winRate * 100) + "%" : "—"}</td>
+                <td style={{ padding: "5px 8px", textAlign: "right", color: "#94a3b8" }}>{t.avgHold != null ? t.avgHold + "d" : "-"}</td>
+                <td style={{ padding: "5px 8px", textAlign: "right", color: "#94a3b8" }}>{t.winRate != null ? Math.round(t.winRate * 100) + "%" : "-"}</td>
                 <td style={{ padding: "5px 8px", textAlign: "right", color: "#7c8a9e" }}>{t.holding || 0}</td>
               </tr>
             ))}
@@ -75,7 +75,7 @@ export default function AeonTradersChart({ isMobile, initialView }) {
       </div>
 
       <div className="chart-caption" style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 16, lineHeight: 1.65, maxWidth: 900, marginInline: "auto" }}>
-        Realized P&amp;L walks each token&apos;s sale chain (sell price − the seller&apos;s own buy price). Round-trips only — mints and free transfers have no known cost, so they don&apos;t count. Reconstructed on-chain from the marketplace sale log. Tap a wallet for Zerion.
+        Realized P&amp;L walks each token&apos;s sale chain (sell price − the seller&apos;s own buy price). Round-trips only, mints and free transfers have no known cost, so they don&apos;t count. Reconstructed on-chain from the marketplace sale log. Tap a wallet for Zerion.
       </div>
     </div>
   );

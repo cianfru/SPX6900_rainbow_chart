@@ -1,4 +1,4 @@
-// WHO owns the supply, three ways — the interactive versions of the whale, wallet-size
+// WHO owns the supply, three ways, the interactive versions of the whale, wallet-size
 // and wealth-ladder cards.
 //
 // HODL waves answer how long supply has sat still, and say nothing about who is sitting
@@ -139,7 +139,7 @@ export function WalletWavesChart({ isMobile, preview = false }) {
   return (
     <div style={{ maxWidth: MAX_W, margin: "0 auto" }}>
       <Explain q="Who actually owns SPX6900, by the size of their stack?" accent="#818cf8">
-        Every coin coloured by <strong style={{ color: "#e2e8f0" }}>how big the wallet holding it is</strong> — the same idea as HODL waves, cut by size instead of age.
+        Every coin coloured by <strong style={{ color: "#e2e8f0" }}>how big the wallet holding it is</strong>, the same idea as HODL waves, cut by size instead of age.
         Million-coin wallets held <strong style={{ color: "#818cf8" }}>{first.t4.toFixed(0)}%</strong> of supply at launch and hold <strong style={{ color: "#818cf8" }}>{cur.t4.toFixed(0)}%</strong> now.
         The points they gave up went to the <strong style={{ color: "#84cc16" }}>tiers just below</strong>, not to dust.
       </Explain>
@@ -151,7 +151,7 @@ export function WalletWavesChart({ isMobile, preview = false }) {
       <Waves bands={SIZE_BANDS} view={z.view} isMobile={isMobile} preview={preview} zoomProps={z} tip={<SizeTip />} />
       <Legend bands={SIZE_BANDS} cur={cur} isMobile={isMobile} fmt={(c, b) => c[b.key].toFixed(1) + "%"} />
       <Caption>
-        <strong style={{ color: "#818cf8" }}>Wallet-size waves</strong> — SPX6900&apos;s ETH-native supply split by how many coins the holding wallet has.
+        <strong style={{ color: "#818cf8" }}>Wallet-size waves</strong>, SPX6900&apos;s ETH-native supply split by how many coins the holding wallet has.
         Bands are absolute coin counts, and the coin&apos;s price has moved a great deal, so a 1M+ wallet meant something different in 2023 than it does now: this measures ownership of the supply, not wealth.
       </Caption>
     </div>
@@ -206,7 +206,7 @@ export function WealthWavesChart({ isMobile, preview = false }) {
       <Explain q="How many holders are sitting on real money?" accent="#818cf8">
         The same wallets as the size chart, sorted by <strong style={{ color: "#e2e8f0" }}>what they were worth in dollars</strong> that week.{" "}
         <strong style={{ color: "#818cf8" }}>{fInt(peak.w4n)}</strong> wallets held over $100k at the {fMonth(peak.ts)} top; <strong style={{ color: "#818cf8" }}>{fInt(cur.w4n)}</strong> do now.
-        The brackets move with the price — that is the point of the chart, not a flaw in it.
+        The brackets move with the price, that is the point of the chart, not a flaw in it.
       </Explain>
       <div style={{ display: "flex", gap: isMobile ? 16 : 30, justifyContent: "center", marginBottom: 14, flexWrap: "wrap" }}>
         <Metric label="wallets over $100k" value={fInt(cur.w4n)} color="#818cf8" sub={`${fInt(peak.w4n)} at the peak`} />
@@ -216,7 +216,7 @@ export function WealthWavesChart({ isMobile, preview = false }) {
       <Waves bands={USD_BANDS} view={z.view} isMobile={isMobile} preview={preview} zoomProps={z} tip={<WealthTip />} />
       <Legend bands={USD_BANDS} cur={cur} isMobile={isMobile} fmt={(c, b) => fInt(c[b.key + "n"])} />
       <Caption>
-        <strong style={{ color: "#818cf8" }}>The wealth ladder</strong> — the share of holders sitting in each dollar bracket, week by week.
+        <strong style={{ color: "#818cf8" }}>The wealth ladder</strong>, the share of holders sitting in each dollar bracket, week by week.
         This counts <strong style={{ color: "#cbd5e1" }}>wallets, not supply</strong>, on purpose: splitting the supply by dollar bracket would mostly be a chart of the price wearing a distribution chart&apos;s clothes.
       </Caption>
     </div>
@@ -246,14 +246,14 @@ export function WhalesChart({ isMobile, preview = false }) {
   const { cur, vis } = z.view, first = all[0];
   // Count and share live on very different scales, so the count rides a second series
   // normalised into the share's axis rather than a second y-axis (this project does
-  // not draw dual-scale axes — two scales invite a comparison the data cannot support).
+  // not draw dual-scale axes, two scales invite a comparison the data cannot support).
   const maxN = Math.max(...vis.map(r => r.n), 1);
   const data = vis.map(r => ({ ...r, nScaled: 100 * r.n / maxN }));
 
   return (
     <div style={{ maxWidth: MAX_W, margin: "0 auto" }}>
       <Explain q="What have the biggest wallets been doing?" accent="#f472b6">
-        A <strong style={{ color: "#e2e8f0" }}>whale</strong> here is any wallet holding at least <strong style={{ color: "#e2e8f0" }}>0.1% of holder supply</strong> — a size threshold, not a fixed top-N,
+        A <strong style={{ color: "#e2e8f0" }}>whale</strong> here is any wallet holding at least <strong style={{ color: "#e2e8f0" }}>0.1% of holder supply</strong>, a size threshold, not a fixed top-N,
         so the count and the share can move independently. They have: the count has sat near <strong style={{ color: "#38bdf8" }}>{fInt(cur.n)}</strong> for two years while their share fell
         from <strong style={{ color: "#f472b6" }}>{first.pct.toFixed(0)}%</strong> to <strong style={{ color: "#f472b6" }}>{cur.pct.toFixed(0)}%</strong>. Same wallets, steadily less of the float.
       </Explain>
@@ -286,7 +286,7 @@ export function WhalesChart({ isMobile, preview = false }) {
         </ResponsiveContainer>
       </div>
       <Caption>
-        <strong style={{ color: "#f472b6" }}>Whale supply</strong> — the solid line is the share of holder supply in wallets of 0.1% or more.
+        <strong style={{ color: "#f472b6" }}>Whale supply</strong>, the solid line is the share of holder supply in wallets of 0.1% or more.
         The dashed line is <strong style={{ color: "#38bdf8" }}>how many such wallets there are</strong>, drawn against the same axis as a proportion of its own peak ({fInt(maxN)}) so the two shapes can be compared without a second scale.
         Exchanges, LP pools, the bridge and the burn address are excluded.
       </Caption>

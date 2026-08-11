@@ -10,10 +10,10 @@ const yearOf = t => new Date(t).getUTCFullYear();
 const DAY = 86400000;
 const PROJECT_TO = "2030-06-01";
 // Crop the blown-out launch corner: near day 0 the quantiles (quadratics in ln(day))
-// diverge hard — a 100-266x-wide fan through the first ~9 months that reads as a
+// diverge hard, a 100-266x-wide fan through the first ~9 months that reads as a
 // visual "bowtie" and buries the useful forward cone. Start the visible window this
 // many days after launch, where the fan settles to a sane width. The FIT still uses
-// all history (quantile-fan.js) — this only trims the DISPLAY.
+// all history (quantile-fan.js), this only trims the DISPLAY.
 const CROP_DAYS = 300;
 
 function Tip({ active, payload }) {
@@ -29,7 +29,7 @@ function Tip({ active, payload }) {
   );
 }
 
-// Asymmetric quantile regression fan — 7 quadratic quantile curves fit on log-price
+// Asymmetric quantile regression fan, 7 quadratic quantile curves fit on log-price
 // vs ln(day), monotone-rearranged, projected forward to a probabilistic price cone.
 export default function QuantileFanChart({ series, isMobile, preview = false }) {
   const { rows, cur, proj, nowTs, xTicks, yDomain, yTicks } = useMemo(() => {
@@ -37,7 +37,7 @@ export default function QuantileFanChart({ series, isMobile, preview = false }) 
     if (s.length < 30) return { rows: null };
     const fan = fitQuantileFan(s);
     const t0 = fan.t0, nowTs = new Date(s.at(-1).date).getTime(), tEnd = Date.parse(PROJECT_TO);
-    // Left edge of the DRAWN window — the launch corner cropped off (fit is untouched).
+    // Left edge of the DRAWN window, the launch corner cropped off (fit is untouched).
     const tCrop = Math.min(t0 + CROP_DAYS * DAY, nowTs);
     const priceMap = new Map(s.map(r => [new Date(r.date).getTime(), r.price]));
     // historical timestamps (thinned for perf) from the crop point + monthly future samples
@@ -99,10 +99,10 @@ export default function QuantileFanChart({ series, isMobile, preview = false }) 
 
       {!preview && (
         <div className="chart-caption" style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.65, maxWidth: 900, marginInline: "auto" }}>
-          Seven <strong style={{ color: "#e2e8f0" }}>quantile</strong> curves (1st → 99th percentile) fit independently to log-price and projected forward — a probabilistic
+          Seven <strong style={{ color: "#e2e8f0" }}>quantile</strong> curves (1st → 99th percentile) fit independently to log-price and projected forward, a probabilistic
           price cone. <span style={{ color: "#dc2626" }}>Red</span> = the frothy top decile, <span style={{ color: "#22c55e" }}>green</span> = the cheap tail; the fatter upper
           tail is SPX's real asymmetry (rare huge spikes, rarer deep crashes). Distinct from the rainbow's symmetric bands.
-          <strong> Young-data caveat: like the rainbow, the fit is noisy and tightens as history accumulates</strong> — a distribution, not a forecast. Not financial advice.
+          <strong> Young-data caveat: like the rainbow, the fit is noisy and tightens as history accumulates</strong>, a distribution, not a forecast. Not financial advice.
         </div>
       )}
     </div>

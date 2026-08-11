@@ -1,9 +1,12 @@
 // Shared UI vocabulary for the interactive chart pages. Every chart previously
 // re-declared these fonts, the Metric readout, the tooltip container and the
-// drag-to-zoom state machine — this is the single source. Add new charts on top
+// drag-to-zoom state machine, this is the single source. Add new charts on top
 // of these pieces instead of copy-pasting a sibling.
-export const SANS = "'Space Grotesk', system-ui, sans-serif";
-export const MONO = "ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace";
+// Fonts follow the landing north star + terminal shell: Geist (sans) / Geist Mono (data,
+// labels, axes). Both are loaded in index.html; kept as literals (not CSS vars) so they
+// also resolve inside recharts' SVG <text>. Changing these two propagates to every chart.
+export const SANS = "'Geist', 'Space Grotesk', system-ui, sans-serif";
+export const MONO = "'Geist Mono', ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace";
 export const MAX_W = 1400;
 
 // Big-number readout shown in the metrics row above a chart.
@@ -17,7 +20,7 @@ export function Metric({ label, value, color = "#f8fafc", sub }) {
   );
 }
 
-// Tooltip container — charts supply their own rows (and an optional bold title
+// Tooltip container, charts supply their own rows (and an optional bold title
 // line). `style` merges over the defaults for per-chart accents (border, padding).
 export function TipBox({ title, style, children }) {
   return (
@@ -34,7 +37,7 @@ const LIGHT = { "#38bdf8": "#7dd3fc", "#a78bfa": "#c4b5fd" };
 // with the question the metric answers in human terms, so a general user gets it before
 // reading an axis. `q` = the plain question; children = the plain answer.
 export function Explain({ q, accent = "#38bdf8", children }) {
-  // De-boxed, full-width, terminal-flavoured: no enclosing card — a green ">" prompt on the question,
+  // De-boxed, full-width, terminal-flavoured: no enclosing card, a green ">" prompt on the question,
   // the site's sans for the body, aligned to the chart width. (Rules and prompts, not pills/boxes.)
   return (
     <div className="chart-explain" style={{ maxWidth: MAX_W, margin: "0 auto 22px", fontFamily: SANS, fontSize: 15, color: "#cbd5e1", lineHeight: 1.65 }}>

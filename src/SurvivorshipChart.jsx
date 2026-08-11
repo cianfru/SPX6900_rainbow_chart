@@ -3,12 +3,12 @@ import { ResponsiveContainer, AreaChart, Area, BarChart, Bar, ComposedChart, Lin
 import { loadCohortSurvival, loadPriceHistory, loadExitFlow } from "./history-data.js";
 import { SANS, MONO, MAX_W, Metric, TipBox, Explain } from "./chart-ui.jsx";
 
-// SPX6900 SURVIVORSHIP — who is still holding, by when they first bought. Three reads off one file:
-//   "Who's here" — the living holder base over time, stacked by arrival vintage (each cohort rises,
+// SPX6900 SURVIVORSHIP, who is still holding, by when they first bought. Three reads off one file:
+//   "Who's here", the living holder base over time, stacked by arrival vintage (each cohort rises,
 //                  then thins as it leaves). The launch band balloons in 2023 and shrinks to a sliver.
-//   "Survival"   — the plain retention bar per cohort: 4% of the launch crowd remain, ~64% of the
+//   "Survival"  , the plain retention bar per cohort: 4% of the launch crowd remain, ~64% of the
 //                  newest. Recent cohorts read high partly because they haven't had time to leave.
-//   "Cost basis" — survivorship coupled with PRICE: each surviving cohort placed on the real price
+//   "Cost basis", survivorship coupled with PRICE: each surviving cohort placed on the real price
 //                  curve at the price it first paid, bubble = SPX still held, ring green=in profit /
 //                  red=underwater. ~40%+ of the float bought above today's price and never sold.
 // The honest twist: enormous churn AND extreme survivor conviction at once.
@@ -45,7 +45,7 @@ export default function SurvivorshipChart({ isMobile, initialView }) {
     const bars = cohorts.map((c, k) => ({ label: shortLab(c.label), survivalPct: c.survivalPct, arrived: c.arrived, holdNow: c.holdNow, supplyM: c.supplyNow / 1e6, supplyPct: Math.round(100 * c.supplyNow / totalSupply), medPrice: c.medPrice, colour: vintage(k, nC) }));
     const launchPct = Math.round(100 * cohorts.slice(0, 2).reduce((s, c) => s + c.supplyNow, 0) / totalSupply);
 
-    // COST-BASIS (price-coupled) view — real price line + a bubble per cohort at its entry
+    // COST-BASIS (price-coupled) view, real price line + a bubble per cohort at its entry
     const line = (px || []).map(r => ({ t: Date.parse(r.date), p: +r.price })).filter(r => Number.isFinite(r.t) && r.p > 0).sort((a, b) => a.t - b.t);
     const now = line.length ? line.at(-1).p : null;
     let bubbles = [], pMin = 0.004, pMax = 2, t0 = week0, t1 = week0, underPct = 0, maxSupM = 1;
@@ -65,7 +65,7 @@ export default function SurvivorshipChart({ isMobile, initialView }) {
       pMin = Math.max(0.0005, pFloor * 0.85);
       pMax = Math.max(...line.map(r => r.p), ...priced.map(c => c.medPrice), now) * 1.18;
     }
-    // WHO LEFT — raw per-day (or per-week) departures split profit/loss, each a stacked bar; price joined per row
+    // WHO LEFT, raw per-day (or per-week) departures split profit/loss, each a stacked bar; price joined per row
     let flowRows = [], flowRes = null, flowOverall = null;
     if (flow?.days?.length && line.length) {
       flowRes = flow.res; flowOverall = flow.overall;
@@ -76,7 +76,7 @@ export default function SurvivorshipChart({ isMobile, initialView }) {
   }, [data, px, flow]);
 
   if (!data) return <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Loading…</div>;
-  if (!model) return <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Being reconstructed — check back after the next on-chain refresh.</div>;
+  if (!model) return <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Being reconstructed, check back after the next on-chain refresh.</div>;
   const { cohorts, nC, rows, bars, launchPct, line, bubbles, now, pMin, pMax, t0, t1, underPct, maxSupM, flowRows, flowRes, flowOverall } = model;
   const fDay = ts => new Date(ts).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "2-digit" });
   const yearTicks = (() => { const seen = new Set(), out = []; for (const r of flowRows) { const y = r.d.slice(0, 4); if (!seen.has(y)) { seen.add(y); out.push(r.d); } } return out; })();
@@ -89,7 +89,7 @@ export default function SurvivorshipChart({ isMobile, initialView }) {
     style: { padding: "6px 14px", borderRadius: 8, fontFamily: MONO, fontSize: 12, color: active ? "#f8fafc" : "#94a3b8", "--glow": "#22d3ee" },
   });
 
-  // custom bubble for the cost-basis scatter — size ∝ √supply, ring by profit/underwater
+  // custom bubble for the cost-basis scatter, size ∝ √supply, ring by profit/underwater
   const bubble = (p) => {
     const { cx, cy, payload } = p;
     if (cx == null || cy == null) return null;
@@ -107,10 +107,10 @@ export default function SurvivorshipChart({ isMobile, initialView }) {
   return (
     <div style={{ maxWidth: MAX_W, margin: "0 auto" }}>
       <Explain q="Of everyone who ever held SPX6900, who is still here?" accent="#22d3ee">
-        Every wallet is placed by the era it <strong style={{ color: "#e2e8f0" }}>first bought</strong> and coloured for it —
+        Every wallet is placed by the era it <strong style={{ color: "#e2e8f0" }}>first bought</strong> and coloured for it -
         <strong style={{ color: "#22d3ee" }}> cyan for the launch crowd</strong>, <strong style={{ color: "#f6a23c" }}>amber for the newest</strong>.
         The launch band balloons in 2023 and shrinks to a sliver: <strong style={{ color: "#f43f5e" }}>{O.gonePct}% of everyone who ever held has left</strong>.
-        But the survivors barely flinched — <strong style={{ color: "#22d3ee" }}>{O.diamondPct}% of today's holders never once sold</strong>. Huge churn, iron survivors.
+        But the survivors barely flinched, <strong style={{ color: "#22d3ee" }}>{O.diamondPct}% of today's holders never once sold</strong>. Huge churn, iron survivors.
       </Explain>
 
       <div style={{ display: "flex", gap: 6, justifyContent: "center", marginBottom: 6, flexWrap: "wrap" }}>
@@ -172,7 +172,7 @@ export default function SurvivorshipChart({ isMobile, initialView }) {
         </ResponsiveContainer>
       ) : view === "exits" ? (
         !flowRows.length || !line.length ? (
-          <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 120 }}>Being reconstructed — check back after the next on-chain refresh.</div>
+          <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 120 }}>Being reconstructed, check back after the next on-chain refresh.</div>
         ) : (
         <ResponsiveContainer width="100%" height={isMobile ? 400 : 560}>
           <ComposedChart data={flowRows} margin={{ top: 12, right: 56, left: 6, bottom: 6 }} barCategoryGap={0} barGap={0}>
@@ -229,10 +229,10 @@ export default function SurvivorshipChart({ isMobile, initialView }) {
         {view === "who"
           ? <>Living holders over time, stacked by the era each wallet first bought. Old vintages thin out as they sell; the base today is mostly the {shortLab(cohorts[2]?.label || "2024")}–{shortLab(cohorts[cohorts.length - 2]?.label || "2025")} cohorts who <strong style={{ color: "#e2e8f0" }}>accumulated through the drawdown</strong>.</>
           : view === "survival"
-          ? <>Share of each arrival cohort still holding today. Retention decays with tenure — the {shortLab(launch.label)} launch crowd is down to <strong style={{ color: "#f43f5e" }}>{launch.survivalPct}%</strong>. Recent cohorts read high partly because they <strong style={{ color: "#e2e8f0" }}>haven't had time to leave</strong> (right-censoring).</>
+          ? <>Share of each arrival cohort still holding today. Retention decays with tenure, the {shortLab(launch.label)} launch crowd is down to <strong style={{ color: "#f43f5e" }}>{launch.survivalPct}%</strong>. Recent cohorts read high partly because they <strong style={{ color: "#e2e8f0" }}>haven't had time to leave</strong> (right-censoring).</>
           : view === "exits"
-          ? <>Departures {flowRes === "daily" ? "each day" : "each week"} — holders that left the base, one bar per {flowRes === "daily" ? "day" : "week"}, split <strong style={{ color: "#4ade80" }}>green (sold in profit)</strong> / <strong style={{ color: "#f43f5e" }}>red (at a loss)</strong> vs the price when they crossed the bar; the pale line is price. Of the {flowOverall?.left.toLocaleString("en-US")} that left, <strong style={{ color: "#4ade80" }}>{flowOverall?.profitPct}% sold green</strong> — exits spike at the tops (profit-taking) and turn red only in the drawdown. Not NUPL (that's unrealized P/L of who's still here) — this is who's gone.</>
-          : <>Each surviving cohort placed on the real price curve at the price it first paid — bubble size = SPX still held, <strong style={{ color: "#4ade80" }}>green ring in profit</strong> / <strong style={{ color: "#f43f5e" }}>red underwater</strong>. <strong style={{ color: "#e2e8f0" }}>{underPct}% of the float held today is underwater</strong> and still hasn't sold — the biggest bag bought near the top. The float turned over; the survivors are sitting through the drawdown.</>}
+          ? <>Departures {flowRes === "daily" ? "each day" : "each week"}, holders that left the base, one bar per {flowRes === "daily" ? "day" : "week"}, split <strong style={{ color: "#4ade80" }}>green (sold in profit)</strong> / <strong style={{ color: "#f43f5e" }}>red (at a loss)</strong> vs the price when they crossed the bar; the pale line is price. Of the {flowOverall?.left.toLocaleString("en-US")} that left, <strong style={{ color: "#4ade80" }}>{flowOverall?.profitPct}% sold green</strong>, exits spike at the tops (profit-taking) and turn red only in the drawdown. Not NUPL (that's unrealized P/L of who's still here), this is who's gone.</>
+          : <>Each surviving cohort placed on the real price curve at the price it first paid, bubble size = SPX still held, <strong style={{ color: "#4ade80" }}>green ring in profit</strong> / <strong style={{ color: "#f43f5e" }}>red underwater</strong>. <strong style={{ color: "#e2e8f0" }}>{underPct}% of the float held today is underwater</strong> and still hasn't sold, the biggest bag bought near the top. The float turned over; the survivors are sitting through the drawdown.</>}
         <br />Self-custody holders (≥5,000 SPX); exchanges, LP and bridge addresses excluded. Survivorship, not a forecast.
       </div>
     </div>

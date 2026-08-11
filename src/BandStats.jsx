@@ -5,7 +5,7 @@ import { SANS, MONO, MAX_W } from "./chart-ui.jsx";
 const DAY = 86400000;
 
 const fDays = n => {
-  if (n == null) return "—";
+  if (n == null) return "-";
   if (n < 1) return "today";
   if (n < 30) return `${Math.round(n)}d`;
   if (n < 365) return `${(n / 30.44).toFixed(1)}mo`;

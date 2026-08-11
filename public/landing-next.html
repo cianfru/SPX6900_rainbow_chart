@@ -117,7 +117,14 @@
   .mtop > .mhead{ display:inline-flex; align-items:center; gap:8px; padding:8px 14px; cursor:default; font-family:var(--label); font-size:15px; letter-spacing:.05em; text-transform:uppercase; color:var(--tx); border:1px solid transparent; }
   .mtop > .mhead .mico{ display:none; align-items:center; }   /* nav icons appear only in the SITE look */
   .mtop > .mhead .ml-site{ display:none; }                    /* nice title-case labels only in the SITE look */
-  .mtop-rainbow{ display:none; }                              /* Rainbow home pill only in the SITE look */
+  .mtop-rainbow{ display:block; }                             /* Rainbow = its own standalone tab (the foundation chart) */
+  /* In line with the other three tabs: same mono, weight, case and invert-on-hover — the only
+     difference is a restrained rainbow tint on the word (a nod to the foundation chart, not a loud gradient). */
+  .mtop-rainbow > .mhead{ border-color:transparent; }
+  .mtop-rainbow .lbl{ background:linear-gradient(90deg,#f87171,#fb923c,#fbbf24,#4ade80,#38bdf8,#a78bfa); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; }
+  .mtop-rainbow .cur{ color:var(--curc,var(--tx)); margin-left:0; opacity:0; }   /* cursor rides the writing head only on hover */
+  .mtop-rainbow:hover .cur{ opacity:1; animation:blk 1.05s steps(1,end) infinite; }
+  .mtop-rainbow:hover > .mhead .lbl{ background:none; -webkit-text-fill-color:var(--bg); color:var(--bg); }  /* invert cleanly, exactly like the siblings */
   /* ── SITE look: the top nav becomes the live website's pill buttons — icon · accent border · tint · glow, per section
         (Rainbow violet · Charts cyan · City blue · Project Aeon pink). blend / calm / green keep the terminal nav. ── */
   :root[data-variant="site"] .mtop > .mhead{ text-transform:none; font-weight:700; letter-spacing:.01em; color:#9aa6bb; border-radius:10px;
@@ -195,7 +202,7 @@
   .btn .btw{ display:inline-block; text-align:left; }
   .btn .cur{ opacity:0; color:inherit; margin-left:0; }
   .btn:hover .cur{ opacity:1; animation:blk 1.05s steps(1,end) infinite; }
-  .mitem.subview{ padding:4px 11px 4px 28px; font-size:11px; color:var(--faint); gap:10px; }
+  .mitem.subview{ padding:5px 11px; font-size:12px; color:var(--faint); gap:10px; }  /* flush-left, in line with the leaf rows (fainter/smaller = the only sub cue) */
   .mitem.subview .cur{ font-size:11px; }
   .mitem.allrow{ color:var(--tx); font-weight:600; border-bottom:1px dotted var(--line2); margin-bottom:3px; padding-bottom:8px; }
   .mitem.allrow:hover, .mitem.allrow:hover .cur{ color:var(--bg); }
@@ -338,6 +345,37 @@
     .secdrop .mtop.open > .drop{ display:block; }
     .secdrop .mtop:hover > .drop{ display:none; } .secdrop .mtop.open > .drop{ display:block; }
   }
+  /* ── phones: a full-screen, tap-driven menu replaces the hover cascade ── */
+  .mobtog{ display:none; }
+  .mobmenu{ display:none; }
+  @media(max-width:700px){
+    .menu{ display:none; }                         /* the hover cascade is desktop-only */
+    .bar .sys{ display:none; }                      /* free room in the bar for the toggle */
+    .mobtog{ display:inline-flex; align-items:center; justify-content:center; width:40px; height:40px; margin-left:8px; flex:none;
+      border:1px solid var(--line2); border-radius:8px; background:var(--panel); color:var(--tx); cursor:pointer; }
+    .mobtog svg{ width:22px; height:22px; }
+    .mobmenu{ display:flex; flex-direction:column; position:fixed; inset:0; z-index:200; background:var(--bg);
+      transform:translateX(100%); transition:transform .22s ease; }
+    .mobmenu.open{ transform:none; }
+    .mmhead{ display:flex; align-items:center; justify-content:space-between; padding:15px 16px; border-bottom:1px solid var(--line); flex:none; }
+    .mmtitle{ font-family:var(--label); text-transform:uppercase; letter-spacing:.18em; font-size:13px; color:var(--dim); }
+    .mmclose{ width:42px; height:42px; display:inline-flex; align-items:center; justify-content:center; border:1px solid var(--line2); border-radius:8px; background:var(--panel); color:var(--tx); cursor:pointer; }
+    .mmclose svg{ width:22px; height:22px; }
+    .mmbody{ flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; padding-bottom:48px; }
+    .mmitem{ display:flex; align-items:center; justify-content:space-between; gap:12px; width:100%; text-align:left; cursor:pointer;
+      padding:16px; background:transparent; border:none; border-bottom:1px solid var(--line);
+      font-family:var(--mono); font-size:16px; text-transform:uppercase; letter-spacing:.04em; color:var(--tx); }
+    .mmitem:active{ background:var(--panel); }
+    .mmchev{ color:var(--dim); font-size:12px; transition:transform .18s; }
+    .mmsec.open > .mmsec-h .mmchev, .mmgrp.open > .mmgrp-h .mmchev{ transform:rotate(180deg); }
+    .mmsub{ display:none; } .mmsec.open > .mmsub, .mmgrp.open > .mmsub{ display:block; }
+    .mmsec > .mmsub{ background:rgba(255,255,255,.02); }
+    .mmsec > .mmsub > .mmitem, .mmsec > .mmsub > .mmgrp > .mmgrp-h{ padding-left:28px; font-size:15px; }
+    .mmgrp > .mmsub > .mmitem{ padding-left:42px; font-size:14px; color:var(--dim); text-transform:none; letter-spacing:.01em; }
+    .mmgrp > .mmsub > .mmview{ color:var(--faint); }
+    .mmall{ color:var(--live); }
+    .mmlink .mml{ background:linear-gradient(90deg,#f87171,#fb923c,#fbbf24,#4ade80,#38bdf8,#a78bfa); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; }
+  }
   .kpi{ background:var(--panel); padding:13px 15px 14px; display:flex; flex-direction:column; gap:3px; min-width:0; }
   .kpi .k{ display:flex; align-items:center; gap:6px; } .kpi .k .d{ width:7px; height:7px; border-radius:50%; flex:none; }
   :root[data-variant="green"] .kpi .k .d{ background:var(--live) !important; }
@@ -479,10 +517,17 @@
         <a class="siclink" href="https://x.com/SPX6900Rainbow" target="_blank" rel="noopener noreferrer" title="@SPX6900Rainbow on X" aria-label="SPX6900Rainbow on X"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24h-6.66l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg></a>
         <a class="siclink krk" href="https://proinvite.kraken.com/9f1e/8985jw0l" target="_blank" rel="noopener noreferrer sponsored" title="Trade on Kraken — affiliate" aria-label="Trade on Kraken (affiliate)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 12 A8.5 8.5 0 0 1 20.5 12 L20.5 19.4 A1.3 1.3 0 0 1 17.9 19.4 L17.9 14 A1.1 1.1 0 0 0 15.7 14 L15.7 19.4 A1.3 1.3 0 0 1 13.1 19.4 L13.1 14 A1.1 1.1 0 0 0 10.9 14 L10.9 19.4 A1.3 1.3 0 0 1 8.3 19.4 L8.3 14 A1.1 1.1 0 0 0 6.1 14 L6.1 19.4 A1.3 1.3 0 0 1 3.5 19.4 Z"/></svg></a>
       </span>
+      <button class="mobtog" id="mobtog" aria-label="Open menu" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M3 12h18M3 18h18" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg></button>
     </span>
   </div>
 
   <nav class="menu" id="menu"></nav>
+
+  <!-- Full-screen tap menu (phones): the hover cascade doesn't work on touch, so mobile gets its own drill-down -->
+  <div class="mobmenu" id="mobmenu" aria-hidden="true">
+    <div class="mmhead"><span class="mmtitle">Menu</span><button class="mmclose" id="mmclose" aria-label="Close menu"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg></button></div>
+    <div class="mmbody" id="mmbody"></div>
+  </div>
 
   <div class="ticker"><div class="tape" id="tape"></div></div>
 
@@ -498,6 +543,7 @@
       <div class="sh"><span>valuation snapshot</span></div>
       <div class="row" data-snap="price"><span class="k">price</span><span class="v">$0.332</span></div>
       <div class="row" data-snap="composite"><span class="k">composite</span><span class="v g">16%</span></div>
+      <div class="row" data-snap="fair"><span class="k">fair value</span><span class="v">$1.99&nbsp;&nbsp;&middot;&nbsp;&nbsp;6.0&times; up</span></div>
       <div class="row" data-snap="val"><span class="k">valuation</span><span class="v g">DEEPLY UNDERVALUED</span></div>
       <div class="smeter"><div class="sbar"></div><div class="smask" id="smask" style="width:84%"></div><div class="snd" id="snd" style="left:16%"></div></div>
       <div class="row" data-snap="range"><span class="k">history · range</span><span class="v">2 &ndash; 90</span></div>
@@ -584,10 +630,10 @@
   /* @gen-menu start — NAV + DESC + __LEAFID are generated from src/charts-catalog.js by
      scripts/build-landing-nav.mjs (runs in `npm run build`). DO NOT EDIT BY HAND — edits are
      overwritten. This keeps the landing's menu identical to the site's real charts menu. */
-  const NAV=[{"label":"CHARTS","groups":[{"g":"Valuation","items":["Power-Law Channel","Price Roadmap","Quantile Fan","Risk Bands","Valuation Z-Score","20-Week Heat","Pi Cycle Ratio","RSI Dots","Valuation Composite","The Model"]},{"g":"Performance","items":["Rallies","Drawdowns","Performance","Seasonality"]},{"g":"Holders","items":["Holder Conviction","Holders vs Price","HODL Waves","Liquid vs Illiquid Supply","Wallet Growth"]},{"g":"Cost Basis & Profit","items":["Cost Basis vs Price","Cost Basis × Age","Cost Basis Terrain (3D)","Supply in Profit","MVRV & Realized Price","MVRV vs Bitcoin","NUPL","Long vs Short-Term Holders","SOPR","Net Realized Profit/Loss","Liveliness"]},{"g":"Whales & Survivors","items":["Holder Concentration","Wallet Clusters","Whale Supply","Whale Counts Over Time","Wallet-Size Waves","The Wealth Ladder","Who's Still Here","How Holders Left","Smart Money","Whales Watching"]},{"g":"Exchanges","items":["Supply on Exchanges","Exchange Flow","Exchange Supply by Venue","Exchange Flow by Venue"]},{"g":"Markets & Positioning","items":["SPX vs BTC","Bitcoin Cycle","Rich / Cheap vs Majors","SPX vs the Alt Market","Perp Positioning"]},{"g":"Races","items":["SPX vs Majors","SPX vs Memekings"]}]},{"label":"SPX_CITY","groups":[{"g":"SPX City","items":["SPX City","City Growth","City Flow"]}]},{"label":"PROJECT_AEON","groups":[{"g":"Market","items":["Floor & Sales","AEON Floor vs SPX","MVRV & Supply in Profit","Does the Floor Lead the Coin?","Trader Leaderboard"]},{"g":"Holders","items":["Holder Age","Owners Over Time","Concentration","Holder Flow"]},{"g":"Rarity","items":["Rarity — Where Does It Sit?","Live Listings vs What They Sell For","What Actually Sold — Rarity vs Price","Trait Values"]}]}];
-  const DESC={"Power-Law Channel":"Price inside its log-regression trend channel.","Price Roadmap":"The trend extrapolated — when it crosses $6.90/$69/$690.","Quantile Fan":"Probabilistic price cone — 1st to 99th percentile, projected.","Risk Bands":"Valuation risk on a 0–1 scale over time.","Valuation Z-Score":"Price recoloured by how many σ from fair value.","20-Week Heat":"How stretched price is from its 20-week average.","Pi Cycle Ratio":"Bitcoin's Pi Cycle top/bottom gauge, applied to SPX for context.","RSI Dots":"Price as dots coloured by RSI, PlanB-style.","Valuation Composite":"A weighted basket of six indicators — over/undervalued vs its own history, over time.","The Model":"How the rainbow bands are fit from the data.","Rallies":"Every major rally up off the lows.","Drawdowns":"The depth and recovery of each dip.","Performance":"Growth from any window's start — drag to zoom in.","Seasonality":"Monthly returns across every year.","Holder Conviction":"Supply split across holder-conviction tiers.","Holders vs Price":"Does accumulation hold through the price swings?","HODL Waves":"Supply by holding age — fresh coins to diamond hands.","Liquid vs Illiquid Supply":"How much supply is sticky (long-term held) vs likely to move — SPX vs Bitcoin.","Wallet Growth":"Wallets across Ethereum, Base and Solana, from launch.","Cost Basis vs Price":"A volume-profile: the price line, and where the bags were bought as bars on the price axis — live.","Cost Basis × Age":"The walls of supply mapped by holder age — same price, different conviction.","Cost Basis Terrain (3D)":"The cost-basis distribution as a landscape deforming week by week, with price sweeping through it.","Supply in Profit":"Share of supply held above its on-chain cost basis.","MVRV & Realized Price":"Price vs the crowd's cost basis — MVRV and its Z-score.","MVRV vs Bitcoin":"SPX6900's MVRV on Bitcoin's decade of MVRV — are we down similarly?","NUPL":"Are holders in profit or loss? Sentiment from euphoria to capitulation.","Long vs Short-Term Holders":"Supply by holder age and profit/loss — who's holding, and are they up?","SOPR":"When coins move, are they sold at a profit or a loss?","Net Realized Profit/Loss":"The dollar size of gains vs losses locked in when coins move.","Liveliness":"Are long-held coins waking up, or is the base sitting tight?","Holder Concentration":"The largest wallets' share of supply over time.","Wallet Clusters":"Who owns what — the addresses one owner controls, linked into a single entity from on-chain SPX flows.","Whale Supply":"What the biggest wallets hold, and whether there are more of them.","Whale Counts Over Time":"How many wallets sit in each size cohort, week by week — the base broadened, the mega-whales thinned.","Wallet-Size Waves":"Supply by how big the wallet is — HODL waves cut by size, not age.","The Wealth Ladder":"How many holders sit in each dollar bracket, week by week.","Who's Still Here":"Of everyone who ever held SPX, who remains — by the era they first bought.","How Holders Left":"Of everyone who left, when they sold and whether they left in profit or at a loss — over the price.","Smart Money":"The live cohort of proven top-timers (ROI ≥5×, still holding) — aggregate holdings and net-flow.","Whales Watching":"Every wallet over 100k SPX — a 3D city of towers or a live board pulsing green/red as they buy and sell.","Supply on Exchanges":"Where the tradable float sits — exchanges, LP and custody, from DEX-native to CEX-listed.","Exchange Flow":"Daily net flow on/off exchanges vs price — deposits, withdrawals, listings stripped.","Exchange Supply by Venue":"SPX on each exchange over time — how the venue mix shifted as listings landed.","Exchange Flow by Venue":"Which exchanges gained vs bled SPX — per-venue net flow, pick the window.","SPX vs BTC":"The SPX6900 / Bitcoin ratio over time.","Bitcoin Cycle":"SPX6900 tracing Bitcoin's last cycle.","Rich / Cheap vs Majors":"Valuation ratio vs BTC, ETH and SOL.","SPX vs the Alt Market":"Rich or cheap vs the whole alt sector (ex-BTC/ETH/stables).","Perp Positioning":"Hyperliquid perp funding — are traders leaning long or short?","SPX vs Majors":"Rebased race vs BTC, ETH and SOL — YTD, 12mo or since launch.","SPX vs Memekings":"Rebased race vs DOGE, SHIB and PEPE — YTD, 12mo or since launch.","Floor & Sales":"Floor price (ETH & USD) and trading volume since mint.","AEON Floor vs SPX":"The NFT floor priced in SPX6900 — cheap or expensive versus its baseline.","MVRV & Supply in Profit":"NFT MVRV and the cost-basis distribution — are holders in profit vs the floor?","Does the Floor Lead the Coin?":"Lead/lag test of AEON's floor and sales against SPX6900 — which one moves first.","Trader Leaderboard":"Who made money trading AEON — realized P&L, hold time and win rate per wallet.","Holder Age":"Each AEON by how long since it last changed hands — the maturation story.","Owners Over Time":"The holder base since mint, split by how many tokens each wallet holds.","Concentration":"The largest wallets' share of the collection over time.","Holder Flow":"Wallets entering (buying) vs exiting (selling) the collection each month.","Rarity — Where Does It Sit?":"Look up any AEON — its rarity rank, tier and traits, on the collection's rarity curve.","Live Listings vs What They Sell For":"Every active ask measured against what comparable pieces actually fetch — what is cheap, and what is over market.","What Actually Sold — Rarity vs Price":"Completed sales history: what each piece really fetched vs its rarity — the steals and the record sales.","Trait Values":"Which traits command a premium — median sale price per trait.","City Growth":"How SPX City grew — citizens (≥5k held 90d) and its total value climbing through the drawdown.","City Flow":"The churn under the count — arrivals vs departures, cohort survivorship, and average holding."};
-  window.__LEAFID={"CHARTS|Power-Law Channel":"channel","CHARTS|Price Roadmap":"roadmap","CHARTS|Quantile Fan":"quantilefan","CHARTS|Risk Bands":"risk","CHARTS|Valuation Z-Score":"riskcolor","CHARTS|20-Week Heat":"riskheat","CHARTS|Pi Cycle Ratio":"picycle","CHARTS|RSI Dots":"rsidots","CHARTS|Valuation Composite":"valuation","CHARTS|The Model":"model","CHARTS|Rallies":"rally","CHARTS|Drawdowns":"drawdown","CHARTS|Performance":"runningroi","CHARTS|Seasonality":"monthly","CHARTS|Holder Conviction":"supply","CHARTS|Holders vs Price":"holdersprice","CHARTS|HODL Waves":"hodlwaves","CHARTS|Liquid vs Illiquid Supply":"freefloat","CHARTS|Wallet Growth":"walletgrowth","CHARTS|Cost Basis vs Price":"bagsprofile","CHARTS|Cost Basis × Age":"urpdage","CHARTS|Cost Basis Terrain (3D)":"urpdterrain","CHARTS|Supply in Profit":"supplyprofit","CHARTS|MVRV & Realized Price":"mvrv","CHARTS|MVRV vs Bitcoin":"mvrvbtc","CHARTS|NUPL":"nupl","CHARTS|Long vs Short-Term Holders":"lthsth","CHARTS|SOPR":"sopr","CHARTS|Net Realized Profit/Loss":"nrpl","CHARTS|Liveliness":"liveliness","CHARTS|Holder Concentration":"concentration","CHARTS|Wallet Clusters":"entities","CHARTS|Whale Supply":"whales","CHARTS|Whale Counts Over Time":"whalecohorts","CHARTS|Wallet-Size Waves":"walletwaves","CHARTS|The Wealth Ladder":"wealthwaves","CHARTS|Who's Still Here":"survivorship","CHARTS|How Holders Left":"exitflow","CHARTS|Smart Money":"smartmoney","CHARTS|Whales Watching":"whaleswatching","CHARTS|Supply on Exchanges":"cexsupply","CHARTS|Exchange Flow":"cexflow","CHARTS|Exchange Supply by Venue":"cexvenues","CHARTS|Exchange Flow by Venue":"cexvenflow","CHARTS|SPX vs BTC":"spxbtc","CHARTS|Bitcoin Cycle":"btccycle","CHARTS|Rich / Cheap vs Majors":"relative","CHARTS|SPX vs the Alt Market":"altmarket","CHARTS|Perp Positioning":"longshort","CHARTS|SPX vs Majors":"vsmajors","CHARTS|SPX vs Memekings":"vsmemekings","PROJECT_AEON|Floor & Sales":"aeonfloor","PROJECT_AEON|AEON Floor vs SPX":"aeonvsspx","PROJECT_AEON|MVRV & Supply in Profit":"aeonvaluation","PROJECT_AEON|Does the Floor Lead the Coin?":"aeonleadlag","PROJECT_AEON|Trader Leaderboard":"aeontraders","PROJECT_AEON|Holder Age":"aeonhodl","PROJECT_AEON|Owners Over Time":"aeonowners","PROJECT_AEON|Concentration":"aeonconcentration","PROJECT_AEON|Holder Flow":"aeonbehaviour","PROJECT_AEON|Rarity — Where Does It Sit?":"aeonrarity","PROJECT_AEON|Live Listings vs What They Sell For":"aeonvalue","PROJECT_AEON|What Actually Sold — Rarity vs Price":"aeonsalesrarity","PROJECT_AEON|Trait Values":"aeontraits","SPX_CITY|SPX City":"@/city","SPX_CITY|City Growth":"citygrowth","SPX_CITY|City Flow":"cityflow"};
-  window.__VIEWS={"CHARTS|Rallies":[{"label":"Cycle Bottoms","href":"/?chart=rally&v=cycle"},{"label":"Fire Sale Band","href":"/?chart=rally&v=firesale"}],"CHARTS|Drawdowns":[{"label":"Underwater","href":"/?chart=drawdown&v=underwater"},{"label":"By Cycle","href":"/?chart=drawdown&v=cycle"}],"CHARTS|Seasonality":[{"label":"USD","href":"/?chart=monthly&v=usd"},{"label":"In Bitcoin","href":"/?chart=monthly&v=btc"}],"CHARTS|Cost Basis × Age":[{"label":"Bars","href":"/?chart=urpdage&v=bars"},{"label":"Heatmap","href":"/?chart=urpdage&v=heat"},{"label":"3D","href":"/?chart=urpdage&v=3d"}],"CHARTS|MVRV & Realized Price":[{"label":"Realized Price","href":"/?chart=mvrv&v=realized"},{"label":"MVRV","href":"/?chart=mvrv&v=mvrv"},{"label":"Z-Score","href":"/?chart=mvrv&v=z"}],"CHARTS|Whale Counts Over Time":[{"label":"Lines","href":"/?chart=whalecohorts&v=lines"},{"label":"Stacked","href":"/?chart=whalecohorts&v=stacked"}],"CHARTS|Who's Still Here":[{"label":"Who's Here","href":"/?chart=survivorship&v=who"},{"label":"Survival","href":"/?chart=survivorship&v=survival"},{"label":"Cost Basis","href":"/?chart=survivorship&v=supply"},{"label":"Who Left","href":"/?chart=survivorship&v=exits"}],"CHARTS|Smart Money":[{"label":"Holdings vs Price","href":"/?chart=smartmoney&v=holdings"},{"label":"Net Flow","href":"/?chart=smartmoney&v=flow"},{"label":"New Timers","href":"/?chart=smartmoney&v=newq"}],"CHARTS|Exchange Flow by Venue":[{"label":"30 Days","href":"/?chart=cexvenflow&v=4"},{"label":"90 Days","href":"/?chart=cexvenflow&v=13"},{"label":"180 Days","href":"/?chart=cexvenflow&v=26"},{"label":"1 Year","href":"/?chart=cexvenflow&v=52"}],"CHARTS|Rich / Cheap vs Majors":[{"label":"vs BTC","href":"/?chart=relative&rel=BTC"},{"label":"vs ETH","href":"/?chart=relative&rel=ETH"},{"label":"vs SOL","href":"/?chart=relative&rel=SOL"},{"label":"vs Majors","href":"/?chart=relative&rel=BASKET"}],"CHARTS|SPX vs Majors":[{"label":"Since Launch","href":"/?chart=vsmajors&v=launch"},{"label":"12 Months","href":"/?chart=vsmajors&v=12m"},{"label":"YTD","href":"/?chart=vsmajors&v=ytd"}],"CHARTS|SPX vs Memekings":[{"label":"Since Launch","href":"/?chart=vsmemekings&v=launch"},{"label":"12 Months","href":"/?chart=vsmemekings&v=12m"},{"label":"YTD","href":"/?chart=vsmemekings&v=ytd"}],"PROJECT_AEON|Does the Floor Lead the Coin?":[{"label":"Floor","href":"/?chart=aeonleadlag&v=floor"},{"label":"Sales Volume","href":"/?chart=aeonleadlag&v=volume"}],"PROJECT_AEON|Trader Leaderboard":[{"label":"Top Winners","href":"/?chart=aeontraders&v=top"},{"label":"Biggest Losses","href":"/?chart=aeontraders&v=bottom"},{"label":"By Volume","href":"/?chart=aeontraders&v=byVolume"}],"SPX_CITY|City Growth":[{"label":"Citizens","href":"/?chart=citygrowth&v=citizens"},{"label":"Value","href":"/?chart=citygrowth&v=value"},{"label":"Skyline","href":"/?chart=citygrowth&v=skyline"}],"SPX_CITY|City Flow":[{"label":"Net New","href":"/?chart=cityflow&v=flow"},{"label":"Per Resident","href":"/?chart=cityflow&v=percap"},{"label":"Survival","href":"/?chart=cityflow&v=survival"}]};
+  const NAV=[{"label":"CHARTS","groups":[{"g":"Valuation","items":["Power-Law Channel","Price Roadmap","Quantile Fan","Risk Bands","Valuation Z-Score","20-Week Heat","Pi Cycle Ratio","RSI Dots","Valuation Composite"]},{"g":"Performance","items":["Rallies","Drawdowns","Performance","Seasonality"]},{"g":"Holders","items":["Holder Conviction","Holders vs Price","HODL Waves","Liquid vs Illiquid Supply","Wallet Growth"]},{"g":"Cost Basis & Profit","items":["Cost Basis vs Price","Cost Basis × Age","Cost Basis Terrain (3D)","Supply in Profit","MVRV & Realized Price","MVRV vs Bitcoin","NUPL","Long vs Short-Term Holders","SOPR","Net Realized Profit/Loss","Liveliness"]},{"g":"Whales & Survivors","items":["Holder Concentration","Wallet Clusters","Whale Supply","Whale Counts Over Time","Wallet-Size Waves","The Wealth Ladder","Who's Still Here","How Holders Left","Smart Money","Whales Watching"]},{"g":"Exchanges","items":["Supply on Exchanges","Exchange Flow","Exchange Supply by Venue","Exchange Flow by Venue"]},{"g":"Markets & Positioning","items":["SPX vs BTC","Bitcoin Cycle","Rich / Cheap vs Majors","SPX vs the Alt Market","Perp Positioning"]},{"g":"Races","items":["SPX vs Majors","SPX vs Memekings"]}]},{"label":"SPX_CITY","groups":[{"g":"SPX City","items":["SPX City","City Growth","City Flow"]}]},{"label":"PROJECT_AEON","groups":[{"g":"Market","items":["Floor & Sales","AEON Floor vs SPX","MVRV & Supply in Profit","Does the Floor Lead the Coin?","Trader Leaderboard"]},{"g":"Holders","items":["Holder Age","Owners Over Time","Concentration","Holder Flow"]},{"g":"Rarity","items":["Rarity: Where Does It Sit?","Live Listings vs What They Sell For","What Actually Sold: Rarity vs Price","Trait Values"]}]}];
+  const DESC={"Power-Law Channel":"Price inside its log-regression trend channel.","Price Roadmap":"The trend extrapolated: when it crosses $6.90/$69/$690.","Quantile Fan":"Probabilistic price cone: 1st to 99th percentile, projected.","Risk Bands":"Valuation risk on a 0–1 scale over time.","Valuation Z-Score":"Price recoloured by how many σ from fair value.","20-Week Heat":"How stretched price is from its 20-week average.","Pi Cycle Ratio":"Bitcoin's Pi Cycle top/bottom gauge, applied to SPX for context.","RSI Dots":"Price as dots coloured by RSI, PlanB-style.","Valuation Composite":"A weighted basket of six indicators: over/undervalued vs its own history, over time.","Rallies":"Every major rally up off the lows.","Drawdowns":"The depth and recovery of each dip.","Performance":"Growth from any window's start: drag to zoom in.","Seasonality":"Monthly returns across every year.","Holder Conviction":"Supply split across holder-conviction tiers.","Holders vs Price":"Does accumulation hold through the price swings?","HODL Waves":"Supply by holding age: fresh coins to diamond hands.","Liquid vs Illiquid Supply":"How much supply is sticky (long-term held) vs likely to move: SPX vs Bitcoin.","Wallet Growth":"Wallets across Ethereum, Base and Solana, from launch.","Cost Basis vs Price":"A volume-profile: the price line, and where the bags were bought as bars on the price axis, live.","Cost Basis × Age":"The walls of supply mapped by holder age: same price, different conviction.","Cost Basis Terrain (3D)":"The cost-basis distribution as a landscape deforming week by week, with price sweeping through it.","Supply in Profit":"Share of supply held above its on-chain cost basis.","MVRV & Realized Price":"Price vs the crowd's cost basis: MVRV and its Z-score.","MVRV vs Bitcoin":"SPX6900's MVRV on Bitcoin's decade of MVRV: are we down similarly?","NUPL":"Are holders in profit or loss? Sentiment from euphoria to capitulation.","Long vs Short-Term Holders":"Supply by holder age and profit/loss: who's holding, and are they up?","SOPR":"When coins move, are they sold at a profit or a loss?","Net Realized Profit/Loss":"The dollar size of gains vs losses locked in when coins move.","Liveliness":"Are long-held coins waking up, or is the base sitting tight?","Holder Concentration":"The largest wallets' share of supply over time.","Wallet Clusters":"Who owns what: the addresses one owner controls, linked into a single entity from on-chain SPX flows.","Whale Supply":"What the biggest wallets hold, and whether there are more of them.","Whale Counts Over Time":"How many wallets sit in each size cohort, week by week: the base broadened, the mega-whales thinned.","Wallet-Size Waves":"Supply by how big the wallet is: HODL waves cut by size, not age.","The Wealth Ladder":"How many holders sit in each dollar bracket, week by week.","Who's Still Here":"Of everyone who ever held SPX, who remains: by the era they first bought.","How Holders Left":"Of everyone who left, when they sold and whether they left in profit or at a loss: over the price.","Smart Money":"The live cohort of proven top-timers (ROI ≥5×, still holding): aggregate holdings and net-flow.","Whales Watching":"Every wallet over 100k SPX: a 3D city of towers or a live board pulsing green/red as they buy and sell.","Supply on Exchanges":"Where the tradable float sits: exchanges, LP and custody, from DEX-native to CEX-listed.","Exchange Flow":"Daily net flow on/off exchanges vs price: deposits, withdrawals, listings stripped.","Exchange Supply by Venue":"SPX on each exchange over time: how the venue mix shifted as listings landed.","Exchange Flow by Venue":"Which exchanges gained vs bled SPX: per-venue net flow, pick the window.","SPX vs BTC":"The SPX6900 / Bitcoin ratio over time.","Bitcoin Cycle":"SPX6900 tracing Bitcoin's last cycle.","Rich / Cheap vs Majors":"Valuation ratio vs BTC, ETH and SOL.","SPX vs the Alt Market":"Rich or cheap vs the whole alt sector (ex-BTC/ETH/stables).","Perp Positioning":"Hyperliquid perp funding: are traders leaning long or short?","SPX vs Majors":"Rebased race vs BTC, ETH and SOL: YTD, 12mo or since launch.","SPX vs Memekings":"Rebased race vs DOGE, SHIB and PEPE: YTD, 12mo or since launch.","Floor & Sales":"Floor price (ETH & USD) and trading volume since mint.","AEON Floor vs SPX":"The NFT floor priced in SPX6900: cheap or expensive versus its baseline.","MVRV & Supply in Profit":"NFT MVRV and the cost-basis distribution: are holders in profit vs the floor?","Does the Floor Lead the Coin?":"Lead/lag test of AEON's floor and sales against SPX6900: which one moves first.","Trader Leaderboard":"Who made money trading AEON: realized P&L, hold time and win rate per wallet.","Holder Age":"Each AEON by how long since it last changed hands: the maturation story.","Owners Over Time":"The holder base since mint, split by how many tokens each wallet holds.","Concentration":"The largest wallets' share of the collection over time.","Holder Flow":"Wallets entering (buying) vs exiting (selling) the collection each month.","Rarity: Where Does It Sit?":"Look up any AEON: its rarity rank, tier and traits, on the collection's rarity curve.","Live Listings vs What They Sell For":"Every active ask measured against what comparable pieces actually fetch: what is cheap, and what is over market.","What Actually Sold: Rarity vs Price":"Completed sales history: what each piece really fetched vs its rarity, the steals and the record sales.","Trait Values":"Which traits command a premium: median sale price per trait.","City Growth":"How SPX City grew: citizens (≥5k held 90d) and its total value climbing through the drawdown.","City Flow":"The churn under the count: arrivals vs departures, cohort survivorship, and average holding."};
+  window.__LEAFID={"CHARTS|Power-Law Channel":"channel","CHARTS|Price Roadmap":"roadmap","CHARTS|Quantile Fan":"quantilefan","CHARTS|Risk Bands":"risk","CHARTS|Valuation Z-Score":"riskcolor","CHARTS|20-Week Heat":"riskheat","CHARTS|Pi Cycle Ratio":"picycle","CHARTS|RSI Dots":"rsidots","CHARTS|Valuation Composite":"valuation","CHARTS|Rallies":"rally","CHARTS|Drawdowns":"drawdown","CHARTS|Performance":"runningroi","CHARTS|Seasonality":"monthly","CHARTS|Holder Conviction":"supply","CHARTS|Holders vs Price":"holdersprice","CHARTS|HODL Waves":"hodlwaves","CHARTS|Liquid vs Illiquid Supply":"freefloat","CHARTS|Wallet Growth":"walletgrowth","CHARTS|Cost Basis vs Price":"bagsprofile","CHARTS|Cost Basis × Age":"urpdage","CHARTS|Cost Basis Terrain (3D)":"urpdterrain","CHARTS|Supply in Profit":"supplyprofit","CHARTS|MVRV & Realized Price":"mvrv","CHARTS|MVRV vs Bitcoin":"mvrvbtc","CHARTS|NUPL":"nupl","CHARTS|Long vs Short-Term Holders":"lthsth","CHARTS|SOPR":"sopr","CHARTS|Net Realized Profit/Loss":"nrpl","CHARTS|Liveliness":"liveliness","CHARTS|Holder Concentration":"concentration","CHARTS|Wallet Clusters":"entities","CHARTS|Whale Supply":"whales","CHARTS|Whale Counts Over Time":"whalecohorts","CHARTS|Wallet-Size Waves":"walletwaves","CHARTS|The Wealth Ladder":"wealthwaves","CHARTS|Who's Still Here":"survivorship","CHARTS|How Holders Left":"exitflow","CHARTS|Smart Money":"smartmoney","CHARTS|Whales Watching":"whaleswatching","CHARTS|Supply on Exchanges":"cexsupply","CHARTS|Exchange Flow":"cexflow","CHARTS|Exchange Supply by Venue":"cexvenues","CHARTS|Exchange Flow by Venue":"cexvenflow","CHARTS|SPX vs BTC":"spxbtc","CHARTS|Bitcoin Cycle":"btccycle","CHARTS|Rich / Cheap vs Majors":"relative","CHARTS|SPX vs the Alt Market":"altmarket","CHARTS|Perp Positioning":"longshort","CHARTS|SPX vs Majors":"vsmajors","CHARTS|SPX vs Memekings":"vsmemekings","PROJECT_AEON|Floor & Sales":"aeonfloor","PROJECT_AEON|AEON Floor vs SPX":"aeonvsspx","PROJECT_AEON|MVRV & Supply in Profit":"aeonvaluation","PROJECT_AEON|Does the Floor Lead the Coin?":"aeonleadlag","PROJECT_AEON|Trader Leaderboard":"aeontraders","PROJECT_AEON|Holder Age":"aeonhodl","PROJECT_AEON|Owners Over Time":"aeonowners","PROJECT_AEON|Concentration":"aeonconcentration","PROJECT_AEON|Holder Flow":"aeonbehaviour","PROJECT_AEON|Rarity: Where Does It Sit?":"aeonrarity","PROJECT_AEON|Live Listings vs What They Sell For":"aeonvalue","PROJECT_AEON|What Actually Sold: Rarity vs Price":"aeonsalesrarity","PROJECT_AEON|Trait Values":"aeontraits","SPX_CITY|SPX City":"@/city","SPX_CITY|City Growth":"citygrowth","SPX_CITY|City Flow":"cityflow"};
+  window.__VIEWS={"CHARTS|Rallies":[{"label":"Cycle Bottoms","href":"/?chart=rally&v=cycle"},{"label":"Fire Sale Band","href":"/?chart=rally&v=firesale"}],"CHARTS|Drawdowns":[{"label":"Underwater","href":"/?chart=drawdown&v=underwater"},{"label":"By Cycle","href":"/?chart=drawdown&v=cycle"}],"CHARTS|Seasonality":[{"label":"USD","href":"/?chart=monthly&v=usd"},{"label":"In Bitcoin","href":"/?chart=monthly&v=btc"}],"CHARTS|Cost Basis × Age":[{"label":"Bars","href":"/?chart=urpdage&v=bars"},{"label":"Heatmap","href":"/?chart=urpdage&v=heat"},{"label":"3D","href":"/?chart=urpdage&v=3d"}],"CHARTS|MVRV & Realized Price":[{"label":"Realized Price","href":"/?chart=mvrv&v=realized"},{"label":"MVRV","href":"/?chart=mvrv&v=mvrv"},{"label":"Z-Score","href":"/?chart=mvrv&v=z"}],"CHARTS|Whale Counts Over Time":[{"label":"Lines","href":"/?chart=whalecohorts&v=lines"},{"label":"Stacked","href":"/?chart=whalecohorts&v=stacked"}],"CHARTS|Who's Still Here":[{"label":"Who's Here","href":"/?chart=survivorship&v=who"},{"label":"Survival","href":"/?chart=survivorship&v=survival"},{"label":"Cost Basis","href":"/?chart=survivorship&v=supply"},{"label":"Who Left","href":"/?chart=survivorship&v=exits"}],"CHARTS|Smart Money":[{"label":"Holdings vs Price","href":"/?chart=smartmoney&v=holdings"},{"label":"Net Flow","href":"/?chart=smartmoney&v=flow"},{"label":"New Timers","href":"/?chart=smartmoney&v=newq"}],"CHARTS|Exchange Flow by Venue":[{"label":"30 Days","href":"/?chart=cexvenflow&v=4"},{"label":"90 Days","href":"/?chart=cexvenflow&v=13"},{"label":"180 Days","href":"/?chart=cexvenflow&v=26"},{"label":"1 Year","href":"/?chart=cexvenflow&v=52"}],"CHARTS|Rich / Cheap vs Majors":[{"label":"vs BTC","href":"/?chart=relative&rel=BTC"},{"label":"vs ETH","href":"/?chart=relative&rel=ETH"},{"label":"vs SOL","href":"/?chart=relative&rel=SOL"},{"label":"vs Majors","href":"/?chart=relative&rel=BASKET"}],"CHARTS|SPX vs Majors":[{"label":"Since Launch","href":"/?chart=vsmajors&v=launch"},{"label":"12 Months","href":"/?chart=vsmajors&v=12m"},{"label":"YTD","href":"/?chart=vsmajors&v=ytd"}],"CHARTS|SPX vs Memekings":[{"label":"Since Launch","href":"/?chart=vsmemekings&v=launch"},{"label":"12 Months","href":"/?chart=vsmemekings&v=12m"},{"label":"YTD","href":"/?chart=vsmemekings&v=ytd"}],"PROJECT_AEON|Does the Floor Lead the Coin?":[{"label":"Floor","href":"/?chart=aeonleadlag&v=floor"},{"label":"Sales Volume","href":"/?chart=aeonleadlag&v=volume"}],"PROJECT_AEON|Trader Leaderboard":[{"label":"Top Winners","href":"/?chart=aeontraders&v=top"},{"label":"Biggest Losses","href":"/?chart=aeontraders&v=bottom"},{"label":"By Volume","href":"/?chart=aeontraders&v=byVolume"}],"SPX_CITY|City Growth":[{"label":"Citizens","href":"/?chart=citygrowth&v=citizens"},{"label":"Value","href":"/?chart=citygrowth&v=value"},{"label":"Skyline","href":"/?chart=citygrowth&v=skyline"}],"SPX_CITY|City Flow":[{"label":"Net New","href":"/?chart=cityflow&v=flow"},{"label":"Per Resident","href":"/?chart=cityflow&v=percap"},{"label":"Survival","href":"/?chart=cityflow&v=survival"}],"SPX_CITY|SPX City":[{"label":"SPX","href":"/city?m=spx"},{"label":"AEON","href":"/city?m=aeon"},{"label":"Both","href":"/city?m=both"}]};
   /* @gen-menu end */
   const esc=s=>s.replace(/"/g,'&quot;');
   // per-group cursor colours (rainbow band palette) — every group is ID'd by its blinking stroke
@@ -620,9 +666,16 @@
     mt.addEventListener('mouseenter',place); place(); }
   // the exact per-section dropdown body (ALL + groups ▸ → leaves) shared by the landing nav AND the breadcrumb section menu
   function topDropHTML(top){
-    // single-group section (SPX_CITY) → the group's items flat in the drop, no "All" + group cascade
-    if(top.groups.length===1){ const gr=top.groups[0], gc=GCOL[0];
-      const h=gr.items.map(it=>mrow(it,{cls:'leafrow',color:gc,mark:'›',data:`data-top="${top.label}" data-grp="${esc(gr.g)}" data-leaf="${esc(it)}" data-name="${esc(it)}"`})).join('');
+    // single-group section (SPX_CITY) → the group's items flat in the drop (no "All"/group cascade). An item
+    // that has sub-views (e.g. SPX City → SPX / AEON / Both) keeps a hover-cascade flyout of them.
+    if(top.groups.length===1){ const gr=top.groups[0], gc=GCOL[0]; let h='';
+      gr.items.forEach(it=>{ const vs=(window.__VIEWS||{})[top.label+'|'+it];
+        if(vs&&vs.length){
+          h+=`<div class="mgroup">`+mrow(it,{cls:'leafrow',color:gc,mark:'▸',data:`data-top="${top.label}" data-grp="${esc(gr.g)}" data-leaf="${esc(it)}" data-name="${esc(it)}"`})
+            +`<div class="subdrop">`+vs.map(vw=>mrow(vw.label,{cls:'leafrow subview',color:gc,data:`data-href="${esc(vw.href)}"`})).join('')+`</div></div>`;
+        } else {
+          h+=mrow(it,{cls:'leafrow',color:gc,mark:'›',data:`data-top="${top.label}" data-grp="${esc(gr.g)}" data-leaf="${esc(it)}" data-name="${esc(it)}"`});
+        } });
       return `<div class="drop drop-flat">`+h+`</div>`; }
     return `<div class="drop">`+mrow('All',{cls:'allrow',color:'var(--tx)',data:'data-all="'+esc(top.label)+'"'})+groupsHTML(top)+`</div>`; }
   // nav icons + title-case labels that mirror the live website's nav pills (shown only in the SITE look)
@@ -654,7 +707,8 @@
     const q = section==='PROJECT_AEON' ? 'aeon='+encodeURIComponent(id) : 'tab='+encodeURIComponent(id);
     return `<div class="mprev-img"><img alt="" loading="lazy" src="/api/og?${q}" onerror="this.closest('.mprev-img').classList.add('mprev-fail')"><span class="mprev-spk">${mspark(name)}</span></div>`;
   }
-  function wireTypeRow(mi){ const lbl=mi.querySelector('.lbl'); if(!lbl) return;
+  function wireTypeRow(mi){ const lbl=mi.querySelector('.lbl')||mi.querySelector('.ml-term')||mi.querySelector('.mml'); if(!lbl) return;
+    if(lbl.getAttribute('data-t')==null) lbl.setAttribute('data-t', lbl.textContent); // headers/mobile rows carry no data-t; capture it once
     mi.addEventListener('mouseenter',()=>{ if(mi._c)mi._c(); mi._c=typeLbl(lbl); });
     mi.addEventListener('mouseleave',()=>{ if(mi._c){mi._c();mi._c=null;} lbl.textContent=lbl.getAttribute('data-t')||''; }); }
   function megaHTML(top){
@@ -724,21 +778,67 @@
   function buildMenuInto(m, withFresh){ if(!m) return; m.innerHTML='';
     // Rainbow = home (matches the live site nav; only visible in the SITE look, hidden by CSS elsewhere)
     const rbm=document.createElement('div'); rbm.className='mtop mtop-rainbow';
-    rbm.innerHTML=`<div class="mhead" data-home="1"><span class="mico">${RAINBOW_ICON}</span><span class="ml-site">Rainbow</span></div>`;
-    m.appendChild(rbm);
+    rbm.innerHTML=`<div class="mhead" data-rainbow="1"><span class="lw"><span class="lbl" data-t="RAINBOW">RAINBOW</span><span class="cur" style="--curc:#a78bfa">_</span></span></div>`;
+    m.appendChild(rbm); wireTypeRow(rbm.querySelector('.mhead'));
     NAV.forEach(top=>{ const mt=document.createElement('div'); mt.className='mtop mtop-'+top.label.toLowerCase();
       mt.innerHTML=`<div class="mhead"><span class="mico">${NAV_ICON[top.label]||''}</span><span class="ml-term">${top.label}</span><span class="ml-site">${NAV_DISP[top.label]||top.label}</span> <span class="car">▾</span></div>`+topDropHTML(top); m.appendChild(mt);
       // menu shows STATIC; the writing effect fires per-row, only on the path you hover
       mt.querySelectorAll('.mitem').forEach(wireTypeRow);
+      wireTypeRow(mt.querySelector('.mhead'));   // the section header types too (like Rainbow)
       wireCascade(mt, top);
     });
     if(withFresh){ const _nf=document.createElement('div'); _nf.className='navfresh'; _nf.id='fresh'; m.appendChild(_nf); }
-    m.addEventListener('click',e=>{ if(e.target.closest('[data-home]')){ window.scrollTo({top:0,behavior:'smooth'}); return; }
+    m.addEventListener('click',e=>{ if(e.target.closest('[data-rainbow]')){ go('/?view=rainbow'); return; }
+      if(e.target.closest('[data-home]')){ window.scrollTo({top:0,behavior:'smooth'}); return; }
       const _all=e.target.closest('.mitem[data-all]'); if(_all){ openGallery(_all.dataset.all); return; }
       const _grp=e.target.closest('.mitem[data-ggrp]'); if(_grp){ openGallery(_grp.dataset.gtop,_grp.dataset.ggrp); return; } // click a GROUP → that group's charts only
       const it=e.target.closest('.mitem[data-leaf]'); if(it) openPath(it.dataset.top,it.dataset.grp,it.dataset.leaf); });
   }
   function buildMenu(){ buildMenuInto($('#menu'), true); }
+  // ── the phone full-screen menu: a tap-driven drill-down built from the same catalog (NAV/__LEAFID/__VIEWS) ──
+  function buildMobMenu(){
+    const body=$('#mmbody'); if(!body || typeof NAV==='undefined') return;
+    const SECURL={ CHARTS:'/?view=charts', SPX_CITY:'/city', PROJECT_AEON:'/?view=aeon' };
+    const leafHref=(sec,it)=>{ const id=(window.__LEAFID||{})[sec+'|'+it]; return id?(id.charAt(0)==='@'?id.slice(1):('/?chart='+id)):'#'; };
+    const chev='<span class="mmchev">▾</span>';
+    let h=`<button class="mmitem mmlink" data-go="/?view=rainbow"><span class="mml">Rainbow</span></button>`;
+    NAV.forEach(sec=>{
+      h+=`<div class="mmsec"><button class="mmitem mmsec-h" data-toggle><span class="mml">${esc(sec.label.replace(/_/g,' '))}</span>${chev}</button><div class="mmsub">`;
+      if(sec.groups.length===1){
+        sec.groups[0].items.forEach(it=>{ const vs=(window.__VIEWS||{})[sec.label+'|'+it];
+          if(vs&&vs.length){
+            h+=`<div class="mmgrp"><button class="mmitem mmgrp-h" data-toggle><span class="mml">${esc(it)}</span>${chev}</button><div class="mmsub">`
+              +vs.map(vw=>`<button class="mmitem" data-go="${esc(vw.href)}"><span class="mml">${esc(vw.label)}</span></button>`).join('')+`</div></div>`;
+          } else { h+=`<button class="mmitem" data-go="${esc(leafHref(sec.label,it))}"><span class="mml">${esc(it)}</span></button>`; }
+        });
+      } else {
+        h+=`<button class="mmitem mmall" data-go="${esc(SECURL[sec.label]||'#')}"><span class="mml">All</span></button>`;
+        sec.groups.forEach(gr=>{
+          h+=`<div class="mmgrp"><button class="mmitem mmgrp-h" data-toggle><span class="mml">${esc(gr.g)}</span>${chev}</button><div class="mmsub">`;
+          gr.items.forEach(it=>{ const vs=(window.__VIEWS||{})[sec.label+'|'+it];
+            h+=`<button class="mmitem" data-go="${esc(leafHref(sec.label,it))}"><span class="mml">${esc(it)}</span></button>`;
+            if(vs) h+=vs.map(vw=>`<button class="mmitem mmview" data-go="${esc(vw.href)}"><span class="mml">${esc(vw.label)}</span></button>`).join('');
+          });
+          h+=`</div></div>`;
+        });
+      }
+      h+=`</div></div>`;
+    });
+    body.innerHTML=h;
+  }
+  function wireMobMenu(){
+    const tog=$('#mobtog'), m=$('#mobmenu'), body=$('#mmbody'), x=$('#mmclose'); if(!tog||!m) return;
+    const open=()=>{ m.classList.add('open'); m.setAttribute('aria-hidden','false'); tog.setAttribute('aria-expanded','true'); document.body.style.overflow='hidden'; };
+    const close=()=>{ m.classList.remove('open'); m.setAttribute('aria-hidden','true'); tog.setAttribute('aria-expanded','false'); document.body.style.overflow=''; };
+    tog.addEventListener('click',open); if(x) x.addEventListener('click',close);
+    if(body){
+      body.querySelectorAll('.mmitem').forEach(wireTypeRow);   // same sleek typewriter (hover on tablets; tap below)
+      body.addEventListener('click',e=>{
+        const t=e.target.closest('[data-toggle]'); if(t){ t.parentElement.classList.toggle('open'); const l=t.querySelector('.mml'); if(l){ if(t._c)t._c(); t._c=typeLbl(l); } return; }
+        const g=e.target.closest('[data-go]'); if(g){ const href=g.getAttribute('data-go'); if(href&&href!=='#'){ close(); (window.top||window).location.href=href; } }
+      });
+    }
+  }
   // ── interactive filepath breadcrumb: home / TOP▾ / GROUP▾ / LEAF▾ , each segment a dropdown of its siblings ──
   function firstChart(top,gname){ const t=NAV.find(x=>x.label===top); const g=t&&t.groups.find(gr=>gr.g===gname); return g?g.items[0]:null; }
   function pathSeg(label,rows,cur){ const items=rows.map(r=>`<div class="mitem" data-nav="${esc(r.nav)}"><span class="lw"><span class="lbl" data-t="${esc(r.text)}">${r.text}</span><span class="cur" style="--curc:${r.color}">_</span></span></div>`).join('');
@@ -895,14 +995,18 @@
     const T=[]; let price=null;
     if(ph&&ph.length) price=ph[ph.length-1].price;
     else if(onc&&onc.length) price=onc[onc.length-1].spot;
-    if(price!=null){ const fair=Math.exp(predict(day));
+    if(price!=null){ const fair=Math.exp(predict(day)); LIVE.fair=fair; LIVE.price=price;
       const z=Math.log(price)-predict(day); let bi=BANDS.length-2; for(let i=0;i<BANDS.length-1;i++){ if(z<BANDS[i+1]){ bi=i; break; } }
       const bn=LAB[bi][0], bstr=String(bi+1).padStart(2,'0');
       setKpi('price','$'+fmtP(price),'spot · live'); setKpi('band',bn,bstr+' / 09'); setKpi('fair','$'+fair.toFixed(2),(fair/price).toFixed(1)+'× up');
       setSnap('price','$'+fmtP(price)); setSnap('model','$'+fair.toFixed(2));
+      // Fair value = the rainbow power-law model's fair value — the ONE concrete $-anchored yardstick.
+      // (The composite itself is a 0–100 percentile with no natural price, so it can't have a "fair value".)
+      // Sourced here with price so the row is always populated, and identical to the KPI — no two-numbers drift.
+      setSnap('fair','$'+fair.toFixed(2)+(price>0&&fair/price>=1.4?'  ·  '+(fair/price).toFixed(1)+'× up':''));
       const sig=z/STD; setSnap('dev',(sig>=0?'+':'−')+Math.abs(sig).toFixed(2)+'σ');
       T.push(['$SPX','$'+fmtP(price),''],['FAIR VALUE','$'+fair.toFixed(2),''],['BAND',bn+' · '+bstr+'/09','']); }
-    if(onc&&onc.length){ const r=onc[onc.length-1];
+    if(onc&&onc.length){ const r=onc[onc.length-1]; LIVE.rp = r.rp>0 ? r.rp : (r.mvrv>0 && LIVE.price ? LIVE.price/r.mvrv : 0);
       if(r.mvrv!=null){ setKpi('mvrv',r.mvrv.toFixed(2)+'×',r.mvrv<1?'underwater':'above cost'); T.push(['MVRV',r.mvrv.toFixed(2)+'×','']); }
       if(r.sip!=null){ setKpi('profit',Math.round(r.sip)+'%','of supply'); T.push(['SUPPLY IN PROFIT',Math.round(r.sip)+'%','']); }
       if(r.age&&r.age[4]!=null) setKpi('held',r.age[4].toFixed(1)+'%','diamond'); }
@@ -925,7 +1029,7 @@
     render(); }
   document.querySelector('.look').addEventListener('click',e=>{ const b=e.target.closest('button[data-v]'); if(b) setVariant(b.dataset.v); });
 
-  buildMenu(); renderFresh(); setVariant('calm'); /* CALM is the primary direction — open on it */
+  buildMenu(); buildMobMenu(); wireMobMenu(); renderFresh(); setVariant('calm'); /* CALM is the primary direction — open on it */
   { const bm=$('.brandmark'); if(bm) bm.innerHTML='<img class="blogo" src="'+LOGO+'" alt="">'; }
   // touch/tap support — on hover-less devices, tap a segment to open it, tap a leaf to navigate, tap outside to close
   const TOUCH = matchMedia('(hover:none), (pointer:coarse)').matches || window.__forceTouch;
@@ -948,7 +1052,7 @@
 <script>
 (function(){
   function go(u){ (window.top||window).location.href=u; }
-  var MAP={ "CHARTS":"/?view=charts", "SPX_CITY":"/city", "PROJECT_AEON":"/?view=aeon", "RAINBOW":"/" };
+  var MAP={ "CHARTS":"/?view=charts", "SPX_CITY":"/city", "PROJECT_AEON":"/?view=aeon", "RAINBOW":"/?view=rainbow" };
   function sectionOf(t){
     var mt=t.closest(".mtop");
     if(mt){ if(mt.classList.contains("mtop-charts")) return "CHARTS";
@@ -962,19 +1066,41 @@
     var st=t.closest("[data-sectop]"); if(st) return st.getAttribute("data-sectop");
     return null;
   }
+  var closeMenus=function(){ document.querySelectorAll(".mtop.open,.mgroup.open,.pseg.open").forEach(function(x){x.classList.remove("open");}); };
   document.addEventListener("click", function(e){
     var t=e.target; if(!t || !t.closest) return;
     if(t.closest(".social a")) return;
     if(t.closest("#ctaChart")){ e.preventDefault(); e.stopImmediatePropagation(); go("/?view=charts"); return; }
     if(t.closest("#ctaMethod")){ e.preventDefault(); e.stopImmediatePropagation(); go("/?view=methods"); return; }
     if(t.closest("[data-home]") || t.closest(".bar .l")){ e.preventDefault(); e.stopImmediatePropagation(); go("/"); return; }
+    var _mn=t.closest("#menu") || t.closest(".pathbar");
+    if(!_mn) closeMenus(); // click outside the menu → fold any tab/group left open by a click
+    if(_mn){
+      // A tab that carries a cascade of sub-tabs → OPEN it (reveal the sub-tabs), don't navigate.
+      // (Rainbow has no cascade, so it falls through to navigation below.) Same as every other dropdown.
+      var _head=t.closest(".mhead, .pseghead, .sechead");
+      var _seg=_head && _head.closest(".mtop, .pseg");
+      if(_seg && _seg.querySelector(".drop, .mega, .subdrop")){
+        e.preventDefault(); e.stopImmediatePropagation();
+        var _was=_seg.classList.contains("open"); closeMenus(); if(!_was) _seg.classList.add("open"); return;
+      }
+      // A row whose group carries a sub-menu (SPX City → SPX / AEON / Both) → reveal it, don't navigate.
+      // A click on an actual sub-item (inside the .subdrop) is excluded and falls through to navigation.
+      var _mg=!t.closest(".subdrop") && t.closest(".mitem") && t.closest(".mitem").closest(".mgroup");
+      if(_mg && _mg.querySelector(".subdrop")){
+        e.preventDefault(); e.stopImmediatePropagation();
+        var _w2=_mg.classList.contains("open");
+        _mg.parentElement.querySelectorAll(".mgroup.open").forEach(function(x){x.classList.remove("open");});
+        if(!_w2) _mg.classList.add("open"); return;
+      }
+    }
     // a chart sub-view row → open that chart with the view pre-selected (?…&v=… or &rel=…)
     var _hf=t.closest("[data-href]"); if(_hf){ e.preventDefault(); e.stopImmediatePropagation(); go(_hf.getAttribute("data-href")); return; }
     // a specific chart leaf → open that chart (id map generated from the real catalog); "@/path" = a page route
     var _lf=t.closest("[data-leaf]");
     if(_lf){ var _id=(window.__LEAFID||{})[(_lf.getAttribute("data-top")||"")+"|"+(_lf.getAttribute("data-leaf")||"")];
       if(_id){ e.preventDefault(); e.stopImmediatePropagation(); go(_id.charAt(0)==="@"?_id.slice(1):("/?chart="+_id)); return; } }
-    if(t.closest("#menu") || t.closest(".pathbar")){ var s=sectionOf(t); if(s && MAP[s]){ e.preventDefault(); e.stopImmediatePropagation(); go(MAP[s]); return; } }
+    if(_mn){ var s=sectionOf(t); if(s && MAP[s]){ e.preventDefault(); e.stopImmediatePropagation(); go(MAP[s]); return; } }
   }, true);
   var c=document.querySelector('.look button[data-v="calm"]'); if(c) c.click();
 })();

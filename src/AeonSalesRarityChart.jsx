@@ -6,7 +6,7 @@ import { SANS, MONO, MAX_W, Explain } from "./chart-ui.jsx";
 const fEth = v => (v < 0.1 ? v.toFixed(3) : v.toFixed(2)) + "Ξ";
 const CONTRACT = "0xc374a204334d4edd4c6a62f0867c752d65e9579c";
 
-// Project Aeon — rarity vs REALIZED sale price. Every recent sale plotted by rarity vs
+// Project Aeon, rarity vs REALIZED sale price. Every recent sale plotted by rarity vs
 // what it fetched, the fair-value fit, the steals (sold below it), and the record sales.
 export default function AeonSalesRarityChart({ isMobile }) {
   const [data, setData] = useState(null);
@@ -30,7 +30,7 @@ export default function AeonSalesRarityChart({ isMobile }) {
   if (!(pmax > pmin)) pmax = pmin * 2;               // single sale → give the axis room
   const Tip = ({ active, payload }) => {
     if (!active || !payload?.length) return null;
-    // A ComposedChart tooltip can resolve to the fair-value LINE, which has no token id —
+    // A ComposedChart tooltip can resolve to the fair-value LINE, which has no token id -
     // take the first payload entry that is an actual sale.
     const d = (payload.find(p => p?.payload?.id != null) || payload[0]).payload;
     if (d.id == null) return null;
@@ -63,9 +63,9 @@ export default function AeonSalesRarityChart({ isMobile }) {
 
   return (
     <div style={{ maxWidth: MAX_W, margin: "0 auto" }}>
-      <Explain q="Do rare AEON sell for more — and who got a steal?" accent="#f59e0b">
+      <Explain q="Do rare AEON sell for more, and who got a steal?" accent="#f59e0b">
         Every recent sale by <strong style={{ color: "#f59e0b" }}>rarity</strong> (rarer → left) vs the <strong style={{ color: "#e2e8f0" }}>price it fetched</strong>. The dashed line is fair value for that rarity; sales <strong style={{ color: "#34d399" }}>below it were steals</strong>.
-        These are <em>realized</em> sales (no live-listings key needed) — the record sales and recent bargains, with their art.
+        These are <em>realized</em> sales (no live-listings key needed), the record sales and recent bargains, with their art.
       </Explain>
 
       <ResponsiveContainer width="100%" height={isMobile ? 400 : 560}>
@@ -84,7 +84,7 @@ export default function AeonSalesRarityChart({ isMobile }) {
       </ResponsiveContainer>
 
       {data.deals?.length > 0 && (<div style={{ marginTop: 18 }}>
-        <div style={{ fontFamily: SANS, fontSize: 14, fontWeight: 700, color: "#34d399", textAlign: "center", marginBottom: 10 }}>Recent steals — sold below fair value for their rarity</div>
+        <div style={{ fontFamily: SANS, fontSize: 14, fontWeight: 700, color: "#34d399", textAlign: "center", marginBottom: 10 }}>Recent steals, sold below fair value for their rarity</div>
         {gallery(data.deals.slice(0, 8), "#34d399", x => `${(x.disc * 100).toFixed(0)}% off`)}
       </div>)}
       {data.biggest?.length > 0 && (<div style={{ marginTop: 22 }}>

@@ -5,15 +5,15 @@ import { MONO } from "./chart-ui.jsx";
 // Owner-only in-browser orbital recorder for the 3D cities. Flow: click a building to PIN the spin
 // centre (the city already flies to it + sets controls.target), pick the duration, hit Spin + Record.
 // It sets OrbitControls autoRotate and captures the live WebGL canvas via MediaRecorder (window.
-// __cityRecord, exposed by Skyline3D) — encoded on the viewer's own GPU, downloaded as MP4/WebM.
+// __cityRecord, exposed by Skyline3D), encoded on the viewer's own GPU, downloaded as MP4/WebM.
 // Revealed only behind ?rec=1 (or localStorage spx-rec=1) and where the browser supports capture
-// (hidden on iOS Safari, which lacks canvas.captureStream). ⚠ Captures the 3D view only — the note/
+// (hidden on iOS Safari, which lacks canvas.captureStream). ⚠ Captures the 3D view only, the note/
 // name SIGNS are CSS2D DOM overlays and are NOT in the exported file; screen-record for those.
 const SECS = [4, 6, 8, 10, 12, 16];
 
 export default function CityRecorder({ accent = "#5eead4", onRecording }) {
   // ?rec=1 is STICKY: the city is its own tab, so navigating in rewrites the URL and drops the param
-  // — persist it once so the reveal survives. Clear with localStorage.removeItem("spx-rec").
+  //, persist it once so the reveal survives. Clear with localStorage.removeItem("spx-rec").
   useEffect(() => {
     try { if (new URLSearchParams(location.search).get("rec") === "1") localStorage.setItem("spx-rec", "1"); } catch { /* private mode */ }
   }, []);
@@ -47,7 +47,7 @@ export default function CityRecorder({ accent = "#5eead4", onRecording }) {
   });
 
   // While recording, the bar hides itself so a simultaneous OS screen-record (the only way to also
-  // capture the DOM note signs) comes out clean — no UI in frame. It stays mounted (the capture is
+  // capture the DOM note signs) comes out clean, no UI in frame. It stays mounted (the capture is
   // already running) and reappears when the clip finishes.
   const recording = rec.state === "recording";
   return (

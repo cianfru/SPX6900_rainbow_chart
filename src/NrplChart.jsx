@@ -23,7 +23,7 @@ function Tip({ active, payload }) {
   );
 }
 
-// Net Realized Profit/Loss — the dollar magnitude of gains vs losses holders lock in when
+// Net Realized Profit/Loss, the dollar magnitude of gains vs losses holders lock in when
 // coins move (SOPR is the ratio; this is the size). From the local FIFO per-lot engine.
 export default function NrplChart({ isMobile, preview = false }) {
   const [live, setLive] = useState(null);
@@ -53,14 +53,14 @@ export default function NrplChart({ isMobile, preview = false }) {
     return { vis, xDomain: [x0, x1], xTicks, yDomain: [-cap, cap], cur: all.at(-1) };
   }, [all, zoom]);
 
-  if (!view) return <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Not enough on-chain data yet — this fills in as the reconstruction runs.</div>;
+  if (!view) return <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Not enough on-chain data yet, this fills in as the reconstruction runs.</div>;
 
   const cur = view.cur, up = cur.nrpl >= 0;
 
   return (
     <div style={{ maxWidth: MAX_W, margin: "0 auto" }}>
       <Explain q="When SPX6900 coins move, how much profit or loss is actually locked in?" accent={GRN}>
-        Every week some coins change hands. This is the <strong style={{ color: "#e2e8f0" }}>dollar profit or loss</strong> baked into those moves —
+        Every week some coins change hands. This is the <strong style={{ color: "#e2e8f0" }}>dollar profit or loss</strong> baked into those moves -
         <strong style={{ color: GRN }}> green</strong> weeks are profit-taking, <strong style={{ color: RED }}>red</strong> weeks are losses realized (capitulation). SOPR tells you the direction; this tells you the size.
       </Explain>
       <div style={{ display: "flex", gap: isMobile ? 16 : 30, justifyContent: "center", marginBottom: 14, flexWrap: "wrap" }}>
@@ -96,7 +96,7 @@ export default function NrplChart({ isMobile, preview = false }) {
       </div>
 
       <div className="chart-caption" style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.65, maxWidth: 900, marginInline: "auto" }}>
-        <strong style={{ color: GRN }}>Net Realized Profit/Loss</strong> — realized value minus cost of the coins that moved each week, reconstructed on-chain from every lot&apos;s FIFO cost basis.
+        <strong style={{ color: GRN }}>Net Realized Profit/Loss</strong>, realized value minus cost of the coins that moved each week, reconstructed on-chain from every lot&apos;s FIFO cost basis.
         Big green = profit-taking, big red = capitulation. A behaviour position, not a signal. Drag to zoom. Not financial advice.
       </div>
     </div>

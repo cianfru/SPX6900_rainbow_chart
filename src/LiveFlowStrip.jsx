@@ -3,7 +3,7 @@ import { SANS, MONO } from "./chart-ui.jsx";
 
 // A compact one-line LIVE read of the big holders' net SPX flow over the last few hours, from
 // /api/live-flow (Alchemy, ~minutes fresh). On the Exit Flow page it's the leading edge of exits:
-// distribution now is what becomes tomorrow's departure bars. Honest scope is stated inline — this
+// distribution now is what becomes tomorrow's departure bars. Honest scope is stated inline, this
 // is the big-holder (≥100k) live layer; the historical bars below are the full ≥5k base, daily.
 //
 // Graceful: hidden entirely until the feed returns real moves (no ALCHEMY_KEY in Vercel, or the

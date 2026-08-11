@@ -12,7 +12,7 @@ const CEX = "#fb7185", LP = "#38bdf8", CUST = "#a78bfa";
 const fShort = t => new Date(t).toLocaleDateString("en-US", { month: "short", year: "2-digit" });
 const fMlab = t => t >= 1e6 ? (t / 1e6).toFixed(1) + "M" : (t / 1e3).toFixed(0) + "K";
 
-// [d, cexBal, lpBal, custBal, ...] — daily cumulative balances.
+// [d, cexBal, lpBal, custBal, ...], daily cumulative balances.
 const build = days => days.map(r => ({ ts: Date.parse(r[0]), cex: r[1], lp: r[2], cust: r[3] })).filter(r => Number.isFinite(r.ts));
 const BUNDLE = build(CEX_FLOW.days);
 
@@ -27,7 +27,7 @@ function Tip({ active, payload }) {
   );
 }
 
-// Where the tradable float sits — SPX launched DEX-native (all in the LP); exchange-held
+// Where the tradable float sits, SPX launched DEX-native (all in the LP); exchange-held
 // supply grew as listings landed. Stacked area of on-venue supply over time.
 export default function CexSupplyChart({ isMobile, preview = false }) {
   const [all, setAll] = useState(BUNDLE);
@@ -52,7 +52,7 @@ export default function CexSupplyChart({ isMobile, preview = false }) {
   return (
     <div style={{ maxWidth: MAX_W, margin: "0 auto" }}>
       <Explain q="Where does SPX6900's tradable supply actually sit?" accent={CEX}>
-        SPX launched <strong style={{ color: LP }}>DEX-native</strong> — every coin in the Uniswap pool. As exchanges <strong style={{ color: CEX }}>listed</strong> it through 2024-25, the tradable float shifted onto exchanges while the LP thinned.
+        SPX launched <strong style={{ color: LP }}>DEX-native</strong>, every coin in the Uniswap pool. As exchanges <strong style={{ color: CEX }}>listed</strong> it through 2024-25, the tradable float shifted onto exchanges while the LP thinned.
         A map of where the supply lives, not a signal.
       </Explain>
       <div style={{ display: "flex", gap: isMobile ? 14 : 28, justifyContent: "center", marginBottom: 14, flexWrap: "wrap" }}>
@@ -81,7 +81,7 @@ export default function CexSupplyChart({ isMobile, preview = false }) {
         </ResponsiveContainer>
       </div>
       <div className="chart-caption" style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.65, maxWidth: 900, marginInline: "auto" }}>
-        <strong style={{ color: CEX }}>Supply on venues</strong> — SPX held on tagged exchange, LP and custody addresses, reconstructed on-chain (Dune). Known addresses only; a location map, not a signal. Drag to zoom.
+        <strong style={{ color: CEX }}>Supply on venues</strong>, SPX held on tagged exchange, LP and custody addresses, reconstructed on-chain (Dune). Known addresses only; a location map, not a signal. Drag to zoom.
       </div>
     </div>
   );

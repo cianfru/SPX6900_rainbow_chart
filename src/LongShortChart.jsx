@@ -27,10 +27,10 @@ function Tip({ active, payload, neutral }) {
   );
 }
 
-// On-chain POSITIONING from Hyperliquid (unmanipulable — SPX's CEX futures geo-block
+// On-chain POSITIONING from Hyperliquid (unmanipulable, SPX's CEX futures geo-block
 // our collection). Bars are the perp FUNDING rate NORMALISED to its neutral baseline:
 // Hyperliquid charges a structural ~+10% APR even in a balanced market, so we pivot on
-// that (the median), not 0 — otherwise "just neutral" reads as "crowd long." Above
+// that (the median), not 0, otherwise "just neutral" reads as "crowd long." Above
 // neutral (green) = extra demand to be long; below (red) = leaning short. Price overlaid.
 // Data-gated: funding backfilled, OI accrues daily. Drag to zoom.
 export default function LongShortChart({ series, isMobile }) {
@@ -94,7 +94,7 @@ export default function LongShortChart({ series, isMobile }) {
   }, [allRows, neutral, zoom]);
 
   if (allRows === null) return <Loading isMobile={isMobile} text="Loading on-chain positioning…" />;
-  if (allRows.length === 0) return <Loading isMobile={isMobile} text="Collecting on-chain positioning — fills in as the daily banker runs." />;
+  if (allRows.length === 0) return <Loading isMobile={isMobile} text="Collecting on-chain positioning, fills in as the daily banker runs." />;
 
   const { rows, xDomain, xTicks, devDomain, aprTicks, priceDomain, cur } = view;
   const pTicks = [0.0001, 0.001, 0.01, 0.1, 1, 10].filter(v => v >= priceDomain[0] && v <= priceDomain[1]);
@@ -107,7 +107,7 @@ export default function LongShortChart({ series, isMobile }) {
   const dev = isLive ? liveApr - neutral : cur.dev;
   const oi = isLive && live.oi != null ? live.oi : curOI;
   const price = isLive && live.markPx != null ? live.markPx : cur.price;
-  // Pulsing marker at the live price — only when the view still includes the leading edge (not zoomed away).
+  // Pulsing marker at the live price, only when the view still includes the leading edge (not zoomed away).
   const lastTs = allRows.at(-1).ts;
   const showLiveDot = isLive && price != null && xDomain[1] >= lastTs - DAY && xDomain[0] <= lastTs;
   const LivePulse = ({ cx, cy }) => (cx == null || cy == null) ? null : (
@@ -176,7 +176,7 @@ export default function LongShortChart({ series, isMobile }) {
 
       <div className="chart-caption" style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.65, maxWidth: 880, marginInline: "auto" }}>
         On-chain perp <strong style={{ color: "#e2e8f0" }}>funding rate</strong> from <strong>Hyperliquid</strong>, annualised and <strong>normalised to its neutral baseline</strong>
-        (~{Math.round(neutral)}% APR — what longs pay even in a balanced book). <span style={{ color: LONG }}>Green</span> = above neutral (extra demand to be long),
+        (~{Math.round(neutral)}% APR, what longs pay even in a balanced book). <span style={{ color: LONG }}>Green</span> = above neutral (extra demand to be long),
         <span style={{ color: SHORT }}> red</span> = below (leaning short). On-chain and <em>unmanipulable</em>. Extremes are a contrarian tell, not a timing signal.
         The figures up top <strong style={{ color: "#6ee7b7" }}>stream live</strong> from Hyperliquid's WebSocket; the bars are the daily funding history.
         <strong style={{ color: "#7dd3fc" }}> Drag to zoom.</strong> Not financial advice.

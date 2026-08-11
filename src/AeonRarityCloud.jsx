@@ -2,16 +2,16 @@ import { useRef, useEffect, useState, useMemo, useCallback } from "react";
 import { SANS, MONO } from "./chart-ui.jsx";
 
 // ============================================================================
-// Every AEON on the rarity curve — canvas, because SVG cannot carry this.
+// Every AEON on the rarity curve, canvas, because SVG cannot carry this.
 // ============================================================================
 // The first attempt drew all 3,333 tokens as recharts <Scatter> points. It worked, but
 // measured 18s to first paint and ~1s of latency per hover: 3,333 DOM nodes plus recharts
 // re-scanning every series on each mousemove. A rarity cloud is exactly the case canvas
-// exists for — one node, all points, hit-testing we control.
+// exists for, one node, all points, hit-testing we control.
 //
 // Hit-testing uses a per-pixel-column bucket. Rank is dense and monotonic (~3 tokens per
 // pixel at normal widths), so the nearest point to the cursor is always within a couple of
-// columns — no quadtree needed.
+// columns, no quadtree needed.
 // ============================================================================
 
 const PAD = { t: 12, r: 16, b: 40, l: 56 };
@@ -36,7 +36,7 @@ export default function AeonRarityCloud({ tokens, total, tiers, tierOf, selId, o
     const lo = Math.min(...scores), hi = Math.max(...scores);
     const ly = Math.log(lo), lh = Math.log(hi) - ly || 1;
     // LOG rank: statistical rarity is heavy-tailed, so on a linear axis the Legendary/Epic
-    // end — the part anyone actually cares about — collapses into the left edge.
+    // end, the part anyone actually cares about, collapses into the left edge.
     const lx = Math.log(1), lxs = Math.log(total) - lx || 1;
     const x = r => PAD.l + ((Math.log(Math.max(r, 1)) - lx) / lxs) * (w - PAD.l - PAD.r);
     const y = s => h - PAD.b - ((Math.log(Math.max(s, lo)) - ly) / lh) * (h - PAD.t - PAD.b);

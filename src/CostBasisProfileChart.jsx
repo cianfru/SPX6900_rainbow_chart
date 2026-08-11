@@ -3,16 +3,16 @@ import { SPX_URPD } from "./spx-urpd.js";
 import { loadUrpd, loadPriceHistory, loadHistory } from "./history-data.js";
 import { SANS, MONO, MAX_W, Metric, Explain, ZoomBar } from "./chart-ui.jsx";
 
-// COST-BASIS PROFILE — a volume-profile of SPX6900: the price line over time on the right, and where
+// COST-BASIS PROFILE, a volume-profile of SPX6900: the price line over time on the right, and where
 // the held supply was BOUGHT as horizontal bars hugging the left price axis (the URPD cost-basis
 // distribution, rotated so each bag lines up with its price level). Green = bought below spot (in
 // profit), red = above (underwater). The spot line is LIVE (/api/spot) and the profit split recomputes
 // against it; the bags are the daily FIFO reconstruction. Uses the FINER `bucketsFine` grid (more
-// price pockets) when present, and drag VERTICALLY to zoom into a price band — the pockets rescale to
+// price pockets) when present, and drag VERTICALLY to zoom into a price band, the pockets rescale to
 // fill the width, so a dense cluster near spot reads clearly.
 
 const GRN = "#34d399", RED = "#fb7185", LINE = "#93a4c4", SPOT = "#f8fafc";
-const fp = p => p == null ? "—" : p >= 1 ? "$" + p.toFixed(2) : "$" + p.toFixed(p >= 0.1 ? 3 : 4);
+const fp = p => p == null ? "-" : p >= 1 ? "$" + p.toFixed(2) : "$" + p.toFixed(p >= 0.1 ? 3 : 4);
 const fShort = ts => new Date(ts).toLocaleDateString("en-US", { month: "short", year: "2-digit" });
 
 export default function CostBasisProfileChart({ isMobile, preview = false, price = null }) {
@@ -112,7 +112,7 @@ export default function CostBasisProfileChart({ isMobile, preview = false, price
 
   return (
     <div style={{ maxWidth: MAX_W, margin: "0 auto" }}>
-      <Explain q="Where was SPX6900 bought — and where is that versus price?" accent={GRN}>
+      <Explain q="Where was SPX6900 bought, and where is that versus price?" accent={GRN}>
         The price line on the right, and <strong style={{ color: "#e2e8f0" }}>where the held supply was bought</strong> as bars on the left,
         each lined up with its price. <strong style={{ color: GRN }}>Green</strong> bought below spot (in profit),
         <strong style={{ color: RED }}> red</strong> above it (underwater). The white spot line is <strong style={{ color: "#e2e8f0" }}>live</strong>. Drag up/down to zoom into a price band.
@@ -171,13 +171,13 @@ export default function CostBasisProfileChart({ isMobile, preview = false, price
           }}>
             <div style={{ color: "#e2e8f0", fontWeight: 700, fontFamily: MONO }}>{fp(hovB.lo)} – {fp(hovB.hi)}</div>
             <div style={{ color: hovB.inProfit ? GRN : RED, fontFamily: MONO }}>{hovB.pct.toFixed(hovB.pct < 1 ? 2 : 1)}% of held supply</div>
-            <div style={{ color: "#94a3b8" }}>bought here — {hovB.inProfit ? "in profit" : "underwater"}</div>
+            <div style={{ color: "#94a3b8" }}>bought here, {hovB.inProfit ? "in profit" : "underwater"}</div>
           </div>
         )}
       </div>
 
       <div className="chart-caption" style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.65, maxWidth: 900, marginInline: "auto" }}>
-        A cost-basis profile — the held supply&rsquo;s acquisition price (from the local FIFO reconstruction, {buckets.length} price pockets) as bars on the left,
+        A cost-basis profile, the held supply&rsquo;s acquisition price (from the local FIFO reconstruction, {buckets.length} price pockets) as bars on the left,
         aligned to the same log price axis as the line. <strong style={{ color: GRN }}>{inProfit.toFixed(0)}% sits in profit</strong>{wall ? <>, the heaviest wall around <strong style={{ color: "#f6a23c" }}>{fp(wall.mid)}</strong></> : null}.
         Spot is live (~30s); the profit split recomputes against it; the bags refresh daily. Drag up/down to zoom a price band, hover a bar for its detail. A holder-cost position, not a signal.
       </div>

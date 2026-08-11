@@ -1,18 +1,19 @@
-// Methods — the page you link when someone says the model is made up.
+// Methods, the page you link when someone says the model is made up.
 //
 // Deliberately short and plain: rules and text, one column, tabular figures. No pills,
-// no cards, no boxes, no gradients — same understated styling as the rest of the site.
+// no cards, no boxes, no gradients, same understated styling as the rest of the site.
 // The numbers that CAN be live are live: the rainbow's equation, R² and σ come from the
 // same frozen model the home page draws, and the family counts + composite weights come
 // straight from the catalog and the composite engine, so nothing here can silently drift.
 import { METHOD_FAMILIES } from "./charts-catalog.js";
 import { AXES } from "../scripts/bot/valuation-composite.mjs";
 import { SANS, MONO } from "./chart-ui.jsx";
+import ModelChart from "./ModelChart.jsx";
 
 const DIM = "#7c8a9e", BODY = "#9aa7bb", NEAR = "#cbd5e1", TEXT = "#f1f5f9";
 const RULE = "#1c1c21", HEADRULE = "#2a2a31";
 
-// One line each — what the family is built on, in plain words.
+// One line each, what the family is built on, in plain words.
 const SPINE = {
   "01": "Weekly closes since launch",
   "02": "Bitcoin indicators, applied to SPX",
@@ -39,7 +40,7 @@ const SOURCES = [
   ["Project AEON", "Alchemy, Dune", "daily"],
 ];
 
-export default function MethodsPage({ m, isMobile }) {
+export default function MethodsPage({ m, series, isMobile }) {
   const pad = isMobile ? 18 : 32;
 
   const Head = ({ children }) => (
@@ -74,14 +75,14 @@ export default function MethodsPage({ m, isMobile }) {
       <Head>The rainbow</Head>
       <P>
         Price against age, both on log scales, fitted with a single straight line. That line is fair
-        value. The spread of prices around it is divided into nine bands — cut from the actual residuals
+        value. The spread of prices around it is divided into nine bands, cut from the actual residuals
         (2nd to 98th percentile), so they widen on the upside where bubbles overshoot.
       </P>
       <P mb={16}>
         <Strong>The fit is frozen.</Strong> It is computed once, from the bundled history, and never
         re-fitted to live price. A model re-fitted whenever price escaped it would always look right and
         would mean nothing. The cost is that the bands march upward over time, so a flat price drifts down
-        through them — that is the model working, not failing.
+        through them, that is the model working, not failing.
       </P>
       {m && (
         <div style={{ fontFamily: MONO, fontSize: 12.5, color: DIM, lineHeight: 1.7 }}>
@@ -89,16 +90,22 @@ export default function MethodsPage({ m, isMobile }) {
           <div>R² {m.r2.toFixed(3)} · σ {m.std.toFixed(3)} · frozen on weekly closes since August 2023</div>
         </div>
       )}
+      {m && series && series.length > 0 && (
+        <div style={{ marginTop: 22 }}>
+          <div style={{ fontSize: 13, color: DIM, fontFamily: MONO, marginBottom: 8 }}>How the bands are fit, every weekly close, its residual from the trend, and the percentile lines that become the bands:</div>
+          <ModelChart series={series} m={m} isMobile={isMobile} />
+        </div>
+      )}
 
       <Head>The valuation composite</Head>
       <P>
         The single reading on the home page is not a new metric. It groups the measures below into five
         <Strong> independent axes</Strong>. The valuation lenses (rainbow, MVRV, supply-in-profit) are 0.7–0.85
-        correlated — really one signal — so rather than count it three times, the composite keeps rainbow + MVRV
+        correlated, really one signal, so rather than count it three times, the composite keeps rainbow + MVRV
         as one Valuation axis and drops supply-in-profit; it also drops Pi Cycle, a borrowed Bitcoin halving
         indicator that doesn&apos;t transfer to a non-halving asset. In their place it adds the dimension those
-        price lenses all miss — <Strong>holder behaviour</Strong>: exchange flow (measured r ≈ 0.03 against the
-        rest — genuinely orthogonal) and conviction (liveliness). Each axis is ranked against its
+        price lenses all miss, <Strong>holder behaviour</Strong>: exchange flow (measured r ≈ 0.03 against the
+        rest, genuinely orthogonal) and conviction (liveliness). Each axis is ranked against its
         <Strong> own history</Strong> (0 = cheapest it&apos;s been, 100 = dearest), with the unitless ones also
         anchored against Bitcoin&apos;s decade. The axis weights are the only editorial choice, so they are published:
       </P>

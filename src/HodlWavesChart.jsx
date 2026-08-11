@@ -30,7 +30,7 @@ function Tip({ active, payload }) {
   );
 }
 
-// HODL waves — supply split by holding age over time (stacked). Fresh coins (warm) at
+// HODL waves, supply split by holding age over time (stacked). Fresh coins (warm) at
 // the bottom, long-held (cool) on top. The maturation story: 100% fresh at launch → a
 // third now in the 1y+ diamond tier. A holding-behaviour read, not a signal.
 export default function HodlWavesChart({ isMobile, preview = false }) {
@@ -66,7 +66,7 @@ export default function HodlWavesChart({ isMobile, preview = false }) {
   return (
     <div style={{ maxWidth: MAX_W, margin: "0 auto" }}>
       <Explain q="How long has SPX6900's supply been sitting still?" accent={BANDS[4].c}>
-        Every coin coloured by <strong style={{ color: "#e2e8f0" }}>how long since it last moved</strong> — warm (bottom) = freshly traded, cool (top) = held for over a year.
+        Every coin coloured by <strong style={{ color: "#e2e8f0" }}>how long since it last moved</strong>, warm (bottom) = freshly traded, cool (top) = held for over a year.
         The bands started <strong style={{ color: "#f87171" }}>all fresh</strong> at launch and have matured: a third of supply now sits in the <strong style={{ color: "#818cf8" }}>1-year+ diamond tier</strong>. Coins settling into strong hands.
       </Explain>
       <div style={{ display: "flex", gap: isMobile ? 16 : 30, justifyContent: "center", marginBottom: 14, flexWrap: "wrap" }}>
@@ -101,7 +101,7 @@ export default function HodlWavesChart({ isMobile, preview = false }) {
       </div>
 
       <div className="chart-caption" style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.65, maxWidth: 900, marginInline: "auto" }}>
-        <strong style={{ color: BANDS[4].c }}>HODL waves</strong> — SPX6900&apos;s ETH-native supply split by how long each coin has been held.
+        <strong style={{ color: BANDS[4].c }}>HODL waves</strong>, SPX6900&apos;s ETH-native supply split by how long each coin has been held.
         Fresh coins sit at the bottom (warm), long-held coins on top (cool). Watch the cool bands grow: at launch everything was fresh; now a third of supply hasn&apos;t moved in over a year. Drag to zoom. Not financial advice.
       </div>
     </div>

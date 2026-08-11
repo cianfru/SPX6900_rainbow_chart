@@ -17,7 +17,7 @@ function Tip({ active, payload }) {
   );
 }
 
-// Project Aeon — concentration: the top-10 / top-50 owners' share of the 3,333 supply.
+// Project Aeon, concentration: the top-10 / top-50 owners' share of the 3,333 supply.
 export default function AeonConcentrationChart({ isMobile }) {
   const [data, setData] = useState(AEON_ONCHAIN);
   useEffect(() => { let c = false; loadAeon().then(d => { if (!c && d) setData(d); }); return () => { c = true; }; }, []);
@@ -60,7 +60,7 @@ export default function AeonConcentrationChart({ isMobile }) {
         </AreaChart>
       </ResponsiveContainer>
       <div className="chart-caption" style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.65, maxWidth: 900, marginInline: "auto" }}>
-        <strong style={{ color: "#fbbf24" }}>Concentration</strong> — the largest wallets' share of the collection over time. Reconstructed on-chain from every transfer.
+        <strong style={{ color: "#fbbf24" }}>Concentration</strong>, the largest wallets' share of the collection over time. Reconstructed on-chain from every transfer.
       </div>
     </div>
   );

@@ -1,6 +1,6 @@
 // Interactive SPX6900-vs-Bitcoin analog explorer (hidden route #btc-explorer).
-// Drag three knobs — shift (which BTC date = today), time-scale, and beta
-// (amplitude/maturity) — and watch the overlay, live correlation, and the
+// Drag three knobs, shift (which BTC date = today), time-scale, and beta
+// (amplitude/maturity), and watch the overlay, live correlation, and the
 // forward projection update. Anchored at SPX's price today. Illustrative only.
 import { useState, useMemo } from "react";
 import {
@@ -64,7 +64,7 @@ export default function BtcAnalogExplorer() {
     const projB = (age, b) => Math.exp(lnSpxNow + b * (btcLnAt(btcDay(age)) - lnBtcNow));
     const betaLo = Math.max(0.3, beta - spread), betaHi = beta + spread;
 
-    // correlation over SPX's actual points (shape only — beta-invariant)
+    // correlation over SPX's actual points (shape only, beta-invariant)
     const xs = [], ys = [];
     for (const p of spxPts) { const bd = btcDay(p.age); if (bd >= 0 && bd <= btcMaxAge) { xs.push(p.ln); ys.push(btcLnAt(bd)); } }
     let r = NaN;
@@ -105,19 +105,19 @@ export default function BtcAnalogExplorer() {
   return (
     <div style={{ background: "#020208", color: "#e2e8f0", minHeight: "100vh", padding: "28px 22px", fontFamily: "var(--sans)" }}>
       <div style={{ maxWidth: 1180, margin: "0 auto" }}>
-        <h1 style={{ fontSize: 26, margin: "0 0 4px" }}>SPX6900 × Bitcoin — analog explorer</h1>
+        <h1 style={{ fontSize: 26, margin: "0 0 4px" }}>SPX6900 × Bitcoin, analog explorer</h1>
         <p style={{ color: "#475569", fontSize: 14, margin: "0 0 20px" }}>
           Drag the knobs to align SPX against any slice of BTC history, then read the projected path. Anchored at SPX's price today.
-          <b style={{ color: "#64748b" }}> Illustrative — not a forecast.</b>
+          <b style={{ color: "#64748b" }}> Illustrative, not a forecast.</b>
         </p>
 
         <div style={{ display: "flex", gap: 24, flexWrap: "wrap" }}>
           <div style={{ flex: "1 1 300px", minWidth: 280 }}>
-            <Slider label="Shift — which BTC date = SPX's first day" value={shift} set={setShift} min={-300} max={5400} step={25}
+            <Slider label="Shift, which BTC date = SPX's first day" value={shift} set={setShift} min={-300} max={5400} step={25}
               fmt={v => `${v}d (${fmtDate(v)})`} />
             <Slider label="Time-scale (BTC days per SPX day)" value={scale} set={setScale} min={0.5} max={2.5} step={0.05}
               fmt={v => `${v.toFixed(2)}×`} />
-            <Slider label="Beta (central) — SPX amplitude vs BTC" value={beta} set={setBeta} min={0.5} max={3.5} step={0.1}
+            <Slider label="Beta (central), SPX amplitude vs BTC" value={beta} set={setBeta} min={0.5} max={3.5} step={0.1}
               fmt={v => `${v.toFixed(1)}×`} />
             <Slider label="Cone spread (beta ±)" value={spread} set={setSpread} min={0} max={1.5} step={0.1}
               fmt={v => `±${v.toFixed(1)} → ${stats.betaLo.toFixed(1)}–${stats.betaHi.toFixed(1)}×`} />
@@ -133,7 +133,7 @@ export default function BtcAnalogExplorer() {
             </div>
 
             <div style={{ marginTop: 20, padding: 14, background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 12, fontFamily: "var(--mono)", fontSize: 14, lineHeight: 1.9 }}>
-              <div>fit <b style={{ color: stats.r > 0.85 ? "#4ade80" : stats.r > 0.6 ? "#fbbf24" : "#f87171" }}>r = {isNaN(stats.r) ? "—" : stats.r.toFixed(3)}</b></div>
+              <div>fit <b style={{ color: stats.r > 0.85 ? "#4ade80" : stats.r > 0.6 ? "#fbbf24" : "#f87171" }}>r = {isNaN(stats.r) ? "-" : stats.r.toFixed(3)}</b></div>
               <div style={{ color: "#94a3b8" }}>today ≈ BTC <b style={{ color: "#e2e8f0" }}>{fmtDate(stats.btcNowDay)}</b> ({fmtP(Math.exp(stats.lnBtcNow))})</div>
               {stats.bottom.p < Infinity && <div style={{ color: "#94a3b8" }}>↓ projected bottom <b style={{ color: "#f87171" }}>{fmtP(stats.bottom.p)}</b> (+{moFromNow(stats.bottom.age)}mo)</div>}
               {stats.peak.p > 0 && <div style={{ color: "#94a3b8" }}>↑ projected peak <b style={{ color: "#4ade80" }}>{fmtP(stats.peak.p)}</b> ({(stats.peak.p / spxNow).toFixed(0)}×, +{moFromNow(stats.peak.age)}mo)</div>}
@@ -148,7 +148,7 @@ export default function BtcAnalogExplorer() {
                 <XAxis dataKey="x" type="number" domain={[0, +(fut).toFixed(1)]} tickFormatter={v => `${v}y`} stroke="#475569" tick={{ fontSize: 12 }} />
                 <YAxis scale="log" domain={[yMin, yMax]} tickFormatter={v => v >= 1 ? `$${v}` : `$${v}`} stroke="#475569" tick={{ fontSize: 12 }} width={62} />
                 <Tooltip contentStyle={{ background: "#0a0a14", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, fontSize: 12 }}
-                  formatter={(v, n) => [v == null ? "—" : fmtP(v), n]} labelFormatter={l => `${l}y`} />
+                  formatter={(v, n) => [v == null ? "-" : fmtP(v), n]} labelFormatter={l => `${l}y`} />
                 <ReferenceLine x={todayX} stroke="#64748b" strokeDasharray="4 5" label={{ value: "TODAY", fill: "#94a3b8", fontSize: 12, position: "top" }} />
                 <Area dataKey="cone" stroke="none" fill="#f7931a" fillOpacity={0.13} isAnimationActive={false} name="projection cone" connectNulls />
                 <Line dataKey="btcPast" stroke="#f7931a" strokeOpacity={0.4} strokeWidth={2} dot={false} isAnimationActive={false} name="BTC analog (fit)" connectNulls />

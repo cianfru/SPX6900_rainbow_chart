@@ -33,7 +33,7 @@ export default function RoadmapChart({ series, m, isMobile, preview = false }) {
     const targets = TARGETS.map(t => ({ ...t, day: dayForPrice(t.price) })).filter(t => t.day > nowDay).slice(0, 3);
     // Default view: the real price history + a projection window of similar length,
     // so history keeps ~half the width and reads as a proper line (not a squished
-    // sliver — which is what happens if the view runs all the way to the far $690
+    // sliver, which is what happens if the view runs all the way to the far $690
     // target ~10yr out, esp. on mobile). The trend clearly crosses the FIRST target
     // ($6.90) and climbs toward the others, which stay visible as labelled lines +
     // the metric cards above; drag to zoom out to watch it reach $69 / $690.
@@ -42,7 +42,7 @@ export default function RoadmapChart({ series, m, isMobile, preview = false }) {
     const nearTarget = targets[0]?.day ?? nowDay;
     const lastDay = Math.max(nowDay + histSpan, Math.round(nearTarget * 1.12));
     // One row per real price point (each carries its own fair value) for the FULL
-    // launch→now history — same data as the rainbow, drawn as a continuous line.
+    // launch→now history, same data as the rainbow, drawn as a continuous line.
     // Then fair-value-only rows for the FUTURE projection beyond the last price.
     // Crucially the projection grid is NOT interleaved into the historical region:
     // a dense null-price grid there would break the price line (connectNulls=false)
@@ -116,7 +116,7 @@ export default function RoadmapChart({ series, m, isMobile, preview = false }) {
       </div>
 
       <div className="chart-caption" style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.65, maxWidth: 880, marginInline: "auto" }}>
-        The power-law <span style={{ color: "#84cc16" }}>fair-value line</span> run forward — the same fit as the rainbow, extrapolated — stamped with the dates the trend
+        The power-law <span style={{ color: "#84cc16" }}>fair-value line</span> run forward, the same fit as the rainbow, extrapolated, stamped with the dates the trend
         crosses <strong style={{ color: "#cbd5e1" }}>$6.90 / $69 / $690</strong>. It's the trend extended, <strong style={{ color: "#cbd5e1" }}>not a vibes target</strong>;
         the dates shift if the model is ever re-fit. <strong style={{ color: "#c4b5fd" }}>Drag to zoom.</strong> Not financial advice.
       </div>

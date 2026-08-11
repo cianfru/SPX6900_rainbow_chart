@@ -54,7 +54,7 @@ export default function CexVenuesChart({ isMobile, preview = false }) {
   }, [all, zoom]);
 
   if (live == null) return <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Loading on-chain data…</div>;
-  if (model === "empty" || live === false || !view) return <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Per-venue data is being computed — check back after the next weekly refresh.</div>;
+  if (model === "empty" || live === false || !view) return <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Per-venue data is being computed, check back after the next weekly refresh.</div>;
 
   const { venues, donut, total } = model;
   const col = i => PAL[Math.min(i, PAL.length - 1)];
@@ -71,9 +71,9 @@ export default function CexVenuesChart({ isMobile, preview = false }) {
 
   return (
     <div style={{ maxWidth: MAX_W, margin: "0 auto" }}>
-      <Explain q="Which exchanges custody SPX6900 — and how has that shifted?" accent={PAL[0]}>
+      <Explain q="Which exchanges custody SPX6900, and how has that shifted?" accent={PAL[0]}>
         Every coin on a <strong style={{ color: "#e2e8f0" }}>tagged exchange wallet</strong>, stacked by venue. SPX launched DEX-native, then filled exchange wallets as listings landed.
-        <strong style={{ color: PAL[0] }}>Kraken</strong> currently holds the largest share, with the rest spread across the mid-tier venues. Venue holdings shift over time — a location map, not a signal.
+        <strong style={{ color: PAL[0] }}>Kraken</strong> currently holds the largest share, with the rest spread across the mid-tier venues. Venue holdings shift over time, a location map, not a signal.
       </Explain>
 
       <ZoomBar zoomed={zoomed} onReset={() => setZoom(null)} accent={PAL[0]} />
@@ -123,7 +123,7 @@ export default function CexVenuesChart({ isMobile, preview = false }) {
       </div>
 
       <div className="chart-caption" style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 18, lineHeight: 1.65, maxWidth: 900, marginInline: "auto" }}>
-        SPX6900 held on <strong style={{ color: PAL[0] }}>tagged exchange wallets</strong>, by venue — a comprehensive on-chain sweep of {venues.length - (venues.includes("Other") ? 1 : 0)}+ exchanges. Shares are Ethereum-native only. A location map, not a signal. Drag to zoom. Not financial advice.
+        SPX6900 held on <strong style={{ color: PAL[0] }}>tagged exchange wallets</strong>, by venue, a comprehensive on-chain sweep of {venues.length - (venues.includes("Other") ? 1 : 0)}+ exchanges. Shares are Ethereum-native only. A location map, not a signal. Drag to zoom. Not financial advice.
       </div>
     </div>
   );

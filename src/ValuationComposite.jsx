@@ -21,7 +21,7 @@ function Tip({ active, payload }, zones) {
   );
 }
 
-// Valuation Composite — a weighted basket of independent SPX6900 valuation indicators
+// Valuation Composite, a weighted basket of independent SPX6900 valuation indicators
 // (on-chain + technical + sentiment), each percentile-ranked over its own history
 // (higher = more expensive) and weighted into ONE over/under-valued oscillator. Replaces
 // the "Am I Cheap?" snapshot. A valuation position over time, not a signal.
@@ -49,7 +49,7 @@ export default function ValuationComposite({ isMobile, preview = false }) {
   }, [all, zoom]);
 
   if (data == null) return <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Loading valuation data…</div>;
-  if (data === false || !all || !view) return <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>The valuation composite is being computed — check back shortly.</div>;
+  if (data === false || !all || !view) return <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>The valuation composite is being computed, check back shortly.</div>;
 
   const zones = data.zones, cur = data.cur, curZone = zoneOf(zones, cur.composite);
   // v2 = independent AXES (data.axes + cur.byAxis). Fall back to the old flat lens list if an
@@ -68,9 +68,9 @@ export default function ValuationComposite({ isMobile, preview = false }) {
   return (
     <div style={{ maxWidth: MAX_W, margin: "0 auto" }}>
       <Explain q="Is SPX6900 cheap or expensive right now, across everything we track?" accent="#a78bfa">
-        The <strong style={{ color: "#e2e8f0" }}>Valuation Composite</strong> combines five <em>independent</em> axes — Valuation, Relative, Flow, Conviction and Sentiment — into one number.
+        The <strong style={{ color: "#e2e8f0" }}>Valuation Composite</strong> combines five <em>independent</em> axes, Valuation, Relative, Flow, Conviction and Sentiment, into one number.
         Correlated lenses are grouped so each signal votes once (no double-counting); the unitless ones are also anchored against Bitcoin's decade. Each is ranked so 0 = the cheapest it's been, 100 = the most expensive.
-        <strong style={{ color: "#4ade80" }}> Low / green</strong> = undervalued; <strong style={{ color: "#f87171" }}>high / red</strong> = overvalued. A valuation position over time — not a buy signal.
+        <strong style={{ color: "#4ade80" }}> Low / green</strong> = undervalued; <strong style={{ color: "#f87171" }}>high / red</strong> = overvalued. A valuation position over time, not a buy signal.
       </Explain>
 
       <div style={{ display: "flex", gap: isMobile ? 16 : 30, justifyContent: "center", marginBottom: 14, flexWrap: "wrap" }}>
@@ -89,7 +89,7 @@ export default function ValuationComposite({ isMobile, preview = false }) {
               <linearGradient id="valfill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#f8fafc" stopOpacity={0.18} /><stop offset="100%" stopColor="#f8fafc" stopOpacity={0} /></linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="2 8" stroke="rgba(255,255,255,0.06)" />
-            {/* Bright, distinctive zone bands — vivid at the deep edges, calmer at fair value */}
+            {/* Bright, distinctive zone bands, vivid at the deep edges, calmer at fair value */}
             {zones.map((z, i) => (
               <ReferenceArea key={z.label} y1={i === 0 ? 0 : zones[i - 1].max} y2={Math.min(z.max, 1)} fill={z.color} fillOpacity={i === 0 || i === zones.length - 1 ? 0.3 : i === 2 ? 0.16 : 0.22} stroke={z.color} strokeOpacity={0.28} label={zLbl(z.label, z.color)} />
             ))}
@@ -108,10 +108,10 @@ export default function ValuationComposite({ isMobile, preview = false }) {
         </ResponsiveContainer>
       </div>
 
-      {/* Today's weighted lens breakdown — clearly labelled, with weight and where each sits */}
+      {/* Today's weighted lens breakdown, clearly labelled, with weight and where each sits */}
       <div style={{ maxWidth: 900, margin: "20px auto 0" }}>
         <div style={{ fontFamily: SANS, fontSize: 13, color: "#94a3b8", textAlign: "center", marginBottom: 10 }}>
-          Each axis — <strong style={{ color: "#c4b5fd" }}>how much it counts</strong> (weight) and <strong style={{ color: "#e2e8f0" }}>where it reads today</strong> (0 = cheapest it&apos;s been, 100 = most expensive):
+          Each axis, <strong style={{ color: "#c4b5fd" }}>how much it counts</strong> (weight) and <strong style={{ color: "#e2e8f0" }}>where it reads today</strong> (0 = cheapest it&apos;s been, 100 = most expensive):
         </div>
         <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 8 }}>
           {breakdown.map(b => {
@@ -159,7 +159,7 @@ export default function ValuationComposite({ isMobile, preview = false }) {
       </div>
 
       <div className="chart-caption" style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 16, lineHeight: 1.65, maxWidth: 900, marginInline: "auto" }}>
-        Weighted percentile of expensiveness across five independent axes — Valuation (rainbow + MVRV, combined so they vote once), Relative (vs the alt market), Flow (exchange netflow — coins onto exchanges = distribution), Conviction (liveliness — are long-held coins waking up?) and Sentiment (Fear &amp; Greed). Unitless lenses are anchored against Bitcoin's decade. Fully reproducible. A valuation position over time, not a signal. Drag to zoom. Not financial advice.
+        Weighted percentile of expensiveness across five independent axes, Valuation (rainbow + MVRV, combined so they vote once), Relative (vs the alt market), Flow (exchange netflow, coins onto exchanges = distribution), Conviction (liveliness, are long-held coins waking up?) and Sentiment (Fear &amp; Greed). Unitless lenses are anchored against Bitcoin's decade. Fully reproducible. A valuation position over time, not a signal. Drag to zoom. Not financial advice.
       </div>
     </div>
   );

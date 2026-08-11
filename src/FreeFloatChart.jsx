@@ -26,7 +26,7 @@ function Tip({ active, payload, label }) {
   );
 }
 
-// Liquid vs Illiquid Supply — the Glassnode-aligned "how much supply is likely to actually move"
+// Liquid vs Illiquid Supply, the Glassnode-aligned "how much supply is likely to actually move"
 // metric. Illiquid = long-term holders held >155d; liquid = short-term holders + exchanges + LP.
 // vs Bitcoin on the same method, aligned by age, then BTC carried 24 months forward. The reveal:
 // at the same age SPX's supply is stickier than Bitcoin's was. A holder-behaviour position.
@@ -75,13 +75,13 @@ export default function FreeFloatChart({ isMobile, preview = false }) {
   return (
     <div style={{ maxWidth: MAX_W, margin: "0 auto" }}>
       <Explain q="How much of SPX6900's supply is actually likely to move?" accent={SPX}>
-        <strong style={{ color: "#e2e8f0" }}>Illiquid</strong> = held by long-term holders (over 155 days — Glassnode&apos;s standard), unlikely to come to market. <strong style={{ color: "#e2e8f0" }}>Liquid</strong> = short-term holders + exchanges + LP.
-        Not "locked" (self-custody can move any time) and not "free float" (~88% is technically tradable) — this is the behaviour that matters. SPX is at <strong style={{ color: SPX }}>{curIlliq != null ? curIlliq.toFixed(0) : "—"}%</strong> illiquid; Bitcoin was <strong style={{ color: BTC }}>{btcSameAge != null ? btcSameAge.toFixed(0) : "—"}%</strong> at the same age. The <strong style={{ color: BTC }}>dashed line</strong> is Bitcoin&apos;s next 24 months.
+        <strong style={{ color: "#e2e8f0" }}>Illiquid</strong> = held by long-term holders (over 155 days, Glassnode&apos;s standard), unlikely to come to market. <strong style={{ color: "#e2e8f0" }}>Liquid</strong> = short-term holders + exchanges + LP.
+        Not "locked" (self-custody can move any time) and not "free float" (~88% is technically tradable), this is the behaviour that matters. SPX is at <strong style={{ color: SPX }}>{curIlliq != null ? curIlliq.toFixed(0) : "-"}%</strong> illiquid; Bitcoin was <strong style={{ color: BTC }}>{btcSameAge != null ? btcSameAge.toFixed(0) : "-"}%</strong> at the same age. The <strong style={{ color: BTC }}>dashed line</strong> is Bitcoin&apos;s next 24 months.
       </Explain>
       <div style={{ display: "flex", gap: isMobile ? 14 : 26, justifyContent: "center", marginBottom: 14, flexWrap: "wrap" }}>
-        <Metric label="SPX illiquid" value={curIlliq != null ? curIlliq.toFixed(0) + "%" : "—"} color={SPX} sub="held >155d, sticky" />
-        <Metric label="BTC at same age" value={btcSameAge != null ? btcSameAge.toFixed(0) + "%" : "—"} color={BTC} sub="on the same measure" />
-        <Metric label="BTC +24 months" value={btcEnd != null ? btcEnd.toFixed(0) + "%" : "—"} color={BTC} sub="what came next" />
+        <Metric label="SPX illiquid" value={curIlliq != null ? curIlliq.toFixed(0) + "%" : "-"} color={SPX} sub="held >155d, sticky" />
+        <Metric label="BTC at same age" value={btcSameAge != null ? btcSameAge.toFixed(0) + "%" : "-"} color={BTC} sub="on the same measure" />
+        <Metric label="BTC +24 months" value={btcEnd != null ? btcEnd.toFixed(0) + "%" : "-"} color={BTC} sub="what came next" />
       </div>
 
       <ZoomBar zoomed={zoomed} onReset={() => setZoom(null)} accent={SPX} />
@@ -121,7 +121,7 @@ export default function FreeFloatChart({ isMobile, preview = false }) {
       </div>
 
       <div className="chart-caption" style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.65, maxWidth: 900, marginInline: "auto" }}>
-        <strong style={{ color: SPX }}>Illiquid supply</strong> — coins held by long-term holders (over 155 days), unlikely to move; liquid = short-term holders + exchanges + LP.
+        <strong style={{ color: SPX }}>Illiquid supply</strong>, coins held by long-term holders (over 155 days), unlikely to move; liquid = short-term holders + exchanges + LP.
         SPX vs <strong style={{ color: BTC }}>Bitcoin</strong> on the same on-chain method, aligned by age; the dashed line carries Bitcoin 24 months past SPX&apos;s current age. At the same age SPX is stickier than Bitcoin was. A holder-behaviour position, not a signal. Drag to zoom. Not financial advice.
       </div>
     </div>

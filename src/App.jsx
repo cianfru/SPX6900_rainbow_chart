@@ -25,12 +25,12 @@ import { CHART_META, CHART_IDS, AEON_GROUPS, CITY_GROUPS } from "./charts-catalo
 // City-tab destinations for the nav dropdown: the 3D city (a /city route) + its history charts.
 const CITY_MENU = [
   { key: "spxcity", label: "SPX City", sub: "the 3D city", route: "city" },
-  ...CITY_GROUPS[0].charts.map(c => ({ key: c.id, label: c.title, sub: c.desc.split("—")[0].trim().toLowerCase(), chart: c.id })),
+  ...CITY_GROUPS[0].charts.map(c => ({ key: c.id, label: c.title, sub: c.desc.split("-")[0].trim().toLowerCase(), chart: c.id })),
 ];
 const CITY_IDS = new Set(CITY_GROUPS[0].charts.map(c => c.id));
 
 // Whale City and Aeon City became one page. Their old ids are no longer in the catalog, so they
-// would fail the CHART_IDS check and dump the visitor on the gallery — these send them to the city
+// would fail the CHART_IDS check and dump the visitor on the gallery, these send them to the city
 // instead, opened on the mode that id used to be.
 const ALIAS = { whalewatch: "spxcity", aeonskyline: "spxcity" };
 const resolveId = id => ALIAS[id] || id;
@@ -318,16 +318,16 @@ export default function App() {
   // boxy; the /api/prices daily candles (full history) fill those gaps so the shape
   // is precise. Precedence: daily candles are the base, curated bundled closes are
   // kept where present (so existing anchor points don't move), and the daily
-  // snapshot wins on recent dates. The MODEL stays frozen on DEFAULT_RAW — this only
+  // snapshot wins on recent dates. The MODEL stays frozen on DEFAULT_RAW, this only
   // densifies what's drawn. If the candle fetch fails we fall back to bundle+snapshot.
   const applyLive = useCallback((priceHist, candles, snapshot) => {
     // Build the drawn series, later sources overriding earlier (increasing authority):
     const byDate = new Map();
-    for (const r of DEFAULT_RAW) byDate.set(r.date, r.price);                            // thinned bundle — the always-present fallback
-    for (const [d, p] of SPX_DAILY) if (p > 0) byDate.set(d, p);                         // full DAILY launch→now — kills the boxy early years
-    for (const p of priceHist) if (p?.date && p.price > 0) byDate.set(p.date, p.price);  // dense daily history (CI-built) — the real precision fix
+    for (const r of DEFAULT_RAW) byDate.set(r.date, r.price);                            // thinned bundle, the always-present fallback
+    for (const [d, p] of SPX_DAILY) if (p > 0) byDate.set(d, p);                         // full DAILY launch→now, kills the boxy early years
+    for (const p of priceHist) if (p?.date && p.price > 0) byDate.set(p.date, p.price);  // dense daily history (CI-built), the real precision fix
     for (const p of candles) if (p?.date && p.price > 0) byDate.set(p.date, p.price);    // live daily candles (recent, fresher)
-    for (const r of snapshot) if (r?.d && r.p > 0) byDate.set(r.d, r.p);                 // on-chain snapshot — authoritative recent
+    for (const r of snapshot) if (r?.d && r.p > 0) byDate.set(r.d, r.p);                 // on-chain snapshot, authoritative recent
     const merged = [...byDate].map(([date, price]) => ({ date, price })).sort((a, b) => a.date.localeCompare(b.date));
     setPriceData(merged);
     const added = merged.length - DEFAULT_RAW.length;
@@ -338,7 +338,7 @@ export default function App() {
   // stale: /price-history.json = the CI-built dense daily history (fixes the boxy
   // early years); /history.json = the daily on-chain snapshot (authoritative recent);
   // /api/prices = live daily candles (freshest, backfills). The MODEL stays frozen
-  // on DEFAULT_RAW — this only densifies what's drawn.
+  // on DEFAULT_RAW, this only densifies what's drawn.
   useEffect(() => {
     let cancelled = false;
     Promise.all([
@@ -376,7 +376,7 @@ export default function App() {
   // ~99% of our Vercel edge traffic, so it's kept lean: a 60s interval (SPX6900
   // doesn't move enough in a minute to matter for a rainbow chart), and polling
   // PAUSES both while the tab is hidden AND after a few minutes with no
-  // interaction — an open-but-abandoned tab was what burned most of the quota. It
+  // interaction, an open-but-abandoned tab was what burned most of the quota. It
   // resumes (with an immediate refresh) when the user switches back or interacts.
   useEffect(() => {
     let cancelled = false;
@@ -426,7 +426,7 @@ export default function App() {
   }, [upsertSpot]);
 
   // Fit the model ON BUNDLED DATA ONLY. This is the stable historical record
-  // we curated — daily live data shouldn't reshape the rainbow.
+  // we curated, daily live data shouldn't reshape the rainbow.
   const m = useMemo(() => buildModel(DEFAULT_RAW), []);
 
   // Auto-fit horizon: extend until the center band reaches the highest selected target.
@@ -545,7 +545,7 @@ export default function App() {
   })), [m, tg]);
 
   // Free crosshair: map any cursor position in the plot to (date, price, band)
-  // and update the overlay DOM directly — no setState, so it tracks instantly.
+  // and update the overlay DOM directly, no setState, so it tracks instantly.
   const hideCursor = () => {
     [vLineRef, hLineRef, dotRef, boxRef].forEach(r => { if (r.current) r.current.style.display = "none"; });
   };
@@ -589,7 +589,7 @@ export default function App() {
   const syncUrl = (r, id, rel, view) => {
     if (typeof window === "undefined") return;
     const params = new URLSearchParams(window.location.search);
-    params.delete("tab"); // legacy param — superseded by ?chart=
+    params.delete("tab"); // legacy param, superseded by ?chart=
     params.delete("view"); params.delete("chart"); params.delete("rel"); params.delete("p"); params.delete("v");
     if (r === "gallery") params.set("view", "charts");
     else if (r === "aeon") params.set("view", "aeon");
@@ -597,6 +597,7 @@ export default function App() {
     // the manual carries its page in ?p= so any page in the book is directly linkable
     else if (r === "docs") { params.set("view", "docs"); if (id) params.set("p", id); }
     else if (r === "next") params.set("view", "next");
+    else if (r === "rainbow") params.set("view", "rainbow");
     else if (r === "chart" && id) {
       params.set("chart", id);
       if (id === "relative" && rel && rel !== "BTC") params.set("rel", rel);
@@ -616,12 +617,16 @@ export default function App() {
   const openAeon = (group) => { setGalleryGroup(typeof group === "string" ? group : null); setRoute("aeon"); syncUrl("aeon"); window.scrollTo({ top: 0, behavior: "smooth" }); };
   const openCity = () => { setRoute("city"); syncUrl("city"); window.scrollTo({ top: 0, behavior: "smooth" }); };
   const openMethods = () => { setRoute("methods"); syncUrl("methods"); window.scrollTo({ top: 0, behavior: "smooth" }); };
+  const openRainbow = () => { setRoute("rainbow"); syncUrl("rainbow"); window.scrollTo({ top: 0, behavior: "smooth" }); };
+  // the 3D city opens into a mode via /city?m=spx|aeon|both (deep-linked from the SPX City menu sub-views)
+  const cityMode = (() => { const m = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("m") : null; return m === "aeon" || m === "both" ? m : "spx"; })();
   const openDocs = (slug = "index") => { setDocSlug(slug); setRoute("docs"); syncUrl("docs", slug); window.scrollTo({ top: 0, behavior: "smooth" }); };
   // goChart(id) opens a chart at its default view; goChart(id, view) deep-links a sub-view.
   // relative keeps its own `rel` asset param (view values BTC/ETH/SOL/BASKET); every other
   // toggle chart carries its view in `v`.
   const goChart = (id, view) => {
-    if (id === "rainbow") { goHome(); return; }
+    if (id === "rainbow") { openRainbow(); return; }
+    if (id === "model") { openMethods(); return; }   // The Model moved onto the Methods page
     id = resolveId(id);
     if (!CHART_IDS.has(id)) { openGallery(); return; }
     setRoute("chart"); setTab(id);
@@ -642,7 +647,7 @@ export default function App() {
   const shareChart = async () => {
     const q = tab === "relative" && relWhich !== "BTC" ? `?chart=relative&rel=${relWhich}` : `?chart=${tab}`;
     const url = `${window.location.origin}/share${q}`;
-    const title = "SPX6900 — " + (CHART_META[tab]?.title ?? "Chart");
+    const title = "SPX6900, " + (CHART_META[tab]?.title ?? "Chart");
     if (navigator.share) { try { await navigator.share({ title, url }); return; } catch { /* cancelled */ } }
     try { await navigator.clipboard.writeText(url); setCopied(true); setTimeout(() => setCopied(false), 1600); } catch { /* blocked */ }
   };
@@ -652,7 +657,7 @@ export default function App() {
   // interactive chart, otherwise the Rainbow hero.
   useEffect(() => {
     const apply = () => {
-      // SPX City is a path (/city), not a query — check it first.
+      // SPX City is a path (/city), not a query, check it first.
       if (window.location.pathname === "/city") { setRoute("city"); return; }
       const p = new URLSearchParams(window.location.search);
       const rel = p.get("rel");
@@ -662,11 +667,14 @@ export default function App() {
       if (p.get("view") === "charts") setRoute("gallery");
       else if (p.get("view") === "aeon") setRoute("aeon");
       else if (p.get("view") === "methods") setRoute("methods");
+      else if (p.get("view") === "rainbow") setRoute("rainbow");
       else if (p.get("view") === "docs") { setRoute("docs"); setDocSlug(p.get("p") || "index"); }
       else if (p.get("view") === "next") setRoute("next");
       // SPX City left the gallery for its own /city tab. Old shared links (?chart=whalewatch /
-      // spxcity / aeonskyline) still resolve — send them to the city instead of dropping to home.
+      // spxcity / aeonskyline) still resolve, send them to the city instead of dropping to home.
       else if (id && resolveId(id) === "spxcity") setRoute("city");
+      else if (id === "model") setRoute("methods");   // The Model moved onto the Methods page
+      else if (id === "rainbow") setRoute("rainbow");
       else if (id && CHART_IDS.has(resolveId(id))) { setRoute("chart"); setTab(resolveId(id)); }
       else setRoute("home");
     };
@@ -676,7 +684,7 @@ export default function App() {
     return () => window.removeEventListener("popstate", onPop);
   }, []);
 
-  // Render the interactive component for a chart id — shared by the dedicated
+  // Render the interactive component for a chart id, shared by the dedicated
   // chart page and the gallery's live mini-previews. `preview` => non-interactive
   // (no live relative-asset switching) and always the desktop layout.
   const chartEl = (id, { preview = false } = {}) => {
@@ -784,7 +792,7 @@ export default function App() {
   // Sub-pages (everything but home + the ?view=next landing preview) wear the terminal
   // shell: near-black ground, Geist type, the DOS cascade nav. Home + the iframe landing
   // keep their own chrome untouched.
-  const isSub = ["gallery", "chart", "aeon", "city", "methods", "docs"].includes(route);
+  const isSub = ["gallery", "chart", "aeon", "city", "methods", "docs", "rainbow"].includes(route);
 
   return (
     <div className={isSub ? "tzone" : undefined} style={{
@@ -794,12 +802,12 @@ export default function App() {
       transition: "background 0.6s ease",
       fontFamily: isSub ? undefined : SANS, color: isSub ? undefined : "#e2e8f0",
     }}>
-      {/* Rainbow aurora mesh — home chrome only; the terminal shell brings its own ground */}
+      {/* Rainbow aurora mesh, home chrome only; the terminal shell brings its own ground */}
       {!isSub && (<>
       <div aria-hidden="true" style={{
         position: "fixed", inset: 0, zIndex: -2, overflow: "hidden", pointerEvents: "none",
       }}>
-        {/* Fewer, lighter-blurred blobs on phones — 6 large blur(40px) layers are the
+        {/* Fewer, lighter-blurred blobs on phones, 6 large blur(40px) layers are the
             main GPU cost of this backdrop and tank scroll perf on weaker devices. */}
         {(isMobile ? AURORA.slice(0, 3) : AURORA).map((b, i) => (
           <div key={i} style={{
@@ -831,7 +839,7 @@ export default function App() {
       {isSub ? (
         <nav style={{ position: "sticky", top: 0, zIndex: 50, width: "100%",
           background: "rgba(8,9,11,0.86)", backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)" }}>
-          <TerminalNav onHome={goHome} openGallery={openGallery} openAeon={openAeon} openCity={openCity} goChart={goChart} renderPreview={id => chartEl(id, { preview: true })} asOf={last?.date} />
+          <TerminalNav onHome={goHome} openRainbow={openRainbow} openGallery={openGallery} openAeon={openAeon} openCity={openCity} goChart={goChart} renderPreview={id => chartEl(id, { preview: true })} asOf={last?.date} />
         </nav>
       ) : (
       <nav ref={navRef} style={{
@@ -847,7 +855,7 @@ export default function App() {
             flex: 1, justifyContent: isMobile ? "flex-start" : "center", flexWrap: "nowrap",
             padding: "9px 2px", overflowX: "auto", scrollbarWidth: "none", WebkitOverflowScrolling: "touch",
           }}>
-            <button className="pill" onClick={goHome} title="Rainbow chart (home)" style={navPill(route === "home", "#a78bfa")}>
+            <button className="pill" onClick={openRainbow} title="The Rainbow, the foundation chart" style={navPill(route === "rainbow", "#a78bfa")}>
               {!isMobile && <span style={{ color: "#a78bfa", display: "inline-flex" }}><TabIcon name="rainbow" /></span>}
               <span>Rainbow</span>
             </button>
@@ -861,7 +869,7 @@ export default function App() {
               <span>Charts</span>
             </button>
             <div style={{ flexShrink: 0 }}>
-              <button className="pill" title="SPX City — the 3D city and its history"
+              <button className="pill" title="SPX City, the 3D city and its history"
                 onClick={(e) => { const r = e.currentTarget.getBoundingClientRect(); setCityMenuPos({ top: r.bottom + 6, left: r.left }); setCityMenu(v => !v); }}
                 style={navPill(route === "city" || (route === "chart" && CITY_IDS.has(tab)), "#7dd3fc")}>
                 {!isMobile && <span style={{ color: "#7dd3fc", display: "inline-flex" }}><TabIcon name="spxcity" /></span>}
@@ -899,7 +907,7 @@ export default function App() {
                 </>
               )}
             </div>
-            <button className="pill" onClick={openAeon} title="Project Aeon — NFT analytics" style={navPill(route === "aeon", "#f472b6")}>
+            <button className="pill" onClick={openAeon} title="Project Aeon, NFT analytics" style={navPill(route === "aeon", "#f472b6")}>
               {!isMobile && (
 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, color: "#f472b6" }}>
                 <path d="M12 2 4 7v10l8 5 8-5V7z" /><path d="M12 22V12" /><path d="M4 7l8 5 8-5" />
@@ -907,7 +915,7 @@ export default function App() {
 )}
               <span>{isMobile ? "Aeon" : "Project Aeon"}</span>
             </button>
-            {/* Methods is buried for now (still in dev — new charts landing). The page stays reachable
+            {/* Methods is buried for now (still in dev, new charts landing). The page stays reachable
                 at ?view=methods, it's just not a nav tab. */}
           </div>
           {navActions}
@@ -925,7 +933,7 @@ export default function App() {
         </Suspense>
       )}
 
-      {/* Project Aeon — its own tab: the NFT collection's on-chain charts, kept
+      {/* Project Aeon, its own tab: the NFT collection's on-chain charts, kept
           separate from the SPX charts gallery. */}
       {route === "aeon" && (
         <Suspense fallback={<div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Loading charts…</div>}>
@@ -933,35 +941,35 @@ export default function App() {
             isMobile={isMobile} onOpen={goChart} onHome={goHome} onOther={openGallery} renderPreview={id => chartEl(id, { preview: true })}
             groups={AEON_GROUPS} showFeatured={false} title="Project Aeon" onlyGroup={galleryGroup}
             titleGradient="linear-gradient(90deg,#2dd4bf,#3b82f6,#a855f7,#f472b6)"
-            subtitle="On-chain analytics for the Project AEON NFT collection — 3,333 on Ethereum. Every number checkable, reproducible."
+            subtitle="On-chain analytics for the Project AEON NFT collection, 3,333 on Ethereum. Every number checkable, reproducible."
           />
         </Suspense>
       )}
 
 
-      {/* SPX City — its own top-level tab at /city (every holder a building). Rendered directly
+      {/* SPX City, its own top-level tab at /city (every holder a building). Rendered directly
           rather than through the charts gallery so it gets a clean path and first-class billing. */}
       {route === "city" && (
         <Suspense fallback={<div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Loading the city…</div>}>
-          <SpxCity isMobile={isMobile} initialMode="spx" />
+          <SpxCity isMobile={isMobile} initialMode={cityMode} />
         </Suspense>
       )}
 
-      {/* The manual — docs/*.md pre-rendered at build time, hosted here rather than linked out. */}
+      {/* The manual, docs/*.md pre-rendered at build time, hosted here rather than linked out. */}
       {route === "docs" && (
         <Suspense fallback={<div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Loading…</div>}>
           <DocsPage isMobile={isMobile} slug={docSlug} onNavigate={openDocs} />
         </Suspense>
       )}
 
-      {/* Methods — how every number on the site is computed. Static, reads the live model. */}
+      {/* Methods, how every number on the site is computed. Static, reads the live model. */}
       {route === "methods" && (
         <Suspense fallback={<div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Loading…</div>}>
-          <MethodsPage m={m} isMobile={isMobile} />
+          <MethodsPage m={m} series={priceData} isMobile={isMobile} />
         </Suspense>
       )}
 
-      {/* Redesigned terminal landing — serves ?view=next AND the home route ("/") when
+      {/* Redesigned terminal landing, serves ?view=next AND the home route ("/") when
           HOME_IS_LANDING. Full-bleed iframe of public/landing-next.html. */}
       {(route === "next" || (route === "home" && HOME_IS_LANDING)) && (
         <iframe
@@ -971,9 +979,24 @@ export default function App() {
         />
       )}
 
-      {/* Home — the old Rainbow hero ("Aura"); shown only when HOME_IS_LANDING is off */}
-      {route === "home" && !HOME_IS_LANDING && (<>
-      {/* Header */}
+      {/* Home, the old Rainbow hero ("Aura"); shown only when HOME_IS_LANDING is off */}
+      {(route === "rainbow" || (route === "home" && !HOME_IS_LANDING)) && (<>
+      {/* Rainbow route: the terminal chart-page header (matches every other chart page) */}
+      {route === "rainbow" && (
+        <div style={{ maxWidth: MAX_W, margin: "0 auto 20px" }}>
+          <div style={{ fontFamily: "var(--mono)", fontSize: 12, letterSpacing: ".04em", color: "var(--live)", marginBottom: 10 }}>
+            <span style={{ color: "var(--faint)" }}>spx6900 ~ %</span> open rainbow
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 13, marginBottom: 2 }}>
+            <span style={{ color: "#a78bfa", display: "inline-flex" }}><TabIcon name="rainbow" /></span>
+            <h2 style={{ fontFamily: "var(--sans)", fontSize: isMobile ? 28 : 42, fontWeight: 800, margin: 0, color: "var(--tx)", letterSpacing: "-0.02em", textTransform: "uppercase", lineHeight: 1 }}>Rainbow</h2>
+          </div>
+          <div style={{ height: 3, borderRadius: 2, background: "var(--rainbow)", margin: "13px 0 14px", maxWidth: 620 }} />
+          <div style={{ fontFamily: "var(--sans)", fontSize: isMobile ? 14.5 : 16, color: "var(--dim)", maxWidth: 980, lineHeight: 1.55 }}><span style={{ color: "#4ade80", fontFamily: "var(--mono)", marginRight: 10, fontWeight: 700 }}>&gt;</span>The foundation chart, SPX6900 price against a frozen logarithmic-regression fair value, banded from Fire Sale (deep discount) to Max Bubble.</div>
+        </div>
+      )}
+      {/* Header (home only, the rainbow route uses the terminal header above) */}
+      {route !== "rainbow" && (
       <div style={{ maxWidth: MAX_W, margin: "0 auto 24px" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: isMobile ? 10 : 18, flexWrap: "nowrap" }}>
           <img
@@ -1019,6 +1042,7 @@ export default function App() {
           </div>
         </div>
       </div>
+      )}
 
       {/* About (collapsible) */}
       <div style={{
@@ -1045,7 +1069,7 @@ export default function App() {
           visualize where the price of SPX6900 sits relative to its historical trend. It plots the price on a{" "}
           <strong style={{ color: "#f1f5f9" }}>logarithmic scale</strong> and overlays colored &ldquo;rainbow&rdquo;
           bands that range from undervalued (cooler blues/greens) to overvalued (hotter oranges/reds). It is{" "}
-          <em>not</em> financial advice or a price prediction — just a lighthearted lens on the bigger picture.
+          <em>not</em> financial advice or a price prediction, just a lighthearted lens on the bigger picture.
         </p>
         <p style={{ marginBottom: 12 }}>
           It&apos;s directly inspired by the famous{" "}
@@ -1062,7 +1086,7 @@ export default function App() {
           combining it with a logarithmic regression fit (originally{" "}
           <span style={{ fontFamily: MONO, color: "#c4b5fd" }}>y = 2.9065·ln(x) − 19.493</span> from
           Bitcointalk user <em>trolololo</em>) to give the rainbow its characteristic flattening &ldquo;bow&rdquo;
-          shape. The Bitcoin Rainbow Chart was always meant as a meme and a look at history — never a serious model —
+          shape. The Bitcoin Rainbow Chart was always meant as a meme and a look at history, never a serious model -
           and the same spirit applies here.
         </p>
         <div style={{ fontWeight: 700, color: "#c4b5fd", margin: "16px 0 8px", fontSize: 16 }}>How It Works</div>
@@ -1070,7 +1094,7 @@ export default function App() {
           This chart fits a <strong style={{ color: "#f1f5f9" }}>weighted log-quadratic regression</strong> to
           SPX6900 price history. The model is{" "}
           <span style={{ fontFamily: MONO, color: "#c4b5fd" }}>ln(P) = a×(ln t)² + b×ln t + c</span>{" "}
-          — the squared term captures the S-curve shape that early-stage memecoins follow.
+         , the squared term captures the S-curve shape that early-stage memecoins follow.
         </p>
         <p style={{ marginBottom: 12 }}>
           The colored bands are <strong style={{ color: "#f1f5f9" }}>asymmetric percentile bands</strong> built
@@ -1130,7 +1154,7 @@ export default function App() {
                 }}>
                   {priceGhost}
                 </span>
-                {/* lit value — flashes green/red on each price move, then settles to band color */}
+                {/* lit value, flashes green/red on each price move, then settles to band color */}
                 <span
                   key={tickFlash.key}
                   style={{
@@ -1156,7 +1180,7 @@ export default function App() {
             </span>
           </div>
         </div>
-        {/* How far to the next band — trading-HUD readout: down | up */}
+        {/* How far to the next band, trading-HUD readout: down | up */}
         <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", alignItems: "center", justifyContent: "center", gap: isMobile ? 7 : 24, marginTop: isMobile ? 12 : 18 }}>
           {[bandHops[1], bandHops[0]].map(({ dir, arrow, pct, band, fallback, c }, i) => (
             <span key={dir} style={{ display: "inline-flex", alignItems: "center", gap: isMobile ? 7 : 9 }}>
@@ -1175,7 +1199,7 @@ export default function App() {
 
       <BandStats m={m} series={priceData} isMobile={isMobile} />
 
-      {/* Rainbow chart — the hero, always visible */}
+      {/* Rainbow chart, the hero, always visible */}
       {/* Controls */}
       <div style={{ maxWidth: MAX_W, margin: "0 auto 14px", display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
@@ -1210,7 +1234,7 @@ export default function App() {
         }}>Crypto Milestones</button>
       </div>
 
-      {/* Chart — framed in a glass panel with a band-tinted glow + corner brand
+      {/* Chart, framed in a glass panel with a band-tinted glow + corner brand
           watermark. The inner chartBoxRef stays unpadded so the imperatively
           positioned crosshair/tooltip math (handleChartMove) is unaffected. */}
       <div style={{
@@ -1223,7 +1247,7 @@ export default function App() {
         backdropFilter: "blur(7px)", WebkitBackdropFilter: "blur(7px)",
         transition: "background 0.6s ease, border-color 0.6s ease, box-shadow 0.6s ease",
       }}>
-        {/* Brand watermark — large, faint coin logo bleeding off the empty
+        {/* Brand watermark, large, faint coin logo bleeding off the empty
             bottom-right corner (panel's overflow:hidden clips it to the edge). */}
         <img
           src="/spx6900logo.png" alt="" aria-hidden="true" draggable="false"
@@ -1310,7 +1334,7 @@ export default function App() {
           </ComposedChart>
         </ResponsiveContainer>
 
-        {/* Free crosshair overlay — positioned imperatively in handleChartMove */}
+        {/* Free crosshair overlay, positioned imperatively in handleChartMove */}
         <div ref={vLineRef} style={{ position: "absolute", display: "none", left: 0, top: 0, width: 1, background: "rgba(255,255,255,0.4)", pointerEvents: "none" }} />
         <div ref={hLineRef} style={{ position: "absolute", display: "none", left: 0, top: 0, height: 1, background: "rgba(255,255,255,0.4)", pointerEvents: "none" }} />
         <div ref={dotRef} style={{ position: "absolute", display: "none", left: 0, top: 0, width: 8, height: 8, borderRadius: "50%", pointerEvents: "none" }} />
@@ -1445,13 +1469,19 @@ export default function App() {
             <h2 style={{ fontFamily: "var(--sans)", fontSize: isMobile ? 28 : 42, fontWeight: 800, margin: 0, color: "var(--tx)", letterSpacing: "-0.02em", textTransform: "uppercase", lineHeight: 1 }}>{title}</h2>
           </div>
           <div style={{ height: 3, borderRadius: 2, background: "var(--rainbow)", margin: "13px 0 14px", maxWidth: 620 }} />
-          <div style={{ fontFamily: "var(--sans)", fontSize: isMobile ? 14.5 : 16, color: "var(--dim)", marginBottom: 16, maxWidth: 980, lineHeight: 1.55 }}><span style={{ color: "#4ade80", fontFamily: "var(--mono)", marginRight: 10, fontWeight: 700 }}>&gt;</span>{CHART_META[tab]?.desc}</div>
           <ChartFreshness chartId={tab} />
           <ErrorBoundary key={tab}>
           <Suspense fallback={<div style={{ textAlign: "center", fontFamily: "var(--mono)", color: "var(--faint)", padding: 40 }}>loading chart…</div>}>
             {chartEl(tab)}
           </Suspense>
           </ErrorBoundary>
+          {/* Explanation UNDER the chart, in the site's mono (menu) font. Auto-hidden by CSS
+              (.tchart:has(.chart-explain)) on charts that already carry their own Explain box. */}
+          {CHART_META[tab]?.desc && (
+            <div className="page-desc" style={{ fontFamily: "var(--mono)", fontSize: isMobile ? 13.5 : 15, color: "var(--dim)", margin: "22px 0 0", maxWidth: 980, lineHeight: 1.6 }}>
+              <span style={{ color: "#4ade80", marginRight: 10, fontWeight: 700 }}>&gt;</span>{CHART_META[tab].desc}
+            </div>
+          )}
         </div>
         );
       })()}{/* end chart page */}

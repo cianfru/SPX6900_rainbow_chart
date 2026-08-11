@@ -76,7 +76,7 @@ export default function SpxBtcChart({ series, isMobile }) {
         <div style={{ textAlign: "center" }}>
           <div style={{ fontFamily: MONO, fontSize: 12, color: "#94a3b8", letterSpacing: 1.2 }}>SPX IN BITCOIN</div>
           <div style={{ fontFamily: MONO, fontSize: isMobile ? 34 : 46, fontWeight: 700, color: "#f59e0b", textShadow: "0 0 22px rgba(245,158,11,0.4)" }}>
-            {cur ? fSats(cur.sats) : "—"} <span style={{ fontSize: isMobile ? 16 : 22, color: "#cbd5e1" }}>sats</span>
+            {cur ? fSats(cur.sats) : "-"} <span style={{ fontSize: isMobile ? 16 : 22, color: "#cbd5e1" }}>sats</span>
           </div>
         </div>
         <div style={{ textAlign: "center" }}>
