@@ -1,7 +1,12 @@
 // "The city keeps turning over" — the churn beneath the citizen count. Arrivals (green, up) vs
 // departures (red, down) each period as diverging bars, on the dusk-city background with its skyline.
-// The headline stat is survivorship: only a sliver of the launch-week residents remain, yet the city
-// grew many times over — pure turnover. Data: public/city-history.json (flow + founders).
+// The headline stat is survivorship: only a sliver of the EARLIEST arrival cohort remains, yet the city
+// grew many times over — pure turnover. Data: public/city-history.json (flow + vintages).
+//
+// NOTE: uses the earliest real arrival-cohort (vintages, ≥20 wallets) for the survivorship line, NOT a
+// "launch-week residents" count. Residency needs ≥5,000 SPX held 90 DAYS, impossible in the launch week
+// (token is 0 days old) → that cohort was degenerate (n0=1). The earliest quarterly cohort is the honest,
+// fully-uncensored "the launch crowd is nearly gone" number.
 import { Resvg } from "@resvg/resvg-js";
 import { FONT } from "./font.mjs";
 import { esc } from "./svg-util.mjs";
@@ -19,10 +24,13 @@ export function cityChurnStats() {
   if (!d?.flow?.length) return (_cache = null);
   const NC = d.labels.length;
   const totIn = d.flow.reduce((s, f) => s + f[1], 0), totOut = d.flow.reduce((s, f) => s + f[2], 0);
-  const n0 = d.founders?.n0 || 0, left = d.founders?.series?.at(-1)?.[1] ?? 0;
+  // survivorship from the EARLIEST real arrival cohort (≥20 wallets), not the degenerate launch-week set.
+  const v0 = (d.vintages || []).find(v => v.arrived >= 20) || null;
   const cNow = d.rows.at(-1).slice(2, 2 + NC).reduce((s, v) => s + v, 0);
-  const c0 = d.rows[0].slice(2, 2 + NC).reduce((s, v) => s + v, 0);
-  return (_cache = { totIn, totOut, n0, left, survPct: n0 ? left / n0 * 100 : 0, citizens: cNow, growth: c0 ? cNow / c0 : 0 });
+  // NB: no "N× bigger than at launch" — the city is near-empty until ~90 days in (when 90-day residency
+  // first becomes achievable), so any launch baseline is degenerate/arbitrary. Turnover + earliest-cohort
+  // survivorship are the honest, baseline-free stats.
+  return (_cache = { totIn, totOut, cohort: v0?.label ?? null, arrived: v0?.arrived ?? 0, left: v0?.stillHere ?? 0, survPct: v0?.pct ?? 0, citizens: cNow });
 }
 
 export function cityChurnSvg(doc, opts = {}) {
@@ -70,7 +78,7 @@ ${cityBg(W, H, { glow: "#4ade80", maxTower: 0.17 })}
 ${brandStripe(H)}
 <text x="60" y="60" fill="#f8fafc" font-size="40" font-weight="800" font-family="sans-serif" letter-spacing="1">THE CITY KEEPS TURNING OVER</text>
 <text x="60" y="104" fill="#86efac" font-size="30" font-weight="800" font-family="sans-serif">${fNum(s.totIn)} moved in · ${fNum(s.totOut)} moved out</text>
-<text x="60" y="142" fill="#a5b4c8" font-size="21" font-family="sans-serif">${esc(`Only ${s.left} of the ${s.n0.toLocaleString()} launch-week residents remain (${s.survPct.toFixed(0)}%) — yet the city is ${s.growth.toFixed(1)}× bigger. Survivorship.`)}</text>
+<text x="60" y="142" fill="#a5b4c8" font-size="21" font-family="sans-serif">${esc(s.cohort ? `Only ${s.left} of the ${s.arrived.toLocaleString()} who arrived in ${s.cohort} remain (${s.survPct.toFixed(0)}%) — the city turned over. Survivorship.` : `${fNum(s.totIn)} wallets came, ${fNum(s.totOut)} left — a different crowd now. Survivorship.`)}</text>
 <text x="${W - mR}" y="${(mT - 18).toFixed(1)}" fill="#86efac" font-size="18" text-anchor="end" font-family="sans-serif">▲ arrived</text>
 <text x="${W - mR}" y="${(H - mB + 26).toFixed(1)}" fill="#fca5a5" font-size="18" text-anchor="end" font-family="sans-serif">▼ left</text>
 ${grid}${xlab}${bars}${spikeNote}

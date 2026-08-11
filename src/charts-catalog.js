@@ -135,7 +135,7 @@ export const CITY_GROUPS = [
     desc: "The city of SPX6900 holders — the 3D city and how it grew over time.",
     charts: [
       { id: "citygrowth", title: "City Growth", post: "citygrowth", desc: "How SPX City grew — citizens (≥5k held 90d) and its total value climbing through the drawdown." },
-      { id: "cityflow", title: "City Flow", post: "citychurn", desc: "The churn under the count — arrivals vs departures, launch-resident survivorship, and average holding." },
+      { id: "cityflow", title: "City Flow", post: "citychurn", desc: "The churn under the count — arrivals vs departures, cohort survivorship, and average holding." },
     ],
   },
 ];

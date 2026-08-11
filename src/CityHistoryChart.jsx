@@ -80,7 +80,12 @@ export default function CityHistoryChart({ isMobile, preview = false }) {
   const dCitW = delta(all, lastIdx, wBack, r => r.cTot), dCitM = delta(all, lastIdx, mBack, r => r.cTot);
   const dTvlW = delta(all, lastIdx, wBack, r => r.vTot), dTvlM = delta(all, lastIdx, mBack, r => r.vTot);
   const dW = isCit ? dCitW : dTvlW, dM = isCit ? dCitM : dTvlM;
-  const growthCit = first.cTot ? cur.cTot / first.cTot : 0;
+  // Growth is baselined on the city's FORMATION (first row ≥500 residents), NOT the launch row: a resident
+  // needs ≥5,000 SPX held 90 DAYS, so the launch weeks are near-empty (cTot≈1) and a "since launch ×" reads a
+  // nonsense ~5,000×. The first ≥500 point (~late 2023, once 90-day residency matured) is the honest anchor.
+  const baseRow = all.find(r => r.cTot >= 500) || first;
+  const growthCit = baseRow.cTot ? cur.cTot / baseRow.cTot : 0;
+  const baseLabel = new Date(baseRow.ts).toLocaleDateString("en-US", { month: "short", year: "2-digit" });
   const fmt = (isCit || isSky) ? fNum : fUsd;
 
   const signed = (dd) => (dd.up ? "+" : "−") + fmt(Math.abs(dd.d));
@@ -126,7 +131,7 @@ export default function CityHistoryChart({ isMobile, preview = false }) {
         <Metric label="city TVL" value={fUsd(cur.vTot)} color="#a3e635" sub={dTvlM ? `${dTvlM.up ? "+" : "−"}${Math.abs(dTvlM.pct).toFixed(0)}% / mo` : null} />
         {isSky
           ? <Metric label="glass towers" value={fNum(towerNow)} color="#38bdf8" sub={`of ${fNum(cur.sTot)} buildings`} />
-          : <Metric label="citizens since launch" value={growthCit >= 2 ? growthCit.toFixed(1) + "×" : "+" + Math.round((growthCit - 1) * 100) + "%"} color="#f8fafc" sub="grew through the drawdown" />}
+          : <Metric label={`citizens since ${baseLabel}`} value={growthCit >= 2 ? growthCit.toFixed(1) + "×" : "+" + Math.round((growthCit - 1) * 100) + "%"} color="#f8fafc" sub="grew through the drawdown" />}
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
           <button style={tbtn(isCit)} onClick={() => setView("citizens")}>Citizens</button>
           <button style={tbtn(view === "value")} onClick={() => setView("value")}>Value</button>

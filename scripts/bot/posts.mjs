@@ -1097,7 +1097,7 @@ The residents didn't leave. The price did.`,
     return {
       id: "citychurn",
       text: ct`🏙 SPX City is a living city, not a monument. ${(c.totIn / 1e3).toFixed(0)}k wallets have moved in over time and ${(c.totOut / 1e3).toFixed(0)}k moved out.
-Only ${c.left} of the ${c.n0.toLocaleString()} launch-week residents are still here — about ${c.survPct.toFixed(0)}%. Yet the city is ${c.growth.toFixed(1)}× bigger than at launch.
+Only ${c.left} of the ${c.arrived.toLocaleString()} wallets who arrived in ${c.cohort} are still here — about ${c.survPct.toFixed(0)}%. Today's city is almost entirely later arrivals who held through the drawdown.
 Enormous churn, iron survivors.`,
       card: { type: "citychurn" },
     };
