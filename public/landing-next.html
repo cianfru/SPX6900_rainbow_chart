@@ -707,7 +707,8 @@
     const q = section==='PROJECT_AEON' ? 'aeon='+encodeURIComponent(id) : 'tab='+encodeURIComponent(id);
     return `<div class="mprev-img"><img alt="" loading="lazy" src="/api/og?${q}" onerror="this.closest('.mprev-img').classList.add('mprev-fail')"><span class="mprev-spk">${mspark(name)}</span></div>`;
   }
-  function wireTypeRow(mi){ const lbl=mi.querySelector('.lbl'); if(!lbl) return;
+  function wireTypeRow(mi){ const lbl=mi.querySelector('.lbl')||mi.querySelector('.ml-term')||mi.querySelector('.mml'); if(!lbl) return;
+    if(lbl.getAttribute('data-t')==null) lbl.setAttribute('data-t', lbl.textContent); // headers/mobile rows carry no data-t; capture it once
     mi.addEventListener('mouseenter',()=>{ if(mi._c)mi._c(); mi._c=typeLbl(lbl); });
     mi.addEventListener('mouseleave',()=>{ if(mi._c){mi._c();mi._c=null;} lbl.textContent=lbl.getAttribute('data-t')||''; }); }
   function megaHTML(top){
@@ -783,6 +784,7 @@
       mt.innerHTML=`<div class="mhead"><span class="mico">${NAV_ICON[top.label]||''}</span><span class="ml-term">${top.label}</span><span class="ml-site">${NAV_DISP[top.label]||top.label}</span> <span class="car">▾</span></div>`+topDropHTML(top); m.appendChild(mt);
       // menu shows STATIC; the writing effect fires per-row, only on the path you hover
       mt.querySelectorAll('.mitem').forEach(wireTypeRow);
+      wireTypeRow(mt.querySelector('.mhead'));   // the section header types too (like Rainbow)
       wireCascade(mt, top);
     });
     if(withFresh){ const _nf=document.createElement('div'); _nf.className='navfresh'; _nf.id='fresh'; m.appendChild(_nf); }
@@ -829,10 +831,13 @@
     const open=()=>{ m.classList.add('open'); m.setAttribute('aria-hidden','false'); tog.setAttribute('aria-expanded','true'); document.body.style.overflow='hidden'; };
     const close=()=>{ m.classList.remove('open'); m.setAttribute('aria-hidden','true'); tog.setAttribute('aria-expanded','false'); document.body.style.overflow=''; };
     tog.addEventListener('click',open); if(x) x.addEventListener('click',close);
-    if(body) body.addEventListener('click',e=>{
-      const t=e.target.closest('[data-toggle]'); if(t){ t.parentElement.classList.toggle('open'); return; }
-      const g=e.target.closest('[data-go]'); if(g){ const href=g.getAttribute('data-go'); if(href&&href!=='#'){ close(); (window.top||window).location.href=href; } }
-    });
+    if(body){
+      body.querySelectorAll('.mmitem').forEach(wireTypeRow);   // same sleek typewriter (hover on tablets; tap below)
+      body.addEventListener('click',e=>{
+        const t=e.target.closest('[data-toggle]'); if(t){ t.parentElement.classList.toggle('open'); const l=t.querySelector('.mml'); if(l){ if(t._c)t._c(); t._c=typeLbl(l); } return; }
+        const g=e.target.closest('[data-go]'); if(g){ const href=g.getAttribute('data-go'); if(href&&href!=='#'){ close(); (window.top||window).location.href=href; } }
+      });
+    }
   }
   // ── interactive filepath breadcrumb: home / TOP▾ / GROUP▾ / LEAF▾ , each segment a dropdown of its siblings ──
   function firstChart(top,gname){ const t=NAV.find(x=>x.label===top); const g=t&&t.groups.find(gr=>gr.g===gname); return g?g.items[0]:null; }
