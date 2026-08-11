@@ -227,6 +227,12 @@ const prepMoves = transfers => [...transfers]
 // GUARDS (over-merging OVERSTATES concentration — the worse dishonesty, so we err conservative):
 //   • HUB guard — a recipient that ≥MAX_IN distinct wallets fund/drain into is almost certainly an
 //     untagged service/OTC desk (unrelated people), NOT one person. Every edge into it is dropped.
+//   • FAN-OUT guard — symmetric: a wallet that funds/drains ≥MAX_OUT distinct fresh wallets is a
+//     distributor / router / market-maker (or a not-yet-classified contract), not a personal split.
+//     Every edge FROM it is dropped. This is the same-run backstop for the addr-types cache — the FIRST
+//     time an untagged router (e.g. the 1inch router, a 0x0000…-prefixed settlement contract) appears it
+//     isn't yet typed, and it fanned SPX out to thousands of unrelated wallets; without this it fused a
+//     single 5,402-wallet supernode. The cache classifies it for subsequent runs; this catches it on run 1.
 //   • SIZE cap — a merged cluster over MAX_CLUSTER wallets is FLAGGED (oversized/uncertain), kept in
 //     the output for review, and downstream metrics must treat it as unmerged (never silently fuse).
 // ⚠ MEMORY: runs over the full ~2.7M-transfer archive — scans the ALREADY-SORTED tx IN PLACE (no
@@ -239,6 +245,7 @@ export function clusterEntities(tx, opts = {}) {
   const MIN = opts.minTokens ?? 50000;                     // a meaningful move (tokens) — dust/payments ignored
   const EMPTY = opts.emptyFrac ?? 0.9;
   const MAX_IN = opts.maxInDegree ?? 8;                    // > this many funders/drainers = an untagged hub
+  const MAX_OUT = opts.maxOutDegree ?? 40;                 // > this many distinct recipients = a distributor/router (above legit personal splits)
   const MAX_CLUSTER = opts.maxCluster ?? 30;               // merged clusters above this are flagged, not trusted
 
   const bal = new Map();                                   // running balance (bounded by distinct addresses)
@@ -261,11 +268,17 @@ export function clusterEntities(tx, opts = {}) {
     for (let k = start; k < p; k++) { const t = tx[k]; if (t.to) { bal.set(t.to, (bal.get(t.to) || 0) + t.amt); seen.add(t.to); } if (t.from) bal.set(t.from, (bal.get(t.from) || 0) - t.amt); }
   }
 
-  // HUB guard — drop every edge into a recipient with too many distinct counterparties.
-  const funders = new Map();
-  for (const e of edges) { let s = funders.get(e.to); if (!s) funders.set(e.to, s = new Set()); s.add(e.from); }
-  const hubs = new Set(); for (const [a, s] of funders) if (s.size > MAX_IN) hubs.add(a);
-  const kept = edges.filter(e => !hubs.has(e.to));
+  // HUB + FAN-OUT guard — drop edges touching a node with too many distinct counterparties in EITHER
+  // direction (many→one hub = a service/OTC desk; one→many fan-out = a distributor/router/untagged contract).
+  const funders = new Map(), fanout = new Map();
+  for (const e of edges) {
+    let i = funders.get(e.to); if (!i) funders.set(e.to, i = new Set()); i.add(e.from);
+    let o = fanout.get(e.from); if (!o) fanout.set(e.from, o = new Set()); o.add(e.to);
+  }
+  const hubs = new Set();
+  for (const [a, s] of funders) if (s.size > MAX_IN) hubs.add(a);   // in-degree hub (funded/drained by many)
+  for (const [a, s] of fanout) if (s.size > MAX_OUT) hubs.add(a);   // out-degree fan-out (funds/drains many)
+  const kept = edges.filter(e => !hubs.has(e.to) && !hubs.has(e.from));
 
   // union-find over the surviving edges → connected components = entities
   const parent = new Map();
@@ -301,7 +314,7 @@ export function clusterEntities(tx, opts = {}) {
     });
   }
   entities.sort((a, b) => b.size - a.size);
-  return { entities, hubs: [...hubs], edgeCount: kept.length, stats: { entities: entities.length, clustered, largest, flagged, hubs: hubs.size } };
+  return { entities, hubs: [...hubs], edgeCount: kept.length, stats: { entities: entities.length, clustered, largest, flagged, hubs: hubs.size, edgesDropped: edges.length - kept.length } };
 }
 
 // Standalone wrapper (copy+sort) — for tests / ad-hoc runs. The engine reuses its own sorted tx.

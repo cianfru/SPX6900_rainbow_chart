@@ -419,6 +419,20 @@ test("entity clustering: a HUB with too many funders is dropped, not fused into 
   assert.equal(stats.hubs, 1);
 });
 
+test("entity clustering: a FAN-OUT distributor (funds >maxOut fresh wallets) is dropped, not one entity", () => {
+  // one wallet funds 60 fresh wallets — a distributor / untagged router, not a personal split.
+  const tx = [{ from: ZERO, to: "dist", ts: d(0), amt: 100_000_000 }];
+  for (let i = 0; i < 60; i++) tx.push({ from: "dist", to: `n${i}`, ts: d(1 + i), amt: M });
+  const { entities, stats } = buildEntities(ix(tx), { maxOutDegree: 40 });
+  assert.equal(entities.length, 0, "fan-out edges dropped → no 61-wallet supernode");
+  assert.equal(stats.hubs, 1);
+  // but a legit split UNDER the fan-out cap still clusters
+  const ok = buildEntities(ix([{ from: ZERO, to: "whale", ts: d(0), amt: 100_000_000 },
+    ...Array.from({ length: 12 }, (_, i) => ({ from: "whale", to: `w${i}`, ts: d(1 + i), amt: M }))]), { maxOutDegree: 40 });
+  assert.equal(ok.entities.length, 1);
+  assert.equal(ok.entities[0].size, 13);
+});
+
 test("entity clustering: an oversized cluster is flagged, not silently trusted", () => {
   // one whale funds 40 fresh wallets → a real 41-wallet cluster, but past the size cap → flagged.
   const tx = [{ from: ZERO, to: "whale", ts: d(0), amt: 100_000_000 }];
