@@ -60,11 +60,14 @@
 .tzone .mtop.flip .subdrop{ left:auto; right:calc(100% + 8px); }
 .tzone .mtop.flip .subdrop::before{ left:auto; right:-8px; }
 
-.tzone .mitem{ display:flex; align-items:center; justify-content:space-between; gap:16px; padding:7px 11px; cursor:pointer; font-family:var(--mono); font-size:12.5px; letter-spacing:.03em; text-transform:uppercase; color:var(--dim); white-space:nowrap; }
+.tzone .mitem{ display:flex; align-items:center; justify-content:space-between; gap:16px; padding:7px 11px; cursor:pointer; font-family:var(--mono); font-size:12.5px; letter-spacing:.03em; text-transform:uppercase; color:var(--tx); white-space:nowrap; }
 .tzone .mitem .mk{ color:var(--faint); }
 .tzone .mitem:hover{ background:var(--tx); color:var(--bg); } .tzone .mitem:hover .mk{ color:var(--bg); }
-.tzone .mitem.grouprow{ color:var(--gc,var(--tx)); }
-.tzone .mitem.allrow{ color:var(--tx); border-bottom:1px solid var(--line); margin-bottom:2px; }
+/* rows are white; the group's colour lives only in the blinking "_" cursor (same rule
+   as the chart-page label) */
+.tzone .mitem .cur{ color:var(--curc,var(--tx)); text-shadow:0 0 6px var(--curc,transparent); }
+.tzone .mitem:hover .cur{ animation:tcurblink 1.05s steps(1,end) infinite; }
+.tzone .mitem.allrow{ border-bottom:1px solid var(--line); margin-bottom:2px; }
 
 /* cascade preview flyout — a live sparkline panel to the right of the chart list */
 .tzone .leafprev{ display:none; position:absolute; left:100%; top:-5px; margin-left:5px; z-index:32; width:262px; background:var(--bg); border:1px solid var(--line2); box-shadow:0 12px 34px rgba(0,0,0,.55); padding:14px 16px 16px; flex-direction:column; }

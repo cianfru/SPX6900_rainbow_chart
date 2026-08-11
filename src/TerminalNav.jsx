@@ -46,16 +46,16 @@ function CascadeTop({ label, groups, onAll, onLeaf }) {
     <div className="mtop" ref={topRef} onMouseEnter={onEnter} onMouseLeave={() => setLeaf(null)}>
       <div className="mhead">{label} <span className="car">▾</span></div>
       <div className="drop">
-        <div className="mitem allrow" onClick={onAll}><span>All</span></div>
+        <div className="mitem allrow" onClick={onAll}><span>All<span className="cur" style={{ "--curc": "var(--live)" }}>_</span></span></div>
         {groups.map((g, gi) => { const gc = GCOL[gi % GCOL.length]; return (
           <div className="mgroup" key={g.title} style={{ "--gc": gc }} onMouseLeave={() => setLeaf(l => (l && l.gi === gi ? null : l))}>
-            <div className="mitem grouprow" onClick={onAll}><span>{g.title}</span><span className="mk">▸</span></div>
+            <div className="mitem grouprow" onClick={onAll}><span>{g.title}<span className="cur" style={{ "--curc": gc }}>_</span></span><span className="mk">▸</span></div>
             <div className="subdrop">
               {g.charts.filter(c => !c.dev).map(item => (
                 <div className="mitem leafrow" key={item.id}
                   onMouseEnter={() => setLeaf({ gi, item, color: gc })}
                   onClick={() => onLeaf(item.id)}>
-                  <span>{item.title}</span><span className="mk">›</span>
+                  <span>{item.title}<span className="cur" style={{ "--curc": gc }}>_</span></span><span className="mk">›</span>
                 </div>
               ))}
               <div className={"leafprev" + (leaf && leaf.gi === gi ? " on" : "")}>
@@ -84,7 +84,7 @@ function FlatTop({ label, items }) {
       <div className="drop">
         {items.map((it, i) => (
           <div className="mitem leafrow" key={i} style={{ "--gc": it.color }} onClick={it.onClick}>
-            <span>{it.label}</span><span className="mk">›</span>
+            <span>{it.label}<span className="cur" style={{ "--curc": it.color }}>_</span></span><span className="mk">›</span>
           </div>
         ))}
       </div>
