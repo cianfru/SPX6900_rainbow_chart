@@ -10,7 +10,7 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
-import { CHART_GROUPS, AEON_GROUPS, CITY_GROUPS } from "../src/charts-catalog.js";
+import { CHART_GROUPS, AEON_GROUPS, CITY_GROUPS, CHART_VIEWS, VIEW_PARAM } from "../src/charts-catalog.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const FILE = join(__dirname, "..", "public", "landing-next.html");
@@ -38,10 +38,23 @@ AEON_GROUPS.forEach((g) => nonDev(g).forEach((c) => { LEAFID[`PROJECT_AEON|${c.t
 LEAFID["SPX_CITY|SPX City"] = "@/city";
 cityCharts.forEach((c) => { LEAFID[`SPX_CITY|${c.title}`] = c.id; });
 
+// "SECTION|title" -> [{label, href}] for charts with a view toggle. Drives the menu sub-rows.
+const VIEWS = {};
+const addViews = (section, c) => {
+  const vs = CHART_VIEWS[c.id];
+  if (!vs) return;
+  const param = VIEW_PARAM[c.id] || "v";
+  VIEWS[`${section}|${c.title}`] = vs.map((x) => ({ label: x.label, href: `/?chart=${c.id}&${param}=${encodeURIComponent(x.v)}` }));
+};
+CHART_GROUPS.forEach((g) => nonDev(g).forEach((c) => addViews("CHARTS", c)));
+AEON_GROUPS.forEach((g) => nonDev(g).forEach((c) => addViews("PROJECT_AEON", c)));
+cityCharts.forEach((c) => addViews("SPX_CITY", c));
+
 const block =
   `const NAV=${JSON.stringify(NAV)};\n` +
   `  const DESC=${JSON.stringify(DESC)};\n` +
-  `  window.__LEAFID=${JSON.stringify(LEAFID)};`;
+  `  window.__LEAFID=${JSON.stringify(LEAFID)};\n` +
+  `  window.__VIEWS=${JSON.stringify(VIEWS)};`;
 
 let html = readFileSync(FILE, "utf8");
 const START = "/* @gen-menu start";

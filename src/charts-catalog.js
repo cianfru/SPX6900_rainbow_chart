@@ -182,6 +182,36 @@ export const CHART_META = Object.fromEntries(
 
 export const CHART_IDS = new Set(Object.keys(CHART_META));
 
+// ── Per-chart view toggles ───────────────────────────────────────────────────
+// Charts whose page carries a segmented control (2+ mutually-exclusive views) declare
+// those views here so the nav dropdowns can surface them as sub-entries. A sub-view
+// link opens the chart with the view pre-selected via a URL param — `param` (default
+// "v"), read in App.jsx and passed to the component as `initialView`, which the chart
+// uses to set its starting toggle. `v` is the exact value the chart's state expects.
+// The FIRST view is the chart's own default. Single-axis toggles only — charts with two
+// independent toggles on one page (exitflow, aeonfloor, whaleswatching) are left out.
+export const CHART_VIEWS = {
+  mvrv: [{ label: "Realized Price", v: "realized" }, { label: "MVRV", v: "mvrv" }, { label: "Z-Score", v: "z" }],
+  drawdown: [{ label: "Underwater", v: "underwater" }, { label: "By Cycle", v: "cycle" }],
+  rally: [{ label: "Cycle Bottoms", v: "cycle" }, { label: "Fire Sale Band", v: "firesale" }],
+  monthly: [{ label: "USD", v: "usd" }, { label: "In Bitcoin", v: "btc" }],
+  survivorship: [{ label: "Who's Here", v: "who" }, { label: "Survival", v: "survival" }, { label: "Cost Basis", v: "supply" }, { label: "Who Left", v: "exits" }],
+  smartmoney: [{ label: "Holdings vs Price", v: "holdings" }, { label: "Net Flow", v: "flow" }, { label: "New Timers", v: "newq" }],
+  urpdage: [{ label: "Bars", v: "bars" }, { label: "Heatmap", v: "heat" }, { label: "3D", v: "3d" }],
+  whalecohorts: [{ label: "Lines", v: "lines" }, { label: "Stacked", v: "stacked" }],
+  cexvenflow: [{ label: "30 Days", v: "4" }, { label: "90 Days", v: "13" }, { label: "180 Days", v: "26" }, { label: "1 Year", v: "52" }],
+  citygrowth: [{ label: "Citizens", v: "citizens" }, { label: "Value", v: "value" }, { label: "Skyline", v: "skyline" }],
+  cityflow: [{ label: "Net New", v: "flow" }, { label: "Per Resident", v: "percap" }, { label: "Survival", v: "survival" }],
+  vsmajors: [{ label: "Since Launch", v: "launch" }, { label: "12 Months", v: "12m" }, { label: "YTD", v: "ytd" }],
+  vsmemekings: [{ label: "Since Launch", v: "launch" }, { label: "12 Months", v: "12m" }, { label: "YTD", v: "ytd" }],
+  aeontraders: [{ label: "Top Winners", v: "top" }, { label: "Biggest Losses", v: "bottom" }, { label: "By Volume", v: "byVolume" }],
+  aeonleadlag: [{ label: "Floor", v: "floor" }, { label: "Sales Volume", v: "volume" }],
+  // relative already uses the `rel` param for its asset selector — reuse it.
+  relative: [{ label: "vs BTC", v: "BTC" }, { label: "vs ETH", v: "ETH" }, { label: "vs SOL", v: "SOL" }, { label: "vs Majors", v: "BASKET" }],
+};
+// Which URL param carries the view for a given chart (default "v"; relative reuses "rel").
+export const VIEW_PARAM = { relative: "rel" };
+
 // ── Method families ─────────────────────────────────────────────────────────
 // Every chart is computed one of seven ways. The GROUPS above answer "what is this
 // about"; these answer "how is this worked out". Nothing renders these as a page —

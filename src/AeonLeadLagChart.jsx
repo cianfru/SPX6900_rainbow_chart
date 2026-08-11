@@ -77,10 +77,10 @@ function xcorrAt(A, S, L) {
   return corr(a, s);
 }
 
-export default function AeonLeadLagChart({ isMobile }) {
+export default function AeonLeadLagChart({ isMobile, initialView }) {
   const [sales, setSales] = useState(null);
   const [price, setPrice] = useState(null);         // live daily SPX (/price-history.json)
-  const [metric, setMetric] = useState("floor");    // "floor" | "volume"
+  const [metric, setMetric] = useState(() => ["floor", "volume"].includes(initialView) ? initialView : "floor");    // "floor" | "volume"
   useEffect(() => { let c = false; loadAeonSales().then(d => { if (!c) setSales(d || { empty: true }); }); return () => { c = true; }; }, []);
   useEffect(() => { let c = false; loadPriceHistory().then(d => { if (!c) setPrice(d || []); }); return () => { c = true; }; }, []);
 

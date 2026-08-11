@@ -23,10 +23,10 @@ function ramp(t) {
 
 // Cost basis × holding age — the joint distribution of held supply, three ways:
 // Ridgeline (default, one age band per row), Heatmap, and an interactive 3D field.
-export default function UrpdAgeChart({ isMobile, preview = false, price = null }) {
+export default function UrpdAgeChart({ isMobile, preview = false, price = null, initialView }) {
   const [live, setLive] = useState(null);
   const [px, setPx] = useState(null);
-  const [view, setView] = useState("bars");
+  const [view, setView] = useState(() => ["bars", "heat", "3d"].includes(initialView) ? initialView : "bars");
   useEffect(() => {
     let c = false;
     loadUrpd().then(d => { if (!c && d) setLive(d); });

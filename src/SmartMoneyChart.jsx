@@ -41,9 +41,9 @@ const fmtM = v => Math.abs(v) >= 1e6 ? (v / 1e6).toFixed(1) + "M" : (v / 1e3).to
 const fmtP = v => v == null ? "" : v < 0.01 ? "$" + v.toFixed(4) : "$" + v.toFixed(2);
 const usd = v => v >= 1e6 ? "$" + (v / 1e6).toFixed(1) + "M" : "$" + Math.round(v / 1e3) + "k";
 
-export default function SmartMoneyChart({ isMobile }) {
+export default function SmartMoneyChart({ isMobile, initialView }) {
   const [data, setData] = useState(null);
-  const [view, setView] = useState("holdings");   // "holdings" | "flow"
+  const [view, setView] = useState(() => ["holdings", "flow", "newq"].includes(initialView) ? initialView : "holdings");   // "holdings" | "flow"
   useEffect(() => { let off = false; loadSmartMoney().then(d => { if (!off) setData(d || { empty: true }); }); return () => { off = true; }; }, []);
 
   const model = useMemo(() => {

@@ -45,8 +45,8 @@ function Readout({ label, value, color, isMobile }) {
   );
 }
 
-export default function DrawdownChart({ series, isMobile }) {
-  const [mode, setMode] = useState("underwater"); // "underwater" = from-ATH over time; "cycle" = per-correction
+export default function DrawdownChart({ series, isMobile, initialView }) {
+  const [mode, setMode] = useState(() => ["underwater", "cycle"].includes(initialView) ? initialView : "underwater"); // "underwater" = from-ATH over time; "cycle" = per-correction
 
   const cycles = useMemo(() => buildDrawdownCycles(series, { minDepth: 0.4, minPeakPrice: 0.05, ath: ATH }), [series]);
 

@@ -8,9 +8,9 @@ const fE = v => (v >= 0 ? "+" : "") + v.toFixed(1) + "Ξ";
 
 // Project Aeon — trader intelligence. Every wallet's realized P&L from matching its
 // buys to its sells across the whole sale log. Winners, paper hands, and the flippers.
-export default function AeonTradersChart({ isMobile }) {
+export default function AeonTradersChart({ isMobile, initialView }) {
   const [data, setData] = useState(null);
-  const [view, setView] = useState("top");
+  const [view, setView] = useState(() => ["top", "bottom", "byVolume"].includes(initialView) ? initialView : "top");
   useEffect(() => { let c = false; loadAeonTraders().then(d => { if (!c) setData(d || { empty: true }); }); return () => { c = true; }; }, []);
 
   if (!data) return <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Loading traders…</div>;

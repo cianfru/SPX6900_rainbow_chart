@@ -92,8 +92,8 @@ function Readout({ label, value, color, isMobile }) {
   );
 }
 
-export default function SeasonalityGrid({ series, isMobile }) {
-  const [denom, setDenom] = useState("usd");
+export default function SeasonalityGrid({ series, isMobile, initialView }) {
+  const [denom, setDenom] = useState(() => ["usd", "btc"].includes(initialView) ? initialView : "usd");
   const [btc, setBtc] = useState(null);
   const [btcError, setBtcError] = useState(null);
 

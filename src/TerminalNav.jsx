@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, Suspense } from "react";
-import { CHART_GROUPS, AEON_GROUPS, CITY_GROUPS } from "./charts-catalog.js";
+import { CHART_GROUPS, AEON_GROUPS, CITY_GROUPS, CHART_VIEWS } from "./charts-catalog.js";
 import { GCOL } from "./terminal-colors.js";
 import ErrorBoundary from "./ErrorBoundary.jsx";
 
@@ -116,11 +116,18 @@ function CascadeTop({ label, groups, onSection, onLeaf, renderPreview }) {
           <div className="mgroup" key={g.title} style={{ "--gc": gc }} onMouseLeave={() => setLeaf(l => (l && l.gi === gi ? null : l))}>
             <MenuRow text={g.title} color={gc} mark="▸" cls="grouprow" onClick={() => onSection(g.title)} />
             <div className="subdrop">
-              {g.charts.filter(c => !c.dev).map(item => (
-                <MenuRow key={item.id} text={item.title} color={gc} mark="›" cls="leafrow"
-                  onEnter={() => setLeaf({ gi, item, color: gc })}
-                  onClick={() => onLeaf(item.id)} />
-              ))}
+              {g.charts.filter(c => !c.dev).map(item => { const views = CHART_VIEWS[item.id]; return (
+                <div className="leafwrap" key={item.id}>
+                  <MenuRow text={item.title} color={gc} mark={views ? "▾" : "›"} cls="leafrow"
+                    onEnter={() => setLeaf({ gi, item, color: gc })}
+                    onClick={() => onLeaf(item.id)} />
+                  {views && views.map(vw => (
+                    <MenuRow key={vw.v} text={vw.label} color={gc} cls="subview"
+                      onEnter={() => setLeaf({ gi, item, color: gc })}
+                      onClick={() => onLeaf(item.id, vw.v)} />
+                  ))}
+                </div>
+              ); })}
               <div className={"leafprev" + (leaf && leaf.gi === gi ? " on" : "")}>
                 {leaf && leaf.gi === gi && (<>
                   <div className="mprev-kick">Preview</div>

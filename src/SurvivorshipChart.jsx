@@ -23,11 +23,11 @@ const fmtP = p => p == null ? "" : p < 0.01 ? "$" + p.toFixed(4) : "$" + p.toFix
 const plLabel = (med, now) => { const r = now / med; return r >= 2 ? "+" + (r >= 10 ? r.toFixed(0) : r.toFixed(1)) + "×" : r >= 1 ? "+" + Math.round((r - 1) * 100) + "%" : "−" + Math.round((1 - r) * 100) + "%"; };
 const DAY = 864e5;
 
-export default function SurvivorshipChart({ isMobile }) {
+export default function SurvivorshipChart({ isMobile, initialView }) {
   const [data, setData] = useState(null);
   const [px, setPx] = useState(null);
   const [flow, setFlow] = useState(null);
-  const [view, setView] = useState("who");   // "who" | "survival" | "supply" | "exits"
+  const [view, setView] = useState(() => ["who", "survival", "supply", "exits"].includes(initialView) ? initialView : "who");   // "who" | "survival" | "supply" | "exits"
   useEffect(() => { let off = false; loadCohortSurvival().then(d => { if (!off) setData(d || { empty: true }); }); loadPriceHistory().then(p => { if (!off) setPx(Array.isArray(p) ? p : []); }); loadExitFlow().then(f => { if (!off) setFlow(f); }); return () => { off = true; }; }, []);
 
   const model = useMemo(() => {

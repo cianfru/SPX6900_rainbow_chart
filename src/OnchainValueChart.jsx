@@ -29,7 +29,7 @@ function Tip({ active, payload, mode }) {
 
 // On-chain valuation from the daily HolderScan snapshots: price vs the crowd's
 // realized price (avg cost basis), MVRV (price ÷ cost), and its Z-score.
-export default function OnchainValueChart({ isMobile, preview = false }) {
+export default function OnchainValueChart({ isMobile, preview = false, initialView }) {
   const [history, setHistory] = useState(null);
   // The dense CI-cleaned price series. Without it the numerator comes from the bundled
   // CoinGecko export, which is mis-levelled through the 2026 drawdown and draws an 87%
@@ -53,7 +53,7 @@ export default function OnchainValueChart({ isMobile, preview = false }) {
     return rows;
   }, [history, px]);
 
-  const [mode, setMode] = useState("realized");
+  const [mode, setMode] = useState(() => ["realized", "mvrv", "z"].includes(initialView) ? initialView : "realized");
   const { zoom, setZoom, selL, selR, onDown, onMove, onUp, zoomed } = useDragZoom(
     (a, b) => all && all.filter(r => r.ts >= a && r.ts <= b).length >= 2);
 

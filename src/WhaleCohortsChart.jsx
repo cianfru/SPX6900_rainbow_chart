@@ -32,9 +32,9 @@ function Tip({ active, payload, mode }) {
 // Whale counts over time — how many wallets sit in each size cohort (100–250k / 250k–1M / 1M–5M /
 // 5M+), week by week, reconstructed from the city time-machine. The evolution story: the base
 // broadened while the mega-whales thinned. A holder-structure read, not a signal.
-export default function WhaleCohortsChart({ isMobile }) {
+export default function WhaleCohortsChart({ isMobile, initialView }) {
   const [doc, setDoc] = useState(null);
-  const [stacked, setStacked] = useState(false);
+  const [stacked, setStacked] = useState(() => initialView === "stacked");
   useEffect(() => {
     let cancelled = false;
     loadWhaleCohortHistory().then(d => { if (!cancelled) setDoc(d ?? false); });

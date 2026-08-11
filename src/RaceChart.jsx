@@ -59,10 +59,10 @@ function Tip({ active, payload, coins, spxColor }) {
 
 // Rebased performance race: SPX6900 vs a basket, every line starting at 1× on the
 // window's start date, on a LOG axis so a 500× SPX and a 3× peer both read clearly.
-export default function RaceChart({ series, isMobile, fetchCoins, coins, basketLabel, preview = false }) {
+export default function RaceChart({ series, isMobile, fetchCoins, coins, basketLabel, preview = false, initialView }) {
   const [coinData, setCoinData] = useState(null);
   const [status, setStatus] = useState("loading");
-  const [win, setWin] = useState("launch");
+  const [win, setWin] = useState(() => ["launch", "12m", "ytd"].includes(initialView) ? initialView : "launch");
   // [x0,x1] drag-selected window (overrides the toggle)
   const { zoom, setZoom, selL, selR, onDown, onMove, onUp } = useDragZoom(
     (a, b) => series.filter(r => { const t = tsOf(r.date); return t >= a && t <= b; }).length >= 2);

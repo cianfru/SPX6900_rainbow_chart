@@ -32,8 +32,8 @@ function Readout({ label, value, color, isMobile }) {
   );
 }
 
-export default function RallyChart({ series, m, isMobile }) {
-  const [anchor, setAnchor] = useState("cycle"); // "cycle" = correction bottoms, "firesale" = Fire Sale band lows
+export default function RallyChart({ series, m, isMobile, initialView }) {
+  const [anchor, setAnchor] = useState(() => ["cycle", "firesale"].includes(initialView) ? initialView : "cycle"); // "cycle" = correction bottoms, "firesale" = Fire Sale band lows
   const cycles = useMemo(
     () => (anchor === "firesale"
       ? buildFireSaleRallies(series, m, { minGain: 0.3 })

@@ -11,9 +11,9 @@ const WINDOWS = [{ label: "30d", wk: 4 }, { label: "90d", wk: 13 }, { label: "18
 
 // Per-venue net flow — which exchanges gained vs bled SPX over a window (diverging bars).
 // Only possible because every venue's wallets are tagged. Behaviour read, not a signal.
-export default function CexVenFlowChart({ isMobile, preview = false }) {
+export default function CexVenFlowChart({ isMobile, preview = false, initialView }) {
   const [live, setLive] = useState(null);
-  const [wk, setWk] = useState(13);
+  const [wk, setWk] = useState(() => [4, 13, 26, 52].includes(Number(initialView)) ? Number(initialView) : 13);
   useEffect(() => { let off = false; loadOnchain().then(d => { if (!off) setLive(d ?? false); }); return () => { off = true; }; }, []);
 
   const oc = useMemo(() => (live && live !== true ? (Array.isArray(live) ? live : []).filter(r => r.cexVenues && Object.keys(r.cexVenues).length) : []), [live]);

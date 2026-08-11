@@ -19,9 +19,9 @@ const NC_OF = d => d.labels.length;
 // DAYS, which nothing can satisfy in the launch week (the token is 0 days old), so the cohort was
 // empty-by-construction (n0=1, degenerate). The Survival view carries the "launch crowd is nearly gone"
 // story honestly instead, with its right-censoring caveat. The builder still emits `founders`; unused.
-export default function CityFlowChart({ isMobile, preview = false }) {
+export default function CityFlowChart({ isMobile, preview = false, initialView }) {
   const [data, setData] = useState(null);
-  const [view, setView] = useState("flow");   // "flow" | "percap" | "survival"
+  const [view, setView] = useState(() => ["flow", "percap", "survival"].includes(initialView) ? initialView : "flow");   // "flow" | "percap" | "survival"
   useEffect(() => {
     let cancelled = false;
     loadCityHistory().then(d => { if (!cancelled && d) setData(d); });

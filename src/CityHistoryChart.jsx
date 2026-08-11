@@ -22,9 +22,9 @@ function delta(rows, idx, back, pick) {
 // SPX City — how the whale city grew over time: INHABITANTS (wallets ≥100k SPX) and the city's
 // TVL (Σ balance × SPX price), both split by the four size cohorts. The point: the citizen count
 // and the value kept rising through the price drawdown — adoption decoupled from price.
-export default function CityHistoryChart({ isMobile, preview = false }) {
+export default function CityHistoryChart({ isMobile, preview = false, initialView }) {
   const [data, setData] = useState(null);
-  const [view, setView] = useState("citizens");   // "citizens" | "value" | "skyline"
+  const [view, setView] = useState(() => ["citizens", "value", "skyline"].includes(initialView) ? initialView : "citizens");   // "citizens" | "value" | "skyline"
   useEffect(() => {
     let cancelled = false;
     loadCityHistory().then(d => { if (!cancelled && d) setData(d); });

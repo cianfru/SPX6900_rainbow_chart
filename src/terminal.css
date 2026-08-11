@@ -80,6 +80,10 @@
 .tzone .mitem .cur{ color:var(--curc,var(--tx)); text-shadow:0 0 6px var(--curc,transparent); }
 .tzone .mitem:hover .cur{ animation:tcurblink 1.05s steps(1,end) infinite; }
 .tzone .mitem.allrow{ border-bottom:1px solid var(--line); margin-bottom:2px; }
+/* a toggle chart's sub-views, indented under its row (the parent row carries a ▾) */
+.tzone .mitem.subview{ padding-top:4px; padding-bottom:4px; padding-left:28px; gap:10px; font-size:11px; color:var(--dim); }
+.tzone .mitem.subview .lbl{ letter-spacing:.02em; }
+.tzone .mitem.subview .cur{ font-size:11px; }
 
 /* cascade preview flyout — a live sparkline panel to the right of the chart list */
 .tzone .leafprev{ display:none; position:absolute; left:100%; top:-5px; margin-left:5px; z-index:32; width:262px; background:var(--bg); border:1px solid var(--line2); box-shadow:0 12px 34px rgba(0,0,0,.55); padding:14px 16px 16px; flex-direction:column; }

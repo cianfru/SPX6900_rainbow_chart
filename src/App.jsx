@@ -289,6 +289,7 @@ export default function App() {
   const [galleryGroup, setGalleryGroup] = useState(null); // when a nav group is clicked, show only that section
   const [copied, setCopied] = useState(false);  // "Share" → link copied confirmation
   const [relWhich, setRelWhich] = useState("BTC"); // Relative chart asset (its own in-chart selector)
+  const [chartView, setChartView] = useState(null); // deep-linked sub-view for a toggle chart (?…&v=<value>)
   const [cityMenu, setCityMenu] = useState(false); // City nav dropdown open/closed
   const [cityMenuPos, setCityMenuPos] = useState({ top: 0, left: 0 }); // fixed-pos anchor (nav clips overflow)
   const navRef = useRef(null);
@@ -582,11 +583,11 @@ export default function App() {
 
   // Reflect the current route in the URL so everything is shareable and browser
   // back/forward works: home = clean, gallery = ?view=charts, a chart = ?chart=<id>.
-  const syncUrl = (r, id, rel) => {
+  const syncUrl = (r, id, rel, view) => {
     if (typeof window === "undefined") return;
     const params = new URLSearchParams(window.location.search);
     params.delete("tab"); // legacy param — superseded by ?chart=
-    params.delete("view"); params.delete("chart"); params.delete("rel"); params.delete("p");
+    params.delete("view"); params.delete("chart"); params.delete("rel"); params.delete("p"); params.delete("v");
     if (r === "gallery") params.set("view", "charts");
     else if (r === "aeon") params.set("view", "aeon");
     else if (r === "methods") params.set("view", "methods");
@@ -596,6 +597,7 @@ export default function App() {
     else if (r === "chart" && id) {
       params.set("chart", id);
       if (id === "relative" && rel && rel !== "BTC") params.set("rel", rel);
+      else if (view) params.set("v", view);
     }
     const qs = params.toString();
     // SPX City gets a clean path of its own (/city); every other route lives at "/" with a query,
@@ -612,12 +614,22 @@ export default function App() {
   const openCity = () => { setRoute("city"); syncUrl("city"); window.scrollTo({ top: 0, behavior: "smooth" }); };
   const openMethods = () => { setRoute("methods"); syncUrl("methods"); window.scrollTo({ top: 0, behavior: "smooth" }); };
   const openDocs = (slug = "index") => { setDocSlug(slug); setRoute("docs"); syncUrl("docs", slug); window.scrollTo({ top: 0, behavior: "smooth" }); };
-  const goChart = (id, relOverride) => {
+  // goChart(id) opens a chart at its default view; goChart(id, view) deep-links a sub-view.
+  // relative keeps its own `rel` asset param (view values BTC/ETH/SOL/BASKET); every other
+  // toggle chart carries its view in `v`.
+  const goChart = (id, view) => {
     if (id === "rainbow") { goHome(); return; }
     id = resolveId(id);
     if (!CHART_IDS.has(id)) { openGallery(); return; }
     setRoute("chart"); setTab(id);
-    syncUrl("chart", id, id === "relative" ? (relOverride || relWhich) : null);
+    if (id === "relative") {
+      const w = view && REL_IDS.has(view) ? view : relWhich;
+      setRelWhich(w); setChartView(null);
+      syncUrl("chart", id, w, null);
+    } else {
+      setChartView(view ?? null);
+      syncUrl("chart", id, null, view ?? null);
+    }
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -642,6 +654,7 @@ export default function App() {
       const p = new URLSearchParams(window.location.search);
       const rel = p.get("rel");
       if (rel && REL_IDS.has(rel)) setRelWhich(rel);
+      setChartView(p.get("v") || null); // deep-linked sub-view for a toggle chart
       const id = p.get("chart") || p.get("tab"); // ?tab= kept for old shared links
       if (p.get("view") === "charts") setRoute("gallery");
       else if (p.get("view") === "aeon") setRoute("aeon");
@@ -665,6 +678,9 @@ export default function App() {
   // (no live relative-asset switching) and always the desktop layout.
   const chartEl = (id, { preview = false } = {}) => {
     const mob = preview ? false : isMobile;
+    // Deep-linked sub-view (?…&v=<value>) for the current toggle chart. Never applied to
+    // gallery mini-previews (they always show each chart's own default view).
+    const iv = preview ? undefined : chartView;
     switch (id) {
       case "channel": return <ChannelChart series={priceData} m={m} isMobile={mob} />;
       case "roadmap": return <RoadmapChart series={priceData} m={m} isMobile={mob} preview={preview} />;
@@ -674,30 +690,30 @@ export default function App() {
       case "picycle": return <PiCycleChart series={priceData} isMobile={mob} preview={preview} />;
       case "rsidots": return <RsiDotsChart series={priceData} isMobile={mob} />;
       case "runningroi": return <RunningRoiChart series={priceData} isMobile={mob} preview={preview} />;
-      case "drawdown": return <DrawdownChart series={priceData} isMobile={mob} />;
-      case "monthly": return <SeasonalityGrid series={priceData} isMobile={mob} />;
-      case "rally": return <RallyChart series={priceData} m={m} isMobile={mob} />;
+      case "drawdown": return <DrawdownChart series={priceData} isMobile={mob} initialView={iv} />;
+      case "monthly": return <SeasonalityGrid series={priceData} isMobile={mob} initialView={iv} />;
+      case "rally": return <RallyChart series={priceData} m={m} isMobile={mob} initialView={iv} />;
       case "spxbtc": return <SpxBtcChart series={priceData} isMobile={mob} />;
       case "btccycle": return <BtcCycleChart series={priceData} isMobile={mob} />;
       case "relative": return <RelativeChart series={priceData} isMobile={mob} which={relWhich} setWhich={preview ? () => {} : setRelWhich} />;
-      case "vsmajors": return <RaceChart series={priceData} isMobile={mob} preview={preview} fetchCoins={fetchMajors} coins={MAJORS_META} basketLabel="majors" />;
-      case "vsmemekings": return <RaceChart series={priceData} isMobile={mob} preview={preview} fetchCoins={fetchMemekings} coins={MEMEKINGS_META} basketLabel="memekings" />;
+      case "vsmajors": return <RaceChart series={priceData} isMobile={mob} preview={preview} initialView={iv} fetchCoins={fetchMajors} coins={MAJORS_META} basketLabel="majors" />;
+      case "vsmemekings": return <RaceChart series={priceData} isMobile={mob} preview={preview} initialView={iv} fetchCoins={fetchMemekings} coins={MEMEKINGS_META} basketLabel="memekings" />;
       case "supply": return <SupplyConviction price={last.price} isMobile={mob} />;
       case "holders": return <HolderscanDashboard />;
       case "holdersprice": return <HoldersPriceChart isMobile={mob} preview={preview} />;
-      case "mvrv": return <OnchainValueChart isMobile={mob} preview={preview} />;
+      case "mvrv": return <OnchainValueChart isMobile={mob} preview={preview} initialView={iv} />;
       case "supplyprofit": return <SupplyInProfitChart isMobile={mob} preview={preview} />;
       case "hodlwaves": return <HodlWavesChart isMobile={mob} preview={preview} />;
       case "whales": return <WhalesChart isMobile={mob} preview={preview} />;
-      case "survivorship": return <SurvivorshipChart isMobile={mob} />;
+      case "survivorship": return <SurvivorshipChart isMobile={mob} initialView={iv} />;
       case "exitflow": return <ExitFlowChart isMobile={mob} />;
-      case "smartmoney": return <SmartMoneyChart isMobile={mob} />;
+      case "smartmoney": return <SmartMoneyChart isMobile={mob} initialView={iv} />;
       case "walletwaves": return <WalletWavesChart isMobile={mob} preview={preview} />;
       case "wealthwaves": return <WealthWavesChart isMobile={mob} preview={preview} />;
       case "concentration": return <HolderConcentrationChart isMobile={mob} preview={preview} />;
       case "entities": return <EntityClustersChart isMobile={mob} preview={preview} />;
       case "bagsprofile": return <CostBasisProfileChart isMobile={mob} preview={preview} price={last?.price} />;
-      case "urpdage": return <UrpdAgeChart isMobile={mob} preview={preview} price={last?.price} />;
+      case "urpdage": return <UrpdAgeChart isMobile={mob} preview={preview} price={last?.price} initialView={iv} />;
       case "urpdterrain": return <UrpdTerrain3D isMobile={mob} />;
       case "lthsth": return <LthSthChart isMobile={mob} preview={preview} />;
       case "sopr": return <SoprChart isMobile={mob} preview={preview} />;
@@ -706,13 +722,13 @@ export default function App() {
       case "spxcity": return <SpxCity isMobile={mob} preview={preview} initialMode="spx" />;
       case "citylab": return <CityLab isMobile={mob} />;
       case "whaleswatching": return <WhalesWatching isMobile={mob} />;
-      case "whalecohorts": return <WhaleCohortsChart isMobile={mob} />;
-      case "citygrowth": return <CityHistoryChart isMobile={mob} preview={preview} />;
-      case "cityflow": return <CityFlowChart isMobile={mob} preview={preview} />;
+      case "whalecohorts": return <WhaleCohortsChart isMobile={mob} initialView={iv} />;
+      case "citygrowth": return <CityHistoryChart isMobile={mob} preview={preview} initialView={iv} />;
+      case "cityflow": return <CityFlowChart isMobile={mob} preview={preview} initialView={iv} />;
       case "cexsupply": return <CexSupplyChart isMobile={mob} preview={preview} />;
       case "cexflow": return <CexFlowChart isMobile={mob} preview={preview} />;
       case "cexvenues": return <CexVenuesChart isMobile={mob} preview={preview} />;
-      case "cexvenflow": return <CexVenFlowChart isMobile={mob} preview={preview} />;
+      case "cexvenflow": return <CexVenFlowChart isMobile={mob} preview={preview} initialView={iv} />;
       case "walletgrowth": return <WalletGrowthChart isMobile={mob} preview={preview} />;
       case "mvrvbtc": return <MvrvContextChart isMobile={mob} preview={preview} />;
       case "altmarket": return <AltMarketChart isMobile={mob} preview={preview} />;
@@ -727,8 +743,8 @@ export default function App() {
       case "aeonrarity": return <AeonRarityChart isMobile={mob} preview={preview} />;
       case "aeonvalue": return <AeonValueChart isMobile={mob} />;
       case "aeonvsspx": return <AeonVsSpxChart isMobile={mob} />;
-      case "aeonleadlag": return <AeonLeadLagChart isMobile={mob} />;
-      case "aeontraders": return <AeonTradersChart isMobile={mob} />;
+      case "aeonleadlag": return <AeonLeadLagChart isMobile={mob} initialView={iv} />;
+      case "aeontraders": return <AeonTradersChart isMobile={mob} initialView={iv} />;
       case "aeonvaluation": return <AeonValuationChart isMobile={mob} />;
       case "aeonsalesrarity": return <AeonSalesRarityChart isMobile={mob} />;
       case "aeontraits": return <AeonTraitsChart isMobile={mob} />;
