@@ -501,6 +501,7 @@
       <div class="sh"><span>valuation snapshot</span></div>
       <div class="row" data-snap="price"><span class="k">price</span><span class="v">$0.332</span></div>
       <div class="row" data-snap="composite"><span class="k">composite</span><span class="v g">16%</span></div>
+      <div class="row" data-snap="fair"><span class="k">fair value</span><span class="v">&mdash;</span></div>
       <div class="row" data-snap="val"><span class="k">valuation</span><span class="v g">DEEPLY UNDERVALUED</span></div>
       <div class="smeter"><div class="sbar"></div><div class="smask" id="smask" style="width:84%"></div><div class="snd" id="snd" style="left:16%"></div></div>
       <div class="row" data-snap="range"><span class="k">history · range</span><span class="v">2 &ndash; 90</span></div>
@@ -899,14 +900,14 @@
     const T=[]; let price=null;
     if(ph&&ph.length) price=ph[ph.length-1].price;
     else if(onc&&onc.length) price=onc[onc.length-1].spot;
-    if(price!=null){ const fair=Math.exp(predict(day));
+    if(price!=null){ const fair=Math.exp(predict(day)); LIVE.fair=fair; LIVE.price=price;
       const z=Math.log(price)-predict(day); let bi=BANDS.length-2; for(let i=0;i<BANDS.length-1;i++){ if(z<BANDS[i+1]){ bi=i; break; } }
       const bn=LAB[bi][0], bstr=String(bi+1).padStart(2,'0');
       setKpi('price','$'+fmtP(price),'spot · live'); setKpi('band',bn,bstr+' / 09'); setKpi('fair','$'+fair.toFixed(2),(fair/price).toFixed(1)+'× up');
       setSnap('price','$'+fmtP(price)); setSnap('model','$'+fair.toFixed(2));
       const sig=z/STD; setSnap('dev',(sig>=0?'+':'−')+Math.abs(sig).toFixed(2)+'σ');
       T.push(['$SPX','$'+fmtP(price),''],['FAIR VALUE','$'+fair.toFixed(2),''],['BAND',bn+' · '+bstr+'/09','']); }
-    if(onc&&onc.length){ const r=onc[onc.length-1];
+    if(onc&&onc.length){ const r=onc[onc.length-1]; LIVE.rp = r.rp>0 ? r.rp : (r.mvrv>0 && LIVE.price ? LIVE.price/r.mvrv : 0);
       if(r.mvrv!=null){ setKpi('mvrv',r.mvrv.toFixed(2)+'×',r.mvrv<1?'underwater':'above cost'); T.push(['MVRV',r.mvrv.toFixed(2)+'×','']); }
       if(r.sip!=null){ setKpi('profit',Math.round(r.sip)+'%','of supply'); T.push(['SUPPLY IN PROFIT',Math.round(r.sip)+'%','']); }
       if(r.age&&r.age[4]!=null) setKpi('held',r.age[4].toFixed(1)+'%','diamond'); }
@@ -917,6 +918,8 @@
       const comp=Math.round(val.cur.composite*100), zone=(val.zones||[]).find(z=>val.cur.composite<=z.max);
       setKpi('composite',comp+'%',zone?zone.label.toLowerCase():''); setSnap('composite',comp+'%'); if(zone) setSnap('val',zone.label.toUpperCase());
       if(val.series&&val.series.length){ const cs=val.series.map(r=>Math.round(r[1]*100)); setSnap('range', Math.min(...cs)+' – '+Math.max(...cs)); }
+      // composite fair value: the blend of the composite's two $-anchored lenses (power-law model + on-chain cost basis) — where its value lenses read neutral
+      if(LIVE.fair>0 && LIVE.rp>0) setSnap('fair','$'+fmtP((LIVE.fair+LIVE.rp)/2));
       const mask=$('#smask'), snd=$('#snd'); if(mask) mask.style.width=(100-comp)+'%'; if(snd) snd.style.left=comp+'%';
       const cn=$('#capnow'); if(cn) cn.textContent=comp;
       const cz=$('#capzone'); if(cz&&zone) cz.textContent=zone.label.toLowerCase();
