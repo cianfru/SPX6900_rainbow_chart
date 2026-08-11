@@ -35,33 +35,30 @@ export const CHART_GROUPS = [
     ],
   },
   {
-    title: "On-Chain",
+    title: "Holders",
     color: "#60a5fa",
-    desc: "Holders and cost basis on-chain.",
+    desc: "Who holds SPX — the holder base, its conviction, and how it grew across chains.",
     charts: [
       { id: "supply", title: "Holder Conviction", post: "distribution", desc: "Supply split across holder-conviction tiers." },
       { id: "holders", title: "Holders", post: "marketcap", desc: "The holder base and its average cost basis." },
       { id: "holdersprice", title: "Holders vs Price", post: "marketcap", desc: "Does accumulation hold through the price swings?" },
-      { id: "supplyprofit", title: "Supply in Profit", post: "supplyprofit", desc: "Share of supply held above its on-chain cost basis." },
       { id: "hodlwaves", title: "HODL Waves", post: "hodlwaves", desc: "Supply by holding age — fresh coins to diamond hands." },
       { id: "freefloat", title: "Liquid vs Illiquid Supply", post: "freefloat", desc: "How much supply is sticky (long-term held) vs likely to move — SPX vs Bitcoin." },
-      { id: "concentration", title: "Holder Concentration", post: "concentration", desc: "The largest wallets' share of supply over time." },
-      { id: "entities", title: "Wallet Clusters", desc: "Who owns what — the addresses one owner controls, linked into a single entity from on-chain SPX flows." },
       { id: "walletgrowth", title: "Wallet Growth", post: "walletgrowth", desc: "Wallets across Ethereum, Base and Solana, from launch." },
-      { id: "mvrv", title: "MVRV & Realized Price", post: "breakeven", desc: "Price vs the crowd's cost basis — MVRV and its Z-score." },
-      { id: "nupl", title: "NUPL", post: "nupl", desc: "Are holders in profit or loss? Sentiment from euphoria to capitulation." },
-      { id: "mvrvbtc", title: "MVRV vs Bitcoin", desc: "SPX6900's MVRV on Bitcoin's decade of MVRV — are we down similarly?" },
-      { id: "longshort", title: "On-Chain Positioning", desc: "Hyperliquid perp funding — are traders leaning long or short?" },
     ],
   },
   {
-    title: "Cost Basis",
+    title: "Cost Basis & Profit",
     color: "#38bdf8",
-    desc: "Where the bags were bought — cost basis, profit and realized flows.",
+    desc: "Where the bags were bought, and whether holders are in profit — cost basis, MVRV and realized flows.",
     charts: [
       { id: "bagsprofile", title: "Cost Basis vs Price", desc: "A volume-profile: the price line, and where the bags were bought as bars on the price axis — live." },
       { id: "urpdage", title: "Cost Basis × Age", post: "urpdage", desc: "The walls of supply mapped by holder age — same price, different conviction." },
       { id: "urpdterrain", title: "Cost Basis Terrain (3D)", desc: "The cost-basis distribution as a landscape deforming week by week, with price sweeping through it." },
+      { id: "supplyprofit", title: "Supply in Profit", post: "supplyprofit", desc: "Share of supply held above its on-chain cost basis." },
+      { id: "mvrv", title: "MVRV & Realized Price", post: "breakeven", desc: "Price vs the crowd's cost basis — MVRV and its Z-score." },
+      { id: "mvrvbtc", title: "MVRV vs Bitcoin", desc: "SPX6900's MVRV on Bitcoin's decade of MVRV — are we down similarly?" },
+      { id: "nupl", title: "NUPL", post: "nupl", desc: "Are holders in profit or loss? Sentiment from euphoria to capitulation." },
       { id: "lthsth", title: "Long vs Short-Term Holders", post: "lthsth", desc: "Supply by holder age and profit/loss — who's holding, and are they up?" },
       { id: "sopr", title: "SOPR", post: "sopr", desc: "When coins move, are they sold at a profit or a loss?" },
       { id: "nrpl", title: "Net Realized Profit/Loss", post: "nrpl", desc: "The dollar size of gains vs losses locked in when coins move." },
@@ -69,10 +66,12 @@ export const CHART_GROUPS = [
     ],
   },
   {
-    title: "Cohorts",
+    title: "Whales & Survivors",
     color: "#818cf8",
-    desc: "Whales, survivors and smart money — who holds and who left.",
+    desc: "Who owns what — the biggest wallets, the clusters behind them, and who's still here.",
     charts: [
+      { id: "concentration", title: "Holder Concentration", post: "concentration", desc: "The largest wallets' share of supply over time." },
+      { id: "entities", title: "Wallet Clusters", desc: "Who owns what — the addresses one owner controls, linked into a single entity from on-chain SPX flows." },
       { id: "whales", title: "Whale Supply", post: "whales", desc: "What the biggest wallets hold, and whether there are more of them." },
       { id: "whalecohorts", title: "Whale Counts Over Time", post: "whalecensus", desc: "How many wallets sit in each size cohort, week by week — the base broadened, the mega-whales thinned." },
       { id: "walletwaves", title: "Wallet-Size Waves", post: "walletwaves", desc: "Supply by how big the wallet is — HODL waves cut by size, not age." },
@@ -80,11 +79,7 @@ export const CHART_GROUPS = [
       { id: "survivorship", title: "Who's Still Here", post: "survivorship", desc: "Of everyone who ever held SPX, who remains — by the era they first bought." },
       { id: "exitflow", title: "How Holders Left", post: "exitmap", desc: "Of everyone who left, when they sold and whether they left in profit or at a loss — over the price." },
       { id: "smartmoney", title: "Smart Money", post: "smartmoney", desc: "The live cohort of proven top-timers (ROI ≥5×, still holding) — aggregate holdings and net-flow." },
-      { id: "whaleswatching", title: "Whales Watching", post: "whalebehaviour", locked: true, desc: "Every wallet over 100k SPX \u2014 a 3D city of towers or a live board pulsing green/red as they buy and sell." },
-      { id: "citylab", title: "City Lab (3D)", dev: true, desc: "The same block drawn two ways \u2014 comparing the current look against a more realistic one." },
-      // City Lab stays `dev` (hidden, direct-link only) — the internal A/B page. SPX City itself is
-      // no longer a gallery tile: it has its own top-level tab (/city). Legacy ?chart=whalewatch /
-      // ?chart=spxcity links redirect to /city (see App.jsx apply()).
+      { id: "whaleswatching", title: "Whales Watching", post: "whalebehaviour", locked: true, desc: "Every wallet over 100k SPX — a 3D city of towers or a live board pulsing green/red as they buy and sell." },
     ],
   },
   {
@@ -99,14 +94,15 @@ export const CHART_GROUPS = [
     ],
   },
   {
-    title: "Bitcoin & Markets",
+    title: "Markets & Positioning",
     color: "#f7931a",
-    desc: "SPX6900 against Bitcoin and the majors.",
+    desc: "SPX6900 against Bitcoin and the majors, plus derivatives positioning.",
     charts: [
       { id: "spxbtc", title: "SPX vs BTC", post: "btc", desc: "The SPX6900 / Bitcoin ratio over time." },
       { id: "btccycle", title: "Bitcoin Cycle", post: "cycle", desc: "SPX6900 tracing Bitcoin's last cycle." },
       { id: "relative", title: "Rich / Cheap vs Majors", post: "majors", desc: "Valuation ratio vs BTC, ETH and SOL." },
       { id: "altmarket", title: "SPX vs the Alt Market", post: "altmarket", desc: "Rich or cheap vs the whole alt sector (ex-BTC/ETH/stables)." },
+      { id: "longshort", title: "Perp Positioning", desc: "Hyperliquid perp funding — are traders leaning long or short?" },
     ],
   },
   {
@@ -172,6 +168,10 @@ export const CITY_GROUPS = [
     charts: [
       { id: "citygrowth", title: "City Growth", post: "citygrowth", desc: "How SPX City grew — citizens (≥5k held 90d) and its total value climbing through the drawdown." },
       { id: "cityflow", title: "City Flow", post: "citychurn", desc: "The churn under the count — arrivals vs departures, cohort survivorship, and average holding." },
+      // City Lab stays `dev` (hidden, direct-link only ?chart=citylab) — the internal A/B page that
+      // draws the same block two ways. It lives here rather than the Charts gallery because it's a city
+      // tool; dev charts never render as a gallery tile regardless of group.
+      { id: "citylab", title: "City Lab (3D)", dev: true, desc: "The same block drawn two ways — comparing the current look against a more realistic one." },
     ],
   },
 ];
@@ -233,7 +233,7 @@ export const METHOD_FAMILIES = [
   },
   {
     id: "04", name: "Cost basis & holder behaviour",
-    charts: ["supply", "holders", "holdersprice", "supplyprofit", "hodlwaves", "freefloat", "concentration",
+    charts: ["supply", "holders", "holdersprice", "supplyprofit", "hodlwaves", "freefloat", "concentration", "entities",
              "whales", "whalecohorts", "survivorship", "exitflow", "smartmoney", "walletwaves", "wealthwaves",
              "bagsprofile", "urpdage", "urpdterrain", "lthsth", "sopr", "nrpl", "liveliness", "whaleswatching", "citylab", "walletgrowth", "mvrv", "nupl", "mvrvbtc"],
   },
