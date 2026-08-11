@@ -581,7 +581,8 @@
   - **⭐ THE CITY CAN NEVER SHOW EVERYONE ON THE COIN SIDE — say so.** ETH 49.5k + Base 114.5k + Solana
     66k ≈ **230k wallets** against 6,275 lots. Whale City is inherently a **top-N view** and must be
     labelled as one; the AEON side, at 3,333 tokens, genuinely fits.
-- **⭐⭐ GREENLIT TO BUILD — "WHALES WATCHING" 3D (owner, 2026-08-03).** A whale-activity monitor: at a glance, see
+- **✅ BUILT — "WHALES WATCHING" 3D (owner greenlit 2026-08-03).** Shipped as the listed-but-locked chart
+  **`whaleswatching`** (On-Chain group, `locked:true`, gated like the cities). A whale-activity monitor: at a glance, see
   WHO IS BUYING OR SELLING BY WALLET SIZE. Distinct from Whale City (which is a realistic city of the biggest
   wallets) — this is deliberately ABSTRACT and about BEHAVIOUR, not geography.
   - **Scope: only wallets ≥ 100k SPX.** The real whales. (Whale City's bar is lower / top-N; this is a hard 100k floor.)
@@ -601,7 +602,13 @@
     the FIFO/cohort reconstructions). Build on the shared `city-render.js` + `Skyline3D.jsx` (cube geometry path +
     beams as thin emissive columns; cohort grouping via the placement layer). Gate it like the other city pages.
 
-- **🔲🔲 NEXT SESSION — CITY TVL + INHABITANTS, WITH HISTORY (owner, 2026-08-06).** Two headline stats for the city
+- **✅ MOSTLY SHIPPED — CITY TVL + INHABITANTS, WITH HISTORY (owner, 2026-08-06).** The historical line chart + a value
+  card LANDED: the **`City Growth` site chart** (`CityHistoryChart.jsx`, id `citygrowth`) plots citizens AND city TVL over
+  time (climbing through the drawdown), and the **`cityvalue` card** (`scripts/bot/city-value-card.mjs`) is the dollar-TVL
+  sibling of the `citygrowth`/citizens card. Both ride the daily city-history build. **🔲 Possibly still open (verify):** the
+  SPX-City 3D-page HEADER showing the current TVL + inhabitants tiers with Δw/Δm deltas (the chart covers the history; the
+  in-page header stat may not be wired). Below = the original brief:
+- **🔲 ORIGINAL — CITY TVL + INHABITANTS, WITH HISTORY (owner, 2026-08-06).** Two headline stats for the city
   page + a historical line chart of each ("cool to see over time"):
   - **City TVL** = the total USD value of every wallet in the city (Σ balance × live SPX price), with the **week-over-week
     and month-over-month +/- change** shown next to it. Data is in hand — whales.json carries per-wallet `bal`, and the
@@ -657,6 +664,15 @@
   **Owner hardware note (2026-07-29): iPhone 13 Pro Max + MacBook Air M1 + 27" iMac all run the full city at full
   res with no issues** — so the floor is fine on decent hardware; the tail risk is visitors' low-end Androids,
   which the adaptive resolution below now covers.
+- **✅ "LAUNCH RESIDENTS / FOUNDERS" VIEW KILLED 2026-08-11 (owner: "launch residents shows zero… kill the chart").**
+  It was structurally degenerate, not a glitch: a resident needs **≥5,000 SPX held 90 DAYS**, impossible in the launch week
+  (token is 0 days old), so the "founders" cohort (residents on day 1) was empty-by-construction — n0=1, read "0 / 1". The
+  same launch baseline made two "since launch" multiples nonsense (city "4,957× bigger"). Fixes: removed the **Founders view +
+  "launch residents left" metric** from `CityFlowChart.jsx` (the **Survival** view already tells "the launch crowd is nearly
+  gone" honestly, from real per-quarter cohorts); the **`citychurn` card + post** now read survivorship from the earliest REAL
+  arrival cohort (`vintages`, ≥20 wallets — "101 of the 627 who arrived in 2023 Q4 remain, 16%") and dropped the "N× bigger than
+  launch" claim; `CityHistoryChart`'s "citizens since launch ×" is baselined on the city's FORMATION (first row ≥500 residents,
+  ~late 2023) and relabelled "citizens since \<month\>". LESSON: any launch-anchored stat on a 90-day-residency metric is degenerate.
 - **✅ SURVIVORSHIP / COHORT ANALYSIS SHIPPED 2026-07-29 (owner asked to mine the time-machine finding).** The
   slider revealed enormous churn; this quantifies it. `scripts/build-cohort-survival.mjs` re-slices
   spx-timeline.json → `public/cohort-survival.json` (~5KB, daily via onchain-dune.yml, audit-registered):
@@ -842,6 +858,48 @@
   synthetic frame sequences — that is the ONLY valid verification path for frame-pacing logic in this repo.
   Observability: `window.__cityStats()` now reports `pixelRatio` + `frameMs` — check them on real hardware.
 
+## 🧩 ENTITY CLUSTERING — "who owns what" (built 2026-08-11, VALIDATED, live)
+- Owner flagged whales **splitting/consolidating into fresh wallets** to hide holdings + drop out of the city. Built a
+  3-phase pipeline off the same FIFO archive (`build-onchain-local.mjs`), all guarded against the one dishonesty that
+  matters here — **over-merging OVERSTATES concentration**, so every rule errs conservative and flags rather than fuses.
+- **Phase 0 — self-move detection (`scanSelfMoves`, in-engine).** Same-BLOCK splits (whale → N fresh near-equal wallets)
+  + consolidations (N emptying wallets → 1 fresh) are detected so the pieces/target **INHERIT the source coin age** (not
+  reset to fresh) and the move is NOT counted as a spend → a wallet hop keeps its city standing. Emits `public/self-moves.json`.
+  ⚠ MEMORY: scans the engine's OWN already-sorted tx IN PLACE — never copies the 2.7M array (a prior copy OOM'd CI).
+- **Phase 1 — is-contract cache (`scripts/enrich-addr-types.mjs` → `public/addr-types.json`).** `eth_getCode` per NEW
+  address (keyless public RPC, monotonic, immutable type). A self-move/cluster that TOUCHES a contract/Safe is surfaced but
+  NOT re-aged/linked (a Safe fan-out could be a treasury distribution). Runs after the FIFO step in `onchain-dune.yml`,
+  reads self-moves.json + entities.json addresses.
+- **Phase 2 — the clustering engine (`clusterEntities`).** Generalises self-moves to unequal amounts across days. Links a
+  wallet to another **plain EOA** only on: **FUND** (a fresh/empty-before wallet seeded ≥50k SPX) or **DRAIN** (a wallet
+  empties ≥90% of its balance into another). NEVER on a partial send between two live wallets (payment/sale), NEVER through a
+  CEX/LP/contract (an exit). Union-find → entities. **Three guards:** in-degree HUB (>8 funders = untagged service, drop
+  edges in), out-degree FAN-OUT (>40 recipients = distributor/router, drop edges out), and a SIZE cap (>30 wallets = flagged
+  oversized, kept for review, never trusted). Emits `public/entities.json` (+ per-entity combined `bal`/`holders`, `spot`,
+  `heldSupply`). **⭐ THE SUPERNODE LESSON:** the first live run fused a **5,402-wallet blob** because untagged routers (1inch
+  `0x1111…1582`, a `0x0000…`-prefixed settlement contract) were treated as EOAs; the addr-types cache (self-heals next run) +
+  the fan-out guard (same-run) collapsed it → 106 → **66** as the cache converges. 94% of entities are small 2–5-wallet
+  clusters (real personal splits). Unit-tested (8 cases); memory-safe verified (654MB heap on 1.2M synthetic tx @ 2GB cap).
+- **Phase 3 — the "Wallet Clusters" view (`src/EntityClustersChart.jsx`, id `entities`, On-Chain group).** A disclosed,
+  toggleable SECOND lens beside the by-wallet charts: ranked cluster list, each expandable to member wallets (Etherscan
+  links) + the drain/fund timeline + a Bubblemaps cross-check. Shows **real concentration** — the largest OWNER controls
+  **14.16M SPX (~2.2% of holder supply) across 5 wallets**, invisible in the by-wallet view. Search, hide-flagged toggle.
+  The raw by-wallet charts stay the DEFAULT; the page states its own limits.
+- **⭐ VALIDATED against Bubblemaps** (owner supplied a cluster 2026-08-11): our engine had already found all 4 of its
+  addresses + a 5th, via the SPX fund/drain chain (`0xa10b30` common funder). The 8-vs-22 top-holder gap vs Bubblemaps is
+  explained, NOT a bug: (a) **we read SPX flows ONLY** — a shared ETH/gas "magic node" funder that never touched SPX is
+  invisible to us (a data limitation, not a knob); (b) Bubblemaps shows CEX/contract fans as clusters, which we correctly
+  exclude. So this is a **floor** on real clustering, never an over-count — stated on the page (the honesty moat).
+- **🔲 NEXT NATURAL STEP — ENTITY-ADJUSTED CONCENTRATION (owner greenlit for memory 2026-08-11).** Recompute top-10/top-100
+  concentration (and the whale cohort / gini, and the city) by **OWNER instead of by wallet**, as a toggle on the existing
+  `concentration` chart (raw ↔ entity). The engine already has every entity's combined balance, so it's now cheap: sum member
+  balances into one holder, re-rank, re-take top-N. RULES: use ONLY unflagged, non-hub clusters (never fuse a flagged/oversized
+  one — that would overstate concentration, the exact error we guard against); show BOTH numbers side-by-side, method disclosed;
+  keep the ETH-funder limitation caveat. This is the payoff of Phases 1-3 — "the real top-10 is Y% once you collapse the
+  wallet-splitters." Emit an entity-adjusted top-N series from the engine (it holds the balances) or compute client-side from
+  entities.json + whales.json. **Later mini-project (its own data pull, NOT a knob):** ETH common-funder linking to close the
+  Bubblemaps gap — needs a separate ETH-funding extract.
+
 ## Backlog / decisions
 - **🔲🔲 DUE AUG 1 — MONTHLY RECAP (July), UPGRADED (owner, 2026-07-31: "after four weeks of intense work we can give a
   better recap. Real intel while selecting the best cards").** The recap engine is `scripts/bot/recap-thread.mjs`
@@ -894,7 +952,20 @@
   nav pill, render case). Sections: the rainbow (frozen-fit explainer + live receipt) · the valuation composite (six weighted
   lenses, ranked over own history) · the seven families · what none of it can tell you (5 limits) · sources + cadence.
   Browser-verified. If ever cutting it again, that's an OWNER call, not a Claude call.
-- **⭐⭐ NEXT WORK — PROFESSIONAL LANDING-PAGE REDESIGN, RAINBOW-ANCHORED (owner, 2026-07-26).** Owner is iterating a
+- **✅ SHIPPED & LIVE — the terminal landing (owner iterated 2026-07/08).** The redesign is BUILT and serving: it lives in
+  **`public/landing-next.html`** (a self-contained terminal-aesthetic page — pixel VGA font, near-black ground, single green
+  accent, mono data, uppercase micro-labels, rainbow hairline, a boot sequence, LOOK toggles Blend/Green-DOS/Calm), mounted
+  full-bleed as an **iframe** by App.jsx at `?view=next` AND at the home route `/` (**`HOME_IS_LANDING = true`** — so the
+  terminal landing IS the homepage now; the old React `LandingPage.jsx` is retired from `/`). The generated nav
+  (`@gen-menu` block) is rebuilt from charts-catalog by `scripts/build-landing-nav.mjs` during `npm run build` — DO NOT hand-edit
+  it. Verified desktop + mobile (mobile just needs ~3s for the boot to reveal). **⚠ OPEN, owner-review items (Claude flagged 2026-08-11):**
+  (1) **RAINBOW-ANCHOR TENSION** — the owner's own pinned ruling was "the rainbow must be the ANCHOR / first+largest visual (the
+  real 9-band power-law chart with price woven through)", but the shipped page leads with the **valuation COMPOSITE** as the hero
+  chart and demotes the rainbow to a hairline + the composite's fill colours; the actual power-law rainbow band chart is NOT on the
+  landing. Reconcile: either the direction evolved to composite-first (fine, update the ruling) or add the real rainbow chart as the
+  hero. (2) a **`q is not defined`** runtime ReferenceError fires (rendering survives it — likely a live-data/clock handler; track down).
+  (3) the top **stats ticker clips at the left edge** ("FAIR VALUE"→"AIR VALUE", "BAND"→"ND"). Below = the ORIGINAL 2026-07-26 brief, kept for the honesty/anchor rationale:
+- **⭐⭐ ORIGINAL BRIEF — PROFESSIONAL LANDING-PAGE REDESIGN, RAINBOW-ANCHORED (owner, 2026-07-26).** Owner is iterating a
   more professional/editorial homepage (dark data-terminal look: near-black ground, bold grotesque display, single green
   accent, mono for data, uppercase micro-labels, rainbow hairline). Design direction is PINNED by the owner's mock — follow
   it, don't reinvent. **Two owner rulings that are load-bearing:**
