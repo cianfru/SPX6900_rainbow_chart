@@ -208,6 +208,7 @@ async function pricesCsv() {
 function runFifo(tPath, pPath) {
   return new Promise((resolve, reject) => {
     const p = spawn("node", [
+      "--max-old-space-size=6144",   // ~2.7M transfers + per-lot state runs hot near the 2GB default
       join(root, "scripts/build-onchain-local.mjs"),
       `--transfers=${tPath}`, `--prices=${pPath}`,
       `--out=${join(root, "public/onchain.json")}`, `--urpd=${join(root, "public/urpd.json")}`,
