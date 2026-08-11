@@ -1388,11 +1388,13 @@ export default function App() {
         // rainbow hairline · the real interactive chart. Same design as the gallery.
         <div className="tchart" style={{ maxWidth: MAX_W, margin: "0 auto" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16, flexWrap: "wrap" }}>
-            <button onClick={back} title={`Back to ${label}`} style={{
-              display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 11px", borderRadius: 7, cursor: "pointer",
-              background: "linear-gradient(180deg,var(--panel),var(--panel2))", border: "1px solid var(--line2)", color: "var(--dim)",
-              fontFamily: "var(--mono)", fontSize: 12, letterSpacing: ".04em", textTransform: "uppercase",
-            }}>‹ {label}</button>
+            <button onClick={back} title={`Back to ${label}`} aria-label={`Back to ${label}`} className="tback" style={{
+              display: "inline-flex", alignItems: "center", justifyContent: "center", width: 34, height: 34, borderRadius: "50%",
+              cursor: "pointer", background: "linear-gradient(180deg,var(--panel),var(--panel2))", border: "1px solid var(--line2)",
+              color: "var(--dim)", flexShrink: 0,
+            }}>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6" /></svg>
+            </button>
             <span style={{ fontFamily: "var(--mono)", fontSize: 12, letterSpacing: ".1em", textTransform: "uppercase", color: gcol, textShadow: `0 0 9px ${gcol}66` }}>{grp}</span>
             <button onClick={shareChart} title="Share this chart" style={{
               marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 7,

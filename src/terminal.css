@@ -80,3 +80,7 @@
   .tzone .subdrop{ position:static; left:auto; min-width:0; border:none; box-shadow:none; background:transparent; padding:0 0 2px 14px; }
   .tzone .leafprev{ display:none!important; }
 }
+
+/* Apple-style round back button on the chart page */
+.tzone .tback{ transition:border-color .14s, color .14s, background .14s; }
+.tzone .tback:hover{ border-color:var(--tx); color:var(--tx); }
