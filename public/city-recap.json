@@ -11,9 +11,9 @@
     "residents": 4965,
     "residentsThen": 4923,
     "residentsDelta": 42,
-    "heldNow": 580716235,
+    "heldNow": 580713227,
     "heldThen": 585087891,
-    "heldDelta": -4371656,
+    "heldDelta": -4374664,
     "newResidents": 51,
     "departed": 9,
     "upgraded": 2,
@@ -120,12 +120,12 @@
       {
         "a": "0x67336cec42645f55059eff241cb02ea5cc52ff86",
         "short": "0x6733…ff86",
-        "bal": 212383,
+        "bal": 210168,
         "days": 259,
-        "rank": 367,
+        "rank": 368,
         "family": "concrete",
         "height": 6.7,
-        "gained": 43741
+        "gained": 41526
       },
       {
         "a": "0x504ce9e51e508c85a161058c12e970a903d482fc",
@@ -230,9 +230,9 @@
     "residents": 4965,
     "residentsThen": 4942,
     "residentsDelta": 23,
-    "heldNow": 580716235,
+    "heldNow": 580713227,
     "heldThen": 581561880,
-    "heldDelta": -845645,
+    "heldDelta": -848653,
     "newResidents": 184,
     "departed": 161,
     "upgraded": 18,
@@ -408,12 +408,12 @@
       {
         "a": "0x67336cec42645f55059eff241cb02ea5cc52ff86",
         "short": "0x6733…ff86",
-        "bal": 212383,
+        "bal": 210168,
         "days": 259,
-        "rank": 367,
+        "rank": 368,
         "family": "concrete",
         "height": 6.7,
-        "gained": 89350
+        "gained": 87135
       },
       {
         "a": "0xbbbbbbbbbb9cc5e90e3b3af64bdaf62c37eeffcb",
@@ -479,6 +479,6 @@
       }
     ],
     "yearHeldMilestones": 246,
-    "tweet": "🏙 This month in SPX City\n\n184 moved in, 161 moved out — 18 buildings rose a tier as holders grew and aged in.\n\nA rank #981 holder's tower went from brick low-rise to concrete mid-rise. -846k SPX now stands across 4,965 residents.\n\nEvery building is a real wallet — reproducible on-chain."
+    "tweet": "🏙 This month in SPX City\n\n184 moved in, 161 moved out — 18 buildings rose a tier as holders grew and aged in.\n\nA rank #981 holder's tower went from brick low-rise to concrete mid-rise. -849k SPX now stands across 4,965 residents.\n\nEvery building is a real wallet — reproducible on-chain."
   }
 }
