@@ -1,5 +1,6 @@
 import { useState, useRef } from "react";
 import { CHART_GROUPS, AEON_GROUPS, CITY_GROUPS } from "./charts-catalog.js";
+import { GCOL } from "./terminal-colors.js";
 
 // The terminal cascade nav for the sub-pages — mirrors the ?view=next landing menu
 // EXACTLY: same rainbow-band group colours (GCOL), same ALL row, same group→chart
@@ -9,9 +10,6 @@ import { CHART_GROUPS, AEON_GROUPS, CITY_GROUPS } from "./charts-catalog.js";
 const LOGO = "/spx6900logo.png";
 const X_URL = "https://x.com/SPX6900Rainbow";
 const KRAKEN_URL = "https://proinvite.kraken.com/9f1e/8985jw0l";
-
-// the mockup's per-group cursor palette — rainbow bands in the agreed order (b2,b6,b4,b8,b0,b3,b7,b5)
-const GCOL = ["#1f8fe0", "#f0a915", "#37d067", "#e5342f", "#5b2a86", "#12c2c2", "#f2621b", "#c7d21f"];
 
 // deterministic sparkline for the cascade preview (same as the landing's mspark)
 function Spark({ seed, color }) {

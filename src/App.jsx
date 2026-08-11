@@ -42,6 +42,7 @@ import BandHistory from "./BandHistory.jsx";
 import { SANS, MONO, MAX_W } from "./chart-ui.jsx";
 import "./terminal.css";
 import TerminalNav from "./TerminalNav.jsx";
+import { gcolFor } from "./terminal-colors.js";
 const HolderscanDashboard = lazy(() => import("./HolderscanDashboard.jsx"));
 const RiskChart = lazy(() => import("./RiskChart.jsx"));
 const DrawdownChart = lazy(() => import("./DrawdownChart.jsx"));
@@ -1375,50 +1376,55 @@ export default function App() {
       </>)}{/* end home */}
 
       {/* Dedicated interactive chart page */}
-      {route === "chart" && (
-      <div style={{ maxWidth: MAX_W, margin: "0 auto" }}>
-        {/* page header: back · category · title · description · share */}
-        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12, flexWrap: "wrap" }}>
-          {(() => {
-            const grp = CHART_META[tab]?.group;
-            const aeon = grp === "Project Aeon", city = grp === "SPX City";
-            const back = aeon ? openAeon : city ? openCity : openGallery;
-            const label = aeon ? "Project Aeon" : city ? "City" : "All charts";
-            return (
-          <button className="pill" onClick={back} title={`Back to ${label}`} style={{
-            display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 8, cursor: "pointer",
-            background: "transparent", border: "1px solid transparent", color: "#cbd5e1",
-            fontFamily: SANS, fontSize: 13, fontWeight: 600, "--glow": "rgba(148,163,184,0.6)",
-          }}>← {label}</button>
-          ); })()}
-          <span style={{ fontFamily: SANS, fontSize: 12, fontWeight: 700, letterSpacing: 1.2, textTransform: "uppercase", color: CHART_META[tab]?.color }}>{CHART_META[tab]?.group}</span>
-          <button className="pill" onClick={shareChart} title="Share this chart"
-            style={{
-              marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 8,
-              background: "transparent", border: `1px solid ${copied ? "rgba(74,222,128,0.5)" : "rgba(148,163,184,0.3)"}`,
-              cursor: "pointer", color: copied ? "#4ade80" : "#94a3b8",
-              fontFamily: SANS, fontSize: 13, fontWeight: 600, "--glow": "rgba(148,163,184,0.5)",
+      {route === "chart" && (() => {
+        const grp = CHART_META[tab]?.group;
+        const aeon = grp === "Project Aeon", city = grp === "SPX City";
+        const back = aeon ? openAeon : city ? openCity : openGallery;
+        const label = aeon ? "Project Aeon" : city ? "City" : "All charts";
+        const gcol = gcolFor(grp);
+        const title = CHART_META[tab]?.title ?? "";
+        return (
+        // Terminal chart page: filepath breadcrumb · command prompt · title over the
+        // rainbow hairline · the real interactive chart. Same design as the gallery.
+        <div className="tchart" style={{ maxWidth: MAX_W, margin: "0 auto" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16, flexWrap: "wrap" }}>
+            <button onClick={back} title={`Back to ${label}`} style={{
+              display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 11px", borderRadius: 7, cursor: "pointer",
+              background: "linear-gradient(180deg,var(--panel),var(--panel2))", border: "1px solid var(--line2)", color: "var(--dim)",
+              fontFamily: "var(--mono)", fontSize: 12, letterSpacing: ".04em", textTransform: "uppercase",
+            }}>‹ {label}</button>
+            <span style={{ fontFamily: "var(--mono)", fontSize: 12, letterSpacing: ".1em", textTransform: "uppercase", color: gcol, textShadow: `0 0 9px ${gcol}66` }}>{grp}</span>
+            <button onClick={shareChart} title="Share this chart" style={{
+              marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 7,
+              background: "linear-gradient(180deg,var(--panel),var(--panel2))",
+              border: `1px solid ${copied ? "var(--live)" : "var(--line2)"}`, cursor: "pointer",
+              color: copied ? "var(--live)" : "var(--dim)", fontFamily: "var(--mono)", fontSize: 12, letterSpacing: ".04em", textTransform: "uppercase",
             }}>
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" />
-              <line x1="8.6" y1="13.5" x2="15.4" y2="17.5" /><line x1="15.4" y1="6.5" x2="8.6" y2="10.5" />
-            </svg>
-            {copied ? "Copied!" : "Share"}
-          </button>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" />
+                <line x1="8.6" y1="13.5" x2="15.4" y2="17.5" /><line x1="15.4" y1="6.5" x2="8.6" y2="10.5" />
+              </svg>
+              {copied ? "Copied" : "Share"}
+            </button>
+          </div>
+          <div style={{ fontFamily: "var(--mono)", fontSize: 12, letterSpacing: ".04em", color: "var(--live)", marginBottom: 10 }}>
+            <span style={{ color: "var(--faint)" }}>spx6900 ~ %</span> open {title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 13, marginBottom: 2 }}>
+            <span style={{ color: gcol, display: "inline-flex" }}><TabIcon name={tab} /></span>
+            <h2 style={{ fontFamily: "var(--sans)", fontSize: isMobile ? 28 : 42, fontWeight: 800, margin: 0, color: "var(--tx)", letterSpacing: "-0.02em", textTransform: "uppercase", lineHeight: 1 }}>{title}</h2>
+          </div>
+          <div style={{ height: 3, borderRadius: 2, background: "var(--rainbow)", margin: "13px 0 14px", maxWidth: 620 }} />
+          <div style={{ fontFamily: "var(--sans)", fontSize: isMobile ? 14 : 15.5, color: "var(--dim)", marginBottom: 14, maxWidth: 760, lineHeight: 1.5 }}>{CHART_META[tab]?.desc}</div>
+          <ChartFreshness chartId={tab} />
+          <ErrorBoundary key={tab}>
+          <Suspense fallback={<div style={{ textAlign: "center", fontFamily: "var(--mono)", color: "var(--faint)", padding: 40 }}>loading chart…</div>}>
+            {chartEl(tab)}
+          </Suspense>
+          </ErrorBoundary>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 11, marginBottom: 4 }}>
-          <span style={{ color: CHART_META[tab]?.color, display: "inline-flex" }}><TabIcon name={tab} /></span>
-          <h2 style={{ fontFamily: SANS, fontSize: isMobile ? 26 : 34, fontWeight: 800, margin: 0, color: "#f8fafc", letterSpacing: "-0.02em" }}>{CHART_META[tab]?.title}</h2>
-        </div>
-        <div style={{ fontFamily: SANS, fontSize: isMobile ? 14 : 16, color: "#94a3b8", marginBottom: 10 }}>{CHART_META[tab]?.desc}</div>
-        <ChartFreshness chartId={tab} />
-        <ErrorBoundary key={tab}>
-        <Suspense fallback={<div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 40 }}>Loading chart…</div>}>
-          {chartEl(tab)}
-        </Suspense>
-        </ErrorBoundary>
-      </div>
-      )}{/* end chart page */}
+        );
+      })()}{/* end chart page */}
 
       {route !== "gallery" && route !== "aeon" && (
       <div style={{
