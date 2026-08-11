@@ -20,18 +20,24 @@ const RPC = process.env.ETH_RPC || "https://ethereum-rpc.publicnode.com";
 const CACHE = arg("out") || "public/addr-types.json";
 const isAddr = a => /^0x[0-9a-f]{40}$/.test(a);
 
-// gather the addresses to classify
+// gather the addresses to classify. Sources (comma-separated --from, default = both companions):
+//   self-moves.json — the split/consolidation events (source/target/recipients/sources)
+//   entities.json   — the entity graph (every clustered wallet + every drain/fund edge endpoint)
+// Classifying the entity endpoints too lets the NEXT clustering run treat any untagged Safe/router in
+// the graph as external (an exit, not an internal link) rather than fusing wallets through it.
 function gatherAddrs() {
   if (arg("addrs")) return arg("addrs").split(",").map(s => s.trim().toLowerCase()).filter(isAddr);
-  const src = arg("from") || "public/self-moves.json";
-  if (!existsSync(src)) return [];
+  const srcs = (arg("from") || "public/self-moves.json,public/entities.json").split(",").map(s => s.trim()).filter(Boolean);
   const set = new Set();
-  try {
-    const d = JSON.parse(readFileSync(src, "utf8"));
-    for (const e of d.events || []) {
-      for (const a of [e.source, e.target, ...(e.recipients || []), ...(e.sources || [])]) if (a && isAddr(a.toLowerCase())) set.add(a.toLowerCase());
-    }
-  } catch { /* unreadable → nothing to add */ }
+  const add = a => { if (a && isAddr(String(a).toLowerCase())) set.add(String(a).toLowerCase()); };
+  for (const src of srcs) {
+    if (!existsSync(src)) continue;
+    try {
+      const d = JSON.parse(readFileSync(src, "utf8"));
+      for (const e of d.events || []) for (const a of [e.source, e.target, ...(e.recipients || []), ...(e.sources || [])]) add(a);
+      for (const ent of d.entities || []) { for (const a of ent.wallets || []) add(a); for (const edge of ent.edges || []) { add(edge.from); add(edge.to); } }
+    } catch { /* unreadable → skip this source */ }
+  }
   return [...set];
 }
 

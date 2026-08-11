@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { replayFifo, gini, ageBand, makePriceAt, mondays, computeUrpd, urpdGrid, binHeldSupply, detectSelfSplits, detectConsolidations } from "../scripts/build-onchain-local.mjs";
+import { replayFifo, gini, ageBand, makePriceAt, mondays, computeUrpd, urpdGrid, binHeldSupply, detectSelfSplits, detectConsolidations, buildEntities } from "../scripts/build-onchain-local.mjs";
 
 const DAY = 86400000;
 const D0 = Date.UTC(2024, 0, 1);
@@ -336,6 +336,113 @@ test("consolidation guards: exchange withdrawal / non-empty source / non-fresh t
   // target already held SPX (not fresh)
   assert.equal(detectConsolidations(ix([...seed, { from: ZERO, to: "merged", ts: d(1), amt: 10 },
     { from: "old1", to: "merged", ts: d(200), amt: 3_000_000 }, { from: "old2", to: "merged", ts: d(200), amt: 2_500_000 }])).count, 0);
+});
+
+// ── Phase 2: entity clustering (drain/fund graph) ─────────────────────────────────────────────────
+const M = 60000; // above the 50k minTokens
+
+test("entity clustering: an unequal multi-day split links all fresh wallets to one entity", () => {
+  // A whale funds five FRESH wallets over several days, unequal amounts — the case the same-block
+  // detector misses. Each is a "fund" edge (recipient empty before) → one entity.
+  const tx = ix([
+    { from: ZERO, to: "whale", ts: d(0), amt: 6_000_000 },
+    { from: "whale", to: "a", ts: d(3), amt: 2_100_000 },
+    { from: "whale", to: "b", ts: d(6), amt: 900_000 },
+    { from: "whale", to: "c", ts: d(9), amt: 1_500_000 },
+    { from: "whale", to: "e", ts: d(12), amt: 800_000 },
+  ]);
+  const { entities, stats } = buildEntities(tx);
+  assert.equal(entities.length, 1);
+  assert.deepEqual(entities[0].wallets, ["a", "b", "c", "e", "whale"]);
+  assert.equal(entities[0].size, 5);
+  assert.equal(entities[0].flagged, false);
+  assert.equal(stats.clustered, 5);
+  assert.ok(entities[0].edges.every(e => e.kind === "fund"));
+});
+
+test("entity clustering: a drain chain (A empties into B empties into C) is one entity", () => {
+  const tx = ix([
+    { from: ZERO, to: "a", ts: d(0), amt: 3_000_000 },
+    { from: ZERO, to: "b", ts: d(0), amt: 1 },              // b/c exist so the moves are DRAINs, not funds
+    { from: ZERO, to: "c", ts: d(0), amt: 1 },
+    { from: "a", to: "b", ts: d(10), amt: 3_000_000 },      // a empties → b
+    { from: "b", to: "c", ts: d(20), amt: 3_000_001 },      // b empties → c
+  ]);
+  const { entities } = buildEntities(tx);
+  assert.equal(entities.length, 1);
+  assert.deepEqual(entities[0].wallets, ["a", "b", "c"]);
+  assert.ok(entities[0].edges.some(e => e.kind === "drain"));
+});
+
+test("entity clustering does NOT link a partial send between two live wallets (payment/sale)", () => {
+  const tx = ix([
+    { from: ZERO, to: "a", ts: d(0), amt: 3_000_000 },
+    { from: ZERO, to: "b", ts: d(0), amt: 500_000 },        // b already lives → not fresh
+    { from: "a", to: "b", ts: d(10), amt: 100_000 },        // a keeps most → not a drain
+  ]);
+  const { entities } = buildEntities(tx);
+  assert.equal(entities.length, 0);
+});
+
+test("entity clustering ignores legs that touch a CEX or a pool (exit, not internal move)", () => {
+  const CEX = "0xa9d1e08c7793af67e9d92fe308d5697fb81d3e43";
+  const tx = ix([
+    { from: ZERO, to: "a", ts: d(0), amt: 3_000_000 },
+    { from: "a", to: CEX, ts: d(5), amt: 3_000_000 },        // a empties to a CEX → not a link
+    { from: ZERO, to: "b", ts: d(6), amt: 2_000_000 },
+    { from: "b", to: POOL, ts: d(7), amt: 2_000_000 },       // b sells into the pool → not a link
+  ]);
+  const { entities } = buildEntities(tx);
+  assert.equal(entities.length, 0);
+});
+
+test("entity clustering: contract-typed endpoints (addr-types) are external — never linked", () => {
+  const tx = ix([
+    { from: ZERO, to: "safe", ts: d(0), amt: 5_000_000 },
+    { from: "safe", to: "a", ts: d(5), amt: 1_600_000 },     // fresh fund, but "safe" is a contract
+    { from: "safe", to: "b", ts: d(6), amt: 1_600_000 },
+    { from: "safe", to: "c", ts: d(7), amt: 1_600_000 },
+  ]);
+  const { entities } = buildEntities(tx, { externalAddrs: new Set(["safe"]) });
+  assert.equal(entities.length, 0);
+});
+
+test("entity clustering: a HUB with too many funders is dropped, not fused into one entity", () => {
+  // 10 unrelated wallets each fund the same fresh wallet — an untagged service, not a person.
+  const seed = [], moves = [];
+  for (let i = 0; i < 10; i++) {
+    seed.push({ from: ZERO, to: `w${i}`, ts: d(0), amt: M });
+    moves.push({ from: `w${i}`, to: "hub", ts: d(5 + i), amt: M });
+  }
+  const { entities, stats } = buildEntities(ix([...seed, ...moves]), { maxInDegree: 8 });
+  assert.equal(entities.length, 0, "hub edges dropped → no giant fused entity");
+  assert.equal(stats.hubs, 1);
+});
+
+test("entity clustering: an oversized cluster is flagged, not silently trusted", () => {
+  // one whale funds 40 fresh wallets → a real 41-wallet cluster, but past the size cap → flagged.
+  const tx = [{ from: ZERO, to: "whale", ts: d(0), amt: 100_000_000 }];
+  for (let i = 0; i < 40; i++) tx.push({ from: "whale", to: `n${i}`, ts: d(1 + i), amt: M });
+  const { entities, stats } = buildEntities(ix(tx), { maxCluster: 30 });
+  assert.equal(entities.length, 1);
+  assert.equal(entities[0].size, 41);
+  assert.equal(entities[0].flagged, true);
+  assert.equal(stats.flagged, 1);
+});
+
+test("collectEntities emits the disclosed entity view without touching the raw rows", () => {
+  const price = makePriceAt([[d(0), 1]]);
+  const tx = [
+    { from: ZERO, to: "whale", ts: d(0), amt: 6_000_000 },
+    { from: "whale", to: "a", ts: d(3), amt: 3_100_000 },
+    { from: "whale", to: "b", ts: d(6), amt: 900_000 },
+    { from: "whale", to: "c", ts: d(9), amt: 2_000_000 },
+  ];
+  const out = replayFifo(tx, price, [d(20)], { collectEntities: true });
+  assert.ok(out.entities);
+  assert.equal(out.entities.stats.entities, 1);
+  assert.match(out.entities.method, /drain\/fund/);
+  assert.ok(Array.isArray(out.rows));   // raw by-wallet rows still present + unchanged
 });
 
 // ── Phase 1: external-endpoint gate (contract/Safe source → flagged, not re-aged) ──────────────────
