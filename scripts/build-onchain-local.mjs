@@ -145,86 +145,81 @@ export function mondays(startTs, endTs) {
   return out;
 }
 
-// ── SELF-SPLIT DETECTION ──────────────────────────────────────────────────────────────────────────
-// A whale can fragment or relocate its stack by sending it, in ONE block, out to several BRAND-NEW
-// wallets in near-equal chunks. On-chain that reads as "an old whale vanished + N fresh whales
-// appeared", which fakes decentralisation (top-N drops) and fake-freshens the supply (age resets to
-// 0). This detects the clean, unambiguous case so the pieces can INHERIT the source's coin age (not
-// read as fresh) and the move isn't counted as an economic spend. Deliberately CONSERVATIVE — real
-// distributions (airdrops: many, unequal, source keeps a balance) must NOT match, so we don't ever
-// silently erase genuine distribution. No tx hash in the archive, so "same block" = same timestamp.
-// Returns { splitIdx:Set(transfer index), linkOf:Map(recipient→source), events, count, supply }.
-export function detectSelfSplits(transfers, opts = {}) {
-  const MIN_N = opts.minN ?? 3, MAX_N = opts.maxN ?? 20;
-  const EQ = opts.eqTol ?? 1.10;              // max/min amount ratio across the fan-out
-  const EMPTY = opts.emptyFrac ?? 0.9;        // source sheds ≥90% of its balance in the fan-out
-  const MIN_SRC = opts.minSource ?? 100000;   // source was a real whale (not dust splitting)
+// ── SELF-MOVE DETECTION (splits + consolidations) ───────────────────────────────────────────────────
+// A holder can shuffle wallets in ONE block, either a SPLIT (→ N fresh near-equal wallets) or a
+// CONSOLIDATION (N emptying wallets → 1 fresh). Both read on-chain as "old whale gone + fresh whale(s)
+// appeared", which fakes decentralisation (top-N drops) and fake-freshens the supply (age resets to 0)
+// and drops the person out of the city. We detect the clean, unambiguous cases so the pieces/target
+// INHERIT the source coin age (not fresh) and the move isn't counted as an economic spend. Deliberately
+// CONSERVATIVE — real distributions (airdrops: many, unequal, source keeps a balance) and exchange
+// withdrawals must NOT match, so we never silently erase genuine distribution. No tx hash in the
+// archive, so "same block" = same timestamp. ⚠ MEMORY: this runs over the full ~2.7M-transfer archive,
+// so the core scans an ALREADY-SORTED tx IN PLACE — it must NOT copy the array (a prior version did,
+// twice, and OOM'd the FIFO engine). The exported wrappers copy+sort only for standalone/test use.
+function scanSelfMoves(tx, opts = {}) {
+  const SP_MIN = opts.minN ?? 3, SP_MAX = opts.maxN ?? 20, EQ = opts.eqTol ?? 1.10;
+  const CON_MIN = opts.conMinN ?? 2, CON_MAX = opts.conMaxN ?? 20;
+  const EMPTY = opts.emptyFrac ?? 0.9, MIN_SRC = opts.minSource ?? 100000, MIN_TOTAL = opts.conMinTotal ?? 100000;
   const exclude = opts.exclude || EXCLUDE;
-  const tx = [...transfers]
-    .map((t, i) => ({ from: t.from?.toLowerCase(), to: t.to?.toLowerCase(), ts: t.ts, amt: t.amt, i: t.i ?? i }))
-    .filter(t => t.amt > EPS).sort((a, b) => a.ts - b.ts || a.i - b.i);
-  const bal = new Map(), seen = new Set(), splitIdx = new Set(), linkOf = new Map(), events = [];
+  const bal = new Map(), seen = new Set();       // per-address running balance / ever-received (small)
+  const splitIdx = new Set(), conIdx = new Set(), splitEvents = [], conEvents = [];
   let p = 0;
   while (p < tx.length) {
     const ts0 = tx[p].ts, start = p;
     while (p < tx.length && tx[p].ts === ts0) p++;
-    const bySrc = new Map();                  // this block's transfers grouped by sender
-    for (let k = start; k < p; k++) { const t = tx[k]; if (!t.from || !t.to) continue; let g = bySrc.get(t.from); if (!g) bySrc.set(t.from, g = []); g.push(t); }
-    for (const [src, grp] of bySrc) {
-      if (exclude.has(src)) continue;                                    // not from infra / CEX / LP
-      const n = grp.length; if (n < MIN_N || n > MAX_N) continue;
-      if (!grp.every(t => !seen.has(t.to) && (bal.get(t.to) || 0) <= EPS)) continue; // all recipients FRESH
-      const amts = grp.map(t => t.amt), mn = Math.min(...amts), mx = Math.max(...amts);
-      if (mn <= EPS || mx / mn > EQ) continue;                          // near-equal chunks
-      const before = bal.get(src) || 0, sent = amts.reduce((a, b) => a + b, 0);
-      if (before < MIN_SRC || sent < EMPTY * before) continue;          // whale source that empties out
-      for (const t of grp) { splitIdx.add(t.i); linkOf.set(t.to, src); }
-      events.push({ ts: ts0, source: src, recipients: grp.map(t => t.to), each: mn, n, supply: sent });
+    const bySrc = new Map(), byDst = new Map();   // this block's transfers grouped both ways
+    for (let k = start; k < p; k++) {
+      const t = tx[k]; if (!t.from || !t.to) continue;
+      let gs = bySrc.get(t.from); if (!gs) bySrc.set(t.from, gs = []); gs.push(t);
+      let gd = byDst.get(t.to); if (!gd) byDst.set(t.to, gd = []); gd.push(t);
     }
-    for (let k = start; k < p; k++) { const t = tx[k]; if (t.to) { bal.set(t.to, (bal.get(t.to) || 0) + t.amt); seen.add(t.to); } if (t.from) bal.set(t.from, (bal.get(t.from) || 0) - t.amt); }
-  }
-  return { splitIdx, linkOf, events, count: events.length, supply: events.reduce((s, e) => s + e.supply, 0) };
-}
-
-// ── CONSOLIDATION DETECTION ─────────────────────────────────────────────────────────────────────────
-// The mirror of a split: a holder that MERGES several wallets into one by emptying N≥2 of them, in one
-// block, into a single BRAND-NEW wallet. Without this the merged wallet reads as a fresh whale (age 0)
-// and the person drops out of the city for 90 days despite never having left — so the target INHERITS
-// the sources' coin age via the same lot-move machinery. Conservative on purpose: the target must be
-// fresh, EVERY inflow must come from a non-excluded holder (so exchange withdrawals — a real inflow of
-// coins — never count), and each source must EMPTY. A gift/OTC purchase from many wallets all emptying
-// at once is not a realistic pattern, which is what keeps false positives low. Same-block = same ts.
-export function detectConsolidations(transfers, opts = {}) {
-  const MIN_N = opts.conMinN ?? 2, MAX_N = opts.conMaxN ?? 20;
-  const EMPTY = opts.emptyFrac ?? 0.9;
-  const MIN_TOTAL = opts.conMinTotal ?? 100000;   // the merged position is a real one, not dust
-  const exclude = opts.exclude || EXCLUDE;
-  const tx = [...transfers]
-    .map((t, i) => ({ from: t.from?.toLowerCase(), to: t.to?.toLowerCase(), ts: t.ts, amt: t.amt, i: t.i ?? i }))
-    .filter(t => t.amt > EPS).sort((a, b) => a.ts - b.ts || a.i - b.i);
-  const bal = new Map(), seen = new Set(), splitIdx = new Set(), linkOf = new Map(), events = [];
-  let p = 0;
-  while (p < tx.length) {
-    const ts0 = tx[p].ts, start = p;
-    while (p < tx.length && tx[p].ts === ts0) p++;
-    const byDst = new Map();                   // this block's transfers grouped by RECIPIENT
-    for (let k = start; k < p; k++) { const t = tx[k]; if (!t.from || !t.to) continue; let g = byDst.get(t.to); if (!g) byDst.set(t.to, g = []); g.push(t); }
-    for (const [dst, grp] of byDst) {
-      if (exclude.has(dst)) continue;                                          // target not infra
-      if (seen.has(dst) || (bal.get(dst) || 0) > EPS) continue;                // target is FRESH
-      if (!grp.every(t => t.from && !exclude.has(t.from))) continue;           // every inflow from a real holder (no CEX withdrawal)
+    for (const [src, grp] of bySrc) {             // SPLIT: whale → N fresh near-equal wallets, empties out
+      if (exclude.has(src)) continue;
+      const n = grp.length; if (n < SP_MIN || n > SP_MAX) continue;
+      if (!grp.every(t => !seen.has(t.to) && (bal.get(t.to) || 0) <= EPS)) continue;
+      const amts = grp.map(t => t.amt), mn = Math.min(...amts), mx = Math.max(...amts);
+      if (mn <= EPS || mx / mn > EQ) continue;
+      const before = bal.get(src) || 0, sent = amts.reduce((a, b) => a + b, 0);
+      if (before < MIN_SRC || sent < EMPTY * before) continue;
+      for (const t of grp) splitIdx.add(t.i);
+      splitEvents.push({ ts: ts0, source: src, recipients: grp.map(t => t.to), each: mn, n, supply: sent });
+    }
+    for (const [dst, grp] of byDst) {             // CONSOLIDATION: N emptying holders → 1 fresh wallet
+      if (exclude.has(dst) || seen.has(dst) || (bal.get(dst) || 0) > EPS) continue;
+      if (!grp.every(t => t.from && !exclude.has(t.from))) continue;   // no exchange withdrawal in the mix
       const sentBySrc = new Map();
       for (const t of grp) sentBySrc.set(t.from, (sentBySrc.get(t.from) || 0) + t.amt);
-      if (sentBySrc.size < MIN_N || sentBySrc.size > MAX_N) continue;
+      if (sentBySrc.size < CON_MIN || sentBySrc.size > CON_MAX) continue;
       let ok = true, total = 0;
       for (const [s, sent] of sentBySrc) { const before = bal.get(s) || 0; total += sent; if (before < EPS || sent < EMPTY * before) { ok = false; break; } }
-      if (!ok || total < MIN_TOTAL) continue;                                  // each source empties + a real combined size
-      for (const t of grp) { splitIdx.add(t.i); linkOf.set(dst, t.from); }
-      events.push({ ts: ts0, target: dst, sources: [...sentBySrc.keys()], n: sentBySrc.size, supply: total });
+      if (!ok || total < MIN_TOTAL) continue;
+      for (const t of grp) conIdx.add(t.i);
+      conEvents.push({ ts: ts0, target: dst, sources: [...sentBySrc.keys()], n: sentBySrc.size, supply: total });
     }
     for (let k = start; k < p; k++) { const t = tx[k]; if (t.to) { bal.set(t.to, (bal.get(t.to) || 0) + t.amt); seen.add(t.to); } if (t.from) bal.set(t.from, (bal.get(t.from) || 0) - t.amt); }
   }
-  return { splitIdx, linkOf, events, count: events.length, supply: events.reduce((s, e) => s + e.supply, 0) };
+  return { splitIdx, conIdx, splitEvents, conEvents };
+}
+
+// prepare raw transfers (copy + normalise + sort) — for STANDALONE callers only (tests). The engine
+// passes its own already-sorted tx straight into scanSelfMoves and never pays for this copy.
+const prepMoves = transfers => [...transfers]
+  .map((t, i) => ({ from: t.from?.toLowerCase(), to: t.to?.toLowerCase(), ts: t.ts, amt: t.amt, i: t.i ?? i }))
+  .filter(t => t.amt > EPS).sort((a, b) => a.ts - b.ts || a.i - b.i);
+
+// Splits only. { splitIdx, linkOf:Map(recipient→source), events, count, supply }.
+export function detectSelfSplits(transfers, opts = {}) {
+  const { splitIdx, splitEvents } = scanSelfMoves(prepMoves(transfers), opts);
+  const linkOf = new Map();
+  for (const e of splitEvents) for (const r of e.recipients) linkOf.set(r, e.source);
+  return { splitIdx, linkOf, events: splitEvents, count: splitEvents.length, supply: splitEvents.reduce((s, e) => s + e.supply, 0) };
+}
+// Consolidations only. { splitIdx, linkOf:Map(target→last source), events, count, supply }.
+export function detectConsolidations(transfers, opts = {}) {
+  const { conIdx, conEvents } = scanSelfMoves(prepMoves(transfers), opts);
+  const linkOf = new Map();
+  for (const e of conEvents) linkOf.set(e.target, e.sources.at(-1));
+  return { splitIdx: conIdx, linkOf, events: conEvents, count: conEvents.length, supply: conEvents.reduce((s, e) => s + e.supply, 0) };
 }
 
 // Core replay. transfers = [{from,to,ts,amt}] (any order), priceAt(ts)->usd,
@@ -244,9 +239,10 @@ export function replayFifo(transfers, priceAt, sampleTs, opts = {}) {
   let splitIdx, splitEvents;
   if (opts.detectSplits === false) { splitIdx = new Set(); splitEvents = []; }
   else {
-    const sp = detectSelfSplits(tx, opts.splitOpts), con = detectConsolidations(tx, opts.splitOpts);
-    splitIdx = new Set([...sp.splitIdx, ...con.splitIdx]);
-    splitEvents = [...sp.events, ...con.events];
+    // scan the engine's OWN already-sorted tx in place — no array copy (that's what OOM'd on 2.7M rows)
+    const mv = scanSelfMoves(tx, opts.splitOpts);
+    splitIdx = new Set([...mv.splitIdx, ...mv.conIdx]);
+    splitEvents = [...mv.splitEvents, ...mv.conEvents];
   }
   const splitsByTs = splitEvents.slice().sort((a, b) => a.ts - b.ts);
 
