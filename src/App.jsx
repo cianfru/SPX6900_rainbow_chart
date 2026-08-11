@@ -597,6 +597,7 @@ export default function App() {
     // the manual carries its page in ?p= so any page in the book is directly linkable
     else if (r === "docs") { params.set("view", "docs"); if (id) params.set("p", id); }
     else if (r === "next") params.set("view", "next");
+    else if (r === "rainbow") params.set("view", "rainbow");
     else if (r === "chart" && id) {
       params.set("chart", id);
       if (id === "relative" && rel && rel !== "BTC") params.set("rel", rel);
@@ -616,6 +617,7 @@ export default function App() {
   const openAeon = (group) => { setGalleryGroup(typeof group === "string" ? group : null); setRoute("aeon"); syncUrl("aeon"); window.scrollTo({ top: 0, behavior: "smooth" }); };
   const openCity = () => { setRoute("city"); syncUrl("city"); window.scrollTo({ top: 0, behavior: "smooth" }); };
   const openMethods = () => { setRoute("methods"); syncUrl("methods"); window.scrollTo({ top: 0, behavior: "smooth" }); };
+  const openRainbow = () => { setRoute("rainbow"); syncUrl("rainbow"); window.scrollTo({ top: 0, behavior: "smooth" }); };
   const openDocs = (slug = "index") => { setDocSlug(slug); setRoute("docs"); syncUrl("docs", slug); window.scrollTo({ top: 0, behavior: "smooth" }); };
   // goChart(id) opens a chart at its default view; goChart(id, view) deep-links a sub-view.
   // relative keeps its own `rel` asset param (view values BTC/ETH/SOL/BASKET); every other
@@ -662,6 +664,7 @@ export default function App() {
       if (p.get("view") === "charts") setRoute("gallery");
       else if (p.get("view") === "aeon") setRoute("aeon");
       else if (p.get("view") === "methods") setRoute("methods");
+      else if (p.get("view") === "rainbow") setRoute("rainbow");
       else if (p.get("view") === "docs") { setRoute("docs"); setDocSlug(p.get("p") || "index"); }
       else if (p.get("view") === "next") setRoute("next");
       // SPX City left the gallery for its own /city tab. Old shared links (?chart=whalewatch /
@@ -831,7 +834,7 @@ export default function App() {
       {isSub ? (
         <nav style={{ position: "sticky", top: 0, zIndex: 50, width: "100%",
           background: "rgba(8,9,11,0.86)", backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)" }}>
-          <TerminalNav onHome={goHome} openGallery={openGallery} openAeon={openAeon} openCity={openCity} goChart={goChart} renderPreview={id => chartEl(id, { preview: true })} asOf={last?.date} />
+          <TerminalNav onHome={goHome} openRainbow={openRainbow} openGallery={openGallery} openAeon={openAeon} openCity={openCity} goChart={goChart} renderPreview={id => chartEl(id, { preview: true })} asOf={last?.date} />
         </nav>
       ) : (
       <nav ref={navRef} style={{
@@ -847,7 +850,7 @@ export default function App() {
             flex: 1, justifyContent: isMobile ? "flex-start" : "center", flexWrap: "nowrap",
             padding: "9px 2px", overflowX: "auto", scrollbarWidth: "none", WebkitOverflowScrolling: "touch",
           }}>
-            <button className="pill" onClick={goHome} title="Rainbow chart (home)" style={navPill(route === "home", "#a78bfa")}>
+            <button className="pill" onClick={openRainbow} title="The Rainbow — the foundation chart" style={navPill(route === "rainbow", "#a78bfa")}>
               {!isMobile && <span style={{ color: "#a78bfa", display: "inline-flex" }}><TabIcon name="rainbow" /></span>}
               <span>Rainbow</span>
             </button>
@@ -972,7 +975,7 @@ export default function App() {
       )}
 
       {/* Home — the old Rainbow hero ("Aura"); shown only when HOME_IS_LANDING is off */}
-      {route === "home" && !HOME_IS_LANDING && (<>
+      {(route === "rainbow" || (route === "home" && !HOME_IS_LANDING)) && (<>
       {/* Header */}
       <div style={{ maxWidth: MAX_W, margin: "0 auto 24px" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: isMobile ? 10 : 18, flexWrap: "nowrap" }}>

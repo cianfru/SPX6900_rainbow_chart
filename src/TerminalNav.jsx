@@ -162,7 +162,7 @@ function FlatTop({ label, items }) {
   );
 }
 
-export default function TerminalNav({ onHome, openGallery, openAeon, openCity, goChart, renderPreview, asOf }) {
+export default function TerminalNav({ onHome, openRainbow, openGallery, openAeon, openCity, goChart, renderPreview, asOf }) {
   const asOfLabel = asOf ? new Date(asOf).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : null;
   const cityColor = CITY_GROUPS[0]?.color || "#7dd3fc";
   const cityItems = [
@@ -190,6 +190,9 @@ export default function TerminalNav({ onHome, openGallery, openAeon, openCity, g
       </div>
       {/* cascade menu */}
       <div className="tmenu">
+        {openRainbow && <div className="mtop mtop-rainbow" onClick={openRainbow} style={{ cursor: "pointer" }} title="The Rainbow — the foundation chart">
+          <div className="mhead"><span style={{ background: "linear-gradient(90deg,#f87171,#fb923c,#fbbf24,#4ade80,#38bdf8,#a78bfa)", WebkitBackgroundClip: "text", backgroundClip: "text", WebkitTextFillColor: "transparent", color: "transparent", fontWeight: 700 }}>RAINBOW</span></div>
+        </div>}
         <CascadeTop label="CHARTS" groups={CHART_GROUPS} onSection={openGallery} onLeaf={goChart} renderPreview={renderPreview} />
         <FlatTop label="SPX_CITY" items={cityItems} />
         <CascadeTop label="PROJECT_AEON" groups={AEON_GROUPS} onSection={openAeon} onLeaf={goChart} renderPreview={renderPreview} />

@@ -117,7 +117,10 @@
   .mtop > .mhead{ display:inline-flex; align-items:center; gap:8px; padding:8px 14px; cursor:default; font-family:var(--label); font-size:15px; letter-spacing:.05em; text-transform:uppercase; color:var(--tx); border:1px solid transparent; }
   .mtop > .mhead .mico{ display:none; align-items:center; }   /* nav icons appear only in the SITE look */
   .mtop > .mhead .ml-site{ display:none; }                    /* nice title-case labels only in the SITE look */
-  .mtop-rainbow{ display:none; }                              /* Rainbow home pill only in the SITE look */
+  .mtop-rainbow{ display:block; }                             /* Rainbow = its own standalone tab (the foundation chart) */
+  .rbterm{ background:linear-gradient(90deg,#f87171,#fb923c,#fbbf24,#4ade80,#38bdf8,#a78bfa); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; color:transparent; font-weight:700; }
+  .mtop-rainbow > .mhead{ border-color:transparent; } .mtop-rainbow:hover > .mhead{ background:rgba(167,139,250,0.14); color:inherit; border-color:rgba(167,139,250,0.5); }
+  .mtop-rainbow:hover > .mhead .rbterm{ -webkit-text-fill-color:transparent; }
   /* ── SITE look: the top nav becomes the live website's pill buttons — icon · accent border · tint · glow, per section
         (Rainbow violet · Charts cyan · City blue · Project Aeon pink). blend / calm / green keep the terminal nav. ── */
   :root[data-variant="site"] .mtop > .mhead{ text-transform:none; font-weight:700; letter-spacing:.01em; color:#9aa6bb; border-radius:10px;
@@ -724,7 +727,7 @@
   function buildMenuInto(m, withFresh){ if(!m) return; m.innerHTML='';
     // Rainbow = home (matches the live site nav; only visible in the SITE look, hidden by CSS elsewhere)
     const rbm=document.createElement('div'); rbm.className='mtop mtop-rainbow';
-    rbm.innerHTML=`<div class="mhead" data-home="1"><span class="mico">${RAINBOW_ICON}</span><span class="ml-site">Rainbow</span></div>`;
+    rbm.innerHTML=`<div class="mhead" data-rainbow="1"><span class="mico">${RAINBOW_ICON}</span><span class="ml-term rbterm">RAINBOW</span><span class="ml-site">Rainbow</span></div>`;
     m.appendChild(rbm);
     NAV.forEach(top=>{ const mt=document.createElement('div'); mt.className='mtop mtop-'+top.label.toLowerCase();
       mt.innerHTML=`<div class="mhead"><span class="mico">${NAV_ICON[top.label]||''}</span><span class="ml-term">${top.label}</span><span class="ml-site">${NAV_DISP[top.label]||top.label}</span> <span class="car">▾</span></div>`+topDropHTML(top); m.appendChild(mt);
@@ -733,7 +736,8 @@
       wireCascade(mt, top);
     });
     if(withFresh){ const _nf=document.createElement('div'); _nf.className='navfresh'; _nf.id='fresh'; m.appendChild(_nf); }
-    m.addEventListener('click',e=>{ if(e.target.closest('[data-home]')){ window.scrollTo({top:0,behavior:'smooth'}); return; }
+    m.addEventListener('click',e=>{ if(e.target.closest('[data-rainbow]')){ go('/?view=rainbow'); return; }
+      if(e.target.closest('[data-home]')){ window.scrollTo({top:0,behavior:'smooth'}); return; }
       const _all=e.target.closest('.mitem[data-all]'); if(_all){ openGallery(_all.dataset.all); return; }
       const _grp=e.target.closest('.mitem[data-ggrp]'); if(_grp){ openGallery(_grp.dataset.gtop,_grp.dataset.ggrp); return; } // click a GROUP → that group's charts only
       const it=e.target.closest('.mitem[data-leaf]'); if(it) openPath(it.dataset.top,it.dataset.grp,it.dataset.leaf); });
