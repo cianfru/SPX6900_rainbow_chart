@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, Suspense } from "react";
+import { useState, useRef, useEffect, Suspense, Fragment } from "react";
 import { CHART_GROUPS, AEON_GROUPS, CITY_GROUPS, CHART_VIEWS } from "./charts-catalog.js";
 import { GCOL } from "./terminal-colors.js";
 import ErrorBoundary from "./ErrorBoundary.jsx";
@@ -50,6 +50,24 @@ function MenuRow({ text, color, mark, cls = "", onEnter, onLeave, onClick }) {
       {mark && <span className="mk">{mark}</span>}
     </div>
   );
+}
+
+// Character-by-character typewriter, shared by the section headers (types on hover) and the
+// mobile drill-down rows (types on tap) so the sleek effect matches the landing everywhere.
+function useTypewriter(text, speed = 45) {
+  const [shown, setShown] = useState(text);
+  const timer = useRef(null);
+  useEffect(() => () => clearTimeout(timer.current), []);
+  useEffect(() => { setShown(text); }, [text]);
+  const type = () => { clearTimeout(timer.current); let j = 0; const step = () => { setShown(text.slice(0, j)); if (j < text.length) { j++; timer.current = setTimeout(step, speed); } }; setShown(""); step(); };
+  const reset = () => { clearTimeout(timer.current); setShown(text); };
+  return { shown, type, reset };
+}
+
+// A section-header label that types itself out on hover (desktop parity with the landing).
+function HeadType({ text }) {
+  const { shown, type, reset } = useTypewriter(text);
+  return <span className="mhead-t" onMouseEnter={type} onMouseLeave={reset}>{shown}</span>;
 }
 
 // A LIVE, scaled-down render of the real chart component (same approach as the gallery's
@@ -109,7 +127,7 @@ function CascadeTop({ label, groups, onSection, onLeaf, renderPreview }) {
   };
   return (
     <div className="mtop" ref={topRef} onMouseEnter={onEnter} onMouseLeave={() => setLeaf(null)}>
-      <div className="mhead">{label} <span className="car">▾</span></div>
+      <div className="mhead"><HeadType text={label} /> <span className="car">▾</span></div>
       <div className="drop">
         <MenuRow text="All" color="var(--live)" cls="allrow" onClick={() => onSection()} />
         {groups.map((g, gi) => { const gc = GCOL[gi % GCOL.length]; return (
@@ -152,11 +170,71 @@ function CascadeTop({ label, groups, onSection, onLeaf, renderPreview }) {
 function FlatTop({ label, items }) {
   return (
     <div className="mtop">
-      <div className="mhead">{label} <span className="car">▾</span></div>
+      <div className="mhead"><HeadType text={label} /> <span className="car">▾</span></div>
       <div className="drop">
         {items.map((it, i) => (
           <MenuRow key={i} text={it.label} color={it.color} mark="›" cls="leafrow" onClick={it.onClick} />
         ))}
+      </div>
+    </div>
+  );
+}
+
+// One row of the mobile drill-down — types its label on tap (the landing's sleek effect).
+function MobRow({ label, chev, cls = "", onTap }) {
+  const { shown, type } = useTypewriter(label);
+  return (
+    <button className={"tmob-row " + cls} onClick={() => { type(); onTap && onTap(); }}>
+      <span className="tmob-lbl">{shown}<span className="tmob-cur">_</span></span>
+      {chev != null && <span className="tmob-chev">{chev}</span>}
+    </button>
+  );
+}
+
+// The phone menu: a full-screen, tap-driven drill-down (Rainbow · Charts · SPX City ·
+// Project Aeon → groups → charts) built from the same catalog. Mirrors the landing's mobile
+// menu so touch users never meet a hover-only cascade on a sub-page.
+function MobileMenu({ open, onClose, openRainbow, openGallery, openAeon, openCity, goChart }) {
+  const [sec, setSec] = useState(null);
+  const [grp, setGrp] = useState(null);
+  const nav = (fn) => { onClose(); if (fn) fn(); };
+  const toggleSec = (k) => { setGrp(null); setSec(s => (s === k ? null : k)); };
+  const Section = ({ k, label, groups, allLabel, onAll, single }) => (
+    <>
+      <MobRow label={label} chev={sec === k ? "▲" : "▾"} cls="tmob-sec" onTap={() => toggleSec(k)} />
+      {sec === k && (
+        <div className="tmob-sub">
+          <MobRow label={allLabel} cls="tmob-all" onTap={() => nav(onAll)} />
+          {single
+            ? groups[0].charts.filter(c => !c.dev).map(c => (
+                <MobRow key={c.id} label={c.title} cls="tmob-leaf" onTap={() => nav(() => goChart(c.id))} />))
+            : groups.map(g => (
+                <Fragment key={g.title}>
+                  <MobRow label={g.title} chev={grp === g.title ? "▲" : "▾"} cls="tmob-grp" onTap={() => setGrp(x => (x === g.title ? null : g.title))} />
+                  {grp === g.title && (
+                    <div className="tmob-sub2">
+                      {g.charts.filter(c => !c.dev).map(c => (
+                        <MobRow key={c.id} label={c.title} cls="tmob-leaf" onTap={() => nav(() => goChart(c.id))} />))}
+                    </div>
+                  )}
+                </Fragment>))}
+        </div>
+      )}
+    </>
+  );
+  return (
+    <div className={"tmobmenu" + (open ? " open" : "")} aria-hidden={!open}>
+      <div className="tmobhead">
+        <span className="tmobtitle">Menu</span>
+        <button className="tmobclose" onClick={onClose} aria-label="Close menu">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" fill="none" /></svg>
+        </button>
+      </div>
+      <div className="tmobbody">
+        <MobRow label="Rainbow" cls="tmob-rainbow" onTap={() => nav(openRainbow)} />
+        <Section k="charts" label="Charts" groups={CHART_GROUPS} allLabel="All charts" onAll={openGallery} />
+        <Section k="city" label="SPX City" groups={CITY_GROUPS} allLabel="Open the city" onAll={openCity} single />
+        <Section k="aeon" label="Project Aeon" groups={AEON_GROUPS} allLabel="All Aeon charts" onAll={openAeon} />
       </div>
     </div>
   );
@@ -169,6 +247,7 @@ export default function TerminalNav({ onHome, openRainbow, openGallery, openAeon
     { label: "SPX City", color: cityColor, onClick: openCity },
     ...(CITY_GROUPS[0]?.charts || []).map(c => ({ label: c.title, color: cityColor, onClick: () => goChart(c.id) })),
   ];
+  const [mobOpen, setMobOpen] = useState(false);
   return (
     <div className="twrap">
       {/* header bar */}
@@ -186,6 +265,9 @@ export default function TerminalNav({ onHome, openRainbow, openGallery, openAeon
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 12 A8.5 8.5 0 0 1 20.5 12 L20.5 19.4 A1.3 1.3 0 0 1 17.9 19.4 L17.9 14 A1.1 1.1 0 0 0 15.7 14 L15.7 19.4 A1.3 1.3 0 0 1 13.1 19.4 L13.1 14 A1.1 1.1 0 0 0 10.9 14 L10.9 19.4 A1.3 1.3 0 0 1 8.3 19.4 L8.3 14 A1.1 1.1 0 0 0 6.1 14 L6.1 19.4 A1.3 1.3 0 0 1 3.5 19.4 Z" /></svg>
             </a>
           </div>
+          <button className="tmobtog" onClick={() => setMobOpen(true)} aria-label="Open menu" aria-expanded={mobOpen}>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M3 12h18M3 18h18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" fill="none" /></svg>
+          </button>
         </div>
       </div>
       {/* cascade menu */}
@@ -198,6 +280,7 @@ export default function TerminalNav({ onHome, openRainbow, openGallery, openAeon
         <CascadeTop label="PROJECT_AEON" groups={AEON_GROUPS} onSection={openAeon} onLeaf={goChart} renderPreview={renderPreview} />
         {asOfLabel && <div className="tdataas">Data as of {asOfLabel}</div>}
       </div>
+      <MobileMenu open={mobOpen} onClose={() => setMobOpen(false)} openRainbow={openRainbow} openGallery={openGallery} openAeon={openAeon} openCity={openCity} goChart={goChart} />
     </div>
   );
 }
