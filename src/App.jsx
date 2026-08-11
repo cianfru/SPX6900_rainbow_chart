@@ -1445,7 +1445,7 @@ export default function App() {
             <h2 style={{ fontFamily: "var(--sans)", fontSize: isMobile ? 28 : 42, fontWeight: 800, margin: 0, color: "var(--tx)", letterSpacing: "-0.02em", textTransform: "uppercase", lineHeight: 1 }}>{title}</h2>
           </div>
           <div style={{ height: 3, borderRadius: 2, background: "var(--rainbow)", margin: "13px 0 14px", maxWidth: 620 }} />
-          <div style={{ fontFamily: "var(--sans)", fontSize: isMobile ? 14 : 15.5, color: "var(--dim)", marginBottom: 14, maxWidth: 760, lineHeight: 1.5 }}>{CHART_META[tab]?.desc}</div>
+          <div style={{ fontFamily: "var(--sans)", fontSize: isMobile ? 14.5 : 16, color: "var(--dim)", marginBottom: 16, maxWidth: 980, lineHeight: 1.55 }}><span style={{ color: "#4ade80", fontFamily: "var(--mono)", marginRight: 10, fontWeight: 700 }}>&gt;</span>{CHART_META[tab]?.desc}</div>
           <ChartFreshness chartId={tab} />
           <ErrorBoundary key={tab}>
           <Suspense fallback={<div style={{ textAlign: "center", fontFamily: "var(--mono)", color: "var(--faint)", padding: 40 }}>loading chart…</div>}>

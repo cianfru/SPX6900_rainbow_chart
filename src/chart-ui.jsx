@@ -34,9 +34,11 @@ const LIGHT = { "#38bdf8": "#7dd3fc", "#a78bfa": "#c4b5fd" };
 // with the question the metric answers in human terms, so a general user gets it before
 // reading an axis. `q` = the plain question; children = the plain answer.
 export function Explain({ q, accent = "#38bdf8", children }) {
+  // De-boxed, full-width, terminal-flavoured: no enclosing card — a green ">" prompt on the question,
+  // the site's sans for the body, aligned to the chart width. (Rules and prompts, not pills/boxes.)
   return (
-    <div className="chart-explain" style={{ maxWidth: 820, margin: "0 auto 18px", background: "rgba(255,255,255,0.025)", border: "1px solid rgba(255,255,255,0.07)", borderLeft: `3px solid ${accent}`, borderRadius: 10, padding: "13px 18px", fontFamily: SANS, fontSize: 14, color: "#cbd5e1", lineHeight: 1.6 }}>
-      {q && <div style={{ fontWeight: 700, color: "#f8fafc", marginBottom: 3 }}>{q}</div>}
+    <div className="chart-explain" style={{ maxWidth: MAX_W, margin: "0 auto 22px", fontFamily: SANS, fontSize: 15, color: "#cbd5e1", lineHeight: 1.65 }}>
+      {q && <div style={{ fontWeight: 700, color: "#f8fafc", marginBottom: 5, fontSize: 16 }}><span style={{ color: "#4ade80", fontFamily: MONO, marginRight: 10, fontWeight: 700 }}>&gt;</span>{q}</div>}
       {children}
     </div>
   );

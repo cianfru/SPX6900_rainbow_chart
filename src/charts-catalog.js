@@ -40,7 +40,6 @@ export const CHART_GROUPS = [
     desc: "Who holds SPX — the holder base, its conviction, and how it grew across chains.",
     charts: [
       { id: "supply", title: "Holder Conviction", post: "distribution", desc: "Supply split across holder-conviction tiers." },
-      { id: "holders", title: "Holders", post: "marketcap", desc: "The holder base and its average cost basis." },
       { id: "holdersprice", title: "Holders vs Price", post: "marketcap", desc: "Does accumulation hold through the price swings?" },
       { id: "hodlwaves", title: "HODL Waves", post: "hodlwaves", desc: "Supply by holding age — fresh coins to diamond hands." },
       { id: "freefloat", title: "Liquid vs Illiquid Supply", post: "freefloat", desc: "How much supply is sticky (long-term held) vs likely to move — SPX vs Bitcoin." },
