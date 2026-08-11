@@ -71,6 +71,10 @@
 .tzone .mitem{ display:flex; align-items:center; justify-content:space-between; gap:16px; padding:7px 11px; cursor:pointer; font-family:var(--mono); font-size:12.5px; letter-spacing:.03em; text-transform:uppercase; color:var(--tx); white-space:nowrap; }
 .tzone .mitem .mk{ color:var(--faint); }
 .tzone .mitem:hover{ background:var(--tx); color:var(--bg); } .tzone .mitem:hover .mk{ color:var(--bg); }
+/* the label + its blinking "_" cursor. `.lw` locks its width on first hover so the row
+   can't reflow while the typewriter streams the characters in (JS sets min-width). */
+.tzone .mitem .lw{ display:inline-flex; align-items:baseline; }
+.tzone .mitem .lbl{ white-space:nowrap; }
 /* rows are white; the group's colour lives only in the blinking "_" cursor (same rule
    as the chart-page label) */
 .tzone .mitem .cur{ color:var(--curc,var(--tx)); text-shadow:0 0 6px var(--curc,transparent); }
@@ -82,7 +86,9 @@
 .tzone .leafprev.on{ display:flex; }
 .tzone .mtop.flip .leafprev{ left:auto; right:100%; margin-left:0; margin-right:5px; }
 .tzone .leafprev .spk{ width:100%; height:118px; display:block; border:1px solid var(--line2); background:var(--panel2); }
-.tzone .leafprev img.spk{ object-fit:cover; object-position:top center; }
+/* the LIVE mini-render of the real chart — a scaled, clipped, non-interactive mount */
+.tzone .leafprev .lprevbox{ position:relative; width:100%; overflow:hidden; border:1px solid var(--line2); background:var(--ground,#06070c); }
+.tzone .leafprev .lprevload{ height:118px; display:flex; align-items:center; justify-content:center; font-family:var(--mono); font-size:11px; color:var(--faint); }
 .tzone .mprev-kick{ font-family:var(--mono); font-size:10px; letter-spacing:.16em; text-transform:uppercase; color:var(--faint); margin-bottom:9px; }
 .tzone .mprev-title{ font-family:var(--sans); font-size:16px; font-weight:600; color:var(--tx); margin:13px 0 6px; }
 .tzone .mprev-desc{ font-family:var(--mono); font-size:12px; line-height:1.55; color:var(--dim); }

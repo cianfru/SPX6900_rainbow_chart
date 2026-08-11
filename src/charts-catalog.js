@@ -123,23 +123,37 @@ export const CHART_GROUPS = [
 // gallery — kept as a separate group set so the two never mix.
 export const AEON_GROUPS = [
   {
-    title: "Project Aeon",
+    title: "Market",
     color: "#2dd4bf",
-    desc: "On-chain analytics for the Project AEON NFT collection (3,333 · Ethereum).",
+    desc: "Floor, sales and value for the Project AEON collection (3,333 · Ethereum).",
     charts: [
       { id: "aeonfloor", title: "Floor & Sales", desc: "Floor price (ETH & USD) and trading volume since mint." },
-      { id: "aeonrarity", title: "Rarity — Where Does It Sit?", desc: "Look up any AEON — its rarity rank, tier and traits, on the collection's rarity curve." },
-      { id: "aeonvalue", title: "Live Listings vs What They Sell For", desc: "Every active ask measured against what comparable pieces actually fetch — what is cheap, and what is over market." },
       { id: "aeonvsspx", title: "AEON Floor vs SPX", desc: "The NFT floor priced in SPX6900 — cheap or expensive versus its baseline." },
+      { id: "aeonvaluation", title: "MVRV & Supply in Profit", desc: "NFT MVRV and the cost-basis distribution — are holders in profit vs the floor?" },
       { id: "aeonleadlag", title: "Does the Floor Lead the Coin?", desc: "Lead/lag test of AEON's floor and sales against SPX6900 — which one moves first." },
       { id: "aeontraders", title: "Trader Leaderboard", desc: "Who made money trading AEON — realized P&L, hold time and win rate per wallet." },
-      { id: "aeonvaluation", title: "MVRV & Supply in Profit", desc: "NFT MVRV and the cost-basis distribution — are holders in profit vs the floor?" },
-      { id: "aeonsalesrarity", title: "What Actually Sold — Rarity vs Price", desc: "Completed sales history: what each piece really fetched vs its rarity — the steals and the record sales." },
-      { id: "aeontraits", title: "Trait Values", desc: "Which traits command a premium — median sale price per trait." },
+    ],
+  },
+  {
+    title: "Holders",
+    color: "#818cf8",
+    desc: "Who holds AEON — age, ownership, concentration and flow.",
+    charts: [
       { id: "aeonhodl", title: "Holder Age", desc: "Each AEON by how long since it last changed hands — the maturation story." },
       { id: "aeonowners", title: "Owners Over Time", desc: "The holder base since mint, split by how many tokens each wallet holds." },
       { id: "aeonconcentration", title: "Concentration", desc: "The largest wallets' share of the collection over time." },
       { id: "aeonbehaviour", title: "Holder Flow", desc: "Wallets entering (buying) vs exiting (selling) the collection each month." },
+    ],
+  },
+  {
+    title: "Rarity",
+    color: "#37d067",
+    desc: "Rarity, listings and completed sales for every piece.",
+    charts: [
+      { id: "aeonrarity", title: "Rarity — Where Does It Sit?", desc: "Look up any AEON — its rarity rank, tier and traits, on the collection's rarity curve." },
+      { id: "aeonvalue", title: "Live Listings vs What They Sell For", desc: "Every active ask measured against what comparable pieces actually fetch — what is cheap, and what is over market." },
+      { id: "aeonsalesrarity", title: "What Actually Sold — Rarity vs Price", desc: "Completed sales history: what each piece really fetched vs its rarity — the steals and the record sales." },
+      { id: "aeontraits", title: "Trait Values", desc: "Which traits command a premium — median sale price per trait." },
     ],
   },
 ];

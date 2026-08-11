@@ -806,7 +806,7 @@ export default function App() {
       {isSub ? (
         <nav style={{ position: "sticky", top: 0, zIndex: 50, width: "100%",
           background: "rgba(8,9,11,0.86)", backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)" }}>
-          <TerminalNav onHome={goHome} openGallery={openGallery} openAeon={openAeon} openCity={openCity} goChart={goChart} asOf={last?.date} />
+          <TerminalNav onHome={goHome} openGallery={openGallery} openAeon={openAeon} openCity={openCity} goChart={goChart} renderPreview={id => chartEl(id, { preview: true })} asOf={last?.date} />
         </nav>
       ) : (
       <nav ref={navRef} style={{

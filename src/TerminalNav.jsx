@@ -1,17 +1,82 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect, Suspense } from "react";
 import { CHART_GROUPS, AEON_GROUPS, CITY_GROUPS } from "./charts-catalog.js";
 import { GCOL } from "./terminal-colors.js";
+import ErrorBoundary from "./ErrorBoundary.jsx";
 
 // The terminal cascade nav for the sub-pages — mirrors the ?view=next landing menu
 // EXACTLY: same rainbow-band group colours (GCOL), same ALL row, same group→chart
-// fly-outs with a live preview panel. Built from the real catalog so every leaf
+// fly-outs, the same per-row TYPEWRITER effect, and — the one thing the landing
+// prototype left to "the React port" — a LIVE render of the real chart in the
+// preview panel (not the tweet card). Built from the real catalog so every leaf
 // carries a live chart id and drives the app's own routing. Scoped under .tzone.
 
 const LOGO = "/logo_rainbow.png";
 const X_URL = "https://x.com/SPX6900Rainbow";
 const KRAKEN_URL = "https://proinvite.kraken.com/9f1e/8985jw0l";
 
-// deterministic sparkline for the cascade preview (same as the landing's mspark)
+const TYPE_SPEED = 60;   // ms/char — the landing's deliberate terminal cadence
+const BASE_W = 1180;     // width the real chart renders at before being scaled into the panel
+const CONTENT_H = 620;   // clip height (chart header + body; caption cropped)
+// three.js-heavy charts would re-initialise on every hover — too costly for a fly-out,
+// so these fall back to the deterministic sparkline instead of a live mount.
+const HEAVY = new Set(["urpdterrain"]);
+
+// A menu row whose label TYPES itself out on hover (cursor rides the writing head),
+// exactly like the landing prototype's typeLbl. The label wrapper locks its min-width
+// on first hover so the row can't reflow while the characters stream in.
+function MenuRow({ text, color, mark, cls = "", onEnter, onLeave, onClick }) {
+  const [shown, setShown] = useState(text);
+  const wrapRef = useRef(null);
+  const timer = useRef(null);
+  useEffect(() => () => clearTimeout(timer.current), []);
+  const type = () => {
+    const lw = wrapRef.current;
+    if (lw && !lw.style.minWidth) { const w = lw.getBoundingClientRect().width; if (w) lw.style.minWidth = w + "px"; }
+    clearTimeout(timer.current);
+    let j = 0;
+    const step = () => { setShown(text.slice(0, j)); if (j < text.length) { j++; timer.current = setTimeout(step, TYPE_SPEED); } };
+    setShown(""); step();
+  };
+  const reset = () => { clearTimeout(timer.current); setShown(text); };
+  return (
+    <div className={"mitem " + cls}
+      onMouseEnter={() => { type(); onEnter && onEnter(); }}
+      onMouseLeave={() => { reset(); onLeave && onLeave(); }}
+      onClick={onClick}>
+      <span className="lw" ref={wrapRef}>
+        <span className="lbl">{shown}</span>
+        <span className="cur" style={{ "--curc": color }}>_</span>
+      </span>
+      {mark && <span className="mk">{mark}</span>}
+    </div>
+  );
+}
+
+// A LIVE, scaled-down render of the real chart component (same approach as the gallery's
+// LivePreview) — this is the "actual look of the chart", not the tweet card.
+function LeafPreview({ render }) {
+  const ref = useRef(null);
+  const [scale, setScale] = useState(0.19);
+  useEffect(() => {
+    const el = ref.current; if (!el) return;
+    const ro = new ResizeObserver(() => { if (el.clientWidth) setScale(el.clientWidth / BASE_W); });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  return (
+    <div ref={ref} className="lprevbox" style={{ height: CONTENT_H * scale }}>
+      <div style={{ position: "absolute", top: 0, left: 0, width: BASE_W, transformOrigin: "top left", transform: `scale(${scale})`, pointerEvents: "none" }}>
+        <ErrorBoundary>
+          <Suspense fallback={<div className="lprevload">loading…</div>}>
+            <div className="chart-preview">{render()}</div>
+          </Suspense>
+        </ErrorBoundary>
+      </div>
+    </div>
+  );
+}
+
+// deterministic sparkline — fallback for locked/heavy charts (same as the landing's mspark)
 function Spark({ seed, color }) {
   let s = 2166136261;
   for (let i = 0; i < seed.length; i++) { s ^= seed.charCodeAt(i); s = Math.imul(s, 16777619); }
@@ -34,7 +99,7 @@ function Spark({ seed, color }) {
 
 // A cascading top: ALL + group rows (▸); hovering a group flies out its chart list, and
 // hovering a chart flies out the preview panel. Groups coloured by the mockup's GCOL.
-function CascadeTop({ label, groups, onSection, onLeaf }) {
+function CascadeTop({ label, groups, onSection, onLeaf, renderPreview }) {
   const [leaf, setLeaf] = useState(null); // {gi, item, color}
   const topRef = useRef(null);
   const onEnter = () => {
@@ -46,23 +111,21 @@ function CascadeTop({ label, groups, onSection, onLeaf }) {
     <div className="mtop" ref={topRef} onMouseEnter={onEnter} onMouseLeave={() => setLeaf(null)}>
       <div className="mhead">{label} <span className="car">▾</span></div>
       <div className="drop">
-        <div className="mitem allrow" onClick={() => onSection()}><span>All<span className="cur" style={{ "--curc": "var(--live)" }}>_</span></span></div>
+        <MenuRow text="All" color="var(--live)" cls="allrow" onClick={() => onSection()} />
         {groups.map((g, gi) => { const gc = GCOL[gi % GCOL.length]; return (
           <div className="mgroup" key={g.title} style={{ "--gc": gc }} onMouseLeave={() => setLeaf(l => (l && l.gi === gi ? null : l))}>
-            <div className="mitem grouprow" onClick={() => onSection(g.title)}><span>{g.title}<span className="cur" style={{ "--curc": gc }}>_</span></span><span className="mk">▸</span></div>
+            <MenuRow text={g.title} color={gc} mark="▸" cls="grouprow" onClick={() => onSection(g.title)} />
             <div className="subdrop">
               {g.charts.filter(c => !c.dev).map(item => (
-                <div className="mitem leafrow" key={item.id}
-                  onMouseEnter={() => setLeaf({ gi, item, color: gc })}
-                  onClick={() => onLeaf(item.id)}>
-                  <span>{item.title}<span className="cur" style={{ "--curc": gc }}>_</span></span><span className="mk">›</span>
-                </div>
+                <MenuRow key={item.id} text={item.title} color={gc} mark="›" cls="leafrow"
+                  onEnter={() => setLeaf({ gi, item, color: gc })}
+                  onClick={() => onLeaf(item.id)} />
               ))}
               <div className={"leafprev" + (leaf && leaf.gi === gi ? " on" : "")}>
                 {leaf && leaf.gi === gi && (<>
                   <div className="mprev-kick">Preview</div>
-                  {leaf.item.post
-                    ? <img className="spk" src={`/api/og?post=${leaf.item.post}&thumb=1`} alt="" loading="lazy" />
+                  {(renderPreview && !leaf.item.locked && !HEAVY.has(leaf.item.id))
+                    ? <LeafPreview key={leaf.item.id} render={() => renderPreview(leaf.item.id)} />
                     : <Spark seed={leaf.item.id + g.title} color={leaf.color} />}
                   <div className="mprev-title">{leaf.item.title}</div>
                   <div className="mprev-desc">{leaf.item.desc}</div>
@@ -85,16 +148,14 @@ function FlatTop({ label, items }) {
       <div className="mhead">{label} <span className="car">▾</span></div>
       <div className="drop">
         {items.map((it, i) => (
-          <div className="mitem leafrow" key={i} style={{ "--gc": it.color }} onClick={it.onClick}>
-            <span>{it.label}<span className="cur" style={{ "--curc": it.color }}>_</span></span><span className="mk">›</span>
-          </div>
+          <MenuRow key={i} text={it.label} color={it.color} mark="›" cls="leafrow" onClick={it.onClick} />
         ))}
       </div>
     </div>
   );
 }
 
-export default function TerminalNav({ onHome, openGallery, openAeon, openCity, goChart, asOf }) {
+export default function TerminalNav({ onHome, openGallery, openAeon, openCity, goChart, renderPreview, asOf }) {
   const asOfLabel = asOf ? new Date(asOf).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : null;
   const cityColor = CITY_GROUPS[0]?.color || "#7dd3fc";
   const cityItems = [
@@ -122,9 +183,9 @@ export default function TerminalNav({ onHome, openGallery, openAeon, openCity, g
       </div>
       {/* cascade menu */}
       <div className="tmenu">
-        <CascadeTop label="CHARTS" groups={CHART_GROUPS} onSection={openGallery} onLeaf={goChart} />
+        <CascadeTop label="CHARTS" groups={CHART_GROUPS} onSection={openGallery} onLeaf={goChart} renderPreview={renderPreview} />
         <FlatTop label="SPX_CITY" items={cityItems} />
-        <CascadeTop label="PROJECT_AEON" groups={AEON_GROUPS} onSection={openAeon} onLeaf={goChart} />
+        <CascadeTop label="PROJECT_AEON" groups={AEON_GROUPS} onSection={openAeon} onLeaf={goChart} renderPreview={renderPreview} />
         {asOfLabel && <div className="tdataas">Data as of {asOfLabel}</div>}
       </div>
     </div>
