@@ -145,6 +145,20 @@ export function loadOnchain() {
   return onchainPromise;
 }
 
+// Shared, cached loader for /entities.json — the entity-clustering graph (Phase 2/3): which wallets
+// belong to one owner, reconstructed from SPX drain/fund flows. An OBJECT { updated, spot, heldSupply,
+// method, params, stats, entities:[{id, size, bal, holders, flagged, wallets, edges}] }. Null on failure.
+let entitiesPromise = null;
+export function loadEntities() {
+  if (!entitiesPromise) {
+    entitiesPromise = fetch("/entities.json", { cache: "no-store" })
+      .then(r => (r.ok ? r.json() : null))
+      .then(d => (d && Array.isArray(d.entities) ? d : null))
+      .catch(() => null);
+  }
+  return entitiesPromise;
+}
+
 // Shared, cached loader for /aeon-onchain.json — the Project Aeon NFT holder
 // reconstruction (owners, holder-age/HODL waves, concentration, flow), an OBJECT
 // { updated, supply, current, series }. Null on failure → bundled AEON_ONCHAIN.

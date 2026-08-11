@@ -571,10 +571,22 @@ export function replayFifo(transfers, priceAt, sampleTs, opts = {}) {
     // Entity clustering (Phase 2) reuses the engine's OWN already-sorted tx — no second 2.7M sort/copy.
     if (opts.collectEntities) {
       const ent = clusterEntities(tx, { exclude, externalAddrs: opts.externalAddrs, ...(opts.entityOpts || {}) });
+      // Enrich each entity with its COMBINED current holdings (Phase 3 — "who owns what"): the sum of its
+      // members' live balances and how many of them still hold. This is what lets the entity view show real
+      // concentration ("one owner controls X across N wallets") vs the by-wallet view. Held supply is emitted
+      // too, so % of holder supply can be computed without a cross-file join.
+      let held = 0;
+      for (const w of wallets.values()) if (w.bal > EPS) held += w.bal;
+      for (const e of ent.entities) {
+        let bal = 0, holders = 0;
+        for (const a of e.wallets) { const w = wallets.get(a); if (w && w.bal > EPS) { bal += w.bal; holders++; } }
+        e.bal = +bal.toFixed(2); e.holders = holders;
+      }
+      ent.entities.sort((a, b) => b.bal - a.bal || b.size - a.size);   // rank by combined holdings for the explorer
       out.entities = {
-        updated: iso(lastTs),
-        method: "EOA→EOA drain/fund clustering — a wallet emptied into, or a fresh wallet funded by, another plain wallet is the same entity moving funds. CEX/LP/contract legs are exits, never links. Hubs (many funders) and oversized clusters are flagged, not trusted.",
-        params: { minTokens: opts.entityOpts?.minTokens ?? 50000, emptyFrac: opts.entityOpts?.emptyFrac ?? 0.9, maxInDegree: opts.entityOpts?.maxInDegree ?? 8, maxCluster: opts.entityOpts?.maxCluster ?? 30 },
+        updated: iso(lastTs), spot: priceAt(lastTs) ?? 0, heldSupply: +held.toFixed(2),
+        method: "EOA→EOA drain/fund clustering — a wallet emptied into, or a fresh wallet funded by, another plain wallet is the same entity moving funds. CEX/LP/contract legs are exits, never links. Hubs (many funders) and oversized clusters are flagged, not trusted. Links on SPX flows only — a common ETH/gas funder that never touched SPX is not seen.",
+        params: { minTokens: opts.entityOpts?.minTokens ?? 50000, emptyFrac: opts.entityOpts?.emptyFrac ?? 0.9, maxInDegree: opts.entityOpts?.maxInDegree ?? 8, maxOutDegree: opts.entityOpts?.maxOutDegree ?? 40, maxCluster: opts.entityOpts?.maxCluster ?? 30 },
         stats: ent.stats, entities: ent.entities,
       };
     }
