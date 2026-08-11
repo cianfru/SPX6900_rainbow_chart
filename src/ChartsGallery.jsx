@@ -237,9 +237,9 @@ export default function ChartsGallery({
         <div key={group.title} style={{ maxWidth: MAX_W, margin: "0 auto 40px" }}>
           <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginBottom: 15, flexWrap: "wrap" }}>
             <span style={{
-              fontFamily: MONO, fontSize: 13, letterSpacing: ".14em", textTransform: "uppercase",
-              color: group.color, textShadow: `0 0 9px ${group.color}66`, fontWeight: 600,
-            }}>{group.title}</span>
+              fontFamily: "var(--mono)", fontSize: 13, letterSpacing: ".14em", textTransform: "uppercase",
+              color: T.tx, fontWeight: 600,
+            }}>{group.title}<span className="tgcur" style={{ "--curc": group.color }}>_</span></span>
             <span style={{ fontFamily: MONO, fontSize: 12, color: T.faint }}>[{group.charts.length}]</span>
             <span style={{ fontFamily: SANS, fontSize: isMobile ? 12.5 : 13.5, color: T.dim }}>{group.desc}</span>
           </div>

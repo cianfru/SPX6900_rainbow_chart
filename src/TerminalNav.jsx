@@ -7,7 +7,7 @@ import { GCOL } from "./terminal-colors.js";
 // fly-outs with a live preview panel. Built from the real catalog so every leaf
 // carries a live chart id and drives the app's own routing. Scoped under .tzone.
 
-const LOGO = "/spx6900logo.png";
+const LOGO = "/spx6900.gif";
 const X_URL = "https://x.com/SPX6900Rainbow";
 const KRAKEN_URL = "https://proinvite.kraken.com/9f1e/8985jw0l";
 

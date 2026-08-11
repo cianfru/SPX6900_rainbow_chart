@@ -22,10 +22,17 @@
   font-family:var(--mono); font-size:13px; letter-spacing:.04em; text-transform:uppercase;
   color:var(--dim); border-bottom:1px solid var(--line);
 }
-.tzone .tbrand{ display:inline-flex; align-items:center; gap:10px; cursor:pointer; background:none; border:none; padding:8px 0; color:var(--dim); }
-.tzone .tbrand .tlogo{ width:28px; height:28px; object-fit:contain; display:block; }
-.tzone .tbrand b{ color:var(--tx); text-transform:none; letter-spacing:.01em; font-size:17px; font-weight:700; font-family:var(--sans); }
-.tzone .tbrand .bcur{ color:var(--live); animation:tblink 1.2s steps(1) infinite; }
+.tzone .tbrand{ display:inline-flex; align-items:center; gap:10px; cursor:pointer; background:none; border:none; padding:8px 0; }
+/* logo treated exactly like the front page (inverted coin, screen-blended on the dark ground) */
+.tzone .tbrand .tlogo{ height:30px; width:auto; object-fit:contain; display:block; filter:invert(1); mix-blend-mode:screen; }
+/* wordmark = the front-page treatment: Space Grotesk 800 with the animated rainbow gradient */
+.tzone .tbrand b{ font-family:var(--sans); font-weight:800; font-size:18px; letter-spacing:-0.01em; text-transform:none;
+  background:linear-gradient(90deg,#6366f1,#3b82f6,#06b6d4,#22c55e,#84cc16,#f59e0b,#ea580c,#dc2626,#8b0000,#6366f1);
+  background-size:200% auto; -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; color:transparent;
+  animation:title-shimmer 8s ease-in-out infinite alternate; transition:none; }
+.tzone .tbrand .bcur{ color:var(--live); text-shadow:0 0 6px var(--live); animation:tcurblink 1.05s steps(1,end) infinite; margin-left:1px; }
+/* hover → the whole wordmark turns solid green */
+.tzone .tbrand:hover b{ background:none; -webkit-text-fill-color:var(--live); color:var(--live); animation:none; }
 .tzone .tbarright{ display:inline-flex; align-items:center; gap:14px; }
 .tzone .tsys{ display:inline-flex; align-items:center; gap:8px; white-space:nowrap; }
 .tzone .tsys .fdot{ width:7px; height:7px; border-radius:50%; background:var(--live); box-shadow:0 0 8px var(--live); animation:tblink 1.6s steps(1) infinite; }
