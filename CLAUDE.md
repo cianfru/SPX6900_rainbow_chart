@@ -952,6 +952,26 @@
   nav pill, render case). Sections: the rainbow (frozen-fit explainer + live receipt) · the valuation composite (six weighted
   lenses, ranked over own history) · the seven families · what none of it can tell you (5 limits) · sources + cadence.
   Browser-verified. If ever cutting it again, that's an OWNER call, not a Claude call.
+- **⭐⭐ MOBILE IS A FIRST-CLASS PRIORITY, NOT AN AFTERTHOUGHT (owner, 2026-08-11).** Data shows **>half of all traffic lands
+  from the X account → mobile (iOS/Android)**. So mobile responsiveness / cleanness / charts / menus must be **top-notch** —
+  "we cannot afford a very nice desktop and a half-baked mobile." Desktop is still the best experience (real estate +
+  chart interactivity), but **every new surface must be verified on a phone viewport**, not just desktop. When building/
+  changing UI, screenshot it on an iPhone-13-class viewport (Playwright `devices['iPhone 13']`, `hasTouch:true`) and check:
+  no horizontal overflow, tap targets ≥40px, no hover-only affordances, opaque overlays (see the backdrop-filter gotcha below).
+  - **✅ BOTH NAVS NOW HAVE A FULL-SCREEN TAP MENU ON PHONES (2026-08-11).** The hover cascade is desktop-only; on ≤700px
+    (landing) / ≤760px (React sub-pages) it's replaced by a **hamburger → full-screen, tap-driven drill-down** (Rainbow ·
+    Charts · SPX City · Project Aeon → groups → charts). **Landing:** `public/landing-next.html` (`#mobtog`/`#mobmenu`,
+    `buildMobMenu`/`wireMobMenu`). **React sub-pages:** `src/TerminalNav.jsx` (`MobileMenu`/`MobRow`, `.tmob-*` styles in
+    `src/terminal.css`) — navigates via the app's SPA callbacks (goChart/openGallery/openAeon/openCity/openRainbow).
+    - **⚠ GOTCHA (cost 2 debug rounds): a `backdrop-filter` ancestor becomes the containing block for `position:fixed`
+      descendants.** The sticky sub-page `<nav>` has `backdrop-filter:blur`, so the fixed `.tmobmenu` with `inset:0` filled
+      the 51px nav, not the screen (looked "transparent" — it was just 51px tall over the page). FIX: the nav is pinned at
+      top, so use **viewport units** (`top:0; left:0; width:100vw; height:100dvh`) instead of `inset:0`. Remember this for any
+      full-screen fixed overlay rendered inside a blurred/transformed container.
+  - **✅ TYPEWRITER EFFECT IS CONSISTENT everywhere (headers + leaves, desktop hover + mobile tap).** Landing: generalised
+    `wireTypeRow` to drive `.lbl`/`.ml-term`/`.mml`; section headers type on hover, mobile rows on tap. React nav: shared
+    `useTypewriter` + `TypeHead` (trigger on the whole `.mhead`, since React derives `onMouseEnter` from `mouseover` — a raw
+    `mouseenter` dispatch is a false negative in tests; use a real hover or dispatch `mouseover`).
 - **✅ SHIPPED & LIVE — the terminal landing (owner iterated 2026-07/08).** The redesign is BUILT and serving: it lives in
   **`public/landing-next.html`** (a self-contained terminal-aesthetic page — pixel VGA font, near-black ground, single green
   accent, mono data, uppercase micro-labels, rainbow hairline, a boot sequence, LOOK toggles Blend/Green-DOS/Calm), mounted
