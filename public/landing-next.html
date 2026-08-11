@@ -968,7 +968,7 @@
 <script>
 (function(){
   function go(u){ (window.top||window).location.href=u; }
-  var MAP={ "CHARTS":"/?view=charts", "SPX_CITY":"/city", "PROJECT_AEON":"/?view=aeon", "RAINBOW":"/" };
+  var MAP={ "CHARTS":"/?view=charts", "SPX_CITY":"/city", "PROJECT_AEON":"/?view=aeon", "RAINBOW":"/?view=rainbow" };
   function sectionOf(t){
     var mt=t.closest(".mtop");
     if(mt){ if(mt.classList.contains("mtop-charts")) return "CHARTS";
@@ -982,19 +982,41 @@
     var st=t.closest("[data-sectop]"); if(st) return st.getAttribute("data-sectop");
     return null;
   }
+  var closeMenus=function(){ document.querySelectorAll(".mtop.open,.mgroup.open,.pseg.open").forEach(function(x){x.classList.remove("open");}); };
   document.addEventListener("click", function(e){
     var t=e.target; if(!t || !t.closest) return;
     if(t.closest(".social a")) return;
     if(t.closest("#ctaChart")){ e.preventDefault(); e.stopImmediatePropagation(); go("/?view=charts"); return; }
     if(t.closest("#ctaMethod")){ e.preventDefault(); e.stopImmediatePropagation(); go("/?view=methods"); return; }
     if(t.closest("[data-home]") || t.closest(".bar .l")){ e.preventDefault(); e.stopImmediatePropagation(); go("/"); return; }
+    var _mn=t.closest("#menu") || t.closest(".pathbar");
+    if(!_mn) closeMenus(); // click outside the menu → fold any tab/group left open by a click
+    if(_mn){
+      // A tab that carries a cascade of sub-tabs → OPEN it (reveal the sub-tabs), don't navigate.
+      // (Rainbow has no cascade, so it falls through to navigation below.) Same as every other dropdown.
+      var _head=t.closest(".mhead, .pseghead, .sechead");
+      var _seg=_head && _head.closest(".mtop, .pseg");
+      if(_seg && _seg.querySelector(".drop, .mega, .subdrop")){
+        e.preventDefault(); e.stopImmediatePropagation();
+        var _was=_seg.classList.contains("open"); closeMenus(); if(!_was) _seg.classList.add("open"); return;
+      }
+      // A row whose group carries a sub-menu (SPX City → SPX / AEON / Both) → reveal it, don't navigate.
+      // A click on an actual sub-item (inside the .subdrop) is excluded and falls through to navigation.
+      var _mg=!t.closest(".subdrop") && t.closest(".mitem") && t.closest(".mitem").closest(".mgroup");
+      if(_mg && _mg.querySelector(".subdrop")){
+        e.preventDefault(); e.stopImmediatePropagation();
+        var _w2=_mg.classList.contains("open");
+        _mg.parentElement.querySelectorAll(".mgroup.open").forEach(function(x){x.classList.remove("open");});
+        if(!_w2) _mg.classList.add("open"); return;
+      }
+    }
     // a chart sub-view row → open that chart with the view pre-selected (?…&v=… or &rel=…)
     var _hf=t.closest("[data-href]"); if(_hf){ e.preventDefault(); e.stopImmediatePropagation(); go(_hf.getAttribute("data-href")); return; }
     // a specific chart leaf → open that chart (id map generated from the real catalog); "@/path" = a page route
     var _lf=t.closest("[data-leaf]");
     if(_lf){ var _id=(window.__LEAFID||{})[(_lf.getAttribute("data-top")||"")+"|"+(_lf.getAttribute("data-leaf")||"")];
       if(_id){ e.preventDefault(); e.stopImmediatePropagation(); go(_id.charAt(0)==="@"?_id.slice(1):("/?chart="+_id)); return; } }
-    if(t.closest("#menu") || t.closest(".pathbar")){ var s=sectionOf(t); if(s && MAP[s]){ e.preventDefault(); e.stopImmediatePropagation(); go(MAP[s]); return; } }
+    if(_mn){ var s=sectionOf(t); if(s && MAP[s]){ e.preventDefault(); e.stopImmediatePropagation(); go(MAP[s]); return; } }
   }, true);
   var c=document.querySelector('.look button[data-v="calm"]'); if(c) c.click();
 })();
