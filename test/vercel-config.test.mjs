@@ -17,7 +17,7 @@ test("vercel.json has only top-level keys Vercel accepts", () => {
   const ALLOWED = new Set([
     "functions", "rewrites", "redirects", "headers", "routes", "cleanUrls",
     "trailingSlash", "regions", "buildCommand", "outputDirectory", "installCommand",
-    "framework", "devCommand", "ignoreCommand", "crons", "images", "public",
+    "framework", "devCommand", "ignoreCommand", "crons", "images", "public", "git",
   ]);
   const unknown = Object.keys(cfg).filter(k => !ALLOWED.has(k));
   assert.deepEqual(unknown, [], `Vercel rejects unknown top-level keys: ${unknown.join(", ")}`);
