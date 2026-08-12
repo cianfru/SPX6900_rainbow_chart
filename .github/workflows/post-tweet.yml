@@ -68,10 +68,10 @@ jobs:
           ' >> "$GITHUB_OUTPUT"
           echo "event=$EVT schedule='$SCHED' -> $(tail -1 "$GITHUB_OUTPUT")"
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         if: steps.gate.outputs.proceed == 'true'
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         if: steps.gate.outputs.proceed == 'true'
         with:
           node-version: 20
