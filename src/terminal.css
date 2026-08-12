@@ -214,3 +214,6 @@ html[data-theme="light"] .tzone svg [stroke="#fafafa"], html[data-theme="light"]
 html[data-theme="light"] .tzone svg [fill="#f4f6f9"], html[data-theme="light"] .tzone svg [fill="#f8fafc"],
 html[data-theme="light"] .tzone svg [fill="#e2e8f0"], html[data-theme="light"] .tzone svg [fill="#eef2f8"],
 html[data-theme="light"] .tzone svg text[fill="#ffffff"], html[data-theme="light"] .tzone svg text[fill="#fff"]{ fill:#0a0c11; }
+
+/* gallery "‹ all charts" back chip (shown when the gallery is filtered to one group) */
+.tzone .galback:hover{ color:var(--tx); border-color:var(--faint); }

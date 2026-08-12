@@ -104,7 +104,7 @@ export default function CexFlowChart({ isMobile, preview = false }) {
         </ResponsiveContainer>
       </div>
       <div className="chart-caption" style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.65, maxWidth: 900, marginInline: "auto" }}>
-        <strong style={{ color: GRN }}>Exchange flow</strong>, 7-day rolling net of SPX moving on/off tagged exchange addresses, reconstructed on-chain (Dune). Listing fills (grey) excluded.
+        <strong style={{ color: GRN }}>Exchange flow</strong>, 7-day rolling net of SPX moving on/off tagged exchange addresses, reconstructed on-chain. Listing fills (grey) excluded.
         Known addresses only; netflow isn&apos;t a guaranteed buy/sell. Drag to zoom. Not financial advice.
       </div>
     </div>

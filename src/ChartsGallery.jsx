@@ -162,7 +162,7 @@ function SearchBar({ q, setQ, count, total, isMobile }) {
 }
 
 export default function ChartsGallery({
-  isMobile, onOpen, onHome, renderPreview, onOther,
+  isMobile, onOpen, onHome, renderPreview, onOther, onBack,
   groups = CHART_GROUPS, title = "Charts", titleGradient,
   subtitle, showFeatured = true, onlyGroup = null,
 }) {
@@ -193,6 +193,14 @@ export default function ChartsGallery({
     <div style={{ padding: isMobile ? "8px 4px 48px" : "16px 8px 60px" }}>
       {/* ── terminal header: command prompt · big title · rainbow hairline · search ── */}
       <div style={{ maxWidth: MAX_W, margin: "0 auto 30px" }}>
+        {/* return to all charts when the gallery is filtered to a single group (deep-linked from the nav) */}
+        {onlyGroup && onBack && (
+          <button onClick={onBack} className="galback" style={{
+            display: "inline-flex", alignItems: "center", gap: 7, marginBottom: 14, cursor: "pointer",
+            background: "transparent", border: `1px solid ${T.line2}`, borderRadius: 8, padding: "6px 12px",
+            fontFamily: MONO, fontSize: 12, letterSpacing: ".07em", textTransform: "uppercase", color: T.dim,
+          }}>‹ All {title}</button>
+        )}
         <div style={{ fontFamily: MONO, fontSize: 12, letterSpacing: ".08em", color: T.live, marginBottom: 10 }}>
           <span style={{ color: T.faint }}>spx6900 ~ %</span> {cmd}
         </div>

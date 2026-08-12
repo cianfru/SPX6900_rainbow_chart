@@ -81,7 +81,7 @@ export default function CexSupplyChart({ isMobile, preview = false }) {
         </ResponsiveContainer>
       </div>
       <div className="chart-caption" style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.65, maxWidth: 900, marginInline: "auto" }}>
-        <strong style={{ color: CEX }}>Supply on venues</strong>, SPX held on tagged exchange, LP and custody addresses, reconstructed on-chain (Dune). Known addresses only; a location map, not a signal. Drag to zoom.
+        <strong style={{ color: CEX }}>Supply on venues</strong>, SPX held on tagged exchange, LP and custody addresses, reconstructed on-chain. Known addresses only; a location map, not a signal. Drag to zoom.
       </div>
     </div>
   );

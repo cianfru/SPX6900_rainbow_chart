@@ -32,12 +32,14 @@ const LIMITS = [
   ["None of it is advice.", "Every reading says where price sits against a published yardstick, not what to do about it."],
 ];
 
+// Deliberately describes the KIND of data and its cadence, not the specific vendors we pull from —
+// the numbers are reproducible from public on-chain data, but we don't hand anyone the exact pipeline.
 const SOURCES = [
-  ["Price", "CoinGecko, Hyperliquid, Coinbase", "live"],
-  ["Holders, cost basis, sentiment", "HolderScan, Blockscout, Solana RPC, alternative.me", "daily"],
-  ["Transfer history", "Dune, over a full-history archive", "weekly"],
-  ["Bitcoin comparisons", "BigQuery public dataset", "one-off"],
-  ["Project AEON", "Alchemy, Dune", "daily"],
+  ["Price", "aggregated spot + perp market feeds", "live"],
+  ["Holders, cost basis, sentiment", "on-chain holder data + a public sentiment index", "daily"],
+  ["Transfer history", "the full on-chain transfer archive, reconstructed locally", "daily"],
+  ["Bitcoin comparisons", "public blockchain data", "one-off"],
+  ["Project AEON", "on-chain NFT ownership + transfer data", "daily"],
 ];
 
 export default function MethodsPage({ m, series, isMobile }) {
