@@ -400,6 +400,36 @@
     .mmall{ color:var(--live); }
     .mmlink .mml{ background:linear-gradient(90deg,#f87171,#fb923c,#fbbf24,#4ade80,#38bdf8,#a78bfa); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; }
   }
+  /* ── MOBILE SPRINGBOARD — app-launcher nav (prototype) ── */
+  .sb{ position:fixed; inset:0; z-index:300; background:radial-gradient(120% 60% at 50% -6%, rgba(78,231,154,.05), transparent 60%), var(--bg); display:none; flex-direction:column; }
+  .sb.open{ display:flex; }
+  .sbtop{ display:flex; align-items:center; gap:10px; padding:calc(env(safe-area-inset-top,0px) + 12px) 14px 12px; border-bottom:1px solid var(--line); flex:none; }
+  .sbtop .sbtitle{ flex:1; text-align:center; font-family:var(--label); text-transform:uppercase; letter-spacing:.16em; font-size:13px; color:var(--dim); }
+  .sbbtn{ width:44px; height:44px; display:inline-flex; align-items:center; justify-content:center; border:1px solid var(--line2); border-radius:11px; background:var(--panel); color:var(--tx); cursor:pointer; flex:none; }
+  .sbbtn svg{ width:22px; height:22px; }
+  .sbbtn[hidden]{ visibility:hidden; }
+  .sbbody{ flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:16px 14px calc(env(safe-area-inset-bottom,0px) + 40px); }
+  .sbgrid{ display:grid; grid-template-columns:repeat(2,1fr); gap:13px; }
+  .sbtile{ display:flex; flex-direction:column; align-items:flex-start; gap:7px; padding:16px 15px; min-height:118px; border:1px solid var(--line2); border-radius:18px; background:linear-gradient(180deg,var(--panel),var(--panel2)); color:var(--tx); cursor:pointer; text-align:left; position:relative; overflow:hidden; transition:transform .08s ease, border-color .12s; }
+  .sbtile:active{ transform:scale(.965); border-color:var(--tc); }
+  .sbtile .sbico{ width:30px; height:30px; color:var(--tc); display:inline-flex; }
+  .sbtile .sbico svg{ width:100%; height:100%; }
+  .sbtile .sbnm{ font-family:var(--sans); font-weight:700; font-size:15.5px; letter-spacing:-.01em; line-height:1.15; }
+  .sbtile .sbsub{ font-family:var(--label); font-size:10.5px; letter-spacing:.08em; text-transform:uppercase; color:var(--faint); margin-top:auto; }
+  .sbtile .sbdot{ width:15px; height:15px; border-radius:6px; background:var(--tc); box-shadow:0 0 14px var(--tc); }
+  .sbtile .sbgo{ position:absolute; top:14px; right:14px; color:var(--faint); font-size:15px; }
+  .sbsec{ min-height:132px; } .sbgrp{ min-height:112px; }
+  .sbchart{ padding:0; min-height:150px; gap:0; }
+  .sbchart .sbprev{ width:100%; height:94px; display:block; border-bottom:1px solid var(--line); background:var(--panel2); }
+  .sbchart .sbprev svg{ width:100%; height:100%; display:block; }
+  .sbchart .sbnm{ padding:11px 13px 0; font-size:13.5px; }
+  .sbchart .sbviews{ padding:3px 13px 12px; font-family:var(--label); font-size:10px; text-transform:uppercase; letter-spacing:.07em; color:var(--tc); }
+  .sbtile.sbdis{ opacity:.4; pointer-events:none; }
+  @keyframes sbfwd{ from{ opacity:0; transform:translateX(26px) } to{ opacity:1; transform:none } }
+  @keyframes sbback{ from{ opacity:0; transform:translateX(-26px) } to{ opacity:1; transform:none } }
+  .sbbody.sb-fwd .sbgrid{ animation:sbfwd .2s ease both; }
+  .sbbody.sb-back .sbgrid{ animation:sbback .2s ease both; }
+  @media(prefers-reduced-motion:reduce){ .sbbody.sb-fwd .sbgrid, .sbbody.sb-back .sbgrid{ animation:none; } }
   .kpi{ background:var(--panel); padding:13px 15px 14px; display:flex; flex-direction:column; gap:3px; min-width:0; }
   .kpi .k{ display:flex; align-items:center; gap:6px; } .kpi .k .d{ width:7px; height:7px; border-radius:50%; flex:none; }
   :root[data-variant="green"] .kpi .k .d{ background:var(--live) !important; }
@@ -541,7 +571,7 @@
         <a class="siclink" href="https://x.com/SPX6900Rainbow" target="_blank" rel="noopener noreferrer" title="@SPX6900Rainbow on X" aria-label="SPX6900Rainbow on X"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24h-6.66l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg></a>
         <a class="siclink krk" href="https://proinvite.kraken.com/9f1e/8985jw0l" target="_blank" rel="noopener noreferrer sponsored" title="Trade on Kraken — affiliate" aria-label="Trade on Kraken (affiliate)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 12 A8.5 8.5 0 0 1 20.5 12 L20.5 19.4 A1.3 1.3 0 0 1 17.9 19.4 L17.9 14 A1.1 1.1 0 0 0 15.7 14 L15.7 19.4 A1.3 1.3 0 0 1 13.1 19.4 L13.1 14 A1.1 1.1 0 0 0 10.9 14 L10.9 19.4 A1.3 1.3 0 0 1 8.3 19.4 L8.3 14 A1.1 1.1 0 0 0 6.1 14 L6.1 19.4 A1.3 1.3 0 0 1 3.5 19.4 Z"/></svg></a>
       </span>
-      <button class="mobtog" id="mobtog" aria-label="Open menu" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M3 12h18M3 18h18" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg></button>
+      <button class="mobtog" id="mobtog" aria-label="Open charts" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></button>
     </span>
   </div>
 
@@ -551,6 +581,16 @@
   <div class="mobmenu" id="mobmenu" aria-hidden="true">
     <div class="mmhead"><span class="mmtitle">Menu</span><button class="mmclose" id="mmclose" aria-label="Close menu"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg></button></div>
     <div class="mmbody" id="mmbody"></div>
+  </div>
+
+  <!-- MOBILE SPRINGBOARD (prototype): app-launcher nav — sections → groups → charts, history-driven back -->
+  <div class="sb" id="sb" aria-hidden="true">
+    <div class="sbtop">
+      <button class="sbbtn" id="sbback" aria-label="Back"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg></button>
+      <span class="sbtitle" id="sbtitle">Explore</span>
+      <button class="sbbtn" id="sbclose" aria-label="Close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg></button>
+    </div>
+    <div class="sbbody" id="sbbody"></div>
   </div>
 
   <div class="ticker"><div class="tape" id="tape"></div></div>
@@ -1075,8 +1115,53 @@
     if(tsw) tsw.addEventListener('click',()=> setTheme(document.documentElement.dataset.theme==='light'?'dark':'bright')); }
   { let saved='dark'; try{ saved=localStorage.getItem('spx_theme')||'dark'; }catch(e){} setTheme(saved); }
 
-  buildMenu(); buildMobMenu(); wireMobMenu(); renderFresh(); setVariant('calm'); /* CALM is the primary direction — open on it */
+  buildMenu(); renderFresh(); setVariant('calm'); /* CALM is the primary direction — open on it */
+  /* the old full-screen mmbody menu is superseded by the springboard below; left in the DOM but unwired */
   { const bm=$('.brandmark'); if(bm) bm.innerHTML='<img class="blogo" src="'+LOGO+'" alt="">'; }
+
+  // ── MOBILE SPRINGBOARD (prototype) — sections → groups → charts, driven off the real catalog.
+  // Each level is a real history entry, so the iOS edge-swipe-back and the Android back button work
+  // natively. Tapping a chart tile leaves the landing for the real interactive chart in the app.
+  (function(){
+    const CHEV='<span class="sbgo">&rsaquo;</span>';
+    const chartCount=sec=>sec.groups.reduce((n,g)=>n+g.items.length,0);
+    const leafTarget=(sec,name)=>{ const id=(window.__LEAFID||{})[sec+'|'+name]; return id?(id.charAt(0)==='@'?id.slice(1):('/?chart='+id)):null; };
+    const secTile=(v,name,sub,icon,col,act)=>`<button class="sbtile sbsec" style="--tc:${col}" data-act="${act}" data-v="${esc(v)}"><span class="sbico">${icon}</span><span class="sbnm">${esc(name)}</span><span class="sbsub">${esc(sub)}</span>${CHEV}</button>`;
+    const grpTile=(sec,name,sub,col)=>`<button class="sbtile sbgrp" style="--tc:${col}" data-act="grp" data-sec="${esc(sec)}" data-v="${esc(name)}"><span class="sbdot"></span><span class="sbnm">${esc(name)}</span><span class="sbsub">${esc(sub)}</span>${CHEV}</button>`;
+    const chartTile=(name,col,tgt,nv)=>`<button class="sbtile sbchart${tgt?'':' sbdis'}" style="--tc:${col};--MEGAC:${col}" ${tgt?`data-act="nav" data-v="${esc(tgt)}"`:''}><span class="sbprev">${mspark(name)}</span><span class="sbnm">${esc(name)}</span>${nv?`<span class="sbviews">${nv} views</span>`:''}</button>`;
+
+    let stack=[];
+    const el=()=>document.getElementById('sb'), body=()=>document.getElementById('sbbody');
+    function render(view,dir){ const b=body(); if(!b) return; let title='Explore', tiles='';
+      if(view.t==='sections'){ title='Explore';
+        tiles+=secTile('/?view=rainbow','Rainbow','the foundation chart',RAINBOW_ICON,'var(--b6)','nav');
+        NAV.forEach((sec,i)=>{ tiles+=secTile(sec.label, NAV_DISP[sec.label]||sec.label, chartCount(sec)+' charts', NAV_ICON[sec.label]||'', GCOL[i%GCOL.length], 'sec'); });
+      } else if(view.t==='groups'){ const sec=NAV.find(s=>s.label===view.sec); title=NAV_DISP[sec.label]||sec.label;
+        sec.groups.forEach((g,i)=>{ tiles+=grpTile(sec.label, g.g, g.items.length+' charts', GCOL[i%GCOL.length]); });
+      } else if(view.t==='charts'){ const sec=NAV.find(s=>s.label===view.sec), g=sec.groups.find(x=>x.g===view.grp); title=view.grp;
+        const col=GCOL[sec.groups.indexOf(g)%GCOL.length];
+        g.items.forEach(it=>{ const vs=(window.__VIEWS||{})[sec.label+'|'+it]; tiles+=chartTile(it, col, leafTarget(sec.label,it), vs&&vs.length?vs.length:0); }); }
+      b.innerHTML=`<div class="sbgrid ${view.t}">${tiles}</div>`;
+      const bk=document.getElementById('sbback'); if(bk) bk.toggleAttribute('hidden', stack.length<=1);
+      const tt=document.getElementById('sbtitle'); if(tt) tt.textContent=title;
+      b.classList.remove('sb-fwd','sb-back'); void b.offsetWidth; b.classList.add(dir==='back'?'sb-back':'sb-fwd'); b.scrollTop=0; }
+    function go(view,push){ stack.push(view); if(push!==false) history.pushState({sbDepth:stack.length},''); render(view,'fwd'); }
+    function open(){ if(!el()) return; stack=[]; el().classList.add('open'); el().setAttribute('aria-hidden','false'); document.body.style.overflow='hidden'; go({t:'sections'}); }
+    function close(){ const e=el(); if(!e) return; e.classList.remove('open'); e.setAttribute('aria-hidden','true'); document.body.style.overflow=''; stack=[]; }
+    window.addEventListener('popstate',ev=>{ if(!el()||!el().classList.contains('open')) return;
+      const d=ev.state&&ev.state.sbDepth; if(!d){ close(); return; } while(stack.length>d) stack.pop(); render(stack[stack.length-1],'back'); });
+    // tile delegation
+    { const b=body(); if(b) b.addEventListener('click',e=>{ const t=e.target.closest('[data-act]'); if(!t) return;
+      const a=t.getAttribute('data-act'), v=t.getAttribute('data-v');
+      if(a==='sec'){ const sec=NAV.find(s=>s.label===v); sec.groups.length===1 ? go({t:'charts',sec:v,grp:sec.groups[0].g}) : go({t:'groups',sec:v}); }
+      else if(a==='grp'){ go({t:'charts',sec:t.getAttribute('data-sec'),grp:v}); }
+      else if(a==='nav'&&v){ (window.top||window).location.href=v; } }); }
+    { const bk=document.getElementById('sbback'); if(bk) bk.addEventListener('click',()=>history.back()); }
+    { const cx=document.getElementById('sbclose'); if(cx) cx.addEventListener('click',()=>{ if(stack.length) history.go(-stack.length); else close(); }); }
+    // entry points (mobile only): the "apps" grid button in the bar + the hero "> CHARTS" CTA
+    window.__sbOpen=open; window.__sbMobile=()=>matchMedia('(max-width:700px)').matches;
+    { const tog=document.getElementById('mobtog'); if(tog) tog.addEventListener('click',e=>{ e.preventDefault(); e.stopImmediatePropagation(); open(); }, true); }
+  })();
   // touch/tap support — on hover-less devices, tap a segment to open it, tap a leaf to navigate, tap outside to close
   const TOUCH = matchMedia('(hover:none), (pointer:coarse)').matches || window.__forceTouch;
   if(TOUCH){ document.documentElement.classList.add('touch');
@@ -1125,7 +1210,8 @@
   document.addEventListener("click", function(e){
     var t=e.target; if(!t || !t.closest) return;
     if(t.closest(".social a")) return;
-    if(t.closest("#ctaChart")){ e.preventDefault(); e.stopImmediatePropagation(); go("/?view=charts"); return; }
+    if(t.closest("#ctaChart")){ e.preventDefault(); e.stopImmediatePropagation();
+      if(window.__sbMobile&&window.__sbMobile()&&window.__sbOpen){ window.__sbOpen(); } else { go("/?view=charts"); } return; }
     if(t.closest("#ctaMethod")){ e.preventDefault(); e.stopImmediatePropagation(); go("/?view=methods"); return; }
     if(t.closest("[data-home]") || t.closest(".bar .l")){ e.preventDefault(); e.stopImmediatePropagation(); go("/"); return; }
     var _mn=t.closest("#menu") || t.closest(".pathbar");
