@@ -253,6 +253,15 @@
   .hero{ display:grid; grid-template-columns:1fr minmax(300px,380px); gap:28px 38px; align-items:stretch; align-content:center; margin-top:34px; }
   .scrollcue{ display:flex; justify-content:center; margin:18px 0 -6px; opacity:.7; }
   .scrollcue span{ font-family:var(--label); font-size:11px; letter-spacing:.16em; text-transform:uppercase; color:var(--faint); display:inline-flex; align-items:center; gap:8px; animation:cuebob 1.8s ease-in-out infinite; }
+  .mcue{ display:none; }  /* the in-hero cue (phones only); desktop uses #scrollcue after the hero */
+  @media(max-width:860px){
+    #scrollcue{ display:none; }         /* on phones the first screen ends INSIDE the hero, so… */
+    .mcue{ display:flex; margin-top:16px; }  /* …the cue sits under the CTAs, snapshot below the fold */
+    /* the two actions, stacked full-width: read methodology, then the slide-to-open control */
+    .cta{ align-items:stretch; }
+    .cta #ctaMethod{ order:1; width:100%; justify-content:center; }
+    .cta #slideCharts{ order:2; flex-basis:100%; max-width:none; }
+  }
   @keyframes cuebob{ 0%,100%{ transform:translateY(0) } 50%{ transform:translateY(4px) } }
   .hero > div:first-child{ display:flex; flex-direction:column; min-width:0; }  /* so the CTAs can pin to the row bottom regardless of how the headline wraps */
   @media(max-width:860px){ .hero{ grid-template-columns:1fr; } }
@@ -644,6 +653,10 @@
         </div>
         <span class="btn gho" id="ctaMethod"><span class="btw">&gt; <span class="lbl" data-t="read methodology">read methodology</span><span class="cur">_</span></span></span>
       </div>
+      <!-- phones: the scroll cue lives INSIDE the hero (under the CTAs) so the first screen ends here
+           and the valuation snapshot begins below the fold. Hidden on desktop (the cue after the hero
+           is used there instead). -->
+      <div class="scrollcue mcue"><span>scroll for the data &#8595;</span></div>
     </div>
     <div class="snap">
       <div class="sh"><span>valuation snapshot</span></div>
@@ -1229,11 +1242,21 @@
   // Make the hero fill the first screen (viewport − everything above it − the scroll cue) so the first
   // chart lives below the fold on ANY screen size, revealing on scroll — not half-shown at load.
   function fitHero(){ const h=document.querySelector('.hero'); if(!h) return;
-    h.style.minHeight=''; // reset so we measure the natural top
-    const top=h.getBoundingClientRect().top + window.scrollY;
-    const cue=document.getElementById('scrollcue'); const cueH=cue?cue.offsetHeight+18:0;
-    const min=window.innerHeight - top - cueH - 14;
-    if(min>320) h.style.minHeight=min+'px'; }   // tiny/landscape screens keep natural flow
+    const txt=h.firstElementChild;
+    h.style.minHeight=''; if(txt) txt.style.minHeight=''; // reset so we measure the natural top
+    if(window.matchMedia('(max-width:860px)').matches){
+      // phones/tablets: the columns stack, so fill just the hero TEXT block to the fold — the
+      // valuation snapshot (and everything else) then begins below the fold, revealed on scroll.
+      if(!txt) return;
+      const top=txt.getBoundingClientRect().top + window.scrollY;
+      const min=window.innerHeight - top - 12;
+      if(min>360) txt.style.minHeight=min+'px';
+    } else {
+      const top=h.getBoundingClientRect().top + window.scrollY;
+      const cue=document.getElementById('scrollcue'); const cueH=cue?cue.offsetHeight+18:0;
+      const min=window.innerHeight - top - cueH - 14;
+      if(min>320) h.style.minHeight=min+'px'; }   // tiny/landscape screens keep natural flow
+  }
   fitHero();
   (document.fonts&&document.fonts.ready?document.fonts.ready:Promise.resolve()).then(()=>{ render(); lockBtns(); fitHero(); }); render();
   wireLive(); /* pull the site's live JSON + recompute the rainbow; no-ops to baked values if unreachable */
