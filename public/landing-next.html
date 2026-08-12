@@ -445,6 +445,18 @@
   .sbbody.sb-fwd .sbgrid{ animation:sbfwd .2s ease both; }
   .sbbody.sb-back .sbgrid{ animation:sbback .2s ease both; }
   @media(prefers-reduced-motion:reduce){ .sbbody.sb-fwd .sbgrid, .sbbody.sb-back .sbgrid{ animation:none; } }
+  /* fullscreen 2×2 quadrant launcher for the top-level sections view (matches the React app) */
+  .sbbody:has(.sbgrid.sections){ display:flex; flex-direction:column; overflow:hidden; padding:16px 14px calc(env(safe-area-inset-bottom,0px) + 16px); }
+  .sbgrid.sections{ flex:1; min-height:0; grid-template-rows:1fr 1fr; gap:12px; }
+  .sbcell{ position:relative; overflow:hidden; display:flex; flex-direction:column; align-items:flex-start; justify-content:flex-end; gap:5px; padding:18px; min-height:0; border:1px solid var(--line2); border-radius:20px; background:linear-gradient(150deg, color-mix(in srgb, var(--tc) 20%, var(--panel)), var(--panel2) 78%); color:var(--tx); cursor:pointer; text-align:left; transition:transform .1s ease, border-color .12s; }
+  .sbcell:active{ transform:scale(.97); border-color:var(--tc); }
+  .sbcell .sbcellbg{ position:absolute; left:0; right:0; bottom:0; height:62%; opacity:.14; color:var(--tc); pointer-events:none; }
+  .sbcell .sbcellbg svg{ width:100%; height:100%; display:block; }
+  .sbcell .sbcellico{ position:absolute; top:16px; left:17px; width:32px; height:32px; color:var(--tc); }
+  .sbcell .sbcellico svg{ width:100%; height:100%; }
+  .sbcell .sbcellnm{ position:relative; font-family:var(--sans); font-weight:800; font-size:19px; letter-spacing:-.01em; line-height:1.05; }
+  .sbcell .sbcellsub{ position:relative; font-family:var(--label); font-size:9.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--faint); }
+  .sbcell .sbcellarrow{ position:absolute; top:16px; right:17px; color:var(--tc); font-size:17px; line-height:1; opacity:.65; }
   .kpi{ background:var(--panel); padding:13px 15px 14px; display:flex; flex-direction:column; gap:3px; min-width:0; }
   .kpi .k{ display:flex; align-items:center; gap:6px; } .kpi .k .d{ width:7px; height:7px; border-radius:50%; flex:none; }
   :root[data-variant="green"] .kpi .k .d{ background:var(--live) !important; }
@@ -1152,6 +1164,14 @@
     const chartCount=sec=>sec.groups.reduce((n,g)=>n+g.items.length,0);
     const leafTarget=(sec,name)=>{ const id=(window.__LEAFID||{})[sec+'|'+name]; return id?(id.charAt(0)==='@'?id.slice(1):('/?chart='+id)):null; };
     const secTile=(v,name,sub,icon,col,act)=>`<button class="sbtile sbsec" style="--tc:${col}" data-act="${act}" data-v="${esc(v)}"><span class="sbico">${icon}</span><span class="sbnm">${esc(name)}</span><span class="sbsub">${esc(sub)}</span>${CHEV}</button>`;
+    // fullscreen 2×2 quadrant launcher (matches the React app) — each section a rich, motif-backed tile
+    const SB_MOTIF={
+      rainbow:'<svg viewBox="0 0 120 80" preserveAspectRatio="xMidYMax slice" fill="none" stroke="currentColor"><path d="M-6 78a66 66 0 0 1 132 0" stroke-width="7"/><path d="M12 78a48 48 0 0 1 96 0" stroke-width="7"/><path d="M30 78a30 30 0 0 1 60 0" stroke-width="7"/><path d="M48 78a12 12 0 0 1 24 0" stroke-width="7"/></svg>',
+      CHARTS:'<svg viewBox="0 0 120 80" preserveAspectRatio="xMidYMax slice" fill="currentColor"><rect x="6" y="46" width="12" height="34" rx="2"/><rect x="26" y="30" width="12" height="50" rx="2"/><rect x="46" y="52" width="12" height="28" rx="2"/><rect x="66" y="20" width="12" height="60" rx="2"/><rect x="86" y="38" width="12" height="42" rx="2"/><rect x="106" y="10" width="12" height="70" rx="2"/></svg>',
+      SPX_CITY:'<svg viewBox="0 0 120 80" preserveAspectRatio="xMidYMax slice" fill="currentColor"><rect x="4" y="44" width="16" height="36"/><rect x="24" y="28" width="16" height="52"/><rect x="44" y="52" width="14" height="28"/><rect x="62" y="18" width="18" height="62"/><rect x="84" y="38" width="14" height="42"/><rect x="102" y="26" width="16" height="54"/></svg>',
+      PROJECT_AEON:'<svg viewBox="0 0 120 80" preserveAspectRatio="xMidYMid slice" fill="none" stroke="currentColor" stroke-width="5" stroke-linejoin="round"><path d="M60 8 96 28v34L60 82 24 62V28z"/><path d="M60 82V44M24 28l36 16 36-16"/></svg>',
+    };
+    const secQuad=(v,id,name,sub,icon,col,act)=>`<button class="sbcell" style="--tc:${col}" data-act="${act}" data-v="${esc(v)}"><span class="sbcellbg">${SB_MOTIF[id]||''}</span><span class="sbcellico">${icon}</span><span class="sbcellnm">${esc(name)}</span><span class="sbcellsub">${esc(sub)}</span><span class="sbcellarrow">&rarr;</span></button>`;
     const grpTile=(sec,name,sub,col)=>`<button class="sbtile sbgrp" style="--tc:${col}" data-act="grp" data-sec="${esc(sec)}" data-v="${esc(name)}"><span class="sbdot"></span><span class="sbnm">${esc(name)}</span><span class="sbsub">${esc(sub)}</span>${CHEV}</button>`;
     const chartTile=(name,col,tgt,nv)=>`<button class="sbtile sbchart${tgt?'':' sbdis'}" style="--tc:${col};--MEGAC:${col}" ${tgt?`data-act="nav" data-v="${esc(tgt)}"`:''}><span class="sbprev">${mspark(name)}</span><span class="sbnm">${esc(name)}</span>${nv?`<span class="sbviews">${nv} views</span>`:''}</button>`;
 
@@ -1159,8 +1179,9 @@
     const el=()=>document.getElementById('sb'), body=()=>document.getElementById('sbbody');
     function render(view,dir){ const b=body(); if(!b) return; let title='Explore', tiles='';
       if(view.t==='sections'){ title='Explore';
-        tiles+=secTile('/?view=rainbow','Rainbow','the foundation chart',RAINBOW_ICON,'var(--b6)','nav');
-        NAV.forEach((sec,i)=>{ tiles+=secTile(sec.label, NAV_DISP[sec.label]||sec.label, chartCount(sec)+' charts', NAV_ICON[sec.label]||'', GCOL[i%GCOL.length], 'sec'); });
+        tiles+=secQuad('/?view=rainbow','rainbow','Rainbow','the foundation chart',RAINBOW_ICON,'#a78bfa','nav');
+        NAV.forEach((sec,i)=>{ const sub=sec.groups.length>1 ? sec.groups.length+' groups · '+chartCount(sec)+' charts' : chartCount(sec)+' charts';
+          tiles+=secQuad(sec.label, sec.label, NAV_DISP[sec.label]||sec.label, sub, NAV_ICON[sec.label]||'', GCOL[i%GCOL.length], 'sec'); });
       } else if(view.t==='groups'){ const sec=NAV.find(s=>s.label===view.sec); title=NAV_DISP[sec.label]||sec.label;
         sec.groups.forEach((g,i)=>{ tiles+=grpTile(sec.label, g.g, g.items.length+' charts', GCOL[i%GCOL.length]); });
       } else if(view.t==='charts'){ const sec=NAV.find(s=>s.label===view.sec), g=sec.groups.find(x=>x.g===view.grp); title=view.grp;
