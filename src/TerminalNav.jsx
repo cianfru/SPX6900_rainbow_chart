@@ -75,14 +75,30 @@ function TypeHead({ label }) {
   );
 }
 
-// Static preview = the same server-rendered og card a shared link unfurls. Cheap, cached and
-// FIXED-SIZE, so sweeping the menu can't thrash layout. (It used to mount the LIVE chart component
-// scaled on every leaf hover — fine on a fast box, but mounting/unmounting a full recharts chart as
-// you move across rows janked/flickered the whole nav on real devices.) Falls back to a sparkline.
-function LeafOg({ q, id, seed, color }) {
-  const [failed, setFailed] = useState(false);
-  if (failed) return <Spark seed={seed} color={color} />;
-  return <img className="lprevimg" alt="" loading="lazy" src={`/api/og?${q}=${encodeURIComponent(id)}`} onError={() => setFailed(true)} />;
+// A LIVE, scaled-down render of the real chart — the actual look of the chart, not the tweet card,
+// matching the gallery tiles so previews are consistent everywhere. The earlier flicker came from
+// remounting this on EVERY leaf as you swept the menu; the fix is a hover-intent debounce in
+// CascadeTop (only mount once the cursor settles on a row), not swapping in a static card.
+function LeafPreview({ render }) {
+  const ref = useRef(null);
+  const [scale, setScale] = useState(0.19);
+  useEffect(() => {
+    const el = ref.current; if (!el) return;
+    const ro = new ResizeObserver(() => { if (el.clientWidth) setScale(el.clientWidth / BASE_W); });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  return (
+    <div ref={ref} className="lprevbox" style={{ height: CONTENT_H * scale }}>
+      <div style={{ position: "absolute", top: 0, left: 0, width: BASE_W, transformOrigin: "top left", transform: `scale(${scale})`, pointerEvents: "none" }}>
+        <ErrorBoundary>
+          <Suspense fallback={<div className="lprevload">loading…</div>}>
+            <div className="chart-preview">{render()}</div>
+          </Suspense>
+        </ErrorBoundary>
+      </div>
+    </div>
+  );
 }
 
 // deterministic sparkline, fallback for locked/heavy charts (same as the landing's mspark)
@@ -125,32 +141,37 @@ function ThemeToggle() {
 
 // A cascading top: ALL + group rows (▸); hovering a group flies out its chart list, and
 // hovering a chart flies out the preview panel. Groups coloured by the mockup's GCOL.
-function CascadeTop({ label, groups, onSection, onLeaf }) {
+function CascadeTop({ label, groups, onSection, onLeaf, renderPreview }) {
   const [leaf, setLeaf] = useState(null); // {gi, item, color}
   const topRef = useRef(null);
-  const ogq = label === "PROJECT_AEON" ? "aeon" : "tab";
+  // hover-intent: only mount the live preview once the cursor SETTLES on a row (~150ms), so sweeping
+  // the menu never mounts/unmounts a chart per row (the old flicker) while still showing the real chart.
+  const timer = useRef(null);
+  useEffect(() => () => clearTimeout(timer.current), []);
+  const showLeaf = p => { clearTimeout(timer.current); timer.current = setTimeout(() => setLeaf(p), 150); };
+  const clearLeaf = () => { clearTimeout(timer.current); setLeaf(null); };
   const onEnter = () => {
     const el = topRef.current; if (!el) return;
     const r = el.getBoundingClientRect();
     el.classList.toggle("flip", r.left + 660 > window.innerWidth - 12);
   };
   return (
-    <div className="mtop" ref={topRef} onMouseEnter={onEnter} onMouseLeave={() => setLeaf(null)}>
+    <div className="mtop" ref={topRef} onMouseEnter={onEnter} onMouseLeave={clearLeaf}>
       <TypeHead label={label} />
       <div className="drop">
         <MenuRow text="All" color="var(--live)" cls="allrow" onClick={() => onSection()} />
         {groups.map((g, gi) => { const gc = GCOL[gi % GCOL.length]; return (
-          <div className="mgroup" key={g.title} style={{ "--gc": gc }} onMouseLeave={() => setLeaf(l => (l && l.gi === gi ? null : l))}>
+          <div className="mgroup" key={g.title} style={{ "--gc": gc }} onMouseLeave={() => { clearTimeout(timer.current); setLeaf(l => (l && l.gi === gi ? null : l)); }}>
             <MenuRow text={g.title} color={gc} mark="▸" cls="grouprow" onClick={() => onSection(g.title)} />
             <div className="subdrop">
               {g.charts.filter(c => !c.dev).map(item => { const views = CHART_VIEWS[item.id]; return (
                 <div className="leafwrap" key={item.id}>
                   <MenuRow text={item.title} color={gc} mark={views ? "▾" : "›"} cls="leafrow"
-                    onEnter={() => setLeaf({ gi, item, color: gc })}
+                    onEnter={() => showLeaf({ gi, item, color: gc })}
                     onClick={() => onLeaf(item.id)} />
                   {views && views.map(vw => (
                     <MenuRow key={vw.v} text={vw.label} color={gc} cls="subview"
-                      onEnter={() => setLeaf({ gi, item, color: gc })}
+                      onEnter={() => showLeaf({ gi, item, color: gc })}
                       onClick={() => onLeaf(item.id, vw.v)} />
                   ))}
                 </div>
@@ -158,9 +179,9 @@ function CascadeTop({ label, groups, onSection, onLeaf }) {
               <div className={"leafprev" + (leaf && leaf.gi === gi ? " on" : "")}>
                 {leaf && leaf.gi === gi && (<>
                   <div className="mprev-kick">Preview</div>
-                  {leaf.item.locked
+                  {(leaf.item.locked || HEAVY.has(leaf.item.id))
                     ? <Spark seed={leaf.item.id + g.title} color={leaf.color} />
-                    : <LeafOg key={leaf.item.id} q={ogq} id={leaf.item.id} seed={leaf.item.id + g.title} color={leaf.color} />}
+                    : <LeafPreview key={leaf.item.id} render={() => renderPreview(leaf.item.id)} />}
                   <div className="mprev-title">{leaf.item.title}</div>
                   <div className="mprev-desc">{leaf.item.desc}</div>
                   <div className="mprev-go">→ open chart</div>
