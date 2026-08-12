@@ -1,8 +1,17 @@
-Drop full-square glossy app-icon PNGs here, named <key>.png. The app screen (/ios-poc.html)
-auto-picks them up in place of the placeholder SVGs (missing files fall back to the SVG).
+Drop full-square icon PNGs here, named <key>.png — the app screen (/ios-poc.html) auto-picks
+them up in place of the placeholder SVGs (a missing file falls back to the SVG).
 
-Page 1:  rainbow, city, holders, onchain, supply, exchanges, liquidity, whales, bridges, aeon, market, method
-Page 2:  valuation, performance, cost, survivors, races, composite
-Dock:    x, youtube, kraken, search
+HOME APPS (12):
+  rainbow  city  valuation  performance  holders  onchain  whales  exchanges  market  races  aeon  method
 
-Recommended: 1024x1024 PNG, the glossy first-iPhone style, each a complete icon (own background).
+DOCK (4):
+  x  youtube  kraken  search
+
+OPTIONAL — folder charts also try /icons/<chartId>.png (else a generic chart glyph), e.g.:
+  mvrv nupl sopr supplyprofit bagsprofile urpdage lthsth nrpl liveliness  (On-chain folder)
+  channel roadmap risk riskcolor riskheat picycle rsidots valuation        (Valuation folder)
+  ...any chart id from the catalog.
+
+STYLE: your flat long-shadow set looks great. The tile adds a glossy 'gel' shine whose strength is
+a knob (CSS var --gel, default 0.16 = subtle). Test flat vs glossy live: /ios-poc.html?gel=0 (flat)
+… /ios-poc.html?gel=0.5 (full first-iPhone gloss). 1024x1024, solid per-app background, no text.
