@@ -3,7 +3,7 @@ import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianG
 import { loadAeonSales, loadPriceHistory } from "./history-data.js";
 import { SPX_DAILY } from "./spx-daily.js";
 import { ETH_HISTORY } from "./eth-history.js";
-import { SANS, MONO, MAX_W, Metric, TipBox, Explain } from "./chart-ui.jsx";
+import { SANS, MONO, MAX_W, Metric, TipBox, Explain, ViewTabs } from "./chart-ui.jsx";
 
 // Project Aeon, does AEON's floor/sales LEAD the coin, or follow it? A lead/lag cross-correlation
 // of short-run returns at DAILY resolution: for each lag L, corr(AEON return at t, SPX return at t+L).
@@ -133,10 +133,6 @@ export default function AeonLeadLagChart({ isMobile, initialView }) {
   const posWeak = bestPos.adj == null || bestPos.adj < sig * 1.3;   // AEON-leads side ≈ noise floor
   const weaker = bestPos.adj && peak.adj ? Math.abs(peak.adj / bestPos.adj) : null;
 
-  const btn = (active) => ({
-    className: `neon-pill${active ? " active" : ""}`,
-    style: { padding: "6px 14px", borderRadius: 8, fontFamily: MONO, fontSize: 12, color: active ? "#f8fafc" : "#94a3b8", "--glow": "#a78bfa" },
-  });
 
   return (
     <div style={{ maxWidth: MAX_W, margin: "0 auto" }}>
@@ -148,11 +144,7 @@ export default function AeonLeadLagChart({ isMobile, initialView }) {
         broader crypto market (ETH), so what's left is the genuine SPX↔AEON link. The peak lands on the left, the coin leads.
       </Explain>
 
-      <div style={{ display: "flex", gap: 6, justifyContent: "center", marginBottom: 6, flexWrap: "wrap" }}>
-        {[["floor", "Floor"], ["volume", "Sales volume"]].map(([id, lbl]) => (
-          <button key={id} onClick={() => setMetric(id)} {...btn(metric === id)}>{lbl}</button>
-        ))}
-      </div>
+      <ViewTabs tabs={[["floor", "Floor"], ["volume", "Sales volume"]]} value={metric} onChange={setMetric} />
 
       <div style={{ display: "flex", gap: isMobile ? 16 : 30, justifyContent: "center", margin: "10px 0 14px", flexWrap: "wrap" }}>
         <Metric label="strongest link" value={`${led ? "SPX" : "AEON"} leads`} color={led ? "#5eead4" : "#a78bfa"} sub={`by ${Math.abs(peak.lag)} days · r ${peak.adj?.toFixed(2)}`} />

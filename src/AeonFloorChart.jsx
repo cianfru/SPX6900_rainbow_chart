@@ -2,7 +2,7 @@ import { useMemo, useState, useEffect } from "react";
 import { ResponsiveContainer, ComposedChart, Line, Bar, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
 import { AEON_SALES } from "./aeon-sales.js";
 import { loadAeonSales } from "./history-data.js";
-import { SANS, MONO, MAX_W, Metric, TipBox, Explain } from "./chart-ui.jsx";
+import { SANS, MONO, MAX_W, Metric, TipBox, Explain, ViewTabs } from "./chart-ui.jsx";
 
 const fShort = t => new Date(t).toLocaleDateString("en-US", { month: "short", year: "2-digit" });
 const median = a => { if (!a.length) return null; const s = [...a].sort((x, y) => x - y); const m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; };
@@ -57,12 +57,6 @@ export default function AeonFloorChart({ isMobile }) {
   const step = Math.max(1, Math.round(merged.length / 6));
   const xTicks = merged.filter((_, i) => i % step === 0 || i === merged.length - 1).map(r => r.ts);
 
-  const tbtn = active => ({
-    padding: "5px 16px", borderRadius: 8, fontFamily: SANS, fontSize: 13, cursor: "pointer",
-    border: "1px solid " + (active ? "rgba(45,212,191,0.55)" : "rgba(255,255,255,0.12)"),
-    background: active ? "rgba(45,212,191,0.16)" : "transparent", color: active ? "#5eead4" : "#94a3b8",
-  });
-
   return (
     <div style={{ maxWidth: MAX_W, margin: "0 auto" }}>
       <Explain q="What has the floor done, and how much trades?" accent="#2dd4bf">
@@ -74,13 +68,8 @@ export default function AeonFloorChart({ isMobile }) {
         <Metric label="all-time volume" value={isEth ? Math.round(data.totalVolEth).toLocaleString() + "Ξ" : "$" + ((data.totalVolUsd) / 1e6).toFixed(1) + "M"} color="#fbbf24" />
         <Metric label="total sales" value={data.totalSales?.toLocaleString?.()} color="#94a3b8" />
         {topVenue && <Metric label="top venue" value={topVenue[0]} color="#f472b6" sub={Math.round(topVenue[1]).toLocaleString() + "Ξ"} />}
-        <div style={{ display: "flex", gap: 6 }}>
-          {["ETH", "USD"].map(u => <button key={u} style={tbtn(unit === u)} onClick={() => setUnit(u)}>{u}</button>)}
-        </div>
-        <div style={{ display: "flex", gap: 6 }}>
-          <button style={tbtn(!smooth)} onClick={() => setSmooth(false)}>Raw</button>
-          <button style={tbtn(smooth)} onClick={() => setSmooth(true)}>Smoothed</button>
-        </div>
+        <ViewTabs tabs={[["ETH", "ETH"], ["USD", "USD"]]} value={unit} onChange={setUnit} />
+        <ViewTabs tabs={[["raw", "Raw"], ["smoothed", "Smoothed"]]} value={smooth ? "smoothed" : "raw"} onChange={k => setSmooth(k === "smoothed")} />
       </div>
       <ResponsiveContainer width="100%" height={isMobile ? 400 : 560}>
         <ComposedChart data={merged} margin={{ top: 10, right: isMobile ? 8 : 16, bottom: 24, left: isMobile ? 0 : 14 }}>

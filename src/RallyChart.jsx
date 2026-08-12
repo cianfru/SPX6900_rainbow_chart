@@ -3,7 +3,7 @@ import {
   ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, ReferenceDot,
 } from "recharts";
 import { buildRallyCycles, buildFireSaleRallies, buildCycleStrategy } from "./models.js";
-import { SANS, MONO, MAX_W, TipBox } from "./chart-ui.jsx";
+import { SANS, MONO, MAX_W, TipBox, ViewTabs } from "./chart-ui.jsx";
 
 const fMon = d => new Date(d).toLocaleDateString("en-US", { month: "short", year: "2-digit" });
 const fMult = x => (x >= 100 ? Math.round(x).toLocaleString() : x.toFixed(1)) + "×";
@@ -86,21 +86,7 @@ export default function RallyChart({ series, m, isMobile, initialView }) {
   }, [cycles, series]);
 
   const anchorToggle = (
-    <div style={{ display: "flex", justifyContent: "center", gap: 8, marginBottom: 18 }}>
-      {[["cycle", "Cycle bottoms"], ["firesale", "Fire Sale band"]].map(([id, label]) => {
-        const active = anchor === id;
-        const c = "#4ade80";
-        return (
-          <button key={id} className="pill" onClick={() => setAnchor(id)} style={{
-            fontFamily: SANS, fontSize: isMobile ? 12 : 13, fontWeight: 600, padding: "8px 14px",
-            borderRadius: 9, cursor: "pointer", background: "transparent",
-            border: `1px solid ${active ? c + "cc" : "transparent"}`,
-            boxShadow: active ? `0 0 14px ${c}55` : "none",
-            color: active ? "#f8fafc" : "#94a3b8", "--glow": c,
-          }}>{label}</button>
-        );
-      })}
-    </div>
+    <ViewTabs tabs={[["cycle", "Cycle bottoms"], ["firesale", "Fire Sale band"]]} value={anchor} onChange={setAnchor} />
   );
 
   if (cycles.length === 0) {

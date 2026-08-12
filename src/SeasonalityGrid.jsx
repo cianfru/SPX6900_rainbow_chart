@@ -1,6 +1,6 @@
 import { useMemo, useState, useEffect } from "react";
 import { fetchBtcHistory } from "./data.js";
-import { SANS, MONO, MAX_W } from "./chart-ui.jsx";
+import { SANS, MONO, MAX_W, ViewTabs } from "./chart-ui.jsx";
 
 // Monthly-returns heatmap: rows = years, columns = Jan…Dec, green for a positive
 // month, red for negative, intensity scaled by size. A right-hand column gives
@@ -115,17 +115,7 @@ export default function SeasonalityGrid({ series, isMobile, initialView }) {
 
   const isBtc = denom === "btc";
   const Toggle = (
-    <div style={{ display: "flex", gap: 8, justifyContent: "center", marginBottom: 18 }}>
-      {[["usd", "USD", "#4ade80"], ["btc", "BTC", "#f59e0b"]].map(([id, label, c]) => (
-        <button key={id} onClick={() => setDenom(id)} aria-pressed={denom === id} style={{
-          padding: "7px 20px", borderRadius: 999, cursor: "pointer",
-          fontFamily: SANS, fontSize: 14, fontWeight: 700,
-          color: denom === id ? "#05050e" : "#cbd5e1",
-          background: denom === id ? c : "rgba(255,255,255,0.06)",
-          border: `1px solid ${denom === id ? c : "rgba(255,255,255,0.16)"}`, transition: "all .15s ease",
-        }}>{label}</button>
-      ))}
-    </div>
+    <ViewTabs tabs={[["usd", "USD"], ["btc", "BTC"]]} value={denom} onChange={setDenom} />
   );
 
   // BTC view still loading / failed → show the toggle plus a status line.

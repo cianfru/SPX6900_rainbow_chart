@@ -1,7 +1,7 @@
 import { useMemo, useState, useEffect } from "react";
 import { ResponsiveContainer, AreaChart, Area, BarChart, Bar, ComposedChart, Line, Scatter, XAxis, YAxis, Tooltip, CartesianGrid, Cell, ReferenceLine, ReferenceArea } from "recharts";
 import { loadCohortSurvival, loadPriceHistory, loadExitFlow } from "./history-data.js";
-import { SANS, MONO, MAX_W, Metric, TipBox, Explain } from "./chart-ui.jsx";
+import { SANS, MONO, MAX_W, Metric, TipBox, Explain, ViewTabs } from "./chart-ui.jsx";
 
 // SPX6900 SURVIVORSHIP, who is still holding, by when they first bought. Three reads off one file:
 //   "Who's here", the living holder base over time, stacked by arrival vintage (each cohort rises,
@@ -84,11 +84,6 @@ export default function SurvivorshipChart({ isMobile, initialView }) {
   const fDate = ts => new Date(ts).toLocaleDateString("en-US", { month: "short", year: "2-digit" });
   const fYear = ts => new Date(ts).getUTCFullYear();
 
-  const btn = (active) => ({
-    className: `neon-pill${active ? " active" : ""}`,
-    style: { padding: "6px 14px", borderRadius: 8, fontFamily: MONO, fontSize: 12, color: active ? "#f8fafc" : "#94a3b8", "--glow": "#22d3ee" },
-  });
-
   // custom bubble for the cost-basis scatter, size ∝ √supply, ring by profit/underwater
   const bubble = (p) => {
     const { cx, cy, payload } = p;
@@ -113,11 +108,7 @@ export default function SurvivorshipChart({ isMobile, initialView }) {
         But the survivors barely flinched, <strong style={{ color: "#22d3ee" }}>{O.diamondPct}% of today's holders never once sold</strong>. Huge churn, iron survivors.
       </Explain>
 
-      <div style={{ display: "flex", gap: 6, justifyContent: "center", marginBottom: 6, flexWrap: "wrap" }}>
-        {[["who", "Who's here"], ["survival", "Survival by cohort"], ["supply", "Cost basis"], ...(flowRows.length ? [["exits", "Who left"]] : [])].map(([id, lbl]) => (
-          <button key={id} onClick={() => setView(id)} {...btn(view === id)}>{lbl}</button>
-        ))}
-      </div>
+      <ViewTabs tabs={[["who", "Who's here"], ["survival", "Survival by cohort"], ["supply", "Cost basis"], ...(flowRows.length ? [["exits", "Who left"]] : [])]} value={view} onChange={setView} />
 
       <div style={{ display: "flex", gap: isMobile ? 16 : 30, justifyContent: "center", margin: "10px 0 14px", flexWrap: "wrap" }}>
         <Metric label="ever a holder" value={fmtN(O.everHeld)} color="#94a3b8" sub="all time" />

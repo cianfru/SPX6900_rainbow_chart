@@ -1,6 +1,6 @@
 import { useMemo, useState, useEffect } from "react";
 import { loadEntities } from "./history-data.js";
-import { SANS, MONO, MAX_W, Metric, Explain } from "./chart-ui.jsx";
+import { SANS, MONO, MAX_W, Metric, Explain, ViewTabs } from "./chart-ui.jsx";
 import EntityGraph from "./EntityGraph.jsx";
 
 // SPX City "who owns what", the ENTITY view. The by-wallet charts (Holder Concentration, Whales)
@@ -83,12 +83,7 @@ export default function EntityClustersChart({ isMobile, preview = false }) {
         <label style={{ fontFamily: SANS, fontSize: 13, color: "#94a3b8", display: "flex", gap: 6, alignItems: "center", cursor: "pointer" }}>
           <input type="checkbox" checked={hideFlagged} onChange={e => setHideFlagged(e.target.checked)} /> hide flagged
         </label>
-        <div style={{ display: "flex", border: "1px solid rgba(255,255,255,0.14)", borderRadius: 8, overflow: "hidden" }}>
-          {["graph", "list"].map(v => (
-            <button key={v} onClick={() => setView(v)} style={{ padding: "6px 14px", fontFamily: SANS, fontSize: 13, cursor: "pointer", border: "none",
-              background: view === v ? "rgba(167,139,250,0.18)" : "transparent", color: view === v ? "#c4b5fd" : "#94a3b8", textTransform: "capitalize" }}>{v === "graph" ? "Bubble map" : "List"}</button>
-          ))}
-        </div>
+        <ViewTabs tabs={[["graph", "Bubble map"], ["list", "List"]]} value={view} onChange={setView} />
       </div>
 
       {view === "graph" && (

@@ -4,7 +4,7 @@ import {
 } from "recharts";
 import { fetchMajors } from "./data.js";
 import { LIVE_DATA_DOWN } from "./history-data.js";
-import { SANS, MONO, MAX_W, TipBox, ZoomBar } from "./chart-ui.jsx";
+import { SANS, MONO, MAX_W, TipBox, ZoomBar, ViewTabs } from "./chart-ui.jsx";
 import { useDragZoom, timeWindow } from "./use-drag-zoom.js";
 
 const fMon = ts => new Date(ts).toLocaleDateString("en-US", { month: "short", year: "2-digit" });
@@ -111,18 +111,8 @@ export default function RelativeChart({ series, isMobile, which, setWhich }) {
 
   return (
     <div style={{ maxWidth: MAX_W, margin: "0 auto" }}>
-      <div style={{ display: "flex", justifyContent: "center", gap: 6, flexWrap: "wrap", marginBottom: 10 }}>
-        {OPTIONS.map(([id, lbl]) => (
-          <button key={id} onClick={() => setWhich(id)} className={`neon-pill${which === id ? " active" : ""}`}
-            style={{ fontFamily: SANS, fontSize: 13, fontWeight: 600, padding: "7px 14px", borderRadius: 7, color: which === id ? "#f8fafc" : "#94a3b8", "--glow": "#6366f1" }}>{lbl}</button>
-        ))}
-      </div>
-      <div style={{ display: "flex", justifyContent: "center", gap: 6, flexWrap: "wrap", marginBottom: 16 }}>
-        {[["z", "Z-score"], ["pct", "Percentile"]].map(([id, lbl]) => (
-          <button key={id} onClick={() => setMetric(id)} className={`neon-pill${metric === id ? " active" : ""}`}
-            style={{ fontFamily: SANS, fontSize: 12.5, fontWeight: 600, padding: "6px 13px", borderRadius: 7, color: metric === id ? "#f8fafc" : "#94a3b8", "--glow": "#06b6d4" }}>{lbl}</button>
-        ))}
-      </div>
+      <ViewTabs tabs={OPTIONS} value={which} onChange={setWhich} style={{ marginBottom: 10 }} />
+      <ViewTabs tabs={[["z", "Z-score"], ["pct", "Percentile"]]} value={metric} onChange={setMetric} />
 
       {status === "loading" && <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 40 }}>Loading majors…</div>}
       {status !== "loading" && status !== "ok" && <div style={{ textAlign: "center", fontFamily: SANS, color: "#f87171", padding: 40 }}>{LIVE_DATA_DOWN}</div>}

@@ -4,7 +4,7 @@ import {
 } from "recharts";
 import ChartZoomHint from "./ChartZoomHint.jsx";
 import { LIVE_DATA_DOWN } from "./history-data.js";
-import { SANS, MONO, MAX_W, Metric, TipBox, ZoomResetButton } from "./chart-ui.jsx";
+import { SANS, MONO, MAX_W, Metric, TipBox, ZoomResetButton, ViewTabs } from "./chart-ui.jsx";
 import { useDragZoom } from "./use-drag-zoom.js";
 
 const DAY = 86400000;
@@ -144,10 +144,7 @@ export default function RaceChart({ series, isMobile, fetchCoins, coins, basketL
   return (
     <div style={{ maxWidth: MAX_W, margin: "0 auto" }}>
       <div style={{ display: "flex", gap: 8, justifyContent: "center", marginBottom: 16, flexWrap: "wrap" }}>
-        {WINDOWS.map(([id, lbl]) => (
-          <button key={id} onClick={() => { setWin(id); setZoom(null); }} className={`neon-pill${win === id && !zoom ? " active" : ""}`}
-            style={{ fontFamily: SANS, fontSize: 13, fontWeight: 600, padding: "7px 14px", borderRadius: 7, color: win === id && !zoom ? "#f8fafc" : "#94a3b8", "--glow": "#22d3ee" }}>{lbl}</button>
-        ))}
+        <ViewTabs tabs={WINDOWS} value={zoom ? null : win} onChange={id => { setWin(id); setZoom(null); }} />
         {zoom && <ZoomResetButton onReset={() => setZoom(null)} fontSize={13} padding="7px 14px" />}
       </div>
 

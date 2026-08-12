@@ -4,7 +4,7 @@ import {
 } from "recharts";
 import { buildDrawdownCycles, buildDrawdownSeries } from "./models.js";
 import { ATH } from "./data.js";
-import { SANS, MONO, MAX_W, TipBox } from "./chart-ui.jsx";
+import { SANS, MONO, MAX_W, TipBox, ViewTabs } from "./chart-ui.jsx";
 
 const fMon = d => new Date(d).toLocaleDateString("en-US", { month: "short", year: "2-digit" });
 const fPrice = p => (p < 1 ? "$" + p.toFixed(p < 0.01 ? 4 : 3) : "$" + p.toLocaleString(undefined, { maximumFractionDigits: 2 }));
@@ -91,19 +91,7 @@ export default function DrawdownChart({ series, isMobile, initialView }) {
   const pTicks = [0.0001, 0.001, 0.01, 0.1, 1, 10].filter(v => v >= uw.pDomain[0] && v <= uw.pDomain[1]);
 
   const toggle = (
-    <div style={{ display: "flex", justifyContent: "center", gap: 8, marginBottom: 18 }}>
-      {[["underwater", "Underwater (from ATH)"], ["cycle", "By cycle"]].map(([id, label]) => {
-        const active = mode === id, c = "#f87171";
-        return (
-          <button key={id} className="pill" onClick={() => setMode(id)} style={{
-            fontFamily: SANS, fontSize: isMobile ? 12 : 13, fontWeight: 600, padding: "8px 14px",
-            borderRadius: 9, cursor: "pointer", background: "transparent",
-            border: `1px solid ${active ? c + "cc" : "transparent"}`, boxShadow: active ? `0 0 14px ${c}55` : "none",
-            color: active ? "#f8fafc" : "#94a3b8", "--glow": c,
-          }}>{label}</button>
-        );
-      })}
-    </div>
+    <ViewTabs tabs={[["underwater", "Underwater (from ATH)"], ["cycle", "By cycle"]]} value={mode} onChange={setMode} />
   );
 
   return (

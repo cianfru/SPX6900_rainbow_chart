@@ -4,7 +4,7 @@ import {
 } from "recharts";
 import { loadCityHistory } from "./history-data.js";
 import ChartZoomHint from "./ChartZoomHint.jsx";
-import { SANS, MONO, MAX_W, Metric, TipBox, ZoomBar, Explain } from "./chart-ui.jsx";
+import { SANS, MONO, MAX_W, Metric, TipBox, ZoomBar, Explain, ViewTabs } from "./chart-ui.jsx";
 import { useDragZoom } from "./use-drag-zoom.js";
 
 const fShort = t => new Date(t).toLocaleDateString("en-US", { month: "short", year: "2-digit" });
@@ -94,12 +94,6 @@ export default function CityFlowChart({ isMobile, preview = false, initialView }
     );
   };
 
-  const tbtn = active => ({
-    padding: "5px 15px", borderRadius: 8, fontFamily: SANS, fontSize: 13, cursor: "pointer",
-    border: "1px solid " + (active ? "rgba(34,211,238,0.55)" : "rgba(255,255,255,0.12)"),
-    background: active ? "rgba(34,211,238,0.16)" : "transparent", color: active ? "#67e8f9" : "#94a3b8",
-  });
-
   const explains = {
     flow: <Explain q="Is the city growing, and how much churn is underneath?" accent={green}>
       Each period&apos;s <strong style={{ color: green }}>arrivals</strong> (up) vs <strong style={{ color: red }}>departures</strong> (down). The count rose steadily, but the turnover beneath is huge:
@@ -123,11 +117,7 @@ export default function CityFlowChart({ isMobile, preview = false, initialView }
         <Metric label="arrived (all-time)" value={fNum(totIn)} color={green} />
         <Metric label="left (all-time)" value={fNum(totOut)} color={red} />
         <Metric label="median resident" value={`${fNum(medNow)} SPX`} color={violet} sub={`~$${Math.round(medUsd).toLocaleString()}`} />
-        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-          <button style={tbtn(view === "flow")} onClick={() => setView("flow")}>Net new</button>
-          <button style={tbtn(view === "percap")} onClick={() => setView("percap")}>Per resident</button>
-          <button style={tbtn(view === "survival")} onClick={() => setView("survival")}>Survival</button>
-        </div>
+        <ViewTabs tabs={[["flow", "Net new"], ["percap", "Per resident"], ["survival", "Survival"]]} value={view} onChange={setView} />
       </div>
 
       {!isSurvival && <ZoomBar zoomed={zoomed} onReset={() => setZoom(null)} accent={accent} />}

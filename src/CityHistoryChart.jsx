@@ -4,7 +4,7 @@ import {
 } from "recharts";
 import { loadCityHistory } from "./history-data.js";
 import ChartZoomHint from "./ChartZoomHint.jsx";
-import { SANS, MONO, MAX_W, Metric, TipBox, ZoomBar, Explain } from "./chart-ui.jsx";
+import { SANS, MONO, MAX_W, Metric, TipBox, ZoomBar, Explain, ViewTabs } from "./chart-ui.jsx";
 import { useDragZoom } from "./use-drag-zoom.js";
 
 const fShort = t => new Date(t).toLocaleDateString("en-US", { month: "short", year: "2-digit" });
@@ -106,12 +106,6 @@ export default function CityHistoryChart({ isMobile, preview = false, initialVie
     );
   };
 
-  const tbtn = active => ({
-    padding: "5px 16px", borderRadius: 8, fontFamily: SANS, fontSize: 13, cursor: "pointer",
-    border: "1px solid " + (active ? "rgba(34,211,238,0.55)" : "rgba(255,255,255,0.12)"),
-    background: active ? "rgba(34,211,238,0.16)" : "transparent", color: active ? "#67e8f9" : "#94a3b8",
-  });
-
   return (
     <div style={{ maxWidth: MAX_W, margin: "0 auto" }}>
       {isSky ? (
@@ -132,11 +126,7 @@ export default function CityHistoryChart({ isMobile, preview = false, initialVie
         {isSky
           ? <Metric label="glass towers" value={fNum(towerNow)} color="#38bdf8" sub={`of ${fNum(cur.sTot)} buildings`} />
           : <Metric label={`citizens since ${baseLabel}`} value={growthCit >= 2 ? growthCit.toFixed(1) + "×" : "+" + Math.round((growthCit - 1) * 100) + "%"} color="#f8fafc" sub="grew through the drawdown" />}
-        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-          <button style={tbtn(isCit)} onClick={() => setView("citizens")}>Citizens</button>
-          <button style={tbtn(view === "value")} onClick={() => setView("value")}>Value</button>
-          <button style={tbtn(isSky)} onClick={() => setView("skyline")}>Skyline</button>
-        </div>
+        <ViewTabs tabs={[["citizens", "Citizens"], ["value", "Value"], ["skyline", "Skyline"]]} value={view} onChange={setView} />
       </div>
 
       {!isSky && (

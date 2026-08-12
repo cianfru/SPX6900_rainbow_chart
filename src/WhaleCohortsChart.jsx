@@ -5,7 +5,7 @@ import {
 import { loadWhaleCohortHistory } from "./history-data.js";
 import { COHORTS } from "./whale-cohorts.js";
 import ChartZoomHint from "./ChartZoomHint.jsx";
-import { SANS, MONO, MAX_W, Metric, TipBox, ZoomBar, Explain } from "./chart-ui.jsx";
+import { SANS, MONO, MAX_W, Metric, TipBox, ZoomBar, Explain, ViewTabs } from "./chart-ui.jsx";
 import { useDragZoom } from "./use-drag-zoom.js";
 
 // Cohorts are stacked bottom→top from smallest to biggest, so "how the base broadened" reads up the
@@ -71,11 +71,6 @@ export default function WhaleCohortsChart({ isMobile, initialView }) {
 
   const cur = all.at(-1), first = all[0];
   const mega = BANDS.at(-1).key;
-  const btn = on => ({
-    padding: "6px 12px", borderRadius: 8, cursor: "pointer", fontFamily: SANS, fontSize: 13, fontWeight: 600,
-    background: on ? "rgba(94,234,212,0.16)" : "rgba(255,255,255,0.05)",
-    border: `1px solid ${on ? "#5eead4" : "rgba(255,255,255,0.14)"}`, color: on ? "#5eead4" : "#94a3b8",
-  });
 
   return (
     <div style={{ maxWidth: MAX_W, margin: "0 auto" }}>
@@ -89,10 +84,7 @@ export default function WhaleCohortsChart({ isMobile, initialView }) {
         <Metric label="5M+ mega-whales" value={`${cur[mega]}`} color={BANDS[3].c} sub={`${first[mega]} at launch`} />
       </div>
 
-      <div style={{ display: "flex", gap: 8, justifyContent: "center", marginBottom: 10 }}>
-        <button onClick={() => setStacked(false)} style={btn(!stacked)}>Lines</button>
-        <button onClick={() => setStacked(true)} style={btn(stacked)}>Stacked</button>
-      </div>
+      <ViewTabs tabs={[["lines", "Lines"], ["stacked", "Stacked"]]} value={stacked ? "stacked" : "lines"} onChange={k => setStacked(k === "stacked")} />
 
       <ZoomBar zoomed={zoomed} onReset={() => setZoom(null)} accent="#22d3ee" />
 

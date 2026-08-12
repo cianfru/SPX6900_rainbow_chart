@@ -6,7 +6,7 @@ import { SUPPLY } from "./data.js";
 import { loadHistory, loadPriceHistory } from "./history-data.js";
 import { mvrvHistory } from "./mvrv-data.js";
 import ChartZoomHint from "./ChartZoomHint.jsx";
-import { SANS, MONO, MAX_W, Metric, TipBox, ZoomBar, Explain } from "./chart-ui.jsx";
+import { SANS, MONO, MAX_W, Metric, TipBox, ZoomBar, Explain, ViewTabs } from "./chart-ui.jsx";
 import { useDragZoom } from "./use-drag-zoom.js";
 
 const PRICE = "#38bdf8", COST = "#f59e0b", MVRV = "#a78bfa", FLOOR = "#34d399", DEEP = "#f87171";
@@ -87,12 +87,7 @@ export default function OnchainValueChart({ isMobile, preview = false, initialVi
         <strong style={{ color: "#f59e0b" }}>Realized price</strong> is the crowd's average on-chain cost basis. Price above it = holders in profit; below = underwater.
         <strong style={{ color: "#a78bfa" }}> MVRV</strong> is just price ÷ that cost (1× = break-even, high = frothy). The floor bands (0.5×/0.8×) are where price has historically found support. A valuation position, not a signal.
       </Explain>
-      <div style={{ display: "flex", gap: 8, justifyContent: "center", marginBottom: 14, flexWrap: "wrap" }}>
-        {MODES.map(([id, lbl]) => (
-          <button key={id} onClick={() => { setMode(id); }} className={`neon-pill${mode === id ? " active" : ""}`}
-            style={{ fontFamily: SANS, fontSize: 13, fontWeight: 600, padding: "7px 14px", borderRadius: 7, color: mode === id ? "#f8fafc" : "#94a3b8", "--glow": "#a78bfa" }}>{lbl}</button>
-        ))}
-      </div>
+      <ViewTabs tabs={MODES} value={mode} onChange={setMode} />
 
       <div style={{ display: "flex", gap: isMobile ? 16 : 30, justifyContent: "center", marginBottom: 14, flexWrap: "wrap" }}>
         <Metric label="price" value={fPrice(cur.price)} color={PRICE} sub="live" />

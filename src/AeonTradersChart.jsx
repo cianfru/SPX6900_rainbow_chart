@@ -1,7 +1,7 @@
 import { useMemo, useState, useEffect } from "react";
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, Cell, ReferenceLine } from "recharts";
 import { loadAeonTraders } from "./history-data.js";
-import { SANS, MONO, MAX_W, Metric, Explain } from "./chart-ui.jsx";
+import { SANS, MONO, MAX_W, Metric, Explain, ViewTabs } from "./chart-ui.jsx";
 
 const short = a => a.slice(0, 6) + "…" + a.slice(-4);
 const fE = v => (v >= 0 ? "+" : "") + v.toFixed(1) + "Ξ";
@@ -21,7 +21,6 @@ export default function AeonTradersChart({ isMobile, initialView }) {
   const netTop = data.top[0];
 
   const TABS = [["top", "Top winners"], ["bottom", "Biggest losses"], ["byVolume", "By volume"]];
-  const tbtn = a => ({ padding: "6px 14px", borderRadius: 8, fontFamily: SANS, fontSize: 13, cursor: "pointer", border: "1px solid " + (a ? "rgba(45,212,191,0.5)" : "rgba(255,255,255,0.12)"), background: a ? "rgba(45,212,191,0.16)" : "transparent", color: a ? "#5eead4" : "#94a3b8" });
 
   return (
     <div style={{ maxWidth: MAX_W, margin: "0 auto" }}>
@@ -35,9 +34,7 @@ export default function AeonTradersChart({ isMobile, initialView }) {
         <Metric label="top trader" value={fE(netTop.realized)} color="#34d399" sub={`${netTop.trades} trades`} />
       </div>
 
-      <div style={{ display: "flex", gap: 8, justifyContent: "center", marginBottom: 14, flexWrap: "wrap" }}>
-        {TABS.map(([k, l]) => <button key={k} style={tbtn(view === k)} onClick={() => setView(k)}>{l}</button>)}
-      </div>
+      <ViewTabs tabs={TABS} value={view} onChange={setView} />
 
       <ResponsiveContainer width="100%" height={isMobile ? 400 : 560}>
         <BarChart data={chartData} layout="vertical" margin={{ top: 4, right: 20, bottom: 4, left: isMobile ? 4 : 8 }}>

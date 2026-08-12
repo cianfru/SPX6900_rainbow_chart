@@ -1,7 +1,7 @@
 import { useMemo, useState, useEffect } from "react";
 import { ResponsiveContainer, ComposedChart, Area, Bar, Line, XAxis, YAxis, Tooltip, CartesianGrid, ReferenceLine, Cell } from "recharts";
 import { loadSmartMoney } from "./history-data.js";
-import { SANS, MONO, MAX_W, Metric, TipBox, Explain } from "./chart-ui.jsx";
+import { SANS, MONO, MAX_W, Metric, TipBox, Explain, ViewTabs } from "./chart-ui.jsx";
 import { useDailyTier } from "./DailyTier.jsx";
 
 // Coarsen the daily series to one point per calendar month for the free tier: held + price are the
@@ -73,8 +73,6 @@ export default function SmartMoneyChart({ isMobile, initialView }) {
   const fDay = ts => new Date(ts).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "2-digit" });
   const flowVerb = S.flow.w12 > 2 ? { t: "buying again", c: GRN } : S.flow.w12 < -1 ? { t: "trimming, not buying", c: "#f59e0b" } : { t: "holding, not buying", c: "#94a3b8" };
 
-  const btn = (active) => ({ className: `neon-pill${active ? " active" : ""}`, style: { padding: "6px 14px", borderRadius: 8, fontFamily: MONO, fontSize: 12, color: active ? "#f8fafc" : "#94a3b8", "--glow": "#f6a23c" } });
-
   return (
     <div style={{ maxWidth: MAX_W, margin: "0 auto" }}>
       <Explain q="What is SPX6900's smart money doing?" accent="#f6a23c">
@@ -85,11 +83,7 @@ export default function SmartMoneyChart({ isMobile, initialView }) {
 
       {controls}
 
-      <div style={{ display: "flex", gap: 6, justifyContent: "center", marginBottom: 6, flexWrap: "wrap" }}>
-        {[["holdings", "Holdings vs price"], ["flow", "Net flow"], ...(newQ.length ? [["newq", "New timers"]] : [])].map(([id, lbl]) => (
-          <button key={id} onClick={() => setView(id)} {...btn(view === id)}>{lbl}</button>
-        ))}
-      </div>
+      <ViewTabs tabs={[["holdings", "Holdings vs price"], ["flow", "Net flow"], ...(newQ.length ? [["newq", "New timers"]] : [])]} value={view} onChange={setView} />
 
       <div style={{ display: "flex", gap: isMobile ? 16 : 30, justifyContent: "center", margin: "10px 0 14px", flexWrap: "wrap" }}>
         <Metric label="live wallets" value={S.cohortSize} color="#f6a23c" sub="proven timers" />
