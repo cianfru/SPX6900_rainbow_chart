@@ -254,3 +254,13 @@ html[data-theme="light"] .tzone svg text[fill="#ffffff"], html[data-theme="light
 .tzone .tsbchart .tsbmeta{ padding:10px 12px 13px; }
 .tzone .tsbchart .tsbcat{ display:block; font-family:var(--mono); font-size:9.5px; letter-spacing:.13em; text-transform:uppercase; color:var(--tc); margin-bottom:5px; }
 .tzone .tsbchart .tsbnm{ font-size:13.5px; }
+
+/* prev/next chart pager (walk between charts in a group; pairs with swipe + arrow keys) */
+.tzone .chartpager{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin:24px auto 0; max-width:980px; border-top:1px solid var(--line); padding-top:16px; }
+.tzone .pgbtn{ display:inline-flex; align-items:center; gap:9px; max-width:44%; padding:9px 13px; border:1px solid var(--line2); border-radius:9px; background:linear-gradient(180deg,var(--panel),var(--panel2)); color:var(--dim); cursor:pointer; font-family:var(--sans); font-weight:600; font-size:13.5px; transition:border-color .12s, color .12s; }
+.tzone .pgbtn:hover{ color:var(--tx); border-color:var(--gc,var(--faint)); }
+.tzone .pgbtn svg{ width:17px; height:17px; flex:none; color:var(--gc,var(--dim)); }
+.tzone .pgbtn .pglabel{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.tzone .pgnext{ text-align:right; }
+.tzone .pgpos{ flex:none; font-family:var(--mono); font-size:11px; letter-spacing:.06em; text-transform:uppercase; color:var(--faint); text-align:center; }
+@media(max-width:560px){ .tzone .pgpos{ display:none; } .tzone .pgbtn{ max-width:48%; } }

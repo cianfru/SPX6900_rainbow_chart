@@ -20,7 +20,19 @@ import {
   whenHitsCenter, whenHitsBand,
 } from "./models.js";
 import { CRYPTO_MILESTONES } from "./milestones.js";
-import { CHART_META, CHART_IDS, AEON_GROUPS, CITY_GROUPS } from "./charts-catalog.js";
+import { CHART_META, CHART_IDS, CHART_GROUPS, AEON_GROUPS, CITY_GROUPS } from "./charts-catalog.js";
+
+// The charts either side of `id` within its own group — powers swipe / arrow navigation between
+// charts on the chart page (wraps around the group so you can keep flipping).
+function siblingCharts(id) {
+  const grp = CHART_META[id]?.group;
+  const groups = grp === "Project Aeon" ? AEON_GROUPS : grp === "SPX City" ? CITY_GROUPS : CHART_GROUPS;
+  const g = groups.find(x => x.charts.some(c => c.id === id));
+  const sibs = g ? g.charts.filter(c => !c.dev) : [];
+  const idx = sibs.findIndex(c => c.id === id);
+  const at = n => (sibs.length ? sibs[(n + sibs.length) % sibs.length] : null);
+  return { sibs, idx, prev: at(idx - 1), next: at(idx + 1) };
+}
 
 // City-tab destinations for the nav dropdown: the 3D city (a /city route) + its history charts.
 const CITY_MENU = [
@@ -692,6 +704,20 @@ export default function App() {
     window.addEventListener("popstate", onPop);
     return () => window.removeEventListener("popstate", onPop);
   }, []);
+
+  // Keyboard ← / → walk between charts in the current group (desktop parity with the mobile swipe).
+  useEffect(() => {
+    if (route !== "chart") return;
+    const onKey = e => {
+      if (e.target && /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;
+      const { prev, next } = siblingCharts(tab);
+      if (e.key === "ArrowLeft" && prev) goChart(prev.id);
+      else if (e.key === "ArrowRight" && next) goChart(next.id);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [route, tab]);
+  const swipeRef = useRef(null);
 
   // Render the interactive component for a chart id, shared by the dedicated
   // chart page and the gallery's live mini-previews. `preview` => non-interactive
@@ -1443,10 +1469,20 @@ export default function App() {
         const label = aeon ? "Project Aeon" : city ? "City" : "All charts";
         const gcol = gcolFor(grp);
         const title = CHART_META[tab]?.title ?? "";
+        const { prev: prevC, next: nextC, idx, sibs } = siblingCharts(tab);
+        const onTStart = e => { const t = e.touches[0]; swipeRef.current = { x: t.clientX, y: t.clientY, t: Date.now() }; };
+        const onTEnd = e => {
+          const s = swipeRef.current; if (!s) return; swipeRef.current = null;
+          const t = e.changedTouches[0]; const dx = t.clientX - s.x, dy = t.clientY - s.y;
+          // a deliberate horizontal flick (not a vertical scroll, not a chart drag): flip charts
+          if (Math.abs(dx) > 64 && Math.abs(dx) > 1.8 * Math.abs(dy) && Date.now() - s.t < 600) {
+            if (dx > 0 && prevC) goChart(prevC.id); else if (dx < 0 && nextC) goChart(nextC.id);
+          }
+        };
         return (
         // Terminal chart page: filepath breadcrumb · command prompt · title over the
         // rainbow hairline · the real interactive chart. Same design as the gallery.
-        <div className="tchart" style={{ maxWidth: MAX_W, margin: "0 auto" }}>
+        <div className="tchart" style={{ maxWidth: MAX_W, margin: "0 auto" }} onTouchStart={onTStart} onTouchEnd={onTEnd}>
           <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16, flexWrap: "wrap" }}>
             <button onClick={back} title={`Back to ${label}`} aria-label={`Back to ${label}`} className="tback" style={{
               display: "inline-flex", alignItems: "center", justifyContent: "center", width: 34, height: 34, borderRadius: "50%",
@@ -1490,6 +1526,20 @@ export default function App() {
             {chartEl(tab)}
           </Suspense>
           </ErrorBoundary>
+          {/* walk between charts in this group — tap the arrows, swipe on mobile, or ← / → on desktop */}
+          {sibs.length > 1 && (
+            <div className="chartpager" style={{ "--gc": gcol }}>
+              <button className="pgbtn" onClick={() => prevC && goChart(prevC.id)} title={`Previous: ${prevC?.title}`}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6" /></svg>
+                <span className="pglabel">{prevC?.title}</span>
+              </button>
+              <span className="pgpos">{grp} · {idx + 1} / {sibs.length}</span>
+              <button className="pgbtn pgnext" onClick={() => nextC && goChart(nextC.id)} title={`Next: ${nextC?.title}`}>
+                <span className="pglabel">{nextC?.title}</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6" /></svg>
+              </button>
+            </div>
+          )}
         </div>
         );
       })()}{/* end chart page */}
