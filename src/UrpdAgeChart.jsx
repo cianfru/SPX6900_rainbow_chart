@@ -1,7 +1,7 @@
 import { useMemo, useState, useEffect, lazy, Suspense } from "react";
 import { SPX_URPD } from "./spx-urpd.js";
 import { loadUrpd, loadHistory } from "./history-data.js";
-import { SANS, MONO, MAX_W, Explain } from "./chart-ui.jsx";
+import { SANS, MONO, MAX_W, Explain, ViewTabs } from "./chart-ui.jsx";
 
 const Urpd3D = lazy(() => import("./Urpd3D.jsx"));
 
@@ -103,11 +103,6 @@ export default function UrpdAgeChart({ isMobile, preview = false, price = null, 
     return (<g key={"lg" + a}><rect x={lx} y="10" width="18" height="12" rx="3" fill={AGE_C[a]} /><text x={lx + 24} y="20" fill="#cbd5e1" fontSize="15" fontWeight="700" fontFamily={SANS}>{l}</text></g>);
   });
   const TABS = [["bars", "Bars"], ["heat", "Heatmap"], ["3d", "3D"]];
-  const tbtn = active => ({
-    padding: "5px 14px", borderRadius: 8, fontFamily: SANS, fontSize: 13, cursor: "pointer",
-    border: "1px solid " + (active ? "rgba(167,139,250,0.55)" : "rgba(255,255,255,0.12)"),
-    background: active ? "rgba(167,139,250,0.16)" : "transparent", color: active ? "#c4b5fd" : "#94a3b8",
-  });
 
   return (
     <div style={{ maxWidth: MAX_W, margin: "0 auto" }}>
@@ -116,11 +111,7 @@ export default function UrpdAgeChart({ isMobile, preview = false, price = null, 
         The launch-era coins are <strong style={{ color: "#22d3ee" }}>old (1y+)</strong> and cheap; the wall near today&apos;s price mixes <strong style={{ color: "#fb7185" }}>fresh buyers</strong> with mid-age holders, same price, very different conviction.
       </Explain>
 
-      {!preview && (
-        <div style={{ display: "flex", gap: 8, justifyContent: "center", marginBottom: 14 }}>
-          {TABS.map(([k, l]) => <button key={k} style={tbtn(view === k)} onClick={() => setView(k)}>{l}</button>)}
-        </div>
-      )}
+      {!preview && <ViewTabs tabs={TABS} value={view} onChange={setView} />}
 
       {view === "3d" && !preview ? (
         <div>

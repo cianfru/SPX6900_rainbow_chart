@@ -47,6 +47,22 @@ export function Explain({ q, accent = "#38bdf8", children }) {
   );
 }
 
+// Shared view-toggle row, styled like the site's terminal menu: mono font, squared cells, the
+// active view highlighted, and a blinking lowered "_" that appears on hover (the menu's cursor).
+// tabs = [[key, label], …]. Replaces every chart's bespoke rounded-pill toggle so they read as
+// one system. The blink + hover live in .vtab CSS (terminal.css, scoped under .tzone).
+export function ViewTabs({ tabs, value, onChange, style }) {
+  return (
+    <div className="viewtabs" style={style}>
+      {tabs.map(([k, l]) => (
+        <button key={k} type="button" className={"vtab" + (k === value ? " on" : "")} onClick={() => onChange(k)}>
+          <span className="vtl">{l}</span><span className="vtc" aria-hidden="true">_</span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
 export function ZoomResetButton({ onReset, accent = "#38bdf8", fontSize = 12, padding = "5px 12px" }) {
   return (
     <button onClick={onReset} className="pill" style={{ fontFamily: SANS, fontSize, fontWeight: 600, padding, borderRadius: 7, cursor: "pointer", background: "transparent", border: `1px solid ${accent}66`, color: LIGHT[accent] || accent, "--glow": accent }}>

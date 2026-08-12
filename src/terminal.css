@@ -156,3 +156,15 @@
 /* "Data as of …" stamp on the menu line, right-aligned (opposite the sections) */
 .tzone .tdataas{ margin-left:auto; align-self:center; font-family:var(--mono); font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--faint); white-space:nowrap; padding-right:2px; }
 @media(max-width:640px){ .tzone .tdataas{ display:none; } }
+
+/* Shared chart view toggles (chart-ui ViewTabs) — styled like the terminal menu: mono, squared,
+   active cell highlighted in the live green, and a blinking lowered "_" cursor on hover. */
+.tzone .viewtabs{ display:flex; flex-wrap:wrap; gap:8px; justify-content:center; margin:0 0 14px; }
+.tzone .vtab{ font-family:var(--mono); font-size:12px; letter-spacing:.09em; text-transform:uppercase; color:var(--dim);
+  background:transparent; border:1px solid var(--line2); border-radius:4px; padding:6px 13px; cursor:pointer;
+  display:inline-flex; align-items:baseline; transition:color .12s, border-color .12s, background .12s; }
+.tzone .vtab:hover{ color:var(--tx); border-color:var(--faint); }
+.tzone .vtab.on{ color:var(--live); border-color:var(--live); background:rgba(78,231,154,.07); }
+.tzone .vtab .vtc{ opacity:0; margin-left:1px; }
+.tzone .vtab:hover .vtc{ animation:vtblink 1.05s steps(1,end) infinite; }
+@keyframes vtblink{ 0%,48%{opacity:1} 49%,100%{opacity:0} }
