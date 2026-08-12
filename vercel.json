@@ -82,6 +82,10 @@
   ],
   "rewrites": [
     {
+      "source": "/api/memekings",
+      "destination": "/api/majors?set=meme"
+    },
+    {
       "source": "/api/(.*)",
       "destination": "/api/$1"
     },

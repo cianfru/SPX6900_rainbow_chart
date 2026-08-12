@@ -1,4 +1,17 @@
 // Daily USD history for the major assets, for SPX6900 relative-valuation ratios.
+// Also serves the memecoin "kings" (DOGE/SHIB/PEPE) via ?set=meme — vercel.json rewrites
+// /api/memekings here (kept to one function to stay under Vercel Hobby's 12-function cap).
+import { PEPE_HISTORY } from "../src/pepe-history.js";
+
+// Merge bundled [date,price] history with live [{date,price}] — live wins on overlapping
+// dates and extends the tail; result sorted, positives only. (PEPE's live source doesn't
+// reach SPX6900's launch, so its early history is bundled and merged UNDER the live tail.)
+function mergeHist(bundled, live) {
+  const m = new Map();
+  for (const [date, price] of bundled) m.set(date, price);
+  for (const p of live || []) m.set(p.date, p.price);
+  return [...m.entries()].map(([date, price]) => ({ date, price })).filter(p => p.price > 0).sort((a, b) => a.date.localeCompare(b.date));
+}
 
 // CryptoCompare made histoday key-gated (keyless now 401s). Send the free API key
 // from the Vercel env if present; without it CryptoCompare fails and we fall back.
@@ -50,7 +63,8 @@ async function getCoin(sym) {
 }
 
 export default async function handler(req, res) {
-  const syms = ["BTC", "ETH", "SOL"];
+  const meme = (req.query?.set || "") === "meme";
+  const syms = meme ? ["DOGE", "SHIB", "PEPE"] : ["BTC", "ETH", "SOL"];
   const results = await Promise.allSettled(syms.map(getCoin));
   const prices = {};
   const errors = [];
@@ -58,8 +72,11 @@ export default async function handler(req, res) {
     if (r.status === "fulfilled") prices[syms[i]] = r.value;
     else errors.push(`${syms[i]}: ${r.reason.message}`);
   });
+  // Backfill PEPE with its bundled early history (fills the pre-2024 gap; live keeps the
+  // recent tail fresh). PEPE is therefore always present in the meme set.
+  if (meme) prices.PEPE = mergeHist(PEPE_HISTORY, prices.PEPE);
   if (Object.keys(prices).length === 0) {
-    return res.status(502).json({ error: "All majors failed", details: errors });
+    return res.status(502).json({ error: `All ${meme ? "memekings" : "majors"} failed`, details: errors });
   }
   res.setHeader("Cache-Control", "s-maxage=3600, stale-while-revalidate=86400");
   return res.status(200).json({ prices, errors });
