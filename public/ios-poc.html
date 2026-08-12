@@ -44,14 +44,16 @@
   .app:active .tile{ transform:scale(.9); }
   /* the app tiles keep their own light 'material' in BOTH themes (like real iOS icons) — only the
      wallpaper darkens — so every icon stays legible. */
-  .app .tile::before{ content:''; position:absolute; left:0; right:0; top:0; height:46%; z-index:2; pointer-events:none;
-    background:linear-gradient(180deg, rgba(255,255,255,.6), rgba(255,255,255,0)); border-radius:24% 24% 50% 50%/30% 30% 100% 100%; }
+  /* the classic first-iPhone 'gel' reflection — sits ON TOP of everything (incl. drop-in icons) so a
+     set of flat, differently-coloured icons all share one cohesive glossy shine. */
+  .app .tile::before{ content:''; position:absolute; left:0; right:0; top:0; height:47%; z-index:4; pointer-events:none;
+    background:linear-gradient(180deg, rgba(255,255,255,.55), rgba(255,255,255,.08)); border-radius:24% 24% 50% 50%/30% 30% 100% 100%; }
   .app .tile svg{ position:absolute; inset:0; margin:auto; width:62%; height:62%; z-index:1; }
   .app .tile.full svg{ width:100%; height:100%; inset:0; }
-  /* drop-in icon image: put a full square glossy icon at public/icons/<key>.png and it replaces the
-     SVG automatically (full-bleed over the tile); if the file is missing the <img> removes itself
-     and the SVG shows. So the SVGs are just placeholders until the real renders land. */
-  .app .tile .iconimg{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; border-radius:inherit; z-index:5; }
+  /* drop-in icon image: put a full square icon at public/icons/<key>.png and it replaces the SVG
+     automatically (full-bleed, under the gel shine). Missing file → the <img> removes itself and the
+     placeholder SVG shows. Generate FLAT coloured icons — the tile adds the glossy first-iPhone shine. */
+  .app .tile .iconimg{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; border-radius:inherit; z-index:3; }
   .app .nm{ font-size:12px; font-weight:600; color:var(--ink); letter-spacing:-.01em; }
 
   /* page dots + hint */
@@ -67,6 +69,21 @@
   :root[data-theme="dark"] .dock{ background:rgba(255,255,255,.06); }
   .dock .app{ gap:7px; }
   .dock .app .nm{ font-size:11px; color:var(--dim); }
+
+  /* ── iOS folder: tap a section → it expands into a sub-window of its charts ── */
+  .folderwrap{ position:fixed; inset:0; z-index:60; display:none; align-items:center; justify-content:center; padding:26px 24px; }
+  .folderwrap.open{ display:flex; }
+  .folderwrap .backdrop{ position:absolute; inset:0; opacity:0; transition:opacity .26s ease;
+    background:rgba(228,231,238,.55); backdrop-filter:blur(20px) saturate(1.15); -webkit-backdrop-filter:blur(20px) saturate(1.15); }
+  :root[data-theme="dark"] .folderwrap .backdrop{ background:rgba(6,9,15,.6); }
+  .folderwrap.in .backdrop{ opacity:1; }
+  .folder{ position:relative; z-index:1; width:100%; max-width:420px; text-align:center;
+    transform:scale(.3); opacity:0; transform-origin:center 42%;
+    transition:transform .32s cubic-bezier(.2,.85,.25,1), opacity .2s ease; }
+  .folderwrap.in .folder{ transform:scale(1); opacity:1; }
+  .folder h3{ color:var(--ink); font-size:21px; font-weight:700; letter-spacing:-.015em; margin-bottom:20px; }
+  .folder .fgrid{ display:grid; grid-template-columns:repeat(4,1fr); gap:22px 16px; }
+  .folder .fhint{ margin-top:22px; font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--faint); }
 </style></head>
 <body>
 <svg class="wallarc" viewBox="0 0 200 100" preserveAspectRatio="xMidYMax slice" fill="none">
@@ -90,6 +107,16 @@
     <div class="dots" id="dots"></div>
     <div class="hint" id="hint">SWIPE FOR MORE &rarr;</div>
     <div class="dock" id="dock"></div>
+  </div>
+</div>
+
+<!-- iOS folder overlay: opens when a section app is tapped -->
+<div class="folderwrap" id="folderwrap">
+  <div class="backdrop" id="fbackdrop"></div>
+  <div class="folder">
+    <h3 id="foldertitle"></h3>
+    <div class="fgrid" id="foldergrid"></div>
+    <div class="fhint">tap outside to close</div>
   </div>
 </div>
 
@@ -122,6 +149,25 @@ const I = {
  youtube:`<svg viewBox="0 0 100 100"><rect width="100" height="100" rx="24" fill="#fff"/><rect x="20" y="32" width="60" height="36" rx="10" fill="#ff0000"/><path d="M44 42 l16 8 -16 8 z" fill="#fff"/></svg>`,
  kraken:`<svg viewBox="0 0 100 100"><rect width="100" height="100" rx="24" fill="#fff"/><path d="M28 54 A22 22 0 0 1 72 54 L72 74 A3.5 3.5 0 0 1 65 74 L65 58 A3 3 0 0 0 59 58 L59 74 A3.5 3.5 0 0 1 52 74 L52 58 A3 3 0 0 0 46 58 L46 74 A3.5 3.5 0 0 1 39 74 L39 58 A3 3 0 0 0 33 58 L33 74 A3.5 3.5 0 0 1 26 74 Z" fill="#7132f5"/></svg>`,
  search:`<svg viewBox="0 0 100 100"><rect width="100" height="100" rx="24" fill="#12161d"/><circle cx="46" cy="46" r="16" fill="none" stroke="#37f7a0" stroke-width="5"/><line x1="58" y1="58" x2="72" y2="72" stroke="#37f7a0" stroke-width="6" stroke-linecap="round"/><path d="M38 44 l4 3 -4 3" stroke="#37f7a0" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+ // generic fallback glyph for sub-charts inside a folder
+ gchart:`<svg viewBox="0 0 100 100" fill="none"><path d="M22 66 L40 52 L52 58 L78 32" stroke="#1f8fe0" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="78" cy="32" r="4.5" fill="#e5342f"/><line x1="20" y1="74" x2="80" y2="74" stroke="#9fb3c6" stroke-width="2"/></svg>`,
+};
+// section apps that open a folder of charts (rest are direct: rainbow/city/aeon/method + dock)
+const SUB = {
+ holders:[['Concentration','conc'],['Distribution','dist'],['Diamond','diamond'],['Growth','growth'],['Survivors','fsurv'],['Cohorts','cohort']],
+ onchain:[['MVRV','mvrv'],['NUPL','nupl'],['SOPR','sopr'],['Realized','realized'],['Liveliness','live'],['NRPL','nrpl']],
+ supply:[['In Profit','sip'],['HODL Waves','hodl'],['Free Float','float'],['URPD','urpd']],
+ exchanges:[['CEX Supply','cexsup'],['CEX Flow','cexflow'],['Venues','venues'],['Venue Flow','venflow']],
+ liquidity:[['LP Depth','lp'],['Uniswap','uni']],
+ whales:[['Cohorts','wcoh'],['Whale City','wcity'],['Clusters','clusters'],['Smart Money','smart']],
+ bridges:[['Ethereum','eth'],['Base','base'],['Solana','sol'],['Growth','wg']],
+ market:[['Composite','composite'],['Channel','channel'],['Risk','risk'],['Pi Cycle','pi'],['Alt Market','alt'],['S&P 500','sp']],
+ valuation:[['Composite','composite'],['MVRV','mvrv'],['Pi Cycle','pi'],['Rainbow','rainbow']],
+ performance:[['ROI','roi'],['vs BTC','vsbtc'],['vs S&P','sp'],['Drawdown','draw']],
+ cost:[['URPD','urpd'],['Cost Basis','cb'],['LTH/STH','lth'],['Exit Flow','exit']],
+ survivors:[['Survival','fsurv'],['Vintages','vint'],['Supply Era','era']],
+ races:[['Majors','maj'],['Memecoins','meme']],
+ composite:[['Composite','composite'],['Lenses','lens']],
 };
 
 const PAGES = [
@@ -134,10 +180,34 @@ const PAGES = [
 const DOCK = [ ['X','x'], ['YouTube','youtube'], ['Kraken','kraken'], ['Search','search'] ];
 const FULL = new Set(['x','youtube','kraken','search']); // icons that fill the tile (own bg)
 
-const appHTML = (nm,ic)=>`<button class="app"><span class="tile${FULL.has(ic)?' full':''}">${I[ic]||''}<img class="iconimg" src="/icons/${ic}.png" alt="" onerror="this.remove()"></span><span class="nm">${nm}</span></button>`;
+const appHTML = (nm,ic)=>`<button class="app" data-app="${ic}"><span class="tile${FULL.has(ic)?' full':''}">${I[ic]||I.gchart}<img class="iconimg" src="/icons/${ic}.png" alt="" onerror="this.remove()"></span><span class="nm">${nm}</span></button>`;
 const pager=document.getElementById('pager');
 pager.innerHTML = PAGES.map(pg=>`<div class="page">${pg.map(a=>appHTML(a[0],a[1])).join('')}</div>`).join('');
 document.getElementById('dock').innerHTML = DOCK.map(a=>appHTML(a[0],a[1])).join('');
+
+// ── iOS folder: tap a section app → expand into a sub-window of its charts ──
+const fw=document.getElementById('folderwrap'), fgrid=document.getElementById('foldergrid'), ftitle=document.getElementById('foldertitle');
+const NAMES={holders:'Holders',onchain:'On-chain',supply:'Supply',exchanges:'Exchanges',liquidity:'Liquidity',whales:'Whales',bridges:'Bridges',market:'Market',valuation:'Valuation',performance:'Performance',cost:'Cost Basis',survivors:'Survivors',races:'Races',composite:'Composite'};
+let fopen=false;
+function openFolder(key){
+  const subs=SUB[key]; if(!subs) return;
+  ftitle.textContent=NAMES[key]||key;
+  fgrid.innerHTML=subs.map(s=>appHTML(s[0],s[1])).join('');
+  fw.classList.add('open'); requestAnimationFrame(()=>fw.classList.add('in'));
+  fopen=true; try{ history.pushState({folder:key},''); }catch(e){}
+}
+function closeFolder(){ if(!fopen) return; fopen=false; fw.classList.remove('in');
+  setTimeout(()=>fw.classList.remove('open'),300); }
+document.getElementById('fbackdrop').addEventListener('click',()=>{ if(fopen) history.back(); });
+window.addEventListener('popstate',()=>{ if(fopen) closeFolder(); });
+document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&fopen) history.back(); });
+// tap delegation: a folder app opens its folder; everything else is a direct link (POC: no-op)
+document.addEventListener('click',e=>{
+  const btn=e.target.closest('.app'); if(!btn) return;
+  const key=btn.getAttribute('data-app');
+  if(SUB[key]){ openFolder(key); }
+  // else: real build navigates to the destination; POC leaves it.
+});
 const dots=document.getElementById('dots');
 dots.innerHTML = PAGES.map((_,i)=>`<i class="${i===0?'on':''}"></i>`).join('');
 const hint=document.getElementById('hint');
