@@ -1,15 +1,26 @@
 {
-  "date": "2026-08-11",
+  "date": "2026-08-12",
   "signals": [
+    {
+      "type": "diamond-jump",
+      "severity": 3,
+      "emoji": "💎",
+      "title": "Diamond share down -0.6pp → 40.5%",
+      "detail": "380,237,577 SPX now in the longest-held tier.",
+      "framing": "Diamond share moved -0.6pp — a conviction/holding read. Glance at the tier deltas so you word it right (aged-in vs genuinely new long-term supply).",
+      "note": "Compare diamond vs gold delta so the wording is accurate (aged-in vs new long-term supply).",
+      "card": "diamondtrend",
+      "score": 3
+    },
     {
       "type": "underwater-holding",
       "emoji": "💎",
-      "title": "Holders ~40% underwater — and still not selling",
-      "detail": "MVRV 0.6: price is 40% below the crowd's avg on-chain cost basis ($0.527). Yet 62% of supply is in the longest-held tier — the float isn't moving. MVRV has slipped 0.69→0.6 over ~30d.",
+      "title": "Holders ~39% underwater — and still not selling",
+      "detail": "MVRV 0.61: price is 39% below the crowd's avg on-chain cost basis ($0.522). Yet 61% of supply is in the longest-held tier — the float isn't moving. MVRV has slipped 0.68→0.61 over ~30d.",
       "framing": "Maximum financial pain, minimal capitulation — conviction being tested and, so far, holding.",
       "note": "Describe the divergence, NOT a bottom call. \"Not selling\", not \"buy\".",
       "card": "breakeven",
-      "score": 1.9578811194388455
+      "score": 1.9371245828135981
     },
     {
       "type": "drawdown",
@@ -20,16 +31,6 @@
       "note": "It's deep and unrecovered NOW; don't imply it always recovers.",
       "card": "underwater",
       "score": 1.5
-    },
-    {
-      "type": "diamond-trend",
-      "emoji": "💠",
-      "title": "Diamond tier grew 2.4pp in ~30d → 90.5% of supply",
-      "detail": "Supply in the longest-held tier rose 88.2%→90.5% over ~30 days — a cohort maturing into diamond.",
-      "framing": "Float tightening as coins age into the strongest-held tier.",
-      "note": "HELD, not BOUGHT — diamond grows by aging; frame it as maturing/held.",
-      "card": "diamondtrend",
-      "score": 1.4
     }
   ]
 }
