@@ -20,11 +20,14 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Geist:wght@400;500;600;700;800&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
-    <!-- Privacy-friendly analytics (general traffic, referrers, geo). Loads only on the live domain.
-         To activate: add spx6900rainbow.xyz as a site in Plausible (plausible.io), or swap these two
-         lines for a self-hosted Umami snippet. Inert until the site exists; the first-party /api/intel
-         pipeline (wallet searches, city/chart opens) works independently of this. -->
-    <script>if(location.hostname==='spx6900rainbow.xyz'){var s=document.createElement('script');s.defer=true;s.setAttribute('data-domain','spx6900rainbow.xyz');s.src='https://plausible.io/js/script.js';document.head.appendChild(s);}</script>
+    <!-- Cloudflare Web Analytics — free forever, unlimited, privacy-first, no cookies, no DNS change.
+         The heavy lifting (wallet searches, city/chart opens, geo, pages, referrers) is the first-party
+         /api/intel pipeline, which works independently of this; CF just adds a polished general-traffic
+         + click view. Loads only on the live domain, and no-ops until the token below is set.
+         To activate: cloudflare.com → (free account) → Analytics & Logs → Web Analytics → Add a site →
+         "spx6900rainbow.xyz" (choose the manual/JS-snippet option, no DNS change) → copy the token and
+         paste it in place of CF_TOKEN below. A blank/placeholder token just silently does nothing. -->
+    <script>if(location.hostname==='spx6900rainbow.xyz'){var CF_TOKEN='';if(CF_TOKEN){var s=document.createElement('script');s.defer=true;s.src='https://static.cloudflareinsights.com/beacon.min.js';s.setAttribute('data-cf-beacon',JSON.stringify({token:CF_TOKEN}));document.head.appendChild(s);}}</script>
     <style>
       *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
       html { background: #020208; color-scheme: dark; font-size: 17px; }
