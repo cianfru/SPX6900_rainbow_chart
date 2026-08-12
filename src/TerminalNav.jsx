@@ -68,9 +68,15 @@ function useTypewriter(text, speed = 45) {
 // whole header so hovering anywhere over it fires (desktop parity with the landing).
 function TypeHead({ label }) {
   const { shown, type, reset } = useTypewriter(label);
+  // The tab reserves its FULL label width with an invisible ghost and overlays the streaming
+  // text, so the header never resizes while typing — otherwise it grows char-by-char and shoves
+  // the neighbouring tabs (the reported flicker).
   return (
     <div className="mhead" onMouseEnter={type} onMouseLeave={reset}>
-      <span className="mhead-t">{shown}</span> <span className="car">▾</span>
+      <span className="mhead-t">
+        <span className="mhead-ghost" aria-hidden="true">{label}</span>
+        <span className="mhead-type">{shown}</span>
+      </span> <span className="car">▾</span>
     </div>
   );
 }

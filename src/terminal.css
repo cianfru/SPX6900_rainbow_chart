@@ -59,6 +59,11 @@
 .tzone .mtop{ position:relative; }
 .tzone .mtop > .mhead{ display:inline-flex; align-items:center; gap:8px; padding:9px 14px; cursor:pointer; font-family:var(--mono); font-size:14px; letter-spacing:.05em; text-transform:uppercase; color:var(--tx); border:1px solid transparent; user-select:none; }
 .tzone .mtop > .mhead .car{ font-size:11px; color:var(--dim); }
+/* The typed tab label reserves its full width (invisible ghost) and overlays the streaming text,
+   so the tab can't grow char-by-char and shove its neighbours while typing (the hover flicker). */
+.tzone .mhead-t{ position:relative; display:inline-block; }
+.tzone .mhead-ghost{ visibility:hidden; }
+.tzone .mhead-type{ position:absolute; left:0; top:0; white-space:nowrap; }
 .tzone .mtop:hover > .mhead{ background:var(--tx); color:var(--bg); }
 .tzone .mtop:hover > .mhead .car{ color:var(--bg); }
 /* Rainbow tab — in line with the other three (same mono/weight/case/invert), with a restrained

@@ -75,7 +75,12 @@ async function ingest(req, res, body) {
 
 // POST {pw} — dashboard data.
 async function dashboard(req, res, body) {
-  if (!process.env.CONTROL_PASSWORD || body.pw !== process.env.CONTROL_PASSWORD) { res.status(401).json({ error: "bad password" }); return; }
+  // Trim both sides: a password pasted into Vercel's env UI often carries a trailing newline,
+  // which makes a correct-looking password fail a strict compare. Distinguish "not configured"
+  // (env var missing) from "wrong password" so the page can say which it is.
+  const expected = String(process.env.CONTROL_PASSWORD || "").trim();
+  if (!expected) { res.status(503).json({ error: "Server not configured: set CONTROL_PASSWORD in Vercel." }); return; }
+  if (String(body.pw || "").trim() !== expected) { res.status(401).json({ error: "bad password" }); return; }
   if (!KV_URL || !KV_TOKEN) { res.status(200).json({ configured: false }); return; }
   try {
     const [events, wallets, geo, pages, refs, charts] = await kvPipeline([
@@ -131,7 +136,7 @@ const ago=ts=>{const s=Math.floor((Date.now()-ts)/1000);if(s<60)return s+'s';con
 const esc=s=>String(s==null?'':s).replace(/[<>&]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]));
 async function load(){ const pw=$('#pw').value; $('#msg').textContent='…';
   const r=await fetch('/api/intel',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pw})});
-  if(r.status===401){ $('#msg').textContent='wrong password'; return; }
+  if(!r.ok){ const j=await r.json().catch(()=>({})); $('#msg').textContent=(r.status===401?'wrong password':(j.error||('error '+r.status))); return; }
   const d=await r.json(); $('#msg').textContent='';
   if(!d.configured){ $('#out').innerHTML='<p class="note">No store connected yet. Connect a Vercel KV / Upstash Redis store to the project (Vercel → Storage), redeploy, and events will start flowing here.</p>'; return; }
   try{ sessionStorage.setItem('intelpw',pw); }catch(e){}
