@@ -75,28 +75,14 @@ function TypeHead({ label }) {
   );
 }
 
-// A LIVE, scaled-down render of the real chart component (same approach as the gallery's
-// LivePreview), this is the "actual look of the chart", not the tweet card.
-function LeafPreview({ render }) {
-  const ref = useRef(null);
-  const [scale, setScale] = useState(0.19);
-  useEffect(() => {
-    const el = ref.current; if (!el) return;
-    const ro = new ResizeObserver(() => { if (el.clientWidth) setScale(el.clientWidth / BASE_W); });
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
-  return (
-    <div ref={ref} className="lprevbox" style={{ height: CONTENT_H * scale }}>
-      <div style={{ position: "absolute", top: 0, left: 0, width: BASE_W, transformOrigin: "top left", transform: `scale(${scale})`, pointerEvents: "none" }}>
-        <ErrorBoundary>
-          <Suspense fallback={<div className="lprevload">loading…</div>}>
-            <div className="chart-preview">{render()}</div>
-          </Suspense>
-        </ErrorBoundary>
-      </div>
-    </div>
-  );
+// Static preview = the same server-rendered og card a shared link unfurls. Cheap, cached and
+// FIXED-SIZE, so sweeping the menu can't thrash layout. (It used to mount the LIVE chart component
+// scaled on every leaf hover — fine on a fast box, but mounting/unmounting a full recharts chart as
+// you move across rows janked/flickered the whole nav on real devices.) Falls back to a sparkline.
+function LeafOg({ q, id, seed, color }) {
+  const [failed, setFailed] = useState(false);
+  if (failed) return <Spark seed={seed} color={color} />;
+  return <img className="lprevimg" alt="" loading="lazy" src={`/api/og?${q}=${encodeURIComponent(id)}`} onError={() => setFailed(true)} />;
 }
 
 // deterministic sparkline, fallback for locked/heavy charts (same as the landing's mspark)
@@ -122,9 +108,10 @@ function Spark({ seed, color }) {
 
 // A cascading top: ALL + group rows (▸); hovering a group flies out its chart list, and
 // hovering a chart flies out the preview panel. Groups coloured by the mockup's GCOL.
-function CascadeTop({ label, groups, onSection, onLeaf, renderPreview }) {
+function CascadeTop({ label, groups, onSection, onLeaf }) {
   const [leaf, setLeaf] = useState(null); // {gi, item, color}
   const topRef = useRef(null);
+  const ogq = label === "PROJECT_AEON" ? "aeon" : "tab";
   const onEnter = () => {
     const el = topRef.current; if (!el) return;
     const r = el.getBoundingClientRect();
@@ -154,9 +141,9 @@ function CascadeTop({ label, groups, onSection, onLeaf, renderPreview }) {
               <div className={"leafprev" + (leaf && leaf.gi === gi ? " on" : "")}>
                 {leaf && leaf.gi === gi && (<>
                   <div className="mprev-kick">Preview</div>
-                  {(renderPreview && !leaf.item.locked && !HEAVY.has(leaf.item.id))
-                    ? <LeafPreview key={leaf.item.id} render={() => renderPreview(leaf.item.id)} />
-                    : <Spark seed={leaf.item.id + g.title} color={leaf.color} />}
+                  {leaf.item.locked
+                    ? <Spark seed={leaf.item.id + g.title} color={leaf.color} />
+                    : <LeafOg key={leaf.item.id} q={ogq} id={leaf.item.id} seed={leaf.item.id + g.title} color={leaf.color} />}
                   <div className="mprev-title">{leaf.item.title}</div>
                   <div className="mprev-desc">{leaf.item.desc}</div>
                   <div className="mprev-go">→ open chart</div>

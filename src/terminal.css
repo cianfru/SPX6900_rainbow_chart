@@ -97,6 +97,7 @@
 /* the LIVE mini-render of the real chart — a scaled, clipped, non-interactive mount */
 .tzone .leafprev .lprevbox{ position:relative; width:100%; overflow:hidden; border:1px solid var(--line2); background:var(--ground,#06070c); }
 .tzone .leafprev .lprevload{ height:118px; display:flex; align-items:center; justify-content:center; font-family:var(--mono); font-size:11px; color:var(--faint); }
+.tzone .leafprev .lprevimg{ width:100%; height:auto; display:block; border:1px solid var(--line2); border-radius:6px; background:var(--panel2); }
 .tzone .mprev-kick{ font-family:var(--mono); font-size:10px; letter-spacing:.16em; text-transform:uppercase; color:var(--faint); margin-bottom:9px; }
 .tzone .mprev-title{ font-family:var(--sans); font-size:16px; font-weight:600; color:var(--tx); margin:13px 0 6px; }
 .tzone .mprev-desc{ font-family:var(--mono); font-size:12px; line-height:1.55; color:var(--dim); }
