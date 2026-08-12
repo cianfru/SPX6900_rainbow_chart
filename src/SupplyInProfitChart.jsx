@@ -93,7 +93,7 @@ export default function SupplyInProfitChart({ isMobile, preview = false }) {
             <ReferenceLine y={50} stroke="rgba(255,255,255,0.45)" strokeDasharray="5 5"
               label={preview ? undefined : { value: "half in profit", position: "insideBottomRight", fill: "#94a3b8", fontSize: 10.5, fontFamily: MONO }} />
             <Tooltip content={<Tip />} cursor={{ stroke: "rgba(255,255,255,0.2)" }} />
-            <Area type="monotone" dataKey="sip" stroke={GRN} strokeWidth={2.6} fill="url(#sipfill)" dot={false} isAnimationActive={false} name="supply in profit" />
+            <Area type="monotone" dataKey="sip" stroke={GRN} strokeWidth={1.8} fill="url(#sipfill)" dot={false} isAnimationActive={false} name="supply in profit" />
             {selL != null && selR != null && selL !== selR && (
               <ReferenceArea x1={selL} x2={selR} strokeOpacity={0.4} stroke={GRN} fill={GRN} fillOpacity={0.12} />
             )}

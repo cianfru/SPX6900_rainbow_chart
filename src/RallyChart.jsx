@@ -197,7 +197,7 @@ export default function RallyChart({ series, m, isMobile, initialView }) {
                 formatter={(v, name) => [fMult(v), name]}
               />
               <Line type="monotone" dataKey="hodl" name="HODL" stroke="#64748b" strokeWidth={1.7} dot={false} isAnimationActive={false} />
-              <Line type="monotone" dataKey="strat" name="Strategy" stroke="#4ade80" strokeWidth={2} dot={false} isAnimationActive={false} />
+              <Line type="monotone" dataKey="strat" name="Strategy" stroke="#4ade80" strokeWidth={1.5} dot={false} isAnimationActive={false} />
             </LineChart>
           </ResponsiveContainer>
 

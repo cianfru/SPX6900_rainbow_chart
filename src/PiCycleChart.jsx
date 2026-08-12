@@ -97,7 +97,7 @@ export default function PiCycleChart({ series, isMobile, preview = false }) {
             <ReferenceLine y={z.accum} stroke="#38bdf8" strokeWidth={1.4} strokeDasharray="6 4"
               label={preview ? undefined : { value: "accumulation 0.5", position: "insideRight", fill: "#38bdf8", fontSize: 11, fontFamily: MONO }} />
             <Tooltip content={(p) => <Tip {...p} zones={z} />} cursor={{ stroke: "rgba(255,255,255,0.2)" }} />
-            <Area type="monotone" dataKey="ratio" stroke={PC} strokeWidth={2.6} fill="url(#pcArea)" dot={false} isAnimationActive={false} name="Pi Cycle ratio" />
+            <Area type="monotone" dataKey="ratio" stroke={PC} strokeWidth={1.8} fill="url(#pcArea)" dot={false} isAnimationActive={false} name="Pi Cycle ratio" />
             {selL != null && selR != null && selL !== selR && (
               <ReferenceArea x1={selL} x2={selR} strokeOpacity={0.4} stroke={PC} fill={PC} fillOpacity={0.12} />
             )}

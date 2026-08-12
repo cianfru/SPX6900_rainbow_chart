@@ -91,7 +91,7 @@ export default function SurvivorshipChart({ isMobile, initialView }) {
     const rad = (isMobile ? 5 : 7) + (isMobile ? 22 : 30) * Math.sqrt(payload.supplyM / maxSupM);
     const ring = payload.prof ? "#4ade80" : "#f43f5e";
     return <g>
-      <circle cx={cx} cy={cy} r={rad} fill={payload.colour} fillOpacity={0.8} stroke={ring} strokeWidth={2.5} />
+      <circle cx={cx} cy={cy} r={rad} fill={payload.colour} fillOpacity={0.8} stroke={ring} strokeWidth={1.7} />
       {rad >= 20
         ? <><text x={cx} y={cy - 1} fill="#0b1120" fontFamily={MONO} fontSize={isMobile ? 11 : 14} fontWeight={800} textAnchor="middle">{fmtM(payload.supplyM)}</text>
             <text x={cx} y={cy + (isMobile ? 12 : 15)} fill="#0b1120" fontFamily={MONO} fontSize={isMobile ? 9 : 11} fontWeight={700} textAnchor="middle">{payload.pl}</text></>

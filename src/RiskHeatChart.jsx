@@ -114,7 +114,7 @@ export default function RiskHeatChart({ series, isMobile }) {
           <Bar yAxisId="ext" dataKey="ext" isAnimationActive={false} name="price ÷ 20W MA">
             {rows.map((r, i) => <Cell key={i} fill={r.color} fillOpacity={0.9} />)}
           </Bar>
-          <Line yAxisId="price" dataKey="price" stroke="#38bdf8" strokeWidth={2} dot={false} isAnimationActive={false} name="price" />
+          <Line yAxisId="price" dataKey="price" stroke="#38bdf8" strokeWidth={1.5} dot={false} isAnimationActive={false} name="price" />
           {sel}
         </ComposedChart>
       </ResponsiveContainer>

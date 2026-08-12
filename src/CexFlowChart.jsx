@@ -96,7 +96,7 @@ export default function CexFlowChart({ isMobile, preview = false }) {
             <Bar yAxisId="flow" dataKey="roll" isAnimationActive={false} maxBarSize={6}>
               {view.vis.map((r, i) => <Cell key={i} fill={r.roll >= 0 ? RED : GRN} fillOpacity={0.55} />)}
             </Bar>
-            <Line yAxisId="price" type="monotone" dataKey="price" stroke={PRICE} strokeWidth={2.4} dot={false} isAnimationActive={false} />
+            <Line yAxisId="price" type="monotone" dataKey="price" stroke={PRICE} strokeWidth={1.7} dot={false} isAnimationActive={false} />
             {selL != null && selR != null && selL !== selR && (
               <ReferenceArea yAxisId="flow" x1={selL} x2={selR} strokeOpacity={0.4} stroke="#e2e8f0" fill="#e2e8f0" fillOpacity={0.1} />
             )}

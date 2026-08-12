@@ -27,7 +27,7 @@ function Tip({ active, payload }) {
 function RsiDot(props) {
   const { cx, cy, payload } = props;
   if (cx == null || cy == null) return null;
-  if (payload.last) return <circle cx={cx} cy={cy} r={9} fill="#fff" stroke={payload.color} strokeWidth={3.5} />;
+  if (payload.last) return <circle cx={cx} cy={cy} r={9} fill="#fff" stroke={payload.color} strokeWidth={1.6} />;
   return <circle cx={cx} cy={cy} r={6.5} fill={payload.color} stroke="#05050e" strokeWidth={1} />;
 }
 
@@ -107,7 +107,7 @@ export default function RsiDotsChart({ series, isMobile }) {
               {/* thin geometric MA reference */}
               <Line type="monotone" dataKey="gma" stroke="#cbd5e1" strokeWidth={1.5} strokeOpacity={0.85} dot={false} isAnimationActive={false} name="geometric MA" connectNulls />
               {/* the price line, coloured by RSI along its length (linear, connects the monthly dots) */}
-              <Line dataKey="price" stroke="url(#rsiPriceGrad)" strokeWidth={2.2} dot={false} isAnimationActive={false} name="price" connectNulls />
+              <Line dataKey="price" stroke="url(#rsiPriceGrad)" strokeWidth={1.6} dot={false} isAnimationActive={false} name="price" connectNulls />
               {/* RSI-coloured dots on top */}
               <Scatter dataKey="price" shape={<RsiDot />} isAnimationActive={false} name="monthly price" />
             </ComposedChart>

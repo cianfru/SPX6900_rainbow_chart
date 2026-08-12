@@ -85,7 +85,7 @@ export default function AeonFloorChart({ isMobile }) {
             axisLine={false} tickLine={false} width={isMobile ? 44 : 56} />
           <Tooltip content={<Tip />} cursor={{ stroke: "rgba(255,255,255,0.2)" }} />
           <Bar yAxisId="vol" dataKey={volKey} fill="#64748b" fillOpacity={0.4} isAnimationActive={false} barSize={isMobile ? 4 : 7} />
-          <Line yAxisId="floor" type="monotone" dataKey={floorKey} stroke="#2dd4bf" strokeWidth={3} dot={false} isAnimationActive={false} connectNulls />
+          <Line yAxisId="floor" type="monotone" dataKey={floorKey} stroke="#2dd4bf" strokeWidth={1.5} dot={false} isAnimationActive={false} connectNulls />
         </ComposedChart>
       </ResponsiveContainer>
       <div className="chart-caption" style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.65, maxWidth: 900, marginInline: "auto" }}>

@@ -115,11 +115,11 @@ export default function OnchainValueChart({ isMobile, preview = false, initialVi
             {mode === "realized" && <>
               <Line type="monotone" dataKey="f08" stroke={FLOOR} strokeWidth={1.4} strokeDasharray="6 6" strokeOpacity={0.8} dot={false} isAnimationActive={false} name="0.8× floor" />
               <Line type="monotone" dataKey="f05" stroke={DEEP} strokeWidth={1.4} strokeDasharray="4 7" strokeOpacity={0.75} dot={false} isAnimationActive={false} name="0.5× floor" />
-              <Line type="monotone" dataKey="be" stroke={COST} strokeWidth={2.4} dot={false} isAnimationActive={false} name="realized price" />
-              <Line type="monotone" dataKey="price" stroke={PRICE} strokeWidth={2.4} dot={false} isAnimationActive={false} name="price" />
+              <Line type="monotone" dataKey="be" stroke={COST} strokeWidth={1.7} dot={false} isAnimationActive={false} name="realized price" />
+              <Line type="monotone" dataKey="price" stroke={PRICE} strokeWidth={1.7} dot={false} isAnimationActive={false} name="price" />
             </>}
-            {mode === "mvrv" && <Line type="monotone" dataKey="mvrv" stroke={MVRV} strokeWidth={2.6} dot={false} isAnimationActive={false} name="MVRV" />}
-            {mode === "z" && <Line type="monotone" dataKey="z" stroke="#22d3ee" strokeWidth={2.6} dot={false} isAnimationActive={false} name="MVRV Z" />}
+            {mode === "mvrv" && <Line type="monotone" dataKey="mvrv" stroke={MVRV} strokeWidth={1.8} dot={false} isAnimationActive={false} name="MVRV" />}
+            {mode === "z" && <Line type="monotone" dataKey="z" stroke="#22d3ee" strokeWidth={1.8} dot={false} isAnimationActive={false} name="MVRV Z" />}
             {selL != null && selR != null && selL !== selR && (
               <ReferenceArea x1={selL} x2={selR} strokeOpacity={0.4} stroke="#a78bfa" fill="#a78bfa" fillOpacity={0.12} />
             )}

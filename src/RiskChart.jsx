@@ -134,7 +134,7 @@ export default function RiskChart({ series, m, isMobile }) {
             <Line type="monotone" dataKey="fng" stroke={FNG_COLOR} strokeWidth={1.7} dot={false} connectNulls
               strokeDasharray="5 4" isAnimationActive={false} />
           )}
-          <Line type="monotone" dataKey="risk" stroke="#ffffff" strokeWidth={2} dot={false} isAnimationActive={false} />
+          <Line type="monotone" dataKey="risk" stroke="#ffffff" strokeWidth={1.5} dot={false} isAnimationActive={false} />
           {selL != null && selR != null && selL !== selR && (
             <ReferenceArea x1={selL} x2={selR} strokeOpacity={0.3} stroke="#a78bfa" fill="#a78bfa" fillOpacity={0.15} />
           )}

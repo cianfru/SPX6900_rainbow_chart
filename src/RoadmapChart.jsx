@@ -106,8 +106,8 @@ export default function RoadmapChart({ series, m, isMobile, preview = false }) {
             <ReferenceLine x={nowTs} stroke="rgba(148,163,184,0.5)" strokeDasharray="4 6"
               label={{ value: "now", position: "top", fill: "#94a3b8", fontSize: 11, fontFamily: MONO }} />
             <Tooltip content={<Tip />} cursor={{ stroke: "rgba(255,255,255,0.2)" }} />
-            <Line type="monotone" dataKey="fair" stroke="#84cc16" strokeWidth={2.4} strokeDasharray="7 5" dot={false} isAnimationActive={false} name="fair value (extrapolated)" connectNulls />
-            <Line type="monotone" dataKey="price" stroke="#ffffff" strokeWidth={2} dot={false} isAnimationActive={false} name="price" connectNulls={false} />
+            <Line type="monotone" dataKey="fair" stroke="#84cc16" strokeWidth={1.7} strokeDasharray="7 5" dot={false} isAnimationActive={false} name="fair value (extrapolated)" connectNulls />
+            <Line type="monotone" dataKey="price" stroke="#ffffff" strokeWidth={1.5} dot={false} isAnimationActive={false} name="price" connectNulls={false} />
             {selL != null && selR != null && selL !== selR && (
               <ReferenceArea x1={selL} x2={selR} strokeOpacity={0.4} stroke="#a78bfa" fill="#a78bfa" fillOpacity={0.12} />
             )}

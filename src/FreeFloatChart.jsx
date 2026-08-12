@@ -110,9 +110,9 @@ export default function FreeFloatChart({ isMobile, preview = false }) {
               <ReferenceLine x={spxLastDay} stroke="#e2e8f0" strokeDasharray="6 6" strokeOpacity={0.5}
                 label={preview ? undefined : { value: "SPX today · Bitcoin's path ahead →", position: "insideTopRight", fill: "#cbd5e1", fontSize: 11.5, fontFamily: MONO }} />
             )}
-            <Line type="monotone" dataKey="btc" stroke={BTC} strokeWidth={2.4} dot={false} connectNulls isAnimationActive={false} name="BTC" />
-            <Line type="monotone" dataKey="btcFwd" stroke={BTC} strokeWidth={2.4} strokeDasharray="3 5" dot={false} connectNulls isAnimationActive={false} name="BTC ahead" />
-            <Area type="monotone" dataKey="spx" stroke={SPX} strokeWidth={2.8} fill="url(#ilfill)" dot={false} connectNulls isAnimationActive={false} name="SPX" />
+            <Line type="monotone" dataKey="btc" stroke={BTC} strokeWidth={1.7} dot={false} connectNulls isAnimationActive={false} name="BTC" />
+            <Line type="monotone" dataKey="btcFwd" stroke={BTC} strokeWidth={1.7} strokeDasharray="3 5" dot={false} connectNulls isAnimationActive={false} name="BTC ahead" />
+            <Area type="monotone" dataKey="spx" stroke={SPX} strokeWidth={1.9} fill="url(#ilfill)" dot={false} connectNulls isAnimationActive={false} name="SPX" />
             {selL != null && selR != null && selL !== selR && (
               <ReferenceArea x1={selL} x2={selR} strokeOpacity={0.4} stroke={SPX} fill={SPX} fillOpacity={0.12} />
             )}

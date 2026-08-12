@@ -107,7 +107,7 @@ export default function WhaleCohortsChart({ isMobile, initialView }) {
                     fill={b.c} fillOpacity={0.8} dot={false} isAnimationActive={false} name={b.label} />
                 ))
               : BANDS.map(b => (
-                  <Line key={b.key} type="monotone" dataKey={b.key} stroke={b.c} strokeWidth={2.4}
+                  <Line key={b.key} type="monotone" dataKey={b.key} stroke={b.c} strokeWidth={1.7}
                     dot={false} isAnimationActive={false} name={b.label} />
                 ))}
             {selL != null && selR != null && selL !== selR && (

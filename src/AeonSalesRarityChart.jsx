@@ -76,7 +76,7 @@ export default function AeonSalesRarityChart({ isMobile }) {
             label={{ value: isMobile ? "← rarer          more common →" : "← rarer      rarity rank      more common →", position: "insideBottom", offset: -14, fill: "#64748b", fontSize: isMobile ? 10.5 : 12, fontFamily: SANS }} />
           <YAxis dataKey="price" type="number" scale="log" domain={[pmin * 0.8, pmax * 1.15]} allowDataOverflow tickFormatter={fEth} tick={{ fill: "#cbd5e1", fontSize: isMobile ? 10 : 11, fontFamily: MONO }} axisLine={{ stroke: "rgba(255,255,255,0.15)" }} tickLine={false} width={isMobile ? 44 : 54} />
           <Tooltip content={<Tip />} cursor={{ stroke: "rgba(255,255,255,0.15)" }} />
-          <Line data={line} dataKey="fair" stroke="#94a3b8" strokeWidth={2} strokeDasharray="6 5" dot={false} isAnimationActive={false} type="monotone" />
+          <Line data={line} dataKey="fair" stroke="#94a3b8" strokeWidth={1.5} strokeDasharray="6 5" dot={false} isAnimationActive={false} type="monotone" />
           <Scatter data={pts} isAnimationActive={false}>
             {pts.map((p, i) => <Cell key={i} fill={p.disc > 0.2 ? "#34d399" : "#64748b"} fillOpacity={p.disc > 0.2 ? 0.95 : 0.5} />)}
           </Scatter>

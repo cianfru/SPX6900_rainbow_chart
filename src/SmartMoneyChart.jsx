@@ -108,7 +108,7 @@ export default function SmartMoneyChart({ isMobile, initialView }) {
                 <div style={{ color: "#94a3b8" }}>price {fmtP(r.price)}</div>
               </div></TipBox>;
             }} />
-            <Area yAxisId="h" dataKey="heldM" type="monotone" stroke={GOLD} strokeWidth={2} fill="url(#smhold)" isAnimationActive={false} />
+            <Area yAxisId="h" dataKey="heldM" type="monotone" stroke={GOLD} strokeWidth={1.5} fill="url(#smhold)" isAnimationActive={false} />
             <Line yAxisId="p" dataKey="price" type="monotone" dot={false} stroke="#aab6cc" strokeWidth={1.6} strokeOpacity={0.85} isAnimationActive={false} />
           </ComposedChart>
         </ResponsiveContainer>

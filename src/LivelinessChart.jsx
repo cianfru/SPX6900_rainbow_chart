@@ -89,7 +89,7 @@ export default function LivelinessChart({ isMobile, preview = false }) {
               tick={{ fill: "#cbd5e1", fontSize: isMobile ? 10 : 12, fontFamily: MONO }}
               axisLine={{ stroke: "rgba(255,255,255,0.15)" }} tickLine={false} width={isMobile ? 44 : 54} />
             <Tooltip content={<Tip />} cursor={{ stroke: "rgba(255,255,255,0.2)" }} />
-            <Area type="monotone" dataKey="liveliness" stroke={ACC} strokeWidth={2.6} fill="url(#lvfill)" dot={false} isAnimationActive={false} name="Liveliness" />
+            <Area type="monotone" dataKey="liveliness" stroke={ACC} strokeWidth={1.8} fill="url(#lvfill)" dot={false} isAnimationActive={false} name="Liveliness" />
             {selL != null && selR != null && selL !== selR && (
               <ReferenceArea x1={selL} x2={selR} strokeOpacity={0.4} stroke="#e2e8f0" fill="#e2e8f0" fillOpacity={0.1} />
             )}

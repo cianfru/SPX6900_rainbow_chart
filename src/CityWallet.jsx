@@ -22,7 +22,7 @@ const short = a => (a ? a.slice(0, 6) + "…" + a.slice(-4) : "");
 // A small drawn key — replaces the emoji on "Claim your building" so it inherits the button colour.
 // Module scope so it isn't re-created every render.
 const KeyIcon = () => (
-  <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2"
+  <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="1.5"
     strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 6, verticalAlign: "-2px" }}>
     <circle cx="7.5" cy="15.5" r="4" /><path d="M10.3 12.7 20 3M16.5 6.5l2.5 2.5M14.5 8.5l2 2" />
   </svg>

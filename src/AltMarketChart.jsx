@@ -97,7 +97,7 @@ export default function AltMarketChart({ isMobile, preview = false }) {
             <ReferenceLine y={0} stroke="rgba(255,255,255,0.55)" strokeWidth={1.5}
               label={preview ? undefined : { value: "fair vs alts", position: "insideBottomRight", fill: "#94a3b8", fontSize: 10.5, fontFamily: MONO }} />
             <Tooltip content={<Tip />} cursor={{ stroke: "rgba(255,255,255,0.2)" }} />
-            <Area type="monotone" dataKey="z" baseValue={0} stroke="#f8fafc" strokeWidth={2.2} fill="url(#altfill)" dot={false} isAnimationActive={false} name="vs alt market" />
+            <Area type="monotone" dataKey="z" baseValue={0} stroke="#f8fafc" strokeWidth={1.6} fill="url(#altfill)" dot={false} isAnimationActive={false} name="vs alt market" />
             {selL != null && selR != null && selL !== selR && (
               <ReferenceArea x1={selL} x2={selR} strokeOpacity={0.4} stroke={COOL} fill={COOL} fillOpacity={0.12} />
             )}

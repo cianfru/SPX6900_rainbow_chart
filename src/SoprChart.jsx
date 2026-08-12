@@ -96,7 +96,7 @@ export default function SoprChart({ isMobile, preview = false }) {
             <ReferenceLine y={1} stroke="rgba(255,255,255,0.55)" strokeDasharray="5 5"
               label={preview ? undefined : { value: "break-even 1.0", position: "insideBottomLeft", fill: "#e2e8f0", fontSize: 10.5, fontFamily: MONO }} />
             <Tooltip content={<Tip />} cursor={{ stroke: "rgba(255,255,255,0.2)" }} />
-            <Area type="monotone" dataKey="sopr" stroke="url(#soprline)" strokeWidth={2.6} fill="none" dot={false} isAnimationActive={false} name="SOPR" />
+            <Area type="monotone" dataKey="sopr" stroke="url(#soprline)" strokeWidth={1.8} fill="none" dot={false} isAnimationActive={false} name="SOPR" />
             {selL != null && selR != null && selL !== selR && (
               <ReferenceArea x1={selL} x2={selR} strokeOpacity={0.4} stroke="#e2e8f0" fill="#e2e8f0" fillOpacity={0.1} />
             )}

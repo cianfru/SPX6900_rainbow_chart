@@ -151,9 +151,9 @@ export default function BtcAnalogExplorer() {
                   formatter={(v, n) => [v == null ? "-" : fmtP(v), n]} labelFormatter={l => `${l}y`} />
                 <ReferenceLine x={todayX} stroke="#64748b" strokeDasharray="4 5" label={{ value: "TODAY", fill: "#94a3b8", fontSize: 12, position: "top" }} />
                 <Area dataKey="cone" stroke="none" fill="#f7931a" fillOpacity={0.13} isAnimationActive={false} name="projection cone" connectNulls />
-                <Line dataKey="btcPast" stroke="#f7931a" strokeOpacity={0.4} strokeWidth={2} dot={false} isAnimationActive={false} name="BTC analog (fit)" connectNulls />
-                <Line dataKey="btcFut" stroke="#f7931a" strokeWidth={2.5} strokeDasharray="7 6" dot={false} isAnimationActive={false} name="BTC analog (ahead)" connectNulls />
-                <Line dataKey="spx" stroke="#4ade80" strokeWidth={2.6} dot={false} isAnimationActive={false} name="SPX6900 (actual)" connectNulls />
+                <Line dataKey="btcPast" stroke="#f7931a" strokeOpacity={0.4} strokeWidth={1.5} dot={false} isAnimationActive={false} name="BTC analog (fit)" connectNulls />
+                <Line dataKey="btcFut" stroke="#f7931a" strokeWidth={1.7} strokeDasharray="7 6" dot={false} isAnimationActive={false} name="BTC analog (ahead)" connectNulls />
+                <Line dataKey="spx" stroke="#4ade80" strokeWidth={1.8} dot={false} isAnimationActive={false} name="SPX6900 (actual)" connectNulls />
               </ComposedChart>
             </ResponsiveContainer>
             <p style={{ color: "#334155", fontSize: 12, textAlign: "center", marginTop: 6 }}>

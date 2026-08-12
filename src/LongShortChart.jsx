@@ -164,7 +164,7 @@ export default function LongShortChart({ series, isMobile }) {
           <Bar yAxisId="dev" dataKey="dev" isAnimationActive={false} name="funding vs neutral">
             {rows.map((r, i) => <Cell key={i} fill={r.dev >= 0 ? LONG : SHORT} fillOpacity={0.85} />)}
           </Bar>
-          <Line yAxisId="price" type="monotone" dataKey="price" stroke={PRICE} strokeWidth={2} dot={false} isAnimationActive={false} name="price" connectNulls />
+          <Line yAxisId="price" type="monotone" dataKey="price" stroke={PRICE} strokeWidth={1.5} dot={false} isAnimationActive={false} name="price" connectNulls />
           {showLiveDot && (
             <ReferenceDot yAxisId="price" x={lastTs} y={price} shape={LivePulse} ifOverflow="hidden" isFront />
           )}

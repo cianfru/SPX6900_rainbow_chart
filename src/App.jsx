@@ -194,7 +194,7 @@ const fW = w => w ? w.dt.toLocaleDateString("en-US", { month: "short", year: "nu
 
 // Line icons (Lucide-style) for the chart tabs; inherit the pill's color via currentColor.
 function TabIcon({ name }) {
-  const p = { width: 15, height: 15, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 2, strokeLinecap: "round", strokeLinejoin: "round", style: { flexShrink: 0 } };
+  const p = { width: 15, height: 15, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 1.5, strokeLinecap: "round", strokeLinejoin: "round", style: { flexShrink: 0 } };
   switch (name) {
     case "rainbow": return (<svg {...p}><path d="M3 16a9 9 0 0 1 18 0" /><path d="M6 16a6 6 0 0 1 12 0" /><path d="M9 16a3 3 0 0 1 6 0" /></svg>);
     case "channel": return (<svg {...p}><path d="M3 21 21 3" /><path d="M3 14 14 3" /><path d="M10 21 21 10" /></svg>);
@@ -869,7 +869,7 @@ export default function App() {
             </button>
             <button className="pill" onClick={openGallery} title="Browse all charts" style={navPill(route === "gallery" || (route === "chart" && !["Project Aeon", "SPX City"].includes(CHART_META[tab]?.group)), "#22d3ee")}>
               {!isMobile && (
-<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, color: "#22d3ee" }}>
+<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, color: "#22d3ee" }}>
                 <rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" />
                 <rect x="3" y="14" width="7" height="7" rx="1" /><rect x="14" y="14" width="7" height="7" rx="1" />
               </svg>
@@ -882,7 +882,7 @@ export default function App() {
                 style={navPill(route === "city" || (route === "chart" && CITY_IDS.has(tab)), "#7dd3fc")}>
                 {!isMobile && <span style={{ color: "#7dd3fc", display: "inline-flex" }}><TabIcon name="spxcity" /></span>}
                 <span>City</span>
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"
                   style={{ marginLeft: 1, transition: "transform .15s", transform: cityMenu ? "rotate(180deg)" : "none", opacity: 0.7 }}><path d="M6 9l6 6 6-6" /></svg>
               </button>
               {cityMenu && (
@@ -917,7 +917,7 @@ export default function App() {
             </div>
             <button className="pill" onClick={openAeon} title="Project Aeon, NFT analytics" style={navPill(route === "aeon", "#f472b6")}>
               {!isMobile && (
-<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, color: "#f472b6" }}>
+<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, color: "#f472b6" }}>
                 <path d="M12 2 4 7v10l8 5 8-5V7z" /><path d="M12 22V12" /><path d="M4 7l8 5 8-5" />
               </svg>
 )}
@@ -1335,9 +1335,9 @@ export default function App() {
               strokeDasharray="3 5" dot={false} isAnimationActive={false} activeDot={false}
             />
             <Line
-              type="monotone" dataKey="price" stroke="#ffffff" strokeWidth={2.2} dot={false}
+              type="monotone" dataKey="price" stroke="#ffffff" strokeWidth={1.6} dot={false}
               isAnimationActive={false} connectNulls={false}
-              activeDot={{ r: 5, fill: "#fff", stroke: cb.c, strokeWidth: 2.5 }}
+              activeDot={{ r: 5, fill: "#fff", stroke: cb.c, strokeWidth: 1.7 }}
             />
           </ComposedChart>
         </ResponsiveContainer>
@@ -1453,7 +1453,7 @@ export default function App() {
               cursor: "pointer", background: "linear-gradient(180deg,var(--panel),var(--panel2))", border: "1px solid var(--line2)",
               color: "var(--dim)", flexShrink: 0,
             }}>
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6" /></svg>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6" /></svg>
             </button>
             <span style={{ fontFamily: "var(--mono)", fontSize: 12, letterSpacing: ".1em", textTransform: "uppercase", color: "var(--tx)" }}>{grp}<span className="tgcur" style={{ "--curc": gcol }}>_</span></span>
             <button onClick={shareChart} title="Share this chart" style={{
@@ -1462,7 +1462,7 @@ export default function App() {
               border: `1px solid ${copied ? "var(--live)" : "var(--line2)"}`, cursor: "pointer",
               color: copied ? "var(--live)" : "var(--dim)", fontFamily: "var(--mono)", fontSize: 12, letterSpacing: ".04em", textTransform: "uppercase",
             }}>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" />
                 <line x1="8.6" y1="13.5" x2="15.4" y2="17.5" /><line x1="15.4" y1="6.5" x2="8.6" y2="10.5" />
               </svg>

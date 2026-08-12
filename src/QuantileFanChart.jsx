@@ -91,7 +91,7 @@ export default function QuantileFanChart({ series, isMobile, preview = false }) 
           {QUANTILE_META.map((q, i) => (
             <Line key={i} dataKey={"q" + i} stroke={q.color} strokeWidth={i === 3 ? 2.6 : 1.5} strokeOpacity={0.9} dot={false} activeDot={false} isAnimationActive={false} name={q.label} />
           ))}
-          <Line dataKey="price" stroke="#3b82f6" strokeWidth={2} dot={false} activeDot={false} isAnimationActive={false} name="price" connectNulls={false} />
+          <Line dataKey="price" stroke="#3b82f6" strokeWidth={1.5} dot={false} activeDot={false} isAnimationActive={false} name="price" connectNulls={false} />
           <ReferenceLine x={nowTs} stroke="#64748b" strokeDasharray="4 6" strokeOpacity={0.7}
             label={preview ? undefined : { value: "NOW", position: "insideTopRight", fill: "#94a3b8", fontSize: 11, fontFamily: MONO }} />
         </ComposedChart>

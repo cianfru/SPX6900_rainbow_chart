@@ -107,7 +107,7 @@ export default function AeonVsSpxChart({ isMobile }) {
           <Area type="monotone" dataKey="hi" stroke="#fb7185" strokeOpacity={0.5} strokeWidth={1} strokeDasharray="5 5" fill="none" dot={false} isAnimationActive={false} />
           <Area type="monotone" dataKey="lo" stroke="#34d399" strokeOpacity={0.5} strokeWidth={1} strokeDasharray="5 5" fill="none" dot={false} isAnimationActive={false} />
           <Area type="monotone" dataKey="base" stroke="#94a3b8" strokeWidth={1.8} strokeDasharray="7 5" fill="none" dot={false} isAnimationActive={false} />
-          <Area type="monotone" dataKey="ratio" stroke={state.c} strokeWidth={2.5} fill="url(#axsG)" dot={false} isAnimationActive={false} />
+          <Area type="monotone" dataKey="ratio" stroke={state.c} strokeWidth={1.7} fill="url(#axsG)" dot={false} isAnimationActive={false} />
         </AreaChart>
       </ResponsiveContainer>
 

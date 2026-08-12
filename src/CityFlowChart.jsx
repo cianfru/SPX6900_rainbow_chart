@@ -157,7 +157,7 @@ export default function CityFlowChart({ isMobile, preview = false, initialView }
             </>}
             {view === "percap" && <>
               <Line type="monotone" dataKey="mean" stroke={accent} strokeWidth={1.6} strokeDasharray="5 4" dot={false} isAnimationActive={false} connectNulls name="mean" />
-              <Line type="monotone" dataKey="med" stroke={violet} strokeWidth={2.8} dot={false} isAnimationActive={false} connectNulls name="median" />
+              <Line type="monotone" dataKey="med" stroke={violet} strokeWidth={1.9} dot={false} isAnimationActive={false} connectNulls name="median" />
             </>}
             {selL != null && selR != null && selL !== selR && (
               <ReferenceArea x1={selL} x2={selR} strokeOpacity={0.4} stroke="#e2e8f0" fill="#e2e8f0" fillOpacity={0.1} />

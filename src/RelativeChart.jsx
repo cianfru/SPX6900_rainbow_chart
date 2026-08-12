@@ -162,7 +162,7 @@ export default function RelativeChart({ series, isMobile, which, setWhich }) {
                 </>
               )}
 
-              <Line type="monotone" dataKey={metric} stroke="#ffffff" strokeWidth={2} dot={false} isAnimationActive={false} />
+              <Line type="monotone" dataKey={metric} stroke="#ffffff" strokeWidth={1.5} dot={false} isAnimationActive={false} />
               {selL != null && selR != null && selL !== selR && (
                 <ReferenceArea x1={selL} x2={selR} strokeOpacity={0.3} stroke="#a78bfa" fill="#a78bfa" fillOpacity={0.15} />
               )}

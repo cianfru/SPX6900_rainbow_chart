@@ -84,8 +84,8 @@ export default function HolderConcentrationChart({ isMobile, preview = false }) 
               tickFormatter={v => v + "%"} tick={{ fill: "#cbd5e1", fontSize: isMobile ? 10 : 12, fontFamily: MONO }}
               axisLine={{ stroke: "rgba(255,255,255,0.15)" }} tickLine={false} width={isMobile ? 44 : 54} />
             <Tooltip content={<Tip />} cursor={{ stroke: "rgba(255,255,255,0.2)" }} />
-            <Area type="monotone" dataKey="t100" stroke={A100} strokeWidth={2.8} fill="url(#ccArea)" dot={false} isAnimationActive={false} name="top 100" />
-            <Line type="monotone" dataKey="t10" stroke={A10} strokeWidth={2.8} dot={false} isAnimationActive={false} name="top 10" />
+            <Area type="monotone" dataKey="t100" stroke={A100} strokeWidth={1.9} fill="url(#ccArea)" dot={false} isAnimationActive={false} name="top 100" />
+            <Line type="monotone" dataKey="t10" stroke={A10} strokeWidth={1.9} dot={false} isAnimationActive={false} name="top 10" />
             {selL != null && selR != null && selL !== selR && (
               <ReferenceArea x1={selL} x2={selR} strokeOpacity={0.4} stroke={A100} fill={A100} fillOpacity={0.12} />
             )}

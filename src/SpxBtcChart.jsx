@@ -110,7 +110,7 @@ export default function SpxBtcChart({ series, isMobile }) {
             axisLine={{ stroke: "rgba(255,255,255,0.15)" }} tickLine={false} width={isMobile ? 40 : 52}
           />
           <Tooltip content={<RatioTip />} />
-          <Area type="monotone" dataKey="sats" stroke="#f59e0b" strokeWidth={2} fill="url(#btcFill)" isAnimationActive={false} />
+          <Area type="monotone" dataKey="sats" stroke="#f59e0b" strokeWidth={1.5} fill="url(#btcFill)" isAnimationActive={false} />
           {selL != null && selR != null && selL !== selR && (
             <ReferenceArea x1={selL} x2={selR} strokeOpacity={0.3} stroke="#f59e0b" fill="#f59e0b" fillOpacity={0.1} />
           )}

@@ -277,7 +277,7 @@ export function WhalesChart({ isMobile, preview = false }) {
               axisLine={{ stroke: "rgba(255,255,255,0.15)" }} tickLine={false} width={isMobile ? 44 : 54} />
             <Tooltip content={<WhaleTip />} cursor={{ stroke: "rgba(255,255,255,0.2)" }} />
             <ReferenceLine y={50} stroke="rgba(255,255,255,0.18)" strokeDasharray="4 6" />
-            <Line type="monotone" dataKey="pct" stroke="#f472b6" strokeWidth={2.4} dot={false} isAnimationActive={false} name="share of supply" />
+            <Line type="monotone" dataKey="pct" stroke="#f472b6" strokeWidth={1.7} dot={false} isAnimationActive={false} name="share of supply" />
             <Line type="monotone" dataKey="nScaled" stroke="#38bdf8" strokeWidth={1.6} strokeDasharray="5 5" dot={false} isAnimationActive={false} name="count (scaled)" />
             {z.selL != null && z.selR != null && z.selL !== z.selR && (
               <ReferenceArea x1={z.selL} x2={z.selR} strokeOpacity={0.4} stroke="#e2e8f0" fill="#e2e8f0" fillOpacity={0.1} />

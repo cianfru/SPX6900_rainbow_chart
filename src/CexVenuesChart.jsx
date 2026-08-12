@@ -103,7 +103,7 @@ export default function CexVenuesChart({ isMobile, preview = false }) {
         <div style={{ width: isMobile ? 220 : 260, height: isMobile ? 220 : 260 }}>
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
-              <Pie data={donut} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={isMobile ? 58 : 70} outerRadius={isMobile ? 100 : 120} paddingAngle={1} stroke="#0b1020" strokeWidth={2} isAnimationActive={false}>
+              <Pie data={donut} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={isMobile ? 58 : 70} outerRadius={isMobile ? 100 : 120} paddingAngle={1} stroke="#0b1020" strokeWidth={1.5} isAnimationActive={false}>
                 {donut.map((d, i) => <Cell key={d.name} fill={d.c} />)}
               </Pie>
               <Tooltip content={({ active, payload }) => active && payload?.length ? (

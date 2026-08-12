@@ -100,7 +100,7 @@ export default function ValuationComposite({ isMobile, preview = false }) {
             <Tooltip content={p => Tip(p, zones)} cursor={{ stroke: "rgba(255,255,255,0.2)" }} />
             {/* dark halo underlay so the white line stays crisp over bright bands */}
             <Area type="monotone" dataKey="v" stroke="#03040a" strokeWidth={5.5} strokeOpacity={0.5} fill="none" dot={false} isAnimationActive={false} legendType="none" />
-            <Area type="monotone" dataKey="v" stroke="#ffffff" strokeWidth={3} fill="url(#valfill)" dot={false} isAnimationActive={false} name="composite" />
+            <Area type="monotone" dataKey="v" stroke="#ffffff" strokeWidth={1.5} fill="url(#valfill)" dot={false} isAnimationActive={false} name="composite" />
             {selL != null && selR != null && selL !== selR && (
               <ReferenceArea x1={selL} x2={selR} strokeOpacity={0.4} stroke="#a78bfa" fill="#a78bfa" fillOpacity={0.12} />
             )}

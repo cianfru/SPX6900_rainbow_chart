@@ -100,7 +100,7 @@ function Spark({ seed, color }) {
     <svg className="spk" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" style={{ color }}>
       <defs><linearGradient id={gid} x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="currentColor" stopOpacity=".55" /><stop offset="1" stopColor="currentColor" stopOpacity=".02" /></linearGradient></defs>
       <path d={area} fill={`url(#${gid})`} />
-      <path d={d} fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
+      <path d={d} fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
       <circle cx={pts[N - 1][0].toFixed(1)} cy={pts[N - 1][1].toFixed(1)} r="3.4" fill="currentColor" />
     </svg>
   );
@@ -118,7 +118,7 @@ function ThemeToggle() {
     <button className="tthemebtn" onClick={toggle} aria-label="Toggle dark / bright theme" title={light ? "Switch to dark" : "Switch to bright"}>
       {light
         ? <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" fill="currentColor" /></svg>
-        : <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="4.2" /><path d="M12 2v2.6M12 19.4V22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M2 12h2.6M19.4 12H22M4.9 19.1l1.8-1.8M17.3 6.7l1.8-1.8" /></svg>}
+        : <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><circle cx="12" cy="12" r="4.2" /><path d="M12 2v2.6M12 19.4V22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M2 12h2.6M19.4 12H22M4.9 19.1l1.8-1.8M17.3 6.7l1.8-1.8" /></svg>}
     </button>
   );
 }
@@ -236,7 +236,7 @@ function MobileMenu({ open, onClose, openRainbow, openGallery, openAeon, openCit
       <div className="tmobhead">
         <span className="tmobtitle">Menu</span>
         <button className="tmobclose" onClick={onClose} aria-label="Close menu">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" fill="none" /></svg>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" fill="none" /></svg>
         </button>
       </div>
       <div className="tmobbody">
@@ -276,7 +276,7 @@ export default function TerminalNav({ onHome, openRainbow, openGallery, openAeon
             </a>
           </div>
           <button className="tmobtog" onClick={() => setMobOpen(true)} aria-label="Open menu" aria-expanded={mobOpen}>
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M3 12h18M3 18h18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" fill="none" /></svg>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M3 12h18M3 18h18" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" fill="none" /></svg>
           </button>
         </div>
       </div>

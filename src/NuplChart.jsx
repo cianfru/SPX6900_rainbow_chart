@@ -112,7 +112,7 @@ export default function NuplChart({ isMobile, preview = false }) {
               tickFormatter={s => { const v = Math.round(unsquash(s) * 10) / 10; return (v > 0 ? "+" : "") + v; }} tick={{ fill: "#cbd5e1", fontSize: isMobile ? 10 : 12, fontFamily: MONO }} axisLine={{ stroke: "rgba(255,255,255,0.15)" }} tickLine={false} width={isMobile ? 40 : 50} />
             <ReferenceLine y={0} stroke="#e2e8f0" strokeWidth={1.5} strokeDasharray="5 5" label={preview ? undefined : { value: "break-even", position: "insideBottomLeft", fill: "#94a3b8", fontSize: 10.5, fontFamily: MONO }} />
             <Tooltip content={<Tip />} cursor={{ stroke: "rgba(255,255,255,0.2)" }} />
-            <Area type="monotone" dataKey="sq" stroke="#f8fafc" strokeWidth={2.4} fill="url(#nuplfill)" dot={false} isAnimationActive={false} name="NUPL" />
+            <Area type="monotone" dataKey="sq" stroke="#f8fafc" strokeWidth={1.7} fill="url(#nuplfill)" dot={false} isAnimationActive={false} name="NUPL" />
             {selL != null && selR != null && selL !== selR && (
               <ReferenceArea x1={selL} x2={selR} strokeOpacity={0.4} stroke="#6366f1" fill="#6366f1" fillOpacity={0.12} />
             )}

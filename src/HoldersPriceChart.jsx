@@ -103,7 +103,7 @@ export default function HoldersPriceChart({ isMobile, preview = false }) {
               tickFormatter={v => (v < 1 ? "$" + v : "$" + v)} tick={{ fill: PRICE, fontSize: isMobile ? 10 : 12, fontFamily: MONO }}
               axisLine={{ stroke: "rgba(255,255,255,0.15)" }} tickLine={false} width={isMobile ? 44 : 56} />
             <Tooltip content={<Tip />} cursor={{ stroke: "rgba(255,255,255,0.2)" }} />
-            <Line yAxisId="holders" type="monotone" dataKey="holders" stroke={HOLDERS} strokeWidth={2.6} dot={false} isAnimationActive={false} name="holders" fill="url(#hpFill)" />
+            <Line yAxisId="holders" type="monotone" dataKey="holders" stroke={HOLDERS} strokeWidth={1.8} dot={false} isAnimationActive={false} name="holders" fill="url(#hpFill)" />
             <Line yAxisId="price" type="monotone" dataKey="price" stroke={PRICE} strokeWidth={1.8} strokeOpacity={0.9} dot={false} isAnimationActive={false} name="price" />
             {selL != null && selR != null && selL !== selR && (
               <ReferenceArea yAxisId="holders" x1={selL} x2={selR} strokeOpacity={0.4} stroke={PRICE} fill={PRICE} fillOpacity={0.12} />

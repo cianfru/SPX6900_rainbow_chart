@@ -126,7 +126,7 @@ export default function DrawdownChart({ series, isMobile, initialView }) {
               axisLine={{ stroke: "rgba(255,255,255,0.15)" }} tickLine={false} width={isMobile ? 44 : 56} />
             <Tooltip content={<UnderwaterTip />} cursor={{ stroke: "rgba(255,255,255,0.2)" }} />
             <Area yAxisId="dd" type="monotone" dataKey="dd" stroke="#ef4444" strokeWidth={1.4} fill="url(#uwFill)" isAnimationActive={false} name="drawdown from ATH" />
-            <Line yAxisId="price" type="monotone" dataKey="price" stroke="#38bdf8" strokeWidth={2} dot={false} isAnimationActive={false} name="price" />
+            <Line yAxisId="price" type="monotone" dataKey="price" stroke="#38bdf8" strokeWidth={1.5} dot={false} isAnimationActive={false} name="price" />
           </ComposedChart>
         </ResponsiveContainer>
       ) : (

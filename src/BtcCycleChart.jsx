@@ -155,14 +155,14 @@ export default function BtcCycleChart({ series, isMobile }) {
           {stats.todayTs > stats.anchorTs && (
             <ReferenceLine yAxisId="spx" x={stats.todayTs} stroke="#4ade80" strokeOpacity={0.65} strokeDasharray="4 5" label={{ value: "NOW", fill: "#4ade80", fontSize: 12, position: "insideTopRight" }} />
           )}
-          <ReferenceDot yAxisId="spx" x={stats.todayTs} y={stats.livePrice} r={4.5} fill="#4ade80" stroke="#0b0f14" strokeWidth={2} isFront />
+          <ReferenceDot yAxisId="spx" x={stats.todayTs} y={stats.livePrice} r={4.5} fill="#4ade80" stroke="#0b0f14" strokeWidth={1.5} isFront />
           <Line yAxisId="spx" dataKey="bubble" stroke="#a78bfa" strokeWidth={1.5} strokeDasharray="3 4" strokeOpacity={0.8} dot={false} activeDot={false} isAnimationActive={false} connectNulls />
           <Line yAxisId="spx" dataKey="center" stroke="#a78bfa" strokeWidth={1} strokeDasharray="1 6" strokeOpacity={0.25} dot={false} activeDot={false} isAnimationActive={false} connectNulls />
           <Line yAxisId="spx" dataKey="floor" stroke="#38bdf8" strokeWidth={1.5} strokeDasharray="3 4" strokeOpacity={0.7} dot={false} activeDot={false} isAnimationActive={false} connectNulls />
           <Area yAxisId="spx" dataKey="cone" stroke="none" fill="#f7931a" fillOpacity={0.1} isAnimationActive={false} activeDot={false} connectNulls />
-          <Line yAxisId="spx" dataKey="proj" stroke="#f7931a" strokeWidth={2.2} strokeDasharray="7 6" strokeOpacity={0.55} dot={false} activeDot={false} isAnimationActive={false} connectNulls />
-          <Line yAxisId="btc" type="monotone" dataKey="btc" stroke="#f7931a" strokeWidth={2} dot={false} activeDot={false} isAnimationActive={false} connectNulls />
-          <Line yAxisId="spx" type="monotone" dataKey="spx" stroke="#4ade80" strokeWidth={2.2} dot={false} activeDot={false} isAnimationActive={false} connectNulls />
+          <Line yAxisId="spx" dataKey="proj" stroke="#f7931a" strokeWidth={1.6} strokeDasharray="7 6" strokeOpacity={0.55} dot={false} activeDot={false} isAnimationActive={false} connectNulls />
+          <Line yAxisId="btc" type="monotone" dataKey="btc" stroke="#f7931a" strokeWidth={1.5} dot={false} activeDot={false} isAnimationActive={false} connectNulls />
+          <Line yAxisId="spx" type="monotone" dataKey="spx" stroke="#4ade80" strokeWidth={1.6} dot={false} activeDot={false} isAnimationActive={false} connectNulls />
         </ComposedChart>
       </ResponsiveContainer>
 

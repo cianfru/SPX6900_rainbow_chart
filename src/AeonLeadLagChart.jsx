@@ -177,8 +177,8 @@ export default function AeonLeadLagChart({ isMobile, initialView }) {
             </div></TipBox>;
           }} />
           <Line type="monotone" dataKey="raw" stroke="#5eead4" strokeWidth={1.4} strokeOpacity={0.5} dot={false} isAnimationActive={false} />
-          <Line type="monotone" dataKey="adj" stroke="#a78bfa" strokeWidth={2.6} dot={false} isAnimationActive={false} />
-          <ReferenceDot x={peak.lag} y={peak.adj} r={6} fill="none" stroke="#f6a23c" strokeWidth={2.4} />
+          <Line type="monotone" dataKey="adj" stroke="#a78bfa" strokeWidth={1.8} dot={false} isAnimationActive={false} />
+          <ReferenceDot x={peak.lag} y={peak.adj} r={6} fill="none" stroke="#f6a23c" strokeWidth={1.7} />
         </LineChart>
       </ResponsiveContainer>
 

@@ -170,17 +170,17 @@ export default function MvrvContextChart({ isMobile, preview = false }) {
               label={preview ? undefined : { value: "break-even 1×", position: "insideBottomRight", fill: "#94a3b8", fontSize: 10.5, fontFamily: MONO }} />
             {/* SPX6900's neighbourhood, the ±band whose crossings are the "similar" BTC moments */}
             {similar && <ReferenceArea y1={similar.lo} y2={similar.hi} fill={SPX} fillOpacity={0.14} stroke="none" />}
-            {spx && <ReferenceLine y={spx.mvrv} stroke={SPX} strokeWidth={2.2} strokeOpacity={0.95}
+            {spx && <ReferenceLine y={spx.mvrv} stroke={SPX} strokeWidth={1.6} strokeOpacity={0.95}
               label={preview ? undefined : { value: `SPX today ${fMvrv(spx.mvrv)}`, position: "insideTopRight", fill: SPX, fontSize: 12, fontWeight: 700, fontFamily: MONO }} />}
             <Tooltip content={<Tip />} cursor={{ stroke: "rgba(255,255,255,0.2)" }} />
-            <Line type="monotone" dataKey="mvrv" stroke={BTC} strokeWidth={2} dot={false} isAnimationActive={false} name="BTC MVRV" />
+            <Line type="monotone" dataKey="mvrv" stroke={BTC} strokeWidth={1.5} dot={false} isAnimationActive={false} name="BTC MVRV" />
             {/* highlight the Bitcoin points sitting at SPX's level today, the "we've been here" moments */}
             <Scatter dataKey="match" fill={MATCH} isAnimationActive={false} shape="circle" legendType="none" />
             {/* SPX6900's own MVRV path, drawn on Bitcoin's timeline at its real dates. It was
                 pulled once as redundant with the dedicated mvrv page, but the question this
                 chart gets asked is "how does SPX's history compare", and a marker for today
                 cannot answer that. MVRV is unitless, which is what makes the overlay fair. */}
-            <Line data={spxSeries} type="monotone" dataKey="mvrv" stroke={SPX} strokeWidth={2.4}
+            <Line data={spxSeries} type="monotone" dataKey="mvrv" stroke={SPX} strokeWidth={1.7}
               dot={false} isAnimationActive={false} name="SPX6900 MVRV" />
             {selL != null && selR != null && selL !== selR && (
               <ReferenceArea x1={selL} x2={selR} strokeOpacity={0.4} stroke={SPX} fill={SPX} fillOpacity={0.12} />

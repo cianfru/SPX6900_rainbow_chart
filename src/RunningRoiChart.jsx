@@ -117,7 +117,7 @@ export default function RunningRoiChart({ series, isMobile, preview = false }) {
             label={{ value: "start · 1×", position: "insideBottomRight", fill: "#4ade80", fontSize: 11, fontFamily: MONO }} />
           <Tooltip content={<Tip />} cursor={{ stroke: "rgba(255,255,255,0.2)" }} />
           {/* single curve, the left $-axis and right ×-axis both label it */}
-          <Line yAxisId="roi" type="monotone" dataKey="roi" stroke={GROWTH} strokeWidth={2.2} dot={false} isAnimationActive={false} name="growth from start" connectNulls />
+          <Line yAxisId="roi" type="monotone" dataKey="roi" stroke={GROWTH} strokeWidth={1.6} dot={false} isAnimationActive={false} name="growth from start" connectNulls />
           {selL != null && selR != null && selL !== selR && (
             <ReferenceArea yAxisId="price" x1={selL} x2={selR} strokeOpacity={0.4} stroke={PRICE} fill={PRICE} fillOpacity={0.12} />
           )}

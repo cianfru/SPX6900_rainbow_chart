@@ -231,7 +231,7 @@ export default function ChartsGallery({
               The flagship: SPX6900's price across nine power-law valuation bands, from Fire Sale to Sell.
             </div>
           </div>
-          <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke={T.live} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+          <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke={T.live} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
             <path d="M3 16a9 9 0 0 1 18 0" /><path d="M6 16a6 6 0 0 1 12 0" /><path d="M9 16a3 3 0 0 1 6 0" />
           </svg>
         </button>

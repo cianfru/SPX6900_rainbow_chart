@@ -90,9 +90,9 @@ export default function ChannelChart({ series, m, isMobile }) {
           <ReferenceLine x={cur.day + m.t0} stroke="rgba(148,163,184,0.5)" strokeDasharray="4 6" />
           <Tooltip content={<Tip />} cursor={{ stroke: "rgba(255,255,255,0.2)" }} />
           <Line dataKey="upper" stroke="#dc2626" strokeWidth={1.7} dot={false} isAnimationActive={false} name="upper limit" />
-          <Line dataKey="fair" stroke="#84cc16" strokeWidth={2} dot={false} isAnimationActive={false} name="fair value" />
+          <Line dataKey="fair" stroke="#84cc16" strokeWidth={1.5} dot={false} isAnimationActive={false} name="fair value" />
           <Line dataKey="lower" stroke="#3b82f6" strokeWidth={1.7} dot={false} isAnimationActive={false} name="lower limit" />
-          <Line type="monotone" dataKey="price" stroke="#ffffff" strokeWidth={2} dot={false} connectNulls={false} isAnimationActive={false} name="price" />
+          <Line type="monotone" dataKey="price" stroke="#ffffff" strokeWidth={1.5} dot={false} connectNulls={false} isAnimationActive={false} name="price" />
         </ComposedChart>
       </ResponsiveContainer>
 

@@ -55,8 +55,8 @@ export default function AeonConcentrationChart({ isMobile }) {
             tick={{ fill: "#cbd5e1", fontSize: isMobile ? 10 : 12, fontFamily: MONO }}
             axisLine={{ stroke: "rgba(255,255,255,0.15)" }} tickLine={false} width={isMobile ? 44 : 54} />
           <Tooltip content={<Tip />} cursor={{ stroke: "rgba(255,255,255,0.2)" }} />
-          <Area type="monotone" dataKey="top50" stroke="#fbbf24" strokeWidth={3} fill="url(#aeonC50)" dot={false} isAnimationActive={false} />
-          <Area type="monotone" dataKey="top10" stroke="#fb7185" strokeWidth={3} fill="url(#aeonC10)" dot={false} isAnimationActive={false} />
+          <Area type="monotone" dataKey="top50" stroke="#fbbf24" strokeWidth={1.5} fill="url(#aeonC50)" dot={false} isAnimationActive={false} />
+          <Area type="monotone" dataKey="top10" stroke="#fb7185" strokeWidth={1.5} fill="url(#aeonC10)" dot={false} isAnimationActive={false} />
         </AreaChart>
       </ResponsiveContainer>
       <div className="chart-caption" style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.65, maxWidth: 900, marginInline: "auto" }}>

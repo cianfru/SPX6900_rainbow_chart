@@ -88,7 +88,7 @@ export default function RiskColorChart({ series, m, isMobile }) {
           <Tooltip content={<Tip />} cursor={{ stroke: "rgba(255,255,255,0.2)" }} />
           <Area dataKey="price" stroke="none" fill="url(#zarea)" isAnimationActive={false} activeDot={false} />
           <Line type="monotone" dataKey="fair" stroke="#cbd5e1" strokeWidth={1.6} strokeDasharray="2 7" dot={false} isAnimationActive={false} name="fair value" />
-          <Line type="monotone" dataKey="price" stroke="url(#zgrad)" strokeWidth={2.4} dot={false} isAnimationActive={false} name="price" />
+          <Line type="monotone" dataKey="price" stroke="url(#zgrad)" strokeWidth={1.7} dot={false} isAnimationActive={false} name="price" />
           {selL != null && selR != null && selL !== selR && (
             <ReferenceArea x1={selL} x2={selR} strokeOpacity={0.3} stroke="#a78bfa" fill="#a78bfa" fillOpacity={0.12} />
           )}

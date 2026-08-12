@@ -173,7 +173,7 @@ export default function SupplyConviction({ price, isMobile }) {
                 contentStyle={{ background: "rgba(4,4,12,0.97)", border: "1px solid rgba(34,211,238,0.4)", borderRadius: 10, fontFamily: SANS }}
                 labelFormatter={ts => new Date(ts).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
                 formatter={v => [v.toFixed(1) + "%", "Held 90d+"]} />
-              <Area dataKey="diamond" stroke="#22d3ee" strokeWidth={2.2} fill="url(#diaFill)" isAnimationActive={false} />
+              <Area dataKey="diamond" stroke="#22d3ee" strokeWidth={1.6} fill="url(#diaFill)" isAnimationActive={false} />
             </AreaChart>
           </ResponsiveContainer>
         ) : (

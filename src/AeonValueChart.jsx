@@ -108,7 +108,7 @@ export default function AeonValueChart({ isMobile }) {
     return (
       <g style={{ cursor: "pointer" }} onClick={() => openPiece(payload.id)}>
         {payload.img && <image href={payload.img} x={cx - s / 2} y={cy - s / 2} width={s} height={s} preserveAspectRatio="xMidYMid slice" clipPath="inset(0 round 5px)" />}
-        <rect x={cx - s / 2} y={cy - s / 2} width={s} height={s} rx={5} fill="none" stroke="#34d399" strokeWidth={2} />
+        <rect x={cx - s / 2} y={cy - s / 2} width={s} height={s} rx={5} fill="none" stroke="#34d399" strokeWidth={1.5} />
       </g>
     );
   };
@@ -177,7 +177,7 @@ export default function AeonValueChart({ isMobile }) {
               label={{ value: isMobile ? "← rarer          more common →" : "← rarer      rarity rank      more common →", position: "insideBottom", offset: -14, fill: "#64748b", fontSize: isMobile ? 10.5 : 12, fontFamily: SANS }} />
             <YAxis dataKey="price" type="number" scale="log" domain={[priceMin * 0.7, priceMax * 1.2]} allowDataOverflow
               tickFormatter={fEth} tick={{ fill: "#cbd5e1", fontSize: isMobile ? 10 : 11, fontFamily: MONO }} axisLine={{ stroke: "rgba(255,255,255,0.15)" }} tickLine={false} width={isMobile ? 44 : 54} />
-            <Line data={line} dataKey="fair" stroke="#94a3b8" strokeWidth={2} strokeDasharray="6 5" dot={false} isAnimationActive={false} type="monotone" />
+            <Line data={line} dataKey="fair" stroke="#94a3b8" strokeWidth={1.5} strokeDasharray="6 5" dot={false} isAnimationActive={false} type="monotone" />
             <Scatter data={nonDeals} shape={<Dot />} isAnimationActive={false} />
             <Scatter data={dealPts} shape={<DealDot />} isAnimationActive={false} />
           </ComposedChart>

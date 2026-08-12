@@ -187,7 +187,7 @@ export default function RaceChart({ series, isMobile, fetchCoins, coins, basketL
                 {coins.filter(c => !hidden.has(c.key)).map(c => (
                   <Line key={c.key} dataKey={c.key} stroke={c.color} strokeWidth={1.5} dot={false} isAnimationActive={false} name={c.label} connectNulls />
                 ))}
-                <Line dataKey="spx" stroke={spxColor} strokeWidth={2.2} dot={false} isAnimationActive={false} name="SPX6900" connectNulls />
+                <Line dataKey="spx" stroke={spxColor} strokeWidth={1.6} dot={false} isAnimationActive={false} name="SPX6900" connectNulls />
                 {selL != null && selR != null && selL !== selR && (
                   <ReferenceArea x1={selL} x2={selR} strokeOpacity={0.4} stroke="#38bdf8" fill="#38bdf8" fillOpacity={0.12} />
                 )}
