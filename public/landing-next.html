@@ -256,11 +256,12 @@
   .mcue{ display:none; }  /* the in-hero cue (phones only); desktop uses #scrollcue after the hero */
   @media(max-width:860px){
     #scrollcue{ display:none; }         /* on phones the first screen ends INSIDE the hero, so… */
-    .mcue{ display:flex; margin-top:16px; }  /* …the cue sits under the CTAs, snapshot below the fold */
-    /* the two actions, stacked full-width: read methodology, then the slide-to-open control */
+    .mcue{ display:flex; margin-top:18px; }  /* …the cue sits under the CTA, snapshot below the fold */
+    /* mobile hero = one primary action (the slide-to-open control); methodology is secondary here,
+       so it moves to the footer and the headline grows to fill the space instead. */
     .cta{ align-items:stretch; }
-    .cta #ctaMethod{ order:1; width:100%; justify-content:center; }
-    .cta #slideCharts{ order:2; flex-basis:100%; max-width:none; }
+    .cta #ctaMethod{ display:none; }
+    .cta #slideCharts{ flex-basis:100%; max-width:none; }
   }
   @keyframes cuebob{ 0%,100%{ transform:translateY(0) } 50%{ transform:translateY(4px) } }
   .hero > div:first-child{ display:flex; flex-direction:column; min-width:0; }  /* so the CTAs can pin to the row bottom regardless of how the headline wraps */
@@ -270,6 +271,11 @@
   .hl .out{ color:transparent; -webkit-text-stroke:1.6px var(--faint); }
   .rbrule2{ height:4px; width:100%; margin:20px 0 0; border-radius:2px; background:linear-gradient(90deg,var(--b0),var(--b1),var(--b2),var(--b3),var(--b4),var(--b5),var(--b6),var(--b7),var(--b8));  }
   .lede{ font-family:var(--label); font-size:clamp(13px,1.5vw,15.5px); letter-spacing:.01em; line-height:1.7; color:var(--dim); max-width:none; margin-top:18px; margin-bottom:auto; }
+  /* phones: the headline grows to fill the space freed by dropping methodology from the mobile hero */
+  @media(max-width:860px){
+    .hl{ font-size:clamp(48px,14vw,76px); line-height:.92; }
+    .lede{ font-size:16.5px; line-height:1.62; margin-top:20px; }
+  }
   .cta{ display:flex; gap:12px; flex-wrap:wrap; margin-top:24px; }
   .btn{ font-family:var(--label); font-size:14px; letter-spacing:.04em; text-transform:uppercase; padding:12px 18px; border-radius:0; cursor:pointer; display:inline-flex; gap:10px; align-items:center; transition:.14s; white-space:nowrap; }
   .btn .btw{ white-space:nowrap; }   /* keep "read methodology" on one line (the wider blend/pixel font was wrapping) */
@@ -490,6 +496,9 @@
   @media(max-width:560px){ .krkcta{ font-size:11px; gap:10px; text-align:center; } }
   .foot{ margin-top:34px; padding-top:16px; border-top:1px solid var(--line); display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; font-family:var(--label); font-size:12px; letter-spacing:.06em; text-transform:uppercase; color:var(--faint); }
   .foot .mid{ color:var(--tx); }
+  .footmeth{ display:none; font-family:var(--label); font-size:12px; letter-spacing:.06em; text-transform:uppercase; color:var(--dim); text-decoration:none; }
+  .footmeth:hover{ color:var(--tx); }
+  @media(max-width:860px){ .footmeth{ display:inline-block; } }  /* shown only on phones (desktop has it in the hero) */
   .foot .footright{ display:inline-flex; align-items:center; gap:8px; }
   .foot .footright .lk{ font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--faint); }
   .note{ margin-top:20px; font-family:var(--label); font-size:11px; letter-spacing:.04em; text-transform:uppercase; color:var(--faint); text-align:center; line-height:1.7; }
@@ -707,6 +716,8 @@
   <div class="foot">
     <span>SPX6900 RAINBOW TERMINAL // v0.1</span>
     <span class="mid">NUMBERS OVER HYPE._</span>
+    <!-- methodology lives here on phones (it's dropped from the mobile hero); desktop keeps it in the hero -->
+    <a class="footmeth" href="/?view=methods">&gt; read methodology</a>
     <span class="footright"><span class="lk">theme</span><button class="sw" id="themeSw" data-b="0" type="button" role="switch" aria-label="Switch between dark and bright theme"><span class="swl on" data-v="dark">dark</span><span class="swl" data-v="bright">bright</span><span class="swk"></span></button></span>
   </div>
 
@@ -1289,7 +1300,7 @@
     if(t.closest(".social a")) return;
     if(t.closest("#ctaChart")){ e.preventDefault(); e.stopImmediatePropagation();
       if(window.__sbMobile&&window.__sbMobile()&&window.__sbOpen){ window.__sbOpen(); } else { go("/?view=charts"); } return; }
-    if(t.closest("#ctaMethod")){ e.preventDefault(); e.stopImmediatePropagation(); go("/?view=methods"); return; }
+    if(t.closest("#ctaMethod, .footmeth")){ e.preventDefault(); e.stopImmediatePropagation(); go("/?view=methods"); return; }
     if(t.closest("[data-home]") || t.closest(".bar .l")){ e.preventDefault(); e.stopImmediatePropagation(); go("/"); return; }
     var _mn=t.closest("#menu") || t.closest(".pathbar");
     if(!_mn) closeMenus(); // click outside the menu → fold any tab/group left open by a click
