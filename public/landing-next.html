@@ -276,6 +276,9 @@
   .slideknob{ position:absolute; left:4px; top:4px; bottom:4px; width:48px; border-radius:24px; background:var(--live); color:var(--bg); display:flex; align-items:center; justify-content:center; cursor:grab; touch-action:none; }
   .slideknob:active{ cursor:grabbing; }
   .slideknob svg{ width:22px; height:22px; }
+  /* the slide control is a MOBILE affordance; desktop keeps the classic button. */
+  #ctaChart{ display:none; }
+  @media(min-width:701px){ #ctaChart{ display:inline-flex; } .slidecta{ display:none; } }
 
   .snap{ border:1px solid var(--line); border-radius:12px; background:linear-gradient(180deg,var(--panel),var(--panel2)); padding:15px 18px 16px; display:flex; flex-direction:column; }
   .snap .sh{ display:flex; justify-content:space-between; font-family:var(--label); font-size:12px; letter-spacing:.12em; text-transform:uppercase; color:var(--dim); padding-bottom:11px; border-bottom:1px solid var(--line); }
@@ -632,6 +635,8 @@
       <div class="rbrule2"></div>
       <div class="lede">Valuations, on-chain structure and holder behaviour, built from verifiable data.</div>
       <div class="cta">
+        <!-- desktop: the classic button; mobile: the slide-to-open control (toggled by breakpoint in CSS) -->
+        <span class="btn pri" id="ctaChart" role="button" tabindex="0"><span class="btw">&gt; <span class="lbl" data-t="explore charts">explore charts</span><span class="cur">_</span></span></span>
         <div class="slidecta" id="slideCharts" role="button" tabindex="0" aria-label="Open charts">
           <span class="slidefill" id="slideFill"></span>
           <span class="slidelbl" id="slideLbl">slide to open charts</span>
