@@ -52,7 +52,7 @@ import BandStats from "./BandStats.jsx";
 // Secondary tab charts are lazy-loaded so their code only ships when the tab is opened.
 import ErrorBoundary from "./ErrorBoundary.jsx";
 import BandHistory from "./BandHistory.jsx";
-import { SANS, MONO, MAX_W } from "./chart-ui.jsx";
+import { SANS, MONO, MAX_W, MenuBtn } from "./chart-ui.jsx";
 import "./terminal.css";
 import TerminalNav from "./TerminalNav.jsx";
 import { gcolFor } from "./terminal-colors.js";
@@ -1002,9 +1002,9 @@ export default function App() {
       {route === "city" && (
         <Suspense fallback={<div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Loading the city…</div>}>
           <div ref={cityFsRef} style={{ position: "relative" }}>
-            <button className="fsbtn cityfsbtn" onClick={enterCityFullscreen} title="Fullscreen / landscape" aria-label="Fullscreen">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M8 3H4v4M16 3h4v4M8 21H4v-4M16 21h4v-4" /></svg>
-            </button>
+            <MenuBtn className="cityfsbtn" onClick={enterCityFullscreen} title="Fullscreen / landscape"
+              icon={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M8 3H4v4M16 3h4v4M8 21H4v-4M16 21h4v-4" /></svg>} />
+
             <SpxCity isMobile={isMobile} initialMode={cityMode} />
           </div>
         </Suspense>
@@ -1304,31 +1304,14 @@ export default function App() {
         // Terminal chart page: filepath breadcrumb · command prompt · title over the
         // rainbow hairline · the real interactive chart. Same design as the gallery.
         <div className="tchart" style={{ maxWidth: MAX_W, margin: "0 auto" }} onTouchStart={onTStart} onTouchEnd={onTEnd}>
-          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16, flexWrap: "wrap" }}>
-            <button onClick={back} title={`Back to ${label}`} aria-label={`Back to ${label}`} className="tback" style={{
-              display: "inline-flex", alignItems: "center", justifyContent: "center", width: 34, height: 34, borderRadius: "50%",
-              cursor: "pointer", background: "linear-gradient(180deg,var(--panel),var(--panel2))", border: "1px solid var(--line2)",
-              color: "var(--dim)", flexShrink: 0,
-            }}>
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6" /></svg>
-            </button>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16, flexWrap: "wrap" }}>
+            <MenuBtn onClick={back} title={`Back to ${label}`}
+              icon={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6" /></svg>} />
             <span style={{ fontFamily: "var(--mono)", fontSize: 12, letterSpacing: ".1em", textTransform: "uppercase", color: "var(--tx)" }}>{grp}<span className="tgcur" style={{ "--curc": gcol }}>_</span></span>
-            <button className="fsbtn" onClick={() => setFsOpen(true)} title="Fullscreen / landscape" aria-label="Fullscreen" style={{ marginLeft: "auto" }}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M8 3H4v4M16 3h4v4M8 21H4v-4M16 21h4v-4" /></svg>
-              {!isMobile && "Fullscreen"}
-            </button>
-            <button onClick={shareChart} title="Share this chart" style={{
-              display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 7,
-              background: "linear-gradient(180deg,var(--panel),var(--panel2))",
-              border: `1px solid ${copied ? "var(--live)" : "var(--line2)"}`, cursor: "pointer",
-              color: copied ? "var(--live)" : "var(--dim)", fontFamily: "var(--mono)", fontSize: 12, letterSpacing: ".04em", textTransform: "uppercase",
-            }}>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" />
-                <line x1="8.6" y1="13.5" x2="15.4" y2="17.5" /><line x1="15.4" y1="6.5" x2="8.6" y2="10.5" />
-              </svg>
-              {copied ? "Copied" : "Share"}
-            </button>
+            <MenuBtn onClick={() => setFsOpen(true)} title="Fullscreen / landscape" label={isMobile ? "" : "Fullscreen"} style={{ marginLeft: "auto" }}
+              icon={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M8 3H4v4M16 3h4v4M8 21H4v-4M16 21h4v-4" /></svg>} />
+            <MenuBtn onClick={shareChart} title="Share this chart" label={copied ? "Copied" : "Share"} className={copied ? "copied" : ""}
+              icon={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><line x1="8.6" y1="13.5" x2="15.4" y2="17.5" /><line x1="15.4" y1="6.5" x2="8.6" y2="10.5" /></svg>} />
           </div>
           <div style={{ fontFamily: "var(--mono)", fontSize: 12, letterSpacing: ".04em", color: "var(--live)", marginBottom: 10 }}>
             <span style={{ color: "var(--faint)" }}>spx6900 ~ %</span> open {title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}
@@ -1353,16 +1336,16 @@ export default function App() {
           </ErrorBoundary>
           {/* walk between charts in this group — tap the arrows, swipe on mobile, or ← / → on desktop */}
           {sibs.length > 1 && (
-            <div className="chartpager" style={{ "--gc": gcol }}>
-              <button className="pgbtn" onClick={() => prevC && goChart(prevC.id)} title={`Previous: ${prevC?.title}`}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6" /></svg>
-                <span className="pglabel">{prevC?.title}</span>
-              </button>
+            <div className="chartpager">
+              {prevC
+                ? <MenuBtn className="pgbtn" onClick={() => goChart(prevC.id)} title={`Previous: ${prevC.title}`} label={prevC.title}
+                    icon={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6" /></svg>} />
+                : <span />}
               <span className="pgpos">{grp} · {idx + 1} / {sibs.length}</span>
-              <button className="pgbtn pgnext" onClick={() => nextC && goChart(nextC.id)} title={`Next: ${nextC?.title}`}>
-                <span className="pglabel">{nextC?.title}</span>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6" /></svg>
-              </button>
+              {nextC
+                ? <MenuBtn className="pgbtn pgnext" onClick={() => goChart(nextC.id)} title={`Next: ${nextC.title}`} label={nextC.title} iconRight
+                    icon={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6" /></svg>} />
+                : <span />}
             </div>
           )}
           <FullscreenView open={fsOpen} onClose={() => setFsOpen(false)}>

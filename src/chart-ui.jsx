@@ -1,3 +1,4 @@
+import { useState, useRef, useEffect } from "react";
 // Shared UI vocabulary for the interactive chart pages. Every chart previously
 // re-declared these fonts, the Metric readout, the tooltip container and the
 // drag-to-zoom state machine, this is the single source. Add new charts on top
@@ -47,25 +48,66 @@ export function Explain({ q, accent = "#38bdf8", children }) {
   );
 }
 
+// Hover typewriter, identical to the top nav menu: the label types itself out on hover while the
+// control reserves its FULL width with an invisible ghost, so nothing reflows as characters stream.
+export function useHoverType(text) {
+  const [shown, setShown] = useState(text);
+  const timer = useRef(null);
+  useEffect(() => () => clearTimeout(timer.current), []);
+  useEffect(() => { setShown(text); }, [text]);
+  const type = () => {
+    clearTimeout(timer.current);
+    let j = 0;
+    const step = () => { setShown(text.slice(0, j)); if (j < text.length) { j++; timer.current = setTimeout(step, 42); } };
+    setShown(""); step();
+  };
+  const reset = () => { clearTimeout(timer.current); setShown(text); };
+  return { shown, type, reset };
+}
+
+// THE app's single button vocabulary — squared (90° corners), mono, uppercase, and it inverts +
+// types its label out on hover, exactly like the top menu. Used for every chart-page control
+// (share / fullscreen / chart pager / back). icon optional; iconRight puts the icon after the label;
+// an empty label makes an icon-only square button. Styling lives in .menubtn (terminal.css, .tzone).
+export function MenuBtn({ label = "", icon, iconRight = false, onClick, title, className = "", active = false, style }) {
+  const { shown, type, reset } = useHoverType(label || "");
+  return (
+    <button type="button"
+      className={"menubtn" + (active ? " on" : "") + (label ? "" : " ic") + (className ? " " + className : "")}
+      onMouseEnter={type} onMouseLeave={reset} onClick={onClick} title={title || label} aria-label={title || label}
+      style={style}>
+      {icon && !iconRight && <span className="menubtn-ic">{icon}</span>}
+      {label !== "" && (
+        <span className="menubtn-t"><span className="menubtn-g" aria-hidden="true">{label}</span><span className="menubtn-y">{shown}</span></span>
+      )}
+      {icon && iconRight && <span className="menubtn-ic">{icon}</span>}
+    </button>
+  );
+}
+
 // Shared view-toggle row, styled like the site's terminal menu: mono font, squared cells, the
-// active view highlighted, and a blinking lowered "_" that appears on hover (the menu's cursor).
+// active view highlighted, and the label types itself out on hover (the menu's typewriter).
 // tabs = [[key, label], …]. Replaces every chart's bespoke rounded-pill toggle so they read as
-// one system. The blink + hover live in .vtab CSS (terminal.css, scoped under .tzone).
+// one system. Styling lives in .vtab CSS (terminal.css, scoped under .tzone).
 export function ViewTabs({ tabs, value, onChange, style }) {
   return (
     <div className="viewtabs" style={style}>
-      {tabs.map(([k, l]) => (
-        <button key={k} type="button" className={"vtab" + (k === value ? " on" : "")} onClick={() => onChange(k)}>
-          <span className="vtl">{l}</span><span className="vtc" aria-hidden="true">_</span>
-        </button>
-      ))}
+      {tabs.map(([k, l]) => <ViewTab key={k} label={l} on={k === value} onClick={() => onChange(k)} />)}
     </div>
+  );
+}
+function ViewTab({ label, on, onClick }) {
+  const { shown, type, reset } = useHoverType(label);
+  return (
+    <button type="button" className={"vtab" + (on ? " on" : "")} onMouseEnter={type} onMouseLeave={reset} onClick={onClick}>
+      <span className="menubtn-t"><span className="menubtn-g" aria-hidden="true">{label}</span><span className="menubtn-y">{shown}</span></span>
+    </button>
   );
 }
 
 export function ZoomResetButton({ onReset, accent = "#38bdf8", fontSize = 12, padding = "5px 12px" }) {
   return (
-    <button onClick={onReset} className="pill" style={{ fontFamily: SANS, fontSize, fontWeight: 600, padding, borderRadius: 7, cursor: "pointer", background: "transparent", border: `1px solid ${accent}66`, color: LIGHT[accent] || accent, "--glow": accent }}>
+    <button onClick={onReset} className="pill" style={{ fontFamily: MONO, fontSize, fontWeight: 600, padding, borderRadius: 0, textTransform: "uppercase", letterSpacing: ".06em", cursor: "pointer", background: "transparent", border: `1px solid ${accent}66`, color: LIGHT[accent] || accent, "--glow": accent }}>
       ⤢ Reset zoom
     </button>
   );
