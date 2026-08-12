@@ -335,6 +335,13 @@
   .axdesc.r{ margin-left:0; margin-right:0; transform:translate(calc(-100% - 20px),-50%); }
   @media(max-width:640px){ .axdesc{ display:none; } }
   .axscale{ display:flex; justify-content:space-between; margin-left:calc(var(--axx)); margin-top:12px; font-family:var(--label); font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--faint); }
+  /* the composite axes read too tight on phones — smaller type + tighter rows for crispness */
+  @media(max-width:640px){
+    .axval{ font-size:18px; }
+    .axlab{ font-size:12.5px; } .axlab .w{ font-size:9.5px; margin-left:5px; }
+    .axrow{ padding:9px 0; gap:5px; }
+    .axscale{ font-size:9.5px; }
+  }
 
   /* KPI grid */
   .kpis{ display:grid; grid-template-columns:repeat(4,1fr); gap:1px; background:var(--line); border:1px solid var(--line); border-radius:12px; overflow:hidden; margin-top:16px; }
@@ -451,6 +458,8 @@
   @media(max-width:560px){ .krkcta{ font-size:11px; gap:10px; text-align:center; } }
   .foot{ margin-top:34px; padding-top:16px; border-top:1px solid var(--line); display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; font-family:var(--label); font-size:12px; letter-spacing:.06em; text-transform:uppercase; color:var(--faint); }
   .foot .mid{ color:var(--tx); }
+  .foot .footright{ display:inline-flex; align-items:center; gap:8px; }
+  .foot .footright .lk{ font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--faint); }
   .note{ margin-top:20px; font-family:var(--label); font-size:11px; letter-spacing:.04em; text-transform:uppercase; color:var(--faint); text-align:center; line-height:1.7; }
 
   /* path page */
@@ -561,7 +570,8 @@
 
 <div class="wrap">
 
-  <div class="look"><span class="lk">theme</span><button class="sw" id="themeSw" data-b="0" type="button" role="switch" aria-label="Switch between dark and bright theme"><span class="swl on" data-v="dark">dark</span><span class="swl" data-v="bright">bright</span><span class="swk"></span></button><span class="lk" style="margin-left:10px">look</span><button class="sw" id="lookSw" data-b="1" type="button" role="switch" aria-label="Switch look between blend and calm"><span class="swl" data-v="blend">blend</span><span class="swl on" data-v="calm">calm</span><span class="swk"></span></button></div>
+  <!-- the look/theme switches moved out of the top (tidier header); the theme switch now lives in the footer -->
+
 
   <div class="bar">
     <span class="l"><span class="brandmark"><svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="SPX6900 Rainbow"><path d="M 38.01 10.79 Q 50 -1.16 61.99 10.79" stroke="#e5342f" stroke-width="3.3" stroke-linecap="round" fill="none"/><path d="M 26.34 16.52 Q 50 6.31 73.66 16.52" stroke="#f2621b" stroke-width="3.3" stroke-linecap="round" fill="none"/><path d="M 17.04 25.61 Q 50 18.18 82.96 25.61" stroke="#f0a915" stroke-width="3.3" stroke-linecap="round" fill="none"/><path d="M 11.06 37.16 Q 50 33.25 88.94 37.16" stroke="#c7d21f" stroke-width="3.3" stroke-linecap="round" fill="none"/><path d="M 9.00 50.00 Q 50 50.00 91.00 50.00" stroke="#37d067" stroke-width="3.3" stroke-linecap="round" fill="none"/><path d="M 11.06 62.84 Q 50 66.75 88.94 62.84" stroke="#12c2c2" stroke-width="3.3" stroke-linecap="round" fill="none"/><path d="M 17.04 74.39 Q 50 81.82 82.96 74.39" stroke="#1f8fe0" stroke-width="3.3" stroke-linecap="round" fill="none"/><path d="M 26.34 83.48 Q 50 93.69 73.66 83.48" stroke="#3b49c9" stroke-width="3.3" stroke-linecap="round" fill="none"/><path d="M 38.01 89.21 Q 50 101.16 61.99 89.21" stroke="#5b2a86" stroke-width="3.3" stroke-linecap="round" fill="none"/></svg></span><b>SPX6900/Rainbow</b><span class="bcur">_</span><span class="bsub">&middot; on-chain valuation terminal</span></span>
@@ -652,7 +662,7 @@
   <div class="foot">
     <span>SPX6900 RAINBOW TERMINAL // v0.1</span>
     <span class="mid">NUMBERS OVER HYPE._</span>
-    <span>NOT FINANCIAL ADVICE</span>
+    <span class="footright"><span class="lk">theme</span><button class="sw" id="themeSw" data-b="0" type="button" role="switch" aria-label="Switch between dark and bright theme"><span class="swl on" data-v="dark">dark</span><span class="swl" data-v="bright">bright</span><span class="swk"></span></button></span>
   </div>
 
 </div>
