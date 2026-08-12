@@ -49,10 +49,7 @@ body { margin: 0; overflow-x: clip; }
 .pill:hover {
   border-color: var(--glow, rgba(255, 255, 255, 0.5)) !important;
   transform: translateY(-2px);
-  box-shadow: 0 0 16px var(--glow, rgba(255,255,255,0.4)),
-              0 0 40px var(--glow, rgba(255,255,255,0.4)),
-              0 6px 18px rgba(0, 0, 0, 0.4) !important;
-  filter: brightness(1.15);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4) !important;
 }
 .pill:active {
   transform: translateY(0);
@@ -101,10 +98,7 @@ body { margin: 0; overflow-x: clip; }
 .neon-pill:hover {
   color: #f1f5f9 !important;
   border-color: color-mix(in srgb, var(--glow, #6366f1) 60%, transparent);
-  background: color-mix(in srgb, var(--glow, #6366f1) 9%, transparent);
-  box-shadow: 0 0 20px color-mix(in srgb, var(--glow, #6366f1) 72%, transparent),
-              0 0 42px color-mix(in srgb, var(--glow, #6366f1) 34%, transparent),
-              inset 0 0 14px color-mix(in srgb, var(--glow, #6366f1) 14%, transparent);
+  background: color-mix(in srgb, var(--glow, #6366f1) 12%, transparent);
   transform: translateY(-1px);
 }
 .neon-pill.active {

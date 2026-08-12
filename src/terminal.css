@@ -41,8 +41,8 @@
 .tzone .tthemebtn:hover{ color:var(--live); border-color:var(--live); }
 .tzone .tthemebtn svg{ width:16px; height:16px; display:block; }
 .tzone .tsys{ display:inline-flex; align-items:center; gap:8px; white-space:nowrap; }
-.tzone .tsys .fdot{ width:7px; height:7px; border-radius:50%; background:var(--live); box-shadow:0 0 8px var(--live); animation:tblink 1.6s steps(1) infinite; }
-.tzone .tsys .onl{ color:var(--live); text-shadow:0 0 8px var(--live); }
+.tzone .tsys .fdot{ width:7px; height:7px; border-radius:50%; background:var(--live);  animation:tblink 1.6s steps(1) infinite; }
+.tzone .tsys .onl{ color:var(--live);  }
 .tzone .tsys .sep{ color:var(--line2); }
 @media(max-width:640px){ .tzone .tsys{ display:none; } }
 .tzone .tsocial{ display:inline-flex; align-items:center; gap:8px; }
@@ -51,7 +51,7 @@
 .tzone .siclink svg{ width:14px; height:14px; display:block; fill:currentColor; }
 .tzone .siclink.krk{ background:var(--bg); }
 .tzone .siclink.krk svg{ width:17px; height:17px; fill:#9d5cf8; stroke:none; }
-.tzone .siclink.krk:hover{ background:linear-gradient(135deg,#a055f8,#7132f5); border-color:transparent; box-shadow:0 0 14px rgba(124,58,237,.6); }
+.tzone .siclink.krk:hover{ background:linear-gradient(135deg,#a055f8,#7132f5); border-color:transparent;  }
 .tzone .siclink.krk:hover svg{ fill:#fff; }
 
 /* ── DOS cascade nav ── */
@@ -86,7 +86,7 @@
 .tzone .mitem .lbl{ white-space:nowrap; }
 /* rows are white; the group's colour lives only in the blinking "_" cursor (same rule
    as the chart-page label) */
-.tzone .mitem .cur{ color:var(--curc,var(--tx)); text-shadow:0 0 6px var(--curc,transparent); }
+.tzone .mitem .cur{ color:var(--curc,var(--tx));  }
 .tzone .mitem:hover .cur{ animation:tcurblink 1.05s steps(1,end) infinite; }
 .tzone .mitem.allrow{ border-bottom:1px solid var(--line); margin-bottom:2px; }
 /* a toggle chart's sub-views, indented under its row (the parent row carries a ▾) */
@@ -157,7 +157,7 @@
 
 /* group identifier cursor — a blinking "_" in the group colour, like the dropdown rows */
 @keyframes tcurblink{ 0%,48%{opacity:1} 49%,100%{opacity:0} }
-.tzone .tgcur{ color:var(--curc,var(--tx)); text-shadow:0 0 6px var(--curc,transparent); animation:tcurblink 1.05s steps(1,end) infinite; }
+.tzone .tgcur{ color:var(--curc,var(--tx));  animation:tcurblink 1.05s steps(1,end) infinite; }
 
 /* "Data as of …" stamp on the menu line, right-aligned (opposite the sections) */
 .tzone .tdataas{ margin-left:auto; align-self:center; font-family:var(--mono); font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--faint); white-space:nowrap; padding-right:2px; }
