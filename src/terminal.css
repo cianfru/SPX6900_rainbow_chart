@@ -7,6 +7,8 @@
 .tzone{
   --bg:#08090b; --panel:#0e1013; --panel2:#0b0c0f; --line:#1e2128; --line2:#2c303a;
   --tx:#f4f6f9; --dim:#aab4c4; --faint:#808b9b; --live:#4ee79a;
+  /* chart-ink tokens (theme-aware greyscale for chart-ui React components) */
+  --ch-ink:#f1f5f9; --ch-body:#b4bfd0; --ch-mut:#aab4c4; --ch-dim:#8b96a8;
   --sans:'Geist','Space Grotesk',system-ui,sans-serif;
   --mono:'Geist Mono',ui-monospace,'SF Mono',Menlo,Consolas,monospace;
   /* the rainbow bands as a hairline — the brand rule */
@@ -35,6 +37,9 @@
 /* hover → the wordmark (and cursor) go green */
 .tzone .tbrand:hover b, .tzone .tbrand:hover .bcur{ color:var(--live); }
 .tzone .tbarright{ display:inline-flex; align-items:center; gap:14px; }
+.tzone .tthemebtn{ display:inline-flex; align-items:center; justify-content:center; width:30px; height:30px; border:1px solid var(--line2); border-radius:6px; background:var(--panel); color:var(--dim); cursor:pointer; transition:.14s; }
+.tzone .tthemebtn:hover{ color:var(--live); border-color:var(--live); }
+.tzone .tthemebtn svg{ width:16px; height:16px; display:block; }
 .tzone .tsys{ display:inline-flex; align-items:center; gap:8px; white-space:nowrap; }
 .tzone .tsys .fdot{ width:7px; height:7px; border-radius:50%; background:var(--live); box-shadow:0 0 8px var(--live); animation:tblink 1.6s steps(1) infinite; }
 .tzone .tsys .onl{ color:var(--live); text-shadow:0 0 8px var(--live); }
@@ -169,3 +174,43 @@
 .tzone .vtab .vtc{ opacity:0; margin-left:1px; }
 .tzone .vtab:hover .vtc{ animation:vtblink 1.05s steps(1,end) infinite; }
 @keyframes vtblink{ 0%,48%{opacity:1} 49%,100%{opacity:0} }
+
+/* ═══════════ BRIGHT (light) theme for the sub-pages — carries the landing's light mode into the app ═══════════ */
+html[data-theme="light"] .tzone{
+  --bg:#f7f8fa; --panel:#ffffff; --panel2:#eef1f5; --line:#d7dce4; --line2:#c3cad4;
+  --tx:#0a0c11; --dim:#3d434f; --faint:#697182; --live:#0a8f52;
+  --ch-ink:#0a0c11; --ch-body:#2a3340; --ch-mut:#3d434f; --ch-dim:#5b6674;
+  background:radial-gradient(100% 60% at 50% -8%, rgba(10,143,82,.06), transparent 60%), var(--bg);
+}
+/* the sticky nav wrapper carries a hardcoded dark glass bg in App.jsx → move it to a class so it themes */
+.tnavstick{ background:rgba(8,9,11,0.86); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); }
+html[data-theme="light"] .tnavstick{ background:rgba(247,248,250,0.88); }
+/* the rainbow globe logo is bright-on-black → screen-blend shows nothing on white; use normal blend on light */
+html[data-theme="light"] .tzone .tbrand .tlogo{ mix-blend-mode:normal; }
+/* the dark cascade dropdowns invert their heavy shadow on light so they read as raised cards */
+html[data-theme="light"] .tzone .drop, html[data-theme="light"] .tzone .subdrop,
+html[data-theme="light"] .tzone .leafprev{ box-shadow:0 12px 34px rgba(20,30,50,.14); }
+
+/* recharts greyscale INK — grid, axis lines, tick labels are set as SVG presentation attributes with
+   near-white / white-alpha values (invisible on a light ground). A CSS fill/stroke rule overrides a
+   presentation attribute, so we recolour them globally for every recharts chart in one place. */
+html[data-theme="light"] .tzone .recharts-cartesian-axis-tick-value tspan,
+html[data-theme="light"] .tzone .recharts-cartesian-axis-tick-value{ fill:#3d434f; }
+html[data-theme="light"] .tzone .recharts-cartesian-axis-line,
+html[data-theme="light"] .tzone .recharts-cartesian-axis line{ stroke:rgba(10,12,17,.22); }
+html[data-theme="light"] .tzone .recharts-cartesian-grid line{ stroke:rgba(10,12,17,.10); }
+html[data-theme="light"] .tzone .recharts-reference-line line{ stroke:rgba(10,12,17,.32); }
+html[data-theme="light"] .tzone .recharts-legend-item-text{ color:#3d434f !important; }
+html[data-theme="light"] .tzone .recharts-label,
+html[data-theme="light"] .tzone .recharts-text.recharts-label{ fill:#3d434f; }
+/* drag-to-zoom hint scrim + zoom brush: dark on dark → a light scrim on light */
+html[data-theme="light"] .tzone .recharts-tooltip-cursor{ stroke:rgba(10,12,17,.18) !important; }
+/* near-white INK drawn directly in charts (white price lines, annotation text) is invisible on a light
+   ground. Recolour by exact attribute value — a CSS stroke/fill rule overrides the SVG presentation
+   attribute. Targets only the greyscale near-whites used as ink, so vivid series colours are untouched. */
+html[data-theme="light"] .tzone svg [stroke="#f4f6f9"], html[data-theme="light"] .tzone svg [stroke="#f8fafc"],
+html[data-theme="light"] .tzone svg [stroke="#e2e8f0"], html[data-theme="light"] .tzone svg [stroke="#eef2f8"],
+html[data-theme="light"] .tzone svg [stroke="#fafafa"], html[data-theme="light"] .tzone svg [stroke="#ffffff"]{ stroke:#0a0c11; }
+html[data-theme="light"] .tzone svg [fill="#f4f6f9"], html[data-theme="light"] .tzone svg [fill="#f8fafc"],
+html[data-theme="light"] .tzone svg [fill="#e2e8f0"], html[data-theme="light"] .tzone svg [fill="#eef2f8"],
+html[data-theme="light"] .tzone svg text[fill="#ffffff"], html[data-theme="light"] .tzone svg text[fill="#fff"]{ fill:#0a0c11; }

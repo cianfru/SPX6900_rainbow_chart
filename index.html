@@ -28,6 +28,9 @@
          "spx6900rainbow.xyz" (choose the manual/JS-snippet option, no DNS change) → copy the token and
          paste it in place of CF_TOKEN below. A blank/placeholder token just silently does nothing. -->
     <script>if(location.hostname==='spx6900rainbow.xyz'){var CF_TOKEN='8c55686e988b4a6ab1a3db8bbcce7b2c';if(CF_TOKEN){var s=document.createElement('script');s.defer=true;s.src='https://static.cloudflareinsights.com/beacon.min.js';s.setAttribute('data-cf-beacon',JSON.stringify({token:CF_TOKEN}));document.head.appendChild(s);}}</script>
+    <!-- Apply the saved theme before React renders, so the sub-pages don't flash dark→light.
+         Shares the same localStorage key the landing switch writes (spx_theme). -->
+    <script>try{if(localStorage.spx_theme==='bright')document.documentElement.setAttribute('data-theme','light');}catch(e){}</script>
     <style>
       *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
       html { background: #020208; color-scheme: dark; font-size: 17px; }

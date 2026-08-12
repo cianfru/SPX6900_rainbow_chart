@@ -13,9 +13,9 @@ export const MAX_W = 1400;
 export function Metric({ label, value, color = "#f8fafc", sub }) {
   return (
     <div style={{ textAlign: "center", minWidth: 96 }}>
-      <div style={{ fontFamily: MONO, fontSize: 11, color: "#aab4c4", letterSpacing: 1.1, textTransform: "uppercase" }}>{label}</div>
+      <div style={{ fontFamily: MONO, fontSize: 11, color: "var(--ch-mut,#aab4c4)", letterSpacing: 1.1, textTransform: "uppercase" }}>{label}</div>
       <div style={{ fontFamily: MONO, fontSize: 24, fontWeight: 700, color }}>{value}</div>
-      {sub && <div style={{ fontFamily: SANS, fontSize: 11, color: "#8b96a8" }}>{sub}</div>}
+      {sub && <div style={{ fontFamily: SANS, fontSize: 11, color: "var(--ch-dim,#8b96a8)" }}>{sub}</div>}
     </div>
   );
 }
@@ -40,7 +40,7 @@ export function Explain({ q, accent = "#38bdf8", children }) {
   // Just a clean explanation — no box, no bold callout heading. A green ">" prompt leads, then
   // the question and answer flow as one plain paragraph in the site's sans.
   return (
-    <div className="chart-explain" style={{ maxWidth: MAX_W, margin: "0 auto 22px", fontFamily: SANS, fontSize: 15, color: "#b4bfd0", lineHeight: 1.7 }}>
+    <div className="chart-explain" style={{ maxWidth: MAX_W, margin: "0 auto 22px", fontFamily: SANS, fontSize: 15, color: "var(--ch-body,#b4bfd0)", lineHeight: 1.7 }}>
       {q && <><span style={{ color: "#4ade80", fontFamily: MONO, marginRight: 10, fontWeight: 700 }}>&gt;</span>{q}{" "}</>}
       {children}
     </div>
@@ -75,7 +75,7 @@ export function ZoomResetButton({ onReset, accent = "#38bdf8", fontSize = 12, pa
 export function ZoomBar({ zoomed, onReset, accent = "#38bdf8", viewing = "Viewing a selected window." }) {
   return (
     <div className="chart-zoombar" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12, marginBottom: 10 }}>
-      <span style={{ fontFamily: SANS, fontSize: 12.5, color: "#8b96a8" }}>{zoomed ? viewing : "Drag across the chart to zoom into any period."}</span>
+      <span style={{ fontFamily: SANS, fontSize: 12.5, color: "var(--ch-dim,#8b96a8)" }}>{zoomed ? viewing : "Drag across the chart to zoom into any period."}</span>
       {zoomed && <ZoomResetButton onReset={onReset} accent={accent} />}
     </div>
   );

@@ -13,12 +13,13 @@ import { SANS, MONO, MAX_W } from "./chart-ui.jsx";
 // squared panels with thin borders that light up in the group colour on hover,
 // uppercase mono micro-labels, and the rainbow hairline as the brand rule.
 
-// terminal palette (mirrors the landing's CALM variant, on the app's #020208 ground)
+// terminal palette — points at the .tzone CSS vars so the gallery flips with the dark/bright theme
+// (the gallery renders inside .tzone; inline var() styles resolve against its themed tokens).
 const T = {
-  panelA: "#0e1013", panelB: "#0b0c0f",
-  line: "#1e2128", line2: "#2c303a",
-  tx: "#f4f6f9", dim: "#9aa3b2", faint: "#646b78", live: "#4ee79a",
-  ground: "#06070c",
+  panelA: "var(--panel)", panelB: "var(--panel2)",
+  line: "var(--line)", line2: "var(--line2)",
+  tx: "var(--tx)", dim: "var(--dim)", faint: "var(--faint)", live: "var(--live)",
+  ground: "var(--panel2)",
 };
 // the brand rule, the rainbow bands as a hairline, violet → red
 const RAINBOW = "linear-gradient(90deg,#7c3aed,#2563eb,#06b6d4,#10b981,#a3e635,#fde047,#fb923c,#ef4444)";

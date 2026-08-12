@@ -106,6 +106,23 @@ function Spark({ seed, color }) {
   );
 }
 
+// Dark ↔ bright theme toggle (mirrors the landing switch; shares localStorage 'spx_theme').
+function ThemeToggle() {
+  const [light, setLight] = useState(() => typeof document !== "undefined" && document.documentElement.getAttribute("data-theme") === "light");
+  const toggle = () => {
+    const next = !light; setLight(next);
+    document.documentElement.setAttribute("data-theme", next ? "light" : "");
+    try { localStorage.setItem("spx_theme", next ? "bright" : "dark"); } catch { /* private mode */ }
+  };
+  return (
+    <button className="tthemebtn" onClick={toggle} aria-label="Toggle dark / bright theme" title={light ? "Switch to dark" : "Switch to bright"}>
+      {light
+        ? <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" fill="currentColor" /></svg>
+        : <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="4.2" /><path d="M12 2v2.6M12 19.4V22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M2 12h2.6M19.4 12H22M4.9 19.1l1.8-1.8M17.3 6.7l1.8-1.8" /></svg>}
+    </button>
+  );
+}
+
 // A cascading top: ALL + group rows (▸); hovering a group flies out its chart list, and
 // hovering a chart flies out the preview panel. Groups coloured by the mockup's GCOL.
 function CascadeTop({ label, groups, onSection, onLeaf }) {
@@ -249,6 +266,7 @@ export default function TerminalNav({ onHome, openRainbow, openGallery, openAeon
           <b>SPX6900/Rainbow<span className="bcur">_</span></b>
         </button>
         <div className="tbarright">
+          <ThemeToggle />
           <div className="tsocial">
             <a className="siclink" href={X_URL} target="_blank" rel="noopener noreferrer" title="@SPX6900Rainbow on X" aria-label="SPX6900Rainbow on X">
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24h-6.66l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" /></svg>
