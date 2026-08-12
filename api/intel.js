@@ -32,6 +32,16 @@ const host = (u) => { try { return new URL(u).host.replace(/^www\./, ""); } catc
 const hash2obj = (arr) => { const o = {}; for (let i = 0; i < (arr || []).length; i += 2) o[arr[i]] = Number(arr[i + 1]); return o; };
 const parseList = (arr) => (arr || []).map((s) => { try { return JSON.parse(s); } catch { return null; } }).filter(Boolean);
 
+// Robust body read — Vercel doesn't always pre-parse req.body (esp. sendBeacon Blobs), so fall
+// back to reading the raw stream. Mirrors api/control.js so the password check can't false-401.
+async function readBody(req) {
+  if (req.body && typeof req.body === "object") return req.body;
+  if (typeof req.body === "string") { try { return JSON.parse(req.body || "{}"); } catch { return {}; } }
+  let raw = "";
+  try { for await (const c of req) raw += c; } catch { return {}; }
+  try { return JSON.parse(raw || "{}"); } catch { return {}; }
+}
+
 // POST {t} — ingest one analytics event.
 async function ingest(req, res, body) {
   const t = body.t;
@@ -86,9 +96,7 @@ export default async function handler(req, res) {
   if (req.method === "GET") { res.setHeader("Content-Type", "text/html; charset=utf-8"); res.status(200).send(PAGE); return; }
   if (req.method !== "POST") { res.status(405).end(); return; }
 
-  let body = req.body;
-  if (typeof body === "string") { try { body = JSON.parse(body); } catch { body = {}; } }
-  body = body || {};
+  const body = await readBody(req);
   // Branch: a tracking beacon carries {t}; a dashboard request carries {pw}.
   if (body.t !== undefined) { await ingest(req, res, body); return; }
   await dashboard(req, res, body);
