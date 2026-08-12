@@ -176,6 +176,7 @@
   display:inline-flex; align-items:center; }
 .tzone .vtab:hover{ color:var(--tx); border-color:var(--faint); }
 .tzone .vtab.on{ color:var(--live); border-color:var(--live); background:rgba(78,231,154,.07); }
+.tzone .vtab .vtsub{ margin-left:6px; opacity:.55; font-size:11px; }
 
 /* ── ONE BUTTON VOCABULARY ── squared, mono, and it inverts + types its label out on hover,
    exactly like the top menu tabs. Every chart-page control (share/fullscreen/pager/back/view

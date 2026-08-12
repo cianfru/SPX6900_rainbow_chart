@@ -52,7 +52,7 @@ import BandStats from "./BandStats.jsx";
 // Secondary tab charts are lazy-loaded so their code only ships when the tab is opened.
 import ErrorBoundary from "./ErrorBoundary.jsx";
 import BandHistory from "./BandHistory.jsx";
-import { SANS, MONO, MAX_W, MenuBtn } from "./chart-ui.jsx";
+import { SANS, MONO, MAX_W, MenuBtn, TypeTab } from "./chart-ui.jsx";
 import "./terminal.css";
 import TerminalNav from "./TerminalNav.jsx";
 import { gcolFor } from "./terminal-colors.js";
@@ -1102,36 +1102,21 @@ export default function App() {
       {/* Rainbow chart, the hero, always visible */}
       {/* Controls */}
       <div style={{ maxWidth: MAX_W, margin: "0 auto 14px", display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
-        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+        <div className="viewtabs" style={{ margin: 0 }}>
           {HZ.map((h, i) => (
-            <button key={i} onClick={() => setHi(i)}
-              className={`neon-pill${i === hi ? " active" : ""}`}
-              style={{
-                fontFamily: SANS, fontSize: isMobile ? 13 : 14, fontWeight: 600, padding: isMobile ? "7px 12px" : "8px 16px", borderRadius: 7,
-                color: i === hi ? "#f8fafc" : "#94a3b8", "--glow": "#3b82f6",
-              }}>{h.l}</button>
+            <TypeTab key={i} label={h.l} on={i === hi} onClick={() => setHi(i)} />
           ))}
         </div>
 
-        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+        <div className="viewtabs" style={{ margin: 0 }}>
           {TARGETS.map((t, i) => (
-            <button key={i} onClick={() => tt(i)}
-              className={`neon-pill${tg.has(i) ? " active" : ""}`}
-              style={{
-                fontFamily: SANS, fontSize: 13, fontWeight: 600, padding: "7px 12px", borderRadius: 6,
-                color: tg.has(i) ? "#f8fafc" : "#94a3b8", "--glow": t.c,
-              }}>
-              <span style={{ fontFamily: MONO }}>{t.label}</span> <span style={{ opacity: 0.55, fontSize: 11 }}>{t.mc}</span>
-            </button>
+            <TypeTab key={i} label={t.label} sub={t.mc} on={tg.has(i)} onClick={() => tt(i)} title={`${t.label} target`} />
           ))}
         </div>
 
-        <button onClick={() => setShowMilestones(!showMilestones)}
-          className={`neon-pill${showMilestones ? " active" : ""}`}
-          style={{
-          fontFamily: SANS, fontSize: 13, fontWeight: 600, padding: "7px 12px", borderRadius: 6,
-          color: showMilestones ? "#f8fafc" : "#94a3b8", "--glow": "#fb923c",
-        }}>Crypto Milestones</button>
+        <div className="viewtabs" style={{ margin: 0 }}>
+          <TypeTab label="Crypto Milestones" on={showMilestones} onClick={() => setShowMilestones(!showMilestones)} />
+        </div>
       </div>
 
       {/* Chart, framed in a glass panel with a band-tinted glow + corner brand

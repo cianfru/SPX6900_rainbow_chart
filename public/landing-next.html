@@ -1168,7 +1168,10 @@
   window.__setTheme=setTheme;
   { const tsw=document.getElementById('themeSw');
     if(tsw) tsw.addEventListener('click',()=> setTheme(document.documentElement.dataset.theme==='light'?'dark':'bright')); }
-  { let saved='dark'; try{ saved=localStorage.getItem('spx_theme')||'dark'; }catch(e){} setTheme(saved); }
+  function applySavedTheme(){ let saved='dark'; try{ saved=localStorage.getItem('spx_theme')||'dark'; }catch(e){} setTheme(saved); }
+  applySavedTheme();
+  // re-apply on back/forward-cache restore (swipe-back) so the page can't come back in a stale theme
+  window.addEventListener('pageshow', applySavedTheme);
 
   buildMenu(); renderFresh(); setVariant('calm'); /* CALM is the primary direction — open on it */
   /* the old full-screen mmbody menu is superseded by the springboard below; left in the DOM but unwired */

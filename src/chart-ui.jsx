@@ -92,15 +92,21 @@ export function MenuBtn({ label = "", icon, iconRight = false, onClick, title, c
 export function ViewTabs({ tabs, value, onChange, style }) {
   return (
     <div className="viewtabs" style={style}>
-      {tabs.map(([k, l]) => <ViewTab key={k} label={l} on={k === value} onClick={() => onChange(k)} />)}
+      {tabs.map(([k, l]) => <TypeTab key={k} label={l} on={k === value} onClick={() => onChange(k)} />)}
     </div>
   );
 }
-function ViewTab({ label, on, onClick }) {
-  const { shown, type, reset } = useHoverType(label);
+
+// A single squared toggle tab, mono, green when active, and it types its label out on hover —
+// the shared toggle vocabulary (view toggles, and the rainbow page's range / target / milestone
+// buttons). `sub` is an optional dim suffix (e.g. a target's market cap). Styling: .vtab (.tzone).
+export function TypeTab({ label, sub, on, onClick, title, style, className = "" }) {
+  const { shown, type, reset } = useHoverType(String(label));
   return (
-    <button type="button" className={"vtab" + (on ? " on" : "")} onMouseEnter={type} onMouseLeave={reset} onClick={onClick}>
+    <button type="button" className={"vtab" + (on ? " on" : "") + (className ? " " + className : "")}
+      onMouseEnter={type} onMouseLeave={reset} onClick={onClick} title={title} style={style}>
       <span className="menubtn-t"><span className="menubtn-g" aria-hidden="true">{label}</span><span className="menubtn-y">{shown}</span></span>
+      {sub != null && <span className="vtsub">{sub}</span>}
     </button>
   );
 }
