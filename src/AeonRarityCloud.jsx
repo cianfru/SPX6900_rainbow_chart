@@ -21,6 +21,14 @@ export default function AeonRarityCloud({ tokens, total, tiers, tierOf, selId, o
   const canvasRef = useRef(null);
   const [w, setW] = useState(0);
   const [hover, setHover] = useState(null);   // { token, x, y }
+  // theme-aware canvas colours (CSS can't reach a canvas) — redraw when the dark/bright theme flips
+  const [light, setLight] = useState(() => typeof document !== "undefined" && document.documentElement.getAttribute("data-theme") === "light");
+  useEffect(() => {
+    const el = document.documentElement;
+    const mo = new MutationObserver(() => setLight(el.getAttribute("data-theme") === "light"));
+    mo.observe(el, { attributes: true, attributeFilter: ["data-theme"] });
+    return () => mo.disconnect();
+  }, []);
 
   useEffect(() => {
     const el = wrapRef.current; if (!el) return;
@@ -64,6 +72,10 @@ export default function AeonRarityCloud({ tokens, total, tiers, tierOf, selId, o
     const g = cv.getContext("2d");
     g.setTransform(dpr, 0, 0, dpr, 0, 0);
     g.clearRect(0, 0, w, h);
+    const INK = light ? "#3d434f" : "#cbd5e1";
+    const GRID = light ? "rgba(10,12,17,0.10)" : "rgba(255,255,255,0.06)";
+    const AXIS = light ? "rgba(10,12,17,0.22)" : "rgba(255,255,255,0.15)";
+    const RING = light ? "#0a0c11" : "#f8fafc", RING2 = light ? "#1e2530" : "#e2e8f0";
 
     // grid + y ticks (log)
     g.font = `11px ${MONO.split(",")[0].replace(/["']/g, "")}, monospace`;
@@ -74,9 +86,9 @@ export default function AeonRarityCloud({ tokens, total, tiers, tierOf, selId, o
     }
     for (const v of ticks.slice(0, 8)) {
       const yy = scales.y(v);
-      g.strokeStyle = "rgba(255,255,255,0.06)"; g.setLineDash([2, 8]); g.beginPath();
+      g.strokeStyle = GRID; g.setLineDash([2, 8]); g.beginPath();
       g.moveTo(PAD.l, yy); g.lineTo(w - PAD.r, yy); g.stroke(); g.setLineDash([]);
-      g.fillStyle = "#cbd5e1";
+      g.fillStyle = INK;
       g.fillText(v >= 1000 ? (v / 1000).toFixed(0) + "k" : String(Math.round(v)), PAD.l - 8, yy);
     }
 
@@ -94,9 +106,9 @@ export default function AeonRarityCloud({ tokens, total, tiers, tierOf, selId, o
     g.globalAlpha = 1;
 
     // x axis + labels
-    g.strokeStyle = "rgba(255,255,255,0.15)"; g.beginPath();
+    g.strokeStyle = AXIS; g.beginPath();
     g.moveTo(PAD.l, h - PAD.b); g.lineTo(w - PAD.r, h - PAD.b); g.stroke();
-    g.textAlign = "center"; g.textBaseline = "top"; g.fillStyle = "#cbd5e1";
+    g.textAlign = "center"; g.textBaseline = "top"; g.fillStyle = INK;
     for (const r of [1, 10, 50, 200, 500, 1000, 2000, total]) {
       if (r > total) continue;
       g.fillText(r === 1 ? "rarest" : r >= 1000 ? (r / 1000).toFixed(1) + "k" : String(r), scales.x(r), h - PAD.b + 8);
@@ -109,15 +121,15 @@ export default function AeonRarityCloud({ tokens, total, tiers, tierOf, selId, o
     const sel = tokens.find(t => t.id === selId);
     if (sel) {
       const cx = scales.x(sel.rank), cy = scales.y(sel.score);
-      g.strokeStyle = "#f8fafc"; g.lineWidth = 2; g.beginPath(); g.arc(cx, cy, 8, 0, Math.PI * 2); g.stroke();
+      g.strokeStyle = RING; g.lineWidth = 2; g.beginPath(); g.arc(cx, cy, 8, 0, Math.PI * 2); g.stroke();
       g.fillStyle = tierOf(sel.rank, total).c; g.beginPath(); g.arc(cx, cy, 3.4, 0, Math.PI * 2); g.fill();
     }
     // hovered token ring
     if (hover?.token) {
       const cx = scales.x(hover.token.rank), cy = scales.y(hover.token.score);
-      g.strokeStyle = "#e2e8f0"; g.lineWidth = 1.5; g.beginPath(); g.arc(cx, cy, 6, 0, Math.PI * 2); g.stroke();
+      g.strokeStyle = RING2; g.lineWidth = 1.5; g.beginPath(); g.arc(cx, cy, 6, 0, Math.PI * 2); g.stroke();
     }
-  }, [w, h, scales, tokens, tiers, tierOf, total, selId, hover, isMobile]);
+  }, [w, h, scales, tokens, tiers, tierOf, total, selId, hover, isMobile, light]);
 
   const pick = useCallback(ev => {
     if (!scales || !buckets) return null;
