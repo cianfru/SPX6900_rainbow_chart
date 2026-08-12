@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { CHART_SOURCE, loadSourceDate, freshnessOf } from "./freshness.js";
-import { SANS } from "./chart-ui.jsx";
+import { MONO } from "./chart-ui.jsx";
 
 const fMon = d => { try { return new Date(d + "T00:00:00Z").toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" }); } catch { return d; } };
 
@@ -21,15 +21,15 @@ export default function ChartFreshness({ chartId }) {
 
   if (!key || date === undefined) return null; // untracked chart / still loading
   const f = freshnessOf(date, key);
-  const color = date == null ? "#64748b" : f.stale ? (f.manual ? "#f59e0b" : "#f87171") : "#4ade80";
+  // Freshness is signalled by the text colour alone (no dot, no pill) so the tag reads as a
+  // quiet terminal-style line in keeping with the rest of the site. Stale → amber/red; fresh → muted.
+  const color = date == null ? "#8b98ad" : f.stale ? (f.manual ? "#f0a915" : "#f87171") : "#8b98ad";
   const ago = date == null ? "" : f.days === 0 ? " · today" : f.days === 1 ? " · 1 day ago" : ` · ${f.days} days ago`;
   const txt = date == null ? "data unavailable" : `data as of ${fMon(date)}${ago}`;
   return (
     <span title={`updates ${f.cad}${f.stale ? " · looks stale, may need a refresh" : ""}`}
-      style={{ display: "inline-flex", alignItems: "center", gap: 6, fontFamily: SANS, fontSize: 12,
-        color: f.stale ? "#fca5a5" : "#94a3b8", background: "rgba(255,255,255,0.03)",
-        border: "1px solid rgba(255,255,255,0.08)", borderRadius: 999, padding: "3px 10px", marginBottom: 14 }}>
-      <span style={{ width: 7, height: 7, borderRadius: 999, background: color, flex: "none" }} />
+      style={{ display: "inline-block", fontFamily: MONO, fontSize: 12, letterSpacing: "0.04em",
+        color, marginBottom: 14 }}>
       {txt}{f.manual ? " · manual" : ""}
     </span>
   );

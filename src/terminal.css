@@ -6,7 +6,7 @@
    ───────────────────────────────────────────────────────────────────────── */
 .tzone{
   --bg:#08090b; --panel:#0e1013; --panel2:#0b0c0f; --line:#1e2128; --line2:#2c303a;
-  --tx:#f4f6f9; --dim:#9aa3b2; --faint:#646b78; --live:#4ee79a;
+  --tx:#f4f6f9; --dim:#aab4c4; --faint:#808b9b; --live:#4ee79a;
   --sans:'Geist','Space Grotesk',system-ui,sans-serif;
   --mono:'Geist Mono',ui-monospace,'SF Mono',Menlo,Consolas,monospace;
   /* the rainbow bands as a hairline — the brand rule */

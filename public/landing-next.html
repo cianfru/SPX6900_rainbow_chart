@@ -19,7 +19,7 @@
      Three LOOKs via the switch. Colour lives in the data (the rainbow stays the anchor). */
   :root{
     --bg:#000000; --panel:#0a0d15; --panel2:#0c1119; --line:#182031; --line2:#243149;
-    --tx:#eef2f8; --dim:#8b98ad; --faint:#5b6678; --live:#37f7a0;
+    --tx:#eef2f8; --dim:#a2adbe; --faint:#7c8798; --live:#37f7a0;
     --pix:'DepartureMono', ui-monospace, monospace;
     --sans:'SpaceGrotesk', system-ui, sans-serif;
     --mononum:ui-monospace,'SF Mono',Menlo,Consolas,monospace;
@@ -30,7 +30,7 @@
     /* monochrome phosphor: the whole "rainbow" band palette collapses to one green, dark→bright (a real green monitor had no other colours) */
     --b0:#0b3a21; --b1:#0f472a; --b2:#155933; --b3:#1b6f3f; --b4:#228b4d; --b5:#2eac61; --b6:#45cc7b; --b7:#70e6a1; --b8:#a8ffcf; }
   /* CALM = the ChatGPT editorial look: near-black ground, crisp white, mono labels, vivid green accent. */
-  :root[data-variant="calm"]{ --bg:#08090b; --panel:#0e1013; --panel2:#0b0c0f; --line:#1e2128; --line2:#2c303a; --tx:#f4f6f9; --dim:#9aa3b2; --faint:#646b78; --live:#4ee79a; --sans:'Geist', system-ui, sans-serif; --mononum:'GeistMono', ui-monospace, monospace; --num:var(--mononum); --label:var(--mononum); }
+  :root[data-variant="calm"]{ --bg:#08090b; --panel:#0e1013; --panel2:#0b0c0f; --line:#1e2128; --line2:#2c303a; --tx:#f4f6f9; --dim:#aab4c4; --faint:#808b9b; --live:#4ee79a; --sans:'Geist', system-ui, sans-serif; --mononum:'GeistMono', ui-monospace, monospace; --num:var(--mononum); --label:var(--mononum); }
   *{ box-sizing:border-box; }
   html,body{ margin:0; background:var(--bg); }
   body{ min-height:100vh; color:var(--tx); font-family:var(--sans);
@@ -74,10 +74,15 @@
   :root[data-variant="green"] .navfresh .ch b{ color:var(--tx)!important; text-shadow:0 0 10px var(--live)!important; } /* freshness dots stay green even when stale */
 
   /* LOOK switch */
-  .look{ display:flex; align-items:center; gap:7px; justify-content:flex-end; padding:6px 0 8px; font-family:var(--label); }
+  .look{ display:flex; align-items:center; gap:9px; justify-content:flex-end; padding:6px 0 8px; font-family:var(--label); }
   .look .lk{ font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--faint); margin-right:2px; }
-  .look button{ cursor:pointer; font-family:var(--label); font-size:12px; text-transform:uppercase; letter-spacing:.04em; color:var(--dim); background:transparent; border:1px solid var(--line2); border-radius:5px; padding:3px 9px; transition:.12s; }
-  .look button:hover{ color:var(--tx); border-color:var(--faint); } .look button.on{ color:var(--tx); border-color:var(--live); box-shadow:0 0 10px rgba(55,247,160,.18); }
+  /* two-state sliding switch (look: blend|calm, and reused by the theme switch) */
+  .sw{ position:relative; display:inline-flex; align-items:center; border:1px solid var(--line2); border-radius:999px; background:var(--panel); padding:2px; cursor:pointer; line-height:1; }
+  .sw:hover{ border-color:var(--faint); }
+  .sw .swl{ position:relative; z-index:1; font-family:var(--label); font-size:11px; text-transform:uppercase; letter-spacing:.06em; padding:4px 13px; color:var(--faint); transition:color .16s; user-select:none; }
+  .sw .swl.on{ color:var(--bg); }
+  .sw .swk{ position:absolute; top:2px; left:2px; height:calc(100% - 4px); width:calc(50% - 2px); border-radius:999px; background:var(--live); box-shadow:0 0 10px rgba(55,247,160,.22); transition:transform .18s ease; }
+  .sw[data-b="1"] .swk{ transform:translateX(100%); }
 
   /* top bar */
   .brandmark{ width:34px; height:34px; display:inline-block; margin-right:10px; flex:none; } .brandmark svg{ display:block; width:100%; height:100%; }
@@ -241,7 +246,8 @@
   .rbrule2{ height:4px; width:100%; margin:20px 0 0; border-radius:2px; background:linear-gradient(90deg,var(--b0),var(--b1),var(--b2),var(--b3),var(--b4),var(--b5),var(--b6),var(--b7),var(--b8)); box-shadow:0 0 16px rgba(80,180,255,.22), 0 0 26px rgba(240,120,60,.14); }
   .lede{ font-family:var(--label); font-size:clamp(13px,1.5vw,15.5px); letter-spacing:.01em; line-height:1.7; color:var(--dim); max-width:none; margin-top:18px; margin-bottom:auto; }
   .cta{ display:flex; gap:12px; flex-wrap:wrap; margin-top:24px; }
-  .btn{ font-family:var(--label); font-size:14px; letter-spacing:.04em; text-transform:uppercase; padding:12px 18px; border-radius:7px; cursor:pointer; display:inline-flex; gap:10px; align-items:center; transition:.14s; }
+  .btn{ font-family:var(--label); font-size:14px; letter-spacing:.04em; text-transform:uppercase; padding:12px 18px; border-radius:7px; cursor:pointer; display:inline-flex; gap:10px; align-items:center; transition:.14s; white-space:nowrap; }
+  .btn .btw{ white-space:nowrap; }   /* keep "read methodology" on one line (the wider blend/pixel font was wrapping) */
   .btn.pri{ background:var(--live); color:var(--bg); border:1px solid var(--live); font-weight:600; }
   .btn.pri:hover{ box-shadow:0 0 22px rgba(55,247,160,.4); }
   .btn.gho{ background:transparent; color:var(--tx); border:1px solid var(--line2); }
@@ -324,7 +330,9 @@
     .navfresh{ display:none; }                      /* on-chain sync forced the 604px overflow */
     .menu{ flex-wrap:wrap; }
     .mtop > .mhead{ font-size:13px; padding:7px 9px; gap:5px; }
-    .ticker .seg{ font-size:13px; }
+    .ticker{ min-height:24px; }                    /* shorter tape on phones — it was overpowering the title */
+    .ticker .seg{ font-size:12px; }
+    .seg .sep{ margin:0 8px; }
     .sechd{ flex-direction:column; align-items:flex-start; gap:5px; }
     .cmd2{ font-size:12px; }
     .track{ margin:64px 4px 48px; }
@@ -507,7 +515,7 @@
 
 <div class="wrap">
 
-  <div class="look"><span class="lk">look</span><button data-v="blend">blend</button><button data-v="calm" class="on">calm</button></div>
+  <div class="look"><span class="lk">look</span><button class="sw" id="lookSw" data-b="1" type="button" role="switch" aria-label="Switch look between blend and calm"><span class="swl" data-v="blend">blend</span><span class="swl on" data-v="calm">calm</span><span class="swk"></span></button></div>
 
   <div class="bar">
     <span class="l"><span class="brandmark"><svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="SPX6900 Rainbow"><path d="M 38.01 10.79 Q 50 -1.16 61.99 10.79" stroke="#e5342f" stroke-width="3.3" stroke-linecap="round" fill="none"/><path d="M 26.34 16.52 Q 50 6.31 73.66 16.52" stroke="#f2621b" stroke-width="3.3" stroke-linecap="round" fill="none"/><path d="M 17.04 25.61 Q 50 18.18 82.96 25.61" stroke="#f0a915" stroke-width="3.3" stroke-linecap="round" fill="none"/><path d="M 11.06 37.16 Q 50 33.25 88.94 37.16" stroke="#c7d21f" stroke-width="3.3" stroke-linecap="round" fill="none"/><path d="M 9.00 50.00 Q 50 50.00 91.00 50.00" stroke="#37d067" stroke-width="3.3" stroke-linecap="round" fill="none"/><path d="M 11.06 62.84 Q 50 66.75 88.94 62.84" stroke="#12c2c2" stroke-width="3.3" stroke-linecap="round" fill="none"/><path d="M 17.04 74.39 Q 50 81.82 82.96 74.39" stroke="#1f8fe0" stroke-width="3.3" stroke-linecap="round" fill="none"/><path d="M 26.34 83.48 Q 50 93.69 73.66 83.48" stroke="#3b49c9" stroke-width="3.3" stroke-linecap="round" fill="none"/><path d="M 38.01 89.21 Q 50 101.16 61.99 89.21" stroke="#5b2a86" stroke-width="3.3" stroke-linecap="round" fill="none"/></svg></span><b>SPX6900/Rainbow</b><span class="bcur">_</span><span class="bsub">&middot; on-chain valuation terminal</span></span>
@@ -615,13 +623,18 @@
 
   // live UTC clock + per-chain on-chain sync freshness (last block time per chain, "N ago" ticks live)
   function pad(n){ return String(n).padStart(2,'0'); }
-  // fixed sync instants (mock): each chain last read a few minutes ago; the "ago" recomputes live
-  const CHAINS=[['ETH',2],['BASE',4],['SOL',1]].map(([c,m])=>({c, at:Date.now()-m*60000}));
-  function ago(ms){ const s=Math.max(0,Math.floor((Date.now()-ms)/1000)); if(s<60) return s+'s'; const m=Math.floor(s/60); return m<60?m+'m':Math.floor(m/60)+'h'; }
-  function utcHM(ms){ const d=new Date(ms); return `${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}`; }
+  // Real on-chain refresh freshness, filled from chain-wallets.json (the snapshot cron writes it daily).
+  // Each chain's holder count updates once a day, so freshness is judged in DAYS not hours — a feed 10h
+  // old is still current, the next cron hasn't run. Green = within a cron cycle (today/yesterday),
+  // amber = one day missed, red = 2+ missed. Mirrors src/freshness.js. Falls back to '—' until data loads.
+  const CHAINS=['ETH','BASE','SOL']; let FRESH={};
+  const DAYMS=864e5;
+  function daysOld(dateStr){ if(!dateStr) return null; const t=Date.parse(dateStr+'T00:00:00Z'); if(isNaN(t)) return null; return Math.max(0,Math.floor((Date.now()-t)/DAYMS)); }
+  function freshCol(d){ return d==null?'var(--faint)':d<=1?'var(--live)':d<=2?'#f0a915':'#e5342f'; }
+  function freshTxt(d){ return d==null?'—':d===0?'today':d+'d'; }
   function renderFresh(){ const el=$('#fresh'); if(!el) return;
-    el.innerHTML='<span class="nfl">on-chain sync</span>'+CHAINS.map((x,i)=>{ const mins=(Date.now()-x.at)/60000; const col=mins<10?'var(--live)':mins<60?'#f0a915':'#e5342f';
-      return `<span class="ch" title="last block ${utcHM(x.at)} UTC"><b style="color:${col}">${x.c}</b> <em>${ago(x.at)}</em></span>`; }).join(''); }
+    el.innerHTML='<span class="nfl">on-chain sync</span>'+CHAINS.map(c=>{ const d=daysOld(FRESH[c]); const col=freshCol(d);
+      return `<span class="ch" title="${c} holders · last refresh ${FRESH[c]||'—'} · updates daily"><b style="color:${col}">${c}</b> <em>${freshTxt(d)}</em></span>`; }).join(''); }
   (function tick(){ const d=new Date(); const utc=$('#utc'); if(utc) utc.textContent=`${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}:${pad(d.getUTCSeconds())}`;
     renderFresh(); setTimeout(tick,1000); })();
 
@@ -981,6 +994,9 @@
     const j=async u=>{ try{ const r=await fetch(u,{cache:'no-store'}); return r.ok?await r.json():null; }catch(e){ return null; } };
     const [val,onc,cw,ph]=await Promise.all([j('valuation.json'),j('onchain.json'),j('chain-wallets.json'),j('price-history.json')]);
     if(!val&&!onc&&!cw&&!ph) return; // no data reachable (artifact/offline) → keep baked prototype values
+    // on-chain freshness — per-chain last date carrying a real value (a single stalled chain shows on its own)
+    if(cw&&cw.length){ const lastOf=k=>{ for(let i=cw.length-1;i>=0;i--){ if(cw[i]&&cw[i][k]!=null) return cw[i].d; } return null; };
+      FRESH={ETH:lastOf('eth'),BASE:lastOf('base'),SOL:lastOf('sol')}; renderFresh(); }
     // frozen offset power law: ln(P) = a·ln(day+t0) + b ; bands = residual percentiles (src/models.js, frozen)
     const A=4.601629541156561, B=-32.51999304147125, T0=273, D0=Date.parse('2023-08-17T00:00:00Z');
     const BANDS=[-1.9358606809293324,-1.599124480216551,-1.4324898014846372,-1.0271216283750704,0.051267437037322505,0.8895236256720522,1.360467558081767,1.788855844199916,2.0332793409321988,2.1671404079046344];
@@ -1020,10 +1036,14 @@
       T.push(['COMPOSITE',comp+'% '+(zone?zone.label.toUpperCase():''),'']);
       render(); }
     if(T.length){ T.push(['vs S&P500','+497×','']); renderTape(T); } }
-  function setVariant(v){ document.documentElement.dataset.variant=v; document.querySelectorAll('.look button').forEach(b=>b.classList.toggle('on',b.dataset.v===v));
+  function setVariant(v){ document.documentElement.dataset.variant=v;
+    const sw=document.getElementById('lookSw');
+    if(sw){ sw.dataset.b = (v==='calm')?'1':'0'; sw.querySelectorAll('.swl').forEach(s=>s.classList.toggle('on', s.dataset.v===v)); }
     if(v==='green'){ const pw=$('#crtpower'); if(pw){ pw.style.animation='none'; void pw.offsetWidth; pw.style.animation=''; } } // replay the CRT power-on flash on each switch to green
     render(); }
-  document.querySelector('.look').addEventListener('click',e=>{ const b=e.target.closest('button[data-v]'); if(b) setVariant(b.dataset.v); });
+  window.__setLook=setVariant;   // cross-IIFE setter (the boot default lives in the nav script)
+  { const lsw=document.getElementById('lookSw');
+    if(lsw) lsw.addEventListener('click',()=> setVariant(document.documentElement.dataset.variant==='calm'?'blend':'calm')); }
 
   buildMenu(); buildMobMenu(); wireMobMenu(); renderFresh(); setVariant('calm'); /* CALM is the primary direction — open on it */
   { const bm=$('.brandmark'); if(bm) bm.innerHTML='<img class="blogo" src="'+LOGO+'" alt="">'; }
@@ -1098,7 +1118,7 @@
       if(_id){ e.preventDefault(); e.stopImmediatePropagation(); go(_id.charAt(0)==="@"?_id.slice(1):("/?chart="+_id)); return; } }
     if(_mn){ var s=sectionOf(t); if(s && MAP[s]){ e.preventDefault(); e.stopImmediatePropagation(); go(MAP[s]); return; } }
   }, true);
-  var c=document.querySelector('.look button[data-v="calm"]'); if(c) c.click();
+  if(window.__setLook) window.__setLook('calm');   // CALM is the primary look
 })();
 </script>
 </body>
