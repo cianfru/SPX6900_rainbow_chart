@@ -268,6 +268,14 @@
   .btn.pri:hover{  }
   .btn.gho{ background:transparent; color:var(--tx); border:1px solid var(--line2); }
   .btn.gho:hover{ border-color:var(--tx); }
+  /* slide-to-open-charts CTA — the hero's primary action; drag the knob (mobile) or click (desktop) */
+  .slidecta{ position:relative; height:56px; min-width:290px; max-width:380px; flex:1 1 290px; border-radius:28px; border:1px solid var(--line2); background:var(--panel); overflow:hidden; cursor:pointer; user-select:none; touch-action:pan-y; -webkit-tap-highlight-color:transparent; }
+  .slidecta:hover{ border-color:var(--faint); }
+  .slidefill{ position:absolute; left:0; top:0; bottom:0; width:0; background:rgba(78,231,154,.14); }
+  .slidelbl{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; padding-left:44px; font-family:var(--label); text-transform:uppercase; letter-spacing:.12em; font-size:12px; color:var(--dim); pointer-events:none; transition:opacity .12s; }
+  .slideknob{ position:absolute; left:4px; top:4px; bottom:4px; width:48px; border-radius:24px; background:var(--live); color:var(--bg); display:flex; align-items:center; justify-content:center; cursor:grab; touch-action:none; }
+  .slideknob:active{ cursor:grabbing; }
+  .slideknob svg{ width:22px; height:22px; }
 
   .snap{ border:1px solid var(--line); border-radius:12px; background:linear-gradient(180deg,var(--panel),var(--panel2)); padding:15px 18px 16px; display:flex; flex-direction:column; }
   .snap .sh{ display:flex; justify-content:space-between; font-family:var(--label); font-size:12px; letter-spacing:.12em; text-transform:uppercase; color:var(--dim); padding-bottom:11px; border-bottom:1px solid var(--line); }
@@ -611,7 +619,14 @@
       <h1 class="hl">The data layer<br>for <span class="out">SPX6900.</span></h1>
       <div class="rbrule2"></div>
       <div class="lede">Valuations, on-chain structure and holder behaviour, built from verifiable data.</div>
-      <div class="cta"><span class="btn pri" id="ctaChart"><span class="btw">&gt; <span class="lbl" data-t="charts">charts</span><span class="cur">_</span></span> &#8599;</span><span class="btn gho" id="ctaMethod"><span class="btw">&gt; <span class="lbl" data-t="read methodology">read methodology</span><span class="cur">_</span></span></span></div>
+      <div class="cta">
+        <div class="slidecta" id="slideCharts" role="button" tabindex="0" aria-label="Open charts">
+          <span class="slidefill" id="slideFill"></span>
+          <span class="slidelbl" id="slideLbl">slide to open charts</span>
+          <span class="slideknob" id="slideKnob"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M13 6l6 6-6 6"/></svg></span>
+        </div>
+        <span class="btn gho" id="ctaMethod"><span class="btw">&gt; <span class="lbl" data-t="read methodology">read methodology</span><span class="cur">_</span></span></span>
+      </div>
     </div>
     <div class="snap">
       <div class="sh"><span>valuation snapshot</span></div>
@@ -1261,6 +1276,30 @@
     if(_mn){ var s=sectionOf(t); if(s && MAP[s]){ e.preventDefault(); e.stopImmediatePropagation(); go(MAP[s]); return; } }
   }, true);
   if(window.__setLook) window.__setLook('calm');   // CALM is the primary look
+})();
+</script>
+<script>
+/* Slide-to-open-charts CTA: drag the knob to the end (mobile) or click anywhere (desktop) to open. */
+(function(){
+  function go(u){ (window.top||window).location.href=u; }
+  const cta=document.getElementById('slideCharts'), knob=document.getElementById('slideKnob'),
+        fill=document.getElementById('slideFill'), lbl=document.getElementById('slideLbl');
+  if(!cta||!knob) return;
+  const PAD=4;
+  const maxTravel=()=> Math.max(0, cta.clientWidth - knob.clientWidth - PAD*2);
+  function paint(x){ const m=maxTravel(); x=Math.max(0,Math.min(m,x)); knob.style.left=(PAD+x)+'px';
+    if(fill) fill.style.width=(PAD+x+knob.clientWidth)+'px'; if(lbl) lbl.style.opacity=String(1-(m?x/m:0)*0.9); return x; }
+  function reset(){ knob.style.transition='left .18s ease'; if(fill) fill.style.transition='width .18s ease'; paint(0); if(lbl) lbl.style.opacity=''; }
+  function open(){ if(window.__sbMobile && window.__sbMobile() && window.__sbOpen){ window.__sbOpen(); reset(); } else { go('/?view=charts'); } }
+  let dragging=false, startX=0, moved=0, dx=0;
+  cta.addEventListener('pointerdown',e=>{ moved=0; startX=e.clientX; dx=0;
+    if(e.target.closest('#slideKnob')){ dragging=true; knob.style.transition='none'; if(fill) fill.style.transition='none'; try{ cta.setPointerCapture(e.pointerId); }catch(_){} } });
+  cta.addEventListener('pointermove',e=>{ if(!dragging) return; dx=e.clientX-startX; moved=Math.max(moved,Math.abs(dx)); paint(dx); });
+  cta.addEventListener('pointerup',()=>{ if(!dragging) return; dragging=false; const m=maxTravel(); const x=paint(dx);
+    knob.style.transition='left .18s ease'; if(fill) fill.style.transition='width .18s ease';
+    if(m && x/m>0.72){ paint(m); setTimeout(open,170); } else reset(); });
+  cta.addEventListener('click',()=>{ if(moved<6) open(); });
+  cta.addEventListener('keydown',e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); open(); } });
 })();
 </script>
 </body>
