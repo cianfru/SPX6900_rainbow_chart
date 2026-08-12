@@ -152,30 +152,26 @@ const I = {
  // generic fallback glyph for sub-charts inside a folder
  gchart:`<svg viewBox="0 0 100 100" fill="none"><path d="M22 66 L40 52 L52 58 L78 32" stroke="#1f8fe0" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="78" cy="32" r="4.5" fill="#e5342f"/><line x1="20" y1="74" x2="80" y2="74" stroke="#9fb3c6" stroke-width="2"/></svg>`,
 };
-// section apps that open a folder of charts (rest are direct: rainbow/city/aeon/method + dock)
+// Folder apps open a sub-window of that section's REAL charts (sub-key = the chart id → /?chart=<id>).
 const SUB = {
- holders:[['Concentration','conc'],['Distribution','dist'],['Diamond','diamond'],['Growth','growth'],['Survivors','fsurv'],['Cohorts','cohort']],
- onchain:[['MVRV','mvrv'],['NUPL','nupl'],['SOPR','sopr'],['Realized','realized'],['Liveliness','live'],['NRPL','nrpl']],
- supply:[['In Profit','sip'],['HODL Waves','hodl'],['Free Float','float'],['URPD','urpd']],
- exchanges:[['CEX Supply','cexsup'],['CEX Flow','cexflow'],['Venues','venues'],['Venue Flow','venflow']],
- liquidity:[['LP Depth','lp'],['Uniswap','uni']],
- whales:[['Cohorts','wcoh'],['Whale City','wcity'],['Clusters','clusters'],['Smart Money','smart']],
- bridges:[['Ethereum','eth'],['Base','base'],['Solana','sol'],['Growth','wg']],
- market:[['Composite','composite'],['Channel','channel'],['Risk','risk'],['Pi Cycle','pi'],['Alt Market','alt'],['S&P 500','sp']],
- valuation:[['Composite','composite'],['MVRV','mvrv'],['Pi Cycle','pi'],['Rainbow','rainbow']],
- performance:[['ROI','roi'],['vs BTC','vsbtc'],['vs S&P','sp'],['Drawdown','draw']],
- cost:[['URPD','urpd'],['Cost Basis','cb'],['LTH/STH','lth'],['Exit Flow','exit']],
- survivors:[['Survival','fsurv'],['Vintages','vint'],['Supply Era','era']],
- races:[['Majors','maj'],['Memecoins','meme']],
- composite:[['Composite','composite'],['Lenses','lens']],
+ valuation:[['Channel','channel'],['Roadmap','roadmap'],['Quantile Fan','quantilefan'],['Risk Bands','risk'],['Z-Score','riskcolor'],['20W Heat','riskheat'],['Pi Cycle','picycle'],['RSI Dots','rsidots'],['Composite','valuation']],
+ performance:[['Rallies','rally'],['Drawdowns','drawdown'],['Performance','runningroi'],['Seasonality','monthly']],
+ holders:[['Conviction','supply'],['Holders vs Price','holdersprice'],['HODL Waves','hodlwaves'],['Liquid/Illiquid','freefloat'],['Wallet Growth','walletgrowth']],
+ onchain:[['MVRV','mvrv'],['NUPL','nupl'],['SOPR','sopr'],['Supply in Profit','supplyprofit'],['Cost Basis','bagsprofile'],['Cost × Age','urpdage'],['LTH / STH','lthsth'],['NRPL','nrpl'],['Liveliness','liveliness']],
+ whales:[['Concentration','concentration'],['Clusters','entities'],['Whale Supply','whales'],['Whale Counts','whalecohorts'],['Survivors','survivorship'],['Exits','exitflow'],['Smart Money','smartmoney']],
+ exchanges:[['CEX Supply','cexsupply'],['CEX Flow','cexflow'],['Venues','cexvenues'],['Venue Flow','cexvenflow']],
+ market:[['SPX vs BTC','spxbtc'],['BTC Cycle','btccycle'],['vs Majors','relative'],['Alt Market','altmarket'],['Perps','longshort']],
+ races:[['vs Majors','vsmajors'],['vs Memekings','vsmemecoins']],
 };
+// direct apps → a page in the app; dock apps → external (http) or a page.
+const DIRECT = { rainbow:'/?view=rainbow', city:'/city', aeon:'/?view=aeon', method:'/?view=methods' };
+const EXT = { x:'https://x.com/SPX6900Rainbow', youtube:'https://www.youtube.com/results?search_query=SPX6900',
+  kraken:'https://proinvite.kraken.com/9f1e/8985jw0l', search:'/?view=charts' };
 
 const PAGES = [
-  [ ['Rainbow','rainbow'],['SPX City','city'],['Holders','holders'],['On-chain','onchain'],
-    ['Supply','supply'],['Exchanges','exchanges'],['Liquidity','liquidity'],['Whales','whales'],
-    ['Bridges','bridges'],['Aeon','aeon'],['Market','market'],['Method','method'] ],
-  [ ['Valuation','valuation'],['Performance','performance'],['Cost Basis','cost'],['Survivors','survivors'],
-    ['Races','races'],['Composite','composite'] ],
+  [ ['Rainbow','rainbow'],['SPX City','city'],['Valuation','valuation'],['Performance','performance'],
+    ['Holders','holders'],['On-chain','onchain'],['Whales','whales'],['Exchanges','exchanges'],
+    ['Markets','market'],['Races','races'],['Aeon','aeon'],['Method','method'] ],
 ];
 const DOCK = [ ['X','x'], ['YouTube','youtube'], ['Kraken','kraken'], ['Search','search'] ];
 const FULL = new Set(['x','youtube','kraken','search']); // icons that fill the tile (own bg)
@@ -201,16 +197,21 @@ function closeFolder(){ if(!fopen) return; fopen=false; fw.classList.remove('in'
 document.getElementById('fbackdrop').addEventListener('click',()=>{ if(fopen) history.back(); });
 window.addEventListener('popstate',()=>{ if(fopen) closeFolder(); });
 document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&fopen) history.back(); });
-// tap delegation: a folder app opens its folder; everything else is a direct link (POC: no-op)
+// tap delegation: a chart inside a folder → open that chart; a section → open its folder;
+// a direct/dock app → navigate (external links open in a new tab). Works standalone and in an iframe.
+function nav(u){ (window.top||window).location.href=u; }
 document.addEventListener('click',e=>{
   const btn=e.target.closest('.app'); if(!btn) return;
   const key=btn.getAttribute('data-app');
-  if(SUB[key]){ openFolder(key); }
-  // else: real build navigates to the destination; POC leaves it.
+  if(btn.closest('.folder')){ nav('/?chart='+key); return; }          // a chart inside an open folder
+  if(SUB[key]){ openFolder(key); return; }                            // a section → expand its folder
+  if(EXT[key]){ EXT[key].charAt(0)==='/' ? nav(EXT[key]) : window.open(EXT[key],'_blank','noopener'); return; }
+  if(DIRECT[key]){ nav(DIRECT[key]); return; }                        // a page (rainbow/city/aeon/method)
 });
 const dots=document.getElementById('dots');
 dots.innerHTML = PAGES.map((_,i)=>`<i class="${i===0?'on':''}"></i>`).join('');
 const hint=document.getElementById('hint');
+if(PAGES.length<=1){ dots.style.display='none'; hint.style.display='none'; }  // single page → no swipe affordance
 pager.addEventListener('scroll',()=>{ const i=Math.round(pager.scrollLeft/pager.clientWidth);
   [...dots.children].forEach((d,j)=>d.classList.toggle('on',j===i));
   hint.style.opacity = i>=PAGES.length-1 ? '0' : '1'; });
