@@ -47,6 +47,7 @@ const CITY_IDS = new Set(CITY_GROUPS[0].charts.map(c => c.id));
 const ALIAS = { whalewatch: "spxcity", aeonskyline: "spxcity" };
 const resolveId = id => ALIAS[id] || id;
 import ChartFreshness from "./ChartFreshness.jsx";
+import FullscreenView from "./FullscreenView.jsx";
 import BandStats from "./BandStats.jsx";
 // Secondary tab charts are lazy-loaded so their code only ships when the tab is opened.
 import ErrorBoundary from "./ErrorBoundary.jsx";
@@ -303,6 +304,21 @@ export default function App() {
   const [route, setRoute] = useState("home");
   const [docSlug, setDocSlug] = useState("index"); // which page of the manual (?view=docs&p=…)
   const [galleryGroup, setGalleryGroup] = useState(null); // when a nav group is clicked, show only that section
+  const [fsOpen, setFsOpen] = useState(false); // fullscreen / landscape chart viewer
+  const cityFsRef = useRef(null);
+  const enterCityFullscreen = () => {
+    const el = cityFsRef.current; if (!el) return;
+    (async () => {
+      try { if (el.requestFullscreen) await el.requestFullscreen(); } catch { /* iOS / denied */ }
+      try { await window.screen?.orientation?.lock?.("landscape"); } catch { /* unsupported */ }
+    })();
+  };
+  // release the orientation lock whenever we leave native fullscreen (any surface)
+  useEffect(() => {
+    const onFs = () => { if (!document.fullscreenElement) { try { window.screen?.orientation?.unlock?.(); } catch { /* */ } } };
+    document.addEventListener("fullscreenchange", onFs);
+    return () => document.removeEventListener("fullscreenchange", onFs);
+  }, []);
   const [copied, setCopied] = useState(false);  // "Share" → link copied confirmation
   const [relWhich, setRelWhich] = useState("BTC"); // Relative chart asset (its own in-chart selector)
   const [chartView, setChartView] = useState(null); // deep-linked sub-view for a toggle chart (?…&v=<value>)
@@ -722,8 +738,8 @@ export default function App() {
   // Render the interactive component for a chart id, shared by the dedicated
   // chart page and the gallery's live mini-previews. `preview` => non-interactive
   // (no live relative-asset switching) and always the desktop layout.
-  const chartEl = (id, { preview = false } = {}) => {
-    const mob = preview ? false : isMobile;
+  const chartEl = (id, { preview = false, fullscreen = false } = {}) => {
+    const mob = (preview || fullscreen) ? false : isMobile;  // fullscreen/landscape → the wide desktop layout
     // Deep-linked sub-view (?…&v=<value>) for the current toggle chart. Never applied to
     // gallery mini-previews (they always show each chart's own default view).
     const iv = preview ? undefined : chartView;
@@ -985,7 +1001,12 @@ export default function App() {
           rather than through the charts gallery so it gets a clean path and first-class billing. */}
       {route === "city" && (
         <Suspense fallback={<div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Loading the city…</div>}>
-          <SpxCity isMobile={isMobile} initialMode={cityMode} />
+          <div ref={cityFsRef} style={{ position: "relative" }}>
+            <button className="fsbtn cityfsbtn" onClick={enterCityFullscreen} title="Fullscreen / landscape" aria-label="Fullscreen">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M8 3H4v4M16 3h4v4M8 21H4v-4M16 21h4v-4" /></svg>
+            </button>
+            <SpxCity isMobile={isMobile} initialMode={cityMode} />
+          </div>
         </Suspense>
       )}
 
@@ -1492,8 +1513,12 @@ export default function App() {
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6" /></svg>
             </button>
             <span style={{ fontFamily: "var(--mono)", fontSize: 12, letterSpacing: ".1em", textTransform: "uppercase", color: "var(--tx)" }}>{grp}<span className="tgcur" style={{ "--curc": gcol }}>_</span></span>
+            <button className="fsbtn" onClick={() => setFsOpen(true)} title="Fullscreen / landscape" aria-label="Fullscreen" style={{ marginLeft: "auto" }}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M8 3H4v4M16 3h4v4M8 21H4v-4M16 21h4v-4" /></svg>
+              {!isMobile && "Fullscreen"}
+            </button>
             <button onClick={shareChart} title="Share this chart" style={{
-              marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 7,
+              display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 7,
               background: "linear-gradient(180deg,var(--panel),var(--panel2))",
               border: `1px solid ${copied ? "var(--live)" : "var(--line2)"}`, cursor: "pointer",
               color: copied ? "var(--live)" : "var(--dim)", fontFamily: "var(--mono)", fontSize: 12, letterSpacing: ".04em", textTransform: "uppercase",
@@ -1540,6 +1565,15 @@ export default function App() {
               </button>
             </div>
           )}
+          <FullscreenView open={fsOpen} onClose={() => setFsOpen(false)}>
+            {fsOpen && (
+              <ErrorBoundary key={"fs-" + tab}>
+                <Suspense fallback={<div style={{ fontFamily: "var(--mono)", color: "var(--faint)" }}>loading…</div>}>
+                  {chartEl(tab, { fullscreen: true })}
+                </Suspense>
+              </ErrorBoundary>
+            )}
+          </FullscreenView>
         </div>
         );
       })()}{/* end chart page */}

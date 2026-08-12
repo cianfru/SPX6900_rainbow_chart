@@ -264,3 +264,18 @@ html[data-theme="light"] .tzone svg text[fill="#ffffff"], html[data-theme="light
 .tzone .pgnext{ text-align:right; }
 .tzone .pgpos{ flex:none; font-family:var(--mono); font-size:11px; letter-spacing:.06em; text-transform:uppercase; color:var(--faint); text-align:center; }
 @media(max-width:560px){ .tzone .pgpos{ display:none; } .tzone .pgbtn{ max-width:48%; } }
+
+/* ── FULLSCREEN / LANDSCAPE viewer (charts + city) ── */
+.tzone .fsview{ position:fixed; inset:0; z-index:2000; background:var(--bg); display:flex; flex-direction:column; }
+.tzone .fsclose{ position:absolute; top:calc(env(safe-area-inset-top,0px) + 10px); right:12px; z-index:5; width:42px; height:42px; display:inline-flex; align-items:center; justify-content:center; border:1px solid var(--line2); border-radius:11px; background:var(--panel); color:var(--tx); cursor:pointer; }
+.tzone .fsclose svg{ width:22px; height:22px; }
+.tzone .fsbody{ flex:1; min-height:0; display:flex; align-items:center; justify-content:center; padding:6px; overflow:auto; }
+.tzone .fsbody > *{ width:100%; }
+.tzone .fsrotate{ position:absolute; inset:0; z-index:4; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; background:color-mix(in srgb, var(--bg) 82%, transparent); color:var(--dim); font-family:var(--mono); font-size:13px; letter-spacing:.06em; text-transform:uppercase; text-align:center; padding:24px; pointer-events:none; }
+.tzone .fsrotate svg{ width:46px; height:46px; color:var(--live); }
+/* the "go fullscreen" button that lives next to Share on the chart page + on the city */
+.tzone .fsbtn{ display:inline-flex; align-items:center; justify-content:center; gap:6px; padding:6px 12px; border-radius:7px; border:1px solid var(--line2); background:linear-gradient(180deg,var(--panel),var(--panel2)); color:var(--dim); cursor:pointer; font-family:var(--mono); font-size:12px; letter-spacing:.04em; text-transform:uppercase; }
+.tzone .fsbtn:hover{ color:var(--tx); border-color:var(--faint); }
+.tzone .fsbtn svg{ width:14px; height:14px; }
+/* city fullscreen button — floats over the 3D city */
+.tzone .cityfsbtn{ position:absolute; top:12px; left:12px; z-index:30; background:color-mix(in srgb, var(--panel) 82%, transparent); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px); }
