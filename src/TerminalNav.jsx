@@ -221,9 +221,97 @@ function MobRow({ label, chev, cls = "", onTap }) {
   );
 }
 
-// The phone menu: a full-screen, tap-driven drill-down (Rainbow · Charts · SPX City ·
-// Project Aeon → groups → charts) built from the same catalog. Mirrors the landing's mobile
-// menu so touch users never meet a hover-only cascade on a sub-page.
+// ── MOBILE SPRINGBOARD — the app-launcher nav, ported from the landing so the whole app matches.
+// Sections → groups → charts as tappable tiles; chart tiles show a live sparkline. Each drill is a
+// real history entry, so the iOS edge-swipe and Android back button walk back up the levels natively.
+const SB_ICON = {
+  rainbow: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M3 16a9 9 0 0 1 18 0" /><path d="M6 16a6 6 0 0 1 12 0" /><path d="M9 16a3 3 0 0 1 6 0" /></svg>,
+  charts: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5" /><rect x="14" y="3" width="7" height="7" rx="1.5" /><rect x="3" y="14" width="7" height="7" rx="1.5" /><rect x="14" y="14" width="7" height="7" rx="1.5" /></svg>,
+  city: <svg viewBox="0 0 24 24" fill="currentColor"><rect x="4" y="10" width="3.2" height="10" rx="1" /><rect x="10.4" y="5" width="3.2" height="15" rx="1" /><rect x="16.8" y="12" width="3.2" height="8" rx="1" /></svg>,
+  aeon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2 4 7v10l8 5 8-5V7z" /><path d="M12 22V12" /><path d="M4 7l8 5 8-5" /></svg>,
+};
+const sbCount = groups => groups.reduce((n, g) => n + g.charts.filter(c => !c.dev).length, 0);
+
+function SbTile({ icon, dot, color, name, sub, onTap }) {
+  return (
+    <button className={"tsbtile" + (icon ? " tsbsec" : "")} style={{ "--tc": color }} onClick={onTap}>
+      {icon ? <span className="tsbico">{icon}</span> : <span className="tsbdot" />}
+      <span className="tsbnm">{name}</span>
+      <span className="tsbsub">{sub}</span>
+      <span className="tsbgo">›</span>
+    </button>
+  );
+}
+function SbChartTile({ name, color, seed, onTap }) {
+  return (
+    <button className="tsbtile tsbchart" style={{ "--tc": color }} onClick={onTap}>
+      <span className="tsbprev"><Spark seed={seed} color={color} /></span>
+      <span className="tsbnm">{name}</span>
+    </button>
+  );
+}
+
+function MobileSpringboard({ open, onClose, openRainbow, openGallery, openAeon, openCity, goChart }) {
+  const [stack, setStack] = useState([{ t: "sections" }]);
+  const view = stack[stack.length - 1];
+  const go = fn => { onClose(); fn && fn(); };
+  const push = v => { setStack(s => [...s, v]); try { window.history.pushState({ tsb: true }, ""); } catch { /* */ } };
+  useEffect(() => { if (open) setStack([{ t: "sections" }]); }, [open]);
+  // hardware / swipe back walks up a level (or closes at the root)
+  useEffect(() => {
+    if (!open) return;
+    const onPop = () => setStack(s => (s.length > 1 ? s.slice(0, -1) : (onClose(), s)));
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, [open, onClose]);
+  const back = () => { if (stack.length > 1) window.history.back(); };
+
+  const SECS = [
+    { id: "rainbow", name: "Rainbow", sub: "the foundation chart", color: "#fbbf24", onTap: () => go(openRainbow) },
+    { id: "charts", name: "Charts", groups: CHART_GROUPS, color: GCOL[1], onAll: () => go(openGallery) },
+    { id: "city", name: "SPX City", groups: CITY_GROUPS, single: true, color: GCOL[2], onAll: () => go(openCity) },
+    { id: "aeon", name: "Project Aeon", groups: AEON_GROUPS, color: GCOL[3], onAll: () => go(openAeon) },
+  ];
+
+  let title = "Explore", tiles = null;
+  if (view.t === "sections") {
+    tiles = SECS.map(sec => {
+      const onTap = sec.onTap ? sec.onTap
+        : sec.single ? () => push({ t: "charts", secId: sec.id })
+          : () => push({ t: "groups", secId: sec.id });
+      return <SbTile key={sec.id} icon={SB_ICON[sec.id]} color={sec.color} name={sec.name}
+        sub={sec.sub || `${sbCount(sec.groups)} charts`} onTap={onTap} />;
+    });
+  } else if (view.t === "groups") {
+    const sec = SECS.find(s => s.id === view.secId); title = sec.name;
+    tiles = sec.groups.map((g, i) => <SbTile key={g.title} dot color={GCOL[i % GCOL.length]} name={g.title}
+      sub={`${g.charts.filter(c => !c.dev).length} charts`} onTap={() => push({ t: "charts", secId: sec.id, grp: g.title })} />);
+  } else if (view.t === "charts") {
+    const sec = SECS.find(s => s.id === view.secId);
+    const g = view.grp ? sec.groups.find(x => x.title === view.grp) : sec.groups[0];
+    title = view.grp || sec.name;
+    const gc = GCOL[sec.groups.indexOf(g) % GCOL.length];
+    tiles = g.charts.filter(c => !c.dev).map(c => <SbChartTile key={c.id} name={c.title} color={gc}
+      seed={c.id + g.title} onTap={() => go(() => goChart(c.id))} />);
+  }
+
+  return (
+    <div className={"tsb" + (open ? " open" : "")} aria-hidden={!open}>
+      <div className="tsbtop">
+        <button className="tsbbtn" onClick={back} style={{ visibility: stack.length > 1 ? "visible" : "hidden" }} aria-label="Back">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" /></svg>
+        </button>
+        <span className="tsbtitle">{title}</span>
+        <button className="tsbbtn" onClick={onClose} aria-label="Close">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" fill="none" /></svg>
+        </button>
+      </div>
+      <div className="tsbbody"><div className="tsbgrid">{tiles}</div></div>
+    </div>
+  );
+}
+
+// (retired) the old list-style phone drill-down — replaced by MobileSpringboard above.
 function MobileMenu({ open, onClose, openRainbow, openGallery, openAeon, openCity, goChart }) {
   const [sec, setSec] = useState(null);
   const [grp, setGrp] = useState(null);
@@ -296,8 +384,8 @@ export default function TerminalNav({ onHome, openRainbow, openGallery, openAeon
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 12 A8.5 8.5 0 0 1 20.5 12 L20.5 19.4 A1.3 1.3 0 0 1 17.9 19.4 L17.9 14 A1.1 1.1 0 0 0 15.7 14 L15.7 19.4 A1.3 1.3 0 0 1 13.1 19.4 L13.1 14 A1.1 1.1 0 0 0 10.9 14 L10.9 19.4 A1.3 1.3 0 0 1 8.3 19.4 L8.3 14 A1.1 1.1 0 0 0 6.1 14 L6.1 19.4 A1.3 1.3 0 0 1 3.5 19.4 Z" /></svg>
             </a>
           </div>
-          <button className="tmobtog" onClick={() => setMobOpen(true)} aria-label="Open menu" aria-expanded={mobOpen}>
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M3 12h18M3 18h18" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" fill="none" /></svg>
+          <button className="tmobtog" onClick={() => setMobOpen(true)} aria-label="Open charts" aria-expanded={mobOpen}>
+            <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5" /><rect x="14" y="3" width="7" height="7" rx="1.5" /><rect x="3" y="14" width="7" height="7" rx="1.5" /><rect x="14" y="14" width="7" height="7" rx="1.5" /></svg>
           </button>
         </div>
       </div>
@@ -311,7 +399,7 @@ export default function TerminalNav({ onHome, openRainbow, openGallery, openAeon
         <CascadeTop label="PROJECT_AEON" groups={AEON_GROUPS} onSection={openAeon} onLeaf={goChart} renderPreview={renderPreview} />
         {asOfLabel && <div className="tdataas">Data as of {asOfLabel}</div>}
       </div>
-      <MobileMenu open={mobOpen} onClose={() => setMobOpen(false)} openRainbow={openRainbow} openGallery={openGallery} openAeon={openAeon} openCity={openCity} goChart={goChart} />
+      <MobileSpringboard open={mobOpen} onClose={() => setMobOpen(false)} openRainbow={openRainbow} openGallery={openGallery} openAeon={openAeon} openCity={openCity} goChart={goChart} />
     </div>
   );
 }
