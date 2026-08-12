@@ -20,6 +20,11 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Geist:wght@400;500;600;700;800&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+    <!-- Privacy-friendly analytics (general traffic, referrers, geo). Loads only on the live domain.
+         To activate: add spx6900rainbow.xyz as a site in Plausible (plausible.io), or swap these two
+         lines for a self-hosted Umami snippet. Inert until the site exists; the first-party /api/track
+         pipeline (wallet searches, city/chart opens) works independently of this. -->
+    <script>if(location.hostname==='spx6900rainbow.xyz'){var s=document.createElement('script');s.defer=true;s.setAttribute('data-domain','spx6900rainbow.xyz');s.src='https://plausible.io/js/script.js';document.head.appendChild(s);}</script>
     <style>
       *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
       html { background: #020208; color-scheme: dark; font-size: 17px; }

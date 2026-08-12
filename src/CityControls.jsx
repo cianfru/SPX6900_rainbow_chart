@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { lookupHome } from "./city-map.js";
 import { TIMES } from "./city-render.js";
 import { SANS, MONO } from "./chart-ui.jsx";
+import { track } from "./track.js";
 
 // Where the "how to read the city" instructions live — the manual, hosted on this site. The pages
 // are authored as markdown in docs/ and pre-rendered into the bundle at build time, so the book
@@ -90,6 +91,7 @@ export default function CityControls({ layout, onLayout, onFocus, has, accent = 
     e.preventDefault();
     const home = lookupHome(q);
     if (!home) { setMsg({ bad: true, text: "That doesn't look like a wallet address (0x…40 hex characters)." }); return; }
+    track("wallet_search", { wallet: home.a });   // page-intel: which wallets people look up in the city
     const owns = has?.(home.a);
     if (layout !== "city") onLayout("city");
     onFocus(owns ? home.a : null);

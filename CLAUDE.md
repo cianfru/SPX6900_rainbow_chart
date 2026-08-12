@@ -952,6 +952,27 @@
   nav pill, render case). Sections: the rainbow (frozen-fit explainer + live receipt) · the valuation composite (six weighted
   lenses, ranked over own history) · the seven families · what none of it can tell you (5 limits) · sources + cadence.
   Browser-verified. If ever cutting it again, that's an OWNER call, not a Claude call.
+- **🕵 PAGE INTEL — first-party analytics (owner, 2026-08-12): "vercel info is very limited, I want to know more."** Motive:
+  a **5.4M-coin split across several wallets + a 640-day-dormant wallet moving happened shortly after the city launch**; owner
+  suspects someone saw the city/wallet analysis and reacted, and wants to see who visits, from where, what they click, and —
+  the novel bit no off-the-shelf tool captures — **which wallets get looked up in the city's "where do you live?" search.**
+  Built (owner chose "both: custom events + an analytics tool"):
+  - **Custom pipeline (the workhorse), all first-party, no third party:** `api/track.js` (POST ingest → Redis via the Vercel
+    KV / Upstash **REST API**, dependency-free; enriches with Vercel's edge **geo headers** `x-vercel-ip-country/city` — free —
+    and a **salted IP hash**, raw IP never stored; degrades to a silent **204 no-op when no store is connected**). Events:
+    `pageview` / `wallet_search` / `city_open` / `chart_open`. Keys: `intel:events` (capped list), `intel:wallets` (the
+    hypothesis list), `intel:geo|pages|refs|charts` (HINCRBY counters). Client: **`src/track.js`** `track()` (sendBeacon,
+    no-op on localhost); wired in **App.jsx** (pageview per route + chart_open + city_open) and **CityControls.jsx**
+    (`wallet_search` on a valid city lookup = the key signal). The landing is an iframe inside the home route, so its pageview
+    is already the App's `home` pageview (no double-count).
+  - **Viewer:** **`api/intel.js`** — password-gated (**CONTROL_PASSWORD**, same as the control panel) HTML dashboard at
+    **`/api/intel`**: recent wallet searches (address · geo · time · iphash), top pages / countries / referrers / charts, and a
+    live event feed. GET serves the page, POST {pw} returns JSON.
+  - **Analytics tool:** a **Plausible** snippet in `index.html`, loaded **only on the live domain** (`spx6900rainbow.xyz`),
+    for general traffic/referrers/click maps. Inert until the owner adds the site in Plausible (or swaps 2 lines for self-hosted Umami).
+  - **🔲 OWNER — 1 step to activate:** connect a **Vercel KV / Upstash Redis** store to the project (Vercel → Storage) so
+    `KV_REST_API_URL` + `KV_REST_API_TOKEN` (or `UPSTASH_*`) get injected; redeploy. Until then everything ships but silently
+    no-ops (safe). Optional: a Plausible site for the third-party dashboard; `INTEL_SALT` to rotate the IP-hash salt.
 - **⭐⭐ MOBILE IS A FIRST-CLASS PRIORITY, NOT AN AFTERTHOUGHT (owner, 2026-08-11).** Data shows **>half of all traffic lands
   from the X account → mobile (iOS/Android)**. So mobile responsiveness / cleanness / charts / menus must be **top-notch** —
   "we cannot afford a very nice desktop and a half-baked mobile." Desktop is still the best experience (real estate +

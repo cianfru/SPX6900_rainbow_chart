@@ -43,6 +43,7 @@ import { SANS, MONO, MAX_W } from "./chart-ui.jsx";
 import "./terminal.css";
 import TerminalNav from "./TerminalNav.jsx";
 import { gcolFor } from "./terminal-colors.js";
+import { track } from "./track.js";
 const HolderscanDashboard = lazy(() => import("./HolderscanDashboard.jsx"));
 const RiskChart = lazy(() => import("./RiskChart.jsx"));
 const DrawdownChart = lazy(() => import("./DrawdownChart.jsx"));
@@ -338,6 +339,13 @@ export default function App() {
   // stale: /price-history.json = the CI-built dense daily history (fixes the boxy
   // early years); /history.json = the daily on-chain snapshot (authoritative recent);
   // /api/prices = live daily candles (freshest, backfills). The MODEL stays frozen
+  // First-party page intel: a pageview per route, plus chart/city opens (see src/track.js).
+  useEffect(() => {
+    track("pageview");
+    if (route === "chart" && tab) track("chart_open", { chart: tab });
+    else if (route === "city") track("city_open");
+  }, [route, tab]);
+
   // on DEFAULT_RAW, this only densifies what's drawn.
   useEffect(() => {
     let cancelled = false;
