@@ -48,6 +48,10 @@
     background:linear-gradient(180deg, rgba(255,255,255,.6), rgba(255,255,255,0)); border-radius:24% 24% 50% 50%/30% 30% 100% 100%; }
   .app .tile svg{ position:absolute; inset:0; margin:auto; width:62%; height:62%; z-index:1; }
   .app .tile.full svg{ width:100%; height:100%; inset:0; }
+  /* drop-in icon image: put a full square glossy icon at public/icons/<key>.png and it replaces the
+     SVG automatically (full-bleed over the tile); if the file is missing the <img> removes itself
+     and the SVG shows. So the SVGs are just placeholders until the real renders land. */
+  .app .tile .iconimg{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; border-radius:inherit; z-index:5; }
   .app .nm{ font-size:12px; font-weight:600; color:var(--ink); letter-spacing:-.01em; }
 
   /* page dots + hint */
@@ -58,9 +62,10 @@
   .hint{ font-size:12px; letter-spacing:.16em; text-transform:uppercase; color:var(--faint); display:inline-flex; gap:8px; }
 
   /* dock */
-  .dock{ margin-top:12px; padding:12px 14px; border-radius:26px; display:grid; grid-template-columns:repeat(4,1fr); gap:16px;
+  .dock{ margin-top:12px; padding:13px 12px; border-radius:30px; display:grid; grid-template-columns:repeat(4,1fr); gap:12px;
     background:rgba(120,130,150,.16); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px); border:1px solid rgba(255,255,255,.16); }
   :root[data-theme="dark"] .dock{ background:rgba(255,255,255,.06); }
+  .dock .app{ gap:7px; }
   .dock .app .nm{ font-size:11px; color:var(--dim); }
 </style></head>
 <body>
@@ -129,7 +134,7 @@ const PAGES = [
 const DOCK = [ ['X','x'], ['YouTube','youtube'], ['Kraken','kraken'], ['Search','search'] ];
 const FULL = new Set(['x','youtube','kraken','search']); // icons that fill the tile (own bg)
 
-const appHTML = (nm,ic)=>`<button class="app"><span class="tile${FULL.has(ic)?' full':''}">${I[ic]||''}</span><span class="nm">${nm}</span></button>`;
+const appHTML = (nm,ic)=>`<button class="app"><span class="tile${FULL.has(ic)?' full':''}">${I[ic]||''}<img class="iconimg" src="/icons/${ic}.png" alt="" onerror="this.remove()"></span><span class="nm">${nm}</span></button>`;
 const pager=document.getElementById('pager');
 pager.innerHTML = PAGES.map(pg=>`<div class="page">${pg.map(a=>appHTML(a[0],a[1])).join('')}</div>`).join('');
 document.getElementById('dock').innerHTML = DOCK.map(a=>appHTML(a[0],a[1])).join('');
