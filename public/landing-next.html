@@ -135,6 +135,11 @@
   .mtop-rainbow .lbl{ background:linear-gradient(90deg,#f87171,#fb923c,#fbbf24,#4ade80,#38bdf8,#a78bfa); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; }
   .mtop-rainbow .cur{ color:var(--curc,var(--tx)); margin-left:0; opacity:0; }   /* cursor rides the writing head only on hover */
   .mtop-rainbow:hover .cur{ opacity:1; animation:blk 1.05s steps(1,end) infinite; }
+  /* top-level section heads get the same typewriter cursor (green), sitting before the ▾ caret so it
+     no longer hides it; shown only on hover like Rainbow */
+  .mtop > .mhead .lw{ display:inline-flex; align-items:baseline; }
+  .mtop > .mhead .cur{ color:var(--live); margin-left:1px; opacity:0; }
+  .mtop:hover > .mhead .cur{ opacity:1; animation:blk 1.05s steps(1,end) infinite; }
   .mtop-rainbow:hover > .mhead .lbl{ background:none; -webkit-text-fill-color:var(--bg); color:var(--bg); }  /* invert cleanly, exactly like the siblings */
   /* ── SITE look: the top nav becomes the live website's pill buttons — icon · accent border · tint · glow, per section
         (Rainbow violet · Charts cyan · City blue · Project Aeon pink). blend / calm / green keep the terminal nav. ── */
@@ -243,7 +248,12 @@
   .termstrip{ display:flex; justify-content:space-between; gap:10px; font-family:var(--label); font-size:12.5px; letter-spacing:.08em; text-transform:uppercase; color:var(--faint); padding:26px 0 0; }
   .cmd{ font-family:var(--label); font-size:14px; letter-spacing:.04em; text-transform:uppercase; color:var(--live); margin:24px 0 16px; }
   .cmd .ok{ color:var(--dim); }
-  .hero{ display:grid; grid-template-columns:1fr minmax(300px,380px); gap:28px 38px; align-items:stretch; margin-top:52px; }
+  /* the hero fills the first screen (min-height set by JS = viewport − everything above it) so the
+     first chart lives below the fold and reveals on scroll, consistent on any screen size. */
+  .hero{ display:grid; grid-template-columns:1fr minmax(300px,380px); gap:28px 38px; align-items:stretch; align-content:center; margin-top:34px; }
+  .scrollcue{ display:flex; justify-content:center; margin:18px 0 -6px; opacity:.7; }
+  .scrollcue span{ font-family:var(--label); font-size:11px; letter-spacing:.16em; text-transform:uppercase; color:var(--faint); display:inline-flex; align-items:center; gap:8px; animation:cuebob 1.8s ease-in-out infinite; }
+  @keyframes cuebob{ 0%,100%{ transform:translateY(0) } 50%{ transform:translateY(4px) } }
   .hero > div:first-child{ display:flex; flex-direction:column; min-width:0; }  /* so the CTAs can pin to the row bottom regardless of how the headline wraps */
   @media(max-width:860px){ .hero{ grid-template-columns:1fr; } }
   .hl{ font-family:var(--sans); font-weight:700; text-transform:uppercase; letter-spacing:-.02em; line-height:.9; font-size:clamp(40px,7vw,92px); color:var(--tx); margin:0; text-wrap:balance; }
@@ -565,6 +575,8 @@
     </div>
   </div>
 
+  <div class="scrollcue" id="scrollcue"><span>scroll for the data &#8595;</span></div>
+
   <!-- COMPOSITE FLAGSHIP -->
   <div class="sec" id="cxsec">
     <div class="cmd2">&gt; RUN COMPOSITE --LENSES=6 --RANK=HISTORY</div>
@@ -799,7 +811,7 @@
     rbm.innerHTML=`<div class="mhead" data-rainbow="1"><span class="lw"><span class="lbl" data-t="RAINBOW">RAINBOW</span><span class="cur" style="--curc:#a78bfa">_</span></span></div>`;
     m.appendChild(rbm); wireTypeRow(rbm.querySelector('.mhead'));
     NAV.forEach(top=>{ const mt=document.createElement('div'); mt.className='mtop mtop-'+top.label.toLowerCase();
-      mt.innerHTML=`<div class="mhead"><span class="mico">${NAV_ICON[top.label]||''}</span><span class="ml-term">${top.label}</span><span class="ml-site">${NAV_DISP[top.label]||top.label}</span> <span class="car">▾</span></div>`+topDropHTML(top); m.appendChild(mt);
+      mt.innerHTML=`<div class="mhead"><span class="mico">${NAV_ICON[top.label]||''}</span><span class="lw"><span class="ml-term">${top.label}</span><span class="ml-site">${NAV_DISP[top.label]||top.label}</span><span class="cur">_</span></span> <span class="car">▾</span></div>`+topDropHTML(top); m.appendChild(mt);
       // menu shows STATIC; the writing effect fires per-row, only on the path you hover
       mt.querySelectorAll('.mitem').forEach(wireTypeRow);
       wireTypeRow(mt.querySelector('.mhead'));   // the section header types too (like Rainbow)
@@ -1078,9 +1090,18 @@
       if(grow){ const g=grow.closest('.mgroup'); if(g){ const willOpen=!g.classList.contains('open'); g.parentElement.querySelectorAll('.mgroup.open').forEach(x=>x.classList.remove('open')); if(willOpen) g.classList.add('open'); } return; }
       closeMenus(); // leaf item (navigates via its own handler) or outside → close
     }); }
-  (document.fonts&&document.fonts.ready?document.fonts.ready:Promise.resolve()).then(()=>{ render(); lockBtns(); }); render();
+  // Make the hero fill the first screen (viewport − everything above it − the scroll cue) so the first
+  // chart lives below the fold on ANY screen size, revealing on scroll — not half-shown at load.
+  function fitHero(){ const h=document.querySelector('.hero'); if(!h) return;
+    h.style.minHeight=''; // reset so we measure the natural top
+    const top=h.getBoundingClientRect().top + window.scrollY;
+    const cue=document.getElementById('scrollcue'); const cueH=cue?cue.offsetHeight+18:0;
+    const min=window.innerHeight - top - cueH - 14;
+    if(min>320) h.style.minHeight=min+'px'; }   // tiny/landscape screens keep natural flow
+  fitHero();
+  (document.fonts&&document.fonts.ready?document.fonts.ready:Promise.resolve()).then(()=>{ render(); lockBtns(); fitHero(); }); render();
   wireLive(); /* pull the site's live JSON + recompute the rainbow; no-ops to baked values if unreachable */
-  let to; window.addEventListener('resize',()=>{ clearTimeout(to); to=setTimeout(render,120); });
+  let to; window.addEventListener('resize',()=>{ clearTimeout(to); to=setTimeout(()=>{ render(); fitHero(); },120); });
 })();
 </script>
 <script>
@@ -1118,6 +1139,13 @@
         e.preventDefault(); e.stopImmediatePropagation();
         var _was=_seg.classList.contains("open"); closeMenus(); if(!_was) _seg.classList.add("open"); return;
       }
+      // A GROUP row in a multi-group section (CHARTS / PROJECT_AEON) → open that whole group's charts
+      // in the app. This replaces the old accordion toggle, which left earlier groups' flyouts stuck
+      // open (the overlap bug). Hovering the row still flies out its individual charts to pick one.
+      var _gr=!t.closest(".subdrop") && t.closest(".mitem.grouprow[data-ggrp]");
+      if(_gr){ var _gt=_gr.getAttribute("data-gtop")||"", _gg=_gr.getAttribute("data-ggrp")||"";
+        e.preventDefault(); e.stopImmediatePropagation();
+        go((_gt==="PROJECT_AEON"?"/?view=aeon":"/?view=charts")+"&group="+encodeURIComponent(_gg)); return; }
       // A row whose group carries a sub-menu (SPX City → SPX / AEON / Both) → reveal it, don't navigate.
       // A click on an actual sub-item (inside the .subdrop) is excluded and falls through to navigation.
       var _mg=!t.closest(".subdrop") && t.closest(".mitem") && t.closest(".mitem").closest(".mgroup");

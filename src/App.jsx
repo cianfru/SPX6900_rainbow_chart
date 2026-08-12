@@ -672,8 +672,9 @@ export default function App() {
       if (rel && REL_IDS.has(rel)) setRelWhich(rel);
       setChartView(p.get("v") || null); // deep-linked sub-view for a toggle chart
       const id = p.get("chart") || p.get("tab"); // ?tab= kept for old shared links
-      if (p.get("view") === "charts") setRoute("gallery");
-      else if (p.get("view") === "aeon") setRoute("aeon");
+      // ?group=<name> (from the landing nav clicking a group) filters the gallery to that one group.
+      if (p.get("view") === "charts") { setRoute("gallery"); setGalleryGroup(p.get("group") || null); }
+      else if (p.get("view") === "aeon") { setRoute("aeon"); setGalleryGroup(p.get("group") || null); }
       else if (p.get("view") === "methods") setRoute("methods");
       else if (p.get("view") === "rainbow") setRoute("rainbow");
       else if (p.get("view") === "docs") { setRoute("docs"); setDocSlug(p.get("p") || "index"); }
