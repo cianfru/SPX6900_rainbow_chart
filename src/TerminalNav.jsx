@@ -231,27 +231,64 @@ const SB_ICON = {
   aeon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2 4 7v10l8 5 8-5V7z" /><path d="M12 22V12" /><path d="M4 7l8 5 8-5" /></svg>,
 };
 const sbCount = groups => groups.reduce((n, g) => n + g.charts.filter(c => !c.dev).length, 0);
+const slug = s => s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 
-function SbTile({ icon, dot, color, name, sub, onTap }) {
+// A lazy LIVE mini-chart — the real chart component scaled to the tile, mounted only when it scrolls
+// into view (the gallery's approach). Makes the launcher show the actual charts, not placeholders.
+function SbPreview({ render, spark }) {
+  const ref = useRef(null);
+  const [scale, setScale] = useState(0.16);
+  const [show, setShow] = useState(false);
+  useEffect(() => {
+    const el = ref.current; if (!el) return;
+    const ro = new ResizeObserver(() => { if (el.clientWidth) setScale(el.clientWidth / BASE_W); });
+    ro.observe(el);
+    const io = new IntersectionObserver(es => { if (es.some(e => e.isIntersecting)) { setShow(true); io.disconnect(); } }, { rootMargin: "400px" });
+    io.observe(el);
+    return () => { ro.disconnect(); io.disconnect(); };
+  }, []);
   return (
-    <button className={"tsbtile" + (icon ? " tsbsec" : "")} style={{ "--tc": color }} onClick={onTap}>
-      {icon ? <span className="tsbico">{icon}</span> : <span className="tsbdot" />}
+    <div ref={ref} className="tsbprev" style={{ height: spark ? 104 : CONTENT_H * scale }}>
+      {spark ? spark : show && (
+        <div style={{ position: "absolute", top: 0, left: 0, width: BASE_W, transformOrigin: "top left", transform: `scale(${scale})`, pointerEvents: "none" }}>
+          <ErrorBoundary><Suspense fallback={null}><div className="chart-preview">{render()}</div></Suspense></ErrorBoundary>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Section / group launcher tile — a terminal panel: group-colour left edge, a mono micro-label
+// (the path / count), the title, and a subtle chevron. The data-dense, squared look of the site.
+function SbNavTile({ color, kicker, icon, name, sub, onTap }) {
+  return (
+    <button className="tsbtile tsbnav" style={{ "--tc": color }} onClick={onTap}>
+      <span className="tsbedge" />
+      <span className="tsbhd">
+        {icon ? <span className="tsbico">{icon}</span> : <span className="tsbkick">{kicker}</span>}
+        <span className="tsbchev">›</span>
+      </span>
       <span className="tsbnm">{name}</span>
       <span className="tsbsub">{sub}</span>
-      <span className="tsbgo">›</span>
-    </button>
-  );
-}
-function SbChartTile({ name, color, seed, onTap }) {
-  return (
-    <button className="tsbtile tsbchart" style={{ "--tc": color }} onClick={onTap}>
-      <span className="tsbprev"><Spark seed={seed} color={color} /></span>
-      <span className="tsbnm">{name}</span>
     </button>
   );
 }
 
-function MobileSpringboard({ open, onClose, openRainbow, openGallery, openAeon, openCity, goChart }) {
+// Chart tile — the live mini-chart, a group micro-label in the group colour, and the title, exactly
+// the gallery tile so the launcher reads as the same product.
+function SbChartTile({ item, color, group, render, spark, onTap }) {
+  return (
+    <button className="tsbtile tsbchart" style={{ "--tc": color }} onClick={onTap}>
+      <SbPreview render={render} spark={spark} />
+      <span className="tsbmeta">
+        <span className="tsbcat">{group}</span>
+        <span className="tsbnm">{item.title}</span>
+      </span>
+    </button>
+  );
+}
+
+function MobileSpringboard({ open, onClose, openRainbow, openGallery, openAeon, openCity, goChart, renderPreview }) {
   const [stack, setStack] = useState([{ t: "sections" }]);
   const view = stack[stack.length - 1];
   const go = fn => { onClose(); fn && fn(); };
@@ -273,26 +310,30 @@ function MobileSpringboard({ open, onClose, openRainbow, openGallery, openAeon, 
     { id: "aeon", name: "Project Aeon", groups: AEON_GROUPS, color: GCOL[3], onAll: () => go(openAeon) },
   ];
 
-  let title = "Explore", tiles = null;
+  let title = "Explore", cmd = "ls ./", grid = "nav", tiles = null;
   if (view.t === "sections") {
     tiles = SECS.map(sec => {
       const onTap = sec.onTap ? sec.onTap
         : sec.single ? () => push({ t: "charts", secId: sec.id })
           : () => push({ t: "groups", secId: sec.id });
-      return <SbTile key={sec.id} icon={SB_ICON[sec.id]} color={sec.color} name={sec.name}
-        sub={sec.sub || `${sbCount(sec.groups)} charts`} onTap={onTap} />;
+      const sub = sec.sub || (sec.single ? `${sbCount(sec.groups)} charts` : `${sec.groups.length} groups · ${sbCount(sec.groups)} charts`);
+      return <SbNavTile key={sec.id} icon={SB_ICON[sec.id]} color={sec.color} name={sec.name} sub={sub} onTap={onTap} />;
     });
   } else if (view.t === "groups") {
-    const sec = SECS.find(s => s.id === view.secId); title = sec.name;
-    tiles = sec.groups.map((g, i) => <SbTile key={g.title} dot color={GCOL[i % GCOL.length]} name={g.title}
+    const sec = SECS.find(s => s.id === view.secId); title = sec.name; cmd = `ls ./${slug(sec.name)}`;
+    tiles = sec.groups.map((g, i) => <SbNavTile key={g.title} kicker={sec.name} color={GCOL[i % GCOL.length]} name={g.title}
       sub={`${g.charts.filter(c => !c.dev).length} charts`} onTap={() => push({ t: "charts", secId: sec.id, grp: g.title })} />);
   } else if (view.t === "charts") {
     const sec = SECS.find(s => s.id === view.secId);
     const g = view.grp ? sec.groups.find(x => x.title === view.grp) : sec.groups[0];
-    title = view.grp || sec.name;
+    title = view.grp || sec.name; cmd = `ls ./${slug(sec.name)}/${slug(g.title)}`; grid = "charts";
     const gc = GCOL[sec.groups.indexOf(g) % GCOL.length];
-    tiles = g.charts.filter(c => !c.dev).map(c => <SbChartTile key={c.id} name={c.title} color={gc}
-      seed={c.id + g.title} onTap={() => go(() => goChart(c.id))} />);
+    tiles = g.charts.filter(c => !c.dev).map(c => {
+      const heavy = c.locked || HEAVY.has(c.id);
+      return <SbChartTile key={c.id} item={c} color={gc} group={g.title}
+        spark={heavy ? <Spark seed={c.id + g.title} color={gc} /> : null}
+        render={() => renderPreview(c.id)} onTap={() => go(() => goChart(c.id))} />;
+    });
   }
 
   return (
@@ -306,7 +347,11 @@ function MobileSpringboard({ open, onClose, openRainbow, openGallery, openAeon, 
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" fill="none" /></svg>
         </button>
       </div>
-      <div className="tsbbody"><div className="tsbgrid">{tiles}</div></div>
+      <div className="tsbbody">
+        <div className="tsbcmd"><span className="tsbprompt">spx6900 ~ %</span> {cmd}</div>
+        <div className="tsbrule" />
+        <div className={"tsbgrid tsbgrid-" + grid}>{tiles}</div>
+      </div>
     </div>
   );
 }
@@ -399,7 +444,7 @@ export default function TerminalNav({ onHome, openRainbow, openGallery, openAeon
         <CascadeTop label="PROJECT_AEON" groups={AEON_GROUPS} onSection={openAeon} onLeaf={goChart} renderPreview={renderPreview} />
         {asOfLabel && <div className="tdataas">Data as of {asOfLabel}</div>}
       </div>
-      <MobileSpringboard open={mobOpen} onClose={() => setMobOpen(false)} openRainbow={openRainbow} openGallery={openGallery} openAeon={openAeon} openCity={openCity} goChart={goChart} />
+      <MobileSpringboard open={mobOpen} onClose={() => setMobOpen(false)} openRainbow={openRainbow} openGallery={openGallery} openAeon={openAeon} openCity={openCity} goChart={goChart} renderPreview={renderPreview} />
     </div>
   );
 }
