@@ -140,12 +140,14 @@ const $=s=>document.querySelector(s);
 const top=(o,n)=>Object.entries(o||{}).sort((a,b)=>b[1]-a[1]).slice(0,n);
 const ago=ts=>{const s=Math.floor((Date.now()-ts)/1000);if(s<60)return s+'s';const m=Math.floor(s/60);if(m<60)return m+'m';const h=Math.floor(m/60);return h<24?h+'h':Math.floor(h/24)+'d';};
 const esc=s=>String(s==null?'':s).replace(/[<>&]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]));
-async function load(){ const pw=$('#pw').value; $('#msg').textContent='…';
-  const r=await fetch('/api/intel',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pw})});
-  if(!r.ok){ const j=await r.json().catch(()=>({})); $('#msg').textContent=(r.status===401?'wrong password':(j.error||('error '+r.status))); return; }
-  const d=await r.json(); $('#msg').textContent='';
-  if(!d.configured){ $('#out').innerHTML='<p class="note">No store connected yet. Connect a Vercel KV / Upstash Redis store to the project (Vercel → Storage), redeploy, and events will start flowing here.</p>'; return; }
-  try{ sessionStorage.setItem('intelpw',pw); }catch(e){}
+async function load(){ const pw=$('#pw')?$('#pw').value:''; $('#out').innerHTML='<p class="muted">loading…</p>';
+  let r;
+  try{ r=await fetch('/api/intel',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pw})}); }
+  catch(e){ $('#out').innerHTML='<p class="note">Network error reaching /api/intel: '+esc(String(e))+'</p>'; return; }
+  if(!r.ok){ const j=await r.json().catch(()=>({})); $('#out').innerHTML='<p class="note">'+(r.status===401?'wrong password':(esc(j.error||'')||('error '+r.status)))+'</p>'; return; }
+  const d=await r.json().catch(()=>null);
+  if(!d){ $('#out').innerHTML='<p class="note">Empty / unparseable response from /api/intel.</p>'; return; }
+  if(!d.configured){ $('#out').innerHTML='<p class="note">Reached the dashboard, but no data store is connected yet. Connect a Vercel KV / Upstash Redis store (Vercel → Storage), redeploy, and events will start flowing here. (This means the login was never the problem.)</p>'; return; }
   const rows=(o,n=10)=>top(o,n).map(([k,v])=>'<div class="row"><span class="k">'+esc(k)+'</span><span class="v">'+v+'</span></div>').join('')||'<div class="muted">—</div>';
   const wallets=(d.wallets||[]).map(w=>'<div class="wal"><div class="a">'+esc(w.wallet)+'</div><div class="m">'+esc([w.city,w.country].filter(Boolean).join(', ')||'??')+' · '+ago(w.ts)+' ago · '+esc(w.ip)+'</div></div>').join('')||'<div class="muted">no wallet searches yet</div>';
   const feed=(d.events||[]).slice(0,200).map(e=>'<div class="ev"><b>'+esc(e.t)+'</b> '+esc(e.path||'')+(e.chart?' ['+esc(e.chart)+']':'')+(e.wallet?' '+esc(e.wallet):'')+' <span class="muted">· '+esc([e.city,e.country].filter(Boolean).join(', ')||'??')+' · '+(e.ref?esc(e.ref)+' · ':'')+ago(e.ts)+'</span></div>').join('');
