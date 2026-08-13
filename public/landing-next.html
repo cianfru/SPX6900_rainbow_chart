@@ -452,6 +452,14 @@
   .sbtile .sbdot{ width:15px; height:15px; border-radius:6px; background:var(--tc);  }
   .sbtile .sbgo{ position:absolute; top:14px; right:14px; color:var(--faint); font-size:15px; }
   .sbsec{ min-height:132px; } .sbgrp{ min-height:112px; }
+  /* group + chart cards: no dot — the GROUP COLOUR is the edge, plus depth (drop shadow, a faint
+     coloured glow and a top inner highlight) so the cards lift off the black instead of reading flat. */
+  .sbgrp .sbdot{ display:none; }
+  .sbgrp .sbnm{ padding-right:22px; }  /* keep long titles clear of the corner chevron */
+  .sbgrp{ border-color:color-mix(in srgb, var(--tc) 62%, var(--line2));
+    background:linear-gradient(165deg, color-mix(in srgb, var(--tc) 11%, var(--panel)), var(--panel2) 84%);
+    box-shadow:0 10px 24px rgba(0,0,0,.5), 0 6px 22px color-mix(in srgb, var(--tc) 14%, transparent), inset 0 1px 0 color-mix(in srgb, var(--tc) 26%, transparent); }
+  :root[data-theme="light"] .sbgrp{ box-shadow:0 9px 20px rgba(20,28,45,.13), 0 4px 12px color-mix(in srgb, var(--tc) 16%, transparent), inset 0 1px 0 rgba(255,255,255,.7); }
   /* third-layer chart cards: same clean card as the group cards, but the chart's REAL one-line
      description (not a fake sparkline) — honest, and it's what actually tells the charts apart. */
   .sbleaf{ min-height:130px; }
