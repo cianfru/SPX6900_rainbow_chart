@@ -10,12 +10,25 @@ export const SANS = "'Geist', 'Space Grotesk', system-ui, sans-serif";
 export const MONO = "'Geist Mono', ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace";
 export const MAX_W = 1400;
 
+// Greyscale "ink" values chosen for a DARK ground that go invisible on light. Route them
+// through the theme-aware tokens instead, so a neutral metric reads in both themes; vivid
+// semantic colours (green/red/amber…) are passed through untouched.
+const WHITE_INK = new Set(["#f8fafc", "#f1f5f9", "#f4f6f9", "#fafafa", "#ffffff", "#fff", "#e2e8f0", "#e5e7eb", "#eef2f8"]);
+const MUTED_INK = new Set(["#cbd5e1", "#94a3b8", "#aab4c4", "#9aa6b6", "#8b96a8", "#64748b", "#7c8a9e", "#b4bfd0", "#a8b3c4"]);
+export function inkColor(c) {
+  if (!c) return "var(--ch-ink)";
+  const k = String(c).toLowerCase();
+  if (WHITE_INK.has(k)) return "var(--ch-ink)";
+  if (MUTED_INK.has(k)) return "var(--ch-mut)";
+  return c;
+}
+
 // Big-number readout shown in the metrics row above a chart.
 export function Metric({ label, value, color = "#f8fafc", sub }) {
   return (
     <div style={{ textAlign: "center", minWidth: 96 }}>
       <div style={{ fontFamily: MONO, fontSize: 11, color: "var(--ch-mut,#aab4c4)", letterSpacing: 1.1, textTransform: "uppercase" }}>{label}</div>
-      <div style={{ fontFamily: MONO, fontSize: 24, fontWeight: 700, color }}>{value}</div>
+      <div style={{ fontFamily: MONO, fontSize: 24, fontWeight: 700, color: inkColor(color) }}>{value}</div>
       {sub && <div style={{ fontFamily: SANS, fontSize: 11, color: "var(--ch-dim,#8b96a8)" }}>{sub}</div>}
     </div>
   );

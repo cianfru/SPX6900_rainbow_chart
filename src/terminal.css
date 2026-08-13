@@ -6,9 +6,10 @@
    ───────────────────────────────────────────────────────────────────────── */
 .tzone{
   --bg:#08090b; --panel:#0e1013; --panel2:#0b0c0f; --line:#1e2128; --line2:#2c303a;
-  --tx:#f4f6f9; --dim:#aab4c4; --faint:#808b9b; --live:#4ee79a;
-  /* chart-ink tokens (theme-aware greyscale for chart-ui React components) */
-  --ch-ink:#f1f5f9; --ch-body:#b4bfd0; --ch-mut:#aab4c4; --ch-dim:#8b96a8;
+  --tx:#f4f6f9; --dim:#b3bdcb; --faint:#8a94a4; --live:#4ee79a;
+  /* chart-ink tokens (theme-aware greyscale for chart-ui React components) — kept HIGH-contrast:
+     body/mut/dim must all stay legible on the near-black ground, not wash into it. */
+  --ch-ink:#f5f8fc; --ch-body:#ccd5e1; --ch-mut:#bac3d1; --ch-dim:#9fabbc;
   --sans:'Geist','Space Grotesk',system-ui,sans-serif;
   --mono:'Geist Mono',ui-monospace,'SF Mono',Menlo,Consolas,monospace;
   /* the rainbow bands as a hairline — the brand rule */
@@ -148,13 +149,18 @@
 .tzone .tmob-all{ color:var(--live); }
 .tzone .tmob-rainbow .tmob-lbl{ background:linear-gradient(90deg,#f87171,#fb923c,#fbbf24,#4ade80,#38bdf8,#a78bfa); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; }
 
-/* Explanation layout (owner): the short one-liner sits under the title (in App.jsx); the
-   longer plain-language Explain box belongs UNDER the chart. Charts render Explain above the
-   plot, so the chart root is flexed and the Explain ordered last. The shorter caption is a
-   duplicate wherever an Explain exists, so it's hidden there (kept on caption-only charts). */
-.tzone .tchart > :last-child:has(> .chart-explain){ display:flex; flex-direction:column; }
-.tzone .tchart > :last-child > .chart-explain{ order:99; margin:24px auto 0; }
-.tzone .tchart > :last-child:has(> .chart-explain) .chart-caption{ display:none; }
+/* Explanation layout (owner, restated many times): a SHORT one-liner under the title (App.jsx),
+   the LONGER plain-language explainer at the BOTTOM — one of each, never two near the top. Charts
+   render the explainer above the plot, so flex the chart root (the element that DIRECTLY contains
+   .chart-explain) into a column and order the explainer last. Its drier sibling caption then
+   duplicates it, so hide the caption wherever an explainer exists (caption-only charts keep theirs). */
+.tzone .tchart :has(> .chart-explain){ display:flex; flex-direction:column; }
+.tzone .tchart .chart-explain{ order:99; margin:26px auto 0 !important; color:var(--ch-body) !important; }
+.tzone .tchart :has(> .chart-explain) .chart-caption{ display:none; }
+/* the bottom write-ups (caption + explainer) hardcode a faint slate that dies on a light ground —
+   force them to the theme's body ink so they read strongly in BOTH themes (accents keep their hue). */
+.tzone .chart-caption{ color:var(--ch-body) !important; }
+.tzone .chart-explain{ color:var(--ch-body); }
 
 /* Apple-style round back button on the chart page */
 .tzone .tback{ transition:border-color .14s, color .14s, background .14s; }
@@ -170,21 +176,27 @@
 
 /* Shared chart view toggles (chart-ui ViewTabs) — styled like the terminal menu: mono, squared,
    active cell highlighted in the live green, and a blinking lowered "_" cursor on hover. */
-.tzone .viewtabs{ display:flex; flex-wrap:wrap; gap:8px; justify-content:center; margin:0 0 14px; }
-.tzone .vtab{ font-family:var(--mono); font-size:12px; letter-spacing:.09em; text-transform:uppercase; color:var(--dim);
-  background:transparent; border:1px solid var(--line2); border-radius:0; padding:6px 13px; cursor:pointer;
-  display:inline-flex; align-items:center; }
-.tzone .vtab:hover{ color:var(--tx); border-color:var(--faint); }
-.tzone .vtab.on{ color:var(--live); border-color:var(--live); background:rgba(78,231,154,.07); }
-.tzone .vtab .vtsub{ margin-left:6px; opacity:.55; font-size:11px; }
+.tzone .viewtabs{ display:flex; flex-wrap:wrap; gap:8px; justify-content:center; margin:0 0 16px; }
+/* view toggles with CHARACTER: real chip on a panel (not ghost text), a solid green FILL when active
+   (dark ink on green = punchy in both themes), and a crisp invert on hover. */
+.tzone .vtab{ font-family:var(--mono); font-size:12px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:var(--dim);
+  background:var(--panel); border:1px solid var(--line2); border-radius:0; padding:8px 15px; cursor:pointer;
+  display:inline-flex; align-items:center; transition:background .13s, color .13s, border-color .13s, box-shadow .13s; }
+.tzone .vtab:hover{ color:var(--tx); border-color:var(--tx); background:var(--panel2); }
+.tzone .vtab.on{ color:#04120b; border-color:var(--live); background:var(--live);
+  box-shadow:0 3px 14px -6px var(--live), inset 0 0 0 1px rgba(255,255,255,.14); }
+.tzone .vtab.on:hover{ color:#04120b; background:var(--live); }
+.tzone .vtab .vtsub{ margin-left:6px; opacity:.7; font-size:11px; }
+.tzone .vtab.on .vtsub{ opacity:.85; }
 
 /* ── ONE BUTTON VOCABULARY ── squared, mono, and it inverts + types its label out on hover,
    exactly like the top menu tabs. Every chart-page control (share/fullscreen/pager/back/view
    toggles) uses this so nothing reads as a one-off. The typed label reserves its full width via an
    invisible ghost (like the nav tabs) so the control can't resize mid-animation. */
 .tzone .menubtn{ display:inline-flex; align-items:center; gap:8px; padding:8px 13px; cursor:pointer;
-  font-family:var(--mono); font-size:12px; letter-spacing:.06em; text-transform:uppercase; color:var(--tx);
-  background:var(--panel); border:1px solid var(--line2); border-radius:0; user-select:none; }
+  font-family:var(--mono); font-size:12px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:var(--tx);
+  background:var(--panel); border:1px solid var(--line2); border-radius:0; user-select:none;
+  transition:background .13s, color .13s, border-color .13s; }
 .tzone .menubtn.ic{ padding:8px 9px; }
 .tzone .menubtn:hover, .tzone .menubtn.on{ background:var(--tx); color:var(--bg); border-color:var(--tx); }
 .tzone .menubtn-ic{ display:inline-flex; }
@@ -196,16 +208,13 @@
 .tzone .menubtn-g{ visibility:hidden; }
 .tzone .menubtn-y{ position:absolute; left:0; top:0; white-space:nowrap; }
 
-/* ── ONE EXPLANATION PER CHART ── the plain-language Explain box at the top is the standard; when
-   it's present, drop the redundant bottom caption so a page never shows two write-ups. Charts that
-   have only a caption keep it. */
-.tzone .tchart:has(.chart-explain) .chart-caption{ display:none; }
 
 /* ═══════════ BRIGHT (light) theme for the sub-pages — carries the landing's light mode into the app ═══════════ */
 html[data-theme="light"] .tzone{
-  --bg:#f7f8fa; --panel:#ffffff; --panel2:#eef1f5; --line:#d7dce4; --line2:#c3cad4;
-  --tx:#0a0c11; --dim:#3d434f; --faint:#697182; --live:#0a8f52;
-  --ch-ink:#0a0c11; --ch-body:#2a3340; --ch-mut:#3d434f; --ch-dim:#5b6674;
+  --bg:#f7f8fa; --panel:#ffffff; --panel2:#eef1f5; --line:#cdd3dd; --line2:#b3bcca;
+  --tx:#080a0e; --dim:#333b47; --faint:#525b6a; --live:#08814a;
+  /* light-theme ink — pushed DARK so it reads as strongly on white as the dark theme does on black */
+  --ch-ink:#080a0e; --ch-body:#1c2430; --ch-mut:#2b333f; --ch-dim:#454e5c;
   background:radial-gradient(100% 60% at 50% -8%, rgba(10,143,82,.06), transparent 60%), var(--bg);
 }
 /* the sticky nav wrapper carries a hardcoded dark glass bg in App.jsx → move it to a class so it themes */
@@ -240,6 +249,27 @@ html[data-theme="light"] .tzone svg [stroke="#fafafa"], html[data-theme="light"]
 html[data-theme="light"] .tzone svg [fill="#f4f6f9"], html[data-theme="light"] .tzone svg [fill="#f8fafc"],
 html[data-theme="light"] .tzone svg [fill="#e2e8f0"], html[data-theme="light"] .tzone svg [fill="#eef2f8"],
 html[data-theme="light"] .tzone svg text[fill="#ffffff"], html[data-theme="light"] .tzone svg text[fill="#fff"]{ fill:#0a0c11; }
+
+/* ── HTML-text contrast on a LIGHT ground ──────────────────────────────────────────────────
+   Charts hardcode greyscale "ink" hexes for legends, emphasis <strong>s and sub-labels, chosen
+   for a dark ground. React serialises inline colours to rgb(...), so we match those and force
+   them dark on light — near-whites → ink, faint slates → mid-ink. Tooltips render on their own
+   dark box in BOTH themes, so a second, more-specific rule keeps THEIR text light. SVG fills/
+   strokes are handled separately above; this only touches HTML `color`. */
+html[data-theme="light"] .tzone [style*="rgb(248, 250, 252)"], html[data-theme="light"] .tzone [style*="rgb(241, 245, 249)"],
+html[data-theme="light"] .tzone [style*="rgb(244, 246, 249)"], html[data-theme="light"] .tzone [style*="rgb(226, 232, 240)"],
+html[data-theme="light"] .tzone [style*="rgb(229, 231, 235)"]{ color:#080a0e !important; }
+html[data-theme="light"] .tzone [style*="rgb(203, 213, 225)"], html[data-theme="light"] .tzone [style*="rgb(148, 163, 184)"],
+html[data-theme="light"] .tzone [style*="rgb(139, 150, 168)"], html[data-theme="light"] .tzone [style*="rgb(100, 116, 139)"],
+html[data-theme="light"] .tzone [style*="rgb(124, 138, 158)"], html[data-theme="light"] .tzone [style*="rgb(170, 180, 196)"],
+html[data-theme="light"] .tzone [style*="rgb(180, 191, 208)"]{ color:#2b333f !important; }
+/* tooltips stay on a dark box in both themes → keep their text light (wins on specificity) */
+html[data-theme="light"] .tzone .recharts-tooltip-wrapper [style*="rgb(248, 250, 252)"],
+html[data-theme="light"] .tzone .recharts-tooltip-wrapper [style*="rgb(241, 245, 249)"],
+html[data-theme="light"] .tzone .recharts-tooltip-wrapper [style*="rgb(226, 232, 240)"]{ color:#f1f5f9 !important; }
+html[data-theme="light"] .tzone .recharts-tooltip-wrapper [style*="rgb(203, 213, 225)"],
+html[data-theme="light"] .tzone .recharts-tooltip-wrapper [style*="rgb(148, 163, 184)"],
+html[data-theme="light"] .tzone .recharts-tooltip-wrapper [style*="rgb(139, 150, 168)"]{ color:#cbd5e1 !important; }
 
 /* gallery "‹ all charts" back chip (shown when the gallery is filtered to one group) */
 .tzone .galback:hover{ color:var(--tx); border-color:var(--faint); }
