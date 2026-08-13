@@ -287,7 +287,12 @@
   .slidecta{ position:relative; height:56px; min-width:290px; max-width:380px; flex:1 1 290px; border-radius:28px; border:1px solid var(--line2); background:var(--panel); overflow:hidden; cursor:pointer; user-select:none; touch-action:pan-y; -webkit-tap-highlight-color:transparent; }
   .slidecta:hover{ border-color:var(--faint); }
   .slidefill{ position:absolute; left:0; top:0; bottom:0; width:0; background:rgba(78,231,154,.14); }
-  .slidelbl{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; padding-left:44px; font-family:var(--label); text-transform:uppercase; letter-spacing:.12em; font-size:12px; color:var(--dim); pointer-events:none; transition:opacity .12s; }
+  .slidelbl{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; padding-left:44px; font-family:var(--label); text-transform:uppercase; letter-spacing:.12em; font-size:12px; pointer-events:none; transition:opacity .12s;
+    /* iPhone slide-to-unlock shimmer: a light sweeps across the label */
+    background:linear-gradient(100deg, var(--dim) 0%, var(--dim) 38%, var(--live) 50%, var(--dim) 62%, var(--dim) 100%); background-size:230% 100%;
+    -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; color:transparent; animation:slideshine 2.6s linear infinite; }
+  @keyframes slideshine{ 0%{ background-position:130% 0 } 100%{ background-position:-30% 0 } }
+  @media(prefers-reduced-motion:reduce){ .slidelbl{ animation:none; background:none; -webkit-text-fill-color:var(--dim); color:var(--dim); } }
   .slideknob{ position:absolute; left:4px; top:4px; bottom:4px; width:48px; border-radius:24px; background:var(--live); color:var(--bg); display:flex; align-items:center; justify-content:center; cursor:grab; touch-action:none; }
   .slideknob:active{ cursor:grabbing; }
   .slideknob svg{ width:22px; height:22px; }
@@ -479,7 +484,7 @@
   .sbdocki:hover, .sbdocki:active{ border-color:var(--faint); }
   .sbdocki svg{ width:23px; height:23px; fill:currentColor; }
   .sbdocki.krk svg{ fill:#9d5cf8; }
-  .sbdocki#sbtheme svg{ fill:none; stroke:currentColor; stroke-width:1.6; stroke-linecap:round; }
+  .sbdocki#sbtheme svg, .sbdocki#sbmethod svg{ fill:none; stroke:currentColor; stroke-width:1.6; stroke-linecap:round; stroke-linejoin:round; }
   @keyframes sbfwd{ from{ opacity:0; transform:translateX(26px) } to{ opacity:1; transform:none } }
   @keyframes sbback{ from{ opacity:0; transform:translateX(-26px) } to{ opacity:1; transform:none } }
   .sbbody.sb-fwd .sbgrid{ animation:sbfwd .2s ease both; }
@@ -668,6 +673,7 @@
     <div class="sbdock">
       <a class="sbdocki" href="https://x.com/SPX6900Rainbow" target="_blank" rel="noopener noreferrer" aria-label="@SPX6900Rainbow on X"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24h-6.66l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg></a>
       <a class="sbdocki krk" href="https://proinvite.kraken.com/9f1e/8985jw0l" target="_blank" rel="noopener noreferrer sponsored" aria-label="Trade on Kraken (affiliate)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 12 A8.5 8.5 0 0 1 20.5 12 L20.5 19.4 A1.3 1.3 0 0 1 17.9 19.4 L17.9 14 A1.1 1.1 0 0 0 15.7 14 L15.7 19.4 A1.3 1.3 0 0 1 13.1 19.4 L13.1 14 A1.1 1.1 0 0 0 10.9 14 L10.9 19.4 A1.3 1.3 0 0 1 8.3 19.4 L8.3 14 A1.1 1.1 0 0 0 6.1 14 L6.1 19.4 A1.3 1.3 0 0 1 3.5 19.4 Z"/></svg></a>
+      <button class="sbdocki" id="sbmethod" type="button" aria-label="Read the methodology"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8.6 8l2.2 2-2.2 2"/><line x1="12.6" y1="12" x2="16" y2="12"/><line x1="8" y1="16.6" x2="16" y2="16.6"/></svg></button>
       <button class="sbdocki" id="sbtheme" type="button" aria-label="Toggle dark / bright theme"></button>
     </div>
   </div>
@@ -1211,6 +1217,7 @@
   const toggleTheme=()=> setTheme(document.documentElement.dataset.theme==='light'?'dark':'bright');
   { const tsw=document.getElementById('themeSw'); if(tsw) tsw.addEventListener('click',toggleTheme); }
   { const stb=document.getElementById('sbtheme'); if(stb) stb.addEventListener('click',toggleTheme); }
+  { const sm=document.getElementById('sbmethod'); if(sm) sm.addEventListener('click',()=>{ (window.top||window).location.href='/?view=methods'; }); }
   function applySavedTheme(){ let saved='dark'; try{ saved=localStorage.getItem('spx_theme')||'dark'; }catch(e){} setTheme(saved); }
   applySavedTheme();
   // re-apply on back/forward-cache restore (swipe-back) so the page can't come back in a stale theme
