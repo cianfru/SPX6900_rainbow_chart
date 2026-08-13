@@ -35,17 +35,17 @@ export default function FullscreenView({ open, onClose, children }) {
 
   if (!open) return null;
   return (
-    <div ref={ref} className="fsview">
+    <div ref={ref} className={"fsview" + (portrait ? " fsportrait" : "")}>
       <button className="fsclose" onClick={onClose} aria-label="Exit fullscreen" title="Exit fullscreen">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18" /></svg>
       </button>
       {portrait && (
         <div className="fsrotate">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-            <rect x="7" y="2.5" width="10" height="19" rx="2.2" /><path d="M9.5 19h5" />
-            <path d="M20 8a8 8 0 0 0-6-3.5" /><path d="M20 4.5V8h-3.5" />
+          <svg className="fsrotate-ph" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="7" y="2.5" width="10" height="19" rx="2.4" /><line x1="10" y1="19" x2="14" y2="19" />
           </svg>
-          <span>Rotate your phone for the full view</span>
+          <span>Rotate your device</span>
+          <small>for the wide, interactive chart</small>
         </div>
       )}
       <div className="fsbody">{children}</div>
