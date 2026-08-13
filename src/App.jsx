@@ -126,7 +126,6 @@ const FreeFloatChart = lazy(() => import("./FreeFloatChart.jsx"));
 const NuplChart = lazy(() => import("./NuplChart.jsx"));
 const QuantileFanChart = lazy(() => import("./QuantileFanChart.jsx"));
 const ChartsGallery = lazy(() => import("./ChartsGallery.jsx"));
-const MethodsPage = lazy(() => import("./MethodsPage.jsx"));
 const DocsPage = lazy(() => import("./DocsPage.jsx"));
 // LandingPage retired at ?view=next in favour of the terminal landing (public/landing-next.html, full-bleed iframe)
 // HOME_IS_LANDING: the home route ("/") renders the redesigned terminal landing instead of the old
@@ -629,7 +628,6 @@ export default function App() {
     params.delete("view"); params.delete("chart"); params.delete("rel"); params.delete("p"); params.delete("v");
     if (r === "gallery") params.set("view", "charts");
     else if (r === "aeon") params.set("view", "aeon");
-    else if (r === "methods") params.set("view", "methods");
     // the manual carries its page in ?p= so any page in the book is directly linkable
     else if (r === "docs") { params.set("view", "docs"); if (id) params.set("p", id); }
     else if (r === "next") params.set("view", "next");
@@ -652,7 +650,6 @@ export default function App() {
   const openGallery = (group) => { setGalleryGroup(typeof group === "string" ? group : null); setRoute("gallery"); syncUrl("gallery"); window.scrollTo({ top: 0, behavior: "smooth" }); };
   const openAeon = (group) => { setGalleryGroup(typeof group === "string" ? group : null); setRoute("aeon"); syncUrl("aeon"); window.scrollTo({ top: 0, behavior: "smooth" }); };
   const openCity = () => { setRoute("city"); syncUrl("city"); window.scrollTo({ top: 0, behavior: "smooth" }); };
-  const openMethods = () => { setRoute("methods"); syncUrl("methods"); window.scrollTo({ top: 0, behavior: "smooth" }); };
   const openRainbow = () => { setRoute("rainbow"); syncUrl("rainbow"); window.scrollTo({ top: 0, behavior: "smooth" }); };
   // the 3D city opens into a mode via /city?m=spx|aeon|both (deep-linked from the SPX City menu sub-views)
   const cityMode = (() => { const m = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("m") : null; return m === "aeon" || m === "both" ? m : "spx"; })();
@@ -662,7 +659,6 @@ export default function App() {
   // toggle chart carries its view in `v`.
   const goChart = (id, view) => {
     if (id === "rainbow") { openRainbow(); return; }
-    if (id === "model") { openMethods(); return; }   // The Model moved onto the Methods page
     id = resolveId(id);
     if (!CHART_IDS.has(id)) { openGallery(); return; }
     setRoute("chart"); setTab(id);
@@ -703,14 +699,12 @@ export default function App() {
       // ?group=<name> (from the landing nav clicking a group) filters the gallery to that one group.
       if (p.get("view") === "charts") { setRoute("gallery"); setGalleryGroup(p.get("group") || null); }
       else if (p.get("view") === "aeon") { setRoute("aeon"); setGalleryGroup(p.get("group") || null); }
-      else if (p.get("view") === "methods") setRoute("methods");
       else if (p.get("view") === "rainbow") setRoute("rainbow");
       else if (p.get("view") === "docs") { setRoute("docs"); setDocSlug(p.get("p") || "index"); }
       else if (p.get("view") === "next") setRoute("next");
       // SPX City left the gallery for its own /city tab. Old shared links (?chart=whalewatch /
       // spxcity / aeonskyline) still resolve, send them to the city instead of dropping to home.
       else if (id && resolveId(id) === "spxcity") setRoute("city");
-      else if (id === "model") setRoute("methods");   // The Model moved onto the Methods page
       else if (id === "rainbow") setRoute("rainbow");
       else if (id && CHART_IDS.has(resolveId(id))) { setRoute("chart"); setTab(resolveId(id)); }
       else setRoute("home");
@@ -843,7 +837,7 @@ export default function App() {
   // Sub-pages (everything but home + the ?view=next landing preview) wear the terminal
   // shell: near-black ground, Geist type, the DOS cascade nav. Home + the iframe landing
   // keep their own chrome untouched.
-  const isSub = ["gallery", "chart", "aeon", "city", "methods", "docs", "rainbow"].includes(route);
+  const isSub = ["gallery", "chart", "aeon", "city", "docs", "rainbow"].includes(route);
 
   return (
     <div className={isSub ? "tzone" : undefined} style={{
@@ -965,8 +959,6 @@ export default function App() {
 )}
               <span>{isMobile ? "Aeon" : "Project Aeon"}</span>
             </button>
-            {/* Methods is buried for now (still in dev, new charts landing). The page stays reachable
-                at ?view=methods, it's just not a nav tab. */}
           </div>
           {navActions}
         </div>
@@ -1014,13 +1006,6 @@ export default function App() {
       {route === "docs" && (
         <Suspense fallback={<div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Loading…</div>}>
           <DocsPage isMobile={isMobile} slug={docSlug} onNavigate={openDocs} />
-        </Suspense>
-      )}
-
-      {/* Methods, how every number on the site is computed. Static, reads the live model. */}
-      {route === "methods" && (
-        <Suspense fallback={<div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Loading…</div>}>
-          <MethodsPage m={m} series={priceData} isMobile={isMobile} />
         </Suspense>
       )}
 

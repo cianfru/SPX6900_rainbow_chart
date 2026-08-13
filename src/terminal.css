@@ -6,10 +6,10 @@
    ───────────────────────────────────────────────────────────────────────── */
 .tzone{
   --bg:#08090b; --panel:#0e1013; --panel2:#0b0c0f; --line:#1e2128; --line2:#2c303a;
-  --tx:#f4f6f9; --dim:#b3bdcb; --faint:#8a94a4; --live:#4ee79a;
-  /* chart-ink tokens (theme-aware greyscale for chart-ui React components) — kept HIGH-contrast:
-     body/mut/dim must all stay legible on the near-black ground, not wash into it. */
-  --ch-ink:#f5f8fc; --ch-body:#ccd5e1; --ch-mut:#bac3d1; --ch-dim:#9fabbc;
+  --tx:#ffffff; --dim:#c8d1de; --faint:#9aa4b4; --live:#4ee79a;
+  /* chart-ink tokens (theme-aware greyscale for chart-ui React components) — pushed BRIGHT so every
+     tier reads with force on the near-black ground; nothing is allowed to wash into it. */
+  --ch-ink:#ffffff; --ch-body:#e2e9f2; --ch-mut:#d0d9e6; --ch-dim:#b1bccc;
   --sans:'Geist','Space Grotesk',system-ui,sans-serif;
   --mono:'Geist Mono',ui-monospace,'SF Mono',Menlo,Consolas,monospace;
   /* the rainbow bands as a hairline — the brand rule */
@@ -211,10 +211,10 @@
 
 /* ═══════════ BRIGHT (light) theme for the sub-pages — carries the landing's light mode into the app ═══════════ */
 html[data-theme="light"] .tzone{
-  --bg:#f7f8fa; --panel:#ffffff; --panel2:#eef1f5; --line:#cdd3dd; --line2:#b3bcca;
-  --tx:#080a0e; --dim:#333b47; --faint:#525b6a; --live:#08814a;
-  /* light-theme ink — pushed DARK so it reads as strongly on white as the dark theme does on black */
-  --ch-ink:#080a0e; --ch-body:#1c2430; --ch-mut:#2b333f; --ch-dim:#454e5c;
+  --bg:#f7f8fa; --panel:#ffffff; --panel2:#eaeef3; --line:#c4ccd8; --line2:#a6b0c0;
+  --tx:#010203; --dim:#171e28; --faint:#333c48; --live:#077a45;
+  /* light-theme ink — pushed to near-black so it reads with maximum force on white */
+  --ch-ink:#010203; --ch-body:#0d131b; --ch-mut:#171e28; --ch-dim:#2c3542;
   background:radial-gradient(100% 60% at 50% -8%, rgba(10,143,82,.06), transparent 60%), var(--bg);
 }
 /* the sticky nav wrapper carries a hardcoded dark glass bg in App.jsx → move it to a class so it themes */
@@ -230,14 +230,14 @@ html[data-theme="light"] .tzone .leafprev{ box-shadow:0 12px 34px rgba(20,30,50,
    near-white / white-alpha values (invisible on a light ground). A CSS fill/stroke rule overrides a
    presentation attribute, so we recolour them globally for every recharts chart in one place. */
 html[data-theme="light"] .tzone .recharts-cartesian-axis-tick-value tspan,
-html[data-theme="light"] .tzone .recharts-cartesian-axis-tick-value{ fill:#3d434f; }
+html[data-theme="light"] .tzone .recharts-cartesian-axis-tick-value{ fill:#161d27; }
 html[data-theme="light"] .tzone .recharts-cartesian-axis-line,
-html[data-theme="light"] .tzone .recharts-cartesian-axis line{ stroke:rgba(10,12,17,.22); }
-html[data-theme="light"] .tzone .recharts-cartesian-grid line{ stroke:rgba(10,12,17,.10); }
-html[data-theme="light"] .tzone .recharts-reference-line line{ stroke:rgba(10,12,17,.32); }
-html[data-theme="light"] .tzone .recharts-legend-item-text{ color:#3d434f !important; }
+html[data-theme="light"] .tzone .recharts-cartesian-axis line{ stroke:rgba(3,6,11,.40); }
+html[data-theme="light"] .tzone .recharts-cartesian-grid line{ stroke:rgba(3,6,11,.16); }
+html[data-theme="light"] .tzone .recharts-reference-line line{ stroke:rgba(3,6,11,.48); }
+html[data-theme="light"] .tzone .recharts-legend-item-text{ color:#161d27 !important; }
 html[data-theme="light"] .tzone .recharts-label,
-html[data-theme="light"] .tzone .recharts-text.recharts-label{ fill:#3d434f; }
+html[data-theme="light"] .tzone .recharts-text.recharts-label{ fill:#161d27; }
 /* drag-to-zoom hint scrim + zoom brush: dark on dark → a light scrim on light */
 html[data-theme="light"] .tzone .recharts-tooltip-cursor{ stroke:rgba(10,12,17,.18) !important; }
 /* near-white INK drawn directly in charts (white price lines, annotation text) is invisible on a light
@@ -258,11 +258,11 @@ html[data-theme="light"] .tzone svg text[fill="#ffffff"], html[data-theme="light
    strokes are handled separately above; this only touches HTML `color`. */
 html[data-theme="light"] .tzone [style*="rgb(248, 250, 252)"], html[data-theme="light"] .tzone [style*="rgb(241, 245, 249)"],
 html[data-theme="light"] .tzone [style*="rgb(244, 246, 249)"], html[data-theme="light"] .tzone [style*="rgb(226, 232, 240)"],
-html[data-theme="light"] .tzone [style*="rgb(229, 231, 235)"]{ color:#080a0e !important; }
+html[data-theme="light"] .tzone [style*="rgb(229, 231, 235)"]{ color:#010203 !important; }
 html[data-theme="light"] .tzone [style*="rgb(203, 213, 225)"], html[data-theme="light"] .tzone [style*="rgb(148, 163, 184)"],
 html[data-theme="light"] .tzone [style*="rgb(139, 150, 168)"], html[data-theme="light"] .tzone [style*="rgb(100, 116, 139)"],
 html[data-theme="light"] .tzone [style*="rgb(124, 138, 158)"], html[data-theme="light"] .tzone [style*="rgb(170, 180, 196)"],
-html[data-theme="light"] .tzone [style*="rgb(180, 191, 208)"]{ color:#2b333f !important; }
+html[data-theme="light"] .tzone [style*="rgb(180, 191, 208)"]{ color:#171e28 !important; }
 /* tooltips stay on a dark box in both themes → keep their text light (wins on specificity) */
 html[data-theme="light"] .tzone .recharts-tooltip-wrapper [style*="rgb(248, 250, 252)"],
 html[data-theme="light"] .tzone .recharts-tooltip-wrapper [style*="rgb(241, 245, 249)"],
@@ -270,6 +270,12 @@ html[data-theme="light"] .tzone .recharts-tooltip-wrapper [style*="rgb(226, 232,
 html[data-theme="light"] .tzone .recharts-tooltip-wrapper [style*="rgb(203, 213, 225)"],
 html[data-theme="light"] .tzone .recharts-tooltip-wrapper [style*="rgb(148, 163, 184)"],
 html[data-theme="light"] .tzone .recharts-tooltip-wrapper [style*="rgb(139, 150, 168)"]{ color:#cbd5e1 !important; }
+
+/* ── DARK ground: brighten the faint slate HTML text charts hardcode, so legends/sub-labels punch
+   on near-black too (tooltips already sit on their own dark box, so no restore needed). ── */
+html:not([data-theme="light"]) .tzone [style*="rgb(100, 116, 139)"], html:not([data-theme="light"]) .tzone [style*="rgb(124, 138, 158)"],
+html:not([data-theme="light"]) .tzone [style*="rgb(139, 150, 168)"], html:not([data-theme="light"]) .tzone [style*="rgb(148, 163, 184)"],
+html:not([data-theme="light"]) .tzone [style*="rgb(100, 116, 139)"]{ color:#b1bccc !important; }
 
 /* gallery "‹ all charts" back chip (shown when the gallery is filtered to one group) */
 .tzone .galback:hover{ color:var(--tx); border-color:var(--faint); }
