@@ -87,7 +87,15 @@ async function dashboard(req, res, body) {
     if (!expected) { res.status(503).json({ error: "Server not configured: set CONTROL_PASSWORD in Vercel." }); return; }
     if (String(body.pw || "").trim() !== expected) { res.status(401).json({ error: "bad password" }); return; }
   }
-  if (!KV_URL || !KV_TOKEN) { res.status(200).json({ configured: false }); return; }
+  // Self-diagnosis: report (booleans only, never the secret values) whether the function actually
+  // sees the KV vars at runtime, and which var name provided each — so "vars are set in Vercel but
+  // the page is empty" can be told apart from "the function can't see them" or "the token is wrong".
+  const diag = {
+    kvUrlPresent: !!KV_URL, kvTokenPresent: !!KV_TOKEN,
+    urlVar: process.env.KV_REST_API_URL ? "KV_REST_API_URL" : (process.env.UPSTASH_REDIS_REST_URL ? "UPSTASH_REDIS_REST_URL" : null),
+    tokenVar: process.env.KV_REST_API_TOKEN ? "KV_REST_API_TOKEN" : (process.env.UPSTASH_REDIS_REST_TOKEN ? "UPSTASH_REDIS_REST_TOKEN" : null),
+  };
+  if (!KV_URL || !KV_TOKEN) { res.status(200).json({ configured: false, diag }); return; }
   try {
     const [events, wallets, geo, pages, refs, charts] = await kvPipeline([
       ["LRANGE", "intel:events", "0", "499"],
@@ -95,11 +103,15 @@ async function dashboard(req, res, body) {
       ["HGETALL", "intel:geo"], ["HGETALL", "intel:pages"], ["HGETALL", "intel:refs"], ["HGETALL", "intel:charts"],
     ]);
     res.status(200).json({
-      configured: true,
+      configured: true, diag,
       events: parseList(events), wallets: parseList(wallets),
       geo: hash2obj(geo), pages: hash2obj(pages), refs: hash2obj(refs), charts: hash2obj(charts),
     });
-  } catch (e) { res.status(500).json({ error: String(e.message || e) }); }
+  } catch (e) {
+    // Don't 500 into a blank page — return the KV error so the page can show it (e.g. "kv 401" =
+    // the token is wrong/read-only for writes; a network host error = the URL is off).
+    res.status(200).json({ configured: true, kvError: String(e.message || e), diag, events: [], wallets: [], geo: {}, pages: {}, refs: {}, charts: {} });
+  }
 }
 
 export default async function handler(req, res) {
@@ -147,11 +159,16 @@ async function load(){ const pw=$('#pw')?$('#pw').value:''; $('#out').innerHTML=
   if(!r.ok){ const j=await r.json().catch(()=>({})); $('#out').innerHTML='<p class="note">'+(r.status===401?'wrong password':(esc(j.error||'')||('error '+r.status)))+'</p>'; return; }
   const d=await r.json().catch(()=>null);
   if(!d){ $('#out').innerHTML='<p class="note">Empty / unparseable response from /api/intel.</p>'; return; }
-  if(!d.configured){ $('#out').innerHTML='<p class="note">Reached the dashboard, but no data store is connected yet. Connect a Vercel KV / Upstash Redis store (Vercel → Storage), redeploy, and events will start flowing here. (This means the login was never the problem.)</p>'; return; }
+  const dg=d.diag||{};
+  const diagLine='<p class="note">Diagnostics — sees URL var: <b>'+esc(dg.urlVar||'NO')+'</b> · sees token var: <b>'+esc(dg.tokenVar||'NO')+'</b>'+(d.kvError?' · <b style="color:#fb7185">KV error: '+esc(d.kvError)+'</b>':'')+'</p>';
+  if(!d.configured){ $('#out').innerHTML='<p class="note">Reached the dashboard, but the function does not see the KV vars at runtime.</p>'+diagLine; return; }
+  if(d.kvError){ $('#out').innerHTML='<p class="note">The function sees the KV vars but the store rejected the request — likely a wrong or read-only token, or a URL mismatch.</p>'+diagLine; return; }
+  const nEvents=(d.events||[]).length, nWallets=(d.wallets||[]).length;
+  const emptyNote=(nEvents+nWallets===0)?'<p class="note">Store is connected and reachable, but empty so far (0 events). Once the live site gets traffic, events will appear here. '+diagLine.replace(/^<p class="note">/,'').replace(/<\/p>$/,'')+'</p>':diagLine;
   const rows=(o,n=10)=>top(o,n).map(([k,v])=>'<div class="row"><span class="k">'+esc(k)+'</span><span class="v">'+v+'</span></div>').join('')||'<div class="muted">—</div>';
   const wallets=(d.wallets||[]).map(w=>'<div class="wal"><div class="a">'+esc(w.wallet)+'</div><div class="m">'+esc([w.city,w.country].filter(Boolean).join(', ')||'??')+' · '+ago(w.ts)+' ago · '+esc(w.ip)+'</div></div>').join('')||'<div class="muted">no wallet searches yet</div>';
   const feed=(d.events||[]).slice(0,200).map(e=>'<div class="ev"><b>'+esc(e.t)+'</b> '+esc(e.path||'')+(e.chart?' ['+esc(e.chart)+']':'')+(e.wallet?' '+esc(e.wallet):'')+' <span class="muted">· '+esc([e.city,e.country].filter(Boolean).join(', ')||'??')+' · '+(e.ref?esc(e.ref)+' · ':'')+ago(e.ts)+'</span></div>').join('');
-  $('#out').innerHTML='<div class="grid">'
+  $('#out').innerHTML=emptyNote+'<div class="grid">'
     +'<div class="card"><h2>Recent wallet searches (city)</h2>'+wallets+'</div>'
     +'<div class="card"><h2>Top pages</h2>'+rows(d.pages,12)+'</div>'
     +'<div class="card"><h2>Countries</h2>'+rows(d.geo,12)+'</div>'
