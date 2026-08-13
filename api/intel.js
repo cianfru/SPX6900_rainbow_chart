@@ -116,13 +116,18 @@ async function dashboard(req, res, body) {
 
 export default async function handler(req, res) {
   res.setHeader("Cache-Control", "no-store");
-  if (req.method === "GET") { res.setHeader("Content-Type", "text/html; charset=utf-8"); res.status(200).send(PAGE); return; }
-  if (req.method !== "POST") { res.status(405).end(); return; }
+  try {
+    if (req.method === "GET") { res.setHeader("Content-Type", "text/html; charset=utf-8"); res.status(200).send(PAGE); return; }
+    if (req.method !== "POST") { res.status(405).json({ error: "method not allowed" }); return; }
 
-  const body = await readBody(req);
-  // Branch: a tracking beacon carries {t}; a dashboard request carries {pw}.
-  if (body.t !== undefined) { await ingest(req, res, body); return; }
-  await dashboard(req, res, body);
+    const body = await readBody(req);
+    // Branch: a tracking beacon carries {t}; a dashboard request carries {pw}.
+    if (body.t !== undefined) { await ingest(req, res, body); return; }
+    await dashboard(req, res, body);
+  } catch {
+    // Never spill a stack / internals into the response — a generic message only.
+    if (!res.headersSent) res.status(500).json({ error: "internal error" });
+  }
 }
 
 const PAGE = `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
