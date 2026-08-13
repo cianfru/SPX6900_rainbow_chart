@@ -11,7 +11,7 @@ import Maintenance from './Maintenance.jsx'
 // page; the owner bypasses with a token. Visit ?preview=<TOKEN> once to persist
 // access (localStorage), then browse normally. Flip MAINTENANCE to false (or delete
 // this block) to launch publicly. TOKEN is a UX curtain, not security.
-const MAINTENANCE = true
+const MAINTENANCE = false
 const PREVIEW_TOKEN = 'spx-rebuild-2026'
 function previewUnlocked() {
   try {
