@@ -49,13 +49,9 @@ const addViews = (section, c) => {
 CHART_GROUPS.forEach((g) => nonDev(g).forEach((c) => addViews("CHARTS", c)));
 AEON_GROUPS.forEach((g) => nonDev(g).forEach((c) => addViews("PROJECT_AEON", c)));
 cityCharts.forEach((c) => addViews("SPX_CITY", c));
-// The 3D city (the "SPX City" item, route @/city) takes a mode — SPX holders, AEON collectors, or both
-// (SPX residents who also hold AEON). Surfaced as sub-views so you can open the city straight into a mode.
-VIEWS["SPX_CITY|SPX City"] = [
-  { label: "SPX", href: "/city?m=spx" },
-  { label: "AEON", href: "/city?m=aeon" },
-  { label: "Both", href: "/city?m=both" },
-];
+// NOTE: the "SPX City" item is a DIRECT link to /city (no sub-menu) — clicking it opens the city.
+// The SPX / AEON / Both mode lives in the city page's own toggle, so it isn't nested here (nesting a
+// mode subdrop under the leaf blocked the leaf from navigating — the "SPX City doesn't open" bug).
 
 const block =
   `const NAV=${JSON.stringify(NAV)};\n` +

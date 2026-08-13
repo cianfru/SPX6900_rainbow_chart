@@ -326,13 +326,8 @@ export default function SpxCity({ isMobile, preview = false, initialMode = "spx"
   // The site's shared neon toggle (.neon-pill in index.css): flat at rest, backlit accent glow when
   // hovered/active, driven by --glow. Returns spread-able props so every panel button matches the
   // rest of the site rather than the old flat grey pills.
-  const neon = (active, glow = M.accent) => ({
-    className: `neon-pill${active ? " active" : ""}`,
-    style: {
-      padding: "6px 14px", borderRadius: 8, fontFamily: MONO, fontSize: 12,
-      color: active ? "#f8fafc" : "#94a3b8", "--glow": glow,
-    },
-  });
+  // Squared, menu-style toggles (the site's single button vocabulary) — no more rounded neon pills.
+  const neon = (active) => ({ className: "vtab" + (active ? " on" : "") });
 
   return (
     <div style={{ maxWidth: MAX_W, margin: "0 auto" }}>
