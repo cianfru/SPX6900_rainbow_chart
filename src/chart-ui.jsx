@@ -91,7 +91,7 @@ export function MenuBtn({ label = "", icon, iconRight = false, onClick, title, c
       style={style}>
       {icon && !iconRight && <span className="menubtn-ic">{icon}</span>}
       {label !== "" && (
-        <span className="menubtn-t"><span className="menubtn-g" aria-hidden="true">{label}</span><span className="menubtn-y">{shown}</span></span>
+        <span className="menubtn-t"><span className="menubtn-g" aria-hidden="true">{label}<i className="tcur">_</i></span><span className="menubtn-y">{shown}<i className="tcur">_</i></span></span>
       )}
       {icon && iconRight && <span className="menubtn-ic">{icon}</span>}
     </button>
@@ -118,7 +118,7 @@ export function TypeTab({ label, sub, on, onClick, title, style, className = "" 
   return (
     <button type="button" className={"vtab" + (on ? " on" : "") + (className ? " " + className : "")}
       onMouseEnter={type} onMouseLeave={reset} onClick={onClick} title={title} style={style}>
-      <span className="menubtn-t"><span className="menubtn-g" aria-hidden="true">{label}</span><span className="menubtn-y">{shown}</span></span>
+      <span className="menubtn-t"><span className="menubtn-g" aria-hidden="true">{label}<i className="tcur">_</i></span><span className="menubtn-y">{shown}<i className="tcur">_</i></span></span>
       {sub != null && <span className="vtsub">{sub}</span>}
     </button>
   );

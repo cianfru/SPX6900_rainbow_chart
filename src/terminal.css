@@ -207,6 +207,11 @@
 .tzone .menubtn-t{ position:relative; display:inline-block; }
 .tzone .menubtn-g{ visibility:hidden; }
 .tzone .menubtn-y{ position:absolute; left:0; top:0; white-space:nowrap; }
+/* terminal cursor that trails the typed label (follows the characters, blinks at the end) — the
+   same "_" the brand + group headers use, in the button's own colour so it inverts on hover. */
+.tzone .tcur{ font-style:normal; margin-left:1px; animation:tcurblink 1.06s step-end infinite; }
+@keyframes tcurblink{ 0%,55%{ opacity:1 } 56%,100%{ opacity:0 } }
+.tzone .pgbtn .tcur{ display:none; }  /* pager labels ellipsize; a trailing "_" reads wrong there */
 
 
 /* ═══════════ BRIGHT (light) theme for the sub-pages — carries the landing's light mode into the app ═══════════ */

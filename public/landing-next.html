@@ -1070,7 +1070,7 @@
     if(!btn._wired){ btn._wired=1;
       btn.addEventListener('mouseenter',()=>{ if(btn._c)btn._c(); btn._c=typeLbl(lbl); });
       btn.addEventListener('mouseleave',()=>{ if(btn._c){btn._c();btn._c=null;} lbl.textContent=lbl.getAttribute('data-t')||''; }); } }
-  function lockBtns(){ lockBtn(cc); lockBtn(cm); }
+  function lockBtns(){ lockBtn(cc); }
   lockBtns();
 
   // ── COMPOSITE flagship chart (0–100 oscillator over time, variant-aware) ──
