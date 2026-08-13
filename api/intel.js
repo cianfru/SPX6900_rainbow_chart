@@ -75,12 +75,18 @@ async function ingest(req, res, body) {
 
 // POST {pw} — dashboard data.
 async function dashboard(req, res, body) {
-  // Trim both sides: a password pasted into Vercel's env UI often carries a trailing newline,
-  // which makes a correct-looking password fail a strict compare. Distinguish "not configured"
-  // (env var missing) from "wrong password" so the page can say which it is.
-  const expected = String(process.env.CONTROL_PASSWORD || "").trim();
-  if (!expected) { res.status(503).json({ error: "Server not configured: set CONTROL_PASSWORD in Vercel." }); return; }
-  if (String(body.pw || "").trim() !== expected) { res.status(401).json({ error: "bad password" }); return; }
+  // ⚠️ TEMPORARY (owner request 2026-08-13): the password gate is DISABLED for debugging, so the
+  // dashboard is PUBLIC — anyone with the URL sees wallet lookups, geo and IP hashes. Flip AUTH back
+  // to true (and set CONTROL_PASSWORD in Vercel) to re-lock it once access is confirmed.
+  const AUTH = false;
+  if (AUTH) {
+    // Trim both sides: a password pasted into Vercel's env UI often carries a trailing newline,
+    // which makes a correct-looking password fail a strict compare. Distinguish "not configured"
+    // (env var missing) from "wrong password" so the page can say which it is.
+    const expected = String(process.env.CONTROL_PASSWORD || "").trim();
+    if (!expected) { res.status(503).json({ error: "Server not configured: set CONTROL_PASSWORD in Vercel." }); return; }
+    if (String(body.pw || "").trim() !== expected) { res.status(401).json({ error: "bad password" }); return; }
+  }
   if (!KV_URL || !KV_TOKEN) { res.status(200).json({ configured: false }); return; }
   try {
     const [events, wallets, geo, pages, refs, charts] = await kvPipeline([
@@ -127,7 +133,7 @@ button:hover{border-color:var(--live);color:var(--live)}
 .ev b{color:var(--tx)}.muted{color:var(--faint)}.note{color:var(--faint);margin-top:14px;line-height:1.6}
 </style></head><body><div class="wrap">
 <h1>Page Intel</h1>
-<div class="login" id="login"><input id="pw" type="password" placeholder="control password" autofocus><button onclick="load()">view</button><span id="msg" class="muted"></span></div>
+<div class="login" id="login" style="display:none"><input id="pw" type="password" placeholder="control password"><button onclick="load()">view</button><span id="msg" class="muted"></span></div>
 <div id="out"></div>
 <script>
 const $=s=>document.querySelector(s);
@@ -153,5 +159,5 @@ async function load(){ const pw=$('#pw').value; $('#msg').textContent='…';
     +'</div>';
   $('#login').style.display='none';
 }
-try{ const s=sessionStorage.getItem('intelpw'); if(s){ $('#pw').value=s; load(); } }catch(e){}
+load(); /* auth disabled → load the dashboard straight away, no password */
 </script></div></body></html>`;
