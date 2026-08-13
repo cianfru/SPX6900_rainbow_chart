@@ -219,7 +219,10 @@
   .btn .btw{ display:inline-block; text-align:left; }
   .btn .cur{ opacity:0; color:inherit; margin-left:0; }
   .btn:hover .cur{ opacity:1; animation:blk 1.05s steps(1,end) infinite; }
-  .mitem.subview{ padding:5px 11px; font-size:12px; color:var(--faint); gap:10px; }  /* flush-left, in line with the leaf rows (fainter/smaller = the only sub cue) */
+  /* sub-views INDENTED under their parent leaf, readable, with a guide rule (matches the sub-page nav) */
+  .mitem.subview{ padding:5px 11px 5px 28px; font-size:12px; color:var(--tx); gap:10px; position:relative; }
+  .mitem.subview::before{ content:""; position:absolute; left:14px; top:0; bottom:0; width:1px; background:var(--line2); }
+  .mitem.subview:hover::before{ background:var(--bg); }
   .mitem.subview .cur{ font-size:11px; }
   .mitem.allrow{ color:var(--tx); font-weight:600; border-bottom:1px dotted var(--line2); margin-bottom:3px; padding-bottom:8px; }
   .mitem.allrow:hover, .mitem.allrow:hover .cur{ color:var(--bg); }
@@ -863,12 +866,11 @@
       +`<circle cx="${pts[N-1][0].toFixed(1)}" cy="${pts[N-1][1].toFixed(1)}" r="3.4" fill="currentColor"/></svg>`; }
   /* DESC is generated in the @gen-menu block above (from the real charts catalog). */
   const descOf=n=>DESC[n]||(n+' — interactive, from verifiable on-chain data.');
-  // Menu preview: an abstract sparkline, NEVER the tweet/og card (owner: don't use the cards as
-  // previews — recurring). The static landing can't mount the live React chart (the gallery + the
-  // sub-page nav do that); here the sparkline is the honest, non-card stand-in.
-  function prevOf(section,name){
-    return `<div class="mprev-img mprev-fail"><span class="mprev-spk">${mspark(name)}</span></div>`;
-  }
+  // Menu preview: NO image on the landing. It's a static page — it can't mount the live interactive
+  // chart the way the Charts gallery + sub-page nav do, and neither the tweet/og card nor a fake
+  // sparkline is acceptable (owner, repeatedly). So the hover panel is a clean name + description;
+  // the live chart preview lives one click away in the gallery.
+  function prevOf(section,name){ return ""; }
   function wireTypeRow(mi){ const lbl=mi.querySelector('.lbl')||mi.querySelector('.ml-term')||mi.querySelector('.mml'); if(!lbl) return;
     if(lbl.getAttribute('data-t')==null) lbl.setAttribute('data-t', lbl.textContent); // headers/mobile rows carry no data-t; capture it once
     mi.addEventListener('mouseenter',()=>{ if(mi._c)mi._c(); mi._c=typeLbl(lbl); });

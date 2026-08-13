@@ -97,7 +97,7 @@
 .tzone .mitem.allrow{ border-bottom:1px solid var(--line); margin-bottom:2px; }
 /* a toggle chart's sub-views, indented under its row (the parent row carries a ▾) */
 /* sub-views INDENTED under their parent leaf, with a vertical guide rule so the nesting reads clearly */
-.tzone .mitem.subview{ padding-top:5px; padding-bottom:5px; padding-left:28px; gap:10px; font-size:12px; color:var(--dim); position:relative; }
+.tzone .mitem.subview{ padding-top:5px; padding-bottom:5px; padding-left:28px; gap:10px; font-size:12px; color:var(--tx); position:relative; }
 .tzone .mitem.subview::before{ content:""; position:absolute; left:14px; top:0; bottom:0; width:1px; background:var(--line2); }
 .tzone .mitem.subview:hover::before{ background:var(--bg); }
 .tzone .mitem.subview .lbl{ letter-spacing:.02em; }
