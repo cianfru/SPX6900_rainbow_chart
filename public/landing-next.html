@@ -193,6 +193,10 @@
   .mprev-desc{ font-family:var(--num); font-size:12px; line-height:1.55; color:var(--dim); }
   .mprev-go{ margin-top:auto; padding-top:12px; font-family:var(--label); font-size:11px; letter-spacing:.05em; text-transform:uppercase; color:var(--faint); }
 /* real chart preview image (the same og card the deep-link unfurl shows) — a sparkline is the offline fallback */
+/* the actual-chart hover preview: a pre-rendered thumbnail of the real chart (from /?bare=<id>,
+   BASE_W 1180 × 700), so the aspect ratio matches exactly. Instant, no runtime cost. */
+.mprev-frame{ position:relative; width:100%; aspect-ratio:1180/700; border-radius:8px; overflow:hidden; border:1px solid var(--line); background:#06070c; margin-bottom:11px; }
+.mprev-frame img{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:block; }
 .mprev-img{ position:relative; width:100%; aspect-ratio:1200/630; border-radius:8px; overflow:hidden; border:1px solid var(--line); background:#0b0d14; }
 .mprev-img img{ display:block; width:100%; height:100%; object-fit:cover; }
 .mprev-img .mprev-spk{ display:none; }
@@ -827,7 +831,7 @@
   // cascade wiring: a chart-leaf hover fills its group's flyout preview; edge-flip mirrors the cascade leftward when it would overflow
   function wireCascade(mt, top){
     mt.querySelectorAll('.mgroup').forEach(mg=>{ const prev=mg.querySelector('.leafprev'), sd=mg.querySelector('.subdrop'); if(!prev) return;
-      const fill=name=>{ prev.innerHTML=`<div class="mprev-title">${name}</div><div class="mprev-desc">${descOf(name)}</div><div class="mprev-go">→ open chart</div>`; prev.classList.add('on'); };
+      const fill=name=>{ prev.innerHTML=prevOf(top.label,name)+`<div class="mprev-title">${name}</div><div class="mprev-desc">${descOf(name)}</div><div class="mprev-go">→ open chart</div>`; prev.classList.add('on'); };
       mg.querySelectorAll('.leafrow').forEach(lr=> lr.addEventListener('mouseenter',()=>fill(lr.dataset.name)));
       if(sd) sd.addEventListener('mouseleave',()=>{ prev.classList.remove('on'); prev.innerHTML=''; }); });
     const place=()=>{ const r=mt.getBoundingClientRect(); mt.classList.toggle('flip', r.left+660 > innerWidth-12); };
@@ -867,11 +871,13 @@
       +`<circle cx="${pts[N-1][0].toFixed(1)}" cy="${pts[N-1][1].toFixed(1)}" r="3.4" fill="currentColor"/></svg>`; }
   /* DESC is generated in the @gen-menu block above (from the real charts catalog). */
   const descOf=n=>DESC[n]||(n+' — interactive, from verifiable on-chain data.');
-  // Menu preview: NO image on the landing. It's a static page — it can't mount the live interactive
-  // chart the way the Charts gallery + sub-page nav do, and neither the tweet/og card nor a fake
-  // sparkline is acceptable (owner, repeatedly). So the hover panel is a clean name + description;
-  // the live chart preview lives one click away in the gallery.
-  function prevOf(section,name){ return ""; }
+  // Menu preview = the ACTUAL chart, same as the gallery / sub-page nav. The landing is static so it
+  // can't mount React live — instead it shows a pre-rendered thumbnail of the real chart (built from
+  // the app's chrome-less /?bare=<id> route), so it's instant and identical to what you'll open. No
+  // cards, no fake sparklines. Missing thumbnail (or a page-route @/city) → the image hides itself.
+  function prevOf(section,name){ const id=(window.__LEAFID||{})[section+'|'+name];
+    if(!id||id.charAt(0)==='@') return '';
+    return `<div class="mprev-frame"><img loading="lazy" alt="" src="/chart-thumbs/${encodeURIComponent(id)}.png" onerror="var f=this.closest('.mprev-frame'); if(f) f.style.display='none'"></div>`; }
   function wireTypeRow(mi){ const lbl=mi.querySelector('.lbl')||mi.querySelector('.ml-term')||mi.querySelector('.mml'); if(!lbl) return;
     if(lbl.getAttribute('data-t')==null) lbl.setAttribute('data-t', lbl.textContent); // headers/mobile rows carry no data-t; capture it once
     mi.addEventListener('mouseenter',()=>{ if(mi._c)mi._c(); mi._c=typeLbl(lbl); });
@@ -892,7 +898,7 @@
     // col 3 — preview — appears only once a CHART is hovered (the 3rd choice)
     const showChart=(name,gc,rowEl)=>{ mega.querySelectorAll('.chrow').forEach(r=>r.classList.toggle('on', r===rowEl));
       cPv.style.setProperty('--MEGAC',gc);
-      cPv.innerHTML=`<div class="mprev-title">${name}</div><div class="mprev-desc">${descOf(name)}</div><div class="mprev-go">→ open chart</div>`;
+      cPv.innerHTML=prevOf(top.label,name)+`<div class="mprev-title">${name}</div><div class="mprev-desc">${descOf(name)}</div><div class="mprev-go">→ open chart</div>`;
       mega.classList.add('s3'); };
     // single-group section: the items live in col 1 already — wire them straight to the preview, no group step
     if(mega.classList.contains('single')){ const gc=GCOL[0];

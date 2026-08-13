@@ -281,6 +281,28 @@ function TabIcon({ name }) {
 // a dedicated interactive page per chart.
 const REL_IDS = new Set(["BTC", "ETH", "SOL", "BASKET"]);
 
+// Renders a chart at a fixed base width, scaled to fit its container and clipped — the same
+// technique the gallery's LivePreview uses. Used by the /?bare=<id> route (the landing menu's
+// hover-preview iframe) so the landing shows the real live chart, matching the other menus.
+const BARE_W = 1180, BARE_H = 700;
+function BareChart({ children }) {
+  const ref = useRef(null);
+  const [scale, setScale] = useState(0.2);
+  useEffect(() => {
+    const el = ref.current; if (!el) return;
+    const ro = new ResizeObserver(() => { if (el.clientWidth) setScale(el.clientWidth / BARE_W); });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  return (
+    <div ref={ref} style={{ position: "relative", width: "100%", height: BARE_H * scale, overflow: "hidden" }}>
+      <div style={{ position: "absolute", top: 0, left: 0, width: BARE_W, transformOrigin: "top left", transform: `scale(${scale})` }}>
+        <div className="chart-preview">{children}</div>
+      </div>
+    </div>
+  );
+}
+
 export default function App() {
   // `priceData` is bundled history + any new live points beyond the last bundled date.
   // The MODEL FIT is always computed from DEFAULT_RAW (bundled) only, so the
@@ -833,6 +855,23 @@ export default function App() {
       </a>
     </div>
   );
+
+  // /?bare=<id> — a chrome-less, scaled render of ONE chart, for the landing menu's hover-preview
+  // iframe. It shows the SAME live chart the gallery/sub-page-nav previews do, so the landing menu
+  // is no longer "disconnected" from the others. (All hooks above have run; safe to early-return.)
+  const bareId = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("bare") : null;
+  if (bareId) {
+    const bid = resolveId(bareId);
+    return (
+      <div className="tzone" style={{ minHeight: 0, background: "transparent", overflow: "hidden" }}>
+        <ErrorBoundary>
+          <Suspense fallback={<div style={{ fontFamily: MONO, fontSize: 12, color: "#64748b", padding: 8 }}>loading…</div>}>
+            {CHART_IDS.has(bid) ? <BareChart>{chartEl(bid, { preview: true })}</BareChart> : null}
+          </Suspense>
+        </ErrorBoundary>
+      </div>
+    );
+  }
 
   // Sub-pages (everything but home + the ?view=next landing preview) wear the terminal
   // shell: near-black ground, Geist type, the DOS cascade nav. Home + the iframe landing

@@ -29,7 +29,9 @@ const CONTENT_H = 700; // clip region (chart's header + body, caption cropped of
 
 // A live mini-preview: mounts the real chart at BASE_W, scales it to the tile
 // width and clips it. Non-interactive (pointer-events off → the tile click wins).
-function LivePreview({ render }) {
+// Exported so the landing's hover-preview iframe (/?bare=<id>) shows the same
+// live chart the gallery tiles do — the two menus were "disconnected" otherwise.
+export function LivePreview({ render }) {
   const ref = useRef(null);
   const [scale, setScale] = useState(0.3);
   const [show, setShow] = useState(false);
