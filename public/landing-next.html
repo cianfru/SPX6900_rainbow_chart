@@ -221,6 +221,7 @@
   .btn:hover .cur{ opacity:1; animation:blk 1.05s steps(1,end) infinite; }
   /* sub-views INDENTED under their parent leaf, readable, with a guide rule (matches the sub-page nav) */
   .mitem.subview{ padding:5px 11px 5px 28px; font-size:12px; color:var(--tx); gap:10px; position:relative; }
+  .mitem.subview:hover{ color:var(--bg); } /* row inverts to white on hover → dark text (not --tx = invisible) */
   .mitem.subview::before{ content:""; position:absolute; left:14px; top:0; bottom:0; width:1px; background:var(--line2); }
   .mitem.subview:hover::before{ background:var(--bg); }
   .mitem.subview .cur{ font-size:11px; }
@@ -826,7 +827,7 @@
   // cascade wiring: a chart-leaf hover fills its group's flyout preview; edge-flip mirrors the cascade leftward when it would overflow
   function wireCascade(mt, top){
     mt.querySelectorAll('.mgroup').forEach(mg=>{ const prev=mg.querySelector('.leafprev'), sd=mg.querySelector('.subdrop'); if(!prev) return;
-      const fill=name=>{ prev.innerHTML=`<div class="mprev-kick">Preview</div>`+prevOf(top.label,name)+`<div class="mprev-title">${name}</div><div class="mprev-desc">${descOf(name)}</div><div class="mprev-go">→ open chart</div>`; prev.classList.add('on'); };
+      const fill=name=>{ prev.innerHTML=`<div class="mprev-title">${name}</div><div class="mprev-desc">${descOf(name)}</div><div class="mprev-go">→ open chart</div>`; prev.classList.add('on'); };
       mg.querySelectorAll('.leafrow').forEach(lr=> lr.addEventListener('mouseenter',()=>fill(lr.dataset.name)));
       if(sd) sd.addEventListener('mouseleave',()=>{ prev.classList.remove('on'); prev.innerHTML=''; }); });
     const place=()=>{ const r=mt.getBoundingClientRect(); mt.classList.toggle('flip', r.left+660 > innerWidth-12); };
@@ -891,7 +892,7 @@
     // col 3 — preview — appears only once a CHART is hovered (the 3rd choice)
     const showChart=(name,gc,rowEl)=>{ mega.querySelectorAll('.chrow').forEach(r=>r.classList.toggle('on', r===rowEl));
       cPv.style.setProperty('--MEGAC',gc);
-      cPv.innerHTML=`<div class="mprev-kick">Preview</div>`+prevOf(top.label,name)+`<div class="mprev-title">${name}</div><div class="mprev-desc">${descOf(name)}</div><div class="mprev-go">→ open chart</div>`;
+      cPv.innerHTML=`<div class="mprev-title">${name}</div><div class="mprev-desc">${descOf(name)}</div><div class="mprev-go">→ open chart</div>`;
       mega.classList.add('s3'); };
     // single-group section: the items live in col 1 already — wire them straight to the preview, no group step
     if(mega.classList.contains('single')){ const gc=GCOL[0];
