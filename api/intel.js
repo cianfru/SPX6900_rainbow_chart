@@ -154,7 +154,7 @@ button:hover{border-color:var(--live);color:var(--live)}
 <div id="out"></div>
 <script>
 const $=s=>document.querySelector(s);
-const top=(o,n)=>Object.entries(o||{}).sort((a,b)=>b[1]-a[1]).slice(0,n);
+const topN=(o,n)=>Object.entries(o||{}).sort((a,b)=>b[1]-a[1]).slice(0,n); /* NOT 'top' — collides with window.top in a classic script → "already declared" parse error → blank page */
 const ago=ts=>{const s=Math.floor((Date.now()-ts)/1000);if(s<60)return s+'s';const m=Math.floor(s/60);if(m<60)return m+'m';const h=Math.floor(m/60);return h<24?h+'h':Math.floor(h/24)+'d';};
 const esc=s=>String(s==null?'':s).replace(/[<>&]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]));
 async function load(){ const pw=$('#pw')?$('#pw').value:''; $('#out').innerHTML='<p class="muted">loading…</p>';
@@ -165,12 +165,13 @@ async function load(){ const pw=$('#pw')?$('#pw').value:''; $('#out').innerHTML=
   const d=await r.json().catch(()=>null);
   if(!d){ $('#out').innerHTML='<p class="note">Empty / unparseable response from /api/intel.</p>'; return; }
   const dg=d.diag||{};
-  const diagLine='<p class="note">Diagnostics — sees URL var: <b>'+esc(dg.urlVar||'NO')+'</b> · sees token var: <b>'+esc(dg.tokenVar||'NO')+'</b>'+(d.kvError?' · <b style="color:#fb7185">KV error: '+esc(d.kvError)+'</b>':'')+'</p>';
+  const diagInner='Diagnostics — sees URL var: <b>'+esc(dg.urlVar||'NO')+'</b> · sees token var: <b>'+esc(dg.tokenVar||'NO')+'</b>'+(d.kvError?' · <b style="color:#fb7185">KV error: '+esc(d.kvError)+'</b>':'');
+  const diagLine='<p class="note">'+diagInner+'</p>';
   if(!d.configured){ $('#out').innerHTML='<p class="note">Reached the dashboard, but the function does not see the KV vars at runtime.</p>'+diagLine; return; }
   if(d.kvError){ $('#out').innerHTML='<p class="note">The function sees the KV vars but the store rejected the request — likely a wrong or read-only token, or a URL mismatch.</p>'+diagLine; return; }
   const nEvents=(d.events||[]).length, nWallets=(d.wallets||[]).length;
-  const emptyNote=(nEvents+nWallets===0)?'<p class="note">Store is connected and reachable, but empty so far (0 events). Once the live site gets traffic, events will appear here. '+diagLine.replace(/^<p class="note">/,'').replace(/<\/p>$/,'')+'</p>':diagLine;
-  const rows=(o,n=10)=>top(o,n).map(([k,v])=>'<div class="row"><span class="k">'+esc(k)+'</span><span class="v">'+v+'</span></div>').join('')||'<div class="muted">—</div>';
+  const emptyNote=(nEvents+nWallets===0)?'<p class="note">Store is connected and reachable, but empty so far (0 events). Once the live site gets traffic, events will appear here. '+diagInner+'</p>':diagLine;
+  const rows=(o,n=10)=>topN(o,n).map(([k,v])=>'<div class="row"><span class="k">'+esc(k)+'</span><span class="v">'+v+'</span></div>').join('')||'<div class="muted">—</div>';
   const wallets=(d.wallets||[]).map(w=>'<div class="wal"><div class="a">'+esc(w.wallet)+'</div><div class="m">'+esc([w.city,w.country].filter(Boolean).join(', ')||'??')+' · '+ago(w.ts)+' ago · '+esc(w.ip)+'</div></div>').join('')||'<div class="muted">no wallet searches yet</div>';
   const feed=(d.events||[]).slice(0,200).map(e=>'<div class="ev"><b>'+esc(e.t)+'</b> '+esc(e.path||'')+(e.chart?' ['+esc(e.chart)+']':'')+(e.wallet?' '+esc(e.wallet):'')+' <span class="muted">· '+esc([e.city,e.country].filter(Boolean).join(', ')||'??')+' · '+(e.ref?esc(e.ref)+' · ':'')+ago(e.ts)+'</span></div>').join('');
   $('#out').innerHTML=emptyNote+'<div class="grid">'
