@@ -6,7 +6,7 @@ import CityControls from "./CityControls.jsx";
 import CityRecorder from "./CityRecorder.jsx";
 import CityWallet from "./CityWallet.jsx";
 import { loadNotes } from "./city-messages.js";
-import { SANS, MONO, MAX_W, Metric, Explain } from "./chart-ui.jsx";
+import { SANS, MONO, MAX_W, Metric, Explain, TypeTab } from "./chart-ui.jsx";
 
 const Skyline3D = lazy(() => import("./Skyline3D.jsx"));
 
@@ -326,9 +326,6 @@ export default function SpxCity({ isMobile, preview = false, initialMode = "spx"
   // The site's shared neon toggle (.neon-pill in index.css): flat at rest, backlit accent glow when
   // hovered/active, driven by --glow. Returns spread-able props so every panel button matches the
   // rest of the site rather than the old flat grey pills.
-  // Squared, menu-style toggles (the site's single button vocabulary) — no more rounded neon pills.
-  const neon = (active) => ({ className: "vtab" + (active ? " on" : "") });
-
   return (
     <div style={{ maxWidth: MAX_W, margin: "0 auto" }}>
       <Explain q="Who actually holds SPX6900 — and which of them are buying or selling?" accent={M.accent}>
@@ -342,7 +339,7 @@ export default function SpxCity({ isMobile, preview = false, initialMode = "spx"
           it is drawn — each mode is a different population under its own residency rule. */}
       <div style={{ display: "flex", gap: 6, justifyContent: "center", marginBottom: 10, flexWrap: "wrap" }}>
         {MODES.map(m => (
-          <button key={m.id} onClick={() => { setMode(m.id); setSel(null); setWeek(null); setPend(null); }} {...neon(mode === m.id, m.accent)}>{m.label}</button>
+          <TypeTab key={m.id} label={m.label} on={mode === m.id} onClick={() => { setMode(m.id); setSel(null); setWeek(null); setPend(null); }} />
         ))}
       </div>
       <div style={{ textAlign: "center", fontFamily: SANS, fontSize: 12.5, color: "#64748b", marginBottom: 14 }}>
@@ -361,11 +358,11 @@ export default function SpxCity({ isMobile, preview = false, initialMode = "spx"
       {(!isNft || (sales?.trades?.length)) && (
         <div style={{ display: "flex", gap: 6, justifyContent: "center", marginBottom: 12, flexWrap: "wrap" }}>
           {!isNft && [7, 30].map(w => (
-            <button key={w} onClick={() => setWin(w)} {...neon(win === w, GLOW.flow)}>{w}-day flow</button>
+            <TypeTab key={w} label={`${w}-day flow`} on={win === w} onClick={() => setWin(w)} />
           ))}
           {isNft && sales?.trades?.length ? (
             [["off", "no arcs"], ["traced", "traced trades"], ["all", "all trades"]].map(([v, lbl]) => (
-              <button key={v} onClick={() => setArcMode(v)} {...neon(arcMode === v, GLOW.arcs)}>{lbl}</button>
+              <TypeTab key={v} label={lbl} on={arcMode === v} onClick={() => setArcMode(v)} />
             ))
           ) : null}
         </div>
@@ -373,7 +370,7 @@ export default function SpxCity({ isMobile, preview = false, initialMode = "spx"
 
       {mode !== "both" && (
         <div style={{ display: "flex", gap: 10, alignItems: "center", justifyContent: "center", marginBottom: 12, paddingBottom: tmOn && tl ? 20 : 0, flexWrap: "wrap" }}>
-          <button onClick={() => { setTmOn(v => !v); setWeek(null); setPend(null); }} {...neon(tmOn, GLOW.time)}>Time machine</button>
+          <TypeTab label="Time machine" on={tmOn} onClick={() => { setTmOn(v => !v); setWeek(null); setPend(null); }} />
           {tmOn && !tl && <span style={{ fontFamily: MONO, fontSize: 12, color: "#64748b" }}>loading the archive…</span>}
           {tmOn && tl && (
             <>
@@ -429,7 +426,7 @@ export default function SpxCity({ isMobile, preview = false, initialMode = "spx"
                   background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.16)",
                   borderRadius: 8, padding: "5px 9px", outline: "none",
                 }} />
-              {week != null && <button onClick={() => { setWeek(null); setPend(null); }} {...neon(false, GLOW.reset)}>Back to now</button>}
+              {week != null && <TypeTab label="Back to now" on={false} onClick={() => { setWeek(null); setPend(null); }} />}
             </>
           )}
         </div>
@@ -506,9 +503,7 @@ export default function SpxCity({ isMobile, preview = false, initialMode = "spx"
             <span style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center" }}>
               Drag to move · two-finger scroll to orbit · pinch to zoom · click a building to open it and spin around it.
             </span>
-            <button onClick={() => setFull(v => !v)} {...neon(full, GLOW.full)}>
-              {full ? "Exit full screen" : "Full screen"}
-            </button>
+            <TypeTab label={full ? "Exit full screen" : "Full screen"} on={full} onClick={() => setFull(v => !v)} />
           </div>
         </div>
       </div>
