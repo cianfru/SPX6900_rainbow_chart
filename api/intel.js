@@ -75,10 +75,10 @@ async function ingest(req, res, body) {
 
 // POST {pw} — dashboard data.
 async function dashboard(req, res, body) {
-  // ⚠️ TEMPORARY (owner request 2026-08-13): the password gate is DISABLED for debugging, so the
-  // dashboard is PUBLIC — anyone with the URL sees wallet lookups, geo and IP hashes. Flip AUTH back
-  // to true (and set CONTROL_PASSWORD in Vercel) to re-lock it once access is confirmed.
-  const AUTH = false;
+  // Password gate: re-locked now that the blank-page bug (a JS parse error, not auth) is fixed. The
+  // dashboard shows wallet lookups / geo / IP hashes, so it must stay gated. Needs CONTROL_PASSWORD
+  // set in Vercel; if it isn't, the page says "Server not configured" (not a silent lockout).
+  const AUTH = true;
   if (AUTH) {
     // Trim both sides: a password pasted into Vercel's env UI often carries a trailing newline,
     // which makes a correct-looking password fail a strict compare. Distinguish "not configured"
@@ -150,7 +150,7 @@ button:hover{border-color:var(--live);color:var(--live)}
 .ev b{color:var(--tx)}.muted{color:var(--faint)}.note{color:var(--faint);margin-top:14px;line-height:1.6}
 </style></head><body><div class="wrap">
 <h1>Page Intel</h1>
-<div class="login" id="login" style="display:none"><input id="pw" type="password" placeholder="control password"><button onclick="load()">view</button><span id="msg" class="muted"></span></div>
+<div class="login" id="login"><input id="pw" type="password" placeholder="control password" autofocus onkeydown="if(event.key==='Enter')load()"><button onclick="load()">view</button><span id="msg" class="muted"></span></div>
 <div id="out"></div>
 <script>
 const $=s=>document.querySelector(s);
@@ -169,6 +169,7 @@ async function load(){ const pw=$('#pw')?$('#pw').value:''; $('#out').innerHTML=
   const diagLine='<p class="note">'+diagInner+'</p>';
   if(!d.configured){ $('#out').innerHTML='<p class="note">Reached the dashboard, but the function does not see the KV vars at runtime.</p>'+diagLine; return; }
   if(d.kvError){ $('#out').innerHTML='<p class="note">The function sees the KV vars but the store rejected the request — likely a wrong or read-only token, or a URL mismatch.</p>'+diagLine; return; }
+  try{ sessionStorage.setItem('intelpw',pw); }catch(e){} /* password worked → remember it for this session */
   const nEvents=(d.events||[]).length, nWallets=(d.wallets||[]).length;
   const emptyNote=(nEvents+nWallets===0)?'<p class="note">Store is connected and reachable, but empty so far (0 events). Once the live site gets traffic, events will appear here. '+diagInner+'</p>':diagLine;
   const rows=(o,n=10)=>topN(o,n).map(([k,v])=>'<div class="row"><span class="k">'+esc(k)+'</span><span class="v">'+v+'</span></div>').join('')||'<div class="muted">—</div>';
@@ -184,5 +185,5 @@ async function load(){ const pw=$('#pw')?$('#pw').value:''; $('#out').innerHTML=
     +'</div>';
   $('#login').style.display='none';
 }
-load(); /* auth disabled → load the dashboard straight away, no password */
+try{ const s=sessionStorage.getItem('intelpw'); if(s){ $('#pw').value=s; load(); } }catch(e){} /* remembers a valid session so you don't retype the password each visit */
 </script></div></body></html>`;
