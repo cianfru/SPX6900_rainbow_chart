@@ -82,5 +82,10 @@
       "date": "2026-08-12",
       "id": "supplyprofit"
     }
-  ]
+  ],
+  "lanes": {
+    "aeonsale": "2026-08-13"
+  },
+  "lastEventId": "2087769104673538401",
+  "lastEventAt": "2026-08-13T05:11:58.296Z"
 }
