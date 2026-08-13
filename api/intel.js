@@ -17,6 +17,9 @@ const KV_TOKEN = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST
 const SALT = process.env.INTEL_SALT || "spx6900-intel";
 const TYPES = new Set(["pageview", "wallet_search", "city_open", "chart_open", "click"]);
 const CAP = 50000, WCAP = 20000;
+// Countries whose traffic is the owner's own (Qatar) — never recorded, and filtered from the
+// dashboard so existing rows drop out too. Override via INTEL_EXCLUDE_COUNTRIES="QA,AE".
+const EXCLUDE_COUNTRIES = new Set((process.env.INTEL_EXCLUDE_COUNTRIES || "QA").split(",").map(s => s.trim().toUpperCase()).filter(Boolean));
 
 async function kvPipeline(commands) {
   const r = await fetch(KV_URL.replace(/\/$/, "") + "/pipeline", {
@@ -47,6 +50,8 @@ async function ingest(req, res, body) {
   const t = body.t;
   if (!TYPES.has(t)) { res.status(204).end(); return; }
   if (!KV_URL || !KV_TOKEN) { res.status(204).end(); return; } // store not connected yet → no-op
+  // Don't record the owner's own traffic (Qatar) — keeps the analytics clean at the source.
+  if (EXCLUDE_COUNTRIES.has(String(req.headers["x-vercel-ip-country"] || "").toUpperCase())) { res.status(204).end(); return; }
 
   const ip = String(req.headers["x-forwarded-for"] || "").split(",")[0].trim();
   const iphash = ip ? crypto.createHash("sha256").update(SALT + ip).digest("hex").slice(0, 12) : "";
@@ -102,10 +107,14 @@ async function dashboard(req, res, body) {
       ["LRANGE", "intel:wallets", "0", "199"],
       ["HGETALL", "intel:geo"], ["HGETALL", "intel:pages"], ["HGETALL", "intel:refs"], ["HGETALL", "intel:charts"],
     ]);
+    // Filter the owner's own country out of the display too, so pre-existing rows drop out (the
+    // ingest guard only stops NEW ones). Geo drops the excluded countries entirely.
+    const notExcluded = x => !EXCLUDE_COUNTRIES.has(String(x && x.country || "").toUpperCase());
+    const geoObj = hash2obj(geo); for (const c of EXCLUDE_COUNTRIES) delete geoObj[c];
     res.status(200).json({
       configured: true, diag,
-      events: parseList(events), wallets: parseList(wallets),
-      geo: hash2obj(geo), pages: hash2obj(pages), refs: hash2obj(refs), charts: hash2obj(charts),
+      events: parseList(events).filter(notExcluded), wallets: parseList(wallets).filter(notExcluded),
+      geo: geoObj, pages: hash2obj(pages), refs: hash2obj(refs), charts: hash2obj(charts),
     });
   } catch (e) {
     // Don't 500 into a blank page — return the KV error so the page can show it (e.g. "kv 401" =
