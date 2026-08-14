@@ -330,6 +330,8 @@ function MobileSpringboard({ open, onClose, openRainbow, openGallery, openAeon, 
     return () => window.removeEventListener("popstate", onPop);
   }, [open, onClose]);
   const back = () => { if (stack.length > 1) window.history.back(); };
+  // jump straight to the four-section launcher from any depth
+  const home = () => { if (stack.length > 1) setStack([{ t: "sections" }]); };
 
   const SECS = [
     { id: "rainbow", name: "Rainbow", sub: "the foundation chart", color: "#a78bfa", onTap: () => go(openRainbow) },
@@ -370,6 +372,9 @@ function MobileSpringboard({ open, onClose, openRainbow, openGallery, openAeon, 
       <div className="tsbtop">
         <button className="tsbbtn" onClick={back} style={{ visibility: stack.length > 1 ? "visible" : "hidden" }} aria-label="Back">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" /></svg>
+        </button>
+        <button className="tsbbtn" onClick={home} style={{ visibility: stack.length > 1 ? "visible" : "hidden" }} aria-label="All sections">
+          <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2"><rect x="4" y="4" width="7" height="7" rx="1.6" /><rect x="13" y="4" width="7" height="7" rx="1.6" /><rect x="4" y="13" width="7" height="7" rx="1.6" /><rect x="13" y="13" width="7" height="7" rx="1.6" /></svg>
         </button>
         <span className="tsbtitle">{title}</span>
         <button className="tsbbtn" onClick={onClose} aria-label="Close">
