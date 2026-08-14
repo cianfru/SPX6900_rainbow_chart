@@ -602,6 +602,58 @@
     the FIFO/cohort reconstructions). Build on the shared `city-render.js` + `Skyline3D.jsx` (cube geometry path +
     beams as thin emissive columns; cohort grouping via the placement layer). Gate it like the other city pages.
 
+- **🔲 PROJECT — "WHALE ACTIVITY SCORE" — a scored/quantitative whale-activity composite to COMPLEMENT the 3D
+  Whales Watching (owner flagged 2026-08-14, from an Into the Cryptoverse video; "put it on memory as a project").**
+  ITC just shipped a section literally called "whales watching" (we anticipated the name AND concept — theirs is
+  the analytical version, ours is the interactive/3D version). Owner wants to see what we can ADD to round out our
+  whale suite. This is NOT a rebuild of Whales Watching — it's the missing ANALYTICAL layer: a reproducible 0–1
+  "how unusual is whale activity right now vs SPX's own history" oscillator, gauges, sub-scores and per-metric drill.
+  Screens read clearly enough to spec it (owner can send HD later to refine the exact input list). **What ITC built:**
+  - **A master "Whale Activity Score" gauge (0–1, labelled Normal/Elevated/Extreme)** = "how unusual current whale
+    activity is relative to history" — each input normalised to its own historical percentile, weighted-averaged,
+    optionally re-normalised back to a 0–1 range. Plus a big **score-vs-BTC-price history chart** (score in
+    red/orange, price blue log, 2013→now) so you see the score spike at tops/capitulations.
+  - **FOUR sub-scores, each its own gauge + expandable "Score Table" (Metric Name · Score · Metric Chart · Score
+    Chart, every input drillable to its own chart), with per-input WEIGHT SLIDERS ("Input weights"):**
+    1. **Whale Transactions** — whale tx count $100K+ / $1M+, $1M+ share of $100K+ tx, avg tx size $100K+ / $1M+
+       (weightless: whale tx VOLUME $100K+ / $1M+).
+    2. **Exchange Activity** — avg exchange inflow size, avg outflow size, normalized Top-10 net exchange inflow,
+       normalized net exchange inflow, Top-10 exchange outflow share.
+    3. **Exchange Inflow Composition** — exchange whale ratio, inflow share from 100–1K / 1K+ holders, inflow CDD,
+       inflow share from coins 1–5y old, inflow share from coins >5y old (weightless: Old-vs-Young inflow balance).
+       (I.e. WHO and WHAT AGE of coin is being sent TO exchanges = the sell-side-quality signal.)
+    4. **Whale Holder Positioning** — supply held by 100–1K / 1K+ addresses, address COUNT holding 100–1K / 1K+
+       (weightless: share of addresses holding 100–1K / 1K+).
+  - **Interactivity that makes it feel pro:** per-input weight sliders + Re-normalize Average (False/True) + Moving
+    Average (None / 30D SMA) + Chart Type (Raw / Color-Coded) + Price Scale (Linear/Log); a **TIME-SCRUBBER with a
+    play button** that replays every gauge through history (04 Dec 2013 → today); "Weightless Indicators" (tracked,
+    shown, 0 weight); tabs Overview / Exchange Flow / Holders / Live Whale Positioning; "Data details" toggle + Refresh.
+  - **HOW WE'RE ALREADY DIFFERENT / AHEAD (say it, don't copy):** ours is the 3D BEHAVIOURAL view (whaleswatching
+    cubes+beams, the cities, the holder skyline) — theirs is 2D scored gauges. The gap in OUR suite is the scored
+    composite + the historical oscillator + the per-metric drill, which we can add cheaply.
+  - **WE ALREADY HAVE MOST INPUTS (no new data pull for a v1):** exchange net-flow + venue flow (`cex-flow.json`,
+    `build-cex-flow.mjs`), inflow-by-age / CDD-style signals (FIFO engine + URPD age + liveliness/NRPL from
+    `build-onchain-local.mjs`), whale holder positioning (whale cohorts `whale-cohorts.js`, concentration/top-N,
+    entity clusters, per-wallet balances+flow), smart-money. The ONE genuinely missing pillar is **whale TRANSACTION
+    COUNTS/sizes** ($100K+/$1M+ transfers) — derivable from the raw-transfer archive the Dune pipeline already keeps
+    (count/size of transfers ≥ $X/day), so it's a reduction we can add to the FIFO engine, not a new source.
+  - **BUILD SHAPE (reuse the valuation-composite pattern — this is its whale sibling):** a
+    `scripts/bot/whale-activity-score.mjs` engine mirroring `valuation-composite.mjs` (INDICATORS list, each series
+    percentile-ranked over its own history → weighted sub-scores → master score), writing `public/whale-score.json`
+    off the daily onchain-dune + cex-flow runs (keyless, $0). Site: a `WhaleActivityScore.jsx` page (master gauge +
+    4 sub-gauges + score-vs-price history + drill tables + time-scrubber, recharts + the existing gauge style) in
+    the On-Chain/Whales group; a rotation CARD ("whalescore") for the top-line number. Group it with the existing
+    whale charts (whaleswatching, concentration, clusters, whale supply/counts, wealth ladder, smart money, cex
+    flow) under a unified **"Whales" sub-section** so the suite reads as one thing — the analytical score up top,
+    the 3D behaviour view beside it.
+  - **HONESTY CAVEATS (the moat):** ETH-native only (whale/flow signals aren't reconstructable cross-chain); SPX is
+    THIN so whale-transaction counts are noisy → smooth (30D) + frame as a POSITION read, not a signal; publish the
+    weights + let people tune them (exactly our reproducible-composite ethos, and it beats ITC's on transparency).
+    A valuation/activity POSITION over history, never a buy/sell call.
+  - **NEXT:** owner may send an HD screenshot to lock the exact input list; then scope v1 (start with the 3 pillars
+    we already have data for — Exchange Activity, Exchange Inflow Composition, Whale Holder Positioning — and add the
+    Whale Transactions pillar once the archive reduction is wired). Not greenlit to build yet — parked as a project.
+
 - **✅ MOSTLY SHIPPED — CITY TVL + INHABITANTS, WITH HISTORY (owner, 2026-08-06).** The historical line chart + a value
   card LANDED: the **`City Growth` site chart** (`CityHistoryChart.jsx`, id `citygrowth`) plots citizens AND city TVL over
   time (climbing through the drawdown), and the **`cityvalue` card** (`scripts/bot/city-value-card.mjs`) is the dollar-TVL
