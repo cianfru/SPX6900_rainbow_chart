@@ -650,6 +650,18 @@
     THIN so whale-transaction counts are noisy → smooth (30D) + frame as a POSITION read, not a signal; publish the
     weights + let people tune them (exactly our reproducible-composite ethos, and it beats ITC's on transparency).
     A valuation/activity POSITION over history, never a buy/sell call.
+  - **⭐ TWO ANGLES THE OWNER FLAGGED AS THE MOST INTERESTING (2026-08-14, 2nd look):**
+    (1) **"COIN MOVEMENT AS ACTIVITY, REGARDLESS OF DESTINATION"** — ITC scores coins MOVING at all (dormant→active)
+    as a signal, not just coins hitting exchanges. THE KEY POINT: **we ALREADY compute this** — `liveliness`,
+    `dormancy` and `cdd` (coin-days-destroyed) come out of the FIFO engine (`build-onchain-local.mjs`) and we ship a
+    `Liveliness` site chart + NRPL. We just don't BADGE it as "whale activity." A cheap win is to reframe/surface
+    liveliness+CDD as an "on-chain activity" reading (old coins waking up = the interesting event), optionally
+    filtered to whale-sized wallets. Low effort, genuinely on the "interesting TRUE angle" line.
+    (2) **OUR DIFFERENTIATOR — SEGMENT THE ACTIVITY BY IDENTITY, not just one aggregate gauge.** ITC only has an
+    AGGREGATE score (one number for "the whales"). We have per-wallet identity + entity clustering + cohorts + the
+    city, so we can answer "*which* whales/cohorts/entities are active right now" and render it in 3D (the beams on
+    whaleswatching already do individual buy/sell). So the play isn't to copy their single gauge — it's to add the
+    scored/history layer AND keep our per-entity granularity + 3D, which they can't do. That's the moat position.
   - **NEXT:** owner may send an HD screenshot to lock the exact input list; then scope v1 (start with the 3 pillars
     we already have data for — Exchange Activity, Exchange Inflow Composition, Whale Holder Positioning — and add the
     Whale Transactions pillar once the archive reduction is wired). Not greenlit to build yet — parked as a project.
