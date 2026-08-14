@@ -1,15 +1,15 @@
 {
-  "date": "2026-08-13",
+  "date": "2026-08-14",
   "signals": [
     {
       "type": "underwater-holding",
       "emoji": "💎",
-      "title": "Holders ~40% underwater — and still not selling",
-      "detail": "MVRV 0.6: price is 40% below the crowd's avg on-chain cost basis ($0.522). Yet 61% of supply is in the longest-held tier — the float isn't moving. MVRV has slipped 0.63→0.6 over ~30d.",
+      "title": "Holders ~39% underwater — and still not selling",
+      "detail": "MVRV 0.61: price is 39% below the crowd's avg on-chain cost basis ($0.521). Yet 61% of supply is in the longest-held tier — the float isn't moving. MVRV has slipped 0.72→0.61 over ~30d.",
       "framing": "Maximum financial pain, minimal capitulation — conviction being tested and, so far, holding.",
       "note": "Describe the divergence, NOT a bottom call. \"Not selling\", not \"buy\".",
       "card": "breakeven",
-      "score": 1.94624914764033
+      "score": 1.9383918578817
     },
     {
       "type": "drawdown",
@@ -25,11 +25,11 @@
       "type": "capitulation-cluster",
       "emoji": "🧊",
       "title": "-84% below trend AND fear at 29",
-      "detail": "Deep in the Fire Sale band (-84% vs the power-law fair value $2.018) with Fear & Greed at 29. Valuation and sentiment bottoming together.",
+      "detail": "Deep in the Fire Sale band (-84% vs the power-law fair value $2.025) with Fear & Greed at 29. Valuation and sentiment bottoming together.",
       "framing": "Where value and fear overlap — historically the account's best-resonating zone.",
       "note": "Honest \"cheap + fearful\", never \"guaranteed bounce\".",
       "card": "riskcolor",
-      "score": 1.1646962111803527
+      "score": 1.2318459589792154
     }
   ]
 }
