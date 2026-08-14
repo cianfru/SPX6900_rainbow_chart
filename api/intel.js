@@ -148,14 +148,28 @@ h1{font-size:15px;letter-spacing:.18em;text-transform:uppercase;color:var(--dim)
 .login{display:flex;gap:8px;align-items:center}input{background:var(--panel);border:1px solid var(--line);color:var(--tx);padding:9px 12px;border-radius:8px;font:inherit}
 button{background:var(--panel);border:1px solid var(--line);color:var(--tx);padding:9px 14px;border-radius:8px;cursor:pointer;font:inherit}
 button:hover{border-color:var(--live);color:var(--live)}
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:22px;margin-top:20px}
-@media(max-width:720px){.grid{grid-template-columns:1fr}}
-.card{border-top:1px solid var(--line);padding-top:12px}
-.card h2{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);margin:0 0 10px}
-.row{display:flex;justify-content:space-between;gap:12px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.03)}
-.row .k{color:var(--dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.row .v{color:var(--tx);font-variant-numeric:tabular-nums;flex:none}
-.wal{padding:7px 0;border-bottom:1px solid rgba(255,255,255,.04)}.wal .a{color:var(--live);word-break:break-all}.wal .m{color:var(--faint);font-size:11px}
-.feed{max-height:420px;overflow:auto}.ev{padding:4px 0;color:var(--dim);border-bottom:1px solid rgba(255,255,255,.03);font-size:12px}
+.stats{display:flex;flex-wrap:wrap;gap:12px;margin:16px 0 4px}
+.stat{flex:1;min-width:128px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:13px 15px}
+.stat .n{font-size:26px;font-weight:700;letter-spacing:-.01em;font-variant-numeric:tabular-nums;color:var(--tx)}
+.stat .l{font-size:10px;letter-spacing:.13em;text-transform:uppercase;color:var(--faint);margin-top:3px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:18px}
+@media(max-width:820px){.grid{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:15px 17px}
+.card h2{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);margin:0 0 12px;display:flex;justify-content:space-between;align-items:baseline}
+.card h2 .c{color:var(--dim);font-size:10px;letter-spacing:.06em}
+.row{display:flex;justify-content:space-between;gap:12px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.row:last-child{border-bottom:0}
+.row .k{color:var(--dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.row .v{color:var(--tx);font-variant-numeric:tabular-nums;flex:none;font-weight:600}
+.wg{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.04)}.wg:last-child{border-bottom:0}
+.wg .col{min-width:0;flex:1}.wg .a{color:var(--live);font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.wg .m{color:var(--faint);font-size:11px;margin-top:2px}
+.wg .cnt{flex:none;background:rgba(78,231,154,.13);color:var(--live);border-radius:999px;padding:3px 11px;font-weight:700;font-size:12px;font-variant-numeric:tabular-nums}
+details.cty{border-bottom:1px solid rgba(255,255,255,.04)}details.cty[open]{background:rgba(255,255,255,.015)}
+.cty>summary{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 2px 8px 0;cursor:pointer;list-style:none}
+.cty>summary::-webkit-details-marker{display:none}
+.cty .nm{display:flex;align-items:center;min-width:0}.cty .flag{font-size:16px;margin-right:9px;flex:none}.cty .nm .t{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--tx)}
+.cty .v{flex:none;font-weight:600;font-variant-numeric:tabular-nums}
+.cty .sub{padding:0 0 9px 25px;color:var(--dim);font-size:11.5px;line-height:1.75}.cty .sub b{color:var(--faint);font-weight:400}
+.feed{max-height:440px;overflow:auto;margin:0 -4px;padding:0 4px}.ev{padding:5px 0;color:var(--dim);border-bottom:1px solid rgba(255,255,255,.03);font-size:12px}
 .ev b{color:var(--tx)}.muted{color:var(--faint)}.note{color:var(--faint);margin-top:14px;line-height:1.6}
 </style></head><body><div class="wrap">
 <h1>Page Intel</h1>
@@ -166,6 +180,18 @@ const $=s=>document.querySelector(s);
 const topN=(o,n)=>Object.entries(o||{}).sort((a,b)=>b[1]-a[1]).slice(0,n); /* NOT 'top' — collides with window.top in a classic script → "already declared" parse error → blank page */
 const ago=ts=>{const s=Math.floor((Date.now()-ts)/1000);if(s<60)return s+'s';const m=Math.floor(s/60);if(m<60)return m+'m';const h=Math.floor(m/60);return h<24?h+'h':Math.floor(h/24)+'d';};
 const esc=s=>String(s==null?'':s).replace(/[<>&]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]));
+const flag=c=>{ c=String(c||'').toUpperCase(); return /^[A-Z]{2}$/.test(c)?c.replace(/./g,x=>String.fromCodePoint(127397+x.charCodeAt(0))):'🏳'; };
+let _RN; try{ _RN=new Intl.DisplayNames(['en'],{type:'region'}); }catch(e){}
+const cname=c=>{ c=String(c||'').toUpperCase(); if(!c) return '??'; try{ return (_RN&&_RN.of(c))||c; }catch(e){ return c; } };
+// Group repeated searches of the SAME wallet into one row with a count (one person searching 12×
+// shouldn't fill the list). Newest location wins; multiple IPs are flagged.
+function groupWallets(ws){ const m={}; (ws||[]).forEach(w=>{ const k=w.wallet; if(!k) return; if(!m[k]) m[k]={wallet:k,n:0,last:0,city:w.city,country:w.country,ips:new Set()};
+  const g=m[k]; g.n++; if((w.ts||0)>g.last){ g.last=w.ts; g.city=w.city; g.country=w.country; } if(w.ip) g.ips.add(w.ip); });
+  return Object.values(m).sort((a,b)=>b.n-a.n||b.last-a.last); }
+// Country → cities: totals from the all-time geo counter, city breakdown from recent events.
+function countryTree(events,geo){ const cities={}; (events||[]).forEach(e=>{ const c=String(e.country||'').toUpperCase(); if(!c) return; (cities[c]=cities[c]||{}); const ci=e.city||'—'; cities[c][ci]=(cities[c][ci]||0)+1; });
+  return Object.entries(geo||{}).map(([c,n])=>[String(c).toUpperCase(),+n||0]).sort((a,b)=>b[1]-a[1])
+    .map(([c,n])=>({code:c,n,cities:Object.entries(cities[c]||{}).sort((a,b)=>b[1]-a[1])})); }
 async function load(){ const pw=$('#pw')?$('#pw').value:''; $('#out').innerHTML='<p class="muted">loading…</p>';
   let r;
   try{ r=await fetch('/api/intel',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pw})}); }
@@ -180,16 +206,25 @@ async function load(){ const pw=$('#pw')?$('#pw').value:''; $('#out').innerHTML=
   if(d.kvError){ $('#out').innerHTML='<p class="note">The function sees the KV vars but the store rejected the request — likely a wrong or read-only token, or a URL mismatch.</p>'+diagLine; return; }
   try{ sessionStorage.setItem('intelpw',pw); }catch(e){} /* password worked → remember it for this session */
   const nEvents=(d.events||[]).length, nWallets=(d.wallets||[]).length;
-  const emptyNote=(nEvents+nWallets===0)?'<p class="note">Store is connected and reachable, but empty so far (0 events). Once the live site gets traffic, events will appear here. '+diagInner+'</p>':diagLine;
+  const emptyNote=(nEvents+nWallets===0)?'<p class="note">Store is connected and reachable, but empty so far (0 events). Once the live site gets traffic, events will appear here. '+diagInner+'</p>':'';
   const rows=(o,n=10)=>topN(o,n).map(([k,v])=>'<div class="row"><span class="k">'+esc(k)+'</span><span class="v">'+v+'</span></div>').join('')||'<div class="muted">—</div>';
-  const wallets=(d.wallets||[]).map(w=>'<div class="wal"><div class="a">'+esc(w.wallet)+'</div><div class="m">'+esc([w.city,w.country].filter(Boolean).join(', ')||'??')+' · '+ago(w.ts)+' ago · '+esc(w.ip)+'</div></div>').join('')||'<div class="muted">no wallet searches yet</div>';
-  const feed=(d.events||[]).slice(0,200).map(e=>'<div class="ev"><b>'+esc(e.t)+'</b> '+esc(e.path||'')+(e.chart?' ['+esc(e.chart)+']':'')+(e.wallet?' '+esc(e.wallet):'')+' <span class="muted">· '+esc([e.city,e.country].filter(Boolean).join(', ')||'??')+' · '+(e.ref?esc(e.ref)+' · ':'')+ago(e.ts)+'</span></div>').join('');
-  $('#out').innerHTML=emptyNote+'<div class="grid">'
-    +'<div class="card"><h2>Recent wallet searches (city)</h2>'+wallets+'</div>'
+  // at-a-glance summary
+  const geoSum=Object.values(d.geo||{}).reduce((a,b)=>a+(+b||0),0);
+  const uniqIP=new Set((d.events||[]).map(e=>e.ip).filter(Boolean)).size;
+  const wg=groupWallets(d.wallets), ctree=countryTree(d.events,d.geo);
+  const stat=(n,l)=>'<div class="stat"><div class="n">'+n+'</div><div class="l">'+l+'</div></div>';
+  const stats='<div class="stats">'+stat(geoSum.toLocaleString(),'events (all-time)')+stat(ctree.length,'countries')+stat(wg.length,'wallets searched')+stat(Object.keys(d.charts||{}).length,'charts opened')+stat(uniqIP,'recent visitors')+'</div>';
+  // wallet searches, grouped by address with a count
+  const wallets=wg.slice(0,40).map(g=>'<div class="wg"><div class="col"><div class="a">'+esc(g.wallet)+'</div><div class="m">'+esc([g.city,cname(g.country)].filter(Boolean).join(', ')||'??')+' · last '+ago(g.last)+' ago'+(g.ips.size>1?' · '+g.ips.size+' IPs':'')+'</div></div><div class="cnt">'+g.n+'×</div></div>').join('')||'<div class="muted">no wallet searches yet</div>';
+  // countries, grouped, expandable to their cities
+  const countries=ctree.slice(0,20).map(c=>'<details class="cty"><summary><span class="nm"><span class="flag">'+flag(c.code)+'</span><span class="t">'+esc(cname(c.code))+'</span></span><span class="v">'+c.n+'</span></summary>'+(c.cities.length?'<div class="sub">'+c.cities.slice(0,10).map(([ci,n])=>esc(ci)+' <b>'+n+'</b>').join(' · ')+'</div>':'')+'</details>').join('')||'<div class="muted">—</div>';
+  const feed=(d.events||[]).slice(0,200).map(e=>'<div class="ev"><b>'+esc(e.t)+'</b> '+esc(e.path||'')+(e.chart?' ['+esc(e.chart)+']':'')+(e.wallet?' '+esc(e.wallet):'')+' <span class="muted">· '+flag(e.country)+' '+esc([e.city,cname(e.country)].filter(Boolean).join(', ')||'??')+' · '+(e.ref?esc(e.ref)+' · ':'')+ago(e.ts)+'</span></div>').join('');
+  $('#out').innerHTML=emptyNote+stats+'<div class="grid">'
+    +'<div class="card"><h2>Wallet searches <span class="c">'+wg.length+' unique</span></h2>'+wallets+'</div>'
+    +'<div class="card"><h2>Countries <span class="c">tap to expand</span></h2>'+countries+'</div>'
     +'<div class="card"><h2>Top pages</h2>'+rows(d.pages,12)+'</div>'
-    +'<div class="card"><h2>Countries</h2>'+rows(d.geo,12)+'</div>'
-    +'<div class="card"><h2>Referrers</h2>'+rows(d.refs,12)+'</div>'
     +'<div class="card"><h2>Charts opened</h2>'+rows(d.charts,12)+'</div>'
+    +'<div class="card"><h2>Referrers</h2>'+rows(d.refs,12)+'</div>'
     +'<div class="card"><h2>Recent events</h2><div class="feed">'+feed+'</div></div>'
     +'</div>';
   $('#login').style.display='none';
