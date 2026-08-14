@@ -141,7 +141,7 @@ export default async function handler(req, res) {
 
 const PAGE = `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Page Intel</title><style>
-:root{--bg:#08090b;--panel:#0e1013;--line:#1e2128;--tx:#f4f6f9;--dim:#9aa3b2;--faint:#646b78;--live:#4ee79a}
+:root{--bg:#08090b;--panel:#0e1013;--line:#ffffff;--sep:rgba(255,255,255,.5);--tx:#f4f6f9;--dim:#9aa3b2;--faint:#646b78;--live:#4ee79a}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font-family:'Geist Mono',ui-monospace,Menlo,Consolas,monospace;font-size:13px}
 .wrap{max-width:1100px;margin:0 auto;padding:24px 18px 60px}
 h1{font-size:15px;letter-spacing:.18em;text-transform:uppercase;color:var(--dim);font-weight:600;margin:0 0 18px}
@@ -157,19 +157,19 @@ button:hover{border-color:var(--live);color:var(--live)}
 .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:15px 17px}
 .card h2{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);margin:0 0 12px;display:flex;justify-content:space-between;align-items:baseline}
 .card h2 .c{color:var(--dim);font-size:10px;letter-spacing:.06em}
-.row{display:flex;justify-content:space-between;gap:12px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.row{display:flex;justify-content:space-between;gap:12px;padding:6px 0;border-bottom:1px solid var(--sep)}
 .row:last-child{border-bottom:0}
 .row .k{color:var(--dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.row .v{color:var(--tx);font-variant-numeric:tabular-nums;flex:none;font-weight:600}
-.wg{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.04)}.wg:last-child{border-bottom:0}
+.wg{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--sep)}.wg:last-child{border-bottom:0}
 .wg .col{min-width:0;flex:1}.wg .a{color:var(--live);font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.wg .m{color:var(--faint);font-size:11px;margin-top:2px}
 .wg .cnt{flex:none;background:rgba(78,231,154,.13);color:var(--live);border-radius:999px;padding:3px 11px;font-weight:700;font-size:12px;font-variant-numeric:tabular-nums}
-details.cty{border-bottom:1px solid rgba(255,255,255,.04)}details.cty[open]{background:rgba(255,255,255,.015)}
+details.cty{border-bottom:1px solid var(--sep)}details.cty[open]{background:rgba(255,255,255,.015)}
 .cty>summary{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 2px 8px 0;cursor:pointer;list-style:none}
 .cty>summary::-webkit-details-marker{display:none}
 .cty .nm{display:flex;align-items:center;min-width:0}.cty .flag{font-size:16px;margin-right:9px;flex:none}.cty .nm .t{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--tx)}
 .cty .v{flex:none;font-weight:600;font-variant-numeric:tabular-nums}
 .cty .sub{padding:0 0 9px 25px;color:var(--dim);font-size:11.5px;line-height:1.75}.cty .sub b{color:var(--faint);font-weight:400}
-.feed{max-height:440px;overflow:auto;margin:0 -4px;padding:0 4px}.ev{padding:5px 0;color:var(--dim);border-bottom:1px solid rgba(255,255,255,.03);font-size:12px}
+.feed{max-height:440px;overflow:auto;margin:0 -4px;padding:0 4px}.ev{padding:5px 0;color:var(--dim);border-bottom:1px solid var(--sep);font-size:12px}
 .ev b{color:var(--tx)}.muted{color:var(--faint)}.note{color:var(--faint);margin-top:14px;line-height:1.6}
 </style></head><body><div class="wrap">
 <h1>Page Intel</h1>
