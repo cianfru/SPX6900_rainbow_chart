@@ -671,6 +671,7 @@
   <div class="sb" id="sb" aria-hidden="true">
     <div class="sbtop">
       <button class="sbbtn" id="sbback" aria-label="Back"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg></button>
+      <button class="sbbtn" id="sbhome" aria-label="All sections" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="7" height="7" rx="1.6" stroke="currentColor" stroke-width="2" fill="none"/><rect x="13" y="4" width="7" height="7" rx="1.6" stroke="currentColor" stroke-width="2" fill="none"/><rect x="4" y="13" width="7" height="7" rx="1.6" stroke="currentColor" stroke-width="2" fill="none"/><rect x="13" y="13" width="7" height="7" rx="1.6" stroke="currentColor" stroke-width="2" fill="none"/></svg></button>
       <span class="sbtitle" id="sbtitle">Explore</span>
       <button class="sbbtn" id="sbclose" aria-label="Close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg></button>
     </div>
@@ -1277,6 +1278,7 @@
         g.items.forEach(it=>{ const vs=(window.__VIEWS||{})[sec.label+'|'+it]; tiles+=chartTile(it, col, leafTarget(sec.label,it), vs&&vs.length?vs.length:0); }); }
       b.innerHTML=`<div class="sbgrid ${view.t}">${tiles}</div>`;
       const bk=document.getElementById('sbback'); if(bk) bk.toggleAttribute('hidden', stack.length<=1);
+      const hm=document.getElementById('sbhome'); if(hm) hm.toggleAttribute('hidden', stack.length<=1);
       const tt=document.getElementById('sbtitle'); if(tt) tt.textContent=title;
       b.classList.remove('sb-fwd','sb-back'); void b.offsetWidth; b.classList.add(dir==='back'?'sb-back':'sb-fwd'); b.scrollTop=0; }
     function go(view,push){ stack.push(view); if(push!==false) history.pushState({sbDepth:stack.length},''); render(view,'fwd'); }
@@ -1291,6 +1293,7 @@
       else if(a==='grp'){ go({t:'charts',sec:t.getAttribute('data-sec'),grp:v}); }
       else if(a==='nav'&&v){ (window.top||window).location.href=v; } }); }
     { const bk=document.getElementById('sbback'); if(bk) bk.addEventListener('click',()=>history.back()); }
+    { const hm=document.getElementById('sbhome'); if(hm) hm.addEventListener('click',()=>{ if(stack.length>1) history.go(-(stack.length-1)); }); }
     { const cx=document.getElementById('sbclose'); if(cx) cx.addEventListener('click',()=>{ if(stack.length) history.go(-stack.length); else close(); }); }
     // entry points (mobile only): the "apps" grid button in the bar + the hero "> CHARTS" CTA
     window.__sbOpen=open; window.__sbMobile=()=>matchMedia('(max-width:700px)').matches;
