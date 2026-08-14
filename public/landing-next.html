@@ -481,15 +481,6 @@
   .sbgrp .sbgrpbg svg{ width:100%; height:100%; display:block; }
   .sbgrp .sbnm, .sbgrp .sbsub{ position:relative; z-index:1; }
   .sbgrp .sbgo{ z-index:1; }
-  /* ── iOS-style app-icon chip: rounded square, group-colour gradient, crisp white motif — the
-     "colourful second-layer icon". Same chip on group tiles (large) and chart tiles (small). ── */
-  .sbchip{ width:46px; height:46px; border-radius:13px; display:inline-flex; align-items:center; justify-content:center; flex:none; position:relative; z-index:1;
-    background:linear-gradient(155deg, color-mix(in srgb, var(--tc) 96%, #fff), color-mix(in srgb, var(--tc) 66%, #000));
-    box-shadow:0 5px 13px color-mix(in srgb, var(--tc) 42%, transparent), inset 0 1.5px 0 rgba(255,255,255,.42), inset 0 -3px 7px rgba(0,0,0,.28); }
-  .sbchip::after{ content:""; position:absolute; inset:0; border-radius:inherit; background:linear-gradient(180deg, rgba(255,255,255,.28), transparent 52%); pointer-events:none; }
-  .sbchip svg{ width:27px; height:27px; color:#fff; display:block; position:relative; z-index:1; filter:drop-shadow(0 1px 1.5px rgba(0,0,0,.35)); }
-  .sbchip-sm{ width:38px; height:38px; border-radius:11px; } .sbchip-sm svg{ width:22px; height:22px; }
-  :root[data-theme="light"] .sbchip{ box-shadow:0 5px 12px color-mix(in srgb, var(--tc) 36%, transparent), inset 0 1.5px 0 rgba(255,255,255,.55), inset 0 -3px 7px rgba(0,0,0,.18); }
   /* third-layer chart cards: same clean card as the group cards, but the chart's REAL one-line
      description (not a fake sparkline) — honest, and it's what actually tells the charts apart. */
   .sbleaf{ min-height:130px; }
@@ -525,11 +516,8 @@
   .sbcell:active{ transform:scale(.97); border-color:var(--tc); }
   .sbcell .sbcellbg{ position:absolute; left:0; right:0; bottom:0; height:62%; opacity:.14; color:var(--tc); pointer-events:none; }
   .sbcell .sbcellbg svg{ width:100%; height:100%; display:block; }
-  .sbcell .sbcellico{ position:absolute; top:16px; left:17px; width:48px; height:48px; border-radius:14px; display:inline-flex; align-items:center; justify-content:center;
-    background:linear-gradient(155deg, color-mix(in srgb, var(--tc) 96%, #fff), color-mix(in srgb, var(--tc) 64%, #000));
-    box-shadow:0 6px 15px color-mix(in srgb, var(--tc) 45%, transparent), inset 0 1.5px 0 rgba(255,255,255,.42), inset 0 -3px 8px rgba(0,0,0,.3); }
-  .sbcell .sbcellico::after{ content:""; position:absolute; inset:0; border-radius:inherit; background:linear-gradient(180deg, rgba(255,255,255,.3), transparent 52%); pointer-events:none; }
-  .sbcell .sbcellico svg{ width:28px; height:28px; color:#fff; position:relative; z-index:1; filter:drop-shadow(0 1px 1.5px rgba(0,0,0,.35)); }
+  .sbcell .sbcellico{ position:absolute; top:16px; left:17px; width:32px; height:32px; color:var(--tc); }
+  .sbcell .sbcellico svg{ width:100%; height:100%; }
   .sbcell .sbcellnm{ position:relative; font-family:var(--sans); font-weight:800; font-size:19px; letter-spacing:-.01em; line-height:1.05; }
   .sbcell .sbcellsub{ position:relative; font-family:var(--label); font-size:9.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--faint); }
   .sbcell .sbcellarrow{ position:absolute; top:16px; right:17px; color:var(--tc); font-size:17px; line-height:1; opacity:.65; }
@@ -1280,11 +1268,11 @@
       'Rarity':'<svg viewBox="0 0 120 80" preserveAspectRatio="xMidYMax slice" fill="none" stroke="currentColor" stroke-width="5" stroke-linejoin="round"><path d="M60 8 96 30v34L60 86 24 64V30z"/><path d="M60 86V44M24 30l36 14 36-14"/></svg>',
       'SPX City':'<svg viewBox="0 0 120 80" preserveAspectRatio="xMidYMax slice" fill="currentColor"><rect x="6" y="46" width="16" height="40"/><rect x="26" y="30" width="16" height="56"/><rect x="46" y="54" width="14" height="32"/><rect x="64" y="18" width="18" height="68"/><rect x="86" y="38" width="14" height="48"/><rect x="104" y="26" width="16" height="60"/></svg>',
     };
-    const grpTile=(sec,name,sub,col)=>`<button class="sbtile sbgrp" style="--tc:${col}" data-act="grp" data-sec="${esc(sec)}" data-v="${esc(name)}"><span class="sbchip">${GRP_MOTIF[name]||''}</span><span class="sbnm">${esc(name)}</span><span class="sbsub">${esc(sub)}</span>${CHEV}</button>`;
+    const grpTile=(sec,name,sub,col)=>`<button class="sbtile sbgrp" style="--tc:${col}" data-act="grp" data-sec="${esc(sec)}" data-v="${esc(name)}"><span class="sbgrpbg">${GRP_MOTIF[name]||''}</span><span class="sbnm">${esc(name)}</span><span class="sbsub">${esc(sub)}</span>${CHEV}</button>`;
     // third layer (the charts themselves): a clean card matching the group cards — group-colour
     // accent, the chart title, and its REAL one-line description (honest + differentiating), no fake
     // sparkline. `nv` (views) is unused now.
-    const chartTile=(name,col,tgt,motif)=>`<button class="sbtile sbgrp sbleaf${tgt?'':' sbdis'}" style="--tc:${col}" ${tgt?`data-act="nav" data-v="${esc(tgt)}"`:''}><span class="sbchip sbchip-sm">${motif||''}</span><span class="sbnm">${esc(name)}</span><span class="sbsub">${esc(descOf(name))}</span>${CHEV}</button>`;
+    const chartTile=(name,col,tgt)=>`<button class="sbtile sbgrp sbleaf${tgt?'':' sbdis'}" style="--tc:${col}" ${tgt?`data-act="nav" data-v="${esc(tgt)}"`:''}><span class="sbdot"></span><span class="sbnm">${esc(name)}</span><span class="sbsub">${esc(descOf(name))}</span>${CHEV}</button>`;
 
     let stack=[];
     const el=()=>document.getElementById('sb'), body=()=>document.getElementById('sbbody');
@@ -1297,8 +1285,7 @@
         sec.groups.forEach((g,i)=>{ tiles+=grpTile(sec.label, g.g, g.items.length+' charts', GCOL[i%GCOL.length]); });
       } else if(view.t==='charts'){ const sec=NAV.find(s=>s.label===view.sec), g=sec.groups.find(x=>x.g===view.grp); title=view.grp;
         const col=GCOL[sec.groups.indexOf(g)%GCOL.length];
-        const gmotif=GRP_MOTIF[view.grp]||'';
-        g.items.forEach(it=>{ tiles+=chartTile(it, col, leafTarget(sec.label,it), gmotif); }); }
+        g.items.forEach(it=>{ tiles+=chartTile(it, col, leafTarget(sec.label,it)); }); }
       b.innerHTML=`<div class="sbgrid ${view.t}">${tiles}</div>`;
       const bk=document.getElementById('sbback'); if(bk) bk.toggleAttribute('hidden', stack.length<=1);
       const hm=document.getElementById('sbhome'); if(hm) hm.toggleAttribute('hidden', stack.length<=1);
