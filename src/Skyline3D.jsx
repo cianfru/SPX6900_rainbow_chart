@@ -1189,12 +1189,28 @@ export default function Skyline3D({
     // state is restored when done. ⚠ captureStream grabs the WEBGL canvas only — the note/name signs
     // are CSS2D DOM overlays, so they are NOT in the exported file (screen-record for those). Revealed
     // in the UI only behind ?rec=1.
-    window.__cityRecord = ({ seconds = 10, fps = 60, onTick } = {}) => {
+    // Set to [w, h] only while a clip is being captured (see __cityRecord); overrides the live size.
+    let recordDims = null;
+    // ⭐ THE EXPORT IS TALLER THAN THE ON-SCREEN VIEW. The city fills a wide, short card on the page,
+    // and a clip at that shape is mostly sky and street with the towers — the point — squeezed into a
+    // thin band. `aspect` (width/height) reshapes the render buffer just for the capture: the default
+    // 4:5 gives a portrait frame that fills a phone feed and shows the buildings at full height. Set
+    // via recordDims, which sizeNow()/onResize() below read, so the DRS controller keeps the shape too.
+    // updateStyle stays false while recording (see onResize), so the on-screen canvas box is untouched
+    // — only the captured buffer changes shape; the live preview squishes for a few seconds, the file
+    // does not. Restored on finally.
+    window.__cityRecord = ({ seconds = 10, fps = 60, aspect = 4 / 5, onTick } = {}) => {
       flying = false;
       const wasAuto = controls.autoRotate, wasSpeed = controls.autoRotateSpeed, wasEnabled = controls.enabled;
       controls.enabled = true; controls.autoRotate = true; controls.autoRotateSpeed = 60 / seconds;   // ~one full orbit over `seconds`
+      // Keep the on-screen width, derive height from the requested aspect → a taller buffer.
+      const [w0] = sizeNow();
+      if (aspect > 0 && w0) { recordDims = [Math.round(w0), Math.round(w0 / aspect)]; onResize(); }
       return recordCanvas(renderer.domElement, { seconds, fps, onTick })
-        .finally(() => { controls.autoRotate = wasAuto; controls.autoRotateSpeed = wasSpeed; controls.enabled = wasEnabled; });
+        .finally(() => {
+          recordDims = null; onResize();
+          controls.autoRotate = wasAuto; controls.autoRotateSpeed = wasSpeed; controls.enabled = wasEnabled;
+        });
     };
     if (flying) { controls.enabled = false; renderer.domElement.addEventListener("pointerdown", stopFlight, { once: true }); addEventListener("wheel", stopFlight, { once: true, passive: true }); }
 
@@ -1205,11 +1221,11 @@ export default function Skyline3D({
     // tab-switch cutoff), which let two earlier in-page versions sit silently dead. CSS2D labels
     // are DOM and untouched — text stays sharp at any render scale.
     const MAXR = Math.min(devicePixelRatio, 2), MINR = Math.max(0.55, MAXR * 0.4);
-    const sizeNow = () => [cine ? window.innerWidth : el.clientWidth,
+    const sizeNow = () => recordDims || [cine ? window.innerWidth : el.clientWidth,
       cine ? window.innerHeight : (viewHRef.current || VH)];
     const drs = makeDrs({
       maxRatio: MAXR, minRatio: MINR,
-      apply: r => { renderer.setPixelRatio(r); composer?.setPixelRatio(r); const [w, h] = sizeNow(); if (w && h) { renderer.setSize(w, h); composer?.setSize(w, h); } },
+      apply: r => { renderer.setPixelRatio(r); composer?.setPixelRatio(r); const [w, h] = sizeNow(); if (w && h) { renderer.setSize(w, h, !recordDims); composer?.setSize(w, h); } },
     });
     const adapt = now => drs.tick(now);
 
@@ -1236,7 +1252,9 @@ export default function Skyline3D({
     const onResize = () => {
       const [w, h] = sizeNow();
       if (!w || !h) return;                       // a zero-size buffer renders nothing at all
-      cam.aspect = w / h; cam.updateProjectionMatrix(); renderer.setSize(w, h); composer?.setSize(w, h); labelR.setSize(w, h);
+      // updateStyle=false while recording: reshape the capture buffer without disturbing the on-page
+      // canvas box (which stays its wide self). The live preview squishes for the clip; the file is right.
+      cam.aspect = w / h; cam.updateProjectionMatrix(); renderer.setSize(w, h, !recordDims); composer?.setSize(w, h); labelR.setSize(w, h);
     };
     if (api.current) api.current.onResize = onResize;   // parent calls this when viewH changes
     window.addEventListener("resize", onResize);

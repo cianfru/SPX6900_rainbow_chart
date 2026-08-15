@@ -10,6 +10,14 @@ import { MONO } from "./chart-ui.jsx";
 // (hidden on iOS Safari, which lacks canvas.captureStream). ⚠ Captures the 3D view only, the note/
 // name SIGNS are CSS2D DOM overlays and are NOT in the exported file; screen-record for those.
 const SECS = [4, 6, 8, 10, 12, 16];
+// Export aspect (width/height). The on-screen city is a wide, short card; a clip at that shape wastes
+// most of the frame on sky and buries the towers in a thin band. Portrait 4:5 is the default — it fills
+// a phone feed and shows the buildings at full height. Square and wide kept for flexibility.
+const ARS = [
+  { id: "tall", label: "4:5", aspect: 4 / 5 },
+  { id: "square", label: "1:1", aspect: 1 },
+  { id: "wide", label: "16:9", aspect: 16 / 9 },
+];
 
 export default function CityRecorder({ accent = "#5eead4", onRecording }) {
   // ?rec=1 is STICKY: the city is its own tab, so navigating in rewrites the URL and drops the param
@@ -24,6 +32,7 @@ export default function CityRecorder({ accent = "#5eead4", onRecording }) {
     } catch { return false; }
   })();
   const [secs, setSecs] = useState(8);
+  const [ar, setAr] = useState("tall");
   const [rec, setRec] = useState({ state: "idle", pct: 0, err: "" });
   if (!enabled) return null;
 
@@ -32,7 +41,8 @@ export default function CityRecorder({ accent = "#5eead4", onRecording }) {
     setRec({ state: "recording", pct: 0, err: "" });
     onRecording?.(true);                       // let the page hide its chrome for a clean screen-record
     try {
-      const { blob, ext } = await window.__cityRecord({ seconds: secs, fps: 60, onTick: p => setRec(r => ({ ...r, pct: p })) });
+      const aspect = (ARS.find(a => a.id === ar) || ARS[0]).aspect;
+      const { blob, ext } = await window.__cityRecord({ seconds: secs, fps: 60, aspect, onTick: p => setRec(r => ({ ...r, pct: p })) });
       downloadBlob(blob, `spx-city-${new Date().toISOString().slice(0, 10)}.${ext}`);
       setRec({ state: "idle", pct: 0, err: "" });
     } catch (e) { setRec({ state: "idle", pct: 0, err: e.message || "recording failed" }); }
@@ -61,6 +71,9 @@ export default function CityRecorder({ accent = "#5eead4", onRecording }) {
       <span style={{ color: "#7c8aa0" }}>🎥 click a building to pin</span>
       <span style={{ display: "flex", gap: 4 }}>
         {SECS.map(s => <button key={s} onClick={() => setSecs(s)} style={chip(s === secs)}>{s}s</button>)}
+      </span>
+      <span style={{ display: "flex", gap: 4 }}>
+        {ARS.map(a => <button key={a.id} onClick={() => setAr(a.id)} style={chip(a.id === ar)}>{a.label}</button>)}
       </span>
       <button onClick={go} disabled={rec.state === "recording"} style={{
         cursor: rec.state === "recording" ? "default" : "pointer", padding: "5px 13px", borderRadius: 7,
