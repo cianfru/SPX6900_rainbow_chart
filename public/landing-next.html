@@ -1242,7 +1242,46 @@
     try{ localStorage.setItem('spx_theme', light?'bright':'dark'); }catch(e){}
     render(); }
   window.__setTheme=setTheme;
-  const toggleTheme=()=> setTheme(document.documentElement.dataset.theme==='light'?'dark':'bright');
+  // Pixelated diagonal wipe (top-left → bottom-right) that reveals the new theme, then swaps
+  // it under the cover. Self-contained + guarded: if anything fails, it just runs the swap.
+  // Fired ONLY from the user toggle below — never from applySavedTheme()/pageshow (no load flash).
+  function themeWipe(toBright, swap){
+    var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var cv, ctx;
+    try{ cv=document.createElement('canvas'); ctx=cv.getContext('2d'); }catch(e){}
+    if(reduce || !ctx){ swap(); return; }
+    var darkBg = ({calm:'#08090b',green:'#010402'})[document.documentElement.dataset.variant] || '#000000';
+    var bg = toBright ? '#f7f8fa' : darkBg, crest = toBright ? '#12b981' : '#4ee79a';
+    var dpr=Math.min(2, window.devicePixelRatio||1), W=Math.max(1,innerWidth), H=Math.max(1,innerHeight);
+    cv.width=Math.round(W*dpr); cv.height=Math.round(H*dpr);
+    cv.style.cssText='position:fixed;left:0;top:0;width:100%;height:100%;z-index:2147483646;pointer-events:none';
+    ctx.scale(dpr,dpr); document.body.appendChild(cv);
+    var cell=Math.max(14,Math.round(Math.min(W,H)/34)), cols=Math.ceil(W/cell), rows=Math.ceil(H/cell), maxD=Math.max(1,(cols-1)+(rows-1));
+    var jit=new Float32Array(cols*rows);
+    for(var i=0;i<jit.length;i++){ var s=Math.sin((i+1)*12.9898)*43758.5453; jit[i]=s-Math.floor(s); }
+    var DUR=640, CW=0.14, start=null, swapped=false, done=false;
+    function doSwap(){ if(!swapped){ swapped=true; try{ swap(); }catch(e){} } }
+    function frame(t){
+      if(start===null) start=t;
+      var p=Math.min(1,(t-start)/DUR), front=p*(1+CW);
+      ctx.clearRect(0,0,W,H);
+      for(var r=0;r<rows;r++) for(var c=0;c<cols;c++){
+        var d=(c+r)/maxD+(jit[r*cols+c]-0.5)*0.05;
+        if(d>front) continue;
+        var behind=front-d;
+        if(behind<CW){ ctx.fillStyle=crest; ctx.globalAlpha=0.55+0.45*(1-behind/CW); }
+        else { ctx.fillStyle=bg; ctx.globalAlpha=1; }
+        ctx.fillRect(c*cell,r*cell,cell-1,cell-1);
+      }
+      ctx.globalAlpha=1;
+      if(p>=0.6) doSwap();
+      if(p<1) requestAnimationFrame(frame);
+      else if(!done){ done=true; cv.style.transition='opacity .22s ease'; cv.style.opacity='0'; setTimeout(function(){ try{ cv.remove(); }catch(e){} },260); }
+    }
+    requestAnimationFrame(frame);
+    setTimeout(doSwap, DUR+220);
+  }
+  const toggleTheme=()=>{ const bright = document.documentElement.dataset.theme!=='light'; themeWipe(bright, ()=> setTheme(bright?'bright':'dark')); };
   { const tsw=document.getElementById('themeSw'); if(tsw) tsw.addEventListener('click',toggleTheme); }
   { const stb=document.getElementById('sbtheme'); if(stb) stb.addEventListener('click',toggleTheme); }
   function applySavedTheme(){ let saved='dark'; try{ saved=localStorage.getItem('spx_theme')||'dark'; }catch(e){} setTheme(saved); }

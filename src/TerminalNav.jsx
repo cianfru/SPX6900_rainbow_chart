@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, Suspense, Fragment } from "react";
 import { CHART_GROUPS, AEON_GROUPS, CITY_GROUPS, CHART_VIEWS } from "./charts-catalog.js";
 import { GCOL } from "./terminal-colors.js";
 import ErrorBoundary from "./ErrorBoundary.jsx";
+import { themeWave } from "./theme-wave.js";
 
 // The terminal cascade nav for the sub-pages, mirrors the ?view=next landing menu
 // EXACTLY: same rainbow-band group colours (GCOL), same ALL row, same group→chart
@@ -133,8 +134,12 @@ function ThemeToggle() {
   const [light, setLight] = useState(() => typeof document !== "undefined" && document.documentElement.getAttribute("data-theme") === "light");
   const toggle = () => {
     const next = !light; setLight(next);
-    document.documentElement.setAttribute("data-theme", next ? "light" : "");
-    try { localStorage.setItem("spx_theme", next ? "bright" : "dark"); } catch { /* private mode */ }
+    // Pixelated diagonal wipe reveals the new theme; the swap runs inside (and is guaranteed
+    // to run even if the effect can't) so the toggle is never blocked by the animation.
+    themeWave(next, () => {
+      document.documentElement.setAttribute("data-theme", next ? "light" : "");
+      try { localStorage.setItem("spx_theme", next ? "bright" : "dark"); } catch { /* private mode */ }
+    });
   };
   return (
     <button className="tthemebtn" onClick={toggle} aria-label="Toggle dark / bright theme" title={light ? "Switch to dark" : "Switch to bright"}>
