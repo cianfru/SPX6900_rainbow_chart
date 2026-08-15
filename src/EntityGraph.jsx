@@ -13,6 +13,9 @@ const fSpx = v => { const a = Math.abs(v); return a >= 1e6 ? (v / 1e6).toFixed(2
 // a cool violet→cyan palette so clusters are distinguishable without shouting
 const PAL = ["#a78bfa", "#818cf8", "#60a5fa", "#38bdf8", "#22d3ee", "#2dd4bf", "#c084fc", "#7dd3fc"];
 const kindColor = k => k === "drain" ? "#f472b6" : "#38bdf8";
+// buy/sell colour from a 30-day net flow (null → no flow data yet, fall back to identity palette)
+const BUY = "#4ade80", SELL = "#fb7185", FLAT = "#8b93a7";
+const flowCol = (f, bal) => typeof f !== "number" ? null : (Math.abs(f) < Math.max(2000, (bal || 0) * 0.01) ? FLAT : (f > 0 ? BUY : SELL));
 
 // Deterministic circle-pack: place biggest first at the origin, then spiral each next one out to the
 // first spot that clears every placed circle. O(n²) but n is the ~60 shown clusters, so it's instant.
@@ -32,7 +35,8 @@ function pack(items, gap) {
 }
 
 export default function EntityGraph({ entities, heldSupply, spot, isMobile, onSelect, selectedId }) {
-  const [hover, setHover] = useState(null);   // {a, bal, x, y}
+  const [hover, setHover] = useState(null);   // {a, bal, flow, x, y}
+  const hasFlow = entities.some(e => typeof e.d30 === "number");
 
   const laid = useMemo(() => {
     const shown = entities.slice(0, isMobile ? 28 : 60);
@@ -75,11 +79,14 @@ export default function EntityGraph({ entities, heldSupply, spot, isMobile, onSe
         onMouseLeave={() => setHover(null)}>
         {laid.clusters.map(c => {
           const sel = selectedId === c.e.id;
+          const fcol = flowCol(c.e.d30, c.e.bal);   // buy/sell ring; null before the flow data lands
+          const halo = fcol || c.color;
+          const wf = c.e.walletFlow || {};
           return (
             <g key={c.e.id} style={{ cursor: "pointer" }} onClick={() => onSelect && onSelect(c.e.id)}>
-              {/* cluster halo */}
-              <circle cx={c.x} cy={c.y} r={c.r} fill={c.color} fillOpacity={sel ? 0.14 : 0.06}
-                stroke={c.color} strokeOpacity={sel ? 0.9 : c.e.flagged ? 0.5 : 0.35} strokeWidth={sel ? 1.8 : 1}
+              {/* cluster halo — coloured by the cluster's 30d net flow (green accumulating · red distributing) */}
+              <circle cx={c.x} cy={c.y} r={c.r} fill={halo} fillOpacity={sel ? 0.16 : fcol ? 0.09 : 0.06}
+                stroke={halo} strokeOpacity={sel ? 0.95 : c.e.flagged ? 0.5 : fcol ? 0.7 : 0.35} strokeWidth={sel ? 2 : fcol ? 1.4 : 1}
                 strokeDasharray={c.e.flagged ? "3 3" : "none"} />
               {/* internal edges */}
               {c.edges.map((g, i) => (
@@ -89,8 +96,9 @@ export default function EntityGraph({ entities, heldSupply, spot, isMobile, onSe
               {/* wallet nodes */}
               {c.ws.map(a => {
                 const p = c.pos[a], nr = c.nodeR(a);
-                return <circle key={a} cx={p.x} cy={p.y} r={nr} fill={c.color} fillOpacity={0.92} stroke="#0a0c12" strokeWidth={0.5}
-                  onMouseEnter={() => setHover({ a, bal: (c.e.walletBal || {})[a] ?? null, x: p.x, y: p.y })} />;
+                const nfc = flowCol(wf[a], (c.e.walletBal || {})[a]) || c.color;   // each wallet tinted by its own 30d flow
+                return <circle key={a} cx={p.x} cy={p.y} r={nr} fill={nfc} fillOpacity={0.92} stroke="#0a0c12" strokeWidth={0.5}
+                  onMouseEnter={() => setHover({ a, bal: (c.e.walletBal || {})[a] ?? null, flow: wf[a], x: p.x, y: p.y })} />;
               })}
               {/* size label on the bigger clusters */}
               {c.r > 34 && typeof c.e.bal === "number" && (
@@ -104,12 +112,15 @@ export default function EntityGraph({ entities, heldSupply, spot, isMobile, onSe
       {hover && (
         <div style={{ position: "absolute", left: 12, bottom: 12, background: "rgba(6,8,14,0.94)", border: "1px solid rgba(255,255,255,0.14)", borderRadius: 8, padding: "8px 12px", fontFamily: MONO, fontSize: 12.5, color: "#e2e8f0", pointerEvents: "none" }}>
           <div>{short(hover.a)}</div>
-          {hover.bal != null && hover.bal > 0 && <div style={{ color: "#4ade80", marginTop: 2 }}>{fSpx(hover.bal)} SPX{spot > 0 ? ` · $${Math.round(hover.bal * spot).toLocaleString()}` : ""}</div>}
+          {hover.bal != null && hover.bal > 0 && <div style={{ color: "#cbd5e1", marginTop: 2 }}>{fSpx(hover.bal)} SPX{spot > 0 ? ` · $${Math.round(hover.bal * spot).toLocaleString()}` : ""}</div>}
+          {typeof hover.flow === "number" && Math.abs(hover.flow) >= 2000 && <div style={{ color: hover.flow > 0 ? BUY : SELL, marginTop: 2 }}>{hover.flow > 0 ? "▲ added" : "▼ shed"} {fSpx(Math.abs(hover.flow))} · 30d</div>}
         </div>
       )}
 
       <div style={{ position: "absolute", top: 10, right: 12, fontFamily: SANS, fontSize: 11.5, color: "#64748b", textAlign: "right", lineHeight: 1.6, pointerEvents: "none" }}>
-        <div><span style={{ color: "#a78bfa" }}>●</span> bubble = one owner · size = holdings</div>
+        {hasFlow
+          ? <div><span style={{ color: BUY }}>●</span> accumulating <span style={{ color: SELL }}>●</span> distributing <span style={{ color: FLAT }}>●</span> flat · 30d</div>
+          : <div><span style={{ color: "#a78bfa" }}>●</span> bubble = one owner · size = holdings</div>}
         <div><span style={{ color: kindColor("drain") }}>-</span> drain <span style={{ color: kindColor("fund") }}>-</span> fund · dashed = flagged</div>
       </div>
     </div>

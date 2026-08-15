@@ -21,6 +21,32 @@ const fUsd = v => v >= 1e6 ? "$" + (v / 1e6).toFixed(2) + "M" : v >= 1e3 ? "$" +
 const short = a => a.slice(0, 6) + "…" + a.slice(-4);
 const ES = a => `https://etherscan.io/address/${a}`;
 const SPX_CONTRACT = "0xe0f63a424a4439cbe457d80e4f4b51ad25b2c56c";
+const fFlow = v => (v >= 0 ? "+" : "−") + fSpx(Math.abs(v));
+
+// Buy/sell read for a cluster from its 30-day net flow (now − 30d ago, summed over its members).
+// "Significant" needs the move to clear both an absolute floor and 1% of the cluster's size, so a
+// tiny rebalance doesn't read as accumulation. null when the flow field isn't in the data yet.
+const BUY = "#4ade80", SELL = "#fb7185", FLAT = "#94a3b8";
+const flowState = e => {
+  const f = e.d30;
+  if (typeof f !== "number") return null;
+  if (Math.abs(f) < Math.max(2000, (e.bal || 0) * 0.01)) return { k: "flat", c: FLAT, mark: "■", label: "flat" };
+  return f > 0 ? { k: "buy", c: BUY, mark: "▲", label: "accumulating" } : { k: "sell", c: SELL, mark: "▼", label: "distributing" };
+};
+
+// Small green/red/grey pill: ▲ +12k · 30d
+function FlowPill({ e, size = 12 }) {
+  const fs = flowState(e);
+  if (!fs) return null;
+  return (
+    <span title={`${fs.label} — net ${fFlow(e.d30)} SPX over 30 days`} style={{
+      fontFamily: MONO, fontSize: size, color: fs.c, border: `1px solid ${fs.c}55`, background: `${fs.c}14`,
+      borderRadius: 5, padding: "1px 7px", whiteSpace: "nowrap", display: "inline-flex", gap: 5, alignItems: "center",
+    }}>
+      <span>{fs.mark}</span>{fs.k === "flat" ? "flat" : fFlow(e.d30)}<span style={{ color: "#64748b", fontSize: size - 2 }}>30d</span>
+    </span>
+  );
+}
 
 export default function EntityClustersChart({ isMobile, preview = false }) {
   const [data, setData] = useState(null);
@@ -28,23 +54,40 @@ export default function EntityClustersChart({ isMobile, preview = false }) {
   const [hideFlagged, setHideFlagged] = useState(true);
   const [q, setQ] = useState("");
   const [view, setView] = useState("graph");    // "graph" (bubblemap) | "list"
+  const [sort, setSort] = useState("bal");       // "bal" | "buy" | "sell"
   useEffect(() => {
     let cancelled = false;
     loadEntities().then(d => { if (!cancelled) setData(d); });
     return () => { cancelled = true; };
   }, []);
 
+  const hasFlow = useMemo(() => !!data?.entities?.some(e => typeof e.d30 === "number"), [data]);
   const rows = useMemo(() => {
     if (!data?.entities) return [];
     const hasBal = data.entities.some(e => typeof e.bal === "number");
     let list = data.entities.map(e => ({ ...e, _bal: e.bal ?? null }));
-    // rank by combined holdings when we have them, else by cluster size
-    list.sort((a, b) => (hasBal ? (b._bal - a._bal) : 0) || b.size - a.size);
     if (hideFlagged) list = list.filter(e => !e.flagged);
     const ql = q.trim().toLowerCase();
     if (ql) list = list.filter(e => e.wallets.some(w => w.includes(ql)) || e.id.includes(ql));
+    // rank: by combined holdings (default), or by the biggest net buyers / net sellers
+    if (sort === "buy") list.sort((a, b) => (b.d30 ?? -Infinity) - (a.d30 ?? -Infinity));
+    else if (sort === "sell") list.sort((a, b) => (a.d30 ?? Infinity) - (b.d30 ?? Infinity));
+    else list.sort((a, b) => (hasBal ? (b._bal - a._bal) : 0) || b.size - a.size);
     return list;
-  }, [data, hideFlagged, q]);
+  }, [data, hideFlagged, q, sort]);
+
+  // Net 30-day flow across all (unflagged) clusters — the at-a-glance "are linked owners net buying
+  // or selling right now" read.
+  const netFlow = useMemo(() => {
+    if (!hasFlow) return null;
+    let sum = 0, buyers = 0, sellers = 0;
+    for (const e of (data.entities || [])) {
+      if (e.flagged || typeof e.d30 !== "number") continue;
+      const fs = flowState(e); if (!fs) continue;
+      sum += e.d30; if (fs.k === "buy") buyers++; else if (fs.k === "sell") sellers++;
+    }
+    return { sum, buyers, sellers };
+  }, [data, hasFlow]);
 
   if (!data) return <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Loading wallet clusters…</div>;
   if (!data.entities.length) return <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>The entity graph is being built.</div>;
@@ -73,6 +116,7 @@ export default function EntityClustersChart({ isMobile, preview = false }) {
       <div style={{ display: "flex", gap: isMobile ? 14 : 28, justifyContent: "center", marginBottom: 14, flexWrap: "wrap", alignItems: "center" }}>
         <Metric label="linked entities" value={s.entities?.toLocaleString() ?? rows.length} color={accent} sub={`${(s.clustered ?? 0).toLocaleString()} wallets`} />
         {topPct != null && <Metric label="largest owner" value={fSpx(top.bal)} color={green} sub={`${topPct.toFixed(1)}% of holder supply · ${top.size} wallets`} />}
+        {netFlow && <Metric label="clusters · net 30d" value={fFlow(netFlow.sum)} color={netFlow.sum >= 0 ? BUY : SELL} sub={`${netFlow.buyers} accumulating · ${netFlow.sellers} distributing`} />}
         <Metric label="flagged / uncertain" value={(s.flagged ?? 0).toString()} color={amber} sub="withheld from trust" />
       </div>
 
@@ -84,6 +128,7 @@ export default function EntityClustersChart({ isMobile, preview = false }) {
           <input type="checkbox" checked={hideFlagged} onChange={e => setHideFlagged(e.target.checked)} /> hide flagged
         </label>
         <ViewTabs tabs={[["graph", "Bubble map"], ["list", "List"]]} value={view} onChange={setView} />
+        {hasFlow && <ViewTabs tabs={[["bal", "Holdings"], ["buy", "Buying"], ["sell", "Selling"]]} value={sort} onChange={setSort} />}
       </div>
 
       {view === "graph" && (
@@ -100,6 +145,7 @@ export default function EntityClustersChart({ isMobile, preview = false }) {
                   {pct != null && <span style={{ fontFamily: MONO, fontSize: 13, color: "#94a3b8" }}>{pct.toFixed(pct < 1 ? 2 : 1)}%</span>}
                   {typeof e.bal === "number" && spot > 0 && <span style={{ fontFamily: MONO, fontSize: 13, color: green }}>{fUsd(e.bal * spot)}</span>}
                   <span style={{ fontFamily: SANS, fontSize: 13, color: "#94a3b8" }}>{e.size} wallets{typeof e.holders === "number" ? ` · ${e.holders} holding` : ""}</span>
+                  <FlowPill e={e} size={13} />
                   {e.flagged && <span style={{ fontFamily: SANS, fontSize: 11, color: amber, border: `1px solid ${amber}55`, borderRadius: 5, padding: "1px 7px" }}>flagged · uncertain</span>}
                 </div>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 12 }}>
@@ -127,6 +173,7 @@ export default function EntityClustersChart({ isMobile, preview = false }) {
                   {pct != null && <span style={{ fontFamily: MONO, fontSize: 12, color: "#94a3b8" }}>{pct.toFixed(pct < 1 ? 2 : 1)}%</span>}
                   {typeof e.bal === "number" && spot > 0 && <span style={{ fontFamily: MONO, fontSize: 12, color: "#4ade80" }}>{fUsd(e.bal * spot)}</span>}
                   <span style={{ fontFamily: SANS, fontSize: 12.5, color: "#94a3b8" }}>{e.size} wallets{typeof e.holders === "number" ? ` · ${e.holders} holding` : ""}</span>
+                  <FlowPill e={e} />
                   {e.flagged && <span style={{ fontFamily: SANS, fontSize: 11, color: amber, border: `1px solid ${amber}55`, borderRadius: 5, padding: "1px 7px" }}>flagged · uncertain</span>}
                 </span>
                 <span style={{ color: "#64748b", fontSize: 12 }}>{isOpen ? "▲" : "▼"}</span>

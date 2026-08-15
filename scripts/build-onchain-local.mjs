@@ -577,10 +577,30 @@ export function replayFifo(transfers, priceAt, sampleTs, opts = {}) {
       // too, so % of holder supply can be computed without a cross-file join.
       let held = 0;
       for (const w of wallets.values()) if (w.bal > EPS) held += w.bal;
+      // Reuse the whale-watcher lookback snapshots (balance maps at 1/7/30d ago) to score each
+      // cluster BUY vs SELL: sum every member's (now − then) over the window. Fresh members (absent
+      // then) count their whole balance as inflow; drained members count as outflow — so the entity's
+      // net accumulation/distribution reads correctly even as it shuffles wallets. Per-member flow +
+      // age are emitted too, so the 3D can render each wallet as a cube (size, age hue, buy/sell beam).
+      const c30 = checkpoints.find(c => c.d === 30);
       for (const e of ent.entities) {
-        let bal = 0, holders = 0; const wb = {};
-        for (const a of e.wallets) { const w = wallets.get(a); const b = (w && w.bal > EPS) ? w.bal : 0; wb[a] = +b.toFixed(2); if (b > 0) { bal += b; holders++; } }
+        let bal = 0, holders = 0; const wb = {}, wf = {}, wg = {};
+        const flow = {}; for (const c of checkpoints) flow[c.d] = 0;
+        for (const a of e.wallets) {
+          const w = wallets.get(a); const b = (w && w.bal > EPS) ? w.bal : 0;
+          wb[a] = +b.toFixed(2); if (b > 0) { bal += b; holders++; }
+          for (const c of checkpoints) if (c.snap) flow[c.d] += b - (c.snap.get(a) || 0);
+          const f30 = c30 && c30.snap ? b - (c30.snap.get(a) || 0) : 0;
+          if (b > 0 || Math.abs(f30) > EPS) {   // hold now, or moved in the window → render/track it
+            wf[a] = +f30.toFixed(2);
+            let oldest = Infinity;
+            if (w) for (let i = w.head; i < w.q.length; i++) { const lot = w.q[i]; if (lot && lot.qty > EPS && lot.ts < oldest) oldest = lot.ts; }
+            wg[a] = Number.isFinite(oldest) ? Math.round((lastTs - oldest) / DAY) : 0;
+          }
+        }
         e.bal = +bal.toFixed(2); e.holders = holders; e.walletBal = wb;   // per-wallet balances → sized bubbles in the graph view
+        e.walletFlow = wf; e.walletAge = wg;                              // per-member 30d net flow + holding age → 3D cubes/beams
+        for (const c of checkpoints) e[`d${c.d}`] = +flow[c.d].toFixed(2); // entity net flow over each window → buy/sell signal
       }
       ent.entities.sort((a, b) => b.bal - a.bal || b.size - a.size);   // rank by combined holdings for the explorer
       out.entities = {
