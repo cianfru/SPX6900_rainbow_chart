@@ -6,7 +6,7 @@
 //   CONTROL_PASSWORD  the password the page asks for
 //   GH_PAT            a GitHub fine-grained token for THIS repo with
 //                     Contents: read/write + Actions: read/write
-const OWNER = "cianfru", REPO = "SPX6900_rainbow_chart", BRANCH = "main";
+const OWNER = "cianfru", REPO = "The_Terminal", BRANCH = "main";
 const QUEUE_PATH = "public/next-post.json", WORKFLOW = "post-tweet.yml";
 const WORKFLOW_RECAP = "monthly-recap.yml";
 const COPY_PATH = "public/post-copy.json"; // owner-edited card-copy overrides
