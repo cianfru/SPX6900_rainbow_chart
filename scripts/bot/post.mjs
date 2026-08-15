@@ -204,7 +204,12 @@ try {
 // Keep a rolling log of recent posts (last ~20) so the Quant / Notable-today strip can
 // avoid proposing the same card — or the same kind of card — too close together.
 const recent = [...(Array.isArray(state.recent) ? state.recent : []), { date: today, id: post.id }].slice(-20);
-writeFileSync(STATE_FILE, JSON.stringify({ lastPostedDate: today, lastId: post.id, recent }, null, 2) + "\n");
+// ⭐ MERGE, never replace. This used to write a fresh object — which DROPPED the `lanes` map
+// (aeonsale/aeonsweep/firesale/band/milestone once-a-day records). So every daily rotation post
+// wiped every event lane's gate, re-opening them to fire AGAIN the same day — the non-stop firing.
+// Re-read the freshest state (a lane may have posted after this run started) and keep everything.
+const cur = readJson(STATE_FILE, state);
+writeFileSync(STATE_FILE, JSON.stringify({ ...cur, lastPostedDate: today, lastId: post.id, recent }, null, 2) + "\n");
 if (fromQueue) writeFileSync(QUEUE_FILE, JSON.stringify({ id: null }, null, 2) + "\n");
 
 // Advance the tier-A band tracker off this run's settled close (skip when an owner
