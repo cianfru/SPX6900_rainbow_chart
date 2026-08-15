@@ -94,6 +94,7 @@ export const CHART_GROUPS = [
       { id: "cexflow", title: "Exchange Flow", post: "cexflow", desc: "Daily net flow on/off exchanges vs price: deposits, withdrawals, listings stripped." },
       { id: "cexvenues", title: "Exchange Supply by Venue", post: "cexvenues", desc: "SPX on each exchange over time: how the venue mix shifted as listings landed." },
       { id: "cexvenflow", title: "Exchange Flow by Venue", post: "cexvenflow", desc: "Which exchanges gained vs bled SPX: per-venue net flow, pick the window." },
+      { id: "cexsankey", title: "Where the Volume Goes", desc: "A flow map of every wallet supplying and withdrawing from exchanges — who feeds each venue on one side, who's pulling out on the other." },
     ],
   },
   {

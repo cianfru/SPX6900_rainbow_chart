@@ -118,6 +118,7 @@ const CexSupplyChart = lazy(() => import("./CexSupplyChart.jsx"));
 const CexFlowChart = lazy(() => import("./CexFlowChart.jsx"));
 const CexVenuesChart = lazy(() => import("./CexVenuesChart.jsx"));
 const CexVenFlowChart = lazy(() => import("./CexVenFlowChart.jsx"));
+const CexSankeyChart = lazy(() => import("./CexSankeyChart.jsx"));
 const WalletGrowthChart = lazy(() => import("./WalletGrowthChart.jsx"));
 const MvrvContextChart = lazy(() => import("./MvrvContextChart.jsx"));
 const PiCycleChart = lazy(() => import("./PiCycleChart.jsx"));
@@ -267,6 +268,7 @@ function TabIcon({ name }) {
     case "cexflow": return (<svg {...p}><line x1="3" y1="12" x2="21" y2="12" strokeDasharray="3 2" strokeOpacity="0.7" /><path d="M5 9v-3M5 6l-2 2M5 6l2 2" /><path d="M12 15v3M12 18l-2-2M12 18l2-2" /><path d="M19 9v-3M19 6l-2 2M19 6l2 2" /></svg>);
     case "cexvenues": return (<svg {...p}><path d="M3 20v-4c4 0 5-1 9-1s5 1 9 1v4z" strokeOpacity="0.5" /><path d="M3 20v-7c4 0 5-2 9-2s5 1 9 1v8z" strokeOpacity="0.8" /><path d="M3 20v-10c4 0 5 1 9 1s5-2 9-2v11z" /></svg>);
     case "cexvenflow": return (<svg {...p}><line x1="12" y1="3" x2="12" y2="21" strokeOpacity="0.5" /><rect x="12" y="4" width="7" height="3" rx="1" /><rect x="12" y="10" width="4" height="3" rx="1" /><rect x="6" y="16" width="6" height="3" rx="1" /></svg>);
+    case "cexsankey": return (<svg {...p}><path d="M3 6h5c4 0 4 6 8 6h5M3 18h5c4 0 4-6 8-6h5" strokeOpacity="0.7" /></svg>);
     case "walletgrowth": return (<svg {...p}><path d="M3 20v-3c4 0 5-6 9-6s5 4 9 4v5z" /><path d="M3 20h18" /></svg>);
     case "mvrvbtc": return (<svg {...p}><path d="M3 16c3 1 4-8 7-8s3 7 6 5 3-6 5-7" /><line x1="3" y1="11" x2="21" y2="11" strokeDasharray="3 2" strokeOpacity="0.8" /></svg>);
     case "altmarket": return (<svg {...p}><line x1="3" y1="12" x2="21" y2="12" /><path d="M3 12c2 0 3-6 5-6s2 10 4 10 3-8 5-8 2 4 4 4" /></svg>);
@@ -812,6 +814,7 @@ export default function App() {
       case "cexflow": return <CexFlowChart isMobile={mob} preview={preview} />;
       case "cexvenues": return <CexVenuesChart isMobile={mob} preview={preview} />;
       case "cexvenflow": return <CexVenFlowChart isMobile={mob} preview={preview} initialView={iv} />;
+      case "cexsankey": return <CexSankeyChart isMobile={mob} />;
       case "walletgrowth": return <WalletGrowthChart isMobile={mob} preview={preview} />;
       case "mvrvbtc": return <MvrvContextChart isMobile={mob} preview={preview} />;
       case "altmarket": return <AltMarketChart isMobile={mob} preview={preview} />;

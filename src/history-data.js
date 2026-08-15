@@ -173,6 +173,19 @@ export function loadAeon() {
   return aeonPromise;
 }
 
+// Shared, cached loader for /cex-sankey.json — the exchange flow map (who supplies/withdraws from
+// exchanges + exchange candidates). Null until the daily onchain-dune run writes it.
+let cexSankeyPromise = null;
+export function loadCexSankey() {
+  if (!cexSankeyPromise) {
+    cexSankeyPromise = fetch("/cex-sankey.json", { cache: "no-store" })
+      .then(r => (r.ok ? r.json() : null))
+      .then(d => (d && d.totals && (d.inflow?.length || d.outflow?.length) ? d : null))
+      .catch(() => null);
+  }
+  return cexSankeyPromise;
+}
+
 // Shared, cached loader for /aeon-sales.json — the Aeon marketplace floor/volume series
 // (daily floor ETH+USD, volume, per-sale scatter). Null on failure → bundled AEON_SALES.
 let aeonSalesPromise = null;

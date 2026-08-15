@@ -1033,6 +1033,31 @@
   sandbox (software rasteriser) → visual tuning + real numbers are an on-device check after the cron.** Same `TOP=48` biggest
   owners knob; flagged/over-merged clusters excluded (never fuse an uncertain one, the honesty rail).
 
+## 💱 CEX FLOW — the exchange-flow project (owner: "where the real story is", 2026-08-16)
+- **✅ "WHERE THE VOLUME GOES" SANKEY SHIPPED 2026-08-16.** The middle-stick flow map the owner scoped: exchanges are the
+  vertical stick in the centre, **wallets SUPPLYING them on the left (green inflow), wallets WITHDRAWING on the right (red
+  outflow)**, band thickness = amount, headline "X onto exchanges · Y off · net". Own chart in the **Exchanges group**
+  (`cexsankey`, `src/CexSankeyChart.jsx`, recharts `<Sankey>` — no hand-rolled geometry) — NOT in the city (owner + Claude
+  agreed: the city's scope is "who holds", the Sankey's is "where flow goes"; different grammar, keep separate).
+  - **Data: `computeCexFlow()` in `build-onchain-local.mjs`** → `public/cex-sankey.json` on the daily onchain-dune run. Over a
+    trailing window (default 90d) it aggregates every transfer touching a tagged CEX hot wallet into INFLOW (wallet→venue) and
+    OUTFLOW (venue→wallet), grouped by `canonVenue` + counterparty. **DUST = ≥25k SPX** per wallet→venue (owner's call — "1k is
+    noise, 100k is the story"); the sub-dust tail rolls into a "+N smaller" band, never hidden (honesty rail). Unit-tested; feed
+    registered. Data-gated until the next onchain-dune run (the chart shows a "being reconstructed" state; validated visually on
+    synthetic data — no fake flows are ever committed/served).
+  - **⭐ EXCHANGE-CANDIDATE DETECTOR (owner: "don't over-count wallets that are clearly not people").** Same reduction flags
+    untagged wallets with exchange-like throughput (≥30 transfers IN and OUT, ≥25 counterparties) → `candidates[]` for the owner
+    to Etherscan-verify + add to `EXCLUDE_LABELS` (kinds: cex/lp/mm). This systematises the manual infra-tagging the owner had
+    been doing by eye (the $20M-throughput wallet he spotted in the city is this species — throughput, not SPX, drives its value;
+    whales.json can't see it, no throughput field → had to live in the engine).
+  - **🔲 NEXT (owner ideas, parked): (1)** volume PROVENANCE — split each venue's inflow by the AGE/cohort of the coins arriving
+    (old coins hitting exchanges ≠ fresh). The FIFO engine already has per-lot age. **(2)** a CITY-ARCS overlay — green/red arcs
+    from whale-buildings to exchange-docks (reuses the AEON-arc mechanism). Owner likes it ("will look amazing") but flagged the
+    limits: the city is only reactive on time+amount, and a wallet can hop to a secondary wallet before hitting a CEX (multi-hop),
+    so arcs would only show direct whale→CEX moves + only the top-N whales in the city. **Keep it as a fun SECONDARY view, not the
+    project** — the Sankey is the complete quantified tool; the entity-cluster BUBBLE MAP might be an even better home for the arcs
+    (owner's suggestion). Revisit after the Sankey's real data lands.
+
 ## Backlog / decisions
 - **🔲🔲 DUE AUG 1 — MONTHLY RECAP (July), UPGRADED (owner, 2026-07-31: "after four weeks of intense work we can give a
   better recap. Real intel while selecting the best cards").** The recap engine is `scripts/bot/recap-thread.mjs`
