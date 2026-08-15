@@ -9,7 +9,7 @@
 import { buildRecapPost } from "../scripts/bot/recap-thread.mjs";
 import { renderPostCard } from "../scripts/bot/charts.mjs";
 
-const OWNER = "cianfru", REPO = "SPX6900_rainbow_chart", BRANCH = "main";
+const OWNER = "cianfru", REPO = "The_Terminal", BRANCH = "main";
 
 // Read a committed file with GH_PAT (so it still works once the repo is private) and fall back to
 // public raw while the repo is public / no token is set. Returns the fetch Response; caller checks ok.

@@ -22,7 +22,7 @@ import { buildPost, buildAll, isCopyMarker, bindCopy } from "../scripts/bot/post
 import { topAngles } from "../scripts/bot/quant.mjs";
 import { chat, draftCopy } from "../scripts/bot/llm-copy.mjs";
 
-const OWNER = "cianfru", REPO = "SPX6900_rainbow_chart", BRANCH = "main";
+const OWNER = "cianfru", REPO = "The_Terminal", BRANCH = "main";
 // Read a committed file with GH_PAT (so it still works once the repo is private) and fall back to
 // public raw while the repo is public / no token is set. Returns the fetch Response; caller checks ok.
 async function ghGet(path) {
