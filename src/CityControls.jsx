@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { lookupHome } from "./city-map.js";
 import { TIMES } from "./city-render.js";
-import { SANS, MONO } from "./chart-ui.jsx";
+import { SANS, MONO, TypeTab } from "./chart-ui.jsx";
 import { track } from "./track.js";
 
 // Where the "how to read the city" instructions live — the manual, hosted on this site. The pages
@@ -122,7 +122,7 @@ export default function CityControls({ layout, onLayout, onFocus, has, accent = 
               width: isMobile ? "100%" : 280, padding: "6px 12px", borderRadius: 8, fontFamily: MONO, fontSize: 12.5,
               background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.14)", color: "#e2e8f0", outline: "none",
             }} />
-          <button type="submit" {...neon(true)}>Find</button>
+          <TypeTab label="Find" on={false} onClick={submit} />
         </form>
         {/* ⚙ SETTINGS — the display toggles that aren't the primary controls (which stay visible:
             mode, flow window, time machine). The panel was growing a new pill per option; a wheel

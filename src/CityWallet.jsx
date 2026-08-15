@@ -87,12 +87,8 @@ export default function CityWallet({ city, owns, inView, notes, onNotes, onFocus
   // The site's shared neon toggle, matched to the rest of the city panel. `primary` reads as the
   // active/accent state; disabled dims and blocks it.
   const btn = (primary, disabled) => ({
-    className: `neon-pill${primary && !disabled ? " active" : ""}`,
-    style: {
-      padding: "6px 14px", borderRadius: 8, fontFamily: MONO, fontSize: 12,
-      cursor: disabled ? "not-allowed" : "pointer", opacity: disabled ? 0.45 : 1,
-      color: primary ? "#f8fafc" : "#94a3b8", "--glow": accent,
-    },
+    className: `vtab${primary && !disabled ? " on" : ""}`,
+    style: { gap: 7, cursor: disabled ? "not-allowed" : "pointer", opacity: disabled ? 0.45 : 1 },
   });
 
   // Not deployed anywhere yet — say so plainly instead of offering a button that can't work.
