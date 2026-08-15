@@ -68,30 +68,41 @@ export function aeonSweepSvg(sweep, opts = {}) {
   const spent = `${fEth(sweep.eth)}${sweep.usd ? ` · $${Math.round(sweep.usd).toLocaleString("en-US")}` : ""}`;
   const avg = sweep.n ? sweep.eth / sweep.n : 0;
 
-  // grid of the pieces
-  const P = 54, gap = 14;
+  // grid of the pieces — sized to FILL the frame. A small sweep (3 pieces) used to sit as a
+  // thin row of thumbnails over a big empty gap; instead pick the column count that makes the
+  // square tiles as LARGE as possible for this count, centre the block on both axes, and centre
+  // any short final row. So 3 pieces become a big 2-over-1, 4 a 2×2, etc — no dead space.
+  const P = 48, gap = 16;
   const shown = Math.min(sweep.n, 12);
   const ids = sweep.tokens.slice(0, shown);
-  const cols = Math.min(4, Math.max(2, shown <= 4 ? shown : 4));
-  const rows = Math.ceil(shown / cols);
   const gridTop = AEON_MT + 96, gridBottom = H - 92;
-  const cellW = (W - 2 * P - (cols - 1) * gap) / cols;
-  const cellH = Math.min(cellW, (gridBottom - gridTop - (rows - 1) * gap) / rows);
-  const gridW = cols * cellW + (cols - 1) * gap, gx0 = (W - gridW) / 2;
+  const availW = W - 2 * P, availH = gridBottom - gridTop;
+  let cols = 1, cell = 0;
+  for (let c = 1; c <= shown; c++) {
+    const r = Math.ceil(shown / c);
+    const s = Math.min((availW - (c - 1) * gap) / c, (availH - (r - 1) * gap) / r);
+    if (s > cell) { cell = s; cols = c; }
+  }
+  const rows = Math.ceil(shown / cols);
+  const gy0 = gridTop + (availH - (rows * cell + (rows - 1) * gap)) / 2;   // vertically centred
 
   let tiles = "";
   ids.forEach((id, i) => {
-    const cx = gx0 + (i % cols) * (cellW + gap), cy = gridTop + Math.floor(i / cols) * (cellH + gap);
+    const r = Math.floor(i / cols), colInRow = i - r * cols;
+    const inRow = Math.min(cols, shown - r * cols);                        // this row may be short
+    const rx0 = (W - (inRow * cell + (inRow - 1) * gap)) / 2;             // centre each row
+    const cx = rx0 + colInRow * (cell + gap), cy = gy0 + r * (cell + gap);
+    const X = cx.toFixed(1), Y = cy.toFixed(1), S = cell.toFixed(1);
     const art = getArt(id), clip = `sw${i}`;
     const last = i === shown - 1 && sweep.n > shown;
-    tiles += `<clipPath id="${clip}"><rect x="${cx.toFixed(1)}" y="${cy.toFixed(1)}" width="${cellW.toFixed(1)}" height="${cellH.toFixed(1)}" rx="12"/></clipPath>`;
+    tiles += `<clipPath id="${clip}"><rect x="${X}" y="${Y}" width="${S}" height="${S}" rx="14"/></clipPath>`;
     tiles += art
-      ? `<image href="${art}" x="${cx.toFixed(1)}" y="${cy.toFixed(1)}" width="${cellW.toFixed(1)}" height="${cellH.toFixed(1)}" preserveAspectRatio="xMidYMid slice" clip-path="url(#${clip})"/>`
-      : `<rect x="${cx.toFixed(1)}" y="${cy.toFixed(1)}" width="${cellW.toFixed(1)}" height="${cellH.toFixed(1)}" rx="12" fill="#0a0e1c"/><text x="${(cx + cellW / 2).toFixed(1)}" y="${(cy + cellH / 2).toFixed(1)}" fill="#475569" font-size="22" text-anchor="middle" font-family="${F}">#${id}</text>`;
-    tiles += `<rect x="${cx.toFixed(1)}" y="${cy.toFixed(1)}" width="${cellW.toFixed(1)}" height="${cellH.toFixed(1)}" rx="12" fill="none" stroke="#5eead4" stroke-opacity="0.5" stroke-width="2"/>`;
+      ? `<image href="${art}" x="${X}" y="${Y}" width="${S}" height="${S}" preserveAspectRatio="xMidYMid slice" clip-path="url(#${clip})"/>`
+      : `<rect x="${X}" y="${Y}" width="${S}" height="${S}" rx="14" fill="#0a0e1c"/><text x="${(cx + cell / 2).toFixed(1)}" y="${(cy + cell / 2).toFixed(1)}" fill="#475569" font-size="24" text-anchor="middle" font-family="${F}">#${id}</text>`;
+    tiles += `<rect x="${X}" y="${Y}" width="${S}" height="${S}" rx="14" fill="none" stroke="#5eead4" stroke-opacity="0.5" stroke-width="2"/>`;
     // id chip
-    tiles += `<rect x="${(cx + 6).toFixed(1)}" y="${(cy + cellH - 30).toFixed(1)}" width="${Math.min(cellW - 12, 78).toFixed(1)}" height="24" rx="6" fill="#05050b" fill-opacity="0.72"/><text x="${(cx + 14).toFixed(1)}" y="${(cy + cellH - 13).toFixed(1)}" fill="#cbd5e1" font-size="16" font-family="${F}">#${id}${ranks[id] ? "" : ""}</text>`;
-    if (last) tiles += `<rect x="${cx.toFixed(1)}" y="${cy.toFixed(1)}" width="${cellW.toFixed(1)}" height="${cellH.toFixed(1)}" rx="12" fill="#05050b" fill-opacity="0.62"/><text x="${(cx + cellW / 2).toFixed(1)}" y="${(cy + cellH / 2 + 10).toFixed(1)}" fill="#eafff7" font-size="34" font-weight="700" text-anchor="middle" font-family="${F}">+${sweep.n - shown + 1}</text>`;
+    tiles += `<rect x="${(cx + 8).toFixed(1)}" y="${(cy + cell - 34).toFixed(1)}" width="${Math.min(cell - 16, 90).toFixed(1)}" height="26" rx="7" fill="#05050b" fill-opacity="0.74"/><text x="${(cx + 17).toFixed(1)}" y="${(cy + cell - 15).toFixed(1)}" fill="#cbd5e1" font-size="17" font-family="${F}">#${id}</text>`;
+    if (last) tiles += `<rect x="${X}" y="${Y}" width="${S}" height="${S}" rx="14" fill="#05050b" fill-opacity="0.62"/><text x="${(cx + cell / 2).toFixed(1)}" y="${(cy + cell / 2 + 12).toFixed(1)}" fill="#eafff7" font-size="38" font-weight="700" text-anchor="middle" font-family="${F}">+${sweep.n - shown + 1}</text>`;
   });
 
   return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">

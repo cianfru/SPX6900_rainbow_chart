@@ -54,6 +54,6 @@ test("sweepCopy: within X length, mentions the count and average", () => {
   const sw = { a: "0x2da96025fbceb584fb24a63ff47f5c4bd459acea", n: 16, span: 1, start: "2026-07-21", end: "2026-07-21", eth: 14.62, usd: 28133, tokens: Array.from({ length: 16 }, (_, i) => i + 1) };
   const c = sweepCopy(sw);
   assert.match(c, /swept 16 Project AEON in a single day/);
-  assert.match(c, /Average/);
+  assert.match(c, /averaging/);
   assert.equal(c.split("\n").length, 3, "exactly 3 template lines");
 });

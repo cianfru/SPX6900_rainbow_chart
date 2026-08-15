@@ -47,14 +47,19 @@ const creds = {
 };
 const hasCreds = Object.values(creds).every(Boolean);
 
-/** House-style copy, 3 lines (withFooter airs them out). */
+/**
+ * House-style copy, 3 lines (withFooter airs them out). Deliberately does NOT send readers to
+ * hunt a specific wallet in the city — the city's holder data is a periodic reconstruction, so a
+ * just-swept wallet may not be locatable there yet. The claim stays to what's checkable today: the
+ * pieces and the prices, which sit on the public sale log the moment the trade settles.
+ */
 export function sweepCopy(sw) {
   const single = sw.span <= 1;
   const spent = `${fEth(sw.eth)}${sw.usd ? ` ($${Math.round(sw.usd).toLocaleString("en-US")})` : ""}`;
   const ids = sw.tokens.slice(0, 6).map(t => "#" + t).join(" ") + (sw.tokens.length > 6 ? " …" : "");
   return `🖼️ One wallet swept ${sw.n} Project AEON ${single ? "in a single day" : `in ${sw.span} days`} — ${spent}.\n`
-    + `The haul: ${ids}. Average ${fEth(sw.eth / sw.n)} a piece — real accumulation, not a floor sweep bot.\n`
-    + `Straight off the public sale log. Open the city, flip on ARCS, and you'll see the lines converge on one building.`;
+    + `The pieces: ${ids}, averaging ${fEth(sw.eth / sw.n)} each. One buyer, one window.\n`
+    + `Every trade sits on the public sale log — reproducible, not a valuation.`;
 }
 
 async function main() {
