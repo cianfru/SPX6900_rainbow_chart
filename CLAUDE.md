@@ -1025,13 +1025,17 @@
   - **⚠ NO MERMAID ON THE SITE** — pulling in mermaid (~500 KB) for one diagram is a bad trade, so `dropMermaid` strips the
     fences. The one flowchart in `docs/README.md` was **rewritten as prose + a table** so it renders everywhere and nothing
     is lost; there are now zero mermaid blocks. If the book ever leans on diagrams, render them properly instead.
-  - **Editing rules:** `docs/*.md` is the single source. GitBook Git Sync is **bidirectional** — prose edited in GitBook
-    lands as a commit on `main`, and the next build regenerates the site copy. Don't edit the same page in both at once.
-    `src/docs-content.js` is GENERATED and committed (same convention as the other generated bundles) — never hand-edit it.
-  - **🔲 OWNER, still open:** the GitBook subdomain still carries the real name. Either rename the site, point a custom
-    domain at it (`docs.spx6900rainbow.xyz`), or retire the GitBook space now the site hosts the book. Separately,
-    `docs/x-bot-plan.md` is a stale internal planning doc in the published folder (claims "no bot code committed yet");
-    it's not in SUMMARY so it isn't a page — delete or relocate on the owner's word.
+  - **Editing rules:** `docs/*.md` is the single source. `src/docs-content.js` is GENERATED and committed (same convention
+    as the other generated bundles) — never hand-edit it; run `npm run build` (or `build:docs`) to regenerate.
+  - **✅ GITBOOK MIRROR RETIRED 2026-08-15 (owner).** The site at `?view=docs` is the canonical, only home for the manual now.
+    Repo-side done: `.gitbook.yaml` deleted, the build-docs comments/header dropped the "mirrored to GitBook" framing.
+    `docs/SUMMARY.md` + the `{% hint %}` markdown shape STAY — the site's build-docs.mjs reads them for the TOC/callouts
+    (dual-purpose, harmless). **🔲 OWNER — the only step Claude can't do (GitBook-side):** in the GitBook UI, disconnect
+    Git Sync from the repo AND delete/rename the space at `andrea-cianfruglia.gitbook.io` (that URL + the embedded
+    `repoName` in its page source are what carried the real name / repo identity — deleting the space is what actually
+    removes them). Until you do, the old GitBook page may still resolve; nothing in the repo points at it anymore.
+    Separately, `docs/x-bot-plan.md` is a stale internal planning doc in the folder (not in SUMMARY → not a page) —
+    delete or relocate on the owner's word.
 - **✅ METHODS PAGE — RESTORED 2026-07-26 (owner asked for it back; do NOT delete it again).** History: built (`b6ac1c4`),
   trimmed for density (`246d69e`), then I DELETED it (`79cb1cf`) on my own reasoning — that was reversed. Owner: *"we can
   have a methods page with the data. Design must be simple and not feeling AI generated. Keep the same visual styling as the
