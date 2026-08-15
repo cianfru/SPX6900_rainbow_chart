@@ -1129,6 +1129,7 @@ const SITE = "https://spx6900rainbow.xyz";
 const AEON_CHARTS = [
   ["Floor & Sales", "aeonfloor"], ["Holder Skyline (3D)", "aeonskyline"], ["Holder Age", "aeonhodl"],
   ["Owners Over Time", "aeonowners"], ["Concentration", "aeonconcentration"], ["Holder Flow", "aeonbehaviour"],
+  ["Buying vs Selling", "aeonflow"],
 ];
 // Which build is serving this panel. "I only see 9 cards" turned out to be a caching
 // question twice; this answers it on sight rather than by counting features.
@@ -1179,6 +1180,15 @@ const AEON_POSTS = [
     ? `🎲 Does rarity price an AEON?\n\nBarely. Across ${m.fairModel.n.toLocaleString()} sales, rarity rank explains ${Math.round(m.fairModel.r2 * 100)}% of what a piece sold for. The rarest one did set the record — below the very top, rank and price come apart.\n\nEvery collection sells rarity as value. This is what it's actually worth here.` : "" },
   { id: "aeonspxosc", title: "Expensive or Cheap in SPX", copy: (o, s, m) => m?.spxValue
     ? `📐 An AEON costs ${Math.round(m.spxValue.ratioNow).toLocaleString()} SPX6900 right now.\n\nSPX is the flat line — above it an AEON costs more SPX than it usually does, below it less. It sits at the ${Math.round(m.spxValue.pctNow)}th percentile of the last year.\n\nWe price it in SPX because SPX tracks AEON better than ETH does: r ~0.55 vs ~0.36.` : "" },
+  { id: "aeonflow", title: "Buying vs Selling", copy: (o, s) => {
+      const tr = s?.trades; if (!Array.isArray(tr) || !tr.length) return "";
+      const m = {}; const row = a => (m[a] = m[a] || { b: 0, sold: 0, usd: 0 });
+      for (const x of tr) { const b = row(x.to); b.b++; b.usd += x.usd || 0; row(x.f).sold++; }
+      const arr = Object.entries(m).map(([a, v]) => ({ a, net: v.b - v.sold, usd: v.usd }));
+      const top = arr.filter(x => x.net > 0).sort((a, b) => b.net - a.net)[0];
+      if (!top) return "";
+      return `🟢 Who's accumulating Project AEON?\n\nOne wallet is up +${top.net} AEON net on the market over the last 30 days${top.usd ? ` (~$${Math.round(top.usd).toLocaleString()})` : ""} — the biggest net buyer, well clear of the field. Green = buying, red = selling, exited wallets flagged.\n\nStraight off the public sale log — open the city and check it yourself.`;
+    } },
 ];
 function renderAeonCards(onchain, sales, market, traders) {
   const g = $("#aeonGrid"); g.innerHTML = "";
