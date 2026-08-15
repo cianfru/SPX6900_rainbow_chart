@@ -93,6 +93,7 @@ const AeonValueChart = lazy(() => import("./AeonValueChart.jsx"));
 const AeonVsSpxChart = lazy(() => import("./AeonVsSpxChart.jsx"));
 const AeonLeadLagChart = lazy(() => import("./AeonLeadLagChart.jsx"));
 const AeonTradersChart = lazy(() => import("./AeonTradersChart.jsx"));
+const AeonFlowChart = lazy(() => import("./AeonFlowChart.jsx"));
 const AeonValuationChart = lazy(() => import("./AeonValuationChart.jsx"));
 const AeonSalesRarityChart = lazy(() => import("./AeonSalesRarityChart.jsx"));
 const AeonTraitsChart = lazy(() => import("./AeonTraitsChart.jsx"));
@@ -238,6 +239,7 @@ function TabIcon({ name }) {
     case "walletwaves": return (<svg {...p}><path d="M3 19h18" /><path d="M3 15h13" strokeOpacity="0.8" /><path d="M3 11h9" strokeOpacity="0.6" /><path d="M3 7h5" strokeOpacity="0.4" /></svg>);
     case "wealthwaves": return (<svg {...p}><path d="M3 20h18" /><path d="M6 20v-4M11 20v-8M16 20v-12" /><circle cx="20" cy="5" r="1.4" /></svg>);
     case "aeontraders": return (<svg {...p}><path d="M4 20V8M10 20V4M16 20v-9M22 20H2" /></svg>);
+    case "aeonflow": return (<svg {...p}><line x1="12" y1="3" x2="12" y2="21" strokeOpacity="0.4" /><rect x="12" y="4" width="8" height="4" /><rect x="5" y="10" width="7" height="4" /><rect x="12" y="16" width="5" height="4" /></svg>);
     case "aeonvaluation": return (<svg {...p}><path d="M4 20V12M9 20V7M14 20V10M19 20V5" /><line x1="2" y1="20" x2="22" y2="20" strokeOpacity="0.4"/></svg>);
     case "aeonsalesrarity": return (<svg {...p}><circle cx="6" cy="16" r="1.5"/><circle cx="11" cy="11" r="1.5"/><circle cx="16" cy="13" r="1.5"/><circle cx="20" cy="7" r="1.5"/><path d="M3 18 21 6" strokeDasharray="3 3" strokeOpacity="0.7"/></svg>);
     case "aeontraits": return (<svg {...p}><path d="M4 7h10M4 12h14M4 17h7" /></svg>);
@@ -826,6 +828,7 @@ export default function App() {
       case "aeonvsspx": return <AeonVsSpxChart isMobile={mob} />;
       case "aeonleadlag": return <AeonLeadLagChart isMobile={mob} initialView={iv} />;
       case "aeontraders": return <AeonTradersChart isMobile={mob} initialView={iv} />;
+      case "aeonflow": return <AeonFlowChart isMobile={mob} initialView={iv} />;
       case "aeonvaluation": return <AeonValuationChart isMobile={mob} />;
       case "aeonsalesrarity": return <AeonSalesRarityChart isMobile={mob} />;
       case "aeontraits": return <AeonTraitsChart isMobile={mob} />;

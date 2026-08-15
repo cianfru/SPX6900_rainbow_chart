@@ -132,6 +132,7 @@ export const AEON_GROUPS = [
       { id: "aeonvaluation", title: "MVRV & Supply in Profit", desc: "NFT MVRV and the cost-basis distribution: are holders in profit vs the floor?" },
       { id: "aeonleadlag", title: "Does the Floor Lead the Coin?", desc: "Lead/lag test of AEON's floor and sales against SPX6900: which one moves first." },
       { id: "aeontraders", title: "Trader Leaderboard", desc: "Who made money trading AEON: realized P&L, hold time and win rate per wallet." },
+      { id: "aeonflow", title: "Accumulating vs Distributing", desc: "The biggest net buyers and net sellers of AEON over the last 7 and 30 days — a tornado of who's stacking and who's leaving." },
     ],
   },
   {
@@ -205,6 +206,7 @@ export const CHART_VIEWS = {
   vsmemekings: [{ label: "Since Launch", v: "launch" }, { label: "12 Months", v: "12m" }, { label: "YTD", v: "ytd" }],
   aeontraders: [{ label: "Top Winners", v: "top" }, { label: "Biggest Losses", v: "bottom" }, { label: "By Volume", v: "byVolume" }],
   aeonleadlag: [{ label: "Floor", v: "floor" }, { label: "Sales Volume", v: "volume" }],
+  aeonflow: [{ label: "Last 30 days", v: "30d" }, { label: "Last 7 days", v: "7d" }],
   // relative already uses the `rel` param for its asset selector: reuse it.
   relative: [{ label: "vs BTC", v: "BTC" }, { label: "vs ETH", v: "ETH" }, { label: "vs SOL", v: "SOL" }, { label: "vs Majors", v: "BASKET" }],
 };
