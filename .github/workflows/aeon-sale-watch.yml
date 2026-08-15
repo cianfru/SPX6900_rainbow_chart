@@ -103,6 +103,21 @@ jobs:
           X_ACCESS_SECRET: ${{ secrets.X_ACCESS_SECRET }}
         run: node scripts/bot/aeon-firesale-watch.mjs
 
+      - name: Watch for a wallet SWEEP + maybe post
+        if: ${{ !(github.event_name == 'workflow_dispatch' && inputs.probe) }}
+        # One wallet scooping ≥3 AEON in a few days → a card showing the haul. Its own lane
+        # (aeonsweep), one/day, gated on a FRESH sweep. Same DRY toggle as the sale watcher.
+        env:
+          DRY_RUN: ${{ (github.event_name == 'workflow_dispatch' && inputs.dry_run) && '1' || vars.AEON_SALE_DRY_RUN }}
+          ALCHEMY_KEY: ${{ secrets.ALCHEMY_KEY }}
+          ALCHEMY_NETWORK: ${{ vars.ALCHEMY_NETWORK }}
+          AEON_CONTRACT: ${{ vars.AEON_CONTRACT }}
+          X_API_KEY: ${{ secrets.X_API_KEY }}
+          X_API_SECRET: ${{ secrets.X_API_SECRET }}
+          X_ACCESS_TOKEN: ${{ secrets.X_ACCESS_TOKEN }}
+          X_ACCESS_SECRET: ${{ secrets.X_ACCESS_SECRET }}
+        run: node scripts/bot/aeon-sweep-watch.mjs
+
       - name: Commit bank + sale + post state if changed
         run: |
           # aeon-sale-state.json / aeon-firesale-state.json remember what already fired;
@@ -111,7 +126,7 @@ jobs:
           # Some of these only appear once their watcher first fires, so add ONLY the ones
           # that exist — `git add` aborts (exit 128) on a pathspec that matches no file.
           present=""
-          for f in public/aeon-sale-state.json public/aeon-firesale-state.json public/aeon-firesale.json public/post-state.json public/aeon-live-sales.json; do
+          for f in public/aeon-sale-state.json public/aeon-firesale-state.json public/aeon-firesale.json public/aeon-sweep-state.json public/post-state.json public/aeon-live-sales.json; do
             [ -e "$f" ] && present="$present $f"
           done
           if [[ -n "$present" && -n "$(git status --porcelain -- $present)" ]]; then
