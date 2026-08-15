@@ -18,6 +18,13 @@ const ARS = [
   { id: "square", label: "1:1", aspect: 1 },
   { id: "wide", label: "16:9", aspect: 16 / 9 },
 ];
+// Orbit speed = fraction of a full revolution over the clip. A slower pan is far kinder to X's
+// bitrate-capped re-encode (less motion per frame → sharper detail), so Slow is the default.
+const SPINS = [
+  { id: "slow", label: "Slow", turns: 0.35 },
+  { id: "med", label: "Med", turns: 0.6 },
+  { id: "full", label: "Full", turns: 1 },
+];
 
 export default function CityRecorder({ accent = "#5eead4", onRecording }) {
   // ?rec=1 is STICKY: the city is its own tab, so navigating in rewrites the URL and drops the param
@@ -33,6 +40,7 @@ export default function CityRecorder({ accent = "#5eead4", onRecording }) {
   })();
   const [secs, setSecs] = useState(8);
   const [ar, setAr] = useState("tall");
+  const [spin, setSpin] = useState("slow");
   const [rec, setRec] = useState({ state: "idle", pct: 0, err: "" });
   if (!enabled) return null;
 
@@ -42,7 +50,9 @@ export default function CityRecorder({ accent = "#5eead4", onRecording }) {
     onRecording?.(true);                       // let the page hide its chrome for a clean screen-record
     try {
       const aspect = (ARS.find(a => a.id === ar) || ARS[0]).aspect;
-      const { blob, ext } = await window.__cityRecord({ seconds: secs, fps: 60, aspect, onTick: p => setRec(r => ({ ...r, pct: p })) });
+      const turns = (SPINS.find(s => s.id === spin) || SPINS[0]).turns;
+      // 30fps, not 60: fewer frames means each gets more of X's fixed re-encode budget → sharper.
+      const { blob, ext } = await window.__cityRecord({ seconds: secs, fps: 30, aspect, turns, onTick: p => setRec(r => ({ ...r, pct: p })) });
       downloadBlob(blob, `spx-city-${new Date().toISOString().slice(0, 10)}.${ext}`);
       setRec({ state: "idle", pct: 0, err: "" });
     } catch (e) { setRec({ state: "idle", pct: 0, err: e.message || "recording failed" }); }
@@ -74,6 +84,9 @@ export default function CityRecorder({ accent = "#5eead4", onRecording }) {
       </span>
       <span style={{ display: "flex", gap: 4 }}>
         {ARS.map(a => <button key={a.id} onClick={() => setAr(a.id)} style={chip(a.id === ar)}>{a.label}</button>)}
+      </span>
+      <span style={{ display: "flex", gap: 4 }}>
+        {SPINS.map(s => <button key={s.id} onClick={() => setSpin(s.id)} style={chip(s.id === spin)}>{s.label}</button>)}
       </span>
       <button onClick={go} disabled={rec.state === "recording"} style={{
         cursor: rec.state === "recording" ? "default" : "pointer", padding: "5px 13px", borderRadius: 7,

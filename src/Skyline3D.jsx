@@ -1210,11 +1210,14 @@ export default function Skyline3D({
       const [w, h] = aspect >= 1 ? [LONG, LONG / aspect] : [LONG * aspect, LONG];
       return [evenN(w), evenN(h)];
     };
-    window.__cityRecord = ({ seconds = 10, fps = 60, aspect = 4 / 5, onTick } = {}) => {
+    // `turns` = how much of a full revolution the camera sweeps over the whole clip. Fewer turns = a
+    // slower pan = less motion per frame, which a bitrate-capped encoder (X re-encodes every upload)
+    // resolves far sharper — the city's thousands of tiny windows are the worst case for motion blur.
+    window.__cityRecord = ({ seconds = 10, fps = 60, aspect = 4 / 5, turns = 0.5, onTick } = {}) => {
       flying = false;
       const wasAuto = controls.autoRotate, wasSpeed = controls.autoRotateSpeed, wasEnabled = controls.enabled;
       const wasPR = renderer.getPixelRatio();
-      controls.enabled = true; controls.autoRotate = true; controls.autoRotateSpeed = 60 / seconds;   // ~one full orbit over `seconds`
+      controls.enabled = true; controls.autoRotate = true; controls.autoRotateSpeed = 60 * turns / seconds;   // `turns` revolutions over `seconds`
       if (aspect > 0) {
         renderer.setPixelRatio(1); composer?.setPixelRatio(1);   // buffer == recordDims, no DPR multiply
         recordDims = recordSize(aspect); onResize();
