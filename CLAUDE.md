@@ -305,6 +305,21 @@
     fires.** Rare/big sales unaffected. Takes effect on the next `aeon.yml` market rebuild (the committed `recentSales`/`level` lag one daily
     run). LESSON for any "cheap vs typical" surface: anchor on the CURRENT clearing price (count-based, buyer-deduped), never a time-window
     median — and treat a fast one-directional floor move as a regime, not a stream of individual signals.
+  - **✅✅ REDESIGN — CALIBRATED CADENCE + SPX REGIME (owner brainstorm 2026-08-16: "find a way that fires ~once a week; the real problem is
+    having a real market price, not the 20/40% number").** Threshold-tuning was the wrong lever — a fixed % either spams (cheap market) or
+    goes silent (correcting one). Backtested the full 4,079-ETH-sale log (Nov-2023→Jul-2026): OLD fixed-20%-vs-lagging = 1.53 posts/wk; NEW =
+    **~0.8/wk** with a healthy steal/rare/big MIX and **0 fires through the July pump+reversion window**. Two elegant pieces, both live:
+    (1) **`stealBar` — self-calibrating to cadence, not a fixed %.** `build-aeon-market.mjs` emits it = the discount (vs the clearing level at
+    each sale's own time) that ~1 day in 7 clears over the trailing 60 days, floored at 15%. So a "steal" post lands ~weekly and the bar rises
+    in busy markets / relaxes in dead ones on its own. The watcher reads `market.stealBar` instead of the hardcoded 20% (falls back to 20% pre-
+    rebuild). (2) **`spxStretch` — the SPX regime reference (owner's key insight).** On a thin market one $28k buyer IS the market for a day —
+    the only way to see through it is to price AEON in a STABLE denominator (SPX) and watch it revert to baseline. `spxStretch` = current AEON-
+    in-SPX vs its trailing-120d median; >0 = overvalued/pumped/reverting → `pickNotable` raises the steal bar (a "cheap" sale in that regime is
+    the mean-reversion, not a deal). Same guard shape as `floorTrend`; the two are `max()`-combined. Cadence caps: a 4-day STEAL cooldown +
+    a **3-day GLOBAL min-gap between any notable-sale post** (`GLOBAL_GAP`) so the lane can't cluster. Rare/big have no cooldown (inherently
+    rare = the variety). Dials to retune: `TARGET`/`CAL` in stealBar, `GLOBAL_GAP`/`STEAL_COOLDOWN` in the watcher. **🔲 POST (owner wants it
+    for tomorrow): "how one $28k buyer broke a whole NFT floor" — AEON floor in ETH (unreadable spike) next to AEON-in-SPX (spike + clean
+    reversion to baseline), the honest illiquidity/microstructure story + why you price against something stable, not against itself.**
 - **✅✅ AEON "STEROIDS" — MARKET + TRADER INTELLIGENCE BUILT 2026-07-24 (all KEYLESS, from the raw sales+transfers we
   already have — no OpenSea key needed).** Two engines off `dune/out/aeon_sales.csv` + `aeon_transfers.csv` + rarity + live
   floor, run daily in aeon.yml: **`build-aeon-market.mjs`** → `aeon-market.json` (NFT **MVRV** = floor÷realized ≈ 1.01×,

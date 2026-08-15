@@ -41,7 +41,10 @@ const CONTRACT = (process.env.AEON_CONTRACT || "0xc374a204334d4Edd4C6a62f0867C75
 const LIVE_HOURS = Number(process.env.AEON_SALE_HOURS || 168);
 
 const NOTABLE_DAYS = 3;      // only fire on a genuinely FRESH sale
-const STEAL_DISC = 0.20;     // >=20% under what that rarity trades at
+const STEAL_DISC = 0.20;     // fallback bar if the builder didn't emit a calibrated one
+const STEAL_FLOOR = 0.15;    // never call a sale a steal below this, whatever the bar says
+const STEAL_COOLDOWN = 4;    // min days between STEAL posts (rare/big are inherently rare, no cooldown)
+const GLOBAL_GAP = 3;        // min days between ANY notable-sale post → caps cadence to ~1/week
 const RARE_RANK = 150;       // rank at/below which any trade is newsworthy
 const BIG_MULT = 2.0;        // >=2x the market level
 
@@ -62,21 +65,28 @@ const hasCreds = Object.values(creds).every(Boolean);
  * Score every fresh sale and return the most notable, or null.
  * Pure — unit-tested in test/aeon-sale-watch.test.mjs.
  */
-export function pickNotable(recentSales, { level, today, posted = new Set(), days = NOTABLE_DAYS, trend = null } = {}) {
+export function pickNotable(recentSales, { level, today, posted = new Set(), days = NOTABLE_DAYS, trend = null, stealBar = null, spxStretch = null, stealAllowed = true } = {}) {
   const cutoff = Date.parse(today) - days * 86400e3;
-  // ⭐ CORRECTION GUARD. The clearing-level anchor already stops a reverting floor reading as
-  // steals; this is the belt-and-suspenders for the day or two where the clearing level is
-  // itself still catching up. While the floor is falling fast (trend well below zero) require
-  // a DEEPER discount, so a market-wide repricing can't spam the account — only an exceptional
-  // deal fires. Settles back to the normal bar the moment the floor stops dropping.
-  const stealDisc = STEAL_DISC + Math.min(0.14, Math.max(0, -(trend ?? 0) - 0.10));
+  // ⭐ THE STEAL BAR IS CALIBRATED, NOT FIXED. The builder emits `stealBar` — the discount that
+  // clears roughly once a week over recent history — so posts land at a sane cadence instead of a
+  // fixed 20% that either spams or goes silent. Two regime guards raise it further, because in both
+  // a "cheap" sale is the mean-reversion, not a deal:
+  //   • floorTrend < 0  — the ETH clearing price is falling fast (a correction in progress)
+  //   • spxStretch > 0  — the collection is stretched above its stable SPX baseline (pumped, reverting)
+  // `stealAllowed=false` (a cooldown since the last steal post) drops the steal lane entirely, so a
+  // rare piece or a big sale can still fire but steals stay ~weekly.
+  const guard = Math.max(
+    Math.min(0.14, Math.max(0, -(trend ?? 0) - 0.10)),
+    Math.min(0.12, Math.max(0, (spxStretch ?? 0) - 0.10) * 0.8),
+  );
+  const stealDisc = Math.max(STEAL_FLOOR, stealBar ?? STEAL_DISC) + guard;
   let best = null;
   for (const s of recentSales || []) {
     if (!(s.price > 0) || !(s.rank > 0)) continue;
     if (Date.parse(s.d) < cutoff) continue;
     if (posted.has(`${s.id}@${s.d}`)) continue;
     const reasons = [];
-    if (s.disc >= stealDisc) reasons.push({ kind: "steal", strength: s.disc });
+    if (stealAllowed && s.disc >= stealDisc) reasons.push({ kind: "steal", strength: s.disc });
     if (s.rank <= RARE_RANK) reasons.push({ kind: "rare", strength: 1 - s.rank / RARE_RANK });
     if (level > 0 && s.price >= level * BIG_MULT) reasons.push({ kind: "big", strength: s.price / level / BIG_MULT });
     if (!reasons.length) continue;
@@ -210,7 +220,14 @@ async function main() {
   // build date let a 4-day-old sale through as "just sold" when that file was 2 days
   // stale. If the data is old, nothing qualifies — which is the correct outcome.
   const asOf = new Date().toISOString().slice(0, 10);
-  const pick = pickNotable(candidates, { level, today: asOf, posted: force ? new Set() : posted, trend: market.floorTrend });
+  // Steal cooldown: don't fire another steal within STEAL_COOLDOWN days of the last one, so the
+  // calibrated bar's ~weekly cadence can't cluster. Rare/big are inherently rare — no cooldown.
+  const sinceSteal = state.lastStealAt ? (Date.parse(asOf) - Date.parse(state.lastStealAt)) / 86400e3 : Infinity;
+  const stealAllowed = force || sinceSteal >= STEAL_COOLDOWN;
+  const pick = pickNotable(candidates, {
+    level, today: asOf, posted: force ? new Set() : posted,
+    trend: market.floorTrend, stealBar: market.stealBar, spxStretch: market.spxStretch, stealAllowed,
+  });
   if (!pick) {
     console.log(`aeon-sale: nothing notable in the last ${NOTABLE_DAYS} days (checked ${candidates.length} sales from ${source}) — no post.`);
     return;
@@ -221,6 +238,12 @@ async function main() {
   if (!force && lanePostedToday(LANE)) {
     console.log(`aeon-sale: lane "${LANE}" already posted today — skipping (one notable sale per day).`);
     return;
+  }
+  // Cadence cap: no notable-sale post within GLOBAL_GAP days of the last one (any kind), so the
+  // whole lane lands ~once a week rather than clustering. The steal cooldown above is on top of this.
+  if (!force && state.lastAt) {
+    const sinceAny = (Date.parse(asOf) - Date.parse(state.lastAt.slice(0, 10))) / 86400e3;
+    if (sinceAny < GLOBAL_GAP) { console.log(`aeon-sale: last notable sale was ${sinceAny.toFixed(0)}d ago (<${GLOBAL_GAP}d gap) — skipping.`); return; }
   }
 
   const { traits, total } = traitsFor(sale.id, RARITY);
@@ -255,8 +278,12 @@ async function main() {
   const tweetId = await postWithMedia(client, { text }, null, { kind: "image", data: png, mediaType: "image/png" });
   console.log("posted", tweetId || "");
   posted.add(`${sale.id}@${sale.d}`);
-  // keep the memory bounded; only recent pairs can ever re-match anyway
-  writeFileSync(STATE, JSON.stringify({ posted: [...posted].slice(-200), lastId: sale.id, lastAt: new Date().toISOString() }, null, 2) + "\n");
+  // keep the memory bounded; only recent pairs can ever re-match anyway. lastStealAt drives the
+  // steal cooldown, so it only advances on a STEAL post (rare/big don't reset the steal clock).
+  writeFileSync(STATE, JSON.stringify({
+    posted: [...posted].slice(-200), lastId: sale.id, lastAt: new Date().toISOString(),
+    lastStealAt: kind === "steal" ? asOf : (state.lastStealAt || null),
+  }, null, 2) + "\n");
   recordLanePost(LANE, tweetId);
 }
 

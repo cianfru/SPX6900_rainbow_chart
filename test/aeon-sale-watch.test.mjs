@@ -12,6 +12,27 @@ test("picks nothing when no sale clears a notability bar", () => {
   assert.equal(pickNotable(rows, { level: 0.59, today: TODAY }), null);
 });
 
+test("calibrated stealBar replaces the fixed 20%", () => {
+  const s = sale({ id: 5, disc: 0.24, rank: 900 });
+  // a 24% discount fires under the default, but not when the calibrated bar is 30%
+  assert.equal(pickNotable([s], { level: 0.5, today: TODAY })?.kind, "steal");
+  assert.equal(pickNotable([s], { level: 0.5, today: TODAY, stealBar: 0.30 }), null, "below the calibrated bar");
+  assert.equal(pickNotable([sale({ id: 6, disc: 0.33, rank: 900 })], { level: 0.5, today: TODAY, stealBar: 0.30 })?.kind, "steal");
+});
+
+test("SPX regime guard: overvalued vs its SPX baseline raises the bar", () => {
+  const s = sale({ id: 7, disc: 0.22, rank: 900 });
+  assert.equal(pickNotable([s], { level: 0.5, today: TODAY, stealBar: 0.15 })?.kind, "steal", "fires when fairly valued");
+  assert.equal(pickNotable([s], { level: 0.5, today: TODAY, stealBar: 0.15, spxStretch: 0.30 }), null, "suppressed while pumped/reverting");
+});
+
+test("steal cooldown (stealAllowed=false) mutes steals but not rare/big", () => {
+  const steal = sale({ id: 8, disc: 0.4, rank: 900 });
+  assert.equal(pickNotable([steal], { level: 0.5, today: TODAY, stealAllowed: false }), null, "steal muted in cooldown");
+  const rare = sale({ id: 9, disc: 0, rank: 40 });
+  assert.equal(pickNotable([rare], { level: 0.5, today: TODAY, stealAllowed: false })?.kind, "rare", "rare still fires");
+});
+
 test("flags a steal (>=20% under what that rarity trades at)", () => {
   const got = pickNotable([sale({ id: 7, price: 0.4, exp: 0.6, disc: 0.33 })], { level: 0.59, today: TODAY });
   assert.equal(got.kind, "steal");

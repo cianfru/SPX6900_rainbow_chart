@@ -251,6 +251,45 @@ function main() {
   const rarityFactor = r => (rarityFit ? Math.exp(rarityFit.a + rarityFit.b * Math.log(r)) : 1);
   const fairAt = (rank, t) => (levelAt(t) || levelNow) * rarityFactor(rank);
 
+  // ⭐ CADENCE-CALIBRATED STEAL BAR. A fixed 20% either spams (in a cheap market) or goes silent
+  // (in a correcting one). Instead, set the bar from the DATA: over the last 60 days, the discount
+  // (vs the clearing level at each sale's own time) that ~1 day in 7 clears — so a "steal" post
+  // lands roughly weekly and self-adjusts to volume and regime. Floored so a 12%-off sale in a
+  // dead stretch never gets called a steal. The watcher reads this instead of a hardcoded 20%.
+  const stealBar = (() => {
+    const CAL = 60 * DAY, TARGET = 7, ABS_MIN = 0.15;
+    const byDay = new Map();
+    for (let i = 0; i < priced.length; i++) {
+      const s = priced[i];
+      if (s.t < now - CAL) continue;
+      const seen = new Map();
+      for (let j = i; j >= 0 && seen.size < 14; j--) if (!seen.has(priced[j].buyer)) seen.set(priced[j].buyer, priced[j].price);
+      if (seen.size < 6) continue;
+      const rk = rankOf(s); if (!(rk > 0)) continue;
+      const exp = median([...seen.values()]) * rarityFactor(rk);
+      const disc = (exp - s.price) / exp;
+      const day = new Date(s.t).toISOString().slice(0, 10);
+      byDay.set(day, Math.max(byDay.get(day) ?? -Infinity, disc));
+    }
+    const daily = [...byDay.values()].sort((a, b) => b - a);
+    if (daily.length < 10) return +(ABS_MIN + 0.05).toFixed(3);
+    const K = Math.max(1, Math.round(CAL / DAY / TARGET));   // ~ window / target days
+    return +Math.max(ABS_MIN, daily[Math.min(K, daily.length) - 1]).toFixed(3);
+  })();
+
+  // SPX REGIME — the "where should the market be" reference the eye uses. A single-wallet pump on a
+  // thin market spikes the ETH floor, but the collection's value in SPX (a stable denominator) shows
+  // the spike AND the reversion to its baseline. `spxStretch` = current AEON-in-SPX vs its trailing
+  // median. Positive = overvalued / reverting → the watcher gets MORE conservative on steals, since a
+  // "cheap" sale in that regime is the mean-reversion, not a deal.
+  const spxVal = (() => { try { return spxValuation(JSON.parse(readFileSync("public/aeon-sales.json", "utf8")).daily || []); } catch { return null; } })();
+  const spxStretch = (() => {
+    const fs = spxVal?.floorSeries || [];
+    if (fs.length < 20) return null;
+    const base = median(fs.slice(-120).map(x => x[1]));
+    return (base > 0) ? +((fs.at(-1)[1] / base) - 1).toFixed(3) : null;
+  })();
+
   const cutoff = now - 180 * DAY;
   const recentSales = sales.filter(s => s.t >= cutoff && R.has(s.id));
   const scored = recentSales.map(s => {
@@ -307,8 +346,8 @@ function main() {
       ? { a: rarityFit.a, b: rarityFit.b, r2: +rarityFit.r2.toFixed(4), n: rarityFit.n, level: +levelNow.toFixed(4), method: "sales-detrended" }
       : null,
     levelNow: +levelNow.toFixed(4),
-    floorTrend,
-    spxValue: (() => { try { return spxValuation(JSON.parse(readFileSync("public/aeon-sales.json", "utf8")).daily || []); } catch { return null; } })(),
+    floorTrend, stealBar, spxStretch,
+    spxValue: spxVal,
     salesScatter, scatterImgs, deals, biggest, traitPremiums,
     // ── WHERE THE FAIR-VALUE MODEL MAY BE QUOTED ────────────────────────────────
     // The rarity fit is drawn through the whole sale log, but the top of the curve is
