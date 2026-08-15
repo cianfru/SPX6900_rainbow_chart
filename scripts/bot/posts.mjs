@@ -1430,6 +1430,25 @@ Where they bought, not where they'll sell.`,
     };
   })(),
 
+  // Cost Basis vs Price — the volume-profile: price line + where the bags were bought as bars on the
+  // price axis. Same URPD data as `urpd`, but shown against the price curve so you see the walls sit
+  // above/below spot. A holder-cost POSITION, not a signal.
+  s => (s.urpd?.buckets?.length >= 8 && (s.drawn?.length ?? 0) > 20) && (() => {
+    const u = s.urpd;
+    const spot = Number.isFinite(s.price) && s.price > 0 ? s.price : u.spot;
+    const bk = u.buckets.map(b => ({ ...b, mid: Math.sqrt(b.lo * b.hi) }));
+    const inP = bk.reduce((a, b) => a + (b.mid < spot ? b.pct : 0), 0);
+    let w = bk[0]; for (const b of bk) if (b.pct > w.pct) w = b;
+    const fp = p => p >= 1 ? "$" + p.toFixed(2) : "$" + p.toFixed(p >= 0.1 ? 3 : 4);
+    return {
+      id: "bagsprofile",
+      text: ct`📊 Where was every SPX6900 bag bought — and where is that vs price?
+${inP.toFixed(0)}% of held supply sits in profit; the heaviest wall was bought around ${fp(w.mid)}. Reconstructed on-chain from every coin's cost basis, lined up against price.
+Where they bought, not where they'll sell.`,
+      card: { type: "bagsprofile" },
+    };
+  })(),
+
   // Cost-basis × holding AGE — the same URPD walls, coloured by how long each coin has been held
   // (FIFO per-lot age split, bucket.age). Reveals that the SAME price bucket holds coins of very
   // different ages (bought on the way up vs down). Data-gated on the age field → dormant until the
@@ -2465,7 +2484,7 @@ const LOOK = {
   model: "scatter",
   monthlyreturns: "heatmap", monthlyreturnssp: "heatmap", monthlyreturnsbtc: "heatmap",
   hodlwaves: "stack", hodlcompare: "stack", walletgrowth: "stack", lthsth: "stack", valband: "dual", cexvenues: "stack", citygrowth: "stack", cityvalue: "stack", citychurn: "bars", citypercap: "dual", cityvintage: "bars", cityskyline: "stack", floatcheck: "bars",
-  timeinband: "bars", monthlybars: "bars", monthcompare: "bars", multichain: "bars", urpd: "bars", urpdage: "bars", cexvenflow: "bars", ethsol: "bars", chainconc: "bars", illiquid: "stack", baltier: "bars", dualholders: "stack", basesurv: "bars", supplycurve: "race", whalecensus: "bars", whalebehaviour: "bars",
+  timeinband: "bars", monthlybars: "bars", monthcompare: "bars", multichain: "bars", urpd: "bars", bagsprofile: "dual", urpdage: "bars", cexvenflow: "bars", ethsol: "bars", chainconc: "bars", illiquid: "stack", baltier: "bars", dualholders: "stack", basesurv: "bars", supplycurve: "race", whalecensus: "bars", whalebehaviour: "bars",
   fngdial: "round", distribution: "round",
   marketcap: "blocks", milestones: "blocks", sp500: "blocks",
   dca: "dca",

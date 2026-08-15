@@ -62,6 +62,7 @@ import { renderWhaleMosaicCard } from "./whale-mosaic-card.mjs";
 import { renderCexFlowCard } from "./cex-flow-card.mjs";
 import { renderHodlCompareCard } from "./hodl-compare-card.mjs";
 import { renderUrpdCard } from "./urpd-card.mjs";
+import { renderCostBasisProfileCard } from "./cost-basis-profile-card.mjs";
 import { renderUrpdAgeCard } from "./urpd-age-card.mjs";
 import { renderLthSthCard } from "./lth-sth-card.mjs";
 import { renderSoprCard } from "./sopr-card.mjs";
@@ -900,7 +901,7 @@ export const CARD_TYPES = new Set([
   "rainbow", "channel", "riskcolor", "risklevels", "riskheat", "runningroi", "longshort",
   "firesalerally", "underwater", "goldencross", "holdergrowth", "multichain", "chainrace",
   "holderspair", "mvrvbtc", "mvrvtrend", "supplyprofit", "floormodel", "altmarket",
-  "freefloat", "nupl", "concentration", "hodlwaves", "hodlcompare", "urpd", "urpdage",
+  "freefloat", "nupl", "concentration", "hodlwaves", "hodlcompare", "urpd", "bagsprofile", "urpdage",
   "lthsth", "sopr", "nrpl", "liveliness", "valband", "walletgrowth", "picycle", "spxbitcoin", "spxcohort",
   "cexsupply", "cexflow", "cexvenues", "cexvenflow", "whales", "walletwaves", "wealthwaves", "survivorship", "supplyera", "exitmap", "smartmoney",
   "cyclesync", "cycleclock", "rsidots", "monthcompare", "ethsol", "chainconc", "illiquid", "baltier", "dualholders", "basesurv", "supplycurve", "whalecensus", "whalebehaviour", "whalemosaic", "citygrowth", "cityvalue", "citychurn", "citypercap", "cityvintage", "cityskyline", "floatcheck",
@@ -967,6 +968,7 @@ export function renderPostCard(post, stats, opts = {}) {
   if (type === "concentration") return renderConcentrationCard(stats, dims);
   if (type === "hodlwaves") return renderHodlWavesCard(stats, dims);
   if (type === "urpd") return renderUrpdCard(stats, dims);
+  if (type === "bagsprofile") return renderCostBasisProfileCard(stats, dims);
   if (type === "urpdage") return renderUrpdAgeCard(stats, dims);
   if (type === "lthsth") return renderLthSthCard(stats, dims);
   if (type === "sopr") return renderSoprCard(stats, dims);
