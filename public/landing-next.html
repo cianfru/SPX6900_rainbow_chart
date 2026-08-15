@@ -450,10 +450,15 @@
   /* ── MOBILE SPRINGBOARD — app-launcher nav (prototype) ── */
   .sb{ position:fixed; inset:0; z-index:300; background:radial-gradient(120% 60% at 50% -6%, rgba(78,231,154,.05), transparent 60%), var(--bg); display:none; flex-direction:column; }
   .sb.open{ display:flex; }
-  .sbtop{ display:flex; align-items:center; gap:10px; padding:calc(env(safe-area-inset-top,0px) + 12px) 14px 12px; border-bottom:1px solid var(--line); flex:none; position:relative; z-index:2;
-    background:color-mix(in srgb, var(--bg) 62%, transparent); backdrop-filter:blur(18px) saturate(1.4); -webkit-backdrop-filter:blur(18px) saturate(1.4); }
+  .sbtop{ display:flex; align-items:center; gap:10px; padding:calc(env(safe-area-inset-top,0px) + 12px) 14px 13px; flex:none; position:relative; z-index:2;
+    background:color-mix(in srgb, var(--bg) 60%, transparent); backdrop-filter:blur(20px) saturate(1.5); -webkit-backdrop-filter:blur(20px) saturate(1.5);
+    box-shadow:0 12px 28px -16px rgba(0,0,0,.6); }
+  /* rainbow aura hairline — brand + depth under the header */
+  .sbtop::after{ content:""; position:absolute; left:0; right:0; bottom:-2.5px; height:2.5px; pointer-events:none;
+    background:linear-gradient(90deg,var(--b0),var(--b1),var(--b2),var(--b3),var(--b4),var(--b5),var(--b6),var(--b7),var(--b8));
+    filter:drop-shadow(0 1px 6px color-mix(in srgb, var(--b4) 55%, transparent)); }
   .sbtop .sbtitle{ flex:1; text-align:center; font-family:var(--label); text-transform:uppercase; letter-spacing:.16em; font-size:13px; color:var(--dim); }
-  .sbbtn{ width:44px; height:44px; display:inline-flex; align-items:center; justify-content:center; border:1px solid var(--line2); border-radius:11px; background:var(--panel); color:var(--tx); cursor:pointer; flex:none; }
+  .sbbtn{ width:44px; height:44px; display:inline-flex; align-items:center; justify-content:center; border:1.5px solid color-mix(in srgb, var(--tx) 22%, var(--line2)); border-radius:11px; background:var(--panel); color:var(--tx); cursor:pointer; flex:none; box-shadow:0 3px 10px -5px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.08); }
   .sbbtn svg{ width:22px; height:22px; }
   .sbbtn[hidden]{ visibility:hidden; }
   .sbbody{ flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:16px 14px calc(env(safe-area-inset-bottom,0px) + 40px); }
@@ -489,12 +494,16 @@
     display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; }
   .sbtile.sbdis{ opacity:.4; pointer-events:none; }
   /* utility dock at the foot of the menu: X · Kraken · theme */
-  .sbdock{ flex:none; display:flex; align-items:center; justify-content:center; gap:14px; padding:13px 16px calc(env(safe-area-inset-bottom,0px) + 15px); border-top:1px solid var(--line); position:relative; z-index:2;
-    background:color-mix(in srgb, var(--bg) 62%, transparent); backdrop-filter:blur(18px) saturate(1.4); -webkit-backdrop-filter:blur(18px) saturate(1.4); }
-  .sbdocki{ width:48px; height:48px; display:inline-flex; align-items:center; justify-content:center; border:1px solid var(--line2); border-radius:13px; background:var(--panel); color:var(--tx); cursor:pointer; text-decoration:none; transition:border-color .14s, color .14s; }
-  .sbdocki:hover, .sbdocki:active{ border-color:var(--faint); }
+  .sbdock{ flex:none; display:flex; align-items:center; justify-content:center; gap:14px; padding:14px 16px calc(env(safe-area-inset-bottom,0px) + 15px); position:relative; z-index:2;
+    background:color-mix(in srgb, var(--bg) 60%, transparent); backdrop-filter:blur(20px) saturate(1.5); -webkit-backdrop-filter:blur(20px) saturate(1.5);
+    box-shadow:0 -12px 28px -16px rgba(0,0,0,.6); }
+  .sbdock::before{ content:""; position:absolute; left:0; right:0; top:-2.5px; height:2.5px; pointer-events:none;
+    background:linear-gradient(90deg,var(--b0),var(--b1),var(--b2),var(--b3),var(--b4),var(--b5),var(--b6),var(--b7),var(--b8));
+    filter:drop-shadow(0 -1px 6px color-mix(in srgb, var(--b4) 55%, transparent)); }
+  .sbdocki{ width:48px; height:48px; display:inline-flex; align-items:center; justify-content:center; border:1.5px solid color-mix(in srgb, var(--tx) 22%, var(--line2)); border-radius:13px; background:var(--panel); color:var(--tx); cursor:pointer; text-decoration:none; transition:border-color .14s, color .14s, box-shadow .14s; box-shadow:0 3px 10px -5px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.08); }
+  .sbdocki:hover, .sbdocki:active{ border-color:var(--faint); box-shadow:0 5px 14px -5px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.12); }
   .sbdocki svg{ width:23px; height:23px; fill:currentColor; }
-  .sbdocki.krk svg{ fill:#9d5cf8; }
+  .sbdocki.krk{ border-color:color-mix(in srgb,#9d5cf8 42%, var(--line2)); } .sbdocki.krk svg{ fill:#9d5cf8; }
   .sbdocki#sbtheme svg{ fill:none; stroke:currentColor; stroke-width:1.6; stroke-linecap:round; stroke-linejoin:round; }
   /* the panel itself springs up on open (iOS "zoom into a folder") */
   @keyframes sbopen{ from{ opacity:0; transform:scale(1.05) } to{ opacity:1; transform:none } }
@@ -512,15 +521,19 @@
   /* fullscreen 2×2 quadrant launcher for the top-level sections view (matches the React app) */
   .sbbody:has(.sbgrid.sections){ display:flex; flex-direction:column; overflow:hidden; padding:16px 14px calc(env(safe-area-inset-bottom,0px) + 16px); }
   .sbgrid.sections{ flex:1; min-height:0; grid-template-rows:1fr 1fr; gap:12px; }
-  .sbcell{ position:relative; overflow:hidden; display:flex; flex-direction:column; align-items:flex-start; justify-content:flex-end; gap:5px; padding:18px; min-height:0; border:1px solid var(--line2); border-radius:20px; background:linear-gradient(150deg, color-mix(in srgb, var(--tc) 20%, var(--panel)), var(--panel2) 78%); color:var(--tx); cursor:pointer; text-align:left; transition:transform .1s ease, border-color .12s; }
-  .sbcell:active{ transform:scale(.97); border-color:var(--tc); }
-  .sbcell .sbcellbg{ position:absolute; left:0; right:0; bottom:0; height:62%; opacity:.14; color:var(--tc); pointer-events:none; }
+  .sbcell{ position:relative; overflow:hidden; display:flex; flex-direction:column; align-items:flex-start; justify-content:flex-end; gap:5px; padding:18px; min-height:0; border:1.5px solid color-mix(in srgb, var(--tc) 48%, var(--line2)); border-radius:20px; background:linear-gradient(150deg, color-mix(in srgb, var(--tc) 30%, var(--panel)), var(--panel2) 82%); color:var(--tx); cursor:pointer; text-align:left; transition:transform .1s ease, border-color .12s, box-shadow .12s;
+    box-shadow:0 12px 30px -12px color-mix(in srgb, var(--tc) 45%, transparent), inset 0 1px 0 rgba(255,255,255,.12); }
+  :root[data-theme="light"] .sbcell{ box-shadow:0 12px 26px -12px color-mix(in srgb, var(--tc) 40%, transparent), inset 0 1px 0 rgba(255,255,255,.75); }
+  .sbcell:active{ transform:scale(.97); border-color:var(--tc); box-shadow:0 6px 20px -8px color-mix(in srgb, var(--tc) 60%, transparent), inset 0 1px 0 rgba(255,255,255,.14); }
+  .sbcell .sbcellbg{ position:absolute; left:0; right:0; bottom:0; height:64%; opacity:.22; color:var(--tc); pointer-events:none; }
   .sbcell .sbcellbg svg{ width:100%; height:100%; display:block; }
-  .sbcell .sbcellico{ position:absolute; top:16px; left:17px; width:32px; height:32px; color:var(--tc); }
+  /* section icon: full group colour, a soft aura glow behind it and a drop shadow — character + depth, no flat chip */
+  .sbcell .sbcellico{ position:absolute; top:15px; left:16px; width:37px; height:37px; color:var(--tc); filter:drop-shadow(0 2px 7px color-mix(in srgb, var(--tc) 60%, transparent)); }
+  .sbcell .sbcellico::before{ content:""; position:absolute; inset:-8px; border-radius:50%; z-index:-1; background:radial-gradient(circle, color-mix(in srgb, var(--tc) 34%, transparent), transparent 72%); }
   .sbcell .sbcellico svg{ width:100%; height:100%; }
   .sbcell .sbcellnm{ position:relative; font-family:var(--sans); font-weight:800; font-size:19px; letter-spacing:-.01em; line-height:1.05; }
-  .sbcell .sbcellsub{ position:relative; font-family:var(--label); font-size:9.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--faint); }
-  .sbcell .sbcellarrow{ position:absolute; top:16px; right:17px; color:var(--tc); font-size:17px; line-height:1; opacity:.65; }
+  .sbcell .sbcellsub{ position:relative; font-family:var(--label); font-size:9.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--dim); }
+  .sbcell .sbcellarrow{ position:absolute; top:15px; right:16px; color:var(--tc); font-size:18px; line-height:1; opacity:.95; filter:drop-shadow(0 1px 4px color-mix(in srgb, var(--tc) 50%, transparent)); }
   .kpi{ background:var(--panel); padding:13px 15px 14px; display:flex; flex-direction:column; gap:3px; min-width:0; }
   .kpi .k{ display:flex; align-items:center; gap:6px; } .kpi .k .d{ width:7px; height:7px; border-radius:50%; flex:none; }
   :root[data-variant="green"] .kpi .k .d{ background:var(--live) !important; }
