@@ -18,6 +18,20 @@ test("flags a steal (>=20% under what that rarity trades at)", () => {
   assert.equal(got.sale.id, 7);
 });
 
+test("correction guard: a mild steal is suppressed while the floor is falling fast", () => {
+  // A 26%-under sale would fire normally, but during a sharp downward correction (trend -22%)
+  // the steal bar rises past it — this is the reverting-floor spam the guard exists to stop.
+  const s = sale({ id: 11, price: 0.5, exp: 0.675, disc: 0.26, rank: 950 });
+  assert.equal(pickNotable([s], { level: 0.5, today: TODAY })?.kind, "steal", "fires with no correction");
+  assert.equal(pickNotable([s], { level: 0.5, today: TODAY, trend: -0.22 }), null, "suppressed during the correction");
+  assert.equal(pickNotable([s], { level: 0.5, today: TODAY, trend: 0 })?.kind, "steal", "fires once the floor is stable");
+});
+
+test("correction guard: an EXCEPTIONAL steal still fires during a correction", () => {
+  const s = sale({ id: 12, price: 0.34, exp: 0.6, disc: 0.43, rank: 950 });
+  assert.equal(pickNotable([s], { level: 0.6, today: TODAY, trend: -0.22 })?.kind, "steal");
+});
+
 test("flags a rare piece trading at all, even at a fair price", () => {
   const got = pickNotable([sale({ id: 9, rank: 42, disc: 0 })], { level: 0.59, today: TODAY });
   assert.equal(got.kind, "rare");

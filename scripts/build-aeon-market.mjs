@@ -147,6 +147,36 @@ function marketLevelAt(sorted, t, halfWin = 30 * DAY, minN = 12) {
   return median(sorted.map(s => s.price));
 }
 
+// ── CURRENT CLEARING LEVEL — the anchor for scoring TODAY's sales ─────────────────
+// The market level above is a TIME-window median, which lags a sharp move. When a buyer
+// swept 16 pieces in July the floor ~doubled, and for weeks afterward EVERY ordinary
+// sale scored as a 20–30% "steal" against that stale 30-day median — spamming the account
+// with fake deals while the floor merely reverted to normal.
+//
+// The clearing level is COUNT-based instead: the median of the last K DISTINCT BUYERS'
+// prices. Two properties that fix it elegantly:
+//   • it tracks where pieces ACTUALLY clear right now, within a few sales, not a month —
+//     so once the floor corrects, sales at the new floor read ~0% off, not 30% off.
+//   • DEDUPED BY BUYER, so a single sweep (one wallet, many buys) can't set the market
+//     price — the thing that started this whole distortion counts once.
+// `sorted` is ascending by time; we walk backward = most recent first.
+function clearingLevel(sorted, K = 14) {
+  const seen = new Map();
+  for (let i = sorted.length - 1; i >= 0 && seen.size < K; i--) {
+    const b = sorted[i].buyer || sorted[i].id;      // fallback keeps one-per-token if buyer is missing
+    if (!seen.has(b)) seen.set(b, sorted[i].price);
+  }
+  return seen.size >= 6 ? median([...seen.values()]) : null;   // too thin → caller falls back to the time median
+}
+// The clearing level K..2K buyers ago, so the caller can tell if the floor is correcting
+// (clearingLevel below priorClearing) rather than settled.
+function priorClearing(sorted, K = 14) {
+  const prices = [], seen = new Set();
+  for (let i = sorted.length - 1; i >= 0; i--) { const b = sorted[i].buyer || sorted[i].id; if (!seen.has(b)) { seen.add(b); prices.push(sorted[i].price); } }
+  const slice = prices.slice(K, 2 * K);
+  return slice.length >= 6 ? median(slice) : null;
+}
+
 function main() {
   const duneSales = parseSales(SALES);
   // Splice the free Alchemy bank onto the weekly Dune baseline so the market LEVEL — and
@@ -208,7 +238,16 @@ function main() {
   const levelAt = t => { const k = Math.round(t / DAY); if (!levelCache.has(k)) levelCache.set(k, marketLevelAt(priced, t)); return levelCache.get(k); };
   // detrended: price ÷ market level at that sale's own date → isolates rarity from timing
   const rarityFit = fit(priced.map(s => [rankOf(s), s.price / (levelAt(s.t) || 1)]));
-  const levelNow = levelAt(now);
+  // ⭐ SCORE "cheap" against where pieces are CLEARING now, not a lagging time median (see
+  // clearingLevel). Falls back to the old time median only when the market is too thin to
+  // have K distinct recent buyers. The rarity FIT above still uses the per-sale time level,
+  // so the historical scatter is unchanged — only "how cheap is a sale RIGHT NOW" moves.
+  const levelNow = clearingLevel(priced) ?? levelAt(now);
+  const priorLvl = priorClearing(priced);
+  // How fast the clearing price is moving: <0 = the floor is correcting DOWN. The watcher
+  // raises the steal bar while this is sharply negative, so a market-wide repricing doesn't
+  // read as a field of individual "steals".
+  const floorTrend = (levelNow && priorLvl) ? +((levelNow / priorLvl) - 1).toFixed(3) : null;
   const rarityFactor = r => (rarityFit ? Math.exp(rarityFit.a + rarityFit.b * Math.log(r)) : 1);
   const fairAt = (rank, t) => (levelAt(t) || levelNow) * rarityFactor(rank);
 
@@ -268,6 +307,7 @@ function main() {
       ? { a: rarityFit.a, b: rarityFit.b, r2: +rarityFit.r2.toFixed(4), n: rarityFit.n, level: +levelNow.toFixed(4), method: "sales-detrended" }
       : null,
     levelNow: +levelNow.toFixed(4),
+    floorTrend,
     spxValue: (() => { try { return spxValuation(JSON.parse(readFileSync("public/aeon-sales.json", "utf8")).daily || []); } catch { return null; } })(),
     salesScatter, scatterImgs, deals, biggest, traitPremiums,
     // ── WHERE THE FAIR-VALUE MODEL MAY BE QUOTED ────────────────────────────────
@@ -308,9 +348,15 @@ function main() {
     })(),
     // Fresh sales feed for the notable-sale watcher (aeon-sale-watch.mjs). Kept separate
     // from `deals` because a sale can be newsworthy for being RARE or BIG, not only cheap.
+    // ⭐ RE-SCORED against the CURRENT CLEARING LEVEL (not each sale's own-time level): "is
+    // this cheap TODAY" must be judged against today's clearing price, or a reverting floor
+    // makes every sale a steal. `deals`/`salesScatter` keep their per-time disc (history).
     recentSales: scored.filter(s => Date.parse(s.d) >= now - 14 * DAY)
       .sort((a, b) => Date.parse(b.d) - Date.parse(a.d))
-      .map(s => ({ id: s.id, price: s.price, rank: s.rank, exp: s.exp, disc: s.disc, img: s.img, d: s.d })),
+      .map(s => {
+        const exp = +(levelNow * rarityFactor(s.rank)).toFixed(3);
+        return { id: s.id, price: s.price, rank: s.rank, exp, disc: +((exp - s.price) / exp).toFixed(3), img: s.img, d: s.d };
+      }),
   };
   writeFileSync(OUT, JSON.stringify(out) + "\n");
 

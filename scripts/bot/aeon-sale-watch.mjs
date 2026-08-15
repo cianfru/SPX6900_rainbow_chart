@@ -62,15 +62,21 @@ const hasCreds = Object.values(creds).every(Boolean);
  * Score every fresh sale and return the most notable, or null.
  * Pure — unit-tested in test/aeon-sale-watch.test.mjs.
  */
-export function pickNotable(recentSales, { level, today, posted = new Set(), days = NOTABLE_DAYS } = {}) {
+export function pickNotable(recentSales, { level, today, posted = new Set(), days = NOTABLE_DAYS, trend = null } = {}) {
   const cutoff = Date.parse(today) - days * 86400e3;
+  // ⭐ CORRECTION GUARD. The clearing-level anchor already stops a reverting floor reading as
+  // steals; this is the belt-and-suspenders for the day or two where the clearing level is
+  // itself still catching up. While the floor is falling fast (trend well below zero) require
+  // a DEEPER discount, so a market-wide repricing can't spam the account — only an exceptional
+  // deal fires. Settles back to the normal bar the moment the floor stops dropping.
+  const stealDisc = STEAL_DISC + Math.min(0.14, Math.max(0, -(trend ?? 0) - 0.10));
   let best = null;
   for (const s of recentSales || []) {
     if (!(s.price > 0) || !(s.rank > 0)) continue;
     if (Date.parse(s.d) < cutoff) continue;
     if (posted.has(`${s.id}@${s.d}`)) continue;
     const reasons = [];
-    if (s.disc >= STEAL_DISC) reasons.push({ kind: "steal", strength: s.disc });
+    if (s.disc >= stealDisc) reasons.push({ kind: "steal", strength: s.disc });
     if (s.rank <= RARE_RANK) reasons.push({ kind: "rare", strength: 1 - s.rank / RARE_RANK });
     if (level > 0 && s.price >= level * BIG_MULT) reasons.push({ kind: "big", strength: s.price / level / BIG_MULT });
     if (!reasons.length) continue;
@@ -204,7 +210,7 @@ async function main() {
   // build date let a 4-day-old sale through as "just sold" when that file was 2 days
   // stale. If the data is old, nothing qualifies — which is the correct outcome.
   const asOf = new Date().toISOString().slice(0, 10);
-  const pick = pickNotable(candidates, { level, today: asOf, posted: force ? new Set() : posted });
+  const pick = pickNotable(candidates, { level, today: asOf, posted: force ? new Set() : posted, trend: market.floorTrend });
   if (!pick) {
     console.log(`aeon-sale: nothing notable in the last ${NOTABLE_DAYS} days (checked ${candidates.length} sales from ${source}) — no post.`);
     return;

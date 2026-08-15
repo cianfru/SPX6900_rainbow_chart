@@ -279,6 +279,22 @@
   `AEON_SALE_DRY_RUN=1` watches without posting. **🔲 LATENCY LIMIT:** detection rides the DAILY Dune pull, so a sale can be ~a day old when
   it fires (3-day freshness window covers it). Sub-day would need a live feed (**Alchemy `getNFTSales`**, key already set) — NOT wired
   because it can't be validated from the sandbox. Wire it there if the owner wants band-watch-like immediacy.
+  - **✅ REVERTING-FLOOR FALSE-POSITIVE FIXED 2026-08-16 (owner: the bot was firing ~1/day on ordinary common sales).** After the July
+    16-piece sweep doubled the floor on a thin market, the floor spent ~3 weeks reverting to ~0.48Ξ — and the steal test measured `disc`
+    against `levelNow`, a **±30-day median that still averaged in the pump sales (0.70Ξ)**, so EVERY ordinary sale at the new floor read
+    22–34% "under typical" → 12 of the last 20 sales fired as fake steals. **Root cause: the anchor lagged; a market-wide repricing was
+    read as a field of individual deals.** Fix = two elegant parts, both in `build-aeon-market.mjs`/`aeon-sale-watch.mjs`:
+    (1) **`clearingLevel(sorted, K=14)`** — the scoring anchor `levelNow` (and `fairModel.level`) is now COUNT-based: the median of the last
+    **14 DISTINCT BUYERS'** prices, not a time median. It tracks where pieces actually clear *now* within a few sales (not a month), and is
+    **deduped by buyer so a single sweep can't set the market price** (the exact thing that started the distortion). The rarity FIT still
+    uses the per-sale time level, so the historical scatter is unchanged; only "how cheap is this sale TODAY" moves. The emitted
+    `recentSales` (the watcher's fresh feed) are re-scored against `levelNow`. (2) **Correction guard** — the builder emits `floorTrend`
+    (clearing vs the prior 14 buyers); `pickNotable` raises the steal bar while the floor is falling fast (`stealDisc = 0.20 + min(0.14,
+    max(0, −trend − 0.10))`), so during an active repricing only an *exceptional* deal fires, settling back to 20% once stable.
+    **VERIFIED on live data: clearing 0.503 vs lagging 0.70, trend −22% → the 12 false steals become 0, a genuine 44%-under steal still
+    fires.** Rare/big sales unaffected. Takes effect on the next `aeon.yml` market rebuild (the committed `recentSales`/`level` lag one daily
+    run). LESSON for any "cheap vs typical" surface: anchor on the CURRENT clearing price (count-based, buyer-deduped), never a time-window
+    median — and treat a fast one-directional floor move as a regime, not a stream of individual signals.
 - **✅✅ AEON "STEROIDS" — MARKET + TRADER INTELLIGENCE BUILT 2026-07-24 (all KEYLESS, from the raw sales+transfers we
   already have — no OpenSea key needed).** Two engines off `dune/out/aeon_sales.csv` + `aeon_transfers.csv` + rarity + live
   floor, run daily in aeon.yml: **`build-aeon-market.mjs`** → `aeon-market.json` (NFT **MVRV** = floor÷realized ≈ 1.01×,
