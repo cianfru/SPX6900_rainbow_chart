@@ -851,14 +851,14 @@
       h+=`<div class="mgroup">`+mrow(gr.g,{cls:'grouprow',color:gc,mark:'▸',data:`data-gtop="${esc(top.label)}" data-ggrp="${esc(gr.g)}"`})+`<div class="subdrop" style="--MEGAC:${gc}">`;
       gr.items.forEach(it=>{ const vs=(window.__VIEWS||{})[top.label+'|'+it];
         h+=mrow(it,{cls:'leafrow',color:gc,mark:vs?'▾':'›',data:`data-top="${top.label}" data-grp="${esc(gr.g)}" data-leaf="${esc(it)}" data-name="${esc(it)}"`});
-        if(vs) vs.forEach(vw=> h+=mrow(vw.label,{cls:'leafrow subview',color:gc,data:`data-href="${esc(vw.href)}"`})); });
+        if(vs) vs.forEach(vw=> h+=mrow(vw.label,{cls:'leafrow subview',color:gc,data:`data-href="${esc(vw.href)}" data-name="${esc(it)}" data-view="${esc(vw.label)}"`})); });
       h+=`<div class="leafprev"></div></div></div>`; });
     return h; }
   // cascade wiring: a chart-leaf hover fills its group's flyout preview; edge-flip mirrors the cascade leftward when it would overflow
   function wireCascade(mt, top){
     mt.querySelectorAll('.mgroup').forEach(mg=>{ const prev=mg.querySelector('.leafprev'), sd=mg.querySelector('.subdrop'); if(!prev) return;
-      const fill=name=>{ prev.innerHTML=prevOf(top.label,name)+`<div class="mprev-title">${name}</div><div class="mprev-desc">${descOf(name)}</div><div class="mprev-go">→ open chart</div>`; prev.classList.add('on'); };
-      mg.querySelectorAll('.leafrow').forEach(lr=> lr.addEventListener('mouseenter',()=>fill(lr.dataset.name)));
+      const fill=(name,view)=>{ if(!name) return; prev.innerHTML=prevOf(top.label,name)+(view?`<div class="mprev-kick">${esc(view)}</div>`:'')+`<div class="mprev-title">${name}</div><div class="mprev-desc">${descOf(name)}</div><div class="mprev-go">→ open chart</div>`; prev.classList.add('on'); };
+      mg.querySelectorAll('.leafrow').forEach(lr=> lr.addEventListener('mouseenter',()=>fill(lr.dataset.name, lr.dataset.view)));
       if(sd) sd.addEventListener('mouseleave',()=>{ prev.classList.remove('on'); prev.innerHTML=''; }); });
     const place=()=>{ const r=mt.getBoundingClientRect(); mt.classList.toggle('flip', r.left+660 > innerWidth-12); };
     mt.addEventListener('mouseenter',place); place(); }
@@ -870,7 +870,7 @@
       gr.items.forEach(it=>{ const vs=(window.__VIEWS||{})[top.label+'|'+it];
         if(vs&&vs.length){
           h+=`<div class="mgroup">`+mrow(it,{cls:'leafrow',color:gc,mark:'▸',data:`data-top="${top.label}" data-grp="${esc(gr.g)}" data-leaf="${esc(it)}" data-name="${esc(it)}"`})
-            +`<div class="subdrop">`+vs.map(vw=>mrow(vw.label,{cls:'leafrow subview',color:gc,data:`data-href="${esc(vw.href)}"`})).join('')+`</div></div>`;
+            +`<div class="subdrop">`+vs.map(vw=>mrow(vw.label,{cls:'leafrow subview',color:gc,data:`data-href="${esc(vw.href)}" data-name="${esc(it)}" data-view="${esc(vw.label)}"`})).join('')+`</div></div>`;
         } else {
           h+=mrow(it,{cls:'leafrow',color:gc,mark:'›',data:`data-top="${top.label}" data-grp="${esc(gr.g)}" data-leaf="${esc(it)}" data-name="${esc(it)}"`});
         } });
