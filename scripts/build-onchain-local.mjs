@@ -87,10 +87,10 @@ export const EXCLUDE_LABELS = {
   "0x1a9d699aee3a56ca49d0cc3b542ae3a37885a3e1": { name: "Upbit 2", kind: "cex" },                // second Upbit hot wallet (canonVenue → Upbit)
   "0x51c72848c68a965f66fa7a88855f9f7784502a7f": { name: "Market maker", kind: "mm" },            // pro trading inventory — excluded, not a venue
   "0xbdb3ba9ffe392549e1f8658dd2630c141fdf47b6": { name: "MEV bot", kind: "mm" },                 // arbitrage bot — transient, not a holder
-  // Owner-flagged 2026-08-16 as CEX/MM/LP infrastructure (was a 1.83M-SPX "whale", rank ~#62, two-way
-  // flow). Sandbox can't reach Etherscan to name the exact venue, so tagged "mm" (excluded from
-  // holders, NOT attributed to a venue) — the honest neutral until the specific venue is confirmed.
-  "0x504ce9e51e508c85a161058c12e970a903d482fc": { name: "Infrastructure (owner-flagged)", kind: "mm" },
+  // Owner-flagged 2026-08-16: a 1.83M-SPX "whale" (rank ~#62, two-way flow). Owner traced the funding —
+  // funded by a wallet that was itself funded by Kraken (two hops) → Kraken infra, so attributed to
+  // Kraken (canonVenue → Kraken) rather than the neutral "mm" it was first tagged.
+  "0x504ce9e51e508c85a161058c12e970a903d482fc": { name: "Kraken-linked", kind: "cex" },
   // Owner-flagged 2026-08-16: ~580k SPX (rank ~#164), $20M portfolio (not SPX) — and CONNECTED to the
   // Kraken-linked wallet above, so attributed to Kraken (canonVenue → Kraken) rather than left neutral.
   "0x655fe3fc7764e621ca738254eb1b90fae3461d51": { name: "Kraken-linked", kind: "cex" },
