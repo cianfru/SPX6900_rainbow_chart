@@ -145,3 +145,88 @@ export function buildCohorts(wallets, opts = {}) {
     bounds: { width: totalW, depth: maxPlatD },
     total: whales.length, moved: cohorts.reduce((s, c) => s + c.buy + c.sell, 0) };
 }
+
+const shortAddr = a => a.slice(0, 6) + "…" + a.slice(-4);
+
+// CLUSTER CITY: same idea as buildCohorts, but the groups are ENTITIES (one owner's linked wallets)
+// instead of size cohorts. Each cluster's member wallets become a mini-grid of cubes on their own
+// platform, and the cluster platforms are laid out in a 2D grid on the ground (a "district" per
+// owner). Returns the IDENTICAL model shape buildCohorts does, so the same three.js scene renders it:
+//   height = wallet balance · colour = wallet holding age · beam = wallet 30d flow (buy/sell) ·
+//   platform sentiment = the cluster's net 30d flow (accumulating / distributing / balanced).
+// Reads the per-member walletBal / walletFlow / walletAge the engine emits; before that data lands
+// every cluster is skipped and `cohorts` is empty (the page shows its data-gated state).
+export function buildClusterGroups(entities, opts = {}) {
+  const PITCH = opts.pitch ?? 1.8;      // cube-to-cube spacing inside a cluster
+  const PAD = opts.pad ?? 1.6;          // platform margin around a cluster's grid
+  const GAP = opts.gap ?? 5.0;          // empty ground between cluster platforms
+  const dead = opts.dead ?? 0.005;
+  const TOP = opts.top ?? 48;           // how many clusters (biggest owners) to place
+
+  const elig = (entities || [])
+    .filter(e => e && !e.flagged && e.walletFlow && (e.bal || 0) > 0)
+    .sort((a, b) => (b.bal || 0) - (a.bal || 0))
+    .slice(0, TOP)
+    .map(e => {
+      const wb = e.walletBal || {}, wf = e.walletFlow || {}, wg = e.walletAge || {};
+      const members = (e.wallets || [])
+        .map(a => ({ a, bal: wb[a] || 0, net: wf[a] || 0, days: wg[a] || 0 }))
+        .filter(m => m.bal > 0)
+        .sort((x, y) => y.bal - x.bal);
+      return { e, members };
+    })
+    .filter(g => g.members.length);
+
+  const allMembers = elig.flatMap(g => g.members);
+  const bals = allMembers.map(m => m.bal), ages = allMembers.map(m => m.days);
+  const minBal = allMembers.length ? Math.min(...bals) : 1;
+  const maxBal = allMembers.length ? Math.max(...bals) : 1;
+  const minDay = allMembers.length ? Math.min(...ages) : 0;
+  const maxDay = allMembers.length ? Math.max(...ages) : 1;
+  const ageU = d => (maxDay > minDay ? ((d || 0) - minDay) / (maxDay - minDay) : 0.5);
+
+  // each cluster's own mini-grid footprint
+  const laid = elig.map(g => {
+    const n = g.members.length;
+    const cols = Math.max(1, Math.ceil(Math.sqrt(n)));
+    const rows = Math.max(1, Math.ceil(n / cols));
+    const gridW = cols * PITCH, gridD = rows * PITCH;
+    return { g, n, cols, rows, gridW, gridD, platW: gridW + PAD * 2, platD: gridD + PAD * 2 };
+  });
+
+  // lay the cluster platforms in a roughly-square 2D grid, row-major (biggest first, front-left);
+  // column widths + row depths come from the largest platform in each grid line so nothing overlaps.
+  const G = Math.max(1, Math.ceil(Math.sqrt(laid.length)));
+  const colW = new Array(G).fill(0), rowD = [];
+  laid.forEach((L, i) => { const c = i % G, r = Math.floor(i / G); colW[c] = Math.max(colW[c], L.platW); rowD[r] = Math.max(rowD[r] || 0, L.platD); });
+  const colX = []; { let x = 0; for (let c = 0; c < G; c++) { colX[c] = x + colW[c] / 2; x += colW[c] + GAP; } }
+  const rowZ = []; { let z = 0; for (let r = 0; r < rowD.length; r++) { rowZ[r] = z + rowD[r] / 2; z += rowD[r] + GAP; } }
+  const totalW = colX.length ? colX[G - 1] + colW[G - 1] / 2 : 0;
+  const totalD = rowZ.length ? rowZ[rowD.length - 1] + rowD[rowD.length - 1] / 2 : 0;
+  const sx = totalW / 2, sz = totalD / 2;
+
+  const cohorts = laid.map((L, i) => {
+    const gc = i % G, gr = Math.floor(i / G);
+    const center = { x: colX[gc] - sx, z: rowZ[gr] - sz };
+    let buy = 0, sell = 0, flat = 0, held = 0, net = 0;
+    const walletsOut = L.g.members.map((m, j) => {
+      const row = Math.floor(j / L.cols), col = j % L.cols;
+      const x = center.x - L.gridW / 2 + (col + 0.5) * PITCH;
+      const z = center.z - L.gridD / 2 + (row + 0.5) * PITCH;
+      const flow = flowState(m.net, m.bal, dead);
+      if (flow === "buy") buy++; else if (flow === "sell") sell++; else flat++;
+      held += m.bal; net += m.net;
+      return { a: m.a, bal: m.bal, days: m.days, d30: m.net, net: m.net,
+        ageU: ageU(m.days), hU: heightUnit(m.bal, minBal, maxBal), flow, x, z };
+    });
+    const d30 = Number.isFinite(L.g.e.d30) ? L.g.e.d30 : net;   // authoritative entity net flow
+    const denom = (L.g.e.bal || held) || 1;
+    return { id: L.g.e.id, label: shortAddr(L.g.e.id), center, platform: { w: L.platW, d: L.platD },
+      n: L.n, cols: L.cols, rows: L.rows, size: L.g.e.size, bal: L.g.e.bal,
+      held, net: d30, netPct: (d30 / denom) * 100, buy, sell, flat, sentiment: sentimentOf((d30 / denom) * 100),
+      wallets: walletsOut };
+  });
+
+  return { cohorts, minBal, maxBal, minDay, maxDay, bounds: { width: totalW, depth: totalD },
+    total: allMembers.length, moved: cohorts.reduce((s, c) => s + c.buy + c.sell, 0) };
+}

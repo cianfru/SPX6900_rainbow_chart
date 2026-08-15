@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { heightOf } from "../src/city-render.js";
 import {
+  buildClusterGroups,
   WHALE_FLOOR, COHORTS, cohortIndex, flowState, ageRamp, heightUnit, sentimentOf, buildCohorts,
 } from "../src/whale-cohorts.js";
 
@@ -128,4 +129,29 @@ test("buildCohorts against the live whales.json", () => {
   // no coincident cubes across the whole city
   const spots = r.cohorts.flatMap(c => c.wallets.map(w => `${w.x.toFixed(2)},${w.z.toFixed(2)}`));
   assert.equal(new Set(spots).size, spots.length);
+});
+
+test("buildClusterGroups — groups by owner, flags/no-flow excluded, sentiment from d30", () => {
+  const A = "0x" + "a".repeat(40), B = "0x" + "b".repeat(40), C = "0x" + "c".repeat(40), E = "0x" + "e".repeat(40);
+  const ents = [
+    { id: A, size: 2, flagged: false, bal: 150000, wallets: [A, B],
+      walletBal: { [A]: 100000, [B]: 50000 }, walletFlow: { [A]: 30000, [B]: -1000 }, walletAge: { [A]: 400, [B]: 40 }, d30: 29000 },
+    { id: C, size: 1, flagged: false, bal: 80000, wallets: [C],
+      walletBal: { [C]: 80000 }, walletFlow: { [C]: -40000 }, walletAge: { [C]: 200 }, d30: -40000 },
+    { id: "0x" + "f".repeat(40), size: 40, flagged: true, bal: 9e9, wallets: [], walletFlow: {}, d30: 5 },   // flagged → out
+    { id: E, size: 2, flagged: false, bal: 60000, wallets: [E], walletBal: { [E]: 60000 } },                // no walletFlow → out
+  ];
+  const m = buildClusterGroups(ents);
+  assert.equal(m.cohorts.length, 2);                                   // flagged + no-flow dropped
+  const big = m.cohorts.find(c => c.bal === 150000);
+  assert.equal(big.sentiment, "accumulating");                         // d30 +29k
+  assert.equal(big.wallets.length, 2);
+  assert.equal(big.buy + big.sell + big.flat, big.n);
+  assert.equal(big.wallets.find(w => w.bal === 100000).flow, "buy");   // +30k member
+  assert.ok(big.wallets.every(w => w.hU >= 0 && w.hU <= 1));
+  assert.equal(m.cohorts.find(c => c.bal === 80000).sentiment, "distributing");
+  // no coincident cubes across the whole cluster city
+  const spots = m.cohorts.flatMap(c => c.wallets.map(w => `${w.x.toFixed(2)},${w.z.toFixed(2)}`));
+  assert.equal(new Set(spots).size, spots.length);
+  assert.equal(buildClusterGroups([]).cohorts.length, 0);              // empty → no crash
 });
