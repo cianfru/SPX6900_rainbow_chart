@@ -19,7 +19,7 @@ const TYPE_SPEED = 60;   // ms/char, the landing's deliberate terminal cadence
 const BASE_W = 1180;     // width the real chart renders at before being scaled into the panel
 const CONTENT_H = 620;   // clip height (chart header + body; caption cropped)
 // three.js-heavy charts would re-initialise on every hover, too costly for a fly-out,
-// so these fall back to the deterministic sparkline instead of a live mount.
+// so these (and the locked cities) show the isometric Scene3D placeholder, not a live mount.
 const HEAVY = new Set(["urpdterrain"]);
 
 // A menu row whose label TYPES itself out on hover (cursor rides the writing head),
@@ -108,23 +108,33 @@ function LeafPreview({ render }) {
   );
 }
 
-// deterministic sparkline, fallback for locked/heavy charts (same as the landing's mspark)
-function Spark({ seed, color }) {
+// Honest fly-out placeholder for the three.js charts (the locked cities + the HEAVY 3D terrain).
+// They can't cheaply live-mount on every hover, and a line sparkline misrepresents a 3D scene —
+// so draw a deterministic isometric block field (towers/terrain) instead. Reads as "a 3D scene",
+// never as a chart it isn't. Coloured by the group; seeded so each chart looks stable.
+function Scene3D({ seed, color }) {
   let s = 2166136261;
   for (let i = 0; i < seed.length; i++) { s ^= seed.charCodeAt(i); s = Math.imul(s, 16777619); }
   const rnd = () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; };
-  const N = 28, W = 300, H = 118, pad = 9; let y = 0.28 + rnd() * 0.2; const ys = [];
-  for (let i = 0; i < N; i++) { const drift = (i / N) * 0.5; y += (rnd() - 0.42) * 0.22; y = Math.max(0.06, Math.min(0.94, y * 0.86 + drift * 0.14 + (rnd() - 0.5) * 0.04)); ys.push(y); }
-  const pts = ys.map((v, i) => [pad + (W - 2 * pad) * i / (N - 1), pad + (H - 2 * pad) * (1 - v)]);
-  const d = "M" + pts.map(p => p[0].toFixed(1) + " " + p[1].toFixed(1)).join(" L");
-  const area = d + ` L${pts[N - 1][0].toFixed(1)} ${H - pad} L${pad} ${H - pad} Z`;
-  const gid = "tsp" + (s % 99991);
+  const W = 300, H = 118, tw = 16, th = 8.5, cx0 = 150, cy0 = 40, GX = 5, GY = 4;
+  const cells = [];
+  for (let j = 0; j < GY; j++) for (let i = 0; i < GX; i++) cells.push({ i, j, h: 8 + rnd() * 30 });
+  cells.sort((a, b) => (a.i + a.j) - (b.i + b.j)); // back-to-front so nearer towers overlap correctly
   return (
-    <svg className="spk" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" style={{ color }}>
-      <defs><linearGradient id={gid} x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="currentColor" stopOpacity=".55" /><stop offset="1" stopColor="currentColor" stopOpacity=".02" /></linearGradient></defs>
-      <path d={area} fill={`url(#${gid})`} />
-      <path d={d} fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
-      <circle cx={pts[N - 1][0].toFixed(1)} cy={pts[N - 1][1].toFixed(1)} r="3.4" fill="currentColor" />
+    <svg className="spk" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid meet" style={{ color }}>
+      {cells.map((c, k) => {
+        const bx = cx0 + (c.i - c.j) * tw, by = cy0 + (c.i + c.j) * th, h = c.h;
+        const top = `${bx},${by - h - th} ${bx + tw},${by - h} ${bx},${by - h + th} ${bx - tw},${by - h}`;
+        const left = `${bx - tw},${by - h} ${bx},${by - h + th} ${bx},${by + th} ${bx - tw},${by}`;
+        const right = `${bx},${by - h + th} ${bx + tw},${by - h} ${bx + tw},${by} ${bx},${by + th}`;
+        return (
+          <g key={k}>
+            <polygon points={left} fill="currentColor" fillOpacity="0.20" />
+            <polygon points={right} fill="currentColor" fillOpacity="0.40" />
+            <polygon points={top} fill="currentColor" fillOpacity="0.80" stroke="currentColor" strokeOpacity="0.25" strokeWidth="0.5" />
+          </g>
+        );
+      })}
     </svg>
   );
 }
@@ -191,7 +201,7 @@ function CascadeTop({ label, groups, onSection, onLeaf, renderPreview }) {
                 {leaf && leaf.gi === gi && (<>
                   <div className="mprev-kick">Preview</div>
                   {(leaf.item.locked || HEAVY.has(leaf.item.id))
-                    ? <Spark seed={leaf.item.id + g.title} color={leaf.color} />
+                    ? <Scene3D seed={leaf.item.id + g.title} color={leaf.color} />
                     : <LeafPreview key={leaf.item.id} render={() => renderPreview(leaf.item.id)} />}
                   <div className="mprev-title">{leaf.item.title}</div>
                   <div className="mprev-desc">{leaf.item.desc}</div>
@@ -233,7 +243,8 @@ function MobRow({ label, chev, cls = "", onTap }) {
 }
 
 // ── MOBILE SPRINGBOARD — the app-launcher nav, ported from the landing so the whole app matches.
-// Sections → groups → charts as tappable tiles; chart tiles show a live sparkline. Each drill is a
+// Sections → groups → charts as tappable tiles; chart tiles show a live preview (or the Scene3D
+// placeholder for the three.js charts). Each drill is a
 // real history entry, so the iOS edge-swipe and Android back button walk back up the levels natively.
 const SB_ICON = {
   rainbow: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M3 16a9 9 0 0 1 18 0" /><path d="M6 16a6 6 0 0 1 12 0" /><path d="M9 16a3 3 0 0 1 6 0" /></svg>,
@@ -367,7 +378,7 @@ function MobileSpringboard({ open, onClose, openRainbow, openGallery, openAeon, 
     tiles = g.charts.filter(c => !c.dev).map(c => {
       const heavy = c.locked || HEAVY.has(c.id);
       return <SbChartTile key={c.id} item={c} color={gc} group={g.title}
-        spark={heavy ? <Spark seed={c.id + g.title} color={gc} /> : null}
+        spark={heavy ? <Scene3D seed={c.id + g.title} color={gc} /> : null}
         render={() => renderPreview(c.id)} onTap={() => go(() => goChart(c.id))} />;
     });
   }
