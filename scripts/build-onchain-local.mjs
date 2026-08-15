@@ -87,6 +87,10 @@ export const EXCLUDE_LABELS = {
   "0x1a9d699aee3a56ca49d0cc3b542ae3a37885a3e1": { name: "Upbit 2", kind: "cex" },                // second Upbit hot wallet (canonVenue → Upbit)
   "0x51c72848c68a965f66fa7a88855f9f7784502a7f": { name: "Market maker", kind: "mm" },            // pro trading inventory — excluded, not a venue
   "0xbdb3ba9ffe392549e1f8658dd2630c141fdf47b6": { name: "MEV bot", kind: "mm" },                 // arbitrage bot — transient, not a holder
+  // Owner-flagged 2026-08-16 as CEX/MM/LP infrastructure (was a 1.83M-SPX "whale", rank ~#62, two-way
+  // flow). Sandbox can't reach Etherscan to name the exact venue, so tagged "mm" (excluded from
+  // holders, NOT attributed to a venue) — the honest neutral until the specific venue is confirmed.
+  "0x504ce9e51e508c85a161058c12e970a903d482fc": { name: "Infrastructure (owner-flagged)", kind: "mm" },
 };
 
 // The set the FIFO engine excludes from holder reconstruction — DERIVED from EXCLUDE_LABELS so

@@ -7,6 +7,28 @@ import { SANS, MONO, MAX_W, Metric, Explain, ViewTabs, TypeTab } from "./chart-u
 const short = a => a.slice(0, 6) + "…" + a.slice(-4);
 const GREEN = "#34d399", RED = "#fb7185";
 
+// A Zerion-style wallet card for the hover tooltip — the recharts default rendered a dark label on
+// a dark card (illegible in both themes). This is self-contained with explicit colours, so it reads
+// on any background, and carries the Zerion preview like the city's wallet card. Click the bar to open.
+function FlowTip({ active, payload }) {
+  if (!active || !payload?.length) return null;
+  const e = payload[0]?.payload;
+  if (!e?.a) return null;
+  const col = e.net > 0 ? GREEN : RED, dir = e.net > 0 ? "accumulated" : "distributed";
+  return (
+    <div style={{ width: 224, background: "#0a0e1c", border: "1px solid #1e2a44", borderRadius: 12, overflow: "hidden", boxShadow: "0 12px 34px rgba(0,0,0,0.6)", fontFamily: MONO }}>
+      <img src={`https://render.zerion.io/preview?address=${e.a}`} alt="" onError={ev => { ev.currentTarget.style.display = "none"; }}
+        style={{ display: "block", width: "100%", height: 92, objectFit: "cover", background: "#0e1424" }} />
+      <div style={{ padding: "9px 12px 11px" }}>
+        <div style={{ color: "#f1f5f9", fontWeight: 700, fontSize: 13 }}>{short(e.a)}{e.exited ? "  ⊗ exited" : ""}</div>
+        <div style={{ color: col, fontSize: 13, fontWeight: 700, marginTop: 4 }}>{e.net > 0 ? "+" : ""}{e.net} AEON {dir}</div>
+        <div style={{ color: "#94a3b8", fontSize: 11.5, marginTop: 3 }}>bought {e.bought} · sold {e.sold}{e.exited ? " · now holds 0" : e.held != null ? ` · holds ${e.held}` : ""}</div>
+        <div style={{ color: "#5eead4", fontSize: 11, marginTop: 7 }}>click the bar → open on Zerion ↗</div>
+      </div>
+    </div>
+  );
+}
+
 // Project Aeon — accumulation vs distribution. A tornado of the biggest net buyers (green, right) and
 // net sellers (red, left) over a trailing window, from the same marketplace trades the city arcs draw.
 export default function AeonFlowChart({ isMobile, initialView }) {
@@ -73,13 +95,7 @@ export default function AeonFlowChart({ isMobile, initialView }) {
             <YAxis type="category" dataKey="label" width={isMobile ? 96 : 112}
               tick={{ fill: "#cbd5e1", fontSize: 11, fontFamily: MONO }} axisLine={false} tickLine={false} />
             <ReferenceLine x={0} stroke="rgba(255,255,255,0.35)" />
-            <Tooltip allowEscapeViewBox={{ x: false, y: false }} cursor={{ fill: "rgba(255,255,255,0.04)" }}
-              contentStyle={{ background: "#0a0e1c", border: "1px solid #234", borderRadius: 8, fontFamily: MONO, fontSize: 12, color: "#e2e8f0", maxWidth: isMobile ? 220 : 320, whiteSpace: "normal" }}
-              formatter={(_v, _n, p) => {
-                const e = p.payload;
-                const dir = e.net > 0 ? "accumulated" : "distributed";
-                return [`${e.net > 0 ? "+" : ""}${e.net} AEON ${dir} · bought ${e.bought}, sold ${e.sold}${e.exited ? " · now holds 0 (exited)" : e.held != null ? ` · holds ${e.held}` : ""}`, short(e.a)];
-              }} />
+            <Tooltip cursor={{ fill: "rgba(255,255,255,0.06)" }} wrapperStyle={{ zIndex: 50, outline: "none" }} content={<FlowTip />} />
             <Bar dataKey="net" radius={[2, 2, 2, 2]} isAnimationActive={false} cursor="pointer" onClick={(d) => d?.a && open(d.a)}>
               {rows.map(r => (
                 <Cell key={r.a} fill={r.net > 0 ? GREEN : RED} fillOpacity={r.exited ? 0.42 : 0.9}
