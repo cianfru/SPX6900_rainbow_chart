@@ -1611,13 +1611,21 @@ Same data, canonical contracts, method published. Check it yourself.`,
   // SPX6900 exchange supply (structural) + exchange flow (behavioural) — from the Dune
   // CEX/LP reconstruction (reconciles to the FIFO engine). Both frozen-study cards
   // (refresh on re-bundle), hand-postable (NO_ROTATE). See dune/spx6900_cex_lp_balances.sql.
-  s => ({
-    id: "cexsupply",
-    text: ct`🏦 ~118M SPX now sits on exchanges, ~13M in the Uniswap LP.
+  // Copy reads the LIVE cex-flow.json (last day's cexBal/lpBal), never a hardcoded literal — the
+  // old "~118M" froze the moment it was written and drifted ~45M stale as coins flowed onto exchanges.
+  s => (() => {
+    const days = s.cexFlow?.days;
+    const last = days?.length ? days[days.length - 1] : null;
+    const M = v => `${Math.round(v / 1e6)}M`;
+    const cexNow = last ? M(last[1]) : "118M", lpNow = last ? M(last[2]) : "13M";
+    return {
+      id: "cexsupply",
+      text: ct`🏦 ~${cexNow} SPX now sits on exchanges, ~${lpNow} in the Uniswap LP.
 SPX launched fully DEX-native — every coin in the pool. As exchanges listed it through 2024-25, the tradable float shifted onto CEXs while the LP thinned.
 Where the supply lives — on-chain, reproducible.`,
-    card: { type: "cexsupply" },
-  }),
+      card: { type: "cexsupply" },
+    };
+  })(),
   // The CHART shows the whole exchange era; the COPY describes the last 30 days, computed
   // live. Hardcoding the cumulative number went stale the moment the recent window turned
   // the other way — it read "coins are leaving exchanges" through a month of them arriving.
