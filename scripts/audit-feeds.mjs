@@ -131,6 +131,8 @@ export const FEEDS = [
     require: ["count", "updated"], mayBeEmpty: ["events"] },
   { file: "entities.json", cadence: 3, by: "onchain-dune.yml", what: "entity clusters (EOA→EOA drain/fund graph — who owns what)",
     require: ["stats", "updated", "method"], mayBeEmpty: ["entities"] },
+  { file: "cex-sankey.json", cadence: 3, by: "onchain-dune.yml", what: "CEX flow Sankey — who supplies/withdraws from exchanges + exchange candidates",
+    require: ["totals", "updated", "window"], mayBeEmpty: ["inflow", "outflow", "candidates"] },
   { file: "aeon-traders.json", cadence: 3, by: "aeon.yml", what: "AEON per-wallet realized P&L",
     require: ["traders"], nonEmpty: ["top", "byVolume"] },
   { file: "aeon-listings.json", cadence: 3, by: "aeon.yml", what: "live AEON listings for the deal finder",

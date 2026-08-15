@@ -99,6 +99,53 @@ export const EXCLUDE = new Set(Object.keys(EXCLUDE_LABELS));
 // "BitGo custody (WalletSimple)" → "BitGo") so per-venue balances aggregate correctly.
 export const canonVenue = name => name.replace(/\s+custody \(WalletSimple\)/i, "").replace(/-linked/i, "").replace(/\s+\d+$/, "").trim();
 
+// ── CEX FLOW SANKEY reduction ───────────────────────────────────────────────
+// For the "where's the volume going" Sankey: over a trailing window, aggregate every transfer that
+// touches a tagged CEX hot wallet, split into INFLOW (wallet → exchange) and OUTFLOW (exchange →
+// wallet), grouped by venue (canonVenue) and counterparty. DUST-filtered so the diagram shows the
+// wallets that move the market, not 1k-SPX noise; the tail rolls into a "+N smaller" band so nothing
+// is hidden (the honesty rail). Also flags untagged HIGH-THROUGHPUT wallets — likely exchanges /
+// routers not yet in EXCLUDE_LABELS — so we stop counting infrastructure as people. Pure + tested.
+export function computeCexFlow(transfers, { labels = EXCLUDE_LABELS, asOf = null, days = 90, dust = 25000, topN = 12 } = {}) {
+  const kindOf = a => labels[a]?.kind || null;
+  let t1 = asOf ?? -Infinity;
+  if (asOf == null) for (const t of transfers) if (t.ts > t1) t1 = t.ts;
+  const cutoff = t1 - days * DAY;
+  const venueIn = new Map(), venueOut = new Map();     // venue -> Map(wallet -> amount)
+  const bump = (m, venue, w, amt) => { let g = m.get(venue); if (!g) m.set(venue, g = new Map()); g.set(w, (g.get(w) || 0) + amt); };
+  const thru = new Map();                              // per untagged wallet: throughput for the detector
+  const tp = a => { let e = thru.get(a); if (!e) thru.set(a, e = { in: 0, out: 0, volIn: 0, volOut: 0, cp: new Set() }); return e; };
+
+  for (const t of transfers) {
+    if (t.ts < cutoff || !(t.amt > 0) || !t.from || !t.to) continue;
+    const fk = kindOf(t.from), tk = kindOf(t.to);
+    if (tk === "cex" && fk !== "cex") bump(venueIn, canonVenue(labels[t.to].name), t.from, t.amt);
+    else if (fk === "cex" && tk !== "cex") bump(venueOut, canonVenue(labels[t.from].name), t.to, t.amt);
+    if (!labels[t.from]) { const e = tp(t.from); e.out++; e.volOut += t.amt; e.cp.add(t.to); }
+    if (!labels[t.to]) { const e = tp(t.to); e.in++; e.volIn += t.amt; e.cp.add(t.from); }
+  }
+
+  const rollup = m => [...m].map(([venue, g]) => {
+    const rows = [...g].map(([a, amt]) => ({ a, amt: Math.round(amt) })).sort((x, y) => y.amt - x.amt);
+    const top = rows.filter(r => r.amt >= dust).slice(0, topN);
+    const rest = rows.slice(top.length);
+    return { venue, total: Math.round(rows.reduce((s, r) => s + r.amt, 0)), top, more: { n: rest.length, amt: Math.round(rest.reduce((s, r) => s + r.amt, 0)) } };
+  }).sort((a, b) => b.total - a.total);
+
+  const inflow = rollup(venueIn), outflow = rollup(venueOut);
+  const totalIn = inflow.reduce((s, v) => s + v.total, 0), totalOut = outflow.reduce((s, v) => s + v.total, 0);
+  const candidates = [...thru].map(([a, e]) => ({ a, txIn: e.in, txOut: e.out, cp: e.cp.size, volIn: Math.round(e.volIn), volOut: Math.round(e.volOut) }))
+    .filter(c => c.txIn >= 30 && c.txOut >= 30 && c.cp >= 25)          // moves both ways, to many parties = infrastructure
+    .sort((a, b) => (b.volIn + b.volOut) - (a.volIn + a.volOut)).slice(0, 20);
+
+  return {
+    updated: new Date(t1).toISOString().slice(0, 10),
+    window: { from: new Date(cutoff).toISOString().slice(0, 10), to: new Date(t1).toISOString().slice(0, 10), days, dust, topN },
+    totals: { in: totalIn, out: totalOut, net: totalIn - totalOut },
+    inflow, outflow, candidates,
+  };
+}
+
 // age (days) → band index: [<1m, 1-3m, 3-6m, 6-12m, 1y+]
 export function ageBand(days) {
   if (days < 30) return 0;
@@ -877,6 +924,13 @@ async function main() {
   // Whale watcher companion (top current holders + how much they've added/shed).
   const whalesOut = whalesPath;
   await writeFile(whalesOut, JSON.stringify(whales));
+  // CEX flow Sankey companion — who supplies / withdraws from exchanges, + exchange candidates.
+  try {
+    const cf = computeCexFlow(transfers, { asOf: t1, days: Number(args.cexflow_days ?? 90), dust: Number(args.cexflow_dust ?? 25000) });
+    const cfOut = out.replace(/[^/]+$/, "cex-sankey.json");
+    await writeFile(cfOut, JSON.stringify(cf));
+    console.log(`Wrote ${cfOut}: in ${(cf.totals.in / 1e6).toFixed(1)}M · out ${(cf.totals.out / 1e6).toFixed(1)}M · ${cf.candidates.length} exchange candidate(s)${cf.candidates[0] ? " (top " + cf.candidates[0].a.slice(0, 10) + ": " + cf.candidates[0].txIn + " in / " + cf.candidates[0].txOut + " out, " + cf.candidates[0].cp + " parties)" : ""}`);
+  } catch (e) { console.warn("cex-sankey:", e.message); }
   // Self-relocation events companion — which wallets split/merged, when (for verification + disclosure).
   if (selfMoves) {
     const smOut = out.replace(/[^/]+$/, "self-moves.json");
