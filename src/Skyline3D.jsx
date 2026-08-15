@@ -318,6 +318,38 @@ export default function Skyline3D({
         }
       }
 
+      // ── road culling ─────────────────────────────────────────────────────────────────────────
+      // ⭐ ROADS APPEAR ONLY WHERE THE CITY IS BUILT. cityScale sizes the island to the population,
+      // but a filtered view (AEON collectors, or the SPX∩AEON "both" set) puts far fewer buildings
+      // on the same island, so whole districts stand empty — and the street grid, drawn for the
+      // full island, paved them as bare graph paper with no towers on it. The block SLABS above
+      // already cull to `built`; the ribbons/medians/crosswalks did not, which is exactly what the
+      // empty roads were. A coarse occupancy hash of the placed buildings lets every road list cull
+      // to what's near a building. In the full SPX city this is a near no-op (the island is packed),
+      // so behaviour there is unchanged; it only bites in the sparse modes.
+      const RCELL = 2.0 * K;
+      const rkey = (x, z) => Math.round(x / RCELL) + "," + Math.round(z / RCELL);
+      const rocc = new Set();
+      for (const q of placed) rocc.add(rkey(q.x, q.z));
+      const nearBuilt = (x, z) => {
+        const cx = Math.round(x / RCELL), cz = Math.round(z / RCELL);
+        for (let ix = cx - 1; ix <= cx + 1; ix++)
+          for (let iz = cz - 1; iz <= cz + 1; iz++)
+            if (rocc.has(ix + "," + iz)) return true;
+        return false;
+      };
+      // A segment survives if any point sampled along it sits near a building. Endpoints alone miss a
+      // long avenue whose ends run off into empty land but whose middle passes a built block, so
+      // sample the interior too.
+      const segNear = s => {
+        for (let i = 0; i <= 4; i++) {
+          const f = i / 4;
+          if (nearBuilt(s.x1 + (s.x2 - s.x1) * f, s.z1 + (s.z2 - s.z1) * f)) return true;
+        }
+        return false;
+      };
+      const midNear = s => nearBuilt((s.x1 + s.x2) / 2, (s.z1 + s.z2) / 2);
+
       // ── the roads ────────────────────────────────────────────────────────────────────────────
       // ⭐ AVENUES ARE BUILT, NOT PAINTED. This was one set of 1px hairlines in a single colour, so
       // every road on the island looked identical and the city read as graph paper laid under a
@@ -328,7 +360,7 @@ export default function Skyline3D({
       // Widths come from the lot grid's own gaps (ROAD_W), so a road can never be drawn wider than
       // the space the buildings actually left it. Everything merges by kind, so the entire road
       // network is four draw calls however much of it is on screen.
-      const segs = streetGrid(K);
+      const segs = streetGrid(K).filter(segNear);
 
       // A flat ribbon down each segment: two triangles, normals up. Built straight into typed
       // arrays because this runs over every road on the island on every scene rebuild.
@@ -379,7 +411,7 @@ export default function Skyline3D({
           dashes.push({ x1: s.x1 + ux * d, z1: s.z1 + uz * d, x2: s.x1 + ux * (d + 0.5), z2: s.z1 + uz * (d + 0.5) });
       }
       // One kerbed planter per block, broken at every cross-street (see avenueMedians).
-      const medians = avenueMedians(K).map(s => {
+      const medians = avenueMedians(K).filter(segNear).map(s => {
         const dx = s.x2 - s.x1, dz = s.z2 - s.z1;
         const g = new THREE.BoxGeometry(0.3, 0.1, Math.hypot(dx, dz));
         g.rotateY(Math.atan2(dx, dz));               // lay the box's length along the avenue
@@ -412,7 +444,7 @@ export default function Skyline3D({
       // Crosswalks — a pale band across each avenue at its cross-streets. Kept faint on purpose:
       // it's the read at close range, and at a distance it must fade into the tarmac rather than
       // pepper the island with dots. Same coplanar decal treatment as the centre lines.
-      const walks = crosswalks(K);
+      const walks = crosswalks(K).filter(midNear);
       if (walks.length) {
         const m = new THREE.Mesh(ribbon(walks, 0.11, 0.093),
           new THREE.MeshStandardMaterial({
@@ -447,7 +479,7 @@ export default function Skyline3D({
         }
       }
       // Borough roads: asphalt in the slots at the top of the platforms, centre lines on the avenues.
-      const bsegs = boroughStreets(K);
+      const bsegs = boroughStreets(K).filter(segNear);
       if (bsegs.length) {
         const baves = bsegs.filter(s => s.kind === "avenue"), bsts = bsegs.filter(s => s.kind === "street");
         for (const [list, w, y] of [[bsts, ROAD_W.street, 0.10], [baves, ROAD_W.avenue, 0.11]]) {
