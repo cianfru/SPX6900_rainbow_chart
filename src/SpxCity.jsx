@@ -283,6 +283,27 @@ export default function SpxCity({ isMobile, preview = false, initialMode = "spx"
     return { total: tr.length, both, one, gone: tr.length - both - one, days: sales.arcDays ?? 30,
       eth: tr.reduce((s, t) => s + (t.eth || 0), 0) };
   }, [sales, towers]);
+  // ⭐ WHO'S BUYING — the readout that makes the arcs actionable. The lines show flow; this ranks it,
+  // so "one wallet scooped N" is a number you can read off the page and then click to verify (it flies
+  // to their building). NET of any sales in the window, so "accumulating" is honest — a wallet that
+  // bought 5 and sold 3 is +2, not +5. From the same marketplace trades the arcs draw, fully checkable.
+  const accum = useMemo(() => {
+    const tr = sales?.trades;
+    if (!tr?.length) return null;
+    const nameOf = new Map((towers || []).map(t => [(t.a || "").toLowerCase(), t.ens]));
+    const inCity = new Set((towers || []).map(t => (t.a || "").toLowerCase()));
+    const m = new Map();
+    const row = a => { let e = m.get(a); if (!e) { e = { a, bought: 0, sold: 0, ethIn: 0, usdIn: 0, days: new Set() }; m.set(a, e); } return e; };
+    for (const t of tr) {
+      const b = row(t.to); b.bought++; b.ethIn += t.eth || 0; b.usdIn += t.usd || 0; if (t.d) b.days.add(t.d);
+      row(t.f).sold++;
+    }
+    return [...m.values()]
+      .map(e => ({ ...e, net: e.bought - e.sold, ens: nameOf.get(e.a), resident: inCity.has(e.a), days: e.days.size }))
+      .filter(e => e.net > 0)
+      .sort((x, y) => y.net - x.net || y.bought - x.bought || y.usdIn - x.usdIn)
+      .slice(0, 6);
+  }, [sales, towers]);
 
   if (whales == null && mode !== "aeon") return <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Loading city…</div>;
   if (!towers) return <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Data is being reconstructed — check back after the next on-chain refresh.</div>;
@@ -452,6 +473,46 @@ export default function SpxCity({ isMobile, preview = false, initialMode = "spx"
               ? `Showing the ${arcStat.both} that connect two buildings. The other ${arcStat.one + arcStat.gone} have a counterparty who has since left the city — switch to all trades to see them.`
               : `${arcStat.both} connect two buildings; ${arcStat.one + arcStat.gone} have a counterparty who has since left the city, and run off the map.`}
           </span>
+        </div>
+      )}
+
+      {/* ⭐ Top accumulators — the arcs made readable. Ranks who's net-buying over the window so the
+          "one wallet scooped N" story is a number on the page, not something only a raw query surfaces.
+          Click a row to fly to that building (or open the wallet if they've since left the city). */}
+      {isNft && arcMode !== "off" && accum && accum.length > 0 && (
+        <div style={{ maxWidth: 620, margin: "0 auto 14px", fontFamily: SANS }}>
+          <div style={{ fontSize: 11, letterSpacing: ".14em", textTransform: "uppercase", color: "#7c8aa0", marginBottom: 7, textAlign: "center" }}>
+            Top accumulators · last {arcStat?.days ?? 30} days
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            {accum.map((e, i) => {
+              const label = e.ens || shortAddr(e.a);
+              const go = () => { if (e.resident) { goTo(e.a); const m = visible.find(t => (t.a || "").toLowerCase() === e.a); if (m) setSel(m); } else window.open(`https://app.zerion.io/${e.a}/overview`, "_blank", "noopener"); };
+              return (
+                <div key={e.a} onClick={go} title={e.resident ? "Fly to their building" : "Open wallet ↗"}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 10, cursor: "pointer",
+                    padding: "7px 11px", borderRadius: 9,
+                    background: "rgba(196,181,253,0.06)", border: "1px solid rgba(196,181,253,0.16)",
+                  }}>
+                  <span style={{ color: "#64748b", fontFamily: MONO, fontSize: 12, width: 16, flex: "none" }}>{i + 1}</span>
+                  <span style={{ flex: 1, minWidth: 0, color: "#e2e8f0", fontSize: 13, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {label}{e.resident ? "" : <span style={{ color: "#64748b", fontWeight: 400 }}> ↗</span>}
+                    <span style={{ color: "#64748b", fontWeight: 400, fontSize: 11.5 }}>
+                      {"  "}bought {e.bought}{e.sold ? `, sold ${e.sold}` : ""}{e.days > 1 ? ` · ${e.days} days` : ` · 1 day`}
+                    </span>
+                  </span>
+                  <span style={{ flex: "none", textAlign: "right" }}>
+                    <span style={{ color: "#c4b5fd", fontWeight: 700, fontFamily: MONO, fontSize: 13 }}>+{e.net} AEON</span>
+                    <span style={{ display: "block", color: "#7c8aa0", fontSize: 11, fontFamily: MONO }}>{e.ethIn.toFixed(2)} ETH{e.usdIn ? ` · $${Math.round(e.usdIn).toLocaleString("en-US")}` : ""}</span>
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+          <div style={{ fontSize: 11, color: "#64748b", marginTop: 7, textAlign: "center", lineHeight: 1.5 }}>
+            Net of any sales in the window — marketplace trades only, so it's checkable. Click to verify.
+          </div>
         </div>
       )}
 
