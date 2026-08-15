@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { renderSkyline } from "./skyline-scene.js";
 import { buildClusterGroups } from "./whale-cohorts.js";
 import { loadEntities } from "./history-data.js";
+import { downloadBlob, recorderSupported } from "./canvas-record.js";
 import WalletCard from "./WalletCard.jsx";
 import CityGate from "./CityGate.jsx";
 import { SANS, MONO } from "./chart-ui.jsx";
@@ -31,12 +32,45 @@ function Inner({ isMobile }) {
   const host = useRef(null);
   const [data, setData] = useState(null);        // null loading · false failed · object ok
   const [sel, setSel] = useState(null);
+  const [recSecs, setRecSecs] = useState(12);
+  const [rec, setRec] = useState({ state: "idle", pct: 0, msg: "" });   // idle | recording | error
+
+  // Owner-only video export, revealed behind ?rec=1 or the spx-rec local flag (same gate the Whales
+  // Watching recorder uses, so it stays invisible to visitors). window.__clusterRecord is set by the scene.
+  const showRec = useState(() => {
+    if (typeof window === "undefined") return false;
+    try {
+      const q = new URLSearchParams(window.location.search).get("rec") === "1";
+      return (q || localStorage.getItem("spx-rec") === "1") && recorderSupported();
+    } catch { return false; }
+  })[0];
 
   useEffect(() => { let off = false; loadEntities().then(d => { if (!off) setData(d ?? false); }); return () => { off = true; }; }, []);
 
   const model = useMemo(() => data && data.entities ? buildClusterGroups(data.entities) : null, [data]);
   const hasFlow = !!(data && data.entities && data.entities.some(e => typeof e.d30 === "number"));
   const placed = model ? model.cohorts.length : 0;
+
+  const doRecord = async () => {
+    if (!window.__clusterRecord || rec.state === "recording") return;
+    setRec({ state: "recording", pct: 0, msg: "" });
+    try {
+      const { blob, ext } = await window.__clusterRecord({ seconds: recSecs, fps: 60, onTick: p => setRec(r => ({ ...r, pct: p })) });
+      downloadBlob(blob, `cluster-city-${(data?.updated || "").slice(0, 10) || "clip"}.${ext}`);
+      setRec({ state: "idle", pct: 0, msg: "" });
+    } catch (e) {
+      setRec({ state: "error", pct: 0, msg: e.message || "recording failed" });
+    }
+  };
+
+  // ?auto=1 → fire one record automatically once the scene settles (control-panel one-click).
+  useEffect(() => {
+    if (!showRec || !placed) return;
+    let cancelled = false;
+    try { if (new URLSearchParams(window.location.search).get("auto") !== "1") return; } catch { return; }
+    const t = setTimeout(() => { if (!cancelled) doRecord(); }, 2800);
+    return () => { cancelled = true; clearTimeout(t); };
+  }, [showRec, placed]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!model || !placed || !host.current) return;
@@ -54,8 +88,29 @@ function Inner({ isMobile }) {
   return (
     <div style={{ maxWidth: 1180, margin: "0 auto", padding: "0 14px", fontFamily: SANS }}>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "center", justifyContent: "space-between", margin: "6px 0 12px" }}>
-        <div style={{ fontFamily: SANS, fontSize: 13.5, color: "#a7b3c6" }}>
-          Every district is <b style={{ color: "#e2e8f0" }}>one owner</b> — the wallets our clustering links together. Cube = wallet · beam = 30-day flow.
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "center" }}>
+          <div style={{ fontFamily: SANS, fontSize: 13.5, color: "#a7b3c6" }}>
+            Every district is <b style={{ color: "#e2e8f0" }}>one owner</b> — the wallets our clustering links together. Cube = wallet · beam = 30-day flow.
+          </div>
+          {showRec && placed > 0 && (
+            <div style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+              <button onClick={doRecord} disabled={rec.state === "recording"} style={{
+                padding: "6px 12px", borderRadius: 8, cursor: rec.state === "recording" ? "default" : "pointer",
+                fontFamily: SANS, fontSize: 13, fontWeight: 700,
+                background: rec.state === "recording" ? "rgba(251,113,133,0.16)" : "rgba(167,139,250,0.16)",
+                border: `1px solid ${rec.state === "recording" ? "#fb7185" : "#a78bfa"}`, color: rec.state === "recording" ? "#fb7185" : "#c4b5fd",
+              }}>{rec.state === "recording" ? `● Recording ${Math.round(rec.pct * 100)}%` : "🎥 Record"}</button>
+              {rec.state !== "recording" && (
+                <select value={recSecs} onChange={e => setRecSecs(+e.target.value)} style={{
+                  padding: "6px 8px", borderRadius: 8, fontFamily: MONO, fontSize: 12, cursor: "pointer",
+                  background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.14)", color: "#94a3b8",
+                }}>
+                  <option value={8}>8s</option><option value={12}>12s</option><option value={20}>20s</option>
+                </select>
+              )}
+              {rec.state === "error" && <span style={{ fontFamily: MONO, fontSize: 11.5, color: "#fb7185", maxWidth: 220 }}>{rec.msg}</span>}
+            </div>
+          )}
         </div>
         {placed > 0 && <div style={{ fontFamily: MONO, fontSize: 12, color: "#64748b" }}>{placed} owners · drag to orbit · {data.updated}</div>}
       </div>
