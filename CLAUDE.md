@@ -977,14 +977,20 @@
   sort tabs, flow pills in the list + detail panels, and a green/red/flat legend. All gated on `hasFlow` so it degrades cleanly.
   Threshold for "significant": |flow| ≥ max(2000 SPX, 1% of cluster size). Previewed via injected synthetic flow (green/red
   bubbles render correctly).
-- **🔲 NEXT — 3D "CLUSTER CITY" (owner asked, 2026-08-15: "have some 3d renderings too similar to whales watching").** The
-  per-member `walletFlow`/`walletAge` the engine now emits are exactly what Whales Watching consumes. Plan: a Skyline3D/
-  `city-render.js` view where each CLUSTER is a group of member **cubes** (height = member balance √/log, colour = age warm→cyan,
-  **beam green=buying / red=selling** from walletFlow), grouped on the ground plane per entity with a cluster-level aggregate
-  sentiment slab (net d30) — i.e. Whales Watching grouped BY OWNER instead of by size cohort. Reuse the cube+beam path
-  (`WhalesWatching.jsx` + `Skyline3D.jsx` + `city-render.js`); placement layer groups by cluster. Gate like the other 3D pages.
-  **Build it AFTER the per-member flow data lands (next cron)** — don't build blind (can't validate numbers or render 3D in the
-  sandbox; needs a real GPU + real data). The 2D buy/sell shipped now; the 3D is the follow-up once data is live.
+- **✅ 3D "CLUSTER CITY" — SHIPPED 2026-08-15 (owner: "have some 3d renderings too similar to whales watching").** Gated chart
+  **`clustercity`** (On-Chain group, `locked:true`, `src/ClusterCity.jsx`) — Whales Watching grouped BY OWNER instead of by size.
+  Every entity is a **district** of member-wallet cubes (height = wallet balance on a log axis, colour = holding age warm→cyan,
+  a **beam green=buying / red=selling** from the wallet's 30d flow); each district's rim + label read the owner's overall net flow.
+  Click a cube → its WalletCard/Zerion. **Architecture (DRY + safe):** `buildClusterGroups(entities)` in `whale-cohorts.js` emits
+  the SAME model shape `buildCohorts` does (cubes on platforms, 2D grid of districts) — unit-tested; the Whales Watching three.js
+  scene was extracted into **`src/skyline-scene.js` `renderSkyline(el, model, opts)`** so the cluster city reuses render code
+  proven on real hardware. **⚠ Whales Watching itself was LEFT UNTOUCHED** (kept its own `buildScene`) so the live gated page can't
+  regress — skyline-scene.js is a parameterised copy used only by ClusterCity; migrate WhalesWatching to it later only after an
+  on-device check. **DATA-GATED:** reads the per-member `walletFlow`/`walletAge` (see above) — until the next `onchain-dune` run
+  emits them, the page shows a "lights up after the on-chain refresh" state (the 2D bubble map already carries the buy/sell).
+  Mount-verified with synthetic flow (48 districts / 79 cubes, no errors; 331 tests pass); **the 3D itself can't render in the
+  sandbox (software rasteriser) → visual tuning + real numbers are an on-device check after the cron.** Same `TOP=48` biggest
+  owners knob; flagged/over-merged clusters excluded (never fuse an uncertain one, the honesty rail).
 
 ## Backlog / decisions
 - **🔲🔲 DUE AUG 1 — MONTHLY RECAP (July), UPGRADED (owner, 2026-07-31: "after four weeks of intense work we can give a
