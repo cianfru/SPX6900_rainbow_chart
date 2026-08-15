@@ -1191,7 +1191,7 @@ const SITE = "https://spx6900rainbow.xyz";
 const AEON_CHARTS = [
   ["Floor & Sales", "aeonfloor"], ["Holder Skyline (3D)", "aeonskyline"], ["Holder Age", "aeonhodl"],
   ["Owners Over Time", "aeonowners"], ["Concentration", "aeonconcentration"], ["Holder Flow", "aeonbehaviour"],
-  ["Buying vs Selling", "aeonflow"],
+  ["Buying vs Selling", "aeonflow"], ["One Buyer, One Floor", "aeonfloorstory"],
 ];
 // Which build is serving this panel. "I only see 9 cards" turned out to be a caching
 // question twice; this answers it on sight rather than by counting features.
@@ -1250,6 +1250,24 @@ const AEON_POSTS = [
       const top = arr.filter(x => x.net > 0).sort((a, b) => b.net - a.net)[0];
       if (!top) return "";
       return `🟢 Who's accumulating Project AEON?\n\nOne wallet is up +${top.net} AEON net on the market over the last 30 days${top.usd ? ` (~$${Math.round(top.usd).toLocaleString()})` : ""} — the biggest net buyer, well clear of the field. Green = buying, red = selling, exited wallets flagged.\n\nStraight off the public sale log — open the city and check it yourself.`;
+    } },
+  { id: "aeonfloorstory", title: "One Buyer, One Floor", copy: (o, s, m) => {
+      const daily = (s?.daily || []).filter(d => d.d >= "2026-06-01" && d.floorEth > 0);
+      if (daily.length < 8) return "";
+      const big = daily.reduce((a, b) => (b.volUsd || 0) > (a.volUsd || 0) ? b : a);
+      const med = arr => { const x = [...arr].sort((p, q) => p - q); return x[x.length >> 1]; };
+      const pre = med(daily.filter(d => d.d < big.d).map(d => d.floorEth));
+      const peak = daily.reduce((a, b) => b.floorEth > a.floorEth ? b : a).floorEth;
+      const typ = Math.round(med(daily.map(d => d.volUsd).filter(v => v > 0)) / 100) * 100;
+      const jump = Math.round((peak / pre - 1) * 100);
+      // SPX stretch vs the PRE-pump baseline, from the floor series (works even before the builder emits spxStretch)
+      const fs = (m?.spxValue?.floorSeries || []).filter(p => p[0] >= "2026-06-01");
+      const bigT = Date.parse(big.d);
+      const baseSpx = med(fs.filter(p => Date.parse(p[0]) < bigT).map(p => p[1]));
+      const spxStretch = (fs.length && baseSpx) ? Math.round((fs[fs.length - 1][1] / baseSpx - 1) * 100) : null;
+      return `🖼️ How one $28k buyer broke a whole NFT floor.\n\n`
+        + `On a market that trades ~$${typ.toLocaleString()}/day, a single wallet spent ~$28k on 16 Project AEON in ONE day — the biggest volume day ever ($${Math.round(big.volUsd).toLocaleString()}) — and the floor doubled, ${pre.toFixed(2)}Ξ → ${peak.toFixed(2)}Ξ (+${jump}%).\n\n`
+        + `Three weeks on it's bled back. In ETH it looks fully reverted; priced in SPX6900 — a stable yardstick — it's still${spxStretch != null ? ` ~${spxStretch}%` : ""} above where it started. In a market this thin, one buyer IS the market. So you read it against something stable, not against itself. The spike is one wallet; the trend is the truth.`;
     } },
 ];
 function renderAeonCards(onchain, sales, market, traders) {

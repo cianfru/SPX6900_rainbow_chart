@@ -22,6 +22,7 @@ import { renderAeonRarityPriceCard } from "../scripts/bot/aeon-rarity-price-card
 import { renderAeonWhalesCard } from "../scripts/bot/aeon-whales-card.mjs";
 import { renderAeonTradersCard, renderAeonValuationCard, renderAeonTraitsCard } from "../scripts/bot/aeon-market-cards.mjs";
 import { renderAeonFlowCard } from "../scripts/bot/aeon-flow-card.mjs";
+import { renderAeonFloorStoryCard } from "../scripts/bot/aeon-floor-story-card.mjs";
 
 // Project Aeon cards render from the committed aeon-*.json (not stats), all at 1:1. ?aeon=<id>.
 const readAeon = p => { try { return JSON.parse(readFileSync(join(process.cwd(), p), "utf8")); } catch { return null; } };
@@ -70,6 +71,7 @@ const AEON_CARD = {
   aeonskyline: () => { const d = readAeon("public/aeon-onchain.json"); return d && renderAeonSkylineCard(d, SQ); },
   aeontraders: () => { const d = readAeon("public/aeon-traders.json"); return d && renderAeonTradersCard(d, SQ); },
   aeonflow: () => { const s = readAeon("public/aeon-sales.json"), o = readAeon("public/aeon-onchain.json"); return s && renderAeonFlowCard(s, o, SQ); },
+  aeonfloorstory: () => { const s = readAeon("public/aeon-sales.json"), m = readAeon("public/aeon-market.json"); return s && m && renderAeonFloorStoryCard(s, m, SQ); },
   aeonvaluation: () => { const d = readAeon("public/aeon-market.json"); return d && renderAeonValuationCard(d, SQ); },
   aeontraits: () => { const d = readAeon("public/aeon-market.json"); return d && renderAeonTraitsCard(d, SQ); },
   aeonhodl: () => { const d = readAeon("public/aeon-onchain.json"); return d && renderAeonHodlCard(d, SQ); },
