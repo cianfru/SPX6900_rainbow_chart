@@ -77,7 +77,10 @@ jobs:
         if: ${{ !(github.event_name == 'workflow_dispatch' && inputs.probe) }}
         env:
           # Repo var AEON_SALE_DRY_RUN=1 keeps the schedule in watch-only mode.
-          DRY_RUN: ${{ (github.event_name == 'workflow_dispatch' && inputs.dry_run) && '1' || vars.AEON_SALE_DRY_RUN }}
+          # KILL-SWITCH 2026-08-16: forced to '1' (dry-run, no posting) to stop reverting-floor
+          # steal spam until the clearing-level fix is live in the committed aeon-market.json.
+          # Re-enable: restore the dispatch/var expression (see git history of this file).
+          DRY_RUN: '1'
           AEON_SALE_HOURS: ${{ inputs.hours || '168' }}
           ALCHEMY_KEY: ${{ secrets.ALCHEMY_KEY }}
           ALCHEMY_NETWORK: ${{ vars.ALCHEMY_NETWORK }}
@@ -93,7 +96,10 @@ jobs:
         # A live listing priced below what its rarity sells for → a buy-now card on X. Its own
         # lane (firesale), one/day, gated on a genuine steal. Same DRY toggle as the sale watcher.
         env:
-          DRY_RUN: ${{ (github.event_name == 'workflow_dispatch' && inputs.dry_run) && '1' || vars.AEON_SALE_DRY_RUN }}
+          # KILL-SWITCH 2026-08-16: forced to '1' (dry-run, no posting) to stop reverting-floor
+          # steal spam until the clearing-level fix is live in the committed aeon-market.json.
+          # Re-enable: restore the dispatch/var expression (see git history of this file).
+          DRY_RUN: '1'
           ALCHEMY_KEY: ${{ secrets.ALCHEMY_KEY }}
           ALCHEMY_NETWORK: ${{ vars.ALCHEMY_NETWORK }}
           AEON_CONTRACT: ${{ vars.AEON_CONTRACT }}
@@ -108,7 +114,10 @@ jobs:
         # One wallet scooping ≥3 AEON in a few days → a card showing the haul. Its own lane
         # (aeonsweep), one/day, gated on a FRESH sweep. Same DRY toggle as the sale watcher.
         env:
-          DRY_RUN: ${{ (github.event_name == 'workflow_dispatch' && inputs.dry_run) && '1' || vars.AEON_SALE_DRY_RUN }}
+          # KILL-SWITCH 2026-08-16: forced to '1' (dry-run, no posting) to stop reverting-floor
+          # steal spam until the clearing-level fix is live in the committed aeon-market.json.
+          # Re-enable: restore the dispatch/var expression (see git history of this file).
+          DRY_RUN: '1'
           ALCHEMY_KEY: ${{ secrets.ALCHEMY_KEY }}
           ALCHEMY_NETWORK: ${{ vars.ALCHEMY_NETWORK }}
           AEON_CONTRACT: ${{ vars.AEON_CONTRACT }}
