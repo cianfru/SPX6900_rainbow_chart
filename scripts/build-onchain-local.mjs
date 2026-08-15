@@ -91,6 +91,9 @@ export const EXCLUDE_LABELS = {
   // flow). Sandbox can't reach Etherscan to name the exact venue, so tagged "mm" (excluded from
   // holders, NOT attributed to a venue) — the honest neutral until the specific venue is confirmed.
   "0x504ce9e51e508c85a161058c12e970a903d482fc": { name: "Infrastructure (owner-flagged)", kind: "mm" },
+  // Owner-flagged 2026-08-16: ~580k SPX (rank ~#164), $20M portfolio (not SPX) — and CONNECTED to the
+  // Kraken-linked wallet above, so attributed to Kraken (canonVenue → Kraken) rather than left neutral.
+  "0x655fe3fc7764e621ca738254eb1b90fae3461d51": { name: "Kraken-linked", kind: "cex" },
 };
 
 // The set the FIFO engine excludes from holder reconstruction — DERIVED from EXCLUDE_LABELS so
