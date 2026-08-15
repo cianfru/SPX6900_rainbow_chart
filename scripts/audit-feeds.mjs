@@ -51,6 +51,8 @@ export const FEEDS = [
   { file: "valuation.json", cadence: 2, by: "snapshot.yml (step)", what: "the weighted valuation composite" },
   { file: "signals.json", cadence: 2, by: "snapshot.yml (step)", what: "the anomaly detector's daily candidates",
     mayBeEmpty: ["signals"] },
+  { file: "notable.json", cadence: 2, by: "snapshot.yml (step)", what: "The Brief — the cross-surface synthesizer digest",
+    mayBeEmpty: ["items"] },
   // Rows are positional tuples [date, cex, lp, custody, organicNet, onboardNet, price], not objects,
   // so the field checks read by column index via `cols`.
   { file: "cex-flow.json", cadence: 3, by: "snapshot.yml (step)", what: "exchange balances and net flow",

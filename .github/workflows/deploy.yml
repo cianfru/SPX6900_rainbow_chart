@@ -27,6 +27,7 @@ on:
       - "public/rotation-excludes.json"
       - "public/binned-cards.json"
       - "public/signals.json"
+      - "public/notable.json"
       - "public/aeon-sale-state.json"
       - "public/aeon-listing-alert-state.json"
       - "public/whale-signals.json"

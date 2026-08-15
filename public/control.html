@@ -65,6 +65,24 @@
   .chip.goto { cursor: pointer; -webkit-tap-highlight-color: transparent; transition: border-color .12s, background .12s; }
   .chip.goto:hover, .chip.goto:focus-visible { border-color: #38bdf8; background: #0e1424; outline: none; }
   .chip.goto:active { transform: scale(.96); }
+  /* THE BRIEF — cross-surface synthesizer digest */
+  .brief { margin: 14px 0 4px; background: linear-gradient(180deg,#0d0f1e,#0a0b16); border: 1px solid rgba(94,234,212,.22); border-radius: 14px; padding: 14px 16px; }
+  .brief .bhdr { font-size: 14px; font-weight: 700; color: #eafff7; margin-bottom: 3px; display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+  .brief .bhdr span { font-size: 11.5px; font-weight: 400; color: #7c8aa0; }
+  .brief .bempty { color: #64748b; font-size: 13px; padding: 6px 0; }
+  .brief .bitem { display: flex; gap: 12px; padding: 12px 0; border-top: 1px solid rgba(255,255,255,.07); }
+  .brief .bitem:first-of-type { border-top: none; }
+  .brief .brank { flex: none; width: 30px; height: 30px; border-radius: 8px; display: grid; place-items: center; font-size: 16px; background: rgba(94,234,212,.10); border: 1px solid rgba(94,234,212,.22); }
+  .brief .bcol { flex: 1; min-width: 0; }
+  .brief .bhead { font-size: 14.5px; font-weight: 700; color: #f1f5f9; line-height: 1.35; }
+  .brief .bsev { font-size: 11px; color: #5eead4; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .brief .bdetail { font-size: 12.5px; color: #aeb9c9; margin-top: 4px; line-height: 1.5; }
+  .brief .bframe { font-size: 12.5px; color: #cbd5e1; margin-top: 6px; line-height: 1.5; background: rgba(255,255,255,.03); border-left: 2px solid rgba(94,234,212,.4); padding: 5px 10px; border-radius: 0 6px 6px 0; }
+  .brief .bframe b { color: #5eead4; font-weight: 600; }
+  .brief .bcheck { font-size: 11.5px; color: #64748b; margin-top: 5px; line-height: 1.45; }
+  .brief .bact { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+  .brief .bverify, .brief .bcopy { font-size: 12px; padding: 4px 11px; border-radius: 7px; border: 1px solid rgba(255,255,255,.14); background: transparent; color: #94a3b8; cursor: pointer; text-decoration: none; display: inline-block; }
+  .brief .bverify:hover, .brief .bcopy:hover { border-color: #5eead4; color: #5eead4; }
   /* "Notable today" anomaly signals */
   .fresh { margin: 12px 0 4px; background: #0b0b18; border: 1px solid rgba(255,255,255,.08); border-radius: 12px; padding: 11px 14px; }
   .fresh h3 { margin: 0 0 6px; font-size: 13px; font-weight: 600; color: #cbd5e1; }
@@ -297,6 +315,7 @@
       <div class="status" id="status">Loading…</div>
       <div class="sched" id="sched"></div>
       <div class="fresh" id="fresh"></div>
+      <div class="brief" id="brief"></div>
       <div class="signals" id="signals"></div>
       <div class="agent">
         <div class="agenthdr">🤖 Ask the agent <span>· consults OpenRouter over today's real numbers — stats, the rotation pick, "Notable today" & the full card catalog</span></div>
@@ -415,6 +434,7 @@ let PW = "";
 let QUEUED = null, NEXT = null, IDS = [], UPCOMING = [], TEXTS = {}, MEDIA = {}, ORIENT = {}, META = { postedToday: false };
 let EDITABLE = {}, OVERRIDES = {}; // editable card copy: {id:{default,tokens}} + saved overrides {id:template}
 let SIGNALS = null;                // { date, signals:[…] } from the daily anomaly detector
+let BRIEF = null;                  // { date, items:[…] } — the cross-surface synthesizer
 let DRAFT_TEXT = {};               // per-signal footerized LLM draft, for the 📋 Copy button
 let AR_OVERRIDES = {};             // owner-picked aspect ratio per card: {id: presetKey}
 let EXCLUDES = {};                 // cards held out of the auto rotation: {id: true}
@@ -465,12 +485,13 @@ $("#lock").onclick = lock;
 async function loadState() {
   const raw = p => fetch(`/api/control?f=${encodeURIComponent(p)}&t=${Date.now()}`, { cache: "no-store" })
     .then(r => r.ok ? r.json() : null).catch(() => null);
-  const [q, st, ov, arov, sg, ex, bn] = await Promise.all([raw(QUEUE_PATH), raw(STATE_PATH), raw("public/post-copy.json"), raw("public/card-ar.json"), raw("public/signals.json"), raw("public/rotation-excludes.json"), raw("public/binned-cards.json")]);
+  const [q, st, ov, arov, sg, ex, bn, br] = await Promise.all([raw(QUEUE_PATH), raw(STATE_PATH), raw("public/post-copy.json"), raw("public/card-ar.json"), raw("public/signals.json"), raw("public/rotation-excludes.json"), raw("public/binned-cards.json"), raw("public/notable.json")]);
   OVERRIDES = ov && typeof ov === "object" ? ov : {};
   AR_OVERRIDES = arov && typeof arov === "object" ? arov : {};
   EXCLUDES = Array.isArray(ex) ? Object.fromEntries(ex.map(k => [k, true])) : (ex && typeof ex === "object" ? ex : {});
   BINNED = Array.isArray(bn) ? Object.fromEntries(bn.map(k => [k, true])) : (bn && typeof bn === "object" ? bn : {});
   SIGNALS = sg && typeof sg === "object" ? sg : null;
+  BRIEF = br && typeof br === "object" ? br : null;
   QUEUED = q && q.id ? q.id : null;
   const today = new Date().toISOString().slice(0, 10);
   const postedToday = st && st.lastPostedDate === today;
@@ -563,6 +584,32 @@ function renderCityRecap(doc) {
     const t = document.getElementById(b.dataset.t)?.textContent || "";
     navigator.clipboard.writeText(t).then(() => { const o = b.textContent; b.textContent = "✓ Copied"; setTimeout(() => { b.textContent = o; }, 1500); }, () => {});
   });
+}
+
+// THE BRIEF — the cross-surface synthesizer digest (public/notable.json). Ranked,
+// human-readable "what's notable" across every data surface, each with a verify link
+// and a Copy button that puts a starter line on the clipboard for content.
+function renderBrief() {
+  const el = $("#brief");
+  if (!el) return;
+  const items = (BRIEF && Array.isArray(BRIEF.items)) ? BRIEF.items : [];
+  const when = BRIEF && BRIEF.date ? BRIEF.date : "";
+  if (!items.length) { el.innerHTML = `<div class="bhdr">🧠 The Brief <span>· nothing stood out across the data today</span></div>`; return; }
+  el.innerHTML = `<div class="bhdr">🧠 The Brief <span>· what's notable across every surface${when ? " · " + esc(when) : ""} · ranked, checkable</span></div>` +
+    items.map((it, i) => {
+      const v = it.verify && it.verify.href
+        ? `<a class="bverify" href="${esc(it.verify.href)}" target="_blank" rel="noopener">${esc(it.verify.text || "Verify")} ↗</a>` : "";
+      return `<div class="bitem">
+        <div class="brank">${esc(it.emoji || "•")}</div>
+        <div class="bcol">
+          <div class="bhead">${esc(it.headline || "")} <span class="bsev">· ${esc(String(it.severity ?? ""))}</span></div>
+          ${it.detail ? `<div class="bdetail">${esc(it.detail)}</div>` : ""}
+          ${it.framing ? `<div class="bframe"><b>Angle:</b> ${esc(it.framing)}</div>` : ""}
+          ${it.checkable ? `<div class="bcheck">✓ ${esc(it.checkable)}</div>` : ""}
+          <div class="bact">${v}<button class="bcopy" data-briefi="${i}">📋 Copy</button></div>
+        </div>
+      </div>`;
+    }).join("");
 }
 
 function renderSignals() {
@@ -765,6 +812,7 @@ async function refresh() {
     await loadSchedule();
     META = await loadState();
     renderSchedule(META);
+    renderBrief();
     renderSignals();
     renderGrid();
     if ($("#cityView").style.display !== "none") renderCityGrid(); // keep the City grid live if it's open
@@ -938,6 +986,20 @@ async function onDemandDraft(i, btn) {
     status(err.message || "network error", "err");
   }
 }
+
+// The Brief: 📋 Copy puts a ready-to-edit starter — headline, the numbers, and the
+// verify link — on the clipboard, so a notable event becomes a draft in one click.
+$("#brief").addEventListener("click", e => {
+  const b = e.target.closest("[data-briefi]");
+  if (!b) return;
+  const it = (BRIEF && BRIEF.items) ? BRIEF.items[+b.dataset.briefi] : null;
+  if (!it) return;
+  const text = [it.headline, "", it.detail, it.verify && it.verify.href ? "\nVerify: " + it.verify.href : ""].filter(x => x != null).join("\n").trim();
+  navigator.clipboard.writeText(text).then(
+    () => { const o = b.textContent; b.textContent = "✓ Copied"; setTimeout(() => { b.textContent = o; }, 1500); },
+    () => status("Clipboard blocked — select the text to copy manually.", "err"),
+  );
+});
 
 $("#signals").addEventListener("click", e => {
   const dd = e.target.closest("[data-drafti]");

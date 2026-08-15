@@ -91,10 +91,10 @@ jobs:
           # card, so a change to either must redeploy. signals.json is deploy-ignored.
           DEPLOY_CHANGED=""
           [[ -n "$(git status --porcelain public/history.json public/chain-wallets.json public/cex-flow.json public/valuation.json public/city-notes.json)" ]] && DEPLOY_CHANGED=1
-          if [[ -n "$(git status --porcelain public/history.json public/signals.json public/chain-wallets.json public/cex-flow.json public/valuation.json public/city-notes.json public/feed-health.json)" ]]; then
+          if [[ -n "$(git status --porcelain public/history.json public/signals.json public/notable.json public/chain-wallets.json public/cex-flow.json public/valuation.json public/city-notes.json public/feed-health.json)" ]]; then
             git config user.name "github-actions[bot]"
             git config user.email "github-actions[bot]@users.noreply.github.com"
-            git add public/history.json public/signals.json public/chain-wallets.json public/cex-flow.json public/valuation.json public/city-notes.json public/feed-health.json
+            git add public/history.json public/signals.json public/notable.json public/chain-wallets.json public/cex-flow.json public/valuation.json public/city-notes.json public/feed-health.json
             git commit -m "chore: supply snapshot $(date -u +%F)"
             git push || { for i in 1 2 3 4 5; do echo "push rejected, rebasing (attempt $i)"; git pull --rebase --autostash origin "${GITHUB_REF_NAME:-main}" && git push && break; sleep $((i*3)); done; }
           else

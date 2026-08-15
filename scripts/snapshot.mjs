@@ -359,6 +359,26 @@ async function main() {
     await writeFile(SIGNALS_FILE, JSON.stringify(sig, null, 2) + "\n");
     console.log(`signals ${sig.date}: ${sig.signals.length} notable${sig.signals.length ? " — " + sig.signals.map(s => s.type).join(", ") : ""}`);
   } catch (e) { console.warn("signals:", e.message); }
+
+  // THE BRIEF → public/notable.json. The cross-surface synthesizer: reads every
+  // committed data file (onchain, cex-flow, self-moves, whale-campaigns, smart-money,
+  // exit-flow, aeon, valuation) and ranks the genuinely notable events into a
+  // human-readable digest for the control panel. Never throws the snapshot.
+  try {
+    const { detectNotable } = await import("./bot/notable.mjs");
+    const { aeonFlow } = await import("../src/aeon-flow.js");
+    const rd = async f => { try { return JSON.parse(await readFile(f, "utf8")); } catch { return null; } };
+    const brief = detectNotable({
+      history: arr, legacy: detectSignals(arr),
+      onchain: await rd("public/onchain.json"), cexFlow: await rd("public/cex-flow.json"),
+      selfMoves: await rd("public/self-moves.json"), smartMoney: await rd("public/smart-money.json"),
+      exitFlow: await rd("public/exit-flow.json"), whaleCampaigns: await rd("public/whale-campaigns.json"),
+      aeonSales: await rd("public/aeon-sales.json"), aeonOnchain: await rd("public/aeon-onchain.json"),
+      valuation: await rd("public/valuation.json"),
+    }, aeonFlow);
+    await writeFile("public/notable.json", JSON.stringify(brief));
+    console.log(`notable ${brief.date}: ${brief.count} items — ${brief.items.map(i => i.lane).join(", ")}`);
+  } catch (e) { console.warn("notable:", e.message); }
 }
 
 // Guarded so the fetchers above can be imported by the read-only feed check without
