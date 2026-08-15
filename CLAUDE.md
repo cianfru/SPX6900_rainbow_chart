@@ -270,6 +270,16 @@
   independently; none can spam. `lastPostedDate` keeps its old meaning (**the daily rotation posted today**) because band-watch reads it to
   stop BUY/SELL stacking on the daily. **To add a publisher: pick a lane name, gate on `lanePostedToday(lane)`, call `recordLanePost(lane, id)`
   — never write post-state directly.**
+  - **⚠⚠ THE DAILY ROTATION ITSELF WAS STILL CLOBBERING THE LANES — fixed 2026-08-16 (owner: "the bot is firing non stop").** `post.mjs`
+    (the daily rotation) wrote post-state as a FRESH `{lastPostedDate,lastId,recent}` object, DROPPING the `lanes` map — so every daily
+    post wiped every event lane's once-a-day gate, re-opening aeonsale/aeonsweep/firesale to fire AGAIN the same day (and with the
+    reverting-floor steal bug always having a candidate, the hourly AEON watcher re-fired after each daily → the non-stop firing the
+    owner saw). Diagnosed straight from the GH Actions job logs (`aeon-sale: steal … posted` on back-to-back runs the same day). Fix:
+    post.mjs now RE-READS the freshest post-state and MERGES (`{...cur, lastPostedDate, lastId, recent}`) so `lanes`/`lastEventId`
+    survive. **THE RULE from the note above — "never write post-state directly" — must extend to the daily rotation too; the only
+    correct writers are `recordLanePost` (merges) and a spread-merge in post.mjs.** Incident response: a KILL-SWITCH forced all three
+    AEON event watchers in `aeon-sale-watch.yml` to `DRY_RUN: '1'` to stop posting immediately; re-enable (restore the dispatch/var
+    expression) only once BOTH this lane fix AND the clearing-level steal fix are live in the committed `aeon-market.json` and verified.
 - **✅ NOTABLE-SALE EVENT POST BUILT 2026-07-24 (owner request).** `scripts/bot/aeon-sale-watch.mjs` + `aeon-sale-card.mjs` — posts a fresh
   notable AEON sale showing **the piece itself**, what it fetched, and how that compares to what its rarity actually trades at, plus the
   rarest traits. Notable = a **steal** (≥20% under that rarity's going rate) OR a **rare piece** (rank ≤150) trading at all OR a **big sale**
