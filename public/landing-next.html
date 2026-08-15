@@ -732,14 +732,14 @@
       <div class="scrollcue mcue"><span>scroll for the data &#8595;</span></div>
     </div>
     <div class="snap">
-      <div class="sh"><span>valuation snapshot</span></div>
-      <div class="row" data-snap="price"><span class="k">price</span><span class="v">$0.332</span></div>
-      <div class="row" data-snap="composite"><span class="k">composite</span><span class="v g">16%</span></div>
-      <div class="row" data-snap="fair"><span class="k">fair value</span><span class="v">$1.99&nbsp;&nbsp;&middot;&nbsp;&nbsp;6.0&times; up</span></div>
-      <div class="row" data-snap="val"><span class="k">valuation</span><span class="v g">DEEPLY UNDERVALUED</span></div>
-      <div class="smeter"><div class="sbar"></div><div class="smask" id="smask" style="width:84%"></div><div class="snd" id="snd" style="left:16%"></div></div>
-      <div class="row" data-snap="range"><span class="k">history · range</span><span class="v">2 &ndash; 90</span></div>
-      <div class="foot">a weighted percentile across six lenses, not a signal &middot; every number reproducible</div>
+      <div class="sh"><span>what we deliver</span></div>
+      <div class="row"><span class="k">interactive charts</span><span class="v g" id="stCharts">67</span></div>
+      <div class="row"><span class="k">chains</span><span class="v">3</span></div>
+      <div class="row"><span class="k">wallets tracked</span><span class="v g" id="stWallets">229,863</span></div>
+      <div class="row"><span class="k">days of history</span><span class="v" id="stDays">1,096 counting</span></div>
+      <div class="row"><span class="k">transfers database</span><span class="v">2.6M+</span></div>
+      <div class="row"><span class="k">data freshness</span><span class="v g">DAILY</span></div>
+      <div class="foot">3 chains — Ethereum, Base, Solana &middot; every number reproducible from public data, $0 to rebuild</div>
     </div>
   </div>
 
@@ -1207,7 +1207,9 @@
       if(r.mvrv!=null){ setKpi('mvrv',r.mvrv.toFixed(2)+'×',r.mvrv<1?'underwater':'above cost'); T.push(['MVRV',r.mvrv.toFixed(2)+'×','']); }
       if(r.sip!=null){ setKpi('profit',Math.round(r.sip)+'%','of supply'); T.push(['SUPPLY IN PROFIT',Math.round(r.sip)+'%','']); }
       if(r.age&&r.age[4]!=null) setKpi('held',r.age[4].toFixed(1)+'%','diamond'); }
-    if(cw&&cw.length){ const r=cw[cw.length-1]; const tot=(r.eth||0)+(r.base||0)+(r.sol||0); if(tot){ setKpi('holders',tot.toLocaleString('en-US'),'3 chains'); T.push(['HOLDERS',tot.toLocaleString('en-US'),'']); } }
+    if(cw&&cw.length){ const r=cw[cw.length-1]; const tot=(r.eth||0)+(r.base||0)+(r.sol||0); if(tot){ setKpi('holders',tot.toLocaleString('en-US'),'3 chains'); T.push(['HOLDERS',tot.toLocaleString('en-US'),'']);
+      const stw=document.getElementById('stWallets'); if(stw) stw.textContent=tot.toLocaleString('en-US'); } }
+    { const std=document.getElementById('stDays'); if(std&&onc&&onc.length) std.textContent=onc.length.toLocaleString('en-US')+' counting'; }
     if(val&&val.cur){ LIVE.composite=val.cur.composite; LIVE.series=val.series; LIVE.zones=val.zones;
       const ax=val.axes||[], ba=val.cur.byAxis||{};
       if(ax.length) LIVE.axes=ax.map(a=>[a.label, a.weight, Math.round((ba[a.key]||0)*100)]);
@@ -1357,6 +1359,8 @@
   }
   fitHero();
   (document.fonts&&document.fonts.ready?document.fonts.ready:Promise.resolve()).then(()=>{ render(); lockBtns(); fitHero(); }); render();
+  // charts count is a code fact — read it live off the catalog (NAV) so it never goes stale on a new chart
+  { const sc=document.getElementById('stCharts'); if(sc && typeof NAV!=='undefined'){ let n=0; for(const s of NAV) for(const g of s.groups) n+=g.items.length; if(n>0) sc.textContent=n; } }
   wireLive(); /* pull the site's live JSON + recompute the rainbow; no-ops to baked values if unreachable */
   let to; window.addEventListener('resize',()=>{ clearTimeout(to); to=setTimeout(()=>{ render(); fitHero(); },120); });
 })();
