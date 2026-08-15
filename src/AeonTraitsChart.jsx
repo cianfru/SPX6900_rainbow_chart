@@ -27,7 +27,8 @@ export default function AeonTraitsChart({ isMobile }) {
           <CartesianGrid strokeDasharray="2 8" stroke="rgba(255,255,255,0.06)" horizontal={false} />
           <XAxis type="number" tickFormatter={fEth} tick={{ fill: "#cbd5e1", fontSize: 11, fontFamily: MONO }} axisLine={{ stroke: "rgba(255,255,255,0.15)" }} tickLine={false} />
           <YAxis type="category" dataKey="label" width={isMobile ? 150 : 220} tick={{ fill: "#cbd5e1", fontSize: isMobile ? 10 : 12, fontFamily: SANS }} axisLine={false} tickLine={false} interval={0} />
-          <Tooltip cursor={{ fill: "rgba(255,255,255,0.04)" }} contentStyle={{ background: "#0a0e1c", border: "1px solid #234", borderRadius: 8, fontFamily: MONO, fontSize: 12 }}
+          <Tooltip allowEscapeViewBox={{ x: false, y: false }} cursor={{ fill: "rgba(255,255,255,0.04)" }}
+            contentStyle={{ background: "#0a0e1c", border: "1px solid #234", borderRadius: 8, fontFamily: MONO, fontSize: 12, color: "#e2e8f0", maxWidth: isMobile ? 210 : 320, whiteSpace: "normal" }} itemStyle={{ color: "#e2e8f0", whiteSpace: "normal" }} labelStyle={{ color: "#cbd5e1", whiteSpace: "normal" }}
             formatter={(v, n, p) => [`${fEth(v)} median · floor ${fEth(p.payload.floor)} · ${p.payload.sales} sales`, ""]} labelFormatter={l => l} />
           <Bar dataKey="median" fill="#a78bfa" fillOpacity={0.85} radius={[0, 3, 3, 0]} isAnimationActive={false} />
         </BarChart>

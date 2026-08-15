@@ -41,10 +41,12 @@ export default function AeonTradersChart({ isMobile, initialView }) {
           <CartesianGrid strokeDasharray="2 8" stroke="rgba(255,255,255,0.06)" horizontal={false} />
           <XAxis type="number" tickFormatter={v => (view === "byVolume" ? v.toFixed(0) + "Ξ" : fE(v))} tick={{ fill: "#cbd5e1", fontSize: 11, fontFamily: MONO }} axisLine={{ stroke: "rgba(255,255,255,0.15)" }} tickLine={false} />
           <YAxis type="category" dataKey="label" width={isMobile ? 92 : 110} tick={{ fill: "#cbd5e1", fontSize: 11, fontFamily: MONO }} axisLine={false} tickLine={false} />
-          <Tooltip cursor={{ fill: "rgba(255,255,255,0.04)" }} contentStyle={{ background: "#0a0e1c", border: "1px solid #234", borderRadius: 8, fontFamily: MONO, fontSize: 12 }}
-            formatter={(v, n, p) => view === "byVolume" ? [(p.payload.boughtVol + p.payload.soldVol).toFixed(1) + "Ξ traded", short(p.payload.a)] : [fE(p.payload.realized) + " realized", short(p.payload.a)]} labelFormatter={() => ""} />
+          <Tooltip allowEscapeViewBox={{ x: false, y: false }} cursor={{ fill: "rgba(255,255,255,0.04)" }}
+            contentStyle={{ background: "#0a0e1c", border: "1px solid #234", borderRadius: 8, fontFamily: MONO, fontSize: 12, color: "#e2e8f0", maxWidth: isMobile ? 210 : 320, whiteSpace: "normal" }} itemStyle={{ color: "#e2e8f0" }}
+            formatter={(v, n, p) => view === "byVolume" ? [(p.payload.boughtVol + p.payload.soldVol).toFixed(1) + "Ξ traded · tap to open Zerion", short(p.payload.a)] : [fE(p.payload.realized) + " realized · tap to open Zerion", short(p.payload.a)]} labelFormatter={() => ""} />
           <ReferenceLine x={0} stroke="rgba(255,255,255,0.25)" />
-          <Bar dataKey={view === "byVolume" ? "boughtVol" : "realized"} isAnimationActive={false} radius={[0, 3, 3, 0]}>
+          <Bar dataKey={view === "byVolume" ? "boughtVol" : "realized"} isAnimationActive={false} radius={[0, 3, 3, 0]} cursor="pointer"
+            onClick={(d) => { const a = d?.payload?.a; if (a) window.open(`https://app.zerion.io/${a}/overview`, "_blank", "noopener"); }}>
             {chartData.map((t, i) => <Cell key={i} fill={view === "byVolume" ? "#38bdf8" : (t.realized >= 0 ? "#34d399" : "#fb7185")} />)}
           </Bar>
         </BarChart>
