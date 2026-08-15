@@ -293,8 +293,11 @@ html:not([data-theme="light"]) .tzone [style*="rgb(100, 116, 139)"]{ color:#b1bc
 /* ── MOBILE SPRINGBOARD — the app-launcher nav, styled as an extension of the terminal ── */
 .tzone .tsb{ position:fixed; inset:0; z-index:300; background:radial-gradient(120% 55% at 50% -8%, rgba(78,231,154,.05), transparent 60%), var(--bg); display:none; flex-direction:column; }
 .tzone .tsb.open{ display:flex; }
-.tzone .tsbtop{ display:flex; align-items:center; gap:10px; padding:calc(env(safe-area-inset-top,0px) + 12px) 14px 11px; border-bottom:1px solid var(--line); flex:none; }
-.tzone .tsbtitle{ flex:1; text-align:center; font-family:var(--mono); text-transform:uppercase; letter-spacing:.18em; font-size:12.5px; color:var(--dim); }
+.tzone .tsbtop{ display:flex; align-items:center; gap:10px; padding:calc(env(safe-area-inset-top,0px) + 12px) 14px 11px; border-bottom:1px solid var(--line); flex:none; position:relative; }
+.tzone .tsbtop .tsbbtn:last-of-type{ margin-left:auto; }   /* pin close right; title is absolutely centred */
+.tzone .tsbtitle{ position:absolute; left:0; right:0; top:calc(env(safe-area-inset-top,0px) + 12px); height:44px; line-height:44px; padding:0 62px; text-align:center; pointer-events:none;
+  font-family:var(--label); text-transform:uppercase; letter-spacing:.14em; font-size:17px; font-weight:800; color:var(--tx);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .tzone .tsbbtn{ width:42px; height:42px; display:inline-flex; align-items:center; justify-content:center; border:1px solid var(--line2); border-radius:9px; background:var(--panel); color:var(--tx); cursor:pointer; flex:none; }
 .tzone .tsbbtn:active{ border-color:var(--live); }
 .tzone .tsbbtn svg{ width:21px; height:21px; }
