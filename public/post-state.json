@@ -1,11 +1,7 @@
 {
-  "lastPostedDate": "2026-08-14",
-  "lastId": "manual-skip",
+  "lastPostedDate": "2026-08-15",
+  "lastId": "riskheat",
   "recent": [
-    {
-      "date": "2026-07-18",
-      "id": "multichain"
-    },
     {
       "date": "2026-07-19",
       "id": "picycle"
@@ -81,12 +77,10 @@
     {
       "date": "2026-08-12",
       "id": "supplyprofit"
+    },
+    {
+      "date": "2026-08-15",
+      "id": "riskheat"
     }
-  ],
-  "lanes": {
-    "aeonsale": "2026-08-15",
-    "aeonsweep": "2026-08-15"
-  },
-  "lastEventId": "2088591191256252589",
-  "lastEventAt": "2026-08-15T11:38:39.062Z"
+  ]
 }
