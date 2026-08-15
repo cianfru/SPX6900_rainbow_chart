@@ -67,7 +67,15 @@ const e = html.indexOf(END);
 if (s === -1 || e === -1) { console.error("build-landing-nav: @gen-menu markers not found in", FILE); process.exit(1); }
 const startCommentEnd = html.indexOf("*/", s) + 2; // end of the start-marker comment
 html = html.slice(0, startCommentEnd) + "\n  " + block + "\n  " + html.slice(e);
+
+// Keep the "interactive charts" hero stat honest without hand-maintenance. The live page
+// recomputes it from NAV at load; this syncs the hardcoded fallback (shown for the split
+// second before JS runs) to the same catalog total, so it can never drift stale.
+const total = NAV.reduce((n, sec) => n + sec.groups.reduce((m, g) => m + g.items.length, 0), 0);
+html = html.replace(/(id="stCharts">)\d+(<)/, `$1${total}$2`);
+
 writeFileSync(FILE, html);
+console.log(`build-landing-nav: ${total} interactive charts (stat synced)`);
 
 const nCharts = NAV.reduce((n, sec) => n + sec.groups.reduce((m, g) => m + g.items.length, 0), 0);
 console.log(`build-landing-nav: synced ${NAV.length} sections, ${NAV[0].groups.length} chart groups, ${nCharts} menu items, ${Object.keys(LEAFID).length} wired leaves`);
