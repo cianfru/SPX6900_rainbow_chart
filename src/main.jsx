@@ -5,6 +5,12 @@ import './index.css'
 import App from './App.jsx'
 import BtcAnalogExplorer from './BtcAnalogExplorer.jsx'
 import Maintenance from './Maintenance.jsx'
+import { isChunkError, recoverStaleChunk } from './chunk-recover.js'
+
+// Catch a stale-chunk failure at the earliest point (before it reaches a chart's ErrorBoundary) and
+// reload to the fresh build — so a deploy landing mid-session never shows "couldn't be displayed".
+window.addEventListener('vite:preloadError', e => { e.preventDefault?.(); recoverStaleChunk('vite:preloadError') })
+window.addEventListener('unhandledrejection', e => { if (isChunkError(e)) recoverStaleChunk('unhandledrejection') })
 
 // ── "We're rebuilding" curtain ──────────────────────────────────────────────
 // While the redesign is finished IN production, the public sees the Maintenance

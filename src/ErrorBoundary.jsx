@@ -1,4 +1,5 @@
 import { Component } from "react";
+import { isChunkError, recoverStaleChunk } from "./chunk-recover.js";
 
 // Catches render-time errors (a chart throwing on bad data) and failed lazy
 // chunk loads, so one broken chart degrades to a friendly message instead of
@@ -12,6 +13,12 @@ export default class ErrorBoundary extends Component {
 
   static getDerivedStateFromError(error) {
     return { error };
+  }
+
+  // A stale lazy chunk after a deploy reaches here as a render error — reload once to the fresh
+  // build instead of leaving the "couldn't be displayed" message up (guarded against a reload loop).
+  componentDidCatch(error) {
+    if (isChunkError(error)) recoverStaleChunk("error-boundary");
   }
 
   render() {
