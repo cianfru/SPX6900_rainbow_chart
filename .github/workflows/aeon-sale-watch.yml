@@ -14,7 +14,7 @@ name: AEON notable-sale watcher
 
 on:
   schedule:
-    - cron: "23 * * * *" # hourly at :23 (off the hour, so it doesn't collide with band-watch)
+    - cron: "23 */6 * * *" # every 6h at :23 (reduced from hourly — posts ~weekly, so 6h latency is fine)
   workflow_dispatch:
     inputs:
       dry_run:

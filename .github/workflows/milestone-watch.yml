@@ -6,8 +6,10 @@ name: Milestone watcher
 # Manual runs default to dry-run (detect + render preview, post nothing).
 
 on:
-  schedule:
-    - cron: "30 * * * *" # hourly, offset 30m from the band watcher (UTC)
+  # Hourly meme-price milestone auto-posting disabled 2026-08-15 — kept on-demand
+  # via workflow_dispatch. Re-enable by uncommenting the schedule below.
+  # schedule:
+  #   - cron: "30 * * * *" # hourly, offset 30m from the band watcher (UTC)
   workflow_dispatch:
     inputs:
       dry_run:
