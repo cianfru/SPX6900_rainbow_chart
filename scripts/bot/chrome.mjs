@@ -28,6 +28,28 @@ export const brandStripe = (H, { w = 7, id = "brandRb", opacity = 0.95 } = {}) =
   + `</linearGradient></defs>`
   + `<rect x="0" y="0" width="${w}" height="${H}" fill="url(#${id})" opacity="${opacity}"/>`;
 
+// ⭐ THE AURA — a soft accent-tinted radial wash that lifts a card off the flat near-black ground.
+// Several hand-built cards draw a bare #05050e / vertical-grey background and read as dead/flat next
+// to the full-colour north-star cards (hodlwaves et al). One line right after the background rect
+// adds a gentle glow in the card's own accent (or a two-stop blend for multi-series cards), fading
+// to nothing before it reaches the edges so it never fights the text. Emits its own <defs>.
+//   `…<rect … fill="#05050e"/>${auraBg("#22d3ee", W, H)}${brandStripe(H)}…`
+let _auraSeq = 0;
+export const auraBg = (accent, W = 1200, H = 630, { cx = "50%", cy = "2%", r = "82%", opacity = 0.2, accent2 = null } = {}) => {
+  const id = `aura${_auraSeq++}`;
+  const stops = a => `<stop offset="0%" stop-color="${a}" stop-opacity="${opacity}"/>`
+    + `<stop offset="48%" stop-color="${a}" stop-opacity="${(opacity * 0.34).toFixed(3)}"/>`
+    + `<stop offset="100%" stop-color="${a}" stop-opacity="0"/>`;
+  let defs = `<defs><radialGradient id="${id}" cx="${cx}" cy="${cy}" r="${r}">${stops(accent)}</radialGradient>`;
+  let body = `<rect width="${W}" height="${H}" fill="url(#${id})"/>`;
+  if (accent2) {   // a second glow from the lower-right for two-series cards, so both hues read
+    const id2 = `aura${_auraSeq++}`;
+    defs += `<radialGradient id="${id2}" cx="88%" cy="96%" r="72%">${stops(accent2)}</radialGradient>`;
+    body += `<rect width="${W}" height="${H}" fill="url(#${id2})"/>`;
+  }
+  return defs + `</defs>` + body;
+};
+
 /** A horizontal rainbow rule — the same palette, for separating a header from a plot. */
 export const brandRule = (x, y, w, { h = 3, id = "brandRbH", opacity = 0.85 } = {}) =>
   `<defs><linearGradient id="${id}" x1="0" y1="0" x2="1" y2="0">`

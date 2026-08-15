@@ -6,7 +6,7 @@ import { readFileSync } from "node:fs";
 import { Resvg } from "@resvg/resvg-js";
 import { FONT } from "./font.mjs";
 import { esc } from "./svg-util.mjs";
-import { brandStripe } from "./chrome.mjs";
+import { brandStripe, auraBg } from "./chrome.mjs";
 import { buildCohorts } from "../../src/whale-cohorts.js";
 
 const png = (svg, w) => new Resvg(svg, { fitTo: { mode: "width", value: w }, font: FONT }).render().asPng();
@@ -70,6 +70,7 @@ export function whaleBehaviourSvg(stats, opts = {}) {
   return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
 <defs><linearGradient id="wbbg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#0b0b16"/><stop offset="100%" stop-color="#05050e"/></linearGradient></defs>
 <rect width="${W}" height="${H}" fill="url(#wbbg)"/>
+${auraBg("#5eead4", W, H)}
 ${brandStripe(H)}
 <text x="60" y="56" fill="#f8fafc" font-size="39" font-weight="800" font-family="sans-serif" letter-spacing="1">SPX6900 — WHALE BEHAVIOUR</text>
 <text x="60" y="100" fill="#22d3ee" font-size="31" font-weight="800" font-family="sans-serif">${r.total} whales across 3 chains — ${flatPct}% held flat for 30 days</text>

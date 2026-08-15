@@ -6,7 +6,7 @@ import { readFileSync } from "node:fs";
 import { Resvg } from "@resvg/resvg-js";
 import { FONT } from "./font.mjs";
 import { esc } from "./svg-util.mjs";
-import { brandStripe } from "./chrome.mjs";
+import { brandStripe, auraBg } from "./chrome.mjs";
 
 const png = (svg, w) => new Resvg(svg, { fitTo: { mode: "width", value: w }, font: FONT }).render().asPng();
 const TIERS = [[5e3, 25e3, "5–25k"], [25e3, 1e5, "25–100k"], [1e5, 25e4, "100–250k"], [25e4, 1e6, "250k–1M"], [1e6, 5e6, "1–5M"], [5e6, 1e12, "5M+"]];
@@ -46,6 +46,7 @@ export function whaleCensusSvg(doc, opts = {}) {
   return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
 <defs><linearGradient id="wcbg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#0b0b16"/><stop offset="100%" stop-color="#05050e"/></linearGradient></defs>
 <rect width="${W}" height="${H}" fill="url(#wcbg)"/>
+${auraBg("#2dd4bf", W, H)}
 ${brandStripe(H)}
 <text x="60" y="56" fill="#f8fafc" font-size="39" font-weight="800" font-family="sans-serif" letter-spacing="1">SPX6900 — THE WHALE CENSUS</text>
 <text x="60" y="100" fill="#22d3ee" font-size="31" font-weight="800" font-family="sans-serif">${mega.n} wallets hold ${(mega.s / 1e6).toFixed(0)}M — ${(mega.s / totSup * 100).toFixed(0)}% of whale supply</text>

@@ -5,7 +5,7 @@
 import { Resvg } from "@resvg/resvg-js";
 import { FONT } from "./font.mjs";
 import { esc } from "./svg-util.mjs";
-import { brandStripe } from "./chrome.mjs";
+import { brandStripe, auraBg } from "./chrome.mjs";
 import { ETH_SOL_2026 } from "./eth-sol-2026.js";
 
 const png = (svg, w) => new Resvg(svg, { fitTo: { mode: "width", value: w }, font: FONT }).render().asPng();
@@ -49,6 +49,7 @@ export function chainConcSvg(d, opts = {}) {
   return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
 <defs><linearGradient id="ccbg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#0b0b16"/><stop offset="100%" stop-color="#05050e"/></linearGradient></defs>
 <rect width="${W}" height="${H}" fill="url(#ccbg)"/>
+${auraBg("#f472b6", W, H)}
 ${brandStripe(H)}
 <text x="60" y="56" fill="#f8fafc" font-size="38" font-weight="800" font-family="sans-serif" letter-spacing="1">SPX6900 — CONCENTRATION BY CHAIN</text>
 <text x="60" y="98" fill="#c4b5fd" font-size="29" font-weight="800" font-family="sans-serif">Solana is the most spread — Base rides on one whale</text>

@@ -5,7 +5,7 @@
 import { Resvg } from "@resvg/resvg-js";
 import { FONT } from "./font.mjs";
 import { esc } from "./svg-util.mjs";
-import { brandStripe } from "./chrome.mjs";
+import { brandStripe, auraBg } from "./chrome.mjs";
 import { ETH_SOL_2026 } from "./eth-sol-2026.js";
 
 const png = (svg, w) => new Resvg(svg, { fitTo: { mode: "width", value: w }, font: FONT }).render().asPng();
@@ -29,15 +29,25 @@ export function supplyCurveSvg(d, opts = {}) {
   const lx = x(155);
   const marker = `<line x1="${lx.toFixed(1)}" y1="${mT}" x2="${lx.toFixed(1)}" y2="${(mT + pH).toFixed(1)}" stroke="#22d3ee" stroke-width="1.5" stroke-dasharray="5 5" stroke-opacity="0.7"/><text x="${(lx + 6).toFixed(1)}" y="${(mT + 20).toFixed(1)}" fill="#22d3ee" font-size="16" font-family="sans-serif">155d · long-term</text>`;
 
+  // Each curve ends at the chain's own tenure limit. A young chain (Base, Solana) has NO supply older
+  // than the chain itself, so its curve legitimately hits 0 — but drawing the vertical drop to 0 and the
+  // flat crawl along the baseline reads as "broken". Trim each line at its last meaningful point (≥0.5%)
+  // and cap it with a small dot, so it terminates cleanly at its age rather than diving to zero.
   const lines = chains.map(c => {
-    const pts = c.curve.map((v, i) => `${x(i * bin).toFixed(1)},${y(v).toFixed(1)}`).join(" ");
-    return `<polyline points="${pts}" fill="none" stroke="${c.color}" stroke-width="4" stroke-linejoin="round"/>`;
+    let end = c.curve.length - 1;
+    while (end > 0 && c.curve[end] < 0.5) end--;
+    const kept = c.curve.slice(0, end + 1);
+    const pts = kept.map((v, i) => `${x(i * bin).toFixed(1)},${y(v).toFixed(1)}`).join(" ");
+    const ex = x(end * bin).toFixed(1), ey = y(kept[end]).toFixed(1);
+    return `<polyline points="${pts}" fill="none" stroke="${c.color}" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"/>`
+      + `<circle cx="${ex}" cy="${ey}" r="5" fill="${c.color}" stroke="#05050e" stroke-width="2"/>`;
   }).join("");
   let lgx = W - mR - 400; const legend = chains.map(c => { const s = `<rect x="${lgx}" y="${mT - 28}" width="15" height="15" rx="3" fill="${c.color}"/><text x="${lgx + 21}" y="${mT - 16}" fill="#cbd5e1" font-size="19" font-family="sans-serif">${c.label}</text>`; lgx += 21 + c.label.length * 11 + 24; return s; }).join("");
 
   return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
 <defs><linearGradient id="scbg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#0b0b16"/><stop offset="100%" stop-color="#05050e"/></linearGradient></defs>
 <rect width="${W}" height="${H}" fill="url(#scbg)"/>
+${auraBg("#3b82f6", W, H, { accent2: "#a78bfa" })}
 ${brandStripe(H)}
 <text x="60" y="56" fill="#f8fafc" font-size="38" font-weight="800" font-family="sans-serif" letter-spacing="1">SPX6900 — SUPPLY BY HOLDING TENURE</text>
 <text x="60" y="98" fill="#22d3ee" font-size="29" font-weight="800" font-family="sans-serif">90-97% of supply is in holders past the 155-day mark — Base longest</text>
