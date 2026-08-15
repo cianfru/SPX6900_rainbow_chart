@@ -71,6 +71,8 @@ async function ingest(req, res, body) {
     ["HINCRBY", "intel:pages", ev.path || "/", "1"],
   ];
   if (ev.ref) cmds.push(["HINCRBY", "intel:refs", ev.ref, "1"]);
+  // visits-per-day series (UTC date bucket) — one increment per pageview, so the dashboard can plot the trend
+  if (t === "pageview") cmds.push(["HINCRBY", "intel:daily", new Date(ev.ts).toISOString().slice(0, 10), "1"]);
   if (t === "wallet_search" && ev.wallet) { cmds.push(["LPUSH", "intel:wallets", json], ["LTRIM", "intel:wallets", "0", String(WCAP - 1)]); }
   if (t === "chart_open" && ev.chart) cmds.push(["HINCRBY", "intel:charts", ev.chart, "1"]);
 
@@ -102,10 +104,11 @@ async function dashboard(req, res, body) {
   };
   if (!KV_URL || !KV_TOKEN) { res.status(200).json({ configured: false, diag }); return; }
   try {
-    const [events, wallets, geo, pages, refs, charts] = await kvPipeline([
+    const [events, wallets, geo, pages, refs, charts, daily] = await kvPipeline([
       ["LRANGE", "intel:events", "0", "499"],
       ["LRANGE", "intel:wallets", "0", "199"],
       ["HGETALL", "intel:geo"], ["HGETALL", "intel:pages"], ["HGETALL", "intel:refs"], ["HGETALL", "intel:charts"],
+      ["HGETALL", "intel:daily"],
     ]);
     // Filter the owner's own country out of the display too, so pre-existing rows drop out (the
     // ingest guard only stops NEW ones). Geo drops the excluded countries entirely.
@@ -114,12 +117,12 @@ async function dashboard(req, res, body) {
     res.status(200).json({
       configured: true, diag,
       events: parseList(events).filter(notExcluded), wallets: parseList(wallets).filter(notExcluded),
-      geo: geoObj, pages: hash2obj(pages), refs: hash2obj(refs), charts: hash2obj(charts),
+      geo: geoObj, pages: hash2obj(pages), refs: hash2obj(refs), charts: hash2obj(charts), daily: hash2obj(daily),
     });
   } catch (e) {
     // Don't 500 into a blank page — return the KV error so the page can show it (e.g. "kv 401" =
     // the token is wrong/read-only for writes; a network host error = the URL is off).
-    res.status(200).json({ configured: true, kvError: String(e.message || e), diag, events: [], wallets: [], geo: {}, pages: {}, refs: {}, charts: {} });
+    res.status(200).json({ configured: true, kvError: String(e.message || e), diag, events: [], wallets: [], geo: {}, pages: {}, refs: {}, charts: {}, daily: {} });
   }
 }
 
@@ -170,6 +173,9 @@ details.cty{border-bottom:1px solid var(--sep)}details.cty[open]{background:rgba
 .cty .v{flex:none;font-weight:600;font-variant-numeric:tabular-nums}
 .cty .sub{padding:0 0 9px 25px;color:var(--dim);font-size:11.5px;line-height:1.75}.cty .sub b{color:var(--faint);font-weight:400}
 .feed{max-height:440px;overflow:auto;margin:0 -4px;padding:0 4px}.ev{padding:5px 0;color:var(--dim);border-bottom:1px solid var(--sep);font-size:12px}
+.dchart{width:100%;height:auto;display:block;margin-top:10px}
+.dchart .bars rect{fill:var(--live);opacity:.8}
+.dchart .bars rect:hover{opacity:1}
 .ev b{color:var(--tx)}.muted{color:var(--faint)}.note{color:var(--faint);margin-top:14px;line-height:1.6}
 </style></head><body><div class="wrap">
 <h1>Page Intel</h1>
@@ -192,6 +198,27 @@ function groupWallets(ws){ const m={}; (ws||[]).forEach(w=>{ const k=w.wallet; i
 function countryTree(events,geo){ const cities={}; (events||[]).forEach(e=>{ const c=String(e.country||'').toUpperCase(); if(!c) return; (cities[c]=cities[c]||{}); const ci=e.city||'—'; cities[c][ci]=(cities[c][ci]||0)+1; });
   return Object.entries(geo||{}).map(([c,n])=>[String(c).toUpperCase(),+n||0]).sort((a,b)=>b[1]-a[1])
     .map(([c,n])=>({code:c,n,cities:Object.entries(cities[c]||{}).sort((a,b)=>b[1]-a[1])})); }
+/* visits-per-day trend: one bar per day (last 90d), gaps filled with 0 so the shape is honest. */
+function dailyChart(daily){
+  const ent=Object.entries(daily||{}).filter(function(e){return typeof e[0]==='string'&&e[0].length===10&&e[0].charAt(4)==='-'&&e[0].charAt(7)==='-';}).sort();
+  if(!ent.length) return '';
+  const DAY=864e5, dp=function(d){return Date.parse(d+'T00:00:00Z');};
+  const map={}; ent.forEach(function(e){map[e[0]]=+e[1]||0;});
+  const first=dp(ent[0][0]), last=dp(ent[ent.length-1][0]), days=[];
+  for(let t=first;t<=last;t+=DAY){ const ds=new Date(t).toISOString().slice(0,10); days.push([ds,map[ds]||0]); }
+  const show=days.slice(-90), max=Math.max(1,...show.map(function(x){return x[1];}));
+  const W=960,H=170,pB=24,pT=8,bw=W/show.length, MON=['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  let bars='',ticks='',lastMon=-1;
+  show.forEach(function(d,i){ const h=(d[1]/max)*(H-pB-pT), x=i*bw, y=H-pB-h;
+    bars+='<rect x="'+(x+0.6).toFixed(1)+'" y="'+y.toFixed(1)+'" width="'+Math.max(1,bw-1.2).toFixed(1)+'" height="'+h.toFixed(1)+'" rx="1"><title>'+d[0]+' — '+d[1]+' visits</title></rect>';
+    const mo=+d[0].slice(5,7); if(mo!==lastMon){ lastMon=mo; ticks+='<text x="'+x.toFixed(1)+'" y="'+(H-7)+'" font-size="10" fill="var(--faint)">'+MON[mo]+'</text>'; } });
+  const total=show.reduce(function(a,b){return a+b[1];},0), avg=Math.round(total/show.length);
+  const peak=show.reduce(function(m,x){return x[1]>m[1]?x:m;},show[0]);
+  return '<div class="card"><h2>Visits per day <span class="c">last '+show.length+'d · avg '+avg+'/day · peak '+peak[1]+' ('+peak[0]+')</span></h2>'
+    +'<svg viewBox="0 0 '+W+' '+H+'" class="dchart">'
+    +'<line x1="0" y1="'+(H-pB)+'" x2="'+W+'" y2="'+(H-pB)+'" stroke="var(--sep)"/>'
+    +'<g class="bars">'+bars+'</g>'+ticks+'</svg></div>';
+}
 async function load(){ const pw=$('#pw')?$('#pw').value:''; $('#out').innerHTML='<p class="muted">loading…</p>';
   let r;
   try{ r=await fetch('/api/intel',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pw})}); }
@@ -219,7 +246,7 @@ async function load(){ const pw=$('#pw')?$('#pw').value:''; $('#out').innerHTML=
   // countries, grouped, expandable to their cities
   const countries=ctree.slice(0,20).map(c=>'<details class="cty"><summary><span class="nm"><span class="flag">'+flag(c.code)+'</span><span class="t">'+esc(cname(c.code))+'</span></span><span class="v">'+c.n+'</span></summary>'+(c.cities.length?'<div class="sub">'+c.cities.slice(0,10).map(([ci,n])=>esc(ci)+' <b>'+n+'</b>').join(' · ')+'</div>':'')+'</details>').join('')||'<div class="muted">—</div>';
   const feed=(d.events||[]).slice(0,200).map(e=>'<div class="ev"><b>'+esc(e.t)+'</b> '+esc(e.path||'')+(e.chart?' ['+esc(e.chart)+']':'')+(e.wallet?' '+esc(e.wallet):'')+' <span class="muted">· '+flag(e.country)+' '+esc([e.city,cname(e.country)].filter(Boolean).join(', ')||'??')+' · '+(e.ref?esc(e.ref)+' · ':'')+ago(e.ts)+'</span></div>').join('');
-  $('#out').innerHTML=emptyNote+stats+'<div class="grid">'
+  $('#out').innerHTML=emptyNote+stats+dailyChart(d.daily)+'<div class="grid">'
     +'<div class="card"><h2>Wallet searches <span class="c">'+wg.length+' unique</span></h2>'+wallets+'</div>'
     +'<div class="card"><h2>Countries <span class="c">tap to expand</span></h2>'+countries+'</div>'
     +'<div class="card"><h2>Top pages</h2>'+rows(d.pages,12)+'</div>'
