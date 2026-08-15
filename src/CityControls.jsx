@@ -7,7 +7,10 @@ import { track } from "./track.js";
 // Where the "how to read the city" instructions live — the manual, hosted on this site. The pages
 // are authored as markdown in docs/ and pre-rendered into the bundle at build time, so the book
 // can't drift from what shipped and carries no third-party branding, author name or repo metadata.
-const DOCS_URL = "?view=docs";
+// ABSOLUTE, not relative: the city lives at /city, and a relative "?view=docs" would open
+// /city?view=docs — which the router resolves by pathname to the city again (the manual went
+// nowhere). "/?view=docs" escapes the path so the docs route actually loads.
+const DOCS_URL = "/?view=docs";
 
 // Line icons for the time-of-day toggle — drawn, not emoji, so they inherit the button colour and
 // sit cleanly with the rest of the site. Ordered dark → light (moon · sunrise · sun) so the control
