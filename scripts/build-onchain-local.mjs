@@ -84,6 +84,7 @@ export const EXCLUDE_LABELS = {
   //    they're trading inventory, neither exchange custody nor DEX liquidity, so we don't guess a home).
   "0x7c706586679af2ba6d1a9fc2da9c6af59883fdd3": { name: "Uniswap V3: SPX", kind: "lp" },
   "0x000000000004444c5dc75cb358380d2e3de08a90": { name: "Uniswap V4: PoolManager", kind: "lp" }, // V4 singleton — holds all V4 pool liquidity
+  "0x7c1c4a2cf81d2fc83b89bfd34f4d2c7e90044b32": { name: "Uniswap V2: BITCOIN/SPX", kind: "lp" }, // BITCOIN/SPX pair — holds its own SPX reserve
   "0xf60c2ea62edbfe808163751dd0d8693dcb30019c": { name: "Binance US", kind: "cex" },
   "0x1a9d699aee3a56ca49d0cc3b542ae3a37885a3e1": { name: "Upbit 2", kind: "cex" },                // second Upbit hot wallet (canonVenue → Upbit)
   "0x51c72848c68a965f66fa7a88855f9f7784502a7f": { name: "Market maker", kind: "mm" },            // pro trading inventory — excluded, not a venue
