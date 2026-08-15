@@ -963,6 +963,28 @@
   wallet-splitters." Emit an entity-adjusted top-N series from the engine (it holds the balances) or compute client-side from
   entities.json + whales.json. **Later mini-project (its own data pull, NOT a knob):** ETH common-funder linking to close the
   Bubblemaps gap — needs a separate ETH-funding extract.
+- **✅ BUY/SELL SIGNAL ON WALLET CLUSTERS — SHIPPED 2026-08-15 (owner: "like this I can't do much with the info… identify
+  whether these wallets are buying or selling").** The bubble map looked pretty but was static. Now each cluster carries a
+  **30-day net flow** (buy/sell). **Engine (`build-onchain-local.mjs`):** reuses the whale-watcher lookback snapshots (balance
+  maps at 1/7/30d ago, already computed for Whales Watching) — for each entity, sum every member's (now − then) over the window →
+  `e.d1/d7/d30`; fresh members count their whole balance as inflow, drained members as outflow, so the entity's net
+  accumulation/distribution reads right even as it shuffles wallets. Also emits per-member **`walletFlow`** (30d) + **`walletAge`**
+  (holding days) → the raw material for the 3D cubes/beams. Verified on synthetic data (accumulating cluster → d30 +30k, per-member
+  flow/age correct). **⚠ DATA-GATED until the next `onchain-dune.yml` run** regenerates entities.json (the src/spx-onchain-* bundle
+  can't be rebuilt in-sandbox — needs the archive); the chart hides all flow UI until the fields appear. **2D chart
+  (`EntityClustersChart.jsx` + `EntityGraph.jsx`):** bubble halos + wallet nodes tinted green (accumulating) / red (distributing) /
+  grey (flat) by flow; a **"clusters · net 30d"** headline metric (N accumulating · M distributing), **Holdings/Buying/Selling**
+  sort tabs, flow pills in the list + detail panels, and a green/red/flat legend. All gated on `hasFlow` so it degrades cleanly.
+  Threshold for "significant": |flow| ≥ max(2000 SPX, 1% of cluster size). Previewed via injected synthetic flow (green/red
+  bubbles render correctly).
+- **🔲 NEXT — 3D "CLUSTER CITY" (owner asked, 2026-08-15: "have some 3d renderings too similar to whales watching").** The
+  per-member `walletFlow`/`walletAge` the engine now emits are exactly what Whales Watching consumes. Plan: a Skyline3D/
+  `city-render.js` view where each CLUSTER is a group of member **cubes** (height = member balance √/log, colour = age warm→cyan,
+  **beam green=buying / red=selling** from walletFlow), grouped on the ground plane per entity with a cluster-level aggregate
+  sentiment slab (net d30) — i.e. Whales Watching grouped BY OWNER instead of by size cohort. Reuse the cube+beam path
+  (`WhalesWatching.jsx` + `Skyline3D.jsx` + `city-render.js`); placement layer groups by cluster. Gate like the other 3D pages.
+  **Build it AFTER the per-member flow data lands (next cron)** — don't build blind (can't validate numbers or render 3D in the
+  sandbox; needs a real GPU + real data). The 2D buy/sell shipped now; the 3D is the follow-up once data is live.
 
 ## Backlog / decisions
 - **🔲🔲 DUE AUG 1 — MONTHLY RECAP (July), UPGRADED (owner, 2026-07-31: "after four weeks of intense work we can give a
