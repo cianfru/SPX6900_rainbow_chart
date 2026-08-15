@@ -1199,16 +1199,29 @@ export default function Skyline3D({
     // updateStyle stays false while recording (see onResize), so the on-screen canvas box is untouched
     // — only the captured buffer changes shape; the live preview squishes for a few seconds, the file
     // does not. Restored on finally.
+    // ⭐ FIXED, BOUNDED, EVEN OUTPUT. The buffer is sized to an explicit resolution, NOT the card ×
+    // devicePixelRatio — a 4:5 clip off a ~1100px card at DPR 2 is ~2200×2750 (6 MP), which the H.264
+    // hardware encoder rejects ("configuration not supported"). Cap the long edge at 1440 and force
+    // even dimensions (H.264 needs them); pixelRatio is pinned to 1 for the clip so the buffer is
+    // EXACTLY these pixels, and the DRS controller is frozen (see the loop) so it can't re-inflate it.
+    const evenN = n => { n = Math.round(n); return n % 2 ? n + 1 : n; };
+    const recordSize = aspect => {
+      const LONG = 1440;
+      const [w, h] = aspect >= 1 ? [LONG, LONG / aspect] : [LONG * aspect, LONG];
+      return [evenN(w), evenN(h)];
+    };
     window.__cityRecord = ({ seconds = 10, fps = 60, aspect = 4 / 5, onTick } = {}) => {
       flying = false;
       const wasAuto = controls.autoRotate, wasSpeed = controls.autoRotateSpeed, wasEnabled = controls.enabled;
+      const wasPR = renderer.getPixelRatio();
       controls.enabled = true; controls.autoRotate = true; controls.autoRotateSpeed = 60 / seconds;   // ~one full orbit over `seconds`
-      // Keep the on-screen width, derive height from the requested aspect → a taller buffer.
-      const [w0] = sizeNow();
-      if (aspect > 0 && w0) { recordDims = [Math.round(w0), Math.round(w0 / aspect)]; onResize(); }
+      if (aspect > 0) {
+        renderer.setPixelRatio(1); composer?.setPixelRatio(1);   // buffer == recordDims, no DPR multiply
+        recordDims = recordSize(aspect); onResize();
+      }
       return recordCanvas(renderer.domElement, { seconds, fps, onTick })
         .finally(() => {
-          recordDims = null; onResize();
+          recordDims = null; renderer.setPixelRatio(wasPR); composer?.setPixelRatio(wasPR); onResize();
           controls.autoRotate = wasAuto; controls.autoRotateSpeed = wasSpeed; controls.enabled = wasEnabled;
         });
     };
@@ -1232,7 +1245,7 @@ export default function Skyline3D({
     const loop = () => {
       raf = requestAnimationFrame(loop);
       const nowT = performance.now();
-      adapt(nowT);
+      if (!recordDims) adapt(nowT);               // frozen during a clip so the DRS can't reshape the export buffer
       waterTick?.(nowT);
       if (flying) {
         const u = Math.min(1, (performance.now() - flight.start) / flight.dur);

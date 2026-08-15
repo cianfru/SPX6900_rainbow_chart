@@ -26,9 +26,16 @@ export async function recordCanvas(canvas, { seconds = 12, fps = 60, onTick } = 
   if (!recorderSupported()) throw new Error("video recording isn’t supported in this browser");
   const stream = canvas.captureStream(fps);
   const mimeType = pickMime();
-  let rec;
-  try { rec = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: 12_000_000 }); }
-  catch { rec = new MediaRecorder(stream); }                       // let the browser choose if the hint is rejected
+  // Some hardware encoders reject a bitrate/codec/resolution combo with "the given encoder
+  // configuration is not supported" — sometimes at construction, sometimes only at start(). Try the
+  // tuned recorder, then fall back progressively to plainer configs rather than failing the clip.
+  const build = () => {
+    for (const opts of [{ mimeType, videoBitsPerSecond: 12_000_000 }, { mimeType }, undefined]) {
+      try { return new MediaRecorder(stream, opts); } catch { /* try the next, plainer config */ }
+    }
+    return new MediaRecorder(stream);
+  };
+  let rec = build();
   const chunks = [];
   rec.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data); };
   const stopped = new Promise((res, rej) => {
