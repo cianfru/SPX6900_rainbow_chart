@@ -109,9 +109,12 @@
   .bar .barright{ display:inline-flex; align-items:center; gap:14px; }
   .bar .sys{ display:inline-flex; align-items:center; gap:8px; white-space:nowrap; }
   .social{ display:inline-flex; align-items:center; gap:8px; }
-  .social .siclink{ display:inline-flex; align-items:center; justify-content:center; width:30px; height:30px; border:1px solid var(--line2); border-radius:6px; color:var(--dim); transition:.14s; }
+  .social .siclink{ display:inline-flex; align-items:center; justify-content:center; width:30px; height:30px; border:1px solid var(--line2); border-radius:0; color:var(--dim); transition:.14s; }
   .social .siclink:hover{ color:var(--bg); background:var(--tx); border-color:var(--tx); }
   .social .siclink svg{ width:14px; height:14px; display:block; fill:currentColor; }
+  /* dark/bright toggle in the top bar — same square icon as X/Kraken, filled moon / rayed sun */
+  .social .themebtn{ background:none; padding:0; font:inherit; cursor:pointer; color:var(--dim); }
+  .social .themebtn svg{ width:15px; height:15px; display:block; }
   /* Kraken: purple squid on black at rest → full Kraken logo (purple gradient tile, white squid) on hover */
   .social .siclink.krk{ background:var(--bg); }
   .social .siclink.krk svg{ width:17px; height:17px; fill:#9d5cf8; stroke:none; }
@@ -677,6 +680,7 @@
     <span class="barright">
       <span class="sys">utc <b id="utc">--:--:--</b></span>
       <span class="social">
+        <button class="siclink themebtn" id="topTheme" type="button" title="Toggle dark / bright theme" aria-label="Toggle dark / bright theme"></button>
         <a class="siclink" href="https://x.com/SPX6900Rainbow" target="_blank" rel="noopener noreferrer" title="@SPX6900Rainbow on X" aria-label="SPX6900Rainbow on X"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24h-6.66l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg></a>
         <a class="siclink krk" href="https://proinvite.kraken.com/9f1e/8985jw0l" target="_blank" rel="noopener noreferrer sponsored" title="Trade on Kraken — affiliate" aria-label="Trade on Kraken (affiliate)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 12 A8.5 8.5 0 0 1 20.5 12 L20.5 19.4 A1.3 1.3 0 0 1 17.9 19.4 L17.9 14 A1.1 1.1 0 0 0 15.7 14 L15.7 19.4 A1.3 1.3 0 0 1 13.1 19.4 L13.1 14 A1.1 1.1 0 0 0 10.9 14 L10.9 19.4 A1.3 1.3 0 0 1 8.3 19.4 L8.3 14 A1.1 1.1 0 0 0 6.1 14 L6.1 19.4 A1.3 1.3 0 0 1 3.5 19.4 Z"/></svg></a>
       </span>
@@ -1234,11 +1238,15 @@
   // dark ↔ bright theme (orthogonal to look): sets data-theme=light, persists, re-renders the canvas
   const SB_MOON='<svg viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>';
   const SB_SUN='<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.2"/><path d="M12 2v2.6M12 19.4V22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M2 12h2.6M19.4 12H22M4.9 19.1l1.8-1.8M17.3 6.7l1.8-1.8"/></svg>';
+  // Top-bar variant: filled moon / rayed sun (self-contained fill+stroke, so it needs no extra CSS).
+  const TOP_MOON='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" fill="currentColor"/></svg>';
+  const TOP_SUN='<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2v2.6M12 19.4V22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M2 12h2.6M19.4 12H22M4.9 19.1l1.8-1.8M17.3 6.7l1.8-1.8"/></svg>';
   function setTheme(t){ const light=(t==='bright');
     document.documentElement.dataset.theme = light?'light':'';
     const sw=document.getElementById('themeSw');
     if(sw){ sw.dataset.b = light?'1':'0'; sw.querySelectorAll('.swl').forEach(s=>s.classList.toggle('on', s.dataset.v===(light?'bright':'dark'))); }
     const stb=document.getElementById('sbtheme'); if(stb){ stb.innerHTML = light?SB_MOON:SB_SUN; stb.title = light?'Switch to dark':'Switch to bright'; }
+    const ttb=document.getElementById('topTheme'); if(ttb){ ttb.innerHTML = light?TOP_MOON:TOP_SUN; ttb.title = light?'Switch to dark':'Switch to bright'; }
     try{ localStorage.setItem('spx_theme', light?'bright':'dark'); }catch(e){}
     render(); }
   window.__setTheme=setTheme;
@@ -1256,10 +1264,10 @@
     cv.width=Math.round(W*dpr); cv.height=Math.round(H*dpr);
     cv.style.cssText='position:fixed;left:0;top:0;width:100%;height:100%;z-index:2147483646;pointer-events:none';
     ctx.scale(dpr,dpr); document.body.appendChild(cv);
-    var cell=Math.max(14,Math.round(Math.min(W,H)/34)), cols=Math.ceil(W/cell), rows=Math.ceil(H/cell), maxD=Math.max(1,(cols-1)+(rows-1));
+    var cell=Math.max(12,Math.round(Math.min(W,H)/42)), cols=Math.ceil(W/cell), rows=Math.ceil(H/cell), maxD=Math.max(1,(cols-1)+(rows-1));
     var jit=new Float32Array(cols*rows);
     for(var i=0;i<jit.length;i++){ var s=Math.sin((i+1)*12.9898)*43758.5453; jit[i]=s-Math.floor(s); }
-    var DUR=640, CW=0.14, start=null, swapped=false, done=false;
+    var DUR=320, CW=0.09, start=null, swapped=false, done=false;
     function doSwap(){ if(!swapped){ swapped=true; try{ swap(); }catch(e){} } }
     function frame(t){
       if(start===null) start=t;
@@ -1269,7 +1277,7 @@
         var d=(c+r)/maxD+(jit[r*cols+c]-0.5)*0.05;
         if(d>front) continue;
         var behind=front-d;
-        if(behind<CW){ ctx.fillStyle=crest; ctx.globalAlpha=0.55+0.45*(1-behind/CW); }
+        if(behind<CW){ ctx.fillStyle=crest; ctx.globalAlpha=0.26+0.30*(1-behind/CW); }
         else { ctx.fillStyle=bg; ctx.globalAlpha=1; }
         ctx.fillRect(c*cell,r*cell,cell-1,cell-1);
       }
@@ -1284,6 +1292,7 @@
   const toggleTheme=()=>{ const bright = document.documentElement.dataset.theme!=='light'; themeWipe(bright, ()=> setTheme(bright?'bright':'dark')); };
   { const tsw=document.getElementById('themeSw'); if(tsw) tsw.addEventListener('click',toggleTheme); }
   { const stb=document.getElementById('sbtheme'); if(stb) stb.addEventListener('click',toggleTheme); }
+  { const ttb=document.getElementById('topTheme'); if(ttb) ttb.addEventListener('click',toggleTheme); }
   function applySavedTheme(){ let saved='dark'; try{ saved=localStorage.getItem('spx_theme')||'dark'; }catch(e){} setTheme(saved); }
   applySavedTheme();
   // re-apply on back/forward-cache restore (swipe-back) so the page can't come back in a stale theme

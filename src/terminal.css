@@ -38,7 +38,7 @@
 /* hover → the wordmark (and cursor) go green */
 .tzone .tbrand:hover b, .tzone .tbrand:hover .bcur{ color:var(--live); }
 .tzone .tbarright{ display:inline-flex; align-items:center; gap:14px; }
-.tzone .tthemebtn{ display:inline-flex; align-items:center; justify-content:center; width:30px; height:30px; border:1px solid var(--line2); border-radius:6px; background:var(--panel); color:var(--dim); cursor:pointer; transition:.14s; }
+.tzone .tthemebtn{ display:inline-flex; align-items:center; justify-content:center; width:30px; height:30px; border:1px solid var(--line2); border-radius:0; background:var(--panel); color:var(--dim); cursor:pointer; transition:.14s; }
 .tzone .tthemebtn:hover{ color:var(--live); border-color:var(--live); }
 .tzone .tthemebtn svg{ width:16px; height:16px; display:block; }
 .tzone .tsys{ display:inline-flex; align-items:center; gap:8px; white-space:nowrap; }
@@ -47,7 +47,7 @@
 .tzone .tsys .sep{ color:var(--line2); }
 @media(max-width:640px){ .tzone .tsys{ display:none; } }
 .tzone .tsocial{ display:inline-flex; align-items:center; gap:8px; }
-.tzone .siclink{ display:inline-flex; align-items:center; justify-content:center; width:30px; height:30px; border:1px solid var(--line2); border-radius:6px; color:var(--dim); transition:.14s; text-decoration:none; }
+.tzone .siclink{ display:inline-flex; align-items:center; justify-content:center; width:30px; height:30px; border:1px solid var(--line2); border-radius:0; color:var(--dim); transition:.14s; text-decoration:none; }
 .tzone .siclink:hover{ color:var(--bg); background:var(--tx); border-color:var(--tx); }
 .tzone .siclink svg{ width:14px; height:14px; display:block; fill:currentColor; }
 .tzone .siclink.krk{ background:var(--bg); }

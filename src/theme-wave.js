@@ -34,7 +34,7 @@ export function themeWave(toLight, swap) {
   ctx.scale(dpr, dpr);
   document.body.appendChild(canvas);
 
-  const cell = Math.max(14, Math.round(Math.min(W, H) / 34)); // chunky pixels
+  const cell = Math.max(12, Math.round(Math.min(W, H) / 42)); // pixel cells (kept chunky, a touch finer)
   const cols = Math.ceil(W / cell), rows = Math.ceil(H / cell);
   const maxD = Math.max(1, (cols - 1) + (rows - 1));
   // A little per-cell jitter so the diagonal edge dithers instead of drawing a hard line.
@@ -44,8 +44,8 @@ export function themeWave(toLight, swap) {
     jitter[i] = s - Math.floor(s);
   }
 
-  const DUR = 640;        // ms sweep
-  const CREST_W = 0.14;   // crest band width in normalized-diagonal units
+  const DUR = 320;        // ms sweep — quick, so it doesn't dominate a frequently-used toggle
+  const CREST_W = 0.09;   // thin crest band width in normalized-diagonal units
   let start = null, swapped = false, done = false;
 
   const doSwap = () => { if (!swapped) { swapped = true; try { swap(); } catch { /* swap is the caller's */ } } };
@@ -62,7 +62,7 @@ export function themeWave(toLight, swap) {
         const behind = front - d;
         if (behind < CREST_W) {
           ctx.fillStyle = crest;
-          ctx.globalAlpha = 0.55 + 0.45 * (1 - behind / CREST_W);
+          ctx.globalAlpha = 0.26 + 0.30 * (1 - behind / CREST_W); // dim — a subtle shimmer, not a bright band
         } else {
           ctx.fillStyle = bg;
           ctx.globalAlpha = 1;
