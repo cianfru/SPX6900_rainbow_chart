@@ -1,26 +1,15 @@
 {
-  "date": "2026-08-15",
+  "date": "2026-08-16",
   "signals": [
-    {
-      "type": "diamond-jump",
-      "severity": 3,
-      "emoji": "💎",
-      "title": "Diamond share up +1.6pp → 42.2%",
-      "detail": "395,832,914 SPX now in the longest-held tier.",
-      "framing": "Post it — ~15,144,346 SPX just aged into DIAMOND hands (the longest-held, rarely-sold tier). Coins reach it only by being HELD through everything, not by trading — supply maturing into strong hands, conviction deepening. Diamond hands earning the name.",
-      "note": "Word it as HELD, not BOUGHT: the +15,144,346 came from a cohort aging in from gold (≈ gold -15,115,254), not fresh demand. \"Held into diamond\" ✓ · \"diamonds bought 15,144,346\" ✗.",
-      "card": "diamondtrend",
-      "score": 3
-    },
     {
       "type": "underwater-holding",
       "emoji": "💎",
       "title": "Holders ~39% underwater — and still not selling",
-      "detail": "MVRV 0.61: price is 39% below the crowd's avg on-chain cost basis ($0.52). Yet 61% of supply is in the longest-held tier — the float isn't moving. MVRV has slipped 0.7→0.61 over ~30d.",
+      "detail": "MVRV 0.61: price is 39% below the crowd's avg on-chain cost basis ($0.52). Yet 61% of supply is in the longest-held tier — the float isn't moving. MVRV has slipped 0.66→0.61 over ~30d.",
       "framing": "Maximum financial pain, minimal capitulation — conviction being tested and, so far, holding.",
       "note": "Describe the divergence, NOT a bottom call. \"Not selling\", not \"buy\".",
       "card": "breakeven",
-      "score": 1.9296888704472626
+      "score": 1.9311529358990975
     },
     {
       "type": "drawdown",
@@ -31,6 +20,16 @@
       "note": "It's deep and unrecovered NOW; don't imply it always recovers.",
       "card": "underwater",
       "score": 1.5
+    },
+    {
+      "type": "deep-value",
+      "emoji": "🟣",
+      "title": "-84% below its long-run trend (Fire Sale band)",
+      "detail": "Fair value for its age is $2.04; price sits -84% under it.",
+      "framing": "Where today sits in the long power-law arc.",
+      "note": "Not a prediction.",
+      "card": "valuation",
+      "score": 1.2061366290758229
     }
   ]
 }
