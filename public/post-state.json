@@ -1,11 +1,7 @@
 {
   "lastPostedDate": "2026-08-16",
-  "lastId": "manual-skip",
+  "lastId": "valuation",
   "recent": [
-    {
-      "date": "2026-07-19",
-      "id": "picycle"
-    },
     {
       "date": "2026-07-20",
       "id": "fngtrend"
@@ -81,6 +77,10 @@
     {
       "date": "2026-08-15",
       "id": "riskheat"
+    },
+    {
+      "date": "2026-08-16",
+      "id": "valuation"
     }
   ],
   "lanes": {
