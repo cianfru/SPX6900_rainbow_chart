@@ -59,9 +59,11 @@ jobs:
         env:
           EVT: ${{ github.event_name }}
           SCHED: ${{ github.event.schedule }}
+          PAUSE: ${{ vars.POST_PAUSE }}
         run: |
           node -e '
-            if (process.env.EVT !== "schedule") { console.log("proceed=true"); process.exit(0); }
+            if (process.env.EVT !== "schedule") { console.log("proceed=true"); process.exit(0); } // manual always posts
+            if (process.env.PAUSE === "1") { console.log("proceed=false"); process.exit(0); }      // repo var POST_PAUSE=1 skips the daily
             const edt = new Date().toLocaleString("en-US", { timeZone: "America/New_York", timeZoneName: "short" }).includes("EDT");
             const want = edt ? "0 12 * * *" : "0 13 * * *";
             console.log("proceed=" + (process.env.SCHED === want ? "true" : "false"));
@@ -116,7 +118,16 @@ jobs:
             git config user.email "github-actions[bot]@users.noreply.github.com"
             git add public/next-post.json public/post-state.json public/daily-band-state.json public/recap-pending.json
             git commit -m "chore: post state $(date -u +%F)"
-            git push
+            # The tweet has ALREADY been posted by now; only the state commit remains. main is a busy
+            # branch (crons + edits), so a bare push loses the race and reports a red ❌ for a post that
+            # actually succeeded. Rebase onto the latest main and retry a few times instead.
+            pushed=""
+            for i in 1 2 3 4 5; do
+              git fetch origin main && git rebase origin/main && git push && { pushed=1; break; }
+              git rebase --abort 2>/dev/null || true
+              echo "post-state push race, retry $i…"; sleep $((i * 3))
+            done
+            [ -n "$pushed" ] || { echo "::warning::post-state push failed after retries — the tweet still posted; state will reconcile next run"; }
           else
             echo "No post-state change to commit"
           fi
