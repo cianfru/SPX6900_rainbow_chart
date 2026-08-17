@@ -42,6 +42,7 @@ import { renderSpxCohortCard } from "./spx-cohort-card.mjs";
 import { renderCexSupplyCard } from "./cex-supply-card.mjs";
 import { renderCexVenuesCard } from "./cex-venues-card.mjs";
 import { renderCexVenFlowCard } from "./cex-venflow-card.mjs";
+import { renderCexSankeyCard } from "./cex-sankey-card.mjs";
 import { renderEthSol2026Card } from "./eth-sol-2026-card.mjs";
 import { renderChainConcCard } from "./chain-conc-card.mjs";
 import { renderChainIlliquidCard } from "./chain-illiquid-card.mjs";
@@ -903,7 +904,7 @@ export const CARD_TYPES = new Set([
   "holderspair", "mvrvbtc", "mvrvtrend", "supplyprofit", "floormodel", "altmarket",
   "freefloat", "nupl", "concentration", "hodlwaves", "hodlcompare", "urpd", "bagsprofile", "urpdage",
   "lthsth", "sopr", "nrpl", "liveliness", "valband", "walletgrowth", "picycle", "spxbitcoin", "spxcohort",
-  "cexsupply", "cexflow", "cexvenues", "cexvenflow", "whales", "walletwaves", "wealthwaves", "survivorship", "supplyera", "exitmap", "smartmoney",
+  "cexsupply", "cexflow", "cexvenues", "cexvenflow", "cexsankey", "whales", "walletwaves", "wealthwaves", "survivorship", "supplyera", "exitmap", "smartmoney",
   "cyclesync", "cycleclock", "rsidots", "monthcompare", "ethsol", "chainconc", "illiquid", "baltier", "dualholders", "basesurv", "supplycurve", "whalecensus", "whalebehaviour", "whalemosaic", "citygrowth", "cityvalue", "citychurn", "citypercap", "cityvintage", "cityskyline", "floatcheck",
   // spec-driven generics
   "line", "bar", "mbars", "donut", "stack", "model", "cube", "scale", "gauge", "fngdial",
@@ -983,6 +984,7 @@ export function renderPostCard(post, stats, opts = {}) {
   if (type === "cexflow") return renderCexFlowCard(dims);
   if (type === "cexvenues") return renderCexVenuesCard(stats, dims);
   if (type === "cexvenflow") return renderCexVenFlowCard(stats, dims);
+  if (type === "cexsankey") return renderCexSankeyCard(dims);
   if (type === "hodlcompare") return renderHodlCompareCard(stats, dims);
   if (type === "cyclesync") return renderCycleSyncCard(stats, dims);
   if (type === "cycleclock") return renderCycleClockCard(stats, dims);

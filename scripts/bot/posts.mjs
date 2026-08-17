@@ -15,6 +15,7 @@ import { currentChainHolders } from "./stats.mjs";
 import { buildAltRainbow } from "../../src/alt-rainbow.js";
 import { valuationComposite, zoneOf as valZoneOf, INDICATORS as VAL_INDICATORS } from "./valuation-composite.mjs";
 import { cexVenuesStats } from "./cex-venues-card.mjs";
+import { cexSankeyStats } from "./cex-sankey-card.mjs";
 import { cexVenFlowStats } from "./cex-venflow-card.mjs";
 import { spxBitcoinStats } from "./spx-bitcoin-card.mjs";
 import { chainRaceData } from "./multichain-card.mjs";
@@ -1662,6 +1663,22 @@ A full on-chain sweep, every wallet tagged. Where supply sits — reproducible, 
       card: { type: "cexvenues" },
     };
   })(),
+  // "Where the volume goes" — the exchange-flow map as a venue-centric mini-Sankey. IN ROTATION
+  // (owner asked, 2026-08-18) and reads public/cex-sankey.json live, so it refreshes as the flows
+  // change over time. Sentiment-honest: onto exchanges = neutral (sell-side supply), off = green.
+  s => (() => {
+    const K = cexSankeyStats();
+    if (!K || !K.venues.length) return null;
+    const net = K.totals.net;
+    const fMk = t => (Math.abs(t) >= 1e6 ? (Math.abs(t) / 1e6).toFixed(1) + "M" : Math.round(Math.abs(t) / 1e3) + "K");
+    return {
+      id: "cexsankey",
+      text: ct`💱 Where SPX6900's exchange volume goes: ${fMk(K.totals.in)} onto venues, ${fMk(K.totals.out)} off — net ${net >= 0 ? "+" : "−"}${fMk(net)} ${net >= 0 ? "building on venues" : "leaving to self-custody"}.
+${K.top} takes the most flow — onto an exchange can be sold, off means self-custody.
+A flow map from the tagged CEX wallets — checkable, not a signal.`,
+      card: { type: "cexsankey" },
+    };
+  })(),
   // Per-VENUE net flow — which exchanges gained vs bled SPX over ~90d. Only possible because
   // every venue's wallets are tagged. Behaviour read, not a signal. NO_ROTATE.
   s => (() => {
@@ -2491,7 +2508,7 @@ const LOOK = {
   firesalerally: "fanlines",
   model: "scatter",
   monthlyreturns: "heatmap", monthlyreturnssp: "heatmap", monthlyreturnsbtc: "heatmap",
-  hodlwaves: "stack", hodlcompare: "stack", walletgrowth: "stack", lthsth: "stack", valband: "dual", cexvenues: "stack", citygrowth: "stack", cityvalue: "stack", citychurn: "bars", citypercap: "dual", cityvintage: "bars", cityskyline: "stack", floatcheck: "bars",
+  hodlwaves: "stack", hodlcompare: "stack", walletgrowth: "stack", lthsth: "stack", valband: "dual", cexvenues: "stack", cexsankey: "sankey", citygrowth: "stack", cityvalue: "stack", citychurn: "bars", citypercap: "dual", cityvintage: "bars", cityskyline: "stack", floatcheck: "bars",
   timeinband: "bars", monthlybars: "bars", monthcompare: "bars", multichain: "bars", urpd: "bars", bagsprofile: "dual", urpdage: "bars", cexvenflow: "bars", ethsol: "bars", chainconc: "bars", illiquid: "stack", baltier: "bars", dualholders: "stack", basesurv: "bars", supplycurve: "race", whalecensus: "bars", whalebehaviour: "bars",
   fngdial: "round", distribution: "round",
   marketcap: "blocks", milestones: "blocks", sp500: "blocks",
