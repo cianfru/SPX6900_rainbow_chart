@@ -70,6 +70,8 @@
   .brief .bhdr { font-size: 14px; font-weight: 700; color: #eafff7; margin-bottom: 3px; display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
   .brief .bhdr span { font-size: 11.5px; font-weight: 400; color: #7c8aa0; }
   .brief .bempty { color: #64748b; font-size: 13px; padding: 6px 0; }
+  .brief .bsub { font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #8ea1bd; margin: 14px 0 2px; }
+  .brief .bsub:first-of-type { margin-top: 10px; }
   .brief .bitem { display: flex; gap: 12px; padding: 12px 0; border-top: 1px solid rgba(255,255,255,.07); }
   .brief .bitem:first-of-type { border-top: none; }
   .brief .brank { flex: none; width: 30px; height: 30px; border-radius: 8px; display: grid; place-items: center; font-size: 16px; background: rgba(94,234,212,.10); border: 1px solid rgba(94,234,212,.22); }
@@ -595,21 +597,28 @@ function renderBrief() {
   const items = (BRIEF && Array.isArray(BRIEF.items)) ? BRIEF.items : [];
   const when = BRIEF && BRIEF.date ? BRIEF.date : "";
   if (!items.length) { el.innerHTML = `<div class="bhdr">🧠 The Brief <span>· nothing stood out across the data today</span></div>`; return; }
-  el.innerHTML = `<div class="bhdr">🧠 The Brief <span>· what's notable across every surface${when ? " · " + esc(when) : ""} · ranked, checkable</span></div>` +
-    items.map((it, i) => {
-      const v = it.verify && it.verify.href
-        ? `<a class="bverify" href="${esc(it.verify.href)}" target="_blank" rel="noopener">${esc(it.verify.text || "Verify")} ↗</a>` : "";
-      return `<div class="bitem">
-        <div class="brank">${esc(it.emoji || "•")}</div>
-        <div class="bcol">
-          <div class="bhead">${esc(it.headline || "")} <span class="bsev">· ${esc(String(it.severity ?? ""))}</span></div>
-          ${it.detail ? `<div class="bdetail">${esc(it.detail)}</div>` : ""}
-          ${it.framing ? `<div class="bframe"><b>Angle:</b> ${esc(it.framing)}</div>` : ""}
-          ${it.checkable ? `<div class="bcheck">✓ ${esc(it.checkable)}</div>` : ""}
-          <div class="bact">${v}<button class="bcopy" data-briefi="${i}">📋 Copy</button></div>
-        </div>
-      </div>`;
-    }).join("");
+  const card = (it, i) => {
+    const v = it.verify && it.verify.href
+      ? `<a class="bverify" href="${esc(it.verify.href)}" target="_blank" rel="noopener">${esc(it.verify.text || "Verify")} ↗</a>` : "";
+    return `<div class="bitem">
+      <div class="brank">${esc(it.emoji || "•")}</div>
+      <div class="bcol">
+        <div class="bhead">${esc(it.headline || "")} <span class="bsev">· ${esc(String(it.severity ?? ""))}</span></div>
+        ${it.detail ? `<div class="bdetail">${esc(it.detail)}</div>` : ""}
+        ${it.framing ? `<div class="bframe"><b>Angle:</b> ${esc(it.framing)}</div>` : ""}
+        ${it.checkable ? `<div class="bcheck">✓ ${esc(it.checkable)}</div>` : ""}
+        <div class="bact">${v}<button class="bcopy" data-briefi="${i}">📋 Copy</button></div>
+      </div>
+    </div>`;
+  };
+  // keep the original index for the Copy button; group state (the daily read) above events (moves).
+  const withIdx = items.map((it, i) => [it, i]);
+  const state = withIdx.filter(([it]) => it.kind === "state");
+  const events = withIdx.filter(([it]) => it.kind !== "state");
+  let html = `<div class="bhdr">🧠 The Brief <span>· the daily read${when ? " · " + esc(when) : ""} · ranked, checkable</span></div>`;
+  if (state.length) html += `<div class="bsub">📊 Today's read</div>` + state.map(([it, i]) => card(it, i)).join("");
+  if (events.length) html += `<div class="bsub">⚡ Notable moves</div>` + events.map(([it, i]) => card(it, i)).join("");
+  el.innerHTML = html;
 }
 
 function renderSignals() {

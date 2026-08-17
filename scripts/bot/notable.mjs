@@ -33,6 +33,79 @@ const mean = a => (a.length ? a.reduce((s, x) => s + x, 0) / a.length : 0);
 const std = a => { if (a.length < 2) return 0; const m = mean(a); return Math.sqrt(mean(a.map(x => (x - m) ** 2))); };
 // z-score of the last value vs a trailing baseline; 0 if not enough history.
 const zLast = a => { if (a.length < 6) return 0; const base = a.slice(0, -1), s = std(base); return s ? (a.at(-1) - mean(base)) / s : 0; };
+const pct = x => Math.round(x * 100);
+const daysBetween = (a, b) => { const t1 = Date.parse(a), t2 = Date.parse(b); return (isNaN(t1) || isNaN(t2)) ? null : Math.round((t2 - t1) / 86400000); };
+
+// ── STATE READS (always-on daily baseline) ───────────────────────────────────
+// Unlike the event detectors below, these ALWAYS emit a reading when the surface
+// is present — so the briefing has real substance even on a completely quiet day
+// (a paid daily brief can't be blank). Low severity so real events rank above;
+// tagged kind:"state" so the panel can group them as "Today's read". Each guards
+// its own field, so absent data simply yields no reading (never a fabricated one).
+// NOTE the value shapes: sip / top100 / age[] are already 0–100 percents; the
+// composite is 0–1.
+function stateReads(data) {
+  const out = [];
+  const oc = Array.isArray(data.onchain) ? data.onchain : null;
+  const last = oc?.at(-1);
+  const val = data.valuation;
+
+  if (val?.cur?.composite != null && Array.isArray(val.zones)) {
+    const c = val.cur.composite, zone = val.zones.find(z => c <= z.max) || val.zones.at(-1);
+    out.push({
+      kind: "state", lane: "state-valuation", severity: 2.9, emoji: "🧭",
+      headline: `Valuation: ${pct(c)}th percentile — ${zone.label}`,
+      detail: `The composite (six lenses on one 0–100 scale) reads ${pct(c)} of its own history — ${zone.label.toLowerCase()}.`,
+      framing: `SPX reads ${zone.label.toLowerCase()} today — ${pct(c)}th percentile of its own history. The one-line state of play.`,
+      checkable: "Weighted percentile of six independent valuation lenses; weights published on Methods.",
+      verify: chartLink("Valuation Composite", "valuation"),
+    });
+  }
+  if (last?.mvrv != null && last?.spot != null && last?.rp != null) {
+    const under = last.mvrv < 1;
+    out.push({
+      kind: "state", lane: "state-mvrv", severity: 2.7, emoji: under ? "🟢" : "🔴",
+      headline: `Price is ${last.mvrv.toFixed(2)}× the crowd's cost basis`,
+      detail: `Spot ${fPx(last.spot)} vs realized price ${fPx(last.rp)} — the average holder is ${under ? "underwater" : "in profit"} (MVRV ${last.mvrv.toFixed(2)}).`,
+      framing: `Holders sit ${under ? "below" : "above"} their aggregate cost basis (MVRV ${last.mvrv.toFixed(2)}). ${under ? "Historically an accumulation zone." : "Above what the crowd paid."}`,
+      checkable: "Market cap ÷ realized cap, from the FIFO cost-basis reconstruction.",
+      verify: chartLink("MVRV & Realized Price", "mvrv"),
+    });
+  }
+  if (last?.sip != null) {
+    out.push({
+      kind: "state", lane: "state-sip", severity: 2.5, emoji: "💰",
+      headline: `${Math.round(last.sip)}% of supply is in profit`,
+      detail: `${Math.round(last.sip)}% of tracked supply is held above its on-chain cost basis today.`,
+      framing: `${Math.round(last.sip)}% of supply is in profit. Low = capitulation zone, high = euphoria risk; a position read, not a signal.`,
+      checkable: "Held coins with cost basis below spot, from the FIFO engine.",
+      verify: chartLink("Supply in Profit", "supplyprofit"),
+    });
+  }
+  if (oc && oc.length >= 31 && last?.holders != null && oc.at(-31)?.holders) {
+    const prev = oc.at(-31).holders, dPct = (last.holders - prev) / prev * 100;
+    const dir = dPct > 0.5 ? "grew" : dPct < -0.5 ? "shrank" : "held flat";
+    out.push({
+      kind: "state", lane: "state-holders", severity: 2.3, emoji: "👥",
+      headline: `${fNum(last.holders)} ETH holders — ${dir} over 30 days`,
+      detail: `The ETH holder base is ${fNum(last.holders)}, ${dir} ${dPct >= 0 ? "+" : ""}${dPct.toFixed(1)}% over the last 30 days.`,
+      framing: `Holder base ${dir} (${dPct >= 0 ? "+" : ""}${dPct.toFixed(1)}% in 30d). Adoption trend, decoupled from price.`,
+      checkable: "Distinct ETH addresses holding a balance, from the transfer history.",
+      verify: chartLink("Holders vs Price", "holdersprice"),
+    });
+  }
+  if (Array.isArray(last?.age) && last.age.length >= 5 && last.age[4] != null) {
+    out.push({
+      kind: "state", lane: "state-conviction", severity: 2.1, emoji: "💎",
+      headline: `${Math.round(last.age[4])}% of supply held over a year`,
+      detail: `${Math.round(last.age[4])}% of tracked supply hasn't moved in 12 months — the diamond base.`,
+      framing: `${Math.round(last.age[4])}% of supply is 1y+ held. Deep conviction base; compare to Bitcoin at the same age.`,
+      checkable: "Per-lot coin age from the FIFO reconstruction.",
+      verify: chartLink("HODL Waves", "hodlwaves"),
+    });
+  }
+  return out;
+}
 
 // ── DETECTORS ───────────────────────────────────────────────────────────────
 // Each returns an array of candidates (usually 0–1). severity is 0–10.
@@ -48,7 +121,7 @@ function cexFlow(cf) {
   for (let i = win; i < bal.length; i++) deltas.push(bal[i] - bal[i - win]);
   if (deltas.length < 10) return [];
   const now = deltas.at(-1), z = zLast(deltas);
-  if (Math.abs(z) < 1.6 || Math.abs(now) < 1e6) return [];
+  if (Math.abs(z) < 1.2 || Math.abs(now) < 5e5) return [];
   const onExch = now > 0;
   const sev = Math.min(9, 3 + Math.abs(z));
   return [{
@@ -68,18 +141,25 @@ function cexFlow(cf) {
 // 2) Whale self-moves — a big wallet SPLITTING into fresh wallets (hiding size /
 //    leaving the city) or CONSOLIDATING. This is the 5.5M→5-wallets case, already
 //    detected in self-moves.json, never surfaced.
-function selfMoves(sm) {
+function selfMoves(sm, refDate) {
   const evs = sm?.events; if (!Array.isArray(evs) || !evs.length) return [];
-  const recent = evs.filter(e => e.supply >= 400_000).sort((a, b) => (b.supply || 0) - (a.supply || 0)).slice(0, 2);
-  return recent.map(e => {
+  // Prefer RECENT moves and drop ones older than ~45 days (when datable), so the brief
+  // stays fresh instead of re-surfacing the same month-old split every day.
+  const cand = evs.filter(e => e.supply >= 200_000)
+    .map(e => ({ e, age: refDate ? daysBetween(e.date, refDate) : null }))
+    .filter(x => x.age == null || x.age <= 45);
+  const recent = cand.sort((a, b) => (b.e.supply || 0) - (a.e.supply || 0)).slice(0, 2);
+  return recent.map(({ e, age }) => {
     const split = e.type === "split";
-    const sev = Math.min(9, 4 + Math.log10((e.supply || 1) / 1e5) * 2);
+    let sev = Math.min(9, 4 + Math.log10((e.supply || 1) / 1e5) * 2);
+    if (age != null && age > 14) sev *= 0.85;   // fade older moves so fresh ones lead
+    const ago = age != null && age > 3 ? ` (${age}d ago)` : "";
     return {
       lane: "whale-moves", severity: sev, emoji: split ? "🪓" : "🧷",
       headline: split
         ? `A ${fM(e.supply)}-SPX wallet split into ${e.n} fresh wallets`
         : `${e.n} wallets consolidated ${fM(e.supply)} SPX into one`,
-      detail: `${e.date}. ${split ? "The pieces inherit the source's coin age, so it's a move, not new buying — often a holder breaking up a position to sit below the radar." : "A holder pulling scattered balances together."}${e.unverified ? " Flagged unverified (same-block heuristic) — worth an eyeball." : ""}`,
+      detail: `${e.date}${ago}. ${split ? "The pieces inherit the source's coin age, so it's a move, not new buying — often a holder breaking up a position to sit below the radar." : "A holder pulling scattered balances together."}${e.unverified ? " Flagged unverified (same-block heuristic) — worth an eyeball." : ""}`,
       framing: split
         ? `A whale broke a ${fM(e.supply)} SPX position into ${e.n} wallets on ${e.date}. Interesting because it's the kind of move that normally goes unseen — our clustering caught it. Say "moved/split", never "sold".`
         : `${e.n} wallets folded ${fM(e.supply)} SPX into one on ${e.date} — accumulation consolidating.`,
@@ -92,7 +172,7 @@ function selfMoves(sm) {
 // 3) Watched-whale net moves this week — biggest accumulator / distributor among
 //    the wallets the campaign-watcher tracks.
 function whaleCampaigns(wc, exclude = new Set()) {
-  const ws = (wc?.wallets || []).filter(w => w.a && !exclude.has(w.a.toLowerCase()) && Math.abs(w.net || 0) >= 800_000);
+  const ws = (wc?.wallets || []).filter(w => w.a && !exclude.has(w.a.toLowerCase()) && Math.abs(w.net || 0) >= 300_000);
   if (!ws.length) return [];
   const out = [];
   const buyers = ws.filter(w => w.net > 0).sort((a, b) => b.net - a.net);
@@ -121,7 +201,7 @@ function whaleCampaigns(wc, exclude = new Set()) {
 function smartMoney(sm) {
   const out = []; if (!sm || sm.flow == null) return out;
   const f = sm.flow, w12 = f.w12;
-  if (w12 != null && Math.abs(w12) >= 2) {
+  if (w12 != null && Math.abs(w12) >= 1) {
     const buying = w12 > 0;
     out.push({
       lane: "smart-money", severity: buying ? 7.5 : 5, emoji: buying ? "🧠" : "💤",
@@ -169,7 +249,7 @@ function onchainShift(oc) {
   const out = [], tail = oc.slice(-30);
   const liv = tail.map(r => r.liveliness).filter(x => x != null);
   const zL = zLast(liv);
-  if (Math.abs(zL) >= 1.8 && liv.length > 10) {
+  if (Math.abs(zL) >= 1.3 && liv.length > 10) {
     const rising = zL > 0;
     out.push({
       lane: "liveliness", severity: Math.min(7, 3 + Math.abs(zL)), emoji: rising ? "⏰" : "🪨",
@@ -184,7 +264,7 @@ function onchainShift(oc) {
   }
   const nrpl = tail.map(r => r.nrpl).filter(x => x != null);
   const zN = zLast(nrpl);
-  if (Math.abs(zN) >= 2 && nrpl.length > 10) {
+  if (Math.abs(zN) >= 1.5 && nrpl.length > 10) {
     const profit = oc.at(-1).nrpl > 0;
     out.push({
       lane: "nrpl", severity: Math.min(6.5, 2.5 + Math.abs(zN)), emoji: profit ? "💵" : "🔻",
@@ -206,7 +286,7 @@ function valuationDriver(val) {
   if (entries.length < 3) return [];
   const vals = entries.map(([, v]) => v), m = mean(vals);
   const [name, v] = entries.sort((a, b) => Math.abs(b[1] - m) - Math.abs(a[1] - m))[0];
-  if (Math.abs(v - m) < 0.22) return [];               // nothing stands out → stay quiet
+  if (Math.abs(v - m) < 0.18) return [];               // nothing stands out → stay quiet
   const hot = v > m;
   const NAMES = { valuation: "price vs value", relative: "vs the alt market", flow: "exchange flow", conviction: "holder conviction", sentiment: "sentiment", trend: "trend", picycle: "trend" };
   return [{
@@ -224,7 +304,7 @@ function exitSpike(ef) {
   const days = ef?.days; if (!Array.isArray(days) || days.length < 30) return [];
   const totals = days.map(d => (d[1] || 0) + (d[2] || 0));   // profit-exits + loss-exits
   const z = zLast(totals);
-  if (z < 2) return [];
+  if (z < 1.5) return [];
   const last = days.at(-1), n = (last[1] || 0) + (last[2] || 0), lossShare = n ? (last[2] || 0) / n : 0;
   return [{
     lane: "exits", severity: Math.min(6, 2.5 + z), emoji: "🚪",
@@ -247,36 +327,58 @@ function fromLegacy(legacy) {
   }));
 }
 
+// 10) Concentration shift — the top-100 wallets' share of holder supply moving vs
+//     its trailing norm (whales tightening their grip, or supply broadening out).
+function concentrationShift(oc) {
+  if (!Array.isArray(oc) || oc.length < 30) return [];
+  const tail = oc.slice(-30).map(r => r.top100).filter(x => x != null);
+  const z = zLast(tail);
+  if (Math.abs(z) < 1.3 || tail.length < 10) return [];
+  const last = oc.at(-1).top100, rising = z > 0;
+  return [{
+    lane: "concentration", severity: Math.min(6, 2.5 + Math.abs(z)), emoji: rising ? "🐳" : "🕸️",
+    headline: rising ? "The top 100 wallets are tightening their grip" : "Supply is spreading out of the top 100",
+    detail: `Top-100 share is ${last.toFixed(1)}% of holder supply, ${Math.abs(z).toFixed(1)}σ ${rising ? "up" : "down"} vs its month.`,
+    framing: `The largest 100 wallets ${rising ? "gained" : "gave up"} share this month (${last.toFixed(1)}%, ${Math.abs(z).toFixed(1)}σ). ${rising ? "Concentration rising." : "Broadening holder base — decentralising."}`,
+    checkable: "Top-100 addresses' share of tracked supply, from the transfer history.",
+    verify: chartLink("Holder Concentration", "concentration"),
+  }];
+}
+
 // ── ENGINE ────────────────────────────────────────────────────────────────
 // data: { history, legacy, onchain, cexFlow, selfMoves, smartMoney, exitFlow,
 //         whaleCampaigns, aeonSales, aeonOnchain, valuation }
 // aeonFlowFn: the shared aeonFlow(trades, holders, opts) (passed in to avoid a
-//             hard import cycle; the CLI wires it).
+//             hard import cycle; the CLI wires it). Output items carry kind:
+//             "state" (always-on daily read) or "event" (a threshold-crossed move).
 export function detectNotable(data = {}, aeonFlowFn = null, opts = {}) {
-  const topN = opts.topN ?? 9;
+  const topN = opts.topN ?? 12;
+  const refDate = data.onchain?.at?.(-1)?.d || data.history?.at?.(-1)?.d || null;
   // wallets already named by self-moves shouldn't double-count in whale-campaigns
   const splitSrcs = new Set((data.selfMoves?.events || []).map(e => (e.source || "").toLowerCase()).filter(Boolean));
 
-  let items = [
+  const events = [
     ...cexFlow(data.cexFlow),
-    ...selfMoves(data.selfMoves),
+    ...selfMoves(data.selfMoves, refDate),
     ...whaleCampaigns(data.whaleCampaigns, splitSrcs),
     ...smartMoney(data.smartMoney),
     ...aeonAccum(data.aeonSales, data.aeonOnchain, aeonFlowFn),
     ...onchainShift(data.onchain),
+    ...concentrationShift(data.onchain),
     ...valuationDriver(data.valuation),
     ...exitSpike(data.exitFlow),
     ...fromLegacy(data.legacy),
-  ].filter(Boolean);
+  ].filter(Boolean).map(it => ({ ...it, kind: it.kind || "event" }));
 
-  // one item per lane (the strongest), then rank by severity.
+  // always-on state block + the events, one item per lane (the strongest), ranked.
+  const items = [...events, ...stateReads(data)];
   const byLane = new Map();
   for (const it of items) { const cur = byLane.get(it.lane); if (!cur || it.severity > cur.severity) byLane.set(it.lane, it); }
   const ranked = [...byLane.values()].sort((a, b) => b.severity - a.severity).slice(0, topN)
     .map((it, i) => ({ rank: i + 1, ...it, severity: Math.round(it.severity * 10) / 10 }));
 
-  const date = data.onchain?.at?.(-1)?.d || data.history?.at?.(-1)?.d || null;
-  return { date, generated: date, count: ranked.length, items: ranked };
+  const eventCount = ranked.filter(it => it.kind === "event").length;
+  return { date: refDate, generated: refDate, count: ranked.length, eventCount, items: ranked };
 }
 
 // ── CLI ──────────────────────────────────────────────────────────────────────
