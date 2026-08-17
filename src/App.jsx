@@ -798,7 +798,7 @@ export default function App() {
       case "concentration": return <HolderConcentrationChart isMobile={mob} preview={preview} />;
       case "entities": return (
         <CityGate title="Wallet Clusters" accent="#818cf8" unit="owner" locked
-          blurb="A members feature — enter the community passphrase to open the granular wallet-cluster map.">
+          blurb="Honestly, we think this one's a little too good to give away for free just yet — so it's behind a password while we figure out what to do with it.">
           <EntityClustersChart isMobile={mob} preview={preview} />
         </CityGate>
       );
