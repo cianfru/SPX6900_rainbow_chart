@@ -50,7 +50,7 @@ const Row = ({ swatch, children }) => (
 // page is LISTED in the gallery and this is an openly-declared password wall, so the field is shown
 // straight away and the copy says "password protected" rather than "not ready". Same gate, same
 // honest scope (client-side, not real security); only the presentation differs.
-export default function CityGate({ title, accent = "#5eead4", unit = "holder", locked = false, guide = null, children }) {
+export default function CityGate({ title, accent = "#5eead4", unit = "holder", locked = false, guide = null, blurb = null, children }) {
   const [ok, setOk] = useState(() => { try { return localStorage.getItem(KEY) === "1"; } catch { return false; } });
   const [pw, setPw] = useState("");
   const [bad, setBad] = useState(false);
@@ -88,7 +88,7 @@ export default function CityGate({ title, accent = "#5eead4", unit = "holder", l
           {locked ? title : `${title} is under construction`}
         </h2>
         <p style={{ color: "#94a3b8", fontSize: 14.5, lineHeight: 1.65, margin: "0 0 26px" }}>
-          {locked ? "Password protected — enter the passphrase to explore the city." : "Still being built. Check back soon."}
+          {locked ? (blurb || "Password protected — enter the passphrase to explore the city.") : "Still being built. Check back soon."}
         </p>
 
         {/* The passphrase is for the people building it. Tucked behind a toggle so the page reads as a sign

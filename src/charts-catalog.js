@@ -69,7 +69,7 @@ export const CHART_GROUPS = [
     desc: "Who owns what: the biggest wallets, the clusters behind them, and who's still here.",
     charts: [
       { id: "concentration", title: "Holder Concentration", post: "concentration", desc: "The largest wallets' share of supply over time." },
-      { id: "entities", title: "Wallet Clusters", desc: "Who owns what: the addresses one owner controls, linked into a single entity from on-chain SPX flows." },
+      { id: "entities", title: "Wallet Clusters", locked: true, desc: "Who owns what: the addresses one owner controls, linked into a single entity from on-chain SPX flows." },
       { id: "clustercity", title: "Cluster City", locked: true, desc: "A 3D city where every owner is a district of wallet towers — beams show which are buying (green) or selling (red)." },
       { id: "whales", title: "Whale Supply", post: "whales", desc: "What the biggest wallets hold, and whether there are more of them." },
       { id: "whalecohorts", title: "Whale Counts Over Time", post: "whalecensus", desc: "How many wallets sit in each size cohort, week by week: the base broadened, the mega-whales thinned." },

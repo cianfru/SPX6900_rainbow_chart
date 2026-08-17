@@ -83,6 +83,7 @@ const SurvivorshipChart = lazy(() => import("./SurvivorshipChart.jsx"));
 const ExitFlowChart = lazy(() => import("./ExitFlowChart.jsx"));
 const SmartMoneyChart = lazy(() => import("./SmartMoneyChart.jsx"));
 const EntityClustersChart = lazy(() => import("./EntityClustersChart.jsx"));
+const CityGate = lazy(() => import("./CityGate.jsx"));
 const ClusterCity = lazy(() => import("./ClusterCity.jsx"));
 const WalletWavesChart = lazy(() => import("./OwnershipCharts.jsx").then(m => ({ default: m.WalletWavesChart })));
 const WealthWavesChart = lazy(() => import("./OwnershipCharts.jsx").then(m => ({ default: m.WealthWavesChart })));
@@ -795,7 +796,12 @@ export default function App() {
       case "walletwaves": return <WalletWavesChart isMobile={mob} preview={preview} />;
       case "wealthwaves": return <WealthWavesChart isMobile={mob} preview={preview} />;
       case "concentration": return <HolderConcentrationChart isMobile={mob} preview={preview} />;
-      case "entities": return <EntityClustersChart isMobile={mob} preview={preview} />;
+      case "entities": return (
+        <CityGate title="Wallet Clusters" accent="#818cf8" unit="owner" locked
+          blurb="A members feature — enter the community passphrase to open the granular wallet-cluster map.">
+          <EntityClustersChart isMobile={mob} preview={preview} />
+        </CityGate>
+      );
       case "clustercity": return <ClusterCity isMobile={mob} />;
       case "bagsprofile": return <CostBasisProfileChart isMobile={mob} preview={preview} price={last?.price} />;
       case "urpdage": return <UrpdAgeChart isMobile={mob} preview={preview} price={last?.price} initialView={iv} />;
