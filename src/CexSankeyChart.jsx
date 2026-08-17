@@ -5,7 +5,10 @@ import { SANS, MONO, MAX_W, Metric, Explain } from "./chart-ui.jsx";
 
 const short = a => a.slice(0, 6) + "…" + a.slice(-4);
 const fM = n => (Math.abs(n) >= 1e6 ? (n / 1e6).toFixed(1) + "M" : Math.abs(n) >= 1e3 ? Math.round(n / 1e3) + "k" : Math.round(n).toString());
-const GREEN = "#34d399", TEAL = "#5eead4", RED = "#fb7185";
+// Sentiment-honest colours: coins moving ONTO exchanges are sell-side supply building — NOT a
+// positive — so inflow is NEUTRAL slate, never green. Coins leaving to self-custody (outflow) is
+// the genuinely constructive direction → green. A net build-up on venues reads amber (caution).
+const NEUTRAL = "#94a3b8", GREEN = "#34d399", TEAL = "#5eead4", AMBER = "#fbbf24";
 
 // Build recharts {nodes, links} from cex-sankey.json: sources (left) → venues (centre stick) → dests
 // (right). Depth 0/1/2 puts them in three columns automatically.
@@ -32,7 +35,7 @@ const openWallet = a => a && window.open(`https://app.zerion.io/${a}/overview`, 
 
 function SankeyNode({ x, y, width, height, payload, isMobile }) {
   const k = payload.kind;
-  const fill = k === "venue" ? TEAL : k.startsWith("source") ? GREEN : RED;
+  const fill = k === "venue" ? TEAL : k.startsWith("source") ? NEUTRAL : GREEN;
   const wallet = !!payload.a;
   // Only VENUES are labelled — a label on every one of the dozens of leaf wallets is unreadable.
   // The wallet identity comes from the hover/tap card; a click opens it on Zerion. The venue label
@@ -74,7 +77,7 @@ function SankeyTip({ active, payload }) {
         style={{ display: "block", width: "100%", height: 92, objectFit: "cover", background: "#0e1424" }} />
       <div style={{ padding: "9px 12px 11px" }}>
         <div style={{ color: "#f1f5f9", fontWeight: 700, fontSize: 13 }}>{short(pl.a)}</div>
-        <div style={{ color: supplying ? GREEN : RED, fontSize: 13, fontWeight: 700, marginTop: 4 }}>
+        <div style={{ color: supplying ? NEUTRAL : GREEN, fontSize: 13, fontWeight: 700, marginTop: 4 }}>
           {supplying ? "Supplies exchanges" : "Withdraws from exchanges"}{pl.value ? ` · ${fM(pl.value)} SPX` : ""}
         </div>
         <div style={{ color: "#5eead4", fontSize: 11, marginTop: 7 }}>tap → open on Zerion ↗</div>
@@ -86,7 +89,7 @@ function SankeyTip({ active, payload }) {
 function SankeyLink(props) {
   const { sourceX, targetX, sourceY, targetY, sourceControlX, targetControlX, linkWidth, payload } = props;
   const [hover, setHover] = useState(false);
-  const col = payload.dir === "in" ? GREEN : RED;
+  const col = payload.dir === "in" ? NEUTRAL : GREEN;
   return (
     <path d={`M${sourceX},${sourceY}C${sourceControlX},${sourceY} ${targetControlX},${targetY} ${targetX},${targetY}`}
       fill="none" stroke={col} strokeWidth={Math.max(1, linkWidth)} strokeOpacity={hover ? 0.7 : 0.34}
@@ -104,7 +107,7 @@ export default function CexSankeyChart({ isMobile }) {
   if (!data || !sankey || sankey.links.length < 2) return (
     <div style={{ maxWidth: MAX_W, margin: "0 auto" }}>
       <Explain q="Where's the volume going — onto exchanges, or off?" accent={TEAL}>
-        A flow map of every wallet <strong style={{ color: GREEN }}>supplying</strong> exchanges and <strong style={{ color: RED }}>withdrawing</strong> from them, per venue.
+        A flow map of every wallet <strong style={{ color: NEUTRAL }}>supplying</strong> exchanges and <strong style={{ color: GREEN }}>withdrawing</strong> from them, per venue.
       </Explain>
       <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 50 }}>Being reconstructed — appears after the next on-chain refresh.</div>
     </div>
@@ -116,13 +119,13 @@ export default function CexSankeyChart({ isMobile }) {
   return (
     <div style={{ maxWidth: MAX_W, margin: "0 auto" }}>
       <Explain q="Where's the volume going — onto exchanges, or off?" accent={TEAL}>
-        Every wallet <strong style={{ color: GREEN }}>supplying</strong> exchanges (left) and <strong style={{ color: RED }}>withdrawing</strong> from them (right), over the last {win?.days ?? 90} days. Flow band = amount; the exchanges are the stick in the middle. Tap a wallet to open it on Zerion. Flows under {fM(win?.dust ?? 25000)} SPX are rolled into a "smaller" band, never hidden.
+        Every wallet <strong style={{ color: NEUTRAL }}>supplying</strong> exchanges (left) and <strong style={{ color: GREEN }}>withdrawing</strong> from them (right), over the last {win?.days ?? 90} days. Flow band = amount; the exchanges are the stick in the middle. Tap a wallet to open it on Zerion. Flows under {fM(win?.dust ?? 25000)} SPX are rolled into a "smaller" band, never hidden.
       </Explain>
 
       <div style={{ display: "flex", gap: isMobile ? 16 : 30, justifyContent: "center", marginBottom: 12, flexWrap: "wrap" }}>
-        <Metric label="onto exchanges" value={fM(totals.in)} color={GREEN} sub="supply in" />
-        <Metric label="off exchanges" value={fM(totals.out)} color={RED} sub="withdrawn" />
-        <Metric label="net" value={(totals.net >= 0 ? "+" : "−") + fM(Math.abs(totals.net))} color={totals.net >= 0 ? GREEN : RED} sub={totals.net >= 0 ? "accumulating on venues" : "leaving to self-custody"} />
+        <Metric label="onto exchanges" value={fM(totals.in)} color={NEUTRAL} sub="supply in" />
+        <Metric label="off exchanges" value={fM(totals.out)} color={GREEN} sub="to self-custody" />
+        <Metric label="net" value={(totals.net >= 0 ? "+" : "−") + fM(Math.abs(totals.net))} color={totals.net >= 0 ? AMBER : GREEN} sub={totals.net >= 0 ? "building on venues" : "leaving to self-custody"} />
       </div>
 
       <ResponsiveContainer width="100%" height={H}>
