@@ -181,11 +181,17 @@ function CascadeTop({ label, groups, onSection, onLeaf, renderPreview }) {
       <TypeHead label={label} />
       <div className="drop">
         <MenuRow text="All" color="var(--live)" cls="allrow" onClick={() => onSection()} />
-        {groups.map((g, gi) => { const gc = GCOL[gi % GCOL.length]; return (
+        {groups.map((g, gi) => { const gc = GCOL[gi % GCOL.length];
+          const leaves = g.charts.filter(c => !c.dev);
+          // visual rows = each leaf + its indented sub-views; past ~a dozen the single column
+          // runs off the bottom of the screen, so split into two (filled column-first).
+          const vrows = leaves.reduce((n, it) => n + 1 + (CHART_VIEWS[it.id]?.length || 0), 0);
+          const wide = vrows > 12;
+          return (
           <div className="mgroup" key={g.title} style={{ "--gc": gc }} onMouseLeave={() => { clearTimeout(timer.current); setLeaf(l => (l && l.gi === gi ? null : l)); }}>
             <MenuRow text={g.title} color={gc} mark="▸" cls="grouprow" onClick={() => onSection(g.title)} />
-            <div className="subdrop">
-              {g.charts.filter(c => !c.dev).map(item => { const views = CHART_VIEWS[item.id]; return (
+            <div className={"subdrop" + (wide ? " cols2" : "")} style={wide ? { "--rows": Math.ceil(leaves.length / 2) } : undefined}>
+              {leaves.map(item => { const views = CHART_VIEWS[item.id]; return (
                 <div className="leafwrap" key={item.id}>
                   <MenuRow text={item.title} color={gc} mark={views ? "▾" : "›"} cls="leafrow"
                     onEnter={() => showLeaf({ gi, item, color: gc })}

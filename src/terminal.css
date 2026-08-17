@@ -82,6 +82,12 @@
 .tzone .mgroup:hover > .subdrop, .tzone .subdrop:hover{ display:block; }
 .tzone .mtop.flip .subdrop{ left:auto; right:calc(100% + 8px); }
 .tzone .mtop.flip .subdrop::before{ left:auto; right:-8px; }
+/* A tall group (many charts / view-variants) would run off the bottom of the screen as one
+   column, so it flows into TWO columns instead — filled column-first (--rows set in JS to
+   half the leaf count). Columns auto-size to their content so no chart title is clipped, and
+   each leaf keeps its indented sub-views together in one column. */
+.tzone .subdrop.cols2{ grid-auto-flow:column; grid-template-rows:repeat(var(--rows,6),auto); column-gap:6px; }
+.tzone .mgroup:hover > .subdrop.cols2, .tzone .subdrop.cols2:hover{ display:grid; }
 
 .tzone .mitem{ display:flex; align-items:center; justify-content:space-between; gap:16px; padding:7px 11px; cursor:pointer; font-family:var(--mono); font-size:12.5px; letter-spacing:.03em; text-transform:uppercase; color:var(--tx); white-space:nowrap; }
 .tzone .mitem .mk{ color:var(--faint); }
