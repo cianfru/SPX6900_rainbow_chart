@@ -28,22 +28,58 @@ function toSankey(data) {
   return { nodes, links };
 }
 
-const openWallet = a => a && window.open(`https://etherscan.io/address/${a}`, "_blank", "noopener");
+const openWallet = a => a && window.open(`https://app.zerion.io/${a}/overview`, "_blank", "noopener");
 
-function SankeyNode({ x, y, width, height, payload }) {
+function SankeyNode({ x, y, width, height, payload, isMobile }) {
   const k = payload.kind;
   const fill = k === "venue" ? TEAL : k.startsWith("source") ? GREEN : RED;
   const wallet = !!payload.a;
   // Only VENUES are labelled — a label on every one of the dozens of leaf wallets is unreadable.
-  // The wallet identity comes from the hover tooltip; a click opens it on Etherscan.
+  // The wallet identity comes from the hover/tap card; a click opens it on Zerion. The venue label
+  // rides a dark chip so it stays legible over the flows AND on the light theme (plain light text
+  // vanished on the bright background).
+  const fs = isMobile ? 11.5 : 13;
+  const cw = (payload.name?.length || 0) * fs * 0.62 + 14;
   return (
     <Layer style={{ cursor: wallet ? "pointer" : "default" }} onClick={() => wallet && openWallet(payload.a)}>
       <Rectangle x={x} y={y} width={width} height={height} fill={fill} fillOpacity={0.92} radius={2} />
       {k === "venue" && (
-        <text x={x + width + 8} y={y + height / 2} textAnchor="start" dominantBaseline="middle"
-          fontFamily={MONO} fontSize={13} fill="#eafff7" fontWeight={700}>{payload.name}</text>
+        <g>
+          <rect x={x + width + 5} y={y + height / 2 - fs} width={cw} height={fs * 2} rx={5}
+            fill="#0a0e1c" fillOpacity={0.9} stroke="#284056" strokeWidth={1} />
+          <text x={x + width + 5 + cw / 2} y={y + height / 2} textAnchor="middle" dominantBaseline="middle"
+            fontFamily={MONO} fontSize={fs} fill="#eafff7" fontWeight={700}>{payload.name}</text>
+        </g>
       )}
     </Layer>
+  );
+}
+
+// Zerion-style hover/tap card for a wallet node (matches the city + AEON-flow cards), a compact chip
+// for a flow band or a venue. Self-contained colours so it reads on either theme.
+function SankeyTip({ active, payload }) {
+  if (!active || !payload?.length) return null;
+  const pl = payload[0]?.payload?.payload || payload[0]?.payload;
+  if (!pl) return null;
+  const chip = txt => (
+    <div style={{ background: "#0a0e1c", border: "1px solid #1e2a44", borderRadius: 8, padding: "7px 11px", fontFamily: MONO, fontSize: 12, color: "#e2e8f0", boxShadow: "0 8px 22px rgba(0,0,0,.5)" }}>{txt}</div>
+  );
+  if (pl.dir) return chip(`${fM(pl.value)} SPX ${pl.dir === "in" ? "onto exchange" : "off exchange"}`);
+  if (pl.kind === "venue") return chip(`${pl.name}${pl.value ? ` · ${fM(pl.value)} SPX through` : ""}`);
+  if (!pl.a) return chip(pl.name || "");     // the "+N smaller" roll-up bands
+  const supplying = String(pl.kind).startsWith("source");
+  return (
+    <div style={{ width: 224, background: "#0a0e1c", border: "1px solid #1e2a44", borderRadius: 12, overflow: "hidden", boxShadow: "0 12px 34px rgba(0,0,0,.6)", fontFamily: MONO }}>
+      <img src={`https://render.zerion.io/preview?address=${pl.a}`} alt="" onError={e => { e.currentTarget.style.display = "none"; }}
+        style={{ display: "block", width: "100%", height: 92, objectFit: "cover", background: "#0e1424" }} />
+      <div style={{ padding: "9px 12px 11px" }}>
+        <div style={{ color: "#f1f5f9", fontWeight: 700, fontSize: 13 }}>{short(pl.a)}</div>
+        <div style={{ color: supplying ? GREEN : RED, fontSize: 13, fontWeight: 700, marginTop: 4 }}>
+          {supplying ? "Supplies exchanges" : "Withdraws from exchanges"}{pl.value ? ` · ${fM(pl.value)} SPX` : ""}
+        </div>
+        <div style={{ color: "#5eead4", fontSize: 11, marginTop: 7 }}>tap → open on Zerion ↗</div>
+      </div>
+    </div>
   );
 }
 
@@ -80,7 +116,7 @@ export default function CexSankeyChart({ isMobile }) {
   return (
     <div style={{ maxWidth: MAX_W, margin: "0 auto" }}>
       <Explain q="Where's the volume going — onto exchanges, or off?" accent={TEAL}>
-        Every wallet <strong style={{ color: GREEN }}>supplying</strong> exchanges (left) and <strong style={{ color: RED }}>withdrawing</strong> from them (right), over the last {win?.days ?? 90} days. Flow band = amount; the exchanges are the stick in the middle. Tap a wallet to open it on Etherscan. Flows under {fM(win?.dust ?? 25000)} SPX are rolled into a "smaller" band, never hidden.
+        Every wallet <strong style={{ color: GREEN }}>supplying</strong> exchanges (left) and <strong style={{ color: RED }}>withdrawing</strong> from them (right), over the last {win?.days ?? 90} days. Flow band = amount; the exchanges are the stick in the middle. Tap a wallet to open it on Zerion. Flows under {fM(win?.dust ?? 25000)} SPX are rolled into a "smaller" band, never hidden.
       </Explain>
 
       <div style={{ display: "flex", gap: isMobile ? 16 : 30, justifyContent: "center", marginBottom: 12, flexWrap: "wrap" }}>
@@ -92,16 +128,8 @@ export default function CexSankeyChart({ isMobile }) {
       <ResponsiveContainer width="100%" height={H}>
         <Sankey data={sankey} nodePadding={isMobile ? 12 : 22} nodeWidth={13} iterations={64}
           margin={{ left: isMobile ? 4 : 8, right: isMobile ? 4 : 8, top: 12, bottom: 12 }}
-          node={<SankeyNode />} link={<SankeyLink />}>
-          <Tooltip
-            contentStyle={{ background: "#0a0e1c", border: "1px solid #234", borderRadius: 8, fontFamily: MONO, fontSize: 12, color: "#e2e8f0" }}
-            formatter={(v, _n, p) => {
-              const pl = p?.payload?.payload;
-              if (pl?.dir) return [`${fM(pl.value)} SPX ${pl.dir === "in" ? "onto exchange" : "off exchange"}`, ""];
-              if (pl?.a) return [`${short(pl.a)} — tap to open ↗`, ""];
-              if (pl?.kind === "venue") return [pl.name, ""];
-              return [fM(v) + " SPX", ""];
-            }} />
+          node={<SankeyNode isMobile={isMobile} />} link={<SankeyLink />}>
+          <Tooltip wrapperStyle={{ zIndex: 50, outline: "none" }} content={<SankeyTip />} />
         </Sankey>
       </ResponsiveContainer>
 
