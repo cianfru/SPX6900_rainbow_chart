@@ -11,6 +11,40 @@
   stop. Every card/chart/article/decision defaults to: show the real numbers, state the method, label the caveats,
   share it freely. When in doubt, MORE transparent.
 
+## 💳 "THE TERMINAL" — PAID TIER / FREEMIUM (design agreed 2026-08-17, owner travelling; BUILD PENDING)
+- **First monetisation. Owner cautious (first time charging).** Structure DESIGNED, not built. Reconciled with the
+  NORTH STAR by a hard rule: **wall DEPTH / CONVENIENCE / REAL-TIME / LABOUR, NEVER CHECKABILITY.** The composite,
+  rainbow, methodology page, headline on-chain reads and the X cards stay FREE FOREVER — that's the moat + the
+  marketing. The paywall is for going deep, not for seeing whether SPX is cheap.
+- **PRICING (owner chose):** one paid tier, **$19.99/yr + $2.99/mo, 7-day free trial.** Monthly = the trust unlock for
+  a young site; annual (~44% off vs monthly) = the value anchor; cheap on purpose so smallholders join, not just
+  whales. Launch lever (undecided): a **founding-member** price — first ~100 at $9.99/yr locked, OR $49 lifetime.
+- **FREE vs PAID split:** FREE = rainbow · valuation composite · methodology · headline reads (holders/MVRV/sip/HODL
+  top-line) · daily X cards. PAID ("The Terminal") = the **daily synthesiser brief** (the flagship — "what's happening
+  today", real daily labour; likely hero, pending final owner confirm) · Wallet Clusters + per-wallet drill-downs ·
+  Smart Money detail · exchange-flow by wallet · the 3D cities (already gated) · alerts (band/whale/AEON) · CSV/API export.
+- **AUTH — Stripe, NO WALLET (owner ruled out token-gating: MetaMask/Phantom connect is max friction + a 3-month-old
+  site can't ask a stranger to sign in first, and it self-selects whales).** Plan: **Stripe Checkout + Customer Portal
+  + magic-link email login** (passwordless). Stripe webhook → subscription status (reuse the KV/Upstash store or query
+  Stripe on demand) → session cookie/JWT → authed endpoints verify it. **⚠ THE REAL WALL:** the granular JSON must move
+  OUT of `public/` (and the public repo) behind an **authenticated Vercel endpoint** — today's gate is only a curtain.
+- **✅ WALLET CLUSTERS GATED (cosmetic curtain, 2026-08-17):** `entities` chart marked `locked:true`; `App.jsx` wraps it
+  in `CityGate` (defers child mount → `/entities.json` isn't even fetched until unlocked). Added a `blurb` prop to
+  CityGate. **⚠ HONEST SCOPE — NOT real protection:** entities.json is still a public static file in a public repo, so
+  this stops the casual majority + signals premium but a technical visitor can fetch the JSON directly. Copy is
+  deliberately soft ("we think this one's a little too good to give away for free just yet") — NO "community/members"
+  wording (there is no community yet). Real walling waits for the authed-endpoint work above.
+- **DIVISION OF LABOUR (when we build):** OWNER (can't automate) = create the Stripe account + products/prices, a bare
+  Terms/Refund/Privacy page. CLAUDE = magic-link auth + Stripe webhook + subscription check + move granular feeds behind
+  the authed endpoint + the member Terminal page.
+- **PHASES:** P0 cosmetic curtain (done) → P1 design (done, this) → P2 MVP end-to-end (Stripe checkout → email login →
+  Wallet Clusters unlocked FOR REAL via authed endpoint) → P3 the Terminal page (daily synthesiser) + cities/feeds behind
+  auth + alerts → P4 trial/founding-member/marketing. **🔲 OPEN before build:** confirm the hero (daily synthesiser vs
+  "unlock all gated"), confirm the free/paid line, pick the founding-member option.
+- **HONEST FLAGS:** this is community-support scale ($20/yr × N members ≈ low thousands), not a business — set
+  expectations. Needs Terms/Refund/Privacy (Stripe basically requires it). Don't wall existing-free things retroactively
+  in a way that angers current users — new paid stuff is ADDED value.
+
 ## Anomaly detector — "⚡ Notable today" (built 2026-07-03)
 - `scripts/bot/signals.mjs` `detectSignals(history)` runs at the end of the snapshot cron (`scripts/snapshot.mjs`) and
   writes `public/signals.json` (committed by snapshot.yml, deploy-ignored, read by the control panel via raw). Scans
