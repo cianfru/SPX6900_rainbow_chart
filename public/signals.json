@@ -1,15 +1,15 @@
 {
-  "date": "2026-08-16",
+  "date": "2026-08-17",
   "signals": [
     {
       "type": "underwater-holding",
       "emoji": "💎",
       "title": "Holders ~39% underwater — and still not selling",
-      "detail": "MVRV 0.61: price is 39% below the crowd's avg on-chain cost basis ($0.52). Yet 61% of supply is in the longest-held tier — the float isn't moving. MVRV has slipped 0.66→0.61 over ~30d.",
+      "detail": "MVRV 0.61: price is 39% below the crowd's avg on-chain cost basis ($0.519). Yet 61% of supply is in the longest-held tier — the float isn't moving. MVRV has slipped 0.67→0.61 over ~30d.",
       "framing": "Maximum financial pain, minimal capitulation — conviction being tested and, so far, holding.",
       "note": "Describe the divergence, NOT a bottom call. \"Not selling\", not \"buy\".",
       "card": "breakeven",
-      "score": 1.9311529358990975
+      "score": 1.935902916451695
     },
     {
       "type": "drawdown",
@@ -22,14 +22,14 @@
       "score": 1.5
     },
     {
-      "type": "deep-value",
-      "emoji": "🟣",
-      "title": "-84% below its long-run trend (Fire Sale band)",
-      "detail": "Fair value for its age is $2.04; price sits -84% under it.",
-      "framing": "Where today sits in the long power-law arc.",
-      "note": "Not a prediction.",
-      "card": "valuation",
-      "score": 1.2061366290758229
+      "type": "vs-btc",
+      "emoji": "₿",
+      "title": "Lagging Bitcoin over the past year",
+      "detail": "365-day relative strength vs BTC is -0.62× — SPX6900 has trailed Bitcoin over the year.",
+      "framing": "The honest scoreboard vs crypto's benchmark.",
+      "note": "Relative strength, not a call.",
+      "card": "spxbtc",
+      "score": 1.15
     }
   ]
 }

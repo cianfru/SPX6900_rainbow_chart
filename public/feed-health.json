@@ -1,8 +1,8 @@
 {
- "checked": "2026-08-16",
- "ok": 33,
+ "checked": "2026-08-17",
+ "ok": 34,
  "warn": 1,
- "fail": 5,
+ "fail": 4,
  "untracked": [],
  "feeds": [
   {
@@ -12,10 +12,10 @@
    "status": "warn",
    "age": 0,
    "cadence": 2,
-   "date": "2026-08-16",
+   "date": "2026-08-17",
    "notes": [
-    "upnl: 12 of 14 recent rows null",
-    "rpnl: 12 of 14 recent rows null",
+    "upnl: 13 of 14 recent rows null",
+    "rpnl: 13 of 14 recent rows null",
     "holdersSol: 1 of 14 recent rows null"
    ]
   },
@@ -26,7 +26,7 @@
    "status": "ok",
    "age": 0,
    "cadence": 2,
-   "date": "2026-08-16",
+   "date": "2026-08-17",
    "notes": []
   },
   {
@@ -36,7 +36,7 @@
    "status": "ok",
    "age": 0,
    "cadence": 2,
-   "date": "2026-08-16",
+   "date": "2026-08-17",
    "notes": []
   },
   {
@@ -46,7 +46,7 @@
    "status": "ok",
    "age": 0,
    "cadence": 2,
-   "date": "2026-08-16",
+   "date": "2026-08-17",
    "notes": []
   },
   {
@@ -56,7 +56,7 @@
    "status": "ok",
    "age": 0,
    "cadence": 2,
-   "date": "2026-08-16",
+   "date": "2026-08-17",
    "notes": []
   },
   {
@@ -66,7 +66,7 @@
    "status": "ok",
    "age": 0,
    "cadence": 3,
-   "date": "2026-08-16",
+   "date": "2026-08-17",
    "notes": []
   },
   {
@@ -76,7 +76,7 @@
    "status": "ok",
    "age": 0,
    "cadence": 9,
-   "date": "2026-08-16",
+   "date": "2026-08-17",
    "notes": []
   },
   {
@@ -86,7 +86,7 @@
    "status": "ok",
    "age": 0,
    "cadence": 9,
-   "date": "2026-08-16",
+   "date": "2026-08-17",
    "notes": []
   },
   {
@@ -96,7 +96,7 @@
    "status": "fail",
    "age": 0,
    "cadence": 9,
-   "date": "2026-08-16",
+   "date": "2026-08-17",
    "notes": [
     "no rows"
    ]
@@ -108,7 +108,7 @@
    "status": "ok",
    "age": 0,
    "cadence": 9,
-   "date": "2026-08-16",
+   "date": "2026-08-17",
    "notes": []
   },
   {
@@ -118,7 +118,7 @@
    "status": "fail",
    "age": 1,
    "cadence": 2,
-   "date": "2026-08-15",
+   "date": "2026-08-16",
    "notes": [
     "no rows"
    ]
@@ -130,7 +130,7 @@
    "status": "ok",
    "age": 1,
    "cadence": 9,
-   "date": "2026-08-15",
+   "date": "2026-08-16",
    "notes": []
   },
   {
@@ -140,7 +140,7 @@
    "status": "ok",
    "age": 1,
    "cadence": 9,
-   "date": "2026-08-15",
+   "date": "2026-08-16",
    "notes": []
   },
   {
@@ -148,7 +148,7 @@
    "by": "price-history.yml",
    "what": "the dense daily price line",
    "status": "ok",
-   "age": 6,
+   "age": 7,
    "cadence": 9,
    "date": "2026-08-10",
    "notes": []
@@ -160,7 +160,7 @@
    "status": "ok",
    "age": 1,
    "cadence": 3,
-   "date": "2026-08-15",
+   "date": "2026-08-16",
    "notes": []
   },
   {
@@ -168,7 +168,7 @@
    "by": "btc-mvrv.yml",
    "what": "Bitcoin's MVRV, for the comparison chart",
    "status": "ok",
-   "age": 16,
+   "age": 17,
    "cadence": 40,
    "date": "2026-07-31",
    "notes": []
@@ -180,7 +180,7 @@
    "status": "ok",
    "age": 1,
    "cadence": 2,
-   "date": "2026-08-15",
+   "date": "2026-08-16",
    "notes": []
   },
   {
@@ -190,7 +190,7 @@
    "status": "ok",
    "age": 1,
    "cadence": 2,
-   "date": "2026-08-15",
+   "date": "2026-08-16",
    "notes": []
   },
   {
@@ -198,7 +198,7 @@
    "by": "aeon.yml",
    "what": "AEON ownership, holder age, concentration",
    "status": "ok",
-   "age": 2,
+   "age": 3,
    "cadence": 3,
    "date": "2026-08-14",
    "notes": []
@@ -210,7 +210,7 @@
    "status": "ok",
    "age": 1,
    "cadence": 3,
-   "date": "2026-08-15",
+   "date": "2026-08-16",
    "notes": []
   },
   {
@@ -218,7 +218,7 @@
    "by": "aeon.yml",
    "what": "AEON marketplace trades",
    "status": "ok",
-   "age": 2,
+   "age": 3,
    "cadence": 3,
    "date": "2026-08-14",
    "notes": []
@@ -230,7 +230,7 @@
    "status": "ok",
    "age": 1,
    "cadence": 3,
-   "date": "2026-08-15",
+   "date": "2026-08-16",
    "notes": []
   },
   {
@@ -240,7 +240,7 @@
    "status": "ok",
    "age": 1,
    "cadence": 3,
-   "date": "2026-08-15",
+   "date": "2026-08-16",
    "notes": []
   },
   {
@@ -250,7 +250,7 @@
    "status": "ok",
    "age": 1,
    "cadence": 3,
-   "date": "2026-08-15",
+   "date": "2026-08-16",
    "notes": []
   },
   {
@@ -260,7 +260,7 @@
    "status": "ok",
    "age": 1,
    "cadence": 3,
-   "date": "2026-08-15",
+   "date": "2026-08-16",
    "notes": []
   },
   {
@@ -270,7 +270,7 @@
    "status": "ok",
    "age": 1,
    "cadence": 3,
-   "date": "2026-08-15",
+   "date": "2026-08-16",
    "notes": []
   },
   {
@@ -280,7 +280,7 @@
    "status": "ok",
    "age": 1,
    "cadence": 3,
-   "date": "2026-08-15",
+   "date": "2026-08-16",
    "notes": []
   },
   {
@@ -290,7 +290,7 @@
    "status": "ok",
    "age": 1,
    "cadence": 3,
-   "date": "2026-08-15",
+   "date": "2026-08-16",
    "notes": []
   },
   {
@@ -300,7 +300,7 @@
    "status": "ok",
    "age": 1,
    "cadence": 3,
-   "date": "2026-08-15",
+   "date": "2026-08-16",
    "notes": []
   },
   {
@@ -310,7 +310,7 @@
    "status": "ok",
    "age": 0,
    "cadence": 3,
-   "date": "2026-08-16",
+   "date": "2026-08-17",
    "notes": []
   },
   {
@@ -320,26 +320,25 @@
    "status": "ok",
    "age": 0,
    "cadence": 3,
-   "date": "2026-08-16",
+   "date": "2026-08-17",
    "notes": []
   },
   {
    "file": "cex-sankey.json",
    "by": "onchain-dune.yml",
    "what": "CEX flow Sankey — who supplies/withdraws from exchanges + exchange candidates",
-   "status": "fail",
-   "age": null,
+   "status": "ok",
+   "age": 1,
    "cadence": 3,
-   "notes": [
-    "file missing or unparseable"
-   ]
+   "date": "2026-08-16",
+   "notes": []
   },
   {
    "file": "aeon-traders.json",
    "by": "aeon.yml",
    "what": "AEON per-wallet realized P&L",
    "status": "ok",
-   "age": 2,
+   "age": 3,
    "cadence": 3,
    "date": "2026-08-14",
    "notes": []
@@ -349,7 +348,7 @@
    "by": "aeon.yml",
    "what": "live AEON listings for the deal finder",
    "status": "ok",
-   "age": 2,
+   "age": 3,
    "cadence": 3,
    "date": "2026-08-14",
    "notes": []
@@ -359,7 +358,7 @@
    "by": "aeon.yml (once)",
    "what": "AEON trait rarity (static once built)",
    "status": "ok",
-   "age": 23,
+   "age": 24,
    "cadence": 400,
    "date": "2026-07-24",
    "notes": []
@@ -371,7 +370,7 @@
    "status": "ok",
    "age": 1,
    "cadence": 2,
-   "date": "2026-08-15",
+   "date": "2026-08-16",
    "notes": [
     "sales: empty (allowed, but worth knowing)"
    ]
@@ -383,7 +382,7 @@
    "status": "ok",
    "age": 1,
    "cadence": 2,
-   "date": "2026-08-15",
+   "date": "2026-08-16",
    "notes": []
   },
   {
@@ -391,11 +390,11 @@
    "by": "aeon.yml (step)",
    "what": "ENS names for the wallets we display",
    "status": "fail",
-   "age": 21,
+   "age": 22,
    "cadence": 9,
    "date": "2026-07-26",
    "notes": [
-    "21d old, cadence allows 9d"
+    "22d old, cadence allows 9d"
    ]
   },
   {
@@ -403,11 +402,11 @@
    "by": "onchain-dune.yml (step)",
    "what": "whale-cohort move candidates",
    "status": "fail",
-   "age": 21,
+   "age": 22,
    "cadence": 9,
    "date": "2026-07-26",
    "notes": [
-    "21d old, cadence allows 9d",
+    "22d old, cadence allows 9d",
     "signals: empty (allowed, but worth knowing)"
    ]
   }
