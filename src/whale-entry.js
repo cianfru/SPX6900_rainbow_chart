@@ -49,6 +49,7 @@ export function whaleEntries(tl, prices, opts = {}) {
     if (daysIn <= 365) early++; else late++;
     if (inProfit) profit++;
     whales.push({
+      a: w.a,                          // wallet address (site chart → Zerion; card ignores it)
       t: wkT(entryWk),                 // entry date (ms) → x
       cost: +avg.toFixed(6),           // avg price paid → y (sits on the curve)
       bag: Math.round(now),            // current balance → bubble size

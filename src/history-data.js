@@ -147,6 +147,19 @@ export function loadCohortRoi() {
   return cohortRoiPromise;
 }
 
+// Cached loader for /whale-entry.json — when each ≥100k whale bought (entry date × avg cost) + bag +
+// in-profit, plus the SPX price curve for the backdrop. Rebuilt daily in onchain-dune.yml.
+let whaleEntryPromise = null;
+export function loadWhaleEntry() {
+  if (!whaleEntryPromise) {
+    whaleEntryPromise = fetch("/whale-entry.json")
+      .then(r => (r.ok ? r.json() : null))
+      .then(d => (d && Array.isArray(d.whales) && Array.isArray(d.curve) ? d : null))
+      .catch(() => null);
+  }
+  return whaleEntryPromise;
+}
+
 let onchainPromise = null;
 export function loadOnchain() {
   if (!onchainPromise) {

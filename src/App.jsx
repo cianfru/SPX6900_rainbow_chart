@@ -80,6 +80,7 @@ const SupplyInProfitChart = lazy(() => import("./SupplyInProfitChart.jsx"));
 const HodlWavesChart = lazy(() => import("./HodlWavesChart.jsx"));
 const WhalesChart = lazy(() => import("./OwnershipCharts.jsx").then(m => ({ default: m.WhalesChart })));
 const SurvivorshipChart = lazy(() => import("./SurvivorshipChart.jsx"));
+const WhaleEntryChart = lazy(() => import("./WhaleEntryChart.jsx"));
 const ExitFlowChart = lazy(() => import("./ExitFlowChart.jsx"));
 const SmartMoneyChart = lazy(() => import("./SmartMoneyChart.jsx"));
 const EntityClustersChart = lazy(() => import("./EntityClustersChart.jsx"));
@@ -237,6 +238,7 @@ function TabIcon({ name }) {
     case "hodlwaves": return (<svg {...p}><path d="M3 18h18" /><path d="M3 14h18" strokeOpacity="0.75" /><path d="M3 10h18" strokeOpacity="0.5" /><path d="M3 6h18" strokeOpacity="0.3" /></svg>);
     case "whales": return (<svg {...p}><path d="M3 15c4 3 8 3 12 0s5-4 6-1" /><path d="M9 15c0-4 3-7 7-7" strokeOpacity="0.6" /><circle cx="17" cy="7" r="1.2" /></svg>);
     case "survivorship": return (<svg {...p}><path d="M3 20V9l4-2 4 3 4-4 6 2v12" strokeLinejoin="round" /><line x1="3" y1="20" x2="21" y2="20" /></svg>);
+    case "whaleentry": return (<svg {...p}><path d="M3 17c4-1 5-8 9-9s5 3 9 1" fill="none" strokeOpacity="0.5" /><circle cx="6" cy="16" r="2" /><circle cx="12" cy="9" r="2.6" /><circle cx="18" cy="10" r="1.6" /></svg>);
     case "smartmoney": return (<svg {...p}><path d="M4 15l5-5 3 3 8-8" strokeLinejoin="round" strokeLinecap="round" /><path d="M16 5h4v4" strokeLinejoin="round" strokeLinecap="round" /><line x1="4" y1="20" x2="20" y2="20" /></svg>);
     case "walletwaves": return (<svg {...p}><path d="M3 19h18" /><path d="M3 15h13" strokeOpacity="0.8" /><path d="M3 11h9" strokeOpacity="0.6" /><path d="M3 7h5" strokeOpacity="0.4" /></svg>);
     case "wealthwaves": return (<svg {...p}><path d="M3 20h18" /><path d="M6 20v-4M11 20v-8M16 20v-12" /><circle cx="20" cy="5" r="1.4" /></svg>);
@@ -791,6 +793,7 @@ export default function App() {
       case "hodlwaves": return <HodlWavesChart isMobile={mob} preview={preview} />;
       case "whales": return <WhalesChart isMobile={mob} preview={preview} />;
       case "survivorship": return <SurvivorshipChart isMobile={mob} initialView={iv} />;
+      case "whaleentry": return <WhaleEntryChart isMobile={mob} />;
       case "exitflow": return <ExitFlowChart isMobile={mob} />;
       case "smartmoney": return <SmartMoneyChart isMobile={mob} initialView={iv} />;
       case "walletwaves": return <WalletWavesChart isMobile={mob} preview={preview} />;
