@@ -97,11 +97,16 @@ function SankeyLink(props) {
   );
 }
 
+const WIN_LBL = { 90: "90 days", 30: "30 days", 7: "7 days" };
 export default function CexSankeyChart({ isMobile }) {
   const [data, setData] = useState(undefined);
+  const [flowWin, setFlowWin] = useState(90);   // flow window: 90 / 30 / 7 days (byWindow)
   useEffect(() => { let c = false; loadCexSankey().then(d => { if (!c) setData(d || null); }); return () => { c = true; }; }, []);
 
-  const sankey = useMemo(() => (data ? toSankey(data) : null), [data]);
+  // windows the data offers (byWindow); the selected slice, falling back to the flat 90-day fields.
+  const wins = data?.windows?.length ? data.windows : (data?.byWindow ? Object.keys(data.byWindow).map(Number) : null);
+  const active = useMemo(() => (data?.byWindow?.[flowWin] || data), [data, flowWin]);
+  const sankey = useMemo(() => (active ? toSankey(active) : null), [active]);
 
   if (data === undefined) return <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Loading exchange flow…</div>;
   if (!data || !sankey || sankey.links.length < 2) return (
@@ -113,14 +118,29 @@ export default function CexSankeyChart({ isMobile }) {
     </div>
   );
 
-  const { totals, window: win } = data;
+  const { totals, window: win } = active;
   const H = Math.max(360, Math.min(sankey.nodes.length, 40) * (isMobile ? 20 : 24) + 60);
 
   return (
     <div style={{ maxWidth: MAX_W, margin: "0 auto" }}>
       <Explain q="Where's the volume going — onto exchanges, or off?" accent={TEAL}>
-        Every wallet <strong style={{ color: NEUTRAL }}>supplying</strong> exchanges (left) and <strong style={{ color: GREEN }}>withdrawing</strong> from them (right), over the last {win?.days ?? 90} days. Flow band = amount; the exchanges are the stick in the middle. Tap a wallet to open it on Zerion. Flows under {fM(win?.dust ?? 25000)} SPX are rolled into a "smaller" band, never hidden.
+        Every wallet <strong style={{ color: NEUTRAL }}>supplying</strong> exchanges (left) and <strong style={{ color: GREEN }}>withdrawing</strong> from them (right), over the last {win?.days ?? flowWin} days. Flow band = amount; the exchanges are the stick in the middle. Tap a wallet to open it on Zerion. Flows under {fM(win?.dust ?? 25000)} SPX are rolled into a "smaller" band, never hidden.
       </Explain>
+
+      {wins && wins.length > 1 && (
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 9, marginBottom: 12, fontFamily: MONO }}>
+          <span style={{ fontSize: 11, color: "#64748b", textTransform: "uppercase", letterSpacing: 0.5 }}>flow over</span>
+          <div style={{ display: "inline-flex", borderRadius: 8, overflow: "hidden", border: "1px solid rgba(255,255,255,0.14)" }}>
+            {wins.map((w, i) => (
+              <button key={w} onClick={() => setFlowWin(w)} style={{
+                padding: "6px 13px", cursor: "pointer", fontFamily: SANS, fontSize: 13, fontWeight: 600, border: "none",
+                borderLeft: i ? "1px solid rgba(255,255,255,0.12)" : "none",
+                background: flowWin === w ? "rgba(94,234,212,0.16)" : "transparent", color: flowWin === w ? "#5eead4" : "#94a3b8",
+              }}>{WIN_LBL[w] || w + "d"}</button>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div style={{ display: "flex", gap: isMobile ? 16 : 30, justifyContent: "center", marginBottom: 12, flexWrap: "wrap" }}>
         <Metric label="onto exchanges" value={fM(totals.in)} color={NEUTRAL} sub="supply in" />

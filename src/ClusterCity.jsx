@@ -21,6 +21,10 @@ import { SANS, MONO } from "./chart-ui.jsx";
 const kM = v => v >= 1e6 ? (v / 1e6 % 1 ? (v / 1e6).toFixed(1) : v / 1e6) + "M" : Math.round(v / 1e3) + "k";
 const ACCENT = 0xa78bfa;
 
+// Flow windows the beams can read: 30d (default) / 7d / 24h. The engine emits walletFlow (30d) always
+// and the sparser walletFlow7 / walletFlow1 maps once the on-chain refresh lands them.
+const WINDOWS = [{ d: 30, lbl: "30d" }, { d: 7, lbl: "7d" }, { d: 1, lbl: "24h" }];
+
 const GUIDE = [
   { swatch: "linear-gradient(90deg,#d97706,#22d3ee)", title: "Colour is age", text: "warm amber for wallets that arrived recently, cyan for the ones held longest." },
   { swatch: "#94a3b8", title: "Height is size", text: "each cube is one wallet on a log SPX axis; a district is all the wallets one owner controls." },
@@ -34,6 +38,7 @@ function Inner({ isMobile }) {
   const [sel, setSel] = useState(null);
   const [recSecs, setRecSecs] = useState(12);
   const [rec, setRec] = useState({ state: "idle", pct: 0, msg: "" });   // idle | recording | error
+  const [flowWin, setFlowWin] = useState(30);   // beam window: 30 / 7 / 1 days
 
   // Owner-only video export, revealed behind ?rec=1 or the spx-rec local flag (same gate the Whales
   // Watching recorder uses, so it stays invisible to visitors). window.__clusterRecord is set by the scene.
@@ -47,9 +52,13 @@ function Inner({ isMobile }) {
 
   useEffect(() => { let off = false; loadEntities().then(d => { if (!off) setData(d ?? false); }); return () => { off = true; }; }, []);
 
-  const model = useMemo(() => data && data.entities ? buildClusterGroups(data.entities) : null, [data]);
+  const model = useMemo(() => data && data.entities ? buildClusterGroups(data.entities, { flowWin }) : null, [data, flowWin]);
   const hasFlow = !!(data && data.entities && data.entities.some(e => typeof e.d30 === "number"));
+  // the finer windows only appear once the engine emits walletFlow7 / walletFlow1
+  const winsAvail = useMemo(() => WINDOWS.filter(w => w.d === 30
+    || (data?.entities || []).some(e => e[w.d === 7 ? "walletFlow7" : "walletFlow1"])), [data]);
   const placed = model ? model.cohorts.length : 0;
+  const winLbl = (WINDOWS.find(w => w.d === flowWin) || WINDOWS[0]).lbl;
 
   const doRecord = async () => {
     if (!window.__clusterRecord || rec.state === "recording") return;
@@ -78,19 +87,19 @@ function Inner({ isMobile }) {
     let cleanup = () => {};
     try {
       cleanup = renderSkyline(host.current, model, {
-        isMobile, onPick: setSel, winLbl: "30d", axisLabel: "owners →", countNoun: "wallets",
+        isMobile, onPick: setSel, winLbl, axisLabel: "owners →", countNoun: "wallets",
         accent: ACCENT, statsName: "__clusterStats", recordName: "__clusterRecord",
       });
     } catch (e) { console.error("ClusterCity:", e); }
     return () => cleanup();
-  }, [model, placed, isMobile]);
+  }, [model, placed, isMobile, winLbl]);
 
   return (
     <div style={{ maxWidth: 1180, margin: "0 auto", padding: "0 14px", fontFamily: SANS }}>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "center", justifyContent: "space-between", margin: "6px 0 12px" }}>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "center" }}>
           <div style={{ fontFamily: SANS, fontSize: 13.5, color: "#a7b3c6" }}>
-            Every district is <b style={{ color: "#e2e8f0" }}>one owner</b> — the wallets our clustering links together. Cube = wallet · beam = 30-day flow.
+            Every district is <b style={{ color: "#e2e8f0" }}>one owner</b> — the wallets our clustering links together. Cube = wallet · beam = {winLbl === "24h" ? "24-hour" : winLbl === "7d" ? "7-day" : "30-day"} flow.
           </div>
           {showRec && placed > 0 && (
             <div style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
@@ -112,7 +121,23 @@ function Inner({ isMobile }) {
             </div>
           )}
         </div>
-        {placed > 0 && <div style={{ fontFamily: MONO, fontSize: 12, color: "#64748b" }}>{placed} owners · drag to orbit · {data.updated}</div>}
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          {placed > 0 && winsAvail.length > 1 && (
+            <div style={{ display: "inline-flex", alignItems: "center", gap: 7, fontFamily: MONO }}>
+              <span style={{ fontSize: 10.5, color: "#64748b", textTransform: "uppercase", letterSpacing: 0.5 }}>beam</span>
+              <div style={{ display: "inline-flex", borderRadius: 7, overflow: "hidden", border: "1px solid rgba(255,255,255,0.14)" }}>
+                {winsAvail.map((w, i) => (
+                  <button key={w.d} onClick={() => setFlowWin(w.d)} style={{
+                    padding: "5px 11px", cursor: "pointer", fontFamily: SANS, fontSize: 12.5, fontWeight: 600, border: "none",
+                    borderLeft: i ? "1px solid rgba(255,255,255,0.12)" : "none",
+                    background: flowWin === w.d ? "rgba(167,139,250,0.18)" : "transparent", color: flowWin === w.d ? "#c4b5fd" : "#94a3b8",
+                  }}>{w.lbl}</button>
+                ))}
+              </div>
+            </div>
+          )}
+          {placed > 0 && <div style={{ fontFamily: MONO, fontSize: 12, color: "#64748b" }}>{placed} owners · drag to orbit · {data.updated}</div>}
+        </div>
       </div>
 
       {(data === false || (data && !placed)) && (

@@ -640,22 +640,27 @@ export function replayFifo(transfers, priceAt, sampleTs, opts = {}) {
       // age are emitted too, so the 3D can render each wallet as a cube (size, age hue, buy/sell beam).
       const c30 = checkpoints.find(c => c.d === 30);
       for (const e of ent.entities) {
-        let bal = 0, holders = 0; const wb = {}, wf = {}, wg = {};
+        let bal = 0, holders = 0; const wb = {}, wf = {}, wg = {}, wf7 = {}, wf1 = {};
         const flow = {}; for (const c of checkpoints) flow[c.d] = 0;
         for (const a of e.wallets) {
           const w = wallets.get(a); const b = (w && w.bal > EPS) ? w.bal : 0;
           wb[a] = +b.toFixed(2); if (b > 0) { bal += b; holders++; }
           for (const c of checkpoints) if (c.snap) flow[c.d] += b - (c.snap.get(a) || 0);
-          const f30 = c30 && c30.snap ? b - (c30.snap.get(a) || 0) : 0;
+          const snapF = d => { const c = checkpoints.find(x => x.d === d); return c && c.snap ? b - (c.snap.get(a) || 0) : 0; };
+          const f30 = c30 && c30.snap ? b - (c30.snap.get(a) || 0) : 0, f7 = snapF(7), f1 = snapF(1);
           if (b > 0 || Math.abs(f30) > EPS) {   // hold now, or moved in the window → render/track it
             wf[a] = +f30.toFixed(2);
             let oldest = Infinity;
             if (w) for (let i = w.head; i < w.q.length; i++) { const lot = w.q[i]; if (lot && lot.qty > EPS && lot.ts < oldest) oldest = lot.ts; }
             wg[a] = Number.isFinite(oldest) ? Math.round((lastTs - oldest) / DAY) : 0;
           }
+          // sparse per-member flow at the shorter windows (only movers), for the 3D cluster city granularity
+          if (Math.abs(f7) > EPS) wf7[a] = +f7.toFixed(2);
+          if (Math.abs(f1) > EPS) wf1[a] = +f1.toFixed(2);
         }
         e.bal = +bal.toFixed(2); e.holders = holders; e.walletBal = wb;   // per-wallet balances → sized bubbles in the graph view
         e.walletFlow = wf; e.walletAge = wg;                              // per-member 30d net flow + holding age → 3D cubes/beams
+        e.walletFlow7 = wf7; e.walletFlow1 = wf1;                          // per-member 7d / 24h net (sparse) → 3D window toggle
         for (const c of checkpoints) e[`d${c.d}`] = +flow[c.d].toFixed(2); // entity net flow over each window → buy/sell signal
       }
       ent.entities.sort((a, b) => b.bal - a.bal || b.size - a.size);   // rank by combined holdings for the explorer
@@ -934,8 +939,18 @@ async function main() {
   const whalesOut = whalesPath;
   await writeFile(whalesOut, JSON.stringify(whales));
   // CEX flow Sankey companion — who supplies / withdraws from exchanges, + exchange candidates.
+  // Emitted at THREE windows (90 / 30 / 7 days) so the chart can offer granularity; the 90-day slice
+  // stays at top level for back-compat, the rest live under byWindow.
   try {
-    const cf = computeCexFlow(transfers, { asOf: t1, days: Number(args.cexflow_days ?? 90), dust: Number(args.cexflow_dust ?? 25000) });
+    const dust = Number(args.cexflow_dust ?? 25000);
+    const wins = [90, 30, 7];
+    const byWindow = {}; let cf = null;
+    for (const d of wins) {
+      const w = computeCexFlow(transfers, { asOf: t1, days: d, dust });
+      byWindow[d] = { window: w.window, totals: w.totals, inflow: w.inflow, outflow: w.outflow };
+      if (d === 90) cf = w;
+    }
+    cf = { ...cf, windows: wins, byWindow };   // flat 90d fields + byWindow{90,30,7}
     const cfOut = out.replace(/[^/]+$/, "cex-sankey.json");
     await writeFile(cfOut, JSON.stringify(cf));
     console.log(`Wrote ${cfOut}: in ${(cf.totals.in / 1e6).toFixed(1)}M · out ${(cf.totals.out / 1e6).toFixed(1)}M · ${cf.candidates.length} exchange candidate(s)${cf.candidates[0] ? " (top " + cf.candidates[0].a.slice(0, 10) + ": " + cf.candidates[0].txIn + " in / " + cf.candidates[0].txOut + " out, " + cf.candidates[0].cp + " parties)" : ""}`);

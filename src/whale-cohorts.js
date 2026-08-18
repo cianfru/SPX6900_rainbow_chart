@@ -168,7 +168,9 @@ export function buildClusterGroups(entities, opts = {}) {
     .sort((a, b) => (b.bal || 0) - (a.bal || 0))
     .slice(0, TOP)
     .map(e => {
-      const wb = e.walletBal || {}, wf = e.walletFlow || {}, wg = e.walletAge || {};
+      // per-member flow for the chosen window (7d/24h maps are sparse — a member absent = flat/no move)
+      const wf = (opts.flowWin === 7 ? e.walletFlow7 : opts.flowWin === 1 ? e.walletFlow1 : e.walletFlow) || {};
+      const wb = e.walletBal || {}, wg = e.walletAge || {};
       const members = (e.wallets || [])
         .map(a => ({ a, bal: wb[a] || 0, net: wf[a] || 0, days: wg[a] || 0 }))
         .filter(m => m.bal > 0)
