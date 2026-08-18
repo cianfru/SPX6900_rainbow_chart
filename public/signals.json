@@ -1,15 +1,15 @@
 {
-  "date": "2026-08-17",
+  "date": "2026-08-18",
   "signals": [
     {
       "type": "underwater-holding",
       "emoji": "💎",
       "title": "Holders ~39% underwater — and still not selling",
-      "detail": "MVRV 0.61: price is 39% below the crowd's avg on-chain cost basis ($0.519). Yet 61% of supply is in the longest-held tier — the float isn't moving. MVRV has slipped 0.67→0.61 over ~30d.",
+      "detail": "MVRV 0.61: price is 39% below the crowd's avg on-chain cost basis ($0.519). Yet 61% of supply is in the longest-held tier — the float isn't moving. MVRV has slipped 0.64→0.61 over ~30d.",
       "framing": "Maximum financial pain, minimal capitulation — conviction being tested and, so far, holding.",
       "note": "Describe the divergence, NOT a bottom call. \"Not selling\", not \"buy\".",
       "card": "breakeven",
-      "score": 1.935902916451695
+      "score": 1.9353428405985702
     },
     {
       "type": "drawdown",
@@ -22,14 +22,14 @@
       "score": 1.5
     },
     {
-      "type": "vs-btc",
-      "emoji": "₿",
-      "title": "Lagging Bitcoin over the past year",
-      "detail": "365-day relative strength vs BTC is -0.62× — SPX6900 has trailed Bitcoin over the year.",
-      "framing": "The honest scoreboard vs crypto's benchmark.",
-      "note": "Relative strength, not a call.",
-      "card": "spxbtc",
-      "score": 1.15
+      "type": "positioning",
+      "emoji": "⚖️",
+      "title": "Perp funding above neutral by 10pp",
+      "detail": "Funding 20% APR vs the ~10% neutral baseline — crowd leaning long.",
+      "framing": "Where the derivatives crowd is positioned right now.",
+      "note": "Positioning, not a signal.",
+      "card": "longshort",
+      "score": 1.2540508
     }
   ]
 }
