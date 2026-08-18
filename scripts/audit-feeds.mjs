@@ -119,6 +119,8 @@ export const FEEDS = [
     require: ["week0", "n"], nonEmpty: ["wallets"] },
   { file: "cohort-survival.json", cadence: 3, by: "onchain-dune.yml", what: "wallet survival by arrival era",
     require: ["overall", "week0"], nonEmpty: ["cohorts", "weekly"] },
+  { file: "whale-thennow.json", cadence: 3, by: "onchain-dune.yml (step)", what: "'Whales Then vs Now' mosaic panels at the NRPL-picked cycle moments",
+    nonEmpty: ["panels"] },
   { file: "whale-cohort-history.json", cadence: 3, by: "onchain-dune.yml", what: "per-week whale counts by size cohort",
     require: ["week0", "n"], nonEmpty: ["rows", "labels"] },
   { file: "city-history.json", cadence: 3, by: "onchain-dune.yml", what: "city citizens + TVL by size cohort over time",
