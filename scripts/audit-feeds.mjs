@@ -123,6 +123,8 @@ export const FEEDS = [
     nonEmpty: ["panels"] },
   { file: "cohort-roi.json", cadence: 3, by: "onchain-dune.yml (step)", what: "lifetime ROI by whale size band (% in profit + typical multiple)",
     require: ["price", "total"], nonEmpty: ["cohorts"] },
+  { file: "whale-entry.json", cadence: 3, by: "onchain-dune.yml (step)", what: "when each ≥100k whale bought (entry date × price) + in-profit, for the bubble card/chart",
+    require: ["price", "total"], nonEmpty: ["whales", "curve"] },
   { file: "whale-cohort-history.json", cadence: 3, by: "onchain-dune.yml", what: "per-week whale counts by size cohort",
     require: ["week0", "n"], nonEmpty: ["rows", "labels"] },
   { file: "city-history.json", cadence: 3, by: "onchain-dune.yml", what: "city citizens + TVL by size cohort over time",
