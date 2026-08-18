@@ -134,6 +134,19 @@ export function loadBtcMvrv() {
 // distribution WEEKLY series (Supply in Profit %, concentration, gini, HODL waves),
 // re-executed from Dune weekly in CI (build-onchain.mjs). Resolves to null on any
 // failure so callers can fall back to the bundled src/spx-onchain.js.
+// Cached loader for /cohort-roi.json — lifetime ROI by whale size band (% in profit + typical
+// multiple), rebuilt daily off the timeline in onchain-dune.yml. Null on failure.
+let cohortRoiPromise = null;
+export function loadCohortRoi() {
+  if (!cohortRoiPromise) {
+    cohortRoiPromise = fetch("/cohort-roi.json")
+      .then(r => (r.ok ? r.json() : null))
+      .then(d => (d && Array.isArray(d.cohorts) ? d : null))
+      .catch(() => null);
+  }
+  return cohortRoiPromise;
+}
+
 let onchainPromise = null;
 export function loadOnchain() {
   if (!onchainPromise) {

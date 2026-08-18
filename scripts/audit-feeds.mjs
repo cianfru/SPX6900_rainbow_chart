@@ -121,6 +121,8 @@ export const FEEDS = [
     require: ["overall", "week0"], nonEmpty: ["cohorts", "weekly"] },
   { file: "whale-thennow.json", cadence: 3, by: "onchain-dune.yml (step)", what: "'Whales Then vs Now' mosaic panels at the NRPL-picked cycle moments",
     nonEmpty: ["panels"] },
+  { file: "cohort-roi.json", cadence: 3, by: "onchain-dune.yml (step)", what: "lifetime ROI by whale size band (% in profit + typical multiple)",
+    require: ["price", "total"], nonEmpty: ["cohorts"] },
   { file: "whale-cohort-history.json", cadence: 3, by: "onchain-dune.yml", what: "per-week whale counts by size cohort",
     require: ["week0", "n"], nonEmpty: ["rows", "labels"] },
   { file: "city-history.json", cadence: 3, by: "onchain-dune.yml", what: "city citizens + TVL by size cohort over time",

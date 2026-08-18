@@ -17,6 +17,7 @@ import { valuationComposite, zoneOf as valZoneOf, INDICATORS as VAL_INDICATORS }
 import { cexVenuesStats } from "./cex-venues-card.mjs";
 import { cexSankeyStats } from "./cex-sankey-card.mjs";
 import { whaleThenNowStats } from "./whale-thennow-card.mjs";
+import { cohortRoiStats } from "./cohort-roi-card.mjs";
 import { cexVenFlowStats } from "./cex-venflow-card.mjs";
 import { spxBitcoinStats } from "./spx-bitcoin-card.mjs";
 import { chainRaceData } from "./multichain-card.mjs";
@@ -1694,6 +1695,20 @@ Moments picked from the on-chain NRPL peaks. Reduced ≠ sold — reconstructed 
       card: { type: "whalethennow" },
     };
   })(),
+  // "Who actually made money" — lifetime % in profit by whale size band. The relatable, honest read:
+  // bigger bags have better odds, mostly because becoming a whale meant buying early (survivorship).
+  // IN ROTATION. Reads precomputed public/cohort-roi.json (built daily off the timeline).
+  s => (() => {
+    const R = cohortRoiStats();
+    if (!R) return null;
+    return {
+      id: "cohortroi",
+      text: ct`🐋 Which SPX6900 whales actually made money? By wallet size, the share sitting in lifetime profit.
+The ${R.best.label} club is ${R.best.pctProfit.toFixed(0)}% green (typical wallet up ${R.best.medMult}×); the ${R.worst.label} band just ${R.worst.pctProfit.toFixed(0)}%.
+Bigger bags, better odds — because becoming one meant buying early. A scoreboard of survivors, not a strategy.`,
+      card: { type: "cohortroi" },
+    };
+  })(),
   // Per-VENUE net flow — which exchanges gained vs bled SPX over ~90d. Only possible because
   // every venue's wallets are tagged. Behaviour read, not a signal. NO_ROTATE.
   s => (() => {
@@ -2519,7 +2534,7 @@ const LOOK = {
   whatnext: "race",
   // — Tier B: flavourful / distinct looks (used to break up the green lines) —
   riskcolor: "colorline", risklevels: "colorline", rsidots: "colorline",
-  riskheat: "dual", runningroi: "dual", cycle: "dual", longshort: "dual", underwater: "dual", goldencross: "dual", holdergrowth: "dual", holdersprice: "dual", mvrvbtc: "dual", mvrvtrend: "dual", supplyprofit: "dual", whales: "dual", whalemosaic: "mosaic", whalethennow: "mosaic", walletwaves: "stack", wealthwaves: "stack", survivorship: "stack", supplyera: "dual", exitmap: "dual", smartmoney: "dual", floormodel: "dual", altmarket: "dual", freefloat: "dual", nupl: "dual", concentration: "dual", picycle: "dual", spxbitcoin: "dual", spxcohort: "dual", cexflow: "dual", cexsupply: "stack", sopr: "dual", nrpl: "dual", liveliness: "dual",
+  riskheat: "dual", runningroi: "dual", cycle: "dual", longshort: "dual", underwater: "dual", goldencross: "dual", holdergrowth: "dual", holdersprice: "dual", mvrvbtc: "dual", mvrvtrend: "dual", supplyprofit: "dual", whales: "dual", whalemosaic: "mosaic", whalethennow: "mosaic", cohortroi: "bars", walletwaves: "stack", wealthwaves: "stack", survivorship: "stack", supplyera: "dual", exitmap: "dual", smartmoney: "dual", floormodel: "dual", altmarket: "dual", freefloat: "dual", nupl: "dual", concentration: "dual", picycle: "dual", spxbitcoin: "dual", spxcohort: "dual", cexflow: "dual", cexsupply: "stack", sopr: "dual", nrpl: "dual", liveliness: "dual",
   firesalerally: "fanlines",
   model: "scatter",
   monthlyreturns: "heatmap", monthlyreturnssp: "heatmap", monthlyreturnsbtc: "heatmap",
