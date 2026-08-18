@@ -26,16 +26,20 @@ export function whaleEntries(tl, prices, opts = {}) {
   const whales = [];
   let early = 0, late = 0, profit = 0;
   for (const w of tl.wallets) {
-    let pos = 0, avg = 0, realized = 0, spent = 0, spentWkSum = 0, prev = 0, firstBuyWk = -1;
+    let pos = 0, avg = 0, realized = 0, spent = 0, prev = 0, firstBuyWk = -1, boughtQty = 0, boughtWkSum = 0;
     for (const [wk, bal] of w.p) {
       const d = bal - prev, pr = pAtWk(wk);
-      if (d > 0) { avg = (avg * pos + d * pr) / (pos + d); pos += d; spent += d * pr; spentWkSum += d * pr * wk; if (firstBuyWk < 0) firstBuyWk = wk; }
+      if (d > 0) { avg = (avg * pos + d * pr) / (pos + d); pos += d; spent += d * pr; boughtQty += d; boughtWkSum += d * wk; if (firstBuyWk < 0) firstBuyWk = wk; }
       else if (d < 0) { realized += (-d) * (pr - avg); pos += d; }
       prev = bal;
     }
     const now = balAt(w, W);
-    if (cohortOf(now) < 0 || now < minBal || spent <= 0) continue;
-    const entryWk = Math.round(spentWkSum / spent);        // money-weighted entry week
+    if (cohortOf(now) < 0 || now < minBal || spent <= 0 || boughtQty <= 0) continue;
+    // COIN-weighted entry week — matches the coin-weighted avg cost on the y-axis, so a bubble's
+    // (date, price) is a single coherent point (its average coin) that sits on the price curve. Using
+    // dollar-weighting here instead made barbell buyers (many cheap coins early, few pricey coins late)
+    // float below the curve — plotted late but priced low.
+    const entryWk = Math.round(boughtWkSum / boughtQty);
     // colour = is the bag they still hold above water — average cost below today's price. This keeps the
     // card self-consistent ("below the line = green") since position is that same average cost. It's an
     // on-current-bag lens; realized gains from earlier sells aren't credited here (stated in the caveat).
