@@ -1,0 +1,40 @@
+name: Whale mosaic cycle video
+
+# On-demand render of the whale-mosaic-through-the-cycle video. Trigger from the GitHub mobile app
+# (Actions → this workflow → Run workflow); the MP4 comes back as a downloadable artifact to post to X.
+# Reads the committed spx-timeline.json + onchain.json, stitches frames with the bundled ffmpeg-static.
+
+on:
+  workflow_dispatch:
+    inputs:
+      fps:
+        description: "frames per second (higher = faster playback)"
+        type: string
+        default: "8"
+      hold:
+        description: "frames to hold on 'today' at the end"
+        type: string
+        default: "14"
+
+permissions:
+  contents: read
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: Render + stitch the cycle video
+        run: node tools/render-whale-mosaic-video.mjs --fps=${{ inputs.fps }} --hold=${{ inputs.hold }}
+      - name: Upload the MP4
+        uses: actions/upload-artifact@v4
+        with:
+          name: whale-mosaic-cycle
+          path: out/whale-mosaic-cycle.mp4
+          if-no-files-found: error
+          retention-days: 14
