@@ -22,7 +22,7 @@ const BANDS = [
 ];
 const PMIN = 0.001, PMAX = 2.6, LGMIN = Math.log10(PMIN), LGMAX = Math.log10(PMAX);
 
-export default function WhaleEntryChart({ isMobile }) {
+export default function WhaleEntryChart({ isMobile, price }) {
   const wrap = useRef(null), cvs = useRef(null);
   const [data, setData] = useState(undefined);   // undefined loading · null failed · object ok
   const [band, setBand] = useState("all");
@@ -38,6 +38,11 @@ export default function WhaleEntryChart({ isMobile }) {
   }, []);
 
   const H = isMobile ? 380 : 520;
+  // LIVE price wins over the frozen one baked into the JSON, so the "today" line + green/red split
+  // never go stale between the daily data rebuilds — post the card/chart whenever.
+  const livePrice = (price && price > 0) ? price : (data ? data.price : 0);
+  const isUp = c => c < livePrice;
+  const livePct = useMemo(() => (data ? Math.round(100 * data.whales.filter(x => isUp(x.cost)).length / data.whales.length) : 0), [data, livePrice]);
   const whales = useMemo(() => {
     if (!data) return [];
     const b = BANDS.find(x => x.key === band);
@@ -67,33 +72,33 @@ export default function WhaleEntryChart({ isMobile }) {
     g.beginPath(); data.curve.forEach(([t, p], i) => { const x = X(t), y = Y(p); i ? g.lineTo(x, y) : g.moveTo(x, y); });
     g.strokeStyle = "rgba(219,228,255,0.5)"; g.lineWidth = 1.4; g.stroke();
 
-    // today line
-    const yNow = Y(data.price);
+    // today line (live price)
+    const yNow = Y(livePrice);
     g.setLineDash([6, 5]); g.strokeStyle = "rgba(94,234,212,0.85)"; g.lineWidth = 1.4; g.beginPath(); g.moveTo(mL, yNow); g.lineTo(mL + pW, yNow); g.stroke(); g.setLineDash([]);
-    g.fillStyle = "#5eead4"; g.textAlign = "left"; g.font = `600 12px ${SANS}`; g.fillText(`today ${fmtPrice(data.price)} · below = in profit`, mL + 6, yNow - 7);
+    g.fillStyle = "#5eead4"; g.textAlign = "left"; g.font = `600 12px ${SANS}`; g.fillText(`today ${fmtPrice(livePrice)} · below = in profit`, mL + 6, yNow - 7);
 
-    // bubbles — additive glow via shadowBlur, big first
+    // bubbles — additive glow via shadowBlur, big first; colour by live price
     const maxBag = Math.max(...data.whales.map(x => x.bag));
     const RMAX = isMobile ? 22 : 30, RMIN = 2.2;
     const geom = [];
     g.globalCompositeOperation = "lighter";
     for (const wl of whales) {
       const r = Math.max(RMIN, Math.sqrt(wl.bag / maxBag) * RMAX);
-      const x = X(wl.t), y = Y(wl.cost);
+      const x = X(wl.t), y = Y(wl.cost), up = isUp(wl.cost);
       geom.push({ w: wl, x, y, r });
-      const col = wl.up ? "34,197,94" : "244,63,94";
+      const col = up ? "34,197,94" : "244,63,94";
       const grd = g.createRadialGradient(x, y, 0, x, y, r);
-      grd.addColorStop(0, `rgba(${wl.up ? "180,255,205" : "255,190,200"},0.85)`);
+      grd.addColorStop(0, `rgba(${up ? "180,255,205" : "255,190,200"},0.85)`);
       grd.addColorStop(0.4, `rgba(${col},0.5)`); grd.addColorStop(1, `rgba(${col},0)`);
       g.fillStyle = grd; g.beginPath(); g.arc(x, y, r, 0, 7); g.fill();
     }
     g.globalCompositeOperation = "source-over";
     // bright cores
-    for (const gm of geom) { g.fillStyle = gm.w.up ? "rgba(201,255,224,0.9)" : "rgba(255,214,222,0.9)"; g.beginPath(); g.arc(gm.x, gm.y, Math.max(1, gm.r * 0.26), 0, 7); g.fill(); }
+    for (const gm of geom) { g.fillStyle = isUp(gm.w.cost) ? "rgba(201,255,224,0.9)" : "rgba(255,214,222,0.9)"; g.beginPath(); g.arc(gm.x, gm.y, Math.max(1, gm.r * 0.26), 0, 7); g.fill(); }
     // hover ring
     if (hover) { g.strokeStyle = "#fff"; g.lineWidth = 2; g.beginPath(); g.arc(X(hover.w.t), Y(hover.w.cost), Math.max(RMIN, Math.sqrt(hover.w.bag / maxBag) * RMAX) + 3, 0, 7); g.stroke(); }
     geomRef.current = geom;
-  }, [data, whales, w, H, isMobile, hover]);
+  }, [data, whales, w, H, isMobile, hover, livePrice]);
 
   const pick = (cx, cy) => {
     let best = null, bd = 1e9;
@@ -131,7 +136,7 @@ export default function WhaleEntryChart({ isMobile }) {
           ))}
         </div>
         <div style={{ fontFamily: MONO, fontSize: 12.5, color: "#8595ab" }}>
-          {whales.length.toLocaleString()} whales · <span style={{ color: "#22c55e" }}>{data.pctProfit}% in profit</span> · {data.pctLate}% bought after year one
+          {whales.length.toLocaleString()} whales · <span style={{ color: "#22c55e" }}>{livePct}% in profit</span> · {data.pctLate}% bought after year one
         </div>
       </div>
 
@@ -145,7 +150,7 @@ export default function WhaleEntryChart({ isMobile }) {
             <div style={{ fontWeight: 700, color: "#f1f5f9" }}>{short(hover.w.a)}</div>
             <div style={{ marginTop: 4, color: "#94a3b8" }}>{kM(hover.w.bag)} SPX held</div>
             <div style={{ color: "#94a3b8" }}>bought ~{fmtDate(hover.w.t)} @ {fmtPrice(hover.w.cost)}</div>
-            <div style={{ marginTop: 3, fontWeight: 700, color: hover.w.up ? "#4ade80" : "#fb7185" }}>{hover.w.up ? "in profit" : "underwater"} · {(data.price / hover.w.cost).toFixed(2)}× on bag</div>
+            <div style={{ marginTop: 3, fontWeight: 700, color: isUp(hover.w.cost) ? "#4ade80" : "#fb7185" }}>{isUp(hover.w.cost) ? "in profit" : "underwater"} · {(livePrice / hover.w.cost).toFixed(2)}× on bag</div>
             <div style={{ marginTop: 4, color: "#5eead4", fontSize: 11 }}>click → Zerion ↗</div>
           </div>
         )}

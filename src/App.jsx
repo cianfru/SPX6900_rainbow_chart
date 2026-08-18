@@ -793,7 +793,12 @@ export default function App() {
       case "hodlwaves": return <HodlWavesChart isMobile={mob} preview={preview} />;
       case "whales": return <WhalesChart isMobile={mob} preview={preview} />;
       case "survivorship": return <SurvivorshipChart isMobile={mob} initialView={iv} />;
-      case "whaleentry": return <WhaleEntryChart isMobile={mob} />;
+      case "whaleentry": return (
+        <CityGate title="When Whales Bought" accent="#5eead4" unit="whale" locked
+          blurb="We think this one's a little too good to give away just yet — it's behind a password while we refine it.">
+          <WhaleEntryChart isMobile={mob} price={last?.price} />
+        </CityGate>
+      );
       case "exitflow": return <ExitFlowChart isMobile={mob} />;
       case "smartmoney": return <SmartMoneyChart isMobile={mob} initialView={iv} />;
       case "walletwaves": return <WalletWavesChart isMobile={mob} preview={preview} />;

@@ -1,5 +1,5 @@
 // "WHEN THE WHALES BOUGHT" — every wallet ≥100k SPX as a glowing orb sitting on the SPX price curve
-// at the point it bought (money-weighted entry date × average price paid), sized by its bag, green if
+// at the point it bought (coin-weighted entry date × average price paid), sized by its bag, green if
 // in profit / red if underwater. The reveal jumps out: a bright red swarm up near the 2025 highs
 // (bought high, holding underwater) and a few lonely green giants down at the launch lows. Reads the
 // precomputed public/whale-entry.json (built off the timeline). See src/whale-entry.js for caveats.
@@ -25,6 +25,11 @@ export function whaleEntrySvg(s, opts = {}) {
   const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 92, mR = 40, mT = 172, mB = 74;
   const pW = W - mL - mR, pH = H - mT - mB;
 
+  // LIVE price (from today's snapshot) wins over the frozen JSON one, so the "today" line + green/red
+  // split never go stale between the daily data rebuilds — the card is post-ready whenever.
+  const price = (opts.price && opts.price > 0) ? opts.price : s.price;
+  const pctProfit = Math.round(100 * s.whales.filter(w => w.cost < price).length / s.whales.length);
+
   // axes — x is time (launch → now), y is price on a log scale spanning the launch lows to above the ATH.
   const t0 = s.launch, t1 = s.now, span = Math.max(1, t1 - t0);
   const pMin = 0.001, pMax = 2.6, lgMin = Math.log10(pMin), lgMax = Math.log10(pMax);
@@ -43,8 +48,8 @@ export function whaleEntrySvg(s, opts = {}) {
   for (const w of s.whales) {
     const r = Math.max(RMIN, Math.sqrt(w.bag / maxBag) * RMAX);
     const cx = X(w.t).toFixed(1), cy = Y(w.cost).toFixed(1);
-    orbs += `<circle cx="${cx}" cy="${cy}" r="${r.toFixed(1)}" fill="url(#${w.up ? "gU" : "gD"})"/>`;
-    cores += `<circle cx="${cx}" cy="${cy}" r="${Math.max(1.1, r * 0.28).toFixed(1)}" fill="${w.up ? "#c9ffe0" : "#ffd6de"}" opacity="0.85"/>`;
+    orbs += `<circle cx="${cx}" cy="${cy}" r="${r.toFixed(1)}" fill="url(#${w.cost < price ? "gU" : "gD"})"/>`;
+    cores += `<circle cx="${cx}" cy="${cy}" r="${Math.max(1.1, r * 0.28).toFixed(1)}" fill="${w.cost < price ? "#c9ffe0" : "#ffd6de"}" opacity="0.85"/>`;
   }
 
   // year gridlines on x
@@ -61,10 +66,10 @@ export function whaleEntrySvg(s, opts = {}) {
       + `<text x="${(mL - 10).toFixed(1)}" y="${(Y(p) + 5).toFixed(1)}" fill="#8593a8" font-size="17" text-anchor="end" font-family="sans-serif">$${p < 1 ? p : p.toFixed(0)}</text>`;
   }
   // "today" line — label parked at the LEFT end (the launch-era zone is empty there, so it stays legible)
-  const yNow = Y(s.price);
+  const yNow = Y(price);
   const todayLine = `<line x1="${mL}" y1="${yNow.toFixed(1)}" x2="${mL + pW}" y2="${yNow.toFixed(1)}" stroke="#5eead4" stroke-width="1.6" stroke-dasharray="7 5" opacity="0.85"/>`
     + `<rect x="${(mL + 8).toFixed(1)}" y="${(yNow - 30).toFixed(1)}" width="330" height="24" rx="6" fill="#06121a" opacity="0.82"/>`
-    + `<text x="${(mL + 18).toFixed(1)}" y="${(yNow - 13).toFixed(1)}" fill="#5eead4" font-size="16" font-weight="700" font-family="sans-serif">today $${s.price.toFixed(2)} — below this line = in profit</text>`;
+    + `<text x="${(mL + 18).toFixed(1)}" y="${(yNow - 13).toFixed(1)}" fill="#5eead4" font-size="16" font-weight="700" font-family="sans-serif">today $${price.toFixed(2)} — below this line = in profit</text>`;
 
   const hero = `${s.pctLate.toFixed(0)}% built their bags after year one — most near the 2025 highs`;
   return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
@@ -79,7 +84,7 @@ export function whaleEntrySvg(s, opts = {}) {
 ${brandStripe(H)}
 <text x="92" y="58" fill="#f8fafc" font-size="40" font-weight="800" font-family="sans-serif" letter-spacing="1">WHEN THE WHALES BOUGHT</text>
 <text x="92" y="102" fill="#22d3ee" font-size="29" font-weight="800" font-family="sans-serif">${esc(hero)}</text>
-<text x="92" y="140" fill="#93a3b8" font-size="19" font-family="sans-serif">${esc(`Every wallet ≥100k SPX, placed where it bought · bubble = bag size · ${s.total.toLocaleString()} whales · ${s.pctProfit.toFixed(0)}% in profit`)}</text>
+<text x="92" y="140" fill="#93a3b8" font-size="19" font-family="sans-serif">${esc(`Every wallet ≥100k SPX, placed where it bought · bubble = bag size · ${s.total.toLocaleString()} whales · ${pctProfit}% in profit`)}</text>
 ${xg}${yg}
 <path d="${curve}" fill="none" stroke="url(#pl)" stroke-width="4" filter="url(#glow)" opacity="0.5"/>
 ${todayLine}
@@ -92,7 +97,9 @@ ${todayLine}
 </svg>`;
 }
 
-export function renderWhaleEntryCard(_stats, opts = {}) {
+export function renderWhaleEntryCard(stats, opts = {}) {
   const s = whaleEntryStats();
-  return s ? png(whaleEntrySvg(s, { W: opts.W, H: opts.H }), opts.W ?? 1200) : null;
+  // live spot from today's snapshot → the "today" line + green/red split never go stale between rebuilds.
+  const price = stats && stats.price > 0 ? stats.price : undefined;
+  return s ? png(whaleEntrySvg(s, { W: opts.W, H: opts.H, price }), opts.W ?? 1200) : null;
 }

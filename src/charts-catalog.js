@@ -75,7 +75,7 @@ export const CHART_GROUPS = [
       { id: "whalecohorts", title: "Whale Counts Over Time", post: "whalecensus", desc: "How many wallets sit in each size cohort, week by week: the base broadened, the mega-whales thinned." },
       { id: "walletwaves", title: "Wallet-Size Waves", post: "walletwaves", desc: "Supply by how big the wallet is: HODL waves cut by size, not age." },
       { id: "wealthwaves", title: "The Wealth Ladder", post: "wealthwaves", desc: "How many holders sit in each dollar bracket, week by week." },
-      { id: "whaleentry", title: "When Whales Bought", post: "whaleentry", desc: "Every wallet over 100k SPX as a glowing orb on the price curve where it bought — green in profit, red underwater. Most bought high, not early." },
+      { id: "whaleentry", title: "When Whales Bought", post: "whaleentry", locked: true, desc: "Every wallet over 100k SPX as a glowing orb on the price curve where it bought — green in profit, red underwater. Most bought high, not early." },
       { id: "survivorship", title: "Who's Still Here", post: "survivorship", desc: "Of everyone who ever held SPX, who remains: by the era they first bought." },
       { id: "exitflow", title: "How Holders Left", post: "exitmap", desc: "Of everyone who left, when they sold and whether they left in profit or at a loss: over the price." },
       { id: "smartmoney", title: "Smart Money", post: "smartmoney", desc: "The live cohort of proven top-timers (ROI ≥5×, still holding): aggregate holdings and net-flow." },
