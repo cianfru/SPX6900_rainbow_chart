@@ -16,6 +16,7 @@ import { buildAltRainbow } from "../../src/alt-rainbow.js";
 import { valuationComposite, zoneOf as valZoneOf, INDICATORS as VAL_INDICATORS } from "./valuation-composite.mjs";
 import { cexVenuesStats } from "./cex-venues-card.mjs";
 import { cexSankeyStats } from "./cex-sankey-card.mjs";
+import { whaleThenNowStats } from "./whale-thennow-card.mjs";
 import { cexVenFlowStats } from "./cex-venflow-card.mjs";
 import { spxBitcoinStats } from "./spx-bitcoin-card.mjs";
 import { chainRaceData } from "./multichain-card.mjs";
@@ -1679,6 +1680,20 @@ A flow map from the tagged CEX wallets — checkable, not a signal.`,
       card: { type: "cexsankey" },
     };
   })(),
+  // "How the whales played the cycle" — the mosaic frozen at three NRPL-picked moments (the euphoric
+  // top, a capitulation flush, today). The mosaic card was a hit; this is the time-comparison spin.
+  // IN ROTATION. Reconstructed from spx-timeline.json → precomputed public/whale-thennow.json.
+  s => (() => {
+    const T = whaleThenNowStats();
+    if (!T?.panels?.length) return null;
+    return {
+      id: "whalethennow",
+      text: ct`🐋 How the whales played the cycle — every wallet ≥100k SPX, then vs now.
+At the euphoric top they were net sellers; today, net buyers sitting tight. The counts are on the card.
+Moments picked from the on-chain NRPL peaks. Reduced ≠ sold — reconstructed on-chain.`,
+      card: { type: "whalethennow" },
+    };
+  })(),
   // Per-VENUE net flow — which exchanges gained vs bled SPX over ~90d. Only possible because
   // every venue's wallets are tagged. Behaviour read, not a signal. NO_ROTATE.
   s => (() => {
@@ -2504,7 +2519,7 @@ const LOOK = {
   whatnext: "race",
   // — Tier B: flavourful / distinct looks (used to break up the green lines) —
   riskcolor: "colorline", risklevels: "colorline", rsidots: "colorline",
-  riskheat: "dual", runningroi: "dual", cycle: "dual", longshort: "dual", underwater: "dual", goldencross: "dual", holdergrowth: "dual", holdersprice: "dual", mvrvbtc: "dual", mvrvtrend: "dual", supplyprofit: "dual", whales: "dual", whalemosaic: "mosaic", walletwaves: "stack", wealthwaves: "stack", survivorship: "stack", supplyera: "dual", exitmap: "dual", smartmoney: "dual", floormodel: "dual", altmarket: "dual", freefloat: "dual", nupl: "dual", concentration: "dual", picycle: "dual", spxbitcoin: "dual", spxcohort: "dual", cexflow: "dual", cexsupply: "stack", sopr: "dual", nrpl: "dual", liveliness: "dual",
+  riskheat: "dual", runningroi: "dual", cycle: "dual", longshort: "dual", underwater: "dual", goldencross: "dual", holdergrowth: "dual", holdersprice: "dual", mvrvbtc: "dual", mvrvtrend: "dual", supplyprofit: "dual", whales: "dual", whalemosaic: "mosaic", whalethennow: "mosaic", walletwaves: "stack", wealthwaves: "stack", survivorship: "stack", supplyera: "dual", exitmap: "dual", smartmoney: "dual", floormodel: "dual", altmarket: "dual", freefloat: "dual", nupl: "dual", concentration: "dual", picycle: "dual", spxbitcoin: "dual", spxcohort: "dual", cexflow: "dual", cexsupply: "stack", sopr: "dual", nrpl: "dual", liveliness: "dual",
   firesalerally: "fanlines",
   model: "scatter",
   monthlyreturns: "heatmap", monthlyreturnssp: "heatmap", monthlyreturnsbtc: "heatmap",

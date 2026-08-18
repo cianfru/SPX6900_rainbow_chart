@@ -101,6 +101,10 @@ jobs:
         # continue-on-error: secondary re-slice of the timeline — can't be allowed to block onchain.json
         continue-on-error: true
         run: node scripts/build-cohort-survival.mjs --in=public/spx-timeline.json --out=public/cohort-survival.json
+      - name: Rebuild "Whales Then vs Now" panels (mosaic at the NRPL-picked cycle moments)
+        # Small precompute off the timeline + onchain NRPL, so the card/og read a 50 KB file not the 3 MB timeline.
+        continue-on-error: true
+        run: node scripts/build-whale-thennow.mjs
       - name: Rebuild whale-cohort history (WEEKLY counts in each size cohort)
         # From the lightweight spx-timeline.json (built above), NOT the 2.6M-row archive. The archive
         # path OOM'd (it loaded + sorted every transfer), so it silently failed under continue-on-error
@@ -181,7 +185,7 @@ jobs:
           # ETH/site files drive the DEPLOY (the site + og cards read these). Solana/Base files are
           # bot-only (no site consumer), so they ride along in the same commit but don't force a deploy
           # on their own. COMMIT if ANY of them changed; DEPLOY only if an ETH/site file changed.
-          ETH_FILES="public/onchain.json public/urpd.json public/urpd-history.json public/whales.json public/self-moves.json public/entities.json public/addr-types.json public/spx-timeline.json public/cohort-survival.json public/exit-flow.json public/smart-money.json public/city-recap.json public/whale-cohort-history.json public/city-history.json public/cex-sankey.json"
+          ETH_FILES="public/onchain.json public/urpd.json public/urpd-history.json public/whales.json public/self-moves.json public/entities.json public/addr-types.json public/spx-timeline.json public/cohort-survival.json public/exit-flow.json public/smart-money.json public/city-recap.json public/whale-cohort-history.json public/city-history.json public/cex-sankey.json public/whale-thennow.json"
           CHAIN_FILES="public/solana-onchain.json dune/out/spx6900_solana_balances.csv public/base-onchain.json dune/out/spx6900_base_cohort.csv"
           DEPLOY_CHANGED=""
           [[ -n "$(git status --porcelain $ETH_FILES)" ]] && DEPLOY_CHANGED=1
