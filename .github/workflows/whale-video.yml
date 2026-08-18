@@ -1,7 +1,8 @@
-name: Whale mosaic cycle video
+name: Whale cycle videos
 
-# On-demand render of the whale-mosaic-through-the-cycle video. Trigger from the GitHub mobile app
-# (Actions → this workflow → Run workflow); the MP4 comes back as a downloadable artifact to post to X.
+# On-demand render of the whale cycle videos — the MOSAIC (every whale as a square, mood-bands
+# breathing) and the SPECTRUM analyzer (10 size cohorts as equalizer bars). Trigger from the GitHub
+# mobile app (Actions → this workflow → Run workflow); both MP4s come back as downloadable artifacts.
 # Reads the committed spx-timeline.json + onchain.json, stitches frames with the bundled ffmpeg-static.
 
 on:
@@ -29,12 +30,16 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm ci
-      - name: Render + stitch the cycle video
+      - name: Render + stitch the mosaic video
         run: node tools/render-whale-mosaic-video.mjs --fps=${{ inputs.fps }} --hold=${{ inputs.hold }}
-      - name: Upload the MP4
+      - name: Render + stitch the spectrum video
+        run: node tools/render-whale-spectrum-video.mjs --fps=${{ inputs.fps }} --hold=${{ inputs.hold }}
+      - name: Upload the MP4s
         uses: actions/upload-artifact@v4
         with:
-          name: whale-mosaic-cycle
-          path: out/whale-mosaic-cycle.mp4
+          name: whale-cycle-videos
+          path: |
+            out/whale-mosaic-cycle.mp4
+            out/whale-spectrum.mp4
           if-no-files-found: error
           retention-days: 14

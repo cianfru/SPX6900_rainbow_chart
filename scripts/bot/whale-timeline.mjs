@@ -54,6 +54,26 @@ export function whalesAtWeek(tl, week, { minBal = 1e5, flowWeeks = 4 } = {}) {
   return { rows, buy, sell, flat, total: rows.length };
 }
 
+// SPECTRUM ANALYZER — bucket the whale field at week W into 10 size cohorts (small → mega), each with
+// its buy / flat / sell composition. Rendered as 10 vertical bars (green from the bottom = % buying,
+// red from the top = % selling), it reads like an audio spectrum; scrubbed through the time machine
+// the bars dance. Size bands are fixed + log-ish so "which size cohort is doing what" is legible.
+export const SPECTRUM_EDGES = [1e5, 2e5, 3.5e5, 6e5, 1e6, 1.75e6, 3e6, 5e6, 9e6, 16e6, Infinity];
+export const SPECTRUM_LABELS = ["100k", "200k", "350k", "600k", "1M", "1.75M", "3M", "5M", "9M", "16M+"];
+export function whaleSpectrum(tl, week, { flowWeeks = 4 } = {}) {
+  const { rows } = whalesAtWeek(tl, week, { flowWeeks });
+  const cohorts = SPECTRUM_LABELS.map((label, i) => ({ label, lo: SPECTRUM_EDGES[i], hi: SPECTRUM_EDGES[i + 1], buy: 0, sell: 0, flat: 0, total: 0 }));
+  for (const r of rows) {
+    let ci = -1;
+    for (let i = 0; i < cohorts.length; i++) { if (r.bal >= SPECTRUM_EDGES[i] && r.bal < SPECTRUM_EDGES[i + 1]) { ci = i; break; } }
+    if (ci < 0) continue;
+    const c = cohorts[ci], dust = Math.max(1000, r.bal * 0.005);
+    c.total++;
+    if (r.net > dust) c.buy++; else if (r.net < -dust) c.sell++; else c.flat++;
+  }
+  return cohorts;
+}
+
 // Pick the euphoria (biggest realized-PROFIT spike) and capitulation (biggest realized-LOSS spike)
 // dates from the on-chain NRPL series — objective cycle markers, not eyeballed price. Returns the
 // dates + their timeline week indices.
