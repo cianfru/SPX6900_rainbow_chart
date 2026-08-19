@@ -302,11 +302,14 @@ html:not([data-theme="light"]) .tzone [style*="rgb(100, 116, 139)"]{ color:#b1bc
 .tzone .tsbtop{ display:flex; align-items:center; gap:10px; padding:calc(env(safe-area-inset-top,0px) + 12px) 14px 11px; border-bottom:1px solid var(--line); flex:none; }
 /* Title is a FLEX child between the buttons (not absolutely centred), so it can never overlap the
    left buttons — at drill-down levels there are TWO of them (back + all-sections), and the old fixed
-   62px side padding only cleared one. flex:1 + min-width:0 lets it shrink and ellipsis-truncate. */
-.tzone .tsbtitle{ flex:1 1 auto; min-width:0; height:42px; line-height:42px; padding:0 4px; text-align:center;
-  font-family:var(--label); text-transform:uppercase; letter-spacing:.12em; font-size:16px; font-weight:800; color:var(--tx);
-  white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-@media(max-width:380px){ .tzone .tsbtitle{ letter-spacing:.06em; font-size:15px; } .tzone .tsbtop{ gap:7px; } }
+   62px side padding only cleared one. flex:1 + min-width:0 lets it shrink. Long/multi-word titles
+   WRAP to two lines (line-clamp) instead of hard-truncating to an unreadable "MARKETS & PO…"; a
+   title too long even for two lines gets an ellipsis on the 2nd line. The parent's align-items:center
+   keeps the 42px buttons centred against a one- OR two-line title. */
+.tzone .tsbtitle{ flex:1 1 auto; min-width:0; display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2;
+  padding:0 4px; text-align:center; overflow:hidden; overflow-wrap:break-word;
+  font-family:var(--label); text-transform:uppercase; letter-spacing:.07em; font-size:15px; line-height:1.14; font-weight:800; color:var(--tx); }
+@media(max-width:380px){ .tzone .tsbtitle{ letter-spacing:.03em; font-size:14px; } .tzone .tsbtop{ gap:7px; } }
 .tzone .tsbbtn{ width:42px; height:42px; display:inline-flex; align-items:center; justify-content:center; border:1px solid var(--line2); border-radius:9px; background:var(--panel); color:var(--tx); cursor:pointer; flex:none; }
 .tzone .tsbbtn:active{ border-color:var(--live); }
 .tzone .tsbbtn svg{ width:21px; height:21px; }
