@@ -2723,6 +2723,23 @@ export function lanePostedToday(lane, now = utcDay()) {
   return s.lanes?.[lane] === now;
 }
 
+// The three AEON event lanes share ONE cadence budget: each had its own daily gate, so a sale + a
+// firesale + a sweep could all fire on the same day (and did — two AEON posts in a day). This enforces
+// "one AEON event post per ~AEON_LANE_GAP_DAYS across ALL of them", so the track stays ~weekly.
+export const AEON_EVENT_LANES = ["aeonsale", "firesale", "aeonsweep"];
+export const AEON_LANE_GAP_DAYS = 4;
+/** True (OK to post) only if NONE of `lanes` posted within the last `days` days. */
+export function lanesQuiet(lanes, days, now = utcDay(), state = readPostState()) {
+  const t = Date.parse(now);
+  for (const l of lanes) {
+    const d = state.lanes?.[l];
+    if (d && (t - Date.parse(d)) / 86400000 < days) return false;
+  }
+  return true;
+}
+/** Shared AEON-event cooldown: any AEON lane posted in the last AEON_LANE_GAP_DAYS blocks the rest. */
+export function aeonLanesQuiet() { return lanesQuiet(AEON_EVENT_LANES, AEON_LANE_GAP_DAYS); }
+
 /** Record a lane post by MERGING into post-state — never clobber another lane or `recent`. */
 export function recordLanePost(lane, id, { now = utcDay(), write = true } = {}) {
   const s = readPostState();

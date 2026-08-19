@@ -18,7 +18,7 @@ import { fileURLToPath } from "node:url";
 import { pickFiresale, renderAeonFiresaleCard } from "./aeon-firesale-card.mjs";
 import { fetchArt, traitsFor, tierOf } from "./aeon-sale-card.mjs";
 import { postWithMedia } from "./media.mjs";
-import { lanePostedToday, recordLanePost, withFooter } from "./posts.mjs";
+import { lanePostedToday, recordLanePost, withFooter, aeonLanesQuiet } from "./posts.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "../..");
 const rd = (f, d) => { try { return JSON.parse(readFileSync(join(ROOT, "public", f), "utf8")); } catch { return d; } };
@@ -80,6 +80,7 @@ async function main() {
 
   if (!force && posted.has(key)) { console.log(`aeon-firesale: #${deal.id} at ${deal.price}Ξ already posted — skipping.`); return; }
   if (!force && lanePostedToday(LANE)) { console.log(`aeon-firesale: lane "${LANE}" already posted today — skipping.`); return; }
+  if (!force && !aeonLanesQuiet()) { console.log("aeon-firesale: another AEON lane posted in the last few days — cross-lane cooldown, skipping."); return; }
 
   // The piece IS the post: fetch + embed the art; if every source fails, skip rather than post a
   // placeholder (nothing recorded, so the next run retries). DRY still renders the placeholder.

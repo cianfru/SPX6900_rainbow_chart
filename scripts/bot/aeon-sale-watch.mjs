@@ -25,7 +25,7 @@ import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { renderAeonSaleCard, fetchArt, traitsFor, tierOf } from "./aeon-sale-card.mjs";
 import { postWithMedia } from "./media.mjs";
-import { lanePostedToday, recordLanePost, withFooter } from "./posts.mjs";
+import { lanePostedToday, recordLanePost, withFooter, aeonLanesQuiet } from "./posts.mjs";
 import { fetchLiveSales } from "./aeon-live-sales.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "../..");
@@ -239,12 +239,16 @@ async function main() {
     console.log(`aeon-sale: lane "${LANE}" already posted today — skipping (one notable sale per day).`);
     return;
   }
-  // Cadence cap: no notable-sale post within GLOBAL_GAP days of the last one (any kind), so the
-  // whole lane lands ~once a week rather than clustering. The steal cooldown above is on top of this.
+  // Cadence cap: no notable-sale post within GLOBAL_GAP days of the last notable SALE (this lane's own
+  // history), so the sale lane lands ~weekly rather than clustering. The steal cooldown is on top.
   if (!force && state.lastAt) {
     const sinceAny = (Date.parse(asOf) - Date.parse(state.lastAt.slice(0, 10))) / 86400e3;
     if (sinceAny < GLOBAL_GAP) { console.log(`aeon-sale: last notable sale was ${sinceAny.toFixed(0)}d ago (<${GLOBAL_GAP}d gap) — skipping.`); return; }
   }
+  // AND a CROSS-LANE gap: a firesale/sweep in the last few days blocks this too (state.lastAt only
+  // knows this lane's own posts, so the sibling lanes were invisible — that's how two AEON posts
+  // landed in a day).
+  if (!force && !aeonLanesQuiet()) { console.log("aeon-sale: another AEON lane posted in the last few days — cross-lane cooldown, skipping."); return; }
 
   const { traits, total } = traitsFor(sale.id, RARITY);
   const tier = tierOf(sale.rank, total);

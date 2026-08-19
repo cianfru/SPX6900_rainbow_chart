@@ -19,7 +19,7 @@ import { fileURLToPath } from "node:url";
 import { detectSweeps, renderAeonSweepCard } from "./aeon-sweep-card.mjs";
 import { fetchArt } from "./aeon-sale-card.mjs";
 import { postWithMedia } from "./media.mjs";
-import { lanePostedToday, recordLanePost, withFooter } from "./posts.mjs";
+import { lanePostedToday, recordLanePost, withFooter, aeonLanesQuiet } from "./posts.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "../..");
 const SALES = join(ROOT, "public/aeon-sales.json");
@@ -76,6 +76,7 @@ async function main() {
   console.log(`aeon-sweep: ${sweep.a} swept ${sweep.n} in ${sweep.span}d (${sweep.start}→${sweep.end}) for ${sweep.eth.toFixed(2)}Ξ`);
 
   if (!force && lanePostedToday(LANE)) { console.log(`aeon-sweep: lane "${LANE}" already posted today — skipping.`); return; }
+  if (!force && !aeonLanesQuiet()) { console.log("aeon-sweep: another AEON lane posted in the last few days — cross-lane cooldown, skipping."); return; }
 
   // rank + art url per token from the rarity file
   const rarity = readJson(RARITY, null);
