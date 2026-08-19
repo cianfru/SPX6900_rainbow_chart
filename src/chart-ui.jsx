@@ -82,10 +82,10 @@ export function useHoverType(text) {
 // types its label out on hover, exactly like the top menu. Used for every chart-page control
 // (share / fullscreen / chart pager / back). icon optional; iconRight puts the icon after the label;
 // an empty label makes an icon-only square button. Styling lives in .menubtn (terminal.css, .tzone).
-export function MenuBtn({ label = "", icon, iconRight = false, onClick, title, className = "", active = false, style }) {
+export function MenuBtn({ label = "", icon, iconRight = false, onClick, title, className = "", active = false, style, type: btnType = "button" }) {
   const { shown, type, reset } = useHoverType(label || "");
   return (
-    <button type="button"
+    <button type={btnType}
       className={"menubtn" + (active ? " on" : "") + (label ? "" : " ic") + (className ? " " + className : "")}
       onMouseEnter={type} onMouseLeave={reset} onClick={onClick} title={title || label} aria-label={title || label}
       style={style}>

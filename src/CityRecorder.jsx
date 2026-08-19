@@ -60,7 +60,7 @@ export default function CityRecorder({ accent = "#5eead4", onRecording }) {
   };
 
   const chip = active => ({
-    cursor: "pointer", padding: "3px 8px", borderRadius: 6, fontFamily: MONO, fontSize: 12,
+    cursor: "pointer", padding: "3px 8px", borderRadius: 0, fontFamily: MONO, fontSize: 12,
     border: `1px solid ${active ? accent : "rgba(255,255,255,0.16)"}`,
     background: active ? `color-mix(in srgb, ${accent} 22%, transparent)` : "transparent",
     color: active ? "#eafff7" : "#94a3b8",
@@ -89,7 +89,7 @@ export default function CityRecorder({ accent = "#5eead4", onRecording }) {
         {SPINS.map(s => <button key={s.id} onClick={() => setSpin(s.id)} style={chip(s.id === spin)}>{s.label}</button>)}
       </span>
       <button onClick={go} disabled={rec.state === "recording"} style={{
-        cursor: rec.state === "recording" ? "default" : "pointer", padding: "5px 13px", borderRadius: 7,
+        cursor: rec.state === "recording" ? "default" : "pointer", padding: "5px 13px", borderRadius: 0,
         border: `1px solid ${accent}`, background: `color-mix(in srgb, ${accent} 20%, transparent)`,
         color: "#eafff7", fontFamily: MONO, fontWeight: 700, fontSize: 12.5,
       }}>{rec.state === "recording" ? `● Recording ${Math.round(rec.pct * 100)}%` : "Spin + Record"}</button>

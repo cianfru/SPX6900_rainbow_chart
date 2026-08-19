@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { TERMINAL_KEY, TERMINAL_HASH } from "./terminal-gate-key.js";
+import { MenuBtn } from "./chart-ui.jsx";
 
 // THE TERMINAL (/terminal) — the owner's daily intel one-pager, kept SEPARATE from the post-control
 // panel so the "what's happening on-chain today" read isn't tangled up with the "which card to fire"
@@ -62,7 +63,7 @@ function Gate({ onPass, isMobile }) {
       <form onSubmit={submit} style={{ display: "flex", gap: 8, justifyContent: "center" }}>
         <input type="password" value={pw} autoFocus onChange={e => { setPw(e.target.value); setBad(false); }} placeholder="passphrase"
           style={{ width: 220, padding: "10px 13px", borderRadius: 0, fontFamily: "var(--mono)", fontSize: 13, background: "var(--panel)", border: `1px solid ${bad ? "#fb7185" : "var(--line2)"}`, color: "var(--tx)", outline: "none" }} />
-        <button type="submit" style={{ padding: "10px 18px", borderRadius: 0, cursor: "pointer", fontFamily: "var(--mono)", fontSize: 13, background: "var(--panel)", border: "1px solid var(--live)", color: "var(--live)" }}>Enter</button>
+        <MenuBtn label="Enter" type="submit" />
       </form>
       {bad && <div style={{ color: "#fb7185", fontSize: 13, marginTop: 12, fontFamily: "var(--mono)" }}>Not that one.</div>}
     </div>

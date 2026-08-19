@@ -308,7 +308,7 @@ const GUIDE = [
 function Toggle({ on, onClick, children }) {
   return (
     <button onClick={onClick} style={{
-      padding: "6px 12px", borderRadius: 8, cursor: "pointer", fontFamily: SANS, fontSize: 13, fontWeight: 600,
+      padding: "6px 12px", borderRadius: 0, cursor: "pointer", fontFamily: SANS, fontSize: 13, fontWeight: 600,
       background: on ? "rgba(94,234,212,0.16)" : "rgba(255,255,255,0.05)",
       border: `1px solid ${on ? "#5eead4" : "rgba(255,255,255,0.14)"}`, color: on ? "#5eead4" : "#94a3b8",
     }}>{children}</button>
@@ -390,14 +390,14 @@ function Watcher({ isMobile }) {
           {showRec && (
             <div style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
               <button onClick={doRecord} disabled={rec.state === "recording"} style={{
-                padding: "6px 12px", borderRadius: 8, cursor: rec.state === "recording" ? "default" : "pointer",
+                padding: "6px 12px", borderRadius: 0, cursor: rec.state === "recording" ? "default" : "pointer",
                 fontFamily: SANS, fontSize: 13, fontWeight: 700,
                 background: rec.state === "recording" ? "rgba(251,113,133,0.16)" : "rgba(94,234,212,0.16)",
                 border: `1px solid ${rec.state === "recording" ? "#fb7185" : "#5eead4"}`, color: rec.state === "recording" ? "#fb7185" : "#5eead4",
               }}>{rec.state === "recording" ? `● Recording ${Math.round(rec.pct * 100)}%` : "🎥 Record"}</button>
               {rec.state !== "recording" && (
                 <select value={recSecs} onChange={e => setRecSecs(+e.target.value)} style={{
-                  padding: "6px 8px", borderRadius: 8, fontFamily: MONO, fontSize: 12, cursor: "pointer",
+                  padding: "6px 8px", borderRadius: 0, fontFamily: MONO, fontSize: 12, cursor: "pointer",
                   background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.14)", color: "#94a3b8",
                 }}>
                   <option value={8}>8s</option><option value={12}>12s</option><option value={20}>20s</option>
@@ -409,7 +409,7 @@ function Watcher({ isMobile }) {
           {windows.length > 1 && (
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <span style={{ fontFamily: MONO, fontSize: 11, color: "#64748b", textTransform: "uppercase", letterSpacing: 0.5 }}>flow over</span>
-              <div style={{ display: "inline-flex", borderRadius: 8, overflow: "hidden", border: "1px solid rgba(255,255,255,0.14)" }}>
+              <div style={{ display: "inline-flex", borderRadius: 0, overflow: "hidden", border: "1px solid rgba(255,255,255,0.14)" }}>
                 {windows.map((w, i) => {
                   const on = flowWin === w.d;
                   return (
@@ -461,7 +461,7 @@ function Watcher({ isMobile }) {
         <div style={{ margin: "12px 0 2px" }}>
           <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 6 }}>
             <button onClick={() => setSelWhale(null)} style={{
-              fontFamily: MONO, fontSize: 11.5, cursor: "pointer", padding: "3px 9px", borderRadius: 6,
+              fontFamily: MONO, fontSize: 11.5, cursor: "pointer", padding: "3px 9px", borderRadius: 0,
               background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.14)", color: "#94a3b8",
             }}>× close</button>
           </div>

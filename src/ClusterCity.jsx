@@ -104,14 +104,14 @@ function Inner({ isMobile }) {
           {showRec && placed > 0 && (
             <div style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
               <button onClick={doRecord} disabled={rec.state === "recording"} style={{
-                padding: "6px 12px", borderRadius: 8, cursor: rec.state === "recording" ? "default" : "pointer",
+                padding: "6px 12px", borderRadius: 0, cursor: rec.state === "recording" ? "default" : "pointer",
                 fontFamily: SANS, fontSize: 13, fontWeight: 700,
                 background: rec.state === "recording" ? "rgba(251,113,133,0.16)" : "rgba(167,139,250,0.16)",
                 border: `1px solid ${rec.state === "recording" ? "#fb7185" : "#a78bfa"}`, color: rec.state === "recording" ? "#fb7185" : "#c4b5fd",
               }}>{rec.state === "recording" ? `● Recording ${Math.round(rec.pct * 100)}%` : "🎥 Record"}</button>
               {rec.state !== "recording" && (
                 <select value={recSecs} onChange={e => setRecSecs(+e.target.value)} style={{
-                  padding: "6px 8px", borderRadius: 8, fontFamily: MONO, fontSize: 12, cursor: "pointer",
+                  padding: "6px 8px", borderRadius: 0, fontFamily: MONO, fontSize: 12, cursor: "pointer",
                   background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.14)", color: "#94a3b8",
                 }}>
                   <option value={8}>8s</option><option value={12}>12s</option><option value={20}>20s</option>
@@ -149,7 +149,7 @@ function Inner({ isMobile }) {
       {sel && (
         <div style={{ margin: "12px 0 2px" }}>
           <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 6 }}>
-            <button onClick={() => setSel(null)} style={{ fontFamily: MONO, fontSize: 11.5, cursor: "pointer", padding: "3px 9px", borderRadius: 6, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.14)", color: "#94a3b8" }}>× close</button>
+            <button onClick={() => setSel(null)} style={{ fontFamily: MONO, fontSize: 11.5, cursor: "pointer", padding: "3px 9px", borderRadius: 0, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.14)", color: "#94a3b8" }}>× close</button>
           </div>
           <WalletCard w={sel} isMobile={isMobile} accent="#a78bfa" flow={sel.net || 0} flowUnit=" SPX"
             lines={[

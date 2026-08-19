@@ -445,7 +445,7 @@ export default function SpxCity({ isMobile, preview = false, initialMode = "spx"
                 style={{
                   fontFamily: MONO, fontSize: 12, color: "#e2e8f0", colorScheme: "dark",
                   background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.16)",
-                  borderRadius: 8, padding: "5px 9px", outline: "none",
+                  borderRadius: 0, padding: "5px 9px", outline: "none",
                 }} />
               {week != null && <TypeTab label="Back to now" on={false} onClick={() => { setWeek(null); setPend(null); }} />}
             </>
@@ -492,7 +492,7 @@ export default function SpxCity({ isMobile, preview = false, initialMode = "spx"
                 <div key={e.a} onClick={go} title={e.resident ? "Fly to their building" : "Open wallet ↗"}
                   style={{
                     display: "flex", alignItems: "center", gap: 10, cursor: "pointer",
-                    padding: "7px 11px", borderRadius: 9,
+                    padding: "7px 11px", borderRadius: 0,
                     background: "rgba(196,181,253,0.06)", border: "1px solid rgba(196,181,253,0.16)",
                   }}>
                   <span style={{ color: "#64748b", fontFamily: MONO, fontSize: 12, width: 16, flex: "none" }}>{i + 1}</span>
@@ -542,7 +542,7 @@ export default function SpxCity({ isMobile, preview = false, initialMode = "spx"
             style={{
               position: "absolute", top: "calc(env(safe-area-inset-top, 0px) + 12px)",
               right: "calc(env(safe-area-inset-right, 0px) + 12px)", zIndex: 10001,
-              width: 40, height: 40, borderRadius: 999, cursor: "pointer",
+              width: 40, height: 40, borderRadius: 0, cursor: "pointer",
               display: "grid", placeItems: "center", color: "#f1f5f9",
               background: "rgba(10,12,20,0.72)", border: "1px solid rgba(255,255,255,0.22)",
               backdropFilter: "blur(6px)",

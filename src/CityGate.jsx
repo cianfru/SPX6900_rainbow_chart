@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { SANS, MONO } from "./chart-ui.jsx";
+import { SANS, MONO, MenuBtn } from "./chart-ui.jsx";
 import { CITY_KEY as KEY } from "./city-gate-key.js";
 
 // DEVELOPMENT GATE + the arrival explainer for Aeon City / Whale City.
@@ -104,14 +104,11 @@ export default function CityGate({ title, accent = "#5eead4", unit = "holder", l
               <input type="password" value={pw} autoFocus onChange={e => { setPw(e.target.value); setBad(false); }}
                 placeholder="passphrase"
                 style={{
-                  width: 220, padding: "9px 13px", borderRadius: 9, fontFamily: MONO, fontSize: 13,
+                  width: 220, padding: "9px 13px", borderRadius: 0, fontFamily: MONO, fontSize: 13,
                   background: "rgba(255,255,255,0.05)", border: `1px solid ${bad ? "#fb7185" : "rgba(255,255,255,0.16)"}`,
                   color: "#e2e8f0", outline: "none",
                 }} />
-              <button type="submit" style={{
-                padding: "9px 18px", borderRadius: 9, cursor: "pointer", fontFamily: MONO, fontSize: 13,
-                background: "rgba(255,255,255,0.08)", border: `1px solid ${accent}`, color: accent,
-              }}>Enter</button>
+              <MenuBtn label="Enter" type="submit" />
             </form>
             {bad && <div style={{ color: "#fb7185", fontSize: 13, marginTop: 12 }}>Not that one.</div>}
           </>

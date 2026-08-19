@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useMemo, Suspense } from "react";
 import { CHART_GROUPS, AEON_GROUPS, METHOD_FAMILIES, METHOD_OF } from "./charts-catalog.js";
 import { gcolFor } from "./terminal-colors.js";
 import ErrorBoundary from "./ErrorBoundary.jsx";
-import { SANS, MONO, MAX_W } from "./chart-ui.jsx";
+import { SANS, MONO, MAX_W, MenuBtn } from "./chart-ui.jsx";
 
 // The browse-all "Charts" gallery, a terminal-styled grid of preview tiles. Every
 // tile opens a FULLY INTERACTIVE chart page (onOpen). The preview is a LIVE,
@@ -197,11 +197,7 @@ export default function ChartsGallery({
       <div style={{ maxWidth: MAX_W, margin: "0 auto 30px" }}>
         {/* return to all charts when the gallery is filtered to a single group (deep-linked from the nav) */}
         {onlyGroup && onBack && (
-          <button onClick={onBack} className="galback" style={{
-            display: "inline-flex", alignItems: "center", gap: 7, marginBottom: 14, cursor: "pointer",
-            background: "transparent", border: `1px solid ${T.line2}`, borderRadius: 8, padding: "6px 12px",
-            fontFamily: MONO, fontSize: 12, letterSpacing: ".07em", textTransform: "uppercase", color: T.dim,
-          }}>‹ All {title}</button>
+          <div style={{ marginBottom: 14 }}><MenuBtn label={`‹ All ${title}`} onClick={onBack} /></div>
         )}
         <div style={{ fontFamily: MONO, fontSize: 12, letterSpacing: ".08em", color: T.live, marginBottom: 10 }}>
           <span style={{ color: T.faint }}>spx6900 ~ %</span> {cmd}

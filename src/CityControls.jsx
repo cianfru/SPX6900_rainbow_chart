@@ -110,7 +110,7 @@ export default function CityControls({ layout, onLayout, onFocus, has, accent = 
   const neon = (active, glow = accent) => ({
     className: `neon-pill${active ? " active" : ""}`,
     style: {
-      padding: "6px 14px", borderRadius: 8, fontFamily: MONO, fontSize: 12,
+      padding: "6px 14px", borderRadius: 0, fontFamily: MONO, fontSize: 12,
       color: active ? "#f8fafc" : "#94a3b8", "--glow": glow,
     },
   });
@@ -122,7 +122,7 @@ export default function CityControls({ layout, onLayout, onFocus, has, accent = 
           <input value={q} onChange={e => { setQ(e.target.value); setMsg(null); }}
             placeholder="Where do you live? Paste a wallet…"
             style={{
-              width: isMobile ? "100%" : 280, padding: "6px 12px", borderRadius: 8, fontFamily: MONO, fontSize: 12.5,
+              width: isMobile ? "100%" : 280, padding: "6px 12px", borderRadius: 0, fontFamily: MONO, fontSize: 12.5,
               background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.14)", color: "#e2e8f0", outline: "none",
             }} />
           <TypeTab label="Find" on={false} onClick={submit} />
@@ -182,7 +182,7 @@ export default function CityControls({ layout, onLayout, onFocus, has, accent = 
         <a href={DOCS_URL} target="_blank" rel="noopener noreferrer" title="How to read the city — the manual"
           className="neon-pill" style={{
             display: "inline-flex", alignItems: "center", gap: 7, textDecoration: "none",
-            padding: "6px 13px", borderRadius: 8, fontFamily: MONO, fontSize: 12, color: "#94a3b8", "--glow": accent,
+            padding: "6px 13px", borderRadius: 0, fontFamily: MONO, fontSize: 12, color: "#94a3b8", "--glow": accent,
           }}>
           <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.5"
             strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">

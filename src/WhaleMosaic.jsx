@@ -152,7 +152,7 @@ export default function WhaleMosaic({ isMobile }) {
       {sel && (
         <div style={{ margin: "14px 0 2px" }}>
           <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 6 }}>
-            <button onClick={() => setSel(null)} style={{ fontFamily: MONO, fontSize: 11.5, cursor: "pointer", padding: "3px 9px", borderRadius: 6, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.14)", color: "#94a3b8" }}>× close</button>
+            <button onClick={() => setSel(null)} style={{ fontFamily: MONO, fontSize: 11.5, cursor: "pointer", padding: "3px 9px", borderRadius: 0, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.14)", color: "#94a3b8" }}>× close</button>
           </div>
           <WalletCard w={sel} chain={sel.chain} isMobile={isMobile} accent="#5eead4" flow={sel.net || 0} flowUnit=" SPX"
             lines={[`${kM(sel.bal)} SPX · ${CHAIN[sel.chain]}`, sel.net ? "net flow, recent" : "no recent move"]} />

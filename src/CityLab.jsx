@@ -391,7 +391,7 @@ export default function CityLab({ isMobile }) {
         <div style={{ display: "flex", gap: 6, justifyContent: "center", marginBottom: 14 }}>
           {Object.entries(TIMES).map(([k, v]) => (
             <button key={k} onClick={() => setTime(k)} style={{
-              padding: "5px 14px", borderRadius: 8, cursor: "pointer", fontFamily: MONO, fontSize: 12,
+              padding: "5px 14px", borderRadius: 0, cursor: "pointer", fontFamily: MONO, fontSize: 12,
               background: time === k ? "rgba(94,234,212,0.16)" : "transparent",
               border: `1px solid ${time === k ? "#5eead4" : "rgba(255,255,255,0.12)"}`,
               color: time === k ? "#5eead4" : "#94a3b8",

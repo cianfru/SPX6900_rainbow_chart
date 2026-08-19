@@ -50,7 +50,7 @@ export function useDailyTier(accent = "#5eead4", coarseLabel = "Monthly") {
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8, marginBottom: 10 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
         <span style={{ fontFamily: MONO, fontSize: 11, color: "#64748b", textTransform: "uppercase", letterSpacing: 0.5 }}>resolution</span>
-        <div style={{ display: "inline-flex", borderRadius: 8, overflow: "hidden", border: "1px solid rgba(255,255,255,0.14)" }}>
+        <div style={{ display: "inline-flex", borderRadius: 0, overflow: "hidden", border: "1px solid rgba(255,255,255,0.14)" }}>
           {seg(!daily, coarseLabel, pickCoarse)}
           <span style={{ width: 1, background: "rgba(255,255,255,0.12)" }} />
           {seg(daily, "Daily", pickDaily, !unlocked && <span style={{ marginLeft: 5, opacity: 0.8 }}>🔒</span>)}
@@ -61,12 +61,12 @@ export function useDailyTier(accent = "#5eead4", coarseLabel = "Monthly") {
           <input type="password" value={pw} autoFocus onChange={e => { setPw(e.target.value); setBad(false); }}
             placeholder="members passphrase"
             style={{
-              width: 190, padding: "7px 11px", borderRadius: 8, fontFamily: MONO, fontSize: 12.5,
+              width: 190, padding: "7px 11px", borderRadius: 0, fontFamily: MONO, fontSize: 12.5,
               background: "rgba(255,255,255,0.05)", border: `1px solid ${bad ? "#fb7185" : "rgba(255,255,255,0.16)"}`,
               color: "#e2e8f0", outline: "none",
             }} />
           <button type="submit" style={{
-            padding: "7px 15px", borderRadius: 8, cursor: "pointer", fontFamily: MONO, fontSize: 12.5,
+            padding: "7px 15px", borderRadius: 0, cursor: "pointer", fontFamily: MONO, fontSize: 12.5,
             background: "rgba(255,255,255,0.08)", border: `1px solid ${accent}`, color: accent,
           }}>Unlock</button>
           {bad && <span style={{ color: "#fb7185", fontSize: 12 }}>Not that one.</span>}

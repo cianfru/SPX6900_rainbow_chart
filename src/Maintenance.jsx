@@ -48,7 +48,7 @@ export default function Maintenance({ token }) {
       </p>
 
       <a href={X_URL} target="_blank" rel="noopener noreferrer" style={{
-        marginTop: 4, display: "inline-flex", alignItems: "center", gap: 8, padding: "9px 16px", borderRadius: 8,
+        marginTop: 4, display: "inline-flex", alignItems: "center", gap: 8, padding: "9px 16px", borderRadius: 0,
         border: "1px solid #2c303a", color: "#cbd5e1", textDecoration: "none",
         fontFamily: "'Geist Mono',ui-monospace,monospace", fontSize: 13, letterSpacing: ".04em",
       }}>
@@ -62,13 +62,13 @@ export default function Maintenance({ token }) {
           type="password" value={pw} onChange={(e) => { setPw(e.target.value); setBad(false); }}
           placeholder="team access" aria-label="Team access"
           style={{
-            background: "#0e1013", border: `1px solid ${bad ? "#e5342f" : "#2c303a"}`, borderRadius: 7,
+            background: "#0e1013", border: `1px solid ${bad ? "#e5342f" : "#2c303a"}`, borderRadius: 0,
             padding: "8px 12px", color: "#f4f6f9", fontFamily: "'Geist Mono',ui-monospace,monospace",
             fontSize: 13, outline: "none", width: 160,
           }}
         />
         <button type="submit" style={{
-          background: "#12161c", border: "1px solid #2c303a", borderRadius: 7, padding: "8px 14px",
+          background: "#12161c", border: "1px solid #2c303a", borderRadius: 0, padding: "8px 14px",
           color: "#9aa3b2", fontFamily: "'Geist Mono',ui-monospace,monospace", fontSize: 13, cursor: "pointer",
         }}>enter</button>
       </form>

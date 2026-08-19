@@ -126,7 +126,7 @@ export default function BtcAnalogExplorer() {
             <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 8 }}>
               {PRESETS.map(p => (
                 <button key={p.name} onClick={() => { setShift(p.shift); setScale(p.scale); setBeta(p.beta); }}
-                  style={{ fontSize: 12, padding: "6px 10px", background: "rgba(255,255,255,0.04)", color: "#94a3b8", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, cursor: "pointer" }}>
+                  style={{ fontSize: 12, padding: "6px 10px", background: "rgba(255,255,255,0.04)", color: "#94a3b8", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 0, cursor: "pointer" }}>
                   {p.name}
                 </button>
               ))}

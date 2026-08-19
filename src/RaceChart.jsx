@@ -208,7 +208,7 @@ export default function RaceChart({ series, isMobile, fetchCoins, coins, basketL
             return (
               <button key={c.key} onClick={() => toggle(c.key)} className="pill" title={off ? `Show ${c.label}` : `Hide ${c.label}`}
                 style={{
-                  display: "inline-flex", alignItems: "center", gap: 6, cursor: "pointer", padding: "5px 11px", borderRadius: 8,
+                  display: "inline-flex", alignItems: "center", gap: 6, cursor: "pointer", padding: "5px 11px", borderRadius: 0,
                   fontFamily: SANS, fontSize: 13, fontWeight: 600, background: "transparent",
                   border: `1px solid ${off ? "transparent" : c.color + "55"}`, "--glow": c.color,
                   color: off ? "#64748b" : "#e2e8f0", opacity: off ? 0.6 : 1,

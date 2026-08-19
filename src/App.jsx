@@ -861,7 +861,7 @@ export default function App() {
 
   const navIcon = (rgb, glow, color = "#e2e8f0") => ({
     display: "inline-flex", alignItems: "center", justifyContent: "center",
-    width: 38, height: 38, borderRadius: 9, cursor: "pointer", textDecoration: "none",
+    width: 38, height: 38, borderRadius: 0, cursor: "pointer", textDecoration: "none",
     color, ...glass(rgb, 0.10), border: "1px solid transparent", boxShadow: "none", "--glow": glow,
   });
   // Minimal nav: Rainbow (home) · Charts (gallery) · X. The full chart library
