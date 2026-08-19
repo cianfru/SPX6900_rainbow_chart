@@ -388,3 +388,35 @@ html:not([data-theme="light"]) .tzone [style*="rgb(100, 116, 139)"]{ color:#b1bc
 .tzone .tsbcell .tsbcellnm{ position:relative; font-family:var(--sans); font-weight:800; font-size:19px; letter-spacing:-.01em; line-height:1.05; }
 .tzone .tsbcell .tsbcellsub{ position:relative; font-family:var(--mono); font-size:9.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--faint); }
 .tzone .tsbcell .tsbcellarrow{ position:absolute; top:16px; right:17px; color:var(--tc); font-size:17px; line-height:1; opacity:.65; }
+
+/* ═══════════ THE TERMINAL (/terminal) — the owner intel one-pager ═══════════
+   Scoped under .tzone so it inherits the design tokens + the light/dark theme flip. */
+.tzone .tmwrap{ padding-top:26px; padding-bottom:64px; max-width:1080px; }
+.tzone .tmhead{ margin-bottom:20px; }
+.tzone .tmtitle{ font-family:var(--mono); font-size:clamp(26px,5vw,40px); font-weight:400; letter-spacing:.02em; color:var(--tx); text-transform:uppercase; line-height:1; }
+.tzone .tmcur{ color:var(--live); animation:tcurblink 1.05s steps(1,end) infinite; }
+.tzone .tmsub{ font-family:var(--mono); font-size:13px; color:var(--faint); margin-top:9px; }
+.tzone .tmrainbow{ height:2px; margin-top:14px; border-radius:0; background:var(--rainbow); opacity:.9; }
+.tzone .tmalerts{ margin:16px 0 4px; display:flex; flex-direction:column; gap:8px; }
+.tzone .tmalert{ font-family:var(--mono); font-size:13px; font-weight:500; color:var(--tx); background:color-mix(in srgb, var(--live) 12%, transparent); border:1px solid color-mix(in srgb, var(--live) 45%, transparent); border-left:3px solid var(--live); border-radius:0; padding:10px 13px; }
+.tzone .tmsec{ margin:22px 0 4px; }
+.tzone .tmsectitle{ font-family:var(--mono); font-size:11px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:var(--faint); margin:0 0 6px; padding-bottom:5px; border-bottom:1px solid var(--line); }
+.tzone .tmsectitle span{ color:var(--line2); letter-spacing:.06em; }
+.tzone .tmtblwrap{ overflow-x:auto; }
+.tzone .tmtbl{ width:100%; border-collapse:collapse; font-family:var(--mono); font-size:13px; font-variant-numeric:tabular-nums; }
+.tzone .tmtbl th{ text-align:right; font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:.06em; color:var(--line2); padding:4px 8px; border-bottom:1px solid var(--line); white-space:nowrap; }
+.tzone .tmtbl th:first-child{ text-align:left; }
+.tzone .tmtbl td{ text-align:right; padding:8px; border-bottom:1px solid var(--line); color:var(--dim); white-space:nowrap; }
+.tzone .tmtbl tr:last-child td{ border-bottom:none; }
+.tzone .tmtbl .tmk{ text-align:left; color:var(--tx); font-family:var(--sans); white-space:normal; max-width:340px; }
+.tzone .tmtbl .tmval{ color:var(--tx); font-weight:700; }
+.tzone .tmnote{ display:block; font-family:var(--sans); font-size:11px; font-weight:400; color:var(--faint); margin-top:2px; line-height:1.35; }
+.tzone .tmup{ color:var(--live); }
+.tzone .tmdn{ color:#e5484d; }
+.tzone .tmdz{ color:var(--line2); }
+html[data-theme="light"] .tzone .tmdn{ color:#c81e3a; }
+.tzone .tmfresh{ margin-top:22px; font-family:var(--mono); font-size:11px; color:var(--faint); line-height:1.9; }
+.tzone .tmfresh .tmfok{ color:var(--faint); }
+.tzone .tmfresh .tmdn{ color:#e5484d; }
+.tzone .tmfoot{ margin-top:16px; font-family:var(--sans); font-size:12px; color:var(--faint); line-height:1.6; max-width:760px; }
+@media(max-width:640px){ .tzone .tmtbl .tmk{ max-width:190px; } .tzone .tmtbl td{ padding:7px 6px; } }

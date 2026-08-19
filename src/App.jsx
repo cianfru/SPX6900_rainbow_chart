@@ -132,6 +132,7 @@ const NuplChart = lazy(() => import("./NuplChart.jsx"));
 const QuantileFanChart = lazy(() => import("./QuantileFanChart.jsx"));
 const ChartsGallery = lazy(() => import("./ChartsGallery.jsx"));
 const DocsPage = lazy(() => import("./DocsPage.jsx"));
+const TerminalPage = lazy(() => import("./TerminalPage.jsx"));
 // LandingPage retired at ?view=next in favour of the terminal landing (public/landing-next.html, full-bleed iframe)
 // HOME_IS_LANDING: the home route ("/") renders the redesigned terminal landing instead of the old
 // rainbow-hero ("Aura") page. Flip to false to bring the old home back.
@@ -669,9 +670,9 @@ export default function App() {
       else if (view) params.set("v", view);
     }
     const qs = params.toString();
-    // SPX City gets a clean path of its own (/city); every other route lives at "/" with a query,
-    // so leaving the city resets the pathname back to root rather than stranding ?view= on /city.
-    const path = r === "city" ? "/city" : "/";
+    // SPX City + the Terminal get clean paths of their own (/city, /terminal); every other route lives
+    // at "/" with a query, so leaving them resets the pathname back to root.
+    const path = r === "city" ? "/city" : r === "terminal" ? "/terminal" : "/";
     const next = path + (qs ? "?" + qs : "") + window.location.hash;
     const cur = window.location.pathname + window.location.search + window.location.hash;
     if (next !== cur) window.history.pushState(null, "", next);
@@ -720,8 +721,9 @@ export default function App() {
   // interactive chart, otherwise the Rainbow hero.
   useEffect(() => {
     const apply = () => {
-      // SPX City is a path (/city), not a query, check it first.
+      // SPX City + the Terminal are paths (/city, /terminal), not queries, check them first.
       if (window.location.pathname === "/city") { setRoute("city"); return; }
+      if (window.location.pathname === "/terminal") { setRoute("terminal"); return; }
       const p = new URLSearchParams(window.location.search);
       const rel = p.get("rel");
       if (rel && REL_IDS.has(rel)) setRelWhich(rel);
@@ -899,7 +901,7 @@ export default function App() {
   // Sub-pages (everything but home + the ?view=next landing preview) wear the terminal
   // shell: near-black ground, Geist type, the DOS cascade nav. Home + the iframe landing
   // keep their own chrome untouched.
-  const isSub = ["gallery", "chart", "aeon", "city", "docs", "rainbow"].includes(route);
+  const isSub = ["gallery", "chart", "aeon", "city", "docs", "rainbow", "terminal"].includes(route);
 
   return (
     <div className={isSub ? "tzone" : undefined} style={{
@@ -1068,6 +1070,13 @@ export default function App() {
       {route === "docs" && (
         <Suspense fallback={<div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Loading…</div>}>
           <DocsPage isMobile={isMobile} slug={docSlug} onNavigate={openDocs} />
+        </Suspense>
+      )}
+
+      {/* The Terminal (/terminal) — owner intel one-pager, password-gated, its own clean path. */}
+      {route === "terminal" && (
+        <Suspense fallback={<div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Loading…</div>}>
+          <TerminalPage isMobile={isMobile} />
         </Suspense>
       )}
 
