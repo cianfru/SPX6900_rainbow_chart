@@ -41,6 +41,24 @@ test("buildDailySnapshot — fires the accumulation alert when MVRV is low, and 
   assert.equal(holders.d[2], 300);  // +10 × 30 days
 });
 
+test("buildDailySnapshot — flags a supply exit wave (few whales, big supply)", () => {
+  // 60 calm days (~0.05M/day), then a whale profit-taking spike of 4M SPX in 6 wallets.
+  const calm = Array.from({ length: 60 }, (_, i) => [`d${i}`, 4, 1, 40000, 10000]);
+  const spike = [["spikeday", 6, 0, 4000000, 0]];
+  const ef = { days: [...calm, ...spike] };
+  const s = buildDailySnapshot({ history, onchain, exitFlow: ef });
+  const a = (s.alerts || []).find(x => /Exit wave/.test(x));
+  assert.ok(a, "expected an exit-wave alert");
+  assert.ok(/4\.00M SPX/.test(a) && /profit-taking/.test(a), "should report supply + profit-taking: " + a);
+  assert.equal(s.exits.d1.supply, 4000000);
+});
+
+test("buildDailySnapshot — no exit alert on calm churn", () => {
+  const calm = Array.from({ length: 40 }, (_, i) => [`d${i}`, 4, 1, 40000, 10000]);
+  const s = buildDailySnapshot({ history, onchain, exitFlow: { days: calm } });
+  assert.ok(!(s.alerts || []).some(x => /Exit wave/.test(x)));
+});
+
 test("buildDailySnapshot — empty feeds never throw", () => {
   const s = buildDailySnapshot({ history: [], onchain: [] });
   assert.ok(Array.isArray(s.sections));

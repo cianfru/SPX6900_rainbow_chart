@@ -26,7 +26,7 @@ const row = (label, value, arr, acc, fmt, goodUp, note) => ({
 });
 
 export function buildDailySnapshot(feeds) {
-  const { history = [], onchain = [], whales, smartMoney, valuation, cexFlow } = feeds;
+  const { history = [], onchain = [], whales, smartMoney, valuation, cexFlow, exitFlow } = feeds;
   const oc = onchain.length ? onchain[onchain.length - 1] : null;
   const h = history.length ? history[history.length - 1] : null;
   const spot = oc?.spot ?? h?.p ?? whales?.spot ?? 0;
@@ -90,6 +90,38 @@ export function buildDailySnapshot(feeds) {
     });
   }
 
+  // ---- HOW HOLDERS LEFT (exit-flow) ---------------------------------------
+  // Daily departures (a wallet's last day above the 5k bar), split profit vs loss, in wallets AND SPX.
+  // exit-flow.json days = [date, cProfit, cLoss, supProfit, supLoss]. We surface the trailing 1/7/30-day
+  // sums + the % leaving in profit, and RAISE AN ALERT when the last few days' supply-departed spikes
+  // above its own trailing norm — a real "holders leaving" signal, framed by whether it's profit-taking
+  // (top selling) or loss (capitulation). This is the lane the terminal was missing.
+  let exits = null;
+  const efDays = exitFlow?.days;
+  if (Array.isArray(efDays) && efDays.length >= 8) {
+    const supTot = r => (r[3] || 0) + (r[4] || 0);
+    const sum = (n, i) => efDays.slice(-n).reduce((s, r) => s + (r[i] || 0), 0);
+    const win = n => {
+      const cP = sum(n, 1), cL = sum(n, 2), sP = sum(n, 3), sL = sum(n, 4), s = sP + sL;
+      return { wallets: cP + cL, supply: s, profitPct: s > 0 ? Math.round((sP / s) * 100) : null };
+    };
+    exits = { d1: win(1), d7: win(7), d30: win(30) };
+    // spike: last up-to-3 days' supply vs the trailing-60d daily norm
+    const daily = efDays.map(supTot);
+    const trail = daily.slice(-63, -3);
+    if (trail.length >= 20) {
+      const mean = trail.reduce((a, b) => a + b, 0) / trail.length;
+      const sd = Math.sqrt(trail.reduce((a, b) => a + (b - mean) ** 2, 0) / trail.length) || 1;
+      const recent = efDays.slice(-3);
+      const peak = recent.reduce((best, r) => (supTot(r) > supTot(best) ? r : best), recent[0]);
+      const z = (supTot(peak) - mean) / sd;
+      if (z >= 2 && supTot(peak) > 0) {
+        const sP = peak[3] || 0, sL = peak[4] || 0, mostly = sP >= sL ? "profit-taking" : "at a loss (capitulation)";
+        alerts.push(`⚠️ Exit wave: ${((sP + sL) / 1e6).toFixed(2)}M SPX left on ${peak[0]} (${((peak[1] || 0) + (peak[2] || 0))} wallets), ${z.toFixed(1)}σ above normal — mostly ${mostly}.`);
+      }
+    }
+  }
+
   // ---- SMART MONEY --------------------------------------------------------
   const sm = [];
   if (smartMoney) {
@@ -116,7 +148,7 @@ export function buildDailySnapshot(feeds) {
   return {
     updated: date, date,
     spot: +(+spot).toFixed(6),
-    sections, whaleFlow, alerts,
+    sections, whaleFlow, exits, alerts,
     freshness: {
       history: dateOf(history), onchain: dateOf(onchain), whales: dateOf(whales),
       smartMoney: smartMoney?.updated || null, valuation: valuation?.updated || null,
@@ -133,6 +165,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     smartMoney: read("public/smart-money.json"),
     valuation: read("public/valuation.json"),
     cexFlow: read("public/cex-flow.json"),
+    exitFlow: read("public/exit-flow.json"),
   });
   writeFileSync(out, JSON.stringify(snap));
   console.error(`daily-snapshot: ${snap.sections.length} sections · ${snap.alerts.length} alerts · ${snap.date} → ${out}`);

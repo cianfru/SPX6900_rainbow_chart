@@ -120,6 +120,25 @@ export default function TerminalPage({ isMobile }) {
         </section>
       )}
 
+      {S && S.exits && (
+        <section className="tmsec">
+          <div className="tmsectitle">How holders left <span>departures below the 5k bar</span></div>
+          <div className="tmtblwrap">
+            <table className="tmtbl">
+              <thead><tr><th>window</th><th>wallets</th><th>SPX left</th><th>% in profit</th></tr></thead>
+              <tbody>{[["1d", S.exits.d1], ["7d", S.exits.d7], ["30d", S.exits.d30]].map(([w, e]) => e && (
+                <tr key={w}>
+                  <td className="tmk">{w}</td>
+                  <td>{e.wallets}</td>
+                  <td>{(e.supply / 1e6).toFixed(2)}M</td>
+                  <td className={e.profitPct == null ? "tmdz" : e.profitPct >= 55 ? "tmup" : e.profitPct <= 45 ? "tmdn" : ""}>{e.profitPct == null ? "—" : e.profitPct + "%"}</td>
+                </tr>
+              ))}</tbody>
+            </table>
+          </div>
+        </section>
+      )}
+
       {S && S.sections.map((sec, si) => (
         <section className="tmsec" key={si}>
           <div className="tmsectitle">{sec.title}</div>

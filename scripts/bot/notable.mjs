@@ -299,18 +299,25 @@ function valuationDriver(val) {
   }];
 }
 
-// 8) Departure spike — an unusually heavy day of holders leaving (≥5k → below).
+// 8) Departure spike — an unusually heavy day of holders leaving (≥5k → below). Scored on BOTH wallet
+//    COUNT and SUPPLY over the last few days, because the sharpest waves are a FEW whales taking a LOT
+//    of supply off the table (the count-only version missed the 2025 ATH profit-taking entirely).
 function exitSpike(ef) {
   const days = ef?.days; if (!Array.isArray(days) || days.length < 30) return [];
-  const totals = days.map(d => (d[1] || 0) + (d[2] || 0));   // profit-exits + loss-exits
-  const z = zLast(totals);
-  if (z < 1.5) return [];
-  const last = days.at(-1), n = (last[1] || 0) + (last[2] || 0), lossShare = n ? (last[2] || 0) / n : 0;
+  const cnt = d => (d[1] || 0) + (d[2] || 0), sup = d => (d[3] || 0) + (d[4] || 0);
+  const stat = f => { const t = days.slice(-63, -3).map(f); const m = t.reduce((a, b) => a + b, 0) / t.length; const sd = Math.sqrt(t.reduce((a, b) => a + (b - m) ** 2, 0) / t.length) || 1; return { m, sd }; };
+  const cS = stat(cnt), sS = stat(sup);
+  let best = null, bestZ = 1.5;
+  for (const d of days.slice(-3)) { const z = Math.max((cnt(d) - cS.m) / cS.sd, (sup(d) - sS.m) / sS.sd); if (z > bestZ) { bestZ = z; best = d; } }
+  if (!best) return [];
+  const n = cnt(best), s = sup(best), sP = best[3] || 0, sL = best[4] || 0, lossLed = sL > sP;
   return [{
-    lane: "exits", severity: Math.min(6, 2.5 + z), emoji: "🚪",
-    headline: `A heavier day of holders leaving (${n} wallets)`,
-    detail: `${last[0]}: ${z.toFixed(1)}σ above the usual daily churn. ${Math.round((1 - lossShare) * 100)}% left in profit${lossShare > 0.5 ? " — but loss-exits led, unusual" : ""}.`,
-    framing: `An above-average day of departures (${n} wallets, ${Math.round((1 - lossShare) * 100)}% in profit). Churn is normal; a spike with loss-exits leading would be the worrying version.`,
+    lane: "exits", severity: Math.min(6.5, 2.5 + bestZ * 0.4), emoji: "🚪",
+    headline: `${(s / 1e6).toFixed(2)}M SPX left in a day${lossLed ? " at a loss" : ""}`,
+    detail: `${best[0]}: ${n} wallet${n === 1 ? "" : "s"} dropped below the 5k bar with ${(s / 1e6).toFixed(2)}M SPX, ${bestZ.toFixed(1)}σ above the usual churn — ${lossLed ? "loss-led (capitulation)" : Math.round((sP / (s || 1)) * 100) + "% in profit (profit-taking)"}.`,
+    framing: lossLed
+      ? `A loss-led exit wave — the worrying kind: ${n} wallets left ${(s / 1e6).toFixed(2)}M SPX underwater. Say "left/dropped below the bar", not "dumped".`
+      : `A profit-taking exit wave — ${n} wallets banked ${(s / 1e6).toFixed(2)}M SPX and stepped down. Holders selling strength, not fear; the honest hook is WHO takes profit and when.`,
     checkable: "Wallets whose balance fell below the 5k residency bar that day, split by exit vs entry price.",
     verify: chartLink("How Holders Left", "exitflow"),
   }];
