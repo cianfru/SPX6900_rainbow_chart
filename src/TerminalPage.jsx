@@ -46,22 +46,18 @@ function Delta({ d, fmt, goodUp }) {
   return <span className={good ? "tmup" : "tmdn"}>{sign}{mag}</span>;
 }
 
-// A tiny inline trajectory (last ~90 days, downsampled). Neutral single-colour line + an endpoint dot —
-// it shows a slow metric's SHAPE (liveliness barely moves day-to-day, so its 1d/7d deltas read "·").
-function Spark({ data }) {
-  if (!Array.isArray(data) || data.length < 4) return null;
-  const W = 104, H = 22, P = 2;
-  const lo = Math.min(...data), hi = Math.max(...data), rng = (hi - lo) || 1;
-  const x = i => (i / (data.length - 1)) * (W - P * 2) + P;
-  const y = v => H - P - ((v - lo) / rng) * (H - P * 2);
-  const pts = data.map((v, i) => `${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(" ");
-  const ex = x(data.length - 1), ey = y(data[data.length - 1]);
-  return (
-    <svg className="tmspark" width={W} height={H} viewBox={`0 0 ${W} ${H}`} aria-hidden="true">
-      <polyline points={pts} fill="none" stroke="var(--dim)" strokeWidth="1.4" strokeLinejoin="round" strokeLinecap="round" />
-      <circle cx={ex} cy={ey} r="2.1" fill="var(--live)" />
-    </svg>
-  );
+// A 90-day TREND ARROW. A slow metric (liveliness) barely moves day-to-day — its 1d/7d deltas round to
+// "·" — but its 90-day direction is the story. We compare the average of the first third of the window
+// to the last third (noise-robust); <2% net = flat. Colour follows the row's goodUp, same as the deltas.
+function Trend({ data, goodUp }) {
+  if (!Array.isArray(data) || data.length < 6) return null;
+  const k = Math.max(1, Math.round(data.length / 3));
+  const avg = a => a.reduce((s, x) => s + x, 0) / a.length;
+  const first = avg(data.slice(0, k)), last = avg(data.slice(-k));
+  const rel = (last - first) / Math.max(Math.abs(first), 1e-9);
+  if (Math.abs(rel) < 0.02) return <span className="tmtrend tmtrend-flat" title="flat over 90 days">→ 90d</span>;
+  const up = last > first, good = up === !!goodUp;
+  return <span className={"tmtrend " + (good ? "tmup" : "tmdn")} title={`${up ? "rising" : "falling"} over 90 days`}>{up ? "▲" : "▼"} 90d</span>;
 }
 
 function Gate({ onPass, isMobile }) {
@@ -214,7 +210,7 @@ export default function TerminalPage({ isMobile }) {
               <thead><tr><th>metric</th><th>now</th><th>1d</th><th>7d</th><th>30d</th></tr></thead>
               <tbody>{sec.rows.map((r, ri) => (
                 <tr key={ri}>
-                  <td className="tmk">{r.label}{r.note ? <span className="tmnote">{r.note}</span> : null}{r.spark ? <Spark data={r.spark} /> : null}</td>
+                  <td className="tmk">{r.label}{r.note ? <span className="tmnote">{r.note}</span> : null}{r.spark ? <Trend data={r.spark} goodUp={r.goodUp} /> : null}</td>
                   <td className="tmval">{fmtVal(r.value, r.fmt)}</td>
                   {(r.d || [null, null, null]).map((d, di) => <td key={di}><Delta d={d} fmt={r.fmt} goodUp={r.goodUp} /></td>)}
                 </tr>
