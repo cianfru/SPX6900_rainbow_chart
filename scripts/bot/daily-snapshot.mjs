@@ -7,6 +7,7 @@
 // HONESTY: several conviction reads are SUPPLY shares, not wallet counts (that is all the feeds carry);
 // labelled as such. Rows also carry the source date so the panel can flag a stale feed.
 import { readFileSync, existsSync, writeFileSync } from "node:fs";
+import { scanAnomalies } from "./anomaly-scan.mjs";
 
 const read = f => { try { return existsSync(f) ? JSON.parse(readFileSync(f, "utf8")) : null; } catch { return null; } };
 // delta of a numeric accessor over the last N rows of a daily array (null if not enough history)
@@ -144,9 +145,13 @@ export function buildDailySnapshot(feeds) {
   if (h?.fng != null) tech.push(row("Fear & Greed", h.fng, history, r => r.fng, "int", true, "crypto-wide, context only"));
   if (tech.length) sections.push({ title: "Technicals", rows: tech });
 
+  // ANOMALY RADAR — the across-the-board scan: every numeric series flagged if it jumped abnormally today.
+  const radar = scanAnomalies({ onchain, history, exitFlow, cexFlow, valuation });
+
   const date = dateOf(history) || dateOf(onchain) || null;
   return {
     updated: date, date,
+    anomalies: radar.items, scanned: radar.scanned,
     spot: +(+spot).toFixed(6),
     sections, whaleFlow, exits, alerts,
     freshness: {

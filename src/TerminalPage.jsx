@@ -101,6 +101,26 @@ export default function TerminalPage({ isMobile }) {
         <div className="tmalerts">{S.alerts.map((a, i) => <div key={i} className="tmalert">{a}</div>)}</div>
       )}
 
+      {S && Array.isArray(S.anomalies) && S.anomalies.length > 0 && (
+        <section className="tmsec">
+          <div className="tmsectitle">⚠ Anomaly radar <span>every metric scanned{S.scanned ? ` · ${S.scanned} series` : ""}</span></div>
+          <div className="tmtblwrap">
+            <table className="tmtbl">
+              <thead><tr><th>metric</th><th>move</th><th>σ</th><th></th></tr></thead>
+              <tbody>{S.anomalies.map((a, i) => (
+                <tr key={i}>
+                  <td className="tmk">{a.label}</td>
+                  <td className={a.dir === "up" ? "tmup" : "tmdn"}>{a.dir === "up" ? "▲" : "▼"} {a.rel > 0 ? "+" : ""}{Math.abs(a.rel) >= 1000 ? (a.rel / 1000).toFixed(1) + "k" : a.rel}%</td>
+                  <td className="tmval">{Math.abs(a.z)}σ</td>
+                  <td>{a.chart ? <a href={`/?chart=${a.chart}`} target="_blank" rel="noopener" style={{ color: "var(--live)", textDecoration: "none" }}>view ↗</a> : ""}</td>
+                </tr>
+              ))}</tbody>
+            </table>
+          </div>
+          <div className="tmnote" style={{ marginTop: 6 }}>Every daily series watched, not just hand-picked ones. Ranked by how far each jumped from its own recent norm — candidates to check, not verdicts (scanning many series, a few will move by chance).</div>
+        </section>
+      )}
+
       {S && Array.isArray(S.whaleFlow) && S.whaleFlow.length > 0 && (
         <section className="tmsec">
           <div className="tmsectitle">Whale cohorts · net buy / sell <span>≥100k SPX</span></div>
