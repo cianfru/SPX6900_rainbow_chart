@@ -186,6 +186,16 @@ jobs:
           NODE_OPTIONS: --max-old-space-size=4096
         run: node scripts/build-base-alchemy.mjs ${{ (github.event.inputs.full == 'true') && '--full' || '' }}
 
+      - name: Rebuild the Brief + daily snapshot on the FRESH on-chain feeds
+        # These digests are ALSO built in the 00:17 snapshot cron — but that runs BEFORE this on-chain
+        # refresh (05:23), so there they read YESTERDAY's whale / smart-money / onchain pull. Rebuild
+        # them here now that onchain/whales/entities/self-moves/smart-money are today's data, or the
+        # Terminal + Brief would permanently lag a day on every whale read. Keyless, pure transform.
+        continue-on-error: true
+        run: |
+          node scripts/bot/notable.mjs || true
+          node scripts/bot/daily-snapshot.mjs || true
+
       - name: Commit if changed
         id: commit
         run: |
@@ -194,12 +204,15 @@ jobs:
           # on their own. COMMIT if ANY of them changed; DEPLOY only if an ETH/site file changed.
           ETH_FILES="public/onchain.json public/urpd.json public/urpd-history.json public/whales.json public/self-moves.json public/entities.json public/addr-types.json public/spx-timeline.json public/cohort-survival.json public/exit-flow.json public/smart-money.json public/city-recap.json public/whale-cohort-history.json public/city-history.json public/cex-sankey.json public/whale-thennow.json public/cohort-roi.json public/whale-entry.json"
           CHAIN_FILES="public/solana-onchain.json dune/out/spx6900_solana_balances.csv public/base-onchain.json dune/out/spx6900_base_cohort.csv"
+          # The control-panel/terminal digests: deploy-ignored (read via the raw proxy), so they commit
+          # but never force a deploy — same as their 00:17 build.
+          DIGEST_FILES="public/notable.json public/daily-snapshot.json"
           DEPLOY_CHANGED=""
           [[ -n "$(git status --porcelain $ETH_FILES)" ]] && DEPLOY_CHANGED=1
-          if [[ -n "$(git status --porcelain $ETH_FILES $CHAIN_FILES)" ]]; then
+          if [[ -n "$(git status --porcelain $ETH_FILES $CHAIN_FILES $DIGEST_FILES)" ]]; then
             git config user.name "github-actions[bot]"
             git config user.email "github-actions[bot]@users.noreply.github.com"
-            git add $ETH_FILES $CHAIN_FILES
+            git add $ETH_FILES $CHAIN_FILES $DIGEST_FILES
             git commit -m "chore: on-chain refresh — ETH/Solana/Base $(date -u +%F)"
             # This job takes ~2-3 min; a human (or another cron) can push to main inside that window,
             # which used to reject our push with a non-fast-forward and fail the whole daily refresh.

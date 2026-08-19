@@ -112,9 +112,9 @@ export function buildDailySnapshot(feeds) {
   if (h?.fng != null) tech.push(row("Fear & Greed", h.fng, history, r => r.fng, "int", true, "crypto-wide, context only"));
   if (tech.length) sections.push({ title: "Technicals", rows: tech });
 
+  const date = dateOf(history) || dateOf(onchain) || null;
   return {
-    updated: new Date(dateOf(onchain) || dateOf(history) || Date.now()).toISOString?.() ? (dateOf(history) || dateOf(onchain)) : null,
-    date: dateOf(history) || dateOf(onchain) || null,
+    updated: date, date,
     spot: +(+spot).toFixed(6),
     sections, whaleFlow, alerts,
     freshness: {
