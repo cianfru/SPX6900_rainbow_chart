@@ -46,9 +46,13 @@ export function buildDailySnapshot(feeds) {
       d: [1, 7, 30].map(n => backDelta(valuation.series || [], r => (Array.isArray(r) ? r[1] : r.v), n)) });
   }
   if (oc && oc.mvrv != null) {
-    // distance to the accumulation zone (MVRV 0.5) — the owner's "are we close to buy" read
+    // Accumulation-zone proximity (MVRV 0.5 = historically where SPX bottoms). An ALERT is only for
+    // genuine proximity — IN the zone, or NEAR it (within ~10%). Being merely "undervalued" a quarter
+    // above the zone is NOT an alert (the MVRV row shows it) — that "Approaching" banner at +24% was a
+    // false positive: it fired all the way up to MVRV 0.75 (+50% above), so it was permanently stuck on.
     const buy = 0.5, pctAbove = ((oc.mvrv - buy) / buy) * 100;
-    if (oc.mvrv <= 0.75) alerts.push(`🟢 Approaching accumulation: MVRV ${oc.mvrv.toFixed(2)} — ${pctAbove <= 0 ? "IN" : "+" + pctAbove.toFixed(0) + "% above"} the 0.5 buyers' zone.`);
+    if (oc.mvrv <= buy) alerts.push(`🟢 IN the accumulation zone — MVRV ${oc.mvrv.toFixed(2)} (≤ 0.5, historically where SPX has bottomed).`);
+    else if (oc.mvrv <= buy * 1.1) alerts.push(`🟢 Near accumulation — MVRV ${oc.mvrv.toFixed(2)}, just +${pctAbove.toFixed(0)}% above the 0.5 zone.`);
     if (valuation?.cur?.composite <= 0.2) alerts.push(`🟢 Composite ${(valuation.cur.composite * 100).toFixed(0)}/100 — deep-value zone.`);
   }
   if (val.length) sections.push({ title: "Valuation", rows: val });

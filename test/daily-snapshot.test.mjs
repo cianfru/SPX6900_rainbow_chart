@@ -31,10 +31,14 @@ test("buildDailySnapshot — whale cohorts count net buyers/sellers per window",
   assert.equal(wf["7d"].net, 100000);   // 200000 − 100000, small wallet excluded
 });
 
-test("buildDailySnapshot — fires the accumulation alert when MVRV is low, and computes deltas", () => {
-  const low = onchain.map(r => ({ ...r, mvrv: 0.64 }));
-  const s = buildDailySnapshot({ history, onchain: low, valuation: { updated: "x", cur: { composite: 0.15 }, zones: [{ max: 0.2, label: "Deeply undervalued" }], series: [] } });
-  assert.ok(s.alerts.some(a => /accumulation/i.test(a)), "expected an accumulation alert");
+test("buildDailySnapshot — accumulation alert fires only NEAR the zone, not merely undervalued", () => {
+  const at = mvrv => buildDailySnapshot({ history, onchain: onchain.map(r => ({ ...r, mvrv })), valuation: { updated: "x", cur: { composite: 0.15 }, zones: [{ max: 0.2, label: "Deeply undervalued" }], series: [] } });
+  // 0.64 (+28% above the 0.5 zone) must NOT trigger — that was the false positive
+  assert.ok(!at(0.64).alerts.some(a => /accumulation/i.test(a)), "0.64 (+28%) must not alert");
+  // 0.53 (within 10%) → "near"; 0.48 (below 0.5) → "IN"
+  assert.ok(at(0.53).alerts.some(a => /Near accumulation/.test(a)), "0.53 should read 'near'");
+  assert.ok(at(0.48).alerts.some(a => /IN the accumulation/.test(a)), "0.48 should read 'IN'");
+  const s = at(0.64);
   assert.ok(s.alerts.some(a => /deep-value/i.test(a)), "expected a composite deep-value alert");
   const holders = s.sections.find(x => x.title === "Holders & conviction").rows.find(r => r.label.includes("Ethereum"));
   assert.equal(holders.d[0], 10);   // +10 holders/day
