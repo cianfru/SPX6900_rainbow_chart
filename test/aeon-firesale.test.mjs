@@ -29,8 +29,20 @@ test("pickFiresale — a genuine deep steal still fires in the same regime", () 
   assert.ok(deal.disc > 0.32);
 });
 
-test("pickFiresale — a calm regime still fires an ordinary discount", () => {
+test("pickFiresale — a common piece needs a deeper discount even in a calm market", () => {
+  // #2485 is rank 1987 (Common): our rarity fit (R²≈0.05) makes its "typical" ≈ the floor, so
+  // 28% below it isn't a real steal. Even with no pump, the common surcharge lifts the bar to 30%.
   const calm = { ...AUG19, spxStretch: 0, floorTrend: 0 };
-  const deal = pickFiresale([{ id: 2485, rank: 1987, price: 0.58 }], calm, 3333, { minDisc: 0.20 });
-  assert.ok(deal, "28% off clears the 20% bar when the market isn't pumped/reverting");
+  assert.equal(pickFiresale([{ id: 2485, rank: 1987, price: 0.58 }], calm, 3333, { minDisc: 0.20 }), null);
+  // but a genuinely deep common steal (≥30% off, calm) still fires
+  assert.ok(pickFiresale([{ id: 2485, rank: 1987, price: 0.50 }], calm, 3333, { minDisc: 0.20 }));
+});
+
+test("pickFiresale — a rare piece fires on the regime bar with no common surcharge", () => {
+  const calm = { ...AUG19, spxStretch: 0, floorTrend: 0 };
+  const fm = AUG19.fairModel;
+  const exp120 = fm.level * Math.exp(fm.a + fm.b * Math.log(120));   // rank 120 = rare
+  const deal = pickFiresale([{ id: 7, rank: 120, price: +(exp120 * 0.78).toFixed(4) }], calm, 3333, { minDisc: 0.20 });
+  assert.ok(deal, "a rare piece at 22% off fires without the common surcharge");
+  assert.ok(deal.rank <= 500);
 });

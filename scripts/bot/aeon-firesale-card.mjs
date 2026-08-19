@@ -27,14 +27,23 @@ export function firesaleGuard(trend, spxStretch) {
   );
 }
 
+// ⭐ RARITY GATE — a "fire sale" is only trustworthy when rarity actually justifies a premium worth
+// discounting against. Our own rarity fit has R² ≈ 0.05, so for a COMMON piece the model predicts
+// essentially the clearing floor (at rank ~2000 it even predicts BELOW it) — its "typical for this
+// rarity" IS the floor. "28% below typical" then means "28% below a noisy floor," not a real steal,
+// and it's exactly what mis-fires during a floor realignment. So common pieces must clear a deeper
+// discount before we shout: rank ≤ RARE_RANK fires on the regime bar; commoner ranks add a surcharge.
+const RARE_RANK = 500;          // above ~1.15× floor the rarity premium is real; below it, the model ≈ floor
+const COMMON_SURCHARGE = 0.10;  // extra discount a common piece must clear (benchmark ≈ noisy floor)
+
 // Best live listing under fair value, from listings × the realized-sales fair model. Returns the
-// deepest discount ≥ the (regime-adjusted) bar, or null. Same math as AeonValueChart so the card
-// can't disagree. The effective bar = max(minDisc, calibrated stealBar) + firesaleGuard(regime).
+// deepest discount ≥ its bar, or null. Same math as AeonValueChart so the card can't disagree. The
+// bar = max(minDisc, calibrated stealBar) + firesaleGuard(regime) + (common ? COMMON_SURCHARGE : 0).
 export function pickFiresale(listings, market, total, { minDisc = 0.15 } = {}) {
   const fm = market && !market.empty ? market.fairModel : null;
   const level = fm?.level || market?.levelNow || 0;
   if (!fm || !(level > 0)) return null;
-  const bar = Math.max(minDisc, market?.stealBar ?? 0)
+  const base = Math.max(minDisc, market?.stealBar ?? 0)
     + firesaleGuard(market?.floorTrend, market?.spxStretch);
   const expOf = rank => level * Math.exp(fm.a + fm.b * Math.log(rank));
   let best = null;
@@ -43,6 +52,7 @@ export function pickFiresale(listings, market, total, { minDisc = 0.15 } = {}) {
     const exp = expOf(l.rank);
     if (!(exp > 0)) continue;
     const disc = (exp - l.price) / exp;
+    const bar = base + (l.rank > RARE_RANK ? COMMON_SURCHARGE : 0);
     if (disc >= bar && (!best || disc > best.disc)) best = { ...l, exp, disc, bar };
   }
   return best;
