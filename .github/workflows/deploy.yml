@@ -28,6 +28,7 @@ on:
       - "public/binned-cards.json"
       - "public/signals.json"
       - "public/notable.json"
+      - "public/daily-snapshot.json"
       - "public/aeon-sale-state.json"
       - "public/aeon-listing-alert-state.json"
       - "public/whale-signals.json"

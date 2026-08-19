@@ -379,6 +379,21 @@ async function main() {
     await writeFile("public/notable.json", JSON.stringify(brief));
     console.log(`notable ${brief.date}: ${brief.count} items — ${brief.items.map(i => i.lane).join(", ")}`);
   } catch (e) { console.warn("notable:", e.message); }
+
+  // DAILY SNAPSHOT → public/daily-snapshot.json. The control-panel terminal one-pager: day-over-day
+  // deltas (1d/7d/30d) across valuation/buy-zone, holders & conviction, exchange flow, whale-cohort
+  // net buy/sell, smart money. Pure transform of the already-banked feeds. Never throws the snapshot.
+  try {
+    const { buildDailySnapshot } = await import("./bot/daily-snapshot.mjs");
+    const rd = async f => { try { return JSON.parse(await readFile(f, "utf8")); } catch { return null; } };
+    const snap = buildDailySnapshot({
+      history: arr, onchain: await rd("public/onchain.json") || [], whales: await rd("public/whales.json"),
+      smartMoney: await rd("public/smart-money.json"), valuation: await rd("public/valuation.json"),
+      cexFlow: await rd("public/cex-flow.json"),
+    });
+    await writeFile("public/daily-snapshot.json", JSON.stringify(snap));
+    console.log(`daily-snapshot ${snap.date}: ${snap.sections.length} sections, ${snap.alerts.length} alerts`);
+  } catch (e) { console.warn("daily-snapshot:", e.message); }
 }
 
 // Guarded so the fetchers above can be imported by the read-only feed check without

@@ -67,6 +67,25 @@
   .chip.goto:active { transform: scale(.96); }
   /* THE BRIEF — cross-surface synthesizer digest */
   .brief { margin: 14px 0 4px; background: linear-gradient(180deg,#0d0f1e,#0a0b16); border: 1px solid rgba(94,234,212,.22); border-radius: 14px; padding: 14px 16px; }
+  /* Daily snapshot — the granular terminal one-pager */
+  .snapshot { margin: 12px 0 4px; background: linear-gradient(180deg,#0d0f1e,#0a0b16); border: 1px solid rgba(94,234,212,.22); border-radius: 14px; padding: 14px 16px; }
+  .snapshot:empty { display: none; }
+  .snapshot .bhdr { font-size: 14px; font-weight: 700; color: #eafff7; margin-bottom: 8px; display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+  .snapshot .bhdr span { font-size: 11.5px; font-weight: 400; color: #7c8aa0; }
+  .snapalerts { margin: 4px 0 12px; }
+  .snapalert { font-size: 12.5px; font-weight: 600; color: #d7ffe9; background: rgba(34,197,94,.10); border: 1px solid rgba(34,197,94,.3); border-radius: 8px; padding: 7px 11px; margin-bottom: 6px; }
+  .snapsec { margin: 12px 0 4px; }
+  .snaptitle { font-size: 11px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: #8ea1bd; margin: 0 0 5px; }
+  .snaptbl { width: 100%; border-collapse: collapse; font-size: 12.5px; font-variant-numeric: tabular-nums; }
+  .snaptbl th { text-align: right; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: #5f6d84; padding: 2px 6px; border-bottom: 1px solid rgba(255,255,255,.08); }
+  .snaptbl th:first-child { text-align: left; }
+  .snaptbl td { text-align: right; padding: 5px 6px; border-bottom: 1px solid rgba(255,255,255,.045); color: #c7d2e4; white-space: nowrap; }
+  .snaptbl td:first-child { text-align: left; color: #e7eef9; white-space: normal; }
+  .snaptbl .snapval { color: #f1f5f9; font-weight: 700; }
+  .snapnote { display: block; font-size: 10.5px; font-weight: 400; color: #6b7a92; margin-top: 1px; }
+  .snaptbl .dup { color: #34d399; } .snaptbl .ddn { color: #fb7185; } .snaptbl .dz { color: #4a5568; }
+  .snapfresh { margin-top: 12px; font-size: 10.5px; color: #5f6d84; line-height: 1.7; }
+  .snapfresh .ddn { color: #fb7185; } .snapfresh .dz { color: #5f8f78; }
   .brief .bhdr { font-size: 14px; font-weight: 700; color: #eafff7; margin-bottom: 3px; display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
   .brief .bhdr span { font-size: 11.5px; font-weight: 400; color: #7c8aa0; }
   .brief .bempty { color: #64748b; font-size: 13px; padding: 6px 0; }
@@ -318,6 +337,7 @@
       <div class="sched" id="sched"></div>
       <div class="fresh" id="fresh"></div>
       <div class="brief" id="brief"></div>
+      <div class="snapshot" id="snapshot"></div>
       <div class="signals" id="signals"></div>
       <div class="agent">
         <div class="agenthdr">🤖 Ask the agent <span>· consults OpenRouter over today's real numbers — stats, the rotation pick, "Notable today" & the full card catalog</span></div>
@@ -437,6 +457,7 @@ let QUEUED = null, NEXT = null, IDS = [], UPCOMING = [], TEXTS = {}, MEDIA = {},
 let EDITABLE = {}, OVERRIDES = {}; // editable card copy: {id:{default,tokens}} + saved overrides {id:template}
 let SIGNALS = null;                // { date, signals:[…] } from the daily anomaly detector
 let BRIEF = null;                  // { date, items:[…] } — the cross-surface synthesizer
+let SNAPSHOT = null;               // { date, sections, whaleFlow, alerts, freshness } — daily terminal read
 let DRAFT_TEXT = {};               // per-signal footerized LLM draft, for the 📋 Copy button
 let AR_OVERRIDES = {};             // owner-picked aspect ratio per card: {id: presetKey}
 let EXCLUDES = {};                 // cards held out of the auto rotation: {id: true}
@@ -487,7 +508,8 @@ $("#lock").onclick = lock;
 async function loadState() {
   const raw = p => fetch(`/api/control?f=${encodeURIComponent(p)}&t=${Date.now()}`, { cache: "no-store" })
     .then(r => r.ok ? r.json() : null).catch(() => null);
-  const [q, st, ov, arov, sg, ex, bn, br] = await Promise.all([raw(QUEUE_PATH), raw(STATE_PATH), raw("public/post-copy.json"), raw("public/card-ar.json"), raw("public/signals.json"), raw("public/rotation-excludes.json"), raw("public/binned-cards.json"), raw("public/notable.json")]);
+  const [q, st, ov, arov, sg, ex, bn, br, ss] = await Promise.all([raw(QUEUE_PATH), raw(STATE_PATH), raw("public/post-copy.json"), raw("public/card-ar.json"), raw("public/signals.json"), raw("public/rotation-excludes.json"), raw("public/binned-cards.json"), raw("public/notable.json"), raw("public/daily-snapshot.json")]);
+  SNAPSHOT = ss && typeof ss === "object" ? ss : null;
   OVERRIDES = ov && typeof ov === "object" ? ov : {};
   AR_OVERRIDES = arov && typeof arov === "object" ? arov : {};
   EXCLUDES = Array.isArray(ex) ? Object.fromEntries(ex.map(k => [k, true])) : (ex && typeof ex === "object" ? ex : {});
@@ -618,6 +640,79 @@ function renderBrief() {
   let html = `<div class="bhdr">🧠 The Brief <span>· the daily read${when ? " · " + esc(when) : ""} · ranked, checkable</span></div>`;
   if (state.length) html += `<div class="bsub">📊 Today's read</div>` + state.map(([it, i]) => card(it, i)).join("");
   if (events.length) html += `<div class="bsub">⚡ Notable moves</div>` + events.map(([it, i]) => card(it, i)).join("");
+  el.innerHTML = html;
+}
+
+// DAILY SNAPSHOT — the granular terminal one-pager (public/daily-snapshot.json): valuation & buy-zone,
+// holders & conviction, exchange flow, whale-cohort net buy/sell (1d/7d/30d), smart money. Day-over-day
+// deltas coloured by whether the move is bullish. Complements the Brief (events) with the STATE table.
+function snapFmt(v, fmt) {
+  if (v == null || !isFinite(v)) return "—";
+  const a = Math.abs(v);
+  switch (fmt) {
+    case "int": return Math.round(v).toLocaleString();
+    case "m": return (v / 1e6).toFixed(1) + "M";
+    case "usdm": return (v < 0 ? "−" : "") + "$" + (a >= 1e6 ? (a / 1e6).toFixed(1) + "M" : a >= 1e3 ? (a / 1e3).toFixed(0) + "k" : Math.round(a));
+    case "pct": return v.toFixed(1) + "%";
+    case "x": return v.toFixed(2) + "×";
+    case "pctile": return Math.round(v * 100) + "/100";
+    case "num3": return v.toFixed(3);
+    default: return String(v);
+  }
+}
+function snapDelta(d, fmt, goodUp) {
+  if (d == null || !isFinite(d)) return `<span class="dz">—</span>`;
+  // suppress deltas that would render as zero at their display precision (avoids a false red "+0.00")
+  const eps = (fmt === "x" || fmt === "num3" || fmt === "pct") ? 0.005 : 1e-9;
+  if (Math.abs(d) < eps) return `<span class="dz">·</span>`;
+  const cls = ((d > 0) === !!goodUp) ? "dup" : "ddn", sign = d > 0 ? "+" : "−", a = Math.abs(d);
+  let mag;
+  switch (fmt) {
+    case "int": mag = Math.round(a).toLocaleString(); break;
+    case "m": mag = (a / 1e6).toFixed(a / 1e6 < 1 ? 2 : 1) + "M"; break;
+    case "usdm": mag = "$" + (a >= 1e6 ? (a / 1e6).toFixed(1) + "M" : a >= 1e3 ? (a / 1e3).toFixed(0) + "k" : Math.round(a)); break;
+    case "pct": mag = a.toFixed(2) + "pp"; break;
+    case "x": mag = a.toFixed(2); break;
+    case "pctile": mag = Math.round(a * 100).toString(); break;
+    case "num3": mag = a.toFixed(3); break;
+    default: mag = String(a);
+  }
+  return `<span class="${cls}">${sign}${mag}</span>`;
+}
+function renderSnapshot() {
+  const el = $("#snapshot");
+  if (!el) return;
+  const S = SNAPSHOT;
+  if (!S || !Array.isArray(S.sections)) { el.innerHTML = ""; return; }
+  let html = `<div class="bhdr">📟 Daily snapshot <span>· state read · ${esc(S.date || "")} · $${(S.spot || 0).toFixed(4)}</span></div>`;
+  if (Array.isArray(S.alerts) && S.alerts.length)
+    html += `<div class="snapalerts">${S.alerts.map(a => `<div class="snapalert">${esc(a)}</div>`).join("")}</div>`;
+  // whale cohorts first — the "who's buying" table the owner asked for
+  if (Array.isArray(S.whaleFlow) && S.whaleFlow.length) {
+    html += `<div class="snapsec"><div class="snaptitle">Whale cohorts · net buy/sell (≥100k SPX)</div>`
+      + `<table class="snaptbl"><tr><th>window</th><th>buyers</th><th>sellers</th><th>net SPX</th></tr>`
+      + S.whaleFlow.map(w => `<tr><td>${esc(w.win)}</td><td class="dup">${w.buyers}</td><td class="ddn">${w.sellers}</td>`
+        + `<td class="${w.net >= 0 ? "dup" : "ddn"}">${w.net >= 0 ? "+" : "−"}${(Math.abs(w.net) / 1e6).toFixed(2)}M</td></tr>`).join("")
+      + `</table></div>`;
+  }
+  for (const sec of S.sections) {
+    html += `<div class="snapsec"><div class="snaptitle">${esc(sec.title)}</div>`
+      + `<table class="snaptbl"><tr><th>metric</th><th>now</th><th>1d</th><th>7d</th><th>30d</th></tr>`
+      + sec.rows.map(r => `<tr><td>${esc(r.label)}${r.note ? `<span class="snapnote">${esc(r.note)}</span>` : ""}</td>`
+        + `<td class="snapval">${snapFmt(r.value, r.fmt)}</td>`
+        + (r.d || [null, null, null]).map(d => `<td>${snapDelta(d, r.fmt, r.goodUp)}</td>`).join("")
+        + `</tr>`).join("")
+      + `</table></div>`;
+  }
+  if (S.freshness) {
+    const today = new Date().toISOString().slice(0, 10);
+    const ageDays = dt => dt ? Math.round((Date.parse(today) - Date.parse(dt)) / 864e5) : null;
+    const items = Object.entries(S.freshness).filter(([, dt]) => dt).map(([k, dt]) => {
+      const a = ageDays(dt), stale = a != null && a >= 2;
+      return `<span class="${stale ? "ddn" : "dz"}">${esc(k)} ${a === 0 ? "today" : a + "d"}</span>`;
+    });
+    if (items.length) html += `<div class="snapfresh">sources: ${items.join(" · ")}</div>`;
+  }
   el.innerHTML = html;
 }
 
@@ -822,6 +917,7 @@ async function refresh() {
     META = await loadState();
     renderSchedule(META);
     renderBrief();
+    renderSnapshot();
     renderSignals();
     renderGrid();
     if ($("#cityView").style.display !== "none") renderCityGrid(); // keep the City grid live if it's open

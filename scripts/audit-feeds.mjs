@@ -51,6 +51,8 @@ export const FEEDS = [
   { file: "valuation.json", cadence: 2, by: "snapshot.yml (step)", what: "the weighted valuation composite" },
   { file: "signals.json", cadence: 2, by: "snapshot.yml (step)", what: "the anomaly detector's daily candidates",
     mayBeEmpty: ["signals"] },
+  { file: "daily-snapshot.json", cadence: 2, by: "snapshot.yml (step)", what: "the control-panel daily terminal one-pager (delta tables)",
+    require: ["date"], nonEmpty: ["sections"] },
   { file: "notable.json", cadence: 2, by: "snapshot.yml (step)", what: "The Brief — the cross-surface synthesizer digest",
     mayBeEmpty: ["items"] },
   // Rows are positional tuples [date, cex, lp, custody, organicNet, onboardNet, price], not objects,
