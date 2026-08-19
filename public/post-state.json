@@ -1,11 +1,7 @@
 {
-  "lastPostedDate": "2026-08-18",
-  "lastId": "manual-skip",
+  "lastPostedDate": "2026-08-19",
+  "lastId": "breakeven",
   "recent": [
-    {
-      "date": "2026-07-20",
-      "id": "fngtrend"
-    },
     {
       "date": "2026-07-21",
       "id": "urpd"
@@ -81,6 +77,10 @@
     {
       "date": "2026-08-16",
       "id": "valuation"
+    },
+    {
+      "date": "2026-08-19",
+      "id": "breakeven"
     }
   ],
   "lanes": {
