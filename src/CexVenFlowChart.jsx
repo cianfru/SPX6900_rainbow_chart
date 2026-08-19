@@ -3,7 +3,7 @@ import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, Cell, ReferenceLine,
 } from "recharts";
 import { loadOnchain } from "./history-data.js";
-import { SANS, MONO, MAX_W, TipBox, Explain } from "./chart-ui.jsx";
+import { SANS, MONO, MAX_W, TipBox, Explain, ViewTabs } from "./chart-ui.jsx";
 
 const POS = "#4ade80", NEG = "#f6465d";
 const fM = t => (t >= 0 ? "+" : "−") + (Math.abs(t) >= 1 ? Math.abs(t).toFixed(2) + "M" : Math.round(Math.abs(t) * 1000) + "K");
@@ -43,12 +43,6 @@ export default function CexVenFlowChart({ isMobile, preview = false, initialView
       <span style={{ color: "#94a3b8" }}> {payload[0].payload.flow >= 0 ? "onto" : "off"} exchange</span>
     </TipBox>) : null;
 
-  const btn = active => ({
-    padding: "5px 13px", borderRadius: 8, fontFamily: SANS, fontSize: 13, cursor: "pointer",
-    border: "1px solid " + (active ? "rgba(74,222,128,0.5)" : "rgba(255,255,255,0.12)"),
-    background: active ? "rgba(74,222,128,0.14)" : "transparent", color: active ? "#4ade80" : "#94a3b8",
-  });
-
   return (
     <div style={{ maxWidth: MAX_W, margin: "0 auto" }}>
       <Explain q="Which exchanges are gaining SPX6900, and which are bleeding it?" accent={POS}>
@@ -58,7 +52,7 @@ export default function CexVenFlowChart({ isMobile, preview = false, initialView
 
       <div style={{ display: "flex", gap: 8, justifyContent: "center", alignItems: "center", marginBottom: 12, flexWrap: "wrap" }}>
         <span style={{ fontFamily: SANS, fontSize: 13, color: "#64748b" }}>window:</span>
-        {WINDOWS.filter(w => w.wk < oc.length).map(w => <button key={w.label} style={btn(wk === w.wk)} onClick={() => setWk(w.wk)}>{w.label}</button>)}
+        <ViewTabs tabs={WINDOWS.filter(w => w.wk < oc.length).map(w => [w.wk, w.label])} value={wk} onChange={setWk} />
         <span style={{ fontFamily: MONO, fontSize: 13, color: net >= 0 ? POS : NEG, marginLeft: 8 }}>net {fM(net)}</span>
         <span style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b" }}>{fmt(from)} → {fmt(to)}</span>
       </div>

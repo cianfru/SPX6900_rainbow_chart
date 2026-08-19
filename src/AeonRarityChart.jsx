@@ -51,8 +51,8 @@ export default function AeonRarityChart({ isMobile, preview = false }) {
     return { t: a.t, v: a.v, pct: info?.pct ?? null, count: info?.count ?? null };
   }).sort((x, y) => (x.pct ?? 100) - (y.pct ?? 100));
 
-  const input = { padding: "8px 12px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.15)", background: "#0b0f1c", color: "#e2e8f0", fontFamily: MONO, fontSize: 15, width: 130 };
-  const btn = (c) => ({ padding: "8px 16px", borderRadius: 8, border: "1px solid " + c + "66", background: c + "22", color: c, fontFamily: SANS, fontSize: 14, cursor: "pointer" });
+  const input = { padding: "8px 12px", borderRadius: 0, border: "1px solid rgba(255,255,255,0.15)", background: "#0b0f1c", color: "#e2e8f0", fontFamily: MONO, fontSize: 15, width: 130 };
+  const btn = (c) => ({ padding: "8px 16px", borderRadius: 0, border: "1px solid " + c + "66", background: c + "22", color: c, fontFamily: SANS, fontSize: 14, cursor: "pointer" });
 
   return (
     <div style={{ maxWidth: MAX_W, margin: "0 auto" }}>

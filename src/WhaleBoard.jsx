@@ -217,7 +217,7 @@ export default function WhaleBoard({ isMobile }) {
             const t = CHAIN_TAG[k];
             return (
               <button key={k} onClick={() => setChain(k)} style={{
-                padding: "5px 12px", borderRadius: 7, cursor: "pointer", fontFamily: MONO, fontSize: 12, fontWeight: 700, letterSpacing: 0.5,
+                padding: "5px 12px", borderRadius: 0, cursor: "pointer", fontFamily: MONO, fontSize: 12, fontWeight: 700, letterSpacing: 0.5,
                 background: on ? "rgba(94,234,212,0.14)" : "rgba(255,255,255,0.03)",
                 border: `1px solid ${on ? "#5eead4" : "rgba(255,255,255,0.12)"}`, color: on ? "#5eead4" : (t ? t.c : "#94a3b8"),
               }}>{k === "all" ? "ALL" : t.label} <span style={{ color: "#5b6675", fontWeight: 500 }}>{chainCounts[k]}</span></button>
