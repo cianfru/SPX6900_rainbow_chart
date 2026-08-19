@@ -299,11 +299,14 @@ html:not([data-theme="light"]) .tzone [style*="rgb(100, 116, 139)"]{ color:#b1bc
 /* ── MOBILE SPRINGBOARD — the app-launcher nav, styled as an extension of the terminal ── */
 .tzone .tsb{ position:fixed; inset:0; z-index:300; background:radial-gradient(120% 55% at 50% -8%, rgba(78,231,154,.05), transparent 60%), var(--bg); display:none; flex-direction:column; }
 .tzone .tsb.open{ display:flex; }
-.tzone .tsbtop{ display:flex; align-items:center; gap:10px; padding:calc(env(safe-area-inset-top,0px) + 12px) 14px 11px; border-bottom:1px solid var(--line); flex:none; position:relative; }
-.tzone .tsbtop .tsbbtn:last-of-type{ margin-left:auto; }   /* pin close right; title is absolutely centred */
-.tzone .tsbtitle{ position:absolute; left:0; right:0; top:calc(env(safe-area-inset-top,0px) + 12px); height:44px; line-height:44px; padding:0 62px; text-align:center; pointer-events:none;
-  font-family:var(--label); text-transform:uppercase; letter-spacing:.14em; font-size:17px; font-weight:800; color:var(--tx);
+.tzone .tsbtop{ display:flex; align-items:center; gap:10px; padding:calc(env(safe-area-inset-top,0px) + 12px) 14px 11px; border-bottom:1px solid var(--line); flex:none; }
+/* Title is a FLEX child between the buttons (not absolutely centred), so it can never overlap the
+   left buttons — at drill-down levels there are TWO of them (back + all-sections), and the old fixed
+   62px side padding only cleared one. flex:1 + min-width:0 lets it shrink and ellipsis-truncate. */
+.tzone .tsbtitle{ flex:1 1 auto; min-width:0; height:42px; line-height:42px; padding:0 4px; text-align:center;
+  font-family:var(--label); text-transform:uppercase; letter-spacing:.12em; font-size:16px; font-weight:800; color:var(--tx);
   white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+@media(max-width:380px){ .tzone .tsbtitle{ letter-spacing:.06em; font-size:15px; } .tzone .tsbtop{ gap:7px; } }
 .tzone .tsbbtn{ width:42px; height:42px; display:inline-flex; align-items:center; justify-content:center; border:1px solid var(--line2); border-radius:9px; background:var(--panel); color:var(--tx); cursor:pointer; flex:none; }
 .tzone .tsbbtn:active{ border-color:var(--live); }
 .tzone .tsbbtn svg{ width:21px; height:21px; }
