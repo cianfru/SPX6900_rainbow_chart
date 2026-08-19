@@ -91,49 +91,39 @@ export default function TerminalPage({ isMobile }) {
   return (
     <div className="twrap tmwrap">
       <div className="tmhead">
-        <div className="tmtitle">THE TERMINAL <span className="tmcur">_</span></div>
-        <div className="tmsub">
-          {S === undefined ? "loading the desk…" : S ? <>daily on-chain intel · {S.date || ""} · SPX ${(S.spot || 0).toFixed(4)}</> : "snapshot unavailable — try again in a minute"}
-        </div>
+        <div className="tmcmd"><span className="tmprompt">spx6900 ~ %</span> cat ./terminal/today</div>
+        <h1 className="tmtitle">THE TERMINAL</h1>
         <div className="tmrainbow" />
+        <div className="tmsub">
+          {S === undefined ? "loading the desk…" : S ? <>The daily on-chain intel desk — where SPX sits today and what changed. · {S.date || ""} · SPX ${(S.spot || 0).toFixed(4)}</> : "snapshot unavailable — try again in a minute"}
+        </div>
       </div>
 
       {S && Array.isArray(S.alerts) && S.alerts.length > 0 && (
         <div className="tmalerts">{S.alerts.map((a, i) => <div key={i} className="tmalert">{a}</div>)}</div>
       )}
 
-      {S && S.capitulation && S.capitulation.rows?.length > 0 && (() => {
-        const C = S.capitulation;
-        // heatmap the capitulation-percentile: deep green at 0 (deep value) → neutral at 50 → red at 100
-        const heat = p => {
-          const t = Math.max(0, Math.min(100, p)) / 100;
-          const a = 0.10 + 0.18 * (1 - Math.abs(t - 0.5) * 2 < 0 ? 0 : 1);
-          return t <= 0.5
-            ? `rgba(34,197,94,${(0.28 * (1 - t * 2) + 0.06).toFixed(2)})`
-            : `rgba(244,63,94,${(0.28 * ((t - 0.5) * 2) + 0.06).toFixed(2)})`;
-        };
-        const fmtSig = (v, f) => f === "x" ? v.toFixed(2) + "×" : f === "pct" ? v.toFixed(1) + "%" : f === "usdm" ? (v < 0 ? "−" : "") + "$" + (Math.abs(v) / 1e6).toFixed(1) + "M" : f === "num2" ? v.toFixed(2) : f === "num3" ? v.toFixed(3) : f === "pctile" ? Math.round(v) + "/100" : v;
+      {S && S.conditions && S.conditions.rows?.length > 0 && (() => {
+        const C = S.conditions;
+        const scoreState = C.score == null ? null : C.score <= 15 ? "deep value" : C.score <= 35 ? "cheap" : C.score <= 65 ? "fair" : C.score <= 85 ? "rich" : "stretched";
         return (
-          <section className="tmsec">
-            <div className="tmsectitle">⚖ Capitulation check <span>{C.firing}/{C.total} firing · {C.hit}/{C.total} hit the zone in 3mo</span></div>
-            <div className="tmtblwrap">
-              <table className="tmtbl">
-                <thead><tr><th>signal</th><th>latest</th><th>30d</th><th>%ile</th><th>firing</th><th>3mo</th></tr></thead>
-                <tbody>{C.rows.map((r, i) => (
-                  <tr key={i}>
-                    <td className="tmk">{r.label}</td>
-                    <td className="tmval">{fmtSig(r.latest, r.fmt)}</td>
-                    <td style={{ color: "var(--faint)" }}>{fmtSig(r.avg30, r.fmt)}</td>
-                    <td style={{ background: heat(r.pLatest), fontWeight: 700, color: "var(--tx)" }}>{r.pLatest}</td>
-                    <td className={r.firing ? "tmup" : "tmdz"}>{r.firing ? "YES" : "no"}</td>
-                    <td className={r.hit3mo ? "tmup" : "tmdz"}>{r.hit3mo ? "YES" : "no"}</td>
-                  </tr>
-                ))}</tbody>
-              </table>
+          <section className="tmsec tmsec-lead">
+            <div className="tmsectitle">Market conditions — where SPX sits vs. its own history
+              {C.score != null && <span> · overall {C.score}/100 · {scoreState}</span>}</div>
+            <div className="tmconds">
+              {C.rows.map((r, i) => (
+                <div className="tmcond" key={i}>
+                  <div className="tmcondhd">
+                    <span className="tmcondname">{r.label}</span>
+                    <span className={"tmcondstate tmtone-" + r.tone}>{r.reading} · {r.state}</span>
+                  </div>
+                  <div className={"tmgauge tmtone-" + r.tone}><span className="tmgaugefill" style={{ width: r.pct + "%" }} /><span className="tmgaugetick" style={{ left: r.pct + "%" }} /></div>
+                  <div className="tmcondplain">{r.plain}</div>
+                </div>
+              ))}
             </div>
-            <div className="tmnote" style={{ marginTop: 6 }}>
-              Each signal ranked against its OWN full history; "firing" = latest in the ≤15th-percentile value zone; "3mo" = it reached that zone in the last 90 days. SPX is ~3yr old, so extremes are extreme for its life, not a decade.
-              {Array.isArray(C.omitted) && C.omitted.length > 0 && <> BTC-only signals are omitted, not faked: {C.omitted.join(" · ")}.</>} A valuation-position read, not a buy/sell call.
+            <div className="tmnote tmnote-lg">
+              Each gauge is scored <b>0–100 against its own full SPX history</b>: <b>0</b> = the cheapest / most oversold it has ever been, <b>100</b> = the most expensive / stretched. Nothing here is measured against Bitcoin or any outside benchmark — SPX is judged only against itself. A positioning read, not financial advice.
             </div>
           </section>
         );
@@ -141,7 +131,7 @@ export default function TerminalPage({ isMobile }) {
 
       {S && Array.isArray(S.anomalies) && S.anomalies.length > 0 && (
         <section className="tmsec">
-          <div className="tmsectitle">⚠ Anomaly radar <span>every metric scanned{S.scanned ? ` · ${S.scanned} series` : ""}</span></div>
+          <div className="tmsectitle">⚠ Anomaly radar <span>{S.scanned ? `all ${S.scanned} daily series scanned` : "all daily series scanned"}</span></div>
           <div className="tmtblwrap">
             <table className="tmtbl">
               <thead><tr><th>metric</th><th>move</th><th>σ</th><th></th></tr></thead>
@@ -155,7 +145,7 @@ export default function TerminalPage({ isMobile }) {
               ))}</tbody>
             </table>
           </div>
-          <div className="tmnote" style={{ marginTop: 6 }}>Every daily series watched, not just hand-picked ones. Ranked by how far each jumped from its own recent norm — candidates to check, not verdicts (scanning many series, a few will move by chance).</div>
+          <div className="tmnote tmnote-lg">This scans <b>every</b> on-chain number we track each day — not a hand-picked few — and flags any that jumped far from its own recent normal (σ = how many standard deviations out). These are things to go look at, not conclusions: when you watch this many numbers, one or two will always move by chance.</div>
         </section>
       )}
 
@@ -200,6 +190,7 @@ export default function TerminalPage({ isMobile }) {
       {S && S.sections.map((sec, si) => (
         <section className="tmsec" key={si}>
           <div className="tmsectitle">{sec.title}</div>
+          {sec.note && <div className="tmnote tmnote-lg" style={{ marginBottom: 8 }}>{sec.note}</div>}
           <div className="tmtblwrap">
             <table className="tmtbl">
               <thead><tr><th>metric</th><th>now</th><th>1d</th><th>7d</th><th>30d</th></tr></thead>

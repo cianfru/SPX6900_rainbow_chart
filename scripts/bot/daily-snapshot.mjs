@@ -138,27 +138,32 @@ export function buildDailySnapshot(feeds) {
     sm.push({ label: "New qualifiers (90d)", value: smartMoney.newQual90 ?? 0, fmt: "int", goodUp: false,
       note: "wallets newly proven by selling tops — a spike = distribution", d: [null, null, null] });
   }
-  if (sm.length) sections.push({ title: "Smart money", rows: sm });
+  if (sm.length) sections.push({
+    title: "Smart money",
+    // Plain, on-surface: exactly how a wallet earns its way into this cohort — no black box.
+    note: "A wallet qualifies only if it (1) put in real money — at least $25k of buys, (2) actually sold at a profit of 5× or more (proven timing, not paper gains), and (3) still holds at least 50k SPX today (still trackable). The set is recomputed every day: wallets that dump out drop off, freshly proven winners join. We publish only the total they hold and whether they're net buying or selling — never a wallet address.",
+    rows: sm,
+  });
 
   // ---- TECHNICALS (optional lane) ----------------------------------------
   const tech = [];
   if (oc) {
-    if (oc.sopr != null) tech.push(row("SOPR", oc.sopr, onchain, r => r.sopr, "x", true, ">1 = coins moving in profit"));
-    if (oc.nrpl != null) tech.push(row("Net realized P/L ($)", oc.nrpl, onchain, r => r.nrpl, "usdm", true, "profit − loss realized on-chain"));
-    if (oc.liveliness != null) tech.push(row("Liveliness", oc.liveliness, onchain, r => r.liveliness, "num3", false, "rising = old coins waking / distributing"));
+    if (oc.sopr != null) tech.push(row("Sellers' profit ratio (SOPR)", oc.sopr, onchain, r => r.sopr, "x", true, "coins that moved today sold for this multiple of their cost — above 1× = in profit"));
+    if (oc.nrpl != null) tech.push(row("Profit vs. loss cashed in", oc.nrpl, onchain, r => r.nrpl, "usdm", true, "dollar gains (+) minus losses (−) locked in on-chain today"));
+    if (oc.liveliness != null) tech.push(row("Coins waking up (liveliness)", oc.liveliness, onchain, r => r.liveliness, "num3", false, "rising = long-dormant coins starting to move (distribution); falling = holders sitting tight"));
   }
-  if (h?.fng != null) tech.push(row("Fear & Greed", h.fng, history, r => r.fng, "int", true, "crypto-wide, context only"));
+  if (h?.fng != null) tech.push(row("Fear & Greed index", h.fng, history, r => r.fng, "int", true, "0 = extreme fear, 100 = extreme greed · whole-crypto mood, context only"));
   if (tech.length) sections.push({ title: "Technicals", rows: tech });
 
   // ANOMALY RADAR — the across-the-board scan: every numeric series flagged if it jumped abnormally today.
   const radar = scanAnomalies({ onchain, history, exitFlow, cexFlow, valuation });
-  // CAPITULATION CHECK — the VanEck-style signal table (percentile of own history, firing / hit-in-3mo).
-  const capitulation = valuationCheck({ onchain, longshort, valuation });
+  // MARKET CONDITIONS — the universal gauge table (each scored 0–100 vs its own history, plain-language).
+  const conditions = valuationCheck({ onchain, longshort, valuation });
 
   const date = dateOf(history) || dateOf(onchain) || null;
   return {
     updated: date, date,
-    anomalies: radar.items, scanned: radar.scanned, capitulation,
+    anomalies: radar.items, scanned: radar.scanned, conditions,
     spot: +(+spot).toFixed(6),
     sections, whaleFlow, exits, alerts,
     freshness: {

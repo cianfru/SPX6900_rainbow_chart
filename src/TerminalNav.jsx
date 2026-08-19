@@ -183,28 +183,29 @@ function CascadeTop({ label, groups, onSection, onLeaf, renderPreview }) {
         <MenuRow text="All" color="var(--live)" cls="allrow" onClick={() => onSection()} />
         {groups.map((g, gi) => { const gc = GCOL[gi % GCOL.length];
           const leaves = g.charts.filter(c => !c.dev);
-          // visual rows = each leaf + its indented sub-views; past ~a dozen the single column
-          // runs off the bottom of the screen, so split into two (filled column-first).
-          const vrows = leaves.reduce((n, it) => n + 1 + (CHART_VIEWS[it.id]?.length || 0), 0);
-          const wide = vrows > 12;
+          // ONE compact column of main charts. A chart's alternate views (Bars / Heatmap / 3D …) are
+          // NOT inlined here (that made the column run off-screen and forced an ugly 2-col split) —
+          // they fly out as a THIRD lateral panel on hover, alongside the live preview.
           return (
           <div className="mgroup" key={g.title} style={{ "--gc": gc }} onMouseLeave={() => { clearTimeout(timer.current); setLeaf(l => (l && l.gi === gi ? null : l)); }}>
             <MenuRow text={g.title} color={gc} mark="▸" cls="grouprow" onClick={() => onSection(g.title)} />
-            <div className={"subdrop" + (wide ? " cols2" : "")} style={wide ? { "--rows": Math.ceil(leaves.length / 2) } : undefined}>
+            <div className="subdrop">
               {leaves.map(item => { const views = CHART_VIEWS[item.id]; return (
-                <div className="leafwrap" key={item.id}>
-                  <MenuRow text={item.title} color={gc} mark={views ? "▾" : "›"} cls="leafrow"
-                    onEnter={() => showLeaf({ gi, item, color: gc })}
-                    onClick={() => onLeaf(item.id)} />
-                  {views && views.map(vw => (
-                    <MenuRow key={vw.v} text={vw.label} color={gc} cls="subview"
-                      onEnter={() => showLeaf({ gi, item, color: gc })}
-                      onClick={() => onLeaf(item.id, vw.v)} />
-                  ))}
-                </div>
+                <MenuRow key={item.id} text={item.title} color={gc} mark={views ? "▸" : "›"} cls="leafrow"
+                  onEnter={() => showLeaf({ gi, item, color: gc })}
+                  onClick={() => onLeaf(item.id)} />
               ); })}
               <div className={"leafprev" + (leaf && leaf.gi === gi ? " on" : "")}>
                 {leaf && leaf.gi === gi && (<>
+                  {CHART_VIEWS[leaf.item.id] && (
+                    <div className="leafviews">
+                      <div className="mprev-kick">Views</div>
+                      <button className="leafview" onClick={() => onLeaf(leaf.item.id)}>All</button>
+                      {CHART_VIEWS[leaf.item.id].map(vw => (
+                        <button key={vw.v} className="leafview" onClick={() => onLeaf(leaf.item.id, vw.v)}>{vw.label}</button>
+                      ))}
+                    </div>
+                  )}
                   <div className="mprev-kick">Preview</div>
                   {(leaf.item.locked || HEAVY.has(leaf.item.id))
                     ? <Scene3D seed={leaf.item.id + g.title} color={leaf.color} />

@@ -746,6 +746,13 @@
   - **🔲 OWNER — 1 step to activate:** connect a **Vercel KV / Upstash Redis** store (Vercel → Storage) so `KV_REST_API_URL` +
     `KV_REST_API_TOKEN` (or `UPSTASH_*`) get injected; redeploy. Until then everything ships but silently no-ops (safe). Optional: a
     Plausible site; `INTEL_SALT` to rotate the IP-hash salt.
+- **⭐⭐ HIGH CONTRAST IS A HARD RULE — NEVER LOW CONTRAST (owner, 2026-08-20, emphatic: "put in memory that I don't want low
+  contrast. All the opposite").** Body text, table cells, section headers, notes — anything a user must READ — must have strong
+  contrast against its ground. **Do NOT use `--faint` for readable copy** (it's a de-emphasis token for truly incidental chrome only);
+  prefer `--tx` for primary text and `--dim` for secondary. Table `th` must not use `--line2` (near-invisible on both themes) — use at
+  least `--dim`. **And fonts default TOO SMALL — bump them:** on the terminal/data surfaces, body/table text ≥14px, section headers
+  ≥12–13px, never 10–11px for anything that carries meaning. When in doubt, MORE contrast and BIGGER, both. This applies retroactively —
+  audit existing surfaces (the /terminal page was the trigger) and fix low-contrast/tiny text wherever found.
 - **⭐⭐ MOBILE IS A FIRST-CLASS PRIORITY, NOT AN AFTERTHOUGHT (owner, 2026-08-11).** Data shows **>half of all traffic lands from the
   X account → mobile.** So mobile responsiveness / cleanness / charts / menus must be **top-notch** — "we cannot afford a very nice
   desktop and a half-baked mobile." **Every new surface must be verified on a phone viewport** — screenshot it on an iPhone-13-class
