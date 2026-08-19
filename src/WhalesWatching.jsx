@@ -12,7 +12,7 @@ import WhaleMosaic from "./WhaleMosaic.jsx";
 import WhaleSpectrum from "./WhaleSpectrum.jsx";
 import WalletCard from "./WalletCard.jsx";
 import CityGate from "./CityGate.jsx";
-import { SANS, MONO } from "./chart-ui.jsx";
+import { SANS, MONO, ViewTabs } from "./chart-ui.jsx";
 
 // "WHALES WATCHING" — a whale-activity monitor drawn in the SAME clean data-chart design as the
 // Cost Basis × Age 3D chart (Urpd3D): flat dark ground, a blue grid floor, solid Lambert bars, thin
@@ -497,19 +497,10 @@ function Watcher({ isMobile }) {
 // two lenses — the 3D scene for the landscape, the grid for glanceable live buy/sell.
 function WhalesInner({ isMobile }) {
   const [mode, setMode] = useState("city");
-  const seg = on => ({
-    padding: "6px 16px", cursor: "pointer", fontFamily: SANS, fontSize: 13, fontWeight: 600, border: "none",
-    background: on ? "rgba(94,234,212,0.16)" : "transparent", color: on ? "#5eead4" : "#94a3b8",
-  });
   return (
     <div style={{ maxWidth: 1180, margin: "0 auto", padding: "0 14px" }}>
       <div style={{ display: "flex", justifyContent: "center", margin: "8px 0 6px" }}>
-        <div style={{ display: "inline-flex", borderRadius: 9, overflow: "hidden", border: "1px solid rgba(255,255,255,0.14)" }}>
-          <button onClick={() => setMode("city")} style={{ ...seg(mode === "city"), borderRight: "1px solid rgba(255,255,255,0.12)" }}>City · 3D</button>
-          <button onClick={() => setMode("board")} style={{ ...seg(mode === "board"), borderRight: "1px solid rgba(255,255,255,0.12)" }}>Live board</button>
-          <button onClick={() => setMode("mosaic")} style={{ ...seg(mode === "mosaic"), borderRight: "1px solid rgba(255,255,255,0.12)" }}>Mosaic</button>
-          <button onClick={() => setMode("spectrum")} style={seg(mode === "spectrum")}>Spectrum</button>
-        </div>
+        <ViewTabs tabs={[["city", "City · 3D"], ["board", "Live board"], ["mosaic", "Mosaic"], ["spectrum", "Spectrum"]]} value={mode} onChange={setMode} />
       </div>
       {mode === "city" ? <Watcher isMobile={isMobile} />
         : mode === "mosaic" ? <WhaleMosaic isMobile={isMobile} />

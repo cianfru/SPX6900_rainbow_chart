@@ -5,7 +5,7 @@ import {
 import { loadExitFlow, loadPriceHistory } from "./history-data.js";
 import ChartZoomHint from "./ChartZoomHint.jsx";
 import LiveFlowStrip from "./LiveFlowStrip.jsx";
-import { SANS, MONO, MAX_W, Metric, TipBox, ZoomBar, Explain } from "./chart-ui.jsx";
+import { SANS, MONO, MAX_W, Metric, TipBox, ZoomBar, Explain, ViewTabs } from "./chart-ui.jsx";
 import { useDragZoom } from "./use-drag-zoom.js";
 
 const GRN = "#4ade80", RED = "#f43f5e", PRICE = "#94a3b8";
@@ -88,15 +88,6 @@ export default function ExitFlowChart({ isMobile }) {
   if (!view) return <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Loading exit history…</div>;
 
   const o = doc.overall || {};
-  const btn = on => ({
-    padding: "6px 12px", borderRadius: 8, cursor: "pointer", fontFamily: SANS, fontSize: 13, fontWeight: 600,
-    background: on ? "rgba(94,234,212,0.16)" : "rgba(255,255,255,0.05)",
-    border: `1px solid ${on ? "#5eead4" : "rgba(255,255,255,0.14)"}`, color: on ? "#5eead4" : "#94a3b8",
-  });
-  const seg = on => ({
-    padding: "6px 12px", cursor: "pointer", fontFamily: SANS, fontSize: 13, fontWeight: 600, border: "none",
-    background: on ? "rgba(94,234,212,0.16)" : "transparent", color: on ? "#5eead4" : "#94a3b8",
-  });
 
   return (
     <div style={{ maxWidth: MAX_W, margin: "0 auto" }}>
@@ -117,14 +108,8 @@ export default function ExitFlowChart({ isMobile }) {
       </div>
 
       <div style={{ display: "flex", gap: 8, justifyContent: "center", marginBottom: 10, flexWrap: "wrap" }}>
-        {hasSpx && (
-          <div style={{ display: "inline-flex", borderRadius: 8, overflow: "hidden", border: "1px solid rgba(255,255,255,0.14)", marginRight: 4 }}>
-            <button onClick={() => setMetric("wallets")} style={{ ...seg(!spx), borderRight: "1px solid rgba(255,255,255,0.12)" }}>Wallets</button>
-            <button onClick={() => setMetric("spx")} style={seg(spx)}>SPX dumped</button>
-          </div>
-        )}
-        <button onClick={() => setCumulative(false)} style={btn(!cumulative)}>Per day</button>
-        <button onClick={() => setCumulative(true)} style={btn(cumulative)}>Cumulative</button>
+        {hasSpx && <ViewTabs tabs={[["wallets", "Wallets"], ["spx", "SPX dumped"]]} value={spx ? "spx" : "wallets"} onChange={setMetric} />}
+        <ViewTabs tabs={[["day", "Per day"], ["cum", "Cumulative"]]} value={cumulative ? "cum" : "day"} onChange={k => setCumulative(k === "cum")} />
       </div>
 
       <ZoomBar zoomed={zoomed} onReset={() => setZoom(null)} accent={GRN} />

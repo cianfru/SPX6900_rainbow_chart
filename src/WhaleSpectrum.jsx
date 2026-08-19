@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { loadCityTimeline, loadOnchain } from "./history-data.js";
 import { whaleSpectrum, nrplPeaks, dateOfWeek, SPECTRUM_LABELS } from "./whale-spectrum.js";
-import { SANS, MONO } from "./chart-ui.jsx";
+import { SANS, MONO, ViewTabs } from "./chart-ui.jsx";
 
 // WHALE SPECTRUM — the whale mosaic split into 10 SIZE cohorts, each drawn as a vertical VFD-style
 // equalizer bar of 20 segments: green lights up from the bottom (share of that cohort accumulating),
@@ -166,7 +166,7 @@ export default function WhaleSpectrum({ isMobile }) {
         <div style={{ padding: isMobile ? "8px 14px 14px" : "10px 24px 18px", borderTop: "1px solid rgba(255,255,255,0.07)", marginTop: 8 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <button onClick={() => setPlaying(p => !p)} style={{
-              width: 38, height: 38, borderRadius: 9, cursor: "pointer", flex: "0 0 auto", fontSize: 15,
+              width: 38, height: 38, borderRadius: 0, cursor: "pointer", flex: "0 0 auto", fontSize: 15,
               background: playing ? "rgba(251,113,133,0.16)" : "rgba(94,234,212,0.16)",
               border: `1px solid ${playing ? "#fb7185" : "#5eead4"}`, color: playing ? "#fb7185" : "#5eead4",
             }}>{playing ? "❚❚" : "▶"}</button>
@@ -177,15 +177,7 @@ export default function WhaleSpectrum({ isMobile }) {
             {peaks?.euphoria && <Chip label="⛰ Euphoria top" sub={peaks.euphoria.date} on={week === peaks.euphoria.week} onClick={() => jump(peaks.euphoria.week)} />}
             {peaks?.capitulation && <Chip label="🩸 Capitulation" sub={peaks.capitulation.date} on={week === peaks.capitulation.week} onClick={() => jump(peaks.capitulation.week)} />}
             <Chip label="● Today" sub={dateOfWeek(tl, tl.n - 1)} on={week === tl.n - 1} onClick={() => jump(tl.n - 1)} />
-            <div style={{ display: "inline-flex", borderRadius: 8, overflow: "hidden", border: "1px solid rgba(255,255,255,0.14)", marginLeft: 4 }}>
-              {[{ w: 4, l: "~30d flow" }, { w: 1, l: "1w flow" }].map((o, i) => (
-                <button key={o.w} onClick={() => setFlowWeeks(o.w)} style={{
-                  padding: "5px 11px", cursor: "pointer", fontFamily: SANS, fontSize: 12, fontWeight: 600, border: "none",
-                  borderLeft: i ? "1px solid rgba(255,255,255,0.12)" : "none",
-                  background: flowWeeks === o.w ? "rgba(94,234,212,0.16)" : "transparent", color: flowWeeks === o.w ? "#5eead4" : "#94a3b8",
-                }}>{o.l}</button>
-              ))}
-            </div>
+            <span style={{ marginLeft: 4 }}><ViewTabs tabs={[[4, "~30d flow"], [1, "1w flow"]]} value={flowWeeks} onChange={setFlowWeeks} /></span>
           </div>
         </div>
       </div>
@@ -206,7 +198,7 @@ function Chip({ label, sub, on, onClick }) {
   return (
     <button onClick={onClick} style={{
       display: "flex", flexDirection: "column", alignItems: "center", gap: 1, cursor: "pointer",
-      padding: "5px 11px", borderRadius: 8, fontFamily: SANS,
+      padding: "5px 11px", borderRadius: 0, fontFamily: SANS,
       background: on ? "rgba(94,234,212,0.16)" : "rgba(255,255,255,0.04)",
       border: `1px solid ${on ? "#5eead4" : "rgba(255,255,255,0.12)"}`,
     }}>

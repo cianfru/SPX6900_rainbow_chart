@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { loadWhaleEntry } from "./history-data.js";
-import { SANS, MONO, MAX_W, Explain } from "./chart-ui.jsx";
+import { SANS, MONO, MAX_W, Explain, ViewTabs } from "./chart-ui.jsx";
 
 // WHEN THE WHALES BOUGHT — every wallet ≥100k SPX as a glowing orb sitting on the SPX price curve at
 // the point it bought (coin-weighted entry date × average price paid), sized by its bag, green if the
@@ -126,15 +126,7 @@ export default function WhaleEntryChart({ isMobile, price }) {
       </Explain>
 
       <div style={{ display: "flex", gap: 16, flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", margin: "4px 2px 10px" }}>
-        <div style={{ display: "inline-flex", borderRadius: 8, overflow: "hidden", border: "1px solid rgba(255,255,255,0.14)" }}>
-          {BANDS.map((b, i) => (
-            <button key={b.key} onClick={() => setBand(b.key)} style={{
-              padding: "6px 12px", cursor: "pointer", fontFamily: SANS, fontSize: 12.5, fontWeight: 600, border: "none",
-              borderLeft: i ? "1px solid rgba(255,255,255,0.12)" : "none",
-              background: band === b.key ? "rgba(94,234,212,0.16)" : "transparent", color: band === b.key ? "#5eead4" : "#94a3b8",
-            }}>{b.label}</button>
-          ))}
-        </div>
+        <ViewTabs tabs={BANDS.map(b => [b.key, b.label])} value={band} onChange={setBand} />
         <div style={{ fontFamily: MONO, fontSize: 12.5, color: "#8595ab" }}>
           {whales.length.toLocaleString()} whales · <span style={{ color: "#22c55e" }}>{livePct}% in profit</span> · {data.pctLate}% bought after year one
         </div>

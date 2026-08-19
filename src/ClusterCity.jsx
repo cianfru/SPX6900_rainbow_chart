@@ -5,7 +5,7 @@ import { loadEntities } from "./history-data.js";
 import { downloadBlob, recorderSupported } from "./canvas-record.js";
 import WalletCard from "./WalletCard.jsx";
 import CityGate from "./CityGate.jsx";
-import { SANS, MONO } from "./chart-ui.jsx";
+import { SANS, MONO, ViewTabs } from "./chart-ui.jsx";
 
 // CLUSTER CITY — the 3D companion to the "Wallet Clusters" bubble map. Every OWNER (one entity =
 // the wallets our on-chain clustering links to a single controller) is a DISTRICT on the ground:
@@ -125,15 +125,7 @@ function Inner({ isMobile }) {
           {placed > 0 && winsAvail.length > 1 && (
             <div style={{ display: "inline-flex", alignItems: "center", gap: 7, fontFamily: MONO }}>
               <span style={{ fontSize: 10.5, color: "#64748b", textTransform: "uppercase", letterSpacing: 0.5 }}>beam</span>
-              <div style={{ display: "inline-flex", borderRadius: 7, overflow: "hidden", border: "1px solid rgba(255,255,255,0.14)" }}>
-                {winsAvail.map((w, i) => (
-                  <button key={w.d} onClick={() => setFlowWin(w.d)} style={{
-                    padding: "5px 11px", cursor: "pointer", fontFamily: SANS, fontSize: 12.5, fontWeight: 600, border: "none",
-                    borderLeft: i ? "1px solid rgba(255,255,255,0.12)" : "none",
-                    background: flowWin === w.d ? "rgba(167,139,250,0.18)" : "transparent", color: flowWin === w.d ? "#c4b5fd" : "#94a3b8",
-                  }}>{w.lbl}</button>
-                ))}
-              </div>
+              <ViewTabs tabs={winsAvail.map(w => [w.d, w.lbl])} value={flowWin} onChange={setFlowWin} />
             </div>
           )}
           {placed > 0 && <div style={{ fontFamily: MONO, fontSize: 12, color: "#64748b" }}>{placed} owners · drag to orbit · {data.updated}</div>}

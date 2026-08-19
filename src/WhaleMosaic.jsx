@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { loadWhales, loadBaseOnchain, loadSolanaOnchain } from "./history-data.js";
 import WalletCard, { shortAddr } from "./WalletCard.jsx";
-import { SANS, MONO } from "./chart-ui.jsx";
+import { SANS, MONO, ViewTabs } from "./chart-ui.jsx";
 
 // Flow-window options (longest first). Only the windows whales.json actually banks (`lookback`) are
 // offered, so "1 day" appears once the daily on-chain refresh has a d1 delta — no dead button.
@@ -112,18 +112,7 @@ export default function WhaleMosaic({ isMobile }) {
           {windows.length > 1 && (
             <div style={{ display: "flex", alignItems: "center", gap: 9, marginTop: 15, flexWrap: "wrap" }}>
               <span style={{ fontFamily: MONO, fontSize: 11, color: "#64748b", textTransform: "uppercase", letterSpacing: 0.5 }}>flow over</span>
-              <div style={{ display: "inline-flex", borderRadius: 8, overflow: "hidden", border: "1px solid rgba(255,255,255,0.14)" }}>
-                {windows.map((w, i) => {
-                  const on = flowWin === w.d;
-                  return (
-                    <button key={w.d} onClick={() => setFlowWin(w.d)} style={{
-                      padding: "6px 13px", cursor: "pointer", fontFamily: SANS, fontSize: 13, fontWeight: 600, border: "none",
-                      borderLeft: i ? "1px solid rgba(255,255,255,0.12)" : "none",
-                      background: on ? "rgba(94,234,212,0.16)" : "transparent", color: on ? "#5eead4" : "#94a3b8",
-                    }}>{w.label}</button>
-                  );
-                })}
-              </div>
+              <ViewTabs tabs={windows.map(w => [w.d, w.label])} value={flowWin} onChange={setFlowWin} />
             </div>
           )}
         </div>

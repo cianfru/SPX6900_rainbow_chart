@@ -1,7 +1,7 @@
 import { useMemo, useState, useEffect } from "react";
 import { ResponsiveContainer, Sankey, Tooltip, Layer, Rectangle } from "recharts";
 import { loadCexSankey } from "./history-data.js";
-import { SANS, MONO, MAX_W, Metric, Explain } from "./chart-ui.jsx";
+import { SANS, MONO, MAX_W, Metric, Explain, ViewTabs } from "./chart-ui.jsx";
 
 const short = a => a.slice(0, 6) + "…" + a.slice(-4);
 const fM = n => (Math.abs(n) >= 1e6 ? (n / 1e6).toFixed(1) + "M" : Math.abs(n) >= 1e3 ? Math.round(n / 1e3) + "k" : Math.round(n).toString());
@@ -130,15 +130,7 @@ export default function CexSankeyChart({ isMobile }) {
       {wins && wins.length > 1 && (
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 9, marginBottom: 12, fontFamily: MONO }}>
           <span style={{ fontSize: 11, color: "#64748b", textTransform: "uppercase", letterSpacing: 0.5 }}>flow over</span>
-          <div style={{ display: "inline-flex", borderRadius: 8, overflow: "hidden", border: "1px solid rgba(255,255,255,0.14)" }}>
-            {wins.map((w, i) => (
-              <button key={w} onClick={() => setFlowWin(w)} style={{
-                padding: "6px 13px", cursor: "pointer", fontFamily: SANS, fontSize: 13, fontWeight: 600, border: "none",
-                borderLeft: i ? "1px solid rgba(255,255,255,0.12)" : "none",
-                background: flowWin === w ? "rgba(94,234,212,0.16)" : "transparent", color: flowWin === w ? "#5eead4" : "#94a3b8",
-              }}>{WIN_LBL[w] || w + "d"}</button>
-            ))}
-          </div>
+          <ViewTabs tabs={wins.map(w => [w, WIN_LBL[w] || w + "d"])} value={flowWin} onChange={setFlowWin} />
         </div>
       )}
 
