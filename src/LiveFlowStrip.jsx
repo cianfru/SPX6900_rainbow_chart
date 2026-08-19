@@ -31,29 +31,32 @@ export default function LiveFlowStrip({ isMobile }) {
 
   let buy = 0, sell = 0, nb = 0, ns = 0;
   for (const m of moves) { if (m.live > 0) { buy += m.live; nb++; } else if (m.live < 0) { sell += -m.live; ns++; } }
-  const net = buy - sell;
-  const dist = net < 0;
-  const accent = dist ? "#fb7185" : "#4ade80";
+  const net = buy - sell, gross = buy + sell;
+  // Only call it directional when the net is genuinely meaningful — a big enough absolute size AND not
+  // dwarfed by two-sided churn. A −41k net on ~264k of gross flow is noise, so it reads "balanced" grey,
+  // never a red "distributing" flag.
+  const directional = Math.abs(net) >= 250000 && Math.abs(net) >= 0.2 * gross;
+  const dist = directional && net < 0, acc = directional && net > 0;
+  const accent = dist ? "#fb7185" : acc ? "#4ade80" : "#93a3b8";
+  const verb = dist ? "leaning out" : acc ? "leaning in" : "roughly balanced";
 
   return (
     <div style={{
       display: "flex", alignItems: "center", justifyContent: "center", gap: isMobile ? 8 : 14, flexWrap: "wrap",
-      maxWidth: 760, margin: "0 auto 14px", padding: "9px 14px", borderRadius: 10,
-      background: dist ? "rgba(251,113,133,0.08)" : "rgba(74,222,128,0.08)",
-      border: `1px solid ${dist ? "rgba(251,113,133,0.3)" : "rgba(74,222,128,0.3)"}`, fontFamily: SANS,
+      maxWidth: 760, margin: "0 auto 14px", padding: "9px 14px", borderRadius: 0,
+      background: "rgba(255,255,255,0.03)", border: `1px solid ${directional ? accent + "55" : "rgba(255,255,255,0.14)"}`, fontFamily: MONO,
     }}>
-      <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontFamily: MONO, fontSize: 11, letterSpacing: "0.08em", textTransform: "uppercase", color: accent }}>
-        <span style={{ width: 8, height: 8, borderRadius: "50%", background: accent, boxShadow: `0 0 8px ${accent}` }} />
-        Live · {live.liveHours || 6}h
+      <span style={{ fontSize: 11, letterSpacing: "0.1em", textTransform: "uppercase", color: "#64748b" }}>
+        Last {live.liveHours || 6}h
       </span>
-      <span style={{ fontSize: 13.5, color: "#e2e8f0" }}>
-        Big holders <strong style={{ color: accent }}>{dist ? "distributing" : "accumulating"}</strong>:{" "}
+      <span style={{ fontFamily: SANS, fontSize: 13.5, color: "#e2e8f0" }}>
+        Big holders <strong style={{ color: accent }}>{verb}</strong>:{" "}
         <span style={{ fontFamily: MONO, color: accent, fontWeight: 700 }}>{net >= 0 ? "+" : "−"}{kM(Math.abs(net))} SPX net</span>
       </span>
-      <span style={{ fontFamily: MONO, fontSize: 12, color: "#94a3b8" }}>
+      <span style={{ fontSize: 12, color: "#94a3b8" }}>
         <span style={{ color: "#fb7185" }}>▼ {kM(sell)}</span> ({ns}) · <span style={{ color: "#4ade80" }}>▲ {kM(buy)}</span> ({nb})
       </span>
-      <span style={{ fontFamily: MONO, fontSize: 11, color: "#64748b" }}>{isMobile ? "" : "≥100k wallets · "}updated {ago(live.updated)}</span>
+      <span style={{ fontSize: 11, color: "#64748b" }}>{isMobile ? "" : "≥100k wallets · "}updated {ago(live.updated)}</span>
     </div>
   );
 }
