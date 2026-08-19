@@ -12,12 +12,30 @@ import { tierOf } from "./aeon-sale-card.mjs";
 const png = (svg, w) => new Resvg(svg, { fitTo: { mode: "width", value: w }, font: FONT }).render().asPng();
 const fEth = v => (v < 0.1 ? v.toFixed(3) : v.toFixed(2)) + "Ξ";
 
+// ⭐ REGIME GUARD — mirror of the sale watcher's `pickNotable` bar. The fair-value benchmark is
+// `level × rarity(rank)`, and `level` is the CLEARING price of the moment. After a thin-market pump
+// that level stays elevated for weeks while the true floor reverts beneath it — so an ordinary
+// listing at the reverting floor reads as a deep "fire sale" against an inflated benchmark. Two
+// signals say we're in exactly that regime, and each RAISES the discount a listing must clear:
+//   • floorTrend < 0  — the ETH clearing price is correcting DOWN (a repricing, not a field of deals)
+//   • spxStretch > 0  — the collection is stretched above its stable SPX baseline (pumped, reverting)
+// Same guard shape and constants as aeon-sale-watch's pickNotable, so the two lanes agree on "cheap".
+export function firesaleGuard(trend, spxStretch) {
+  return Math.max(
+    Math.min(0.14, Math.max(0, -(trend ?? 0) - 0.10)),
+    Math.min(0.12, Math.max(0, (spxStretch ?? 0) - 0.10) * 0.8),
+  );
+}
+
 // Best live listing under fair value, from listings × the realized-sales fair model. Returns the
-// deepest discount ≥ minDisc, or null. Same math as AeonValueChart so the card can't disagree.
+// deepest discount ≥ the (regime-adjusted) bar, or null. Same math as AeonValueChart so the card
+// can't disagree. The effective bar = max(minDisc, calibrated stealBar) + firesaleGuard(regime).
 export function pickFiresale(listings, market, total, { minDisc = 0.15 } = {}) {
   const fm = market && !market.empty ? market.fairModel : null;
   const level = fm?.level || market?.levelNow || 0;
   if (!fm || !(level > 0)) return null;
+  const bar = Math.max(minDisc, market?.stealBar ?? 0)
+    + firesaleGuard(market?.floorTrend, market?.spxStretch);
   const expOf = rank => level * Math.exp(fm.a + fm.b * Math.log(rank));
   let best = null;
   for (const l of listings || []) {
@@ -25,7 +43,7 @@ export function pickFiresale(listings, market, total, { minDisc = 0.15 } = {}) {
     const exp = expOf(l.rank);
     if (!(exp > 0)) continue;
     const disc = (exp - l.price) / exp;
-    if (disc >= minDisc && (!best || disc > best.disc)) best = { ...l, exp, disc };
+    if (disc >= bar && (!best || disc > best.disc)) best = { ...l, exp, disc, bar };
   }
   return best;
 }
