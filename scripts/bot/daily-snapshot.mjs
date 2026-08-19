@@ -8,6 +8,7 @@
 // labelled as such. Rows also carry the source date so the panel can flag a stale feed.
 import { readFileSync, existsSync, writeFileSync } from "node:fs";
 import { scanAnomalies } from "./anomaly-scan.mjs";
+import { valuationCheck } from "./valuation-check.mjs";
 
 const read = f => { try { return existsSync(f) ? JSON.parse(readFileSync(f, "utf8")) : null; } catch { return null; } };
 // delta of a numeric accessor over the last N rows of a daily array (null if not enough history)
@@ -27,7 +28,7 @@ const row = (label, value, arr, acc, fmt, goodUp, note) => ({
 });
 
 export function buildDailySnapshot(feeds) {
-  const { history = [], onchain = [], whales, smartMoney, valuation, cexFlow, exitFlow } = feeds;
+  const { history = [], onchain = [], whales, smartMoney, valuation, cexFlow, exitFlow, longshort } = feeds;
   const oc = onchain.length ? onchain[onchain.length - 1] : null;
   const h = history.length ? history[history.length - 1] : null;
   const spot = oc?.spot ?? h?.p ?? whales?.spot ?? 0;
@@ -151,11 +152,13 @@ export function buildDailySnapshot(feeds) {
 
   // ANOMALY RADAR — the across-the-board scan: every numeric series flagged if it jumped abnormally today.
   const radar = scanAnomalies({ onchain, history, exitFlow, cexFlow, valuation });
+  // CAPITULATION CHECK — the VanEck-style signal table (percentile of own history, firing / hit-in-3mo).
+  const capitulation = valuationCheck({ onchain, longshort, valuation });
 
   const date = dateOf(history) || dateOf(onchain) || null;
   return {
     updated: date, date,
-    anomalies: radar.items, scanned: radar.scanned,
+    anomalies: radar.items, scanned: radar.scanned, capitulation,
     spot: +(+spot).toFixed(6),
     sections, whaleFlow, exits, alerts,
     freshness: {
@@ -175,6 +178,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     valuation: read("public/valuation.json"),
     cexFlow: read("public/cex-flow.json"),
     exitFlow: read("public/exit-flow.json"),
+    longshort: read("public/longshort.json"),
   });
   writeFileSync(out, JSON.stringify(snap));
   console.error(`daily-snapshot: ${snap.sections.length} sections · ${snap.alerts.length} alerts · ${snap.date} → ${out}`);

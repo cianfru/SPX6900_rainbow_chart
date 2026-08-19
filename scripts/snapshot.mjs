@@ -390,6 +390,7 @@ async function main() {
       history: arr, onchain: await rd("public/onchain.json") || [], whales: await rd("public/whales.json"),
       smartMoney: await rd("public/smart-money.json"), valuation: await rd("public/valuation.json"),
       cexFlow: await rd("public/cex-flow.json"), exitFlow: await rd("public/exit-flow.json"),
+      longshort: await rd("public/longshort.json"),
     });
     await writeFile("public/daily-snapshot.json", JSON.stringify(snap));
     console.log(`daily-snapshot ${snap.date}: ${snap.sections.length} sections, ${snap.alerts.length} alerts`);

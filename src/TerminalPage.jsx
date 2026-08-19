@@ -102,6 +102,43 @@ export default function TerminalPage({ isMobile }) {
         <div className="tmalerts">{S.alerts.map((a, i) => <div key={i} className="tmalert">{a}</div>)}</div>
       )}
 
+      {S && S.capitulation && S.capitulation.rows?.length > 0 && (() => {
+        const C = S.capitulation;
+        // heatmap the capitulation-percentile: deep green at 0 (deep value) → neutral at 50 → red at 100
+        const heat = p => {
+          const t = Math.max(0, Math.min(100, p)) / 100;
+          const a = 0.10 + 0.18 * (1 - Math.abs(t - 0.5) * 2 < 0 ? 0 : 1);
+          return t <= 0.5
+            ? `rgba(34,197,94,${(0.28 * (1 - t * 2) + 0.06).toFixed(2)})`
+            : `rgba(244,63,94,${(0.28 * ((t - 0.5) * 2) + 0.06).toFixed(2)})`;
+        };
+        const fmtSig = (v, f) => f === "x" ? v.toFixed(2) + "×" : f === "pct" ? v.toFixed(1) + "%" : f === "usdm" ? (v < 0 ? "−" : "") + "$" + (Math.abs(v) / 1e6).toFixed(1) + "M" : f === "num2" ? v.toFixed(2) : f === "num3" ? v.toFixed(3) : f === "pctile" ? Math.round(v) + "/100" : v;
+        return (
+          <section className="tmsec">
+            <div className="tmsectitle">⚖ Capitulation check <span>{C.firing}/{C.total} firing · {C.hit}/{C.total} hit the zone in 3mo</span></div>
+            <div className="tmtblwrap">
+              <table className="tmtbl">
+                <thead><tr><th>signal</th><th>latest</th><th>30d</th><th>%ile</th><th>firing</th><th>3mo</th></tr></thead>
+                <tbody>{C.rows.map((r, i) => (
+                  <tr key={i}>
+                    <td className="tmk">{r.label}</td>
+                    <td className="tmval">{fmtSig(r.latest, r.fmt)}</td>
+                    <td style={{ color: "var(--faint)" }}>{fmtSig(r.avg30, r.fmt)}</td>
+                    <td style={{ background: heat(r.pLatest), fontWeight: 700, color: "var(--tx)" }}>{r.pLatest}</td>
+                    <td className={r.firing ? "tmup" : "tmdz"}>{r.firing ? "YES" : "no"}</td>
+                    <td className={r.hit3mo ? "tmup" : "tmdz"}>{r.hit3mo ? "YES" : "no"}</td>
+                  </tr>
+                ))}</tbody>
+              </table>
+            </div>
+            <div className="tmnote" style={{ marginTop: 6 }}>
+              Each signal ranked against its OWN full history; "firing" = latest in the ≤15th-percentile value zone; "3mo" = it reached that zone in the last 90 days. SPX is ~3yr old, so extremes are extreme for its life, not a decade.
+              {Array.isArray(C.omitted) && C.omitted.length > 0 && <> BTC-only signals are omitted, not faked: {C.omitted.join(" · ")}.</>} A valuation-position read, not a buy/sell call.
+            </div>
+          </section>
+        );
+      })()}
+
       {S && Array.isArray(S.anomalies) && S.anomalies.length > 0 && (
         <section className="tmsec">
           <div className="tmsectitle">⚠ Anomaly radar <span>every metric scanned{S.scanned ? ` · ${S.scanned} series` : ""}</span></div>
