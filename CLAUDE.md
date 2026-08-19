@@ -136,6 +136,21 @@
   **`dune/aeon_transfers.sql`** (primary — `erc721_ethereum.evt_Transfer`) + **`bigquery/aeon_transfers.sql`** (FREE fallback —
   decodes ERC-721 Transfer from `crypto_ethereum.logs` via hexToInt UDF + ARRAY_LENGTH(topics)=4 to exclude ERC-20). Both
   output `from_address,to_address,token_id,time`.
+- **⚠ ALCHEMY NFT API DEPRECATIONS — DUE 2026-09-30 (owner forwarded the notice 2026-08-19). AUDIT DONE: only `getNFTSales`
+  affects us; nothing breaks, latency degrades.** Alchemy is removing a set of redundant NFT endpoints (V2+V3) on 2026-09-30.
+  Grepped every endpoint we call:
+  - **SAFE / not on the list:** `getFloorPrice`, `getOwnersForContract`, `getNFTMetadata` (build-aeon.mjs, aeon-sale-card.mjs).
+    `getContractMetadata` is IN the notice only as the RECOMMENDED replacement — we already use it, so no change.
+  - **We do NOT use any of the removed ones** (getCollectionsForOwner, getCollectionMetadata, isHolderOfContract, getSpamContracts,
+    searchContractMetadata, summarizeNFTAttributes, computeRarity, invalidateContract, isAirdrop) — our rarity is computed LOCALLY.
+  - **⚠ THE ONE HIT: `getNFTSales`** (`scripts/bot/aeon-live-sales.mjs`, `build-aeon-live-bank.mjs`, used by `aeon-sale-watch.mjs`).
+    It has **no direct replacement**. BUT it is only the LOW-LATENCY accelerator — the sale watcher already tries it and falls
+    back to `market.recentSales` (the **daily Dune sales pipeline**, `dune/aeon_sales.sql` → build-aeon-sales.mjs) on ANY failure,
+    and build-aeon-live-bank soft-skips. **So on 2026-09-30 the 404 is caught → we fall back to the Dune daily pull. Impact =
+    sub-day → ~1-day latency on notable-sale posts (the 3-day freshness window already covers this), NOT breakage.**
+  - **🔲 OWNER DECISION before Sep 30 (parked, low urgency):** (a) accept ~1-day latency (zero work — the graceful path), or
+    (b) rebuild a true low-latency sales feed by decoding Seaport `OrderFulfilled` logs via `eth_getLogs` + `alchemy_getAssetTransfers`
+    (what Dune already does, but live). Recommendation: (a) unless sub-day AEON sale posts become important. No code change needed now.
 - **✅✅ AEON SUITE BUILT 2026-07-24 — a full "OpenSea/Blur on steroids" track (its OWN site tab + control-panel tab).**
   Reservoir SHUT DOWN 2025-10 → **Alchemy** is the floor/owners/metadata source (secret `ALCHEMY_KEY`). Pipeline (all
   keyless/cheap except listings): **`build-aeon.mjs`** (daily Alchemy floor/owners/supply → `aeon.json`+`aeon-history.json`),

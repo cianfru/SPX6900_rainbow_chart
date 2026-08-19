@@ -21,10 +21,23 @@ const backDelta = (arr, acc, n) => {
 };
 const dateOf = x => (x && (x.updated || (Array.isArray(x) ? x[x.length - 1]?.d : null))) || null;
 
-// row: label, value, deltas over [1,7,30] rows, a fmt hint, goodUp (is an increase bullish?), note
+// A compact recent trajectory (~28 downsampled points over the last `n` rows) so the terminal can draw
+// a sparkline per row — a slow metric like liveliness barely moves day-to-day (its 1d/7d deltas round
+// to "·"), but its 90-day SHAPE tells the story. Neutral data: the client normalises + colours it.
+const sparkOf = (arr, acc, n = 90, pts = 28) => {
+  if (!Array.isArray(arr) || arr.length < 8) return null;
+  const tail = arr.slice(-n).map(acc).filter(Number.isFinite);
+  if (tail.length < 8) return null;
+  const step = tail.length / pts, out = [];
+  for (let i = 0; i < pts; i++) out.push(tail[Math.min(tail.length - 1, Math.round(i * step))]);
+  return out.map(v => +v.toFixed(6));
+};
+
+// row: label, value, deltas over [1,7,30] rows, a fmt hint, goodUp (is an increase bullish?), note, spark
 const row = (label, value, arr, acc, fmt, goodUp, note) => ({
   label, value, fmt, goodUp: !!goodUp, note: note || "",
   d: [1, 7, 30].map(n => backDelta(arr, acc, n)),
+  spark: sparkOf(arr, acc),
 });
 
 export function buildDailySnapshot(feeds) {
@@ -43,8 +56,9 @@ export function buildDailySnapshot(feeds) {
   }
   if (valuation?.cur) {
     const c = valuation.cur.composite, zone = (valuation.zones || []).find(z => c <= z.max);
+    const compAcc = r => (Array.isArray(r) ? r[1] : r.v);
     val.push({ label: "Valuation composite", value: c, fmt: "pctile", goodUp: false, note: zone?.label || "",
-      d: [1, 7, 30].map(n => backDelta(valuation.series || [], r => (Array.isArray(r) ? r[1] : r.v), n)) });
+      d: [1, 7, 30].map(n => backDelta(valuation.series || [], compAcc, n)), spark: sparkOf(valuation.series || [], compAcc) });
   }
   if (oc && oc.mvrv != null) {
     // Accumulation-zone proximity (MVRV 0.5 = historically where SPX bottoms). An ALERT is only for

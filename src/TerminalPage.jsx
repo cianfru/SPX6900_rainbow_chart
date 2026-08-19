@@ -46,6 +46,24 @@ function Delta({ d, fmt, goodUp }) {
   return <span className={good ? "tmup" : "tmdn"}>{sign}{mag}</span>;
 }
 
+// A tiny inline trajectory (last ~90 days, downsampled). Neutral single-colour line + an endpoint dot —
+// it shows a slow metric's SHAPE (liveliness barely moves day-to-day, so its 1d/7d deltas read "·").
+function Spark({ data }) {
+  if (!Array.isArray(data) || data.length < 4) return null;
+  const W = 104, H = 22, P = 2;
+  const lo = Math.min(...data), hi = Math.max(...data), rng = (hi - lo) || 1;
+  const x = i => (i / (data.length - 1)) * (W - P * 2) + P;
+  const y = v => H - P - ((v - lo) / rng) * (H - P * 2);
+  const pts = data.map((v, i) => `${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(" ");
+  const ex = x(data.length - 1), ey = y(data[data.length - 1]);
+  return (
+    <svg className="tmspark" width={W} height={H} viewBox={`0 0 ${W} ${H}`} aria-hidden="true">
+      <polyline points={pts} fill="none" stroke="var(--dim)" strokeWidth="1.4" strokeLinejoin="round" strokeLinecap="round" />
+      <circle cx={ex} cy={ey} r="2.1" fill="var(--live)" />
+    </svg>
+  );
+}
+
 function Gate({ onPass, isMobile }) {
   const [pw, setPw] = useState(""); const [bad, setBad] = useState(false);
   const submit = e => {
@@ -196,7 +214,7 @@ export default function TerminalPage({ isMobile }) {
               <thead><tr><th>metric</th><th>now</th><th>1d</th><th>7d</th><th>30d</th></tr></thead>
               <tbody>{sec.rows.map((r, ri) => (
                 <tr key={ri}>
-                  <td className="tmk">{r.label}{r.note ? <span className="tmnote">{r.note}</span> : null}</td>
+                  <td className="tmk">{r.label}{r.note ? <span className="tmnote">{r.note}</span> : null}{r.spark ? <Spark data={r.spark} /> : null}</td>
                   <td className="tmval">{fmtVal(r.value, r.fmt)}</td>
                   {(r.d || [null, null, null]).map((d, di) => <td key={di}><Delta d={d} fmt={r.fmt} goodUp={r.goodUp} /></td>)}
                 </tr>

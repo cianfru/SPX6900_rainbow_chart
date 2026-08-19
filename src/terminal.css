@@ -426,6 +426,7 @@ html:not([data-theme="light"]) .tzone [style*="rgb(100, 116, 139)"]{ color:#b1bc
 .tzone .tmtbl tr:last-child td{ border-bottom:none; }
 .tzone .tmtbl .tmk{ text-align:left; color:var(--tx); font-family:var(--sans); font-weight:600; white-space:normal; max-width:360px; }
 .tzone .tmtbl .tmk .tmnote{ font-weight:400; }
+.tzone .tmspark{ display:block; margin-top:6px; opacity:.9; }
 .tzone .tmtbl .tmval{ color:var(--tx); font-weight:700; }
 .tzone .tmnote{ display:block; font-family:var(--sans); font-size:13px; font-weight:400; color:var(--dim); margin-top:3px; line-height:1.45; }
 .tzone .tmnote-lg{ font-size:14px; line-height:1.6; color:var(--dim); max-width:840px; margin-top:8px; }
