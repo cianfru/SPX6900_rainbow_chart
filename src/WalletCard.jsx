@@ -4,6 +4,14 @@ import { MONO } from "./chart-ui.jsx";
 // no pills. The Zerion preview (render.zerion.io, the wallet's own og:image, public by their design)
 // sits on the right and is the click target; the whole card reads like a readout, not a button.
 export const shortAddr = a => a.slice(0, 6) + "…" + a.slice(-4);
+// Deterministic Zerion-style gradient from the address (no network). The remote portfolio preview
+// (render.zerion.io) can be unreachable — when it is, this gradient is what keeps a wallet identity
+// visible instead of the preview simply vanishing. Shared by the city card + the flow/sankey tooltips.
+export const walletGradient = a => {
+  const h = String(a || "").replace(/^0x/i, "").padEnd(18, "8");
+  const c = i => "#" + h.slice(i, i + 6);
+  return `linear-gradient(135deg, ${c(0)} 0%, ${c(6)} 55%, ${c(12)} 100%)`;
+};
 const fmt = v => Math.abs(v).toLocaleString(undefined, { maximumFractionDigits: 0 });
 
 export default function WalletCard({ w, lines = [], flow, flowUnit = "", accent = "#5eead4", isMobile, chain = "eth" }) {
@@ -38,11 +46,17 @@ export default function WalletCard({ w, lines = [], flow, flowUnit = "", accent 
           {lines[1] && <span style={{ color: "#64748b", fontSize: 12.5 }}>{lines[1]}</span>}
         </div>
       </div>
+      {/* The Zerion portfolio preview loads on top of a deterministic gradient. If Zerion is
+          unreachable (dead endpoint, or geo-blocked — e.g. China), the img simply removes itself and
+          the gradient + "Zerion ↗" affordance remain, so the card never looks broken or empty. */}
       <a href={explorer} target="_blank" rel="noopener noreferrer" title="open in Zerion"
-        style={{ display: "block", flex: "0 0 auto", borderLeft: isMobile ? "none" : "1px solid rgba(255,255,255,0.09)" }}>
-        <img src={`https://render.zerion.io/preview?address=${w.a}`} alt=""
-          onError={e => { e.currentTarget.parentElement.style.display = "none"; }}
-          style={{ display: "block", height: isMobile ? "auto" : 100, width: isMobile ? "100%" : "auto", maxWidth: isMobile ? "100%" : 340, objectFit: "cover", cursor: "pointer" }} />
+        style={{ position: "relative", display: "block", overflow: "hidden", cursor: "pointer",
+          flex: isMobile ? "1 1 100%" : "0 0 160px", minHeight: isMobile ? 88 : "auto",
+          borderLeft: isMobile ? "none" : "1px solid rgba(255,255,255,0.09)", background: walletGradient(w.a) }}>
+        <img src={`https://render.zerion.io/preview?address=${w.a}`} alt="" loading="lazy"
+          onError={e => { e.currentTarget.remove(); }}
+          style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+        <span style={{ position: "absolute", right: 7, bottom: 6, fontSize: 10, fontWeight: 700, color: "#fff", fontFamily: MONO, letterSpacing: 0.3, textShadow: "0 1px 4px rgba(0,0,0,0.75)", pointerEvents: "none" }}>Zerion ↗</span>
       </a>
     </div>
   );

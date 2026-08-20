@@ -314,6 +314,14 @@ export default function SpxCity({ isMobile, preview = false, initialMode = "spx"
   const flowUnit = isNft ? "AEON" : "SPX";
   const flowWin = isNft ? 30 : win;
 
+  // A deterministic Zerion-style gradient from the address (no network) — the reliable visual behind
+  // the remote portfolio preview, so a selected building ALWAYS shows a wallet identity even when the
+  // preview image endpoint is unreachable (which is what made "the preview disappear").
+  const gradOf = a => {
+    const h = String(a || "").replace(/^0x/i, "").padEnd(18, "8");
+    const c = i => "#" + h.slice(i, i + 6);
+    return `linear-gradient(135deg, ${c(0)} 0%, ${c(6)} 55%, ${c(12)} 100%)`;
+  };
   const pinCard = t => `
       <div style="padding:9px 12px 7px">
         ${t.hood ? `<div style="color:${M.accent};font:700 10.5px 'Space Grotesk',system-ui;letter-spacing:.18em;text-transform:uppercase">${t.hood.name}</div>` : ""}
@@ -322,9 +330,12 @@ export default function SpxCity({ isMobile, preview = false, initialMode = "spx"
       </div>
       ${t.flow ? `<div style="margin:0 12px 8px;padding:5px 8px;border-radius:7px;font-size:11px;color:${t.flow > 0 ? "#4ade80" : "#fb7185"};background:${t.flow > 0 ? "rgba(74,222,128,0.12)" : "rgba(251,113,133,0.12)"}">${t.flow > 0 ? "+" : "−"}${Math.abs(t.flow).toLocaleString(undefined, { maximumFractionDigits: 0 })} ${flowUnit} · ${flowWin}d</div>` : ""}
       <a href="https://app.zerion.io/${t.a}/overview" target="_blank" rel="noopener noreferrer" style="display:block;text-decoration:none">
-        <img src="https://render.zerion.io/preview?address=${t.a}" alt="" onerror="this.style.display='none'"
-             style="display:block;width:100%;border-top:1px solid rgba(255,255,255,0.08)"/>
-        <div style="padding:7px 12px;color:${M.accent};font-size:11px">open in Zerion →</div>
+        <div style="position:relative;height:104px;border-top:1px solid rgba(255,255,255,0.08);background:${gradOf(t.a)}">
+          <img src="https://render.zerion.io/preview?address=${t.a}" alt="" loading="lazy" onerror="this.remove()"
+               style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block"/>
+          <div style="position:absolute;left:11px;bottom:8px;color:#fff;font:700 12.5px 'Space Grotesk',system-ui;text-shadow:0 1px 5px rgba(0,0,0,0.75)">${t.ens || shortAddr(t.a)}</div>
+        </div>
+        <div style="padding:7px 12px;color:${M.accent};font-size:11px">Open in Zerion ↗</div>
       </a>`;
 
   // HOVER tooltip — deliberately LIGHT. The city is dense, so the cursor is always over a building;

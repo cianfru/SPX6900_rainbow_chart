@@ -2,6 +2,7 @@ import { useMemo, useState, useEffect } from "react";
 import { ResponsiveContainer, Sankey, Tooltip, Layer, Rectangle } from "recharts";
 import { loadCexSankey } from "./history-data.js";
 import { SANS, MONO, MAX_W, Metric, Explain, ViewTabs } from "./chart-ui.jsx";
+import { walletGradient } from "./WalletCard.jsx";
 
 const short = a => a.slice(0, 6) + "…" + a.slice(-4);
 const fM = n => (Math.abs(n) >= 1e6 ? (n / 1e6).toFixed(1) + "M" : Math.abs(n) >= 1e3 ? Math.round(n / 1e3) + "k" : Math.round(n).toString());
@@ -73,8 +74,10 @@ function SankeyTip({ active, payload }) {
   const supplying = String(pl.kind).startsWith("source");
   return (
     <div style={{ width: 224, background: "#0a0e1c", border: "1px solid #1e2a44", borderRadius: 12, overflow: "hidden", boxShadow: "0 12px 34px rgba(0,0,0,.6)", fontFamily: MONO }}>
-      <img src={`https://render.zerion.io/preview?address=${pl.a}`} alt="" onError={e => { e.currentTarget.style.display = "none"; }}
-        style={{ display: "block", width: "100%", height: 92, objectFit: "cover", background: "#0e1424" }} />
+      <div style={{ position: "relative", height: 92, background: walletGradient(pl.a) }}>
+        <img src={`https://render.zerion.io/preview?address=${pl.a}`} alt="" loading="lazy" onError={e => { e.currentTarget.remove(); }}
+          style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+      </div>
       <div style={{ padding: "9px 12px 11px" }}>
         <div style={{ color: "#f1f5f9", fontWeight: 700, fontSize: 13 }}>{short(pl.a)}</div>
         <div style={{ color: supplying ? NEUTRAL : GREEN, fontSize: 13, fontWeight: 700, marginTop: 4 }}>

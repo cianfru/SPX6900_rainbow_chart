@@ -3,6 +3,7 @@ import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGri
 import { loadAeonSales, loadAeon } from "./history-data.js";
 import { aeonFlow } from "./aeon-flow.js";
 import { SANS, MONO, MAX_W, Metric, Explain, ViewTabs, TypeTab } from "./chart-ui.jsx";
+import { walletGradient } from "./WalletCard.jsx";
 
 const short = a => a.slice(0, 6) + "…" + a.slice(-4);
 const GREEN = "#34d399", RED = "#fb7185";
@@ -17,8 +18,10 @@ function FlowTip({ active, payload }) {
   const col = e.net > 0 ? GREEN : RED, dir = e.net > 0 ? "accumulated" : "distributed";
   return (
     <div style={{ width: 224, background: "#0a0e1c", border: "1px solid #1e2a44", borderRadius: 12, overflow: "hidden", boxShadow: "0 12px 34px rgba(0,0,0,0.6)", fontFamily: MONO }}>
-      <img src={`https://render.zerion.io/preview?address=${e.a}`} alt="" onError={ev => { ev.currentTarget.style.display = "none"; }}
-        style={{ display: "block", width: "100%", height: 92, objectFit: "cover", background: "#0e1424" }} />
+      <div style={{ position: "relative", height: 92, background: walletGradient(e.a) }}>
+        <img src={`https://render.zerion.io/preview?address=${e.a}`} alt="" loading="lazy" onError={ev => { ev.currentTarget.remove(); }}
+          style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+      </div>
       <div style={{ padding: "9px 12px 11px" }}>
         <div style={{ color: "#f1f5f9", fontWeight: 700, fontSize: 13 }}>{short(e.a)}{e.exited ? "  ⊗ exited" : ""}</div>
         <div style={{ color: col, fontSize: 13, fontWeight: 700, marginTop: 4 }}>{e.net > 0 ? "+" : ""}{e.net} AEON {dir}</div>
