@@ -94,7 +94,7 @@ export const FEEDS = [
     nonEmpty: ["wallets"] },
 
   // ── other schedules ─────────────────────────────────────────────────────────
-  { file: "price-history.json", cadence: 9, by: "price-history.yml", what: "the dense daily price line" },
+  { file: "price-history.json", cadence: 2, by: "price-history.yml", what: "the dense daily price line" },   // now DAILY (was weekly → the floor-model freeze); ≤2d
   { file: "longshort.json", cadence: 3, by: "longshort.yml", what: "Hyperliquid funding and open interest" },
   { file: "btc-mvrv.json", cadence: 40, by: "btc-mvrv.yml", what: "Bitcoin's MVRV, for the comparison chart" },
 
