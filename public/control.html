@@ -528,7 +528,10 @@ const FRESH_SOURCES = [
   // NOT a run date — so a pull that completes-but-empty (or a suspended Dune account whose executions
   // never leave PENDING) still shows the real staleness and turns RED. A run-stamp is what masked the
   // 2-week+ stall: this row read "2 days old" while the AEON charts sat in July. `checked` = last run.
-  { label: "Project AEON · sales + transfers (newest on-chain date via Dune)", file: "public/aeon-dune-status.json", pick: d => d?.updated, cad: "daily", max: 2 },
+  // Transfers now come from Alchemy (fresh) — tracked by aeon-onchain.json below. This row is the
+  // one feed still on Dune: SALES (trader P&L / MVRV). Stays RED until Dune returns or sales move to BigQuery.
+  { label: "Project AEON · sales (Dune — the one remaining Dune feed)", file: "public/aeon-dune-status.json", pick: d => d?.updated, cad: "daily", max: 3 },
+  { label: "Project AEON · holder analytics (transfers via Alchemy)", file: "public/aeon-onchain.json", pick: d => d?.updated, cad: "daily", max: 3 },
 ];
 
 async function loadFreshness() {

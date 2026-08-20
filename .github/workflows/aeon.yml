@@ -64,14 +64,28 @@ jobs:
       # dune/out/*.csv, so it pulls only rows since the archive's last day (a handful) and
       # merges → the result read drops to ~0 credits. Daily is fine again. Lesson: measure the
       # API Result Read too, not just executionCostCredits.
-      - name: Refresh transfers + sales from Dune (incremental delta, daily)
-        # Soft-skips without DUNE_API_KEY; soft-fails on any Dune hiccup so the floor/owners
-        # banker stays green (reconstructions then use the last committed CSVs).
+      # ⭐ TRANSFERS NOW COME FROM ALCHEMY, NOT DUNE (2026-08-20). The Dune account was
+      # suspended, freezing the whole holder-analytics half (age/concentration/flow/owners/
+      # timeline/skyline) at 2026-07-23. Alchemy getAssetTransfers returns the same from/to/
+      # tokenId/time and we already pay for the key, so it is the single source for AEON
+      # transfers now. Full-history pull each run (~26 pages); soft-fails + never truncates.
+      - name: Refresh AEON transfers from Alchemy (replaces the Dune transfers pull)
+        env:
+          ALCHEMY_KEY: ${{ secrets.ALCHEMY_KEY }}
+          ALCHEMY_NETWORK: ${{ vars.ALCHEMY_NETWORK }}   # optional (default eth-mainnet)
+          AEON_CONTRACT: ${{ vars.AEON_CONTRACT }}
+        run: node scripts/build-aeon-transfers-alchemy.mjs
+
+      # SALES (with prices) are the ONE remaining Dune dependency — they feed trader P&L / MVRV /
+      # realized price, which Alchemy can't reconstruct historically (getNFTSales is a recent
+      # window + deprecates 2026-09-30). This soft-fails while the account is suspended, leaving
+      # the committed sales CSV frozen at 2026-07-23 (surfaced honestly by the freshness audit).
+      # Migrate to a free BigQuery sales pull to drop Dune entirely.
+      - name: Refresh AEON sales from Dune (sales only — the one remaining Dune feed)
         env:
           DUNE_API_KEY: ${{ secrets.DUNE_API_KEY }}
-          AEON_TRANSFERS_QUERY_ID: ${{ vars.AEON_TRANSFERS_QUERY_ID }}   # optional (else created + logged)
           AEON_SALES_QUERY_ID: ${{ vars.AEON_SALES_QUERY_ID }}           # optional (else created + logged)
-        run: node scripts/build-aeon-dune-refresh.mjs
+        run: node scripts/build-aeon-dune-refresh.mjs --only=sales
 
       - name: Rebuild transfer + sales reconstructions
         # onchain (holders/HODL-age/concentration/flow/skyline) + sales (floor/volume) from the
