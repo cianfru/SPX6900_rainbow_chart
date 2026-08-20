@@ -79,6 +79,17 @@ export function buildDailySnapshot(feeds) {
   }
   if (hold.length) sections.push({ title: "Holders & conviction", rows: hold });
 
+  // ---- CONCENTRATION (whales spreading out vs consolidating) --------------
+  // A standing read, not just a radar spike: rising top-N share = supply consolidating into fewer
+  // hands (a risk), falling = distributing to more wallets. From the FIFO engine, daily.
+  const conc = [];
+  if (oc?.top100 != null) {
+    conc.push(row("Top-100 wallets' share", oc.top100, onchain, r => r.top100, "pct", false, "share of holder supply held by the 100 biggest wallets — rising = consolidating"));
+    if (oc.top10 != null) conc.push(row("Top-10 wallets' share", oc.top10, onchain, r => r.top10, "pct", false, "the 10 biggest wallets' share of holder supply"));
+    if (oc.gini != null) conc.push(row("Gini coefficient", oc.gini, onchain, r => r.gini, "num3", false, "0 = supply spread perfectly evenly, 1 = all in one wallet"));
+  }
+  if (conc.length) sections.push({ title: "Concentration", rows: conc });
+
   // ---- EXCHANGE FLOW ------------------------------------------------------
   const flow = [];
   if (oc?.cexBal != null) {
@@ -88,6 +99,16 @@ export function buildDailySnapshot(feeds) {
     flow.push(row("On exchanges (balance)", h.cexBal, history, r => r.cexBal, "m", false, "rising = supply onto venues"));
   }
   if (oc?.lpBal != null) flow.push(row("In liquidity pools", oc.lpBal, onchain, r => r.lpBal, "m", true, "DEX depth"));
+  // Organic net flow (one-time exchange-listing fills stripped) — the honest sell-side-vs-accumulation
+  // read, which the raw balance delta above can't separate from a listing. cex-flow.json days[][4].
+  if (Array.isArray(cexFlow?.days) && cexFlow.days.length >= 30) {
+    const organic = cexFlow.days.map(d => d[4] || 0);
+    const sum = n => organic.slice(-n).reduce((a, b) => a + b, 0);
+    const s7 = sum(7);
+    flow.push({ label: "Net flow onto exchanges (organic, 30d)", value: sum(30), fmt: "m", goodUp: false,
+      note: `coins onto (+) minus off (−) exchanges over 30 days, listing fills stripped · negative = leaving (accumulation) · 7d ${s7 >= 0 ? "+" : "−"}${(Math.abs(s7) / 1e6).toFixed(2)}M`,
+      d: [null, null, null] });
+  }
   if (flow.length) sections.push({ title: "Exchange flow", rows: flow });
 
   // ---- WHALE COHORTS (net buy/sell by SIZE band) -------------------------
