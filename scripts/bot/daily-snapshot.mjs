@@ -29,7 +29,7 @@ const row = (label, value, arr, acc, fmt, goodUp, note) => ({
 
 export function buildDailySnapshot(feeds) {
   const { history = [], onchain = [], whales, smartMoney, valuation, cexFlow, exitFlow, longshort,
-    aeon, aeonHistory = [], aeonMarket, aeonSales } = feeds;
+    cityHistory, aeon, aeonHistory = [], aeonMarket, aeonSales } = feeds;
   const oc = onchain.length ? onchain[onchain.length - 1] : null;
   const h = history.length ? history[history.length - 1] : null;
   const spot = oc?.spot ?? h?.p ?? whales?.spot ?? 0;
@@ -190,6 +190,23 @@ export function buildDailySnapshot(feeds) {
   }
   if (tech.length) sections.push({ title: "Technicals", rows: tech });
 
+  // ---- SPX CITY (the holder city — residents ≥5k SPX held 90 days) --------
+  // City TVL + citizen count are the "adoption vs price" read: both climbed through the drawdown.
+  // Source: city-history.json rows = [date, price, c0..c5 counts, v0..v5 TVL-USD] by size cohort.
+  const city = [];
+  const CR = cityHistory?.rows;
+  if (Array.isArray(CR) && CR.length) {
+    const citizens = r => r.slice(2, 8).reduce((a, b) => a + (b || 0), 0);
+    const tvl = r => r.slice(8, 14).reduce((a, b) => a + (b || 0), 0);
+    const cur = CR[CR.length - 1];
+    city.push(row("City TVL", tvl(cur), CR, tvl, "usdm", true, "total USD value of every resident wallet (balance × price)"));
+    city.push(row("Citizens", citizens(cur), CR, citizens, "int", true, "wallets that have held ≥5,000 SPX for 90 days — SPX City residency"));
+    city.push(row("Big residents (≥1M SPX)", (cur[6] || 0) + (cur[7] || 0), CR, r => (r[6] || 0) + (r[7] || 0), "int", true, "residents in the 1M–5M and 5M+ size cohorts"));
+    const pc = cityHistory?.perCapita;
+    if (Array.isArray(pc) && pc.length) city.push(row("Median resident holding", pc[pc.length - 1][1], pc, r => r[1], "spx", true, "the middle resident's stake"));
+  }
+  if (city.length) sections.push({ title: "SPX City", rows: city });
+
   // ---- PROJECT AEON (NFT collection) -------------------------------------
   // Floor priced in BOTH ETH and SPX (the honest SPX-native denominator), plus today's sales. The
   // sales feed rides the daily Dune pull so it can lag a day or two — the freshness footer flags it.
@@ -233,6 +250,7 @@ export function buildDailySnapshot(feeds) {
     freshness: {
       history: dateOf(history), onchain: dateOf(onchain), whales: dateOf(whales),
       smartMoney: smartMoney?.updated || null, valuation: valuation?.updated || null,
+      city: cityHistory?.updated || null,
       // AEON floor comes from Alchemy daily (current). AEON SALES come from the Dune pull, which has
       // been STALLING — so its freshness is the last date the SALES DATA actually advanced, which the
       // footer flags when it falls behind. (Do NOT key sales freshness to the run date: the builder
@@ -254,6 +272,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     cexFlow: read("public/cex-flow.json"),
     exitFlow: read("public/exit-flow.json"),
     longshort: read("public/longshort.json"),
+    cityHistory: read("public/city-history.json"),
     aeon: read("public/aeon.json"),
     aeonHistory: read("public/aeon-history.json") || [],
     aeonMarket: read("public/aeon-market.json"),
