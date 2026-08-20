@@ -194,13 +194,21 @@ export async function mergeArchive(basePath, deltaCsv, cutoff, outPath) {
   return { kept, dropped, added };
 }
 
+// Build the daily price CSV the FIFO engine uses to set each day's `spot`. price-history.json is the
+// dense base, but it refreshes only WEEKLY — so the newest days would forward-fill at a stale price,
+// which froze the floor model's spot line at the Monday value through a mid-week pump. history.json
+// carries the LIVE daily price (banked by the snapshot cron), so overlay it on top of the dense base:
+// the tail then tracks the real daily close and every onchain.spot consumer stays current.
+export function mergePriceRows(priceHistory, history) {
+  const byDate = new Map();
+  const phArr = Array.isArray(priceHistory) ? priceHistory : (priceHistory?.prices || priceHistory?.data || []);
+  for (const x of phArr) { const d = x?.date ?? x?.[0], p = +(x?.price ?? x?.[1]); if (d && p > 0) byDate.set(d, p); }
+  for (const r of (Array.isArray(history) ? history : [])) { const d = r?.d ?? r?.date, p = +r?.p; if (d && p > 0) byDate.set(d, p); }  // live daily wins
+  return [...byDate.entries()].sort((a, b) => a[0].localeCompare(b[0]));
+}
 async function pricesCsv() {
-  let rows = [];
-  try {
-    const ph = JSON.parse(readFileSync(join(root, "public/price-history.json"), "utf8"));
-    const arr = Array.isArray(ph) ? ph : (ph.prices || ph.data || []);
-    rows = arr.map(x => [x.date ?? x[0], x.price ?? x[1]]).filter(([d, p]) => d && p > 0);
-  } catch { /* fall back */ }
+  const rd = f => { try { return JSON.parse(readFileSync(join(root, f), "utf8")); } catch { return null; } };
+  let rows = mergePriceRows(rd("public/price-history.json"), rd("public/history.json"));
   if (rows.length < 100) { const { SPX_DAILY } = await import("../src/spx-daily.js"); rows = SPX_DAILY.map(([d, p]) => [d, p]); }
   return "date,price\n" + rows.map(([d, p]) => `${d},${p}`).join("\n") + "\n";
 }

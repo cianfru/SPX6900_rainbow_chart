@@ -32,7 +32,10 @@ export function buildDailySnapshot(feeds) {
     cityHistory, aeon, aeonHistory = [], aeonMarket, aeonSales } = feeds;
   const oc = onchain.length ? onchain[onchain.length - 1] : null;
   const h = history.length ? history[history.length - 1] : null;
-  const spot = oc?.spot ?? h?.p ?? whales?.spot ?? 0;
+  // Prefer the LIVE daily price (history.json `p`) over onchain.spot: the FIFO engine prices spot off
+  // the weekly price-history feed, so onchain.spot can lag a few days mid-week (it froze the header at
+  // the Monday price through a pump). history.json is the live daily fetch → the truest "now".
+  const spot = h?.p ?? oc?.spot ?? whales?.spot ?? 0;
   const sections = [], alerts = [];
 
   // ---- VALUATION ----------------------------------------------------------

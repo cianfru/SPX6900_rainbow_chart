@@ -1387,6 +1387,17 @@
   - **⭐ MODEL STAYS FROZEN ON WEEKLY — daily fit VALIDATED the choice.** Re-fitting the power-law on the DAILY series gives **R² 0.694**
     vs the frozen weekly **0.742** (exponent 4.60→4.06, fair value $1.83→$1.54) — WORSE (daily carries noise + heavy autocorrelation
     weekly closes smooth out). **Do NOT re-fit on daily.** Dense daily for the drawn LINE, frozen weekly `DEFAULT_RAW` for the FIT.
+- **⭐ FLOOR-MODEL "FROZEN" WAS A STALE-PRICE BUG — FIXED 2026-08-21.** Owner: the floor model looked frozen. Root cause:
+  **`price-history.yml` ran WEEKLY (Mondays)**, and the FIFO engine sets each day's `onchain.json` `spot` from that dense
+  series — so mid-week (esp. during the 0.32→0.37 pump since Mon 08-17) recent spots **forward-filled the Monday price**, and
+  anything reading `onchain.spot` directly (the `floormodel` CARD, the terminal header spot, `onchain.mvrv`, city TVL) froze.
+  **NOT frozen:** the site chart (`OnchainValueChart` realized/floor-band mode) — `mvrvHistory()` lets the LIVE `history.json`
+  price win on the tail, so it already showed ~0.37 (verified). Fixes: (1) `build-onchain-dune-refresh.mjs` `pricesCsv()` now
+  **`mergePriceRows(price-history, history)`** — overlays history.json's live daily `p` on the dense base so the newest days
+  price at the real close (self-heals onchain.spot/mvrv on the next onchain-dune run; unit-tested). (2) `price-history.yml` cron
+  flipped **weekly → daily** (04:17 UTC, before onchain-dune) so the dense base + city/smart-money/exit builders stay ≤1 day
+  fresh. (3) the terminal header spot now prefers `history.json.p` (live) over `onchain.spot`. **LESSON: any daily surface that
+  prices off a WEEKLY feed will look frozen mid-week — overlay the live daily price on the tail.**
 - **Dense historical price data — SOLVED IN STAGES.** `scripts/build-price-history.mjs`: **✅ CoinGecko COIN API (`market_chart`, free)** —
   free tier caps to last 365 days (reaches the true ATH region; Jul '25 top $2.15 daily on 2025-07-28); Pro key (`COINGECKO_PRO_KEY`)
   auto-upgrades to `days=max` (Analyst ~$129/mo → a one-month backfill = ~$129 one-time). **✅ Hyperliquid perp candles** (fills the 2024
