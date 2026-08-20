@@ -180,13 +180,21 @@ async function main() {
   console.log(`aeon-dune: refreshing ${only || "transfers + sales"} from Dune…`);
   if (want("transfers")) await pull("dune/aeon_transfers.sql", "dune/out/aeon_transfers.csv", "Project AEON — transfers (auto)", "AEON_TRANSFERS_QUERY_ID", "evt_block_time");
   if (want("sales")) await pull("dune/aeon_sales.sql", "dune/out/aeon_sales.csv", "Project AEON — sales (auto)", "AEON_SALES_QUERY_ID", "block_time");
-  // ⭐ HEARTBEAT for the feed audit. Stamp today ONLY here — i.e. only when every pull above
-  // SUCCEEDED, since any Dune failure throws before this line. The AEON data files carry a run-date
-  // `updated` (regenerated daily from the committed CSVs even when frozen), which is exactly what
-  // masked the 2-week stall; this file's date instead FREEZES the moment the pull stops working, so
-  // audit-feeds surfaces the stall in feed-health.json / the control panel. Deploy-ignored.
-  writeFileSync("public/aeon-dune-status.json", JSON.stringify({ updated: new Date().toISOString().slice(0, 10), ok: true, pulled: only || "transfers+sales" }));
-  console.log("aeon-dune: done.");
+  // ⭐ HEARTBEAT for the feed audit + control panel. `updated` is the newest DATA date actually
+  // in the CSVs — NOT the run date — so a pull that COMPLETES but returns nothing new (a frozen
+  // source, or a suspended Dune account whose executions never leave PENDING) still reports the
+  // real staleness and turns the freshness RED. A run-stamp here is exactly what masked the stall:
+  // the control panel read "2 days old" while the chart sat in July. `checked` keeps the run date
+  // for reference. A thrown pull skips this line and leaves the last honest date. Deploy-ignored.
+  const newestDataDate = ["dune/out/aeon_transfers.csv", "dune/out/aeon_sales.csv"]
+    .map(f => { try { return cutoffDay(archiveMaxTime(readFileSync(f, "utf8"))); } catch { return null; } })
+    .filter(Boolean).sort().pop() || null;
+  writeFileSync("public/aeon-dune-status.json", JSON.stringify({
+    updated: newestDataDate || new Date().toISOString().slice(0, 10),
+    checked: new Date().toISOString().slice(0, 10),
+    ok: true, pulled: only || "transfers+sales",
+  }));
+  console.log(`aeon-dune: done. newest data ${newestDataDate}`);
 }
 
 // Only run when invoked directly (`node build-aeon-dune-refresh.mjs`), not when the pure helpers
