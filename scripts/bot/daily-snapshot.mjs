@@ -205,7 +205,10 @@ export function buildDailySnapshot(feeds) {
     freshness: {
       history: dateOf(history), onchain: dateOf(onchain), whales: dateOf(whales),
       smartMoney: smartMoney?.updated || null, valuation: valuation?.updated || null,
-      aeon: aeon?.updated || dateOf(aeonHistory), aeonSales: aeonSales?.updated || null,
+      // AEON freshness = when the banker last CHECKED (floor + sales), which is daily. The date of the
+      // LAST SALE is NOT a freshness signal — a thin collection can go weeks with no sales while the
+      // feed is perfectly current — so it lives in the "Sales today" row as context, never as a red flag.
+      aeon: aeon?.updated || aeonMarket?.updated || dateOf(aeonHistory),
     },
   };
 }
