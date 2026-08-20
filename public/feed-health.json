@@ -1,8 +1,8 @@
 {
- "checked": "2026-08-19",
- "ok": 36,
+ "checked": "2026-08-20",
+ "ok": 34,
  "warn": 0,
- "fail": 6,
+ "fail": 9,
  "untracked": [],
  "feeds": [
   {
@@ -12,10 +12,11 @@
    "status": "fail",
    "age": 0,
    "cadence": 2,
-   "date": "2026-08-19",
+   "date": "2026-08-20",
    "notes": [
     "upnl: stopped arriving",
-    "rpnl: stopped arriving"
+    "rpnl: stopped arriving",
+    "holdersBase: 1 of 14 recent rows null"
    ]
   },
   {
@@ -23,7 +24,7 @@
    "by": "snapshot.yml (step)",
    "what": "wallet growth across ETH/Base/Solana",
    "status": "ok",
-   "age": 0,
+   "age": 1,
    "cadence": 2,
    "date": "2026-08-19",
    "notes": []
@@ -35,7 +36,7 @@
    "status": "ok",
    "age": 0,
    "cadence": 2,
-   "date": "2026-08-19",
+   "date": "2026-08-20",
    "notes": []
   },
   {
@@ -45,7 +46,17 @@
    "status": "ok",
    "age": 0,
    "cadence": 2,
-   "date": "2026-08-19",
+   "date": "2026-08-20",
+   "notes": []
+  },
+  {
+   "file": "daily-snapshot.json",
+   "by": "snapshot.yml (step)",
+   "what": "the control-panel daily terminal one-pager (delta tables)",
+   "status": "ok",
+   "age": 0,
+   "cadence": 2,
+   "date": "2026-08-20",
    "notes": []
   },
   {
@@ -53,9 +64,9 @@
    "by": "snapshot.yml (step)",
    "what": "The Brief — the cross-surface synthesizer digest",
    "status": "ok",
-   "age": 1,
+   "age": 0,
    "cadence": 2,
-   "date": "2026-08-18",
+   "date": "2026-08-20",
    "notes": []
   },
   {
@@ -65,7 +76,7 @@
    "status": "ok",
    "age": 0,
    "cadence": 3,
-   "date": "2026-08-19",
+   "date": "2026-08-20",
    "notes": []
   },
   {
@@ -73,9 +84,9 @@
    "by": "onchain-dune.yml",
    "what": "the whole FIFO on-chain suite",
    "status": "ok",
-   "age": 1,
+   "age": 0,
    "cadence": 9,
-   "date": "2026-08-18",
+   "date": "2026-08-20",
    "notes": []
   },
   {
@@ -83,9 +94,9 @@
    "by": "onchain-dune.yml",
    "what": "the cost-basis histogram",
    "status": "ok",
-   "age": 1,
+   "age": 0,
    "cadence": 9,
-   "date": "2026-08-18",
+   "date": "2026-08-20",
    "notes": []
   },
   {
@@ -93,9 +104,9 @@
    "by": "onchain-dune.yml",
    "what": "weekly cost-basis slices (the URPD terrain 3D)",
    "status": "fail",
-   "age": 1,
+   "age": 0,
    "cadence": 9,
-   "date": "2026-08-18",
+   "date": "2026-08-20",
    "notes": [
     "no rows"
    ]
@@ -105,9 +116,9 @@
    "by": "onchain-dune.yml",
    "what": "the wallets resident in Whale City",
    "status": "ok",
-   "age": 1,
+   "age": 0,
    "cadence": 9,
-   "date": "2026-08-18",
+   "date": "2026-08-20",
    "notes": []
   },
   {
@@ -117,7 +128,7 @@
    "status": "fail",
    "age": 1,
    "cadence": 2,
-   "date": "2026-08-18",
+   "date": "2026-08-19",
    "notes": [
     "no rows"
    ]
@@ -127,9 +138,9 @@
    "by": "onchain-dune.yml",
    "what": "SPX-on-Solana ≥5k residents (age/flow)",
    "status": "ok",
-   "age": 2,
+   "age": 1,
    "cadence": 9,
-   "date": "2026-08-17",
+   "date": "2026-08-19",
    "notes": []
   },
   {
@@ -137,9 +148,9 @@
    "by": "onchain-dune.yml",
    "what": "SPX-on-Base ≥5k cohort (ages/exits/survival)",
    "status": "ok",
-   "age": 2,
+   "age": 1,
    "cadence": 9,
-   "date": "2026-08-17",
+   "date": "2026-08-19",
    "notes": []
   },
   {
@@ -147,7 +158,7 @@
    "by": "price-history.yml",
    "what": "the dense daily price line",
    "status": "ok",
-   "age": 2,
+   "age": 3,
    "cadence": 9,
    "date": "2026-08-17",
    "notes": []
@@ -159,7 +170,7 @@
    "status": "ok",
    "age": 1,
    "cadence": 3,
-   "date": "2026-08-18",
+   "date": "2026-08-19",
    "notes": []
   },
   {
@@ -167,7 +178,7 @@
    "by": "btc-mvrv.yml",
    "what": "Bitcoin's MVRV, for the comparison chart",
    "status": "ok",
-   "age": 19,
+   "age": 20,
    "cadence": 40,
    "date": "2026-07-31",
    "notes": []
@@ -179,7 +190,7 @@
    "status": "ok",
    "age": 1,
    "cadence": 2,
-   "date": "2026-08-18",
+   "date": "2026-08-19",
    "notes": []
   },
   {
@@ -189,18 +200,20 @@
    "status": "ok",
    "age": 1,
    "cadence": 2,
-   "date": "2026-08-18",
+   "date": "2026-08-19",
    "notes": []
   },
   {
    "file": "aeon-onchain.json",
    "by": "aeon.yml",
    "what": "AEON ownership, holder age, concentration",
-   "status": "ok",
-   "age": 2,
+   "status": "fail",
+   "age": 28,
    "cadence": 3,
-   "date": "2026-08-17",
-   "notes": []
+   "date": "2026-07-23",
+   "notes": [
+    "28d old, cadence allows 3d"
+   ]
   },
   {
    "file": "aeon-market.json",
@@ -209,18 +222,20 @@
    "status": "ok",
    "age": 1,
    "cadence": 3,
-   "date": "2026-08-18",
+   "date": "2026-08-19",
    "notes": []
   },
   {
    "file": "aeon-sales.json",
    "by": "aeon.yml",
    "what": "AEON marketplace trades",
-   "status": "ok",
-   "age": 2,
+   "status": "fail",
+   "age": 28,
    "cadence": 3,
-   "date": "2026-08-17",
-   "notes": []
+   "date": "2026-07-23",
+   "notes": [
+    "28d old, cadence allows 3d"
+   ]
   },
   {
    "file": "aeon-timeline.json",
@@ -229,7 +244,7 @@
    "status": "ok",
    "age": 1,
    "cadence": 3,
-   "date": "2026-08-18",
+   "date": "2026-08-19",
    "notes": []
   },
   {
@@ -237,9 +252,9 @@
    "by": "onchain-dune.yml",
    "what": "weekly/monthly city changes (new residents, tier upgrades)",
    "status": "ok",
-   "age": 2,
+   "age": 1,
    "cadence": 3,
-   "date": "2026-08-17",
+   "date": "2026-08-19",
    "notes": []
   },
   {
@@ -247,9 +262,9 @@
    "by": "onchain-dune.yml",
    "what": "city time-machine (SPX weekly balances)",
    "status": "ok",
-   "age": 2,
+   "age": 1,
    "cadence": 3,
-   "date": "2026-08-17",
+   "date": "2026-08-19",
    "notes": []
   },
   {
@@ -257,9 +272,9 @@
    "by": "onchain-dune.yml",
    "what": "wallet survival by arrival era",
    "status": "ok",
-   "age": 2,
+   "age": 1,
    "cadence": 3,
-   "date": "2026-08-17",
+   "date": "2026-08-19",
    "notes": []
   },
   {
@@ -267,7 +282,7 @@
    "by": "onchain-dune.yml (step)",
    "what": "'Whales Then vs Now' mosaic panels at the NRPL-picked cycle moments",
    "status": "ok",
-   "age": 2,
+   "age": 3,
    "cadence": 3,
    "date": "2026-08-17",
    "notes": []
@@ -277,9 +292,9 @@
    "by": "onchain-dune.yml (step)",
    "what": "lifetime ROI by whale size band (% in profit + typical multiple)",
    "status": "ok",
-   "age": 2,
+   "age": 1,
    "cadence": 3,
-   "date": "2026-08-17",
+   "date": "2026-08-19",
    "notes": []
   },
   {
@@ -287,9 +302,9 @@
    "by": "onchain-dune.yml (step)",
    "what": "when each ≥100k whale bought (entry date × price) + in-profit, for the bubble card/chart",
    "status": "ok",
-   "age": 2,
+   "age": 1,
    "cadence": 3,
-   "date": "2026-08-17",
+   "date": "2026-08-19",
    "notes": []
   },
   {
@@ -297,9 +312,9 @@
    "by": "onchain-dune.yml",
    "what": "per-week whale counts by size cohort",
    "status": "ok",
-   "age": 2,
+   "age": 1,
    "cadence": 3,
-   "date": "2026-08-17",
+   "date": "2026-08-19",
    "notes": []
   },
   {
@@ -307,9 +322,9 @@
    "by": "onchain-dune.yml",
    "what": "city citizens + TVL by size cohort over time",
    "status": "ok",
-   "age": 2,
+   "age": 1,
    "cadence": 3,
-   "date": "2026-08-17",
+   "date": "2026-08-19",
    "notes": []
   },
   {
@@ -317,9 +332,9 @@
    "by": "onchain-dune.yml",
    "what": "daily departures split by profit/loss",
    "status": "ok",
-   "age": 2,
+   "age": 1,
    "cadence": 3,
-   "date": "2026-08-17",
+   "date": "2026-08-19",
    "notes": []
   },
   {
@@ -327,9 +342,9 @@
    "by": "onchain-dune.yml",
    "what": "live smart-money cohort holdings + net-flow",
    "status": "ok",
-   "age": 2,
+   "age": 1,
    "cadence": 3,
-   "date": "2026-08-17",
+   "date": "2026-08-19",
    "notes": []
   },
   {
@@ -337,9 +352,9 @@
    "by": "onchain-dune.yml",
    "what": "detected wallet splits/consolidations (self-relocations)",
    "status": "ok",
-   "age": 1,
+   "age": 0,
    "cadence": 3,
-   "date": "2026-08-18",
+   "date": "2026-08-20",
    "notes": []
   },
   {
@@ -347,9 +362,9 @@
    "by": "onchain-dune.yml",
    "what": "entity clusters (EOA→EOA drain/fund graph — who owns what)",
    "status": "ok",
-   "age": 1,
+   "age": 0,
    "cadence": 3,
-   "date": "2026-08-18",
+   "date": "2026-08-20",
    "notes": []
   },
   {
@@ -357,31 +372,33 @@
    "by": "onchain-dune.yml",
    "what": "CEX flow Sankey — who supplies/withdraws from exchanges + exchange candidates",
    "status": "ok",
-   "age": 2,
+   "age": 1,
    "cadence": 3,
-   "date": "2026-08-17",
+   "date": "2026-08-19",
    "notes": []
   },
   {
    "file": "aeon-traders.json",
    "by": "aeon.yml",
    "what": "AEON per-wallet realized P&L",
-   "status": "ok",
-   "age": 2,
+   "status": "fail",
+   "age": 28,
    "cadence": 3,
-   "date": "2026-08-17",
-   "notes": []
+   "date": "2026-07-23",
+   "notes": [
+    "28d old, cadence allows 3d"
+   ]
   },
   {
    "file": "aeon-listings.json",
    "by": "aeon.yml",
    "what": "live AEON listings for the deal finder",
    "status": "fail",
-   "age": 5,
+   "age": 6,
    "cadence": 3,
    "date": "2026-08-14",
    "notes": [
-    "5d old, cadence allows 3d"
+    "6d old, cadence allows 3d"
    ]
   },
   {
@@ -389,7 +406,7 @@
    "by": "aeon.yml (once)",
    "what": "AEON trait rarity (static once built)",
    "status": "ok",
-   "age": 26,
+   "age": 27,
    "cadence": 400,
    "date": "2026-07-24",
    "notes": []
@@ -401,7 +418,7 @@
    "status": "ok",
    "age": 1,
    "cadence": 2,
-   "date": "2026-08-18",
+   "date": "2026-08-19",
    "notes": [
     "sales: empty (allowed, but worth knowing)"
    ]
@@ -411,7 +428,7 @@
    "by": "aeon.yml",
    "what": "AEON Dune-pull heartbeat (last successful transfers+sales pull)",
    "status": "ok",
-   "age": 1,
+   "age": 2,
    "cadence": 2,
    "date": "2026-08-18",
    "notes": []
@@ -421,11 +438,11 @@
    "by": "aeon.yml (step)",
    "what": "ENS names for the wallets we display",
    "status": "fail",
-   "age": 24,
+   "age": 25,
    "cadence": 9,
    "date": "2026-07-26",
    "notes": [
-    "24d old, cadence allows 9d"
+    "25d old, cadence allows 9d"
    ]
   },
   {
@@ -433,11 +450,11 @@
    "by": "onchain-dune.yml (step)",
    "what": "whale-cohort move candidates",
    "status": "fail",
-   "age": 24,
+   "age": 25,
    "cadence": 9,
    "date": "2026-07-26",
    "notes": [
-    "24d old, cadence allows 9d",
+    "25d old, cadence allows 9d",
     "signals: empty (allowed, but worth knowing)"
    ]
   }
