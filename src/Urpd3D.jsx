@@ -13,8 +13,15 @@ const fp = p => p >= 1 ? "$" + p.toFixed(1) : p >= 0.01 ? "$" + p.toFixed(2) : "
 // values are readable. Lazy-loaded so three.js never touches the base bundle.
 export default function Urpd3D({ buckets, spot = 0, isMobile }) {
   const mount = useRef(null);
+  // The live spot price ticks ~every 60s; it moves ONLY the spot marker, not the bar field. Keep it
+  // in a ref so the heavy scene build depends on [buckets, isMobile] alone — otherwise every price
+  // tick tore down and rebuilt the whole WebGLRenderer, churning GL contexts and leaking geometry.
+  const spotRef = useRef(spot);     // latest spot, updated in the spot effect (never during render)
+  const drawSpotRef = useRef(null); // set by the build effect; called by the lightweight spot effect
   useEffect(() => {
     const el = mount.current; if (!el || !buckets?.length) return;
+    const disposables = []; // every geometry/material created here → released on unmount/rebuild
+    const track = o => { if (o) disposables.push(o); return o; };
     const W = el.clientWidth, H = isMobile ? 380 : 500;
     const P = buckets.length, A = 5, DZ = 2.4;
     const price = buckets.map(b => (b.lo * b.hi) ** 0.5);
@@ -50,9 +57,10 @@ export default function Urpd3D({ buckets, spot = 0, isMobile }) {
     // floor grid
     const grid = new THREE.GridHelper(Math.max(P, A * DZ) * 1.1, 12, 0x223052, 0x162038);
     grid.position.set(-0.5, 0, zc); scene.add(grid);
+    track(grid.geometry); track(grid.material);
 
     // bars
-    const geo = new THREE.BoxGeometry(0.8, 1, 0.8);
+    const geo = track(new THREE.BoxGeometry(0.8, 1, 0.8));
     const group = new THREE.Group();
     buckets.forEach((b, i) => {
       for (let a = 0; a < A; a++) {
@@ -67,8 +75,8 @@ export default function Urpd3D({ buckets, spot = 0, isMobile }) {
 
     // ── AXIS REFERENCE ────────────────────────────────────────────────
     const xL = -cx - 0.5, xR = P - cx - 0.5, zF = -cz - 0.6, zB = (A - 1) * DZ - cz + 0.6;
-    const lineMat = new THREE.LineBasicMaterial({ color: 0x2a3550, transparent: true, opacity: 0.6 });
-    const seg = (a, b) => { const g = new THREE.BufferGeometry().setFromPoints([a, b]); scene.add(new THREE.Line(g, lineMat)); };
+    const lineMat = track(new THREE.LineBasicMaterial({ color: 0x2a3550, transparent: true, opacity: 0.6 }));
+    const seg = (a, b) => { const g = track(new THREE.BufferGeometry().setFromPoints([a, b])); scene.add(new THREE.Line(g, lineMat)); };
 
     // y (% of supply) gridlines + ticks on the back-left corner
     const yticks = [];
@@ -89,14 +97,26 @@ export default function Urpd3D({ buckets, spot = 0, isMobile }) {
     // z (holding age) labels along the left edge
     for (let a = 0; a < A; a++) addLabel(AGE_L[a], xL - 0.8, 0, a * DZ - cz, "#" + AGE_C[a].toString(16).padStart(6, "0"), 11, 700);
 
-    // spot cost-basis marker (nearest bucket)
-    if (spot > 0) {
-      let si = 0; for (let i = 1; i < P; i++) if (Math.abs(price[i] - spot) < Math.abs(price[si] - spot)) si = i;
-      const sm = new THREE.LineBasicMaterial({ color: 0xf8fafc, transparent: true, opacity: 0.55 });
-      const sg = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(si - cx, 0, zF), new THREE.Vector3(si - cx, maxV * SY, zF)]);
-      scene.add(new THREE.Line(sg, sm));
-      addLabel("spot " + fp(spot), si - cx, maxV * SY + 1.2, zF, "#f8fafc", 11, 700);
-    }
+    // spot cost-basis marker (nearest bucket). Drawn imperatively and re-drawn by the spot effect on
+    // each price tick, so a moving spot never rebuilds the scene. Its own geometry/material/label are
+    // disposed and removed before each redraw (and on unmount) so ticks can't accumulate resources.
+    let spotMarker = null;
+    const drawSpot = spotVal => {
+      if (spotMarker) {
+        scene.remove(spotMarker.line); scene.remove(spotMarker.label);
+        spotMarker.geo.dispose(); spotMarker.mat.dispose();
+        spotMarker = null;
+      }
+      if (!(spotVal > 0)) return;
+      let si = 0; for (let i = 1; i < P; i++) if (Math.abs(price[i] - spotVal) < Math.abs(price[si] - spotVal)) si = i;
+      const mat = new THREE.LineBasicMaterial({ color: 0xf8fafc, transparent: true, opacity: 0.55 });
+      const g = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(si - cx, 0, zF), new THREE.Vector3(si - cx, maxV * SY, zF)]);
+      const line = new THREE.Line(g, mat); scene.add(line);
+      const label = mkLabel("spot " + fp(spotVal), "#f8fafc", 11, 700); label.position.set(si - cx, maxV * SY + 1.2, zF); scene.add(label);
+      spotMarker = { line, label, geo: g, mat };
+    };
+    drawSpot(spotRef.current);       // initial marker at the current spot
+    drawSpotRef.current = drawSpot;  // let the spot effect redraw it without a rebuild
 
     const controls = new OrbitControls(cam, renderer.domElement);
     controls.target.set(0, 5, zc); controls.enableDamping = true; controls.dampingFactor = 0.08;
@@ -118,10 +138,18 @@ export default function Urpd3D({ buckets, spot = 0, isMobile }) {
     return () => {
       cancelAnimationFrame(raf); window.removeEventListener("resize", onResize);
       renderer.domElement.removeEventListener("pointerdown", stop);
-      controls.dispose(); geo.dispose(); group.children.forEach(m => m.material.dispose());
+      drawSpotRef.current = null;
+      controls.dispose();
+      group.children.forEach(m => m.material.dispose());       // per-bar materials
+      if (spotMarker) { spotMarker.geo.dispose(); spotMarker.mat.dispose(); }
+      disposables.forEach(o => o.dispose?.());                 // grid, bar geo, axis lines, lineMat
       renderer.dispose(); el.removeChild(renderer.domElement); el.removeChild(labelR.domElement);
     };
-  }, [buckets, spot, isMobile]);
+  }, [buckets, isMobile]);
+
+  // Live spot ticks: redraw only the marker on the already-built scene (no teardown/rebuild). Also
+  // record the latest spot so a scene rebuild (buckets/isMobile change) draws the marker in place.
+  useEffect(() => { spotRef.current = spot; drawSpotRef.current?.(spot); }, [spot]);
 
   return <div ref={mount} style={{ position: "relative", width: "100%", borderRadius: 12, overflow: "hidden", cursor: "grab" }} />;
 }

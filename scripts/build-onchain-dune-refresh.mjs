@@ -182,16 +182,20 @@ export async function mergeArchive(basePath, deltaCsv, cutoff, outPath) {
     if (Number.isFinite(t) && t < cutoffMs) { out.write(`${c[bIdx.from]},${c[bIdx.to]},${c[bIdx.time]},${c[bIdx.value]}\n`); kept++; }
     else dropped++;
   }
-  // delta rows (all — they are >= cutoff by construction; replace the boundary day)
+  // delta rows (all — they are >= cutoff by construction; replace the boundary day).
+  // Count how many of them land ON the boundary (cutoff) day: the delta re-pulls the whole
+  // cutoff day, so it must reproduce at least the `dropped` base rows we removed from it. Fewer
+  // means a short/empty/partial read — main() refuses to write and keeps the committed archive.
   const dl = deltaCsv.split(/\r?\n/).filter(l => l.trim());
-  let dIdx = null;
+  let dIdx = null, boundaryDelta = 0;
   for (const line of dl) {
     const c = splitCsv(line);
     if (dIdx === null) { dIdx = colIdx(c); if (dIdx.from < 0 || dIdx.time < 0) throw new Error(`delta header missing columns: ${line}`); continue; }
+    if (String(c[dIdx.time] || "").slice(0, 10) === cutoff) boundaryDelta++;
     out.write(`${c[dIdx.from]},${c[dIdx.to]},${c[dIdx.time]},${c[dIdx.value]}\n`); added++;
   }
   await new Promise((res, rej) => out.end(err => (err ? rej(err) : res())));
-  return { kept, dropped, added };
+  return { kept, dropped, added, boundaryDelta };
 }
 
 // Build the daily price CSV the FIFO engine uses to set each day's `spot`. price-history.json is the
@@ -264,6 +268,15 @@ async function main() {
   const merged = join(root, "tmp-transfers.csv");
   const stats = await mergeArchive(archive, deltaCsv, cutoff, merged);
   console.log(`merged: kept ${stats.kept} + added ${stats.added} (replaced ${stats.dropped} on/after ${cutoff})`);
+  // GUARD (mirrors build-aeon-dune-refresh's `added < dropped` check, but boundary-day-precise):
+  // the delta re-pulls the entire cutoff day, so it must re-cover every base row we dropped there.
+  // If it covered fewer — a Dune stall that completed empty/short, or a partial day whose max still
+  // advanced — writing back would silently drop that day's transfers and permanently corrupt every
+  // downstream FIFO number (realized price, MVRV, HODL waves, URPD). Keep the committed archive.
+  if (stats.boundaryDelta < stats.dropped) {
+    throw new Error(`delta short on ${cutoff}: ${stats.boundaryDelta} rows vs ${stats.dropped} replaced — `
+      + `Dune returned a partial/empty pull; keeping the committed archive rather than truncating it`);
+  }
   await writeFile(archive, readFileSync(merged)); // grown archive back to the asset path
   await writeFile(pPath, await pricesCsv());
   await runFifo(merged, pPath);
