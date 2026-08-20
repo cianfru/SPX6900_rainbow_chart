@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { TERMINAL_KEY, TERMINAL_HASH } from "./terminal-gate-key.js";
 import { MenuBtn } from "./chart-ui.jsx";
 
@@ -24,12 +24,14 @@ function fmtVal(v, fmt) {
     case "x": return v.toFixed(2) + "×";
     case "pctile": return Math.round(v * 100) + "/100";
     case "num3": return v.toFixed(3);
+    case "eth": return v.toFixed(3) + "Ξ";
+    case "spx": return Math.round(v).toLocaleString() + " SPX";
     default: return String(v);
   }
 }
 function Delta({ d, fmt, goodUp }) {
   if (d == null || !isFinite(d)) return <span className="tmdz">—</span>;
-  const eps = (fmt === "x" || fmt === "num3" || fmt === "pct") ? 0.005 : 1e-9;
+  const eps = (fmt === "x" || fmt === "num3" || fmt === "pct") ? 0.005 : (fmt === "eth") ? 0.0005 : 1e-9;
   if (Math.abs(d) < eps) return <span className="tmdz">·</span>;
   const good = (d > 0) === !!goodUp, sign = d > 0 ? "+" : "−", a = Math.abs(d);
   let mag;
@@ -41,23 +43,31 @@ function Delta({ d, fmt, goodUp }) {
     case "x": mag = a.toFixed(2); break;
     case "pctile": mag = Math.round(a * 100).toString(); break;
     case "num3": mag = a.toFixed(3); break;
+    case "eth": mag = a.toFixed(3) + "Ξ"; break;
+    case "spx": mag = Math.round(a).toLocaleString(); break;
     default: mag = String(a);
   }
   return <span className={good ? "tmup" : "tmdn"}>{sign}{mag}</span>;
 }
 
-// A 90-day TREND ARROW. A slow metric (liveliness) barely moves day-to-day — its 1d/7d deltas round to
-// "·" — but its 90-day direction is the story. We compare the average of the first third of the window
-// to the last third (noise-robust); <2% net = flat. Colour follows the row's goodUp, same as the deltas.
-function Trend({ data, goodUp }) {
-  if (!Array.isArray(data) || data.length < 6) return null;
-  const k = Math.max(1, Math.round(data.length / 3));
-  const avg = a => a.reduce((s, x) => s + x, 0) / a.length;
-  const first = avg(data.slice(0, k)), last = avg(data.slice(-k));
-  const rel = (last - first) / Math.max(Math.abs(first), 1e-9);
-  if (Math.abs(rel) < 0.02) return <span className="tmtrend tmtrend-flat" title="flat over 90 days">→ 90d</span>;
-  const up = last > first, good = up === !!goodUp;
-  return <span className={"tmtrend " + (good ? "tmup" : "tmdn")} title={`${up ? "rising" : "falling"} over 90 days`}>{up ? "▲" : "▼"} 90d</span>;
+// An (i) info chip: the explanation lives in a tooltip instead of always-visible body text, so the
+// desk stays scannable. Hover on desktop, tap on mobile (toggles). The popover is position:FIXED,
+// measured from the icon — so it can't be clipped by an ancestor's overflow (the tables scroll-x).
+function Info({ text }) {
+  const [pos, setPos] = useState(null);   // null = closed · {x,y} = open at these viewport coords
+  const ref = useRef(null);
+  if (!text) return null;
+  const open = () => { const r = ref.current?.getBoundingClientRect(); if (r) setPos({ x: r.left, y: r.bottom + 6 }); };
+  const close = () => setPos(null);
+  return (
+    <span className="tminfo" ref={ref} tabIndex={0}
+      onMouseEnter={open} onMouseLeave={close} onFocus={open} onBlur={close}
+      onClick={e => { e.stopPropagation(); pos ? close() : open(); }}>
+      <span className="tminfo-i" aria-label="More info">i</span>
+      {pos && <span className="tminfo-pop" role="tooltip"
+        style={{ left: Math.max(8, Math.min(pos.x, (typeof window !== "undefined" ? window.innerWidth : 400) - 316)), top: pos.y }}>{text}</span>}
+    </span>
+  );
 }
 
 function Gate({ onPass, isMobile }) {
@@ -106,10 +116,10 @@ export default function TerminalPage({ isMobile }) {
     <div className="twrap tmwrap">
       <div className="tmhead">
         <div className="tmcmd"><span className="tmprompt">spx6900 ~ %</span> cat ./terminal/today</div>
-        <h1 className="tmtitle">THE TERMINAL</h1>
+        <h1 className="tmtitle">THE TERMINAL<Info text="The daily on-chain intel desk — where SPX sits today and what changed. Every number is a plain day-over-day read off the on-chain feeds we already bank; nothing is a buy or sell call." /></h1>
         <div className="tmrainbow" />
         <div className="tmsub">
-          {S === undefined ? "loading the desk…" : S ? <>The daily on-chain intel desk — where SPX sits today and what changed. · {S.date || ""} · SPX ${(S.spot || 0).toFixed(4)}</> : "snapshot unavailable — try again in a minute"}
+          {S === undefined ? "loading the desk…" : S ? <>{S.date || ""} · SPX ${(S.spot || 0).toFixed(4)}</> : "snapshot unavailable — try again in a minute"}
         </div>
       </div>
 
@@ -123,21 +133,18 @@ export default function TerminalPage({ isMobile }) {
         return (
           <section className="tmsec tmsec-lead">
             <div className="tmsectitle">Market conditions — where SPX sits vs. its own history
+              <Info text="Each gauge is scored 0–100 against its own full SPX history: 0 = the cheapest / most oversold it has ever been, 100 = the most expensive / stretched. Nothing here is measured against Bitcoin or any outside benchmark — SPX is judged only against itself. A positioning read, not financial advice." />
               {C.score != null && <span> · overall {C.score}/100 · {scoreState}</span>}</div>
             <div className="tmconds">
               {C.rows.map((r, i) => (
                 <div className="tmcond" key={i}>
                   <div className="tmcondhd">
-                    <span className="tmcondname">{r.label}</span>
+                    <span className="tmcondname">{r.label}<Info text={r.plain} /></span>
                     <span className={"tmcondstate tmtone-" + r.tone}>{r.reading} · {r.state}</span>
                   </div>
                   <div className={"tmgauge tmtone-" + r.tone}><span className="tmgaugefill" style={{ width: r.pct + "%" }} /><span className="tmgaugetick" style={{ left: r.pct + "%" }} /></div>
-                  <div className="tmcondplain">{r.plain}</div>
                 </div>
               ))}
-            </div>
-            <div className="tmnote tmnote-lg">
-              Each gauge is scored <b>0–100 against its own full SPX history</b>: <b>0</b> = the cheapest / most oversold it has ever been, <b>100</b> = the most expensive / stretched. Nothing here is measured against Bitcoin or any outside benchmark — SPX is judged only against itself. A positioning read, not financial advice.
             </div>
           </section>
         );
@@ -145,7 +152,9 @@ export default function TerminalPage({ isMobile }) {
 
       {S && Array.isArray(S.anomalies) && S.anomalies.length > 0 && (
         <section className="tmsec">
-          <div className="tmsectitle">⚠ Anomaly radar <span>{S.scanned ? `all ${S.scanned} daily series scanned` : "all daily series scanned"}</span></div>
+          <div className="tmsectitle">⚠ Anomaly radar
+            <Info text="This scans every on-chain number we track each day — not a hand-picked few — and flags any that jumped far from its own recent normal (σ = how many standard deviations out). These are things to go look at, not conclusions: when you watch this many numbers, one or two will always move by chance." />
+            <span>{S.scanned ? `all ${S.scanned} daily series scanned` : "all daily series scanned"}</span></div>
           <div className="tmtblwrap">
             <table className="tmtbl">
               <thead><tr><th>metric</th><th>move</th><th>σ</th><th></th></tr></thead>
@@ -159,28 +168,31 @@ export default function TerminalPage({ isMobile }) {
               ))}</tbody>
             </table>
           </div>
-          <div className="tmnote tmnote-lg">This scans <b>every</b> on-chain number we track each day — not a hand-picked few — and flags any that jumped far from its own recent normal (σ = how many standard deviations out). These are things to go look at, not conclusions: when you watch this many numbers, one or two will always move by chance.</div>
         </section>
       )}
 
-      {S && Array.isArray(S.whaleFlow) && S.whaleFlow.length > 0 && (
+      {S && Array.isArray(S.whaleCohorts) && S.whaleCohorts.length > 0 && (() => {
+        const netCell = v => <td className={Math.abs(v) < 1 ? "tmdz" : v >= 0 ? "tmup" : "tmdn"}>{Math.abs(v) < 1 ? "·" : (v >= 0 ? "+" : "−") + (Math.abs(v) / 1e6).toFixed(2) + "M"}</td>;
+        return (
         <section className="tmsec">
-          <div className="tmsectitle">Whale cohorts · net buy / sell <span>≥100k SPX</span></div>
+          <div className="tmsectitle">Whale cohorts · net buy / sell by size
+            <Info text="Wallets holding ≥100k SPX, sliced into four size bands so you can see WHICH band is accumulating or distributing — not whales as one blob. Net SPX is the cohort's total balance change over each window (buys minus sells). Buyers/sellers count wallets whose 30-day move clears a small dust threshold." /></div>
           <div className="tmtblwrap">
             <table className="tmtbl">
-              <thead><tr><th>window</th><th>buyers</th><th>sellers</th><th>net SPX</th></tr></thead>
-              <tbody>{S.whaleFlow.map(w => (
-                <tr key={w.win}>
-                  <td className="tmk">{w.win}</td>
-                  <td className="tmup">{w.buyers}</td>
-                  <td className="tmdn">{w.sellers}</td>
-                  <td className={w.net >= 0 ? "tmup" : "tmdn"}>{w.net >= 0 ? "+" : "−"}{(Math.abs(w.net) / 1e6).toFixed(2)}M</td>
+              <thead><tr><th>cohort</th><th>wallets</th><th>buy/sell</th><th>net 1d</th><th>net 7d</th><th>net 30d</th></tr></thead>
+              <tbody>{S.whaleCohorts.map(c => (
+                <tr key={c.band}>
+                  <td className="tmk">{c.band}</td>
+                  <td>{c.wallets}</td>
+                  <td><span className="tmup">{c.buyers}</span> / <span className="tmdn">{c.sellers}</span></td>
+                  {netCell(c.d1)}{netCell(c.d7)}{netCell(c.d30)}
                 </tr>
               ))}</tbody>
             </table>
           </div>
         </section>
-      )}
+        );
+      })()}
 
       {S && S.exits && (
         <section className="tmsec">
@@ -203,14 +215,13 @@ export default function TerminalPage({ isMobile }) {
 
       {S && S.sections.map((sec, si) => (
         <section className="tmsec" key={si}>
-          <div className="tmsectitle">{sec.title}</div>
-          {sec.note && <div className="tmnote tmnote-lg" style={{ marginBottom: 8 }}>{sec.note}</div>}
+          <div className="tmsectitle">{sec.title}{sec.note && <Info text={sec.note} />}</div>
           <div className="tmtblwrap">
             <table className="tmtbl">
               <thead><tr><th>metric</th><th>now</th><th>1d</th><th>7d</th><th>30d</th></tr></thead>
               <tbody>{sec.rows.map((r, ri) => (
                 <tr key={ri}>
-                  <td className="tmk">{r.label}{r.note ? <span className="tmnote">{r.note}</span> : null}{r.spark ? <Trend data={r.spark} goodUp={r.goodUp} /> : null}</td>
+                  <td className="tmk">{r.label}{r.note ? <Info text={r.note} /> : null}</td>
                   <td className="tmval">{fmtVal(r.value, r.fmt)}</td>
                   {(r.d || [null, null, null]).map((d, di) => <td key={di}><Delta d={d} fmt={r.fmt} goodUp={r.goodUp} /></td>)}
                 </tr>

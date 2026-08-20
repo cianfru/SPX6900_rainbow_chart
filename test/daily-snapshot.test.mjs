@@ -14,21 +14,23 @@ const history = days(31).map(i => ({
   holdersBase: 120000, holdersSol: 60000, be: 0.5, fng: 40, sup: { diamond: 390e6 + i * 1e5 },
 }));
 
-test("buildDailySnapshot — whale cohorts count net buyers/sellers per window", () => {
+test("buildDailySnapshot — whale cohorts are sliced by SIZE band, not one >100k blob", () => {
   const whales = {
     updated: "2026-07-31", spot: 0.33, lookback: [1, 7, 30],
     wallets: [
-      { a: "0xA", bal: 2e6, d1: 50000, d7: 200000, d30: 400000 },   // buyer all windows
-      { a: "0xB", bal: 1e6, d1: -40000, d7: -100000, d30: 0 },       // seller 1d/7d, flat 30d
-      { a: "0xC", bal: 5e5, d1: 0, d7: 0, d30: 0 },                   // flat
-      { a: "0xsmall", bal: 5e4, d1: 99999, d7: 0, d30: 0 },          // below 100k → excluded
+      { a: "0xA", bal: 2e6, d1: 50000, d7: 200000, d30: 400000 },   // 1M–5M buyer
+      { a: "0xB", bal: 6e6, d1: -40000, d7: -100000, d30: -500000 }, // 5M+ seller
+      { a: "0xC", bal: 3e5, d1: 0, d7: 0, d30: 0 },                   // 250k–1M flat
+      { a: "0xsmall", bal: 5e4, d1: 99999, d7: 0, d30: 0 },          // below 100k → excluded from every band
     ],
   };
   const s = buildDailySnapshot({ history, onchain, whales });
-  const wf = Object.fromEntries(s.whaleFlow.map(w => [w.win, w]));
-  assert.equal(wf["1d"].buyers, 1); assert.equal(wf["1d"].sellers, 1);
-  assert.equal(wf["30d"].buyers, 1); assert.equal(wf["30d"].sellers, 0);
-  assert.equal(wf["7d"].net, 100000);   // 200000 − 100000, small wallet excluded
+  const byBand = Object.fromEntries(s.whaleCohorts.map(c => [c.band, c]));
+  assert.deepEqual(s.whaleCohorts.map(c => c.band), ["100k–250k", "250k–1M", "1M–5M", "5M+"]);
+  assert.equal(byBand["1M–5M"].wallets, 1); assert.equal(byBand["1M–5M"].buyers, 1);
+  assert.equal(byBand["5M+"].wallets, 1); assert.equal(byBand["5M+"].sellers, 1);
+  assert.equal(byBand["5M+"].d30, -500000);
+  assert.equal(byBand["100k–250k"].wallets, 0);   // the 50k wallet is below the floor
 });
 
 test("buildDailySnapshot — accumulation alert fires only NEAR the zone, not merely undervalued", () => {
@@ -66,5 +68,5 @@ test("buildDailySnapshot — no exit alert on calm churn", () => {
 test("buildDailySnapshot — empty feeds never throw", () => {
   const s = buildDailySnapshot({ history: [], onchain: [] });
   assert.ok(Array.isArray(s.sections));
-  assert.equal(s.whaleFlow, null);
+  assert.equal(s.whaleCohorts, null);
 });

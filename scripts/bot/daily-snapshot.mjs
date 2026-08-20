@@ -21,27 +21,15 @@ const backDelta = (arr, acc, n) => {
 };
 const dateOf = x => (x && (x.updated || (Array.isArray(x) ? x[x.length - 1]?.d : null))) || null;
 
-// A compact recent trajectory (~28 downsampled points over the last `n` rows) so the terminal can draw
-// a sparkline per row — a slow metric like liveliness barely moves day-to-day (its 1d/7d deltas round
-// to "·"), but its 90-day SHAPE tells the story. Neutral data: the client normalises + colours it.
-const sparkOf = (arr, acc, n = 90, pts = 28) => {
-  if (!Array.isArray(arr) || arr.length < 8) return null;
-  const tail = arr.slice(-n).map(acc).filter(Number.isFinite);
-  if (tail.length < 8) return null;
-  const step = tail.length / pts, out = [];
-  for (let i = 0; i < pts; i++) out.push(tail[Math.min(tail.length - 1, Math.round(i * step))]);
-  return out.map(v => +v.toFixed(6));
-};
-
-// row: label, value, deltas over [1,7,30] rows, a fmt hint, goodUp (is an increase bullish?), note, spark
+// row: label, value, deltas over [1,7,30] rows, a fmt hint, goodUp (is an increase bullish?), note
 const row = (label, value, arr, acc, fmt, goodUp, note) => ({
   label, value, fmt, goodUp: !!goodUp, note: note || "",
   d: [1, 7, 30].map(n => backDelta(arr, acc, n)),
-  spark: sparkOf(arr, acc),
 });
 
 export function buildDailySnapshot(feeds) {
-  const { history = [], onchain = [], whales, smartMoney, valuation, cexFlow, exitFlow, longshort } = feeds;
+  const { history = [], onchain = [], whales, smartMoney, valuation, cexFlow, exitFlow, longshort,
+    aeon, aeonHistory = [], aeonMarket, aeonSales } = feeds;
   const oc = onchain.length ? onchain[onchain.length - 1] : null;
   const h = history.length ? history[history.length - 1] : null;
   const spot = oc?.spot ?? h?.p ?? whales?.spot ?? 0;
@@ -58,7 +46,7 @@ export function buildDailySnapshot(feeds) {
     const c = valuation.cur.composite, zone = (valuation.zones || []).find(z => c <= z.max);
     const compAcc = r => (Array.isArray(r) ? r[1] : r.v);
     val.push({ label: "Valuation composite", value: c, fmt: "pctile", goodUp: false, note: zone?.label || "",
-      d: [1, 7, 30].map(n => backDelta(valuation.series || [], compAcc, n)), spark: sparkOf(valuation.series || [], compAcc) });
+      d: [1, 7, 30].map(n => backDelta(valuation.series || [], compAcc, n)) });
   }
   if (oc && oc.mvrv != null) {
     // Accumulation-zone proximity (MVRV 0.5 = historically where SPX bottoms). An ALERT is only for
@@ -78,12 +66,16 @@ export function buildDailySnapshot(feeds) {
     hold.push(row("Holders (Ethereum)", h.holders, history, r => r.holders, "int", true, "wallet count"));
     if (h.holdersBase != null) hold.push(row("Holders (Base)", h.holdersBase, history, r => r.holdersBase, "int", true, ""));
     if (h.holdersSol != null) hold.push(row("Holders (Solana)", h.holdersSol, history, r => r.holdersSol, "int", true, ""));
-    if (h.sup?.diamond != null) hold.push(row("Diamond supply (held >90d)", h.sup.diamond, history, r => r.sup?.diamond, "m", true, "SUPPLY, not wallet count"));
   }
   if (oc) {
-    const lth = r => (r.lthProfit || 0) + (r.lthLoss || 0);
-    hold.push(row("Long-term holders (>155d)", lth(oc), onchain, lth, "pct", true, "share of supply held >155 days"));
-    hold.push(row("Supply held 1y+", oc.age?.[4], onchain, r => r.age?.[4], "pct", true, "oldest HODL band"));
+    // Conviction by HOLDING AGE — share of supply held longer than 90 / 155 / 365 days. All from the
+    // FIFO per-lot engine, so they nest exactly (90d ⊇ 155d ⊇ 1yr). 90d = age bands 3-6m+6-12m+1y+;
+    // 155d = the long-term-holder standard (lthProfit+lthLoss); 1yr = the oldest HODL band.
+    const d90 = r => (r.age?.[2] || 0) + (r.age?.[3] || 0) + (r.age?.[4] || 0);
+    const d155 = r => (r.lthProfit || 0) + (r.lthLoss || 0);
+    hold.push(row("Supply held 90+ days", d90(oc), onchain, d90, "pct", true, "share of all supply held longer than 90 days"));
+    hold.push(row("Supply held 155+ days", d155(oc), onchain, d155, "pct", true, "share held longer than 155 days — the long-term-holder standard"));
+    hold.push(row("Supply held 1 year+", oc.age?.[4], onchain, r => r.age?.[4], "pct", true, "share held longer than a year — the strongest hands"));
   }
   if (hold.length) sections.push({ title: "Holders & conviction", rows: hold });
 
@@ -98,15 +90,24 @@ export function buildDailySnapshot(feeds) {
   if (oc?.lpBal != null) flow.push(row("In liquidity pools", oc.lpBal, onchain, r => r.lpBal, "m", true, "DEX depth"));
   if (flow.length) sections.push({ title: "Exchange flow", rows: flow });
 
-  // ---- WHALE COHORTS (net buy/sell over 1d/7d/30d) ------------------------
-  let whaleFlow = null;
+  // ---- WHALE COHORTS (net buy/sell by SIZE band) -------------------------
+  // Sliced into the same four size bands as the census / city (100k–250k … 5M+), so the read is
+  // WHICH size band is accumulating or distributing — not "whales" as one >100k blob.
+  const WHALE_BANDS = [
+    { band: "100k–250k", lo: 1e5, hi: 25e4 },
+    { band: "250k–1M", lo: 25e4, hi: 1e6 },
+    { band: "1M–5M", lo: 1e6, hi: 5e6 },
+    { band: "5M+", lo: 5e6, hi: Infinity },
+  ];
+  let whaleCohorts = null;
   if (whales?.wallets?.length) {
-    const big = whales.wallets.filter(w => (w.bal || 0) >= 1e5);
     const dust = w => Math.max(1000, (w.bal || 0) * 0.005);
-    whaleFlow = ["d1", "d7", "d30"].map((k, i) => {
-      let buyers = 0, sellers = 0, net = 0;
-      for (const w of big) { const f = w[k] || 0; net += f; const d = dust(w); if (f > d) buyers++; else if (f < -d) sellers++; }
-      return { win: ["1d", "7d", "30d"][i], buyers, sellers, net };
+    whaleCohorts = WHALE_BANDS.map(b => {
+      const inBand = whales.wallets.filter(w => (w.bal || 0) >= b.lo && (w.bal || 0) < b.hi);
+      const sum = k => inBand.reduce((s, w) => s + (w[k] || 0), 0);
+      let buyers = 0, sellers = 0;
+      for (const w of inBand) { const f = w.d30 || 0, d = dust(w); if (f > d) buyers++; else if (f < -d) sellers++; }
+      return { band: b.band, wallets: inBand.length, buyers, sellers, d1: sum("d1"), d7: sum("d7"), d30: sum("d30") };
     });
   }
 
@@ -166,8 +167,29 @@ export function buildDailySnapshot(feeds) {
     if (oc.nrpl != null) tech.push(row("Profit vs. loss cashed in", oc.nrpl, onchain, r => r.nrpl, "usdm", true, "dollar gains (+) minus losses (−) locked in on-chain today"));
     if (oc.liveliness != null) tech.push(row("Coins waking up (liveliness)", oc.liveliness, onchain, r => r.liveliness, "num3", false, "rising = long-dormant coins starting to move (distribution); falling = holders sitting tight"));
   }
-  if (h?.fng != null) tech.push(row("Fear & Greed index", h.fng, history, r => r.fng, "int", true, "0 = extreme fear, 100 = extreme greed · whole-crypto mood, context only"));
   if (tech.length) sections.push({ title: "Technicals", rows: tech });
+
+  // ---- PROJECT AEON (NFT collection) -------------------------------------
+  // Floor priced in BOTH ETH and SPX (the honest SPX-native denominator), plus today's sales. The
+  // sales feed rides the daily Dune pull so it can lag a day or two — the freshness footer flags it.
+  const aeonRows = [];
+  if (aeon?.floor != null) {
+    aeonRows.push(row("Floor price (ETH)", aeon.floor, aeonHistory, r => r.floor, "eth", true, "lowest ask · via Alchemy/OpenSea"));
+  }
+  const floorSpx = aeonMarket?.spxValue?.floorSeries;
+  if (Array.isArray(floorSpx) && floorSpx.length) {
+    aeonRows.push(row("Floor price (SPX)", floorSpx[floorSpx.length - 1][1], floorSpx, r => r[1], "spx", true, "the same floor priced in SPX — AEON's SPX-native value"));
+  }
+  const aeonTrades = aeonSales?.trades;
+  if (Array.isArray(aeonTrades)) {
+    const today = dateOf(aeonHistory) || new Date().toISOString().slice(0, 10);
+    const todays = aeonTrades.filter(t => t.d === today);
+    const volEth = todays.reduce((s, t) => s + (t.eth || 0), 0);
+    const last = aeonTrades[aeonTrades.length - 1];
+    aeonRows.push({ label: "Sales today", value: todays.length, fmt: "int", goodUp: true, d: [null, null, null],
+      note: todays.length ? `${volEth.toFixed(2)}Ξ traded today` : `no sales yet today · last sale ${last?.d || "—"} at ${last?.eth != null ? last.eth.toFixed(3) + "Ξ" : "—"}` });
+  }
+  if (aeonRows.length) sections.push({ title: "Project AEON", rows: aeonRows });
 
   // ANOMALY RADAR — the across-the-board scan: every numeric series flagged if it jumped abnormally today.
   const radar = scanAnomalies({ onchain, history, exitFlow, cexFlow, valuation });
@@ -179,10 +201,11 @@ export function buildDailySnapshot(feeds) {
     updated: date, date,
     anomalies: radar.items, scanned: radar.scanned, conditions,
     spot: +(+spot).toFixed(6),
-    sections, whaleFlow, exits, alerts,
+    sections, whaleCohorts, exits, alerts,
     freshness: {
       history: dateOf(history), onchain: dateOf(onchain), whales: dateOf(whales),
       smartMoney: smartMoney?.updated || null, valuation: valuation?.updated || null,
+      aeon: aeon?.updated || dateOf(aeonHistory), aeonSales: aeonSales?.updated || null,
     },
   };
 }
@@ -198,6 +221,10 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     cexFlow: read("public/cex-flow.json"),
     exitFlow: read("public/exit-flow.json"),
     longshort: read("public/longshort.json"),
+    aeon: read("public/aeon.json"),
+    aeonHistory: read("public/aeon-history.json") || [],
+    aeonMarket: read("public/aeon-market.json"),
+    aeonSales: read("public/aeon-sales.json"),
   });
   writeFileSync(out, JSON.stringify(snap));
   console.error(`daily-snapshot: ${snap.sections.length} sections · ${snap.alerts.length} alerts · ${snap.date} → ${out}`);

@@ -36,7 +36,8 @@ function robustZ(series, { win = 28, skip = 2 } = {}) {
 // objects, and near-duplicate balances; LABELS/CHART give a human name + click-through. Extra series-
 // shaped feeds (exit-flow supply, cex organic flow, valuation composite/axes) are added explicitly.
 const SKIP = new Set(["d", "date", "spot", "p", "tiers", "wealth", "cexVenues", "coinDays", "heldTokens",
-  "burnBal", "custBal", "supplyBase", "supplySol", "sp", "t3es"]);
+  "burnBal", "custBal", "supplyBase", "supplySol", "sp", "t3es",
+  "fng"]);   // Fear & Greed is a whole-crypto index, not SPX-native — kept off the SPX conditions desk
 const LABELS = {
   mvrv: "MVRV", sip: "Supply in profit", top10: "Top-10 concentration", top100: "Top-100 concentration",
   whaleN: "Whale count (≥100k)", whalePct: "Whale supply share", gini: "Gini", holders: "ETH holders",

@@ -426,8 +426,13 @@ html:not([data-theme="light"]) .tzone [style*="rgb(100, 116, 139)"]{ color:#b1bc
 .tzone .tmtbl tr:last-child td{ border-bottom:none; }
 .tzone .tmtbl .tmk{ text-align:left; color:var(--tx); font-family:var(--sans); font-weight:600; white-space:normal; max-width:360px; }
 .tzone .tmtbl .tmk .tmnote{ font-weight:400; }
-.tzone .tmtrend{ display:inline-block; margin-top:5px; font-family:var(--mono); font-size:12px; font-weight:700; letter-spacing:.02em; }
-.tzone .tmtrend-flat{ color:var(--dim); }
+/* (i) info chip + fixed popover (escapes the tables' overflow-x clipping) */
+.tzone .tminfo{ position:relative; display:inline-flex; vertical-align:middle; margin-left:6px; cursor:help; }
+.tzone .tminfo-i{ display:inline-flex; align-items:center; justify-content:center; width:16px; height:16px; border:1px solid var(--line2); color:var(--dim); font-family:var(--mono); font-size:11px; font-weight:700; font-style:italic; line-height:1; user-select:none; }
+.tzone .tminfo:hover .tminfo-i, .tzone .tminfo:focus-within .tminfo-i{ border-color:var(--live); color:var(--tx); }
+.tzone .tminfo-pop{ position:fixed; z-index:60; width:max-content; max-width:300px; padding:10px 12px; background:var(--panel); border:1px solid var(--line2);
+  box-shadow:0 10px 30px rgba(0,0,0,.5); font-family:var(--sans); font-size:13px; font-weight:400; font-style:normal; line-height:1.5; color:var(--tx); text-transform:none; letter-spacing:0; white-space:normal; }
+html[data-theme="light"] .tzone .tminfo-pop{ box-shadow:0 10px 30px rgba(20,30,50,.16); }
 .tzone .tmtbl .tmval{ color:var(--tx); font-weight:700; }
 .tzone .tmnote{ display:block; font-family:var(--sans); font-size:13px; font-weight:400; color:var(--dim); margin-top:3px; line-height:1.45; }
 .tzone .tmnote-lg{ font-size:14px; line-height:1.6; color:var(--dim); max-width:840px; margin-top:8px; }
