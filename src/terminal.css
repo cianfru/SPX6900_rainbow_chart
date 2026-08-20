@@ -452,6 +452,9 @@ html[data-theme="light"] .tzone .tmdn{ color:#c81e3a; }
 .tzone .tmgaugefill{ position:absolute; left:0; top:0; bottom:0; background:var(--tone); opacity:.28; }
 .tzone .tmgaugetick{ position:absolute; top:-2px; bottom:-2px; width:3px; margin-left:-1px; background:var(--tone); }
 .tzone .tmcondplain{ font-family:var(--sans); font-size:13.5px; color:var(--dim); line-height:1.45; max-width:820px; }
+.tzone .tmcondmoves{ font-family:var(--mono); font-size:13px; font-weight:700; color:var(--dim); text-align:right; margin-top:1px; font-variant-numeric:tabular-nums; }
+.tzone .tmcondmoves .tmcondmk{ color:var(--dim); font-weight:600; }
+.tzone .tmcondmoves .tmcondsep{ color:var(--line2); margin:0 3px; }
 .tzone .tmtone-cheap{ --tone:var(--live); }
 .tzone .tmtone-neutral{ --tone:var(--dim); }
 .tzone .tmtone-rich{ --tone:#d98a00; }

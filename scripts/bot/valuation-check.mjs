@@ -44,15 +44,19 @@ const fmtReading = (v, fmt) => {
   }
 };
 
+// change in the raw value n rows back (7d / 30d), null if not enough history
+const backChange = (s, n) => (s.length > n ? +(s[s.length - 1] - s[s.length - 1 - n]).toFixed(4) : null);
+
 // One gauge from a daily series (already oriented raw values). Emits a plain reading, its 0–100
-// position, and the word-state. `plain` is the one-line meaning shown under the name.
+// position, the word-state, and 7d/30d raw change so the desk shows momentum like every other table.
 function gauge(key, label, plain, fmt, dir, series) {
   const s = series.filter(Number.isFinite);
   if (s.length < 60) return null;
   const latest = s[s.length - 1];
   const pct = position(s, latest, dir);
   if (pct == null) return null;
-  return { key, label, plain, reading: fmtReading(latest, fmt), latest: +latest.toFixed(4), pct, ...stateOf(pct) };
+  return { key, label, plain, fmt, reading: fmtReading(latest, fmt), latest: +latest.toFixed(4), pct,
+    d7: backChange(s, 7), d30: backChange(s, 30), ...stateOf(pct) };
 }
 
 export function valuationCheck(feeds) {
@@ -68,7 +72,8 @@ export function valuationCheck(feeds) {
     const comp = valuation.series.map(r => (Array.isArray(r) ? r[1] : r?.v) * 100).filter(Number.isFinite);
     if (comp.length >= 60) {
       const v = comp[comp.length - 1], pct = Math.max(0, Math.min(100, Math.round(v)));
-      rows.push({ key: "composite", label: "Valuation composite", plain: "our overall blend of the gauges below", reading: fmtReading(v, "score"), latest: +v.toFixed(2), pct, ...stateOf(pct) });
+      rows.push({ key: "composite", label: "Valuation composite", plain: "our overall blend of the gauges below", fmt: "score",
+        reading: fmtReading(v, "score"), latest: +v.toFixed(2), pct, d7: backChange(comp, 7), d30: backChange(comp, 30), ...stateOf(pct) });
     }
   }
   rows.push(gauge("mvrv", "Price vs. what holders paid", "below 1× means the average holder is under water", "x", "low", mvrv));

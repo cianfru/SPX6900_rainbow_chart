@@ -29,6 +29,23 @@ function fmtVal(v, fmt) {
     default: return String(v);
   }
 }
+// 7d/30d change for a market-conditions gauge. Every gauge is oriented low = cheap, so a DECREASE
+// (moved cheaper) reads green and an increase (dearer) reads red — uniform across all of them.
+function condDelta(v, fmt) {
+  const eps = fmt === "x" ? 0.005 : fmt === "score" ? 0.5 : 0.05;
+  if (v == null || !isFinite(v) || Math.abs(v) < eps) return { s: "·", cls: "tmdz" };
+  const sign = v > 0 ? "+" : "−", a = Math.abs(v);
+  let mag;
+  switch (fmt) {
+    case "score": mag = Math.round(a).toString(); break;
+    case "x": mag = a.toFixed(2); break;
+    case "pct": case "pctPlain": mag = a.toFixed(1) + "pp"; break;
+    case "usdm": mag = "$" + (a >= 1e6 ? (a / 1e6).toFixed(1) + "M" : a >= 1e3 ? (a / 1e3).toFixed(0) + "k" : Math.round(a)); break;
+    default: mag = a.toFixed(2);
+  }
+  return { s: sign + mag, cls: v < 0 ? "tmup" : "tmdn" };   // cheaper (down) = green · dearer (up) = red
+}
+
 function Delta({ d, fmt, goodUp }) {
   if (d == null || !isFinite(d)) return <span className="tmdz">—</span>;
   const eps = (fmt === "x" || fmt === "num3" || fmt === "pct") ? 0.005 : (fmt === "eth") ? 0.0005 : 1e-9;
@@ -136,15 +153,18 @@ export default function TerminalPage({ isMobile }) {
               <Info text="Each gauge is scored 0–100 against its own full SPX history: 0 = the cheapest / most oversold it has ever been, 100 = the most expensive / stretched. Nothing here is measured against Bitcoin or any outside benchmark — SPX is judged only against itself. A positioning read, not financial advice." />
               {C.score != null && <span> · overall {C.score}/100 · {scoreState}</span>}</div>
             <div className="tmconds">
-              {C.rows.map((r, i) => (
+              {C.rows.map((r, i) => {
+                const d7 = condDelta(r.d7, r.fmt), d30 = condDelta(r.d30, r.fmt);
+                return (
                 <div className="tmcond" key={i}>
                   <div className="tmcondhd">
                     <span className="tmcondname">{r.label}<Info text={r.plain} /></span>
                     <span className={"tmcondstate tmtone-" + r.tone}>{r.reading} · {r.state}</span>
                   </div>
                   <div className={"tmgauge tmtone-" + r.tone}><span className="tmgaugefill" style={{ width: r.pct + "%" }} /><span className="tmgaugetick" style={{ left: r.pct + "%" }} /></div>
+                  <div className="tmcondmoves"><span className="tmcondmk">7d</span> <span className={d7.cls}>{d7.s}</span> <span className="tmcondsep">·</span> <span className="tmcondmk">30d</span> <span className={d30.cls}>{d30.s}</span></div>
                 </div>
-              ))}
+              ); })}
             </div>
           </section>
         );
