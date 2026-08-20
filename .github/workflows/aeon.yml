@@ -116,12 +116,14 @@ jobs:
           DEPLOY_CHANGED=""
           # aeon-sale-state.json (post bookkeeping) + aeon-dune-status.json (the Dune-pull heartbeat
           # the feed audit reads) are not site data — commit them, but don't spend a deploy on them.
-          DATA_CHANGED="$(git status --porcelain public/aeon*.json | grep -vE 'aeon-sale-state.json|aeon-dune-status.json|aeon-listing-alert-state.json' || true)"
+          # ens.json (wallet name labels the skyline serves) IS site data — build-ens rewrites it
+          # each run, so stage it too or the freshly-resolved names are thrown away every day.
+          DATA_CHANGED="$(git status --porcelain public/aeon*.json public/ens.json | grep -vE 'aeon-sale-state.json|aeon-dune-status.json|aeon-listing-alert-state.json' || true)"
           [[ -n "$DATA_CHANGED" ]] && DEPLOY_CHANGED=1
-          if [[ -n "$(git status --porcelain public/aeon*.json public/post-state.json)" ]]; then
+          if [[ -n "$(git status --porcelain public/aeon*.json public/ens.json public/post-state.json)" ]]; then
             git config user.name "github-actions[bot]"
             git config user.email "github-actions[bot]@users.noreply.github.com"
-            git add public/aeon*.json public/post-state.json
+            git add public/aeon*.json public/ens.json public/post-state.json
             git commit -m "chore: aeon banker $(date -u +%F)"
             git push || { for i in 1 2 3 4 5; do echo "push rejected, rebasing (attempt $i)"; git pull --rebase --autostash origin "${GITHUB_REF_NAME:-main}" && git push && break; sleep $((i*3)); done; }
           else
