@@ -1,29 +1,28 @@
 // ============================================================================
-// PROJECT AEON — INCREMENTAL Dune refresh (transfers + sales)
+// PROJECT AEON — INCREMENTAL Dune refresh (SALES only)
 // ============================================================================
-// Pulls only the transfers/sales SINCE the archive's last day and merges them into the
-// committed dune/out/*.csv the reconstructions read. The full history is already in-repo,
-// so the delta is a handful of rows/day.
+// ⭐ TRANSFERS MOVED TO ALCHEMY (2026-08-20, build-aeon-transfers-alchemy.mjs). This script is
+// now SALES-ONLY — the one AEON feed still on Dune (sales with prices → trader P&L / MVRV /
+// realized price, which Alchemy can't reconstruct historically). Pulls only the sales SINCE the
+// committed archive's last day and merges into dune/out/aeon_sales.csv; the delta is a handful
+// of rows/day.
 //
-// WHY NOT re-pull the whole history (what this used to do): Dune bills TWO things — the
-// QUERY EXECUTION and, separately, an "API Result Read" per download (by datapoints). The
-// whole-history pull's EXECUTION was cheap (~0.2 credits) but its RESULT READ of all 25,289
-// transfers + 17,040 sales was ~62 + ~73 credits — every day, twice ⇒ ~135/day, ~4,050/mo,
-// OVER the 2,500 quota. The 2026-07-25 "0.54 credits" measurement read executionCostCredits
-// only and never saw the result-read charge. Incremental drops that read to ~0.
+// WHY INCREMENTAL: Dune bills TWO things — the QUERY EXECUTION and, separately, an "API Result
+// Read" per download (by datapoints). Re-downloading all ~17k sales every day cost ~73 credits/
+// day in that result read (the cheap ~0.2-credit execution hid it). The full history is already
+// committed, so we pull only the delta and merge → the result read drops to ~0.
 //
-//   node scripts/build-aeon-dune-refresh.mjs [--only=transfers|sales]
+//   node scripts/build-aeon-dune-refresh.mjs
 //
 // MECHANISM (mirrors build-onchain-dune-refresh.mjs): read the committed CSV → find its last
-// day → PATCH the saved query with `AND <block_time col> >= that day` → execute (small delta)
-// → merge (archive rows strictly before the day + the whole re-pulled day) → write. The
-// boundary day is cleanly replaced, so no gap and no duplicate.
+// day → PATCH the saved query with `AND block_time >= that day` → execute (small delta) →
+// merge (archive rows strictly before the day + the whole re-pulled day) → write. The boundary
+// day is cleanly replaced, so no gap and no duplicate.
 //
-// ENV: DUNE_API_KEY (repo secret). Optional repo vars AEON_TRANSFERS_QUERY_ID /
-// AEON_SALES_QUERY_ID — saved queries whose SQL this PATCHes each run; if unset it
-// CREATES one and logs the id (set the var to reuse it instead of making a new query).
+// ENV: DUNE_API_KEY (repo secret). Optional repo var AEON_SALES_QUERY_ID — the saved query whose
+// SQL this PATCHes each run; if unset it CREATES one and logs the id (set the var to reuse it).
 // SOFT-FAILS (exit 0): a Dune outage must not break the daily floor/owners banker —
-// the reconstructions then just run off the last committed CSVs.
+// the reconstructions then just run off the last committed CSV.
 // ============================================================================
 import { readFileSync, writeFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
@@ -170,16 +169,12 @@ async function pull(sqlPath, outPath, name, idEnv, dbTimeCol) {
 }
 
 async function main() {
-  if (!process.env.DUNE_API_KEY) { console.log("aeon-dune: no DUNE_API_KEY — soft-skipping (reconstructions use the committed CSVs)"); return; }
-  // The two pulls are scheduled INDEPENDENTLY. Transfers feed holder age / concentration /
-  // holder flow, which is the half worth refreshing more often. Sales feed the full-history
-  // reconstruction (trader P&L, cost basis, MVRV) — and its recent tail is already carried
-  // free by the Alchemy bank, so it does not need the extra run.
-  const only = (process.argv.find(a => a.startsWith("--only=")) || "").split("=")[1] || "";
-  const want = k => !only || only === k;
-  console.log(`aeon-dune: refreshing ${only || "transfers + sales"} from Dune…`);
-  if (want("transfers")) await pull("dune/aeon_transfers.sql", "dune/out/aeon_transfers.csv", "Project AEON — transfers (auto)", "AEON_TRANSFERS_QUERY_ID", "evt_block_time");
-  if (want("sales")) await pull("dune/aeon_sales.sql", "dune/out/aeon_sales.csv", "Project AEON — sales (auto)", "AEON_SALES_QUERY_ID", "block_time");
+  if (!process.env.DUNE_API_KEY) { console.log("aeon-dune: no DUNE_API_KEY — soft-skipping (reconstructions use the committed sales CSV)"); return; }
+  // SALES ONLY — transfers now come from Alchemy (build-aeon-transfers-alchemy.mjs). Sales feed
+  // the full-history reconstruction (trader P&L, cost basis, MVRV). The `pull` machinery below and
+  // its CSV helpers are unit-tested (test/aeon-dune-refresh.test.mjs).
+  console.log("aeon-dune: refreshing sales from Dune…");
+  await pull("dune/aeon_sales.sql", "dune/out/aeon_sales.csv", "Project AEON — sales (auto)", "AEON_SALES_QUERY_ID", "block_time");
   // ⭐ HEARTBEAT for the feed audit + control panel. `updated` is the newest SALES DATA date
   // actually in the CSV — NOT the run date — so a pull that COMPLETES but returns nothing new (a
   // frozen source, or a suspended Dune account whose executions never leave PENDING) still reports
@@ -194,7 +189,7 @@ async function main() {
   writeFileSync("public/aeon-dune-status.json", JSON.stringify({
     updated: newestDataDate || new Date().toISOString().slice(0, 10),
     checked: new Date().toISOString().slice(0, 10),
-    ok: true, pulled: only || "transfers+sales",
+    ok: true, pulled: "sales",
   }));
   console.log(`aeon-dune: done. newest data ${newestDataDate}`);
 }

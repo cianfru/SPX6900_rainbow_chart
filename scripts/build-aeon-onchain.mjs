@@ -6,8 +6,9 @@
 //
 //   node scripts/build-aeon-onchain.mjs --transfers=path/to/transfers.csv [--out=public/aeon-onchain.json]
 //
-// Input CSV columns: from_address,to_address,token_id,time  (Dune aeon_transfers.sql
-// or bigquery/aeon_transfers.sql). Reconstructs, as-of every weekly Monday from the
+// Input CSV columns: from_address,to_address,token_id,time  (produced by
+// build-aeon-transfers-alchemy.mjs via Alchemy getAssetTransfers; bigquery/aeon_transfers.sql
+// is the free reference query for the same data). Reconstructs, as-of every weekly Monday from the
 // first mint to now:
 //   • owners           — distinct current owners (tokens held > 0)
 //   • held             — tokens in non-burn wallets
