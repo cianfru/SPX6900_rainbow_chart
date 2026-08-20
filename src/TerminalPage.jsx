@@ -152,19 +152,23 @@ export default function TerminalPage({ isMobile }) {
             <div className="tmsectitle">Market conditions — where SPX sits vs. its own history
               <Info text="Each gauge is scored 0–100 against its own full SPX history: 0 = the cheapest / most oversold it has ever been, 100 = the most expensive / stretched. Nothing here is measured against Bitcoin or any outside benchmark — SPX is judged only against itself. A positioning read, not financial advice." />
               {C.score != null && <span> · overall {C.score}/100 · {scoreState}</span>}</div>
-            <div className="tmconds">
-              {C.rows.map((r, i) => {
-                const d7 = condDelta(r.d7, r.fmt), d30 = condDelta(r.d30, r.fmt);
-                return (
-                <div className="tmcond" key={i}>
-                  <div className="tmcondhd">
-                    <span className="tmcondname">{r.label}<Info text={r.plain} /></span>
-                    <span className={"tmcondstate tmtone-" + r.tone}>{r.reading} · {r.state}</span>
-                  </div>
-                  <div className={"tmgauge tmtone-" + r.tone}><span className="tmgaugefill" style={{ width: r.pct + "%" }} /><span className="tmgaugetick" style={{ left: r.pct + "%" }} /></div>
-                  <div className="tmcondmoves"><span className="tmcondmk">7d</span> <span className={d7.cls}>{d7.s}</span> <span className="tmcondsep">·</span> <span className="tmcondmk">30d</span> <span className={d30.cls}>{d30.s}</span></div>
-                </div>
-              ); })}
+            <div className="tmtblwrap">
+              <table className="tmtbl">
+                <thead><tr><th>metric</th><th>now</th><th>vs history</th><th>1d</th><th>7d</th><th>30d</th></tr></thead>
+                <tbody>{C.rows.map((r, i) => {
+                  const d1 = condDelta(r.d1, r.fmt), d7 = condDelta(r.d7, r.fmt), d30 = condDelta(r.d30, r.fmt);
+                  return (
+                    <tr key={i}>
+                      <td className="tmk">{r.label}{r.plain ? <Info text={r.plain} /> : null}</td>
+                      <td className="tmval">{r.reading}</td>
+                      <td className="tmcondtag"><span className={"tmtone-" + r.tone}>{r.state}</span></td>
+                      <td><span className={d1.cls}>{d1.s}</span></td>
+                      <td><span className={d7.cls}>{d7.s}</span></td>
+                      <td><span className={d30.cls}>{d30.s}</span></td>
+                    </tr>
+                  );
+                })}</tbody>
+              </table>
             </div>
           </section>
         );

@@ -56,7 +56,7 @@ function gauge(key, label, plain, fmt, dir, series) {
   const pct = position(s, latest, dir);
   if (pct == null) return null;
   return { key, label, plain, fmt, reading: fmtReading(latest, fmt), latest: +latest.toFixed(4), pct,
-    d7: backChange(s, 7), d30: backChange(s, 30), ...stateOf(pct) };
+    d1: backChange(s, 1), d7: backChange(s, 7), d30: backChange(s, 30), ...stateOf(pct) };
 }
 
 export function valuationCheck(feeds) {
@@ -72,8 +72,8 @@ export function valuationCheck(feeds) {
     const comp = valuation.series.map(r => (Array.isArray(r) ? r[1] : r?.v) * 100).filter(Number.isFinite);
     if (comp.length >= 60) {
       const v = comp[comp.length - 1], pct = Math.max(0, Math.min(100, Math.round(v)));
-      rows.push({ key: "composite", label: "Valuation composite", plain: "our overall blend of the gauges below", fmt: "score",
-        reading: fmtReading(v, "score"), latest: +v.toFixed(2), pct, d7: backChange(comp, 7), d30: backChange(comp, 30), ...stateOf(pct) });
+      rows.push({ key: "composite", label: "Valuation composite", plain: "our overall blend of the readings below", fmt: "score",
+        reading: fmtReading(v, "score"), latest: +v.toFixed(2), pct, d1: backChange(comp, 1), d7: backChange(comp, 7), d30: backChange(comp, 30), ...stateOf(pct) });
     }
   }
   rows.push(gauge("mvrv", "Price vs. what holders paid", "below 1× means the average holder is under water", "x", "low", mvrv));

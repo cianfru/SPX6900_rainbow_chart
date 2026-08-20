@@ -441,20 +441,9 @@ html[data-theme="light"] .tzone .tminfo-pop{ box-shadow:0 10px 30px rgba(20,30,5
 .tzone .tmdn{ color:#e5484d; font-weight:700; }
 .tzone .tmdz{ color:var(--faint); }
 html[data-theme="light"] .tzone .tmdn{ color:#c81e3a; }
-/* ── market-conditions gauges ─────────────────────────────────────────────── */
-.tzone .tmconds{ display:flex; flex-direction:column; gap:2px; margin:4px 0 2px; }
-.tzone .tmcond{ padding:12px 0; border-bottom:1px solid var(--line); }
-.tzone .tmcond:last-child{ border-bottom:none; }
-.tzone .tmcondhd{ display:flex; justify-content:space-between; align-items:baseline; gap:12px; }
-.tzone .tmcondname{ font-family:var(--sans); font-size:16px; font-weight:700; color:var(--tx); }
-.tzone .tmcondstate{ font-family:var(--mono); font-size:15px; font-weight:700; color:var(--tone); white-space:nowrap; text-align:right; }
-.tzone .tmgauge{ position:relative; height:9px; margin:9px 0 7px; background:var(--panel2); border:1px solid var(--line2); overflow:hidden; }
-.tzone .tmgaugefill{ position:absolute; left:0; top:0; bottom:0; background:var(--tone); opacity:.28; }
-.tzone .tmgaugetick{ position:absolute; top:-2px; bottom:-2px; width:3px; margin-left:-1px; background:var(--tone); }
-.tzone .tmcondplain{ font-family:var(--sans); font-size:13.5px; color:var(--dim); line-height:1.45; max-width:820px; }
-.tzone .tmcondmoves{ font-family:var(--mono); font-size:13px; font-weight:700; color:var(--dim); text-align:right; margin-top:1px; font-variant-numeric:tabular-nums; }
-.tzone .tmcondmoves .tmcondmk{ color:var(--dim); font-weight:600; }
-.tzone .tmcondmoves .tmcondsep{ color:var(--line2); margin:0 3px; }
+/* ── market-conditions: the "vs history" state word, coloured by tone ──────── */
+.tzone .tmtbl td.tmcondtag{ text-align:right; }
+.tzone .tmcondtag span{ font-weight:700; color:var(--tone); }
 .tzone .tmtone-cheap{ --tone:var(--live); }
 .tzone .tmtone-neutral{ --tone:var(--dim); }
 .tzone .tmtone-rich{ --tone:#d98a00; }
