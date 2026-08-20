@@ -1,11 +1,7 @@
 {
   "lastPostedDate": "2026-08-20",
-  "lastId": "manual-skip",
+  "lastId": "memecoins",
   "recent": [
-    {
-      "date": "2026-07-21",
-      "id": "urpd"
-    },
     {
       "date": "2026-07-22",
       "id": "whatnext"
@@ -81,6 +77,10 @@
     {
       "date": "2026-08-19",
       "id": "breakeven"
+    },
+    {
+      "date": "2026-08-20",
+      "id": "memecoins"
     }
   ],
   "lanes": {
