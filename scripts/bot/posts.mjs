@@ -2470,14 +2470,13 @@ const weightOf = id => WEIGHT[id] ?? (BULLISH.has(id) ? 2 : 1);
 // illiquid/liquid supply (the reframed freefloat card), so marketcap is out of the feed.
 const NO_ROTATE = new Set(["drawdown", "risk", "kraken", "dcaladder", "marketcap", "spxcohort", "cexsupply", "cexflow", "cexvenues", "cexvenflow", "nrpl", "liveliness", "citygrowth", "cityvalue", "citychurn", "citypercap", "cityvintage", "cityskyline", "floatcheck"]);
 
-// LONG-FORM cards — the few methodology / teaching posts that genuinely need more than the
-// 290 instant-read ceiling (see the post-length test). Default stays 290 for EVERY other card;
-// these opt into a higher xLen cap, accepting X's in-timeline "See more" fold because the reader
-// of a deep-dive WANTS the detail. Keep this list tiny — most cards must read at a glance.
-// NOTE (owner, 2026-08): the ~290 "See more" cap was REMOVED — the account is verified (X Premium
-// long-form), and rich/honest copy is the moat. The post-length test now only enforces a generous
-// 2000-char SANITY ceiling. This map is kept for documentation of the genuinely long teaching cards;
-// it no longer needs new entries just to clear a style cap.
+// LONG-FORM cards — the few methodology / teaching posts that genuinely run long. HISTORY: these
+// once opted past a 290 "instant-read" cap. That cap was REMOVED (owner, 2026-08) — the account is
+// verified (X Premium long-form) and rich/honest copy is the moat — so the length test now applies
+// one generous 2000-char SANITY ceiling to EVERY card (a runaway-bug tripwire, not a style rule).
+// LONGFORM is consumed ONLY by that test, and ONLY to RAISE the ceiling for a card that legitimately
+// needs >2000 (via Math.max) — it can never impose a TIGHTER cap than an ordinary card. Every entry
+// below is under 2000 today, so the map is currently documentation-only; keep it tiny.
 export const LONGFORM = { spxcohort: 700, cexflow: 600, hodlcompare: 340, floatcheck: 620 };
 
 // Owner-editable rotation exclusions — cards kept BUILDABLE + visible in the control

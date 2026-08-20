@@ -38,6 +38,15 @@ async function loadHistory() {
 export default async function handler(req, res) {
   const params = new URL(req.url, "http://x").searchParams;
   const month = params.get("month") || new Date().toISOString().slice(0, 7);
+  // Strictly validate month → a small, bounded set (launch..now). Without this, an arbitrary `month`
+  // string is a cache-key-per-request that forces repeated Resvg rasterization on this unauthenticated
+  // endpoint; the range also rejects nonsense/future months cheaply before any fetch or render.
+  const nowMonth = new Date().toISOString().slice(0, 7);
+  if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(month) || month < "2023-08" || month > nowMonth) {
+    res.setHeader("Content-Type", "application/json");
+    res.status(400).json({ error: "month must be YYYY-MM within 2023-08..now" });
+    return;
+  }
   try {
     const history = await loadHistory();
     const built = await buildRecapPost(month, history);

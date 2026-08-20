@@ -85,7 +85,7 @@ jobs:
         env:
           DUNE_API_KEY: ${{ secrets.DUNE_API_KEY }}
           AEON_SALES_QUERY_ID: ${{ vars.AEON_SALES_QUERY_ID }}           # optional (else created + logged)
-        run: node scripts/build-aeon-dune-refresh.mjs --only=sales
+        run: node scripts/build-aeon-dune-refresh.mjs
 
       - name: Rebuild transfer + sales reconstructions
         # onchain (holders/HODL-age/concentration/flow/skyline) + sales (floor/volume) from the

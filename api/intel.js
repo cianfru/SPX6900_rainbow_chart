@@ -17,6 +17,19 @@ const KV_TOKEN = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST
 const SALT = process.env.INTEL_SALT || "spx6900-intel";
 const TYPES = new Set(["pageview", "wallet_search", "city_open", "chart_open", "click"]);
 const CAP = 50000, WCAP = 20000;
+// DoS guards on the UNAUTHENTICATED ingest beacon: a per-source rate cap (bounds how fast any one
+// IP can write) + a cardinality cap on the free-form hashes (path/ref/chart are attacker-controlled,
+// so without a bound a flood of distinct keys grows Redis without limit and can evict real rows).
+const RATE_MAX = 120, RATE_WIN = 60;   // events per source IP-hash per minute
+const FIELD_CAP = 20000;               // max distinct keys per free-form hash before it stops growing
+
+// Constant-time secret compare over SHA-256 digests (equal-length, no early-out on the first
+// differing byte, no length leak). Used by the password-gated dashboard.
+function safeEq(a, b) {
+  const x = crypto.createHash("sha256").update(String(a)).digest();
+  const y = crypto.createHash("sha256").update(String(b)).digest();
+  return crypto.timingSafeEqual(x, y);
+}
 // Countries whose traffic is the owner's own (Qatar) — never recorded, and filtered from the
 // dashboard so existing rows drop out too. Override via INTEL_EXCLUDE_COUNTRIES="QA,AE".
 const EXCLUDE_COUNTRIES = new Set((process.env.INTEL_EXCLUDE_COUNTRIES || "QA").split(",").map(s => s.trim().toUpperCase()).filter(Boolean));
@@ -55,6 +68,20 @@ async function ingest(req, res, body) {
 
   const ip = String(req.headers["x-forwarded-for"] || "").split(",")[0].trim();
   const iphash = ip ? crypto.createHash("sha256").update(SALT + ip).digest("hex").slice(0, 12) : "";
+
+  // Rate-limit this source + read the free-form hash sizes in one pipeline BEFORE writing. If the
+  // source is over its per-minute budget, drop the event silently (analytics, not an error surface).
+  let hpages, hrefs, hcharts; // hash sizes, assigned below before any use (the catch returns)
+  try {
+    const rk = "intel:rate:" + (iphash || "anon");
+    const r = await kvPipeline([
+      ["INCR", rk], ["EXPIRE", rk, String(RATE_WIN)],
+      ["HLEN", "intel:pages"], ["HLEN", "intel:refs"], ["HLEN", "intel:charts"],
+    ]);
+    if ((Number(r[0]) || 0) > RATE_MAX) { res.status(204).end(); return; }
+    hpages = Number(r[2]) || 0; hrefs = Number(r[3]) || 0; hcharts = Number(r[4]) || 0;
+  } catch { res.status(204).end(); return; } // store hiccup → drop, never break the page
+
   const ev = {
     t, ts: Date.now(),
     path: clip(body.path, 200), ref: host(clip(body.ref, 300) || ""),
@@ -65,18 +92,20 @@ async function ingest(req, res, body) {
     ip: iphash,
   };
   const json = JSON.stringify(ev);
+  // geo/daily are bounded key-spaces (country codes, UTC dates); the free-form hashes (pages/refs/
+  // charts) stop growing once past FIELD_CAP so a flood of distinct keys can't exhaust the store.
   const cmds = [
     ["LPUSH", "intel:events", json], ["LTRIM", "intel:events", "0", String(CAP - 1)],
     ["HINCRBY", "intel:geo", ev.country || "??", "1"],
-    ["HINCRBY", "intel:pages", ev.path || "/", "1"],
   ];
-  if (ev.ref) cmds.push(["HINCRBY", "intel:refs", ev.ref, "1"]);
+  if (hpages < FIELD_CAP) cmds.push(["HINCRBY", "intel:pages", ev.path || "/", "1"]);
+  if (ev.ref && hrefs < FIELD_CAP) cmds.push(["HINCRBY", "intel:refs", ev.ref, "1"]);
   // visits-per-day series (UTC date bucket) — one increment per pageview, so the dashboard can plot the trend
   if (t === "pageview") cmds.push(["HINCRBY", "intel:daily", new Date(ev.ts).toISOString().slice(0, 10), "1"]);
   if (t === "wallet_search" && ev.wallet) { cmds.push(["LPUSH", "intel:wallets", json], ["LTRIM", "intel:wallets", "0", String(WCAP - 1)]); }
-  if (t === "chart_open" && ev.chart) cmds.push(["HINCRBY", "intel:charts", ev.chart, "1"]);
+  if (t === "chart_open" && ev.chart && hcharts < FIELD_CAP) cmds.push(["HINCRBY", "intel:charts", ev.chart, "1"]);
 
-  try { await kvPipeline(cmds); } catch (e) { /* swallow — analytics must never break the page */ }
+  try { await kvPipeline(cmds); } catch { /* swallow — analytics must never break the page */ }
   res.status(204).end();
 }
 
@@ -92,7 +121,7 @@ async function dashboard(req, res, body) {
     // (env var missing) from "wrong password" so the page can say which it is.
     const expected = String(process.env.CONTROL_PASSWORD || "").trim();
     if (!expected) { res.status(503).json({ error: "Server not configured: set CONTROL_PASSWORD in Vercel." }); return; }
-    if (String(body.pw || "").trim() !== expected) { res.status(401).json({ error: "bad password" }); return; }
+    if (!safeEq(String(body.pw || "").trim(), expected)) { res.status(401).json({ error: "bad password" }); return; }
   }
   // Self-diagnosis: report (booleans only, never the secret values) whether the function actually
   // sees the KV vars at runtime, and which var name provided each — so "vars are set in Vercel but

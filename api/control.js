@@ -6,6 +6,16 @@
 //   CONTROL_PASSWORD  the password the page asks for
 //   GH_PAT            a GitHub fine-grained token for THIS repo with
 //                     Contents: read/write + Actions: read/write
+import crypto from "node:crypto";
+
+// Constant-time secret compare over SHA-256 digests (no early-out on first differing byte, no
+// length leak) — the password gates state-changing GitHub work, so avoid a timing side channel.
+function safeEq(a, b) {
+  const x = crypto.createHash("sha256").update(String(a)).digest();
+  const y = crypto.createHash("sha256").update(String(b)).digest();
+  return crypto.timingSafeEqual(x, y);
+}
+
 const OWNER = "cianfru", REPO = "The_Terminal", BRANCH = "main";
 const QUEUE_PATH = "public/next-post.json", WORKFLOW = "post-tweet.yml";
 const WORKFLOW_RECAP = "monthly-recap.yml";
@@ -69,7 +79,7 @@ export default async function handler(req, res) {
     return;
   }
   const { password, action, id, month, template, ar, excluded, binned } = await readBody(req);
-  if (password !== process.env.CONTROL_PASSWORD) { res.status(401).json({ error: "Wrong password." }); return; }
+  if (!safeEq(password ?? "", process.env.CONTROL_PASSWORD)) { res.status(401).json({ error: "Wrong password." }); return; }
 
   // Gate unlock: password already validated above, so just acknowledge.
   if (action === "verify") { res.status(200).json({ ok: true }); return; }

@@ -47,8 +47,9 @@ jobs:
 
       - name: Commit band + post state if changed
         run: |
-          # post-state.json is also written when a band alert posts, so the daily
-          # rotation sees the day's slot is taken (one post per day across the bot).
+          # A band alert records its own LANE in post-state.json (recordLanePost("band")); it does
+          # NOT set lastPostedDate, so lanes fire independently and this does not suppress the daily
+          # rotation (by design — see the lane model in CLAUDE.md). We commit the merged state here.
           if [[ -n "$(git status --porcelain public/band-state.json public/post-state.json)" ]]; then
             git config user.name "github-actions[bot]"
             git config user.email "github-actions[bot]@users.noreply.github.com"

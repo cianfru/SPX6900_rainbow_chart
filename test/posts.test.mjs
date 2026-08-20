@@ -63,7 +63,10 @@ test("every post stays within a sane long-form ceiling (verified account)", () =
   for (const st of [statsCoins, computeStats(0.05, last.date), computeStats(12, last.date)]) {
     for (const id of allIds(st)) {
       const len = xLen(buildPost(st, new Date(), id).text);
-      const cap = LONGFORM[id] ?? CEILING;
+      // LONGFORM only RAISES the ceiling (a card explicitly allowed to run longer); it never lowers
+      // it, so a LONGFORM card is never held to a TIGHTER cap than an ordinary one. Today every
+      // LONGFORM value is under CEILING, so this is the flat 2000 sanity ceiling for all cards.
+      const cap = Math.max(LONGFORM[id] ?? 0, CEILING);
       assert.ok(len <= cap, `post "${id}" is ${len} chars at $${st.price} (${st.band.l}) — over the ${cap} sanity ceiling`);
     }
   }
@@ -78,6 +81,20 @@ test("every post has at most one cashtag (X rejects posts with 2+)", () => {
     const text = buildPost(statsCoins, new Date(), id).text;
     const cashtags = text.match(/\$[A-Za-z]\w*/g) || [];
     assert.ok(cashtags.length <= 1, `post "${id}" has ${cashtags.length} cashtags (${cashtags.join(", ")}) — X allows one`);
+  }
+});
+
+test("no post attaches a possessive to an @handle (X breaks the link)", () => {
+  // X fails to parse "@handle's" — the apostrophe swallows the mention and the link dies. validateDraft
+  // already guards LLM drafts (llm-copy.mjs); this is the equivalent guard for STATIC human-authored
+  // templates that carry handles (rsidots → @100trillionUSD, dcaladder → @benjamincowen, spxbitcoin).
+  // Check across extreme prices too, since band-dependent copy can reshuffle a handle's neighbours.
+  const bad = /@\w+['’]/;
+  for (const st of [statsCoins, computeStats(0.05, last.date), computeStats(12, last.date)]) {
+    for (const id of allIds(st)) {
+      const text = buildPost(st, new Date(), id).text;
+      assert.ok(!bad.test(text), `post "${id}" has a possessive on an @handle at $${st.price} — breaks the mention link`);
+    }
   }
 });
 

@@ -16,6 +16,7 @@
 // Required Vercel env vars:
 //   CONTROL_PASSWORD    the control-page password (same as api/control.js)
 //   OPENROUTER_API_KEY  the free-model chain key (same as llm-copy.mjs)
+import crypto from "node:crypto";
 import { DEFAULT_RAW } from "../src/data.js";
 import { fetchLivePrice, fetchMajors, fetchHistory, computeStats } from "../scripts/bot/stats.mjs";
 import { buildPost, buildAll, isCopyMarker, bindCopy } from "../scripts/bot/posts.mjs";
@@ -23,6 +24,12 @@ import { topAngles } from "../scripts/bot/quant.mjs";
 import { chat, draftCopy } from "../scripts/bot/llm-copy.mjs";
 
 const OWNER = "cianfru", REPO = "The_Terminal", BRANCH = "main";
+// Constant-time secret compare over SHA-256 digests (no early-out, no length leak) for the gate.
+function safeEq(a, b) {
+  const x = crypto.createHash("sha256").update(String(a)).digest();
+  const y = crypto.createHash("sha256").update(String(b)).digest();
+  return crypto.timingSafeEqual(x, y);
+}
 // Read a committed file with GH_PAT (so it still works once the repo is private) and fall back to
 // public raw while the repo is public / no token is set. Returns the fetch Response; caller checks ok.
 async function ghGet(path) {
@@ -216,13 +223,11 @@ function parseAction(text, validIds) {
   return { answer: answer.trim(), card, draft };
 }
 
-const NEEDS_COINS = new Set(["btc", "majors", "majorcaps", "ytd"]);
-
 export default async function handler(req, res) {
   if (req.method !== "POST") { res.status(405).json({ error: "POST only" }); return; }
   if (!process.env.CONTROL_PASSWORD) { res.status(500).json({ error: "Server not configured: set CONTROL_PASSWORD." }); return; }
   const body = await readBody(req);
-  if (body.password !== process.env.CONTROL_PASSWORD) { res.status(401).json({ error: "Wrong password." }); return; }
+  if (!safeEq(body.password ?? "", process.env.CONTROL_PASSWORD)) { res.status(401).json({ error: "Wrong password." }); return; }
 
   // ON-DEMAND "Notable today" draft: the daily auto-draft was removed to save credits, so
   // the owner clicks ✨ Draft on a signal when he wants one. Feeds ONLY the signal's honest

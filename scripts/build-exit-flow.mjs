@@ -39,8 +39,11 @@ function priceLookup(pricesPath) {
 // aggregate a list of {exitT, entryT, spx} departures into a daily/weekly series + overall totals.
 // Each row carries BOTH the wallet COUNT and the SPX AMOUNT that left, split profit/loss — so the
 // chart can read "how many wallets left" or "how much SPX dropped out of strong hands" that day.
-// `spx` = the wallet's holding the moment before it fell below the bar (the position that exited);
-// it's an OUTFLOW PROXY — on-chain can't tell a sale from a plain transfer — and never overstates.
+// `spx` = the wallet's holding the moment before it fell below the bar (the position that exited).
+// This is a COHORT-EXIT magnitude, NOT literal tokens sold: a wallet that trims 5,500 → 4,500 counts
+// its whole 5,500 as departed, because the strong-hands cohort lost the wallet entirely (so as a raw
+// token-outflow figure it OVERSTATES). On-chain also can't tell a sale from a plain transfer — read
+// it as "supply that dropped out of strong hands", never as a sell figure.
 function summarise(departures, priceAt, res) {
   const byDay = new Map();
   let left = 0, profit = 0, spxProfit = 0, spxLoss = 0;
@@ -69,8 +72,8 @@ async function fromTransfers(src, priceAt) {
   const BAR = 5000;
   // exitT = the transfer that DROPS the wallet below the bar (the actual sell-out day), not its last
   // transfer while still above — so a one-shot full dump lands on the dump day, not on its prior
-  // activity. lastBal = its holding the moment before that drop = the position that left (the SPX
-  // amount, an outflow proxy).
+  // activity. lastBal = its holding the moment before that drop = the position that left the cohort
+  // (a cohort-exit magnitude, not literal tokens sold — see summarise()).
   const bal = new Map(), firstT = new Map(), crossT = new Map(), lastBal = new Map();
   let head = null, rows = 0;
   const rl = createInterface({ input: createReadStream(src), crlfDelay: Infinity });

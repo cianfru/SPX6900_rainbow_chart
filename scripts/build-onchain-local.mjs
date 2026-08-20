@@ -901,8 +901,12 @@ async function main() {
   // reduce, NOT Math.min(...arr) — spreading millions of args overflows the call stack.
   let t0 = Infinity, t1 = -Infinity;
   for (const t of transfers) { if (t.ts < t0) t0 = t.ts; if (t.ts > t1) t1 = t.ts; }
+  // Daily grid runs from the first transfer's day THROUGH the last transfer's day, inclusive — clamp
+  // the end to dayFloor(t1) so the newest row is never stamped 1–2 days in the future (a `+2` length
+  // overshot the real data; metrics were correct but the row's `d` label read ahead of the data).
+  const g0 = dayFloor(t0), g1 = dayFloor(t1);
   const grid = args.daily
-    ? Array.from({ length: Math.floor((t1 - t0) / DAY) + 2 }, (_, i) => dayFloor(t0) + i * DAY)
+    ? Array.from({ length: (g1 - g0) / DAY + 1 }, (_, i) => g0 + i * DAY)
     : mondays(t0, t1);
   // Who lived here last run. Hysteresis needs it: a resident keeps their building down to 0.8x the
   // bar, so nobody near the threshold blinks in and out week to week. Missing file on the first run
