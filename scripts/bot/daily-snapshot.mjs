@@ -180,14 +180,21 @@ export function buildDailySnapshot(feeds) {
   if (Array.isArray(floorSpx) && floorSpx.length) {
     aeonRows.push(row("Floor price (SPX)", floorSpx[floorSpx.length - 1][1], floorSpx, r => r[1], "spx", true, "the same floor priced in SPX — AEON's SPX-native value"));
   }
+  // Sales ride the Dune pull, which can STALL (query timeout, or a completed-but-empty delta) —
+  // when it does, the committed data freezes at the last real sale and "0 sales today" would be a
+  // LIE. So compare the sales data's as-of date to today: if it hasn't advanced in >3 days, show the
+  // sales value as unknown and say the feed is stalling, rather than presenting frozen data as live.
   const aeonTrades = aeonSales?.trades;
+  const salesAsOf = aeonSales?.updated || (Array.isArray(aeonTrades) ? aeonTrades[aeonTrades.length - 1]?.d : null);
   if (Array.isArray(aeonTrades)) {
     const today = dateOf(aeonHistory) || new Date().toISOString().slice(0, 10);
+    const salesAge = salesAsOf ? Math.round((Date.parse(today) - Date.parse(salesAsOf)) / 864e5) : null;
+    const stale = salesAge != null && salesAge > 3;
     const todays = aeonTrades.filter(t => t.d === today);
     const volEth = todays.reduce((s, t) => s + (t.eth || 0), 0);
-    const last = aeonTrades[aeonTrades.length - 1];
-    aeonRows.push({ label: "Sales today", value: todays.length, fmt: "int", goodUp: true, d: [null, null, null],
-      note: todays.length ? `${volEth.toFixed(2)}Ξ traded today` : `no sales yet today · last sale ${last?.d || "—"} at ${last?.eth != null ? last.eth.toFixed(3) + "Ξ" : "—"}` });
+    aeonRows.push({ label: "Sales today", value: stale ? null : todays.length, fmt: "int", goodUp: true, d: [null, null, null],
+      note: stale ? `⚠ sales feed stalled — no new data since ${salesAsOf} (${salesAge}d); the Dune sales pull is failing, so recent sales are NOT captured`
+        : (todays.length ? `${volEth.toFixed(2)}Ξ traded today` : "no sales yet today") });
   }
   if (aeonRows.length) sections.push({ title: "Project AEON", rows: aeonRows });
 
@@ -205,10 +212,12 @@ export function buildDailySnapshot(feeds) {
     freshness: {
       history: dateOf(history), onchain: dateOf(onchain), whales: dateOf(whales),
       smartMoney: smartMoney?.updated || null, valuation: valuation?.updated || null,
-      // AEON freshness = when the banker last CHECKED (floor + sales), which is daily. The date of the
-      // LAST SALE is NOT a freshness signal — a thin collection can go weeks with no sales while the
-      // feed is perfectly current — so it lives in the "Sales today" row as context, never as a red flag.
+      // AEON floor comes from Alchemy daily (current). AEON SALES come from the Dune pull, which has
+      // been STALLING — so its freshness is the last date the SALES DATA actually advanced, which the
+      // footer flags when it falls behind. (Do NOT key sales freshness to the run date: the builder
+      // regenerates the file daily from the frozen CSV, which is exactly what masked this stall.)
       aeon: aeon?.updated || aeonMarket?.updated || dateOf(aeonHistory),
+      aeonSales: salesAsOf,
     },
   };
 }

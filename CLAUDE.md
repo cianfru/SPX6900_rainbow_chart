@@ -136,6 +136,23 @@
   **`dune/aeon_transfers.sql`** (primary — `erc721_ethereum.evt_Transfer`) + **`bigquery/aeon_transfers.sql`** (FREE fallback —
   decodes ERC-721 Transfer from `crypto_ethereum.logs` via hexToInt UDF + ARRAY_LENGTH(topics)=4 to exclude ERC-20). Both
   output `from_address,to_address,token_id,time`.
+- **🔴 AEON SALES/TRANSFERS FEED STALLED SINCE ~2026-07-23 — the Dune refresh is failing (found 2026-08-19 via CI logs).**
+  Owner reported real AEON sales that the site wasn't showing. CI truth from `aeon.yml` run 2026-08-19: **`aeon-dune: refresh
+  failed (using last committed CSVs) — timed out (last state QUERY_STATE_PENDING)`** — `build-aeon-dune-refresh.mjs` polls 120×3.5s
+  (~7 min) and the Dune query never leaves PENDING, so it falls back to the frozen `dune/out/aeon_{sales,transfers}.csv` (last row
+  2026-07-23). On days it DOES complete it returns no rows past 2026-07-23, so **both transfers AND sales have been frozen ~4 weeks**
+  (holder-age/concentration/MVRV/trader-P&L/sales all stale). Separately, **`aeon-listings: auth 401 — check OPENSEA_KEY`** → listings
+  frozen too. **⚠ The heartbeat `aeon-dune-status.json` only trips on a THROWN error, so a completed-but-empty day still stamps
+  `ok:true` — which masked the stall.** ⚠ Claude CANNOT run Dune/OpenSea from the sandbox, so this needs the owner.
+  - **✅ HONESTY FIX SHIPPED (2026-08-19):** the /terminal AEON section now compares the sales data's as-of date to today — if it hasn't
+    advanced in >3 days it shows Sales = "—" with "⚠ sales feed stalled — no new data since <date>", and the freshness footer flags
+    `aeonSales` stale. Floor (ETH via Alchemy · SPX derived from the live floor) stays current. NEVER present the frozen CSV as "0 sales today".
+  - **🔲 OWNER ACTIONS to restore the feed:** (1) renew/replace `OPENSEA_KEY` (401). (2) open Dune queries **8218959 (sales)** +
+    **8218956 (transfers)**, run them manually for AEON since 2026-07-23 — determine whether they TIME OUT (too heavy for the free/
+    community engine → the `getNFTSales`-style Seaport-decode may need optimising or a lighter incremental) or COMPLETE EMPTY (the
+    source table/marketplace decoding stopped capturing AEON trades → query needs fixing). Then the daily banker resumes on its own.
+  - **🔲 CLAUDE FOLLOW-UP (offered):** make the heartbeat/audit catch "completed-but-frozen" (compare newest DATA date to today, not just
+    catch thrown errors) so a future stall surfaces in feed-health.json/the control panel without waiting for a person to notice.
 - **⚠ ALCHEMY NFT API DEPRECATIONS — DUE 2026-09-30 (owner forwarded the notice 2026-08-19). AUDIT DONE: only `getNFTSales`
   affects us; nothing breaks, latency degrades.** Alchemy is removing a set of redundant NFT endpoints (V2+V3) on 2026-09-30.
   Grepped every endpoint we call:
