@@ -136,6 +136,7 @@
   **`dune/aeon_transfers.sql`** (primary — `erc721_ethereum.evt_Transfer`) + **`bigquery/aeon_transfers.sql`** (FREE fallback —
   decodes ERC-721 Transfer from `crypto_ethereum.logs` via hexToInt UDF + ARRAY_LENGTH(topics)=4 to exclude ERC-20). Both
   output `from_address,to_address,token_id,time`.
+- **✅✅ RESOLVED 2026-08-20 — see the "AEON MOVED TO ALCHEMY" entry just below; the 🔴 block here is kept for the diagnosis history.**
 - **🔴 AEON SALES/TRANSFERS FEED STALLED SINCE ~2026-07-23 — the Dune refresh is failing (found 2026-08-19 via CI logs).**
   Owner reported real AEON sales that the site wasn't showing. CI truth from `aeon.yml` run 2026-08-19: **`aeon-dune: refresh
   failed (using last committed CSVs) — timed out (last state QUERY_STATE_PENDING)`** — `build-aeon-dune-refresh.mjs` polls 120×3.5s
@@ -153,6 +154,47 @@
     source table/marketplace decoding stopped capturing AEON trades → query needs fixing). Then the daily banker resumes on its own.
   - **🔲 CLAUDE FOLLOW-UP (offered):** make the heartbeat/audit catch "completed-but-frozen" (compare newest DATA date to today, not just
     catch thrown errors) so a future stall surfaces in feed-health.json/the control panel without waiting for a person to notice.
+- **✅✅ AEON MOVED TO ALCHEMY — STALL FULLY RESOLVED (2026-08-20). Transfers off Dune for good; sales unjammed; gap 07-23→today filled.**
+  - **⭐ THE REAL ROOT CAUSE (corrects the 🔴 block's "account suspended" guess).** The pipeline's own Dune account was NOT suspended
+    (that was the SEPARATE Dune MCP key — `getUsage` showed `suspended_account`, which I wrongly extended to the pipeline). The actual
+    freeze: `build-aeon-dune-refresh.mjs` pulled **transfers FIRST, then sales, in one run**; the heavy `erc721_ethereum.evt_Transfer`
+    transfers query kept timing out at `QUERY_STATE_PENDING`, threw, and **killed the run before the sales pull ever executed** — so sales
+    were collateral damage, not independently broken. Splitting transfers off (to Alchemy) let the lightweight sales query finish in ~5s.
+    One fix healed both halves. **LESSON: when two pulls share a script and the first is heavy/flaky, its timeout starves the second —
+    split independent feeds into independent steps.**
+  - **⭐ TRANSFERS NOW COME FROM ALCHEMY — `scripts/build-aeon-transfers-alchemy.mjs` (NEW).** `alchemy_getAssetTransfers` (category
+    erc721, contractAddresses=[AEON], order asc, withMetadata, maxCount 0x3e8, pageKey paginate — the same pattern as
+    `build-base-alchemy.mjs`) writes the EXACT CSV the reconstructions already read (`from_address,to_address,token_id,time`, ISO ts,
+    tokenId hex→decimal) to `dune/out/aeon_transfers.csv`. So `build-aeon-onchain.mjs` + `build-city-timeline.mjs` are UNTOUCHED — same
+    interface, new producer. **FULL-history pull each run (~26 pages / ~25k rows, ~12s)** — no archive/merge complexity, on-brand with
+    AEON's "pull the whole small collection each refresh" decision. **SOFT-FAILS + NEVER TRUNCATES** (refuses to shrink the committed
+    archive on a partial pull; 3,333 mint floor). Pure core (`tokenIdToDecimal`/`normalizeTransfer`/`transfersToCsv`) unit-tested
+    (`test/aeon-transfers-alchemy.test.mjs`). ⭐ Because it re-pulls mint→now every run, **the transfer-derived charts (holder age /
+    concentration / holder flow / owners-over-time / timeline / skyline) are STRUCTURALLY gap-proof** — a frozen middle is impossible.
+  - **⭐ SALES STAY ON DUNE, but SALES-ONLY.** `aeon.yml` now runs the Alchemy transfers step, then `build-aeon-dune-refresh.mjs`
+    (retired the `--only` flag — the script is sales-only; the header, heartbeat and dead `AEON_TRANSFERS_QUERY_ID` var were removed and
+    `dune/aeon_transfers.sql` DELETED, since `build-aeon-transfers-alchemy.mjs` + `bigquery/aeon_transfers.sql` cover transfers). Sales
+    feed trader P&L / MVRV / realized price — the one thing Alchemy can't reconstruct historically (`getNFTSales` is a recent window +
+    deprecates 2026-09-30). **BigQuery-for-sales is NOT set up and NOT worth building while Dune-sales works** — `onchain-bigquery.yml`
+    has never run (0 runs), `GCP_SA_KEY` is unset, and there is no `bigquery/aeon_sales.sql` (a marketplace decoder = real work). Only
+    build it if Dune-sales breaks again or to kill Dune on principle.
+  - **⭐ FRESHNESS HEARTBEAT FIXED (was the "control panel says 2 days, chart says July" bug).** `aeon-dune-status.json` stamped the RUN
+    date on any non-throwing pull, so a completed-but-empty pull looked fresh. Now `updated` = the **newest SALES DATA date in the CSV**
+    (`checked` keeps the run date); `build-ens`-style masking gone. The control panel gained a second row so both halves show honestly:
+    "AEON · sales (Dune)" + "AEON · holder analytics (transfers via Alchemy)". `audit-feeds` already reads each file's internal date, so
+    it was honest for onchain/sales; only the run-stamped heartbeat + market/timeline could mask (heartbeat now fixed).
+  - **✅ OPENSEA KEY RESTORED (2026-08-20).** New `OPENSEA_KEY` set → `build-aeon-listings.mjs` returns 67 genuine listings (401 gone);
+    deal-finder + fire-sale inputs live again.
+  - **✅ WATCHERS: kill-switched then RE-ENABLED.** During the outage a kill-switch forced `DRY_RUN:'1'` on all three
+    `aeon-sale-watch.yml` watchers (notable-sale/firesale/sweep). Re-enabled 2026-08-20 (restored the `vars.AEON_SALE_DRY_RUN` toggle)
+    once all feeds were verified. ⚠ Known non-blocker: the Alchemy live-sales accelerator (`getNFTSales`) returns 0 on a block-range quirk,
+    so the notable-sale watcher falls back to the DAILY Dune sales (day-latency, within the 3-day window) — sub-day sale alerts are not active.
+  - **✅ ens.json PERSISTS NOW.** `build-ens` rewrote `public/ens.json` (skyline wallet labels) every run but `aeon.yml`'s commit step
+    never staged it, so resolved names were thrown away daily and the audit flagged it stale. The commit step now stages `public/ens.json`.
+  - **✅ GAP 07-23→today FILLED, verified on committed data.** onchain weekly series continuous (…07-20·07-27·08-03·08-10·08-17·08-24…);
+    sales backfilled 21 sale-days across 07-23→08-20 (17,040→17,105 rows). Charts fresh; owners 1178. Verified live via dispatched
+    `aeon.yml` + `aeon-sale-watch.yml` (dry-run) runs, both green, deploy succeeded. **KEPT as reference/tooling (not dead):**
+    `bigquery/aeon_transfers.sql`, `dune/aeon_spx_balances.sql` + `gen-aeon-spx-query.mjs`, `scripts/aeon-snipe.mjs`, `aeon-live-tail.mjs`.
 - **⚠ ALCHEMY NFT API DEPRECATIONS — DUE 2026-09-30 (owner forwarded the notice 2026-08-19). AUDIT DONE: only `getNFTSales`
   affects us; nothing breaks, latency degrades.** Alchemy is removing a set of redundant NFT endpoints (V2+V3) on 2026-09-30.
   Grepped every endpoint we call:
