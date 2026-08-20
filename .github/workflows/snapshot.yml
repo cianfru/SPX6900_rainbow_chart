@@ -47,6 +47,20 @@ jobs:
           # default public node if it rate-limits. Soft-skips (null) on failure.
           ETH_RPC: ${{ vars.ETH_RPC }}
         run: node scripts/snapshot.mjs
+      - name: Refresh dense daily price history (folded in from price-history.yml — one daily price cron)
+        # The dense CI-cleaned price line every downstream builder prices off. It USED to run on its
+        # own WEEKLY cron, which froze onchain.spot / the floor model mid-week — now it runs here daily,
+        # ahead of the on-chain refresh. continue-on-error: a price-API blip must never block the commit.
+        continue-on-error: true
+        env:
+          COINGECKO_KEY: ${{ secrets.COINGECKO_KEY }}
+          COINGECKO_PRO_KEY: ${{ secrets.COINGECKO_PRO_KEY }}
+          COINGECKO_ID: ${{ vars.COINGECKO_ID }}
+          GRAPH_API_KEY: ${{ secrets.GRAPH_API_KEY }}
+          GRAPH_SUBGRAPH_ID: ${{ vars.GRAPH_SUBGRAPH_ID }}
+          GRAPH_TOKEN: ${{ vars.GRAPH_TOKEN }}
+          HL_COIN: ${{ vars.HL_COIN }}
+        run: node scripts/build-price-history.mjs
       # ⚠ These three are SECONDARY re-slices of data already banked in history.json, so none of them
       # may block committing today's price. continue-on-error: an upstream outage (e.g. HolderScan
       # 402) can leave a null field today; if a builder chokes on it, its own JSON just forward-fills
@@ -94,7 +108,7 @@ jobs:
           if [[ -n "$(git status --porcelain public/history.json public/signals.json public/notable.json public/daily-snapshot.json public/chain-wallets.json public/cex-flow.json public/valuation.json public/city-notes.json public/feed-health.json)" ]]; then
             git config user.name "github-actions[bot]"
             git config user.email "github-actions[bot]@users.noreply.github.com"
-            git add public/history.json public/signals.json public/notable.json public/daily-snapshot.json public/chain-wallets.json public/cex-flow.json public/valuation.json public/city-notes.json public/feed-health.json
+            git add public/history.json public/signals.json public/notable.json public/daily-snapshot.json public/chain-wallets.json public/cex-flow.json public/valuation.json public/city-notes.json public/feed-health.json public/price-history.json
             git commit -m "chore: supply snapshot $(date -u +%F)"
             git push || { for i in 1 2 3 4 5; do echo "push rejected, rebasing (attempt $i)"; git pull --rebase --autostash origin "${GITHUB_REF_NAME:-main}" && git push && break; sleep $((i*3)); done; }
           else

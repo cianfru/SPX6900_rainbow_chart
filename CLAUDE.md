@@ -1398,6 +1398,15 @@
   flipped **weekly → daily** (04:17 UTC, before onchain-dune) so the dense base + city/smart-money/exit builders stay ≤1 day
   fresh. (3) the terminal header spot now prefers `history.json.p` (live) over `onchain.spot`. **LESSON: any daily surface that
   prices off a WEEKLY feed will look frozen mid-week — overlay the live daily price on the tail.**
+  - **✅ HARDENED 2026-08-21 (owner asked "why two crons + audit?"):** (a) **CONSOLIDATED** — `build-price-history.mjs` now runs as a
+    step in the DAILY `snapshot.yml` (00:17, ahead of onchain-dune), and `price-history.yml` is demoted to manual-dispatch backup. One
+    daily price cron, no separate weekly feed to drift. (b) **CROSS-FEED PRICE-CONSISTENCY AUDIT** — `audit-feeds.mjs`
+    `priceConsistency()` DATE-ALIGNS each FIFO-priced feed's embedded price (`onchain.json` spot, `city-history.json` row price) to the
+    live `history.json` close on the SAME day; >5% gap → WARN in feed-health.json + the panel. This catches the class the file-date
+    audit is blind to (fresh FILE, stale VALUE — same as the AEON "completed-but-frozen" heartbeat). Unit-tested; price-history cadence
+    tightened 9→2. **Blast radius that was frozen: ~9 builders price off price-history (onchain/city-history/smart-money/exit-flow/
+    cohort-roi/cohort-survival/whale-entry/cex-flow/aeon-market); the SITE charts mostly self-corrected via the live overlay in
+    `mvrvHistory`/`loadPriceHistory`, so the visible casualties were the cards + USD-valued tails.**
 - **Dense historical price data — SOLVED IN STAGES.** `scripts/build-price-history.mjs`: **✅ CoinGecko COIN API (`market_chart`, free)** —
   free tier caps to last 365 days (reaches the true ATH region; Jul '25 top $2.15 daily on 2025-07-28); Pro key (`COINGECKO_PRO_KEY`)
   auto-upgrades to `days=max` (Analyst ~$129/mo → a one-month backfill = ~$129 one-time). **✅ Hyperliquid perp candles** (fills the 2024

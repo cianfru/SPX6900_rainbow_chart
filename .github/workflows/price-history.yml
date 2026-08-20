@@ -1,12 +1,10 @@
-# Builds public/price-history.json — the DENSE daily price series the site draws
-# from (the bundled DEFAULT_RAW is thinned to ~weekly for the model fit). Runs in
-# CI because the price APIs aren't reachable from the dev sandbox. Weekly refresh
-# + manual dispatch; commits only when the data changed.
-name: Build price history
+# Builds public/price-history.json — the DENSE daily price series the site draws from.
+# ⭐ THE DAILY BUILD NOW LIVES IN snapshot.yml (folded in 2026-08-21 so there is ONE daily price cron
+# — a separate WEEKLY cron here froze onchain.spot / the floor model mid-week). This workflow is kept
+# as a MANUAL-ONLY backup (dispatch) for backfills / re-pulls; it no longer runs on a schedule.
+name: Build price history (manual backup)
 on:
   workflow_dispatch:
-  schedule:
-    - cron: "17 4 * * *"   # daily 04:17 UTC (before the on-chain refresh, so the dense price base is fresh)
 permissions:
   contents: write          # needed to commit + push public/price-history.json
 jobs:

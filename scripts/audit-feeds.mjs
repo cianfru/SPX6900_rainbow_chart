@@ -271,9 +271,51 @@ export function auditFeed(spec, doc, today) {
   return { ...spec, status, age, date: d, rows: rows.length, notes };
 }
 
+/**
+ * CROSS-FEED PRICE CONSISTENCY. A fresh FILE can still carry a STALE VALUE: onchain.json got new rows
+ * every day while its `spot` forward-filled a WEEKLY price feed → the floor model froze at the Monday
+ * price through a pump, and no file-date audit could see it (the file was current). So DATE-ALIGN each
+ * FIFO-priced feed's embedded price to the live daily close (history.json `p`) on the SAME day: a real
+ * daily move shows up in both, but a forward-filled tail diverges. Returns [{label,date,value,live,gapPct,stale}].
+ * Pure + unit-tested. Scans back a few rows so it still compares if the feed is a day ahead of history.
+ */
+export function priceConsistency(feeds, tol = 0.05) {
+  const hist = feeds.history;
+  const priceOn = new Map((Array.isArray(hist) ? hist : [])
+    .map(r => [(r?.d ?? r?.date), +r?.p]).filter(([d, p]) => d && p > 0));
+  const out = [];
+  const cmp = (label, rows, dateOf, spotOf) => {
+    if (!Array.isArray(rows)) return;
+    for (let i = rows.length - 1; i >= 0 && i > rows.length - 8; i--) {
+      const date = String(dateOf(rows[i]) || "").slice(0, 10), spot = +spotOf(rows[i]);
+      const live = priceOn.get(date);
+      if (spot > 0 && live > 0) {
+        const gap = Math.abs(spot / live - 1);
+        out.push({ label, date, value: +spot.toFixed(6), live: +live.toFixed(6), gapPct: +(gap * 100).toFixed(1), stale: gap > tol });
+        return;
+      }
+    }
+  };
+  cmp("onchain.json spot", feeds.onchain, r => r?.d, r => r?.spot);
+  cmp("city-history.json price", feeds.cityHistory?.rows, r => r?.[0], r => r?.[1]);
+  return out;
+}
+
 function main() {
   const today = new Date().toISOString().slice(0, 10);
   const results = FEEDS.map(spec => auditFeed(spec, readJson(`public/${spec.file}`), today));
+
+  // Cross-feed price consistency — catches a fresh file carrying a forward-filled (stale) price.
+  const priceGaps = priceConsistency({
+    history: readJson("public/history.json"), onchain: readJson("public/onchain.json"), cityHistory: readJson("public/city-history.json"),
+  });
+  for (const g of priceGaps.filter(x => x.stale)) {
+    const file = g.label.split(" ")[0];
+    const r = results.find(x => x.file === file);
+    const note = `price ${g.value} on ${g.date} is ${g.gapPct}% off the live close ${g.live} — forward-filled / stale price source`;
+    if (r) { r.notes.push(note); if (r.status === "ok") r.status = "warn"; }
+    else console.error("price-consistency:", note);
+  }
 
   const known = new Set([...FEEDS.map(f => f.file), ...STATE]);
   const untracked = readdirSync("public").filter(f => f.endsWith(".json") && !known.has(f));
@@ -285,7 +327,7 @@ function main() {
     const payload = {
       checked: today,
       ok: results.length - fails.length - warns.length,
-      warn: warns.length, fail: fails.length, untracked,
+      warn: warns.length, fail: fails.length, untracked, priceGaps,
       feeds: results.map(({ file, by, what, status, age, cadence, date, notes }) =>
         ({ file, by, what, status, age, cadence, date, notes })),
     };
