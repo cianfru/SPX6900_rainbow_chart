@@ -149,12 +149,12 @@ export const FEEDS = [
     require: ["total"], nonEmpty: ["tokens", "traitTypes"] },
   { file: "aeon-live-sales.json", cadence: 2, by: "aeon-sale-watch.yml", what: "sub-day AEON sales from Alchemy",
     mayBeEmpty: ["sales"] },
-  // ⭐ THE STALL-CATCHER. The AEON transfers/sales come from Dune; if that pull soft-fails (a deleted
-  // query 404'd for two weeks and nothing noticed), the data FREEZES while aeon-*.json keep a run-date
-  // `updated` — so a plain date check on those files is fooled. build-aeon-dune-refresh stamps this
-  // file ONLY on a SUCCESSFUL pull, so its date freezes the instant the pull breaks. cadence 2 = the
-  // daily pull may miss one run, not two, before it's flagged STALE in feed-health / the panel.
-  { file: "aeon-dune-status.json", cadence: 2, by: "aeon.yml", what: "AEON Dune-pull heartbeat (last successful transfers+sales pull)",
+  // ⭐ THE STALL-CATCHER. Transfers now come from Alchemy (tracked by aeon-onchain.json's own date);
+  // SALES are the one feed still on Dune. `updated` here is the newest SALES DATA date in the CSV,
+  // NOT a run date, so a completed-but-empty (or suspended-account) pull still freezes it and turns
+  // the row RED — the run-stamp version read "2 days old" while the charts sat in July. cadence 3 =
+  // the daily sales pull may miss a run or two before it's flagged STALE in feed-health / the panel.
+  { file: "aeon-dune-status.json", cadence: 3, by: "aeon.yml", what: "AEON sales pull heartbeat (newest sales DATA date — the one feed still on Dune)",
     require: ["updated", "ok"] },
   { file: "ens.json", cadence: 9, by: "aeon.yml (step)", what: "ENS names for the wallets we display",
     require: ["resolved", "named"], nonEmpty: ["names"] },
