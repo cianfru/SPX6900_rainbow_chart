@@ -19,7 +19,7 @@ import { dirname, join } from "node:path";
 import { fetchLivePrice, fetchMajors, fetchHistory, computeStats } from "./stats.mjs";
 import { renderPostCard } from "./charts.mjs";
 import { buildMedia, postWithMedia, uploadWithRetry } from "./media.mjs";
-import { buildPost, allIds, buildBandChangePost, dailyBandEvent } from "./posts.mjs";
+import { buildPost, allIds, buildBandChangePost, dailyBandEvent, markBandSolo } from "./posts.mjs";
 import * as M from "../../src/models.js";
 
 // Control-page state lives in public/ so it deploys with the site and the daily
@@ -211,6 +211,8 @@ const recent = [...(Array.isArray(state.recent) ? state.recent : []), { date: to
 const cur = readJson(STATE_FILE, state);
 writeFileSync(STATE_FILE, JSON.stringify({ ...cur, lastPostedDate: today, lastId: post.id, recent }, null, 2) + "\n");
 if (fromQueue) writeFileSync(QUEUE_FILE, JSON.stringify({ id: null }, null, 2) + "\n");
+// A rainbow band announcement is the day's headline — stand every event lane down for today.
+if (announceBand) markBandSolo(today);
 
 // Advance the tier-A band tracker off this run's settled close (skip when an owner
 // override ran — its pick shouldn't disarm a pending BUY/SELL). Announce disarms;

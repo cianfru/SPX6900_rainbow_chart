@@ -2749,6 +2749,18 @@ export function recordLanePost(lane, id, { now = utcDay(), write = true } = {}) 
   return next;
 }
 
+// ⭐ BAND-ANNOUNCE SOLO DAY. When the daily slot announces a rainbow band move (BUY / SELL), that is
+// the day's headline and every other lane (whale-watch, AEON sale/firesale/sweep, milestone) should
+// stand down so the move gets the stage alone. post.mjs stamps today's date; each event watcher checks
+// bandSoloToday() and skips. Cleared automatically tomorrow (a stale date no longer matches).
+export function markBandSolo(now = utcDay()) {
+  const s = readPostState();
+  writeFileSync(POST_STATE_FILE, JSON.stringify({ ...s, bandSoloDate: now }, null, 2) + "\n");
+}
+export function bandSoloToday(now = utcDay(), state = readPostState()) {
+  return state?.bandSoloDate === now;
+}
+
 // Pure decision for the DAILY-slot band announcement (BUY / SELL). Confirmation
 // is a settled daily CLOSE in the band (`closeBand`), AND the live price still
 // sitting there at post time (`liveBand`) — so a wick that closed in the band but

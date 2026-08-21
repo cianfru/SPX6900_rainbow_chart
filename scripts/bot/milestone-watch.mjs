@@ -9,7 +9,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { fetchLivePrice, fetchHistory, computeStats } from "./stats.mjs";
 import { buildMilestonePost } from "./posts.mjs";
 import { buildMedia, postWithMedia } from "./media.mjs";
-import { lanePostedToday, recordLanePost } from "./posts.mjs";
+import { lanePostedToday, recordLanePost, bandSoloToday } from "./posts.mjs";
 import { CRYPTO_MILESTONES } from "../../src/milestones.js";
 import { DEFAULT_RAW } from "../../src/data.js";
 
@@ -62,7 +62,8 @@ if (cur <= state.highest) { console.log(`No new milestone (still at ${state.high
 const from = state.highest;
 const cooled = !state.lastPostTs || Date.now() - Date.parse(state.lastPostTs) >= COOLDOWN_MS;
 const postedToday = lanePostedToday("milestone");
-const shouldPost = cooled && !postedToday;
+const soloBand = bandSoloToday();   // a rainbow band announcement owns the day
+const shouldPost = cooled && !postedToday && !soloBand;
 console.log(`New milestone ${from} -> ${cur} (${curLabel}) | cooled=${cooled} dailyPostedToday=${postedToday} => ${shouldPost ? "POST" : "skip"}`);
 
 const post = buildMilestonePost(stats, cur);

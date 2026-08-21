@@ -25,7 +25,7 @@ import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { renderAeonSaleCard, fetchArt, traitsFor, tierOf } from "./aeon-sale-card.mjs";
 import { postWithMedia } from "./media.mjs";
-import { lanePostedToday, recordLanePost, withFooter, aeonLanesQuiet } from "./posts.mjs";
+import { lanePostedToday, recordLanePost, withFooter, aeonLanesQuiet, bandSoloToday } from "./posts.mjs";
 import { fetchLiveSales } from "./aeon-live-sales.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "../..");
@@ -249,6 +249,7 @@ async function main() {
   // knows this lane's own posts, so the sibling lanes were invisible — that's how two AEON posts
   // landed in a day).
   if (!force && !aeonLanesQuiet()) { console.log("aeon-sale: another AEON lane posted in the last few days — cross-lane cooldown, skipping."); return; }
+  if (!force && bandSoloToday()) { console.log("aeon-sale: a rainbow band move is today's headline — standing down."); return; }
 
   const { traits, total } = traitsFor(sale.id, RARITY);
   const tier = tierOf(sale.rank, total);
