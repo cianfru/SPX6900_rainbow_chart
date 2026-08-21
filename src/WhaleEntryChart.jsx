@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { loadWhaleEntry } from "./history-data.js";
 import { SANS, MONO, MAX_W, Explain, ViewTabs } from "./chart-ui.jsx";
 import { walletGradient } from "./WalletCard.jsx";
+import { track } from "./track.js";
 
 // WHEN THE WHALES BOUGHT — every wallet ≥100k SPX as a glowing orb sitting on the SPX price curve at
 // the point it bought (coin-weighted entry date × average price paid), sized by its bag, green if the
@@ -153,8 +154,8 @@ export default function WhaleEntryChart({ isMobile, price }) {
     const key = q.trim().toLowerCase();
     if (!key) return;
     const found = data?.whales.find(x => x.a.toLowerCase() === key);
-    if (found) { setBand("all"); setPinned(found); setErr(""); }
-    else { setPinned(null); setErr("Not in the whale set — this chart only holds current wallets ≥100k SPX."); }
+    if (found) { setBand("all"); setPinned(found); setErr(""); track("wallet_search", { wallet: found.a, source: "whaleentry" }); }
+    else { setPinned(null); setErr("Not in the whale set — this chart only holds current wallets ≥100k SPX."); track("wallet_search", { wallet: key.slice(0, 60), source: "whaleentry-miss" }); }
   };
   // screen position of the pinned whale for the sticky card — computed with the same projection the
   // draw uses (not read from geomRef), so the card appears on the same render the pin is set.

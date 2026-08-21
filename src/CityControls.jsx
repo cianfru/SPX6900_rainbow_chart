@@ -94,7 +94,7 @@ export default function CityControls({ layout, onLayout, onFocus, has, accent = 
     e.preventDefault();
     const home = lookupHome(q);
     if (!home) { setMsg({ bad: true, text: "That doesn't look like a wallet address (0x…40 hex characters)." }); return; }
-    track("wallet_search", { wallet: home.a });   // page-intel: which wallets people look up in the city
+    track("wallet_search", { wallet: home.a, source: "city" });   // page-intel: which wallets people look up in the city
     const owns = has?.(home.a);
     if (layout !== "city") onLayout("city");
     onFocus(owns ? home.a : null);

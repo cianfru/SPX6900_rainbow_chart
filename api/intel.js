@@ -89,6 +89,7 @@ async function ingest(req, res, body) {
     city: decodeURIComponent(req.headers["x-vercel-ip-city"] || "") || "",
     region: req.headers["x-vercel-ip-country-region"] || "",
     wallet: clip(body.wallet, 80), chart: clip(body.chart, 40), mode: clip(body.mode, 16),
+    source: clip(body.source, 24),   // WHERE a wallet_search came from (city · whaleentry · …)
     ip: iphash,
   };
   const json = JSON.stringify(ev);
@@ -195,6 +196,7 @@ button:hover{border-color:var(--live);color:var(--live)}
 .wg{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--sep)}.wg:last-child{border-bottom:0}
 .wg .col{min-width:0;flex:1}.wg .a{color:var(--live);font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.wg .m{color:var(--faint);font-size:11px;margin-top:2px}
 .wg .cnt{flex:none;background:rgba(78,231,154,.13);color:var(--live);border-radius:999px;padding:3px 11px;font-weight:700;font-size:12px;font-variant-numeric:tabular-nums}
+.srcrow{display:flex;flex-wrap:wrap;gap:7px;margin:0 0 12px}.srcrow .src{background:rgba(251,191,36,.13);color:#fbbf24;border-radius:999px;padding:3px 11px;font-size:11.5px}.srcrow .src b{font-weight:700}
 details.cty{border-bottom:1px solid var(--sep)}details.cty[open]{background:rgba(255,255,255,.015)}
 .cty>summary{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 2px 8px 0;cursor:pointer;list-style:none}
 .cty>summary::-webkit-details-marker{display:none}
@@ -220,9 +222,11 @@ let _RN; try{ _RN=new Intl.DisplayNames(['en'],{type:'region'}); }catch(e){}
 const cname=c=>{ c=String(c||'').toUpperCase(); if(!c) return '??'; try{ return (_RN&&_RN.of(c))||c; }catch(e){ return c; } };
 // Group repeated searches of the SAME wallet into one row with a count (one person searching 12×
 // shouldn't fill the list). Newest location wins; multiple IPs are flagged.
-function groupWallets(ws){ const m={}; (ws||[]).forEach(w=>{ const k=w.wallet; if(!k) return; if(!m[k]) m[k]={wallet:k,n:0,last:0,city:w.city,country:w.country,ips:new Set()};
-  const g=m[k]; g.n++; if((w.ts||0)>g.last){ g.last=w.ts; g.city=w.city; g.country=w.country; } if(w.ip) g.ips.add(w.ip); });
+function groupWallets(ws){ const m={}; (ws||[]).forEach(w=>{ const k=w.wallet; if(!k) return; if(!m[k]) m[k]={wallet:k,n:0,last:0,city:w.city,country:w.country,ips:new Set(),src:new Set()};
+  const g=m[k]; g.n++; if((w.ts||0)>g.last){ g.last=w.ts; g.city=w.city; g.country=w.country; } if(w.ip) g.ips.add(w.ip); if(w.source) g.src.add(w.source); });
   return Object.values(m).sort((a,b)=>b.n-a.n||b.last-a.last); }
+// How many searches came from each surface (city vs whaleentry vs …) — answers "is the new search used?"
+function bySource(ws){ const m={}; (ws||[]).forEach(w=>{ const s=w.source||'other'; m[s]=(m[s]||0)+1; }); return Object.entries(m).sort((a,b)=>b[1]-a[1]); }
 // Country → cities: totals from the all-time geo counter, city breakdown from recent events.
 function countryTree(events,geo){ const cities={}; (events||[]).forEach(e=>{ const c=String(e.country||'').toUpperCase(); if(!c) return; (cities[c]=cities[c]||{}); const ci=e.city||'—'; cities[c][ci]=(cities[c][ci]||0)+1; });
   return Object.entries(geo||{}).map(([c,n])=>[String(c).toUpperCase(),+n||0]).sort((a,b)=>b[1]-a[1])
@@ -267,16 +271,18 @@ async function load(){ const pw=$('#pw')?$('#pw').value:''; $('#out').innerHTML=
   // at-a-glance summary
   const geoSum=Object.values(d.geo||{}).reduce((a,b)=>a+(+b||0),0);
   const uniqIP=new Set((d.events||[]).map(e=>e.ip).filter(Boolean)).size;
-  const wg=groupWallets(d.wallets), ctree=countryTree(d.events,d.geo);
+  const wg=groupWallets(d.wallets), ctree=countryTree(d.events,d.geo), wsrc=bySource(d.wallets);
   const stat=(n,l)=>'<div class="stat"><div class="n">'+n+'</div><div class="l">'+l+'</div></div>';
   const stats='<div class="stats">'+stat(geoSum.toLocaleString(),'events (all-time)')+stat(ctree.length,'countries')+stat(wg.length,'wallets searched')+stat(Object.keys(d.charts||{}).length,'charts opened')+stat(uniqIP,'recent visitors')+'</div>';
   // wallet searches, grouped by address with a count
-  const wallets=wg.slice(0,40).map(g=>'<div class="wg"><div class="col"><div class="a">'+esc(g.wallet)+'</div><div class="m">'+esc([g.city,cname(g.country)].filter(Boolean).join(', ')||'??')+' · last '+ago(g.last)+' ago'+(g.ips.size>1?' · '+g.ips.size+' IPs':'')+'</div></div><div class="cnt">'+g.n+'×</div></div>').join('')||'<div class="muted">no wallet searches yet</div>';
+  const wallets=wg.slice(0,40).map(g=>'<div class="wg"><div class="col"><div class="a">'+esc(g.wallet)+'</div><div class="m">'+esc([g.city,cname(g.country)].filter(Boolean).join(', ')||'??')+' · last '+ago(g.last)+' ago'+(g.ips.size>1?' · '+g.ips.size+' IPs':'')+(g.src.size?' · via '+esc([...g.src].join(', ')):'')+'</div></div><div class="cnt">'+g.n+'×</div></div>').join('')||'<div class="muted">no wallet searches yet</div>';
+  // searches-by-surface, so it's obvious at a glance whether the whale-chart search gets any use
+  const srcLine=wsrc.length?'<div class="srcrow">'+wsrc.map(([s,n])=>'<span class="src">'+esc(s)+' <b>'+n+'</b></span>').join('')+'</div>':'';
   // countries, grouped, expandable to their cities
   const countries=ctree.slice(0,20).map(c=>'<details class="cty"><summary><span class="nm"><span class="flag">'+flag(c.code)+'</span><span class="t">'+esc(cname(c.code))+'</span></span><span class="v">'+c.n+'</span></summary>'+(c.cities.length?'<div class="sub">'+c.cities.slice(0,10).map(([ci,n])=>esc(ci)+' <b>'+n+'</b>').join(' · ')+'</div>':'')+'</details>').join('')||'<div class="muted">—</div>';
   const feed=(d.events||[]).slice(0,200).map(e=>'<div class="ev"><b>'+esc(e.t)+'</b> '+esc(e.path||'')+(e.chart?' ['+esc(e.chart)+']':'')+(e.wallet?' '+esc(e.wallet):'')+' <span class="muted">· '+flag(e.country)+' '+esc([e.city,cname(e.country)].filter(Boolean).join(', ')||'??')+' · '+(e.ref?esc(e.ref)+' · ':'')+ago(e.ts)+'</span></div>').join('');
   $('#out').innerHTML=emptyNote+stats+dailyChart(d.daily)+'<div class="grid">'
-    +'<div class="card"><h2>Wallet searches <span class="c">'+wg.length+' unique</span></h2>'+wallets+'</div>'
+    +'<div class="card"><h2>Wallet searches <span class="c">'+wg.length+' unique · '+(d.wallets||[]).length+' total</span></h2>'+srcLine+wallets+'</div>'
     +'<div class="card"><h2>Countries <span class="c">tap to expand</span></h2>'+countries+'</div>'
     +'<div class="card"><h2>Top pages</h2>'+rows(d.pages,12)+'</div>'
     +'<div class="card"><h2>Charts opened</h2>'+rows(d.charts,12)+'</div>'
