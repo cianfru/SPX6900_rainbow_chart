@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { loadWhaleEntry } from "./history-data.js";
 import { SANS, MONO, MAX_W, Explain, ViewTabs } from "./chart-ui.jsx";
+import { walletGradient } from "./WalletCard.jsx";
 
 // WHEN THE WHALES BOUGHT — every wallet ≥100k SPX as a glowing orb sitting on the SPX price curve at
 // the point it bought (coin-weighted entry date × average price paid), sized by its bag, green if the
@@ -21,12 +22,31 @@ const BANDS = [
   { key: "l", label: "5M+", lo: 5e6, hi: Infinity },
 ];
 const PMIN = 0.001, PMAX = 2.6, LGMIN = Math.log10(PMIN), LGMAX = Math.log10(PMAX);
+const ZURL = a => `https://app.zerion.io/${a}/overview`;
+
+// The Zerion portfolio banner, painted over a deterministic gradient so it survives a dead/blocked
+// endpoint (e.g. China): the image only overlays if it loads, else the gradient + "Zerion ↗" remain.
+function ZerionBanner({ addr, h = 96, clickable }) {
+  const inner = <>
+    <img src={`https://render.zerion.io/preview?address=${addr}`} alt="" loading="lazy"
+      onError={e => { e.currentTarget.remove(); }}
+      style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+    <span style={{ position: "absolute", right: 7, bottom: 5, fontSize: 10, fontWeight: 700, color: "#fff", fontFamily: MONO, textShadow: "0 1px 4px rgba(0,0,0,0.75)", pointerEvents: "none" }}>Zerion ↗</span>
+  </>;
+  const st = { position: "relative", display: "block", height: h, background: walletGradient(addr), overflow: "hidden" };
+  return clickable
+    ? <a href={ZURL(addr)} target="_blank" rel="noopener noreferrer" style={{ ...st, cursor: "pointer" }}>{inner}</a>
+    : <div style={st}>{inner}</div>;
+}
 
 export default function WhaleEntryChart({ isMobile, price }) {
   const wrap = useRef(null), cvs = useRef(null);
   const [data, setData] = useState(undefined);   // undefined loading · null failed · object ok
   const [band, setBand] = useState("all");
   const [hover, setHover] = useState(null);       // { w, x, y }
+  const [pinned, setPinned] = useState(null);     // a whale locked on-screen (searched or clicked)
+  const [q, setQ] = useState("");                 // wallet-search box
+  const [err, setErr] = useState("");
   const [w, setW] = useState(900);
   const geomRef = useRef([]);                     // [{w, x, y, r}] screen positions for hit-testing
   const cwRef = useRef(900);                       // the canvas's ACTUAL displayed width — draw + hit-test share it
@@ -102,8 +122,16 @@ export default function WhaleEntryChart({ isMobile, price }) {
     for (const gm of geom) { g.fillStyle = isUp(gm.w.cost) ? "rgba(201,255,224,0.9)" : "rgba(255,214,222,0.9)"; g.beginPath(); g.arc(gm.x, gm.y, Math.max(1, gm.r * 0.26), 0, 7); g.fill(); }
     // hover ring
     if (hover) { g.strokeStyle = "#fff"; g.lineWidth = 2; g.beginPath(); g.arc(X(hover.w.t), Y(hover.w.cost), Math.max(RMIN, Math.sqrt(hover.w.bag / maxBag) * RMAX) + 3, 0, 7); g.stroke(); }
+    // pinned ring (searched / clicked) — a persistent gold halo + crosshair so a located whale is easy
+    // to find in the swarm even when it's a tiny orb.
+    if (pinned) {
+      const px = X(pinned.t), py = Y(pinned.cost), pr = Math.max(RMIN, Math.sqrt(pinned.bag / maxBag) * RMAX);
+      g.strokeStyle = "#fbbf24"; g.lineWidth = 2.5; g.beginPath(); g.arc(px, py, pr + 6, 0, 7); g.stroke();
+      g.strokeStyle = "rgba(251,191,36,0.5)"; g.lineWidth = 1; g.beginPath(); g.arc(px, py, pr + 11, 0, 7); g.stroke();
+      g.beginPath(); g.moveTo(px - pr - 16, py); g.lineTo(px - pr - 6, py); g.moveTo(px + pr + 6, py); g.lineTo(px + pr + 16, py); g.stroke();
+    }
     geomRef.current = geom;
-  }, [data, whales, w, H, isMobile, hover, livePrice]);
+  }, [data, whales, w, H, isMobile, hover, pinned, livePrice]);
 
   const pick = (cx, cy) => {
     let best = null, bd = 1e9;
@@ -117,6 +145,30 @@ export default function WhaleEntryChart({ isMobile, price }) {
     const hit = pick(e.clientX - r.left, e.clientY - r.top);
     setHover(hit ? { w: hit.w, x: hit.x, y: hit.y } : null);
   };
+
+  // Locate a wallet by address and pin it. Only ≥100k current holders are in the set, so an unknown
+  // address gets an honest "not a tracked whale" rather than a fake dot.
+  const doSearch = e => {
+    e.preventDefault();
+    const key = q.trim().toLowerCase();
+    if (!key) return;
+    const found = data?.whales.find(x => x.a.toLowerCase() === key);
+    if (found) { setBand("all"); setPinned(found); setErr(""); }
+    else { setPinned(null); setErr("Not in the whale set — this chart only holds current wallets ≥100k SPX."); }
+  };
+  // screen position of the pinned whale for the sticky card — computed with the same projection the
+  // draw uses (not read from geomRef), so the card appears on the same render the pin is set.
+  const pinnedPos = (() => {
+    if (!pinned || !data) return null;
+    const cw = cwRef.current || w;
+    const mL = isMobile ? 46 : 60, mR = 16, mT = 14, mB = 34;
+    const pW = cw - mL - mR, pH = H - mT - mB;
+    const span = Math.max(1, data.now - data.launch);
+    const x = mL + ((pinned.t - data.launch) / span) * pW;
+    const lg = Math.log10(Math.max(PMIN, Math.min(PMAX, pinned.cost)));
+    const y = mT + pH - ((lg - LGMIN) / (LGMAX - LGMIN)) * pH;
+    return { x, y };
+  })();
 
   if (data === undefined) return <div style={{ textAlign: "center", fontFamily: MONO, color: "#64748b", padding: 60 }}>Loading whale entries…</div>;
   if (!data) return (
@@ -139,9 +191,19 @@ export default function WhaleEntryChart({ isMobile, price }) {
         </div>
       </div>
 
+      {/* find-your-whale search — locate a wallet in the swarm and pin it with a gold halo + card */}
+      <form onSubmit={doSearch} style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", margin: "0 2px 10px" }}>
+        <input value={q} onChange={e => { setQ(e.target.value); setErr(""); }} placeholder="find a whale — paste a wallet address (0x…)"
+          spellCheck={false} autoCapitalize="off" autoCorrect="off"
+          style={{ flex: "1 1 260px", minWidth: 0, maxWidth: 440, padding: "9px 12px", borderRadius: 0, fontFamily: MONO, fontSize: 13, background: "#0a0e1c", border: "1px solid rgba(255,255,255,0.16)", color: "#e2e8f0", outline: "none" }} />
+        <button type="submit" style={{ padding: "9px 16px", borderRadius: 0, fontFamily: MONO, fontSize: 13, fontWeight: 700, background: "#fbbf24", color: "#0a0e1c", border: "1px solid #fbbf24", cursor: "pointer" }}>Find whale</button>
+        {pinned && <button type="button" onClick={() => { setPinned(null); setQ(""); setErr(""); }} style={{ padding: "9px 12px", borderRadius: 0, fontFamily: MONO, fontSize: 12.5, background: "transparent", color: "#94a3b8", border: "1px solid rgba(255,255,255,0.16)", cursor: "pointer" }}>Clear ✕</button>}
+        {err && <span style={{ fontFamily: MONO, fontSize: 12, color: "#fb7185", flexBasis: "100%" }}>{err}</span>}
+      </form>
+
       <div style={{ position: "relative", borderRadius: 12, overflow: "hidden", background: "#0a0e1c", border: "1px solid rgba(255,255,255,0.08)" }}>
         <canvas ref={cvs} onMouseMove={onMove} onMouseLeave={() => setHover(null)}
-          onClick={() => hover && window.open(`https://app.zerion.io/${hover.w.a}/overview`, "_blank", "noopener")}
+          onClick={() => hover && (setPinned(hover.w), setErr(""))}
           style={{ width: "100%", height: H, display: "block", cursor: hover ? "pointer" : "default" }} />
         {hover && (
           <div style={{ position: "absolute", pointerEvents: "none", left: Math.min(Math.max(8, hover.x + 12), cwRef.current - 190), top: Math.min(Math.max(8, hover.y - 10), H - 96),
@@ -150,7 +212,26 @@ export default function WhaleEntryChart({ isMobile, price }) {
             <div style={{ marginTop: 4, color: "#94a3b8" }}>{kM(hover.w.bag)} SPX held</div>
             <div style={{ color: "#94a3b8" }}>bought ~{fmtDate(hover.w.t)} @ {fmtPrice(hover.w.cost)}</div>
             <div style={{ marginTop: 3, fontWeight: 700, color: isUp(hover.w.cost) ? "#4ade80" : "#fb7185" }}>{isUp(hover.w.cost) ? "in profit" : "underwater"} · {(livePrice / hover.w.cost).toFixed(2)}× on bag</div>
-            <div style={{ marginTop: 4, color: "#5eead4", fontSize: 11 }}>click → Zerion ↗</div>
+            <div style={{ marginTop: 4, color: "#fbbf24", fontSize: 11 }}>click to pin + preview →</div>
+          </div>
+        )}
+        {/* pinned whale — a sticky card with the Zerion portfolio preview (gradient fallback) */}
+        {pinned && pinnedPos && (
+          <div style={{ position: "absolute", pointerEvents: "auto",
+            left: Math.min(Math.max(8, pinnedPos.x + 16), cwRef.current - 212),
+            top: Math.min(Math.max(8, pinnedPos.y - 14), H - 210),
+            width: 198, background: "rgba(8,11,20,0.97)", border: "1px solid #fbbf24", borderRadius: 10, overflow: "hidden", boxShadow: "0 14px 38px rgba(0,0,0,0.65)" }}>
+            <ZerionBanner addr={pinned.a} h={98} clickable />
+            <div style={{ padding: "9px 11px 11px", fontFamily: MONO, fontSize: 12, color: "#e2e8f0" }}>
+              <div style={{ fontWeight: 700, color: "#f1f5f9" }}>{short(pinned.a)}</div>
+              <div style={{ marginTop: 4, color: "#94a3b8" }}>{kM(pinned.bag)} SPX held</div>
+              <div style={{ color: "#94a3b8" }}>bought ~{fmtDate(pinned.t)} @ {fmtPrice(pinned.cost)}</div>
+              <div style={{ marginTop: 3, fontWeight: 700, color: isUp(pinned.cost) ? "#4ade80" : "#fb7185" }}>{isUp(pinned.cost) ? "in profit" : "underwater"} · {(livePrice / pinned.cost).toFixed(2)}× on bag</div>
+              <div style={{ display: "flex", alignItems: "center", marginTop: 8 }}>
+                <a href={ZURL(pinned.a)} target="_blank" rel="noopener noreferrer" style={{ color: "#5eead4", fontSize: 11.5, textDecoration: "none" }}>open in Zerion ↗</a>
+                <button onClick={() => { setPinned(null); setQ(""); }} style={{ marginLeft: "auto", background: "none", border: "none", color: "#94a3b8", fontFamily: MONO, fontSize: 11.5, cursor: "pointer", padding: 0 }}>clear ✕</button>
+              </div>
+            </div>
           </div>
         )}
       </div>
