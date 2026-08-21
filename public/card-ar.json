@@ -97,7 +97,7 @@
   "citygrowth": "square",
   "cityvalue": "square",
   "citychurn": "square",
-  "citypercap": "landscape",
+  "citypercap": "square",
   "cityvintage": "landscape",
   "cityskyline": "landscape",
   "floatcheck": "landscape",
