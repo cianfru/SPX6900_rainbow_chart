@@ -96,7 +96,7 @@
   "whalemosaic": "square",
   "citygrowth": "square",
   "cityvalue": "square",
-  "citychurn": "landscape",
+  "citychurn": "square",
   "citypercap": "landscape",
   "cityvintage": "landscape",
   "cityskyline": "landscape",
