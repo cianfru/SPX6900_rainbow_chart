@@ -34,9 +34,20 @@ const escT = t => String(t).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace
  * Title / optional subtitle / hero, in that order, in the house treatment.
  * `heroColor` is the card's accent — the one place a card gets to differ.
  */
-export const aeonHeader = (title, sub, hero, heroColor = "#5eead4", F = "sans-serif") => {
+// Shrink a bold title's font-size until it fits the card width. Resvg can't measure text, so we
+// estimate: an uppercase bold face runs ~0.72em/char (measured from the overflow). Only long
+// titles shrink (short ones stay at the house 38px); floored at 26 so it never gets tiny. Fixes the
+// "PROJECT AEON — DOES RARITY SET THE PRICE?" / "…CHEAP IN SPX" titles that ran off the right edge.
+const fitTitle = (title, size, maxW, min = 26, em = 0.72) => {
+  let s = size;
+  while (s > min && String(title).length * s * em > maxW) s -= 1;
+  return s;
+};
+
+export const aeonHeader = (title, sub, hero, heroColor = "#5eead4", F = "sans-serif", W = 1080) => {
   const H = AEON_HEAD;
-  return `<text x="${H.x}" y="${H.yTitle}" fill="#f1f5f9" font-size="${H.title}" font-weight="700" font-family="${F}" letter-spacing="0.5">${escT(title)}</text>`
+  const ts = fitTitle(title, H.title, W - 2 * H.x);
+  return `<text x="${H.x}" y="${H.yTitle}" fill="#f1f5f9" font-size="${ts}" font-weight="700" font-family="${F}" letter-spacing="0.5">${escT(title)}</text>`
     + (sub ? `<text x="${H.x}" y="${H.ySub}" fill="#94a3b8" font-size="${H.sub}" font-family="${F}">${escT(sub)}</text>` : "")
     + (hero ? `<text x="${H.x}" y="${sub ? H.yHero : H.ySub + 14}" fill="${heroColor}" font-size="${H.hero}" font-weight="700" font-family="${F}">${escT(hero)}</text>` : "");
 };
