@@ -245,11 +245,27 @@ export function currentChainHolders(stats) {
 // On-chain weekly series (supply-in-profit, concentration, gini, HODL waves). Prefers
 // the CI-refreshed public/onchain.json (Dune, weekly) and falls back to the bundle.
 function loadOnchain() {
+  let arr;
   try {
-    const arr = JSON.parse(readFileSync(new URL("../../public/onchain.json", import.meta.url), "utf8"));
-    if (Array.isArray(arr) && arr.length >= 50) return arr;
+    const a = JSON.parse(readFileSync(new URL("../../public/onchain.json", import.meta.url), "utf8"));
+    if (Array.isArray(a) && a.length >= 50) arr = a;
   } catch { /* fall back to bundle */ }
-  return SPX_ONCHAIN;
+  if (!arr) return SPX_ONCHAIN;
+  // ⭐ Overlay the LIVE daily close (history.json) onto `spot`. The FIFO engine prices spot off the
+  // dense price-history feed, which can lag mid-week — that froze the floor-model / cost-basis spot
+  // LINES at the stale price through a pump. history.json is the live daily; override spot where dates
+  // match (and recompute mvrv = spot/rp so it stays consistent), and forward-fill the last live price
+  // for any onchain rows past history's tail so the newest point never dips back to the stale value.
+  try {
+    const liveArr = loadSnapshotPrices().filter(p => p.price > 0).sort((a, b) => a.date.localeCompare(b.date));
+    const live = new Map(liveArr.map(p => [p.date, p.price]));
+    const lastLive = liveArr.at(-1);
+    if (live.size) arr = arr.map(r => {
+      const p = live.get(r.d) ?? (lastLive && r.d > lastLive.date ? lastLive.price : null);
+      return (p > 0 && Math.abs(p - r.spot) > 1e-9) ? { ...r, spot: p, mvrv: r.rp > 0 ? +(p / r.rp).toFixed(4) : r.mvrv } : r;
+    });
+  } catch { /* keep onchain.json as-is */ }
+  return arr;
 }
 
 // Cost-basis distribution (URPD) — where held supply was acquired, from the FIFO engine.
