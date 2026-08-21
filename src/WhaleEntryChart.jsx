@@ -29,6 +29,7 @@ export default function WhaleEntryChart({ isMobile, price }) {
   const [hover, setHover] = useState(null);       // { w, x, y }
   const [w, setW] = useState(900);
   const geomRef = useRef([]);                     // [{w, x, y, r}] screen positions for hit-testing
+  const cwRef = useRef(900);                       // the canvas's ACTUAL displayed width — draw + hit-test share it
 
   useEffect(() => { let off = false; loadWhaleEntry().then(d => { if (!off) setData(d ?? null); }); return () => { off = true; }; }, []);
   useEffect(() => {
@@ -53,12 +54,16 @@ export default function WhaleEntryChart({ isMobile, price }) {
   // draw
   useEffect(() => {
     const el = cvs.current; if (!el || !data) return;
+    // Draw at the canvas's OWN displayed width (not the wrap's), so the drawing buffer matches the
+    // on-screen size exactly — otherwise the buffer is stretched to fit AND every orb's hit-test
+    // position (computed here) is offset from where getBoundingClientRect() reads the cursor.
+    const cw = Math.round(el.clientWidth || w); cwRef.current = cw;
     const dpr = Math.min(2, window.devicePixelRatio || 1);
-    el.width = w * dpr; el.height = H * dpr;
+    el.width = Math.round(cw * dpr); el.height = Math.round(H * dpr);
     const g = el.getContext("2d"); g.setTransform(dpr, 0, 0, dpr, 0, 0);
-    g.clearRect(0, 0, w, H);
+    g.clearRect(0, 0, cw, H);
     const mL = isMobile ? 46 : 60, mR = 16, mT = 14, mB = 34;
-    const pW = w - mL - mR, pH = H - mT - mB;
+    const pW = cw - mL - mR, pH = H - mT - mB;
     const t0 = data.launch, t1 = data.now, span = Math.max(1, t1 - t0);
     const X = t => mL + ((t - t0) / span) * pW;
     const Y = p => { const lg = Math.log10(Math.max(PMIN, Math.min(PMAX, p))); return mT + pH - ((lg - LGMIN) / (LGMAX - LGMIN)) * pH; };
@@ -102,7 +107,9 @@ export default function WhaleEntryChart({ isMobile, price }) {
 
   const pick = (cx, cy) => {
     let best = null, bd = 1e9;
-    for (const gm of geomRef.current) { const dx = cx - gm.x, dy = cy - gm.y, d = dx * dx + dy * dy; const rr = (gm.r + 4) ** 2; if (d < rr && d < bd) { bd = d; best = gm; } }
+    // Hit within the orb's radius, but never a target smaller than ~9px so the tiny bubbles are still
+    // grabbable. Nearest-centre wins when several overlap.
+    for (const gm of geomRef.current) { const dx = cx - gm.x, dy = cy - gm.y, d = dx * dx + dy * dy; const rr = Math.max(gm.r + 4, 9) ** 2; if (d < rr && d < bd) { bd = d; best = gm; } }
     return best;
   };
   const onMove = e => {
@@ -137,7 +144,7 @@ export default function WhaleEntryChart({ isMobile, price }) {
           onClick={() => hover && window.open(`https://app.zerion.io/${hover.w.a}/overview`, "_blank", "noopener")}
           style={{ width: "100%", height: H, display: "block", cursor: hover ? "pointer" : "default" }} />
         {hover && (
-          <div style={{ position: "absolute", pointerEvents: "none", left: Math.min(Math.max(8, hover.x + 12), w - 190), top: Math.min(Math.max(8, hover.y - 10), H - 96),
+          <div style={{ position: "absolute", pointerEvents: "none", left: Math.min(Math.max(8, hover.x + 12), cwRef.current - 190), top: Math.min(Math.max(8, hover.y - 10), H - 96),
             background: "rgba(8,11,20,0.95)", border: "1px solid rgba(255,255,255,0.16)", borderRadius: 9, padding: "8px 11px", fontFamily: MONO, fontSize: 12, color: "#e2e8f0", width: 176 }}>
             <div style={{ fontWeight: 700, color: "#f1f5f9" }}>{short(hover.w.a)}</div>
             <div style={{ marginTop: 4, color: "#94a3b8" }}>{kM(hover.w.bag)} SPX held</div>
