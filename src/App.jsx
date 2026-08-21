@@ -132,6 +132,7 @@ const NuplChart = lazy(() => import("./NuplChart.jsx"));
 const QuantileFanChart = lazy(() => import("./QuantileFanChart.jsx"));
 const ChartsGallery = lazy(() => import("./ChartsGallery.jsx"));
 const DocsPage = lazy(() => import("./DocsPage.jsx"));
+const StoryCard = lazy(() => import("./StoryCard.jsx"));   // "Your SPX Story" shareable card (?view=story&wallet=0x…)
 const TerminalPage = lazy(() => import("./TerminalPage.jsx"));
 // LandingPage retired at ?view=next in favour of the terminal landing (public/landing-next.html, full-bleed iframe)
 // HOME_IS_LANDING: the home route ("/") renders the redesigned terminal landing instead of the old
@@ -334,6 +335,7 @@ export default function App() {
   // "chart" = a dedicated interactive chart page (which one = `tab`).
   const [route, setRoute] = useState("home");
   const [docSlug, setDocSlug] = useState("index"); // which page of the manual (?view=docs&p=…)
+  const [storyWallet, setStoryWallet] = useState(""); // "Your SPX Story" deep-link wallet (?view=story&wallet=…)
   const [galleryGroup, setGalleryGroup] = useState(null); // when a nav group is clicked, show only that section
   const [fsOpen, setFsOpen] = useState(false); // fullscreen / landscape chart viewer
   const cityFsRef = useRef(null);
@@ -734,6 +736,7 @@ export default function App() {
       else if (p.get("view") === "aeon") { setRoute("aeon"); setGalleryGroup(p.get("group") || null); }
       else if (p.get("view") === "rainbow") setRoute("rainbow");
       else if (p.get("view") === "docs") { setRoute("docs"); setDocSlug(p.get("p") || "index"); }
+      else if (p.get("view") === "story") { setRoute("story"); setStoryWallet(p.get("wallet") || ""); }
       else if (p.get("view") === "next") setRoute("next");
       // SPX City left the gallery for its own /city tab. Old shared links (?chart=whalewatch /
       // spxcity / aeonskyline) still resolve, send them to the city instead of dropping to home.
@@ -1070,6 +1073,13 @@ export default function App() {
       {route === "docs" && (
         <Suspense fallback={<div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Loading…</div>}>
           <DocsPage isMobile={isMobile} slug={docSlug} onNavigate={openDocs} />
+        </Suspense>
+      )}
+
+      {/* "Your SPX Story" — the personal, shareable card (?view=story&wallet=0x…). Prototype, direct-link. */}
+      {route === "story" && (
+        <Suspense fallback={<div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Loading…</div>}>
+          <StoryCard wallet={storyWallet} price={last?.price} isMobile={isMobile} />
         </Suspense>
       )}
 
