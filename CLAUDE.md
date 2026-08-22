@@ -566,6 +566,16 @@
   - **⚠ THE LINE FOR ANY GAMIFICATION:** celebrate **tenure and behaviour**, never score a person's entry price or P&L (that got
     the "grade my entry" report card parked — cringe risk). The city changed it from JUDGING to PLACING — keep it there. And **no
     price-prediction/leaderboard mechanics** (reads as gambling, the one idea that would cost the honesty position).
+- **✅ SELF-SERVE VIDEO STUDIO — EXPANDED 2026-08-22 (owner: "extend videos to other parts… make the pipeline sustainable so I don't
+  call you for a new render").** The in-browser recorder (client-side `MediaRecorder` via `src/canvas-record.js`, encodes on the owner's
+  GPU, downloads locally, MP4 on Chrome/Safari) is the no-Claude path. `/control` → 🏙 SPX City tab → **🎥 Video studio** now exposes a
+  scene × format grid: **SPX City** (`?chart=spxcity`, `CityRecorder`/`__cityRecord`) and **Whales Watching** (`?chart=whaleswatching`,
+  `__whaleRecord`) both do **9:16 · 1:1 · Wide**; **Cluster City** records Wide for now. The studio opens the scene past the gate
+  (sets `spx-city-dev2` + `spx-rec` in localStorage) with `?rec=1&ar=<vert|square|wide>` — the recorders read `?ar` (`initialAr` in
+  CityRecorder; the 3-way `ar` state in WhalesWatching, which reuses the scene's existing PORTRAIT camera framing for 9:16). ⭐ Owner's
+  two social formats (9:16 for Reels/TikTok/Shorts, 1:1 for the X feed) lead. ⚠ The note/name SIGNS are DOM overlays, NOT in the capture
+  (screen-record for those); and 3D framing at 9:16 is UNVERIFIED on a real GPU (sandbox is a software rasteriser) — eyeball on device.
+  To add another scene: expose `__<name>Record`, honour `?ar`, add a row of `.vbtn`s (`data-chart`/`data-ar`) to the studio grid.
 - **🔲 OPEN:** real-GPU perf is UNMEASURED (only a CPU software renderer here) so the 600-building default is caution — the "all
   buildings" toggle needs a real device; borough tones still dim; bridges dropped when the real geometry landed. Intro fly-through
   doubles as the video path (`tools/render-city-video.mjs` drives `window.__citySeek(u)` frame-by-frame → H.264). **Owner hardware

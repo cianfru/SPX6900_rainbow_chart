@@ -13,11 +13,15 @@ const SECS = [4, 6, 8, 10, 12, 16];
 // Export aspect (width/height). The on-screen city is a wide, short card; a clip at that shape wastes
 // most of the frame on sky and buries the towers in a thin band. Portrait 4:5 is the default — it fills
 // a phone feed and shows the buildings at full height. Square and wide kept for flexibility.
+// Owner's two most-used social formats lead: 9:16 (Reels/TikTok/Shorts/X-mobile) then 1:1 (X feed).
+// 4:5 and 16:9 kept for flexibility. The control panel can preselect one via ?ar=<id>.
 const ARS = [
-  { id: "tall", label: "4:5", aspect: 4 / 5 },
+  { id: "vert", label: "9:16", aspect: 9 / 16 },
   { id: "square", label: "1:1", aspect: 1 },
+  { id: "tall", label: "4:5", aspect: 4 / 5 },
   { id: "wide", label: "16:9", aspect: 16 / 9 },
 ];
+const initialAr = () => { try { const a = new URLSearchParams(location.search).get("ar"); return ARS.some(x => x.id === a) ? a : "vert"; } catch { return "vert"; } };
 // Orbit speed = fraction of a full revolution over the clip. A slower pan is far kinder to X's
 // bitrate-capped re-encode (less motion per frame → sharper detail), so Slow is the default.
 const SPINS = [
@@ -39,7 +43,7 @@ export default function CityRecorder({ accent = "#5eead4", onRecording }) {
     } catch { return false; }
   })();
   const [secs, setSecs] = useState(8);
-  const [ar, setAr] = useState("tall");
+  const [ar, setAr] = useState(initialAr);
   const [spin, setSpin] = useState("slow");
   const [rec, setRec] = useState({ state: "idle", pct: 0, err: "" });
   if (!enabled) return null;

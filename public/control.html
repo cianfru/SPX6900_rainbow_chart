@@ -437,12 +437,27 @@
       <div style="font-size:12px;color:#64748b;margin:16px 0 6px">🏙 City cards · ready to post (not in the auto-rotation)</div>
       <div class="grid" id="cityGrid"></div>
       <div id="vstudio" style="margin:18px 0 4px;padding:12px 14px;border:1px solid #1e293b;border-radius:10px;background:#0b1120">
-        <div style="font-size:13px;font-weight:700;color:#e2e8f0;margin-bottom:9px">🎥 Video studio <span style="font-weight:400;color:#64748b">— renders on your GPU, downloads locally</span></div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap">
-          <button class="vbtn" data-chart="whaleswatching">🐋 Whales orbit</button>
-          <button class="vbtn" data-chart="whaleswatching" data-square="1">◻ Whales orbit · 1:1</button>
+        <div style="font-size:13px;font-weight:700;color:#e2e8f0;margin-bottom:9px">🎥 Video studio <span style="font-weight:400;color:#64748b">— renders on your GPU, downloads locally · pick a scene &amp; format</span></div>
+        <div style="display:grid;grid-template-columns:auto 1fr;gap:8px 12px;align-items:center">
+          <span style="font-size:12px;color:#94a3b8">🏙 SPX City</span>
+          <span style="display:flex;gap:6px;flex-wrap:wrap">
+            <button class="vbtn" data-chart="spxcity" data-ar="vert">9:16</button>
+            <button class="vbtn" data-chart="spxcity" data-ar="square">1:1</button>
+            <button class="vbtn" data-chart="spxcity" data-ar="wide">Wide</button>
+          </span>
+          <span style="font-size:12px;color:#94a3b8">🐋 Whales Watching</span>
+          <span style="display:flex;gap:6px;flex-wrap:wrap">
+            <button class="vbtn" data-chart="whaleswatching" data-ar="vert">9:16</button>
+            <button class="vbtn" data-chart="whaleswatching" data-ar="square">1:1</button>
+            <button class="vbtn" data-chart="whaleswatching" data-ar="wide">Wide</button>
+          </span>
+          <span style="font-size:12px;color:#94a3b8">🧭 Cluster City</span>
+          <span style="display:flex;gap:6px;flex-wrap:wrap">
+            <button class="vbtn" data-chart="clustercity" data-ar="wide">Wide</button>
+            <span style="font-size:11px;color:#64748b;align-self:center">· 9:16/1:1 coming — records wide for now</span>
+          </span>
         </div>
-        <div style="font-size:11.5px;color:#64748b;margin-top:9px;line-height:1.5">Opens the scene past the gate with the recorder shown. Orbit to a nice angle, pick 8/12/20s, hit ● Record — the clip downloads when the orbit finishes. MP4 on Chrome/Safari.</div>
+        <div style="font-size:11.5px;color:#64748b;margin-top:10px;line-height:1.5">Opens the scene past the gate with the recorder shown, framed to the chosen format. Orbit to a nice angle (click a building in SPX City to pin the spin centre), pick the duration, hit ● Record — the clip downloads when the orbit finishes. MP4 on Chrome/Safari. ⚠ The floating note/name signs aren't in the capture (they're DOM overlays) — screen-record if you need those.</div>
       </div>
     </div>
 
@@ -1036,8 +1051,9 @@ document.querySelectorAll(".vbtn").forEach(b => b.onclick = () => {
     localStorage.setItem("spx-city-dev2-intro", "1");
     localStorage.setItem("spx-rec", "1");
   } catch { /* private mode — the ?rec=1 param still reveals it */ }
-  const sq = b.dataset.square === "1" ? "&sq=1" : "";
-  window.open(`/?chart=${b.dataset.chart}&rec=1${sq}`, "_blank", "noopener");
+  const ar = b.dataset.ar ? `&ar=${b.dataset.ar}` : "";       // vert (9:16) · square (1:1) · wide
+  const auto = b.dataset.auto === "1" ? "&auto=1" : "";       // fire one record automatically once settled
+  window.open(`/?chart=${b.dataset.chart}&rec=1${ar}${auto}`, "_blank", "noopener");
 });
 
 $("#refresh").onclick = refresh;

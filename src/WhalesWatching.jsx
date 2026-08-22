@@ -325,8 +325,14 @@ function Watcher({ isMobile }) {
   const [data, setData] = useState(null);     // null=loading, false=failed, object=ok
   const [onlyMovers, setOnlyMovers] = useState(false);
   const [flowWin, setFlowWin] = useState(30); // net-flow lookback the beams read
-  const [square, setSquare] = useState(() => {   // ?sq=1 (from the control panel) opens straight in 1:1
-    try { return new URLSearchParams(window.location.search).get("sq") === "1"; } catch { return false; }
+  // Frame aspect: wide (default) · 1:1 (X feed) · 9:16 (Reels/TikTok/Shorts). The control panel opens a
+  // format straight away via ?ar=<square|vert|wide> (legacy ?sq=1 still maps to square). The 3D scene
+  // already reframes for a portrait canvas (see `portrait` in buildScene), so 9:16 reuses that path.
+  const [ar, setAr] = useState(() => {
+    try { const p = new URLSearchParams(window.location.search); const a = p.get("ar");
+      if (a === "vert" || a === "square" || a === "wide") return a;
+      if (p.get("sq") === "1") return "square"; } catch { /* private mode */ }
+    return "wide";
   });
   const [recSecs, setRecSecs] = useState(12);
   const [rec, setRec] = useState({ state: "idle", pct: 0, msg: "" }); // idle | recording | error
@@ -377,7 +383,7 @@ function Watcher({ isMobile }) {
     try { cleanup = buildScene(host.current, data, { onlyMovers, isMobile, flowWin, onPick: setSelWhale }); }
     catch (e) { console.error("WhalesWatching:", e); }
     return () => cleanup();
-  }, [data, onlyMovers, isMobile, flowWin, square]);
+  }, [data, onlyMovers, isMobile, flowWin, ar]);
 
   const total = data && data.wallets ? data.wallets.filter(w => w.bal >= 1e5).length : 0;
 
@@ -386,7 +392,15 @@ function Watcher({ isMobile }) {
       <div style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "center", justifyContent: "space-between", margin: "6px 0 12px" }}>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "center" }}>
           <Toggle on={onlyMovers} onClick={() => setOnlyMovers(v => !v)}>Only movers</Toggle>
-          <Toggle on={square} onClick={() => setSquare(v => !v)}>1:1 frame</Toggle>
+          <div style={{ display: "inline-flex", border: "1px solid rgba(255,255,255,0.14)" }}>
+            {[["wide", "Wide"], ["square", "1:1"], ["vert", "9:16"]].map(([id, l], i) => (
+              <button key={id} onClick={() => setAr(id)} style={{
+                padding: "6px 12px", cursor: "pointer", fontFamily: SANS, fontSize: 13, fontWeight: 600, border: "none",
+                borderLeft: i ? "1px solid rgba(255,255,255,0.12)" : "none",
+                background: ar === id ? "rgba(94,234,212,0.16)" : "transparent", color: ar === id ? "#5eead4" : "#94a3b8",
+              }}>{l}</button>
+            ))}
+          </div>
           {showRec && (
             <div style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
               <button onClick={doRecord} disabled={rec.state === "recording"} style={{
@@ -432,11 +446,14 @@ function Watcher({ isMobile }) {
           Whale data is being rebuilt — check back after the next on-chain refresh.
         </div>
       )}
-      {square ? (
-        // a self-contained 1:1 card — title + live count + wordmark baked in, so a screenshot of
-        // just this card drops straight into a tweet with nothing to crop.
+      {ar === "wide" ? (
+        <div ref={host} style={{ position: "relative", width: "100%", height: isMobile ? "min(52vh, 470px)" : "min(80vh, 920px)", minHeight: isMobile ? 340 : 460, borderRadius: 12, overflow: "hidden", background: "#0a0e1c", cursor: "grab" }} />
+      ) : (
+        // a self-contained social card — title + live count + wordmark baked in, so a screenshot or
+        // recording of just this card drops straight into a post with nothing to crop. 1:1 or 9:16.
         <div style={{
-          width: "min(94vw, 640px)", aspectRatio: "1 / 1", margin: "0 auto", display: "flex", flexDirection: "column",
+          width: ar === "vert" ? "min(94vw, 460px)" : "min(94vw, 640px)", aspectRatio: ar === "vert" ? "9 / 16" : "1 / 1",
+          margin: "0 auto", display: "flex", flexDirection: "column",
           borderRadius: 14, overflow: "hidden", border: "1px solid rgba(94,234,212,0.35)", background: "#0a0e1c",
           boxShadow: "0 16px 50px rgba(0,0,0,0.5)",
         }}>
@@ -453,8 +470,6 @@ function Watcher({ isMobile }) {
             <span style={{ fontFamily: MONO, fontSize: 12, fontWeight: 700, color: "#94a3b8", letterSpacing: 0.3 }}>spx6900rainbow.xyz</span>
           </div>
         </div>
-      ) : (
-        <div ref={host} style={{ position: "relative", width: "100%", height: isMobile ? "min(52vh, 470px)" : "min(80vh, 920px)", minHeight: isMobile ? 340 : 460, borderRadius: 12, overflow: "hidden", background: "#0a0e1c", cursor: "grab" }} />
       )}
 
       {selWhale && (
