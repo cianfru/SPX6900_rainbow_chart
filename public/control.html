@@ -58,6 +58,28 @@
   .status { font-size: 13px; color: #94a3b8; margin: 8px 2px; min-height: 18px; }
   .status.err { color: #f87171; }
   .status.ok { color: #4ade80; }
+  /* Engagement dashboard */
+  .eng-kpis { display: flex; flex-wrap: wrap; gap: 10px; margin: 16px 0 6px; }
+  .eng-kpi { background: #0b0b18; border: 1px solid rgba(255,255,255,.08); border-radius: 10px; padding: 10px 14px; min-width: 118px; }
+  .eng-kpi b { display: block; font-size: 22px; color: #e2e8f0; font-variant-numeric: tabular-nums; line-height: 1.1; }
+  .eng-kpi span { font-size: 10.5px; color: #64748b; text-transform: uppercase; letter-spacing: .05em; }
+  .eng-h { font-size: 14.5px; font-weight: 700; color: #e2e8f0; margin: 24px 0 8px; display: flex; align-items: baseline; gap: 9px; flex-wrap: wrap; }
+  .eng-h .tag { font-size: 11.5px; font-weight: 400; color: #64748b; }
+  table.eng { width: 100%; border-collapse: collapse; font-size: 13px; }
+  table.eng th { text-align: right; color: #94a3b8; font-weight: 600; padding: 6px 9px; border-bottom: 1px solid rgba(255,255,255,.12); font-size: 10.5px; text-transform: uppercase; letter-spacing: .04em; }
+  table.eng th:first-child, table.eng td:first-child { text-align: left; }
+  table.eng td { padding: 6px 9px; border-bottom: 1px solid rgba(255,255,255,.05); color: #cbd5e1; font-variant-numeric: tabular-nums; }
+  table.eng tr:hover td { background: rgba(255,255,255,.02); }
+  .eng-bar { height: 7px; border-radius: 4px; background: #1e293b; overflow: hidden; width: 90px; display: inline-block; vertical-align: middle; }
+  .eng-bar i { display: block; height: 100%; background: linear-gradient(90deg,#22d3ee,#a78bfa); }
+  .eng-post { font-size: 12px; color: #cbd5e1; padding: 5px 0; border-bottom: 1px solid rgba(255,255,255,.05); line-height: 1.45; }
+  .eng-post b { color: #e2e8f0; font-variant-numeric: tabular-nums; }
+  .eng-verdict { background: #0b1120; border: 1px solid #1e293b; border-left: 3px solid #22d3ee; border-radius: 8px; padding: 13px 15px; font-size: 13px; color: #cbd5e1; line-height: 1.65; margin: 6px 0 4px; }
+  .eng-verdict b { color: #e2e8f0; }
+  .eng-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
+  @media (max-width: 760px) { .eng-cols { grid-template-columns: 1fr; } }
+  .rmag0 { color: #64748b; } .rmag1 { color: #fbbf24; } .rmag2 { color: #f87171; }
+  .eng-drop { outline: 2px dashed #3b82f6 !important; outline-offset: -6px; }
   .sched { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 4px; font-size: 12px; }
   .chip { background: #0b0b18; border: 1px solid rgba(255,255,255,.10); border-radius: 999px; padding: 4px 10px; color: #94a3b8; }
   .chip b { color: #e2e8f0; }
@@ -301,6 +323,7 @@
       <button id="tabCity" class="tab">🏙 SPX City</button>
       <button id="tabStudio" class="tab">🎨 Card studio</button>
       <button id="tabAeon" class="tab">🌌 Project Aeon</button>
+      <button id="tabEngage" class="tab">📈 Engagement</button>
     </div>
   </header>
   <div class="wrap">
@@ -416,6 +439,23 @@
         </div>
         <div style="font-size:11.5px;color:#64748b;margin-top:9px;line-height:1.5">Opens the scene past the gate with the recorder shown. Orbit to a nice angle, pick 8/12/20s, hit ● Record — the clip downloads when the orbit finishes. MP4 on Chrome/Safari.</div>
       </div>
+    </div>
+
+    <!-- Engagement tab — drop the X analytics export, get the readout. All in-browser. -->
+    <div id="engageView" style="display:none">
+      <div class="bar" style="flex-direction:column;align-items:stretch;gap:9px">
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+          <input type="file" id="engFiles" accept=".csv" multiple />
+          <button class="primary" id="engRun">Analyze</button>
+          <button id="engClear">Clear</button>
+          <span style="margin-left:auto;color:#64748b;font-size:12px">🔒 computed in your browser · nothing is uploaded or committed</span>
+        </div>
+        <div style="font-size:12px;color:#94a3b8;line-height:1.55">
+          On X → <b>Analytics</b>: export the <b>Content</b> report (per-post) for the content breakdown, and the <b>Account overview</b> (daily) for the price relationship. Drop one or both CSVs, or drag them anywhere on this panel.
+        </div>
+      </div>
+      <div class="status" id="engStatus">Drop your X analytics CSV export(s) and hit Analyze — or re-drop a fresh export any time to refresh.</div>
+      <div id="engOut"></div>
     </div>
 
     <p><a class="home" href="/">← back to site</a></p>
@@ -1134,6 +1174,8 @@ function showTab(which) {
   $("#cityView").style.display = which === "city" ? "block" : "none";
   $("#studioView").style.display = which === "studio" ? "block" : "none";
   $("#aeonView").style.display = which === "aeon" ? "block" : "none";
+  $("#engageView").style.display = which === "engage" ? "block" : "none";
+  $("#tabEngage").classList.toggle("active", which === "engage");
   $("#tabDaily").classList.toggle("active", which === "daily");
   $("#tabRecap").classList.toggle("active", which === "recap");
   $("#tabCity").classList.toggle("active", which === "city");
@@ -1143,6 +1185,7 @@ function showTab(which) {
   if (which === "city") { renderCityGrid(); loadCityRecap().then(renderCityRecap).catch(() => {}); }
   if (which === "studio") studioInit();
   if (which === "aeon" && !aeonLoaded) loadAeon();
+  if (which === "engage") engageInit();
 }
 
 // ---- 🎨 Card studio — pick a metric, zoom to a window, add title/subtitle, download a house-style card ----
@@ -1385,6 +1428,7 @@ $("#tabRecap").onclick = () => showTab("recap");
 $("#tabCity").onclick = () => showTab("city");
 $("#tabStudio").onclick = () => showTab("studio");
 $("#tabAeon").onclick = () => showTab("aeon");
+$("#tabEngage").onclick = () => showTab("engage");
 $("#aeonRefresh").onclick = () => { aeonLoaded = false; loadAeon(); };
 $("#cityRefresh").onclick = () => { refresh().then(() => { renderCityGrid(); loadCityRecap().then(renderCityRecap).catch(() => {}); }); };
 $("#recapReload").onclick = () => { recapLoaded = false; loadRecap(); };
@@ -1397,6 +1441,188 @@ $("#recapPost").onclick = async () => {
     recapStatus("Posting the recap thread now — check the Actions tab / X in ~1 min.", "ok");
   } catch (e) { recapErr(e); }
 };
+
+// ============================================================================
+// 📈 ENGAGEMENT DASHBOARD — drop the X analytics export(s), get the readout.
+// Everything runs in the browser: the CSV is parsed locally, joined to the public
+// price history, and rendered. No upload, no commit — engagement data stays private.
+// Re-drop a fresh export any time to refresh (recurring by design).
+// ============================================================================
+let engWired = false, engPrice = null;
+function engageInit() {
+  if (engWired) return; engWired = true;
+  $("#engRun").onclick = engRun;
+  $("#engClear").onclick = () => { $("#engFiles").value = ""; engDropped = null; $("#engOut").innerHTML = ""; engStatus("Cleared. Drop a fresh export to analyze."); };
+  const panel = $("#engageView");
+  ["dragenter", "dragover"].forEach(ev => panel.addEventListener(ev, e => { e.preventDefault(); panel.classList.add("eng-drop"); }));
+  ["dragleave", "drop"].forEach(ev => panel.addEventListener(ev, e => { e.preventDefault(); if (ev === "drop" || e.target === panel) panel.classList.remove("eng-drop"); }));
+  panel.addEventListener("drop", e => { const fs = [...(e.dataTransfer?.files || [])].filter(f => /\.csv$/i.test(f.name)); if (fs.length) { engDropped = fs; engStatus(`${fs.length} file(s) ready — hit Analyze.`); } });
+}
+let engDropped = null;
+const engStatus = (m, c = "") => { const e = $("#engStatus"); e.textContent = m; e.className = "status " + c; };
+
+// -- CSV (quoted fields may contain commas + newlines) --
+function engParseCSV(text) {
+  const rows = []; let row = [], f = "", q = false;
+  for (let i = 0; i < text.length; i++) { const c = text[i];
+    if (q) { if (c === '"') { if (text[i + 1] === '"') { f += '"'; i++; } else q = false; } else f += c; }
+    else if (c === '"') q = true;
+    else if (c === ",") { row.push(f); f = ""; }
+    else if (c === "\n" || c === "\r") { if (c === "\r" && text[i + 1] === "\n") i++; row.push(f); rows.push(row); row = []; f = ""; }
+    else f += c; }
+  if (f.length || row.length) { row.push(f); rows.push(row); }
+  return rows;
+}
+const engObj = rows => { const h = rows[0]; return rows.slice(1).filter(r => r.length >= h.length).map(r => Object.fromEntries(h.map((k, i) => [k, r[i]]))); };
+const engNum = v => { const n = +String(v == null ? "" : v).replace(/,/g, ""); return isFinite(n) ? n : 0; };
+const engDate = s => { const d = new Date(String(s).replace(/^\w+, /, "")); return isNaN(d) ? null : d.toISOString().slice(0, 10); };
+const engMed = a => { const s = [...a].sort((x, y) => x - y); return s.length ? s[Math.floor(s.length / 2)] : 0; };
+function engPearson(xs, ys) {
+  const p = xs.map((x, i) => [x, ys[i]]).filter(([a, b]) => a != null && b != null && isFinite(a) && isFinite(b));
+  const n = p.length; if (n < 5) return { r: NaN, n };
+  const mx = p.reduce((s, q) => s + q[0], 0) / n, my = p.reduce((s, q) => s + q[1], 0) / n;
+  let sxy = 0, sxx = 0, syy = 0; for (const [x, y] of p) { sxy += (x - mx) * (y - my); sxx += (x - mx) ** 2; syy += (y - my) ** 2; }
+  return { r: sxx && syy ? sxy / Math.sqrt(sxx * syy) : NaN, n };
+}
+const rCell = r => { if (!isFinite(r)) return `<td class="rmag0">—</td>`; const a = Math.abs(r); const cls = a >= 0.5 ? "rmag2" : a >= 0.2 ? "rmag1" : "rmag0"; return `<td class="${cls}">${r >= 0 ? "+" : ""}${r.toFixed(2)}</td>`; };
+
+async function engPriceMap() {
+  if (engPrice) return engPrice;
+  const m = new Map();
+  const arr = await fetch(`/api/control?f=public/price-history.json&t=${Date.now()}`, { cache: "no-store" }).then(r => r.ok ? r.json() : null).catch(() => null);
+  (Array.isArray(arr) ? arr : (arr?.prices || [])).forEach(r => { const d = (r.date || r.d || r[0]); const p = (r.price ?? r.p ?? r[1]); if (d && p) m.set(String(d).slice(0, 10), +p); });
+  engPrice = m; return m;
+}
+
+const ENG_BUCKETS = [
+  ["Price target / X-multiple", t => /\$6\.90|\$69\b|\$690|\d+(\.\d+)?x\b|×|market cap|flip|trillion|billion|\btargets?\b/i.test(t)],
+  ["Valuation / rainbow band", t => /fire sale|buy zone|buy!|rainbow|fair value|undervalued|overvalued|\bband\b|accumulat|power[- ]law|channel|\bσ\b|z-score|composite|cheap|expensive/i.test(t)],
+  ["On-chain / holders / whales", t => /holder|diamond|hodl|conviction|supply|wallet|cost basis|realized|mvrv|nupl|sopr|whale|distribut|liquid|illiquid|exchange|\bcex\b|net ?flow|smart money|concentration/i.test(t)],
+  ["Comparison / vs others", t => /\bvs\b|versus|bitcoin|\bbtc\b|ethereum|\beth\b|solana|\bsol\b|s&amp;p|s&p|majors|\bdoge\b|shib|pepe|memeking|outperform|correlat/i.test(t)],
+  ["AEON / NFT", t => /\baeon\b|\bnft\b|\bfloor\b|rarity|collection/i.test(t)],
+  ["City / 3D", t => /\bcity\b|building|skyline|skyscraper/i.test(t)],
+  ["Milestone / seasonality", t => /milestone|passed|bigger than|uptober|seasonal|record|all-time/i.test(t)],
+];
+const engClass = t => { for (const [n, fn] of ENG_BUCKETS) if (fn(t)) return n; return "Other / general"; };
+const engIsReply = p => /^@\w/.test(p.text);
+const engBar = (v, mx) => `<span class="eng-bar"><i style="width:${mx ? Math.round(v / mx * 100) : 0}%"></i></span>`;
+const engShort = t => t.replace(/\s+/g, " ").replace(/</g, "&lt;").slice(0, 78);
+
+async function engRun() {
+  const files = (engDropped && engDropped.length) ? engDropped : [...($("#engFiles").files || [])];
+  if (!files.length) { engStatus("Pick or drop at least one X analytics CSV first.", "err"); return; }
+  engStatus("Reading…");
+  let content = null, overview = null;
+  for (const f of files) {
+    const txt = await f.text(); const rows = engParseCSV(txt); const head = (rows[0] || []).join("|");
+    if (/Post text/i.test(head)) content = engObj(rows);
+    else if (/Impressions/i.test(head)) overview = engObj(rows);
+  }
+  if (!content && !overview) { engStatus("Couldn't recognise those CSVs — expected the X Content and/or Account-overview exports.", "err"); return; }
+  const price = await engPriceMap();
+  const sorted = [...price.keys()].sort();
+  const priceOn = d => { if (!d) return null; if (price.has(d)) return price.get(d); let lo = null; for (const k of sorted) { if (k <= d) lo = k; else break; } return lo ? price.get(lo) : null; };
+  const retOn = d => { const p = priceOn(d); const dt = new Date(d); dt.setDate(dt.getDate() - 1); const py = priceOn(dt.toISOString().slice(0, 10)); return (p && py) ? p / py - 1 : null; };
+
+  let html = "";
+
+  // ---------- parse posts ----------
+  let posts = [], originals = [], replies = [];
+  if (content) {
+    posts = content.map(r => ({ d: engDate(r.Date), text: (r["Post text"] || "").trim(),
+      imp: engNum(r.Impressions), likes: engNum(r.Likes), eng: engNum(r.Engagements), bm: engNum(r.Bookmarks),
+      follows: engNum(r["New follows"]), replies: engNum(r.Replies), reposts: engNum(r.Reposts),
+      visits: engNum(r["Profile visits"]), expands: engNum(r["Detail Expands"]) })).filter(p => p.imp > 0);
+    replies = posts.filter(engIsReply); originals = posts.filter(p => !engIsReply(p));
+  }
+
+  // ---------- daily series (prefer overview; else fold posts by day) ----------
+  let days = [];
+  if (overview) {
+    days = overview.map(r => ({ d: engDate(r.Date), imp: engNum(r.Impressions), likes: engNum(r.Likes),
+      follows: engNum(r["New follows"]), visits: engNum(r["Profile visits"]) })).filter(r => r.d && (r.imp || r.likes));
+  } else if (posts.length) {
+    const m = {}; for (const p of posts) { if (!p.d) continue; (m[p.d] ||= { d: p.d, imp: 0, likes: 0, follows: 0, visits: 0 }); m[p.d].imp += p.imp; m[p.d].likes += p.likes; m[p.d].follows += p.follows; m[p.d].visits += p.visits; }
+    days = Object.values(m);
+  }
+  days.forEach(r => { r.price = priceOn(r.d); r.ret = retOn(r.d); });
+  days.sort((a, b) => a.d < b.d ? -1 : 1);
+
+  // ---------- KPI strip ----------
+  const kset = originals.length ? originals : posts;
+  const totFollows = (overview ? days : posts).reduce((s, r) => s + (r.follows || 0), 0);
+  const kpi = (v, l) => `<div class="eng-kpi"><b>${v}</b><span>${l}</span></div>`;
+  html += `<div class="eng-kpis">`;
+  if (kset.length) { html += kpi(kset.length, content ? "original posts" : "posts"); html += kpi(Math.round(engMed(kset.map(p => p.imp))).toLocaleString(), "median impressions"); html += kpi((engMed(kset.map(p => p.imp ? p.likes / p.imp : 0)) * 100).toFixed(1) + "%", "median like-rate"); }
+  html += kpi(totFollows.toLocaleString(), "new follows");
+  if (days.length) html += kpi(days.length, "active days");
+  html += `</div>`;
+
+  // ---------- price relationship ----------
+  if (days.length >= 5) {
+    const abs = days.map(r => r.ret == null ? null : Math.abs(r.ret));
+    const rows = [["Impressions", days.map(r => r.imp)], ["Likes", days.map(r => r.likes)], ["New follows", days.map(r => r.follows)]];
+    if (overview) rows.push(["Profile visits", days.map(r => r.visits)]);
+    const drivers = [["price level", days.map(r => r.price)], ["daily return", days.map(r => r.ret)], ["volatility |Δ|", abs]];
+    html += `<div class="eng-h">Is engagement related to price? <span class="tag">Pearson r over ${days.length} active days · |r|&lt;0.2 none · 0.2–0.5 mild · &gt;0.5 strong</span></div>`;
+    html += `<table class="eng"><tr><th>metric</th>${drivers.map(d => `<th>vs ${d[0]}</th>`).join("")}</tr>`;
+    for (const [name, mv] of rows) html += `<tr><td>${name}</td>${drivers.map(d => rCell(engPearson(d[1], mv).r)).join("")}</tr>`;
+    html += `</table>`;
+    // verdict
+    const impRet = engPearson(days.map(r => r.ret), days.map(r => r.imp)).r;
+    const visVol = overview ? engPearson(abs, days.map(r => r.visits)).r : NaN;
+    const folImp = originals.length ? engPearson(originals.map(p => p.imp), originals.map(p => p.follows)).r : NaN;
+    let v = `<b>Verdict.</b> Reach vs price is <b>${Math.abs(impRet) < 0.2 ? "essentially unrelated" : Math.abs(impRet) < 0.5 ? "weakly related" : "related"}</b> (impressions vs daily return r=${isFinite(impRet) ? impRet.toFixed(2) : "—"}).`;
+    if (isFinite(visVol)) v += ` Price volatility does pull <b>profile visits</b> (r=${visVol.toFixed(2)}) — people look when price moves, but it ${visVol > 0.4 ? "doesn't convert to reach or follows" : "barely moves the rest"}.`;
+    if (isFinite(folImp)) v += ` New follows track <b>impressions</b> at r=${folImp.toFixed(2)} — reach is the master variable, not price.`;
+    html += `<div class="eng-verdict">${v}</div>`;
+  }
+
+  if (originals.length) {
+    // ---------- content buckets ----------
+    const groups = {}; for (const p of originals) (groups[engClass(p.text)] ||= []).push(p);
+    const mxImp = Math.max(...Object.values(groups).map(a => engMed(a.map(p => p.imp))));
+    const rowFor = (label, arr) => { const imp = engMed(arr.map(p => p.imp)); return `<tr><td>${label}</td><td>${arr.length}</td><td>${Math.round(imp).toLocaleString()} ${engBar(imp, mxImp)}</td><td>${(engMed(arr.map(p => p.imp ? p.likes / p.imp : 0)) * 100).toFixed(1)}%</td><td>${(engMed(arr.map(p => p.imp ? p.bm / p.imp : 0)) * 1000).toFixed(1)}</td><td>${arr.reduce((s, p) => s + p.follows, 0)}</td></tr>`; };
+    html += `<div class="eng-h">What drives engagement — by content <span class="tag">medians · like-rate = likes/impression · bmk‰ = bookmarks per 1,000 · sorted by reach</span></div>`;
+    html += `<table class="eng"><tr><th>topic</th><th>n</th><th>median impressions</th><th>like%</th><th>bmk‰</th><th>follows</th></tr>`;
+    html += Object.entries(groups).sort((a, b) => engMed(b[1].map(p => p.imp)) - engMed(a[1].map(p => p.imp))).map(([g, a]) => rowFor(g, a)).join("");
+    html += `</table>`;
+
+    // ---------- features ----------
+    const feat = [
+      ["Has $ price target", originals.filter(p => /\$\d|\d+(\.\d+)?x\b|×/.test(p.text))],
+      ["No price target", originals.filter(p => !/\$\d|\d+(\.\d+)?x\b|×/.test(p.text))],
+      ["Long (>240 chars)", originals.filter(p => p.text.length > 240)],
+      ["Short (≤140 chars)", originals.filter(p => p.text.length <= 140)],
+      ["Asks a question (?)", originals.filter(p => /\?/.test(p.text))],
+    ].filter(f => f[1].length);
+    const mxF = Math.max(...feat.map(f => engMed(f[1].map(p => p.imp))));
+    html += `<div class="eng-h">…by post shape <span class="tag">same medians</span></div>`;
+    html += `<table class="eng"><tr><th>feature</th><th>n</th><th>median impressions</th><th>like%</th><th>bmk‰</th><th>follows</th></tr>`;
+    html += feat.map(([l, a]) => { const imp = engMed(a.map(p => p.imp)); return `<tr><td>${l}</td><td>${a.length}</td><td>${Math.round(imp).toLocaleString()} ${engBar(imp, mxF)}</td><td>${(engMed(a.map(p => p.imp ? p.likes / p.imp : 0)) * 100).toFixed(1)}%</td><td>${(engMed(a.map(p => p.imp ? p.bm / p.imp : 0)) * 1000).toFixed(1)}</td><td>${a.reduce((s, p) => s + p.follows, 0)}</td></tr>`; }).join("");
+    html += `</table>`;
+
+    // ---------- top performers ----------
+    const topBy = (arr, key, fmt, min = 0) => arr.filter(p => p.imp >= min).sort((a, b) => key(b) - key(a)).slice(0, 8)
+      .map(p => `<div class="eng-post"><b>${fmt(p)}</b> · ${p.imp.toLocaleString()} imp · ${p.likes}L ${p.bm}bm ${p.follows}f<br><span style="color:#94a3b8">${engShort(p.text)}</span></div>`).join("");
+    html += `<div class="eng-cols">`;
+    html += `<div><div class="eng-h">Top by reach</div>${topBy(originals, p => p.imp, p => p.imp.toLocaleString())}</div>`;
+    html += `<div><div class="eng-h">Top by like-rate <span class="tag">≥300 imp</span></div>${topBy(originals, p => p.imp ? p.likes / p.imp : 0, p => (p.likes / p.imp * 100).toFixed(1) + "%", 300)}</div>`;
+    html += `</div>`;
+    html += `<div class="eng-cols"><div><div class="eng-h">Top by new follows</div>${topBy(originals, p => p.follows, p => p.follows + "f")}</div>`;
+
+    // ---------- which signal predicts follows ----------
+    const sigs = [["impressions", "imp"], ["engagements", "eng"], ["bookmarks", "bm"], ["likes", "likes"], ["profile visits", "visits"], ["detail expands", "expands"], ["reposts", "reposts"], ["replies", "replies"]];
+    const fol = originals.map(p => p.follows);
+    html += `<div><div class="eng-h">What tracks new follows? <span class="tag">per-post r</span></div><table class="eng"><tr><th>signal</th><th>r vs follows</th></tr>`;
+    html += sigs.map(([l, k]) => `<tr><td>${l}</td>${rCell(engPearson(originals.map(p => p[k]), fol).r)}</tr>`).join("");
+    html += `</table></div></div>`;
+  }
+
+  $("#engOut").innerHTML = html;
+  const span = days.length ? ` · ${days[0].d}→${days.at(-1).d}` : "";
+  engStatus(`Analyzed ${posts.length ? posts.length + " posts" : ""}${days.length ? (posts.length ? " · " : "") + days.length + " active days" : ""}${span}. Re-drop a fresh export any time.`, "ok");
+}
 
 // On load: if a saved password verifies, skip the gate; otherwise show it.
 const saved = localStorage.getItem(pwKey);

@@ -1450,6 +1450,24 @@
   honest value cards convert best per-viewer; virality is algorithm luck (unschedulable); the reliable engine is follower growth +
   consistency.** So: protect the band cards (don't over-suppress), keep chart quality high, post daily. **Measurement constraint: the
   free X API is write-only — the bot CAN'T read its own per-tweet metrics** (Grok inside X can, as a manual classifier).
+- **✅ RECURRING ENGAGEMENT DASHBOARD — `/control` → 📈 Engagement tab (built 2026-08-22).** Since the free X API is write-only, the
+  owner exports X Analytics CSVs (the **Content** per-post report + the **Account overview** daily report) and drops them into the tab.
+  Everything is parsed + computed **in the browser** (`engRun`/`engParseCSV`/`engPearson` in `public/control.html`) — engagement data is
+  NEVER uploaded or committed (private). It joins post/day dates to the committed `public/price-history.json` (via the `/api/control`
+  read-proxy whitelist) and renders: KPI strip, a **price-relationship** table (impressions/likes/follows/visits vs price level · daily
+  return · volatility, Pearson r), an auto verdict, **content buckets** (keyword-classified) + **post-shape features** by median
+  impressions/like-rate/bookmark-rate/follows, top-by-reach / like-rate / follows lists, and a "what tracks new follows" per-post r table.
+  Re-drop a fresh export any time to refresh. To extend: add a bucket rule to `ENG_BUCKETS`, or a feature row in `engRun`.
+  - **⭐ 2026-08-22 REFRESH (202 posts May24–Aug21, 76 active days) CONFIRMS + SHARPENS the 2026-06-24 read.** (1) **Price is NOT related
+    to engagement** — impressions/likes/follows vs price level, daily return, and volatility all **|r|<0.2**. The ONE real link:
+    **profile visits track price volatility (r≈0.3–0.5)** — price moves make people LOOK, but it doesn't convert to reach or follows.
+    (2) **Reach is the master variable** — **new follows track impressions at r=0.87** (far above likes 0.59). Grow reach → grow
+    followers; price timing is irrelevant. (3) **What gets reach:** NEW visual/interactive product launches (🏙 SPX City intro = 9,231
+    imp / 19 follows, the all-time best; whale grid; City weekly) + aspirational $-target posts; **LONG posts (>240ch) beat short**
+    (935 vs 521 median imp) — the honest methodology tails help. (4) **What RESONATES per-viewer (like-rate + bookmarks):** valuation
+    "are-we-cheap" reads (−1.3σ from fair value 7.8%, channel bounce 7.1%, golden cross 7.0%) — valuation posts have the top bookmark
+    rate = the honesty moat is the engagement moat. **Actionable: keep shipping novel visual products, keep aspirational targets + long
+    methodology tails, don't gate posting on price/green days.**
 - **First follower-milestone post = 690, NOT 100 (decided 2026-06-24).** Hold for **690** (on-brand 69/6900). Build like the event
   posts: a one-off celebratory card, fired manually (`BOT_POST=`), suppressed around the daily. Tone: humble community thanks, NOT a flex.
   **Analytics aside (do NOT post as a claim): there is NO strict price↔followers relationship** — daily-return corr only ~0.36; the 0.90
