@@ -1457,7 +1457,9 @@
   read-proxy whitelist) and renders: KPI strip, a **price-relationship** table (impressions/likes/follows/visits vs price level · daily
   return · volatility, Pearson r), an auto verdict, **content buckets** (keyword-classified) + **post-shape features** by median
   impressions/like-rate/bookmark-rate/follows, top-by-reach / like-rate / follows lists, and a "what tracks new follows" per-post r table.
-  Re-drop a fresh export any time to refresh. To extend: add a bucket rule to `ENG_BUCKETS`, or a feature row in `engRun`.
+  **Persistent:** the last export you drop is saved in the browser only (`localStorage` `spx_engage_csv`, never uploaded) so the tab
+  **auto-renders on reopen** — drop a new CSV (or just one of the two reports) to update; Clear wipes the saved copy. To extend: add a
+  bucket rule to `ENG_BUCKETS`, or a feature row in `engAnalyze`.
   - **⭐ 2026-08-22 REFRESH (202 posts May24–Aug21, 76 active days) CONFIRMS + SHARPENS the 2026-06-24 read.** (1) **Price is NOT related
     to engagement** — impressions/likes/follows vs price level, daily return, and volatility all **|r|<0.2**. The ONE real link:
     **profile visits track price volatility (r≈0.3–0.5)** — price moves make people LOOK, but it doesn't convert to reach or follows.

@@ -1452,11 +1452,19 @@ let engWired = false, engPrice = null;
 function engageInit() {
   if (engWired) return; engWired = true;
   $("#engRun").onclick = engRun;
-  $("#engClear").onclick = () => { $("#engFiles").value = ""; engDropped = null; $("#engOut").innerHTML = ""; engStatus("Cleared. Drop a fresh export to analyze."); };
+  $("#engClear").onclick = () => { try { localStorage.removeItem(ENG_KEY); } catch {} $("#engFiles").value = ""; engDropped = null; $("#engOut").innerHTML = ""; engStatus("Cleared saved data. Drop a fresh export to analyze."); };
   const panel = $("#engageView");
   ["dragenter", "dragover"].forEach(ev => panel.addEventListener(ev, e => { e.preventDefault(); panel.classList.add("eng-drop"); }));
   ["dragleave", "drop"].forEach(ev => panel.addEventListener(ev, e => { e.preventDefault(); if (ev === "drop" || e.target === panel) panel.classList.remove("eng-drop"); }));
   panel.addEventListener("drop", e => { const fs = [...(e.dataTransfer?.files || [])].filter(f => /\.csv$/i.test(f.name)); if (fs.length) { engDropped = fs; engStatus(`${fs.length} file(s) ready — hit Analyze.`); } });
+  // Auto-render the last export you dropped (this browser only) so the tab isn't blank on reopen.
+  const s = engLoadSaved();
+  if (s && (s.contentText || s.overviewText)) {
+    engAnalyze(s.contentText, s.overviewText).then(() => {
+      const d = s.at ? new Date(s.at) : null;
+      engStatus(`Showing your saved export${d ? " from " + d.toLocaleDateString() : ""} — drop a new CSV to update it. (Saved in this browser only.)`, "ok");
+    }).catch(() => {});
+  }
 }
 let engDropped = null;
 const engStatus = (m, c = "") => { const e = $("#engStatus"); e.textContent = m; e.className = "status " + c; };
@@ -1508,17 +1516,33 @@ const engIsReply = p => /^@\w/.test(p.text);
 const engBar = (v, mx) => `<span class="eng-bar"><i style="width:${mx ? Math.round(v / mx * 100) : 0}%"></i></span>`;
 const engShort = t => t.replace(/\s+/g, " ").replace(/</g, "&lt;").slice(0, 78);
 
+// Persistence: the last export you drop is saved in THIS BROWSER ONLY (localStorage),
+// so the dashboard auto-renders when you reopen the tab. Nothing leaves the browser.
+const ENG_KEY = "spx_engage_csv";
+const engLoadSaved = () => { try { return JSON.parse(localStorage.getItem(ENG_KEY) || "null"); } catch { return null; } };
+const engSaveTexts = (c, o) => { try { localStorage.setItem(ENG_KEY, JSON.stringify({ contentText: c || null, overviewText: o || null, at: new Date().toISOString() })); } catch {} };
+
 async function engRun() {
   const files = (engDropped && engDropped.length) ? engDropped : [...($("#engFiles").files || [])];
   if (!files.length) { engStatus("Pick or drop at least one X analytics CSV first.", "err"); return; }
   engStatus("Reading…");
-  let content = null, overview = null;
+  let ct = null, ot = null;
   for (const f of files) {
-    const txt = await f.text(); const rows = engParseCSV(txt); const head = (rows[0] || []).join("|");
-    if (/Post text/i.test(head)) content = engObj(rows);
-    else if (/Impressions/i.test(head)) overview = engObj(rows);
+    const txt = await f.text(); const head = (engParseCSV(txt.slice(0, 2000))[0] || []).join("|");
+    if (/Post text/i.test(head)) ct = txt; else if (/Impressions/i.test(head)) ot = txt;
   }
-  if (!content && !overview) { engStatus("Couldn't recognise those CSVs — expected the X Content and/or Account-overview exports.", "err"); return; }
+  // dropping just ONE report keeps the previously-saved other one
+  const prev = engLoadSaved();
+  ct = ct || prev?.contentText || null; ot = ot || prev?.overviewText || null;
+  if (!ct && !ot) { engStatus("Couldn't recognise those CSVs — expected the X Content and/or Account-overview exports.", "err"); return; }
+  engSaveTexts(ct, ot);
+  engDropped = null; $("#engFiles").value = "";
+  await engAnalyze(ct, ot);
+}
+
+async function engAnalyze(contentText, overviewText) {
+  const content = contentText ? engObj(engParseCSV(contentText)) : null;
+  const overview = overviewText ? engObj(engParseCSV(overviewText)) : null;
   const price = await engPriceMap();
   const sorted = [...price.keys()].sort();
   const priceOn = d => { if (!d) return null; if (price.has(d)) return price.get(d); let lo = null; for (const k of sorted) { if (k <= d) lo = k; else break; } return lo ? price.get(lo) : null; };
@@ -1621,7 +1645,7 @@ async function engRun() {
 
   $("#engOut").innerHTML = html;
   const span = days.length ? ` · ${days[0].d}→${days.at(-1).d}` : "";
-  engStatus(`Analyzed ${posts.length ? posts.length + " posts" : ""}${days.length ? (posts.length ? " · " : "") + days.length + " active days" : ""}${span}. Re-drop a fresh export any time.`, "ok");
+  engStatus(`Analyzed ${posts.length ? posts.length + " posts" : ""}${days.length ? (posts.length ? " · " : "") + days.length + " active days" : ""}${span}. Saved in this browser — drop a new CSV any time to update.`, "ok");
 }
 
 // On load: if a saved password verifies, skip the gate; otherwise show it.
