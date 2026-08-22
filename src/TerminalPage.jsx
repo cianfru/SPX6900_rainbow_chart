@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { TERMINAL_KEY, isValidAccess } from "./terminal-gate-key.js";
 import { CITY_KEY } from "./city-gate-key.js";
-import { MenuBtn } from "./chart-ui.jsx";
+import { MenuBtn, useHoverType } from "./chart-ui.jsx";
 
 // THE TERMINAL (/terminal) — the owner's daily intel one-pager, kept SEPARATE from the post-control
 // panel so the "what's happening on-chain today" read isn't tangled up with the "which card to fire"
@@ -116,14 +116,29 @@ function Gate({ onPass, isMobile }) {
 // The members-only "Deep Field" charts — the granular, wallet-level views not on the public site.
 // The gate sets the city flag too, so these open unlocked once a member is in.
 const DF_CHARTS = [
-  { name: "When Whales Bought", ico: "🫧", href: "/?chart=whaleentry", desc: "Every 100k+ wallet as an orb at the price it bought — in profit / underwater." },
-  { name: "Wallet Clusters", ico: "🧩", href: "/?chart=entities", desc: "The addresses one owner controls, linked from on-chain SPX flows." },
-  { name: "Cluster City", ico: "🏙", href: "/?chart=clustercity", desc: "A 3D city of owners — beams show who's buying (green) / selling (red)." },
-  { name: "Whales Watching", ico: "🐋", href: "/?chart=whaleswatching", desc: "Every 100k+ wallet in 3D, pulsing green/red as they accumulate or distribute." },
-  { name: "Cost Basis Terrain", ico: "⛰", href: "/?chart=urpdterrain", desc: "Where everyone bought, as a landscape deforming week by week." },
-  { name: "Smart Money", ico: "🎯", href: "/?chart=smartmoney", desc: "Proven top-timers — aggregate here; per-wallet P&L pages inside." },
-  { name: "SPX City", ico: "🌆", href: "/city", desc: "Every holder a building — the whole base in 3D, with holding age & flow." },
+  { name: "When Whales Bought", href: "/?chart=whaleentry", desc: "Every 100k+ wallet as an orb at the price it bought — in profit / underwater." },
+  { name: "Wallet Clusters", href: "/?chart=entities", desc: "The addresses one owner controls, linked from on-chain SPX flows." },
+  { name: "Cluster City", href: "/?chart=clustercity", desc: "A 3D city of owners — beams show who's buying (green) / selling (red)." },
+  { name: "Whales Watching", href: "/?chart=whaleswatching", desc: "Every 100k+ wallet in 3D, pulsing green/red as they accumulate or distribute." },
+  { name: "Cost Basis Terrain", href: "/?chart=urpdterrain", desc: "Where everyone bought, as a landscape deforming week by week." },
+  { name: "Smart Money", href: "/?chart=smartmoney", desc: "Proven top-timers — aggregate here; per-wallet P&L pages inside." },
+  { name: "SPX City", href: "/city", desc: "Every holder a building — the whole base in 3D, with holding age & flow." },
 ];
+
+// A Deep Field chart link, styled like the site's nav menu: mono, uppercase, and the name types itself
+// out left-to-right on hover (the shared menu typewriter). No generic icons.
+function DFLink({ name, desc, href }) {
+  const { shown, type, reset } = useHoverType(name);
+  return (
+    <a href={href} className="dfrow" onMouseEnter={type} onMouseLeave={reset} onFocus={type} onBlur={reset}>
+      <span className="dfname">
+        <span className="menubtn-t"><span className="menubtn-g" aria-hidden="true">{name}<i className="tcur">_</i></span><span className="menubtn-y">{shown}<i className="tcur">_</i></span></span>
+        <span className="dfarrow">↗</span>
+      </span>
+      <span className="dfdesc">{desc}</span>
+    </a>
+  );
+}
 
 // SPX (Ethereum) — for the "open the cluster map" link (Bubblemaps renders the wallet bubbles).
 const SPX_ETH = "0xE0f63A424a4439cBE457d80e4f4b51ad25b2c56C";
@@ -226,14 +241,8 @@ export default function TerminalPage({ isMobile }) {
         <div className="tmsectitle">Deep Field · charts
           <Info text="The members-only charts — the wallet-level granularity that isn't on the public site. Your invite unlocks all of them; open in a new tab." />
           <span> · members only</span></div>
-        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fill, minmax(240px, 1fr))", gap: 10 }}>
-          {DF_CHARTS.map(c => (
-            <a key={c.href} href={c.href} style={{ display: "block", textDecoration: "none", border: "1px solid var(--line2)", borderRadius: 0, padding: "11px 13px", background: "var(--panel)" }}
-              onMouseEnter={e => { e.currentTarget.style.borderColor = "var(--live)"; }} onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--line2)"; }}>
-              <div style={{ fontFamily: "var(--mono)", fontSize: 14, fontWeight: 700, color: "var(--tx)", display: "flex", alignItems: "center", gap: 8 }}><span style={{ fontSize: 16 }}>{c.ico}</span>{c.name} <span style={{ marginLeft: "auto", color: "var(--live)", fontSize: 12 }}>↗</span></div>
-              <div style={{ fontFamily: "var(--sans)", fontSize: 12.5, color: "var(--dim)", marginTop: 5, lineHeight: 1.45 }}>{c.desc}</div>
-            </a>
-          ))}
+        <div className="dfgrid">
+          {DF_CHARTS.map(c => <DFLink key={c.href} {...c} />)}
         </div>
       </section>
 

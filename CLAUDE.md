@@ -35,7 +35,14 @@
     funding ("Traders paying ~118% APR to be long · LIVE"), with a plain combined caution. `.tmflash` keyframe (respects reduced-motion).
     So a funding spike surfaces immediately, not a day late. ⚠ the baked `conditions` (heat20 + APR funding) update on the next
     daily-snapshot cron; the live funding pill works now via `/api/hl`. Banner threshold knob: pct≥85 / APR≥40 in TerminalPage.
-  - **🔲 NEXT (Deep Field):** Phase 2 = polish the members menu + retheme the public locked tiles as "Deep Field · request access".
+  - **✅ MENU RESTYLE (owner, 2026-08-22: "don't use generic icons; same fonts as the menu with a left-to-right typewriter on hover").**
+    Dropped the emoji cards; the `DF_CHARTS` list now renders as `DFLink` rows in the SITE NAV STYLE — mono, uppercase, `_` cursor, and
+    the name types itself out on hover via the shared `useHoverType` (chart-ui.jsx) with the `menubtn-t/g/y` ghost markup. CSS `.dfrow/
+    .dfname/.dfdesc` in terminal.css (left-border accent + green on hover). No generic icons anywhere.
+  - **🔲 NEXT (Deep Field), owner-flagged direction (2026-08-22):** it holds MORE than these 7 charts (also all the daily-tracked data),
+    and reads a bit thin — build a **proper dropdown nav with per-chart SUBSECTIONS/leaves** (e.g. "When Whales Bought" has more than one
+    view). Owner will drive the exact IA; keep the menu-typewriter style. Also Phase 2 = retheme the public locked tiles as "Deep Field ·
+    request access".
     Phase 3 (only when charging) = authed endpoint + Stripe $2.99/mo (owner: monthly only, no annual — project young, uncertain).
 
 ## 💳 "THE TERMINAL" — PAID TIER / FREEMIUM (design agreed 2026-08-17, owner travelling; BUILD PENDING — SUPERSEDED by Deep Field beta above)
