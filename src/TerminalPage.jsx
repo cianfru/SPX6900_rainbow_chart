@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from "react";
-import { TERMINAL_KEY, TERMINAL_HASH } from "./terminal-gate-key.js";
+import { TERMINAL_KEY, isValidAccess } from "./terminal-gate-key.js";
+import { CITY_KEY } from "./city-gate-key.js";
 import { MenuBtn } from "./chart-ui.jsx";
 
 // THE TERMINAL (/terminal) — the owner's daily intel one-pager, kept SEPARATE from the post-control
@@ -91,15 +92,16 @@ function Gate({ onPass, isMobile }) {
   const [pw, setPw] = useState(""); const [bad, setBad] = useState(false);
   const submit = e => {
     e.preventDefault();
-    if (fnv(pw.trim().toLowerCase()) === TERMINAL_HASH) { try { localStorage.setItem(TERMINAL_KEY, "1"); } catch { /* private */ } onPass(); }
+    // One member key unlocks BOTH Deep Field and the premium locked charts (sets both flags).
+    if (isValidAccess(fnv(pw.trim().toLowerCase()))) { try { localStorage.setItem(TERMINAL_KEY, "1"); localStorage.setItem(CITY_KEY, "1"); } catch { /* private */ } onPass(); }
     else setBad(true);
   };
   return (
     <div className="twrap" style={{ maxWidth: 560, margin: "72px auto", textAlign: "center" }}>
       <div style={{ fontSize: 40, marginBottom: 12 }}>🔒</div>
-      <h2 style={{ fontFamily: "var(--mono)", fontSize: isMobile ? 22 : 27, fontWeight: 700, color: "var(--tx)", letterSpacing: "-0.01em", margin: "0 0 8px" }}>The Terminal</h2>
+      <h2 style={{ fontFamily: "var(--mono)", fontSize: isMobile ? 22 : 27, fontWeight: 700, color: "var(--tx)", letterSpacing: "-0.01em", margin: "0 0 8px" }}>Deep Field</h2>
       <p style={{ color: "var(--faint)", fontSize: 14, lineHeight: 1.65, margin: "0 0 24px" }}>
-        The daily on-chain intel desk. Password protected while it's in development.
+        The granular on-chain intel hub — clusters, whale flows, per-wallet P&L. Members-only closed beta; enter your invite code.
       </p>
       <form onSubmit={submit} style={{ display: "flex", gap: 8, justifyContent: "center" }}>
         <input type="password" value={pw} autoFocus onChange={e => { setPw(e.target.value); setBad(false); }} placeholder="passphrase"
@@ -110,6 +112,18 @@ function Gate({ onPass, isMobile }) {
     </div>
   );
 }
+
+// The members-only "Deep Field" charts — the granular, wallet-level views not on the public site.
+// The gate sets the city flag too, so these open unlocked once a member is in.
+const DF_CHARTS = [
+  { name: "When Whales Bought", ico: "🫧", href: "/?chart=whaleentry", desc: "Every 100k+ wallet as an orb at the price it bought — in profit / underwater." },
+  { name: "Wallet Clusters", ico: "🧩", href: "/?chart=entities", desc: "The addresses one owner controls, linked from on-chain SPX flows." },
+  { name: "Cluster City", ico: "🏙", href: "/?chart=clustercity", desc: "A 3D city of owners — beams show who's buying (green) / selling (red)." },
+  { name: "Whales Watching", ico: "🐋", href: "/?chart=whaleswatching", desc: "Every 100k+ wallet in 3D, pulsing green/red as they accumulate or distribute." },
+  { name: "Cost Basis Terrain", ico: "⛰", href: "/?chart=urpdterrain", desc: "Where everyone bought, as a landscape deforming week by week." },
+  { name: "Smart Money", ico: "🎯", href: "/?chart=smartmoney", desc: "Proven top-timers — aggregate here; per-wallet P&L pages inside." },
+  { name: "SPX City", ico: "🌆", href: "/city", desc: "Every holder a building — the whole base in 3D, with holding age & flow." },
+];
 
 // SPX (Ethereum) — for the "open the cluster map" link (Bubblemaps renders the wallet bubbles).
 const SPX_ETH = "0xE0f63A424a4439cBE457d80e4f4b51ad25b2c56C";
@@ -173,13 +187,28 @@ export default function TerminalPage({ isMobile }) {
   return (
     <div className="twrap tmwrap">
       <div className="tmhead">
-        <div className="tmcmd"><span className="tmprompt">spx6900 ~ %</span> cat ./terminal/today</div>
-        <h1 className="tmtitle">THE TERMINAL<Info text="The daily on-chain intel desk — where SPX sits today and what changed. Every number is a plain day-over-day read off the on-chain feeds we already bank; nothing is a buy or sell call." /></h1>
+        <div className="tmcmd"><span className="tmprompt">spx6900 ~ %</span> cat ./deepfield/today</div>
+        <h1 className="tmtitle">DEEP FIELD<Info text="The granular on-chain intel hub — where SPX sits today, what changed, and the wallet-level detail (clusters, whale flows, per-wallet P&L). Every number is a plain day-over-day read off the on-chain feeds we already bank; nothing is a buy or sell call." /></h1>
         <div className="tmrainbow" />
         <div className="tmsub">
           {S === undefined ? "loading the desk…" : S ? <>{S.date || ""} · SPX ${(S.spot || 0).toFixed(4)}</> : "snapshot unavailable — try again in a minute"}
         </div>
       </div>
+
+      <section className="tmsec">
+        <div className="tmsectitle">Deep Field · charts
+          <Info text="The members-only charts — the wallet-level granularity that isn't on the public site. Your invite unlocks all of them; open in a new tab." />
+          <span> · members only</span></div>
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fill, minmax(240px, 1fr))", gap: 10 }}>
+          {DF_CHARTS.map(c => (
+            <a key={c.href} href={c.href} style={{ display: "block", textDecoration: "none", border: "1px solid var(--line2)", borderRadius: 0, padding: "11px 13px", background: "var(--panel)" }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = "var(--live)"; }} onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--line2)"; }}>
+              <div style={{ fontFamily: "var(--mono)", fontSize: 14, fontWeight: 700, color: "var(--tx)", display: "flex", alignItems: "center", gap: 8 }}><span style={{ fontSize: 16 }}>{c.ico}</span>{c.name} <span style={{ marginLeft: "auto", color: "var(--live)", fontSize: 12 }}>↗</span></div>
+              <div style={{ fontFamily: "var(--sans)", fontSize: 12.5, color: "var(--dim)", marginTop: 5, lineHeight: 1.45 }}>{c.desc}</div>
+            </a>
+          ))}
+        </div>
+      </section>
 
       {S && Array.isArray(S.alerts) && S.alerts.length > 0 && (
         <div className="tmalerts">{S.alerts.map((a, i) => <div key={i} className="tmalert">{a}</div>)}</div>

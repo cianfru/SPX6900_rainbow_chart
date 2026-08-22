@@ -11,7 +11,25 @@
   stop. Every card/chart/article/decision defaults to: show the real numbers, state the method, label the caveats,
   share it freely. When in doubt, MORE transparent.
 
-## 💳 "THE TERMINAL" — PAID TIER / FREEMIUM (design agreed 2026-08-17, owner travelling; BUILD PENDING)
+## 🔭 "DEEP FIELD" — MEMBERS AREA (renamed from "the Terminal" 2026-08-22; FREE CLOSED BETA now, paid later)
+- **Owner decided (2026-08-22): rename the Terminal → "Deep Field"** (Bloomberg/ITC both use "Terminal"; needed to differentiate)
+  and run a **FREE CLOSED BETA now** — invite ~10 trusted OG followers, gather feedback, add payment only once it's validated
+  (NOT "wait for 1k followers", NOT "full paid launch now"). Rationale: the granular charts are built and idle; a free invite beta
+  costs nothing, proves the granularity is valued, and avoids asking a 2-month-old / 360-follower account to charge before trust.
+- **✅ SHIPPED — the Deep Field foundation:** `src/TerminalPage.jsx` renders as **"DEEP FIELD"** at **`/deepfield`** (`/terminal` kept
+  as an alias; App.jsx route name stays `"terminal"` internally). **ONE members key** now unlocks EVERYTHING: `terminal-gate-key.js`
+  holds `INVITE_HASHES` (FNV-1a of ~12 closed-beta invite codes) + the owner passphrase; `isValidAccess(fnv(pw))` gates, and on success
+  the gate sets BOTH `TERMINAL_KEY` and `CITY_KEY` in localStorage — so one invite code opens the Deep Field page AND every `locked:true`
+  chart (entities/clustercity/whaleswatching/whaleentry). **Plaintext codes are NOT committed** (repo is public — only the hashes are);
+  the owner hands one to each OG. Revoke = delete a hash; re-lock all = bump the key suffix. A **"Deep Field · charts"** members menu
+  (`DF_CHARTS`) at the top of the page links the granular set (When Whales Bought · Wallet Clusters · Cluster City · Whales Watching ·
+  Cost Basis Terrain · Smart Money · SPX City). Public gallery still shows those charts as locked teasers.
+  - **⚠ STILL A CURTAIN — fine for the FREE beta, MUST become a real wall before charging.** Data is public JSON via the raw proxy;
+    codes are client-side. Before money: KV + magic-link + move the granular JSON behind an authed endpoint (the P2 plan below).
+  - **🔲 NEXT (Deep Field):** Phase 2 = polish the members menu + retheme the public locked tiles as "Deep Field · request access".
+    Phase 3 (only when charging) = authed endpoint + Stripe $2.99/mo (owner: monthly only, no annual — project young, uncertain).
+
+## 💳 "THE TERMINAL" — PAID TIER / FREEMIUM (design agreed 2026-08-17, owner travelling; BUILD PENDING — SUPERSEDED by Deep Field beta above)
 - **First monetisation. Owner cautious (first time charging).** Structure DESIGNED, not built. Reconciled with the
   NORTH STAR by a hard rule: **wall DEPTH / CONVENIENCE / REAL-TIME / LABOUR, NEVER CHECKABILITY.** The composite,
   rainbow, methodology page, headline on-chain reads and the X cards stay FREE FOREVER — that's the moat + the

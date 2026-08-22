@@ -676,7 +676,7 @@ export default function App() {
     const qs = params.toString();
     // SPX City + the Terminal get clean paths of their own (/city, /terminal); every other route lives
     // at "/" with a query, so leaving them resets the pathname back to root.
-    const path = r === "city" ? "/city" : r === "terminal" ? "/terminal" : "/";
+    const path = r === "city" ? "/city" : r === "terminal" ? "/deepfield" : "/";
     const next = path + (qs ? "?" + qs : "") + window.location.hash;
     const cur = window.location.pathname + window.location.search + window.location.hash;
     if (next !== cur) window.history.pushState(null, "", next);
@@ -727,7 +727,7 @@ export default function App() {
     const apply = () => {
       // SPX City + the Terminal are paths (/city, /terminal), not queries, check them first.
       if (window.location.pathname === "/city") { setRoute("city"); return; }
-      if (window.location.pathname === "/terminal") { setRoute("terminal"); return; }
+      if (window.location.pathname === "/terminal" || window.location.pathname === "/deepfield") { setRoute("terminal"); return; }
       const p = new URLSearchParams(window.location.search);
       const rel = p.get("rel");
       if (rel && REL_IDS.has(rel)) setRelWhich(rel);
