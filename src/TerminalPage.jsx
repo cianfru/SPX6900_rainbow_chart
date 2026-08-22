@@ -192,7 +192,7 @@ export default function TerminalPage({ isMobile }) {
     grab("smart-money.json", d => setSm(d || null));
     grab("entities.json", d => setEnt(Array.isArray(d?.entities) ? d.entities : Array.isArray(d?.clusters) ? d.clusters : Array.isArray(d) ? d : null));
     // Live positioning — refreshed on load + every 90s so a funding spike surfaces without a cron.
-    const pullHl = () => fetch("/api/hl", { cache: "no-store" }).then(r => r.ok ? r.json() : null).then(d => { if (!off && d?.ok) setHl(d); }).catch(() => {});
+    const pullHl = () => fetch("/api/spot?hl=1", { cache: "no-store" }).then(r => r.ok ? r.json() : null).then(d => { if (!off && d?.ok) setHl(d); }).catch(() => {});
     pullHl(); const iv = setInterval(pullHl, 90000);
     return () => { off = true; clearInterval(iv); };
   }, [ok]);
@@ -229,8 +229,8 @@ export default function TerminalPage({ isMobile }) {
           ? "Price has run ahead of trend and the crowd is paying up to be long — momentum can persist, but this is where pullbacks tend to start. A caution on timing, not a sell call."
           : "Several gauges sit near their cheapest ever — historically an accumulation zone, not a buy call.";
         return (
-          <div className={"tmbanner " + (danger ? "tmbanner-hot tmflash" : "tmbanner-cold")}>
-            <div className="tmbanner-h">{danger ? "⚠ Heads-up · short-term overheated" : "🟢 Deep-value signals"}{liveAPR != null && <span className="tmbanner-live">LIVE</span>}</div>
+          <div className={"tmbanner " + (danger ? "tmbanner-hot" : "tmbanner-cold")}>
+            <div className="tmbanner-h">{danger ? "Heads-up · short-term overheated" : "Deep-value signals"}</div>
             <div className="tmbanner-items">{items.map((it, i) => <span key={i} className={"tmbanner-pill " + (it.hot ? "hot" : "cold")}>{it.txt}</span>)}</div>
             <div className="tmbanner-note">{note}</div>
           </div>

@@ -34,7 +34,12 @@
     "⚠ heads-up · short-term overheated" banner** now sits at the TOP of the page: pills for each stretched gauge (pct≥85) + the live
     funding ("Traders paying ~118% APR to be long · LIVE"), with a plain combined caution. `.tmflash` keyframe (respects reduced-motion).
     So a funding spike surfaces immediately, not a day late. ⚠ the baked `conditions` (heat20 + APR funding) update on the next
-    daily-snapshot cron; the live funding pill works now via `/api/hl`. Banner threshold knob: pct≥85 / APR≥40 in TerminalPage.
+    daily-snapshot cron; the live funding pill works now via `/api/spot?hl=1`. Banner threshold knob: pct≥85 / APR≥40 in TerminalPage.
+  - **⚠⚠ DEPLOY-BREAK LESSON (2026-08-22): `api/hl.js` was a 13th serverless function → over Vercel HOBBY's 12-FUNCTION CAP → 3 failed
+    deploys.** Fix: folded the live Hyperliquid read into `api/spot.js` under `?hl=1` and deleted `api/hl.js` (back to 12). **RULE: count
+    `ls api/*.js` before adding a function — 12 is the ceiling; extend an existing endpoint with a query branch instead.** Also removed the
+    flashing/pulse + "LIVE" badge from the banner (owner: "don't like it, make it consistent") — it's now a static, squared, mono alert
+    like `.tmalert`; the `.tmflash` keyframe + `.tmbanner-live` are gone.
   - **✅ MENU RESTYLE (owner, 2026-08-22: "don't use generic icons; same fonts as the menu with a left-to-right typewriter on hover").**
     Dropped the emoji cards; the `DF_CHARTS` list now renders as `DFLink` rows in the SITE NAV STYLE — mono, uppercase, `_` cursor, and
     the name types itself out on hover via the shared `useHoverType` (chart-ui.jsx) with the `menubtn-t/g/y` ghost markup. CSS `.dfrow/

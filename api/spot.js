@@ -25,7 +25,30 @@ async function coinbaseSpot() {
   return p;
 }
 
+// Live Hyperliquid positioning (?hl=1) — CURRENT funding APR + open interest for SPX. Folded in here
+// rather than its own function to stay under Vercel Hobby's 12-function cap. metaAndAssetCtxs is public
+// (no key). Fails soft to {ok:false} so Deep Field just falls back to the daily-banked value.
+async function hlPositioning() {
+  const COIN = (process.env.HL_COIN || "SPX").toUpperCase();
+  const r = await fetch("https://api.hyperliquid.xyz/info", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ type: "metaAndAssetCtxs" }) });
+  if (!r.ok) return { ok: false, err: "hl " + r.status };
+  const [meta, ctxs] = await r.json();
+  let i = (meta.universe || []).findIndex(u => u.name === COIN);
+  if (i < 0) i = (meta.universe || []).findIndex(u => (u.name || "").toUpperCase().includes("SPX"));
+  if (i < 0 || !ctxs?.[i]) return { ok: false, err: "no SPX perp" };
+  const c = ctxs[i], hourly = parseFloat(c.funding), mark = parseFloat(c.markPx);
+  const oi = parseFloat(c.openInterest) * (mark || 0);
+  return { ok: true, coin: COIN, ts: Date.now(),
+    fundingAPR: Number.isFinite(hourly) ? +(hourly * 24 * 365 * 100).toFixed(1) : null,
+    oi: Number.isFinite(oi) ? Math.round(oi) : null, mark: Number.isFinite(mark) ? mark : null };
+}
+
 export default async function handler(req, res) {
+  if (req.query && req.query.hl) {
+    res.setHeader("Cache-Control", "public, max-age=30, s-maxage=60, stale-while-revalidate=120");
+    try { return res.status(200).json(await hlPositioning()); }
+    catch (e) { return res.status(200).json({ ok: false, err: String(e.message || e) }); }
+  }
   const errors = [];
   for (const [name, fn] of [["geckoterminal", geckoSpot], ["coinbase", coinbaseSpot]]) {
     try {
