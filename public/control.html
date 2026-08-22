@@ -80,6 +80,10 @@
   @media (max-width: 760px) { .eng-cols { grid-template-columns: 1fr; } }
   .rmag0 { color: #64748b; } .rmag1 { color: #fbbf24; } .rmag2 { color: #f87171; }
   .eng-drop { outline: 2px dashed #3b82f6 !important; outline-offset: -6px; }
+  .eng-locbox { background: #0b0b18; border: 1px solid rgba(255,255,255,.08); border-radius: 12px; padding: 11px 14px; margin: 8px 0; }
+  .eng-locbox summary { cursor: pointer; font-size: 13px; color: #e2e8f0; user-select: none; }
+  .eng-locbox summary span { color: #64748b; font-weight: 400; }
+  .eng-locbox textarea { width: 100%; background: #05050e; border: 1px solid rgba(255,255,255,.14); color: #e2e8f0; border-radius: 8px; padding: 9px 11px; font-size: 13px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; resize: vertical; }
   .sched { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 4px; font-size: 12px; }
   .chip { background: #0b0b18; border: 1px solid rgba(255,255,255,.10); border-radius: 999px; padding: 4px 10px; color: #94a3b8; }
   .chip b { color: #e2e8f0; }
@@ -454,6 +458,14 @@
           On X → <b>Analytics</b>: export the <b>Content</b> report (per-post) for the content breakdown, and the <b>Account overview</b> (daily) for the price relationship. Drop one or both CSVs, or drag them anywhere on this panel.
         </div>
       </div>
+      <details class="eng-locbox">
+        <summary>📍 Location / VPN log <span>— optional · tag when &amp; where you posted to see reach and new-follows by location</span></summary>
+        <div style="padding:10px 2px 2px">
+          <div style="font-size:12px;color:#94a3b8;line-height:1.55;margin-bottom:8px">One change per line: a <b>date</b> then your location/VPN state — each applies from that date until the next line. X analytics has no per-viewer geography, so this is your own travel/VPN timeline. Example:<br><span class="mono" style="color:#cbd5e1">2026-08-01 China · no VPN<br>2026-08-11 VPN · US<br>2026-08-18 VPN · EU</span></div>
+          <textarea id="engLoc" rows="4" placeholder="2026-08-01 China · no VPN&#10;2026-08-11 VPN · US"></textarea>
+          <div style="margin-top:8px"><button id="engLocApply" class="primary">Apply</button> <span style="color:#64748b;font-size:12px">saved in this browser only</span></div>
+        </div>
+      </details>
       <div class="status" id="engStatus">Drop your X analytics CSV export(s) and hit Analyze — or re-drop a fresh export any time to refresh.</div>
       <div id="engOut"></div>
     </div>
@@ -1457,6 +1469,14 @@ function engageInit() {
   ["dragenter", "dragover"].forEach(ev => panel.addEventListener(ev, e => { e.preventDefault(); panel.classList.add("eng-drop"); }));
   ["dragleave", "drop"].forEach(ev => panel.addEventListener(ev, e => { e.preventDefault(); if (ev === "drop" || e.target === panel) panel.classList.remove("eng-drop"); }));
   panel.addEventListener("drop", e => { const fs = [...(e.dataTransfer?.files || [])].filter(f => /\.csv$/i.test(f.name)); if (fs.length) { engDropped = fs; engStatus(`${fs.length} file(s) ready — hit Analyze.`); } });
+  // Location / VPN log: load saved text; Apply saves it and re-renders from the saved CSV.
+  try { $("#engLoc").value = localStorage.getItem(ENG_LOC) || ""; } catch {}
+  $("#engLocApply").onclick = () => {
+    try { localStorage.setItem(ENG_LOC, $("#engLoc").value); } catch {}
+    const s = engLoadSaved();
+    if (s && (s.contentText || s.overviewText)) engAnalyze(s.contentText, s.overviewText).then(() => engStatus("Location log applied.", "ok"));
+    else engStatus("Location log saved — drop your X export and Analyze to see the breakdown.", "ok");
+  };
   // Auto-render the last export you dropped (this browser only) so the tab isn't blank on reopen.
   const s = engLoadSaved();
   if (s && (s.contentText || s.overviewText)) {
@@ -1518,9 +1538,12 @@ const engShort = t => t.replace(/\s+/g, " ").replace(/</g, "&lt;").slice(0, 78);
 
 // Persistence: the last export you drop is saved in THIS BROWSER ONLY (localStorage),
 // so the dashboard auto-renders when you reopen the tab. Nothing leaves the browser.
-const ENG_KEY = "spx_engage_csv";
+const ENG_KEY = "spx_engage_csv", ENG_LOC = "spx_engage_loc";
 const engLoadSaved = () => { try { return JSON.parse(localStorage.getItem(ENG_KEY) || "null"); } catch { return null; } };
 const engSaveTexts = (c, o) => { try { localStorage.setItem(ENG_KEY, JSON.stringify({ contentText: c || null, overviewText: o || null, at: new Date().toISOString() })); } catch {} };
+// Location / VPN timeline: lines of "YYYY-MM-DD  label"; each label runs until the next date.
+const engParseLoc = txt => String(txt || "").split("\n").map(l => { const m = l.match(/^\s*(\d{4}-\d{2}-\d{2})\s+(.+?)\s*$/); return m ? { start: m[1], label: m[2] } : null; }).filter(Boolean).sort((a, b) => a.start < b.start ? -1 : 1);
+const engLocOf = (d, log) => { let cur = null; for (const e of log) { if (e.start <= d) cur = e.label; else break; } return cur; };
 
 async function engRun() {
   const files = (engDropped && engDropped.length) ? engDropped : [...($("#engFiles").files || [])];
@@ -1603,6 +1626,18 @@ async function engAnalyze(contentText, overviewText) {
   }
 
   if (originals.length) {
+    // ---------- by location / VPN (owner's own timeline) ----------
+    const log = engParseLoc(localStorage.getItem(ENG_LOC));
+    if (log.length) {
+      const g = {}; for (const p of originals) { const l = engLocOf(p.d, log) || "— untagged —"; (g[l] ||= []).push(p); }
+      const entries = Object.entries(g).sort((a, b) => b[1].reduce((s, p) => s + p.follows, 0) / b[1].length - a[1].reduce((s, p) => s + p.follows, 0) / a[1].length);
+      const mx = Math.max(...entries.map(([, a]) => engMed(a.map(p => p.imp))));
+      html += `<div class="eng-h">📍 By location / VPN — your log <span class="tag">medians · follows/post = new follows ÷ posts · sorted by follows/post</span></div>`;
+      html += `<table class="eng"><tr><th>where</th><th>posts</th><th>median impressions</th><th>like%</th><th>follows</th><th>follows/post</th><th>fol‰</th></tr>`;
+      html += entries.map(([l, a]) => { const imp = engMed(a.map(p => p.imp)); const f = a.reduce((s, p) => s + p.follows, 0); const ti = a.reduce((s, p) => s + p.imp, 0); return `<tr><td>${l}</td><td>${a.length}</td><td>${Math.round(imp).toLocaleString()} ${engBar(imp, mx)}</td><td>${(engMed(a.map(p => p.imp ? p.likes / p.imp : 0)) * 100).toFixed(1)}%</td><td>${f}</td><td>${(f / a.length).toFixed(2)}</td><td>${ti ? (f / ti * 1000).toFixed(2) : "0"}</td></tr>`; }).join("");
+      html += `</table><div style="font-size:11.5px;color:#64748b;margin-top:6px">Same-content confound applies — periods may differ in what you posted, not just where you were. Treat as a signal, not proof.</div>`;
+    }
+
     // ---------- content buckets ----------
     const groups = {}; for (const p of originals) (groups[engClass(p.text)] ||= []).push(p);
     const mxImp = Math.max(...Object.values(groups).map(a => engMed(a.map(p => p.imp))));

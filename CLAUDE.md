@@ -1460,6 +1460,12 @@
   **Persistent:** the last export you drop is saved in the browser only (`localStorage` `spx_engage_csv`, never uploaded) so the tab
   **auto-renders on reopen** — drop a new CSV (or just one of the two reports) to update; Clear wipes the saved copy. To extend: add a
   bucket rule to `ENG_BUCKETS`, or a feature row in `engAnalyze`.
+  - **📍 LOCATION / VPN LOG (owner asked 2026-08-22 — "in China almost zero new followers; VPN on = stronger reach").** X's per-post CSV
+    has **no per-viewer geography**, so reach-by-country can't be auto-derived. Instead the tab has a `<details>` "Location / VPN log":
+    the owner types a timeline (`YYYY-MM-DD  label` per line, each label runs until the next date; `spx_engage_loc` in localStorage), and
+    `engAnalyze` maps each post's date → label (`engParseLoc`/`engLocOf`) and renders a **"📍 By location / VPN"** table (posts, median
+    impressions, like%, follows, follows/post, fol‰), sorted by follows/post, with a same-content-confound caveat. Owner-maintained,
+    browser-only. (Separate from the site-visitor geo in `api/intel.js`, which needs the KV store connected.)
   - **⭐ 2026-08-22 REFRESH (202 posts May24–Aug21, 76 active days) CONFIRMS + SHARPENS the 2026-06-24 read.** (1) **Price is NOT related
     to engagement** — impressions/likes/follows vs price level, daily return, and volatility all **|r|<0.2**. The ONE real link:
     **profile visits track price volatility (r≈0.3–0.5)** — price moves make people LOOK, but it doesn't convert to reach or follows.
