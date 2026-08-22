@@ -27,14 +27,24 @@ function buildScene(el, hist, isMobile) {
 
   const maxV = Math.max(...weeks.flatMap(w => w.pct), 1e-6);
   const DZ = Math.max(0.4, Math.min(0.9, 60 / nW));   // depth per week — keep the whole span ~visible
-  const SY = 16 / maxV;                                // world height per 1% of supply
+  // Vertical scale. The launch week parks ~100% of supply in ONE bucket; scaling height to that global
+  // max flattens every other week into a plain (the "too shallow" read). Instead scale to a robust
+  // PERCENTILE of real walls (p97 ≈ a typical fat wall), exaggerate the relief with a gamma (>1 → taller
+  // peaks AND deeper valleys), and CLAMP so the launch spike stays a tall wall without towering off-screen.
+  const nzVals = weeks.flatMap(w => w.pct).filter(v => v > 0).sort((a, b) => a - b);
+  const ref = nzVals.length ? nzVals[Math.floor(nzVals.length * 0.97)] : maxV;   // ~ a typical wall (p97)
+  const PEAK = isMobile ? 15 : 18;    // world height a reference wall reaches (kept below the time-depth so it reads as a landscape)
+  const GAMMA = 1.25;                 // >1 = punchier relief (deep valleys, tall peaks)
+  const CAP = 2.6;                    // clamp only the extreme launch concentration
+  const hOf = v => Math.min(CAP, Math.pow(Math.max(0, v) / ref, GAMMA)) * PEAK;
+  const topH = PEAK * CAP;            // tallest rendered height — camera / curtain / axis reference
   const cx = nB / 2, depth = (nW - 1) * DZ, cz = depth / 2;
 
   const W = el.clientWidth, H = isMobile ? 400 : 560;
   const scene = new THREE.Scene(); scene.background = new THREE.Color(0x0a0e1c);
   scene.fog = new THREE.Fog(0x0a0e1c, depth * 1.1, depth * 2.6);
   const cam = new THREE.PerspectiveCamera(46, W / H, 0.1, 2000);
-  cam.position.set(nB * 0.62, Math.max(26, maxV * SY * 1.4), depth * 0.78 + 26);
+  cam.position.set(nB * 0.5, Math.max(44, topH * 1.55), depth * 1.12 + 52);
   const renderer = new THREE.WebGLRenderer({ antialias: true });
   renderer.setPixelRatio(Math.min(devicePixelRatio, 2)); renderer.setSize(W, H);
   el.appendChild(renderer.domElement);
@@ -50,7 +60,7 @@ function buildScene(el, hist, isMobile) {
   };
 
   scene.add(new THREE.AmbientLight(0xffffff, 0.72));
-  const d1 = new THREE.DirectionalLight(0xffffff, 0.85); d1.position.set(nB * 0.5, maxV * SY + 30, depth * 0.4); scene.add(d1);
+  const d1 = new THREE.DirectionalLight(0xffffff, 0.9); d1.position.set(nB * 0.5, topH + 34, depth * 0.4); scene.add(d1);
   const d2 = new THREE.DirectionalLight(0x88aaff, 0.35); d2.position.set(-nB * 0.4, 24, -depth * 0.3); scene.add(d2);
 
   const disposables = [], ownMats = [];
@@ -60,10 +70,10 @@ function buildScene(el, hist, isMobile) {
   for (let j = 0; j < nW; j++) {
     const spot = weeks[j].spot || 0, pct = weeks[j].pct;
     for (let i = 0; i < nB; i++) {
-      const idx = j * nB + i, h = (pct[i] || 0) * SY;
+      const idx = j * nB + i, h = hOf(pct[i] || 0);
       pos[idx * 3] = i - cx; pos[idx * 3 + 1] = h; pos[idx * 3 + 2] = j * DZ - cz;
       const base = (spot > 0 && price[i] <= spot) ? GREEN : RED;      // in profit vs THAT week's spot
-      const t = 0.25 + 0.75 * Math.min(1, (pct[i] || 0) / maxV);      // dark where flat, bright at the walls
+      const t = 0.22 + 0.78 * Math.min(1, (pct[i] || 0) / ref);       // dark in the valleys, bright at the walls
       col[idx * 3] = base[0] * t; col[idx * 3 + 1] = base[1] * t; col[idx * 3 + 2] = base[2] * t;
     }
   }
@@ -80,7 +90,7 @@ function buildScene(el, hist, isMobile) {
   scene.add(new THREE.Mesh(surf, surfMat)); disposables.push(surf); ownMats.push(surfMat);
 
   // ── the spot-price curtain sweeping through the terrain ──────────────────────
-  const top = maxV * SY * 1.04;
+  const top = topH * 1.04;
   const cpos = new Float32Array(nW * 2 * 3), tpts = [];
   for (let j = 0; j < nW; j++) {
     const xw = spotX(weeks[j].spot || hist.pMin) - cx, zw = j * DZ - cz;
@@ -92,7 +102,7 @@ function buildScene(el, hist, isMobile) {
   for (let j = 0; j < nW - 1; j++) { const a = j * 2, b = a + 1, c = a + 2, d = a + 3; cidx.push(a, b, c, b, d, c); }
   const curtain = new THREE.BufferGeometry();
   curtain.setAttribute("position", new THREE.BufferAttribute(cpos, 3)); curtain.setIndex(cidx);
-  const curtMat = new THREE.MeshBasicMaterial({ color: 0xf8fafc, transparent: true, opacity: 0.14, side: THREE.DoubleSide, depthWrite: false });
+  const curtMat = new THREE.MeshBasicMaterial({ color: 0xf8fafc, transparent: true, opacity: 0.08, side: THREE.DoubleSide, depthWrite: false });
   scene.add(new THREE.Mesh(curtain, curtMat)); disposables.push(curtain); ownMats.push(curtMat);
   const topG = new THREE.BufferGeometry().setFromPoints(tpts);
   const topMat = new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.85 });
@@ -103,15 +113,14 @@ function buildScene(el, hist, isMobile) {
   const lineMat = new THREE.LineBasicMaterial({ color: 0x2a3550, transparent: true, opacity: 0.55 });
   disposables.push(lineMat);
   const seg = (a, b) => { const g = new THREE.BufferGeometry().setFromPoints([a, b]); scene.add(new THREE.Line(g, lineMat)); disposables.push(g); };
-  // y (% of supply)
-  const yStep = maxV > 8 ? 4 : maxV > 4 ? 2 : 1;
-  for (let v = 0; v <= maxV; v += yStep) {
-    const y = v * SY;
+  // y (% of supply) — gridlines placed at their (non-linear) heights, so the axis stays honest
+  [5, 10, 15, 20, 25].forEach(v => {
+    const y = hOf(v); if (y > topH * 1.02) return;
     seg(new THREE.Vector3(xL, y, zB), new THREE.Vector3(xR, y, zB));
     seg(new THREE.Vector3(xL, y, zF), new THREE.Vector3(xL, y, zB));
     addLabel(v + "%", xL - 1.3, y, zB, "#9aa6bd", 11);
-  }
-  addLabel("% of supply", xL - 1.3, maxV * SY + 2.4, zB, "#cbd5e1", 12, 700);
+  });
+  addLabel("% of supply", xL - 1.3, topH + 2.4, zB, "#cbd5e1", 12, 700);
   // x (cost basis) along the front edge
   const xStep = Math.max(1, Math.round(nB / 6));
   for (let i = 0; i < nB; i += xStep) addLabel(fp(price[i]), i - cx, 0, zF - 0.4, "#9aa6bd", 10.5);
@@ -122,7 +131,7 @@ function buildScene(el, hist, isMobile) {
   addLabel("spot", spotX(weeks.at(-1).spot || hist.pMin) - cx, top + 1.2, depth - cz, "#f8fafc", 11, 700);
 
   const controls = new OrbitControls(cam, renderer.domElement);
-  controls.target.set(0, maxV * SY * 0.3, 0); controls.enableDamping = true; controls.dampingFactor = 0.08;
+  controls.target.set(0, topH * 0.3, 0); controls.enableDamping = true; controls.dampingFactor = 0.08;
   controls.minDistance = 20; controls.maxDistance = depth * 2.4 + 60; controls.maxPolarAngle = Math.PI * 0.49;
   controls.autoRotate = false;   // fixed 3/4 view — a full spin would swing the price axis right→left
 
