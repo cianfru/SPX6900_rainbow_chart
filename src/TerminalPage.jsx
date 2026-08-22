@@ -295,8 +295,8 @@ export default function TerminalPage({ isMobile }) {
                     <tr key={w.a}>
                       <td className="tmk">
                         <span style={{ color: "var(--faint)", marginRight: 8 }}>{i + 1}</span>
-                        <a href={`https://app.zerion.io/${w.a}/overview`} target="_blank" rel="noopener" title={w.a} style={{ color: "var(--live)", textDecoration: "none", fontFamily: "var(--mono)" }}>{short(w.a)}</a>
-                        <Info text={`${w.a}${w.roi ? ` · ${w.roi}× realized` : ""} — opens in Zerion. On Etherscan: etherscan.io/address/${w.a}`} />
+                        <a href={`/?view=wallet&addr=${w.a}`} title={w.a} style={{ color: "var(--live)", textDecoration: "none", fontFamily: "var(--mono)" }}>{short(w.a)}</a>
+                        <Info text={`${w.a}${w.roi ? ` · ${w.roi}× realized` : ""} — opens the wallet page (buy orbs + P&L). Zerion: app.zerion.io/${w.a} · Etherscan: etherscan.io/address/${w.a}`} />
                       </td>
                       <td className="tmval">{fmtVal(w.bal, "spx")}</td>
                       {smNet(w.d1)}{smNet(w.d7)}{smNet(w.d30)}

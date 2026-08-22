@@ -105,8 +105,15 @@ export function smartMoney(tl, prices, opts = {}) {
   const series = [];
   for (let wk = 0; wk < N; wk++) series.push([dayStr(wkT(wk)), held[wk], wk ? held[wk] - held[wk - 1] : 0, +pAtWk(wk).toFixed(6)]);
   const newQ = qualByWk.map((c, wk) => [dayStr(wkT(wk)), c]).filter(([, c]) => c > 0);
-  const wallets = cohort.map(w => { const now = balanceAt(w.p, W), at = k => balanceAt(w.p, Math.max(0, k));
-    return { a: String(w.a || "").toLowerCase(), bal: Math.round(now), d1: 0, d7: Math.round(now - at(W - 1)), d30: Math.round(now - at(W - 4)) };
+  const wallets = cohort.map(w => {
+    let avg = 0, pos = 0, realized = 0, prev = 0; const buys = [], sells = [];
+    for (const [wk, b] of w.p) { const d = b - prev, t = wkT(wk), pr = +pAtWk(wk);
+      if (d > 0) { avg = (avg * pos + d * pr) / (pos + d); pos += d; buys.push([t, +pr.toFixed(6), Math.round(d)]); }
+      else if (d < 0) { const q = Math.min(-d, pos); realized += q * (pr - avg); pos = Math.max(0, pos + d); sells.push([t, +pr.toFixed(6), Math.round(q), Math.round(q * (pr - avg))]); }
+      prev = b; }
+    const now = balanceAt(w.p, W), at = k => balanceAt(w.p, Math.max(0, k));
+    return { a: String(w.a || "").toLowerCase(), bal: Math.round(now), d1: 0, d7: Math.round(now - at(W - 1)), d30: Math.round(now - at(W - 4)),
+      avgCost: +avg.toFixed(6), realized: Math.round(realized), buys, sells, nBuys: buys.length, nSells: sells.length };
   }).sort((x, y) => y.bal - x.bal);
   return assemble({ res: "weekly", criteria: { minInvested: minInv, minRoi, minHold }, rois, realizedTotal, series, newQ, priceNow: pAtWk(W), updated: tl.updated, wallets });
 }
@@ -140,16 +147,29 @@ export function smartMoneyDaily(rows, prices, opts = {}) {
   const bal = new Map([...cohort].map(a => [a, 0]));
   let agg = 0; const byDay = new Map();
   const move = (addr, d) => { if (!cohort.has(addr)) return; const b = bal.get(addr), nb = Math.max(0, b + d); agg += nb - b; bal.set(addr, nb); };
+  // Per-wallet lot detail (for the wallet page: buy orbs, sells, cost basis, realized-PnL curve).
+  const det = new Map([...cohort].map(a => [a, { buys: [], sells: [], avg: 0, pos: 0, realized: 0 }]));
+  const rec = (addr, d, t) => {
+    const D = det.get(addr); if (!D) return; const pr = priceAt(t);
+    if (d > 0) { D.avg = (D.avg * D.pos + d * pr) / (D.pos + d); D.pos += d; D.buys.push([t, +pr.toFixed(6), Math.round(d)]); }
+    else if (d < 0) { const q = Math.min(-d, D.pos); const r = q * (pr - D.avg); D.realized += r; D.pos = Math.max(0, D.pos + d); D.sells.push([t, +pr.toFixed(6), Math.round(q), Math.round(r)]); }
+  };
   const nowT = Math.max(rows.length ? rows.at(-1).t : 0, Date.now());
   const cuts = [["d1", nowT - DAY], ["d7", nowT - 7 * DAY], ["d30", nowT - 30 * DAY]].sort((a, b) => a[1] - b[1]);
   const snaps = {}; let ci = 0;
   for (const r of rows) {
     while (ci < cuts.length && r.t > cuts[ci][1]) { snaps[cuts[ci][0]] = new Map(bal); ci++; }
-    move(r.from, -r.qty); move(r.to, r.qty); byDay.set(dayStr(r.t), agg);
+    move(r.from, -r.qty); move(r.to, r.qty);
+    rec(r.from, -r.qty, r.t); rec(r.to, r.qty, r.t);
+    byDay.set(dayStr(r.t), agg);
   }
   while (ci < cuts.length) { snaps[cuts[ci][0]] = new Map(bal); ci++; }
-  const wallets = [...cohort].map(a => { const now = bal.get(a) || 0; const at = k => snaps[k]?.get(a) ?? now;
-    return { a, bal: Math.round(now), d1: Math.round(now - at("d1")), d7: Math.round(now - at("d7")), d30: Math.round(now - at("d30")), roi: +(A.get(a).spent > 0 ? A.get(a).realized / A.get(a).spent : 0).toFixed(1) };
+  const LOTCAP = 300;   // bound the file: keep the most recent lots per wallet
+  const wallets = [...cohort].map(a => { const now = bal.get(a) || 0, at = k => snaps[k]?.get(a) ?? now, D = det.get(a);
+    return { a, bal: Math.round(now), d1: Math.round(now - at("d1")), d7: Math.round(now - at("d7")), d30: Math.round(now - at("d30")),
+      roi: +(A.get(a).spent > 0 ? A.get(a).realized / A.get(a).spent : 0).toFixed(1),
+      avgCost: +D.avg.toFixed(6), realized: Math.round(D.realized),
+      buys: D.buys.slice(-LOTCAP), sells: D.sells.slice(-LOTCAP), nBuys: D.buys.length, nSells: D.sells.length };
   }).sort((x, y) => y.bal - x.bal);
 
   // daily grid, forward-filled, launch → today

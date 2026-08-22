@@ -59,7 +59,7 @@ export default function WhaleEntryChart({ isMobile, price }) {
     ro.observe(wrap.current); return () => ro.disconnect();
   }, []);
 
-  const H = isMobile ? 380 : 520;
+  const H = isMobile ? 460 : 680;
   // LIVE price wins over the frozen one baked into the JSON, so the "today" line + green/red split
   // never go stale between the daily data rebuilds — post the card/chart whenever.
   const livePrice = (price && price > 0) ? price : (data ? data.price : 0);

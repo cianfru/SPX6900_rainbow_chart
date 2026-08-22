@@ -651,6 +651,16 @@
     component, same viewport-positioned pattern as `Info`) — the "multiple Zerion tooltips" the owner asked for. **"open ↗" → Bubblemaps
     token map** (the cluster page). Shared helpers `shortAddr`/`netSpxCell`. Net columns are data-gated on `entities.json` d1/d7/d30
     (populate on the next onchain-dune run). This is the terminal-granular twin of the public (anonymized) Wallet Clusters chart.
+  - **⭐ PER-WALLET PAGE (owner, 2026-08-22 — "a specific page per wallet with the orbs, sells, position vs price, and real-time PnL").**
+    `build-smart-money.mjs` now emits per-cohort-wallet LOT DETAIL into `smart-money.json` `wallets[]`: `buys:[[t,price,qty]]`,
+    `sells:[[t,price,qty,realized]]` (capped 300, avg-cost), `avgCost`, `realized`, `nBuys/nSells` — from a lot-recording pass alongside
+    the balance forward (daily) or the timeline change-points (weekly). `src/WalletDetail.jsx` (route `?view=wallet&addr=0x…`, lazy,
+    terminal-gated via `TERMINAL_KEY`) renders: position tiles (bag · avg cost · realized · **unrealized live** · total P&L · ROI), a
+    "where it bought & sold" chart (recharts: price line + **green buy orbs sized by amount + red sell triangles** + avg-cost & now
+    reference lines), and a "realized P&L over time" step-area. Reached by clicking a wallet on the terminal smart-money list (address →
+    the page; Zerion/Etherscan in the (i) tooltip). Data-gated on the `wallets[]` lots (next cron). ⚠ terminal-tier only — the public
+    SmartMoneyChart stays anonymized (Wallet 1/2/3), no per-wallet page.
+  - **"When Whales Bought" (`whaleentry`) made taller** (owner): `H` 380/520 → 460/680 (mobile/desktop) so the orb field reads bigger.
   - **The aggregate history stays the hero** (the "NEVER a wallet named" rule is superseded by the two-layer reveal above). Read earlier: they
     accumulated ~76M under $0.03, distributed into the run-up, hold 30M, **NOT buying** (12w net −3.7%, 0 adding). **The net-flow
     view is the forward signal — it flips green the week they buy again.** `scripts/build-smart-money.mjs` → `public/smart-money.json`.
