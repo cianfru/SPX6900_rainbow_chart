@@ -820,6 +820,12 @@
   - **🔲 OWNER — 1 step to activate:** connect a **Vercel KV / Upstash Redis** store (Vercel → Storage) so `KV_REST_API_URL` +
     `KV_REST_API_TOKEN` (or `UPSTASH_*`) get injected; redeploy. Until then everything ships but silently no-ops (safe). Optional: a
     Plausible site; `INTEL_SALT` to rotate the IP-hash salt.
+  - **✅ CONTROL-PANEL 🌍 AUDIENCE TAB (built 2026-08-22, owner asked — "add location, I've noticed it affects reach").** The audience
+    geography now lives in the owner's hub next to the Engagement tab: `/control` → 🌍 Audience (`loadAudience` in `public/control.html`)
+    POSTs the control password to `api/intel` and renders KPIs + a **countries table** (flag · name · visits · share bar · top cities) +
+    referrers + pages — the same data the `/api/intel` dashboard shows, reusing that endpoint (no new backend). **Until a KV store is
+    connected it shows an in-panel SETUP CARD** with the exact switch-on steps + live var diagnostics (so the owner knows precisely what
+    to do). Pairs the two halves the owner wanted: posting-reach-by-location (Engagement → Location log) + real audience geography (Audience).
 - **⭐⭐ HIGH CONTRAST IS A HARD RULE — NEVER LOW CONTRAST (owner, 2026-08-20, emphatic: "put in memory that I don't want low
   contrast. All the opposite").** Body text, table cells, section headers, notes — anything a user must READ — must have strong
   contrast against its ground. **Do NOT use `--faint` for readable copy** (it's a de-emphasis token for truly incidental chrome only);

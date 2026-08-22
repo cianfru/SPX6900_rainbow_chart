@@ -328,6 +328,7 @@
       <button id="tabStudio" class="tab">🎨 Card studio</button>
       <button id="tabAeon" class="tab">🌌 Project Aeon</button>
       <button id="tabEngage" class="tab">📈 Engagement</button>
+      <button id="tabAudience" class="tab">🌍 Audience</button>
     </div>
   </header>
   <div class="wrap">
@@ -458,16 +459,26 @@
           On X → <b>Analytics</b>: export the <b>Content</b> report (per-post) for the content breakdown, and the <b>Account overview</b> (daily) for the price relationship. Drop one or both CSVs, or drag them anywhere on this panel.
         </div>
       </div>
-      <details class="eng-locbox">
-        <summary>📍 Location / VPN log <span>— optional · tag when &amp; where you posted to see reach and new-follows by location</span></summary>
+      <details class="eng-locbox" open>
+        <summary>📍 Location / VPN endpoint log <span>— tag when &amp; where you posted (incl. your VPN exit) to see reach &amp; new-follows by location</span></summary>
         <div style="padding:10px 2px 2px">
-          <div style="font-size:12px;color:#94a3b8;line-height:1.55;margin-bottom:8px">One change per line: a <b>date</b> then your location/VPN state — each applies from that date until the next line. X analytics has no per-viewer geography, so this is your own travel/VPN timeline. Example:<br><span class="mono" style="color:#cbd5e1">2026-08-01 China · no VPN<br>2026-08-11 VPN · US<br>2026-08-18 VPN · EU</span></div>
-          <textarea id="engLoc" rows="4" placeholder="2026-08-01 China · no VPN&#10;2026-08-11 VPN · US"></textarea>
-          <div style="margin-top:8px"><button id="engLocApply" class="primary">Apply</button> <span style="color:#64748b;font-size:12px">saved in this browser only</span></div>
+          <div style="font-size:12px;color:#94a3b8;line-height:1.55;margin-bottom:8px">One change per line: a <b>date</b>, then where you were <b>and your VPN endpoint</b> — each applies from that date until the next line. X has no per-viewer geography, so this is your own timeline. Log the VPN <b>exit country</b> too, since reach differs by endpoint. Example:<br><span class="mono" style="color:#cbd5e1">2026-08-01 China · VPN off<br>2026-08-05 China · VPN → US<br>2026-08-12 China · VPN → EU<br>2026-08-18 China · VPN → Japan</span></div>
+          <textarea id="engLoc" rows="5" placeholder="2026-08-01 China · VPN off&#10;2026-08-05 China · VPN → US&#10;2026-08-12 China · VPN → EU"></textarea>
+          <div style="margin-top:8px"><button id="engLocApply" class="primary">Apply</button> <span style="color:#64748b;font-size:12px">saved in this browser only · each distinct label becomes its own row</span></div>
         </div>
       </details>
       <div class="status" id="engStatus">Drop your X analytics CSV export(s) and hit Analyze — or re-drop a fresh export any time to refresh.</div>
       <div id="engOut"></div>
+    </div>
+
+    <!-- Audience tab — where site visitors actually are (first-party geo from /api/intel). -->
+    <div id="audienceView" style="display:none">
+      <div class="bar">
+        <button id="audRefresh">↻ Refresh</button>
+        <span style="margin-left:auto;color:#64748b;font-size:12px">Your site's real audience geography · <a href="/api/intel" target="_blank" rel="noopener" style="color:#7dd3fc">full intel dashboard →</a></span>
+      </div>
+      <div class="status" id="audStatus">Open this tab to load audience geography.</div>
+      <div id="audOut"></div>
     </div>
 
     <p><a class="home" href="/">← back to site</a></p>
@@ -1187,7 +1198,9 @@ function showTab(which) {
   $("#studioView").style.display = which === "studio" ? "block" : "none";
   $("#aeonView").style.display = which === "aeon" ? "block" : "none";
   $("#engageView").style.display = which === "engage" ? "block" : "none";
+  $("#audienceView").style.display = which === "audience" ? "block" : "none";
   $("#tabEngage").classList.toggle("active", which === "engage");
+  $("#tabAudience").classList.toggle("active", which === "audience");
   $("#tabDaily").classList.toggle("active", which === "daily");
   $("#tabRecap").classList.toggle("active", which === "recap");
   $("#tabCity").classList.toggle("active", which === "city");
@@ -1198,6 +1211,7 @@ function showTab(which) {
   if (which === "studio") studioInit();
   if (which === "aeon" && !aeonLoaded) loadAeon();
   if (which === "engage") engageInit();
+  if (which === "audience" && !audLoaded) loadAudience();
 }
 
 // ---- 🎨 Card studio — pick a metric, zoom to a window, add title/subtitle, download a house-style card ----
@@ -1441,6 +1455,8 @@ $("#tabCity").onclick = () => showTab("city");
 $("#tabStudio").onclick = () => showTab("studio");
 $("#tabAeon").onclick = () => showTab("aeon");
 $("#tabEngage").onclick = () => showTab("engage");
+$("#tabAudience").onclick = () => showTab("audience");
+$("#audRefresh").onclick = () => loadAudience();
 $("#aeonRefresh").onclick = () => { aeonLoaded = false; loadAeon(); };
 $("#cityRefresh").onclick = () => { refresh().then(() => { renderCityGrid(); loadCityRecap().then(renderCityRecap).catch(() => {}); }); };
 $("#recapReload").onclick = () => { recapLoaded = false; loadRecap(); };
@@ -1681,6 +1697,71 @@ async function engAnalyze(contentText, overviewText) {
   $("#engOut").innerHTML = html;
   const span = days.length ? ` · ${days[0].d}→${days.at(-1).d}` : "";
   engStatus(`Analyzed ${posts.length ? posts.length + " posts" : ""}${days.length ? (posts.length ? " · " : "") + days.length + " active days" : ""}${span}. Saved in this browser — drop a new CSV any time to update.`, "ok");
+}
+
+// ============================================================================
+// 🌍 AUDIENCE — where site visitors actually are. Reads the first-party geo that
+// api/intel.js records (country/city from Vercel edge headers), via the same
+// password-gated JSON the /api/intel dashboard uses. No new backend.
+// ============================================================================
+let audLoaded = false;
+let _audRN; try { _audRN = new Intl.DisplayNames(["en"], { type: "region" }); } catch {}
+const audFlag = c => { c = String(c || "").toUpperCase(); return /^[A-Z]{2}$/.test(c) ? c.replace(/./g, x => String.fromCodePoint(127397 + x.charCodeAt(0))) : "🏳"; };
+const audName = c => { c = String(c || "").toUpperCase(); if (!c) return "??"; try { return (_audRN && _audRN.of(c)) || c; } catch { return c; } };
+const audRows = (o, n) => Object.entries(o || {}).sort((a, b) => b[1] - a[1]).slice(0, n)
+  .map(([k, v]) => `<div class="row"><span class="k">${esc(k)}</span><span class="v">${v}</span></div>`).join("") || `<div class="muted">—</div>`;
+
+function audSetupCard(d) {
+  const dg = (d && d.diag) || {};
+  const kvErr = d && d.kvError ? ` · <b style="color:#fb7185">store error: ${esc(d.kvError)}</b>` : "";
+  return `<div class="eng-verdict"><b>One step to switch it on.</b> The tracking beacon is already live on every page — it just needs a database to write to.<br><br>
+    1. In <b>Vercel → this project → Storage</b>, create a <b>KV / Upstash Redis</b> store and connect it. Vercel injects <span class="mono">KV_REST_API_URL</span> + <span class="mono">KV_REST_API_TOKEN</span> automatically.<br>
+    2. Confirm <span class="mono">CONTROL_PASSWORD</span> is set (the password you use here).<br>
+    3. <b>Redeploy.</b> Visits then flow in on their own — hit ↻ Refresh.<br><br>
+    <span class="muted">Optional: <span class="mono">INTEL_EXCLUDE_COUNTRIES</span> to drop your own traffic · <span class="mono">INTEL_SALT</span> to rotate the IP hash.</span><br>
+    <span class="muted" style="margin-top:6px;display:inline-block">Diagnostics — sees URL var: <b>${esc(dg.urlVar || "NO")}</b> · token var: <b>${esc(dg.tokenVar || "NO")}</b>${kvErr}</span></div>`;
+}
+
+async function loadAudience() {
+  audLoaded = true;
+  const out = $("#audOut"); out.innerHTML = "";
+  $("#audStatus").textContent = "Loading audience geography…"; $("#audStatus").className = "status";
+  let r;
+  try { r = await fetch("/api/intel", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ pw: PW }) }); }
+  catch { $("#audStatus").innerHTML = `<span style="color:#f87171">Network error reaching /api/intel.</span>`; return; }
+  if (!r.ok) {
+    const j = await r.json().catch(() => ({}));
+    $("#audStatus").innerHTML = `<span style="color:#f87171">${r.status === 401 ? "Password not accepted." : r.status === 503 ? (esc(j.error || "Set CONTROL_PASSWORD in Vercel.")) : ("error " + r.status)}</span>`;
+    return;
+  }
+  const d = await r.json().catch(() => null);
+  if (!d) { $("#audStatus").innerHTML = `<span style="color:#f87171">Empty response from /api/intel.</span>`; return; }
+  if (!d.configured || d.kvError) {
+    $("#audStatus").textContent = "Audience tracking is built and wired — not switched on yet.";
+    out.innerHTML = audSetupCard(d); return;
+  }
+  // Configured: render the geography.
+  const geo = d.geo || {}, events = d.events || [];
+  const total = Object.values(geo).reduce((a, b) => a + (+b || 0), 0);
+  const countries = Object.entries(geo).map(([c, n]) => [String(c).toUpperCase(), +n || 0]).sort((a, b) => b[1] - a[1]);
+  const cities = {}; events.forEach(e => { const c = String(e.country || "").toUpperCase(); if (!c) return; (cities[c] = cities[c] || {}); const ci = e.city || "—"; cities[c][ci] = (cities[c][ci] || 0) + 1; });
+  const uniq = new Set(events.map(e => e.ip).filter(Boolean)).size;
+  const mx = countries.length ? countries[0][1] : 1;
+  const kpi = (v, l) => `<div class="eng-kpi"><b>${v}</b><span>${l}</span></div>`;
+  let html = `<div class="eng-kpis">${kpi(total.toLocaleString(), "events (all-time)")}${kpi(countries.length, "countries")}${kpi(uniq, "recent visitors")}${kpi(Object.keys(d.charts || {}).length, "charts opened")}${kpi((d.wallets || []).length, "wallet lookups")}</div>`;
+  html += `<div class="eng-h">🌍 Where your visitors are <span class="tag">all-time by country · top cities from recent events</span></div>`;
+  html += `<table class="eng"><tr><th>country</th><th>visits</th><th>share</th><th>top cities</th></tr>`;
+  html += countries.slice(0, 20).map(([c, n]) => {
+    const cs = Object.entries(cities[c] || {}).sort((a, b) => b[1] - a[1]).slice(0, 4).map(([ci]) => esc(ci)).join(" · ");
+    return `<tr><td>${audFlag(c)} ${esc(audName(c))}</td><td>${n.toLocaleString()}</td><td>${engBar(n, mx)} ${total ? Math.round(n / total * 100) : 0}%</td><td style="color:#94a3b8">${cs || "—"}</td></tr>`;
+  }).join("") || `<tr><td colspan="4" class="muted">no visits recorded yet</td></tr>`;
+  html += `</table>`;
+  html += `<div class="eng-cols"><div><div class="eng-h">Top referrers</div><table class="eng">${audRows(d.refs, 12) ? `<tr><th>source</th><th>hits</th></tr>` + Object.entries(d.refs || {}).sort((a, b) => b[1] - a[1]).slice(0, 12).map(([k, v]) => `<tr><td>${esc(k)}</td><td>${v}</td></tr>`).join("") : ""}</table></div>`;
+  html += `<div><div class="eng-h">Top pages</div><table class="eng">${Object.entries(d.pages || {}).sort((a, b) => b[1] - a[1]).slice(0, 12).map(([k, v]) => `<tr><td>${esc(k)}</td><td>${v}</td></tr>`).join("") || `<tr><td class="muted">—</td></tr>`}</table></div></div>`;
+  out.innerHTML = html;
+  $("#audStatus").innerHTML = total
+    ? `<span style="color:#4ade80">${total.toLocaleString()} events across ${countries.length} countries.</span>`
+    : `<span style="color:#4ade80">Store connected — no visits recorded yet. Data appears once the live site gets traffic.</span>`;
 }
 
 // On load: if a saved password verifies, skip the gate; otherwise show it.
