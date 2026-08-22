@@ -111,10 +111,48 @@ function Gate({ onPass, isMobile }) {
   );
 }
 
+// SPX (Ethereum) — for the "open the cluster map" link (Bubblemaps renders the wallet bubbles).
+const SPX_ETH = "0xE0f63A424a4439cBE457d80e4f4b51ad25b2c56C";
+const shortAddr = a => a.slice(0, 6) + "…" + a.slice(-4);
+// One net-flow cell (SPX change): green when the cluster/wallet added, red when it reduced.
+const netSpxCell = v => {
+  if (v == null || Math.abs(v) < 1) return <td className="tmdz">·</td>;
+  const a = Math.abs(v), s = a >= 1e6 ? (a / 1e6).toFixed(2) + "M" : a >= 1e3 ? (a / 1e3).toFixed(0) + "k" : Math.round(a);
+  return <td className={v > 0 ? "tmup" : "tmdn"}>{(v > 0 ? "+" : "−") + s}</td>;
+};
+
+// Hover/tap the "N wallets" cell → a popover listing every member wallet as its own Zerion link
+// (the "multiple Zerion tooltips" for a cluster). Same viewport-positioned pattern as <Info>.
+function ClusterWallets({ c }) {
+  const [pos, setPos] = useState(null);
+  const ref = useRef(null);
+  const wl = c.wallets || [];
+  const open = () => { const r = ref.current?.getBoundingClientRect(); if (r) setPos({ x: r.left, y: r.bottom + 6 }); };
+  const close = () => setPos(null);
+  const fmt = v => v >= 1e6 ? (v / 1e6).toFixed(2) + "M" : v >= 1e3 ? (v / 1e3).toFixed(0) + "k" : Math.round(v || 0);
+  return (
+    <span className="tminfo" ref={ref} tabIndex={0} style={{ cursor: "pointer", color: "var(--live)" }}
+      onMouseEnter={open} onMouseLeave={close} onFocus={open} onBlur={close}
+      onClick={e => { e.stopPropagation(); pos ? close() : open(); }}>
+      {wl.length} wallets
+      {pos && <span className="tminfo-pop" role="tooltip" style={{ left: Math.max(8, Math.min(pos.x, (typeof window !== "undefined" ? window.innerWidth : 400) - 300)), top: pos.y, minWidth: 220, textAlign: "left" }}>
+        {wl.map(a => (
+          <a key={a} href={`https://app.zerion.io/${a}/overview`} target="_blank" rel="noopener" title={a}
+            style={{ display: "flex", justifyContent: "space-between", gap: 14, color: "var(--live)", textDecoration: "none", padding: "3px 0", fontFamily: "var(--mono)", fontSize: 12 }}>
+            <span>{shortAddr(a)}</span><span style={{ color: "var(--dim)" }}>{fmt(c.walletBal?.[a] || 0)}</span>
+          </a>
+        ))}
+        <div style={{ marginTop: 6, color: "var(--faint)", fontSize: 11, fontFamily: "var(--mono)" }}>each opens in Zerion ↗</div>
+      </span>}
+    </span>
+  );
+}
+
 export default function TerminalPage({ isMobile }) {
   const [ok, setOk] = useState(() => { try { return localStorage.getItem(TERMINAL_KEY) === "1"; } catch { return false; } });
   const [data, setData] = useState(undefined);   // undefined loading · null failed · object ok
   const [sm, setSm] = useState(undefined);       // smart-money.json (per-wallet detail — terminal only)
+  const [ent, setEnt] = useState(undefined);     // entities.json (wallet clusters — terminal reveals members)
 
   useEffect(() => {
     if (!ok) return;
@@ -122,6 +160,7 @@ export default function TerminalPage({ isMobile }) {
     const grab = (f, ok) => fetch(`/api/control?f=public/${f}&t=${Date.now()}`, { cache: "no-store" }).then(r => r.ok ? r.json() : null).then(d => { if (!off) ok(d); }).catch(() => { if (!off) ok(null); });
     grab("daily-snapshot.json", d => setData(d && d.sections ? d : null));
     grab("smart-money.json", d => setSm(d || null));
+    grab("entities.json", d => setEnt(Array.isArray(d?.entities) ? d.entities : Array.isArray(d?.clusters) ? d.clusters : Array.isArray(d) ? d : null));
     return () => { off = true; };
   }, [ok]);
 
@@ -261,6 +300,35 @@ export default function TerminalPage({ isMobile }) {
                       </td>
                       <td className="tmval">{fmtVal(w.bal, "spx")}</td>
                       {smNet(w.d1)}{smNet(w.d7)}{smNet(w.d30)}
+                    </tr>
+                  ))}</tbody>
+                </table>
+              </div>
+            </details>
+          </section>
+        );
+      })()}
+
+      {ent && Array.isArray(ent) && ent.length > 0 && (() => {
+        const clusters = ent.filter(c => !c.flagged && (c.bal || 0) > 0).sort((a, b) => (b.bal || 0) - (a.bal || 0)).slice(0, 12);
+        if (!clusters.length) return null;
+        return (
+          <section className="tmsec">
+            <div className="tmsectitle">Whale clusters · the owners
+              <Info text="Wallets the entity engine links into ONE owner from on-chain SPX fund/drain flows — the concentration a plain rich-list misses. Hover 'N wallets' to see the members (each opens in Zerion); 'open ↗' loads the cluster map. Net columns = the whole cluster's balance change over 24h/7d/30d. Flagged / over-merged clusters are excluded." />
+              <span> · top {clusters.length} by size</span></div>
+            <details className="tmdrop" open>
+              <summary style={{ cursor: "pointer", fontFamily: "var(--mono)", fontSize: 12.5, color: "var(--dim)", padding: "2px 0 10px", userSelect: "none" }}>reveal / hide clusters</summary>
+              <div className="tmtblwrap">
+                <table className="tmtbl">
+                  <thead><tr><th>owner</th><th>wallets</th><th>combined</th><th>24h</th><th>7d</th><th>30d</th><th></th></tr></thead>
+                  <tbody>{clusters.map((c, i) => (
+                    <tr key={c.id}>
+                      <td className="tmk"><span style={{ color: "var(--faint)", marginRight: 8 }}>{i + 1}</span>{shortAddr(c.id)}</td>
+                      <td><ClusterWallets c={c} /></td>
+                      <td className="tmval">{fmtVal(c.bal, "spx")}</td>
+                      {netSpxCell(c.d1)}{netSpxCell(c.d7)}{netSpxCell(c.d30)}
+                      <td><a href={`https://bubblemaps.io/eth/token/${SPX_ETH}`} target="_blank" rel="noopener" style={{ color: "var(--live)", textDecoration: "none" }}>open ↗</a></td>
                     </tr>
                   ))}</tbody>
                 </table>

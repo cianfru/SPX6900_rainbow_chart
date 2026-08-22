@@ -644,6 +644,13 @@
     public repo — owner accepted this (repo obscurity = the practical curtain; addresses are derivable from public chain data anyway).
     The exclusion applies to the cohort itself, so the AGGREGATE (heldNow/cohortSize) is independent-traders-only too. Data-gated: the
     `wallets` array appears after the next cron regenerates the JSON. Unit-tested (cluster exclusion + per-wallet output).
+  - **⭐ TERMINAL "WHALE CLUSTERS · THE OWNERS" SECTION (owner, 2026-08-22 — the flip side of independent traders).** Since the smart-money
+    cohort excludes clusters, the terminal also gets a dedicated CLUSTERS section (`TerminalPage.jsx`, reads `entities.json` via the
+    `/api/control` curtain): top clusters by combined balance (flagged/over-merged excluded), each row = owner # + cluster id + combined
+    SPX + net 24h/7d/30d. **Hovering "N wallets" pops a popover of the member wallets, each a Zerion link + its balance** (`ClusterWallets`
+    component, same viewport-positioned pattern as `Info`) — the "multiple Zerion tooltips" the owner asked for. **"open ↗" → Bubblemaps
+    token map** (the cluster page). Shared helpers `shortAddr`/`netSpxCell`. Net columns are data-gated on `entities.json` d1/d7/d30
+    (populate on the next onchain-dune run). This is the terminal-granular twin of the public (anonymized) Wallet Clusters chart.
   - **The aggregate history stays the hero** (the "NEVER a wallet named" rule is superseded by the two-layer reveal above). Read earlier: they
     accumulated ~76M under $0.03, distributed into the run-up, hold 30M, **NOT buying** (12w net −3.7%, 0 adding). **The net-flow
     view is the forward signal — it flips green the week they buy again.** `scripts/build-smart-money.mjs` → `public/smart-money.json`.
