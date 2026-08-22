@@ -633,7 +633,18 @@
     **invested ≥ $25k · realized ROI ≥ 5× · still holds ≥ 50k SPX → 26 wallets** (median 11×, banked $33M, hold ~$10M).
     **Recomputed every run** — dumps-to-zero drop, new proven+live winners join. ⚠ Qualification needs a REALIZED sell (a
     bottom-accumulator is invisible until it sells); on-chain has no identity (fresh wallet resets) — both stated on-surface.
-  - **AGGREGATE ONLY, NEVER a wallet named** (owner: keep it off the city, "people can start following them"). Read today: they
+  - **⭐⭐ TWO-LAYER WALLET REVEAL (owner amended the "never named" rule 2026-08-22).** The chain is already transparent (the city
+    makes wallets identifiable), so the point isn't secrecy — it's presentation. `build-smart-money.mjs` now emits a per-wallet
+    `wallets:[{a,bal,d1,d7,d30,roi}]` array (real addresses, sorted by bag), and **excludes any wallet in a multi-wallet cluster**
+    (`loadClustered` reads `entities.json` — union of all member wallets; ~4,228 excluded) so the cohort is **genuine independent
+    traders**, not one operator's split wallets. **PUBLIC layer** (`SmartMoneyChart.jsx`): anonymized "Wallet 1/2/3 · 30-day balance",
+    NO addresses. **TERMINAL layer** (`TerminalPage.jsx`, password curtain): a "Smart money · the wallets" dropdown revealing the REAL
+    short addresses (Zerion-linked + info tooltip w/ Etherscan) with 24h/7d/30d holding deltas. ⚠ Honest scope: the terminal reads the
+    same public `smart-money.json` via the `/api/control` curtain, so addresses ARE technically fetchable by someone who finds the
+    public repo — owner accepted this (repo obscurity = the practical curtain; addresses are derivable from public chain data anyway).
+    The exclusion applies to the cohort itself, so the AGGREGATE (heldNow/cohortSize) is independent-traders-only too. Data-gated: the
+    `wallets` array appears after the next cron regenerates the JSON. Unit-tested (cluster exclusion + per-wallet output).
+  - **The aggregate history stays the hero** (the "NEVER a wallet named" rule is superseded by the two-layer reveal above). Read earlier: they
     accumulated ~76M under $0.03, distributed into the run-up, hold 30M, **NOT buying** (12w net −3.7%, 0 adding). **The net-flow
     view is the forward signal — it flips green the week they buy again.** `scripts/build-smart-money.mjs` → `public/smart-money.json`.
     Card `smart-money-card.mjs` (`smartmoney`, LOOK dual) + site `SmartMoneyChart.jsx`. avg-cost proxy, caveated. The #1 candidate

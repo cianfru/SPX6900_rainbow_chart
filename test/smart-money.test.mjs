@@ -60,3 +60,17 @@ test("smartMoneyDaily qualifies live top-timers from raw transfers, daily grid",
   // 0xA crossed the ROI bar on the sell day → one new qualifier that day
   assert.ok(o.newQualifiers.some(([d, c]) => d === "2024-03-10" && c === 1));
 });
+
+test("emits per-wallet detail with balances (independent traders)", () => {
+  const o = smartMoney(tl, prices);
+  assert.ok(Array.isArray(o.wallets) && o.wallets.length === 1, "one wallet in the list");
+  assert.equal(o.wallets[0].a, "0xa");           // lowercased address
+  assert.equal(o.wallets[0].bal, 1_000_000);     // current bag
+});
+
+test("excludes wallets that belong to a multi-wallet cluster", () => {
+  const clustered = new Set(["0xa"]);            // 0xA is now flagged as part of a cluster
+  const o = smartMoney(tl, prices, { clustered });
+  assert.equal(o.cohortSize, 0, "the only qualifier is excluded as clustered");
+  assert.equal(o.wallets.length, 0);
+});

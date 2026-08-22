@@ -114,12 +114,14 @@ function Gate({ onPass, isMobile }) {
 export default function TerminalPage({ isMobile }) {
   const [ok, setOk] = useState(() => { try { return localStorage.getItem(TERMINAL_KEY) === "1"; } catch { return false; } });
   const [data, setData] = useState(undefined);   // undefined loading · null failed · object ok
+  const [sm, setSm] = useState(undefined);       // smart-money.json (per-wallet detail — terminal only)
 
   useEffect(() => {
     if (!ok) return;
     let off = false;
-    fetch(`/api/control?f=public/daily-snapshot.json&t=${Date.now()}`, { cache: "no-store" })
-      .then(r => r.ok ? r.json() : null).then(d => { if (!off) setData(d && d.sections ? d : null); }).catch(() => { if (!off) setData(null); });
+    const grab = (f, ok) => fetch(`/api/control?f=public/${f}&t=${Date.now()}`, { cache: "no-store" }).then(r => r.ok ? r.json() : null).then(d => { if (!off) ok(d); }).catch(() => { if (!off) ok(null); });
+    grab("daily-snapshot.json", d => setData(d && d.sections ? d : null));
+    grab("smart-money.json", d => setSm(d || null));
     return () => { off = true; };
   }, [ok]);
 
@@ -236,6 +238,37 @@ export default function TerminalPage({ isMobile }) {
           </div>
         </section>
       )}
+
+      {sm && Array.isArray(sm.wallets) && sm.wallets.length > 0 && (() => {
+        const short = a => a.slice(0, 6) + "…" + a.slice(-4);
+        const smNet = v => { if (v == null || Math.abs(v) < 1) return <td className="tmdz">·</td>; const a = Math.abs(v); const s = a >= 1e6 ? (a / 1e6).toFixed(2) + "M" : a >= 1e3 ? (a / 1e3).toFixed(0) + "k" : Math.round(a); return <td className={v > 0 ? "tmup" : "tmdn"}>{(v > 0 ? "+" : "−") + s}</td>; };
+        return (
+          <section className="tmsec">
+            <div className="tmsectitle">Smart money · the wallets
+              <Info text="The independent proven top-timers behind the aggregate: ≥$25k deployed, realized ≥5×, still holding ≥50k SPX — and NOT part of any multi-wallet cluster (so these are genuine solo traders). Real addresses, terminal-only; the public site shows them anonymized. Columns are the change in each wallet's held balance over 24h / 7d / 30d. Not a follow signal." />
+              <span> · {sm.wallets.length} independent traders</span></div>
+            <details className="tmdrop" open>
+              <summary style={{ cursor: "pointer", fontFamily: "var(--mono)", fontSize: 12.5, color: "var(--dim)", padding: "2px 0 10px", userSelect: "none" }}>reveal / hide wallets</summary>
+              <div className="tmtblwrap">
+                <table className="tmtbl">
+                  <thead><tr><th>wallet</th><th>held</th><th>24h</th><th>7d</th><th>30d</th></tr></thead>
+                  <tbody>{sm.wallets.map((w, i) => (
+                    <tr key={w.a}>
+                      <td className="tmk">
+                        <span style={{ color: "var(--faint)", marginRight: 8 }}>{i + 1}</span>
+                        <a href={`https://app.zerion.io/${w.a}/overview`} target="_blank" rel="noopener" title={w.a} style={{ color: "var(--live)", textDecoration: "none", fontFamily: "var(--mono)" }}>{short(w.a)}</a>
+                        <Info text={`${w.a}${w.roi ? ` · ${w.roi}× realized` : ""} — opens in Zerion. On Etherscan: etherscan.io/address/${w.a}`} />
+                      </td>
+                      <td className="tmval">{fmtVal(w.bal, "spx")}</td>
+                      {smNet(w.d1)}{smNet(w.d7)}{smNet(w.d30)}
+                    </tr>
+                  ))}</tbody>
+                </table>
+              </div>
+            </details>
+          </section>
+        );
+      })()}
 
       {S && S.sections.map((sec, si) => (
         <section className="tmsec" key={si}>

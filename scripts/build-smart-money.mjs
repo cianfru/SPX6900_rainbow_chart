@@ -36,8 +36,22 @@ function mkPriceAt(prices) {
   return (t) => { if (!px.length) return 0; let b = px[0].p; for (const r of px) { if (r.t <= t) b = r.p; else break; } return b; };
 }
 
+// Addresses the entity engine grouped into a multi-wallet cluster — excluded from the cohort so
+// "smart money" is INDEPENDENT traders, not one operator's split wallets gaming the ROI bar. Every
+// entity in entities.json is a multi-wallet cluster (single EOAs aren't listed), so the union of all
+// their member wallets is the exclusion set. Soft: no file → empty set → no exclusion.
+export function loadClustered(path = "public/entities.json") {
+  try {
+    const e = JSON.parse(readFileSync(path, "utf8"));
+    const arr = e.entities || e.clusters || (Array.isArray(e) ? e : []);
+    const s = new Set();
+    for (const x of arr) for (const w of (x.wallets || x.members || [])) s.add(String(w).toLowerCase());
+    return s;
+  } catch { return new Set(); }
+}
+
 // assemble the output object from an already-built series + cohort facts
-function assemble({ res, criteria, rois, realizedTotal, series, newQ, priceNow, updated }) {
+function assemble({ res, criteria, rois, realizedTotal, series, newQ, priceNow, updated, wallets }) {
   const N = series.length, held = series.map(s => s[1]);
   const heldNow = held.length ? held[N - 1] : 0;
   const back = (kWeeks) => { const rb = res === "daily" ? kWeeks * 7 : kWeeks; const past = held[Math.max(0, N - 1 - rb)]; return past > 0 ? +(100 * (heldNow - past) / past).toFixed(1) : 0; };
@@ -57,6 +71,9 @@ function assemble({ res, criteria, rois, realizedTotal, series, newQ, priceNow, 
     newQual90: newQ90,
     weeks: series.map(s => [s[0], Math.round(s[1]), Math.round(s[2]), s[3]]),
     newQualifiers: newQ,
+    // Per-wallet cohort detail — real addresses (the terminal reveals these; the public site anonymizes
+    // to "Wallet 1/2/3"). d1/d7/d30 = change in the wallet's held balance (SPX) over 1/7/30 days.
+    wallets: wallets || [],
   };
 }
 
@@ -65,10 +82,12 @@ export function smartMoney(tl, prices, opts = {}) {
   const minInv = opts.minInvested ?? MIN_INVESTED, minRoi = opts.minRoi ?? MIN_ROI, minHold = opts.minHold ?? MIN_HOLD;
   const week0 = Date.parse(tl.week0), N = tl.n, W = N - 1;
   const priceAt = mkPriceAt(prices), wkT = (wk) => week0 + wk * 7 * DAY, pAtWk = (wk) => priceAt(wkT(wk));
+  const clustered = opts.clustered || new Set();
 
   const cohort = [], rois = []; let realizedTotal = 0;
   const qualByWk = new Array(N).fill(0);
   for (const w of tl.wallets) {
+    if (clustered.has(String(w.a || "").toLowerCase())) continue;   // independent traders only
     let pos = 0, avg = 0, realized = 0, spent = 0, prev = 0, qWk = -1;
     for (const [wk, bal] of w.p) {
       const d = bal - prev, pr = pAtWk(wk);
@@ -86,7 +105,10 @@ export function smartMoney(tl, prices, opts = {}) {
   const series = [];
   for (let wk = 0; wk < N; wk++) series.push([dayStr(wkT(wk)), held[wk], wk ? held[wk] - held[wk - 1] : 0, +pAtWk(wk).toFixed(6)]);
   const newQ = qualByWk.map((c, wk) => [dayStr(wkT(wk)), c]).filter(([, c]) => c > 0);
-  return assemble({ res: "weekly", criteria: { minInvested: minInv, minRoi, minHold }, rois, realizedTotal, series, newQ, priceNow: pAtWk(W), updated: tl.updated });
+  const wallets = cohort.map(w => { const now = balanceAt(w.p, W), at = k => balanceAt(w.p, Math.max(0, k));
+    return { a: String(w.a || "").toLowerCase(), bal: Math.round(now), d1: 0, d7: Math.round(now - at(W - 1)), d30: Math.round(now - at(W - 4)) };
+  }).sort((x, y) => y.bal - x.bal);
+  return assemble({ res: "weekly", criteria: { minInvested: minInv, minRoi, minHold }, rois, realizedTotal, series, newQ, priceNow: pAtWk(W), updated: tl.updated, wallets });
 }
 
 // ---- DAILY, from the raw transfer archive (the north star) ----
@@ -108,15 +130,27 @@ export function smartMoneyDaily(rows, prices, opts = {}) {
   };
   for (const r of rows) { touch(r.from, -r.qty, r.t); touch(r.to, r.qty, r.t); }
 
-  // qualify the LIVE cohort
+  // qualify the LIVE cohort — INDEPENDENT traders only (skip anything in a multi-wallet cluster)
+  const clustered = opts.clustered || new Set();
   const cohort = new Set(), rois = []; let realizedTotal = 0;
-  for (const [addr, a] of A) { const roi = a.spent > 0 ? a.realized / a.spent : 0; if (a.spent >= minInv && roi >= minRoi && a.realized > 0 && a.pos >= minHold) { cohort.add(addr); rois.push(roi); realizedTotal += a.realized; } }
+  for (const [addr, a] of A) { if (clustered.has(addr)) continue; const roi = a.spent > 0 ? a.realized / a.spent : 0; if (a.spent >= minInv && roi >= minRoi && a.realized > 0 && a.pos >= minHold) { cohort.add(addr); rois.push(roi); realizedTotal += a.realized; } }
 
-  // pass 2: cohort aggregate balance forward through time → end-of-day snapshots
+  // pass 2: cohort aggregate balance forward through time → end-of-day snapshots, plus per-wallet
+  // balance snapshots at 1/7/30 days ago (rows are time-sorted, so snapshot when we first cross each cut)
   const bal = new Map([...cohort].map(a => [a, 0]));
   let agg = 0; const byDay = new Map();
   const move = (addr, d) => { if (!cohort.has(addr)) return; const b = bal.get(addr), nb = Math.max(0, b + d); agg += nb - b; bal.set(addr, nb); };
-  for (const r of rows) { move(r.from, -r.qty); move(r.to, r.qty); byDay.set(dayStr(r.t), agg); }
+  const nowT = Math.max(rows.length ? rows.at(-1).t : 0, Date.now());
+  const cuts = [["d1", nowT - DAY], ["d7", nowT - 7 * DAY], ["d30", nowT - 30 * DAY]].sort((a, b) => a[1] - b[1]);
+  const snaps = {}; let ci = 0;
+  for (const r of rows) {
+    while (ci < cuts.length && r.t > cuts[ci][1]) { snaps[cuts[ci][0]] = new Map(bal); ci++; }
+    move(r.from, -r.qty); move(r.to, r.qty); byDay.set(dayStr(r.t), agg);
+  }
+  while (ci < cuts.length) { snaps[cuts[ci][0]] = new Map(bal); ci++; }
+  const wallets = [...cohort].map(a => { const now = bal.get(a) || 0; const at = k => snaps[k]?.get(a) ?? now;
+    return { a, bal: Math.round(now), d1: Math.round(now - at("d1")), d7: Math.round(now - at("d7")), d30: Math.round(now - at("d30")), roi: +(A.get(a).spent > 0 ? A.get(a).realized / A.get(a).spent : 0).toFixed(1) };
+  }).sort((x, y) => y.bal - x.bal);
 
   // daily grid, forward-filled, launch → today
   const t0 = Date.parse(dayStr(rows.length ? rows[0].t : Date.now()));
@@ -124,7 +158,7 @@ export function smartMoneyDaily(rows, prices, opts = {}) {
   const series = []; let lastHeld = 0, prevHeld = 0;
   for (let t = t0; t <= tEnd; t += DAY) { const k = dayStr(t); if (byDay.has(k)) lastHeld = byDay.get(k); series.push([k, lastHeld, lastHeld - prevHeld, +priceAt(t).toFixed(6)]); prevHeld = lastHeld; }
   const newQ = [...qualByDay.entries()].sort((a, b) => a[0] < b[0] ? -1 : 1).map(([d, c]) => [d, c]);
-  return assemble({ res: "daily", criteria: { minInvested: minInv, minRoi, minHold }, rois, realizedTotal, series, newQ, priceNow: priceAt(tEnd), updated: dayStr(tEnd) });
+  return assemble({ res: "daily", criteria: { minInvested: minInv, minRoi, minHold }, rois, realizedTotal, series, newQ, priceNow: priceAt(tEnd), updated: dayStr(tEnd), wallets });
 }
 
 async function loadTransfers(src) {
@@ -145,15 +179,17 @@ async function main() {
   const transfers = arg("transfers"), timeline = arg("in"), out = arg("out") || "public/smart-money.json";
   let prices = null;
   try { prices = JSON.parse(readFileSync(arg("prices") || "public/price-history.json", "utf8")); } catch { console.error("prices required for ROI"); process.exit(1); }
+  const clustered = loadClustered(arg("entities") || "public/entities.json");
+  console.error(`smart-money: excluding ${clustered.size} clustered wallets (independent traders only)`);
   let o;
   if (transfers) {
     const rows = await loadTransfers(transfers);
     console.error(`smart-money[daily]: ${rows.length} transfers`);
-    o = smartMoneyDaily(rows, prices);
+    o = smartMoneyDaily(rows, prices, { clustered });
   } else {
     const tl = JSON.parse(readFileSync(timeline || "public/spx-timeline.json", "utf8"));
     if (!Array.isArray(tl.wallets) || !tl.n) { console.error("bad timeline input"); process.exit(1); }
-    o = smartMoney(tl, prices);
+    o = smartMoney(tl, prices, { clustered });
   }
   writeFileSync(out, JSON.stringify(o));
   console.log(`smart-money[${o.res}]: ${o.cohortSize} live · hold ${(o.heldNow / 1e6).toFixed(1)}M (~$${(o.heldUsd / 1e6).toFixed(1)}M) · median ${o.medianRoi}x · ` +

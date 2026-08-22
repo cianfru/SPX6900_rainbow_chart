@@ -77,7 +77,7 @@ export default function SmartMoneyChart({ isMobile, initialView }) {
     <div style={{ maxWidth: MAX_W, margin: "0 auto" }}>
       <Explain q="What is SPX6900's smart money doing?" accent="#f6a23c">
         The <strong style={{ color: "#f6a23c" }}>proven top-timers</strong>, wallets that put in real capital (≥$25k), booked a <strong style={{ color: "#e2e8f0" }}>≥5× return by actually selling</strong>, and still hold a bag.
-        They <strong style={{ color: "#e2e8f0" }}>accumulated cheap and distributed into the run-up</strong>. Recomputed every refresh, so it's a living desk, and <strong style={{ color: "#e2e8f0" }}>aggregate only, no wallet named</strong>.
+        They <strong style={{ color: "#e2e8f0" }}>accumulated cheap and distributed into the run-up</strong>. Recomputed every refresh, so it's a living desk. Wallets are shown <strong style={{ color: "#e2e8f0" }}>anonymized (Wallet 1, 2, 3…)</strong> — independent traders, no follow-list.
         Right now they're <strong style={{ color: flowVerb.c }}>{flowVerb.t}</strong>; the net-flow flips green the week they start buying again.
       </Explain>
 
@@ -91,6 +91,22 @@ export default function SmartMoneyChart({ isMobile, initialView }) {
         <Metric label="median return" value={S.medianRoi + "×"} color="#4ade80" sub="realized" />
         <Metric label="new (90d)" value={S.newQual90 ?? 0} color={S.newQual90 > 3 ? "#f43f5e" : "#94a3b8"} sub="minted top-sellers" />
       </div>
+
+      {/* The wallets, anonymized (public layer): independent traders only, current bag + 30-day move.
+          Real addresses live on the password-gated terminal. */}
+      {Array.isArray(S.wallets) && S.wallets.length > 0 && (
+        <div style={{ maxWidth: 560, margin: "2px auto 18px", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 12, background: "rgba(255,255,255,0.02)", padding: "12px 15px" }}>
+          <div style={{ fontFamily: MONO, fontSize: 11, letterSpacing: ".1em", textTransform: "uppercase", color: "#94a3b8", marginBottom: 8 }}>The wallets · 30-day balance</div>
+          {S.wallets.slice(0, 12).map((w, i) => (
+            <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, padding: "6px 0", borderTop: i ? "1px solid rgba(255,255,255,0.05)" : "none", fontFamily: MONO, fontSize: 13 }}>
+              <span style={{ color: "#e2e8f0", fontWeight: 600, flex: "1 1 auto" }}>Wallet {i + 1}</span>
+              <span style={{ color: "#f6a23c", minWidth: 92, textAlign: "right" }}>{fmtM(w.bal)} SPX</span>
+              <span style={{ color: (w.d30 || 0) > 0 ? GRN : (w.d30 || 0) < 0 ? RED : "#64748b", minWidth: 96, textAlign: "right" }}>{(w.d30 || 0) === 0 ? "flat 30d" : (w.d30 > 0 ? "+" : "−") + fmtM(Math.abs(w.d30)) + " 30d"}</span>
+            </div>
+          ))}
+          <div style={{ fontFamily: SANS, fontSize: 11.5, color: "#64748b", marginTop: 10, lineHeight: 1.5 }}>Anonymized on purpose — these are independent traders (not whale clusters). The chain is public; we just don't hand out a follow-list.</div>
+        </div>
+      )}
 
       {view === "holdings" ? (
         <ResponsiveContainer width="100%" height={isMobile ? 400 : 560}>
