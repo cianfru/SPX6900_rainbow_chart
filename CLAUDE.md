@@ -26,6 +26,15 @@
   Cost Basis Terrain · Smart Money · SPX City). Public gallery still shows those charts as locked teasers.
   - **⚠ STILL A CURTAIN — fine for the FREE beta, MUST become a real wall before charging.** Data is public JSON via the raw proxy;
     codes are client-side. Before money: KV + magic-link + move the granular JSON behind an authed endpoint (the P2 plan below).
+  - **✅ FRESHNESS + FLASHING EXTREMES (owner, 2026-08-22 — SPX pumped ~40%, funding hit ~112% APR, but the desk showed "stretched · 0%").**
+    Three fixes: (1) **funding bug** — `valuation-check.mjs` showed `hlFunding × 100` (a per-hour rate → rounds to 0%); now ANNUALISED
+    (`× 24 × 365 × 100`) so it reads the real **~112% APR** and ranks 100/100 stretched. (2) **NEW "20-week heat" gauge** (price vs its
+    140-day average, % above/below) so "price is stretched" surfaces with a value. (3) **LIVE + FLASHING** — new `api/hl.js` proxies
+    Hyperliquid `metaAndAssetCtxs` for CURRENT funding APR + OI (no CORS, ~60s cache), Deep Field pulls it every 90s, and a **flashing
+    "⚠ heads-up · short-term overheated" banner** now sits at the TOP of the page: pills for each stretched gauge (pct≥85) + the live
+    funding ("Traders paying ~118% APR to be long · LIVE"), with a plain combined caution. `.tmflash` keyframe (respects reduced-motion).
+    So a funding spike surfaces immediately, not a day late. ⚠ the baked `conditions` (heat20 + APR funding) update on the next
+    daily-snapshot cron; the live funding pill works now via `/api/hl`. Banner threshold knob: pct≥85 / APR≥40 in TerminalPage.
   - **🔲 NEXT (Deep Field):** Phase 2 = polish the members menu + retheme the public locked tiles as "Deep Field · request access".
     Phase 3 (only when charging) = authed endpoint + Stripe $2.99/mo (owner: monthly only, no annual — project young, uncertain).
 

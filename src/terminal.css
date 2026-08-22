@@ -414,6 +414,20 @@ html:not([data-theme="light"]) .tzone [style*="rgb(100, 116, 139)"]{ color:#b1bc
 .tzone .tmsub{ font-family:var(--sans); font-size:15.5px; color:var(--dim); line-height:1.5; max-width:760px; }
 .tzone .tmalerts{ margin:18px 0 4px; display:flex; flex-direction:column; gap:9px; }
 .tzone .tmalert{ font-family:var(--sans); font-size:15px; font-weight:600; color:var(--tx); background:color-mix(in srgb, var(--live) 14%, transparent); border:1px solid color-mix(in srgb, var(--live) 55%, transparent); border-left:4px solid var(--live); border-radius:0; padding:11px 14px; }
+/* Extremes banner — surfaces σ / stretched signals at the very top, flashing when overheated */
+.tzone .tmbanner{ margin:18px 0 6px; border-radius:0; padding:13px 16px; border:1px solid; }
+.tzone .tmbanner-hot{ background:color-mix(in srgb, #fb7185 14%, transparent); border-color:color-mix(in srgb, #fb7185 60%, transparent); border-left:4px solid #fb7185; }
+.tzone .tmbanner-cold{ background:color-mix(in srgb, #4ade80 12%, transparent); border-color:color-mix(in srgb, #4ade80 55%, transparent); border-left:4px solid #4ade80; }
+.tzone .tmbanner-h{ font-family:var(--mono); font-size:14px; font-weight:700; letter-spacing:.04em; color:var(--tx); display:flex; align-items:center; gap:10px; margin-bottom:9px; }
+.tzone .tmbanner-live{ font-family:var(--mono); font-size:10px; font-weight:700; letter-spacing:.12em; color:#fb7185; border:1px solid color-mix(in srgb,#fb7185 60%,transparent); border-radius:999px; padding:1px 8px; }
+.tzone .tmbanner-items{ display:flex; flex-wrap:wrap; gap:8px; margin-bottom:9px; }
+.tzone .tmbanner-pill{ font-family:var(--mono); font-size:13px; font-weight:600; padding:4px 11px; border-radius:999px; }
+.tzone .tmbanner-pill.hot{ background:color-mix(in srgb,#fb7185 20%,transparent); color:#fecdd3; }
+.tzone .tmbanner-pill.cold{ background:color-mix(in srgb,#4ade80 18%,transparent); color:#bbf7d0; }
+.tzone .tmbanner-note{ font-family:var(--sans); font-size:13px; line-height:1.55; color:var(--dim); }
+.tzone .tmflash{ animation:tmflash 1.6s ease-in-out infinite; }
+@keyframes tmflash{ 0%,100%{ box-shadow:0 0 0 0 rgba(251,113,133,.0); border-left-color:#fb7185; } 50%{ box-shadow:0 0 22px 0 rgba(251,113,133,.35); border-left-color:#fecdd3; } }
+@media (prefers-reduced-motion: reduce){ .tzone .tmflash{ animation:none; } }
 .tzone .tmsec{ margin:28px 0 4px; }
 .tzone .tmsec-lead{ margin-top:22px; }
 .tzone .tmsectitle{ font-family:var(--sans); font-size:16px; font-weight:800; letter-spacing:-.01em; text-transform:uppercase; color:var(--tx); margin:0 0 8px; padding-bottom:7px; border-bottom:1px solid var(--line2); }

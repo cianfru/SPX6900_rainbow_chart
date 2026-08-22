@@ -80,10 +80,17 @@ export function valuationCheck(feeds) {
   rows.push(gauge("sip", "Coins sitting in a profit", "share of all supply currently above its cost", "pctPlain", "low", col("sip")));
   rows.push(gauge("drawdown", "Drop from the all-time high", `how far below the $${(+ath).toFixed(2)} peak the price is`, "pct", "low", spot.map(p => (p / ath - 1) * 100)));
   rows.push(gauge("nrpl", "Profit vs. loss being cashed in", "are sellers, on net, locking in gains (+) or losses (−)", "usdm", "low", col("nrpl")));
-  // crowd positioning (perp funding on Hyperliquid) — universal sentiment; positive = crowd paying to be long
+  // 20-week (140-day) heat — how stretched price is above/below its own 20-week average. High = the
+  // short-term move has run far ahead of trend (overheated); this is the "price is stretched" read.
+  const MA = 140;
+  const heat = spot.map((p, i) => { if (i < MA - 1 || !(p > 0)) return null; let s = 0, n = 0; for (let k = i - MA + 1; k <= i; k++) { if (spot[k] > 0) { s += spot[k]; n++; } } return n ? (p / (s / n) - 1) * 100 : null; });
+  rows.push(gauge("heat20", "20-week heat", "how far price is above (+) or below (−) its 20-week average — high = short-term overheated", "pct", "low", heat));
+  // crowd positioning (perp funding on Hyperliquid), shown as ANNUALISED APR — funding is charged
+  // hourly, so APR (hourly × 24 × 365) is the readable magnitude the crowd actually pays. Positive =
+  // paying to be long (greed); the percentile ranks it against SPX's own funding history.
   const ls = Array.isArray(longshort) ? longshort : (longshort?.days || longshort?.rows);
   if (Array.isArray(ls) && ls.length >= 60) {
-    const g = gauge("funding", "Traders' positioning", "positive = the crowd pays to be long (greed); negative = pays to be short (fear)", "pct", "low", ls.map(r => (r.hlFunding != null ? r.hlFunding * 100 : null)));
+    const g = gauge("funding", "Traders' positioning", "the annualised rate longs pay shorts — high + = crowd paying up to be long (greed / overheated)", "pct", "low", ls.map(r => (r.hlFunding != null ? r.hlFunding * 24 * 365 * 100 : null)));
     if (g) rows.push(g);
   }
 
@@ -99,10 +106,13 @@ export function valuationCheck(feeds) {
 if (import.meta.url === `file://${process.argv[1]}`) {
   const { readFileSync, writeFileSync, existsSync } = await import("node:fs");
   const rd = f => { try { return existsSync(f) ? JSON.parse(readFileSync(f, "utf8")) : null; } catch { return null; } };
-  const out = (process.argv.find(a => a.startsWith("--out=")) || "--out=public/valuation-check.json").slice(6);
+  // This is an inspect tool — the conditions are BAKED INTO daily-snapshot.json by the cron (which
+  // imports valuationCheck). Only write a standalone file when an explicit --out is given, so a bare
+  // debug run never drops an undeclared feed into public/.
+  const outArg = process.argv.find(a => a.startsWith("--out="));
   const r = valuationCheck({ onchain: rd("public/onchain.json") || [], longshort: rd("public/longshort.json"), valuation: rd("public/valuation.json") });
   if (!r) { console.error("valuation-check: not enough data"); process.exit(0); }
-  writeFileSync(out, JSON.stringify(r));
+  if (outArg) writeFileSync(outArg.slice(6), JSON.stringify(r));
   console.error(`market-conditions ${r.date}: score ${r.score}/100 · ${r.cheap} cheap · ${r.rich} rich`);
   for (const s of r.rows) console.error(`  ${s.label.padEnd(32)} ${String(s.reading).padStart(9)}  ${s.pct}/100  ${s.state}`);
 }

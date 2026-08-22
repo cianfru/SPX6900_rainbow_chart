@@ -167,6 +167,7 @@ export default function TerminalPage({ isMobile }) {
   const [data, setData] = useState(undefined);   // undefined loading · null failed · object ok
   const [sm, setSm] = useState(undefined);       // smart-money.json (per-wallet detail — terminal only)
   const [ent, setEnt] = useState(undefined);     // entities.json (wallet clusters — terminal reveals members)
+  const [hl, setHl] = useState(null);            // LIVE Hyperliquid funding/OI (real-time, not yesterday's mean)
 
   useEffect(() => {
     if (!ok) return;
@@ -175,7 +176,10 @@ export default function TerminalPage({ isMobile }) {
     grab("daily-snapshot.json", d => setData(d && d.sections ? d : null));
     grab("smart-money.json", d => setSm(d || null));
     grab("entities.json", d => setEnt(Array.isArray(d?.entities) ? d.entities : Array.isArray(d?.clusters) ? d.clusters : Array.isArray(d) ? d : null));
-    return () => { off = true; };
+    // Live positioning — refreshed on load + every 90s so a funding spike surfaces without a cron.
+    const pullHl = () => fetch("/api/hl", { cache: "no-store" }).then(r => r.ok ? r.json() : null).then(d => { if (!off && d?.ok) setHl(d); }).catch(() => {});
+    pullHl(); const iv = setInterval(pullHl, 90000);
+    return () => { off = true; clearInterval(iv); };
   }, [ok]);
 
   if (!ok) return <Gate onPass={() => setOk(true)} isMobile={isMobile} />;
@@ -194,6 +198,29 @@ export default function TerminalPage({ isMobile }) {
           {S === undefined ? "loading the desk…" : S ? <>{S.date || ""} · SPX ${(S.spot || 0).toFixed(4)}</> : "snapshot unavailable — try again in a minute"}
         </div>
       </div>
+
+      {(() => {
+        const rows = (S && S.conditions && S.conditions.rows) || [];
+        const hot = rows.filter(r => r.pct >= 85);      // stretched / overheated
+        const cold = rows.filter(r => r.pct <= 12);     // deep value
+        const liveAPR = hl && hl.ok !== false && hl.fundingAPR != null ? hl.fundingAPR : null;
+        const items = [];
+        hot.forEach(r => { if (r.key === "funding" && liveAPR != null) return; items.push({ txt: `${r.label} ${r.reading} · ${r.state}`, hot: true }); });
+        if (liveAPR != null && liveAPR >= 40) items.push({ txt: `Traders paying ~${Math.round(liveAPR)}% APR to be long`, hot: true, live: true });
+        cold.forEach(r => items.push({ txt: `${r.label} ${r.reading} · ${r.state}`, hot: false }));
+        if (!items.length) return null;
+        const danger = items.some(i => i.hot);
+        const note = danger
+          ? "Price has run ahead of trend and the crowd is paying up to be long — momentum can persist, but this is where pullbacks tend to start. A caution on timing, not a sell call."
+          : "Several gauges sit near their cheapest ever — historically an accumulation zone, not a buy call.";
+        return (
+          <div className={"tmbanner " + (danger ? "tmbanner-hot tmflash" : "tmbanner-cold")}>
+            <div className="tmbanner-h">{danger ? "⚠ Heads-up · short-term overheated" : "🟢 Deep-value signals"}{liveAPR != null && <span className="tmbanner-live">LIVE</span>}</div>
+            <div className="tmbanner-items">{items.map((it, i) => <span key={i} className={"tmbanner-pill " + (it.hot ? "hot" : "cold")}>{it.txt}</span>)}</div>
+            <div className="tmbanner-note">{note}</div>
+          </div>
+        );
+      })()}
 
       <section className="tmsec">
         <div className="tmsectitle">Deep Field · charts
