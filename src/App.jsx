@@ -907,7 +907,7 @@ export default function App() {
   // Sub-pages (everything but home + the ?view=next landing preview) wear the terminal
   // shell: near-black ground, Geist type, the DOS cascade nav. Home + the iframe landing
   // keep their own chrome untouched.
-  const isSub = ["gallery", "chart", "aeon", "city", "docs", "rainbow", "terminal"].includes(route);
+  const isSub = ["gallery", "chart", "aeon", "city", "docs", "rainbow", "terminal", "wallet"].includes(route);
 
   return (
     <div className={isSub ? "tzone" : undefined} style={{

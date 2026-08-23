@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { ResponsiveContainer, ComposedChart, Line, Scatter, Area, XAxis, YAxis, ZAxis, Tooltip, CartesianGrid, ReferenceLine } from "recharts";
 import { loadSmartMoney, loadPriceHistory } from "./history-data.js";
 import { walletGradient } from "./WalletCard.jsx";
-import { SANS, MONO, MAX_W, TipBox } from "./chart-ui.jsx";
+import { MONO, MAX_W, TipBox } from "./chart-ui.jsx";
 import { TERMINAL_KEY } from "./terminal-gate-key.js";
 
 // PER-WALLET PAGE (terminal-tier, ?view=wallet&addr=0x…). Shows where a smart-money wallet BOUGHT
@@ -21,9 +21,9 @@ const fDay = t => new Date(t).toLocaleDateString("en-US", { month: "short", day:
 function Tile({ label, value, color, sub }) {
   return (
     <div style={{ minWidth: 118 }}>
-      <div style={{ fontFamily: MONO, fontSize: 10.5, letterSpacing: ".08em", textTransform: "uppercase", color: "#64748b" }}>{label}</div>
-      <div style={{ fontFamily: MONO, fontSize: 22, fontWeight: 700, color: color || "#e2e8f0", lineHeight: 1.15 }}>{value}</div>
-      {sub && <div style={{ fontFamily: MONO, fontSize: 11, color: "#8592a6" }}>{sub}</div>}
+      <div style={{ fontFamily: "var(--mono)", fontSize: 11, letterSpacing: ".08em", textTransform: "uppercase", color: "var(--dim)" }}>{label}</div>
+      <div style={{ fontFamily: "var(--mono)", fontSize: 23, fontWeight: 700, color: color || "var(--tx)", lineHeight: 1.15 }}>{value}</div>
+      {sub && <div style={{ fontFamily: "var(--mono)", fontSize: 11.5, color: "var(--dim)" }}>{sub}</div>}
     </div>
   );
 }
@@ -55,16 +55,16 @@ export default function WalletDetail({ wallet, price, isMobile }) {
   }, [w, px]);
 
   if (!unlocked) return (
-    <div style={{ maxWidth: 620, margin: "72px auto", textAlign: "center", fontFamily: SANS, color: "#94a3b8" }}>
+    <div style={{ maxWidth: 620, margin: "72px auto", textAlign: "center", fontFamily: "var(--sans)", color: "var(--dim)" }}>
       <div style={{ fontSize: 38, marginBottom: 10 }}>🔒</div>
-      <p>Wallet pages are part of the Terminal. <a href="/terminal" style={{ color: "#5eead4" }}>Open the Terminal →</a></p>
+      <p>Wallet pages are part of Deep Field. <a href="/deepfield" style={{ color: "var(--live)" }}>Open Deep Field →</a></p>
     </div>
   );
-  if (sm === undefined || px === null) return <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Loading…</div>;
+  if (sm === undefined || px === null) return <div style={{ textAlign: "center", fontFamily: "var(--mono)", color: "var(--faint)", padding: 60 }}>loading wallet…</div>;
   if (!w) return (
-    <div style={{ maxWidth: 620, margin: "72px auto", textAlign: "center", fontFamily: SANS, color: "#94a3b8" }}>
-      <p>No smart-money detail for <span style={{ fontFamily: MONO }}>{short(addr)}</span> yet.</p>
-      <p style={{ fontSize: 13, color: "#64748b" }}>The per-wallet lots appear after the next daily on-chain refresh. <a href="/terminal" style={{ color: "#5eead4" }}>Back to the Terminal →</a></p>
+    <div style={{ maxWidth: 620, margin: "72px auto", textAlign: "center", fontFamily: "var(--sans)", color: "var(--dim)" }}>
+      <p>No smart-money detail for <span style={{ fontFamily: "var(--mono)", color: "var(--tx)" }}>{short(addr)}</span> yet.</p>
+      <p style={{ fontSize: 13, color: "var(--faint)" }}>The per-wallet lots appear after the next daily on-chain refresh. <a href="/deepfield" style={{ color: "var(--live)" }}>Back to Deep Field →</a></p>
     </div>
   );
 
@@ -76,18 +76,23 @@ export default function WalletDetail({ wallet, price, isMobile }) {
   const inProfit = live >= avg;
 
   return (
-    <div style={{ maxWidth: MAX_W, margin: "0 auto", fontFamily: SANS }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 6, flexWrap: "wrap" }}>
-        <a href="/terminal" style={{ fontFamily: MONO, fontSize: 12, color: "#64748b", textDecoration: "none" }}>← terminal</a>
-        <div style={{ width: 30, height: 30, borderRadius: 8, background: walletGradient(addr), flex: "none" }} />
-        <h2 style={{ fontFamily: MONO, fontSize: isMobile ? 20 : 26, fontWeight: 700, color: "#e2e8f0", margin: 0, letterSpacing: "-0.01em" }}>{short(addr)}</h2>
-        <span style={{ fontFamily: MONO, fontSize: 12, padding: "3px 9px", borderRadius: 999, background: inProfit ? "rgba(74,222,128,0.14)" : "rgba(244,63,94,0.14)", color: inProfit ? GRN : RED }}>{inProfit ? "in profit" : "underwater"}</span>
-        <div style={{ marginLeft: "auto", display: "flex", gap: 8, fontFamily: MONO, fontSize: 12.5 }}>
-          <a href={`https://app.zerion.io/${addr}/overview`} target="_blank" rel="noopener" style={{ color: "#5eead4", textDecoration: "none" }}>Zerion ↗</a>
-          <a href={`https://etherscan.io/address/${addr}`} target="_blank" rel="noopener" style={{ color: "#94a3b8", textDecoration: "none" }}>Etherscan ↗</a>
-        </div>
+    <div className="tchart" style={{ maxWidth: MAX_W, margin: "0 auto", fontFamily: "var(--sans)" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14, flexWrap: "wrap" }}>
+        <a href="/deepfield" style={{ fontFamily: "var(--mono)", fontSize: 12, letterSpacing: ".1em", textTransform: "uppercase", color: "var(--dim)", textDecoration: "none" }}>← Deep Field</a>
+        <span style={{ marginLeft: "auto", display: "flex", gap: 12, fontFamily: "var(--mono)", fontSize: 12.5 }}>
+          <a href={`https://app.zerion.io/${addr}/overview`} target="_blank" rel="noopener" style={{ color: "var(--live)", textDecoration: "none" }}>Zerion ↗</a>
+          <a href={`https://etherscan.io/address/${addr}`} target="_blank" rel="noopener" style={{ color: "var(--dim)", textDecoration: "none" }}>Etherscan ↗</a>
+        </span>
       </div>
-      <div style={{ height: 3, borderRadius: 2, background: "linear-gradient(90deg,#f6a23c,#4ade80,#22d3ee)", maxWidth: 520, margin: "6px 0 18px" }} />
+      <div style={{ fontFamily: "var(--mono)", fontSize: 12, letterSpacing: ".04em", color: "var(--live)", marginBottom: 10 }}>
+        <span style={{ color: "var(--faint)" }}>spx6900 ~ %</span> open wallet/{short(addr)}
+      </div>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 2, flexWrap: "wrap" }}>
+        <div style={{ width: 30, height: 30, borderRadius: 8, background: walletGradient(addr), flex: "none" }} />
+        <h2 style={{ fontFamily: "var(--sans)", fontSize: isMobile ? 26 : 40, fontWeight: 800, color: "var(--tx)", margin: 0, letterSpacing: "-0.02em" }}>{short(addr)}</h2>
+        <span style={{ fontFamily: "var(--mono)", fontSize: 12, padding: "3px 9px", borderRadius: 999, background: inProfit ? "rgba(74,222,128,0.14)" : "rgba(244,63,94,0.14)", color: inProfit ? GRN : RED }}>{inProfit ? "in profit" : "underwater"}</span>
+      </div>
+      <div style={{ height: 3, borderRadius: 2, background: "var(--rainbow)", maxWidth: 620, margin: "13px 0 18px" }} />
 
       <div style={{ display: "flex", gap: isMobile ? 16 : 28, flexWrap: "wrap", margin: "0 0 18px" }}>
         <Tile label="holds now" value={fM(bag) + " SPX"} sub={fUsd(bag * live)} />
@@ -97,7 +102,7 @@ export default function WalletDetail({ wallet, price, isMobile }) {
         <Tile label="total P&L" value={fUsd(total)} color={total >= 0 ? GRN : RED} sub="realized + unrealized" />
       </div>
 
-      <div style={{ fontFamily: MONO, fontSize: 12, color: "#94a3b8", margin: "0 0 6px" }}>WHERE IT BOUGHT &amp; SOLD · <span style={{ color: GRN }}>● buys</span> · <span style={{ color: RED }}>▲ sells</span> · size = amount</div>
+      <div style={{ fontFamily: "var(--mono)", fontSize: 12.5, color: "var(--dim)", margin: "0 0 6px" }}>WHERE IT BOUGHT &amp; SOLD · <span style={{ color: GRN }}>● buys</span> · <span style={{ color: RED }}>▲ sells</span> · size = amount</div>
       <ResponsiveContainer width="100%" height={isMobile ? 340 : 480}>
         <ComposedChart data={model.priceSeries} margin={{ top: 10, right: 20, left: 6, bottom: 6 }}>
           <CartesianGrid stroke="rgba(255,255,255,0.05)" vertical={false} />
@@ -122,7 +127,7 @@ export default function WalletDetail({ wallet, price, isMobile }) {
         </ComposedChart>
       </ResponsiveContainer>
 
-      <div style={{ fontFamily: MONO, fontSize: 12, color: "#94a3b8", margin: "22px 0 6px" }}>REALIZED P&amp;L OVER TIME <span style={{ color: "#64748b" }}>· booked on each sale (cumulative) · unrealized shown live above</span></div>
+      <div style={{ fontFamily: "var(--mono)", fontSize: 12.5, color: "var(--dim)", margin: "22px 0 6px" }}>REALIZED P&amp;L OVER TIME <span style={{ color: "var(--faint)" }}>· booked on each sale (cumulative) · unrealized shown live above</span></div>
       <ResponsiveContainer width="100%" height={isMobile ? 240 : 320}>
         <ComposedChart data={model.pnl} margin={{ top: 10, right: 20, left: 6, bottom: 6 }}>
           <defs><linearGradient id="wpnl" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={GRN} stopOpacity={0.5} /><stop offset="100%" stopColor={GRN} stopOpacity={0.05} /></linearGradient></defs>
@@ -138,7 +143,7 @@ export default function WalletDetail({ wallet, price, isMobile }) {
         </ComposedChart>
       </ResponsiveContainer>
 
-      <div style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 16, lineHeight: 1.6, maxWidth: 820, marginInline: "auto" }}>
+      <div style={{ fontFamily: "var(--sans)", fontSize: 12.5, color: "var(--faint)", textAlign: "center", marginTop: 16, lineHeight: 1.6, maxWidth: 820, marginInline: "auto" }}>
         Buys are priced at the day they landed; realized P&amp;L is average-cost (booked when coins are sold), unrealized is the current bag marked to the live price.
         On-chain has no identity — a proven operator moving to a fresh wallet resets. Terminal-only view; a positioning read, not financial advice.
       </div>
