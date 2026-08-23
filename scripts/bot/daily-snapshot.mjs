@@ -107,10 +107,11 @@ export function buildDailySnapshot(feeds) {
   if (Array.isArray(cexFlow?.days) && cexFlow.days.length >= 30) {
     const organic = cexFlow.days.map(d => d[4] || 0);
     const sum = n => organic.slice(-n).reduce((a, b) => a + b, 0);
-    const s7 = sum(7);
-    flow.push({ label: "Net flow onto exchanges (organic, 30d)", value: sum(30), fmt: "m", goodUp: false,
-      note: `coins onto (+) minus off (−) exchanges over 30 days, listing fills stripped · negative = leaving (accumulation) · 7d ${s7 >= 0 ? "+" : "−"}${(Math.abs(s7) / 1e6).toFixed(2)}M`,
-      d: [null, null, null] });
+    // This row is a FLOW, not a stock: the 1d/7d/30d columns are the net flow OVER each window (a level),
+    // not a change-of-a-value. `level:true` tells the terminal to render them as windowed values.
+    flow.push({ label: "Net flow onto exchanges", value: sum(30), fmt: "m", goodUp: false, level: true,
+      note: "organic net onto (+) minus off (−) exchanges over each window, one-time listing fills stripped · negative = leaving to self-custody (accumulation)",
+      d: [sum(1), sum(7), sum(30)] });
   }
   if (flow.length) sections.push({ title: "Exchange flow", rows: flow });
 
@@ -174,8 +175,14 @@ export function buildDailySnapshot(feeds) {
     const f = smartMoney.flow || {};
     const trend = (f.w4 != null) ? ` · trend 4w ${f.w4 >= 0 ? "+" : ""}${f.w4}% / 12w ${f.w12 >= 0 ? "+" : ""}${f.w12}% / 26w ${f.w26 >= 0 ? "+" : ""}${f.w26}%` : "";
     sm.push(row("Smart-money held", smartMoney.heldNow, wk, r => r[1], "m", true, `${smartMoney.cohortSize || 0} proven wallets · median ${smartMoney.medianRoi}×${trend}`));
-    sm.push({ label: "New qualifiers (90d)", value: smartMoney.newQual90 ?? 0, fmt: "int", goodUp: false,
-      note: "wallets newly proven by selling tops — a spike = distribution", d: [null, null, null] });
+    // New qualifiers = a COUNT per window (a level), so the 1d/7d/30d columns are the count over each
+    // window, not a delta. Summed from the newQualifiers [date,count] series relative to its last date.
+    const nq = Array.isArray(smartMoney.newQualifiers) ? smartMoney.newQualifiers : [];
+    const nqAsOf = nq.length ? Date.parse(nq[nq.length - 1][0]) : null;
+    const nqWin = days => nqAsOf == null ? null : nq.reduce((s, [dt, c]) => (nqAsOf - Date.parse(dt) < days * 864e5 ? s + (c || 0) : s), 0);
+    sm.push({ label: "New qualifiers", value: smartMoney.newQual90 ?? 0, fmt: "int", goodUp: false, level: true,
+      note: "wallets newly proven by selling a top, counted over each window (headline = 90 days) — a spike = distribution starting",
+      d: [nqWin(1), nqWin(7), nqWin(30)] });
   }
   if (sm.length) sections.push({
     title: "Smart money",
@@ -233,9 +240,13 @@ export function buildDailySnapshot(feeds) {
     const stale = salesAge != null && salesAge > 3;
     const todays = aeonTrades.filter(t => t.d === today);
     const volEth = todays.reduce((s, t) => s + (t.eth || 0), 0);
-    aeonRows.push({ label: "Sales today", value: stale ? null : todays.length, fmt: "int", goodUp: true, d: [null, null, null],
+    // Sales COUNT per window (a level). When the feed is stalled we keep the columns null — that IS the
+    // honest "unknown", and the note says why (the only place — is genuinely the right marker).
+    const salesWin = days => aeonTrades.filter(t => Date.parse(today) - Date.parse(t.d) < days * 864e5).length;
+    aeonRows.push({ label: "Sales", value: stale ? null : todays.length, fmt: "int", goodUp: true, level: true,
+      d: stale ? [null, null, null] : [salesWin(1), salesWin(7), salesWin(30)],
       note: stale ? `⚠ sales feed stalled — no new data since ${salesAsOf} (${salesAge}d); the Dune sales pull is failing, so recent sales are NOT captured`
-        : (todays.length ? `${volEth.toFixed(2)}Ξ traded today` : "no sales yet today") });
+        : (todays.length ? `${volEth.toFixed(2)}Ξ traded today · count over each window` : "no sales yet today · count over each window") });
   }
   if (aeonRows.length) sections.push({ title: "Project AEON", rows: aeonRows });
 
