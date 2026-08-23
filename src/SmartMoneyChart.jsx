@@ -1,6 +1,6 @@
 import { useMemo, useState, useEffect } from "react";
 import { ResponsiveContainer, ComposedChart, Area, Bar, Line, XAxis, YAxis, Tooltip, CartesianGrid, ReferenceLine, Cell } from "recharts";
-import { loadSmartMoney } from "./history-data.js";
+import { loadSmartMoney, loadEntities } from "./history-data.js";
 import { SANS, MONO, MAX_W, Metric, TipBox, Explain, ViewTabs } from "./chart-ui.jsx";
 import { useDailyTier } from "./DailyTier.jsx";
 import { TERMINAL_KEY } from "./terminal-gate-key.js";
@@ -110,13 +110,97 @@ function SmartWalletTable({ wallets, isMobile }) {
   );
 }
 
+// Shared collapsible section, terminal-styled, tap-to-open on mobile.
+function Drop({ title, sub, accent = "#5eead4", children, defaultOpen = false }) {
+  return (
+    <details open={defaultOpen} style={{ maxWidth: 720, margin: "12px auto 0", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 12, background: "rgba(255,255,255,0.02)", padding: "0 15px" }}>
+      <summary style={{ cursor: "pointer", listStyle: "none", padding: "13px 2px", fontFamily: MONO, fontSize: 13, color: "#e2e8f0", display: "flex", alignItems: "center", gap: 8, userSelect: "none" }}>
+        <span style={{ color: accent }}>▸</span><span style={{ fontWeight: 700 }}>{title}</span>{sub && <span style={{ color: "#64748b", fontWeight: 400 }}>· {sub}</span>}
+      </summary>
+      <div style={{ paddingBottom: 14 }}>{children}</div>
+    </details>
+  );
+}
+
+const netCell = v => {
+  if (v == null || Math.abs(v) < 1) return <span style={{ color: "#64748b" }}>·</span>;
+  return <span style={{ color: v > 0 ? GRN : RED, fontWeight: 600 }}>{(v > 0 ? "+" : "−") + fmtM(Math.abs(v))}</span>;
+};
+
+// Whale-cluster owners (entities.json) — the flip side of the independent smart-money traders. LOCKED:
+// generic (owner #, wallet count, combined bag, cohort net) — no addresses. UNLOCKED: each owner opens
+// to its member wallets, every one a Zerion link with its own balance + 30d flow.
+function ClustersInner({ ent, unlocked, isMobile }) {
+  if (!ent) return <div style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", padding: "4px 2px" }}>Loading clusters…</div>;
+  const held = ent.heldSupply || 0;
+  const list = (ent.entities || []).filter(e => !e.flagged && (e.bal || 0) > 0).sort((a, b) => (b.bal || 0) - (a.bal || 0)).slice(0, unlocked ? 15 : 8);
+  if (!list.length) return <div style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", padding: "4px 2px" }}>Being reconstructed — appears after the next on-chain refresh.</div>;
+  const th = { fontFamily: MONO, fontSize: 11, letterSpacing: ".06em", textTransform: "uppercase", color: "#94a3b8", fontWeight: 600, textAlign: "right", padding: "0 0 8px", whiteSpace: "nowrap" };
+  const td = { fontFamily: MONO, fontSize: 13, textAlign: "right", padding: "7px 0", whiteSpace: "nowrap", borderTop: "1px solid rgba(255,255,255,0.06)" };
+  return (
+    <div style={{ overflowX: "auto" }}>
+      <table style={{ borderCollapse: "collapse", width: "100%", minWidth: unlocked ? 460 : 320 }}>
+        <thead><tr>
+          <th style={{ ...th, textAlign: "left" }}>owner</th>
+          <th style={th}>wallets</th><th style={th}>combined</th><th style={th}>24h</th><th style={th}>7d</th><th style={th}>30d</th>
+        </tr></thead>
+        <tbody>
+          {list.map((e, i) => {
+            const pct = held ? (e.bal / held * 100) : null;
+            return (
+              <tr key={e.id}>
+                <td style={{ ...td, textAlign: "left" }}>
+                  <span style={{ color: "#64748b", marginRight: 8 }}>{i + 1}</span>
+                  {unlocked
+                    ? <a href={`https://app.zerion.io/${e.id}/overview`} target="_blank" rel="noopener noreferrer" title={e.id} style={{ color: "#5eead4", textDecoration: "none", fontWeight: 600 }}>{shortA(e.id)}</a>
+                    : <span style={{ color: "#e2e8f0", fontWeight: 600 }}>Owner {i + 1}</span>}
+                </td>
+                <td style={{ ...td, color: "#94a3b8" }}>{e.size}</td>
+                <td style={{ ...td, color: "#a78bfa", fontWeight: 700 }}>{fmtM(e.bal)}{pct != null && !isMobile ? <span style={{ color: "#64748b", fontWeight: 400 }}> · {pct.toFixed(pct < 1 ? 2 : 1)}%</span> : null}</td>
+                <td style={td}>{netCell(e.d1)}</td><td style={td}>{netCell(e.d7)}</td><td style={td}>{netCell(e.d30)}</td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+      {unlocked && (
+        <details style={{ marginTop: 10 }}>
+          <summary style={{ cursor: "pointer", fontFamily: MONO, fontSize: 12, color: "#8592a6" }}>member wallets by owner ↓</summary>
+          <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 10 }}>
+            {list.map((e, i) => (
+              <div key={e.id} style={{ fontFamily: MONO, fontSize: 12.5 }}>
+                <div style={{ color: "#94a3b8", marginBottom: 4 }}>Owner {i + 1} · {shortA(e.id)} · {e.size} wallets</div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                  {(e.wallets || []).map(a => (
+                    <a key={a} href={`https://app.zerion.io/${a}/overview`} target="_blank" rel="noopener noreferrer" title={a}
+                      style={{ color: "#5eead4", textDecoration: "none", border: "1px solid rgba(94,234,212,0.25)", borderRadius: 6, padding: "3px 8px" }}>
+                      {shortA(a)}{(e.walletBal || {})[a] > 0 ? <span style={{ color: "#64748b" }}> · {fmtM(e.walletBal[a])}</span> : null} ↗
+                    </a>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </details>
+      )}
+      <div style={{ fontFamily: SANS, fontSize: 11.5, color: "#64748b", marginTop: 10, lineHeight: 1.5 }}>
+        Wallets one owner controls, linked from on-chain SPX fund/drain flows. 24h/7d/30d = the whole owner's balance change. {unlocked
+          ? "Each address opens in Zerion."
+          : <>Addresses are shown to <a href="/?view=next&deepfield=1" style={{ color: "#5eead4", textDecoration: "none" }}>Deep Field members</a>.</>}
+      </div>
+    </div>
+  );
+}
+
 export default function SmartMoneyChart({ isMobile, initialView }) {
   const [data, setData] = useState(null);
   const [view, setView] = useState(() => ["holdings", "flow", "newq"].includes(initialView) ? initialView : "holdings");   // "holdings" | "flow"
   // Two-layer reveal: the public sees "Wallet 1/2/3" anonymized; a Deep Field member (TERMINAL_KEY set)
   // sees the real addresses, daily/7d/30d balance, ROI and a link into each wallet's P&L page.
   const [unlocked] = useState(() => { try { return localStorage.getItem(TERMINAL_KEY) === "1"; } catch { return false; } });
+  const [ent, setEnt] = useState(null);   // entities.json — for the "clusters" dropdown
   useEffect(() => { let off = false; loadSmartMoney().then(d => { if (!off) setData(d || { empty: true }); }); return () => { off = true; }; }, []);
+  useEffect(() => { let off = false; loadEntities().then(d => { if (!off) setEnt(d || { entities: [] }); }); return () => { off = true; }; }, []);
 
   const model = useMemo(() => {
     if (!data || data.empty) return null;
@@ -166,12 +250,22 @@ export default function SmartMoneyChart({ isMobile, initialView }) {
         <Metric label="new (90d)" value={S.newQual90 ?? 0} color={S.newQual90 > 3 ? "#f43f5e" : "#94a3b8"} sub="minted top-sellers" />
       </div>
 
-      {/* The wallets. PUBLIC layer = "Wallet 1/2/3" anonymized (bag + 30d). MEMBER layer (Deep Field
-          unlocked) = real addresses, held bag, 24h/7d/30d moves, ROI, each a link into its P&L page. */}
+      {/* Two drill-down dropdowns. Collapsed by default — the aggregate (money in/out) above is what
+          everyone sees; open a dropdown for the granular layer. PUBLIC = generic (anon wallets, "Owner N"
+          clusters); MEMBER (Deep Field unlocked) = real addresses, 24h/7d/30d, and P&L pages. */}
       {Array.isArray(S.wallets) && S.wallets.length > 0 && (
-        unlocked ? <SmartWalletTable wallets={S.wallets} isMobile={isMobile} />
-                 : <SmartWalletAnon wallets={S.wallets} isMobile={isMobile} />
+        <Drop title="Smart money · the wallets" accent="#f6a23c"
+          sub={unlocked ? `${S.wallets.length} independent traders` : `${S.wallets.length} traders · members see addresses`}>
+          {unlocked ? <SmartWalletTable wallets={S.wallets} isMobile={isMobile} /> : <SmartWalletAnon wallets={S.wallets} isMobile={isMobile} />}
+        </Drop>
       )}
+      {ent && (ent.entities || []).some(e => !e.flagged && (e.bal || 0) > 0) && (
+        <Drop title="Whale clusters · the owners" accent="#a78bfa"
+          sub={unlocked ? "linked owners · daily/weekly/30d" : "members see the wallets"}>
+          <ClustersInner ent={ent} unlocked={unlocked} isMobile={isMobile} />
+        </Drop>
+      )}
+      <div style={{ height: 8 }} />
 
       {view === "holdings" ? (
         <ResponsiveContainer width="100%" height={isMobile ? 400 : 560}>
