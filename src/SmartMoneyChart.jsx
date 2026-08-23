@@ -3,6 +3,7 @@ import { ResponsiveContainer, ComposedChart, Area, Bar, Line, XAxis, YAxis, Tool
 import { loadSmartMoney } from "./history-data.js";
 import { SANS, MONO, MAX_W, Metric, TipBox, Explain, ViewTabs } from "./chart-ui.jsx";
 import { useDailyTier } from "./DailyTier.jsx";
+import { TERMINAL_KEY } from "./terminal-gate-key.js";
 
 // Coarsen the daily series to one point per calendar month for the free tier: held + price are the
 // month's LAST value (a level), net flow is the month's SUM (a flow). Daily is the members view.
@@ -41,9 +42,80 @@ const fmtM = v => Math.abs(v) >= 1e6 ? (v / 1e6).toFixed(1) + "M" : (v / 1e3).to
 const fmtP = v => v == null ? "" : v < 0.01 ? "$" + v.toFixed(4) : "$" + v.toFixed(2);
 const usd = v => v >= 1e6 ? "$" + (v / 1e6).toFixed(1) + "M" : "$" + Math.round(v / 1e3) + "k";
 
+const shortA = a => a.slice(0, 6) + "…" + a.slice(-4);
+// coloured signed balance-change cell: +/− with green/red, "·" when ~flat
+const deltaCell = v => {
+  if (v == null || Math.abs(v) < 1) return <span style={{ color: "#64748b" }}>·</span>;
+  const s = (v > 0 ? "+" : "−") + fmtM(Math.abs(v));
+  return <span style={{ color: v > 0 ? GRN : RED, fontWeight: 600 }}>{s}</span>;
+};
+
+// PUBLIC layer — anonymized, no addresses, no follow-list.
+function SmartWalletAnon({ wallets, isMobile }) {
+  return (
+    <div style={{ maxWidth: 560, margin: "2px auto 18px", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 12, background: "rgba(255,255,255,0.02)", padding: "12px 15px" }}>
+      <div style={{ fontFamily: MONO, fontSize: 11, letterSpacing: ".1em", textTransform: "uppercase", color: "#94a3b8", marginBottom: 8 }}>The wallets · held + 30-day move</div>
+      {wallets.slice(0, 12).map((w, i) => (
+        <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, padding: "6px 0", borderTop: i ? "1px solid rgba(255,255,255,0.05)" : "none", fontFamily: MONO, fontSize: 13 }}>
+          <span style={{ color: "#e2e8f0", fontWeight: 600, flex: "1 1 auto" }}>Wallet {i + 1}</span>
+          <span style={{ color: "#f6a23c", minWidth: 92, textAlign: "right" }}>{fmtM(w.bal)} SPX</span>
+          <span style={{ color: (w.d30 || 0) > 0 ? GRN : (w.d30 || 0) < 0 ? RED : "#64748b", minWidth: 96, textAlign: "right" }}>{(w.d30 || 0) === 0 ? "flat 30d" : (w.d30 > 0 ? "+" : "−") + fmtM(Math.abs(w.d30)) + " 30d"}</span>
+        </div>
+      ))}
+      <div style={{ fontFamily: SANS, fontSize: 11.5, color: "#64748b", marginTop: 10, lineHeight: 1.5 }}>
+        Anonymized on purpose — independent traders (not whale clusters). The chain is public; we just don't hand out a follow-list.
+        {" "}<a href="/?view=next&deepfield=1" style={{ color: "#5eead4", textDecoration: "none" }}>Deep Field members</a> see the real addresses + each wallet's buy/sell P&L page.
+      </div>
+    </div>
+  );
+}
+
+// MEMBER layer (Deep Field unlocked) — real addresses, held bag, 24h/7d/30d, ROI; each row opens the
+// wallet's own page (buy orbs + realized/unrealized P&L). Horizontal-scroll wrapper so it holds up on
+// a phone instead of squashing the columns.
+function SmartWalletTable({ wallets, isMobile }) {
+  const th = { fontFamily: MONO, fontSize: 11, letterSpacing: ".06em", textTransform: "uppercase", color: "#94a3b8", fontWeight: 600, textAlign: "right", padding: "0 0 8px", whiteSpace: "nowrap" };
+  const td = { fontFamily: MONO, fontSize: 13, textAlign: "right", padding: "7px 0", whiteSpace: "nowrap", borderTop: "1px solid rgba(255,255,255,0.06)" };
+  return (
+    <div style={{ maxWidth: 720, margin: "2px auto 18px", border: "1px solid rgba(94,234,212,0.22)", borderRadius: 12, background: "rgba(94,234,212,0.03)", padding: "12px 15px" }}>
+      <div style={{ fontFamily: MONO, fontSize: 11, letterSpacing: ".1em", textTransform: "uppercase", color: "#5eead4", marginBottom: 8 }}>The wallets · terminal view · real addresses · tap → P&L page</div>
+      <div style={{ overflowX: "auto" }}>
+        <table style={{ borderCollapse: "collapse", width: "100%", minWidth: 460 }}>
+          <thead><tr>
+            <th style={{ ...th, textAlign: "left" }}>wallet</th>
+            <th style={th}>held</th><th style={th}>24h</th><th style={th}>7d</th><th style={th}>30d</th><th style={th}>ROI</th>
+          </tr></thead>
+          <tbody>
+            {wallets.slice(0, 20).map((w, i) => (
+              <tr key={w.a}>
+                <td style={{ ...td, textAlign: "left" }}>
+                  <span style={{ color: "#64748b", marginRight: 8 }}>{i + 1}</span>
+                  <a href={`/?view=wallet&addr=${w.a}`} title={`${w.a} — open P&L page`} style={{ color: "#5eead4", textDecoration: "none", fontWeight: 600 }}>{shortA(w.a)}</a>
+                  {!isMobile && <a href={`https://app.zerion.io/${w.a}/overview`} target="_blank" rel="noopener noreferrer" title="open in Zerion" style={{ color: "#8592a6", textDecoration: "none", marginLeft: 8, fontSize: 11 }}>Zerion ↗</a>}
+                </td>
+                <td style={{ ...td, color: "#f6a23c", fontWeight: 700 }}>{fmtM(w.bal)}</td>
+                <td style={td}>{deltaCell(w.d1)}</td>
+                <td style={td}>{deltaCell(w.d7)}</td>
+                <td style={td}>{deltaCell(w.d30)}</td>
+                <td style={{ ...td, color: "#4ade80" }}>{w.roi ? w.roi + "×" : "·"}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div style={{ fontFamily: SANS, fontSize: 11.5, color: "#64748b", marginTop: 10, lineHeight: 1.5 }}>
+        Held = current bag; 24h / 7d / 30d = the change in that bag over each window (<span style={{ color: GRN }}>green</span> adding, <span style={{ color: RED }}>red</span> shedding). Tap an address for its buy/sell orbs + realized &amp; live P&L. Independent traders (cluster wallets excluded). Not a follow signal.
+      </div>
+    </div>
+  );
+}
+
 export default function SmartMoneyChart({ isMobile, initialView }) {
   const [data, setData] = useState(null);
   const [view, setView] = useState(() => ["holdings", "flow", "newq"].includes(initialView) ? initialView : "holdings");   // "holdings" | "flow"
+  // Two-layer reveal: the public sees "Wallet 1/2/3" anonymized; a Deep Field member (TERMINAL_KEY set)
+  // sees the real addresses, daily/7d/30d balance, ROI and a link into each wallet's P&L page.
+  const [unlocked] = useState(() => { try { return localStorage.getItem(TERMINAL_KEY) === "1"; } catch { return false; } });
   useEffect(() => { let off = false; loadSmartMoney().then(d => { if (!off) setData(d || { empty: true }); }); return () => { off = true; }; }, []);
 
   const model = useMemo(() => {
@@ -77,7 +149,9 @@ export default function SmartMoneyChart({ isMobile, initialView }) {
     <div style={{ maxWidth: MAX_W, margin: "0 auto" }}>
       <Explain q="What is SPX6900's smart money doing?" accent="#f6a23c">
         The <strong style={{ color: "#f6a23c" }}>proven top-timers</strong>, wallets that put in real capital (≥$25k), booked a <strong style={{ color: "#e2e8f0" }}>≥5× return by actually selling</strong>, and still hold a bag.
-        They <strong style={{ color: "#e2e8f0" }}>accumulated cheap and distributed into the run-up</strong>. Recomputed every refresh, so it's a living desk. Wallets are shown <strong style={{ color: "#e2e8f0" }}>anonymized (Wallet 1, 2, 3…)</strong> — independent traders, no follow-list.
+        They <strong style={{ color: "#e2e8f0" }}>accumulated cheap and distributed into the run-up</strong>. Recomputed every refresh, so it's a living desk. {unlocked
+          ? <>You&apos;re in the <strong style={{ color: "#5eead4" }}>Deep Field view</strong> — real addresses, daily balances, and a P&amp;L page per wallet below.</>
+          : <>Wallets are shown <strong style={{ color: "#e2e8f0" }}>anonymized (Wallet 1, 2, 3…)</strong> — independent traders, no follow-list.</>}
         Right now they're <strong style={{ color: flowVerb.c }}>{flowVerb.t}</strong>; the net-flow flips green the week they start buying again.
       </Explain>
 
@@ -92,20 +166,11 @@ export default function SmartMoneyChart({ isMobile, initialView }) {
         <Metric label="new (90d)" value={S.newQual90 ?? 0} color={S.newQual90 > 3 ? "#f43f5e" : "#94a3b8"} sub="minted top-sellers" />
       </div>
 
-      {/* The wallets, anonymized (public layer): independent traders only, current bag + 30-day move.
-          Real addresses live on the password-gated terminal. */}
+      {/* The wallets. PUBLIC layer = "Wallet 1/2/3" anonymized (bag + 30d). MEMBER layer (Deep Field
+          unlocked) = real addresses, held bag, 24h/7d/30d moves, ROI, each a link into its P&L page. */}
       {Array.isArray(S.wallets) && S.wallets.length > 0 && (
-        <div style={{ maxWidth: 560, margin: "2px auto 18px", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 12, background: "rgba(255,255,255,0.02)", padding: "12px 15px" }}>
-          <div style={{ fontFamily: MONO, fontSize: 11, letterSpacing: ".1em", textTransform: "uppercase", color: "#94a3b8", marginBottom: 8 }}>The wallets · 30-day balance</div>
-          {S.wallets.slice(0, 12).map((w, i) => (
-            <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, padding: "6px 0", borderTop: i ? "1px solid rgba(255,255,255,0.05)" : "none", fontFamily: MONO, fontSize: 13 }}>
-              <span style={{ color: "#e2e8f0", fontWeight: 600, flex: "1 1 auto" }}>Wallet {i + 1}</span>
-              <span style={{ color: "#f6a23c", minWidth: 92, textAlign: "right" }}>{fmtM(w.bal)} SPX</span>
-              <span style={{ color: (w.d30 || 0) > 0 ? GRN : (w.d30 || 0) < 0 ? RED : "#64748b", minWidth: 96, textAlign: "right" }}>{(w.d30 || 0) === 0 ? "flat 30d" : (w.d30 > 0 ? "+" : "−") + fmtM(Math.abs(w.d30)) + " 30d"}</span>
-            </div>
-          ))}
-          <div style={{ fontFamily: SANS, fontSize: 11.5, color: "#64748b", marginTop: 10, lineHeight: 1.5 }}>Anonymized on purpose — these are independent traders (not whale clusters). The chain is public; we just don't hand out a follow-list.</div>
-        </div>
+        unlocked ? <SmartWalletTable wallets={S.wallets} isMobile={isMobile} />
+                 : <SmartWalletAnon wallets={S.wallets} isMobile={isMobile} />
       )}
 
       {view === "holdings" ? (
