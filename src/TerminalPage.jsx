@@ -34,7 +34,8 @@ function fmtVal(v, fmt) {
 // (moved cheaper) reads green and an increase (dearer) reads red — uniform across all of them.
 function condDelta(v, fmt) {
   const eps = fmt === "x" ? 0.005 : fmt === "score" ? 0.5 : 0.05;
-  if (v == null || !isFinite(v) || Math.abs(v) < eps) return { s: "·", cls: "tmdz" };
+  if (v == null || !isFinite(v)) return { s: "—", cls: "tmdz" };   // not computed
+  if (Math.abs(v) < eps) return { s: "0", cls: "tmdz" };            // genuinely flat over the window
   const sign = v > 0 ? "+" : "−", a = Math.abs(v);
   let mag;
   switch (fmt) {
@@ -50,7 +51,7 @@ function condDelta(v, fmt) {
 function Delta({ d, fmt, goodUp }) {
   if (d == null || !isFinite(d)) return <span className="tmdz">—</span>;
   const eps = (fmt === "x" || fmt === "num3" || fmt === "pct") ? 0.005 : (fmt === "eth") ? 0.0005 : 1e-9;
-  if (Math.abs(d) < eps) return <span className="tmdz">·</span>;
+  if (Math.abs(d) < eps) return <span className="tmdz">0</span>;
   const good = (d > 0) === !!goodUp, sign = d > 0 ? "+" : "−", a = Math.abs(d);
   let mag;
   switch (fmt) {
@@ -141,9 +142,11 @@ function DFLink({ name, desc, href }) {
 }
 
 const shortAddr = a => a.slice(0, 6) + "…" + a.slice(-4);
-// One net-flow cell (SPX change): green when the cluster/wallet added, red when it reduced.
+// One net-flow cell (SPX change): green when the cluster/wallet added, red when it reduced, a plain
+// "0" when it genuinely didn't move over the window, and "—" only when the value isn't computed yet.
 const netSpxCell = v => {
-  if (v == null || Math.abs(v) < 1) return <td className="tmdz">·</td>;
+  if (v == null) return <td className="tmdz">—</td>;
+  if (Math.abs(v) < 1) return <td className="tmdz">0</td>;
   const a = Math.abs(v), s = a >= 1e6 ? (a / 1e6).toFixed(2) + "M" : a >= 1e3 ? (a / 1e3).toFixed(0) + "k" : Math.round(a);
   return <td className={v > 0 ? "tmup" : "tmdn"}>{(v > 0 ? "+" : "−") + s}</td>;
 };
@@ -318,7 +321,11 @@ export default function TerminalPage({ isMobile }) {
       )}
 
       {S && Array.isArray(S.whaleCohorts) && S.whaleCohorts.length > 0 && (() => {
-        const netCell = v => <td className={Math.abs(v) < 1 ? "tmdz" : v >= 0 ? "tmup" : "tmdn"}>{Math.abs(v) < 1 ? "·" : (v >= 0 ? "+" : "−") + (Math.abs(v) / 1e6).toFixed(2) + "M"}</td>;
+        const netCell = v => {
+          if (v == null || !isFinite(v)) return <td className="tmdz">—</td>;
+          if (Math.abs(v) < 1) return <td className="tmdz">0</td>;
+          return <td className={v >= 0 ? "tmup" : "tmdn"}>{(v >= 0 ? "+" : "−") + (Math.abs(v) / 1e6).toFixed(2) + "M"}</td>;
+        };
         return (
         <section className="tmsec">
           <div className="tmsectitle">Whale cohorts · net buy / sell by size
@@ -361,7 +368,7 @@ export default function TerminalPage({ isMobile }) {
 
       {sm && Array.isArray(sm.wallets) && sm.wallets.length > 0 && (() => {
         const short = a => a.slice(0, 6) + "…" + a.slice(-4);
-        const smNet = v => { if (v == null || Math.abs(v) < 1) return <td className="tmdz">·</td>; const a = Math.abs(v); const s = a >= 1e6 ? (a / 1e6).toFixed(2) + "M" : a >= 1e3 ? (a / 1e3).toFixed(0) + "k" : Math.round(a); return <td className={v > 0 ? "tmup" : "tmdn"}>{(v > 0 ? "+" : "−") + s}</td>; };
+        const smNet = v => { if (v == null) return <td className="tmdz">—</td>; if (Math.abs(v) < 1) return <td className="tmdz">0</td>; const a = Math.abs(v); const s = a >= 1e6 ? (a / 1e6).toFixed(2) + "M" : a >= 1e3 ? (a / 1e3).toFixed(0) + "k" : Math.round(a); return <td className={v > 0 ? "tmup" : "tmdn"}>{(v > 0 ? "+" : "−") + s}</td>; };
         return (
           <section className="tmsec">
             <div className="tmsectitle">Smart money · the wallets
