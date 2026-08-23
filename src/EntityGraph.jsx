@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { SANS, MONO } from "./chart-ui.jsx";
 
-// Bubblemaps/Arkham-style view of the entity clusters. Each ENTITY is a bubble sized by its combined
+// A bubble-map view of the entity clusters. Each ENTITY is a bubble sized by its combined
 // holdings; inside it, the wallets one owner controls sit as nodes (sized by their own balance when the
 // engine has emitted per-wallet balances) wired together by the real drain/fund edges. Deterministic
 // layout, no randomness (reproducible, and the sandbox blocks Math.random anyway). Clusters are packed

@@ -268,7 +268,7 @@ const prepMoves = transfers => [...transfers]
 
 // ── ENTITY CLUSTERING (Phase 2) ──────────────────────────────────────────────────────────────────
 // "Who owns what." A holder splitting into fresh wallets or shuffling funds over days is ONE person
-// moving money around, not decentralisation — Bubblemaps-style. The self-move detector (above) only
+// moving money around, not decentralisation. The self-move detector (above) only
 // catches the clean SAME-BLOCK, equal-amount cases; this generalises to unequal amounts across days.
 //
 // THE HONEST RULE the owner set: unless a wallet moves to a CEX / smart contract / DEX pool, an

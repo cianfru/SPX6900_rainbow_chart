@@ -14,7 +14,7 @@ import { pop } from "./CityGate.jsx";
 //
 // Same passphrase as the city (one word for the owner to share), but its OWN localStorage key so the
 // two unlock independently, bump the suffix to re-lock every browser at once.
-const HASH = 3343087233;                 // FNV-1a of the shared passphrase
+const HASH = 1883603724;                 // FNV-1a of "admin123" (the single site-wide passphrase)
 const KEY = "spx-data-tier1";
 const fnv = s => { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; };
 export const passOk = pw => fnv(String(pw).trim().toLowerCase()) === HASH;

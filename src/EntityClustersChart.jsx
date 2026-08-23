@@ -2,6 +2,7 @@ import { useMemo, useState, useEffect } from "react";
 import { loadEntities } from "./history-data.js";
 import { SANS, MONO, MAX_W, Metric, Explain, ViewTabs } from "./chart-ui.jsx";
 import EntityGraph from "./EntityGraph.jsx";
+import WalletCard from "./WalletCard.jsx";
 
 // SPX City "who owns what", the ENTITY view. The by-wallet charts (Holder Concentration, Whales)
 // count every address separately; this second lens links the addresses one owner controls into a
@@ -19,8 +20,6 @@ const fSpx = v => {
 };
 const fUsd = v => v >= 1e6 ? "$" + (v / 1e6).toFixed(2) + "M" : v >= 1e3 ? "$" + (v / 1e3).toFixed(0) + "k" : "$" + Math.round(v);
 const short = a => a.slice(0, 6) + "…" + a.slice(-4);
-const ES = a => `https://etherscan.io/address/${a}`;
-const SPX_CONTRACT = "0xe0f63a424a4439cbe457d80e4f4b51ad25b2c56c";
 const fFlow = v => (v >= 0 ? "+" : "−") + fSpx(Math.abs(v));
 
 // Buy/sell read for a cluster from its 30-day net flow (now − 30d ago, summed over its members).
@@ -47,6 +46,36 @@ function FlowPill({ e, flowKey = "d30", winLbl = "30d", size = 12 }) {
     }}>
       <span>{fs.mark}</span>{fs.k === "flat" ? "flat" : fFlow(e[flowKey])}<span style={{ color: "#64748b", fontSize: size - 2 }}>{winLbl}</span>
     </span>
+  );
+}
+
+// The member wallets of a cluster, each as a full Zerion card (portfolio preview + one-click into
+// Zerion). Zerion is the single explorer across the whole site — cleaner and more readable than a
+// raw Etherscan address page. Sorted biggest-balance first; each card shows the wallet's SPX held,
+// its holding age, and its net flow over the selected window (▲ accumulating / ▼ distributing).
+function ClusterCards({ e, flowKey = "d30", winLbl = "30d", isMobile, accent = "#a78bfa" }) {
+  const bals = e.walletBal || {};
+  const ages = e.walletAge || {};
+  const flowMap = flowKey === "d1" ? (e.walletFlow1 || {}) : flowKey === "d7" ? (e.walletFlow7 || {}) : (e.walletFlow || {});
+  const wallets = [...(e.wallets || [])].sort((a, b) => (bals[b] || 0) - (bals[a] || 0));
+  if (!wallets.length) return null;
+  return (
+    <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fill, minmax(320px, 1fr))", gap: 10 }}>
+      {wallets.map(w => {
+        const bal = bals[w];
+        const age = ages[w];
+        const flow = flowMap[w];
+        const line0 = [
+          typeof bal === "number" && bal > 0 ? `${fSpx(bal)} SPX held` : (typeof bal === "number" ? "emptied out" : null),
+          typeof age === "number" && age > 0 ? `held ${age}d` : null,
+        ].filter(Boolean).join(" · ");
+        return (
+          <WalletCard key={w} w={{ a: w, bal }} accent={accent} isMobile={isMobile}
+            lines={[line0, typeof flow === "number" ? `net · ${winLbl}` : ""]}
+            flow={typeof flow === "number" ? flow : undefined} flowUnit=" SPX" />
+        );
+      })}
+    </div>
   );
 }
 
@@ -153,10 +182,7 @@ export default function EntityClustersChart({ isMobile, preview = false }) {
                   <FlowPill e={e} flowKey={flowKey} winLbl={winLbl} size={13} />
                   {e.flagged && <span style={{ fontFamily: SANS, fontSize: 11, color: amber, border: `1px solid ${amber}55`, borderRadius: 5, padding: "1px 7px" }}>flagged · uncertain</span>}
                 </div>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 12 }}>
-                  {e.wallets.map(w => <a key={w} href={ES(w)} target="_blank" rel="noopener noreferrer" style={{ fontFamily: MONO, fontSize: 12.5, color: "#a5b4fc", textDecoration: "none", border: "1px solid rgba(167,139,250,0.25)", borderRadius: 6, padding: "3px 8px" }}>{short(w)}{typeof (e.walletBal || {})[w] === "number" && e.walletBal[w] > 0 ? ` · ${fSpx(e.walletBal[w])}` : ""} ↗</a>)}
-                </div>
-                <a href={`https://app.bubblemaps.io/eth/token/${SPX_CONTRACT}`} target="_blank" rel="noopener noreferrer" style={{ fontFamily: SANS, fontSize: 12.5, color: accent, textDecoration: "none" }}>Cross-check on Bubblemaps ↗</a>
+                <ClusterCards e={e} flowKey={flowKey} winLbl={winLbl} isMobile={isMobile} accent={accent} />
               </div>
             );
           })()}
@@ -191,9 +217,7 @@ export default function EntityClustersChart({ isMobile, preview = false }) {
                   </div>}
                   <div>
                     <div style={{ fontFamily: SANS, fontSize: 12, color: "#64748b", textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 6 }}>Wallets ({e.wallets.length})</div>
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                      {e.wallets.map(w => <a key={w} href={ES(w)} target="_blank" rel="noopener noreferrer" style={{ fontFamily: MONO, fontSize: 12.5, color: "#a5b4fc", textDecoration: "none", border: "1px solid rgba(167,139,250,0.25)", borderRadius: 6, padding: "3px 8px" }}>{short(w)} ↗</a>)}
-                    </div>
+                    <ClusterCards e={e} flowKey={flowKey} winLbl={winLbl} isMobile={isMobile} accent={accent} />
                   </div>
                   <div>
                     <div style={{ fontFamily: SANS, fontSize: 12, color: "#64748b", textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 6 }}>Links ({e.edges.length})</div>
@@ -208,7 +232,6 @@ export default function EntityClustersChart({ isMobile, preview = false }) {
                       ))}
                     </div>
                   </div>
-                  <a href={`https://app.bubblemaps.io/eth/token/${SPX_CONTRACT}`} target="_blank" rel="noopener noreferrer" style={{ fontFamily: SANS, fontSize: 12.5, color: accent, textDecoration: "none" }}>Cross-check on Bubblemaps ↗</a>
                 </div>
               )}
             </div>
