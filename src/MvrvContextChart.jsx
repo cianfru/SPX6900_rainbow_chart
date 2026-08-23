@@ -5,12 +5,18 @@ import {
 import { loadHistory, loadBtcMvrv, loadPriceHistory } from "./history-data.js";
 import { mvrvHistory } from "./mvrv-data.js";
 import ChartZoomHint from "./ChartZoomHint.jsx";
-import { SANS, MONO, MAX_W, Metric, TipBox, ZoomBar, Explain } from "./chart-ui.jsx";
+import { SANS, MONO, MAX_W, Metric, TipBox, ZoomBar, Explain, ViewTabs } from "./chart-ui.jsx";
 import { useDragZoom } from "./use-drag-zoom.js";
 
 const BTC = "#f7931a", SPX = "#a78bfa", MATCH = "#e879f9";
 const MATCH_BAND = 0.12; // ±12% of SPX's MVRV counts as "Bitcoin at the same level"
+const YR = 365.25 * 86400000;
+// Bitcoin's true inception (genesis block, 2009-01-03). Its on-chain MVRV record only BEGINS ~2 years
+// later (realized cap needs a real transaction history + market price), so in the age view BTC's line
+// honestly starts at age ~2 — we never pretend 2011 is BTC's "age 0".
+const BTC_GENESIS = Date.UTC(2009, 0, 3);
 const fMvrv = v => v.toFixed(2) + "×";
+const fAge = a => (a === Math.round(a) ? a + "y" : a.toFixed(1) + "y");
 const fYear = t => new Date(t).getFullYear();
 const fFull = t => new Date(t).toLocaleDateString("en-US", { month: "short", year: "numeric" });
 const ordinal = n => { const v = n % 100; return n + (["th", "st", "nd", "rd"][(v - 20) % 10] || ["th", "st", "nd", "rd"][v] || "th"); };
@@ -37,6 +43,19 @@ function Tip({ active, payload }) {
   );
 }
 
+// Age-view tooltip: recharts hands each line's own point, so show every series present at that age.
+function AgeTip({ active, payload }) {
+  if (!active || !payload?.length) return null;
+  const age = payload[0]?.payload?.age;
+  return (
+    <TipBox title={age != null ? `${age.toFixed(1)} years in` : ""}>
+      {payload.map((p, i) => (
+        <div key={i}>{p.name} MVRV: <span style={{ fontFamily: MONO, color: p.stroke }}>{fMvrv(p.value)}</span></div>
+      ))}
+    </TipBox>
+  );
+}
+
 // MVRV in context: overlay SPX6900's (short) MVRV on Bitcoin's ~decade of MVRV history.
 // MVRV is unitless (market-cap ÷ realized-cap), so the two are directly comparable even
 // though BTC has years of it and SPX only weeks. Answers "are we down/heated similarly to
@@ -45,6 +64,7 @@ export default function MvrvContextChart({ isMobile, preview = false }) {
   const [btc, setBtc] = useState(null);
   const [spxHist, setSpxHist] = useState(null);
   const [px, setPx] = useState(null);   // CI-cleaned dense price, see mvrv-data.js
+  const [viewMode, setViewMode] = useState("age");   // "age" (since inception, default) | "calendar"
   useEffect(() => {
     let cancelled = false;
     loadBtcMvrv().then(d => { if (!cancelled) setBtc(d?.points || []); });
@@ -120,6 +140,25 @@ export default function MvrvContextChart({ isMobile, preview = false }) {
     return { vis, xDomain: [x0, x1], xTicks, yDomain: [yMin * 0.85, yMax * 1.12] };
   }, [data, zoom, spx, similar]);
 
+  // "Since inception" — the two MVRV paths aligned by AGE (years since each asset's genesis), so SPX's
+  // first three years sit directly over Bitcoin's, to see whether the early cycle rhymes. SPX's launch
+  // is its own age 0; BTC's is the 2009 genesis, so its line honestly begins at ~age 2 (see BTC_GENESIS).
+  const ageView = useMemo(() => {
+    if (!data?.rows?.length || !spxSeries.length) return null;
+    const spxInception = spxSeries[0].ts;
+    const spxAgePts = spxSeries.map(r => ({ age: (r.ts - spxInception) / YR, mvrv: r.mvrv })).filter(r => r.age >= 0 && r.mvrv > 0);
+    const spxMaxAge = spxAgePts.length ? spxAgePts.at(-1).age : 3;
+    // show a couple of years past SPX's current age so BTC's "what came next" is visible for context
+    const xMax = Math.max(5, Math.ceil(spxMaxAge) + 1);
+    const btcAgePts = data.rows.map(r => ({ age: (r.ts - BTC_GENESIS) / YR, mvrv: r.mvrv })).filter(r => r.age >= 0 && r.age <= xMax && r.mvrv > 0);
+    let yMin = Infinity, yMax = -Infinity;
+    for (const r of [...spxAgePts, ...btcAgePts]) { if (r.mvrv < yMin) yMin = r.mvrv; if (r.mvrv > yMax) yMax = r.mvrv; }
+    if (!Number.isFinite(yMin)) return null;
+    const xTicks = []; for (let a = 0; a <= xMax; a++) xTicks.push(a);
+    const btcFirstAge = btcAgePts.length ? btcAgePts[0].age : null;
+    return { spxAgePts, btcAgePts, spxMaxAge, btcFirstAge, xDomain: [0, xMax], xTicks, yDomain: [yMin * 0.85, yMax * 1.12] };
+  }, [data, spxSeries]);
+
   if (btc == null || spxHist == null) return <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Loading MVRV history…</div>;
   if (!data?.rows?.length) return <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Bitcoin MVRV context is being banked, this fills in once its monthly data build has run.</div>;
   if (!view) return <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Not enough history in this range.</div>;
@@ -147,6 +186,11 @@ export default function MvrvContextChart({ isMobile, preview = false }) {
         {spxPct != null && <Metric label="on BTC's history" value={ordinal(spxPct)} color="#22d3ee" sub="percentile" />}
       </div>
 
+      <div style={{ display: "flex", justifyContent: "center", marginBottom: 14 }}>
+        <ViewTabs tabs={[["age", "Since inception"], ["calendar", "BTC full history"]]} value={viewMode} onChange={setViewMode} />
+      </div>
+
+      {viewMode === "calendar" && (<>
       <ZoomBar zoomed={zoomed} onReset={() => setZoom(null)} accent={SPX} />
 
       <div style={{ position: "relative" }}>
@@ -188,18 +232,64 @@ export default function MvrvContextChart({ isMobile, preview = false }) {
           </ComposedChart>
         </ResponsiveContainer>
       </div>
+      </>)}
 
-      {spx && (matchYears || cheaperThan != null) && (
+      {viewMode === "age" && ageView && (
+        <div style={{ position: "relative" }}>
+          <ResponsiveContainer width="100%" height={isMobile ? 400 : 560}>
+            <ComposedChart margin={{ top: 10, right: isMobile ? 8 : 20, bottom: 24, left: isMobile ? 0 : 12 }}>
+              <CartesianGrid strokeDasharray="2 8" stroke="rgba(255,255,255,0.06)" />
+              {zone(z.hot, z.max, "#f87171", "hot")}
+              {zone(z.warm, z.hot, "#fbbf24", "warm")}
+              {zone(z.fair, z.warm, "#4ade80", "fair")}
+              {zone(z.cheap, z.fair, "#38bdf8", "cheap")}
+              {zone(z.min, z.cheap, "#818cf8", "capitulation")}
+              <XAxis dataKey="age" type="number" domain={ageView.xDomain} ticks={ageView.xTicks} allowDataOverflow
+                tickFormatter={fAge} tick={{ fill: "#cbd5e1", fontSize: isMobile ? 10 : 12, fontFamily: MONO }}
+                axisLine={{ stroke: "rgba(255,255,255,0.15)" }} tickLine={false}
+                label={preview ? undefined : { value: "years since inception", position: "insideBottom", offset: -12, fill: "#94a3b8", fontSize: 11, fontFamily: MONO }} />
+              <YAxis type="number" scale="log" domain={ageView.yDomain} allowDataOverflow
+                tickFormatter={fMvrv} tick={{ fill: "#cbd5e1", fontSize: isMobile ? 10 : 12, fontFamily: MONO }}
+                axisLine={{ stroke: "rgba(255,255,255,0.15)" }} tickLine={false} width={isMobile ? 52 : 66} />
+              <ReferenceLine y={1} stroke="rgba(255,255,255,0.45)" strokeDasharray="5 5"
+                label={preview ? undefined : { value: "break-even 1×", position: "insideBottomRight", fill: "#94a3b8", fontSize: 10.5, fontFamily: MONO }} />
+              {/* today's SPX age — where SPX's line ends */}
+              {!preview && <ReferenceLine x={ageView.spxMaxAge} stroke={SPX} strokeDasharray="4 4" strokeOpacity={0.6}
+                label={{ value: `SPX today · ${fAge(ageView.spxMaxAge)}`, position: "insideTopLeft", fill: SPX, fontSize: 11, fontFamily: MONO }} />}
+              {/* where BTC's on-chain MVRV record begins (~age 2) — honest marker, not a data gap we hide */}
+              {ageView.btcFirstAge != null && !preview && <ReferenceLine x={ageView.btcFirstAge} stroke={BTC} strokeDasharray="3 6" strokeOpacity={0.5}
+                label={{ value: `BTC data starts · ${fAge(ageView.btcFirstAge)}`, position: "insideTopRight", fill: BTC, fontSize: 10.5, fontFamily: MONO }} />}
+              <Tooltip content={<AgeTip />} cursor={{ stroke: "rgba(255,255,255,0.2)" }} />
+              <Line data={ageView.btcAgePts} dataKey="mvrv" type="monotone" stroke={BTC} strokeWidth={1.6} dot={false} isAnimationActive={false} name="BTC" />
+              <Line data={ageView.spxAgePts} dataKey="mvrv" type="monotone" stroke={SPX} strokeWidth={2.2} dot={false} isAnimationActive={false} name="SPX6900" />
+            </ComposedChart>
+          </ResponsiveContainer>
+          <div style={{ display: "flex", gap: 18, justifyContent: "center", marginTop: 6, fontFamily: MONO, fontSize: 12 }}>
+            <span style={{ color: SPX }}>● SPX6900</span><span style={{ color: BTC }}>● Bitcoin</span>
+          </div>
+        </div>
+      )}
+
+      {viewMode === "calendar" && spx && (matchYears || cheaperThan != null) && (
         <div style={{ fontFamily: SANS, fontSize: isMobile ? 13 : 14, color: "#cbd5e1", textAlign: "center", marginTop: 14, lineHeight: 1.6, maxWidth: 820, marginInline: "auto" }}>
           At <strong style={{ color: SPX }}>{fMvrv(spx.mvrv)}</strong>, SPX6900&apos;s average holder is <strong style={{ color: spx.mvrv >= 1 ? "#4ade80" : "#f87171" }}>{spx.mvrv >= 1 ? "in profit" : "underwater"}</strong>
           {cheaperThan != null && <>, cheaper on MVRV than <strong style={{ color: "#22d3ee" }}>{cheaperThan}%</strong> of Bitcoin&apos;s entire history</>}.
           {matchYears && <> Bitcoin last traded this cheap at its <strong style={{ color: MATCH }}>{matchYears}</strong> cycle bottoms <span style={{ color: MATCH }}>●</span>.</>}
         </div>
       )}
+      {viewMode === "age" && (
+        <div style={{ fontFamily: SANS, fontSize: isMobile ? 13 : 14, color: "#cbd5e1", textAlign: "center", marginTop: 14, lineHeight: 1.6, maxWidth: 820, marginInline: "auto" }}>
+          Both MVRV paths aligned by <strong style={{ color: "#e2e8f0" }}>age since launch</strong>, SPX6900&apos;s first {ageView ? Math.floor(ageView.spxMaxAge) : 3} years over Bitcoin&apos;s. A rhyme in the early cycle, not a forecast.
+        </div>
+      )}
       <div className="chart-caption" style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 10, lineHeight: 1.65, maxWidth: 900, marginInline: "auto" }}>
-        <strong style={{ color: BTC }}>Bitcoin&apos;s MVRV</strong> over its whole history (market-cap ÷ realized-cap, unitless, so it&apos;s comparable across coins);
-        the <strong style={{ color: SPX }}>SPX6900 band</strong> marks where its MVRV sits today, and the <strong style={{ color: MATCH }}>dots</strong> are the Bitcoin weeks at that same level.
-        The zones are Bitcoin&apos;s own MVRV quantiles, a reference, not a target. SPX6900 has ~one cycle of MVRV vs Bitcoin&apos;s decade, so read it as a rhyme, not a forecast. Drag to zoom. Not financial advice.
+        {viewMode === "age" ? (
+          <><strong style={{ color: SPX }}>SPX6900</strong> and <strong style={{ color: BTC }}>Bitcoin</strong> MVRV (market-cap ÷ realized-cap, unitless) on one axis of <strong>years since each coin&apos;s inception</strong>. Bitcoin&apos;s on-chain MVRV record only begins ~2 years after genesis (realized cap needs a real transaction history and market price), so its line starts there — the earliest years genuinely can&apos;t be reconstructed. Zones are Bitcoin&apos;s own MVRV quantiles, a reference not a target. A rhyme, not a forecast. Not financial advice.</>
+        ) : (
+          <><strong style={{ color: BTC }}>Bitcoin&apos;s MVRV</strong> over its whole history (market-cap ÷ realized-cap, unitless, so it&apos;s comparable across coins);
+          the <strong style={{ color: SPX }}>SPX6900 band</strong> marks where its MVRV sits today, and the <strong style={{ color: MATCH }}>dots</strong> are the Bitcoin weeks at that same level.
+          The zones are Bitcoin&apos;s own MVRV quantiles, a reference, not a target. SPX6900 has ~one cycle of MVRV vs Bitcoin&apos;s decade, so read it as a rhyme, not a forecast. Drag to zoom. Not financial advice.</>
+        )}
       </div>
     </div>
   );
