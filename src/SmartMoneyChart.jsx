@@ -43,9 +43,11 @@ const fmtP = v => v == null ? "" : v < 0.01 ? "$" + v.toFixed(4) : "$" + v.toFix
 const usd = v => v >= 1e6 ? "$" + (v / 1e6).toFixed(1) + "M" : "$" + Math.round(v / 1e3) + "k";
 
 const shortA = a => a.slice(0, 6) + "…" + a.slice(-4);
-// coloured signed balance-change cell: +/− with green/red, "·" when ~flat
+// coloured signed balance-change cell: +/− with green/red, "0" when genuinely flat over the window,
+// "—" only when the value isn't computed yet (so a real zero reads clearly, not as an empty dot).
 const deltaCell = v => {
-  if (v == null || Math.abs(v) < 1) return <span style={{ color: "#64748b" }}>·</span>;
+  if (v == null) return <span style={{ color: "#475569" }}>—</span>;
+  if (Math.abs(v) < 1) return <span style={{ color: "#64748b" }}>0</span>;
   const s = (v > 0 ? "+" : "−") + fmtM(Math.abs(v));
   return <span style={{ color: v > 0 ? GRN : RED, fontWeight: 600 }}>{s}</span>;
 };
@@ -97,7 +99,7 @@ function SmartWalletTable({ wallets, isMobile }) {
                 <td style={td}>{deltaCell(w.d1)}</td>
                 <td style={td}>{deltaCell(w.d7)}</td>
                 <td style={td}>{deltaCell(w.d30)}</td>
-                <td style={{ ...td, color: "#4ade80" }}>{w.roi ? w.roi + "×" : "·"}</td>
+                <td style={{ ...td, color: "#4ade80" }}>{w.roi ? w.roi + "×" : "—"}</td>
               </tr>
             ))}
           </tbody>
@@ -123,7 +125,8 @@ function Drop({ title, sub, accent = "#5eead4", children, defaultOpen = false })
 }
 
 const netCell = v => {
-  if (v == null || Math.abs(v) < 1) return <span style={{ color: "#64748b" }}>·</span>;
+  if (v == null) return <span style={{ color: "#475569" }}>—</span>;
+  if (Math.abs(v) < 1) return <span style={{ color: "#64748b" }}>0</span>;
   return <span style={{ color: v > 0 ? GRN : RED, fontWeight: 600 }}>{(v > 0 ? "+" : "−") + fmtM(Math.abs(v))}</span>;
 };
 
