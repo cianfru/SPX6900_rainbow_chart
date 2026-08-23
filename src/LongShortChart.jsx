@@ -124,19 +124,6 @@ export default function LongShortChart({ series, isMobile }) {
     <div style={{ maxWidth: MAX_W, margin: "0 auto" }}>
       <style>{`@keyframes lsPulse{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(52,211,153,.5)}50%{opacity:.55;box-shadow:0 0 0 5px rgba(52,211,153,0)}}`}</style>
 
-      <div style={{ display: "flex", justifyContent: "center", marginBottom: 12 }}>
-        <span style={{
-          display: "inline-flex", alignItems: "center", gap: 8, fontFamily: MONO, fontSize: 11.5, letterSpacing: "0.06em",
-          padding: "4px 12px", borderRadius: 999,
-          color: isLive ? "#6ee7b7" : "#94a3b8",
-          background: isLive ? "rgba(52,211,153,0.1)" : "rgba(148,163,184,0.08)",
-          border: `1px solid ${isLive ? "rgba(52,211,153,0.4)" : "rgba(148,163,184,0.25)"}`,
-        }}>
-          <span style={{ width: 7, height: 7, borderRadius: "50%", background: isLive ? LONG : "#64748b", animation: isLive ? "lsPulse 1.5s ease-in-out infinite" : "none" }} />
-          {isLive ? "LIVE · Hyperliquid" : "connecting to Hyperliquid…"}
-        </span>
-      </div>
-
       <div style={{ display: "flex", gap: isMobile ? 16 : 30, justifyContent: "center", marginBottom: 14, flexWrap: "wrap" }}>
         <Metric label="funding (APR)" value={fPct(apr)} color={dev >= 0 ? LONG : SHORT} sub={`${fPct(dev)} vs neutral · ${dev >= 0 ? "long-leaning" : "short-leaning"}`} />
         {oi != null && <Metric label="open interest" value={fOI(oi) + " SPX"} color="#a78bfa" sub={isLive ? "live · perp" : "Hyperliquid perp"} />}
