@@ -140,8 +140,6 @@ function DFLink({ name, desc, href }) {
   );
 }
 
-// SPX (Ethereum) — for the "open the cluster map" link (Bubblemaps renders the wallet bubbles).
-const SPX_ETH = "0xE0f63A424a4439cBE457d80e4f4b51ad25b2c56C";
 const shortAddr = a => a.slice(0, 6) + "…" + a.slice(-4);
 // One net-flow cell (SPX change): green when the cluster/wallet added, red when it reduced.
 const netSpxCell = v => {
@@ -380,20 +378,19 @@ export default function TerminalPage({ isMobile }) {
         return (
           <section className="tmsec">
             <div className="tmsectitle">Whale clusters · the owners
-              <Info text="Wallets the entity engine links into ONE owner from on-chain SPX fund/drain flows — the concentration a plain rich-list misses. Hover 'N wallets' to see the members (each opens in Zerion); 'open ↗' loads the cluster map. Net columns = the whole cluster's balance change over 24h/7d/30d. Flagged / over-merged clusters are excluded." />
+              <Info text="Wallets the entity engine links into ONE owner from on-chain SPX fund/drain flows — the concentration a plain rich-list misses. Hover 'N wallets' to see the members (each opens in Zerion). Net columns = the whole cluster's balance change over 24h/7d/30d. Flagged / over-merged clusters are excluded." />
               <span> · top {clusters.length} by size</span></div>
             <details className="tmdrop" open>
               <summary style={{ cursor: "pointer", fontFamily: "var(--mono)", fontSize: 12.5, color: "var(--dim)", padding: "2px 0 10px", userSelect: "none" }}>reveal / hide clusters</summary>
               <div className="tmtblwrap">
                 <table className="tmtbl">
-                  <thead><tr><th>owner</th><th>wallets</th><th>combined</th><th>24h</th><th>7d</th><th>30d</th><th></th></tr></thead>
+                  <thead><tr><th>owner</th><th>wallets</th><th>combined</th><th>24h</th><th>7d</th><th>30d</th></tr></thead>
                   <tbody>{clusters.map((c, i) => (
                     <tr key={c.id}>
                       <td className="tmk"><span style={{ color: "var(--faint)", marginRight: 8 }}>{i + 1}</span>{shortAddr(c.id)}</td>
                       <td><ClusterWallets c={c} /></td>
                       <td className="tmval">{fmtVal(c.bal, "spx")}</td>
                       {netSpxCell(c.d1)}{netSpxCell(c.d7)}{netSpxCell(c.d30)}
-                      <td><a href={`https://bubblemaps.io/eth/token/${SPX_ETH}`} target="_blank" rel="noopener" style={{ color: "var(--live)", textDecoration: "none" }}>open ↗</a></td>
                     </tr>
                   ))}</tbody>
                 </table>

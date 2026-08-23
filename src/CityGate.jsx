@@ -14,8 +14,9 @@ import { CITY_KEY as KEY } from "./city-gate-key.js";
 // a passer-by and nobody else. That is the intended job — the page is a "not ready yet" sign, and
 // the gate only stops someone wandering in by accident. If anything ever DOES need to be private,
 // it cannot live behind this.
-// FNV-1a of the passphrase — so the literal string isn't sitting in the bundle in plain sight.
-const HASH = 3343087233;
+// FNV-1a of the passphrase ("Admin123", lower-cased on entry) — so the literal string isn't sitting
+// in the bundle in plain sight. ONE passphrase now unlocks everything (city + Deep Field).
+const HASH = 1883603724;
 const fnv = s => { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; };
 
 // A short synthesised "pop" — a pitch-dropping blip with a fast decay. Synthesised rather than
