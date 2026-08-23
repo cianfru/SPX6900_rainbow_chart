@@ -1,11 +1,7 @@
 {
   "lastPostedDate": "2026-08-23",
-  "lastId": "manual-skip",
+  "lastId": "longshort",
   "recent": [
-    {
-      "date": "2026-07-22",
-      "id": "whatnext"
-    },
     {
       "date": "2026-07-23",
       "id": "spxcohort"
@@ -81,6 +77,10 @@
     {
       "date": "2026-08-20",
       "id": "memecoins"
+    },
+    {
+      "date": "2026-08-23",
+      "id": "longshort"
     }
   ],
   "lanes": {
