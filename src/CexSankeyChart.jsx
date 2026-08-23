@@ -13,23 +13,51 @@ const NEUTRAL = "#94a3b8", GREEN = "#34d399", TEAL = "#5eead4", AMBER = "#fbbf24
 
 // Build recharts {nodes, links} from cex-sankey.json: sources (left) → venues (centre stick) → dests
 // (right). Depth 0/1/2 puts them in three columns automatically.
-function toSankey(data) {
+//
+// `topN` caps how many INDIVIDUAL wallets each venue shows on each side; the rest are rolled into that
+// venue's "+N more" band (folded together with the sub-dust roll-up already in the data). Without a cap
+// the 90-day view stacks 120+ wallet nodes in one column — recharts packs them past the SVG height and
+// the overflow renders below the chart with no way to scroll to it. Nothing is hidden: the rolled band
+// keeps its full amount and its wallet count, same honest pattern as the existing dust roll-up.
+function toSankey(data, topN = 8) {
   const nodes = [], idx = new Map();
   const add = (key, node) => { if (!idx.has(key)) { idx.set(key, nodes.length); nodes.push(node); } return idx.get(key); };
   const links = [];
+  // split a venue's leaf list into the shown top-N and a rolled remainder (merged with the dust band)
+  const split = (top = [], more) => {
+    const sorted = [...top].sort((a, b) => b.amt - a.amt);
+    const shown = sorted.slice(0, topN), rest = sorted.slice(topN);
+    let amt = more?.amt || 0, n = more?.n || 0;
+    for (const r of rest) { amt += r.amt; n += 1; }
+    return { shown, rollAmt: amt, rollN: n };
+  };
   const venues = [...new Set([...(data.inflow || []).map(v => v.venue), ...(data.outflow || []).map(v => v.venue)])];
   for (const v of venues) add("v:" + v, { name: v, kind: "venue" });
   for (const v of data.inflow || []) {
     const vi = idx.get("v:" + v.venue);
-    for (const s of v.top) links.push({ source: add("s:" + s.a, { name: short(s.a), kind: "source", a: s.a }), target: vi, value: s.amt, dir: "in" });
-    if (v.more?.amt > 0) links.push({ source: add("sm:" + v.venue, { name: `${v.more.n} smaller`, kind: "sourceMore" }), target: vi, value: v.more.amt, dir: "in" });
+    const { shown, rollAmt, rollN } = split(v.top, v.more);
+    for (const s of shown) links.push({ source: add("s:" + s.a, { name: short(s.a), kind: "source", a: s.a }), target: vi, value: s.amt, dir: "in" });
+    if (rollAmt > 0) links.push({ source: add("sm:" + v.venue, { name: `${rollN} more`, kind: "sourceMore" }), target: vi, value: rollAmt, dir: "in" });
   }
   for (const v of data.outflow || []) {
     const vi = idx.get("v:" + v.venue);
-    for (const d of v.top) links.push({ source: vi, target: add("d:" + d.a, { name: short(d.a), kind: "dest", a: d.a }), value: d.amt, dir: "out" });
-    if (v.more?.amt > 0) links.push({ source: vi, target: add("dm:" + v.venue, { name: `${v.more.n} smaller`, kind: "destMore" }), value: v.more.amt, dir: "out" });
+    const { shown, rollAmt, rollN } = split(v.top, v.more);
+    for (const d of shown) links.push({ source: vi, target: add("d:" + d.a, { name: short(d.a), kind: "dest", a: d.a }), value: d.amt, dir: "out" });
+    if (rollAmt > 0) links.push({ source: vi, target: add("dm:" + v.venue, { name: `${rollN} more`, kind: "destMore" }), value: rollAmt, dir: "out" });
   }
   return { nodes, links };
+}
+
+// The tallest of the three columns — that's what actually sets how much vertical room the diagram
+// needs, since recharts stacks each column's nodes independently (total node count over-counts).
+function tallestColumn(nodes) {
+  let left = 0, mid = 0, right = 0;
+  for (const n of nodes) {
+    if (n.kind === "venue") mid++;
+    else if (String(n.kind).startsWith("source")) left++;
+    else right++;
+  }
+  return Math.max(left, mid, right, 1);
 }
 
 const openWallet = a => a && window.open(`https://app.zerion.io/${a}/overview`, "_blank", "noopener");
@@ -109,7 +137,7 @@ export default function CexSankeyChart({ isMobile }) {
   // windows the data offers (byWindow); the selected slice, falling back to the flat 90-day fields.
   const wins = data?.windows?.length ? data.windows : (data?.byWindow ? Object.keys(data.byWindow).map(Number) : null);
   const active = useMemo(() => (data?.byWindow?.[flowWin] || data), [data, flowWin]);
-  const sankey = useMemo(() => (active ? toSankey(active) : null), [active]);
+  const sankey = useMemo(() => (active ? toSankey(active, isMobile ? 5 : 8) : null), [active, isMobile]);
 
   if (data === undefined) return <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Loading exchange flow…</div>;
   if (!data || !sankey || sankey.links.length < 2) return (
@@ -122,7 +150,14 @@ export default function CexSankeyChart({ isMobile }) {
   );
 
   const { totals, window: win } = active;
-  const H = Math.max(360, Math.min(sankey.nodes.length, 40) * (isMobile ? 20 : 24) + 60);
+  // Height is driven by the TALLEST column (not the total node count), and each node needs room for
+  // itself PLUS the gap recharts puts between nodes — otherwise the column packs past the SVG and the
+  // extra nodes spill below with no scroll. nodePadding tightens as a column gets busy so the diagram
+  // stays a sane height while still fitting every node.
+  const maxCol = tallestColumn(sankey.nodes);
+  const nodePad = maxCol > 34 ? (isMobile ? 6 : 8) : (isMobile ? 12 : 20);
+  const perNode = (isMobile ? 12 : 14) + nodePad;
+  const H = Math.max(360, maxCol * perNode + 50);
 
   return (
     <div style={{ maxWidth: MAX_W, margin: "0 auto" }}>
@@ -144,7 +179,7 @@ export default function CexSankeyChart({ isMobile }) {
       </div>
 
       <ResponsiveContainer width="100%" height={H}>
-        <Sankey data={sankey} nodePadding={isMobile ? 12 : 22} nodeWidth={13} iterations={64}
+        <Sankey data={sankey} nodePadding={nodePad} nodeWidth={13} iterations={64}
           margin={{ left: isMobile ? 4 : 8, right: isMobile ? 4 : 8, top: 12, bottom: 12 }}
           node={<SankeyNode isMobile={isMobile} />} link={<SankeyLink />}>
           <Tooltip wrapperStyle={{ zIndex: 50, outline: "none" }} content={<SankeyTip />} />

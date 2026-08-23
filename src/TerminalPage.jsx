@@ -217,9 +217,27 @@ export default function TerminalPage({ isMobile }) {
         const hot = rows.filter(r => r.pct >= 85);      // stretched / overheated
         const cold = rows.filter(r => r.pct <= 12);     // deep value
         const liveAPR = hl && hl.ok !== false && hl.fundingAPR != null ? hl.fundingAPR : null;
+        const fundingRow = rows.find(r => r.key === "funding");
         const items = [];
-        hot.forEach(r => { if (r.key === "funding" && liveAPR != null) return; items.push({ txt: `${r.label} ${r.reading} · ${r.state}`, hot: true }); });
-        if (liveAPR != null && liveAPR >= 40) items.push({ txt: `Traders paying ~${Math.round(liveAPR)}% APR to be long`, hot: true, live: true });
+        // Every gauge EXCEPT funding surfaces on percentile alone. Funding is handled once, below, so
+        // the live APR and the baked percentile don't produce two conflicting pills.
+        hot.forEach(r => { if (r.key === "funding") return; items.push({ txt: `${r.label} ${r.reading} · ${r.state}`, hot: true }); });
+        // Traders' positioning: surface it if the gauge is stretched against SPX's OWN funding history
+        // (pct ≥ 85) OR the live APR spikes high (≥ 40) — either is a real "crowd is paying up" signal.
+        // The live APR is the more current reading, so prefer it in the text when we have it; fall back
+        // to the baked reading otherwise. Without this, a percentile-stretched gauge showed "stretched"
+        // in the table but produced NO banner pill whenever the live APR sat below 40.
+        const fundingHot = !!fundingRow && fundingRow.pct >= 85;
+        const liveHot = liveAPR != null && liveAPR >= 40;
+        if (fundingHot || liveHot) {
+          // Prefer the LIVE number only when it's itself elevated (a real current spike); otherwise
+          // show the baked gauge that drove the "stretched" verdict — so a cooled live reading never
+          // gets mislabelled "stretched".
+          const txt = liveHot
+            ? `Traders paying ~${Math.round(liveAPR)}% APR to be long`
+            : `${fundingRow.label} ${fundingRow.reading} · ${fundingRow.state}`;
+          items.push({ txt, hot: true, live: liveHot });
+        }
         cold.forEach(r => items.push({ txt: `${r.label} ${r.reading} · ${r.state}`, hot: false }));
         if (!items.length) return null;
         const danger = items.some(i => i.hot);

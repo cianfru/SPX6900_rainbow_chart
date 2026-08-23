@@ -96,6 +96,11 @@ export const EXCLUDE_LABELS = {
   // Owner-flagged 2026-08-16: ~580k SPX (rank ~#164), $20M portfolio (not SPX) — and CONNECTED to the
   // Kraken-linked wallet above, so attributed to Kraken (canonVenue → Kraken) rather than left neutral.
   "0x655fe3fc7764e621ca738254eb1b90fae3461d51": { name: "Kraken-linked", kind: "cex" },
+  // Owner-flagged 2026-08-23: a CoinEx hot wallet. Signature was unmistakable on the flow map — TWO-WAY
+  // flow exclusively with CoinEx (supplied ~361k SPX AND withdrew ~430k SPX over 90d) with only a small
+  // ~99k resting balance, i.e. deposit/settlement throughput, not a holder. EOA, funded by/trading for
+  // CoinEx → "-linked" so canonVenue folds it into CoinEx rather than inventing a venue.
+  "0x50ef5ed097913c223827636890cfb9ed492f5955": { name: "CoinEx-linked", kind: "cex" },
 };
 
 // The set the FIFO engine excludes from holder reconstruction — DERIVED from EXCLUDE_LABELS so
