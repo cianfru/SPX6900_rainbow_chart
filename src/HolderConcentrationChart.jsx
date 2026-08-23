@@ -3,12 +3,15 @@ import {
   ResponsiveContainer, ComposedChart, Area, Line, XAxis, YAxis, Tooltip, CartesianGrid, ReferenceArea,
 } from "recharts";
 import { SPX_ONCHAIN } from "./spx-onchain.js";
-import { loadOnchain } from "./history-data.js";
+import { loadOnchain, loadEntities, loadWhales } from "./history-data.js";
+import { entityConcentration } from "./entity-concentration.js";
 import ChartZoomHint from "./ChartZoomHint.jsx";
 import { SANS, MONO, MAX_W, Metric, TipBox, ZoomBar, Explain } from "./chart-ui.jsx";
 import { useDragZoom } from "./use-drag-zoom.js";
 
-const A100 = "#fbbf24", A10 = "#f87171";
+const A100 = "#fbbf24", A10 = "#f87171", AOWN = "#c084fc";
+const fM = v => (v / 1e6).toFixed(1) + "M";
+const fPp = v => (v >= 0 ? "+" : "") + v.toFixed(1) + "pp";
 const fShort = t => new Date(t).toLocaleDateString("en-US", { month: "short", year: "2-digit" });
 
 function Tip({ active, payload }) {
@@ -27,9 +30,13 @@ function Tip({ active, payload }) {
 // the holder base grew. A distribution-of-ownership read, not a signal.
 export default function HolderConcentrationChart({ isMobile, preview = false }) {
   const [live, setLive] = useState(null);
+  const [byOwner, setByOwner] = useState(null); // today's entity-adjusted read — null until (and unless) the data supports it
   useEffect(() => {
     let cancelled = false;
     loadOnchain().then(d => { if (!cancelled && d) setLive(d); });
+    Promise.all([loadEntities(), loadWhales()]).then(([e, w]) => {
+      if (!cancelled) setByOwner(entityConcentration(e, w));
+    });
     return () => { cancelled = true; };
   }, []);
   const all = useMemo(
@@ -63,6 +70,38 @@ export default function HolderConcentrationChart({ isMobile, preview = false }) 
         <Metric label="top 10 wallets" value={cur.t10.toFixed(1) + "%"} color={A10} sub={`from ${first.t10.toFixed(0)}% at launch`} />
       </div>
 
+      {byOwner && !preview && (
+        <div style={{
+          maxWidth: 900, margin: "0 auto 18px", padding: isMobile ? "14px 14px 12px" : "16px 20px 14px",
+          border: `1px solid rgba(192,132,252,0.35)`, borderLeft: `3px solid ${AOWN}`, borderRadius: 10,
+          background: "rgba(192,132,252,0.05)", fontFamily: SANS,
+        }}>
+          <div style={{ fontFamily: MONO, fontSize: 12, letterSpacing: "0.08em", textTransform: "uppercase", color: AOWN, marginBottom: 10 }}>
+            same supply, counted by owner · today
+          </div>
+          <div style={{ display: "flex", gap: isMobile ? 16 : 30, justifyContent: "center", flexWrap: "wrap", marginBottom: 10 }}>
+            <Metric label="top 100 owners" value={byOwner.owner.top100.toFixed(1) + "%"} color={AOWN}
+              sub={`${fPp(byOwner.owner.top100 - byOwner.raw.top100)} vs by wallet`} />
+            <Metric label="top 10 owners" value={byOwner.owner.top10.toFixed(1) + "%"} color={AOWN}
+              sub={`${fPp(byOwner.owner.top10 - byOwner.raw.top10)} vs by wallet`} />
+          </div>
+          <div style={{ fontSize: 14, color: "#cbd5e1", lineHeight: 1.6, textAlign: "center" }}>
+            The chart counts <strong style={{ color: A100 }}>wallets</strong>; this box counts <strong style={{ color: AOWN }}>owners</strong>, merging
+            the addresses one owner controls (linked from on-chain SPX fund/drain flows — the same clusters as the Wallet Clusters chart).
+            {byOwner.largest && byOwner.largest.size > 1 && (
+              <> The largest owner holds <strong style={{ color: "#f1f5f9", fontFamily: MONO }}>{fM(byOwner.largest.bal)} SPX</strong> across{" "}
+                <strong style={{ color: "#f1f5f9" }}>{byOwner.largest.size} wallets</strong>
+                {byOwner.largest.rank === 1 ? " — the #1 holder, invisible in the by-wallet view." : `, ranking #${byOwner.largest.rank} among owners.`}</>
+            )}
+            {" "}{byOwner.clustersInTop100} of the top-100 owners are multi-wallet clusters.
+          </div>
+          <div style={{ fontSize: 12.5, color: "#94a3b8", lineHeight: 1.6, textAlign: "center", marginTop: 8 }}>
+            Only verified clusters are merged — uncertain (flagged) ones stay separate, so this is a <em>floor</em> on real concentration.
+            Wallets linked only through a shared ETH gas funder that never touched SPX can&apos;t be detected. Method on the Wallet Clusters page.
+          </div>
+        </div>
+      )}
+
       <ZoomBar zoomed={zoomed} onReset={() => setZoom(null)} accent={A100} />
 
       <div style={{ position: "relative" }}>
@@ -95,7 +134,10 @@ export default function HolderConcentrationChart({ isMobile, preview = false }) 
 
       <div className="chart-caption" style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.65, maxWidth: 900, marginInline: "auto" }}>
         <strong style={{ color: A100 }}>Holder concentration</strong>, the share of ETH-native supply held by the largest wallets (contracts, pools and exchanges excluded).
-        Both lines have drifted down since launch: the float keeps spreading into more hands, SPX6900 is decentralising. Drag to zoom. Not financial advice.
+        {byOwner && !preview && (
+          <> Both lines count wallets one by one; the <span style={{ color: AOWN }}>by-owner</span> box above merges each owner&apos;s linked wallets for today&apos;s truer read.</>
+        )}
+        {" "}Both lines have drifted down since launch: the float keeps spreading into more hands, SPX6900 is decentralising. Drag to zoom. Not financial advice.
       </div>
     </div>
   );
