@@ -48,6 +48,18 @@ function condDelta(v, fmt) {
   return { s: sign + mag, cls: v < 0 ? "tmup" : "tmdn" };   // cheaper (down) = green · dearer (up) = red
 }
 
+// For a "level" row (a flow / count that's ALREADY a window, not a stock), the 1d/7d/30d columns are
+// the value OVER each window, not a change. Render the number plainly: counts as-is, signed flows with
+// +/− coloured by goodUp; a genuine zero as "0", and "—" only when the window truly isn't computed.
+function LevelCell({ v, fmt, goodUp }) {
+  if (v == null || !isFinite(v)) return <span className="tmdz">—</span>;
+  if (fmt === "int") return Math.abs(v) < 0.5 ? <span className="tmdz">0</span> : <span style={{ color: "var(--tx)" }}>{Math.round(v).toLocaleString()}</span>;
+  if (Math.abs(v) < 1) return <span className="tmdz">0</span>;
+  const good = (v > 0) === !!goodUp;
+  const a = Math.abs(v), s = a >= 1e6 ? (a / 1e6).toFixed(2) + "M" : a >= 1e3 ? (a / 1e3).toFixed(0) + "k" : Math.round(a).toString();
+  return <span className={good ? "tmup" : "tmdn"}>{(v > 0 ? "+" : "−") + s}</span>;
+}
+
 function Delta({ d, fmt, goodUp }) {
   if (d == null || !isFinite(d)) return <span className="tmdz">—</span>;
   const eps = (fmt === "x" || fmt === "num3" || fmt === "pct") ? 0.005 : (fmt === "eth") ? 0.0005 : 1e-9;
@@ -435,7 +447,7 @@ export default function TerminalPage({ isMobile }) {
                 <tr key={ri}>
                   <td className="tmk">{r.label}{r.note ? <Info text={r.note} /> : null}</td>
                   <td className="tmval">{fmtVal(r.value, r.fmt)}</td>
-                  {(r.d || [null, null, null]).map((d, di) => <td key={di}><Delta d={d} fmt={r.fmt} goodUp={r.goodUp} /></td>)}
+                  {(r.d || [null, null, null]).map((d, di) => <td key={di}>{r.level ? <LevelCell v={d} fmt={r.fmt} goodUp={r.goodUp} /> : <Delta d={d} fmt={r.fmt} goodUp={r.goodUp} />}</td>)}
                 </tr>
               ))}</tbody>
             </table>
