@@ -101,28 +101,99 @@ function Info({ text }) {
   );
 }
 
+// Unlock the client-side chart gates too, so a member's locked charts (entities/clustercity/…) open
+// once they're in. The real data wall is server-side (next phase); this just bridges to the existing
+// localStorage chart gate so nothing has to be rewired per chart.
+const unlockClient = () => { try { localStorage.setItem(TERMINAL_KEY, "1"); localStorage.setItem(CITY_KEY, "1"); } catch { /* private */ } };
+
+// DEEP FIELD ACCESS GATE. Primary path = log in with X, then redeem an invite code (server-side,
+// api/auth.js). If the X app isn't configured yet (env unset), it falls back to the legacy passphrase
+// so the beta keeps working during setup.
 function Gate({ onPass, isMobile }) {
-  const [pw, setPw] = useState(""); const [bad, setBad] = useState(false);
-  const submit = e => {
+  const [phase, setPhase] = useState("checking");   // checking | login | code | passphrase
+  const [pw, setPw] = useState(""); const [bad, setBad] = useState("");
+  const [user, setUser] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    let off = false;
+    fetch("/api/auth?action=me", { cache: "no-store" }).then(r => r.json()).then(d => {
+      if (off) return;
+      if (d && d.ok === false && d.err === "not configured") { setPhase("passphrase"); return; }
+      if (d && d.member) { unlockClient(); onPass(); return; }
+      if (d && d.loggedIn) { setUser(d.username || ""); setPhase("code"); return; }
+      setPhase("login");
+    }).catch(() => { if (!off) setPhase("passphrase"); });
+    return () => { off = true; };
+  }, [onPass]);
+
+  const passSubmit = e => {
     e.preventDefault();
-    // One member key unlocks BOTH Deep Field and the premium locked charts (sets both flags).
-    if (isValidAccess(fnv(pw.trim().toLowerCase()))) { try { localStorage.setItem(TERMINAL_KEY, "1"); localStorage.setItem(CITY_KEY, "1"); } catch { /* private */ } onPass(); }
-    else setBad(true);
+    if (isValidAccess(fnv(pw.trim().toLowerCase()))) { unlockClient(); onPass(); } else setBad("Not that one.");
   };
-  return (
+  const redeem = async e => {
+    e.preventDefault(); setBusy(true); setBad("");
+    try {
+      const r = await fetch("/api/auth?action=redeem", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code: pw }) });
+      const d = await r.json();
+      if (d && d.ok && d.member) { unlockClient(); onPass(); } else setBad(d?.err ? d.err[0].toUpperCase() + d.err.slice(1) : "Invalid code.");
+    } catch { setBad("Something went wrong — try again."); }
+    setBusy(false);
+  };
+
+  const Wrap = ({ children }) => (
     <div className="twrap" style={{ maxWidth: 560, margin: "72px auto", textAlign: "center" }}>
-      <div style={{ fontSize: 40, marginBottom: 12 }}>🔒</div>
+      <div style={{ fontSize: 40, marginBottom: 12 }}>🔭</div>
       <h2 style={{ fontFamily: "var(--mono)", fontSize: isMobile ? 22 : 27, fontWeight: 700, color: "var(--tx)", letterSpacing: "-0.01em", margin: "0 0 8px" }}>Deep Field</h2>
-      <p style={{ color: "var(--faint)", fontSize: 14, lineHeight: 1.65, margin: "0 0 24px" }}>
-        The granular on-chain intel hub — clusters, whale flows, per-wallet P&L. Members-only closed beta; enter your invite code.
+      {children}
+    </div>
+  );
+  const inputStyle = { width: 240, padding: "10px 13px", borderRadius: 0, fontFamily: "var(--mono)", fontSize: 13, background: "var(--panel)", border: `1px solid ${bad ? "#fb7185" : "var(--line2)"}`, color: "var(--tx)", outline: "none" };
+
+  if (phase === "checking") return <Wrap><p style={{ color: "var(--faint)", fontFamily: "var(--mono)", fontSize: 13 }}>checking access…</p></Wrap>;
+
+  if (phase === "login") return (
+    <Wrap>
+      <p style={{ color: "var(--dim)", fontSize: 14, lineHeight: 1.65, margin: "0 0 22px" }}>
+        The granular on-chain intel hub — clusters, whale flows, per-wallet P&amp;L. A members-only closed beta.
+        <br />Log in with X to continue; you&apos;ll then enter your invite code.
       </p>
-      <form onSubmit={submit} style={{ display: "flex", gap: 8, justifyContent: "center" }}>
-        <input type="password" value={pw} autoFocus onChange={e => { setPw(e.target.value); setBad(false); }} placeholder="passphrase"
-          style={{ width: 220, padding: "10px 13px", borderRadius: 0, fontFamily: "var(--mono)", fontSize: 13, background: "var(--panel)", border: `1px solid ${bad ? "#fb7185" : "var(--line2)"}`, color: "var(--tx)", outline: "none" }} />
+      <a href="/api/auth?action=login" style={{ display: "inline-flex", alignItems: "center", gap: 10, textDecoration: "none",
+        fontFamily: "var(--mono)", fontSize: 14, fontWeight: 700, color: "#000", background: "#fff",
+        padding: "11px 20px", borderRadius: 6 }}>
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+        Log in with X
+      </a>
+      <p style={{ color: "var(--faint)", fontSize: 12, marginTop: 16, lineHeight: 1.6 }}>Members-only. We use X so access is tied to a real identity, not a throwaway email.</p>
+    </Wrap>
+  );
+
+  if (phase === "code") return (
+    <Wrap>
+      <p style={{ color: "var(--dim)", fontSize: 14, lineHeight: 1.65, margin: "0 0 20px" }}>
+        Signed in as <strong style={{ color: "var(--tx)" }}>@{user}</strong>. Enter your invite code to join the closed beta.
+      </p>
+      <form onSubmit={redeem} style={{ display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap" }}>
+        <input value={pw} autoFocus onChange={e => { setPw(e.target.value); setBad(""); }} placeholder="invite code" style={inputStyle} />
+        <MenuBtn label={busy ? "…" : "Join"} type="submit" />
+      </form>
+      {bad && <div style={{ color: "#fb7185", fontSize: 13, marginTop: 12, fontFamily: "var(--mono)" }}>{bad}</div>}
+      <p style={{ color: "var(--faint)", fontSize: 12, marginTop: 16 }}>Don&apos;t have a code? <a href="https://x.com/SPX6900Rainbow" target="_blank" rel="noopener" style={{ color: "var(--live)" }}>Request one on X ↗</a> · <a href="/api/auth?action=logout" style={{ color: "var(--dim)" }}>log out</a></p>
+    </Wrap>
+  );
+
+  // passphrase fallback (X app not configured yet)
+  return (
+    <Wrap>
+      <p style={{ color: "var(--faint)", fontSize: 14, lineHeight: 1.65, margin: "0 0 24px" }}>
+        The granular on-chain intel hub — clusters, whale flows, per-wallet P&amp;L. Members-only closed beta; enter your invite code.
+      </p>
+      <form onSubmit={passSubmit} style={{ display: "flex", gap: 8, justifyContent: "center" }}>
+        <input type="password" value={pw} autoFocus onChange={e => { setPw(e.target.value); setBad(""); }} placeholder="passphrase" style={inputStyle} />
         <MenuBtn label="Enter" type="submit" />
       </form>
-      {bad && <div style={{ color: "#fb7185", fontSize: 13, marginTop: 12, fontFamily: "var(--mono)" }}>Not that one.</div>}
-    </div>
+      {bad && <div style={{ color: "#fb7185", fontSize: 13, marginTop: 12, fontFamily: "var(--mono)" }}>{bad}</div>}
+    </Wrap>
   );
 }
 

@@ -580,7 +580,7 @@ async function loadState() {
 }
 
 async function loadSchedule() {
-  const r = await fetch("/api/schedule?days=8");
+  const r = await fetch("/api/control?feed=schedule&days=8");
   if (!r.ok) throw new Error("schedule endpoint failed (" + r.status + ")");
   const j = await r.json();
   IDS = j.ids || []; UPCOMING = j.upcoming || []; TEXTS = j.texts || {}; MEDIA = j.media || {}; ORIENT = j.orient || {}; EDITABLE = j.editable || {};
