@@ -96,11 +96,17 @@ export const EXCLUDE_LABELS = {
   // Owner-flagged 2026-08-16: ~580k SPX (rank ~#164), $20M portfolio (not SPX) — and CONNECTED to the
   // Kraken-linked wallet above, so attributed to Kraken (canonVenue → Kraken) rather than left neutral.
   "0x655fe3fc7764e621ca738254eb1b90fae3461d51": { name: "Kraken-linked", kind: "cex" },
-  // Owner-flagged 2026-08-23: a CoinEx hot wallet. Signature was unmistakable on the flow map — TWO-WAY
-  // flow exclusively with CoinEx (supplied ~361k SPX AND withdrew ~430k SPX over 90d) with only a small
-  // ~99k resting balance, i.e. deposit/settlement throughput, not a holder. EOA, funded by/trading for
-  // CoinEx → "-linked" so canonVenue folds it into CoinEx rather than inventing a venue.
+  // Owner-flagged + CONFIRMED 2026-08-23: a CoinEx hot-wallet cluster. The engine had merged four
+  // addresses into one "owner" (0x0802…d61) because they rotate SPX between each other — the tell of an
+  // exchange's own wallets, not a person. 0x50ef… showed the unmistakable signature: TWO-WAY flow
+  // exclusively with CoinEx (~361k SPX in AND ~430k out over 90d) on a small ~99k resting balance =
+  // deposit/settlement throughput. Owner checked all four on Etherscan → all high-throughput exchange
+  // wallets (some drained, some active), not a holder cluster. Tagged "CoinEx-linked" so canonVenue
+  // folds them into CoinEx; excluding them removes the invented holders AND dissolves the false cluster.
   "0x50ef5ed097913c223827636890cfb9ed492f5955": { name: "CoinEx-linked", kind: "cex" },
+  "0x0802dd2edd3f9fad39a9173b4595be819f201d61": { name: "CoinEx-linked", kind: "cex" },
+  "0xbca34ed5875079cc561840f3409a790769821dbc": { name: "CoinEx-linked", kind: "cex" },
+  "0xfcbfc2618826fdf33e592b8e0c65089d91a0896b": { name: "CoinEx-linked", kind: "cex" },
 };
 
 // The set the FIFO engine excludes from holder reconstruction — DERIVED from EXCLUDE_LABELS so
