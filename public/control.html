@@ -44,6 +44,30 @@
   .tab:hover { background: #0b0b18; }
   .tab.active { background: #0b0b18; color: #e2e8f0; border-color: #3b82f6; }
   .tab .dot { display: inline-block; width: 7px; height: 7px; border-radius: 999px; background: #f59e0b; margin-left: 6px; vertical-align: middle; }
+  /* hamburger dropdown nav (replaces the tab row — fits mobile) */
+  .navbar { position: relative; margin-top: 14px; }
+  .menubtn {
+    display: inline-flex; align-items: center; gap: 10px; background: #0b0b18;
+    border: 1px solid rgba(255,255,255,.14); border-radius: 10px; padding: 10px 16px;
+    font-size: 14px; color: #e2e8f0; cursor: pointer; min-width: 240px; text-align: left;
+  }
+  .menubtn:hover { border-color: #3b82f6; }
+  .menubtn .mburger { color: #64748b; font-size: 15px; }
+  .menubtn #menuCurrent { flex: 1; font-weight: 600; }
+  .menubtn .mcaret { color: #64748b; }
+  .menudrop {
+    position: absolute; top: calc(100% + 6px); left: 0; z-index: 40; min-width: 260px;
+    background: #0b0b18; border: 1px solid rgba(255,255,255,.16); border-radius: 12px;
+    padding: 6px; box-shadow: 0 18px 50px rgba(0,0,0,.6); display: flex; flex-direction: column;
+  }
+  .menudrop[hidden] { display: none; }
+  .mitem {
+    background: transparent; border: none; text-align: left; padding: 11px 14px; border-radius: 8px;
+    font-size: 14px; color: #cbd5e1; cursor: pointer; white-space: nowrap;
+  }
+  .mitem:hover { background: #14142a; color: #fff; }
+  .mitem.active { background: #14142a; color: #fff; border-left: 3px solid #3b82f6; padding-left: 11px; }
+  @media (max-width: 640px) { .menubtn, .menudrop { min-width: 0; width: 100%; } }
   button {
     background: #1e293b; color: #e2e8f0; border: 1px solid rgba(255,255,255,.14);
     border-radius: 8px; padding: 9px 14px; font-size: 13px; cursor: pointer;
@@ -321,14 +345,20 @@
     <h1>SPX6900 · post control <span style="color:#475569;font-size:13px">(hidden)</span>
       <span id="buildTag" style="color:#475569;font-size:12px;font-weight:400"></span></h1>
     <div class="sub">Preview every card and pick what posts next. Queue one for the scheduled run, or post it now. Pick nothing and the daily auto-rotation runs as normal.</div>
-    <div class="tabs">
-      <button id="tabDaily" class="tab active">🗓 SPX6900 · Daily posts</button>
-      <button id="tabRecap" class="tab">📅 SPX6900 · Recap</button>
-      <button id="tabCity" class="tab">🏙 SPX City</button>
-      <button id="tabStudio" class="tab">🎨 Card studio</button>
-      <button id="tabAeon" class="tab">🌌 Project Aeon</button>
-      <button id="tabEngage" class="tab">📈 Engagement</button>
-      <button id="tabAudience" class="tab">🌍 Audience</button>
+    <div class="navbar">
+      <button id="menuBtn" class="menubtn" aria-expanded="false" aria-haspopup="true">
+        <span class="mburger">☰</span><span id="menuCurrent">🗓 Daily posts</span><span class="mcaret">▾</span>
+      </button>
+      <div id="menuDrop" class="menudrop" hidden>
+        <button class="mitem" data-tab="daily">🗓 SPX6900 · Daily posts</button>
+        <button class="mitem" data-tab="recap">📅 SPX6900 · Recap</button>
+        <button class="mitem" data-tab="city">🏙 SPX City</button>
+        <button class="mitem" data-tab="studio">🎨 Card studio</button>
+        <button class="mitem" data-tab="aeon">🌌 Project Aeon</button>
+        <button class="mitem" data-tab="engage">📈 Engagement</button>
+        <button class="mitem" data-tab="audience">🌍 Audience</button>
+        <button class="mitem" data-tab="deepfield">🔭 Deep Field · members</button>
+      </div>
     </div>
   </header>
   <div class="wrap">
@@ -494,6 +524,27 @@
       </div>
       <div class="status" id="audStatus">Open this tab to load audience geography.</div>
       <div id="audOut"></div>
+    </div>
+
+    <!-- Deep Field members tab — seed invite codes + see who's in (via api/auth, gated by CONTROL_PASSWORD) -->
+    <div id="deepfieldView" style="display:none">
+      <div class="bar">
+        <button id="dfRefresh">↻ Refresh members</button>
+        <span style="margin-left:auto;color:#64748b;font-size:12px">X-login gated closed beta · <a href="/deepfield" target="_blank" rel="noopener" style="color:#7dd3fc">open Deep Field →</a></span>
+      </div>
+      <div class="status" id="dfStatus">Manage the closed-beta invite codes and members.</div>
+      <div style="display:flex;gap:20px;flex-wrap:wrap;margin-top:14px;align-items:flex-start">
+        <div style="flex:1 1 320px;min-width:280px">
+          <h3 style="margin:0 0 8px;font-size:15px;color:#e2e8f0">Seed invite codes</h3>
+          <p style="color:#94a3b8;font-size:12.5px;margin:0 0 8px;line-height:1.5">One code per line. Only the hashes are stored — the plaintext never touches the repo or the DB. Hand each code to one OG; they log in with X, then redeem it. Re-seeding is safe (existing codes keep their used/unused state).</p>
+          <textarea id="dfCodes" placeholder="deepfield-diamond-6991&#10;deepfield-gold-4242&#10;…" style="width:100%;min-height:120px;background:#0b0b18;border:1px solid rgba(255,255,255,.14);border-radius:8px;color:#e2e8f0;font-family:ui-monospace,monospace;font-size:13px;padding:10px"></textarea>
+          <div style="margin-top:8px"><button id="dfSeed">Seed codes</button> <span id="dfSeedMsg" style="font-size:12.5px;color:#64748b"></span></div>
+        </div>
+        <div style="flex:1 1 320px;min-width:280px">
+          <h3 style="margin:0 0 8px;font-size:15px;color:#e2e8f0">Members</h3>
+          <div id="dfMembers" style="font-size:13px;color:#94a3b8">—</div>
+        </div>
+      </div>
     </div>
 
     <p><a class="home" href="/">← back to site</a></p>
@@ -1207,27 +1258,31 @@ let recapLoaded = false;
 const recapStatus = (msg, cls = "") => { const e = $("#recapStatus"); e.textContent = msg; e.className = "status " + cls; };
 function recapErr(e) { recapStatus(e.message, "err"); if (e.status === 401) lock(); }
 
+// Hamburger dropdown nav (data-driven so adding a tab is one row here + one <button> in the menu).
+const TABS = {
+  daily:     { label: "🗓 Daily posts", view: "dailyView" },
+  recap:     { label: "📅 Recap", view: "recapView" },
+  city:      { label: "🏙 SPX City", view: "cityView" },
+  studio:    { label: "🎨 Card studio", view: "studioView" },
+  aeon:      { label: "🌌 Project Aeon", view: "aeonView" },
+  engage:    { label: "📈 Engagement", view: "engageView" },
+  audience:  { label: "🌍 Audience", view: "audienceView" },
+  deepfield: { label: "🔭 Deep Field · members", view: "deepfieldView" },
+};
+function closeMenu() { $("#menuDrop").hidden = true; $("#menuBtn").setAttribute("aria-expanded", "false"); }
 function showTab(which) {
-  $("#dailyView").style.display = which === "daily" ? "block" : "none";
-  $("#recapView").style.display = which === "recap" ? "block" : "none";
-  $("#cityView").style.display = which === "city" ? "block" : "none";
-  $("#studioView").style.display = which === "studio" ? "block" : "none";
-  $("#aeonView").style.display = which === "aeon" ? "block" : "none";
-  $("#engageView").style.display = which === "engage" ? "block" : "none";
-  $("#audienceView").style.display = which === "audience" ? "block" : "none";
-  $("#tabEngage").classList.toggle("active", which === "engage");
-  $("#tabAudience").classList.toggle("active", which === "audience");
-  $("#tabDaily").classList.toggle("active", which === "daily");
-  $("#tabRecap").classList.toggle("active", which === "recap");
-  $("#tabCity").classList.toggle("active", which === "city");
-  $("#tabStudio").classList.toggle("active", which === "studio");
-  $("#tabAeon").classList.toggle("active", which === "aeon");
+  if (!TABS[which]) which = "daily";
+  for (const [k, t] of Object.entries(TABS)) $("#" + t.view).style.display = (k === which ? "block" : "none");
+  $("#menuCurrent").textContent = TABS[which].label;
+  document.querySelectorAll(".mitem").forEach(b => b.classList.toggle("active", b.dataset.tab === which));
+  closeMenu();
   if (which === "recap" && !recapLoaded) loadRecap();
   if (which === "city") { renderCityGrid(); loadCityRecap().then(renderCityRecap).catch(() => {}); }
   if (which === "studio") studioInit();
   if (which === "aeon" && !aeonLoaded) loadAeon();
   if (which === "engage") engageInit();
   if (which === "audience" && !audLoaded) loadAudience();
+  if (which === "deepfield") dfInit();
 }
 
 // ---- 🎨 Card studio — pick a metric, zoom to a window, add title/subtitle, download a house-style card ----
@@ -1465,13 +1520,11 @@ async function loadRecap() {
   } catch (e) { recapErr(e); }
 }
 
-$("#tabDaily").onclick = () => showTab("daily");
-$("#tabRecap").onclick = () => showTab("recap");
-$("#tabCity").onclick = () => showTab("city");
-$("#tabStudio").onclick = () => showTab("studio");
-$("#tabAeon").onclick = () => showTab("aeon");
-$("#tabEngage").onclick = () => showTab("engage");
-$("#tabAudience").onclick = () => showTab("audience");
+// Hamburger menu: toggle the dropdown, pick a tab, close on outside-click / Esc.
+$("#menuBtn").onclick = e => { e.stopPropagation(); const d = $("#menuDrop"); const open = d.hidden; d.hidden = !open; $("#menuBtn").setAttribute("aria-expanded", String(open)); };
+document.querySelectorAll(".mitem").forEach(b => b.onclick = () => showTab(b.dataset.tab));
+document.addEventListener("click", e => { if (!e.target.closest(".navbar")) closeMenu(); });
+document.addEventListener("keydown", e => { if (e.key === "Escape") closeMenu(); });
 $("#audRefresh").onclick = () => loadAudience();
 $("#aeonRefresh").onclick = () => { aeonLoaded = false; loadAeon(); };
 $("#cityRefresh").onclick = () => { refresh().then(() => { renderCityGrid(); loadCityRecap().then(renderCityRecap).catch(() => {}); }); };
@@ -1779,6 +1832,43 @@ async function loadAudience() {
     ? `<span style="color:#4ade80">${total.toLocaleString()} events across ${countries.length} countries.</span>`
     : `<span style="color:#4ade80">Store connected — no visits recorded yet. Data appears once the live site gets traffic.</span>`;
 }
+
+// ============================================================================
+// 🔭 DEEP FIELD — seed invite codes + list members (via api/auth, gated by CONTROL_PASSWORD).
+// Codes are hashed server-side; only the hash is stored. Members come from the KV auth store.
+// ============================================================================
+let dfWired = false;
+const dfStatus = (m, c = "") => { const e = $("#dfStatus"); e.textContent = m; e.className = "status " + c; };
+async function dfPost(action, body) {
+  const r = await fetch("/api/auth?action=" + action, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ pw: PW, ...body }) });
+  return { ok: r.ok, status: r.status, data: await r.json().catch(() => ({})) };
+}
+async function dfLoadMembers() {
+  $("#dfMembers").innerHTML = "loading…";
+  const { data } = await dfPost("members", {});
+  if (data.ok === false && data.err === "store not connected") { $("#dfMembers").innerHTML = `<span style="color:#f59e0b">The KV store isn't connected yet — connect it in Vercel → Storage (same store as Audience).</span>`; return; }
+  if (!data.ok) { $("#dfMembers").innerHTML = `<span style="color:#f87171">Couldn't load members (${data.err || "auth not configured"}).</span>`; return; }
+  const m = data.members || [];
+  if (!m.length) { $("#dfMembers").innerHTML = `<span style="color:#64748b">No members yet. Seed codes, then hand one to each OG.</span>`; return; }
+  $("#dfMembers").innerHTML = `<div style="color:#64748b;margin-bottom:6px">${m.length} member${m.length === 1 ? "" : "s"}</div>` +
+    `<table style="width:100%;border-collapse:collapse;font-size:13px"><tr style="color:#64748b;text-align:left"><th style="padding:4px 6px">handle</th><th style="padding:4px 6px">joined</th></tr>` +
+    m.map(u => `<tr style="border-top:1px solid #16202e"><td style="padding:5px 6px"><a href="https://x.com/${esc(u.username)}" target="_blank" rel="noopener" style="color:#7dd3fc;text-decoration:none">@${esc(u.username)} ↗</a></td><td style="padding:5px 6px;color:#94a3b8">${esc((u.joined || "").slice(0, 10))}</td></tr>`).join("") + `</table>`;
+}
+function dfInit() {
+  if (dfWired) return; dfWired = true;
+  $("#dfRefresh").onclick = dfLoadMembers;
+  $("#dfSeed").onclick = async () => {
+    const codes = $("#dfCodes").value.split("\n").map(s => s.trim()).filter(Boolean);
+    if (!codes.length) { $("#dfSeedMsg").textContent = "Enter at least one code."; return; }
+    $("#dfSeedMsg").textContent = "Seeding…";
+    const { data } = await dfPost("seed", { codes });
+    if (data.ok) { $("#dfSeedMsg").innerHTML = `<span style="color:#4ade80">Seeded ${data.seeded} code(s). Hand them out; hashes only are stored.</span>`; }
+    else $("#dfSeedMsg").innerHTML = `<span style="color:#f87171">${data.err === "store not connected" ? "KV store not connected yet." : (data.err || "not configured")}</span>`;
+  };
+  dfLoadMembers();
+}
+
+showTab("daily");   // sync the menu label + active highlight to the default view
 
 // On load: if a saved password verifies, skip the gate; otherwise show it.
 const saved = localStorage.getItem(pwKey);
