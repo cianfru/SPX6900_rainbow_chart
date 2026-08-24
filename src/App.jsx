@@ -728,6 +728,9 @@ export default function App() {
       // SPX City + the Terminal are paths (/city, /terminal), not queries, check them first.
       if (window.location.pathname === "/city") { setRoute("city"); return; }
       if (window.location.pathname === "/terminal" || window.location.pathname === "/deepfield") { setRoute("terminal"); return; }
+      // Clean /charts alias → the gallery (a content-rich entry point, e.g. for the X app website URL /
+      // link unfurls / crawlers, which see a grid of real charts instead of the minimal landing hero).
+      if (window.location.pathname === "/charts") { setRoute("gallery"); setGalleryGroup(null); return; }
       const p = new URLSearchParams(window.location.search);
       const rel = p.get("rel");
       if (rel && REL_IDS.has(rel)) setRelWhich(rel);
