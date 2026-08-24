@@ -48,7 +48,35 @@
     </style>
   </head>
   <body>
-    <div id="root"></div>
+    <!-- App shell: real, substantive content shown before the SPA hydrates (and to no-JS crawlers /
+         automated reviewers). React replaces #root on mount. Without this, a fast capture sees a blank
+         page and reads the site as empty. -->
+    <div id="root">
+      <main style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:48px 22px;background:#020208;color:#e7eaf3;font-family:'Geist','Space Grotesk',system-ui,sans-serif">
+        <div style="max-width:720px">
+          <div style="font-family:'Geist Mono',ui-monospace,monospace;font-size:12px;letter-spacing:.28em;text-transform:uppercase;color:#7c8a9e;margin-bottom:14px">SPX6900 · On-chain analytics</div>
+          <h1 style="font-size:clamp(32px,7vw,56px);font-weight:800;letter-spacing:-.02em;margin:0 0 12px;text-transform:uppercase;line-height:1">SPX6900 Rainbow Chart</h1>
+          <div style="height:3px;width:220px;max-width:70%;margin:0 auto 22px;border-radius:2px;background:linear-gradient(90deg,#7c3aed,#2563eb,#06b6d4,#10b981,#a3e635,#fde047,#fb923c,#ef4444)"></div>
+          <p style="font-size:17px;line-height:1.6;color:#c8d1de;margin:0 auto 26px;max-width:560px">The open, reproducible valuation &amp; on-chain terminal for SPX6900 — logarithmic rainbow regression bands, cost-basis and holder analytics, and a 3D city of every holder. Every number is checkable; the methodology is published.</p>
+          <div style="display:flex;flex-wrap:wrap;gap:10px;justify-content:center;font-family:'Geist Mono',ui-monospace,monospace;font-size:12.5px;color:#9aa4b4;margin:0 auto 30px;max-width:640px">
+            <span style="border:1px solid #2c303a;border-radius:999px;padding:5px 12px">Rainbow valuation bands</span>
+            <span style="border:1px solid #2c303a;border-radius:999px;padding:5px 12px">MVRV · NUPL · SOPR · realized price</span>
+            <span style="border:1px solid #2c303a;border-radius:999px;padding:5px 12px">Supply-in-profit · HODL waves</span>
+            <span style="border:1px solid #2c303a;border-radius:999px;padding:5px 12px">Wallet clusters · whale flows</span>
+            <span style="border:1px solid #2c303a;border-radius:999px;padding:5px 12px">Exchange netflow</span>
+            <span style="border:1px solid #2c303a;border-radius:999px;padding:5px 12px">3D holder city</span>
+            <span style="border:1px solid #2c303a;border-radius:999px;padding:5px 12px">50+ interactive charts</span>
+          </div>
+          <p style="font-family:'Geist Mono',ui-monospace,monospace;font-size:13px;color:#4ee79a;margin:0 0 22px">Loading the live charts…</p>
+          <nav style="display:flex;flex-wrap:wrap;gap:16px;justify-content:center;font-size:14px">
+            <a href="/?view=charts" style="color:#c8d1de;text-decoration:none;border-bottom:1px solid #2c303a;padding-bottom:2px">Browse all charts</a>
+            <a href="/?view=methods" style="color:#c8d1de;text-decoration:none;border-bottom:1px solid #2c303a;padding-bottom:2px">Methodology</a>
+            <a href="/city" style="color:#c8d1de;text-decoration:none;border-bottom:1px solid #2c303a;padding-bottom:2px">SPX City (3D)</a>
+            <a href="https://x.com/SPX6900Rainbow" rel="noopener" style="color:#c8d1de;text-decoration:none;border-bottom:1px solid #2c303a;padding-bottom:2px">@SPX6900Rainbow</a>
+          </nav>
+        </div>
+      </main>
+    </div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
