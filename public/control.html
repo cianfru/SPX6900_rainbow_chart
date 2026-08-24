@@ -535,10 +535,16 @@
       <div class="status" id="dfStatus">Manage the closed-beta invite codes and members.</div>
       <div style="display:flex;gap:20px;flex-wrap:wrap;margin-top:14px;align-items:flex-start">
         <div style="flex:1 1 320px;min-width:280px">
-          <h3 style="margin:0 0 8px;font-size:15px;color:#e2e8f0">Seed invite codes</h3>
-          <p style="color:#94a3b8;font-size:12.5px;margin:0 0 8px;line-height:1.5">One code per line. Only the hashes are stored — the plaintext never touches the repo or the DB. Hand each code to one OG; they log in with X, then redeem it. Re-seeding is safe (existing codes keep their used/unused state).</p>
-          <textarea id="dfCodes" placeholder="deepfield-diamond-6991&#10;deepfield-gold-4242&#10;…" style="width:100%;min-height:120px;background:#0b0b18;border:1px solid rgba(255,255,255,.14);border-radius:8px;color:#e2e8f0;font-family:ui-monospace,monospace;font-size:13px;padding:10px"></textarea>
-          <div style="margin-top:8px"><button id="dfSeed">Seed codes</button> <span id="dfSeedMsg" style="font-size:12.5px;color:#64748b"></span></div>
+          <h3 style="margin:0 0 8px;font-size:15px;color:#e2e8f0">Invite codes</h3>
+          <p style="color:#94a3b8;font-size:12.5px;margin:0 0 8px;line-height:1.55"><b style="color:#cbd5e1">You make up the codes</b> — any text works. Type your own (one per line) or hit <b style="color:#cbd5e1">Generate</b>. Each code works for <b style="color:#cbd5e1">one X account</b> (the first person to redeem it locks it to them), so give a different code to each tester. <b style="color:#f59e0b">Copy the codes before you seed</b> — only a hash is stored, so they can't be read back afterwards.</p>
+          <textarea id="dfCodes" placeholder="one per line — e.g.&#10;og-alice&#10;og-bob&#10;df-diamond-4271" style="width:100%;min-height:120px;background:#0b0b18;border:1px solid rgba(255,255,255,.14);border-radius:8px;color:#e2e8f0;font-family:ui-monospace,monospace;font-size:13px;padding:10px"></textarea>
+          <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+            <button id="dfGen">✦ Generate 10</button>
+            <button id="dfCopy">Copy</button>
+            <button id="dfSeed" style="background:#123; border-color:#2563eb">Seed codes →</button>
+            <span id="dfSeedMsg" style="font-size:12.5px;color:#64748b"></span>
+          </div>
+          <p style="color:#64748b;font-size:11.5px;margin:8px 0 0;line-height:1.5">Flow: <b>Generate</b> → <b>Copy</b> (save them somewhere) → <b>Seed</b> → DM one code to each tester with the link <span class="mono" style="color:#7dd3fc">spx6900rainbow.xyz/deepfield</span>. They log in with X and paste the code.</p>
         </div>
         <div style="flex:1 1 320px;min-width:280px">
           <h3 style="margin:0 0 8px;font-size:15px;color:#e2e8f0">Members</h3>
@@ -1854,9 +1860,31 @@ async function dfLoadMembers() {
     `<table style="width:100%;border-collapse:collapse;font-size:13px"><tr style="color:#64748b;text-align:left"><th style="padding:4px 6px">handle</th><th style="padding:4px 6px">joined</th></tr>` +
     m.map(u => `<tr style="border-top:1px solid #16202e"><td style="padding:5px 6px"><a href="https://x.com/${esc(u.username)}" target="_blank" rel="noopener" style="color:#7dd3fc;text-decoration:none">@${esc(u.username)} ↗</a></td><td style="padding:5px 6px;color:#94a3b8">${esc((u.joined || "").slice(0, 10))}</td></tr>`).join("") + `</table>`;
 }
+// readable random invite codes: df-<adjective>-<noun>-<3 digits>, all distinct
+const DF_ADJ = ["diamond","golden","cosmic","deep","prime","vivid","rogue","lunar","solar","quiet","bold","rare","alpha","onyx","azure"];
+const DF_NOUN = ["whale","field","orbit","signal","vault","cipher","comet","harbor","ledger","beacon","atlas","quartz","falcon","ember","delta"];
+function dfGenCodes(n = 10) {
+  const seen = new Set(), out = [];
+  while (out.length < n && seen.size < 4000) {
+    const c = `df-${DF_ADJ[Math.floor(Math.random()*DF_ADJ.length)]}-${DF_NOUN[Math.floor(Math.random()*DF_NOUN.length)]}-${Math.floor(100+Math.random()*900)}`;
+    if (!seen.has(c)) { seen.add(c); out.push(c); }
+  }
+  return out;
+}
 function dfInit() {
   if (dfWired) return; dfWired = true;
   $("#dfRefresh").onclick = dfLoadMembers;
+  $("#dfGen").onclick = () => {
+    const cur = $("#dfCodes").value.trim();
+    $("#dfCodes").value = (cur ? cur + "\n" : "") + dfGenCodes(10).join("\n");
+    $("#dfSeedMsg").innerHTML = `<span style="color:#94a3b8">10 codes generated — <b>Copy</b> them, then <b>Seed</b>.</span>`;
+  };
+  $("#dfCopy").onclick = async () => {
+    const t = $("#dfCodes").value.trim();
+    if (!t) { $("#dfSeedMsg").textContent = "Nothing to copy yet."; return; }
+    try { await navigator.clipboard.writeText(t); } catch { const a = document.createElement("textarea"); a.value = t; document.body.appendChild(a); a.select(); document.execCommand("copy"); a.remove(); }
+    const o = $("#dfCopy").textContent; $("#dfCopy").textContent = "Copied ✓"; setTimeout(() => $("#dfCopy").textContent = o, 1200);
+  };
   $("#dfSeed").onclick = async () => {
     const codes = $("#dfCodes").value.split("\n").map(s => s.trim()).filter(Boolean);
     if (!codes.length) { $("#dfSeedMsg").textContent = "Enter at least one code."; return; }
