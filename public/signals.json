@@ -1,5 +1,5 @@
 {
-  "date": "2026-08-23",
+  "date": "2026-08-24",
   "signals": [
     {
       "type": "drawdown",
@@ -9,23 +9,23 @@
       "framing": "Deep drawdowns are the toll — it's paid them before (no recovery promise).",
       "note": "It's deep and unrecovered NOW; don't imply it always recovers.",
       "card": "underwater",
-      "score": 1.4639988859271984
+      "score": 1.461442707806573
     },
     {
-      "type": "positioning",
-      "emoji": "⚖️",
-      "title": "Perp funding above neutral by 102pp",
-      "detail": "Funding 112% APR vs the ~10% neutral baseline — crowd leaning long.",
-      "framing": "Where the derivatives crowd is positioned right now.",
-      "note": "Positioning, not a signal.",
-      "card": "longshort",
-      "score": 1.4
+      "type": "deep-value",
+      "emoji": "🟣",
+      "title": "-78% below its long-run trend (BUY! band)",
+      "detail": "Fair value for its age is $2.09; price sits -78% under it.",
+      "framing": "Where today sits in the long power-law arc.",
+      "note": "Not a prediction.",
+      "card": "valuation",
+      "score": 1.283534504565358
     },
     {
       "type": "vs-btc",
       "emoji": "₿",
       "title": "Lagging Bitcoin over the past year",
-      "detail": "365-day relative strength vs BTC is -0.52× — SPX6900 has trailed Bitcoin over the year.",
+      "detail": "365-day relative strength vs BTC is -0.41× — SPX6900 has trailed Bitcoin over the year.",
       "framing": "The honest scoreboard vs crypto's benchmark.",
       "note": "Relative strength, not a call.",
       "card": "spxbtc",
