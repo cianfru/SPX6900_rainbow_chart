@@ -148,9 +148,10 @@ function Gate({ onPass, isMobile }) {
   };
 
   const Wrap = ({ children }) => (
-    <div className="twrap" style={{ maxWidth: 560, margin: "72px auto", textAlign: "center" }}>
-      <div style={{ fontSize: 40, marginBottom: 12 }}>🔭</div>
-      <h2 style={{ fontFamily: "var(--mono)", fontSize: isMobile ? 22 : 27, fontWeight: 700, color: "var(--tx)", letterSpacing: "-0.01em", margin: "0 0 8px" }}>Deep Field</h2>
+    <div className="twrap dfgate" style={{ maxWidth: 460, margin: "clamp(56px,14vh,132px) auto", textAlign: "center", padding: "0 22px" }}>
+      <div className="dfgate-rule" />
+      <div className="dfgate-eyebrow">SPX6900 · Members</div>
+      <h2 className="dfgate-word" style={{ fontSize: isMobile ? 32 : 44 }}>DEEP FIELD</h2>
       {children}
     </div>
   );
@@ -160,17 +161,11 @@ function Gate({ onPass, isMobile }) {
 
   if (phase === "login") return (
     <Wrap>
-      <p style={{ color: "var(--dim)", fontSize: 14, lineHeight: 1.65, margin: "0 0 22px" }}>
-        The granular on-chain intel hub — clusters, whale flows, per-wallet P&amp;L. A members-only closed beta.
-        <br />Log in with X to continue; you&apos;ll then enter your invite code.
-      </p>
-      <a href="/api/auth?action=login" style={{ display: "inline-flex", alignItems: "center", gap: 10, textDecoration: "none",
-        fontFamily: "var(--mono)", fontSize: 14, fontWeight: 700, color: "#000", background: "#fff",
-        padding: "11px 20px", borderRadius: 6 }}>
-        <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
-        Log in with X
+      <p className="dfgate-lede">The granular on-chain layer — wallet clusters, whale flows, and per-wallet P&amp;L.</p>
+      <a className="dfx" href="/api/auth?action=login">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+        <span>Continue with X</span>
       </a>
-      <p style={{ color: "var(--faint)", fontSize: 12, marginTop: 16, lineHeight: 1.6 }}>Members-only. We use X so access is tied to a real identity, not a throwaway email.</p>
     </Wrap>
   );
 
