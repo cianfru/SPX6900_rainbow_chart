@@ -119,7 +119,13 @@ function Gate({ onPass, isMobile }) {
     let off = false;
     fetch("/api/auth?action=me", { cache: "no-store" }).then(r => r.json()).then(d => {
       if (off) return;
-      if (d && d.ok === false && d.err === "not configured") { setPhase("passphrase"); return; }
+      if (d && d.ok === false && d.err === "not configured") {
+        // Auth not set up (or the check failed): keep the legacy passphrase path. A returning
+        // passphrase user (localStorage flag) goes straight in; otherwise show the passphrase.
+        let legacy = false; try { legacy = localStorage.getItem(TERMINAL_KEY) === "1"; } catch { /* private */ }
+        if (legacy) { unlockClient(); onPass(); return; }
+        setPhase("passphrase"); return;
+      }
       if (d && d.member) { unlockClient(); onPass(); return; }
       if (d && d.loggedIn) { setUser(d.username || ""); setPhase("code"); return; }
       setPhase("login");
@@ -262,7 +268,11 @@ function ClusterWallets({ c }) {
 }
 
 export default function TerminalPage({ isMobile }) {
-  const [ok, setOk] = useState(() => { try { return localStorage.getItem(TERMINAL_KEY) === "1"; } catch { return false; } });
+  // Always run the Gate first — it asks the server (api/auth?action=me) who you are. A stale
+  // localStorage flag from the old passphrase must NOT grant access once X-login is live (else a
+  // one-time passphrase user keeps access forever, ignoring membership/revocation). The Gate re-grants
+  // the legacy localStorage path only when auth is NOT configured.
+  const [ok, setOk] = useState(false);
   const [data, setData] = useState(undefined);   // undefined loading · null failed · object ok
   const [sm, setSm] = useState(undefined);       // smart-money.json (per-wallet detail — terminal only)
   const [ent, setEnt] = useState(undefined);     // entities.json (wallet clusters — terminal reveals members)
