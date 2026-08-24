@@ -27,6 +27,10 @@ const REDIRECT = () => APP_URL() + "/api/auth";
 const OWNER_HANDLES = () => new Set((process.env.OWNER_HANDLES || "").split(",").map(s => s.trim().toLowerCase()).filter(Boolean));
 const SESS = "df_sess", OAUTH = "df_oauth";
 const configured = () => !!(CID() && CSECRET() && SECRET());
+// The members-only feeds served from the private store (KV key "feed:<name>"), pushed by the crons
+// via scripts/push-private-feed.mjs. These are the GRANULAR halves (real addresses / per-wallet lots);
+// the public site keeps the anonymized/aggregate versions. Whitelisted so ?f= can't read arbitrary keys.
+const PRIVATE_FEEDS = new Set(["entities", "smart-money", "whale-entry", "whales", "city-history", "spx-timeline"]);
 
 const send = (res, code, obj) => { res.setHeader("Content-Type", "application/json"); res.status(code).json(obj); };
 const setCookie = (res, c) => { const prev = res.getHeader("Set-Cookie"); res.setHeader("Set-Cookie", prev ? [].concat(prev, c) : c); };
@@ -89,6 +93,25 @@ export default async function handler(req, res) {
     a.searchParams.set("code_challenge", challenge);
     a.searchParams.set("code_challenge_method", "S256");
     res.setHeader("Location", a.toString()); return res.status(302).end();
+  }
+
+  // ---- DATA WALL: serve a members-only feed from the PRIVATE store ---------
+  // The granular feeds are pushed to KV by the crons (scripts/push-private-feed.mjs) instead of being
+  // committed to the public repo — so they are NOT on raw.githubusercontent. Only a logged-in MEMBER
+  // gets them here. Repo (code) stays public; the members' DATA is genuinely private.
+  if (action === "data") {
+    const name = q.get("f");
+    if (!PRIVATE_FEEDS.has(name)) return send(res, 400, { ok: false, err: "unknown feed" });
+    const s = sessionOf(req);
+    let member = !!(s && s.mem);
+    if (member && kvConnected()) { try { const u = await getJSON("auth:user:" + s.uid); if (u && u.member === false) member = false; } catch { /* trust token */ } }
+    if (!member) return send(res, 403, { ok: false, err: "members only" });
+    if (!kvConnected()) return send(res, 503, { ok: false, err: "store not connected" });
+    const raw = await cmd("GET", "feed:" + name);
+    if (raw == null) return send(res, 404, { ok: false, err: "feed not published yet" });
+    res.setHeader("Content-Type", "application/json");
+    res.setHeader("Cache-Control", "private, max-age=60");
+    return res.status(200).send(raw);
   }
 
   // ---- ME: who is this browser --------------------------------------------
