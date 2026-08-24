@@ -1423,7 +1423,7 @@ export default function App() {
         );
       })()}{/* end chart page */}
 
-      {route !== "gallery" && route !== "aeon" && (
+      {route !== "gallery" && route !== "aeon" && route !== "terminal" && route !== "wallet" && (
       <div style={{
         maxWidth: MAX_W, margin: "16px auto 0", fontFamily: SANS, fontSize: 12,
         color: "#7c8a9e", textAlign: "center", lineHeight: 1.6,

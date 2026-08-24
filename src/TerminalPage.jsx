@@ -106,6 +106,22 @@ function Info({ text }) {
 // localStorage chart gate so nothing has to be rewired per chart.
 const unlockClient = () => { try { localStorage.setItem(TERMINAL_KEY, "1"); localStorage.setItem(CITY_KEY, "1"); } catch { /* private */ } };
 
+// The "Continue with X" button — same typewriter-on-hover as the site menu (useHoverType), and it
+// inverts black→white on hover. The label ghost reserves the width; the typed layer overlays it.
+function XLoginButton() {
+  const label = "Continue with X";
+  const { shown, type, reset } = useHoverType(label);
+  return (
+    <a className="dfx" href="/api/auth?action=login" onMouseEnter={type} onMouseLeave={reset} onFocus={type} onBlur={reset}>
+      <svg className="dfx-logo" viewBox="0 0 24 24" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+      <span className="dfx-tw">
+        <span className="dfx-ghost" aria-hidden="true">{label}</span>
+        <span className="dfx-typed">{shown}<i className="tcur">_</i></span>
+      </span>
+    </a>
+  );
+}
+
 // DEEP FIELD ACCESS GATE. Primary path = log in with X, then redeem an invite code (server-side,
 // api/auth.js). If the X app isn't configured yet (env unset), it falls back to the legacy passphrase
 // so the beta keeps working during setup.
@@ -148,12 +164,16 @@ function Gate({ onPass, isMobile }) {
   };
 
   const Wrap = ({ children }) => (
-    <div className="twrap dfgate" style={{ maxWidth: 460, margin: "clamp(56px,14vh,132px) auto", textAlign: "center", padding: "0 22px" }}>
-      <div className="dfgate-rule" />
-      <div className="dfgate-eyebrow">SPX6900 · Members</div>
-      <h2 className="dfgate-word" style={{ fontSize: isMobile ? 32 : 44 }}>DEEP FIELD</h2>
-      {children}
-    </div>
+    <>
+      <div className="dfgate-stars" aria-hidden="true" />
+      <div className="dfgate-nebula" aria-hidden="true" />
+      <div className="twrap dfgate" style={{ maxWidth: 480, margin: "clamp(56px,15vh,150px) auto", textAlign: "center", padding: "0 22px", position: "relative" }}>
+        <div className="dfgate-cmd"><span className="dfgate-prompt">spx6900 ~ %</span> open ./deep-field</div>
+        <h2 className="dfgate-word" style={{ fontSize: isMobile ? 34 : 52 }}>DEEP FIELD</h2>
+        <div className="dfgate-rule" />
+        {children}
+      </div>
+    </>
   );
   const inputStyle = { width: 240, padding: "10px 13px", borderRadius: 0, fontFamily: "var(--mono)", fontSize: 13, background: "var(--panel)", border: `1px solid ${bad ? "#fb7185" : "var(--line2)"}`, color: "var(--tx)", outline: "none" };
 
@@ -162,10 +182,7 @@ function Gate({ onPass, isMobile }) {
   if (phase === "login") return (
     <Wrap>
       <p className="dfgate-lede">The granular on-chain layer — wallet clusters, whale flows, and per-wallet P&amp;L.</p>
-      <a className="dfx" href="/api/auth?action=login">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
-        <span>Continue with X</span>
-      </a>
+      <XLoginButton />
     </Wrap>
   );
 
