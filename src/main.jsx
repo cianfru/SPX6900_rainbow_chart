@@ -1,3 +1,4 @@
+// Redeploy nudge 2026-08-24 — pick up the Deep Field auth env (X OAuth + KV) set in Vercel.
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { Analytics } from '@vercel/analytics/react'
