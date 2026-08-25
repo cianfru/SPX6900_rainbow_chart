@@ -21,8 +21,37 @@ import {
 } from "./models.js";
 import { CRYPTO_MILESTONES } from "./milestones.js";
 import { CHART_META, CHART_IDS, CHART_GROUPS, AEON_GROUPS, CITY_GROUPS } from "./charts-catalog.js";
+import { loadReleases } from "./deepfield-release.js";
 
 // The charts either side of `id` within its own group — powers swipe / arrow navigation between
+// DEEP FIELD DRIP GATE. A walled chart the owner hasn't released yet shows "Under construction" to
+// EVERYONE (members included); once released it falls through to the chart's own members gate. Wraps
+// the chart in both the page and the gallery preview, so the state is consistent everywhere.
+function UnderConstruction({ title, preview }) {
+  if (preview) return (
+    <div style={{ display: "grid", placeItems: "center", height: "100%", minHeight: 130, gap: 8, textAlign: "center", fontFamily: "var(--mono)", fontSize: 12, color: "var(--faint)" }}>
+      <span style={{ fontSize: 22, opacity: .8 }}>◱</span>Under construction
+    </div>
+  );
+  return (
+    <div style={{ maxWidth: 560, margin: "48px auto", textAlign: "center", fontFamily: "var(--sans)" }}>
+      <div style={{ fontFamily: "var(--mono)", fontSize: 12, letterSpacing: ".3em", textTransform: "uppercase", color: "var(--faint)", marginBottom: 14 }}>Under construction</div>
+      <h3 style={{ fontFamily: "var(--sans)", fontSize: 27, fontWeight: 800, color: "var(--tx)", margin: "0 0 16px", textTransform: "uppercase", letterSpacing: "-.01em" }}>{title || "Members chart"}</h3>
+      <div style={{ height: 3, width: 190, maxWidth: "62%", margin: "0 auto 20px", borderRadius: 2, background: "var(--rainbow)" }} />
+      <p style={{ color: "var(--dim)", fontSize: 15, lineHeight: 1.7, margin: "0 auto", maxWidth: 400 }}>
+        This members chart is being polished — it&apos;s releasing soon. Follow <a href="https://x.com/SPX6900Rainbow" target="_blank" rel="noopener" style={{ color: "var(--live)" }}>@SPX6900Rainbow</a> to catch the drop.
+      </p>
+    </div>
+  );
+}
+function ReleaseGate({ id, preview, children }) {
+  const [rel, setRel] = useState(null);   // null = loading · Set = released ids
+  useEffect(() => { let off = false; loadReleases().then(s => { if (!off) setRel(s); }); return () => { off = true; }; }, []);
+  if (rel === null) return preview ? null : <div style={{ textAlign: "center", fontFamily: "var(--mono)", color: "var(--faint)", padding: 40 }}>…</div>;
+  if (!rel.has(id)) return <UnderConstruction title={CHART_META[id]?.title} preview={preview} />;
+  return children;
+}
+
 // charts on the chart page (wraps around the group so you can keep flipping).
 function siblingCharts(id) {
   const grp = CHART_META[id]?.group;
@@ -805,10 +834,12 @@ export default function App() {
       case "whales": return <WhalesChart isMobile={mob} preview={preview} />;
       case "survivorship": return <SurvivorshipChart isMobile={mob} initialView={iv} />;
       case "whaleentry": return (
-        <CityGate title="When Whales Bought" accent="#5eead4" unit="whale" locked
-          blurb="We think this one's a little too good to give away just yet — it's behind a password while we refine it.">
-          <WhaleEntryChart isMobile={mob} price={last?.price} />
-        </CityGate>
+        <ReleaseGate id="whaleentry" preview={preview}>
+          <CityGate title="When Whales Bought" accent="#5eead4" unit="whale" locked
+            blurb="We think this one's a little too good to give away just yet — it's behind a password while we refine it.">
+            <WhaleEntryChart isMobile={mob} price={last?.price} />
+          </CityGate>
+        </ReleaseGate>
       );
       case "exitflow": return <ExitFlowChart isMobile={mob} />;
       case "smartmoney": return <SmartMoneyChart isMobile={mob} initialView={iv} />;
@@ -816,12 +847,14 @@ export default function App() {
       case "wealthwaves": return <WealthWavesChart isMobile={mob} preview={preview} />;
       case "concentration": return <HolderConcentrationChart isMobile={mob} preview={preview} />;
       case "entities": return (
+        <ReleaseGate id="entities" preview={preview}>
         <CityGate title="Wallet Clusters" accent="#818cf8" unit="owner" locked
           blurb="Honestly, we think this one's a little too good to give away for free just yet — so it's behind a password while we figure out what to do with it.">
           <EntityClustersChart isMobile={mob} preview={preview} />
         </CityGate>
+        </ReleaseGate>
       );
-      case "clustercity": return <ClusterCity isMobile={mob} />;
+      case "clustercity": return <ReleaseGate id="clustercity" preview={preview}><ClusterCity isMobile={mob} /></ReleaseGate>;
       case "bagsprofile": return <CostBasisProfileChart isMobile={mob} preview={preview} price={last?.price} />;
       case "urpdage": return <UrpdAgeChart isMobile={mob} preview={preview} price={last?.price} initialView={iv} />;
       case "urpdterrain": return <UrpdTerrain3D isMobile={mob} />;
@@ -831,7 +864,7 @@ export default function App() {
       case "liveliness": return <LivelinessChart isMobile={mob} preview={preview} />;
       case "spxcity": return <SpxCity isMobile={mob} preview={preview} initialMode="spx" />;
       case "citylab": return <CityLab isMobile={mob} />;
-      case "whaleswatching": return <WhalesWatching isMobile={mob} />;
+      case "whaleswatching": return <ReleaseGate id="whaleswatching" preview={preview}><WhalesWatching isMobile={mob} /></ReleaseGate>;
       case "whalecohorts": return <WhaleCohortsChart isMobile={mob} initialView={iv} />;
       case "citygrowth": return <CityHistoryChart isMobile={mob} preview={preview} initialView={iv} />;
       case "cityflow": return <CityFlowChart isMobile={mob} preview={preview} initialView={iv} />;
