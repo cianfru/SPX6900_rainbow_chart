@@ -65,18 +65,28 @@ export default async function handler(req, res) {
       const u = (await ur.json()).data || {};
       const uid = String(u.id || ""), un = String(u.username || "");
       if (!uid) return bounce(res, "/deepfield?auth=user");
-      // upsert the user; keep an existing member flag, and auto-grant owner handles
-      let member = OWNER_HANDLES().has(un.toLowerCase());
+      // A real X login IS membership now (open beta — no invite codes). We still record who signs in,
+      // from where, and how often, so the owner can tell genuine power users from one-time "grab free
+      // access forever" sign-ins (and later grandfather the real supporters). A member can be revoked by
+      // setting member:false in KV (e.g. an obvious burner) — `me` honours that.
+      const now = new Date().toISOString();
+      const country = String(req.headers["x-vercel-ip-country"] || req.headers["x-vercel-ip-country-region"] || "").split(",")[0] || "";
+      let member = true;
       if (kvConnected()) {
         const existing = await getJSON("auth:user:" + uid);
-        member = member || !!existing?.member;
-        await setJSON("auth:user:" + uid, { uid, un, name: u.name || "", member,
-          joined: existing?.joined || new Date().toISOString(), seen: new Date().toISOString() });
-        if (member) await cmd("SADD", "auth:members", uid);
+        if (existing && existing.member === false) member = false;   // respect a manual ban
+        await setJSON("auth:user:" + uid, {
+          uid, un, name: u.name || "", member,
+          firstSeen: existing?.firstSeen || existing?.joined || now, lastSeen: now,
+          logins: (existing?.logins || 0) + 1,
+          country: country || existing?.country || "",
+          joined: existing?.joined || now,
+        });
+        await cmd("SADD", "auth:members", uid);
       }
       setCookie(res, serializeCookie(SESS, signSession({ uid, un, mem: member }, SECRET()), { maxAge: 30 * 86400 }));
       setCookie(res, serializeCookie(OAUTH, "", { maxAge: 0 }));
-      return bounce(res, member ? "/deepfield?auth=ok" : "/deepfield?auth=code");
+      return bounce(res, member ? "/deepfield?auth=ok" : "/deepfield?auth=paused");
     } catch { return bounce(res, "/deepfield?auth=error"); }
   }
 
@@ -158,7 +168,8 @@ export default async function handler(req, res) {
       if (!kvConnected()) return send(res, 200, { ok: false, err: "store not connected" });
       const ids = (await cmd("SMEMBERS", "auth:members")) || [];
       const out = [];
-      for (const id of ids) { const u = await getJSON("auth:user:" + id); if (u) out.push({ username: u.un, joined: u.joined, member: u.member }); }
+      for (const id of ids) { const u = await getJSON("auth:user:" + id); if (u) out.push({ username: u.un, firstSeen: u.firstSeen || u.joined, lastSeen: u.lastSeen || u.joined, logins: u.logins || 1, country: u.country || "", member: u.member !== false }); }
+      out.sort((a, b) => (b.logins - a.logins) || String(b.lastSeen).localeCompare(String(a.lastSeen)));
       return send(res, 200, { ok: true, members: out });
     }
   }
