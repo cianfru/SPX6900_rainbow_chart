@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import { TERMINAL_KEY, isValidAccess } from "./terminal-gate-key.js";
 import { CITY_KEY } from "./city-gate-key.js";
 import { MenuBtn, useHoverType } from "./chart-ui.jsx";
+import { walletGradient } from "./WalletCard.jsx";
 
 // THE TERMINAL (/terminal) — the owner's daily intel one-pager, kept SEPARATE from the post-control
 // panel so the "what's happening on-chain today" read isn't tangled up with the "which card to fire"
@@ -236,28 +237,49 @@ const netSpxCell = v => {
   return <td className={v > 0 ? "tmup" : "tmdn"}>{(v > 0 ? "+" : "−") + s}</td>;
 };
 
-// Hover/tap the "N wallets" cell → a popover listing every member wallet as its own Zerion link
-// (the "multiple Zerion tooltips" for a cluster). Same viewport-positioned pattern as <Info>.
+const fmtBal = v => v >= 1e6 ? (v / 1e6).toFixed(2) + "M" : v >= 1e3 ? (v / 1e3).toFixed(0) + "k" : Math.round(v || 0);
+
+// One member wallet as a Zerion PREVIEW CARD (not just a link): the wallet's live Zerion portfolio
+// image (render.zerion.io — their public og:image) sits on top of a deterministic gradient, so the
+// card carries identity even when the preview is unreachable (dead endpoint / geo-block). The whole
+// card opens the full Zerion portfolio. This is the "preloading Zerion card" the owner wanted.
+function ClusterWalletCard({ a, bal }) {
+  return (
+    <a href={`https://app.zerion.io/${a}/overview`} target="_blank" rel="noopener noreferrer" title={a}
+      className="tmzcard">
+      <span className="tmzcard-prev" style={{ background: walletGradient(a) }}>
+        <img src={`https://render.zerion.io/preview?address=${a}`} alt="" loading="lazy"
+          onError={e => { e.currentTarget.remove(); }} />
+      </span>
+      <span className="tmzcard-body">
+        <span className="tmzcard-addr">{shortAddr(a)}</span>
+        <span className="tmzcard-bal">{fmtBal(bal || 0)} SPX</span>
+      </span>
+      <span className="tmzcard-go">Zerion ↗</span>
+    </a>
+  );
+}
+
+// Hover/tap the "N wallets" cell → a popover of the member wallets, each a Zerion PREVIEW CARD (the
+// "preloading card of Zerion"). Same viewport-positioned pattern as <Info>, widened + scrollable.
 function ClusterWallets({ c }) {
   const [pos, setPos] = useState(null);
   const ref = useRef(null);
   const wl = c.wallets || [];
+  const W = 300;
   const open = () => { const r = ref.current?.getBoundingClientRect(); if (r) setPos({ x: r.left, y: r.bottom + 6 }); };
   const close = () => setPos(null);
-  const fmt = v => v >= 1e6 ? (v / 1e6).toFixed(2) + "M" : v >= 1e3 ? (v / 1e3).toFixed(0) + "k" : Math.round(v || 0);
+  const sorted = [...wl].sort((x, y) => (c.walletBal?.[y] || 0) - (c.walletBal?.[x] || 0));
   return (
     <span className="tminfo" ref={ref} tabIndex={0} style={{ cursor: "pointer", color: "var(--live)" }}
       onMouseEnter={open} onMouseLeave={close} onFocus={open} onBlur={close}
       onClick={e => { e.stopPropagation(); pos ? close() : open(); }}>
       {wl.length} wallets
-      {pos && <span className="tminfo-pop" role="tooltip" style={{ left: Math.max(8, Math.min(pos.x, (typeof window !== "undefined" ? window.innerWidth : 400) - 300)), top: pos.y, minWidth: 220, textAlign: "left" }}>
-        {wl.map(a => (
-          <a key={a} href={`https://app.zerion.io/${a}/overview`} target="_blank" rel="noopener" title={a}
-            style={{ display: "flex", justifyContent: "space-between", gap: 14, color: "var(--live)", textDecoration: "none", padding: "3px 0", fontFamily: "var(--mono)", fontSize: 12 }}>
-            <span>{shortAddr(a)}</span><span style={{ color: "var(--dim)" }}>{fmt(c.walletBal?.[a] || 0)}</span>
-          </a>
-        ))}
-        <div style={{ marginTop: 6, color: "var(--faint)", fontSize: 11, fontFamily: "var(--mono)" }}>each opens in Zerion ↗</div>
+      {pos && <span className="tminfo-pop tmzpop" role="tooltip" style={{ left: Math.max(8, Math.min(pos.x, (typeof window !== "undefined" ? window.innerWidth : 400) - (W + 12))), top: pos.y, width: W, textAlign: "left" }}>
+        <span className="tmzpop-head">{wl.length} wallets · one owner</span>
+        <span className="tmzpop-grid">
+          {sorted.map(a => <ClusterWalletCard key={a} a={a} bal={c.walletBal?.[a] || 0} />)}
+        </span>
       </span>}
     </span>
   );
