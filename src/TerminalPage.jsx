@@ -295,10 +295,13 @@ export default function TerminalPage({ isMobile }) {
   const [sm, setSm] = useState(undefined);       // smart-money.json (per-wallet detail — terminal only)
   const [ent, setEnt] = useState(undefined);     // entities.json (wallet clusters — terminal reveals members)
   const [hl, setHl] = useState(null);            // LIVE Hyperliquid funding/OI (real-time, not yesterday's mean)
+  const [me, setMe] = useState(null);            // who's signed in (X handle + avatar) — "this is your space"
 
   useEffect(() => {
     if (!ok) return;
     let off = false;
+    // Who is this — the X identity, so the member sees their own avatar top-right.
+    fetch("/api/auth?action=me", { cache: "no-store" }).then(r => r.ok ? r.json() : null).then(d => { if (!off && d?.loggedIn) setMe(d); }).catch(() => {});
     const grab = (f, ok) => fetch(`/api/control?f=public/${f}&t=${Date.now()}`, { cache: "no-store" }).then(r => r.ok ? r.json() : null).then(d => { if (!off) ok(d); }).catch(() => { if (!off) ok(null); });
     grab("daily-snapshot.json", d => setData(d && d.sections ? d : null));
     grab("smart-money.json", d => setSm(d || null));
@@ -317,6 +320,14 @@ export default function TerminalPage({ isMobile }) {
 
   return (
     <div className="twrap tmwrap">
+      {me && (
+        <a className="tmyou" href={`https://x.com/${me.username}`} target="_blank" rel="noopener" title={`Signed in as @${me.username}`}>
+          {me.avatar
+            ? <img className="tmyou-pfp" src={me.avatar} alt="" onError={e => { e.currentTarget.style.display = "none"; }} />
+            : <span className="tmyou-pfp tmyou-ph">{(me.username || "?").slice(0, 1).toUpperCase()}</span>}
+          <span className="tmyou-name">@{me.username}</span>
+        </a>
+      )}
       <div className="tmhead">
         <div className="tmcmd"><span className="tmprompt">spx6900 ~ %</span> cat ./deepfield/today</div>
         <h1 className="tmtitle">DEEP FIELD<Info text="The granular on-chain intel hub — where SPX sits today, what changed, and the wallet-level detail (clusters, whale flows, per-wallet P&L). Every number is a plain day-over-day read off the on-chain feeds we already bank; nothing is a buy or sell call." /></h1>

@@ -60,11 +60,13 @@ export default async function handler(req, res) {
           Authorization: "Basic " + Buffer.from(CID() + ":" + CSECRET()).toString("base64") }, body });
       if (!tr.ok) return bounce(res, "/deepfield?auth=token");
       const tok = await tr.json();
-      const ur = await fetch("https://api.twitter.com/2/users/me", { headers: { Authorization: "Bearer " + tok.access_token } });
+      const ur = await fetch("https://api.twitter.com/2/users/me?user.fields=profile_image_url", { headers: { Authorization: "Bearer " + tok.access_token } });
       if (!ur.ok) return bounce(res, "/deepfield?auth=user");
       const u = (await ur.json()).data || {};
       const uid = String(u.id || ""), un = String(u.username || "");
       if (!uid) return bounce(res, "/deepfield?auth=user");
+      // X returns the 48px "_normal" avatar; ask for the 400px so it stays crisp top-right.
+      const pfp = String(u.profile_image_url || "").replace("_normal.", "_400x400.");
       // A real X login IS membership now (open beta — no invite codes). We still record who signs in,
       // from where, and how often, so the owner can tell genuine power users from one-time "grab free
       // access forever" sign-ins (and later grandfather the real supporters). A member can be revoked by
@@ -76,7 +78,7 @@ export default async function handler(req, res) {
         const existing = await getJSON("auth:user:" + uid);
         if (existing && existing.member === false) member = false;   // respect a manual ban
         await setJSON("auth:user:" + uid, {
-          uid, un, name: u.name || "", member,
+          uid, un, name: u.name || "", member, pfp: pfp || existing?.pfp || "",
           firstSeen: existing?.firstSeen || existing?.joined || now, lastSeen: now,
           logins: (existing?.logins || 0) + 1,
           country: country || existing?.country || "",
@@ -84,7 +86,7 @@ export default async function handler(req, res) {
         });
         await cmd("SADD", "auth:members", uid);
       }
-      setCookie(res, serializeCookie(SESS, signSession({ uid, un, mem: member }, SECRET()), { maxAge: 30 * 86400 }));
+      setCookie(res, serializeCookie(SESS, signSession({ uid, un, mem: member, pfp }, SECRET()), { maxAge: 30 * 86400 }));
       setCookie(res, serializeCookie(OAUTH, "", { maxAge: 0 }));
       return bounce(res, member ? "/deepfield?auth=ok" : "/deepfield?auth=paused");
     } catch { return bounce(res, "/deepfield?auth=error"); }
@@ -128,11 +130,12 @@ export default async function handler(req, res) {
   if (action === "me") {
     const s = sessionOf(req);
     if (!s) return send(res, 200, { loggedIn: false });
-    let member = !!s.mem;
-    // honour revocation: if KV says the user is no longer a member, downgrade (and re-issue the cookie)
-    if (kvConnected()) { try { const u = await getJSON("auth:user:" + s.uid); if (u && u.member === false) member = false; } catch { /* trust token */ } }
-    if (member !== !!s.mem) setCookie(res, serializeCookie(SESS, signSession({ uid: s.uid, un: s.un, mem: member }, SECRET()), { maxAge: 30 * 86400 }));
-    return send(res, 200, { loggedIn: true, username: s.un, member });
+    let member = !!s.mem, avatar = s.pfp || "";
+    // honour revocation: if KV says the user is no longer a member, downgrade (and re-issue the cookie).
+    // Also fill the avatar from KV for users whose cookie predates the pfp field (no re-login needed).
+    if (kvConnected()) { try { const u = await getJSON("auth:user:" + s.uid); if (u) { if (u.member === false) member = false; if (!avatar && u.pfp) avatar = u.pfp; } } catch { /* trust token */ } }
+    if (member !== !!s.mem) setCookie(res, serializeCookie(SESS, signSession({ uid: s.uid, un: s.un, mem: member, pfp: s.pfp }, SECRET()), { maxAge: 30 * 86400 }));
+    return send(res, 200, { loggedIn: true, username: s.un, member, avatar });
   }
 
   if (action === "logout") { setCookie(res, serializeCookie(SESS, "", { maxAge: 0 })); return send(res, 200, { ok: true }); }
@@ -168,7 +171,7 @@ export default async function handler(req, res) {
       if (!kvConnected()) return send(res, 200, { ok: false, err: "store not connected" });
       const ids = (await cmd("SMEMBERS", "auth:members")) || [];
       const out = [];
-      for (const id of ids) { const u = await getJSON("auth:user:" + id); if (u) out.push({ username: u.un, firstSeen: u.firstSeen || u.joined, lastSeen: u.lastSeen || u.joined, logins: u.logins || 1, country: u.country || "", member: u.member !== false }); }
+      for (const id of ids) { const u = await getJSON("auth:user:" + id); if (u) out.push({ username: u.un, pfp: u.pfp || "", firstSeen: u.firstSeen || u.joined, lastSeen: u.lastSeen || u.joined, logins: u.logins || 1, country: u.country || "", member: u.member !== false }); }
       out.sort((a, b) => (b.logins - a.logins) || String(b.lastSeen).localeCompare(String(a.lastSeen)));
       return send(res, 200, { ok: true, members: out });
     }

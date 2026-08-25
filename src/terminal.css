@@ -406,6 +406,15 @@ html:not([data-theme="light"]) .tzone [style*="rgb(100, 116, 139)"]{ color:#b1bc
    the de-emphasis --faint; table headers never use the near-invisible --line2. */
 .tzone .tmwrap{ padding-top:26px; padding-bottom:64px; max-width:1080px; }
 .tzone .tmhead{ margin-bottom:22px; }
+/* "This is your space" — the signed-in X identity, top-right of the Deep Field page. */
+.tzone .tmyou{ position:absolute; top:22px; right:clamp(16px,3.4vw,34px); z-index:12; display:inline-flex; align-items:center; gap:9px;
+  padding:5px 12px 5px 5px; border:1px solid var(--line2); border-radius:999px; background:var(--panel);
+  text-decoration:none; font-family:var(--mono); transition:border-color .12s ease; }
+.tzone .tmyou:hover{ border-color:var(--live); }
+.tzone .tmyou-pfp{ width:30px; height:30px; border-radius:50%; object-fit:cover; flex:0 0 auto; background:#131a2c; display:grid; place-items:center; }
+.tzone .tmyou-ph{ color:var(--live); font-size:14px; font-weight:800; }
+.tzone .tmyou-name{ font-size:13px; font-weight:700; color:var(--tx); letter-spacing:.01em; }
+@media (max-width:560px){ .tzone .tmyou-name{ display:none; } .tzone .tmyou{ padding:5px; } }
 /* title matches the CHARTS page: command prompt · big SANS 800 uppercase · rainbow hairline */
 .tzone .tmcmd{ font-family:var(--mono); font-size:13px; letter-spacing:.08em; color:var(--live); margin-bottom:10px; }
 .tzone .tmcmd .tmprompt{ color:var(--dim); }
