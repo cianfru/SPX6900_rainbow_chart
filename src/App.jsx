@@ -44,11 +44,19 @@ function UnderConstruction({ title, preview }) {
     </div>
   );
 }
-function ReleaseGate({ id, preview, children }) {
+// Owner recording flow (video studio) opens ?rec=1 / sets spx-rec — it must bypass the release gate
+// so the city/whale scenes can still be captured while they read "under construction" to the public.
+function recBypass() {
+  try {
+    return new URLSearchParams(window.location.search).get("rec") === "1" || localStorage.getItem("spx-rec") === "1";
+  } catch { return false; }
+}
+function ReleaseGate({ id, preview, title, children }) {
   const [rel, setRel] = useState(null);   // null = loading · Set = released ids
   useEffect(() => { let off = false; loadReleases().then(s => { if (!off) setRel(s); }); return () => { off = true; }; }, []);
+  if (recBypass()) return children;
   if (rel === null) return preview ? null : <div style={{ textAlign: "center", fontFamily: "var(--mono)", color: "var(--faint)", padding: 40 }}>…</div>;
-  if (!rel.has(id)) return <UnderConstruction title={CHART_META[id]?.title} preview={preview} />;
+  if (!rel.has(id)) return <UnderConstruction title={title || CHART_META[id]?.title} preview={preview} />;
   return children;
 }
 
@@ -842,7 +850,7 @@ export default function App() {
         </ReleaseGate>
       );
       case "exitflow": return <ExitFlowChart isMobile={mob} />;
-      case "smartmoney": return <SmartMoneyChart isMobile={mob} initialView={iv} />;
+      case "smartmoney": return <ReleaseGate id="smartmoney" preview={preview}><SmartMoneyChart isMobile={mob} initialView={iv} /></ReleaseGate>;
       case "walletwaves": return <WalletWavesChart isMobile={mob} preview={preview} />;
       case "wealthwaves": return <WealthWavesChart isMobile={mob} preview={preview} />;
       case "concentration": return <HolderConcentrationChart isMobile={mob} preview={preview} />;
@@ -857,12 +865,12 @@ export default function App() {
       case "clustercity": return <ReleaseGate id="clustercity" preview={preview}><ClusterCity isMobile={mob} /></ReleaseGate>;
       case "bagsprofile": return <CostBasisProfileChart isMobile={mob} preview={preview} price={last?.price} />;
       case "urpdage": return <UrpdAgeChart isMobile={mob} preview={preview} price={last?.price} initialView={iv} />;
-      case "urpdterrain": return <UrpdTerrain3D isMobile={mob} />;
+      case "urpdterrain": return <ReleaseGate id="urpdterrain" preview={preview}><UrpdTerrain3D isMobile={mob} /></ReleaseGate>;
       case "lthsth": return <LthSthChart isMobile={mob} preview={preview} />;
       case "sopr": return <SoprChart isMobile={mob} preview={preview} />;
       case "nrpl": return <NrplChart isMobile={mob} preview={preview} />;
       case "liveliness": return <LivelinessChart isMobile={mob} preview={preview} />;
-      case "spxcity": return <SpxCity isMobile={mob} preview={preview} initialMode="spx" />;
+      case "spxcity": return <ReleaseGate id="city" title="SPX City" preview={preview}><SpxCity isMobile={mob} preview={preview} initialMode="spx" /></ReleaseGate>;
       case "citylab": return <CityLab isMobile={mob} />;
       case "whaleswatching": return <ReleaseGate id="whaleswatching" preview={preview}><WhalesWatching isMobile={mob} /></ReleaseGate>;
       case "whalecohorts": return <WhaleCohortsChart isMobile={mob} initialView={iv} />;
@@ -1099,12 +1107,14 @@ export default function App() {
           rather than through the charts gallery so it gets a clean path and first-class billing. */}
       {route === "city" && (
         <Suspense fallback={<div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Loading the city…</div>}>
-          <div ref={cityFsRef} style={{ position: "relative" }}>
-            {!isMobile && <MenuBtn className="cityfsbtn" onClick={enterCityFullscreen} title="Fullscreen"
-              icon={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M8 3H4v4M16 3h4v4M8 21H4v-4M16 21h4v-4" /></svg>} />}
+          <ReleaseGate id="city" title="SPX City">
+            <div ref={cityFsRef} style={{ position: "relative" }}>
+              {!isMobile && <MenuBtn className="cityfsbtn" onClick={enterCityFullscreen} title="Fullscreen"
+                icon={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M8 3H4v4M16 3h4v4M8 21H4v-4M16 21h4v-4" /></svg>} />}
 
-            <SpxCity isMobile={isMobile} initialMode={cityMode} />
-          </div>
+              <SpxCity isMobile={isMobile} initialMode={cityMode} />
+            </div>
+          </ReleaseGate>
         </Suspense>
       )}
 

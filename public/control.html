@@ -1868,7 +1868,7 @@ async function dfLoadMembers() {
 }
 // Release control — flip each walled chart between "under construction" (everyone) and released
 // (members-only). State lives in public/deepfield-releases.json; the toggle commits via /api/control.
-const DF_RELEASE_CHARTS = [["entities", "Wallet Clusters"], ["clustercity", "Cluster City"], ["whaleentry", "When Whales Bought"], ["whaleswatching", "Whales Watching"]];
+const DF_RELEASE_CHARTS = [["entities", "Wallet Clusters"], ["clustercity", "Cluster City"], ["whaleentry", "When Whales Bought"], ["whaleswatching", "Whales Watching"], ["smartmoney", "Smart Money"], ["urpdterrain", "Cost Basis Terrain"], ["city", "SPX City"]];
 let DF_RELEASED = new Set();
 async function dfLoadReleases() {
   try { const d = await fetch("/deepfield-releases.json?t=" + Date.now(), { cache: "no-store" }).then(r => r.ok ? r.json() : null); DF_RELEASED = new Set(Array.isArray(d?.released) ? d.released : []); }

@@ -2,7 +2,7 @@
 // The owner flips each from the control panel (writes public/deepfield-releases.json); the change
 // ships on the next deploy. An UNRELEASED chart shows "Under construction" to EVERYONE (members
 // included); a RELEASED one becomes members-only (login/register). Release them one at a time.
-export const DRIP_CHARTS = ["entities", "clustercity", "whaleentry", "whaleswatching"];
+export const DRIP_CHARTS = ["entities", "clustercity", "whaleentry", "whaleswatching", "smartmoney", "urpdterrain", "city"];
 export const isDripChart = id => DRIP_CHARTS.includes(id);
 let _p;
 export function loadReleases() {
