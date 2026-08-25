@@ -460,7 +460,7 @@ function MobileMenu({ open, onClose, openRainbow, openGallery, openAeon, openCit
   );
 }
 
-export default function TerminalNav({ onHome, openRainbow, openGallery, openAeon, openCity, goChart, renderPreview, asOf }) {
+export default function TerminalNav({ onHome, openRainbow, openGallery, openAeon, openCity, goChart, renderPreview, asOf, me, onDeepField }) {
   const asOfLabel = asOf ? new Date(asOf).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : null;
   const cityColor = CITY_GROUPS[0]?.color || "#7dd3fc";
   const cityItems = [
@@ -479,6 +479,19 @@ export default function TerminalNav({ onHome, openRainbow, openGallery, openAeon
         <div className="tbarright">
           <ThemeToggle />
           <div className="tsocial">
+            {/* Deep Field login/identity — same squared icon style, consistent with the landing. Logged
+                in → the member's X avatar (→ Deep Field); signed out → an accented login icon (→ X OAuth). */}
+            {me && me.loggedIn ? (
+              <button type="button" className="siclink dfauth authed" onClick={onDeepField} title={me.username ? `@${me.username} — open Deep Field` : "Open Deep Field"} aria-label="Open Deep Field">
+                {me.avatar
+                  ? <img src={me.avatar} alt="" referrerPolicy="no-referrer" onError={e => { e.currentTarget.style.display = "none"; }} />
+                  : <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" /><path d="M10 17l5-5-5-5" /><path d="M15 12H3" /></svg>}
+              </button>
+            ) : (
+              <a className="siclink dfauth" href="/api/auth?action=login" title="Log in with X — enter Deep Field" aria-label="Log in with X to enter Deep Field">
+                <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" /><path d="M10 17l5-5-5-5" /><path d="M15 12H3" /></svg>
+              </a>
+            )}
             <a className="siclink" href={X_URL} target="_blank" rel="noopener noreferrer" title="@SPX6900Rainbow on X" aria-label="SPX6900Rainbow on X">
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24h-6.66l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" /></svg>
             </a>

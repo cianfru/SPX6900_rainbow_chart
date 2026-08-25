@@ -403,9 +403,10 @@ export default function App() {
   // route: "home" = the Rainbow hero (landing) · "gallery" = the Charts grid ·
   // "chart" = a dedicated interactive chart page (which one = `tab`).
   const [route, setRoute] = useState("home");
-  // Who's signed in — drives the login-aware Home (a member's home is Deep Field, a guest's is the landing).
-  const [meMember, setMeMember] = useState(false);
-  useEffect(() => { let off = false; loadMe().then(m => { if (!off) setMeMember(!!(m && m.loggedIn && m.member)); }); return () => { off = true; }; }, []);
+  // Who's signed in — drives the login-aware Home (a member's home is Deep Field) + the nav login/avatar.
+  const [me, setMe] = useState(null);   // null = loading/unknown · {loggedIn, member, username, avatar}
+  useEffect(() => { let off = false; loadMe().then(m => { if (!off) setMe(m || { loggedIn: false }); }); return () => { off = true; }; }, []);
+  const meMember = !!(me && me.loggedIn && me.member);
   const [docSlug, setDocSlug] = useState("index"); // which page of the manual (?view=docs&p=…)
   const [storyWallet, setStoryWallet] = useState(""); // "Your SPX Story" deep-link wallet (?view=story&wallet=…)
   const [walletAddr, setWalletAddr] = useState(""); // per-wallet page address (?view=wallet&addr=…)
@@ -760,6 +761,7 @@ export default function App() {
   const openAeon = (group) => { setGalleryGroup(typeof group === "string" ? group : null); setRoute("aeon"); syncUrl("aeon"); window.scrollTo({ top: 0, behavior: "smooth" }); };
   const openCity = () => { setRoute("city"); syncUrl("city"); window.scrollTo({ top: 0, behavior: "smooth" }); };
   const openRainbow = () => { setRoute("rainbow"); syncUrl("rainbow"); window.scrollTo({ top: 0, behavior: "smooth" }); };
+  const openDeepField = () => { setRoute("terminal"); syncUrl("terminal"); window.scrollTo({ top: 0, behavior: "smooth" }); };
   // the 3D city opens into a mode via /city?m=spx|aeon|both (deep-linked from the SPX City menu sub-views)
   const cityMode = (() => { const m = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("m") : null; return m === "aeon" || m === "both" ? m : "spx"; })();
   const openDocs = (slug = "index") => { setDocSlug(slug); setRoute("docs"); syncUrl("docs", slug); window.scrollTo({ top: 0, behavior: "smooth" }); };
@@ -1036,7 +1038,7 @@ export default function App() {
       {/* Terminal cascade nav for sub-pages; the glass pill nav stays on home + landing preview */}
       {isSub ? (
         <nav className="tnavstick" style={{ position: "sticky", top: 0, zIndex: 50, width: "100%" }}>
-          <TerminalNav onHome={goHome} openRainbow={openRainbow} openGallery={openGallery} openAeon={openAeon} openCity={openCity} goChart={goChart} renderPreview={id => chartEl(id, { preview: true })} asOf={last?.date} />
+          <TerminalNav onHome={goHome} openRainbow={openRainbow} openGallery={openGallery} openAeon={openAeon} openCity={openCity} goChart={goChart} renderPreview={id => chartEl(id, { preview: true })} asOf={last?.date} me={me} onDeepField={openDeepField} />
         </nav>
       ) : (
       <nav ref={navRef} style={{

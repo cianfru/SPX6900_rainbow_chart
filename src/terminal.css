@@ -54,6 +54,14 @@
 .tzone .siclink.krk svg{ width:17px; height:17px; fill:#9d5cf8; stroke:none; }
 .tzone .siclink.krk:hover{ background:linear-gradient(135deg,#a055f8,#7132f5); border-color:transparent;  }
 .tzone .siclink.krk:hover svg{ fill:#fff; }
+/* Deep Field login/identity — accented squared icon, swaps to the round X avatar when logged in.
+   Matches the landing's .social .dfauth so login/identity look identical on every surface. */
+.tzone .siclink.dfauth{ border-color:var(--live); color:var(--live); background:none; cursor:pointer; padding:0; }
+.tzone .siclink.dfauth svg{ fill:none; stroke:currentColor; }
+.tzone .siclink.dfauth:hover{ background:var(--live); border-color:var(--live); color:var(--bg); }
+.tzone .siclink.dfauth.authed{ overflow:hidden; border-color:var(--line2); }
+.tzone .siclink.dfauth.authed img{ width:100%; height:100%; object-fit:cover; display:block; }
+.tzone .siclink.dfauth.authed:hover{ background:none; border-color:var(--live); }
 
 /* ── DOS cascade nav ── */
 .tzone .tmenu{ display:flex; align-items:center; gap:4px; min-height:48px; position:relative; z-index:20; border-bottom:1px solid var(--line); }
