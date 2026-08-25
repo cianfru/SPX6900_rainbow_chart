@@ -478,6 +478,13 @@ html:not([data-theme="light"]) .tzone [style*="rgb(100, 116, 139)"]{ color:#b1bc
 html[data-theme="light"] .tzone .tminfo-pop{ box-shadow:0 10px 30px rgba(20,30,50,.16); }
 /* Deep Field disclosure lists (smart-money wallets / clusters) — hide the native triangle so the
    summary's own "▾" is the only marker; it flips to "▴" when open. */
+/* Aggregate net-demand row above the collapsed cluster/smart-money dropdowns — the headline summed flow. */
+.tzone .tmagg{ display:flex; align-items:center; flex-wrap:wrap; gap:8px 16px; padding:8px 12px; margin:0 0 10px; border:1px solid var(--line2); border-left:3px solid var(--live); background:var(--panel); font-family:var(--mono); }
+.tzone .tmagg-lbl{ font-size:11px; text-transform:uppercase; letter-spacing:.12em; color:var(--dim); margin-right:2px; }
+.tzone .tmagg-cell{ font-size:13.5px; color:var(--dim); }
+.tzone .tmagg-w{ color:var(--faint); font-size:11px; }
+.tzone .tmagg-cell b{ font-size:15px; font-weight:800; }
+.tzone .tmagg-flat{ color:var(--dim); }
 .tzone .tmdropsum{ cursor:pointer; font-family:var(--mono); font-size:12.5px; color:var(--live); padding:2px 0 10px; user-select:none; list-style:none; }
 .tzone .tmdropsum::-webkit-details-marker{ display:none; }
 .tzone .tmdropsum::after{ content:" ▾"; }
@@ -487,14 +494,17 @@ html[data-theme="light"] .tzone .tminfo-pop{ box-shadow:0 10px 30px rgba(20,30,5
 .tzone .tmzpop{ padding:10px; max-height:min(66vh,440px); overflow-y:auto; }
 .tzone .tmzpop-head{ display:block; font-family:var(--mono); font-size:11px; text-transform:uppercase; letter-spacing:.12em; color:var(--dim); margin:0 2px 9px; }
 .tzone .tmzpop-grid{ display:flex; flex-direction:column; gap:8px; }
-.tzone .tmzcard{ display:flex; align-items:stretch; gap:0; text-decoration:none; border:1px solid var(--line2); border-radius:8px; overflow:hidden; background:var(--panel2,var(--panel)); transition:border-color .12s ease, transform .12s ease; }
+/* VERTICAL card: the Zerion portfolio preview is a WIDE (~1.9:1) image, so it's a full-width banner on
+   top (never a cropped square) with the address/balance/Zerion link on a row below. */
+.tzone .tmzcard{ display:flex; flex-direction:column; text-decoration:none; border:1px solid var(--line2); border-radius:8px; overflow:hidden; background:var(--panel2,var(--panel)); transition:border-color .12s ease, transform .12s ease; }
 .tzone .tmzcard:hover{ border-color:var(--live); transform:translateY(-1px); }
-.tzone .tmzcard-prev{ position:relative; flex:0 0 64px; width:64px; align-self:stretch; overflow:hidden; }
+.tzone .tmzcard-prev{ position:relative; width:100%; aspect-ratio:1200/630; overflow:hidden; display:block; }
 .tzone .tmzcard-prev img{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:block; }
-.tzone .tmzcard-body{ flex:1 1 auto; min-width:0; display:flex; flex-direction:column; justify-content:center; gap:3px; padding:9px 11px; }
+.tzone .tmzcard-body{ display:flex; align-items:center; justify-content:space-between; gap:10px; padding:8px 11px; }
+.tzone .tmzcard-id{ display:flex; align-items:baseline; gap:9px; min-width:0; }
 .tzone .tmzcard-addr{ font-family:var(--mono); font-size:13px; font-weight:700; color:var(--tx); letter-spacing:.02em; }
 .tzone .tmzcard-bal{ font-family:var(--mono); font-size:12px; color:var(--dim); }
-.tzone .tmzcard-go{ align-self:center; padding:0 11px; font-family:var(--mono); font-size:11px; font-weight:700; color:var(--live); white-space:nowrap; }
+.tzone .tmzcard-go{ font-family:var(--mono); font-size:11px; font-weight:700; color:var(--live); white-space:nowrap; }
 .tzone .tmtbl .tmval{ color:var(--tx); font-weight:700; }
 .tzone .tmnote{ display:block; font-family:var(--sans); font-size:13px; font-weight:400; color:var(--dim); margin-top:3px; line-height:1.45; }
 .tzone .tmnote-lg{ font-size:14px; line-height:1.6; color:var(--dim); max-width:840px; margin-top:8px; }

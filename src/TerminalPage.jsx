@@ -236,6 +236,24 @@ function DFLink({ name, desc, href, faved, onToggle }) {
 }
 
 const shortAddr = a => a.slice(0, 6) + "…" + a.slice(-4);
+const fmtSpx = v => { const a = Math.abs(v); return a >= 1e6 ? (a / 1e6).toFixed(2) + "M" : a >= 1e3 ? (a / 1e3).toFixed(0) + "k" : String(Math.round(a)); };
+// AGGREGATE net demand across a whole cohort — the total 24h/7d/30d balance change, shown ABOVE the
+// (collapsed) dropdown so the headline read is the summed flow, not just the top-N list. `null` for a
+// window when nothing in the cohort has that value computed yet (vs a real 0 = net flat).
+function AggRow({ rows, label = "net demand" }) {
+  const agg = k => { const xs = rows.map(r => r[k]).filter(v => typeof v === "number"); return xs.length ? xs.reduce((a, b) => a + b, 0) : null; };
+  const cell = (w, v) => {
+    const cls = v == null || Math.abs(v) < 1 ? "tmagg-flat" : v > 0 ? "tmup" : "tmdn";
+    const txt = v == null ? "—" : Math.abs(v) < 1 ? "0" : (v > 0 ? "+" : "−") + fmtSpx(v);
+    return <span className="tmagg-cell"><span className="tmagg-w">{w}</span> <b className={cls}>{txt}</b></span>;
+  };
+  return (
+    <div className="tmagg">
+      <span className="tmagg-lbl">{label}</span>
+      {cell("24h", agg("d1"))}{cell("7d", agg("d7"))}{cell("30d", agg("d30"))}
+    </div>
+  );
+}
 // One net-flow cell (SPX change): green when the cluster/wallet added, red when it reduced, a plain
 // "0" when it genuinely didn't move over the window, and "—" only when the value isn't computed yet.
 const netSpxCell = v => {
@@ -260,10 +278,9 @@ function ClusterWalletCard({ a, bal }) {
           onError={e => { e.currentTarget.remove(); }} />
       </span>
       <span className="tmzcard-body">
-        <span className="tmzcard-addr">{shortAddr(a)}</span>
-        <span className="tmzcard-bal">{fmtBal(bal || 0)} SPX</span>
+        <span className="tmzcard-id"><span className="tmzcard-addr">{shortAddr(a)}</span><span className="tmzcard-bal">{fmtBal(bal || 0)} SPX</span></span>
+        <span className="tmzcard-go">Zerion ↗</span>
       </span>
-      <span className="tmzcard-go">Zerion ↗</span>
     </a>
   );
 }
@@ -537,6 +554,7 @@ export default function TerminalPage({ isMobile }) {
             <div className="tmsectitle">Smart money · the wallets
               <Info text="The independent proven top-timers behind the aggregate: ≥$25k deployed, realized ≥5×, still holding ≥50k SPX — and NOT part of any multi-wallet cluster (so these are genuine solo traders). Real addresses, terminal-only; the public site shows them anonymized. Columns are the change in each wallet's held balance over 24h / 7d / 30d. Not a follow signal." />
               <span> · {sm.wallets.length} independent traders</span></div>
+            <AggRow rows={sm.wallets} label="cohort net demand" />
             <details className="tmdrop">
               <summary className="tmdropsum">show the {sm.wallets.length} wallets</summary>
               <div className="tmtblwrap">
@@ -561,13 +579,15 @@ export default function TerminalPage({ isMobile }) {
       })()}
 
       {ent && Array.isArray(ent) && ent.length > 0 && (() => {
-        const clusters = ent.filter(c => !c.flagged && (c.bal || 0) > 0).sort((a, b) => (b.bal || 0) - (a.bal || 0)).slice(0, 12);
+        const allOwners = ent.filter(c => !c.flagged && (c.bal || 0) > 0).sort((a, b) => (b.bal || 0) - (a.bal || 0));
+        const clusters = allOwners.slice(0, 12);
         if (!clusters.length) return null;
         return (
           <section className="tmsec">
             <div className="tmsectitle">Whale clusters · the owners
               <Info text="Wallets the entity engine links into ONE owner from on-chain SPX fund/drain flows — the concentration a plain rich-list misses. Hover 'N wallets' to see the members (each opens in Zerion). Net columns = the whole cluster's balance change over 24h/7d/30d. Flagged / over-merged clusters are excluded." />
-              <span> · top {clusters.length} by size</span></div>
+              <span> · {allOwners.length} owners</span></div>
+            <AggRow rows={allOwners} label="all owners net demand" />
             <details className="tmdrop">
               <summary className="tmdropsum">show the top {clusters.length} clusters</summary>
               <div className="tmtblwrap">

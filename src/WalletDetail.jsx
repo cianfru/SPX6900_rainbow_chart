@@ -73,7 +73,6 @@ export default function WalletDetail({ wallet, price, isMobile }) {
   const unreal = bag * (live - avg);
   const realized = w.realized ?? model?.realized ?? 0;
   const total = realized + unreal;
-  const inProfit = live >= avg;
 
   return (
     <div className="tchart" style={{ maxWidth: MAX_W, margin: "0 auto", fontFamily: "var(--sans)" }}>
