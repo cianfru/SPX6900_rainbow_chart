@@ -60,6 +60,7 @@ const COPY_PATH = "public/post-copy.json"; // owner-edited card-copy overrides
 const AR_PATH = "public/card-ar.json";     // owner-picked aspect ratio per card
 const STATE_PATH = "public/post-state.json"; // last-posted date guard (once-per-day)
 const EXCLUDE_PATH = "public/rotation-excludes.json"; // cards held out of auto-rotation
+const DF_RELEASE_PATH = "public/deepfield-releases.json"; // {released:[chartId,…]} — the Deep Field drip
 const BIN_PATH = "public/binned-cards.json"; // cards hidden from the panel + dropped from rotation
 
 const gh = (path, init = {}) => fetch("https://api.github.com" + path, {
@@ -116,7 +117,7 @@ export default async function handler(req, res) {
     res.status(500).json({ error: "Server not configured: set CONTROL_PASSWORD and GH_PAT in Vercel." });
     return;
   }
-  const { password, action, id, month, template, ar, excluded, binned } = await readBody(req);
+  const { password, action, id, month, template, ar, excluded, binned, released } = await readBody(req);
   if (!safeEq(password ?? "", process.env.CONTROL_PASSWORD)) { res.status(401).json({ error: "Wrong password." }); return; }
 
   // Gate unlock: password already validated above, so just acknowledge.
@@ -272,6 +273,33 @@ export default async function handler(req, res) {
       }
       if (!put.ok) throw new Error("exclude write failed (" + put.status + ") " + body);
       res.status(200).json({ ok: true, id, excluded: keep });
+      return;
+    }
+
+    // Deep Field drip: release / un-release one walled chart → public/deepfield-releases.json
+    // {released:[chartId,…]}. Released = members-only; un-released = "under construction" for everyone.
+    if (action === "df-release-save") {
+      if (!id) { res.status(400).json({ error: "missing id" }); return; }
+      const on = !!released;
+      let put, body;
+      for (let i = 0; i < 3; i++) {
+        let sha, arr = [];
+        const cur = await gh(`/repos/${OWNER}/${REPO}/contents/${DF_RELEASE_PATH}?ref=${BRANCH}`);
+        if (cur.ok) { const j = await cur.json(); sha = j.sha; try { const o = JSON.parse(Buffer.from(j.content, "base64").toString("utf8")); arr = Array.isArray(o?.released) ? o.released : []; } catch { arr = []; } }
+        const set = new Set(arr);
+        if (on) set.add(id); else set.delete(id);
+        const content = Buffer.from(JSON.stringify({ released: [...set] }, null, 2) + "\n").toString("base64");
+        put = await gh(`/repos/${OWNER}/${REPO}/contents/${DF_RELEASE_PATH}`, {
+          method: "PUT",
+          body: JSON.stringify({ message: `control: deep field ${on ? "release" : "unrelease"} ${id}`, content, branch: BRANCH, ...(sha ? { sha } : {}) }),
+        });
+        if (put.ok) break;
+        body = await put.text();
+        if (put.status !== 409) break;
+        await new Promise(r => setTimeout(r, 400 * (i + 1)));
+      }
+      if (!put.ok) throw new Error("df-release write failed (" + put.status + ") " + body);
+      res.status(200).json({ ok: true, id, released: on });
       return;
     }
 

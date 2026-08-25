@@ -532,7 +532,12 @@
         <button id="dfRefresh">↻ Refresh members</button>
         <span style="margin-left:auto;color:#64748b;font-size:12px">Open beta · any real X login = access · <a href="/deepfield" target="_blank" rel="noopener" style="color:#7dd3fc">open Deep Field →</a></span>
       </div>
-      <div class="status" id="dfStatus">Who's logging in — your real-identity map, power users first.</div>
+      <div class="status" id="dfStatus">Release charts at your pace · see who's logging in.</div>
+      <div style="margin:14px 0 24px">
+        <h3 style="margin:0 0 6px;font-size:15px;color:#e2e8f0">Release charts <span style="color:#64748b;font-weight:400;font-size:12.5px">· one at a time, your pace</span></h3>
+        <p style="color:#94a3b8;font-size:12.5px;margin:0 0 10px;line-height:1.55;max-width:760px">Flip a chart to <b style="color:#4ade80">Released</b> when you want it live (members-only — non-members get "register with X"). Everything not released shows <b style="color:#f59e0b">Under construction</b> to everyone. Change goes live on the next deploy (~1 min) — then announce it on X.</p>
+        <div id="dfReleases" style="display:flex;flex-direction:column;gap:8px;max-width:540px">loading…</div>
+      </div>
       <div style="margin-top:6px">
         <p style="color:#94a3b8;font-size:12.5px;margin:0 0 12px;line-height:1.55;max-width:760px">No invite codes — anyone who logs in with a real X account gets in. This is the map of who they are, where they're logging in from, and how often they come back, so you can tell genuine <b style="color:#cbd5e1">power users</b> (many logins, recent) from one-time "grab free access" sign-ins — and grandfather the real supporters later.</p>
         <div id="dfMembers" style="font-size:13px;color:#94a3b8">—</div>
@@ -1861,9 +1866,37 @@ async function dfLoadMembers() {
     }).join("") + `</table></div>` +
     `<p style="color:#64748b;font-size:11.5px;margin:8px 0 0;line-height:1.5">★ = power user (3+ logins). Sorted by logins. "Where" is the country of their most recent login (from the edge, no raw IP stored).</p>`;
 }
+// Release control — flip each walled chart between "under construction" (everyone) and released
+// (members-only). State lives in public/deepfield-releases.json; the toggle commits via /api/control.
+const DF_RELEASE_CHARTS = [["entities", "Wallet Clusters"], ["clustercity", "Cluster City"], ["whaleentry", "When Whales Bought"], ["whaleswatching", "Whales Watching"]];
+let DF_RELEASED = new Set();
+async function dfLoadReleases() {
+  try { const d = await fetch("/deepfield-releases.json?t=" + Date.now(), { cache: "no-store" }).then(r => r.ok ? r.json() : null); DF_RELEASED = new Set(Array.isArray(d?.released) ? d.released : []); }
+  catch { DF_RELEASED = new Set(); }
+  dfRenderReleases();
+}
+function dfRenderReleases(msg) {
+  $("#dfReleases").innerHTML = DF_RELEASE_CHARTS.map(([id, name]) => {
+    const on = DF_RELEASED.has(id);
+    return `<div style="display:flex;align-items:center;gap:12px;padding:10px 12px;border:1px solid #1e2635;border-radius:10px;background:#0b0b18">
+      <span style="flex:1;color:#e2e8f0;font-size:14px">${name}</span>
+      <span style="font-family:ui-monospace,monospace;font-size:11.5px;color:${on ? "#4ade80" : "#f59e0b"}">${on ? "● released" : "● under construction"}</span>
+      <button data-df-rel="${id}" data-on="${on ? 1 : 0}" style="background:${on ? "#3a1d1d" : "#123"};border:1px solid ${on ? "#f59e0b" : "#2563eb"};color:${on ? "#f59e0b" : "#7dd3fc"};border-radius:8px;padding:6px 12px;cursor:pointer;font-size:12.5px;white-space:nowrap">${on ? "Un-release" : "Release →"}</button>
+    </div>`;
+  }).join("") + (msg ? `<div style="font-size:12px;color:#4ade80;margin-top:2px">${msg}</div>` : "");
+  document.querySelectorAll("[data-df-rel]").forEach(b => b.onclick = () => dfToggleRelease(b.dataset.dfRel, b.dataset.on !== "1"));
+}
+async function dfToggleRelease(id, on) {
+  try {
+    await action({ action: "df-release-save", id, released: on });
+    if (on) DF_RELEASED.add(id); else DF_RELEASED.delete(id);
+    dfRenderReleases(`Saved — “${id}” is now ${on ? "released" : "under construction"}. Live on the next deploy (~1 min).`);
+  } catch (e) { dfRenderReleases(`<span style="color:#f87171">Failed: ${esc(e.message || "error")}</span>`); }
+}
 function dfInit() {
   if (dfWired) return; dfWired = true;
-  $("#dfRefresh").onclick = dfLoadMembers;
+  $("#dfRefresh").onclick = () => { dfLoadReleases(); dfLoadMembers(); };
+  dfLoadReleases();
   dfLoadMembers();
 }
 
