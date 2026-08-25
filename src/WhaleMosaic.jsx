@@ -61,10 +61,10 @@ export default function WhaleMosaic({ isMobile }) {
     const key = "d" + flowWin;
     // live feed keyed per chain (real-time); used to keep the 24h view fresh between daily banks.
     const liveMap = new Map();
-    for (const w of live?.wallets || []) liveMap.set(w.chain === "sol" ? w.a : w.a.toLowerCase(), w.net);
+    for (const w of live?.wallets || []) if (w.a) liveMap.set(w.chain === "sol" ? w.a : w.a.toLowerCase(), w.net);
     // ETH banks all three windows (d1/d7/d30); on the 24h view prefer the live net where it serves it.
     const ethNet = w => {
-      if (flowWin === 1) { const lk = liveMap.get(w.a.toLowerCase()); if (Number.isFinite(lk)) return lk; }
+      if (flowWin === 1 && w.a) { const lk = liveMap.get(w.a.toLowerCase()); if (Number.isFinite(lk)) return lk; }
       const v = w[key]; return Number.isFinite(v) ? v : (w.d30 || 0);
     };
     // Base & Solana carry only a ~30-day flow, so the sub-30d windows use the live feed where it
@@ -73,7 +73,7 @@ export default function WhaleMosaic({ isMobile }) {
 
     const rows = [];
     for (const w of whales.wallets || []) if (w.bal >= 1e5) rows.push({ a: w.a, chain: "eth", bal: w.bal, net: ethNet(w) });
-    for (const w of base?.wallets || []) if (w.bal >= 1e5) rows.push({ a: w.a, chain: "base", bal: w.bal, net: altNet(w, w.a.toLowerCase()) });
+    for (const w of base?.wallets || []) if (w.bal >= 1e5) rows.push({ a: w.a, chain: "base", bal: w.bal, net: altNet(w, w.a ? w.a.toLowerCase() : "") });
     for (const w of sol?.wallets || []) if (w.bal >= 1e5) rows.push({ a: w.a, chain: "sol", bal: w.bal, net: altNet(w, w.a) });
 
     const dust = r => Math.max(1000, r.bal * 0.005);
@@ -130,7 +130,7 @@ export default function WhaleMosaic({ isMobile }) {
           ))}
           {hov && (
             <div style={{ position: "absolute", top: 6, right: 10, pointerEvents: "none", fontFamily: MONO, fontSize: 11.5, color: "#cbd5e1", background: "rgba(8,11,20,0.94)", border: "1px solid rgba(255,255,255,0.14)", borderRadius: 7, padding: "6px 9px" }}>
-              {shortAddr(hov.a)} · {CHAIN[hov.chain]}<br />
+              {hov.a ? shortAddr(hov.a) : "Wallet"} · {CHAIN[hov.chain]}<br />
               <b style={{ color: hov.net > 0 ? "#4ade80" : hov.net < 0 ? "#fb7185" : "#94a3b8" }}>
                 {hov.net > 0 ? "▲ +" : hov.net < 0 ? "▼ −" : "• "}{hov.net ? kM(Math.abs(hov.net)) + " SPX" : "flat"}
               </b> · {kM(hov.bal)} held

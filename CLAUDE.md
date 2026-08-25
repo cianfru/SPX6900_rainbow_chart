@@ -49,6 +49,14 @@
     view). Owner will drive the exact IA; keep the menu-typewriter style. Also Phase 2 = retheme the public locked tiles as "Deep Field ·
     request access".
     Phase 3 (only when charging) = authed endpoint + Stripe $2.99/mo (owner: monthly only, no annual — project young, uncertain).
+  - **🔲 TO REVIEW LATER — gate the CITY/whale WALLETS behind login too (owner, 2026-08-25).** After un-walling SPX City + whales +
+    spx-timeline back to fully PUBLIC (owner call — the city is a public showpiece + reach engine, its per-building Zerion cards open to
+    all), the owner reflected that "putting wallets behind logged-in members is not a bad idea after all — leave it as is for now, revisit
+    later." So: a FUTURE option is to move the per-wallet identity (whales addresses / Zerion cards / the city's clickable wallets / the
+    Story card) behind the members wall too, leaving only the anonymized skyline public. Needs a proper discussion (reach vs. exclusivity
+    trade-off) before doing it. Currently: entities (cluster linkage) + granular smart-money/whale-entry are members-only; everything else
+    (incl. whales.json addresses + the city) is public. **The `data wall` machinery (fetchPrivate + strip-private-fields + KV push) already
+    supports re-walling whales/spx-timeline by re-adding them to the strip/push list + flipping their loaders back to fetchPrivate.**
 
 ## 💳 "THE TERMINAL" — PAID TIER / FREEMIUM (design agreed 2026-08-17, owner travelling; BUILD PENDING — SUPERSEDED by Deep Field beta above)
 - **First monetisation. Owner cautious (first time charging).** Structure DESIGNED, not built. Reconciled with the

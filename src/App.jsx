@@ -44,6 +44,26 @@ function UnderConstruction({ title, preview }) {
     </div>
   );
 }
+// A released drip chart is MEMBERS-ONLY — this is the "register here" state for signed-out visitors, so
+// releasing a chart never renders the stripped/granular data to the public.
+function MembersOnly({ title, preview }) {
+  if (preview) return (
+    <div style={{ display: "grid", placeItems: "center", height: "100%", minHeight: 130, gap: 8, textAlign: "center", fontFamily: "var(--mono)", fontSize: 12, color: "var(--faint)" }}>
+      <span style={{ fontSize: 20, opacity: .8 }}>🔒</span>Members only
+    </div>
+  );
+  return (
+    <div style={{ maxWidth: 560, margin: "48px auto", textAlign: "center", fontFamily: "var(--sans)" }}>
+      <div style={{ fontFamily: "var(--mono)", fontSize: 12, letterSpacing: ".3em", textTransform: "uppercase", color: "var(--faint)", marginBottom: 14 }}>Members only</div>
+      <h3 style={{ fontFamily: "var(--sans)", fontSize: 27, fontWeight: 800, color: "var(--tx)", margin: "0 0 16px", textTransform: "uppercase", letterSpacing: "-.01em" }}>{title || "Members chart"}</h3>
+      <div style={{ height: 3, width: 190, maxWidth: "62%", margin: "0 auto 20px", borderRadius: 2, background: "var(--rainbow)" }} />
+      <p style={{ color: "var(--dim)", fontSize: 15, lineHeight: 1.7, margin: "0 auto 20px", maxWidth: 400 }}>
+        This is a Deep Field members chart. Log in with X to unlock it — it&apos;s free to join.
+      </p>
+      <a href="/api/auth?action=login" style={{ display: "inline-block", padding: "11px 22px", fontFamily: "var(--mono)", fontSize: 13, fontWeight: 700, background: "var(--live)", color: "var(--bg)", textDecoration: "none" }}>Log in with X →</a>
+    </div>
+  );
+}
 // Owner recording flow (video studio) opens ?rec=1 / sets spx-rec — it must bypass the release gate
 // so the city/whale scenes can still be captured while they read "under construction" to the public.
 function recBypass() {
@@ -51,12 +71,23 @@ function recBypass() {
     return new URLSearchParams(window.location.search).get("rec") === "1" || localStorage.getItem("spx-rec") === "1";
   } catch { return false; }
 }
+// Cached "who am I" — one fetch shared across every ReleaseGate on the page.
+let _mePromise;
+function loadMe() {
+  if (!_mePromise) _mePromise = fetch("/api/auth?action=me", { cache: "no-store" }).then(r => (r.ok ? r.json() : null)).catch(() => null);
+  return _mePromise;
+}
+// A drip chart is either UNRELEASED (under construction, everyone) or RELEASED (members-only). It never
+// renders its stripped/granular data to a signed-out visitor.
 function ReleaseGate({ id, preview, title, children }) {
   const [rel, setRel] = useState(null);   // null = loading · Set = released ids
-  useEffect(() => { let off = false; loadReleases().then(s => { if (!off) setRel(s); }); return () => { off = true; }; }, []);
+  const [me, setMe] = useState(undefined); // undefined = loading · null/object
+  useEffect(() => { let off = false; loadReleases().then(s => { if (!off) setRel(s); }); loadMe().then(m => { if (!off) setMe(m); }); return () => { off = true; }; }, []);
   if (recBypass()) return children;
-  if (rel === null) return preview ? null : <div style={{ textAlign: "center", fontFamily: "var(--mono)", color: "var(--faint)", padding: 40 }}>…</div>;
+  if (rel === null || me === undefined) return preview ? null : <div style={{ textAlign: "center", fontFamily: "var(--mono)", color: "var(--faint)", padding: 40 }}>…</div>;
   if (!rel.has(id)) return <UnderConstruction title={title || CHART_META[id]?.title} preview={preview} />;
+  const isMember = !!(me && me.loggedIn && me.member);
+  if (!isMember) return <MembersOnly title={title || CHART_META[id]?.title} preview={preview} />;
   return children;
 }
 

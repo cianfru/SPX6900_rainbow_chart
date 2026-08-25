@@ -39,8 +39,13 @@ export default function StoryCard({ wallet, price, isMobile }) {
 
   const livePrice = (price && price > 0) ? price : (data ? data.price : 0);
   const story = useMemo(() => {
-    if (!data || !addr) return null;
-    const w = data.whales.find(x => x.a.toLowerCase() === addr);
+    if (!data) return null;
+    // whale-entry.json is address-stripped for the public (the data wall) — matching a pasted wallet
+    // needs the addresses, which only members get from KV. If none are present, this is a member feature.
+    const hasAddr = Array.isArray(data.whales) && data.whales.some(x => x && x.a);
+    if (!hasAddr) return { gated: true };
+    if (!addr) return null;
+    const w = data.whales.find(x => x?.a && x.a.toLowerCase() === addr);
     if (!w) return { notFound: true };
     // deepest drawdown the wallet SAT THROUGH after buying — the conviction fact
     let peak = w.cost, dd = 0;
@@ -76,6 +81,15 @@ export default function StoryCard({ wallet, price, isMobile }) {
       </form>
 
       {data === undefined && <div style={{ fontFamily: MONO, color: "#64748b" }}>loading…</div>}
+      {story?.gated && (
+        <div style={{ maxWidth: 520, padding: "18px 20px", borderRadius: 12, background: "rgba(94,234,212,0.06)", border: "1px solid rgba(94,234,212,0.25)" }}>
+          <div style={{ fontFamily: SANS, fontSize: 16, fontWeight: 700, color: "#f1f5f9" }}>Your SPX Story is a members feature</div>
+          <div style={{ fontFamily: SANS, fontSize: 13.5, color: "#c8d1de", lineHeight: 1.55, margin: "6px 0 14px" }}>
+            Building a story matches your wallet against the on-chain holder data, which lives behind the members wall. Log in with X to unlock it.
+          </div>
+          <a href="/api/auth?action=login" style={{ display: "inline-block", padding: "10px 18px", borderRadius: 0, fontFamily: MONO, fontSize: 13, fontWeight: 700, background: "#5eead4", color: "#04140f", border: "1px solid #5eead4", textDecoration: "none" }}>Log in with X →</a>
+        </div>
+      )}
       {story?.notFound && <div style={{ fontFamily: MONO, fontSize: 13, color: "#fb7185" }}>That wallet isn't in the set yet — the prototype covers current holders of ≥100k SPX. (A ≥5k resident tier is coming.)</div>}
 
       {story?.w && (() => {

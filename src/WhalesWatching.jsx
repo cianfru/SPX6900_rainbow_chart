@@ -242,7 +242,7 @@ function buildScene(el, data, { onlyMovers, isMobile, flowWin = 30, onPick }) {
       : w.flow === "sell" ? `<span style="color:#fb7185">${Math.round(w.net).toLocaleString()} sold (${winLbl})</span>`
       : `<span style="color:#94a3b8">flat (${winLbl})</span>`;
     tip.innerHTML =
-      `<div style="font-family:${MONO};font-size:11px;color:#94a3b8">${w.a.slice(0, 6)}…${w.a.slice(-4)}</div>` +
+      `<div style="font-family:${MONO};font-size:11px;color:#94a3b8">${w.a ? w.a.slice(0, 6) + "…" + w.a.slice(-4) : "Wallet"}</div>` +
       `<div style="font-weight:800;font-size:15px;margin:2px 0"><span style="color:${rgb}">${kM(w.bal)}</span> SPX · ${w.cohort}</div>` +
       `<div style="font-size:12px;color:#c7d2e4">held ${Math.round(w.days / 30)} months · ${flowTxt}</div>`;
     tip.style.display = "block";

@@ -30,7 +30,7 @@ const configured = () => !!(CID() && CSECRET() && SECRET());
 // The members-only feeds served from the private store (KV key "feed:<name>"), pushed by the crons
 // via scripts/push-private-feed.mjs. These are the GRANULAR halves (real addresses / per-wallet lots);
 // the public site keeps the anonymized/aggregate versions. Whitelisted so ?f= can't read arbitrary keys.
-const PRIVATE_FEEDS = new Set(["entities", "smart-money", "whale-entry", "whales", "city-history", "spx-timeline"]);
+const PRIVATE_FEEDS = new Set(["entities", "smart-money", "whale-entry"]);
 
 const send = (res, code, obj) => { res.setHeader("Content-Type", "application/json"); res.status(code).json(obj); };
 const setCookie = (res, c) => { const prev = res.getHeader("Set-Cookie"); res.setHeader("Set-Cookie", prev ? [].concat(prev, c) : c); };
