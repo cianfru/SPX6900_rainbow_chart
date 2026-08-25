@@ -51,6 +51,12 @@ function recBypass() {
     return new URLSearchParams(window.location.search).get("rec") === "1" || localStorage.getItem("spx-rec") === "1";
   } catch { return false; }
 }
+// A confirmed member landing on "/" is routed to their Deep Field home (owner: "Deep Field is the main
+// page they land on"). The flag is set on the Deep Field page once the server confirms membership, and
+// cleared when the server says not-logged-in — so it's optimistic but self-correcting.
+function memberHome() {
+  try { return localStorage.getItem("df-home") === "1"; } catch { return false; }
+}
 function ReleaseGate({ id, preview, title, children }) {
   const [rel, setRel] = useState(null);   // null = loading · Set = released ids
   useEffect(() => { let off = false; loadReleases().then(s => { if (!off) setRel(s); }); return () => { off = true; }; }, []);
@@ -786,6 +792,10 @@ export default function App() {
       else if (id && resolveId(id) === "spxcity") setRoute("city");
       else if (id === "rainbow") setRoute("rainbow");
       else if (id && CHART_IDS.has(resolveId(id))) { setRoute("chart"); setTab(resolveId(id)); }
+      // Member home: a known member landing on a bare "/" is sent to their Deep Field. Uses an optimistic
+      // local flag (set once membership is confirmed on the Deep Field page) so the redirect is instant
+      // and flash-free; the Gate re-validates with the server, so a stale flag just lands on the login.
+      else if (memberHome()) { setRoute("terminal"); window.history.replaceState(null, "", "/deepfield"); }
       else setRoute("home");
     };
     apply();

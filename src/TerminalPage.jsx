@@ -144,6 +144,8 @@ function Gate({ onPass, isMobile }) {
         setPhase("passphrase"); return;
       }
       if (d && d.member) { unlockClient(); onPass(); return; }
+      // Not a member — clear the optimistic member-home flag so a bare "/" stops routing here.
+      try { localStorage.removeItem("df-home"); } catch { /* private */ }
       if (d && d.loggedIn) { setUser(d.username || ""); setPhase("paused"); return; }   // logged in but access removed
       setPhase("login");
     }).catch(() => { if (!off) setPhase("passphrase"); });
@@ -214,11 +216,16 @@ const DF_CHARTS = [
 
 // A Deep Field chart link, styled like the site's nav menu: mono, uppercase, and the name types itself
 // out left-to-right on hover (the shared menu typewriter). No generic icons.
-function DFLink({ name, desc, href }) {
+function DFLink({ name, desc, href, faved, onToggle }) {
   const { shown, type, reset } = useHoverType(name);
   return (
     <a href={href} className="dfrow" onMouseEnter={type} onMouseLeave={reset} onFocus={type} onBlur={reset}>
       <span className="dfname">
+        {onToggle && (
+          <button type="button" className={"dfstar" + (faved ? " on" : "")} title={faved ? "Unpin from your favorites" : "Pin to your favorites"}
+            aria-pressed={faved ? "true" : "false"} aria-label={faved ? "Unpin " + name : "Pin " + name}
+            onClick={e => { e.preventDefault(); e.stopPropagation(); onToggle(); }}>{faved ? "★" : "☆"}</button>
+        )}
         <span className="menubtn-t"><span className="menubtn-g" aria-hidden="true">{name}<i className="tcur">_</i></span><span className="menubtn-y">{shown}<i className="tcur">_</i></span></span>
         <span className="dfarrow">↗</span>
       </span>
@@ -296,12 +303,32 @@ export default function TerminalPage({ isMobile }) {
   const [ent, setEnt] = useState(undefined);     // entities.json (wallet clusters — terminal reveals members)
   const [hl, setHl] = useState(null);            // LIVE Hyperliquid funding/OI (real-time, not yesterday's mean)
   const [me, setMe] = useState(null);            // who's signed in (X handle + avatar) — "this is your space"
+  // Favorites: seeded from localStorage instantly (per-device), then reconciled to the member's KV list
+  // once /api/auth?action=me returns (per-account, syncs across devices). Toggling writes both.
+  const [favs, setFavs] = useState(() => { try { return new Set(JSON.parse(localStorage.getItem("df-favs") || "[]")); } catch { return new Set(); } });
+  const toggleFav = href => setFavs(prev => {
+    const next = new Set(prev); next.has(href) ? next.delete(href) : next.add(href);
+    const arr = [...next];
+    try { localStorage.setItem("df-favs", JSON.stringify(arr)); } catch { /* private mode */ }
+    // Persist per-account when signed in (fire-and-forget; localStorage is the offline cache/fallback).
+    fetch("/api/auth?action=fav", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ fav: arr }) }).catch(() => {});
+    return next;
+  });
 
   useEffect(() => {
     if (!ok) return;
     let off = false;
-    // Who is this — the X identity, so the member sees their own avatar top-right.
-    fetch("/api/auth?action=me", { cache: "no-store" }).then(r => r.ok ? r.json() : null).then(d => { if (!off && d?.loggedIn) setMe(d); }).catch(() => {});
+    // Who is this — the X identity, so the member sees their own avatar top-right; and their saved
+    // favorites (KV) become the source of truth once known.
+    fetch("/api/auth?action=me", { cache: "no-store" }).then(r => r.ok ? r.json() : null).then(d => {
+      if (off) return;
+      // Optimistic home flag: set once we KNOW this browser belongs to a member (so a bare "/" routes
+      // here next time), cleared when the server says not-logged-in (so ex/never-members see the landing).
+      try { if (d?.loggedIn && d.member) localStorage.setItem("df-home", "1"); else if (d && !d.loggedIn) localStorage.removeItem("df-home"); } catch { /* private mode */ }
+      if (!d?.loggedIn) return;
+      setMe(d);
+      if (Array.isArray(d.fav)) setFavs(new Set(d.fav));
+    }).catch(() => {});
     const grab = (f, ok) => fetch(`/api/control?f=public/${f}&t=${Date.now()}`, { cache: "no-store" }).then(r => r.ok ? r.json() : null).then(d => { if (!off) ok(d); }).catch(() => { if (!off) ok(null); });
     grab("daily-snapshot.json", d => setData(d && d.sections ? d : null));
     grab("smart-money.json", d => setSm(d || null));
@@ -378,14 +405,25 @@ export default function TerminalPage({ isMobile }) {
         );
       })()}
 
-      <section className="tmsec">
-        <div className="tmsectitle">Deep Field · charts
-          <Info text="The members-only charts — the wallet-level granularity that isn't on the public site. Your invite unlocks all of them; open in a new tab." />
-          <span> · members only</span></div>
-        <div className="dfgrid">
-          {DF_CHARTS.map(c => <DFLink key={c.href} {...c} />)}
-        </div>
-      </section>
+      {(() => {
+        const faved = DF_CHARTS.filter(c => favs.has(c.href));
+        const rest = DF_CHARTS.filter(c => !favs.has(c.href));
+        return (
+          <section className="tmsec">
+            <div className="tmsectitle">Deep Field · charts
+              <Info text="The members-only charts — the wallet-level granularity that isn't on the public site. Star the ones you use most and they pin to the top of your space." />
+              <span> · {faved.length ? `${faved.length} pinned` : "star your favorites"}</span></div>
+            {faved.length > 0 && (
+              <div className="dfgrid dffav">
+                {faved.map(c => <DFLink key={c.href} {...c} faved onToggle={() => toggleFav(c.href)} />)}
+              </div>
+            )}
+            <div className="dfgrid">
+              {rest.map(c => <DFLink key={c.href} {...c} faved={false} onToggle={() => toggleFav(c.href)} />)}
+            </div>
+          </section>
+        );
+      })()}
 
       {S && Array.isArray(S.alerts) && S.alerts.length > 0 && (
         <div className="tmalerts">{S.alerts.map((a, i) => <div key={i} className="tmalert">{a}</div>)}</div>

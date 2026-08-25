@@ -130,12 +130,16 @@ export default async function handler(req, res) {
   if (action === "me") {
     const s = sessionOf(req);
     if (!s) return send(res, 200, { loggedIn: false });
-    let member = !!s.mem, avatar = s.pfp || "";
+    let member = !!s.mem, avatar = s.pfp || "", fav = null;
     // honour revocation: if KV says the user is no longer a member, downgrade (and re-issue the cookie).
-    // Also fill the avatar from KV for users whose cookie predates the pfp field (no re-login needed).
-    if (kvConnected()) { try { const u = await getJSON("auth:user:" + s.uid); if (u) { if (u.member === false) member = false; if (!avatar && u.pfp) avatar = u.pfp; } } catch { /* trust token */ } }
+    // Also fill the avatar from KV for users whose cookie predates the pfp field (no re-login needed),
+    // and hand back the member's saved favorites so the client renders their pinned charts in one call.
+    if (kvConnected()) { try {
+      const u = await getJSON("auth:user:" + s.uid); if (u) { if (u.member === false) member = false; if (!avatar && u.pfp) avatar = u.pfp; }
+      const f = await getJSON("auth:fav:" + s.uid); if (Array.isArray(f)) fav = f;
+    } catch { /* trust token */ } }
     if (member !== !!s.mem) setCookie(res, serializeCookie(SESS, signSession({ uid: s.uid, un: s.un, mem: member, pfp: s.pfp }, SECRET()), { maxAge: 30 * 86400 }));
-    return send(res, 200, { loggedIn: true, username: s.un, member, avatar });
+    return send(res, 200, { loggedIn: true, username: s.un, member, avatar, fav });
   }
 
   if (action === "logout") { setCookie(res, serializeCookie(SESS, "", { maxAge: 0 })); return send(res, 200, { ok: true }); }
@@ -157,6 +161,15 @@ export default async function handler(req, res) {
       await cmd("SADD", "auth:members", s.uid);
       setCookie(res, serializeCookie(SESS, signSession({ uid: s.uid, un: s.un, mem: true }, SECRET()), { maxAge: 30 * 86400 }));
       return send(res, 200, { ok: true, member: true });
+    }
+    if (action === "fav") {                        // member: save their pinned charts (per-account, KV)
+      const s = sessionOf(req);
+      if (!s) return send(res, 401, { ok: false, err: "not logged in" });
+      if (!kvConnected()) return send(res, 200, { ok: false, err: "store not connected" });
+      // Sanitise: a bounded list of short id strings — never trust the client array shape/size.
+      const fav = (Array.isArray(bd.fav) ? bd.fav : []).filter(x => typeof x === "string" && x.length <= 40).slice(0, 60);
+      await setJSON("auth:fav:" + s.uid, fav);
+      return send(res, 200, { ok: true, fav });
     }
     if (action === "seed") {                       // owner: load invite codes (hashes only)
       if (!safeEq(bd.pw || "", process.env.CONTROL_PASSWORD || "\0")) return send(res, 403, { ok: false });
