@@ -30,6 +30,13 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm ci
+      # spx-timeline.json now lives behind the data wall (private store, not the public repo), so pull it
+      # back from KV before rendering. Needs KV_REST_API_URL/TOKEN as Actions secrets.
+      - name: Pull spx-timeline from the private store (KV)
+        env:
+          KV_REST_API_URL: ${{ secrets.KV_REST_API_URL }}
+          KV_REST_API_TOKEN: ${{ secrets.KV_REST_API_TOKEN }}
+        run: node scripts/pull-private-feed.mjs --key=spx-timeline --out=public/spx-timeline.json
       - name: Render + stitch the mosaic video
         run: node tools/render-whale-mosaic-video.mjs --fps=${{ inputs.fps }} --hold=${{ inputs.hold }}
       - name: Render + stitch the spectrum video

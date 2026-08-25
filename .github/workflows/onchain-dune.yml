@@ -196,13 +196,28 @@ jobs:
           node scripts/bot/notable.mjs || true
           node scripts/bot/daily-snapshot.mjs || true
 
+      # THE DATA WALL: entities.json (real cluster addresses) + spx-timeline.json (per-wallet balances
+      # that identify holders) are NOT committed to the public repo. They are built locally above (so the
+      # downstream steps that read them still work), pushed to the private store (KV), and served only to
+      # logged-in members via /api/auth?action=data. Needs KV_REST_API_URL/TOKEN as Actions secrets; if
+      # unset this soft-skips (members then see no data until the secrets are added + this reruns).
+      - name: Push members-only feeds to the private store (KV)
+        env:
+          KV_REST_API_URL: ${{ secrets.KV_REST_API_URL }}
+          KV_REST_API_TOKEN: ${{ secrets.KV_REST_API_TOKEN }}
+        run: |
+          node scripts/push-private-feed.mjs --file=public/entities.json --key=entities || true
+          node scripts/push-private-feed.mjs --file=public/spx-timeline.json --key=spx-timeline || true
+
       - name: Commit if changed
         id: commit
         run: |
           # ETH/site files drive the DEPLOY (the site + og cards read these). Solana/Base files are
           # bot-only (no site consumer), so they ride along in the same commit but don't force a deploy
           # on their own. COMMIT if ANY of them changed; DEPLOY only if an ETH/site file changed.
-          ETH_FILES="public/onchain.json public/urpd.json public/urpd-history.json public/whales.json public/self-moves.json public/entities.json public/addr-types.json public/spx-timeline.json public/cohort-survival.json public/exit-flow.json public/smart-money.json public/city-recap.json public/whale-cohort-history.json public/city-history.json public/cex-sankey.json public/whale-thennow.json public/cohort-roi.json public/whale-entry.json"
+          # entities.json + spx-timeline.json are DELIBERATELY absent — they go to KV (the data wall), not
+          # the public repo. addr-types is derived from entities but carries no balances, so it stays.
+          ETH_FILES="public/onchain.json public/urpd.json public/urpd-history.json public/whales.json public/self-moves.json public/addr-types.json public/cohort-survival.json public/exit-flow.json public/smart-money.json public/city-recap.json public/whale-cohort-history.json public/city-history.json public/cex-sankey.json public/whale-thennow.json public/cohort-roi.json public/whale-entry.json"
           CHAIN_FILES="public/solana-onchain.json dune/out/spx6900_solana_balances.csv public/base-onchain.json dune/out/spx6900_base_cohort.csv"
           # The control-panel/terminal digests: deploy-ignored (read via the raw proxy), so they commit
           # but never force a deploy — same as their 00:17 build.

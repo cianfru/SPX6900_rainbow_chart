@@ -171,14 +171,30 @@ export function loadOnchain() {
   return onchainPromise;
 }
 
-// Shared, cached loader for /entities.json — the entity-clustering graph (Phase 2/3): which wallets
-// belong to one owner, reconstructed from SPX drain/fund flows. An OBJECT { updated, spot, heldSupply,
-// method, params, stats, entities:[{id, size, bal, holders, flagged, wallets, edges}] }. Null on failure.
+// THE DATA WALL — address-revealing feeds are served ONLY to logged-in members from the private store
+// (KV, via /api/auth?action=data&f=<feed>), not from the public repo/site. `fetchPrivate` reads the
+// authed endpoint first; during a feed's cutover it falls back to the still-committed public file so
+// nothing breaks while KV is being seeded. Once a feed's public file is removed, the fallback simply
+// 404s and only members (through the authed endpoint) get the data. A 403 (not a member) returns null.
+export async function fetchPrivate(feed, publicPath) {
+  try {
+    const r = await fetch(`/api/auth?action=data&f=${feed}`, { cache: "no-store" });
+    if (r.ok) return await r.json();               // member — served from KV
+    if (r.status === 403) return null;             // logged in but not a member (or not logged in)
+    // 404 (not published yet) / 503 (store off) / "not configured" → fall back to the public file
+  } catch { /* network — fall back */ }
+  if (!publicPath) return null;
+  try { const r = await fetch(publicPath, { cache: "no-store" }); return r.ok ? await r.json() : null; }
+  catch { return null; }
+}
+
+// Shared, cached loader for the entity-clustering graph (Phase 2/3): which wallets belong to one owner,
+// reconstructed from SPX drain/fund flows. An OBJECT { updated, spot, heldSupply, method, params, stats,
+// entities:[{id, size, bal, holders, flagged, wallets, edges}] }. Members-only (real addresses).
 let entitiesPromise = null;
 export function loadEntities() {
   if (!entitiesPromise) {
-    entitiesPromise = fetch("/entities.json", { cache: "no-store" })
-      .then(r => (r.ok ? r.json() : null))
+    entitiesPromise = fetchPrivate("entities", "/entities.json")
       .then(d => (d && Array.isArray(d.entities) ? d : null))
       .catch(() => null);
   }
@@ -394,12 +410,14 @@ export const LIVE_DATA_DOWN = "Live data is temporarily unavailable — try agai
 // browser's default caching (Vercel etags make revisits a 304, and the file changes only daily).
 const timelinePromises = {};
 export function loadCityTimeline(asset) {
-  const f = asset === "aeon" ? "/aeon-timeline.json" : "/spx-timeline.json";
+  const f = asset === "aeon" ? "aeon" : "spx";
   if (!timelinePromises[f]) {
-    timelinePromises[f] = fetch(f)
-      .then(r => (r.ok ? r.json() : null))
-      .then(d => (d && Array.isArray(d.wallets) && d.n > 0 ? d : null))
-      .catch(() => null);
+    // SPX per-wallet timeline identifies holders → members-only via the private store. AEON (NFT) stays
+    // public. The validator (wallets[] + n>0) is the same either way.
+    const p = f === "spx"
+      ? fetchPrivate("spx-timeline", "/spx-timeline.json")
+      : fetch("/aeon-timeline.json").then(r => (r.ok ? r.json() : null)).catch(() => null);
+    timelinePromises[f] = p.then(d => (d && Array.isArray(d.wallets) && d.n > 0 ? d : null)).catch(() => null);
   }
   return timelinePromises[f];
 }

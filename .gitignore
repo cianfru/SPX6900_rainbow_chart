@@ -49,3 +49,8 @@ aeon-sweep-preview.png
 # `out/` — that also matches dune/out/, which holds tracked provenance CSVs (see line 36), and
 # broke the daily on-chain refresh's `git add` of a fresh dune/out/*.csv on CI.
 /out/
+
+# The data wall: members-only feeds served from KV (api/auth?action=data), never committed
+# to the public repo. Built locally by onchain-dune.yml, pushed to KV, pulled by whale-video.yml.
+public/entities.json
+public/spx-timeline.json

@@ -3,6 +3,7 @@ import { TERMINAL_KEY, isValidAccess } from "./terminal-gate-key.js";
 import { CITY_KEY } from "./city-gate-key.js";
 import { MenuBtn, useHoverType } from "./chart-ui.jsx";
 import { walletGradient } from "./WalletCard.jsx";
+import { fetchPrivate } from "./history-data.js";
 
 // THE TERMINAL (/terminal) — the owner's daily intel one-pager, kept SEPARATE from the post-control
 // panel so the "what's happening on-chain today" read isn't tangled up with the "which card to fire"
@@ -332,7 +333,8 @@ export default function TerminalPage({ isMobile }) {
     const grab = (f, ok) => fetch(`/api/control?f=public/${f}&t=${Date.now()}`, { cache: "no-store" }).then(r => r.ok ? r.json() : null).then(d => { if (!off) ok(d); }).catch(() => { if (!off) ok(null); });
     grab("daily-snapshot.json", d => setData(d && d.sections ? d : null));
     grab("smart-money.json", d => setSm(d || null));
-    grab("entities.json", d => setEnt(Array.isArray(d?.entities) ? d.entities : Array.isArray(d?.clusters) ? d.clusters : Array.isArray(d) ? d : null));
+    // Entities (real cluster addresses) come through the members-only data wall, not the open proxy.
+    fetchPrivate("entities", "/entities.json").then(d => { if (!off) setEnt(Array.isArray(d?.entities) ? d.entities : Array.isArray(d?.clusters) ? d.clusters : Array.isArray(d) ? d : null); }).catch(() => { if (!off) setEnt(null); });
     // Live positioning — refreshed on load + every 90s so a funding spike surfaces without a cron.
     const pullHl = () => fetch("/api/spot?hl=1", { cache: "no-store" }).then(r => r.ok ? r.json() : null).then(d => { if (!off && d?.ok) setHl(d); }).catch(() => {});
     pullHl(); const iv = setInterval(pullHl, 90000);
