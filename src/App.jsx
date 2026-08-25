@@ -64,11 +64,14 @@ function MembersOnly({ title, preview }) {
     </div>
   );
 }
-// Owner recording flow (video studio) opens ?rec=1 / sets spx-rec — it must bypass the release gate
-// so the city/whale scenes can still be captured while they read "under construction" to the public.
+// Owner recording flow (video studio) — the ONLY thing allowed past the release wall. Requires BOTH the
+// ?rec=1 URL param AND the spx-rec local flag that the password-gated studio sets right before it opens
+// the recording tab. So: a bare shareable "…?rec=1" link does NOT bypass (no spx-rec), a stray spx-rec
+// flag does NOT bypass normal browsing (no ?rec=1) — only a studio-launched recording tab, which has
+// both, sees a walled chart. Everyone else (public AND members without a released chart) stays walled.
 function recBypass() {
   try {
-    return new URLSearchParams(window.location.search).get("rec") === "1" || localStorage.getItem("spx-rec") === "1";
+    return new URLSearchParams(window.location.search).get("rec") === "1" && localStorage.getItem("spx-rec") === "1";
   } catch { return false; }
 }
 // Cached "who am I" — one fetch shared across every ReleaseGate on the page.
