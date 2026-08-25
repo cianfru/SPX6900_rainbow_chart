@@ -1,5 +1,5 @@
 {
-  "date": "2026-08-24",
+  "date": "2026-08-25",
   "signals": [
     {
       "type": "drawdown",
@@ -9,27 +9,27 @@
       "framing": "Deep drawdowns are the toll — it's paid them before (no recovery promise).",
       "note": "It's deep and unrecovered NOW; don't imply it always recovers.",
       "card": "underwater",
-      "score": 1.461442707806573
+      "score": 1.4554119096450473
     },
     {
       "type": "deep-value",
       "emoji": "🟣",
       "title": "-78% below its long-run trend (BUY! band)",
-      "detail": "Fair value for its age is $2.09; price sits -78% under it.",
+      "detail": "Fair value for its age is $2.1; price sits -78% under it.",
       "framing": "Where today sits in the long power-law arc.",
       "note": "Not a prediction.",
       "card": "valuation",
-      "score": 1.283534504565358
+      "score": 1.2788023544277425
     },
     {
-      "type": "vs-btc",
-      "emoji": "₿",
-      "title": "Lagging Bitcoin over the past year",
-      "detail": "365-day relative strength vs BTC is -0.41× — SPX6900 has trailed Bitcoin over the year.",
-      "framing": "The honest scoreboard vs crypto's benchmark.",
-      "note": "Relative strength, not a call.",
-      "card": "spxbtc",
-      "score": 1.15
+      "type": "underwater-holding",
+      "emoji": "💎",
+      "title": "Holders ~10% underwater — and still not selling",
+      "detail": "MVRV 0.9: price is 10% below the crowd's avg on-chain cost basis ($0.518). Yet 61% of supply is in the longest-held tier — the float isn't moving. MVRV has risen 0.63→0.9 over ~30d.",
+      "framing": "Maximum financial pain, minimal capitulation — conviction being tested and, so far, holding.",
+      "note": "Describe the divergence, NOT a bottom call. \"Not selling\", not \"buy\".",
+      "card": "breakeven",
+      "score": 1.196548244953744
     }
   ]
 }
