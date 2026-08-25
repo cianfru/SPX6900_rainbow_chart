@@ -67,6 +67,31 @@ export function renderSkyline(el, model, opts = {}) {
   };
   const addLabel = (text, x, y, z, color, size, weight) => { const l = mkLabel(text, color, size, weight); l.position.set(x, y, z); scene.add(l); };
 
+  // WebGL sprite version of a district label — a canvas-texture Sprite that lives IN the 3D scene, so
+  // it is captured by the video recorder (CSS2D labels are DOM and never make it into the recording).
+  // Shown only during recording (see the record fn); the crisp CSS2D labels carry the live view.
+  const spriteLabels = [];
+  const makeLabelSprite = (name, sub, subColor) => {
+    const DPR = 2, PAD = 9 * DPR, lh1 = 15 * DPR, lh2 = 13 * DPR;
+    const cv = document.createElement("canvas"), ctx = cv.getContext("2d");
+    const f1 = `800 ${13 * DPR}px 'Space Grotesk', system-ui, sans-serif`, f2 = `700 ${11 * DPR}px 'Space Grotesk', system-ui, sans-serif`;
+    ctx.font = f1; const w1 = ctx.measureText(name).width;
+    ctx.font = f2; const w2 = ctx.measureText(sub).width;
+    const W = Math.ceil(Math.max(w1, w2)) + PAD * 2, H = Math.ceil(lh1 + lh2 + PAD);
+    cv.width = W; cv.height = H;
+    ctx.textAlign = "center"; ctx.textBaseline = "top";
+    ctx.shadowColor = "rgba(0,0,0,0.92)"; ctx.shadowBlur = 4 * DPR; ctx.shadowOffsetY = DPR;
+    ctx.font = f1; ctx.fillStyle = "#e6edf7"; ctx.fillText(name, W / 2, PAD / 2);
+    ctx.font = f2; ctx.fillStyle = subColor; ctx.fillText(sub, W / 2, PAD / 2 + lh1);
+    const tex = new THREE.CanvasTexture(cv); tex.minFilter = THREE.LinearFilter; tex.magFilter = THREE.LinearFilter;
+    const mat = new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false, depthWrite: false });
+    const sp = new THREE.Sprite(mat); sp.renderOrder = 999; sp.visible = false;
+    const targetW = 9;                          // world units wide — tuned for the ~21-unit-tall scene
+    sp.scale.set(targetW, targetW * (H / W), 1);
+    disposables.push(tex, mat); spriteLabels.push(sp);
+    return sp;
+  };
+
   scene.add(new THREE.AmbientLight(0xffffff, 0.78));
   const d1 = new THREE.DirectionalLight(0xffffff, 0.85); d1.position.set(span * 0.4, span * 0.7, span * 0.3); scene.add(d1);
   const d2 = new THREE.DirectionalLight(0x88aaff, 0.35); d2.position.set(-span * 0.3, span * 0.3, -span * 0.2); scene.add(d2);
@@ -115,14 +140,19 @@ export function renderSkyline(el, model, opts = {}) {
     if (!c.n) return;
     const np = c.netPct >= 0 ? `+${c.netPct.toFixed(2)}%` : `${c.netPct.toFixed(2)}%`;
     const scol = c.sentiment === "accumulating" ? "#4ade80" : c.sentiment === "distributing" ? "#fb7185" : "#94a3b8";
+    const sub = `${c.n}${countNoun ? " " + countNoun : ""} · net ${np} · ${c.sentiment}`;
     const div = document.createElement("div");
     div.style.cssText = "text-align:center;pointer-events:none";
     div.innerHTML =
       `<div style="font:800 13px 'Space Grotesk',sans-serif;color:#e6edf7;letter-spacing:.3px;text-shadow:0 1px 3px #000">${c.label}</div>` +
-      `<div style="font:700 11px 'Space Grotesk',sans-serif;color:${scol};text-shadow:0 1px 3px #000">${c.n}${countNoun ? " " + countNoun : ""} · net ${np} · ${c.sentiment}</div>`;
+      `<div style="font:700 11px 'Space Grotesk',sans-serif;color:${scol};text-shadow:0 1px 3px #000">${sub}</div>`;
     const label = new CSS2DObject(div);
     label.position.set(c.center.x, HMAX * 0.66, cz - c.platform.d / 2);
     scene.add(label);
+    // captured-in-video twin (hidden until recording)
+    const sp = makeLabelSprite(c.label, sub, scol);
+    sp.position.set(c.center.x, HMAX * 0.72, cz - c.platform.d / 2);
+    scene.add(sp);
   });
 
   const cubeBins = Array.from({ length: AGE_BINS }, () => []);
@@ -245,8 +275,13 @@ export function renderSkyline(el, model, opts = {}) {
   window[recordName] = ({ seconds = 12, fps = 60, onTick } = {}) => {
     const wasAuto = controls.autoRotate, wasSpeed = controls.autoRotateSpeed;
     controls.autoRotate = true; controls.autoRotateSpeed = 60 / seconds;
+    // The recorder captures the WebGL canvas only — so swap the DOM (CSS2D) labels for their in-scene
+    // sprite twins for the duration, then restore. This is what puts the district names + net buy/sell
+    // into the video (previously it showed only the towers/beams).
+    spriteLabels.forEach(s => { s.visible = true; });
+    labelR.domElement.style.visibility = "hidden";
     return recordCanvas(renderer.domElement, { seconds, fps, onTick })
-      .finally(() => { controls.autoRotate = wasAuto; controls.autoRotateSpeed = wasSpeed; });
+      .finally(() => { controls.autoRotate = wasAuto; controls.autoRotateSpeed = wasSpeed; spriteLabels.forEach(s => { s.visible = false; }); labelR.domElement.style.visibility = ""; });
   };
 
   return () => {

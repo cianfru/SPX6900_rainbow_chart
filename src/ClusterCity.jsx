@@ -59,6 +59,14 @@ function Inner({ isMobile }) {
     || (data?.entities || []).some(e => e[w.d === 7 ? "walletFlow7" : "walletFlow1"])), [data]);
   const placed = model ? model.cohorts.length : 0;
   const winLbl = (WINDOWS.find(w => w.d === flowWin) || WINDOWS[0]).lbl;
+  // Overall movement across ALL owners for the chosen window (like Whales Watching's aggregate): the
+  // summed net flow + how many owners are accumulating vs distributing.
+  const agg = useMemo(() => {
+    if (!model?.cohorts?.length) return null;
+    let net = 0, acc = 0, dist = 0;
+    for (const c of model.cohorts) { net += c.net || 0; if (c.sentiment === "accumulating") acc++; else if (c.sentiment === "distributing") dist++; }
+    return { net, acc, dist, n: model.cohorts.length };
+  }, [model]);
 
   const doRecord = async () => {
     if (!window.__clusterRecord || rec.state === "recording") return;
@@ -141,6 +149,19 @@ function Inner({ isMobile }) {
               : <>The 3D flow view lights up once the on-chain refresh emits per-wallet buy/sell flow.<br />Until then, the <b style={{ color: "#c7d2e4" }}>Wallet Clusters</b> bubble map already shows each owner’s holdings.</>}
         </div>
       )}
+
+      {placed > 0 && agg && (() => {
+        const buying = agg.net >= 0;
+        const col = buying ? "#4ade80" : "#fb7185";
+        const m = Math.abs(agg.net), s = m >= 1e6 ? (m / 1e6).toFixed(2) + "M" : m >= 1e3 ? (m / 1e3).toFixed(0) + "k" : Math.round(m);
+        return (
+          <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "6px 16px", padding: "10px 14px", margin: "0 0 10px", borderRadius: 10, border: "1px solid rgba(255,255,255,0.10)", borderLeft: `3px solid ${col}`, background: "rgba(10,14,28,0.6)", fontFamily: MONO }}>
+            <span style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: ".12em", color: "#7c8a9e" }}>Owners overall · {winLbl}</span>
+            <span style={{ fontSize: 16, fontWeight: 800, color: col }}>{buying ? "▲ net buying" : "▼ net selling"} {buying ? "+" : "−"}{s} SPX</span>
+            <span style={{ fontSize: 12.5, color: "#94a3b8" }}><b style={{ color: "#4ade80" }}>{agg.acc}</b> accumulating · <b style={{ color: "#fb7185" }}>{agg.dist}</b> distributing · {agg.n} owners</span>
+          </div>
+        );
+      })()}
 
       {placed > 0 && (
         <div ref={host} style={{ position: "relative", width: "100%", height: isMobile ? "min(56vh, 480px)" : "min(80vh, 900px)", minHeight: isMobile ? 340 : 460, borderRadius: 12, overflow: "hidden", background: "#0a0e1c", cursor: "grab" }} />
