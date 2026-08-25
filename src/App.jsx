@@ -403,6 +403,9 @@ export default function App() {
   // route: "home" = the Rainbow hero (landing) · "gallery" = the Charts grid ·
   // "chart" = a dedicated interactive chart page (which one = `tab`).
   const [route, setRoute] = useState("home");
+  // Who's signed in — drives the login-aware Home (a member's home is Deep Field, a guest's is the landing).
+  const [meMember, setMeMember] = useState(false);
+  useEffect(() => { let off = false; loadMe().then(m => { if (!off) setMeMember(!!(m && m.loggedIn && m.member)); }); return () => { off = true; }; }, []);
   const [docSlug, setDocSlug] = useState("index"); // which page of the manual (?view=docs&p=…)
   const [storyWallet, setStoryWallet] = useState(""); // "Your SPX Story" deep-link wallet (?view=story&wallet=…)
   const [walletAddr, setWalletAddr] = useState(""); // per-wallet page address (?view=wallet&addr=…)
@@ -749,7 +752,9 @@ export default function App() {
     const cur = window.location.pathname + window.location.search + window.location.hash;
     if (next !== cur) window.history.pushState(null, "", next);
   };
-  const goHome = () => { setRoute("home"); syncUrl("home"); window.scrollTo({ top: 0, behavior: "smooth" }); };
+  // Login-aware Home: a signed-in member's home base is Deep Field (market overview + the members-only
+  // charts to drill into); a guest's home is the public landing.
+  const goHome = () => { const r = meMember ? "terminal" : "home"; setRoute(r); syncUrl(r); window.scrollTo({ top: 0, behavior: "smooth" }); };
   // A string group filters the gallery to that one section; a click event (or nothing) shows all.
   const openGallery = (group) => { setGalleryGroup(typeof group === "string" ? group : null); setRoute("gallery"); syncUrl("gallery"); window.scrollTo({ top: 0, behavior: "smooth" }); };
   const openAeon = (group) => { setGalleryGroup(typeof group === "string" ? group : null); setRoute("aeon"); syncUrl("aeon"); window.scrollTo({ top: 0, behavior: "smooth" }); };
