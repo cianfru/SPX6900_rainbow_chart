@@ -206,8 +206,18 @@ jobs:
           KV_REST_API_URL: ${{ secrets.KV_REST_API_URL }}
           KV_REST_API_TOKEN: ${{ secrets.KV_REST_API_TOKEN }}
         run: |
+          # Fully-private feeds (no public copy at all): entities, spx-timeline.
           node scripts/push-private-feed.mjs --file=public/entities.json --key=entities || true
           node scripts/push-private-feed.mjs --file=public/spx-timeline.json --key=spx-timeline || true
+          # Dual-use feeds: push the FULL (granular, addresses/lots) version to KV for members, THEN strip
+          # the identifying fields from the committed public copy so the X cards + aggregate views stay
+          # public but no address list is. Order matters: push full first, strip second.
+          node scripts/push-private-feed.mjs --file=public/smart-money.json --key=smart-money || true
+          node scripts/push-private-feed.mjs --file=public/whale-entry.json --key=whale-entry || true
+          node scripts/push-private-feed.mjs --file=public/whales.json --key=whales || true
+          node scripts/strip-private-fields.mjs --file=public/smart-money.json --drop-key=wallets || true
+          node scripts/strip-private-fields.mjs --file=public/whale-entry.json --drop-field=whales:a || true
+          node scripts/strip-private-fields.mjs --file=public/whales.json --drop-field=wallets:a || true
 
       - name: Commit if changed
         id: commit

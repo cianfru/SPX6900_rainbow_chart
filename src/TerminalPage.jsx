@@ -332,8 +332,9 @@ export default function TerminalPage({ isMobile }) {
     }).catch(() => {});
     const grab = (f, ok) => fetch(`/api/control?f=public/${f}&t=${Date.now()}`, { cache: "no-store" }).then(r => r.ok ? r.json() : null).then(d => { if (!off) ok(d); }).catch(() => { if (!off) ok(null); });
     grab("daily-snapshot.json", d => setData(d && d.sections ? d : null));
-    grab("smart-money.json", d => setSm(d || null));
-    // Entities (real cluster addresses) come through the members-only data wall, not the open proxy.
+    // Smart money (real addresses + per-wallet lots) + entities (real cluster addresses) come through
+    // the members-only data wall (KV), not the open proxy which now serves only anonymized/aggregate.
+    fetchPrivate("smart-money", "/smart-money.json", { publicSafe: true }).then(d => { if (!off) setSm(d || null); }).catch(() => { if (!off) setSm(null); });
     fetchPrivate("entities", "/entities.json").then(d => { if (!off) setEnt(Array.isArray(d?.entities) ? d.entities : Array.isArray(d?.clusters) ? d.clusters : Array.isArray(d) ? d : null); }).catch(() => { if (!off) setEnt(null); });
     // Live positioning — refreshed on load + every 90s so a funding spike surfaces without a cron.
     const pullHl = () => fetch("/api/spot?hl=1", { cache: "no-store" }).then(r => r.ok ? r.json() : null).then(d => { if (!off && d?.ok) setHl(d); }).catch(() => {});

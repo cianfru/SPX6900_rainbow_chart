@@ -69,8 +69,9 @@ export function loadExitFlow() {
 let smartMoneyPromise = null;
 export function loadSmartMoney() {
   if (!smartMoneyPromise) {
-    smartMoneyPromise = fetch("/smart-money.json")
-      .then(r => (r.ok ? r.json() : null))
+    // Members get the granular version (per-wallet addresses + buy/sell lots) from KV; the public file
+    // is aggregate-only (no wallets[]), which the X card + the anonymized aggregate views still use.
+    smartMoneyPromise = fetchPrivate("smart-money", "/smart-money.json", { publicSafe: true })
       .then(d => (d?.cohortSize > 0 && Array.isArray(d.weeks) ? d : null))
       .catch(() => null);
   }
@@ -152,8 +153,9 @@ export function loadCohortRoi() {
 let whaleEntryPromise = null;
 export function loadWhaleEntry() {
   if (!whaleEntryPromise) {
-    whaleEntryPromise = fetch("/whale-entry.json")
-      .then(r => (r.ok ? r.json() : null))
+    // Members get the granular version (each whale's address, for the Zerion links) from KV; the public
+    // file has the addresses stripped — the orb field + curve still render for the card / aggregate.
+    whaleEntryPromise = fetchPrivate("whale-entry", "/whale-entry.json", { publicSafe: true })
       .then(d => (d && Array.isArray(d.whales) && Array.isArray(d.curve) ? d : null))
       .catch(() => null);
   }
@@ -176,12 +178,16 @@ export function loadOnchain() {
 // authed endpoint first; during a feed's cutover it falls back to the still-committed public file so
 // nothing breaks while KV is being seeded. Once a feed's public file is removed, the fallback simply
 // 404s and only members (through the authed endpoint) get the data. A 403 (not a member) returns null.
-export async function fetchPrivate(feed, publicPath) {
+// `publicSafe` = the committed public file is an anonymized/aggregate version that is SAFE to serve to
+// anyone (e.g. whales.json with addresses stripped). Then a 403 (not a member) falls back to it, so
+// public charts + the X cards keep working while members get the granular KV version. When it's false
+// (entities, spx-timeline — no safe public copy) a 403 returns null: truly members-only.
+export async function fetchPrivate(feed, publicPath, { publicSafe = false } = {}) {
   try {
     const r = await fetch(`/api/auth?action=data&f=${feed}`, { cache: "no-store" });
-    if (r.ok) return await r.json();               // member — served from KV
-    if (r.status === 403) return null;             // logged in but not a member (or not logged in)
-    // 404 (not published yet) / 503 (store off) / "not configured" → fall back to the public file
+    if (r.ok) return await r.json();               // member — served the granular version from KV
+    if (r.status === 403 && !publicSafe) return null;   // not a member + nothing safe to fall back to
+    // 403 (publicSafe) / 404 (not published yet) / 503 (store off) / "not configured" → public file
   } catch { /* network — fall back */ }
   if (!publicPath) return null;
   try { const r = await fetch(publicPath, { cache: "no-store" }); return r.ok ? await r.json() : null; }
@@ -314,8 +320,10 @@ export function loadUrpdHistory() {
 let whalesPromise = null;
 export function loadWhales() {
   if (!whalesPromise) {
-    whalesPromise = fetch("/whales.json", { cache: "no-store" })
-      .then(r => (r.ok ? r.json() : null))
+    // Members get the granular version (each wallet's address, for the city's Zerion links) from KV; the
+    // public file has addresses stripped — the anonymized balances/flow still drive the cards + the
+    // aggregate dashboard. The city/whale scenes are members-only, so they receive the addresses.
+    whalesPromise = fetchPrivate("whales", "/whales.json", { publicSafe: true })
       .then(d => (d && Array.isArray(d.wallets) && d.wallets.length ? d : null))
       .catch(() => null);
   }

@@ -11,10 +11,19 @@ import { NYC } from "../src/nyc-geo.js";
 // its own hash, and the page says so. That freedom is exactly why it needs guarding: nothing about
 // the DATA will complain if two buildings end up inside each other, so only a test will.
 
+// The public whales.json is now address-stripped (the data wall) — members get the real addresses from
+// KV. Placement hashes the address to a lot, so for this GEOMETRY test we synthesise a distinct, well-
+// distributed pseudo-address per wallet when `a` is absent. That exercises the placement algorithm
+// exactly as real addresses would (distinct, spread), which is all this test cares about.
+const synthAddr = i => {
+  let h = ((i + 1) * 2654435761) >>> 0, s = "";
+  for (let k = 0; k < 40; k++) { h = (h * 1103515245 + 12345) >>> 0; s += ((h >>> 24) & 15).toString(16); }
+  return "0x" + s;
+};
 const residents = () => {
   const W = JSON.parse(readFileSync("public/whales.json", "utf8")).wallets;
   const mB = Math.max(...W.map(w => w.bal)), mD = Math.max(...W.map(w => w.days || 0));
-  return W.map(w => ({ a: w.a, score: (w.bal / mB) * (0.45 + 0.55 * ((w.days || 0) / mD)) }))
+  return W.map((w, i) => ({ a: w.a || synthAddr(i), score: (w.bal / mB) * (0.45 + 0.55 * ((w.days || 0) / mD)) }))
           .sort((a, b) => b.score - a.score);
 };
 const near = (a, b) => Math.hypot(a.x - b.x, a.z - b.z);

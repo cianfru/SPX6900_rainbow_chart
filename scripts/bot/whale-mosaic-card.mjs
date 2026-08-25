@@ -28,9 +28,11 @@ export function whaleMosaicStats() {
   if (_cache !== undefined) return _cache;
   const eth = jsonW("whales.json"), base = jsonW("base-onchain.json"), sol = jsonW("solana-onchain.json");
   const rows = [];
-  for (const w of eth?.wallets || []) if (w?.a && w.bal >= 1e5) rows.push({ a: w.a, chain: "eth", bal: w.bal, net: w.d30 || 0 });
-  for (const w of base?.wallets || []) if (w?.a && w.bal >= 1e5) rows.push({ a: w.a, chain: "base", bal: w.bal, net: w.flow || 0 });
-  for (const w of sol?.wallets || []) if (w?.a && w.bal >= 1e5) rows.push({ a: w.a, chain: "sol", bal: w.bal, net: w.flow || 0 });
+  // The address (a) is never drawn — the mosaic is squares by balance/flow — and ETH's whales.json is
+  // now address-stripped (the data wall), so filter on balance only, not on `a`.
+  for (const w of eth?.wallets || []) if (w && w.bal >= 1e5) rows.push({ chain: "eth", bal: w.bal, net: w.d30 || 0 });
+  for (const w of base?.wallets || []) if (w && w.bal >= 1e5) rows.push({ chain: "base", bal: w.bal, net: w.flow || 0 });
+  for (const w of sol?.wallets || []) if (w && w.bal >= 1e5) rows.push({ chain: "sol", bal: w.bal, net: w.flow || 0 });
   if (!rows.length) return (_cache = null);
   const dust = r => Math.max(1000, r.bal * 0.005);
   let buy = 0, sell = 0, flat = 0;
