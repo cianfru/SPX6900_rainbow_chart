@@ -322,21 +322,27 @@ export default function SpxCity({ isMobile, preview = false, initialMode = "spx"
     const c = i => "#" + h.slice(i, i + 6);
     return `linear-gradient(135deg, ${c(0)} 0%, ${c(6)} 55%, ${c(12)} 100%)`;
   };
-  const pinCard = t => `
+  const pinCard = t => {
+    // t.a is absent when the city is served the anonymized public data (a signed-out visitor). Guard so
+    // shortAddr() never throws and no "app.zerion.io/undefined" link is offered — members (real addresses
+    // from KV) get the full Zerion preview card.
+    const label = t.ens || (t.a ? shortAddr(t.a) : "Wallet");
+    return `
       <div style="padding:9px 12px 7px">
         ${t.hood ? `<div style="color:${M.accent};font:700 10.5px 'Space Grotesk',system-ui;letter-spacing:.18em;text-transform:uppercase">${t.hood.name}</div>` : ""}
-        <div style="color:#e2e8f0;font-weight:700;font-size:13px;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${t.ens || shortAddr(t.a)}</div>
+        <div style="color:#e2e8f0;font-weight:700;font-size:13px;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${label}</div>
         <div style="color:#94a3b8;font-size:11.5px">${sizeOf(t)}${t.aeonN ? ` · ${t.aeonN} AEON` : ""} · held ${t.days}d</div>
       </div>
       ${t.flow ? `<div style="margin:0 12px 8px;padding:5px 8px;border-radius:7px;font-size:11px;color:${t.flow > 0 ? "#4ade80" : "#fb7185"};background:${t.flow > 0 ? "rgba(74,222,128,0.12)" : "rgba(251,113,133,0.12)"}">${t.flow > 0 ? "+" : "−"}${Math.abs(t.flow).toLocaleString(undefined, { maximumFractionDigits: 0 })} ${flowUnit} · ${flowWin}d</div>` : ""}
-      <a href="https://app.zerion.io/${t.a}/overview" target="_blank" rel="noopener noreferrer" style="display:block;text-decoration:none">
+      ${t.a ? `<a href="https://app.zerion.io/${t.a}/overview" target="_blank" rel="noopener noreferrer" style="display:block;text-decoration:none">
         <div style="position:relative;height:104px;border-top:1px solid rgba(255,255,255,0.08);background:${gradOf(t.a)}">
           <img src="https://render.zerion.io/preview?address=${t.a}" alt="" loading="lazy" onerror="this.remove()"
                style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block"/>
-          <div style="position:absolute;left:11px;bottom:8px;color:#fff;font:700 12.5px 'Space Grotesk',system-ui;text-shadow:0 1px 5px rgba(0,0,0,0.75)">${t.ens || shortAddr(t.a)}</div>
+          <div style="position:absolute;left:11px;bottom:8px;color:#fff;font:700 12.5px 'Space Grotesk',system-ui;text-shadow:0 1px 5px rgba(0,0,0,0.75)">${label}</div>
         </div>
         <div style="padding:7px 12px;color:${M.accent};font-size:11px">Open in Zerion ↗</div>
-      </a>`;
+      </a>` : ""}`;
+  };
 
   // HOVER tooltip — deliberately LIGHT. The city is dense, so the cursor is always over a building;
   // a heavy card (esp. the remote Zerion preview image) popping on every mouseover was noise + a
@@ -348,7 +354,7 @@ export default function SpxCity({ isMobile, preview = false, initialMode = "spx"
     const note = f > 0 ? `▲ added ${fmt(f)}` : f < 0 ? `▼ reduced ${fmt(Math.abs(f))}` : "unchanged";
     return `
       <div style="padding:9px 12px 8px">
-        <div style="color:${M.accent};font-weight:700;font-size:13px">${t.ens || shortAddr(t.a)}</div>
+        <div style="color:${M.accent};font-weight:700;font-size:13px">${t.ens || (t.a ? shortAddr(t.a) : "Wallet")}</div>
         <div style="color:#94a3b8;font-size:11px;margin-top:1px">${sizeOf(t)}${t.aeonN ? ` · ${t.aeonN} AEON` : ""} · held ${t.days}d</div>
         <div style="color:${col};font-size:11px;margin-top:3px">${note}${f ? ` · ${flowWin}d` : ""}</div>
         <div style="color:#64748b;font-size:10px;margin-top:5px">click to open →</div>
@@ -497,8 +503,8 @@ export default function SpxCity({ isMobile, preview = false, initialMode = "spx"
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
             {accum.map((e, i) => {
-              const label = e.ens || shortAddr(e.a);
-              const go = () => { if (e.resident) { goTo(e.a); const m = visible.find(t => (t.a || "").toLowerCase() === e.a); if (m) setSel(m); } else window.open(`https://app.zerion.io/${e.a}/overview`, "_blank", "noopener"); };
+              const label = e.ens || (e.a ? shortAddr(e.a) : "Wallet");
+              const go = () => { if (e.resident) { goTo(e.a); const m = visible.find(t => (t.a || "").toLowerCase() === e.a); if (m) setSel(m); } else if (e.a) window.open(`https://app.zerion.io/${e.a}/overview`, "_blank", "noopener"); };
               return (
                 <div key={e.a} onClick={go} title={e.resident ? "Fly to their building" : "Open wallet ↗"}
                   style={{

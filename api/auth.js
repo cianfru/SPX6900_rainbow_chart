@@ -67,18 +67,18 @@ export default async function handler(req, res) {
       if (!uid) return bounce(res, "/deepfield?auth=user");
       // X returns the 48px "_normal" avatar; ask for the 400px so it stays crisp top-right.
       const pfp = String(u.profile_image_url || "").replace("_normal.", "_400x400.");
-      // A real X login IS membership now (open beta — no invite codes). We still record who signs in,
-      // from where, and how often, so the owner can tell genuine power users from one-time "grab free
-      // access forever" sign-ins (and later grandfather the real supporters). A member can be revoked by
-      // setting member:false in KV (e.g. an obvious burner) — `me` honours that.
+      // OPEN BETA: a real X login IS membership. Access is granted to everyone who signs in — the ONLY
+      // way to lose it is an explicit ban (banned:true in KV, e.g. an obvious burner). We do NOT honour a
+      // stale member:false (those are leftovers from the invite-code era and were wrongly pausing real
+      // users). We still record who signs in, from where, and how often (power-user signal).
       const now = new Date().toISOString();
       const country = String(req.headers["x-vercel-ip-country"] || req.headers["x-vercel-ip-country-region"] || "").split(",")[0] || "";
-      let member = true;
+      let banned = false;
       if (kvConnected()) {
         const existing = await getJSON("auth:user:" + uid);
-        if (existing && existing.member === false) member = false;   // respect a manual ban
+        banned = !!(existing && existing.banned);
         await setJSON("auth:user:" + uid, {
-          uid, un, name: u.name || "", member, pfp: pfp || existing?.pfp || "",
+          uid, un, name: u.name || "", member: !banned, banned, pfp: pfp || existing?.pfp || "",
           firstSeen: existing?.firstSeen || existing?.joined || now, lastSeen: now,
           logins: (existing?.logins || 0) + 1,
           country: country || existing?.country || "",
@@ -86,6 +86,7 @@ export default async function handler(req, res) {
         });
         await cmd("SADD", "auth:members", uid);
       }
+      const member = !banned;
       setCookie(res, serializeCookie(SESS, signSession({ uid, un, mem: member, pfp }, SECRET()), { maxAge: 30 * 86400 }));
       setCookie(res, serializeCookie(OAUTH, "", { maxAge: 0 }));
       return bounce(res, member ? "/deepfield?auth=ok" : "/deepfield?auth=paused");
@@ -115,8 +116,9 @@ export default async function handler(req, res) {
     const name = q.get("f");
     if (!PRIVATE_FEEDS.has(name)) return send(res, 400, { ok: false, err: "unknown feed" });
     const s = sessionOf(req);
-    let member = !!(s && s.mem);
-    if (member && kvConnected()) { try { const u = await getJSON("auth:user:" + s.uid); if (u && u.member === false) member = false; } catch { /* trust token */ } }
+    // OPEN BETA: logged in = member (ignore stale invite-era member:false); only an explicit ban blocks.
+    let member = !!s;
+    if (member && kvConnected()) { try { const u = await getJSON("auth:user:" + s.uid); if (u && u.banned) member = false; } catch { /* trust token */ } }
     if (!member) return send(res, 403, { ok: false, err: "members only" });
     if (!kvConnected()) return send(res, 503, { ok: false, err: "store not connected" });
     const raw = await cmd("GET", "feed:" + name);
@@ -130,12 +132,12 @@ export default async function handler(req, res) {
   if (action === "me") {
     const s = sessionOf(req);
     if (!s) return send(res, 200, { loggedIn: false });
-    let member = !!s.mem, avatar = s.pfp || "", fav = null;
-    // honour revocation: if KV says the user is no longer a member, downgrade (and re-issue the cookie).
-    // Also fill the avatar from KV for users whose cookie predates the pfp field (no re-login needed),
-    // and hand back the member's saved favorites so the client renders their pinned charts in one call.
+    // OPEN BETA: logged in = member. Only an explicit ban (banned:true in KV) revokes it — a stale
+    // member:false from the invite-code era is IGNORED, so real users are no longer wrongly paused. This
+    // also UPGRADES an old paused cookie (mem:false) back to member on the next load, no re-login needed.
+    let member = true, avatar = s.pfp || "", fav = null;
     if (kvConnected()) { try {
-      const u = await getJSON("auth:user:" + s.uid); if (u) { if (u.member === false) member = false; if (!avatar && u.pfp) avatar = u.pfp; }
+      const u = await getJSON("auth:user:" + s.uid); if (u) { if (u.banned) member = false; if (!avatar && u.pfp) avatar = u.pfp; }
       const f = await getJSON("auth:fav:" + s.uid); if (Array.isArray(f)) fav = f;
     } catch { /* trust token */ } }
     if (member !== !!s.mem) setCookie(res, serializeCookie(SESS, signSession({ uid: s.uid, un: s.un, mem: member, pfp: s.pfp }, SECRET()), { maxAge: 30 * 86400 }));
@@ -184,7 +186,7 @@ export default async function handler(req, res) {
       if (!kvConnected()) return send(res, 200, { ok: false, err: "store not connected" });
       const ids = (await cmd("SMEMBERS", "auth:members")) || [];
       const out = [];
-      for (const id of ids) { const u = await getJSON("auth:user:" + id); if (u) out.push({ username: u.un, pfp: u.pfp || "", firstSeen: u.firstSeen || u.joined, lastSeen: u.lastSeen || u.joined, logins: u.logins || 1, country: u.country || "", member: u.member !== false }); }
+      for (const id of ids) { const u = await getJSON("auth:user:" + id); if (u) out.push({ username: u.un, pfp: u.pfp || "", firstSeen: u.firstSeen || u.joined, lastSeen: u.lastSeen || u.joined, logins: u.logins || 1, country: u.country || "", member: !u.banned }); }
       out.sort((a, b) => (b.logins - a.logins) || String(b.lastSeen).localeCompare(String(a.lastSeen)));
       return send(res, 200, { ok: true, members: out });
     }
