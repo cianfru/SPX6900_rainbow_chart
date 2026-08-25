@@ -3,6 +3,8 @@ import { CHART_GROUPS, AEON_GROUPS, CITY_GROUPS, CHART_VIEWS } from "./charts-ca
 import { GCOL } from "./terminal-colors.js";
 import ErrorBoundary from "./ErrorBoundary.jsx";
 import { themeWave } from "./theme-wave.js";
+import { TERMINAL_KEY } from "./terminal-gate-key.js";
+import { CITY_KEY } from "./city-gate-key.js";
 
 // The terminal cascade nav for the sub-pages, mirrors the ?view=next landing menu
 // EXACTLY: same rainbow-band group colours (GCOL), same ALL row, same group→chart
@@ -468,6 +470,18 @@ export default function TerminalNav({ onHome, openRainbow, openGallery, openAeon
     ...(CITY_GROUPS[0]?.charts || []).map(c => ({ label: c.title, color: cityColor, onClick: () => goChart(c.id) })),
   ];
   const [mobOpen, setMobOpen] = useState(false);
+  const [authOpen, setAuthOpen] = useState(false);
+  const authRef = useRef(null);
+  useEffect(() => {
+    if (!authOpen) return;
+    const away = e => { if (authRef.current && !authRef.current.contains(e.target)) setAuthOpen(false); };
+    document.addEventListener("pointerdown", away);
+    return () => document.removeEventListener("pointerdown", away);
+  }, [authOpen]);
+  const logout = () => {
+    try { localStorage.removeItem(TERMINAL_KEY); localStorage.removeItem(CITY_KEY); localStorage.removeItem("df-home"); } catch { /* private */ }
+    fetch("/api/auth?action=logout", { cache: "no-store" }).catch(() => {}).finally(() => { window.location.href = "/"; });
+  };
   return (
     <div className="twrap">
       {/* header bar */}
@@ -482,11 +496,20 @@ export default function TerminalNav({ onHome, openRainbow, openGallery, openAeon
             {/* Deep Field login/identity — same squared icon style, consistent with the landing. Logged
                 in → the member's X avatar (→ Deep Field); signed out → an accented login icon (→ X OAuth). */}
             {me && me.loggedIn ? (
-              <button type="button" className="siclink dfauth authed" onClick={onDeepField} title={me.username ? `@${me.username} — open Deep Field` : "Open Deep Field"} aria-label="Open Deep Field">
-                {me.avatar
-                  ? <img src={me.avatar} alt="" referrerPolicy="no-referrer" onError={e => { e.currentTarget.style.display = "none"; }} />
-                  : <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" /><path d="M10 17l5-5-5-5" /><path d="M15 12H3" /></svg>}
-              </button>
+              <span className="dfmenu" ref={authRef}>
+                <button type="button" className="siclink dfauth authed" onClick={() => setAuthOpen(o => !o)} title={me.username ? `@${me.username}` : "Account"} aria-label="Account menu" aria-expanded={authOpen}>
+                  {me.avatar
+                    ? <img src={me.avatar} alt="" referrerPolicy="no-referrer" onError={e => { e.currentTarget.style.display = "none"; }} />
+                    : <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="8" r="3.2" /><path d="M5 20c0-3.5 3-5.5 7-5.5s7 2 7 5.5" strokeLinecap="round" /></svg>}
+                </button>
+                {authOpen && (
+                  <span className="dfdrop">
+                    {me.username && <a className="dfdrop-who" href={`https://x.com/${me.username}`} target="_blank" rel="noopener">@{me.username}</a>}
+                    <MenuRow text="Deep Field" color="var(--live)" mark="›" cls="dfdrop-row" onClick={() => { setAuthOpen(false); onDeepField(); }} />
+                    <MenuRow text="Log out" color="var(--live)" mark="›" cls="dfdrop-row" onClick={() => { setAuthOpen(false); logout(); }} />
+                  </span>
+                )}
+              </span>
             ) : (
               <a className="siclink dfauth" href="/api/auth?action=login" title="Log in with X — enter Deep Field" aria-label="Log in with X to enter Deep Field">
                 <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" /><path d="M10 17l5-5-5-5" /><path d="M15 12H3" /></svg>

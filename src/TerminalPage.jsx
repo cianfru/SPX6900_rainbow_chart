@@ -320,7 +320,6 @@ export default function TerminalPage({ isMobile }) {
   const [sm, setSm] = useState(undefined);       // smart-money.json (per-wallet detail — terminal only)
   const [ent, setEnt] = useState(undefined);     // entities.json (wallet clusters — terminal reveals members)
   const [hl, setHl] = useState(null);            // LIVE Hyperliquid funding/OI (real-time, not yesterday's mean)
-  const [me, setMe] = useState(null);            // who's signed in (X handle + avatar) — "this is your space"
   // Favorites: seeded from localStorage instantly (per-device), then reconciled to the member's KV list
   // once /api/auth?action=me returns (per-account, syncs across devices). Toggling writes both.
   const [favs, setFavs] = useState(() => { try { return new Set(JSON.parse(localStorage.getItem("df-favs") || "[]")); } catch { return new Set(); } });
@@ -336,15 +335,10 @@ export default function TerminalPage({ isMobile }) {
   useEffect(() => {
     if (!ok) return;
     let off = false;
-    // Who is this — the X identity, so the member sees their own avatar top-right; and their saved
-    // favorites (KV) become the source of truth once known.
+    // The member's saved favorites (KV) become the source of truth once known. (Identity + logout live
+    // in the shared nav avatar, so this page no longer renders its own identity chip.)
     fetch("/api/auth?action=me", { cache: "no-store" }).then(r => r.ok ? r.json() : null).then(d => {
-      if (off) return;
-      // Optimistic home flag: set once we KNOW this browser belongs to a member (so a bare "/" routes
-      // here next time), cleared when the server says not-logged-in (so ex/never-members see the landing).
-      try { if (d?.loggedIn && d.member) localStorage.setItem("df-home", "1"); else if (d && !d.loggedIn) localStorage.removeItem("df-home"); } catch { /* private mode */ }
-      if (!d?.loggedIn) return;
-      setMe(d);
+      if (off || !d?.loggedIn) return;
       if (Array.isArray(d.fav)) setFavs(new Set(d.fav));
     }).catch(() => {});
     const grab = (f, ok) => fetch(`/api/control?f=public/${f}&t=${Date.now()}`, { cache: "no-store" }).then(r => r.ok ? r.json() : null).then(d => { if (!off) ok(d); }).catch(() => { if (!off) ok(null); });
@@ -367,22 +361,6 @@ export default function TerminalPage({ isMobile }) {
 
   return (
     <div className="twrap tmwrap">
-      {me && (
-        <div className="tmyou-wrap">
-          <a className="tmyou" href={`https://x.com/${me.username}`} target="_blank" rel="noopener" title={`Signed in as @${me.username}`}>
-            {me.avatar
-              ? <img className="tmyou-pfp" src={me.avatar} alt="" onError={e => { e.currentTarget.style.display = "none"; }} />
-              : <span className="tmyou-pfp tmyou-ph">{(me.username || "?").slice(0, 1).toUpperCase()}</span>}
-            <span className="tmyou-name">@{me.username}</span>
-          </a>
-          <button type="button" className="tmyou-out" title="Log out — switch account"
-            onClick={() => {
-              // clear the server session AND the client gate keys, then go home as a signed-out visitor.
-              try { localStorage.removeItem(TERMINAL_KEY); localStorage.removeItem(CITY_KEY); localStorage.removeItem("df-home"); } catch { /* private */ }
-              fetch("/api/auth?action=logout", { cache: "no-store" }).catch(() => {}).finally(() => { window.location.href = "/"; });
-            }}>log out</button>
-        </div>
-      )}
       <div className="tmhead">
         <div className="tmcmd"><span className="tmprompt">spx6900 ~ %</span> cat ./deepfield/today</div>
         <h1 className="tmtitle">DEEP FIELD<Info text="The granular on-chain intel hub — where SPX sits today, what changed, and the wallet-level detail (clusters, whale flows, per-wallet P&L). Every number is a plain day-over-day read off the on-chain feeds we already bank; nothing is a buy or sell call." /></h1>
