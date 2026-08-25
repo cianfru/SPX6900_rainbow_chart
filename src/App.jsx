@@ -873,7 +873,7 @@ export default function App() {
       case "sopr": return <SoprChart isMobile={mob} preview={preview} />;
       case "nrpl": return <NrplChart isMobile={mob} preview={preview} />;
       case "liveliness": return <LivelinessChart isMobile={mob} preview={preview} />;
-      case "spxcity": return <ReleaseGate id="city" title="SPX City" preview={preview}><SpxCity isMobile={mob} preview={preview} initialMode="spx" /></ReleaseGate>;
+      case "spxcity": return <SpxCity isMobile={mob} preview={preview} initialMode="spx" />;
       case "citylab": return <CityLab isMobile={mob} />;
       case "whaleswatching": return <ReleaseGate id="whaleswatching" preview={preview}><WhalesWatching isMobile={mob} /></ReleaseGate>;
       case "whalecohorts": return <WhaleCohortsChart isMobile={mob} initialView={iv} />;
@@ -1110,14 +1110,12 @@ export default function App() {
           rather than through the charts gallery so it gets a clean path and first-class billing. */}
       {route === "city" && (
         <Suspense fallback={<div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Loading the city…</div>}>
-          <ReleaseGate id="city" title="SPX City">
-            <div ref={cityFsRef} style={{ position: "relative" }}>
-              {!isMobile && <MenuBtn className="cityfsbtn" onClick={enterCityFullscreen} title="Fullscreen"
-                icon={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M8 3H4v4M16 3h4v4M8 21H4v-4M16 21h4v-4" /></svg>} />}
+          <div ref={cityFsRef} style={{ position: "relative" }}>
+            {!isMobile && <MenuBtn className="cityfsbtn" onClick={enterCityFullscreen} title="Fullscreen"
+              icon={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M8 3H4v4M16 3h4v4M8 21H4v-4M16 21h4v-4" /></svg>} />}
 
-              <SpxCity isMobile={isMobile} initialMode={cityMode} />
-            </div>
-          </ReleaseGate>
+            <SpxCity isMobile={isMobile} initialMode={cityMode} />
+          </div>
         </Suspense>
       )}
 

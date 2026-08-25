@@ -50,7 +50,7 @@ aeon-sweep-preview.png
 # broke the daily on-chain refresh's `git add` of a fresh dune/out/*.csv on CI.
 /out/
 
-# The data wall: members-only feeds served from KV (api/auth?action=data), never committed
-# to the public repo. Built locally by onchain-dune.yml, pushed to KV, pulled by whale-video.yml.
+# The data wall: entities.json (the proprietary wallet-cluster linkage) is served members-only from KV
+# (api/auth?action=data), never committed to the public repo. (whales.json + spx-timeline.json are
+# PUBLIC — SPX City is a public showpiece — so they are NOT ignored.)
 public/entities.json
-public/spx-timeline.json

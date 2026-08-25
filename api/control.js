@@ -91,10 +91,10 @@ const STATE_OK = /^public\/[A-Za-z0-9._-]+\.json$/;   // one level under public/
 // THE DATA WALL: address-revealing feeds must NEVER come through this open (password-less) proxy — they
 // are served only to logged-in members from KV via /api/auth?action=data. Blocked here as defense in
 // depth so the wall holds even if some client still asks the proxy for them.
-// Cut over one feed at a time: a name is added here ONLY once its member charts read the authed KV
-// endpoint (below) and its public file is removed. Stage 1 = entities + spx-timeline; smart-money /
-// whale-entry / whales follow once their builders split public-aggregate from private-granular.
-const PRIVATE_BLOCK = new Set(["public/entities.json", "public/spx-timeline.json"]);
+// entities.json is members-only (KV via /api/auth?action=data) and must NEVER come through this open,
+// password-less proxy. (whales/spx-timeline are public — SPX City is a public showpiece; smart-money/
+// whale-entry are served publicly here as their anonymized/aggregate copies, granular only via KV.)
+const PRIVATE_BLOCK = new Set(["public/entities.json"]);
 async function serveState(req, res) {
   const f = String((req.query && req.query.f) || "");
   if (!STATE_OK.test(f)) { res.status(400).json({ error: "bad file" }); return; }

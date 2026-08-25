@@ -117,6 +117,8 @@ export const FEEDS = [
     require: ["week0", "n"], nonEmpty: ["wallets"] },
   { file: "city-recap.json", cadence: 3, by: "onchain-dune.yml", what: "weekly/monthly city changes (new residents, tier upgrades)",
     require: ["weekly", "monthly"] },
+  { file: "spx-timeline.json", cadence: 3, by: "onchain-dune.yml", what: "city time-machine (SPX weekly balances)",
+    require: ["week0", "n"], nonEmpty: ["wallets"] },
   { file: "cohort-survival.json", cadence: 3, by: "onchain-dune.yml", what: "wallet survival by arrival era",
     require: ["overall", "week0"], nonEmpty: ["cohorts", "weekly"] },
   { file: "whale-thennow.json", cadence: 3, by: "onchain-dune.yml (step)", what: "'Whales Then vs Now' mosaic panels at the NRPL-picked cycle moments",
@@ -175,11 +177,10 @@ export const STATE = new Set([
   // Monotonic is-contract cache (entity-graph foundation): only grows when a NEW self-move address
   // appears, so it legitimately sits unchanged for long stretches — freshness-auditing it would false-alarm.
   "addr-types.json",
-  // THE DATA WALL: these are built locally by onchain-dune.yml but pushed to the private store (KV) and
-  // served to members only via /api/auth?action=data — NOT committed to the public repo. Listed here so
-  // the audit tolerates the local build artifact without demanding a committed public feed. (KV freshness
-  // is a separate concern; these carry real addresses / per-wallet balances and must not go public.)
-  "entities.json", "spx-timeline.json",
+  // THE DATA WALL: entities.json is built locally by onchain-dune.yml but pushed to the private store
+  // (KV) and served to members only via /api/auth?action=data — NOT committed to the public repo. Listed
+  // here so the audit tolerates the local build artifact without demanding a committed public feed.
+  "entities.json",
 ]);
 
 const readJson = p => { try { return JSON.parse(readFileSync(p, "utf8")); } catch { return undefined; } };

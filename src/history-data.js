@@ -320,10 +320,11 @@ export function loadUrpdHistory() {
 let whalesPromise = null;
 export function loadWhales() {
   if (!whalesPromise) {
-    // Members get the granular version (each wallet's address, for the city's Zerion links) from KV; the
-    // public file has addresses stripped — the anonymized balances/flow still drive the cards + the
-    // aggregate dashboard. The city/whale scenes are members-only, so they receive the addresses.
-    whalesPromise = fetchPrivate("whales", "/whales.json", { publicSafe: true })
+    // PUBLIC: whales.json powers SPX City (a public showpiece) + its per-building Zerion cards, so it
+    // carries addresses openly (raw top-holder addresses are already visible on any explorer; the
+    // proprietary LINKAGE is what stays members-only via entities.json).
+    whalesPromise = fetch("/whales.json", { cache: "no-store" })
+      .then(r => (r.ok ? r.json() : null))
       .then(d => (d && Array.isArray(d.wallets) && d.wallets.length ? d : null))
       .catch(() => null);
   }
@@ -418,14 +419,14 @@ export const LIVE_DATA_DOWN = "Live data is temporarily unavailable — try agai
 // browser's default caching (Vercel etags make revisits a 304, and the file changes only daily).
 const timelinePromises = {};
 export function loadCityTimeline(asset) {
+  const file = asset === "aeon" ? "/aeon-timeline.json" : "/spx-timeline.json";
   const f = asset === "aeon" ? "aeon" : "spx";
   if (!timelinePromises[f]) {
-    // SPX per-wallet timeline identifies holders → members-only via the private store. AEON (NFT) stays
-    // public. The validator (wallets[] + n>0) is the same either way.
-    const p = f === "spx"
-      ? fetchPrivate("spx-timeline", "/spx-timeline.json")
-      : fetch("/aeon-timeline.json").then(r => (r.ok ? r.json() : null)).catch(() => null);
-    timelinePromises[f] = p.then(d => (d && Array.isArray(d.wallets) && d.n > 0 ? d : null)).catch(() => null);
+    // PUBLIC: the SPX City time machine is part of the public showpiece, so its timeline is public too.
+    timelinePromises[f] = fetch(file, { cache: "no-store" })
+      .then(r => (r.ok ? r.json() : null))
+      .then(d => (d && Array.isArray(d.wallets) && d.n > 0 ? d : null))
+      .catch(() => null);
   }
   return timelinePromises[f];
 }

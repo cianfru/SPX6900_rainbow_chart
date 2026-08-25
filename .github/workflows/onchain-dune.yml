@@ -210,18 +210,18 @@ jobs:
           KV_REST_API_URL: ${{ secrets.KV_REST_API_URL }}
           KV_REST_API_TOKEN: ${{ secrets.KV_REST_API_TOKEN }}
         run: |
-          # Fully-private feeds (no public copy at all): entities, spx-timeline.
+          # Fully-private feed (no public copy at all): entities.json (the proprietary wallet-cluster
+          # LINKAGE — who-owns-what — powering the members-only Wallet Clusters + Cluster City).
           node scripts/push-private-feed.mjs --file=public/entities.json --key=entities || true
-          node scripts/push-private-feed.mjs --file=public/spx-timeline.json --key=spx-timeline || true
-          # Dual-use feeds: push the FULL (granular, addresses/lots) version to KV for members, THEN strip
-          # the identifying fields from the committed public copy so the X cards + aggregate views stay
-          # public but no address list is. Order matters: push full first, strip second.
+          # Dual-use members feeds: push the FULL (granular, addresses/lots) version to KV for members,
+          # THEN strip the identifying fields from the committed public copy so the X cards + aggregate
+          # views stay public but no address list is. Order matters: push full first, strip second.
           node scripts/push-private-feed.mjs --file=public/smart-money.json --key=smart-money || true
           node scripts/push-private-feed.mjs --file=public/whale-entry.json --key=whale-entry || true
-          node scripts/push-private-feed.mjs --file=public/whales.json --key=whales || true
           node scripts/strip-private-fields.mjs --file=public/smart-money.json --drop-key=wallets || true
           node scripts/strip-private-fields.mjs --file=public/whale-entry.json --drop-field=whales:a || true
-          node scripts/strip-private-fields.mjs --file=public/whales.json --drop-field=wallets:a || true
+          # whales.json + spx-timeline.json are PUBLIC (SPX City is a public showpiece): committed in full
+          # with addresses, NOT pushed to KV or stripped.
 
       - name: Commit if changed
         id: commit
@@ -229,9 +229,10 @@ jobs:
           # ETH/site files drive the DEPLOY (the site + og cards read these). Solana/Base files are
           # bot-only (no site consumer), so they ride along in the same commit but don't force a deploy
           # on their own. COMMIT if ANY of them changed; DEPLOY only if an ETH/site file changed.
-          # entities.json + spx-timeline.json are DELIBERATELY absent — they go to KV (the data wall), not
-          # the public repo. addr-types is derived from entities but carries no balances, so it stays.
-          ETH_FILES="public/onchain.json public/urpd.json public/urpd-history.json public/whales.json public/self-moves.json public/addr-types.json public/cohort-survival.json public/exit-flow.json public/smart-money.json public/city-recap.json public/whale-cohort-history.json public/city-history.json public/cex-sankey.json public/whale-thennow.json public/cohort-roi.json public/whale-entry.json"
+          # entities.json is DELIBERATELY absent — it goes to KV (the data wall) only, not the public repo.
+          # addr-types is derived from entities but carries no balances, so it stays. spx-timeline + whales
+          # ARE committed (public — SPX City is a public showpiece).
+          ETH_FILES="public/onchain.json public/urpd.json public/urpd-history.json public/whales.json public/spx-timeline.json public/self-moves.json public/addr-types.json public/cohort-survival.json public/exit-flow.json public/smart-money.json public/city-recap.json public/whale-cohort-history.json public/city-history.json public/cex-sankey.json public/whale-thennow.json public/cohort-roi.json public/whale-entry.json"
           CHAIN_FILES="public/solana-onchain.json dune/out/spx6900_solana_balances.csv public/base-onchain.json dune/out/spx6900_base_cohort.csv"
           # The control-panel/terminal digests: deploy-ignored (read via the raw proxy), so they commit
           # but never force a deploy — same as their 00:17 build.
