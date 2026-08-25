@@ -119,6 +119,13 @@
   .social .siclink.krk{ background:var(--bg); }
   .social .siclink.krk svg{ width:17px; height:17px; fill:#9d5cf8; stroke:none; }
   .social .siclink.krk:hover{ background:linear-gradient(135deg,#a055f8,#7132f5); border-color:transparent;  }
+  /* Deep Field login: accented squared icon → the member CTA. Swaps to the round X avatar when logged in. */
+  .social .siclink.dfauth{ border-color:var(--live); color:var(--live); background:none; }
+  .social .siclink.dfauth svg{ fill:none; stroke:currentColor; }
+  .social .siclink.dfauth:hover{ background:var(--live); border-color:var(--live); color:var(--bg); }
+  .social .siclink.dfauth.authed{ padding:0; overflow:hidden; border-color:var(--line2); }
+  .social .siclink.dfauth.authed img{ width:100%; height:100%; object-fit:cover; display:block; }
+  .social .siclink.dfauth.authed:hover{ background:none; border-color:var(--live); }
   .social .siclink.krk:hover svg{ fill:#fff; }
   .bar .sys .fdot{ width:7px; height:7px; border-radius:50%; background:var(--live);  animation:blink 1.6s steps(1) infinite; }
   .bar .sys .sep{ color:var(--line2); }
@@ -680,6 +687,10 @@
     <span class="barright">
       <span class="sys">utc <b id="utc">--:--:--</b></span>
       <span class="social">
+        <!-- Deep Field login: same squared icon style as the rest; accented so it reads as the CTA. Swaps
+             to the member's X avatar once logged in (JS below). target="_top" breaks out of the home
+             iframe so X's consent loads full-page, and the avatar opens /deepfield full-page. -->
+        <a class="siclink dfauth" id="dfAuth" href="/api/auth?action=login" target="_top" title="Log in with X — enter Deep Field" aria-label="Log in with X to enter Deep Field"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><path d="M10 17l5-5-5-5"/><path d="M15 12H3"/></svg></a>
         <button class="siclink themebtn" id="topTheme" type="button" title="Toggle dark / bright theme" aria-label="Toggle dark / bright theme"></button>
         <a class="siclink" href="https://x.com/SPX6900Rainbow" target="_blank" rel="noopener noreferrer" title="@SPX6900Rainbow on X" aria-label="SPX6900Rainbow on X"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24h-6.66l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg></a>
         <a class="siclink krk" href="https://proinvite.kraken.com/9f1e/8985jw0l" target="_blank" rel="noopener noreferrer sponsored" title="Trade on Kraken — affiliate" aria-label="Trade on Kraken (affiliate)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 12 A8.5 8.5 0 0 1 20.5 12 L20.5 19.4 A1.3 1.3 0 0 1 17.9 19.4 L17.9 14 A1.1 1.1 0 0 0 15.7 14 L15.7 19.4 A1.3 1.3 0 0 1 13.1 19.4 L13.1 14 A1.1 1.1 0 0 0 10.9 14 L10.9 19.4 A1.3 1.3 0 0 1 8.3 19.4 L8.3 14 A1.1 1.1 0 0 0 6.1 14 L6.1 19.4 A1.3 1.3 0 0 1 3.5 19.4 Z"/></svg></a>
@@ -1498,6 +1509,21 @@
     if(m && x/m>0.72){ paint(m); setTimeout(open,170); } else reset(); });
   cta.addEventListener('click',()=>{ if(moved<6) open(); });
   cta.addEventListener('keydown',e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); open(); } });
+})();
+</script>
+<script>
+/* Deep Field auth chip (top-right): ask who's signed in and, if a member, swap the login icon for their
+   X avatar (→ /deepfield). Signed out stays the login icon (→ X OAuth). Both anchors are target="_top"
+   so they break out of the home iframe. Fails silent (icon stays login) if auth isn't reachable. */
+(function(){
+  var el=document.getElementById('dfAuth'); if(!el) return;
+  fetch('/api/auth?action=me',{cache:'no-store'}).then(function(r){return r.ok?r.json():null;}).then(function(d){
+    if(!d||!d.loggedIn) return;                     // signed out → keep the login icon + href
+    el.setAttribute('href','/deepfield');
+    var who=d.username?('@'+d.username):'you';
+    el.title='Signed in as '+who+' — open Deep Field'; el.setAttribute('aria-label',el.title);
+    if(d.avatar){ el.classList.add('authed'); el.innerHTML='<img src="'+d.avatar+'" alt="" referrerpolicy="no-referrer" onerror="this.remove()"/>'; }
+  }).catch(function(){});
 })();
 </script>
 </body>
