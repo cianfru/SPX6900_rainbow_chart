@@ -63,6 +63,10 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: 24
+          cache: npm
+      # Most builders use only Node built-ins, but the card-render steps (e.g. build-whale-thennow →
+      # @resvg/resvg-js) need the npm deps installed — without this they failed silently under `|| true`.
+      - run: npm ci
 
       - name: Download the transfer archive (release asset)
         env:

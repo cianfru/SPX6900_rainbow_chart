@@ -8,7 +8,7 @@
 // loader reads via the authed endpoint. Until a feed is fully cut over it stays committed (public),
 // so nothing breaks — cut each feed over one at a time.
 import { readFileSync } from "node:fs";
-import { kvConnected, cmd } from "../lib/kv.mjs";
+import { kvConnected, setRaw } from "../lib/kv.mjs";
 
 const arg = k => { const a = process.argv.find(x => x.startsWith(k)); return a ? a.slice(k.length) : null; };
 const file = arg("--file=");
@@ -22,6 +22,6 @@ let raw;
 try { raw = readFileSync(file, "utf8"); JSON.parse(raw); }   // validate it's JSON before publishing
 catch (e) { console.error("push-private-feed: cannot read/parse " + file + " — " + e.message); process.exit(1); }
 
-const args = ttl ? ["SET", "feed:" + key, raw, "EX", String(parseInt(ttl, 10))] : ["SET", "feed:" + key, raw];
-await cmd(...args);
+// value goes in the request BODY (pipeline endpoint), so multi-MB feeds don't overflow the URI (431).
+await setRaw("feed:" + key, raw, ttl ? parseInt(ttl, 10) : undefined);
 console.error(`push-private-feed: published ${file} → feed:${key} (${raw.length.toLocaleString()} bytes)${ttl ? " ttl " + ttl + "s" : ""}`);
