@@ -530,26 +530,13 @@
     <div id="deepfieldView" style="display:none">
       <div class="bar">
         <button id="dfRefresh">↻ Refresh members</button>
-        <span style="margin-left:auto;color:#64748b;font-size:12px">X-login gated closed beta · <a href="/deepfield" target="_blank" rel="noopener" style="color:#7dd3fc">open Deep Field →</a></span>
+        <span style="margin-left:auto;color:#64748b;font-size:12px">Open beta · any real X login = access · <a href="/deepfield" target="_blank" rel="noopener" style="color:#7dd3fc">open Deep Field →</a></span>
       </div>
-      <div class="status" id="dfStatus">Manage the closed-beta invite codes and members.</div>
-      <div style="display:flex;gap:20px;flex-wrap:wrap;margin-top:14px;align-items:flex-start">
-        <div style="flex:1 1 320px;min-width:280px">
-          <h3 style="margin:0 0 8px;font-size:15px;color:#e2e8f0">Invite codes</h3>
-          <p style="color:#94a3b8;font-size:12.5px;margin:0 0 8px;line-height:1.55"><b style="color:#cbd5e1">You make up the codes</b> — any text works. Type your own (one per line) or hit <b style="color:#cbd5e1">Generate</b>. Each code works for <b style="color:#cbd5e1">one X account</b> (the first person to redeem it locks it to them), so give a different code to each tester. <b style="color:#f59e0b">Copy the codes before you seed</b> — only a hash is stored, so they can't be read back afterwards.</p>
-          <textarea id="dfCodes" placeholder="one per line — e.g.&#10;og-alice&#10;og-bob&#10;df-diamond-4271" style="width:100%;min-height:120px;background:#0b0b18;border:1px solid rgba(255,255,255,.14);border-radius:8px;color:#e2e8f0;font-family:ui-monospace,monospace;font-size:13px;padding:10px"></textarea>
-          <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-            <button id="dfGen">✦ Generate 10</button>
-            <button id="dfCopy">Copy</button>
-            <button id="dfSeed" style="background:#123; border-color:#2563eb">Seed codes →</button>
-            <span id="dfSeedMsg" style="font-size:12.5px;color:#64748b"></span>
-          </div>
-          <p style="color:#64748b;font-size:11.5px;margin:8px 0 0;line-height:1.5">Flow: <b>Generate</b> → <b>Copy</b> (save them somewhere) → <b>Seed</b> → DM one code to each tester with the link <span class="mono" style="color:#7dd3fc">spx6900rainbow.xyz/deepfield</span>. They log in with X and paste the code.</p>
-        </div>
-        <div style="flex:1 1 320px;min-width:280px">
-          <h3 style="margin:0 0 8px;font-size:15px;color:#e2e8f0">Members</h3>
-          <div id="dfMembers" style="font-size:13px;color:#94a3b8">—</div>
-        </div>
+      <div class="status" id="dfStatus">Who's logging in — your real-identity map, power users first.</div>
+      <div style="margin-top:6px">
+        <p style="color:#94a3b8;font-size:12.5px;margin:0 0 12px;line-height:1.55;max-width:760px">No invite codes — anyone who logs in with a real X account gets in. This is the map of who they are, where they're logging in from, and how often they come back, so you can tell genuine <b style="color:#cbd5e1">power users</b> (many logins, recent) from one-time "grab free access" sign-ins — and grandfather the real supporters later.</p>
+        <div id="dfMembers" style="font-size:13px;color:#94a3b8">—</div>
+      </div>
       </div>
     </div>
 
@@ -1849,50 +1836,34 @@ async function dfPost(action, body) {
   const r = await fetch("/api/auth?action=" + action, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ pw: PW, ...body }) });
   return { ok: r.ok, status: r.status, data: await r.json().catch(() => ({})) };
 }
+const dfFlag = c => { c = String(c || "").toUpperCase(); return /^[A-Z]{2}$/.test(c) ? c.replace(/./g, x => String.fromCodePoint(127397 + x.charCodeAt(0))) : ""; };
+const dfAgo = iso => { if (!iso) return "—"; const d = Math.floor((Date.now() - Date.parse(iso)) / 86400000); return d <= 0 ? "today" : d === 1 ? "1d ago" : d + "d ago"; };
 async function dfLoadMembers() {
   $("#dfMembers").innerHTML = "loading…";
   const { data } = await dfPost("members", {});
   if (data.ok === false && data.err === "store not connected") { $("#dfMembers").innerHTML = `<span style="color:#f59e0b">The KV store isn't connected yet — connect it in Vercel → Storage (same store as Audience).</span>`; return; }
   if (!data.ok) { $("#dfMembers").innerHTML = `<span style="color:#f87171">Couldn't load members (${data.err || "auth not configured"}).</span>`; return; }
   const m = data.members || [];
-  if (!m.length) { $("#dfMembers").innerHTML = `<span style="color:#64748b">No members yet. Seed codes, then hand one to each OG.</span>`; return; }
-  $("#dfMembers").innerHTML = `<div style="color:#64748b;margin-bottom:6px">${m.length} member${m.length === 1 ? "" : "s"}</div>` +
-    `<table style="width:100%;border-collapse:collapse;font-size:13px"><tr style="color:#64748b;text-align:left"><th style="padding:4px 6px">handle</th><th style="padding:4px 6px">joined</th></tr>` +
-    m.map(u => `<tr style="border-top:1px solid #16202e"><td style="padding:5px 6px"><a href="https://x.com/${esc(u.username)}" target="_blank" rel="noopener" style="color:#7dd3fc;text-decoration:none">@${esc(u.username)} ↗</a></td><td style="padding:5px 6px;color:#94a3b8">${esc((u.joined || "").slice(0, 10))}</td></tr>`).join("") + `</table>`;
-}
-// readable random invite codes: df-<adjective>-<noun>-<3 digits>, all distinct
-const DF_ADJ = ["diamond","golden","cosmic","deep","prime","vivid","rogue","lunar","solar","quiet","bold","rare","alpha","onyx","azure"];
-const DF_NOUN = ["whale","field","orbit","signal","vault","cipher","comet","harbor","ledger","beacon","atlas","quartz","falcon","ember","delta"];
-function dfGenCodes(n = 10) {
-  const seen = new Set(), out = [];
-  while (out.length < n && seen.size < 4000) {
-    const c = `df-${DF_ADJ[Math.floor(Math.random()*DF_ADJ.length)]}-${DF_NOUN[Math.floor(Math.random()*DF_NOUN.length)]}-${Math.floor(100+Math.random()*900)}`;
-    if (!seen.has(c)) { seen.add(c); out.push(c); }
-  }
-  return out;
+  if (!m.length) { $("#dfMembers").innerHTML = `<span style="color:#64748b">No one has logged in yet.</span>`; return; }
+  const power = m.filter(u => (u.logins || 0) >= 3).length;
+  $("#dfMembers").innerHTML =
+    `<div style="color:#64748b;margin-bottom:8px">${m.length} member${m.length === 1 ? "" : "s"} · <span style="color:#4ade80">${power} power user${power === 1 ? "" : "s"}</span> (3+ logins)</div>` +
+    `<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:13px;min-width:440px">` +
+    `<tr style="color:#64748b;text-align:left"><th style="padding:4px 8px 6px">handle</th><th style="padding:4px 8px 6px">where</th><th style="padding:4px 8px 6px;text-align:right">logins</th><th style="padding:4px 8px 6px">first seen</th><th style="padding:4px 8px 6px">last seen</th></tr>` +
+    m.map(u => {
+      const pw = (u.logins || 0) >= 3;
+      return `<tr style="border-top:1px solid #16202e">
+        <td style="padding:6px 8px">${pw ? "★ " : ""}<a href="https://x.com/${esc(u.username)}" target="_blank" rel="noopener" style="color:${pw ? "#4ade80" : "#7dd3fc"};text-decoration:none;font-weight:${pw ? 600 : 400}">@${esc(u.username)} ↗</a></td>
+        <td style="padding:6px 8px;color:#94a3b8">${dfFlag(u.country)} ${esc(u.country || "—")}</td>
+        <td style="padding:6px 8px;text-align:right;color:${pw ? "#4ade80" : "#cbd5e1"};font-variant-numeric:tabular-nums">${u.logins || 1}</td>
+        <td style="padding:6px 8px;color:#94a3b8">${esc((u.firstSeen || "").slice(0, 10))}</td>
+        <td style="padding:6px 8px;color:#94a3b8">${dfAgo(u.lastSeen)}</td></tr>`;
+    }).join("") + `</table></div>` +
+    `<p style="color:#64748b;font-size:11.5px;margin:8px 0 0;line-height:1.5">★ = power user (3+ logins). Sorted by logins. "Where" is the country of their most recent login (from the edge, no raw IP stored).</p>`;
 }
 function dfInit() {
   if (dfWired) return; dfWired = true;
   $("#dfRefresh").onclick = dfLoadMembers;
-  $("#dfGen").onclick = () => {
-    const cur = $("#dfCodes").value.trim();
-    $("#dfCodes").value = (cur ? cur + "\n" : "") + dfGenCodes(10).join("\n");
-    $("#dfSeedMsg").innerHTML = `<span style="color:#94a3b8">10 codes generated — <b>Copy</b> them, then <b>Seed</b>.</span>`;
-  };
-  $("#dfCopy").onclick = async () => {
-    const t = $("#dfCodes").value.trim();
-    if (!t) { $("#dfSeedMsg").textContent = "Nothing to copy yet."; return; }
-    try { await navigator.clipboard.writeText(t); } catch { const a = document.createElement("textarea"); a.value = t; document.body.appendChild(a); a.select(); document.execCommand("copy"); a.remove(); }
-    const o = $("#dfCopy").textContent; $("#dfCopy").textContent = "Copied ✓"; setTimeout(() => $("#dfCopy").textContent = o, 1200);
-  };
-  $("#dfSeed").onclick = async () => {
-    const codes = $("#dfCodes").value.split("\n").map(s => s.trim()).filter(Boolean);
-    if (!codes.length) { $("#dfSeedMsg").textContent = "Enter at least one code."; return; }
-    $("#dfSeedMsg").textContent = "Seeding…";
-    const { data } = await dfPost("seed", { codes });
-    if (data.ok) { $("#dfSeedMsg").innerHTML = `<span style="color:#4ade80">Seeded ${data.seeded} code(s). Hand them out; hashes only are stored.</span>`; }
-    else $("#dfSeedMsg").innerHTML = `<span style="color:#f87171">${data.err === "store not connected" ? "KV store not connected yet." : (data.err || "not configured")}</span>`;
-  };
   dfLoadMembers();
 }
 

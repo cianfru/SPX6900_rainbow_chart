@@ -122,14 +122,14 @@ function XLoginButton() {
   );
 }
 
-// DEEP FIELD ACCESS GATE. Primary path = log in with X, then redeem an invite code (server-side,
-// api/auth.js). If the X app isn't configured yet (env unset), it falls back to the legacy passphrase
-// so the beta keeps working during setup.
+// DEEP FIELD ACCESS GATE. Open beta: any real X login IS membership (no invite codes) — the server
+// (api/auth.js) records who signs in for the owner's power-user map. A logged-in account whose access
+// was revoked (obvious burner) sees a "paused" note. If the X app isn't configured yet (env unset),
+// it falls back to the legacy passphrase so nothing breaks during setup.
 function Gate({ onPass, isMobile }) {
-  const [phase, setPhase] = useState("checking");   // checking | login | code | passphrase
+  const [phase, setPhase] = useState("checking");   // checking | login | paused | passphrase
   const [pw, setPw] = useState(""); const [bad, setBad] = useState("");
   const [user, setUser] = useState("");
-  const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     let off = false;
@@ -143,7 +143,7 @@ function Gate({ onPass, isMobile }) {
         setPhase("passphrase"); return;
       }
       if (d && d.member) { unlockClient(); onPass(); return; }
-      if (d && d.loggedIn) { setUser(d.username || ""); setPhase("code"); return; }
+      if (d && d.loggedIn) { setUser(d.username || ""); setPhase("paused"); return; }   // logged in but access removed
       setPhase("login");
     }).catch(() => { if (!off) setPhase("passphrase"); });
     return () => { off = true; };
@@ -152,15 +152,6 @@ function Gate({ onPass, isMobile }) {
   const passSubmit = e => {
     e.preventDefault();
     if (isValidAccess(fnv(pw.trim().toLowerCase()))) { unlockClient(); onPass(); } else setBad("Not that one.");
-  };
-  const redeem = async e => {
-    e.preventDefault(); setBusy(true); setBad("");
-    try {
-      const r = await fetch("/api/auth?action=redeem", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code: pw }) });
-      const d = await r.json();
-      if (d && d.ok && d.member) { unlockClient(); onPass(); } else setBad(d?.err ? d.err[0].toUpperCase() + d.err.slice(1) : "Invalid code.");
-    } catch { setBad("Something went wrong — try again."); }
-    setBusy(false);
   };
 
   const Wrap = ({ children }) => (
@@ -186,17 +177,10 @@ function Gate({ onPass, isMobile }) {
     </Wrap>
   );
 
-  if (phase === "code") return (
+  if (phase === "paused") return (
     <Wrap>
-      <p style={{ color: "var(--dim)", fontSize: 14, lineHeight: 1.65, margin: "0 0 20px" }}>
-        Signed in as <strong style={{ color: "var(--tx)" }}>@{user}</strong>. Enter your invite code to join the closed beta.
-      </p>
-      <form onSubmit={redeem} style={{ display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap" }}>
-        <input value={pw} autoFocus onChange={e => { setPw(e.target.value); setBad(""); }} placeholder="invite code" style={inputStyle} />
-        <MenuBtn label={busy ? "…" : "Join"} type="submit" />
-      </form>
-      {bad && <div style={{ color: "#fb7185", fontSize: 13, marginTop: 12, fontFamily: "var(--mono)" }}>{bad}</div>}
-      <p style={{ color: "var(--faint)", fontSize: 12, marginTop: 16 }}>Don&apos;t have a code? <a href="https://x.com/SPX6900Rainbow" target="_blank" rel="noopener" style={{ color: "var(--live)" }}>Request one on X ↗</a> · <a href="/api/auth?action=logout" style={{ color: "var(--dim)" }}>log out</a></p>
+      <p className="dfgate-lede">Signed in as <strong style={{ color: "var(--tx)" }}>@{user}</strong>, but this account&apos;s Deep Field access is paused.</p>
+      <p style={{ color: "var(--faint)", fontSize: 12.5, marginTop: 6 }}>Think this is a mistake? <a href="https://x.com/SPX6900Rainbow" target="_blank" rel="noopener" style={{ color: "var(--live)" }}>Reach out on X ↗</a> · <a href="/api/auth?action=logout" style={{ color: "var(--dim)" }}>log out</a></p>
     </Wrap>
   );
 
