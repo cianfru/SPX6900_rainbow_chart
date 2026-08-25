@@ -485,8 +485,8 @@ export default function TerminalPage({ isMobile }) {
             <div className="tmsectitle">Smart money · the wallets
               <Info text="The independent proven top-timers behind the aggregate: ≥$25k deployed, realized ≥5×, still holding ≥50k SPX — and NOT part of any multi-wallet cluster (so these are genuine solo traders). Real addresses, terminal-only; the public site shows them anonymized. Columns are the change in each wallet's held balance over 24h / 7d / 30d. Not a follow signal." />
               <span> · {sm.wallets.length} independent traders</span></div>
-            <details className="tmdrop" open>
-              <summary style={{ cursor: "pointer", fontFamily: "var(--mono)", fontSize: 12.5, color: "var(--dim)", padding: "2px 0 10px", userSelect: "none" }}>reveal / hide wallets</summary>
+            <details className="tmdrop">
+              <summary className="tmdropsum">show the {sm.wallets.length} wallets</summary>
               <div className="tmtblwrap">
                 <table className="tmtbl">
                   <thead><tr><th>wallet</th><th>held</th><th>24h</th><th>7d</th><th>30d</th></tr></thead>
@@ -516,8 +516,8 @@ export default function TerminalPage({ isMobile }) {
             <div className="tmsectitle">Whale clusters · the owners
               <Info text="Wallets the entity engine links into ONE owner from on-chain SPX fund/drain flows — the concentration a plain rich-list misses. Hover 'N wallets' to see the members (each opens in Zerion). Net columns = the whole cluster's balance change over 24h/7d/30d. Flagged / over-merged clusters are excluded." />
               <span> · top {clusters.length} by size</span></div>
-            <details className="tmdrop" open>
-              <summary style={{ cursor: "pointer", fontFamily: "var(--mono)", fontSize: 12.5, color: "var(--dim)", padding: "2px 0 10px", userSelect: "none" }}>reveal / hide clusters</summary>
+            <details className="tmdrop">
+              <summary className="tmdropsum">show the top {clusters.length} clusters</summary>
               <div className="tmtblwrap">
                 <table className="tmtbl">
                   <thead><tr><th>owner</th><th>wallets</th><th>combined</th><th>24h</th><th>7d</th><th>30d</th></tr></thead>

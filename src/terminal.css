@@ -453,6 +453,13 @@ html:not([data-theme="light"]) .tzone [style*="rgb(100, 116, 139)"]{ color:#b1bc
 .tzone .tminfo-pop{ position:fixed; z-index:60; width:max-content; max-width:300px; padding:10px 12px; background:var(--panel); border:1px solid var(--line2);
   box-shadow:0 10px 30px rgba(0,0,0,.5); font-family:var(--sans); font-size:13px; font-weight:400; font-style:normal; line-height:1.5; color:var(--tx); text-transform:none; letter-spacing:0; white-space:normal; }
 html[data-theme="light"] .tzone .tminfo-pop{ box-shadow:0 10px 30px rgba(20,30,50,.16); }
+/* Deep Field disclosure lists (smart-money wallets / clusters) — hide the native triangle so the
+   summary's own "▾" is the only marker; it flips to "▴" when open. */
+.tzone .tmdropsum{ cursor:pointer; font-family:var(--mono); font-size:12.5px; color:var(--live); padding:2px 0 10px; user-select:none; list-style:none; }
+.tzone .tmdropsum::-webkit-details-marker{ display:none; }
+.tzone .tmdropsum::after{ content:" ▾"; }
+.tzone .tmdrop[open] > .tmdropsum{ color:var(--dim); }
+.tzone .tmdrop[open] > .tmdropsum::after{ content:" ▴"; }
 /* Cluster wallets popover — a scrollable column of Zerion PREVIEW cards (the "preloading card of Zerion"). */
 .tzone .tmzpop{ padding:10px; max-height:min(66vh,440px); overflow-y:auto; }
 .tzone .tmzpop-head{ display:block; font-family:var(--mono); font-size:11px; text-transform:uppercase; letter-spacing:.12em; color:var(--dim); margin:0 2px 9px; }
