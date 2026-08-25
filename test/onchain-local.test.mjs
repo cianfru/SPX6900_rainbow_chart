@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { replayFifo, gini, ageBand, makePriceAt, mondays, computeUrpd, urpdGrid, binHeldSupply, detectSelfSplits, detectConsolidations, buildEntities } from "../scripts/build-onchain-local.mjs";
+import { replayFifo, gini, ageBand, makePriceAt, mondays, computeUrpd, urpdGrid, binHeldSupply, detectSelfSplits, detectConsolidations, buildEntities, clusterLots } from "../scripts/build-onchain-local.mjs";
 
 const DAY = 86400000;
 const D0 = Date.UTC(2024, 0, 1);
@@ -481,4 +481,42 @@ test("self-move touching an external endpoint is flagged unverified and NOT re-a
   assert.equal(gated.selfMoves.events[0].unverified, true);
   assert.equal(gated.selfMoves.reAged, 0);
   assert.equal(gated.selfMoves.flagged, 1);
+});
+
+test("clusterLots: member↔member transfers are NOT buys/sells; only boundary-crossing flow counts", () => {
+  const price = makePriceAt([["2024-01-01", 1]]);   // flat $1 for simple avg-cost math
+  const ent = [{ id: "a1", flagged: false, wallets: ["a1", "a2"] }];   // one cluster, two members
+  const tx = [
+    { from: "ext", to: "a1", ts: d(0), amt: 1000, i: 0 },   // BUY (outside → cluster)
+    { from: "a1", to: "a2", ts: d(1), amt: 400, i: 1 },     // INTERNAL (member → member) — ignored
+    { from: "a2", to: "a1", ts: d(2), amt: 400, i: 2 },     // INTERNAL — ignored
+    { from: "a1", to: "ext2", ts: d(3), amt: 300, i: 3 },   // SELL (cluster → outside)
+  ];
+  const lots = clusterLots(tx, price, ent, { topN: 10 });
+  const L = lots.get("a1");
+  assert.equal(L.nBuys, 1, "one external buy");
+  assert.equal(L.nSells, 1, "one external sell; the two internal moves are not sells");
+  assert.equal(L.buys[0][2], 1000);
+  assert.equal(L.sells[0][2], 300);
+  assert.equal(L.avgCost, 1);
+});
+
+test("clusterLots: flagged clusters are skipped; a transfer between two clusters is a sell for one and a buy for the other", () => {
+  const price = makePriceAt([["2024-01-01", 1]]);
+  const ent = [
+    { id: "a1", flagged: false, wallets: ["a1"] },
+    { id: "b1", flagged: false, wallets: ["b1"] },
+    { id: "z1", flagged: true, wallets: ["z1", "z2"] },   // flagged → excluded
+  ];
+  const tx = [
+    { from: "ext", to: "a1", ts: d(0), amt: 500, i: 0 },   // buy for a1
+    { from: "a1", to: "b1", ts: d(1), amt: 200, i: 1 },    // sell for a1, buy for b1
+    { from: "ext", to: "z1", ts: d(2), amt: 999, i: 2 },   // z1 flagged → ignored
+  ];
+  const lots = clusterLots(tx, price, ent, { topN: 10 });
+  assert.equal(lots.get("a1").nBuys, 1);
+  assert.equal(lots.get("a1").nSells, 1);
+  assert.equal(lots.get("b1").nBuys, 1);
+  assert.equal(lots.get("b1").nSells, 0);
+  assert.ok(!lots.has("z1"), "flagged cluster produces no lots");
 });

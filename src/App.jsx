@@ -202,6 +202,7 @@ const ChartsGallery = lazy(() => import("./ChartsGallery.jsx"));
 const DocsPage = lazy(() => import("./DocsPage.jsx"));
 const StoryCard = lazy(() => import("./StoryCard.jsx"));   // "Your SPX Story" shareable card (?view=story&wallet=0x…)
 const WalletDetail = lazy(() => import("./WalletDetail.jsx"));   // per-wallet page: buy orbs + PnL (terminal-tier, ?view=wallet&addr=0x…)
+const ClusterDetail = lazy(() => import("./ClusterDetail.jsx")); // per-cluster page: aggregated buy/sell + PnL for a whole owner (?view=cluster&id=0x…)
 const TerminalPage = lazy(() => import("./TerminalPage.jsx"));
 // LandingPage retired at ?view=next in favour of the terminal landing (public/landing-next.html, full-bleed iframe)
 // HOME_IS_LANDING: the home route ("/") renders the redesigned terminal landing instead of the old
@@ -410,6 +411,7 @@ export default function App() {
   const [docSlug, setDocSlug] = useState("index"); // which page of the manual (?view=docs&p=…)
   const [storyWallet, setStoryWallet] = useState(""); // "Your SPX Story" deep-link wallet (?view=story&wallet=…)
   const [walletAddr, setWalletAddr] = useState(""); // per-wallet page address (?view=wallet&addr=…)
+  const [clusterId, setClusterId] = useState(""); // per-cluster page id (?view=cluster&id=…)
   const [galleryGroup, setGalleryGroup] = useState(null); // when a nav group is clicked, show only that section
   const [fsOpen, setFsOpen] = useState(false); // fullscreen / landscape chart viewer
   const cityFsRef = useRef(null);
@@ -818,6 +820,7 @@ export default function App() {
       else if (p.get("view") === "docs") { setRoute("docs"); setDocSlug(p.get("p") || "index"); }
       else if (p.get("view") === "story") { setRoute("story"); setStoryWallet(p.get("wallet") || ""); }
       else if (p.get("view") === "wallet") { setRoute("wallet"); setWalletAddr(p.get("addr") || ""); }
+      else if (p.get("view") === "cluster") { setRoute("cluster"); setClusterId(p.get("id") || ""); }
       else if (p.get("view") === "next") setRoute("next");
       // SPX City left the gallery for its own /city tab. Old shared links (?chart=whalewatch /
       // spxcity / aeonskyline) still resolve, send them to the city instead of dropping to home.
@@ -992,7 +995,7 @@ export default function App() {
   // Sub-pages (everything but home + the ?view=next landing preview) wear the terminal
   // shell: near-black ground, Geist type, the DOS cascade nav. Home + the iframe landing
   // keep their own chrome untouched.
-  const isSub = ["gallery", "chart", "aeon", "city", "docs", "rainbow", "terminal", "wallet"].includes(route);
+  const isSub = ["gallery", "chart", "aeon", "city", "docs", "rainbow", "terminal", "wallet", "cluster"].includes(route);
 
   return (
     <div className={isSub ? "tzone" : undefined} style={{
@@ -1175,6 +1178,13 @@ export default function App() {
       {route === "wallet" && (
         <Suspense fallback={<div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Loading…</div>}>
           <WalletDetail wallet={walletAddr} price={last?.price} isMobile={isMobile} />
+        </Suspense>
+      )}
+
+      {/* Per-cluster page — aggregated buy/sell + PnL for a whole owner (?view=cluster&id=0x…). Terminal-tier. */}
+      {route === "cluster" && (
+        <Suspense fallback={<div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Loading…</div>}>
+          <ClusterDetail id={clusterId} price={last?.price} isMobile={isMobile} />
         </Suspense>
       )}
 

@@ -368,12 +368,20 @@ export default function TerminalPage({ isMobile }) {
   return (
     <div className="twrap tmwrap">
       {me && (
-        <a className="tmyou" href={`https://x.com/${me.username}`} target="_blank" rel="noopener" title={`Signed in as @${me.username}`}>
-          {me.avatar
-            ? <img className="tmyou-pfp" src={me.avatar} alt="" onError={e => { e.currentTarget.style.display = "none"; }} />
-            : <span className="tmyou-pfp tmyou-ph">{(me.username || "?").slice(0, 1).toUpperCase()}</span>}
-          <span className="tmyou-name">@{me.username}</span>
-        </a>
+        <div className="tmyou-wrap">
+          <a className="tmyou" href={`https://x.com/${me.username}`} target="_blank" rel="noopener" title={`Signed in as @${me.username}`}>
+            {me.avatar
+              ? <img className="tmyou-pfp" src={me.avatar} alt="" onError={e => { e.currentTarget.style.display = "none"; }} />
+              : <span className="tmyou-pfp tmyou-ph">{(me.username || "?").slice(0, 1).toUpperCase()}</span>}
+            <span className="tmyou-name">@{me.username}</span>
+          </a>
+          <button type="button" className="tmyou-out" title="Log out — switch account"
+            onClick={() => {
+              // clear the server session AND the client gate keys, then go home as a signed-out visitor.
+              try { localStorage.removeItem(TERMINAL_KEY); localStorage.removeItem(CITY_KEY); localStorage.removeItem("df-home"); } catch { /* private */ }
+              fetch("/api/auth?action=logout", { cache: "no-store" }).catch(() => {}).finally(() => { window.location.href = "/"; });
+            }}>log out</button>
+        </div>
       )}
       <div className="tmhead">
         <div className="tmcmd"><span className="tmprompt">spx6900 ~ %</span> cat ./deepfield/today</div>
@@ -595,7 +603,8 @@ export default function TerminalPage({ isMobile }) {
                   <thead><tr><th>owner</th><th>wallets</th><th>combined</th><th>24h</th><th>7d</th><th>30d</th></tr></thead>
                   <tbody>{clusters.map((c, i) => (
                     <tr key={c.id}>
-                      <td className="tmk"><span style={{ color: "var(--faint)", marginRight: 8 }}>{i + 1}</span>{shortAddr(c.id)}</td>
+                      <td className="tmk"><span style={{ color: "var(--faint)", marginRight: 8 }}>{i + 1}</span>
+                        <a href={`/?view=cluster&id=${c.id}`} title="Open this owner — aggregated buys, sells & P&L" style={{ color: "var(--live)", textDecoration: "none", fontFamily: "var(--mono)" }}>{shortAddr(c.id)}</a></td>
                       <td><ClusterWallets c={c} /></td>
                       <td className="tmval">{fmtVal(c.bal, "spx")}</td>
                       {netSpxCell(c.d1)}{netSpxCell(c.d7)}{netSpxCell(c.d30)}

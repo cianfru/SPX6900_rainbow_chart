@@ -414,8 +414,11 @@ html:not([data-theme="light"]) .tzone [style*="rgb(100, 116, 139)"]{ color:#b1bc
    the de-emphasis --faint; table headers never use the near-invisible --line2. */
 .tzone .tmwrap{ padding-top:26px; padding-bottom:64px; max-width:1080px; }
 .tzone .tmhead{ margin-bottom:22px; }
-/* "This is your space" — the signed-in X identity, top-right of the Deep Field page. */
-.tzone .tmyou{ position:absolute; top:22px; right:clamp(16px,3.4vw,34px); z-index:12; display:inline-flex; align-items:center; gap:9px;
+/* "This is your space" — the signed-in X identity + log out, top-right of the Deep Field page. */
+.tzone .tmyou-wrap{ position:absolute; top:22px; right:clamp(16px,3.4vw,34px); z-index:12; display:inline-flex; align-items:center; gap:8px; }
+.tzone .tmyou-out{ font-family:var(--mono); font-size:11.5px; color:var(--dim); background:none; border:1px solid var(--line2); border-radius:999px; padding:5px 11px; cursor:pointer; transition:.12s; white-space:nowrap; }
+.tzone .tmyou-out:hover{ color:var(--tx); border-color:var(--dim); }
+.tzone .tmyou{ display:inline-flex; align-items:center; gap:9px;
   padding:5px 12px 5px 5px; border:1px solid var(--line2); border-radius:999px; background:var(--panel);
   text-decoration:none; font-family:var(--mono); transition:border-color .12s ease; }
 .tzone .tmyou:hover{ border-color:var(--live); }

@@ -387,6 +387,30 @@ export function clusterEntities(tx, opts = {}) {
 // Standalone wrapper (copy+sort) — for tests / ad-hoc runs. The engine reuses its own sorted tx.
 export function buildEntities(transfers, opts = {}) { return clusterEntities(prepMoves(transfers), opts); }
 
+// AGGREGATED buy/sell lots per CLUSTER — the whole owner as ONE entity, so the cluster detail page can
+// show where the owner bought & sold (like the smart-money wallet page, but combined). The key rule:
+// a member↔member transfer is the owner shuffling their own coins, NOT a buy or sell — only flow
+// CROSSING the cluster boundary counts (member receives from outside = buy; member sends outside = sell).
+// avg-cost accounting, matching build-smart-money. One pass over the already-sorted tx; bounded to the
+// top-N clusters (by list order — the caller pre-sorts by combined balance) and lotCap lots each.
+// Returns Map(clusterId → { buys, sells, avgCost, realized, nBuys, nSells }).
+export function clusterLots(tx, priceAt, entities, { topN = 40, lotCap = 300 } = {}) {
+  const pick = entities.filter(e => !e.flagged).slice(0, topN);
+  const owner = new Map();                                   // member wallet → cluster id
+  for (const e of pick) for (const a of e.wallets) owner.set(a, e.id);
+  const acc = new Map(pick.map(e => [e.id, { buys: [], sells: [], avg: 0, pos: 0, realized: 0, nBuys: 0, nSells: 0 }]));
+  for (const t of tx) {
+    const cf = owner.get(t.from), ct = owner.get(t.to);
+    if (cf === ct) continue;                                 // internal (both same cluster, or neither) → skip
+    const pr = priceAt(t.ts); if (pr == null) continue;
+    if (ct) { const A = acc.get(ct); A.avg = (A.avg * A.pos + t.amt * pr) / (A.pos + t.amt); A.pos += t.amt; A.buys.push([t.ts, +pr.toFixed(6), Math.round(t.amt)]); A.nBuys++; }
+    if (cf) { const A = acc.get(cf); if (A.pos > 0) { const q = Math.min(t.amt, A.pos); const r = q * (pr - A.avg); A.realized += r; A.pos -= q; A.sells.push([t.ts, +pr.toFixed(6), Math.round(q), Math.round(r)]); A.nSells++; } }
+  }
+  const out = new Map();
+  for (const [id, A] of acc) out.set(id, { avgCost: +A.avg.toFixed(6), realized: Math.round(A.realized), buys: A.buys.slice(-lotCap), sells: A.sells.slice(-lotCap), nBuys: A.nBuys, nSells: A.nSells });
+  return out;
+}
+
 // Splits only. { splitIdx, linkOf:Map(recipient→source), events, count, supply }.
 export function detectSelfSplits(transfers, opts = {}) {
   const { splitIdx, splitEvents } = scanSelfMoves(prepMoves(transfers), opts);
@@ -675,6 +699,10 @@ export function replayFifo(transfers, priceAt, sampleTs, opts = {}) {
         for (const c of checkpoints) e[`d${c.d}`] = +flow[c.d].toFixed(2); // entity net flow over each window → buy/sell signal
       }
       ent.entities.sort((a, b) => b.bal - a.bal || b.size - a.size);   // rank by combined holdings for the explorer
+      // Aggregated buy/sell lots for the biggest clusters → the cluster detail page (the whole owner as
+      // one position: where it bought & sold, avg cost, realized P&L). Runs on the top clusters only.
+      const clots = clusterLots(tx, priceAt, ent.entities, { topN: 40 });
+      for (const e of ent.entities) { const L = clots.get(e.id); if (L) { e.buys = L.buys; e.sells = L.sells; e.avgCost = L.avgCost; e.realized = L.realized; e.nBuys = L.nBuys; e.nSells = L.nSells; } }
       out.entities = {
         updated: iso(lastTs), spot: priceAt(lastTs) ?? 0, heldSupply: +held.toFixed(2),
         method: "EOA→EOA drain/fund clustering — a wallet emptied into, or a fresh wallet funded by, another plain wallet is the same entity moving funds. CEX/LP/contract legs are exits, never links. Hubs (many funders) and oversized clusters are flagged, not trusted. Links on SPX flows only — a common ETH/gas funder that never touched SPX is not seen.",
