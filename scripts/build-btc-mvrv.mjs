@@ -13,11 +13,25 @@
 // Output: public/btc-mvrv.json = { asset, metric, sampledDays, updated, points: [["YYYY-MM-DD", mvrv], …] }
 // sampled to ~weekly to keep the runtime fetch light (~decade → ~800 points).
 import { writeFile } from "node:fs/promises";
+import { mergeReconstruction } from "./build-btc-realized-cap.mjs";
 
 const OUT = "public/btc-mvrv.json";
 const CM = "https://community-api.coinmetrics.io/v4/timeseries/asset-metrics";
 const METRIC = "CapMVRVCur";
 const SAMPLE_DAYS = 7; // keep ~one point per week
+
+// The pre-2011 months Coin Metrics can't reach, from our BigQuery UTXO realized-cap reconstruction
+// (bigquery/btc_realized_cap.sql). 2010 is immutable BTC history, so these are fixed — bundled here and
+// prepended each run (seam-rebased to CM's first point) so the full-history extension to BTC age ~1.5y
+// survives the monthly Coin Metrics rebuild. Coin Metrics stays the trusted series for 2011 → now.
+const EARLY_RECON = [
+  { date: "2010-07-01", mvrv: 4.7361 },
+  { date: "2010-08-01", mvrv: 3.2493 },
+  { date: "2010-09-01", mvrv: 2.6842 },
+  { date: "2010-10-01", mvrv: 3.4671 },
+  { date: "2010-11-01", mvrv: 2.9219 },
+  { date: "2010-12-01", mvrv: 2.975 },
+];
 
 // Pull the full daily series, following Coin Metrics' cursor pagination.
 async function fetchAll() {
@@ -59,12 +73,15 @@ async function main() {
   const raw = await fetchAll();
   const points = sampleMvrv(raw);
   if (!points.length) throw new Error("no BTC MVRV points fetched");
+  // Prepend the bundled pre-2011 reconstruction (seam-rebased to CM's first point) for full history.
+  const { points: merged, added, seamRatio } = mergeReconstruction(EARLY_RECON, points, "merge");
   const payload = {
     asset: "btc", metric: METRIC, sampledDays: SAMPLE_DAYS,
-    updated: points.at(-1)[0], points,
+    source: "coinmetrics+utxo-early",
+    updated: merged.at(-1)[0], points: merged,
   };
   await writeFile(OUT, JSON.stringify(payload));
-  console.log(`btc-mvrv: ${raw.length} daily → ${points.length} weekly points · ${points[0][0]} → ${points.at(-1)[0]} · latest MVRV ${points.at(-1)[1]}×`);
+  console.log(`btc-mvrv: ${raw.length} daily → ${points.length} weekly + ${added} early (seam ×${seamRatio}) = ${merged.length} · ${merged[0][0]} → ${merged.at(-1)[0]} · latest MVRV ${merged.at(-1)[1]}×`);
 }
 
 // Only run when invoked directly (not when imported by the test).
