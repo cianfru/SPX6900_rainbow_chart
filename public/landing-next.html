@@ -168,6 +168,17 @@
   :root[data-variant="site"] .mtop:hover > .mhead .car{ color:var(--acc); }
   .mtop > .mhead .car{ font-size:11px; color:var(--dim); }
   .mtop:hover > .mhead{ background:var(--tx); color:var(--bg); } .mtop:hover > .mhead .car{ color:var(--bg); }
+  /* Deep Field tab — the members door. Green-tinted word (the live accent) in every look, inverting onto
+     the accent on hover; a standalone tab like Rainbow (no dropdown), always visible so visitors find it. */
+  .mtop-deepfield{ display:block; }
+  .mtop-deepfield > .mhead{ border-color:transparent; }
+  .mtop-deepfield .lbl{ color:var(--live); }
+  .mtop-deepfield .cur{ color:var(--curc,var(--live)); margin-left:0; opacity:0; }
+  .mtop-deepfield:hover .cur{ opacity:1; animation:blk 1.05s steps(1,end) infinite; }
+  .mtop-deepfield:hover > .mhead{ background:var(--live); color:var(--bg); }
+  .mtop-deepfield:hover > .mhead .lbl{ color:var(--bg); }
+  :root[data-variant="site"] .mtop-deepfield{ display:block; --acc:var(--live); }
+  :root[data-variant="site"] .mtop-deepfield:hover > .mhead .lbl{ color:#f8fafc; }
   .drop,.subdrop{ display:none; position:absolute; z-index:30; min-width:210px; background:var(--bg); border:1px solid var(--line2); padding:4px; box-shadow:0 12px 34px rgba(0,0,0,.6); }
   .drop{ top:100%; left:0; } .mtop:hover > .drop{ display:block; }
   .subdrop{ left:calc(100% + 8px); top:-5px; z-index:31; }
@@ -456,6 +467,8 @@
     .mmgrp > .mmsub > .mmview{ color:var(--faint); }
     .mmall{ color:var(--live); }
     .mmlink .mml{ background:linear-gradient(90deg,#f87171,#fb923c,#fbbf24,#4ade80,#38bdf8,#a78bfa); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; }
+    .mmlink-df .mml{ background:none; -webkit-text-fill-color:var(--live); color:var(--live); }
+    .mmdf-tag{ font-family:var(--label); font-size:10px; letter-spacing:.12em; text-transform:uppercase; color:var(--faint); }
   }
   /* ── MOBILE SPRINGBOARD — app-launcher nav (prototype) ── */
   .sb{ position:fixed; inset:0; z-index:300; background:radial-gradient(120% 60% at 50% -6%, rgba(78,231,154,.05), transparent 60%), var(--bg); display:none; flex-direction:column; }
@@ -534,6 +547,14 @@
   /* fullscreen 2×2 quadrant launcher for the top-level sections view (matches the React app) */
   .sbbody:has(.sbgrid.sections){ display:flex; flex-direction:column; overflow:hidden; padding:16px 14px calc(env(safe-area-inset-bottom,0px) + 16px); }
   .sbgrid.sections{ flex:1; min-height:0; grid-template-rows:1fr 1fr; gap:12px; }
+  /* Deep Field door — the members strip under the launcher grid (green accent = the members area) */
+  .sbdf{ flex:none; margin-top:12px; display:flex; align-items:center; gap:12px; width:100%; padding:15px 17px; border:1.5px solid color-mix(in srgb, var(--live) 55%, var(--line2)); border-radius:18px; background:linear-gradient(150deg, color-mix(in srgb, var(--live) 22%, var(--panel)), var(--panel2) 82%); color:var(--tx); cursor:pointer; text-align:left;
+    box-shadow:0 12px 30px -12px color-mix(in srgb, var(--live) 42%, transparent), inset 0 1px 0 rgba(255,255,255,.12); transition:transform .1s ease, border-color .12s; }
+  .sbdf:active{ transform:scale(.985); border-color:var(--live); }
+  .sbdf .sbdftx{ display:flex; flex-direction:column; gap:2px; flex:1; min-width:0; }
+  .sbdf .sbdftx b{ font-family:var(--sans); font-weight:800; font-size:17px; letter-spacing:-.01em; color:var(--live); }
+  .sbdf .sbdftx span{ font-family:var(--label); font-size:10.5px; letter-spacing:.09em; text-transform:uppercase; color:var(--dim); }
+  .sbdf .sbdfarr{ flex:none; color:var(--live); font-size:19px; line-height:1; }
   .sbcell{ position:relative; overflow:hidden; display:flex; flex-direction:column; align-items:flex-start; justify-content:flex-end; gap:5px; padding:18px; min-height:0; border:1.5px solid color-mix(in srgb, var(--tc) 48%, var(--line2)); border-radius:20px; background:linear-gradient(150deg, color-mix(in srgb, var(--tc) 30%, var(--panel)), var(--panel2) 82%); color:var(--tx); cursor:pointer; text-align:left; transition:transform .1s ease, border-color .12s, box-shadow .12s;
     box-shadow:0 12px 30px -12px color-mix(in srgb, var(--tc) 45%, transparent), inset 0 1px 0 rgba(255,255,255,.12); }
   :root[data-theme="light"] .sbcell{ box-shadow:0 12px 26px -12px color-mix(in srgb, var(--tc) 40%, transparent), inset 0 1px 0 rgba(255,255,255,.75); }
@@ -999,8 +1020,14 @@
       wireTypeRow(mt.querySelector('.mhead'));   // the section header types too (like Rainbow)
       wireCascade(mt, top);
     });
+    // Deep Field — the members area, surfaced as a nav tab. Routes to /deepfield, which self-gates
+    // (members → charts; everyone else → the branded gate + X login). target="_top" via go().
+    const dfm=document.createElement('div'); dfm.className='mtop mtop-deepfield';
+    dfm.innerHTML=`<div class="mhead" data-deepfield="1"><span class="lw"><span class="lbl" data-t="DEEP FIELD">DEEP FIELD</span><span class="cur" style="--curc:#4ee79a">_</span></span></div>`;
+    m.appendChild(dfm); wireTypeRow(dfm.querySelector('.mhead'));
     if(withFresh){ const _nf=document.createElement('div'); _nf.className='navfresh'; _nf.id='fresh'; m.appendChild(_nf); }
     m.addEventListener('click',e=>{ if(e.target.closest('[data-rainbow]')){ go('/?view=rainbow'); return; }
+      if(e.target.closest('[data-deepfield]')){ go('/deepfield'); return; }
       if(e.target.closest('[data-home]')){ window.scrollTo({top:0,behavior:'smooth'}); return; }
       const _all=e.target.closest('.mitem[data-all]'); if(_all){ openGallery(_all.dataset.all); return; }
       const _grp=e.target.closest('.mitem[data-ggrp]'); if(_grp){ openGallery(_grp.dataset.gtop,_grp.dataset.ggrp); return; } // click a GROUP → that group's charts only
@@ -1013,7 +1040,8 @@
     const SECURL={ CHARTS:'/?view=charts', SPX_CITY:'/city', PROJECT_AEON:'/?view=aeon' };
     const leafHref=(sec,it)=>{ const id=(window.__LEAFID||{})[sec+'|'+it]; return id?(id.charAt(0)==='@'?id.slice(1):('/?chart='+id)):'#'; };
     const chev='<span class="mmchev">▾</span>';
-    let h=`<button class="mmitem mmlink" data-go="/?view=rainbow"><span class="mml">Rainbow</span></button>`;
+    let h=`<button class="mmitem mmlink" data-go="/?view=rainbow"><span class="mml">Rainbow</span></button>`
+      +`<button class="mmitem mmlink mmlink-df" data-go="/deepfield"><span class="mml">Deep Field</span><span class="mmdf-tag">members</span></button>`;
     NAV.forEach(sec=>{
       h+=`<div class="mmsec"><button class="mmitem mmsec-h" data-toggle><span class="mml">${esc(sec.label.replace(/_/g,' '))}</span>${chev}</button><div class="mmsub">`;
       if(sec.groups.length===1){
@@ -1352,17 +1380,19 @@
 
     let stack=[];
     const el=()=>document.getElementById('sb'), body=()=>document.getElementById('sbbody');
-    function render(view,dir){ const b=body(); if(!b) return; let title='Explore', tiles='';
+    function render(view,dir){ const b=body(); if(!b) return; let title='Explore', tiles='', foot='';
       if(view.t==='sections'){ title='Explore';
         tiles+=secQuad('/?view=rainbow','rainbow','Rainbow','the foundation chart',RAINBOW_ICON,'#a78bfa','nav');
         NAV.forEach((sec,i)=>{ const sub=sec.groups.length>1 ? sec.groups.length+' groups · '+chartCount(sec)+' charts' : chartCount(sec)+' charts';
           tiles+=secQuad(sec.label, sec.label, NAV_DISP[sec.label]||sec.label, sub, NAV_ICON[sec.label]||'', GCOL[i%GCOL.length], 'sec'); });
+        // Deep Field door — a full-width members strip under the launcher (routes to /deepfield, which self-gates)
+        foot=`<button class="sbdf" data-act="nav" data-v="/deepfield"><span class="sbdftx"><b>Deep Field</b><span>members · the on-chain deep layer</span></span><span class="sbdfarr">→</span></button>`;
       } else if(view.t==='groups'){ const sec=NAV.find(s=>s.label===view.sec); title=NAV_DISP[sec.label]||sec.label;
         sec.groups.forEach((g,i)=>{ tiles+=grpTile(sec.label, g.g, g.items.length+' charts', GCOL[i%GCOL.length]); });
       } else if(view.t==='charts'){ const sec=NAV.find(s=>s.label===view.sec), g=sec.groups.find(x=>x.g===view.grp); title=view.grp;
         const col=GCOL[sec.groups.indexOf(g)%GCOL.length];
         g.items.forEach(it=>{ tiles+=chartTile(it, col, leafTarget(sec.label,it)); }); }
-      b.innerHTML=`<div class="sbgrid ${view.t}">${tiles}</div>`;
+      b.innerHTML=`<div class="sbgrid ${view.t}">${tiles}</div>${foot}`;
       const bk=document.getElementById('sbback'); if(bk) bk.toggleAttribute('hidden', stack.length<=1);
       const hm=document.getElementById('sbhome'); if(hm) hm.toggleAttribute('hidden', stack.length<=1);
       const tt=document.getElementById('sbtitle'); if(tt) tt.textContent=title;

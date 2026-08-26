@@ -341,7 +341,7 @@ function SbChartTile({ item, color, group, render, spark, onTap }) {
   );
 }
 
-function MobileSpringboard({ open, onClose, openRainbow, openGallery, openAeon, openCity, goChart, renderPreview }) {
+function MobileSpringboard({ open, onClose, openRainbow, openGallery, openAeon, openCity, goChart, renderPreview, me, onDeepField }) {
   const [stack, setStack] = useState([{ t: "sections" }]);
   const view = stack[stack.length - 1];
   const go = fn => { onClose(); fn && fn(); };
@@ -410,6 +410,14 @@ function MobileSpringboard({ open, onClose, openRainbow, openGallery, openAeon, 
         <div className="tsbcmd"><span className="tsbprompt">spx6900 ~ %</span> {cmd}</div>
         <div className="tsbrule" />
         <div className={"tsbgrid tsbgrid-" + grid}>{tiles}</div>
+        {/* Deep Field — the members area, surfaced as a full-width strip under the launcher so it's
+            discoverable on phones too (logged in → member home; signed out → the X login). */}
+        {view.t === "sections" && (
+          <button className="tsbdf" onClick={() => go(onDeepField)}>
+            <span className="tsbdftx"><b>Deep Field</b><span>{me && me.loggedIn ? "members home · your charts" : "log in with X to enter"}</span></span>
+            <span className="tsbdfarrow" aria-hidden="true">→</span>
+          </button>
+        )}
       </div>
     </div>
   );
@@ -535,9 +543,16 @@ export default function TerminalNav({ onHome, openRainbow, openGallery, openAeon
         <CascadeTop label="CHARTS" groups={CHART_GROUPS} onSection={openGallery} onLeaf={goChart} renderPreview={renderPreview} />
         <FlatTop label="SPX_CITY" items={cityItems} />
         <CascadeTop label="PROJECT_AEON" groups={AEON_GROUPS} onSection={openAeon} onLeaf={goChart} renderPreview={renderPreview} />
+        {/* Deep Field — the members area, surfaced as a first-class nav tab so visitors discover it.
+            Routes to the Deep Field page, which self-gates: members get the charts, everyone else gets
+            the branded gate + "log in with X" CTA. */}
+        <div className="mtop mtop-deepfield" onClick={() => onDeepField()}
+          style={{ cursor: "pointer" }} title={me && me.loggedIn ? "Deep Field — members home" : "Deep Field — log in with X to enter"}>
+          <div className="mhead"><span className="dfword">DEEP FIELD</span></div>
+        </div>
         {asOfLabel && <div className="tdataas">Data as of {asOfLabel}</div>}
       </div>
-      <MobileSpringboard open={mobOpen} onClose={() => setMobOpen(false)} openRainbow={openRainbow} openGallery={openGallery} openAeon={openAeon} openCity={openCity} goChart={goChart} renderPreview={renderPreview} />
+      <MobileSpringboard open={mobOpen} onClose={() => setMobOpen(false)} openRainbow={openRainbow} openGallery={openGallery} openAeon={openAeon} openCity={openCity} goChart={goChart} renderPreview={renderPreview} me={me} onDeepField={onDeepField} />
     </div>
   );
 }

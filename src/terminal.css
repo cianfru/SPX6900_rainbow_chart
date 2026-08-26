@@ -87,6 +87,11 @@ html[data-theme="light"] .tzone .dfdrop{ box-shadow:0 12px 34px rgba(20,30,50,.1
    rainbow tint on the word as its only distinction (the foundation chart's splash of colour). */
 .tzone .mtop-rainbow .rbword{ background:linear-gradient(90deg,#f87171,#fb923c,#fbbf24,#4ade80,#38bdf8,#a78bfa); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; }
 .tzone .mtop-rainbow:hover > .mhead .rbword{ background:none; -webkit-text-fill-color:var(--bg); color:var(--bg); }
+/* Deep Field tab — the members area, tinted green (the live accent) as its distinction and inverting
+   onto the accent on hover, so it reads as "the members door" without shouting. */
+.tzone .mtop-deepfield .dfword{ color:var(--live); }
+.tzone .mtop-deepfield:hover > .mhead{ background:var(--live); color:var(--bg); }
+.tzone .mtop-deepfield:hover > .mhead .dfword{ color:var(--bg); }
 
 .tzone .drop,.tzone .subdrop{ display:none; position:absolute; z-index:30; min-width:212px; background:var(--bg); border:1px solid var(--line2); padding:4px; box-shadow:0 12px 34px rgba(0,0,0,.6); }
 .tzone .drop{ top:100%; left:0; } .tzone .mtop:hover > .drop{ display:block; }
@@ -415,6 +420,14 @@ html:not([data-theme="light"]) .tzone [style*="rgb(100, 116, 139)"]{ color:#b1bc
 .tzone .tsbcell .tsbcellnm{ position:relative; font-family:var(--sans); font-weight:800; font-size:19px; letter-spacing:-.01em; line-height:1.05; }
 .tzone .tsbcell .tsbcellsub{ position:relative; font-family:var(--mono); font-size:9.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--faint); }
 .tzone .tsbcell .tsbcellarrow{ position:absolute; top:16px; right:17px; color:var(--tc); font-size:17px; line-height:1; opacity:.65; }
+
+/* Deep Field door — a full-width members strip under the launcher grid (green accent = the members area) */
+.tzone .tsbdf{ flex:none; margin-top:12px; display:flex; align-items:center; gap:12px; width:100%; padding:14px 16px; border:1px solid color-mix(in srgb, var(--live) 55%, var(--line2)); border-radius:16px; background:linear-gradient(150deg, color-mix(in srgb, var(--live) 15%, var(--panel)), var(--panel2) 82%); color:var(--tx); cursor:pointer; text-align:left; transition:transform .1s ease, border-color .12s; }
+.tzone .tsbdf:active{ transform:scale(.985); border-color:var(--live); }
+.tzone .tsbdf .tsbdftx{ display:flex; flex-direction:column; gap:2px; flex:1; min-width:0; }
+.tzone .tsbdf .tsbdftx b{ font-family:var(--sans); font-weight:800; font-size:16px; letter-spacing:-.01em; color:var(--live); }
+.tzone .tsbdf .tsbdftx span{ font-family:var(--mono); font-size:10px; letter-spacing:.09em; text-transform:uppercase; color:var(--dim); }
+.tzone .tsbdf .tsbdfarrow{ flex:none; color:var(--live); font-size:18px; line-height:1; }
 
 /* ═══════════ THE TERMINAL (/terminal) — the owner intel one-pager ═══════════
    Scoped under .tzone so it inherits the design tokens + the light/dark theme flip. */
