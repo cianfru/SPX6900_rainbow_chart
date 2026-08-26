@@ -1,0 +1,214 @@
+<!doctype html><html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>The Data Behind the Rainbow</title>
+<style>
+  :root{ --bg:#04040a; --tx:#eef2fb; --dim:#8b97ad; --live:#4ee79a; }
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; height:100%; background:#06070d; color:var(--tx);
+    font-family:ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace; }
+  .wrap{ min-height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px; padding:22px; }
+  .stage{ position:relative; width:min(92vmin,760px); aspect-ratio:var(--ar,1); background:#000;
+    border:1px solid rgba(255,255,255,.08); border-radius:14px; overflow:hidden; box-shadow:0 30px 90px -30px rgba(0,0,0,.9); }
+  canvas{ position:absolute; inset:0; width:100%; height:100%; display:block; }
+  .bar{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; justify-content:center; }
+  button,select{ font:inherit; font-size:13px; color:var(--tx); background:#0e1119; border:1px solid rgba(255,255,255,.16);
+    border-radius:9px; padding:9px 14px; cursor:pointer; }
+  button.rec{ border-color:var(--live); color:var(--live); }
+  button.rec[disabled]{ opacity:.55; cursor:default; }
+  button:hover{ border-color:var(--live); }
+  .hint{ font-size:12px; color:var(--dim); text-align:center; max-width:560px; line-height:1.5; }
+  .msg{ font-size:12.5px; color:var(--live); min-height:16px; }
+</style></head>
+<body><div class="wrap">
+  <div class="stage" id="stage"><canvas id="c"></canvas></div>
+  <div class="bar">
+    <label class="hint" style="margin:0">format
+      <select id="ar">
+        <option value="1">1:1 · X feed</option>
+        <option value="0.5625">9:16 · Reels/TikTok</option>
+        <option value="1.7777">16:9 · wide</option>
+      </select>
+    </label>
+    <select id="secs"><option value="6">6s</option><option value="8">8s</option><option value="10">10s</option><option value="12">12s</option></select>
+    <button class="rec" id="rec">● Record</button>
+    <button id="png">Save frame (PNG)</button>
+  </div>
+  <div class="msg" id="msg"></div>
+  <div class="hint">A living map of how every SPX6900 number is built — each source streams energy into the rainbow at the centre.
+    Recording encodes on <b>your</b> machine (MP4 on Chrome/Safari), then downloads. Post it straight to X.</div>
+</div>
+<script>
+const cv = document.getElementById("c"), ctx = cv.getContext("2d", { alpha:false });
+const stage = document.getElementById("stage"), msg = document.getElementById("msg");
+let AR = 1;                 // width/height of the render (1 = square)
+let W = 1080, H = 1080;     // internal render resolution
+
+// ── the data sources feeding the rainbow (name · what it provides · rainbow-band colour) ──
+const NODES = [
+  { name:"ETHEREUM",    sub:"on-chain transfers",   c:"#6366f1" },
+  { name:"BASE",        sub:"token transfers",       c:"#3b82f6" },
+  { name:"SOLANA",      sub:"SPL balances",          c:"#06b6d4" },
+  { name:"HYPERLIQUID", sub:"funding & OI",          c:"#22c55e" },
+  { name:"PRICE FEEDS", sub:"CoinGecko · DEX",       c:"#84cc16" },
+  { name:"BIGQUERY",    sub:"full-history rebuild",  c:"#f59e0b" },
+  { name:"ALCHEMY",     sub:"NFT floor · Base",      c:"#ea580c" },
+  { name:"WORMHOLE",    sub:"bridged supply",        c:"#f43f5e" },
+  { name:"FIFO ENGINE", sub:"cost basis & age",      c:"#a855f7" },
+];
+const RB = ["#6366f1","#3b82f6","#06b6d4","#22c55e","#84cc16","#f59e0b","#ea580c","#dc2626","#8b0000"]; // rainbow bands
+
+// deterministic star field so the loop is stable
+function mulberry(seed){ return function(){ seed|=0; seed=seed+0x6D2B79F5|0; let t=Math.imul(seed^seed>>>15,1|seed); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
+let stars=[];
+function layout(){
+  // fit render res to the chosen aspect, capped for encode cost
+  if (AR >= 1) { W = 1080; H = Math.round(1080/AR); } else { H = 1080; W = Math.round(1080*AR); }
+  cv.width = W; cv.height = H;
+  const rnd = mulberry(99);
+  stars = Array.from({length: Math.round(W*H/9000)}, () => ({ x:rnd()*W, y:rnd()*H, r:rnd()*1.3+0.2, a:rnd()*0.5+0.15, tw:rnd()*Math.PI*2 }));
+}
+
+const TAU = Math.PI*2;
+function nodePos(i){
+  const cx=W/2, cy=H/2;
+  // ellipse sized to leave room for outside labels; +20° offset so no node sits under the title
+  const rx = W*0.30, ry = H*0.32;
+  const ang = -Math.PI/2 + Math.PI/NODES.length + (i/NODES.length)*TAU;
+  return { x: cx + Math.cos(ang)*rx, y: cy + Math.sin(ang)*ry, ang };
+}
+
+// pulses are phase-based (period P per node) so the flow is smooth and loops cleanly
+const SPEED = 0.42;         // fraction of the trip per second
+const PER_NODE = 2;         // overlapping pulses per connector
+function draw(now){
+  const t = now/1000;
+  const cx=W/2, cy=H/2;
+  // background
+  const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, Math.max(W,H)*0.62);
+  g.addColorStop(0,"#0b0c18"); g.addColorStop(0.55,"#070812"); g.addColorStop(1,"#040409");
+  ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+  // stars
+  for(const s of stars){ const a=s.a*(0.6+0.4*Math.sin(t*1.5+s.tw)); ctx.globalAlpha=a; ctx.fillStyle="#9fb0d0"; ctx.beginPath(); ctx.arc(s.x,s.y,s.r,0,TAU); ctx.fill(); }
+  ctx.globalAlpha=1;
+  // faint concentric telemetry rings
+  ctx.strokeStyle="rgba(255,255,255,0.05)"; ctx.lineWidth=1;
+  for(const rr of [0.2,0.32,0.44]){ ctx.beginPath(); ctx.arc(cx,cy,Math.min(W,H)*rr,0,TAU); ctx.stroke(); }
+
+  let arrivalGlow = 0;
+  ctx.lineCap="round";
+  NODES.forEach((n,i)=>{
+    const p = nodePos(i);
+    // connector (faint, node colour)
+    ctx.strokeStyle = n.c+"22"; ctx.lineWidth=1.4;
+    ctx.beginPath(); ctx.moveTo(p.x,p.y); ctx.lineTo(cx,cy); ctx.stroke();
+    // travelling pulses node -> centre
+    for(let k=0;k<PER_NODE;k++){
+      const phase = (t*SPEED + i*0.11 + k/PER_NODE) % 1;      // 0 at node, 1 at centre
+      const hx = p.x + (cx-p.x)*phase, hy = p.y + (cy-p.y)*phase;
+      // glowing trail
+      const tl = 0.14;
+      const bx = p.x + (cx-p.x)*Math.max(0,phase-tl), by = p.y + (cy-p.y)*Math.max(0,phase-tl);
+      const lg = ctx.createLinearGradient(bx,by,hx,hy);
+      lg.addColorStop(0, n.c+"00"); lg.addColorStop(1, n.c+"ff");
+      ctx.strokeStyle=lg; ctx.lineWidth=3.2; ctx.beginPath(); ctx.moveTo(bx,by); ctx.lineTo(hx,hy); ctx.stroke();
+      // head with bloom
+      ctx.shadowColor=n.c; ctx.shadowBlur=16; ctx.fillStyle="#ffffff";
+      ctx.beginPath(); ctx.arc(hx,hy,3.4,0,TAU); ctx.fill(); ctx.shadowBlur=0;
+      if (phase>0.93) arrivalGlow = Math.max(arrivalGlow, (phase-0.93)/0.07);
+    }
+    // node dot + glow
+    ctx.shadowColor=n.c; ctx.shadowBlur=18; ctx.fillStyle=n.c;
+    ctx.beginPath(); ctx.arc(p.x,p.y,6.5+2*Math.sin(t*2+i),0,TAU); ctx.fill(); ctx.shadowBlur=0;
+    ctx.fillStyle="#0a0c14"; ctx.beginPath(); ctx.arc(p.x,p.y,2.6,0,TAU); ctx.fill();
+    // labels — outside the node, but clamped so they never run off the frame
+    const S = Math.min(W,H), pad = S*0.022;
+    const out = Math.atan2(p.y-cy, p.x-cx), co = Math.cos(out);
+    const nameF = `700 ${Math.round(S*0.0185)}px ui-monospace,monospace`;
+    const subF = `${Math.round(S*0.0145)}px ui-monospace,monospace`;
+    ctx.font=nameF; const w1=ctx.measureText(n.name).width;
+    ctx.font=subF;  const w2=ctx.measureText(n.sub).width;
+    const tw = Math.max(w1,w2);
+    let align, lx, ly = p.y + Math.sin(out)*4;
+    if (Math.abs(co) < 0.34) {                              // near top / bottom → centre the label, push clear of the dot
+      align="center"; lx = Math.min(Math.max(p.x, pad+tw/2), W-pad-tw/2);
+      ly = p.y + (Math.sin(out) >= 0 ? 26 : -26);
+    } else if (co >= 0) {                                   // right side
+      align="left";  lx = Math.min(p.x+15, W-pad-tw);
+    } else {                                                // left side
+      align="right"; lx = Math.max(p.x-15, pad+tw);
+    }
+    ctx.textAlign=align; ctx.textBaseline="middle";
+    ctx.fillStyle="#eef2fb"; ctx.font=nameF; ctx.fillText(n.name, lx, ly-8);
+    ctx.fillStyle=n.c; ctx.font=subF; ctx.fillText(n.sub, lx, ly+9);
+  });
+
+  // ── centre: the rainbow emblem ──
+  const S=Math.min(W,H), R=S*0.092, pulse = 1 + 0.05*Math.sin(t*2.2) + 0.09*arrivalGlow;
+  // bloom
+  const bg = ctx.createRadialGradient(cx,cy,0,cx,cy,R*3.4);
+  bg.addColorStop(0,"rgba(120,140,255,"+(0.28+0.25*arrivalGlow)+")"); bg.addColorStop(1,"rgba(120,140,255,0)");
+  ctx.fillStyle=bg; ctx.beginPath(); ctx.arc(cx,cy,R*3.4,0,TAU); ctx.fill();
+  // arrival ripple
+  if (arrivalGlow>0){ ctx.strokeStyle="rgba(238,242,251,"+(0.5*arrivalGlow)+")"; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(cx,cy,R*(1.2+1.6*(1-arrivalGlow)),0,TAU); ctx.stroke(); }
+  // a sunrise rainbow: concentric half-arcs (flat side down), bands violet(out)->indigo(in)
+  ctx.save(); ctx.translate(cx, cy + R*0.42); ctx.scale(pulse,pulse); ctx.lineCap="round";
+  const bands = RB.slice().reverse(); // outer = red-ish -> inner = indigo, drawn outer first
+  bands.forEach((col,i)=>{
+    const rad = R*(1.02) - i*(R*0.108);
+    if (rad<=2) return;
+    ctx.strokeStyle=col; ctx.lineWidth=R*0.092; ctx.shadowColor=col; ctx.shadowBlur=12;
+    ctx.beginPath(); ctx.arc(0,0,rad,Math.PI,TAU); ctx.stroke();
+  });
+  ctx.shadowBlur=0;
+  // bright core
+  ctx.fillStyle="#f8fbff"; ctx.beginPath(); ctx.arc(0,0,R*0.14,0,TAU); ctx.fill();
+  ctx.restore();
+  // centre wordmark
+  ctx.textAlign="center"; ctx.textBaseline="middle"; ctx.shadowBlur=0;
+  ctx.fillStyle="#eef2fb"; ctx.font=`800 ${Math.round(S*0.026)}px ui-monospace,monospace`;
+  ctx.fillText("SPX6900", cx, cy + R*1.5);
+  ctx.fillStyle="#8b97ad"; ctx.font=`${Math.round(S*0.016)}px ui-monospace,monospace`;
+  ctx.fillText("RAINBOW", cx, cy + R*1.5 + S*0.026);
+
+  // title + footer
+  ctx.textAlign="center"; ctx.fillStyle="#f8fafc";
+  ctx.font=`800 ${Math.round(S*0.033)}px ui-monospace,monospace`;
+  ctx.fillText("THE DATA BEHIND THE RAINBOW", cx, S*0.072);
+  ctx.fillStyle="#8b97ad"; ctx.font=`${Math.round(S*0.018)}px ui-monospace,monospace`;
+  ctx.fillText("every number reconstructed on-chain — live, and checkable", cx, S*0.072 + S*0.035);
+  ctx.fillStyle="#5b6678"; ctx.font=`${Math.round(S*0.016)}px ui-monospace,monospace`;
+  ctx.fillText("spx6900rainbow.xyz", cx, H - S*0.045);
+}
+
+let raf;
+function loop(now){ draw(now); raf=requestAnimationFrame(loop); }
+function setAR(v){ AR=parseFloat(v); stage.style.setProperty("--ar", AR); layout(); }
+
+setAR(1); raf=requestAnimationFrame(loop);
+document.getElementById("ar").onchange = e => setAR(e.target.value);
+
+// ── recorder (self-contained; MP4 first, WebM fallback) ──
+function pickMime(){ for(const m of ["video/mp4;codecs=avc1","video/mp4","video/webm;codecs=vp9","video/webm;codecs=vp8","video/webm"]){ try{ if(MediaRecorder.isTypeSupported(m)) return m; }catch(e){} } return "video/webm"; }
+document.getElementById("png").onclick = () => {
+  const a=document.createElement("a"); a.download="spx6900-dataflow.png"; a.href=cv.toDataURL("image/png"); a.click();
+};
+document.getElementById("rec").onclick = async () => {
+  const btn=document.getElementById("rec");
+  if (typeof MediaRecorder==="undefined" || !cv.captureStream){ msg.textContent="Recording not supported in this browser."; return; }
+  const secs = parseInt(document.getElementById("secs").value,10);
+  btn.disabled=true; const label=btn.textContent;
+  const stream = cv.captureStream(60); const mime=pickMime(); const chunks=[];
+  let rec; for(const o of [{mimeType:mime,videoBitsPerSecond:12e6},{mimeType:mime},undefined]){ try{ rec=new MediaRecorder(stream,o); break; }catch(e){} }
+  rec.ondataavailable = e => e.data && e.data.size && chunks.push(e.data);
+  const done = new Promise(r => rec.onstop = r);
+  rec.start();
+  const t0=performance.now();
+  (function tick(){ const el=(performance.now()-t0)/(secs*1000); btn.textContent="● "+Math.ceil(secs*(1-el))+"s"; if(el>=1){ rec.stop(); return; } requestAnimationFrame(tick); })();
+  await done;
+  const ext = (rec.mimeType||mime).includes("mp4") ? "mp4" : "webm";
+  const blob = new Blob(chunks, { type: rec.mimeType||mime });
+  const url=URL.createObjectURL(blob); const a=document.createElement("a"); a.href=url; a.download="spx6900-dataflow."+ext; a.click(); setTimeout(()=>URL.revokeObjectURL(url),4000);
+  btn.textContent=label; btn.disabled=false;
+  msg.textContent = ext==="mp4" ? "Saved MP4 — ready to post." : "Saved WebM (this browser can't do MP4; convert or post as-is).";
+};
+</script></body></html>
