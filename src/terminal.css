@@ -92,8 +92,10 @@ html[data-theme="light"] .tzone .dfdrop{ box-shadow:0 12px 34px rgba(20,30,50,.1
 .tzone .mtop-deepfield .dfword{ color:var(--live); }
 /* label + cursor in ONE inline-flex box so the .mhead's flex gap can't separate the "_" from the "D" */
 .tzone .mtop-deepfield .mhead .lw{ display:inline-flex; align-items:baseline; }
-/* always-flashing "_" hash right after DEEP_FIELD — same cursor as the other tabs, kept lit so the members door reads as live */
-.tzone .mtop-deepfield .dfcur{ color:var(--live); margin-left:1px; animation:tcurblink 1.05s steps(1,end) infinite; }
+/* "_" hash right after DEEP_FIELD — STATIC when idle, blinks ONLY on hover, exactly like the other tabs
+   (an always-blinking cursor on a single tab is the lone pulsing distraction the owner flagged). */
+.tzone .mtop-deepfield .dfcur{ color:var(--live); margin-left:1px; }
+.tzone .mtop-deepfield:hover .dfcur{ animation:tcurblink 1.05s steps(1,end) infinite; }
 .tzone .mtop-deepfield:hover > .mhead{ background:var(--live); color:var(--bg); }
 .tzone .mtop-deepfield:hover > .mhead .dfword, .tzone .mtop-deepfield:hover > .mhead .dfcur{ color:var(--bg); }
 
