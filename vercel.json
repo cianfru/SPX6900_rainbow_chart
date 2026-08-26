@@ -99,6 +99,14 @@
       "destination": "/control.html"
     },
     {
+      "source": "/dataflow",
+      "destination": "/dataflow.html"
+    },
+    {
+      "source": "/dataflow.html",
+      "destination": "/dataflow.html"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }
