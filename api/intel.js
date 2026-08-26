@@ -222,8 +222,13 @@ details.cty{border-bottom:1px solid var(--sep)}details.cty[open]{background:rgba
 .dchart .bars rect:hover{opacity:1}
 .dchart .cum{fill:none;stroke:var(--live);stroke-width:2.2}
 .dchart .cumfill{fill:var(--live);opacity:.12}
-.dchart .ma{fill:none;stroke:#fbbf24;stroke-width:1.8;opacity:.95}
-.dchart .uq{fill:none;stroke:#38bdf8;stroke-width:1.8;opacity:.95}
+.dchart .ma{fill:none;stroke:#fbbf24;stroke-width:1.8;opacity:.95;pointer-events:none}
+.dchart .uq{fill:none;stroke:#38bdf8;stroke-width:1.8;opacity:.95;pointer-events:none}
+.dchart .dhit{fill:transparent;cursor:crosshair}
+.dtip{position:fixed;z-index:60;pointer-events:none;display:none;background:var(--panel);border:1px solid var(--live);border-radius:8px;padding:7px 10px;box-shadow:0 8px 24px rgba(0,0,0,.55);white-space:nowrap;transform:translate(-50%,calc(-100% - 12px));font-variant-numeric:tabular-nums}
+.dtip .d{color:var(--dim);font-size:10px;letter-spacing:.1em;text-transform:uppercase;margin-bottom:3px}
+.dtip .v{color:var(--tx);font-size:14px;font-weight:700}
+.dtip .u{color:#38bdf8;font-size:12px;margin-top:1px}
 .ev b{color:var(--tx)}.muted{color:var(--faint)}.note{color:var(--faint);margin-top:14px;line-height:1.6}
 </style></head><body><div class="wrap">
 <h1>Page Intel</h1>
@@ -298,19 +303,37 @@ function growthCard(daily,uniq){
   const show=days.slice(-90), off=N-show.length, dmax=Math.max(1,Math.max.apply(null,show.map(function(x){return x[1];})));
   const W=960,H=150,pB=22,pT=8,bw=W/show.length;
   const anyU=show.some(function(d){return umap[d[0]]>0;});
-  let bars='',mline='',uline='',uPrev=false,dt='';lastMon=-1;
+  let bars='',mline='',uline='',uPrev=false,dt='',hits='';lastMon=-1;
   show.forEach(function(d,i){ var h=(d[1]/dmax)*(H-pB-pT), x=i*bw, y=H-pB-h;
-    bars+='<rect x="'+(x+0.6).toFixed(1)+'" y="'+y.toFixed(1)+'" width="'+Math.max(1,bw-1.2).toFixed(1)+'" height="'+h.toFixed(1)+'" rx="1"><title>'+d[0]+' — '+d[1]+' visits'+(umap[d[0]]>0?' · '+umap[d[0]]+' unique':'')+'</title></rect>';
+    bars+='<rect x="'+(x+0.6).toFixed(1)+'" y="'+y.toFixed(1)+'" width="'+Math.max(1,bw-1.2).toFixed(1)+'" height="'+h.toFixed(1)+'" rx="1"/>';
     var mv=ma[off+i], my=H-pB-(mv/dmax)*(H-pB-pT); mline+=(i?'L':'M')+(x+bw/2).toFixed(1)+','+my.toFixed(1);
     // unique line only where a set exists (tracking started mid-history) — break the path on gaps
     var uv=umap[d[0]]; if(uv>0){ var uy=H-pB-(uv/dmax)*(H-pB-pT); uline+=(uPrev?'L':'M')+(x+bw/2).toFixed(1)+','+uy.toFixed(1); uPrev=true; } else uPrev=false;
+    // full-height transparent hit target per day, drawn LAST (on top of the bars + lines) so hovering
+    // anywhere in a day's column shows its value — the native <title> was getting swallowed by the bars/lines.
+    hits+='<rect class="dhit" x="'+x.toFixed(1)+'" y="0" width="'+bw.toFixed(1)+'" height="'+H+'" data-d="'+d[0]+'" data-v="'+d[1]+'" data-u="'+(uv>0?uv:0)+'"></rect>';
     var mo=+d[0].slice(5,7); if(mo!==lastMon){lastMon=mo; dt+='<text x="'+x.toFixed(1)+'" y="'+(H-6)+'" font-size="10" fill="var(--faint)">'+MON[mo]+'</text>';} });
-  const dailySvg='<svg viewBox="0 0 '+W+' '+H+'" class="dchart"><line x1="0" y1="'+(H-pB)+'" x2="'+W+'" y2="'+(H-pB)+'" stroke="var(--sep)"/><g class="bars">'+bars+'</g><path class="ma" d="'+mline+'"/>'+(uline?'<path class="uq" d="'+uline+'"/>':'')+dt+'</svg>';
+  const dailySvg='<svg viewBox="0 0 '+W+' '+H+'" class="dchart daily"><line x1="0" y1="'+(H-pB)+'" x2="'+W+'" y2="'+(H-pB)+'" stroke="var(--sep)"/><g class="bars">'+bars+'</g><path class="ma" d="'+mline+'"/>'+(uline?'<path class="uq" d="'+uline+'"/>':'')+dt+'<g class="hits">'+hits+'</g></svg>';
   const dLegend='last '+show.length+'d · <span style="color:#fbbf24">━</span> 7-day avg'+(anyU?' · <span style="color:#38bdf8">━</span> unique/day':'')+' · peak '+peak[1]+' ('+peak[0]+')';
   return kpis
     +'<div class="card"><h2>How the page is developing <span class="c">cumulative visits · '+total.toLocaleString()+' total since '+days[0][0]+'</span></h2>'+cumSvg+'</div>'
     +'<div class="card"><h2>Visits per day <span class="c">'+dLegend+'</span></h2>'+dailySvg
     +(anyU?'':'<div class="note" style="margin-top:8px">Unique-visitor tracking just switched on — the unique line will fill in from today forward; pageviews go back further.</div>')+'</div>';
+}
+// Hover tooltip for the "Visits per day" chart — a full-height hit rect per day drives a floating tip
+// (date · visits · unique) and highlights the matching bar. Runs after the dashboard HTML is injected.
+function wireDailyTip(){
+  const svg=document.querySelector('.dchart.daily'); if(!svg) return;
+  let tip=document.querySelector('.dtip'); if(!tip){ tip=document.createElement('div'); tip.className='dtip'; document.body.appendChild(tip); }
+  const bars=svg.querySelectorAll('.bars rect'); const hits=[].slice.call(svg.querySelectorAll('.dhit')); let cur=-1;
+  const clear=()=>{ if(cur>=0&&bars[cur]) bars[cur].style.opacity=''; cur=-1; };
+  const hide=()=>{ tip.style.display='none'; clear(); };
+  svg.addEventListener('mousemove',function(e){ const t=e.target.closest?e.target.closest('.dhit'):null; if(!t){ hide(); return; }
+    const i=hits.indexOf(t); if(i!==cur){ clear(); cur=i; if(bars[i]) bars[i].style.opacity='1'; }
+    const d=t.getAttribute('data-d'), v=+t.getAttribute('data-v'), u=+t.getAttribute('data-u');
+    tip.innerHTML='<div class="d">'+d+'</div><div class="v">'+v.toLocaleString()+' visits</div>'+(u>0?'<div class="u">'+u.toLocaleString()+' unique</div>':'');
+    tip.style.display='block'; tip.style.left=e.clientX+'px'; tip.style.top=e.clientY+'px'; });
+  svg.addEventListener('mouseleave',hide);
 }
 async function load(){ const pw=$('#pw')?$('#pw').value:''; $('#out').innerHTML='<p class="muted">loading…</p>';
   let r;
@@ -349,6 +372,7 @@ async function load(){ const pw=$('#pw')?$('#pw').value:''; $('#out').innerHTML=
     +'<div class="card"><h2>Referrers</h2>'+rows(d.refs,12)+'</div>'
     +'<div class="card"><h2>Recent events</h2><div class="feed">'+feed+'</div></div>'
     +'</div>';
+  wireDailyTip();
   $('#login').style.display='none';
 }
 try{ const s=sessionStorage.getItem('intelpw'); if(s){ $('#pw').value=s; load(); } }catch(e){} /* remembers a valid session so you don't retype the password each visit */
