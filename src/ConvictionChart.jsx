@@ -58,6 +58,7 @@ export default function ConvictionChart({ isMobile, preview = false }) {
         <Metric label="conviction now" value={Math.round(cur.score)} color={z.color} sub={z.label} />
         <Metric label="scale" value="0–100" color="#e2e8f0" sub="turnover → diamond-held" />
       </div>
+      <div style={{ textAlign: "center", fontFamily: MONO, fontSize: 11, color: "#64748b", marginBottom: 10 }}>Ethereum-native · from per-wallet holding age</div>
 
       <ZoomBar zoomed={zoomed} onReset={() => setZoom(null)} accent={ACC} />
 
@@ -92,6 +93,7 @@ export default function ConvictionChart({ isMobile, preview = false }) {
 
       <div className="chart-caption" style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.65, maxWidth: 900, marginInline: "auto" }}>
         <strong style={{ color: ACC }}>Conviction Score</strong> = supply weighted by holding age (90+ days = full weight, the 30–90d band partial, fresh supply ~none), from our FIFO per-lot age reconstruction.
+        <strong style={{ color: "#94a3b8" }}> Ethereum-native</strong> — holding age is only reconstructable on the traceable chain (Base &amp; Solana are bridged), where ~94% of SPX value sits.
         A stickiness read over time, not a price signal. Drag to zoom. Not financial advice.
       </div>
     </div>

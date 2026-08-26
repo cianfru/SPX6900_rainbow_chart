@@ -57,6 +57,7 @@ export default function HolderChangeChart({ isMobile, preview = false }) {
         <Metric label="wallets > $100" value={cur.pctAbove100 != null ? cur.pctAbove100 + "%" : "—"} color={LINE} sub="of all holders" />
         <Metric label="$100k+ wallets Δ today" value={(cur.t4 > 0 ? "+" : "") + cur.t4} color={cur.t4 >= 0 ? "#4ade80" : "#fb7185"} sub="net new whales" />
       </div>
+      <div style={{ textAlign: "center", fontFamily: MONO, fontSize: 11, color: "#64748b", marginBottom: 10 }}>Ethereum-native · per-wallet from the FIFO engine</div>
 
       <div style={{ display: "flex", justifyContent: "center", gap: 14, alignItems: "center", flexWrap: "wrap", marginBottom: 8 }}>
         <ViewTabs tabs={RANGES} value={range} onChange={setRange} />
@@ -88,6 +89,7 @@ export default function HolderChangeChart({ isMobile, preview = false }) {
 
       <div className="chart-caption" style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 12, lineHeight: 1.65, maxWidth: 900, marginInline: "auto" }}>
         Daily net change in the number of wallets in each dollar bracket (value = balance × price that day), from our FIFO reconstruction of every wallet.
+        <strong style={{ color: "#94a3b8" }}> Ethereum-native</strong> — per-wallet values need the traceable chain (Base &amp; Solana are bridged; they&apos;re counted in Wallet Growth, not here).
         Bars up = wallets joined the bracket, down = left it; the line is the share worth over $100. Headcount, not supply. Not financial advice.
       </div>
     </div>
