@@ -60,6 +60,7 @@ import { renderCityPercapCard } from "./city-percap-card.mjs";
 import { renderCityVintageCard } from "./city-vintage-card.mjs";
 import { renderCitySkylineCard } from "./city-skyline-card.mjs";
 import { renderFloatCheckCard } from "./float-check-card.mjs";
+import { renderTurnoverCard } from "./turnover-card.mjs";
 import { renderWhaleBehaviourCard } from "./whale-behaviour-card.mjs";
 import { renderWhaleMosaicCard } from "./whale-mosaic-card.mjs";
 import { renderCexFlowCard } from "./cex-flow-card.mjs";
@@ -907,7 +908,7 @@ export const CARD_TYPES = new Set([
   "freefloat", "nupl", "concentration", "hodlwaves", "hodlcompare", "urpd", "bagsprofile", "urpdage",
   "lthsth", "sopr", "nrpl", "liveliness", "valband", "walletgrowth", "picycle", "spxbitcoin", "spxcohort",
   "cexsupply", "cexflow", "cexvenues", "cexvenflow", "cexsankey", "whalethennow", "whaleentry", "whales", "walletwaves", "wealthwaves", "survivorship", "supplyera", "exitmap", "smartmoney",
-  "cyclesync", "cycleclock", "rsidots", "monthcompare", "ethsol", "chainconc", "illiquid", "baltier", "dualholders", "basesurv", "supplycurve", "whalecensus", "whalebehaviour", "whalemosaic", "citygrowth", "cityvalue", "citychurn", "citypercap", "cityvintage", "cityskyline", "floatcheck",
+  "cyclesync", "cycleclock", "rsidots", "monthcompare", "ethsol", "chainconc", "illiquid", "baltier", "dualholders", "basesurv", "supplycurve", "whalecensus", "whalebehaviour", "whalemosaic", "citygrowth", "cityvalue", "citychurn", "citypercap", "cityvintage", "cityskyline", "floatcheck", "turnover",
   // spec-driven generics
   "line", "bar", "mbars", "donut", "stack", "model", "cube", "scale", "gauge", "fngdial",
   "heatmap", "dca", "dcaladder", "statgrid", "kraken",
@@ -947,6 +948,7 @@ export function renderPostCard(post, stats, opts = {}) {
   if (type === "cityvintage") return renderCityVintageCard(stats, dims);
   if (type === "cityskyline") return renderCitySkylineCard(stats, dims);
   if (type === "floatcheck") return renderFloatCheckCard(stats, dims);
+  if (type === "turnover") return renderTurnoverCard(stats, dims);
   if (type === "ethsol") return renderEthSol2026Card(stats, dims);
   if (type === "chainconc") return renderChainConcCard(stats, dims);
   if (type === "illiquid") return renderChainIlliquidCard(stats, dims);
