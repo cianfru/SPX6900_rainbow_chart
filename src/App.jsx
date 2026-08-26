@@ -22,6 +22,7 @@ import {
 import { CRYPTO_MILESTONES } from "./milestones.js";
 import { CHART_META, CHART_IDS, CHART_GROUPS, AEON_GROUPS, CITY_GROUPS } from "./charts-catalog.js";
 import { loadReleases } from "./deepfield-release.js";
+import { loadMe, isMember, isOwner } from "./members.js";
 
 // The charts either side of `id` within its own group — powers swipe / arrow navigation between
 // DEEP FIELD DRIP GATE. A walled chart the owner hasn't released yet shows "Under construction" to
@@ -74,23 +75,18 @@ function recBypass() {
     return new URLSearchParams(window.location.search).get("rec") === "1" && localStorage.getItem("spx-rec") === "1";
   } catch { return false; }
 }
-// Cached "who am I" — one fetch shared across every ReleaseGate on the page.
-let _mePromise;
-function loadMe() {
-  if (!_mePromise) _mePromise = fetch("/api/auth?action=me", { cache: "no-store" }).then(r => (r.ok ? r.json() : null)).catch(() => null);
-  return _mePromise;
-}
 // A drip chart is either UNRELEASED (under construction, everyone) or RELEASED (members-only). It never
-// renders its stripped/granular data to a signed-out visitor.
+// renders its stripped/granular data to a signed-out visitor. The OWNER bypasses BOTH gates (every chart,
+// released or not) so @SPX6900Rainbow always sees everything.
 function ReleaseGate({ id, preview, title, children }) {
   const [rel, setRel] = useState(null);   // null = loading · Set = released ids
   const [me, setMe] = useState(undefined); // undefined = loading · null/object
   useEffect(() => { let off = false; loadReleases().then(s => { if (!off) setRel(s); }); loadMe().then(m => { if (!off) setMe(m); }); return () => { off = true; }; }, []);
   if (recBypass()) return children;
+  if (me !== undefined && isOwner(me)) return children;   // owner sees everything
   if (rel === null || me === undefined) return preview ? null : <div style={{ textAlign: "center", fontFamily: "var(--mono)", color: "var(--faint)", padding: 40 }}>…</div>;
   if (!rel.has(id)) return <UnderConstruction title={title || CHART_META[id]?.title} preview={preview} />;
-  const isMember = !!(me && me.loggedIn && me.member);
-  if (!isMember) return <MembersOnly title={title || CHART_META[id]?.title} preview={preview} />;
+  if (!isMember(me)) return <MembersOnly title={title || CHART_META[id]?.title} preview={preview} />;
   return children;
 }
 
@@ -157,7 +153,6 @@ const WhaleEntryChart = lazy(() => import("./WhaleEntryChart.jsx"));
 const ExitFlowChart = lazy(() => import("./ExitFlowChart.jsx"));
 const SmartMoneyChart = lazy(() => import("./SmartMoneyChart.jsx"));
 const EntityClustersChart = lazy(() => import("./EntityClustersChart.jsx"));
-const CityGate = lazy(() => import("./CityGate.jsx"));
 const ClusterCity = lazy(() => import("./ClusterCity.jsx"));
 const WalletWavesChart = lazy(() => import("./OwnershipCharts.jsx").then(m => ({ default: m.WalletWavesChart })));
 const WealthWavesChart = lazy(() => import("./OwnershipCharts.jsx").then(m => ({ default: m.WealthWavesChart })));
@@ -412,7 +407,7 @@ export default function App() {
   // Who's signed in — drives the login-aware Home (a member's home is Deep Field) + the nav login/avatar.
   const [me, setMe] = useState(null);   // null = loading/unknown · {loggedIn, member, username, avatar}
   useEffect(() => { let off = false; loadMe().then(m => { if (!off) setMe(m || { loggedIn: false }); }); return () => { off = true; }; }, []);
-  const meMember = !!(me && me.loggedIn && me.member);
+  const meMember = isMember(me);
   const [docSlug, setDocSlug] = useState("index"); // which page of the manual (?view=docs&p=…)
   const [storyWallet, setStoryWallet] = useState(""); // "Your SPX Story" deep-link wallet (?view=story&wallet=…)
   const [walletAddr, setWalletAddr] = useState(""); // per-wallet page address (?view=wallet&addr=…)
@@ -889,15 +884,12 @@ export default function App() {
       case "supplyprofit": return <SupplyInProfitChart isMobile={mob} preview={preview} />;
       case "hodlwaves": return <HodlWavesChart isMobile={mob} preview={preview} />;
       case "conviction": return <ConvictionChart isMobile={mob} preview={preview} />;
-      case "holderchange": return <HolderChangeChart isMobile={mob} preview={preview} />;
+      case "holderchange": return <ReleaseGate id="holderchange" preview={preview}><HolderChangeChart isMobile={mob} preview={preview} /></ReleaseGate>;
       case "whales": return <WhalesChart isMobile={mob} preview={preview} />;
       case "survivorship": return <SurvivorshipChart isMobile={mob} initialView={iv} />;
       case "whaleentry": return (
         <ReleaseGate id="whaleentry" preview={preview}>
-          <CityGate title="When Whales Bought" accent="#5eead4" unit="whale" locked
-            blurb="We think this one's a little too good to give away just yet — it's behind a password while we refine it.">
-            <WhaleEntryChart isMobile={mob} price={last?.price} />
-          </CityGate>
+          <WhaleEntryChart isMobile={mob} price={last?.price} />
         </ReleaseGate>
       );
       case "exitflow": return <ExitFlowChart isMobile={mob} />;
@@ -907,10 +899,7 @@ export default function App() {
       case "concentration": return <HolderConcentrationChart isMobile={mob} preview={preview} />;
       case "entities": return (
         <ReleaseGate id="entities" preview={preview}>
-        <CityGate title="Wallet Clusters" accent="#818cf8" unit="owner" locked
-          blurb="Honestly, we think this one's a little too good to give away for free just yet — so it's behind a password while we figure out what to do with it.">
           <EntityClustersChart isMobile={mob} preview={preview} />
-        </CityGate>
         </ReleaseGate>
       );
       case "clustercity": return <ReleaseGate id="clustercity" preview={preview}><ClusterCity isMobile={mob} /></ReleaseGate>;

@@ -24,7 +24,10 @@ const CSECRET = () => process.env.X_CLIENT_SECRET;
 const SECRET = () => process.env.SESSION_SECRET;
 const APP_URL = () => (process.env.APP_URL || "https://spx6900rainbow.xyz").replace(/\/$/, "");
 const REDIRECT = () => APP_URL() + "/api/auth";
-const OWNER_HANDLES = () => new Set((process.env.OWNER_HANDLES || "").split(",").map(s => s.trim().toLowerCase()).filter(Boolean));
+// OWNER_HANDLES = X handles that get OWNER access (every chart, past every gate). Defaults to the
+// project account so the owner always has full access without needing an env var set.
+const OWNER_HANDLES = () => new Set((process.env.OWNER_HANDLES || "spx6900rainbow").split(",").map(s => s.trim().toLowerCase().replace(/^@/, "")).filter(Boolean));
+const isOwnerHandle = un => OWNER_HANDLES().has(String(un || "").toLowerCase().replace(/^@/, ""));
 const SESS = "df_sess", OAUTH = "df_oauth";
 const configured = () => !!(CID() && CSECRET() && SECRET());
 // The members-only feeds served from the private store (KV key "feed:<name>"), pushed by the crons
@@ -119,6 +122,7 @@ export default async function handler(req, res) {
     // OPEN BETA: logged in = member (ignore stale invite-era member:false); only an explicit ban blocks.
     let member = !!s;
     if (member && kvConnected()) { try { const u = await getJSON("auth:user:" + s.uid); if (u && u.banned) member = false; } catch { /* trust token */ } }
+    if (s && isOwnerHandle(s.un)) member = true;   // owner always gets the private feeds
     if (!member) return send(res, 403, { ok: false, err: "members only" });
     if (!kvConnected()) return send(res, 503, { ok: false, err: "store not connected" });
     const raw = await cmd("GET", "feed:" + name);
@@ -141,7 +145,8 @@ export default async function handler(req, res) {
       const f = await getJSON("auth:fav:" + s.uid); if (Array.isArray(f)) fav = f;
     } catch { /* trust token */ } }
     if (member !== !!s.mem) setCookie(res, serializeCookie(SESS, signSession({ uid: s.uid, un: s.un, mem: member, pfp: s.pfp }, SECRET()), { maxAge: 30 * 86400 }));
-    return send(res, 200, { loggedIn: true, username: s.un, member, avatar, fav });
+    // owner = the project account(s): full access to every chart, past every gate (see App.jsx ReleaseGate).
+    return send(res, 200, { loggedIn: true, username: s.un, member, avatar, fav, owner: isOwnerHandle(s.un) });
   }
 
   if (action === "logout") { setCookie(res, serializeCookie(SESS, "", { maxAge: 0 })); return send(res, 200, { ok: true }); }

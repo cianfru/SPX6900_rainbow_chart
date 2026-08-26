@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { SANS, MONO, MenuBtn } from "./chart-ui.jsx";
 import { CITY_KEY as KEY } from "./city-gate-key.js";
+import { loadMe, isMember } from "./members.js";
 
 // DEVELOPMENT GATE + the arrival explainer for Aeon City / Whale City.
 //
@@ -58,6 +59,11 @@ export default function CityGate({ title, accent = "#5eead4", unit = "holder", l
   const [reveal, setReveal] = useState(locked);   // a declared password wall shows the field at once
   const [intro, setIntro] = useState(false);
   const shown = useRef(false);
+  // A logged-in Deep Field member (or the owner) is already past the gate — the members model, not a
+  // passphrase, governs access now. Auto-unlock for them (they still get the arrival guide). The password
+  // path only remains for the direct-link dev pages (City Lab), where no membership is involved.
+  const [meReady, setMeReady] = useState(false);
+  useEffect(() => { let off = false; loadMe().then(m => { if (off) return; setMeReady(true); if (isMember(m)) setOk(true); }); return () => { off = true; }; }, []);
 
   // Explainer on arrival, once per browser — with the pop.
   useEffect(() => {
@@ -80,6 +86,9 @@ export default function CityGate({ title, accent = "#5eead4", unit = "holder", l
       try { localStorage.setItem(KEY, "1"); } catch { /* ignore */ }
     } else setBad(true);
   };
+
+  // Don't flash the password wall while we're still finding out if this is a member (who auto-unlocks).
+  if (!ok && !meReady) return <div style={{ textAlign: "center", fontFamily: MONO, color: "#64748b", padding: 48 }}>…</div>;
 
   if (!ok) {
     return (

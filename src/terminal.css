@@ -90,8 +90,10 @@ html[data-theme="light"] .tzone .dfdrop{ box-shadow:0 12px 34px rgba(20,30,50,.1
 /* Deep Field tab — the members area, tinted green (the live accent) as its distinction and inverting
    onto the accent on hover, so it reads as "the members door" without shouting. */
 .tzone .mtop-deepfield .dfword{ color:var(--live); }
+/* always-flashing "_" hash after DEEP_FIELD — same cursor as the other tabs, kept lit so the members door reads as live */
+.tzone .mtop-deepfield .dfcur{ color:var(--live); margin-left:1px; animation:tcurblink 1.05s steps(1,end) infinite; }
 .tzone .mtop-deepfield:hover > .mhead{ background:var(--live); color:var(--bg); }
-.tzone .mtop-deepfield:hover > .mhead .dfword{ color:var(--bg); }
+.tzone .mtop-deepfield:hover > .mhead .dfword, .tzone .mtop-deepfield:hover > .mhead .dfcur{ color:var(--bg); }
 
 .tzone .drop,.tzone .subdrop{ display:none; position:absolute; z-index:30; min-width:212px; background:var(--bg); border:1px solid var(--line2); padding:4px; box-shadow:0 12px 34px rgba(0,0,0,.6); }
 .tzone .drop{ top:100%; left:0; } .tzone .mtop:hover > .drop{ display:block; }

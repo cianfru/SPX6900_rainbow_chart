@@ -42,7 +42,6 @@ export const CHART_GROUPS = [
       { id: "holdersprice", title: "Holders vs Price", post: "marketcap", desc: "Does accumulation hold through the price swings?" },
       { id: "hodlwaves", title: "HODL Waves", post: "hodlwaves", desc: "Supply by holding age: fresh coins to diamond hands." },
       { id: "conviction", title: "Conviction Score", post: "conviction", desc: "One 0–100 read of how sticky the holders are, from supply-weighted holding age." },
-      { id: "holderchange", title: "Holder Change Breakdown", desc: "Daily change in wallets by dollar bracket — are the bigger wallets accumulating or leaving?" },
       { id: "freefloat", title: "Liquid vs Illiquid Supply", post: "freefloat", desc: "How much supply is sticky (long-term held) vs likely to move: SPX vs Bitcoin." },
       { id: "walletgrowth", title: "Wallet Growth", post: "walletgrowth", desc: "Wallets across Ethereum, Base and Solana, from launch." },
     ],
@@ -81,6 +80,7 @@ export const CHART_GROUPS = [
       { id: "survivorship", title: "Who's Still Here", post: "survivorship", desc: "Of everyone who ever held SPX, who remains: by the era they first bought." },
       { id: "exitflow", title: "How Holders Left", post: "exitmap", desc: "Of everyone who left, when they sold and whether they left in profit or at a loss: over the price." },
       { id: "smartmoney", title: "Smart Money", post: "smartmoney", desc: "The live cohort of proven top-timers (ROI ≥5×, still holding): aggregate holdings and net-flow." },
+      { id: "holderchange", title: "Holder Change Breakdown", desc: "Daily change in wallets by dollar bracket — are the bigger wallets accumulating or leaving? A Deep Field members chart." },
       { id: "whaleswatching", title: "Whales Watching", post: "whalebehaviour", locked: true, desc: "Every wallet over 100k SPX: a 3D city of towers or a live board pulsing green/red as they buy and sell." },
       // City Lab stays `dev` (hidden, direct-link only ?chart=citylab): the internal A/B page. It lives in a
       // gallery group (dev-filtered out of the gallery) rather than CITY_GROUPS, because the City nav (CITY_MENU

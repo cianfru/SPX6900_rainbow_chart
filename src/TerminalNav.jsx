@@ -548,7 +548,7 @@ export default function TerminalNav({ onHome, openRainbow, openGallery, openAeon
             the branded gate + "log in with X" CTA. */}
         <div className="mtop mtop-deepfield" onClick={() => onDeepField()}
           style={{ cursor: "pointer" }} title={me && me.loggedIn ? "Deep Field — members home" : "Deep Field — log in with X to enter"}>
-          <div className="mhead"><span className="dfword">DEEP FIELD</span></div>
+          <div className="mhead"><span className="dfword">DEEP_FIELD</span><span className="dfcur">_</span></div>
         </div>
         {asOfLabel && <div className="tdataas">Data as of {asOfLabel}</div>}
       </div>

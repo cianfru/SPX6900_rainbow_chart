@@ -3,6 +3,8 @@ import { CHART_GROUPS, AEON_GROUPS, METHOD_FAMILIES, METHOD_OF } from "./charts-
 import { gcolFor } from "./terminal-colors.js";
 import ErrorBoundary from "./ErrorBoundary.jsx";
 import { SANS, MONO, MAX_W, MenuBtn } from "./chart-ui.jsx";
+import { isDripChart, loadReleases } from "./deepfield-release.js";
+import { loadMe, isMember, isOwner } from "./members.js";
 
 // The browse-all "Charts" gallery, a terminal-styled grid of preview tiles. Every
 // tile opens a FULLY INTERACTIVE chart page (onOpen). The preview is a LIVE,
@@ -62,37 +64,53 @@ export function LivePreview({ render }) {
   );
 }
 
-// A locked chart shows this instead of a live preview: a clean lock over a faint, generic
-// silhouette. Deliberately NOT the real render, the point of `locked` is that you don't see the
-// city until you're in, and it never mounts the chart, so the gallery pays no three.js cost for it.
-function LockedCover({ color }) {
+// A Deep Field members chart shows this cover in the gallery instead of a live preview — release-aware,
+// so it tells the honest state without ever mounting the real (members-only) chart:
+//   • not released yet → "Under construction · releasing soon" (the two-path: this one isn't ready).
+//   • released, signed out → "Deep Field members · log in with X" (this one is live, join to see it).
+// The owner (and released-chart members) never hit this — the gallery shows them the live preview instead.
+function DripCover({ color, mode }) {
+  const released = mode === "members", loading = mode === "loading";
+  const glyph = loading ? "" : released ? "🔭" : "◱";
+  const kicker = loading ? "Deep Field" : released ? "Deep Field · members" : "Under construction";
+  const line = loading ? "…" : released ? "Log in with X to unlock" : "Releasing soon";
+  const acc = released ? color : loading ? T.faint : "#f59e0b";
   return (
     <div style={{
       position: "relative", width: "100%", aspectRatio: "1180 / 700", overflow: "hidden",
       background: "radial-gradient(130% 130% at 50% 20%, #101a33 0%, #05050e 72%)",
-      display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 9,
+      display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 10,
     }}>
-      {/* generic skyline, not the data, just enough to say "a city" without previewing it */}
+      {/* a faint generic silhouette — enough to read as "a chart" without previewing the real data */}
       <svg viewBox="0 0 120 34" preserveAspectRatio="none" aria-hidden="true"
-        style={{ position: "absolute", left: 0, right: 0, bottom: 0, width: "100%", height: "44%", opacity: 0.16 }}>
+        style={{ position: "absolute", left: 0, right: 0, bottom: 0, width: "100%", height: "44%", opacity: 0.14 }}>
         {[[6,14],[14,22],[22,9],[30,27],[40,17],[49,31],[60,12],[69,24],[80,19],[90,29],[101,15],[110,23]].map(([x, h], i) => (
-          <rect key={i} x={x} y={34 - h} width="7" height={h} fill={color} />
+          <rect key={i} x={x} y={34 - h} width="7" height={h} fill={acc} />
         ))}
       </svg>
-      <div style={{ position: "relative", fontSize: 30, lineHeight: 1 }}>🔒</div>
-      <div style={{ position: "relative", fontFamily: MONO, fontSize: 11.5, letterSpacing: ".16em", textTransform: "uppercase", color }}>Password&nbsp;protected</div>
+      <div style={{ position: "relative", fontSize: 27, lineHeight: 1 }}>{glyph}</div>
+      <div style={{ position: "relative", fontFamily: MONO, fontSize: 11, letterSpacing: ".18em", textTransform: "uppercase", color: acc }}>{kicker}</div>
+      <div style={{ position: "relative", fontFamily: SANS, fontSize: 12.5, color: T.dim }}>{line}</div>
     </div>
   );
 }
 
-function Tile({ item, color, onOpen, renderPreview }) {
+function Tile({ item, color, onOpen, renderPreview, released, me }) {
   const [hover, setHover] = useState(false);
+  // Deep Field members chart? Owner + released-chart members see the live preview; everyone else on a
+  // drip chart sees the release-aware cover (under construction, or members / log in).
+  const drip = isDripChart(item.id);
+  const relKnown = released !== null;
+  const isReleased = relKnown && released.has(item.id);
+  const canSee = isOwner(me) || (isReleased && isMember(me));
+  const showLive = !drip || canSee;
+  const coverMode = isReleased ? "members" : (relKnown ? "soon" : "loading");
   return (
     <button
       onClick={() => onOpen(item.id)}
       onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}
       onFocus={() => setHover(true)} onBlur={() => setHover(false)}
-      title={item.locked ? `${item.title}, password protected` : `Open the interactive ${item.title} chart`}
+      title={drip && !canSee ? `${item.title} — ${isReleased ? "Deep Field members chart" : "releasing soon"}` : `Open the interactive ${item.title} chart`}
       style={{
         display: "flex", flexDirection: "column", textAlign: "left", padding: 0, cursor: "pointer",
         borderRadius: 10, overflow: "hidden",
@@ -103,9 +121,9 @@ function Tile({ item, color, onOpen, renderPreview }) {
         transition: "transform .14s, box-shadow .14s, border-color .14s",
       }}
     >
-      {item.locked
-        ? <LockedCover color={color} />
-        : <LivePreview render={() => renderPreview(item.id)} />}
+      {showLive
+        ? <LivePreview render={() => renderPreview(item.id)} />
+        : <DripCover color={color} mode={coverMode} />}
       <div style={{ padding: "12px 14px 14px", borderTop: `1px solid ${color}2e` }}>
         <div style={{
           fontFamily: MONO, fontSize: 10.5, letterSpacing: ".14em", textTransform: "uppercase",
@@ -170,6 +188,11 @@ export default function ChartsGallery({
 }) {
   const [q, setQ] = useState("");
   const nq = q.trim().toLowerCase();
+  // Deep Field state, loaded once for the whole gallery (cached fetches): which drip charts are released,
+  // and who's signed in — so each tile can show the right cover (under construction / members / live).
+  const [released, setReleased] = useState(null);
+  const [me, setMe] = useState(null);
+  useEffect(() => { let off = false; loadReleases().then(s => { if (!off) setReleased(s); }); loadMe().then(m => { if (!off) setMe(m); }); return () => { off = true; }; }, []);
   // When a nav group is clicked, restrict the whole page to that one section.
   const baseGroups = useMemo(() => onlyGroup ? groups.filter(g => g.title === onlyGroup) : groups, [groups, onlyGroup]);
   // Filtered view of the catalog. Groups that lose every chart drop out entirely so
@@ -256,7 +279,7 @@ export default function ChartsGallery({
           </div>
           <div style={{ display: "grid", gridTemplateColumns: `repeat(auto-fill, minmax(min(100%, ${isMobile ? 300 : 372}px), 1fr))`, gap: isMobile ? 12 : 15 }}>
             {group.charts.map(item => (
-              <Tile key={item.id} item={item} color={gc} onOpen={onOpen} renderPreview={renderPreview} />
+              <Tile key={item.id} item={item} color={gc} onOpen={onOpen} renderPreview={renderPreview} released={released} me={me} />
             ))}
           </div>
         </div>
