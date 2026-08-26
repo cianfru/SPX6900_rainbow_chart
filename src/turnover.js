@@ -41,6 +41,43 @@ export function turnoverOf(row) {
   return { d1: rnd(d1), w1: rnd(w1), m1: rnd(m1), m3: rnd(m3), m6: rnd(m6), y1: rnd(y1), dormant: rnd(100 - y1), fine: !!f };
 }
 
+// Stacked age bands for the HODL-waves-style "waves" view, bottom (warm, just moved) → top (cool,
+// dormant). The finer 7-band split when EVERY row carries ageFine (so the fresh layer breaks out into
+// <1d / 1wk / 1mo — the velocity HODL waves can't show), else the coarse 5-band age split.
+export const FINE_BANDS = [
+  { key: "b0", label: "< 1 day", c: "#f43f5e" },
+  { key: "b1", label: "1–7 days", c: "#fb7185" },
+  { key: "b2", label: "1–4 weeks", c: "#fb923c" },
+  { key: "b3", label: "1–3 months", c: "#fbbf24" },
+  { key: "b4", label: "3–6 months", c: "#34d399" },
+  { key: "b5", label: "6–12 months", c: "#38bdf8" },
+  { key: "b6", label: "1 year+", c: "#818cf8" },
+];
+export const COARSE_BANDS = [
+  { key: "b0", label: "< 1 month", c: "#f87171" },
+  { key: "b1", label: "1–3 months", c: "#fb923c" },
+  { key: "b2", label: "3–6 months", c: "#fbbf24" },
+  { key: "b3", label: "6–12 months", c: "#38bdf8" },
+  { key: "b4", label: "1 year+", c: "#818cf8" },
+];
+export function turnoverStack(onchain) {
+  const rows = (onchain || [])
+    .filter(r => Array.isArray(r.age) && r.age.length === 5)
+    .map(r => ({ r, ts: Date.parse(r.d || r.date) }))
+    .filter(x => Number.isFinite(x.ts))
+    .sort((a, b) => a.ts - b.ts);
+  if (rows.length < 2) return null;
+  const fine = rows.every(x => Array.isArray(x.r.ageFine) && x.r.ageFine.length === 7);
+  const bands = fine ? FINE_BANDS : COARSE_BANDS;
+  const data = rows.map(({ r, ts }) => {
+    const src = fine ? r.ageFine : r.age;
+    const o = { ts };
+    bands.forEach((b, i) => { o[b.key] = src[i]; });
+    return o;
+  });
+  return { bands, data, fine };
+}
+
 // A time series of the turnover horizons, oldest → newest (for the "over time" view).
 export function turnoverSeries(onchain) {
   return (onchain || [])

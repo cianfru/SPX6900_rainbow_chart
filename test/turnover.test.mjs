@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { turnoverOf, turnoverSeries } from "../src/turnover.js";
+import { turnoverOf, turnoverSeries, turnoverStack } from "../src/turnover.js";
 import { ageBand, ageBandFine } from "../scripts/build-onchain-local.mjs";
 
 test("ageBandFine is a strict superset of ageBand (fine 0+1+2 -> band 0, fine 3..6 -> band 1..4)", () => {
@@ -42,6 +42,24 @@ test("turnoverOf: prefers ageFine when both present; null on neither", () => {
   const both = turnoverOf({ age: [5, 8, 12, 15, 60], ageFine: [2, 1, 2, 5, 10, 20, 60] });
   assert.equal(both.fine, true);
   assert.equal(both.d1, 2);
+});
+
+test("turnoverStack: coarse 5-band when any row lacks ageFine, fine 7-band only when ALL have it", () => {
+  const coarse = turnoverStack([
+    { d: "2024-01-01", age: [5, 5, 5, 5, 80] },
+    { d: "2024-01-02", age: [6, 4, 5, 5, 80], ageFine: [1, 2, 3, 4, 5, 5, 80] },
+  ]);
+  assert.equal(coarse.fine, false);
+  assert.equal(coarse.bands.length, 5);
+  assert.equal(coarse.data[0].b0, 5);          // first band = age[0]
+  const fine = turnoverStack([
+    { d: "2024-01-01", age: [6, 4, 5, 5, 80], ageFine: [1, 2, 3, 4, 5, 5, 80] },
+    { d: "2024-01-02", age: [6, 4, 5, 5, 80], ageFine: [2, 2, 2, 4, 5, 5, 80] },
+  ]);
+  assert.equal(fine.fine, true);
+  assert.equal(fine.bands.length, 7);
+  assert.equal(fine.data[1].b0, 2);            // <1d band from ageFine[0]
+  assert.equal(fine.data[0].b6, 80);           // 1y+ band from ageFine[6]
 });
 
 test("turnoverSeries: dated, sorted ascending, skips unusable rows", () => {
