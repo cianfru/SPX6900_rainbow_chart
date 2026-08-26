@@ -55,6 +55,36 @@ function MenuRow({ text, color, mark, cls = "", onEnter, onLeave, onClick }) {
   );
 }
 
+// The DEEP_FIELD tab — a standalone (no-dropdown) section tab that TYPES its label on hover exactly
+// like the other tabs (cursor rides the writing head), with an always-lit flashing "_" hash. Label +
+// cursor live in ONE .lw so the .mhead's flex gap can't separate the hash from the "D".
+function DeepFieldTab({ onClick, title }) {
+  const TXT = "DEEP_FIELD";
+  const [shown, setShown] = useState(TXT);
+  const wrapRef = useRef(null);
+  const timer = useRef(null);
+  useEffect(() => () => clearTimeout(timer.current), []);
+  const type = () => {
+    const lw = wrapRef.current;
+    if (lw && !lw.style.minWidth) { const w = lw.getBoundingClientRect().width; if (w) lw.style.minWidth = w + "px"; }
+    clearTimeout(timer.current);
+    let j = 0;
+    const step = () => { setShown(TXT.slice(0, j)); if (j < TXT.length) { j++; timer.current = setTimeout(step, TYPE_SPEED); } };
+    setShown(""); step();
+  };
+  const reset = () => { clearTimeout(timer.current); setShown(TXT); };
+  return (
+    <div className="mtop mtop-deepfield" onClick={onClick} onMouseEnter={type} onMouseLeave={reset} style={{ cursor: "pointer" }} title={title}>
+      <div className="mhead">
+        <span className="lw" ref={wrapRef}>
+          <span className="dfword">{shown}</span>
+          <span className="dfcur">_</span>
+        </span>
+      </div>
+    </div>
+  );
+}
+
 // Character-by-character typewriter, shared by the section headers (types on hover) and the
 // mobile drill-down rows (types on tap) so the sleek effect matches the landing everywhere.
 function useTypewriter(text, speed = 45) {
@@ -546,10 +576,7 @@ export default function TerminalNav({ onHome, openRainbow, openGallery, openAeon
         {/* Deep Field — the members area, surfaced as a first-class nav tab so visitors discover it.
             Routes to the Deep Field page, which self-gates: members get the charts, everyone else gets
             the branded gate + "log in with X" CTA. */}
-        <div className="mtop mtop-deepfield" onClick={() => onDeepField()}
-          style={{ cursor: "pointer" }} title={me && me.loggedIn ? "Deep Field — members home" : "Deep Field — log in with X to enter"}>
-          <div className="mhead"><span className="dfword">DEEP_FIELD</span><span className="dfcur">_</span></div>
-        </div>
+        <DeepFieldTab onClick={() => onDeepField()} title={me && me.loggedIn ? "Deep Field — members home" : "Deep Field — log in with X to enter"} />
         {asOfLabel && <div className="tdataas">Data as of {asOfLabel}</div>}
       </div>
       <MobileSpringboard open={mobOpen} onClose={() => setMobOpen(false)} openRainbow={openRainbow} openGallery={openGallery} openAeon={openAeon} openCity={openCity} goChart={goChart} renderPreview={renderPreview} me={me} onDeepField={onDeepField} />
