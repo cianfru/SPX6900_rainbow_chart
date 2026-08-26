@@ -150,6 +150,7 @@ const OnchainValueChart = lazy(() => import("./OnchainValueChart.jsx"));
 const SupplyInProfitChart = lazy(() => import("./SupplyInProfitChart.jsx"));
 const HodlWavesChart = lazy(() => import("./HodlWavesChart.jsx"));
 const ConvictionChart = lazy(() => import("./ConvictionChart.jsx"));
+const HolderChangeChart = lazy(() => import("./HolderChangeChart.jsx"));
 const WhalesChart = lazy(() => import("./OwnershipCharts.jsx").then(m => ({ default: m.WhalesChart })));
 const SurvivorshipChart = lazy(() => import("./SurvivorshipChart.jsx"));
 const WhaleEntryChart = lazy(() => import("./WhaleEntryChart.jsx"));
@@ -888,6 +889,7 @@ export default function App() {
       case "supplyprofit": return <SupplyInProfitChart isMobile={mob} preview={preview} />;
       case "hodlwaves": return <HodlWavesChart isMobile={mob} preview={preview} />;
       case "conviction": return <ConvictionChart isMobile={mob} preview={preview} />;
+      case "holderchange": return <HolderChangeChart isMobile={mob} preview={preview} />;
       case "whales": return <WhalesChart isMobile={mob} preview={preview} />;
       case "survivorship": return <SurvivorshipChart isMobile={mob} initialView={iv} />;
       case "whaleentry": return (
