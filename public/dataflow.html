@@ -40,6 +40,11 @@
 <script>
 const cv = document.getElementById("c"), ctx = cv.getContext("2d", { alpha:false });
 const stage = document.getElementById("stage"), msg = document.getElementById("msg");
+// the original brand logo (public/logo_rainbow.png) — relative path resolves both on the live site
+// (/dataflow → /logo_rainbow.png) and from a local file open.
+const logo = new Image(); let logoReady = false;
+logo.onload = () => { logoReady = true; };
+logo.src = "logo_rainbow.png";
 let AR = 1;                 // width/height of the render (1 = square)
 let W = 1080, H = 1080;     // internal render resolution
 
@@ -118,7 +123,7 @@ function draw(now){
     }
     // node dot + glow
     ctx.shadowColor=n.c; ctx.shadowBlur=18; ctx.fillStyle=n.c;
-    ctx.beginPath(); ctx.arc(p.x,p.y,6.5+2*Math.sin(t*2+i),0,TAU); ctx.fill(); ctx.shadowBlur=0;
+    ctx.beginPath(); ctx.arc(p.x,p.y,7,0,TAU); ctx.fill(); ctx.shadowBlur=0;
     ctx.fillStyle="#0a0c14"; ctx.beginPath(); ctx.arc(p.x,p.y,2.6,0,TAU); ctx.fill();
     // labels — outside the node, but clamped so they never run off the frame
     const S = Math.min(W,H), pad = S*0.022;
@@ -142,33 +147,31 @@ function draw(now){
     ctx.fillStyle=n.c; ctx.font=subF; ctx.fillText(n.sub, lx, ly+9);
   });
 
-  // ── centre: the rainbow emblem ──
-  const S=Math.min(W,H), R=S*0.092, pulse = 1 + 0.05*Math.sin(t*2.2) + 0.09*arrivalGlow;
-  // bloom
-  const bg = ctx.createRadialGradient(cx,cy,0,cx,cy,R*3.4);
-  bg.addColorStop(0,"rgba(120,140,255,"+(0.28+0.25*arrivalGlow)+")"); bg.addColorStop(1,"rgba(120,140,255,0)");
-  ctx.fillStyle=bg; ctx.beginPath(); ctx.arc(cx,cy,R*3.4,0,TAU); ctx.fill();
-  // arrival ripple
-  if (arrivalGlow>0){ ctx.strokeStyle="rgba(238,242,251,"+(0.5*arrivalGlow)+")"; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(cx,cy,R*(1.2+1.6*(1-arrivalGlow)),0,TAU); ctx.stroke(); }
-  // a sunrise rainbow: concentric half-arcs (flat side down), bands violet(out)->indigo(in)
-  ctx.save(); ctx.translate(cx, cy + R*0.42); ctx.scale(pulse,pulse); ctx.lineCap="round";
-  const bands = RB.slice().reverse(); // outer = red-ish -> inner = indigo, drawn outer first
-  bands.forEach((col,i)=>{
-    const rad = R*(1.02) - i*(R*0.108);
-    if (rad<=2) return;
-    ctx.strokeStyle=col; ctx.lineWidth=R*0.092; ctx.shadowColor=col; ctx.shadowBlur=12;
-    ctx.beginPath(); ctx.arc(0,0,rad,Math.PI,TAU); ctx.stroke();
-  });
+  // ── centre: the original brand logo, STEADY (no pulse) ──
+  const S=Math.min(W,H), R=S*0.11;
+  // a constant soft bloom behind the mark (no throb)
+  const bg = ctx.createRadialGradient(cx,cy,0,cx,cy,R*3.0);
+  bg.addColorStop(0,"rgba(120,140,255,0.22)"); bg.addColorStop(1,"rgba(120,140,255,0)");
+  ctx.fillStyle=bg; ctx.beginPath(); ctx.arc(cx,cy,R*3.0,0,TAU); ctx.fill();
+  // draw the logo at a FIXED size; fall back to a static rainbow orb only if it hasn't loaded
   ctx.shadowBlur=0;
-  // bright core
-  ctx.fillStyle="#f8fbff"; ctx.beginPath(); ctx.arc(0,0,R*0.14,0,TAU); ctx.fill();
-  ctx.restore();
+  if (logoReady) {
+    const lw = R*2.5, lh = lw * (logo.naturalHeight / (logo.naturalWidth || 1) || 1);
+    // the logo art sits on solid black — 'lighten' drops the black out so only the rainbow glows onto the scene
+    ctx.globalCompositeOperation = "lighten";
+    ctx.drawImage(logo, cx - lw/2, cy - lh/2, lw, lh);
+    ctx.globalCompositeOperation = "source-over";
+  } else {
+    ctx.lineCap="round";
+    RB.slice().reverse().forEach((col,i)=>{ const rad=R*(0.95)-i*(R*0.1); if(rad<=2)return;
+      ctx.strokeStyle=col; ctx.lineWidth=R*0.09; ctx.beginPath(); ctx.arc(cx,cy,rad,0,TAU); ctx.stroke(); });
+  }
   // centre wordmark
-  ctx.textAlign="center"; ctx.textBaseline="middle"; ctx.shadowBlur=0;
+  ctx.textAlign="center"; ctx.textBaseline="middle";
   ctx.fillStyle="#eef2fb"; ctx.font=`800 ${Math.round(S*0.026)}px ui-monospace,monospace`;
-  ctx.fillText("SPX6900", cx, cy + R*1.5);
+  ctx.fillText("SPX6900", cx, cy + R*1.45);
   ctx.fillStyle="#8b97ad"; ctx.font=`${Math.round(S*0.016)}px ui-monospace,monospace`;
-  ctx.fillText("RAINBOW", cx, cy + R*1.5 + S*0.026);
+  ctx.fillText("RAINBOW", cx, cy + R*1.45 + S*0.026);
 
   // title + footer
   ctx.textAlign="center"; ctx.fillStyle="#f8fafc";
