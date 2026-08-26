@@ -1277,7 +1277,41 @@
   balance bug and NOT fundamental to Dune. Fix was per-LOT FIFO (local Node), independent of source. **BigQuery is preferred for the
   raw-transfer EXTRACT on COST, not correctness** (546 GB free on BigQuery's 1 TB/mo vs Dune credits for a full-history scan); the
   FIFO math runs locally regardless — use the cheapest dump.
-- **⭐⭐ DUNE-INCREMENTAL IS THE PRIMARY DAILY ON-CHAIN REFRESH + SINGLE SOURCE OF TRUTH (owner, 2026-07-27, FINAL).** Two realisations:
+- **✅✅✅ ETH MIGRATED OFF DUNE → BIGQUERY, LIVE & RECONCILED 2026-08-26 (Dune goes VIEW-ONLY on the free plan 2026-09-10 — email).**
+  The daily on-chain ETH refresh no longer touches Dune. `onchain-dune.yml` now has a **gate step (`id: src`)**: if the `GCP_SA_KEY`
+  secret is set → **`mode=bq`** (BigQuery), else → `mode=dune` (the old path, kept as a fallback). The name stays `onchain-dune.yml`;
+  only the ETH SOURCE changed. Solana (keyless RPC) + Base (Alchemy) were already off Dune, and the ENTIRE downstream (FIFO engine,
+  SPX City, smart-money, exit-flow, whale-entry, cohort-*, KV push) is byte-identical either way — the BigQuery branch just produces
+  the same `transfers.csv` a different way.
+  - **THE MECHANISM (no 546 GB re-scan — owner insisted, rightly):** the full transfer history lives in a BigQuery table we OWN,
+    **`goog-fltx.spx_onchain.eth_transfers`** (`sender STRING, receiver STRING, time TIMESTAMP, value BIGNUMERIC`). It was **SEEDED
+    ONCE via `bq load`** from the EXISTING GitHub release archive (`onchain-archive` / `transfers.csv.gz`, ~2.65M rows) — `bq load` is
+    an INGESTION, NOT a query, so it costs **$0 against the query cap** (the 546 GB public-dataset scan is exactly what we avoided).
+    Each daily run then: reads `MAX(time)` from our table → appends ONLY `block_timestamp > <that literal>` from
+    `bigquery-public-data.crypto_ethereum.token_transfers` (a few GB, partition-pruned) → exports the whole table to `transfers.csv` →
+    same local FIFO via **`build-onchain-dune-refresh.mjs --archive=transfers.csv --no-pull`** (the `--no-pull` mode I added: reuse
+    pricesCsv()+runFifo(), skip the Dune call). In BigQuery mode "Re-upload the grown archive" is SKIPPED — the BQ table IS the archive.
+  - **⚠⚠ THE BUG THAT COST RUN #52 (and the lesson): PARTITION PRUNING NEEDS A LITERAL BOUND, NEVER A SUBQUERY.** First attempt bounded
+    the incremental append with `block_timestamp > (SELECT MAX(time) FROM our_table)`. BigQuery can't evaluate a subquery at PLAN time,
+    so it couldn't prune the day-partitions and tried to scan the WHOLE ~605 GB history → hit the **200 GB `--maximum_bytes_billed` cap**
+    (`BQ_MAX_BYTES`) → exit 1 (the cap did its job — $0 charged for the runaway). **FIX (commit b39226b):** read `MAX(time)` FIRST into a
+    shell variable (tiny scan of our own table), then inject it as a **literal `TIMESTAMP '<cutoff>'`** into the INSERT so pruning fires.
+    Strip CSV header+quotes (`tail -n1 | tr -d '"'`); strict `>` (never `>=`) so a re-run can't duplicate the boundary second. **RULE for
+    any incremental BigQuery append against a partitioned public table: the partition-column bound must be a CONSTANT/literal — compute
+    it in a prior step, never as an inline subquery. Keep `--maximum_bytes_billed` as the backstop; it turns a pruning mistake into a
+    clean fail instead of a quota blow-through.**
+  - **VERIFIED (run #53, 2026-08-26):** gate → BigQuery, append pruned (archive 2.65M → **2,709,036** rows, +~59k delta, NOT 605 GB),
+    FIFO sanity gate PASSED — **`rp 0.5175 · holders 49,210 · top100 57.45`** (matches the last Dune pull), SPX City 26,651 wallets /
+    4,904 citizens, Solana 1,952, Base 502 all green, committed `a77ba43`. Secret confirmed named exactly **`GCP_SA_KEY`** (SA
+    `spx-onchain-ci@goog-fltx`, roles BigQuery Job User + Data Editor). `BQ_MAX_BYTES=214748364800` (200 GB) is the one safety knob.
+  - **🔲 LAST FEED STILL ON DUNE — AEON SALES.** `aeon.yml` sales (`build-aeon-dune-refresh.mjs`, sales-only) is the only remaining Dune
+    dependency (AEON transfers already moved to Alchemy 2026-08-20). Drafted the BigQuery replacement **`bigquery/aeon_sales.sql`** (a
+    heuristic Seaport/Blur/WETH decoder — NFT Transfer + tx ETH value / WETH-to-seller, sweep-split, marketplace by router) but marked it
+    **VALIDATE-BEFORE-WIRING** (it's not Dune's audited `nft.trades`). Cutover plan: owner runs it once → export CSV → diff last ~30 days
+    vs the final Dune pull → build `build-aeon-sales-bq.mjs` (fills `price_usd` from a daily ETH/USD rate) → add a gated BQ step to
+    aeon.yml like the ETH one. Must be done before 2026-09-10 (or accept AEON sales freezing when Dune goes view-only).
+- **⭐⭐ DUNE-INCREMENTAL IS THE PRIMARY DAILY ON-CHAIN REFRESH + SINGLE SOURCE OF TRUTH (owner, 2026-07-27; SUPERSEDED for ETH by the
+  BigQuery migration above 2026-08-26 — kept for the reasoning + the Dune fallback path that still works if `GCP_SA_KEY` is removed).** Two realisations:
   (1) the FIFO engine computes the WHOLE suite in ONE pass, so refreshing slow charts costs NOTHING extra beyond the transfer-delta
   pull; daily granularity is free (a local sample-grid choice, `--daily`). (2) Dune's "result read" bills by ROWS not RUNS, so daily ≈
   weekly on the READ side. So `onchain-dune.yml` is **DAILY (`cron 23 5 * * *`)**, pulling the incremental delta over the GitHub
