@@ -32,7 +32,6 @@ import { cityChurnStats } from "./city-churn-card.mjs";
 import { cityPercapStats } from "./city-percap-card.mjs";
 import { cityVintageStats } from "./city-vintage-card.mjs";
 import { citySkylineStats } from "./city-skyline-card.mjs";
-import { floatCheckStats } from "./float-check-card.mjs";
 import { turnoverOf } from "../../src/turnover.js";
 import { whaleBehaviourStats } from "./whale-behaviour-card.mjs";
 import { whaleMosaicStats } from "./whale-mosaic-card.mjs";
@@ -479,26 +478,10 @@ History rhymes — it's not a forecast.`,
 
 // Each builder returns { id, text, card }. card is { type, spec }.
 const POSTS = [
-  // "Is SPX6900's float drying up?" — the honest, reproducible response to the low-float / diamond-hands
-  // thesis. Agrees with the true part (supply locking up, stickier than BTC) and zooms out on the loose
-  // part (~5% is the MONTHLY turnover; ~40% changes hands within a year — held ≠ frozen). Hand-postable
-  // (NO_ROTATE), long-form (verified account). Numbers pulled live from the FIFO reconstruction.
-  stats => {
-    const c = floatCheckStats(stats);
-    if (!c) return null;
-    const btc = c.btcIlliq != null ? `, stickier than Bitcoin was at the same age (Bitcoin was ${Math.round(c.btcIlliq)}%)` : "";
-    return {
-      id: "floatcheck",
-      text: ct`The low-float thesis on SPX6900 is right — supply IS being locked away, and it's all reconstructable on-chain. ${Math.round(c.illiqPct)}% is held long-term (155+ days, self-custody)${btc}.
-But "~5% turning over" is the MONTHLY number. Zoom out and ~${Math.round(c.within1y)}% of supply has changed hands within a year — held isn't frozen. It's self-custody, not a lockup, and rallies reliably pull sellers back.
-The thin-float squeeze is real — but it's a coiled spring, not a locked vault. Every figure here is reconstructed from the chain, and checkable.`,
-      card: { type: "floatcheck" },
-    };
-  },
-
-  // SUPPLY TURNOVER — the ladder cut of the same on-chain data: of all held SPX, how much last changed
-  // hands within a day / week / month / year, cumulative, vs the dormant 1yr+ share. The mirror of HODL
-  // waves (velocity, not conviction) and the tweet twin of the site's Supply Turnover chart. Hand-postable.
+  // SUPPLY TURNOVER — the honest, reproducible answer to the low-float / diamond-hands thesis (superseded
+  // the old single-bar `floatcheck`). Of all held SPX, how much last changed hands within each horizon
+  // (day / week / month / year) vs the dormant 1yr+ share. The mirror of HODL waves (velocity, not
+  // conviction) and the tweet twin of the site's Supply Turnover chart. Hand-postable (NO_ROTATE), longform.
   stats => {
     const oc = (stats.onchain || []).filter(r => (Array.isArray(r.ageFine) && r.ageFine.length === 7) || (Array.isArray(r.age) && r.age.length === 5));
     if (oc.length < 20) return null;
@@ -2486,7 +2469,7 @@ const weightOf = id => WEIGHT[id] ?? (BULLISH.has(id) ? 2 : 1);
 // marketcap ("real free-float cap / thin float") is RETIRED — its premise is false: SPX is a
 // fair launch with no lockup, so free float is ~88% (not thin). The honest story is
 // illiquid/liquid supply (the reframed freefloat card), so marketcap is out of the feed.
-const NO_ROTATE = new Set(["drawdown", "risk", "kraken", "dcaladder", "marketcap", "spxcohort", "cexsupply", "cexflow", "cexvenues", "cexvenflow", "nrpl", "liveliness", "citygrowth", "cityvalue", "citychurn", "citypercap", "cityvintage", "cityskyline", "floatcheck", "turnover"]);
+const NO_ROTATE = new Set(["drawdown", "risk", "kraken", "dcaladder", "marketcap", "spxcohort", "cexsupply", "cexflow", "cexvenues", "cexvenflow", "nrpl", "liveliness", "citygrowth", "cityvalue", "citychurn", "citypercap", "cityvintage", "cityskyline", "turnover"]);
 
 // LONG-FORM cards — the few methodology / teaching posts that genuinely run long. HISTORY: these
 // once opted past a 290 "instant-read" cap. That cap was REMOVED (owner, 2026-08) — the account is
@@ -2495,7 +2478,7 @@ const NO_ROTATE = new Set(["drawdown", "risk", "kraken", "dcaladder", "marketcap
 // LONGFORM is consumed ONLY by that test, and ONLY to RAISE the ceiling for a card that legitimately
 // needs >2000 (via Math.max) — it can never impose a TIGHTER cap than an ordinary card. Every entry
 // below is under 2000 today, so the map is currently documentation-only; keep it tiny.
-export const LONGFORM = { spxcohort: 700, cexflow: 600, hodlcompare: 340, floatcheck: 620, turnover: 520 };
+export const LONGFORM = { spxcohort: 700, cexflow: 600, hodlcompare: 340, turnover: 520 };
 
 // Owner-editable rotation exclusions — cards kept BUILDABLE + visible in the control
 // panel (and hand-postable) but held OUT of the organic daily rotation. Toggled from
@@ -2555,7 +2538,7 @@ const LOOK = {
   firesalerally: "fanlines",
   model: "scatter",
   monthlyreturns: "heatmap", monthlyreturnssp: "heatmap", monthlyreturnsbtc: "heatmap",
-  hodlwaves: "stack", hodlcompare: "stack", walletgrowth: "stack", lthsth: "stack", valband: "dual", cexvenues: "stack", cexsankey: "sankey", citygrowth: "stack", cityvalue: "stack", citychurn: "bars", citypercap: "dual", cityvintage: "bars", cityskyline: "stack", floatcheck: "bars", turnover: "bars",
+  hodlwaves: "stack", hodlcompare: "stack", walletgrowth: "stack", lthsth: "stack", valband: "dual", cexvenues: "stack", cexsankey: "sankey", citygrowth: "stack", cityvalue: "stack", citychurn: "bars", citypercap: "dual", cityvintage: "bars", cityskyline: "stack", turnover: "bars",
   timeinband: "bars", monthlybars: "bars", monthcompare: "bars", multichain: "bars", urpd: "bars", bagsprofile: "dual", urpdage: "bars", cexvenflow: "bars", ethsol: "bars", chainconc: "bars", illiquid: "stack", baltier: "bars", dualholders: "stack", basesurv: "bars", supplycurve: "race", whalecensus: "bars", whalebehaviour: "bars",
   fngdial: "round", distribution: "round",
   marketcap: "blocks", milestones: "blocks", sp500: "blocks",

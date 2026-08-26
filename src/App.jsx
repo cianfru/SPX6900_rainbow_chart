@@ -1,7 +1,7 @@
 import { useState, useMemo, useCallback, useEffect, useRef, lazy, Suspense } from "react";
 import {
   ResponsiveContainer, ComposedChart, Area, Line, XAxis, YAxis,
-  CartesianGrid, ReferenceLine
+  CartesianGrid, ReferenceLine, ReferenceArea, Tooltip
 } from "recharts";
 import { DEFAULT_RAW, fetchLivePrices, fetchSpotPrice, fetchMajors, fetchMemekings } from "./data.js";
 import { SPX_DAILY } from "./spx-daily.js";
@@ -119,7 +119,8 @@ import BandStats from "./BandStats.jsx";
 // Secondary tab charts are lazy-loaded so their code only ships when the tab is opened.
 import ErrorBoundary from "./ErrorBoundary.jsx";
 import BandHistory from "./BandHistory.jsx";
-import { SANS, MONO, MAX_W, MenuBtn, TypeTab } from "./chart-ui.jsx";
+import { SANS, MONO, MAX_W, MenuBtn, TypeTab, ZoomBar } from "./chart-ui.jsx";
+import { useDragZoom } from "./use-drag-zoom.js";
 import "./terminal.css";
 import TerminalNav from "./TerminalNav.jsx";
 import { gcolFor } from "./terminal-colors.js";
@@ -621,6 +622,12 @@ export default function App() {
     return pts;
   }, [m, endDay, priceData]);
 
+  // Drag-to-zoom on the hero rainbow — press-drag-release selects a time window and the
+  // y-axis rescales to the visible price so you can look at the price up close. Reset clears it.
+  const { zoom, setZoom, selL, selR, onDown, onMove, onUp, zoomed } = useDragZoom(
+    (a, b) => data.filter(d => d.ts >= a && d.ts <= b).length >= 2);
+  const vdata = useMemo(() => (zoom ? data.filter(d => d.ts >= zoom[0] && d.ts <= zoom[1]) : data), [data, zoom]);
+
   const last = priceData[priceData.length - 1];
   const ld = dayN(last.date);
   const bIdx = bandIndex(m, last.price, ld);
@@ -645,27 +652,39 @@ export default function App() {
   // and capping it makes the rainbow appear flat-topped (visual distortion).
   const { yMin, yMax } = useMemo(() => {
     let minB = Infinity, maxB = 0;
-    for (const d of data) {
+    for (const d of vdata) {
       const lo = d.b0?.[0];
       const hi = d.b8?.[1];
       if (lo != null && lo > 0 && lo < minB) minB = lo;
       if (hi != null && hi > maxB) maxB = hi;
+      // when zoomed the bands can run off-screen, so keep the visible price in frame too
+      if (d.price != null && d.price > 0) { if (d.price < minB) minB = d.price; if (d.price > maxB) maxB = d.price; }
     }
+    if (!(minB < Infinity) || !(maxB > 0)) return { yMin: 0.0005, yMax: 1 };
     let yMaxCalc = maxB;
-    tg.forEach(i => { if (TARGETS[i].price > yMaxCalc) yMaxCalc = TARGETS[i].price * 1.3; });
-    if (showMilestones) CRYPTO_MILESTONES.forEach(ms => { if (ms.price > yMaxCalc) yMaxCalc = ms.price * 1.3; });
+    // targets / milestones only stretch the FULL view; a zoom stays tight on the visible price
+    if (!zoom) {
+      tg.forEach(i => { if (TARGETS[i].price > yMaxCalc) yMaxCalc = TARGETS[i].price * 1.3; });
+      if (showMilestones) CRYPTO_MILESTONES.forEach(ms => { if (ms.price > yMaxCalc) yMaxCalc = ms.price * 1.3; });
+    }
     return {
-      yMin: minB * 0.6,
-      yMax: yMaxCalc * 1.3,
+      yMin: minB * (zoom ? 0.9 : 0.6),
+      yMax: yMaxCalc * (zoom ? 1.1 : 1.3),
     };
-  }, [data, tg, showMilestones]);
+  }, [vdata, tg, showMilestones, zoom]);
 
-  const logT = [0.00001, 0.0001, 0.001, 0.01, 0.1, 1, 10, 100, 1000, 10000, 100000].filter(v => v >= yMin * 0.5 && v <= yMax * 2);
+  // Decade ticks for the full view; a finer 1·2·3·5 ramp when zoomed so a close-up isn't left with one label.
+  const logT = (() => {
+    if (!zoom) return [0.00001, 0.0001, 0.001, 0.01, 0.1, 1, 10, 100, 1000, 10000, 100000].filter(v => v >= yMin * 0.5 && v <= yMax * 2);
+    const out = [];
+    for (let e = -5; e <= 6; e++) for (const mm of [1, 2, 3, 5]) out.push(+(mm * 10 ** e).toPrecision(3));
+    return out.filter(v => v >= yMin && v <= yMax);
+  })();
 
   const { xDomain, xT } = useMemo(() => {
-    if (data.length === 0) return { xDomain: ["auto", "auto"], xT: [] };
-    const startTs = data[0].ts;
-    const endTs = data[data.length - 1].ts;
+    if (vdata.length === 0) return { xDomain: ["auto", "auto"], xT: [] };
+    const startTs = vdata[0].ts;
+    const endTs = vdata[vdata.length - 1].ts;
     const years = (endTs - startTs) / (365.25 * 86400 * 1000);
     // Pick year-step that gives ~8-12 labels regardless of horizon
     const yearStep = years > 24 ? 4 : years > 12 ? 2 : 1;
@@ -681,7 +700,7 @@ export default function App() {
       }
     }
     return { xDomain: [startTs, endTs], xT: ticks };
-  }, [data]);
+  }, [vdata]);
 
   const ms = useMemo(() => TARGETS.filter((_, i) => tg.has(i)).map(t => ({
     ...t,
@@ -1311,14 +1330,22 @@ export default function App() {
             pointerEvents: "none", userSelect: "none",
           }}
         />
+        <div style={{ position: "relative", zIndex: 2 }}>
+          <ZoomBar zoomed={zoomed} onReset={() => setZoom(null)} accent="#a78bfa" />
+        </div>
         <div
           ref={chartBoxRef}
           onMouseMove={handleChartMove}
           onMouseLeave={hideCursor}
+          onMouseUp={onUp}
           style={{ position: "relative", zIndex: 1 }}
         >
         <ResponsiveContainer width="100%" height={isMobile ? 440 : isTablet ? 580 : 720}>
-          <ComposedChart data={data} margin={{ top: 10, right: isMobile ? 64 : 130, bottom: 24, left: isMobile ? 0 : 12 }}>
+          <ComposedChart data={vdata} margin={{ top: 10, right: isMobile ? 64 : 130, bottom: 24, left: isMobile ? 0 : 12 }}
+            onMouseDown={onDown} onMouseMove={onMove} onMouseUp={onUp} style={{ userSelect: "none" }}>
+            {/* invisible tooltip — the custom crosshair does the visible readout, but recharts needs an
+                active tooltip to expose activeLabel to the drag-zoom handlers. */}
+            <Tooltip content={() => null} cursor={false} isAnimationActive={false} />
             <CartesianGrid strokeDasharray="2 8" stroke="rgba(255,255,255,0.07)" vertical={false} fill="transparent" />
             <XAxis
               dataKey="ts"
@@ -1385,6 +1412,9 @@ export default function App() {
               isAnimationActive={false} connectNulls={false}
               activeDot={{ r: 5, fill: "#fff", stroke: cb.c, strokeWidth: 1.7 }}
             />
+            {selL != null && selR != null && selL !== selR && (
+              <ReferenceArea x1={selL} x2={selR} strokeOpacity={0.4} stroke="#e2e8f0" fill="#e2e8f0" fillOpacity={0.12} />
+            )}
           </ComposedChart>
         </ResponsiveContainer>
 
