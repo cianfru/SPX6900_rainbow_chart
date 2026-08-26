@@ -86,7 +86,18 @@ jobs:
       # tells the CDN to revalidate. /assets/* is deliberately left cacheable — it is
       # content-addressed, so it is safe forever and it is where the caching actually pays.
       - name: Deploy prebuilt output to production
-        run: vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN"
+        # `vercel deploy` occasionally throws "Error: fetch failed" on the final API call AFTER the
+        # build + upload already succeeded — a transient network hiccup on Vercel's side, not a build
+        # error. It used to fail the whole run and self-heal only on the next commit. Retry a few times
+        # with backoff so a transient blip no longer shows a red X for a deploy that would otherwise ship.
+        run: |
+          for i in 1 2 3 4; do
+            vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN" && exit 0
+            echo "vercel deploy failed (attempt $i) — retrying in $((i*8))s (transient 'fetch failed' after upload is common)"
+            sleep $((i*8))
+          done
+          echo "::error::vercel deploy failed after 4 attempts"
+          exit 1
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
 
