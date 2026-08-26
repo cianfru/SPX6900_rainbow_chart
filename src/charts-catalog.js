@@ -41,6 +41,7 @@ export const CHART_GROUPS = [
       { id: "supply", title: "Holder Conviction", post: "distribution", desc: "Supply split across holder-conviction tiers." },
       { id: "holdersprice", title: "Holders vs Price", post: "marketcap", desc: "Does accumulation hold through the price swings?" },
       { id: "hodlwaves", title: "HODL Waves", post: "hodlwaves", desc: "Supply by holding age: fresh coins to diamond hands." },
+      { id: "turnover", title: "Supply Turnover", desc: "How much SPX actually changes hands within a day, week, month or year — the mirror of HODL waves." },
       { id: "conviction", title: "Conviction Score", post: "conviction", desc: "One 0–100 read of how sticky the holders are, from supply-weighted holding age." },
       { id: "freefloat", title: "Liquid vs Illiquid Supply", post: "freefloat", desc: "How much supply is sticky (long-term held) vs likely to move: SPX vs Bitcoin." },
       { id: "walletgrowth", title: "Wallet Growth", post: "walletgrowth", desc: "Wallets across Ethereum, Base and Solana, from launch." },
@@ -238,7 +239,7 @@ export const METHOD_FAMILIES = [
   },
   {
     id: "04", name: "Cost basis & holder behaviour",
-    charts: ["supply", "holders", "holdersprice", "supplyprofit", "hodlwaves", "conviction", "holderchange", "freefloat", "concentration", "entities", "clustercity",
+    charts: ["supply", "holders", "holdersprice", "supplyprofit", "hodlwaves", "turnover", "conviction", "holderchange", "freefloat", "concentration", "entities", "clustercity",
              "whales", "whalecohorts", "survivorship", "exitflow", "smartmoney", "walletwaves", "wealthwaves",
              "bagsprofile", "urpdage", "urpdterrain", "lthsth", "sopr", "nrpl", "liveliness", "whaleswatching", "citylab", "walletgrowth", "mvrv", "nupl", "mvrvbtc"],
   },

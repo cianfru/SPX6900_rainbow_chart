@@ -175,6 +175,19 @@ export function ageBand(days) {
   return 4;
 }
 
+// FINER young buckets for the supply-turnover ladder, splitting the <1m band into
+// <1d / 1-7d / 7-30d so the chart can show sub-week velocity: [<1d, 1-7d, 7-30d, 1-3m, 3-6m, 6-12m, 1y+].
+// A strict superset of ageBand (fine[0]+fine[1]+fine[2] === age[0], fine[3..6] === age[1..4]).
+export function ageBandFine(days) {
+  if (days < 1) return 0;
+  if (days < 7) return 1;
+  if (days < 30) return 2;
+  if (days < 90) return 3;
+  if (days < 180) return 4;
+  if (days < 365) return 5;
+  return 6;
+}
+
 // Gini over an array of positive balances (0 = equal, →1 = concentrated).
 export function gini(bals) {
   const n = bals.length;
@@ -819,6 +832,7 @@ function snapshot(wallets, sTs, spot, thr) {
   const bals = [];
   let held = 0, rcap = 0, profitQty = 0, coinDays = 0;
   const age = [0, 0, 0, 0, 0];
+  const ageFine = [0, 0, 0, 0, 0, 0, 0];   // finer young buckets for the turnover ladder
   let lthP = 0, lthL = 0, sthP = 0, sthL = 0;
   for (const e of wallets.values()) {
     if (e.bal <= EPS) continue;
@@ -829,6 +843,7 @@ function snapshot(wallets, sTs, spot, thr) {
       rcap += lot.qty * lot.price;
       coinDays += lot.qty * ageD;            // still-alive coin-days (for liveliness)
       age[ageBand(ageD)] += lot.qty;
+      ageFine[ageBandFine(ageD)] += lot.qty;
       const lth = (sTs - lot.ts) >= thr, inProfit = spot != null && spot >= lot.price;
       if (inProfit) { profitQty += lot.qty; if (lth) lthP += lot.qty; else sthP += lot.qty; }
       else { if (lth) lthL += lot.qty; else sthL += lot.qty; }
@@ -884,6 +899,8 @@ function snapshot(wallets, sTs, spot, thr) {
 
     gini: +gini(bals).toFixed(4),
     age: age.map(pct),
+    ageFine: ageFine.map(pct),               // [<1d,1-7d,7-30d,1-3m,3-6m,6-12m,1y+] — supply turnover ladder
+
     coinDays: +coinDays.toFixed(2),         // still-alive coin-days at this sample (liveliness denominator)
     holders: bals.length,
     heldTokens: +held.toFixed(2), // holder supply in tokens (for the liquid/illiquid split)
