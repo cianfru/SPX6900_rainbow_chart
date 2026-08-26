@@ -516,14 +516,15 @@
       <div id="engOut"></div>
     </div>
 
-    <!-- Audience tab — where site visitors actually are (first-party geo from /api/intel). -->
+    <!-- Audience tab — the full first-party intel dashboard (/api/intel) embedded here so there's ONE
+         page for audience data: growth curves, unique visitors, geography, wallet searches, referrers.
+         Auto-authenticated by handing the control password to the same-origin iframe via sessionStorage. -->
     <div id="audienceView" style="display:none">
       <div class="bar">
         <button id="audRefresh">↻ Refresh</button>
-        <span style="margin-left:auto;color:#64748b;font-size:12px">Your site's real audience geography · <a href="/api/intel" target="_blank" rel="noopener" style="color:#7dd3fc">full intel dashboard →</a></span>
+        <span style="margin-left:auto;color:#64748b;font-size:12px">First-party page intel — growth, unique visitors &amp; geography · <a href="/api/intel" target="_blank" rel="noopener" style="color:#7dd3fc">open in its own tab →</a></span>
       </div>
-      <div class="status" id="audStatus">Open this tab to load audience geography.</div>
-      <div id="audOut"></div>
+      <iframe id="audFrame" title="Page intel" style="width:100%;height:calc(100vh - 160px);min-height:640px;border:1px solid rgba(255,255,255,.1);border-radius:12px;background:#08090b;display:block"></iframe>
     </div>
 
     <!-- Deep Field members tab — seed invite codes + see who's in (via api/auth, gated by CONTROL_PASSWORD) -->
@@ -1772,63 +1773,16 @@ async function engAnalyze(contentText, overviewText) {
 // password-gated JSON the /api/intel dashboard uses. No new backend.
 // ============================================================================
 let audLoaded = false;
-let _audRN; try { _audRN = new Intl.DisplayNames(["en"], { type: "region" }); } catch {}
-const audFlag = c => { c = String(c || "").toUpperCase(); return /^[A-Z]{2}$/.test(c) ? c.replace(/./g, x => String.fromCodePoint(127397 + x.charCodeAt(0))) : "🏳"; };
-const audName = c => { c = String(c || "").toUpperCase(); if (!c) return "??"; try { return (_audRN && _audRN.of(c)) || c; } catch { return c; } };
-const audRows = (o, n) => Object.entries(o || {}).sort((a, b) => b[1] - a[1]).slice(0, n)
-  .map(([k, v]) => `<div class="row"><span class="k">${esc(k)}</span><span class="v">${v}</span></div>`).join("") || `<div class="muted">—</div>`;
 
-function audSetupCard(d) {
-  const dg = (d && d.diag) || {};
-  const kvErr = d && d.kvError ? ` · <b style="color:#fb7185">store error: ${esc(d.kvError)}</b>` : "";
-  return `<div class="eng-verdict"><b>One step to switch it on.</b> The tracking beacon is already live on every page — it just needs a database to write to.<br><br>
-    1. In <b>Vercel → this project → Storage</b>, create a <b>KV / Upstash Redis</b> store and connect it. Vercel injects <span class="mono">KV_REST_API_URL</span> + <span class="mono">KV_REST_API_TOKEN</span> automatically.<br>
-    2. Confirm <span class="mono">CONTROL_PASSWORD</span> is set (the password you use here).<br>
-    3. <b>Redeploy.</b> Visits then flow in on their own — hit ↻ Refresh.<br><br>
-    <span class="muted">Optional: <span class="mono">INTEL_EXCLUDE_COUNTRIES</span> to drop your own traffic · <span class="mono">INTEL_SALT</span> to rotate the IP hash.</span><br>
-    <span class="muted" style="margin-top:6px;display:inline-block">Diagnostics — sees URL var: <b>${esc(dg.urlVar || "NO")}</b> · token var: <b>${esc(dg.tokenVar || "NO")}</b>${kvErr}</span></div>`;
-}
-
-async function loadAudience() {
+// The Audience tab is now the full /api/intel dashboard in an iframe (one page for all audience data).
+// Same origin, so we hand it the control password via sessionStorage['intelpw'] — /api/intel auto-loads
+// from that key — then point the iframe at it. No duplicate rendering to keep in sync.
+function loadAudience() {
   audLoaded = true;
-  const out = $("#audOut"); out.innerHTML = "";
-  $("#audStatus").textContent = "Loading audience geography…"; $("#audStatus").className = "status";
-  let r;
-  try { r = await fetch("/api/intel", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ pw: PW }) }); }
-  catch { $("#audStatus").innerHTML = `<span style="color:#f87171">Network error reaching /api/intel.</span>`; return; }
-  if (!r.ok) {
-    const j = await r.json().catch(() => ({}));
-    $("#audStatus").innerHTML = `<span style="color:#f87171">${r.status === 401 ? "Password not accepted." : r.status === 503 ? (esc(j.error || "Set CONTROL_PASSWORD in Vercel.")) : ("error " + r.status)}</span>`;
-    return;
-  }
-  const d = await r.json().catch(() => null);
-  if (!d) { $("#audStatus").innerHTML = `<span style="color:#f87171">Empty response from /api/intel.</span>`; return; }
-  if (!d.configured || d.kvError) {
-    $("#audStatus").textContent = "Audience tracking is built and wired — not switched on yet.";
-    out.innerHTML = audSetupCard(d); return;
-  }
-  // Configured: render the geography.
-  const geo = d.geo || {}, events = d.events || [];
-  const total = Object.values(geo).reduce((a, b) => a + (+b || 0), 0);
-  const countries = Object.entries(geo).map(([c, n]) => [String(c).toUpperCase(), +n || 0]).sort((a, b) => b[1] - a[1]);
-  const cities = {}; events.forEach(e => { const c = String(e.country || "").toUpperCase(); if (!c) return; (cities[c] = cities[c] || {}); const ci = e.city || "—"; cities[c][ci] = (cities[c][ci] || 0) + 1; });
-  const uniq = new Set(events.map(e => e.ip).filter(Boolean)).size;
-  const mx = countries.length ? countries[0][1] : 1;
-  const kpi = (v, l) => `<div class="eng-kpi"><b>${v}</b><span>${l}</span></div>`;
-  let html = `<div class="eng-kpis">${kpi(total.toLocaleString(), "events (all-time)")}${kpi(countries.length, "countries")}${kpi(uniq, "recent visitors")}${kpi(Object.keys(d.charts || {}).length, "charts opened")}${kpi((d.wallets || []).length, "wallet lookups")}</div>`;
-  html += `<div class="eng-h">🌍 Where your visitors are <span class="tag">all-time by country · top cities from recent events</span></div>`;
-  html += `<table class="eng"><tr><th>country</th><th>visits</th><th>share</th><th>top cities</th></tr>`;
-  html += countries.slice(0, 20).map(([c, n]) => {
-    const cs = Object.entries(cities[c] || {}).sort((a, b) => b[1] - a[1]).slice(0, 4).map(([ci]) => esc(ci)).join(" · ");
-    return `<tr><td>${audFlag(c)} ${esc(audName(c))}</td><td>${n.toLocaleString()}</td><td>${engBar(n, mx)} ${total ? Math.round(n / total * 100) : 0}%</td><td style="color:#94a3b8">${cs || "—"}</td></tr>`;
-  }).join("") || `<tr><td colspan="4" class="muted">no visits recorded yet</td></tr>`;
-  html += `</table>`;
-  html += `<div class="eng-cols"><div><div class="eng-h">Top referrers</div><table class="eng">${audRows(d.refs, 12) ? `<tr><th>source</th><th>hits</th></tr>` + Object.entries(d.refs || {}).sort((a, b) => b[1] - a[1]).slice(0, 12).map(([k, v]) => `<tr><td>${esc(k)}</td><td>${v}</td></tr>`).join("") : ""}</table></div>`;
-  html += `<div><div class="eng-h">Top pages</div><table class="eng">${Object.entries(d.pages || {}).sort((a, b) => b[1] - a[1]).slice(0, 12).map(([k, v]) => `<tr><td>${esc(k)}</td><td>${v}</td></tr>`).join("") || `<tr><td class="muted">—</td></tr>`}</table></div></div>`;
-  out.innerHTML = html;
-  $("#audStatus").innerHTML = total
-    ? `<span style="color:#4ade80">${total.toLocaleString()} events across ${countries.length} countries.</span>`
-    : `<span style="color:#4ade80">Store connected — no visits recorded yet. Data appears once the live site gets traffic.</span>`;
+  try { if (PW) sessionStorage.setItem("intelpw", PW); } catch {}
+  const f = $("#audFrame");
+  // cache-bust so ↻ Refresh always re-fetches; the inline auto-load reads the (fresh) password
+  f.src = "/api/intel?t=" + Date.now();
 }
 
 // ============================================================================

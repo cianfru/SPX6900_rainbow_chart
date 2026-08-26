@@ -102,7 +102,13 @@ async function ingest(req, res, body) {
   if (hpages < FIELD_CAP) cmds.push(["HINCRBY", "intel:pages", ev.path || "/", "1"]);
   if (ev.ref && hrefs < FIELD_CAP) cmds.push(["HINCRBY", "intel:refs", ev.ref, "1"]);
   // visits-per-day series (UTC date bucket) — one increment per pageview, so the dashboard can plot the trend
-  if (t === "pageview") cmds.push(["HINCRBY", "intel:daily", new Date(ev.ts).toISOString().slice(0, 10), "1"]);
+  if (t === "pageview") {
+    const day = new Date(ev.ts).toISOString().slice(0, 10);
+    cmds.push(["HINCRBY", "intel:daily", day, "1"]);
+    // unique visitors per day = a set of salted IP hashes for that UTC day (SCARD = the count). 120-day
+    // expiry bounds storage. Vercel Analytics caps at 30 days; this is our own, kept as long as we like.
+    if (iphash) cmds.push(["SADD", "intel:uniq:" + day, iphash], ["EXPIRE", "intel:uniq:" + day, "10368000"]);
+  }
   if (t === "wallet_search" && ev.wallet) { cmds.push(["LPUSH", "intel:wallets", json], ["LTRIM", "intel:wallets", "0", String(WCAP - 1)]); }
   if (t === "chart_open" && ev.chart && hcharts < FIELD_CAP) cmds.push(["HINCRBY", "intel:charts", ev.chart, "1"]);
 
@@ -134,12 +140,19 @@ async function dashboard(req, res, body) {
   };
   if (!KV_URL || !KV_TOKEN) { res.status(200).json({ configured: false, diag }); return; }
   try {
-    const [events, wallets, geo, pages, refs, charts, daily] = await kvPipeline([
+    // The last 90 UTC dates, so we can SCARD each day's unique-visitor set in one pipeline. Unique
+    // tracking only started when the SADD ingest landed, so earlier days simply have no set (SCARD 0);
+    // the dashboard notes that pageviews go back further than uniques.
+    const uniqDays = [];
+    for (let i = 89; i >= 0; i--) uniqDays.push(new Date(Date.now() - i * 864e5).toISOString().slice(0, 10));
+    const [events, wallets, geo, pages, refs, charts, daily, ...uniqCounts] = await kvPipeline([
       ["LRANGE", "intel:events", "0", "499"],
       ["LRANGE", "intel:wallets", "0", "199"],
       ["HGETALL", "intel:geo"], ["HGETALL", "intel:pages"], ["HGETALL", "intel:refs"], ["HGETALL", "intel:charts"],
       ["HGETALL", "intel:daily"],
+      ...uniqDays.map(d => ["SCARD", "intel:uniq:" + d]),
     ]);
+    const uniq = {}; uniqDays.forEach((d, i) => { const n = Number(uniqCounts[i]) || 0; if (n) uniq[d] = n; });
     // Filter the owner's own country out of the display too, so pre-existing rows drop out (the
     // ingest guard only stops NEW ones). Geo drops the excluded countries entirely.
     const notExcluded = x => !EXCLUDE_COUNTRIES.has(String(x && x.country || "").toUpperCase());
@@ -147,12 +160,12 @@ async function dashboard(req, res, body) {
     res.status(200).json({
       configured: true, diag,
       events: parseList(events).filter(notExcluded), wallets: parseList(wallets).filter(notExcluded),
-      geo: geoObj, pages: hash2obj(pages), refs: hash2obj(refs), charts: hash2obj(charts), daily: hash2obj(daily),
+      geo: geoObj, pages: hash2obj(pages), refs: hash2obj(refs), charts: hash2obj(charts), daily: hash2obj(daily), uniq,
     });
   } catch (e) {
     // Don't 500 into a blank page — return the KV error so the page can show it (e.g. "kv 401" =
     // the token is wrong/read-only for writes; a network host error = the URL is off).
-    res.status(200).json({ configured: true, kvError: String(e.message || e), diag, events: [], wallets: [], geo: {}, pages: {}, refs: {}, charts: {}, daily: {} });
+    res.status(200).json({ configured: true, kvError: String(e.message || e), diag, events: [], wallets: [], geo: {}, pages: {}, refs: {}, charts: {}, daily: {}, uniq: {} });
   }
 }
 
@@ -210,6 +223,7 @@ details.cty{border-bottom:1px solid var(--sep)}details.cty[open]{background:rgba
 .dchart .cum{fill:none;stroke:var(--live);stroke-width:2.2}
 .dchart .cumfill{fill:var(--live);opacity:.12}
 .dchart .ma{fill:none;stroke:#fbbf24;stroke-width:1.8;opacity:.95}
+.dchart .uq{fill:none;stroke:#38bdf8;stroke-width:1.8;opacity:.95}
 .ev b{color:var(--tx)}.muted{color:var(--faint)}.note{color:var(--faint);margin-top:14px;line-height:1.6}
 </style></head><body><div class="wrap">
 <h1>Page Intel</h1>
@@ -237,11 +251,12 @@ function countryTree(events,geo){ const cities={}; (events||[]).forEach(e=>{ con
 /* GROWTH — how the page is developing: cumulative visits (the development curve, full history) + visits
    per day with a 7-day average (last 90d), and headline growth KPIs. Gaps filled with 0 so the shape is
    honest. */
-function growthCard(daily){
+function growthCard(daily,uniq){
   const ent=Object.entries(daily||{}).filter(function(e){return typeof e[0]==='string'&&e[0].length===10&&e[0].charAt(4)==='-'&&e[0].charAt(7)==='-';}).sort();
   if(!ent.length) return '';
   const DAY=864e5, dp=function(d){return Date.parse(d+'T00:00:00Z');};
   const map={}; ent.forEach(function(e){map[e[0]]=+e[1]||0;});
+  const umap=uniq||{}, uDates=Object.keys(umap).filter(function(k){return umap[k]>0;}).sort();
   const first=dp(ent[0][0]), last=dp(ent[ent.length-1][0]), days=[];
   for(let t=first;t<=last;t+=DAY){ const ds=new Date(t).toISOString().slice(0,10); days.push([ds,map[ds]||0]); }
   const N=days.length, MON=['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -256,6 +271,9 @@ function growthCard(daily){
   const last30=sum(days.slice(-30)), prev30=sum(days.slice(-60,-30));
   const mom=prev30>0?Math.round((last30-prev30)/prev30*100):null;
   const avg=Math.round(total/N), peak=days.reduce(function(m,x){return x[1]>m[1]?x:m;},days[0]);
+  // unique visitors: latest day's count + average per day over the days we actually have sets for
+  const uLast=uDates.length?umap[uDates[uDates.length-1]]:null;
+  const uAvg=uDates.length?Math.round(uDates.reduce(function(s,d){return s+umap[d];},0)/uDates.length):null;
   const arrow=function(v){return v==null?'':(v>=0?'▲ +'+v+'%':'▼ '+v+'%');};
   const kcol=function(v){return v==null?'--dim':(v>=0?'--live':'#fb7185');};
   const kpi=function(n,l,c){return '<div class="stat"><div class="n" style="color:'+(c||'var(--tx)')+'">'+n+'</div><div class="l">'+l+'</div></div>';};
@@ -264,7 +282,8 @@ function growthCard(daily){
     +kpi(last7.toLocaleString(),'last 7 days')
     +kpi(arrow(wow),'vs prior 7d','var('+kcol(wow)+')')
     +kpi(arrow(mom),'vs prior 30d','var('+kcol(mom)+')')
-    +kpi(avg.toLocaleString()+'/d','avg per day')
+    +kpi(avg.toLocaleString()+'/d','avg visits/day')
+    +(uAvg!=null?kpi(uAvg.toLocaleString()+'/d','avg unique/day','#38bdf8'):'')
     +'</div>';
   // cumulative area+line, full history
   const CW=960,CH=150,cpB=22,cpT=8;
@@ -275,18 +294,23 @@ function growthCard(daily){
   days.forEach(function(d,i){var mo=+d[0].slice(5,7); if(mo!==lastMon&&N>1){lastMon=mo; ct+='<text x="'+cx(i).toFixed(1)+'" y="'+(CH-6)+'" font-size="10" fill="var(--faint)">'+MON[mo]+"'"+d[0].slice(2,4)+'</text>';}});
   const cumSvg='<svg viewBox="0 0 '+CW+' '+CH+'" class="dchart"><line x1="0" y1="'+(CH-cpB)+'" x2="'+CW+'" y2="'+(CH-cpB)+'" stroke="var(--sep)"/>'
     +'<path class="cumfill" d="'+cpath+'L'+CW+','+(CH-cpB)+'L0,'+(CH-cpB)+'Z"/><path class="cum" d="'+cpath+'"/>'+ct+'</svg>';
-  // daily bars + MA, last 90d
+  // daily bars + MA + unique-visitors line, last 90d
   const show=days.slice(-90), off=N-show.length, dmax=Math.max(1,Math.max.apply(null,show.map(function(x){return x[1];})));
   const W=960,H=150,pB=22,pT=8,bw=W/show.length;
-  let bars='',mline='',dt='';lastMon=-1;
+  const anyU=show.some(function(d){return umap[d[0]]>0;});
+  let bars='',mline='',uline='',uPrev=false,dt='';lastMon=-1;
   show.forEach(function(d,i){ var h=(d[1]/dmax)*(H-pB-pT), x=i*bw, y=H-pB-h;
-    bars+='<rect x="'+(x+0.6).toFixed(1)+'" y="'+y.toFixed(1)+'" width="'+Math.max(1,bw-1.2).toFixed(1)+'" height="'+h.toFixed(1)+'" rx="1"><title>'+d[0]+' — '+d[1]+' visits</title></rect>';
+    bars+='<rect x="'+(x+0.6).toFixed(1)+'" y="'+y.toFixed(1)+'" width="'+Math.max(1,bw-1.2).toFixed(1)+'" height="'+h.toFixed(1)+'" rx="1"><title>'+d[0]+' — '+d[1]+' visits'+(umap[d[0]]>0?' · '+umap[d[0]]+' unique':'')+'</title></rect>';
     var mv=ma[off+i], my=H-pB-(mv/dmax)*(H-pB-pT); mline+=(i?'L':'M')+(x+bw/2).toFixed(1)+','+my.toFixed(1);
+    // unique line only where a set exists (tracking started mid-history) — break the path on gaps
+    var uv=umap[d[0]]; if(uv>0){ var uy=H-pB-(uv/dmax)*(H-pB-pT); uline+=(uPrev?'L':'M')+(x+bw/2).toFixed(1)+','+uy.toFixed(1); uPrev=true; } else uPrev=false;
     var mo=+d[0].slice(5,7); if(mo!==lastMon){lastMon=mo; dt+='<text x="'+x.toFixed(1)+'" y="'+(H-6)+'" font-size="10" fill="var(--faint)">'+MON[mo]+'</text>';} });
-  const dailySvg='<svg viewBox="0 0 '+W+' '+H+'" class="dchart"><line x1="0" y1="'+(H-pB)+'" x2="'+W+'" y2="'+(H-pB)+'" stroke="var(--sep)"/><g class="bars">'+bars+'</g><path class="ma" d="'+mline+'"/>'+dt+'</svg>';
+  const dailySvg='<svg viewBox="0 0 '+W+' '+H+'" class="dchart"><line x1="0" y1="'+(H-pB)+'" x2="'+W+'" y2="'+(H-pB)+'" stroke="var(--sep)"/><g class="bars">'+bars+'</g><path class="ma" d="'+mline+'"/>'+(uline?'<path class="uq" d="'+uline+'"/>':'')+dt+'</svg>';
+  const dLegend='last '+show.length+'d · <span style="color:#fbbf24">━</span> 7-day avg'+(anyU?' · <span style="color:#38bdf8">━</span> unique/day':'')+' · peak '+peak[1]+' ('+peak[0]+')';
   return kpis
     +'<div class="card"><h2>How the page is developing <span class="c">cumulative visits · '+total.toLocaleString()+' total since '+days[0][0]+'</span></h2>'+cumSvg+'</div>'
-    +'<div class="card"><h2>Visits per day <span class="c">last '+show.length+'d · <span style="color:#fbbf24">━</span> 7-day avg · peak '+peak[1]+' ('+peak[0]+')</span></h2>'+dailySvg+'</div>';
+    +'<div class="card"><h2>Visits per day <span class="c">'+dLegend+'</span></h2>'+dailySvg
+    +(anyU?'':'<div class="note" style="margin-top:8px">Unique-visitor tracking just switched on — the unique line will fill in from today forward; pageviews go back further.</div>')+'</div>';
 }
 async function load(){ const pw=$('#pw')?$('#pw').value:''; $('#out').innerHTML='<p class="muted">loading…</p>';
   let r;
@@ -317,7 +341,7 @@ async function load(){ const pw=$('#pw')?$('#pw').value:''; $('#out').innerHTML=
   // countries, grouped, expandable to their cities
   const countries=ctree.slice(0,20).map(c=>'<details class="cty"><summary><span class="nm"><span class="flag">'+flag(c.code)+'</span><span class="t">'+esc(cname(c.code))+'</span></span><span class="v">'+c.n+'</span></summary>'+(c.cities.length?'<div class="sub">'+c.cities.slice(0,10).map(([ci,n])=>esc(ci)+' <b>'+n+'</b>').join(' · ')+'</div>':'')+'</details>').join('')||'<div class="muted">—</div>';
   const feed=(d.events||[]).slice(0,200).map(e=>'<div class="ev"><b>'+esc(e.t)+'</b> '+esc(e.path||'')+(e.chart?' ['+esc(e.chart)+']':'')+(e.wallet?' '+esc(e.wallet):'')+' <span class="muted">· '+flag(e.country)+' '+esc([e.city,cname(e.country)].filter(Boolean).join(', ')||'??')+' · '+(e.ref?esc(e.ref)+' · ':'')+ago(e.ts)+'</span></div>').join('');
-  $('#out').innerHTML=emptyNote+stats+growthCard(d.daily)+'<div class="grid">'
+  $('#out').innerHTML=emptyNote+stats+growthCard(d.daily,d.uniq)+'<div class="grid">'
     +'<div class="card"><h2>Wallet searches <span class="c">'+wg.length+' unique · '+(d.wallets||[]).length+' total</span></h2>'+srcLine+wallets+'</div>'
     +'<div class="card"><h2>Countries <span class="c">tap to expand</span></h2>'+countries+'</div>'
     +'<div class="card"><h2>Top pages</h2>'+rows(d.pages,12)+'</div>'
