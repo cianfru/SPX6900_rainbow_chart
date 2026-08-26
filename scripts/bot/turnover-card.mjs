@@ -42,8 +42,9 @@ export function turnoverCardSvg(stats, opts = {}) {
   const data = sample(stack.data);
   const n = data.length;
 
-  // plot geometry
-  const x0 = mL, x1 = W - mR, yTop = 150, yBot = 540, plotW = x1 - x0, plotH = yBot - yTop;
+  // plot geometry — yBot tracks H so the waves fill the card on ANY aspect (landscape 1200×630,
+  // square 1080×1080, portrait …); the header stays pinned to the top, ticks/legend/footer to the bottom.
+  const x0 = mL, x1 = W - mR, yTop = 150, yBot = H - 100, plotW = x1 - x0, plotH = yBot - yTop;
   const xAt = i => x0 + (n < 2 ? 0 : (i / (n - 1)) * plotW);
   const yAt = v => yBot - (Math.max(0, Math.min(100, v)) / 100) * plotH;
 
@@ -86,7 +87,7 @@ ${grid}
 ${areas}
 ${ticks}
 ${legend}
-<text x="${W - mR}" y="${H - 14}" fill="#8592a6" font-size="16" font-family="sans-serif" text-anchor="end">${esc("spx6900rainbow.xyz · ETH-native · reconstructed on-chain · reproducible")}</text>
+<text x="${W - mR}" y="${H - 16}" fill="#8592a6" font-size="16" font-family="sans-serif" text-anchor="end">${esc("spx6900rainbow.xyz · ETH-native · reconstructed on-chain · reproducible")}</text>
 </svg>`;
 }
 

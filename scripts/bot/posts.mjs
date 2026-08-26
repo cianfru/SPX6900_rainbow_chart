@@ -504,12 +504,11 @@ The thin-float squeeze is real — but it's a coiled spring, not a locked vault.
     if (oc.length < 20) return null;
     const c = turnoverOf(oc.at(-1));
     if (!c) return null;
-    const wk = c.w1 != null ? ` About ${Math.round(c.w1)}% moved in just the last week.` : "";
     return {
       id: "turnover",
-      text: ct`Of every SPX6900 coin in existence, here's how much actually changes hands — sorted by how recently it last moved.
-~${Math.round(c.m1)}% turned over in the last month and ${Math.round(c.y1)}% within a year, but ${Math.round(c.dormant)}% hasn't moved in over a year.${wk} Held isn't frozen — it's self-custody that just moves slowly.
-The mirror of HODL waves, reconstructed coin-by-coin from the chain and checkable.`,
+      text: ct`How much SPX6900 actually changes hands, by how recently each coin last moved: ~${Math.round(c.m1)}% in the last month, ${Math.round(c.y1)}% within a year — but ${Math.round(c.dormant)}% hasn't moved in over a year.
+This is the flip side of HODL Waves. HODL Waves shows how LONG coins have been held (conviction); this shows how much MOVED in each window (velocity), splitting the freshly-traded layer down to the day and week.
+Held ≠ frozen — self-custody that just moves slowly. Reconstructed coin-by-coin on-chain, and checkable.`,
       card: { type: "turnover" },
     };
   },
@@ -2496,7 +2495,7 @@ const NO_ROTATE = new Set(["drawdown", "risk", "kraken", "dcaladder", "marketcap
 // LONGFORM is consumed ONLY by that test, and ONLY to RAISE the ceiling for a card that legitimately
 // needs >2000 (via Math.max) — it can never impose a TIGHTER cap than an ordinary card. Every entry
 // below is under 2000 today, so the map is currently documentation-only; keep it tiny.
-export const LONGFORM = { spxcohort: 700, cexflow: 600, hodlcompare: 340, floatcheck: 620, turnover: 420 };
+export const LONGFORM = { spxcohort: 700, cexflow: 600, hodlcompare: 340, floatcheck: 620, turnover: 520 };
 
 // Owner-editable rotation exclusions — cards kept BUILDABLE + visible in the control
 // panel (and hand-postable) but held OUT of the organic daily rotation. Toggled from
