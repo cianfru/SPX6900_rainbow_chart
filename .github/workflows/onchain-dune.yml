@@ -52,6 +52,13 @@ concurrency:
 env:
   ARCHIVE_TAG: onchain-archive
   ARCHIVE_ASSET: transfers.csv.gz
+  # BigQuery ETH source (used once GCP_SA_KEY is set; until then this workflow stays on Dune).
+  GCP_PROJECT: goog-fltx
+  BQ_DATASET: spx_onchain
+  BQ_TABLE: eth_transfers
+  SPX_TOKEN: "0xe0f63a424a4439cbe457d80e4f4b51ad25b2c56c"
+  BQ_MAX_BYTES: "214748364800"   # 200 GB cap on the incremental append — the delta is a few GB; a full
+                                 # backfill (empty table) exceeds this and fails cleanly, forcing the one-time seed.
 
 jobs:
   refresh:
@@ -68,7 +75,22 @@ jobs:
       # @resvg/resvg-js) need the npm deps installed — without this they failed silently under `|| true`.
       - run: npm ci
 
+      # ── ETH SOURCE: BigQuery once GCP_SA_KEY is set, else Dune ──────────────────────────────────
+      # Dune is going view-only (free plan, 2026-09-10). BigQuery (public crypto_ethereum, its own
+      # append table, FREE) is the permanent replacement. This gate keeps the workflow on Dune until
+      # you add the GCP_SA_KEY secret — the moment it's set, ETH flips to BigQuery with NO other change
+      # (Solana RPC + Base Alchemy + the entire downstream, incl. SPX City, are untouched either way).
+      - name: Pick ETH source (BigQuery if GCP_SA_KEY set, else Dune)
+        id: src
+        env:
+          GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
+        run: |
+          if [ -n "$GCP_SA_KEY" ]; then echo "mode=bq"   >> "$GITHUB_OUTPUT"; echo "ETH source → BigQuery";
+          else                         echo "mode=dune" >> "$GITHUB_OUTPUT"; echo "ETH source → Dune (add GCP_SA_KEY to switch to BigQuery)"; fi
+
+      # ── DUNE path (default until GCP_SA_KEY exists) ──
       - name: Download the transfer archive (release asset)
+        if: steps.src.outputs.mode == 'dune'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -80,10 +102,43 @@ jobs:
           echo "archive rows: $(( $(wc -l < transfers.csv) - 1 ))"
 
       - name: Pull Dune delta → merge → run FIFO engine
+        if: steps.src.outputs.mode == 'dune'
         env:
           DUNE_API_KEY: ${{ secrets.DUNE_API_KEY }}
           DUNE_INCREMENTAL_QUERY_ID: ${{ vars.DUNE_INCREMENTAL_QUERY_ID }}
         run: node scripts/build-onchain-dune-refresh.mjs --archive=transfers.csv
+
+      # ── BIGQUERY path (once GCP_SA_KEY is set): own append table = the archive; export → FIFO ──
+      - name: BigQuery — auth
+        if: steps.src.outputs.mode == 'bq'
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+      - name: BigQuery — setup gcloud
+        if: steps.src.outputs.mode == 'bq'
+        uses: google-github-actions/setup-gcloud@v2
+      - name: BigQuery — incremental append + export → transfers.csv
+        if: steps.src.outputs.mode == 'bq'
+        # First run: the table is SEEDED once via `bq load` (see the header) so it's never empty here;
+        # the append then partition-prunes on block_timestamp → only new days scanned (a few GB). The
+        # 200 GB cap fails a stray full-scan (empty table) cleanly rather than eating the free 1 TB/mo.
+        run: |
+          bq --project_id="$GCP_PROJECT" mk --dataset --location=US "$GCP_PROJECT:$BQ_DATASET" 2>/dev/null || true
+          bq --project_id="$GCP_PROJECT" query --use_legacy_sql=false --format=none \
+            "CREATE TABLE IF NOT EXISTS \`$GCP_PROJECT.$BQ_DATASET.$BQ_TABLE\` (sender STRING, receiver STRING, time TIMESTAMP, value BIGNUMERIC)"
+          bq --project_id="$GCP_PROJECT" query --use_legacy_sql=false --format=none --maximum_bytes_billed="$BQ_MAX_BYTES" \
+            "INSERT INTO \`$GCP_PROJECT.$BQ_DATASET.$BQ_TABLE\` (sender, receiver, time, value)
+             SELECT from_address, to_address, block_timestamp, CAST(value AS BIGNUMERIC)
+             FROM \`bigquery-public-data.crypto_ethereum.token_transfers\`
+             WHERE token_address = '$SPX_TOKEN'
+               AND block_timestamp > (SELECT COALESCE(MAX(time), TIMESTAMP '2000-01-01 00:00:00 UTC')
+                                      FROM \`$GCP_PROJECT.$BQ_DATASET.$BQ_TABLE\`)"
+          bq --project_id="$GCP_PROJECT" query --use_legacy_sql=false --format=csv --max_rows=5000000 \
+            "SELECT sender, receiver, time, value FROM \`$GCP_PROJECT.$BQ_DATASET.$BQ_TABLE\` ORDER BY time" > transfers.csv
+          echo "BigQuery transfers rows: $(( $(wc -l < transfers.csv) - 1 ))"
+      - name: BigQuery — run FIFO engine (no Dune pull)
+        if: steps.src.outputs.mode == 'bq'
+        run: node scripts/build-onchain-dune-refresh.mjs --archive=transfers.csv --no-pull
       - name: "Classify self-move + entity addresses (contract vs EOA — entity foundation)"
         # eth_getCode over the addresses in the self-moves.json AND entities.json the FIFO run just wrote →
         # grows the public/addr-types.json cache. The NEXT FIFO run reads it to withhold re-aging from moves
@@ -155,9 +210,11 @@ jobs:
           '
 
       - name: Re-upload the grown archive
+        # DUNE path only — in BigQuery mode the append table IS the archive (nothing to upload).
         # continue-on-error: the ETH data is already computed + sanity-checked, so a transient GitHub
         # upload hiccup must not cost the day's commit + deploy. The merge is idempotent — if the archive
         # doesn't grow today, the next run re-pulls the same delta from the same cutoff and recomputes.
+        if: steps.src.outputs.mode == 'dune'
         continue-on-error: true
         env:
           GH_TOKEN: ${{ github.token }}

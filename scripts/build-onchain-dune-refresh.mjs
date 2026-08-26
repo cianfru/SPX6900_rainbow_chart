@@ -238,6 +238,18 @@ async function main() {
   const pPath = join(root, "tmp-prices.csv");
   const haveArchive = existsSync(archive) && statSync(archive).size >= 100;
 
+  // NO-PULL MODE (--no-pull) — the BigQuery path. The archive was already produced by BigQuery
+  // (its own append table, exported to transfers.csv), so DON'T touch Dune: just run the same
+  // pricesCsv() + local FIFO engine. onchain.json/urpd.json come out identical to the Dune path
+  // for a given archive, so the whole downstream (city, smart-money, exit-flow, …) is unchanged.
+  if (args["no-pull"]) {
+    if (!haveArchive) throw new Error(`--no-pull needs an existing --archive (BigQuery should have exported it to ${archive})`);
+    console.log(`no-pull: FIFO over the existing archive (${archive}) — no Dune call.`);
+    await writeFile(pPath, await pricesCsv());
+    await runFifo(archive, pPath);
+    return;
+  }
+
   // SEED MODE — EXPLICIT ONLY (--seed). Rebuilds the full history from Dune in monthly chunks
   // (each split on 402). This is a full-history SCAN — one-time and ~cheap (the owner's prior full
   // SPX scan was ~6 credits), but it is NEVER triggered automatically, so a missing archive can't
