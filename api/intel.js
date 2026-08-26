@@ -205,8 +205,11 @@ details.cty{border-bottom:1px solid var(--sep)}details.cty[open]{background:rgba
 .cty .sub{padding:0 0 9px 25px;color:var(--dim);font-size:11.5px;line-height:1.75}.cty .sub b{color:var(--faint);font-weight:400}
 .feed{max-height:440px;overflow:auto;margin:0 -4px;padding:0 4px}.ev{padding:5px 0;color:var(--dim);border-bottom:1px solid var(--sep);font-size:12px}
 .dchart{width:100%;height:auto;display:block;margin-top:10px}
-.dchart .bars rect{fill:var(--live);opacity:.8}
+.dchart .bars rect{fill:var(--live);opacity:.55}
 .dchart .bars rect:hover{opacity:1}
+.dchart .cum{fill:none;stroke:var(--live);stroke-width:2.2}
+.dchart .cumfill{fill:var(--live);opacity:.12}
+.dchart .ma{fill:none;stroke:#fbbf24;stroke-width:1.8;opacity:.95}
 .ev b{color:var(--tx)}.muted{color:var(--faint)}.note{color:var(--faint);margin-top:14px;line-height:1.6}
 </style></head><body><div class="wrap">
 <h1>Page Intel</h1>
@@ -231,26 +234,59 @@ function bySource(ws){ const m={}; (ws||[]).forEach(w=>{ const s=w.source||'othe
 function countryTree(events,geo){ const cities={}; (events||[]).forEach(e=>{ const c=String(e.country||'').toUpperCase(); if(!c) return; (cities[c]=cities[c]||{}); const ci=e.city||'—'; cities[c][ci]=(cities[c][ci]||0)+1; });
   return Object.entries(geo||{}).map(([c,n])=>[String(c).toUpperCase(),+n||0]).sort((a,b)=>b[1]-a[1])
     .map(([c,n])=>({code:c,n,cities:Object.entries(cities[c]||{}).sort((a,b)=>b[1]-a[1])})); }
-/* visits-per-day trend: one bar per day (last 90d), gaps filled with 0 so the shape is honest. */
-function dailyChart(daily){
+/* GROWTH — how the page is developing: cumulative visits (the development curve, full history) + visits
+   per day with a 7-day average (last 90d), and headline growth KPIs. Gaps filled with 0 so the shape is
+   honest. */
+function growthCard(daily){
   const ent=Object.entries(daily||{}).filter(function(e){return typeof e[0]==='string'&&e[0].length===10&&e[0].charAt(4)==='-'&&e[0].charAt(7)==='-';}).sort();
   if(!ent.length) return '';
   const DAY=864e5, dp=function(d){return Date.parse(d+'T00:00:00Z');};
   const map={}; ent.forEach(function(e){map[e[0]]=+e[1]||0;});
   const first=dp(ent[0][0]), last=dp(ent[ent.length-1][0]), days=[];
   for(let t=first;t<=last;t+=DAY){ const ds=new Date(t).toISOString().slice(0,10); days.push([ds,map[ds]||0]); }
-  const show=days.slice(-90), max=Math.max(1,...show.map(function(x){return x[1];}));
-  const W=960,H=170,pB=24,pT=8,bw=W/show.length, MON=['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  let bars='',ticks='',lastMon=-1;
-  show.forEach(function(d,i){ const h=(d[1]/max)*(H-pB-pT), x=i*bw, y=H-pB-h;
+  const N=days.length, MON=['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  // cumulative (full history) + 7d moving average
+  let run=0; const cum=days.map(function(d){run+=d[1];return run;});
+  const total=run;
+  const ma=days.map(function(_,i){ var a=Math.max(0,i-6),w=days.slice(a,i+1); return w.reduce(function(s,x){return s+x[1];},0)/w.length; });
+  // KPIs
+  const sum=function(arr){return arr.reduce(function(s,x){return s+x[1];},0);};
+  const last7=sum(days.slice(-7)), prev7=sum(days.slice(-14,-7));
+  const wow=prev7>0?Math.round((last7-prev7)/prev7*100):null;
+  const last30=sum(days.slice(-30)), prev30=sum(days.slice(-60,-30));
+  const mom=prev30>0?Math.round((last30-prev30)/prev30*100):null;
+  const avg=Math.round(total/N), peak=days.reduce(function(m,x){return x[1]>m[1]?x:m;},days[0]);
+  const arrow=function(v){return v==null?'':(v>=0?'▲ +'+v+'%':'▼ '+v+'%');};
+  const kcol=function(v){return v==null?'--dim':(v>=0?'--live':'#fb7185');};
+  const kpi=function(n,l,c){return '<div class="stat"><div class="n" style="color:'+(c||'var(--tx)')+'">'+n+'</div><div class="l">'+l+'</div></div>';};
+  const kpis='<div class="stats">'
+    +kpi(total.toLocaleString(),'total visits')
+    +kpi(last7.toLocaleString(),'last 7 days')
+    +kpi(arrow(wow),'vs prior 7d','var('+kcol(wow)+')')
+    +kpi(arrow(mom),'vs prior 30d','var('+kcol(mom)+')')
+    +kpi(avg.toLocaleString()+'/d','avg per day')
+    +'</div>';
+  // cumulative area+line, full history
+  const CW=960,CH=150,cpB=22,cpT=8;
+  const cx=function(i){return N<2?0:i/(N-1)*CW;}, cmax=Math.max(1,total);
+  const cy=function(v){return CH-cpB-(v/cmax)*(CH-cpB-cpT);};
+  let cpath='',lastMon=-1,ct='';
+  cum.forEach(function(v,i){cpath+=(i?'L':'M')+cx(i).toFixed(1)+','+cy(v).toFixed(1);});
+  days.forEach(function(d,i){var mo=+d[0].slice(5,7); if(mo!==lastMon&&N>1){lastMon=mo; ct+='<text x="'+cx(i).toFixed(1)+'" y="'+(CH-6)+'" font-size="10" fill="var(--faint)">'+MON[mo]+"'"+d[0].slice(2,4)+'</text>';}});
+  const cumSvg='<svg viewBox="0 0 '+CW+' '+CH+'" class="dchart"><line x1="0" y1="'+(CH-cpB)+'" x2="'+CW+'" y2="'+(CH-cpB)+'" stroke="var(--sep)"/>'
+    +'<path class="cumfill" d="'+cpath+'L'+CW+','+(CH-cpB)+'L0,'+(CH-cpB)+'Z"/><path class="cum" d="'+cpath+'"/>'+ct+'</svg>';
+  // daily bars + MA, last 90d
+  const show=days.slice(-90), off=N-show.length, dmax=Math.max(1,Math.max.apply(null,show.map(function(x){return x[1];})));
+  const W=960,H=150,pB=22,pT=8,bw=W/show.length;
+  let bars='',mline='',dt='';lastMon=-1;
+  show.forEach(function(d,i){ var h=(d[1]/dmax)*(H-pB-pT), x=i*bw, y=H-pB-h;
     bars+='<rect x="'+(x+0.6).toFixed(1)+'" y="'+y.toFixed(1)+'" width="'+Math.max(1,bw-1.2).toFixed(1)+'" height="'+h.toFixed(1)+'" rx="1"><title>'+d[0]+' — '+d[1]+' visits</title></rect>';
-    const mo=+d[0].slice(5,7); if(mo!==lastMon){ lastMon=mo; ticks+='<text x="'+x.toFixed(1)+'" y="'+(H-7)+'" font-size="10" fill="var(--faint)">'+MON[mo]+'</text>'; } });
-  const total=show.reduce(function(a,b){return a+b[1];},0), avg=Math.round(total/show.length);
-  const peak=show.reduce(function(m,x){return x[1]>m[1]?x:m;},show[0]);
-  return '<div class="card"><h2>Visits per day <span class="c">last '+show.length+'d · avg '+avg+'/day · peak '+peak[1]+' ('+peak[0]+')</span></h2>'
-    +'<svg viewBox="0 0 '+W+' '+H+'" class="dchart">'
-    +'<line x1="0" y1="'+(H-pB)+'" x2="'+W+'" y2="'+(H-pB)+'" stroke="var(--sep)"/>'
-    +'<g class="bars">'+bars+'</g>'+ticks+'</svg></div>';
+    var mv=ma[off+i], my=H-pB-(mv/dmax)*(H-pB-pT); mline+=(i?'L':'M')+(x+bw/2).toFixed(1)+','+my.toFixed(1);
+    var mo=+d[0].slice(5,7); if(mo!==lastMon){lastMon=mo; dt+='<text x="'+x.toFixed(1)+'" y="'+(H-6)+'" font-size="10" fill="var(--faint)">'+MON[mo]+'</text>';} });
+  const dailySvg='<svg viewBox="0 0 '+W+' '+H+'" class="dchart"><line x1="0" y1="'+(H-pB)+'" x2="'+W+'" y2="'+(H-pB)+'" stroke="var(--sep)"/><g class="bars">'+bars+'</g><path class="ma" d="'+mline+'"/>'+dt+'</svg>';
+  return kpis
+    +'<div class="card"><h2>How the page is developing <span class="c">cumulative visits · '+total.toLocaleString()+' total since '+days[0][0]+'</span></h2>'+cumSvg+'</div>'
+    +'<div class="card"><h2>Visits per day <span class="c">last '+show.length+'d · <span style="color:#fbbf24">━</span> 7-day avg · peak '+peak[1]+' ('+peak[0]+')</span></h2>'+dailySvg+'</div>';
 }
 async function load(){ const pw=$('#pw')?$('#pw').value:''; $('#out').innerHTML='<p class="muted">loading…</p>';
   let r;
@@ -281,7 +317,7 @@ async function load(){ const pw=$('#pw')?$('#pw').value:''; $('#out').innerHTML=
   // countries, grouped, expandable to their cities
   const countries=ctree.slice(0,20).map(c=>'<details class="cty"><summary><span class="nm"><span class="flag">'+flag(c.code)+'</span><span class="t">'+esc(cname(c.code))+'</span></span><span class="v">'+c.n+'</span></summary>'+(c.cities.length?'<div class="sub">'+c.cities.slice(0,10).map(([ci,n])=>esc(ci)+' <b>'+n+'</b>').join(' · ')+'</div>':'')+'</details>').join('')||'<div class="muted">—</div>';
   const feed=(d.events||[]).slice(0,200).map(e=>'<div class="ev"><b>'+esc(e.t)+'</b> '+esc(e.path||'')+(e.chart?' ['+esc(e.chart)+']':'')+(e.wallet?' '+esc(e.wallet):'')+' <span class="muted">· '+flag(e.country)+' '+esc([e.city,cname(e.country)].filter(Boolean).join(', ')||'??')+' · '+(e.ref?esc(e.ref)+' · ':'')+ago(e.ts)+'</span></div>').join('');
-  $('#out').innerHTML=emptyNote+stats+dailyChart(d.daily)+'<div class="grid">'
+  $('#out').innerHTML=emptyNote+stats+growthCard(d.daily)+'<div class="grid">'
     +'<div class="card"><h2>Wallet searches <span class="c">'+wg.length+' unique · '+(d.wallets||[]).length+' total</span></h2>'+srcLine+wallets+'</div>'
     +'<div class="card"><h2>Countries <span class="c">tap to expand</span></h2>'+countries+'</div>'
     +'<div class="card"><h2>Top pages</h2>'+rows(d.pages,12)+'</div>'

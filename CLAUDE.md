@@ -527,6 +527,19 @@
       ≈ 19 KB/building → ~140 MB. **Needs a real-device `window.__cityStats()` check before shipping.** **Keep the honesty rail:
       the flat 5k bar means Base-as-Brooklyn is ~400 REAL buildings under a "114,900 wallets" headcount LABEL — do NOT bend to a
       chain-relative threshold** (breaks "height means the same thing in every borough").
+- **🔲 GREENLIT / PARKED — MULTICHAIN "CONVICTION RACE" (ETH vs Base vs Solana, over time). Owner: "conviction on a three-line
+  race" (2026-08-26).** We shipped a single-line **Conviction Score** (0–100 supply-weighted holding age; `src/conviction.js`,
+  `ConvictionChart`, id `conviction`) + **Holder Change Breakdown** (`src/holder-change.js`, `HolderChangeChart`, id `holderchange`,
+  from the engine's per-day `wealth` USD-tier headcounts) — **both ETH-native** (labelled), reading `onchain.json`. Owner wants the
+  conviction as a **3-line race across chains**. ⭐ THE DATA IS ALREADY STORED — NO re-extraction: **Solana** = `dune/out/spx6900_solana_balances.csv`
+  (166k rows, full `daily_balances` history since 2023-12-21) + **Base** = the Alchemy transfer replay in `build-base-alchemy.mjs`; both
+  builders currently collapse to a CURRENT snapshot (`solana-onchain.json`/`base-onchain.json` = per-wallet {a,bal,days,flow}, ≥5k floor).
+  **What's needed = builder work only:** extend `build-solana-onchain` (replay the stored CSV) + `build-base-alchemy` to each emit a
+  **daily/weekly age-band series** (same `age:[0-1m,1-3m,3-6m,6-12m,1y+]` shape as ETH's onchain.json), then a `ConvictionRace` chart
+  reading all three + a combined SPX line. **$0 for Solana (offline CSV reprocess), cheap for Base (Alchemy).** Caveats (neither blocks
+  the race): Base/Solana are **≥5,000-SPX scoped** (fine for a SUPPLY-WEIGHTED conviction — those wallets hold ~all supply; only matters
+  for dust headcount), and **cost-basis metrics stay ETH-only** (Wormhole-bridged) but conviction is age, not cost basis. FULL multichain
+  parity (dust tiers + cost basis) is a separate, bigger ask.
 - **📐 HOW MANY BUILDINGS CAN THE CITY AFFORD (re-measured 2026-07-28).**
   - **Manhattan holds 1,693 lots** at full scale (real streets take ~a third of the island). `cityScale` caps k at 1 deliberately.
   - **⭐ OVERFLOW GOES TO THE OUTER BOROUGHS, and the NEWEST wallets move** (owner: "expand outside manhattan for newer wallets").
