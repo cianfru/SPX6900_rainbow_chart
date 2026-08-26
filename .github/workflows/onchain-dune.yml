@@ -121,18 +121,33 @@ jobs:
         if: steps.src.outputs.mode == 'bq'
         # First run: the table is SEEDED once via `bq load` (see the header) so it's never empty here;
         # the append then partition-prunes on block_timestamp → only new days scanned (a few GB). The
-        # 200 GB cap fails a stray full-scan (empty table) cleanly rather than eating the free 1 TB/mo.
+        # 200 GB cap fails a stray full-scan cleanly rather than eating the free 1 TB/mo.
+        #
+        # ⚠ PARTITION PRUNING NEEDS A LITERAL BOUND. crypto_ethereum.token_transfers is day-partitioned
+        # on block_timestamp, but the planner only prunes when the bound is a CONSTANT. A subquery bound
+        # ("block_timestamp > (SELECT MAX(time) …)") is opaque at plan time, so BigQuery scanned the WHOLE
+        # ~605 GB history and blew the 200 GB cap. Fix: read MAX(time) FIRST (tiny scan of our own table),
+        # then inject it as a LITERAL into the incremental INSERT so pruning fires (≈ a day's partition, a
+        # few GB). Strict `>` (never `>=`) so a re-run can't duplicate the boundary second into the table.
         run: |
           bq --project_id="$GCP_PROJECT" mk --dataset --location=US "$GCP_PROJECT:$BQ_DATASET" 2>/dev/null || true
           bq --project_id="$GCP_PROJECT" query --use_legacy_sql=false --format=none \
             "CREATE TABLE IF NOT EXISTS \`$GCP_PROJECT.$BQ_DATASET.$BQ_TABLE\` (sender STRING, receiver STRING, time TIMESTAMP, value BIGNUMERIC)"
+
+          # cutoff = the newest time already in our table, as a bare literal string (strip CSV header + quotes)
+          CUTOFF=$(bq --project_id="$GCP_PROJECT" query --use_legacy_sql=false --format=csv \
+            "SELECT FORMAT_TIMESTAMP('%Y-%m-%d %H:%M:%E6S', COALESCE(MAX(time), TIMESTAMP '2000-01-01 00:00:00')) FROM \`$GCP_PROJECT.$BQ_DATASET.$BQ_TABLE\`" \
+            | tail -n1 | tr -d '"')
+          echo "incremental cutoff (newest archived time): $CUTOFF"
+          if [ -z "$CUTOFF" ]; then echo "::error::could not read MAX(time) — is the table seeded?"; exit 1; fi
+
           bq --project_id="$GCP_PROJECT" query --use_legacy_sql=false --format=none --maximum_bytes_billed="$BQ_MAX_BYTES" \
             "INSERT INTO \`$GCP_PROJECT.$BQ_DATASET.$BQ_TABLE\` (sender, receiver, time, value)
              SELECT from_address, to_address, block_timestamp, CAST(value AS BIGNUMERIC)
              FROM \`bigquery-public-data.crypto_ethereum.token_transfers\`
-             WHERE token_address = '$SPX_TOKEN'
-               AND block_timestamp > (SELECT COALESCE(MAX(time), TIMESTAMP '2000-01-01 00:00:00 UTC')
-                                      FROM \`$GCP_PROJECT.$BQ_DATASET.$BQ_TABLE\`)"
+             WHERE block_timestamp > TIMESTAMP '$CUTOFF'
+               AND token_address = '$SPX_TOKEN'"
+
           bq --project_id="$GCP_PROJECT" query --use_legacy_sql=false --format=csv --max_rows=5000000 \
             "SELECT sender, receiver, time, value FROM \`$GCP_PROJECT.$BQ_DATASET.$BQ_TABLE\` ORDER BY time" > transfers.csv
           echo "BigQuery transfers rows: $(( $(wc -l < transfers.csv) - 1 ))"
