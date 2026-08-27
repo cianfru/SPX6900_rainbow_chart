@@ -1714,9 +1714,14 @@ async function engAnalyze(contentText, overviewText) {
   // (bookmarks) + the WEBSITE instead. This panel makes those the headline, and shows the funnel so
   // the cultural leak is visible rather than mistaken for a content problem.
   const kset = originals.length ? originals : posts;
+  // Does the export actually carry per-post "New follows"? X's Content export often omits it (it's only
+  // in the Account overview), so when every row is 0 the follows number is a stuck 0, not real data.
+  // In that case we HIDE everything follows-based rather than show an un-updatable zero.
+  const haveFollows = posts.some(p => p.follows > 0) || days.some(r => r.follows > 0);
   const totFollows = (overview ? days : posts).reduce((s, r) => s + (r.follows || 0), 0);
   const sum = (arr, f) => arr.reduce((s, r) => s + (f(r) || 0), 0);
   const dImp = sum(days, r => r.imp), dLikes = sum(days, r => r.likes), dVis = sum(days, r => r.visits);
+  const medImp = kset.length ? engMed(kset.map(p => p.imp)) : (days.length ? engMed(days.map(r => r.imp)) : 0);
   const likeRate = kset.length ? engMed(kset.map(p => p.imp ? p.likes / p.imp : 0)) * 100 : (dImp ? dLikes / dImp * 100 : 0);
   const bmk1k = kset.length ? engMed(kset.map(p => p.imp ? p.bm / p.imp : 0)) * 1000 : null;
   const nfmt = n => Math.round(n).toLocaleString();
@@ -1726,33 +1731,42 @@ async function engAnalyze(contentText, overviewText) {
   html += `<div class="eng-matter">`;
   html += `<div class="eng-h">🎯 Metrics that matter <span class="tag">you're a website using X as a billboard — track reach &amp; private intent, not follows</span></div>`;
   html += `<div class="eng-kpis">`;
-  html += kpi(nfmt(dImp), "total reach (impressions)", "good");
-  html += kpi(likeRate.toFixed(1) + "%", "like-rate · X norm ~1%", "good");
+  // restored quick-glance detail
+  if (kset.length) html += kpi(kset.length.toLocaleString(), content ? "original posts" : "posts");
+  if (days.length) html += kpi(days.length.toLocaleString(), "active days");
+  html += kpi(nfmt(medImp), "median impressions · typical reach", "good");
+  html += kpi(nfmt(dImp), "total reach");
+  html += kpi(likeRate.toFixed(1) + "%", "median like-rate · X norm ~1%", "good");
   if (bmk1k != null) html += kpi(bmk1k.toFixed(1), "bookmarks ‰ · private intent", "good");
   html += kpi(nfmt(dVis), "profile visits");
-  html += kpi(nfmt(totFollows), "new follows · culturally capped", "muted");
+  if (haveFollows) html += kpi(nfmt(totFollows), "new follows · culturally capped", "muted");
   html += `</div>`;
 
-  // The follow funnel: reach → likes (resonance) → profile visits (consideration) → follows.
-  // The visit→follow arrow is the "leak" (the culturally-taxed public step) and is flagged amber.
-  const f2f = cv(totFollows, dVis);   // % of profile visitors who follow — the taxed step
+  // The follow funnel: reach → likes → profile visits → (follows). The visit→follow "leak" only shows
+  // when the export carries follows; otherwise the funnel stops at profile visits (no stuck-0 step).
   html += `<div class="eng-fun">`;
   html += `<div class="eng-fstep"><b>${nfmt(dImp)}</b><span>reach</span></div>`;
   html += `<div class="eng-farrow"><span class="cv">${cv(dLikes, dImp).toFixed(1)}%</span><span class="ar">→</span></div>`;
   html += `<div class="eng-fstep"><b>${nfmt(dLikes)}</b><span>likes</span></div>`;
   html += `<div class="eng-farrow"><span class="cv">${cv(dVis, dImp).toFixed(1)}%</span><span class="ar">→</span></div>`;
   html += `<div class="eng-fstep"><b>${nfmt(dVis)}</b><span>profile visits</span></div>`;
-  html += `<div class="eng-farrow leak"><span class="cv">${f2f.toFixed(0)}%</span><span class="ar">→</span></div>`;
-  html += `<div class="eng-fstep"><b>${nfmt(totFollows)}</b><span>follows</span></div>`;
-  html += `</div>`;
-  html += `<div class="eng-leaknote">⚠ The leak is the last step: only <b>${f2f.toFixed(0)}%</b> of profile visitors follow. That's the "no charts" culture tax — people value the charts but won't be <i>seen</i> following a chart account. It's not a content problem.</div>`;
-  html += `<div class="eng-reframe"><b>Read it this way:</b> maximise <b>reach</b> (the master variable — likes &amp; the few follows both flow from it), watch <b>bookmarks</b> (private high-intent that dodges the follow-shyness), and treat the <b>website</b> as your real conversion — people use it without being seen. Your <b>~${likeRate.toFixed(0)}% like-rate</b> is ${likeRate >= 2 ? "well above" : "around"} the ~1% norm, so the content lands; the follow number is structurally capped, so don't steer by it. → Site visits live in the <b>🌍 Audience</b> tab.</div>`;
+  if (haveFollows) {
+    const f2f = cv(totFollows, dVis);
+    html += `<div class="eng-farrow leak"><span class="cv">${f2f.toFixed(0)}%</span><span class="ar">→</span></div>`;
+    html += `<div class="eng-fstep"><b>${nfmt(totFollows)}</b><span>follows</span></div></div>`;
+    html += `<div class="eng-leaknote">⚠ The leak is the last step: only <b>${f2f.toFixed(0)}%</b> of profile visitors follow. That's the "no charts" culture tax — people value the charts but won't be <i>seen</i> following a chart account. Not a content problem.</div>`;
+  } else {
+    html += `</div>`;
+    html += `<div class="eng-leaknote">ℹ This export has no per-post <b>New follows</b> column, so the funnel stops at profile visits and all follows-based tables are hidden. To see the visit→follow step, add the X <b>Account overview</b> export (it carries daily follows).</div>`;
+  }
+  html += `<div class="eng-reframe"><b>Read it this way:</b> maximise <b>reach</b> (the master variable — likes${haveFollows ? " &amp; the few follows" : ""} flow from it), watch <b>bookmarks</b> (private high-intent that dodges the follow-shyness), and treat the <b>website</b> as your real conversion — people use it without being seen. Your <b>${likeRate.toFixed(1)}% like-rate</b> is ${likeRate >= 2 ? "well above" : "around"} the ~1% norm, so the content lands.${haveFollows ? " The follow number is structurally capped, so don't steer by it." : ""} → Site visits live in the <b>🌍 Audience</b> tab.</div>`;
   html += `</div>`;
 
   // ---------- price relationship ----------
   if (days.length >= 5) {
     const abs = days.map(r => r.ret == null ? null : Math.abs(r.ret));
-    const rows = [["Impressions", days.map(r => r.imp)], ["Likes", days.map(r => r.likes)], ["New follows", days.map(r => r.follows)]];
+    const rows = [["Impressions", days.map(r => r.imp)], ["Likes", days.map(r => r.likes)]];
+    if (haveFollows) rows.push(["New follows", days.map(r => r.follows)]);
     if (overview) rows.push(["Profile visits", days.map(r => r.visits)]);
     const drivers = [["price level", days.map(r => r.price)], ["daily return", days.map(r => r.ret)], ["volatility |Δ|", abs]];
     html += `<div class="eng-h">Is engagement related to price? <span class="tag">Pearson r over ${days.length} active days · |r|&lt;0.2 none · 0.2–0.5 mild · &gt;0.5 strong</span></div>`;
@@ -1762,7 +1776,7 @@ async function engAnalyze(contentText, overviewText) {
     // verdict
     const impRet = engPearson(days.map(r => r.ret), days.map(r => r.imp)).r;
     const visVol = overview ? engPearson(abs, days.map(r => r.visits)).r : NaN;
-    const folImp = originals.length ? engPearson(originals.map(p => p.imp), originals.map(p => p.follows)).r : NaN;
+    const folImp = (haveFollows && originals.length) ? engPearson(originals.map(p => p.imp), originals.map(p => p.follows)).r : NaN;
     let v = `<b>Verdict.</b> Reach vs price is <b>${Math.abs(impRet) < 0.2 ? "essentially unrelated" : Math.abs(impRet) < 0.5 ? "weakly related" : "related"}</b> (impressions vs daily return r=${isFinite(impRet) ? impRet.toFixed(2) : "—"}).`;
     if (isFinite(visVol)) v += ` Price volatility does pull <b>profile visits</b> (r=${visVol.toFixed(2)}) — people look when price moves, but it ${visVol > 0.4 ? "doesn't convert to reach or follows" : "barely moves the rest"}.`;
     if (isFinite(folImp)) v += ` New follows track <b>impressions</b> at r=${folImp.toFixed(2)} — reach is the master variable, not price.`;
@@ -1774,20 +1788,22 @@ async function engAnalyze(contentText, overviewText) {
     const log = engParseLoc(localStorage.getItem(ENG_LOC));
     if (log.length) {
       const g = {}; for (const p of originals) { const l = engLocOf(p.d, log) || "— untagged —"; (g[l] ||= []).push(p); }
-      const entries = Object.entries(g).sort((a, b) => b[1].reduce((s, p) => s + p.follows, 0) / b[1].length - a[1].reduce((s, p) => s + p.follows, 0) / a[1].length);
+      const entries = Object.entries(g).sort((a, b) => haveFollows
+        ? (b[1].reduce((s, p) => s + p.follows, 0) / b[1].length - a[1].reduce((s, p) => s + p.follows, 0) / a[1].length)
+        : (engMed(b[1].map(p => p.imp)) - engMed(a[1].map(p => p.imp))));
       const mx = Math.max(...entries.map(([, a]) => engMed(a.map(p => p.imp))));
-      html += `<div class="eng-h">📍 By location / VPN — your log <span class="tag">medians · follows/post = new follows ÷ posts · sorted by follows/post</span></div>`;
-      html += `<table class="eng"><tr><th>where</th><th>posts</th><th>median impressions</th><th>like%</th><th>follows</th><th>follows/post</th><th>fol‰</th></tr>`;
-      html += entries.map(([l, a]) => { const imp = engMed(a.map(p => p.imp)); const f = a.reduce((s, p) => s + p.follows, 0); const ti = a.reduce((s, p) => s + p.imp, 0); return `<tr><td>${l}</td><td>${a.length}</td><td>${Math.round(imp).toLocaleString()} ${engBar(imp, mx)}</td><td>${(engMed(a.map(p => p.imp ? p.likes / p.imp : 0)) * 100).toFixed(1)}%</td><td>${f}</td><td>${(f / a.length).toFixed(2)}</td><td>${ti ? (f / ti * 1000).toFixed(2) : "0"}</td></tr>`; }).join("");
+      html += `<div class="eng-h">📍 By location / VPN — your log <span class="tag">medians${haveFollows ? " · follows/post = new follows ÷ posts · sorted by follows/post" : " · sorted by reach"}</span></div>`;
+      html += `<table class="eng"><tr><th>where</th><th>posts</th><th>median impressions</th><th>like%</th>${haveFollows ? "<th>follows</th><th>follows/post</th><th>fol‰</th>" : ""}</tr>`;
+      html += entries.map(([l, a]) => { const imp = engMed(a.map(p => p.imp)); const f = a.reduce((s, p) => s + p.follows, 0); const ti = a.reduce((s, p) => s + p.imp, 0); return `<tr><td>${l}</td><td>${a.length}</td><td>${Math.round(imp).toLocaleString()} ${engBar(imp, mx)}</td><td>${(engMed(a.map(p => p.imp ? p.likes / p.imp : 0)) * 100).toFixed(1)}%</td>${haveFollows ? `<td>${f}</td><td>${(f / a.length).toFixed(2)}</td><td>${ti ? (f / ti * 1000).toFixed(2) : "0"}</td>` : ""}</tr>`; }).join("");
       html += `</table><div style="font-size:11.5px;color:#64748b;margin-top:6px">Same-content confound applies — periods may differ in what you posted, not just where you were. Treat as a signal, not proof.</div>`;
     }
 
     // ---------- content buckets ----------
     const groups = {}; for (const p of originals) (groups[engClass(p.text)] ||= []).push(p);
     const mxImp = Math.max(...Object.values(groups).map(a => engMed(a.map(p => p.imp))));
-    const rowFor = (label, arr) => { const imp = engMed(arr.map(p => p.imp)); return `<tr><td>${label}</td><td>${arr.length}</td><td>${Math.round(imp).toLocaleString()} ${engBar(imp, mxImp)}</td><td>${(engMed(arr.map(p => p.imp ? p.likes / p.imp : 0)) * 100).toFixed(1)}%</td><td>${(engMed(arr.map(p => p.imp ? p.bm / p.imp : 0)) * 1000).toFixed(1)}</td><td>${arr.reduce((s, p) => s + p.follows, 0)}</td></tr>`; };
+    const rowFor = (label, arr) => { const imp = engMed(arr.map(p => p.imp)); return `<tr><td>${label}</td><td>${arr.length}</td><td>${Math.round(imp).toLocaleString()} ${engBar(imp, mxImp)}</td><td>${(engMed(arr.map(p => p.imp ? p.likes / p.imp : 0)) * 100).toFixed(1)}%</td><td>${(engMed(arr.map(p => p.imp ? p.bm / p.imp : 0)) * 1000).toFixed(1)}</td>${haveFollows ? `<td>${arr.reduce((s, p) => s + p.follows, 0)}</td>` : ""}</tr>`; };
     html += `<div class="eng-h">What drives engagement — by content <span class="tag">medians · like-rate = likes/impression · bmk‰ = bookmarks per 1,000 · sorted by reach</span></div>`;
-    html += `<table class="eng"><tr><th>topic</th><th>n</th><th>median impressions</th><th>like%</th><th>bmk‰</th><th>follows</th></tr>`;
+    html += `<table class="eng"><tr><th>topic</th><th>n</th><th>median impressions</th><th>like%</th><th>bmk‰</th>${haveFollows ? "<th>follows</th>" : ""}</tr>`;
     html += Object.entries(groups).sort((a, b) => engMed(b[1].map(p => p.imp)) - engMed(a[1].map(p => p.imp))).map(([g, a]) => rowFor(g, a)).join("");
     html += `</table>`;
 
@@ -1801,25 +1817,27 @@ async function engAnalyze(contentText, overviewText) {
     ].filter(f => f[1].length);
     const mxF = Math.max(...feat.map(f => engMed(f[1].map(p => p.imp))));
     html += `<div class="eng-h">…by post shape <span class="tag">same medians</span></div>`;
-    html += `<table class="eng"><tr><th>feature</th><th>n</th><th>median impressions</th><th>like%</th><th>bmk‰</th><th>follows</th></tr>`;
-    html += feat.map(([l, a]) => { const imp = engMed(a.map(p => p.imp)); return `<tr><td>${l}</td><td>${a.length}</td><td>${Math.round(imp).toLocaleString()} ${engBar(imp, mxF)}</td><td>${(engMed(a.map(p => p.imp ? p.likes / p.imp : 0)) * 100).toFixed(1)}%</td><td>${(engMed(a.map(p => p.imp ? p.bm / p.imp : 0)) * 1000).toFixed(1)}</td><td>${a.reduce((s, p) => s + p.follows, 0)}</td></tr>`; }).join("");
+    html += `<table class="eng"><tr><th>feature</th><th>n</th><th>median impressions</th><th>like%</th><th>bmk‰</th>${haveFollows ? "<th>follows</th>" : ""}</tr>`;
+    html += feat.map(([l, a]) => { const imp = engMed(a.map(p => p.imp)); return `<tr><td>${l}</td><td>${a.length}</td><td>${Math.round(imp).toLocaleString()} ${engBar(imp, mxF)}</td><td>${(engMed(a.map(p => p.imp ? p.likes / p.imp : 0)) * 100).toFixed(1)}%</td><td>${(engMed(a.map(p => p.imp ? p.bm / p.imp : 0)) * 1000).toFixed(1)}</td>${haveFollows ? `<td>${a.reduce((s, p) => s + p.follows, 0)}</td>` : ""}</tr>`; }).join("");
     html += `</table>`;
 
     // ---------- top performers ----------
     const topBy = (arr, key, fmt, min = 0) => arr.filter(p => p.imp >= min).sort((a, b) => key(b) - key(a)).slice(0, 8)
-      .map(p => `<div class="eng-post"><b>${fmt(p)}</b> · ${p.imp.toLocaleString()} imp · ${p.likes}L ${p.bm}bm ${p.follows}f<br><span style="color:#94a3b8">${engShort(p.text)}</span></div>`).join("");
+      .map(p => `<div class="eng-post"><b>${fmt(p)}</b> · ${p.imp.toLocaleString()} imp · ${p.likes}L ${p.bm}bm${haveFollows ? ` ${p.follows}f` : ""}<br><span style="color:#94a3b8">${engShort(p.text)}</span></div>`).join("");
     html += `<div class="eng-cols">`;
     html += `<div><div class="eng-h">Top by reach</div>${topBy(originals, p => p.imp, p => p.imp.toLocaleString())}</div>`;
     html += `<div><div class="eng-h">Top by like-rate <span class="tag">≥300 imp</span></div>${topBy(originals, p => p.imp ? p.likes / p.imp : 0, p => (p.likes / p.imp * 100).toFixed(1) + "%", 300)}</div>`;
     html += `</div>`;
-    html += `<div class="eng-cols"><div><div class="eng-h">Top by new follows</div>${topBy(originals, p => p.follows, p => p.follows + "f")}</div>`;
 
-    // ---------- which signal predicts follows ----------
-    const sigs = [["impressions", "imp"], ["engagements", "eng"], ["bookmarks", "bm"], ["likes", "likes"], ["profile visits", "visits"], ["detail expands", "expands"], ["reposts", "reposts"], ["replies", "replies"]];
-    const fol = originals.map(p => p.follows);
-    html += `<div><div class="eng-h">What tracks new follows? <span class="tag">per-post r</span></div><table class="eng"><tr><th>signal</th><th>r vs follows</th></tr>`;
-    html += sigs.map(([l, k]) => `<tr><td>${l}</td>${rCell(engPearson(originals.map(p => p[k]), fol).r)}</tr>`).join("");
-    html += `</table></div></div>`;
+    // Follows-based views — ONLY when the export carries per-post New follows (else stuck-0 noise).
+    if (haveFollows) {
+      html += `<div class="eng-cols"><div><div class="eng-h">Top by new follows</div>${topBy(originals, p => p.follows, p => p.follows + "f")}</div>`;
+      const sigs = [["impressions", "imp"], ["engagements", "eng"], ["bookmarks", "bm"], ["likes", "likes"], ["profile visits", "visits"], ["detail expands", "expands"], ["reposts", "reposts"], ["replies", "replies"]];
+      const fol = originals.map(p => p.follows);
+      html += `<div><div class="eng-h">What tracks new follows? <span class="tag">per-post r</span></div><table class="eng"><tr><th>signal</th><th>r vs follows</th></tr>`;
+      html += sigs.map(([l, k]) => `<tr><td>${l}</td>${rCell(engPearson(originals.map(p => p[k]), fol).r)}</tr>`).join("");
+      html += `</table></div></div>`;
+    }
   }
 
   $("#engOut").innerHTML = html;
