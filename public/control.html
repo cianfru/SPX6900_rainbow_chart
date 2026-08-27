@@ -89,6 +89,24 @@
   .eng-kpi span { font-size: 10.5px; color: #64748b; text-transform: uppercase; letter-spacing: .05em; }
   .eng-h { font-size: 14.5px; font-weight: 700; color: #e2e8f0; margin: 24px 0 8px; display: flex; align-items: baseline; gap: 9px; flex-wrap: wrap; }
   .eng-h .tag { font-size: 11.5px; font-weight: 400; color: #64748b; }
+  /* "Metrics that matter" panel — the 5 KPIs to actually track + the X follow funnel */
+  .eng-matter { background: linear-gradient(180deg,#0d1120,#0a0b16); border: 1px solid rgba(94,234,212,.22); border-radius: 14px; padding: 14px 16px; margin: 14px 0 6px; }
+  .eng-matter .eng-kpi.good { border-color: rgba(94,234,212,.4); }
+  .eng-matter .eng-kpi.good b { color: #5eead4; }
+  .eng-matter .eng-kpi.muted { opacity: .6; }
+  .eng-matter .eng-kpi.muted b { color: #94a3b8; }
+  .eng-fun { display: flex; align-items: stretch; gap: 0; flex-wrap: wrap; margin: 12px 0 4px; }
+  .eng-fstep { flex: 1; min-width: 96px; background: #0b0b18; border: 1px solid rgba(255,255,255,.08); border-radius: 10px; padding: 9px 11px; text-align: center; }
+  .eng-fstep b { display: block; font-size: 19px; color: #e2e8f0; font-variant-numeric: tabular-nums; }
+  .eng-fstep span { font-size: 10px; color: #64748b; text-transform: uppercase; letter-spacing: .05em; }
+  .eng-farrow { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0 6px; min-width: 58px; }
+  .eng-farrow .cv { font-size: 12px; font-weight: 700; color: #94a3b8; font-variant-numeric: tabular-nums; }
+  .eng-farrow .ar { font-size: 15px; color: #475569; line-height: 1; }
+  .eng-farrow.leak .cv { color: #f59e0b; }
+  .eng-farrow.leak .ar { color: #f59e0b; }
+  .eng-reframe { font-size: 12.5px; color: #cbd5e1; line-height: 1.55; margin-top: 10px; background: rgba(255,255,255,.03); border-left: 2px solid rgba(94,234,212,.4); padding: 7px 11px; border-radius: 0 6px 6px 0; }
+  .eng-reframe b { color: #5eead4; }
+  .eng-leaknote { font-size: 11.5px; color: #fbbf24; margin-top: 7px; }
   table.eng { width: 100%; border-collapse: collapse; font-size: 13px; }
   table.eng th { text-align: right; color: #94a3b8; font-weight: 600; padding: 6px 9px; border-bottom: 1px solid rgba(255,255,255,.12); font-size: 10.5px; text-transform: uppercase; letter-spacing: .04em; }
   table.eng th:first-child, table.eng td:first-child { text-align: left; }
@@ -1689,14 +1707,46 @@ async function engAnalyze(contentText, overviewText) {
   days.forEach(r => { r.price = priceOn(r.d); r.ret = retOn(r.d); });
   days.sort((a, b) => a.d < b.d ? -1 : 1);
 
-  // ---------- KPI strip ----------
+  // ---------- 🎯 METRICS THAT MATTER + the X follow funnel ----------
+  // A chart account fights SPX6900's "no charts" culture: people LIKE/BOOKMARK/VIEW (private, low
+  // social cost) but resist FOLLOWING (public — "being seen needing charts"). So the funnel leaks at
+  // the visit→follow step, and follower count is a poor north star. Track REACH + PRIVATE INTENT
+  // (bookmarks) + the WEBSITE instead. This panel makes those the headline, and shows the funnel so
+  // the cultural leak is visible rather than mistaken for a content problem.
   const kset = originals.length ? originals : posts;
   const totFollows = (overview ? days : posts).reduce((s, r) => s + (r.follows || 0), 0);
-  const kpi = (v, l) => `<div class="eng-kpi"><b>${v}</b><span>${l}</span></div>`;
+  const sum = (arr, f) => arr.reduce((s, r) => s + (f(r) || 0), 0);
+  const dImp = sum(days, r => r.imp), dLikes = sum(days, r => r.likes), dVis = sum(days, r => r.visits);
+  const likeRate = kset.length ? engMed(kset.map(p => p.imp ? p.likes / p.imp : 0)) * 100 : (dImp ? dLikes / dImp * 100 : 0);
+  const bmk1k = kset.length ? engMed(kset.map(p => p.imp ? p.bm / p.imp : 0)) * 1000 : null;
+  const nfmt = n => Math.round(n).toLocaleString();
+  const cv = (a, b) => (b > 0 ? (a / b * 100) : 0);          // conversion a/b as %
+  const kpi = (v, l, cls = "") => `<div class="eng-kpi ${cls}"><b>${v}</b><span>${l}</span></div>`;
+
+  html += `<div class="eng-matter">`;
+  html += `<div class="eng-h">🎯 Metrics that matter <span class="tag">you're a website using X as a billboard — track reach &amp; private intent, not follows</span></div>`;
   html += `<div class="eng-kpis">`;
-  if (kset.length) { html += kpi(kset.length, content ? "original posts" : "posts"); html += kpi(Math.round(engMed(kset.map(p => p.imp))).toLocaleString(), "median impressions"); html += kpi((engMed(kset.map(p => p.imp ? p.likes / p.imp : 0)) * 100).toFixed(1) + "%", "median like-rate"); }
-  html += kpi(totFollows.toLocaleString(), "new follows");
-  if (days.length) html += kpi(days.length, "active days");
+  html += kpi(nfmt(dImp), "total reach (impressions)", "good");
+  html += kpi(likeRate.toFixed(1) + "%", "like-rate · X norm ~1%", "good");
+  if (bmk1k != null) html += kpi(bmk1k.toFixed(1), "bookmarks ‰ · private intent", "good");
+  html += kpi(nfmt(dVis), "profile visits");
+  html += kpi(nfmt(totFollows), "new follows · culturally capped", "muted");
+  html += `</div>`;
+
+  // The follow funnel: reach → likes (resonance) → profile visits (consideration) → follows.
+  // The visit→follow arrow is the "leak" (the culturally-taxed public step) and is flagged amber.
+  const f2f = cv(totFollows, dVis);   // % of profile visitors who follow — the taxed step
+  html += `<div class="eng-fun">`;
+  html += `<div class="eng-fstep"><b>${nfmt(dImp)}</b><span>reach</span></div>`;
+  html += `<div class="eng-farrow"><span class="cv">${cv(dLikes, dImp).toFixed(1)}%</span><span class="ar">→</span></div>`;
+  html += `<div class="eng-fstep"><b>${nfmt(dLikes)}</b><span>likes</span></div>`;
+  html += `<div class="eng-farrow"><span class="cv">${cv(dVis, dImp).toFixed(1)}%</span><span class="ar">→</span></div>`;
+  html += `<div class="eng-fstep"><b>${nfmt(dVis)}</b><span>profile visits</span></div>`;
+  html += `<div class="eng-farrow leak"><span class="cv">${f2f.toFixed(0)}%</span><span class="ar">→</span></div>`;
+  html += `<div class="eng-fstep"><b>${nfmt(totFollows)}</b><span>follows</span></div>`;
+  html += `</div>`;
+  html += `<div class="eng-leaknote">⚠ The leak is the last step: only <b>${f2f.toFixed(0)}%</b> of profile visitors follow. That's the "no charts" culture tax — people value the charts but won't be <i>seen</i> following a chart account. It's not a content problem.</div>`;
+  html += `<div class="eng-reframe"><b>Read it this way:</b> maximise <b>reach</b> (the master variable — likes &amp; the few follows both flow from it), watch <b>bookmarks</b> (private high-intent that dodges the follow-shyness), and treat the <b>website</b> as your real conversion — people use it without being seen. Your <b>~${likeRate.toFixed(0)}% like-rate</b> is ${likeRate >= 2 ? "well above" : "around"} the ~1% norm, so the content lands; the follow number is structurally capped, so don't steer by it. → Site visits live in the <b>🌍 Audience</b> tab.</div>`;
   html += `</div>`;
 
   // ---------- price relationship ----------
