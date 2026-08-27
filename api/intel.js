@@ -30,12 +30,13 @@ function safeEq(a, b) {
   const y = crypto.createHash("sha256").update(String(b)).digest();
   return crypto.timingSafeEqual(x, y);
 }
-// Country exclusion — now OFF by default. It used to blanket-drop Qatar to hide the owner's own
-// visits, but that also discarded every real Qatar visitor AND missed the owner whenever their VPN
-// exited elsewhere. The owner is now excluded precisely, per-device, via the client's ?nointel=1
-// opt-out (src/track.js) — VPN-proof and lossless. This stays as an optional coarse override only
-// (e.g. INTEL_EXCLUDE_COUNTRIES="QA,AE" to bulk-drop a country); empty = count everyone.
-const EXCLUDE_COUNTRIES = new Set((process.env.INTEL_EXCLUDE_COUNTRIES || "").split(",").map(s => s.trim().toUpperCase()).filter(Boolean));
+// Country exclusion — default QA (Qatar) to drop the owner's own visits (owner call: "just disable
+// QA is enough"). It filters BOTH at ingest (new events never recorded) AND in the dashboard display
+// (existing QA rows are removed from the feed, wallet list and countries), so past logins disappear
+// from view too. Trade-off the owner accepted: it also drops real Qatar visitors, and misses the
+// owner whenever a VPN exits elsewhere — for that case the per-device ?nointel=1 opt-out (src/track.js)
+// still applies as a precise catch. Override via INTEL_EXCLUDE_COUNTRIES (e.g. "QA,AE"); "" = everyone.
+const EXCLUDE_COUNTRIES = new Set((process.env.INTEL_EXCLUDE_COUNTRIES || "QA").split(",").map(s => s.trim().toUpperCase()).filter(Boolean));
 
 async function kvPipeline(commands) {
   const r = await fetch(KV_URL.replace(/\/$/, "") + "/pipeline", {
