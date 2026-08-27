@@ -440,6 +440,32 @@ function marketScans(data) {
   return out;
 }
 
+// ── THE COMPREHENSIVE SCAN — quant.mjs angles folded in ───────────────────────
+// The owner shouldn't have to enumerate signals. `computeAngles(stats)` (scripts/bot/quant.mjs)
+// ALREADY scans the WHOLE dataset — valuation, MVRV, diamond, drawdown, funding/positioning,
+// momentum, targets, vs-BTC, vs-S&P, fire-sale, heat, golden/death cross, cycle, F&G — and returns
+// scored, card-mapped, framed reads. It was only ever fed to the "Ask the agent" LLM; here we fold
+// it straight into the brief so the daily read is automatically comprehensive. The CLI computes the
+// angles (it needs `stats`) and passes them in as data.angles; detectNotable just shapes them.
+// A brand-new golden/death cross is a "change"; everything else is a standing "state" read. Scores
+// (~0.3–3, already de-ranked for recently-fired cards) map onto the 0–10 severity scale.
+function anglesToItems(angles) {
+  if (!Array.isArray(angles)) return [];
+  const CHANGE_KEYS = new Set(["cross-fresh", "firesale-rally"]);
+  return angles.filter(a => a && a.headline).map(a => ({
+    kind: CHANGE_KEYS.has(a.key) ? "change" : "state",
+    lane: "angle-" + (a.key || a.card || a.headline),
+    severity: Math.min(9, 2.5 + (a.score || 0) * 2),
+    emoji: a.emoji || "•",
+    card: a.card || null,
+    headline: a.headline, detail: a.detail, framing: a.framing, note: a.note,
+    // The card may be a tweet-only card (no site chart), so the actionable link is the Queue button
+    // (data-sigq=card) in the panel, not a chart link that might 404. Verify is left to the Queue.
+    verify: null,
+    firedRecently: !!a.firedRecently,
+  }));
+}
+
 // ── ENGINE ────────────────────────────────────────────────────────────────
 // data: { history, legacy, onchain, cexFlow, selfMoves, smartMoney, exitFlow,
 //         whaleCampaigns, aeonSales, aeonOnchain, valuation }
@@ -451,7 +477,7 @@ export function detectNotable(data = {}, aeonFlowFn = null, opts = {}) {
   // surface every lane that has something to say (dedup is per-lane, so this can't spam). The old
   // cap of 12 buried the flexible market reads under events; 20 lets the band/heat/risk/YTD/month
   // scans + state reads all appear alongside any fresh moves.
-  const topN = opts.topN ?? 20;
+  const topN = opts.topN ?? 30;
   const eventDays = opts.eventDays ?? 7;
   const refDate = data.onchain?.at?.(-1)?.d || data.history?.at?.(-1)?.d || null;
   // wallets already named by self-moves shouldn't double-count in whale-campaigns
@@ -470,13 +496,21 @@ export function detectNotable(data = {}, aeonFlowFn = null, opts = {}) {
     ...fromLegacy(data.legacy),
   ].filter(Boolean).map(it => ({ ...it, kind: it.kind || "event" }));
 
-  // events + the always-on state reads + the flexible market scans (band / heat / risk / YTD /
-  // month). marketScans items carry their own kind ("state" or "change"), so they aren't forced
-  // to "event" — a "change" (a crossing/transition) ranks above a steady state read by severity.
-  const items = [...events, ...stateReads(data), ...marketScans(data)];
-  const byLane = new Map();
-  for (const it of items) { const cur = byLane.get(it.lane); if (!cur || it.severity > cur.severity) byLane.set(it.lane, it); }
-  const ranked = [...byLane.values()].sort((a, b) => b.severity - a.severity).slice(0, topN)
+  // READS = the comprehensive scan. quant's full angle set (data.angles) is the automatic
+  // "everything worth noting" layer; the band/heat/risk/YTD/month market scans add the few reads
+  // quant lacks. stateReads is only a FALLBACK for a data-less run (no angles) so the brief is
+  // never blank. Deduped by CARD (fall back to lane) so the same card can't appear twice — the
+  // repetition that made the old brief feel sterile.
+  const reads = (data.angles && data.angles.length)
+    ? [...marketScans(data), ...anglesToItems(data.angles)]
+    : [...marketScans(data), ...stateReads(data)];
+
+  // Events dedup by lane (one per on-chain lane); reads dedup by card||lane (one read per card).
+  const evByLane = new Map();
+  for (const it of events) { const c = evByLane.get(it.lane); if (!c || it.severity > c.severity) evByLane.set(it.lane, it); }
+  const rdByKey = new Map();
+  for (const it of reads) { const k = it.card || it.lane; const c = rdByKey.get(k); if (!c || it.severity > c.severity) rdByKey.set(k, it); }
+  const ranked = [...evByLane.values(), ...rdByKey.values()].sort((a, b) => b.severity - a.severity).slice(0, topN)
     .map((it, i) => ({ rank: i + 1, ...it, severity: Math.round(it.severity * 10) / 10 }));
 
   const eventCount = ranked.filter(it => it.kind === "event").length;
@@ -505,8 +539,26 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   for (const r of history) if (r.sp > 0) spMap.set(r.d, r.sp);
   const spSeries = [...spMap.entries()].sort((a, b) => a[0].localeCompare(b[0]));
 
+  // THE COMPREHENSIVE SCAN: build the same `stats` the site + agent use, then run the full quant
+  // angle set over it (valuation/on-chain/positioning/momentum/cross-asset/technicals/cycle). This
+  // is what makes the brief automatically cover the whole dataset instead of a hand-picked list.
+  // Soft — if stats/angles can't be built, the brief falls back to its own detectors + state reads.
+  let angles = null;
+  try {
+    const { computeStats } = await import("./stats.mjs");
+    const { computeAngles } = await import("./quant.mjs");
+    const price = priceHistory.at(-1)?.price || history.at(-1)?.p || 0;
+    if (price > 0) {
+      const recent = (read("public/post-state.json")?.recent || []).map(r => r.id || r).filter(Boolean);
+      // computeStats wants history as [{date,price}] — price-history.json is exactly that (dense daily
+      // closes). Passing the raw history.json ({d,p}) would leave firstPrice/allTimeReturn NaN.
+      const stats = computeStats(price, priceHistory.at(-1)?.date, { history: priceHistory });
+      angles = computeAngles(stats, { recent });
+    }
+  } catch (e) { console.error("notable: quant angles unavailable —", e.message); }
+
   const data = {
-    history, priceHistory, spSeries,
+    history, priceHistory, spSeries, angles,
     legacy: detectSignals(history),
     onchain: read("public/onchain.json"),
     cexFlow: read("public/cex-flow.json"),

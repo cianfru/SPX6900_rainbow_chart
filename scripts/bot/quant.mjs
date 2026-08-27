@@ -226,6 +226,44 @@ export function computeAngles(stats, opts = {}) {
       framing: `Two honest returns from day one.`, note: `A flex, not a forecast.`,
     });
   }
+  // ── NEWER on-chain reads (charts shipped after the first quant pass — keep the scan current) ──
+  const ocL = Array.isArray(s.onchain) ? s.onchain.at(-1) : null;
+  // NUPL — net unrealised P/L, a pure transform of MVRV (1 − 1/MVRV). Below zero = crowd underwater.
+  const mv = (Array.isArray(s.mvrvSeries) && s.mvrvSeries.length) ? s.mvrvSeries.at(-1).mvrv : (ocL?.mvrv ?? null);
+  if (mv > 0) {
+    const nupl = 1 - 1 / mv;
+    const zone = nupl < 0 ? "capitulation" : nupl < 0.25 ? "hope / fear" : nupl < 0.5 ? "optimism" : nupl < 0.75 ? "belief" : "euphoria";
+    push({
+      key: "nupl", emoji: nupl < 0 ? "🩸" : "🟢", card: "nupl", score: 0.5 + Math.min(1.0, Math.abs(nupl) * 1.5) + (nupl < 0 ? 0.3 : 0),
+      headline: `NUPL ${round(nupl, 2)} — ${zone}`,
+      detail: `Net unrealised profit/loss is ${round(nupl, 2)} (from MVRV ${round(mv, 2)}) — the market sits in the ${zone} zone.`,
+      framing: `Aggregate holder profitability. ${nupl < 0 ? "Below zero = the crowd is underwater, historically an accumulation zone." : "Above zero = net in profit."}`,
+      note: `A position read, not a signal.`,
+    });
+  }
+  // Supply in profit — % of held coins above their cost basis.
+  if (ocL?.sip != null) {
+    const sip = ocL.sip, extreme = sip <= 45 || sip >= 90;
+    push({
+      key: "supply-in-profit", emoji: "💰", card: "supplyprofit", score: 0.4 + (extreme ? 0.6 : 0) + Math.abs(sip - 60) / 90,
+      headline: `${round(sip, 0)}% of supply is in profit`,
+      detail: `${round(sip, 0)}% of tracked supply is held above its on-chain cost basis — low is a capitulation zone, high is euphoria risk.`,
+      framing: `${sip <= 45 ? "Deep value — most of the market is underwater." : sip >= 90 ? "Stretched — almost everyone is green." : "Mid-range holder profitability."}`,
+      note: `A position read, not a signal.`,
+    });
+  }
+  // Conviction — % of supply held 1y+ (the diamond base).
+  if (Array.isArray(ocL?.age) && ocL.age.length >= 5 && ocL.age[4] != null) {
+    const y1 = ocL.age[4];
+    push({
+      key: "conviction-1y", emoji: "💎", card: "hodlwaves", score: 0.35 + Math.max(0, (y1 - 50) / 60),
+      headline: `${round(y1, 0)}% of supply held over a year`,
+      detail: `${round(y1, 0)}% of tracked supply hasn't moved in 12 months — the deep-conviction base, comparable to Bitcoin at the same age.`,
+      framing: `A ${round(y1, 0)}% one-year-plus base — the cohort that held through everything.`,
+      note: `Coin age from the FIFO reconstruction.`,
+    });
+  }
+
   if (s.lastFireSale?.sinceGain != null) {
     const g = s.lastFireSale.sinceGain, ranHigher = s.lastFireSale.peakGain > g + 0.03;
     push({
