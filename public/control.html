@@ -542,6 +542,7 @@
     <div id="audienceView" style="display:none">
       <div class="bar">
         <button id="audRefresh">↻ Refresh</button>
+        <button id="audOptout" title="Stops THIS browser/device from being counted in your own analytics. Works anywhere — perfect when you're travelling and the country filter can't catch you. One click, remembered on this device.">🙈 Don't count my visits (this device)</button>
         <span style="margin-left:auto;color:#64748b;font-size:12px">First-party page intel — growth, unique visitors &amp; geography · <a href="/api/intel" target="_blank" rel="noopener" style="color:#7dd3fc">open in its own tab →</a></span>
       </div>
       <iframe id="audFrame" title="Page intel" style="width:100%;height:calc(100vh - 160px);min-height:640px;border:1px solid rgba(255,255,255,.1);border-radius:12px;background:#08090b;display:block"></iframe>
@@ -1553,6 +1554,27 @@ document.querySelectorAll(".mitem").forEach(b => b.onclick = () => showTab(b.dat
 document.addEventListener("click", e => { if (!e.target.closest(".navbar")) closeMenu(); });
 document.addEventListener("keydown", e => { if (e.key === "Escape") closeMenu(); });
 $("#audRefresh").onclick = () => loadAudience();
+
+// "Don't count my visits (this device)" — flips the SAME localStorage flag src/track.js checks
+// (intel-optout). /control and the main site share one origin, so setting it here silences tracking
+// on every page of the site in THIS browser. Device-based on purpose: it works regardless of country
+// (unlike the Qatar filter), which is what a travelling owner needs. Click once per device.
+const INTEL_OPTOUT = "intel-optout";
+function renderOptout() {
+  const b = $("#audOptout"); if (!b) return;
+  let on = false; try { on = localStorage.getItem(INTEL_OPTOUT) === "1"; } catch {}
+  b.textContent = on ? "✅ Your visits are hidden on this device — click to undo" : "🙈 Don't count my visits (this device)";
+  b.style.borderColor = on ? "#22c55e" : "";
+  b.style.color = on ? "#4ade80" : "";
+}
+$("#audOptout").onclick = () => {
+  try {
+    const on = localStorage.getItem(INTEL_OPTOUT) === "1";
+    if (on) localStorage.removeItem(INTEL_OPTOUT); else localStorage.setItem(INTEL_OPTOUT, "1");
+  } catch (e) { alert("This browser is blocking local storage, so the toggle can't be saved here."); }
+  renderOptout();
+};
+renderOptout();
 $("#aeonRefresh").onclick = () => { aeonLoaded = false; loadAeon(); };
 $("#cityRefresh").onclick = () => { refresh().then(() => { renderCityGrid(); loadCityRecap().then(renderCityRecap).catch(() => {}); }); };
 $("#recapReload").onclick = () => { recapLoaded = false; loadRecap(); };
