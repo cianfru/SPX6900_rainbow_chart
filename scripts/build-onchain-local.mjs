@@ -75,6 +75,10 @@ export const EXCLUDE_LABELS = {
   // exchange-side (kind:"cex"), like the custody proxies: excluded from the holder count + the
   // city, counted as liquid supply. canonVenue keeps it as its own "Wintermute" liquidity line.
   "0xf8191d98ae98d2f7abdfb63a9b0b812b93c873aa": { name: "Wintermute", kind: "cex" },
+  // Owner-flagged 2026-08-27: not a holder, SUSPECTED Wintermute (second MM wallet). Named with the
+  // suspicion made explicit (honesty rail) but excluded like the confirmed one — the owner is sure
+  // it's infrastructure, not retail, which is what the exclusion turns on.
+  "0xa28f81ad2ba9b7f2cc37223b399622a39edb493f": { name: "Wintermute 2 (suspected)", kind: "cex" },
   "0xcc282e2004428939ee5149a9e7872f0b4d5d5ec7": { name: "Kraken 3", kind: "cex" },
   "0x21a31ee1afc51d94c2efccaa2092ad1028285549": { name: "Binance", kind: "cex" },
   "0x33a64dcdfa041befebc9161a3e0c6180cd94fa89": { name: "CoinSpot 2", kind: "cex" },
