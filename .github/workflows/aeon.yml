@@ -2,7 +2,14 @@ name: Project Aeon NFT banker
 
 on:
   schedule:
-    - cron: "37 1 * * *"   # ~01:37 UTC daily (after the supply snapshot)
+    # TWO daily runs, ~12h apart. GitHub silently DROPS scheduled runs on low-activity repos
+    # (happened 2026-08-27: the 01:37 run never fired → sales sat a day stale). The pull is
+    # idempotent — the incremental Dune-sales delta + rebuild re-run harmlessly, committing only
+    # if the data actually changed — so a backup run costs ~nothing and guarantees that a single
+    # dropped schedule can't leave the feed a day behind. If BOTH are dropped the 3-day freshness
+    # window still covers it, and a manual dispatch is always available.
+    - cron: "37 1 * * *"    # ~01:37 UTC (primary — after the supply snapshot)
+    - cron: "37 13 * * *"   # ~13:37 UTC (backstop, in case GitHub drops the morning run)
   workflow_dispatch: {}     # allow manual runs
 
 permissions:
