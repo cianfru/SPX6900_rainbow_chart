@@ -11,10 +11,6 @@ import { useDragZoom } from "./use-drag-zoom.js";
 const BTC = "#f7931a", SPX = "#a78bfa", MATCH = "#e879f9";
 const MATCH_BAND = 0.12; // ±12% of SPX's MVRV counts as "Bitcoin at the same level"
 const YR = 365.25 * 86400000;
-// Bitcoin's true inception (genesis block, 2009-01-03). Its on-chain MVRV record only BEGINS ~2 years
-// later (realized cap needs a real transaction history + market price), so in the age view BTC's line
-// honestly starts at age ~2 — we never pretend 2011 is BTC's "age 0".
-const BTC_GENESIS = Date.UTC(2009, 0, 3);
 const fMvrv = v => v.toFixed(2) + "×";
 const fAge = a => (a === Math.round(a) ? a + "y" : a.toFixed(1) + "y");
 const fYear = t => new Date(t).getFullYear();
@@ -140,9 +136,12 @@ export default function MvrvContextChart({ isMobile, preview = false }) {
     return { vis, xDomain: [x0, x1], xTicks, yDomain: [yMin * 0.85, yMax * 1.12] };
   }, [data, zoom, spx, similar]);
 
-  // "Since inception" — the two MVRV paths aligned by AGE (years since each asset's genesis), so SPX's
-  // first three years sit directly over Bitcoin's, to see whether the early cycle rhymes. SPX's launch
-  // is its own age 0; BTC's is the 2009 genesis, so its line honestly begins at ~age 2 (see BTC_GENESIS).
+  // Both MVRV paths aligned so they START TOGETHER with NO GAP — each measured from its OWN first
+  // reading, not from genesis. SPX's age 0 is its launch; BTC's age 0 is its first on-chain MVRV
+  // (2010-07 — realized cap needs a real transaction history, so it can't exist earlier). Aligning
+  // BTC to genesis instead left a ~1.5y empty gap on the left; anchoring both to their first data
+  // point puts the two reconstructed MVRVs directly side by side. Honest framing: the axis is
+  // "years of MVRV history" (each coin from its first measurable reading), NOT "years since genesis".
   const ageView = useMemo(() => {
     if (!data?.rows?.length || !spxSeries.length) return null;
     const spxInception = spxSeries[0].ts;
@@ -150,13 +149,13 @@ export default function MvrvContextChart({ isMobile, preview = false }) {
     const spxMaxAge = spxAgePts.length ? spxAgePts.at(-1).age : 3;
     // show a couple of years past SPX's current age so BTC's "what came next" is visible for context
     const xMax = Math.max(5, Math.ceil(spxMaxAge) + 1);
-    const btcAgePts = data.rows.map(r => ({ age: (r.ts - BTC_GENESIS) / YR, mvrv: r.mvrv })).filter(r => r.age >= 0 && r.age <= xMax && r.mvrv > 0);
+    const btcInception = data.rows[0].ts;   // BTC's FIRST MVRV reading → its age 0 (no genesis gap)
+    const btcAgePts = data.rows.map(r => ({ age: (r.ts - btcInception) / YR, mvrv: r.mvrv })).filter(r => r.age >= 0 && r.age <= xMax && r.mvrv > 0);
     let yMin = Infinity, yMax = -Infinity;
     for (const r of [...spxAgePts, ...btcAgePts]) { if (r.mvrv < yMin) yMin = r.mvrv; if (r.mvrv > yMax) yMax = r.mvrv; }
     if (!Number.isFinite(yMin)) return null;
     const xTicks = []; for (let a = 0; a <= xMax; a++) xTicks.push(a);
-    const btcFirstAge = btcAgePts.length ? btcAgePts[0].age : null;
-    return { spxAgePts, btcAgePts, spxMaxAge, btcFirstAge, xDomain: [0, xMax], xTicks, yDomain: [yMin * 0.85, yMax * 1.12] };
+    return { spxAgePts, btcAgePts, spxMaxAge, xDomain: [0, xMax], xTicks, yDomain: [yMin * 0.85, yMax * 1.12] };
   }, [data, spxSeries]);
 
   if (btc == null || spxHist == null) return <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Loading MVRV history…</div>;
@@ -187,7 +186,7 @@ export default function MvrvContextChart({ isMobile, preview = false }) {
       </div>
 
       <div style={{ display: "flex", justifyContent: "center", marginBottom: 14 }}>
-        <ViewTabs tabs={[["age", "Since inception"], ["calendar", "BTC full history"]]} value={viewMode} onChange={setViewMode} />
+        <ViewTabs tabs={[["age", "Side by side"], ["calendar", "BTC full history"]]} value={viewMode} onChange={setViewMode} />
       </div>
 
       {viewMode === "calendar" && (<>
@@ -247,7 +246,7 @@ export default function MvrvContextChart({ isMobile, preview = false }) {
               <XAxis dataKey="age" type="number" domain={ageView.xDomain} ticks={ageView.xTicks} allowDataOverflow
                 tickFormatter={fAge} tick={{ fill: "#cbd5e1", fontSize: isMobile ? 10 : 12, fontFamily: MONO }}
                 axisLine={{ stroke: "rgba(255,255,255,0.15)" }} tickLine={false}
-                label={preview ? undefined : { value: "years since inception", position: "insideBottom", offset: -12, fill: "#94a3b8", fontSize: 11, fontFamily: MONO }} />
+                label={preview ? undefined : { value: "years of MVRV history (each from its first reading)", position: "insideBottom", offset: -12, fill: "#94a3b8", fontSize: 11, fontFamily: MONO }} />
               <YAxis type="number" scale="log" domain={ageView.yDomain} allowDataOverflow
                 tickFormatter={fMvrv} tick={{ fill: "#cbd5e1", fontSize: isMobile ? 10 : 12, fontFamily: MONO }}
                 axisLine={{ stroke: "rgba(255,255,255,0.15)" }} tickLine={false} width={isMobile ? 52 : 66} />
@@ -256,9 +255,6 @@ export default function MvrvContextChart({ isMobile, preview = false }) {
               {/* today's SPX age — where SPX's line ends */}
               {!preview && <ReferenceLine x={ageView.spxMaxAge} stroke={SPX} strokeDasharray="4 4" strokeOpacity={0.6}
                 label={{ value: `SPX today · ${fAge(ageView.spxMaxAge)}`, position: "insideTopLeft", fill: SPX, fontSize: 11, fontFamily: MONO }} />}
-              {/* where BTC's on-chain MVRV record begins (~age 2) — honest marker, not a data gap we hide */}
-              {ageView.btcFirstAge != null && !preview && <ReferenceLine x={ageView.btcFirstAge} stroke={BTC} strokeDasharray="3 6" strokeOpacity={0.5}
-                label={{ value: `BTC data starts · ${fAge(ageView.btcFirstAge)}`, position: "insideTopRight", fill: BTC, fontSize: 10.5, fontFamily: MONO }} />}
               <Tooltip content={<AgeTip />} cursor={{ stroke: "rgba(255,255,255,0.2)" }} />
               <Line data={ageView.btcAgePts} dataKey="mvrv" type="monotone" stroke={BTC} strokeWidth={1.6} dot={false} isAnimationActive={false} name="BTC" />
               <Line data={ageView.spxAgePts} dataKey="mvrv" type="monotone" stroke={SPX} strokeWidth={2.2} dot={false} isAnimationActive={false} name="SPX6900" />
