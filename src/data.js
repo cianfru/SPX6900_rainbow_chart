@@ -14,7 +14,9 @@ export const SUPPLY = 939_000_000;
 export const ATH = { price: 2.28, date: "2025-07-28" };
 
 export async function fetchLivePrices() {
-  const res = await fetch("/api/prices", { cache: "no-store" });
+  // Daily-candle history: served by api/spot.js under ?history=1 (merged from the former api/prices.js
+  // to reclaim a Vercel function slot). /api/prices still resolves via a vercel.json rewrite.
+  const res = await fetch("/api/spot?history=1", { cache: "no-store" });
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
     throw new Error(body.error || `Proxy returned ${res.status}`);
