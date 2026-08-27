@@ -13,6 +13,9 @@
 import { SP500_HISTORY } from "../../src/sp500-history.js";
 import { btcCycleProjection } from "../../src/btc-cycle.js";
 import { goldenCross } from "../../src/models.js";
+import { buildAltRainbow } from "../../src/alt-rainbow.js";
+import { ETH_HISTORY, SOL_HISTORY } from "../../src/alt-age-history.js";
+import { BTC_HISTORY } from "../../src/btc-history.js";
 
 const pct = (x, d = 0) => (x >= 0 ? "+" : "") + (x * 100).toFixed(d) + "%";
 const round = (x, d = 2) => (x == null ? null : Number(x.toFixed(d)));
@@ -263,6 +266,88 @@ export function computeAngles(stats, opts = {}) {
       note: `Coin age from the FIFO reconstruction.`,
     });
   }
+
+  // Survivorship — all-time churn vs today's-holders conviction (the "who's still here" story).
+  const cov = s.cohorts?.overall;
+  if (cov && cov.everHeld && cov.holdNow != null) {
+    push({
+      key: "survivorship", emoji: "🪦", card: "survivorship", score: 0.5 + Math.min(0.5, (cov.gonePct || 0) / 130) + (cov.diamondPct >= 88 ? 0.3 : 0),
+      headline: `${cov.gonePct}% of all-time holders are gone — ${cov.diamondPct}% of today's never sold to zero`,
+      detail: `Of ${fmt(cov.everHeld)} wallets that ever held ≥5k SPX, ${fmt(cov.holdNow)} remain (${cov.gonePct}% churned). Yet ${cov.diamondPct}% of CURRENT holders have never once sold to zero — survivorship.`,
+      framing: `Enormous all-time churn, but the survivors are diamond-handed. The honest "who's still here" read.`,
+      note: `Right-censoring: recent cohorts read high. "Gone" = fell below the 5k bar.`,
+    });
+  }
+  // Multichain holder base — ETH + Base + Solana headcount (reach vs value split).
+  if (Array.isArray(s.chainWallets) && s.chainWallets.length) {
+    const cw = s.chainWallets.at(-1), total = (cw.eth || 0) + (cw.base || 0) + (cw.sol || 0);
+    const cw30 = s.chainWallets.at(-31) || s.chainWallets[0], t30 = (cw30.eth || 0) + (cw30.base || 0) + (cw30.sol || 0);
+    const g = t30 ? total / t30 - 1 : 0;
+    if (total > 0) push({
+      key: "multichain", emoji: "🌐", card: "walletgrowth", score: 0.45 + Math.min(0.5, Math.abs(g) * 6),
+      headline: `${fmt(total)} holders across 3 chains`,
+      detail: `ETH ${fmt(cw.eth)} · Base ${fmt(cw.base)} · Solana ${fmt(cw.sol)} = ${fmt(total)} wallets${g > 0.005 ? `, +${(g * 100).toFixed(1)}% in ~30d` : ""}. Base leads on headcount, ETH on value.`,
+      framing: `The real reach: ${fmt(total)} wallets across three chains — most people on Base/Solana, most value on ETH.`,
+      note: `Wallets, not people; Base/Solana are bridged.`,
+    });
+  }
+  // SOPR — spent-output profit ratio (>1 = coins moving at a profit, <1 = at a loss).
+  const sopr = s.onchain?.at(-1)?.sopr;
+  if (sopr > 0) {
+    const inProfit = sopr >= 1;
+    push({
+      key: "sopr", emoji: inProfit ? "💵" : "🔻", card: "sopr", score: 0.4 + Math.min(0.5, Math.abs(sopr - 1) * 4),
+      headline: `SOPR ${round(sopr, 3)} — coins moving at a ${inProfit ? "profit" : "loss"}`,
+      detail: `Spent-output profit ratio is ${round(sopr, 3)}: coins that moved on-chain realised ${inProfit ? "a gain" : "a loss"} on average. Sustained <1 = capitulation, >1 = profit-taking.`,
+      framing: `On-chain realised behaviour — ${inProfit ? "profit-taking" : "loss-realisation"} (SOPR ${round(sopr, 3)}).`,
+      note: `Only coins that MOVED; a behaviour read, not a signal.`,
+    });
+  }
+  // MVRV vs Bitcoin — SPX's (unitless) MVRV positioned on BTC's decade of MVRV history.
+  const spxMvrv = s.onchain?.at(-1)?.mvrv ?? mvrv;
+  if (spxMvrv > 0 && Array.isArray(s.btcMvrv) && s.btcMvrv.length > 50) {
+    const vals = s.btcMvrv.map(r => r[1]).filter(x => x > 0);
+    const pctile = Math.round(vals.filter(v => v < spxMvrv).length / vals.length * 100);
+    push({
+      key: "mvrv-vs-btc", emoji: "₿", card: "mvrvbtc", score: 0.5 + (pctile <= 10 || pctile >= 90 ? 0.5 : 0) + Math.abs(pctile - 50) / 120,
+      headline: `SPX's MVRV ${round(spxMvrv, 2)} = ${pctile}th percentile of Bitcoin's history`,
+      detail: `SPX's MVRV of ${round(spxMvrv, 2)} sits at the ${pctile}th percentile of Bitcoin's entire MVRV history — ${pctile <= 15 ? "as cheap as BTC's generational bottoms" : pctile >= 85 ? "as rich as BTC's tops" : "mid-range for BTC"}.`,
+      framing: `MVRV is unitless, so it's comparable: SPX today is at BTC's ${pctile}th percentile.${pctile <= 15 ? " BTC was only this cheap at major bottoms." : ""}`,
+      note: `A position on BTC's map, not a date-match forecast.`,
+    });
+  }
+  // Alt-market — SPX vs the alt sector (ex-BTC/ETH/stables), detrended z from its own trend.
+  try {
+    const z = buildAltRainbow(s.history || [])?.cur?.z;
+    if (z != null && Math.abs(z) >= 0.5) {
+      const cheap = z < 0;
+      push({
+        key: "alt-market", emoji: cheap ? "🟢" : "🔴", card: "altmarket", score: 0.45 + Math.min(0.6, Math.abs(z) / 2.5),
+        headline: `${round(z, 1)}σ ${cheap ? "below" : "above"} its trend vs the alt market`,
+        detail: `SPX ÷ the alt sector (ex-BTC/ETH/stables), detrended, sits ${round(Math.abs(z), 1)}σ ${cheap ? "below" : "above"} its own trend — ${cheap ? "cheap vs alts" : "stretched vs alts"}.`,
+        framing: `Relative value vs the whole alt sector — ${round(z, 1)}σ ${cheap ? "cheap" : "rich"}. SPX structurally outperforms alts, so this is deviation from ITS trend, not parity.`,
+        note: `A relative-value position, not a signal.`,
+      });
+    }
+  } catch { /* alt data optional */ }
+  // Same-age vs the legends — SPX's multiple-since-launch vs a major at the SAME age.
+  try {
+    const spxMult = 1 + (s.allTimeReturn ?? 0);
+    const ageDays = Math.round((Date.parse(s.date) - Date.parse(s.firstDate)) / DAY);
+    const peerMult = hist => { if (!Array.isArray(hist) || !hist.length) return null; const p0 = hist[0][1]; const row = hist.find(r => r[0] >= ageDays) || hist.at(-1); return p0 > 0 ? row[1] / p0 : null; };
+    const peers = [["Bitcoin", BTC_HISTORY, "btcage"], ["Ethereum", ETH_HISTORY, "ethage"], ["Solana", SOL_HISTORY, "solage"]]
+      .map(([name, hist, card]) => ({ name, card, m: peerMult(hist) })).filter(p => p.m > 0);
+    if (spxMult > 1 && peers.length) {
+      const best = peers.sort((a, b) => Math.abs(Math.log(a.m / spxMult)) - Math.abs(Math.log(b.m / spxMult)))[0]; // closest = the real rhyme
+      push({
+        key: "same-age", emoji: "🏁", card: best.card, score: 0.4 + Math.min(0.4, Math.abs(Math.log10(spxMult)) / 5),
+        headline: `${round(spxMult, 0)}× at this age — vs ${best.name}'s ${round(best.m, 0)}×`,
+        detail: `At the same age since launch (~${Math.round(ageDays / 365)}yr), SPX6900 is ${round(spxMult, 0)}× vs ${best.name}'s ${round(best.m, 0)}× at the same point in its life.`,
+        framing: `History rhymes: at this age SPX is ${round(spxMult, 0)}×, ${best.name} was ${round(best.m, 0)}×. A same-age comparison, not a forecast.`,
+        note: `Both indexed to their own launch; close-based.`,
+      });
+    }
+  } catch { /* peer histories optional */ }
 
   if (s.lastFireSale?.sinceGain != null) {
     const g = s.lastFireSale.sinceGain, ranHigher = s.lastFireSale.peakGain > g + 0.03;

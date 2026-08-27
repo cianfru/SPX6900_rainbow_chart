@@ -357,6 +357,27 @@ function concentrationShift(oc) {
   }];
 }
 
+// SPX City — current citizens + on-chain TVL (+ WoW). Reads public/city-history.json (not in `stats`).
+// Row layout: [date, price, ...tier COUNTS..., ...tier TVLs...] — counts then equal-length TVLs.
+function cityGrowth(ch) {
+  const rows = ch?.rows; if (!Array.isArray(rows) || rows.length < 8) return [];
+  const last = rows.at(-1), prev = rows[Math.max(0, rows.length - 8)];
+  const half = (last.length - 2) / 2;
+  if (!(half >= 1)) return [];
+  const cit = r => r.slice(2, 2 + half).reduce((s, x) => s + (+x || 0), 0);
+  const tvl = r => r.slice(2 + half).reduce((s, x) => s + (+x || 0), 0);
+  const c = cit(last), t = tvl(last), c0 = cit(prev), dPct = c0 ? (c - c0) / c0 * 100 : 0;
+  if (!(c > 0)) return [];
+  return [{
+    kind: "state", lane: "city", severity: 2.6, emoji: "🏙️", card: "citygrowth",
+    headline: `SPX City: ${fNum(c)} citizens · ${fUsd(t)} on-chain`,
+    detail: `${fNum(c)} wallets hold ≥5k SPX for 90+ days (the city's residents), together worth ${fUsd(t)} at today's price${Math.abs(dPct) >= 0.3 ? `, ${dPct >= 0 ? "+" : ""}${dPct.toFixed(1)}% residents WoW` : ""}.`,
+    framing: `The city grew to ${fNum(c)} residents holding ${fUsd(t)} — the flagship visual and a real adoption number.`,
+    checkable: "Wallets ≥5k SPX held 90+ days × live price, from the FIFO reconstruction.",
+    verify: chartLink("City Growth", "citygrowth"),
+  }];
+}
+
 // ── MARKET SCANS — the "flexible" always-on reads the owner asked for ─────────
 // The rainbow band we're in (and when we JUST entered one), 20-week heat, the 0–1 risk level (and a
 // round-threshold crossing), YTD vs the S&P 500, and whether the calendar month is green. Each maps
@@ -477,7 +498,7 @@ export function detectNotable(data = {}, aeonFlowFn = null, opts = {}) {
   // surface every lane that has something to say (dedup is per-lane, so this can't spam). The old
   // cap of 12 buried the flexible market reads under events; 20 lets the band/heat/risk/YTD/month
   // scans + state reads all appear alongside any fresh moves.
-  const topN = opts.topN ?? 30;
+  const topN = opts.topN ?? 40;
   const eventDays = opts.eventDays ?? 7;
   const refDate = data.onchain?.at?.(-1)?.d || data.history?.at?.(-1)?.d || null;
   // wallets already named by self-moves shouldn't double-count in whale-campaigns
@@ -501,9 +522,10 @@ export function detectNotable(data = {}, aeonFlowFn = null, opts = {}) {
   // quant lacks. stateReads is only a FALLBACK for a data-less run (no angles) so the brief is
   // never blank. Deduped by CARD (fall back to lane) so the same card can't appear twice — the
   // repetition that made the old brief feel sterile.
+  const base = [...marketScans(data), ...cityGrowth(data.cityHistory)];
   const reads = (data.angles && data.angles.length)
-    ? [...marketScans(data), ...anglesToItems(data.angles)]
-    : [...marketScans(data), ...stateReads(data)];
+    ? [...base, ...anglesToItems(data.angles)]
+    : [...base, ...stateReads(data)];
 
   // Events dedup by lane (one per on-chain lane); reads dedup by card||lane (one read per card).
   const evByLane = new Map();
@@ -569,6 +591,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     aeonSales: read("public/aeon-sales.json"),
     aeonOnchain: read("public/aeon-onchain.json"),
     valuation: read("public/valuation.json"),
+    cityHistory: read("public/city-history.json"),
   };
   const brief = detectNotable(data, aeonFlow);
   writeFileSync(out, JSON.stringify(brief));
