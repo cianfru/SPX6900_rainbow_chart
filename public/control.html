@@ -135,6 +135,8 @@
   .brief .bact { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
   .brief .bverify, .brief .bcopy { font-size: 12px; padding: 4px 11px; border-radius: 7px; border: 1px solid rgba(255,255,255,.14); background: transparent; color: #94a3b8; cursor: pointer; text-decoration: none; display: inline-block; }
   .brief .bverify:hover, .brief .bcopy:hover { border-color: #5eead4; color: #5eead4; }
+  .brief .bqueue { font-size: 12px; padding: 4px 11px; border-radius: 7px; border: 1px solid rgba(94,234,212,.5); background: rgba(94,234,212,.12); color: #5eead4; cursor: pointer; font-weight: 600; display: inline-block; }
+  .brief .bqueue:hover { background: rgba(94,234,212,.22); border-color: #5eead4; }
   /* "Notable today" anomaly signals */
   .fresh { margin: 12px 0 4px; background: #0b0b18; border: 1px solid rgba(255,255,255,.08); border-radius: 12px; padding: 11px 14px; }
   .fresh h3 { margin: 0 0 6px; font-size: 13px; font-weight: 600; color: #cbd5e1; }
@@ -732,6 +734,9 @@ function renderBrief() {
   const card = (it, i) => {
     const v = it.verify && it.verify.href
       ? `<a class="bverify" href="${esc(it.verify.href)}" target="_blank" rel="noopener">${esc(it.verify.text || "Verify")} ↗</a>` : "";
+    // When a notable read maps to a postable card, offer to fire it straight from the brief — the
+    // whole point of the scan is to go from "this is notable today" to "queue this card" in one click.
+    const q = it.card ? `<button class="bqueue" data-sigq="${esc(it.card)}">Queue ${esc(it.card)} →</button>` : "";
     return `<div class="bitem">
       <div class="brank">${esc(it.emoji || "•")}</div>
       <div class="bcol">
@@ -739,17 +744,22 @@ function renderBrief() {
         ${it.detail ? `<div class="bdetail">${esc(it.detail)}</div>` : ""}
         ${it.framing ? `<div class="bframe"><b>Angle:</b> ${esc(it.framing)}</div>` : ""}
         ${it.checkable ? `<div class="bcheck">✓ ${esc(it.checkable)}</div>` : ""}
-        <div class="bact">${v}<button class="bcopy" data-briefi="${i}">📋 Copy</button></div>
+        <div class="bact">${q}${v}<button class="bcopy" data-briefi="${i}">📋 Copy</button></div>
       </div>
     </div>`;
   };
-  // keep the original index for the Copy button; group state (the daily read) above events (moves).
+  // Three groups, most content-actionable first: 🔔 CHANGED (a band entry / risk crossing / month
+  // flipping green — the timely, rare, postable stuff), ⚡ FRESH MOVES (dated on-chain events from
+  // the last 7 days), 📊 TODAY'S READ (the standing state so the brief is never blank). Keep each
+  // item's original index for the Copy button; each group is already severity-ranked from the engine.
   const withIdx = items.map((it, i) => [it, i]);
-  const state = withIdx.filter(([it]) => it.kind === "state");
-  const events = withIdx.filter(([it]) => it.kind !== "state");
-  let html = `<div class="bhdr">🧠 The Brief <span>· the daily read${when ? " · " + esc(when) : ""} · ranked, checkable</span></div>`;
-  if (state.length) html += `<div class="bsub">📊 Today's read</div>` + state.map(([it, i]) => card(it, i)).join("");
-  if (events.length) html += `<div class="bsub">⚡ Notable moves</div>` + events.map(([it, i]) => card(it, i)).join("");
+  const changes = withIdx.filter(([it]) => it.kind === "change");
+  const events  = withIdx.filter(([it]) => it.kind === "event");
+  const state   = withIdx.filter(([it]) => it.kind === "state");
+  let html = `<div class="bhdr">🧠 The Brief <span>· today's scan${when ? " · " + esc(when) : ""} · ranked, checkable</span></div>`;
+  if (changes.length) html += `<div class="bsub">🔔 Changed this week</div>` + changes.map(([it, i]) => card(it, i)).join("");
+  if (events.length)  html += `<div class="bsub">⚡ Fresh moves</div>` + events.map(([it, i]) => card(it, i)).join("");
+  if (state.length)   html += `<div class="bsub">📊 Today's read</div>` + state.map(([it, i]) => card(it, i)).join("");
   el.innerHTML = html;
 }
 

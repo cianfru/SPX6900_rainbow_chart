@@ -54,6 +54,36 @@ test("detectNotable: AEON accumulation via the shared aeonFlow", () => {
   assert.match(it.headline, /scooped 8 AEON/);
 });
 
+test("detectNotable: a self-move older than the 7-day window drops out (freshness)", () => {
+  const brief = detectNotable({
+    onchain: [{ d: "2026-08-27" }],
+    selfMoves: { events: [{ type: "split", date: "2026-08-05", supply: 6_000_000, n: 5, source: "0x1" }] }, // 22d old
+  });
+  assert.equal(lane(brief, "whale-moves"), undefined, "a 22-day-old split is no longer news");
+  // but a 2-day-old one still is
+  const fresh = detectNotable({
+    onchain: [{ d: "2026-08-27" }],
+    selfMoves: { events: [{ type: "split", date: "2026-08-25", supply: 6_000_000, n: 5, source: "0x1" }] },
+  });
+  assert.ok(lane(fresh, "whale-moves"), "a 2-day-old split still surfaces");
+});
+
+test("detectNotable: market scans surface band / heat / risk / YTD / month with card mappings", () => {
+  const ph = [], base = Date.parse("2026-01-01");
+  for (let i = 0; i < 240; i++) ph.push({ date: new Date(base + i * 86400000).toISOString().slice(0, 10), price: 0.40 + i * 0.0006 });
+  const sp = ph.map((p, i) => [p.date, 6800 + i * 2]);
+  const refDate = ph.at(-1).date;
+  const brief = detectNotable({ onchain: [{ d: refDate }], priceHistory: ph, spSeries: sp });
+  for (const l of ["band", "heat20w", "risklevel", "ytd-vs-sp", "month-green"]) assert.ok(lane(brief, l), `${l} present`);
+  assert.equal(lane(brief, "band").card, "rainbow");
+  assert.equal(lane(brief, "risklevel").card, "risklevels");
+  assert.equal(lane(brief, "month-green").card, "monthlyreturns");
+  assert.equal(lane(brief, "ytd-vs-sp").card, "sp500ytd");
+  assert.equal(lane(brief, "heat20w").card, "riskheat");
+  // every scan is a state or a change, never a raw "event"
+  for (const l of ["band", "heat20w", "risklevel", "ytd-vs-sp", "month-green"]) assert.ok(["state", "change"].includes(lane(brief, l).kind));
+});
+
 test("detectNotable: quiet data yields an empty-ish brief, never throws", () => {
   const brief = detectNotable({ onchain: [{ d: "2026-08-16" }] });
   assert.equal(brief.date, "2026-08-16");

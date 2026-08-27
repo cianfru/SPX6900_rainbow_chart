@@ -19,6 +19,9 @@
 // returns nothing.
 // ────────────────────────────────────────────────────────────────────────────
 
+import { buildModel, bandIndex, dayN, BAND_LABELS, buildRiskSeries } from "../../src/models.js";
+import { DEFAULT_RAW } from "../../src/data.js";
+
 const SITE = "https://spx6900rainbow.xyz";
 const chartLink = (text, id) => ({ text, href: `${SITE}/?chart=${id}` });
 const cityLink = (text) => ({ text, href: `${SITE}/city` });
@@ -141,19 +144,21 @@ function cexFlow(cf) {
 // 2) Whale self-moves — a big wallet SPLITTING into fresh wallets (hiding size /
 //    leaving the city) or CONSOLIDATING. This is the 5.5M→5-wallets case, already
 //    detected in self-moves.json, never surfaced.
-function selfMoves(sm, refDate) {
+function selfMoves(sm, refDate, eventDays = 7) {
   const evs = sm?.events; if (!Array.isArray(evs) || !evs.length) return [];
-  // Prefer RECENT moves and drop ones older than ~45 days (when datable), so the brief
-  // stays fresh instead of re-surfacing the same month-old split every day.
+  // A "move" is only NEWS while it's fresh. Drop anything older than the event window (default 7d)
+  // when datable, so a whale split from last month can't sit at the top of the brief forever — the
+  // exact staleness the owner flagged (a 17-day-old split still ranking #1). Undated moves are kept
+  // (rare) but faded. Within the window, bias to the biggest.
   const cand = evs.filter(e => e.supply >= 200_000)
     .map(e => ({ e, age: refDate ? daysBetween(e.date, refDate) : null }))
-    .filter(x => x.age == null || x.age <= 45);
+    .filter(x => x.age == null || x.age <= eventDays);
   const recent = cand.sort((a, b) => (b.e.supply || 0) - (a.e.supply || 0)).slice(0, 2);
   return recent.map(({ e, age }) => {
     const split = e.type === "split";
     let sev = Math.min(9, 4 + Math.log10((e.supply || 1) / 1e5) * 2);
-    if (age != null && age > 14) sev *= 0.85;   // fade older moves so fresh ones lead
-    const ago = age != null && age > 3 ? ` (${age}d ago)` : "";
+    if (age != null && age > 3) sev *= 0.85;   // fade older moves within the window so today's leads
+    const ago = age != null && age >= 1 ? ` (${age}d ago)` : " (today)";
     return {
       lane: "whale-moves", severity: sev, emoji: split ? "🪓" : "🧷",
       headline: split
@@ -352,6 +357,89 @@ function concentrationShift(oc) {
   }];
 }
 
+// ── MARKET SCANS — the "flexible" always-on reads the owner asked for ─────────
+// The rainbow band we're in (and when we JUST entered one), 20-week heat, the 0–1 risk level (and a
+// round-threshold crossing), YTD vs the S&P 500, and whether the calendar month is green. Each maps
+// to the CARD that posts it, so the brief goes from "what's notable" straight to "fire this card" —
+// exactly the scan the owner wants so they don't have to eyeball every card. A crossing/transition
+// is kind:"change" (ranks above a steady read); a steady value is kind:"state". All reproducible
+// from the frozen rainbow model + daily price history + S&P closes — no new data pipeline.
+function marketScans(data) {
+  const ph = (data.priceHistory || []).filter(p => p && p.price > 0)
+    .map(p => ({ date: p.date, price: p.price })).sort((a, b) => a.date.localeCompare(b.date));
+  if (ph.length < 30) return [];
+  const out = [];
+  const m = buildModel(DEFAULT_RAW);
+  const last = ph.at(-1), price = last.price, day = dayN(last.date);
+  const prev7 = ph[Math.max(0, ph.length - 8)];   // ~7 rows back
+
+  // 1) Rainbow band (+ transition this week)
+  const bi = bandIndex(m, price, day), bandNow = BAND_LABELS[bi]?.l || `band ${bi}`;
+  const bi7 = bandIndex(m, prev7.price, dayN(prev7.date));
+  if (bi !== bi7) {
+    out.push({ kind: "change", lane: "band", severity: 5.6, emoji: bi > bi7 ? "🔺" : "🔻", card: "rainbow",
+      headline: `SPX just moved into the ${bandNow} band`,
+      detail: `Price ${fPx(price)} crossed from ${BAND_LABELS[bi7]?.l || "the prior band"} into ${bandNow} within the week — a band change the daily rotation won't announce on its own.`,
+      framing: `SPX moved into the ${bandNow} band this week. A clean "where are we on the rainbow" post even though no per-band fire triggered.`,
+      checkable: "Current price vs the frozen power-law band edges (published model).", verify: chartLink("Rainbow", "rainbow") });
+  } else {
+    out.push({ kind: "state", lane: "band", severity: 3.0, emoji: "🌈", card: "rainbow",
+      headline: `SPX is in the ${bandNow} band`,
+      detail: `At ${fPx(price)} the price sits in the ${bandNow} band of the power-law rainbow.`,
+      framing: `We're in the ${bandNow} band — ${fPx(price)}. The standing "where on the rainbow" read.`,
+      checkable: "Current price vs the frozen power-law band edges.", verify: chartLink("Rainbow", "rainbow") });
+  }
+
+  // 2) 20-week (140-day) heat — price vs its trailing average
+  const win = Math.min(140, ph.length), ma = ph.slice(-win).reduce((s, p) => s + p.price, 0) / win;
+  if (ma > 0) {
+    const heat = price / ma, above = (heat - 1) * 100, hot = heat >= 1.25, cold = heat <= 0.8;
+    out.push({ kind: (hot || cold) ? "change" : "state", lane: "heat20w", severity: (hot || cold) ? 4.8 : 2.6, emoji: cold ? "🧊" : "🌡️", card: "riskheat",
+      headline: `${heat.toFixed(2)}× the 20-week average (${above >= 0 ? "+" : ""}${Math.round(above)}%)`,
+      detail: `Spot ${fPx(price)} vs its ${win}-day moving average ${fPx(ma)} — ${hot ? "running hot above trend" : cold ? "stretched below trend" : "near its trend"}.`,
+      framing: `SPX is ${heat.toFixed(2)}× its 20-week average (${above >= 0 ? "+" : ""}${Math.round(above)}%). ${hot ? "The heat card shows how extended it is." : cold ? "Deep-value stretch below trend." : "Riding its own mean."}`,
+      checkable: "Price ÷ trailing 140-day mean of daily closes.", verify: chartLink("Risk Heat", "riskheat") });
+  }
+
+  // 3) Risk level 0–1 (+ round-threshold crossing)
+  const rs = buildRiskSeries(m, ph), risk = rs.at(-1).risk, risk7 = rs[Math.max(0, rs.length - 8)]?.risk ?? risk;
+  const cr = Math.floor(risk / 0.1) * 0.1, cr7 = Math.floor(risk7 / 0.1) * 0.1, crossed = cr !== cr7, rising = risk > risk7;
+  out.push({ kind: crossed ? "change" : "state", lane: "risklevel", severity: crossed ? 5.0 : 2.7, emoji: rising ? "📈" : "📉", card: "risklevels",
+    headline: crossed ? `Risk crossed ${cr > cr7 ? "above" : "below"} ${(cr > cr7 ? cr : cr7).toFixed(1)} — now ${risk.toFixed(2)}` : `Risk level ${risk.toFixed(2)} (${rising ? "rising" : "easing"})`,
+    detail: `The rainbow risk (0 = fire-sale floor, 1 = euphoria) is ${risk.toFixed(2)}, ${rising ? "up" : "down"} from ${risk7.toFixed(2)} a week ago.`,
+    framing: `Model risk is ${risk.toFixed(2)}${crossed ? ` — it just crossed ${(cr > cr7 ? cr : cr7).toFixed(1)}` : ""}. Low = the accumulation end; the levels card shows exactly where.`,
+    checkable: "Log-residual of price vs the frozen model, min-max normalised over full history.", verify: chartLink("Risk Levels", "risklevels") });
+
+  // 4) YTD vs the S&P 500 (+ flip this week)
+  const sp = (data.spSeries || []).filter(r => Array.isArray(r) && r[1] > 0).sort((a, b) => a[0].localeCompare(b[0]));
+  const yr = last.date.slice(0, 4), spx0 = ph.find(p => p.date >= `${yr}-01-01`), sp0 = sp.find(r => r[0] >= `${yr}-01-01`), spNow = sp.at(-1);
+  if (spx0 && sp0 && spNow) {
+    const spxR = price / spx0.price - 1, spR = spNow[1] / sp0[1] - 1, lead = spxR - spR, ahead = spxR >= spR;
+    const spx7 = prev7.price / spx0.price - 1, sp7row = sp[Math.max(0, sp.length - 6)], sp7 = sp7row ? sp7row[1] / sp0[1] - 1 : spR;
+    const flip = Math.sign(spxR - spR) !== Math.sign(spx7 - sp7);
+    out.push({ kind: flip ? "change" : "state", lane: "ytd-vs-sp", severity: flip ? 5.2 : 2.4, emoji: ahead ? "🏆" : "🐌", card: "sp500ytd",
+      headline: `YTD: SPX ${spxR >= 0 ? "+" : ""}${Math.round(spxR * 100)}% vs S&P ${spR >= 0 ? "+" : ""}${Math.round(spR * 100)}% — ${ahead ? "outperforming" : "trailing"}`,
+      detail: `Year-to-date SPX6900 is ${spxR >= 0 ? "+" : ""}${(spxR * 100).toFixed(0)}% against the S&P 500's ${spR >= 0 ? "+" : ""}${(spR * 100).toFixed(0)}% — ${ahead ? `ahead by ${Math.round(lead * 100)}pp` : `behind by ${Math.round(-lead * 100)}pp`}${flip ? " (flipped this week)" : ""}.`,
+      framing: `SPX6900 is ${ahead ? "beating" : "lagging"} the S&P 500 year-to-date (${Math.round(spxR * 100)}% vs ${Math.round(spR * 100)}%). ${flip ? "It just flipped this week — timely." : "The meme vs the index, same clock."}`,
+      checkable: "Both indexed to their first close of the year; S&P from bundled + banked closes.", verify: chartLink("SPX vs S&P (YTD)", "sp500ytd") });
+  }
+
+  // 5) Calendar month green? (+ flip green this week)
+  const mk = last.date.slice(0, 7), beforeMonth = ph.filter(p => p.date < `${mk}-01`).at(-1);
+  if (beforeMonth && ph.filter(p => p.date.slice(0, 7) === mk).length >= 2) {
+    const base = beforeMonth.price, mtd = price / base - 1, green = mtd >= 0;
+    const flipped = green && ((prev7.price / base - 1) < 0);
+    const MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][+mk.slice(5, 7) - 1];
+    out.push({ kind: flipped ? "change" : "state", lane: "month-green", severity: flipped ? 5.0 : (green ? 2.5 : 2.2), emoji: green ? "🟢" : "🔴", card: "monthlyreturns",
+      headline: `${MON} is ${mtd >= 0 ? "+" : ""}${Math.round(mtd * 100)}% so far — ${green ? "green" : "red"}`,
+      detail: `Month-to-date SPX is ${mtd >= 0 ? "+" : ""}${(mtd * 100).toFixed(1)}% from ${fPx(base)}${flipped ? " — it flipped green this week" : ""}.`,
+      framing: `${MON} is ${green ? "green" : "red"} at ${mtd >= 0 ? "+" : ""}${Math.round(mtd * 100)}%${flipped ? " — it just turned green, a good moment for" : " —"} the monthly-returns card.`,
+      checkable: "Current price vs the last close of the prior month.", verify: chartLink("Monthly Returns", "monthlyreturns") });
+  }
+
+  return out;
+}
+
 // ── ENGINE ────────────────────────────────────────────────────────────────
 // data: { history, legacy, onchain, cexFlow, selfMoves, smartMoney, exitFlow,
 //         whaleCampaigns, aeonSales, aeonOnchain, valuation }
@@ -359,14 +447,19 @@ function concentrationShift(oc) {
 //             hard import cycle; the CLI wires it). Output items carry kind:
 //             "state" (always-on daily read) or "event" (a threshold-crossed move).
 export function detectNotable(data = {}, aeonFlowFn = null, opts = {}) {
-  const topN = opts.topN ?? 12;
+  // Show more, not fewer — the brief is a SCANNER the owner reads to pick content, so it should
+  // surface every lane that has something to say (dedup is per-lane, so this can't spam). The old
+  // cap of 12 buried the flexible market reads under events; 20 lets the band/heat/risk/YTD/month
+  // scans + state reads all appear alongside any fresh moves.
+  const topN = opts.topN ?? 20;
+  const eventDays = opts.eventDays ?? 7;
   const refDate = data.onchain?.at?.(-1)?.d || data.history?.at?.(-1)?.d || null;
   // wallets already named by self-moves shouldn't double-count in whale-campaigns
   const splitSrcs = new Set((data.selfMoves?.events || []).map(e => (e.source || "").toLowerCase()).filter(Boolean));
 
   const events = [
     ...cexFlow(data.cexFlow),
-    ...selfMoves(data.selfMoves, refDate),
+    ...selfMoves(data.selfMoves, refDate, eventDays),
     ...whaleCampaigns(data.whaleCampaigns, splitSrcs),
     ...smartMoney(data.smartMoney),
     ...aeonAccum(data.aeonSales, data.aeonOnchain, aeonFlowFn),
@@ -377,8 +470,10 @@ export function detectNotable(data = {}, aeonFlowFn = null, opts = {}) {
     ...fromLegacy(data.legacy),
   ].filter(Boolean).map(it => ({ ...it, kind: it.kind || "event" }));
 
-  // always-on state block + the events, one item per lane (the strongest), ranked.
-  const items = [...events, ...stateReads(data)];
+  // events + the always-on state reads + the flexible market scans (band / heat / risk / YTD /
+  // month). marketScans items carry their own kind ("state" or "change"), so they aren't forced
+  // to "event" — a "change" (a crossing/transition) ranks above a steady state read by severity.
+  const items = [...events, ...stateReads(data), ...marketScans(data)];
   const byLane = new Map();
   for (const it of items) { const cur = byLane.get(it.lane); if (!cur || it.severity > cur.severity) byLane.set(it.lane, it); }
   const ranked = [...byLane.values()].sort((a, b) => b.severity - a.severity).slice(0, topN)
@@ -401,8 +496,17 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   const read = f => { try { return existsSync(f) ? JSON.parse(readFileSync(f, "utf8")) : null; } catch { return null; } };
 
   const history = read("public/history.json") || [];
+  // Dense daily SPX closes for the band/heat/risk/YTD/month scans (1000+ rows since launch).
+  const phRaw = read("public/price-history.json");
+  const priceHistory = Array.isArray(phRaw?.prices) ? phRaw.prices : (Array.isArray(phRaw) ? phRaw : []);
+  // S&P closes: bundled history extended (and made current) by the daily-banked `sp` in history.json.
+  const { SP500_HISTORY } = await import("../../src/sp500-history.js");
+  const spMap = new Map(SP500_HISTORY.map(([d, c]) => [d, c]));
+  for (const r of history) if (r.sp > 0) spMap.set(r.d, r.sp);
+  const spSeries = [...spMap.entries()].sort((a, b) => a[0].localeCompare(b[0]));
+
   const data = {
-    history,
+    history, priceHistory, spSeries,
     legacy: detectSignals(history),
     onchain: read("public/onchain.json"),
     cexFlow: read("public/cex-flow.json"),
