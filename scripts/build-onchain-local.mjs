@@ -69,6 +69,12 @@ export const EXCLUDE_LABELS = {
   "0x9642b23ed1e01df1092b92641051881a322f5d4e": { name: "MEXC 2", kind: "cex" },
   "0xe8c15aad9d4cd3f59c9dfa18828b91a8b2c49596": { name: "KuCoin 3", kind: "cex" },
   "0xb8e6d31e7b212b2b7250ee9c26c56cebbfbe6b23": { name: "KuCoin 4", kind: "cex" },
+  // Owner-tagged WINTERMUTE (market maker), 2026-08-27. Was surfacing as the SPX City "hero
+  // accumulator" (rank #63, +1.27M SPX in a week) — but that's MM trading inventory, not a
+  // conviction holder, so it must not count as a resident or read as accumulation. Tagged
+  // exchange-side (kind:"cex"), like the custody proxies: excluded from the holder count + the
+  // city, counted as liquid supply. canonVenue keeps it as its own "Wintermute" liquidity line.
+  "0xf8191d98ae98d2f7abdfb63a9b0b812b93c873aa": { name: "Wintermute", kind: "cex" },
   "0xcc282e2004428939ee5149a9e7872f0b4d5d5ec7": { name: "Kraken 3", kind: "cex" },
   "0x21a31ee1afc51d94c2efccaa2092ad1028285549": { name: "Binance", kind: "cex" },
   "0x33a64dcdfa041befebc9161a3e0c6180cd94fa89": { name: "CoinSpot 2", kind: "cex" },
