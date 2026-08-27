@@ -106,22 +106,11 @@ export async function buildRecapPost(month, history) {
   const riskNow = Math.round(R.riskSeries.at(-1)[1]);
   const riskLabel = riskNow < 33 ? "low / value zone" : riskNow < 66 ? "mid-band" : "stretched";
 
-  // --- diamond-hands supply over the month (padded y-axis like the website) ---
-  const dser = R.diamondSeries;
-  let diamondCard = null, diamondSeg = "";
-  if (dser && dser.length >= 2) {
-    const dv = dser.map(p => p[1]);
-    const dlo = Math.min(...dv), dhi = Math.max(...dv);
-    const drange = dhi - dlo, dpad = Math.max(drange * 0.3, 0.3);
-    const ddec = (drange + 2 * dpad) >= 8 ? 0 : 1;
-    diamondSeg = `💎 Diamond hands held ${dser[0][1].toFixed(ddec)}% → ${dser.at(-1)[1].toFixed(ddec)}% of supply.`;
-    diamondCard = { type: "line", spec: {
-      title: `Diamond hands — ${R.label}`, headline: `${Math.round(dser.at(-1)[1])}% of supply held by diamonds`, accent: "#22d3ee",
-      yMin: dlo - dpad, yMax: dhi + dpad, yFmt: v => v.toFixed(ddec) + "%",
-      series: [{ pts: dser, color: "#22d3ee", width: 3.5, fill: 0.18 }],
-      marker: { x: dser.at(-1)[0], y: dser.at(-1)[1], color: "#22d3ee" },
-    } };
-  }
+  // NOTE: the "diamond hands" supply line was REMOVED (owner, 2026-08-27). The label was
+  // ambiguous across the project — the same word read as 1y+ of total supply (~42%), >90d of
+  // total (~61%), and >90d of HELD supply (~89%) on different surfaces — so it confused more
+  // than it informed. If a holding-age conviction read returns to the recap, headline ONE
+  // explicit threshold (e.g. "held 90+ days" or "held 1 year+"), never the fuzzy "diamond hands".
 
   // --- the month, day by day: each daily close-to-close return as a green/red
   // bar diverging from 0% (the mbars renderer). Additive to the scorecard — shows
@@ -161,9 +150,6 @@ export async function buildRecapPost(month, history) {
   // month past that date, so the final dot IS this month's close — the monthly RSI print
   // the recap exists to report, not an unfinished current month.
   cards.push({ type: "rsidots" });
-  // If a month lacks the field or day-by-day data, keep the post full with the diamond-
-  // supply line (still a monthly movement) rather than shipping short.
-  if (cards.length < 4 && diamondCard) cards.push(diamondCard);
   while (cards.length > 4) cards.pop(); // X hard-caps a post at 4 images
 
   // --- the single long-form post (no URL in the body — links throttle reach and
@@ -183,7 +169,7 @@ export async function buildRecapPost(month, history) {
   segs.push(`📉 Monthly RSI close: ${rsiClose} — ${rsiWord}. A homage to the Bitcoin RSI chart by @100trillionUSD.`);
   if (fngPts.length >= 2) segs.push(`🧭 Mood vs value: Crypto Fear & Greed ${fngPts.at(-1)[1]} (${fngLabel(fngPts.at(-1)[1])}) while SPX model risk sat ${riskNow}/100 (${riskLabel}).`);
   const holderSeg = R.holders ? `Holders ${fNum(R.holders.start)} → ${fNum(R.holders.end)} (${R.holders.delta >= 0 ? "+" : ""}${fNum(R.holders.delta)}).` : "";
-  if (diamondSeg || holderSeg) segs.push([diamondSeg, holderSeg].filter(Boolean).join(" "));
+  if (holderSeg) segs.push(holderSeg);
   segs.push(`🌈 $SPX #spx6900 · NFA`);
   const text = segs.join("\n\n");
 

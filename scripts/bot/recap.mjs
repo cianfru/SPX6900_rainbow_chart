@@ -1,7 +1,7 @@
 // Monthly recap: distil a calendar month's story from the bundled daily snapshots
 // (public/history.json) + the frozen rainbow model. Pure — the runner passes the
 // history array (and optional live majors). Powers the monthly recap thread.
-import { DEFAULT_RAW, SUPPLY } from "../../src/data.js";
+import { DEFAULT_RAW } from "../../src/data.js";
 import * as M from "../../src/models.js";
 
 const MONTHS = ["January", "February", "March", "April", "May", "June",
@@ -48,26 +48,14 @@ export function computeMonthlyRecap(month, history) {
     ? { start: withHolders[0].holders, end: withHolders.at(-1).holders, delta: withHolders.at(-1).holders - withHolders[0].holders }
     : null;
   const beLast = [...days].reverse().find(r => r.be != null)?.be ?? null;
-  const supLast = [...days].reverse().find(r => r.sup)?.sup ?? null;
   const fngLast = [...days].reverse().find(r => r.fng != null)?.fng ?? null;
 
   // all-time return at month end (vs the very first bundled print)
   const firstEver = DEFAULT_RAW[0];
 
-  // Diamond-hands supply share over the month, GUARDED against a source/method SEAM.
-  // The daily `sup.diamond` figure changed source in Aug 2026 (HolderScan → on-chain FIFO),
-  // a ~20pp definitional STEP in a single day that is NOT a real cohort move. Genuine
-  // diamond-share aging is well under ~1.5pp/day, so any single-day jump >5pp is a
-  // discontinuity — anchor the series to the point AFTER the last such seam so the recap
-  // (line + text) compares like with like and never subtracts across a regime change.
-  let diamondSeries = days.filter(r => r.sup && r.sup.diamond != null)
-    .map(r => [Date.parse(r.d), (r.sup.diamond / SUPPLY) * 100]);
-  const SEAM_PP = 5;
-  let seamAt = 0;
-  for (let i = 1; i < diamondSeries.length; i++) {
-    if (Math.abs(diamondSeries[i][1] - diamondSeries[i - 1][1]) > SEAM_PP) seamAt = i;
-  }
-  if (seamAt > 0) diamondSeries = diamondSeries.slice(seamAt);
+  // NOTE: the "diamond hands" supply metric was dropped from the recap (owner, 2026-08-27) —
+  // the label was ambiguous across surfaces (1y+ of total ~42%, >90d of total ~61%, >90d of
+  // held ~89% all called "diamond"). No diamond series/share is emitted here anymore.
 
   return {
     month, label: monthName(month), days: days.length,
@@ -79,13 +67,11 @@ export function computeMonthlyRecap(month, history) {
     bestDay, worstDay,
     holders,
     avgHolderPnl: beLast ? close / beLast - 1 : null,
-    diamondOfTotal: supLast ? supLast.diamond / SUPPLY : null,
     fng: fngLast,
     allTimeReturn: close / firstEver.price - 1,
     priceSeries: days.map(r => [Date.parse(r.d), r.p]),
     holderSeries: withHolders.map(r => [Date.parse(r.d), r.holders]),
     riskSeries: days.map(r => [Date.parse(r.d), riskAt(r.p, r.d)]),
     fngSeries: days.filter(r => r.fng != null).map(r => [Date.parse(r.d), r.fng]),
-    diamondSeries,
   };
 }
