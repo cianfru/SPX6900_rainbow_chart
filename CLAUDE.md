@@ -58,39 +58,15 @@
     (incl. whales.json addresses + the city) is public. **The `data wall` machinery (fetchPrivate + strip-private-fields + KV push) already
     supports re-walling whales/spx-timeline by re-adding them to the strip/push list + flipping their loaders back to fetchPrivate.**
 
-## 💳 "THE TERMINAL" — PAID TIER / FREEMIUM (design agreed 2026-08-17, owner travelling; BUILD PENDING — SUPERSEDED by Deep Field beta above)
-- **First monetisation. Owner cautious (first time charging).** Structure DESIGNED, not built. Reconciled with the
-  NORTH STAR by a hard rule: **wall DEPTH / CONVENIENCE / REAL-TIME / LABOUR, NEVER CHECKABILITY.** The composite,
-  rainbow, methodology page, headline on-chain reads and the X cards stay FREE FOREVER — that's the moat + the
-  marketing. The paywall is for going deep, not for seeing whether SPX is cheap.
-- **PRICING (owner chose):** one paid tier, **$19.99/yr + $2.99/mo, 7-day free trial.** Monthly = the trust unlock for
-  a young site; annual (~44% off vs monthly) = the value anchor; cheap on purpose so smallholders join, not just
-  whales. Launch lever (undecided): a **founding-member** price — first ~100 at $9.99/yr locked, OR $49 lifetime.
-- **FREE vs PAID split:** FREE = rainbow · valuation composite · methodology · headline reads (holders/MVRV/sip/HODL
-  top-line) · daily X cards. PAID ("The Terminal") = the **daily synthesiser brief** (the flagship — "what's happening
-  today", real daily labour; likely hero, pending final owner confirm) · Wallet Clusters + per-wallet drill-downs ·
-  Smart Money detail · exchange-flow by wallet · the 3D cities (already gated) · alerts (band/whale/AEON) · CSV/API export.
-- **AUTH — Stripe, NO WALLET (owner ruled out token-gating: MetaMask/Phantom connect is max friction + a 3-month-old
-  site can't ask a stranger to sign in first, and it self-selects whales).** Plan: **Stripe Checkout + Customer Portal
-  + magic-link email login** (passwordless). Stripe webhook → subscription status (reuse the KV/Upstash store or query
-  Stripe on demand) → session cookie/JWT → authed endpoints verify it. **⚠ THE REAL WALL:** the granular JSON must move
-  OUT of `public/` (and the public repo) behind an **authenticated Vercel endpoint** — today's gate is only a curtain.
-- **✅ WALLET CLUSTERS GATED (cosmetic curtain, 2026-08-17):** `entities` chart marked `locked:true`; `App.jsx` wraps it
-  in `CityGate` (defers child mount → `/entities.json` isn't even fetched until unlocked). Added a `blurb` prop to
-  CityGate. **⚠ HONEST SCOPE — NOT real protection:** entities.json is still a public static file in a public repo, so
-  this stops the casual majority + signals premium but a technical visitor can fetch the JSON directly. Copy is
-  deliberately soft ("we think this one's a little too good to give away for free just yet") — NO "community/members"
-  wording (there is no community yet). Real walling waits for the authed-endpoint work above.
-- **DIVISION OF LABOUR (when we build):** OWNER (can't automate) = create the Stripe account + products/prices, a bare
-  Terms/Refund/Privacy page. CLAUDE = magic-link auth + Stripe webhook + subscription check + move granular feeds behind
-  the authed endpoint + the member Terminal page.
-- **PHASES:** P0 cosmetic curtain (done) → P1 design (done, this) → P2 MVP end-to-end (Stripe checkout → email login →
-  Wallet Clusters unlocked FOR REAL via authed endpoint) → P3 the Terminal page (daily synthesiser) + cities/feeds behind
-  auth + alerts → P4 trial/founding-member/marketing. **🔲 OPEN before build:** confirm the hero (daily synthesiser vs
-  "unlock all gated"), confirm the free/paid line, pick the founding-member option.
-- **HONEST FLAGS:** this is community-support scale ($20/yr × N members ≈ low thousands), not a business — set
-  expectations. Needs Terms/Refund/Privacy (Stripe basically requires it). Don't wall existing-free things retroactively
-  in a way that angers current users — new paid stuff is ADDED value.
+## 💳 "THE TERMINAL" — PAID TIER / FREEMIUM (design agreed 2026-08-17; SUPERSEDED by the Deep Field free beta above — kept only for the settled decisions)
+- **The paywall rule (reconciles with the NORTH STAR):** wall DEPTH / CONVENIENCE / REAL-TIME / LABOUR, **NEVER
+  CHECKABILITY** — rainbow, valuation composite, methodology, headline on-chain reads and the daily X cards stay FREE
+  forever (the moat + marketing); only going deep is paid.
+- **Settled decisions (if/when monetising):** pricing **$19.99/yr + $2.99/mo, 7-day trial** (optional founding-member
+  $9.99/yr-locked or $49 lifetime); **Stripe Checkout + Customer Portal + magic-link email login, NO wallet/token-gating**
+  (too much friction, self-selects whales). **⚠ THE REAL WALL is unbuilt:** the granular JSON must move OUT of public/ behind
+  an authenticated Vercel endpoint — today's gates are curtains. Owner does the Stripe account + Terms/Refund/Privacy; Claude
+  does auth + webhook + the authed endpoint. (The `entities`/city gates are cosmetic curtains, not protection.)
 
 ## Anomaly detector — "⚡ Notable today" (built 2026-07-03)
 - `scripts/bot/signals.mjs` `detectSignals(history)` runs at the end of the snapshot cron (`scripts/snapshot.mjs`) and
@@ -1633,6 +1609,22 @@
     "are-we-cheap" reads (−1.3σ from fair value 7.8%, channel bounce 7.1%, golden cross 7.0%) — valuation posts have the top bookmark
     rate = the honesty moat is the engagement moat. **Actionable: keep shipping novel visual products, keep aspirational targets + long
     methodology tails, don't gate posting on price/green days.**
+  - **🔲🔲 GREENLIT, ON STANDBY (owner, 2026-08-28) — "THEME × REGIME" CROWD-BEHAVIOUR STUDY (future work).** Owner wants to
+    match card CHOICE to market MOOD (pump → aspirational/price-target cards; calm → educational: city, HODL waves, liveliness) and
+    MEASURE how the crowd responds by content type × regime — not "cards vs price" (that link is weak, established) but a 2-D grid.
+    Design agreed with owner: **(1) tag every card (~110) with a small taxonomy** — `theme` (aspirational · valuation · onchain ·
+    community · comparison · event · aeon) + `regimeFit` (pump/calm/dip/any); a `card-taxonomy.js` map, Claude seeds it, owner
+    corrects. **(2) a daily REGIME classifier** (from price momentum + 20w-heat + funding + the valuation composite we already compute)
+    → `public/regime-history.json`, so every past post can be back-labelled. **(3) measure RESONANCE not reach** — the /control
+    Engagement tab joins each post → its card theme + its day's regime and renders a **Theme×Regime matrix** of median impressions,
+    like-rate, **bookmark-rate**, **follows-per-1k-impressions**, and **bookmark:like** ("depth vs hype"), each with its n. Reach
+    (impressions) is mostly algorithm/suppression (owner is shadow-flagged outside the EU) so per-impression rates are the real signal;
+    control for it via the existing location/VPN log. Hypothesis to test: aspirational-in-pump lifts LIKES but valuation/educational
+    earns BOOKMARKS + FOLLOWS (the growth engine). **(4) close the loop** — feed today's regime + the learned matrix into the Brief so
+    it recommends themes suited to the mood, with the evidence shown. **(5) optional** one-tap reply-vibe tagger (😊/😐/😠) for true
+    sentiment (replies can't be read via the free/write-only X API). Build order 1+2 first (all keyless/local, from the CSVs already
+    exported); 3 pays off once a few weeks of labelled posts accumulate. HONESTY RAILS: show n, don't over-claim small cells, reward
+    bookmarks (depth) so it doesn't become hype-optimisation that erodes the moat.
 - **First follower-milestone post = 690, NOT 100 (decided 2026-06-24).** Hold for **690** (on-brand 69/6900). Build like the event
   posts: a one-off celebratory card, fired manually (`BOT_POST=`), suppressed around the daily. Tone: humble community thanks, NOT a flex.
   **Analytics aside (do NOT post as a claim): there is NO strict price↔followers relationship** — daily-return corr only ~0.36; the 0.90
