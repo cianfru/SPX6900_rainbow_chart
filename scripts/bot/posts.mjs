@@ -1885,8 +1885,9 @@ Conviction, coin by coin.`,
     };
   })(),
 
-  // 11c — on-chain positioning: Hyperliquid perp funding, normalised to its neutral
-  // baseline (so the structural ~+10% APR reads as neutral, not "long"). Data-gated.
+  // 11c — Hyperliquid positioning: perp FUNDING (normalised to its ~+10% neutral baseline so the
+  // structural cost of being long reads as neutral) + OPEN INTEREST (how much leverage is riding).
+  // Data-gated. Both straight from Hyperliquid, on-chain.
   s => s.longshort && s.longshort.filter(r => r.hlFunding != null).length >= 8 && (() => {
     const fund = s.longshort.filter(r => r.hlFunding != null);
     const aprs = fund.map(r => r.hlFunding * 24 * 365 * 100);
@@ -1894,11 +1895,18 @@ Conviction, coin by coin.`,
     const dev = aprs.at(-1) - neutral;
     const lean = dev > 8 ? "leaning long" : dev < -8 ? "leaning short" : "sitting neutral";
     const devTxt = `${dev >= 0 ? "+" : ""}${Math.round(dev)}%`;
+    const fM = v => v >= 1e6 ? +(v / 1e6).toFixed(1) + "M" : Math.round(v / 1e3) + "k";
+    const oiRows = fund.filter(r => r.hlOI != null);
+    const oiCur = oiRows.at(-1)?.hlOI, oi30 = oiRows.filter(r => Date.parse(r.date) >= Date.parse(oiRows.at(-1).date) - 30 * 864e5)[0]?.hlOI;
+    const oiChg = oiCur != null && oi30 ? Math.round((oiCur - oi30) / oi30 * 100) : null;
+    const oiLine = oiCur != null
+      ? `Open interest ${oiChg != null && oiChg >= 8 ? `climbing — ${fM(oiCur)} SPX in open perps, ${oiChg >= 0 ? "+" : ""}${oiChg}% in a month` : oiChg != null && oiChg <= -8 ? `easing — ${fM(oiCur)} SPX in open perps, ${oiChg}% in a month` : `steady at ${fM(oiCur)} SPX in open perps`}.`
+      : "";
     return {
       id: "longshort",
       text: ct`⚖️ SPX6900 perp funding is ${lean} — ${devTxt} vs its neutral baseline (Hyperliquid).
-It runs ~${Math.round(neutral)}% APR even when balanced; normalised to that, this is the real skew.
-On-chain, unmanipulable — extremes are a contrarian tell, not a signal.`,
+${oiLine} Funding runs ~${Math.round(neutral)}% APR even when balanced; normalised to that, this is the real skew.
+On-chain, unmanipulable — leverage and lean, not a signal.`,
       card: { type: "longshort" },
     };
   })(),
