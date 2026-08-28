@@ -2,13 +2,13 @@
   "git": { "deploymentEnabled": false },
   "functions": {
     "api/og.js": {
-      "includeFiles": "{scripts/bot/**,public/{history,onchain,whales,chain-wallets,cex-flow,cex-sankey,whale-thennow,whale-entry,freefloat-peers,rotation-excludes,cohort-survival,exit-flow,smart-money,city-history,valuation,aeon-*}.json}"
+      "includeFiles": "{scripts/bot/**,public/{history,onchain,whales,chain-wallets,cex-flow,cex-sankey,whale-thennow,whale-entry,freefloat-peers,rotation-excludes,cohort-survival,exit-flow,smart-money,city-history,valuation,longshort,aeon-*}.json}"
     },
     "api/recap.js": {
-      "includeFiles": "{scripts/bot/**,public/{history,onchain,whales,chain-wallets,cex-flow,freefloat-peers,rotation-excludes,cohort-survival,exit-flow,smart-money}.json}"
+      "includeFiles": "{scripts/bot/**,public/{history,onchain,whales,chain-wallets,cex-flow,freefloat-peers,rotation-excludes,cohort-survival,exit-flow,smart-money,longshort}.json}"
     },
     "api/agent.js": {
-      "includeFiles": "{scripts/bot/**,public/{history,onchain,whales,chain-wallets,cex-flow,freefloat-peers,rotation-excludes,cohort-survival,exit-flow,smart-money,city-history}.json}"
+      "includeFiles": "{scripts/bot/**,public/{history,onchain,whales,chain-wallets,cex-flow,freefloat-peers,rotation-excludes,cohort-survival,exit-flow,smart-money,city-history,longshort}.json}"
     },
     "api/live-flow.js": {
       "includeFiles": "public/{whales,base-onchain,solana-onchain}.json"
