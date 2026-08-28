@@ -11,7 +11,6 @@ import { FONT } from "./font.mjs";
 import { brandStripe } from "./chrome.mjs";
 
 const png = (svg, w) => new Resvg(svg, { fitTo: { mode: "width", value: w }, font: FONT }).render().asPng();
-const fPct = v => `${v >= 0 ? "+" : ""}${Math.round(v)}%`;
 const fM = v => v >= 1e6 ? +(v / 1e6).toFixed(1) + "M" : Math.round(v / 1e3) + "k";
 const LONG = "#34d399", SHORT = "#f87171", OI = "#fbbf24";
 
@@ -30,10 +29,9 @@ export function longShortSvg(stats, opts = {}) {
   const rows = allRows.filter(r => r.ts >= cutoff);
   const cur = rows.at(-1);
   const oiRows = rows.filter(r => r.oi != null);
-  const oiCur = oiRows.at(-1)?.oi ?? null, oiFirst = oiRows[0]?.oi ?? null;
-  const oiChg = oiCur != null && oiFirst ? (oiCur - oiFirst) / oiFirst * 100 : null;
+  const oiCur = oiRows.at(-1)?.oi ?? null;
 
-  const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 96, mR = 96, mT = 96, mB = 64;
+  const W = opts.W ?? 1200, H = opts.H ?? 630, mL = 88, mR = 90, mT = 116, mB = 66;
   const iT = mT, iB = H - mB, iH = iB - iT;
   const xMin = rows[0].ts, xMax = rows.at(-1).ts;
   const x = t => mL + ((t - xMin) / ((xMax - xMin) || 1)) * (W - mL - mR);
@@ -55,7 +53,7 @@ export function longShortSvg(stats, opts = {}) {
   }
   const oiStep = oMax > 20e6 ? 5e6 : oMax > 8e6 ? 2.5e6 : 1e6;
   for (let v = oiStep; v <= oMax; v += oiStep) {
-    grid += `<text x="${mL - 12}" y="${(yO(v) + 5).toFixed(1)}" fill="${OI}" fill-opacity="0.75" font-size="21" text-anchor="end" font-family="sans-serif">${fM(v)}</text>`;
+    grid += `<text x="${mL - 12}" y="${(yO(v) + 5).toFixed(1)}" fill="${OI}" fill-opacity="0.7" font-size="20" text-anchor="end" font-family="sans-serif">${fM(v)}</text>`;
   }
 
   const bw = Math.max(1.2, (W - mL - mR) / (Math.max(2, rows.length) - 1) + 0.6);
@@ -66,12 +64,14 @@ export function longShortSvg(stats, opts = {}) {
     bars += `<rect x="${(x(r.ts) - bw / 2).toFixed(1)}" y="${top.toFixed(1)}" width="${bw.toFixed(1)}" height="${Math.max(0.4, h).toFixed(1)}" fill="${r.dev >= 0 ? LONG : SHORT}" fill-opacity="0.85"/>`;
   }
   const pivot = `<line x1="${mL}" y1="${yPivot.toFixed(1)}" x2="${W - mR}" y2="${yPivot.toFixed(1)}" stroke="rgba(255,255,255,0.5)" stroke-dasharray="6 6"/>`
-    + `<text x="${mL + 8}" y="${(yPivot - 8).toFixed(1)}" fill="#94a3b8" font-size="18" font-family="sans-serif">neutral · ~${Math.round(neutral)}% APR funding</text>`;
-  // OPEN INTEREST line (amber), on the left axis
+    + `<text x="${mL + 8}" y="${(yPivot - 8).toFixed(1)}" fill="#94a3b8" font-size="18" font-family="sans-serif">neutral · ~${Math.round(neutral)}% APR</text>`;
+  // OPEN INTEREST line (amber), on the left axis, with the current value labelled at its end point
+  const lastOiX = oiRows.length ? x(oiRows.at(-1).ts) : 0, lastOiY = oiCur != null ? yO(oiCur) : 0;
   const oiLine = oiRows.length > 1
     ? `<polyline points="${oiRows.map(r => `${x(r.ts).toFixed(1)},${yO(r.oi).toFixed(1)}`).join(" ")}" fill="none" stroke="${OI}" stroke-width="4.6" stroke-linejoin="round" stroke-linecap="round" filter="url(#lsGlow)"/>`
       + `<polyline points="${oiRows.map(r => `${x(r.ts).toFixed(1)},${yO(r.oi).toFixed(1)}`).join(" ")}" fill="none" stroke="${OI}" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>`
-      + `<circle cx="${x(oiRows.at(-1).ts).toFixed(1)}" cy="${yO(oiCur).toFixed(1)}" r="6" fill="${OI}"/>`
+      + `<circle cx="${lastOiX.toFixed(1)}" cy="${lastOiY.toFixed(1)}" r="6" fill="${OI}"/>`
+      + `<text x="${(lastOiX - 10).toFixed(1)}" y="${(lastOiY - 12).toFixed(1)}" fill="${OI}" font-size="24" font-weight="800" text-anchor="end" font-family="sans-serif">${fM(oiCur)}</text>`
     : "";
 
   // x labels: monthly marks
@@ -83,22 +83,23 @@ export function longShortSvg(stats, opts = {}) {
   }
 
   const dc = cur.dev >= 0 ? LONG : SHORT;
-  const oiTxt = oiCur != null ? `${fM(oiCur)} SPX${oiChg != null ? ` (${oiChg >= 0 ? "+" : ""}${Math.round(oiChg)}%)` : ""}` : "—";
+  // one compact current-state chip (short enough it can never collide with the title); the exact
+  // numbers live in the post text, so the card stays clean.
+  const lean = cur.dev > 8 ? { t: "▲ long-leaning", c: LONG } : cur.dev < -8 ? { t: "▼ short-leaning", c: SHORT } : { t: "● neutral", c: "#94a3b8" };
   return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
 <defs><filter id="lsGlow" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="5"/></filter></defs>
 <rect width="${W}" height="${H}" fill="#05050e"/>
-<radialGradient id="lsV" cx="50%" cy="0%" r="90%"><stop offset="0%" stop-color="${dc}" stop-opacity="0.14"/><stop offset="60%" stop-color="${dc}" stop-opacity="0"/></radialGradient>
+<radialGradient id="lsV" cx="50%" cy="0%" r="90%"><stop offset="0%" stop-color="${dc}" stop-opacity="0.13"/><stop offset="60%" stop-color="${dc}" stop-opacity="0"/></radialGradient>
 <rect width="${W}" height="${H}" fill="url(#lsV)"/>
 ${brandStripe(H)}
 ${grid}
 ${bars}${pivot}
 ${oiLine}
 ${xlab}
-<text x="64" y="42" fill="#e2e8f0" font-size="29" font-weight="700" font-family="sans-serif" letter-spacing="1.5">SPX6900 — HYPERLIQUID POSITIONING</text>
-<text x="64" y="72" font-size="23" font-family="sans-serif"><tspan fill="${LONG}" font-weight="700">▮ long-leaning</tspan><tspan fill="#64748b">   </tspan><tspan fill="${SHORT}" font-weight="700">▮ short-leaning</tspan><tspan fill="#64748b">   </tspan><tspan fill="${OI}" font-weight="700">— open interest (SPX)</tspan></text>
-<text x="${W - mR + 24}" y="42" fill="${dc}" font-size="26" font-weight="800" font-family="sans-serif" text-anchor="end">funding ${fPct(cur.dev)} vs neutral</text>
-<text x="${W - mR + 24}" y="72" fill="${OI}" font-size="23" font-weight="800" font-family="sans-serif" text-anchor="end">OI ${oiTxt}</text>
-<text x="64" y="${H - 14}" fill="#475569" font-size="15" font-family="sans-serif">spx6900rainbow.xyz · not financial advice · Hyperliquid perp — funding normalised to its neutral baseline · open interest in SPX</text>
+<text x="60" y="50" fill="#e2e8f0" font-size="31" font-weight="800" font-family="sans-serif" letter-spacing="0.6">Hyperliquid positioning</text>
+<text x="${W - mR}" y="50" fill="${lean.c}" font-size="24" font-weight="800" font-family="sans-serif" text-anchor="end">${lean.t}</text>
+<text x="60" y="86" font-size="20" font-family="sans-serif"><tspan fill="${LONG}" font-weight="700">▮ funding vs neutral</tspan><tspan fill="#475569">    </tspan><tspan fill="${OI}" font-weight="700">— open interest (SPX)</tspan></text>
+<text x="60" y="${H - 20}" fill="#475569" font-size="15" font-family="sans-serif">spx6900rainbow.xyz · Hyperliquid perp · not financial advice</text>
 </svg>`;
 }
 
