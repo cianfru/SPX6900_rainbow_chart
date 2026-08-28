@@ -90,10 +90,11 @@ export default function WhaleMosaic({ isMobile }) {
             <Stat n={selling} label="selling" color="#ef4444" tri="▼" big={!isMobile} />
             <Stat n={flat} label="flat" color="#64748b" tri="•" big={!isMobile} />
           </div>
-          {/* exactly what these counts cover, so they're never a mystery number */}
+          {/* exactly what these counts cover + as-of, so they're never a mystery number */}
           <div style={{ fontFamily: MONO, fontSize: 11.5, color: "#8595ab", marginTop: 10 }}>
             net flow over the <b style={{ color: "#c7d2e4" }}>last {winName}</b> · all chains
             {byChain && <span style={{ color: "#64748b" }}> ({byChain.eth} ETH · {byChain.base} Base · {byChain.sol} Solana)</span>}
+            {whales?.updated && <span style={{ color: "#64748b" }}> · as of {whales.updated}</span>}
           </div>
           {windows.length > 1 && (
             <div style={{ display: "flex", alignItems: "center", gap: 9, marginTop: 15, flexWrap: "wrap" }}>

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { loadCityTimeline, loadOnchain } from "./history-data.js";
-import { whaleSpectrum, nrplPeaks, dateOfWeek, SPECTRUM_LABELS } from "./whale-spectrum.js";
+import { loadCityTimeline, loadOnchain, loadWhales } from "./history-data.js";
+import { whaleSpectrum, whaleSpectrumLive, nrplPeaks, dateOfWeek, SPECTRUM_LABELS } from "./whale-spectrum.js";
 import { SANS, MONO, ViewTabs } from "./chart-ui.jsx";
 
 // WHALE SPECTRUM — the whale mosaic split into 10 SIZE cohorts, each drawn as a vertical VFD-style
@@ -32,17 +32,20 @@ export default function WhaleSpectrum({ isMobile }) {
   const cvs = useRef(null);
   const [tl, setTl] = useState(null);         // null loading · false failed · object ok
   const [onchain, setOnchain] = useState(null);
-  const [week, setWeek] = useState(null);     // current scrub position (null until data loads → last week)
+  const [whales, setWhales] = useState(null); // current daily field → the LIVE "today" column
+  const [week, setWeek] = useState(null);     // scrub position; tl.n = the live "today" column past the weekly grid
   const [playing, setPlaying] = useState(false);
   const [flowWeeks, setFlowWeeks] = useState(4);   // net-flow lookback: 4 weeks (~30d) / 1 week
   const [hover, setHover] = useState(-1);
 
   useEffect(() => {
     let off = false;
-    loadCityTimeline().then(d => { if (!off) { setTl(d ?? false); if (d) setWeek(d.n - 1); } });
+    loadCityTimeline().then(d => { if (!off) { setTl(d ?? false); if (d) setWeek(d.n); } });   // default = live today
     loadOnchain().then(d => { if (!off) setOnchain(d || null); });
+    loadWhales().then(d => { if (!off) setWhales(d || null); });
     return () => { off = true; };
   }, []);
+  const livePrice = useMemo(() => (onchain || []).filter(r => r.spot != null).at(-1)?.spot ?? null, [onchain]);
 
   const peaks = useMemo(() => (tl && onchain ? nrplPeaks(onchain, tl) : null), [tl, onchain]);
   // price at a week (nearest onchain daily row) → context under the date.
@@ -57,12 +60,18 @@ export default function WhaleSpectrum({ isMobile }) {
     };
   }, [tl, onchain]);
 
-  const cohorts = useMemo(() => (tl && week != null ? whaleSpectrum(tl, week, { flowWeeks }) : null), [tl, week, flowWeeks]);
+  // week >= tl.n is the LIVE "today" column (from whales.json, daily) — the leading edge that keeps
+  // the Spectrum current instead of lagging on the weekly grid; earlier weeks scrub the timeline.
+  const cohorts = useMemo(() => {
+    if (!tl || week == null) return null;
+    if (week >= tl.n) return whales?.wallets ? whaleSpectrumLive(whales.wallets, { flowWeeks }) : whaleSpectrum(tl, tl.n - 1, { flowWeeks });
+    return whaleSpectrum(tl, week, { flowWeeks });
+  }, [tl, whales, week, flowWeeks]);
 
   // play — advance a week every ~110ms, loop back to the start at the end.
   useEffect(() => {
     if (!playing || !tl) return;
-    const id = setInterval(() => setWeek(w => (w >= tl.n - 1 ? 0 : w + 1)), 110);
+    const id = setInterval(() => setWeek(w => (w >= tl.n ? 0 : w + 1)), 110);   // …→ live today, then loop
     return () => clearInterval(id);
   }, [playing, tl]);
 
@@ -103,11 +112,12 @@ export default function WhaleSpectrum({ isMobile }) {
   if (tl === false) return <div style={{ textAlign: "center", fontFamily: SANS, color: "#94a3b8", padding: 60 }}>Whale timeline is being rebuilt — check back after the next on-chain refresh.</div>;
   if (!tl || !cohorts || week == null) return <div style={{ textAlign: "center", fontFamily: MONO, color: "#64748b", padding: 60 }}>Loading the whale timeline…</div>;
 
-  const date = dateOfWeek(tl, week);
-  const price = priceAt(week);
+  const isLive = week >= tl.n;
+  const date = isLive ? (whales?.updated || dateOfWeek(tl, tl.n - 1)) : dateOfWeek(tl, week);
+  const price = isLive ? livePrice : priceAt(week);
   const totalWhales = cohorts.reduce((s, c) => s + c.total, 0);
   const buyN = cohorts.reduce((s, c) => s + c.buy, 0), sellN = cohorts.reduce((s, c) => s + c.sell, 0);
-  const jump = w => { setPlaying(false); setWeek(Math.max(0, Math.min(tl.n - 1, w))); };
+  const jump = w => { setPlaying(false); setWeek(Math.max(0, Math.min(tl.n, w))); };
   const onMove = e => {
     const r = e.currentTarget.getBoundingClientRect();
     const padX = isMobile ? 10 : 18, gap = isMobile ? 6 : 12, n = cohorts.length;
@@ -132,6 +142,9 @@ export default function WhaleSpectrum({ isMobile }) {
             </div>
           </div>
           <div style={{ textAlign: isMobile ? "left" : "right", fontFamily: MONO }}>
+            <div style={{ fontSize: 10.5, letterSpacing: 1, textTransform: "uppercase", color: isLive ? "#5eead4" : "#64748b", marginBottom: 1 }}>
+              {isLive ? "● live · today" : "week of"}
+            </div>
             <div style={{ fontSize: isMobile ? 18 : 22, fontWeight: 800, color: "#e2e8f0", fontVariantNumeric: "tabular-nums" }}>{date}</div>
             {price != null && <div style={{ fontSize: 13, color: "#5eead4", marginTop: 2 }}>SPX ${price >= 1 ? price.toFixed(2) : price.toFixed(4)}</div>}
           </div>
@@ -159,7 +172,7 @@ export default function WhaleSpectrum({ isMobile }) {
               <span style={{ color: "#fb7185" }}>{cohorts[hover].sell} selling</span> · {" "}
               <span style={{ color: "#64748b" }}>{cohorts[hover].flat} flat</span>
             </span>
-          ) : hover >= 0 ? <span style={{ color: "#64748b" }}>{cohorts[hover].label} band · no whales this week</span> : ""}
+          ) : hover >= 0 ? <span style={{ color: "#64748b" }}>{cohorts[hover].label} band · no whales {isLive ? "right now" : "this week"}</span> : ""}
         </div>
 
         {/* transport */}
@@ -170,13 +183,13 @@ export default function WhaleSpectrum({ isMobile }) {
               background: playing ? "rgba(251,113,133,0.16)" : "rgba(94,234,212,0.16)",
               border: `1px solid ${playing ? "#fb7185" : "#5eead4"}`, color: playing ? "#fb7185" : "#5eead4",
             }}>{playing ? "❚❚" : "▶"}</button>
-            <input type="range" min={0} max={tl.n - 1} value={week} onChange={e => { setPlaying(false); setWeek(+e.target.value); }}
+            <input type="range" min={0} max={tl.n} value={week} onChange={e => { setPlaying(false); setWeek(+e.target.value); }}
               style={{ flex: 1, accentColor: "#5eead4", cursor: "pointer" }} />
           </div>
           <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap", justifyContent: "center" }}>
             {peaks?.euphoria && <Chip label="⛰ Euphoria top" sub={peaks.euphoria.date} on={week === peaks.euphoria.week} onClick={() => jump(peaks.euphoria.week)} />}
             {peaks?.capitulation && <Chip label="🩸 Capitulation" sub={peaks.capitulation.date} on={week === peaks.capitulation.week} onClick={() => jump(peaks.capitulation.week)} />}
-            <Chip label="● Today" sub={dateOfWeek(tl, tl.n - 1)} on={week === tl.n - 1} onClick={() => jump(tl.n - 1)} />
+            <Chip label="● Today · live" sub={whales?.updated || dateOfWeek(tl, tl.n - 1)} on={week >= tl.n} onClick={() => jump(tl.n)} />
             <span style={{ marginLeft: 4 }}><ViewTabs tabs={[[4, "~30d flow"], [1, "1w flow"]]} value={flowWeeks} onChange={setFlowWeeks} /></span>
           </div>
         </div>
@@ -187,8 +200,9 @@ export default function WhaleSpectrum({ isMobile }) {
         <b style={{ color: "#22c55e" }}> green</b> lights from the bottom for the share <b style={{ color: "#e2e8f0" }}>accumulating</b>,
         <b style={{ color: "#fb7185" }}> red</b> from the top for the share <b style={{ color: "#e2e8f0" }}>distributing</b>, dark between = holding flat.
         Drag the slider or press play to watch the cohorts move through the cycle — the ⛰ and 🩸 jumps are the objective euphoria and capitulation
-        weeks from on-chain realized profit/loss. Ethereum self-custody holders, reconstructed from the transfer log; a falling balance means a wallet
-        reduced (sold, moved or split), not necessarily a sale. Not a signal.
+        weeks from on-chain realized profit/loss. The <b style={{ color: "#5eead4" }}>rightmost position is live today</b> (from the daily whale feed, so it matches
+        the Mosaic); everything earlier is a <b style={{ color: "#e2e8f0" }}>weekly</b> reconstruction. Ethereum self-custody holders, from the transfer log;
+        a falling balance means a wallet reduced (sold, moved or split), not necessarily a sale. Not a signal.
       </p>
     </div>
   );

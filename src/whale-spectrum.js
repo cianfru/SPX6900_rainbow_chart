@@ -52,8 +52,9 @@ export function whalesAtWeek(tl, week, { minBal = WHALE_FLOOR, flowWeeks = 4 } =
 // the bars dance. Size bands are fixed + log-ish so "which size cohort is doing what" is legible.
 export const SPECTRUM_EDGES = [1e5, 2e5, 3.5e5, 6e5, 1e6, 1.75e6, 3e6, 5e6, 9e6, 16e6, Infinity];
 export const SPECTRUM_LABELS = ["100k", "200k", "350k", "600k", "1M", "1.75M", "3M", "5M", "9M", "16M+"];
-export function whaleSpectrum(tl, week, { flowWeeks = 4 } = {}) {
-  const { rows } = whalesAtWeek(tl, week, { flowWeeks });
+
+// bucket a whale field [{bal, net}] into the 10 spectrum cohorts, classifying each by the shared rule.
+function bucketSpectrum(rows) {
   const cohorts = SPECTRUM_LABELS.map((label, i) => ({ label, lo: SPECTRUM_EDGES[i], hi: SPECTRUM_EDGES[i + 1], buy: 0, sell: 0, flat: 0, total: 0 }));
   for (const r of rows) {
     let ci = -1;
@@ -64,6 +65,25 @@ export function whaleSpectrum(tl, week, { flowWeeks = 4 } = {}) {
     if (f === "buy") c.buy++; else if (f === "sell") c.sell++; else c.flat++;
   }
   return cohorts;
+}
+
+// HISTORICAL: reconstruct the spectrum at a past timeline WEEK (weekly balances).
+export function whaleSpectrum(tl, week, { flowWeeks = 4 } = {}) {
+  return bucketSpectrum(whalesAtWeek(tl, week, { flowWeeks }).rows);
+}
+
+// LIVE "today" column: the CURRENT whale field from whales.json (daily), so the Spectrum's leading
+// edge is up-to-date and reconciles with the Mosaic / City instead of lagging on the weekly grid.
+// flowWeeks 4 → the banked 30-day net (d30); 1 → the 7-day net (d7). Ethereum, ≥100k, same cutoff.
+export function whaleSpectrumLive(wallets, { flowWeeks = 4 } = {}) {
+  const key = flowWeeks === 1 ? "d7" : "d30";
+  const rows = [];
+  for (const w of wallets || []) {
+    if (!w || w.bal < WHALE_FLOOR) continue;
+    const net = Number.isFinite(w[key]) ? w[key] : (w.d30 || 0);
+    rows.push({ a: w.a, bal: w.bal, net });
+  }
+  return bucketSpectrum(rows);
 }
 
 // Pick the euphoria (biggest realized-PROFIT spike) and capitulation (biggest realized-LOSS spike)
