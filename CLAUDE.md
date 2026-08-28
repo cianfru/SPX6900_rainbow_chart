@@ -1304,6 +1304,18 @@
     FIFO sanity gate PASSED — **`rp 0.5175 · holders 49,210 · top100 57.45`** (matches the last Dune pull), SPX City 26,651 wallets /
     4,904 citizens, Solana 1,952, Base 502 all green, committed `a77ba43`. Secret confirmed named exactly **`GCP_SA_KEY`** (SA
     `spx-onchain-ci@goog-fltx`, roles BigQuery Job User + Data Editor). `BQ_MAX_BYTES=214748364800` (200 GB) is the one safety knob.
+  - **✅ FRESHNESS FIX — ALCHEMY LEADING-EDGE TAIL (2026-08-28, owner: "the data is 2 days old").** Google's public
+    `crypto_ethereum.token_transfers` is a BATCH export ~1–2 days behind real time, so the BigQuery archive (and everything FIFO-derived:
+    onchain/whales/exit-flow/smart-money/city) only reconstructed to ~2 days ago — Solana (RPC) + Base (Alchemy) were already live. Fix:
+    **`scripts/build-eth-transfers-alchemy-tail.mjs`** pulls SPX transfers from the archive's newest timestamp → latest block via
+    `alchemy_getAssetTransfers` (category erc20, the SAME live source Zerion/Etherscan read; we already use it for Base + AEON) and APPENDS
+    them to `transfers.csv` between the BigQuery export and the FIFO engine in `onchain-dune.yml`. So every feed reconstructs through TODAY.
+    **The tail goes to the CSV ONLY, never the BigQuery table** — tomorrow the public dataset covers the same days from canonical data, so no
+    duplication (the BQ append is `> literal cutoff`, the tail is `> archive max time`, no overlap). Near-zero cost (a few pages/day on the
+    existing `ALCHEMY_KEY`, free tier). **SOFT-FAILS (`continue-on-error` + internal try/catch)** → a bad pull just leaves feeds at the
+    ~2-day BQ edge, exactly as before. Pure helpers (archiveMaxTimeMs/normalizeEthTransfer/tailRows/appendToArchive) unit-tested
+    (`test/eth-transfers-alchemy-tail.test.mjs`). **⚠ NOT affected by the Sep-30 Alchemy deprecation — that's NFT endpoints only;
+    `getAssetTransfers` is a core Transfers API our own notes recommend as the go-forward live path.** value stays RAW integer (engine ÷1e8).
   - **🔲 LAST FEED STILL ON DUNE — AEON SALES.** `aeon.yml` sales (`build-aeon-dune-refresh.mjs`, sales-only) is the only remaining Dune
     dependency (AEON transfers already moved to Alchemy 2026-08-20). Drafted the BigQuery replacement **`bigquery/aeon_sales.sql`** (a
     heuristic Seaport/Blur/WETH decoder — NFT Transfer + tx ETH value / WETH-to-seller, sweep-split, marketplace by router) but marked it

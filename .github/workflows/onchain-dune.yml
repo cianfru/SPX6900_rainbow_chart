@@ -151,6 +151,19 @@ jobs:
           bq --project_id="$GCP_PROJECT" query --use_legacy_sql=false --format=csv --max_rows=5000000 \
             "SELECT sender, receiver, time, value FROM \`$GCP_PROJECT.$BQ_DATASET.$BQ_TABLE\` ORDER BY time" > transfers.csv
           echo "BigQuery transfers rows: $(( $(wc -l < transfers.csv) - 1 ))"
+      # ── FRESHNESS: fill the public-dataset's ~1–2 day lag from a LIVE node (Alchemy) ──
+      # The BigQuery export above only reaches ~2 days ago (Google's crypto_ethereum ETL is batch).
+      # This appends SPX transfers from that edge to the latest block via alchemy_getAssetTransfers
+      # (the same live source Zerion/Etherscan read — we already use it for Base + AEON), so onchain /
+      # whales / exit-flow / smart-money / city all reconstruct through TODAY. The tail is appended to
+      # transfers.csv ONLY, never to the BigQuery table — tomorrow the public dataset covers the same
+      # days from canonical data, so there's no duplication. Soft (continue-on-error): a bad pull just
+      # leaves the feeds at the ~2-day BigQuery edge, exactly as before.
+      - name: "ETH — Alchemy leading-edge tail (freshness: BigQuery edge → now)"
+        if: steps.src.outputs.mode == 'bq'
+        continue-on-error: true
+        env: { ALCHEMY_KEY: "${{ secrets.ALCHEMY_KEY }}" }
+        run: node scripts/build-eth-transfers-alchemy-tail.mjs --archive=transfers.csv
       - name: BigQuery — run FIFO engine (no Dune pull)
         if: steps.src.outputs.mode == 'bq'
         run: node scripts/build-onchain-dune-refresh.mjs --archive=transfers.csv --no-pull
