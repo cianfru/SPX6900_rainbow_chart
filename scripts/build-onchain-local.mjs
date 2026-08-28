@@ -40,25 +40,25 @@ export const EXCLUDE_LABELS = {
   "0x7dafba1d69f6c01ae7567ffd7b046ca03b706f83": { name: "Kraken 245", kind: "cex" },
   "0xd2dd7b597fd2435b6db61ddf48544fd931e6869f": { name: "Kraken 246", kind: "cex" },
   "0x651641299c7ec0aa44ad7ed9b7e12702fed2022f": { name: "Bybit 56", kind: "cex" },
-  "0x0529ea5885702715e83923c59746ae8734c553b7": { name: "Bitpanda 18", kind: "cex" },
+  "0x0529ea5885702715e83923c59746ae8734c553b7": { name: "Bitvavo 2", kind: "cex" },   // Bubblemaps 2026-08-28: was mis-tagged "Bitpanda 18"
   "0x9b0c45d46d386cedd98873168c36efd0dcba8d46": { name: "Revolut 3", kind: "cex" },
   "0x3cc936b795a188f0e246cbb2d74c5bd190aecf18": { name: "MEXC 3", kind: "cex" },
   "0xa9d1e08c7793af67e9d92fe308d5697fb81d3e43": { name: "Coinbase 10", kind: "cex" },
   "0xdf5e3a1ed0c14a53eee240022301ecb9d267671b": { name: "Kraken-linked", kind: "cex" },        // Kraken-funded, trades the SPX contract
-  "0x73d8bd54f7cf5fab43fe4ef40a62d390644946db": { name: "BitGo custody (WalletSimple)", kind: "cex" }, // another WalletSimple proxy → exchange-side
+  "0x73d8bd54f7cf5fab43fe4ef40a62d390644946db": { name: "Binance proxy", kind: "cex" }, // Bubblemaps 2026-08-28: Binance (resolves the old "BitGo custody 2 / sushiswap?" ambiguity)
   // ── Owner-tagged CEX coverage batch, 2026-07-22 (Etherscan). More venues + extra hot wallets. ──
   // Owner-spotted 2026-07-28: showing as the 13th largest HOLDER at 9.4M SPX (~1% of supply) while
   // actually being an exchange. Untagged infrastructure is the most expensive kind of error here —
   // it invents a resident, inflates the holder count, distorts top-10/top-100 concentration, and
   // subtracts its balance from the venue it really belongs to.
-  "0xb0a3a2b60e969afd26561429aa4c1444c57e4411": { name: "MEXC", kind: "cex" },
+  "0xb0a3a2b60e969afd26561429aa4c1444c57e4411": { name: "Bitvavo 3", kind: "cex" },   // Bubblemaps 2026-08-28: was tagged "MEXC" (still exchange-side, venue reattributed)
   // Owner-confirmed REVOLUT 2026-07-28. The largest balance in the city at 14.67M SPX, and it was
   // wearing the "biggest whale" crown. Funded by the Revolut hot wallet; first suspected Kraken,
   // then confirmed as Revolut by the owner. "-linked" is the existing convention for a hot wallet
   // funded by, and trading for, a venue — canonVenue strips it, so this aggregates into Revolut
   // rather than inventing a venue of its own.
   "0x15da7556d5ed888306839bed06f868aeaedcb0d7": { name: "Revolut-linked", kind: "cex" },
-  "0x377b8ce04761754e8ac153b47805a9cf6b190873": { name: "Upbit", kind: "cex" },
+  "0x377b8ce04761754e8ac153b47805a9cf6b190873": { name: "Uphold cold wallet", kind: "cex" }, // Bubblemaps 2026-08-28: Uphold (not Upbit — different exchange)
   "0xcffad3200574698b78f32232aa9d63eabd290703": { name: "Crypto.com", kind: "cex" },
   "0xab782bc7d4a2b306825de5a7730034f8f63ee1bc": { name: "Bitvavo", kind: "cex" },
   "0xa023f08c70a23abc7edfc5b6b5e171d78dfc947e": { name: "Crypto.com 2", kind: "cex" },
@@ -99,6 +99,36 @@ export const EXCLUDE_LABELS = {
   "0x1a9d699aee3a56ca49d0cc3b542ae3a37885a3e1": { name: "Upbit 2", kind: "cex" },                // second Upbit hot wallet (canonVenue → Upbit)
   "0x51c72848c68a965f66fa7a88855f9f7784502a7f": { name: "Market maker", kind: "mm" },            // pro trading inventory — excluded, not a venue
   "0xbdb3ba9ffe392549e1f8658dd2630c141fdf47b6": { name: "MEV bot", kind: "mm" },                 // arbitrage bot — transient, not a holder
+  // ── Owner Bubblemaps sweep, 2026-08-28 — full CEX address map. Names carry the wallet role
+  //    (hot/cold/deposit/proxy/prime custody); canonVenue strips those + trailing numbers so each
+  //    aggregates into its parent venue. New venues: HitBTC, CoinDCX, Gemini, Ourbit, Bittrex,
+  //    ChangeNow, Uphold. (Also corrected above: 0x0529ea + 0xb0a3a2 → Bitvavo, 0x377b8ce0 → Uphold,
+  //    0x73d8bd54 → Binance.) ⚠ 0x7b8db699…31197 labelled "(Index)" was LEFT OUT pending clarity —
+  //    "Index" isn't a known exchange; excluding a real protocol/holder by mistake would overstate liquidity.
+  "0x267be1c1d684f78cb4f6a176c4911b741e4ffdc0": { name: "Kraken hot", kind: "cex" },
+  "0xf30ba13e4b04ce5dc4d254ae5fa95477800f0eb0": { name: "Kraken hot 2", kind: "cex" },
+  "0xf8f061cfc030928a4acb8c4980911b4f5afc4002": { name: "Bybit 3", kind: "cex" },
+  "0x963737c550e70ffe4d59464542a28604edb2ef9a": { name: "HitBTC", kind: "cex" },
+  "0xd5fb306ba80ad8d695b041f98c7fa09998cd7af6": { name: "Coinbase Prime custody", kind: "cex" },
+  "0x786c5328cb8e47c24b743ad4c2a8f09ef6f199cd": { name: "Coinbase Prime custody 2", kind: "cex" },
+  "0xfe5d8f5c36d6bf7d4ec107d3546b19fc65ac896a": { name: "Coinbase smart wallet", kind: "cex" },
+  "0x3cd751e6b0078be393132286c442345e5dc49699": { name: "Coinbase 4", kind: "cex" },
+  "0x77696bb39917c91a0c3908d577d5e322095425ca": { name: "Coinbase hot", kind: "cex" },
+  "0xa86309988947559b6e72ef716c5058f479386c0f": { name: "Coinbase 5", kind: "cex" },
+  "0x4976a4a02f38326660d17bf34b431dc6e2eb2327": { name: "Binance 2", kind: "cex" },
+  "0x9696f59e4d72e237be84ffd425dcad154bf96976": { name: "Binance hot", kind: "cex" },
+  "0x46340b20830761efd32832a74d7169b29feb9758": { name: "Crypto.com 3", kind: "cex" },
+  "0x1b14376ee2d46ae5c27a43d902d96d4f3f264b83": { name: "KuCoin 5", kind: "cex" },
+  "0x58edf78281334335effa23101bbe3371b6a36a51": { name: "KuCoin hot", kind: "cex" },
+  "0xa1d8d972560c2f8144af871db508f0b0b10a3fbf": { name: "KuCoin hot 2", kind: "cex" },
+  "0x636858d62f2e81deb7fd563621faef1a6a14d6c5": { name: "CoinDCX hot", kind: "cex" },
+  // NOTE: the CoinDCX pair's second wallet (0x655fe3fc…3461d51) is already tagged Kraken-linked below
+  // (owner traced its funding to Kraken 2026-08-16). Bubblemaps now labels it CoinDCX — kept as
+  // Kraken-linked pending the owner's call; either way it's excluded (kind:cex), only the venue differs.
+  "0xd24400ae8bfebb18ca49be86258a3c749cf46853": { name: "Gemini hot", kind: "cex" },
+  "0xf81b45b1663b7ea8716c74796d99bbe4ea26f488": { name: "Ourbit", kind: "cex" },
+  "0xfbb1b73c4f0bda4f67dca266ce6ef42f520fbb98": { name: "Bittrex", kind: "cex" },
+  "0x077d360f11d220e4d5d831430c81c26c9be7c4a4": { name: "ChangeNow hot", kind: "cex" },
   // Owner-flagged 2026-08-16: a 1.83M-SPX "whale" (rank ~#62, two-way flow). Owner traced the funding —
   // funded by a wallet that was itself funded by Kraken (two hops) → Kraken infra, so attributed to
   // Kraken (canonVenue → Kraken) rather than the neutral "mm" it was first tagged.
@@ -127,7 +157,23 @@ export const EXCLUDE = new Set(Object.keys(EXCLUDE_LABELS));
 // Canonical venue for a labelled CEX address — collapses the per-address suffixes
 // ("Kraken 245"/"Kraken 246"/"Kraken 3"/"Kraken-linked" → "Kraken"; "KuCoin 2" → "KuCoin";
 // "BitGo custody (WalletSimple)" → "BitGo") so per-venue balances aggregate correctly.
-export const canonVenue = name => name.replace(/\s+custody \(WalletSimple\)/i, "").replace(/-linked/i, "").replace(/\s+\d+$/, "").trim();
+// Collapse a wallet label to its parent VENUE so per-venue flow aggregates: strips "-linked", the
+// legacy "custody (WalletSimple)" tag, a trailing number, AND the wallet-role descriptors the owner's
+// Bubblemaps labels carry (hot / cold / deposit / proxy / prime custody / "… (hot|cold|smart) wallet").
+// Loops until stable so combined suffixes like "Coinbase Prime custody 2" → "Coinbase".
+export const canonVenue = name => {
+  let n = String(name || "").replace(/\s+custody \(WalletSimple\)/i, "").replace(/-linked/i, "").trim(), prev;
+  do {
+    prev = n;
+    n = n.replace(/\s*\([^)]*\)$/, "")                    // trailing "(suspected)" etc.
+         .replace(/\s+\d+$/, "")
+         .replace(/\s+(hot|cold|smart)\s+wallet$/i, "")
+         .replace(/\s+prime\s+custody$/i, "")
+         .replace(/\s+(hot|cold|deposit|proxy|wallet)$/i, "")
+         .trim();
+  } while (n !== prev);
+  return n;
+};
 
 // ── CEX FLOW SANKEY reduction ───────────────────────────────────────────────
 // For the "where's the volume going" Sankey: over a trailing window, aggregate every transfer that
