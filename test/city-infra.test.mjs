@@ -14,12 +14,12 @@ test("infraFrom reads the live venue split", () => {
   assert.ok(I.venues.length >= 10, "expected the tagged exchange venues");
   // sorted biggest first, which is what puts the largest warehouse at the head of the port
   for (let i = 1; i < I.venues.length; i++) assert.ok(I.venues[i - 1].tokens >= I.venues[i].tokens);
-  // Kraken dominating is the actual finding this district exists to show
+  // Kraken leading by a clear margin is the actual finding this district exists to show. After the
+  // 2026-08-28 Bubblemaps sweep it's ~a third of exchange supply (was ~43% before a ~14M Bybit wallet
+  // and Coinbase Prime custody got tagged) — still the plain #1, ~2× the next venue.
   assert.equal(I.venues[0].name, "Kraken");
-  assert.ok(I.venues[0].tokens / I.cex > 0.35, "Kraken should be over a third of exchange supply");
-  // and the two giants holding almost nothing is the counterintuitive half of it
-  const byName = Object.fromEntries(I.venues.map(v => [v.name, v.tokens]));
-  assert.ok(byName.Binance < 2e6 && byName.Coinbase < 2e6);
+  assert.ok(I.venues[0].tokens / I.cex > 0.25, "Kraken should be at least a quarter of exchange supply");
+  assert.ok(I.venues[0].tokens > I.venues[1].tokens * 1.5, "Kraken should lead the next venue by 50%+");
 });
 
 test("venue shares sum to the exchange total", () => {

@@ -74,8 +74,8 @@ export function portBerths(venues, k = 1) {
     return {
       ...v, share,
       x: p.x * k, z: p.z * k,
-      // Warehouse footprint is the venue's share of exchange-held supply. Kraken is ~42% of it, so
-      // it should visibly dwarf everything — that is the finding, not a rendering accident.
+      // Warehouse footprint is the venue's share of exchange-held supply. Kraken is ~a third of it
+      // and ~2× the next venue, so it should visibly lead — that is the finding, not a rendering accident.
       len: Math.max(0.9, share * 26) * k,
       wide: Math.max(0.7, Math.sqrt(share) * 5) * k,
       tall: Math.max(0.5, Math.sqrt(share) * 4.5) * k,
