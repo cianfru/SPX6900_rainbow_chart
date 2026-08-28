@@ -51,9 +51,9 @@ Bridge's line, Manhattan to Brooklyn, and its thickness carries the number.
 One warehouse per exchange, with its footprint sized by that venue's share of exchange-held supply.
 Red Hook is New York's real container port.
 
-Kraken's berth dwarfs everything else at **36%** of exchange-held supply, while Binance and Coinbase
-hold almost nothing between them. That is the finding, not a rendering accident — and it is
-counterintuitive enough to be worth the walk down the pier.
+Kraken's berth dwarfs everything else — roughly a third of exchange-held supply, and about twice the
+next-largest venue. That is the finding, not a rendering accident: the tradable float that sits on
+exchanges is concentrated on one venue rather than spread evenly across them.
 
 ***
 

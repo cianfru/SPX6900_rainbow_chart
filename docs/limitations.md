@@ -36,9 +36,10 @@ pretending to be other chains.
 
 ## Exchange coverage is what we have identified
 
-The harbour shows **tagged** addresses. Binance and Coinbase genuinely hold almost nothing, which
-was verified rather than assumed — so the venue split is representative rather than an artifact. But
-it is always "of what we've identified".
+The harbour shows **tagged** addresses. Every wallet in the split was identified and verified rather
+than assumed — so the venue mix is a real reading rather than an artifact. But it is always "of what
+we've identified": an untagged exchange wallet is invisible until we find and label it, so the split
+can shift as coverage improves.
 
 ## Height compresses
 

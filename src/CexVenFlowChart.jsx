@@ -71,7 +71,7 @@ export default function CexVenFlowChart({ isMobile, preview = false, initialView
       </ResponsiveContainer>
 
       <div className="chart-caption" style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 14, lineHeight: 1.65, maxWidth: 900, marginInline: "auto" }}>
-        Net change in SPX6900 held per <strong style={{ color: "#cbd5e1" }}>tagged exchange</strong> over the selected window. Bybit is the dominant swing venue, its big moves drive the aggregate exchange flow. Net flow isn&apos;t proof of buying or selling (OTC, listings, MM rebalancing all move balances). A behaviour read, not a signal. Not financial advice.
+        Net change in SPX6900 held per <strong style={{ color: "#cbd5e1" }}>tagged exchange</strong> over the selected window. A handful of the largest venues drive most of the aggregate exchange flow. Net flow isn&apos;t proof of buying or selling (OTC, listings, MM rebalancing all move balances). A behaviour read, not a signal. Not financial advice.
       </div>
     </div>
   );
