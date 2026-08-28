@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { loadWhales, loadBaseOnchain, loadSolanaOnchain } from "./history-data.js";
+import { whaleField, flowDust } from "./whale-flow.js";
 import WalletCard, { shortAddr } from "./WalletCard.jsx";
 import { SANS, MONO, ViewTabs } from "./chart-ui.jsx";
 
@@ -19,8 +20,8 @@ const CHAIN = { eth: "Ethereum", base: "Base", sol: "Solana" };
 // intensity = how much of the bag moved (12%+ = full colour), so conviction reads as brightness.
 const lerp = (a, b, t) => Math.round(a + (b - a) * t);
 function flowColor(net, bal) {
-  const dust = Math.max(1000, bal * 0.005);
-  if (!net || Math.abs(net) < dust) return "#161d2e";                       // flat
+  const dust = flowDust(bal);
+  if (!net || Math.abs(net) <= dust) return "#161d2e";                      // flat (shared cutoff)
   const t = Math.max(0.18, Math.min(1, Math.abs(net) / (bal * 0.12 || 1))); // ≥18% floor so movers are visible
   return net > 0
     ? `rgb(${lerp(20, 34, t)},${lerp(83, 197, t)},${lerp(45, 94, t)})`      // #14532d → #22c55e
@@ -58,38 +59,18 @@ export default function WhaleMosaic({ isMobile }) {
 
   const model = useMemo(() => {
     if (!whales) return null;
-    const key = "d" + flowWin;
-    // live feed keyed per chain (real-time); used to keep the 24h view fresh between daily banks.
-    const liveMap = new Map();
-    for (const w of live?.wallets || []) if (w.a) liveMap.set(w.chain === "sol" ? w.a : w.a.toLowerCase(), w.net);
-    // ETH banks all three windows (d1/d7/d30); on the 24h view prefer the live net where it serves it.
-    const ethNet = w => {
-      if (flowWin === 1 && w.a) { const lk = liveMap.get(w.a.toLowerCase()); if (Number.isFinite(lk)) return lk; }
-      const v = w[key]; return Number.isFinite(v) ? v : (w.d30 || 0);
-    };
-    // Base & Solana carry only a ~30-day flow, so the sub-30d windows use the live feed where it
-    // serves them and otherwise show the wallet flat — we never draw a number we don't have.
-    const altNet = (w, k) => (flowWin === 30 ? (w.flow || 0) : (Number.isFinite(liveMap.get(k)) ? liveMap.get(k) : 0));
-
-    const rows = [];
-    for (const w of whales.wallets || []) if (w.bal >= 1e5) rows.push({ a: w.a, chain: "eth", bal: w.bal, net: ethNet(w) });
-    for (const w of base?.wallets || []) if (w.bal >= 1e5) rows.push({ a: w.a, chain: "base", bal: w.bal, net: altNet(w, w.a ? w.a.toLowerCase() : "") });
-    for (const w of sol?.wallets || []) if (w.bal >= 1e5) rows.push({ a: w.a, chain: "sol", bal: w.bal, net: altNet(w, w.a) });
-
-    const dust = r => Math.max(1000, r.bal * 0.005);
-    let buying = 0, selling = 0, flat = 0;
-    for (const r of rows) { const d = dust(r); if (r.net > d) buying++; else if (r.net < -d) selling++; else flat++; }
-    // THE CENSUS: every ≥100k wallet as one square, sorted biggest buyer → dark (holding steady) →
-    // biggest seller. This is the mosaic's whole point — the entire whale base in one image, which
-    // nothing else shows. (The Live board is the movers-only detail view; no need to duplicate it.)
-    rows.sort((a, b) => b.net - a.net);
-    return { rows, buying, selling, flat, total: rows.length, updated: (live?.updated || whales.updated) };
+    // THE CENSUS: every ≥100k wallet across all three chains as one square, classified by the SHARED
+    // rule (moved >0.5% of bag over the window), sorted biggest buyer → dark (flat) → biggest seller.
+    // whaleField owns the cross-chain assembly so this reconciles exactly with the Live board's header.
+    const { rows, census } = whaleField({ whales, base, sol, live, win: flowWin });
+    return { rows, buying: census.buying, selling: census.selling, flat: census.flat,
+      total: census.total, byChain: census.byChain, updated: (live?.updated || whales.updated) };
   }, [whales, base, sol, live, flowWin]);
 
   if (whales === false) return <div style={{ textAlign: "center", fontFamily: SANS, color: "#94a3b8", padding: 60 }}>Whale data is being rebuilt — check back after the next on-chain refresh.</div>;
   if (!model) return <div style={{ textAlign: "center", fontFamily: MONO, color: "#64748b", padding: 60 }}>Loading…</div>;
 
-  const { rows, buying, selling, flat, total } = model;
+  const { rows, buying, selling, flat, total, byChain } = model;
   const winName = (windows.find(w => w.d === flowWin) || WINDOWS[0]).label;
   const sq = isMobile ? 13 : 16;   // one square per ≥100k wallet — small enough to fit the whole cohort
 
@@ -108,6 +89,11 @@ export default function WhaleMosaic({ isMobile }) {
             <Stat n={buying} label="accumulating" color="#22c55e" tri="▲" big={!isMobile} />
             <Stat n={selling} label="selling" color="#ef4444" tri="▼" big={!isMobile} />
             <Stat n={flat} label="flat" color="#64748b" tri="•" big={!isMobile} />
+          </div>
+          {/* exactly what these counts cover, so they're never a mystery number */}
+          <div style={{ fontFamily: MONO, fontSize: 11.5, color: "#8595ab", marginTop: 10 }}>
+            net flow over the <b style={{ color: "#c7d2e4" }}>last {winName}</b> · all chains
+            {byChain && <span style={{ color: "#64748b" }}> ({byChain.eth} ETH · {byChain.base} Base · {byChain.sol} Solana)</span>}
           </div>
           {windows.length > 1 && (
             <div style={{ display: "flex", alignItems: "center", gap: 9, marginTop: 15, flexWrap: "wrap" }}>

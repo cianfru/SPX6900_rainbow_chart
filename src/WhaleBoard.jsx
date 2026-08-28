@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { loadWhales, loadWhaleCampaigns, loadSolanaOnchain, loadBaseOnchain } from "./history-data.js";
 import { ageRamp } from "./whale-cohorts.js";
+import { classifyFlow } from "./whale-flow.js";
 import WalletCard, { shortAddr } from "./WalletCard.jsx";
 import { SANS, MONO } from "./chart-ui.jsx";
 
@@ -153,8 +154,10 @@ export default function WhaleBoard({ isMobile }) {
   const rows = chain === "all" ? allRows : allRows.filter(r => r.chain === chain);
   const source = model.source;
   const live7 = source === "campaigns" || source === "live" || altRows > 0;
-  const buyers = rows.filter(r => r.net > 0).length;
-  const sellers = rows.filter(r => r.net < 0).length;
+  // same "moved >0.5% of bag" cutoff as the Mosaic / City / Spectrum, so a wallet that barely twitched
+  // isn't counted as a buyer or seller here either.
+  const buyers = rows.filter(r => classifyFlow(r.net, r.bal) === "buy").length;
+  const sellers = rows.filter(r => classifyFlow(r.net, r.bal) === "sell").length;
   const netTotal = Math.round(rows.reduce((s, r) => s + (r.net || 0), 0));
   const updated = source === "campaigns" ? camps?.updated : live?.updated;
   const chainChips = ["all", "eth", "base", "sol"].filter(k => k === "all" || chainCounts[k] > 0);
@@ -209,6 +212,16 @@ export default function WhaleBoard({ isMobile }) {
           <span style={{ fontFamily: MONO, fontSize: 13, color: "#64748b" }}>{rows.length} whales ≥100k · live feed offline</span>
         )}
       </div>
+
+      {live7 && (
+        // Say EXACTLY what this board's numbers mean — it's a persistent sellers' watch, not a fixed
+        // 30d/7d/1d census like the Mosaic. A wallet is earmarked from its first move and its net
+        // accumulates over its whole active run, so the window is per-wallet, not one fixed span.
+        <div style={{ fontFamily: MONO, fontSize: 11.5, color: "#8595ab", margin: "-6px 0 14px", lineHeight: 1.5 }}>
+          A persistent <b style={{ color: "#c7d2e4" }}>sellers&rsquo; watch</b> · net over each wallet&rsquo;s active run
+          (earmarked from its first move, dropped after 7 quiet days) · all chains. For a fixed-window census, use the <b style={{ color: "#c7d2e4" }}>Mosaic</b> tab.
+        </div>
+      )}
 
       {chainChips.length > 1 && (
         <div style={{ display: "flex", gap: 6, marginBottom: 14, flexWrap: "wrap" }}>

@@ -10,6 +10,8 @@
 //
 // HONESTY: a falling balance = the wallet REDUCED (sold, moved or split) — never asserted as "sold".
 
+import { classifyFlow, WHALE_FLOOR } from "./whale-flow.js";
+
 // balance of a wallet at week W (sparse change-points carry forward the last value).
 export function balAt(wallet, week) {
   let b = 0;
@@ -30,7 +32,7 @@ export function dateOfWeek(tl, week) {
 
 // The whale field at week W: [{a, bal, net}] for wallets ≥ minBal at W, net = flowWeeks balance change.
 // Sorted biggest-buyer → biggest-seller so the mosaic reads as a green→red gradient.
-export function whalesAtWeek(tl, week, { minBal = 1e5, flowWeeks = 4 } = {}) {
+export function whalesAtWeek(tl, week, { minBal = WHALE_FLOOR, flowWeeks = 4 } = {}) {
   const rows = [];
   for (const w of tl.wallets) {
     const bal = balAt(w, week);
@@ -38,9 +40,8 @@ export function whalesAtWeek(tl, week, { minBal = 1e5, flowWeeks = 4 } = {}) {
     const net = bal - balAt(w, Math.max(0, week - flowWeeks));
     rows.push({ a: w.a, bal, net });
   }
-  const dust = r => Math.max(1000, r.bal * 0.005);
   let buy = 0, sell = 0, flat = 0;
-  for (const r of rows) { const d = dust(r); if (r.net > d) buy++; else if (r.net < -d) sell++; else flat++; }
+  for (const r of rows) { const f = classifyFlow(r.net, r.bal); if (f === "buy") buy++; else if (f === "sell") sell++; else flat++; }
   rows.sort((a, b) => b.net - a.net);
   return { rows, buy, sell, flat, total: rows.length };
 }
@@ -58,9 +59,9 @@ export function whaleSpectrum(tl, week, { flowWeeks = 4 } = {}) {
     let ci = -1;
     for (let i = 0; i < cohorts.length; i++) { if (r.bal >= SPECTRUM_EDGES[i] && r.bal < SPECTRUM_EDGES[i + 1]) { ci = i; break; } }
     if (ci < 0) continue;
-    const c = cohorts[ci], dust = Math.max(1000, r.bal * 0.005);
+    const c = cohorts[ci], f = classifyFlow(r.net, r.bal);
     c.total++;
-    if (r.net > dust) c.buy++; else if (r.net < -dust) c.sell++; else c.flat++;
+    if (f === "buy") c.buy++; else if (f === "sell") c.sell++; else c.flat++;
   }
   return cohorts;
 }

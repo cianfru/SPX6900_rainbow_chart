@@ -4,6 +4,8 @@
 // COLOUR = holder age (warm amber = new → cyan = long-held), HEIGHT = holding size, BEAM = 30-day
 // net flow (green buying / red selling / none flat). A distribution POSITION, never a signal.
 
+import { classifyFlow } from "./whale-flow.js";
+
 export const WHALE_FLOOR = 1e5;
 
 // Small (100k) → mega (5M+) warms to cyan, mirroring the census/city so size reads as colour too.
@@ -39,13 +41,10 @@ export function cityCohortIndex(bal) {
   return -1;
 }
 
-// 30-day net flow → behaviour. `d30` is net tokens in/out over the trailing 30 days; the deadzone
-// keeps rounding dust from lighting a beam. Returns "buy" | "sell" | "flat".
-export function flowState(d30, bal, dead = 0.005) {
-  if (!d30) return "flat";
-  if (Math.abs(d30) / Math.max(1, bal) < dead) return "flat";  // <0.5% of the position moved = noise
-  return d30 > 0 ? "buy" : "sell";
-}
+// net flow over the window → behaviour. The SHARED classifier (src/whale-flow.js) so the City,
+// Mosaic, Spectrum and Live board all treat "moved" identically: a wallet counts as buy/sell only
+// if it moved MORE than 0.5% of its bag (min 1,000 SPX) over the window; else flat.
+export const flowState = classifyFlow;
 
 // Age ramp: warm amber (new) → cyan (long-held). Pure, so the SVG card and the three.js page colour
 // identically. Returns { rgb:[r,g,b], hex }.

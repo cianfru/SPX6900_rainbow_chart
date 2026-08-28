@@ -28,8 +28,8 @@ test("cohort boundaries are contiguous and floor at 100k", () => {
 
 test("flowState: sign with a dust deadzone", () => {
   assert.equal(flowState(0, 1e6), "flat");
-  assert.equal(flowState(4999, 1e6), "flat");       // just under 0.5% → deadzone
-  assert.equal(flowState(5000, 1e6), "buy");        // 0.5% exactly is the boundary (deadzone is strict <)
+  assert.equal(flowState(5000, 1e6), "flat");       // exactly 0.5% (dust) is still flat — shared cutoff is strict >
+  assert.equal(flowState(5001, 1e6), "buy");        // just over 0.5% → buy
   assert.equal(flowState(50_000, 1e6), "buy");      // 5% added
   assert.equal(flowState(-50_000, 1e6), "sell");    // 5% shed
   assert.equal(flowState(1000, 1e6), "flat");       // 0.1% moved = noise

@@ -500,22 +500,39 @@ function Watcher({ isMobile }) {
         ))}
       </div>
       <p style={{ fontSize: 12.5, color: "#7c8a9e", lineHeight: 1.6, margin: "6px 2px 0" }}>
-        Every bar is one wallet holding ≥100,000 SPX, grouped into four size cohorts along the floor. The slab and
+        Every bar is one <b style={{ color: "#c7d2e4" }}>Ethereum</b> wallet holding ≥100,000 SPX, grouped into four size cohorts along the floor. The slab and
         label under each cluster read its overall net flow over the window you pick above ({windows.find(w => w.d === flowWin)?.label || "30 days"}).
-        Cost basis and infra (exchanges, LP, bridge) are excluded — these are real self-custody holders. A distribution snapshot, not a signal.
+        Base &amp; Solana whales live in the Mosaic &amp; Live board. Cost basis and infra (exchanges, LP, bridge) are excluded — these are real self-custody holders. A distribution snapshot, not a signal.
       </p>
     </div>
   );
 }
 
-// Inside the gate: a City (3D skyline) / Live board (2D pulsing grid) switch. Same watched wallets,
-// two lenses — the 3D scene for the landscape, the grid for glanceable live buy/sell.
+// What each tab measures — shown under the tabs so the four views' numbers are never a mystery.
+// The SHARED rule (≥100k whale, "moved" = >0.5% of the bag) is identical everywhere; the views differ
+// only in window, chains and method, and each line says exactly how.
+const LENS = {
+  city: "The Ethereum whale field as 3D towers, grouped by size. Beams read the exact 30-day / 1-week / 1-day net flow you pick. Ethereum only — Base & Solana appear in the Mosaic and Live board.",
+  board: "A persistent sellers' watch across all chains: each wallet is earmarked from its first move and its net accumulates over its whole active run (dropped after 7 quiet days) — so the window is per-wallet, not a fixed span.",
+  mosaic: "Every ≥100k wallet across Ethereum + Base + Solana as one square, coloured by its exact net flow over the window you pick. The full census — this is the number the others reconcile to.",
+  spectrum: "The Ethereum whale field rebuilt week by week, so you can scrub the whole cycle. Because it samples weekly, short-window counts read a little lower than the Mosaic's exact daily flow.",
+};
+
+// Inside the gate: four lenses on the same whales — 3D City, Live board, Mosaic census, Spectrum scrubber.
 function WhalesInner({ isMobile }) {
   const [mode, setMode] = useState("city");
   return (
     <div style={{ maxWidth: 1180, margin: "0 auto", padding: "0 14px" }}>
       <div style={{ display: "flex", justifyContent: "center", margin: "8px 0 6px" }}>
         <ViewTabs tabs={[["city", "City · 3D"], ["board", "Live board"], ["mosaic", "Mosaic"], ["spectrum", "Spectrum"]]} value={mode} onChange={setMode} />
+      </div>
+      {/* shared rule + what THIS tab measures — so the four views' counts read as different lenses, not conflicting data */}
+      <div style={{ maxWidth: 760, margin: "0 auto 12px", padding: "10px 14px", borderRadius: 10,
+        background: "rgba(94,234,212,0.05)", border: "1px solid rgba(94,234,212,0.18)",
+        fontFamily: SANS, fontSize: 12.5, color: "#a7b3c6", lineHeight: 1.55, textAlign: "center" }}>
+        <b style={{ color: "#e2e8f0" }}>Four lenses on the same whales</b> — every wallet ≥100k SPX. A wallet counts as
+        <b style={{ color: "#22c55e" }}> buying</b> or <b style={{ color: "#f87171" }}>selling</b> only if it moved more than 0.5% of its bag over the window; smaller moves read flat.
+        <div style={{ marginTop: 6, color: "#8595ab" }}>{LENS[mode]}</div>
       </div>
       {mode === "city" ? <Watcher isMobile={isMobile} />
         : mode === "mosaic" ? <WhaleMosaic isMobile={isMobile} />
