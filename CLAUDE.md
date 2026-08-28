@@ -242,6 +242,13 @@
     sales backfilled 21 sale-days across 07-23→08-20 (17,040→17,105 rows). Charts fresh; owners 1178. Verified live via dispatched
     `aeon.yml` + `aeon-sale-watch.yml` (dry-run) runs, both green, deploy succeeded. **KEPT as reference/tooling (not dead):**
     `bigquery/aeon_transfers.sql`, `dune/aeon_spx_balances.sql` + `gen-aeon-spx-query.mjs`, `scripts/aeon-snipe.mjs`, `aeon-live-tail.mjs`.
+- **✅ ALCHEMY FREE TIER IS INTACT — VERIFIED 2026-08-28 (owner worried it was going paid-only like Dune; it is NOT).** The
+  September deadline that drove our migrations is **DUNE going VIEW-ONLY on the free plan 2026-09-10** — NOT Alchemy. Confirmed on
+  alchemy.com/pricing (2026-08-28): **free tier still live, 30M compute-units/month, no paid-only announcement**; the Transfers API
+  (`alchemy_getAssetTransfers`, 150 CU/call) is available on it. Our whole Alchemy footprint (ETH freshness tail + daily Base pull +
+  AEON transfers + floor/owners) is a low-single-digit % of 30M CU/mo — huge headroom. **So Alchemy STAYS the main live-transfer
+  source; we are NOT moving off it.** (What moves to BigQuery is AEON *sales*, currently on **Dune**, before the Sep-10 view-only cutoff —
+  a Dune concern, not Alchemy. The only Alchemy Sep-30 item is the NFT-endpoint deprecation below, and it just degrades `getNFTSales`.)
 - **⚠ ALCHEMY NFT API DEPRECATIONS — DUE 2026-09-30 (owner forwarded the notice 2026-08-19). AUDIT DONE: only `getNFTSales`
   affects us; nothing breaks, latency degrades.** Alchemy is removing a set of redundant NFT endpoints (V2+V3) on 2026-09-30.
   Grepped every endpoint we call:
