@@ -458,6 +458,9 @@ html:not([data-theme="light"]) .tzone [style*="rgb(100, 116, 139)"]{ color:#b1bc
 .tzone .tmbanner-pill{ font-family:var(--mono); font-size:13px; font-weight:600; padding:4px 11px; border-radius:0; }
 .tzone .tmbanner-pill.hot{ background:color-mix(in srgb,#fb7185 20%,transparent); color:#fecdd3; }
 .tzone .tmbanner-pill.cold{ background:color-mix(in srgb,#4ade80 18%,transparent); color:#bbf7d0; }
+/* LIGHT theme: the near-white pill text is illegible on a light-tinted pill — use dark red/green ink. */
+html[data-theme="light"] .tzone .tmbanner-pill.hot{ background:color-mix(in srgb,#fb7185 26%,#ffffff); color:#9f1239; }
+html[data-theme="light"] .tzone .tmbanner-pill.cold{ background:color-mix(in srgb,#22c55e 24%,#ffffff); color:#065f46; }
 .tzone .tmbanner-note{ font-family:var(--sans); font-size:13px; line-height:1.55; color:var(--dim); }
 /* Deep Field chart menu — reads like the site nav: mono, uppercase, typewriter-on-hover, no icons */
 .tzone .dfgrid{ display:grid; grid-template-columns:repeat(auto-fill, minmax(260px, 1fr)); gap:2px; }
