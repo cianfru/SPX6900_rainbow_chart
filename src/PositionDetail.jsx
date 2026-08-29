@@ -92,6 +92,11 @@ export default function PositionDetail({ pos, head, px, price, isMobile, footer 
       </div>
 
       <div style={{ fontFamily: "var(--mono)", fontSize: 12.5, color: "var(--dim)", margin: "0 0 6px" }}>WHERE IT BOUGHT &amp; SOLD · <span style={{ color: GRN }}>● buys</span> · <span style={{ color: RED }}>▲ sells</span> · size = amount</div>
+      {pos.lotsSuspect && (
+        <div style={{ fontFamily: "var(--sans)", fontSize: 12.5, lineHeight: 1.5, color: "#fbbf24", background: "color-mix(in srgb, #fbbf24 12%, transparent)", border: "1px solid color-mix(in srgb, #fbbf24 45%, transparent)", borderRadius: 8, padding: "8px 12px", margin: "0 0 10px" }}>
+          ⚠ The sell markers below look inconsistent with this owner&rsquo;s on-chain flow (it&rsquo;s a net accumulator, yet the lot history shows heavy selling). Treat the red triangles as <b>unverified</b> for this cluster — under review.
+        </div>
+      )}
       <ResponsiveContainer width="100%" height={isMobile ? 340 : 480}>
         <ComposedChart data={model.priceSeries} margin={{ top: 10, right: 20, left: 6, bottom: 6 }}>
           <CartesianGrid stroke="rgba(255,255,255,0.05)" vertical={false} />

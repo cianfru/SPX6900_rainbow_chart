@@ -476,7 +476,23 @@ export function clusterLots(tx, priceAt, entities, { topN = 40, lotCap = 300 } =
     if (cf) { const A = acc.get(cf); if (A.pos > 0) { const q = Math.min(t.amt, A.pos); const r = q * (pr - A.avg); A.realized += r; A.pos -= q; A.sells.push([t.ts, +pr.toFixed(6), Math.round(q), Math.round(r)]); A.nSells++; } }
   }
   const out = new Map();
-  for (const [id, A] of acc) out.set(id, { avgCost: +A.avg.toFixed(6), realized: Math.round(A.realized), buys: A.buys.slice(-lotCap), sells: A.sells.slice(-lotCap), nBuys: A.nBuys, nSells: A.nSells });
+  for (const [id, A] of acc) {
+    // SANITY FLAG (non-destructive — we NEVER discard lots, only caveat a suspect chart, per the
+    // honesty rule): a cluster that recorded many SELLS yet is still strongly NET-LONG (a big open
+    // position `pos`, more sells than buys) is internally contradictory — a genuine distributor ends
+    // near zero. This catches an owner whose sell markers don't match on-chain reality (e.g. the
+    // 0x126d… case: an accumulator whose chart showed hundreds of phantom sells). The `sellSpx`/
+    // `boughtSpx` totals are emitted so the CI diagnostic can show the real magnitudes.
+    const sellSpx = A.sells.reduce((s, r) => s + (r[2] || 0), 0), boughtSpx = A.buys.reduce((s, r) => s + (r[2] || 0), 0);
+    const lotsSuspect = A.nSells >= 25 && A.nSells > A.nBuys && A.pos > 0;
+    out.set(id, { avgCost: +A.avg.toFixed(6), realized: Math.round(A.realized), buys: A.buys.slice(-lotCap), sells: A.sells.slice(-lotCap),
+      nBuys: A.nBuys, nSells: A.nSells, sellSpx: Math.round(sellSpx), boughtSpx: Math.round(boughtSpx), lotsSuspect });
+  }
+  // CI diagnostic: list any suspect clusters with their real counts, so a phantom-sell case surfaces
+  // in the on-chain-refresh logs / feed health instead of only being noticed on a chart by eye.
+  const suspect = [...out.entries()].filter(([, A]) => A.lotsSuspect);
+  if (suspect.length) console.warn(`⚠ clusterLots: ${suspect.length} cluster(s) with SUSPECT buy/sell lots (many sells but still net-long — verify vs chain):\n` +
+    suspect.map(([id, A]) => `    ${id.slice(0, 12)}…  nBuys ${A.nBuys} / nSells ${A.nSells} · bought ${(A.boughtSpx / 1e6).toFixed(2)}M / sold ${(A.sellSpx / 1e6).toFixed(2)}M`).join("\n"));
   return out;
 }
 
@@ -771,7 +787,7 @@ export function replayFifo(transfers, priceAt, sampleTs, opts = {}) {
       // Aggregated buy/sell lots for the biggest clusters → the cluster detail page (the whole owner as
       // one position: where it bought & sold, avg cost, realized P&L). Runs on the top clusters only.
       const clots = clusterLots(tx, priceAt, ent.entities, { topN: 40 });
-      for (const e of ent.entities) { const L = clots.get(e.id); if (L) { e.buys = L.buys; e.sells = L.sells; e.avgCost = L.avgCost; e.realized = L.realized; e.nBuys = L.nBuys; e.nSells = L.nSells; } }
+      for (const e of ent.entities) { const L = clots.get(e.id); if (L) { e.buys = L.buys; e.sells = L.sells; e.avgCost = L.avgCost; e.realized = L.realized; e.nBuys = L.nBuys; e.nSells = L.nSells; e.lotsSuspect = L.lotsSuspect; } }
       out.entities = {
         updated: iso(lastTs), spot: priceAt(lastTs) ?? 0, heldSupply: +held.toFixed(2),
         method: "EOA→EOA drain/fund clustering — a wallet emptied into, or a fresh wallet funded by, another plain wallet is the same entity moving funds. CEX/LP/contract legs are exits, never links. Hubs (many funders) and oversized clusters are flagged, not trusted. Links on SPX flows only — a common ETH/gas funder that never touched SPX is not seen.",

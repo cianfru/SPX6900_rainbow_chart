@@ -520,3 +520,33 @@ test("clusterLots: flagged clusters are skipped; a transfer between two clusters
   assert.equal(lots.get("b1").nSells, 0);
   assert.ok(!lots.has("z1"), "flagged cluster produces no lots");
 });
+
+test("clusterLots.lotsSuspect flags an accumulator that shows implausibly many sells", () => {
+  const A = "0xaaaa000000000000000000000000000000000001";
+  const X = "0xeeee000000000000000000000000000000000001"; // external buyer/source
+  const Y = "0xeeee000000000000000000000000000000000002"; // external sink
+  const entities = [{ id: A, flagged: false, wallets: [A] }];
+  const priceAt = () => 0.5;
+  let ts = 1e12;
+
+  // NORMAL accumulator: 30 receives (buys), 3 sends (sells) — should NOT be suspect
+  const normal = [];
+  for (let i = 0; i < 30; i++) normal.push({ from: X, to: A, amt: 1000, ts: ts += 1000 });
+  for (let i = 0; i < 3; i++) normal.push({ from: A, to: Y, amt: 100, ts: ts += 1000 });
+  assert.equal(clusterLots(normal, priceAt, entities).get(A).lotsSuspect, false);
+
+  // PHANTOM-SELL pattern: a few big buys keep it net-long, yet 30 small sells are recorded
+  const phantom = [];
+  for (let i = 0; i < 5; i++) phantom.push({ from: X, to: A, amt: 1_000_000, ts: ts += 1000 }); // 5M in
+  for (let i = 0; i < 30; i++) phantom.push({ from: A, to: Y, amt: 1000, ts: ts += 1000 });       // 30 tiny sells, still 4.97M held
+  const L = clusterLots(phantom, priceAt, entities).get(A);
+  assert.equal(L.nBuys, 5);
+  assert.equal(L.nSells, 30);
+  assert.equal(L.lotsSuspect, true, "net-long owner with many sells > buys should be flagged");
+
+  // BALANCED heavy trader: lots of buys AND sells, but more buy events than sells → NOT suspect
+  const trader = [];
+  for (let i = 0; i < 40; i++) trader.push({ from: X, to: A, amt: 1000, ts: ts += 1000 });
+  for (let i = 0; i < 35; i++) trader.push({ from: A, to: Y, amt: 500, ts: ts += 1000 });
+  assert.equal(clusterLots(trader, priceAt, entities).get(A).lotsSuspect, false);
+});
