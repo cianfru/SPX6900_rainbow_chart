@@ -45,7 +45,7 @@ export default function ClusterDetail({ id, price, isMobile }) {
   return (
     <PositionDetail
       isMobile={isMobile} price={price} px={px}
-      pos={{ bag: c.bal, avgCost: c.avgCost, realized: c.realized, buys: c.buys, sells: c.sells, lotsSuspect: c.lotsSuspect }}
+      pos={{ bag: c.bal, avgCost: c.avgCost, realized: c.realized, buys: c.buys, sells: c.sells }}
       head={{
         seed: c.id, title: "Owner " + shortAddr(c.id), cmd: "open cluster/" + shortAddr(c.id),
         meta: <span style={{ fontFamily: "var(--mono)", fontSize: 13, color: "var(--dim)" }}>{(c.wallets?.length || 0)} wallets · one owner</span>,

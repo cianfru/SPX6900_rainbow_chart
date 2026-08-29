@@ -488,11 +488,14 @@ export function clusterLots(tx, priceAt, entities, { topN = 40, lotCap = 300 } =
     out.set(id, { avgCost: +A.avg.toFixed(6), realized: Math.round(A.realized), buys: A.buys.slice(-lotCap), sells: A.sells.slice(-lotCap),
       nBuys: A.nBuys, nSells: A.nSells, sellSpx: Math.round(sellSpx), boughtSpx: Math.round(boughtSpx), lotsSuspect });
   }
-  // CI diagnostic: list any suspect clusters with their real counts, so a phantom-sell case surfaces
-  // in the on-chain-refresh logs / feed health instead of only being noticed on a chart by eye.
-  const suspect = [...out.entries()].filter(([, A]) => A.lotsSuspect);
-  if (suspect.length) console.warn(`⚠ clusterLots: ${suspect.length} cluster(s) with SUSPECT buy/sell lots (many sells but still net-long — verify vs chain):\n` +
-    suspect.map(([id, A]) => `    ${id.slice(0, 12)}…  nBuys ${A.nBuys} / nSells ${A.nSells} · bought ${(A.boughtSpx / 1e6).toFixed(2)}M / sold ${(A.sellSpx / 1e6).toFixed(2)}M`).join("\n"));
+  // CI diagnostic (informational): high-turnover clusters — net-long owners that still recorded many
+  // sells. Since the engine only counts BOUNDARY-crossing (external) sells and skips intra-owner moves,
+  // these are genuine active traders / MMs, NOT phantom sells. Kept as a log canary: if a NET
+  // ACCUMULATOR that sold ~nothing externally ever appears here, that's the tell that a cluster's
+  // members weren't linked at build time (the old 0x126d… phantom-sell case) — worth a look.
+  const busy = [...out.entries()].filter(([, A]) => A.lotsSuspect);
+  if (busy.length) console.warn(`ℹ clusterLots: ${busy.length} high-turnover cluster(s) (net-long, many external sells — active traders/MMs):\n` +
+    busy.map(([id, A]) => `    ${id.slice(0, 12)}…  nBuys ${A.nBuys} / nSells ${A.nSells} · bought ${(A.boughtSpx / 1e6).toFixed(2)}M / sold ${(A.sellSpx / 1e6).toFixed(2)}M`).join("\n"));
   return out;
 }
 
@@ -787,7 +790,7 @@ export function replayFifo(transfers, priceAt, sampleTs, opts = {}) {
       // Aggregated buy/sell lots for the biggest clusters → the cluster detail page (the whole owner as
       // one position: where it bought & sold, avg cost, realized P&L). Runs on the top clusters only.
       const clots = clusterLots(tx, priceAt, ent.entities, { topN: 40 });
-      for (const e of ent.entities) { const L = clots.get(e.id); if (L) { e.buys = L.buys; e.sells = L.sells; e.avgCost = L.avgCost; e.realized = L.realized; e.nBuys = L.nBuys; e.nSells = L.nSells; e.lotsSuspect = L.lotsSuspect; } }
+      for (const e of ent.entities) { const L = clots.get(e.id); if (L) { e.buys = L.buys; e.sells = L.sells; e.avgCost = L.avgCost; e.realized = L.realized; e.nBuys = L.nBuys; e.nSells = L.nSells; } }
       out.entities = {
         updated: iso(lastTs), spot: priceAt(lastTs) ?? 0, heldSupply: +held.toFixed(2),
         method: "EOA→EOA drain/fund clustering — a wallet emptied into, or a fresh wallet funded by, another plain wallet is the same entity moving funds. CEX/LP/contract legs are exits, never links. Hubs (many funders) and oversized clusters are flagged, not trusted. Links on SPX flows only — a common ETH/gas funder that never touched SPX is not seen.",
