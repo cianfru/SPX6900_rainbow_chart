@@ -503,6 +503,10 @@ html[data-theme="light"] .tzone .tminfo-pop{ box-shadow:0 10px 30px rgba(20,30,5
 .tzone .tmagg-w{ color:var(--faint); font-size:11px; }
 .tzone .tmagg-cell b{ font-size:15px; font-weight:800; }
 .tzone .tmagg-flat{ color:var(--dim); }
+.tzone .tmtabs{ display:flex; gap:6px; flex-wrap:wrap; margin:0 0 8px; }
+.tzone .tmtab{ font-family:var(--mono); font-size:11.5px; text-transform:uppercase; letter-spacing:.06em; padding:4px 11px; border-radius:0; cursor:pointer; background:var(--panel); border:1px solid var(--line2); color:var(--dim); transition:.14s; }
+.tzone .tmtab:hover{ color:var(--live); border-color:var(--live); }
+.tzone .tmtab.on{ color:var(--live); border-color:var(--live); background:color-mix(in srgb, var(--live) 14%, var(--panel)); }
 .tzone .tmdropsum{ cursor:pointer; font-family:var(--mono); font-size:12.5px; color:var(--live); padding:2px 0 10px; user-select:none; list-style:none; }
 .tzone .tmdropsum::-webkit-details-marker{ display:none; }
 .tzone .tmdropsum::after{ content:" ▾"; }

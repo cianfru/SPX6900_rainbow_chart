@@ -4,6 +4,7 @@ import { CITY_KEY } from "./city-gate-key.js";
 import { MenuBtn, useHoverType } from "./chart-ui.jsx";
 import { walletGradient } from "./WalletCard.jsx";
 import { fetchPrivate } from "./history-data.js";
+import { classifyFlow } from "./whale-flow.js";
 
 // THE TERMINAL (/terminal) — the owner's daily intel one-pager, kept SEPARATE from the post-control
 // panel so the "what's happening on-chain today" read isn't tangled up with the "which card to fire"
@@ -320,6 +321,7 @@ export default function TerminalPage({ isMobile }) {
   const [sm, setSm] = useState(undefined);       // smart-money.json (per-wallet detail — terminal only)
   const [ent, setEnt] = useState(undefined);     // entities.json (wallet clusters — terminal reveals members)
   const [hl, setHl] = useState(null);            // LIVE Hyperliquid funding/OI (real-time, not yesterday's mean)
+  const [clSort, setClSort] = useState("bal");   // whale-cluster sort/filter: bal | buy | sell | proven
   // Favorites: seeded from localStorage instantly (per-device), then reconciled to the member's KV list
   // once /api/auth?action=me returns (per-account, syncs across devices). Toggling writes both.
   const [favs, setFavs] = useState(() => { try { return new Set(JSON.parse(localStorage.getItem("df-favs") || "[]")); } catch { return new Set(); } });
@@ -565,27 +567,45 @@ export default function TerminalPage({ isMobile }) {
       })()}
 
       {ent && Array.isArray(ent) && ent.length > 0 && (() => {
-        const allOwners = ent.filter(c => !c.flagged && (c.bal || 0) > 0).sort((a, b) => (b.bal || 0) - (a.bal || 0));
-        // Every owner (linked cluster) holding ≥ 1M SPX — a concentration list, NOT the smart-money
-        // cohort (that's ROI-qualified, separate). Owner asked to widen it from the old top-12 (≥4M).
+        // CONCENTRATION view: the biggest real OWNERS (wallets the engine links into one owner from
+        // on-chain fund/drain flows). This is "who owns SPX", NOT the smart-money cohort (that's the
+        // ROI-qualified performance list, a separate section). We enrich each owner with what they're
+        // DOING (30d net flow, shared whale-flow cutoff) and whether they're PROVEN (a member wallet is
+        // in the smart-money cohort) — so the concentration list is also a behaviour tool, not a rich-list.
         const MIN_CLUSTER = 1e6;
-        const clusters = allOwners.filter(c => (c.bal || 0) >= MIN_CLUSTER);
-        if (!clusters.length) return null;
+        const smSet = new Set((sm?.wallets || []).map(w => (w.a || "").toLowerCase()).filter(Boolean));
+        const enrich = c => ({ ...c, proven: (c.wallets || []).some(a => smSet.has((a || "").toLowerCase())), flow: classifyFlow(c.d30 || 0, c.bal || 0) });
+        const owners = ent.filter(c => !c.flagged && (c.bal || 0) >= MIN_CLUSTER).map(enrich);
+        if (!owners.length) return null;
+        const combined = owners.reduce((s, c) => s + (c.bal || 0), 0);
+        const nBuy = owners.filter(c => c.flow === "buy").length, nSell = owners.filter(c => c.flow === "sell").length, nProven = owners.filter(c => c.proven).length;
+        const SORTS = [["bal", "holdings"], ["buy", `buying ${nBuy}`], ["sell", `selling ${nSell}`]];
+        if (nProven) SORTS.push(["proven", `proven ${nProven}`]);
+        const shown = (clSort === "buy" ? owners.filter(c => c.flow === "buy").sort((a, b) => (b.d30 || 0) - (a.d30 || 0))
+          : clSort === "sell" ? owners.filter(c => c.flow === "sell").sort((a, b) => (a.d30 || 0) - (b.d30 || 0))
+          : clSort === "proven" ? owners.filter(c => c.proven).sort((a, b) => (b.bal || 0) - (a.bal || 0))
+          : [...owners].sort((a, b) => (b.bal || 0) - (a.bal || 0)));
         return (
           <section className="tmsec">
-            <div className="tmsectitle">Whale clusters · the owners
-              <Info text="Wallets the entity engine links into ONE owner from on-chain SPX fund/drain flows — the concentration a plain rich-list misses. Hover 'N wallets' to see the members (each opens in Zerion). Net columns = the whole cluster's balance change over 24h/7d/30d. Flagged / over-merged clusters are excluded." />
-              <span> · {allOwners.length} owners</span></div>
-            <AggRow rows={allOwners} label="all owners net demand" />
-            <details className="tmdrop">
-              <summary className="tmdropsum">show the {clusters.length} clusters holding ≥1M SPX</summary>
+            <div className="tmsectitle">Whale clusters · concentration
+              <Info text="Who actually owns SPX: wallets the entity engine links into ONE owner from on-chain fund/drain flows — the real concentration a plain rich-list misses. This is NOT the Smart Money cohort (that's ROI-proven timers, a separate list). Each owner is tagged with its 30-day net flow (buying / selling) and ◆ if it contains a proven smart-money wallet. Hover 'N wallets' for the members (each opens in Zerion). Flagged / over-merged clusters excluded; clusters are a FLOOR on real concentration (a shared ETH gas funder that never touched SPX is invisible)." />
+              <span> · {owners.length} owners ≥1M · {fmtVal(combined, "spx")} combined</span></div>
+            <AggRow rows={owners} label="owners ≥1M net demand" />
+            <div className="tmtabs">
+              {SORTS.map(([k, lbl]) => (
+                <button key={k} className={"tmtab" + (clSort === k ? " on" : "")} onClick={() => setClSort(k)}>{lbl}</button>
+              ))}
+            </div>
+            <details className="tmdrop" open>
+              <summary className="tmdropsum">{shown.length} owner{shown.length === 1 ? "" : "s"}{clSort === "bal" ? " ≥1M SPX" : clSort === "buy" ? " accumulating (30d)" : clSort === "sell" ? " distributing (30d)" : " with a proven timer"}</summary>
               <div className="tmtblwrap">
                 <table className="tmtbl">
                   <thead><tr><th>owner</th><th>wallets</th><th>combined</th><th>24h</th><th>7d</th><th>30d</th></tr></thead>
-                  <tbody>{clusters.map((c, i) => (
+                  <tbody>{shown.map((c, i) => (
                     <tr key={c.id}>
                       <td className="tmk"><span style={{ color: "var(--faint)", marginRight: 8 }}>{i + 1}</span>
-                        <a href={`/?view=cluster&id=${c.id}`} title="Open this owner — aggregated buys, sells & P&L" style={{ color: "var(--live)", textDecoration: "none", fontFamily: "var(--mono)" }}>{shortAddr(c.id)}</a></td>
+                        <a href={`/?view=cluster&id=${c.id}`} title="Open this owner — aggregated buys, sells & P&L" style={{ color: "var(--live)", textDecoration: "none", fontFamily: "var(--mono)" }}>{shortAddr(c.id)}</a>
+                        {c.proven && <span title="Contains a proven smart-money wallet (ROI-qualified)" style={{ color: "#fbbf24", marginLeft: 6, fontSize: "0.9em" }}>◆</span>}</td>
                       <td><ClusterWallets c={c} /></td>
                       <td className="tmval">{fmtVal(c.bal, "spx")}</td>
                       {netSpxCell(c.d1)}{netSpxCell(c.d7)}{netSpxCell(c.d30)}
