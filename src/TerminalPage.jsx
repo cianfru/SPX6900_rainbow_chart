@@ -566,7 +566,10 @@ export default function TerminalPage({ isMobile }) {
 
       {ent && Array.isArray(ent) && ent.length > 0 && (() => {
         const allOwners = ent.filter(c => !c.flagged && (c.bal || 0) > 0).sort((a, b) => (b.bal || 0) - (a.bal || 0));
-        const clusters = allOwners.slice(0, 12);
+        // Every owner (linked cluster) holding ≥ 1M SPX — a concentration list, NOT the smart-money
+        // cohort (that's ROI-qualified, separate). Owner asked to widen it from the old top-12 (≥4M).
+        const MIN_CLUSTER = 1e6;
+        const clusters = allOwners.filter(c => (c.bal || 0) >= MIN_CLUSTER);
         if (!clusters.length) return null;
         return (
           <section className="tmsec">
@@ -575,7 +578,7 @@ export default function TerminalPage({ isMobile }) {
               <span> · {allOwners.length} owners</span></div>
             <AggRow rows={allOwners} label="all owners net demand" />
             <details className="tmdrop">
-              <summary className="tmdropsum">show the top {clusters.length} clusters</summary>
+              <summary className="tmdropsum">show the {clusters.length} clusters holding ≥1M SPX</summary>
               <div className="tmtblwrap">
                 <table className="tmtbl">
                   <thead><tr><th>owner</th><th>wallets</th><th>combined</th><th>24h</th><th>7d</th><th>30d</th></tr></thead>

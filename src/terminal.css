@@ -479,7 +479,7 @@ html:not([data-theme="light"]) .tzone [style*="rgb(100, 116, 139)"]{ color:#b1bc
 .tzone .tmsec-lead{ margin-top:22px; }
 .tzone .tmsectitle{ font-family:var(--sans); font-size:16px; font-weight:800; letter-spacing:-.01em; text-transform:uppercase; color:var(--tx); margin:0 0 8px; padding-bottom:7px; border-bottom:1px solid var(--line2); }
 .tzone .tmsectitle span{ font-weight:600; text-transform:none; letter-spacing:0; color:var(--dim); font-size:14px; }
-.tzone .tmtblwrap{ overflow-x:auto; }
+.tzone .tmtblwrap{ overflow-x:auto; max-height:62vh; overflow-y:auto; }
 .tzone .tmtbl{ width:100%; border-collapse:collapse; font-family:var(--mono); font-size:14.5px; font-variant-numeric:tabular-nums; }
 .tzone .tmtbl th{ text-align:right; font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:var(--dim); padding:6px 8px; border-bottom:1px solid var(--line2); white-space:nowrap; }
 .tzone .tmtbl th:first-child{ text-align:left; }
