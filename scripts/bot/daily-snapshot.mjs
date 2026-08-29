@@ -163,7 +163,11 @@ export function buildDailySnapshot(feeds) {
       const z = (supTot(peak) - mean) / sd;
       if (z >= 2 && supTot(peak) > 0) {
         const sP = peak[3] || 0, sL = peak[4] || 0, mostly = sP >= sL ? "profit-taking" : "at a loss (capitulation)";
-        alerts.push(`⚠️ Exit wave: ${((sP + sL) / 1e6).toFixed(2)}M SPX left on ${peak[0]} (${((peak[1] || 0) + (peak[2] || 0))} wallets), ${z.toFixed(1)}σ above normal — mostly ${mostly}.`);
+        const last = efDays.at(-1)?.[0];
+        // Name it as the standout of the recent window + the data's own edge, so an older peak date
+        // doesn't read as stale data (the peak sticks for up to 3 days; data is current through `last`).
+        const when = peak[0] === last ? `on ${peak[0]}` : `on ${peak[0]} — the biggest of the last 3 days`;
+        alerts.push(`⚠️ Exit wave: ${((sP + sL) / 1e6).toFixed(2)}M SPX left ${when} (${((peak[1] || 0) + (peak[2] || 0))} wallets), ${z.toFixed(1)}σ above normal — mostly ${mostly}. Data through ${last}.`);
       }
     }
   }
