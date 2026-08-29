@@ -50,7 +50,11 @@ export default function PositionDetail({ pos, head, px, price, isMobile, footer 
       const m = new Date(Date.UTC(new Date(tStart).getUTCFullYear(), new Date(tStart).getUTCMonth(), 1));
       for (; m.getTime() <= tEnd; m.setUTCMonth(m.getUTCMonth() + step)) if (m.getTime() >= tStart) xTicks.push(m.getTime());
     }
-    return { buys, sells, priceSeries, pMin, pMax, pnl, realized: cum, xTicks };
+    // Pin the x-axis to the FULL price range (first activity → today) so the chart always shows the
+    // whole window — recharts otherwise let the scatter (buys/sells) range shrink the axis, which cut
+    // the view off at the last trade (e.g. this owner stopped in Sep '25, so the line vanished there).
+    const xDomain = (tStart && tEnd) ? [tStart, tEnd] : ["dataMin", "dataMax"];
+    return { buys, sells, priceSeries, pMin, pMax, pnl, realized: cum, xTicks, xDomain };
   }, [pos, px]);
   // "Aug '25" — month + apostrophe-year is unambiguous on an axis and shows the true span.
   const fTick = t => { const d = new Date(t); return d.toLocaleDateString("en-US", { month: "short" }) + " '" + String(d.getUTCFullYear()).slice(2); };
@@ -100,7 +104,7 @@ export default function PositionDetail({ pos, head, px, price, isMobile, footer 
       <ResponsiveContainer width="100%" height={isMobile ? 340 : 480}>
         <ComposedChart data={model.priceSeries} margin={{ top: 10, right: 20, left: 6, bottom: 6 }}>
           <CartesianGrid stroke="rgba(255,255,255,0.05)" vertical={false} />
-          <XAxis dataKey="t" type="number" scale="time" domain={["dataMin", "dataMax"]} ticks={model.xTicks} tickFormatter={fTick} minTickGap={24} tick={{ fill: "#94a3b8", fontFamily: MONO, fontSize: 12 }} tickLine={false} axisLine={{ stroke: "rgba(255,255,255,0.12)" }} />
+          <XAxis dataKey="t" type="number" scale="time" domain={model.xDomain} allowDataOverflow ticks={model.xTicks} tickFormatter={fTick} minTickGap={24} tick={{ fill: "#94a3b8", fontFamily: MONO, fontSize: 12 }} tickLine={false} axisLine={{ stroke: "rgba(255,255,255,0.12)" }} />
           <YAxis scale="log" domain={[model.pMin, model.pMax]} allowDataOverflow ticks={[0.001, 0.01, 0.1, 1].filter(v => v >= model.pMin && v <= model.pMax)} tickFormatter={fP} tick={{ fill: "#8592a6", fontFamily: MONO, fontSize: 11 }} tickLine={false} axisLine={false} width={54} />
           <ZAxis dataKey="qty" range={[40, 520]} />
           <Tooltip content={({ active, payload }) => {
@@ -126,7 +130,7 @@ export default function PositionDetail({ pos, head, px, price, isMobile, footer 
         <ComposedChart data={model.pnl} margin={{ top: 10, right: 20, left: 6, bottom: 6 }}>
           <defs><linearGradient id="wpnl" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={GRN} stopOpacity={0.5} /><stop offset="100%" stopColor={GRN} stopOpacity={0.05} /></linearGradient></defs>
           <CartesianGrid stroke="rgba(255,255,255,0.05)" vertical={false} />
-          <XAxis dataKey="t" type="number" scale="time" domain={["dataMin", "dataMax"]} ticks={model.xTicks} tickFormatter={fTick} minTickGap={24} tick={{ fill: "#94a3b8", fontFamily: MONO, fontSize: 12 }} tickLine={false} axisLine={{ stroke: "rgba(255,255,255,0.12)" }} />
+          <XAxis dataKey="t" type="number" scale="time" domain={model.xDomain} allowDataOverflow ticks={model.xTicks} tickFormatter={fTick} minTickGap={24} tick={{ fill: "#94a3b8", fontFamily: MONO, fontSize: 12 }} tickLine={false} axisLine={{ stroke: "rgba(255,255,255,0.12)" }} />
           <YAxis tickFormatter={fUsd} tick={{ fill: "#8592a6", fontFamily: MONO, fontSize: 11 }} tickLine={false} axisLine={false} width={58} />
           <ReferenceLine y={0} stroke="rgba(255,255,255,0.25)" />
           <Tooltip content={({ active, payload }) => {
