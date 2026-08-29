@@ -40,8 +40,20 @@ export default function PositionDetail({ pos, head, px, price, isMobile, footer 
     const pMin = Math.max(0.0005, Math.min(...pxs) * 0.8), pMax = Math.max(...pxs) * 1.2;
     let cum = 0; const pnl = [{ t: t0, cum: 0 }];
     [...sells].sort((a, b) => a.t - b.t).forEach(s => { cum += s.realized; pnl.push({ t: s.t, cum }); });
-    return { buys, sells, priceSeries, pMin, pMax, pnl, realized: cum };
+    // Month/quarter x-ticks across the shown range, so the timeline is unmistakable — bare YEAR labels
+    // made a year-long span (a buy in Aug '25, the pump in Aug '26) look like recent/today's price.
+    const tStart = priceSeries[0]?.t, tEnd = priceSeries.at(-1)?.t;
+    const xTicks = [];
+    if (tStart && tEnd) {
+      const months = (tEnd - tStart) / (30 * 864e5);
+      const step = months > 20 ? 3 : months > 9 ? 2 : 1;   // months between ticks
+      const m = new Date(Date.UTC(new Date(tStart).getUTCFullYear(), new Date(tStart).getUTCMonth(), 1));
+      for (; m.getTime() <= tEnd; m.setUTCMonth(m.getUTCMonth() + step)) if (m.getTime() >= tStart) xTicks.push(m.getTime());
+    }
+    return { buys, sells, priceSeries, pMin, pMax, pnl, realized: cum, xTicks };
   }, [pos, px]);
+  // "Aug '25" — month + apostrophe-year is unambiguous on an axis and shows the true span.
+  const fTick = t => { const d = new Date(t); return d.toLocaleDateString("en-US", { month: "short" }) + " '" + String(d.getUTCFullYear()).slice(2); };
 
   if (!model) return <div style={{ textAlign: "center", fontFamily: "var(--mono)", color: "var(--faint)", padding: 60 }}>loading…</div>;
 
@@ -83,7 +95,7 @@ export default function PositionDetail({ pos, head, px, price, isMobile, footer 
       <ResponsiveContainer width="100%" height={isMobile ? 340 : 480}>
         <ComposedChart data={model.priceSeries} margin={{ top: 10, right: 20, left: 6, bottom: 6 }}>
           <CartesianGrid stroke="rgba(255,255,255,0.05)" vertical={false} />
-          <XAxis dataKey="t" type="number" scale="time" domain={["dataMin", "dataMax"]} tickFormatter={t => new Date(t).getFullYear()} tick={{ fill: "#94a3b8", fontFamily: MONO, fontSize: 12 }} tickLine={false} axisLine={{ stroke: "rgba(255,255,255,0.12)" }} />
+          <XAxis dataKey="t" type="number" scale="time" domain={["dataMin", "dataMax"]} ticks={model.xTicks} tickFormatter={fTick} minTickGap={24} tick={{ fill: "#94a3b8", fontFamily: MONO, fontSize: 12 }} tickLine={false} axisLine={{ stroke: "rgba(255,255,255,0.12)" }} />
           <YAxis scale="log" domain={[model.pMin, model.pMax]} allowDataOverflow ticks={[0.001, 0.01, 0.1, 1].filter(v => v >= model.pMin && v <= model.pMax)} tickFormatter={fP} tick={{ fill: "#8592a6", fontFamily: MONO, fontSize: 11 }} tickLine={false} axisLine={false} width={54} />
           <ZAxis dataKey="qty" range={[40, 520]} />
           <Tooltip content={({ active, payload }) => {
@@ -109,7 +121,7 @@ export default function PositionDetail({ pos, head, px, price, isMobile, footer 
         <ComposedChart data={model.pnl} margin={{ top: 10, right: 20, left: 6, bottom: 6 }}>
           <defs><linearGradient id="wpnl" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={GRN} stopOpacity={0.5} /><stop offset="100%" stopColor={GRN} stopOpacity={0.05} /></linearGradient></defs>
           <CartesianGrid stroke="rgba(255,255,255,0.05)" vertical={false} />
-          <XAxis dataKey="t" type="number" scale="time" domain={["dataMin", "dataMax"]} tickFormatter={t => new Date(t).getFullYear()} tick={{ fill: "#94a3b8", fontFamily: MONO, fontSize: 12 }} tickLine={false} axisLine={{ stroke: "rgba(255,255,255,0.12)" }} />
+          <XAxis dataKey="t" type="number" scale="time" domain={["dataMin", "dataMax"]} ticks={model.xTicks} tickFormatter={fTick} minTickGap={24} tick={{ fill: "#94a3b8", fontFamily: MONO, fontSize: 12 }} tickLine={false} axisLine={{ stroke: "rgba(255,255,255,0.12)" }} />
           <YAxis tickFormatter={fUsd} tick={{ fill: "#8592a6", fontFamily: MONO, fontSize: 11 }} tickLine={false} axisLine={false} width={58} />
           <ReferenceLine y={0} stroke="rgba(255,255,255,0.25)" />
           <Tooltip content={({ active, payload }) => {
