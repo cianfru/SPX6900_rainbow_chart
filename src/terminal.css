@@ -612,3 +612,40 @@ html[data-theme="light"] .tzone .tmtone-rich{ --tone:#b45309; }
   .dfgate-stars{ animation:none; }
   .dfx:hover, .dfx:focus-visible{ transform:none; }
 }
+
+/* ── Global favorites corner (src/FavoritesLauncher.jsx) — app-wide, NOT scoped to .tzone so it works
+   on the home page too. Same design language as the nav: mono, uppercase, left-border accent, the
+   name typewriters out on hover. Theme-aware: dark by default, light under html[data-theme="light"]. */
+.favlaunch{ --fa:#4ee79a; --fpanel:#0e1013; --fpanel2:#0b0c0f; --fline:#2c303a; --ftx:#f1f5f9; --fdim:#c8d1de; --ffaint:#9aa4b4;
+  font-family: ui-monospace, "SFMono-Regular", Menlo, monospace; }
+html[data-theme="light"] .favlaunch{ --fa:#077a45; --fpanel:#ffffff; --fpanel2:#eef2f7; --fline:#c4ccd8; --ftx:#010203; --fdim:#1b2430; --ffaint:#40495a; }
+
+/* z above the full-bleed landing iframe (z-index:60) so the corner works on the home page too */
+.favlaunch .favtab{ position:fixed; left:0; top:44%; z-index:62; display:flex; flex-direction:column; align-items:center; gap:9px;
+  padding:13px 6px; border:1px solid var(--fline); border-left:none; border-radius:0 8px 8px 0;
+  background:var(--fpanel2); color:var(--fdim); cursor:pointer; transition:color .14s, border-color .14s;
+  writing-mode:vertical-rl; }
+.favlaunch .favtab:hover{ color:var(--fa); border-color:var(--fa); }
+.favlaunch .favtab-star{ writing-mode:horizontal-tb; color:var(--fa); font-size:13px; }
+.favlaunch .favtab-lbl{ font-size:11px; letter-spacing:.2em; font-weight:700; text-transform:uppercase; }
+
+.favlaunch .favscrim{ position:fixed; inset:0; z-index:62; background:rgba(2,4,10,.5); }
+.favlaunch .favpanel{ position:fixed; left:0; top:0; bottom:0; z-index:63; width:min(320px, 86vw); overflow-y:auto;
+  background:var(--fpanel); border-right:1px solid var(--fline); box-shadow:12px 0 44px rgba(0,0,0,.45); color:var(--ftx); }
+.favlaunch .favhead{ display:flex; align-items:center; justify-content:space-between; padding:16px 16px 12px;
+  font-size:12px; letter-spacing:.15em; text-transform:uppercase; color:var(--fa); font-weight:700; border-bottom:1px solid var(--fline); }
+.favlaunch .favclose{ background:none; border:none; color:var(--fdim); font-size:23px; line-height:1; cursor:pointer; padding:0 2px; }
+.favlaunch .favclose:hover{ color:var(--fa); }
+.favlaunch .favlist{ padding:6px 0; }
+.favlaunch .favrow{ display:flex; align-items:center; gap:9px; text-decoration:none; padding:11px 14px; border-left:2px solid transparent; transition:border-color .12s, background .12s; }
+.favlaunch .favrow:hover{ background:color-mix(in srgb, var(--fa) 8%, transparent); border-left-color:var(--fa); }
+.favlaunch .favstar{ background:none; border:none; color:var(--fa); font-size:13px; cursor:pointer; padding:0; flex:0 0 auto; line-height:1; }
+.favlaunch .favname{ position:relative; font-size:13.5px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; color:var(--ftx); }
+.favlaunch .favrow:hover .favname{ color:var(--fa); }
+.favlaunch .favg{ visibility:hidden; }
+.favlaunch .favy{ position:absolute; left:0; top:0; white-space:nowrap; }
+.favlaunch .favcur{ font-style:normal; margin-left:1px; opacity:.7; }
+.favlaunch .favarrow{ margin-left:auto; color:var(--fa); font-size:11px; opacity:0; transition:opacity .12s; }
+.favlaunch .favrow:hover .favarrow{ opacity:1; }
+.favlaunch .favempty{ padding:20px 16px; font-family:system-ui, sans-serif; font-size:13px; line-height:1.6; color:var(--fdim); }
+.favlaunch .favempty a{ color:var(--fa); font-weight:700; }

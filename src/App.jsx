@@ -123,6 +123,7 @@ import { SANS, MONO, MAX_W, MenuBtn, TypeTab, ZoomBar } from "./chart-ui.jsx";
 import { useDragZoom } from "./use-drag-zoom.js";
 import "./terminal.css";
 import TerminalNav from "./TerminalNav.jsx";
+import FavoritesLauncher from "./FavoritesLauncher.jsx";
 import { gcolFor } from "./terminal-colors.js";
 import { track } from "./track.js";
 const HolderscanDashboard = lazy(() => import("./HolderscanDashboard.jsx"));
@@ -1054,6 +1055,9 @@ export default function App() {
         animation: "star-drift 26s linear infinite",
       }} />
       </>)}
+
+      {/* Global favorites corner — a logged-in member's pinned Deep Field charts, one tap from anywhere */}
+      <FavoritesLauncher me={me} />
 
       {/* Terminal cascade nav for sub-pages; the glass pill nav stays on home + landing preview */}
       {isSub ? (

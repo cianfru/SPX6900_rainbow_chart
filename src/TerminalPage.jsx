@@ -5,6 +5,8 @@ import { MenuBtn, useHoverType } from "./chart-ui.jsx";
 import { walletGradient } from "./WalletCard.jsx";
 import { fetchPrivate } from "./history-data.js";
 import { classifyFlow } from "./whale-flow.js";
+import { DF_CHARTS } from "./deep-field-charts.js";
+import { useFavs } from "./favs.js";
 
 // THE TERMINAL (/terminal) — the owner's daily intel one-pager, kept SEPARATE from the post-control
 // panel so the "what's happening on-chain today" read isn't tangled up with the "which card to fire"
@@ -204,17 +206,9 @@ function Gate({ onPass, isMobile }) {
   );
 }
 
-// The members-only "Deep Field" charts — the granular, wallet-level views not on the public site.
-// The gate sets the city flag too, so these open unlocked once a member is in.
-const DF_CHARTS = [
-  { name: "When Whales Bought", href: "/?chart=whaleentry", desc: "Every 100k+ wallet as an orb at the price it bought — in profit / underwater." },
-  { name: "Wallet Clusters", href: "/?chart=entities", desc: "The addresses one owner controls, linked from on-chain SPX flows." },
-  { name: "Cluster City", href: "/?chart=clustercity", desc: "A 3D city of owners — beams show who's buying (green) / selling (red)." },
-  { name: "Whales Watching", href: "/?chart=whaleswatching", desc: "Every 100k+ wallet in 3D, pulsing green/red as they accumulate or distribute." },
-  { name: "Cost Basis Terrain", href: "/?chart=urpdterrain", desc: "Where everyone bought, as a landscape deforming week by week." },
-  { name: "Smart Money", href: "/?chart=smartmoney", desc: "Proven top-timers — aggregate here; per-wallet P&L pages inside." },
-  { name: "SPX City", href: "/city", desc: "Every holder a building — the whole base in 3D, with holding age & flow." },
-];
+// DF_CHARTS now lives in ./deep-field-charts.js — shared with the global favorites launcher so both
+// name the members-only charts identically. The gate sets the city flag too, so these open unlocked
+// once a member is in.
 
 // A Deep Field chart link, styled like the site's nav menu: mono, uppercase, and the name types itself
 // out left-to-right on hover (the shared menu typewriter). No generic icons.
@@ -322,27 +316,14 @@ export default function TerminalPage({ isMobile }) {
   const [ent, setEnt] = useState(undefined);     // entities.json (wallet clusters — terminal reveals members)
   const [hl, setHl] = useState(null);            // LIVE Hyperliquid funding/OI (real-time, not yesterday's mean)
   const [clSort, setClSort] = useState("bal");   // whale-cluster sort/filter: bal | buy | sell | proven
-  // Favorites: seeded from localStorage instantly (per-device), then reconciled to the member's KV list
-  // once /api/auth?action=me returns (per-account, syncs across devices). Toggling writes both.
-  const [favs, setFavs] = useState(() => { try { return new Set(JSON.parse(localStorage.getItem("df-favs") || "[]")); } catch { return new Set(); } });
-  const toggleFav = href => setFavs(prev => {
-    const next = new Set(prev); next.has(href) ? next.delete(href) : next.add(href);
-    const arr = [...next];
-    try { localStorage.setItem("df-favs", JSON.stringify(arr)); } catch { /* private mode */ }
-    // Persist per-account when signed in (fire-and-forget; localStorage is the offline cache/fallback).
-    fetch("/api/auth?action=fav", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ fav: arr }) }).catch(() => {});
-    return next;
-  });
+  // Favorites: the shared hook (localStorage + per-account KV, live-synced with the global launcher).
+  const [favs, toggleFav] = useFavs();
 
   useEffect(() => {
     if (!ok) return;
     let off = false;
-    // The member's saved favorites (KV) become the source of truth once known. (Identity + logout live
-    // in the shared nav avatar, so this page no longer renders its own identity chip.)
-    fetch("/api/auth?action=me", { cache: "no-store" }).then(r => r.ok ? r.json() : null).then(d => {
-      if (off || !d?.loggedIn) return;
-      if (Array.isArray(d.fav)) setFavs(new Set(d.fav));
-    }).catch(() => {});
+    // (Favorites reconcile to the member's KV list inside useFavs; identity + logout live in the shared
+    // nav avatar, so this page no longer renders its own identity chip.)
     const grab = (f, ok) => fetch(`/api/control?f=public/${f}&t=${Date.now()}`, { cache: "no-store" }).then(r => r.ok ? r.json() : null).then(d => { if (!off) ok(d); }).catch(() => { if (!off) ok(null); });
     grab("daily-snapshot.json", d => setData(d && d.sections ? d : null));
     // Smart money (real addresses + per-wallet lots) + entities (real cluster addresses) come through
