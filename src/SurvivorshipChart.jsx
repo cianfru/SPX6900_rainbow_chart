@@ -78,7 +78,7 @@ export default function SurvivorshipChart({ isMobile, initialView }) {
   if (!data) return <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Loading…</div>;
   if (!model) return <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Being reconstructed, check back after the next on-chain refresh.</div>;
   const { cohorts, nC, rows, bars, launchPct, line, bubbles, now, pMin, pMax, t0, t1, underPct, maxSupM, flowRows, flowRes, flowOverall } = model;
-  const fDay = ts => new Date(ts).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "2-digit" });
+  const fDay = ts => new Date(ts).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
   const yearTicks = (() => { const seen = new Set(), out = []; for (const r of flowRows) { const y = r.d.slice(0, 4); if (!seen.has(y)) { seen.add(y); out.push(r.d); } } return out; })();
   const O = data.overall, launch = cohorts[0];
   const fDate = ts => new Date(ts).toLocaleDateString("en-US", { month: "short", year: "2-digit" });

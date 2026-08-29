@@ -229,7 +229,7 @@ export default function SmartMoneyChart({ isMobile, initialView }) {
   const yearTicks = yearTicksOf(rows);
   const newQYearTicks = yearTicksOf(newQ);
   const fDate = ts => new Date(ts).toLocaleDateString("en-US", { month: "short", year: "2-digit" });
-  const fDay = ts => new Date(ts).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "2-digit" });
+  const fDay = ts => new Date(ts).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
   const flowVerb = S.flow.w12 > 2 ? { t: "buying again", c: GRN } : S.flow.w12 < -1 ? { t: "trimming, not buying", c: "#f59e0b" } : { t: "holding, not buying", c: "#94a3b8" };
 
   return (

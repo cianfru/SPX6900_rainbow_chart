@@ -12,7 +12,8 @@ export const shortAddr = a => (a ? a.slice(0, 6) + "…" + a.slice(-4) : "");
 const fUsd = v => { const s = v < 0 ? "−" : ""; const a = Math.abs(v); return s + "$" + (a >= 1e6 ? (a / 1e6).toFixed(2) + "M" : a >= 1e3 ? (a / 1e3).toFixed(1) + "k" : Math.round(a)); };
 const fM = v => Math.abs(v) >= 1e6 ? (v / 1e6).toFixed(2) + "M" : Math.abs(v) >= 1e3 ? (v / 1e3).toFixed(0) + "k" : Math.round(v);
 const fP = v => v == null ? "" : v < 0.01 ? "$" + v.toFixed(4) : "$" + v.toFixed(3);
-const fDay = t => new Date(t).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "2-digit" });
+// Full 4-digit year: "Aug 9, 25" read like "Aug 25" — an ambiguous day/year. "Aug 9, 2025" is clear.
+const fDay = t => new Date(t).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 
 function Tile({ label, value, color, sub }) {
   return (

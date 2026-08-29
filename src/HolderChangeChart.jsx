@@ -8,7 +8,7 @@ import { holderChangeSeries, WEALTH_TIERS } from "./holder-change.js";
 import { SANS, MONO, MAX_W, Metric, TipBox, ViewTabs, Explain } from "./chart-ui.jsx";
 
 const LINE = "#c084fc";
-const fShort = t => new Date(t).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "2-digit" });
+const fShort = t => new Date(t).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 const RANGES = [[90, "90d"], [365, "1y"], [0, "All"]];
 
 function Tip({ active, payload, label, tiers }) {
