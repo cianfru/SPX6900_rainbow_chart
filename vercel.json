@@ -2,7 +2,7 @@
   "git": { "deploymentEnabled": false },
   "functions": {
     "api/og.js": {
-      "includeFiles": "{scripts/bot/**,public/{history,onchain,whales,chain-wallets,cex-flow,cex-sankey,whale-thennow,whale-entry,freefloat-peers,rotation-excludes,cohort-survival,exit-flow,smart-money,city-history,valuation,longshort,aeon-*}.json}"
+      "includeFiles": "{scripts/bot/**,public/{history,onchain,whales,chain-wallets,cex-flow,cex-sankey,whale-thennow,whale-entry,freefloat-peers,rotation-excludes,cohort-survival,exit-flow,smart-money,city-history,valuation,longshort,urpd-history,aeon-*}.json}"
     },
     "api/recap.js": {
       "includeFiles": "{scripts/bot/**,public/{history,onchain,whales,chain-wallets,cex-flow,freefloat-peers,rotation-excludes,cohort-survival,exit-flow,smart-money,longshort}.json}"

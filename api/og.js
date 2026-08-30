@@ -23,6 +23,7 @@ import { renderAeonWhalesCard } from "../scripts/bot/aeon-whales-card.mjs";
 import { renderAeonTradersCard, renderAeonValuationCard, renderAeonTraitsCard } from "../scripts/bot/aeon-market-cards.mjs";
 import { renderAeonFlowCard } from "../scripts/bot/aeon-flow-card.mjs";
 import { renderAeonFloorStoryCard } from "../scripts/bot/aeon-floor-story-card.mjs";
+import { renderCostBasisCard } from "../scripts/bot/cost-basis-card.mjs";
 
 // Project Aeon cards render from the committed aeon-*.json (not stats), all at 1:1. ?aeon=<id>.
 const readAeon = p => { try { return JSON.parse(readFileSync(join(process.cwd(), p), "utf8")); } catch { return null; } };
@@ -81,6 +82,10 @@ const AEON_CARD = {
   aeonspxosc: () => { const d = readAeon("public/aeon-market.json"); return d && renderAeonSpxOscCard(d, SQ); },
   aeonrarityprice: () => { const d = readAeon("public/aeon-market.json"); return d && renderAeonRarityPriceCard(d, SQ); },
   aeonwhales: () => { const d = readAeon("public/aeon-onchain.json"); return d && renderAeonWhalesCard(d, SQ); },
+};
+// Deep Field member-chart cards (square teasers for the feed). readAeon is a generic JSON reader.
+const DEEP_CARD = {
+  costbasis: () => { const d = readAeon("public/urpd-history.json"); return d && renderCostBasisCard(d, SQ); },
 };
 
 // Nav tab id -> the rotating post whose card best represents that tab.
@@ -153,6 +158,20 @@ export default async function handler(req, res) {
   if (aeonId && AEON_CARD[aeonId]) {
     try {
       const card = AEON_CARD[aeonId]();
+      if (card) {
+        res.setHeader("Content-Type", "image/png");
+        res.setHeader("Cache-Control", "s-maxage=30, stale-while-revalidate=300");
+        res.status(200).end(card);
+        return;
+      }
+    } catch { /* fall through to default */ }
+  }
+
+  // ?deep=<id> — render a Deep Field member-chart card from committed JSON.
+  const deepId = params.get("deep");
+  if (deepId && DEEP_CARD[deepId]) {
+    try {
+      const card = DEEP_CARD[deepId]();
       if (card) {
         res.setHeader("Content-Type", "image/png");
         res.setHeader("Cache-Control", "s-maxage=30, stale-while-revalidate=300");
