@@ -58,3 +58,15 @@ test("net-buyer and unwatched wallets: sign + filtering", () => {
   assert.equal(out.length, 1);               // the unwatched OTHER→OTHER is ignored
   assert.equal(out[0].net, 400000);          // net accumulator (+500k −100k)
 });
+
+test("a wallet no longer in `known` (excluded as infra / exited) is pruned, even mid-campaign", () => {
+  const now = at(3);
+  // A is an active campaign in the archive; then it gets tagged as a market maker and leaves whales.json.
+  const run1 = updateCampaigns([], [buy(0, 500000), buy(2, 400000)], at(2.5), { watched, known: new Set([A]) });
+  assert.equal(run1.length, 1);              // tracked while still a known holder
+  // next run: A keeps trading (never idle) but is no longer in `known` → dropped, not left "accumulating"
+  const run2 = updateCampaigns(run1, [buy(2.6, 300000)], now, { watched, known: new Set() });
+  assert.equal(run2.length, 0);
+  // without a `known` allowlist, behaviour is unchanged (existing callers/tests)
+  assert.equal(updateCampaigns(run1, [buy(2.6, 300000)], now, { watched }).length, 1);
+});

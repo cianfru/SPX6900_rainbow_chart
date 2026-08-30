@@ -176,8 +176,10 @@ function selfMoves(sm, refDate, eventDays = 7) {
 
 // 3) Watched-whale net moves this week — biggest accumulator / distributor among
 //    the wallets the campaign-watcher tracks.
-function whaleCampaigns(wc, exclude = new Set()) {
-  const ws = (wc?.wallets || []).filter(w => w.a && !exclude.has(w.a.toLowerCase()) && Math.abs(w.net || 0) >= 300_000);
+function whaleCampaigns(wc, exclude = new Set(), known = null) {
+  const ws = (wc?.wallets || []).filter(w => w.a && !exclude.has(w.a.toLowerCase())
+    && (!known || known.has(w.a.toLowerCase()))   // still a tracked holder — never an excluded MM/CEX
+    && Math.abs(w.net || 0) >= 300_000);
   if (!ws.length) return [];
   const out = [];
   const buyers = ws.filter(w => w.net > 0).sort((a, b) => b.net - a.net);
@@ -503,11 +505,16 @@ export function detectNotable(data = {}, aeonFlowFn = null, opts = {}) {
   const refDate = data.onchain?.at?.(-1)?.d || data.history?.at?.(-1)?.d || null;
   // wallets already named by self-moves shouldn't double-count in whale-campaigns
   const splitSrcs = new Set((data.selfMoves?.events || []).map(e => (e.source || "").toLowerCase()).filter(Boolean));
+  // Only wallets still in whales.json count as whales — the FIFO engine strips excluded infrastructure
+  // (market makers / CEX) from it, so this can never surface an MM's trading inventory as a conviction
+  // whale even if a stale whale-campaigns.json still lists it. null → no allowlist (unchanged behaviour).
+  const knownWhales = data.whales?.wallets?.length
+    ? new Set(data.whales.wallets.map(w => w.a?.toLowerCase()).filter(Boolean)) : null;
 
   const events = [
     ...cexFlow(data.cexFlow),
     ...selfMoves(data.selfMoves, refDate, eventDays),
-    ...whaleCampaigns(data.whaleCampaigns, splitSrcs),
+    ...whaleCampaigns(data.whaleCampaigns, splitSrcs, knownWhales),
     ...smartMoney(data.smartMoney),
     ...aeonAccum(data.aeonSales, data.aeonOnchain, aeonFlowFn),
     ...onchainShift(data.onchain),
@@ -588,6 +595,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     smartMoney: read("public/smart-money.json"),
     exitFlow: read("public/exit-flow.json"),
     whaleCampaigns: read("public/whale-campaigns.json"),
+    whales: read("public/whales.json"),
     aeonSales: read("public/aeon-sales.json"),
     aeonOnchain: read("public/aeon-onchain.json"),
     valuation: read("public/valuation.json"),

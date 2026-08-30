@@ -21,8 +21,11 @@ const OUT = "public/whale-campaigns.json";
 const dayKey = ts => new Date(ts).toISOString().slice(0, 10);
 
 // prev: [{a, firstTs, lastTs, net, days:[[dayKey,net],…]}]. transfers MUST be chronological, each
-// {from, to, value, ts}. nowTs anchors the idle expiry. Returns the fresh campaign list.
-export function updateCampaigns(prev, transfers, nowTs, { watched, idleDays = IDLE_DAYS } = {}) {
+// {from, to, value, ts}. nowTs anchors the idle expiry. `known` (optional) = the set of addresses
+// still in whales.json (i.e. tracked holders); a campaign wallet ABSENT from it has since been
+// excluded as infrastructure (a market maker / CEX) or fully exited, so we DROP it rather than let it
+// linger. Without this an MM never goes idle → it stays "accumulating" forever. Returns the campaigns.
+export function updateCampaigns(prev, transfers, nowTs, { watched, known, idleDays = IDLE_DAYS } = {}) {
   const idleMs = idleDays * DAY;
   const state = new Map((prev || []).map(c => [c.a, { ...c, days: c.days.map(d => [d[0], d[1]]) }]));
   for (const t of transfers || []) {
@@ -42,6 +45,7 @@ export function updateCampaigns(prev, transfers, nowTs, { watched, idleDays = ID
   const out = [];
   for (const c of state.values()) {
     if (nowTs - c.lastTs > idleMs) continue;           // IDLE_DAYS of silence → campaign ends
+    if (known && !known.has(c.a)) continue;            // no longer a tracked holder (excluded infra / exited) → drop
     out.push({ a: c.a, firstTs: c.firstTs, lastTs: c.lastTs, net: Math.round(c.net), days: c.days.map(([d, n]) => [d, Math.round(n)]) });
   }
   out.sort((x, y) => x.net - y.net);                   // biggest net sellers first
@@ -79,6 +83,10 @@ async function main() {
   const prevDoc = readJson(OUT) || { headBlock: null, wallets: [] };
   const whales = readJson("public/whales.json");
   const watched = new Set((whales?.wallets || []).filter(w => w?.a && w.bal >= 1e5).map(w => w.a.toLowerCase()));
+  // Every address still in whales.json (any balance) — the FIFO engine has already stripped excluded
+  // infrastructure (market makers / CEX) from it, so a campaign wallet absent here is infra or exited
+  // and must be pruned. Derived from whales.json (not a second copy of EXCLUDE_LABELS) so it can't drift.
+  const known = new Set((whales?.wallets || []).map(w => w?.a?.toLowerCase()).filter(Boolean));
 
   if (!key) { console.error("no ALCHEMY_KEY — leaving whale-campaigns.json unchanged"); return; }
   if (!watched.size) { console.error("no watched wallets (whales.json missing?) — skipping"); return; }
@@ -89,7 +97,7 @@ async function main() {
   const from = prevDoc.headBlock ? prevDoc.headBlock + 1 : Math.max(0, latest - IDLE_DAYS * BLOCKS_PER_DAY);
   const transfers = await pullTransfers(url, "0x" + from.toString(16));
 
-  const wallets = updateCampaigns(prevDoc.wallets, transfers, Date.now(), { watched, idleDays: IDLE_DAYS });
+  const wallets = updateCampaigns(prevDoc.wallets, transfers, Date.now(), { watched, known, idleDays: IDLE_DAYS });
   const doc = { updated: new Date().toISOString(), headBlock: latest, idleDays: IDLE_DAYS, watched: watched.size, wallets };
   writeFileSync(OUT, JSON.stringify(doc));
   const sellers = wallets.filter(w => w.net < 0).length;
