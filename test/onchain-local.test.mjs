@@ -125,6 +125,19 @@ test("urpdGrid + binHeldSupply: a fixed log grid bins held supply to % (sums to 
   near(held, 400);
   near(pct.reduce((s, x) => s + x, 0), 100);
   near(pct[Math.floor(((Math.log(5) - g.loLog) / g.span) * 40)], 50); // the $5 lot = 200/400 = 50%
+
+  // cointime-weighted (pass sTs): the OLDER $0.20 lot dominates the distribution despite equal qty
+  const DAY = 864e5;
+  const w2 = new Map([["w", { bal: 200, head: 0, q: [
+    { ts: 0, price: 0.2, qty: 100 },              // held 100 days → 10,000 coin-days
+    { ts: 90 * DAY, price: 5, qty: 100 },         // held 10 days  → 1,000 coin-days
+  ] }]]);
+  const r = binHeldSupply(w2, g, 100 * DAY);
+  near(r.pct.reduce((s, x) => s + x, 0), 100);
+  near(r.pctCoin.reduce((s, x) => s + x, 0), 100);
+  const kCheap = Math.floor(((Math.log(0.2) - g.loLog) / g.span) * 40);
+  near(r.pct[kCheap], 50);                         // supply-weighted: 50/50
+  assert.ok(r.pctCoin[kCheap] > 88);               // cointime-weighted: the old cheap lot ≈ 91%
 });
 
 test("collectUrpdHistory emits fixed-grid weekly slices with a today edge", () => {

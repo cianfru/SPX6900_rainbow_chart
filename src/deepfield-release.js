@@ -4,7 +4,7 @@
 // included); a RELEASED one becomes members-only (login/register). Release them one at a time.
 // SPX City is PUBLIC (the flagship showpiece + its per-building Zerion cards stay open to everyone).
 // The walled members set is the granular ANALYTICAL charts only.
-export const DRIP_CHARTS = ["entities", "clustercity", "whaleentry", "whaleswatching", "smartmoney", "urpdterrain", "holderchange"];
+export const DRIP_CHARTS = ["entities", "clustercity", "whaleentry", "whaleswatching", "smartmoney", "urpdterrain", "holderchange", "costbasisladder"];
 export const isDripChart = id => DRIP_CHARTS.includes(id);
 let _p;
 export function loadReleases() {

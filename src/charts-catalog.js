@@ -55,6 +55,7 @@ export const CHART_GROUPS = [
       { id: "bagsprofile", title: "Cost Basis vs Price", desc: "A volume-profile: the price line, and where the bags were bought as bars on the price axis, live." },
       { id: "urpdage", title: "Cost Basis × Age", post: "urpdage", desc: "The walls of supply mapped by holder age: same price, different conviction." },
       { id: "urpdterrain", title: "Cost Basis Terrain (3D)", desc: "The cost-basis distribution as a landscape deforming week by week, with price sweeping through it." },
+      { id: "costbasisladder", title: "Cost Basis Distribution", locked: true, desc: "Holders' entry prices as a percentile ladder over time, with price woven through — the rainbow's on-chain cousin, bands are real cost basis. Supply- or cointime-weighted." },
       { id: "supplyprofit", title: "Supply in Profit", post: "supplyprofit", desc: "Share of supply held above its on-chain cost basis." },
       { id: "mvrv", title: "MVRV & Realized Price", post: "breakeven", desc: "Price vs the crowd's cost basis: MVRV and its Z-score." },
       { id: "mvrvbtc", title: "MVRV vs Bitcoin", desc: "SPX6900's MVRV on Bitcoin's decade of MVRV: are we down similarly?" },

@@ -683,8 +683,8 @@ export function replayFifo(transfers, priceAt, sampleTs, opts = {}) {
     if (urpdHist) {
       const idx = rows.length - 1;
       if (idx % uStride === 0 || sTs === lastTs) {
-        const { pct } = binHeldSupply(wallets, uGrid);
-        urpdHist.push({ d: iso(sTs), spot: +(priceAt(sTs) ?? 0).toFixed(7), pct });
+        const { pct, pctCoin } = binHeldSupply(wallets, uGrid, sTs);
+        urpdHist.push({ d: iso(sTs), spot: +(priceAt(sTs) ?? 0).toFixed(7), pct, pctCoin });
       }
     }
     // capture the balance map the first time we reach each lookback checkpoint
@@ -888,9 +888,13 @@ export function urpdGrid(pMin, pMax, nBuckets) {
   const edges = Array.from({ length: nBuckets + 1 }, (_, k) => +Math.exp(loLog + span * k / nBuckets).toFixed(7));
   return { loLog, hiLog, span, nBuckets, edges };
 }
-export function binHeldSupply(wallets, grid) {
+// pct = share of held supply per price bucket (supply-weighted). When `sTs` is given, ALSO returns
+// `pctCoin` = the COINTIME-weighted share (each lot weighted by qty × days held), so long-held
+// conviction supply dominates — the cost-basis ladder's cointime view reads off this.
+export function binHeldSupply(wallets, grid, sTs = null) {
   const b = Array.from({ length: grid.nBuckets }, () => 0);
-  let held = 0;
+  const bc = sTs != null ? Array.from({ length: grid.nBuckets }, () => 0) : null;
+  let held = 0, coinTime = 0;
   for (const e of wallets.values()) {
     if (e.bal <= EPS) continue;
     for (let i = e.head; i < e.q.length; i++) {
@@ -898,9 +902,12 @@ export function binHeldSupply(wallets, grid) {
       let k = Math.floor(((Math.log(lot.price) - grid.loLog) / grid.span) * grid.nBuckets);
       if (k < 0) k = 0; if (k >= grid.nBuckets) k = grid.nBuckets - 1;
       b[k] += lot.qty; held += lot.qty;
+      if (bc) { const ct = lot.qty * Math.max(0, (sTs - lot.ts) / DAY); bc[k] += ct; coinTime += ct; }
     }
   }
-  return { held: +held.toFixed(2), pct: held > 0 ? b.map(q => +(100 * q / held).toFixed(3)) : b };
+  const out = { held: +held.toFixed(2), pct: held > 0 ? b.map(q => +(100 * q / held).toFixed(3)) : b };
+  if (bc) out.pctCoin = coinTime > 0 ? bc.map(q => +(100 * q / coinTime).toFixed(3)) : bc;
+  return out;
 }
 
 function snapshot(wallets, sTs, spot, thr) {
