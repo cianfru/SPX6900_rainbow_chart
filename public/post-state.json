@@ -1,11 +1,7 @@
 {
-  "lastPostedDate": "2026-08-29",
-  "lastId": "manual-skip",
+  "lastPostedDate": "2026-08-30",
+  "lastId": "floormodel",
   "recent": [
-    {
-      "date": "2026-07-23",
-      "id": "spxcohort"
-    },
     {
       "date": "2026-07-24",
       "id": "hodlcompare"
@@ -81,6 +77,10 @@
     {
       "date": "2026-08-23",
       "id": "longshort"
+    },
+    {
+      "date": "2026-08-30",
+      "id": "floormodel"
     }
   ],
   "lanes": {
