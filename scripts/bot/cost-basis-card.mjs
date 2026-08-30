@@ -24,7 +24,7 @@ export function costBasisSvg(hist, opts = {}) {
   // grows left→right. upTo omitted / 1 = the finished static card. `cur` is the revealed frontier, so
   // the hero, the value ladder and the "now" marker settle as the story builds.
   const t0 = rows[0].ts, t1 = rows.at(-1).ts;
-  const frac = Math.min(1, Math.max(0.001, opts.upTo ?? 1));
+  const frac = Math.min(1, Math.max(0.001, opts.upTo ?? opts.reveal ?? 1));
   const cutoff = t0 + frac * (t1 - t0);
   const vis = rows.filter(r => r.ts <= cutoff);
   if (vis.length < 1) vis.push(rows[0]);

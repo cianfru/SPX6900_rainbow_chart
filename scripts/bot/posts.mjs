@@ -948,6 +948,21 @@ ${under ? "Most holders are red — and still holding." : "Most of the float is 
     };
   })(),
 
+  // Cost Basis Distribution — the percentile ladder of holders' entry prices, as a TIME-LAPSE video
+  // (the rainbow builds launch→today, price woven through). The bands are the real prices people paid.
+  // A valuation POSITION, not a signal. In rotation as a video card; data-gated on urpd-history.json.
+  s => s.costBasis && (() => {
+    const cb = s.costBasis, money = v => (v >= 1 ? "$" + v.toFixed(2) : v >= 0.01 ? "$" + v.toFixed(3) : "$" + v.toFixed(4));
+    const prof = cb.prof != null ? Math.round(cb.prof * 100) : null;
+    return {
+      id: "costbasis",
+      text: ct`🌈 SPX6900's median holder bought at ${money(cb.median)}${prof != null ? ` — and ${prof}% of supply is in profit` : ""}.
+Every wallet's real cost basis, reconstructed on-chain as a percentile ladder from launch to today. The bands are the prices people actually paid, not a drawn line — price ${money(cb.spot)} weaves through them.
+A valuation position, not a signal.`,
+      card: { type: "costbasis" },
+    };
+  })(),
+
   // Ethereum vs Solana in 2026 — the ≥5k cohort's divergence across SPX's two biggest
   // chains: ETH holds flat (the mature vault, ~94% of value), Solana runs +5.6× held /
   // +7× wallets (the growth frontier). A distribution/adoption POSITION, not a signal.
@@ -2542,7 +2557,7 @@ const LOOK = {
   whatnext: "race",
   // — Tier B: flavourful / distinct looks (used to break up the green lines) —
   riskcolor: "colorline", risklevels: "colorline", rsidots: "colorline",
-  riskheat: "dual", runningroi: "dual", cycle: "dual", longshort: "dual", underwater: "dual", goldencross: "dual", holdergrowth: "dual", holdersprice: "dual", mvrvbtc: "dual", mvrvtrend: "dual", supplyprofit: "dual", whales: "dual", whalemosaic: "mosaic", whalethennow: "mosaic", whaleentry: "dual", walletwaves: "stack", wealthwaves: "stack", survivorship: "stack", supplyera: "dual", exitmap: "dual", smartmoney: "dual", floormodel: "dual", altmarket: "dual", freefloat: "dual", nupl: "dual", concentration: "dual", picycle: "dual", spxbitcoin: "dual", spxcohort: "dual", cexflow: "dual", cexsupply: "stack", sopr: "dual", nrpl: "dual", liveliness: "dual",
+  riskheat: "dual", runningroi: "dual", cycle: "dual", longshort: "dual", underwater: "dual", goldencross: "dual", holdergrowth: "dual", holdersprice: "dual", mvrvbtc: "dual", mvrvtrend: "dual", supplyprofit: "dual", whales: "dual", whalemosaic: "mosaic", whalethennow: "mosaic", whaleentry: "dual", walletwaves: "stack", wealthwaves: "stack", survivorship: "stack", supplyera: "dual", exitmap: "dual", smartmoney: "dual", floormodel: "dual", altmarket: "dual", freefloat: "dual", nupl: "dual", concentration: "dual", picycle: "dual", spxbitcoin: "dual", spxcohort: "dual", cexflow: "dual", cexsupply: "stack", sopr: "dual", nrpl: "dual", liveliness: "dual", costbasis: "dual",
   firesalerally: "fanlines",
   model: "scatter",
   monthlyreturns: "heatmap", monthlyreturnssp: "heatmap", monthlyreturnsbtc: "heatmap",

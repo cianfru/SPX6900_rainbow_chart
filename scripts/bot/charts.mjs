@@ -9,6 +9,10 @@ import { renderChannelCard } from "./channel-card.mjs";
 import { renderRiskColorCard, renderRiskLevelsCard, renderRiskHeatCard } from "./risk-cards.mjs";
 import { renderRunningRoiCard } from "./roi-card.mjs";
 import { renderLongShortCard } from "./longshort-card.mjs";
+import { renderCostBasisCard } from "./cost-basis-card.mjs";
+// The cost-basis ladder card reads the full weekly history (not a stats field). Module-relative so it
+// resolves both in the bot (cwd=repo) and the Vercel og function (urpd-history.json is in includeFiles).
+const readUrpdHistory = () => { try { return JSON.parse(readFileSync(new URL("../../public/urpd-history.json", import.meta.url), "utf8")); } catch { return null; } };
 import { renderFireSaleRalliesCard } from "./firesale-rally-card.mjs";
 import { renderUnderwaterCard } from "./underwater-card.mjs";
 import { renderGoldenCrossCard } from "./goldencross-card.mjs";
@@ -905,7 +909,7 @@ export const CARD_TYPES = new Set([
   "firesalerally", "underwater", "goldencross", "holdergrowth", "multichain", "chainrace",
   "holderspair", "mvrvbtc", "mvrvtrend", "supplyprofit", "floormodel", "altmarket",
   "freefloat", "nupl", "concentration", "hodlwaves", "hodlcompare", "urpd", "bagsprofile", "urpdage",
-  "lthsth", "sopr", "nrpl", "liveliness", "valband", "walletgrowth", "picycle", "spxbitcoin", "spxcohort",
+  "lthsth", "sopr", "nrpl", "liveliness", "valband", "walletgrowth", "picycle", "spxbitcoin", "spxcohort", "costbasis",
   "cexsupply", "cexflow", "cexvenues", "cexvenflow", "cexsankey", "whalethennow", "whaleentry", "whales", "walletwaves", "wealthwaves", "survivorship", "supplyera", "exitmap", "smartmoney",
   "cyclesync", "cycleclock", "rsidots", "monthcompare", "ethsol", "chainconc", "illiquid", "baltier", "dualholders", "basesurv", "supplycurve", "whalecensus", "whalebehaviour", "whalemosaic", "citygrowth", "cityvalue", "citychurn", "citypercap", "cityvintage", "cityskyline", "turnover",
   // spec-driven generics
@@ -940,6 +944,7 @@ export function renderPostCard(post, stats, opts = {}) {
   if (type === "mvrvbtc") return renderMvrvBtcCard(stats, dims);
   if (type === "mvrvtrend") return renderMvrvTrendCard(stats, dims);
   if (type === "supplyprofit") return renderSupplyProfitCard(stats, dims);
+  if (type === "costbasis") { const h = readUrpdHistory(); return h ? renderCostBasisCard(h, dims) : null; }
   if (type === "citygrowth") return renderCityGrowthCard(stats, dims);
   if (type === "cityvalue") return renderCityValueCard(stats, dims);
   if (type === "citychurn") return renderCityChurnCard(stats, dims);

@@ -10,6 +10,7 @@ import { FNG_HISTORY } from "../../src/fng-history.js";
 import { mvrvHistory } from "../../src/mvrv-data.js";
 import { SPX_ONCHAIN } from "../../src/spx-onchain.js";
 import { SPX_URPD } from "../../src/spx-urpd.js";
+import { buildLadder, shareInProfit, hasCointime } from "../../src/cost-basis-ladder.js";
 import { CHAIN_WALLETS } from "../../src/chain-wallets.js";
 
 const POOL = "0x52c77b0cb827afbad022e6d6caf2c44452edbc39";
@@ -277,6 +278,22 @@ function loadUrpd() {
   return SPX_URPD;
 }
 
+// Cost-basis DISTRIBUTION over time (the percentile ladder) → a small summary for the `costbasis`
+// post text: median cost basis (p50) and the share of supply in profit at the LIVE price. The card
+// itself reads the full urpd-history.json; this is just the headline numbers. Gated (null) if absent.
+function loadCostBasis(livePrice) {
+  try {
+    const hist = JSON.parse(readFileSync(new URL("../../public/urpd-history.json", import.meta.url), "utf8"));
+    const lad = buildLadder(hist);
+    if (!lad || lad.rows.length < 20) return null;
+    const cur = lad.rows.at(-1);
+    const wk = hist.weeks.at(-1);
+    const spot = livePrice > 0 ? livePrice : cur.spot;
+    const prof = shareInProfit(hist.edges, wk.pct, spot);
+    return { median: cur.p50, spot, prof, top: cur.p95, bottom: cur.p20, hasCoin: hasCointime(hist) };
+  } catch { return null; }
+}
+
 // Crypto Fear & Greed line: the bundled FNG_HISTORY (past) MERGED with the daily `fng` the
 // snapshot cron banks into history.json, so the fngtrend line reaches TODAY instead of freezing
 // at the last re-bundle (same staleness fix as the S&P line). [[ts, value], …] ascending.
@@ -539,6 +556,8 @@ export function computeStats(price, dateStr = new Date().toISOString().slice(0, 
     onchain: onchainSeries, // FIFO on-chain series (per-lot age, supply-in-profit, concentration, gini, HODL waves, sopr, LTH/STH) — ETH-native
     fifo: onchainSeries, // alias — same single FIFO series (SOPR + LTH/STH cards read the sopr/lth fields)
     urpd: loadUrpd(), // cost-basis distribution snapshot (where held supply was acquired)
+    costBasis: loadCostBasis(price), // cost-basis ladder headline (median + % in profit) for the costbasis card
+
     chainWallets: loadChainWalletsSeries(), // multi-chain weekly wallet counts (ETH+Base+Solana), live JSON or bundle
     cohorts: loadCohortSurvival(), // wallet survival by arrival era (from the city time-machine)
     exitFlow: loadExitFlow(), // daily/weekly departures split by profit/loss (who's selling, at what price)

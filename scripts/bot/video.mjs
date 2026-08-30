@@ -2,11 +2,12 @@
 // the marker on the leading edge), then the marker pulses on a hold. resvg
 // renders the frames, ffmpeg encodes H.264. CI runners ship ffmpeg; locally we
 // fall back to the ffmpeg-static binary.
-import { writeFileSync, mkdirSync, rmSync } from "node:fs";
+import { writeFileSync, mkdirSync, rmSync, readFileSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import { Resvg } from "@resvg/resvg-js";
 import { rainbowSvg } from "../../src/rainbow-svg.js";
 import { lineCardSvg, cubeCardSvg, scaleCardSvg } from "./charts.mjs";
+import { costBasisSvg } from "./cost-basis-card.mjs";
 import { FONT } from "./font.mjs";
 
 // Prefer an explicit FFMPEG_PATH (e.g. the runner's system ffmpeg), then the
@@ -56,6 +57,14 @@ export function renderCubeVideo({ spec, draw = 7, hold = 3, fps = 30, out = "bot
 // rolling 1→huge (draw), then the origin ring pulses (hold).
 export function renderScaleVideo({ spec, draw = 8, hold = 2, fps = 30, out = "bot-video.mp4", dims = {} }) {
   return renderVideo({ draw, hold, fps, out, width: dims.W ?? 1200, svgAt: (r, p) => scaleCardSvg(spec, p == null ? { reveal: r, ...dims } : { reveal: 1, pulse: p, ...dims }) });
+}
+
+// Cost Basis Distribution: the percentile ladder builds launch→today (draw), then holds on the
+// finished card. Reads the full weekly history (module-relative → works in the bot). No pulse.
+const readUrpdHistory = () => JSON.parse(readFileSync(new URL("../../public/urpd-history.json", import.meta.url), "utf8"));
+export function renderCostBasisVideo({ draw = 7, hold = 2, fps = 30, out = "bot-video.mp4", dims = {} } = {}) {
+  const hist = readUrpdHistory();
+  return renderVideo({ draw, hold, fps, out, width: dims.W ?? 1080, svgAt: (r, p) => costBasisSvg(hist, p == null ? { reveal: r, ...dims } : { reveal: 1, ...dims }) });
 }
 
 // CLI: node scripts/bot/video.mjs [--draw=7 --hold=3 --out=rainbow.mp4]

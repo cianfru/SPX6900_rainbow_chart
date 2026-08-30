@@ -3,7 +3,7 @@
 // separate from charts.mjs so the Vercel OG function never pulls in ffmpeg.
 import { renderPostCard, PORTRAIT, isPortraitCard, isVideoCard } from "./charts.mjs";
 import { dimsForAR } from "./card-format.mjs";
-import { renderRainbowVideo, renderLineVideo, renderCubeVideo, renderScaleVideo } from "./video.mjs";
+import { renderRainbowVideo, renderLineVideo, renderCubeVideo, renderScaleVideo, renderCostBasisVideo } from "./video.mjs";
 
 // We animate only where motion is the message — the S&P scale zoom-out and the
 // cube stack (isVideoCard). Charts post as static images. opts.portrait renders
@@ -20,6 +20,7 @@ export async function buildMedia(post, stats, { video = false, out = "bot-previe
       const path = type === "rainbow" ? await renderRainbowVideo({ price: stats.price, out, dims })
         : type === "cube" ? await renderCubeVideo({ spec, out })
         : type === "scale" ? await renderScaleVideo({ spec, out, dims })
+        : type === "costbasis" ? await renderCostBasisVideo({ out, dims })
         : await renderLineVideo({ spec, out, dims, revealFromX: anim?.revealFromX });
       return { path, mediaType: "video/mp4", kind: "video", portrait };
     } catch (e) {
