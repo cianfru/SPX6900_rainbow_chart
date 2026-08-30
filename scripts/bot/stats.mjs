@@ -10,7 +10,7 @@ import { FNG_HISTORY } from "../../src/fng-history.js";
 import { mvrvHistory } from "../../src/mvrv-data.js";
 import { SPX_ONCHAIN } from "../../src/spx-onchain.js";
 import { SPX_URPD } from "../../src/spx-urpd.js";
-import { buildLadder, shareInProfit, hasCointime } from "../../src/cost-basis-ladder.js";
+import { buildLadder, shareInProfit, hasCointime, meanOf } from "../../src/cost-basis-ladder.js";
 import { CHAIN_WALLETS } from "../../src/chain-wallets.js";
 
 const POOL = "0x52c77b0cb827afbad022e6d6caf2c44452edbc39";
@@ -290,7 +290,8 @@ function loadCostBasis(livePrice) {
     const wk = hist.weeks.at(-1);
     const spot = livePrice > 0 ? livePrice : cur.spot;
     const prof = shareInProfit(hist.edges, wk.pct, spot);
-    return { median: cur.p50, spot, prof, top: cur.p95, bottom: cur.p20, hasCoin: hasCointime(hist) };
+    const mean = meanOf(hist.edges, wk.pct); // realized price (avg cost basis) — matches MVRV/floor charts
+    return { median: cur.p50, mean, spot, prof, top: cur.p95, bottom: cur.p20, hasCoin: hasCointime(hist) };
   } catch { return null; }
 }
 

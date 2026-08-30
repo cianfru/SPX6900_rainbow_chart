@@ -6,7 +6,7 @@ import { loadUrpdHistory } from "./history-data.js";
 import ChartZoomHint from "./ChartZoomHint.jsx";
 import { SANS, MONO, MAX_W, Metric, TipBox, ZoomBar, Explain, ViewTabs } from "./chart-ui.jsx";
 import { useDragZoom } from "./use-drag-zoom.js";
-import { buildLadder, shareInProfit, hasCointime, LADDER_PCTS, ladderColor } from "./cost-basis-ladder.js";
+import { buildLadder, shareInProfit, meanOf, hasCointime, LADDER_PCTS, ladderColor } from "./cost-basis-ladder.js";
 
 const fShort = t => new Date(t).toLocaleDateString("en-US", { month: "short", year: "2-digit" });
 const fFull = t => new Date(t).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
@@ -88,6 +88,10 @@ export default function CostBasisLadder({ isMobile, preview = false }) {
   if (!view) return <div style={{ textAlign: "center", fontFamily: SANS, color: "#64748b", padding: 60 }}>Not enough on-chain data yet.</div>;
 
   const cur = view.cur;
+  // realized price = the MEAN cost basis (what MVRV / the realized-price chart show). The median (p50)
+  // sits below it because the distribution is right-skewed (a cohort bought high near the tops).
+  const lastWk = hist.weeks.at(-1);
+  const realized = meanOf(hist.edges, lastWk[field] || lastWk.pct);
   const tabs = coinReady ? [["supply", "Supply-weighted"], ["cointime", "Cointime-weighted"]] : [["supply", "Supply-weighted"]];
 
   return (
@@ -95,12 +99,13 @@ export default function CostBasisLadder({ isMobile, preview = false }) {
       <Explain q="What did SPX6900 holders actually pay — and where does price sit in that?" accent="#f59e0b">
         Every coin's <strong style={{ color: "#e2e8f0" }}>cost basis</strong> (the price it was last acquired at) forms a distribution. These bands are its
         <strong style={{ color: "#e2e8f0" }}> percentiles</strong>: <strong style={{ color: "#f87171" }}>p95</strong> is where the dearest coins bought, <strong style={{ color: "#d946ef" }}>p20</strong> the cheapest, and
-        <strong style={{ color: "#e2e8f0" }}> p50</strong> is the median. When <strong style={{ color: "#f8fafc" }}>price</strong> rides above the top bands almost everyone is in profit; sinking into the low bands, those become real support — the prices people actually paid, not a drawn line.
+        <strong style={{ color: "#e2e8f0" }}> p50</strong> is the median. The <strong style={{ color: "#fbbf24" }}>realized price</strong> (the dashed amber line) is the <em>average</em> cost basis — the number MVRV uses; it sits <em>above</em> the median because a cohort bought high near the tops. When <strong style={{ color: "#f8fafc" }}>price</strong> rides above the top bands almost everyone is in profit; sinking into the low bands, those become real support — the prices people actually paid, not a drawn line.
       </Explain>
 
       <div style={{ display: "flex", gap: isMobile ? 16 : 30, justifyContent: "center", marginBottom: 12, flexWrap: "wrap" }}>
         <Metric label="price" value={usd(cur.spot)} color="#f8fafc" />
-        <Metric label="median cost basis" value={usd(cur.p50)} color="#fbbf24" sub="p50" />
+        {realized > 0 && <Metric label="realized price" value={usd(realized)} color="#fbbf24" sub="avg cost basis" />}
+        <Metric label="median" value={usd(cur.p50)} color="#7dd3fc" sub="p50 · half bought below" />
         <Metric label="in profit" value={cur.prof != null ? Math.round(cur.prof * 100) + "%" : "—"} color={cur.prof >= 0.5 ? "#4ade80" : "#fb7185"} sub={weight === "cointime" ? "cointime-weighted" : "of supply"} />
       </div>
 
@@ -125,6 +130,8 @@ export default function CostBasisLadder({ isMobile, preview = false }) {
             <Line type="monotone" dataKey="spot" stroke="#ffffff" strokeWidth={2.1} dot={false} isAnimationActive={false} name="price" />
             <ReferenceLine y={cur.spot} stroke="#ffffff" strokeWidth={1} strokeDasharray="4 5" strokeOpacity={0.5}
               label={preview ? undefined : { value: usd(cur.spot), position: "right", fill: "#f8fafc", fontSize: 10.5, fontFamily: MONO }} />
+            {realized > 0 && <ReferenceLine y={realized} stroke="#fbbf24" strokeWidth={1} strokeDasharray="2 5" strokeOpacity={0.7}
+              label={preview ? undefined : { value: "realized " + usd(realized), position: "insideTopLeft", fill: "#fbbf24", fontSize: 10.5, fontFamily: MONO }} />}
             {selL != null && selR != null && selL !== selR && (
               <ReferenceLine x={selL} stroke="#f59e0b" strokeOpacity={0.3} />
             )}

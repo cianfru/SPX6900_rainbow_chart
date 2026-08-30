@@ -956,8 +956,8 @@ ${under ? "Most holders are red — and still holding." : "Most of the float is 
     const prof = cb.prof != null ? Math.round(cb.prof * 100) : null;
     return {
       id: "costbasis",
-      text: ct`🌈 SPX6900's median holder bought at ${money(cb.median)}${prof != null ? ` — and ${prof}% of supply is in profit` : ""}.
-Every wallet's real cost basis, reconstructed on-chain as a percentile ladder from launch to today. The bands are the prices people actually paid, not a drawn line — price ${money(cb.spot)} weaves through them.
+      text: ct`🌈 SPX6900's realized price is ${money(cb.mean)} — the average holder's cost basis. The median wallet bought lower, at ${money(cb.median)}${prof != null ? `, and ${prof}% of supply is in profit` : ""}.
+Every wallet's real cost basis as a percentile ladder from launch to today — the bands are the prices people actually paid. Price ${money(cb.spot)} weaves through them.
 A valuation position, not a signal.`,
       card: { type: "costbasis" },
     };

@@ -7,7 +7,7 @@ import { Resvg } from "@resvg/resvg-js";
 import { FONT } from "./font.mjs";
 import { esc } from "./svg-util.mjs";
 import { brandStripe } from "./chrome.mjs";
-import { buildLadder, shareInProfit, LADDER_PCTS, ladderColor } from "../../src/cost-basis-ladder.js";
+import { buildLadder, shareInProfit, meanOf, LADDER_PCTS, ladderColor } from "../../src/cost-basis-ladder.js";
 
 const png = (svg, w) => new Resvg(svg, { fitTo: { mode: "width", value: w }, font: FONT }).render().asPng();
 const usd = v => !(v > 0) ? "—" : v >= 1000 ? "$" + Math.round(v).toLocaleString() : v >= 1 ? "$" + v.toFixed(2) : v >= 0.01 ? "$" + v.toFixed(3) : "$" + v.toFixed(5);
@@ -31,6 +31,7 @@ export function costBasisSvg(hist, opts = {}) {
   const cur = vis.at(-1);
   const wk = hist.weeks.find(w => w.d === new Date(cur.ts).toISOString().slice(0, 10)) || hist.weeks.at(-1);
   const prof = shareInProfit(hist.edges, wk[field] || wk.pct, cur.spot);
+  const realized = meanOf(hist.edges, wk[field] || wk.pct); // mean cost basis = realized price (MVRV's number)
 
   const W = opts.W ?? 1080, H = opts.H ?? 1080;
   const mL = 128, mR = 196, mT = 232, mB = 104, pW = W - mL - mR, pH = H - mT - mB;
@@ -88,16 +89,18 @@ ${brandStripe(H)}
 <text x="60" y="76" fill="#f8fafc" font-size="40" font-weight="800" font-family="sans-serif" letter-spacing="0.4">SPX6900 — COST BASIS DISTRIBUTION</text>
 <text x="60" y="120" fill="#c8d1de" font-size="24" font-family="sans-serif">Where every holder bought — a percentile ladder, price woven through.</text>
 <rect x="60" y="150" width="${W - 120}" height="4" rx="2" fill="url(#cbRb)"/>
-<text x="60" y="200" fill="#f8fafc" font-size="29" font-weight="800" font-family="sans-serif">price ${esc(usd(cur.spot))}</text>
-<text x="315" y="200" fill="#fbbf24" font-size="29" font-weight="800" font-family="sans-serif">median cost basis ${esc(usd(cur.p50))}</text>
-${heroPct != null ? `<text x="770" y="200" fill="${heroPct >= 50 ? "#4ade80" : "#fb7185"}" font-size="29" font-weight="800" font-family="sans-serif">${heroPct}% in profit</text>` : ""}
+<text x="60" y="200" fill="#f8fafc" font-size="25" font-weight="800" font-family="sans-serif">price ${esc(usd(cur.spot))}</text>
+${realized > 0 ? `<text x="278" y="200" fill="#fbbf24" font-size="25" font-weight="800" font-family="sans-serif">realized ${esc(usd(realized))}</text>` : ""}
+<text x="540" y="200" fill="#7dd3fc" font-size="25" font-weight="800" font-family="sans-serif">median ${esc(usd(cur.p50))}</text>
+${heroPct != null ? `<text x="775" y="200" fill="${heroPct >= 50 ? "#4ade80" : "#fb7185"}" font-size="25" font-weight="800" font-family="sans-serif">${heroPct}% in profit</text>` : ""}
 ${grid}${xlab}
 ${bands}
 <line x1="${mL}" y1="${nowY}" x2="${mL + pW}" y2="${nowY}" stroke="#ffffff" stroke-width="1.6" stroke-opacity="0.45" stroke-dasharray="5 6"/>
+${realized > 0 ? `<line x1="${mL}" y1="${y(realized).toFixed(1)}" x2="${mL + pW}" y2="${y(realized).toFixed(1)}" stroke="#fbbf24" stroke-width="1.6" stroke-opacity="0.7" stroke-dasharray="2 6"/><text x="${mL + 8}" y="${(y(realized) - 7).toFixed(1)}" fill="#fbbf24" font-size="18" font-weight="700" font-family="sans-serif">realized price (avg) ${esc(usd(realized))}</text>` : ""}
 ${priceLine}
 ${sweep}
 ${pills}
-<text x="60" y="${H - 26}" fill="#8592a6" font-size="17" font-family="sans-serif">${esc("spx6900rainbow.xyz · percentiles of the on-chain cost basis (FIFO, ETH-native) · not financial advice")}</text>
+<text x="60" y="${H - 26}" fill="#8592a6" font-size="16" font-family="sans-serif">${esc("spx6900rainbow.xyz · realized = average cost basis (what MVRV uses); the median sits lower · not financial advice")}</text>
 </svg>`;
 }
 

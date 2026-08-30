@@ -55,6 +55,21 @@ export function shareInProfit(edges, weights, spot) {
   return total > 0 ? below / total : null;
 }
 
+// Supply-weighted MEAN of the distribution — the realized price (average cost basis, what MVRV uses).
+// Distinct from the median (p50): a right-skewed distribution (a cohort that bought high) pulls the
+// mean ABOVE the median. Returns null if the histogram is empty.
+export function meanOf(edges, weights) {
+  if (!Array.isArray(edges) || !Array.isArray(weights) || weights.length + 1 !== edges.length) return null;
+  let tot = 0, sum = 0;
+  for (let i = 0; i < weights.length; i++) {
+    const w = weights[i] > 0 ? weights[i] : 0;
+    if (!w) continue;
+    sum += w * Math.sqrt(edges[i] * edges[i + 1]);   // bucket geometric midpoint
+    tot += w;
+  }
+  return tot > 0 ? sum / tot : null;
+}
+
 // Does the history carry the cointime-weighted field yet? (Data-gates the "Cointime" toggle.)
 export function hasCointime(hist) {
   return !!hist?.weeks?.some(w => Array.isArray(w.pctCoin) && w.pctCoin.some(x => x > 0));
