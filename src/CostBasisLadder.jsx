@@ -144,7 +144,7 @@ export default function CostBasisLadder({ isMobile, preview = false }) {
       )}
 
       <div className="chart-caption" style={{ fontFamily: SANS, fontSize: 12.5, color: "#64748b", textAlign: "center", marginTop: 14, lineHeight: 1.65, maxWidth: 940, marginInline: "auto" }}>
-        Percentiles of the on-chain cost-basis distribution (FIFO lot prices of currently-held supply), weekly, log price axis.
+        Percentiles of the on-chain cost-basis distribution (FIFO lot prices of currently-held supply), daily, log price axis.
         {" "}{weight === "cointime" ? "Cointime-weighted: each coin counts by amount × days held, so long-held conviction supply dominates." : "Supply-weighted: every coin counts equally."}
         {" "}ETH-native (Base/Solana are Wormhole-bridged and can't be cost-traced). A valuation position, not a signal. Drag to zoom. Not financial advice.
       </div>

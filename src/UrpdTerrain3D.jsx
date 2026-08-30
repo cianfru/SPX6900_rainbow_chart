@@ -18,8 +18,20 @@ import { SANS, MONO } from "./chart-ui.jsx";
 const fp = p => p >= 1 ? "$" + p.toFixed(1) : p >= 0.01 ? "$" + p.toFixed(2) : "$" + p.toFixed(3);
 const GREEN = [0.13, 0.77, 0.37], RED = [0.98, 0.44, 0.52];
 
+// The cost-basis history is now DAILY (~1000+ slices). The terrain is a coarse landscape, so
+// downsample it to ~weekly here — 7× fewer slices keeps the 3D light and readable while the 2D
+// ladder (CostBasisLadder) uses the full daily resolution off the same file.
+function toWeekly(weeks) {
+  if (!Array.isArray(weeks) || weeks.length <= 180) return weeks;
+  const stride = Math.ceil(weeks.length / 180);
+  const out = weeks.filter((_, i) => i % stride === 0);
+  if (out[out.length - 1] !== weeks[weeks.length - 1]) out.push(weeks[weeks.length - 1]); // always keep the live edge
+  return out;
+}
+
 function buildScene(el, hist, isMobile) {
-  const { weeks, edges, nBuckets } = hist;
+  const { edges, nBuckets } = hist;
+  const weeks = toWeekly(hist.weeks);
   const nW = weeks.length, nB = nBuckets;
   const price = Array.from({ length: nB }, (_, i) => Math.sqrt(edges[i] * edges[i + 1]));
   const loLog = Math.log(hist.pMin), span = (Math.log(hist.pMax) - loLog) || 1;

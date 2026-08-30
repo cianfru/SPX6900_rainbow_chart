@@ -1066,7 +1066,11 @@ async function main() {
 
   const { rows, urpd, whales, urpdHistory, selfMoves, entities } = replayFifo(transfers, priceAt, grid, { externalAddrs, thresholdDays: Number(args.threshold ?? 90), collectUrpd: true, urpdBuckets: Number(args.buckets ?? 72), collectWhales: true,
     collectEntities: true,
-    collectUrpdHistory: true, urpdHistBuckets: Number(args.urpdhist_buckets ?? 40), urpdHistStride: args.daily ? 7 : 1,
+    // Emit the cost-basis history at the FULL grid cadence (daily under --daily). The Cost Basis
+    // Distribution ladder wants every day; the 3D terrain, which only needs a coarse landscape,
+    // downsamples client-side. (Was stride 7 = weekly, sized for the terrain — that threw away 6 of
+    // every 7 days the FIFO engine already computes.)
+    collectUrpdHistory: true, urpdHistBuckets: Number(args.urpdhist_buckets ?? 40), urpdHistStride: 1,
     whaleTop: Number(args.whales_top ?? 8000),
     minTokens: Number(args.whale_min ?? 5000),
     minDays: Number(args.whale_days ?? 90),
