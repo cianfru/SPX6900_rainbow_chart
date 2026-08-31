@@ -87,7 +87,7 @@ function rock(x, y, s) {
 }
 
 function scene({ W, H, carLane, camLane, band, date, price, scroll, progress, curve, hill, traffic, lean, carImg, carAspect }) {
-  const hy = H * 0.4, zN = 1, zF = 11;                             // higher horizon + flatter (OutRun angle)
+  const hy = H * 0.47, zN = 1, zF = 9;                             // lower horizon + shallower plane → a near-eye rear-view angle that matches a flat-backed car
   const ds = t => zN / (zN + (zF - zN) * t);                       // depth scale (1 near → small far)
   const yOf = t => hy + (H - hy) * ds(t) - hill * Math.sin(t * Math.PI) * H * 0.05;
   const laneW = t => (W * 0.9 / VIS) * ds(t);                      // wide lanes
@@ -187,7 +187,7 @@ function scene({ W, H, carLane, camLane, band, date, price, scroll, progress, cu
     for (const dx of [-cw * 0.28, cw * 0.28])
       s += `<line x1="${r1(carX + dx)}" y1="${r1(carY + ih * 0.5)}" x2="${r1(carX + dx - lean * cw * 0.4)}" y2="${r1(carY + ih * 0.5 + cw * 0.22)}" stroke="rgba(15,15,20,0.3)" stroke-width="${r1(cw * 0.05)}" stroke-linecap="round"/>`;
   const carSprite = carImg
-    ? `<image href="${carImg}" x="${r1(-iw / 2)}" y="${r1(-ih / 2)}" width="${r1(iw)}" height="${r1(ih)}" transform="rotate(${r1(lean * 6)})" preserveAspectRatio="xMidYMid meet"/>`
+    ? `<image href="${carImg}" x="${r1(-iw / 2)}" y="${r1(-ih / 2)}" width="${r1(iw)}" height="${r1(ih)}" transform="rotate(${r1(lean * 6)})" preserveAspectRatio="xMidYMid meet" image-rendering="pixelated"/>`
     : playerCar(cw, clamp(lean, -1, 1));
   s += `<g transform="translate(${r1(carX)},${r1(carY)})">${carSprite}</g>`;
 
@@ -228,6 +228,10 @@ ${scene({ ...state, W, H })}
 async function main() {
   const fmt = FORMATS[arg("format", "vertical")] || FORMATS.vertical;
   const fps = +arg("fps", "30"), seconds = +arg("seconds", "30"), out = arg("out", "out/rainbow-road.mp4"), from = arg("from", "");
+  // --pixel=N: render every frame at 1/N resolution, then nearest-neighbour upscale ×N in ffmpeg so the
+  // WHOLE scene shares one chunky pixel grid (matches the low-res car → one coherent OutRun world). N=1 = crisp.
+  const PIX = Math.max(1, Math.round(+arg("pixel", "3")));
+  const RW = Math.round(fmt.W / PIX);                              // low-res render width; ffmpeg blows it back up
   mkdirSync(dirname(out), { recursive: true });
   // optional --car=path.png (or .svg): a supplied car sprite (rear view, transparent bg) replaces the
   // vector car — embedded as a data URI so it rides in every frame.
@@ -274,12 +278,13 @@ async function main() {
         v.lane += (r.want - v.lane) * 0.12;
       }
       const st = { carLane, camLane, band: curr.band, date: curr.date, price: curr.price, scroll: (i * 0.62 / fps) % 1, progress: p, curve: Math.sin(p * Math.PI * 6) * 0.4, hill: Math.sin(p * Math.PI * 4 + 1) * 0.55, traffic, lean, carImg, carAspect };
-      writeFileSync(join(dir, `f${String(i).padStart(5, "0")}.png`), new Resvg(svg(st, fmt.W, fmt.H), { fitTo: { mode: "width", value: fmt.W }, font: FONT }).render().asPng());
+      writeFileSync(join(dir, `f${String(i).padStart(5, "0")}.png`), new Resvg(svg(st, fmt.W, fmt.H), { fitTo: { mode: "width", value: RW }, font: FONT }).render().asPng());
       if (i % 30 === 0) process.stdout.write(`\r  frame ${i + 1}/${total}`);
     }
     process.stdout.write(`\r  frame ${total}/${total}\n`);
     const ff = execSync('python3 -c "import imageio_ffmpeg;print(imageio_ffmpeg.get_ffmpeg_exe())"').toString().trim();
-    await new Promise((res, rej) => spawn(ff, ["-y", "-framerate", String(fps), "-i", join(dir, "f%05d.png"), "-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "18", "-preset", "medium", "-movflags", "+faststart", out], { stdio: ["ignore", "ignore", "inherit"] }).on("close", c => c === 0 ? res() : rej(new Error("ffmpeg " + c))));
+    const vf = PIX > 1 ? ["-vf", `scale=${fmt.W}:${fmt.H}:flags=neighbor`] : [];   // nearest-neighbour blow-up = hard pixels
+    await new Promise((res, rej) => spawn(ff, ["-y", "-framerate", String(fps), "-i", join(dir, "f%05d.png"), ...vf, "-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "18", "-preset", "medium", "-movflags", "+faststart", out], { stdio: ["ignore", "ignore", "inherit"] }).on("close", c => c === 0 ? res() : rej(new Error("ffmpeg " + c))));
     console.log(`✓ ${out}`);
   } finally { rmSync(dir, { recursive: true, force: true }); }
 }
