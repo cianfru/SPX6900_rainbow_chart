@@ -26,19 +26,29 @@ const r1 = v => Number(v).toFixed(1);
 const bandCol = i => BAND_LABELS[clamp(Math.round(i), 0, N - 1)].c;
 
 // ── sprites (rear view) ──
+// A Testarossa-inspired convertible, rear view: wide low stance, the couple in the open cockpit, and
+// the signature full-width horizontal tail slats. A homage — not the ripped sprite.
 function playerCar(w, lean) {
-  const h = w * 0.86, hw = w / 2, b = h * 0.5, roofW = w * 0.58, roofTop = -h * 0.54;
+  const hw = w / 2, h = w * 0.74, b = h * 0.5, deckTop = -h * 0.34, screenTop = -h * 0.62, screenW = w * 0.5;
+  let slats = "";
+  for (let i = 0; i < 5; i++) slats += `<rect x="${r1(-hw * 0.82)}" y="${r1(b - h * 0.42 + i * h * 0.07)}" width="${r1(hw * 1.64)}" height="${r1(h * 0.035)}" rx="2" fill="${i % 2 ? "#ff4d4d" : "#3a0d10"}"/>`;
   return `<g transform="rotate(${(lean * 7).toFixed(2)})">
-    <ellipse cx="0" cy="${r1(b + 6)}" rx="${r1(hw * 1.08)}" ry="${r1(w * 0.1)}" fill="rgba(0,0,0,0.4)"/>
-    <rect x="${r1(-hw)}" y="${r1(b - h * 0.2)}" width="${r1(w * 0.15)}" height="${r1(h * 0.22)}" rx="4" fill="#111"/>
-    <rect x="${r1(hw * 0.85)}" y="${r1(b - h * 0.2)}" width="${r1(w * 0.15)}" height="${r1(h * 0.22)}" rx="4" fill="#111"/>
-    <circle cx="${r1(-w * 0.12)}" cy="${r1(roofTop + h * 0.03)}" r="${r1(w * 0.085)}" fill="#8a5a3a"/>
-    <circle cx="${r1(w * 0.12)}" cy="${r1(roofTop + h * 0.03)}" r="${r1(w * 0.085)}" fill="#f2d16b"/>
-    <path d="M ${-roofW / 2} ${roofTop} L ${roofW / 2} ${roofTop} L ${hw} ${b} L ${-hw} ${b} Z" fill="url(#carbody)" stroke="#5a0b12" stroke-width="2"/>
-    <path d="M ${r1(-roofW / 2.1)} ${r1(roofTop + h * 0.03)} L ${r1(roofW / 2.1)} ${r1(roofTop + h * 0.03)} L ${r1(roofW / 1.5)} ${r1(-h * 0.16)} L ${r1(-roofW / 1.5)} ${r1(-h * 0.16)} Z" fill="#0c0f16" opacity="0.92"/>
-    <rect x="${r1(-hw * 0.92)}" y="${r1(b - h * 0.3)}" width="${r1(w * 0.24)}" height="${r1(h * 0.1)}" rx="4" fill="#ff3b3b"/>
-    <rect x="${r1(hw * 0.68)}" y="${r1(b - h * 0.3)}" width="${r1(w * 0.24)}" height="${r1(h * 0.1)}" rx="4" fill="#ff3b3b"/>
-    <rect x="${r1(-hw * 0.55)}" y="${r1(b - h * 0.1)}" width="${r1(w * 1.1 - hw)}" height="${r1(h * 0.05)}" rx="3" fill="#1a1a20"/>
+    <ellipse cx="0" cy="${r1(b + 5)}" rx="${r1(hw * 1.12)}" ry="${r1(w * 0.1)}" fill="rgba(0,0,0,0.4)"/>
+    <rect x="${r1(-hw * 1.02)}" y="${r1(b - h * 0.2)}" width="${r1(w * 0.16)}" height="${r1(h * 0.24)}" rx="4" fill="#141414"/>
+    <rect x="${r1(hw * 0.86)}" y="${r1(b - h * 0.2)}" width="${r1(w * 0.16)}" height="${r1(h * 0.24)}" rx="4" fill="#141414"/>
+    <!-- couple in the open cockpit -->
+    <circle cx="${r1(-w * 0.13)}" cy="${r1(screenTop + h * 0.06)}" r="${r1(w * 0.088)}" fill="#8a5a3a"/>
+    <circle cx="${r1(w * 0.13)}" cy="${r1(screenTop + h * 0.06)}" r="${r1(w * 0.088)}" fill="#f2d16b"/>
+    <!-- windshield frame + deck -->
+    <path d="M ${r1(-screenW / 2)} ${r1(screenTop)} L ${r1(screenW / 2)} ${r1(screenTop)} L ${r1(screenW / 1.55)} ${r1(deckTop)} L ${r1(-screenW / 1.55)} ${r1(deckTop)} Z" fill="#0c0f16" opacity="0.9"/>
+    <!-- wide wedge body -->
+    <path d="M ${r1(-hw * 0.8)} ${r1(deckTop)} Q ${r1(-hw * 1.02)} ${r1(deckTop + h * 0.3)} ${r1(-hw)} ${b} L ${r1(hw)} ${b} Q ${r1(hw * 1.02)} ${r1(deckTop + h * 0.3)} ${r1(hw * 0.8)} ${r1(deckTop)} Z" fill="url(#carbody)" stroke="#5a0b12" stroke-width="2"/>
+    <!-- side strakes hint -->
+    <rect x="${r1(-hw * 0.98)}" y="${r1(b - h * 0.24)}" width="${r1(hw * 0.14)}" height="${r1(h * 0.14)}" rx="2" fill="#7a0d16"/>
+    <rect x="${r1(hw * 0.84)}" y="${r1(b - h * 0.24)}" width="${r1(hw * 0.14)}" height="${r1(h * 0.14)}" rx="2" fill="#7a0d16"/>
+    <!-- the signature full-width tail slats -->
+    <rect x="${r1(-hw * 0.84)}" y="${r1(b - h * 0.45)}" width="${r1(hw * 1.68)}" height="${r1(h * 0.4)}" rx="4" fill="#120507"/>
+    ${slats}
   </g>`;
 }
 function truck(w) {
