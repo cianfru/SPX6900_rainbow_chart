@@ -146,10 +146,12 @@ function scene({ W, H, carLane, camLane, band, date, price, scroll, progress, cu
     const t = v.z, w = laneW(t) * (v.type === "truck" ? 0.82 : 0.72), x = laneX(v.lane + 0.5, t), yv = yOf(t);
     s += `<g transform="translate(${r1(x)},${r1(yv - w * 0.5)})">${v.type === "truck" ? truck(w) : trafficCar(w, v.col)}</g>`;
   }
-  const tCar = 0.03, cw = laneW(tCar) * 0.98, carX = laneX(carLane + 0.5, tCar), carY = yOf(tCar) - cw * 0.5 - 26;
-  if (Math.abs(lean) > 0.15)   // two tyre streaks trailing behind on a lane change
-    for (const dx of [-cw * 0.34, cw * 0.34])
-      s += `<line x1="${r1(carX + dx)}" y1="${r1(carY + cw * 0.44)}" x2="${r1(carX + dx - lean * cw * 0.8)}" y2="${r1(carY + cw * 0.44 + cw * 0.55)}" stroke="rgba(15,15,20,0.45)" stroke-width="${r1(cw * 0.07)}" stroke-linecap="round"/>`;
+  // OutRun camera height: the car sits LOW + CLOSE, so it's big in the lower-centre (a fixed fraction
+  // of the frame, not tied to the far-shrinking lane width). It still tracks its lane (band).
+  const tCar = 0.02, cw = W * 0.21, carX = laneX(carLane + 0.5, tCar), carY = yOf(tCar) - cw * 0.34;
+  if (Math.abs(lean) > 0.2)   // two short tyre streaks trailing behind on a lane change
+    for (const dx of [-cw * 0.3, cw * 0.3])
+      s += `<line x1="${r1(carX + dx)}" y1="${r1(carY + cw * 0.42)}" x2="${r1(carX + dx - lean * cw * 0.45)}" y2="${r1(carY + cw * 0.42 + cw * 0.3)}" stroke="rgba(15,15,20,0.32)" stroke-width="${r1(cw * 0.06)}" stroke-linecap="round"/>`;
   const carSprite = carImg
     ? `<image href="${carImg}" x="${r1(-cw / 2)}" y="${r1(-cw / 2)}" width="${r1(cw)}" height="${r1(cw)}" transform="rotate(${r1(lean * 7)})" preserveAspectRatio="xMidYMid meet"/>`
     : playerCar(cw, clamp(lean, -1, 1));
