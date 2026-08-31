@@ -86,15 +86,16 @@ function rock(x, y, s) {
   return `<g><ellipse cx="${r1(x)}" cy="${r1(y + 2)}" rx="${r1(r * 1.15)}" ry="${r1(r * 0.3)}" fill="rgba(0,0,0,0.2)"/><path d="M ${r1(x - r)} ${r1(y)} Q ${r1(x - r * 1.1)} ${r1(y - r * 0.9)} ${r1(x - r * 0.2)} ${r1(y - r)} Q ${r1(x + r * 0.9)} ${r1(y - r * 1.1)} ${r1(x + r)} ${r1(y)} Z" fill="#8b8f98"/><path d="M ${r1(x - r * 0.2)} ${r1(y - r)} Q ${r1(x + r * 0.9)} ${r1(y - r * 1.1)} ${r1(x + r)} ${r1(y)} L ${r1(x + r * 0.2)} ${r1(y)} Z" fill="#6b7079"/><ellipse cx="${r1(x - r * 0.35)}" cy="${r1(y - r * 0.55)}" rx="${r1(r * 0.28)}" ry="${r1(r * 0.2)}" fill="#a7abb3"/></g>`;
 }
 
-function scene({ W, H, carLane, camLane, band, date, price, scroll, progress, curve, hill, traffic, lean, carImg }) {
-  const hy = H * 0.34, zN = 1, zF = 16;
+function scene({ W, H, carLane, camLane, band, date, price, scroll, progress, curve, hill, traffic, lean, carImg, carAspect }) {
+  const hy = H * 0.4, zN = 1, zF = 11;                             // higher horizon + flatter (OutRun angle)
   const ds = t => zN / (zN + (zF - zN) * t);                       // depth scale (1 near → small far)
   const yOf = t => hy + (H - hy) * ds(t) - hill * Math.sin(t * Math.PI) * H * 0.05;
   const laneW = t => (W * 0.9 / VIS) * ds(t);                      // wide lanes
   const centerX = t => W / 2 + curve * (t * t) * (W * 0.42);       // winding
   const laneX = (L, t) => centerX(t) + (L - camLane) * laneW(t);
   const M = 34, ts = Array.from({ length: M + 1 }, (_, k) => k / M);
-  const yH = yOf(1), y0 = yOf(0), col = i => BAND_LABELS[clamp(i, 0, N - 1)].c;
+  // FLIPPED colours: screen-left is the DEAR end (Max Bubble), screen-right is the CHEAP end (Fire Sale)
+  const yH = yOf(1), y0 = yOf(0), col = i => BAND_LABELS[clamp(N - 1 - i, 0, N - 1)].c;
   const glow = bandCol(band);
 
   // ── sky, sun, clouds ──
@@ -178,13 +179,15 @@ function scene({ W, H, carLane, camLane, band, date, price, scroll, progress, cu
   // of the frame, not tied to the far-shrinking lane width). It still tracks its lane (band).
   // GUARDRAIL: even if SPX drops below the Fire Sale floor (or runs past Max Bubble), the car body is
   // hard-clamped between the rumble edges so it never drives onto the grass.
-  const tCar = 0.02, cw = W * 0.21, carY = yOf(tCar) - cw * 0.34;
+  const tCar = 0.02, cw = carImg ? W * 0.26 : W * 0.21;             // the real sprite reads a touch bigger
+  const iw = cw, ih = carImg && carAspect > 0 ? cw / carAspect : cw;
+  const carY = yOf(tCar) - ih * 0.42;
   const carX = clamp(laneX(carLane + 0.5, tCar), laneX(eL, tCar) + cw * 0.5, laneX(eR, tCar) - cw * 0.5);
   if (Math.abs(lean) > 0.2)   // two short tyre streaks trailing behind on a lane change
-    for (const dx of [-cw * 0.3, cw * 0.3])
-      s += `<line x1="${r1(carX + dx)}" y1="${r1(carY + cw * 0.42)}" x2="${r1(carX + dx - lean * cw * 0.45)}" y2="${r1(carY + cw * 0.42 + cw * 0.3)}" stroke="rgba(15,15,20,0.32)" stroke-width="${r1(cw * 0.06)}" stroke-linecap="round"/>`;
+    for (const dx of [-cw * 0.28, cw * 0.28])
+      s += `<line x1="${r1(carX + dx)}" y1="${r1(carY + ih * 0.5)}" x2="${r1(carX + dx - lean * cw * 0.4)}" y2="${r1(carY + ih * 0.5 + cw * 0.22)}" stroke="rgba(15,15,20,0.3)" stroke-width="${r1(cw * 0.05)}" stroke-linecap="round"/>`;
   const carSprite = carImg
-    ? `<image href="${carImg}" x="${r1(-cw / 2)}" y="${r1(-cw / 2)}" width="${r1(cw)}" height="${r1(cw)}" transform="rotate(${r1(lean * 7)})" preserveAspectRatio="xMidYMid meet"/>`
+    ? `<image href="${carImg}" x="${r1(-iw / 2)}" y="${r1(-ih / 2)}" width="${r1(iw)}" height="${r1(ih)}" transform="rotate(${r1(lean * 6)})" preserveAspectRatio="xMidYMid meet"/>`
     : playerCar(cw, clamp(lean, -1, 1));
   s += `<g transform="translate(${r1(carX)},${r1(carY)})">${carSprite}</g>`;
 
@@ -228,8 +231,14 @@ async function main() {
   mkdirSync(dirname(out), { recursive: true });
   // optional --car=path.png (or .svg): a supplied car sprite (rear view, transparent bg) replaces the
   // vector car — embedded as a data URI so it rides in every frame.
-  let carImg = null; const carPath = arg("car", "");
-  if (carPath) { const { readFileSync } = await import("node:fs"); const b = readFileSync(carPath); const mime = carPath.endsWith(".svg") ? "image/svg+xml" : carPath.endsWith(".webp") ? "image/webp" : carPath.endsWith(".jpg") || carPath.endsWith(".jpeg") ? "image/jpeg" : "image/png"; carImg = `data:${mime};base64,${b.toString("base64")}`; console.log(`using supplied car: ${carPath}`); }
+  let carImg = null, carAspect = 0; const carPath = arg("car", "");
+  if (carPath) {
+    const { readFileSync } = await import("node:fs"); const b = readFileSync(carPath);
+    const mime = carPath.endsWith(".svg") ? "image/svg+xml" : carPath.endsWith(".webp") ? "image/webp" : carPath.endsWith(".jpg") || carPath.endsWith(".jpeg") ? "image/jpeg" : "image/png";
+    carImg = `data:${mime};base64,${b.toString("base64")}`;
+    if (mime === "image/png" && b.length > 24 && b.readUInt32BE(12) === 0x49484452) carAspect = b.readUInt32BE(16) / b.readUInt32BE(20); // IHDR w/h
+    console.log(`using supplied car: ${carPath}${carAspect ? ` (aspect ${carAspect.toFixed(2)})` : ""}`);
+  }
   const m = buildModel(DEFAULT_RAW);
   let seq = DEFAULT_RAW.map(r => ({ date: r.date, price: r.price, band: clamp(bandIndex(m, r.price, dayN(r.date)), 0, N - 1) }));
   if (from) seq = seq.filter(r => r.date >= from);
@@ -237,35 +246,34 @@ async function main() {
   const rnd = (() => { let s = 12345; return () => (s = (s * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff; })();
   const cols = ["#38bdf8", "#a3e635", "#f472b6", "#fbbf24"];
   const DZ = 1.3, camClamp = v => clamp(v, VIS / 2 - 0.8, (N - 1) - (VIS / 2 - 0.8));  // dead-zone + edge reveal
-  // traffic spawns AWAY from the car (outer lanes) so the Testarossa never drives into it
-  const spawnLane = cam => clamp(Math.round(cam) + (rnd() < 0.5 ? -1 : 1) * (2 + Math.floor(rnd() * 2)), 0, N - 1);
-  let carLane = seq[0].band, camLane = camClamp(seq[0].band), prevCar = carLane;
-  let traffic = Array.from({ length: 3 }, (_, i) => ({ z: 0.4 + i * 0.22, lane: spawnLane(camLane), type: rnd() < 0.3 ? "truck" : "car", col: cols[i % cols.length] }));
+  const MINGAP = 2.3;                              // traffic stays this many lanes clear of the car — never a hit
+  // the car's SCREEN lane is the FLIPPED band (Max Bubble left … Fire Sale right)
+  const screenLane = band => (N - 1) - band;
+  const sideFor = (cl, side, off) => { let want = clamp(cl + side * (MINGAP + off), 0, N - 1); if (Math.abs(want - cl) < MINGAP - 0.15) { side = -side; want = clamp(cl + side * (MINGAP + off), 0, N - 1); } return { want, side }; };
+  let carLane = screenLane(seq[0].band), camLane = camClamp(carLane), prevCar = carLane;
+  let traffic = Array.from({ length: 3 }, (_, i) => ({ z: 0.4 + i * 0.24, side: i % 2 ? 1 : -1, off: rnd() * 1.8, lane: carLane, type: rnd() < 0.3 ? "truck" : "car", col: cols[i % cols.length] }));
 
   const dir = mkdtempSync(join(tmpdir(), "lanevid-"));
-  console.log(`rainbow road v3 (fixed rainbow) · ${fmt.W}×${fmt.H} · ${fps}fps · ${seconds}s (${total}f) · ${seq.length} weeks → ${out}`);
+  console.log(`rainbow road v6 (flipped + real car) · ${fmt.W}×${fmt.H} · ${fps}fps · ${seconds}s (${total}f) · ${seq.length} weeks → ${out}`);
   try {
     for (let i = 0; i < total; i++) {
       const p = i / (total - 1), curr = bandAt(p);
-      prevCar = carLane; carLane = clamp(carLane + (curr.band - carLane) * 0.10, 0, N - 1);
+      prevCar = carLane; carLane = clamp(carLane + (screenLane(curr.band) - carLane) * 0.10, 0, N - 1);
       // dead-zone camera: the car moves freely in the central zone; the camera only pans (revealing the
-      // off-screen lanes) once it leaves that zone. Colours stay world-fixed, so the rainbow never flips.
+      // off-screen lanes) once it leaves that zone.
       if (carLane - camLane > DZ) camLane += (carLane - DZ - camLane) * 0.12;
       else if (carLane - camLane < -DZ) camLane += (carLane + DZ - camLane) * 0.12;
       camLane = camClamp(camLane);
       const lean = clamp((carLane - prevCar) * 6, -1, 1);
-      // traffic approaches; recycle past vehicles far away in an outer lane, and keep any near vehicle
-      // clear of the car's lane so it's an overtake, never a crash
+      // traffic ALWAYS keeps ≥ MINGAP lanes from the car (its own side), so the Testarossa overtakes it on
+      // the side and can never crash into it. Vehicles recycle to the far distance when passed.
       for (const v of traffic) {
         v.z -= 0.7 / fps;
-        if (v.z < 0.0) { v.z = 1; v.lane = spawnLane(camLane); v.type = rnd() < 0.3 ? "truck" : "car"; v.col = cols[Math.floor(rnd() * cols.length)]; }
-        else if (v.z < 0.55 && Math.abs(v.lane - carLane) < 1.8) {   // getting close AND laterally near → pull aside so the car overtakes, never hits
-          let side = v.lane >= carLane ? 1 : -1;
-          if (carLane + side * 1.8 > N - 1 || carLane + side * 1.8 < 0) side = -side;   // stay on the rainbow
-          v.lane += (clamp(carLane + side * 1.8, 0, N - 1) - v.lane) * 0.3;
-        }
+        if (v.z < 0.0) { v.z = 1; v.off = rnd() * 1.8; v.type = rnd() < 0.3 ? "truck" : "car"; v.col = cols[Math.floor(rnd() * cols.length)]; }
+        const r = sideFor(carLane, v.side, v.off); v.side = r.side;
+        v.lane += (r.want - v.lane) * 0.12;
       }
-      const st = { carLane, camLane, band: curr.band, date: curr.date, price: curr.price, scroll: (i * 0.62 / fps) % 1, progress: p, curve: Math.sin(p * Math.PI * 6) * 0.4, hill: Math.sin(p * Math.PI * 4 + 1) * 0.55, traffic, lean, carImg };
+      const st = { carLane, camLane, band: curr.band, date: curr.date, price: curr.price, scroll: (i * 0.62 / fps) % 1, progress: p, curve: Math.sin(p * Math.PI * 6) * 0.4, hill: Math.sin(p * Math.PI * 4 + 1) * 0.55, traffic, lean, carImg, carAspect };
       writeFileSync(join(dir, `f${String(i).padStart(5, "0")}.png`), new Resvg(svg(st, fmt.W, fmt.H), { fitTo: { mode: "width", value: fmt.W }, font: FONT }).render().asPng());
       if (i % 30 === 0) process.stdout.write(`\r  frame ${i + 1}/${total}`);
     }
