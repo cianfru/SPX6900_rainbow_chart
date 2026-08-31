@@ -125,7 +125,7 @@ export default async function handler(req, res) {
     res.status(500).json({ error: "Server not configured: set CONTROL_PASSWORD and GH_PAT in Vercel." });
     return;
   }
-  const { password, action, id, month, template, ar, excluded, binned, released } = await readBody(req);
+  const { password, action, id, month, template, ar, excluded, binned, released, format, seconds, announce } = await readBody(req);
   if (!safeEq(password ?? "", process.env.CONTROL_PASSWORD)) { res.status(401).json({ error: "Wrong password." }); return; }
 
   // Gate unlock: password already validated above, so just acknowledge.
@@ -203,6 +203,35 @@ export default async function handler(req, res) {
       });
       if (d.status !== 204) throw new Error("recap dispatch failed (" + d.status + ") " + (await d.text()));
       res.status(200).json({ ok: true, recap: action === "recap-post" ? "posting" : "previewing", month: month || "(last month)" });
+      return;
+    }
+    // Rainbow Road: render the OutRun video on demand (workflow_dispatch). Renders X-optimised clips and
+    // publishes them to the 'rainbow-road-latest' release; the panel then polls rainbow-road-status for the
+    // download link. Nothing auto-posts.
+    if (action === "rainbow-road") {
+      const fmt = ["vertical", "square", "wide", "all"].includes(format) ? format : "vertical";
+      const secs = String(Math.max(6, Math.min(60, parseInt(seconds, 10) || 30)));
+      const d = await gh(`/repos/${OWNER}/${REPO}/actions/workflows/rainbow-road.yml/dispatches`, {
+        method: "POST",
+        body: JSON.stringify({ ref: BRANCH, inputs: { format: fmt, seconds: secs, announce: announce !== false } }),
+      });
+      if (d.status !== 204) throw new Error("rainbow-road dispatch failed (" + d.status + ") " + (await d.text()));
+      res.status(200).json({ ok: true, rendering: fmt, seconds: secs, at: new Date().toISOString() });
+      return;
+    }
+    // Poll: the latest rainbow-road run status + the current release download links.
+    if (action === "rainbow-road-status") {
+      const runsR = await gh(`/repos/${OWNER}/${REPO}/actions/workflows/rainbow-road.yml/runs?per_page=1`);
+      const runsJ = runsR.ok ? await runsR.json() : { workflow_runs: [] };
+      const run = (runsJ.workflow_runs || [])[0] || null;
+      let assets = [];
+      const relR = await gh(`/repos/${OWNER}/${REPO}/releases/tags/rainbow-road-latest`);
+      if (relR.ok) { const j = await relR.json(); assets = (j.assets || []).map(a => ({ name: a.name, url: a.browser_download_url, updated: a.updated_at, size: a.size })); }
+      res.status(200).json({
+        ok: true,
+        run: run && { status: run.status, conclusion: run.conclusion, url: run.html_url, created_at: run.created_at, updated_at: run.updated_at },
+        assets,
+      });
       return;
     }
     // Save (or clear) an owner edit of a card's tweet copy. Persists permanently

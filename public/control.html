@@ -509,6 +509,30 @@
         </div>
         <div style="font-size:11.5px;color:#64748b;margin-top:10px;line-height:1.5">Opens the scene past the gate with the recorder shown, framed to the chosen format. Orbit to a nice angle (click a building in SPX City to pin the spin centre), pick the duration, hit ● Record — the clip downloads when the orbit finishes. MP4 on Chrome/Safari. ⚠ The floating note/name signs aren't in the capture (they're DOM overlays) — screen-record if you need those.</div>
       </div>
+      <div id="rrstudio" style="margin:14px 0 4px;padding:12px 14px;border:1px solid #1e293b;border-radius:10px;background:#0b1120">
+        <div style="font-size:13px;font-weight:700;color:#e2e8f0;margin-bottom:9px">🌈 Rainbow Road <span style="font-weight:400;color:#64748b">— the OutRun band-journey video · renders in the cloud, download link appears here</span></div>
+        <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;font-size:12px;color:#94a3b8">
+          <label>Format
+            <select id="rrFmt" style="margin-left:5px;background:#0f172a;color:#e2e8f0;border:1px solid #334155;border-radius:6px;padding:4px 6px">
+              <option value="vertical">9:16 · Reels/TikTok/Shorts</option>
+              <option value="square">1:1 · X feed</option>
+              <option value="wide">16:9</option>
+              <option value="all">All three</option>
+            </select>
+          </label>
+          <label>Length
+            <select id="rrSecs" style="margin-left:5px;background:#0f172a;color:#e2e8f0;border:1px solid #334155;border-radius:6px;padding:4px 6px">
+              <option value="15">15s</option>
+              <option value="20">20s</option>
+              <option value="30" selected>30s</option>
+            </select>
+          </label>
+          <label style="display:flex;align-items:center;gap:5px"><input type="checkbox" id="rrAnn" checked> "now in &lt;band&gt;" banner</label>
+          <button id="rrGo" style="padding:7px 16px;border:1px solid #6366f1;background:#312e81;color:#e0e7ff;border-radius:8px;font-weight:700;font-size:12px;cursor:pointer">🎬 Render</button>
+        </div>
+        <div id="rrMsg" style="font-size:11.5px;color:#64748b;margin-top:10px;line-height:1.55">Renders on GitHub, X-optimised (soft pixel edges + high bitrate so X's re-encode stays clean). Takes ~2–4 min; the download link appears below when it's ready. Nothing posts automatically — grab the file and post it yourself, reusing the rainbow tweet text.</div>
+        <div id="rrLinks" style="margin-top:8px;display:flex;gap:10px;flex-wrap:wrap"></div>
+      </div>
     </div>
 
     <!-- Engagement tab — drop the X analytics export, get the readout. All in-browser. -->
@@ -1134,6 +1158,39 @@ document.querySelectorAll(".vbtn").forEach(b => b.onclick = () => {
   const auto = b.dataset.auto === "1" ? "&auto=1" : "";       // fire one record automatically once settled
   window.open(`/?chart=${b.dataset.chart}&rec=1${ar}${auto}`, "_blank", "noopener");
 });
+
+// 🌈 Rainbow Road — dispatch a cloud render (workflow_dispatch via api/control), poll for the release
+// download link. Server-side + password-gated, so it works from any machine with just the panel open.
+(function () {
+  const btn = $("#rrGo"), msg = $("#rrMsg"), links = $("#rrLinks");
+  if (!btn) return;
+  let timer = null, startedAt = 0, ticks = 0;
+  const human = b => b > 1e6 ? (b / 1048576).toFixed(1) + " MB" : Math.round(b / 1024) + " KB";
+  const stop = () => { if (timer) { clearInterval(timer); timer = null; } };
+  async function poll() {
+    if (++ticks > 45) { stop(); btn.disabled = false; msg.innerHTML = 'Still going after a while — check the <a href="https://github.com/cianfru/The_Terminal/actions/workflows/rainbow-road.yml" target="_blank" style="color:#818cf8">Actions tab ↗</a>.'; return; }
+    let s; try { s = await action({ action: "rainbow-road-status" }); } catch { return; }
+    const run = s.run;
+    if (run && run.status !== "completed") { msg.textContent = "Rendering in the cloud… (" + String(run.status).replace(/_/g, " ") + ") — ~2–4 min."; return; }
+    if (run && run.conclusion && run.conclusion !== "success") { stop(); btn.disabled = false; msg.innerHTML = 'Render failed — <a href="' + run.url + '" target="_blank" style="color:#f472b6">open the run log ↗</a>.'; return; }
+    const fresh = (s.assets || []).filter(a => !startedAt || new Date(a.updated).getTime() >= startedAt - 90000);
+    if (fresh.length) {
+      stop(); btn.disabled = false; msg.textContent = "Done — download your clip" + (fresh.length > 1 ? "s" : "") + " (post it reusing the rainbow tweet text):";
+      links.innerHTML = fresh.map(a => '<a href="' + a.url + '" download style="display:inline-block;padding:7px 12px;border:1px solid #22c55e;border-radius:8px;color:#4ade80;font-size:12px;font-weight:700;text-decoration:none">⬇ ' + esc(a.name) + ' <span style="color:#64748b;font-weight:400">' + human(a.size) + '</span></a>').join("");
+    }
+  }
+  btn.onclick = async () => {
+    stop(); links.innerHTML = ""; btn.disabled = true; ticks = 0;
+    const format = $("#rrFmt").value, seconds = $("#rrSecs").value, announce = $("#rrAnn").checked;
+    msg.textContent = "Starting render…";
+    try {
+      await action({ action: "rainbow-road", format, seconds, announce });
+      startedAt = Date.now();
+      msg.textContent = "Rendering in the cloud… (~2–4 min). The download link will appear here — you can leave this open.";
+      timer = setInterval(poll, 8000); setTimeout(poll, 5000);
+    } catch (e) { btn.disabled = false; msg.textContent = "Couldn't start: " + (e.message || e); }
+  };
+})();
 
 $("#refresh").onclick = refresh;
 $("#clear").onclick = () => queue(null);
