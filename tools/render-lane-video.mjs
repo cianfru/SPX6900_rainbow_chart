@@ -69,9 +69,21 @@ function trafficCar(w, col) {
     <rect x="${r1(hw * 0.68)}" y="${r1(b - h * 0.28)}" width="${r1(w * 0.22)}" height="${r1(h * 0.09)}" rx="3" fill="#ffce3b"/></g>`;
 }
 function palm(x, y, s) {
-  const th = 120 * s, tw = Math.max(2, 9 * s), fr = 66 * s; let f = "";
-  for (let a = -2; a <= 2; a++) f += `<path d="M ${r1(x)} ${r1(y - th)} q ${r1(a * fr * 0.5)} ${r1(-fr * 0.5)} ${r1(a * fr)} ${r1(-fr * 0.15 + Math.abs(a) * fr * 0.25)}" stroke="#1f9e4f" stroke-width="${r1(Math.max(2, 6.5 * s))}" fill="none" stroke-linecap="round"/>`;
-  return `<path d="M ${r1(x - tw / 2)} ${r1(y)} L ${r1(x + tw / 2)} ${r1(y)} L ${r1(x + tw / 3)} ${r1(y - th)} L ${r1(x - tw / 3)} ${r1(y - th)} Z" fill="#7a5230"/>${f}<circle cx="${r1(x)}" cy="${r1(y - th)}" r="${r1(Math.max(2, 7 * s))}" fill="#2fbf63"/>`;
+  const th = 128 * s, tw = Math.max(2, 10 * s), fr = 72 * s, lw = Math.max(2, 7 * s);
+  let f = "", sh = "";
+  // two frond layers (dark under, bright over) for depth
+  for (const [col, w2, dy] of [["#16803f", lw + 2, 0], ["#33c46a", lw, -1.5 * s]])
+    for (let a = -2.2; a <= 2.2; a += 1.1) f += `<path d="M ${r1(x)} ${r1(y - th + dy)} q ${r1(a * fr * 0.5)} ${r1(-fr * 0.55)} ${r1(a * fr)} ${r1(-fr * 0.12 + Math.abs(a) * fr * 0.28)}" stroke="${col}" stroke-width="${r1(w2)}" fill="none" stroke-linecap="round"/>`;
+  sh += `<ellipse cx="${r1(x)}" cy="${r1(y + 2)}" rx="${r1(Math.max(3, 16 * s))}" ry="${r1(Math.max(1.5, 5 * s))}" fill="rgba(0,0,0,0.18)"/>`;
+  return `${sh}<path d="M ${r1(x - tw / 2)} ${r1(y)} Q ${r1(x - tw * 0.9)} ${r1(y - th * 0.5)} ${r1(x - tw / 3)} ${r1(y - th)} L ${r1(x + tw / 3)} ${r1(y - th)} Q ${r1(x + tw * 0.9)} ${r1(y - th * 0.5)} ${r1(x + tw / 2)} ${r1(y)} Z" fill="#7a5230"/><circle cx="${r1(x - 3 * s)}" cy="${r1(y - th)}" r="${r1(Math.max(1.5, 4 * s))}" fill="#8a5a2a"/><circle cx="${r1(x + 3 * s)}" cy="${r1(y - th + 3 * s)}" r="${r1(Math.max(1.5, 4 * s))}" fill="#8a5a2a"/>${f}`;
+}
+function bush(x, y, s) {
+  const r = 22 * s;
+  return `<g><ellipse cx="${r1(x)}" cy="${r1(y + 2)}" rx="${r1(r * 1.2)}" ry="${r1(r * 0.35)}" fill="rgba(0,0,0,0.15)"/><ellipse cx="${r1(x)}" cy="${r1(y - r * 0.4)}" rx="${r1(r)}" ry="${r1(r * 0.85)}" fill="#1f8a3f"/><ellipse cx="${r1(x - r * 0.7)}" cy="${r1(y - r * 0.1)}" rx="${r1(r * 0.7)}" ry="${r1(r * 0.6)}" fill="#2aa04c"/><ellipse cx="${r1(x + r * 0.7)}" cy="${r1(y - r * 0.1)}" rx="${r1(r * 0.7)}" ry="${r1(r * 0.6)}" fill="#2aa04c"/><ellipse cx="${r1(x)}" cy="${r1(y - r * 0.6)}" rx="${r1(r * 0.55)}" ry="${r1(r * 0.5)}" fill="#3cc060"/></g>`;
+}
+function rock(x, y, s) {
+  const r = 20 * s;
+  return `<g><ellipse cx="${r1(x)}" cy="${r1(y + 2)}" rx="${r1(r * 1.15)}" ry="${r1(r * 0.3)}" fill="rgba(0,0,0,0.2)"/><path d="M ${r1(x - r)} ${r1(y)} Q ${r1(x - r * 1.1)} ${r1(y - r * 0.9)} ${r1(x - r * 0.2)} ${r1(y - r)} Q ${r1(x + r * 0.9)} ${r1(y - r * 1.1)} ${r1(x + r)} ${r1(y)} Z" fill="#8b8f98"/><path d="M ${r1(x - r * 0.2)} ${r1(y - r)} Q ${r1(x + r * 0.9)} ${r1(y - r * 1.1)} ${r1(x + r)} ${r1(y)} L ${r1(x + r * 0.2)} ${r1(y)} Z" fill="#6b7079"/><ellipse cx="${r1(x - r * 0.35)}" cy="${r1(y - r * 0.55)}" rx="${r1(r * 0.28)}" ry="${r1(r * 0.2)}" fill="#a7abb3"/></g>`;
 }
 
 function scene({ W, H, carLane, camLane, band, date, price, scroll, progress, curve, hill, traffic, lean, carImg }) {
@@ -87,15 +99,27 @@ function scene({ W, H, carLane, camLane, band, date, price, scroll, progress, cu
 
   // ── sky, sun, clouds ──
   let s = `<rect width="${W}" height="${r1(yH + 20)}" fill="url(#sky)"/>
-    <circle cx="${W * 0.5}" cy="${r1(yH * 0.5)}" r="${r1(W * 0.17)}" fill="url(#sun)"/>`;
-  for (const [fx, fy] of [[0.14, 0.4], [0.5, 0.24], [0.83, 0.46], [0.32, 0.6], [0.68, 0.62]]) {
-    const clx = ((fx - scroll * 0.03) % 1 + 1) % 1 * W, cly = fy * yH, r = 46 + fy * 42;
-    s += `<g fill="#ffffff" opacity="0.96"><ellipse cx="${r1(clx)}" cy="${r1(cly)}" rx="${r1(r)}" ry="${r1(r * 0.58)}"/><ellipse cx="${r1(clx - r * 0.7)}" cy="${r1(cly + r * 0.22)}" rx="${r1(r * 0.7)}" ry="${r1(r * 0.48)}"/><ellipse cx="${r1(clx + r * 0.72)}" cy="${r1(cly + r * 0.22)}" rx="${r1(r * 0.76)}" ry="${r1(r * 0.5)}"/></g>`;
+    <circle cx="${W * 0.5}" cy="${r1(yH * 0.5)}" r="${r1(W * 0.2)}" fill="url(#sunglow)"/>
+    <circle cx="${W * 0.5}" cy="${r1(yH * 0.5)}" r="${r1(W * 0.1)}" fill="url(#sun)"/>`;
+  // distant hazy mountains along the horizon (depth)
+  let mtn = `M 0 ${r1(yH)}`;
+  for (let mx = 0; mx <= W; mx += W / 12) mtn += ` L ${r1(mx)} ${r1(yH - 22 - 26 * Math.abs(Math.sin(mx * 0.011 + 1)))}`;
+  mtn += ` L ${W} ${r1(yH)} Z`;
+  s += `<path d="${mtn}" fill="#6f8fd6" opacity="0.55"/>`;
+  // fluffy clouds — a cluster of lobes with a soft grey base and a white crown
+  const cloud = (clx, cly, r, op) => {
+    const lobe = (dx, dy, rr, fill) => `<ellipse cx="${r1(clx + dx)}" cy="${r1(cly + dy)}" rx="${r1(rr)}" ry="${r1(rr * 0.72)}" fill="${fill}"/>`;
+    return `<g opacity="${op}">${lobe(0, r * 0.18, r * 1.05, "#d7e3f5")}${lobe(-r * 0.72, r * 0.24, r * 0.62, "#d7e3f5")}${lobe(r * 0.74, r * 0.24, r * 0.68, "#d7e3f5")}`
+      + `${lobe(0, 0, r, "#ffffff")}${lobe(-r * 0.62, r * 0.12, r * 0.6, "#ffffff")}${lobe(r * 0.64, r * 0.12, r * 0.66, "#ffffff")}${lobe(-r * 0.25, -r * 0.28, r * 0.55, "#ffffff")}${lobe(r * 0.3, -r * 0.24, r * 0.5, "#ffffff")}</g>`;
+  };
+  for (const [fx, fy, rs, op] of [[0.14, 0.36, 60, 0.97], [0.52, 0.2, 46, 0.9], [0.85, 0.44, 66, 0.95], [0.3, 0.58, 40, 0.85], [0.7, 0.62, 52, 0.92], [0.03, 0.66, 44, 0.8]]) {
+    const clx = ((fx - scroll * 0.025) % 1 + 1) % 1 * W;
+    s += cloud(clx, fy * yH, rs, op);
   }
-  // ground + coastal horizon
+  // ground + coastal horizon (sea gradient + sand)
   s += `<rect x="0" y="${r1(yH)}" width="${W}" height="${r1(H - yH)}" fill="url(#grass)"/>
-    <rect x="0" y="${r1(yH - 12)}" width="${W}" height="12" fill="#1e6fd0"/>
-    <rect x="0" y="${r1(yH)}" width="${W}" height="7" fill="#e8c98a"/>`;
+    <rect x="0" y="${r1(yH - 14)}" width="${W}" height="14" fill="url(#sea)"/>
+    <rect x="0" y="${r1(yH)}" width="${W}" height="9" fill="#e8c98a"/>`;
 
   // ── the rainbow is FIXED: 9 lanes in world space (lane 0 = Fire Sale on the left … lane 8 = Max
   // Bubble on the right). The camera pans to follow the car, so only ~VIS lanes fit on screen and the
@@ -128,23 +152,34 @@ function scene({ W, H, carLane, camLane, band, date, price, scroll, progress, cu
     s += `<polygon points="${r1(ra)},${r1(yOf(ta))} ${r1(ra + kwa)},${r1(yOf(ta))} ${r1(rb + kwb)},${r1(yOf(tb))} ${r1(rb)},${r1(yOf(tb))}" fill="${c}"/>`;
   }
 
-  // ── palms on the grass beyond the rainbow edges (visible when the car nears an extreme band) ──
-  for (let k = 0; k < 7; k++) {
-    let t = ((k / 7) - scroll) % 1; if (t < 0) t += 1; if (t < 0.04 || t > 0.96) continue;
-    const sc = clamp(1.05 * ds(t) * 2.2, 0.05, 1.1), yy = yOf(t), g = 70 * sc;
-    s += palm(laneX(eL, t) - g, yy, sc);
-    s += palm(laneX(eR, t) + g, yy, sc);
+  // ── dense, varied roadside scenery on the grass beyond the rainbow edges (two staggered rows per
+  //    side: palms + bushes + rocks), far→near so it scrolls past ──
+  const SC = 14;
+  for (let k = 0; k < SC; k++) {
+    let t = ((k / SC) - scroll * 1.0) % 1; if (t < 0) t += 1; if (t < 0.03 || t > 0.97) continue;
+    const sc = clamp(1.0 * ds(t) * 2.2, 0.04, 1.05), yy = yOf(t);
+    const put = (bx, kind, jx) => { const x = bx + jx * sc; return kind === 0 ? palm(x, yy, sc) : kind === 1 ? bush(x, yy, sc * 0.9) : rock(x, yy, sc * 0.85); };
+    const kindL = (k * 7) % 3, kindR = (k * 5 + 1) % 3;
+    // near row (just off the rumble) + a sparser far row further out
+    s += put(laneX(eL, t) - 44 * sc, kindL, -18);
+    s += put(laneX(eR, t) + 44 * sc, kindR, 18);
+    if (k % 2 === 0) { s += put(laneX(eL, t) - 130 * sc, (kindL + 1) % 3, -20); s += put(laneX(eR, t) + 130 * sc, (kindR + 2) % 3, 20); }
   }
 
-  // ── traffic to overtake (far → near), then the player car on top ──
+  // ── traffic to overtake (far → near), then the player car on top. Sized to match the player car at
+  //    the same depth so proportions stay consistent. ──
+  const carDepthScale = ds(0.02);
   for (const v of traffic.slice().sort((a, b) => b.z - a.z)) {
     if (v.z < 0.02 || v.z > 1) continue;
-    const t = v.z, w = laneW(t) * (v.type === "truck" ? 0.82 : 0.72), x = laneX(v.lane + 0.5, t), yv = yOf(t);
+    const t = v.z, w = W * 0.19 * (ds(t) / carDepthScale) * (v.type === "truck" ? 0.98 : 0.86), x = laneX(v.lane + 0.5, t), yv = yOf(t);
     s += `<g transform="translate(${r1(x)},${r1(yv - w * 0.5)})">${v.type === "truck" ? truck(w) : trafficCar(w, v.col)}</g>`;
   }
   // OutRun camera height: the car sits LOW + CLOSE, so it's big in the lower-centre (a fixed fraction
   // of the frame, not tied to the far-shrinking lane width). It still tracks its lane (band).
-  const tCar = 0.02, cw = W * 0.21, carX = laneX(carLane + 0.5, tCar), carY = yOf(tCar) - cw * 0.34;
+  // GUARDRAIL: even if SPX drops below the Fire Sale floor (or runs past Max Bubble), the car body is
+  // hard-clamped between the rumble edges so it never drives onto the grass.
+  const tCar = 0.02, cw = W * 0.21, carY = yOf(tCar) - cw * 0.34;
+  const carX = clamp(laneX(carLane + 0.5, tCar), laneX(eL, tCar) + cw * 0.5, laneX(eR, tCar) - cw * 0.5);
   if (Math.abs(lean) > 0.2)   // two short tyre streaks trailing behind on a lane change
     for (const dx of [-cw * 0.3, cw * 0.3])
       s += `<line x1="${r1(carX + dx)}" y1="${r1(carY + cw * 0.42)}" x2="${r1(carX + dx - lean * cw * 0.45)}" y2="${r1(carY + cw * 0.42 + cw * 0.3)}" stroke="rgba(15,15,20,0.32)" stroke-width="${r1(cw * 0.06)}" stroke-linecap="round"/>`;
@@ -174,7 +209,9 @@ function scene({ W, H, carLane, camLane, band, date, price, scroll, progress, cu
 const svg = (state, W, H) => `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
 <defs>
 <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#1b4fd8"/><stop offset="65%" stop-color="#3b82f6"/><stop offset="100%" stop-color="#a7d3ff"/></linearGradient>
-<radialGradient id="sun" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#fff7cc"/><stop offset="55%" stop-color="#ffe98a" stop-opacity="0.85"/><stop offset="100%" stop-color="#ffe98a" stop-opacity="0"/></radialGradient>
+<radialGradient id="sun" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#fffdf2"/><stop offset="60%" stop-color="#fff2b0"/><stop offset="100%" stop-color="#ffe98a"/></radialGradient>
+<radialGradient id="sunglow" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#fff3b0" stop-opacity="0.9"/><stop offset="55%" stop-color="#ffe98a" stop-opacity="0.35"/><stop offset="100%" stop-color="#ffe98a" stop-opacity="0"/></radialGradient>
+<linearGradient id="sea" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#2f8fe0"/><stop offset="100%" stop-color="#1657b0"/></linearGradient>
 <linearGradient id="grass" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#1f7a37"/><stop offset="100%" stop-color="#2fa84a"/></linearGradient>
 <linearGradient id="roadfade" x1="0" y1="1" x2="0" y2="0"><stop offset="0%" stop-color="#000" stop-opacity="0"/><stop offset="100%" stop-color="#0a0a12" stop-opacity="0.5"/></linearGradient>
 <linearGradient id="hud" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#050914" stop-opacity="0.9"/><stop offset="100%" stop-color="#050914" stop-opacity="0"/></linearGradient>
@@ -194,7 +231,7 @@ async function main() {
   let carImg = null; const carPath = arg("car", "");
   if (carPath) { const { readFileSync } = await import("node:fs"); const b = readFileSync(carPath); const mime = carPath.endsWith(".svg") ? "image/svg+xml" : carPath.endsWith(".webp") ? "image/webp" : carPath.endsWith(".jpg") || carPath.endsWith(".jpeg") ? "image/jpeg" : "image/png"; carImg = `data:${mime};base64,${b.toString("base64")}`; console.log(`using supplied car: ${carPath}`); }
   const m = buildModel(DEFAULT_RAW);
-  let seq = DEFAULT_RAW.map(r => ({ date: r.date, price: r.price, band: bandIndex(m, r.price, dayN(r.date)) }));
+  let seq = DEFAULT_RAW.map(r => ({ date: r.date, price: r.price, band: clamp(bandIndex(m, r.price, dayN(r.date)), 0, N - 1) }));
   if (from) seq = seq.filter(r => r.date >= from);
   const total = fps * seconds, bandAt = p => seq[clamp(Math.floor(p * (seq.length - 1)), 0, seq.length - 1)];
   const rnd = (() => { let s = 12345; return () => (s = (s * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff; })();
@@ -210,7 +247,7 @@ async function main() {
   try {
     for (let i = 0; i < total; i++) {
       const p = i / (total - 1), curr = bandAt(p);
-      prevCar = carLane; carLane += (curr.band - carLane) * 0.10;
+      prevCar = carLane; carLane = clamp(carLane + (curr.band - carLane) * 0.10, 0, N - 1);
       // dead-zone camera: the car moves freely in the central zone; the camera only pans (revealing the
       // off-screen lanes) once it leaves that zone. Colours stay world-fixed, so the rainbow never flips.
       if (carLane - camLane > DZ) camLane += (carLane - DZ - camLane) * 0.12;
@@ -222,7 +259,11 @@ async function main() {
       for (const v of traffic) {
         v.z -= 0.7 / fps;
         if (v.z < 0.0) { v.z = 1; v.lane = spawnLane(camLane); v.type = rnd() < 0.3 ? "truck" : "car"; v.col = cols[Math.floor(rnd() * cols.length)]; }
-        else if (v.z < 0.28 && Math.abs(v.lane - carLane) < 1.25) v.lane = clamp(v.lane + (v.lane >= carLane ? 1 : -1) * 0.12, 0, N - 1);
+        else if (v.z < 0.55 && Math.abs(v.lane - carLane) < 1.8) {   // getting close AND laterally near → pull aside so the car overtakes, never hits
+          let side = v.lane >= carLane ? 1 : -1;
+          if (carLane + side * 1.8 > N - 1 || carLane + side * 1.8 < 0) side = -side;   // stay on the rainbow
+          v.lane += (clamp(carLane + side * 1.8, 0, N - 1) - v.lane) * 0.3;
+        }
       }
       const st = { carLane, camLane, band: curr.band, date: curr.date, price: curr.price, scroll: (i * 0.62 / fps) % 1, progress: p, curve: Math.sin(p * Math.PI * 6) * 0.4, hill: Math.sin(p * Math.PI * 4 + 1) * 0.55, traffic, lean, carImg };
       writeFileSync(join(dir, `f${String(i).padStart(5, "0")}.png`), new Resvg(svg(st, fmt.W, fmt.H), { fitTo: { mode: "width", value: fmt.W }, font: FONT }).render().asPng());
