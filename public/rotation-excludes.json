@@ -4,5 +4,6 @@
   "cycleclock": true,
   "alltime": true,
   "firesalerally": true,
-  "chainrace": true
+  "chainrace": true,
+  "floormodel": true
 }
