@@ -162,6 +162,20 @@ export function loadWhaleEntry() {
   return whaleEntryPromise;
 }
 
+// Cached loader for /whale-lots.json — per-wallet buy/sell lots for EVERY ≥100k whale (same shape as
+// smart-money.json's wallets[]), so the per-wallet page opens for any orb, not just the smart-money
+// cohort. Members-only (addresses + lots): the public committed copy has wallets[] stripped, so this is
+// NOT publicSafe — it resolves only for members (KV). Rebuilt daily in onchain-dune.yml.
+let whaleLotsPromise = null;
+export function loadWhaleLots() {
+  if (!whaleLotsPromise) {
+    whaleLotsPromise = fetchPrivate("whale-lots", "/whale-lots.json")
+      .then(d => (d && Array.isArray(d.wallets) && d.wallets.length ? d : null))
+      .catch(() => null);
+  }
+  return whaleLotsPromise;
+}
+
 let onchainPromise = null;
 export function loadOnchain() {
   if (!onchainPromise) {

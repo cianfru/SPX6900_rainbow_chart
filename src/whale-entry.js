@@ -17,20 +17,30 @@ const cohortOf = (bal) => { for (let i = 0; i < SPECTRUM_EDGES.length - 1; i++) 
 
 export function whaleEntries(tl, prices, opts = {}) {
   const minBal = opts.minBal ?? 1e5;
+  const withLots = !!opts.withLots;           // also emit per-wallet buy/sell lots (→ whale-lots.json)
+  const lotCap = opts.lotCap ?? 200;          // cap lots/wallet so the members feed stays bounded
+  const flowWeeks = opts.flowWeeks ?? 4;      // "recently active" window for the pulse (~30 days)
   const week0 = Date.parse(tl.week0), W = tl.n - 1, DAY = 864e5;
   const { at: priceAt, px } = mkPriceAt(prices);
   const wkT = (wk) => week0 + wk * 7 * DAY, pAtWk = (wk) => priceAt(wkT(wk));
   const price = pAtWk(W);
   const launchT = px.length ? px[0].t : week0;
 
-  const whales = [];
+  const whales = [], lots = [];
   let early = 0, late = 0, profit = 0;
   for (const w of tl.wallets) {
     let pos = 0, avg = 0, realized = 0, spent = 0, prev = 0, firstBuyWk = -1, boughtQty = 0, boughtWkSum = 0;
+    const buys = [], sells = [];
     for (const [wk, bal] of w.p) {
       const d = bal - prev, pr = pAtWk(wk);
-      if (d > 0) { avg = (avg * pos + d * pr) / (pos + d); pos += d; spent += d * pr; boughtQty += d; boughtWkSum += d * wk; if (firstBuyWk < 0) firstBuyWk = wk; }
-      else if (d < 0) { realized += (-d) * (pr - avg); pos += d; }
+      if (d > 0) {
+        avg = (avg * pos + d * pr) / (pos + d); pos += d; spent += d * pr; boughtQty += d; boughtWkSum += d * wk; if (firstBuyWk < 0) firstBuyWk = wk;
+        if (buys.length < lotCap) buys.push([wkT(wk), +pr.toFixed(6), Math.round(d)]);
+      } else if (d < 0) {
+        const q = Math.min(-d, pos), gain = q * (pr - avg);
+        realized += gain; pos = Math.max(0, pos + d);
+        if (sells.length < lotCap) sells.push([wkT(wk), +pr.toFixed(6), Math.round(q), Math.round(gain)]);
+      }
       prev = bal;
     }
     const now = balAt(w, W);
@@ -48,6 +58,7 @@ export function whaleEntries(tl, prices, opts = {}) {
     const daysIn = (firstT - launchT) / DAY;
     if (daysIn <= 365) early++; else late++;
     if (inProfit) profit++;
+    const d30 = Math.round(now - balAt(w, Math.max(0, W - flowWeeks))); // recent net flow → pulse (buy/sell)
     whales.push({
       a: w.a,                          // wallet address (site chart → Zerion; card ignores it)
       t: wkT(entryWk),                 // entry date (ms) → x
@@ -55,6 +66,11 @@ export function whaleEntries(tl, prices, opts = {}) {
       bag: Math.round(now),            // current balance → bubble size
       roi: spent > 0 ? +((realized + now * price) / spent).toFixed(2) : 0,
       up: inProfit,
+      d30,                             // 30-day net flow: >0 accumulating, <0 distributing, ~0 idle
+    });
+    if (withLots) lots.push({
+      a: w.a, bal: Math.round(now), avgCost: +avg.toFixed(6), realized: Math.round(realized),
+      roi: spent > 0 ? +((realized + now * price) / spent).toFixed(2) : 0, buys, sells,
     });
   }
   whales.sort((a, b) => b.bag - a.bag);   // biggest last-drawn on top handled by renderer; keep sorted
@@ -66,7 +82,7 @@ export function whaleEntries(tl, prices, opts = {}) {
   if (px.length) curve.push([px.at(-1).t, +px.at(-1).p.toFixed(6)]);
 
   const total = whales.length;
-  return {
+  const out = {
     updated: tl.updated || null, price: +price.toFixed(6),
     total, pctProfit: total ? +(100 * profit / total).toFixed(1) : 0,
     pctEarly: total ? +(100 * early / total).toFixed(1) : 0,
@@ -74,4 +90,6 @@ export function whaleEntries(tl, prices, opts = {}) {
     launch: launchT, now: px.length ? px.at(-1).t : wkT(W),
     curve, whales,
   };
+  if (withLots) out.lots = lots;   // per-wallet buy/sell detail for the per-wallet page (→ whale-lots.json)
+  return out;
 }

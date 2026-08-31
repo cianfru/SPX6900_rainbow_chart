@@ -24,6 +24,12 @@ const BANDS = [
 ];
 const PMIN = 0.001, PMAX = 2.6, LGMIN = Math.log10(PMIN), LGMAX = Math.log10(PMAX);
 const ZURL = a => `https://app.zerion.io/${a}/overview`;
+const WALLET_URL = a => `/?view=wallet&addr=${a}`;
+// "Recently active" = a net move (buy or sell) over the trailing ~30 days that clears a noise floor
+// (max 2,000 SPX or 0.5% of the bag). Active orbs PULSE — green if accumulating, red if distributing.
+const activeThr = w => Math.max(2000, (w.bag || 0) * 0.005);
+const isActive = w => Math.abs(w.d30 || 0) >= activeThr(w);
+const flowStr = d => (d > 0 ? "+" : "−") + kM(Math.abs(d));
 
 // The Zerion portfolio banner, painted over a deterministic gradient so it survives a dead/blocked
 // endpoint (e.g. China): the image only overlays if it loads, else the gradient + "Zerion ↗" remain.
@@ -51,6 +57,8 @@ export default function WhaleEntryChart({ isMobile, price }) {
   const [w, setW] = useState(900);
   const geomRef = useRef([]);                     // [{w, x, y, r}] screen positions for hit-testing
   const cwRef = useRef(900);                       // the canvas's ACTUAL displayed width — draw + hit-test share it
+  const pulseCvs = useRef(null);                   // overlay canvas: animated pulse on recently-active orbs
+  const pulseDims = useRef({ cw: 0, h: 0 });
 
   useEffect(() => { let off = false; loadWhaleEntry().then(d => { if (!off) setData(d ?? null); }); return () => { off = true; }; }, []);
   useEffect(() => {
@@ -65,6 +73,7 @@ export default function WhaleEntryChart({ isMobile, price }) {
   const livePrice = (price && price > 0) ? price : (data ? data.price : 0);
   const isUp = c => c < livePrice;
   const livePct = useMemo(() => (data ? Math.round(100 * data.whales.filter(x => isUp(x.cost)).length / data.whales.length) : 0), [data, livePrice]);
+  const activeCount = useMemo(() => (data ? data.whales.filter(isActive).length : 0), [data]);
   const whales = useMemo(() => {
     if (!data) return [];
     const b = BANDS.find(x => x.key === band);
@@ -121,6 +130,14 @@ export default function WhaleEntryChart({ isMobile, price }) {
     g.globalCompositeOperation = "source-over";
     // bright cores
     for (const gm of geom) { g.fillStyle = isUp(gm.w.cost) ? "rgba(201,255,224,0.9)" : "rgba(255,214,222,0.9)"; g.beginPath(); g.arc(gm.x, gm.y, Math.max(1, gm.r * 0.26), 0, 7); g.fill(); }
+    // activity rings — a persistent thin ring on wallets that MOVED in the last ~30 days (the overlay
+    // canvas animates these into a pulse; this static ring keeps "who's active" legible in a screenshot
+    // and under reduced-motion). Green = accumulating, red = distributing.
+    for (const gm of geom) {
+      if (!isActive(gm.w)) continue;
+      g.strokeStyle = gm.w.d30 > 0 ? "rgba(74,222,128,0.55)" : "rgba(251,113,133,0.6)";
+      g.lineWidth = 1.6; g.beginPath(); g.arc(gm.x, gm.y, gm.r + 3.5, 0, 7); g.stroke();
+    }
     // hover ring
     if (hover) { g.strokeStyle = "#fff"; g.lineWidth = 2; g.beginPath(); g.arc(X(hover.w.t), Y(hover.w.cost), Math.max(RMIN, Math.sqrt(hover.w.bag / maxBag) * RMAX) + 3, 0, 7); g.stroke(); }
     // pinned ring (searched / clicked) — a persistent gold halo + crosshair so a located whale is easy
@@ -133,6 +150,32 @@ export default function WhaleEntryChart({ isMobile, price }) {
     }
     geomRef.current = geom;
   }, [data, whales, w, H, isMobile, hover, pinned, livePrice]);
+
+  // Animated pulse on the overlay canvas — expanding green/red rings on wallets that moved in the last
+  // ~30 days, so "who's been buying or selling lately" reads at a glance without touching the heavy orb
+  // layer each frame. Pointer-events are off, so hover/click still hit the main canvas. Reduced-motion:
+  // no animation (the static rings on the main canvas already show the state).
+  useEffect(() => {
+    const el = pulseCvs.current; if (!el) return;
+    const reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduce) { const g = el.getContext("2d"); if (g) g.clearRect(0, 0, el.width, el.height); return; }
+    let raf;
+    const loop = ts => {
+      const cw = cwRef.current || w, dpr = Math.min(2, window.devicePixelRatio || 1);
+      if (pulseDims.current.cw !== cw || pulseDims.current.h !== H) { el.width = Math.round(cw * dpr); el.height = Math.round(H * dpr); pulseDims.current = { cw, h: H }; }
+      const g = el.getContext("2d"); g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, cw, H);
+      const phase = (ts % 1600) / 1600;
+      for (const gm of geomRef.current) {
+        if (!isActive(gm.w)) continue;
+        const rr = gm.r + 4 + phase * 16, a = (1 - phase) * 0.75;
+        g.strokeStyle = gm.w.d30 > 0 ? `rgba(74,222,128,${a})` : `rgba(251,113,133,${a})`;
+        g.lineWidth = 2; g.beginPath(); g.arc(gm.x, gm.y, rr, 0, 7); g.stroke();
+      }
+      raf = requestAnimationFrame(loop);
+    };
+    raf = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(raf);
+  }, [w, H, data]);
 
   const pick = (cx, cy) => {
     let best = null, bd = 1e9;
@@ -182,13 +225,13 @@ export default function WhaleEntryChart({ isMobile, price }) {
   return (
     <div style={{ maxWidth: MAX_W, margin: "0 auto" }} ref={wrap}>
       <Explain q="When did the whales actually buy — early and cheap, or late and high?" accent="#5eead4">
-        Every wallet ≥100k SPX is a glowing orb on the SPX price curve, at the point it bought. <strong style={{ color: "#22c55e" }}>Green</strong> = its bag is in profit, <strong style={{ color: "#fb7185" }}>red</strong> = underwater. Bubble size = bag. The surprise: most whales bought <strong style={{ color: "#e2e8f0" }}>late and high</strong>, not at the lows.
+        Every wallet ≥100k SPX is a glowing orb on the SPX price curve, at the point it bought. <strong style={{ color: "#22c55e" }}>Green</strong> = its bag is in profit, <strong style={{ color: "#fb7185" }}>red</strong> = underwater. Bubble size = bag. A <strong style={{ color: "#e2e8f0" }}>pulsing ring</strong> means the wallet moved in the last ~30 days — green pulse buying, red pulse selling. <strong style={{ color: "#e2e8f0" }}>Click any orb</strong> for its full P&amp;L chart. The surprise: most whales bought late and high, not at the lows.
       </Explain>
 
       <div style={{ display: "flex", gap: 16, flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", margin: "4px 2px 10px" }}>
         <ViewTabs tabs={BANDS.map(b => [b.key, b.label])} value={band} onChange={setBand} />
         <div style={{ fontFamily: MONO, fontSize: 12.5, color: "#8595ab" }}>
-          {whales.length.toLocaleString()} whales · <span style={{ color: "#22c55e" }}>{livePct}% in profit</span> · {data.pctLate}% bought after year one
+          {whales.length.toLocaleString()} whales · <span style={{ color: "#22c55e" }}>{livePct}% in profit</span> · <span style={{ color: "#5eead4" }}>{activeCount} moved in ~30d</span>
         </div>
       </div>
 
@@ -206,6 +249,7 @@ export default function WhaleEntryChart({ isMobile, price }) {
         <canvas ref={cvs} onMouseMove={onMove} onMouseLeave={() => setHover(null)}
           onClick={() => hover && (setPinned(hover.w), setErr(""))}
           style={{ width: "100%", height: H, display: "block", cursor: hover ? "pointer" : "default" }} />
+        <canvas ref={pulseCvs} aria-hidden="true" style={{ position: "absolute", inset: 0, width: "100%", height: H, pointerEvents: "none" }} />
         {hover && (
           <div style={{ position: "absolute", pointerEvents: "none", left: Math.min(Math.max(8, hover.x + 12), cwRef.current - 190), top: Math.min(Math.max(8, hover.y - 10), H - 96),
             background: "rgba(8,11,20,0.95)", border: "1px solid rgba(255,255,255,0.16)", borderRadius: 9, padding: "8px 11px", fontFamily: MONO, fontSize: 12, color: "#e2e8f0", width: 176 }}>
@@ -213,7 +257,8 @@ export default function WhaleEntryChart({ isMobile, price }) {
             <div style={{ marginTop: 4, color: "#94a3b8" }}>{kM(hover.w.bag)} SPX held</div>
             <div style={{ color: "#94a3b8" }}>bought ~{fmtDate(hover.w.t)} @ {fmtPrice(hover.w.cost)}</div>
             <div style={{ marginTop: 3, fontWeight: 700, color: isUp(hover.w.cost) ? "#4ade80" : "#fb7185" }}>{isUp(hover.w.cost) ? "in profit" : "underwater"} · {(livePrice / hover.w.cost).toFixed(2)}× on bag</div>
-            <div style={{ marginTop: 4, color: "#fbbf24", fontSize: 11 }}>click to pin + preview →</div>
+            {isActive(hover.w) && <div style={{ marginTop: 2, fontWeight: 700, color: hover.w.d30 > 0 ? "#4ade80" : "#fb7185" }}>{hover.w.d30 > 0 ? "◉ buying" : "◉ selling"} {flowStr(hover.w.d30)} · 30d</div>}
+            <div style={{ marginTop: 4, color: "#fbbf24", fontSize: 11 }}>click → wallet P&amp;L chart →</div>
           </div>
         )}
         {/* pinned whale — a sticky card with the Zerion portfolio preview (gradient fallback) */}
@@ -228,8 +273,10 @@ export default function WhaleEntryChart({ isMobile, price }) {
               <div style={{ marginTop: 4, color: "#94a3b8" }}>{kM(pinned.bag)} SPX held</div>
               <div style={{ color: "#94a3b8" }}>bought ~{fmtDate(pinned.t)} @ {fmtPrice(pinned.cost)}</div>
               <div style={{ marginTop: 3, fontWeight: 700, color: isUp(pinned.cost) ? "#4ade80" : "#fb7185" }}>{isUp(pinned.cost) ? "in profit" : "underwater"} · {(livePrice / pinned.cost).toFixed(2)}× on bag</div>
-              <div style={{ display: "flex", alignItems: "center", marginTop: 8 }}>
-                <a href={ZURL(pinned.a)} target="_blank" rel="noopener noreferrer" style={{ color: "#5eead4", fontSize: 11.5, textDecoration: "none" }}>open in Zerion ↗</a>
+              {isActive(pinned) && <div style={{ marginTop: 3, fontWeight: 700, color: pinned.d30 > 0 ? "#4ade80" : "#fb7185" }}>{pinned.d30 > 0 ? "◉ accumulating" : "◉ distributing"} {flowStr(pinned.d30)} · 30d</div>}
+              <a href={WALLET_URL(pinned.a)} style={{ display: "block", marginTop: 9, color: "#5eead4", fontSize: 12, fontWeight: 700, textDecoration: "none" }}>Open wallet P&amp;L chart →</a>
+              <div style={{ display: "flex", alignItems: "center", marginTop: 6 }}>
+                <a href={ZURL(pinned.a)} target="_blank" rel="noopener noreferrer" style={{ color: "#94a3b8", fontSize: 11.5, textDecoration: "none" }}>Zerion ↗</a>
                 <button onClick={() => { setPinned(null); setQ(""); }} style={{ marginLeft: "auto", background: "none", border: "none", color: "#94a3b8", fontFamily: MONO, fontSize: 11.5, cursor: "pointer", padding: 0 }}>clear ✕</button>
               </div>
             </div>
@@ -240,7 +287,8 @@ export default function WhaleEntryChart({ isMobile, price }) {
       <div style={{ display: "flex", gap: 18, marginTop: 10, fontFamily: MONO, fontSize: 12.5, color: "#94a3b8", flexWrap: "wrap" }}>
         <span><span style={{ color: "#22c55e" }}>●</span> in profit</span>
         <span><span style={{ color: "#fb7185" }}>●</span> underwater</span>
-        <span style={{ color: "#64748b" }}>bubble size = bag · x = when bought · y = price paid</span>
+        <span><span style={{ color: "#4ade80" }}>◉</span> pulsing = moved in ~30d (green buy / red sell)</span>
+        <span style={{ color: "#64748b" }}>bubble size = bag · click → wallet P&amp;L</span>
       </div>
 
       <p style={{ fontSize: 12, color: "#7c8a9e", lineHeight: 1.55, margin: "12px 2px 0" }}>

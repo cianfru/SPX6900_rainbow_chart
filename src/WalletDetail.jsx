@@ -1,22 +1,29 @@
 import { useEffect, useState } from "react";
-import { loadSmartMoney, loadPriceHistory } from "./history-data.js";
+import { loadSmartMoney, loadWhaleLots, loadPriceHistory } from "./history-data.js";
 import PositionDetail, { shortAddr } from "./PositionDetail.jsx";
 import { TERMINAL_KEY } from "./terminal-gate-key.js";
 
-// PER-WALLET PAGE (terminal-tier, ?view=wallet&addr=0x…). A smart-money wallet's position: where it
-// bought (green orbs) / sold (red), live P&L, realized-PnL curve — rendered by the shared PositionDetail.
-// Data = per-wallet lots from build-smart-money.mjs (smart-money.json). Gated behind the terminal key.
+// PER-WALLET PAGE (terminal-tier, ?view=wallet&addr=0x…). A wallet's position: where it bought (green
+// orbs) / sold (red), live P&L, realized-PnL curve — rendered by the shared PositionDetail. Data = the
+// per-wallet lots from build-smart-money.mjs (the proven cohort) OR build-whale-entry.mjs (EVERY ≥100k
+// whale), so any orb on "When Whales Bought" opens here, not just the smart-money 26. Terminal-gated.
 
 export default function WalletDetail({ wallet, price, isMobile }) {
   const [sm, setSm] = useState(undefined);
+  const [wl, setWl] = useState(undefined);
   const [px, setPx] = useState(null);
   const unlocked = (() => { try { return localStorage.getItem(TERMINAL_KEY) === "1"; } catch { return false; } })();
 
   useEffect(() => { if (unlocked) loadSmartMoney().then(d => setSm(d || null)); }, [unlocked]);
+  useEffect(() => { if (unlocked) loadWhaleLots().then(d => setWl(d || null)); }, [unlocked]);
   useEffect(() => { if (unlocked) loadPriceHistory().then(setPx); }, [unlocked]);
 
   const addr = String(wallet || "").toLowerCase();
-  const w = sm && Array.isArray(sm.wallets) ? sm.wallets.find(x => x.a === addr) : null;
+  const find = src => (src && Array.isArray(src.wallets) ? src.wallets.find(x => x.a === addr) : null);
+  // Smart-money detail wins (it's the proven-timer cohort with the richer lot history); fall back to the
+  // whale-lots reconstruction so every ≥100k wallet resolves.
+  const w = find(sm) || find(wl);
+  const loading = sm === undefined || wl === undefined || px === null;
 
   if (!unlocked) return (
     <div style={{ maxWidth: 620, margin: "72px auto", textAlign: "center", fontFamily: "var(--sans)", color: "var(--dim)" }}>
@@ -24,11 +31,11 @@ export default function WalletDetail({ wallet, price, isMobile }) {
       <p>Wallet pages are part of Deep Field. <a href="/deepfield" style={{ color: "var(--live)" }}>Open Deep Field →</a></p>
     </div>
   );
-  if (sm === undefined || px === null) return <div style={{ textAlign: "center", fontFamily: "var(--mono)", color: "var(--faint)", padding: 60 }}>loading wallet…</div>;
+  if (loading) return <div style={{ textAlign: "center", fontFamily: "var(--mono)", color: "var(--faint)", padding: 60 }}>loading wallet…</div>;
   if (!w) return (
     <div style={{ maxWidth: 620, margin: "72px auto", textAlign: "center", fontFamily: "var(--sans)", color: "var(--dim)" }}>
-      <p>No smart-money detail for <span style={{ fontFamily: "var(--mono)", color: "var(--tx)" }}>{shortAddr(addr)}</span> yet.</p>
-      <p style={{ fontSize: 13, color: "var(--faint)" }}>The per-wallet lots appear after the next daily on-chain refresh. <a href="/deepfield" style={{ color: "var(--live)" }}>Back to Deep Field →</a></p>
+      <p>No per-wallet detail for <span style={{ fontFamily: "var(--mono)", color: "var(--tx)" }}>{shortAddr(addr)}</span> yet.</p>
+      <p style={{ fontSize: 13, color: "var(--faint)" }}>Only current wallets ≥100k SPX have a reconstructed position, and the lots refresh on the next daily on-chain run. <a href="/deepfield" style={{ color: "var(--live)" }}>Back to Deep Field →</a></p>
     </div>
   );
 

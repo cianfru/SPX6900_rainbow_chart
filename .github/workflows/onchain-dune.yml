@@ -303,8 +303,10 @@ jobs:
           # views stay public but no address list is. Order matters: push full first, strip second.
           node scripts/push-private-feed.mjs --file=public/smart-money.json --key=smart-money || true
           node scripts/push-private-feed.mjs --file=public/whale-entry.json --key=whale-entry || true
+          node scripts/push-private-feed.mjs --file=public/whale-lots.json --key=whale-lots || true
           node scripts/strip-private-fields.mjs --file=public/smart-money.json --drop-key=wallets || true
           node scripts/strip-private-fields.mjs --file=public/whale-entry.json --drop-field=whales:a || true
+          node scripts/strip-private-fields.mjs --file=public/whale-lots.json --drop-key=wallets || true
           # whales.json + spx-timeline.json are PUBLIC (SPX City is a public showpiece): committed in full
           # with addresses, NOT pushed to KV or stripped.
 
@@ -317,7 +319,7 @@ jobs:
           # entities.json is DELIBERATELY absent — it goes to KV (the data wall) only, not the public repo.
           # addr-types is derived from entities but carries no balances, so it stays. spx-timeline + whales
           # ARE committed (public — SPX City is a public showpiece).
-          ETH_FILES="public/onchain.json public/urpd.json public/urpd-history.json public/whales.json public/spx-timeline.json public/self-moves.json public/addr-types.json public/cohort-survival.json public/exit-flow.json public/smart-money.json public/city-recap.json public/whale-cohort-history.json public/city-history.json public/cex-sankey.json public/whale-thennow.json public/cohort-roi.json public/whale-entry.json"
+          ETH_FILES="public/onchain.json public/urpd.json public/urpd-history.json public/whales.json public/spx-timeline.json public/self-moves.json public/addr-types.json public/cohort-survival.json public/exit-flow.json public/smart-money.json public/city-recap.json public/whale-cohort-history.json public/city-history.json public/cex-sankey.json public/whale-thennow.json public/cohort-roi.json public/whale-entry.json public/whale-lots.json"
           CHAIN_FILES="public/solana-onchain.json dune/out/spx6900_solana_balances.csv public/base-onchain.json dune/out/spx6900_base_cohort.csv"
           # The control-panel/terminal digests: deploy-ignored (read via the raw proxy), so they commit
           # but never force a deploy — same as their 00:17 build.
