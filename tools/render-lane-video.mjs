@@ -86,7 +86,7 @@ function rock(x, y, s) {
   return `<g><ellipse cx="${r1(x)}" cy="${r1(y + 2)}" rx="${r1(r * 1.15)}" ry="${r1(r * 0.3)}" fill="rgba(0,0,0,0.2)"/><path d="M ${r1(x - r)} ${r1(y)} Q ${r1(x - r * 1.1)} ${r1(y - r * 0.9)} ${r1(x - r * 0.2)} ${r1(y - r)} Q ${r1(x + r * 0.9)} ${r1(y - r * 1.1)} ${r1(x + r)} ${r1(y)} Z" fill="#8b8f98"/><path d="M ${r1(x - r * 0.2)} ${r1(y - r)} Q ${r1(x + r * 0.9)} ${r1(y - r * 1.1)} ${r1(x + r)} ${r1(y)} L ${r1(x + r * 0.2)} ${r1(y)} Z" fill="#6b7079"/><ellipse cx="${r1(x - r * 0.35)}" cy="${r1(y - r * 0.55)}" rx="${r1(r * 0.28)}" ry="${r1(r * 0.2)}" fill="#a7abb3"/></g>`;
 }
 
-function scene({ W, H, carLane, camLane, band, date, price, scroll, progress, curve, hill, traffic, lean, carImg, carAspect, skyImg, palmImg, palmAspect, trafficImgs, frame }) {
+function scene({ W, H, carLane, camLane, band, date, price, scroll, progress, curve, hill, traffic, lean, carImg, carAspect, skyImg, palmImg, palmAspect, trafficImgs, frame, announce }) {
   const hy = H * 0.52, zN = 1, zF = 9;                             // lower camera: more sky, road more edge-on (OutRun eye height)
   const ds = t => zN / (zN + (zF - zN) * t);                       // depth scale (1 near → small far)
   const yOf = t => hy + (H - hy) * ds(t) - hill * Math.sin(t * Math.PI) * H * 0.05;
@@ -213,7 +213,11 @@ function scene({ W, H, carLane, camLane, band, date, price, scroll, progress, cu
   const tCar = 0.02, cw = carImg ? W * 0.26 : W * 0.21;             // the real sprite reads a touch bigger
   const iw = cw, ih = carImg && carAspect > 0 ? cw / carAspect : cw;
   const carY = yOf(tCar) - ih * 0.42;
-  const carX = clamp(laneX(carLane + 0.5, tCar), laneX(eL, tCar) + cw * 0.5, laneX(eR, tCar) - cw * 0.5);
+  // keep the car both ON the rainbow AND fully inside the frame — even if the camera is still catching up
+  // to a fast band jump, so it can never be clipped at a screen edge.
+  const scLo = cw * 0.5 + W * 0.015, scHi = W - cw * 0.5 - W * 0.015;
+  const loX = Math.max(laneX(eL, tCar) + cw * 0.5, scLo), hiX = Math.min(laneX(eR, tCar) - cw * 0.5, scHi);
+  const carX = clamp(laneX(carLane + 0.5, tCar), Math.min(loX, hiX), Math.max(loX, hiX));
   // OutRun turn smoke: white puffs kicked up behind the rear wheels while cornering (drawn UNDER the car).
   // The harder the lean, the denser + more it favours the OUTSIDE wheel. Procedural so it billows/scales.
   if (Math.abs(lean) > 0.12) {
@@ -252,6 +256,14 @@ function scene({ W, H, carLane, camLane, band, date, price, scroll, progress, cu
       <text x="${lx + 30}" y="${r1(yy + 18)}" fill="${on ? "#ffffff" : "#d7deea"}" font-size="${on ? 23 : 20}" font-weight="${on ? 800 : 700}" font-family="sans-serif">${esc(BAND_LABELS[i].l)}</text>`;
   }
   s += `<rect x="0" y="${H - 9}" width="${W}" height="9" fill="rgba(255,255,255,0.14)"/><rect x="0" y="${H - 9}" width="${r1(W * progress)}" height="9" fill="${glow}"/>`;
+  // band-arrival banner over the final stretch (for the auto band-change clips)
+  if (announce && progress > 0.8) {
+    const aop = clamp((progress - 0.8) / 0.06, 0, 1);
+    const by = H * 0.36;
+    s += `<g opacity="${aop.toFixed(2)}"><rect x="${r1(W * 0.05)}" y="${r1(by)}" width="${r1(W * 0.9)}" height="${r1(H * 0.135)}" rx="16" fill="rgba(6,10,22,0.84)" stroke="${glow}" stroke-width="5"/>`
+      + `<text x="${r1(W / 2)}" y="${r1(by + H * 0.045)}" text-anchor="middle" fill="#c8d1de" font-size="32" font-weight="700" font-family="sans-serif" letter-spacing="4">SPX6900 IS NOW IN</text>`
+      + `<text x="${r1(W / 2)}" y="${r1(by + H * 0.11)}" text-anchor="middle" fill="${glow}" font-size="70" font-weight="800" font-family="sans-serif" letter-spacing="2" stroke="#05070f" stroke-width="1.5">${esc(announce.toUpperCase())}</text></g>`;
+  }
   return s;
 }
 
@@ -282,28 +294,34 @@ async function main() {
   // optional --car=path.png (or .svg): a supplied car sprite (rear view, transparent bg) replaces the
   // vector car — embedded as a data URI so it rides in every frame.
   const { readFileSync } = await import("node:fs");
-  // load a supplied sprite/photo → {uri, aspect}. PNG aspect is read from the IHDR; else 0.
+  const { fileURLToPath } = await import("node:url");
+  const asset = f => { try { return fileURLToPath(new URL(`./rainbow-road-assets/${f}`, import.meta.url)); } catch { return ""; } };
+  // load a supplied sprite/photo → {uri, aspect}. PNG aspect is read from the IHDR; else 0. Missing/bad
+  // file → soft null so the tool still renders with its vector fallbacks.
   const loadImg = (p, label) => {
     if (!p) return { uri: null, aspect: 0 };
-    const b = readFileSync(p);
+    let b; try { b = readFileSync(p); } catch { console.log(`(${label}: not found at ${p} — using fallback)`); return { uri: null, aspect: 0 }; }
     const mime = p.endsWith(".svg") ? "image/svg+xml" : p.endsWith(".webp") ? "image/webp" : p.endsWith(".jpg") || p.endsWith(".jpeg") ? "image/jpeg" : "image/png";
     let aspect = 0;
     if (mime === "image/png" && b.length > 24 && b.readUInt32BE(12) === 0x49484452) aspect = b.readUInt32BE(16) / b.readUInt32BE(20);
     console.log(`using ${label}: ${p}${aspect ? ` (aspect ${aspect.toFixed(2)})` : ""}`);
     return { uri: `data:${mime};base64,${b.toString("base64")}`, aspect };
   };
-  const car = loadImg(arg("car", ""), "car"), carImg = car.uri, carAspect = car.aspect;
-  const sky = loadImg(arg("sky", ""), "sky plate"), skyImg = sky.uri;
-  const palm = loadImg(arg("palm", ""), "palm"), palmImg = palm.uri, palmAspect = palm.aspect || 0.437;
-  // --cars=a.png,b.png,…  rear-3/4 traffic sprites (transparent bg); scaled by depth + mirrored per side
-  const trafficImgs = (arg("cars", "") ? arg("cars", "").split(",") : []).map((p, i) => loadImg(p.trim(), `traffic ${i}`));
+  // default to the committed OutRun-homage assets; --car/--sky/--palm/--cars still override.
+  const car = loadImg(arg("car", asset("car.png")), "car"), carImg = car.uri, carAspect = car.aspect;
+  const sky = loadImg(arg("sky", asset("sky.png")), "sky plate"), skyImg = sky.uri;
+  const palm = loadImg(arg("palm", asset("palm.png")), "palm"), palmImg = palm.uri, palmAspect = palm.aspect || 0.437;
+  const carsArg = arg("cars", ["traffic-yellow.png", "traffic-beetle.png", "traffic-truck.png"].map(asset).join(","));
+  const trafficImgs = (carsArg ? carsArg.split(",") : []).map((p, i) => loadImg(p.trim(), `traffic ${i}`)).filter(x => x.uri);
+  // --announce="ACCUMULATE" → a "SPX IS NOW IN <BAND>" banner over the final seconds (band-arrival clips)
+  const announce = arg("announce", "");
   const m = buildModel(DEFAULT_RAW);
   let seq = DEFAULT_RAW.map(r => ({ date: r.date, price: r.price, band: clamp(bandIndex(m, r.price, dayN(r.date)), 0, N - 1) }));
   if (from) seq = seq.filter(r => r.date >= from);
   const total = fps * seconds, bandAt = p => seq[clamp(Math.floor(p * (seq.length - 1)), 0, seq.length - 1)];
   const rnd = (() => { let s = 12345; return () => (s = (s * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff; })();
   const cols = ["#38bdf8", "#a3e635", "#f472b6", "#fbbf24"];
-  const DZ = 1.3, camClamp = v => clamp(v, VIS / 2 - 0.8, (N - 1) - (VIS / 2 - 0.8));  // dead-zone + edge reveal
+  const DZ = 1.0, camClamp = v => clamp(v, VIS / 2 - 0.8, (N - 1) - (VIS / 2 - 0.8));  // tighter dead-zone so a fast jump can't outrun the camera
   const MINGAP = 2.3;                              // a vehicle holds a lane this many clear of the car's PATH
   // the car's SCREEN lane is the FLIPPED band (Max Bubble left … Fire Sale right)
   const screenLane = band => (N - 1) - band;
@@ -329,8 +347,8 @@ async function main() {
       const carLane = carTraj[i], prevCar = i > 0 ? carTraj[i - 1] : carLane;
       // dead-zone camera: the car moves freely in the central zone; the camera only pans (revealing the
       // off-screen lanes) once it leaves that zone.
-      if (carLane - camLane > DZ) camLane += (carLane - DZ - camLane) * 0.12;
-      else if (carLane - camLane < -DZ) camLane += (carLane + DZ - camLane) * 0.12;
+      if (carLane - camLane > DZ) camLane += (carLane - DZ - camLane) * 0.22;   // catch up faster on a big jump
+      else if (carLane - camLane < -DZ) camLane += (carLane + DZ - camLane) * 0.22;
       camLane = camClamp(camLane);
       const lean = clamp((carLane - prevCar) * 6, -1, 1);
       // each vehicle holds its FIXED lane and just approaches; when it passes the camera it recycles to the
@@ -339,7 +357,7 @@ async function main() {
         v.z -= TZ;
         if (v.z < 0.0) { v.z = 1; v.born = i; v.lane = pickLane(i); v.ci = nImg ? Math.floor(rnd() * nImg) : 0; v.type = rnd() < 0.3 ? "truck" : "car"; v.col = cols[Math.floor(rnd() * cols.length)]; }
       }
-      const st = { carLane, camLane, band: curr.band, date: curr.date, price: curr.price, scroll: (i * 0.62 / fps) % 1, progress: p, curve: Math.sin(p * Math.PI * 6) * 0.4, hill: Math.sin(p * Math.PI * 4 + 1) * 0.55, traffic, lean, carImg, carAspect, skyImg, palmImg, palmAspect, trafficImgs, frame: i };
+      const st = { carLane, camLane, band: curr.band, date: curr.date, price: curr.price, scroll: (i * 0.62 / fps) % 1, progress: p, curve: Math.sin(p * Math.PI * 6) * 0.4, hill: Math.sin(p * Math.PI * 4 + 1) * 0.55, traffic, lean, carImg, carAspect, skyImg, palmImg, palmAspect, trafficImgs, frame: i, announce };
       writeFileSync(join(dir, `f${String(i).padStart(5, "0")}.png`), new Resvg(svg(st, fmt.W, fmt.H), { fitTo: { mode: "width", value: RW }, font: FONT }).render().asPng());
       if (i % 30 === 0) process.stdout.write(`\r  frame ${i + 1}/${total}`);
     }
