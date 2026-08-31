@@ -1,33 +1,36 @@
-name: Rainbow Road (band-change clips)
+name: Rainbow Road (render on demand)
 
-# Watches the live SPX6900 valuation band a few times a day. When the band CHANGES (and holds for
-# CONFIRM consecutive runs — anti-wick), it renders a short "SPX6900 IS NOW IN <BAND>" OutRun clip
-# (vertical + square) for the owner to review and post BY HAND. Nothing is ever auto-posted. Band
-# changes are rare, so most runs are quick no-ops. State: public/rainbow-road-state.json.
+# Renders the OutRun "Rainbow Road" video ON DEMAND — triggered by the control-panel button (or a
+# manual dispatch). No schedule, no band-watching (band-watch.mjs owns that; the owner watches daily).
+# It renders X-optimised clips and publishes them to the stable 'rainbow-road-latest' release so the
+# control panel can hand back a download link. Nothing is ever auto-posted.
 
 on:
-  schedule:
-    - cron: "13 */8 * * *"   # every 8 hours (offset off the hour)
   workflow_dispatch:
     inputs:
-      force:
-        description: "Render for the current band now, even if unchanged"
+      format:
+        description: "Aspect: vertical (9:16), square (1:1), wide (16:9), or all"
+        type: choice
+        options: [vertical, square, wide, all]
+        default: vertical
+      seconds:
+        description: "Length in seconds"
+        type: string
+        default: "30"
+      announce:
+        description: "Show the 'SPX6900 IS NOW IN <BAND>' banner"
         type: boolean
-        default: false
-      dry_run:
-        description: "Detect only, render nothing, don't write state"
-        type: boolean
-        default: false
+        default: true
 
 permissions:
   contents: write
 
 concurrency:
   group: rainbow-road
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
-  clip:
+  render:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -36,7 +39,6 @@ jobs:
         with:
           node-version: 20
           cache: npm
-
       - run: npm ci
 
       # the renderer resolves ffmpeg via `python3 -c "import imageio_ffmpeg..."` (same as local)
@@ -45,25 +47,14 @@ jobs:
           python-version: "3.12"
       - run: pip install imageio-ffmpeg
 
-      - name: Watch band + maybe render band-arrival clips
+      - name: Render Rainbow Road
         run: >-
           node scripts/bot/rainbow-road-run.mjs
-          ${{ (github.event_name == 'workflow_dispatch' && inputs.force) && '--force' || '' }}
-          ${{ (github.event_name == 'workflow_dispatch' && inputs.dry_run) && '--dry-run' || '' }}
+          --formats=${{ inputs.format }}
+          --seconds=${{ inputs.seconds }}
+          ${{ inputs.announce && '' || '--no-announce' }}
 
-      - name: Commit rainbow-road state if changed
-        run: |
-          if [[ -n "$(git status --porcelain public/rainbow-road-state.json)" ]]; then
-            git config user.name "github-actions[bot]"
-            git config user.email "github-actions[bot]@users.noreply.github.com"
-            git add public/rainbow-road-state.json
-            git commit -m "chore: rainbow-road state $(date -u +%FT%TZ) [skip deploy]"
-            git push || { for i in 1 2 3 4 5; do echo "push rejected, rebasing (attempt $i)"; git pull --rebase --autostash origin "${GITHUB_REF_NAME:-main}" && git push && break; sleep $((i*3)); done; }
-          else
-            echo "No state change to commit"
-          fi
-
-      - name: Upload rendered clips (Actions artifact)
+      - name: Upload clips (Actions artifact)
         if: ${{ hashFiles('out/*.mp4') != '' }}
         uses: actions/upload-artifact@v4
         with:
@@ -71,13 +62,11 @@ jobs:
           path: out/*.mp4
           if-no-files-found: ignore
 
-      # Also publish to a stable release tag so the clips have a durable link (best-effort).
-      - name: Publish clips to release (stable links)
+      - name: Publish clips to the stable release (download links)
         if: ${{ hashFiles('out/*.mp4') != '' }}
-        continue-on-error: true
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh release view rainbow-road-latest >/dev/null 2>&1 \
-            || gh release create rainbow-road-latest --title "Rainbow Road — latest band clip" --notes "Auto-rendered on a confirmed band change. Review + post manually."
+            || gh release create rainbow-road-latest --title "Rainbow Road — latest render" --notes "On-demand renders from the control panel. Review + post manually."
           gh release upload rainbow-road-latest out/*.mp4 --clobber

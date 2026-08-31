@@ -33,7 +33,6 @@ on:
       - "public/aeon-listing-alert-state.json"
       - "public/whale-signals.json"
       - "public/whale-state.json"
-      - "public/rainbow-road-state.json"
       - "public/aeon-live-sales.json"
       - "public/feed-health.json"
   workflow_dispatch: {}
