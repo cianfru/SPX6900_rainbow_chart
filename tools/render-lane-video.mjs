@@ -5,7 +5,10 @@
 // overtake, palms, a bright coastal sky, retro HUD. SVG frames → Resvg → ffmpeg (H.264). $0, Node-only.
 //
 //   node tools/render-lane-video.mjs --format=vertical --seconds=30 --out=out/rainbow-road.mp4
-//   flags: --format=vertical|wide|square  --fps=30  --seconds=30  --from=YYYY-MM-DD
+//   flags: --format=vertical|wide|square  --fps=30  --seconds=30  --from=YYYY-MM-DD  --pixel=N
+//          --car/--sky/--palm/--cars=<png[,png]>  --announce="<BAND>"
+//   FOR POSTING TO X (survives its H.264 re-encode): add --soften=0.8 --crf=16 — softens the razor
+//   pixel edges to a ~1px ramp + high bitrate, so X's transcode doesn't ring/block them (still pixel-art).
 import { Resvg } from "@resvg/resvg-js";
 import { spawn, execSync } from "node:child_process";
 import { mkdtempSync, writeFileSync, rmSync, mkdirSync } from "node:fs";
@@ -363,8 +366,15 @@ async function main() {
     }
     process.stdout.write(`\r  frame ${total}/${total}\n`);
     const ff = execSync('python3 -c "import imageio_ffmpeg;print(imageio_ffmpeg.get_ffmpeg_exe())"').toString().trim();
-    const vf = PIX > 1 ? ["-vf", `scale=${fmt.W}:${fmt.H}:flags=neighbor`] : [];   // nearest-neighbour blow-up = hard pixels
-    await new Promise((res, rej) => spawn(ff, ["-y", "-framerate", String(fps), "-i", join(dir, "f%05d.png"), ...vf, "-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "18", "-preset", "medium", "-movflags", "+faststart", out], { stdio: ["ignore", "ignore", "inherit"] }).on("close", c => c === 0 ? res() : rej(new Error("ffmpeg " + c))));
+    // Encode chain. --soften=<sigma> adds a sub-pixel gaussian AFTER the nearest-neighbour blow-up so the
+    // razor pixel edges get a ~1px ramp — this survives X's H.264 re-encode far better (hard edges ring/
+    // block). --crf sets quality (lower = higher bitrate; 16 makes a strong upload master). Keeps the look.
+    const soften = +arg("soften", "0"), crf = arg("crf", "18");
+    const chain = [];
+    if (PIX > 1) chain.push(`scale=${fmt.W}:${fmt.H}:flags=neighbor`);
+    if (soften > 0) chain.push(`gblur=sigma=${soften}`);
+    const vf = chain.length ? ["-vf", chain.join(",")] : [];
+    await new Promise((res, rej) => spawn(ff, ["-y", "-framerate", String(fps), "-i", join(dir, "f%05d.png"), ...vf, "-c:v", "libx264", "-pix_fmt", "yuv420p", "-profile:v", "high", "-crf", String(crf), "-preset", "slow", "-g", String(fps * 2), "-movflags", "+faststart", out], { stdio: ["ignore", "ignore", "inherit"] }).on("close", c => c === 0 ? res() : rej(new Error("ffmpeg " + c))));
     console.log(`✓ ${out}`);
   } finally { rmSync(dir, { recursive: true, force: true }); }
 }

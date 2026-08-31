@@ -87,7 +87,9 @@ let allOk = true;
 for (const fmt of formats) {
   const out = fileURLToPath(new URL(`rainbow-road-${slug(label)}-${fmt}.mp4`, outDir));
   console.log(`\n▶ rendering ${fmt} → ${out}`);
-  const r = spawnSync(process.execPath, [fileURLToPath(TOOL), `--format=${fmt}`, `--seconds=${seconds}`, "--pixel=5", `--announce=${label}`, `--out=${out}`], { stdio: "inherit" });
+  // X-optimised master: soften the razor pixel edges (~1px ramp) + high bitrate (crf 16) so X's H.264
+  // re-encode doesn't ring/block the hard edges. Still reads as pixel art; survives the transcode.
+  const r = spawnSync(process.execPath, [fileURLToPath(TOOL), `--format=${fmt}`, `--seconds=${seconds}`, "--pixel=5", "--soften=0.8", "--crf=16", `--announce=${label}`, `--out=${out}`], { stdio: "inherit" });
   if (r.status !== 0) { allOk = false; console.error(`✗ render failed for ${fmt} (status ${r.status})`); }
 }
 // Only advance state if every clip rendered, so a transient failure re-tries next run.
