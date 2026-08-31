@@ -86,7 +86,7 @@ function rock(x, y, s) {
   return `<g><ellipse cx="${r1(x)}" cy="${r1(y + 2)}" rx="${r1(r * 1.15)}" ry="${r1(r * 0.3)}" fill="rgba(0,0,0,0.2)"/><path d="M ${r1(x - r)} ${r1(y)} Q ${r1(x - r * 1.1)} ${r1(y - r * 0.9)} ${r1(x - r * 0.2)} ${r1(y - r)} Q ${r1(x + r * 0.9)} ${r1(y - r * 1.1)} ${r1(x + r)} ${r1(y)} Z" fill="#8b8f98"/><path d="M ${r1(x - r * 0.2)} ${r1(y - r)} Q ${r1(x + r * 0.9)} ${r1(y - r * 1.1)} ${r1(x + r)} ${r1(y)} L ${r1(x + r * 0.2)} ${r1(y)} Z" fill="#6b7079"/><ellipse cx="${r1(x - r * 0.35)}" cy="${r1(y - r * 0.55)}" rx="${r1(r * 0.28)}" ry="${r1(r * 0.2)}" fill="#a7abb3"/></g>`;
 }
 
-function scene({ W, H, carLane, camLane, band, date, price, scroll, progress, curve, hill, traffic, lean, carImg, carAspect, skyImg, palmImg, palmAspect, trafficImgs }) {
+function scene({ W, H, carLane, camLane, band, date, price, scroll, progress, curve, hill, traffic, lean, carImg, carAspect, skyImg, palmImg, palmAspect, trafficImgs, frame }) {
   const hy = H * 0.52, zN = 1, zF = 9;                             // lower camera: more sky, road more edge-on (OutRun eye height)
   const ds = t => zN / (zN + (zF - zN) * t);                       // depth scale (1 near → small far)
   const yOf = t => hy + (H - hy) * ds(t) - hill * Math.sin(t * Math.PI) * H * 0.05;
@@ -214,9 +214,24 @@ function scene({ W, H, carLane, camLane, band, date, price, scroll, progress, cu
   const iw = cw, ih = carImg && carAspect > 0 ? cw / carAspect : cw;
   const carY = yOf(tCar) - ih * 0.42;
   const carX = clamp(laneX(carLane + 0.5, tCar), laneX(eL, tCar) + cw * 0.5, laneX(eR, tCar) - cw * 0.5);
-  if (Math.abs(lean) > 0.2)   // two short tyre streaks trailing behind on a lane change
-    for (const dx of [-cw * 0.28, cw * 0.28])
-      s += `<line x1="${r1(carX + dx)}" y1="${r1(carY + ih * 0.5)}" x2="${r1(carX + dx - lean * cw * 0.4)}" y2="${r1(carY + ih * 0.5 + cw * 0.22)}" stroke="rgba(15,15,20,0.3)" stroke-width="${r1(cw * 0.05)}" stroke-linecap="round"/>`;
+  // OutRun turn smoke: white puffs kicked up behind the rear wheels while cornering (drawn UNDER the car).
+  // The harder the lean, the denser + more it favours the OUTSIDE wheel. Procedural so it billows/scales.
+  if (Math.abs(lean) > 0.12) {
+    const baseOp = clamp(Math.abs(lean) * 1.15, 0, 0.85), NP = 6;
+    const jr = n => { const x = Math.sin(frame * 12.9898 + n * 78.233) * 43758.545; return x - Math.floor(x); };
+    const puff = (px, py, r, op) => `<g opacity="${op.toFixed(2)}"><circle cx="${r1(px)}" cy="${r1(py)}" r="${r1(r)}" fill="#eef1f6"/><circle cx="${r1(px - r * 0.5)}" cy="${r1(py + r * 0.2)}" r="${r1(r * 0.68)}" fill="#ffffff"/><circle cx="${r1(px + r * 0.55)}" cy="${r1(py + r * 0.12)}" r="${r1(r * 0.6)}" fill="#e7ecf3"/><circle cx="${r1(px)}" cy="${r1(py - r * 0.42)}" r="${r1(r * 0.55)}" fill="#ffffff"/></g>`;
+    for (const side of [-1, 1]) {
+      const wx = carX + side * iw * 0.32, wy = carY + ih * 0.40;    // behind a rear wheel
+      const bias = side === Math.sign(lean) ? 1 : 0.5;              // more smoke on the outside of the turn
+      for (let k = 0; k < NP; k++) {
+        const j1 = jr(k + (side > 0 ? 100 : 0)) - 0.5, j2 = jr(k * 3 + (side > 0 ? 7 : 0)) - 0.5;
+        const px = wx + side * (iw * 0.05 + k * iw * 0.05) + j1 * cw * 0.12;
+        const py = wy + k * ih * 0.085 + j2 * cw * 0.08;
+        const op = clamp(baseOp * bias * (1 - k / (NP + 1)), 0, 0.9);
+        s += puff(px, py, cw * (0.09 + k * 0.028), op);
+      }
+    }
+  }
   const carSprite = carImg
     ? `<image href="${carImg}" x="${r1(-iw / 2)}" y="${r1(-ih / 2)}" width="${r1(iw)}" height="${r1(ih)}" transform="rotate(${r1(lean * 6)})" preserveAspectRatio="xMidYMid meet" image-rendering="pixelated"/>`
     : playerCar(cw, clamp(lean, -1, 1));
@@ -324,7 +339,7 @@ async function main() {
         v.z -= TZ;
         if (v.z < 0.0) { v.z = 1; v.born = i; v.lane = pickLane(i); v.ci = nImg ? Math.floor(rnd() * nImg) : 0; v.type = rnd() < 0.3 ? "truck" : "car"; v.col = cols[Math.floor(rnd() * cols.length)]; }
       }
-      const st = { carLane, camLane, band: curr.band, date: curr.date, price: curr.price, scroll: (i * 0.62 / fps) % 1, progress: p, curve: Math.sin(p * Math.PI * 6) * 0.4, hill: Math.sin(p * Math.PI * 4 + 1) * 0.55, traffic, lean, carImg, carAspect, skyImg, palmImg, palmAspect, trafficImgs };
+      const st = { carLane, camLane, band: curr.band, date: curr.date, price: curr.price, scroll: (i * 0.62 / fps) % 1, progress: p, curve: Math.sin(p * Math.PI * 6) * 0.4, hill: Math.sin(p * Math.PI * 4 + 1) * 0.55, traffic, lean, carImg, carAspect, skyImg, palmImg, palmAspect, trafficImgs, frame: i };
       writeFileSync(join(dir, `f${String(i).padStart(5, "0")}.png`), new Resvg(svg(st, fmt.W, fmt.H), { fitTo: { mode: "width", value: RW }, font: FONT }).render().asPng());
       if (i % 30 === 0) process.stdout.write(`\r  frame ${i + 1}/${total}`);
     }
