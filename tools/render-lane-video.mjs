@@ -86,7 +86,7 @@ function rock(x, y, s) {
   return `<g><ellipse cx="${r1(x)}" cy="${r1(y + 2)}" rx="${r1(r * 1.15)}" ry="${r1(r * 0.3)}" fill="rgba(0,0,0,0.2)"/><path d="M ${r1(x - r)} ${r1(y)} Q ${r1(x - r * 1.1)} ${r1(y - r * 0.9)} ${r1(x - r * 0.2)} ${r1(y - r)} Q ${r1(x + r * 0.9)} ${r1(y - r * 1.1)} ${r1(x + r)} ${r1(y)} Z" fill="#8b8f98"/><path d="M ${r1(x - r * 0.2)} ${r1(y - r)} Q ${r1(x + r * 0.9)} ${r1(y - r * 1.1)} ${r1(x + r)} ${r1(y)} L ${r1(x + r * 0.2)} ${r1(y)} Z" fill="#6b7079"/><ellipse cx="${r1(x - r * 0.35)}" cy="${r1(y - r * 0.55)}" rx="${r1(r * 0.28)}" ry="${r1(r * 0.2)}" fill="#a7abb3"/></g>`;
 }
 
-function scene({ W, H, carLane, camLane, band, date, price, scroll, progress, curve, hill, traffic, lean, carImg, carAspect, skyImg, palmImg, palmAspect }) {
+function scene({ W, H, carLane, camLane, band, date, price, scroll, progress, curve, hill, traffic, lean, carImg, carAspect, skyImg, palmImg, palmAspect, trafficImgs }) {
   const hy = H * 0.52, zN = 1, zF = 9;                             // lower camera: more sky, road more edge-on (OutRun eye height)
   const ds = t => zN / (zN + (zF - zN) * t);                       // depth scale (1 near → small far)
   const yOf = t => hy + (H - hy) * ds(t) - hill * Math.sin(t * Math.PI) * H * 0.05;
@@ -191,11 +191,20 @@ function scene({ W, H, carLane, camLane, band, date, price, scroll, progress, cu
 
   // ── traffic to overtake (far → near), then the player car on top. Sized to match the player car at
   //    the same depth so proportions stay consistent. ──
-  const carDepthScale = ds(0.02);
+  const carDepthScale = ds(0.02), useImgs = trafficImgs && trafficImgs.length;
   for (const v of traffic.slice().sort((a, b) => b.z - a.z)) {
     if (v.z < 0.02 || v.z > 1) continue;
-    const t = v.z, w = W * 0.19 * (ds(t) / carDepthScale) * (v.type === "truck" ? 0.98 : 0.86), x = laneX(v.lane + 0.5, t), yv = yOf(t);
-    s += `<g transform="translate(${r1(x)},${r1(yv - w * 0.5)})">${v.type === "truck" ? truck(w) : trafficCar(w, v.col)}</g>`;
+    const t = v.z, x = laneX(v.lane + 0.5, t), yv = yOf(t);
+    if (useImgs) {
+      // rear-3/4 sprite: scale by depth, base-anchored on the road, MIRRORED by which side of the view it's
+      // on so a car overtaken on the left and one on the right both angle the natural way.
+      const img = trafficImgs[v.ci % trafficImgs.length], asp = img.aspect || 1.2;
+      const w = W * 0.22 * (ds(t) / carDepthScale), h = w / asp, sx = (v.lane + 0.5) < camLane ? -1 : 1;
+      s += `<g transform="translate(${r1(x)},${r1(yv)}) scale(${sx},1)"><image href="${img.uri}" x="${r1(-w / 2)}" y="${r1(-h)}" width="${r1(w)}" height="${r1(h)}" image-rendering="pixelated"/></g>`;
+    } else {
+      const w = W * 0.19 * (ds(t) / carDepthScale) * (v.type === "truck" ? 0.98 : 0.86);
+      s += `<g transform="translate(${r1(x)},${r1(yv - w * 0.5)})">${v.type === "truck" ? truck(w) : trafficCar(w, v.col)}</g>`;
+    }
   }
   // OutRun camera height: the car sits LOW + CLOSE, so it's big in the lower-centre (a fixed fraction
   // of the frame, not tied to the far-shrinking lane width). It still tracks its lane (band).
@@ -271,6 +280,8 @@ async function main() {
   const car = loadImg(arg("car", ""), "car"), carImg = car.uri, carAspect = car.aspect;
   const sky = loadImg(arg("sky", ""), "sky plate"), skyImg = sky.uri;
   const palm = loadImg(arg("palm", ""), "palm"), palmImg = palm.uri, palmAspect = palm.aspect || 0.437;
+  // --cars=a.png,b.png,…  rear-3/4 traffic sprites (transparent bg); scaled by depth + mirrored per side
+  const trafficImgs = (arg("cars", "") ? arg("cars", "").split(",") : []).map((p, i) => loadImg(p.trim(), `traffic ${i}`));
   const m = buildModel(DEFAULT_RAW);
   let seq = DEFAULT_RAW.map(r => ({ date: r.date, price: r.price, band: clamp(bandIndex(m, r.price, dayN(r.date)), 0, N - 1) }));
   if (from) seq = seq.filter(r => r.date >= from);
@@ -292,7 +303,8 @@ async function main() {
   const carRange = born => { let lo = Infinity, hi = -Infinity; const a = born + Math.round(0.55 * travelFrames), b = born + travelFrames + Math.round(0.15 * fps); for (let f = a; f <= b; f++) { const c = carTraj[clamp(f, 0, total - 1)]; if (c < lo) lo = c; if (c > hi) hi = c; } return [lo, hi]; };
   const pickLane = born => { const [lo, hi] = carRange(born); const rRoom = (N - 1) - (hi + MINGAP), lRoom = lo - MINGAP; if (rRoom >= 0 && (lRoom < 0 || rRoom >= lRoom)) return clamp(hi + MINGAP + rnd() * rRoom, 0, N - 1); if (lRoom >= 0) return clamp((lo - MINGAP) - rnd() * lRoom, 0, N - 1); return (hi + MINGAP) > (N - 1 - (lo - MINGAP)) ? 0 : N - 1; };
   let camLane = camClamp(carTraj[0]);
-  let traffic = Array.from({ length: 3 }, (_, i) => { const z0 = 0.4 + i * 0.24, born = Math.round(-(1 - z0) * travelFrames); return { z: z0, born, lane: pickLane(born), type: rnd() < 0.3 ? "truck" : "car", col: cols[i % cols.length] }; });
+  const nImg = trafficImgs.length;
+  let traffic = Array.from({ length: 3 }, (_, i) => { const z0 = 0.4 + i * 0.24, born = Math.round(-(1 - z0) * travelFrames); return { z: z0, born, lane: pickLane(born), ci: nImg ? Math.floor(rnd() * nImg) : 0, type: rnd() < 0.3 ? "truck" : "car", col: cols[i % cols.length] }; });
 
   const dir = mkdtempSync(join(tmpdir(), "lanevid-"));
   console.log(`rainbow road v6 (flipped + real car) · ${fmt.W}×${fmt.H} · ${fps}fps · ${seconds}s (${total}f) · ${seq.length} weeks → ${out}`);
@@ -310,9 +322,9 @@ async function main() {
       // far distance and picks a fresh lane clear of the car's upcoming path. No dodging → looks natural.
       for (const v of traffic) {
         v.z -= TZ;
-        if (v.z < 0.0) { v.z = 1; v.born = i; v.lane = pickLane(i); v.type = rnd() < 0.3 ? "truck" : "car"; v.col = cols[Math.floor(rnd() * cols.length)]; }
+        if (v.z < 0.0) { v.z = 1; v.born = i; v.lane = pickLane(i); v.ci = nImg ? Math.floor(rnd() * nImg) : 0; v.type = rnd() < 0.3 ? "truck" : "car"; v.col = cols[Math.floor(rnd() * cols.length)]; }
       }
-      const st = { carLane, camLane, band: curr.band, date: curr.date, price: curr.price, scroll: (i * 0.62 / fps) % 1, progress: p, curve: Math.sin(p * Math.PI * 6) * 0.4, hill: Math.sin(p * Math.PI * 4 + 1) * 0.55, traffic, lean, carImg, carAspect, skyImg, palmImg, palmAspect };
+      const st = { carLane, camLane, band: curr.band, date: curr.date, price: curr.price, scroll: (i * 0.62 / fps) % 1, progress: p, curve: Math.sin(p * Math.PI * 6) * 0.4, hill: Math.sin(p * Math.PI * 4 + 1) * 0.55, traffic, lean, carImg, carAspect, skyImg, palmImg, palmAspect, trafficImgs };
       writeFileSync(join(dir, `f${String(i).padStart(5, "0")}.png`), new Resvg(svg(st, fmt.W, fmt.H), { fitTo: { mode: "width", value: RW }, font: FONT }).render().asPng());
       if (i % 30 === 0) process.stdout.write(`\r  frame ${i + 1}/${total}`);
     }
