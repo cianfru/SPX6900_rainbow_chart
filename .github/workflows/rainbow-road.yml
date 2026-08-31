@@ -1,0 +1,83 @@
+name: Rainbow Road (band-change clips)
+
+# Watches the live SPX6900 valuation band a few times a day. When the band CHANGES (and holds for
+# CONFIRM consecutive runs — anti-wick), it renders a short "SPX6900 IS NOW IN <BAND>" OutRun clip
+# (vertical + square) for the owner to review and post BY HAND. Nothing is ever auto-posted. Band
+# changes are rare, so most runs are quick no-ops. State: public/rainbow-road-state.json.
+
+on:
+  schedule:
+    - cron: "13 */8 * * *"   # every 8 hours (offset off the hour)
+  workflow_dispatch:
+    inputs:
+      force:
+        description: "Render for the current band now, even if unchanged"
+        type: boolean
+        default: false
+      dry_run:
+        description: "Detect only, render nothing, don't write state"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: rainbow-road
+  cancel-in-progress: false
+
+jobs:
+  clip:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      # the renderer resolves ffmpeg via `python3 -c "import imageio_ffmpeg..."` (same as local)
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install imageio-ffmpeg
+
+      - name: Watch band + maybe render band-arrival clips
+        run: >-
+          node scripts/bot/rainbow-road-run.mjs
+          ${{ (github.event_name == 'workflow_dispatch' && inputs.force) && '--force' || '' }}
+          ${{ (github.event_name == 'workflow_dispatch' && inputs.dry_run) && '--dry-run' || '' }}
+
+      - name: Commit rainbow-road state if changed
+        run: |
+          if [[ -n "$(git status --porcelain public/rainbow-road-state.json)" ]]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add public/rainbow-road-state.json
+            git commit -m "chore: rainbow-road state $(date -u +%FT%TZ) [skip deploy]"
+            git push || { for i in 1 2 3 4 5; do echo "push rejected, rebasing (attempt $i)"; git pull --rebase --autostash origin "${GITHUB_REF_NAME:-main}" && git push && break; sleep $((i*3)); done; }
+          else
+            echo "No state change to commit"
+          fi
+
+      - name: Upload rendered clips (Actions artifact)
+        if: ${{ hashFiles('out/*.mp4') != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: rainbow-road-clips
+          path: out/*.mp4
+          if-no-files-found: ignore
+
+      # Also publish to a stable release tag so the clips have a durable link (best-effort).
+      - name: Publish clips to release (stable links)
+        if: ${{ hashFiles('out/*.mp4') != '' }}
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release view rainbow-road-latest >/dev/null 2>&1 \
+            || gh release create rainbow-road-latest --title "Rainbow Road — latest band clip" --notes "Auto-rendered on a confirmed band change. Review + post manually."
+          gh release upload rainbow-road-latest out/*.mp4 --clobber
