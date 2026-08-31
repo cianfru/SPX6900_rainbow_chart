@@ -86,8 +86,8 @@ function rock(x, y, s) {
   return `<g><ellipse cx="${r1(x)}" cy="${r1(y + 2)}" rx="${r1(r * 1.15)}" ry="${r1(r * 0.3)}" fill="rgba(0,0,0,0.2)"/><path d="M ${r1(x - r)} ${r1(y)} Q ${r1(x - r * 1.1)} ${r1(y - r * 0.9)} ${r1(x - r * 0.2)} ${r1(y - r)} Q ${r1(x + r * 0.9)} ${r1(y - r * 1.1)} ${r1(x + r)} ${r1(y)} Z" fill="#8b8f98"/><path d="M ${r1(x - r * 0.2)} ${r1(y - r)} Q ${r1(x + r * 0.9)} ${r1(y - r * 1.1)} ${r1(x + r)} ${r1(y)} L ${r1(x + r * 0.2)} ${r1(y)} Z" fill="#6b7079"/><ellipse cx="${r1(x - r * 0.35)}" cy="${r1(y - r * 0.55)}" rx="${r1(r * 0.28)}" ry="${r1(r * 0.2)}" fill="#a7abb3"/></g>`;
 }
 
-function scene({ W, H, carLane, camLane, band, date, price, scroll, progress, curve, hill, traffic, lean, carImg, carAspect }) {
-  const hy = H * 0.47, zN = 1, zF = 9;                             // lower horizon + shallower plane → a near-eye rear-view angle that matches a flat-backed car
+function scene({ W, H, carLane, camLane, band, date, price, scroll, progress, curve, hill, traffic, lean, carImg, carAspect, skyImg, palmImg, palmAspect }) {
+  const hy = H * 0.52, zN = 1, zF = 9;                             // lower camera: more sky, road more edge-on (OutRun eye height)
   const ds = t => zN / (zN + (zF - zN) * t);                       // depth scale (1 near → small far)
   const yOf = t => hy + (H - hy) * ds(t) - hill * Math.sin(t * Math.PI) * H * 0.05;
   const laneW = t => (W * 0.9 / VIS) * ds(t);                      // wide lanes
@@ -98,24 +98,32 @@ function scene({ W, H, carLane, camLane, band, date, price, scroll, progress, cu
   const yH = yOf(1), y0 = yOf(0), col = i => BAND_LABELS[clamp(N - 1 - i, 0, N - 1)].c;
   const glow = bandCol(band);
 
-  // ── sky, sun, clouds ──
-  let s = `<rect width="${W}" height="${r1(yH + 20)}" fill="url(#sky)"/>
-    <circle cx="${W * 0.5}" cy="${r1(yH * 0.5)}" r="${r1(W * 0.2)}" fill="url(#sunglow)"/>
-    <circle cx="${W * 0.5}" cy="${r1(yH * 0.5)}" r="${r1(W * 0.1)}" fill="url(#sun)"/>`;
-  // distant hazy mountains along the horizon (depth)
-  let mtn = `M 0 ${r1(yH)}`;
-  for (let mx = 0; mx <= W; mx += W / 12) mtn += ` L ${r1(mx)} ${r1(yH - 22 - 26 * Math.abs(Math.sin(mx * 0.011 + 1)))}`;
-  mtn += ` L ${W} ${r1(yH)} Z`;
-  s += `<path d="${mtn}" fill="#6f8fd6" opacity="0.55"/>`;
-  // fluffy clouds — a cluster of lobes with a soft grey base and a white crown
-  const cloud = (clx, cly, r, op) => {
-    const lobe = (dx, dy, rr, fill) => `<ellipse cx="${r1(clx + dx)}" cy="${r1(cly + dy)}" rx="${r1(rr)}" ry="${r1(rr * 0.72)}" fill="${fill}"/>`;
-    return `<g opacity="${op}">${lobe(0, r * 0.18, r * 1.05, "#d7e3f5")}${lobe(-r * 0.72, r * 0.24, r * 0.62, "#d7e3f5")}${lobe(r * 0.74, r * 0.24, r * 0.68, "#d7e3f5")}`
-      + `${lobe(0, 0, r, "#ffffff")}${lobe(-r * 0.62, r * 0.12, r * 0.6, "#ffffff")}${lobe(r * 0.64, r * 0.12, r * 0.66, "#ffffff")}${lobe(-r * 0.25, -r * 0.28, r * 0.55, "#ffffff")}${lobe(r * 0.3, -r * 0.24, r * 0.5, "#ffffff")}</g>`;
-  };
-  for (const [fx, fy, rs, op] of [[0.14, 0.36, 60, 0.97], [0.52, 0.2, 46, 0.9], [0.85, 0.44, 66, 0.95], [0.3, 0.58, 40, 0.85], [0.7, 0.62, 52, 0.92], [0.03, 0.66, 44, 0.8]]) {
-    const clx = ((fx - scroll * 0.025) % 1 + 1) % 1 * W;
-    s += cloud(clx, fy * yH, rs, op);
+  // ── sky ──
+  let s;
+  if (skyImg) {
+    // the real OutRun sky plate: fill the whole sky with the plate's own blue, then lay the cloud photo
+    // along the horizon shifted LEFT so a strip of blue reaches the horizon on the right (owner's note).
+    const skyAspect = 1687 / 864;                                  // cropped plate w/h
+    const pw = W * 1.16, ph = pw / skyAspect, px = -W * 0.24;      // slight left crop
+    s = `<rect width="${W}" height="${r1(yH + 20)}" fill="#0194fe"/>`
+      + `<image href="${skyImg}" x="${r1(px)}" y="${r1(yH - ph)}" width="${r1(pw)}" height="${r1(ph)}" preserveAspectRatio="xMidYMax slice" image-rendering="pixelated"/>`;
+  } else {
+    s = `<rect width="${W}" height="${r1(yH + 20)}" fill="url(#sky)"/>
+      <circle cx="${W * 0.5}" cy="${r1(yH * 0.5)}" r="${r1(W * 0.2)}" fill="url(#sunglow)"/>
+      <circle cx="${W * 0.5}" cy="${r1(yH * 0.5)}" r="${r1(W * 0.1)}" fill="url(#sun)"/>`;
+    let mtn = `M 0 ${r1(yH)}`;
+    for (let mx = 0; mx <= W; mx += W / 12) mtn += ` L ${r1(mx)} ${r1(yH - 22 - 26 * Math.abs(Math.sin(mx * 0.011 + 1)))}`;
+    mtn += ` L ${W} ${r1(yH)} Z`;
+    s += `<path d="${mtn}" fill="#6f8fd6" opacity="0.55"/>`;
+    const cloud = (clx, cly, r, op) => {
+      const lobe = (dx, dy, rr, fill) => `<ellipse cx="${r1(clx + dx)}" cy="${r1(cly + dy)}" rx="${r1(rr)}" ry="${r1(rr * 0.72)}" fill="${fill}"/>`;
+      return `<g opacity="${op}">${lobe(0, r * 0.18, r * 1.05, "#d7e3f5")}${lobe(-r * 0.72, r * 0.24, r * 0.62, "#d7e3f5")}${lobe(r * 0.74, r * 0.24, r * 0.68, "#d7e3f5")}`
+        + `${lobe(0, 0, r, "#ffffff")}${lobe(-r * 0.62, r * 0.12, r * 0.6, "#ffffff")}${lobe(r * 0.64, r * 0.12, r * 0.66, "#ffffff")}${lobe(-r * 0.25, -r * 0.28, r * 0.55, "#ffffff")}${lobe(r * 0.3, -r * 0.24, r * 0.5, "#ffffff")}</g>`;
+    };
+    for (const [fx, fy, rs, op] of [[0.14, 0.36, 60, 0.97], [0.52, 0.2, 46, 0.9], [0.85, 0.44, 66, 0.95], [0.3, 0.58, 40, 0.85], [0.7, 0.62, 52, 0.92], [0.03, 0.66, 44, 0.8]]) {
+      const clx = ((fx - scroll * 0.025) % 1 + 1) % 1 * W;
+      s += cloud(clx, fy * yH, rs, op);
+    }
   }
   // ground + coastal horizon (sea gradient + sand)
   s += `<rect x="0" y="${r1(yH)}" width="${W}" height="${r1(H - yH)}" fill="url(#grass)"/>
@@ -153,18 +161,32 @@ function scene({ W, H, carLane, camLane, band, date, price, scroll, progress, cu
     s += `<polygon points="${r1(ra)},${r1(yOf(ta))} ${r1(ra + kwa)},${r1(yOf(ta))} ${r1(rb + kwb)},${r1(yOf(tb))} ${r1(rb)},${r1(yOf(tb))}" fill="${c}"/>`;
   }
 
-  // ── dense, varied roadside scenery on the grass beyond the rainbow edges (two staggered rows per
-  //    side: palms + bushes + rocks), far→near so it scrolls past ──
+  // ── roadside scenery beyond the rainbow edges, far→near so it scrolls past ──
   const SC = 14;
-  for (let k = 0; k < SC; k++) {
-    let t = ((k / SC) - scroll * 1.0) % 1; if (t < 0) t += 1; if (t < 0.03 || t > 0.97) continue;
-    const sc = clamp(1.0 * ds(t) * 2.2, 0.04, 1.05), yy = yOf(t);
-    const put = (bx, kind, jx) => { const x = bx + jx * sc; return kind === 0 ? palm(x, yy, sc) : kind === 1 ? bush(x, yy, sc * 0.9) : rock(x, yy, sc * 0.85); };
-    const kindL = (k * 7) % 3, kindR = (k * 5 + 1) % 3;
-    // near row (just off the rumble) + a sparser far row further out
-    s += put(laneX(eL, t) - 44 * sc, kindL, -18);
-    s += put(laneX(eR, t) + 44 * sc, kindR, 18);
-    if (k % 2 === 0) { s += put(laneX(eL, t) - 130 * sc, (kindL + 1) % 3, -20); s += put(laneX(eR, t) + 130 * sc, (kindR + 2) % 3, 20); }
+  if (palmImg) {
+    // OutRun style: the SAME palm sprite repeated, growing as it nears. Collect far→near then draw sorted
+    // so a near palm overlaps a far one. Base-anchored on the ground line just off each rumble edge.
+    const items = [];
+    for (let k = 0; k < SC; k++) {
+      let t = ((k / SC) - scroll) % 1; if (t < 0) t += 1; if (t < 0.02 || t > 0.985) continue;
+      const yy = yOf(t), pw = clamp(W * 0.30 * ds(t), 3, W * 0.55), ph = pw / palmAspect;
+      const emit = bx => `<image href="${palmImg}" x="${r1(bx - pw / 2)}" y="${r1(yy - ph)}" width="${r1(pw)}" height="${r1(ph)}" image-rendering="pixelated"/>`;
+      items.push([t, emit(laneX(eL, t) - pw * 0.42)]);            // left of the rainbow
+      items.push([t, emit(laneX(eR, t) + pw * 0.42)]);            // right of the rainbow
+      if (k % 3 === 0) items.push([t, emit(laneX(eR, t) + pw * 1.15)]);  // a sparser second row on the right (palm-lined like stage 1)
+    }
+    items.sort((a, b) => b[0] - a[0]);                            // far (large t) first
+    for (const [, g] of items) s += g;
+  } else {
+    for (let k = 0; k < SC; k++) {
+      let t = ((k / SC) - scroll * 1.0) % 1; if (t < 0) t += 1; if (t < 0.03 || t > 0.97) continue;
+      const sc = clamp(1.0 * ds(t) * 2.2, 0.04, 1.05), yy = yOf(t);
+      const put = (bx, kind, jx) => { const x = bx + jx * sc; return kind === 0 ? palm(x, yy, sc) : kind === 1 ? bush(x, yy, sc * 0.9) : rock(x, yy, sc * 0.85); };
+      const kindL = (k * 7) % 3, kindR = (k * 5 + 1) % 3;
+      s += put(laneX(eL, t) - 44 * sc, kindL, -18);
+      s += put(laneX(eR, t) + 44 * sc, kindR, 18);
+      if (k % 2 === 0) { s += put(laneX(eL, t) - 130 * sc, (kindL + 1) % 3, -20); s += put(laneX(eR, t) + 130 * sc, (kindR + 2) % 3, 20); }
+    }
   }
 
   // ── traffic to overtake (far → near), then the player car on top. Sized to match the player car at
@@ -194,16 +216,16 @@ function scene({ W, H, carLane, camLane, band, date, price, scroll, progress, cu
   // ── retro HUD ──
   s += `<rect width="${W}" height="${r1(H * 0.13)}" fill="url(#hud)"/>
     <text x="44" y="58" fill="#fde047" font-size="34" font-weight="800" font-family="sans-serif" letter-spacing="2" stroke="#7a1e00" stroke-width="1">SPX6900 · RAINBOW ROAD</text>
-    <text x="44" y="98" fill="#f8fafc" font-size="22" font-family="sans-serif" letter-spacing="1">DATE <tspan fill="#fde047" font-weight="800">${esc(fDate(date)).toUpperCase()}</tspan>   PRICE <tspan fill="#fde047" font-weight="800">${esc(usd(price))}</tspan></text>
+    <text x="44" y="100" fill="#f8fafc" font-size="26" font-weight="700" font-family="sans-serif" letter-spacing="1">DATE <tspan fill="#fde047" font-weight="800">${esc(fDate(date)).toUpperCase()}</tspan>   PRICE <tspan fill="#fde047" font-weight="800">${esc(usd(price))}</tspan></text>
     <rect x="${W - 360}" y="34" width="316" height="52" rx="8" fill="#0b1226" stroke="${glow}" stroke-width="2"/>
     <text x="${W - 344}" y="70" fill="#9aa4b4" font-size="22" font-weight="800" font-family="sans-serif">BAND</text>
     <text x="${W - 250}" y="70" fill="${glow}" font-size="26" font-weight="800" font-family="sans-serif">${esc(BAND_LABELS[clamp(band,0,N-1)].l.toUpperCase())}</text>`;
-  const lx = W - 236, lyt = H * 0.13 + 20, lh = 30;
-  s += `<rect x="${lx - 12}" y="${r1(lyt - 14)}" width="228" height="${r1(N * lh + 16)}" rx="8" fill="rgba(5,9,20,0.6)"/>`;
+  const lx = W - 252, lyt = H * 0.13 + 22, lh = 34;
+  s += `<rect x="${lx - 12}" y="${r1(lyt - 16)}" width="252" height="${r1(N * lh + 18)}" rx="8" fill="rgba(5,9,20,0.62)"/>`;
   for (let i = N - 1; i >= 0; i--) {
     const yy = lyt + (N - 1 - i) * lh, on = i === clamp(band, 0, N - 1);
-    s += `<rect x="${lx}" y="${r1(yy)}" width="18" height="18" rx="3" fill="${BAND_LABELS[i].c}" stroke="${on ? "#fff" : "none"}" stroke-width="2"/>
-      <text x="${lx + 26}" y="${r1(yy + 15)}" fill="${on ? "#f8fafc" : "#c8d1de"}" font-size="${on ? 19 : 16}" font-weight="${on ? 800 : 600}" font-family="sans-serif">${esc(BAND_LABELS[i].l)}</text>`;
+    s += `<rect x="${lx}" y="${r1(yy)}" width="22" height="22" rx="3" fill="${BAND_LABELS[i].c}" stroke="${on ? "#fff" : "none"}" stroke-width="2"/>
+      <text x="${lx + 30}" y="${r1(yy + 18)}" fill="${on ? "#ffffff" : "#d7deea"}" font-size="${on ? 23 : 20}" font-weight="${on ? 800 : 700}" font-family="sans-serif">${esc(BAND_LABELS[i].l)}</text>`;
   }
   s += `<rect x="0" y="${H - 9}" width="${W}" height="9" fill="rgba(255,255,255,0.14)"/><rect x="0" y="${H - 9}" width="${r1(W * progress)}" height="9" fill="${glow}"/>`;
   return s;
@@ -235,14 +257,20 @@ async function main() {
   mkdirSync(dirname(out), { recursive: true });
   // optional --car=path.png (or .svg): a supplied car sprite (rear view, transparent bg) replaces the
   // vector car — embedded as a data URI so it rides in every frame.
-  let carImg = null, carAspect = 0; const carPath = arg("car", "");
-  if (carPath) {
-    const { readFileSync } = await import("node:fs"); const b = readFileSync(carPath);
-    const mime = carPath.endsWith(".svg") ? "image/svg+xml" : carPath.endsWith(".webp") ? "image/webp" : carPath.endsWith(".jpg") || carPath.endsWith(".jpeg") ? "image/jpeg" : "image/png";
-    carImg = `data:${mime};base64,${b.toString("base64")}`;
-    if (mime === "image/png" && b.length > 24 && b.readUInt32BE(12) === 0x49484452) carAspect = b.readUInt32BE(16) / b.readUInt32BE(20); // IHDR w/h
-    console.log(`using supplied car: ${carPath}${carAspect ? ` (aspect ${carAspect.toFixed(2)})` : ""}`);
-  }
+  const { readFileSync } = await import("node:fs");
+  // load a supplied sprite/photo → {uri, aspect}. PNG aspect is read from the IHDR; else 0.
+  const loadImg = (p, label) => {
+    if (!p) return { uri: null, aspect: 0 };
+    const b = readFileSync(p);
+    const mime = p.endsWith(".svg") ? "image/svg+xml" : p.endsWith(".webp") ? "image/webp" : p.endsWith(".jpg") || p.endsWith(".jpeg") ? "image/jpeg" : "image/png";
+    let aspect = 0;
+    if (mime === "image/png" && b.length > 24 && b.readUInt32BE(12) === 0x49484452) aspect = b.readUInt32BE(16) / b.readUInt32BE(20);
+    console.log(`using ${label}: ${p}${aspect ? ` (aspect ${aspect.toFixed(2)})` : ""}`);
+    return { uri: `data:${mime};base64,${b.toString("base64")}`, aspect };
+  };
+  const car = loadImg(arg("car", ""), "car"), carImg = car.uri, carAspect = car.aspect;
+  const sky = loadImg(arg("sky", ""), "sky plate"), skyImg = sky.uri;
+  const palm = loadImg(arg("palm", ""), "palm"), palmImg = palm.uri, palmAspect = palm.aspect || 0.437;
   const m = buildModel(DEFAULT_RAW);
   let seq = DEFAULT_RAW.map(r => ({ date: r.date, price: r.price, band: clamp(bandIndex(m, r.price, dayN(r.date)), 0, N - 1) }));
   if (from) seq = seq.filter(r => r.date >= from);
@@ -284,7 +312,7 @@ async function main() {
         v.z -= TZ;
         if (v.z < 0.0) { v.z = 1; v.born = i; v.lane = pickLane(i); v.type = rnd() < 0.3 ? "truck" : "car"; v.col = cols[Math.floor(rnd() * cols.length)]; }
       }
-      const st = { carLane, camLane, band: curr.band, date: curr.date, price: curr.price, scroll: (i * 0.62 / fps) % 1, progress: p, curve: Math.sin(p * Math.PI * 6) * 0.4, hill: Math.sin(p * Math.PI * 4 + 1) * 0.55, traffic, lean, carImg, carAspect };
+      const st = { carLane, camLane, band: curr.band, date: curr.date, price: curr.price, scroll: (i * 0.62 / fps) % 1, progress: p, curve: Math.sin(p * Math.PI * 6) * 0.4, hill: Math.sin(p * Math.PI * 4 + 1) * 0.55, traffic, lean, carImg, carAspect, skyImg, palmImg, palmAspect };
       writeFileSync(join(dir, `f${String(i).padStart(5, "0")}.png`), new Resvg(svg(st, fmt.W, fmt.H), { fitTo: { mode: "width", value: RW }, font: FONT }).render().asPng());
       if (i % 30 === 0) process.stdout.write(`\r  frame ${i + 1}/${total}`);
     }
