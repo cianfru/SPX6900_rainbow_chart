@@ -17,7 +17,7 @@ import { DEFAULT_RAW } from "../src/data.js";
 
 const FORMATS = { vertical: { W: 1080, H: 1920 }, wide: { W: 1280, H: 720 }, square: { W: 1080, H: 1080 } };
 const arg = (k, d) => { const a = process.argv.find(s => s.startsWith(`--${k}=`)); return a ? a.slice(k.length + 3) : d; };
-const N = BAND_LABELS.length, VIS = 5;           // 9 bands; ~5 lanes visible on the road at once
+const N = BAND_LABELS.length, VIS = 4;           // 9 bands; ~4 wider lanes visible so a car ≈ one lane
 const esc = s => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 const usd = v => v >= 1 ? "$" + v.toFixed(2) : v >= 0.01 ? "$" + v.toFixed(3) : "$" + v.toFixed(5);
 const fDate = d => new Date(d + "T00:00:00Z").toLocaleDateString("en-US", { month: "short", year: "numeric", timeZone: "UTC" });
@@ -90,7 +90,7 @@ function scene({ W, H, carLane, camLane, band, date, price, scroll, progress, cu
   const hy = H * 0.52, zN = 1, zF = 9;                             // lower camera: more sky, road more edge-on (OutRun eye height)
   const ds = t => zN / (zN + (zF - zN) * t);                       // depth scale (1 near → small far)
   const yOf = t => hy + (H - hy) * ds(t) - hill * Math.sin(t * Math.PI) * H * 0.05;
-  const laneW = t => (W * 0.9 / VIS) * ds(t);                      // wide lanes
+  const laneW = t => (W * 1.0 / VIS) * ds(t);                      // wide lanes (a car ≈ one lane)
   const centerX = t => W / 2 + curve * (t * t) * (W * 0.42);       // winding
   const laneX = (L, t) => centerX(t) + (L - camLane) * laneW(t);
   const M = 34, ts = Array.from({ length: M + 1 }, (_, k) => k / M);
@@ -199,7 +199,7 @@ function scene({ W, H, carLane, camLane, band, date, price, scroll, progress, cu
       // rear-3/4 sprite: scale by depth, base-anchored on the road, MIRRORED by which side of the view it's
       // on so a car overtaken on the left and one on the right both angle the natural way.
       const img = trafficImgs[v.ci % trafficImgs.length], asp = img.aspect || 1.2;
-      const w = W * 0.22 * (ds(t) / carDepthScale), h = w / asp, sx = (v.lane + 0.5) < camLane ? -1 : 1;
+      const w = W * 0.26 * (ds(t) / carDepthScale), h = w / asp, sx = (v.lane + 0.5) < camLane ? -1 : 1;
       s += `<g transform="translate(${r1(x)},${r1(yv)}) scale(${sx},1)"><image href="${img.uri}" x="${r1(-w / 2)}" y="${r1(-h)}" width="${r1(w)}" height="${r1(h)}" image-rendering="pixelated"/></g>`;
     } else {
       const w = W * 0.19 * (ds(t) / carDepthScale) * (v.type === "truck" ? 0.98 : 0.86);
