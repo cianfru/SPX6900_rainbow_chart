@@ -250,32 +250,39 @@ async function main() {
   const rnd = (() => { let s = 12345; return () => (s = (s * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff; })();
   const cols = ["#38bdf8", "#a3e635", "#f472b6", "#fbbf24"];
   const DZ = 1.3, camClamp = v => clamp(v, VIS / 2 - 0.8, (N - 1) - (VIS / 2 - 0.8));  // dead-zone + edge reveal
-  const MINGAP = 2.3;                              // traffic stays this many lanes clear of the car — never a hit
+  const MINGAP = 2.3;                              // a vehicle holds a lane this many clear of the car's PATH
   // the car's SCREEN lane is the FLIPPED band (Max Bubble left … Fire Sale right)
   const screenLane = band => (N - 1) - band;
-  const sideFor = (cl, side, off) => { let want = clamp(cl + side * (MINGAP + off), 0, N - 1); if (Math.abs(want - cl) < MINGAP - 0.15) { side = -side; want = clamp(cl + side * (MINGAP + off), 0, N - 1); } return { want, side }; };
-  let carLane = screenLane(seq[0].band), camLane = camClamp(carLane), prevCar = carLane;
-  let traffic = Array.from({ length: 3 }, (_, i) => ({ z: 0.4 + i * 0.24, side: i % 2 ? 1 : -1, off: rnd() * 1.8, lane: carLane, type: rnd() < 0.3 ? "truck" : "car", col: cols[i % cols.length] }));
+  // Precompute the WHOLE car-lane path up front, so each traffic vehicle can look AHEAD and pick ONE fixed
+  // lane the car won't reach while it's close — then hold it. The player sweeps past; the traffic never
+  // dodges (the old per-frame collective slide was the unnatural "all three move aside together" look).
+  const carTraj = new Array(total);
+  { let cl = screenLane(seq[0].band);
+    for (let i = 0; i < total; i++) { const b = seq[clamp(Math.floor((i / (total - 1)) * (seq.length - 1)), 0, seq.length - 1)].band; cl = clamp(cl + (screenLane(b) - cl) * 0.10, 0, N - 1); carTraj[i] = cl; } }
+  const TZ = 0.7 / fps, travelFrames = Math.round(1 / TZ);   // z units/frame a vehicle approaches; frames for z:1→0
+  // the car's lane range across a vehicle's danger window (while it's near, z≲0.6, plus a little slack)
+  const carRange = born => { let lo = Infinity, hi = -Infinity; const a = born + Math.round(0.55 * travelFrames), b = born + travelFrames + Math.round(0.15 * fps); for (let f = a; f <= b; f++) { const c = carTraj[clamp(f, 0, total - 1)]; if (c < lo) lo = c; if (c > hi) hi = c; } return [lo, hi]; };
+  const pickLane = born => { const [lo, hi] = carRange(born); const rRoom = (N - 1) - (hi + MINGAP), lRoom = lo - MINGAP; if (rRoom >= 0 && (lRoom < 0 || rRoom >= lRoom)) return clamp(hi + MINGAP + rnd() * rRoom, 0, N - 1); if (lRoom >= 0) return clamp((lo - MINGAP) - rnd() * lRoom, 0, N - 1); return (hi + MINGAP) > (N - 1 - (lo - MINGAP)) ? 0 : N - 1; };
+  let camLane = camClamp(carTraj[0]);
+  let traffic = Array.from({ length: 3 }, (_, i) => { const z0 = 0.4 + i * 0.24, born = Math.round(-(1 - z0) * travelFrames); return { z: z0, born, lane: pickLane(born), type: rnd() < 0.3 ? "truck" : "car", col: cols[i % cols.length] }; });
 
   const dir = mkdtempSync(join(tmpdir(), "lanevid-"));
   console.log(`rainbow road v6 (flipped + real car) · ${fmt.W}×${fmt.H} · ${fps}fps · ${seconds}s (${total}f) · ${seq.length} weeks → ${out}`);
   try {
     for (let i = 0; i < total; i++) {
       const p = i / (total - 1), curr = bandAt(p);
-      prevCar = carLane; carLane = clamp(carLane + (screenLane(curr.band) - carLane) * 0.10, 0, N - 1);
+      const carLane = carTraj[i], prevCar = i > 0 ? carTraj[i - 1] : carLane;
       // dead-zone camera: the car moves freely in the central zone; the camera only pans (revealing the
       // off-screen lanes) once it leaves that zone.
       if (carLane - camLane > DZ) camLane += (carLane - DZ - camLane) * 0.12;
       else if (carLane - camLane < -DZ) camLane += (carLane + DZ - camLane) * 0.12;
       camLane = camClamp(camLane);
       const lean = clamp((carLane - prevCar) * 6, -1, 1);
-      // traffic ALWAYS keeps ≥ MINGAP lanes from the car (its own side), so the Testarossa overtakes it on
-      // the side and can never crash into it. Vehicles recycle to the far distance when passed.
+      // each vehicle holds its FIXED lane and just approaches; when it passes the camera it recycles to the
+      // far distance and picks a fresh lane clear of the car's upcoming path. No dodging → looks natural.
       for (const v of traffic) {
-        v.z -= 0.7 / fps;
-        if (v.z < 0.0) { v.z = 1; v.off = rnd() * 1.8; v.type = rnd() < 0.3 ? "truck" : "car"; v.col = cols[Math.floor(rnd() * cols.length)]; }
-        const r = sideFor(carLane, v.side, v.off); v.side = r.side;
-        v.lane += (r.want - v.lane) * 0.12;
+        v.z -= TZ;
+        if (v.z < 0.0) { v.z = 1; v.born = i; v.lane = pickLane(i); v.type = rnd() < 0.3 ? "truck" : "car"; v.col = cols[Math.floor(rnd() * cols.length)]; }
       }
       const st = { carLane, camLane, band: curr.band, date: curr.date, price: curr.price, scroll: (i * 0.62 / fps) % 1, progress: p, curve: Math.sin(p * Math.PI * 6) * 0.4, hill: Math.sin(p * Math.PI * 4 + 1) * 0.55, traffic, lean, carImg, carAspect };
       writeFileSync(join(dir, `f${String(i).padStart(5, "0")}.png`), new Resvg(svg(st, fmt.W, fmt.H), { fitTo: { mode: "width", value: RW }, font: FONT }).render().asPng());
