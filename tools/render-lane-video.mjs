@@ -215,7 +215,7 @@ function scene({ W, H, carLane, camLane, band, date, price, scroll, progress, cu
       // (no per-side mirroring — the flip looked inconsistent, some cars showing a different flank).
       const img = trafficImgs[v.ci % trafficImgs.length], asp = img.aspect || 1.2;
       const w = W * 0.32 * (ds(t) / carDepthScale), h = w / asp;     // a touch bigger so they don't read as stones
-      s += `<g transform="translate(${r1(x)},${r1(yv)})"><image href="${img.uri}" x="${r1(-w / 2)}" y="${r1(-h)}" width="${r1(w)}" height="${r1(h)}" image-rendering="pixelated"/></g>`;
+      s += `<g transform="translate(${r1(x)},${r1(yv)}) scale(${v.sx || 1},1)"><image href="${img.uri}" x="${r1(-w / 2)}" y="${r1(-h)}" width="${r1(w)}" height="${r1(h)}" image-rendering="pixelated"/></g>`;
     } else {
       const w = W * 0.19 * (ds(t) / carDepthScale) * (v.type === "truck" ? 0.98 : 0.86);
       s += `<g transform="translate(${r1(x)},${r1(yv - w * 0.5)})">${v.type === "truck" ? truck(w) : trafficCar(w, v.col)}</g>`;
@@ -379,7 +379,7 @@ async function main() {
   const pickLane = born => { const [lo, hi] = carRange(born); const rRoom = (N - 1) - (hi + MINGAP), lRoom = lo - MINGAP; if (rRoom >= 0 && (lRoom < 0 || rRoom >= lRoom)) return clamp(hi + MINGAP + rnd() * rRoom, 0, N - 1); if (lRoom >= 0) return clamp((lo - MINGAP) - rnd() * lRoom, 0, N - 1); return (hi + MINGAP) > (N - 1 - (lo - MINGAP)) ? 0 : N - 1; };
   let camLane = camClamp(carTraj[0]);
   const nImg = trafficImgs.length;
-  let traffic = Array.from({ length: 3 }, (_, i) => { const z0 = 0.4 + i * 0.24, born = Math.round(-(1 - z0) * travelFrames); return { z: z0, born, lane: pickLane(born), ci: nImg ? Math.floor(rnd() * nImg) : 0, type: rnd() < 0.3 ? "truck" : "car", col: cols[i % cols.length] }; });
+  let traffic = Array.from({ length: 3 }, (_, i) => { const z0 = 0.4 + i * 0.24, born = Math.round(-(1 - z0) * travelFrames); return { z: z0, born, lane: pickLane(born), ci: nImg ? Math.floor(rnd() * nImg) : 0, type: rnd() < 0.3 ? "truck" : "car", col: cols[i % cols.length], sx: 1 }; });
 
   const dir = mkdtempSync(join(tmpdir(), "lanevid-"));
   console.log(`rainbow road v6 (flipped + real car) · ${fmt.W}×${fmt.H} · ${fps}fps · ${seconds}s (${total}f) · ${seq.length} weeks → ${out}`);
@@ -393,13 +393,19 @@ async function main() {
       else if (carLane - camLane < -DZ) camLane += (carLane + DZ - camLane) * 0.22;
       camLane = camClamp(camLane);
       const lean = clamp((carLane - prevCar) * 6, -1, 1);
+      const curve = Math.sin(p * Math.PI * 6) * 0.4;
+      // Orient each vehicle to the ROAD's curve so a 3/4 sprite never looks like it's veering off the road:
+      // decided ONCE at spawn (far away) from the curve then + held, so it can't flip mid-approach. On a
+      // straight road it keeps the native heading. `orient(c)` maps curve sign → mirror.
+      const orient = c => (c < -0.05 ? -1 : 1);
       // each vehicle holds its FIXED lane and just approaches; when it passes the camera it recycles to the
       // far distance and picks a fresh lane clear of the car's upcoming path. No dodging → looks natural.
       for (const v of traffic) {
         v.z -= TZ;
-        if (v.z < 0.0) { v.z = 1; v.born = i; v.lane = pickLane(i); v.ci = nImg ? Math.floor(rnd() * nImg) : 0; v.type = rnd() < 0.3 ? "truck" : "car"; v.col = cols[Math.floor(rnd() * cols.length)]; }
+        if (v.z < 0.0) { v.z = 1; v.born = i; v.lane = pickLane(i); v.ci = nImg ? Math.floor(rnd() * nImg) : 0; v.type = rnd() < 0.3 ? "truck" : "car"; v.col = cols[Math.floor(rnd() * cols.length)]; v.sx = orient(curve); }
+        else if (v.z > 0.55) v.sx = orient(curve);    // re-orient to the road while still far (flip invisible); lock once near
       }
-      const st = { carLane, camLane, band: curr.band, date: curr.date, price: curr.price, scroll: (i * 0.62 / fps) % 1, progress: p, curve: Math.sin(p * Math.PI * 6) * 0.4, hill: Math.sin(p * Math.PI * 4 + 1) * 0.55, traffic, lean, carImg, carAspect, skyImg, palmImg, palmAspect, trafficImgs, frame: i, announce, coinImg, coinAspect };
+      const st = { carLane, camLane, band: curr.band, date: curr.date, price: curr.price, scroll: (i * 0.62 / fps) % 1, progress: p, curve, hill: Math.sin(p * Math.PI * 4 + 1) * 0.55, traffic, lean, carImg, carAspect, skyImg, palmImg, palmAspect, trafficImgs, frame: i, announce, coinImg, coinAspect };
       writeFileSync(join(dir, `f${String(i).padStart(5, "0")}.png`), new Resvg(svg(st, fmt.W, fmt.H), { fitTo: { mode: "width", value: RW }, font: FONT }).render().asPng());
       if (i % 30 === 0) process.stdout.write(`\r  frame ${i + 1}/${total}`);
     }

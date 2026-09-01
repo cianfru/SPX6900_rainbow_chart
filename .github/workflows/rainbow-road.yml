@@ -56,8 +56,8 @@ jobs:
           node scripts/bot/rainbow-road-run.mjs
           --formats=${{ inputs.format }}
           --seconds=${{ inputs.seconds }}
-          ${{ inputs.announce && '' || '--no-announce' }}
-          ${{ inputs.sound && '' || '--mute' }}
+          ${{ !inputs.announce && '--no-announce' || '' }}
+          ${{ !inputs.sound && '--mute' || '' }}
 
       - name: Upload clips (Actions artifact)
         if: ${{ hashFiles('out/*.mp4') != '' }}
