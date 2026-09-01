@@ -42,7 +42,9 @@ console.log(`Rainbow Road → rendering ${formats.join(" + ")} · ${seconds}s${l
 let ok = true;
 for (const fmt of formats) {
   const out = fileURLToPath(new URL(`out/rainbow-road-${fmt}.mp4`, ROOT));   // stable names → stable release links
-  const a = [TOOL, `--format=${fmt}`, `--seconds=${seconds}`, "--pixel=5", "--soften=0.8", "--crf=16", `--out=${out}`];
+  // pixel=3 = pixelated but the HUD text stays readable in a single pass (no separate crisp layer); a light
+  // soften + crf 16 keep it clean through X's re-encode.
+  const a = [TOOL, `--format=${fmt}`, `--seconds=${seconds}`, "--pixel=3", "--soften=0.5", "--crf=16", `--out=${out}`];
   if (label) a.push(`--announce=${label}`);
   console.log(`\n▶ ${fmt}`);
   const r = spawnSync(process.execPath, a, { stdio: "inherit" });

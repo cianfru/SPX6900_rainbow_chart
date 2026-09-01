@@ -243,32 +243,31 @@ function scene({ W, H, carLane, camLane, band, date, price, scroll, progress, cu
     ? `<image href="${carImg}" x="${r1(-iw / 2)}" y="${r1(-ih / 2)}" width="${r1(iw)}" height="${r1(ih)}" transform="rotate(${r1(-lean * 6)})" preserveAspectRatio="xMidYMid meet" image-rendering="pixelated"/>`
     : playerCar(cw, clamp(lean, -1, 1));
   s += `<g transform="translate(${r1(carX)},${r1(carY)})">${carSprite}</g>`;
+  s += hud({ W, H, band, date, price, progress, announce });
   return s;
 }
 
-// The HUD is a SEPARATE layer rendered at FULL resolution (never pixelated/softened) and composited on
-// top, so the text stays crisp and legible over the chunky pixel scene (how pixel-art games do their UI).
+// A DELIBERATELY SIMPLE HUD (rendered in the same pixel pass as the scene): a title, the date + price,
+// and one big band chip. No legend — the road colours + the chip already say the band. Fonts are large so
+// they stay readable through a moderate pixel pass (no separate crisp layer needed). Sizes scale with W.
 function hud({ W, H, band, date, price, progress, announce }) {
-  const glow = bandCol(band);
-  let s = `<rect width="${W}" height="${r1(H * 0.13)}" fill="url(#hud)"/>
-    <text x="44" y="58" fill="#fde047" font-size="34" font-weight="800" font-family="sans-serif" letter-spacing="2" stroke="#7a1e00" stroke-width="1">SPX6900 · RAINBOW ROAD</text>
-    <text x="44" y="100" fill="#f8fafc" font-size="26" font-weight="700" font-family="sans-serif" letter-spacing="1">DATE <tspan fill="#fde047" font-weight="800">${esc(fDate(date)).toUpperCase()}</tspan>   PRICE <tspan fill="#fde047" font-weight="800">${esc(usd(price))}</tspan></text>
-    <rect x="${W - 360}" y="34" width="316" height="52" rx="8" fill="#0b1226" stroke="${glow}" stroke-width="2"/>
-    <text x="${W - 344}" y="70" fill="#9aa4b4" font-size="22" font-weight="800" font-family="sans-serif">BAND</text>
-    <text x="${W - 250}" y="70" fill="${glow}" font-size="26" font-weight="800" font-family="sans-serif">${esc(BAND_LABELS[clamp(band, 0, N - 1)].l.toUpperCase())}</text>`;
-  const lx = W - 252, lyt = H * 0.13 + 22, lh = 34;
-  s += `<rect x="${lx - 12}" y="${r1(lyt - 16)}" width="252" height="${r1(N * lh + 18)}" rx="8" fill="rgba(5,9,20,0.62)"/>`;
-  for (let i = N - 1; i >= 0; i--) {
-    const yy = lyt + (N - 1 - i) * lh, on = i === clamp(band, 0, N - 1);
-    s += `<rect x="${lx}" y="${r1(yy)}" width="22" height="22" rx="3" fill="${BAND_LABELS[i].c}" stroke="${on ? "#fff" : "none"}" stroke-width="2"/>
-      <text x="${lx + 30}" y="${r1(yy + 18)}" fill="${on ? "#ffffff" : "#d7deea"}" font-size="${on ? 23 : 20}" font-weight="${on ? 800 : 700}" font-family="sans-serif">${esc(BAND_LABELS[i].l)}</text>`;
-  }
-  s += `<rect x="0" y="${H - 9}" width="${W}" height="9" fill="rgba(255,255,255,0.14)"/><rect x="0" y="${H - 9}" width="${r1(W * progress)}" height="9" fill="${glow}"/>`;
+  const glow = bandCol(band), k = W / 1080;
+  let s = `<rect width="${W}" height="${r1(H * 0.11)}" fill="url(#hud)"/>
+    <text x="${r1(40 * k)}" y="${r1(62 * k)}" fill="#fde047" font-size="${r1(37 * k)}" font-weight="800" font-family="sans-serif" letter-spacing="1" stroke="#7a1e00" stroke-width="${r1(1.4 * k)}">SPX6900 · RAINBOW ROAD</text>
+    <text x="${r1(40 * k)}" y="${r1(116 * k)}" fill="#f8fafc" font-size="${r1(38 * k)}" font-weight="700" font-family="sans-serif">${esc(fDate(date)).toUpperCase()} · <tspan fill="#fde047" font-weight="800">${esc(usd(price))}</tspan></text>`;
+  // one clear band chip, top-right (sized for the longest band name)
+  const cw = 400 * k, cx = W - cw - 28 * k, cy = 26 * k, ch = 74 * k;
+  s += `<rect x="${r1(cx)}" y="${r1(cy)}" width="${r1(cw)}" height="${r1(ch)}" rx="${r1(11 * k)}" fill="#0b1226" stroke="${glow}" stroke-width="${r1(4 * k)}"/>
+    <rect x="${r1(cx + 20 * k)}" y="${r1(cy + ch / 2 - 16 * k)}" width="${r1(32 * k)}" height="${r1(32 * k)}" rx="${r1(4 * k)}" fill="${glow}"/>
+    <text x="${r1(cx + 66 * k)}" y="${r1(cy + ch / 2 + 14 * k)}" fill="${glow}" font-size="${r1(37 * k)}" font-weight="800" font-family="sans-serif">${esc(BAND_LABELS[clamp(band, 0, N - 1)].l.toUpperCase())}</text>`;
+  // progress bar
+  s += `<rect x="0" y="${r1(H - 10 * k)}" width="${W}" height="${r1(10 * k)}" fill="rgba(255,255,255,0.16)"/><rect x="0" y="${r1(H - 10 * k)}" width="${r1(W * progress)}" height="${r1(10 * k)}" fill="${glow}"/>`;
+  // band-arrival banner over the final stretch
   if (announce && progress > 0.8) {
     const aop = clamp((progress - 0.8) / 0.06, 0, 1), by = H * 0.36;
-    s += `<g opacity="${aop.toFixed(2)}"><rect x="${r1(W * 0.05)}" y="${r1(by)}" width="${r1(W * 0.9)}" height="${r1(H * 0.135)}" rx="16" fill="rgba(6,10,22,0.84)" stroke="${glow}" stroke-width="5"/>`
-      + `<text x="${r1(W / 2)}" y="${r1(by + H * 0.045)}" text-anchor="middle" fill="#c8d1de" font-size="32" font-weight="700" font-family="sans-serif" letter-spacing="4">SPX6900 IS NOW IN</text>`
-      + `<text x="${r1(W / 2)}" y="${r1(by + H * 0.11)}" text-anchor="middle" fill="${glow}" font-size="70" font-weight="800" font-family="sans-serif" letter-spacing="2" stroke="#05070f" stroke-width="1.5">${esc(announce.toUpperCase())}</text></g>`;
+    s += `<g opacity="${aop.toFixed(2)}"><rect x="${r1(W * 0.05)}" y="${r1(by)}" width="${r1(W * 0.9)}" height="${r1(H * 0.135)}" rx="${r1(16 * k)}" fill="rgba(6,10,22,0.86)" stroke="${glow}" stroke-width="${r1(5 * k)}"/>`
+      + `<text x="${r1(W / 2)}" y="${r1(by + H * 0.045)}" text-anchor="middle" fill="#c8d1de" font-size="${r1(34 * k)}" font-weight="700" font-family="sans-serif" letter-spacing="${r1(4 * k)}">SPX6900 IS NOW IN</text>`
+      + `<text x="${r1(W / 2)}" y="${r1(by + H * 0.11)}" text-anchor="middle" fill="${glow}" font-size="${r1(76 * k)}" font-weight="800" font-family="sans-serif" letter-spacing="${r1(2 * k)}" stroke="#05070f" stroke-width="${r1(1.5 * k)}">${esc(announce.toUpperCase())}</text></g>`;
   }
   return s;
 }
@@ -287,12 +286,6 @@ const svg = (state, W, H) => `<svg width="${W}" height="${H}" viewBox="0 0 ${W} 
 </defs>
 <rect width="${W}" height="${H}" fill="#3b82f6"/>
 ${scene({ ...state, W, H })}
-</svg>`;
-
-// The crisp HUD overlay layer: transparent ground, only the #hud gradient def it needs.
-const hudSvg = (state, W, H) => `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
-<defs><linearGradient id="hud" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#050914" stop-opacity="0.9"/><stop offset="100%" stop-color="#050914" stop-opacity="0"/></linearGradient></defs>
-${hud({ ...state, W, H })}
 </svg>`;
 
 async function main() {
@@ -382,8 +375,6 @@ async function main() {
       }
       const st = { carLane, camLane, band: curr.band, date: curr.date, price: curr.price, scroll: (i * 0.62 / fps) % 1, progress: p, curve: Math.sin(p * Math.PI * 6) * 0.4, hill: Math.sin(p * Math.PI * 4 + 1) * 0.55, traffic, lean, carImg, carAspect, skyImg, palmImg, palmAspect, trafficImgs, frame: i, announce };
       writeFileSync(join(dir, `f${String(i).padStart(5, "0")}.png`), new Resvg(svg(st, fmt.W, fmt.H), { fitTo: { mode: "width", value: RW }, font: FONT }).render().asPng());
-      // HUD as a separate FULL-res layer (transparent) so text stays crisp over the pixelated scene
-      writeFileSync(join(dir, `h${String(i).padStart(5, "0")}.png`), new Resvg(hudSvg(st, fmt.W, fmt.H), { fitTo: { mode: "width", value: fmt.W }, font: FONT }).render().asPng());
       if (i % 30 === 0) process.stdout.write(`\r  frame ${i + 1}/${total}`);
     }
     process.stdout.write(`\r  frame ${total}/${total}\n`);
@@ -392,19 +383,11 @@ async function main() {
     // razor pixel edges get a ~1px ramp — this survives X's H.264 re-encode far better (hard edges ring/
     // block). --crf sets quality (lower = higher bitrate; 16 makes a strong upload master). Keeps the look.
     const soften = +arg("soften", "0"), crf = arg("crf", "18");
-    // Input 0 = the low-res SCENE (pixelated + optionally softened). Input 1 = the FULL-res crisp HUD.
-    // Build the scene chain, then overlay the HUD on top so its text never gets pixelated/blurred.
-    const sceneChain = [];
-    if (PIX > 1) sceneChain.push(`scale=${fmt.W}:${fmt.H}:flags=neighbor`);
-    if (soften > 0) sceneChain.push(`gblur=sigma=${soften}`);
-    sceneChain.push("setsar=1");
-    const filter = `[0:v]${sceneChain.join(",")}[bg];[bg][1:v]overlay=0:0:format=auto`;
-    await new Promise((res, rej) => spawn(ff, [
-      "-y", "-framerate", String(fps), "-i", join(dir, "f%05d.png"),
-      "-framerate", String(fps), "-i", join(dir, "h%05d.png"),
-      "-filter_complex", filter,
-      "-c:v", "libx264", "-pix_fmt", "yuv420p", "-profile:v", "high", "-crf", String(crf), "-preset", "slow", "-g", String(fps * 2), "-movflags", "+faststart", out,
-    ], { stdio: ["ignore", "ignore", "inherit"] }).on("close", c => c === 0 ? res() : rej(new Error("ffmpeg " + c))));
+    const chain = [];
+    if (PIX > 1) chain.push(`scale=${fmt.W}:${fmt.H}:flags=neighbor`);
+    if (soften > 0) chain.push(`gblur=sigma=${soften}`);
+    const vf = chain.length ? ["-vf", chain.join(",")] : [];
+    await new Promise((res, rej) => spawn(ff, ["-y", "-framerate", String(fps), "-i", join(dir, "f%05d.png"), ...vf, "-c:v", "libx264", "-pix_fmt", "yuv420p", "-profile:v", "high", "-crf", String(crf), "-preset", "slow", "-g", String(fps * 2), "-movflags", "+faststart", out], { stdio: ["ignore", "ignore", "inherit"] }).on("close", c => c === 0 ? res() : rej(new Error("ffmpeg " + c))));
     console.log(`✓ ${out}`);
   } finally { rmSync(dir, { recursive: true, force: true }); }
 }
