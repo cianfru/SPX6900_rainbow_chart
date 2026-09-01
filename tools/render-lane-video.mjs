@@ -262,12 +262,25 @@ function hud({ W, H, band, date, price, progress, announce }) {
     <text x="${r1(cx + 66 * k)}" y="${r1(cy + ch / 2 + 14 * k)}" fill="${glow}" font-size="${r1(37 * k)}" font-weight="800" font-family="sans-serif">${esc(BAND_LABELS[clamp(band, 0, N - 1)].l.toUpperCase())}</text>`;
   // progress bar
   s += `<rect x="0" y="${r1(H - 10 * k)}" width="${W}" height="${r1(10 * k)}" fill="rgba(255,255,255,0.16)"/><rect x="0" y="${r1(H - 10 * k)}" width="${r1(W * progress)}" height="${r1(10 * k)}" fill="${glow}"/>`;
-  // band-arrival banner over the final stretch
-  if (announce && progress > 0.8) {
-    const aop = clamp((progress - 0.8) / 0.06, 0, 1), by = H * 0.36;
-    s += `<g opacity="${aop.toFixed(2)}"><rect x="${r1(W * 0.05)}" y="${r1(by)}" width="${r1(W * 0.9)}" height="${r1(H * 0.135)}" rx="${r1(16 * k)}" fill="rgba(6,10,22,0.86)" stroke="${glow}" stroke-width="${r1(5 * k)}"/>`
-      + `<text x="${r1(W / 2)}" y="${r1(by + H * 0.045)}" text-anchor="middle" fill="#c8d1de" font-size="${r1(34 * k)}" font-weight="700" font-family="sans-serif" letter-spacing="${r1(4 * k)}">SPX6900 IS NOW IN</text>`
-      + `<text x="${r1(W / 2)}" y="${r1(by + H * 0.11)}" text-anchor="middle" fill="${glow}" font-size="${r1(76 * k)}" font-weight="800" font-family="sans-serif" letter-spacing="${r1(2 * k)}" stroke="#05070f" stroke-width="${r1(1.5 * k)}">${esc(announce.toUpperCase())}</text></g>`;
+  // finish card over the final stretch — an OutRun/arcade "TO BE CONTINUED" between two checkered-flag
+  // strips (the giant band name was too much; the band is already in the top-right chip).
+  if (announce && progress > 0.82) {
+    const aop = clamp((progress - 0.82) / 0.05, 0, 1);
+    const pw = W * 0.84, px = (W - pw) / 2, ph = H * 0.185, py = H * 0.365, sq = 24 * k, cb = sq * 2;
+    const checker = (cx, cy, cwid, phase) => {
+      let o = `<rect x="${r1(cx)}" y="${r1(cy)}" width="${r1(cwid)}" height="${r1(cb)}" fill="#0d0d0d"/>`;
+      const cols = Math.ceil(cwid / sq);
+      for (let rr = 0; rr < 2; rr++) for (let cc = 0; cc < cols; cc++) if (((rr + cc + phase) & 1) === 0) o += `<rect x="${r1(cx + cc * sq)}" y="${r1(cy + rr * sq)}" width="${r1(sq)}" height="${r1(sq)}" fill="#f2f2f2"/>`;
+      return o;
+    };
+    s += `<g opacity="${aop.toFixed(2)}">`
+      + `<clipPath id="fin"><rect x="${r1(px)}" y="${r1(py)}" width="${r1(pw)}" height="${r1(ph)}" rx="${r1(14 * k)}"/></clipPath>`
+      + `<rect x="${r1(px)}" y="${r1(py)}" width="${r1(pw)}" height="${r1(ph)}" rx="${r1(14 * k)}" fill="rgba(8,11,22,0.92)"/>`
+      + `<g clip-path="url(#fin)">${checker(px, py, pw, 0)}${checker(px, py + ph - cb, pw, 1)}</g>`
+      + `<rect x="${r1(px)}" y="${r1(py)}" width="${r1(pw)}" height="${r1(ph)}" rx="${r1(14 * k)}" fill="none" stroke="#f2f2f2" stroke-width="${r1(4 * k)}"/>`
+      + `<text x="${r1(W / 2)}" y="${r1(py + ph * 0.56)}" text-anchor="middle" fill="#fde047" font-size="${r1(58 * k)}" font-weight="800" font-family="sans-serif" letter-spacing="${r1(3 * k)}" stroke="#7a1e00" stroke-width="${r1(1.5 * k)}">TO BE CONTINUED…</text>`
+      + `<text x="${r1(W / 2)}" y="${r1(py + ph * 0.75)}" text-anchor="middle" fill="#c8d1de" font-size="${r1(25 * k)}" font-weight="700" font-family="sans-serif" letter-spacing="${r1(3 * k)}">SPX6900 · RAINBOW ROAD</text>`
+      + `</g>`;
   }
   return s;
 }

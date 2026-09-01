@@ -18,7 +18,7 @@ on:
         type: string
         default: "30"
       announce:
-        description: "Show the 'SPX6900 IS NOW IN <BAND>' banner"
+        description: "Show the 'TO BE CONTINUED' finish card at the end"
         type: boolean
         default: true
 
