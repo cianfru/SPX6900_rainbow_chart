@@ -240,7 +240,7 @@ function scene({ W, H, carLane, camLane, band, date, price, scroll, progress, cu
     }
   }
   const carSprite = carImg
-    ? `<image href="${carImg}" x="${r1(-iw / 2)}" y="${r1(-ih / 2)}" width="${r1(iw)}" height="${r1(ih)}" transform="rotate(${r1(lean * 6)})" preserveAspectRatio="xMidYMid meet" image-rendering="pixelated"/>`
+    ? `<image href="${carImg}" x="${r1(-iw / 2)}" y="${r1(-ih / 2)}" width="${r1(iw)}" height="${r1(ih)}" transform="rotate(${r1(-lean * 6)})" preserveAspectRatio="xMidYMid meet" image-rendering="pixelated"/>`
     : playerCar(cw, clamp(lean, -1, 1));
   s += `<g transform="translate(${r1(carX)},${r1(carY)})">${carSprite}</g>`;
 
@@ -320,6 +320,17 @@ async function main() {
   const announce = arg("announce", "");
   const m = buildModel(DEFAULT_RAW);
   let seq = DEFAULT_RAW.map(r => ({ date: r.date, price: r.price, band: clamp(bandIndex(m, r.price, dayN(r.date)), 0, N - 1) }));
+  // Extend the journey PAST the frozen model bundle up to TODAY, using recent daily closes (thinned to
+  // ~weekly) so the car arrives at the CURRENT band instead of stopping at DEFAULT_RAW's last date. Bands
+  // are still scored by the same frozen model m. Source: public/price-history.json (fresh daily in CI).
+  try {
+    const lastD = DEFAULT_RAW.at(-1).date;
+    const ph = JSON.parse(readFileSync(new URL("../public/price-history.json", import.meta.url), "utf8"));
+    const extra = (Array.isArray(ph) ? ph : []).filter(r => r && r.date > lastD && Number.isFinite(r.price));
+    const thinned = extra.filter((_, i) => i % 7 === 0 || i === extra.length - 1);
+    for (const r of thinned) seq.push({ date: r.date, price: r.price, band: clamp(bandIndex(m, r.price, dayN(r.date)), 0, N - 1) });
+    if (thinned.length) console.log(`journey extended ${lastD} → ${seq.at(-1).date} (+${thinned.length} recent weeks)`);
+  } catch (e) { console.log(`(no journey extension: ${e.message})`); }
   if (from) seq = seq.filter(r => r.date >= from);
   const total = fps * seconds, bandAt = p => seq[clamp(Math.floor(p * (seq.length - 1)), 0, seq.length - 1)];
   const rnd = (() => { let s = 12345; return () => (s = (s * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff; })();

@@ -210,7 +210,7 @@ export default async function handler(req, res) {
     // download link. Nothing auto-posts.
     if (action === "rainbow-road") {
       const fmt = ["vertical", "square", "wide", "all"].includes(format) ? format : "vertical";
-      const secs = String(Math.max(6, Math.min(60, parseInt(seconds, 10) || 30)));
+      const secs = String(Math.max(6, Math.min(90, parseInt(seconds, 10) || 30)));
       const d = await gh(`/repos/${OWNER}/${REPO}/actions/workflows/rainbow-road.yml/dispatches`, {
         method: "POST",
         body: JSON.stringify({ ref: BRANCH, inputs: { format: fmt, seconds: secs, announce: announce !== false } }),
