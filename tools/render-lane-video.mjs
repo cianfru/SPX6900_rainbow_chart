@@ -240,7 +240,7 @@ function scene({ W, H, carLane, camLane, band, date, price, scroll, progress, cu
     }
   }
   const carSprite = carImg
-    ? `<image href="${carImg}" x="${r1(-iw / 2)}" y="${r1(-ih / 2)}" width="${r1(iw)}" height="${r1(ih)}" transform="rotate(${r1(-lean * 6)})" preserveAspectRatio="xMidYMid meet" image-rendering="pixelated"/>`
+    ? `<image href="${carImg}" x="${r1(-iw / 2)}" y="${r1(-ih / 2)}" width="${r1(iw)}" height="${r1(ih)}" transform="rotate(${r1(-lean * 3.2)})" preserveAspectRatio="xMidYMid meet" image-rendering="pixelated"/>`
     : playerCar(cw, clamp(lean, -1, 1));
   s += `<g transform="translate(${r1(carX)},${r1(carY)})">${carSprite}</g>`;
   s += hud({ W, H, band, date, price, progress, announce });

@@ -12,7 +12,7 @@ import { fileURLToPath } from "node:url";
 import { dirname } from "node:path";
 
 const arg = (k, d) => { const a = process.argv.find(s => s.startsWith(`--${k}=`)); return a ? a.slice(k.length + 3) : d; };
-const SR = 44100, BPM = +arg("bpm", "118"), beat = 60 / BPM, bars = 4, dur = bars * 4 * beat;
+const SR = 44100, BPM = +arg("bpm", "118"), beat = 60 / BPM, bars = 16, dur = bars * 4 * beat;
 const N = Math.round(dur * SR);
 const L = new Float32Array(N), R = new Float32Array(N);
 
@@ -40,26 +40,35 @@ function add(gen, s0, len, gain, pan, atk, rel) {
 // a warm detuned-saw voice (two saws slightly apart) + a sub sine — the workhorse for bass/arp
 const voice = (f, detune = 0.004, sub = 0) => t => 0.5 * saw(f * t) + 0.5 * saw(f * (1 + detune) * t) + sub * sine(f * 0.5 * t);
 
-// ── progression: Am – F – C – G (roots + triads), classic uplifting synthwave ──
-const ROOTS = [45, 41, 48, 43];                                // A2 F2 C3 G2
-const TRIADS = [[57, 60, 64], [53, 57, 60], [60, 64, 67], [55, 59, 62]];
+// ── an original 16-bar synthwave phrase (roots + triads) — repeats only every ~32s, not every 8s ──
+const C = {
+  Am: { r: 45, t: [57, 60, 64] }, F: { r: 41, t: [53, 57, 60] }, Cc: { r: 48, t: [60, 64, 67] },
+  G: { r: 43, t: [55, 59, 62] }, E: { r: 40, t: [52, 56, 59] }, Dm: { r: 38, t: [50, 53, 57] },
+};
+const PROG = [
+  C.Am, C.F, C.Cc, C.G, C.Am, C.F, C.Cc, C.E,      // A + A' (turnaround on E)
+  C.Dm, C.G, C.Cc, C.Am, C.F, C.G, C.Am, C.E,      // B + resolve
+];
 
 for (let bar = 0; bar < bars; bar++) {
-  const root = ROOTS[bar], triad = TRIADS[bar], barStart = bar * 4;
+  const root = PROG[bar].r, triad = PROG[bar].t, barStart = bar * 4, last = bar % 4 === 3;
   // bass — driving 8th notes on the root
   for (let e = 0; e < 8; e++) add(voice(midi(root), 0.005, 0.6), B(barStart + e * 0.5), B(0.46), 0.20, 0, 0.004, 0.06);
   // pad — sustained triad, soft, wide
   triad.forEach((m, j) => add(t => sine(midi(m - 12) * t) * 0.6 + saw(midi(m - 12) * t) * 0.4, B(barStart), B(3.9), 0.05, (j - 1) * 0.5, 0.08, 0.3));
-  // arpeggio — 16th notes up-down over the triad, bright, panned gently
-  const patt = [0, 1, 2, 1];
+  // arpeggio — 16th notes over the triad; the pattern flips every 4 bars so it evolves
+  const patt = (bar % 8 < 4) ? [0, 1, 2, 1] : [2, 1, 0, 2];
   for (let s = 0; s < 16; s++) {
     const m = triad[patt[s % patt.length]] + 12;               // an octave up = sparkle
     add(voice(midi(m), 0.006), B(barStart + s * 0.25), B(0.22), 0.085, Math.sin(s) * 0.4, 0.003, 0.05);
   }
-  // kick — four on the floor, 55Hz with a fast downward pitch sweep
+  // kick — four on the floor, with a fast downward pitch sweep
   for (let bt = 0; bt < 4; bt++) add(t => sine((80 - 30 * Math.min(1, t / 0.05)) * t), B(barStart + bt), B(0.4), 0.55, 0, 0.001, 0.14);
-  // hats — offbeat 8ths, short filtered noise
+  // snare/clap — backbeat on 2 and 4 (noise + a short tone) for groove
+  for (const bt of [1, 3]) add(t => rnd() * 0.7 + sine(190 * t) * 0.25, B(barStart + bt), B(0.22), 0.16, 0.05, 0.001, 0.09);
+  // hats — offbeat 8ths; a quick 16th fill on the last bar of each 4-bar group
   for (let h = 0; h < 4; h++) add(() => rnd() * 0.5, B(barStart + h + 0.5), B(0.12), 0.05, 0.2, 0.001, 0.03);
+  if (last) for (let f = 0; f < 4; f++) add(() => rnd() * 0.5, B(barStart + 3.5 + f * 0.125), B(0.1), 0.045, 0.25, 0.001, 0.025);
 }
 
 // ── engine drone — continuous low saw + a touch of brown noise, steady, low in the mix ──
