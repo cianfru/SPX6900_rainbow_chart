@@ -395,12 +395,16 @@ async function main() {
     // Encode chain. --soften=<sigma> adds a sub-pixel gaussian AFTER the nearest-neighbour blow-up so the
     // razor pixel edges get a ~1px ramp — this survives X's H.264 re-encode far better (hard edges ring/
     // block). --crf sets quality (lower = higher bitrate; 16 makes a strong upload master). Keeps the look.
-    const soften = +arg("soften", "0"), crf = arg("crf", "18");
+    const soften = +arg("soften", "0"), crf = arg("crf", "18"), audio = arg("audio", "");
     const chain = [];
     if (PIX > 1) chain.push(`scale=${fmt.W}:${fmt.H}:flags=neighbor`);
     if (soften > 0) chain.push(`gblur=sigma=${soften}`);
     const vf = chain.length ? ["-vf", chain.join(",")] : [];
-    await new Promise((res, rej) => spawn(ff, ["-y", "-framerate", String(fps), "-i", join(dir, "f%05d.png"), ...vf, "-c:v", "libx264", "-pix_fmt", "yuv420p", "-profile:v", "high", "-crf", String(crf), "-preset", "slow", "-g", String(fps * 2), "-movflags", "+faststart", out], { stdio: ["ignore", "ignore", "inherit"] }).on("close", c => c === 0 ? res() : rej(new Error("ffmpeg " + c))));
+    // --audio=<file>: mux a soundtrack, LOOPED to the video length (-stream_loop -1 + -shortest). Use an
+    // ORIGINAL/licensed track — never a copyrighted game rip, or X's Content-ID will mute/flag the post.
+    const aIn = audio ? ["-stream_loop", "-1", "-i", audio] : [];
+    const aOut = audio ? ["-c:a", "aac", "-b:a", "192k", "-map", "0:v:0", "-map", "1:a:0", "-shortest"] : [];
+    await new Promise((res, rej) => spawn(ff, ["-y", "-framerate", String(fps), "-i", join(dir, "f%05d.png"), ...aIn, ...vf, "-c:v", "libx264", "-pix_fmt", "yuv420p", "-profile:v", "high", "-crf", String(crf), "-preset", "slow", "-g", String(fps * 2), ...aOut, "-movflags", "+faststart", out], { stdio: ["ignore", "ignore", "inherit"] }).on("close", c => c === 0 ? res() : rej(new Error("ffmpeg " + c))));
     console.log(`✓ ${out}`);
   } finally { rmSync(dir, { recursive: true, force: true }); }
 }

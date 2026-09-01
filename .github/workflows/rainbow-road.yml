@@ -21,6 +21,10 @@ on:
         description: "Show the 'TO BE CONTINUED' finish card at the end"
         type: boolean
         default: true
+      sound:
+        description: "Add the synthwave + engine soundtrack"
+        type: boolean
+        default: true
 
 permissions:
   contents: write
@@ -53,6 +57,7 @@ jobs:
           --formats=${{ inputs.format }}
           --seconds=${{ inputs.seconds }}
           ${{ inputs.announce && '' || '--no-announce' }}
+          ${{ inputs.sound && '' || '--mute' }}
 
       - name: Upload clips (Actions artifact)
         if: ${{ hashFiles('out/*.mp4') != '' }}

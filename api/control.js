@@ -125,7 +125,7 @@ export default async function handler(req, res) {
     res.status(500).json({ error: "Server not configured: set CONTROL_PASSWORD and GH_PAT in Vercel." });
     return;
   }
-  const { password, action, id, month, template, ar, excluded, binned, released, format, seconds, announce } = await readBody(req);
+  const { password, action, id, month, template, ar, excluded, binned, released, format, seconds, announce, sound } = await readBody(req);
   if (!safeEq(password ?? "", process.env.CONTROL_PASSWORD)) { res.status(401).json({ error: "Wrong password." }); return; }
 
   // Gate unlock: password already validated above, so just acknowledge.
@@ -213,7 +213,7 @@ export default async function handler(req, res) {
       const secs = String(Math.max(6, Math.min(90, parseInt(seconds, 10) || 30)));
       const d = await gh(`/repos/${OWNER}/${REPO}/actions/workflows/rainbow-road.yml/dispatches`, {
         method: "POST",
-        body: JSON.stringify({ ref: BRANCH, inputs: { format: fmt, seconds: secs, announce: announce !== false } }),
+        body: JSON.stringify({ ref: BRANCH, inputs: { format: fmt, seconds: secs, announce: announce !== false, sound: sound !== false } }),
       });
       if (d.status !== 204) throw new Error("rainbow-road dispatch failed (" + d.status + ") " + (await d.text()));
       res.status(200).json({ ok: true, rendering: fmt, seconds: secs, at: new Date().toISOString() });

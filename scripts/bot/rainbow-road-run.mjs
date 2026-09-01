@@ -16,9 +16,18 @@ const has = f => process.argv.includes(f);
 const seconds = opt("seconds", "30");
 let formats = opt("formats", "vertical").split(",").map(s => s.trim()).filter(Boolean);
 if (formats.includes("all")) formats = ["vertical", "square", "wide"];
-const noAnnounce = has("--no-announce");
+const noAnnounce = has("--no-announce"), mute = has("--mute");
 
-console.log(`Rainbow Road → rendering ${formats.join(" + ")} · ${seconds}s${noAnnounce ? "" : " · finish card"}`);
+// Generate the original synthwave+engine soundtrack once (unless muted), then mux it into every clip.
+let audioPath = "";
+if (!mute) {
+  const AUDIO_TOOL = fileURLToPath(new URL("tools/rainbow-road-audio.mjs", ROOT));
+  audioPath = fileURLToPath(new URL("out/rainbow-road-audio.wav", ROOT));
+  const g = spawnSync(process.execPath, [AUDIO_TOOL, `--out=${audioPath}`], { stdio: "inherit" });
+  if (g.status !== 0) { console.error("(audio generation failed — rendering silent)"); audioPath = ""; }
+}
+
+console.log(`Rainbow Road → rendering ${formats.join(" + ")} · ${seconds}s${noAnnounce ? "" : " · finish card"}${audioPath ? " · sound" : " · silent"}`);
 
 let ok = true;
 for (const fmt of formats) {
@@ -27,6 +36,7 @@ for (const fmt of formats) {
   // soften + crf 16 keep it clean through X's re-encode. --announce=1 shows the "TO BE CONTINUED" finish card.
   const a = [TOOL, `--format=${fmt}`, `--seconds=${seconds}`, "--pixel=3", "--soften=0.5", "--crf=16", `--out=${out}`];
   if (!noAnnounce) a.push("--announce=1");
+  if (audioPath) a.push(`--audio=${audioPath}`);
   console.log(`\n▶ ${fmt}`);
   const r = spawnSync(process.execPath, a, { stdio: "inherit" });
   if (r.status !== 0) { ok = false; console.error(`✗ render failed for ${fmt} (status ${r.status})`); }
