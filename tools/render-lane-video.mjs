@@ -134,8 +134,7 @@ function scene({ W, H, carLane, camLane, band, date, price, scroll, progress, cu
     let sc = Math.cos(frame * 0.1);                                // Y-axis spin → signed horizontal squash
     sc = Math.sign(sc || 1) * Math.max(0.05, Math.abs(sc));        // never exactly 0 (degenerate scale)
     const d = cr * 2, ih = d / (coinAspect || 1);
-    s += `<circle cx="${r1(ccx)}" cy="${r1(ccy)}" r="${r1(cr * 1.25)}" fill="#fff2b0" opacity="0.16"/>`      // soft glow
-      + `<ellipse cx="${r1(ccx)}" cy="${r1(ccy)}" rx="${r1(cr * 0.16)}" ry="${r1(cr * 0.98)}" fill="#b07d1a"/>` // edge/thickness, shown near edge-on
+    s += `<ellipse cx="${r1(ccx)}" cy="${r1(ccy)}" rx="${r1(cr * 0.16)}" ry="${r1(cr * 0.98)}" fill="#b07d1a"/>` // edge/thickness, shown near edge-on
       + `<g transform="translate(${r1(ccx)},${r1(ccy)}) scale(${sc.toFixed(4)},1)">`
       + `<image href="${coinImg}" x="${r1(-d / 2)}" y="${r1(-ih / 2)}" width="${r1(d)}" height="${r1(ih)}" preserveAspectRatio="xMidYMid meet" image-rendering="pixelated"/>`
       + `</g>`;
