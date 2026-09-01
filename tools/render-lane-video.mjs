@@ -89,7 +89,7 @@ function rock(x, y, s) {
   return `<g><ellipse cx="${r1(x)}" cy="${r1(y + 2)}" rx="${r1(r * 1.15)}" ry="${r1(r * 0.3)}" fill="rgba(0,0,0,0.2)"/><path d="M ${r1(x - r)} ${r1(y)} Q ${r1(x - r * 1.1)} ${r1(y - r * 0.9)} ${r1(x - r * 0.2)} ${r1(y - r)} Q ${r1(x + r * 0.9)} ${r1(y - r * 1.1)} ${r1(x + r)} ${r1(y)} Z" fill="#8b8f98"/><path d="M ${r1(x - r * 0.2)} ${r1(y - r)} Q ${r1(x + r * 0.9)} ${r1(y - r * 1.1)} ${r1(x + r)} ${r1(y)} L ${r1(x + r * 0.2)} ${r1(y)} Z" fill="#6b7079"/><ellipse cx="${r1(x - r * 0.35)}" cy="${r1(y - r * 0.55)}" rx="${r1(r * 0.28)}" ry="${r1(r * 0.2)}" fill="#a7abb3"/></g>`;
 }
 
-function scene({ W, H, carLane, camLane, band, date, price, scroll, progress, curve, hill, traffic, lean, carImg, carAspect, skyImg, palmImg, palmAspect, trafficImgs, frame, announce }) {
+function scene({ W, H, carLane, camLane, band, date, price, scroll, progress, curve, hill, traffic, lean, carImg, carAspect, skyImg, palmImg, palmAspect, trafficImgs, frame, announce, coinImg, coinAspect }) {
   const hy = H * 0.52, zN = 1, zF = 9;                             // lower camera: more sky, road more edge-on (OutRun eye height)
   const ds = t => zN / (zN + (zF - zN) * t);                       // depth scale (1 near → small far)
   const yOf = t => hy + (H - hy) * ds(t) - hill * Math.sin(t * Math.PI) * H * 0.05;
@@ -128,6 +128,19 @@ function scene({ W, H, carLane, camLane, band, date, price, scroll, progress, cu
       s += cloud(clx, fy * yH, rs, op);
     }
   }
+  // ── the SPX6900 coin flipping on its Y axis, up in the sky (the logo IS a gold coin) ──
+  if (coinImg) {
+    const cr = W * 0.085, ccx = W * 0.5, ccy = H * 0.21 + Math.sin(frame * 0.05) * H * 0.012;  // gentle bob
+    let sc = Math.cos(frame * 0.1);                                // Y-axis spin → signed horizontal squash
+    sc = Math.sign(sc || 1) * Math.max(0.05, Math.abs(sc));        // never exactly 0 (degenerate scale)
+    const d = cr * 2, ih = d / (coinAspect || 1);
+    s += `<circle cx="${r1(ccx)}" cy="${r1(ccy)}" r="${r1(cr * 1.25)}" fill="#fff2b0" opacity="0.16"/>`      // soft glow
+      + `<ellipse cx="${r1(ccx)}" cy="${r1(ccy)}" rx="${r1(cr * 0.16)}" ry="${r1(cr * 0.98)}" fill="#b07d1a"/>` // edge/thickness, shown near edge-on
+      + `<g transform="translate(${r1(ccx)},${r1(ccy)}) scale(${sc.toFixed(4)},1)">`
+      + `<image href="${coinImg}" x="${r1(-d / 2)}" y="${r1(-ih / 2)}" width="${r1(d)}" height="${r1(ih)}" preserveAspectRatio="xMidYMid meet" image-rendering="pixelated"/>`
+      + `</g>`;
+  }
+
   // ground + coastal horizon (sea gradient + sand)
   s += `<rect x="0" y="${r1(yH)}" width="${W}" height="${r1(H - yH)}" fill="url(#grass)"/>
     <rect x="0" y="${r1(yH - 14)}" width="${W}" height="14" fill="url(#sea)"/>
@@ -199,11 +212,11 @@ function scene({ W, H, carLane, camLane, band, date, price, scroll, progress, cu
     if (v.z < 0.02 || v.z > 1) continue;
     const t = v.z, x = laneX(v.lane + 0.5, t), yv = yOf(t);
     if (useImgs) {
-      // rear-3/4 sprite: scale by depth, base-anchored on the road, MIRRORED by which side of the view it's
-      // on so a car overtaken on the left and one on the right both angle the natural way.
+      // rear-3/4 sprite: scale by depth, base-anchored on the road. Drawn in ONE consistent orientation
+      // (no per-side mirroring — the flip looked inconsistent, some cars showing a different flank).
       const img = trafficImgs[v.ci % trafficImgs.length], asp = img.aspect || 1.2;
-      const w = W * 0.26 * (ds(t) / carDepthScale), h = w / asp, sx = (v.lane + 0.5) < camLane ? -1 : 1;
-      s += `<g transform="translate(${r1(x)},${r1(yv)}) scale(${sx},1)"><image href="${img.uri}" x="${r1(-w / 2)}" y="${r1(-h)}" width="${r1(w)}" height="${r1(h)}" image-rendering="pixelated"/></g>`;
+      const w = W * 0.32 * (ds(t) / carDepthScale), h = w / asp;     // a touch bigger so they don't read as stones
+      s += `<g transform="translate(${r1(x)},${r1(yv)})"><image href="${img.uri}" x="${r1(-w / 2)}" y="${r1(-h)}" width="${r1(w)}" height="${r1(h)}" image-rendering="pixelated"/></g>`;
     } else {
       const w = W * 0.19 * (ds(t) / carDepthScale) * (v.type === "truck" ? 0.98 : 0.86);
       s += `<g transform="translate(${r1(x)},${r1(yv - w * 0.5)})">${v.type === "truck" ? truck(w) : trafficCar(w, v.col)}</g>`;
@@ -331,6 +344,7 @@ async function main() {
   const palm = loadImg(arg("palm", asset("palm.png")), "palm"), palmImg = palm.uri, palmAspect = palm.aspect || 0.437;
   const carsArg = arg("cars", ["traffic-yellow.png", "traffic-beetle.png", "traffic-truck.png"].map(asset).join(","));
   const trafficImgs = (carsArg ? carsArg.split(",") : []).map((p, i) => loadImg(p.trim(), `traffic ${i}`)).filter(x => x.uri);
+  const coin = loadImg(arg("coin", asset("coin.png")), "coin"), coinImg = coin.uri, coinAspect = coin.aspect || 2.28;  // SPX6900 logo → flipping coin
   // --announce="ACCUMULATE" → a "SPX IS NOW IN <BAND>" banner over the final seconds (band-arrival clips)
   const announce = arg("announce", "");
   const m = buildModel(DEFAULT_RAW);
@@ -386,7 +400,7 @@ async function main() {
         v.z -= TZ;
         if (v.z < 0.0) { v.z = 1; v.born = i; v.lane = pickLane(i); v.ci = nImg ? Math.floor(rnd() * nImg) : 0; v.type = rnd() < 0.3 ? "truck" : "car"; v.col = cols[Math.floor(rnd() * cols.length)]; }
       }
-      const st = { carLane, camLane, band: curr.band, date: curr.date, price: curr.price, scroll: (i * 0.62 / fps) % 1, progress: p, curve: Math.sin(p * Math.PI * 6) * 0.4, hill: Math.sin(p * Math.PI * 4 + 1) * 0.55, traffic, lean, carImg, carAspect, skyImg, palmImg, palmAspect, trafficImgs, frame: i, announce };
+      const st = { carLane, camLane, band: curr.band, date: curr.date, price: curr.price, scroll: (i * 0.62 / fps) % 1, progress: p, curve: Math.sin(p * Math.PI * 6) * 0.4, hill: Math.sin(p * Math.PI * 4 + 1) * 0.55, traffic, lean, carImg, carAspect, skyImg, palmImg, palmAspect, trafficImgs, frame: i, announce, coinImg, coinAspect };
       writeFileSync(join(dir, `f${String(i).padStart(5, "0")}.png`), new Resvg(svg(st, fmt.W, fmt.H), { fitTo: { mode: "width", value: RW }, font: FONT }).render().asPng());
       if (i % 30 === 0) process.stdout.write(`\r  frame ${i + 1}/${total}`);
     }
