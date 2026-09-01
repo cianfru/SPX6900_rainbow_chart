@@ -403,7 +403,9 @@ async function main() {
     // --audio=<file>: mux a soundtrack, LOOPED to the video length (-stream_loop -1 + -shortest). Use an
     // ORIGINAL/licensed track — never a copyrighted game rip, or X's Content-ID will mute/flag the post.
     const aIn = audio ? ["-stream_loop", "-1", "-i", audio] : [];
-    const aOut = audio ? ["-c:a", "aac", "-b:a", "192k", "-map", "0:v:0", "-map", "1:a:0", "-shortest"] : [];
+    // pin the output to the VIDEO length with -t (deterministic) rather than -shortest, which could clip a
+    // video longer than the audio loop down to the loop length depending on the ffmpeg build/input type.
+    const aOut = audio ? ["-c:a", "aac", "-b:a", "192k", "-map", "0:v:0", "-map", "1:a:0", "-t", String(seconds)] : [];
     await new Promise((res, rej) => spawn(ff, ["-y", "-framerate", String(fps), "-i", join(dir, "f%05d.png"), ...aIn, ...vf, "-c:v", "libx264", "-pix_fmt", "yuv420p", "-profile:v", "high", "-crf", String(crf), "-preset", "slow", "-g", String(fps * 2), ...aOut, "-movflags", "+faststart", out], { stdio: ["ignore", "ignore", "inherit"] }).on("close", c => c === 0 ? res() : rej(new Error("ffmpeg " + c))));
     console.log(`✓ ${out}`);
   } finally { rmSync(dir, { recursive: true, force: true }); }
