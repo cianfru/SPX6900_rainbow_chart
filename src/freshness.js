@@ -6,8 +6,8 @@ const DAY = 86400000;
 
 export const SOURCES = {
   snapshot:     { file: "/history.json",       pick: d => Array.isArray(d) ? d.at(-1)?.d : null, cad: "daily",   max: 2 },
-  onchain:      { file: "/onchain.json",       pick: d => Array.isArray(d) ? d.at(-1)?.d : null, cad: "manual",  max: 35 },
-  urpd:         { file: "/urpd.json",          pick: d => d?.updated,                            cad: "manual",  max: 35 },
+  onchain:      { file: "/onchain.json",       pick: d => Array.isArray(d) ? d.at(-1)?.d : null, cad: "daily",   max: 3 },
+  urpd:         { file: "/urpd.json",          pick: d => d?.updated,                            cad: "daily",   max: 3 },
   urpdhist:     { file: "/urpd-history.json",   pick: d => d?.updated,                            cad: "daily",   max: 3 },
   chainwallets: { file: "/chain-wallets.json", pick: d => Array.isArray(d) ? d.at(-1)?.d : null, cad: "daily",   max: 2 },
   btcmvrv:      { file: "/btc-mvrv.json",       pick: d => d?.updated,                            cad: "monthly", max: 40 },

@@ -101,16 +101,28 @@ async function serveState(req, res) {
   if (PRIVATE_BLOCK.has(f)) { res.status(403).json({ error: "members only" }); return; }
   res.setHeader("Cache-Control", "no-store");
   const attempts = [];
-  if (process.env.GH_PAT) attempts.push({
+  // ⚠ The Contents API's raw media type REJECTS files near/over 1 MB with a 403 (our on-chain FIFO feed
+  // is ~1 MB), so raw.githubusercontent (the public CDN, no size limit) goes FIRST for anything large and
+  // the authed Contents API is the fallback. Order-swap avoids the freshness strip false-flagging onchain.
+  const big = /onchain|timeline|entities|spx-onchain/i.test(f);
+  const rawUrl = { url: `https://raw.githubusercontent.com/${OWNER}/${REPO}/${BRANCH}/${f}?t=${Date.now()}`, headers: {} };
+  const apiUrl = process.env.GH_PAT ? {
     url: `https://api.github.com/repos/${OWNER}/${REPO}/contents/${f}?ref=${BRANCH}`,
     headers: { Accept: "application/vnd.github.raw", Authorization: "Bearer " + process.env.GH_PAT, "User-Agent": "spx6900-control" },
-  });
-  attempts.push({ url: `https://raw.githubusercontent.com/${OWNER}/${REPO}/${BRANCH}/${f}?t=${Date.now()}`, headers: {} });
+  } : null;
+  if (big) { attempts.push(rawUrl); if (apiUrl) attempts.push(apiUrl); }
+  else { if (apiUrl) attempts.push(apiUrl); attempts.push(rawUrl); }
   let last = 502;
   for (const a of attempts) {
     try {
       const r = await fetch(a.url, { headers: a.headers, cache: "no-store" });
-      if (r.ok) { res.setHeader("Content-Type", "application/json; charset=utf-8"); res.status(200).send(await r.text()); return; }
+      if (r.ok) {
+        const text = await r.text();
+        // Belt-and-suspenders: the Contents API sometimes answers 200 with an ERROR envelope
+        // ({"message":…,"documentation_url":…}) for oversized files instead of the content — skip it.
+        if (/^\s*\{\s*"message"\s*:/.test(text) && /documentation_url/.test(text)) { last = 415; continue; }
+        res.setHeader("Content-Type", "application/json; charset=utf-8"); res.status(200).send(text); return;
+      }
       last = r.status;
     } catch { /* try the next source */ }
   }
