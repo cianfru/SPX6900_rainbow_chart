@@ -75,15 +75,19 @@ async function ingest(req, res, body) {
 
   // Rate-limit this source + read the free-form hash sizes in one pipeline BEFORE writing. If the
   // source is over its per-minute budget, drop the event silently (analytics, not an error surface).
-  let hpages, hrefs, hcharts; // hash sizes, assigned below before any use (the catch returns)
+  let hpages, hrefs, hcharts, isNewVisitor = false; // hash sizes + first-seen flag, set before any use
   try {
     const rk = "intel:rate:" + (iphash || "anon");
-    const r = await kvPipeline([
+    const first = [
       ["INCR", rk], ["EXPIRE", rk, String(RATE_WIN)],
       ["HLEN", "intel:pages"], ["HLEN", "intel:refs"], ["HLEN", "intel:charts"],
-    ]);
+    ];
+    // all-time set of visitor hashes: SADD returns 1 the FIRST time a hash is seen → drives new-vs-returning.
+    const saddIdx = iphash ? first.push(["SADD", "intel:seen", iphash]) - 1 : -1;
+    const r = await kvPipeline(first);
     if ((Number(r[0]) || 0) > RATE_MAX) { res.status(204).end(); return; }
     hpages = Number(r[2]) || 0; hrefs = Number(r[3]) || 0; hcharts = Number(r[4]) || 0;
+    isNewVisitor = saddIdx >= 0 && Number(r[saddIdx]) === 1;
   } catch { res.status(204).end(); return; } // store hiccup → drop, never break the page
 
   const ev = {
@@ -94,6 +98,7 @@ async function ingest(req, res, body) {
     region: req.headers["x-vercel-ip-country-region"] || "",
     wallet: clip(body.wallet, 80), chart: clip(body.chart, 40), mode: clip(body.mode, 16),
     source: clip(body.source, 24),   // WHERE a wallet_search came from (city · whaleentry · …)
+    device: body.d === "m" ? "m" : (body.d === "d" ? "d" : ""),
     ip: iphash,
   };
   const json = JSON.stringify(ev);
@@ -102,13 +107,21 @@ async function ingest(req, res, body) {
   const cmds = [
     ["LPUSH", "intel:events", json], ["LTRIM", "intel:events", "0", String(CAP - 1)],
     ["HINCRBY", "intel:geo", ev.country || "??", "1"],
+    ["HINCRBY", "intel:types", t, "1"],          // per-type totals → the view→chart→wallet funnel
   ];
   if (hpages < FIELD_CAP) cmds.push(["HINCRBY", "intel:pages", ev.path || "/", "1"]);
   if (ev.ref && hrefs < FIELD_CAP) cmds.push(["HINCRBY", "intel:refs", ev.ref, "1"]);
   // visits-per-day series (UTC date bucket) — one increment per pageview, so the dashboard can plot the trend
   if (t === "pageview") {
-    const day = new Date(ev.ts).toISOString().slice(0, 10);
+    const dt = new Date(ev.ts), day = dt.toISOString().slice(0, 10);
     cmds.push(["HINCRBY", "intel:daily", day, "1"]);
+    // when-they-visit heatmap: a 7×24 grid keyed "<utcDay>:<utcHour>" (UTC — labelled as such in the UI)
+    cmds.push(["HINCRBY", "intel:hod", dt.getUTCDay() + ":" + dt.getUTCHours(), "1"]);
+    // device split (mobile vs desktop) + new-vs-returning per UTC day
+    if (ev.device) cmds.push(["HINCRBY", "intel:device", ev.device, "1"]);
+    cmds.push(["HINCRBY", isNewVisitor ? "intel:new" : "intel:ret", day, "1"]);
+    // landing/entry pages = the FIRST pageview of a browser session (client-flagged), capped like pages
+    if (body.entry && hpages < FIELD_CAP) cmds.push(["HINCRBY", "intel:landing", ev.path || "/", "1"]);
     // unique visitors per day = a set of salted IP hashes for that UTC day (SCARD = the count). 120-day
     // expiry bounds storage. Vercel Analytics caps at 30 days; this is our own, kept as long as we like.
     if (iphash) cmds.push(["SADD", "intel:uniq:" + day, iphash], ["EXPIRE", "intel:uniq:" + day, "10368000"]);
@@ -149,11 +162,12 @@ async function dashboard(req, res, body) {
     // the dashboard notes that pageviews go back further than uniques.
     const uniqDays = [];
     for (let i = 89; i >= 0; i--) uniqDays.push(new Date(Date.now() - i * 864e5).toISOString().slice(0, 10));
-    const [events, wallets, geo, pages, refs, charts, daily, ...uniqCounts] = await kvPipeline([
+    const [events, wallets, geo, pages, refs, charts, daily, types, hod, device, newh, reth, landing, ...uniqCounts] = await kvPipeline([
       ["LRANGE", "intel:events", "0", "499"],
       ["LRANGE", "intel:wallets", "0", "199"],
       ["HGETALL", "intel:geo"], ["HGETALL", "intel:pages"], ["HGETALL", "intel:refs"], ["HGETALL", "intel:charts"],
-      ["HGETALL", "intel:daily"],
+      ["HGETALL", "intel:daily"], ["HGETALL", "intel:types"], ["HGETALL", "intel:hod"], ["HGETALL", "intel:device"],
+      ["HGETALL", "intel:new"], ["HGETALL", "intel:ret"], ["HGETALL", "intel:landing"],
       ...uniqDays.map(d => ["SCARD", "intel:uniq:" + d]),
     ]);
     const uniq = {}; uniqDays.forEach((d, i) => { const n = Number(uniqCounts[i]) || 0; if (n) uniq[d] = n; });
@@ -165,11 +179,12 @@ async function dashboard(req, res, body) {
       configured: true, diag,
       events: parseList(events).filter(notExcluded), wallets: parseList(wallets).filter(notExcluded),
       geo: geoObj, pages: hash2obj(pages), refs: hash2obj(refs), charts: hash2obj(charts), daily: hash2obj(daily), uniq,
+      types: hash2obj(types), hod: hash2obj(hod), device: hash2obj(device), newv: hash2obj(newh), retv: hash2obj(reth), landing: hash2obj(landing),
     });
   } catch (e) {
     // Don't 500 into a blank page — return the KV error so the page can show it (e.g. "kv 401" =
     // the token is wrong/read-only for writes; a network host error = the URL is off).
-    res.status(200).json({ configured: true, kvError: String(e.message || e), diag, events: [], wallets: [], geo: {}, pages: {}, refs: {}, charts: {}, daily: {}, uniq: {} });
+    res.status(200).json({ configured: true, kvError: String(e.message || e), diag, events: [], wallets: [], geo: {}, pages: {}, refs: {}, charts: {}, daily: {}, uniq: {}, types: {}, hod: {}, device: {}, newv: {}, retv: {}, landing: {} });
   }
 }
 
@@ -234,6 +249,15 @@ details.cty{border-bottom:1px solid var(--sep)}details.cty[open]{background:rgba
 .dtip .v{color:var(--tx);font-size:14px;font-weight:700}
 .dtip .u{color:#38bdf8;font-size:12px;margin-top:1px}
 .ev b{color:var(--tx)}.muted{color:var(--faint)}.note{color:var(--faint);margin-top:14px;line-height:1.6}
+.fnl{margin:9px 0}.fk{color:var(--dim);font-size:11.5px;margin-bottom:4px}
+.fbar{position:relative;background:rgba(255,255,255,.05);border-radius:6px;height:28px;overflow:hidden}
+.ffill{position:absolute;left:0;top:0;bottom:0;background:rgba(78,231,154,.22);border-right:2px solid var(--live)}
+.fv{position:absolute;left:10px;top:50%;transform:translateY(-50%);font-weight:600;font-variant-numeric:tabular-nums;font-size:12px}
+.heat{display:flex;flex-direction:column;gap:3px}.hrow{display:flex;align-items:center;gap:6px}
+.hd{width:30px;color:var(--faint);font-size:10px;flex:none}
+.hcells{display:grid;grid-template-columns:repeat(24,1fr);gap:2px;flex:1}
+.hc{aspect-ratio:1;border-radius:2px}
+.haxis{display:flex;justify-content:space-between;margin:6px 0 0 36px;color:var(--faint);font-size:9px}
 </style></head><body><div class="wrap">
 <h1>Page Intel</h1>
 <div class="login" id="login"><input id="pw" type="password" placeholder="control password" autofocus onkeydown="if(event.key==='Enter')load()"><button onclick="load()">view</button><span id="msg" class="muted"></span></div>
@@ -324,6 +348,24 @@ function growthCard(daily,uniq){
     +'<div class="card"><h2>Visits per day <span class="c">'+dLegend+'</span></h2>'+dailySvg
     +(anyU?'':'<div class="note" style="margin-top:8px">Unique-visitor tracking just switched on — the unique line will fill in from today forward; pageviews go back further.</div>')+'</div>';
 }
+// FUNNEL — page → chart → wallet lookup, from the per-type totals. Each step's % is of pageviews.
+function funnelCard(types){
+  const pv=+(types&&types.pageview||0), co=+(types&&types.chart_open||0), ws=+(types&&types.wallet_search||0), ci=+(types&&types.city_open||0);
+  if(!pv) return '';
+  const step=function(label,n){ var pct=pv>0?Math.round(n/pv*100):0, w=pv>0?Math.max(2,n/pv*100):0;
+    return '<div class="fnl"><div class="fk">'+label+'</div><div class="fbar"><div class="ffill" style="width:'+w.toFixed(1)+'%"></div><span class="fv">'+n.toLocaleString()+(n!==pv?' · '+pct+'%':'')+'</span></div></div>'; };
+  return '<div class="card"><h2>Funnel <span class="c">page → chart → wallet lookup</span></h2>'
+    +step('Pageviews',pv)+step('Opened a chart',co)+step('Searched a wallet',ws)+(ci?step('Opened a 3D city',ci):'')+'</div>';
+}
+// WHEN THEY VISIT — a 7×24 heatmap (UTC) of pageviews by weekday × hour, intensity = volume.
+function heatmapCard(hod){
+  const H={}; let max=0; Object.entries(hod||{}).forEach(function(e){ H[e[0]]=+e[1]||0; if(H[e[0]]>max)max=H[e[0]]; });
+  if(!max) return '';
+  const DOW=['Sun','Mon','Tue','Wed','Thu','Fri','Sat']; let g='';
+  for(let d=0;d<7;d++){ let row=''; for(let h=0;h<24;h++){ var v=H[d+':'+h]||0, o=v/max; row+='<div class="hc" title="'+DOW[d]+' '+h+':00 UTC · '+v+' visits" style="background:rgba(78,231,154,'+(v?(0.1+o*0.85).toFixed(3):'0.03')+')"></div>'; }
+    g+='<div class="hrow"><span class="hd">'+DOW[d]+'</span><div class="hcells">'+row+'</div></div>'; }
+  return '<div class="card"><h2>When they visit <span class="c">pageviews · weekday × hour · UTC</span></h2><div class="heat">'+g+'</div><div class="haxis"><span>0h</span><span>6h</span><span>12h</span><span>18h</span><span>23h</span></div></div>';
+}
 // Hover tooltip for the "Visits per day" chart — a full-height hit rect per day drives a floating tip
 // (date · visits · unique) and highlights the matching bar. Runs after the dashboard HTML is injected.
 function wireDailyTip(){
@@ -360,7 +402,11 @@ async function load(){ const pw=$('#pw')?$('#pw').value:''; $('#out').innerHTML=
   const uniqIP=new Set((d.events||[]).map(e=>e.ip).filter(Boolean)).size;
   const wg=groupWallets(d.wallets), ctree=countryTree(d.events,d.geo), wsrc=bySource(d.wallets);
   const stat=(n,l)=>'<div class="stat"><div class="n">'+n+'</div><div class="l">'+l+'</div></div>';
-  const stats='<div class="stats">'+stat(geoSum.toLocaleString(),'events (all-time)')+stat(ctree.length,'countries')+stat(wg.length,'wallets searched')+stat(Object.keys(d.charts||{}).length,'charts opened')+stat(uniqIP,'recent visitors')+'</div>';
+  // device split + returning-visitor rate (last 30d)
+  const dv=d.device||{}, dm=+(dv.m||0), dd=+(dv.d||0), dtot=dm+dd, mob=dtot?Math.round(dm/dtot*100):null;
+  const last30=o=>{ let s=0; const cut=Date.now()-30*864e5; Object.entries(o||{}).forEach(([k,v])=>{ if(Date.parse(k+'T00:00:00Z')>=cut) s+=+v||0; }); return s; };
+  const nv=last30(d.newv), rv=last30(d.retv), retPct=(nv+rv)?Math.round(rv/(nv+rv)*100):null;
+  const stats='<div class="stats">'+stat(geoSum.toLocaleString(),'events (all-time)')+stat(ctree.length,'countries')+stat(wg.length,'wallets searched')+stat(Object.keys(d.charts||{}).length,'charts opened')+stat(uniqIP,'recent visitors')+(mob!=null?stat(mob+'%','on mobile'):'')+(retPct!=null?stat(retPct+'%','returning · 30d'):'')+'</div>';
   // wallet searches, grouped by address with a count
   const wallets=wg.slice(0,40).map(g=>'<div class="wg"><div class="col"><div class="a">'+esc(g.wallet)+'</div><div class="m">'+esc([g.city,cname(g.country)].filter(Boolean).join(', ')||'??')+' · last '+ago(g.last)+' ago'+(g.ips.size>1?' · '+g.ips.size+' IPs':'')+(g.src.size?' · via '+esc([...g.src].join(', ')):'')+'</div></div><div class="cnt">'+g.n+'×</div></div>').join('')||'<div class="muted">no wallet searches yet</div>';
   // searches-by-surface, so it's obvious at a glance whether the whale-chart search gets any use
@@ -368,10 +414,11 @@ async function load(){ const pw=$('#pw')?$('#pw').value:''; $('#out').innerHTML=
   // countries, grouped, expandable to their cities
   const countries=ctree.slice(0,20).map(c=>'<details class="cty"><summary><span class="nm"><span class="flag">'+flag(c.code)+'</span><span class="t">'+esc(cname(c.code))+'</span></span><span class="v">'+c.n+'</span></summary>'+(c.cities.length?'<div class="sub">'+c.cities.slice(0,10).map(([ci,n])=>esc(ci)+' <b>'+n+'</b>').join(' · ')+'</div>':'')+'</details>').join('')||'<div class="muted">—</div>';
   const feed=(d.events||[]).slice(0,200).map(e=>'<div class="ev"><b>'+esc(e.t)+'</b> '+esc(e.path||'')+(e.chart?' ['+esc(e.chart)+']':'')+(e.wallet?' '+esc(e.wallet):'')+' <span class="muted">· '+flag(e.country)+' '+esc([e.city,cname(e.country)].filter(Boolean).join(', ')||'??')+' · '+(e.ref?esc(e.ref)+' · ':'')+ago(e.ts)+'</span></div>').join('');
-  $('#out').innerHTML=emptyNote+stats+growthCard(d.daily,d.uniq)+'<div class="grid">'
+  $('#out').innerHTML=emptyNote+stats+growthCard(d.daily,d.uniq)+funnelCard(d.types)+heatmapCard(d.hod)+'<div class="grid">'
     +'<div class="card"><h2>Wallet searches <span class="c">'+wg.length+' unique · '+(d.wallets||[]).length+' total</span></h2>'+srcLine+wallets+'</div>'
     +'<div class="card"><h2>Countries <span class="c">tap to expand</span></h2>'+countries+'</div>'
     +'<div class="card"><h2>Top pages</h2>'+rows(d.pages,12)+'</div>'
+    +'<div class="card"><h2>Landing pages <span class="c">first page of a visit</span></h2>'+rows(d.landing,12)+'</div>'
     +'<div class="card"><h2>Charts opened</h2>'+rows(d.charts,12)+'</div>'
     +'<div class="card"><h2>Referrers</h2>'+rows(d.refs,12)+'</div>'
     +'<div class="card"><h2>Recent events</h2><div class="feed">'+feed+'</div></div>'
