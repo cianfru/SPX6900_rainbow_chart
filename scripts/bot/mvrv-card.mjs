@@ -109,11 +109,13 @@ ${dots}
 }
 
 // ── AGE-ALIGNED overlay: SPX6900 vs Bitcoin MVRV on one axis of YEARS SINCE EACH LAUNCH ──
-// SPX's launch is its own age 0; Bitcoin's is the 2009 genesis, so its line honestly begins at
-// ~age 2 (its on-chain MVRV can't be reconstructed before ~2010-07 — no market price existed).
-// Answers "does SPX's early MVRV cycle rhyme with Bitcoin's?" directly, which the calendar overlay
-// (SPX squeezed at the right of BTC's decade) can't show at a glance.
-const BTC_GENESIS = Date.UTC(2009, 0, 3);
+// Age 0 is each asset's FIRST on-chain MVRV reading — i.e. when it first had a market price to
+// measure against. SPX's is its launch (Aug 2023); Bitcoin's is ~2010-07 (its first market price —
+// MVRV is undefined before a price existed, so there is nothing earlier to plot). Anchoring BTC at
+// its first reading rather than the 2009 genesis is the honest symmetric comparison: both lines start
+// from "the first day the asset could be valued", so BTC's line runs the full width with no 1.5y gap.
+// This matches the site chart (MvrvContextChart) exactly. Answers "does SPX's early MVRV cycle rhyme
+// with Bitcoin's?" directly, which the calendar overlay (SPX squeezed at the right) can't show.
 const YR = 365.25 * 86400000;
 const fAgeC = a => (a === Math.round(a) ? a + "y" : a.toFixed(1) + "y");
 
@@ -139,8 +141,8 @@ export function mvrvAgeSvg(stats, opts = {}) {
   const spxAge = spxW.map(r => ({ age: (r.ts - spxInception) / YR, v: r.v }));
   const spxMaxAge = spxAge.at(-1).age;
   const xMax = Math.max(5, Math.ceil(spxMaxAge) + 1);
-  const btcAge = btc.map(r => ({ age: (r.ts - BTC_GENESIS) / YR, v: r.v })).filter(r => r.age >= 0 && r.age <= xMax);
-  const btcFirstAge = btcAge.length ? btcAge[0].age : null;
+  const btcInception = btc[0].ts;   // BTC's FIRST MVRV reading → its age 0 (no genesis gap; matches the site)
+  const btcAge = btc.map(r => ({ age: (r.ts - btcInception) / YR, v: r.v })).filter(r => r.age >= 0 && r.age <= xMax);
 
   // percentile of SPX today on BTC's whole history (for the header stat)
   const sorted = btc.map(r => r.v).sort((a, b) => a - b);
@@ -168,7 +170,6 @@ export function mvrvAgeSvg(stats, opts = {}) {
   for (let a = 0; a <= xMax; a++) xlab += `<text x="${x(a).toFixed(1)}" y="${H - 50}" fill="#94a3b8" font-size="22" text-anchor="middle" font-family="sans-serif">${fAgeC(a)}</text>`;
 
   const line = (pts, col, w) => `<polyline points="${pts.map(r => `${x(r.age).toFixed(1)},${y(Math.min(Math.max(r.v, ymin), ymax)).toFixed(1)}`).join(" ")}" fill="none" stroke="${col}" stroke-width="${w}" stroke-linejoin="round" stroke-linecap="round"/>`;
-  const btcMarkX = btcFirstAge != null ? x(btcFirstAge) : null;
   const spxMarkX = x(spxMaxAge);
 
   return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
@@ -176,18 +177,17 @@ export function mvrvAgeSvg(stats, opts = {}) {
 <rect width="${W}" height="${H}" fill="url(#mv)"/>
 ${brandStripe(H)}
 <text x="60" y="56" fill="#e2e8f0" font-size="34" font-weight="800" font-family="sans-serif" letter-spacing="1">SPX6900 vs BITCOIN — MVRV BY AGE</text>
-<text x="60" y="92" fill="#94a3b8" font-size="22" font-family="sans-serif">Same age since launch — does the early cycle rhyme?</text>
+<text x="60" y="92" fill="#94a3b8" font-size="22" font-family="sans-serif">Same age since first price — does the early cycle rhyme?</text>
 <text x="60" y="134" fill="${SPX_C}" font-size="26" font-weight="800" font-family="sans-serif">SPX6900 ${fMvrv(spxMvrv)} — ${spxMvrv >= 1 ? "avg holder in profit" : "avg holder underwater"}</text>
 <text x="${W - 60}" y="58" fill="${MATCH_C}" font-size="40" font-weight="800" font-family="sans-serif" text-anchor="end">${ordinal(pct)} %ile</text>
 <text x="${W - 60}" y="90" fill="#94a3b8" font-size="19" font-family="sans-serif" text-anchor="end">cheaper than ${cheaperThan}% of BTC history</text>
 ${zones}${grid}${xlab}
 <line x1="${mL}" y1="${y(1).toFixed(1)}" x2="${W - mR}" y2="${y(1).toFixed(1)}" stroke="rgba(255,255,255,0.45)" stroke-dasharray="6 6"/>
-${btcMarkX != null ? `<line x1="${btcMarkX.toFixed(1)}" y1="${mT}" x2="${btcMarkX.toFixed(1)}" y2="${mT + pH}" stroke="${BTC_C}" stroke-dasharray="3 7" stroke-opacity="0.5"/><text x="${(btcMarkX + 6).toFixed(1)}" y="${mT + pH - 12}" fill="${BTC_C}" font-size="18" font-family="sans-serif">BTC data starts ${fAgeC(btcFirstAge)}</text>` : ""}
 <line x1="${spxMarkX.toFixed(1)}" y1="${mT}" x2="${spxMarkX.toFixed(1)}" y2="${mT + pH}" stroke="${SPX_C}" stroke-dasharray="4 4" stroke-opacity="0.6"/>
 <text x="${(spxMarkX - 6).toFixed(1)}" y="${mT + 22}" fill="${SPX_C}" font-size="18" font-family="sans-serif" text-anchor="end">SPX today ${fAgeC(spxMaxAge)}</text>
 ${line(btcAge, BTC_C, 2.8)}
 ${line(spxAge, SPX_C, 3.6)}
-<text x="60" y="${H - 22}" fill="#475569" font-size="18" font-family="sans-serif">${esc("spx6900rainbow.xyz · not financial advice · years since launch · ")}<tspan fill="${SPX_C}">SPX6900 MVRV</tspan> · <tspan fill="${BTC_C}">Bitcoin MVRV</tspan></text>
+<text x="60" y="${H - 22}" fill="#475569" font-size="18" font-family="sans-serif">${esc("spx6900rainbow.xyz · not financial advice · years since first price (BTC from mid-2010) · ")}<tspan fill="${SPX_C}">SPX6900 MVRV</tspan> · <tspan fill="${BTC_C}">Bitcoin MVRV</tspan></text>
 </svg>`;
 }
 
