@@ -84,8 +84,8 @@ export default function AltMarketChart({ isMobile, preview = false }) {
               </linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="2 8" stroke="rgba(255,255,255,0.06)" />
-            <ReferenceArea y1={1} y2={view.yDomain[1]} fill={HOT} fillOpacity={0.152} stroke="none" label={zLabel(0, "overbought vs alts", HOT)} />
-            <ReferenceArea y1={view.yDomain[0]} y2={-1} fill={COOL} fillOpacity={0.152} stroke="none" label={zLabel(0, "cheap vs alts", COOL)} />
+            <ReferenceArea y1={1} y2={view.yDomain[1]} fill={HOT} fillOpacity={0.228} stroke="none" label={zLabel(0, "overbought vs alts", HOT)} />
+            <ReferenceArea y1={view.yDomain[0]} y2={-1} fill={COOL} fillOpacity={0.228} stroke="none" label={zLabel(0, "cheap vs alts", COOL)} />
             <XAxis dataKey="ts" type="number" domain={view.xDomain} ticks={view.xTicks} scale="time" allowDataOverflow
               tickFormatter={fShort} tick={{ fill: "#cbd5e1", fontSize: isMobile ? 10 : 12, fontFamily: MONO }}
               axisLine={{ stroke: "rgba(255,255,255,0.15)" }} tickLine={false} />

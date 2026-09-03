@@ -75,8 +75,8 @@ export default function NrplChart({ isMobile, preview = false }) {
           <ComposedChart data={view.vis} margin={{ top: 10, right: isMobile ? 8 : 20, bottom: 24, left: isMobile ? 0 : 12 }}
             onMouseDown={onDown} onMouseMove={onMove} onMouseUp={onUp} onMouseLeave={onUp} style={{ cursor: "crosshair", userSelect: "none" }}>
             <CartesianGrid strokeDasharray="2 8" stroke="rgba(255,255,255,0.06)" />
-            <ReferenceArea y1={0} y2={view.yDomain[1]} fill={GRN} fillOpacity={0.114} stroke="none" />
-            <ReferenceArea y1={view.yDomain[0]} y2={0} fill={RED} fillOpacity={0.114} stroke="none" />
+            <ReferenceArea y1={0} y2={view.yDomain[1]} fill={GRN} fillOpacity={0.171} stroke="none" />
+            <ReferenceArea y1={view.yDomain[0]} y2={0} fill={RED} fillOpacity={0.171} stroke="none" />
             <XAxis dataKey="ts" type="number" domain={view.xDomain} ticks={view.xTicks} scale="time" allowDataOverflow
               tickFormatter={fShort} tick={{ fill: "#cbd5e1", fontSize: isMobile ? 10 : 12, fontFamily: MONO }}
               axisLine={{ stroke: "rgba(255,255,255,0.15)" }} tickLine={false} />

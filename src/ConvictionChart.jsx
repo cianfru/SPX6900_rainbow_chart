@@ -74,8 +74,8 @@ export default function ConvictionChart({ isMobile, preview = false }) {
               </linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="2 8" stroke="rgba(255,255,255,0.06)" />
-            <ReferenceArea y1={80} y2={100} fill="#22d3ee" fillOpacity={0.133} stroke="none" label={zLabel("diamond-held", "#22d3ee", "insideTopRight")} />
-            <ReferenceArea y1={0} y2={20} fill="#fb7185" fillOpacity={0.133} stroke="none" label={zLabel("high turnover", "#fb7185", "insideBottomRight")} />
+            <ReferenceArea y1={80} y2={100} fill="#22d3ee" fillOpacity={0.2} stroke="none" label={zLabel("diamond-held", "#22d3ee", "insideTopRight")} />
+            <ReferenceArea y1={0} y2={20} fill="#fb7185" fillOpacity={0.2} stroke="none" label={zLabel("high turnover", "#fb7185", "insideBottomRight")} />
             <XAxis dataKey="ts" type="number" domain={view.xDomain} ticks={view.xTicks} scale="time" allowDataOverflow
               tickFormatter={fShort} tick={{ fill: "#cbd5e1", fontSize: isMobile ? 10 : 12, fontFamily: MONO }}
               axisLine={{ stroke: "rgba(255,255,255,0.15)" }} tickLine={false} />

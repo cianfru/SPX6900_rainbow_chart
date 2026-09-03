@@ -79,11 +79,11 @@ export default function PiCycleChart({ series, isMobile, preview = false }) {
               <linearGradient id="pcArea" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={PC} stopOpacity={0.32} /><stop offset="100%" stopColor={PC} stopOpacity={0} /></linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="2 8" stroke="rgba(255,255,255,0.06)" />
-            <ReferenceArea y1={z.top} y2={view.yDomain[1]} fill="#f87171" fillOpacity={0.19} stroke="none"
+            <ReferenceArea y1={z.top} y2={view.yDomain[1]} fill="#f87171" fillOpacity={0.285} stroke="none"
               label={preview ? undefined : { value: "top zone", position: "insideTopLeft", fill: "#f87171", fontSize: 11, fontFamily: MONO }} />
             <ReferenceArea y1={z.accum} y2={z.top} fill="#64748b" fillOpacity={0.05} stroke="none" />
-            <ReferenceArea y1={z.deep} y2={z.accum} fill="#38bdf8" fillOpacity={0.19} stroke="none" />
-            <ReferenceArea y1={0} y2={z.deep} fill="#4ade80" fillOpacity={0.19} stroke="none"
+            <ReferenceArea y1={z.deep} y2={z.accum} fill="#38bdf8" fillOpacity={0.285} stroke="none" />
+            <ReferenceArea y1={0} y2={z.deep} fill="#4ade80" fillOpacity={0.285} stroke="none"
               label={preview ? undefined : { value: "accumulation", position: "insideBottomLeft", fill: "#4ade80", fontSize: 11, fontFamily: MONO }} />
             <XAxis dataKey="ts" type="number" domain={view.xDomain} ticks={view.xTicks} scale="time" allowDataOverflow
               tickFormatter={fShort} tick={{ fill: "#cbd5e1", fontSize: isMobile ? 10 : 12, fontFamily: MONO }}

@@ -127,7 +127,7 @@ export default function RiskChart({ series, m, isMobile }) {
             axisLine={{ stroke: "rgba(255,255,255,0.15)" }} tickLine={false} width={isMobile ? 32 : 44}
           />
           {BAND_LABELS.map((b, i) => (
-            <ReferenceArea key={i} y1={i / 9} y2={(i + 1) / 9} fill={b.c} fillOpacity={0.2} stroke="none" />
+            <ReferenceArea key={i} y1={i / 9} y2={(i + 1) / 9} fill={b.c} fillOpacity={0.34} stroke="none" />
           ))}
           <Tooltip content={<RiskTip />} />
           {showFng && (

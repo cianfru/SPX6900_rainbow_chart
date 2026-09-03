@@ -82,8 +82,8 @@ export default function SupplyInProfitChart({ isMobile, preview = false }) {
               </linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="2 8" stroke="rgba(255,255,255,0.06)" />
-            <ReferenceArea y1={66} y2={100} fill={HOT} fillOpacity={0.171} stroke="none" label={zLabel(80, "frothy, most in profit", HOT)} />
-            <ReferenceArea y1={0} y2={34} fill={COOL} fillOpacity={0.171} stroke="none" label={zLabel(17, "cheap, most underwater", COOL)} />
+            <ReferenceArea y1={66} y2={100} fill={HOT} fillOpacity={0.257} stroke="none" label={zLabel(80, "frothy, most in profit", HOT)} />
+            <ReferenceArea y1={0} y2={34} fill={COOL} fillOpacity={0.257} stroke="none" label={zLabel(17, "cheap, most underwater", COOL)} />
             <XAxis dataKey="ts" type="number" domain={view.xDomain} ticks={view.xTicks} scale="time" allowDataOverflow
               tickFormatter={fShort} tick={{ fill: "#cbd5e1", fontSize: isMobile ? 10 : 12, fontFamily: MONO }}
               axisLine={{ stroke: "rgba(255,255,255,0.15)" }} tickLine={false} />

@@ -85,8 +85,8 @@ export default function SoprChart({ isMobile, preview = false }) {
               </linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="2 8" stroke="rgba(255,255,255,0.06)" />
-            <ReferenceArea y1={1} y2={view.yDomain[1]} fill={GRN} fillOpacity={0.152} stroke="none" label={zLabel("selling at a profit", GRN, "insideTopRight")} />
-            <ReferenceArea y1={view.yDomain[0]} y2={1} fill={RED} fillOpacity={0.152} stroke="none" label={zLabel("selling at a loss", RED, "insideBottomRight")} />
+            <ReferenceArea y1={1} y2={view.yDomain[1]} fill={GRN} fillOpacity={0.228} stroke="none" label={zLabel("selling at a profit", GRN, "insideTopRight")} />
+            <ReferenceArea y1={view.yDomain[0]} y2={1} fill={RED} fillOpacity={0.228} stroke="none" label={zLabel("selling at a loss", RED, "insideBottomRight")} />
             <XAxis dataKey="ts" type="number" domain={view.xDomain} ticks={view.xTicks} scale="time" allowDataOverflow
               tickFormatter={fShort} tick={{ fill: "#cbd5e1", fontSize: isMobile ? 10 : 12, fontFamily: MONO }}
               axisLine={{ stroke: "rgba(255,255,255,0.15)" }} tickLine={false} />

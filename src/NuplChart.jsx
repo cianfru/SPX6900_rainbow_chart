@@ -101,11 +101,11 @@ export default function NuplChart({ isMobile, preview = false }) {
               <linearGradient id="nuplfill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#f8fafc" stopOpacity={0.14} /><stop offset="100%" stopColor="#f8fafc" stopOpacity={0} /></linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="2 8" stroke="rgba(255,255,255,0.06)" />
-            <ReferenceArea y1={0.75} y2={0.95} fill="#f87171" fillOpacity={0.189} stroke="none" label={zLbl(0.75, 0.95, "euphoria", "#fca5a5")} />
-            <ReferenceArea y1={0.5} y2={0.75} fill="#fb923c" fillOpacity={0.176} stroke="none" label={zLbl(0.5, 0.75, "belief", "#fdba74")} />
-            <ReferenceArea y1={0.25} y2={0.5} fill="#fbbf24" fillOpacity={0.162} stroke="none" label={zLbl(0.25, 0.5, "optimism", "#fcd34d")} />
-            <ReferenceArea y1={0} y2={0.25} fill="#38bdf8" fillOpacity={0.162} stroke="none" label={zLbl(0, 0.25, "hope", "#7dd3fc")} />
-            <ReferenceArea y1={view.yDomain[0]} y2={0} fill="#6366f1" fillOpacity={0.189} stroke="none" label={zLbl(-1, 0, "capitulation", "#a5b4fc")} />
+            <ReferenceArea y1={0.75} y2={0.95} fill="#f87171" fillOpacity={0.283} stroke="none" label={zLbl(0.75, 0.95, "euphoria", "#fca5a5")} />
+            <ReferenceArea y1={0.5} y2={0.75} fill="#fb923c" fillOpacity={0.264} stroke="none" label={zLbl(0.5, 0.75, "belief", "#fdba74")} />
+            <ReferenceArea y1={0.25} y2={0.5} fill="#fbbf24" fillOpacity={0.243} stroke="none" label={zLbl(0.25, 0.5, "optimism", "#fcd34d")} />
+            <ReferenceArea y1={0} y2={0.25} fill="#38bdf8" fillOpacity={0.243} stroke="none" label={zLbl(0, 0.25, "hope", "#7dd3fc")} />
+            <ReferenceArea y1={view.yDomain[0]} y2={0} fill="#6366f1" fillOpacity={0.283} stroke="none" label={zLbl(-1, 0, "capitulation", "#a5b4fc")} />
             <XAxis dataKey="ts" type="number" domain={view.xDomain} ticks={view.xTicks} scale="time" allowDataOverflow
               tickFormatter={fShort} tick={{ fill: "#cbd5e1", fontSize: isMobile ? 10 : 12, fontFamily: MONO }} axisLine={{ stroke: "rgba(255,255,255,0.15)" }} tickLine={false} />
             <YAxis type="number" domain={view.yDomain} ticks={view.yTicks} allowDataOverflow
