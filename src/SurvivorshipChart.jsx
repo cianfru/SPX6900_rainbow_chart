@@ -196,8 +196,8 @@ export default function SurvivorshipChart({ isMobile, initialView }) {
               tick={{ fill: "#94a3b8", fontFamily: MONO, fontSize: 12 }} tickLine={false} axisLine={{ stroke: "rgba(255,255,255,0.12)" }} allowDuplicatedCategory={false} />
             <YAxis dataKey="p" type="number" scale="log" domain={[pMin, pMax]} allowDataOverflow ticks={[0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1, 2].filter(v => v >= pMin && v <= pMax)} tickFormatter={fmtP}
               tick={{ fill: "#94a3b8", fontFamily: MONO, fontSize: 12 }} tickLine={false} axisLine={false} width={54} />
-            <ReferenceArea y1={now} y2={pMax} fill="#fb7185" fillOpacity={0.11} ifOverflow="hidden" />
-            <ReferenceArea y1={pMin} y2={now} fill="#4ade80" fillOpacity={0.1} ifOverflow="hidden" />
+            <ReferenceArea y1={now} y2={pMax} fill="#fb7185" fillOpacity={0.149} ifOverflow="hidden" />
+            <ReferenceArea y1={pMin} y2={now} fill="#4ade80" fillOpacity={0.19} ifOverflow="hidden" />
             <ReferenceLine y={now} stroke="#e2e8f0" strokeDasharray="2 6" strokeOpacity={0.6}
               label={{ value: `now ${fmtP(now)}`, position: "right", fill: "#e2e8f0", fontFamily: MONO, fontSize: 11 }} />
             <Tooltip content={({ active, payload }) => {

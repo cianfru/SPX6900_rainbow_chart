@@ -146,18 +146,18 @@ export default function RelativeChart({ series, isMobile, which, setWhich }) {
 
               {metric === "z" ? (
                 <>
-                  <ReferenceArea y1={1} y2={zExtent} fill="#f87171" fillOpacity={0.09} />
-                  <ReferenceArea y1={2} y2={zExtent} fill="#dc2626" fillOpacity={0.10} />
-                  <ReferenceArea y1={-1} y2={-zExtent} fill="#4ade80" fillOpacity={0.09} />
-                  <ReferenceArea y1={-2} y2={-zExtent} fill="#3b82f6" fillOpacity={0.10} />
+                  <ReferenceArea y1={1} y2={zExtent} fill="#f87171" fillOpacity={0.171} />
+                  <ReferenceArea y1={2} y2={zExtent} fill="#dc2626" fillOpacity={0.19} />
+                  <ReferenceArea y1={-1} y2={-zExtent} fill="#4ade80" fillOpacity={0.171} />
+                  <ReferenceArea y1={-2} y2={-zExtent} fill="#3b82f6" fillOpacity={0.19} />
                   <ReferenceLine y={0} stroke="rgba(255,255,255,0.3)" strokeDasharray="3 3" />
                 </>
               ) : (
                 <>
-                  <ReferenceArea y1={75} y2={100} fill="#f87171" fillOpacity={0.09} />
-                  <ReferenceArea y1={90} y2={100} fill="#dc2626" fillOpacity={0.10} />
-                  <ReferenceArea y1={0} y2={25} fill="#4ade80" fillOpacity={0.09} />
-                  <ReferenceArea y1={0} y2={10} fill="#3b82f6" fillOpacity={0.10} />
+                  <ReferenceArea y1={75} y2={100} fill="#f87171" fillOpacity={0.171} />
+                  <ReferenceArea y1={90} y2={100} fill="#dc2626" fillOpacity={0.19} />
+                  <ReferenceArea y1={0} y2={25} fill="#4ade80" fillOpacity={0.171} />
+                  <ReferenceArea y1={0} y2={10} fill="#3b82f6" fillOpacity={0.19} />
                   <ReferenceLine y={50} stroke="rgba(255,255,255,0.3)" strokeDasharray="3 3" />
                 </>
               )}

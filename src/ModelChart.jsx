@@ -92,7 +92,7 @@ export default function ModelChart({ series, m, isMobile }) {
           {/* The rainbow bands, flattened into residual space, every band is a
               percentile slice of these residuals, so this is literally the fit. */}
           {BAND_LABELS.map((b, i) => (
-            <ReferenceArea key={i} y1={m.bands[i]} y2={m.bands[i + 1]} fill={b.c} fillOpacity={0.18} stroke="none" />
+            <ReferenceArea key={i} y1={m.bands[i]} y2={m.bands[i + 1]} fill={b.c} fillOpacity={0.28} stroke="none" />
           ))}
           <ReferenceLine y={0} stroke="rgba(255,255,255,0.6)" strokeDasharray="5 5" />
           <ReferenceLine y={m.std} stroke="rgba(255,255,255,0.22)" />

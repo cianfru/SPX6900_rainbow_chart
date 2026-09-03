@@ -134,13 +134,17 @@ function chromeSvg(spec, inner, extraDefs = "", dims) {
       + (spec.headline ? `<text x="64" y="166" fill="${accent}" font-size="${hlFont}" font-weight="800" font-family="sans-serif">${esc(spec.headline)}</text>` : "");
   return `<svg width="${DW}" height="${DH}" viewBox="0 0 ${DW} ${DH}" xmlns="http://www.w3.org/2000/svg">
 <defs>
-  <radialGradient id="g" cx="50%" cy="0%" r="80%">
-    <stop offset="0%" stop-color="${accent}" stop-opacity="0.18"/><stop offset="55%" stop-color="${accent}" stop-opacity="0"/>
+  <radialGradient id="g" cx="50%" cy="0%" r="88%">
+    <stop offset="0%" stop-color="${accent}" stop-opacity="0.30"/><stop offset="42%" stop-color="${accent}" stop-opacity="0.10"/><stop offset="70%" stop-color="${accent}" stop-opacity="0"/>
+  </radialGradient>
+  <radialGradient id="gb" cx="50%" cy="100%" r="70%">
+    <stop offset="0%" stop-color="${accent}" stop-opacity="0.12"/><stop offset="60%" stop-color="${accent}" stop-opacity="0"/>
   </radialGradient>
   ${extraDefs}
 </defs>
 <rect width="${DW}" height="${DH}" fill="#05050e"/>
 <rect width="${DW}" height="${DH}" fill="url(#g)"/>
+<rect width="${DW}" height="${DH}" fill="url(#gb)"/>
 ${brandStripe(DH)}
 <text x="64" y="52" fill="#cbd5e1" font-size="30" font-weight="800" letter-spacing="3" font-family="sans-serif">SPX6900</text>
 <text x="${DW - 64}" y="52" fill="#94a3b8" font-size="22" text-anchor="end" font-family="sans-serif">${esc(spec.date || "")}</text>
@@ -259,7 +263,8 @@ export function lineCardSvg(spec, opts = {}) {
     + `<filter id="lglow" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="5"/></filter>`;
   series.forEach((s, i) => {
     if (s.fill) defs += `<linearGradient id="fill${i}" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="${s.color}" stop-opacity="${Math.min(0.5, s.fill * 2.4)}"/>
+      <stop offset="0%" stop-color="${s.color}" stop-opacity="${Math.min(0.66, s.fill * 3.1)}"/>
+      <stop offset="60%" stop-color="${s.color}" stop-opacity="${Math.min(0.22, s.fill * 1.0)}"/>
       <stop offset="100%" stop-color="${s.color}" stop-opacity="0"/></linearGradient>`;
   });
 
@@ -292,8 +297,8 @@ export function lineCardSvg(spec, opts = {}) {
     const yBot = Math.max(mT, Math.min(mT + PH, Y(b.y0)));
     const bh = yBot - yTop;
     if (bh <= 1) continue;
-    bandRects += `<rect x="${mL}" y="${yTop.toFixed(1)}" width="${PW}" height="${bh.toFixed(1)}" fill="${b.color}" fill-opacity="${b.opacity ?? 0.13}"/>`;
-    bandRects += `<line x1="${mL}" y1="${yTop.toFixed(1)}" x2="${DW - mR}" y2="${yTop.toFixed(1)}" stroke="${b.color}" stroke-opacity="0.4" stroke-width="1.5"/>`;
+    bandRects += `<rect x="${mL}" y="${yTop.toFixed(1)}" width="${PW}" height="${bh.toFixed(1)}" fill="${b.color}" fill-opacity="${b.opacity ?? 0.22}"/>`;
+    bandRects += `<line x1="${mL}" y1="${yTop.toFixed(1)}" x2="${DW - mR}" y2="${yTop.toFixed(1)}" stroke="${b.color}" stroke-opacity="0.6" stroke-width="1.5"/>`;
     if (b.label && bh >= 22) bandRects += `<text x="${mL + 12}" y="${(yTop + Math.min(bh / 2, 26) + 8).toFixed(1)}" fill="${b.color}" font-size="26" font-weight="700" font-family="sans-serif" opacity="0.92">${esc(b.label)}</text>`;
   }
 
@@ -1061,7 +1066,7 @@ export function renderModelCard(spec, opts = {}) {
   let zones = "";
   for (let i = 0; i < colors.length; i++) {
     const yTop = Y(bands[i + 1]), h = Y(bands[i]) - yTop;
-    zones += `<rect x="${mL}" y="${yTop.toFixed(1)}" width="${PW}" height="${h.toFixed(1)}" fill="${colors[i]}" fill-opacity="0.20"/>`;
+    zones += `<rect x="${mL}" y="${yTop.toFixed(1)}" width="${PW}" height="${h.toFixed(1)}" fill="${colors[i]}" fill-opacity="0.30"/>`;
   }
   // % gridlines at a few band edges + year ticks
   let grid = "";

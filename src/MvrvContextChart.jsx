@@ -169,7 +169,7 @@ export default function MvrvContextChart({ isMobile, preview = false }) {
   const matchYears = similar?.years?.length ? andList(similar.years.map(String)) : null;
 
   const zone = (y1, y2, fill, label) => (y1 != null && y2 != null && y2 > y1) ? (
-    <ReferenceArea y1={y1} y2={y2} fill={fill} fillOpacity={0.10} stroke="none"
+    <ReferenceArea y1={y1} y2={y2} fill={fill} fillOpacity={0.19} stroke="none"
       label={preview ? undefined : { value: label, position: "insideLeft", fill, fontSize: 10.5, fontFamily: MONO, opacity: 0.9 }} />
   ) : null;
 
@@ -212,7 +212,7 @@ export default function MvrvContextChart({ isMobile, preview = false }) {
             <ReferenceLine y={1} stroke="rgba(255,255,255,0.45)" strokeDasharray="5 5"
               label={preview ? undefined : { value: "break-even 1×", position: "insideBottomRight", fill: "#94a3b8", fontSize: 10.5, fontFamily: MONO }} />
             {/* SPX6900's neighbourhood, the ±band whose crossings are the "similar" BTC moments */}
-            {similar && <ReferenceArea y1={similar.lo} y2={similar.hi} fill={SPX} fillOpacity={0.14} stroke="none" />}
+            {similar && <ReferenceArea y1={similar.lo} y2={similar.hi} fill={SPX} fillOpacity={0.189} stroke="none" />}
             {spx && <ReferenceLine y={spx.mvrv} stroke={SPX} strokeWidth={1.6} strokeOpacity={0.95}
               label={preview ? undefined : { value: `SPX today ${fMvrv(spx.mvrv)}`, position: "insideTopRight", fill: SPX, fontSize: 12, fontWeight: 700, fontFamily: MONO }} />}
             <Tooltip content={<Tip />} cursor={{ stroke: "rgba(255,255,255,0.2)" }} />

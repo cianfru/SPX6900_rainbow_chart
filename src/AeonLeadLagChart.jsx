@@ -155,8 +155,8 @@ export default function AeonLeadLagChart({ isMobile, initialView }) {
       <ResponsiveContainer width="100%" height={isMobile ? 400 : 560}>
         <LineChart data={rows} margin={{ top: 10, right: 20, left: 6, bottom: 22 }}>
           <CartesianGrid stroke="rgba(255,255,255,0.06)" vertical={false} />
-          <ReferenceArea x1={-LAG} x2={0} fill="#5eead4" fillOpacity={0.05} />
-          <ReferenceArea x1={0} x2={LAG} fill="#a78bfa" fillOpacity={0.05} />
+          <ReferenceArea x1={-LAG} x2={0} fill="#5eead4" fillOpacity={0.095} />
+          <ReferenceArea x1={0} x2={LAG} fill="#a78bfa" fillOpacity={0.095} />
           <ReferenceArea y1={-sig} y2={sig} fill="#94a3b8" fillOpacity={0.10} />
           <ReferenceLine y={0} stroke="rgba(255,255,255,0.14)" />
           <ReferenceLine x={0} stroke="#64748b" strokeDasharray="4 3" />
