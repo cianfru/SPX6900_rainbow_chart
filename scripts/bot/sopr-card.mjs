@@ -8,7 +8,7 @@
 import { Resvg } from "@resvg/resvg-js";
 import { FONT } from "./font.mjs";
 import { esc } from "./svg-util.mjs";
-import { brandStripe } from "./chrome.mjs";
+import { brandStripe, cardDepth} from "./chrome.mjs";
 
 const png = (svg, w) => new Resvg(svg, { fitTo: { mode: "width", value: w }, font: FONT }).render().asPng();
 const GRN = "#34d399", RED = "#fb7185";
@@ -60,7 +60,7 @@ export function soprSvg(stats, opts = {}) {
 <filter id="soglow" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="5"/></filter>
 </defs>
 <rect width="${W}" height="${H}" fill="url(#sobg)"/>
-${brandStripe(H)}
+${cardDepth(W, H)}${brandStripe(H)}
 <text x="60" y="58" fill="#f8fafc" font-size="39" font-weight="800" font-family="sans-serif" letter-spacing="1">SPX6900 — SOPR</text>
 <text x="60" y="92" fill="#aab6c8" font-size="22" font-family="sans-serif">When coins move, are they sold at a profit or a loss? Above 1 = profit, below 1 = loss.</text>
 <text x="60" y="130" fill="${col}" font-size="32" font-weight="800" font-family="sans-serif">${sopr.toFixed(2)} — ${state}</text>

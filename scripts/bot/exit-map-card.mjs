@@ -12,7 +12,7 @@
 import { Resvg } from "@resvg/resvg-js";
 import { FONT } from "./font.mjs";
 import { esc } from "./svg-util.mjs";
-import { brandStripe, auraBg } from "./chrome.mjs";
+import { brandStripe, auraBg, cardDepth} from "./chrome.mjs";
 
 const png = (svg, w) => new Resvg(svg, { fitTo: { mode: "width", value: w }, font: FONT }).render().asPng();
 const GRN = "#4ade80", RED = "#f43f5e";
@@ -102,7 +102,7 @@ export function exitMapSvg(stats, opts = {}) {
 <defs><linearGradient id="exbg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#0d0b18"/><stop offset="100%" stop-color="#05050e"/></linearGradient></defs>
 <rect width="${W}" height="${H}" fill="url(#exbg)"/>
 ${auraBg("#4ade80", W, H, { opacity: 0.13, accent2: "#f43f5e" })}
-${brandStripe(H)}
+${cardDepth(W, H)}${brandStripe(H)}
 <text x="60" y="58" fill="#f1f5f9" font-size="38" font-weight="700" font-family="${F}" letter-spacing="0.5">SPX6900 — HOW HOLDERS LEFT</text>
 <text x="60" y="98" fill="#94a3b8" font-size="22" font-family="${F}">Every holder that left the base — when they left, and whether they sold green or red.</text>
 <text x="60" y="150" fill="#4ade80" font-size="33" font-weight="700" font-family="${F}">${esc(`${ov.profitPct}% of the ${fmtN(ov.left)} wallets that left sold in profit.`)}</text>

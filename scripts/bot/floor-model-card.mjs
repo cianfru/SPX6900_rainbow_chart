@@ -8,7 +8,7 @@
 import { Resvg } from "@resvg/resvg-js";
 import { FONT } from "./font.mjs";
 import { esc } from "./svg-util.mjs";
-import { brandStripe } from "./chrome.mjs";
+import { brandStripe, cardDepth} from "./chrome.mjs";
 
 const png = (svg, w) => new Resvg(svg, { fitTo: { mode: "width", value: w }, font: FONT }).render().asPng();
 const fP = v => "$" + (v >= 1 ? v.toFixed(2) : v >= 0.1 ? v.toFixed(3) : v.toFixed(4));
@@ -98,7 +98,7 @@ export function floorModelSvg(stats, opts = {}) {
 <rect width="${W}" height="${H}" fill="url(#fmbg)"/>
 <rect width="${W}" height="${H}" fill="url(#fmwarm)"/>
 <rect width="${W}" height="${H}" fill="url(#fmcool)"/>
-${brandStripe(H)}
+${cardDepth(W, H)}${brandStripe(H)}
 <text x="60" y="56" fill="#e2e8f0" font-size="35" font-weight="800" font-family="sans-serif" letter-spacing="1">SPX6900 — REALIZED PRICE &amp; FLOOR</text>
 <text x="60" y="100" fill="${SPOT_C}" font-size="27" font-weight="800" font-family="sans-serif">${fP(spotNow)} spot · ${fP(rpNow)} cost basis — ${esc(state)}</text>
 <polygon points="${richPoly}" fill="url(#fmRich)"/>

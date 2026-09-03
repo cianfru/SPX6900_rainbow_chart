@@ -5,7 +5,7 @@
 import { Resvg } from "@resvg/resvg-js";
 import { FONT } from "./font.mjs";
 import { esc } from "./svg-util.mjs";
-import { brandStripe } from "./chrome.mjs";
+import { brandStripe, cardDepth} from "./chrome.mjs";
 import { cityBg } from "./city-card-bg.mjs";
 import { loadCityHistory } from "./city-growth-card.mjs";
 
@@ -72,7 +72,7 @@ export function citySkylineSvg(doc, opts = {}) {
   const s = citySkylineStats();
   return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
 ${cityBg(W, H, { glow: "#38bdf8", skyline: false })}
-${brandStripe(H)}
+${cardDepth(W, H)}${brandStripe(H)}
 <text x="60" y="60" fill="#f8fafc" font-size="40" font-weight="800" font-family="sans-serif" letter-spacing="1">SPX CITY'S CHANGING SKYLINE</text>
 <text x="60" y="104" fill="#7dd3fc" font-size="30" font-weight="800" font-family="sans-serif">${s.towerNow} glass towers crown a city of ${fNum(s.total)} buildings</text>
 <text x="60" y="140" fill="#a5b4c8" font-size="21" font-family="sans-serif">${esc(`Height = holdings × hold-time, same rule as the 3D city.`)}</text>

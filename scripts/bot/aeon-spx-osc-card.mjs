@@ -16,7 +16,7 @@
 import { Resvg } from "@resvg/resvg-js";
 import { FONT } from "./font.mjs";
 import { esc } from "./svg-util.mjs";
-import { brandStripe } from "./chrome.mjs";
+import { brandStripe, cardDepth} from "./chrome.mjs";
 import { zStats, ordinal } from "../../src/aeon-spx-value.js";
 import { aeonHeader } from "./aeon-card-bg.mjs";
 
@@ -90,7 +90,7 @@ export function aeonSpxOscSvg(market, opts = {}) {
   <stop offset="50%" stop-color="#22d3ee" stop-opacity="0.04"/><stop offset="100%" stop-color="#22d3ee" stop-opacity="0.42"/></linearGradient>
 </defs>
 <rect width="${W}" height="${H}" fill="url(#aobg)"/>
-${brandStripe(H)}
+${cardDepth(W, H)}${brandStripe(H)}
 ${aeonHeader("PROJECT AEON — EXPENSIVE OR CHEAP IN SPX", "SPX6900 is the flat line. Above it an AEON costs more SPX than usual; below, less.", `${fSpx(z.cur)} SPX per AEON — ${st.t} vs its own baseline`, st.c, F)}
 ${zones}${grid}${xlab}
 <polygon points="${areaUp}" fill="url(#aofill)"/>

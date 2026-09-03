@@ -6,7 +6,7 @@
 import { Resvg } from "@resvg/resvg-js";
 import { FONT } from "./font.mjs";
 import { esc } from "./svg-util.mjs";
-import { brandStripe } from "./chrome.mjs";
+import { brandStripe, cardDepth} from "./chrome.mjs";
 
 const png = (svg, w) => new Resvg(svg, { fitTo: { mode: "width", value: w }, font: FONT }).render().asPng();
 const A100 = "#fbbf24", A10 = "#f87171"; // top-100 amber, top-10 red
@@ -48,7 +48,7 @@ export function concentrationSvg(stats, opts = {}) {
 <filter id="ccglow" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="5"/></filter>
 </defs>
 <rect width="${W}" height="${H}" fill="url(#ccbg)"/>
-${brandStripe(H)}
+${cardDepth(W, H)}${brandStripe(H)}
 <text x="60" y="56" fill="#e2e8f0" font-size="36" font-weight="800" font-family="sans-serif" letter-spacing="1">SPX6900 — HOLDER CONCENTRATION</text>
 <text x="60" y="100" fill="${A100}" font-size="28" font-weight="800" font-family="sans-serif">Top 100 wallets hold ${cur.t100.toFixed(0)}% — ${dir} ${first.t100.toFixed(0)}% at launch</text>
 ${grid}${xlab}

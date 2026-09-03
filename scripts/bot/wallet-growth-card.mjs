@@ -6,7 +6,7 @@
 import { Resvg } from "@resvg/resvg-js";
 import { FONT } from "./font.mjs";
 import { esc } from "./svg-util.mjs";
-import { brandStripe } from "./chrome.mjs";
+import { brandStripe, cardDepth} from "./chrome.mjs";
 
 const png = (svg, w) => new Resvg(svg, { fitTo: { mode: "width", value: w }, font: FONT }).render().asPng();
 const fK = n => n >= 1000 ? (n / 1000).toFixed(n >= 100000 ? 0 : 1) + "k" : String(n);
@@ -61,7 +61,7 @@ export function walletGrowthSvg(stats, opts = {}) {
   return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
 <defs><linearGradient id="wgbg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#0b0b16"/><stop offset="100%" stop-color="#05050e"/></linearGradient></defs>
 <rect width="${W}" height="${H}" fill="url(#wgbg)"/>
-${brandStripe(H)}
+${cardDepth(W, H)}${brandStripe(H)}
 <text x="60" y="58" fill="#e2e8f0" font-size="36" font-weight="800" font-family="sans-serif" letter-spacing="1">SPX6900 — WALLET GROWTH</text>
 <text x="60" y="102" fill="#4ade80" font-size="28" font-weight="800" font-family="sans-serif">${total.toLocaleString("en-US")} wallets across 3 chains — from ${startTotal.toLocaleString("en-US")} at launch</text>
 ${grid}${ribbons}${xlab}${legend}

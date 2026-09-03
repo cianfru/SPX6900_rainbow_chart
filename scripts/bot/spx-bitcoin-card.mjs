@@ -10,7 +10,7 @@ import { FONT } from "./font.mjs";
 import { esc } from "./svg-util.mjs";
 import { SPX_DAILY } from "../../src/spx-daily.js";
 import { BITCOIN_MEME } from "../../src/bitcoin-meme.js";
-import { brandStripe } from "./chrome.mjs";
+import { brandStripe, cardDepth} from "./chrome.mjs";
 
 const png = (svg, w) => new Resvg(svg, { fitTo: { mode: "width", value: w }, font: FONT }).render().asPng();
 const SPX_C = "#5eead4", BTC_C = "#fb923c", GRN = "#4ade80", RED = "#f87171";
@@ -85,7 +85,7 @@ export function spxBitcoinSvg(opts = {}) {
 <filter id="sbglow" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="4"/></filter>
 </defs>
 <rect width="${W}" height="${H}" fill="url(#sbbg)"/>
-${brandStripe(H)}
+${cardDepth(W, H)}${brandStripe(H)}
 <text x="60" y="56" fill="#e2e8f0" font-size="36" font-weight="800" font-family="sans-serif" letter-spacing="1">SPX6900 <tspan fill="#64748b">×</tspan> BITCOIN</text>
 <text x="60" y="100" fill="#f8fafc" font-size="${heroFs}" font-weight="800" font-family="sans-serif">Same daily heartbeat — <tspan fill="${GRN}">${sameDir}% of days move together</tspan> — opposite fate.</text>
 

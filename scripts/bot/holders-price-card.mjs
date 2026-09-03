@@ -5,7 +5,7 @@
 import { Resvg } from "@resvg/resvg-js";
 import { FONT } from "./font.mjs";
 import { esc, fNum, monotonePath as smoothPath } from "./svg-util.mjs";
-import { brandStripe } from "./chrome.mjs";
+import { brandStripe, cardDepth} from "./chrome.mjs";
 
 const png = (svg, w) => new Resvg(svg, { fitTo: { mode: "width", value: w }, font: FONT }).render().asPng();
 
@@ -65,7 +65,7 @@ export function holdersPriceSvg(spec, opts = {}) {
 </defs>
 <rect width="${W}" height="${H}" fill="#05050e"/>
 <rect width="${W}" height="${H}" fill="url(#hpTop)"/>
-${brandStripe(H)}
+${cardDepth(W, H)}${brandStripe(H)}
 <text x="64" y="52" fill="#94a3b8" font-size="30" font-weight="700" letter-spacing="3" font-family="sans-serif">SPX6900</text>
 <text x="${W - 64}" y="52" fill="#475569" font-size="24" text-anchor="end" font-family="sans-serif">${esc(spec.date || "")}</text>
 <text x="64" y="112" fill="#e2e8f0" font-size="38" font-weight="700" font-family="sans-serif">${esc(spec.title || "")}</text>

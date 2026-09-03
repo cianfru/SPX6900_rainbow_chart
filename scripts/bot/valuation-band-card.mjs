@@ -7,7 +7,7 @@ import { Resvg } from "@resvg/resvg-js";
 import { FONT } from "./font.mjs";
 import { esc } from "./svg-util.mjs";
 import { valuationComposite, ZONES, zoneOf, AXES } from "./valuation-composite.mjs";
-import { brandStripe } from "./chrome.mjs";
+import { brandStripe, cardDepth} from "./chrome.mjs";
 
 const png = (svg, w) => new Resvg(svg, { fitTo: { mode: "width", value: w }, font: FONT }).render().asPng();
 
@@ -55,7 +55,7 @@ export function valuationBandSvg(stats, opts = {}) {
 ${bandDefs}
 </defs>
 <rect width="${W}" height="${H}" fill="url(#vbbg)"/>
-${brandStripe(H)}
+${cardDepth(W, H)}${brandStripe(H)}
 <rect x="16" y="16" width="${W - 32}" height="${H - 32}" rx="22" fill="none" stroke="rgba(255,255,255,0.10)" stroke-width="1.5"/>
 <text x="52" y="58" font-size="40" font-weight="800" font-family="sans-serif" letter-spacing="0.5"><tspan fill="${z.color}">${(cur.composite * 100).toFixed(0)}% · ${esc(z.label)}</tspan></text>
 <text x="52" y="90" font-size="21" font-family="sans-serif" fill="#f1f5f9">SPX6900 Valuation Composite — where it sits vs its own history, right now</text>

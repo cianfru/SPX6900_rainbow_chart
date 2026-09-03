@@ -10,7 +10,7 @@ import { Resvg } from "@resvg/resvg-js";
 import { FONT } from "./font.mjs";
 import { esc } from "./svg-util.mjs";
 import { CEX_FLOW } from "../../src/cex-flow.js";
-import { brandStripe } from "./chrome.mjs";
+import { brandStripe, cardDepth} from "./chrome.mjs";
 
 const png = (svg, w) => new Resvg(svg, { fitTo: { mode: "width", value: w }, font: FONT }).render().asPng();
 // Prefer the CI-refreshed public/cex-flow.json (Dune baseline + daily snapshot-forward); fall back
@@ -116,7 +116,7 @@ export function cexFlowSvg(opts = {}) {
 <radialGradient id="cfacc" cx="18%" cy="4%" r="78%"><stop offset="0%" stop-color="#4ade80" stop-opacity="0.10"/><stop offset="46%" stop-color="#4ade80" stop-opacity="0"/></radialGradient>
 </defs>
 <rect width="${W}" height="${H}" fill="url(#cfbg)"/><rect width="${W}" height="${H}" fill="url(#cfacc)"/>
-${brandStripe(H)}
+${cardDepth(W, H)}${brandStripe(H)}
 <rect x="16" y="16" width="${W - 32}" height="${H - 32}" rx="24" fill="none" stroke="rgba(255,255,255,0.09)" stroke-width="1.5"/>
 <text x="60" y="66" font-size="38" font-weight="800" font-family="sans-serif" letter-spacing="0.5"><tspan fill="#4ade80">SPX6900</tspan><tspan fill="#f1f5f9"> ON EXCHANGES — FLOW vs PRICE</tspan></text>
 <text x="60" y="98" font-size="20" font-family="sans-serif" fill="#94a3b8">7-day rolling net flow, one-time listing fills stripped out (grey bands = listing periods)</text>

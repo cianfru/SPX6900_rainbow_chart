@@ -11,7 +11,7 @@ import { FONT } from "./font.mjs";
 import { esc } from "./svg-util.mjs";
 import { BTC_HODL } from "../../src/btc-hodl-waves.js";
 import { spxLiquidity, btcIlliquid } from "../../src/liquidity.js";
-import { brandStripe } from "./chrome.mjs";
+import { brandStripe, cardDepth} from "./chrome.mjs";
 
 const png = (svg, w) => new Resvg(svg, { fitTo: { mode: "width", value: w }, font: FONT }).render().asPng();
 const SPX = "#a78bfa", BTC = "#fb923c"; // illiquid = purple (the sticky, diamond-tier feel)
@@ -81,7 +81,7 @@ export function freeFloatSvg(stats, opts = {}) {
 <filter id="ilglow" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="5"/></filter>
 </defs>
 <rect width="${W}" height="${H}" fill="url(#ilbg)"/>
-${brandStripe(H)}
+${cardDepth(W, H)}${brandStripe(H)}
 <text x="60" y="58" fill="#f8fafc" font-size="35" font-weight="800" font-family="sans-serif" letter-spacing="1">${multi ? "ILLIQUID SUPPLY — SPX6900 vs BITCOIN, SAME AGE" : "SPX6900 — ILLIQUID SUPPLY"}</text>
 <text x="60" y="100" fill="${SPX}" font-size="26" font-weight="800" font-family="sans-serif">${esc(hero)}</text>
 ${grid}${xlab}${lines}${legend}

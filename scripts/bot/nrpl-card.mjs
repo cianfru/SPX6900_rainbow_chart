@@ -7,7 +7,7 @@
 import { Resvg } from "@resvg/resvg-js";
 import { FONT } from "./font.mjs";
 import { esc } from "./svg-util.mjs";
-import { brandStripe } from "./chrome.mjs";
+import { brandStripe, cardDepth} from "./chrome.mjs";
 
 const png = (svg, w) => new Resvg(svg, { fitTo: { mode: "width", value: w }, font: FONT }).render().asPng();
 const GRN = "#34d399", RED = "#fb7185";
@@ -63,7 +63,7 @@ export function nrplSvg(stats, opts = {}) {
 <linearGradient id="nrR" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="${RED}" stop-opacity="0.02"/><stop offset="100%" stop-color="${RED}" stop-opacity="0.34"/></linearGradient>
 </defs>
 <rect width="${W}" height="${H}" fill="url(#nrbg)"/>
-${brandStripe(H)}
+${cardDepth(W, H)}${brandStripe(H)}
 <text x="60" y="58" fill="#f8fafc" font-size="39" font-weight="800" font-family="sans-serif" letter-spacing="1">SPX6900 — NET REALIZED PROFIT / LOSS</text>
 <text x="60" y="92" fill="#aab6c8" font-size="22" font-family="sans-serif">How much profit or loss holders actually locked in when coins moved, in dollars, each week.</text>
 <text x="60" y="130" fill="${col}" font-size="32" font-weight="800" font-family="sans-serif">${money(cur.v)} — ${state}</text>

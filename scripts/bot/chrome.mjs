@@ -50,6 +50,42 @@ export const auraBg = (accent, W = 1200, H = 630, { cx = "50%", cy = "0%", r = "
   return defs + `</defs>` + body;
 };
 
+// ⭐ DEPTH — make a flat card read as a lit, layered surface (owner: "colourful AND polished").
+// Two cheap, tasteful moves, no hue change, no per-card work:
+//  • cardDepth(W,H): a soft VIGNETTE (edges fall into shadow so the centre lifts) + a thin TOP
+//    SHEEN (a glass-like highlight along the top edge). Drawn once over the background, under content.
+//  • plotPanel(x,y,w,h): the chart area as a RAISED panel — a soft drop shadow beneath + a bevel
+//    (light top lip, dark bottom lip) — so the data sits on its own surface instead of on the ink.
+// Both emit their own <defs> and are self-contained; ids are sequenced so several can coexist.
+let _depthSeq = 0;
+export const cardDepth = (W = 1200, H = 630, { vignette = 0.26, sheen = 0.07 } = {}) => {
+  const v = `vg${_depthSeq++}`, s = `sh${_depthSeq++}`;
+  return `<defs>`
+    + `<radialGradient id="${v}" cx="50%" cy="44%" r="82%">`
+      + `<stop offset="0%" stop-color="#000000" stop-opacity="0"/>`
+      + `<stop offset="72%" stop-color="#000000" stop-opacity="0"/>`
+      + `<stop offset="100%" stop-color="#000000" stop-opacity="${vignette}"/>`
+    + `</radialGradient>`
+    + `<linearGradient id="${s}" x1="0" y1="0" x2="0" y2="1">`
+      + `<stop offset="0%" stop-color="#ffffff" stop-opacity="${sheen}"/>`
+      + `<stop offset="6%" stop-color="#ffffff" stop-opacity="0"/>`
+    + `</linearGradient>`
+    + `</defs>`
+    + `<rect width="${W}" height="${H}" fill="url(#${v})"/>`
+    + `<rect width="${W}" height="${H}" fill="url(#${s})"/>`;
+};
+
+/** The chart area as a raised panel: soft drop shadow beneath + a top-light / bottom-dark bevel. */
+export const plotPanel = (x, y, w, h, { rx = 10, bg = "#080810", bgOpacity = 0.34 } = {}) => {
+  const f = `psh${_depthSeq++}`;
+  return `<defs><filter id="${f}" x="-20%" y="-20%" width="140%" height="160%">`
+    + `<feDropShadow dx="0" dy="7" stdDeviation="11" flood-color="#000000" flood-opacity="0.55"/></filter></defs>`
+    // shadow-casting body (blurred), then the panel surface, then the two bevel lips
+    + `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${rx}" fill="${bg}" fill-opacity="${bgOpacity}" filter="url(#${f})"/>`
+    + `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${rx}" fill="none" stroke="#ffffff" stroke-opacity="0.10" stroke-width="1"/>`
+    + `<rect x="${(x + 1).toFixed(1)}" y="${(y + h - rx).toFixed(1)}" width="${(w - 2).toFixed(1)}" height="${rx}" fill="none" stroke="#000000" stroke-opacity="0.28" stroke-width="1" rx="${rx}"/>`;
+};
+
 /** A horizontal rainbow rule — the same palette, for separating a header from a plot. */
 export const brandRule = (x, y, w, { h = 3, id = "brandRbH", opacity = 0.85 } = {}) =>
   `<defs><linearGradient id="${id}" x1="0" y1="0" x2="1" y2="0">`

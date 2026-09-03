@@ -5,7 +5,7 @@
 import { Resvg } from "@resvg/resvg-js";
 import { FONT } from "./font.mjs";
 import { esc } from "./svg-util.mjs";
-import { brandStripe, auraBg } from "./chrome.mjs";
+import { brandStripe, auraBg, cardDepth} from "./chrome.mjs";
 import { ETH_SOL_2026 } from "./eth-sol-2026.js";
 
 const png = (svg, w) => new Resvg(svg, { fitTo: { mode: "width", value: w }, font: FONT }).render().asPng();
@@ -48,7 +48,7 @@ export function supplyCurveSvg(d, opts = {}) {
 <defs><linearGradient id="scbg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#0b0b16"/><stop offset="100%" stop-color="#05050e"/></linearGradient></defs>
 <rect width="${W}" height="${H}" fill="url(#scbg)"/>
 ${auraBg("#3b82f6", W, H, { accent2: "#a78bfa" })}
-${brandStripe(H)}
+${cardDepth(W, H)}${brandStripe(H)}
 <text x="60" y="56" fill="#f8fafc" font-size="38" font-weight="800" font-family="sans-serif" letter-spacing="1">SPX6900 — SUPPLY BY HOLDING TENURE</text>
 <text x="60" y="98" fill="#22d3ee" font-size="29" font-weight="800" font-family="sans-serif">90-97% of supply is in holders past the 155-day mark — Base longest</text>
 <text x="60" y="130" fill="#93a3b8" font-size="19" font-family="sans-serif">${esc("% of each chain's 5k+ supply in wallets that have held the tier at least this long · holding tenure, not dormancy")}</text>

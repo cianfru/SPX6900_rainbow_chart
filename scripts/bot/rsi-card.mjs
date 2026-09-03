@@ -12,7 +12,7 @@ import { Resvg } from "@resvg/resvg-js";
 import { DEFAULT_RAW } from "../../src/data.js";
 import { riskColor } from "./risk-cards.mjs";
 import { FONT } from "./font.mjs";
-import { brandStripe } from "./chrome.mjs";
+import { brandStripe, cardDepth} from "./chrome.mjs";
 
 const png = (svg, w) => new Resvg(svg, { fitTo: { mode: "width", value: w }, font: FONT }).render().asPng();
 
@@ -127,7 +127,7 @@ export function rsiDotsSvg(price, dateStr = new Date().toISOString().slice(0, 10
 </defs>
 <rect width="${W}" height="${H}" fill="#05050e"/>
 <rect width="${W}" height="${H}" fill="url(#rsiTop)"/>
-${brandStripe(H)}
+${cardDepth(W, H)}${brandStripe(H)}
 ${grid}${xlab}${legend}
 <polyline points="${connector}" fill="none" stroke="rgba(148,163,184,0.35)" stroke-width="1.6"/>
 <polyline points="${gmaLine}" fill="none" stroke="#e2e8f0" stroke-width="3.6" stroke-opacity="0.95" stroke-linejoin="round" stroke-linecap="round"/>

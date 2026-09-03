@@ -14,7 +14,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { Resvg } from "@resvg/resvg-js";
 import { FONT } from "./font.mjs";
 import { esc } from "./svg-util.mjs";
-import { brandStripe, auraBg } from "./chrome.mjs";
+import { brandStripe, auraBg, cardDepth} from "./chrome.mjs";
 import { ETH_SOL_2026 } from "./eth-sol-2026.js";
 
 const png = (svg, w) => new Resvg(svg, { fitTo: { mode: "width", value: w }, font: FONT }).render().asPng();
@@ -90,7 +90,7 @@ export function ethSol2026Svg(d, opts = {}) {
 <defs><linearGradient id="esbg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#0b0b16"/><stop offset="100%" stop-color="#05050e"/></linearGradient></defs>
 <rect width="${W}" height="${H}" fill="url(#esbg)"/>
 ${auraBg("#818cf8", W, H, { accent2: "#3b82f6" })}
-${brandStripe(H)}
+${cardDepth(W, H)}${brandStripe(H)}
 <text x="60" y="56" fill="#f8fafc" font-size="37" font-weight="800" font-family="sans-serif" letter-spacing="1">SPX6900 — HOLDERS ACROSS THE CHAINS</text>
 <text x="60" y="98" fill="#c4b5fd" font-size="27" font-weight="800" font-family="sans-serif">On every chain, most holders have held 1–2 years</text>
 <text x="60" y="130" fill="#93a3b8" font-size="19" font-family="sans-serif">${esc(`each curve = how long that chain's holders have held · the peak is the drawdown crowd that stayed`)}</text>

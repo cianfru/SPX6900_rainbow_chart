@@ -7,7 +7,7 @@
 import { Resvg } from "@resvg/resvg-js";
 import { FONT } from "./font.mjs";
 import { esc } from "./svg-util.mjs";
-import { brandStripe } from "./chrome.mjs";
+import { brandStripe, cardDepth} from "./chrome.mjs";
 
 const png = (svg, w) => new Resvg(svg, { fitTo: { mode: "width", value: w }, font: FONT }).render().asPng();
 const ACC = "#22d3ee";
@@ -51,7 +51,7 @@ export function livelinessSvg(stats, opts = {}) {
 <linearGradient id="lvF" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="${ACC}" stop-opacity="0.30"/><stop offset="100%" stop-color="${ACC}" stop-opacity="0.02"/></linearGradient>
 </defs>
 <rect width="${W}" height="${H}" fill="url(#lvbg)"/>
-${brandStripe(H)}
+${cardDepth(W, H)}${brandStripe(H)}
 <text x="60" y="58" fill="#f8fafc" font-size="39" font-weight="800" font-family="sans-serif" letter-spacing="1">SPX6900 — LIVELINESS</text>
 <text x="60" y="92" fill="#aab6c8" font-size="22" font-family="sans-serif">Coin-days destroyed vs created. Rising = long-held coins moving; falling = the base holding tight.</text>
 <text x="60" y="130" fill="${ACC}" font-size="32" font-weight="800" font-family="sans-serif">${cur.v.toFixed(2)} — ${state}</text>

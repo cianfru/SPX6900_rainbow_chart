@@ -5,7 +5,7 @@
 import { Resvg } from "@resvg/resvg-js";
 import { FONT } from "./font.mjs";
 import { esc } from "./svg-util.mjs";
-import { brandStripe } from "./chrome.mjs";
+import { brandStripe, cardDepth} from "./chrome.mjs";
 import { cityBg } from "./city-card-bg.mjs";
 import { loadCityHistory } from "./city-growth-card.mjs";
 
@@ -43,7 +43,7 @@ export function cityVintageSvg(s, opts = {}) {
 
   return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
 ${cityBg(W, H, { glow: "#4ade80", maxTower: 0.16 })}
-${brandStripe(H)}
+${cardDepth(W, H)}${brandStripe(H)}
 <text x="60" y="60" fill="#f8fafc" font-size="40" font-weight="800" font-family="sans-serif" letter-spacing="1">WHO'S STILL HERE, BY ARRIVAL</text>
 <text x="60" y="104" fill="#86efac" font-size="30" font-weight="800" font-family="sans-serif">The launch crowd is nearly gone — just ${Math.round(s.launch.pct)}% remain</text>
 <text x="60" y="142" fill="#a5b4c8" font-size="21" font-family="sans-serif">${esc(`Of each arrival quarter, the share still resident today — recent cohorts read high (right-censored).`)}</text>

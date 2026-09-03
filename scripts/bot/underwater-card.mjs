@@ -5,7 +5,7 @@
 import { Resvg } from "@resvg/resvg-js";
 import { FONT } from "./font.mjs";
 import { drawdownSummary } from "../../src/models.js";
-import { brandStripe } from "./chrome.mjs";
+import { brandStripe, cardDepth} from "./chrome.mjs";
 
 const png = (svg, w) => new Resvg(svg, { fitTo: { mode: "width", value: w }, font: FONT }).render().asPng();
 const esc = t => String(t).replace(/&/g, "&amp;").replace(/</g, "&lt;");
@@ -56,7 +56,7 @@ export function underwaterSvg(stats, opts = {}) {
 <rect width="${W}" height="${H}" fill="#05050e"/>
 <radialGradient id="uwV" cx="50%" cy="100%" r="90%"><stop offset="0%" stop-color="#ef4444" stop-opacity="0.12"/><stop offset="60%" stop-color="#ef4444" stop-opacity="0"/></radialGradient>
 <rect width="${W}" height="${H}" fill="url(#uwV)"/>
-${brandStripe(H)}
+${cardDepth(W, H)}${brandStripe(H)}
 ${grid}${xlab}
 <polygon points="${areaPoly}" fill="url(#uw)"/>
 <polyline points="${priceLine}" fill="none" stroke="#38bdf8" stroke-width="4.2" stroke-linejoin="round"/>

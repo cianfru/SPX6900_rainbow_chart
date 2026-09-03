@@ -9,7 +9,7 @@ import { DEFAULT_RAW } from "../../src/data.js";
 import * as M from "../../src/models.js";
 import { FONT } from "./font.mjs";
 import { esc } from "./svg-util.mjs";
-import { brandStripe } from "./chrome.mjs";
+import { brandStripe, cardDepth} from "./chrome.mjs";
 
 const fP = p => (p >= 1 ? "$" + p.toFixed(2) : "$" + p.toFixed(p < 0.001 ? 5 : p < 0.01 ? 4 : p < 0.1 ? 3 : 2));
 const png = (svg, w) => new Resvg(svg, { fitTo: { mode: "width", value: w }, font: FONT }).render().asPng();
@@ -38,7 +38,7 @@ function auroraBg(W, H, glow) {
 <rect width="${W}" height="${H}" fill="url(#auViolet)"/>
 <rect width="${W}" height="${H}" fill="url(#auWarm)"/>
 <rect width="${W}" height="${H}" fill="url(#auTop)"/>
-${brandStripe(H)}`;
+${cardDepth(W, H)}${brandStripe(H)}`;
 }
 
 // log-residual range used to normalise risk to 0..1 (same basis as buildRiskSeries)

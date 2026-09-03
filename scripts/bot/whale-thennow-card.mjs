@@ -11,7 +11,7 @@ import { readFileSync } from "node:fs";
 import { Resvg } from "@resvg/resvg-js";
 import { FONT } from "./font.mjs";
 import { esc } from "./svg-util.mjs";
-import { brandStripe } from "./chrome.mjs";
+import { brandStripe, cardDepth} from "./chrome.mjs";
 import { loadTimeline, loadOnchainSeries, nrplPeaks, whalesAtWeek, dateOfWeek } from "./whale-timeline.mjs";
 
 const png = (svg, w) => new Resvg(svg, { fitTo: { mode: "width", value: w }, font: FONT }).render().asPng();
@@ -96,7 +96,7 @@ export function whaleThenNowSvg(opts = {}) {
   return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
 <defs><linearGradient id="tnbg" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#0f1830"/><stop offset="55%" stop-color="#0a0f1f"/><stop offset="100%" stop-color="#06070f"/></linearGradient></defs>
 <rect width="${W}" height="${H}" fill="url(#tnbg)"/>
-${brandStripe(H)}
+${cardDepth(W, H)}${brandStripe(H)}
 <rect x="16" y="16" width="${W - 32}" height="${H - 32}" rx="24" fill="none" stroke="rgba(255,255,255,0.09)" stroke-width="1.5"/>
 <text x="60" y="66" font-size="40" font-weight="800" font-family="sans-serif" letter-spacing="1"><tspan fill="#f1f5f9">HOW THE WHALES PLAYED THE CYCLE</tspan></text>
 <text x="60" y="98" font-size="18" font-family="sans-serif" fill="#94a3b8">Every ≥100k-SPX wallet = one square: <tspan fill="${GREEN}" font-weight="700">green</tspan> adding, <tspan fill="${RED}" font-weight="700">red</tspan> reducing into each moment. Moments = the on-chain NRPL peaks, not eyeballed.</text>

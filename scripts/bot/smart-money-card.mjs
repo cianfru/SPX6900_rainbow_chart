@@ -7,7 +7,7 @@
 import { Resvg } from "@resvg/resvg-js";
 import { FONT } from "./font.mjs";
 import { esc } from "./svg-util.mjs";
-import { brandStripe } from "./chrome.mjs";
+import { brandStripe, cardDepth} from "./chrome.mjs";
 
 const png = (svg, w) => new Resvg(svg, { fitTo: { mode: "width", value: w }, font: FONT }).render().asPng();
 const GOLD = "#f6a23c";
@@ -51,7 +51,7 @@ export function smartMoneySvg(stats, opts = {}) {
 <linearGradient id="smf" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="${GOLD}" stop-opacity="0.55"/><stop offset="100%" stop-color="${GOLD}" stop-opacity="0.05"/></linearGradient>
 </defs>
 <rect width="${W}" height="${H}" fill="url(#smbg)"/>
-${brandStripe(H)}
+${cardDepth(W, H)}${brandStripe(H)}
 <text x="60" y="58" fill="#f1f5f9" font-size="39" font-weight="800" font-family="${F}" letter-spacing="0.5">SPX6900 — SMART MONEY</text>
 <text x="60" y="98" fill="#94a3b8" font-size="21" font-family="${F}">SPX held by the proven top-timers (real capital in, sold 5×+, still holding), vs price.</text>
 <text x="60" y="150" fill="${GOLD}" font-size="31" font-weight="700" font-family="${F}">${esc(`${S.cohortSize} wallets banked ${usd(S.realizedTotal)} at ${S.medianRoi}× — and still hold ${usd(S.heldUsd)}.`)}</text>

@@ -6,7 +6,7 @@
 import { Resvg } from "@resvg/resvg-js";
 import { FONT } from "./font.mjs";
 import { esc } from "./svg-util.mjs";
-import { brandStripe } from "./chrome.mjs";
+import { brandStripe, cardDepth} from "./chrome.mjs";
 import { buildLadder, shareInProfit, meanOf, LADDER_PCTS, ladderColor } from "../../src/cost-basis-ladder.js";
 
 const png = (svg, w) => new Resvg(svg, { fitTo: { mode: "width", value: w }, font: FONT }).render().asPng();
@@ -85,7 +85,7 @@ export function costBasisSvg(hist, opts = {}) {
 <linearGradient id="cbRb" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#ef4444"/><stop offset="20%" stop-color="#f59e0b"/><stop offset="42%" stop-color="#84cc16"/><stop offset="62%" stop-color="#06b6d4"/><stop offset="82%" stop-color="#3b82f6"/><stop offset="100%" stop-color="#d946ef"/></linearGradient>
 </defs>
 <rect width="${W}" height="${H}" fill="url(#cbBg)"/>
-${brandStripe(H)}
+${cardDepth(W, H)}${brandStripe(H)}
 <text x="60" y="76" fill="#f8fafc" font-size="40" font-weight="800" font-family="sans-serif" letter-spacing="0.4">SPX6900 — COST BASIS DISTRIBUTION</text>
 <text x="60" y="120" fill="#c8d1de" font-size="24" font-family="sans-serif">Where every holder bought — a percentile ladder, price woven through.</text>
 <rect x="60" y="150" width="${W - 120}" height="4" rx="2" fill="url(#cbRb)"/>

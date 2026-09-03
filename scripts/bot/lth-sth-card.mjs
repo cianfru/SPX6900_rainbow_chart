@@ -8,7 +8,7 @@
 import { Resvg } from "@resvg/resvg-js";
 import { FONT } from "./font.mjs";
 import { esc } from "./svg-util.mjs";
-import { brandStripe } from "./chrome.mjs";
+import { brandStripe, cardDepth} from "./chrome.mjs";
 
 const png = (svg, w) => new Resvg(svg, { fitTo: { mode: "width", value: w }, font: FONT }).render().asPng();
 // stacking order, bottom → top: LTH block (the diamond base) first, then STH on top.
@@ -60,7 +60,7 @@ export function lthSthSvg(stats, opts = {}) {
   return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
 <defs><linearGradient id="lsbg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#0b0b16"/><stop offset="100%" stop-color="#05050e"/></linearGradient></defs>
 <rect width="${W}" height="${H}" fill="url(#lsbg)"/>
-${brandStripe(H)}
+${cardDepth(W, H)}${brandStripe(H)}
 <text x="60" y="58" fill="#f8fafc" font-size="37" font-weight="800" font-family="sans-serif" letter-spacing="1">SPX6900 — LONG vs SHORT-TERM HOLDERS</text>
 <text x="60" y="102" fill="#e2e8f0" font-size="30" font-weight="800" font-family="sans-serif"><tspan fill="#4ade80">${lth.toFixed(0)}% held long-term</tspan> · ${underwater.toFixed(0)}% underwater and holding</text>
 ${grid}${xlab}${ribbons}${legend}

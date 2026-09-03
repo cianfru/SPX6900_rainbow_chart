@@ -11,7 +11,7 @@
 import { Resvg } from "@resvg/resvg-js";
 import { FONT } from "./font.mjs";
 import { esc } from "./svg-util.mjs";
-import { brandStripe } from "./chrome.mjs";
+import { brandStripe, cardDepth} from "./chrome.mjs";
 
 const png = (svg, w) => new Resvg(svg, { fitTo: { mode: "width", value: w }, font: FONT }).render().asPng();
 const hx = c => [parseInt(c.slice(1, 3), 16), parseInt(c.slice(3, 5), 16), parseInt(c.slice(5, 7), 16)];
@@ -119,7 +119,7 @@ export function supplyEraSvg(stats, opts = {}) {
 <linearGradient id="seDn" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#4ade80" stop-opacity="0.03"/><stop offset="100%" stop-color="#4ade80" stop-opacity="0.4"/></linearGradient>
 </defs>
 <rect width="${W}" height="${H}" fill="url(#sebg)"/>
-${brandStripe(H)}
+${cardDepth(W, H)}${brandStripe(H)}
 <text x="60" y="58" fill="#f1f5f9" font-size="38" font-weight="700" font-family="${F}" letter-spacing="0.5">SPX6900 — WHERE TODAY'S FLOAT BOUGHT IN</text>
 <text x="60" y="98" fill="#94a3b8" font-size="22" font-family="${F}">Every surviving holder placed on the price curve, at the price they first paid.</text>
 <text x="60" y="150" fill="#818cf8" font-size="33" font-weight="700" font-family="${F}">${esc(`${underPct}% of the float held today is underwater — and hasn't sold.`)}</text>

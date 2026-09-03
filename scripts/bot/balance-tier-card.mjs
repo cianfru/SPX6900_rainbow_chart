@@ -4,7 +4,7 @@
 import { Resvg } from "@resvg/resvg-js";
 import { FONT } from "./font.mjs";
 import { esc } from "./svg-util.mjs";
-import { brandStripe, auraBg } from "./chrome.mjs";
+import { brandStripe, auraBg, cardDepth} from "./chrome.mjs";
 import { ETH_SOL_2026 } from "./eth-sol-2026.js";
 
 const png = (svg, w) => new Resvg(svg, { fitTo: { mode: "width", value: w }, font: FONT }).render().asPng();
@@ -37,7 +37,7 @@ export function balanceTierSvg(d, opts = {}) {
 <defs><linearGradient id="btbg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#0b0b16"/><stop offset="100%" stop-color="#05050e"/></linearGradient></defs>
 <rect width="${W}" height="${H}" fill="url(#btbg)"/>
 ${auraBg("#818cf8", W, H)}
-${brandStripe(H)}
+${cardDepth(W, H)}${brandStripe(H)}
 <text x="60" y="56" fill="#f8fafc" font-size="38" font-weight="800" font-family="sans-serif" letter-spacing="1">SPX6900 — DO BIGGER HOLDERS HOLD LONGER?</text>
 <text x="60" y="98" fill="#c4b5fd" font-size="30" font-weight="800" font-family="sans-serif">Mostly yes — conviction climbs with size (clearest on Ethereum &amp; Base)</text>
 <text x="60" y="130" fill="#93a3b8" font-size="19" font-family="sans-serif">${esc("median holding age by balance tier · conviction rises with position size")}</text>

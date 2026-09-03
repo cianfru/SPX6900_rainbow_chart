@@ -5,7 +5,7 @@
 import { Resvg } from "@resvg/resvg-js";
 import { FONT } from "./font.mjs";
 import { esc } from "./svg-util.mjs";
-import { brandStripe } from "./chrome.mjs";
+import { brandStripe, cardDepth} from "./chrome.mjs";
 
 const BASE = "#3b82f6";   // Base-chain blue (per the repo's per-chain convention)
 
@@ -91,7 +91,7 @@ export function cityNoteSvg(opts = {}) {
 <rect width="${W}" height="${H}" fill="url(#sky)"/>
 <rect width="${W}" height="${H}" fill="url(#glowH)"/>
 ${stars(W)}
-${brandStripe(H)}
+${cardDepth(W, H)}${brandStripe(H)}
 <rect x="0" y="${ground - 300}" width="${W}" height="300" fill="url(#haze)"/>
 ${sky}${hero}${note}
 <rect x="0" y="${ground}" width="${W}" height="${H - ground}" fill="#05070f"/>

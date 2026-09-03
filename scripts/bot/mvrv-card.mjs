@@ -6,7 +6,7 @@
 import { Resvg } from "@resvg/resvg-js";
 import { FONT } from "./font.mjs";
 import { esc } from "./svg-util.mjs";
-import { brandStripe } from "./chrome.mjs";
+import { brandStripe, cardDepth} from "./chrome.mjs";
 
 const png = (svg, w) => new Resvg(svg, { fitTo: { mode: "width", value: w }, font: FONT }).render().asPng();
 const fMvrv = v => v.toFixed(2) + "×";
@@ -91,7 +91,7 @@ export function mvrvBtcSvg(stats, opts = {}) {
   return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
 <defs><linearGradient id="mv" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#0b0b16"/><stop offset="100%" stop-color="#05050e"/></linearGradient></defs>
 <rect width="${W}" height="${H}" fill="url(#mv)"/>
-${brandStripe(H)}
+${cardDepth(W, H)}${brandStripe(H)}
 <text x="60" y="56" fill="#e2e8f0" font-size="34" font-weight="800" font-family="sans-serif" letter-spacing="1">SPX6900 — MVRV vs BITCOIN</text>
 <text x="60" y="92" fill="#94a3b8" font-size="22" font-family="sans-serif">Is SPX as cheap as Bitcoin was at its cycle bottoms?</text>
 <text x="60" y="134" fill="${SPX_C}" font-size="26" font-weight="800" font-family="sans-serif">SPX6900 ${fMvrv(spxMvrv)} — ${spxMvrv >= 1 ? "avg holder in profit" : "avg holder underwater"}</text>
@@ -175,7 +175,7 @@ export function mvrvAgeSvg(stats, opts = {}) {
   return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
 <defs><linearGradient id="mv" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#0b0b16"/><stop offset="100%" stop-color="#05050e"/></linearGradient></defs>
 <rect width="${W}" height="${H}" fill="url(#mv)"/>
-${brandStripe(H)}
+${cardDepth(W, H)}${brandStripe(H)}
 <text x="60" y="56" fill="#e2e8f0" font-size="34" font-weight="800" font-family="sans-serif" letter-spacing="1">SPX6900 vs BITCOIN — MVRV BY AGE</text>
 <text x="60" y="92" fill="#94a3b8" font-size="22" font-family="sans-serif">Same age since first price — does the early cycle rhyme?</text>
 <text x="60" y="134" fill="${SPX_C}" font-size="26" font-weight="800" font-family="sans-serif">SPX6900 ${fMvrv(spxMvrv)} — ${spxMvrv >= 1 ? "avg holder in profit" : "avg holder underwater"}</text>

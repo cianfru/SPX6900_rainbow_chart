@@ -17,7 +17,7 @@
 import { Resvg } from "@resvg/resvg-js";
 import { FONT } from "./font.mjs";
 import { esc } from "./svg-util.mjs";
-import { brandStripe } from "./chrome.mjs";
+import { brandStripe, cardDepth} from "./chrome.mjs";
 
 const png = (svg, w) => new Resvg(svg, { fitTo: { mode: "width", value: w }, font: FONT }).render().asPng();
 const F = "sans-serif";
@@ -81,7 +81,7 @@ export function walletWavesSvg(stats, opts = {}) {
   return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
 <defs><linearGradient id="wwbg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#0d0b18"/><stop offset="100%" stop-color="#05050e"/></linearGradient></defs>
 <rect width="${W}" height="${H}" fill="url(#wwbg)"/>
-${brandStripe(H)}
+${cardDepth(W, H)}${brandStripe(H)}
 <text x="60" y="58" fill="#f1f5f9" font-size="38" font-weight="700" font-family="${F}" letter-spacing="0.5">SPX6900 — WALLET-SIZE WAVES</text>
 <text x="60" y="100" fill="#94a3b8" font-size="22" font-family="${F}">Who owns the supply, by how much they hold. HODL waves cut by size, not age.</text>
 <text x="60" y="148" fill="#818cf8" font-size="34" font-weight="700" font-family="${F}">${esc(`Million-coin wallets hold ${cur[4].toFixed(0)}% — down ${drop.toFixed(0)} points`)}</text>

@@ -7,7 +7,7 @@ import { readFileSync } from "node:fs";
 import { Resvg } from "@resvg/resvg-js";
 import { FONT } from "./font.mjs";
 import { esc } from "./svg-util.mjs";
-import { brandStripe } from "./chrome.mjs";
+import { brandStripe, cardDepth} from "./chrome.mjs";
 
 const png = (svg, w) => new Resvg(svg, { fitTo: { mode: "width", value: w }, font: FONT }).render().asPng();
 
@@ -81,7 +81,7 @@ export function whaleEntrySvg(s, opts = {}) {
   <filter id="glow" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
 </defs>
 <rect width="${W}" height="${H}" fill="url(#webg)"/>
-${brandStripe(H)}
+${cardDepth(W, H)}${brandStripe(H)}
 <text x="92" y="58" fill="#f8fafc" font-size="40" font-weight="800" font-family="sans-serif" letter-spacing="1">WHEN THE WHALES BOUGHT</text>
 <text x="92" y="102" fill="#22d3ee" font-size="29" font-weight="800" font-family="sans-serif">${esc(hero)}</text>
 <text x="92" y="140" fill="#93a3b8" font-size="19" font-family="sans-serif">${esc(`Every wallet ≥100k SPX, placed where it bought · bubble = bag size · ${s.total.toLocaleString()} whales · ${pctProfit}% in profit`)}</text>

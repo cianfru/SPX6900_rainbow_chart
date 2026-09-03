@@ -78,7 +78,7 @@ import { renderLivelinessCard } from "./liveliness-card.mjs";
 import { logoMark } from "./logos.mjs";
 import { FONT } from "./font.mjs";
 import { esc, monotonePath } from "./svg-util.mjs";
-import { brandStripe } from "./chrome.mjs";
+import { brandStripe, cardDepth, plotPanel } from "./chrome.mjs";
 
 // Landscape card is 3:2. mL has to clear the WIDEST y-axis label at 30px — "1,000×" and
 // "+1000%" both run ~100px, and at the old 120 the leading digit was clipped off the left
@@ -130,8 +130,8 @@ function chromeSvg(spec, inner, extraDefs = "", dims) {
   const hlFont = spec.headline ? Math.min(58, Math.floor((DW - 128) / (spec.headline.length * 0.6))) : 58;
   const header = spec.logoHeader
     ? logoHeaderSvg(spec.logoHeader, accent)
-    : `<text x="64" y="112" fill="#f1f5f9" font-size="38" font-weight="800" font-family="sans-serif">${esc(spec.title)}</text>`
-      + (spec.headline ? `<text x="64" y="166" fill="${accent}" font-size="${hlFont}" font-weight="800" font-family="sans-serif">${esc(spec.headline)}</text>` : "");
+    : `<text x="64" y="112" fill="#f1f5f9" font-size="38" font-weight="800" font-family="sans-serif" filter="url(#hlShadow)">${esc(spec.title)}</text>`
+      + (spec.headline ? `<text x="64" y="166" fill="${accent}" font-size="${hlFont}" font-weight="800" font-family="sans-serif" filter="url(#hlShadow)">${esc(spec.headline)}</text>` : "");
   return `<svg width="${DW}" height="${DH}" viewBox="0 0 ${DW} ${DH}" xmlns="http://www.w3.org/2000/svg">
 <defs>
   <radialGradient id="g" cx="50%" cy="-4%" r="105%">
@@ -143,11 +143,13 @@ function chromeSvg(spec, inner, extraDefs = "", dims) {
   <linearGradient id="ground" x1="0" y1="0" x2="0" y2="1">
     <stop offset="0%" stop-color="#12121f"/><stop offset="55%" stop-color="#0b0b16"/><stop offset="100%" stop-color="#080810"/>
   </linearGradient>
+  <filter id="hlShadow" x="-10%" y="-30%" width="120%" height="180%"><feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="#000000" flood-opacity="0.55"/></filter>
   ${extraDefs}
 </defs>
 <rect width="${DW}" height="${DH}" fill="url(#ground)"/>
 <rect width="${DW}" height="${DH}" fill="url(#g)"/>
 <rect width="${DW}" height="${DH}" fill="url(#gb)"/>
+${cardDepth(DW, DH)}
 ${brandStripe(DH, { w: 11 })}
 <text x="64" y="52" fill="#cbd5e1" font-size="30" font-weight="800" letter-spacing="3" font-family="sans-serif">SPX6900</text>
 <text x="${DW - 64}" y="52" fill="#94a3b8" font-size="22" text-anchor="end" font-family="sans-serif">${esc(spec.date || "")}</text>
@@ -461,7 +463,9 @@ export function lineCardSvg(spec, opts = {}) {
     }
   }
 
-  return chromeSvg(spec, grid + bandRects + vlines + cone + plot + hl + marker + logoM + legend + endLogos, defs, { W: DW, H: DH });
+  // Raised plot panel (soft drop shadow + bevel) so the chart reads as its own lit surface.
+  const panel = plotPanel(mL, mT, DW - mR - mL, PH);
+  return chromeSvg(spec, panel + grid + bandRects + vlines + cone + plot + hl + marker + logoM + legend + endLogos, defs, { W: DW, H: DH });
 }
 
 export function renderBarCard(spec, opts = {}) {

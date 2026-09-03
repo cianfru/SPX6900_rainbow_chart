@@ -8,7 +8,7 @@
 // collection, so this is the honest positioning read. A snapshot, not a signal.
 import { Resvg } from "@resvg/resvg-js";
 import { FONT } from "./font.mjs";
-import { brandStripe } from "./chrome.mjs";
+import { brandStripe, cardDepth} from "./chrome.mjs";
 
 const png = (svg, w) => new Resvg(svg, { fitTo: { mode: "width", value: w }, font: FONT }).render().asPng();
 const fM = v => v >= 1e6 ? +(v / 1e6).toFixed(1) + "M" : Math.round(v / 1e3) + "k";
@@ -91,7 +91,7 @@ export function longShortSvg(stats, opts = {}) {
 <rect width="${W}" height="${H}" fill="#05050e"/>
 <radialGradient id="lsV" cx="50%" cy="0%" r="90%"><stop offset="0%" stop-color="${dc}" stop-opacity="0.13"/><stop offset="60%" stop-color="${dc}" stop-opacity="0"/></radialGradient>
 <rect width="${W}" height="${H}" fill="url(#lsV)"/>
-${brandStripe(H)}
+${cardDepth(W, H)}${brandStripe(H)}
 ${grid}
 ${bars}${pivot}
 ${oiLine}

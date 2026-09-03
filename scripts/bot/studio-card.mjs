@@ -6,7 +6,7 @@
 import { Resvg } from "@resvg/resvg-js";
 import { FONT } from "./font.mjs";
 import { esc } from "./svg-util.mjs";
-import { brandStripe } from "./chrome.mjs";
+import { brandStripe, cardDepth} from "./chrome.mjs";
 
 const png = (svg, w) => new Resvg(svg, { fitTo: { mode: "width", value: w }, font: FONT }).render().asPng();
 
@@ -83,7 +83,7 @@ export function studioCardSvg(opts = {}) {
 </defs>
 <rect width="${W}" height="${H}" fill="url(#stbg)"/>
 <rect width="${W}" height="${H}" fill="url(#stwash)"/>
-${brandStripe(H)}
+${cardDepth(W, H)}${brandStripe(H)}
 <text x="60" y="66" fill="#f8fafc" font-size="41" font-weight="800" font-family="sans-serif" letter-spacing="0.5">${esc(title || label)}</text>
 ${subtitle ? `<text x="60" y="110" fill="#a5b4c8" font-size="23" font-family="sans-serif">${esc(subtitle)}</text>` : ""}
 ${grid}${xlab}

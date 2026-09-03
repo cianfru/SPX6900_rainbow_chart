@@ -7,7 +7,7 @@
 import { Resvg } from "@resvg/resvg-js";
 import { FONT } from "./font.mjs";
 import { currentChainHolders } from "./stats.mjs";
-import { brandStripe } from "./chrome.mjs";
+import { brandStripe, cardDepth} from "./chrome.mjs";
 
 const png = (svg, w) => new Resvg(svg, { fitTo: { mode: "width", value: w }, font: FONT }).render().asPng();
 const fK = n => (n >= 1000 ? Math.round(n / 1000) + "k" : String(n));
@@ -79,7 +79,7 @@ const BG = (W, H) => `<rect width="${W}" height="${H}" fill="#05060f"/>
 <rect width="${W}" height="${H}" fill="url(#bgBlue)"/>
 <rect width="${W}" height="${H}" fill="url(#bgPurple)"/>
 <rect width="${W}" height="${H}" fill="url(#vig)"/>
-${brandStripe(H)}`;
+${cardDepth(W, H)}${brandStripe(H)}`;
 // 3-stop tube gradient per chain for the glossy look (top-lit → mid → shaded bottom).
 const arcDefsFor = () => CHAINS.map(r =>
   `<linearGradient id="arc-${r.key}" x1="0" y1="0" x2="0.25" y2="1"><stop offset="0%" stop-color="${r.lite}"/><stop offset="48%" stop-color="${r.c}"/><stop offset="100%" stop-color="${r.dark}"/></linearGradient>`).join("");
@@ -271,7 +271,7 @@ export function chainRaceSvg(stats, opts = {}) {
 </defs>
 <rect width="${W}" height="${H}" fill="#05050e"/>
 <rect width="${W}" height="${H}" fill="url(#crV)"/>
-${brandStripe(H)}
+${cardDepth(W, H)}${brandStripe(H)}
 <text x="${mL}" y="60" fill="#e2e8f0" font-size="32" font-weight="800" font-family="sans-serif" letter-spacing="1">SPX6900 — HOLDER GROWTH BY CHAIN</text>
 <text x="${mL}" y="94" fill="#94a3b8" font-size="22" font-family="sans-serif">% change in holders per chain since ${new Date(t0).toLocaleDateString("en-US", { month: "short", year: "numeric", timeZone: "UTC" })} · rebased to that date</text>
 ${grid}${xlab}

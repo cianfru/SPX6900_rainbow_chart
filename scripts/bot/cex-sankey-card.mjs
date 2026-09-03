@@ -8,7 +8,7 @@ import { readFileSync } from "node:fs";
 import { Resvg } from "@resvg/resvg-js";
 import { FONT } from "./font.mjs";
 import { esc } from "./svg-util.mjs";
-import { brandStripe } from "./chrome.mjs";
+import { brandStripe, cardDepth} from "./chrome.mjs";
 
 const png = (svg, w) => new Resvg(svg, { fitTo: { mode: "width", value: w }, font: FONT }).render().asPng();
 const NEUTRAL = "#94a3b8", GREEN = "#34d399", TEAL = "#5eead4", AMBER = "#fbbf24";
@@ -98,7 +98,7 @@ export function cexSankeySvg(opts = {}) {
 <linearGradient id="skbg" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#101830"/><stop offset="52%" stop-color="#0a0f1f"/><stop offset="100%" stop-color="#06070f"/></linearGradient>
 </defs>
 <rect width="${W}" height="${H}" fill="url(#skbg)"/>
-${brandStripe(H)}
+${cardDepth(W, H)}${brandStripe(H)}
 <rect x="16" y="16" width="${W - 32}" height="${H - 32}" rx="24" fill="none" stroke="rgba(255,255,255,0.09)" stroke-width="1.5"/>
 <text x="60" y="66" font-size="40" font-weight="800" font-family="sans-serif" letter-spacing="1"><tspan fill="${TEAL}">WHERE THE VOLUME GOES</tspan></text>
 <text x="60" y="98" font-size="20" font-family="sans-serif" fill="#94a3b8">Who feeds the exchanges, and who's pulling off — SPX flow by venue, last ${st.window?.days ?? 90} days</text>

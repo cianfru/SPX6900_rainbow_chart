@@ -5,7 +5,7 @@
 import { Resvg } from "@resvg/resvg-js";
 import { FONT } from "./font.mjs";
 import { esc } from "./svg-util.mjs";
-import { brandStripe } from "./chrome.mjs";
+import { brandStripe, cardDepth} from "./chrome.mjs";
 import { turnoverOf, turnoverStack } from "../../src/turnover.js";
 
 const png = (svg, w) => new Resvg(svg, { fitTo: { mode: "width", value: w }, font: FONT }).render().asPng();
@@ -79,7 +79,7 @@ export function turnoverCardSvg(stats, opts = {}) {
   return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
 <defs><linearGradient id="tobg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#07070f"/><stop offset="100%" stop-color="#04040a"/></linearGradient></defs>
 <rect width="${W}" height="${H}" fill="url(#tobg)"/>
-${brandStripe(H)}
+${cardDepth(W, H)}${brandStripe(H)}
 <text x="60" y="56" fill="#f8fafc" font-size="40" font-weight="800" font-family="sans-serif" letter-spacing="1">HOW SPX6900 CHANGES HANDS</text>
 <text x="60" y="98" fill="#39ff14" font-size="27" font-weight="800" font-family="sans-serif">~${Math.round(s.m1)}% moves in a month · ${Math.round(s.dormant)}% dormant a year+</text>
 <text x="60" y="132" fill="#a5b4c8" font-size="20" font-family="sans-serif">${esc("Held supply by how recently it last moved — hot = just traded, cool = dormant. Held ≠ frozen.")}</text>

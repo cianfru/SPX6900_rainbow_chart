@@ -19,7 +19,7 @@
 import { Resvg } from "@resvg/resvg-js";
 import { FONT } from "./font.mjs";
 import { esc } from "./svg-util.mjs";
-import { brandStripe } from "./chrome.mjs";
+import { brandStripe, cardDepth} from "./chrome.mjs";
 
 const png = (svg, w) => new Resvg(svg, { fitTo: { mode: "width", value: w }, font: FONT }).render().asPng();
 const F = "sans-serif";
@@ -80,7 +80,7 @@ export function whalesSvg(stats, opts = {}) {
   <stop offset="0%" stop-color="${WH}" stop-opacity="0.34"/><stop offset="100%" stop-color="${WH}" stop-opacity="0"/></linearGradient>
 </defs>
 <rect width="${W}" height="${H}" fill="url(#whbg)"/>
-${brandStripe(H)}
+${cardDepth(W, H)}${brandStripe(H)}
 <text x="60" y="58" fill="#f1f5f9" font-size="38" font-weight="700" font-family="${F}" letter-spacing="0.5">SPX6900 — WHAT THE WHALES DID</text>
 <text x="60" y="100" fill="#94a3b8" font-size="22" font-family="${F}">${esc(`Wallets holding 0.1%+ of supply. Still ${cur.n} of them — the same cohort, a smaller slice.`)}</text>
 <text x="60" y="148" fill="${WH}" font-size="34" font-weight="700" font-family="${F}">${esc(`Whales hold ${cur.pct.toFixed(0)}% — down from ${peak.pct.toFixed(0)}%`)}</text>

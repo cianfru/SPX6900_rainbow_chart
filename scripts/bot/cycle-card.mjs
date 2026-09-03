@@ -10,7 +10,7 @@ import { DEFAULT_RAW } from "../../src/data.js";
 import { btcCycleProjection, BTC_CYCLE } from "../../src/btc-cycle.js";
 import { logoMark } from "./logos.mjs";
 import { FONT } from "./font.mjs";
-import { brandStripe } from "./chrome.mjs";
+import { brandStripe, cardDepth} from "./chrome.mjs";
 
 const png = (svg, w) => new Resvg(svg, { fitTo: { mode: "width", value: w }, font: FONT }).render().asPng();
 const fMon = ts => new Date(ts).toLocaleDateString("en-US", { month: "short", year: "2-digit" });
@@ -109,7 +109,7 @@ export function cycleSyncSvg(price, dateStr = new Date().toISOString().slice(0, 
 <rect width="${W}" height="${H}" fill="#05050e"/>
 <rect width="${W}" height="${H}" fill="url(#cyG)"/>
 <rect width="${W}" height="${H}" fill="url(#cyTop)"/>
-${brandStripe(H)}
+${cardDepth(W, H)}${brandStripe(H)}
 ${grid}${guides}
 <polygon points="${spxArea}" fill="url(#cySpxFill)"/>
 <polyline points="${btcSolid}" fill="none" stroke="#f7931a" stroke-width="4.2" stroke-opacity="0.95"/>
@@ -219,7 +219,7 @@ export function cycleClockSvg(price, dateStr = new Date().toISOString().slice(0,
 </defs>
 <rect width="${W}" height="${H}" fill="#05050e"/>
 <rect width="${W}" height="${H}" fill="url(#ccTop)"/>
-${brandStripe(H)}
+${cardDepth(W, H)}${brandStripe(H)}
 ${grid}${tgt}${xlab}
 ${cone}
 <polyline points="${projLine}" fill="none" stroke="#f7931a" stroke-width="4.6" stroke-opacity="0.95" stroke-dasharray="9 7" stroke-linecap="round"/>

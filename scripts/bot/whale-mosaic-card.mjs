@@ -7,7 +7,7 @@ import { readFileSync } from "node:fs";
 import { Resvg } from "@resvg/resvg-js";
 import { FONT } from "./font.mjs";
 import { esc } from "./svg-util.mjs";
-import { brandStripe } from "./chrome.mjs";
+import { brandStripe, cardDepth} from "./chrome.mjs";
 
 const png = (svg, w) => new Resvg(svg, { fitTo: { mode: "width", value: w }, font: FONT }).render().asPng();
 const jsonW = f => { try { return JSON.parse(readFileSync(new URL(`../../public/${f}`, import.meta.url), "utf8")); } catch { return null; } };
@@ -70,7 +70,7 @@ export function whaleMosaicSvg(stats, opts = {}) {
   return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
 <defs><linearGradient id="wmbg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#0b0b16"/><stop offset="100%" stop-color="#05050e"/></linearGradient></defs>
 <rect width="${W}" height="${H}" fill="url(#wmbg)"/>
-${brandStripe(H)}
+${cardDepth(W, H)}${brandStripe(H)}
 <text x="${mX}" y="${Math.round(66 * cW)}" fill="#f8fafc" font-size="${Math.round(33 * cW)}" font-weight="800" font-family="sans-serif" letter-spacing="1">SPX6900 · WHALE MOSAIC</text>
 <text x="${mX}" y="${Math.round(120 * cW)}" fill="#f1f5f9" font-size="${Math.round(46 * cW)}" font-weight="800" font-family="sans-serif">${total.toLocaleString()} wallets hold &gt;100k SPX</text>
 <text x="${mX}" y="${Math.round(166 * cW)}" fill="#22c55e" font-size="${Math.round(25 * cW)}" font-weight="800" font-family="sans-serif">${buy} accumulating</text>

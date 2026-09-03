@@ -6,7 +6,7 @@ import { readFileSync } from "node:fs";
 import { Resvg } from "@resvg/resvg-js";
 import { FONT } from "./font.mjs";
 import { esc } from "./svg-util.mjs";
-import { brandStripe } from "./chrome.mjs";
+import { brandStripe, cardDepth} from "./chrome.mjs";
 import { cityBg } from "./city-card-bg.mjs";
 
 const png = (svg, w) => new Resvg(svg, { fitTo: { mode: "width", value: w }, font: FONT }).render().asPng();
@@ -93,7 +93,7 @@ export function cityGrowthSvg(doc, opts = {}) {
 
   return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
 ${cityBg(W, H, { skyline: false })}
-${brandStripe(H)}
+${cardDepth(W, H)}${brandStripe(H)}
 <text x="60" y="60" fill="#f8fafc" font-size="40" font-weight="800" font-family="sans-serif" letter-spacing="1">SPX CITY IS GROWING</text>
 <text x="60" y="104" fill="#67e8f9" font-size="32" font-weight="800" font-family="sans-serif">${cur.cTot.toLocaleString()} citizens · ${fUsd(cur.vTot)} value</text>
 <text x="60" y="140" fill="#a5b4c8" font-size="21" font-family="sans-serif">${esc(`${growth >= 2 ? growth.toFixed(1) + "×" : "+" + Math.round((growth - 1) * 100) + "%"} more residents since launch — built through the drawdown`)}</text>

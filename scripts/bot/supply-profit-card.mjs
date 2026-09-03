@@ -8,7 +8,7 @@
 import { Resvg } from "@resvg/resvg-js";
 import { FONT } from "./font.mjs";
 import { esc } from "./svg-util.mjs";
-import { brandStripe } from "./chrome.mjs";
+import { brandStripe, cardDepth} from "./chrome.mjs";
 
 const png = (svg, w) => new Resvg(svg, { fitTo: { mode: "width", value: w }, font: FONT }).render().asPng();
 const fMon = t => new Date(t).toLocaleDateString("en-US", { month: "short", year: "numeric", timeZone: "UTC" });
@@ -62,7 +62,7 @@ export function supplyProfitSvg(stats, opts = {}) {
 <filter id="spglow" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="5"/></filter>
 </defs>
 <rect width="${W}" height="${H}" fill="url(#spbg)"/>
-${brandStripe(H)}
+${cardDepth(W, H)}${brandStripe(H)}
 <text x="60" y="58" fill="#f8fafc" font-size="39" font-weight="800" font-family="sans-serif" letter-spacing="1">SPX6900 — SUPPLY IN PROFIT</text>
 <text x="60" y="100" fill="#4ade80" font-size="32" font-weight="800" font-family="sans-serif">${sip.toFixed(0)}% in profit — ${state}</text>
 ${zones}${grid}${xlab}${zoneLabels}

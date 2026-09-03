@@ -7,7 +7,7 @@
 import { Resvg } from "@resvg/resvg-js";
 import { FONT } from "./font.mjs";
 import { esc } from "./svg-util.mjs";
-import { brandStripe, auraBg } from "./chrome.mjs";
+import { brandStripe, auraBg, cardDepth} from "./chrome.mjs";
 
 const png = (svg, w) => new Resvg(svg, { fitTo: { mode: "width", value: w }, font: FONT }).render().asPng();
 const GRN = "#34d399", RED = "#fb7185", LINE = "#aab6cc", SPOT = "#f8fafc";
@@ -74,7 +74,7 @@ export function costBasisProfileSvg(stats, opts = {}) {
 <defs><linearGradient id="cbpbg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#0b0f14"/><stop offset="100%" stop-color="#05050e"/></linearGradient></defs>
 <rect width="${W}" height="${H}" fill="url(#cbpbg)"/>
 ${auraBg("#34d399", W, H, { accent2: "#fb7185" })}
-${brandStripe(H)}
+${cardDepth(W, H)}${brandStripe(H)}
 <text x="60" y="58" fill="#f8fafc" font-size="39" font-weight="800" font-family="sans-serif" letter-spacing="1">SPX6900 — COST BASIS vs PRICE</text>
 <text x="60" y="100" fill="#e2e8f0" font-size="30" font-weight="800" font-family="sans-serif"><tspan fill="${GRN}">${inProfit.toFixed(0)}% of supply in profit</tspan> · heaviest bag bought around ${fp(wall.mid)}</text>
 <text x="${mL}" y="${mT - 12}" fill="#8ea3b8" font-size="17" font-family="${F}">← where the held supply was bought · price line →</text>
