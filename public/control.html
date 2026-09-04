@@ -1653,7 +1653,7 @@ $("#recapPost").onclick = async () => {
 // price history, and rendered. No upload, no commit — engagement data stays private.
 // Re-drop a fresh export any time to refresh (recurring by design).
 // ============================================================================
-let engWired = false, engPrice = null;
+let engWired = false, engPrice = null, engSite = null;
 function engageInit() {
   if (engWired) return; engWired = true;
   $("#engRun").onclick = engRun;
@@ -1713,6 +1713,25 @@ async function engPriceMap() {
   const arr = await fetch(`/api/control?f=public/price-history.json&t=${Date.now()}`, { cache: "no-store" }).then(r => r.ok ? r.json() : null).catch(() => null);
   (Array.isArray(arr) ? arr : (arr?.prices || [])).forEach(r => { const d = (r.date || r.d || r[0]); const p = (r.price ?? r.p ?? r[1]); if (d && p) m.set(String(d).slice(0, 10), +p); });
   engPrice = m; return m;
+}
+
+// Reach→site join: pull the first-party page-intel daily series (same password-gated /api/intel the
+// Audience tab reads) so a post day's REACH can be lined up against that day's SITE behaviour. Returns
+// per-day maps: unique visitors, pageviews, and wallet searches (bucketed from the wallet feed by day).
+// Cached per session; degrades to {ok:false} when no store is connected or the fetch fails.
+async function engSiteMap() {
+  if (engSite) return engSite;
+  if (!PW) return (engSite = { ok: false });
+  try {
+    const r = await fetch("/api/intel", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ pw: PW }) });
+    if (!r.ok) return (engSite = { ok: false });
+    const d = await r.json();
+    if (!d || d.configured === false) return (engSite = { ok: false });
+    const ws = {};
+    const feed = (d.wallets && d.wallets.length) ? d.wallets : (d.events || []).filter(e => e && e.t === "wallet_search");
+    for (const e of feed) { const day = e && e.ts ? new Date(e.ts).toISOString().slice(0, 10) : null; if (day) ws[day] = (ws[day] || 0) + 1; }
+    return (engSite = { ok: true, uniq: d.uniq || {}, pv: d.daily || {}, ws });
+  } catch { return (engSite = { ok: false }); }
 }
 
 const ENG_BUCKETS = [
@@ -1862,6 +1881,46 @@ async function engAnalyze(contentText, overviewText) {
     if (isFinite(visVol)) v += ` Price volatility does pull <b>profile visits</b> (r=${visVol.toFixed(2)}) — people look when price moves, but it ${visVol > 0.4 ? "doesn't convert to reach or follows" : "barely moves the rest"}.`;
     if (isFinite(folImp)) v += ` New follows track <b>impressions</b> at r=${folImp.toFixed(2)} — reach is the master variable, not price.`;
     html += `<div class="eng-verdict">${v}</div>`;
+  }
+
+  // ---------- 🔗 reach → site loop (X reach vs first-party on-site behaviour) ----------
+  if (days.length) {
+    const site = await engSiteMap();
+    if (site.ok) {
+      days.forEach(r => { r.suniq = site.uniq[r.d] ?? null; r.spv = site.pv[r.d] ?? null; r.sws = site.ws[r.d] || 0; });
+      const withU = days.filter(r => r.suniq != null);
+      const withPV = days.filter(r => r.spv != null);
+      const uniqFrom = Object.keys(site.uniq).sort()[0] || "—";
+      const cU = engPearson(withU.map(r => r.imp), withU.map(r => r.suniq));
+      const cPV = engPearson(withPV.map(r => r.imp), withPV.map(r => r.spv));
+      const cWS = engPearson(withPV.map(r => r.imp), withPV.map(r => r.sws));
+      const cLU = engPearson(withU.map(r => r.likes), withU.map(r => r.suniq));
+
+      html += `<div class="eng-h">🔗 Reach → site <span class="tag">does a post day drive site visits? · first-party intel (api/intel) joined by date · your own visits excluded</span></div>`;
+      html += `<table class="eng"><tr><th>site metric</th><th>vs X impressions</th><th>vs X likes</th><th>days</th></tr>`;
+      html += `<tr><td>unique visitors</td>${rCell(cU.r)}${rCell(cLU.r)}<td>${cU.n}</td></tr>`;
+      html += `<tr><td>pageviews</td>${rCell(cPV.r)}<td>—</td><td>${cPV.n}</td></tr>`;
+      html += `<tr><td>wallet searches</td>${rCell(cWS.r)}<td>—</td><td>${cWS.n}</td></tr>`;
+      html += `</table>`;
+
+      const rows = (withPV.length ? withPV : days).slice(-16);
+      const mxV = Math.max(1, ...rows.map(r => (r.suniq != null ? r.suniq : (r.spv || 0))));
+      html += `<div class="eng-h" style="margin-top:14px">Per-day: reach vs on-site <span class="tag">last ${rows.length} days with site data · unique visitors tracked from ${uniqFrom}</span></div>`;
+      html += `<table class="eng"><tr><th>date</th><th>reach (imp)</th><th>likes</th><th>site uniques</th><th>pageviews</th><th>wallet searches</th></tr>`;
+      html += rows.map(r => `<tr><td>${r.d}</td><td>${Math.round(r.imp).toLocaleString()}</td><td>${r.likes || 0}</td><td>${r.suniq != null ? `${r.suniq} ${engBar(r.suniq, mxV)}` : "—"}</td><td>${r.spv != null ? Math.round(r.spv).toLocaleString() : "—"}</td><td>${r.sws || 0}</td></tr>`).join("");
+      html += `</table>`;
+
+      const best = isFinite(cU.r) ? cU : cPV;
+      const bestName = best === cU ? "unique visitors" : "pageviews";
+      let vv = `<b>Verdict.</b> `;
+      if (isFinite(best.r)) vv += `X reach and site traffic move together at <b>r=${best.r.toFixed(2)}</b> (${bestName}, ${best.n} days) — ${Math.abs(best.r) >= 0.5 ? "post days clearly drive visits" : Math.abs(best.r) >= 0.2 ? "post days mildly lift visits" : "no clear same-day lift yet"}.`;
+      else vv += `Not enough overlapping days yet (unique visitors tracked only since ${uniqFrom}); this firms up as more post days land.`;
+      if (isFinite(cWS.r) && cWS.n >= 5) vv += ` Wallet searches vs reach r=${cWS.r.toFixed(2)}.`;
+      vv += ` <span style="color:#64748b">Reach is the top of the funnel; the site is where it converts — this is the loop between them.</span>`;
+      html += `<div class="eng-verdict">${vv}</div>`;
+    } else if (PW) {
+      html += `<div class="eng-h">🔗 Reach → site</div><div class="eng-verdict">Couldn't load first-party site intel (no KV store connected, or /api/intel returned an error). The <b>🌍 Audience</b> tab shows the raw site data.</div>`;
+    }
   }
 
   if (originals.length) {
