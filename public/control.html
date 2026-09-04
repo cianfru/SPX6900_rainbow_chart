@@ -598,7 +598,8 @@
 </div>
 
 <script>
-const OWNER = "cianfru", REPO = "The_Terminal", BRANCH = "main";
+// NOTE: the repo identity is intentionally NOT in this client page (it is public HTML). All
+// committed-file reads go through the server proxy /api/control, which knows the repo via env.
 const QUEUE_PATH = "public/next-post.json", STATE_PATH = "public/post-state.json";
 // Cache-bust the card preview images: the /api/og PNGs are CDN-cached, so without
 // this a fresh /control load could show a stale (e.g. pre-deploy) render. Owner-only
@@ -1170,7 +1171,7 @@ document.querySelectorAll(".vbtn").forEach(b => b.onclick = () => {
   const human = b => b > 1e6 ? (b / 1048576).toFixed(1) + " MB" : Math.round(b / 1024) + " KB";
   const stop = () => { if (timer) { clearInterval(timer); timer = null; } };
   async function poll() {
-    if (++ticks > 45) { stop(); btn.disabled = false; msg.innerHTML = 'Still going after a while — check the <a href="https://github.com/cianfru/The_Terminal/actions/workflows/rainbow-road.yml" target="_blank" style="color:#818cf8">Actions tab ↗</a>.'; return; }
+    if (++ticks > 45) { stop(); btn.disabled = false; msg.textContent = 'Still going after a while — check the repo Actions tab (rainbow-road workflow).'; return; }
     let s; try { s = await action({ action: "rainbow-road-status" }); } catch { return; }
     const run = s.run;
     if (run && run.status !== "completed") { msg.textContent = "Rendering in the cloud… (" + String(run.status).replace(/_/g, " ") + ") — ~2–4 min."; return; }

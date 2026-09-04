@@ -7,6 +7,7 @@ import App from './App.jsx'
 import BtcAnalogExplorer from './BtcAnalogExplorer.jsx'
 import Maintenance from './Maintenance.jsx'
 import { isChunkError, recoverStaleChunk } from './chunk-recover.js'
+import './origin-guard.js'   // ⬢ shows a "copy — original at spx6900rainbow.xyz" ribbon if rehosted elsewhere
 
 // Catch a stale-chunk failure at the earliest point (before it reaches a chart's ErrorBoundary) and
 // reload to the fresh build — so a deploy landing mid-session never shows "couldn't be displayed".
