@@ -23,7 +23,7 @@ try {
   if (!ours) {
     try {
       console.log(
-        "%c⬢ SPX6900 City — this is a copy. The original & the live on-chain data are at " + CANON,
+        "%c⬢ SPX6900 Rainbow — this is a copy. The original & the live on-chain data are at " + CANON,
         "color:#38bdf8;font-weight:700;font-size:13px"
       );
     } catch { /* console may be absent */ }
@@ -36,7 +36,7 @@ try {
         a.href = CANON;
         a.target = "_blank";
         a.rel = "noopener";
-        a.textContent = "⬢ SPX6900 City — original & live data at spx6900rainbow.xyz →";
+        a.textContent = "⬢ SPX6900 Rainbow — original & live data at spx6900rainbow.xyz →";
         a.setAttribute("style", [
           "position:fixed", "left:50%", "bottom:0", "transform:translateX(-50%)",
           "z-index:2147483647", "font:600 13px/1.4 system-ui,-apple-system,sans-serif",
