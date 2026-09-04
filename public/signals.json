@@ -1,11 +1,11 @@
 {
-  "date": "2026-09-03",
+  "date": "2026-09-04",
   "signals": [
     {
       "type": "mvrv-trend",
       "emoji": "↗️",
       "title": "Holders clawing back toward break-even",
-      "detail": "MVRV has risen 0.61→1.08 over ~30d — the average holder is less underwater than ~30d ago.",
+      "detail": "MVRV has risen 0.62→1.22 over ~30d — the average holder is less underwater than ~30d ago.",
       "framing": "Direction of the crowd's PnL, not just today's level.",
       "note": "Trend read; don't imply it continues.",
       "card": "breakeven",
@@ -14,18 +14,18 @@
     {
       "type": "drawdown",
       "emoji": "📉",
-      "title": "-76% below its all-time high",
+      "title": "-73% below its all-time high",
       "detail": "Deepest drawdown on record was -92%; it has made new highs after every prior one so far.",
       "framing": "Deep drawdowns are the toll — it's paid them before (no recovery promise).",
       "note": "It's deep and unrecovered NOW; don't imply it always recovers.",
       "card": "underwater",
-      "score": 1.4170782638757935
+      "score": 1.3812981641388657
     },
     {
       "type": "survivorship",
       "emoji": "🪦",
       "title": "80% of all-time holders are gone — 92% of today's never sold to zero",
-      "detail": "Of 26,718 wallets that ever held ≥5k SPX, 5,340 remain (80% churned). Yet 92% of CURRENT holders have never once sold to zero — survivorship.",
+      "detail": "Of 26,724 wallets that ever held ≥5k SPX, 5,340 remain (80% churned). Yet 92% of CURRENT holders have never once sold to zero — survivorship.",
       "framing": "Enormous all-time churn, but the survivors are diamond-handed. The honest \"who's still here\" read.",
       "note": "Right-censoring: recent cohorts read high. \"Gone\" = fell below the 5k bar.",
       "card": "survivorship",
