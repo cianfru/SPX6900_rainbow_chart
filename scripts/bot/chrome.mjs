@@ -35,10 +35,10 @@ export const brandStripe = (H, { w = 7, id = "brandRb", opacity = 0.95 } = {}) =
 // to nothing before it reaches the edges so it never fights the text. Emits its own <defs>.
 //   `…<rect … fill="#05050e"/>${auraBg("#22d3ee", W, H)}${brandStripe(H)}…`
 let _auraSeq = 0;
-export const auraBg = (accent, W = 1200, H = 630, { cx = "50%", cy = "0%", r = "100%", opacity = 0.46, accent2 = null } = {}) => {
+export const auraBg = (accent, W = 1200, H = 630, { cx = "50%", cy = "-6%", r = "70%", opacity = 0.16, accent2 = null } = {}) => {
   const id = `aura${_auraSeq++}`;
   const stops = a => `<stop offset="0%" stop-color="${a}" stop-opacity="${opacity}"/>`
-    + `<stop offset="46%" stop-color="${a}" stop-opacity="${(opacity * 0.5).toFixed(3)}"/>`
+    + `<stop offset="45%" stop-color="${a}" stop-opacity="${(opacity * 0.3).toFixed(3)}"/>`
     + `<stop offset="100%" stop-color="${a}" stop-opacity="0"/>`;
   let defs = `<defs><radialGradient id="${id}" cx="${cx}" cy="${cy}" r="${r}">${stops(accent)}</radialGradient>`;
   let body = `<rect width="${W}" height="${H}" fill="url(#${id})"/>`;

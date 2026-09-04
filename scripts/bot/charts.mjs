@@ -134,21 +134,17 @@ function chromeSvg(spec, inner, extraDefs = "", dims) {
       + (spec.headline ? `<text x="64" y="166" fill="${accent}" font-size="${hlFont}" font-weight="800" font-family="sans-serif" filter="url(#hlShadow)">${esc(spec.headline)}</text>` : "");
   return `<svg width="${DW}" height="${DH}" viewBox="0 0 ${DW} ${DH}" xmlns="http://www.w3.org/2000/svg">
 <defs>
-  <radialGradient id="g" cx="50%" cy="-4%" r="105%">
-    <stop offset="0%" stop-color="${accent}" stop-opacity="0.52"/><stop offset="34%" stop-color="${accent}" stop-opacity="0.20"/><stop offset="72%" stop-color="${accent}" stop-opacity="0.04"/><stop offset="100%" stop-color="${accent}" stop-opacity="0"/>
-  </radialGradient>
-  <radialGradient id="gb" cx="50%" cy="102%" r="78%">
-    <stop offset="0%" stop-color="${accent}" stop-opacity="0.22"/><stop offset="55%" stop-color="${accent}" stop-opacity="0.05"/><stop offset="100%" stop-color="${accent}" stop-opacity="0"/>
+  <radialGradient id="g" cx="50%" cy="-10%" r="62%">
+    <stop offset="0%" stop-color="${accent}" stop-opacity="0.12"/><stop offset="50%" stop-color="${accent}" stop-opacity="0.02"/><stop offset="80%" stop-color="${accent}" stop-opacity="0"/>
   </radialGradient>
   <linearGradient id="ground" x1="0" y1="0" x2="0" y2="1">
-    <stop offset="0%" stop-color="#12121f"/><stop offset="55%" stop-color="#0b0b16"/><stop offset="100%" stop-color="#080810"/>
+    <stop offset="0%" stop-color="#090910"/><stop offset="100%" stop-color="#050509"/>
   </linearGradient>
   <filter id="hlShadow" x="-10%" y="-30%" width="120%" height="180%"><feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="#000000" flood-opacity="0.55"/></filter>
   ${extraDefs}
 </defs>
 <rect width="${DW}" height="${DH}" fill="url(#ground)"/>
 <rect width="${DW}" height="${DH}" fill="url(#g)"/>
-<rect width="${DW}" height="${DH}" fill="url(#gb)"/>
 ${cardDepth(DW, DH)}
 ${brandStripe(DH, { w: 11 })}
 <text x="64" y="52" fill="#cbd5e1" font-size="30" font-weight="800" letter-spacing="3" font-family="sans-serif">SPX6900</text>
