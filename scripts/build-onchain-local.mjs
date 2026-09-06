@@ -96,6 +96,14 @@ export const EXCLUDE_LABELS = {
   // and both cities, counted as liquid supply, aggregated into their venue by canonVenue.
   "0xb51bf9029d778899d42e96ebcdc0498bd061006d": { name: "Wealthsimple", kind: "cex" },
   "0x28c6c06298d514db089934071355e5743bf21d60": { name: "Binance 14", kind: "cex" },
+  // The remaining three the throughput detector flagged, owner-identified 2026-09-06. All were counting
+  // 200k–310k SPX as "whales". Tagged exchange-side (kind:"cex") — the same convention used for the
+  // Wintermute MM: excluded from the holder count + both cities, counted as liquid supply, given their
+  // own liquidity line by canonVenue. The MEV bot is arbitrage inventory, not a conviction holder, so
+  // it belongs out of the resident count just like an MM.
+  "0x67336cec42645f55059eff241cb02ea5cc52ff86": { name: "Bitfinex-linked", kind: "cex" },  // funds a Bitfinex hot wallet
+  "0xeff6cb8b614999d130e537751ee99724d01aa167": { name: "MEV bot", kind: "cex" },           // arbitrage inventory, not a holder
+  "0x67bda3ad12bb8e70db54b32d4613f0d2e9933a36": { name: "OKX (suspected)", kind: "cex" },
   // ── Owner-flagged from the whale-watch list, 2026-08-10 (Etherscan-labelled). Each was showing as a
   //    ≥100k "whale" but is infrastructure. DEX pools → lp, real venues → cex (attributed to their
   //    bucket); a market maker and an MEV bot → "mm" (excluded from holders but attributed to no venue —
