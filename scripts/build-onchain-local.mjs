@@ -88,6 +88,14 @@ export const EXCLUDE_LABELS = {
   // only ~206k SPX (~$66k) — the earlier "~$95M" note was the wallet's TOTAL value/throughput, NOT SPX.
   // USDC-heavy + high activity → Coinbase (owner read); "-linked" so canonVenue aggregates it into Coinbase.
   "0x6fe39f2831caf58529779efdb73341aa64df50ab": { name: "Coinbase-linked", kind: "cex" },
+  // ── Owner-flagged 2026-09-06 (from the whale-watch list). Exchange-side wallets showing as whales. ──
+  // Wealthsimple — Canadian brokerage/custodian holding customer SPX (owner-confirmed); was rank ~#133
+  // at ~727k SPX, quietly distributing. Binance 14 — Binance's main ETH hot wallet (one of the most
+  // labelled addresses on-chain), counting ~395k SPX as a "whale"; surfaced by the CEX-throughput
+  // candidate detector. Both exchange-side → kind:"cex": dropped from the holder count, the whale list
+  // and both cities, counted as liquid supply, aggregated into their venue by canonVenue.
+  "0xb51bf9029d778899d42e96ebcdc0498bd061006d": { name: "Wealthsimple", kind: "cex" },
+  "0x28c6c06298d514db089934071355e5743bf21d60": { name: "Binance 14", kind: "cex" },
   // ── Owner-flagged from the whale-watch list, 2026-08-10 (Etherscan-labelled). Each was showing as a
   //    ≥100k "whale" but is infrastructure. DEX pools → lp, real venues → cex (attributed to their
   //    bucket); a market maker and an MEV bot → "mm" (excluded from holders but attributed to no venue —
